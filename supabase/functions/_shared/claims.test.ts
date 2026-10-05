@@ -17,6 +17,13 @@ describe("buildClaimCard", () => {
     expect(t).toContain("+96171123456");
   });
 });
+describe("buildClaimCard limits", () => {
+  it("caps user-supplied text so the body stays within 1024 characters", () => {
+    const card: any = buildClaimCard("961", { claimId: id, vendorName: "V".repeat(500), contactName: "N".repeat(500), contactPhone: "9617", evidence: "E".repeat(2000) });
+    expect(card.interactive.body.text.length).toBeLessThanOrEqual(1024);
+    expect(card.interactive.body.text).not.toContain("N".repeat(61));
+  });
+});
 describe("parseClaimTap", () => {
   it("parses approve/reject", () => {
     expect(parseClaimTap(`CLAIM|OK|${id}`)).toEqual({ approve: true, claimId: id });

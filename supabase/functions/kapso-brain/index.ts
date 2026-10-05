@@ -545,9 +545,22 @@ async function handleAdmin(c: Ctx, vendor: any, ownerPhone: string, text: string
 
 // Admin taps Approve / Reject on a vendor-claim card (sent by claim-vendor). Only the configured admin number may decide.
 async function handleClaimDecision(c: Ctx, from: string, id: string) {
-  if (!c.admin || from !== c.admin) { console.log("claim tap from a non-admin number ignored"); return; }
   const tap = parseClaimTap(id);
+  if (!c.admin || from !== c.admin) {
+    // no reply (no oracle for outsiders), but an attempt to decide a claim is worth an audit row
+    if (tap) {
+      const { data: cl } = await sb.from("vendor_claims").select("vendor_id").eq("id", tap.claimId).maybeSingle();
+      if (cl) await sb.from("claim_audit_log").insert({ claim_id: tap.claimId, vendor_id: cl.vendor_id, event: "unauthorized_attempt", actor: maskPhone(from), source: "whatsapp_button", details: { wanted: tap.approve ? "approve" : "reject" } });
+    }
+    console.log("claim tap from a non-admin number ignored");
+    return;
+  }
   if (!tap) { await sendText(c, "That claim button isn't valid any more."); return; }
+  if (c.dry) { // dry runs never decide real claims
+    const { data: cl } = await sb.from("vendor_claims").select("status").eq("id", tap.claimId).maybeSingle();
+    await sendText(c, `[dry run] would ${tap.approve ? "approve" : "reject"} claim ${tap.claimId} (current status: ${cl?.status ?? "not found"})`);
+    return;
+  }
   const { data, error } = await sb.rpc("decide_claim", { p_claim_id: tap.claimId, p_approve: tap.approve, p_actor: `admin ${maskPhone(from)}`, p_source: "whatsapp_button" });
   if (error || !data?.ok) { await sendText(c, `⚠️ Couldn't ${tap.approve ? "approve" : "reject"} that claim: ${data?.error ?? error?.message ?? "error"}`); return; }
   await sendText(c, tap.approve
@@ -618,8 +631,8 @@ Deno.serve(async (req) => {
     const given = req.headers.get("x-webhook-secret") ?? new URL(req.url).searchParams.get("key");
     if (given !== WEBHOOK_SECRET) return new Response("unauthorized", { status: 401 });
   }
-  // Dry-run only: lets tests act as the admin without the real admin number (which is a secret).
-  const adminOverride = dry ? req.headers.get("x-selftest-admin") : null;
+  // Staging dry-run only: lets tests act as the admin without the real admin number (a secret). Ignored on production.
+  const adminOverride = dry && new URL(req.url).pathname.includes("kapso-brain-test") ? req.headers.get("x-selftest-admin") : null;
   let body: any; try { body = await req.json(); } catch { return new Response("bad request", { status: 400 }); }
   const events = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
   const out: any[] = [];

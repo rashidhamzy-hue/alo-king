@@ -43,10 +43,9 @@ async function auditClaim(claimId: string, vendorId: string, event: string, deta
   if (error) console.error("claim audit failed", event, error.message);
 }
 
-// Manual review: log the request and send the admin an Approve / Reject card. Never throws.
+// Manual review: send the admin an Approve / Reject card (the request itself is audit-logged by the caller). Never throws.
 // The interactive card needs the admin's 24h window to be open; failures are audit-logged and the claim stays reviewable in /admin.
 async function notifyAdminOfClaim(claimId: string, vendor: { vendor_id: string; name_en: string; village_canonical?: string | null }, contactName: string, contactPhone: string, evidence: string | null) {
-  await auditClaim(claimId, vendor.vendor_id, "requested", { contact_name: contactName });
   const adminPhone = normPhone(ADMIN_PHONE_RAW);
   if (!adminPhone || !KAPSO_TOKEN) { await auditClaim(claimId, vendor.vendor_id, "admin_notify_failed", { reason: !adminPhone ? "ADMIN_WHATSAPP_PHONE not set" : "KAPSO_API_TOKEN not set" }); return; }
   try {
@@ -100,6 +99,7 @@ Deno.serve(async (req) => {
       const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
       const { data: claim, error } = await sb.from("vendor_claims").insert({ vendor_id: vendor.vendor_id, user_id: user.id, contact_name: contactName, contact_phone: contactPhone, evidence_note: evidence, status: "pending_otp", otp_expires_at: new Date(Date.now() + 10 * 60_000).toISOString() }).select("id").single();
       if (error) return json({ error: "Could not start the claim." }, 500);
+      await auditClaim(claim.id, vendor.vendor_id, "requested", { contact_name: contactName, via: "otp" });
       await sb.from("vendor_claims").update({ otp_hash: await sha(`${claim.id}:${code}`) }).eq("id", claim.id);
       if (await sendOtp(target, code)) return json({ status: "otp_sent", claim_id: claim.id, sent_to: mask(target), vendor: vendor.name_en });
       await sb.from("vendor_claims").update({ status: "pending_review", otp_hash: null, otp_expires_at: null }).eq("id", claim.id);
@@ -109,6 +109,7 @@ Deno.serve(async (req) => {
 
     const { data: claim, error } = await sb.from("vendor_claims").insert({ vendor_id: vendor.vendor_id, user_id: user.id, contact_name: contactName, contact_phone: contactPhone, evidence_note: evidence, status: "pending_review" }).select("id").single();
     if (error) return json({ error: "Could not start the claim." }, 500);
+    await auditClaim(claim.id, vendor.vendor_id, "requested", { contact_name: contactName, via: "manual_review" });
     await notifyAdminOfClaim(claim.id, vendor, contactName, contactPhone, evidence);
     return json({ status: "pending_review", claim_id: claim.id, vendor: vendor.name_en });
   }

@@ -8,8 +8,8 @@ export function buildClaimCard(to: string, o: { claimId: string; vendorName: str
   const lines = [
     "🆕 *Vendor claim to review*",
     "",
-    `🏪 *${o.vendorName}*${o.village ? ` · ${o.village}` : ""}`,
-    `👤 ${o.contactName}`,
+    `🏪 *${o.vendorName.slice(0, 80)}*${o.village ? ` · ${o.village}` : ""}`,
+    `👤 ${o.contactName.slice(0, 60)}`,
     `📞 +${o.contactPhone}`,
     ...(o.evidence ? ["", `📝 ${o.evidence.replace(/\s+/g, " ").slice(0, 300)}`] : []),
     "",
