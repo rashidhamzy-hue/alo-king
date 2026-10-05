@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
-import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
+import { isStagingPath, isTestPhone, tightenBudget, beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
 import { clampInteractive, META } from "../_shared/meta-limits.ts";
 import { CHEAP_TOOL_NAMES, cheapRouterEnabled, isDeclaredTool, routeTurn } from "./router.ts";
 import { adminCommand, handoffContext, HANDOFF_FIRST_MINUTES, HANDOFF_HOURS, hasRelayableText, isBotRequest, isHumanRequest, relayText, shouldRelay } from "./handoff.ts";
@@ -64,7 +64,10 @@ function pnidOf(body: any, evt: any): string {
 }
 
 // ---------- outbound ----------
-type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
+// Staging-only (kapso-brain-test + selftest token + dry run): per-request overrides so a capped live check can use a cheaper model, enable the cheap router and shrink the budget. Never honoured in production.
+type StagingOverride = { model?: string; cheap?: boolean; budget?: number };
+const OVERRIDE_MODELS = ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"];
+type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   payload = clampInteractive(payload); // last line of defence: never let an over-long title/body make Meta reject the whole message
   if (dry) { out?.push(payload); return true; }
@@ -76,7 +79,7 @@ async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): P
 // Like rawSend, but also returns the WhatsApp message id (needed to map the admin's replies back to a customer).
 async function rawSendId(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<{ ok: boolean; id?: string }> {
   payload = clampInteractive(payload);
-  if (dry) { out?.push(payload); return { ok: true, id: `dry.${crypto.randomUUID()}` }; }
+  if (dry) { const id = `dry.${crypto.randomUUID()}`; out?.push({ ...payload, _dry_message_id: id }); return { ok: true, id }; } // dry runs expose the id so tests can reply to it
   const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   if (!res.ok) { console.error("Kapso send failed", pnid, res.status, (await res.text()).slice(0, 300)); return { ok: false }; }
   const j = await res.json().catch(() => null);
@@ -879,7 +882,7 @@ async function aiGuard(c: Ctx, phone: string): Promise<Guard> {
     ]);
     if (calls.error || spend.error) { console.error("ai guard check failed (failing open)", calls.error?.message ?? spend.error?.message); return "ok"; }
     const spent = Number(spend.data ?? 0);
-    const g = decideGuard({ phoneCalls: calls.count ?? 0, cap: AI_CALLS_PER_PHONE_HOUR, spentToday: spent, budget: DAILY_AI_BUDGET_USD });
+    const g = decideGuard({ phoneCalls: calls.count ?? 0, cap: AI_CALLS_PER_PHONE_HOUR, spentToday: spent, budget: c.override?.budget ?? DAILY_AI_BUDGET_USD });
     if (g === "budget") await pingBudgetOnce(c, spent);
     return g;
   } catch (e) { console.error("ai guard error (failing open)", String((e as Error)?.message ?? e).slice(0, 200)); return "ok"; }
@@ -887,7 +890,7 @@ async function aiGuard(c: Ctx, phone: string): Promise<Guard> {
 // Tell the admin once per day (the primary key on ai_budget_alerts makes it idempotent). Dry runs never burn the real day's alert.
 async function pingBudgetOnce(c: Ctx, spent: number) {
   const day = beirutDay();
-  const text = budgetAlertText(spent, DAILY_AI_BUDGET_USD);
+  const text = budgetAlertText(spent, c.override?.budget ?? DAILY_AI_BUDGET_USD);
   if (c.dry) { if (c.admin) await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: `[dry run] ${text}` } }, true, c.out); return; }
   // Claim today's alert: the primary key makes the first insert atomic. A failed send (e.g. the admin's 24h window is closed) is retried
   // at most every 10 minutes by re-claiming the row while ping_ok is not true.
@@ -1086,15 +1089,16 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   const system = { static: CSYSTEM, dynamic: `CUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}` };
   let final = "";
   const run = (n: string, i: any) => customerTool(c, phone, n, i);
-  const route = CHEAP_ROUTER_ENABLED ? routeTurn(userText, { pendingCart: ((await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString())).count ?? 0) > 0, fromVoice: c.fromVoice }) : "main";
+  const mainModel = c.override?.model ?? MODEL;
+  const route = (c.override?.cheap ?? CHEAP_ROUTER_ENABLED) ? routeTurn(userText, { pendingCart: ((await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString())).count ?? 0) > 0, fromVoice: c.fromVoice }) : "main";
   try {
     if (route === "cheap") {
       let cheapFailed = false;
       try { final = await llmLoop({ static: system.static, dynamic: system.dynamic + QUICK_MODE_NOTE }, CHEAP_TOOLS, phone, userText, run, { kind: "customer", phone }, CHEAP_MODEL); }
       catch (e) { cheapFailed = true; console.error("cheap model failed, falling back to the main model", String((e as Error)?.message ?? e).slice(0, 160)); }
-      if (cheapFailed && !c.rich) final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone });
-      else if (!cheapFailed && c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }); } // the small model handed over before sending anything
-    } else final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone });
+      if (cheapFailed && !c.rich) final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel);
+      else if (!cheapFailed && c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel); } // the small model handed over before sending anything
+    } else final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel);
   }
   catch (err) { console.error("customer llm error", String((err as Error)?.message ?? err).slice(0, 300)); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
   await maybeOfferAddon(c);
@@ -1453,10 +1457,10 @@ function extract(evt: any) {
   };
 }
 
-async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null) {
+async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null, override?: StagingOverride) {
   const e = extract(evt);
   if (!e.from) return;
-  const c: Ctx = { to: e.from, pnid: pnidOf(body, evt), dry, out, log: [], rich: 0, acq: e.acq, admin: normPhone(dry && adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined };
+  const c: Ctx = { to: e.from, pnid: pnidOf(body, evt), dry, out, log: [], rich: 0, override, acq: e.acq, admin: normPhone(dry && adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined };
   if (e.id) {
     const { error } = await sb.from("processed_messages").insert({ message_id: e.id });
     if (error) { console.log("duplicate, skipping", e.id); return; }
@@ -1508,10 +1512,11 @@ Deno.serve(async (req) => {
   const job = new URL(req.url).searchParams.get("job");
   const isJob = job === "order-watchdog";
   const isInspect = job === "inspect";
+  const isSpend = job === "spend";
   const st = req.headers.get("x-selftest");
   // The staging copy (kapso-brain-test) is for dry-run tests only: it never accepts non-selftest traffic.
-  if (new URL(req.url).pathname.includes("kapso-brain-test") && !st) return new Response("unauthorized", { status: 401 });
-  if (isInspect && (!st || !new URL(req.url).pathname.includes("kapso-brain-test"))) return new Response(st ? "not found" : "unauthorized", { status: st ? 404 : 401 }); // staging only: PII read path
+  if (isStagingPath(new URL(req.url).pathname) && !st) return new Response("unauthorized", { status: 401 });
+  if ((isInspect || isSpend) && (!st || !isStagingPath(new URL(req.url).pathname))) return new Response(st ? "not found" : "unauthorized", { status: st ? 404 : 401 }); // staging only: PII read path
   if (st) {
     const { data: t } = await sb.from("selftest_tokens").select("token").eq("token", st).gt("expires_at", new Date().toISOString()).maybeSingle();
     if (!t) return new Response("unauthorized", { status: 401 });
@@ -1524,18 +1529,34 @@ Deno.serve(async (req) => {
     if (given !== WEBHOOK_SECRET) return new Response("unauthorized", { status: 401 });
   }
   // Staging dry-run only: lets tests act as the admin without the real admin number (a secret). Ignored on production.
-  const adminOverride = dry && new URL(req.url).pathname.includes("kapso-brain-test") ? req.headers.get("x-selftest-admin") : null;
+  const adminOverride = dry && isStagingPath(new URL(req.url).pathname) ? req.headers.get("x-selftest-admin") : null;
+  const onStaging = dry && isStagingPath(new URL(req.url).pathname);
+  const mh = onStaging ? req.headers.get("x-selftest-model") : null, bh = onStaging ? Number(req.headers.get("x-selftest-budget")) : 0;
+  const stagingOverride: StagingOverride | undefined = onStaging ? { model: mh && OVERRIDE_MODELS.includes(mh) ? mh : undefined, cheap: req.headers.get("x-selftest-cheap") === "true" ? true : undefined, budget: tightenBudget(bh, DAILY_AI_BUDGET_USD) } : undefined;
+  if (isSpend) {
+    // Test-only: AI spend of the test phones since a point in time (tokens and USD only, no content), so a capped live run can stop itself.
+    const since = new URL(req.url).searchParams.get("since") ?? new Date(Date.now() - 3600_000).toISOString();
+    const { data: all, error } = await sb.from("ai_call_log").select("id,created_at,customer_phone,model,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens,est_usd,order_id").like("customer_phone", "961700000%").gte("created_at", since).order("id").limit(5000);
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "content-type": "application/json" } }); // never report "0 spent" when the query failed
+    const rows = (all ?? []).filter((r: any) => isTestPhone(String(r.customer_phone))); // the same strict test-phone rule as inspect
+    const spent = rows.reduce((n: number, r: any) => n + Number(r.est_usd), 0);
+    return new Response(JSON.stringify({ spent, calls: rows.length, rows }), { status: 200, headers: { "content-type": "application/json" } });
+  }
   if (isInspect) {
     // Test-only: dump the state of a TEST customer (phones 961700000…) so persona tests can assert on the database.
     const phone = new URL(req.url).searchParams.get("phone") ?? "";
     if (!/^961700000\d{3,6}$/.test(phone)) return new Response("test phones only", { status: 400 });
-    const [cust, orders, carts, baskets] = await Promise.all([
-      sb.from("customers").select("phone_number,full_name,village,last_address,language,marketing_opt_in").eq("phone_number", phone).maybeSingle(),
-      sb.from("orders").select("id,short_code,vendor_id,status,items,subtotal_usd,delivery_fee_usd,total_usd,delivery_village,building_landmark,created_at").eq("customer_phone", phone).order("created_at"),
+    const [cust, orders, carts, baskets, addresses, offers, handoff, conv] = await Promise.all([
+      sb.from("customers").select("phone_number,full_name,village,last_address,last_lat,last_lng,language,marketing_opt_in,opted_out_at,data_consent_at,privacy_notice_version,data_deleted_at,handoff_until,last_inbound_at").eq("phone_number", phone).maybeSingle(),
+      sb.from("orders").select("id,short_code,vendor_id,status,items,subtotal_usd,delivery_fee_usd,total_usd,delivery_village,building_landmark,customer_name,notes,created_at").eq("customer_phone", phone).order("created_at"),
       sb.from("carts").select("id,vendor_id,status,items,subtotal_usd,delivery_fee_usd,total_usd,created_at").eq("customer_phone", phone).order("created_at"),
       sb.from("baskets").select("id,vendor_id,status,basket_lines(item_id,quantity,choices)").eq("customer_phone", phone).order("created_at"),
+      sb.from("customer_addresses").select("id,village,landmark,lat,lng").eq("customer_phone", phone),
+      sb.from("substitution_offers").select("id,order_id,missing_item_id,sub_item_id,status,offered_total_usd").eq("customer_phone", phone),
+      sb.from("handoff_log").select("kind,admin_message_id").eq("customer_phone", phone),
+      sb.from("conversations").select("id", { count: "exact", head: true }).eq("phone", phone),
     ]);
-    return new Response(JSON.stringify({ customer: cust.data, orders: orders.data ?? [], carts: carts.data ?? [], baskets: baskets.data ?? [] }), { status: 200, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ customer: cust.data, orders: orders.data ?? [], carts: carts.data ?? [], baskets: baskets.data ?? [], addresses: addresses.data ?? [], offers: offers.data ?? [], handoff: handoff.data ?? [], conversations: conv.count ?? 0 }), { status: 200, headers: { "content-type": "application/json" } });
   }
   if (isJob) {
     const out: any[] = [];
@@ -1548,7 +1569,7 @@ Deno.serve(async (req) => {
   let body: any; try { body = await req.json(); } catch { return new Response("bad request", { status: 400 }); }
   const events = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
   const out: any[] = [];
-  const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride); } catch (err) { console.error("event error", err); } } })();
+  const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride, stagingOverride); } catch (err) { console.error("event error", err); } } })();
   if (dry) { await work; return new Response(JSON.stringify({ out }), { status: 200, headers: { "content-type": "application/json" } }); }
   // @ts-ignore EdgeRuntime is provided by Supabase
   if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work); else await work;

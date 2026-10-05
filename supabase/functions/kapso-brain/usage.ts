@@ -49,3 +49,15 @@ export const cachedSystem = (staticText: string, dynamicText: string) => [
 export function cachedTools<T extends object>(tools: T[]): (T | (T & { cache_control: typeof EPHEMERAL }))[] {
   return tools.map((t, i) => (i === tools.length - 1 ? { ...t, cache_control: EPHEMERAL } : t));
 }
+
+// ---- staging-only plumbing guards ----
+/** True only when the FIRST path segment (after an optional /functions/v1 prefix) is the staging function: a sub-path of the production function such as /kapso-brain/kapso-brain-test never counts. */
+export const isStagingPath = (pathname: string): boolean => {
+  const seg = String(pathname ?? "").split("/").filter(Boolean);
+  if (seg[0] === "functions" && seg[1] === "v1") seg.splice(0, 2);
+  return seg[0] === "kapso-brain-test";
+};
+/** A staging budget override can only tighten the daily budget, never raise it. */
+export const tightenBudget = (requested: number, daily: number): number | undefined => (Number.isFinite(requested) && requested > 0 ? Math.min(requested, daily) : undefined);
+/** Test phones only: 961700000 + 3 to 6 more digits (12-15 digits, so never a real 11-digit Lebanese number). */
+export const isTestPhone = (p: string): boolean => /^961700000\d{3,6}$/.test(String(p ?? ""));
