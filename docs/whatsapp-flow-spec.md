@@ -151,3 +151,13 @@ Personas: Arabic speaker, English speaker, Arabizi speaker, typo-heavy, voice no
 - **`add_items`**: one call adds every dish of one vendor (`items:[{item_id, quantity, choices?}]`). Prices come from the database, required options are enforced per line, one basket card is sent at the end; a failure note, if any, goes before the card.
 - **No "say nothing" call**: when every tool result in a batch is terminal (the card was already sent), the loop stops instead of calling the model again.
 - **Smaller prompts**: `search_menu` rows are slimmed (no ingredients/nutrition detail/AI notes; allergen facts kept when confirmed), and history is the last 6 messages with long assistant logs clipped.
+
+## 9. Multi-item natural-language ordering (flow item 3)
+"2 shawarma, fries and a Pepsi from X", "badde etneen shawarma w batata w 3 pepsi", "بدي اتنين شاورما و بطاطا و 3 بيبسي" (`orderparse.ts`, pure, no model):
+1. **Parse**: segments split on commas / and / w / و / +; per segment a quantity (digits, `2x`, `x2`, English, Arabic and Arabizi number words, "a couple of") and the dish words; "from / min / من X" names the vendor. Quantity is clamped to 1-20.
+2. **Order intent**: only when the message looks like an order (a quantity, an order verb such as want / badde / بدي / عطيني, or two or more items). A bare "shawarma" or "do you have falafel" is a search, not an order.
+3. **Decide** (`decideOrder`):
+   - every item resolves confidently (score >= 0.8, clear margin) in ONE open vendor with no required options: **add them all, one basket card, no model call**;
+   - two plausible dishes for one item: add the clear ones, ask **ONE short question** with up to 3 buttons (`ADD|vendor|item|qty`), the next tap shows the basket card;
+   - anything else (no match, needs options, closed vendor, no common vendor, weak match): the model gets the matches and asks or searches.
+4. Works in button-only mode too (it costs nothing). Nothing is ordered: the customer still taps **Confirm Order** on the server-built summary. Prices come from the database when the basket is shown.

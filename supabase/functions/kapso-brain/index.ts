@@ -15,6 +15,7 @@ import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESC
 import { buildReadReceipt, shouldAck } from "./receipts.ts";
 import { extractVendorHint, normText, prepareIndex, resolveSegments, skeleton, tokens, type IndexItem } from "./resolve.ts";
 import { agentLoop } from "./loop.ts";
+import { decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
@@ -571,7 +572,7 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
 
 // ---------- RETRIEVAL-FIRST: resolve what the customer typed against the live menu before the model is called ----------
 // One in-memory index of every orderable dish (id, names, vendor, section): ~5k rows, refreshed every 5 minutes per isolate. Prices are never taken from it.
-type MenuIndex = { at: number; items: IndexItem[]; vendors: { vendor_id: string; w: string; s: string }[] };
+type MenuIndex = { at: number; items: IndexItem[]; vendors: { vendor_id: string; w: string; s: string }[]; words: Set<string> };
 let menuIndex: MenuIndex | null = null, menuIndexLoading: Promise<MenuIndex> | null = null, menuIndexFailedAt = 0;
 const MENU_INDEX_TTL_MS = 5 * 60_000, MENU_INDEX_RETRY_MS = 60_000, MENU_INDEX_PAGES = 12;
 async function fetchMenuIndex(): Promise<MenuIndex> {
@@ -584,7 +585,8 @@ async function fetchMenuIndex(): Promise<MenuIndex> {
   const vmap = new Map<string, any>((vr.data ?? []).filter((v: any) => DEMO_MODE || v.is_live).map((v: any) => [v.vendor_id, v]));
   const items: IndexItem[] = pages.flatMap((pg) => pg.data ?? []).filter((r: any) => vmap.has(r.vendor_id)).map((r: any) => { const v = vmap.get(r.vendor_id); return { item_id: r.item_id, vendor_id: r.vendor_id, vendor_name: v.name_en ?? "", vendor_name_ar: v.name_ar ?? "", name_en: r.item_name_en ?? "", name_ar: r.item_name_ar ?? "", section: r.section ?? "", price_usd: Number(r.price_usd), is_popular: !!r.is_popular }; });
   prepareIndex(items);
-  return { at: Date.now(), items, vendors: [...vmap.values()].map((v: any) => ({ vendor_id: v.vendor_id, w: normText(v.name_en ?? ""), s: skeleton(v.name_en ?? "") })) };
+  const words = new Set<string>(); for (const it of items) for (const w of normText(`${it.name_en} ${it.name_ar}`).split(" ")) if (w) words.add(w);
+  return { at: Date.now(), words, items, vendors: [...vmap.values()].map((v: any) => ({ vendor_id: v.vendor_id, w: normText(v.name_en ?? ""), s: skeleton(v.name_en ?? "") })) };
 }
 /** Cached 5 minutes; concurrent cold requests share one load; a failed refresh serves the stale index (and backs off for a minute) instead of failing every message. */
 async function loadMenuIndex(): Promise<MenuIndex> {
@@ -602,7 +604,7 @@ function vendorFromHint(hint: string, vendors: { vendor_id: string; w: string; s
   const hits = vendors.filter((v) => { const ws = v.w.split(" "); return ht.every((t) => ws.some((w) => w === t || (t.length >= 3 && w.startsWith(t))) || (t.length >= 3 && skeleton(t).length >= 3 && ws.some((w) => skeleton(w) === skeleton(t)))); }); // whole words (or a 3+ letter prefix), never a substring of another word
   return hits.length === 1 ? hits[0].vendor_id : null;
 }
-type Resolved = { segment: string; candidates: { item_id: string; vendor_id: string; vendor_name: string; name_en: string; name_ar: string; needs_choices: boolean; open_now: boolean }[] };
+type Resolved = { segment: string; qty: number; candidates: { item_id: string; vendor_id: string; vendor_name: string; name_en: string; name_ar: string; needs_choices: boolean; open_now: boolean; score: number }[] };
 async function resolveMessage(phone: string, text: string): Promise<Resolved[]> {
   const t = String(text ?? "").trim();
   if (!t || t.length > 300 || isGreeting(t) || isYesText(t) || isCancelText(t) || !tokens(t).length) return []; // no menu work for greetings, yes/no and cancel
@@ -619,7 +621,29 @@ async function resolveMessage(phone: string, text: string): Promise<Resolved[]> 
   ]);
   const needs = new Set((cz.data ?? []).filter((r: any) => needsChoices(r)).map((r: any) => `${r.vendor_id}|${r.item_id}`));
   const open = new Map(opens);
-  return segs.map((s) => ({ segment: s.segment, candidates: s.ranked.map((r) => ({ item_id: r.item.item_id, vendor_id: r.item.vendor_id, vendor_name: r.item.vendor_name, name_en: r.item.name_en, name_ar: r.item.name_ar, needs_choices: needs.has(`${r.item.vendor_id}|${r.item.item_id}`), open_now: open.get(r.item.vendor_id) !== false })).sort((a, b) => Number(b.open_now) - Number(a.open_now)) }));
+  return segs.map((s) => ({ segment: s.segment, qty: parseOrder(s.segment, (w) => idx.words.has(w)).segments[0]?.qty ?? 1, candidates: s.ranked.map((r) => ({ item_id: r.item.item_id, vendor_id: r.item.vendor_id, vendor_name: r.item.vendor_name, name_en: r.item.name_en, name_ar: r.item.name_ar, needs_choices: needs.has(`${r.item.vendor_id}|${r.item.item_id}`), open_now: open.get(r.item.vendor_id) !== false, score: r.score })).sort((a, b) => Number(b.open_now) - Number(a.open_now)) }));
+}
+
+// "2 shawarma, fries and a Pepsi from X": when the server can resolve every item with confidence it adds them all (ONE basket card, no model call);
+// when one item is ambiguous it adds the clear ones and asks ONE short question with buttons; otherwise the model gets the matches. Nothing here is an order: the customer still taps Confirm.
+async function tryDeterministicOrder(c: Ctx, phone: string, resolved: Resolved[]): Promise<boolean> {
+  const prefer = new Set((await allBaskets(phone)).map((b) => b.vendor_id));
+  const nm = (x: { name_en: string; name_ar: string }) => (c.ar && x.name_ar ? x.name_ar : x.name_en || x.name_ar);
+  const d = decideOrder(resolved.map((r) => ({ qty: r.qty, query: r.segment, cands: r.candidates.map((x): Cand => ({ item_id: x.item_id, vendor_id: x.vendor_id, name: nm(x), score: x.score, needs_choices: x.needs_choices, open_now: x.open_now })) })), { preferVendors: prefer });
+  if (d.kind === "model") return false;
+  if (d.kind === "add") {
+    const r = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: d.vendorId, items: d.items.map((i) => ({ item_id: i.item_id, quantity: i.quantity })) }));
+    if (!r.ok) return false; // nothing was sent: the model handles it with the matches
+    await maybeOfferAddon(c);
+    return true;
+  }
+  const added: string[] = [];
+  for (const l of d.addNow) { const r = await addLine(phone, d.vendorId, l.item_id, clampQty(l.quantity), []); if (!("error" in r)) added.push(`${l.quantity}× ${l.name}`); }
+  const q = d.question, qty = q.quantity > 1 ? ` ×${q.quantity}` : "";
+  const done = added.length ? tr(c, `\n✅ Added: ${added.join(", ")}`, `\n✅ انضاف: ${added.join("، ")}`) : "";
+  await sendButtons(c, { body: tr(c, `Which one for *${clipTitle(q.query, 40)}*${qty}? 👇${done}`, `أي واحد لـ *${clipTitle(q.query, 40)}*${qty}؟ 👇${done}`),
+    buttons: q.options.map((o) => ({ id: `ADD|${o.vendor_id}|${o.item_id}|${q.quantity}`, title: clipTitle(o.name, 20) })) });
+  return true;
 }
 
 const ESCALATE_TOOL = { name: "needs_full_assistant", description: "Quick mode only: call this when the customer wants to order, change a basket, confirm, cancel, complain, or anything beyond answering a simple question. Call it BEFORE sending any card or text; then reply with nothing.", input_schema: { type: "object", properties: {} } };
@@ -1163,6 +1187,12 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     }
   }
   const { data: prof } = await sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle();
+  let resolved: Resolved[] = [];
+  if (!reply && !loc) { try { resolved = await resolveMessage(phone, userText); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
+  if (resolved.length && hasOrderIntent(userText)) { // free: no model call, so it also works in button-only mode
+    try { if (await tryDeterministicOrder(c, phone, resolved)) { await remember(phone, userText, c.log.join("\n")); return; } }
+    catch (e) { console.error("deterministic order failed, falling back to the model", String((e as Error)?.message ?? e).slice(0, 160)); }
+  }
   const guard = await aiGuard(c, phone);
   if (guard !== "ok") {
     // Button-only mode: a plain typed "yes" still confirms when exactly one summary is waiting (the customer's own act, in a later turn than the summary).
@@ -1172,8 +1202,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     }
     await sendButtonOnly(c, phone, guard, !!loc); await remember(phone, userText, c.log.join("\n")); return;
   }
-  let matches = "";
-  if (!reply && !loc) { try { matches = matchesNote(await resolveMessage(phone, userText)); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
+  const matches = matchesNote(resolved);
   const system = { static: CSYSTEM, dynamic: `CUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}` };
   const modelText = matches ? `${userText}\n\n${matches}` : userText; // the matches ride on the customer turn as labelled data; chat history stores only what the customer said
   let final = "";
