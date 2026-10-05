@@ -1,7 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
-import { basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
+import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
+import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
@@ -13,6 +14,9 @@ const WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET") ?? "";
 // Shared secret for the scheduled order-watchdog job (?job=order-watchdog); the job is disabled while this is unset.
 const WATCHDOG_SECRET = Deno.env.get("WATCHDOG_SECRET") ?? "";
 const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5";
+// Cost guards (flow spec §cost): daily AI budget in USD (Asia/Beirut day) and a per-phone cap on Anthropic calls per rolling hour.
+const DAILY_AI_BUDGET_USD = parseBudget(Deno.env.get("DAILY_AI_BUDGET_USD"));
+const AI_CALLS_PER_PHONE_HOUR = parseCap(Deno.env.get("AI_CALLS_PER_PHONE_HOUR"));
 const DEFAULT_PNID = Deno.env.get("KAPSO_DEFAULT_PHONE_NUMBER_ID") ?? "1384772384720496";
 const DEMO_MODE = (Deno.env.get("ALO_DEMO_MODE") ?? "true") !== "false";
 // Approved marketing templates, one per customer language (each has an opt-out quick reply).
@@ -112,17 +116,32 @@ async function transcribe(audioUrl: string): Promise<string | null> {
   } catch (e) { console.error("transcribe error", e); return null; }
 }
 
-async function llmLoop(system: string, tools: any[], historyKey: string, userText: string, run: (n: string, i: any) => Promise<string>): Promise<string> {
+// One row per API call: tokens and estimated USD only, never message content. Failures to log must never break a reply.
+async function logAiCall(meta: { kind: "customer" | "owner"; phone?: string }, usage: any, servedModel?: string) {
+  const model = String(servedModel || MODEL);
+  const usd = estimateUsd(model, usage ?? {});
+  console.log(JSON.stringify({ ai_usage: { kind: meta.kind, model, in: usage?.input_tokens ?? 0, out: usage?.output_tokens ?? 0, cache_read: usage?.cache_read_input_tokens ?? 0, cache_write: usage?.cache_creation_input_tokens ?? 0, est_usd: Number(usd.toFixed(6)) } }));
+  const { error } = await sb.from("ai_call_log").insert({ day: beirutDay(), kind: meta.kind, customer_phone: meta.kind === "customer" ? meta.phone ?? null : null, model,
+    input_tokens: usage?.input_tokens ?? 0, output_tokens: usage?.output_tokens ?? 0, cache_read_tokens: usage?.cache_read_input_tokens ?? 0, cache_write_tokens: usage?.cache_creation_input_tokens ?? 0, est_usd: usd });
+  if (error) console.error("ai_call_log insert failed", error.message);
+}
+
+// `system.static` is the cached prefix (tools -> static system); `system.dynamic` (customer profile, language) comes after the breakpoint.
+async function llmLoop(system: { static: string; dynamic: string }, tools: any[], historyKey: string, userText: string, run: (n: string, i: any) => Promise<string>, meta: { kind: "customer" | "owner"; phone?: string }): Promise<string> {
   const { data: hist } = await sb.from("conversations").select("role,content").eq("phone", historyKey).order("id", { ascending: false }).limit(12);
   const messages: any[] = (hist ?? []).reverse().map((h) => ({ role: h.role, content: h.content }));
   messages.push({ role: "user", content: userText });
   while (messages.length && messages[0].role !== "user") messages.shift();
   let final = "";
+  let useCache = true; // safety net: if the API ever rejects the cache_control shape, retry once uncached rather than failing customers
   for (let i = 0; i < 7; i++) {
-    const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1000, system, tools, messages }) });
-    const data = await res.json();
+    const call = () => fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: MODEL, max_tokens: 1000, system: useCache ? cachedSystem(system.static, system.dynamic) : `${system.static}\n\n${system.dynamic}`, tools: useCache ? cachedTools(tools) : tools, messages }) });
+    let res = await call();
+    let data = await res.json();
+    if (res.status === 400 && useCache && /cache_control/i.test(JSON.stringify(data))) { console.error("cache_control rejected; retrying without caching"); useCache = false; res = await call(); data = await res.json(); }
     if (!res.ok) { console.error("Anthropic error", res.status, JSON.stringify(data)); throw new Error(`anthropic ${res.status}: ${String(data?.error?.type ?? "")} ${String(data?.error?.message ?? "").slice(0, 160)}`); }
+    await logAiCall(meta, data.usage, data.model);
     messages.push({ role: "assistant", content: data.content });
     const uses = (data.content ?? []).filter((b: any) => b.type === "tool_use");
     final = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
@@ -253,6 +272,7 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
   if (error) { await sb.from("carts").update({ status: "pending" }).eq("id", cart.id); if (cart.basket_id) await sb.from("baskets").update({ status: "active" }).eq("id", cart.basket_id); await sendText(c, "Small hiccup placing that — please tap Confirm again in a moment 🙏"); return "order error"; }
   const track = TRACK_BASE ? `\n🔗 Track live: ${TRACK_BASE}/${order.id}` : "";
   await sendText(c, `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\nThe kitchen is confirming it now — I'll keep you posted. 👑`);
+  await sb.from("ai_call_log").update({ order_id: order.id }).eq("customer_phone", phone).is("order_id", null).gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()); // cost per confirmed order (calls in the last 24h)
   try { await notifyVendor(c, order, b, cart, cust?.full_name ?? "Customer"); } catch (e) { console.error("vendor notify failed", e); }
   const { data: me } = await sb.from("customers").select("opted_in_at,opted_out_at").eq("phone_number", phone).maybeSingle();
   if (me && !me.opted_in_at && !me.opted_out_at) {
@@ -566,6 +586,52 @@ async function reorderLast(c: Ctx, phone: string, orderId: string, fallback: Lan
   if (res.error) await sendText(c, ar ? `ما قدرت أعيد هالطلب (${res.error}) 🙏 خبرني شو بدك بداله.` : `I couldn't repeat that order (${res.error}) 🙏 Tell me what you'd like instead.`);
 }
 
+// ---------- COST GUARDS: per-phone hourly cap and a global daily budget switch the customer bot to button-only mode ----------
+async function aiGuard(c: Ctx, phone: string): Promise<Guard> {
+  try {
+    const since = new Date(Date.now() - 3600_000).toISOString();
+    const [calls, spend] = await Promise.all([
+      sb.from("ai_call_log").select("id", { count: "exact", head: true }).eq("kind", "customer").eq("customer_phone", phone).gte("created_at", since),
+      sb.rpc("ai_spend", { p_day: beirutDay() }),
+    ]);
+    if (calls.error || spend.error) { console.error("ai guard check failed (failing open)", calls.error?.message ?? spend.error?.message); return "ok"; }
+    const spent = Number(spend.data ?? 0);
+    const g = decideGuard({ phoneCalls: calls.count ?? 0, cap: AI_CALLS_PER_PHONE_HOUR, spentToday: spent, budget: DAILY_AI_BUDGET_USD });
+    if (g === "budget") await pingBudgetOnce(c, spent);
+    return g;
+  } catch (e) { console.error("ai guard error (failing open)", String((e as Error)?.message ?? e).slice(0, 200)); return "ok"; }
+}
+// Tell the admin once per day (the primary key on ai_budget_alerts makes it idempotent). Dry runs never burn the real day's alert.
+async function pingBudgetOnce(c: Ctx, spent: number) {
+  const day = beirutDay();
+  const text = budgetAlertText(spent, DAILY_AI_BUDGET_USD);
+  if (c.dry) { if (c.admin) await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: `[dry run] ${text}` } }, true, c.out); return; }
+  // Claim today's alert: the primary key makes the first insert atomic. A failed send (e.g. the admin's 24h window is closed) is retried
+  // at most every 10 minutes by re-claiming the row while ping_ok is not true.
+  const { error } = await sb.from("ai_budget_alerts").insert({ day, spent_usd: spent, budget_usd: DAILY_AI_BUDGET_USD });
+  if (error) {
+    if (error.code !== "23505") { console.error("budget alert insert failed", error.message); return; }
+    const { data: reclaimed } = await sb.from("ai_budget_alerts").update({ pinged_at: new Date().toISOString(), spent_usd: spent }).eq("day", day).or("ping_ok.is.null,ping_ok.eq.false").lt("pinged_at", new Date(Date.now() - 10 * 60_000).toISOString()).select("day");
+    if (!reclaimed?.length) return;
+  }
+  const ok = c.admin ? await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: text } }, false, c.out) : false;
+  await sb.from("ai_budget_alerts").update({ ping_ok: ok }).eq("day", day);
+  if (!ok) console.error("budget alert not delivered (ADMIN_WHATSAPP_PHONE unset or its 24h window closed); will retry");
+}
+async function sendButtonOnly(c: Ctx, phone: string, why: Guard, hasLoc = false) {
+  const last = await lastOrder(phone);
+  const { count: waiting } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString());
+  const base = why === "budget"
+    ? tr(c, "I'm in quick mode right now 🙏 Please use the buttons below.", "أنا بالوضع السريع هلأ 🙏 استعمل الأزرار تحت.")
+    : tr(c, "That's a lot of messages in a short time 🙏 Give me a few minutes, or use the buttons below.", "رسائل كتير بوقت قصير 🙏 استنى كم دقيقة، أو استعمل الأزرار تحت.");
+  const hint = waiting ? tr(c, "\nYour order is waiting: tap *Confirm Order* on its summary.", "\nطلبك بالانتظار: اضغط *تأكيد الطلب* على ملخصه.") : "";
+  await sendButtons(c, { body: base + hint, buttons: [
+    { id: "BASKET", title: tr(c, "🧺 My basket", "🧺 سلتي") },
+    ...(hasLoc ? [] : [{ id: "LOC", title: tr(c, "📍 Share location", "📍 شارك موقعك") }]),
+    ...(last ? [{ id: `REORDER|${last.id}`, title: tr(c, "🔁 Reorder", "🔁 أعد الطلب") }] : []),
+  ] });
+}
+
 async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: string; title: string } | null, loc: any | null) {
   await sb.from("customers").upsert({ phone_number: phone }, { onConflict: "phone_number", ignoreDuplicates: true });
   const lang = detectLanguage(text);
@@ -650,9 +716,18 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     }
   }
   const { data: prof } = await sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle();
-  const system = `${CSYSTEM}\n\nCUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}`;
+  const guard = await aiGuard(c, phone);
+  if (guard !== "ok") {
+    // Button-only mode: a plain typed "yes" still confirms when exactly one summary is waiting (the customer's own act, in a later turn than the summary).
+    if (!reply && !loc && isYesText(userText)) {
+      const { count } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString());
+      if (count === 1) { await confirmCart(c, phone); await remember(phone, userText, c.log.join("\n")); return; }
+    }
+    await sendButtonOnly(c, phone, guard, !!loc); await remember(phone, userText, c.log.join("\n")); return;
+  }
+  const system = { static: CSYSTEM, dynamic: `CUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}` };
   let final = "";
-  try { final = await llmLoop(system, CTOOLS, phone, userText, (n, i) => customerTool(c, phone, n, i)); }
+  try { final = await llmLoop(system, CTOOLS, phone, userText, (n, i) => customerTool(c, phone, n, i), { kind: "customer", phone }); }
   catch (err) { console.error("customer llm error", String((err as Error)?.message ?? err).slice(0, 300)); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
   await maybeOfferAddon(c);
   if (final && !c.rich) await sendText(c, final); // never add text after cards/buttons
@@ -842,9 +917,9 @@ async function handleAdmin(c: Ctx, vendor: any, ownerPhone: string, text: string
   const userText = text || reply?.title || "";
   if (!userText) return;
   c.ar = hasArabic(userText);
-  const system = `${ASYSTEM(vendor)}\n\nLANGUAGE FOR THIS REPLY: the owner's latest message is ${c.ar ? "in Arabic script, so reply in Levantine Arabic" : "not in Arabic script; reply in the same language as that message (English, French or Arabizi)"}.`;
+  const system = { static: ASYSTEM(vendor), dynamic: `LANGUAGE FOR THIS REPLY: the owner's latest message is ${c.ar ? "in Arabic script, so reply in Levantine Arabic" : "not in Arabic script; reply in the same language as that message (English, French or Arabizi)"}.` };
   let final = "";
-  try { final = await llmLoop(system, ATOOLS, key, `${userText}\n\n${c.ar ? "[Reply in Arabic.]" : "[Reply in the same language as the message above, not the language of earlier messages.]"}`, (n, i) => adminTool(c, vendor, ownerPhone, n, i)); }
+  try { final = await llmLoop(system, ATOOLS, key, `${userText}\n\n${c.ar ? "[Reply in Arabic.]" : "[Reply in the same language as the message above, not the language of earlier messages.]"}`, (n, i) => adminTool(c, vendor, ownerPhone, n, i), { kind: "owner" }); }
   catch { final = tr(c, "Technical hiccup — please resend that in a moment 🙏", "في مشكلة تقنية بسيطة — ابعتها كمان شوي 🙏"); }
   final = final.replace(/[\u200e\u200f\u202a-\u202e\s]/g, "") ? final : ""; // RTL marks / whitespace alone are not a reply
   if (final && !c.rich) await sendText(c, final); // never add text after cards/buttons
