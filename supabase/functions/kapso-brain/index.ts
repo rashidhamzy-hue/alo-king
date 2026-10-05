@@ -15,6 +15,7 @@ import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESC
 import { buildReadReceipt, shouldAck } from "./receipts.ts";
 import { extractVendorHint, normText, prepareIndex, resolveSegments, skeleton, tokens, type IndexItem } from "./resolve.ts";
 import { agentLoop } from "./loop.ts";
+import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, parseNumberedTap } from "./numbered.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
@@ -73,7 +74,7 @@ function pnidOf(body: any, evt: any): string {
 // Staging-only (kapso-brain-test + selftest token + dry run): per-request overrides so a capped live check can use a cheaper model, enable the cheap router and shrink the budget. Never honoured in production.
 type StagingOverride = { model?: string; cheap?: boolean; budget?: number };
 const OVERRIDE_MODELS = ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"];
-type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
+type Ctx = { listSend?: boolean; quickCleared?: boolean; quickDel?: Promise<unknown>; to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   payload = clampInteractive(payload); // last line of defence: never let an over-long title/body make Meta reject the whole message
   if (dry) { out?.push(payload); timerStore.getStore()?.markFirstSend(); return true; }
@@ -96,7 +97,11 @@ async function rawSendId(pnid: string, payload: any, dry: boolean, out?: any[]):
   return { ok: true, id };
 }
 const envl = (to: string) => ({ messaging_product: "whatsapp", recipient_type: "individual", to });
-const post = (c: Ctx, p: any) => rawSend(c.pnid, p, c.dry, c.out);
+// A numbered list is only "live" until the bot sends anything else to the customer: the first other outgoing message in a turn drops it (best effort, finished before the turn ends).
+const post = (c: Ctx, p: any) => {
+  if (!c.listSend && !c.quickCleared) { c.quickCleared = true; c.quickDel = Promise.resolve(sb.from("quick_menus").delete().eq("customer_phone", c.to)).then((r: any) => { if (r?.error && r.error.code !== "42P01") console.error("quick_menus clear failed", r.error.message); }); timerStore.getStore()?.background(c.quickDel); }
+  return rawSend(c.pnid, p, c.dry, c.out);
+};
 
 async function sendText(c: Ctx, body: string) {
   c.log.push(body);
@@ -194,7 +199,7 @@ const CTOOLS = [
     input_schema: { type: "object", properties: { vendor_id: { type: "string" } }, required: ["vendor_id"] } },
   { name: "present_offer", description: "Show ONE recommended dish to the customer as a rich WhatsApp card with buttons [Order Now (price)] [See Full Menu] [Change Location]. Use this for every recommendation (call up to 3 times for 3 options). Server adds the real price. Put your concierge pitch in body; do not write a separate text message afterwards.",
     input_schema: { type: "object", properties: { vendor_id: { type: "string" }, item_id: { type: "string" }, body: { type: "string", description: "2-4 short lines, confident and appetizing, in the customer's language. Mention vendor name, why it fits, key macros with ~ if relevant. No prices (added automatically), no disclaimers." } }, required: ["vendor_id", "item_id", "body"] } },
-  { name: "show_menu", description: "Show a vendor's menu as a category list the customer can tap through (use when they ask for the menu / what a restaurant has).", input_schema: { type: "object", properties: { vendor_id: { type: "string" } }, required: ["vendor_id"] } },
+  { name: "show_menu", description: "Show a vendor's popular dishes as a numbered list with prices (the customer replies with numbers like 1x2, 3; a Categories button opens the category tree). Use when they ask for the menu / what a restaurant has.", input_schema: { type: "object", properties: { vendor_id: { type: "string" } }, required: ["vendor_id"] } },
   { name: "request_human", description: "Hand the conversation to a person on the Alo King team (complaints, refunds, allergies you cannot resolve, anything the customer wants a human for). Forwards the context to the team; the bot then stays quiet. Reply with nothing after it.", input_schema: { type: "object", properties: { reason: { type: "string", description: "Short reason, max 120 chars" } }, required: ["reason"] } },
   { name: "basket_add", description: "Add a dish to the customer's basket for that vendor (each vendor has its own basket; a second vendor simply creates a second basket). Adding the same dish again increases its quantity. The server shows the updated basket card with real prices; say nothing after it. If it errors (required options missing, closed vendor, unavailable), explain briefly and ask.",
     input_schema: { type: "object", properties: { vendor_id: { type: "string" }, item_id: { type: "string" }, quantity: { type: "integer" }, choices: { type: "array", items: { type: "object", properties: { group: { type: "string" }, option: { type: "string" } }, required: ["group", "option"] } } }, required: ["vendor_id", "item_id", "quantity"] } },
@@ -644,6 +649,41 @@ async function tryDeterministicOrder(c: Ctx, phone: string, resolved: Resolved[]
   return true;
 }
 
+// ---------- NUMBERED QUICK-ORDER: "See Full Menu" = popular dishes as a numbered list; "1x2, 3, 5" / "1 1 3" become basket lines with no model call ----------
+async function sendNumberedMenu(c: Ctx, phone: string, vendorId: string, page = 0, silentIfMissing = false): Promise<boolean> {
+  const [menu, vname] = await Promise.all([vendorMenu(vendorId), vendorName(vendorId)]);
+  const ordered = orderForList(menu);
+  if (!ordered.length) { if (!silentIfMissing) await sendText(c, tr(c, "I'll pull up that menu for you — what are you in the mood for? 🍽", "رح جيبلك المنيو — شو مشتهي؟ 🍽")); return false; }
+  let p = page, pg = buildNumberedPage({ vendorName: vname, items: ordered, page: p, ar: !!c.ar, both });
+  if (!pg.shown.length) { p = 0; pg = buildNumberedPage({ vendorName: vname, items: ordered, page: 0, ar: !!c.ar, both }); } // past the last page: back to the first
+  const buttons = [...(pg.hasMore ? [{ id: numberedTapId(vendorId, p + 1), title: tr(c, "➕ More dishes", "➕ كمان أصناف") }] : []), { id: `CATS|${vendorId}`, title: tr(c, "📋 Categories", "📋 الأقسام") }, { id: "BASKET", title: tr(c, "🧺 My basket", "🧺 سلتي") }];
+  await c.quickDel; // an earlier clear in this turn must land BEFORE the new list is stored
+  const { error } = await sb.from("quick_menus").upsert({ customer_phone: phone, vendor_id: vendorId, page: p, item_ids: pg.shown.map((x) => x.item_id), expires_at: new Date(Date.now() + 5 * 60_000).toISOString() }, { onConflict: "customer_phone" }); // the numbers on screen must be remembered first
+  if (error) { console.error("quick_menus upsert failed, showing the category list instead", error.message); return await sendMenu(c, vendorId, silentIfMissing); }
+  c.listSend = true; c.quickCleared = true; // this IS the list: it must not clear itself
+  try { await sendButtons(c, { body: pg.body, headerText: vname, buttons }); } finally { c.listSend = false; }
+  return true;
+}
+// A reply made only of numbers ("1x2, 3, 5", "1 1 3", "more") while a numbered list is on screen. Strict grammar; anything else goes to the normal flow.
+async function handleNumberedReply(c: Ctx, phone: string, text: string): Promise<boolean> {
+  if (parseNumberedReply(text, 12).kind === "none") return false; // pure pre-check: no database work for ordinary messages
+  const { data: qm } = await sb.from("quick_menus").select("vendor_id,page,item_ids,expires_at").eq("customer_phone", phone).maybeSingle();
+  if (!qm || new Date(qm.expires_at) <= new Date()) return false; // gone as soon as the bot sent anything else, or after 5 minutes
+  const n = (qm.item_ids as string[]).length, r = parseNumberedReply(text, n);
+  if (r.kind === "none") return false;
+  if (r.kind === "more") { await sendNumberedMenu(c, phone, qm.vendor_id, qm.page + 1); return true; }
+  if (r.kind === "invalid") { c.quickCleared = true; /* the list stays live so the corrected reply works */ await sendText(c, tr(c, `Pick numbers from 1 to ${n}, for example *1x2, 3* 🙏`, `اختار أرقام من 1 لـ ${n}، مثلاً *1x2, 3* 🙏`)); return true; }
+  const wanted = r.lines.map((l) => ({ item_id: (qm.item_ids as string[])[l.n - 1], quantity: l.qty }));
+  const { data: rows } = await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,customizations").eq("vendor_id", qm.vendor_id).in("item_id", wanted.map((w) => w.item_id));
+  const byId = new Map((rows ?? []).map((x: any) => [x.item_id, x]));
+  const choice = wanted.filter((w) => needsChoices(byId.get(w.item_id) ?? {})), plain = wanted.filter((w) => !choice.includes(w));
+  if (choice.length > 1) c.quickCleared = true; // the customer is told to send the remaining numbers again: the list must survive. A plain order consumes the list (Add more reopens it), so a later "3" is never read as a dish.
+  if (choice.length > 1) await sendText(c, tr(c, `⚙ ${choice.slice(1).map((w) => itemName(c, byId.get(w.item_id) ?? { item_id: w.item_id })).join(", ")} need options: send ${choice.length > 2 ? "their numbers" : "its number"} again after this one 🙏`, `⚙ ${choice.slice(1).map((w) => itemName(c, byId.get(w.item_id) ?? { item_id: w.item_id })).join("، ")} إلها خيارات: ابعت ${choice.length > 2 ? "أرقامها" : "رقمها"} بعد هيدا 🙏`));
+  if (plain.length) { const res = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: qm.vendor_id, items: plain })); if (res.ok) await maybeOfferAddon(c); }
+  if (choice.length) { const w = choice[0]; const row = byId.get(w.item_id); if (row && !tapSupported(row)) await sendItemCard(c, qm.vendor_id, w.item_id); else await sendCzStep(c, phone, qm.vendor_id, w.item_id, w.quantity, []); }
+  return true;
+}
+
 const ESCALATE_TOOL = { name: "needs_full_assistant", description: "Quick mode only: call this when the customer wants to order, change a basket, confirm, cancel, complain, or anything beyond answering a simple question. Call it BEFORE sending any card or text; then reply with nothing.", input_schema: { type: "object", properties: {} } };
 const CHEAP_TOOLS = [...CTOOLS.filter((t: any) => CHEAP_TOOL_NAMES.includes(t.name)), ESCALATE_TOOL];
 const QUICK_MODE_NOTE = "\n\nQUICK MODE: you only answer simple informational questions (greetings, what's good, menus, hours, delivery info) using the read-only tools. If the customer wants to order, change a basket, confirm, cancel, or has a problem, call needs_full_assistant first and reply with nothing.";
@@ -673,7 +713,7 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
       c.escalate = true; return JSON.stringify({ ok: true, instruction: "Reply with nothing." });
     }
     if (name === "request_human") { await startHandoff(c, phone, String(input.reason ?? "model escalation").slice(0, 160)); return JSON.stringify({ ok: true, instruction: "The customer was already told. Reply with nothing." }); }
-    if (name === "show_menu") return showMenuResult(await sendMenu(c, String(input.vendor_id ?? ""), true)); // an unknown vendor is an error for the model, not a filler message to the customer
+    if (name === "show_menu") return showMenuResult(await sendNumberedMenu(c, phone, String(input.vendor_id ?? ""), 0, true)); // an unknown vendor is an error for the model, not a filler message to the customer
     if (["basket_add", "add_items", "basket_set", "basket_show", "basket_clear", "cancel_pending", "checkout"].includes(name)) return await basketTool(c, phone, name, input);
     if (name === "confirm_order") {
       // Law 81/2018: confirmation must be the customer's own act. A summary sent this turn can only be confirmed by a later message.
@@ -911,6 +951,7 @@ async function forgetCustomer(c: Ctx, phone: string, scope: "all" | "address") {
     const wipe = { last_address: null, village: null, last_lat: null, last_lng: null };
     const addrs = ok<any[]>(await sb.from("customer_addresses").delete().eq("customer_phone", phone).select("lat")) ?? [];
     const addresses = addrs.length, pins = addrs.filter((a: any) => a.lat != null).length;
+    { const q = await sb.from("quick_menus").delete().eq("customer_phone", phone); if (q.error && q.error.code !== "42P01") throw new Error(q.error.message); } // a missing table (migration not applied yet) must not block deletion
     const carts = (ok<any[]>(await sb.from("carts").delete().eq("customer_phone", phone).select("id")) ?? []).length; // summaries carry the address, notes and items
     const { data: before } = await sb.from("customers").select("full_name").eq("phone_number", phone).maybeSingle();
     let baskets = 0, voice = 0, chats = 0, ordersAnonymised = 0;
@@ -1109,7 +1150,9 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       await maybeOfferAddon(c);
       await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return;
     }
-    if (kind === "MENU") { await sendMenu(c, a); await remember(phone, `[tapped See Full Menu]`, c.log.join("\n")); return; }
+    if (kind === "MENU") { await sendNumberedMenu(c, phone, a); await remember(phone, `[tapped See Full Menu]`, c.log.join("\n")); return; }
+    const nt = parseNumberedTap(tag);
+    if (nt) { await sendNumberedMenu(c, phone, nt.vendorId, nt.page); await remember(phone, `[tapped More dishes]`, c.log.join("\n")); return; }
     if (kind === "LOC") { await askLocation(c, "📍 Share your location and I'll find the best spots near you.\nشاركني موقعك وبدلك على أحلى الأماكن حدّك.\n\n_Tap the button below._"); await remember(phone, `[tapped Change Location]`, c.log.join("\n")); return; }
     if (kind === "OPTIN") {
       const yes = a === "1";
@@ -1184,6 +1227,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       await remember(phone, userText, c.log.join("\n")); return;
     }
   }
+  if (!reply && !loc && await handleNumberedReply(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "1x2, 3": no model, no search
   const { data: prof } = await sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle();
   let resolved: Resolved[] = [];
   if (!reply && !loc) { try { resolved = await resolveMessage(phone, userText); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
@@ -1454,6 +1498,7 @@ async function anonymiseDeletedCustomersOrders() {
 async function purgeStale() {
   await anonymiseDeletedCustomersOrders();
   await sb.from("handoff_log").delete().lt("created_at", new Date(Date.now() - 30 * 24 * 3600_000).toISOString()); // retention: customer phones in the handoff map
+  await sb.from("quick_menus").delete().lt("expires_at", new Date().toISOString());
   const [v, l] = await Promise.all([
     sb.from("pending_voice").delete().lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()),
     sb.from("ai_call_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
