@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildOtpPayload } from "./otp.ts";
 import { buildClaimCard } from "../_shared/claims.ts";
+import { clampInteractive } from "../_shared/meta-limits.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const PNID = Deno.env.get("KAPSO_DEFAULT_PHONE_NUMBER_ID") ?? "1384772384720496";
@@ -51,7 +52,7 @@ async function notifyAdminOfClaim(claimId: string, vendor: { vendor_id: string; 
   try {
     const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${PNID}/messages`, {
       method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" },
-      body: JSON.stringify(buildClaimCard(adminPhone, { claimId, vendorName: vendor.name_en, village: vendor.village_canonical, contactName, contactPhone, evidence })),
+      body: JSON.stringify(clampInteractive(buildClaimCard(adminPhone, { claimId, vendorName: vendor.name_en, village: vendor.village_canonical, contactName, contactPhone, evidence }))),
     });
     await auditClaim(claimId, vendor.vendor_id, res.ok ? "admin_notified" : "admin_notify_failed", res.ok ? {} : { status: res.status });
   } catch (_e) { await auditClaim(claimId, vendor.vendor_id, "admin_notify_failed", { reason: "network error" }); }
