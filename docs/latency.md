@@ -56,3 +56,25 @@ Real production traffic is tiny (2 customers, 2 real orders, 1 real customer wit
 | Whole dry-run turn (db + model, sends skipped) | `kapso-brain-test` function logs | 4.8 s | 21.3 s | 635 requests (test traffic) |
 
 **Reading:** a tap needs no model at all and still takes about 10 s. About 6-7 s of that is Kapso's 5 s buffer window before our function is even called, so roughly 3-4 s is ours (sequential database round trips plus the Kapso send). A free-text turn adds 3-5 model calls (about 9 s). Database vs send time inside the handler cannot be separated from existing logs; the `turn_timing` line added with this document records it from now on.
+
+## Where the seconds go (live run, 5 Oct 2026, staging, after items 0-6)
+
+Per-turn `turn_timing` from the capped live run (19 turns; dry run, so sends are not timed; handler time excludes Kapso's buffer window). **Database round trips dominate everything**:
+
+| Turn | model calls | db queries | db time | model time | handler total |
+|---|---|---|---|---|---|
+| tap: See Full Menu / More dishes | 0 | 9 | 4.8-5.9 s | 0 | 4.1-5.3 s |
+| tap: Edit / basket line | 0 | 10 | 4.9-5.7 s | 0 | 4.7-5.0 s |
+| numbered reply `1x2, 2` | 0 | 34 | 15.8 s | 0 | 15.2 s |
+| typed `make it 3` | 0 | 18 | 8.3 s | 0 | 8.1 s |
+| EN multi-item (3 dishes, deterministic) | 0 | 39 | 23.3 s (parallel overlap) | 0 | 12.5 s |
+| free text that needed the model | 1-3 | 31-70 | 17-30 s | 3-8 s | 13-19 s |
+
+About **0.45-0.65 s per database query** in these turns (tap rows: 9 queries in 4.8-5.9 s; the 34-query turn: 15.8 s), against a normal 10-50 ms. "db time" is summed over queries, so parallel queries can make it exceed the handler total. Cause: the project database is in **ap-northeast-1 (Tokyo)** while the function runs near the caller (production `kapso-brain` ran in us-west-2 / us-east-1; the live run's caller was us-east-1), so every query crosses an ocean. Diagnostic with **no model calls** (4 button taps, same phone, same code):
+
+| | region | handler total | db queries | db time |
+|---|---|---|---|---|
+| default (nearest to caller) | us-east-1 | 2.5 / 3.7 / 4.4 s | 9 / 8 / 9 | 2.7 / 3.9 / 4.6 s |
+| `?forceFunctionRegion=ap-northeast-1` | ap-northeast-1 | **0.50 / 0.37 / 0.43 s** | 9 / 8 / 9 | 0.55 / 0.42 / 0.48 s |
+
+Pinning the function to the database's region cut a tap's handler time about **8x (2.5-4.4 s to 0.4-0.5 s)** in this diagnostic (3 taps per arm, one run, dry run so WhatsApp sends are not included): handler time is then well under the 1.5 s target, but this is a small sample and a real tap also pays the Kapso send. Supabase supports this for webhooks through the `forceFunctionRegion` query parameter (or the `x-region` header) on the invocation URL (Supabase docs, "Regional invocations"). Model calls (US) and WhatsApp sends (US) then cross the ocean instead, an extra delay we estimate (not measured here) at 0.15-0.3 s each; that is only a net win while a turn makes many more database queries (9-70) than model and send calls (1-3 each), which holds today. Set the parameter in the Kapso webhook URL (Kapso configuration), not in the repo, and keep the webhook secret out of the URL query string (use a header). Longer term, a database in a region near Kapso/Anthropic (and Lebanon) is the cleaner fix.

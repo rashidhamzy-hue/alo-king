@@ -17,7 +17,7 @@ import { extractVendorHint, normText, prepareIndex, rankItems, resolveSegments, 
 import { agentLoop } from "./loop.ts";
 import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, parseNumberedTap } from "./numbered.ts";
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
-import { buildSearchRows, haversineKm, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
+import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
@@ -776,7 +776,7 @@ async function searchFirst(c: Ctx, phone: string, text: string, prof: any): Prom
   let rows: ReturnType<typeof buildSearchRows> = [];
   for (let i = 0; i < order.length && i < 30; i += 6) {
     const chunk = order.slice(i, i + 6).filter((v) => !open.has(v));
-    await Promise.all(chunk.map(async (v) => open.set(v, (await sb.rpc("vendor_is_open", { p_vendor_id: v })).data === true))); // this list says "Open now": an RPC error counts as closed
+    await Promise.all(chunk.map(async (v) => open.set(v, isOpenResult(await sb.rpc("vendor_is_open", { p_vendor_id: v }))))); // null = no hours configured = open (like every other check); an RPC error counts as closed
     rows = buildSearchRows(ordered.filter((h) => open.get(h.vendor_id) === true), !!c.ar, both);
     if (rows.length >= 10) break;
   }

@@ -72,3 +72,6 @@ export function buildSearchRows(hits: SearchHit[], ar: boolean, both: (n: number
   }
   return rows;
 }
+
+/** vendor_is_open returns true (open), false (closed) or null (no opening hours configured). Everywhere else in the bot only an explicit `false` blocks ordering, so null means "open"; an RPC error counts as closed because this list says "Open now". */
+export const isOpenResult = (r: { data: unknown; error?: unknown }): boolean => !r.error && r.data !== false;
