@@ -23,3 +23,9 @@ Columns: `orders.vendor_notified_at` (card delivered), `orders.escalated_at`.
 - If the vendor closes or pauses while an order is still pending (>3 min), the customer gets Cancel / Keep waiting buttons.
 - If a dish sells out after confirm (`menu_items.available = false`), the customer gets one offer: swap for a close substitute (same section, ≤25% dearer; price and the new total come from the database, quantity kept, COD cap enforced) or cancel. Dishes with options get cancel-only. The vendor is told what changed.
 - Ratings go to `order_ratings`; 1–2 stars also ping `ADMIN_WHATSAPP_PHONE`.
+
+## Privacy: "delete my data" / "forget my address"
+- Customers can send *delete my data*, *forget my address* (or Arabic / Arabizi: احذف بياناتي، احذف عنواني، e7zef bayanati، emsa7 3enwani) at any time; it works in every mode and never reaches the model. The bot confirms exactly what was deleted, or says it could not finish (it never claims a deletion that failed).
+- `address`: saved addresses, location pins/coordinates, the current delivery address, unconfirmed summaries. `all`: also name, language, acquisition source, saved baskets, voice transcripts, chat history, AI call log phone link, and marketing is switched off (opt-out is kept so they are never messaged again).
+- **Kept** (policy default, to be confirmed by legal counsel): finished orders keep items, totals, dates, vendor and the phone number (settlements, disputes); their name, address and notes are removed (open orders are anonymised by the scheduled job once they finish). Ratings and substitution offers keep only the phone plus a score / item id.
+- The one-line privacy notice is shown once, before the first card that stores an address or pin; `customers.data_consent_at` records when (notice display, not a marketing opt-in). `customers.last_inbound_at` keeps the 24h-window clock after chat history is deleted.

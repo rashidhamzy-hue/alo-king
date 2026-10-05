@@ -246,8 +246,8 @@ async function prepareOrder(c: Ctx, phone: string, input: any): Promise<string> 
     `*🧾 طلبك — ${b.vendorName}*\n\n${rowsTxt}\n\n━━━━━━━━━━━━\nالمجموع الفرعي   ${both(b.subtotal)}\nالتوصيل   ${both(DELIVERY_FEE_USD)}\n*الإجمالي   ${both(b.total)}*\n━━━━━━━━━━━━\n\n📍 ${addr}\n👤 ${input.customer_name}\n💵 الدفع عند الاستلام${b.prof.prep_time_min ? `\n⏱ ~${b.prof.prep_time_min} دقيقة تحضير` : ""}`);
   // WhatsApp clips bodies at 1024 chars: size the item rows to what is left after the fixed lines so TOTAL, address and payment are never cut
   const body = bodyWith(fitRows(rowList, Math.max(120, 1000 - bodyWith("").length), !!c.ar));
+  await maybeShowPrivacyNotice(c, phone); // the address was just stored on the customer: one-line notice, once, BEFORE the card (nothing is sent after a card)
   await sendButtons(c, { body, headerText: tr(c, "Order summary", "ملخص الطلب"), buttons: [{ id: `CONFIRM|${cart.id}`, title: tr(c, "✅ Confirm Order", "✅ تأكيد الطلب") }, { id: `EDIT|${cart.id}`, title: tr(c, "✏️ Change Order", "✏️ تعديل الطلب") }, { id: "LOC", title: tr(c, "📍 Change Location", "📍 تغيير الموقع") }] });
-  await maybeShowPrivacyNotice(c, phone); // the address was just stored on the customer: one-line notice, once
   return JSON.stringify({ ok: true, summary_sent_with_confirm_button: true, instruction: "Summary card already delivered. Do not repeat it. Reply with nothing." });
 }
 
@@ -279,7 +279,7 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
   const receivedBody = `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\nThe kitchen is confirming it now — I'll keep you posted. 👑`;
   // Cancel stays one tap away until the kitchen accepts (after that the team handles changes)
   await sendButtons(c, { body: receivedBody, buttons: [{ id: `CANCEL|${order.id}`, title: tr(c, "❌ Cancel order", "❌ إلغاء الطلب") }] });
-  if (cart.village && cart.address) { await saveAddress(phone, cart.village, cart.address); await maybeShowPrivacyNotice(c, phone); } // remembered for next time
+  if (cart.village && cart.address) await saveAddress(phone, cart.village, cart.address); // remembered for next time (the notice was shown with the summary)
   await sb.from("ai_call_log").update({ order_id: order.id }).eq("customer_phone", phone).is("order_id", null).gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()); // cost per confirmed order (calls in the last 24h)
   try { await notifyVendor(c, order, b, cart, cust?.full_name ?? "Customer"); } catch (e) { console.error("vendor notify failed", e); }
   const { data: me } = await sb.from("customers").select("opted_in_at,opted_out_at").eq("phone_number", phone).maybeSingle();
@@ -600,6 +600,8 @@ async function reorderLast(c: Ctx, phone: string, orderId: string, fallback: Lan
 const OPEN_ORDER_STATUSES = ["pending", "accepted", "preparing"];
 async function customerLangOf(phone: string): Promise<Lang> { const { data } = await sb.from("customers").select("language").eq("phone_number", phone).maybeSingle(); return data?.language === "en" ? "en" : "ar"; }
 async function customerWindowOpen(phone: string): Promise<boolean> {
+  const { data: cu } = await sb.from("customers").select("last_inbound_at").eq("phone_number", phone).maybeSingle();
+  if (cu?.last_inbound_at) return windowOpen(cu.last_inbound_at);
   const { data } = await sb.from("conversations").select("created_at").eq("phone", phone).eq("role", "user").order("id", { ascending: false }).limit(1).maybeSingle();
   return windowOpen(data?.created_at);
 }
@@ -763,25 +765,31 @@ async function maybeShowPrivacyNotice(c: Ctx, phone: string) {
 // Deletes immediately. Past orders keep only accounting facts (items, totals, dates, vendor, phone for settlements and disputes); name, address and notes are removed
 // from finished orders. Open orders keep their delivery address until they are delivered. Opt-out state is kept so nobody is ever messaged again by mistake.
 async function forgetCustomer(c: Ctx, phone: string, scope: "all" | "address") {
-  const count = async (q: any) => { const { data } = await q.select("id"); return data?.length ?? 0; };
-  const wipe = { last_address: null, village: null, last_lat: null, last_lng: null };
-  const { data: addrs } = await sb.from("customer_addresses").delete().eq("customer_phone", phone).select("lat");
-  const addresses = addrs?.length ?? 0, pins = (addrs ?? []).filter((a: any) => a.lat != null).length;
-  const carts = await count(sb.from("carts").update({ status: "expired" }).eq("customer_phone", phone).eq("status", "pending"));
-  const { data: before } = await sb.from("customers").select("full_name").eq("phone_number", phone).maybeSingle();
-  let baskets = 0, voice = 0, chats = 0, ordersAnonymised = 0;
-  if (scope === "all") {
-    await sb.from("customers").update({ ...wipe, full_name: null, language: null, language_set_at: null, acquisition_source: null, acquisition_ref: null, acquisition_at: null, data_consent_at: null, privacy_notice_version: null, data_deleted_at: new Date().toISOString(), marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", phone);
-    baskets = await count(sb.from("baskets").delete().eq("customer_phone", phone)); // lines cascade
-    voice = await count(sb.from("pending_voice").delete().eq("customer_phone", phone));
-    const { data: ch } = await sb.from("conversations").delete().eq("phone", phone).select("id"); chats = ch?.length ?? 0;
-    await sb.from("ai_call_log").update({ customer_phone: null }).eq("customer_phone", phone);
-    ordersAnonymised = await count(sb.from("orders").update({ customer_name: "Deleted customer", building_landmark: null, notes: null }).eq("customer_phone", phone).in("status", ["delivered", "cancelled", "rejected"]));
-  } else {
-    await sb.from("customers").update(wipe).eq("phone_number", phone);
+  // Cheap deletes first, the customers wipe last, so a failure part-way leaves a retry that finishes the job; any error aborts without claiming success.
+  const ok = <T,>(r: { data?: T; error?: { message: string } | null }): T | null => { if (r.error) throw new Error(r.error.message); return (r.data ?? null) as T | null; };
+  try {
+    const wipe = { last_address: null, village: null, last_lat: null, last_lng: null };
+    const addrs = ok<any[]>(await sb.from("customer_addresses").delete().eq("customer_phone", phone).select("lat")) ?? [];
+    const addresses = addrs.length, pins = addrs.filter((a: any) => a.lat != null).length;
+    const carts = (ok<any[]>(await sb.from("carts").delete().eq("customer_phone", phone).select("id")) ?? []).length; // summaries carry the address, notes and items
+    const { data: before } = await sb.from("customers").select("full_name").eq("phone_number", phone).maybeSingle();
+    let baskets = 0, voice = 0, chats = 0, ordersAnonymised = 0;
+    if (scope === "all") {
+      baskets = (ok<any[]>(await sb.from("baskets").delete().eq("customer_phone", phone).select("id")) ?? []).length; // lines cascade
+      voice = (ok<any[]>(await sb.from("pending_voice").delete().eq("customer_phone", phone).select("id")) ?? []).length;
+      chats = (ok<any[]>(await sb.from("conversations").delete().eq("phone", phone).select("id")) ?? []).length;
+      ok(await sb.from("ai_call_log").update({ customer_phone: null }).eq("customer_phone", phone));
+      ordersAnonymised = (ok<any[]>(await sb.from("orders").update({ customer_name: "Deleted customer", building_landmark: null, notes: null }).eq("customer_phone", phone).in("status", ["delivered", "cancelled", "rejected"]).select("id")) ?? []).length;
+      ok(await sb.from("customers").update({ ...wipe, full_name: null, language: null, language_set_at: null, acquisition_source: null, acquisition_ref: null, acquisition_at: null, data_consent_at: null, privacy_notice_version: null, data_deleted_at: new Date().toISOString(), marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", phone));
+    } else {
+      ok(await sb.from("customers").update(wipe).eq("phone_number", phone));
+    }
+    const { count: open } = await sb.from("orders").select("id", { count: "exact", head: true }).eq("customer_phone", phone).not("status", "in", "(delivered,cancelled,rejected)");
+    await sendText(c, deletionConfirmation(scope, { addresses, pins, name: scope === "all" && !!before?.full_name, baskets, voice, chats, carts, ordersAnonymised, openOrders: open ?? 0, offersOff: scope === "all" }, !!c.ar));
+  } catch (err) {
+    console.error("forget failed", String((err as Error)?.message ?? err).slice(0, 200));
+    await sendText(c, tr(c, "I couldn't finish deleting your data just now 🙏 Please send the same message again in a minute, or a member of the Alo King team will help.", "ما قدرت خلّص حذف بياناتك هلأ 🙏 ابعت نفس الرسالة بعد دقيقة، أو حدا من فريق ألو كينغ بيساعدك."));
   }
-  const { count: open } = await sb.from("orders").select("id", { count: "exact", head: true }).eq("customer_phone", phone).not("status", "in", "(delivered,cancelled,rejected)");
-  await sendText(c, deletionConfirmation(scope, { addresses, pins, name: scope === "all" && !!before?.full_name, baskets, voice, chats, carts, ordersAnonymised, openOrders: open ?? 0, offersOff: scope === "all" }, !!c.ar));
 }
 
 // ---------- COST GUARDS: per-phone hourly cap and a global daily budget switch the customer bot to button-only mode ----------
@@ -833,6 +841,7 @@ async function sendButtonOnly(c: Ctx, phone: string, why: Guard, hasLoc = false)
 async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: string; title: string } | null, loc: any | null, fromVoice = false) {
   if (fromVoice) c.fromVoice = true; // a confirmed voice transcript is typed-text-equivalent, but can never confirm an order by itself
   await sb.from("customers").upsert({ phone_number: phone }, { onConflict: "phone_number", ignoreDuplicates: true });
+  await sb.from("customers").update({ last_inbound_at: new Date().toISOString() }).eq("phone_number", phone); // drives the 24h window; survives chat-history deletion
   const lang = detectLanguage(text);
   if (lang) await sb.from("customers").update({ language: lang, language_set_at: new Date().toISOString() }).eq("phone_number", phone).is("language", null); // first text message decides
   { const { data: cl } = await sb.from("customers").select("language").eq("phone_number", phone).maybeSingle(); c.ar = (cl?.language ?? lang ?? "ar") !== "en"; } // server-built cards follow the customer's stored language (default Arabic)
@@ -1213,7 +1222,16 @@ async function notifyVendor(c: Ctx, order: any, b: any, cart: any, customerName:
 
 // Orders still pending after 90 s: tell the customer we're still confirming and ping the admin. Idempotent per order (escalated_at).
 // Dry runs only ever touch test orders (customer phones 961700000…), because they really mark the order as escalated.
+// Orders that were still open when the customer deleted their data are anonymised once they finish.
+async function anonymiseDeletedCustomersOrders() {
+  const { data: gone } = await sb.from("customers").select("phone_number").not("data_deleted_at", "is", null).limit(500);
+  const phones = (gone ?? []).map((g: any) => g.phone_number);
+  if (!phones.length) return;
+  const { error } = await sb.from("orders").update({ customer_name: "Deleted customer", building_landmark: null, notes: null }).in("customer_phone", phones).in("status", ["delivered", "cancelled", "rejected"]).or("customer_name.neq.Deleted customer,building_landmark.not.is.null,notes.not.is.null");
+  if (error) console.error("anonymise failed", error.message);
+}
 async function purgeStale() {
+  await anonymiseDeletedCustomersOrders();
   const [v, l] = await Promise.all([
     sb.from("pending_voice").delete().lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()),
     sb.from("ai_call_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),

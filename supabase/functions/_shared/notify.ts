@@ -20,7 +20,8 @@ export async function notifyOrderStatus(sb: any, send: Send, orderId: string, op
   if (!claimed?.length) return { sent: false, reason: "already notified" };
   const release = () => sb.from("orders").update({ customer_notified_status: o.customer_notified_status ?? null }).eq("id", o.id);
 
-  const { data: last } = await sb.from("conversations").select("created_at").eq("phone", o.customer_phone).eq("role", "user").order("id", { ascending: false }).limit(1).maybeSingle();
+  const { data: cu } = await sb.from("customers").select("last_inbound_at").eq("phone_number", o.customer_phone).maybeSingle();
+  const { data: last } = cu?.last_inbound_at ? { data: { created_at: cu.last_inbound_at } } : await sb.from("conversations").select("created_at").eq("phone", o.customer_phone).eq("role", "user").order("id", { ascending: false }).limit(1).maybeSingle();
   if (!windowOpen(last?.created_at, opts.now)) return { sent: false, reason: "24h window closed" }; // nothing free-form can be sent; stays claimed so it is not retried forever
 
   const [{ data: cust }, { data: v }, { data: prof }] = await Promise.all([
