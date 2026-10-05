@@ -58,11 +58,16 @@ describe("addresses", () => {
     expect(rows.at(-1)?.id).toBe("ADDR|new");
     expect(rows.every((r) => r.title.length <= 24 && (r.description ?? "").length <= 72)).toBe(true);
     expect(rows[0].id).toBe("ADDR|id11"); // most recently used first
+    const withBasket = addressRows(saved, false, "bk1");
+    expect(withBasket[0].id).toBe("ADDR|id11|bk1");
+    expect(withBasket.at(-1)?.id).toBe("ADDR|new|bk1");
   });
   it("parses address taps", () => {
-    expect(parseAddrTap("ADDR|abc")).toEqual({ id: "abc" });
-    expect(parseAddrTap("ADDR|new")).toEqual({ id: "new" });
+    expect(parseAddrTap("ADDR|abc")).toEqual({ id: "abc", basketId: null });
+    expect(parseAddrTap("ADDR|new")).toEqual({ id: "new", basketId: null });
+    expect(parseAddrTap("ADDR|abc|bk1")).toEqual({ id: "abc", basketId: "bk1" });
     expect(parseAddrTap("ADDR|")).toBeNull();
-    expect(parseAddrTap("ADDR|a|b")).toBeNull();
+    expect(parseAddrTap("ADDR|a|")).toBeNull();
+    expect(parseAddrTap("ADDR|a|b|c")).toBeNull();
   });
 });

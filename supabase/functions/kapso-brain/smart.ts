@@ -45,13 +45,14 @@ export function pinnedLandmark(loc: { latitude: number; longitude: number; addre
 }
 export type SavedAddress = { id: string; label?: string | null; village?: string | null; landmark?: string | null; last_used_at: string };
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
-export function addressRows(saved: SavedAddress[], ar: boolean) {
+export function addressRows(saved: SavedAddress[], ar: boolean, basketId?: string) {
+  const suffix = basketId ? `|${basketId}` : "";
   const rows = [...saved].sort((a, b) => b.last_used_at.localeCompare(a.last_used_at)).slice(0, 9).map((a) => ({
-    id: `ADDR|${a.id}`, title: clip(a.label || a.village || "Address", 24), description: clip(String(a.landmark ?? "").replace(/\s*\(https?:\/\/\S+\)\s*$/, ""), 72) || undefined,
+    id: `ADDR|${a.id}${suffix}`, title: clip(a.label || a.village || "Address", 24), description: clip(String(a.landmark ?? "").replace(/\s*\(https?:\/\/\S+\)\s*$/, ""), 72) || undefined,
   }));
-  return [...rows, { id: "ADDR|new", title: ar ? "➕ عنوان جديد" : "➕ New address", description: ar ? "اكتبلي العنوان أو شاركني موقعك" : "Type it or share your location" }];
+  return [...rows, { id: `ADDR|new${suffix}`, title: ar ? "➕ عنوان جديد" : "➕ New address", description: ar ? "اكتبلي العنوان أو شاركني موقعك" : "Type it or share your location" }];
 }
-export function parseAddrTap(id: string): { id: string } | null {
+export function parseAddrTap(id: string): { id: string; basketId: string | null } | null {
   const p = id.split("|");
-  return p.length === 2 && p[0] === "ADDR" && p[1] ? { id: p[1] } : null;
+  return (p.length === 2 || p.length === 3) && p[0] === "ADDR" && p[1] && (p.length === 2 || p[2]) ? { id: p[1], basketId: p[2] ?? null } : null;
 }
