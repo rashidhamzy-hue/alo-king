@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
-import { buildCategories, czNext, itemPageRows, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
+import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
@@ -283,14 +283,16 @@ async function sendCategoryItems(c: Ctx, vendorId: string, slug: string, page: n
   const cats = buildCategories(items);
   const cat = cats.find((k) => k.slug === slug) ?? (cats.length === 1 ? cats[0] : null);
   if (!cat) return sendMenu(c, vendorId);
-  const inCat = items.filter((it) => buildCategories([it])[0].slug === cat.slug);
+  const inCat = itemsInCategory(items, cats, cat.slug);
   const rows = itemPageRows(inCat, page, vendorId, cat.slug, !!c.ar, both);
   if (!rows.length) return sendMenu(c, vendorId);
   const vname = await vendorName(vendorId);
   await sendList(c, { header: vname, body: tr(c, `*${cat.title}* — tap a dish to see it and add it 👇`, `*${cat.title}* — اضغط على صنف لتشوفه وتضيفه 👇`), button: tr(c, "Dishes", "الأصناف"), sections: [{ title: cat.title, rows }] });
 }
 const czGroups = (it: any): CzGroup[] => (Array.isArray(it.customizations) ? it.customizations : []).filter((g: any) => g?.name && Array.isArray(g.options) && g.options.length);
-const needsChoices = (it: any) => czGroups(it).some((g) => g.required || Number(g.min ?? 0) > 0);
+const rawGroups = (it: any): any[] => (Array.isArray(it.customizations) ? it.customizations : []).filter((g: any) => g?.name);
+const needsChoices = (it: any) => rawGroups(it).some((g) => g.required || Number(g.min ?? 0) > 0);
+const tapSupported = (it: any) => czSupported(rawGroups(it)); // multi-pick / oversized / empty groups are ordered in chat instead
 
 async function sendItemCard(c: Ctx, vendorId: string, itemId: string) {
   const { data: it } = await sb.from("menu_items").select(MENU_COLS).eq("vendor_id", vendorId).eq("item_id", itemId).eq("available", true).maybeSingle();
@@ -298,6 +300,7 @@ async function sendItemCard(c: Ctx, vendorId: string, itemId: string) {
   const desc = (c.ar ? it.description_ar : it.description_en) || it.description_en || it.description_ar || "";
   const body = `*${itemName(c, it)}*${desc ? `\n${String(desc).slice(0, 280)}` : ""}${it.calories ? `\n~${it.calories} kcal` : ""}\n\n💵 *${both(Number(it.price_usd))}*`;
   const custom = needsChoices(it);
+  if (!tapSupported(it)) { await sendButtons(c, { body: `${body}\n\n${tr(c, "This dish has options — tell me in chat how you want it and I'll add it.", "هالصنف إلو خيارات — خبرني بالشات كيف بدك ياه وبضيفه.")}`, headerImage: it.image_url, buttons: [{ id: `CATS|${vendorId}`, title: tr(c, "📋 Menu", "📋 المنيو") }] }); return; }
   await sendButtons(c, { body, headerImage: it.image_url, buttons: [
     custom ? { id: `CZ|${vendorId}|${itemId}|1|`, title: tr(c, "⚙️ Customize", "⚙️ خصّص") } : { id: `ADD|${vendorId}|${itemId}|1`, title: tr(c, "➕ Add to basket", "➕ أضف للسلة") },
     ...(custom ? [] : [{ id: `QTY|${vendorId}|${itemId}`, title: tr(c, "🔢 Quantity", "🔢 الكمية") }]),
@@ -318,7 +321,7 @@ async function sendCzStep(c: Ctx, phone: string, vendorId: string, itemId: strin
     return;
   }
   const r = JSON.parse(await basketTool(c, phone, "basket_add", { vendor_id: vendorId, item_id: itemId, quantity: qty, choices: step.choices }));
-  if (!r.ok) await sendText(c, tr(c, `I couldn't add that: ${r.error} 🙏`, `ما قدرت أضيف هالصنف: ${r.error} 🙏`));
+  if (!r.ok) await sendText(c, tr(c, `I couldn't add that: ${r.error} 🙏`, "ما قدرت أضيف هالصنف هلأ 🙏 جرب صنف تاني أو خبرني بالشات."));
 }
 const clipTitle = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
@@ -602,8 +605,9 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       else if (bw.kind === "CZ") await sendCzStep(c, phone, bw.vendorId, bw.itemId, bw.qty, bw.picks);
       else { // ADD: dishes that need choices go through the customization lists first
         const { data: it } = await sb.from("menu_items").select(MENU_COLS).eq("vendor_id", bw.vendorId).eq("item_id", bw.itemId).eq("available", true).maybeSingle();
-        if (it && needsChoices(it)) await sendCzStep(c, phone, bw.vendorId, bw.itemId, bw.qty, []);
-        else { const r = JSON.parse(await basketTool(c, phone, "basket_add", { vendor_id: bw.vendorId, item_id: bw.itemId, quantity: bw.qty })); if (!r.ok) await sendText(c, tr(c, `I couldn't add that: ${r.error} 🙏`, `ما قدرت أضيف هالصنف: ${r.error} 🙏`)); }
+        if (it && !tapSupported(it)) await sendItemCard(c, bw.vendorId, bw.itemId);
+        else if (it && needsChoices(it)) await sendCzStep(c, phone, bw.vendorId, bw.itemId, bw.qty, []);
+        else { const r = JSON.parse(await basketTool(c, phone, "basket_add", { vendor_id: bw.vendorId, item_id: bw.itemId, quantity: bw.qty })); if (!r.ok) await sendText(c, tr(c, `I couldn't add that: ${r.error} 🙏`, "ما قدرت أضيف هالصنف هلأ 🙏 جرب صنف تاني أو خبرني بالشات.")); }
       }
       await maybeOfferAddon(c);
       await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return;
@@ -649,7 +653,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   const system = `${CSYSTEM}\n\nCUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}`;
   let final = "";
   try { final = await llmLoop(system, CTOOLS, phone, userText, (n, i) => customerTool(c, phone, n, i)); }
-  catch (err) { console.error("customer llm error", err); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
+  catch (err) { console.error("customer llm error", String((err as Error)?.message ?? err).slice(0, 300)); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
   await maybeOfferAddon(c);
   if (final && !c.rich) await sendText(c, final); // never add text after cards/buttons
   else if (!c.rich) await sendText(c, "ما فهمت عليك تماماً 🙏 شو بتحب تاكل؟\nWhat are you craving?");

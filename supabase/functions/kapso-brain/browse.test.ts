@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCategories, categorySlug, czNext, isDrinkItem, itemPageRows, parseBrowseTap, pickAddon, qtyRows } from "./browse";
+import { buildCategories, categorySlug, czNext, czSupported, isDrinkItem, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows } from "./browse";
 
 const it_ = (id: string, section: string | null, extra: any = {}) => ({ item_id: id, item_name_en: id.toUpperCase(), item_name_ar: null, price_usd: 3, section, is_popular: false, sort_order: 0, contains_alcohol: false, ...extra });
 
@@ -115,5 +115,29 @@ describe("isDrinkItem / pickAddon", () => {
     const menu = [it_("falafel", "Mezza"), it_("cola", "Drinks")];
     expect(pickAddon(menu, ["cola"])).toBeNull();
     expect(pickAddon([it_("falafel", "Mezza")], ["falafel"])).toBeNull();
+  });
+});
+
+describe("review fixes", () => {
+  it("does not treat chocolate/watermelon sections as drinks", () => {
+    expect(isDrinkItem(it_("a", "Chocolate Desserts"))).toBe(false);
+    expect(isDrinkItem(it_("a", "Watermelon Plates"))).toBe(false);
+    expect(isDrinkItem(it_("a", "Soft Drinks"))).toBe(true);
+    expect(isDrinkItem(it_("a", "Cold Beverages"))).toBe(true);
+    expect(isDrinkItem(it_("a", "Beers"))).toBe(false);
+  });
+  it("keeps every dish reachable when a vendor has more than 10 sections", () => {
+    const items = Array.from({ length: 14 }, (_, i) => it_(`x${i}`, `Sec ${i}`));
+    const cats = buildCategories(items);
+    expect(cats.length).toBe(10);
+    expect(cats.at(-1)?.slug).toBe("other");
+    const reachable = cats.flatMap((c) => itemsInCategory(items, cats, c.slug)).map((i) => i.item_id);
+    expect(new Set(reachable).size).toBe(14);
+  });
+  it("flags option groups the list UI cannot render", () => {
+    expect(czSupported([{ name: "Size", required: true, min: 1, max: 1, options: [{ name: "S" }] }])).toBe(true);
+    expect(czSupported([{ name: "Pick 2", required: true, min: 2, max: 3, options: [{ name: "A" }, { name: "B" }] }])).toBe(false);
+    expect(czSupported([{ name: "Empty", required: true, options: [] }])).toBe(false);
+    expect(czSupported([{ name: "Big", required: false, options: Array.from({ length: 11 }, (_, i) => ({ name: `o${i}` })) }])).toBe(false);
   });
 });

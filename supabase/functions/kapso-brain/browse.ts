@@ -21,7 +21,25 @@ export function buildCategories(items: MenuItemLite[]): Category[] {
     c.count++; if (it.is_popular) c.popular++;
     m.set(key, c);
   }
-  return [...m.values()].sort((a, b) => b.popular - a.popular || b.count - a.count).slice(0, 10);
+  const all = [...m.values()].sort((a, b) => b.popular - a.popular || b.count - a.count);
+  if (all.length <= 10) return all;
+  const tail = all.slice(9); // 9 categories + one "Other" row so no dish becomes unreachable
+  return [...all.slice(0, 9), { key: "other", slug: "other", title: "Other", count: tail.reduce((n, c) => n + c.count, 0), popular: 0 }];
+}
+
+/** Dishes shown under a category row ("other" collects every section not listed as its own row). */
+export function itemsInCategory(items: MenuItemLite[], cats: Category[], slug: string): MenuItemLite[] {
+  const named = new Set(cats.filter((c) => c.slug !== "other").map((c) => c.slug));
+  return items.filter((it) => { const sl = categorySlug(sectionKey(it.section)); return slug === "other" ? !named.has(sl) : sl === slug; });
+}
+
+/** True when every option group can be answered with one tap per group (<=10 options, at most one pick required). Otherwise the customer orders that dish in chat. */
+export function czSupported(groups: CzGroup[]): boolean {
+  return groups.every((g) => {
+    const needs = g.required || Number(g.min ?? 0) > 0;
+    const n = (g.options ?? []).length;
+    return n <= 10 && (!needs || (n > 0 && Number(g.min ?? 1) <= 1));
+  });
 }
 
 const nameOf = (it: MenuItemLite, ar: boolean) => (ar && it.item_name_ar ? it.item_name_ar : it.item_name_en || it.item_name_ar || it.item_id);
@@ -89,8 +107,8 @@ export function czNext(groups: CzGroup[], picks: string[], idPrefix: string, bot
 }
 
 // ---- one relevant add-on: a (non-alcoholic) drink ----
-const DRINK = /drink|beverage|juice|soft|soda|water|cola|lemonade|smoothie|مشروب|عصير|مياه|ماء|مرطبات|غازي/i;
-const ALCOHOL = /alcohol|beer|wine|arak|whisk|vodka|liquor|cocktail|spirit|عرق|بيرة|نبيذ|كحول/i;
+const DRINK = /\b(drinks?|beverages?|juices?|soft|soda|water|cola|lemonade|smoothies?)\b|مشروب|عصير|مياه|ماء|مرطبات|غازي/i;
+const ALCOHOL = /\b(alcohol(ic)?|beers?|wines?|arak|whisk(e)?y|vodka|liquors?|cocktails?|spirits?)\b|عرق|بيرة|نبيذ|كحول/i;
 export function isDrinkItem(it: MenuItemLite): boolean {
   if (it.contains_alcohol) return false;
   const sec = String(it.section ?? "");
