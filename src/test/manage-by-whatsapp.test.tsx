@@ -25,7 +25,8 @@ describe("Manage by WhatsApp card", () => {
 
   it("shows the unlinked state and generates a link code with a wa.me link", async () => {
     rpc.mockImplementation(async (fn: string) => {
-      if (fn === "get_owner_console") return { data: { linked: false, owner_phone: null, credits_usd: 10 }, error: null };
+      if (fn === "get_owner_console")
+        return { data: { linked: false, owner_phone: null, credits_usd: 10 }, error: null };
       if (fn === "create_owner_link_code") return { data: "ALO-TEST42", error: null };
       return { data: null, error: { message: "unexpected " + fn } };
     });
@@ -35,11 +36,17 @@ describe("Manage by WhatsApp card", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate link code/i }));
     expect(await screen.findByText("ALO-TEST42")).toBeInTheDocument();
     expect(rpc).toHaveBeenCalledWith("create_owner_link_code", { p_vendor: "v1" });
-    expect(screen.getByRole("link", { name: /open whatsapp/i })).toHaveAttribute("href", expect.stringContaining("?text=ALO-TEST42"));
+    expect(screen.getByRole("link", { name: /open whatsapp/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining("?text=ALO-TEST42"),
+    );
   });
 
   it("shows the linked state with a masked number and the credit", async () => {
-    rpc.mockResolvedValue({ data: { linked: true, owner_phone: "96171123456", credits_usd: 9.5 }, error: null });
+    rpc.mockResolvedValue({
+      data: { linked: true, owner_phone: "96171123456", credits_usd: 9.5 },
+      error: null,
+    });
     setup();
     expect(await screen.findByText("Linked")).toBeInTheDocument();
     expect(screen.getByText("+961 ••• ••• 56")).toBeInTheDocument();
