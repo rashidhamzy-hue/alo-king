@@ -156,3 +156,12 @@ describe("item 3 ask card (orderparse.buildAskCard)", () => {
     }
   });
 });
+
+describe("item 4 numbered page (numbered.buildNumberedPage)", () => {
+  it("every page of a long menu fits the 1024 body limit in both languages, and shows dual-currency prices", async () => {
+    const { buildNumberedPage, orderForList } = await import("./numbered.ts");
+    const both = (n: number) => `$${n.toFixed(2)} · ${Math.round(n * 89500).toLocaleString("en-US")} LBP`;
+    const items = orderForList(Array.from({ length: 80 }, (_, i) => ({ item_id: `i${i}`, item_name_en: "Extra Large Mixed Grill Platter with Rice and Garlic Sauce " + i, item_name_ar: "مشاوي مشكلة كبيرة مع رز وثوم " + i, price_usd: 3 + i / 7, is_popular: i % 3 === 0, sort_order: i, customizations: [] })));
+    for (const ar of [false, true]) for (let p = 0; p < 10; p++) { const r = buildNumberedPage({ vendorName: "Shawarma King", items, page: p, ar, both }); expect(r.body.length).toBeLessThanOrEqual(META.body); for (const l of r.body.split("\n").filter((x) => /^\d+\. /.test(x))) expect(l).toMatch(/LBP$/); }
+  });
+});

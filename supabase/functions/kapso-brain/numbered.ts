@@ -46,23 +46,25 @@ const stripPolite = (s: string) => s.replace(/\s*(please|pls|plz|من فضلك|�
 export const isMoreWord = (t: string) => MORE.has(stripPolite(String(t ?? "").trim().toLowerCase()));
 
 export type NumberedReply = { kind: "order"; lines: { n: number; qty: number }[] } | { kind: "more" } | { kind: "invalid"; bad: number[] } | { kind: "none" };
-/** Strict grammar only: every token is `N` or `NxQ` (x, ×, *, :), separated by spaces, commas, +, "and" or "و". Anything else is NOT a numbered reply and goes to the normal flow. */
+/** Strict grammar only: every token is `N` or `NxQ` (x, ×, *), separated by spaces, commas, +, "and" or "و". Anything else is NOT a numbered reply and goes to the normal flow. */
 export function parseNumberedReply(text: string, listSize: number): NumberedReply {
   let t = String(text ?? "").trim().toLowerCase().replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)));
   if (!t) return { kind: "none" };
   if (isMoreWord(t)) return { kind: "more" };
-  t = t.replace(/\s*[x×*:]\s*/g, "x").replace(/(^|\s)(?:and|و)(?=\s|$)/g, " ");
+  t = t.replace(/\s*[x×*]\s*/g, "x").replace(/(^|\s)(?:and|و)(?=\s|$)/g, " ");
   const toks = t.split(/[\s,،;+]+/).filter(Boolean);
   if (!toks.length || !toks.every((k) => /^\d{1,2}(?:x\d{1,2})?$/.test(k))) return { kind: "none" };
   if (toks.length > MAX_TOKENS) return { kind: "invalid", bad: [] };
   const lines: { n: number; qty: number }[] = []; const bad: number[] = [];
+  const hasPair = toks.some((k) => k.includes("x")); // an explicit "NxQ" is clearly meant as a list reply; bare numbers alone are ambiguous (floor, house number, phone digits)
   for (const k of toks) {
     const [a, b] = k.split("x"); const n = Number(a), qty = b === undefined ? 1 : Number(b);
     if (n < 1 || n > listSize || qty < 1) { bad.push(n); continue; }
     const ex = lines.find((l) => l.n === n);
     if (ex) ex.qty = Math.min(MAX_QTY, ex.qty + qty); else lines.push({ n, qty: Math.min(MAX_QTY, qty) });
   }
-  return bad.length ? { kind: "invalid", bad: [...new Set(bad)] } : { kind: "order", lines };
+  if (bad.length) return hasPair ? { kind: "invalid", bad: [...new Set(bad)] } : { kind: "none" }; // out-of-range bare numbers are not ours: the normal flow answers
+  return { kind: "order", lines };
 }
 
 export const numberedTapId = (vendorId: string, page: number) => `NUM|${vendorId}|${page}`.slice(0, META.buttonId);

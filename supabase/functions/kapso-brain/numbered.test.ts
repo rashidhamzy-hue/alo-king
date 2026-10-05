@@ -62,18 +62,19 @@ describe("parseNumberedReply (deterministic, no model)", () => {
     expect(ok("1 1 3")).toEqual({ kind: "order", lines: [{ n: 1, qty: 2 }, { n: 3, qty: 1 }] });
     expect(ok("1x2, 1")).toEqual({ kind: "order", lines: [{ n: 1, qty: 3 }] });
   });
-  it.each(["1*2", "1×2", "1 x 2", "1X2", "1:2", "١x٢", "1 و 3", "1 and 3", "1+3", "1,3", "1، 3", "  1   3  "])("separators and digits: %j", (t) => expect(ok(t).kind).toBe("order"));
+  it.each(["1*2", "1×2", "1 x 2", "1X2", "١x٢", "1 و 3", "1 and 3", "1+3", "1,3", "1، 3", "  1   3  "])("separators and digits: %j", (t) => expect(ok(t).kind).toBe("order"));
   it("Arabic-Indic digits", () => expect(ok("١x٢, ٣")).toEqual({ kind: "order", lines: [{ n: 1, qty: 2 }, { n: 3, qty: 1 }] }));
   it("first-seen order is kept, quantity capped at 20 per dish", () => {
     expect(ok("5, 2, 5x30")).toEqual({ kind: "order", lines: [{ n: 5, qty: 20 }, { n: 2, qty: 1 }] });
   });
   it.each(["more", "More", "next", "المزيد", "كمان", "mazeed", "next page", "اكتر", "more please"])("more words: %s", (t) => expect(ok(t)).toEqual({ kind: "more" }));
-  it("numbers outside the list, zero quantity, or too many dishes are rejected as a whole", () => {
-    expect(ok("9")).toEqual({ kind: "invalid", bad: [9] });
-    expect(ok("1x2, 12, 0")).toEqual({ kind: "invalid", bad: [12, 0] });
+  it("a pair with a number outside the list, or a zero quantity, is rejected as a whole with a hint", () => {
+    expect(ok("9x2")).toEqual({ kind: "invalid", bad: [9] });
+    expect(ok("1x2, 12x1, 0x1")).toEqual({ kind: "invalid", bad: [12, 0] });
     expect(ok("3x0")).toEqual({ kind: "invalid", bad: [3] });
     expect(ok("1 2 3 4 5 6 7 8 1 2 3 4 5 6 7 8 1 2 3 4 5 6 7 8 1 2 3 4 5 6 7 8 1 2 3 4 5 6 7 8 1 2 3 4 5 6 7 8").kind).toBe("invalid"); // > 40 tokens
   });
+  it.each(["9", "12", "1 2 15", "70 12 34 56", "03 12 34 56", "7:30", "1:30", "2:2", "40", "99"])("bare out-of-range numbers, times and phone digits are not a list reply: %j", (x) => expect(ok(x).kind).toBe("none"));
   it.each(["", "   ", "hello", "2 shawarma", "make it 3", "I want 1x2", "1x2 please", "yes", "3 people", "12 Main street", "+96170123456", "1.5", "1x2x3", "x", "x2", "-1", "٣ دجاج"])("not a numbered reply: %j", (t) => expect(ok(t).kind).toBe("none"));
   it("a 8+ digit number (phone, building) is never a dish number", () => { expect(ok("96170123456").kind).toBe("none"); expect(ok("70123456").kind).toBe("none"); });
 });
