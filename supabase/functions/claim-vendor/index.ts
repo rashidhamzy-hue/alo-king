@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildOtpPayload } from "./otp.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const PNID = Deno.env.get("KAPSO_DEFAULT_PHONE_NUMBER_ID") ?? "1384772384720496";
@@ -27,10 +28,7 @@ async function sendOtp(to: string, code: string): Promise<boolean> {
   try {
     const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${PNID}/messages`, {
       method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" },
-      body: JSON.stringify({ messaging_product: "whatsapp", to, type: "template", template: { name: OTP_TEMPLATE, language: { code: OTP_LANG }, components: [
-        { type: "body", parameters: [{ type: "text", text: code }] },
-        { type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: code }] },
-      ] } }),
+      body: JSON.stringify(buildOtpPayload(to, OTP_TEMPLATE, OTP_LANG, code)),
     });
     if (!res.ok) console.error("OTP send failed", res.status, await res.text());
     return res.ok;
