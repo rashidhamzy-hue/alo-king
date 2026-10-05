@@ -16,6 +16,11 @@ const MAX_QTY = 20;
 const NUM = String.raw`(\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|wahad|tnein|etneen|tlete|arba3a|khamse|واحد|اتنين|اثنين|تنين|ثلاثه|تلاته|اربعه|خمسه|سته|سبعه|ثمانيه|تمانيه|تسعه|عشره)`;
 const PRON = /^(?:it|that|this|them|those|هيدا|هاد|هاي)$/;
 
+// Words that usually describe how a dish is made ("no onion", "without garlic", "no chicken"): a request about a dish, not a request to delete a basket line.
+const MODIFIERS = new Set(["onion", "onions", "tomato", "tomatoes", "pickle", "pickles", "garlic", "toum", "sauce", "sauces", "mayo", "mayonnaise", "ketchup", "lettuce", "parsley", "salt", "pepper", "spice", "spices", "spicy", "cheese", "chicken", "beef", "meat", "lamb", "fish", "oil", "sugar", "ice", "cream",
+  "بصل", "بندوره", "مخلل", "ثوم", "صوص", "مايونيز", "كاتشب", "خس", "بقدونس", "ملح", "فلفل", "جبنه", "دجاج", "لحمه", "سكر", "basal", "banadoura", "mekhalal", "5ass", "ba2dounes", "jibne"]);
+const isModifierOnly = (name: string) => { const ws = normText(name).split(" ").filter((w) => w && !/^(?:the|my|el|al|ال|some|any)$/.test(w)); return ws.length > 0 && ws.every((w) => MODIFIERS.has(w.replace(/^ال(?=\S{3,})/, ""))); };
+
 const toIndex = (l: EditLine): IndexItem => ({ item_id: l.id, vendor_id: "", vendor_name: "", vendor_name_ar: "", name_en: l.name_en, name_ar: l.name_ar, section: "", price_usd: 1, is_popular: false });
 
 /** Which basket line does `name` mean? A pronoun / empty name means the dish added last. */
@@ -47,9 +52,9 @@ export function parseBasketEdit(text: string, lines: EditLine[]): EditResult {
   if ((m = t.match(new RegExp(String.raw`^${NUM}\s*x?\s*(.+?)\s+instead$`)))) return finish(pick(m[2], lines, false), q(m[1]));
   if ((m = t.match(new RegExp(String.raw`^(?:خليهم|خليها|خليه|خلي|khalli|khali|khalle|5alli|5ali)\s*(?:(?:ال|el\s+|al\s+)?(.*?)\s+)?${NUM}$`)))) return finish(pick(m[1] ?? "", lines, true), q(m[2]));
   // --- remove ---
-  if ((m = t.match(/^(?:remove|delete|drop|cancel|take out|take off|get rid of)\s+(?:the\s+|my\s+)?(it|that|this)$/)) || (m = t.match(/^(شيلو|شيلها|احذفو|احذفها|shilo|sheelo)$/))) return finish({ line: lines[lines.length - 1] }, null);
+  if ((m = t.match(/^(?:remove|delete|take out|take off|get rid of)\s+(?:the\s+|my\s+)?(it|that|this)$/)) || (m = t.match(/^(شيلو|شيلها|احذفو|احذفها|shilo|sheelo)$/))) return finish({ line: lines[lines.length - 1] }, null);
   if ((m = t.match(/^(?:remove|delete|drop|cancel|take out|take off|get rid of|no|without|(?:i\s+)?don\s?t\s+want|(?:i\s+)?do\s+not\s+want)\s+(?:the\s+|my\s+)?(.+)$/)) ||
-      (m = t.match(/^(?:شيل|شيلي|احذف|بلا|بدون|ما بدي|مابدي|لا تحط|shil|sheel|shayl|bala|bdun|ma badde|ma bade|mabade|ma bdi|ma baddi)\s+(.+)$/))) return finish(pick(m[1], lines, false), null);
+      (m = t.match(/^(?:شيل|شيلي|احذف|بلا|بدون|ما بدي|مابدي|لا تحط|shil|sheel|shayl|bala|bdun|ma badde|ma bade|mabade|ma bdi|ma baddi)\s+(.+)$/))) return isModifierOnly(m[1]) || PRON.test(normText(m[1]).trim()) ? { kind: "none" } : finish(pick(m[1], lines, false), null); // a bare pronoun here ("cancel it", "no that") is not a clear basket edit
   return { kind: "none" };
 }
 
@@ -85,5 +90,6 @@ export function lineButtons(line: { id: string; quantity: number }, ar: boolean)
 export function maybeEditText(text: string): boolean {
   const t = normText(String(text ?? ""));
   if (!t || t.length > 80) return false;
+  if (/^no(?:\s+(?:thanks|thank you|please|pls|plz|شكرا))?$/.test(t)) return false;
   return /^(?:please\s+)?(?:make|change|set|update|only|just|remove|delete|drop|cancel|take|get rid|no|without|i dont|i don t|dont|don t|i do not|do not|خلي|خليه|خليها|خليهم|شيل|شيلي|شيلو|شيلها|احذف|احذفو|احذفها|بلا|بدون|ما بدي|مابدي|khalli|khali|khalle|5alli|5ali|shil|shilo|sheel|sheelo|shayl|bala|bdun|ma badde|ma bade|mabade|ma bdi|ma baddi)(?=\s|$)/.test(t) || /\sx\s*\d{1,3}$/.test(t) || /\binstead$/.test(t);
 }

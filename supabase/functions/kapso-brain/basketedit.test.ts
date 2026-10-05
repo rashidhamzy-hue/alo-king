@@ -42,6 +42,16 @@ describe("parseBasketEdit: remove", () => {
 
 describe("parseBasketEdit: when NOT to act (the model or the normal flow handles it)", () => {
   it.each(["", "hello", "checkout", "yes", "cancel", "cancel my order", "I want 2 more pepsi", "add a pepsi", "2 shawarma", "what's in my basket", "remove", "make it", "make it better", "no", "no thanks", "make it spicy", "حذف", "شيل", "no sauce", "remove the pickles", "no onions please"])("%j", (t) => expect(p(t).kind).toBe("none"));
+  it("modifier words are requests about a dish, not basket removals", () => {
+    const b = [L("s", "Chicken Shawarma", "شاورما دجاج"), L("o", "Onion Rings", "حلقات بصل"), L("g", "Garlic Sauce", "ثوم"), L("p", "Pepsi", "بيبسي")];
+    for (const x of ["no onion", "without onions", "no sauce", "no garlic", "no chicken", "remove the onions", "bala toum", "بدون بصل", "no tomato"]) expect(parseBasketEdit(x, b).kind, x).toBe("none");
+    expect(parseBasketEdit("remove the pepsi", b)).toEqual({ kind: "remove", lineId: "p" });
+    expect(parseBasketEdit("remove the onion rings", b)).toEqual({ kind: "remove", lineId: "o" });
+  });
+  it("pronoun removal needs an explicit remove verb: cancel it / no that / don't want it are not basket edits", () => {
+    for (const x of ["cancel it", "cancel this", "no that", "don't want it", "I don't want it", "drop it"]) expect(p(x).kind, x).toBe("none");
+    expect(p("remove it")).toEqual({ kind: "remove", lineId: "l3" }); expect(p("take out that")).toEqual({ kind: "remove", lineId: "l3" });
+  });
   it("an empty basket never matches", () => expect(parseBasketEdit("make it 3", []).kind).toBe("none"));
   it("two lines that both match the name: ask, do not guess", () => {
     const two = [L("a", "Chicken Shawarma", "شاورما دجاج"), L("b", "Beef Shawarma", "شاورما لحمة")];
@@ -78,4 +88,13 @@ describe("edit tap ids and rows (Meta limits)", () => {
 describe("maybeEditText (cheap pre-filter)", () => {
   it.each(["make it 3", "remove the fries", "no fries", "fries x3", "3 pepsi instead", "خليها 3", "شيل البطاطا", "khalli 3", "shil el batata", "ma badde pepsi", "only 2", "without onions"])("%s", (x) => expect(maybeEditText(x)).toBe(true));
   it.each(["hello", "burger", "2 shawarma and fries", "checkout", "yes", "what do you have", "بدي شاورما", "", "x".repeat(100)])("%j", (x) => expect(maybeEditText(x)).toBe(false));
+});
+
+describe("maybeEditText: a bare 'no' is not an edit", () => { it.each(["no", "no thanks", "no please", "لا"])("%s", (x) => expect(maybeEditText(x)).toBe(false)); });
+
+describe("the dish added last is the one 'make it 3' means", () => {
+  it("adding an existing dish again moves its line to the end (basket_lines are ordered by created_at)", () => {
+    const src = require("node:fs").readFileSync(require("node:path").resolve(process.cwd(), "supabase/functions/kapso-brain/index.ts"), "utf8");
+    expect(src).toMatch(/update\(\{ quantity: Math\.min\(20, ex\.quantity \+ qty\), created_at: new Date\(\)\.toISOString\(\) \}\)/);
+  });
 });

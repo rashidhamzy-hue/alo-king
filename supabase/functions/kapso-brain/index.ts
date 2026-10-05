@@ -480,7 +480,7 @@ async function addLine(phone: string, vendorId: string, itemId: string, qty: num
   }
   const key = lineKey(itemId, choices);
   const { data: ex } = await sb.from("basket_lines").select("id,quantity").eq("basket_id", basket!.id).eq("line_key", key).maybeSingle();
-  if (ex) await sb.from("basket_lines").update({ quantity: Math.min(20, ex.quantity + qty) }).eq("id", ex.id);
+  if (ex) await sb.from("basket_lines").update({ quantity: Math.min(20, ex.quantity + qty), created_at: new Date().toISOString() }).eq("id", ex.id); // bumping a dish counts as touching it: "make it 3" then means this one (lines are ordered by created_at)
   else {
     if ((await basketLines(basket!.id)).length >= MAX_LINES) return { error: `a basket holds at most ${MAX_LINES} different dishes`, name: row.item_name_en };
     const { error } = await sb.from("basket_lines").insert({ basket_id: basket!.id, item_id: itemId, line_key: key, quantity: qty, choices: pl.chosen.map((x: any) => ({ group: x.group, option: x.option })) });
