@@ -74,17 +74,25 @@ export const personas: Persona[] = [
       r.check("summary-reflects-latest-choice", /juice/i.test(s) && !/soft drinks?/i.test(s), s.slice(0, 160));
       r.check("summary-has-two-juices", /2\s*[x×]|[x×]\s*2|2\s+juice|juice\s*[x×]\s*2/i.test(s), s.slice(0, 160));
     }
+    const snap0 = await c.inspect();
+    const lines = snap0.baskets.filter((x: any) => x.status === "active").flatMap((x: any) => x.basket_lines);
+    r.check("basket-holds-only-latest-choice", lines.length === 1 && lines[0].quantity === 2 && /juice/i.test(lines[0].item_id), JSON.stringify(lines), 1);
     await c.say("show my basket");
-    r.check("basket-view-available", !!c.find(/^(BASKET|CHECKOUT|BSET|BCLR)/) || /basket|سلة/i.test(c.lastText()), c.lastText().slice(0, 100), 1);
+    r.check("basket-card-with-checkout", !!c.find(/^CHECKOUT\|/), c.lastText().slice(0, 100), 1);
   }},
   { id: "two-vendors", title: "Orders from two vendors", run: async (c, r) => {
     await c.say("I want 2 soft drinks from Al Tahouneh");
     await c.say("and also a tawouk skewer from Paradise Waterfalls");
-    const b = await reachSummary(c, ADDR[0], ["checkout"]);
+    await c.say(ADDR[0]);
+    const b = await reachSummary(c, NAME, ["checkout please"]);
     const text = c.allText();
     r.check("each-vendor-has-own-delivery-fee-before-confirm", (text.match(/2\.00/g) ?? []).length >= 2 && !!b, "expected two separate summaries each showing the $2.00 fee", 1);
-    const confirms = c.buttons().filter((x) => /^CONFIRM\|/.test(x.id));
-    r.check("separate-confirm-per-vendor", new Set(confirms.map((x) => x.id)).size >= 1, undefined, 1);
+    const confirms = c.turns.flatMap((t) => t.msgs.flatMap((m) => (m.interactive?.action?.buttons ?? []).map((x: any) => x.reply.id))).filter((id: string) => /^CONFIRM\|/.test(id));
+    r.check("separate-confirm-per-vendor", new Set(confirms).size === 2, `${new Set(confirms).size} confirm buttons`, 1);
+    for (const id of new Set(confirms)) await c.tap(id, "Confirm");
+    const after = await c.inspect();
+    r.check("two-orders-one-per-vendor", after.orders.length === 2 && new Set(after.orders.map((o: any) => o.vendor_id)).size === 2, `${after.orders.length} orders`, 1);
+    r.check("each-order-has-own-delivery-fee", after.orders.every((o: any) => Number(o.delivery_fee_usd) === 2), undefined, 1);
   }},
   { id: "closed-vendor", title: "Orders from a closed vendor", run: async (c, r) => {
     const open = (await rest(`vendor_profiles?select=accepts_orders&vendor_id=eq.${CLOSED}`)).at(0)?.accepts_orders;
