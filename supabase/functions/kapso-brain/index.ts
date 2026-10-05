@@ -636,7 +636,7 @@ async function handleRating(c: Ctx, phone: string, orderId: string, stars: numbe
 async function handleSubstitution(c: Ctx, phone: string, offerId: string, answer: "ok" | "up" | "cancel") {
   const { data: offer } = await sb.from("substitution_offers").select("id,order_id,missing_item_id,sub_item_id,status,offered_total_usd").eq("id", offerId).eq("customer_phone", phone).maybeSingle();
   if (!offer || offer.status !== "pending") { await sendText(c, tr(c, "That offer is no longer open 🙏", "هالعرض ما عاد مفتوح 🙏")); return; }
-  const { data: ord } = await sb.from("orders").select("id,short_code,vendor_id,status,items,total_usd,updated_at").eq("id", offer.order_id).eq("customer_phone", phone).maybeSingle();
+  const { data: ord } = await sb.from("orders").select("id,short_code,vendor_id,status,items,total_usd,notes,updated_at").eq("id", offer.order_id).eq("customer_phone", phone).maybeSingle();
   if (!ord || !OPEN_ORDER_STATUSES.includes(ord.status)) { await sb.from("substitution_offers").update({ status: "expired" }).eq("id", offer.id); await sendText(c, tr(c, "That order has already moved on 🙏", "هالطلب تغيّر وضعه 🙏")); return; }
   const claim = (status: string) => sb.from("substitution_offers").update({ status }).eq("id", offer.id).eq("status", "pending").select("id");
   if (answer === "cancel") {
@@ -650,21 +650,21 @@ async function handleSubstitution(c: Ctx, phone: string, offerId: string, answer
   const swap = sub ? swapLine(Array.isArray(ord.items) ? ord.items : [], offer.missing_item_id, { item_id: sub.item_id, item_name_en: sub.item_name_en, item_name_ar: sub.item_name_ar, price_usd: Number(sub.price_usd) }, DELIVERY_FEE_USD, COD_CAP_USD) : null;
   // Swaps are only for orders the kitchen has not accepted yet, and only at the exact total the customer was shown (a price change since the offer voids it).
   const higher = !!swap?.ok && isPriceIncrease(swap.total, Number(ord.total_usd));
-  if (higher && answer !== "up") { // a higher total is never applied by the plain swap tap
-    await sendText(c, tr(c, "That swap costs more, so I need you to tap *Accept new total* on the offer 🙏", "هالتبديل أغلى، لازم تضغط *أقبل الإجمالي الجديد* على العرض 🙏")); return;
+  if (higher && answer !== "up") { // a higher total is never applied by the plain swap tap; this offer was issued as a plain swap, so it is void (no "Accept new total" button exists for it)
+    await sb.from("substitution_offers").update({ status: "expired" }).eq("id", offer.id).eq("status", "pending");
+    await sendText(c, tr(c, `That swap now costs more than what I showed you, so I can't apply it 🙏 ${handoffLine(c)}`, `هالتبديل صار أغلى من يلي عرضتو عليك فما فيني طبّقو 🙏 ${handoffLine(c)}`)); return;
   }
   if (ord.status !== "pending" || !swap?.ok || Math.abs(swap.total - Number(offer.offered_total_usd)) > 0.001) {
     await sb.from("substitution_offers").update({ status: "expired" }).eq("id", offer.id).eq("status", "pending");
     await sendText(c, tr(c, `I couldn't make that swap any more 🙏 ${handoffLine(c)}`, `ما قدرت أبدّل الصنف 🙏 ${handoffLine(c)}`)); return;
   }
   if (!(await claim("accepted")).data?.length) return;
-  const { data: upd } = await sb.from("orders").update({ items: swap.lines, subtotal_usd: swap.subtotal, total_usd: swap.total }).eq("id", ord.id).eq("status", "pending").eq("updated_at", ord.updated_at).select("id");
-  if (!upd?.length) { await sb.from("substitution_offers").update({ status: "expired" }).eq("id", offer.id); await sendText(c, tr(c, "That order has already moved on 🙏", "هالطلب تغيّر وضعه 🙏")); return; }
-  await sendText(c, tr(c, `✅ Swapped for *${itemName(c, sub)}*. New total for #${ord.short_code}: *${both(swap.total)}* · Cash on delivery.`, `✅ بدّلناه بـ *${itemName(c, sub)}*. الإجمالي الجديد للطلب #${ord.short_code}: *${both(swap.total)}* · الدفع عند الاستلام.`));
   const fromName = (Array.isArray(ord.items) ? ord.items.find((l: any) => l.item_id === offer.missing_item_id)?.name_en : null) ?? offer.missing_item_id;
   const note = swapNote({ code: ord.short_code, fromName, toName: sub.item_name_en ?? sub.item_id, oldTotal: Number(ord.total_usd), newTotal: swap.total });
-  const { data: cur } = await sb.from("orders").select("notes").eq("id", ord.id).maybeSingle();
-  await sb.from("orders").update({ notes: [cur?.notes, note].filter(Boolean).join(" | ").slice(0, 500) }).eq("id", ord.id); // visible on the kitchen screen
+  const notes = [note, ord.notes].filter(Boolean).join(" | ").slice(0, 500); // the swap line goes first so truncation only ever cuts older notes; written in the same guarded update as the swap
+  const { data: upd } = await sb.from("orders").update({ items: swap.lines, subtotal_usd: swap.subtotal, total_usd: swap.total, notes }).eq("id", ord.id).eq("status", "pending").eq("updated_at", ord.updated_at).select("id");
+  if (!upd?.length) { await sb.from("substitution_offers").update({ status: "expired" }).eq("id", offer.id); await sendText(c, tr(c, "That order has already moved on 🙏", "هالطلب تغيّر وضعه 🙏")); return; }
+  await sendText(c, tr(c, `✅ Swapped for *${itemName(c, sub)}*. New total for #${ord.short_code}: *${both(swap.total)}* · Cash on delivery.`, `✅ بدّلناه بـ *${itemName(c, sub)}*. الإجمالي الجديد للطلب #${ord.short_code}: *${both(swap.total)}* · الدفع عند الاستلام.`));
   const told = await tellVendorOwner(c, ord.vendor_id, `🔁 Order #${ord.short_code}: the customer accepted a swap from ${fromName} to ${sub.item_name_en}. New total ${both(swap.total)} (was ${both(Number(ord.total_usd))}).`);
   if (!told && c.admin) await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: `⚠️ Couldn't reach the vendor about the swap on order #${ord.short_code} (${ord.vendor_id}); the change is in the order notes.` } }, c.dry, c.out);
 }
