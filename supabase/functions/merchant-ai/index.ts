@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5";
+const MODEL = Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-4-5";
 const DAILY_UNITS = 80;
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, authorization, apikey, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -15,7 +15,13 @@ const ITEM_FIELDS = new Set(["description_en", "description_ar", "ingredients", 
 async function claude(body: any) {
   const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model: MODEL, ...body }) });
   const d = await r.json();
-  if (!r.ok) { console.error("anthropic", r.status, JSON.stringify(d)); throw new Error("ai_error"); }
+  if (!r.ok) {
+    console.error("anthropic", r.status, JSON.stringify(d));
+    if (!ANTHROPIC_KEY || r.status === 401 || r.status === 403) throw new Error("ai_config: AI key missing or invalid");
+    if (r.status === 404 || (r.status === 400 && /model/i.test(JSON.stringify(d)))) throw new Error(`ai_config: model ${MODEL} unavailable`);
+    if (r.status === 429 || r.status === 529) throw new Error("ai_busy");
+    throw new Error(`ai_error_${r.status}`);
+  }
   return d;
 }
 async function quota(vendor: string, cost: number) {
@@ -143,5 +149,11 @@ Deno.serve(async (req) => {
       return json({ reply, proposals });
     }
     return json({ error: "unknown action" }, 400);
-  } catch (e) { console.error(e); return json({ error: "The assistant had a problem. Please try again." }, 500); }
+  } catch (e) {
+    console.error(e);
+    const m = e instanceof Error ? e.message : String(e);
+    if (m === "ai_busy") return json({ error: "The AI service is busy right now. Please try again in a minute." }, 503);
+    if (m.startsWith("ai_config")) return json({ error: `The assistant isn't set up correctly (${m.slice(11)}). Please contact Alo King.` }, 500);
+    return json({ error: `The assistant had a problem (${m.slice(0, 60)}). Please try again.` }, 500);
+  }
 });
