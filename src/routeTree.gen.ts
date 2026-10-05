@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DriverRouteImport } from './routes/driver'
+import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as MerchantRouteImport } from './routes/merchant'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 const DriverRoute = DriverRouteImport.update({
   id: '/driver',
   path: '/driver',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MerchantRoute = MerchantRouteImport.update({
@@ -38,12 +44,14 @@ const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/driver': typeof DriverRoute
+  '/explore': typeof ExploreRoute
   '/merchant': typeof MerchantRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/driver': typeof DriverRoute
+  '/explore': typeof ExploreRoute
   '/merchant': typeof MerchantRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
@@ -51,20 +59,23 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/driver': typeof DriverRoute
+  '/explore': typeof ExploreRoute
   '/merchant': typeof MerchantRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/driver' | '/merchant' | '/track/$orderId'
+  fullPaths: '/' | '/driver' | '/explore' | '/merchant' | '/track/$orderId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/driver' | '/merchant' | '/track/$orderId'
-  id: '__root__' | '/' | '/driver' | '/merchant' | '/track/$orderId'
+  to: '/' | '/driver' | '/explore' | '/merchant' | '/track/$orderId'
+  id:
+    '__root__' | '/' | '/driver' | '/explore' | '/merchant' | '/track/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DriverRoute: typeof DriverRoute
+  ExploreRoute: typeof ExploreRoute
   MerchantRoute: typeof MerchantRoute
   TrackOrderIdRoute: typeof TrackOrderIdRoute
 }
@@ -83,6 +94,13 @@ declare module '@tanstack/react-router' {
       path: '/driver'
       fullPath: '/driver'
       preLoaderRoute: typeof DriverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/merchant': {
@@ -105,6 +123,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DriverRoute: DriverRoute,
+  ExploreRoute: ExploreRoute,
   MerchantRoute: MerchantRoute,
   TrackOrderIdRoute: TrackOrderIdRoute,
 }
