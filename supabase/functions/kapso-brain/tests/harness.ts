@@ -17,7 +17,7 @@ export type Result = { persona: string; name: string; status: Status; phase: num
 // The publishable key is public by design (shipped to browsers); read it from the frontend config.
 import { readFileSync } from "node:fs";
 const ANON = process.env.SUPABASE_ANON_KEY ?? (() => {
-  try { return readFileSync(new URL("../../../../src/lib/config.ts", import.meta.url), "utf8").match(/SUPABASE_KEY\s*=\s*\n?\s*(?:[^"']*?)["']([^"']+)["']/)?.[1] ?? ""; } catch { return ""; }
+  try { return readFileSync(new URL("../../../../src/lib/config.ts", import.meta.url), "utf8").match(/sb_publishable_[A-Za-z0-9_-]+/)?.[0] ?? ""; } catch { return ""; }
 })();
 export async function rest(path: string): Promise<any[]> {
   const res = await fetch(`${BASE}/rest/v1/${path}`, { headers: { apikey: ANON, authorization: `Bearer ${ANON}` } });

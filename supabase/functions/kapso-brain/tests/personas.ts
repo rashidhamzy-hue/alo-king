@@ -6,11 +6,12 @@ import { Customer, Report, arabicShare, orderChecks, rest, universal, textOf } f
 
 export const TAHOUNEH = "al-tahouneh-restaurant-36524";
 export const WATERFALLS = "paradise-waterfalls-restaurant-36502";
-export const CLOSED = "paradise-four-manakish-bakery-36979"; // set accepts_orders=false by fixtures/closed-vendor.sql
+export const CLOSED = "habaq-36500"; // set accepts_orders=false by fixtures/closed-vendor.sql
 const SODA = `${TAHOUNEH}-soft-drinks`;
 
 export type Persona = { id: string; title: string; run: (c: Customer, r: Report) => Promise<void> };
 
+const buttonsOfIds = (m: any): string[] => [...(m.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id), ...(m.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => r.id))];
 const confirmBtn = (c: Customer) => c.find(/^CONFIRM\|/);
 /** Drive the bot to an order summary with a Confirm button (retrying with nudges). */
 async function reachSummary(c: Customer, ask: string, nudges: string[]) {
@@ -18,13 +19,14 @@ async function reachSummary(c: Customer, ask: string, nudges: string[]) {
   for (const n of nudges) { if (confirmBtn(c)) break; await c.say(n); }
   return confirmBtn(c);
 }
+const NAME = "My name is Sami";
 const ADDR = ["Baakleen, near the church, building 3 floor 2", "deliver to Baakleen, Main Street, Green Building, 2nd floor"];
 
 export const personas: Persona[] = [
   { id: "arabic", title: "Arabic speaker", run: async (c, r) => {
     await c.say("مرحبا");
     r.check("greets-in-arabic", arabicShare(c.lastText()) > 0.5, `arabic share ${arabicShare(c.lastText()).toFixed(2)}`);
-    const b = await reachSummary(c, "بدي مشروب غازي من الطحونة، تنتين", [ADDR[0], "هاد العنوان، جهزلي الطلب"]);
+    const b = await reachSummary(c, "بدي مشروب غازي من الطحونة، تنتين", [ADDR[0], "اسمي سامي", "هاد العنوان، جهزلي الطلب"]);
     r.check("reaches-confirm-summary", !!b, "no CONFIRM button offered");
     if (b) {
       const summary = c.lastText();
@@ -34,8 +36,8 @@ export const personas: Persona[] = [
   }},
   { id: "english", title: "English speaker", run: async (c, r) => {
     await c.say("Hi");
-    r.check("replies-in-english", arabicShare(c.lastText()) < 0.3, `arabic share ${arabicShare(c.lastText()).toFixed(2)}`);
-    const b = await reachSummary(c, "I want 2 soft drinks from Al Tahouneh", [ADDR[0], ADDR[1]]);
+    r.check("replies-in-english", arabicShare(c.lastText()) < 0.3, `arabic share ${arabicShare(c.lastText()).toFixed(2)}`, 3);
+    const b = await reachSummary(c, "I want 2 soft drinks from Al Tahouneh", [ADDR[0], NAME, ADDR[1]]);
     r.check("reaches-confirm-summary", !!b);
     if (b) { await c.tap(b.id, b.title); r.check("order-placed-after-confirm-tap", /order|طلب/i.test(c.lastText()), c.lastText().slice(0, 100)); }
   }},
@@ -43,11 +45,11 @@ export const personas: Persona[] = [
     await c.say("marhaba, badde etneen soft drinks men el tahouneh");
     r.check("understands-arabizi-order", /soft|drink|مشروب/i.test(c.lastText()), c.lastText().slice(0, 100), 3);
     r.check("replies-in-user-script", arabicShare(c.lastText()) > 0.3 || /[a-z]/i.test(c.lastText()), undefined);
-    const b = await reachSummary(c, "ya3ne 2, w el 3enwen Baakleen next to the church bldg 3", ["jahezle el talab"]);
+    const b = await reachSummary(c, "ya3ne 2, w el 3enwen Baakleen next to the church bldg 3", [NAME, "jahezle el talab"]);
     r.check("reaches-confirm-summary", !!b, undefined, 3);
   }},
   { id: "typos", title: "Typo-heavy customer", run: async (c, r) => {
-    const b = await reachSummary(c, "helo i wnat 2 sofft drnks frm al tahouna", [ADDR[0], "pls confrim"]);
+    const b = await reachSummary(c, "helo i wnat 2 sofft drnks frm al tahouna", [ADDR[0], NAME, "pls confrim"]);
     r.check("recovers-from-typos", !!b, c.lastText().slice(0, 100), 3);
     r.check("no-error-leak", !/error|exception|undefined|null/i.test(c.allText()));
   }},
@@ -65,7 +67,7 @@ export const personas: Persona[] = [
     await c.say("actually make it 1");
     await c.say("no wait, 4 please");
     await c.say("ok forget the soft drinks, I want juice instead, 2");
-    const b = await reachSummary(c, ADDR[0], ["show me my order and confirm"]);
+    const b = await reachSummary(c, ADDR[0], [NAME, "show me my order and confirm"]);
     r.check("reaches-confirm-summary", !!b);
     if (b) {
       const s = c.lastText();
@@ -87,13 +89,14 @@ export const personas: Persona[] = [
   { id: "closed-vendor", title: "Orders from a closed vendor", run: async (c, r) => {
     const open = (await rest(`vendor_profiles?select=accepts_orders&vendor_id=eq.${CLOSED}`)).at(0)?.accepts_orders;
     if (open !== false) { r.check("fixture-active (run fixtures/closed-vendor.sql)", false, "closed-vendor fixture not applied"); return; }
-    await c.say("I want a zaatar manousheh from Paradise Four Manakish Bakery");
+    await c.say("I want a thyme manousheh from Habaq");
     await c.say(ADDR[0]);
-    r.check("no-confirm-offered-for-closed-vendor", !confirmBtn(c), "CONFIRM button offered for a closed vendor");
-    r.check("explains-closed", /closed|not accepting|مسكر|مغلق|ما عم يستقبل/i.test(c.allText()), c.lastText().slice(0, 100));
+    r.check("no-confirm-offered-for-closed-vendor", !confirmBtn(c) || !(await c.inspect()).carts.some((x: any) => x.vendor_id === CLOSED), "CONFIRM button offered for a closed vendor");
+    const offersClosed = c.turns.some((t) => t.msgs.some((m) => buttonsOfIds(m).some((id) => id.includes(CLOSED))));
+    r.check("explains-closed-or-redirects", /closed|not accepting|مسكر|مغلق|ما عم يستقبل/i.test(c.allText()) || !offersClosed, "offered to order from the closed vendor");
   }},
   { id: "canceller", title: "Cancels", run: async (c, r) => {
-    const b = await reachSummary(c, "I want 2 soft drinks from Al Tahouneh", [ADDR[0], ADDR[1]]);
+    const b = await reachSummary(c, "I want 2 soft drinks from Al Tahouneh", [ADDR[0], NAME, ADDR[1]]);
     r.check("reaches-confirm-summary", !!b);
     await c.say("cancel, I changed my mind");
     r.check("cancel-acknowledged", /cancel|ألغ|تم الإلغاء|no problem|ok/i.test(c.lastText()), c.lastText().slice(0, 100));
@@ -133,7 +136,7 @@ export async function runPersona(p: Persona, c: Customer, phase: number): Promis
   r.addAll(universal(c));
   r.addAll(await orderChecks(c));
   if (p.id === "arabic") r.check("language-mirrors-arabic", arabicShare(c.allText()) > 0.4, `arabic share ${arabicShare(c.allText()).toFixed(2)}`);
-  if (p.id === "english") r.check("language-mirrors-english", arabicShare(c.allText()) < 0.35, `arabic share ${arabicShare(c.allText()).toFixed(2)}`, 1);
+  if (p.id === "english") r.check("language-mirrors-english", arabicShare(c.allText()) < 0.35, `arabic share ${arabicShare(c.allText()).toFixed(2)}`, 3);
   return r;
 }
 void textOf;

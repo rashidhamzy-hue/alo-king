@@ -51,3 +51,10 @@ export function parseReorderTap(id: string): string | null {
   const [kind, orderId] = String(id ?? "").split("|");
   return kind === "REORDER" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId ?? "") ? orderId : null;
 }
+
+// Safety net for free-text model replies: any "$x.xx" that isn't already followed by its LBP equivalent gets one appended
+// (dual-currency rule). The LBP value is computed here from the amount at the fixed rate, never taken from the model.
+export function ensureDualCurrency(text: string, rate: number): string {
+  return text.replace(/\$(\d{1,6}(?:\.\d{1,2})?)(?!\.?\d)(?!\s*(?:·|\/|-|—)?\s*[\d,]+\s*(?:LBP|ل\.ل))/g, (_m, n: string) =>
+    `$${n} · ${Math.round(Number(n) * rate).toLocaleString("en-US")} LBP`);
+}

@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
-import { buildReorderCard, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
+import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
 
@@ -61,12 +61,12 @@ const post = (c: Ctx, p: any) => rawSend(c.pnid, p, c.dry, c.out);
 
 async function sendText(c: Ctx, body: string) {
   c.log.push(body);
-  await post(c, { ...envl(c.to), type: "text", text: { body: clip(body, 3900) } });
+  await post(c, { ...envl(c.to), type: "text", text: { body: clip(ensureDualCurrency(body, LBP_RATE), 3900) } });
 }
 type Btn = { id: string; title: string };
 async function sendButtons(c: Ctx, o: { body: string; buttons: Btn[]; footer?: string; headerImage?: string | null; headerText?: string }) {
   const mk = (withImg: boolean) => {
-    const interactive: any = { type: "button", body: { text: clip(o.body, 1024) }, footer: { text: clip(o.footer ?? BRAND, 60) },
+    const interactive: any = { type: "button", body: { text: clip(ensureDualCurrency(o.body, LBP_RATE), 1024) }, footer: { text: clip(o.footer ?? BRAND, 60) },
       action: { buttons: o.buttons.slice(0, 3).map((b) => ({ type: "reply", reply: { id: clip(b.id, 256), title: clip(b.title, 20) } })) } };
     if (withImg && o.headerImage && /^https:\/\//.test(o.headerImage)) interactive.header = { type: "image", image: { link: o.headerImage } };
     else if (o.headerText) interactive.header = { type: "text", text: clip(o.headerText, 60) };
