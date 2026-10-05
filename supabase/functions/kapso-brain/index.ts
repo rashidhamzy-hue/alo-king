@@ -13,6 +13,9 @@ import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, 
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
 import { buildReadReceipt, shouldAck } from "./receipts.ts";
+import { extractVendorHint, normText, prepareIndex, resolveSegments, skeleton, tokens, type IndexItem } from "./resolve.ts";
+import { agentLoop } from "./loop.ts";
+import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
 
@@ -159,29 +162,24 @@ async function logAiCall(meta: { kind: "customer" | "owner"; phone?: string }, u
 
 // `system.static` is the cached prefix (tools -> static system); `system.dynamic` (customer profile, language) comes after the breakpoint.
 async function llmLoop(system: { static: string; dynamic: string }, tools: any[], historyKey: string, userText: string, run: (n: string, i: any) => Promise<string>, meta: { kind: "customer" | "owner"; phone?: string }, model: string = MODEL): Promise<string> {
-  const { data: hist } = await sb.from("conversations").select("role,content").eq("phone", historyKey).order("id", { ascending: false }).limit(12);
-  const messages: any[] = (hist ?? []).reverse().map((h) => ({ role: h.role, content: h.content }));
+  const { data: hist } = await sb.from("conversations").select("role,content").eq("phone", historyKey).order("id", { ascending: false }).limit(HISTORY_MAX_MESSAGES + 2);
+  const messages: any[] = trimHistory((hist ?? []).reverse().map((h) => ({ role: h.role, content: h.content }))); // short history: older context lives in the profile, basket and matches
   messages.push({ role: "user", content: userText });
   while (messages.length && messages[0].role !== "user") messages.shift();
-  let final = "";
   let useCache = true; // safety net: if the API ever rejects the cache_control shape, retry once uncached rather than failing customers
-  for (let i = 0; i < 7; i++) {
-    const call = () => timed("model", async () => { // the whole call incl. reading the body: that is what the customer waits for
+  const call = async (msgs: any[]) => {
+    const once = () => timed("model", async () => { // the whole call incl. reading the body: that is what the customer waits for
       const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model, max_tokens: 1000, system: useCache ? cachedSystem(system.static, system.dynamic) : `${system.static}\n\n${system.dynamic}`, tools: useCache ? cachedTools(tools) : tools, messages }) });
+        body: JSON.stringify({ model, max_tokens: 1000, system: useCache ? cachedSystem(system.static, system.dynamic) : `${system.static}\n\n${system.dynamic}`, tools: useCache ? cachedTools(tools) : tools, messages: msgs }) });
       return { r, d: await r.json() };
     });
-    let { r: res, d: data } = await call();
-    if (res.status === 400 && useCache && /cache_control/i.test(JSON.stringify(data))) { console.error("cache_control rejected; retrying without caching"); useCache = false; ({ r: res, d: data } = await call()); }
+    let { r: res, d: data } = await once();
+    if (res.status === 400 && useCache && /cache_control/i.test(JSON.stringify(data))) { console.error("cache_control rejected; retrying without caching"); useCache = false; ({ r: res, d: data } = await once()); }
     if (!res.ok) { console.error("Anthropic error", res.status, JSON.stringify(data)); throw new Error(`anthropic ${res.status}: ${String(data?.error?.type ?? "")} ${String(data?.error?.message ?? "").slice(0, 160)}`); }
     await logAiCall(meta, data.usage, data.model);
-    messages.push({ role: "assistant", content: data.content });
-    const uses = (data.content ?? []).filter((b: any) => b.type === "tool_use");
-    final = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
-    if (data.stop_reason !== "tool_use" || !uses.length) break;
-    const results = []; for (const u of uses) results.push({ type: "tool_result", tool_use_id: u.id, content: isDeclaredTool(tools, u.name) ? await run(u.name, u.input) : JSON.stringify({ error: "tool not available" }), ...(isDeclaredTool(tools, u.name) ? {} : { is_error: true }) });
-    messages.push({ role: "user", content: results });
-  }
+    return data;
+  };
+  const { final } = await agentLoop({ messages, call, run, isDeclared: (n) => isDeclaredTool(tools, n) }); // stops early once every tool in a batch already sent its card
   return final;
 }
 const remember = (key: string, user: string, assistant: string) =>
@@ -199,6 +197,8 @@ const CTOOLS = [
   { name: "request_human", description: "Hand the conversation to a person on the Alo King team (complaints, refunds, allergies you cannot resolve, anything the customer wants a human for). Forwards the context to the team; the bot then stays quiet. Reply with nothing after it.", input_schema: { type: "object", properties: { reason: { type: "string", description: "Short reason, max 120 chars" } }, required: ["reason"] } },
   { name: "basket_add", description: "Add a dish to the customer's basket for that vendor (each vendor has its own basket; a second vendor simply creates a second basket). Adding the same dish again increases its quantity. The server shows the updated basket card with real prices; say nothing after it. If it errors (required options missing, closed vendor, unavailable), explain briefly and ask.",
     input_schema: { type: "object", properties: { vendor_id: { type: "string" }, item_id: { type: "string" }, quantity: { type: "integer" }, choices: { type: "array", items: { type: "object", properties: { group: { type: "string" }, option: { type: "string" } }, required: ["group", "option"] } } }, required: ["vendor_id", "item_id", "quantity"] } },
+  { name: "add_items", description: "Add SEVERAL dishes from ONE vendor to the basket in one call (e.g. '2 shawarma, fries and a Pepsi'): items = [{item_id, quantity, choices?}]. Prefer this whenever the customer asks for more than one dish; use the ids from SERVER MATCHES. The server prices everything and sends ONE basket card; say nothing after it. Dishes from different vendors need one call per vendor.",
+    input_schema: { type: "object", properties: { vendor_id: { type: "string" }, items: { type: "array", maxItems: 10, items: { type: "object", properties: { item_id: { type: "string" }, quantity: { type: "integer" }, choices: { type: "array", items: { type: "object", properties: { group: { type: "string" }, option: { type: "string" } }, required: ["group", "option"] } } }, required: ["item_id", "quantity"] } } }, required: ["vendor_id", "items"] } },
   { name: "basket_set", description: "Change a dish already in a basket to an exact quantity, or quantity 0 to remove it. Use for 'make it 3', 'only one', 'remove the drink', 'no tawouk'.",
     input_schema: { type: "object", properties: { vendor_id: { type: "string" }, item_id: { type: "string" }, quantity: { type: "integer", description: "New total quantity; 0 removes the line" }, choices: { type: "array", items: { type: "object", properties: { group: { type: "string" }, option: { type: "string" } }, required: ["group", "option"] } } }, required: ["vendor_id", "item_id", "quantity"] } },
   { name: "basket_show", description: "Show the customer's basket(s) as cards with real prices, one per vendor. Use when they ask what is in their basket/order.", input_schema: { type: "object", properties: {} } },
@@ -457,37 +457,62 @@ async function clearBasketById(phone: string, basketId: string) {
   return !!b;
 }
 
+// One validated line into the customer's basket for a vendor, WITHOUT sending a card (callers send exactly one). All prices are re-read from the database.
+async function addLine(phone: string, vendorId: string, itemId: string, qty: number, choices: Choice[]): Promise<{ basketId: string; name: string } | { error: string; name?: string }> {
+  const { data: open } = await sb.rpc("vendor_is_open", { p_vendor_id: vendorId });
+  if (open === false) return { error: "this vendor is closed or not accepting orders right now; offer another vendor" };
+  const { data: row } = await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,customizations").eq("vendor_id", vendorId).eq("item_id", itemId).eq("available", true).maybeSingle();
+  if (!row || !(Number(row.price_usd) > 0)) return { error: "item not found or unavailable for this vendor" };
+  const pl: any = priceLine(row, choices);
+  if (pl.error) return { error: pl.error, name: row.item_name_en };
+  let basket = await activeBasket(phone, vendorId);
+  if (!basket) {
+    if ((await allBaskets(phone)).length >= MAX_BASKETS) return { error: `at most ${MAX_BASKETS} baskets at once; ask the customer to check out or clear one first`, name: row.item_name_en };
+    const { data: nb, error } = await sb.from("baskets").insert({ customer_phone: phone, vendor_id: vendorId }).select("id,vendor_id").single();
+    if (error) { basket = await activeBasket(phone, vendorId); if (!basket) return { error: "could not open a basket", name: row.item_name_en }; } else basket = nb;
+  }
+  const key = lineKey(itemId, choices);
+  const { data: ex } = await sb.from("basket_lines").select("id,quantity").eq("basket_id", basket!.id).eq("line_key", key).maybeSingle();
+  if (ex) await sb.from("basket_lines").update({ quantity: Math.min(20, ex.quantity + qty) }).eq("id", ex.id);
+  else {
+    if ((await basketLines(basket!.id)).length >= MAX_LINES) return { error: `a basket holds at most ${MAX_LINES} different dishes`, name: row.item_name_en };
+    const { error } = await sb.from("basket_lines").insert({ basket_id: basket!.id, item_id: itemId, line_key: key, quantity: qty, choices: pl.chosen.map((x: any) => ({ group: x.group, option: x.option })) });
+    if (error) return { error: "could not add that", name: row.item_name_en };
+  }
+  await sb.from("baskets").update({ updated_at: new Date().toISOString() }).eq("id", basket!.id);
+  await expirePending(phone, vendorId); // an earlier summary no longer matches the basket
+  return { basketId: basket!.id, name: row.item_name_en };
+}
+
 async function basketTool(c: Ctx, phone: string, name: string, input: any): Promise<string> {
+  if (name === "add_items") {
+    const vendorId = String(input.vendor_id ?? "");
+    const wanted = (Array.isArray(input.items) ? input.items : []).slice(0, 10).map((x: any) => ({ itemId: String(x?.item_id ?? ""), qty: clampQty(x?.quantity), choices: (Array.isArray(x?.choices) ? x.choices : []).filter((k: any) => k && k.group != null && k.option != null).map((k: any) => ({ group: String(k.group), option: String(k.option) })) as Choice[] }));
+    if (!vendorId || !wanted.length) return JSON.stringify({ error: "vendor_id and at least one item are required" });
+    const added: string[] = [], failed: { item_id: string; name?: string; error: string }[] = []; let basketId = "";
+    for (const w of wanted) { // sequential: lines of one basket must not race each other
+      if (!w.itemId || !w.qty) { failed.push({ item_id: w.itemId, error: "item_id and a quantity of at least 1 are required" }); continue; }
+      const r = await addLine(phone, vendorId, w.itemId, w.qty, w.choices);
+      if ("error" in r) failed.push({ item_id: w.itemId, name: r.name, error: r.error }); else { added.push(r.name); basketId = r.basketId; }
+    }
+    if (!added.length) return JSON.stringify({ ok: false, failed, instruction: "Nothing was added. Explain in one short line and ask what is missing (e.g. required options) or offer an alternative." });
+    // a failure note goes BEFORE the card: nothing is ever sent after a card
+    if (failed.length) await sendText(c, failed.slice(0, 3).map((f) => tr(c, `Couldn't add *${f.name ?? "that dish"}*: ${addFailureReason(f.error, false)} 🙏`, `ما قدرت أضيف *${f.name ?? "الصنف"}*: ${addFailureReason(f.error, true)} 🙏`)).join("\n"));
+    await sendBasketCard(c, basketId, vendorId);
+    c.addon = { basketId, vendorId };
+    return JSON.stringify({ ok: true, added: added.length, failed: failed.length, basket_card_sent: true, terminal: true, instruction: "One basket card already delivered with real prices. Reply with nothing." });
+  }
   if (name === "basket_add" || name === "basket_set") {
     const vendorId = String(input.vendor_id ?? ""), itemId = String(input.item_id ?? "");
     const choices: Choice[] = Array.isArray(input.choices) ? input.choices.map((x: any) => ({ group: String(x.group), option: String(x.option) })) : [];
     const qty = clampQty(input.quantity);
     if (name === "basket_add") {
       if (!qty) return JSON.stringify({ error: "quantity must be at least 1" });
-      const { data: open } = await sb.rpc("vendor_is_open", { p_vendor_id: vendorId });
-      if (open === false) return JSON.stringify({ error: "this vendor is closed or not accepting orders right now; offer another vendor" });
-      const { data: row } = await sb.from("menu_items").select("item_id,item_name_en,price_usd,customizations").eq("vendor_id", vendorId).eq("item_id", itemId).eq("available", true).maybeSingle();
-      if (!row || !(Number(row.price_usd) > 0)) return JSON.stringify({ error: "item not found or unavailable for this vendor" });
-      const pl: any = priceLine(row, choices);
-      if (pl.error) return JSON.stringify({ error: pl.error });
-      let basket = await activeBasket(phone, vendorId);
-      if (!basket) {
-        if ((await allBaskets(phone)).length >= MAX_BASKETS) return JSON.stringify({ error: `at most ${MAX_BASKETS} baskets at once; ask the customer to check out or clear one first` });
-        const { data: nb, error } = await sb.from("baskets").insert({ customer_phone: phone, vendor_id: vendorId }).select("id,vendor_id").single();
-        if (error) { basket = await activeBasket(phone, vendorId); if (!basket) return JSON.stringify({ error: "could not open a basket" }); } else basket = nb;
-      }
-      const key = lineKey(itemId, choices);
-      const { data: ex } = await sb.from("basket_lines").select("id,quantity").eq("basket_id", basket!.id).eq("line_key", key).maybeSingle();
-      if (ex) await sb.from("basket_lines").update({ quantity: Math.min(20, ex.quantity + qty) }).eq("id", ex.id);
-      else {
-        if ((await basketLines(basket!.id)).length >= MAX_LINES) return JSON.stringify({ error: `a basket holds at most ${MAX_LINES} different dishes` });
-        const { error } = await sb.from("basket_lines").insert({ basket_id: basket!.id, item_id: itemId, line_key: key, quantity: qty, choices: pl.chosen.map((x: any) => ({ group: x.group, option: x.option })) });
-        if (error) return JSON.stringify({ error: "could not add that" });
-      }
-      await sb.from("baskets").update({ updated_at: new Date().toISOString() }).eq("id", basket!.id);
-      await expirePending(phone, vendorId); // an earlier summary no longer matches the basket
-      await sendBasketCard(c, basket!.id, vendorId);
-      c.addon = { basketId: basket!.id, vendorId };
+      const r = await addLine(phone, vendorId, itemId, qty, choices);
+      if ("error" in r) return JSON.stringify({ error: r.error });
+      await sendBasketCard(c, r.basketId, vendorId);
+      const basket = { id: r.basketId };
+      c.addon = { basketId: basket.id, vendorId };
       return JSON.stringify({ ok: true, basket_card_sent: true, instruction: "Basket card already delivered with real prices. Reply with nothing." });
     }
     // basket_set
@@ -544,6 +569,59 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
   return JSON.stringify({ error: "unknown tool" });
 }
 
+// ---------- RETRIEVAL-FIRST: resolve what the customer typed against the live menu before the model is called ----------
+// One in-memory index of every orderable dish (id, names, vendor, section): ~5k rows, refreshed every 5 minutes per isolate. Prices are never taken from it.
+type MenuIndex = { at: number; items: IndexItem[]; vendors: { vendor_id: string; w: string; s: string }[] };
+let menuIndex: MenuIndex | null = null, menuIndexLoading: Promise<MenuIndex> | null = null, menuIndexFailedAt = 0;
+const MENU_INDEX_TTL_MS = 5 * 60_000, MENU_INDEX_RETRY_MS = 60_000, MENU_INDEX_PAGES = 12;
+async function fetchMenuIndex(): Promise<MenuIndex> {
+  const [vr, ...pages] = await Promise.all([
+    sb.from("vendors").select("vendor_id,name_en,name_ar,is_live,is_active").eq("is_active", true).limit(2000),
+    ...Array.from({ length: MENU_INDEX_PAGES }, (_, i) => sb.from("menu_items").select("item_id,vendor_id,item_name_en,item_name_ar,section,price_usd,is_popular").eq("available", true).gt("price_usd", 0).order("vendor_id").order("item_id").range(i * 1000, i * 1000 + 999)), // PostgREST returns at most 1000 rows per request; (vendor_id, item_id) is unique, so parallel pages cannot overlap
+  ]);
+  if (vr.error || pages.some((pg) => pg.error)) throw new Error(`menu index load failed: ${vr.error?.message ?? pages.find((pg) => pg.error)?.error?.message}`);
+  if ((pages[pages.length - 1].data ?? []).length > 0) console.error("menu index: the last page is not empty, some dishes are not searchable; raise MENU_INDEX_PAGES");
+  const vmap = new Map<string, any>((vr.data ?? []).filter((v: any) => DEMO_MODE || v.is_live).map((v: any) => [v.vendor_id, v]));
+  const items: IndexItem[] = pages.flatMap((pg) => pg.data ?? []).filter((r: any) => vmap.has(r.vendor_id)).map((r: any) => { const v = vmap.get(r.vendor_id); return { item_id: r.item_id, vendor_id: r.vendor_id, vendor_name: v.name_en ?? "", vendor_name_ar: v.name_ar ?? "", name_en: r.item_name_en ?? "", name_ar: r.item_name_ar ?? "", section: r.section ?? "", price_usd: Number(r.price_usd), is_popular: !!r.is_popular }; });
+  prepareIndex(items);
+  return { at: Date.now(), items, vendors: [...vmap.values()].map((v: any) => ({ vendor_id: v.vendor_id, w: normText(v.name_en ?? ""), s: skeleton(v.name_en ?? "") })) };
+}
+/** Cached 5 minutes; concurrent cold requests share one load; a failed refresh serves the stale index (and backs off for a minute) instead of failing every message. */
+async function loadMenuIndex(): Promise<MenuIndex> {
+  if (menuIndex && Date.now() - menuIndex.at < MENU_INDEX_TTL_MS) return menuIndex;
+  if (menuIndexLoading) return menuIndexLoading;
+  if (Date.now() - menuIndexFailedAt < MENU_INDEX_RETRY_MS) { if (menuIndex) return menuIndex; throw new Error("menu index unavailable (retrying shortly)"); }
+  menuIndexLoading = fetchMenuIndex().then((ix) => { menuIndex = ix; return ix; })
+    .catch((e) => { menuIndexFailedAt = Date.now(); if (menuIndex) { console.error("menu index refresh failed, serving the stale index", String((e as Error)?.message ?? e).slice(0, 160)); return menuIndex; } throw e; })
+    .finally(() => { menuIndexLoading = null; });
+  return menuIndexLoading;
+}
+/** The vendor the customer named ("from Shawarma King"): every word of the hint must match the vendor's name. */
+function vendorFromHint(hint: string, vendors: { vendor_id: string; w: string; s: string }[]): string | null {
+  const ht = normText(hint).split(" ").filter(Boolean); if (!ht.length) return null;
+  const hits = vendors.filter((v) => { const ws = v.w.split(" "); return ht.every((t) => ws.some((w) => w === t || (t.length >= 3 && w.startsWith(t))) || (t.length >= 3 && skeleton(t).length >= 3 && ws.some((w) => skeleton(w) === skeleton(t)))); }); // whole words (or a 3+ letter prefix), never a substring of another word
+  return hits.length === 1 ? hits[0].vendor_id : null;
+}
+type Resolved = { segment: string; candidates: { item_id: string; vendor_id: string; vendor_name: string; name_en: string; name_ar: string; needs_choices: boolean; open_now: boolean }[] };
+async function resolveMessage(phone: string, text: string): Promise<Resolved[]> {
+  const t = String(text ?? "").trim();
+  if (!t || t.length > 300 || isGreeting(t) || isYesText(t) || isCancelText(t) || !tokens(t).length) return []; // no menu work for greetings, yes/no and cancel
+  const idx = await loadMenuIndex();
+  const { rest, hint } = extractVendorHint(t);
+  const vendorId = hint ? vendorFromHint(hint, idx.vendors) ?? undefined : undefined;
+  const prefer = new Set((await allBaskets(phone)).map((b) => b.vendor_id));
+  const segs = resolveSegments(rest, idx.items, { vendorId, preferVendors: prefer });
+  const ids = [...new Set(segs.flatMap((s) => s.ranked.map((r) => r.item.item_id)))];
+  const vids = [...new Set(segs.flatMap((s) => s.ranked.map((r) => r.item.vendor_id)))].slice(0, 6);
+  const [cz, opens] = await Promise.all([
+    ids.length ? sb.from("menu_items").select("item_id,vendor_id,customizations").in("item_id", ids) : Promise.resolve({ data: [] as any[] }),
+    Promise.all(vids.map(async (v) => [v, (await sb.rpc("vendor_is_open", { p_vendor_id: v })).data !== false] as const)),
+  ]);
+  const needs = new Set((cz.data ?? []).filter((r: any) => needsChoices(r)).map((r: any) => `${r.vendor_id}|${r.item_id}`));
+  const open = new Map(opens);
+  return segs.map((s) => ({ segment: s.segment, candidates: s.ranked.map((r) => ({ item_id: r.item.item_id, vendor_id: r.item.vendor_id, vendor_name: r.item.vendor_name, name_en: r.item.name_en, name_ar: r.item.name_ar, needs_choices: needs.has(`${r.item.vendor_id}|${r.item.item_id}`), open_now: open.get(r.item.vendor_id) !== false })).sort((a, b) => Number(b.open_now) - Number(a.open_now)) }));
+}
+
 const ESCALATE_TOOL = { name: "needs_full_assistant", description: "Quick mode only: call this when the customer wants to order, change a basket, confirm, cancel, complain, or anything beyond answering a simple question. Call it BEFORE sending any card or text; then reply with nothing.", input_schema: { type: "object", properties: {} } };
 const CHEAP_TOOLS = [...CTOOLS.filter((t: any) => CHEAP_TOOL_NAMES.includes(t.name)), ESCALATE_TOOL];
 const QUICK_MODE_NOTE = "\n\nQUICK MODE: you only answer simple informational questions (greetings, what's good, menus, hours, delivery info) using the read-only tools. If the customer wants to order, change a basket, confirm, cancel, or has a problem, call needs_full_assistant first and reply with nothing.";
@@ -551,8 +629,8 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
   try {
     if (name === "search_menu") {
       const { data, error } = await sb.rpc("bot_search_menu_v2", { p_terms: input.terms ?? null, p_village: input.village ?? null, p_vegan: input.vegan ?? null, p_gluten_free: input.gluten_free ?? null, p_keto: input.keto ?? null,
-        p_max_calories: input.max_calories ?? null, p_min_protein: input.min_protein_grams ?? null, p_max_price_usd: input.max_price_usd ?? null, p_vendor_id: input.vendor_id ?? null, p_exclude_allergens: input.exclude_allergens ?? null, p_include_closed: false, p_demo: DEMO_MODE, p_limit: 8 });
-      return error ? JSON.stringify({ error: error.message }) : JSON.stringify({ count: data.length, results: data });
+        p_max_calories: input.max_calories ?? null, p_min_protein: input.min_protein_grams ?? null, p_max_price_usd: input.max_price_usd ?? null, p_vendor_id: input.vendor_id ?? null, p_exclude_allergens: input.exclude_allergens ?? null, p_include_closed: false, p_demo: DEMO_MODE, p_limit: 6 });
+      return error ? JSON.stringify({ error: error.message }) : JSON.stringify({ count: data.length, results: (data as any[]).map(slimSearchRow) });
     }
     if (name === "get_vendor_info") {
       const { data, error } = await sb.rpc("get_vendor_info", { p_vendor_id: input.vendor_id });
@@ -566,7 +644,7 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
       if (!it || !(Number(it.price_usd) > 0)) return JSON.stringify({ error: "item not found" });
       await sendButtons(c, { body: `${input.body}\n\n💵 *${both(it.price_usd)}*`, headerImage: it.image_url,
         buttons: [{ id: `ORD|${input.vendor_id}|${input.item_id}`, title: orderBtnTitle(Number(it.price_usd)) }, { id: `MENU|${input.vendor_id}`, title: "📋 See Full Menu" }, { id: "LOC", title: "📍 Change Location" }] });
-      return JSON.stringify({ ok: true, card_sent: true });
+      return JSON.stringify({ ok: true, card_sent: true, terminal: true });
     }
     if (name === "needs_full_assistant") { // quick mode hands over to the main model, but only if nothing has been sent yet
       if (c.rich > 0) return JSON.stringify({ error: "already answered; just finish" });
@@ -574,7 +652,7 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
     }
     if (name === "request_human") { await startHandoff(c, phone, String(input.reason ?? "model escalation").slice(0, 160)); return JSON.stringify({ ok: true, instruction: "The customer was already told. Reply with nothing." }); }
     if (name === "show_menu") return showMenuResult(await sendMenu(c, String(input.vendor_id ?? ""), true)); // an unknown vendor is an error for the model, not a filler message to the customer
-    if (["basket_add", "basket_set", "basket_show", "basket_clear", "cancel_pending", "checkout"].includes(name)) return await basketTool(c, phone, name, input);
+    if (["basket_add", "add_items", "basket_set", "basket_show", "basket_clear", "cancel_pending", "checkout"].includes(name)) return await basketTool(c, phone, name, input);
     if (name === "confirm_order") {
       // Law 81/2018: confirmation must be the customer's own act. A summary sent this turn can only be confirmed by a later message.
       if (c.fromVoice) return JSON.stringify({ error: "This came from a voice note: the customer must tap Confirm Order on the summary themselves. Tell them to tap it.", instruction: "Ask them to tap Confirm Order." });
@@ -604,7 +682,7 @@ HOW YOU RECOMMEND
 - For general chat, greetings or questions, plain text is fine. A greeting: welcome them as Alo King and ask what they are craving, or offer to find food near them.
 
 HOW YOU ORDER
-- Orders are built from BASKETS: each vendor has its own persistent basket, and the server shows it as a card with real prices. When the customer wants a dish, find its item_id with search_menu if you don't have it, then call basket_add (quantity 1 unless stated; if the dish has required customization groups ask for the choices in one short question first). "Make it 3" / "only one" / "remove the drink" → basket_set (quantity 0 removes). "What's in my basket?" → basket_show. "Clear/empty it" → basket_clear. "Cancel / never mind" → cancel_pending. Changing their mind any number of times only edits the basket; nothing is ordered until they tap Confirm.
+- Orders are built from BASKETS: each vendor has its own persistent basket, and the server shows it as a card with real prices. When the customer wants a dish, find its item_id with search_menu if you don't have it, then call basket_add (quantity 1 unless stated; if the dish has required customization groups ask for the choices in one short question first). SEVERAL dishes in one message ("2 shawarma, fries and a Pepsi") → ONE add_items call per vendor with every dish and its quantity, using the ids in SERVER MATCHES (no search_menu, no per-dish calls); the server sends one basket card. If SERVER MATCHES shows no match, or two plausible dishes or vendors for one item, ask ONE short question instead of guessing. "Make it 3" / "only one" / "remove the drink" → basket_set (quantity 0 removes). "What's in my basket?" → basket_show. "Clear/empty it" → basket_clear. "Cancel / never mind" → cancel_pending. Changing their mind any number of times only edits the basket; nothing is ordered until they tap Confirm.
 - After a basket tool succeeds a card was already sent: send NO further text.
 - When the customer is done ("that's all", "checkout", "order it", or gives their address) use the CUSTOMER PROFILE below: if name, village and landmark are all known, call checkout immediately; otherwise ask only for what's missing in one short message, then call checkout. checkout sends one receipt card per vendor (each with its own delivery fee and its own Confirm button). After it succeeds, send NO further text and NEVER call confirm_order in the same turn. Only if the customer's next message is a clear yes (instead of tapping Confirm), call confirm_order (with several summaries waiting, ask them to tap the one they want).
 - Different vendors are separate baskets and separate orders (each pays its own $${DELIVERY_FEE_USD.toFixed(2)} delivery). Cash on delivery in USD or LBP. Cash orders capped at $${COD_CAP_USD} per order.
@@ -1094,7 +1172,10 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     }
     await sendButtonOnly(c, phone, guard, !!loc); await remember(phone, userText, c.log.join("\n")); return;
   }
+  let matches = "";
+  if (!reply && !loc) { try { matches = matchesNote(await resolveMessage(phone, userText)); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
   const system = { static: CSYSTEM, dynamic: `CUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}` };
+  const modelText = matches ? `${userText}\n\n${matches}` : userText; // the matches ride on the customer turn as labelled data; chat history stores only what the customer said
   let final = "";
   const run = (n: string, i: any) => customerTool(c, phone, n, i);
   const mainModel = c.override?.model ?? MODEL;
@@ -1102,11 +1183,11 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   try {
     if (route === "cheap") {
       let cheapFailed = false;
-      try { final = await llmLoop({ static: system.static, dynamic: system.dynamic + QUICK_MODE_NOTE }, CHEAP_TOOLS, phone, userText, run, { kind: "customer", phone }, CHEAP_MODEL); }
+      try { final = await llmLoop({ static: system.static, dynamic: system.dynamic + QUICK_MODE_NOTE }, CHEAP_TOOLS, phone, modelText, run, { kind: "customer", phone }, CHEAP_MODEL); }
       catch (e) { cheapFailed = true; console.error("cheap model failed, falling back to the main model", String((e as Error)?.message ?? e).slice(0, 160)); }
-      if (cheapFailed && !c.rich) final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel);
-      else if (!cheapFailed && c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel); } // the small model handed over before sending anything
-    } else final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel);
+      if (cheapFailed && !c.rich) final = await llmLoop(system, CTOOLS, phone, modelText, run, { kind: "customer", phone }, mainModel);
+      else if (!cheapFailed && c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, modelText, run, { kind: "customer", phone }, mainModel); } // the small model handed over before sending anything
+    } else final = await llmLoop(system, CTOOLS, phone, modelText, run, { kind: "customer", phone }, mainModel);
   }
   catch (err) { console.error("customer llm error", String((err as Error)?.message ?? err).slice(0, 300)); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
   await maybeOfferAddon(c);

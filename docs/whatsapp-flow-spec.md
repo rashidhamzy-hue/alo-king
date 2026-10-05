@@ -145,3 +145,9 @@ Personas: Arabic speaker, English speaker, Arabizi speaker, typo-heavy, voice no
 ## 7. Instant feedback and latency targets (`docs/latency.md`)
 - **Read receipt + typing indicator** on every inbound customer message, sent in parallel with the turn (`receipts.ts`): `POST /{phone_number_id}/messages` `{status:"read", message_id, typing_indicator:{type:"text"}}`, no `to`. The indicator clears when the bot sends, or after about 25 s. Skipped in dry runs; the admin's own messages are only marked read. Known edge: while a human handoff is active the bot stays silent, so the indicator can linger until it expires.
 - **Targets (ours, excluding Kapso's buffer window):** a tap that needs no model answers in under 1.5 s of handler time; free text uses at most one model call when the message can be resolved server-side.
+
+## 8. Retrieval-first, one model call (flow item 2)
+- **Before the model runs**, the server resolves the customer's free text against an in-memory index of every orderable dish (`resolve.ts`: Arabic / English / Arabizi normalisation, a shared consonant skeleton for transliterations, typo tolerance; refreshed every 5 minutes, ids and names only, never prices). The best matches per typed segment (with vendor, open now, needs-choices) go into the prompt as `SERVER MATCHES`; the model uses those ids directly.
+- **`add_items`**: one call adds every dish of one vendor (`items:[{item_id, quantity, choices?}]`). Prices come from the database, required options are enforced per line, one basket card is sent at the end; a failure note, if any, goes before the card.
+- **No "say nothing" call**: when every tool result in a batch is terminal (the card was already sent), the loop stops instead of calling the model again.
+- **Smaller prompts**: `search_menu` rows are slimmed (no ingredients/nutrition detail/AI notes; allergen facts kept when confirmed), and history is the last 6 messages with long assistant logs clipped.
