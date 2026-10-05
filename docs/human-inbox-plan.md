@@ -27,7 +27,7 @@ There is **no authentication at all**: no `middleware.ts` (404 at `/middleware.t
    - Vercel Deployment Protection as a second lock (see below).
 3. **Pin config** in env (`PHONE_NUMBER_ID`, `WABA_ID`) and remove/disable the `/api/settings` PUT so the number can't be switched from the browser.
 4. **Deploy** to Vercel (steps below), custom domain `inbox.<our domain>`, HTTPS only.
-5. **Wire handoff (flow item 5 in this repo):** `kapso-brain` writes `handoff_log`, sets `handoff_until` (e.g. 2h, extended on each human message), stays silent for that customer, and messages `ADMIN_WHATSAPP_PHONE` "Customer …34 wants a person: <inbox link>". A "Hand back to bot" action clears the flag (or it expires).
+5. **Wire handoff (flow item 5 in this repo):** `kapso-brain` writes `handoff_log`, sets `handoff_until` (e.g. 2h, extended on each human message), stays silent for that customer, and messages `ADMIN_WHATSAPP_PHONE` "Customer …34 wants a person: <inbox link>". A "Hand back to bot" action clears the flag (or it expires). The admin alert is a service message (inside the 24h window or an approved utility template), never a promotion; the link carries customer identifiers, so it only opens behind the login.
 6. **Verify**: unauthenticated `curl https://inbox…/api/conversations` must return 401/redirect; logged-in allowed user sees threads; a disallowed Supabase user gets 403; reply from the inbox arrives on a test phone; bot stays silent during handoff and resumes after.
 
 ## Exact steps for you in Vercel (do these after I've opened the fork PR with the login)
