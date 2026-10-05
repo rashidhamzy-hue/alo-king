@@ -51,3 +51,14 @@ export function parseReorderTap(id: string): string | null {
   const [kind, orderId] = String(id ?? "").split("|");
   return kind === "REORDER" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId ?? "") ? orderId : null;
 }
+
+// Safety net for free-text model replies: on any line that shows a "$x.xx" amount but no LBP at all, each USD amount gets its LBP
+// equivalent appended (dual-currency rule). The LBP value is computed here at the fixed rate, never taken from the model.
+// Lines that already carry LBP in any format ("· 134,250 LBP", "(134,250 LBP)", "= LBP 134,250", ل.ل) are left alone.
+export function ensureDualCurrency(text: string, rate: number): string {
+  return text.split("\n").map((line) => {
+    if (/LBP|L\.L|ل\.ل|ليرة/i.test(line)) return line;
+    return line.replace(/\$(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?!\.?\d)/g, (_m, n: string) =>
+      `$${n} · ${Math.round(Number(n.replace(/,/g, "")) * rate).toLocaleString("en-US")} LBP`);
+  }).join("\n");
+}

@@ -50,3 +50,13 @@ describe("buildReorderCard", () => {
     expect(parseReorderTap(`CONFIRM|${id}`)).toBeNull();
   });
 });
+
+import { ensureDualCurrency } from "./customer";
+describe("ensureDualCurrency", () => {
+  it("adds LBP to a bare USD amount", () => expect(ensureDualCurrency("Soft drinks are $2.50 each", 89_500)).toBe("Soft drinks are $2.50 · 223,750 LBP each"));
+  it("leaves amounts that already show LBP", () => { const t = "💵 *$1.50 · 134,250 LBP*"; expect(ensureDualCurrency(t, 89_500)).toBe(t); });
+  it("handles several amounts and whole dollars", () => expect(ensureDualCurrency("$2 + $3.00", 89_500)).toBe("$2 · 179,000 LBP + $3.00 · 268,500 LBP"));
+  it("handles thousands separators", () => expect(ensureDualCurrency("Total $1,250", 89_500)).toBe("Total $1,250 · 111,875,000 LBP"));
+  it.each(["$1.50 (134,250 LBP)", "$1.50 = 134,250 LBP", "$1.50 ≈ 134,250 LBP", "$1.50 | LBP 134,250", "$1.50 · ١٣٤٬٢٥٠ ل.ل"])("leaves %s", (t) => expect(ensureDualCurrency(t, 89_500)).toBe(t));
+  it("keeps a trailing sentence period", () => expect(ensureDualCurrency("It costs $2.", 89_500)).toBe("It costs $2 · 179,000 LBP."));
+});
