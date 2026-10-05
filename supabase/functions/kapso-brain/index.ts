@@ -15,7 +15,7 @@ import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESC
 import { buildReadReceipt, shouldAck } from "./receipts.ts";
 import { extractVendorHint, normText, prepareIndex, resolveSegments, skeleton, tokens, type IndexItem } from "./resolve.ts";
 import { agentLoop } from "./loop.ts";
-import { decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
+import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
@@ -604,7 +604,7 @@ function vendorFromHint(hint: string, vendors: { vendor_id: string; w: string; s
   const hits = vendors.filter((v) => { const ws = v.w.split(" "); return ht.every((t) => ws.some((w) => w === t || (t.length >= 3 && w.startsWith(t))) || (t.length >= 3 && skeleton(t).length >= 3 && ws.some((w) => skeleton(w) === skeleton(t)))); }); // whole words (or a 3+ letter prefix), never a substring of another word
   return hits.length === 1 ? hits[0].vendor_id : null;
 }
-type Resolved = { segment: string; qty: number; candidates: { item_id: string; vendor_id: string; vendor_name: string; name_en: string; name_ar: string; needs_choices: boolean; open_now: boolean; score: number }[] };
+type Resolved = { segment: string; query: string; qty: number; risky: boolean; candidates: { item_id: string; vendor_id: string; vendor_name: string; name_en: string; name_ar: string; needs_choices: boolean; open_now: boolean; score: number }[] };
 async function resolveMessage(phone: string, text: string): Promise<Resolved[]> {
   const t = String(text ?? "").trim();
   if (!t || t.length > 300 || isGreeting(t) || isYesText(t) || isCancelText(t) || !tokens(t).length) return []; // no menu work for greetings, yes/no and cancel
@@ -621,7 +621,7 @@ async function resolveMessage(phone: string, text: string): Promise<Resolved[]> 
   ]);
   const needs = new Set((cz.data ?? []).filter((r: any) => needsChoices(r)).map((r: any) => `${r.vendor_id}|${r.item_id}`));
   const open = new Map(opens);
-  return segs.map((s) => ({ segment: s.segment, qty: parseOrder(s.segment, (w) => idx.words.has(w)).segments[0]?.qty ?? 1, candidates: s.ranked.map((r) => ({ item_id: r.item.item_id, vendor_id: r.item.vendor_id, vendor_name: r.item.vendor_name, name_en: r.item.name_en, name_ar: r.item.name_ar, needs_choices: needs.has(`${r.item.vendor_id}|${r.item.item_id}`), open_now: open.get(r.item.vendor_id) !== false, score: r.score })).sort((a, b) => Number(b.open_now) - Number(a.open_now)) }));
+  return segs.map((s) => ({ segment: s.segment, ...(() => { const ps = parseOrder(s.segment, (w) => idx.words.has(w)).segments[0]; return { query: ps?.query ?? s.segment, qty: ps?.qty ?? 1, risky: ps?.risky ?? false }; })(), candidates: s.ranked.map((r) => ({ item_id: r.item.item_id, vendor_id: r.item.vendor_id, vendor_name: r.item.vendor_name, name_en: r.item.name_en, name_ar: r.item.name_ar, needs_choices: needs.has(`${r.item.vendor_id}|${r.item.item_id}`), open_now: open.get(r.item.vendor_id) !== false, score: r.score })).sort((a, b) => Number(b.open_now) - Number(a.open_now)) }));
 }
 
 // "2 shawarma, fries and a Pepsi from X": when the server can resolve every item with confidence it adds them all (ONE basket card, no model call);
@@ -629,7 +629,7 @@ async function resolveMessage(phone: string, text: string): Promise<Resolved[]> 
 async function tryDeterministicOrder(c: Ctx, phone: string, resolved: Resolved[]): Promise<boolean> {
   const prefer = new Set((await allBaskets(phone)).map((b) => b.vendor_id));
   const nm = (x: { name_en: string; name_ar: string }) => (c.ar && x.name_ar ? x.name_ar : x.name_en || x.name_ar);
-  const d = decideOrder(resolved.map((r) => ({ qty: r.qty, query: r.segment, cands: r.candidates.map((x): Cand => ({ item_id: x.item_id, vendor_id: x.vendor_id, name: nm(x), score: x.score, needs_choices: x.needs_choices, open_now: x.open_now })) })), { preferVendors: prefer });
+  const d = decideOrder(resolved.map((r) => ({ qty: r.qty, query: r.query, risky: r.risky, cands: r.candidates.map((x): Cand => ({ item_id: x.item_id, vendor_id: x.vendor_id, name: nm(x), score: x.score, needs_choices: x.needs_choices, open_now: x.open_now })) })), { preferVendors: prefer });
   if (d.kind === "model") return false;
   if (d.kind === "add") {
     const r = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: d.vendorId, items: d.items.map((i) => ({ item_id: i.item_id, quantity: i.quantity })) }));
@@ -637,12 +637,10 @@ async function tryDeterministicOrder(c: Ctx, phone: string, resolved: Resolved[]
     await maybeOfferAddon(c);
     return true;
   }
-  const added: string[] = [];
-  for (const l of d.addNow) { const r = await addLine(phone, d.vendorId, l.item_id, clampQty(l.quantity), []); if (!("error" in r)) added.push(`${l.quantity}× ${l.name}`); }
-  const q = d.question, qty = q.quantity > 1 ? ` ×${q.quantity}` : "";
-  const done = added.length ? tr(c, `\n✅ Added: ${added.join(", ")}`, `\n✅ انضاف: ${added.join("، ")}`) : "";
-  await sendButtons(c, { body: tr(c, `Which one for *${clipTitle(q.query, 40)}*${qty}? 👇${done}`, `أي واحد لـ *${clipTitle(q.query, 40)}*${qty}؟ 👇${done}`),
-    buttons: q.options.map((o) => ({ id: `ADD|${o.vendor_id}|${o.item_id}|${q.quantity}`, title: clipTitle(o.name, 20) })) });
+  const added: string[] = [], failed: string[] = [];
+  for (const l of d.addNow) { const r = await addLine(phone, d.vendorId, l.item_id, clampQty(l.quantity), []); if ("error" in r) failed.push(l.name); else added.push(`${l.quantity}× ${l.name}`); }
+  const card = buildAskCard({ query: d.question.query, quantity: d.question.quantity, added, failed, options: d.question.options, ar: !!c.ar });
+  await sendButtons(c, card);
   return true;
 }
 

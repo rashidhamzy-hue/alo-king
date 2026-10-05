@@ -144,3 +144,15 @@ describe("every function that posts to the Kapso messages API clamps interactive
     if (interactive) expect(text, `${f} sends interactive messages without clampInteractive`).toContain("clampInteractive(");
   });
 });
+
+describe("item 3 ask card (orderparse.buildAskCard)", () => {
+  it("fits WhatsApp's reply-button limits for long names, both languages", async () => {
+    const { buildAskCard } = await import("./orderparse.ts");
+    for (const ar of [false, true]) {
+      const c = buildAskCard({ query: "q".repeat(200), quantity: 20, added: Array.from({ length: 10 }, (_, i) => `${i}× A fairly long dish name ${i}`), failed: ["Something"], ar, options: Array.from({ length: 5 }, (_, i) => ({ vendor_id: "v".repeat(60), item_id: `i${i}`.repeat(30), name: "N".repeat(80) })) });
+      expect(c.buttons.length).toBeLessThanOrEqual(META.maxButtons);
+      for (const b of c.buttons) { expect(b.title.length).toBeLessThanOrEqual(META.buttonTitle); expect(b.id.length).toBeLessThanOrEqual(META.buttonId); }
+      expect(c.body.length).toBeLessThanOrEqual(META.body);
+    }
+  });
+});

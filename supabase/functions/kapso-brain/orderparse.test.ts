@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
+import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 
 const qs = (t: string, known?: (w: string) => boolean) => parseOrder(t, known).segments.map((s) => [s.qty, s.query]);
 
@@ -45,11 +45,36 @@ describe("parseOrder: quantities in English, Arabic and Arabizi", () => {
 
 describe("hasOrderIntent", () => {
   it.each(["2 shawarma", "I want a burger", "badde shawarma", "بدي شاورما", "عطيني بيبسي", "add a pepsi", "shawarma and fries", "شاورما و بطاطا", "give me two falafel", "three pepsi"])("%s → order", (t) => expect(hasOrderIntent(t)).toBe(true));
+  it.each(["do you have falafel and hummus?", "is there gluten in shawarma and fries", "the fries were cold and the pepsi warm", "remove pepsi and fries", "no onions and no pickles", "no pepsi and fries", "I am allergic to peanuts, what do you have", "شو في شاورما و بطاطا", "عندكم شاورما و بطاطا؟", "without onions and tomato", "shil el batata w el pepsi", "ma badde pepsi w batata"])("question / complaint / removal is NOT an order: %s", (t) => expect(hasOrderIntent(t)).toBe(false));
   it.each(["shawarma", "something light", "what's good", "hungry", "pizza?", "عندكم شاورما؟", "do you have falafel", "شو في", "burger near me", ""])("%s → search, not an order", (t) => expect(hasOrderIntent(t)).toBe(false));
 });
 
 const cand = (item_id: string, vendor_id: string, name: string, score: number, extra: Partial<Cand> = {}): Cand => ({ item_id, vendor_id, name, score, needs_choices: false, open_now: true, ...extra });
 const seg = (qty: number, ...cands: Cand[]) => ({ qty, query: "x", cands });
+
+describe("quantity safety", () => {
+  it("risky quantities are flagged (0, above 10) and numbers inside dish names defer to the model", () => {
+    expect(parseOrder("50 falafel").segments[0]).toMatchObject({ qty: 20, risky: true });
+    expect(parseOrder("0 falafel").segments[0]).toMatchObject({ qty: 1, risky: true });
+    expect(parseOrder("11 falafel").segments[0].risky).toBe(true);
+    expect(parseOrder("10 falafel").segments[0].risky).toBe(false);
+    expect(decideOrder([{ qty: 4, query: "cheese pizza", cands: [cand("p", "k", "4 Cheese Pizza", 0.95)] }]).kind).toBe("model");
+    expect(decideOrder([{ qty: 6, query: "nuggets", cands: [cand("n", "k", "Chicken Nuggets 6 pcs", 0.95)] }]).kind).toBe("model");
+    expect(decideOrder([{ qty: 2, query: "pizza", cands: [cand("p", "k", "Cheese Pizza 12 inch", 0.95)] }]).kind).toBe("add");
+    expect(decideOrder([{ qty: 20, query: "falafel", risky: true, cands: [cand("f", "k", "Falafel", 1)] }]).kind).toBe("model");
+  });
+  it("ambiguous Arabic number words are not quantities", () => { expect(parseOrder("ست الحبايب").segments[0].qty).toBe(1); expect(parseOrder("ستة برغر").segments[0].qty).toBe(6); });
+});
+
+describe("buildAskCard", () => {
+  it("names only, up to 3 buttons with ADD ids, titles <= 20", () => {
+    const c = buildAskCard({ query: "badde shawarma", quantity: 2, added: ["1× Fries"], failed: ["Pepsi"], ar: false, options: [{ vendor_id: "k", item_id: "a", name: "Chicken Shawarma Sandwich Large" }, { vendor_id: "k", item_id: "b", name: "Beef" }, { vendor_id: "k", item_id: "c", name: "Mixed" }, { vendor_id: "k", item_id: "d", name: "Plate" }] });
+    expect(c.buttons).toHaveLength(3); expect(c.buttons[0].id).toBe("ADD|k|a|2"); for (const b of c.buttons) expect(b.title.length).toBeLessThanOrEqual(20);
+    expect(c.body).toContain("×2"); expect(c.body).toContain("Added: 1× Fries"); expect(c.body).toContain("Couldn't add: Pepsi"); expect(c.body).not.toMatch(/\$|LBP/);
+    expect(c.body.length).toBeLessThanOrEqual(1024);
+  });
+  it("Arabic", () => expect(buildAskCard({ query: "شاورما", quantity: 1, added: [], failed: [], ar: true, options: [{ vendor_id: "k", item_id: "a", name: "x" }] }).body).toMatch(/[\u0600-\u06FF]/));
+});
 
 describe("decideOrder: add / ask / model", () => {
   it("every segment has one clear dish in one open vendor: add them all", () => {
@@ -75,7 +100,7 @@ describe("decideOrder: add / ask / model", () => {
     expect(decideOrder([seg(1, cand("c", "king", "Chicken Shawarma", 1), cand("p", "king", "Chicken Shawarma Plate", 0.84))]).kind).toBe("add");
   });
   it("two ambiguous segments: still only the first question; nothing from the second is added yet", () => {
-    const d: any = decideOrder([seg(1, cand("a", "k", "A1", 0.9), cand("b", "k", "A2", 0.9)), seg(1, cand("c", "k", "B1", 0.9), cand("d", "k", "B2", 0.9))]);
+    const d: any = decideOrder([seg(1, cand("a", "k", "Alpha One", 0.9), cand("b", "k", "Alpha Two", 0.9)), seg(1, cand("c", "k", "Beta One", 0.9), cand("d", "k", "Beta Two", 0.9))]);
     expect(d.kind).toBe("ask"); expect(d.addNow).toEqual([]);
   });
   it.each([
