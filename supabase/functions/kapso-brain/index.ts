@@ -1490,7 +1490,7 @@ async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], a
   { // instant feedback, in parallel with everything else: blue ticks + "typing…" until our reply (or ~25 s). Best effort, never blocks or fails the turn.
     const ack = shouldAck({ id: e.id, dry, fromAdmin: !!c.admin && normPhone(e.from) === c.admin });
     const payload = ack.read ? buildReadReceipt(e.id, ack.typing) : null;
-    if (payload) timerStore.getStore()?.background(fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${c.pnid}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+    if (payload) timerStore.getStore()?.background(fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${c.pnid}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: AbortSignal.timeout(3000) }) // never let a slow Kapso hold the turn open
       .then(async (r) => { if (!r.ok) console.error("read receipt failed", r.status, (await r.text()).slice(0, 160)); }));
   }
   // An admin reply to a forwarded customer message: resolved once, up front (a voice reply from the admin must not be treated as a customer voice note).
