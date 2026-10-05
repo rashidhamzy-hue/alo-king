@@ -22,16 +22,20 @@ Dry runs (`kapso-brain-test`) return the same objects as `timings` in the respon
 Supabase logs, `query_logs` or the dashboard (24 h window at a time):
 
 ```sql
-select kind,
-  count() n,
-  quantile(0.5)(toFloat64OrZero(JSONExtractString(event_message, 'turn_timing', 'total_ms'))) total_p50,
-  quantile(0.95)(toFloat64OrZero(JSONExtractString(event_message, 'turn_timing', 'total_ms'))) total_p95
+select JSONExtractString(event_message, 'turn_timing', 'kind') as kind,
+  count() as n,
+  quantile(0.5)(JSONExtractFloat(event_message, 'turn_timing', 'total_ms')) as total_p50,
+  quantile(0.95)(JSONExtractFloat(event_message, 'turn_timing', 'total_ms')) as total_p95,
+  quantile(0.5)(JSONExtractFloat(event_message, 'turn_timing', 'db', 'ms')) as db_p50,
+  quantile(0.5)(JSONExtractFloat(event_message, 'turn_timing', 'model', 'ms')) as model_p50,
+  quantile(0.5)(JSONExtractFloat(event_message, 'turn_timing', 'send', 'ms')) as send_p50,
+  quantile(0.5)(JSONExtractFloat(event_message, 'turn_timing', 'receive_lag_ms')) as receive_p50
 from logs
 where source = 'function_logs' and event_message like '%turn_timing%'
 group by kind
 ```
 
-(Extract nested fields with `JSONExtractRaw`/`JSONExtractFloat(event_message, 'turn_timing', 'db', 'ms')` for the per-stage columns.)
+This is the ClickHouse dialect of the MCP `query_logs` tool (the dashboard's log explorer uses BigQuery SQL instead: `JSON_VALUE` / `APPROX_QUANTILES`). `db` counts every supabase-js request (PostgREST and RPC); `send` and `transcribe` measure time to response headers; `first_send_ms` is marked when the send call returns, successful or not.
 Model calls per turn and cost per order come from `ai_call_log` (`ai_cost_per_order`).
 
 ## Baseline (5 Oct 2026, before any change)

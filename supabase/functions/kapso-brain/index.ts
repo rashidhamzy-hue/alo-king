@@ -81,7 +81,7 @@ async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): P
 // Like rawSend, but also returns the WhatsApp message id (needed to map the admin's replies back to a customer).
 async function rawSendId(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<{ ok: boolean; id?: string }> {
   payload = clampInteractive(payload);
-  if (dry) { const id = `dry.${crypto.randomUUID()}`; out?.push({ ...payload, _dry_message_id: id }); return { ok: true, id }; } // dry runs expose the id so tests can reply to it
+  if (dry) { const id = `dry.${crypto.randomUUID()}`; out?.push({ ...payload, _dry_message_id: id }); timerStore.getStore()?.markFirstSend(); return { ok: true, id }; } // dry runs expose the id so tests can reply to it
   const res = await timed("send", () => fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) }));
   timerStore.getStore()?.markFirstSend();
   if (!res.ok) { console.error("Kapso send failed", pnid, res.status, (await res.text()).slice(0, 300)); return { ok: false }; }
@@ -1470,15 +1470,15 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminO
   if (!e.from) return;
   const tm = new TurnTimer();
   const lag = receiveLagMs((evt.message ?? evt.entry?.[0]?.changes?.[0]?.value?.messages?.[0])?.timestamp, Date.now());
-  try { await timerStore.run(tm, () => handleEventInner(body, evt, dry, out, adminOverride, override)); }
+  try { await timerStore.run(tm, () => handleEventInner(body, evt, dry, out, adminOverride, override, e)); }
   finally {
     const s = summarize(tm, { kind: turnKind(e), receive_lag_ms: lag, model_calls: tm.modelCalls });
     console.log(JSON.stringify({ turn_timing: s }));
     timings?.push(s);
   }
 }
-async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null, override?: StagingOverride) {
-  const e = extract(evt);
+async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null, override?: StagingOverride, parsed?: ReturnType<typeof extract>) {
+  const e = parsed ?? extract(evt);
   if (!e.from) return;
   const c: Ctx = { to: e.from, pnid: pnidOf(body, evt), dry, out, log: [], rich: 0, override, acq: e.acq, admin: normPhone(dry && adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined };
   if (e.id) {
