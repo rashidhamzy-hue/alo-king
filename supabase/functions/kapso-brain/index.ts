@@ -1177,7 +1177,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   // The customer row: already touched (last_inbound_at drives the 24h window; the first text message decides the language) by the single start-of-turn query, else one upsert here.
   const cust = started ?? await touchCustomer(sb, phone, lang);
   let handoffActive = false;
-  { const cl = cust; c.ar = (cl?.language ?? lang ?? "ar") !== "en"; handoffActive = !!cl?.handoff_until && new Date(cl.handoff_until) > new Date(); } // server-built cards follow the customer's stored language (default Arabic)
+  { const cl = cust ?? (await sb.from("customers").select("language,handoff_until").eq("phone_number", phone).maybeSingle()).data; /* a failed touch must not lose the stored language */ c.ar = (cl?.language ?? lang ?? "ar") !== "en"; handoffActive = !!cl?.handoff_until && new Date(cl.handoff_until) > new Date(); } // server-built cards follow the customer's stored language (default Arabic)
   // First-touch source: click-to-WhatsApp ad referral, or a QR deep link (ORDER_<VILLAGE>_<MERCHANT>_<TABLE>)
   const qr = parseQrText(text);
   const acq = c.acq ?? qr;

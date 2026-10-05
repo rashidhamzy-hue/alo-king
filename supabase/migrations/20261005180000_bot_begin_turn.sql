@@ -7,7 +7,7 @@ create or replace function public.bot_begin_turn(p_message_id text, p_phone text
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_new text;
