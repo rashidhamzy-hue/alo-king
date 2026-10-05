@@ -1,0 +1,13 @@
+project_id = "hnjkietmwvkgbyrcnweq"
+
+[functions.kapso-brain]
+verify_jwt = false
+
+[functions.demo-chat]
+verify_jwt = false
+
+[functions.claim-vendor]
+verify_jwt = true
+
+[functions.merchant-ai]
+verify_jwt = true
