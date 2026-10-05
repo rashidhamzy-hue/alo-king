@@ -84,3 +84,9 @@ export function useLang() {
   if (!c) throw new Error("useLang outside LangProvider");
   return c;
 }
+
+/** Inline bilingual helper: const L = useL(); L("Hello", "مرحبا") */
+export function useL() {
+  const { lang } = useLang();
+  return (en: string, ar: string) => (lang === "ar" ? ar : en);
+}
