@@ -74,7 +74,7 @@ function pnidOf(body: any, evt: any): string {
 // Staging-only (kapso-brain-test + selftest token + dry run): per-request overrides so a capped live check can use a cheaper model, enable the cheap router and shrink the budget. Never honoured in production.
 type StagingOverride = { model?: string; cheap?: boolean; budget?: number };
 const OVERRIDE_MODELS = ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"];
-type Ctx = { listSend?: boolean; quickCleared?: boolean; to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
+type Ctx = { listSend?: boolean; quickCleared?: boolean; quickDel?: Promise<unknown>; to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   payload = clampInteractive(payload); // last line of defence: never let an over-long title/body make Meta reject the whole message
   if (dry) { out?.push(payload); timerStore.getStore()?.markFirstSend(); return true; }
@@ -99,7 +99,7 @@ async function rawSendId(pnid: string, payload: any, dry: boolean, out?: any[]):
 const envl = (to: string) => ({ messaging_product: "whatsapp", recipient_type: "individual", to });
 // A numbered list is only "live" until the bot sends anything else to the customer: the first other outgoing message in a turn drops it (best effort, finished before the turn ends).
 const post = (c: Ctx, p: any) => {
-  if (!c.listSend && !c.quickCleared) { c.quickCleared = true; timerStore.getStore()?.background(Promise.resolve(sb.from("quick_menus").delete().eq("customer_phone", c.to)).then((r: any) => { if (r?.error && r.error.code !== "42P01") console.error("quick_menus clear failed", r.error.message); })); }
+  if (!c.listSend && !c.quickCleared) { c.quickCleared = true; c.quickDel = Promise.resolve(sb.from("quick_menus").delete().eq("customer_phone", c.to)).then((r: any) => { if (r?.error && r.error.code !== "42P01") console.error("quick_menus clear failed", r.error.message); }); timerStore.getStore()?.background(c.quickDel); }
   return rawSend(c.pnid, p, c.dry, c.out);
 };
 
@@ -657,6 +657,7 @@ async function sendNumberedMenu(c: Ctx, phone: string, vendorId: string, page = 
   let p = page, pg = buildNumberedPage({ vendorName: vname, items: ordered, page: p, ar: !!c.ar, both });
   if (!pg.shown.length) { p = 0; pg = buildNumberedPage({ vendorName: vname, items: ordered, page: 0, ar: !!c.ar, both }); } // past the last page: back to the first
   const buttons = [...(pg.hasMore ? [{ id: numberedTapId(vendorId, p + 1), title: tr(c, "➕ More dishes", "➕ كمان أصناف") }] : []), { id: `CATS|${vendorId}`, title: tr(c, "📋 Categories", "📋 الأقسام") }, { id: "BASKET", title: tr(c, "🧺 My basket", "🧺 سلتي") }];
+  await c.quickDel; // an earlier clear in this turn must land BEFORE the new list is stored
   const { error } = await sb.from("quick_menus").upsert({ customer_phone: phone, vendor_id: vendorId, page: p, item_ids: pg.shown.map((x) => x.item_id), expires_at: new Date(Date.now() + 5 * 60_000).toISOString() }, { onConflict: "customer_phone" }); // the numbers on screen must be remembered first
   if (error) { console.error("quick_menus upsert failed, showing the category list instead", error.message); return await sendMenu(c, vendorId, silentIfMissing); }
   c.listSend = true; c.quickCleared = true; // this IS the list: it must not clear itself
@@ -671,11 +672,12 @@ async function handleNumberedReply(c: Ctx, phone: string, text: string): Promise
   const n = (qm.item_ids as string[]).length, r = parseNumberedReply(text, n);
   if (r.kind === "none") return false;
   if (r.kind === "more") { await sendNumberedMenu(c, phone, qm.vendor_id, qm.page + 1); return true; }
-  if (r.kind === "invalid") { await sendText(c, tr(c, `Pick numbers from 1 to ${n}, for example *1x2, 3* 🙏`, `اختار أرقام من 1 لـ ${n}، مثلاً *1x2, 3* 🙏`)); return true; }
+  if (r.kind === "invalid") { c.quickCleared = true; /* the list stays live so the corrected reply works */ await sendText(c, tr(c, `Pick numbers from 1 to ${n}, for example *1x2, 3* 🙏`, `اختار أرقام من 1 لـ ${n}، مثلاً *1x2, 3* 🙏`)); return true; }
   const wanted = r.lines.map((l) => ({ item_id: (qm.item_ids as string[])[l.n - 1], quantity: l.qty }));
   const { data: rows } = await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,customizations").eq("vendor_id", qm.vendor_id).in("item_id", wanted.map((w) => w.item_id));
   const byId = new Map((rows ?? []).map((x: any) => [x.item_id, x]));
   const choice = wanted.filter((w) => needsChoices(byId.get(w.item_id) ?? {})), plain = wanted.filter((w) => !choice.includes(w));
+  if (choice.length > 1) c.quickCleared = true; // the customer is told to send the remaining numbers again: the list must survive. A plain order consumes the list (Add more reopens it), so a later "3" is never read as a dish.
   if (choice.length > 1) await sendText(c, tr(c, `⚙ ${choice.slice(1).map((w) => itemName(c, byId.get(w.item_id) ?? { item_id: w.item_id })).join(", ")} need options: send ${choice.length > 2 ? "their numbers" : "its number"} again after this one 🙏`, `⚙ ${choice.slice(1).map((w) => itemName(c, byId.get(w.item_id) ?? { item_id: w.item_id })).join("، ")} إلها خيارات: ابعت ${choice.length > 2 ? "أرقامها" : "رقمها"} بعد هيدا 🙏`));
   if (plain.length) { const res = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: qm.vendor_id, items: plain })); if (res.ok) await maybeOfferAddon(c); }
   if (choice.length) { const w = choice[0]; const row = byId.get(w.item_id); if (row && !tapSupported(row)) await sendItemCard(c, qm.vendor_id, w.item_id); else await sendCzStep(c, phone, qm.vendor_id, w.item_id, w.quantity, []); }
