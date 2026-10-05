@@ -122,7 +122,7 @@ async function llmLoop(system: string, tools: any[], historyKey: string, userTex
     const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({ model: MODEL, max_tokens: 1000, system, tools, messages }) });
     const data = await res.json();
-    if (!res.ok) { console.error("Anthropic error", res.status, JSON.stringify(data)); throw new Error("anthropic"); }
+    if (!res.ok) { console.error("Anthropic error", res.status, JSON.stringify(data)); throw new Error(`anthropic ${res.status}: ${String(data?.error?.type ?? "")} ${String(data?.error?.message ?? "").slice(0, 160)}`); }
     messages.push({ role: "assistant", content: data.content });
     const uses = (data.content ?? []).filter((b: any) => b.type === "tool_use");
     final = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
@@ -649,7 +649,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   const system = `${CSYSTEM}\n\nCUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}`;
   let final = "";
   try { final = await llmLoop(system, CTOOLS, phone, userText, (n, i) => customerTool(c, phone, n, i)); }
-  catch { final = "عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment."; }
+  catch (err) { console.error("customer llm error", err); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
   await maybeOfferAddon(c);
   if (final && !c.rich) await sendText(c, final); // never add text after cards/buttons
   else if (!c.rich) await sendText(c, "ما فهمت عليك تماماً 🙏 شو بتحب تاكل؟\nWhat are you craving?");
