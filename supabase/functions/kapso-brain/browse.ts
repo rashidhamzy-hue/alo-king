@@ -122,3 +122,9 @@ export function pickAddon(menu: MenuItemLite[], basketItemIds: string[]): MenuIt
   drinks.sort((a, b) => Number(!!b.is_popular) - Number(!!a.is_popular) || Number(a.price_usd) - Number(b.price_usd));
   return drinks[0] ?? null;
 }
+
+/** Result of the show_menu tool: only "ok" when a menu list was really delivered; otherwise an error the model must act on (it used to say ok for an unknown vendor, so the customer saw a filler text). */
+export const showMenuResult = (sent: boolean): string =>
+  sent
+    ? JSON.stringify({ ok: true, menu_sent: true, instruction: "Menu list delivered. Reply with nothing." })
+    : JSON.stringify({ error: "no menu found for that vendor_id; nothing was sent. Call search_menu to find the right vendor_id (and item_ids), then try again." });

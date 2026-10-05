@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
-import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
+import { showMenuResult, buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { isStagingPath, isTestPhone, tightenBudget, beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
 import { clampInteractive, META } from "../_shared/meta-limits.ts";
 import { CHEAP_TOOL_NAMES, cheapRouterEnabled, isDeclaredTool, routeTurn } from "./router.ts";
@@ -322,13 +322,14 @@ async function vendorMenu(vendorId: string): Promise<any[]> {
 const itemName = (c: Ctx, it: any) => (c.ar && it.item_name_ar ? it.item_name_ar : it.item_name_en || it.item_name_ar || it.item_id);
 async function vendorName(vendorId: string) { const { data } = await sb.from("vendors").select("name_en").eq("vendor_id", vendorId).maybeSingle(); return data?.name_en ?? "Menu"; }
 
-async function sendMenu(c: Ctx, vendorId: string) {
+async function sendMenu(c: Ctx, vendorId: string, silentIfMissing = false): Promise<boolean> {
   const [items, vname] = [await vendorMenu(vendorId), await vendorName(vendorId)];
-  if (!items.length) { await sendText(c, tr(c, "I'll pull up that menu for you — what are you in the mood for? 🍽", "رح جيبلك المنيو — شو مشتهي؟ 🍽")); return; }
+  if (!items.length) { if (!silentIfMissing) await sendText(c, tr(c, "I'll pull up that menu for you — what are you in the mood for? 🍽", "رح جيبلك المنيو — شو مشتهي؟ 🍽")); return false; }
   const cats = buildCategories(items);
-  if (cats.length === 1) return sendCategoryItems(c, vendorId, cats[0].slug, 0, items);
+  if (cats.length === 1) { await sendCategoryItems(c, vendorId, cats[0].slug, 0, items); return true; }
   await sendList(c, { header: vname, body: tr(c, `*${vname}* — pick a category 👇\nOr just tell me what you're craving.`, `*${vname}* — اختار قسم 👇\nأو خبرني شو مشتهي.`), button: tr(c, "Categories", "الأقسام"),
     sections: [{ title: tr(c, "Menu", "المنيو"), rows: cats.map((k) => ({ id: `CAT|${vendorId}|${k.slug}`, title: k.title, description: tr(c, `${k.count} items`, `${k.count} صنف`) })) }] });
+  return true;
 }
 async function sendCategoryItems(c: Ctx, vendorId: string, slug: string, page: number, menu?: any[]) {
   const items = menu ?? await vendorMenu(vendorId);
@@ -565,7 +566,7 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
       c.escalate = true; return JSON.stringify({ ok: true, instruction: "Reply with nothing." });
     }
     if (name === "request_human") { await startHandoff(c, phone, String(input.reason ?? "model escalation").slice(0, 160)); return JSON.stringify({ ok: true, instruction: "The customer was already told. Reply with nothing." }); }
-    if (name === "show_menu") { await sendMenu(c, String(input.vendor_id ?? "")); return JSON.stringify({ ok: true, menu_sent: true, instruction: "Menu list delivered. Reply with nothing." }); }
+    if (name === "show_menu") return showMenuResult(await sendMenu(c, String(input.vendor_id ?? ""), true)); // an unknown vendor is an error for the model, not a filler message to the customer
     if (["basket_add", "basket_set", "basket_show", "basket_clear", "cancel_pending", "checkout"].includes(name)) return await basketTool(c, phone, name, input);
     if (name === "confirm_order") {
       // Law 81/2018: confirmation must be the customer's own act. A summary sent this turn can only be confirmed by a later message.
