@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
-import { adminCommand, handoffContext, HANDOFF_HOURS, isHumanRequest, relayText, shouldRelay } from "./handoff.ts";
+import { adminCommand, handoffContext, HANDOFF_FIRST_MINUTES, HANDOFF_HOURS, hasRelayableText, isBotRequest, isHumanRequest, relayText, shouldRelay } from "./handoff.ts";
 import { deletionConfirmation, forgetScope, privacyNotice } from "./privacy.ts";
 import { isNotifiable, isPriceIncrease, parseLifecycleTap, pickSubstitute, swapLine, swapNote, windowOpen } from "../_shared/lifecycle.ts";
 import { notifyOrderStatus } from "../_shared/notify.ts";
@@ -818,18 +818,24 @@ async function startHandoff(c: Ctx, phone: string, reason: string) {
   const text = handoffContext({ name: cu?.full_name ?? null, maskedPhone: maskPhone(phone), lang: cu?.language === "en" ? "en" : "ar", reason, recent: (recent ?? []).map((r: any) => r.content).reverse(), baskets: baskets ?? 0, lastOrder: lo ? { code: lo.short_code, status: lo.status, totalText: both(Number(lo.total_usd)) } : null });
   const sent = await rawSendId(c.pnid, { ...envl(c.admin), type: "text", text: { body: text } }, c.dry, c.out);
   c.rich++;
-  if (!sent.ok) { await sendText(c, tr(c, "I couldn't reach the team just now 🙏 Please try again in a few minutes.", "ما قدرت وصّل للفريق هلأ 🙏 جرب كمان كم دقيقة.")); return; }
-  if (sent.id) await sb.from("handoff_log").insert({ customer_phone: phone, admin_message_id: sent.id, kind: "request" });
-  await sb.from("customers").update({ handoff_until: new Date(Date.now() + HANDOFF_HOURS * 3600_000).toISOString() }).eq("phone_number", phone);
-  await sendText(c, tr(c, "A member of the Alo King team has your conversation and will reply here shortly 🙏 I'll stay quiet so you can talk to them.", "حدا من فريق ألو كينغ وصلتو محادثتك وبيردّ عليك هون بعد شوي 🙏 رح سكّت لتحكي معه."));
+  // Without a message id the admin's replies could never be mapped back, so that counts as a failure: the customer is told and the bot is NOT muted.
+  const logged = sent.ok && sent.id ? await sb.from("handoff_log").insert({ customer_phone: phone, admin_message_id: sent.id, kind: "request" }) : null;
+  if (!sent.ok || !sent.id || logged?.error) { if (logged?.error) console.error("handoff_log insert failed", logged.error.message); await sendText(c, tr(c, "I couldn't reach the team just now 🙏 Please try again in a few minutes.", "ما قدرت وصّل للفريق هلأ 🙏 جرب كمان كم دقيقة.")); return; }
+  const muted = await sb.from("customers").update({ handoff_until: new Date(Date.now() + HANDOFF_FIRST_MINUTES * 60_000).toISOString() }).eq("phone_number", phone); // short until a person actually answers
+  if (muted.error) console.error("handoff mute failed", muted.error.message);
+  await sendText(c, tr(c, "A member of the Alo King team has your conversation and will reply here shortly 🙏 I'll stay quiet so you can talk to them (send *bot* to come back to me).", "حدا من فريق ألو كينغ وصلتو محادثتك وبيردّ عليك هون بعد شوي 🙏 رح سكّت لتحكي معه (ابعت *بوت* لترجع إلي)."));
 }
 // While a person has the chat, customer messages go to the admin (each forward can itself be replied to).
-async function forwardToAdmin(c: Ctx, phone: string, text: string) {
-  if (!c.admin) return;
+async function forwardToAdmin(c: Ctx, phone: string, text: string): Promise<boolean> {
+  if (!c.admin) return false;
+  const { count } = await sb.from("handoff_log").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("kind", "forward").gte("created_at", new Date(Date.now() - 3600_000).toISOString());
+  if ((count ?? 0) >= 30) return true; // flood guard: keep the chat muted but stop forwarding
   const { data: cu } = await sb.from("customers").select("full_name").eq("phone_number", phone).maybeSingle();
-  const sent = await rawSendId(c.pnid, { ...envl(c.admin), type: "text", text: { body: `💬 ${cu?.full_name ? `${cu.full_name} ` : ""}(${maskPhone(phone)}):\n${String(text).replace(/\s+/g, " ").slice(0, 800)}` } }, c.dry, c.out);
+  const name = cu?.full_name ? `${String(cu.full_name).replace(/[\u0000-\u001F]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60)} ` : "";
+  const body = String(text).replace(/[\u0000-\u001F]/g, " ").replace(/\s+/g, " ").trim().slice(0, 800);
+  const sent = await rawSendId(c.pnid, { ...envl(c.admin), type: "text", text: { body: `💬 ${name}(${maskPhone(phone)}):\n${body}` } }, c.dry, c.out);
   if (sent.ok && sent.id) await sb.from("handoff_log").insert({ customer_phone: phone, admin_message_id: sent.id, kind: "forward" });
-  if (!sent.ok) console.error("handoff forward failed (admin 24h window closed?)");
+  return sent.ok;
 }
 // The admin replied to a forwarded message: relay it to that customer (or hand the chat back with /bot).
 async function relayAdminReply(c: Ctx, customerPhone: string, text: string) {
@@ -841,6 +847,7 @@ async function relayAdminReply(c: Ctx, customerPhone: string, text: string) {
     if (c.admin) await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: `✅ Chat handed back to the bot (…${customerPhone.slice(-2)}).` } }, c.dry, c.out);
     return;
   }
+  if (!hasRelayableText(text)) return;
   const ok = await rawSend(c.pnid, { ...envl(customerPhone), type: "text", text: { body: relayText(text, ar) } }, c.dry, c.out);
   if (ok) await sb.from("customers").update({ handoff_until: new Date(Date.now() + HANDOFF_HOURS * 3600_000).toISOString() }).eq("phone_number", customerPhone);
   else if (c.admin) await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: `⚠️ Couldn't deliver your reply to …${customerPhone.slice(-2)} (their 24h WhatsApp window is probably closed).` } }, c.dry, c.out);
@@ -1029,8 +1036,16 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     else await sendText(c, tr(c, "I don't have a usual for you yet 🙏 Order a few times and I'll remember it. What are you craving?", "لسا ما عندي طلب معتاد إلك 🙏 اطلب كم مرة وبتذكره. شو مشتهي؟"));
     await remember(phone, userText, c.log.join("\n")); return;
   }
+  if (!reply && !loc && handoffActive && isBotRequest(userText)) { // the customer chooses the bot again
+    await sb.from("customers").update({ handoff_until: null }).eq("phone_number", phone); handoffActive = false;
+    await sendText(c, tr(c, "I'm back 👋 What would you like?", "رجعت 👋 شو بدك؟")); await remember(phone, userText, c.log.join("\n")); return;
+  }
   if (!reply && !loc && handoffActive) { // a person has this chat: the bot stays silent and forwards (STOP, privacy commands and cancel were handled above)
-    await forwardToAdmin(c, phone, userText); await remember(phone, userText, "[forwarded to the team]"); return;
+    if (!(await forwardToAdmin(c, phone, userText))) { // the team can't be reached: never leave the customer in silence
+      await sb.from("customers").update({ handoff_until: null }).eq("phone_number", phone);
+      await sendText(c, tr(c, "I couldn't pass that to the team 🙏 I'm back with you: what would you like?", "ما قدرت وصّل رسالتك للفريق 🙏 رجعت إلك: شو بدك؟"));
+    }
+    await remember(phone, userText, "[forwarded to the team]"); return;
   }
   if (!reply && !loc && isHumanRequest(userText)) { await startHandoff(c, phone, `asked for a person: "${userText.replace(/\s+/g, " ").slice(0, 100)}"`); await remember(phone, userText, c.log.join("\n")); return; }
   // Greeting from a returning customer → one-tap reorder card; typed "reorder" → straight to the summary (the customer still has to confirm)
@@ -1292,6 +1307,7 @@ async function anonymiseDeletedCustomersOrders() {
 }
 async function purgeStale() {
   await anonymiseDeletedCustomersOrders();
+  await sb.from("handoff_log").delete().lt("created_at", new Date(Date.now() - 30 * 24 * 3600_000).toISOString()); // retention: customer phones in the handoff map
   const [v, l] = await Promise.all([
     sb.from("pending_voice").delete().lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()),
     sb.from("ai_call_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
@@ -1419,13 +1435,16 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminO
     const { error } = await sb.from("processed_messages").insert({ message_id: e.id });
     if (error) { console.log("duplicate, skipping", e.id); return; }
   }
+  // An admin reply to a forwarded customer message: resolved once, up front (a voice reply from the admin must not be treated as a customer voice note).
+  const hrow = e.contextId ? (await sb.from("handoff_log").select("customer_phone").eq("admin_message_id", e.contextId).maybeSingle()).data : null;
+  const isAdminReply = !!hrow && shouldRelay(e.from, c.admin ?? "", e.contextId);
   let text = (e.text ?? "").trim();
   if (!text && !e.reply && !e.loc && (e.type === "audio" || e.audioUrl)) {
     const t = dry && e.fixtureTranscript ? String(e.fixtureTranscript).slice(0, 1000) : e.audioUrl ? await transcribe(e.audioUrl) : null;
     const nv = normPhone(e.from);
     const { data: ownerChk } = nv ? await sb.from("vendors").select("vendor_id").eq("owner_whatsapp_phone", nv).maybeSingle() : { data: null };
-    if (t && !ownerChk && !e.contextId && isOptOutTitle(t)) { await handleOptOut(c, e.from, t, e.id); return; } // STOP by voice is honoured immediately, no extra tap
-    if (t && !ownerChk && !e.contextId) { // customers confirm (a voice reply to a forwarded message is the admin answering, not a customer) what we heard before anything is acted on (owners keep the direct flow)
+    if (t && !ownerChk && !isAdminReply && isOptOutTitle(t)) { await handleOptOut(c, e.from, t, e.id); return; } // STOP by voice is honoured immediately, no extra tap
+    if (t && !ownerChk && !isAdminReply) { // customers confirm what we heard (only the admin quoting a forwarded message skips it) what we heard before anything is acted on (owners keep the direct flow)
       await sb.from("customers").upsert({ phone_number: e.from }, { onConflict: "phone_number", ignoreDuplicates: true });
       const { data: cl } = await sb.from("customers").select("language").eq("phone_number", e.from).maybeSingle();
       c.ar = (cl?.language ?? detectLanguage(t) ?? "ar") !== "en";
@@ -1441,12 +1460,9 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminO
   if (/^ALO-[A-Z0-9]{6}$/i.test(text)) { await handleLink(c, norm, text); return; }
   if (e.reply?.id.startsWith("CLAIM|")) { await handleClaimDecision(c, norm, e.reply.id); return; }
   // Replies to a forwarded customer message: only the configured admin number is relayed; the same quote from anyone else is ignored.
-  if (e.contextId) {
-    const { data: h } = await sb.from("handoff_log").select("customer_phone").eq("admin_message_id", e.contextId).maybeSingle();
-    if (h) {
-      if (!shouldRelay(e.from, c.admin ?? "", e.contextId)) { console.log("handoff reply from a non-admin number ignored"); return; }
-      await relayAdminReply(c, h.customer_phone, text); return;
-    }
+  if (hrow) {
+    if (!isAdminReply) { console.log("handoff reply from a non-admin number ignored"); return; }
+    await relayAdminReply(c, hrow.customer_phone, text); return;
   }
   const esc = text.match(/^(customer|زبون)\s*[:：]\s*([\s\S]+)$/i);
   const { data: owner } = norm ? await sb.from("vendors").select("vendor_id,name_en").eq("owner_whatsapp_phone", norm).maybeSingle() : { data: null };

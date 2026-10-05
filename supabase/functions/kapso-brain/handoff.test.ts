@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminCommand, handoffContext, isHumanRequest, relayText, shouldRelay, HANDOFF_HOURS } from "./handoff";
+import { adminCommand, handoffContext, hasRelayableText, isBotRequest, isHumanRequest, relayText, shouldRelay, HANDOFF_HOURS, HANDOFF_FIRST_MINUTES } from "./handoff";
 
 describe("isHumanRequest (English, Arabic, Arabizi)", () => {
   it.each([
@@ -11,7 +11,7 @@ describe("isHumanRequest (English, Arabic, Arabizi)", () => {
 
   it.each([
     "I want 2 soft drinks", "talk about the menu", "can you tell me about the person who delivers", "the human body", "speak arabic please", "what are your hours", "hello",
-    "my friend is a real person who likes pizza", "بدي مشروب غازي", "شو في عندكم", "badde etneen soft drinks men el tahouneh", "marhaba", "",
+    "my friend is a real person who likes pizza", "get it to the person at the front desk", "please put it under someone else's name", "I want a burger, get one for my team member too", "get me the manager special", "please speak to the staff at the door", "call me, i want to talk about the support meal", "reach the building at the back", "كلمة السر عند حد", "بدي كلمة السر", "الموظف تأخر", "بدي مشروب غازي", "شو في عندكم", "badde etneen soft drinks men el tahouneh", "marhaba", "",
   ])("%j is not a request for a human", (t) => expect(isHumanRequest(t)).toBe(false));
 });
 
@@ -62,4 +62,11 @@ describe("handoffContext (what the admin sees)", () => {
     expect(t).not.toMatch(/undefined|null/);
   });
   it("handoff window is a small number of hours", () => expect(HANDOFF_HOURS).toBeGreaterThan(0));
+});
+
+describe("first-contact mute is short; a customer can leave", () => {
+  it("fifteen minutes before anyone answers", () => { expect(HANDOFF_FIRST_MINUTES).toBe(15); expect(HANDOFF_FIRST_MINUTES).toBeLessThan(HANDOFF_HOURS * 60); });
+  it.each(["bot", "Bot", "menu", "back to bot", "بوت", "المنيو"])("%s returns to the bot", (x) => expect(isBotRequest(x)).toBe(true));
+  it.each(["bot please order", "I want the menu of tahouneh", "hello", ""])("%j does not", (x) => expect(isBotRequest(x)).toBe(false));
+  it("nothing to relay when only control characters", () => { expect(hasRelayableText("\u0000\u0007 ")).toBe(false); expect(hasRelayableText("ok")).toBe(true); });
 });
