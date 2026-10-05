@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
+import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
@@ -49,7 +50,7 @@ function pnidOf(body: any, evt: any): string {
 }
 
 // ---------- outbound ----------
-type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; admin?: string; acq?: Acquisition | null };
+type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   if (dry) { out?.push(payload); return true; }
   const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
@@ -121,7 +122,7 @@ async function llmLoop(system: string, tools: any[], historyKey: string, userTex
     const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({ model: MODEL, max_tokens: 1000, system, tools, messages }) });
     const data = await res.json();
-    if (!res.ok) { console.error("Anthropic error", res.status, JSON.stringify(data)); throw new Error("anthropic"); }
+    if (!res.ok) { console.error("Anthropic error", res.status, JSON.stringify(data)); throw new Error(`anthropic ${res.status}: ${String(data?.error?.type ?? "")} ${String(data?.error?.message ?? "").slice(0, 160)}`); }
     messages.push({ role: "assistant", content: data.content });
     const uses = (data.content ?? []).filter((b: any) => b.type === "tool_use");
     final = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
@@ -142,6 +143,7 @@ const CTOOLS = [
     input_schema: { type: "object", properties: { vendor_id: { type: "string" } }, required: ["vendor_id"] } },
   { name: "present_offer", description: "Show ONE recommended dish to the customer as a rich WhatsApp card with buttons [Order Now (price)] [See Full Menu] [Change Location]. Use this for every recommendation (call up to 3 times for 3 options). Server adds the real price. Put your concierge pitch in body; do not write a separate text message afterwards.",
     input_schema: { type: "object", properties: { vendor_id: { type: "string" }, item_id: { type: "string" }, body: { type: "string", description: "2-4 short lines, confident and appetizing, in the customer's language. Mention vendor name, why it fits, key macros with ~ if relevant. No prices (added automatically), no disclaimers." } }, required: ["vendor_id", "item_id", "body"] } },
+  { name: "show_menu", description: "Show a vendor's menu as a category list the customer can tap through (use when they ask for the menu / what a restaurant has).", input_schema: { type: "object", properties: { vendor_id: { type: "string" } }, required: ["vendor_id"] } },
   { name: "basket_add", description: "Add a dish to the customer's basket for that vendor (each vendor has its own basket; a second vendor simply creates a second basket). Adding the same dish again increases its quantity. The server shows the updated basket card with real prices; say nothing after it. If it errors (required options missing, closed vendor, unavailable), explain briefly and ask.",
     input_schema: { type: "object", properties: { vendor_id: { type: "string" }, item_id: { type: "string" }, quantity: { type: "integer" }, choices: { type: "array", items: { type: "object", properties: { group: { type: "string" }, option: { type: "string" } }, required: ["group", "option"] } } }, required: ["vendor_id", "item_id", "quantity"] } },
   { name: "basket_set", description: "Change a dish already in a basket to an exact quantity, or quantity 0 to remove it. Use for 'make it 3', 'only one', 'remove the drink', 'no tawouk'.",
@@ -259,15 +261,82 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
   return "placed";
 }
 
+// ---------- MENU BROWSING: categories (max 10 rows) → paged items → item card (Add / quantity picker / customization lists) ----------
+const MENU_COLS = "item_id,item_name_en,item_name_ar,price_usd,section,is_popular,sort_order,contains_alcohol,calories,description_en,description_ar,image_url,customizations";
+async function vendorMenu(vendorId: string): Promise<any[]> {
+  const { data } = await sb.from("menu_items").select(MENU_COLS).eq("vendor_id", vendorId).eq("available", true).gt("price_usd", 0).limit(1000);
+  return data ?? [];
+}
+const itemName = (c: Ctx, it: any) => (c.ar && it.item_name_ar ? it.item_name_ar : it.item_name_en || it.item_name_ar || it.item_id);
+async function vendorName(vendorId: string) { const { data } = await sb.from("vendors").select("name_en").eq("vendor_id", vendorId).maybeSingle(); return data?.name_en ?? "Menu"; }
+
 async function sendMenu(c: Ctx, vendorId: string) {
-  const { data: v } = await sb.from("vendors").select("name_en").eq("vendor_id", vendorId).maybeSingle();
-  const { data: items } = await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,section,is_popular,sort_order,calories").eq("vendor_id", vendorId).eq("available", true).gt("price_usd", 0)
-    .order("is_popular", { ascending: false, nullsFirst: false }).order("sort_order", { ascending: true, nullsFirst: false }).limit(10);
-  if (!items?.length) { await sendText(c, "I'll pull up that menu for you — what are you in the mood for? 🍽"); return; }
-  const secs = new Map<string, any[]>();
-  for (const it of items) { const k = it.section || "Menu"; if (!secs.has(k)) secs.set(k, []); secs.get(k)!.push(it); }
-  const sections = [...secs.entries()].slice(0, 10).map(([title, rows]) => ({ title, rows: rows.map((it) => ({ id: `ORD|${vendorId}|${it.item_id}`, title: it.item_name_en || it.item_name_ar, description: `${both(it.price_usd)}${it.calories ? ` · ~${it.calories} kcal` : ""}` })) }));
-  await sendList(c, { header: v?.name_en ?? "Menu", body: `*${v?.name_en ?? "Menu"}* — top picks 👇\nTap one to order, or tell me what you're craving.`, button: "View Menu", sections });
+  const [items, vname] = [await vendorMenu(vendorId), await vendorName(vendorId)];
+  if (!items.length) { await sendText(c, tr(c, "I'll pull up that menu for you — what are you in the mood for? 🍽", "رح جيبلك المنيو — شو مشتهي؟ 🍽")); return; }
+  const cats = buildCategories(items);
+  if (cats.length === 1) return sendCategoryItems(c, vendorId, cats[0].slug, 0, items);
+  await sendList(c, { header: vname, body: tr(c, `*${vname}* — pick a category 👇\nOr just tell me what you're craving.`, `*${vname}* — اختار قسم 👇\nأو خبرني شو مشتهي.`), button: tr(c, "Categories", "الأقسام"),
+    sections: [{ title: tr(c, "Menu", "المنيو"), rows: cats.map((k) => ({ id: `CAT|${vendorId}|${k.slug}`, title: k.title, description: tr(c, `${k.count} items`, `${k.count} صنف`) })) }] });
+}
+async function sendCategoryItems(c: Ctx, vendorId: string, slug: string, page: number, menu?: any[]) {
+  const items = menu ?? await vendorMenu(vendorId);
+  const cats = buildCategories(items);
+  const cat = cats.find((k) => k.slug === slug) ?? (cats.length === 1 ? cats[0] : null);
+  if (!cat) return sendMenu(c, vendorId);
+  const inCat = itemsInCategory(items, cats, cat.slug);
+  const rows = itemPageRows(inCat, page, vendorId, cat.slug, !!c.ar, both);
+  if (!rows.length) return sendMenu(c, vendorId);
+  const vname = await vendorName(vendorId);
+  await sendList(c, { header: vname, body: tr(c, `*${cat.title}* — tap a dish to see it and add it 👇`, `*${cat.title}* — اضغط على صنف لتشوفه وتضيفه 👇`), button: tr(c, "Dishes", "الأصناف"), sections: [{ title: cat.title, rows }] });
+}
+const czGroups = (it: any): CzGroup[] => (Array.isArray(it.customizations) ? it.customizations : []).filter((g: any) => g?.name && Array.isArray(g.options) && g.options.length);
+const rawGroups = (it: any): any[] => (Array.isArray(it.customizations) ? it.customizations : []).filter((g: any) => g?.name);
+const needsChoices = (it: any) => rawGroups(it).some((g) => g.required || Number(g.min ?? 0) > 0);
+const tapSupported = (it: any) => czSupported(rawGroups(it)); // multi-pick / oversized / empty groups are ordered in chat instead
+
+async function sendItemCard(c: Ctx, vendorId: string, itemId: string) {
+  const { data: it } = await sb.from("menu_items").select(MENU_COLS).eq("vendor_id", vendorId).eq("item_id", itemId).eq("available", true).maybeSingle();
+  if (!it || !(Number(it.price_usd) > 0)) { await sendText(c, tr(c, "That dish isn't available right now 🙏 Pick another from the menu.", "هالصنف مش متوفر هلأ 🙏 اختار غيره من المنيو.")); return; }
+  const desc = (c.ar ? it.description_ar : it.description_en) || it.description_en || it.description_ar || "";
+  const body = `*${itemName(c, it)}*${desc ? `\n${String(desc).slice(0, 280)}` : ""}${it.calories ? `\n~${it.calories} kcal` : ""}\n\n💵 *${both(Number(it.price_usd))}*`;
+  const custom = needsChoices(it);
+  if (!tapSupported(it)) { await sendButtons(c, { body: `${body}\n\n${tr(c, "This dish has options — tell me in chat how you want it and I'll add it.", "هالصنف إلو خيارات — خبرني بالشات كيف بدك ياه وبضيفه.")}`, headerImage: it.image_url, buttons: [{ id: `CATS|${vendorId}`, title: tr(c, "📋 Menu", "📋 المنيو") }] }); return; }
+  await sendButtons(c, { body, headerImage: it.image_url, buttons: [
+    custom ? { id: `CZ|${vendorId}|${itemId}|1|`, title: tr(c, "⚙️ Customize", "⚙️ خصّص") } : { id: `ADD|${vendorId}|${itemId}|1`, title: tr(c, "➕ Add to basket", "➕ أضف للسلة") },
+    ...(custom ? [] : [{ id: `QTY|${vendorId}|${itemId}`, title: tr(c, "🔢 Quantity", "🔢 الكمية") }]),
+    { id: `CATS|${vendorId}`, title: tr(c, "📋 Menu", "📋 المنيو") },
+  ] });
+}
+async function sendQtyPicker(c: Ctx, vendorId: string, itemId: string) {
+  const { data: it } = await sb.from("menu_items").select("item_name_en,item_name_ar").eq("vendor_id", vendorId).eq("item_id", itemId).maybeSingle();
+  await sendList(c, { header: tr(c, "How many?", "كم واحد؟"), body: tr(c, `How many *${itemName(c, it ?? { item_id: itemId })}* would you like?`, `كم *${itemName(c, it ?? { item_id: itemId })}* بدك؟`), button: tr(c, "Quantity", "الكمية"), sections: [{ title: tr(c, "Quantity", "الكمية"), rows: qtyRows(vendorId, itemId, "", !!c.ar).map((r, i) => ({ ...r, title: `${[1, 2, 3, 4, 5, 6, 8, 10][i]}` })) }] });
+}
+async function sendCzStep(c: Ctx, phone: string, vendorId: string, itemId: string, qty: number, picks: string[]) {
+  const { data: it } = await sb.from("menu_items").select(MENU_COLS).eq("vendor_id", vendorId).eq("item_id", itemId).eq("available", true).maybeSingle();
+  if (!it) { await sendText(c, tr(c, "That dish isn't available right now 🙏", "هالصنف مش متوفر هلأ 🙏")); return; }
+  const step = czNext(czGroups(it), picks, `CZ|${vendorId}|${itemId}|${qty}|`, both, !!c.ar);
+  if (step.kind === "invalid") { await sendItemCard(c, vendorId, itemId); return; }
+  if (step.kind === "ask") {
+    await sendList(c, { header: clipTitle(itemName(c, it), 60), body: tr(c, `Choose *${step.group}*${step.optional ? " (optional)" : ""} 👇`, `اختار *${step.group}*${step.optional ? " (اختياري)" : ""} 👇`), button: tr(c, "Choose", "اختار"), sections: [{ title: clipTitle(step.group, 24), rows: step.rows }] });
+    return;
+  }
+  const r = JSON.parse(await basketTool(c, phone, "basket_add", { vendor_id: vendorId, item_id: itemId, quantity: qty, choices: step.choices }));
+  if (!r.ok) await sendText(c, tr(c, `I couldn't add that: ${r.error} 🙏`, "ما قدرت أضيف هالصنف هلأ 🙏 جرب صنف تاني أو خبرني بالشات."));
+}
+const clipTitle = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+// Suggest one relevant drink per basket, once, after the basket card: never alcohol, never when the basket already has a drink.
+async function maybeOfferAddon(c: Ctx) {
+  const a = c.addon; if (!a || c.cartThisTurn) return;
+  const { data: b } = await sb.from("baskets").select("id,status,addon_offered_at").eq("id", a.basketId).maybeSingle();
+  if (!b || b.status !== "active" || b.addon_offered_at) return;
+  const [menu, lines] = [await vendorMenu(a.vendorId), await basketLines(a.basketId)];
+  const drink = pickAddon(menu, lines.map((l) => l.item_id));
+  if (!drink) return;
+  const { data: claimed } = await sb.from("baskets").update({ addon_offered_at: new Date().toISOString() }).eq("id", a.basketId).is("addon_offered_at", null).select("id");
+  if (!claimed?.length) return;
+  await sendButtons(c, { body: tr(c, `Add a drink with that? 🥤\n*${itemName(c, drink)}* — ${both(Number(drink.price_usd))}`, `بتضيف مشروب معها؟ 🥤\n*${itemName(c, drink)}* — ${both(Number(drink.price_usd))}`), headerImage: drink.image_url,
+    buttons: [{ id: `ADD|${a.vendorId}|${drink.item_id}|1`, title: tr(c, "➕ Add drink", "➕ أضف المشروب") }, { id: basketTapId("CHECKOUT", a.basketId), title: tr(c, "✅ Checkout", "✅ إتمام الطلب") }] });
 }
 
 function nearestVillage(lat: number, lng: number, rows: any[]): string | null {
@@ -358,6 +427,7 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
       await sb.from("baskets").update({ updated_at: new Date().toISOString() }).eq("id", basket!.id);
       await expirePending(phone, vendorId); // an earlier summary no longer matches the basket
       await sendBasketCard(c, basket!.id, vendorId);
+      c.addon = { basketId: basket!.id, vendorId };
       return JSON.stringify({ ok: true, basket_card_sent: true, instruction: "Basket card already delivered with real prices. Reply with nothing." });
     }
     // basket_set
@@ -435,6 +505,7 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
         buttons: [{ id: `ORD|${input.vendor_id}|${input.item_id}`, title: orderBtnTitle(Number(it.price_usd)) }, { id: `MENU|${input.vendor_id}`, title: "📋 See Full Menu" }, { id: "LOC", title: "📍 Change Location" }] });
       return JSON.stringify({ ok: true, card_sent: true });
     }
+    if (name === "show_menu") { await sendMenu(c, String(input.vendor_id ?? "")); return JSON.stringify({ ok: true, menu_sent: true, instruction: "Menu list delivered. Reply with nothing." }); }
     if (["basket_add", "basket_set", "basket_show", "basket_clear", "cancel_pending", "checkout"].includes(name)) return await basketTool(c, phone, name, input);
     if (name === "confirm_order") {
       // Law 81/2018: confirmation must be the customer's own act. A summary sent this turn can only be confirmed by a later message.
@@ -525,6 +596,22 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       }
       if (userText === text || !userText) { await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return; }
     }
+    const bw = parseBrowseTap(tag);
+    if (bw) {
+      if (bw.kind === "CATS") await sendMenu(c, bw.vendorId);
+      else if (bw.kind === "CAT") await sendCategoryItems(c, bw.vendorId, bw.slug, bw.page);
+      else if (bw.kind === "ITEM") await sendItemCard(c, bw.vendorId, bw.itemId);
+      else if (bw.kind === "QTY") await sendQtyPicker(c, bw.vendorId, bw.itemId);
+      else if (bw.kind === "CZ") await sendCzStep(c, phone, bw.vendorId, bw.itemId, bw.qty, bw.picks);
+      else { // ADD: dishes that need choices go through the customization lists first
+        const { data: it } = await sb.from("menu_items").select(MENU_COLS).eq("vendor_id", bw.vendorId).eq("item_id", bw.itemId).eq("available", true).maybeSingle();
+        if (it && !tapSupported(it)) await sendItemCard(c, bw.vendorId, bw.itemId);
+        else if (it && needsChoices(it)) await sendCzStep(c, phone, bw.vendorId, bw.itemId, bw.qty, []);
+        else { const r = JSON.parse(await basketTool(c, phone, "basket_add", { vendor_id: bw.vendorId, item_id: bw.itemId, quantity: bw.qty })); if (!r.ok) await sendText(c, tr(c, `I couldn't add that: ${r.error} 🙏`, "ما قدرت أضيف هالصنف هلأ 🙏 جرب صنف تاني أو خبرني بالشات.")); }
+      }
+      await maybeOfferAddon(c);
+      await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return;
+    }
     if (kind === "MENU") { await sendMenu(c, a); await remember(phone, `[tapped See Full Menu]`, c.log.join("\n")); return; }
     if (kind === "LOC") { await askLocation(c, "📍 Share your location and I'll find the best spots near you.\nشاركني موقعك وبدلك على أحلى الأماكن حدّك.\n\n_Tap the button below._"); await remember(phone, `[tapped Change Location]`, c.log.join("\n")); return; }
     if (kind === "OPTIN") {
@@ -537,7 +624,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     else if (kind === "ORD") {
       const { data: it } = await sb.from("menu_items").select("item_name_en").eq("vendor_id", a).eq("item_id", b).maybeSingle();
       const added = JSON.parse(await basketTool(c, phone, "basket_add", { vendor_id: a, item_id: b, quantity: 1 }));
-      if (added.ok) { await remember(phone, `[tapped Order Now ${b}]`, c.log.join("\n")); return; } // basket card sent; the customer taps Checkout when done
+      if (added.ok) { await maybeOfferAddon(c); await remember(phone, `[tapped Order Now ${b}]`, c.log.join("\n")); return; } // basket card sent; the customer taps Checkout when done
       userText = `[Tapped Order Now: vendor_id=${a} item_id=${b} "${it?.item_name_en ?? reply.title}" — could not add to basket: ${added.error}. Ask the customer for what is missing, then call basket_add.]`;
     } else if (!bt) userText = reply.title || text;
   }
@@ -566,7 +653,8 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   const system = `${CSYSTEM}\n\nCUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}`;
   let final = "";
   try { final = await llmLoop(system, CTOOLS, phone, userText, (n, i) => customerTool(c, phone, n, i)); }
-  catch { final = "عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment."; }
+  catch (err) { console.error("customer llm error", String((err as Error)?.message ?? err).slice(0, 300)); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
+  await maybeOfferAddon(c);
   if (final && !c.rich) await sendText(c, final); // never add text after cards/buttons
   else if (!c.rich) await sendText(c, "ما فهمت عليك تماماً 🙏 شو بتحب تاكل؟\nWhat are you craving?");
   await remember(phone, userText, c.log.join("\n"));
