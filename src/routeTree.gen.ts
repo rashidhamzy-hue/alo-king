@@ -22,6 +22,8 @@ import { Route as MerchantAssistantRouteImport } from './routes/merchant.assista
 import { Route as MerchantOnboardingRouteImport } from './routes/merchant.onboarding'
 import { Route as MerchantOrdersRouteImport } from './routes/merchant.orders'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
+import { Route as MerchantMenuIndexRouteImport } from './routes/merchant.menu.index'
+import { Route as MerchantMenuImportRouteImport } from './routes/merchant.menu.import'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +90,16 @@ const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
   path: '/track/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MerchantMenuIndexRoute = MerchantMenuIndexRouteImport.update({
+  id: '/menu/',
+  path: '/menu/',
+  getParentRoute: () => MerchantRoute,
+} as any)
+const MerchantMenuImportRoute = MerchantMenuImportRouteImport.update({
+  id: '/menu/import',
+  path: '/menu/import',
+  getParentRoute: () => MerchantRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +115,8 @@ export interface FileRoutesByFullPath {
   '/merchant/orders': typeof MerchantOrdersRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/merchant/': typeof MerchantIndexRoute
+  '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/merchant/menu/': typeof MerchantMenuIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -117,6 +131,8 @@ export interface FileRoutesByTo {
   '/merchant/orders': typeof MerchantOrdersRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/merchant': typeof MerchantIndexRoute
+  '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/merchant/menu': typeof MerchantMenuIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -133,6 +149,8 @@ export interface FileRoutesById {
   '/merchant/orders': typeof MerchantOrdersRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/merchant/': typeof MerchantIndexRoute
+  '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/merchant/menu/': typeof MerchantMenuIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -150,6 +168,8 @@ export interface FileRouteTypes {
     | '/merchant/orders'
     | '/track/$orderId'
     | '/merchant/'
+    | '/merchant/menu/import'
+    | '/merchant/menu/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -164,6 +184,8 @@ export interface FileRouteTypes {
     | '/merchant/orders'
     | '/track/$orderId'
     | '/merchant'
+    | '/merchant/menu/import'
+    | '/merchant/menu'
   id:
     | '__root__'
     | '/'
@@ -179,6 +201,8 @@ export interface FileRouteTypes {
     | '/merchant/orders'
     | '/track/$orderId'
     | '/merchant/'
+    | '/merchant/menu/import'
+    | '/merchant/menu/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -286,6 +310,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrackOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/merchant/menu/': {
+      id: '/merchant/menu/'
+      path: '/menu'
+      fullPath: '/merchant/menu/'
+      preLoaderRoute: typeof MerchantMenuIndexRouteImport
+      parentRoute: typeof MerchantRoute
+    }
+    '/merchant/menu/import': {
+      id: '/merchant/menu/import'
+      path: '/menu/import'
+      fullPath: '/merchant/menu/import'
+      preLoaderRoute: typeof MerchantMenuImportRouteImport
+      parentRoute: typeof MerchantRoute
+    }
   }
 }
 
@@ -294,6 +332,8 @@ interface MerchantRouteChildren {
   MerchantOnboardingRoute: typeof MerchantOnboardingRoute
   MerchantOrdersRoute: typeof MerchantOrdersRoute
   MerchantIndexRoute: typeof MerchantIndexRoute
+  MerchantMenuImportRoute: typeof MerchantMenuImportRoute
+  MerchantMenuIndexRoute: typeof MerchantMenuIndexRoute
 }
 
 const MerchantRouteChildren: MerchantRouteChildren = {
@@ -301,6 +341,8 @@ const MerchantRouteChildren: MerchantRouteChildren = {
   MerchantOnboardingRoute: MerchantOnboardingRoute,
   MerchantOrdersRoute: MerchantOrdersRoute,
   MerchantIndexRoute: MerchantIndexRoute,
+  MerchantMenuImportRoute: MerchantMenuImportRoute,
+  MerchantMenuIndexRoute: MerchantMenuIndexRoute,
 }
 
 const MerchantRouteWithChildren = MerchantRoute._addFileChildren(
