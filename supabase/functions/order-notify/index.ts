@@ -2,6 +2,7 @@
 // verify_jwt = true (config.toml); the caller is also authorised here against the order. Nothing in the request body is trusted beyond the order id.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { notifyOrderStatus } from "../_shared/notify.ts";
+import { clampInteractive } from "../_shared/meta-limits.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const PNID = Deno.env.get("KAPSO_DEFAULT_PHONE_NUMBER_ID") ?? "1384772384720496";
@@ -13,7 +14,7 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 async function send(payload: Record<string, unknown>): Promise<boolean> {
   if (!KAPSO_TOKEN) return false;
   try {
-    const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${PNID}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${PNID}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(clampInteractive(payload)) });
     if (!res.ok) console.error("order-notify send failed", res.status);
     return res.ok;
   } catch (e) { console.error("order-notify send error", String((e as Error)?.message ?? e).slice(0, 120)); return false; }

@@ -27,6 +27,7 @@ WhatsApp-native food and delivery platform for the Shouf region, Lebanon. See `A
 
 ## Hard rules
 - **Never read the `vendors` table with `select('*')` from the frontend.** Anon/authenticated only have column-level SELECT; use `VENDOR_COLUMNS` from `src/lib/config.ts`. `select('*')` fails or leaks intent.
+- **WhatsApp interactive limits** (3 buttons, 20-char button titles, 10 list rows in total, 24-char row titles, 1024-char body) live in `supabase/functions/_shared/meta-limits.ts` and are enforced by `meta-limits.test.ts`: every pure card builder and every hard-coded title in `kapso-brain/index.ts` is checked, and all outgoing payloads are clamped. Add any new builder to that test.
 - Schema and RLS are owned in Supabase; change them through new files in `supabase/migrations/`, never ad hoc.
 - Don't rewrite pushed git history (Lovable sync).
 - Service-role code (edge functions) must never ship to the frontend.

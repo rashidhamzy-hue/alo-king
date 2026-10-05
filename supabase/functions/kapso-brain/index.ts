@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
+import { clampInteractive, META } from "../_shared/meta-limits.ts";
 import { CHEAP_TOOL_NAMES, cheapRouterEnabled, isDeclaredTool, routeTurn } from "./router.ts";
 import { adminCommand, handoffContext, HANDOFF_FIRST_MINUTES, HANDOFF_HOURS, hasRelayableText, isBotRequest, isHumanRequest, relayText, shouldRelay } from "./handoff.ts";
 import { deletionConfirmation, forgetScope, privacyNotice } from "./privacy.ts";
@@ -65,6 +66,7 @@ function pnidOf(body: any, evt: any): string {
 // ---------- outbound ----------
 type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
+  payload = clampInteractive(payload); // last line of defence: never let an over-long title/body make Meta reject the whole message
   if (dry) { out?.push(payload); return true; }
   const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
     method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -73,6 +75,7 @@ async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): P
 }
 // Like rawSend, but also returns the WhatsApp message id (needed to map the admin's replies back to a customer).
 async function rawSendId(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<{ ok: boolean; id?: string }> {
+  payload = clampInteractive(payload);
   if (dry) { out?.push(payload); return { ok: true, id: `dry.${crypto.randomUUID()}` }; }
   const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   if (!res.ok) { console.error("Kapso send failed", pnid, res.status, (await res.text()).slice(0, 300)); return { ok: false }; }
@@ -91,10 +94,10 @@ async function sendText(c: Ctx, body: string) {
 type Btn = { id: string; title: string };
 async function sendButtons(c: Ctx, o: { body: string; buttons: Btn[]; footer?: string; headerImage?: string | null; headerText?: string }) {
   const mk = (withImg: boolean) => {
-    const interactive: any = { type: "button", body: { text: clip(ensureDualCurrency(o.body, LBP_RATE), 1024) }, footer: { text: clip(o.footer ?? BRAND, 60) },
-      action: { buttons: o.buttons.slice(0, 3).map((b) => ({ type: "reply", reply: { id: clip(b.id, 256), title: clip(b.title, 20) } })) } };
+    const interactive: any = { type: "button", body: { text: clip(ensureDualCurrency(o.body, LBP_RATE), META.body) }, footer: { text: clip(o.footer ?? BRAND, META.footer) },
+      action: { buttons: o.buttons.slice(0, META.maxButtons).map((b) => ({ type: "reply", reply: { id: clip(b.id, META.buttonId), title: clip(b.title, META.buttonTitle) } })) } };
     if (withImg && o.headerImage && /^https:\/\//.test(o.headerImage)) interactive.header = { type: "image", image: { link: o.headerImage } };
-    else if (o.headerText) interactive.header = { type: "text", text: clip(o.headerText, 60) };
+    else if (o.headerText) interactive.header = { type: "text", text: clip(o.headerText, META.header) };
     return { ...envl(c.to), type: "interactive", interactive };
   };
   c.rich++; c.log.push(`[interactive buttons: ${o.body.replace(/\n+/g, " ").slice(0, 300)} | ${o.buttons.map((b) => b.title).join(" / ")}]`);
@@ -104,8 +107,10 @@ async function sendButtons(c: Ctx, o: { body: string; buttons: Btn[]; footer?: s
 }
 async function sendList(c: Ctx, o: { body: string; header: string; button: string; sections: { title: string; rows: { id: string; title: string; description?: string }[] }[] }) {
   c.rich++; c.log.push(`[interactive menu list: ${o.header}]`);
-  await post(c, { ...envl(c.to), type: "interactive", interactive: { type: "list", header: { type: "text", text: clip(o.header, 60) }, body: { text: clip(ensureDualCurrency(o.body, LBP_RATE), 1024) }, footer: { text: BRAND },
-    action: { button: clip(o.button, 20), sections: o.sections.map((s) => ({ title: clip(s.title, 24), rows: s.rows.map((r) => ({ id: clip(r.id, 200), title: clip(r.title, 24), description: r.description ? clip(r.description, 72) : undefined })) })) } } });
+  let rowsLeft: number = META.listRows; // WhatsApp allows 10 rows in total across all sections
+  const sections = o.sections.slice(0, META.listSections).map((s) => { const rows = s.rows.slice(0, rowsLeft); rowsLeft -= rows.length; return { title: clip(s.title, META.sectionTitle), rows }; }).filter((s) => s.rows.length);
+  await post(c, { ...envl(c.to), type: "interactive", interactive: { type: "list", header: { type: "text", text: clip(o.header, META.header) }, body: { text: clip(ensureDualCurrency(o.body, LBP_RATE), META.body) }, footer: { text: BRAND },
+    action: { button: clip(o.button, META.listButton), sections: sections.map((s) => ({ title: s.title, rows: s.rows.map((r) => ({ id: clip(r.id, META.rowId), title: clip(r.title, META.rowTitle), description: r.description ? clip(r.description, META.rowDescription) : undefined })) })) } } });
 }
 async function askLocation(c: Ctx, body: string) {
   c.rich++; c.log.push("[asked customer to share location]");
