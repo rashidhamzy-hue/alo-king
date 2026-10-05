@@ -16,15 +16,17 @@ Supabase secrets read by the function: `KAPSO_WEBHOOK_SECRET` (shared secret, me
 
 ## Switching over (owner steps; run these yourself so the value never passes through chat)
 
-1. Generate a value locally (for example `openssl rand -hex 32`). Do not paste it anywhere except the two places below.
+1. Generate a value locally (for example `openssl rand -hex 32`). Do not paste it anywhere except the two places below, and paste it with no leading or trailing space or newline (the function trims it, Kapso may not).
 2. Supabase → Edge Functions → Secrets: set `KAPSO_WEBHOOK_SIGNING_SECRET` to that value.
 3. Kapso → the webhook for the production number → set **Secret key** to the same value (Kapso then signs deliveries with it). Leave the URL as it is for now.
 4. Send a test message and check which method was used (the function logs only the method name, never a secret):
    ```sql
-   select JSONExtractString(event_message, 'webhook_auth', 'method') as method, count() as n
-   from logs where source = 'function_logs' and event_message like '%webhook_auth%' group by method
+   select event_message from function_logs
+   where event_message like '%webhook_auth%' order by timestamp desc limit 20
    ```
-   You want `signature`. `query` means Kapso is still sending only the URL key (or the two secrets differ).
+   Each line reads `{"webhook_auth":{"method":"..."}}`. You want `signature`. `query` means Kapso is still sending only the URL key (or the two secrets differ).
 5. Tell us "the signature works": we remove `?key=` support from the code, you remove `?key=…` from the Kapso webhook URL, and you **rotate** `KAPSO_WEBHOOK_SECRET` (the old value has been visible in Kapso's delivery logs).
 
 If you also set `forceFunctionRegion=ap-northeast-1` on the URL (see `docs/latency.md`), do it in the same edit.
+
+Known limits: Kapso's signature covers the body only (no timestamp), so a captured signed delivery could be replayed; the body is read before it is verified (Supabase platform limits apply).

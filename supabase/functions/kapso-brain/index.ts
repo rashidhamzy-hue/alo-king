@@ -29,7 +29,7 @@ const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 const WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET") ?? "";
 // Signing secret of the Kapso webhook (`secret_key`): Kapso sends an HMAC-SHA256 of the raw body in X-Webhook-Signature, so this secret never travels. Optional until the owner switches over.
-const WEBHOOK_SIGNING_SECRET = Deno.env.get("KAPSO_WEBHOOK_SIGNING_SECRET") ?? "";
+const WEBHOOK_SIGNING_SECRET = (Deno.env.get("KAPSO_WEBHOOK_SIGNING_SECRET") ?? "").trim();
 // Shared secret for the scheduled order-watchdog job (?job=order-watchdog); the job is disabled while this is unset.
 const WATCHDOG_SECRET = Deno.env.get("WATCHDOG_SECRET") ?? "";
 const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5";
