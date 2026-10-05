@@ -141,3 +141,7 @@ Triggers: the customer asks for a person ("agent", "human", "موظف", "بدي 
 | feature assertions | tagged with the item that delivers them; before that item they are reported as `pending`, not failures |
 
 Personas: Arabic speaker, English speaker, Arabizi speaker, typo-heavy, voice note (fixtures: `kapso.transcript_fixture`, dry-run only), changes their mind three times, two vendors, closed vendor, cancels, asks for a human, prompt injection. The universal assertions must pass in every run; `pending` assertions become required as the items land.
+
+## 7. Instant feedback and latency targets (`docs/latency.md`)
+- **Read receipt + typing indicator** on every inbound customer message, sent in parallel with the turn (`receipts.ts`): `POST /{phone_number_id}/messages` `{status:"read", message_id, typing_indicator:{type:"text"}}`, no `to`. The indicator clears when the bot sends, or after about 25 s. Skipped in dry runs; the admin's own messages are only marked read. Known edge: while a human handoff is active the bot stays silent, so the indicator can linger until it expires.
+- **Targets (ours, excluding Kapso's buffer window):** a tap that needs no model answers in under 1.5 s of handler time; free text uses at most one model call when the message can be resolved server-side.

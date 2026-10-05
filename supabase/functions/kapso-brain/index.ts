@@ -12,6 +12,7 @@ import { addrKey, addressRows, isUsualRequest, parseAddrTap, parseVoiceTap, pick
 import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
+import { buildReadReceipt, shouldAck } from "./receipts.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
 
@@ -1472,6 +1473,7 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminO
   const lag = receiveLagMs((evt.message ?? evt.entry?.[0]?.changes?.[0]?.value?.messages?.[0])?.timestamp, Date.now());
   try { await timerStore.run(tm, () => handleEventInner(body, evt, dry, out, adminOverride, override, e)); }
   finally {
+    await tm.drain(); // the read receipt must finish before the isolate may stop
     const s = summarize(tm, { kind: turnKind(e), receive_lag_ms: lag, model_calls: tm.modelCalls });
     console.log(JSON.stringify({ turn_timing: s }));
     timings?.push(s);
@@ -1484,6 +1486,12 @@ async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], a
   if (e.id) {
     const { error } = await sb.from("processed_messages").insert({ message_id: e.id });
     if (error) { console.log("duplicate, skipping", e.id); return; }
+  }
+  { // instant feedback, in parallel with everything else: blue ticks + "typing…" until our reply (or ~25 s). Best effort, never blocks or fails the turn.
+    const ack = shouldAck({ id: e.id, dry, fromAdmin: !!c.admin && normPhone(e.from) === c.admin });
+    const payload = ack.read ? buildReadReceipt(e.id, ack.typing) : null;
+    if (payload) timerStore.getStore()?.background(fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${c.pnid}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      .then(async (r) => { if (!r.ok) console.error("read receipt failed", r.status, (await r.text()).slice(0, 160)); }));
   }
   // An admin reply to a forwarded customer message: resolved once, up front (a voice reply from the admin must not be treated as a customer voice note).
   const hrow = e.contextId ? (await sb.from("handoff_log").select("customer_phone").eq("admin_message_id", e.contextId).maybeSingle()).data : null;
