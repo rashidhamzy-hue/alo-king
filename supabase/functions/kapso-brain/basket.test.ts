@@ -90,3 +90,9 @@ describe("cleanField", () => {
 describe("isCancelText stays exact", () => {
   it("does not swallow partial cancels", () => expect(isCancelText("cancel, but keep the burger")).toBe(false));
 });
+
+import { isYesText } from "./basket";
+describe("isYesText", () => {
+  it.each(["yes", "Yes!", "confirm", "confirm order", "place my order", "نعم", "تأكيد", "أكد الطلب"])("%s confirms", (x) => expect(isYesText(x)).toBe(true));
+  it.each(["ok", "تمام", "maybe", "yes but add a drink", "no", "yes please add fries", ""])("%s does not", (x) => expect(isYesText(x)).toBe(false));
+});
