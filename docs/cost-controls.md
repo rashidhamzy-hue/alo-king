@@ -16,3 +16,6 @@ Attribution: confirming an order stamps that customer's un-attributed calls from
 Fail-open: if the guard's own queries fail, the bot answers normally and logs the error.
 
 Not covered yet: `demo-chat` (public website demo; only a per-instance IP rate limit) and `merchant-ai` (dashboard AI; per-vendor daily counter in `ai_usage`) call Anthropic outside this log and budget; Whisper transcription is billed separately by OpenAI.
+
+## Cheap router (flow item 5, off by default)
+`CHEAP_ROUTER_ENABLED=true` (Supabase secret; anything else = off) sends clearly informational turns (greetings, thanks, "what's good", menu, hours, delivery info, in English / Arabic / Arabizi) to `CHEAP_MODEL` (default `claude-haiku-4-5-20251001`) with read-only tools only (search, vendor info, offer cards, menu, show basket). Orders, basket changes, confirm/cancel, complaints, anything with a number, anything while a summary is waiting, and replayed voice notes always use the main model. If the small model decides the turn needs more it calls `needs_full_assistant` before sending anything and the main model answers instead. Usage is logged per call with the model that served it (Haiku priced in `usage.ts`). Prompt caching rarely applies to Haiku (4096-token minimum).

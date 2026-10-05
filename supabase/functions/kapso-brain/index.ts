@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
+import { CHEAP_TOOL_NAMES, cheapRouterEnabled, isDeclaredTool, routeTurn } from "./router.ts";
 import { adminCommand, handoffContext, HANDOFF_FIRST_MINUTES, HANDOFF_HOURS, hasRelayableText, isBotRequest, isHumanRequest, relayText, shouldRelay } from "./handoff.ts";
 import { deletionConfirmation, forgetScope, privacyNotice } from "./privacy.ts";
 import { isNotifiable, isPriceIncrease, parseLifecycleTap, pickSubstitute, swapLine, swapNote, windowOpen } from "../_shared/lifecycle.ts";
@@ -20,6 +21,9 @@ const WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET") ?? "";
 const WATCHDOG_SECRET = Deno.env.get("WATCHDOG_SECRET") ?? "";
 const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5";
 // Cost guards (flow spec §cost): daily AI budget in USD (Asia/Beirut day) and a per-phone cap on Anthropic calls per rolling hour.
+// Cheap routing (OFF unless CHEAP_ROUTER_ENABLED=true): clearly informational turns are answered by a small model with read-only tools; everything else uses MODEL.
+const CHEAP_ROUTER_ENABLED = cheapRouterEnabled(Deno.env.get("CHEAP_ROUTER_ENABLED"));
+const CHEAP_MODEL = Deno.env.get("CHEAP_MODEL") ?? "claude-haiku-4-5-20251001";
 const DAILY_AI_BUDGET_USD = parseBudget(Deno.env.get("DAILY_AI_BUDGET_USD"));
 const AI_CALLS_PER_PHONE_HOUR = parseCap(Deno.env.get("AI_CALLS_PER_PHONE_HOUR"));
 const DEFAULT_PNID = Deno.env.get("KAPSO_DEFAULT_PHONE_NUMBER_ID") ?? "1384772384720496";
@@ -59,7 +63,7 @@ function pnidOf(body: any, evt: any): string {
 }
 
 // ---------- outbound ----------
-type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
+type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   if (dry) { out?.push(payload); return true; }
   const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
@@ -142,7 +146,7 @@ async function logAiCall(meta: { kind: "customer" | "owner"; phone?: string }, u
 }
 
 // `system.static` is the cached prefix (tools -> static system); `system.dynamic` (customer profile, language) comes after the breakpoint.
-async function llmLoop(system: { static: string; dynamic: string }, tools: any[], historyKey: string, userText: string, run: (n: string, i: any) => Promise<string>, meta: { kind: "customer" | "owner"; phone?: string }): Promise<string> {
+async function llmLoop(system: { static: string; dynamic: string }, tools: any[], historyKey: string, userText: string, run: (n: string, i: any) => Promise<string>, meta: { kind: "customer" | "owner"; phone?: string }, model: string = MODEL): Promise<string> {
   const { data: hist } = await sb.from("conversations").select("role,content").eq("phone", historyKey).order("id", { ascending: false }).limit(12);
   const messages: any[] = (hist ?? []).reverse().map((h) => ({ role: h.role, content: h.content }));
   messages.push({ role: "user", content: userText });
@@ -151,7 +155,7 @@ async function llmLoop(system: { static: string; dynamic: string }, tools: any[]
   let useCache = true; // safety net: if the API ever rejects the cache_control shape, retry once uncached rather than failing customers
   for (let i = 0; i < 7; i++) {
     const call = () => fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1000, system: useCache ? cachedSystem(system.static, system.dynamic) : `${system.static}\n\n${system.dynamic}`, tools: useCache ? cachedTools(tools) : tools, messages }) });
+      body: JSON.stringify({ model, max_tokens: 1000, system: useCache ? cachedSystem(system.static, system.dynamic) : `${system.static}\n\n${system.dynamic}`, tools: useCache ? cachedTools(tools) : tools, messages }) });
     let res = await call();
     let data = await res.json();
     if (res.status === 400 && useCache && /cache_control/i.test(JSON.stringify(data))) { console.error("cache_control rejected; retrying without caching"); useCache = false; res = await call(); data = await res.json(); }
@@ -161,7 +165,7 @@ async function llmLoop(system: { static: string; dynamic: string }, tools: any[]
     const uses = (data.content ?? []).filter((b: any) => b.type === "tool_use");
     final = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
     if (data.stop_reason !== "tool_use" || !uses.length) break;
-    const results = []; for (const u of uses) results.push({ type: "tool_result", tool_use_id: u.id, content: await run(u.name, u.input) });
+    const results = []; for (const u of uses) results.push({ type: "tool_result", tool_use_id: u.id, content: isDeclaredTool(tools, u.name) ? await run(u.name, u.input) : JSON.stringify({ error: "tool not available" }), ...(isDeclaredTool(tools, u.name) ? {} : { is_error: true }) });
     messages.push({ role: "user", content: results });
   }
   return final;
@@ -524,6 +528,9 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
   return JSON.stringify({ error: "unknown tool" });
 }
 
+const ESCALATE_TOOL = { name: "needs_full_assistant", description: "Quick mode only: call this when the customer wants to order, change a basket, confirm, cancel, complain, or anything beyond answering a simple question. Call it BEFORE sending any card or text; then reply with nothing.", input_schema: { type: "object", properties: {} } };
+const CHEAP_TOOLS = [...CTOOLS.filter((t: any) => CHEAP_TOOL_NAMES.includes(t.name)), ESCALATE_TOOL];
+const QUICK_MODE_NOTE = "\n\nQUICK MODE: you only answer simple informational questions (greetings, what's good, menus, hours, delivery info) using the read-only tools. If the customer wants to order, change a basket, confirm, cancel, or has a problem, call needs_full_assistant first and reply with nothing.";
 async function customerTool(c: Ctx, phone: string, name: string, input: any): Promise<string> {
   try {
     if (name === "search_menu") {
@@ -544,6 +551,10 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
       await sendButtons(c, { body: `${input.body}\n\n💵 *${both(it.price_usd)}*`, headerImage: it.image_url,
         buttons: [{ id: `ORD|${input.vendor_id}|${input.item_id}`, title: orderBtnTitle(Number(it.price_usd)) }, { id: `MENU|${input.vendor_id}`, title: "📋 See Full Menu" }, { id: "LOC", title: "📍 Change Location" }] });
       return JSON.stringify({ ok: true, card_sent: true });
+    }
+    if (name === "needs_full_assistant") { // quick mode hands over to the main model, but only if nothing has been sent yet
+      if (c.rich > 0) return JSON.stringify({ error: "already answered; just finish" });
+      c.escalate = true; return JSON.stringify({ ok: true, instruction: "Reply with nothing." });
     }
     if (name === "request_human") { await startHandoff(c, phone, String(input.reason ?? "model escalation").slice(0, 160)); return JSON.stringify({ ok: true, instruction: "The customer was already told. Reply with nothing." }); }
     if (name === "show_menu") { await sendMenu(c, String(input.vendor_id ?? "")); return JSON.stringify({ ok: true, menu_sent: true, instruction: "Menu list delivered. Reply with nothing." }); }
@@ -1069,7 +1080,17 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   }
   const system = { static: CSYSTEM, dynamic: `CUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}` };
   let final = "";
-  try { final = await llmLoop(system, CTOOLS, phone, userText, (n, i) => customerTool(c, phone, n, i), { kind: "customer", phone }); }
+  const run = (n: string, i: any) => customerTool(c, phone, n, i);
+  const route = CHEAP_ROUTER_ENABLED ? routeTurn(userText, { pendingCart: ((await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString())).count ?? 0) > 0, fromVoice: c.fromVoice }) : "main";
+  try {
+    if (route === "cheap") {
+      let cheapFailed = false;
+      try { final = await llmLoop({ static: system.static, dynamic: system.dynamic + QUICK_MODE_NOTE }, CHEAP_TOOLS, phone, userText, run, { kind: "customer", phone }, CHEAP_MODEL); }
+      catch (e) { cheapFailed = true; console.error("cheap model failed, falling back to the main model", String((e as Error)?.message ?? e).slice(0, 160)); }
+      if (cheapFailed && !c.rich) final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone });
+      else if (!cheapFailed && c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }); } // the small model handed over before sending anything
+    } else final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone });
+  }
   catch (err) { console.error("customer llm error", String((err as Error)?.message ?? err).slice(0, 300)); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
   await maybeOfferAddon(c);
   if (final && !c.rich) await sendText(c, final); // never add text after cards/buttons
