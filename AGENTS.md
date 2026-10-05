@@ -15,3 +15,4 @@
 - Shared business constants (LBP rate, COD cap, WhatsApp number) live only in `src/lib/config.ts` so they change in one place.
 - Driver PWA uses a hand-written `public/manifest.webmanifest` + `public/sw.js` instead of vite-plugin-pwa, because the plugin doesn't fit the SSR build.
 - Leaflet is only imported from `src/components/track/TrackMap.tsx`, lazy-loaded behind `<ClientOnly>`, since it touches `window` at import.
+- Merchant dashboard pages are nested routes under `src/routes/merchant.*` sharing vendor/role state via `src/components/merchant/context.tsx`, so admin vendor switching applies to every page.
