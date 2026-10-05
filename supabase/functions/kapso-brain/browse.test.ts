@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCategories, categorySlug, czNext, czSupported, isDrinkItem, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows } from "./browse";
+import { showMenuResult, buildCategories, categorySlug, czNext, czSupported, isDrinkItem, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows } from "./browse";
 
 const it_ = (id: string, section: string | null, extra: any = {}) => ({ item_id: id, item_name_en: id.toUpperCase(), item_name_ar: null, price_usd: 3, section, is_popular: false, sort_order: 0, contains_alcohol: false, ...extra });
 
@@ -139,5 +139,14 @@ describe("review fixes", () => {
     expect(czSupported([{ name: "Pick 2", required: true, min: 2, max: 3, options: [{ name: "A" }, { name: "B" }] }])).toBe(false);
     expect(czSupported([{ name: "Empty", required: true, options: [] }])).toBe(false);
     expect(czSupported([{ name: "Big", required: false, options: Array.from({ length: 11 }, (_, i) => ({ name: `o${i}` })) }])).toBe(false);
+  });
+});
+
+describe("showMenuResult", () => {
+  it("ok only when a menu was delivered", () => {
+    expect(JSON.parse(showMenuResult(true))).toMatchObject({ ok: true, menu_sent: true });
+    const bad = JSON.parse(showMenuResult(false));
+    expect(bad.ok).toBeUndefined();
+    expect(bad.error).toMatch(/search_menu/);
   });
 });
