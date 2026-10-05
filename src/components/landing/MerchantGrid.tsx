@@ -26,10 +26,10 @@ export function MerchantGrid() {
       <div className="mx-auto max-w-6xl px-5 py-24">
         <p className="text-xs uppercase tracking-[0.3em] text-gold">{L("Merchant map", "خريطة المحلات")}</p>
         <h2 className="mt-4 text-4xl font-semibold md:text-6xl">{L("The Shouf, mapped", "الشوف على الخريطة")}</h2>
-        <p className="mt-4 text-muted-foreground">
+        <div className="mt-4 text-muted-foreground">
           {total ? <><span className="font-semibold text-foreground">{total.toLocaleString()}</span> {L("merchants mapped across the Shouf", "محل على خريطة الشوف")}</> : <Skeleton className="inline-block h-5 w-64" />}
           {!!dishesQ.data && <> · <span className="font-semibold text-foreground">{dishesQ.data.toLocaleString()}</span> {L("dishes", "صنف")}</>}
-        </p>
+        </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {q.isLoading && Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}
           {(q.data ?? []).map((v) => <VendorCard key={v.vendor_id} v={v} />)}

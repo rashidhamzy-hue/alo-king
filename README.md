@@ -1,6 +1,6 @@
-# Shouf Eats
+# Alo King (ألو كينغ)
 
-Build "Alo King (ألو كينغ)": a WhatsApp-native food, grocery and local-delivery platform for the Shouf region of Lebanon. React + TypeScript + Tailwind + shadcn/ui, react-router, @supabase/supabase-js, @tanstack/react-query. Mobile-first, bilingual EN/AR with an RTL toggle (Arabic font Tajawal, headings Cormorant Garamond, body Inter).
+Alo King is a WhatsApp-native food, grocery and local-delivery platform for the Shouf region of Lebanon. React + TypeScript + Tailwind + shadcn/ui, react-router, @supabase/supabase-js, @tanstack/react-query. Mobile-first, bilingual EN/AR with an RTL toggle (Arabic font Tajawal, headings Cormorant Garamond, body Inter).
 
 BACKEND: Do NOT provision a new database. Connect to my EXISTING Supabase project via env vars (add a .env and a single src/lib/supabase.ts):
 VITE_SUPABASE_URL=https://hnjkietmwvkgbyrcnweq.supabase.co
