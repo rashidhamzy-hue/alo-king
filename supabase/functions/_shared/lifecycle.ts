@@ -87,3 +87,11 @@ export const isPriceIncrease = (newTotal: number, currentTotal: number) => r2(Nu
 export function swapNote(o: { code: string; fromName: string; toName: string; oldTotal: number; newTotal: number }): string {
   return `SWAP #${o.code}: ${o.fromName} -> ${o.toName}; total ${r2(o.oldTotal).toFixed(2)} -> ${r2(o.newTotal).toFixed(2)} USD (customer accepted)`;
 }
+
+/** The "how was your order?" list message (five rows, one tap). */
+export function buildRatingList(to: string, orderId: string, lang: Lang) {
+  const ar = lang === "ar";
+  return { messaging_product: "whatsapp", recipient_type: "individual", to, type: "interactive", interactive: { type: "list",
+    body: { text: ar ? "كيف كانت تجربتك؟ ⭐" : "How was your order? ⭐" }, footer: { text: "Alo King 👑" },
+    action: { button: ar ? "قيّم" : "Rate", sections: [{ title: ar ? "التقييم" : "Your rating", rows: ratingRows(orderId, lang) }] } } };
+}

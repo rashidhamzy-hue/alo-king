@@ -74,6 +74,8 @@ const clipTo = (v: unknown, n: number) => { const a = [...String(v ?? "")]; retu
 export function clampInteractive<T>(payload: T): T {
   const p: any = payload;
   if (!p?.interactive) return payload;
+  const over = checkInteractive(payload);
+  if (over.length) console.warn("meta-limits: clamped an interactive message", over.map((x) => x.split(" ")[0] + " " + x.split(" ").slice(-3).join(" ").replace(/"[^"]*"/g, "")).slice(0, 5)); // limits only, never message text
   const i = JSON.parse(JSON.stringify(p.interactive));
   if (i.body?.text !== undefined) i.body.text = clipTo(i.body.text, META.body);
   if (i.footer?.text !== undefined) i.footer.text = clipTo(i.footer.text, META.footer);

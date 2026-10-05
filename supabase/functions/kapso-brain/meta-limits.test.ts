@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { META, checkInteractive } from "../_shared/meta-limits";
 import { buildClaimCard } from "../_shared/claims";
-import { ratingRows } from "../_shared/lifecycle";
+import { buildRatingList, ratingRows } from "../_shared/lifecycle";
 import { basketCardText, basketTapId } from "./basket";
 import { addressRows, voiceCardText, voiceTapId } from "./smart";
 import { czNext, itemPageRows, qtyRows } from "./browse";
@@ -47,6 +47,9 @@ describe("pure builders never exceed Meta's limits", () => {
       for (const picks of [[], ["0.0"]]) { const st: any = czNext(groups, picks, "CZ|v|i|1|", both, ar); expect(st.kind).toBe("ask"); expectOk(listMsg(st.rows)); }
     }
   });
+  it("rating list as sent (body, footer, button, section, rows)", () => {
+    for (const lang of ["en", "ar"] as const) expectOk(buildRatingList("96170000001", "11111111-1111-1111-1111-111111111111", lang));
+  });
   it("address picker (9 saved + new) and rating list", () => {
     const saved = Array.from({ length: 12 }, (_, i) => ({ id: `id${i}`.padEnd(36, "0"), label: "L".repeat(60), village: "Baakleen", landmark: `${LONG_EN} ${i}`, last_used_at: `2026-09-${10 + i}` }));
     for (const ar of [false, true]) { expectOk(listMsg(addressRows(saved, ar, "11111111-1111-1111-1111-111111111111"))); expectOk(listMsg(ratingRows("11111111-1111-1111-1111-111111111111", ar ? "ar" : "en"))); }
@@ -57,7 +60,13 @@ describe("pure builders never exceed Meta's limits", () => {
 });
 
 // ---- layer 2: every literal in index.ts ----
-const src = readFileSync(resolve(process.cwd(), "supabase/functions/kapso-brain/index.ts"), "utf8");
+import { readdirSync } from "node:fs";
+const FN = resolve(process.cwd(), "supabase/functions");
+const read = (rel: string) => readFileSync(resolve(FN, rel), "utf8");
+const src = read("kapso-brain/index.ts");
+/** Non-test source files that can build WhatsApp messages: every kapso-brain/*.ts and _shared/*.ts (a new builder file is picked up automatically). */
+const sourceFiles = [...readdirSync(resolve(FN, "kapso-brain")).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => `kapso-brain/${f}`), ...readdirSync(resolve(FN, "_shared")).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => `_shared/${f}`)];
+const allSrc = sourceFiles.map((f) => ({ f, text: read(f) }));
 const strLit = String.raw`"((?:[^"\\\n]|\\.)*)"`;
 /** All string literals in a snippet that is a plain "x", tr(c, "en", "ar"), or `cond ? "en" : "ar"`. */
 const literals = (snippet: string): string[] => [...snippet.matchAll(new RegExp(strLit, "g"))].map((m) => m[1]);
@@ -76,11 +85,13 @@ function balanced(text: string, open: number): string {
   return text.slice(open);
 }
 
-describe("hard-coded WhatsApp titles in index.ts", () => {
+// NOTE: this scan is best-effort source analysis (plain strings, tr(c, "en", "ar") and `cond ? "en" : "ar"` literals). Titles built dynamically
+// (template literals, variables) are covered by the worst-case builder tests above and, as a last line of defence, by clampInteractive at send time.
+describe("hard-coded WhatsApp titles in every message-building source file", () => {
   // `title: <literal-ish>` inside a `buttons: [...]` array → button title (20). Everywhere else a literal title is a row / section title (24).
   const buttonTitles: string[] = [];
-  for (const m of src.matchAll(/buttons:\s*\[/g)) {
-    const arr = balanced(src, m.index! + m[0].length - 1);
+  for (const { text } of allSrc) for (const m of text.matchAll(/buttons:\s*\[/g)) {
+    const arr = balanced(text, m.index! + m[0].length - 1);
     for (const t of arr.matchAll(/title:\s*(tr\(c,\s*(?:"(?:[^"\\\n]|\\.)*")\s*,\s*(?:"(?:[^"\\\n]|\\.)*")\s*\)|"(?:[^"\\\n]|\\.)*"|[a-z]+\s*\?\s*"(?:[^"\\\n]|\\.)*"\s*:\s*"(?:[^"\\\n]|\\.)*")/g)) buttonTitles.push(...literals(t[1]));
   }
   it("found the button titles it should be checking", () => expect(buttonTitles.length).toBeGreaterThan(30));
@@ -90,18 +101,18 @@ describe("hard-coded WhatsApp titles in index.ts", () => {
   });
 
   const labelBad: string[] = [];
-  for (const m of src.matchAll(/\b(button|header|headerText):\s*(tr\(c,\s*"(?:[^"\\\n]|\\.)*"\s*,\s*"(?:[^"\\\n]|\\.)*"\s*\)|"(?:[^"\\\n]|\\.)*")/g)) {
+  for (const { text } of allSrc) for (const m of text.matchAll(/\b(button|header|headerText):\s*(tr\(c,\s*"(?:[^"\\\n]|\\.)*"\s*,\s*"(?:[^"\\\n]|\\.)*"\s*\)|"(?:[^"\\\n]|\\.)*")/g)) {
     const cap = m[1] === "button" ? META.listButton : META.header;
     for (const t of literals(m[2])) if (len(t) > cap) labelBad.push(`${m[1]}: "${t}" (${len(t)} > ${cap})`);
   }
   it("list button labels (<=20) and headers (<=60) fit", () => expect(labelBad).toEqual([]));
 
   const rowBad: string[] = [];
-  for (const m of src.matchAll(/\{\s*id:\s*[^{}]*?title:\s*(tr\(c,\s*"(?:[^"\\\n]|\\.)*"\s*,\s*"(?:[^"\\\n]|\\.)*"\s*\)|"(?:[^"\\\n]|\\.)*")/g)) for (const t of literals(m[1])) if (len(t) > META.rowTitle) rowBad.push(`"${t}" (${len(t)})`);
+  for (const { text } of allSrc) for (const m of text.matchAll(/\{\s*id:\s*[^{}]*?title:\s*(tr\(c,\s*"(?:[^"\\\n]|\\.)*"\s*,\s*"(?:[^"\\\n]|\\.)*"\s*\)|"(?:[^"\\\n]|\\.)*")/g)) for (const t of literals(m[1])) if (len(t) > META.rowTitle) rowBad.push(`"${t}" (${len(t)})`);
   it("hard-coded row titles fit in 24 characters", () => expect(rowBad).toEqual([]));
 
   const sectionBad: string[] = [];
-  for (const m of src.matchAll(/sections:\s*\[\{\s*title:\s*(tr\(c,\s*"(?:[^"\\\n]|\\.)*"\s*,\s*"(?:[^"\\\n]|\\.)*"\s*\)|"(?:[^"\\\n]|\\.)*")/g)) for (const t of literals(m[1])) if (len(t) > META.sectionTitle) sectionBad.push(`"${t}" (${len(t)})`);
+  for (const { text } of allSrc) for (const m of text.matchAll(/sections:\s*\[\{\s*title:\s*(tr\(c,\s*"(?:[^"\\\n]|\\.)*"\s*,\s*"(?:[^"\\\n]|\\.)*"\s*\)|"(?:[^"\\\n]|\\.)*")/g)) for (const t of literals(m[1])) if (len(t) > META.sectionTitle) sectionBad.push(`"${t}" (${len(t)})`);
   it("hard-coded list section titles fit in 24 characters", () => expect(sectionBad).toEqual([]));
 
   it("the senders clip with the shared META limits, never private numbers", () => {
@@ -118,5 +129,16 @@ describe("hard-coded WhatsApp titles in index.ts", () => {
     expect([...src.matchAll(/\/messages`/g)].length).toBe(2);
     const notify = readFileSync(resolve(process.cwd(), "supabase/functions/order-notify/index.ts"), "utf8");
     expect(notify).toContain("clampInteractive(payload)");
+  });
+});
+
+describe("every function that posts to the Kapso messages API clamps interactive payloads", () => {
+  const dirs = readdirSync(FN, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith("_") && d.name !== "node_modules").map((d) => d.name);
+  const files = dirs.flatMap((d) => readdirSync(resolve(FN, d)).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => `${d}/${f}`));
+  it("found the functions it should be checking", () => expect(files).toEqual(expect.arrayContaining(["kapso-brain/index.ts", "order-notify/index.ts", "claim-vendor/index.ts"])));
+  it.each(files.filter((f) => /api\.kapso\.ai\/meta\/whatsapp/.test(read(f))))("%s", (f) => {
+    const text = read(f);
+    const interactive = /type: "interactive"|buildClaimCard|buildRatingList|buildVendorOrderCard|buildReorderCard/.test(text) || /notifyOrderStatus/.test(text);
+    if (interactive) expect(text, `${f} sends interactive messages without clampInteractive`).toContain("clampInteractive(");
   });
 });

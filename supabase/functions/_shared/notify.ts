@@ -1,11 +1,10 @@
 // Sends the customer a WhatsApp message when their order's status changes (accepted, preparing, on the way, delivered, cancelled, rejected).
 // Shared by the order-notify function (called by the merchant/driver apps) and the kapso-brain sweep. Free-form messages only, so only inside
 // the customer's 24h window. Takes an injected Supabase client and sender so it never holds credentials itself.
-import { isNotifiable, lifecycleText, ratingRows, windowOpen, type Lang } from "./lifecycle.ts";
+import { buildRatingList, isNotifiable, lifecycleText, windowOpen, type Lang } from "./lifecycle.ts";
 
 export type Send = (payload: Record<string, unknown>) => Promise<boolean>;
 const envl = (to: string) => ({ messaging_product: "whatsapp", recipient_type: "individual", to });
-const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
 export async function notifyOrderStatus(sb: any, send: Send, orderId: string, opts: { trackBase?: string; now?: number } = {}): Promise<{ sent: boolean; reason: string }> {
   const { data: o } = await sb.from("orders").select("id,short_code,vendor_id,customer_phone,status,customer_notified_status").eq("id", orderId).maybeSingle();
@@ -34,9 +33,7 @@ export async function notifyOrderStatus(sb: any, send: Send, orderId: string, op
   const ok = await send({ ...envl(o.customer_phone), type: "text", text: { body: text } });
   if (!ok) { await release(); return { sent: false, reason: "send failed (will retry)" }; }
   if (o.status === "delivered") { // rating prompt: five-row list, one tap
-    await send({ ...envl(o.customer_phone), type: "interactive", interactive: { type: "list",
-      body: { text: lang === "ar" ? "كيف كانت تجربتك؟ ⭐" : "How was your order? ⭐" }, footer: { text: "Alo King 👑" },
-      action: { button: clip(lang === "ar" ? "قيّم" : "Rate", 20), sections: [{ title: clip(lang === "ar" ? "التقييم" : "Your rating", 24), rows: ratingRows(o.id, lang) }] } } });
+    await send(buildRatingList(o.customer_phone, o.id, lang));
   }
   return { sent: true, reason: "sent" };
 }
