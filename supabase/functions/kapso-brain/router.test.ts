@@ -37,7 +37,7 @@ describe("routeTurn: only clearly informational, read-only turns go to the cheap
 
 describe("cheap tool set is read-only", () => {
   it("contains no mutating tool", () => {
-    for (const bad of ["basket_add", "basket_set", "basket_clear", "checkout", "confirm_order", "cancel_pending", "request_human", "prepare_order"]) expect(CHEAP_TOOL_NAMES).not.toContain(bad);
+    for (const bad of ["basket_add", "add_items", "basket_set", "basket_clear", "checkout", "confirm_order", "cancel_pending", "request_human", "prepare_order"]) expect(CHEAP_TOOL_NAMES).not.toContain(bad);
     expect(CHEAP_TOOL_NAMES).toContain("search_menu");
     expect(CHEAP_TOOL_NAMES).toContain("needs_full_assistant");
   });
