@@ -121,6 +121,11 @@ function Terminal({ vendorId }: { vendorId: string }) {
     const { data, error } = await supabase.from("orders").update(patch).eq("id", o.id).select(ORDER_COLUMNS).maybeSingle();
     setBusyId(null);
     if (error) { toast.error(errMsg(error)); return; }
+    // Tell the customer on WhatsApp right away (the scheduled sweep is only the backup); failures here never block the kitchen.
+    if (patch.status)
+      void supabase.functions
+        .invoke("order-notify", { body: { order_id: o.id } })
+        .catch(() => undefined);
     if (data) upsert(data as unknown as Order);
     else upsert({ ...o, ...patch });
   }

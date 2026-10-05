@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.merchant-ai]
 verify_jwt = true
+
+[functions.order-notify]
+verify_jwt = true
