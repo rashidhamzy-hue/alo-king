@@ -30,10 +30,10 @@ describe("env parsing", () => {
     expect(parseBudget("-3")).toBe(5);
     expect(parseBudget("0")).toBe(5);
   });
-  it("per-phone cap: positive integer else default 40", () => {
+  it("per-phone cap: positive integer else default 20", () => {
     expect(parseCap("25")).toBe(25);
-    expect(parseCap(undefined)).toBe(40);
-    expect(parseCap("0")).toBe(40);
+    expect(parseCap(undefined)).toBe(20);
+    expect(parseCap("0")).toBe(20);
     expect(parseCap("2.5")).toBe(2);
   });
 });

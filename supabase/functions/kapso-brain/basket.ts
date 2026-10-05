@@ -61,3 +61,9 @@ export function fitRows(rows: string[], budget: number, ar: boolean): string {
 export function cleanField(v: unknown, max: number): string {
   return String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 }
+
+/** Unambiguous typed confirmations only (casual "ok"/"تمام" do not count). Used solely in button-only mode, when exactly one summary is waiting. */
+export function isYesText(t: string): boolean {
+  const s = String(t ?? "").trim().toLowerCase().replace(/[.!؟?,،\s]+$/g, "");
+  return /^(yes|yeah|yep|y|confirm|confirmed|confirm( my)?( order)?|place( the| my)? order|نعم|اه|آه|ايه|إيه|اي|أكد|اكد|تأكيد|أكد الطلب|اكد الطلب)$/i.test(s);
+}

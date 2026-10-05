@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
-import { basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
+import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
@@ -117,10 +117,11 @@ async function transcribe(audioUrl: string): Promise<string | null> {
 }
 
 // One row per API call: tokens and estimated USD only, never message content. Failures to log must never break a reply.
-async function logAiCall(meta: { kind: "customer" | "owner"; phone?: string }, usage: any) {
-  const usd = estimateUsd(MODEL, usage ?? {});
-  console.log(JSON.stringify({ ai_usage: { kind: meta.kind, model: MODEL, in: usage?.input_tokens ?? 0, out: usage?.output_tokens ?? 0, cache_read: usage?.cache_read_input_tokens ?? 0, cache_write: usage?.cache_creation_input_tokens ?? 0, est_usd: Number(usd.toFixed(6)) } }));
-  const { error } = await sb.from("ai_call_log").insert({ day: beirutDay(), kind: meta.kind, customer_phone: meta.kind === "customer" ? meta.phone ?? null : null, model: MODEL,
+async function logAiCall(meta: { kind: "customer" | "owner"; phone?: string }, usage: any, servedModel?: string) {
+  const model = String(servedModel || MODEL);
+  const usd = estimateUsd(model, usage ?? {});
+  console.log(JSON.stringify({ ai_usage: { kind: meta.kind, model, in: usage?.input_tokens ?? 0, out: usage?.output_tokens ?? 0, cache_read: usage?.cache_read_input_tokens ?? 0, cache_write: usage?.cache_creation_input_tokens ?? 0, est_usd: Number(usd.toFixed(6)) } }));
+  const { error } = await sb.from("ai_call_log").insert({ day: beirutDay(), kind: meta.kind, customer_phone: meta.kind === "customer" ? meta.phone ?? null : null, model,
     input_tokens: usage?.input_tokens ?? 0, output_tokens: usage?.output_tokens ?? 0, cache_read_tokens: usage?.cache_read_input_tokens ?? 0, cache_write_tokens: usage?.cache_creation_input_tokens ?? 0, est_usd: usd });
   if (error) console.error("ai_call_log insert failed", error.message);
 }
@@ -140,7 +141,7 @@ async function llmLoop(system: { static: string; dynamic: string }, tools: any[]
     let data = await res.json();
     if (res.status === 400 && useCache && /cache_control/i.test(JSON.stringify(data))) { console.error("cache_control rejected; retrying without caching"); useCache = false; res = await call(); data = await res.json(); }
     if (!res.ok) { console.error("Anthropic error", res.status, JSON.stringify(data)); throw new Error(`anthropic ${res.status}: ${String(data?.error?.type ?? "")} ${String(data?.error?.message ?? "").slice(0, 160)}`); }
-    await logAiCall(meta, data.usage);
+    await logAiCall(meta, data.usage, data.model);
     messages.push({ role: "assistant", content: data.content });
     const uses = (data.content ?? []).filter((b: any) => b.type === "tool_use");
     final = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
@@ -271,7 +272,7 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
   if (error) { await sb.from("carts").update({ status: "pending" }).eq("id", cart.id); if (cart.basket_id) await sb.from("baskets").update({ status: "active" }).eq("id", cart.basket_id); await sendText(c, "Small hiccup placing that — please tap Confirm again in a moment 🙏"); return "order error"; }
   const track = TRACK_BASE ? `\n🔗 Track live: ${TRACK_BASE}/${order.id}` : "";
   await sendText(c, `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\nThe kitchen is confirming it now — I'll keep you posted. 👑`);
-  await sb.from("ai_call_log").update({ order_id: order.id }).eq("customer_phone", phone).is("order_id", null); // cost per confirmed order
+  await sb.from("ai_call_log").update({ order_id: order.id }).eq("customer_phone", phone).is("order_id", null).gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()); // cost per confirmed order (calls in the last 24h)
   try { await notifyVendor(c, order, b, cart, cust?.full_name ?? "Customer"); } catch (e) { console.error("vendor notify failed", e); }
   const { data: me } = await sb.from("customers").select("opted_in_at,opted_out_at").eq("phone_number", phone).maybeSingle();
   if (me && !me.opted_in_at && !me.opted_out_at) {
@@ -604,22 +605,29 @@ async function aiGuard(c: Ctx, phone: string): Promise<Guard> {
 async function pingBudgetOnce(c: Ctx, spent: number) {
   const day = beirutDay();
   const text = budgetAlertText(spent, DAILY_AI_BUDGET_USD);
-  if (!c.dry) {
-    const { error } = await sb.from("ai_budget_alerts").insert({ day, spent_usd: spent, budget_usd: DAILY_AI_BUDGET_USD });
-    if (error) return; // already pinged today
+  if (c.dry) { if (c.admin) await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: `[dry run] ${text}` } }, true, c.out); return; }
+  // Claim today's alert: the primary key makes the first insert atomic. A failed send (e.g. the admin's 24h window is closed) is retried
+  // at most every 10 minutes by re-claiming the row while ping_ok is not true.
+  const { error } = await sb.from("ai_budget_alerts").insert({ day, spent_usd: spent, budget_usd: DAILY_AI_BUDGET_USD });
+  if (error) {
+    if (error.code !== "23505") { console.error("budget alert insert failed", error.message); return; }
+    const { data: reclaimed } = await sb.from("ai_budget_alerts").update({ pinged_at: new Date().toISOString(), spent_usd: spent }).eq("day", day).or("ping_ok.is.null,ping_ok.eq.false").lt("pinged_at", new Date(Date.now() - 10 * 60_000).toISOString()).select("day");
+    if (!reclaimed?.length) return;
   }
-  const ok = c.admin ? await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: c.dry ? `[dry run] ${text}` : text } }, c.dry, c.out) : false;
-  if (!c.dry) await sb.from("ai_budget_alerts").update({ ping_ok: ok }).eq("day", day);
-  if (!ok) console.error("budget alert not delivered (ADMIN_WHATSAPP_PHONE unset or its 24h window closed)");
+  const ok = c.admin ? await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: text } }, false, c.out) : false;
+  await sb.from("ai_budget_alerts").update({ ping_ok: ok }).eq("day", day);
+  if (!ok) console.error("budget alert not delivered (ADMIN_WHATSAPP_PHONE unset or its 24h window closed); will retry");
 }
-async function sendButtonOnly(c: Ctx, phone: string, why: Guard) {
+async function sendButtonOnly(c: Ctx, phone: string, why: Guard, hasLoc = false) {
   const last = await lastOrder(phone);
-  const body = why === "budget"
+  const { count: waiting } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString());
+  const base = why === "budget"
     ? tr(c, "I'm in quick mode right now 🙏 Please use the buttons below.", "أنا بالوضع السريع هلأ 🙏 استعمل الأزرار تحت.")
     : tr(c, "That's a lot of messages in a short time 🙏 Give me a few minutes, or use the buttons below.", "رسائل كتير بوقت قصير 🙏 استنى كم دقيقة، أو استعمل الأزرار تحت.");
-  await sendButtons(c, { body, buttons: [
+  const hint = waiting ? tr(c, "\nYour order is waiting: tap *Confirm Order* on its summary.", "\nطلبك بالانتظار: اضغط *تأكيد الطلب* على ملخصه.") : "";
+  await sendButtons(c, { body: base + hint, buttons: [
     { id: "BASKET", title: tr(c, "🧺 My basket", "🧺 سلتي") },
-    { id: "LOC", title: tr(c, "📍 Share location", "📍 شارك موقعك") },
+    ...(hasLoc ? [] : [{ id: "LOC", title: tr(c, "📍 Share location", "📍 شارك موقعك") }]),
     ...(last ? [{ id: `REORDER|${last.id}`, title: tr(c, "🔁 Reorder", "🔁 أعد الطلب") }] : []),
   ] });
 }
@@ -709,7 +717,14 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   }
   const { data: prof } = await sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle();
   const guard = await aiGuard(c, phone);
-  if (guard !== "ok") { await sendButtonOnly(c, phone, guard); await remember(phone, userText, c.log.join("\n")); return; }
+  if (guard !== "ok") {
+    // Button-only mode: a plain typed "yes" still confirms when exactly one summary is waiting (the customer's own act, in a later turn than the summary).
+    if (!reply && !loc && isYesText(userText)) {
+      const { count } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString());
+      if (count === 1) { await confirmCart(c, phone); await remember(phone, userText, c.log.join("\n")); return; }
+    }
+    await sendButtonOnly(c, phone, guard, !!loc); await remember(phone, userText, c.log.join("\n")); return;
+  }
   const system = { static: CSYSTEM, dynamic: `CUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}` };
   let final = "";
   try { final = await llmLoop(system, CTOOLS, phone, userText, (n, i) => customerTool(c, phone, n, i), { kind: "customer", phone }); }
