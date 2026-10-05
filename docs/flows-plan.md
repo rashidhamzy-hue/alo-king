@@ -4,17 +4,19 @@ Status: **research only. Nothing was created, published, sent or deployed.** Thi
 
 ## 1. Verdict
 
-A Flow menu with multi-select and quantities **can be built and sent on our current number and account, with three open items that only the owner can close** (§5): Meta business verification, a data-endpoint host decision, and a Kapso API key supplied through secrets. It is **not a drop-in replacement for the numbered text list** (flow item 4): Flows have **no quantity stepper**, so quantities need one Dropdown per dish, and a dynamic menu needs a data endpoint plus encryption. Recommendation: ship the numbered list first (no infrastructure, no Meta dependency), then pilot one Flow for repeat customers and compare completion time (§7).
+A Flow menu with multi-select and quantities **is very likely buildable and sendable on our current number and account (not proven: nothing was created or called), subject to three open items that only the owner can close** (§5): Meta business verification, a data-endpoint host decision, and a Kapso API key supplied through secrets. It is **not a drop-in replacement for the numbered text list** (flow item 4): Flows have **no quantity stepper**, so quantities need one Dropdown per dish, and a dynamic menu needs a data endpoint plus encryption. Recommendation: ship the numbered list first (no infrastructure, no Meta dependency), then pilot one Flow for repeat customers and compare completion time (§7).
 
-## 2. Our number and account (read-only MCP)
+## 2. Our number and account (read-only Kapso MCP: `whatsapp_numbers list`, `search_logs source=flow_event period=30d`)
+
+Evidence is from those two read-only calls only; Meta-side facts (business verification, Flows eligibility) were not visible and are listed as open items.
 
 | Fact | Value | Meaning for Flows |
 |---|---|---|
-| Number | `+1 201-483-5474`, display name "Kabsi", production, `CONNECTED` | Flows can only be sent from a connected production number (a sandbox number is not the real channel). |
-| Quality rating / tier | `GREEN` / `TIER_250` | Flows sent inside a customer's 24 h window are not business-initiated, so the tier does not limit them. |
+| Number | the number in `WHATSAPP_DISPLAY` (`src/lib/config.ts`), display name "Kabsi", Kapso `kind: production`, `CONNECTED` | **Reconcile first:** `config.ts` comments this number as "sandbox", while Kapso lists it as a production number (and separately lists a "Sandbox WhatsApp" entry). Flows need a connected production-kind number on a WABA; the owner should confirm which it really is. |
+| Quality rating / tier | `GREEN` / `TIER_250` | Our reading (unverified): a Flow sent inside a customer's 24 h window is a reply, not a business-initiated message, so the tier should not limit it. |
 | WABA review | `APPROVED` | Necessary, **not sufficient**: Flows publishing can fail with `OAuthException 139000 (Integrity)` until the business is verified in Meta's Security Center (Kapso skill, Troubleshooting). Verification status is not visible through the MCP. |
 | Existing flows | none (no `flow_event` logs in 30 days) | Greenfield. |
-| Messages | our interactive sends are `free_customer_service` | A Flow sent in the 24 h window is an interactive service message; no template needed. |
+| Messages | our existing interactive sends are logged `free_customer_service` | Our reading (unverified for Flows): a Flow inside the window is an interactive service message, no template needed. |
 
 ## 3. What the Flow would look like
 
@@ -24,8 +26,8 @@ Components that matter (Meta reference):
 
 | Need | Component | Limits |
 |---|---|---|
-| Pick several dishes | `CheckboxGroup` (`min-selected-items`, `max-selected-items`, dynamic `data-source`) | one list per component; per-option title/description limits apply |
-| Quantity per dish | `Dropdown` (options `0`..`9`) per dish, or `TextInput input-type: number` | **no stepper exists**; Dropdown max 200 options (100 with images) is about the option list, not about a dish count |
+| Pick several dishes (alternative layout, not used by the recommended shape below) | `CheckboxGroup` (`min-selected-items`, `max-selected-items`, dynamic `data-source`) | one list per component; per-option title/description limits apply |
+| Quantity per dish | `Dropdown` (options `0`..`9`) per dish, or `TextInput input-type: number` | **no stepper in the component reference we read (Meta docs via the Kapso knowledge base)**; Dropdown max 200 options (100 with images) is about the option list, not about a dish count |
 | Show/hide slots | `If` (up to 3 nested) or the dynamic `visible` property (documented for CheckboxGroup; confirm per component in the draft test) | the layout is static: a screen cannot create a variable number of components, only reveal pre-declared ones |
 | Page through a long menu | `NavigationList` | 1-20 items per list |
 | Whole screen budget | | **50 components per screen, 100 screens per flow**, 3 images and 1 MB per data-channel payload |
@@ -33,7 +35,7 @@ Components that matter (Meta reference):
 Recommended shape (two screens, about 12 dishes per page):
 
 1. **MENU** screen: heading (vendor), then `N = 12` pre-declared "slots". Each slot is a `Dropdown` labelled `"<dish> · $4.50 · 402,750 LBP"` with options 0-9 and `visible: ${data.slot_k_visible}`, filled by the data endpoint from the live menu (ranked by popularity or by what the customer already asked for). Footer: **Continue**. A "More" action asks the endpoint for page 2 (`data_exchange`).
-2. **CONFIRM** screen (terminal): read-only summary text built by the endpoint, with the server-priced subtotal, delivery fee and total in both currencies; footer **Add to basket** completes the flow.
+2. **SUMMARY** screen (terminal; deliberately not called "confirm", the order is confirmed later by the customer's own Confirm Order tap): read-only summary text built by the endpoint, with the server-priced subtotal, delivery fee and total in both currencies; footer **Add to basket** completes the flow.
 
 Why 12 slots: each slot is 1 component, so 12 dropdowns + headings + footer stay well under 50 and under typical phone scroll depth. Dishes with required options (sauce, size) cannot be expressed in the same screen without multiplying slots: send those through the existing option lists (`CZ|…`) after the Flow returns, exactly as the numbered list does.
 
@@ -48,8 +50,8 @@ The same CheckboxGroup + Dropdown pattern in a **static** flow (menu baked in) i
 | **Where the menu logic lives** | Our menu, prices and hours are in Supabase and must stay server-owned. The Kapso Function would only call a **new Supabase edge function** (`flow-menu`, `verify_jwt` false, own shared secret in Supabase secrets and the Kapso function's env) that returns slot data. No price is ever taken from the flow response. | new function + `supabase/config.toml` entry |
 | **Business verification** | Required to publish/send reliably (error 139000). Check Meta Business Settings → Security Center → Business verification. | **Owner** |
 | **Completion handling** | The finished flow arrives on our existing webhook as `interactive.type = "nfm_reply"` with `response_json` (a JSON string: `flow_token` plus whatever the final payload carries). `replyFrom()` in `broadcast.ts` only understands `button_reply`/`list_reply`, so a new `nfm_reply` branch is needed that turns `{items:[{item_id, quantity}]}` into the existing `addItems` core (server prices, open check, options check, one basket card). | code, ~1 PR |
-| **Customer authorisation** | `flow_token` alone is not proof of identity (Kapso spec). We mint the token when we send the Flow: an HMAC of `phone + vendor + expiry` with a server secret, store nothing on the client, and verify it when `nfm_reply` arrives (phone must match the sender, not expired, single use). | code + secret |
-| **Sending** | `POST /meta/whatsapp/v24.0/{phone_number_id}/messages` `type:"interactive"`, `interactive.type:"flow"`, `parameters:{flow_message_version:"3", flow_id, flow_cta, flow_action:"navigate"/"data_exchange", flow_token, mode:"draft"|"published"}`. In-window only (24 h); outside it needs a template with a Flow button. | existing send path |
+| **Customer authorisation** | `flow_token` alone is not proof of identity (Kapso spec). We mint the token when we send the Flow: an HMAC of `phone + vendor + expiry` with a server secret, and verify it when `nfm_reply` arrives (phone must match the sender, not expired). **Single use needs server state** (a used-token/nonce table): a new migration with RLS on and no anon/authenticated grants, deleted with "delete my data". `response_json` is client-controlled: the handler must check every `item_id` belongs to the token's vendor and is available, and bound `quantity` to an integer 1-9, before anything reaches the basket. | code + secret + migration |
+| **Sending** | `POST /meta/whatsapp/v24.0/{phone_number_id}/messages` `type:"interactive"`, `interactive.type:"flow"`, `parameters:{flow_message_version:"3", flow_id, flow_cta, flow_action:"navigate"/"data_exchange", flow_token, mode:"draft"|"published"}`. In-window only (24 h); outside it needs a template with a Flow button, which must **never** be used for promotions unless `marketing_opt_in` is true and the template carries an opt-out. | existing send path |
 | **Testing** | `mode:"draft"` sends the draft to a test number before publishing; Kapso also provides preview links. | us |
 | **Meta limits to respect** | 50 components/screen, 100 screens, one `Footer` mandatory on a terminal screen, payload keys must not use reserved names (`action`, `screen`, `data`). | build |
 
@@ -62,7 +64,7 @@ The same CheckboxGroup + Dropdown pattern in a **static** flow (menu baked in) i
 
 ## 6. Rules this must keep (CLAUDE.md)
 
-- **Server-side pricing**: the Flow carries only `item_id` and `quantity`; every amount shown in the Flow is produced by the server for display, and is recomputed when the items are added. Totals, fee and COD cap stay in the existing basket/checkout path.
+- **Server-side pricing**: the Flow carries only `item_id` and `quantity`; every amount shown in the Flow is produced by the server for display only, and is recomputed when the items are added. The cash-on-delivery cap is still checked by the server at the Confirm step. Totals, fee and COD cap stay in the existing basket/checkout path.
 - **Confirmation**: the Flow ends at "Add to basket"; the order still needs the customer's own **Confirm Order** tap on the server-built summary.
 - **Dual currency** in every label and summary; **no secrets** in flow JSON, endpoint code, logs or chat (shared secrets in Supabase/Kapso secrets only); **consent** is unaffected (service messages, no promotions).
 
@@ -71,7 +73,7 @@ The same CheckboxGroup + Dropdown pattern in a **static** flow (menu baked in) i
 | Step | Output | Effort |
 |---|---|---|
 | 0 | Owner confirms business verification; API key placed in secrets | owner, 30 min |
-| 1 | `flow-menu` edge function: slot data (top N dishes by popularity or by the customer's last order), tested against the real menu | 0.5 day |
+| 1 | `flow-menu` edge function (+ `supabase/config.toml` entry): slot data (top N dishes by popularity or by the customer's last order), tested against the real menu | 0.5 day |
 | 2 | Flow JSON (2 screens) + Kapso Function proxy + `setup_encryption` + `mode:"draft"` test to one test phone | 0.5-1 day |
 | 3 | `nfm_reply` handler + token mint/verify + tests | 0.5 day |
 | 4 | Pilot to repeat customers behind a flag; compare **time from first message to basket** and basket completion against the numbered list (item 4), using the `turn_timing` logs | 1 week of traffic |
