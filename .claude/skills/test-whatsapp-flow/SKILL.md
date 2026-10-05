@@ -31,7 +31,7 @@ description: Run end-to-end dry-run tests of the Alo King WhatsApp bot (kapso-br
 **Broadcast flow** (owner)
 - Opt a test customer in (`reply "OPTIN|1"`), who must have ordered from the vendor.
 - `Send 10% off … to my customers` → one preview card: reach, cost ($0.05/msg), credit before → after, `BCAST|OK|<id>` / `BCAST|NO|<id>` buttons, nothing after it.
-- Send → `template` payload to the opted-in customer (name from `KAPSO_PROMO_TEMPLATE`), "Broadcast done", credit reduced. Cancel → nothing sent, no charge. Tapping an already-handled card → "already handled".
+- Send → payload to each opted-in customer: a plain `text` message if they wrote to us in the last 24h, otherwise the `template` for their language (`alo_offer_ar` / `alo_offer_en_optout`), "Broadcast done", credit reduced. Cancel → nothing sent, no charge. Tapping an already-handled card → "already handled".
 
 ## Cleanup (always)
 - Restore any changed prices; `update vendors set owner_whatsapp_phone=null, broadcast_credits_usd=10.00 where vendor_id=…`.
