@@ -29,7 +29,11 @@ async function fetchDishCount() {
   return count ?? 0;
 }
 
-const villageOf = (v: Vendor) => v.village_canonical || "Other";
+const clean = (s: string | null | undefined) => {
+  const t = (s ?? "").trim();
+  return !t || /^0(\.0+)?$/.test(t) || t.toLowerCase() === "null" ? null : t;
+};
+const villageOf = (v: Vendor) => clean(v.village_canonical) || "Other";
 
 export function MerchantGrid() {
   const { t } = useLang();
@@ -124,8 +128,8 @@ export function MerchantGrid() {
             <article key={v.vendor_id} className="lux-card p-5 transition hover:-translate-y-0.5 hover:shadow-glow-emerald">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="truncate text-xl font-semibold">{v.name_en || v.name_ar || "Unnamed"}</h3>
-                  {v.name_ar && <p dir="rtl" className="font-arabic truncate text-sm text-muted-foreground">{v.name_ar}</p>}
+                  <h3 className="truncate text-xl font-semibold">{clean(v.name_en) || clean(v.name_ar) || "Unnamed"}</h3>
+                  {clean(v.name_ar) && clean(v.name_en) && <p dir="rtl" className="font-arabic truncate text-sm text-muted-foreground">{v.name_ar}</p>}
                 </div>
                 {v.category_canonical && (
                   <span className="shrink-0 rounded-full bg-secondary/60 px-2.5 py-1 text-xs text-secondary-foreground">
@@ -137,8 +141,8 @@ export function MerchantGrid() {
                 <p className="flex items-center gap-2"><MapPin className="size-3.5 text-gold" /> {villageOf(v)}</p>
                 <p className="flex items-center gap-2">
                   <Clock className="size-3.5 text-gold" />
-                  {v.open_time && v.close_time ? `${v.open_time.slice(0, 5)}–${v.close_time.slice(0, 5)}` : "Hours not listed"}
-                  {v.open_days ? <span className="truncate opacity-70">· {v.open_days}</span> : null}
+                  {clean(v.open_time) && clean(v.close_time) ? `${v.open_time!.slice(0, 5)}–${v.close_time!.slice(0, 5)}` : "Hours not listed"}
+                  {clean(v.open_days) ? <span className="truncate opacity-70">· {v.open_days}</span> : null}
                 </p>
               </div>
             </article>
