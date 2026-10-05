@@ -13,10 +13,11 @@ import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, 
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
 import { buildReadReceipt, shouldAck } from "./receipts.ts";
-import { extractVendorHint, normText, prepareIndex, resolveSegments, skeleton, tokens, type IndexItem } from "./resolve.ts";
+import { extractVendorHint, normText, prepareIndex, rankItems, resolveSegments, skeleton, tokens, type IndexItem } from "./resolve.ts";
 import { agentLoop } from "./loop.ts";
 import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, parseNumberedTap } from "./numbered.ts";
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
+import { buildSearchRows, haversineKm, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
@@ -578,12 +579,12 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
 
 // ---------- RETRIEVAL-FIRST: resolve what the customer typed against the live menu before the model is called ----------
 // One in-memory index of every orderable dish (id, names, vendor, section): ~5k rows, refreshed every 5 minutes per isolate. Prices are never taken from it.
-type MenuIndex = { at: number; items: IndexItem[]; vendors: { vendor_id: string; w: string; s: string }[]; words: Set<string> };
+type MenuIndex = { at: number; items: IndexItem[]; vendors: { vendor_id: string; w: string; s: string }[]; words: Set<string>; vmeta: Map<string, { lat: number | null; lng: number | null; village: string | null }> };
 let menuIndex: MenuIndex | null = null, menuIndexLoading: Promise<MenuIndex> | null = null, menuIndexFailedAt = 0;
 const MENU_INDEX_TTL_MS = 5 * 60_000, MENU_INDEX_RETRY_MS = 60_000, MENU_INDEX_PAGES = 12;
 async function fetchMenuIndex(): Promise<MenuIndex> {
   const [vr, ...pages] = await Promise.all([
-    sb.from("vendors").select("vendor_id,name_en,name_ar,is_live,is_active").eq("is_active", true).limit(2000),
+    sb.from("vendors").select("vendor_id,name_en,name_ar,is_live,is_active,latitude,longitude,village_canonical").eq("is_active", true).limit(2000),
     ...Array.from({ length: MENU_INDEX_PAGES }, (_, i) => sb.from("menu_items").select("item_id,vendor_id,item_name_en,item_name_ar,section,price_usd,is_popular").eq("available", true).gt("price_usd", 0).order("vendor_id").order("item_id").range(i * 1000, i * 1000 + 999)), // PostgREST returns at most 1000 rows per request; (vendor_id, item_id) is unique, so parallel pages cannot overlap
   ]);
   if (vr.error || pages.some((pg) => pg.error)) throw new Error(`menu index load failed: ${vr.error?.message ?? pages.find((pg) => pg.error)?.error?.message}`);
@@ -592,7 +593,8 @@ async function fetchMenuIndex(): Promise<MenuIndex> {
   const items: IndexItem[] = pages.flatMap((pg) => pg.data ?? []).filter((r: any) => vmap.has(r.vendor_id)).map((r: any) => { const v = vmap.get(r.vendor_id); return { item_id: r.item_id, vendor_id: r.vendor_id, vendor_name: v.name_en ?? "", vendor_name_ar: v.name_ar ?? "", name_en: r.item_name_en ?? "", name_ar: r.item_name_ar ?? "", section: r.section ?? "", price_usd: Number(r.price_usd), is_popular: !!r.is_popular }; });
   prepareIndex(items);
   const words = new Set<string>(); for (const it of items) for (const w of normText(`${it.name_en} ${it.name_ar}`).split(" ")) if (w) words.add(w);
-  return { at: Date.now(), words, items, vendors: [...vmap.values()].map((v: any) => ({ vendor_id: v.vendor_id, w: normText(v.name_en ?? ""), s: skeleton(v.name_en ?? "") })) };
+  const vmeta = new Map<string, { lat: number | null; lng: number | null; village: string | null }>([...vmap.values()].map((v: any) => [v.vendor_id, { lat: v.latitude != null ? Number(v.latitude) : null, lng: v.longitude != null ? Number(v.longitude) : null, village: v.village_canonical ?? null }]));
+  return { at: Date.now(), words, vmeta, items, vendors: [...vmap.values()].map((v: any) => ({ vendor_id: v.vendor_id, w: normText(v.name_en ?? ""), s: skeleton(v.name_en ?? "") })) };
 }
 /** Cached 5 minutes; concurrent cold requests share one load; a failed refresh serves the stale index (and backs off for a minute) instead of failing every message. */
 async function loadMenuIndex(): Promise<MenuIndex> {
@@ -741,6 +743,46 @@ async function handleBasketEditText(c: Ctx, phone: string, text: string): Promis
   const res = await setLineQty(phone, r.lineId, r.kind === "set" ? r.quantity : 0);
   if (!res) return false;
   await sendBasketCard(c, res.basketId, res.vendorId);
+  return true;
+}
+
+// ---------- SEARCH-FIRST: any food word or mood -> ONE list of the best open, nearest dishes (no category tree, no model call) ----------
+async function searchFirst(c: Ctx, phone: string, text: string, prof: any): Promise<boolean> {
+  if (!looksLikeSearch(text)) return false;
+  { // a one-word answer to the bot's own question (name, village, landmark...) is never a search
+    const { data: last } = await sb.from("conversations").select("content").eq("phone", phone).eq("role", "assistant").order("id", { ascending: false }).limit(1).maybeSingle();
+    const tail = String(last?.content ?? "").trim().split("\n").pop() ?? "";
+    if (!tail.startsWith("[") && /[?؟]\s*$/.test(tail) && /name|village|landmark|address|building|floor|where|deliver|location|phone|اسم|بلد|عنوان|موقع|وين|بناية|طابق|معلم|رقم/i.test(tail)) return false; // the bot just asked for delivery details; "what are you craving?" is NOT such a question
+  }
+  const idx = await loadMenuIndex();
+  const mood = moodTerms(text);
+  const scored = new Map<string, { item: IndexItem; score: number }>();
+  const put = (r: { item: IndexItem; score: number }) => { const k = `${r.item.vendor_id}|${r.item.item_id}`; const cur = scored.get(k); if (!cur || r.score > cur.score) scored.set(k, r); };
+  if (mood) {
+    for (const term of mood.terms) for (const r of rankItems(term, idx.items, { floor: 0.85 })) put(r);
+    if (mood.mood === "popular") for (const it of idx.items) if (it.is_popular) put({ item: it, score: 0.75 }); // only on explicit phrases ("hungry", "surprise me", "what's good"): what people order most. A mood nothing matches goes to the model instead of implying a match.
+  } else for (const r of rankItems(text, idx.items, { floor: 0.8 })) put(r); // a plain dish word: only a confident match (otherwise the model decides)
+  if (!scored.size) return false;
+  const hasLoc = prof?.last_lat != null && prof?.last_lng != null;
+  const hits: SearchHit[] = [...scored.values()].sort((a, b) => b.score - a.score).slice(0, 120).map((r) => {
+    const vm = idx.vmeta.get(r.item.vendor_id);
+    const exact = hasLoc && vm?.lat != null && vm?.lng != null;
+    const km = exact ? haversineKm(Number(prof.last_lat), Number(prof.last_lng), vm!.lat!, vm!.lng!) : prof?.village && vm?.village ? (normText(prof.village) === normText(vm.village) ? 0 : 6) : null; // same village ranks first when there is no pin
+    return { item_id: r.item.item_id, vendor_id: r.item.vendor_id, vendor_name: r.item.vendor_name, name_en: r.item.name_en, name_ar: r.item.name_ar, price_usd: r.item.price_usd, score: r.score, is_popular: r.item.is_popular, km, exact: !!exact };
+  });
+  const ordered = mood?.mood === "cheap" ? [...hits].sort((a, b) => a.price_usd - b.price_usd || (a.km ?? 1e9) - (b.km ?? 1e9)) : orderNearest(hits);
+  // only open vendors, checked nearest-first in small parallel batches until the list is full
+  const open = new Map<string, boolean>(); const order = [...new Set(ordered.map((h) => h.vendor_id))];
+  let rows: ReturnType<typeof buildSearchRows> = [];
+  for (let i = 0; i < order.length && i < 30; i += 6) {
+    const chunk = order.slice(i, i + 6).filter((v) => !open.has(v));
+    await Promise.all(chunk.map(async (v) => open.set(v, (await sb.rpc("vendor_is_open", { p_vendor_id: v })).data === true))); // this list says "Open now": an RPC error counts as closed
+    rows = buildSearchRows(ordered.filter((h) => open.get(h.vendor_id) === true), !!c.ar, both);
+    if (rows.length >= 10) break;
+  }
+  if (!rows.length) return false;
+  const near = prof?.village ? tr(c, ` near ${prof.village}`, ` قرب ${prof.village}`) : "";
+  await sendList(c, { header: tr(c, "Best matches", "أفضل النتائج"), body: tr(c, `Open now${near} 👇\nTap a dish to see it and add it.${hasLoc ? "" : "\n📍 Share your location for nearest first."}`, `مفتوح هلأ${near} 👇\nاضغط على صنف لتشوفه وتضيفه.${hasLoc ? "" : "\n📍 شاركني موقعك لأقرب النتايج."}`), button: tr(c, "Dishes", "الأصناف"), sections: [{ title: tr(c, "Open now", "مفتوح هلأ"), rows }] });
   return true;
 }
 
@@ -1291,12 +1333,16 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   }
   if (!reply && !loc && await handleNumberedReply(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "1x2, 3": no model, no search
   if (!reply && !loc && await handleBasketEditText(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "make it 3", "remove the fries": no model
-  const { data: prof } = await sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle();
+  const { data: prof } = await sb.from("customers").select("full_name,village,last_address,last_lat,last_lng").eq("phone_number", phone).maybeSingle();
   let resolved: Resolved[] = [];
   if (!reply && !loc) { try { resolved = await resolveMessage(phone, userText); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
   if (resolved.length && hasOrderIntent(userText)) { // free: no model call, so it also works in button-only mode
     try { if (await tryDeterministicOrder(c, phone, resolved)) { await remember(phone, userText, c.log.join("\n")); return; } }
     catch (e) { console.error("deterministic order failed, falling back to the model", String((e as Error)?.message ?? e).slice(0, 160)); }
+  }
+  if (!reply && !loc) { // search-first: free, so it also works in button-only mode
+    try { if (await searchFirst(c, phone, userText, prof)) { await remember(phone, userText, c.log.join("\n")); return; } }
+    catch (e) { console.error("search-first failed, falling back to the model", String((e as Error)?.message ?? e).slice(0, 160)); }
   }
   const guard = await aiGuard(c, phone);
   if (guard !== "ok") {

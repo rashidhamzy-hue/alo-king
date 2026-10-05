@@ -178,3 +178,16 @@ describe("item 5 basket edit (basketedit.editListRows / lineButtons)", () => {
     }
   });
 });
+
+describe("item 6 search-first list (searchfirst.buildSearchRows)", () => {
+  it("rows fit WhatsApp's list limits in both languages and always show dual-currency prices", async () => {
+    const { buildSearchRows } = await import("./searchfirst.ts");
+    const both = (n: number) => `$${n.toFixed(2)} · ${Math.round(n * 89500).toLocaleString("en-US")} LBP`;
+    const hits = Array.from({ length: 40 }, (_, i) => ({ item_id: "item-" + "x".repeat(150) + i, vendor_id: "vendor-" + (i % 9), vendor_name: "A Restaurant With A Rather Long Name Number " + i, name_en: "A fairly long dish name that needs clipping " + i, name_ar: "صنف طويل جدا يحتاج اختصار رقم " + i, price_usd: 3.5 + i / 3, score: 1, is_popular: false, km: i / 2, exact: true }));
+    for (const ar of [false, true]) {
+      const rows = buildSearchRows(hits, ar, both);
+      expect(rows.length).toBeLessThanOrEqual(META.listRows);
+      for (const r of rows) { expect(r.title.length).toBeLessThanOrEqual(META.rowTitle); expect(r.description.length).toBeLessThanOrEqual(META.rowDescription); expect(r.id.length).toBeLessThanOrEqual(META.rowId); expect(r.description).toMatch(/LBP$/); }
+    }
+  });
+});

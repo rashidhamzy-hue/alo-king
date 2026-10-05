@@ -36,6 +36,7 @@ export function skeleton(word: string): string {
 }
 
 const STOP = new Set([
+  "do", "does", "any", "is", "are", "there", "got", "near", "nearby", "around", "here", "today", "tonight", "now", "something", "anything", "good", "best", "food", "eats", "place", "places", "عندكم", "عندك", "هل", "فيه", "قريب", "حدي", "قربي", "3endkon", "3ndkon", "3endak", "fi", "fiya", "2areeb",
   "a", "an", "the", "i", "me", "my", "we", "us", "want", "wanna", "need", "like", "would", "can", "could", "get", "give", "have", "please", "pls", "plz", "thanks", "thank", "you", "some", "with", "and", "or", "of", "for", "to", "from", "at", "x", "one", "two", "three", "four", "five", "six", "order", "add", "also", "too", "extra", "more", "bring", "send", "of",
   "badde", "bade", "bde", "bdi", "badi", "baddi", "bddi", "badna", "bdna", "baddna", "men", "min", "3end", "3and", "w", "wi", "wa", "fadlak", "fadlek", "yalla", "ya", "hai", "hayda", "wahad", "wahed", "tnein", "tneen", "etneen", "tlete", "tlet", "arba3a", "arba3", "khamse", "5amse", "set", "sitte",
   "بدي", "بدنا", "بدّي", "عطيني", "جبلي", "من", "عند", "و", "مع", "او", "أو", "لو", "سمحت", "فضلك", "رجاء", "رجاءا", "شكرا", "اذا", "ان", "في", "على", "واحد", "وحده", "اتنين", "اثنين", "تنين", "ثلاثه", "تلاته", "تلات", "اربعه", "اربع", "خمسه", "خمس", "ستا", "هالـ", "هيدا", "هاي",
