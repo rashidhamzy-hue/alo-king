@@ -55,7 +55,7 @@ function pnidOf(body: any, evt: any): string {
 }
 
 // ---------- outbound ----------
-type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
+type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   if (dry) { out?.push(payload); return true; }
   const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
@@ -229,7 +229,7 @@ async function prepareOrder(c: Ctx, phone: string, input: any): Promise<string> 
   if (b.error) return JSON.stringify(b);
   const items = (input.items as any[]).slice(0, 15).map((l) => ({ item_id: l.item_id, quantity: l.quantity, choices: l.choices ?? [] }));
   await sb.from("carts").update({ status: "expired" }).eq("customer_phone", phone).eq("vendor_id", input.vendor_id).eq("status", "pending"); // other vendors' pending summaries stay valid
-  const addr = `${input.delivery_village} — ${input.building_landmark}`;
+  const addr = `${input.delivery_village} — ${String(input.building_landmark).replace(/\s*\(https?:\/\/\S+\)\s*$/, "")}`; // the maps link stays on the order for the vendor/driver, not in the customer card
   const { data: cart, error } = await sb.from("carts").insert({ customer_phone: phone, vendor_id: input.vendor_id, items, subtotal_usd: b.subtotal, delivery_fee_usd: DELIVERY_FEE_USD, total_usd: b.total, village: input.delivery_village, address: input.building_landmark, notes: input.notes ?? null, basket_id: input.basket_id ?? null }).select("id").single();
   if (error) return JSON.stringify({ error: error.message });
   c.cartThisTurn = true;
@@ -531,6 +531,7 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
     if (["basket_add", "basket_set", "basket_show", "basket_clear", "cancel_pending", "checkout"].includes(name)) return await basketTool(c, phone, name, input);
     if (name === "confirm_order") {
       // Law 81/2018: confirmation must be the customer's own act. A summary sent this turn can only be confirmed by a later message.
+      if (c.fromVoice) return JSON.stringify({ error: "This came from a voice note: the customer must tap Confirm Order on the summary themselves. Tell them to tap it.", instruction: "Ask them to tap Confirm Order." });
       if (c.cartThisTurn) return JSON.stringify({ error: "The customer has not confirmed yet: the summary card was just sent. They must tap Confirm or reply yes in their NEXT message.", instruction: "Reply with nothing." });
       const r = await confirmCart(c, phone); c.rich++; return JSON.stringify({ ok: true, result: r, instruction: "Customer already notified. Reply with nothing." }); }
     return JSON.stringify({ error: "unknown tool" });
@@ -586,7 +587,7 @@ async function reorderLast(c: Ctx, phone: string, orderId: string, fallback: Lan
   if (!ord) { await sendText(c, ar ? "ما لقيت طلبك الأخير 🙏 خبرني شو بدك." : "I couldn't find your last order 🙏 Tell me what you'd like."); return; }
   const items = (Array.isArray(ord.items) ? ord.items : []).map((l: any) => ({ item_id: l.item_id, quantity: l.quantity, choices: (l.choices ?? []).map((x: any) => ({ group: x.group, option: x.option })) }));
   const res = JSON.parse(await prepareOrder(c, phone, { vendor_id: ord.vendor_id, items, customer_name: cust?.full_name ?? "Customer", delivery_village: ord.delivery_village ?? "", building_landmark: ord.building_landmark ?? "", notes: ord.notes ?? undefined }));
-  if (res.error) await sendText(c, ar ? `ما قدرت أعيد هالطلب (${res.error}) 🙏 خبرني شو بدك بداله.` : `I couldn't repeat that order (${res.error}) 🙏 Tell me what you'd like instead.`);
+  if (res.error) { console.error("reorder failed:", String(res.error).slice(0, 120)); await sendText(c, ar ? "ما قدرت أعيد هالطلب هلأ (ممكن المطعم مسكّر أو صنف مش متوفر) 🙏 خبرني شو بدك بداله." : "I couldn't repeat that order right now (the restaurant may be closed or a dish unavailable) 🙏 Tell me what you'd like instead."); }
 }
 
 // ---------- SMART UNDERSTANDING: saved addresses / pins, checkout address choice, voice confirmation ----------
@@ -659,7 +660,8 @@ async function sendButtonOnly(c: Ctx, phone: string, why: Guard, hasLoc = false)
   ] });
 }
 
-async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: string; title: string } | null, loc: any | null) {
+async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: string; title: string } | null, loc: any | null, fromVoice = false) {
+  if (fromVoice) c.fromVoice = true; // a confirmed voice transcript is typed-text-equivalent, but can never confirm an order by itself
   await sb.from("customers").upsert({ phone_number: phone }, { onConflict: "phone_number", ignoreDuplicates: true });
   const lang = detectLanguage(text);
   if (lang) await sb.from("customers").update({ language: lang, language_set_at: new Date().toISOString() }).eq("phone_number", phone).is("language", null); // first text message decides
@@ -678,9 +680,13 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     if (vt) {
       const { data: pv } = await sb.from("pending_voice").update({ status: vt.answer === "ok" ? "used" : "rejected" }).eq("id", vt.id).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString()).select("transcript").maybeSingle();
       if (!pv) { await sendText(c, tr(c, "That voice note has expired 🙏 Please send it again or type it.", "انتهت صلاحية الرسالة الصوتية 🙏 ابعتها كمان مرة أو اكتبها.")); await remember(phone, "[voice expired]", c.log.join("\n")); return; }
+      const transcript = pv.transcript;
+      await sb.from("pending_voice").update({ transcript: "" }).eq("id", vt.id); // message content is not kept once the note has been answered
       if (vt.answer === "no") { await sendText(c, tr(c, "Sorry about that 🙏 Please type it or record again.", "آسف 🙏 اكتبها أو سجّلها كمان مرة.")); await remember(phone, "[voice rejected]", c.log.join("\n")); return; }
-      // Confirmed transcript: treated exactly like typed text (nothing is ordered until the customer taps Confirm on the summary).
-      return handleCustomer(c, phone, pv.transcript, null, null);
+      // Confirmed transcript: treated like typed text (STOP is honoured; nothing is ordered until the customer taps Confirm on the summary).
+      if (isOptOutTitle(transcript)) { await handleOptOut(c, phone, transcript); return; }
+      try { return await handleCustomer(c, phone, transcript, null, null, true); }
+      catch (err) { console.error("voice replay failed", String((err as Error)?.message ?? err).slice(0, 200)); await sendText(c, tr(c, "Something went wrong 🙏 Please type that or send the voice note again.", "صار خطأ 🙏 اكتبها أو ابعت الرسالة الصوتية كمان مرة.")); return; }
     }
     const bt = parseBasketTap(tag);
     if (bt) {
@@ -703,12 +709,12 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
         if (!ad) await sendText(c, tr(c, "I couldn't find that address 🙏 Type it or share your location.", "ما لقيت هالعنوان 🙏 اكتبه أو شاركني موقعك."));
         else {
           await sb.from("customer_addresses").update({ last_used_at: new Date().toISOString() }).eq("id", ad.id);
-          await sb.from("customers").update({ village: ad.village, last_address: ad.landmark, ...(ad.lat != null ? { last_lat: ad.lat, last_lng: ad.lng } : {}) }).eq("phone_number", phone);
+          await sb.from("customers").update({ village: ad.village, last_address: ad.landmark, last_lat: ad.lat, last_lng: ad.lng }).eq("phone_number", phone);
           if (at.basketId) { const q = await checkoutFromProfile(c, phone, at.basketId); if (q) userText = q; }
           else await sendText(c, tr(c, "Got it, I'll deliver there 📍", "تمام، رح نوصّل لهنيك 📍"));
         }
       }
-      if (!userText) { await remember(phone, "[tapped address]", c.log.join("\n")); return; }
+      if (userText === text || !userText) { await remember(phone, "[tapped address]", c.log.join("\n")); return; }
     }
     const bw = parseBrowseTap(tag);
     if (bw) {
@@ -740,14 +746,15 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       const added = JSON.parse(await basketTool(c, phone, "basket_add", { vendor_id: a, item_id: b, quantity: 1 }));
       if (added.ok) { await maybeOfferAddon(c); await remember(phone, `[tapped Order Now ${b}]`, c.log.join("\n")); return; } // basket card sent; the customer taps Checkout when done
       userText = `[Tapped Order Now: vendor_id=${a} item_id=${b} "${it?.item_name_en ?? reply.title}" — could not add to basket: ${added.error}. Ask the customer for what is missing, then call basket_add.]`;
-    } else if (!bt && !at && !vt) userText = reply.title || text;
+    } else if (!bt && !at) userText = reply.title || text;
   }
   if (loc) {
     const { data: vs } = await sb.from("vendors").select("village_canonical,latitude,longitude").not("latitude", "is", null).limit(1000);
     const village = vs ? nearestVillage(Number(loc.latitude), Number(loc.longitude), vs) : null;
-    const landmark = pinnedLandmark(loc, village ?? "");
-    await sb.from("customers").update({ last_lat: loc.latitude, last_lng: loc.longitude, last_address: landmark, ...(village ? { village } : {}) }).eq("phone_number", phone);
-    if (village) await saveAddress(phone, village, landmark);
+    // Only a pin we can place in a village becomes the delivery address (buildOrder checks delivery areas by village); otherwise keep the old behaviour.
+    const landmark = village ? pinnedLandmark(loc, village) : String(loc.address ?? loc.name ?? "") || null;
+    await sb.from("customers").update({ last_lat: loc.latitude, last_lng: loc.longitude, ...(landmark ? { last_address: landmark } : {}), ...(village ? { village } : {}) }).eq("phone_number", phone);
+    if (village && landmark) await saveAddress(phone, village, landmark);
     const baskets = (await allBaskets(phone)).slice(0, MAX_BASKETS);
     if (baskets.length) { // a basket is waiting: confirm the pin as the delivery address by showing it with Checkout
       for (const b of baskets) await sendBasketCard(c, b.id, b.vendor_id);
@@ -780,7 +787,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   const guard = await aiGuard(c, phone);
   if (guard !== "ok") {
     // Button-only mode: a plain typed "yes" still confirms when exactly one summary is waiting (the customer's own act, in a later turn than the summary).
-    if (!reply && !loc && isYesText(userText)) {
+    if (!reply && !loc && !fromVoice && isYesText(userText)) {
       const { count } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString());
       if (count === 1) { await confirmCart(c, phone); await remember(phone, userText, c.log.join("\n")); return; }
     }
@@ -1016,6 +1023,13 @@ async function notifyVendor(c: Ctx, order: any, b: any, cart: any, customerName:
 
 // Orders still pending after 90 s: tell the customer we're still confirming and ping the admin. Idempotent per order (escalated_at).
 // Dry runs only ever touch test orders (customer phones 961700000…), because they really mark the order as escalated.
+async function purgeStale() {
+  const [v, l] = await Promise.all([
+    sb.from("pending_voice").delete().lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()),
+    sb.from("ai_call_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
+  ]);
+  if (v.error || l.error) console.error("purge failed", v.error?.message ?? l.error?.message);
+}
 async function runWatchdog(o: { pnid: string; dry: boolean; out: any[]; admin?: string; orderId?: string }): Promise<number> {
   let q = sb.from("orders").select("id,short_code,vendor_id,customer_phone,total_usd,status,created_at,escalated_at").eq("status", "pending").is("escalated_at", null)
     .lte("created_at", new Date(Date.now() - ESCALATE_AFTER_MS).toISOString()).gte("created_at", new Date(Date.now() - ESCALATE_MAX_AGE_MS).toISOString()).limit(50);
@@ -1141,11 +1155,13 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminO
     const t = dry && e.fixtureTranscript ? String(e.fixtureTranscript).slice(0, 1000) : e.audioUrl ? await transcribe(e.audioUrl) : null;
     const nv = normPhone(e.from);
     const { data: ownerChk } = nv ? await sb.from("vendors").select("vendor_id").eq("owner_whatsapp_phone", nv).maybeSingle() : { data: null };
+    if (t && !ownerChk && isOptOutTitle(t)) { await handleOptOut(c, e.from, t, e.id); return; } // STOP by voice is honoured immediately, no extra tap
     if (t && !ownerChk) { // customers confirm what we heard before anything is acted on (owners keep the direct flow)
       await sb.from("customers").upsert({ phone_number: e.from }, { onConflict: "phone_number", ignoreDuplicates: true });
       const { data: cl } = await sb.from("customers").select("language").eq("phone_number", e.from).maybeSingle();
       c.ar = (cl?.language ?? detectLanguage(t) ?? "ar") !== "en";
       const { data: pv } = await sb.from("pending_voice").insert({ customer_phone: e.from, transcript: t }).select("id").single();
+      if (!pv) { await sendText(c, tr(c, "I couldn't process your voice note 🙏 Please type it.", "ما قدرت إعالج الرسالة الصوتية 🙏 اكتبها لي.")); return; }
       if (pv) { await sendButtons(c, { body: voiceCardText(t, !!c.ar), buttons: [{ id: voiceTapId("ok", pv.id), title: tr(c, "✅ Yes", "✅ أيوه") }, { id: voiceTapId("no", pv.id), title: tr(c, "✏️ No, retry", "✏️ لا، كمان مرة") }] }); await remember(e.from, "[voice note]", c.log.join("\n")); return; }
     }
     if (!t) { await sendText(c, "وصلتني الرسالة الصوتية بس ما قدرت أسمعها هلأ 🙏 ممكن تكتبلي؟\nGot your voice note but couldn't play it — could you type it?"); return; }
@@ -1205,6 +1221,7 @@ Deno.serve(async (req) => {
   if (isJob) {
     const out: any[] = [];
     const admin = normPhone(adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined;
+    if (!dry) await purgeStale(); // retention: answered/expired voice transcripts after 24h, AI call log (customer phones) after 90 days
     const escalated = await runWatchdog({ pnid: DEFAULT_PNID, dry, out, admin });
     return new Response(JSON.stringify(dry ? { escalated, out } : { escalated }), { status: 200, headers: { "content-type": "application/json" } });
   }

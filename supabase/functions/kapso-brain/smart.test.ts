@@ -71,3 +71,11 @@ describe("addresses", () => {
     expect(parseAddrTap("ADDR|a|b|c")).toBeNull();
   });
 });
+
+import { isOptOutTitle } from "./broadcast";
+describe("voice STOP", () => {
+  it("transcripts of a spoken stop are recognised as opt-outs", () => {
+    for (const t of ["stop", "Stop.", "STOP", "stop offers"]) expect(isOptOutTitle(t)).toBe(true);
+    expect(isOptOutTitle("two soft drinks please")).toBe(false);
+  });
+});

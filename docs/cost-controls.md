@@ -11,7 +11,7 @@
 
 Button-only mode keeps working without the model: taps (Confirm, basket, menu, reorder, location), STOP/opt-out and typed cancel; a plain typed "yes" confirms when exactly one summary is waiting. Still needing the model (so replaced by the button message): free-text ordering, Change Order, checkout with an incomplete profile, and first-time greetings.
 
-Attribution: confirming an order stamps that customer's un-attributed calls from the last 24 hours (with multi-vendor checkout the first confirm takes them). `ai_call_log` holds customer phones: apply a retention period (suggest 90 days) under Law 81/2018; not automated yet. The budget is a soft cap (concurrent requests can overshoot by about one burst) and also counts owner-bot spend, which is never blocked.
+Attribution: confirming an order stamps that customer's un-attributed calls from the last 24 hours (with multi-vendor checkout the first confirm takes them). `ai_call_log` holds customer phones: rows older than 90 days are deleted by the scheduled `order-watchdog` job. The budget is a soft cap (concurrent requests can overshoot by about one burst) and also counts owner-bot spend, which is never blocked.
 
 Fail-open: if the guard's own queries fail, the bot answers normally and logs the error.
 
