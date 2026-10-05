@@ -153,7 +153,7 @@ function Terminal({ vendorId }: { vendorId: string }) {
     ack(o.id);
     const { data, error } = await supabase.from("orders").update(patch).eq("id", o.id).select(ORDER_COLUMNS).maybeSingle();
     setBusyId(null);
-    if (error) return toast.error(errMsg(error));
+    if (error) { toast.error(errMsg(error)); return; }
     if (data) upsert(data as unknown as Order);
     else upsert({ ...o, ...patch });
   }
