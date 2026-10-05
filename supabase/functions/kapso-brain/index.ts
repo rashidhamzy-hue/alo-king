@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
-import { isNotifiable, parseLifecycleTap, pickSubstitute, swapLine, windowOpen } from "../_shared/lifecycle.ts";
+import { isNotifiable, isPriceIncrease, parseLifecycleTap, pickSubstitute, swapLine, swapNote, windowOpen } from "../_shared/lifecycle.ts";
 import { notifyOrderStatus } from "../_shared/notify.ts";
 import { addrKey, addressRows, isUsualRequest, parseAddrTap, parseVoiceTap, pickUsual, pinnedLandmark, voiceCardText, voiceTapId } from "./smart.ts";
 import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
@@ -601,9 +601,9 @@ async function customerWindowOpen(phone: string): Promise<boolean> {
   const { data } = await sb.from("conversations").select("created_at").eq("phone", phone).eq("role", "user").order("id", { ascending: false }).limit(1).maybeSingle();
   return windowOpen(data?.created_at);
 }
-async function tellVendorOwner(c: Ctx | { pnid: string; dry: boolean; out: any[] }, vendorId: string, text: string) {
+async function tellVendorOwner(c: Ctx | { pnid: string; dry: boolean; out: any[] }, vendorId: string, text: string): Promise<boolean> {
   const { data: v } = await sb.from("vendors").select("owner_whatsapp_phone").eq("vendor_id", vendorId).maybeSingle();
-  if (v?.owner_whatsapp_phone) await rawSend(c.pnid, { ...envl(v.owner_whatsapp_phone), type: "text", text: { body: text } }, c.dry, c.out);
+  return v?.owner_whatsapp_phone ? await rawSend(c.pnid, { ...envl(v.owner_whatsapp_phone), type: "text", text: { body: text } }, c.dry, c.out) : false;
 }
 const handoffLine = (c: Ctx) => tr(c, "A member of the Alo King team will take care of you personally 🙏", "حدا من فريق ألو كينغ رح يهتم فيك شخصياً 🙏");
 
@@ -633,7 +633,7 @@ async function handleRating(c: Ctx, phone: string, orderId: string, stars: numbe
 }
 
 // The customer answers a sold-out offer: swap (server re-prices from the database) or cancel the order.
-async function handleSubstitution(c: Ctx, phone: string, offerId: string, answer: "ok" | "cancel") {
+async function handleSubstitution(c: Ctx, phone: string, offerId: string, answer: "ok" | "up" | "cancel") {
   const { data: offer } = await sb.from("substitution_offers").select("id,order_id,missing_item_id,sub_item_id,status,offered_total_usd").eq("id", offerId).eq("customer_phone", phone).maybeSingle();
   if (!offer || offer.status !== "pending") { await sendText(c, tr(c, "That offer is no longer open 🙏", "هالعرض ما عاد مفتوح 🙏")); return; }
   const { data: ord } = await sb.from("orders").select("id,short_code,vendor_id,status,items,total_usd,updated_at").eq("id", offer.order_id).eq("customer_phone", phone).maybeSingle();
@@ -649,6 +649,10 @@ async function handleSubstitution(c: Ctx, phone: string, offerId: string, answer
   const { data: sub } = offer.sub_item_id ? await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd").eq("vendor_id", ord.vendor_id).eq("item_id", offer.sub_item_id).eq("available", true).maybeSingle() : { data: null };
   const swap = sub ? swapLine(Array.isArray(ord.items) ? ord.items : [], offer.missing_item_id, { item_id: sub.item_id, item_name_en: sub.item_name_en, item_name_ar: sub.item_name_ar, price_usd: Number(sub.price_usd) }, DELIVERY_FEE_USD, COD_CAP_USD) : null;
   // Swaps are only for orders the kitchen has not accepted yet, and only at the exact total the customer was shown (a price change since the offer voids it).
+  const higher = !!swap?.ok && isPriceIncrease(swap.total, Number(ord.total_usd));
+  if (higher && answer !== "up") { // a higher total is never applied by the plain swap tap
+    await sendText(c, tr(c, "That swap costs more, so I need you to tap *Accept new total* on the offer 🙏", "هالتبديل أغلى، لازم تضغط *أقبل الإجمالي الجديد* على العرض 🙏")); return;
+  }
   if (ord.status !== "pending" || !swap?.ok || Math.abs(swap.total - Number(offer.offered_total_usd)) > 0.001) {
     await sb.from("substitution_offers").update({ status: "expired" }).eq("id", offer.id).eq("status", "pending");
     await sendText(c, tr(c, `I couldn't make that swap any more 🙏 ${handoffLine(c)}`, `ما قدرت أبدّل الصنف 🙏 ${handoffLine(c)}`)); return;
@@ -657,7 +661,12 @@ async function handleSubstitution(c: Ctx, phone: string, offerId: string, answer
   const { data: upd } = await sb.from("orders").update({ items: swap.lines, subtotal_usd: swap.subtotal, total_usd: swap.total }).eq("id", ord.id).eq("status", "pending").eq("updated_at", ord.updated_at).select("id");
   if (!upd?.length) { await sb.from("substitution_offers").update({ status: "expired" }).eq("id", offer.id); await sendText(c, tr(c, "That order has already moved on 🙏", "هالطلب تغيّر وضعه 🙏")); return; }
   await sendText(c, tr(c, `✅ Swapped for *${itemName(c, sub)}*. New total for #${ord.short_code}: *${both(swap.total)}* · Cash on delivery.`, `✅ بدّلناه بـ *${itemName(c, sub)}*. الإجمالي الجديد للطلب #${ord.short_code}: *${both(swap.total)}* · الدفع عند الاستلام.`));
-  await tellVendorOwner(c, ord.vendor_id, `🔁 Order #${ord.short_code}: customer accepted a swap to ${sub.item_name_en}. New total ${both(swap.total)}.`);
+  const fromName = (Array.isArray(ord.items) ? ord.items.find((l: any) => l.item_id === offer.missing_item_id)?.name_en : null) ?? offer.missing_item_id;
+  const note = swapNote({ code: ord.short_code, fromName, toName: sub.item_name_en ?? sub.item_id, oldTotal: Number(ord.total_usd), newTotal: swap.total });
+  const { data: cur } = await sb.from("orders").select("notes").eq("id", ord.id).maybeSingle();
+  await sb.from("orders").update({ notes: [cur?.notes, note].filter(Boolean).join(" | ").slice(0, 500) }).eq("id", ord.id); // visible on the kitchen screen
+  const told = await tellVendorOwner(c, ord.vendor_id, `🔁 Order #${ord.short_code}: the customer accepted a swap from ${fromName} to ${sub.item_name_en}. New total ${both(swap.total)} (was ${both(Number(ord.total_usd))}).`);
+  if (!told && c.admin) await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: `⚠️ Couldn't reach the vendor about the swap on order #${ord.short_code} (${ord.vendor_id}); the change is in the order notes.` } }, c.dry, c.out);
 }
 
 // Scheduled sweep (runs with the order-watchdog job): status messages, vendor closed mid-order, sold-out substitute offers.
@@ -709,8 +718,9 @@ async function runLifecycleSweep(o: { pnid: string; dry: boolean; out: any[] }):
     const body = swap?.ok
       ? (ar ? `⚠️ *${v?.name_en ?? ""}* خلص عندهم *${miss}* بطلبك #${ord.short_code}.\nنبدّله بـ *${subName}* (${both(Number(cand!.price_usd))} للقطعة)؟\nالإجمالي الجديد: *${both(swap.total)}* (كان ${both(Number(ord.total_usd))})` : `⚠️ *${v?.name_en ?? ""}* ran out of *${miss}* on your order #${ord.short_code}.\nSwap it for *${subName}* (${both(Number(cand!.price_usd))} each)?\nNew total: *${both(swap.total)}* (was ${both(Number(ord.total_usd))})`)
       : (ar ? `⚠️ *${v?.name_en ?? ""}* خلص عندهم *${miss}* بطلبك #${ord.short_code} وما في بديل مناسب.\nبدك تلغي الطلب؟` : `⚠️ *${v?.name_en ?? ""}* ran out of *${miss}* on your order #${ord.short_code} and there's no close substitute.\nWould you like to cancel it?`);
-    const buttons = [...(swap?.ok ? [{ type: "reply", reply: { id: `SUB|${offer.id}|ok`, title: ar ? "✅ بدّله" : "✅ Swap it" } }] : []), { type: "reply", reply: { id: `SUB|${offer.id}|cancel`, title: ar ? "❌ إلغاء الطلب" : "❌ Cancel order" } }];
-    const ok = await send({ ...envl(ord.customer_phone), type: "interactive", interactive: { type: "button", body: { text: ensureDualCurrency(body, LBP_RATE) }, footer: { text: BRAND }, action: { buttons } } });
+    const increase = !!swap?.ok && isPriceIncrease(swap.total, Number(ord.total_usd));
+    const buttons = [...(swap?.ok ? [{ type: "reply", reply: { id: `SUB|${offer.id}|${increase ? "up" : "ok"}`, title: increase ? (ar ? "✅ أقبل الإجمالي" : "✅ Accept new total") : (ar ? "✅ بدّله" : "✅ Swap it") } }] : []), { type: "reply", reply: { id: `SUB|${offer.id}|cancel`, title: ar ? "❌ إلغاء الطلب" : "❌ Cancel order" } }];
+    const ok = await send({ ...envl(ord.customer_phone), type: "interactive", interactive: { type: "button", body: { text: ensureDualCurrency(increase ? `${body}\n${ar ? "⬆️ الإجمالي أعلى: اضغط «أقبل الإجمالي» للمتابعة." : "⬆️ The total is higher: tap *Accept new total* to continue."}` : body, LBP_RATE) }, footer: { text: BRAND }, action: { buttons } } });
     if (ok) soldOut++; else await sb.from("substitution_offers").delete().eq("id", offer.id);
   }
   return { notified, closed, soldOut };

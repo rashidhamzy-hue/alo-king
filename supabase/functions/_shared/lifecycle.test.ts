@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isNotifiable, lifecycleText, parseLifecycleTap, pickSubstitute, ratingRows, ratingTapId, swapLine, windowOpen } from "./lifecycle";
+import { isPriceIncrease, swapNote, isNotifiable, lifecycleText, parseLifecycleTap, pickSubstitute, ratingRows, ratingTapId, swapLine, windowOpen } from "./lifecycle";
 
 describe("isNotifiable", () => {
   it.each(["accepted", "preparing", "out_for_delivery", "delivered", "cancelled", "rejected"])("%s notifies", (s) => expect(isNotifiable(s)).toBe(true));
@@ -43,6 +43,7 @@ describe("parseLifecycleTap", () => {
     ["RATE|o1|4", { kind: "RATE", orderId: "o1", stars: 4 }],
     ["SUB|f1|ok", { kind: "SUB", offerId: "f1", answer: "ok" }],
     ["SUB|f1|cancel", { kind: "SUB", offerId: "f1", answer: "cancel" }],
+    ["SUB|f1|up", { kind: "SUB", offerId: "f1", answer: "up" }],
   ])("%s", (id, want) => expect(parseLifecycleTap(id)).toEqual(want));
   it.each(["RATE|o1|0", "RATE|o1|6", "RATE|o1|x", "SUB|f1|maybe", "CANCEL|", "CANCEL|a|b", "CONFIRM|x"])("rejects %s", (id) => expect(parseLifecycleTap(id)).toBeNull());
 });
@@ -94,5 +95,21 @@ describe("swapLine (server-side money; the customer's quantity is kept, the pric
   it("rounds to cents", () => {
     const r = swapLine([{ item_id: "a", name_en: "A", name_ar: null, unit_price_usd: 1, quantity: 3, choices: [] }], "a", { item_id: "b", item_name_en: "B", item_name_ar: null, price_usd: 1.115 }, 2, 150);
     expect(r.ok && r.subtotal).toBe(3.35);
+  });
+});
+
+describe("price increase needs its own tap", () => {
+  it("detects an increase to the cent", () => {
+    expect(isPriceIncrease(10.5, 10)).toBe(true);
+    expect(isPriceIncrease(10, 10)).toBe(false);
+    expect(isPriceIncrease(9.99, 10)).toBe(false);
+    expect(isPriceIncrease(10.004, 10)).toBe(false); // rounds to the same cent
+    expect(isPriceIncrease(10.006, 10)).toBe(true);
+  });
+  it("writes a clear vendor note", () => {
+    const n = swapNote({ code: "AB12", fromName: "Hummus", toName: "Fattoush", oldTotal: 10, newTotal: 10.5 });
+    expect(n).toContain("#AB12");
+    expect(n).toContain("Hummus -> Fattoush");
+    expect(n).toContain("10.00 -> 10.50");
   });
 });

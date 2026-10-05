@@ -38,12 +38,12 @@ export function ratingRows(orderId: string, lang: Lang) {
 export type LifecycleTap =
   | { kind: "CANCEL" | "KEEP"; orderId: string }
   | { kind: "RATE"; orderId: string; stars: number }
-  | { kind: "SUB"; offerId: string; answer: "ok" | "cancel" };
+  | { kind: "SUB"; offerId: string; answer: "ok" | "up" | "cancel" };
 export function parseLifecycleTap(id: string): LifecycleTap | null {
   const p = id.split("|");
   if ((p[0] === "CANCEL" || p[0] === "KEEP") && p.length === 2 && p[1]) return { kind: p[0], orderId: p[1] };
   if (p[0] === "RATE" && p.length === 3 && p[1]) { const n = Number(p[2]); return Number.isInteger(n) && n >= 1 && n <= 5 ? { kind: "RATE", orderId: p[1], stars: n } : null; }
-  if (p[0] === "SUB" && p.length === 3 && p[1] && (p[2] === "ok" || p[2] === "cancel")) return { kind: "SUB", offerId: p[1], answer: p[2] };
+  if (p[0] === "SUB" && p.length === 3 && p[1] && (p[2] === "ok" || p[2] === "up" || p[2] === "cancel")) return { kind: "SUB", offerId: p[1], answer: p[2] };
   return null;
 }
 
@@ -79,4 +79,11 @@ export function swapLine(lines: Line[], missingId: string, sub: { item_id: strin
   const total = r2(subtotal + fee);
   if (total > codCap) return { ok: false, reason: "over cash-on-delivery cap" };
   return { ok: true, lines: next, subtotal, total, delta: r2(subtotal - oldSub) };
+}
+
+/** A swap that raises what the customer pays needs its own explicit "Accept new total" tap (SUB|id|up); a plain swap tap can never apply it. */
+export const isPriceIncrease = (newTotal: number, currentTotal: number) => r2(Number(newTotal)) > r2(Number(currentTotal));
+/** One line for the order notes / the vendor message, so the kitchen sees exactly what changed. */
+export function swapNote(o: { code: string; fromName: string; toName: string; oldTotal: number; newTotal: number }): string {
+  return `SWAP #${o.code}: ${o.fromName} -> ${o.toName}; total ${r2(o.oldTotal).toFixed(2)} -> ${r2(o.newTotal).toFixed(2)} USD (customer accepted)`;
 }
