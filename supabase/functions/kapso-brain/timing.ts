@@ -21,6 +21,10 @@ export class TurnTimer {
     try { return await fn(); }
     finally { const st = this.stages[stage]; st.ms += this.clock() - s; st.n++; if (stage === "model") this.modelCalls++; }
   }
+  private bg: Promise<unknown>[] = [];
+  /** Work started during the turn that must not be dropped when the turn ends (e.g. the read receipt). Never throws. */
+  background(p: Promise<unknown>) { this.bg.push(p.catch(() => undefined)); }
+  async drain() { await Promise.all(this.bg); }
   markFirstSend() { if (this.first === null) this.first = this.clock() - this.t0; }
   snapshot(): TimingSnapshot {
     const r = (x: number) => Math.round(x);

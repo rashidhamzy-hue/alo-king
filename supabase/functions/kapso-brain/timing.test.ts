@@ -28,6 +28,16 @@ describe("TurnTimer", () => {
   it("first_send_ms is null when nothing was sent", () => { expect(new TurnTimer(() => 0).snapshot().first_send_ms).toBeNull(); });
 });
 
+describe("background work", () => {
+  it("drain waits for background promises and swallows their errors", async () => {
+    const tm = new TurnTimer(() => 0); let done = false;
+    tm.background(new Promise((r) => setTimeout(() => { done = true; r(1); }, 5)));
+    tm.background(Promise.reject(new Error("meta down")));
+    await tm.drain();
+    expect(done).toBe(true);
+  });
+});
+
 describe("percentile", () => {
   it("nearest-rank p50/p95", () => {
     const v = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];

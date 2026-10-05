@@ -126,7 +126,9 @@ describe("hard-coded WhatsApp titles in every message-building source file", () 
     expect([...src.matchAll(/payload = clampInteractive\(payload\);/g)].length).toBe(2); // rawSend and rawSendId
     expect(src.indexOf("payload = clampInteractive(payload)")).toBeLessThan(src.indexOf("if (dry) { out?.push(payload)")); // dry runs show exactly what would be sent
     // the only direct fetches to the Kapso messages endpoint are inside those two functions
-    expect([...src.matchAll(/\/messages`/g)].length).toBe(2);
+    // plus exactly one more: the read receipt / typing indicator (a status payload with no interactive content, built by buildReadReceipt)
+    expect([...src.matchAll(/\/messages`/g)].length).toBe(3);
+    expect(src).toMatch(/buildReadReceipt\(e\.id, ack\.typing\)[\s\S]{0,400}\/messages`/);
     const notify = readFileSync(resolve(process.cwd(), "supabase/functions/order-notify/index.ts"), "utf8");
     expect(notify).toContain("clampInteractive(payload)");
   });
