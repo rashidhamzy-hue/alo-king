@@ -79,7 +79,7 @@ async function sendButtons(c: Ctx, o: { body: string; buttons: Btn[]; footer?: s
 }
 async function sendList(c: Ctx, o: { body: string; header: string; button: string; sections: { title: string; rows: { id: string; title: string; description?: string }[] }[] }) {
   c.rich++; c.log.push(`[interactive menu list: ${o.header}]`);
-  await post(c, { ...envl(c.to), type: "interactive", interactive: { type: "list", header: { type: "text", text: clip(o.header, 60) }, body: { text: clip(o.body, 1024) }, footer: { text: BRAND },
+  await post(c, { ...envl(c.to), type: "interactive", interactive: { type: "list", header: { type: "text", text: clip(o.header, 60) }, body: { text: clip(ensureDualCurrency(o.body, LBP_RATE), 1024) }, footer: { text: BRAND },
     action: { button: clip(o.button, 20), sections: o.sections.map((s) => ({ title: clip(s.title, 24), rows: s.rows.map((r) => ({ id: clip(r.id, 200), title: clip(r.title, 24), description: r.description ? clip(r.description, 72) : undefined })) })) } } });
 }
 async function askLocation(c: Ctx, body: string) {
@@ -762,7 +762,7 @@ Deno.serve(async (req) => {
   const st = req.headers.get("x-selftest");
   // The staging copy (kapso-brain-test) is for dry-run tests only: it never accepts non-selftest traffic.
   if (new URL(req.url).pathname.includes("kapso-brain-test") && !st) return new Response("unauthorized", { status: 401 });
-  if (isInspect && !st) return new Response("unauthorized", { status: 401 });
+  if (isInspect && (!st || !new URL(req.url).pathname.includes("kapso-brain-test"))) return new Response(st ? "not found" : "unauthorized", { status: st ? 404 : 401 }); // staging only: PII read path
   if (st) {
     const { data: t } = await sb.from("selftest_tokens").select("token").eq("token", st).gt("expires_at", new Date().toISOString()).maybeSingle();
     if (!t) return new Response("unauthorized", { status: 401 });

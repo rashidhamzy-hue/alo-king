@@ -79,7 +79,9 @@ export class Customer {
     return this.find(re);
   }
   async inspect(): Promise<{ customer: any; orders: any[]; carts: any[] }> {
-    return post({}, `?job=inspect&phone=${this.phone}`).catch(() => ({ customer: null, orders: [], carts: [] }));
+    const r = await post({}, `?job=inspect&phone=${this.phone}`);
+    if (!Array.isArray(r.orders)) throw new Error("inspect job failed (token expired or staging not deployed?)");
+    return r;
   }
 }
 
