@@ -33,7 +33,8 @@ export const Route = createFileRoute("/m/$slug")({
     if (!page?.vendor) throw notFound();
     return { name: vendorName(page.vendor), village: clean(page.vendor.village_canonical), cover: clean(page.profile?.cover_url), tagline: clean(page.profile?.tagline_en) };
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData: ld }) => {
+    const loaderData = ld as { name: string; village: string | null; cover: string | null; tagline: string | null } | undefined;
     if (!loaderData) return { meta: [{ title: "Merchant not found — Alo King" }, { name: "robots", content: "noindex" }] };
     const title = `${loaderData.name}${loaderData.village ? `, ${loaderData.village}` : ""} — Order on WhatsApp | Alo King`;
     const desc = loaderData.tagline || `Menu, hours and WhatsApp ordering for ${loaderData.name} in the Shouf, Lebanon.`;
@@ -51,7 +52,7 @@ export const Route = createFileRoute("/m/$slug")({
     };
   },
   component: MerchantPage,
-  notFoundComponent: NotFoundVendor,
+  notFoundComponent: () => <NotFoundVendor />,
   errorComponent: () => <NotFoundVendor error />,
 });
 

@@ -32,7 +32,7 @@ export const Route = createFileRoute("/driver")({
     ],
   }),
   component: () => (
-    <StaffGate roles={["driver"]} title="Driver">
+    <StaffGate roles={["driver", "admin"]} title="Driver">
       {(_p, s) => <DriverApp uid={s.user.id} />}
     </StaffGate>
   ),
