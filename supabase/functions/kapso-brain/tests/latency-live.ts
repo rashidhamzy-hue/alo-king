@@ -9,11 +9,11 @@ import { buttonsOf, textOf } from "./harness.ts";
 const BASE = process.env.SUPABASE_URL ?? "https://hnjkietmwvkgbyrcnweq.supabase.co";
 const FN = process.env.FN ?? "kapso-brain-test";
 const TOKEN = process.env.SELFTEST_TOKEN ?? "";
-const CAP = Number(process.env.CAP_USD ?? 1.5), STOP_AT = CAP * 0.9;
+const CAP = Number(process.env.CAP_USD ?? 1.5), STOP_AT = CAP * 0.8; // a model-bound turn that starts just under the line can still add a few cents: keep a 20% margin
 const TAP_MS = 1500;
 const out = process.argv.includes("--out") ? process.argv[process.argv.indexOf("--out") + 1] : "/tmp/latency-live.json";
 if (!TOKEN) throw new Error("set SELFTEST_TOKEN");
-const startedAt = new Date().toISOString();
+const startedAt = new Date(Date.now() - 60_000).toISOString(); // a minute of margin for clock skew between this machine and the database
 const run = String(Date.now() % 1000).padStart(3, "0");
 const phone = (i: number) => `961700000${run}${String(i).padStart(2, "0")}`;
 const VENDOR = process.env.VENDOR ?? "al-tahouneh-restaurant-36524";
@@ -34,6 +34,7 @@ async function turn(label: string, from: string, msg: any, expect: { maxCalls?: 
   const t0 = performance.now();
   const r = await call("", { message: { id: wamid(), from, ...msg } });
   const wall = performance.now() - t0; const tm = r.timings?.[0] ?? {};
+  check(`${label}: the response carried turn_timing (kind, total_ms, model_calls)`, typeof tm.total_ms === "number" && typeof tm.model_calls === "number" && (tm.kind === "tap" || tm.kind === "text" || tm.kind === "location" || tm.kind === "voice"), JSON.stringify(tm).slice(0, 120));
   const rec: Rec = { label, kind: tm.kind ?? "?", ms: Math.round(wall), total_ms: tm.total_ms ?? null, calls: tm.model_calls ?? 0, first_send_ms: tm.first_send_ms ?? null };
   recs.push(rec);
   const mine = (r.out ?? []).filter((m: any) => m.to === from);
@@ -45,7 +46,7 @@ async function turn(label: string, from: string, msg: any, expect: { maxCalls?: 
 const say = (l: string, p: string, t: string, e?: any) => turn(l, p, { type: "text", text: { body: t } }, e);
 const tap = (l: string, p: string, id: string, title = "", e?: any) => turn(l, p, { type: "interactive", interactive: { type: "button_reply", button_reply: { id, title } } }, { tap: true, maxCalls: 0, ...e });
 const tapList = (l: string, p: string, id: string, title = "", e?: any) => turn(l, p, { type: "interactive", interactive: { type: "list_reply", list_reply: { id, title } } }, { tap: true, maxCalls: 0, ...e });
-const dishNames = (msgs: any[]) => msgs.map(textOf).join("\n").split("\n").map((l) => l.match(/^(\d+)\. (.+?)(?: ⚙)? — /)).filter(Boolean).map((m) => ({ n: Number(m![1]), name: m![2] }));
+const dishNames = (msgs: any[]) => msgs.map(textOf).join("\n").split("\n").map((l) => l.match(/^(\d+)\. (.+?)( ⚙)? — /)).filter(Boolean).map((m) => ({ n: Number(m![1]), name: m![2], options: !!m![3] }));
 const btn = (msgs: any[], re: RegExp) => msgs.flatMap(buttonsOf).find((b) => re.test(b.id) || re.test(b.title));
 const pct = (v: number[], p: number) => { const s = [...v].sort((a, b) => a - b); return s.length ? s[Math.min(s.length - 1, Math.ceil((p / 100) * s.length) - 1)] : null; };
 
@@ -59,7 +60,9 @@ async function main() {
   const more = btn(m, /^NUM\|/);
   if (more) { const m2 = await tap("tap More dishes", A, more.id, more.title); check("more page has dishes", dishNames(m2).length > 0); }
   m = await tap("tap See Full Menu (again)", A, `MENU|${VENDOR}`, "See Full Menu");
-  m = await say("reply '1x2, 3'", A, "1x2, 3", { maxCalls: 0 });
+  const plain = dishes.filter((d) => !d.options); // dishes with options start an option list instead of a basket line
+  const [p1, p2] = [plain[0]?.n ?? 1, plain[1]?.n ?? 2];
+  m = await say(`reply '${p1}x2, ${p2}'`, A, `${p1}x2, ${p2}`, { maxCalls: 0 });
   check("numbered reply produced a basket card", !!btn(m, /^CHECKOUT\|/), m.map(textOf).join(" ").slice(0, 120));
   // ---- item 5: running basket card, edit taps, typed edits ----
   const edit = btn(m, /^BEDIT\|/); check("basket card has an Edit button", !!edit);
@@ -68,7 +71,7 @@ async function main() {
   m = await say("typed 'make it 3'", A, "make it 3", { maxCalls: 0 });
   check("'make it 3' answered with a basket card", !!btn(m, /^CHECKOUT\|/));
   // ---- item 3: multi-item natural language in three languages (server-resolved, no model) ----
-  const B = phone(2), names = dishes.map((d) => d.name).filter((n) => /^[\p{L}\s]{4,30}$/u.test(n) && !/\b(and|w)\b/i.test(n)).slice(0, 3);
+  const B = phone(2), names = dishes.filter((d) => !d.options).map((d) => d.name).filter((n) => /^[\p{L}\s]{4,30}$/u.test(n) && !/\b(and|w)\b/i.test(n)).slice(0, 3);
   if (names.length === 3) {
     m = await say("EN multi-item", B, `2 ${names[0]}, ${names[1]} and a ${names[2]}`, { maxCalls: 1 });
     check("EN multi-item ended in one basket card", !!btn(m, /^CHECKOUT\|/) || !!btn(m, /^ADD\|/), m.map(textOf).join(" ").slice(0, 120));
@@ -80,7 +83,7 @@ async function main() {
   const word = (dishes.map((d) => d.name.split(/\s+/).find((w) => /^\p{L}{4,}$/u.test(w))).find(Boolean) ?? "falafel").toLowerCase();
   m = await say(`search '${word}'`, D, word, { maxCalls: 0 });
   const rows = m.flatMap((x: any) => x.interactive?.action?.sections?.flatMap((s: any) => s.rows) ?? []);
-  check(`'${word}' returns ONE list of dishes (<=10 rows, ITEM| ids), no category tree", rows.length >= 1 && rows.length <= 10 && rows.every((r: any) => r.id.startsWith("ITEM|")), `${rows.length} rows`);
+  check(`'${word}' returns ONE list of dishes (<=10 rows, ITEM| ids), no category tree`, rows.length >= 1 && rows.length <= 10 && rows.every((r: any) => r.id.startsWith("ITEM|")), `${rows.length} rows`);
   m = await say("mood 'something sweet'", D, "something sweet", { maxCalls: 3 });
   // ---- a genuinely model-bound turn, to see the real number of calls ----
   m = await say("model-bound free text", D, "what would you recommend for a family dinner for four under 40 dollars?", { maxCalls: 3 });
