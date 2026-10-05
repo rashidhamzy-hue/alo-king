@@ -13,7 +13,8 @@ Wire-up:
 - `claim-vendor` reads `KAPSO_OTP_TEMPLATE` / `KAPSO_OTP_LANG`. Leave `KAPSO_OTP_TEMPLATE` empty until `alo_verify_code` is APPROVED; claims then go to manual admin review.
 - `kapso-brain` broadcasts pick the template **per customer language** (`customers.language`, set from the customer's first clear text message: Arabic script/Arabizi → `ar`, clearly English → `en`, anything else stays unset and is treated as Arabic):
   - `KAPSO_PROMO_TEMPLATE_AR` (default `alo_offer_ar`) and `KAPSO_PROMO_TEMPLATE_EN` (default `alo_offer_en_optout`). The old `KAPSO_PROMO_TEMPLATE` / `KAPSO_PROMO_LANG` are no longer read.
-  - If the customer wrote to us in the last 24 hours (window open), the broadcast goes first as a plain message with an opt-out line, and falls back to the template if that send fails. Outside the window only the template is sent. Both templates carry a quick reply whose payload is `OPTOUT`.
+  - If the customer wrote to us in the last 24 hours (window open), the broadcast goes first as a plain message with an opt-out line, and falls back to the template if that send fails. Outside the window only the template is sent. Both templates carry a quick reply whose payload is `OPTOUT`; tapping it (or typing STOP / "Stop offers" / "إيقاف العروض") sets `marketing_opt_in = false` immediately.
+  - The language is fixed by the first clear text message and is not updated later; a customer who starts in Arabic keeps the Arabic template. If a template is not approved and the customer is outside the 24h window the send fails, nothing is delivered and the cost is credited back.
   - Consent is re-checked at send time (`marketing_opt_in = true`); customers who opted out in the meantime are skipped and credited back. Marketing only ever goes to opted-in customers (see CLAUDE.md hard rules).
 
 ## Payloads

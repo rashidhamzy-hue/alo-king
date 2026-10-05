@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectLanguage, promoAttempts } from "./broadcast";
+import { detectLanguage, isOptOutTitle, promoAttempts } from "./broadcast";
 
 describe("detectLanguage", () => {
   it("Arabic script and Arabizi are Arabic", () => {
@@ -16,6 +16,8 @@ describe("detectLanguage", () => {
     expect(detectLanguage("hello")).toBeNull();
     expect(detectLanguage("bonjour")).toBeNull();
     expect(detectLanguage("2x burger")).toBeNull();
+    expect(detectLanguage("3pm")).toBeNull();
+    expect(detectLanguage("5pcs")).toBeNull();
   });
 });
 
@@ -37,5 +39,14 @@ describe("promoAttempts", () => {
     expect(a.map((x) => x.type)).toEqual(["text", "template"]);
     expect((a[0] as any).text.body).toContain("STOP");
     expect((a[1] as any).template.name).toBe("alo_offer_ar");
+  });
+});
+
+describe("isOptOutTitle", () => {
+  it("matches STOP words and the template quick-reply titles", () => {
+    for (const s of ["STOP", "stop", "Stop offers", "إيقاف العروض", "ايقاف", "unsubscribe", " وقف "]) expect(isOptOutTitle(s)).toBe(true);
+  });
+  it("does not match ordinary messages", () => {
+    for (const s of ["stop the order", "وقّف الطلبات 30 دقيقة", "I want soft drinks", ""]) expect(isOptOutTitle(s)).toBe(false);
   });
 });

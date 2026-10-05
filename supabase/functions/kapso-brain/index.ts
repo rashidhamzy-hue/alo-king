@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { detectLanguage, promoAttempts, type Lang } from "./broadcast.ts";
+import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, type Lang } from "./broadcast.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
@@ -317,6 +317,11 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     if (kind === "CONFIRM") { await confirmCart(c, phone, a); await remember(phone, `[tapped Confirm Order]`, c.log.join("\n")); return; }
     if (kind === "MENU") { await sendMenu(c, a); await remember(phone, `[tapped See Full Menu]`, c.log.join("\n")); return; }
     if (kind === "LOC") { await askLocation(c, "📍 Share your location and I'll find the best spots near you.\nشاركني موقعك وبدلك على أحلى الأماكن حدّك.\n\n_Tap the button below._"); await remember(phone, `[tapped Change Location]`, c.log.join("\n")); return; }
+    if (kind === OPTOUT_PAYLOAD || isOptOutTitle(reply.title)) {
+      await sb.from("customers").upsert({ phone_number: phone, marketing_opt_in: false, opted_out_at: new Date().toISOString() }, { onConflict: "phone_number" });
+      await sendText(c, "Done. You won't get offers from us anymore. Orders still work anytime 👑\nتم. ما رح توصلك عروض منا بعد اليوم. بتقدر تطلب بأي وقت 👑");
+      await remember(phone, `[opt-out ${reply.title}]`, c.log.join("\n")); return;
+    }
     if (kind === "OPTIN") {
       const yes = a === "1";
       await sb.from("customers").update(yes ? { marketing_opt_in: true, opted_in_at: new Date().toISOString(), opted_out_at: null } : { marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", phone);
@@ -337,7 +342,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     userText = `[Customer shared their location${village ? `: nearest village ${village}` : ""}${loc.address ? `, ${loc.address}` : ""}. Recommend great nearby options now.]`;
   }
   if (!userText) return;
-  if (/^\s*(stop|unsubscribe|إيقاف|ايقاف|وقف)\s*$/i.test(userText)) {
+  if (isOptOutTitle(userText)) {
     await sb.from("customers").update({ marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", phone);
     await sendText(c, "Done — you won't get offers from us anymore. Orders still work anytime 👑"); await remember(phone, userText, c.log.join("\n")); return;
   }
@@ -589,6 +594,8 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("ok", { status: 200 });
   let dry = false;
   const st = req.headers.get("x-selftest");
+  // The staging copy (kapso-brain-test) is for dry-run tests only: it never accepts non-selftest traffic.
+  if (new URL(req.url).pathname.includes("kapso-brain-test") && !st) return new Response("unauthorized", { status: 401 });
   if (st) {
     const { data: t } = await sb.from("selftest_tokens").select("token").eq("token", st).gt("expires_at", new Date().toISOString()).maybeSingle();
     if (!t) return new Response("unauthorized", { status: 401 });
