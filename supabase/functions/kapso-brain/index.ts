@@ -39,7 +39,7 @@ function pnidOf(body: any, evt: any): string {
 }
 
 // ---------- outbound ----------
-type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean };
+type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   if (dry) { out?.push(payload); return true; }
   const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
@@ -193,6 +193,7 @@ async function prepareOrder(c: Ctx, phone: string, input: any): Promise<string> 
   const addr = `${input.delivery_village} — ${input.building_landmark}`;
   const { data: cart, error } = await sb.from("carts").insert({ customer_phone: phone, vendor_id: input.vendor_id, items, subtotal_usd: b.subtotal, delivery_fee_usd: DELIVERY_FEE_USD, total_usd: b.total, village: input.delivery_village, address: input.building_landmark, notes: input.notes ?? null }).select("id").single();
   if (error) return JSON.stringify({ error: error.message });
+  c.cartThisTurn = true;
   await sb.from("customers").upsert({ phone_number: phone, full_name: input.customer_name, village: input.delivery_village, last_address: input.building_landmark }, { onConflict: "phone_number" });
   const rowsTxt = b.lines.map((l: any) => {
     const opts = l.choices?.length ? ` (${l.choices.map((x: any) => x.option).join(", ")})` : "";
@@ -267,7 +268,10 @@ async function customerTool(c: Ctx, phone: string, name: string, input: any): Pr
       return JSON.stringify({ ok: true, card_sent: true });
     }
     if (name === "prepare_order") return await prepareOrder(c, phone, input);
-    if (name === "confirm_order") { const r = await confirmCart(c, phone); c.rich++; return JSON.stringify({ ok: true, result: r, instruction: "Customer already notified. Reply with nothing." }); }
+    if (name === "confirm_order") {
+      // Law 81/2018: confirmation must be the customer's own act. A summary sent this turn can only be confirmed by a later message.
+      if (c.cartThisTurn) return JSON.stringify({ error: "The customer has not confirmed yet: the summary card was just sent. They must tap Confirm or reply yes in their NEXT message.", instruction: "Reply with nothing." });
+      const r = await confirmCart(c, phone); c.rich++; return JSON.stringify({ ok: true, result: r, instruction: "Customer already notified. Reply with nothing." }); }
     return JSON.stringify({ error: "unknown tool" });
   } catch (e) { console.error("tool error", name, e); return JSON.stringify({ error: "tool failed" }); }
 }
@@ -292,7 +296,7 @@ HOW YOU RECOMMEND
 
 HOW YOU ORDER
 - When the customer taps Order Now (you receive "[Tapped Order Now …]") or asks to order: use the CUSTOMER PROFILE below. If name, village and landmark are all known, call prepare_order immediately (quantity 1 unless stated; if the dish has required customization groups ask for the choices in one short question first). If something is missing, ask for only what's missing in one short message.
-- prepare_order sends a clean receipt card with a single-tap Confirm button. After it succeeds, send NO further text. If the customer types a clear yes instead of tapping, call confirm_order.
+- prepare_order sends a clean receipt card with a single-tap Confirm button. After it succeeds, send NO further text and NEVER call confirm_order in the same turn. Only if the customer's next message is a clear yes (instead of tapping Confirm), call confirm_order.
 - One vendor per order. Cash on delivery in USD or LBP. Delivery $${DELIVERY_FEE_USD.toFixed(2)}. Cash orders capped at $${COD_CAP_USD}.
 - International card gifts for family in Lebanon: not live yet — say the team will message them the moment it opens.
 - Never ask for card numbers. Complaints/refunds: "A member of the Alo King team will take care of you personally."
@@ -508,9 +512,11 @@ async function handleAdmin(c: Ctx, vendor: any, ownerPhone: string, text: string
   c.ar = hasArabic(userText);
   const system = `${ASYSTEM(vendor)}\n\nLANGUAGE FOR THIS REPLY: the owner's latest message is ${c.ar ? "in Arabic script, so reply in Levantine Arabic" : "not in Arabic script; reply in the same language as that message (English, French or Arabizi)"}.`;
   let final = "";
-  try { final = await llmLoop(system, ATOOLS, key, userText, (n, i) => adminTool(c, vendor, ownerPhone, n, i)); }
+  try { final = await llmLoop(system, ATOOLS, key, `${userText}\n\n${c.ar ? "[Reply in Arabic.]" : "[Reply in the same language as the message above, not the language of earlier messages.]"}`, (n, i) => adminTool(c, vendor, ownerPhone, n, i)); }
   catch { final = tr(c, "Technical hiccup — please resend that in a moment 🙏", "في مشكلة تقنية بسيطة — ابعتها كمان شوي 🙏"); }
-  if (final) await sendText(c, final); else if (!c.rich) await sendText(c, tr(c, "Tell me what to change — e.g. “Change Tawouk to $4.50” or “Pause orders for 30 minutes”.", "خبرني شو بدك غيّر — مثلاً «غيّر سعر الطاووق لـ 4.50$» أو «وقّف الطلبات 30 دقيقة»."));
+  final = final.replace(/[\u200e\u200f\u202a-\u202e\s]/g, "") ? final : ""; // RTL marks / whitespace alone are not a reply
+  if (final && !c.rich) await sendText(c, final); // never add text after cards/buttons
+  else if (!c.rich) await sendText(c, tr(c, "Tell me what to change — e.g. “Change Tawouk to $4.50” or “Pause orders for 30 minutes”.", "خبرني شو بدك غيّر — مثلاً «غيّر سعر الطاووق لـ 4.50$» أو «وقّف الطلبات 30 دقيقة»."));
   await remember(key, userText, c.log.join("\n"));
 }
 
