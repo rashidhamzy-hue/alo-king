@@ -2,7 +2,7 @@ export const LBP_RATE = 89500;
 export const COD_CAP = 150;
 export const DELIVERY_FEE = 2;
 
-export const WHATSAPP_NUMBER = "12014835474"; // sandbox: +1 201-483-5474
+export const WHATSAPP_NUMBER = "12014835474"; // production number "Kabsi" (+1 201-483-5474; Kapso phone_number_id 1384772384720496, kind: production)
 export const WHATSAPP_DISPLAY = "+1 201-483-5474";
 export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi Alo King")}`;
 

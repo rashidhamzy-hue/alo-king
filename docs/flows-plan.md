@@ -12,7 +12,7 @@ Evidence is from those two read-only calls only; Meta-side facts (business verif
 
 | Fact | Value | Meaning for Flows |
 |---|---|---|
-| Number | the number in `WHATSAPP_DISPLAY` (`src/lib/config.ts`), display name "Kabsi", Kapso `kind: production`, `CONNECTED` | **Reconcile first:** `config.ts` comments this number as "sandbox", while Kapso lists it as a production number (and separately lists a "Sandbox WhatsApp" entry). Flows need a connected production-kind number on a WABA; the owner should confirm which it really is. |
+| Number | the number in `WHATSAPP_DISPLAY` (`src/lib/config.ts`), display name "Kabsi", Kapso `kind: production`, `CONNECTED` | Confirmed production: Kapso lists it as `kind: production` and the owner confirmed it, so the old "sandbox" comment in `src/lib/config.ts` was corrected. (Kapso separately lists an unrelated "Sandbox WhatsApp" entry.) Flows need a connected production-kind number on a WABA, which this is. |
 | Quality rating / tier | `GREEN` / `TIER_250` | Our reading (unverified): a Flow sent inside a customer's 24 h window is a reply, not a business-initiated message, so the tier should not limit it. |
 | WABA review | `APPROVED` | Necessary, **not sufficient**: Flows publishing can fail with `OAuthException 139000 (Integrity)` until the business is verified in Meta's Security Center (Kapso skill, Troubleshooting). Verification status is not visible through the MCP. |
 | Existing flows | none (no `flow_event` logs in 30 days) | Greenfield. |
