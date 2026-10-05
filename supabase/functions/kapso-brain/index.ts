@@ -316,20 +316,20 @@ async function lastOrder(phone: string) {
   const { data } = await sb.from("orders").select("id,vendor_id,items").eq("customer_phone", phone).not("status", "in", "(cancelled,rejected)").order("created_at", { ascending: false }).limit(1);
   return data?.[0] ?? null;
 }
-async function sendReorderCard(c: Ctx, phone: string, last: any) {
+async function sendReorderCard(c: Ctx, phone: string, last: any, fallback: Lang = "ar") {
   const [{ data: cust }, { data: v }] = await Promise.all([
     sb.from("customers").select("language").eq("phone_number", phone).maybeSingle(),
     sb.from("vendors").select("name_en").eq("vendor_id", last.vendor_id).maybeSingle(),
   ]);
   const lines = (Array.isArray(last.items) ? last.items : []).map((l: any) => ({ quantity: Number(l.quantity) || 1, name_en: String(l.name_en ?? l.item_id) }));
   c.rich++; c.log.push("[reorder card]");
-  await post(c, buildReorderCard(c.to, cust?.language === "en" ? "en" : "ar", { orderId: last.id, vendorId: last.vendor_id, vendorName: v?.name_en ?? "", lines }));
+  await post(c, buildReorderCard(c.to, (cust?.language as Lang | null) ?? fallback, { orderId: last.id, vendorId: last.vendor_id, vendorName: v?.name_en ?? "", lines }));
 }
 // Re-create the customer's own last order as a fresh summary: everything is re-priced from the database and still needs their Confirm.
-async function reorderLast(c: Ctx, phone: string, orderId: string) {
+async function reorderLast(c: Ctx, phone: string, orderId: string, fallback: Lang = "ar") {
   const { data: ord } = await sb.from("orders").select("id,vendor_id,items,delivery_village,building_landmark,notes").eq("id", orderId).eq("customer_phone", phone).maybeSingle();
   const { data: cust } = await sb.from("customers").select("full_name,language").eq("phone_number", phone).maybeSingle();
-  const ar = cust?.language !== "en";
+  const ar = ((cust?.language as Lang | null) ?? fallback) !== "en";
   if (!ord) { await sendText(c, ar ? "ما لقيت طلبك الأخير 🙏 خبرني شو بدك." : "I couldn't find your last order 🙏 Tell me what you'd like."); return; }
   const items = (Array.isArray(ord.items) ? ord.items : []).map((l: any) => ({ item_id: l.item_id, quantity: l.quantity, choices: (l.choices ?? []).map((x: any) => ({ group: x.group, option: x.option })) }));
   const res = JSON.parse(await prepareOrder(c, phone, { vendor_id: ord.vendor_id, items, customer_name: cust?.full_name ?? "Customer", delivery_village: ord.delivery_village ?? "", building_landmark: ord.building_landmark ?? "", notes: ord.notes ?? undefined }));
@@ -349,7 +349,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   if (reply) {
     const [kind, a, b] = tag.split("|");
     if (kind === "CONFIRM") { await confirmCart(c, phone, a); await remember(phone, `[tapped Confirm Order]`, c.log.join("\n")); return; }
-    if (kind === "REORDER") { const oid = parseReorderTap(tag); if (oid) await reorderLast(c, phone, oid); else await sendText(c, "That reorder button isn't valid any more. Tell me what you'd like 🙏"); await remember(phone, `[tapped Reorder last order]`, c.log.join("\n")); return; }
+    if (kind === "REORDER") { const oid = parseReorderTap(tag); if (oid) await reorderLast(c, phone, oid); else await sendText(c, "That reorder button isn't valid any more. Tell me what you'd like 🙏\nهالزر ما عاد صالح. خبرني شو بدك 🙏"); await remember(phone, `[tapped Reorder last order]`, c.log.join("\n")); return; }
     if (kind === "MENU") { await sendMenu(c, a); await remember(phone, `[tapped See Full Menu]`, c.log.join("\n")); return; }
     if (kind === "LOC") { await askLocation(c, "📍 Share your location and I'll find the best spots near you.\nشاركني موقعك وبدلك على أحلى الأماكن حدّك.\n\n_Tap the button below._"); await remember(phone, `[tapped Change Location]`, c.log.join("\n")); return; }
     if (kind === "OPTIN") {
@@ -376,8 +376,8 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   if (!reply && !loc && (isGreeting(userText) || isReorderRequest(userText))) {
     const last = await lastOrder(phone);
     if (last) {
-      if (isReorderRequest(userText)) await reorderLast(c, phone, last.id);
-      else await sendReorderCard(c, phone, last);
+      if (isReorderRequest(userText)) await reorderLast(c, phone, last.id, lang ?? "ar");
+      else await sendReorderCard(c, phone, last, lang ?? "ar");
       await remember(phone, userText, c.log.join("\n")); return;
     }
   }
@@ -683,8 +683,15 @@ async function handleClaimDecision(c: Ctx, from: string, id: string) {
     : `❌ Rejected the claim for *${data.vendor_name}* (${data.contact_name}).`);
 }
 
-async function handleOptOut(c: Ctx, phone: string, said: string) {
-  await sb.from("customers").upsert({ phone_number: phone, marketing_opt_in: false, opted_out_at: new Date().toISOString() }, { onConflict: "phone_number" });
+async function handleOptOut(c: Ctx, phone: string, said: string, messageId?: string) {
+  const { error } = await sb.from("customers").upsert({ phone_number: phone, marketing_opt_in: false, opted_out_at: new Date().toISOString() }, { onConflict: "phone_number" });
+  if (error) {
+    // never tell someone they're opted out when the write failed: allow a webhook redelivery to retry
+    console.error("opt-out write failed", error.message);
+    if (messageId) await sb.from("processed_messages").delete().eq("message_id", messageId);
+    await sendText(c, "Sorry, I couldn't process that just now. Please send STOP again in a moment 🙏\nما قدرت أنفذ طلبك هلأ. ابعت STOP كمان مرة بعد شوي 🙏");
+    return;
+  }
   await sendText(c, "Done. You won't get offers from us anymore. Orders still work anytime 👑\nتم. ما رح توصلك عروض منا بعد اليوم. بتقدر تطلب بأي وقت 👑");
   await remember(phone, `[opt-out: ${said}]`, c.log.join("\n"));
 }
@@ -735,10 +742,12 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminO
   if (e.reply?.id.startsWith("CLAIM|")) { await handleClaimDecision(c, norm, e.reply.id); return; }
   const esc = text.match(/^(customer|زبون)\s*[:：]\s*([\s\S]+)$/i);
   const { data: owner } = norm ? await sb.from("vendors").select("vendor_id,name_en").eq("owner_whatsapp_phone", norm).maybeSingle() : { data: null };
-  // Opt-out comes first, before any other routing: STOP / "Stop offers" / the promo quick reply clear marketing_opt_in immediately.
-  // (A linked owner's typed words still go to the owner bot; only their button taps count.)
+  // Opt-out is handled ahead of owner/customer routing (only the link-code and claim taps, which can't be STOP words, come earlier):
+  // STOP / "Stop offers" / the promo quick reply clear marketing_opt_in immediately.
   const optOut = (e.reply && (e.reply.id === OPTOUT_PAYLOAD || isOptOutTitle(e.reply.title))) || (!owner && isOptOutTitle(text));
-  if (optOut) { await handleOptOut(c, e.from, e.reply?.title || text); return; }
+  if (optOut) { await handleOptOut(c, e.from, e.reply?.title || text, e.id); return; }
+  // A linked owner's typed STOP still goes to the owner bot, but the same number as a customer must not keep receiving offers.
+  if (owner && !e.reply && isOptOutTitle(text)) await sb.from("customers").update({ marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", e.from);
   if (owner && !esc) return handleAdmin(c, owner, norm, text, e.reply);
   return handleCustomer(c, e.from, esc ? esc[2].trim() : text, e.reply, e.loc);
 }
