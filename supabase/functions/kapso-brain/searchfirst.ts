@@ -28,14 +28,16 @@ export function moodTerms(text: string): { mood: Mood; terms: string[] } | null 
 }
 
 // Anything about diets, allergies, negation or a complaint is never answered by a canned list: the model (with search_menu and the allergen rules) handles it.
-const GUARD = /(?:^|\s)(?:no|not|non|without|free|allergic|allergy|allergies|allergen|allergens|nut|nuts|peanut|peanuts|sesame|gluten|vegan|vegetarian|halal|kosher|lactose|dairy|diabetic|celiac|coeliac|safe|ingredients|is it|are they|was|were|late|driver|delivery|delivered|cold|wrong|missing|rude|dirty|bad|worst|terrible|refund|complaint|بدون|بلا|ما|مش|حساسية|حساسيه|نباتي|نباتيه|خالي|حلال|لاكتوز|سكري|متأخر|بارد|غلط|سائق|توصيل)(?:\s|$)/;
+const GUARD = /(?:^|\s)(?:no|not|non|without|free|allergic|allergy|allergies|allergen|allergens|nut|nuts|peanut|peanuts|sesame|gluten|vegan|vegetarian|halal|kosher|lactose|dairy|diabetic|celiac|coeliac|safe|ingredients|is it|are they|was|were|late|driver|delivery|delivered|cold|wrong|missing|rude|dirty|bad|worst|terrible|refund|complaint|bala|bdon|bedon|bidun|bedoun|msh|mish|ma3|وصل|وصلت|بدون|بلا|ما|مش|حساسية|حساسيه|نباتي|نباتيه|خالي|حلال|لاكتوز|سكري|متأخر|بارد|غلط|سائق|توصيل)(?:\s|$)/;
 const NOT_SEARCH = /\b(?:checkout|basket|my order|my data|delete|stop|unsubscribe|person|human|agent|refund|cancel|where is|talk to|speak to|make it|my name|street|building|near the|please call|thanks|thank you|ok|okay)\b|سلة|سلتي|طلبي|موظف|حدا|الغي|اسمي|شارع|بناية|شكرا|وين طلبي|احذف|بدي احكي/i;
 /** A short message with no digits, not an order, not a command/greeting/confirmation: worth trying as a search. Whether it really matches the menu is decided by the caller. */
 export function looksLikeSearch(text: string): boolean {
   const t = String(text ?? "").trim();
-  if (!t || t.length > 60 || /\d/.test(t) || /[٠-٩]/.test(t)) return false;
+  if (!t || t.length > 60) return false;
+  const digits = /\d/.test(t) || /[٠-٩]/.test(t);
+  if (digits && !(moodTerms(t) && normText(t).split(" ").filter(Boolean).length <= 3)) return false; // digits mean quantities, phone numbers or addresses, except Arabizi mood words (7ilo, 7ar, jou3an, ftour)
   if (isGreeting(t) || isYesText(t) || isCancelText(t) || NOT_SEARCH.test(t)) return false;
-  if (GUARD.test(normText(t))) return false;
+  const g = normText(t); if (GUARD.test(g) || GUARD.test(g.replace(/(^|\s)و(?=\S{2})/g, "$1"))) return false; // also with an attached Arabic "و" removed (وما وصل, وبدون)
   if (hasOrderIntent(t)) return false;
   const words = normText(t).split(" ").filter(Boolean).length;
   if (moodTerms(t) !== null) return words <= 3; // a mood is a short phrase ("something light", "حلو"), not a word inside a longer sentence
