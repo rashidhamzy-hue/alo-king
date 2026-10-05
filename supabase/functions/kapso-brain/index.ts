@@ -18,6 +18,7 @@ import { agentLoop } from "./loop.ts";
 import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, parseNumberedTap } from "./numbered.ts";
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
+import { verifyWebhook } from "./webhookauth.ts";
 import { beginTurn, touchCustomer, type CustomerStart } from "./turnstart.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
@@ -28,6 +29,8 @@ const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 const WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET") ?? "";
+// Signing secret of the Kapso webhook (`secret_key`): Kapso sends an HMAC-SHA256 of the raw body in X-Webhook-Signature, so this secret never travels. Optional until the owner switches over.
+const WEBHOOK_SIGNING_SECRET = (Deno.env.get("KAPSO_WEBHOOK_SIGNING_SECRET") ?? "").trim();
 // Shared secret for the scheduled order-watchdog job (?job=order-watchdog); the job is disabled while this is unset.
 const WATCHDOG_SECRET = Deno.env.get("WATCHDOG_SECRET") ?? "";
 const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5";
@@ -1809,6 +1812,7 @@ Deno.serve(async (req) => {
   const isInspect = job === "inspect";
   const isSpend = job === "spend";
   const st = req.headers.get("x-selftest");
+  let rawBody: Uint8Array | null = null; // the bytes Kapso signed, read once for the signature check
   // The staging copy (kapso-brain-test) is for dry-run tests only: it never accepts non-selftest traffic.
   if (isStagingPath(new URL(req.url).pathname) && !st) return new Response("unauthorized", { status: 401 });
   if ((isInspect || isSpend) && (!st || !isStagingPath(new URL(req.url).pathname))) return new Response(st ? "not found" : "unauthorized", { status: st ? 404 : 401 }); // staging only: PII read path
@@ -1819,9 +1823,12 @@ Deno.serve(async (req) => {
   } else if (isJob) {
     const given = req.headers.get("x-watchdog-secret") ?? "";
     if (!WATCHDOG_SECRET || !safeEqual(given, WATCHDOG_SECRET)) return new Response("unauthorized", { status: 401 });
-  } else if (WEBHOOK_SECRET) {
-    const given = req.headers.get("x-webhook-secret") ?? new URL(req.url).searchParams.get("key");
-    if (given !== WEBHOOK_SECRET) return new Response("unauthorized", { status: 401 });
+  } else if (WEBHOOK_SECRET || WEBHOOK_SIGNING_SECRET) {
+    // signature over the raw bytes (preferred), the x-webhook-secret header, or the legacy ?key= (kept until the owner confirms the switch, then removed)
+    rawBody = new Uint8Array(await req.arrayBuffer());
+    const v = await verifyWebhook({ rawBody, signatureHeader: req.headers.get("x-webhook-signature"), secretHeader: req.headers.get("x-webhook-secret"), queryKey: new URL(req.url).searchParams.get("key"), sharedSecret: WEBHOOK_SECRET, signingSecret: WEBHOOK_SIGNING_SECRET });
+    console.log(JSON.stringify({ webhook_auth: { method: v.method } })); // which way in, never a secret (shows when ?key= is no longer used)
+    if (!v.ok) return new Response("unauthorized", { status: 401 });
   }
   // Staging dry-run only: lets tests act as the admin without the real admin number (a secret). Ignored on production.
   const adminOverride = dry && isStagingPath(new URL(req.url).pathname) ? req.headers.get("x-selftest-admin") : null;
@@ -1861,7 +1868,7 @@ Deno.serve(async (req) => {
     const lifecycle = await runLifecycleSweep({ pnid: DEFAULT_PNID, dry, out }); // status messages the apps missed, vendor closed mid-order, sold-out offers
     return new Response(JSON.stringify(dry ? { escalated, lifecycle, out } : { escalated, lifecycle }), { status: 200, headers: { "content-type": "application/json" } });
   }
-  let body: any; try { body = await req.json(); } catch { return new Response("bad request", { status: 400 }); }
+  let body: any; try { body = rawBody ? JSON.parse(new TextDecoder().decode(rawBody)) : await req.json(); } catch { return new Response("bad request", { status: 400 }); }
   const events = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
   const out: any[] = [], timings: any[] = [];
   const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride, stagingOverride, timings); } catch (err) { console.error("event error", err); } } })();
