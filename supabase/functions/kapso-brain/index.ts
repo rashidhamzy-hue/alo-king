@@ -749,13 +749,18 @@ async function handleBasketEditText(c: Ctx, phone: string, text: string): Promis
 // ---------- SEARCH-FIRST: any food word or mood -> ONE list of the best open, nearest dishes (no category tree, no model call) ----------
 async function searchFirst(c: Ctx, phone: string, text: string, prof: any): Promise<boolean> {
   if (!looksLikeSearch(text)) return false;
+  { // a one-word answer to the bot's own question (name, village, landmark...) is never a search
+    const { data: last } = await sb.from("conversations").select("content").eq("phone", phone).eq("role", "assistant").order("id", { ascending: false }).limit(1).maybeSingle();
+    const tail = String(last?.content ?? "").trim().split("\n").pop() ?? "";
+    if (!tail.startsWith("[") && /[?؟]\s*$/.test(tail) && /name|village|landmark|address|building|floor|where|deliver|location|phone|اسم|بلد|عنوان|موقع|وين|بناية|طابق|معلم|رقم/i.test(tail)) return false; // the bot just asked for delivery details; "what are you craving?" is NOT such a question
+  }
   const idx = await loadMenuIndex();
   const mood = moodTerms(text);
   const scored = new Map<string, { item: IndexItem; score: number }>();
   const put = (r: { item: IndexItem; score: number }) => { const k = `${r.item.vendor_id}|${r.item.item_id}`; const cur = scored.get(k); if (!cur || r.score > cur.score) scored.set(k, r); };
   if (mood) {
     for (const term of mood.terms) for (const r of rankItems(term, idx.items, { floor: 0.85 })) put(r);
-    if (!scored.size) for (const it of idx.items) if (it.is_popular) put({ item: it, score: 0.75 }); // "hungry", "surprise me", or a mood nothing matches: what people order most
+    if (mood.mood === "popular") for (const it of idx.items) if (it.is_popular) put({ item: it, score: 0.75 }); // only on explicit phrases ("hungry", "surprise me", "what's good"): what people order most. A mood nothing matches goes to the model instead of implying a match.
   } else for (const r of rankItems(text, idx.items, { floor: 0.8 })) put(r); // a plain dish word: only a confident match (otherwise the model decides)
   if (!scored.size) return false;
   const hasLoc = prof?.last_lat != null && prof?.last_lng != null;
@@ -771,7 +776,7 @@ async function searchFirst(c: Ctx, phone: string, text: string, prof: any): Prom
   let rows: ReturnType<typeof buildSearchRows> = [];
   for (let i = 0; i < order.length && i < 30; i += 6) {
     const chunk = order.slice(i, i + 6).filter((v) => !open.has(v));
-    await Promise.all(chunk.map(async (v) => open.set(v, (await sb.rpc("vendor_is_open", { p_vendor_id: v })).data !== false)));
+    await Promise.all(chunk.map(async (v) => open.set(v, (await sb.rpc("vendor_is_open", { p_vendor_id: v })).data === true))); // this list says "Open now": an RPC error counts as closed
     rows = buildSearchRows(ordered.filter((h) => open.get(h.vendor_id) === true), !!c.ar, both);
     if (rows.length >= 10) break;
   }

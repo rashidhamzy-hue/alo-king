@@ -10,9 +10,9 @@ const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…"
 
 export type Mood = "light" | "sweet" | "spicy" | "breakfast" | "cheap" | "popular";
 const MOODS: { mood: Mood; words: string[]; terms: string[] }[] = [
-  { mood: "light", words: ["light", "healthy", "diet", "lighter", "خفيف", "صحي", "دايت", "khafif", "se7i", "sa7i", "sehi"], terms: ["salad", "grill", "grilled", "soup", "fattoush", "tabbouleh", "سلطة", "مشاوي", "شوربة", "فتوش", "تبولة"] },
+  { mood: "light", words: ["light", "healthy", "lighter", "خفيف", "صحي", "khafif", "se7i", "sa7i", "sehi"], terms: ["salad", "grill", "grilled", "soup", "fattoush", "tabbouleh", "سلطة", "مشاوي", "شوربة", "فتوش", "تبولة"] },
   { mood: "sweet", words: ["sweet", "sweets", "dessert", "desserts", "sugar", "حلو", "حلوى", "حلويات", "حلا", "7ilo", "7elo", "7ilou", "helou", "7alaweyet"], terms: ["dessert", "sweet", "knefe", "kunafa", "baklava", "cake", "waffle", "ice cream", "crepe", "حلو", "حلويات", "كنافة", "بقلاوة", "كيك", "وافل", "بوظة"] },
-  { mood: "spicy", words: ["spicy", "hot", "chili", "chilli", "حار", "حامي", "7arr", "7ar", "7ami", "harr"], terms: ["spicy", "hot", "chili", "buffalo", "harra", "حار", "حرة"] },
+  { mood: "spicy", words: ["spicy", "chili", "chilli", "حار", "حامي", "7arr", "7ar", "7ami", "harr"], terms: ["spicy", "hot", "chili", "buffalo", "harra", "حار", "حرة"] },
   { mood: "breakfast", words: ["breakfast", "brunch", "morning", "فطور", "صباحي", "ftour", "ftoor", "fto0r"], terms: ["breakfast", "manakish", "manoushe", "saj", "eggs", "foul", "labneh", "فطور", "منقوشة", "فول", "بيض", "لبنة", "صاج"] },
   { mood: "cheap", words: ["cheap", "cheapest", "budget", "affordable", "رخيص", "ارخص", "rakhis", "ar5as", "arkhas", "ar5ass"], terms: ["sandwich", "manoushe", "falafel", "فلافل", "ساندويش", "منقوشة"] },
   { mood: "popular", words: ["hungry", "starving", "anything", "recommend", "recommendation", "جوعان", "جعان", "جوعانة", "jou3an", "jou3ane", "jaan", "جوعانه"], terms: [] },
@@ -27,14 +27,19 @@ export function moodTerms(text: string): { mood: Mood; terms: string[] } | null 
   return null;
 }
 
+// Anything about diets, allergies, negation or a complaint is never answered by a canned list: the model (with search_menu and the allergen rules) handles it.
+const GUARD = /(?:^|\s)(?:no|not|non|without|free|allergic|allergy|allergies|allergen|allergens|nut|nuts|peanut|peanuts|sesame|gluten|vegan|vegetarian|halal|kosher|lactose|dairy|diabetic|celiac|coeliac|safe|ingredients|is it|are they|was|were|late|driver|delivery|delivered|cold|wrong|missing|rude|dirty|bad|worst|terrible|refund|complaint|بدون|بلا|ما|مش|حساسية|حساسيه|نباتي|نباتيه|خالي|حلال|لاكتوز|سكري|متأخر|بارد|غلط|سائق|توصيل)(?:\s|$)/;
 const NOT_SEARCH = /\b(?:checkout|basket|my order|my data|delete|stop|unsubscribe|person|human|agent|refund|cancel|where is|talk to|speak to|make it|my name|street|building|near the|please call|thanks|thank you|ok|okay)\b|سلة|سلتي|طلبي|موظف|حدا|الغي|اسمي|شارع|بناية|شكرا|وين طلبي|احذف|بدي احكي/i;
 /** A short message with no digits, not an order, not a command/greeting/confirmation: worth trying as a search. Whether it really matches the menu is decided by the caller. */
 export function looksLikeSearch(text: string): boolean {
   const t = String(text ?? "").trim();
   if (!t || t.length > 60 || /\d/.test(t) || /[٠-٩]/.test(t)) return false;
   if (isGreeting(t) || isYesText(t) || isCancelText(t) || NOT_SEARCH.test(t)) return false;
+  if (GUARD.test(normText(t))) return false;
   if (hasOrderIntent(t)) return false;
-  return moodTerms(t) !== null || (tokens(t).length >= 1 && tokens(t).length <= 4);
+  const words = normText(t).split(" ").filter(Boolean).length;
+  if (moodTerms(t) !== null) return words <= 3; // a mood is a short phrase ("something light", "حلو"), not a word inside a longer sentence
+  return tokens(t).length >= 1 && tokens(t).length <= 4;
 }
 
 export type SearchHit = { item_id: string; vendor_id: string; vendor_name: string; name_en: string; name_ar: string; price_usd: number; score: number; is_popular: boolean; km: number | null; exact?: boolean };

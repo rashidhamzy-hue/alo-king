@@ -8,6 +8,9 @@ const hit = (item_id: string, vendor_id: string, name_en: string, score: number,
 
 describe("looksLikeSearch: any food word or mood, short, not an order, not a command", () => {
   it.each(["burger", "shawarma", "pizza?", "عندكم شاورما؟", "do you have falafel", "burger near me", "something light", "hungry", "sweet", "spicy", "healthy food", "breakfast", "شو في حلو", "فلافل", "cheap eats", "any pizza near me"])("%s", (t) => expect(looksLikeSearch(t)).toBe(true));
+  it.each(["not spicy", "no spicy please", "non spicy", "sugar free dessert", "I'm allergic to nuts, anything safe?", "gluten free pizza", "vegan burger", "halal", "nut free", "is it healthy", "my food was cold i am hungry", "the driver is late", "where is the driver", "بدون بصل", "ما بدي حار", "نباتي", "عندي حساسية", "diabetic friendly dessert", "I am hungry and my order is late"])("dietary / negation / complaint is never a canned list: %s", (t) => expect(looksLikeSearch(t)).toBe(false));
+  it.each(["diet coke", "hot chocolate"])("ambiguous words are plain dish words, not moods: %s", (t) => { expect(moodTerms(t)).toBeNull(); expect(looksLikeSearch(t)).toBe(true); });
+  it("a mood inside a long sentence is not a mood search", () => expect(looksLikeSearch("something sweet for my kids birthday party tonight")).toBe(false));
   it.each(["", "hi", "hello", "yes", "cancel", "thanks", "2 shawarma", "I want a burger", "badde shawarma", "checkout", "my basket", "where is my order", "I need to talk to a person", "delete my data", "make it 3", "stop", "Baakleen, near the church, building 3", "my name is Sami", "this is a very long sentence about something that is not a search at all but a story about my day and the food I ate yesterday"])("%j is not", (t) => expect(looksLikeSearch(t)).toBe(false));
 });
 
