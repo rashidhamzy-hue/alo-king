@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
+import { deletionConfirmation, forgetScope, privacyNotice } from "./privacy.ts";
 import { isNotifiable, isPriceIncrease, parseLifecycleTap, pickSubstitute, swapLine, swapNote, windowOpen } from "../_shared/lifecycle.ts";
 import { notifyOrderStatus } from "../_shared/notify.ts";
 import { addrKey, addressRows, isUsualRequest, parseAddrTap, parseVoiceTap, pickUsual, pinnedLandmark, voiceCardText, voiceTapId } from "./smart.ts";
@@ -246,6 +247,7 @@ async function prepareOrder(c: Ctx, phone: string, input: any): Promise<string> 
   // WhatsApp clips bodies at 1024 chars: size the item rows to what is left after the fixed lines so TOTAL, address and payment are never cut
   const body = bodyWith(fitRows(rowList, Math.max(120, 1000 - bodyWith("").length), !!c.ar));
   await sendButtons(c, { body, headerText: tr(c, "Order summary", "ملخص الطلب"), buttons: [{ id: `CONFIRM|${cart.id}`, title: tr(c, "✅ Confirm Order", "✅ تأكيد الطلب") }, { id: `EDIT|${cart.id}`, title: tr(c, "✏️ Change Order", "✏️ تعديل الطلب") }, { id: "LOC", title: tr(c, "📍 Change Location", "📍 تغيير الموقع") }] });
+  await maybeShowPrivacyNotice(c, phone); // the address was just stored on the customer: one-line notice, once
   return JSON.stringify({ ok: true, summary_sent_with_confirm_button: true, instruction: "Summary card already delivered. Do not repeat it. Reply with nothing." });
 }
 
@@ -277,7 +279,7 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
   const receivedBody = `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\nThe kitchen is confirming it now — I'll keep you posted. 👑`;
   // Cancel stays one tap away until the kitchen accepts (after that the team handles changes)
   await sendButtons(c, { body: receivedBody, buttons: [{ id: `CANCEL|${order.id}`, title: tr(c, "❌ Cancel order", "❌ إلغاء الطلب") }] });
-  if (cart.village && cart.address) await saveAddress(phone, cart.village, cart.address); // remembered for next time
+  if (cart.village && cart.address) { await saveAddress(phone, cart.village, cart.address); await maybeShowPrivacyNotice(c, phone); } // remembered for next time
   await sb.from("ai_call_log").update({ order_id: order.id }).eq("customer_phone", phone).is("order_id", null).gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()); // cost per confirmed order (calls in the last 24h)
   try { await notifyVendor(c, order, b, cart, cust?.full_name ?? "Customer"); } catch (e) { console.error("vendor notify failed", e); }
   const { data: me } = await sb.from("customers").select("opted_in_at,opted_out_at").eq("phone_number", phone).maybeSingle();
@@ -750,6 +752,38 @@ async function sendAddressPicker(c: Ctx, phone: string, basketId: string, saved:
     sections: [{ title: tr(c, "Your addresses", "عناوينك"), rows: addressRows(saved, !!c.ar, basketId) }] });
 }
 
+// ---------- PRIVACY: "delete my data" / "forget my address", one-line notice + consent timestamp ----------
+const PRIVACY_NOTICE_VERSION = 1;
+// First time an address or location is saved: show the one-line notice and record when (atomic, so it is shown once).
+async function maybeShowPrivacyNotice(c: Ctx, phone: string) {
+  const { data } = await sb.from("customers").update({ data_consent_at: new Date().toISOString(), privacy_notice_version: PRIVACY_NOTICE_VERSION, data_deleted_at: null }).eq("phone_number", phone).is("data_consent_at", null).select("phone_number");
+  if (data?.length) await sendText(c, privacyNotice(!!c.ar));
+}
+
+// Deletes immediately. Past orders keep only accounting facts (items, totals, dates, vendor, phone for settlements and disputes); name, address and notes are removed
+// from finished orders. Open orders keep their delivery address until they are delivered. Opt-out state is kept so nobody is ever messaged again by mistake.
+async function forgetCustomer(c: Ctx, phone: string, scope: "all" | "address") {
+  const count = async (q: any) => { const { data } = await q.select("id"); return data?.length ?? 0; };
+  const wipe = { last_address: null, village: null, last_lat: null, last_lng: null };
+  const { data: addrs } = await sb.from("customer_addresses").delete().eq("customer_phone", phone).select("lat");
+  const addresses = addrs?.length ?? 0, pins = (addrs ?? []).filter((a: any) => a.lat != null).length;
+  const carts = await count(sb.from("carts").update({ status: "expired" }).eq("customer_phone", phone).eq("status", "pending"));
+  const { data: before } = await sb.from("customers").select("full_name").eq("phone_number", phone).maybeSingle();
+  let baskets = 0, voice = 0, chats = 0, ordersAnonymised = 0;
+  if (scope === "all") {
+    await sb.from("customers").update({ ...wipe, full_name: null, language: null, language_set_at: null, acquisition_source: null, acquisition_ref: null, acquisition_at: null, data_consent_at: null, privacy_notice_version: null, data_deleted_at: new Date().toISOString(), marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", phone);
+    baskets = await count(sb.from("baskets").delete().eq("customer_phone", phone)); // lines cascade
+    voice = await count(sb.from("pending_voice").delete().eq("customer_phone", phone));
+    const { data: ch } = await sb.from("conversations").delete().eq("phone", phone).select("id"); chats = ch?.length ?? 0;
+    await sb.from("ai_call_log").update({ customer_phone: null }).eq("customer_phone", phone);
+    ordersAnonymised = await count(sb.from("orders").update({ customer_name: "Deleted customer", building_landmark: null, notes: null }).eq("customer_phone", phone).in("status", ["delivered", "cancelled", "rejected"]));
+  } else {
+    await sb.from("customers").update(wipe).eq("phone_number", phone);
+  }
+  const { count: open } = await sb.from("orders").select("id", { count: "exact", head: true }).eq("customer_phone", phone).not("status", "in", "(delivered,cancelled,rejected)");
+  await sendText(c, deletionConfirmation(scope, { addresses, pins, name: scope === "all" && !!before?.full_name, baskets, voice, chats, carts, ordersAnonymised, openOrders: open ?? 0, offersOff: scope === "all" }, !!c.ar));
+}
+
 // ---------- COST GUARDS: per-phone hourly cap and a global daily budget switch the customer bot to button-only mode ----------
 async function aiGuard(c: Ctx, phone: string): Promise<Guard> {
   try {
@@ -898,7 +932,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     // Only a pin we can place in a village becomes the delivery address (buildOrder checks delivery areas by village); otherwise keep the old behaviour.
     const landmark = village ? pinnedLandmark(loc, village) : String(loc.address ?? loc.name ?? "") || null;
     await sb.from("customers").update({ last_lat: loc.latitude, last_lng: loc.longitude, ...(landmark ? { last_address: landmark } : {}), ...(village ? { village } : {}) }).eq("phone_number", phone);
-    if (village && landmark) await saveAddress(phone, village, landmark);
+    if (village && landmark) { await saveAddress(phone, village, landmark); await maybeShowPrivacyNotice(c, phone); }
     const baskets = (await allBaskets(phone)).slice(0, MAX_BASKETS);
     if (baskets.length) { // a basket is waiting: confirm the pin as the delivery address by showing it with Checkout
       for (const b of baskets) await sendBasketCard(c, b.id, b.vendor_id);
@@ -907,6 +941,10 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     userText = `[Customer shared their location${village ? `: nearest village ${village}` : ""}${loc.address ? `, ${loc.address}` : ""}. Recommend great nearby options now.]`;
   }
   if (!userText) return;
+  if (!reply && !loc) { // privacy commands work in every mode (button-only, voice-confirmed) and never reach the model
+    const scope = forgetScope(userText);
+    if (scope) { await forgetCustomer(c, phone, scope); return; } // nothing is remembered about this chat afterwards
+  }
   if (!reply && !loc && isCancelText(userText)) { // deterministic: a typed cancel always withdraws waiting summaries (the basket stays)
     const cr = JSON.parse(await basketTool(c, phone, "cancel_pending", {}));
     if (cr.ok) { await remember(phone, userText, c.log.join("\n")); return; }
