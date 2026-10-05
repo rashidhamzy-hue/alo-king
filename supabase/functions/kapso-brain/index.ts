@@ -2,6 +2,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
+import { isNotifiable, parseLifecycleTap, pickSubstitute, swapLine, windowOpen } from "../_shared/lifecycle.ts";
+import { notifyOrderStatus } from "../_shared/notify.ts";
 import { addrKey, addressRows, isUsualRequest, parseAddrTap, parseVoiceTap, pickUsual, pinnedLandmark, voiceCardText, voiceTapId } from "./smart.ts";
 import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
@@ -272,9 +274,9 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
   const { data: order, error } = await sb.from("orders").insert({ customer_phone: phone, customer_name: cust?.full_name ?? "Customer", vendor_id: cart.vendor_id, items: b.lines, subtotal_usd: b.subtotal, delivery_fee_usd: DELIVERY_FEE_USD, total_usd: b.total, payment_method: "cod", payment_status: "unpaid", status: "pending", delivery_village: cart.village, building_landmark: cart.address, notes: cart.notes }).select("id,short_code").single();
   if (error) { await sb.from("carts").update({ status: "pending" }).eq("id", cart.id); if (cart.basket_id) await sb.from("baskets").update({ status: "active" }).eq("id", cart.basket_id); await sendText(c, "Small hiccup placing that — please tap Confirm again in a moment 🙏"); return "order error"; }
   const track = TRACK_BASE ? `\n🔗 Track live: ${TRACK_BASE}/${order.id}` : "";
-  await sendText(c, `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\nThe kitchen is confirming it now — I'll keep you posted. 👑`);
-  if (cart.village && cart.address) await saveAddress(phone, cart.village, cart.address); // remembered for next time
-  await sb.from("ai_call_log").update({ order_id: order.id }).eq("customer_phone", phone).is("order_id", null).gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()); // cost per confirmed order (calls in the last 24h)
+  const receivedBody = `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\nThe kitchen is confirming it now — I'll keep you posted. 👑`;
+  // Cancel stays one tap away until the kitchen accepts (after that the team handles changes)
+  await sendButtons(c, { body: receivedBody, buttons: [{ id: `CANCEL|${order.id}`, title: tr(c, "❌ Cancel order", "❌ إلغاء الطلب") }] });
   try { await notifyVendor(c, order, b, cart, cust?.full_name ?? "Customer"); } catch (e) { console.error("vendor notify failed", e); }
   const { data: me } = await sb.from("customers").select("opted_in_at,opted_out_at").eq("phone_number", phone).maybeSingle();
   if (me && !me.opted_in_at && !me.opted_out_at) {
@@ -590,6 +592,126 @@ async function reorderLast(c: Ctx, phone: string, orderId: string, fallback: Lan
   if (res.error) { console.error("reorder failed:", String(res.error).slice(0, 120)); await sendText(c, ar ? "ما قدرت أعيد هالطلب هلأ (ممكن المطعم مسكّر أو صنف مش متوفر) 🙏 خبرني شو بدك بداله." : "I couldn't repeat that order right now (the restaurant may be closed or a dish unavailable) 🙏 Tell me what you'd like instead."); }
 }
 
+// ---------- ORDER LIFECYCLE: cancel before accept, rating, vendor closed mid-order, sold-out substitute offers, status sweep ----------
+const OPEN_ORDER_STATUSES = ["pending", "accepted", "preparing"];
+async function customerLangOf(phone: string): Promise<Lang> { const { data } = await sb.from("customers").select("language").eq("phone_number", phone).maybeSingle(); return data?.language === "en" ? "en" : "ar"; }
+async function customerWindowOpen(phone: string): Promise<boolean> {
+  const { data } = await sb.from("conversations").select("created_at").eq("phone", phone).eq("role", "user").order("id", { ascending: false }).limit(1).maybeSingle();
+  return windowOpen(data?.created_at);
+}
+async function tellVendorOwner(c: Ctx | { pnid: string; dry: boolean; out: any[] }, vendorId: string, text: string) {
+  const { data: v } = await sb.from("vendors").select("owner_whatsapp_phone").eq("vendor_id", vendorId).maybeSingle();
+  if (v?.owner_whatsapp_phone) await rawSend(c.pnid, { ...envl(v.owner_whatsapp_phone), type: "text", text: { body: text } }, c.dry, c.out);
+}
+const handoffLine = (c: Ctx) => tr(c, "A member of the Alo King team will take care of you personally 🙏", "حدا من فريق ألو كينغ رح يهتم فيك شخصياً 🙏");
+
+// Cancel is only possible while the kitchen has not accepted. The status flip is atomic, so an accept racing a cancel has exactly one winner.
+async function cancelOrder(c: Ctx, phone: string, orderId: string) {
+  const { data: done } = await sb.from("orders").update({ status: "cancelled", customer_notified_status: "cancelled" }).eq("id", orderId).eq("customer_phone", phone).eq("status", "pending").select("short_code,vendor_id").maybeSingle();
+  if (done) {
+    await sendText(c, tr(c, `❌ Order #${done.short_code} is cancelled. Nothing will be charged.`, `❌ تم إلغاء الطلب #${done.short_code}. ما رح ينحسب عليك شي.`));
+    await tellVendorOwner(c, done.vendor_id, `❌ Order #${done.short_code} was cancelled by the customer before you accepted it.`);
+    return;
+  }
+  const { data: o } = await sb.from("orders").select("short_code,status").eq("id", orderId).eq("customer_phone", phone).maybeSingle();
+  if (!o) await sendText(c, tr(c, "I couldn't find that order 🙏", "ما لقيت هالطلب 🙏"));
+  else if (o.status === "cancelled" || o.status === "rejected") await sendText(c, tr(c, `Order #${o.short_code} is already cancelled ✔️`, `الطلب #${o.short_code} ملغى من قبل ✔️`));
+  else await sendText(c, tr(c, `The kitchen already started order #${o.short_code}, so I can't cancel it myself. ${handoffLine(c)}`, `المطبخ بلّش بالطلب #${o.short_code} فما فيني ألغيه لحالي. ${handoffLine(c)}`));
+}
+
+async function handleRating(c: Ctx, phone: string, orderId: string, stars: number) {
+  const { data: o } = await sb.from("orders").select("short_code,vendor_id,status").eq("id", orderId).eq("customer_phone", phone).maybeSingle();
+  if (!o || o.status !== "delivered") { await sendText(c, tr(c, "I can only take a rating for a delivered order 🙏", "بقدر آخد تقييم بس لطلب انوصّل 🙏")); return; }
+  const { data: ins } = await sb.from("order_ratings").upsert({ order_id: orderId, customer_phone: phone, stars }, { onConflict: "order_id", ignoreDuplicates: true }).select("order_id");
+  if (!ins?.length) { await sendText(c, tr(c, "Thanks, you've already rated this order ⭐", "شكراً، قيّمت هالطلب من قبل ⭐")); return; }
+  if (stars <= 2) {
+    await sendText(c, tr(c, `Sorry about that 😔 ${handoffLine(c)}`, `آسفين 😔 ${handoffLine(c)}`));
+    if (c.admin) await rawSend(c.pnid, { ...envl(c.admin), type: "text", text: { body: `⚠️ ${stars}⭐ rating for order #${o.short_code} (${o.vendor_id}). Customer ...${phone.slice(-2)}` } }, c.dry, c.out);
+  } else await sendText(c, tr(c, "Thank you! ⭐ See you next time 👑", "شكراً إلك! ⭐ منشوفك المرة الجاي 👑"));
+}
+
+// The customer answers a sold-out offer: swap (server re-prices from the database) or cancel the order.
+async function handleSubstitution(c: Ctx, phone: string, offerId: string, answer: "ok" | "cancel") {
+  const { data: offer } = await sb.from("substitution_offers").select("id,order_id,missing_item_id,sub_item_id,status").eq("id", offerId).eq("customer_phone", phone).maybeSingle();
+  if (!offer || offer.status !== "pending") { await sendText(c, tr(c, "That offer is no longer open 🙏", "هالعرض ما عاد مفتوح 🙏")); return; }
+  const { data: ord } = await sb.from("orders").select("id,short_code,vendor_id,status,items,total_usd").eq("id", offer.order_id).eq("customer_phone", phone).maybeSingle();
+  if (!ord || !OPEN_ORDER_STATUSES.includes(ord.status)) { await sb.from("substitution_offers").update({ status: "expired" }).eq("id", offer.id); await sendText(c, tr(c, "That order has already moved on 🙏", "هالطلب تغيّر وضعه 🙏")); return; }
+  const claim = (status: string) => sb.from("substitution_offers").update({ status }).eq("id", offer.id).eq("status", "pending").select("id");
+  if (answer === "cancel") {
+    if (!(await claim("declined")).data?.length) return;
+    await sb.from("orders").update({ status: "cancelled", customer_notified_status: "cancelled" }).eq("id", ord.id).in("status", OPEN_ORDER_STATUSES);
+    await sendText(c, tr(c, `❌ Order #${ord.short_code} is cancelled. Nothing will be charged.`, `❌ تم إلغاء الطلب #${ord.short_code}. ما رح ينحسب عليك شي.`));
+    await tellVendorOwner(c, ord.vendor_id, `❌ Order #${ord.short_code} was cancelled by the customer (item sold out).`);
+    return;
+  }
+  const { data: sub } = offer.sub_item_id ? await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd").eq("vendor_id", ord.vendor_id).eq("item_id", offer.sub_item_id).eq("available", true).maybeSingle() : { data: null };
+  const swap = sub ? swapLine(Array.isArray(ord.items) ? ord.items : [], offer.missing_item_id, { item_id: sub.item_id, item_name_en: sub.item_name_en, item_name_ar: sub.item_name_ar, price_usd: Number(sub.price_usd) }, DELIVERY_FEE_USD, COD_CAP_USD) : null;
+  if (!swap?.ok) { await sendText(c, tr(c, `I couldn't swap that item any more 🙏 ${handoffLine(c)}`, `ما قدرت أبدّل الصنف 🙏 ${handoffLine(c)}`)); return; }
+  if (!(await claim("accepted")).data?.length) return;
+  const { data: upd } = await sb.from("orders").update({ items: swap.lines, subtotal_usd: swap.subtotal, total_usd: swap.total }).eq("id", ord.id).in("status", OPEN_ORDER_STATUSES).select("id");
+  if (!upd?.length) { await sendText(c, tr(c, "That order has already moved on 🙏", "هالطلب تغيّر وضعه 🙏")); return; }
+  await sendText(c, tr(c, `✅ Swapped for *${itemName(c, sub)}*. New total for #${ord.short_code}: *${both(swap.total)}* · Cash on delivery.`, `✅ بدّلناه بـ *${itemName(c, sub)}*. الإجمالي الجديد للطلب #${ord.short_code}: *${both(swap.total)}* · الدفع عند الاستلام.`));
+  await tellVendorOwner(c, ord.vendor_id, `🔁 Order #${ord.short_code}: customer accepted a swap to ${sub.item_name_en}. New total ${both(swap.total)}.`);
+}
+
+// Scheduled sweep (also run by order-notify callers' backup): status messages, vendor closed mid-order, sold-out substitute offers.
+async function runLifecycleSweep(o: { pnid: string; dry: boolean; out: any[] }): Promise<{ notified: number; closed: number; soldOut: number }> {
+  const send = (p: Record<string, unknown>) => rawSend(o.pnid, p, o.dry, o.out);
+  const since = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
+  const testOnly = <T,>(q: T): T => (o.dry ? (q as any).like("customer_phone", "961700000%") : q);
+  const tc = { pnid: o.pnid, dry: o.dry, out: o.out, log: [], rich: 0 } as Ctx;
+  let notified = 0, closed = 0, soldOut = 0;
+
+  // 1) status messages the apps didn't trigger (or that failed)
+  const { data: cands } = await testOnly(sb.from("orders").select("id,status,customer_notified_status").in("status", ["accepted", "preparing", "out_for_delivery", "delivered", "cancelled", "rejected"]).gte("created_at", since(48)).limit(200));
+  for (const r of cands ?? []) if (isNotifiable(r.status) && r.customer_notified_status !== r.status) { const res = await notifyOrderStatus(sb, send, r.id, { trackBase: TRACK_BASE }); if (res.sent) notified++; }
+
+  // 2) vendor closed / paused while the order was still waiting for acceptance
+  const { data: waiting } = await testOnly(sb.from("orders").select("id,short_code,vendor_id,customer_phone").eq("status", "pending").is("closed_notified_at", null).lte("created_at", new Date(Date.now() - 3 * 60_000).toISOString()).gte("created_at", since(3)).limit(100));
+  const openCache = new Map<string, boolean>();
+  for (const w of waiting ?? []) {
+    if (!isRealPhone(w.customer_phone)) continue;
+    if (!openCache.has(w.vendor_id)) { const { data: open } = await sb.rpc("vendor_is_open", { p_vendor_id: w.vendor_id }); openCache.set(w.vendor_id, open !== false); }
+    if (openCache.get(w.vendor_id)) continue;
+    const { data: claimed } = await sb.from("orders").update({ closed_notified_at: new Date().toISOString() }).eq("id", w.id).is("closed_notified_at", null).eq("status", "pending").select("id");
+    if (!claimed?.length || !(await customerWindowOpen(w.customer_phone))) continue;
+    const l = await customerLangOf(w.customer_phone); const { data: v } = await sb.from("vendors").select("name_en").eq("vendor_id", w.vendor_id).maybeSingle();
+    const ar = l === "ar";
+    const ok = await send({ ...envl(w.customer_phone), type: "interactive", interactive: { type: "button", body: { text: ar ? `⏸ *${v?.name_en ?? ""}* سكّروا قبل ما يقبلوا طلبك #${w.short_code}.\nبدك تلغيه أو تنتظر؟` : `⏸ *${v?.name_en ?? ""}* closed before accepting your order #${w.short_code}.\nCancel it, or keep waiting?` }, footer: { text: BRAND },
+      action: { buttons: [{ type: "reply", reply: { id: `CANCEL|${w.id}`, title: ar ? "❌ إلغاء الطلب" : "❌ Cancel order" } }, { type: "reply", reply: { id: `KEEP|${w.id}`, title: ar ? "⏳ بنتظر" : "⏳ Keep waiting" } }] } } });
+    if (ok) closed++;
+  }
+
+  // 3) a dish sold out after the customer confirmed: offer a server-priced substitute (same section, close in price) or cancel
+  const { data: live } = await testOnly(sb.from("orders").select("id,short_code,vendor_id,customer_phone,items,total_usd,status").in("status", OPEN_ORDER_STATUSES).gte("created_at", since(6)).limit(100));
+  for (const ord of live ?? []) {
+    if (!isRealPhone(ord.customer_phone) || !Array.isArray(ord.items)) continue;
+    const ids = [...new Set(ord.items.map((l: any) => l.item_id))];
+    const { data: rows } = await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,section,available").eq("vendor_id", ord.vendor_id).in("item_id", ids);
+    const gone = (rows ?? []).find((r: any) => r.available === false);
+    if (!gone) continue;
+    const { data: existing } = await sb.from("substitution_offers").select("id").eq("order_id", ord.id).eq("missing_item_id", gone.item_id).maybeSingle();
+    if (existing || !(await customerWindowOpen(ord.customer_phone))) continue;
+    const line = ord.items.find((l: any) => l.item_id === gone.item_id);
+    const menu = await vendorMenu(ord.vendor_id);
+    const cand = line && !(line.choices ?? []).length ? pickSubstitute({ item_id: gone.item_id, section: gone.section, price_usd: line.unit_price_usd }, menu, ids as string[]) : null;
+    const swap = cand ? swapLine(ord.items, gone.item_id, { item_id: cand.item_id, item_name_en: cand.item_name_en, item_name_ar: cand.item_name_ar, price_usd: Number(cand.price_usd) }, DELIVERY_FEE_USD, COD_CAP_USD) : null;
+    const { data: offer, error } = await sb.from("substitution_offers").insert({ order_id: ord.id, customer_phone: ord.customer_phone, missing_item_id: gone.item_id, sub_item_id: swap?.ok ? cand!.item_id : null }).select("id").single();
+    if (error || !offer) continue;
+    const l = await customerLangOf(ord.customer_phone); const ar = l === "ar"; const { data: v } = await sb.from("vendors").select("name_en").eq("vendor_id", ord.vendor_id).maybeSingle();
+    const miss = (ar ? gone.item_name_ar : null) || gone.item_name_en || gone.item_id;
+    const subName = cand ? ((ar ? cand.item_name_ar : null) || cand.item_name_en || cand.item_id) : "";
+    const body = swap?.ok
+      ? (ar ? `⚠️ *${v?.name_en ?? ""}* خلص عندهم *${miss}* بطلبك #${ord.short_code}.\nنبدّله بـ *${subName}* (${both(Number(cand!.price_usd))} للقطعة)؟\nالإجمالي الجديد: *${both(swap.total)}* (كان ${both(Number(ord.total_usd))})` : `⚠️ *${v?.name_en ?? ""}* ran out of *${miss}* on your order #${ord.short_code}.\nSwap it for *${subName}* (${both(Number(cand!.price_usd))} each)?\nNew total: *${both(swap.total)}* (was ${both(Number(ord.total_usd))})`)
+      : (ar ? `⚠️ *${v?.name_en ?? ""}* خلص عندهم *${miss}* بطلبك #${ord.short_code} وما في بديل مناسب.\nبدك تلغي الطلب؟` : `⚠️ *${v?.name_en ?? ""}* ran out of *${miss}* on your order #${ord.short_code} and there's no close substitute.\nWould you like to cancel it?`);
+    const buttons = [...(swap?.ok ? [{ type: "reply", reply: { id: `SUB|${offer.id}|ok`, title: ar ? "✅ بدّله" : "✅ Swap it" } }] : []), { type: "reply", reply: { id: `SUB|${offer.id}|cancel`, title: ar ? "❌ إلغاء الطلب" : "❌ Cancel order" } }];
+    const ok = await send({ ...envl(ord.customer_phone), type: "interactive", interactive: { type: "button", body: { text: ensureDualCurrency(body, LBP_RATE) }, footer: { text: BRAND }, action: { buttons } } });
+    if (ok) soldOut++; else await sb.from("substitution_offers").delete().eq("id", offer.id);
+  }
+  void tc;
+  return { notified, closed, soldOut };
+}
+
 // ---------- SMART UNDERSTANDING: saved addresses / pins, checkout address choice, voice confirmation ----------
 async function savedAddresses(phone: string) {
   const { data } = await sb.from("customer_addresses").select("id,label,village,landmark,last_used_at").eq("customer_phone", phone).order("last_used_at", { ascending: false }).limit(9);
@@ -676,6 +798,14 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     const [kind, a, b] = tag.split("|");
     if (kind === "CONFIRM") { await confirmCart(c, phone, a); await remember(phone, `[tapped Confirm Order]`, c.log.join("\n")); return; }
     if (kind === "REORDER") { const oid = parseReorderTap(tag); if (oid) await reorderLast(c, phone, oid); else await sendText(c, "That reorder button isn't valid any more. Tell me what you'd like 🙏\nهالزر ما عاد صالح. خبرني شو بدك 🙏"); await remember(phone, `[tapped Reorder last order]`, c.log.join("\n")); return; }
+    const lt = parseLifecycleTap(tag);
+    if (lt) {
+      if (lt.kind === "CANCEL") await cancelOrder(c, phone, lt.orderId);
+      else if (lt.kind === "KEEP") await sendText(c, tr(c, "OK, I'll keep your order open and tell you as soon as the kitchen answers ⏳", "تمام، رح خلّي طلبك مفتوح وبخبرك أول ما المطبخ يردّ ⏳"));
+      else if (lt.kind === "RATE") await handleRating(c, phone, lt.orderId, lt.stars);
+      else await handleSubstitution(c, phone, lt.offerId, lt.answer);
+      await remember(phone, `[tapped ${lt.kind}]`, c.log.join("\n")); return;
+    }
     const vt = parseVoiceTap(tag);
     if (vt) {
       const { data: pv } = await sb.from("pending_voice").update({ status: vt.answer === "ok" ? "used" : "rejected" }).eq("id", vt.id).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString()).select("transcript").maybeSingle();
@@ -765,7 +895,15 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   if (!userText) return;
   if (!reply && !loc && isCancelText(userText)) { // deterministic: a typed cancel always withdraws waiting summaries (the basket stays)
     const cr = JSON.parse(await basketTool(c, phone, "cancel_pending", {}));
-    if (cr.ok) { await remember(phone, userText, c.log.join("\n")); return; } // otherwise nothing was waiting: let the model answer honestly
+    if (cr.ok) { await remember(phone, userText, c.log.join("\n")); return; }
+    // No summary was waiting: the customer may mean the order they already placed.
+    const { data: lo } = await sb.from("orders").select("id,short_code,vendor_id,status").eq("customer_phone", phone).in("status", OPEN_ORDER_STATUSES).gte("created_at", new Date(Date.now() - 3 * 3600_000).toISOString()).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (lo?.status === "pending") {
+      await sendButtons(c, { body: tr(c, `Cancel order #${lo.short_code}? It hasn't been accepted yet.`, `بدك تلغي الطلب #${lo.short_code}؟ لسا ما انقبل.`), buttons: [{ id: `CANCEL|${lo.id}`, title: tr(c, "❌ Yes, cancel", "❌ أيوه، إلغاء") }, { id: `KEEP|${lo.id}`, title: tr(c, "Keep it", "خلّيه") }] });
+      await remember(phone, userText, c.log.join("\n")); return;
+    }
+    if (lo) { await sendText(c, tr(c, `The kitchen already started order #${lo.short_code}, so I can't cancel it myself. ${handoffLine(c)}`, `المطبخ بلّش بالطلب #${lo.short_code} فما فيني ألغيه لحالي. ${handoffLine(c)}`)); await remember(phone, userText, c.log.join("\n")); return; }
+    // nothing at all to cancel: let the model answer honestly
   }
   if (!reply && !loc && isUsualRequest(userText)) { // "the usual": the basket they order most often, re-priced by the server and still needing Confirm
     const { data: past } = await sb.from("orders").select("id,vendor_id,items,status,created_at").eq("customer_phone", phone).order("created_at", { ascending: false }).limit(30);
@@ -1061,7 +1199,7 @@ async function handleOrderDecision(c: Ctx, vendor: any, reply: { id: string; tit
   if (!tap) { await sendText(c, tr(c, "That order button isn't valid any more.", "هيدا الزر ما عاد صالح.")); return; }
   const { data: ord } = await sb.from("orders").select("id,short_code,vendor_id,customer_phone,status").eq("id", tap.orderId).maybeSingle();
   if (!ord || ord.vendor_id !== vendor.vendor_id) { await sendText(c, tr(c, "I can't find that order for your restaurant.", "ما لقيت هيدا الطلب عندك.")); return; }
-  const { data: upd } = await sb.from("orders").update({ status: tap.accept ? "accepted" : "rejected" }).eq("id", ord.id).eq("status", "pending").select("id");
+  const { data: upd } = await sb.from("orders").update({ status: tap.accept ? "accepted" : "rejected", customer_notified_status: tap.accept ? "accepted" : "rejected" }).eq("id", ord.id).eq("status", "pending").select("id");
   if (!upd?.length) { await sendText(c, tr(c, `Order #${ord.short_code} was already handled (${ord.status}) ✔️`, `الطلب #${ord.short_code} انعالج من قبل (${ord.status}) ✔️`)); return; }
   const notifies = isRealPhone(ord.customer_phone);
   await sendText(c, tap.accept
@@ -1223,7 +1361,8 @@ Deno.serve(async (req) => {
     const admin = normPhone(adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined;
     if (!dry) await purgeStale(); // retention: answered/expired voice transcripts after 24h, AI call log (customer phones) after 90 days
     const escalated = await runWatchdog({ pnid: DEFAULT_PNID, dry, out, admin });
-    return new Response(JSON.stringify(dry ? { escalated, out } : { escalated }), { status: 200, headers: { "content-type": "application/json" } });
+    const lifecycle = await runLifecycleSweep({ pnid: DEFAULT_PNID, dry, out }); // status messages the apps missed, vendor closed mid-order, sold-out offers
+    return new Response(JSON.stringify(dry ? { escalated, lifecycle, out } : { escalated, lifecycle }), { status: 200, headers: { "content-type": "application/json" } });
   }
   let body: any; try { body = await req.json(); } catch { return new Response("bad request", { status: 400 }); }
   const events = body?.batch === true && Array.isArray(body.data) ? body.data : [body];

@@ -16,6 +16,7 @@ WhatsApp-native food and delivery platform for the Shouf region, Lebanon. See `A
   | `demo-chat` | false | public website demo chat |
   | `claim-vendor` | true | vendor claim + OTP |
   | `merchant-ai` | true | merchant dashboard AI |
+  | `order-notify` | true | merchant/driver apps call it after a status change; WhatsApps the customer (accepted, preparing, on the way, delivered, cancelled) |
 - **Migrations** are in `supabase/migrations/`. The repo is the source of truth for functions; push to `main` touching `supabase/functions/**` deploys them (`.github/workflows/deploy-functions.yml`, secret `SUPABASE_ACCESS_TOKEN`).
 
 ## Constants (single source: `src/lib/config.ts`; mirrored in edge functions)

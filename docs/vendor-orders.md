@@ -16,3 +16,10 @@ Limits to know:
 - If the customer notice itself fails to send, `escalated_at` is cleared so the next scheduled run retries; a failed admin ping is only logged.
 
 Columns: `orders.vendor_notified_at` (card delivered), `orders.escalated_at`.
+
+## Customer lifecycle messages (flow item 4)
+- The kitchen / driver apps call the JWT-verified `order-notify` function after every status change; it checks the caller is staff for that order, then sends the customer a free-form WhatsApp message (accepted, preparing, on the way with the tracking link, delivered + a 1–5 star rating list, cancelled, rejected). Only inside the customer's 24h window. The scheduled `order-watchdog` job also runs a sweep as backup (every 5 min), so a failed call is retried. Each status is claimed atomically via `orders.customer_notified_status` (no duplicates).
+- The "order received" message has a **Cancel order** button; it works only while the order is still `pending` (the status flip is atomic against the kitchen's Accept). After accept the customer is told the team will help.
+- If the vendor closes or pauses while an order is still pending (>3 min), the customer gets Cancel / Keep waiting buttons.
+- If a dish sells out after confirm (`menu_items.available = false`), the customer gets one offer: swap for a close substitute (same section, ≤25% dearer; price and the new total come from the database, quantity kept, COD cap enforced) or cancel. Dishes with options get cancel-only. The vendor is told what changed.
+- Ratings go to `order_ratings`; 1–2 stars also ping `ADMIN_WHATSAPP_PHONE`.

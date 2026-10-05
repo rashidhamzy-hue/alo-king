@@ -152,6 +152,10 @@ function DriverApp({ uid }: { uid: string }) {
       return false;
     }
     if (data) upsert(data as unknown as Order);
+    if (patch.status)
+      void supabase.functions
+        .invoke("order-notify", { body: { order_id: o.id } })
+        .catch(() => undefined);
     void qc.invalidateQueries({ queryKey: ["cash", uid] });
     return true;
   }
