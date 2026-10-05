@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
-import { basketCardText, basketTapId, clampQty, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
+import { basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
@@ -147,7 +147,7 @@ const CTOOLS = [
   { name: "basket_set", description: "Change a dish already in a basket to an exact quantity, or quantity 0 to remove it. Use for 'make it 3', 'only one', 'remove the drink', 'no tawouk'.",
     input_schema: { type: "object", properties: { vendor_id: { type: "string" }, item_id: { type: "string" }, quantity: { type: "integer", description: "New total quantity; 0 removes the line" }, choices: { type: "array", items: { type: "object", properties: { group: { type: "string" }, option: { type: "string" } }, required: ["group", "option"] } } }, required: ["vendor_id", "item_id", "quantity"] } },
   { name: "basket_show", description: "Show the customer's basket(s) as cards with real prices, one per vendor. Use when they ask what is in their basket/order.", input_schema: { type: "object", properties: {} } },
-  { name: "basket_clear", description: "Empty one vendor's basket (vendor_id) or every basket (omit vendor_id). Also cancels any order summary waiting for confirmation for it.", input_schema: { type: "object", properties: { vendor_id: { type: "string" } } } },
+  { name: "basket_clear", description: "Empty one vendor's basket (vendor_id) or every basket (all=true, only when the customer clearly asked to empty everything). Also cancels any order summary waiting for confirmation for it.", input_schema: { type: "object", properties: { vendor_id: { type: "string" }, all: { type: "boolean" } } } },
   { name: "cancel_pending", description: "Cancel an order summary that is waiting for the customer's Confirm (the basket is kept). Use when the customer says cancel / never mind / changed my mind.", input_schema: { type: "object", properties: {} } },
   { name: "checkout", description: "Turn the basket(s) into order summary card(s) with a Confirm button: one summary per vendor, each with its own delivery fee. Call when the customer wants to order and you have their name, village and landmark. Server prices everything. After it returns ok, say nothing more.",
     input_schema: { type: "object", properties: { vendor_ids: { type: "array", items: { type: "string" }, description: "Only these vendors' baskets; omit for all" }, customer_name: { type: "string" }, delivery_village: { type: "string" }, building_landmark: { type: "string" }, notes: { type: "string" } }, required: ["customer_name", "delivery_village", "building_landmark"] } },
@@ -212,13 +212,15 @@ async function prepareOrder(c: Ctx, phone: string, input: any): Promise<string> 
   if (error) return JSON.stringify({ error: error.message });
   c.cartThisTurn = true;
   await sb.from("customers").upsert({ phone_number: phone, full_name: input.customer_name, village: input.delivery_village, last_address: input.building_landmark }, { onConflict: "phone_number" });
-  const rowsTxt = b.lines.map((l: any) => {
+  const rowList = b.lines.map((l: any) => {
     const opts = l.choices?.length ? ` (${l.choices.map((x: any) => x.option).join(", ")})` : "";
-    return `${l.quantity} × ${l.name_en}${opts} — ${usd(l.unit_price_usd * l.quantity)}`;
-  }).join("\n");
-  const body = tr(c,
+    return `${l.quantity} × ${l.name_en}${opts} — ${both(l.unit_price_usd * l.quantity)}`;
+  });
+  const bodyWith = (rowsTxt: string) => tr(c,
     `*🧾 YOUR ORDER — ${b.vendorName}*\n\n${rowsTxt}\n\n━━━━━━━━━━━━\nSubtotal   ${both(b.subtotal)}\nDelivery   ${both(DELIVERY_FEE_USD)}\n*TOTAL   ${both(b.total)}*\n━━━━━━━━━━━━\n\n📍 ${addr}\n👤 ${input.customer_name}\n💵 Cash on delivery${b.prof.prep_time_min ? `\n⏱ ~${b.prof.prep_time_min} min prep` : ""}`,
     `*🧾 طلبك — ${b.vendorName}*\n\n${rowsTxt}\n\n━━━━━━━━━━━━\nالمجموع الفرعي   ${both(b.subtotal)}\nالتوصيل   ${both(DELIVERY_FEE_USD)}\n*الإجمالي   ${both(b.total)}*\n━━━━━━━━━━━━\n\n📍 ${addr}\n👤 ${input.customer_name}\n💵 الدفع عند الاستلام${b.prof.prep_time_min ? `\n⏱ ~${b.prof.prep_time_min} دقيقة تحضير` : ""}`);
+  // WhatsApp clips bodies at 1024 chars: size the item rows to what is left after the fixed lines so TOTAL, address and payment are never cut
+  const body = bodyWith(fitRows(rowList, Math.max(120, 1000 - bodyWith("").length), !!c.ar));
   await sendButtons(c, { body, headerText: tr(c, "Order summary", "ملخص الطلب"), buttons: [{ id: `CONFIRM|${cart.id}`, title: tr(c, "✅ Confirm Order", "✅ تأكيد الطلب") }, { id: `EDIT|${cart.id}`, title: tr(c, "✏️ Change Order", "✏️ تعديل الطلب") }, { id: "LOC", title: tr(c, "📍 Change Location", "📍 تغيير الموقع") }] });
   return JSON.stringify({ ok: true, summary_sent_with_confirm_button: true, instruction: "Summary card already delivered. Do not repeat it. Reply with nothing." });
 }
@@ -240,10 +242,13 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
     await sendText(c, b.error ? `Quick update: ${b.error}. Let's adjust your order — what would you like to change?` : "A price just changed, so I need to re-confirm your order. One moment — tell me to proceed and I'll resend the summary.");
     return "rebuild needed";
   }
+  if (cart.basket_id) { // claim the basket atomically so a double tap / retry can never place two orders from one basket
+    const { data: bc } = await sb.from("baskets").update({ status: "ordered", updated_at: new Date().toISOString() }).eq("id", cart.basket_id).eq("status", "active").select("id");
+    if (!bc?.length) { await sb.from("carts").update({ status: "expired" }).eq("id", cart.id); await sendText(c, tr(c, "That basket was already ordered 🙏", "هالسلة انطلبت من قبل 🙏")); return "basket already ordered"; }
+  }
   const { data: cust } = await sb.from("customers").select("full_name").eq("phone_number", phone).maybeSingle();
   const { data: order, error } = await sb.from("orders").insert({ customer_phone: phone, customer_name: cust?.full_name ?? "Customer", vendor_id: cart.vendor_id, items: b.lines, subtotal_usd: b.subtotal, delivery_fee_usd: DELIVERY_FEE_USD, total_usd: b.total, payment_method: "cod", payment_status: "unpaid", status: "pending", delivery_village: cart.village, building_landmark: cart.address, notes: cart.notes }).select("id,short_code").single();
-  if (error) { await sb.from("carts").update({ status: "pending" }).eq("id", cart.id); await sendText(c, "Small hiccup placing that — please tap Confirm again in a moment 🙏"); return "order error"; }
-  if (cart.basket_id) await sb.from("baskets").update({ status: "ordered", updated_at: new Date().toISOString() }).eq("id", cart.basket_id);
+  if (error) { await sb.from("carts").update({ status: "pending" }).eq("id", cart.id); if (cart.basket_id) await sb.from("baskets").update({ status: "active" }).eq("id", cart.basket_id); await sendText(c, "Small hiccup placing that — please tap Confirm again in a moment 🙏"); return "order error"; }
   const track = TRACK_BASE ? `\n🔗 Track live: ${TRACK_BASE}/${order.id}` : "";
   await sendText(c, `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\nThe kitchen is confirming it now — I'll keep you posted. 👑`);
   try { await notifyVendor(c, order, b, cart, cust?.full_name ?? "Customer"); } catch (e) { console.error("vendor notify failed", e); }
@@ -274,10 +279,11 @@ function nearestVillage(lat: number, lng: number, rows: any[]): string | null {
 // ---------- BASKETS (one active basket per customer per vendor; lines store ids/quantities/options, never prices) ----------
 const MAX_BASKETS = 3, MAX_LINES = 15;
 
-async function expirePending(phone: string, vendorId?: string) {
+async function expirePending(phone: string, vendorId?: string): Promise<number> {
   let q = sb.from("carts").update({ status: "expired" }).eq("customer_phone", phone).eq("status", "pending");
   if (vendorId) q = q.eq("vendor_id", vendorId);
-  await q;
+  const { data } = await q.select("id");
+  return data?.length ?? 0;
 }
 async function activeBasket(phone: string, vendorId: string) {
   const { data } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("vendor_id", vendorId).eq("status", "active").maybeSingle();
@@ -310,8 +316,7 @@ async function sendBasketCard(c: Ctx, basketId: string, vendorId: string) {
   const { data: v } = await sb.from("vendors").select("name_en").eq("vendor_id", vendorId).maybeSingle();
   if (!p.lines.length) { await sendText(c, tr(c, `Your ${v?.name_en ?? "basket"} basket is empty. What would you like? 🍽`, `سلة ${v?.name_en ?? ""} فاضية. شو بدك؟ 🍽`)); c.rich++; return; }
   await sendButtons(c, { body: basketCardText({ vendorName: v?.name_en ?? "", lines: p.lines, subtotal: p.subtotal, deliveryFee: DELIVERY_FEE_USD, both, ar: !!c.ar, unavailable: p.gone.map((g) => g.name) }),
-    buttons: [{ id: basketTapId("CHECKOUT", basketId), title: tr(c, "✅ Checkout", "✅ إتمام الطلب") }, { id: `MENU|${vendorId}`, title: tr(c, "➕ Add more", "➕ زيد أصناف") }, { id: basketTapId("BCLR", basketId), title: tr(c, "🗑 Clear basket", "🗑 فضي السلة") }] });
-  c.rich++;
+    buttons: [{ id: basketTapId("CHECKOUT", basketId), title: tr(c, "✅ Checkout", "✅ إتمام الطلب") }, { id: `MENU|${vendorId}`, title: tr(c, "➕ Add more", "➕ زيد أصناف") }, { id: basketTapId("BCLR", basketId), title: tr(c, "🗑 Clear basket", "🗑 فضي السلة") }] }); // sendButtons already counts it as a rich message
 }
 async function allBaskets(phone: string) {
   const { data } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("status", "active").order("created_at");
@@ -375,13 +380,14 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
     return JSON.stringify({ ok: true, basket_card_sent: true, instruction: "Basket card(s) delivered. Reply with nothing." });
   }
   if (name === "basket_clear") {
+    if (!input.vendor_id && input.all !== true) return JSON.stringify({ error: "say which vendor's basket to clear, or pass all=true when the customer clearly asked to empty everything" });
     const bs = (await allBaskets(phone)).filter((b) => !input.vendor_id || b.vendor_id === input.vendor_id);
     for (const b of bs) await clearBasketById(phone, b.id);
-    await sendText(c, bs.length ? tr(c, "Basket cleared 🗑 Nothing was ordered.", "تم تفضية السلة 🗑 ما انطلب شي.") : tr(c, "Your basket is already empty 🧺", "سلتك فاضية 🧺")); c.rich++;
+    await sendText(c, bs.length ? tr(c, "Basket cleared 🗑", "تم تفضية السلة 🗑") : tr(c, "Your basket is already empty 🧺", "سلتك فاضية 🧺")); c.rich++;
     return JSON.stringify({ ok: true, cleared: bs.length, instruction: "Customer already notified. Reply with nothing." });
   }
   if (name === "cancel_pending") {
-    await expirePending(phone);
+    if (!(await expirePending(phone))) return JSON.stringify({ ok: false, nothing_waiting: true, instruction: "No order summary was waiting for confirmation, so nothing was cancelled here. If the customer already confirmed an order, do NOT claim it was cancelled: say a member of the Alo King team will take care of it personally. Otherwise ask what they want." });
     await sendText(c, tr(c, "Cancelled ❌ Nothing was ordered. Your basket is still here if you want it.", "تم الإلغاء ❌ ما انطلب شي. سلتك لسا موجودة إذا بدك ياها.")); c.rich++;
     return JSON.stringify({ ok: true, instruction: "Customer already notified. Reply with nothing." });
   }
@@ -390,14 +396,19 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
     const bs = (await allBaskets(phone)).filter((b) => !wanted || wanted.includes(b.vendor_id)).slice(0, MAX_BASKETS);
     if (!bs.length) return JSON.stringify({ error: "basket is empty; add dishes first with basket_add" });
     const results: any[] = [];
+    const who = { customer_name: cleanField(input.customer_name, 80), delivery_village: cleanField(input.delivery_village, 80), building_landmark: cleanField(input.building_landmark, 200), notes: cleanField(input.notes, 200) || undefined };
+    if (!who.customer_name || !who.delivery_village || !who.building_landmark) return JSON.stringify({ error: "name, village and landmark are required; ask the customer for what is missing" });
     for (const b of bs) {
-      const lines = await basketLines(b.id);
+      let lines = await basketLines(b.id);
+      const pr = await priceBasket(b.vendor_id, lines);
+      if (pr.gone.length) { await sb.from("basket_lines").delete().in("id", pr.gone.map((g) => g.line.id)); lines = lines.filter((l) => !pr.gone.some((g) => g.line.id === l.id)); results.push({ vendor_id: b.vendor_id, note: `removed unavailable: ${pr.gone.map((g) => g.name).join(", ")}` }); }
       if (!lines.length) continue;
       const items = lines.map((l) => ({ item_id: l.item_id, quantity: l.quantity, choices: l.choices ?? [] }));
-      const r = JSON.parse(await prepareOrder(c, phone, { vendor_id: b.vendor_id, basket_id: b.id, items, customer_name: input.customer_name, delivery_village: input.delivery_village, building_landmark: input.building_landmark, notes: input.notes }));
+      const r = JSON.parse(await prepareOrder(c, phone, { vendor_id: b.vendor_id, basket_id: b.id, items, ...who }));
       results.push({ vendor_id: b.vendor_id, ...(r.error ? { error: r.error } : { ok: true }) });
     }
     const errs = results.filter((r) => r.error);
+    if (!results.some((r) => r.ok)) return JSON.stringify({ ok: false, results, instruction: "No summary was sent. Explain in one short line and ask how to proceed." });
     return JSON.stringify(errs.length ? { ok: results.length > errs.length, results, instruction: "Summary cards were sent for the ok ones. Explain each error in one short line." } : { ok: true, summaries_sent: results.length, instruction: "Summary card(s) already delivered, each with its own delivery fee. Do not repeat them. Reply with nothing." });
   }
   return JSON.stringify({ error: "unknown tool" });
@@ -504,7 +515,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       if (bt.kind === "BASKET") await basketTool(c, phone, "basket_show", {});
       else if (bt.kind === "BCLR") {
         const done = await clearBasketById(phone, bt.basketId!);
-        await sendText(c, done ? tr(c, "Basket cleared 🗑 Nothing was ordered.", "تم تفضية السلة 🗑 ما انطلب شي.") : tr(c, "That basket is already gone 🧺", "هالسلة ما عادت موجودة 🧺"));
+        await sendText(c, done ? tr(c, "Basket cleared 🗑", "تم تفضية السلة 🗑") : tr(c, "That basket is already gone 🧺", "هالسلة ما عادت موجودة 🧺"));
       } else {
         const { data: bk } = await sb.from("baskets").select("id,vendor_id").eq("id", bt.basketId!).eq("customer_phone", phone).eq("status", "active").maybeSingle();
         const { data: pf } = await sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle();
@@ -539,7 +550,8 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   }
   if (!userText) return;
   if (!reply && !loc && isCancelText(userText)) { // deterministic: a typed cancel always withdraws waiting summaries (the basket stays)
-    await basketTool(c, phone, "cancel_pending", {}); await remember(phone, userText, c.log.join("\n")); return;
+    const cr = JSON.parse(await basketTool(c, phone, "cancel_pending", {}));
+    if (cr.ok) { await remember(phone, userText, c.log.join("\n")); return; } // otherwise nothing was waiting: let the model answer honestly
   }
   // Greeting from a returning customer → one-tap reorder card; typed "reorder" → straight to the summary (the customer still has to confirm)
   if (!reply && !loc && (isGreeting(userText) || isReorderRequest(userText))) {

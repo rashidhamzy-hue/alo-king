@@ -30,7 +30,7 @@ export function parseBasketTap(id: string): BasketTap | null {
 }
 
 export function basketCardText(o: { vendorName: string; lines: CardLine[]; subtotal: number; deliveryFee: number; both: (n: number) => string; ar: boolean; unavailable?: string[] }): string {
-  const rows = o.lines.map((l) => `${l.quantity} × ${l.name}${l.choices.length ? ` (${l.choices.join(", ")})` : ""} — ${o.both(l.lineTotal)}`).join("\n");
+  const rows = fitRows(o.lines.map((l) => `${l.quantity} × ${l.name}${l.choices.length ? ` (${l.choices.join(", ")})` : ""} — ${o.both(l.lineTotal)}`), 620, o.ar);
   const gone = o.unavailable?.length ? `\n\n${o.ar ? "⚠️ ما عاد متوفر (انشال):" : "⚠️ No longer available (removed):"} ${o.unavailable.join(", ")}` : "";
   return o.ar
     ? `*🧺 سلتك — ${o.vendorName}*\n\n${rows}\n\n━━━━━━━━━━━━\nالمجموع الفرعي   ${o.both(o.subtotal)}\nالتوصيل   ${o.both(o.deliveryFee)} (بينضاف عند الدفع)${gone}`
@@ -40,5 +40,24 @@ export function basketCardText(o: { vendorName: string; lines: CardLine[]; subto
 /** A short, unambiguous "cancel" message (not "cancel the soft drinks", which the model handles). */
 export function isCancelText(t: string): boolean {
   const s = String(t ?? "").trim().toLowerCase().replace(/[.!؟?,،]+$/g, "");
-  return /^(cancel( it| (my )?(order|everything|that))?|never ?mind|forget it|cancel,? (i )?changed my mind|الغي( الطلب)?|إلغاء|الغاء|كنسل|لا ?بدي|خلص ?لا)$/i.test(s) || /^cancel,\s/i.test(s);
+  return /^(cancel( it| (my )?(order|everything|that))?|never ?mind|forget it|cancel,? (i )?changed my mind|الغي( الطلب)?|إلغاء|الغاء|كنسل|لا ?بدي|خلص ?لا)$/i.test(s);
+}
+
+/** Join card rows so the whole message stays inside `budget` chars: overflow rows collapse into "+k more items". */
+export function fitRows(rows: string[], budget: number, ar: boolean): string {
+  if (rows.join("\n").length <= budget) return rows.join("\n");
+  const more = (k: number) => (ar ? `… +${k} أصناف كمان` : `… +${k} more items`);
+  const kept: string[] = [];
+  let len = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const tail = more(rows.length - i - 1).length + 1;
+    if (len + rows[i].length + 1 + tail > budget && i < rows.length) break;
+    kept.push(rows[i]); len += rows[i].length + 1;
+  }
+  return [...kept, more(rows.length - kept.length)].join("\n");
+}
+
+/** Model-supplied free text (name, village, landmark, notes): one line, trimmed, length-clamped. */
+export function cleanField(v: unknown, max: number): string {
+  return String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 }

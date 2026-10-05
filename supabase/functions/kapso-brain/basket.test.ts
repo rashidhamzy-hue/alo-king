@@ -61,3 +61,32 @@ describe("isCancelText", () => {
   it.each(["cancel", "Cancel!", "cancel my order", "never mind", "cancel, I changed my mind", "الغي الطلب", "كنسل"])("%s cancels", (t) => expect(isCancelText(t)).toBe(true));
   it.each(["cancel the soft drinks", "I want 2 juices", "don't cancel", "yes"])("%s does not", (t) => expect(isCancelText(t)).toBe(false));
 });
+
+import { cleanField, fitRows } from "./basket";
+describe("fitRows", () => {
+  it("keeps everything when it fits", () => expect(fitRows(["a", "b"], 100, false)).toBe("a\nb"));
+  it("collapses overflow into a '+k more' line and stays within budget (English)", () => {
+    const rows = Array.from({ length: 15 }, (_, i) => `${i + 1} × Chicken shawarma sandwich with garlic — $4.50 · 402,750 LBP`);
+    const out = fitRows(rows, 400, false);
+    expect(out.length).toBeLessThanOrEqual(400);
+    expect(out).toMatch(/\+\d+ more/);
+    expect(out.startsWith("1 × Chicken")).toBe(true);
+  });
+  it("collapses in Arabic", () => {
+    const rows = Array.from({ length: 15 }, (_, i) => `${i + 1} × ساندويش شاورما دجاج بالثوم — $4.50 · 402,750 LBP`);
+    const out = fitRows(rows, 300, true);
+    expect(out.length).toBeLessThanOrEqual(300);
+    expect(out).toMatch(/\+\d+ /);
+    expect(out).toContain("أصناف");
+  });
+});
+describe("cleanField", () => {
+  it("strips newlines, collapses spaces and clamps", () => {
+    expect(cleanField("  Sami\n\nHamzy   Jr ", 80)).toBe("Sami Hamzy Jr");
+    expect(cleanField("x".repeat(500), 200)).toHaveLength(200);
+    expect(cleanField(undefined, 80)).toBe("");
+  });
+});
+describe("isCancelText stays exact", () => {
+  it("does not swallow partial cancels", () => expect(isCancelText("cancel, but keep the burger")).toBe(false));
+});
