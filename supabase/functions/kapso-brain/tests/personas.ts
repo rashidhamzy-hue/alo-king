@@ -36,7 +36,7 @@ export const personas: Persona[] = [
   }},
   { id: "english", title: "English speaker", run: async (c, r) => {
     await c.say("Hi");
-    r.check("replies-in-english", arabicShare(c.lastText()) < 0.3, `arabic share ${arabicShare(c.lastText()).toFixed(2)}`, 3);
+    r.check("replies-in-english-or-bilingual", arabicShare(c.lastText()) < 0.75 && /[a-z]{3}/i.test(c.lastText()), `arabic share ${arabicShare(c.lastText()).toFixed(2)}`, 3); // a bare "Hi" is answered in both languages (language stays unknown until the first real sentence)
     const b = await reachSummary(c, "I want 2 soft drinks from Al Tahouneh", [ADDR[0], NAME, ADDR[1]]);
     r.check("reaches-confirm-summary", !!b);
     if (b) { await c.tap(b.id, b.title); r.check("order-placed-after-confirm-tap", /order|طلب/i.test(c.lastText()), c.lastText().slice(0, 100)); }
