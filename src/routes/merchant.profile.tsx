@@ -14,6 +14,7 @@ import { TagInput } from "@/components/shared/TagInput";
 import { PhotoTips } from "@/components/shared/PhotoTips";
 import { CompletenessRing } from "@/components/shared/CompletenessRing";
 import { LazyVendorMap } from "@/components/maps/LazyVendorMap";
+import { ManageByWhatsAppCard } from "@/components/merchant/ManageByWhatsApp";
 import { savePrivate, saveProfile, useCompleteness, useMerchant, useRefreshMerchant, useVendorPrivate, useVendorProfile, useVendorRow } from "@/components/merchant/context";
 import { supabase } from "@/lib/supabase";
 import { aiFriendly, invokeFn, resizeImage, uploadMedia } from "@/lib/edge";
@@ -84,6 +85,7 @@ function ProfilePage() {
         </div>
         <CompletenessRing value={cQ.data?.profile_score ?? 0} size={90} label={L("Profile", "الصفحة")} />
       </div>
+      <ManageByWhatsAppCard vendorId={vendorId} />
       <BasicsSection p={p} />
       <HoursSection p={p} />
       <DeliverySection p={p} />
