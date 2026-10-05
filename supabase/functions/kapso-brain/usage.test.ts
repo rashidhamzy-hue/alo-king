@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap } from "./usage";
+import { isStagingPath, isTestPhone, tightenBudget, beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap } from "./usage";
 
 describe("estimateUsd (per-MTok prices, cache read 0.1x, cache write 1.25x)", () => {
   it("prices Sonnet 5.5 input/output", () => {
@@ -73,5 +73,31 @@ describe("prompt caching shape", () => {
     expect(out[0]).toEqual({ name: "a" });
     expect(tools[2]).toEqual({ name: "c" });
     expect(cachedTools([])).toEqual([]);
+  });
+});
+
+describe("staging-only guards", () => {
+  it("staging path must END with the staging function name", () => {
+    expect(isStagingPath("/functions/v1/kapso-brain-test")).toBe(true);
+    expect(isStagingPath("/functions/v1/kapso-brain-test/")).toBe(true);
+    expect(isStagingPath("/functions/v1/kapso-brain")).toBe(false);
+    expect(isStagingPath("/functions/v1/kapso-brain/kapso-brain-test")).toBe(false);
+    expect(isStagingPath("/kapso-brain-test/x")).toBe(false);
+    expect(isStagingPath("")).toBe(false);
+  });
+  it("a budget override can only tighten", () => {
+    expect(tightenBudget(0.01, 5)).toBe(0.01);
+    expect(tightenBudget(9999, 5)).toBe(5);
+    expect(tightenBudget(0, 5)).toBeUndefined();
+    expect(tightenBudget(NaN, 5)).toBeUndefined();
+    expect(tightenBudget(-1, 5)).toBeUndefined();
+  });
+  it("test phones are 12-15 digits starting 961700000; real 11-digit numbers never match", () => {
+    expect(isTestPhone("96170000068301")).toBe(true);
+    expect(isTestPhone("961700000999")).toBe(true);
+    expect(isTestPhone("96170000099")).toBe(false); // 11 digits: a real mobile number
+    expect(isTestPhone("96170123456")).toBe(false);
+    expect(isTestPhone("961700000999999999")).toBe(false);
+    expect(isTestPhone("961700000abc")).toBe(false);
   });
 });

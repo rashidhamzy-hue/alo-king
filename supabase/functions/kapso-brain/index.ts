@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
-import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
+import { isStagingPath, isTestPhone, tightenBudget, beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
 import { clampInteractive, META } from "../_shared/meta-limits.ts";
 import { CHEAP_TOOL_NAMES, cheapRouterEnabled, isDeclaredTool, routeTurn } from "./router.ts";
 import { adminCommand, handoffContext, HANDOFF_FIRST_MINUTES, HANDOFF_HOURS, hasRelayableText, isBotRequest, isHumanRequest, relayText, shouldRelay } from "./handoff.ts";
@@ -1515,8 +1515,8 @@ Deno.serve(async (req) => {
   const isSpend = job === "spend";
   const st = req.headers.get("x-selftest");
   // The staging copy (kapso-brain-test) is for dry-run tests only: it never accepts non-selftest traffic.
-  if (new URL(req.url).pathname.includes("kapso-brain-test") && !st) return new Response("unauthorized", { status: 401 });
-  if ((isInspect || isSpend) && (!st || !new URL(req.url).pathname.includes("kapso-brain-test"))) return new Response(st ? "not found" : "unauthorized", { status: st ? 404 : 401 }); // staging only: PII read path
+  if (isStagingPath(new URL(req.url).pathname) && !st) return new Response("unauthorized", { status: 401 });
+  if ((isInspect || isSpend) && (!st || !isStagingPath(new URL(req.url).pathname))) return new Response(st ? "not found" : "unauthorized", { status: st ? 404 : 401 }); // staging only: PII read path
   if (st) {
     const { data: t } = await sb.from("selftest_tokens").select("token").eq("token", st).gt("expires_at", new Date().toISOString()).maybeSingle();
     if (!t) return new Response("unauthorized", { status: 401 });
@@ -1529,17 +1529,18 @@ Deno.serve(async (req) => {
     if (given !== WEBHOOK_SECRET) return new Response("unauthorized", { status: 401 });
   }
   // Staging dry-run only: lets tests act as the admin without the real admin number (a secret). Ignored on production.
-  const adminOverride = dry && new URL(req.url).pathname.includes("kapso-brain-test") ? req.headers.get("x-selftest-admin") : null;
-  const onStaging = dry && new URL(req.url).pathname.includes("kapso-brain-test");
+  const adminOverride = dry && isStagingPath(new URL(req.url).pathname) ? req.headers.get("x-selftest-admin") : null;
+  const onStaging = dry && isStagingPath(new URL(req.url).pathname);
   const mh = onStaging ? req.headers.get("x-selftest-model") : null, bh = onStaging ? Number(req.headers.get("x-selftest-budget")) : 0;
-  const stagingOverride: StagingOverride | undefined = onStaging ? { model: mh && OVERRIDE_MODELS.includes(mh) ? mh : undefined, cheap: req.headers.get("x-selftest-cheap") === "true" ? true : undefined, budget: bh > 0 ? bh : undefined } : undefined;
+  const stagingOverride: StagingOverride | undefined = onStaging ? { model: mh && OVERRIDE_MODELS.includes(mh) ? mh : undefined, cheap: req.headers.get("x-selftest-cheap") === "true" ? true : undefined, budget: tightenBudget(bh, DAILY_AI_BUDGET_USD) } : undefined;
   if (isSpend) {
     // Test-only: AI spend of the test phones since a point in time (tokens and USD only, no content), so a capped live run can stop itself.
     const since = new URL(req.url).searchParams.get("since") ?? new Date(Date.now() - 3600_000).toISOString();
-    const { data: rows } = await sb.from("ai_call_log").select("id,created_at,customer_phone,model,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens,est_usd,order_id").like("customer_phone", "961700000%").gte("created_at", since).order("id").limit(500);
-    const spent = (rows ?? []).reduce((n: number, r: any) => n + Number(r.est_usd), 0);
-    const { data: day } = await sb.rpc("ai_spend", { p_day: beirutDay() });
-    return new Response(JSON.stringify({ spent, calls: rows?.length ?? 0, spent_today_all: Number(day ?? 0), rows: rows ?? [] }), { status: 200, headers: { "content-type": "application/json" } });
+    const { data: all, error } = await sb.from("ai_call_log").select("id,created_at,customer_phone,model,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens,est_usd,order_id").like("customer_phone", "961700000%").gte("created_at", since).order("id").limit(5000);
+    if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "content-type": "application/json" } }); // never report "0 spent" when the query failed
+    const rows = (all ?? []).filter((r: any) => isTestPhone(String(r.customer_phone))); // the same strict test-phone rule as inspect
+    const spent = rows.reduce((n: number, r: any) => n + Number(r.est_usd), 0);
+    return new Response(JSON.stringify({ spent, calls: rows.length, rows }), { status: 200, headers: { "content-type": "application/json" } });
   }
   if (isInspect) {
     // Test-only: dump the state of a TEST customer (phones 961700000…) so persona tests can assert on the database.

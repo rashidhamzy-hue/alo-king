@@ -30,7 +30,7 @@ async function call(qs: string, body: unknown, headers: Record<string, string> =
   try { return JSON.parse(txt); } catch { throw new Error(`${FN}${qs} said ${res.status}: ${txt.slice(0, 160)}`); }
 }
 export async function spend() { return call(`?job=spend&since=${encodeURIComponent(state.startedAt)}`, {}); }
-async function guard() { const s = await spend(); if (s.spent >= STOP_AT) { save(); throw new Error(`ABORT: estimated spend $${s.spent.toFixed(4)} reached the stop line $${STOP_AT.toFixed(2)} (cap $${CAP})`); } return s; }
+async function guard() { const s = await spend(); if (typeof s.spent !== "number" || Number.isNaN(s.spent)) { save(); throw new Error(`ABORT: spend job returned no usable number: ${JSON.stringify(s).slice(0, 120)}`); } if (s.spent >= STOP_AT) { save(); throw new Error(`ABORT: estimated spend $${s.spent.toFixed(4)} reached the stop line $${STOP_AT.toFixed(2)} (cap $${CAP})`); } return s; }
 
 let seq = 0;
 const wamid = () => `wamid.live.${Date.now()}.${seq++}`;
