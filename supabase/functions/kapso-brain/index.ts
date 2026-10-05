@@ -13,9 +13,9 @@ import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, 
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
 import { buildReadReceipt, shouldAck } from "./receipts.ts";
-import { extractVendorHint, normText, prepareIndex, rankItems, skeleton, splitSegments, tokens, type IndexItem } from "./resolve.ts";
+import { extractVendorHint, normText, prepareIndex, resolveSegments, skeleton, tokens, type IndexItem } from "./resolve.ts";
 import { agentLoop } from "./loop.ts";
-import { HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
+import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
 
@@ -487,7 +487,7 @@ async function addLine(phone: string, vendorId: string, itemId: string, qty: num
 async function basketTool(c: Ctx, phone: string, name: string, input: any): Promise<string> {
   if (name === "add_items") {
     const vendorId = String(input.vendor_id ?? "");
-    const wanted = (Array.isArray(input.items) ? input.items : []).slice(0, 10).map((x: any) => ({ itemId: String(x?.item_id ?? ""), qty: clampQty(x?.quantity), choices: (Array.isArray(x?.choices) ? x.choices : []).map((k: any) => ({ group: String(k.group), option: String(k.option) })) as Choice[] }));
+    const wanted = (Array.isArray(input.items) ? input.items : []).slice(0, 10).map((x: any) => ({ itemId: String(x?.item_id ?? ""), qty: clampQty(x?.quantity), choices: (Array.isArray(x?.choices) ? x.choices : []).filter((k: any) => k && k.group != null && k.option != null).map((k: any) => ({ group: String(k.group), option: String(k.option) })) as Choice[] }));
     if (!vendorId || !wanted.length) return JSON.stringify({ error: "vendor_id and at least one item are required" });
     const added: string[] = [], failed: { item_id: string; name?: string; error: string }[] = []; let basketId = "";
     for (const w of wanted) { // sequential: lines of one basket must not race each other
@@ -497,7 +497,7 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
     }
     if (!added.length) return JSON.stringify({ ok: false, failed, instruction: "Nothing was added. Explain in one short line and ask what is missing (e.g. required options) or offer an alternative." });
     // a failure note goes BEFORE the card: nothing is ever sent after a card
-    if (failed.length) await sendText(c, tr(c, `I couldn't add: ${failed.map((f) => f.name ?? f.item_id).join(", ")} 🙏 (${failed[0].error.slice(0, 80)})`, `ما قدرت أضيف: ${failed.map((f) => f.name ?? f.item_id).join("، ")} 🙏`));
+    if (failed.length) await sendText(c, failed.slice(0, 3).map((f) => tr(c, `Couldn't add *${f.name ?? "that dish"}*: ${addFailureReason(f.error, false)} 🙏`, `ما قدرت أضيف *${f.name ?? "الصنف"}*: ${addFailureReason(f.error, true)} 🙏`)).join("\n"));
     await sendBasketCard(c, basketId, vendorId);
     c.addon = { basketId, vendorId };
     return JSON.stringify({ ok: true, added: added.length, failed: failed.length, basket_card_sent: true, terminal: true, instruction: "One basket card already delivered with real prices. Reply with nothing." });
@@ -571,47 +571,55 @@ async function basketTool(c: Ctx, phone: string, name: string, input: any): Prom
 
 // ---------- RETRIEVAL-FIRST: resolve what the customer typed against the live menu before the model is called ----------
 // One in-memory index of every orderable dish (id, names, vendor, section): ~5k rows, refreshed every 5 minutes per isolate. Prices are never taken from it.
-let menuIndex: { at: number; items: IndexItem[]; vendors: { vendor_id: string; w: string; s: string }[] } | null = null;
-const MENU_INDEX_TTL_MS = 5 * 60_000;
-async function loadMenuIndex(): Promise<NonNullable<typeof menuIndex>> {
-  if (menuIndex && Date.now() - menuIndex.at < MENU_INDEX_TTL_MS) return menuIndex;
+type MenuIndex = { at: number; items: IndexItem[]; vendors: { vendor_id: string; w: string; s: string }[] };
+let menuIndex: MenuIndex | null = null, menuIndexLoading: Promise<MenuIndex> | null = null, menuIndexFailedAt = 0;
+const MENU_INDEX_TTL_MS = 5 * 60_000, MENU_INDEX_RETRY_MS = 60_000, MENU_INDEX_PAGES = 12;
+async function fetchMenuIndex(): Promise<MenuIndex> {
   const [vr, ...pages] = await Promise.all([
     sb.from("vendors").select("vendor_id,name_en,name_ar,is_live,is_active").eq("is_active", true).limit(2000),
-    ...Array.from({ length: 10 }, (_, i) => sb.from("menu_items").select("item_id,vendor_id,item_name_en,item_name_ar,section,price_usd,is_popular").eq("available", true).gt("price_usd", 0).order("item_id").range(i * 1000, i * 1000 + 999)), // PostgREST returns at most 1000 rows per request
+    ...Array.from({ length: MENU_INDEX_PAGES }, (_, i) => sb.from("menu_items").select("item_id,vendor_id,item_name_en,item_name_ar,section,price_usd,is_popular").eq("available", true).gt("price_usd", 0).order("vendor_id").order("item_id").range(i * 1000, i * 1000 + 999)), // PostgREST returns at most 1000 rows per request; (vendor_id, item_id) is unique, so parallel pages cannot overlap
   ]);
   if (vr.error || pages.some((pg) => pg.error)) throw new Error(`menu index load failed: ${vr.error?.message ?? pages.find((pg) => pg.error)?.error?.message}`);
+  if ((pages[pages.length - 1].data ?? []).length > 0) console.error("menu index: the last page is not empty, some dishes are not searchable; raise MENU_INDEX_PAGES");
   const vmap = new Map<string, any>((vr.data ?? []).filter((v: any) => DEMO_MODE || v.is_live).map((v: any) => [v.vendor_id, v]));
-  const rows = pages.flatMap((pg) => pg.data ?? []);
-  if ((pages[pages.length - 1].data ?? []).length === 1000) console.error("menu index: the last page was full, some dishes are not searchable; add pages");
-  const items: IndexItem[] = rows.filter((r: any) => vmap.has(r.vendor_id)).map((r: any) => { const v = vmap.get(r.vendor_id); return { item_id: r.item_id, vendor_id: r.vendor_id, vendor_name: v.name_en ?? "", vendor_name_ar: v.name_ar ?? "", name_en: r.item_name_en ?? "", name_ar: r.item_name_ar ?? "", section: r.section ?? "", price_usd: Number(r.price_usd), is_popular: !!r.is_popular }; });
+  const items: IndexItem[] = pages.flatMap((pg) => pg.data ?? []).filter((r: any) => vmap.has(r.vendor_id)).map((r: any) => { const v = vmap.get(r.vendor_id); return { item_id: r.item_id, vendor_id: r.vendor_id, vendor_name: v.name_en ?? "", vendor_name_ar: v.name_ar ?? "", name_en: r.item_name_en ?? "", name_ar: r.item_name_ar ?? "", section: r.section ?? "", price_usd: Number(r.price_usd), is_popular: !!r.is_popular }; });
   prepareIndex(items);
-  menuIndex = { at: Date.now(), items, vendors: [...vmap.values()].map((v: any) => ({ vendor_id: v.vendor_id, w: normText(v.name_en ?? ""), s: skeleton(v.name_en ?? "") })) };
-  return menuIndex;
+  return { at: Date.now(), items, vendors: [...vmap.values()].map((v: any) => ({ vendor_id: v.vendor_id, w: normText(v.name_en ?? ""), s: skeleton(v.name_en ?? "") })) };
+}
+/** Cached 5 minutes; concurrent cold requests share one load; a failed refresh serves the stale index (and backs off for a minute) instead of failing every message. */
+async function loadMenuIndex(): Promise<MenuIndex> {
+  if (menuIndex && Date.now() - menuIndex.at < MENU_INDEX_TTL_MS) return menuIndex;
+  if (menuIndexLoading) return menuIndexLoading;
+  if (Date.now() - menuIndexFailedAt < MENU_INDEX_RETRY_MS) { if (menuIndex) return menuIndex; throw new Error("menu index unavailable (retrying shortly)"); }
+  menuIndexLoading = fetchMenuIndex().then((ix) => { menuIndex = ix; return ix; })
+    .catch((e) => { menuIndexFailedAt = Date.now(); if (menuIndex) { console.error("menu index refresh failed, serving the stale index", String((e as Error)?.message ?? e).slice(0, 160)); return menuIndex; } throw e; })
+    .finally(() => { menuIndexLoading = null; });
+  return menuIndexLoading;
 }
 /** The vendor the customer named ("from Shawarma King"): every word of the hint must match the vendor's name. */
 function vendorFromHint(hint: string, vendors: { vendor_id: string; w: string; s: string }[]): string | null {
   const ht = normText(hint).split(" ").filter(Boolean); if (!ht.length) return null;
-  const hits = vendors.filter((v) => ht.every((t) => v.w.includes(t) || (t.length >= 3 && skeleton(t).length >= 2 && v.w.split(" ").some((w) => skeleton(w) === skeleton(t)))));
+  const hits = vendors.filter((v) => { const ws = v.w.split(" "); return ht.every((t) => ws.some((w) => w === t || (t.length >= 3 && w.startsWith(t))) || (t.length >= 3 && skeleton(t).length >= 3 && ws.some((w) => skeleton(w) === skeleton(t)))); }); // whole words (or a 3+ letter prefix), never a substring of another word
   return hits.length === 1 ? hits[0].vendor_id : null;
 }
 type Resolved = { segment: string; candidates: { item_id: string; vendor_id: string; vendor_name: string; name_en: string; name_ar: string; needs_choices: boolean; open_now: boolean }[] };
 async function resolveMessage(phone: string, text: string): Promise<Resolved[]> {
   const t = String(text ?? "").trim();
-  if (!t || t.length > 300 || isGreeting(t) || !tokens(t).length) return [];
+  if (!t || t.length > 300 || isGreeting(t) || isYesText(t) || isCancelText(t) || !tokens(t).length) return []; // no menu work for greetings, yes/no and cancel
   const idx = await loadMenuIndex();
   const { rest, hint } = extractVendorHint(t);
   const vendorId = hint ? vendorFromHint(hint, idx.vendors) ?? undefined : undefined;
   const prefer = new Set((await allBaskets(phone)).map((b) => b.vendor_id));
-  const segs = splitSegments(rest).slice(0, 6).map((segment) => ({ segment, ranked: rankItems(segment, idx.items, { vendorId, preferVendors: prefer }).slice(0, 3) }));
+  const segs = resolveSegments(rest, idx.items, { vendorId, preferVendors: prefer });
   const ids = [...new Set(segs.flatMap((s) => s.ranked.map((r) => r.item.item_id)))];
   const vids = [...new Set(segs.flatMap((s) => s.ranked.map((r) => r.item.vendor_id)))].slice(0, 6);
   const [cz, opens] = await Promise.all([
-    ids.length ? sb.from("menu_items").select("item_id,customizations").in("item_id", ids) : Promise.resolve({ data: [] as any[] }),
+    ids.length ? sb.from("menu_items").select("item_id,vendor_id,customizations").in("item_id", ids) : Promise.resolve({ data: [] as any[] }),
     Promise.all(vids.map(async (v) => [v, (await sb.rpc("vendor_is_open", { p_vendor_id: v })).data !== false] as const)),
   ]);
-  const needs = new Set((cz.data ?? []).filter((r: any) => needsChoices(r)).map((r: any) => r.item_id));
+  const needs = new Set((cz.data ?? []).filter((r: any) => needsChoices(r)).map((r: any) => `${r.vendor_id}|${r.item_id}`));
   const open = new Map(opens);
-  return segs.map((s) => ({ segment: s.segment, candidates: s.ranked.map((r) => ({ item_id: r.item.item_id, vendor_id: r.item.vendor_id, vendor_name: r.item.vendor_name, name_en: r.item.name_en, name_ar: r.item.name_ar, needs_choices: needs.has(r.item.item_id), open_now: open.get(r.item.vendor_id) !== false })).sort((a, b) => Number(b.open_now) - Number(a.open_now)) }));
+  return segs.map((s) => ({ segment: s.segment, candidates: s.ranked.map((r) => ({ item_id: r.item.item_id, vendor_id: r.item.vendor_id, vendor_name: r.item.vendor_name, name_en: r.item.name_en, name_ar: r.item.name_ar, needs_choices: needs.has(`${r.item.vendor_id}|${r.item.item_id}`), open_now: open.get(r.item.vendor_id) !== false })).sort((a, b) => Number(b.open_now) - Number(a.open_now)) }));
 }
 
 const ESCALATE_TOOL = { name: "needs_full_assistant", description: "Quick mode only: call this when the customer wants to order, change a basket, confirm, cancel, complain, or anything beyond answering a simple question. Call it BEFORE sending any card or text; then reply with nothing.", input_schema: { type: "object", properties: {} } };

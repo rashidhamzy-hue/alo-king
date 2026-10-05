@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractVendorHint, normText, prepareIndex, rankItems, skeleton, splitSegments, tokens, type IndexItem } from "./resolve.ts";
+import { extractVendorHint, normText, prepareIndex, rankItems, resolveSegments, skeleton, splitSegments, tokens, type IndexItem } from "./resolve.ts";
 
 const it_ = (item_id: string, vendor_id: string, vendor_name: string, name_en: string, name_ar = "", extra: Partial<IndexItem> = {}): IndexItem =>
   ({ item_id, vendor_id, vendor_name, vendor_name_ar: "", name_en, name_ar, section: "", price_usd: 5, is_popular: false, ...extra });
@@ -106,5 +106,28 @@ describe("extractVendorHint", () => {
     ["a burger at Burger Shack please", "a burger", "Burger Shack"],
     ["fries from X", "fries", "X"],
   ])("%s", (input, rest, hint) => expect(extractVendorHint(input)).toEqual({ rest, hint }));
+  it("the hint stops at 'and': the rest is more order", () => {
+    expect(extractVendorHint("2 pizza from Pizza Hut and a cola")).toEqual({ rest: "2 pizza and a cola", hint: "Pizza Hut" });
+    expect(extractVendorHint("بدي بيتزا من بيتزا هت و بيبسي")).toEqual({ rest: "بدي بيتزا and بيبسي", hint: "بيتزا هت" });
+    expect(extractVendorHint("fries from X w a cola please")).toEqual({ rest: "fries and a cola", hint: "X" });
+  });
   it("no hint", () => expect(extractVendorHint("2 shawarma")).toEqual({ rest: "2 shawarma", hint: null }));
+});
+
+describe("resolveSegments", () => {
+  const menu = [...MENU, it_("c-fish", "chips", "Fish House", "Fish and Chips", "سمك وبطاطا"), it_("c-fish2", "chips", "Fish House", "Fish Sandwich"), it_("c-mac", "chips", "Fish House", "Mac and Cheese"), it_("c-chips", "chips", "Fish House", "Chips")];
+  it("keeps 'Fish and Chips' as one dish instead of fish + chips", () => {
+    const r = resolveSegments("fish and chips", menu); expect(r).toHaveLength(1); expect(r[0].ranked[0].item.item_id).toBe("c-fish");
+  });
+  it("keeps 'mac and cheese' whole", () => { const r = resolveSegments("mac and cheese", menu); expect(r).toHaveLength(1); expect(r[0].ranked[0].item.item_id).toBe("c-mac"); });
+  it("a normal multi-item message is still split", () => {
+    const r = resolveSegments("chicken shawarma, fries and pepsi", MENU); expect(r.map((x) => x.segment)).toEqual(["chicken shawarma", "fries", "pepsi"]);
+  });
+  it("max segments", () => expect(resolveSegments("a, b, c, d, e, f, g, h", MENU, { max: 3 }).length).toBeLessThanOrEqual(3));
+});
+
+describe("skeleton collisions within one script need 3 letters", () => {
+  const ms: IndexItem[] = [it_("cola", "v", "V", "Cola"), it_("kale", "v", "V", "Kale Salad"), it_("kilo", "v", "V", "Kilo Box")];
+  it("'cola' does not match kale or kilo", () => expect(rankItems("cola", ms).map((r) => r.item.item_id)).toEqual(["cola"]));
+  it("but pepsi still matches بيبسي across scripts", () => { expect(rankItems("pepsi", [it_("p", "v", "V", "", "بيبسي")]).length).toBe(1); expect(rankItems("بيبسي", [it_("p", "v", "V", "Pepsi")]).length).toBe(1); });
 });

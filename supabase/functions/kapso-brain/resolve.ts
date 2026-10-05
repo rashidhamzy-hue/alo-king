@@ -56,10 +56,12 @@ function lev(a: string, b: string, max: number): number {
 const stem = (t: string) => (t.length > 3 && t.endsWith("s") && !t.endsWith("ss") ? t.slice(0, -1) : t);
 
 /** How well one typed token matches one name token (0..1). */
+const isAr = (t: string) => /[\u0600-\u06FF]/.test(t);
 function tokenScore(q: string, qs: string, w: string, ws: string): number {
   if (q === w) return 1;
   if (stem(q) === stem(w) && q.length >= 3) return 0.97;
-  if (qs.length >= 2 && qs === ws) return 0.9;
+  // a skeleton match across scripts (pepsi / بيبسي) may be 2 letters; within one script it needs 3 (cola / kale / kilo all collapse to "kl")
+  if (qs.length >= (isAr(q) === isAr(w) ? 3 : 2) && qs === ws) return 0.9;
   if (q.length >= 3 && (w.startsWith(q) || (w.length >= 3 && q.startsWith(w) && q.length - w.length <= 2))) return 0.85;
   if (q.length >= 4 && lev(q, w, 1) <= 1) return 0.8;
   if (q.length >= 7 && lev(q, w, 2) <= 2) return 0.72;
@@ -108,10 +110,26 @@ export function splitSegments(text: string): string[] {
   return String(text ?? "").split(/\s*(?:[,،;+\n]|\s&\s|\s+and\s+|\s+و\s+|\s+w\s+|\s+wi\s+|\s+ou\s+)\s*/i).map((s) => s.replace(/\s+/g, " ").trim().replace(/^(?:and|w|wi|و)\s+/i, "")).filter(Boolean);
 }
 
-/** "… from Shawarma King" / "من الملك" / "men pizza hut": the vendor named at the end of the message. */
+/** "… from Shawarma King" / "من الملك" / "men pizza hut": the vendor named at the end of the message. The hint stops at "and" / "w" / "و" / a comma: whatever follows is more order. */
 export function extractVendorHint(text: string): { rest: string; hint: string | null } {
   const t = String(text ?? "").trim();
-  const m = t.match(/^(.*?)(?:\s+|^)(?:from|at|min|men|من|عند|3end|3and)\s+([^,;\n]+?)\s*(?:please|pls|plz|لو سمحت|من فضلك)?\s*$/i);
+  const m = t.match(/^(.*?)(?:\s+|^)(?:from|at|min|men|من|عند|3end|3and)\s+([^,;\n]+?)\s*$/i);
   if (!m || !m[2].trim()) return { rest: t, hint: null };
-  return { rest: m[1].trim(), hint: m[2].trim() };
+  const parts = m[2].split(/\s+(?:and|w|wi|و|\+|&)\s+/i);
+  const hint = parts[0].replace(/\s*(?:please|pls|plz|لو سمحت|من فضلك)\s*$/i, "").trim();
+  if (!hint) return { rest: t, hint: null };
+  const tail = parts.slice(1).join(" and ").replace(/\s*(?:please|pls|plz|لو سمحت|من فضلك)\s*$/i, "").trim();
+  return { rest: tail ? `${m[1].trim()} and ${tail}` : m[1].trim(), hint };
+}
+
+/** Segments of a message with their ranked matches. A dish whose own name contains "and" (Fish and Chips, Mac and Cheese) must not be torn apart:
+ *  when the unsplit text matches one dish about as well as the pieces match on average, the unsplit reading wins. */
+export function resolveSegments(rest: string, items: IndexItem[], o: { vendorId?: string; preferVendors?: Set<string>; max?: number } = {}): { segment: string; ranked: Ranked[] }[] {
+  const segs = splitSegments(rest).slice(0, o.max ?? 6).map((segment) => ({ segment, ranked: rankItems(segment, items, o).slice(0, 3) }));
+  if (segs.length > 1) {
+    const whole = rankItems(rest, items, o).slice(0, 3);
+    const avg = segs.reduce((n, x) => n + (x.ranked[0]?.score ?? 0), 0) / segs.length;
+    if (whole.length && whole[0].score >= 0.9 && whole[0].score >= avg - 0.05) return [{ segment: rest, ranked: whole }];
+  }
+  return segs;
 }
