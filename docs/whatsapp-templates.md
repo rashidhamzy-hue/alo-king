@@ -52,3 +52,9 @@ Order here in one message.
 Reply STOP to opt out.
 ```
 Sample `{{1}}`: `10% off burgers today at Al-Sanawbar`. Button: QUICK_REPLY `Stop offers`.
+
+## Vendor claim review (while `KAPSO_OTP_TEMPLATE` is empty)
+`claim-vendor` creates a `pending_review` claim and sends the admin an interactive card (business, claimant, phone, evidence) with **Approve** / **Reject** buttons. The admin number is the Supabase secret `ADMIN_WHATSAPP_PHONE` (digits, e.g. `961...`; set it in the Supabase dashboard, never in chat or the repo).
+- The card is an in-window message: the admin must have messaged the Alo King number in the last 24h, otherwise delivery fails and the claim is reviewed in `/admin` instead (`claim_audit_log` records `admin_notify_failed`).
+- `kapso-brain` accepts `CLAIM|OK|<id>` / `CLAIM|NO|<id>` taps only from that number and calls `decide_claim`: approve = `finalize_claim` (merchant role, claimed profile) + link the claimant's phone as `vendors.owner_whatsapp_phone` (never overwriting a different existing owner number); reject = status `rejected`.
+- Every request, notification and decision (also the `/admin` UI via `review_claim`) is written to `claim_audit_log` with actor (masked admin phone or admin user id) and source.

@@ -1,11 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildOtpPayload } from "./otp.ts";
+import { buildClaimCard } from "../_shared/claims.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const PNID = Deno.env.get("KAPSO_DEFAULT_PHONE_NUMBER_ID") ?? "1384772384720496";
 // Name of an APPROVED WhatsApp authentication template. Without it, claims go to manual admin review.
 const OTP_TEMPLATE = Deno.env.get("KAPSO_OTP_TEMPLATE") ?? "";
 const OTP_LANG = Deno.env.get("KAPSO_OTP_LANG") ?? "en_US";
+// Admin who reviews claims by WhatsApp (Supabase secret, never logged or returned).
+const ADMIN_PHONE_RAW = Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "";
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, authorization, apikey, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -33,6 +36,26 @@ async function sendOtp(to: string, code: string): Promise<boolean> {
     if (!res.ok) console.error("OTP send failed", res.status, await res.text());
     return res.ok;
   } catch (e) { console.error("OTP send error", e); return false; }
+}
+
+async function auditClaim(claimId: string, vendorId: string, event: string, details: Record<string, unknown> = {}) {
+  const { error } = await sb.from("claim_audit_log").insert({ claim_id: claimId, vendor_id: vendorId, event, actor: "system", source: "claim-vendor", details });
+  if (error) console.error("claim audit failed", event, error.message);
+}
+
+// Manual review: log the request and send the admin an Approve / Reject card. Never throws.
+// The interactive card needs the admin's 24h window to be open; failures are audit-logged and the claim stays reviewable in /admin.
+async function notifyAdminOfClaim(claimId: string, vendor: { vendor_id: string; name_en: string; village_canonical?: string | null }, contactName: string, contactPhone: string, evidence: string | null) {
+  await auditClaim(claimId, vendor.vendor_id, "requested", { contact_name: contactName });
+  const adminPhone = normPhone(ADMIN_PHONE_RAW);
+  if (!adminPhone || !KAPSO_TOKEN) { await auditClaim(claimId, vendor.vendor_id, "admin_notify_failed", { reason: !adminPhone ? "ADMIN_WHATSAPP_PHONE not set" : "KAPSO_API_TOKEN not set" }); return; }
+  try {
+    const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${PNID}/messages`, {
+      method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify(buildClaimCard(adminPhone, { claimId, vendorName: vendor.name_en, village: vendor.village_canonical, contactName, contactPhone, evidence })),
+    });
+    await auditClaim(claimId, vendor.vendor_id, res.ok ? "admin_notified" : "admin_notify_failed", res.ok ? {} : { status: res.status });
+  } catch (_e) { await auditClaim(claimId, vendor.vendor_id, "admin_notify_failed", { reason: "network error" }); }
 }
 
 Deno.serve(async (req) => {
@@ -63,7 +86,7 @@ Deno.serve(async (req) => {
     const { data: sp } = await sb.from("staff_profiles").select("role,vendor_id").eq("user_id", user.id).maybeSingle();
     if (sp) return json({ error: "This account is already linked to a business." }, 409);
 
-    const { data: vendor } = await sb.from("vendors").select("vendor_id,name_en,whatsapp_number,phone_primary,is_active").eq("vendor_id", String(body.vendor_id)).maybeSingle();
+    const { data: vendor } = await sb.from("vendors").select("vendor_id,name_en,village_canonical,whatsapp_number,phone_primary,is_active").eq("vendor_id", String(body.vendor_id)).maybeSingle();
     if (!vendor || !vendor.is_active) return json({ error: "Business not found." }, 404);
     const { data: prof } = await sb.from("vendor_profiles").select("claimed_at").eq("vendor_id", vendor.vendor_id).maybeSingle();
     if (prof?.claimed_at) return json({ error: "This business has already been claimed. Contact Alo King if this is a mistake." }, 409);
@@ -80,11 +103,13 @@ Deno.serve(async (req) => {
       await sb.from("vendor_claims").update({ otp_hash: await sha(`${claim.id}:${code}`) }).eq("id", claim.id);
       if (await sendOtp(target, code)) return json({ status: "otp_sent", claim_id: claim.id, sent_to: mask(target), vendor: vendor.name_en });
       await sb.from("vendor_claims").update({ status: "pending_review", otp_hash: null, otp_expires_at: null }).eq("id", claim.id);
+      await notifyAdminOfClaim(claim.id, vendor, contactName, contactPhone, evidence);
       return json({ status: "pending_review", claim_id: claim.id, vendor: vendor.name_en, note: "We couldn't send the code, so your request was sent for manual review." });
     }
 
     const { data: claim, error } = await sb.from("vendor_claims").insert({ vendor_id: vendor.vendor_id, user_id: user.id, contact_name: contactName, contact_phone: contactPhone, evidence_note: evidence, status: "pending_review" }).select("id").single();
     if (error) return json({ error: "Could not start the claim." }, 500);
+    await notifyAdminOfClaim(claim.id, vendor, contactName, contactPhone, evidence);
     return json({ status: "pending_review", claim_id: claim.id, vendor: vendor.name_en });
   }
 

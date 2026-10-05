@@ -17,4 +17,5 @@ elif [ "$2" = "text" ]; then
 else
   BODY=$(python3 -c 'import json,sys;print(json.dumps({"message":{"id":sys.argv[1],"from":sys.argv[2],"type":"interactive","interactive":{"type":"button_reply","button_reply":{"id":sys.argv[3],"title":sys.argv[4]}}}}))' "$ID" "$1" "$3" "$4")
 fi
-curl -sS -m 120 -X POST "$URL" -H "x-selftest: $SELFTEST_TOKEN" -H "content-type: application/json" -d "$BODY" | python3 "$(dirname "$0")/show.py"
+# SELFTEST_ADMIN=<phone> makes that number "the admin" (dry run only), so the real admin secret is never needed
+curl -sS -m 120 -X POST "$URL" -H "x-selftest: $SELFTEST_TOKEN" ${SELFTEST_ADMIN:+-H "x-selftest-admin: $SELFTEST_ADMIN"} -H "content-type: application/json" -d "$BODY" | python3 "$(dirname "$0")/show.py"
