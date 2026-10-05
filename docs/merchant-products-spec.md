@@ -19,7 +19,7 @@ Hard rules from `CLAUDE.md` apply to everything below: consent-based marketing o
 | Average order | $13.69 (28 orders, mostly test) | [M] SQL |
 | Our AI cost per confirmed order | $0.064 average over 7 attributed orders (staging-heavy); $0.006 on server-resolved numbered orders in the latest capped run | [M] `ai_cost_per_order`, latency run |
 | Number messaging tier | `TIER_250`, quality `GREEN` (Kapso, 5 Oct) | [M] Kapso `whatsapp_numbers` |
-| Templates | 3 marketing templates, all **PENDING** review; authentication template cannot be created (WABA permission) | `docs/whatsapp-templates.md` |
+| Templates | 2 usable marketing templates (`alo_offer_ar`, `alo_offer_en_optout`; a third English one is superseded), all **PENDING** review; authentication template cannot be created (WABA permission) | `docs/whatsapp-templates.md` |
 | Current broadcast price charged to merchants | `BROADCAST_COST_PER_MSG_USD` default **$0.05**, and every vendor row defaults to **$10.00 free credit** | code + migration |
 
 Consequence: **there is no real audience and no real conversion data yet.** Every product below is designed to be *proved with a small pilot before it is sold*, and the launch order (section 7) is driven by what each product costs us to run per unit, not by revenue hopes.
@@ -34,7 +34,7 @@ Verified [V] (Meta's pricing pages, mirrored in the Kapso docs corpus, current a
 - Per-user marketing limits exist: a user who has received too many marketing templates is not delivered more (error **131049**, not billed); retrying within 24 h can suspend delivery for up to 24 h.
 - Template pacing, quality rating and messaging tiers apply (our number is `TIER_250`).
 
-**Not verified [A1]**: the actual USD rate for Lebanon. Meta publishes it only as a CSV/PDF rate card (and an interactive page); the network proxy of this session blocks `developers.facebook.com` and `business.whatsapp.com`, and the docs mirror carries the links but not the figures. The numbers used below, **marketing about $0.0421 and utility about $0.0112 per delivered message**, come from our own research report (`docs/research/WhatsApp Business Platform Lebanon Guide.md`, which cites secondary summaries and quotes ranges $0.0421-$0.0471 and $0.0112-$0.0122) and are used only as planning inputs. **Before any price is published, someone must download the USD rate card CSV from Meta's pricing page (or read it in WhatsApp Manager > Billing) and replace the inputs in the table in section 1.2.** The same report's claim of "1,000 free service messages per month" **does not appear** in the Meta pages I could read and conflicts with them; treat it as false until Meta confirms [A2].
+**Not verified [A1]**: the actual USD rate for Lebanon. Meta publishes it only as a CSV/PDF rate card (and an interactive page); the network proxy of this session blocks `developers.facebook.com` and `business.whatsapp.com`, and the docs mirror carries the links but not the figures. The numbers used below, **marketing about $0.0421 and utility about $0.0112 per delivered message**, come from our own research report (`docs/research/WhatsApp Business Platform Lebanon Guide.md`, which cites secondary summaries and quotes ranges $0.0421-$0.0471 and $0.0112-$0.0121) and are used only as planning inputs. **Before any price is published, someone must download the USD rate card CSV from Meta's pricing page (or read it in WhatsApp Manager > Billing) and replace the inputs in the table in section 1.2.** The same report's claim of "1,000 free service messages per month" **does not appear** in the Meta pages I could read and conflicts with them; treat it as false until Meta confirms [A2].
 
 Also unknown: **Kapso's own fee** for sending (platform/message markup) [A3, Owner]. Not included in any cost below.
 
@@ -67,15 +67,15 @@ Margin = revenue - Meta cost - $0.30 payment - $0.10 per 100 messages. Computed 
 | *Today's rate, 100* | *$0.050* | *$5.00* | *447,500* | *$0.39 (8%)* | *-$0.11 (-2%)* | *-$0.40 (-8%)* |
 
 - **Break-even price per delivered message** (zero margin, after the $0.30 and $0.10 allowances): $0.046 at 100 messages and $0.043 at 1,000 at Meta $0.0421; $0.051 / $0.048 at $0.0471.
-- **Minimum viable price: $0.075 per delivered message, floor $0.06** (never discount below $0.06: that is still about 25% margin at $0.0471). **Minimum viable pack: 50 messages for $4.00** (37% margin at $0.0421); below that the $0.30 payment cost dominates.
-- **Finding for the owner (touches pricing, so reported rather than changed):** the current $0.05 default charge leaves about 8% margin at best and loses money if the real rate is above about $0.0475 or Kapso charges anything. And every vendor row carries **$10 of free credit by default**: 200 messages x $0.0421 = $8.42 of Meta cost per vendor if used. Across 816 vendors that is a theoretical $6.9k exposure, bounded in practice by opt-in audience size and the `TIER_250` daily limit, but it should not be left at the default. Recommendation: default credit **$0**; one free trial send of at most 25 messages, gated on the vendor being claimed and linked.
+- **Minimum viable price: $0.075 per delivered message, floor $0.065** (never discount below $0.065: about 21% margin on 100 messages and 25% on 1,000 at Meta $0.0471; $0.06 would fall to about 15%). **Minimum viable pack: 50 messages for $4.00** (39% margin at $0.0421); below that the $0.30 payment cost dominates.
+- **Finding for the owner (touches pricing, so reported rather than changed):** the current $0.05 default charge leaves about 8% margin at best and loses money on 100-message packs if the real rate is above about $0.046 (about $0.0475 on large packs) or Kapso charges anything. And every vendor row carries **$10 of free credit by default**: 200 messages x $0.0421 = $8.42 of Meta cost per vendor if used. Across 816 vendors that is a theoretical $6.9k exposure, bounded in practice by opt-in audience size and the `TIER_250` daily limit, but it should not be left at the default. Recommendation: default credit **$0**; one free trial send of at most 25 messages, gated on the vendor being claimed and linked.
 - Prices are USD-based and shown in LBP at 89,500 on every merchant-facing screen and receipt; a pack is paid in USD or LBP at that rate.
 
 ### 1.3 What the merchant has to believe (to check, not assume)
 
 At an average order of $13.69 and an assumed 35% food-and-packaging cost, a merchant keeps roughly $8.90 per order (**[A6]: the 35% is a placeholder; ask three pilot merchants**). A Starter pack ($8 for 100 messages) therefore pays back at **0.9 incremental orders** per 100 messages, about 0.9% incremental conversion. Whether broadcasts reach that depends on opt-in size, offer quality and response rates, none of which we have measured. This is the number the pilot (section 7) must establish; it is a hypothesis, not a promise, and **no response-rate figure may appear in merchant-facing copy until we have our own data.**
 
-Our own message costs also change on 1 Oct 2026 (service messages are now billed, section 0). If an order exchanges about 10 outbound messages (**[A7], to measure**) at the utility/service rate of about $0.0112, that is about $0.11 per order, plus $0.006-$0.064 of AI: roughly 1-2% of the average order. Log it per order (section 6) before setting any per-order fee.
+Our own message costs also change on 1 Oct 2026 (service messages are now billed, section 0). If an order exchanges about 10 outbound messages (**[A7], to measure**) at the utility/service rate of about $0.0112, that is about $0.11 per order, plus $0.006-$0.064 of AI: roughly 1% of the average order. Log it per order (section 6) before setting any per-order fee.
 
 ### 1.4 Constraints that cap the product
 
@@ -83,6 +83,8 @@ Our own message costs also change on 1 Oct 2026 (service messages are now billed
 - **Quality rating**: opt-outs, blocks and low engagement can move the number from GREEN to YELLOW/RED and cut limits for everyone. A broadcast product can damage the ordering product; hence the kill-gates in section 7.
 - **Per-user limits (131049)**: a customer cannot be marketed to by every merchant; section 5 sets our own caps well below Meta's.
 - **Template approval**: all three marketing templates are PENDING. Merchants never write a template; they fill the single variable (`{{1}}`) of a pre-approved one (section 4).
+
+**Known gap to fix:** the existing broadcast preview and low-credit messages show `usd(cost)` only (USD, no LBP); merchant-facing amounts need both currencies like every customer-facing amount.
 
 ## 2. Smart recommendations (organic, free, never for sale)
 
@@ -140,9 +142,11 @@ Section title (24-character limit):
 - English: `Sponsored` 
 - Arabic: `إعلان ممول`
 
-Row description or footer (one short line under the list):
-- English: `Sponsored: the restaurant paid to appear here. It does not change the order of the results above.`
-- Arabic: `إعلان ممول: دفع المطعم ليظهر هنا. هذا لا يغيّر ترتيب النتائج أعلاه.`
+List footer (Meta caps list footers at 60 characters and row descriptions at 72; the clamp in `meta-limits.ts` would otherwise cut the disclosure):
+- English: `Sponsored: paid placement, does not affect ranking` (51)
+- Arabic: `إعلان ممول: مدفوع ولا يؤثر على الترتيب` (about 38)
+
+The full sentence ("the restaurant paid to appear here; it does not change the order of the results above" / `دفع المطعم ليظهر هنا، وهذا لا يغيّر ترتيب النتائج أعلاه`) is given when the customer asks why they see it. The footer builder is added to `meta-limits.test.ts`.
 
 When a customer taps a sponsored row and asks "why am I seeing this", the bot answers with the same sentence plus how to turn it off ("Reply NO ADS to stop sponsored suggestions" / `بدون إعلانات`); a customer who says it is excluded from sponsored slots from then on (one boolean on the customer row, honoured immediately).
 
@@ -158,13 +162,13 @@ Not an auction at launch. A fixed, published price list, bought and renewed by t
 
 ### 3.5 Never in allergy or diet answers
 
-A sponsored slot is **suppressed** whenever any of these is true:
+**Fail closed.** A sponsored slot is shown **only** when the request matched a positive allow-list (a mood from the lexicon, a plain dish or cuisine word, or "what's good") **and** none of the conditions below holds. "The guard did not match" is not enough, because the guard has gaps. A sponsored slot is **suppressed** whenever any of these is true:
 - The request contains diet, allergen or negation terms (the same `GUARD` list in `searchfirst.ts`: vegan, vegetarian, halal, gluten, nut, sesame, lactose, diabetic, "without", "no ...", "safe", "ingredients" and their Arabic and Arabizi forms).
-- The search was called with `p_vegan`, `p_gluten_free`, `p_keto` or any allergen parameter, or the answer cites `allergens` / `allergen_list` / `allergens_reviewed` fields.
+- The search was called with `p_vegan`, `p_gluten_free`, `p_keto`, `exclude_allergens` or any other diet/allergen parameter, or the answer cites `allergens` / `allergen_list` / `allergens_reviewed` fields.
 - The customer has stated an allergy or diet earlier in the session.
 - The turn is routed to the model's allergen rules, a complaint, or a handoff.
 
-A property test asserts that no list built from a filtered search ever contains a sponsored row, and a second asserts the guard is a superset of the diet words used by the search path. Safety wins over revenue: **an unlabelled or wrongly placed sponsored row in a diet answer is a stop-ship defect.**
+**Precondition:** `GUARD` in `searchfirst.ts` today lacks terms such as keto, egg, soy, fish, shellfish, milk, wheat, pregnant and intolerant, and differs from the wider list in `router.ts`; both are merged into one shared list (with tests) before any sponsored slot ships. A property test asserts that no list built from a filtered search ever contains a sponsored row, and a second asserts the guard is a superset of the diet words used by the search path. Safety wins over revenue: **an unlabelled or wrongly placed sponsored row in a diet answer is a stop-ship defect.**
 
 ## 4. How merchants buy and manage it, with no human selling
 
@@ -244,8 +248,8 @@ Order chosen by marginal cost, risk to the shared WhatsApp number, and dependenc
 |---|---|---|---|---|
 | 0 | **Measurement + consent growth** (log everything in section 6; fix the opt-in wording; real opt-in prompt placement) | costs almost nothing; no Meta charge; produces the first real opt-in rate and messages-per-order cost | Meta rate card checked (A1); logging live for 2 weeks | none (this is infrastructure) |
 | 1 | **Organic recommendations** (section 2) | marginal cost about $0 (SQL ranking, no model call); builds trust and the impression logs sponsored needs; improves conversion for everyone | ranker + no-pay-to-win tests pass; added latency under 200 ms p95 | revert to current `orderNearest` if order conversion or tap rate is worse than the current ordering over 2 weeks, or latency budget broken |
-| 2 | **Broadcast packs**, Starter only, 3-5 pilot merchants | each message costs $0.0421-$0.05 to us, so margin is thin at today's $0.05 and healthy only at $0.075+; blast radius is the shared number (`TIER_250`, GREEN) | Meta rate verified; all templates APPROVED; at least **200 real opted-in customers** and at least 5 pilot merchants with 20+ opted-in past customers each; payments rail + ledger live; free-credit default removed | **pause selling** if any of: delivery rate under 70%; opt-out rate above 2% of recipients in one campaign (A15); number quality leaves GREEN; Meta cost per delivered message above $0.055 (price no longer covers); or after 4 pilot campaigns the holdout shows no incremental orders (then packs are not worth the risk) |
-| 3 | **Larger packs (Growth, Pro) and scheduling** | volume discounts only valid while margin stays above 25% (floor $0.06) | 10+ paying merchants; repeat purchase by at least half of pilots | same as 2, plus any month with negative gross margin |
+| 2 | **Broadcast packs**, Starter only, 3-5 pilot merchants | each message costs $0.0421-$0.05 to us, so margin is thin at today's $0.05 and healthy only at $0.07+; blast radius is the shared number (`TIER_250`, GREEN) | Meta rate verified; all templates APPROVED; at least **200 real opted-in customers** and at least 5 pilot merchants with 20+ opted-in past customers each; payments rail + ledger live; free-credit default removed | **pause selling** if any of: delivery rate under 70%; opt-out rate above 2% of recipients in one campaign (A15); number quality leaves GREEN; Meta cost per delivered message above $0.055 (price no longer covers); or after 4 pilot campaigns the holdout shows no incremental orders (then packs are not worth the risk) |
+| 3 | **Larger packs (Growth, Pro) and scheduling** | volume discounts only valid while margin stays above 20% (floor $0.065) | 10+ paying merchants; repeat purchase by at least half of pilots | same as 2, plus any month with negative gross margin |
 | 4 | **Sponsored slot**, one village, one meal period, free pilot first | near-zero marginal cost but needs traffic and carries the most trust risk; must not exist before organic is trusted | at least **1,000 list impressions per week** in the pilot area; disclosure wording approved by counsel (A10) and checked against Meta policy (A11); suppression tests for diet/allergy pass in production; 10% holdout wired | **stop** if any sponsored row ever appears in a diet/allergy answer (stop-ship); pause if tap rate on the sponsored row is below the organic last-position baseline, if order conversion in lists with a sponsored slot is more than 2 percentage points below the holdout, or if "why am I seeing this" complaints exceed 5 per 1,000 impressions (A15) |
 | 5 | **Per-order pricing / auction** | only meaningful with trusted attribution | holdout-validated attribution over 100+ orders | not built until then |
 
@@ -270,6 +274,10 @@ Free alternatives to keep in view: customer QR codes and Click-to-WhatsApp ads o
 | A13 | Opt-in wording, per-merchant audience, frequency caps and quiet hours meet Lebanese law and Meta's opt-in policy; the current generic prompt and the village-only audience path may not | **Lawyer** + **Meta** | section 5 |
 | A14 | What may be retained as a suppression record after "delete my data" | **Lawyer** | section 5.5 |
 | A15 | Opt-out (2%) and complaint (5 per 1,000) thresholds in the kill-gates are sensible | **Owner** (policy), validated on pilot data | section 7 |
+| A17 | The 1 Oct 2026 service-message billing, the Rest-of-Middle-East market moves and the "one charge per message" rule come from Meta's pages as mirrored in the Kapso docs corpus (`whatsapp/pricing.md`, `whatsapp/pricing/non-template-messages.md`, scraped Aug 2026), not read directly from Meta | **Meta** (confirm on the live pricing page / WhatsApp Manager) | sections 0, 1.3 |
+| A18 | Today's in-window broadcast path (a plain message with an opt-out line first, template as fallback, see `docs/whatsapp-templates.md`) is billed as a service message, not marketing, so its real cost and the 1.1 unit cost differ by path | **Meta** + **Data** | section 1.1 |
+| A19 | Accepting LBP at a fixed 89,500 for packs; refund and expiry of unused prepaid credit; merchant terms of service content; whether merchants are controllers of the aggregates and replies we route (Law 81/2018) | **Lawyer** | sections 1.2, 4.2, 5.6 |
+| A20 | Licensing and terms of the payment rail (Whish, OMT, card) for collecting merchant prepayments | **Lawyer** + processor | section 4.1 |
 | A16 | Courier/VAT/tax treatment of selling prepaid messaging credit and advertising to merchants (invoice, VAT on services) | **Lawyer / accountant** | whether prices are VAT-inclusive |
 
 ## 9. Out of scope here
