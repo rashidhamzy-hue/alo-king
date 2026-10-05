@@ -77,13 +77,9 @@ describe("prompt caching shape", () => {
 });
 
 describe("staging-only guards", () => {
-  it("staging path must END with the staging function name", () => {
-    expect(isStagingPath("/functions/v1/kapso-brain-test")).toBe(true);
-    expect(isStagingPath("/functions/v1/kapso-brain-test/")).toBe(true);
-    expect(isStagingPath("/functions/v1/kapso-brain")).toBe(false);
-    expect(isStagingPath("/functions/v1/kapso-brain/kapso-brain-test")).toBe(false);
-    expect(isStagingPath("/kapso-brain-test/x")).toBe(false);
-    expect(isStagingPath("")).toBe(false);
+  it("staging path is the staging function itself, never a sub-path of the production one", () => {
+    for (const ok of ["/kapso-brain-test", "/kapso-brain-test/", "/functions/v1/kapso-brain-test", "/functions/v1/kapso-brain-test/x"]) expect(isStagingPath(ok), ok).toBe(true);
+    for (const bad of ["/kapso-brain", "/functions/v1/kapso-brain", "/kapso-brain/kapso-brain-test", "/functions/v1/kapso-brain/kapso-brain-test", "/x/kapso-brain-test", "/functions/v1/x/kapso-brain-test", ""]) expect(isStagingPath(bad), bad).toBe(false);
   });
   it("a budget override can only tighten", () => {
     expect(tightenBudget(0.01, 5)).toBe(0.01);
