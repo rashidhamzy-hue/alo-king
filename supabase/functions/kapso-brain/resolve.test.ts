@@ -52,6 +52,10 @@ describe("tokens", () => {
   });
 });
 
+describe("tokens: search phrasing", () => {
+  it.each([["do you have falafel", ["falafel"]], ["burger near me", ["burger"]], ["any pizza near me", ["pizza"]], ["عندكم شاورما؟", ["شاورما"]], ["is there shawarma here", ["shawarma"]], ["3endkon falafel", ["falafel"]]])("%s", (t, want) => expect(tokens(t as string)).toEqual(want));
+});
+
 describe("rankItems", () => {
   it("English exact", () => expect(top("chicken shawarma")).toEqual(["k-shw-ch"]));
   it("prefers the shorter exact name over the plate that merely contains the words", () => expect(top("chicken shawarma", 2)).toEqual(["k-shw-ch", "k-shw-plate"]));
