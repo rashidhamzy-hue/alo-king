@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AllergenPicker } from "@/components/shared/AllergenPicker";
 import { clean, type MenuItem } from "@/lib/vendor";
-import { useLang, useL } from "@/lib/i18n";
+import { useL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { ItemCard, itemName } from "./ItemBits";
 import { ItemDrawer } from "./ItemDrawer";
@@ -25,7 +25,6 @@ const slug = (s: string) => "sec-" + s.toLowerCase().replace(/[^a-z0-9\u0600-\u0
 
 export function MenuTab({ items, vendorName }: { items: MenuItem[]; vendorName: string }) {
   const L = useL();
-  const { lang } = useLang();
   const maxPrice = Math.max(1, Math.ceil(Math.max(0, ...items.map((i) => Number(i.price_usd) || 0))));
   const maxCal = Math.max(100, Math.ceil(Math.max(0, ...items.map((i) => Number(i.calories) || 0)) / 50) * 50);
   const maxProt = Math.max(10, Math.ceil(Math.max(0, ...items.map((i) => Number(i.protein_grams) || 0))));
@@ -149,7 +148,6 @@ export function MenuTab({ items, vendorName }: { items: MenuItem[]; vendorName: 
         ))}
       </div>
       <ItemDrawer item={open} vendorName={vendorName} onClose={() => setOpen(null)} />
-      <span className="hidden">{lang}</span>
     </div>
   );
 }
