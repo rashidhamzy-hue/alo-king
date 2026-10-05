@@ -323,10 +323,11 @@ const itemName = (c: Ctx, it: any) => (c.ar && it.item_name_ar ? it.item_name_ar
 async function vendorName(vendorId: string) { const { data } = await sb.from("vendors").select("name_en").eq("vendor_id", vendorId).maybeSingle(); return data?.name_en ?? "Menu"; }
 
 async function sendMenu(c: Ctx, vendorId: string, silentIfMissing = false): Promise<boolean> {
-  const [items, vname] = [await vendorMenu(vendorId), await vendorName(vendorId)];
+  const items = await vendorMenu(vendorId);
   if (!items.length) { if (!silentIfMissing) await sendText(c, tr(c, "I'll pull up that menu for you — what are you in the mood for? 🍽", "رح جيبلك المنيو — شو مشتهي؟ 🍽")); return false; }
   const cats = buildCategories(items);
   if (cats.length === 1) { await sendCategoryItems(c, vendorId, cats[0].slug, 0, items); return true; }
+  const vname = await vendorName(vendorId);
   await sendList(c, { header: vname, body: tr(c, `*${vname}* — pick a category 👇\nOr just tell me what you're craving.`, `*${vname}* — اختار قسم 👇\nأو خبرني شو مشتهي.`), button: tr(c, "Categories", "الأقسام"),
     sections: [{ title: tr(c, "Menu", "المنيو"), rows: cats.map((k) => ({ id: `CAT|${vendorId}|${k.slug}`, title: k.title, description: tr(c, `${k.count} items`, `${k.count} صنف`) })) }] });
   return true;
