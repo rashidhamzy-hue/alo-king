@@ -21,6 +21,7 @@ import { Route as MerchantIndexRouteImport } from './routes/merchant.index'
 import { Route as MerchantAssistantRouteImport } from './routes/merchant.assistant'
 import { Route as MerchantOnboardingRouteImport } from './routes/merchant.onboarding'
 import { Route as MerchantOrdersRouteImport } from './routes/merchant.orders'
+import { Route as MerchantProfileRouteImport } from './routes/merchant.profile'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as MerchantMenuIndexRouteImport } from './routes/merchant.menu.index'
 import { Route as MerchantMenuImportRouteImport } from './routes/merchant.menu.import'
@@ -85,6 +86,11 @@ const MerchantOrdersRoute = MerchantOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => MerchantRoute,
 } as any)
+const MerchantProfileRoute = MerchantProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => MerchantRoute,
+} as any)
 const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
   id: '/track/$orderId',
   path: '/track/$orderId',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/merchant/assistant': typeof MerchantAssistantRoute
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
+  '/merchant/profile': typeof MerchantProfileRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/merchant/': typeof MerchantIndexRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/merchant/assistant': typeof MerchantAssistantRoute
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
+  '/merchant/profile': typeof MerchantProfileRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/merchant': typeof MerchantIndexRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/merchant/assistant': typeof MerchantAssistantRoute
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
+  '/merchant/profile': typeof MerchantProfileRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/merchant/': typeof MerchantIndexRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/merchant/assistant'
     | '/merchant/onboarding'
     | '/merchant/orders'
+    | '/merchant/profile'
     | '/track/$orderId'
     | '/merchant/'
     | '/merchant/menu/import'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/merchant/assistant'
     | '/merchant/onboarding'
     | '/merchant/orders'
+    | '/merchant/profile'
     | '/track/$orderId'
     | '/merchant'
     | '/merchant/menu/import'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/merchant/assistant'
     | '/merchant/onboarding'
     | '/merchant/orders'
+    | '/merchant/profile'
     | '/track/$orderId'
     | '/merchant/'
     | '/merchant/menu/import'
@@ -303,6 +315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantOrdersRouteImport
       parentRoute: typeof MerchantRoute
     }
+    '/merchant/profile': {
+      id: '/merchant/profile'
+      path: '/profile'
+      fullPath: '/merchant/profile'
+      preLoaderRoute: typeof MerchantProfileRouteImport
+      parentRoute: typeof MerchantRoute
+    }
     '/track/$orderId': {
       id: '/track/$orderId'
       path: '/track/$orderId'
@@ -331,6 +350,7 @@ interface MerchantRouteChildren {
   MerchantAssistantRoute: typeof MerchantAssistantRoute
   MerchantOnboardingRoute: typeof MerchantOnboardingRoute
   MerchantOrdersRoute: typeof MerchantOrdersRoute
+  MerchantProfileRoute: typeof MerchantProfileRoute
   MerchantIndexRoute: typeof MerchantIndexRoute
   MerchantMenuImportRoute: typeof MerchantMenuImportRoute
   MerchantMenuIndexRoute: typeof MerchantMenuIndexRoute
@@ -340,6 +360,7 @@ const MerchantRouteChildren: MerchantRouteChildren = {
   MerchantAssistantRoute: MerchantAssistantRoute,
   MerchantOnboardingRoute: MerchantOnboardingRoute,
   MerchantOrdersRoute: MerchantOrdersRoute,
+  MerchantProfileRoute: MerchantProfileRoute,
   MerchantIndexRoute: MerchantIndexRoute,
   MerchantMenuImportRoute: MerchantMenuImportRoute,
   MerchantMenuIndexRoute: MerchantMenuIndexRoute,
