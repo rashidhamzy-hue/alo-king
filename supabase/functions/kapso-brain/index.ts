@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { detectLanguage, promoAttempts, type Lang } from "./broadcast.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
@@ -7,8 +8,11 @@ const WEBHOOK_SECRET = Deno.env.get("KAPSO_WEBHOOK_SECRET") ?? "";
 const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5";
 const DEFAULT_PNID = Deno.env.get("KAPSO_DEFAULT_PHONE_NUMBER_ID") ?? "1384772384720496";
 const DEMO_MODE = (Deno.env.get("ALO_DEMO_MODE") ?? "true") !== "false";
-const PROMO_TEMPLATE = Deno.env.get("KAPSO_PROMO_TEMPLATE") ?? "";
-const PROMO_LANG = Deno.env.get("KAPSO_PROMO_LANG") ?? "en";
+// Approved marketing templates, one per customer language (each has an opt-out quick reply).
+const PROMO_TEMPLATES: Record<Lang, { name: string; language: string }> = {
+  ar: { name: Deno.env.get("KAPSO_PROMO_TEMPLATE_AR") ?? "alo_offer_ar", language: "ar" },
+  en: { name: Deno.env.get("KAPSO_PROMO_TEMPLATE_EN") ?? "alo_offer_en_optout", language: "en_US" },
+};
 const BCAST_COST = Number(Deno.env.get("BROADCAST_COST_PER_MSG_USD") ?? "0.05");
 const TRACK_BASE = Deno.env.get("ALO_TRACK_BASE_URL") ?? "";
 const LBP_RATE = 89500, DELIVERY_FEE_USD = 2.0, COD_CAP_USD = 150;
@@ -304,6 +308,8 @@ HOW YOU ORDER
 
 async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: string; title: string } | null, loc: any | null) {
   await sb.from("customers").upsert({ phone_number: phone }, { onConflict: "phone_number", ignoreDuplicates: true });
+  const lang = detectLanguage(text);
+  if (lang) await sb.from("customers").update({ language: lang, language_set_at: new Date().toISOString() }).eq("phone_number", phone).is("language", null); // first text message decides
   let userText = text;
   const tag = reply?.id ?? "";
   if (reply) {
@@ -372,14 +378,25 @@ async function runBroadcast(c: Ctx, vendor: any, b: any): Promise<string> {
   const { data: ok } = await sb.rpc("reserve_broadcast_credits", { p_vendor: vendor.vendor_id, p_amount: b.cost_usd });
   if (!ok) { await sb.from("broadcasts").update({ status: "failed" }).eq("id", b.id); await sendText(c, tr(c, `Not enough broadcast credit for this send (need ${usd(b.cost_usd)}). Top up and I'll send it right away.`, `رصيد البث غير كافٍ لهذا الإرسال (المطلوب ${usd(b.cost_usd)}). عبّي الرصيد وبرسلها فوراً.`)); return "insufficient credits"; }
   const { data: aud } = await sb.rpc("broadcast_audience", { p_vendor: vendor.vendor_id, p_village: b.target_village });
-  const phones: string[] = (aud ?? []).map((r: any) => r.phone);
-  const text = `${b.message}\n\n— ${vendor.name_en}\nReply STOP to unsubscribe`;
+  const audience: string[] = (aud ?? []).map((r: any) => r.phone);
+  // Re-check consent at send time and read each customer's language; anyone not opted in right now is skipped.
+  const { data: custs } = audience.length ? await sb.from("customers").select("phone_number,language").in("phone_number", audience).eq("marketing_opt_in", true) : { data: [] };
+  const langOf = new Map<string, Lang>((custs ?? []).map((r: any) => [r.phone_number, r.language === "en" ? "en" : "ar"]));
+  const phones = audience.filter((p) => langOf.has(p));
+  const skipped = audience.length - phones.length;
+  // Customers who wrote to us in the last 24h can get a plain message; everyone else needs the approved template.
+  const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+  const { data: recent } = phones.length ? await sb.from("conversations").select("phone").in("phone", phones).eq("role", "user").gte("created_at", since) : { data: [] };
+  const inWindow = new Set((recent ?? []).map((r: any) => r.phone));
   const work = (async () => {
-    let sent = 0, failed = 0;
+    let sent = 0, failed = skipped;
     for (let i = 0; i < phones.length; i += 8) {
-      const res = await Promise.all(phones.slice(i, i + 8).map((p) => rawSend(c.pnid, PROMO_TEMPLATE
-        ? { ...envl(p), type: "template", template: { name: PROMO_TEMPLATE, language: { code: PROMO_LANG }, components: [{ type: "body", parameters: [{ type: "text", text: clip(b.message.replace(/\s+/g, " "), 900) }] }] } }
-        : { ...envl(p), type: "text", text: { body: text } }, c.dry, c.out)));
+      const res = await Promise.all(phones.slice(i, i + 8).map(async (p) => {
+        for (const payload of promoAttempts({ to: p, lang: langOf.get(p)!, message: b.message, vendorName: vendor.name_en, inWindow: inWindow.has(p), templates: PROMO_TEMPLATES })) {
+          if (await rawSend(c.pnid, payload, c.dry, c.out)) return true;
+        }
+        return false;
+      }));
       for (const r of res) r ? sent++ : failed++;
     }
     const refund = r2(failed * BCAST_COST);

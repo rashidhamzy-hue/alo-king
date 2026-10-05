@@ -7,6 +7,11 @@ on:
       - "supabase/functions/**"
       - "supabase/config.toml"
   workflow_dispatch:
+    inputs:
+      staging:
+        description: "Deploy this ref's kapso-brain as kapso-brain-test (for dry-run tests before merging; no webhook points at it)"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-functions
@@ -25,4 +30,10 @@ jobs:
           version: latest
       # verify_jwt per function comes from supabase/config.toml
       - name: Deploy all functions
+        if: ${{ !inputs.staging }}
         run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Deploy staging copy (kapso-brain-test)
+        if: ${{ inputs.staging }}
+        run: |
+          cp -r supabase/functions/kapso-brain supabase/functions/kapso-brain-test
+          supabase functions deploy kapso-brain-test --no-verify-jwt --project-ref "$SUPABASE_PROJECT_ID"

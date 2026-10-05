@@ -14,6 +14,9 @@ description: Ship Supabase edge function or frontend changes for Alo King and ve
 4. Smoke test with the `test-whatsapp-flow` skill (at least one order and one owner message for `kapso-brain`).
 5. Never edit functions only in the Supabase dashboard or via `deploy_edge_function`; the repo is the source of truth and CI will overwrite them.
 
+## Test a PR before merging
+Run the workflow manually on the PR branch with `staging=true` (GitHub Actions → "Deploy Supabase edge functions" → Run workflow, or `actions_run_trigger`). It deploys the branch's `kapso-brain` as **`kapso-brain-test`** (`verify_jwt` off, nothing points a webhook at it), sharing the production database/secrets. Run the dry-run tests with `FN=kapso-brain-test`, review, then merge.
+
 ## Database
 - Schema/RLS changes go in a new `supabase/migrations/<timestamp>_<name>.sql` and are applied with `apply_migration`; confirm with `list_migrations`. Never create tables from Lovable.
 
@@ -22,4 +25,4 @@ description: Ship Supabase edge function or frontend changes for Alo King and ve
 - In sandboxes where `bun install` fails with 403 on the private npm mirror, install without the lockfile for verification only (`mv bun.lock /tmp; bun install --registry https://registry.npmjs.org; mv /tmp/bun.lock .`) and do not commit lockfile changes.
 
 ## Secrets / config reminders
-- `KAPSO_OTP_TEMPLATE` stays empty until `alo_verify_code` is APPROVED; `KAPSO_PROMO_TEMPLATE`/`KAPSO_PROMO_LANG` must name an APPROVED marketing template (see `docs/whatsapp-templates.md`).
+- `KAPSO_OTP_TEMPLATE` stays empty until `alo_verify_code` is APPROVED; `KAPSO_PROMO_TEMPLATE_AR`/`_EN` (defaults `alo_offer_ar` / `alo_offer_en_optout`) must be APPROVED marketing templates (see `docs/whatsapp-templates.md`).
