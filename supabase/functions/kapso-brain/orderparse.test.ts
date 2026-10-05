@@ -45,7 +45,8 @@ describe("parseOrder: quantities in English, Arabic and Arabizi", () => {
 
 describe("hasOrderIntent", () => {
   it.each(["2 shawarma", "I want a burger", "badde shawarma", "بدي شاورما", "عطيني بيبسي", "add a pepsi", "shawarma and fries", "شاورما و بطاطا", "give me two falafel", "three pepsi"])("%s → order", (t) => expect(hasOrderIntent(t)).toBe(true));
-  it.each(["do you have falafel and hummus?", "is there gluten in shawarma and fries", "the fries were cold and the pepsi warm", "remove pepsi and fries", "no onions and no pickles", "no pepsi and fries", "I am allergic to peanuts, what do you have", "شو في شاورما و بطاطا", "عندكم شاورما و بطاطا؟", "without onions and tomato", "shil el batata w el pepsi", "ma badde pepsi w batata"])("question / complaint / removal is NOT an order: %s", (t) => expect(hasOrderIntent(t)).toBe(false));
+  it.each(["do you have falafel and hummus?", "is there gluten in shawarma and fries", "the fries were cold and the pepsi warm", "remove pepsi and fries", "no onions and no pickles", "no pepsi and fries", "I am allergic to peanuts, what do you have", "شو في شاورما و بطاطا", "عندكم شاورما و بطاطا؟", "without onions and tomato", "shil el batata w el pepsi", "ma badde pepsi w batata", "my order was late.", "order was wrong, fries and pepsi"])("question / complaint / removal is NOT an order: %s", (t) => expect(hasOrderIntent(t)).toBe(false));
+  it.each(["a cold pepsi and fries", "I want a vegan burger and fries", "halal shawarma and fries please"])("not blocked by order words: %s", (t) => expect(hasOrderIntent(t)).toBe(true));
   it.each(["shawarma", "something light", "what's good", "hungry", "pizza?", "عندكم شاورما؟", "do you have falafel", "شو في", "burger near me", ""])("%s → search, not an order", (t) => expect(hasOrderIntent(t)).toBe(false));
 });
 

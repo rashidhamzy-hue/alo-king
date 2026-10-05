@@ -46,13 +46,13 @@ export function parseOrder(text: string, known?: (word: string) => boolean): { s
   return { segments, hint };
 }
 
-const NOT_AN_ORDER = /(?:^|\s)(?:do you|does|have you|any|is there|are there|got any|how|what|where|when|who|why|which|can i have a look|no|not|without|remove|delete|drop|cancel|cold|wrong|late|missing|burnt|bad|terrible|allergic|allergy|gluten|vegan|halal|ingredients|sorry|refund|complain|instead|bala|shil|sheel|ma|mish|msh|مش|بدون|بلا|شيل|احذف|الغي|ما|هل|شو|وين|كيف|ليش|عندكم|عندك|بارد|غلط|متأخر|حساسية|وين طلبي)(?:\s|$)|\?|؟/;
+const NOT_AN_ORDER = /(?:^|\s)(?:do you|does|have you|any|is there|are there|got any|how|what|where|when|who|why|which|can i have a look|no|not|without|remove|delete|drop|cancel|was|were|wrong|late|missing|burnt|bad|terrible|allergic|allergy|ingredients|sorry|refund|complain|instead|bala|shil|sheel|ma|mish|msh|مش|بدون|بلا|شيل|احذف|الغي|ما|هل|شو|وين|كيف|ليش|عندكم|عندك|بارد|غلط|متأخر|حساسية|وين طلبي)(?:\s|$)|\?|؟/;
 
 /** Does this look like the customer is ordering (vs searching or asking)? A bare "shawarma" or "do you have falafel" is a search. */
 export function hasOrderIntent(text: string): boolean {
   const t = digits(String(text ?? "")).replace(/[؟?!]+/g, " ").trim();
   if (!t) return false;
-  if (NOT_AN_ORDER.test(t.toLowerCase())) return false; // questions, complaints, removals and negations belong to the model / basket edit, never to a deterministic add
+  if (NOT_AN_ORDER.test(t.toLowerCase().replace(/[^\p{L}\p{N}?؟]+/gu, " ").trim())) return false; // questions, complaints, removals and negations belong to the model / basket edit, never to a deterministic add
   const segs = splitSegments(extractVendorHint(t).rest);
   if (segs.length >= 2) return true;
   const toks = t.toLowerCase().split(/\s+/).filter(Boolean);
