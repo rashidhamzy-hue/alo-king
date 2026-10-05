@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as MerchantRouteImport } from './routes/merchant'
+import { Route as MSlugRouteImport } from './routes/m.$slug'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const MerchantRoute = MerchantRouteImport.update({
   path: '/merchant',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MSlugRoute = MSlugRouteImport.update({
+  id: '/m/$slug',
+  path: '/m/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
   id: '/track/$orderId',
   path: '/track/$orderId',
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/merchant': typeof MerchantRoute
+  '/m/$slug': typeof MSlugRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/merchant': typeof MerchantRoute
+  '/m/$slug': typeof MSlugRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
 export interface FileRoutesById {
@@ -61,15 +69,24 @@ export interface FileRoutesById {
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/merchant': typeof MerchantRoute
+  '/m/$slug': typeof MSlugRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/driver' | '/explore' | '/merchant' | '/track/$orderId'
+  fullPaths:
+    '/' | '/driver' | '/explore' | '/merchant' | '/m/$slug' | '/track/$orderId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/driver' | '/explore' | '/merchant' | '/track/$orderId'
+  to:
+    '/' | '/driver' | '/explore' | '/merchant' | '/m/$slug' | '/track/$orderId'
   id:
-    '__root__' | '/' | '/driver' | '/explore' | '/merchant' | '/track/$orderId'
+    | '__root__'
+    | '/'
+    | '/driver'
+    | '/explore'
+    | '/merchant'
+    | '/m/$slug'
+    | '/track/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +94,7 @@ export interface RootRouteChildren {
   DriverRoute: typeof DriverRoute
   ExploreRoute: typeof ExploreRoute
   MerchantRoute: typeof MerchantRoute
+  MSlugRoute: typeof MSlugRoute
   TrackOrderIdRoute: typeof TrackOrderIdRoute
 }
 
@@ -110,6 +128,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/m/$slug': {
+      id: '/m/$slug'
+      path: '/m/$slug'
+      fullPath: '/m/$slug'
+      preLoaderRoute: typeof MSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/track/$orderId': {
       id: '/track/$orderId'
       path: '/track/$orderId'
@@ -125,6 +150,7 @@ const rootRouteChildren: RootRouteChildren = {
   DriverRoute: DriverRoute,
   ExploreRoute: ExploreRoute,
   MerchantRoute: MerchantRoute,
+  MSlugRoute: MSlugRoute,
   TrackOrderIdRoute: TrackOrderIdRoute,
 }
 export const routeTree = rootRouteImport
