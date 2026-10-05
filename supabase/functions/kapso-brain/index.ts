@@ -1166,7 +1166,8 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   }
   let matches = "";
   if (!reply && !loc) { try { matches = matchesNote(await resolveMessage(phone, userText)); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
-  const system = { static: CSYSTEM, dynamic: `CUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}${matches ? `\n\n${matches}` : ""}` };
+  const system = { static: CSYSTEM, dynamic: `CUSTOMER PROFILE: name=${prof?.full_name ?? "unknown"}; village=${prof?.village ?? "unknown"}; landmark=${prof?.last_address ?? "unknown"}` };
+  const modelText = matches ? `${userText}\n\n${matches}` : userText; // the matches ride on the customer turn as labelled data; chat history stores only what the customer said
   let final = "";
   const run = (n: string, i: any) => customerTool(c, phone, n, i);
   const mainModel = c.override?.model ?? MODEL;
@@ -1174,11 +1175,11 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   try {
     if (route === "cheap") {
       let cheapFailed = false;
-      try { final = await llmLoop({ static: system.static, dynamic: system.dynamic + QUICK_MODE_NOTE }, CHEAP_TOOLS, phone, userText, run, { kind: "customer", phone }, CHEAP_MODEL); }
+      try { final = await llmLoop({ static: system.static, dynamic: system.dynamic + QUICK_MODE_NOTE }, CHEAP_TOOLS, phone, modelText, run, { kind: "customer", phone }, CHEAP_MODEL); }
       catch (e) { cheapFailed = true; console.error("cheap model failed, falling back to the main model", String((e as Error)?.message ?? e).slice(0, 160)); }
-      if (cheapFailed && !c.rich) final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel);
-      else if (!cheapFailed && c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel); } // the small model handed over before sending anything
-    } else final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }, mainModel);
+      if (cheapFailed && !c.rich) final = await llmLoop(system, CTOOLS, phone, modelText, run, { kind: "customer", phone }, mainModel);
+      else if (!cheapFailed && c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, modelText, run, { kind: "customer", phone }, mainModel); } // the small model handed over before sending anything
+    } else final = await llmLoop(system, CTOOLS, phone, modelText, run, { kind: "customer", phone }, mainModel);
   }
   catch (err) { console.error("customer llm error", String((err as Error)?.message ?? err).slice(0, 300)); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }
   await maybeOfferAddon(c);
