@@ -1,5 +1,6 @@
 export type Vendor = {
   vendor_id: string;
+  slug?: string | null;
   name_en: string | null;
   name_ar: string | null;
   category_canonical: string | null;

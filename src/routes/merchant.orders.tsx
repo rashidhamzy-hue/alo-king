@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BellRing, LogOut, Volume2, VolumeX, Wifi, WifiOff } from "lucide-react";
+import { BellRing, Volume2, VolumeX, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StaffGate, signOut, type StaffProfile } from "@/components/staff/StaffGate";
+import { useMerchant } from "@/components/merchant/context";
 import { KitchenOrderCard } from "@/components/merchant/KitchenOrderCard";
 import { supabase } from "@/lib/supabase";
 import { ORDER_COLUMNS, type Order } from "@/lib/types";
@@ -14,54 +13,22 @@ import { errMsg, lbp, startOfToday, usd } from "@/lib/format";
 import { playChime, unlockAudio } from "@/lib/chime";
 import { useNow } from "@/hooks/use-now";
 
-export const Route = createFileRoute("/merchant")({
+export const Route = createFileRoute("/merchant/orders")({
   head: () => ({
     meta: [
-      { title: "Kitchen Terminal — Alo King" },
+      { title: "Orders — Alo King Kitchen" },
       { name: "description", content: "Live order terminal for Alo King merchant kitchens in the Shouf." },
       { property: "og:title", content: "Kitchen Terminal — Alo King" },
       { property: "og:description", content: "Accept, prepare and hand off WhatsApp orders in real time." },
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: () => (
-    <StaffGate roles={["merchant", "admin"]} title="Kitchen Terminal">
-      {(p) => <MerchantShell profile={p} />}
-    </StaffGate>
-  ),
+  component: OrdersPage,
 });
 
-function MerchantShell({ profile }: { profile: StaffProfile }) {
-  const [vendorId, setVendorId] = useState<string | null>(profile.role === "merchant" ? profile.vendor_id : null);
-  const vendorsQ = useQuery({
-    queryKey: ["admin-vendors"],
-    enabled: profile.role === "admin",
-    queryFn: async () => {
-      const { data, error } = await supabase.from("vendors").select("vendor_id,name_en").order("name_en").limit(1000);
-      if (error) throw error;
-      return (data ?? []) as { vendor_id: string; name_en: string | null }[];
-    },
-  });
-
-  if (profile.role === "merchant" && !profile.vendor_id)
-    return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Your kitchen profile has no vendor linked yet. Contact Alo King.</div>;
-
-  return (
-    <div className="min-h-screen">
-      {profile.role === "admin" && (
-        <div className="flex items-center gap-3 border-b border-border px-6 py-3">
-          <span className="text-sm text-muted-foreground">Admin · viewing kitchen</span>
-          <Select value={vendorId ?? ""} onValueChange={setVendorId}>
-            <SelectTrigger className="w-80"><SelectValue placeholder="Pick a vendor" /></SelectTrigger>
-            <SelectContent>
-              {(vendorsQ.data ?? []).map((v) => <SelectItem key={v.vendor_id} value={v.vendor_id}>{v.name_en ?? v.vendor_id}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      {vendorId ? <Terminal key={vendorId} vendorId={vendorId} /> : <p className="p-10 text-center text-muted-foreground">Pick a vendor to open its terminal.</p>}
-    </div>
-  );
+function OrdersPage() {
+  const { vendorId } = useMerchant();
+  return <Terminal key={vendorId} vendorId={vendorId} />;
 }
 
 function Terminal({ vendorId }: { vendorId: string }) {
@@ -165,7 +132,7 @@ function Terminal({ vendorId }: { vendorId: string }) {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-4">
         <div>
           <h1 className="text-3xl font-semibold">{vendorQ.data?.name_en ?? "Kitchen"}</h1>
@@ -187,7 +154,6 @@ function Terminal({ vendorId }: { vendorId: string }) {
               {muted ? <VolumeX /> : <Volume2 />} {muted ? "Muted" : "Sound on"}
             </Button>
           )}
-          <Button variant="ghost" size="lg" onClick={signOut} aria-label="Sign out"><LogOut /></Button>
         </div>
       </header>
       <div className="grid flex-1 gap-5 p-5 lg:grid-cols-3">

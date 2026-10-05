@@ -89,7 +89,7 @@ function Shell({ children }: { children: ReactNode }) {
   return <div className="flex min-h-screen items-center justify-center bg-hero px-4">{children}</div>;
 }
 
-function AuthForms({ title }: { title: string }) {
+export function AuthForms({ title, inline, subtitle }: { title: string; inline?: boolean; subtitle?: string }) {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -114,13 +114,12 @@ function AuthForms({ title }: { title: string }) {
     }
   }
 
-  return (
-    <Shell>
+  const form = (
       <form onSubmit={submit} className="lux-card w-full max-w-sm space-y-5 p-8">
         <div className="text-center">
           <Crown className="mx-auto size-7 text-gold" />
           <h1 className="mt-3 text-3xl font-semibold">{title}</h1>
-          <p className="text-sm text-muted-foreground">{mode === "in" ? "Sign in to continue" : "Create your staff account"}</p>
+          <p className="text-sm text-muted-foreground">{subtitle ?? (mode === "in" ? "Sign in to continue" : "Create your account")}</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -137,6 +136,6 @@ function AuthForms({ title }: { title: string }) {
           {mode === "in" ? "New here? Create an account" : "Have an account? Sign in"}
         </button>
       </form>
-    </Shell>
   );
+  return inline ? form : <Shell>{form}</Shell>;
 }

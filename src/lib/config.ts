@@ -15,4 +15,7 @@ export const MAPBOX_TOKEN = env["VITE_MAPBOX_TOKEN"] || "";
 export const DEMO_CHAT_URL = `${SUPABASE_URL}/functions/v1/demo-chat`;
 
 export const VENDOR_COLUMNS =
-  "vendor_id,name_en,name_ar,category_canonical,village_canonical,address,latitude,longitude,open_days,open_time,close_time,menu_available,is_live,is_active";
+  "vendor_id,slug,name_en,name_ar,category_canonical,village_canonical,address,latitude,longitude,open_days,open_time,close_time,menu_available,is_live,is_active";
+
+export const ALLERGENS = ["gluten","crustaceans","eggs","fish","peanuts","soy","milk","tree_nuts","celery","mustard","sesame","sulphites","lupin","molluscs"] as const;
+export const MEDIA_BUCKET = "vendor-media";
