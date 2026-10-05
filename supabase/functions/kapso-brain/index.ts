@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
@@ -43,7 +44,7 @@ function pnidOf(body: any, evt: any): string {
 }
 
 // ---------- outbound ----------
-type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean };
+type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; admin?: string };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   if (dry) { out?.push(payload); return true; }
   const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
@@ -542,6 +543,31 @@ async function handleAdmin(c: Ctx, vendor: any, ownerPhone: string, text: string
   await remember(key, userText, c.log.join("\n"));
 }
 
+// Admin taps Approve / Reject on a vendor-claim card (sent by claim-vendor). Only the configured admin number may decide.
+async function handleClaimDecision(c: Ctx, from: string, id: string) {
+  const tap = parseClaimTap(id);
+  if (!c.admin || from !== c.admin) {
+    // no reply (no oracle for outsiders), but an attempt to decide a claim is worth an audit row
+    if (tap) {
+      const { data: cl } = await sb.from("vendor_claims").select("vendor_id").eq("id", tap.claimId).maybeSingle();
+      if (cl) await sb.from("claim_audit_log").insert({ claim_id: tap.claimId, vendor_id: cl.vendor_id, event: "unauthorized_attempt", actor: maskPhone(from), source: "whatsapp_button", details: { wanted: tap.approve ? "approve" : "reject" } });
+    }
+    console.log("claim tap from a non-admin number ignored");
+    return;
+  }
+  if (!tap) { await sendText(c, "That claim button isn't valid any more."); return; }
+  if (c.dry) { // dry runs never decide real claims
+    const { data: cl } = await sb.from("vendor_claims").select("status").eq("id", tap.claimId).maybeSingle();
+    await sendText(c, `[dry run] would ${tap.approve ? "approve" : "reject"} claim ${tap.claimId} (current status: ${cl?.status ?? "not found"})`);
+    return;
+  }
+  const { data, error } = await sb.rpc("decide_claim", { p_claim_id: tap.claimId, p_approve: tap.approve, p_actor: `admin ${maskPhone(from)}`, p_source: "whatsapp_button" });
+  if (error || !data?.ok) { await sendText(c, `⚠️ Couldn't ${tap.approve ? "approve" : "reject"} that claim: ${data?.error ?? error?.message ?? "error"}`); return; }
+  await sendText(c, tap.approve
+    ? `✅ Approved: *${data.vendor_name}*\nClaimant: ${data.contact_name}\nOwner console: ${data.owner_linked ? `linked to ${maskPhone(data.contact_phone)}` : `NOT linked (${data.link_note ?? "unknown"})`}`
+    : `❌ Rejected the claim for *${data.vendor_name}* (${data.contact_name}).`);
+}
+
 async function handleLink(c: Ctx, phone: string, code: string) {
   const { data: row } = await sb.from("owner_link_codes").select("*").eq("code", code.trim().toUpperCase()).is("used_at", null).gt("expires_at", new Date().toISOString()).maybeSingle();
   if (!row) { await sendText(c, "That link code is invalid or expired. Generate a new one from your Alo King dashboard."); return; }
@@ -567,10 +593,10 @@ function extract(evt: any) {
   };
 }
 
-async function handleEvent(body: any, evt: any, dry: boolean, out: any[]) {
+async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null) {
   const e = extract(evt);
   if (!e.from) return;
-  const c: Ctx = { to: e.from, pnid: pnidOf(body, evt), dry, out, log: [], rich: 0 };
+  const c: Ctx = { to: e.from, pnid: pnidOf(body, evt), dry, out, log: [], rich: 0, admin: normPhone(dry && adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined };
   if (e.id) {
     const { error } = await sb.from("processed_messages").insert({ message_id: e.id });
     if (error) { console.log("duplicate, skipping", e.id); return; }
@@ -584,6 +610,7 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[]) {
   if (!text && !e.reply && !e.loc) { console.log("unhandled message type", e.type); return; }
   const norm = normPhone(e.from);
   if (/^ALO-[A-Z0-9]{6}$/i.test(text)) { await handleLink(c, norm, text); return; }
+  if (e.reply?.id.startsWith("CLAIM|")) { await handleClaimDecision(c, norm, e.reply.id); return; }
   const esc = text.match(/^(customer|زبون)\s*[:：]\s*([\s\S]+)$/i);
   const { data: owner } = norm ? await sb.from("vendors").select("vendor_id,name_en").eq("owner_whatsapp_phone", norm).maybeSingle() : { data: null };
   if (owner && !esc) return handleAdmin(c, owner, norm, text, e.reply);
@@ -604,10 +631,12 @@ Deno.serve(async (req) => {
     const given = req.headers.get("x-webhook-secret") ?? new URL(req.url).searchParams.get("key");
     if (given !== WEBHOOK_SECRET) return new Response("unauthorized", { status: 401 });
   }
+  // Staging dry-run only: lets tests act as the admin without the real admin number (a secret). Ignored on production.
+  const adminOverride = dry && new URL(req.url).pathname.includes("kapso-brain-test") ? req.headers.get("x-selftest-admin") : null;
   let body: any; try { body = await req.json(); } catch { return new Response("bad request", { status: 400 }); }
   const events = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
   const out: any[] = [];
-  const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out); } catch (err) { console.error("event error", err); } } })();
+  const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride); } catch (err) { console.error("event error", err); } } })();
   if (dry) { await work; return new Response(JSON.stringify({ out }), { status: 200, headers: { "content-type": "application/json" } }); }
   // @ts-ignore EdgeRuntime is provided by Supabase
   if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work); else await work;
