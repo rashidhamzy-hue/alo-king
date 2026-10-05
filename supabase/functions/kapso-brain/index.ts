@@ -716,6 +716,7 @@ function extract(evt: any) {
     type: m.type as string | undefined,
     text: (m.text?.body ?? (typeof m.content === "string" && !rep ? m.content : undefined) ?? evt.text ?? "") as string,
     audioUrl: (m.kapso?.media_url ?? m.audio?.url) as string | undefined,
+    fixtureTranscript: m.kapso?.transcript_fixture as string | undefined, // dry runs only: voice-note test fixtures
     reply: rep,
     loc: m.location?.latitude != null ? m.location : null,
     acq: parseReferral(m) ?? parseReferral(evt),
@@ -732,7 +733,7 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminO
   }
   let text = (e.text ?? "").trim();
   if (!text && !e.reply && !e.loc && (e.type === "audio" || e.audioUrl)) {
-    const t = e.audioUrl ? await transcribe(e.audioUrl) : null;
+    const t = dry && e.fixtureTranscript ? String(e.fixtureTranscript).slice(0, 1000) : e.audioUrl ? await transcribe(e.audioUrl) : null;
     if (!t) { await sendText(c, "وصلتني الرسالة الصوتية بس ما قدرت أسمعها هلأ 🙏 ممكن تكتبلي؟\nGot your voice note but couldn't play it — could you type it?"); return; }
     text = t;
   }
@@ -755,10 +756,13 @@ async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminO
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("ok", { status: 200 });
   let dry = false;
-  const isJob = new URL(req.url).searchParams.get("job") === "order-watchdog";
+  const job = new URL(req.url).searchParams.get("job");
+  const isJob = job === "order-watchdog";
+  const isInspect = job === "inspect";
   const st = req.headers.get("x-selftest");
   // The staging copy (kapso-brain-test) is for dry-run tests only: it never accepts non-selftest traffic.
   if (new URL(req.url).pathname.includes("kapso-brain-test") && !st) return new Response("unauthorized", { status: 401 });
+  if (isInspect && !st) return new Response("unauthorized", { status: 401 });
   if (st) {
     const { data: t } = await sb.from("selftest_tokens").select("token").eq("token", st).gt("expires_at", new Date().toISOString()).maybeSingle();
     if (!t) return new Response("unauthorized", { status: 401 });
@@ -772,6 +776,17 @@ Deno.serve(async (req) => {
   }
   // Staging dry-run only: lets tests act as the admin without the real admin number (a secret). Ignored on production.
   const adminOverride = dry && new URL(req.url).pathname.includes("kapso-brain-test") ? req.headers.get("x-selftest-admin") : null;
+  if (isInspect) {
+    // Test-only: dump the state of a TEST customer (phones 961700000…) so persona tests can assert on the database.
+    const phone = new URL(req.url).searchParams.get("phone") ?? "";
+    if (!/^961700000\d{3,6}$/.test(phone)) return new Response("test phones only", { status: 400 });
+    const [cust, orders, carts] = await Promise.all([
+      sb.from("customers").select("phone_number,full_name,village,last_address,language,marketing_opt_in").eq("phone_number", phone).maybeSingle(),
+      sb.from("orders").select("id,short_code,vendor_id,status,items,subtotal_usd,delivery_fee_usd,total_usd,delivery_village,building_landmark,created_at").eq("customer_phone", phone).order("created_at"),
+      sb.from("carts").select("id,vendor_id,status,items,subtotal_usd,delivery_fee_usd,total_usd,created_at").eq("customer_phone", phone).order("created_at"),
+    ]);
+    return new Response(JSON.stringify({ customer: cust.data, orders: orders.data ?? [], carts: carts.data ?? [] }), { status: 200, headers: { "content-type": "application/json" } });
+  }
   if (isJob) {
     const out: any[] = [];
     const admin = normPhone(adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined;
