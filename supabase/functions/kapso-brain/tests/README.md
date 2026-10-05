@@ -12,3 +12,6 @@ SELFTEST_TOKEN=… bun supabase/functions/kapso-brain/tests/run.ts --phase 0
 ```
 
 The persona runs are LLM-driven, so scripts retry with nudges; a one-off miss is worth re-running before treating it as a regression. Never put real secrets, OTPs or customer data in fixtures.
+
+## One-off capped live check (`live.ts`)
+`SELFTEST_TOKEN=… bun tests/live.ts <phase> --state /tmp/live-state.json` drives staging (dry run: nothing is sent to WhatsApp, model calls are REAL and cost money) in phases `ab` / `b2` / `c1` / `c2` / `e` / `f` / `g` / `report` / `d`. Every call first reads the estimated spend of the test phones (`?job=spend`, from `ai_call_log`) and refuses to continue at 90% of `CAP_USD` (default 1.5). Staging-only request headers (honoured only on `kapso-brain-test` with a selftest token, dry run): `x-selftest-model` (Haiku 4.5 / Sonnet 5.5), `x-selftest-cheap: true`, `x-selftest-budget`, `x-selftest-admin`. Run `report` before `d` ("delete my data" nulls the phone on that customer's AI-log rows).
