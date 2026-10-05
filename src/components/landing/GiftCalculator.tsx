@@ -54,7 +54,7 @@ export function GiftCalculator() {
                 className="mt-3 flex gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (contact.trim().length < 5) return toast.error("Enter an email or WhatsApp number");
+                  if (contact.trim().length < 5) { toast.error("Enter an email or WhatsApp number"); return; }
                   localStorage.setItem("ak_gift_waitlist", JSON.stringify({ contact: contact.trim(), at: new Date().toISOString() }));
                   setJoined(true);
                   toast.success("You're on the waitlist");

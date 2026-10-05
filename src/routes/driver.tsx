@@ -251,7 +251,7 @@ function DriverApp({ uid }: { uid: string }) {
               onClick={() => {
                 if (!confirm) return;
                 const patch: Record<string, unknown> = { status: "delivered" };
-                if (isCOD(confirm.payment_method)) patch.payment_status = "collected";
+                if (isCOD(confirm.payment_method)) patch["payment_status"] = "collected";
                 void act(confirm, patch);
                 setConfirm(null);
               }}

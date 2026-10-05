@@ -51,7 +51,7 @@ function MerchantShell({ profile }: { profile: StaffProfile }) {
       {profile.role === "admin" && (
         <div className="flex items-center gap-3 border-b border-border px-6 py-3">
           <span className="text-sm text-muted-foreground">Admin · viewing kitchen</span>
-          <Select value={vendorId ?? undefined} onValueChange={setVendorId}>
+          <Select value={vendorId ?? ""} onValueChange={setVendorId}>
             <SelectTrigger className="w-80"><SelectValue placeholder="Pick a vendor" /></SelectTrigger>
             <SelectContent>
               {(vendorsQ.data ?? []).map((v) => <SelectItem key={v.vendor_id} value={v.vendor_id}>{v.name_en ?? v.vendor_id}</SelectItem>)}
@@ -128,8 +128,8 @@ function Terminal({ vendorId }: { vendorId: string }) {
 
   // repeating chime while unacknowledged
   useEffect(() => {
-    if (unacked.size === 0) return;
-    const ring = () => soundRef.current.soundOn && !soundRef.current.muted && playChime();
+    if (unacked.size === 0) return undefined;
+    const ring = () => { if (soundRef.current.soundOn && !soundRef.current.muted) playChime(); };
     ring();
     const id = setInterval(ring, 1800);
     return () => clearInterval(id);

@@ -19,7 +19,7 @@ function FitBounds({ points }: { points: LL[] }) {
   useEffect(() => {
     if (!points.length || done.current === key) return;
     done.current = key;
-    if (points.length === 1) map.setView(points[0], 15);
+    if (points.length === 1) map.setView(points[0]!, 15);
     else map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
   }, [key, map, points]);
   return null;
