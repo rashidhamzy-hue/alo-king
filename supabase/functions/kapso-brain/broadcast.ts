@@ -38,5 +38,14 @@ export function promoAttempts(o: { to: string; lang: Lang; message: string; vend
 }
 
 // STOP / unsubscribe keywords and the quick-reply titles of the promo templates (whole message only).
-const OPTOUT_TITLES = /^\s*(stop|stop offers|unsubscribe|cancel|إيقاف|ايقاف|وقف|توقف|إلغاء|الغاء|إيقاف العروض|ايقاف العروض)\s*[.!]?\s*$/i;
+const OPTOUT_TITLES = /^\s*(stop|stop offers|unsubscribe|إيقاف|ايقاف|وقف|توقف|إيقاف العروض|ايقاف العروض)\s*[.!]?\s*$/i;
 export const isOptOutTitle = (s: string) => OPTOUT_TITLES.test(String(s ?? ""));
+
+/** A tap, from any of the shapes WhatsApp/Kapso use: interactive reply, list reply, or a template quick-reply (`type: "button"`, `button: { payload, text }`). */
+export function replyFrom(m: any): { id: string; title: string } | null {
+  const r = m?.interactive?.button_reply ?? m?.interactive?.list_reply ?? m?.button_reply ?? m?.list_reply ?? null;
+  if (r?.id) return { id: String(r.id), title: String(r.title ?? "") };
+  const b = m?.button;
+  if (b && (b.payload || b.text)) return { id: String(b.payload ?? b.text), title: String(b.text ?? b.payload ?? "") };
+  return null;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectLanguage, isOptOutTitle, promoAttempts } from "./broadcast";
+import { detectLanguage, isOptOutTitle, promoAttempts, replyFrom } from "./broadcast";
 
 describe("detectLanguage", () => {
   it("Arabic script and Arabizi are Arabic", () => {
@@ -47,6 +47,20 @@ describe("isOptOutTitle", () => {
     for (const s of ["STOP", "stop", "Stop offers", "إيقاف العروض", "ايقاف", "unsubscribe", " وقف "]) expect(isOptOutTitle(s)).toBe(true);
   });
   it("does not match ordinary messages", () => {
-    for (const s of ["stop the order", "وقّف الطلبات 30 دقيقة", "I want soft drinks", ""]) expect(isOptOutTitle(s)).toBe(false);
+    for (const s of ["cancel", "cancel my order", "إلغاء", "stop the order", "وقّف الطلبات 30 دقيقة", "I want soft drinks", ""]) expect(isOptOutTitle(s)).toBe(false);
+  });
+});
+
+describe("replyFrom", () => {
+  it("reads interactive button and list replies", () => {
+    expect(replyFrom({ interactive: { button_reply: { id: "CONFIRM|1", title: "Confirm" } } })).toEqual({ id: "CONFIRM|1", title: "Confirm" });
+    expect(replyFrom({ interactive: { list_reply: { id: "ORD|v|i", title: "Item" } } })).toEqual({ id: "ORD|v|i", title: "Item" });
+  });
+  it("reads a template quick-reply tap", () => {
+    expect(replyFrom({ type: "button", button: { payload: "OPTOUT", text: "Stop offers" } })).toEqual({ id: "OPTOUT", title: "Stop offers" });
+    expect(replyFrom({ type: "button", button: { text: "إيقاف العروض" } })).toEqual({ id: "إيقاف العروض", title: "إيقاف العروض" });
+  });
+  it("returns null for plain text", () => {
+    expect(replyFrom({ type: "text", text: { body: "hi" } })).toBeNull();
   });
 });

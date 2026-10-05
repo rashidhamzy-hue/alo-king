@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, type Lang } from "./broadcast.ts";
+import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
@@ -555,14 +555,14 @@ async function handleLink(c: Ctx, phone: string, code: string) {
 // ---------- ROUTER ----------
 function extract(evt: any) {
   const m = evt.message ?? evt.entry?.[0]?.changes?.[0]?.value?.messages?.[0] ?? {};
-  const rep = m.interactive?.button_reply ?? m.interactive?.list_reply ?? m.button_reply ?? m.list_reply ?? null;
+  const rep = replyFrom(m);
   return {
     id: m.id as string | undefined,
     from: (m.from ?? m.from_phone_number ?? evt.conversation?.phone_number ?? evt.from) as string | undefined,
     type: m.type as string | undefined,
     text: (m.text?.body ?? (typeof m.content === "string" && !rep ? m.content : undefined) ?? evt.text ?? "") as string,
     audioUrl: (m.kapso?.media_url ?? m.audio?.url) as string | undefined,
-    reply: rep?.id ? { id: String(rep.id), title: String(rep.title ?? "") } : null,
+    reply: rep,
     loc: m.location?.latitude != null ? m.location : null,
   };
 }
