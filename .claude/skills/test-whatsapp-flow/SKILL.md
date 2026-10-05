@@ -37,6 +37,11 @@ description: Run end-to-end dry-run tests of the Alo King WhatsApp bot (kapso-br
 - Confirming an order → the owner (linked test number) gets a card with `ORDER|ACC|…` / `ORDER|REJ|…`; `reply "ORDER|ACC|<id>" "✅ Accept"` from the owner → status `accepted` + customer notice; Reject → `rejected` + notice; a second tap → "already handled".
 - Escalation: leave an order pending, backdate it (`update orders set created_at = now() - interval '2 minutes' where id = '…'`), then `curl -X POST -H "x-selftest: $SELFTEST_TOKEN" -H "x-selftest-admin: 961700000095" "$URL?job=order-watchdog"` → customer "still confirming" + admin ping; a second call escalates nothing. Dry job runs only touch `961700000…` orders.
 
+**Customer side** (see `docs/customer-side.md`)
+- Reorder: for a customer with a pending/accepted order, `hi` → card with `REORDER|<id>`; `reply "REORDER|<id>" "Reorder last order"` → a fresh summary (re-priced) with a Confirm button, no order until Confirm.
+- Opt-out: `STOP`, `Stop offers`, and `tpl-button OPTOUT "Stop offers"` each set `marketing_opt_in=false` at once (check `customers`); `stop the order` / `cancel my order` do not.
+- Source: an event with `"message": {..., "referral": {"source_type":"ad","source_id":"1","ctwa_clid":"x"}}` or the text `ORDER_BAAK_SANAWBAR_T12` sets `customers.acquisition_*` once.
+
 ## Cleanup (always)
 - Restore any changed prices; `update vendors set owner_whatsapp_phone=null, broadcast_credits_usd=10.00 where vendor_id=…`.
 - Expire the token: `update selftest_tokens set expires_at=now()-interval '1 minute' where token='…'`.
