@@ -18,6 +18,7 @@ import { agentLoop } from "./loop.ts";
 import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, parseNumberedTap } from "./numbered.ts";
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
+import { beginTurn, touchCustomer, type CustomerStart } from "./turnstart.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
@@ -76,7 +77,7 @@ function pnidOf(body: any, evt: any): string {
 // Staging-only (kapso-brain-test + selftest token + dry run): per-request overrides so a capped live check can use a cheaper model, enable the cheap router and shrink the budget. Never honoured in production.
 type StagingOverride = { model?: string; cheap?: boolean; budget?: number };
 const OVERRIDE_MODELS = ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"];
-type Ctx = { listSend?: boolean; quickCleared?: boolean; quickDel?: Promise<unknown>; to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
+type Ctx = { hasQuick?: boolean; listSend?: boolean; quickCleared?: boolean; quickDel?: Promise<unknown>; to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   payload = clampInteractive(payload); // last line of defence: never let an over-long title/body make Meta reject the whole message
   if (dry) { out?.push(payload); timerStore.getStore()?.markFirstSend(); return true; }
@@ -101,7 +102,7 @@ async function rawSendId(pnid: string, payload: any, dry: boolean, out?: any[]):
 const envl = (to: string) => ({ messaging_product: "whatsapp", recipient_type: "individual", to });
 // A numbered list is only "live" until the bot sends anything else to the customer: the first other outgoing message in a turn drops it (best effort, finished before the turn ends).
 const post = (c: Ctx, p: any) => {
-  if (!c.listSend && !c.quickCleared) { c.quickCleared = true; c.quickDel = Promise.resolve(sb.from("quick_menus").delete().eq("customer_phone", c.to)).then((r: any) => { if (r?.error && r.error.code !== "42P01") console.error("quick_menus clear failed", r.error.message); }); timerStore.getStore()?.background(c.quickDel); }
+  if (!c.listSend && !c.quickCleared && c.hasQuick !== false) { c.quickCleared = true; c.quickDel = Promise.resolve(sb.from("quick_menus").delete().eq("customer_phone", c.to)).then((r: any) => { if (r?.error && r.error.code !== "42P01") console.error("quick_menus clear failed", r.error.message); }); timerStore.getStore()?.background(c.quickDel); }
   return rawSend(c.pnid, p, c.dry, c.out);
 };
 
@@ -447,10 +448,9 @@ async function priceBasket(vendorId: string, lines: any[]) {
   return { lines: ok, gone, subtotal: r2(subtotal) };
 }
 async function sendBasketCard(c: Ctx, basketId: string, vendorId: string) {
-  const lines = await basketLines(basketId);
+  const [lines, { data: v }] = await Promise.all([basketLines(basketId), sb.from("vendors").select("name_en").eq("vendor_id", vendorId).maybeSingle()]); // independent reads, one round trip
   const p = await priceBasket(vendorId, lines);
   if (p.gone.length) await sb.from("basket_lines").delete().in("id", p.gone.map((g) => g.line.id)); // dropped dishes are reported on the card
-  const { data: v } = await sb.from("vendors").select("name_en").eq("vendor_id", vendorId).maybeSingle();
   if (!p.lines.length) { await sendText(c, tr(c, `Your ${v?.name_en ?? "basket"} basket is empty. What would you like? 🍽`, `سلة ${v?.name_en ?? ""} فاضية. شو بدك؟ 🍽`)); c.rich++; return; }
   await sendButtons(c, { body: basketCardText({ vendorName: v?.name_en ?? "", lines: p.lines, subtotal: p.subtotal, deliveryFee: DELIVERY_FEE_USD, both, ar: !!c.ar, unavailable: p.gone.map((g) => g.name) }),
     buttons: [{ id: basketTapId("CHECKOUT", basketId), title: tr(c, "✅ Checkout", "✅ إتمام الطلب") }, { id: `MENU|${vendorId}`, title: tr(c, "➕ Add more", "➕ زيد أصناف") }, { id: `BEDIT|${basketId}`, title: tr(c, "✏️ Edit", "✏️ تعديل") }] }); // sendButtons already counts it as a rich message
@@ -467,28 +467,31 @@ async function clearBasketById(phone: string, basketId: string) {
 
 // One validated line into the customer's basket for a vendor, WITHOUT sending a card (callers send exactly one). All prices are re-read from the database.
 async function addLine(phone: string, vendorId: string, itemId: string, qty: number, choices: Choice[]): Promise<{ basketId: string; name: string } | { error: string; name?: string }> {
-  const { data: open } = await sb.rpc("vendor_is_open", { p_vendor_id: vendorId });
+  // three independent reads in ONE round trip (they have no side effects, so a closed vendor or unknown dish still returns the same error)
+  const [{ data: open }, { data: row }, basket0] = await Promise.all([
+    sb.rpc("vendor_is_open", { p_vendor_id: vendorId }),
+    sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,customizations").eq("vendor_id", vendorId).eq("item_id", itemId).eq("available", true).maybeSingle(),
+    activeBasket(phone, vendorId),
+  ]);
   if (open === false) return { error: "this vendor is closed or not accepting orders right now; offer another vendor" };
-  const { data: row } = await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,customizations").eq("vendor_id", vendorId).eq("item_id", itemId).eq("available", true).maybeSingle();
   if (!row || !(Number(row.price_usd) > 0)) return { error: "item not found or unavailable for this vendor" };
   const pl: any = priceLine(row, choices);
   if (pl.error) return { error: pl.error, name: row.item_name_en };
-  let basket = await activeBasket(phone, vendorId);
+  let basket = basket0;
   if (!basket) {
     if ((await allBaskets(phone)).length >= MAX_BASKETS) return { error: `at most ${MAX_BASKETS} baskets at once; ask the customer to check out or clear one first`, name: row.item_name_en };
     const { data: nb, error } = await sb.from("baskets").insert({ customer_phone: phone, vendor_id: vendorId }).select("id,vendor_id").single();
     if (error) { basket = await activeBasket(phone, vendorId); if (!basket) return { error: "could not open a basket", name: row.item_name_en }; } else basket = nb;
   }
   const key = lineKey(itemId, choices);
-  const { data: ex } = await sb.from("basket_lines").select("id,quantity").eq("basket_id", basket!.id).eq("line_key", key).maybeSingle();
+  const [{ data: ex }, existing] = await Promise.all([sb.from("basket_lines").select("id,quantity").eq("basket_id", basket!.id).eq("line_key", key).maybeSingle(), basketLines(basket!.id)]); // the line count is only used when the dish is new
   if (ex) await sb.from("basket_lines").update({ quantity: Math.min(20, ex.quantity + qty), created_at: new Date().toISOString() }).eq("id", ex.id); // bumping a dish counts as touching it: "make it 3" then means this one (lines are ordered by created_at)
   else {
-    if ((await basketLines(basket!.id)).length >= MAX_LINES) return { error: `a basket holds at most ${MAX_LINES} different dishes`, name: row.item_name_en };
+    if (existing.length >= MAX_LINES) return { error: `a basket holds at most ${MAX_LINES} different dishes`, name: row.item_name_en };
     const { error } = await sb.from("basket_lines").insert({ basket_id: basket!.id, item_id: itemId, line_key: key, quantity: qty, choices: pl.chosen.map((x: any) => ({ group: x.group, option: x.option })) });
     if (error) return { error: "could not add that", name: row.item_name_en };
   }
-  await sb.from("baskets").update({ updated_at: new Date().toISOString() }).eq("id", basket!.id);
-  await expirePending(phone, vendorId); // an earlier summary no longer matches the basket
+  await Promise.all([sb.from("baskets").update({ updated_at: new Date().toISOString() }).eq("id", basket!.id), expirePending(phone, vendorId)]); // an earlier summary no longer matches the basket; the two writes are independent
   return { basketId: basket!.id, name: row.item_name_en };
 }
 
@@ -702,9 +705,8 @@ async function setLineQty(phone: string, lineId: string, qty: number): Promise<{
   if (!ln || !bk) return null;
   const q = clampQty(qty);
   if (q) await sb.from("basket_lines").update({ quantity: q }).eq("id", lineId); else await sb.from("basket_lines").delete().eq("id", lineId);
-  if (!(await basketLines(ln.basket_id)).length) await sb.from("baskets").update({ status: "cleared", updated_at: new Date().toISOString() }).eq("id", ln.basket_id);
-  else await sb.from("baskets").update({ updated_at: new Date().toISOString() }).eq("id", ln.basket_id);
-  await expirePending(phone, bk.vendor_id);
+  const left = (await basketLines(ln.basket_id)).length;
+  await Promise.all([sb.from("baskets").update(left ? { updated_at: new Date().toISOString() } : { status: "cleared", updated_at: new Date().toISOString() }).eq("id", ln.basket_id), expirePending(phone, bk.vendor_id)]);
   return { basketId: ln.basket_id, vendorId: bk.vendor_id };
 }
 async function handleEditTap(c: Ctx, phone: string, t: EditTap) {
@@ -1169,14 +1171,13 @@ async function sendButtonOnly(c: Ctx, phone: string, why: Guard, hasLoc = false)
   ] });
 }
 
-async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: string; title: string } | null, loc: any | null, fromVoice = false) {
+async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: string; title: string } | null, loc: any | null, fromVoice = false, started?: CustomerStart | null) {
   if (fromVoice) c.fromVoice = true; // a confirmed voice transcript is typed-text-equivalent, but can never confirm an order by itself
-  await sb.from("customers").upsert({ phone_number: phone }, { onConflict: "phone_number", ignoreDuplicates: true });
-  await sb.from("customers").update({ last_inbound_at: new Date().toISOString() }).eq("phone_number", phone); // drives the 24h window; survives chat-history deletion
   const lang = detectLanguage(text);
-  if (lang) await sb.from("customers").update({ language: lang, language_set_at: new Date().toISOString() }).eq("phone_number", phone).is("language", null); // first text message decides
+  // The customer row: already touched (last_inbound_at drives the 24h window; the first text message decides the language) by the single start-of-turn query, else one upsert here.
+  const cust = started ?? await touchCustomer(sb, phone, lang);
   let handoffActive = false;
-  { const { data: cl } = await sb.from("customers").select("language,handoff_until").eq("phone_number", phone).maybeSingle(); c.ar = (cl?.language ?? lang ?? "ar") !== "en"; handoffActive = !!cl?.handoff_until && new Date(cl.handoff_until) > new Date(); } // server-built cards follow the customer's stored language (default Arabic)
+  { const cl = cust ?? (await sb.from("customers").select("language,handoff_until").eq("phone_number", phone).maybeSingle()).data; /* a failed touch must not lose the stored language */ c.ar = (cl?.language ?? lang ?? "ar") !== "en"; handoffActive = !!cl?.handoff_until && new Date(cl.handoff_until) > new Date(); } // server-built cards follow the customer's stored language (default Arabic)
   // First-touch source: click-to-WhatsApp ad referral, or a QR deep link (ORDER_<VILLAGE>_<MERCHANT>_<TABLE>)
   const qr = parseQrText(text);
   const acq = c.acq ?? qr;
@@ -1333,7 +1334,8 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   }
   if (!reply && !loc && await handleNumberedReply(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "1x2, 3": no model, no search
   if (!reply && !loc && await handleBasketEditText(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "make it 3", "remove the fries": no model
-  const { data: prof } = await sb.from("customers").select("full_name,village,last_address,last_lat,last_lng").eq("phone_number", phone).maybeSingle();
+  // Nothing earlier in a plain text turn changes these columns, so the row read at the start is current; a tap or a pin may have changed them, so those re-read.
+  const prof = !reply && !loc && cust ? { full_name: cust.full_name, village: cust.village, last_address: cust.last_address, last_lat: cust.last_lat, last_lng: cust.last_lng } : (await sb.from("customers").select("full_name,village,last_address,last_lat,last_lng").eq("phone_number", phone).maybeSingle()).data;
   let resolved: Resolved[] = [];
   if (!reply && !loc) { try { resolved = await resolveMessage(phone, userText); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
   if (resolved.length && hasOrderIntent(userText)) { // free: no model call, so it also works in button-only mode
@@ -1745,10 +1747,14 @@ async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], a
   const e = parsed ?? extract(evt);
   if (!e.from) return;
   const c: Ctx = { to: e.from, pnid: pnidOf(body, evt), dry, out, log: [], rich: 0, override, acq: e.acq, admin: normPhone(dry && adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined };
-  if (e.id) {
-    const { error } = await sb.from("processed_messages").insert({ message_id: e.id });
-    if (error) { console.log("duplicate, skipping", e.id); return; }
-  }
+  // ONE round trip for the whole start of the turn (dedupe, handoff-reply lookup, owner lookup, customer touch, live-list flag); see turnstart.ts / bot_begin_turn.
+  const rawText = (e.text ?? "").trim();
+  const esc0 = rawText.match(/^(customer|زبون)\s*[:：]\s*([\s\S]+)$/i);
+  const optOutMsg = !!(e.reply && (e.reply.id === OPTOUT_PAYLOAD || isOptOutTitle(e.reply.title))) || isOptOutTitle(rawText);
+  const touch = (!!rawText || !!e.reply || !!e.loc) && !/^ALO-[A-Z0-9]{6}$/i.test(rawText) && !e.reply?.id.startsWith("CLAIM|") && !optOutMsg; // the same turns that used to reach handleCustomer's own customer touch
+  const start = await beginTurn(sb, { messageId: e.id, phone: e.from, norm: normPhone(e.from), contextId: e.contextId, touchCustomer: touch, lang: detectLanguage(esc0 ? esc0[2].trim() : rawText) });
+  if (start.dup) { console.log("duplicate, skipping", e.id); return; }
+  c.hasQuick = start.hasQuick;
   { // instant feedback, in parallel with everything else: blue ticks + "typing…" until our reply (or ~25 s). Best effort, never blocks or fails the turn.
     const ack = shouldAck({ id: e.id, dry, fromAdmin: !!c.admin && normPhone(e.from) === c.admin });
     const payload = ack.read ? buildReadReceipt(e.id, ack.typing) : null;
@@ -1756,13 +1762,12 @@ async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], a
       .then(async (r) => { if (!r.ok) console.error("read receipt failed", r.status, (await r.text()).slice(0, 160)); }));
   }
   // An admin reply to a forwarded customer message: resolved once, up front (a voice reply from the admin must not be treated as a customer voice note).
-  const hrow = e.contextId ? (await sb.from("handoff_log").select("customer_phone").eq("admin_message_id", e.contextId).maybeSingle()).data : null;
+  const hrow = start.handoffCustomer ? { customer_phone: start.handoffCustomer } : null;
   const isAdminReply = !!hrow && shouldRelay(e.from, c.admin ?? "", e.contextId);
   let text = (e.text ?? "").trim();
   if (!text && !e.reply && !e.loc && (e.type === "audio" || e.audioUrl)) {
     const t = dry && e.fixtureTranscript ? String(e.fixtureTranscript).slice(0, 1000) : e.audioUrl ? await transcribe(e.audioUrl) : null;
-    const nv = normPhone(e.from);
-    const { data: ownerChk } = nv ? await sb.from("vendors").select("vendor_id").eq("owner_whatsapp_phone", nv).maybeSingle() : { data: null };
+    const ownerChk = start.owner;
     if (t && !ownerChk && !isAdminReply && isOptOutTitle(t)) { await handleOptOut(c, e.from, t, e.id); return; } // STOP by voice is honoured immediately, no extra tap
     if (t && !ownerChk && !isAdminReply) { // customers confirm what we heard (only the admin quoting a forwarded message skips it) what we heard before anything is acted on (owners keep the direct flow)
       await sb.from("customers").upsert({ phone_number: e.from }, { onConflict: "phone_number", ignoreDuplicates: true });
@@ -1785,7 +1790,7 @@ async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], a
     await relayAdminReply(c, hrow.customer_phone, text); return;
   }
   const esc = text.match(/^(customer|زبون)\s*[:：]\s*([\s\S]+)$/i);
-  const { data: owner } = norm ? await sb.from("vendors").select("vendor_id,name_en").eq("owner_whatsapp_phone", norm).maybeSingle() : { data: null };
+  const owner = start.owner;
   // Opt-out is handled ahead of owner/customer routing (only the link-code and claim taps, which can't be STOP words, come earlier):
   // STOP / "Stop offers" / the promo quick reply clear marketing_opt_in immediately.
   const optOut = (e.reply && (e.reply.id === OPTOUT_PAYLOAD || isOptOutTitle(e.reply.title))) || (!owner && isOptOutTitle(text));
@@ -1793,7 +1798,7 @@ async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], a
   // A linked owner's typed STOP still goes to the owner bot, but the same number as a customer must not keep receiving offers.
   if (owner && !e.reply && isOptOutTitle(text)) await sb.from("customers").update({ marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", e.from);
   if (owner && !esc) return handleAdmin(c, owner, norm, text, e.reply);
-  return handleCustomer(c, e.from, esc ? esc[2].trim() : text, e.reply, e.loc);
+  return handleCustomer(c, e.from, esc ? esc[2].trim() : text, e.reply, e.loc, false, start.customer);
 }
 
 Deno.serve(async (req) => {

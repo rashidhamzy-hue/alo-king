@@ -78,3 +78,18 @@ About **0.45-0.65 s per database query** in these turns (tap rows: 9 queries in 
 | `?forceFunctionRegion=ap-northeast-1` | ap-northeast-1 | **0.50 / 0.37 / 0.43 s** | 9 / 8 / 9 | 0.55 / 0.42 / 0.48 s |
 
 Pinning the function to the database's region cut a tap's handler time about **8x (2.5-4.4 s to 0.4-0.5 s)** in this diagnostic (3 taps per arm, one run, dry run so WhatsApp sends are not included): handler time is then well under the 1.5 s target, but this is a small sample and a real tap also pays the Kapso send. Supabase supports this for webhooks through the `forceFunctionRegion` query parameter (or the `x-region` header) on the invocation URL (Supabase docs, "Regional invocations"). Model calls (US) and WhatsApp sends (US) then cross the ocean instead, an extra delay we estimate (not measured here) at 0.15-0.3 s each; that is only a net win while a turn makes many more database queries (9-70) than model and send calls (1-3 each), which holds today. Set the parameter in the Kapso webhook URL (Kapso configuration), not in the repo, and keep the webhook secret out of the URL query string (use a header). Longer term, a database in a region near Kapso/Anthropic (and Lebanon) is the cleaner fix.
+
+
+## Fewer round trips per message (T2, 5 Oct 2026)
+
+The start of every inbound message used to run **6 sequential queries** before any branch logic: dedupe insert (`processed_messages`), handoff-reply lookup (`handoff_log`, taps carry a context id so it ran for every tap), vendor-owner lookup (`vendors`), customer upsert, `last_inbound_at` update, customer select. They now run as **one** database call, `bot_begin_turn` (migration `20261005180000_bot_begin_turn.sql`, service role only), with identical semantics: a duplicate message id stops everything; the customer is touched only for the same turns as before (not owners, not replies to a forwarded handoff message, not link codes, claim taps, STOP or voice-only messages); the language is set only when none is stored; it also reports whether a numbered list is live, so the "drop the list" delete only runs when there is one. Until the function is deployed the code falls back to the legacy queries, so deployment order does not matter (`turnstart.ts`, with tests that count round trips against a fake client).
+
+Independent reads in the hot tap paths now share one round trip: `addLine` (vendor open, dish, existing basket; line lookup with the line count; basket update with the pending-summary expiry), `sendBasketCard` (lines with the vendor name) and `setLineQty`. A plain text turn also reuses the customer row from the start instead of re-reading it.
+
+| Tap (queries / sequential round trips) | before (measured 5 Oct) | after (by construction) |
+|---|---|---|
+| start of any message | 6 / 6 | **1 / 1** |
+| See Full Menu / More dishes | 9 / 9 | 4 / 3 |
+| basket / edit taps | 10-11 / 10-11 | 5-6 / 5-6 |
+
+Measured numbers from the next live run are added below.
