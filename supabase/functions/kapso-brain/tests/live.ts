@@ -71,7 +71,7 @@ async function main() {
     const B = phone("B", 2), H = { "x-selftest-model": HAIKU };
     let out = await say(B, "I want 2 soft drinks from Al Tahouneh", H);
     check("b1", "basket card with Checkout after adding by text", !!find(out, B, /^CHECKOUT\|/), txt(out, B).slice(0, 160));
-    out = await tap(B, `MENU|${TAHOUNEH}`, "Menu", H);
+    out = await tap(B, `CATS|${TAHOUNEH}`, "Categories", H); // "See Full Menu" is now the numbered list (flow item 4); the category tree is behind Categories
     const cats = rowsOf(out, B);
     check("b2", "menu opens as a category list (<=10 rows, CAT| ids)", cats.length >= 2 && cats.length <= 10 && cats.every((r: any) => r.id.startsWith("CAT|")), `${cats.length} rows`);
     const food = cats.find((r: any) => !/drink|beer|alcohol|عرق|مشروب/i.test(r.title)) ?? cats[0];
