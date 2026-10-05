@@ -26,3 +26,19 @@ WhatsApp-native food and delivery platform for the Shouf region, Lebanon. See `A
 - Schema and RLS are owned in Supabase; change them through new files in `supabase/migrations/`, never ad hoc.
 - Don't rewrite pushed git history (Lovable sync).
 - Service-role code (edge functions) must never ship to the frontend.
+
+## Research reports (`docs/research/`)
+Background reading, not source of truth: where a report disagrees with `supabase/migrations/` or the code, the repo wins. SQL inside the reports is illustrative and has **not** been applied.
+- `Alo King Platform Architectural Blueprint.md`: system topology (Kapso → edge functions → Postgres → Lovable frontends), message-density and button rules, merchant order channels, payments, dispatch.
+- `Alo King Operational Architecture.docx`: driver cash float and ledger, catch-weight retail, offline-first KDS, CTWA/QR growth, disputes and refunds (future sprints).
+- `WhatsApp Business Platform Lebanon Guide.md`: Meta pricing by category, template rules and review, messaging tiers, consent and opt-out, quality rating, Flows.
+- `Legal, Payment, and Regulatory Blueprint for Lebanese Delivery Platforms.md`: dual-currency legality (Law 81/2018 checkout and data rules), VAT, Whish/OMT/card rails, courier classification, company structure.
+- `Delivery Platform Merchant Monetization and Economics.md`: aggregator commission benchmarks and the direct-WhatsApp margin case.
+- `unit-economics research.md`: courier cost, order density, break-even and pilot plan (mostly estimates).
+- `Conversational and voice design.md`: WhatsApp UX (buttons/lists/Flows), reorder and cart recovery, prompt-injection defences, Arabic ASR comparison.
+
+### Hard rules (apply to every change)
+- **Consent-based marketing only.** Send promotions only to customers with `marketing_opt_in`, via approved templates, each with an opt-out (STOP / quick reply). Honour opt-outs immediately; never message opted-out numbers.
+- **Server-side pricing.** Prices, fees, totals and the COD cap are computed on the server from the database. Never trust a price, total or fee from the client or the LLM.
+- **Dual-currency display.** Every customer-facing amount shows USD and LBP at the 89,500 rate (`both()` / `lbp()` in `kapso-brain`, `LBP_RATE` in `src/lib/config.ts`).
+- **No secrets in chat.** Never ask for, echo or log API keys, tokens, OTPs or card numbers in WhatsApp, the web chat, PRs or commit messages. Secrets live in Supabase/GitHub secrets only.
