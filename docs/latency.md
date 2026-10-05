@@ -92,4 +92,13 @@ Independent reads in the hot tap paths now share one round trip: `addLine` (vend
 | See Full Menu / More dishes | 9 / 9 | 4 / 3 |
 | basket / edit taps | 10-11 / 10-11 | 5-6 / 5-6 |
 
-Measured numbers from the next live run are added below.
+### Measured after T2 + T3 (6 Oct run, staging `kapso-brain-test` v27, dry run, 19 turns, $0.05 per run, two runs)
+
+Menu, More, Edit and basket-line taps made **5 queries** (the by-construction estimate of 4 missed one), "One more" 10, checkout/confirm 14-15; text turns 13-38 (the numbered reply and typed edits are the heavy ones and were not part of T2).
+
+| Function region | Tap handler p50 / p95 | Tap wall (HTTP) p50 / p95 | Taps under 1.5 s handler |
+|---|---|---|---|
+| default (near the caller, DB is in Tokyo) | 2.7 s / 6.6 s | 3.6 s / 7.4 s | 1 of 10 |
+| `forceFunctionRegion=ap-northeast-1` | **0.27 s / 0.93 s** | 1.1 s / 1.8 s | **10 of 10** |
+
+Query count alone does not meet the 1.5 s target from a US-region function (about 0.5 s per round trip to Tokyo); pinning the region does. The region is set in the Kapso webhook URL (owner decision, not a secret). "Wall" is measured from the test machine over HTTP, so it includes this machine's network; it is not Kapso's 5 s buffer or real WhatsApp send time. Free text that resolved server-side made 0 model calls; the model-bound turns made 1-3 (mean 0.26 per turn over the run); cost per order about $0.006.
