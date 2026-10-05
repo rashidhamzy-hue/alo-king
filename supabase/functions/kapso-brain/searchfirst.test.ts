@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSearchRows, haversineKm, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
+import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
 import { META } from "../_shared/meta-limits.ts";
 
 const both = (n: number) => `$${n.toFixed(2)} · ${Math.round(n * 89500).toLocaleString("en-US")} LBP`;
@@ -56,4 +56,14 @@ describe("buildSearchRows", () => {
     expect(buildSearchRows([hit("a", "king", "Fries", 1, { km: 2.34, vendor_name: "King" })], false, both)[0].description).toMatch(/2\.3 km/);
   });
   it("empty in, empty out", () => expect(buildSearchRows([], false, both)).toEqual([]));
+});
+
+describe("isOpenResult (vendor_is_open: true / false / null = no hours configured)", () => {
+  it("true and null are open, false is closed, an error is closed", () => {
+    expect(isOpenResult({ data: true })).toBe(true);
+    expect(isOpenResult({ data: null })).toBe(true); // found by the live run: vendors without configured hours were being hidden
+    expect(isOpenResult({ data: false })).toBe(false);
+    expect(isOpenResult({ data: null, error: { message: "boom" } })).toBe(false);
+    expect(isOpenResult({ data: true, error: { message: "boom" } })).toBe(false);
+  });
 });
