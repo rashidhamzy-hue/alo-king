@@ -953,8 +953,9 @@ Deno.serve(async (req) => {
       sb.from("customers").select("phone_number,full_name,village,last_address,language,marketing_opt_in").eq("phone_number", phone).maybeSingle(),
       sb.from("orders").select("id,short_code,vendor_id,status,items,subtotal_usd,delivery_fee_usd,total_usd,delivery_village,building_landmark,created_at").eq("customer_phone", phone).order("created_at"),
       sb.from("carts").select("id,vendor_id,status,items,subtotal_usd,delivery_fee_usd,total_usd,created_at").eq("customer_phone", phone).order("created_at"),
+      sb.from("baskets").select("id,vendor_id,status,basket_lines(item_id,quantity,choices)").eq("customer_phone", phone).order("created_at"),
     ]);
-    return new Response(JSON.stringify({ customer: cust.data, orders: orders.data ?? [], carts: carts.data ?? [] }), { status: 200, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ customer: cust.data, orders: orders.data ?? [], carts: carts.data ?? [], baskets: baskets.data ?? [] }), { status: 200, headers: { "content-type": "application/json" } });
   }
   if (isJob) {
     const out: any[] = [];
