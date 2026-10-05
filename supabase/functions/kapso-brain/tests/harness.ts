@@ -9,7 +9,7 @@ export const LBP_RATE = 89_500;
 export const DELIVERY_FEE = 2;
 
 export type Btn = { id: string; title: string };
-export type Turn = { input: string; msgs: any[] };
+export type Turn = { input: string; msgs: any[]; timing?: any }; // timing = the function's per-stage turn_timing (dry runs return it)
 export type Status = "pass" | "fail" | "pending";
 export type Result = { persona: string; name: string; status: Status; phase: number; detail?: string };
 
@@ -53,7 +53,7 @@ export class Customer {
   private async event(msg: any, label: string): Promise<any[]> {
     const r = await post({ message: { id: wamid(), from: this.phone, ...msg } });
     const msgs = (r.out ?? []).filter((o: any) => o.to === undefined || o.to === this.phone);
-    this.turns.push({ input: label, msgs });
+    this.turns.push({ input: label, msgs, timing: r.timings?.[0] });
     return msgs;
   }
   say(text: string) { return this.event({ type: "text", text: { body: text } }, text); }

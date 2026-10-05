@@ -12,6 +12,7 @@ import { addrKey, addressRows, isUsualRequest, parseAddrTap, parseVoiceTap, pick
 import { isYesText, basketCardText, basketTapId, cleanField, clampQty, fitRows, isCancelText, lineKey, parseBasketTap, type Choice } from "./basket.ts";
 import { buildReorderCard, ensureDualCurrency, isGreeting, isReorderRequest, parseQrText, parseReferral, parseReorderTap, type Acquisition } from "./customer.ts";
 import { adminPing, buildVendorOrderCard, customerNotice, ESCALATE_AFTER_MS, ESCALATE_MAX_AGE_MS, needsEscalation, parseOrderTap } from "./orders.ts";
+import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
 import { detectLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
@@ -39,7 +40,7 @@ const TRACK_BASE = Deno.env.get("ALO_TRACK_BASE_URL") ?? "";
 const LBP_RATE = 89500, DELIVERY_FEE_USD = 2.0, COD_CAP_USD = 150;
 const BRAND = "Alo King · ألو كينغ";
 
-const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false }, global: { fetch: (i: any, init?: any) => timed("db", () => fetch(i, init)) } }); // every database round trip counts into the turn timing
 const lc = (s: unknown) => String(s ?? "").trim().toLowerCase();
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const lbp = (n: number) => Math.round(Number(n) * LBP_RATE).toLocaleString("en-US");
@@ -70,17 +71,19 @@ const OVERRIDE_MODELS = ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"];
 type Ctx = { to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
 async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
   payload = clampInteractive(payload); // last line of defence: never let an over-long title/body make Meta reject the whole message
-  if (dry) { out?.push(payload); return true; }
-  const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
-    method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (dry) { out?.push(payload); timerStore.getStore()?.markFirstSend(); return true; }
+  const res = await timed("send", () => fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
+    method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) }));
+  timerStore.getStore()?.markFirstSend();
   if (!res.ok) console.error("Kapso send failed", pnid, res.status, (await res.text()).slice(0, 300));
   return res.ok;
 }
 // Like rawSend, but also returns the WhatsApp message id (needed to map the admin's replies back to a customer).
 async function rawSendId(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<{ ok: boolean; id?: string }> {
   payload = clampInteractive(payload);
-  if (dry) { const id = `dry.${crypto.randomUUID()}`; out?.push({ ...payload, _dry_message_id: id }); return { ok: true, id }; } // dry runs expose the id so tests can reply to it
-  const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (dry) { const id = `dry.${crypto.randomUUID()}`; out?.push({ ...payload, _dry_message_id: id }); timerStore.getStore()?.markFirstSend(); return { ok: true, id }; } // dry runs expose the id so tests can reply to it
+  const res = await timed("send", () => fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, { method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) }));
+  timerStore.getStore()?.markFirstSend();
   if (!res.ok) { console.error("Kapso send failed", pnid, res.status, (await res.text()).slice(0, 300)); return { ok: false }; }
   const j = await res.json().catch(() => null);
   const id = j?.messages?.[0]?.id ? String(j.messages[0].id) : undefined;
@@ -133,12 +136,12 @@ const tr = (c: Ctx, en: string, ar: string) => (c.ar ? ar : en);
 async function transcribe(audioUrl: string): Promise<string | null> {
   if (!OPENAI_KEY) return null;
   try {
-    const a = await fetch(audioUrl, { headers: { "X-API-Key": KAPSO_TOKEN } });
+    const a = await timed("transcribe", () => fetch(audioUrl, { headers: { "X-API-Key": KAPSO_TOKEN } }));
     if (!a.ok) return null;
     const fd = new FormData();
     fd.append("file", await a.blob(), "voice.ogg"); fd.append("model", "whisper-1");
     fd.append("prompt", "Lebanese Arabic, Arabizi, English, French food order or restaurant menu command. ألو كينغ");
-    const w = await fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { Authorization: `Bearer ${OPENAI_KEY}` }, body: fd });
+    const w = await timed("transcribe", () => fetch("https://api.openai.com/v1/audio/transcriptions", { method: "POST", headers: { Authorization: `Bearer ${OPENAI_KEY}` }, body: fd }));
     return (await w.json()).text ?? null;
   } catch (e) { console.error("transcribe error", e); return null; }
 }
@@ -162,11 +165,13 @@ async function llmLoop(system: { static: string; dynamic: string }, tools: any[]
   let final = "";
   let useCache = true; // safety net: if the API ever rejects the cache_control shape, retry once uncached rather than failing customers
   for (let i = 0; i < 7; i++) {
-    const call = () => fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model, max_tokens: 1000, system: useCache ? cachedSystem(system.static, system.dynamic) : `${system.static}\n\n${system.dynamic}`, tools: useCache ? cachedTools(tools) : tools, messages }) });
-    let res = await call();
-    let data = await res.json();
-    if (res.status === 400 && useCache && /cache_control/i.test(JSON.stringify(data))) { console.error("cache_control rejected; retrying without caching"); useCache = false; res = await call(); data = await res.json(); }
+    const call = () => timed("model", async () => { // the whole call incl. reading the body: that is what the customer waits for
+      const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model, max_tokens: 1000, system: useCache ? cachedSystem(system.static, system.dynamic) : `${system.static}\n\n${system.dynamic}`, tools: useCache ? cachedTools(tools) : tools, messages }) });
+      return { r, d: await r.json() };
+    });
+    let { r: res, d: data } = await call();
+    if (res.status === 400 && useCache && /cache_control/i.test(JSON.stringify(data))) { console.error("cache_control rejected; retrying without caching"); useCache = false; ({ r: res, d: data } = await call()); }
     if (!res.ok) { console.error("Anthropic error", res.status, JSON.stringify(data)); throw new Error(`anthropic ${res.status}: ${String(data?.error?.type ?? "")} ${String(data?.error?.message ?? "").slice(0, 160)}`); }
     await logAiCall(meta, data.usage, data.model);
     messages.push({ role: "assistant", content: data.content });
@@ -1459,8 +1464,21 @@ function extract(evt: any) {
   };
 }
 
-async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null, override?: StagingOverride) {
+// One JSON line per event with per-stage time (numbers only). Query it from the function logs; see docs/latency.md.
+async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null, override?: StagingOverride, timings?: any[]) {
   const e = extract(evt);
+  if (!e.from) return;
+  const tm = new TurnTimer();
+  const lag = receiveLagMs((evt.message ?? evt.entry?.[0]?.changes?.[0]?.value?.messages?.[0])?.timestamp, Date.now());
+  try { await timerStore.run(tm, () => handleEventInner(body, evt, dry, out, adminOverride, override, e)); }
+  finally {
+    const s = summarize(tm, { kind: turnKind(e), receive_lag_ms: lag, model_calls: tm.modelCalls });
+    console.log(JSON.stringify({ turn_timing: s }));
+    timings?.push(s);
+  }
+}
+async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null, override?: StagingOverride, parsed?: ReturnType<typeof extract>) {
+  const e = parsed ?? extract(evt);
   if (!e.from) return;
   const c: Ctx = { to: e.from, pnid: pnidOf(body, evt), dry, out, log: [], rich: 0, override, acq: e.acq, admin: normPhone(dry && adminOverride ? adminOverride : (Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "")) || undefined };
   if (e.id) {
@@ -1570,9 +1588,9 @@ Deno.serve(async (req) => {
   }
   let body: any; try { body = await req.json(); } catch { return new Response("bad request", { status: 400 }); }
   const events = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
-  const out: any[] = [];
-  const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride, stagingOverride); } catch (err) { console.error("event error", err); } } })();
-  if (dry) { await work; return new Response(JSON.stringify({ out }), { status: 200, headers: { "content-type": "application/json" } }); }
+  const out: any[] = [], timings: any[] = [];
+  const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride, stagingOverride, timings); } catch (err) { console.error("event error", err); } } })();
+  if (dry) { await work; return new Response(JSON.stringify({ out, timings }), { status: 200, headers: { "content-type": "application/json" } }); }
   // @ts-ignore EdgeRuntime is provided by Supabase
   if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work); else await work;
   return new Response("OK", { status: 200 });
