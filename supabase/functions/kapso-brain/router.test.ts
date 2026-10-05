@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHEAP_TOOL_NAMES, cheapRouterEnabled, routeTurn } from "./router";
+import { CHEAP_TOOL_NAMES, cheapRouterEnabled, isDeclaredTool, routeTurn } from "./router";
 
 const ctx = { pendingCart: false, activeBaskets: 0 };
 
@@ -21,6 +21,7 @@ describe("routeTurn: only clearly informational, read-only turns go to the cheap
     "bade etneen soft drinks", "badde shawarma", "بدي مشروب", "بدي اطلب", "الغي الطلب", "وين طلبي", "تأكيد",
     "change my address to Baakleen near the church building 3", "my name is Sami", "Baakleen, main street", "the usual", "reorder", "delete my data", "talk to a person",
     "what's good for lunch? I want two of them please and also deliver to my building on the second floor tonight at 8", // too long / mixed with ordering
+    "I am allergic to peanuts what do you have", "do you have gluten free", "the food was terrible, what do you recommend", "how long until it arrives", "what do you have for vegans", "i have a problem, what do you recommend", "ما عندي حساسية شو في", "شو في عندكم نباتي", "٣", "لا",
     "can I get a burger", "3", "2x burger", "sure", "ok", "",
   ])("%j → main", (t) => expect(routeTurn(t, ctx)).toBe("main"));
 
@@ -39,5 +40,13 @@ describe("cheap tool set is read-only", () => {
     for (const bad of ["basket_add", "basket_set", "basket_clear", "checkout", "confirm_order", "cancel_pending", "request_human", "prepare_order"]) expect(CHEAP_TOOL_NAMES).not.toContain(bad);
     expect(CHEAP_TOOL_NAMES).toContain("search_menu");
     expect(CHEAP_TOOL_NAMES).toContain("needs_full_assistant");
+  });
+});
+
+describe("only declared tools are dispatched", () => {
+  const cheap = CHEAP_TOOL_NAMES.map((name) => ({ name }));
+  it("accepts a declared tool and rejects mutating or invented ones", () => {
+    expect(isDeclaredTool(cheap, "search_menu")).toBe(true);
+    for (const n of ["confirm_order", "checkout", "basket_add", "request_human", "made_up_tool", ""]) expect(isDeclaredTool(cheap, n)).toBe(false);
   });
 });

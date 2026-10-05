@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maskPhone, parseClaimTap } from "../_shared/claims.ts";
 import { buildCategories, czNext, czSupported, itemPageRows, itemsInCategory, parseBrowseTap, pickAddon, qtyRows, type CzGroup } from "./browse.ts";
 import { beirutDay, budgetAlertText, cachedSystem, cachedTools, decideGuard, estimateUsd, parseBudget, parseCap, type Guard } from "./usage.ts";
-import { CHEAP_TOOL_NAMES, cheapRouterEnabled, routeTurn } from "./router.ts";
+import { CHEAP_TOOL_NAMES, cheapRouterEnabled, isDeclaredTool, routeTurn } from "./router.ts";
 import { adminCommand, handoffContext, HANDOFF_FIRST_MINUTES, HANDOFF_HOURS, hasRelayableText, isBotRequest, isHumanRequest, relayText, shouldRelay } from "./handoff.ts";
 import { deletionConfirmation, forgetScope, privacyNotice } from "./privacy.ts";
 import { isNotifiable, isPriceIncrease, parseLifecycleTap, pickSubstitute, swapLine, swapNote, windowOpen } from "../_shared/lifecycle.ts";
@@ -165,7 +165,7 @@ async function llmLoop(system: { static: string; dynamic: string }, tools: any[]
     const uses = (data.content ?? []).filter((b: any) => b.type === "tool_use");
     final = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
     if (data.stop_reason !== "tool_use" || !uses.length) break;
-    const results = []; for (const u of uses) results.push({ type: "tool_result", tool_use_id: u.id, content: await run(u.name, u.input) });
+    const results = []; for (const u of uses) results.push({ type: "tool_result", tool_use_id: u.id, content: isDeclaredTool(tools, u.name) ? await run(u.name, u.input) : JSON.stringify({ error: "tool not available" }), ...(isDeclaredTool(tools, u.name) ? {} : { is_error: true }) });
     messages.push({ role: "user", content: results });
   }
   return final;
@@ -1084,8 +1084,11 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   const route = CHEAP_ROUTER_ENABLED ? routeTurn(userText, { pendingCart: ((await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString())).count ?? 0) > 0, fromVoice: c.fromVoice }) : "main";
   try {
     if (route === "cheap") {
-      final = await llmLoop({ static: system.static, dynamic: system.dynamic + QUICK_MODE_NOTE }, CHEAP_TOOLS, phone, userText, run, { kind: "customer", phone }, CHEAP_MODEL);
-      if (c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }); } // the small model handed over before sending anything
+      let cheapFailed = false;
+      try { final = await llmLoop({ static: system.static, dynamic: system.dynamic + QUICK_MODE_NOTE }, CHEAP_TOOLS, phone, userText, run, { kind: "customer", phone }, CHEAP_MODEL); }
+      catch (e) { cheapFailed = true; console.error("cheap model failed, falling back to the main model", String((e as Error)?.message ?? e).slice(0, 160)); }
+      if (cheapFailed && !c.rich) final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone });
+      else if (!cheapFailed && c.escalate && !c.rich) { c.escalate = false; final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone }); } // the small model handed over before sending anything
     } else final = await llmLoop(system, CTOOLS, phone, userText, run, { kind: "customer", phone });
   }
   catch (err) { console.error("customer llm error", String((err as Error)?.message ?? err).slice(0, 300)); final = `عندي مشكلة تقنية صغيرة 🙏 جرب كمان شوي.\nSmall technical hiccup — please try again in a moment.${c.dry ? `\n[dry-run: ${String((err as Error)?.message ?? err).slice(0, 200)}]` : ""}`; }

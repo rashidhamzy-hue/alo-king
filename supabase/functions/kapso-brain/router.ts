@@ -13,9 +13,9 @@ const norm = (s: string) => normArabic(String(s ?? "")).toLowerCase().replace(/[
 
 // Anything that acts, decides, complains or carries a quantity: never cheap.
 const MAIN_ONLY = new RegExp([
-  "(?<![a-z])\\d+(?![a-z])|\\b\\d+\\s?x\\b|\\bx\\s?\\d+\\b", // quantities, addresses, floors, times (but not the digits inside Arabizi words like 3endkon)
-  "\\b(order|add|remove|change|checkout|check out|confirm|cancel|yes|no|nope|ok|okay|sure|pay|refund|late|cold|wrong|missing|where is|status|reorder|usual|delete|forget|person|human|agent|name|address|my basket|my order|basket|cart|want|get me|i'll take|ill take|give me|can i get|can i have|make it|instead|swap|more|less)\\b",
-  "بدي|اطلب|ضيف|شيل|غير|تاكيد|الغي|الغاء|نعم|لا |استرجاع|تاخر|بارد|غلط|وين طلبي|طلبي|سلتي|اسمي|عنواني|احذف|امسح|شخص|موظف",
+  "(?<![a-z])[\\d٠-٩]+(?![a-z])|\\b\\d+\\s?x\\b|\\bx\\s?\\d+\\b", // quantities, addresses, floors, times (but not the digits inside Arabizi words like 3endkon)
+  "\\b(order|add|remove|change|checkout|check out|confirm|cancel|yes|no|nope|ok|okay|sure|pay|refund|late|cold|wrong|missing|where is|status|reorder|usual|delete|forget|person|human|agent|name|address|my basket|my order|basket|cart|want|get me|i'll take|ill take|give me|can i get|can i have|make it|instead|swap|more|less|arrive|arrives|arrival|eta|on the way|allerg\\w*|intoleran\\w*|celiac|coeliac|gluten|nuts?|peanuts?|sesame|sick|poison\\w*|terrible|complain\\w*|problem|issue|vegans?|vegetarians?|halal|keto|diabet\\w*|pregnan\\w*)\\b",
+  "بدي|اطلب|ضيف|شيل|غير|تاكيد|الغي|الغاء|نعم|(?:^|\\s)لا(?:\\s|$)|حساسيه|تسمم|شكوي|مشكله|سكري|حامل|نباتي|استرجاع|تاخر|بارد|غلط|وين طلبي|طلبي|سلتي|اسمي|عنواني|احذف|امسح|شخص|موظف",
   "\\b(badde|baddi|bade|beddi|bidi|talab|e7zef|emsa7|7ada|shakhs|talabi)\\b",
 ].join("|"));
 
@@ -23,10 +23,13 @@ const INFO = new RegExp([
   "^(hi|hello|hey|hiya|good (morning|afternoon|evening)|thanks|thank you|thx|merci|marhaba|ahla|ahlan|salam|shokran|shukran)( there| all| alo king)?$",
   "^(مرحبا|اهلا|اهلين|سلام|هلا|شكرا|يسلمو|مساء الخير|صباح الخير)$",
   "\\b(what (?:s |is |are )?(?:good|popular|best|new|on the menu|available|open)|what do you (have|recommend|offer|serve)|show me the menu|(the )?menu|recommend|suggest|any (offers|deals|specials)|offers|deals|hungry|craving)\\b",
-  "\\b(do you deliver|are you open|open now|opening hours|what time do you (open|close)|how much is (the )?delivery|delivery (fee|time|areas?)|how long)\\b",
+  "\\b(do you deliver|are you open|open now|opening hours|what time do you (open|close)|how much is (the )?delivery|delivery (fee|time|areas?)|how long (?:does|is) (?:the )?delivery (?:take|time))\\b",
   "شو (في|عندكم|الافضل|اطيب)|رشحلي|اقترح|المنيو|هل (في|عندكم) توصيل|كم (سعر )?التوصيل|متي (بتسكروا|بتفتحوا)|مفتوح|عروض",
   "\\b(shu fi|shou fi|shu 3endkon|shou 3ndkon|shou 3endkon|shu 3ndkon|rashe7li|2tere7)\\b",
 ].join("|"));
+
+/** A model may only run tools it was actually given: an undeclared (hallucinated) tool name is rejected, never dispatched. */
+export const isDeclaredTool = (tools: { name: string }[], name: string): boolean => tools.some((t) => t.name === name);
 
 export type RouteCtx = { pendingCart: boolean; activeBaskets?: number; fromVoice?: boolean };
 export function routeTurn(text: string, ctx: RouteCtx): "cheap" | "main" {
