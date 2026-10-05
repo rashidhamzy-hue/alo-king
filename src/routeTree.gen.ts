@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as ForBusinessRouteImport } from './routes/for-business'
 import { Route as MerchantRouteImport } from './routes/merchant'
+import { Route as ClaimSlugRouteImport } from './routes/claim.$slug'
 import { Route as MSlugRouteImport } from './routes/m.$slug'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 
@@ -31,9 +33,19 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForBusinessRoute = ForBusinessRouteImport.update({
+  id: '/for-business',
+  path: '/for-business',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MerchantRoute = MerchantRouteImport.update({
   id: '/merchant',
   path: '/merchant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClaimSlugRoute = ClaimSlugRouteImport.update({
+  id: '/claim/$slug',
+  path: '/claim/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MSlugRoute = MSlugRouteImport.update({
@@ -51,7 +63,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
+  '/for-business': typeof ForBusinessRoute
   '/merchant': typeof MerchantRoute
+  '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
@@ -59,7 +73,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
+  '/for-business': typeof ForBusinessRoute
   '/merchant': typeof MerchantRoute
+  '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
@@ -68,23 +84,41 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
+  '/for-business': typeof ForBusinessRoute
   '/merchant': typeof MerchantRoute
+  '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
   '/track/$orderId': typeof TrackOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/driver' | '/explore' | '/merchant' | '/m/$slug' | '/track/$orderId'
+    | '/'
+    | '/driver'
+    | '/explore'
+    | '/for-business'
+    | '/merchant'
+    | '/claim/$slug'
+    | '/m/$slug'
+    | '/track/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/driver' | '/explore' | '/merchant' | '/m/$slug' | '/track/$orderId'
+    | '/'
+    | '/driver'
+    | '/explore'
+    | '/for-business'
+    | '/merchant'
+    | '/claim/$slug'
+    | '/m/$slug'
+    | '/track/$orderId'
   id:
     | '__root__'
     | '/'
     | '/driver'
     | '/explore'
+    | '/for-business'
     | '/merchant'
+    | '/claim/$slug'
     | '/m/$slug'
     | '/track/$orderId'
   fileRoutesById: FileRoutesById
@@ -93,7 +127,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DriverRoute: typeof DriverRoute
   ExploreRoute: typeof ExploreRoute
+  ForBusinessRoute: typeof ForBusinessRoute
   MerchantRoute: typeof MerchantRoute
+  ClaimSlugRoute: typeof ClaimSlugRoute
   MSlugRoute: typeof MSlugRoute
   TrackOrderIdRoute: typeof TrackOrderIdRoute
 }
@@ -121,11 +157,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/for-business': {
+      id: '/for-business'
+      path: '/for-business'
+      fullPath: '/for-business'
+      preLoaderRoute: typeof ForBusinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/merchant': {
       id: '/merchant'
       path: '/merchant'
       fullPath: '/merchant'
       preLoaderRoute: typeof MerchantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/claim/$slug': {
+      id: '/claim/$slug'
+      path: '/claim/$slug'
+      fullPath: '/claim/$slug'
+      preLoaderRoute: typeof ClaimSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/m/$slug': {
@@ -149,7 +199,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DriverRoute: DriverRoute,
   ExploreRoute: ExploreRoute,
+  ForBusinessRoute: ForBusinessRoute,
   MerchantRoute: MerchantRoute,
+  ClaimSlugRoute: ClaimSlugRoute,
   MSlugRoute: MSlugRoute,
   TrackOrderIdRoute: TrackOrderIdRoute,
 }
