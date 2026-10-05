@@ -1,0 +1,20 @@
+name: Order watchdog
+
+# Backup for the 90 s escalation: kapso-brain starts a 90 s timer when an order is confirmed, and this
+# job (GitHub's minimum schedule is 5 minutes, and runs can be delayed) catches orders whose timer was lost.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      WATCHDOG_SECRET: ${{ secrets.WATCHDOG_SECRET }}
+    steps:
+      - name: Escalate orders still pending after 90 s
+        run: |
+          if [ -z "$WATCHDOG_SECRET" ]; then echo "WATCHDOG_SECRET is not set; skipping."; exit 0; fi
+          curl -fsS -X POST -H "x-watchdog-secret: $WATCHDOG_SECRET" \
+            "https://hnjkietmwvkgbyrcnweq.supabase.co/functions/v1/kapso-brain?job=order-watchdog"
