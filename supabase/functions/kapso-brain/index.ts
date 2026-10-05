@@ -554,6 +554,13 @@ async function handleAdmin(c: Ctx, vendor: any, ownerPhone: string, text: string
 }
 
 // ---------- vendor order card + escalation ----------
+// constant-time string comparison for shared secrets
+function safeEqual(a: string, b: string): boolean {
+  const x = new TextEncoder().encode(a), y = new TextEncoder().encode(b);
+  let d = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) d |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return d === 0;
+}
 const lang2 = (l: unknown): Lang => (l === "en" ? "en" : "ar");
 const isRealPhone = (p: string) => /^\d{8,15}$/.test(p);
 
@@ -591,9 +598,10 @@ async function runWatchdog(o: { pnid: string; dry: boolean; out: any[]; admin?: 
       sb.from("customers").select("language").eq("phone_number", ord.customer_phone).maybeSingle(),
     ]);
     const vname = vend?.name_en ?? "the kitchen";
-    await rawSend(o.pnid, { ...envl(ord.customer_phone), type: "text", text: { body: customerNotice.stillConfirming(lang2(cust?.language), ord.short_code, vname) } }, o.dry, o.out);
-    if (o.admin) await rawSend(o.pnid, { ...envl(o.admin), type: "text", text: { body: adminPing(ord.short_code, vname, maskPhone(ord.customer_phone), both(Number(ord.total_usd))) } }, o.dry, o.out);
-    else console.log("order escalated but no admin number is configured", ord.short_code);
+    const told = await rawSend(o.pnid, { ...envl(ord.customer_phone), type: "text", text: { body: customerNotice.stillConfirming(lang2(cust?.language), ord.short_code, vname) } }, o.dry, o.out);
+    if (!told) { await sb.from("orders").update({ escalated_at: null }).eq("id", ord.id); n--; console.error("escalation: customer notice failed, will retry", ord.short_code); continue; }
+    if (!o.admin) console.log("order escalated but no admin number is configured", ord.short_code);
+    else if (!(await rawSend(o.pnid, { ...envl(o.admin), type: "text", text: { body: adminPing(ord.short_code, vname, maskPhone(ord.customer_phone), both(Number(ord.total_usd))) } }, o.dry, o.out))) console.error("escalation: admin ping not delivered (admin window closed?)", ord.short_code);
   }
   return n;
 }
@@ -606,8 +614,11 @@ async function handleOrderDecision(c: Ctx, vendor: any, reply: { id: string; tit
   if (!ord || ord.vendor_id !== vendor.vendor_id) { await sendText(c, tr(c, "I can't find that order for your restaurant.", "ما لقيت هيدا الطلب عندك.")); return; }
   const { data: upd } = await sb.from("orders").update({ status: tap.accept ? "accepted" : "rejected" }).eq("id", ord.id).eq("status", "pending").select("id");
   if (!upd?.length) { await sendText(c, tr(c, `Order #${ord.short_code} was already handled (${ord.status}) ✔️`, `الطلب #${ord.short_code} انعالج من قبل (${ord.status}) ✔️`)); return; }
-  await sendText(c, tap.accept ? tr(c, `✅ Accepted #${ord.short_code}. The customer was notified.`, `✅ قبلت الطلب #${ord.short_code}. أعلمنا الزبون.`) : tr(c, `❌ Rejected #${ord.short_code}. The customer was notified.`, `❌ رفضت الطلب #${ord.short_code}. أعلمنا الزبون.`));
-  if (!isRealPhone(ord.customer_phone)) return;
+  const notifies = isRealPhone(ord.customer_phone);
+  await sendText(c, tap.accept
+    ? tr(c, `✅ Accepted #${ord.short_code}.${notifies ? " The customer was notified." : ""}`, `✅ قبلت الطلب #${ord.short_code}.${notifies ? " أعلمنا الزبون." : ""}`)
+    : tr(c, `❌ Rejected #${ord.short_code}.${notifies ? " The customer was notified." : ""}`, `❌ رفضت الطلب #${ord.short_code}.${notifies ? " أعلمنا الزبون." : ""}`));
+  if (!notifies) return;
   const [{ data: cust }, { data: prof }] = await Promise.all([
     sb.from("customers").select("language").eq("phone_number", ord.customer_phone).maybeSingle(),
     sb.from("vendor_profiles").select("prep_time_min").eq("vendor_id", vendor.vendor_id).maybeSingle(),
@@ -704,7 +715,7 @@ Deno.serve(async (req) => {
     dry = true;
   } else if (isJob) {
     const given = req.headers.get("x-watchdog-secret") ?? "";
-    if (!WATCHDOG_SECRET || given !== WATCHDOG_SECRET) return new Response("unauthorized", { status: 401 });
+    if (!WATCHDOG_SECRET || !safeEqual(given, WATCHDOG_SECRET)) return new Response("unauthorized", { status: 401 });
   } else if (WEBHOOK_SECRET) {
     const given = req.headers.get("x-webhook-secret") ?? new URL(req.url).searchParams.get("key");
     if (given !== WEBHOOK_SECRET) return new Response("unauthorized", { status: 401 });

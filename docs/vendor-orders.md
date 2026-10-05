@@ -11,4 +11,8 @@ Mechanisms (no pg_cron):
 - **Scheduled check**: `.github/workflows/order-watchdog.yml` calls `POST kapso-brain?job=order-watchdog` every 5 minutes (best effort). It needs the secret `WATCHDOG_SECRET` in **both** GitHub (repo secret) and Supabase (function secret); while unset, the job endpoint refuses every request and the workflow skips.
 - **Dry run**: `POST …?job=order-watchdog` with `x-selftest` returns the messages it would send and only touches test orders (`961700000…`).
 
+Limits to know:
+- Both the kitchen card and the admin ping are in-window messages: they are only delivered if that person messaged the Alo King number in the last 24h. If the card isn't delivered, `vendor_notified_at` stays empty and the only signal is the 90 s escalation, which goes to the admin, not the owner. An approved utility template would remove this limit.
+- If the customer notice itself fails to send, `escalated_at` is cleared so the next scheduled run retries; a failed admin ping is only logged.
+
 Columns: `orders.vendor_notified_at` (card delivered), `orders.escalated_at`.
