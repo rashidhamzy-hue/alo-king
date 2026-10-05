@@ -165,3 +165,16 @@ describe("item 4 numbered page (numbered.buildNumberedPage)", () => {
     for (const ar of [false, true]) for (let p = 0; p < 10; p++) { const r = buildNumberedPage({ vendorName: "Shawarma King", items, page: p, ar, both }); expect(r.body.length).toBeLessThanOrEqual(META.body); for (const l of r.body.split("\n").filter((x) => /^\d+\. /.test(x))) expect(l).toMatch(/LBP$/); }
   });
 });
+
+describe("item 5 basket edit (basketedit.editListRows / lineButtons)", () => {
+  it("the edit list and the line buttons fit WhatsApp's limits in both languages", async () => {
+    const { editListRows, lineButtons } = await import("./basketedit.ts");
+    const lines = Array.from({ length: 15 }, (_, i) => ({ id: "11111111-2222-3333-4444-" + String(i).padStart(12, "0"), name_en: "A very long dish name with extras number " + i, name_ar: "صنف طويل جدا مع اضافات رقم " + i, quantity: i + 1 }));
+    for (const ar of [false, true]) {
+      const rows = editListRows("11111111-2222-3333-4444-555555555555", lines, ar);
+      expect(rows.length).toBeLessThanOrEqual(META.listRows);
+      for (const r of rows) { expect(r.title.length).toBeLessThanOrEqual(META.rowTitle); expect((r.description ?? "").length).toBeLessThanOrEqual(META.rowDescription); expect(r.id.length).toBeLessThanOrEqual(META.rowId); }
+      for (const q of [1, 2, 19, 20]) { const b = lineButtons({ id: lines[0].id, quantity: q }, ar); expect(b.length).toBeLessThanOrEqual(META.maxButtons); for (const x of b) { expect(x.title.length).toBeLessThanOrEqual(META.buttonTitle); expect(x.id.length).toBeLessThanOrEqual(META.buttonId); } }
+    }
+  });
+});

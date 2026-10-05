@@ -16,6 +16,7 @@ import { buildReadReceipt, shouldAck } from "./receipts.ts";
 import { extractVendorHint, normText, prepareIndex, resolveSegments, skeleton, tokens, type IndexItem } from "./resolve.ts";
 import { agentLoop } from "./loop.ts";
 import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, parseNumberedTap } from "./numbered.ts";
+import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
@@ -451,7 +452,7 @@ async function sendBasketCard(c: Ctx, basketId: string, vendorId: string) {
   const { data: v } = await sb.from("vendors").select("name_en").eq("vendor_id", vendorId).maybeSingle();
   if (!p.lines.length) { await sendText(c, tr(c, `Your ${v?.name_en ?? "basket"} basket is empty. What would you like? 🍽`, `سلة ${v?.name_en ?? ""} فاضية. شو بدك؟ 🍽`)); c.rich++; return; }
   await sendButtons(c, { body: basketCardText({ vendorName: v?.name_en ?? "", lines: p.lines, subtotal: p.subtotal, deliveryFee: DELIVERY_FEE_USD, both, ar: !!c.ar, unavailable: p.gone.map((g) => g.name) }),
-    buttons: [{ id: basketTapId("CHECKOUT", basketId), title: tr(c, "✅ Checkout", "✅ إتمام الطلب") }, { id: `MENU|${vendorId}`, title: tr(c, "➕ Add more", "➕ زيد أصناف") }, { id: basketTapId("BCLR", basketId), title: tr(c, "🗑 Clear basket", "🗑 فضي السلة") }] }); // sendButtons already counts it as a rich message
+    buttons: [{ id: basketTapId("CHECKOUT", basketId), title: tr(c, "✅ Checkout", "✅ إتمام الطلب") }, { id: `MENU|${vendorId}`, title: tr(c, "➕ Add more", "➕ زيد أصناف") }, { id: `BEDIT|${basketId}`, title: tr(c, "✏️ Edit", "✏️ تعديل") }] }); // sendButtons already counts it as a rich message
 }
 async function allBaskets(phone: string) {
   const { data } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("status", "active").order("created_at");
@@ -681,6 +682,65 @@ async function handleNumberedReply(c: Ctx, phone: string, text: string): Promise
   if (choice.length > 1) await sendText(c, tr(c, `⚙ ${choice.slice(1).map((w) => itemName(c, byId.get(w.item_id) ?? { item_id: w.item_id })).join(", ")} need options: send ${choice.length > 2 ? "their numbers" : "its number"} again after this one 🙏`, `⚙ ${choice.slice(1).map((w) => itemName(c, byId.get(w.item_id) ?? { item_id: w.item_id })).join("، ")} إلها خيارات: ابعت ${choice.length > 2 ? "أرقامها" : "رقمها"} بعد هيدا 🙏`));
   if (plain.length) { const res = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: qm.vendor_id, items: plain })); if (res.ok) await maybeOfferAddon(c); }
   if (choice.length) { const w = choice[0]; const row = byId.get(w.item_id); if (row && !tapSupported(row)) await sendItemCard(c, qm.vendor_id, w.item_id); else await sendCzStep(c, phone, qm.vendor_id, w.item_id, w.quantity, []); }
+  return true;
+}
+
+// ---------- BASKET EDIT: Edit button (lines -> one dish -> less / more / remove), and typed edits ("make it 3", "remove the fries") with no model call ----------
+async function editLinesOf(basketId: string, vendorId: string): Promise<EditLine[]> {
+  const lines = await basketLines(basketId);
+  const ids = [...new Set(lines.map((l) => l.item_id))];
+  const { data: rows } = ids.length ? await sb.from("menu_items").select("item_id,item_name_en,item_name_ar").eq("vendor_id", vendorId).in("item_id", ids) : { data: [] as any[] };
+  const by = new Map((rows ?? []).map((r: any) => [r.item_id, r]));
+  return lines.map((l) => ({ id: l.id, name_en: by.get(l.item_id)?.item_name_en ?? l.item_id, name_ar: by.get(l.item_id)?.item_name_ar ?? "", quantity: l.quantity }));
+}
+// Set one basket line's quantity (0 removes it). The line must belong to the customer's own active basket. Re-priced and summaries expired like every basket change.
+async function setLineQty(phone: string, lineId: string, qty: number): Promise<{ basketId: string; vendorId: string } | null> {
+  const { data: ln } = await sb.from("basket_lines").select("id,basket_id,baskets!inner(vendor_id,customer_phone,status)").eq("id", lineId).eq("baskets.customer_phone", phone).eq("baskets.status", "active").maybeSingle();
+  const bk: any = Array.isArray((ln as any)?.baskets) ? (ln as any).baskets[0] : (ln as any)?.baskets;
+  if (!ln || !bk) return null;
+  const q = clampQty(qty);
+  if (q) await sb.from("basket_lines").update({ quantity: q }).eq("id", lineId); else await sb.from("basket_lines").delete().eq("id", lineId);
+  if (!(await basketLines(ln.basket_id)).length) await sb.from("baskets").update({ status: "cleared", updated_at: new Date().toISOString() }).eq("id", ln.basket_id);
+  else await sb.from("baskets").update({ updated_at: new Date().toISOString() }).eq("id", ln.basket_id);
+  await expirePending(phone, bk.vendor_id);
+  return { basketId: ln.basket_id, vendorId: bk.vendor_id };
+}
+async function handleEditTap(c: Ctx, phone: string, t: EditTap) {
+  if (t.kind === "EDIT") {
+    const { data: bk } = await sb.from("baskets").select("id,vendor_id").eq("id", t.id).eq("customer_phone", phone).eq("status", "active").maybeSingle();
+    if (!bk) { await sendText(c, tr(c, "That basket is already gone 🧺", "هالسلة ما عادت موجودة 🧺")); return; }
+    const lines = await editLinesOf(bk.id, bk.vendor_id);
+    if (!lines.length) { await sendText(c, tr(c, "Your basket is empty 🧺", "سلتك فاضية 🧺")); return; }
+    await sendList(c, { header: tr(c, "Edit basket", "تعديل السلة"), body: tr(c, "Tap a dish to change its quantity or remove it 👇", "اضغط على صنف لتغيّر كميتو أو تشيلو 👇"), button: tr(c, "Dishes", "الأصناف"), sections: [{ title: tr(c, "Your basket", "سلتك"), rows: editListRows(bk.id, lines, !!c.ar) }] });
+    return;
+  }
+  if (t.kind === "LINE") {
+    const { data: ln } = await sb.from("basket_lines").select("id,quantity,basket_id,baskets!inner(vendor_id,customer_phone,status)").eq("id", t.id).eq("baskets.customer_phone", phone).eq("baskets.status", "active").maybeSingle();
+    const bk: any = Array.isArray((ln as any)?.baskets) ? (ln as any).baskets[0] : (ln as any)?.baskets;
+    if (!ln || !bk) { await sendText(c, tr(c, "That dish is no longer in your basket 🧺", "هالصنف ما عاد بالسلة 🧺")); return; }
+    const one = (await editLinesOf(ln.basket_id, bk.vendor_id)).find((l) => l.id === ln.id);
+    await sendButtons(c, { body: tr(c, `*${one?.name_en ?? "Dish"}* × ${ln.quantity}`, `*${one?.name_ar || one?.name_en || "الصنف"}* × ${ln.quantity}`), buttons: lineButtons({ id: ln.id, quantity: ln.quantity }, !!c.ar) });
+    return;
+  }
+  const r = await setLineQty(phone, t.id, t.quantity);
+  if (!r) { await sendText(c, tr(c, "That dish is no longer in your basket 🧺", "هالصنف ما عاد بالسلة 🧺")); return; }
+  await sendBasketCard(c, r.basketId, r.vendorId); // an emptied basket says so itself
+}
+// "make it 3" / "remove the fries" / "شيل البطاطا": applied to the basket the customer touched last. Returns false when it is not clearly a basket edit (the normal flow handles it).
+async function handleBasketEditText(c: Ctx, phone: string, text: string): Promise<boolean> {
+  if (!maybeEditText(text)) return false;
+  const { data: bks } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("status", "active").order("updated_at", { ascending: false }).limit(1);
+  const bk = bks?.[0]; if (!bk) return false;
+  const lines = await editLinesOf(bk.id, bk.vendor_id);
+  const r = parseBasketEdit(text, lines);
+  if (r.kind === "none") return false;
+  if (r.kind === "ambiguous") {
+    await sendButtons(c, { body: tr(c, "Which one do you mean? 👇", "أي واحد قصدك؟ 👇"), buttons: r.options.slice(0, 3).map((o) => ({ id: `BLINE|${o.id}`, title: clipTitle(o.name, 20) })) });
+    return true;
+  }
+  const res = await setLineQty(phone, r.lineId, r.kind === "set" ? r.quantity : 0);
+  if (!res) return false;
+  await sendBasketCard(c, res.basketId, res.vendorId);
   return true;
 }
 
@@ -1106,6 +1166,8 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       try { return await handleCustomer(c, phone, transcript, null, null, true); }
       catch (err) { console.error("voice replay failed", String((err as Error)?.message ?? err).slice(0, 200)); await sendText(c, tr(c, "Something went wrong 🙏 Please type that or send the voice note again.", "صار خطأ 🙏 اكتبها أو ابعت الرسالة الصوتية كمان مرة.")); return; }
     }
+    const et = parseEditTap(tag);
+    if (et) { await handleEditTap(c, phone, et); await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return; }
     const bt = parseBasketTap(tag);
     if (bt) {
       if (bt.kind === "BASKET") await basketTool(c, phone, "basket_show", {});
@@ -1228,6 +1290,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     }
   }
   if (!reply && !loc && await handleNumberedReply(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "1x2, 3": no model, no search
+  if (!reply && !loc && await handleBasketEditText(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "make it 3", "remove the fries": no model
   const { data: prof } = await sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle();
   let resolved: Resolved[] = [];
   if (!reply && !loc) { try { resolved = await resolveMessage(phone, userText); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
