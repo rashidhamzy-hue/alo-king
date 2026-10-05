@@ -79,7 +79,8 @@ async function main() {
     check("EN multi-item ended in one basket card", !!btn(m, /^CHECKOUT\|/) || !!btn(m, /^ADD\|/), m.map(textOf).join(" ").slice(0, 120));
     const C = phone(3); m = await say("Arabizi multi-item", C, `badde etneen ${names[0]} w ${names[1]}`, { maxCalls: 1 });
     // Arabic dish names inside an Arabizi sentence are a mixed-script fixture the parser may legitimately turn into one clarifying question (plain text), so only Latin names are asserted
-    if (names.slice(0, 2).every((n) => /^[A-Za-z\s]+$/.test(n))) check("Arabizi multi-item produced a card or one question", !!btn(m, /^CHECKOUT\|/) || !!btn(m, /^ADD\|/));
+    if (names.slice(0, 2).some((n) => /[\u0600-\u06FF]/.test(n))) console.log("   skipped Arabizi check: Arabic dish names in the fixture");
+    else check("Arabizi multi-item produced a card or one question", !!btn(m, /^CHECKOUT\|/) || !!btn(m, /^ADD\|/));
   }
   // ---- item 6: search-first (no category tree) ----
   const D = phone(4);
