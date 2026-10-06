@@ -61,3 +61,14 @@ The changes behind the target (no "preparing" message, rating folded into "deliv
 - Delivered and the rating prompt are one list message (`buildDeliveredRatingList`); one send, one retry unit.
 - No optional "Add a drink?" card after a typed quick order (numbered reply or parsed multi-item order); taps and model turns keep it (at most once per basket).
 - **Not changed, for the owner to decide (touches consent):** the opt-in prompt that follows the first "order received", and the privacy notice shown the first time a location is shared. Moving the opt-in question to the delivered message would remove one message from the first order, but it changes when consent is requested.
+
+## Measured after the changes (6 Oct 2026, staging v30 = main after M2-M9, dry run, test phones)
+
+| Path | To "order received" | + opt-in prompt (first order only) | Status updates (accepted, on the way, delivered with rating) | **Total, repeat customer** | Before | Target |
+|---|---|---|---|---|---|---|
+| Numbered menu | 4 (menu, basket, summary, received) | +1 | 3 | **7** | 10 | 7 |
+| Tap flow | 5 (list, item card, basket, summary, received; +1 when a drink is suggested) | +1 | 3 | **8** (9) | 10-11 | 8 |
+| Reorder | 3 | +1 | 3 | **6** | 8 | 6 |
+| Free text that resolves server-side ("I want 2 Jebneh Baladiyi from Serail El Bek"); *a resolvable order only, not comparable to the target of 9, which allows for clarifying questions in a model-bound conversation* | 3 (basket, summary, received), 0 model calls | +1 | 3 | **6** | not measured | 9 (still to measure) |
+
+**Dry run:** payloads were captured, nothing was delivered, and Meta billing was not measured (see "What Meta actually billed"). The status messages were driven through the real sweep on staging (`?job=order-watchdog` in dry-run mode: the audit order was moved to accepted, preparing, on the way and delivered in the database and the sweep run after each step; the script itself does not drive them): accepted 1, preparing 0 (recorded, not sent), on the way 1, delivered 1 (a list message carrying the delivery text and the rating prompt) = 3 instead of 5. All counts are customer-facing messages; the kitchen card (1 plus 1 confirmation) goes to a linked owner, none are linked today. Model-bound free text still varies by conversation (real traffic: 1.6 messages per turn); the audit script drives only resolvable orders.

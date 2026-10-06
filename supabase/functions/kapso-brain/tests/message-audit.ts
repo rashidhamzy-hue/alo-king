@@ -69,10 +69,11 @@ async function main() {
   if (re) { m = await tap("reorder", "tap Reorder", P.reorder, re.id, re.title); await finishOrder("reorder", P.reorder, m); }
   // 4. free text (model)
   if (WITH_MODEL) {
-    m = await say("text", "'2 shawarma and a pepsi'", P.text, "I want two shawarma and a pepsi");
+    // resolves server-side by dish and vendor name (staging menu data): a free-text order that needs no model call. Override with TEXT_ORDER for other data.
+    m = await say("text", "'2 Jebneh Baladiyi from Serail El Bek'", P.text, process.env.TEXT_ORDER ?? "I want 2 Jebneh Baladiyi from Serail El Bek");
     await finishOrder("text", P.text, m);
   }
-  // Status updates (accepted, preparing, on the way, delivered + rating) are not driven here: they are counted from _shared/lifecycle.ts and notify.ts (see docs/message-audit.md).
+  // Status updates (accepted, preparing, on the way, delivered + rating) are not driven by this script: move a test order through the statuses in the database and call `?job=order-watchdog` (dry run) after each step; the results are in docs/message-audit.md.
 }
 
 main().catch((e) => { console.error(String(e)); process.exitCode = 1; }).finally(() => {

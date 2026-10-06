@@ -102,3 +102,12 @@ Menu, More, Edit and basket-line taps made **5 queries** (the by-construction es
 | `forceFunctionRegion=ap-northeast-1` | **0.27 s / 0.93 s** | 1.1 s / 1.8 s | **10 of 10** |
 
 Samples are small (10 taps per region), so p95 is effectively the maximum. Query count alone does not meet the 1.5 s target from a US-region function (about 0.5 s per round trip to Tokyo); pinning the region does. The region is set in the Kapso webhook URL (owner decision, not a secret). "Wall" is measured from the test machine over HTTP, so it includes this machine's network; it is not Kapso's 5 s buffer or real WhatsApp send time. Free text that resolved server-side made 0 model calls; the model-bound turns made 1-3 (mean 0.26 per turn over the run); cost per order about $0.006.
+
+### Re-measured after M2-M9 (6 Oct 2026, staging v30, one capped run, $0.15 total of the $1.50 cap)
+
+| Function region | Tap handler p50 / p95 | Tap over HTTP p50 / p95 | Taps under 1.5 s | Model calls per turn (mean / max) | Free-text handler p50 / p95 |
+|---|---|---|---|---|---|
+| pinned `ap-northeast-1` | **0.28 s / 0.89 s** | 1.1 s / 2.4 s | **10 of 10** | 0.26 / 3 | 1.5 s / 12.1 s (the 12 s tail is the three-call model-bound turn) |
+| default region | 1.9 s / 5.2 s | 2.8 s / 6.1 s | 6 of 10 | 0.32 / 4 | 5.3 s / 20.8 s |
+
+54 of 54 checks passed in the pinned run (taps under 1.5 s with no model call, resolvable free text in at most one call, cost per order about $0.006 of AI); in the default-region run the tap target missed on four taps and one model-bound turn used four calls (the cap in the script is three). "Over HTTP" is measured from the test machine (it is not Kapso's buffer or the real WhatsApp send time). Ten taps per region, so p95 is effectively the maximum, and the default-region result is noisy (1 of 10 taps under 1.5 s and 2.7 s p50 on 5 Oct, 6 of 10 and 1.9 s on 6 Oct): do not quote it as stable. The Kapso webhook URL already carries `forceFunctionRegion=ap-northeast-1` (owner change, 6 Oct 2026, 05:27 UTC), so production should match the pinned column; that is inferred from the staging measurement plus the URL change, not measured on production.
