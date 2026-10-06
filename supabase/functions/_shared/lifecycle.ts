@@ -15,7 +15,8 @@ export function lifecycleText(status: string, lang: Lang, o: Ctx): string {
   switch (status) {
     case "accepted":
       return ar ? `✅ *${o.vendor}* قبلوا طلبك ${c}${o.prepMin ? `\n⏱ حوالي ${o.prepMin} دقيقة` : ""}\nبخبرك أول ما يصير بالطريق إلك 👑` : `✅ *${o.vendor}* accepted your order ${c}${o.prepMin ? `\n⏱ About ${o.prepMin} min` : ""}\nI'll message you when it's on the way 👑`;
-    case "preparing":
+    case "preparing": // not sent to customers any more (isSilentStatus); kept for the track page and tests
+
       return ar ? `👨‍🍳 طلبك ${c} عم يتحضّر عند *${o.vendor}*` : `👨‍🍳 Your order ${c} is being prepared at *${o.vendor}*`;
     case "out_for_delivery":
       return ar ? `🛵 طلبك ${c} بالطريق إلك!${o.trackUrl ? `\n🔗 تابعه مباشرة: ${o.trackUrl}` : ""}` : `🛵 Your order ${c} is on the way!${o.trackUrl ? `\n🔗 Track it live: ${o.trackUrl}` : ""}`;
