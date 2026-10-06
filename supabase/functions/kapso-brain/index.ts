@@ -1149,8 +1149,13 @@ async function forgetCustomer(c: Ctx, phone: string, scope: "all" | "address") {
 }
 
 // ---------- HUMAN HANDOFF: "talk to a person" forwards context to ADMIN_WHATSAPP_PHONE; the admin's reply (WhatsApp reply-to) is relayed back ----------
-async function startHandoff(c: Ctx, phone: string, reason: string) {
-  if (!c.admin) { await sendText(c, tr(c, "I can't reach the team right now 🙏 Please try again in a little while.", "ما فيني وصّل للفريق هلأ 🙏 جرب كمان شوي.")); c.rich++; console.error("handoff requested but ADMIN_WHATSAPP_PHONE is not set"); return; }
+async function startHandoff(c: Ctx, phone: string, reason: string, apology = ""): Promise<boolean> {
+  const pre = apology ? `${apology}\n` : "";
+  { // flood guard: at most 3 requests an hour per customer, however they trigger it (button, text, complaint, "bot" and again)
+    const { count } = await sb.from("handoff_log").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("kind", "request").gte("created_at", new Date(Date.now() - 3600_000).toISOString());
+    if ((count ?? 0) >= 3) { await sendText(c, `${pre}${tr(c, "The team already has your messages and will reply here as soon as they can 🙏", "الفريق وصلتو رسايلك وبيردّ عليك هون بأسرع وقت 🙏")}`); c.rich++; return true; }
+  }
+  if (!c.admin) { await sendText(c, pre + tr(c, "I can't reach the team right now 🙏 Please try again in a little while.", "ما فيني وصّل للفريق هلأ 🙏 جرب كمان شوي.")); c.rich++; console.error("handoff requested but ADMIN_WHATSAPP_PHONE is not set"); return false; }
   const [{ data: cu }, { data: recent }, { data: lo }, { count: baskets }] = await Promise.all([
     sb.from("customers").select("full_name,language").eq("phone_number", phone).maybeSingle(),
     sb.from("conversations").select("content").eq("phone", phone).eq("role", "user").order("id", { ascending: false }).limit(5),
@@ -1162,10 +1167,11 @@ async function startHandoff(c: Ctx, phone: string, reason: string) {
   c.rich++;
   // Without a message id the admin's replies could never be mapped back, so that counts as a failure: the customer is told and the bot is NOT muted.
   const logged = sent.ok && sent.id ? await sb.from("handoff_log").insert({ customer_phone: phone, admin_message_id: sent.id, kind: "request" }) : null;
-  if (!sent.ok || !sent.id || logged?.error) { if (logged?.error) console.error("handoff_log insert failed", logged.error.message); await sendText(c, tr(c, "I couldn't reach the team just now 🙏 Please try again in a few minutes.", "ما قدرت وصّل للفريق هلأ 🙏 جرب كمان كم دقيقة.")); return; }
+  if (!sent.ok || !sent.id || logged?.error) { if (logged?.error) console.error("handoff_log insert failed", logged.error.message); await sendText(c, pre + tr(c, "I couldn't reach the team just now 🙏 Please try again in a few minutes.", "ما قدرت وصّل للفريق هلأ 🙏 جرب كمان كم دقيقة.")); return false; }
   const muted = await sb.from("customers").update({ handoff_until: new Date(Date.now() + HANDOFF_FIRST_MINUTES * 60_000).toISOString() }).eq("phone_number", phone); // short until a person actually answers
   if (muted.error) console.error("handoff mute failed", muted.error.message);
-  await sendText(c, tr(c, "A member of the Alo King team has your conversation and will reply here shortly 🙏 I'll stay quiet so you can talk to them (send *bot* to come back to me).", "حدا من فريق ألو كينغ وصلتو محادثتك وبيردّ عليك هون بعد شوي 🙏 رح سكّت لتحكي معه (ابعت *بوت* لترجع إلي)."));
+  await sendText(c, pre + tr(c, "A member of the Alo King team has your conversation and will reply here shortly 🙏 I'll stay quiet so you can talk to them (send *bot* to come back to me).", "حدا من فريق ألو كينغ وصلتو محادثتك وبيردّ عليك هون بعد شوي 🙏 رح سكّت لتحكي معه (ابعت *بوت* لترجع إلي)."));
+  return true;
 }
 // While a person has the chat, customer messages go to the admin (each forward can itself be replied to).
 async function forwardToAdmin(c: Ctx, phone: string, text: string): Promise<boolean> {
@@ -1393,11 +1399,16 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     await remember(phone, userText, "[forwarded to the team]"); return;
   }
   if (!reply && !loc && isHumanRequest(userText)) { await startHandoff(c, phone, `asked for a person: "${userText.replace(/\s+/g, " ").slice(0, 100)}"`); await remember(phone, userText, c.log.join("\n")); return; }
-  if (!reply && !loc && isComplaint(userText)) { // a complaint is never rate-limited and never waits for the model: apology plus a fix (a person takes it, with the order's context)
-    const { data: lo } = await sb.from("orders").select("short_code,status").eq("customer_phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    await sendText(c, complaintApology(!!c.ar, lo ? { code: lo.short_code, status: lo.status } : null));
-    await startHandoff(c, phone, `complaint: "${userText.replace(/\s+/g, " ").slice(0, 100)}"`);
-    await remember(phone, userText, c.log.join("\n")); return;
+  if (!reply && !loc && isComplaint(userText)) { // a complaint is never rate-limited and never waits for the model: ONE message with an apology and the fix (a person takes it, with the order's context)
+    const [{ data: lo }, { count: waiting }] = await Promise.all([
+      sb.from("orders").select("short_code,status,created_at").eq("customer_phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString()),
+    ]);
+    const recentOrder = lo && Date.now() - Date.parse(String(lo.created_at)) < 6 * 3600_000 ? lo : null;
+    if (!waiting || recentOrder) { // someone mid-checkout with no recent order ("wrong item" while editing) goes on to the normal flow
+      await startHandoff(c, phone, `complaint: "${userText.replace(/\s+/g, " ").slice(0, 100)}"`, complaintApology(!!c.ar, recentOrder ? { code: recentOrder.short_code, status: recentOrder.status } : null));
+      await remember(phone, userText, c.log.join("\n")); return;
+    }
   }
   // Greeting from a returning customer → one-tap reorder card; typed "reorder" → straight to the summary (the customer still has to confirm)
   if (!reply && !loc && (isGreeting(userText) || isReorderRequest(userText))) {

@@ -4,7 +4,7 @@ import { decideGuard, parseCap } from "./usage.ts";
 
 describe("isComplaint", () => {
   it("English complaints and frustration", () => {
-    for (const t of ["my order was cold", "The food arrived late", "wrong order!", "you sent the wrong item", "it never arrived", "still waiting", "where is my order", "this is the worst", "I want a refund", "stupid bot", "you don't understand", "not what I ordered", "waiting for 90 minutes", "missing items", "this is unacceptable"]) expect(isComplaint(t), t).toBe(true);
+    for (const t of ["my order was cold", "The food arrived late", "wrong order!", "you sent the wrong item", "it never arrived", "still waiting", "where is my order", "this is the worst", "I want a refund", "stupid bot", "you don't understand", "not what I ordered", "been waiting for 90 minutes", "missing items", "this is unacceptable"]) expect(isComplaint(t), t).toBe(true);
   });
   it("Arabic", () => {
     for (const t of ["طلبي بارد", "الأكل وصل متأخر", "طلب غلط", "وين طلبي", "ما وصل الطلب", "مش معقول", "بدي استرداد", "بوت غبي", "استنيت ساعة", "حرام عليكم"]) expect(isComplaint(t), t).toBe(true);
@@ -13,7 +13,7 @@ describe("isComplaint", () => {
     for (const t of ["ma wasal talabi", "el akel bared", "wayn talabi", "ghalat", "zeft", "mish ma2oul"]) expect(isComplaint(t), t).toBe(true);
   });
   it("ordinary messages are not complaints", () => {
-    for (const t of ["something cold to drink", "cold drinks", "I'm late for work, quick lunch", "late night menu", "2 shawarma", "hi", "wrong turn? no, I mean where is the nearest cafe", "a burger please", "بدي شي بارد", "عصير بارد", "طلب شاورما", "badde pizza", "where can I order pizza"]) expect(isComplaint(t), t).toBe(false);
+    for (const t of ["something cold to drink", "cold drinks", "I'm late for work, quick lunch", "late night menu", "2 shawarma", "hi", "wrong turn? no, I mean where is the nearest cafe", "a burger please", "بدي شي بارد", "عصير بارد", "طلب شاورما", "badde pizza", "where can I order pizza", "3asir barde", "bade 3asir barde", "بدي الاكل مع عصير بارد", "بدي الطلب متاخر", "the burger is not bad", "my order is not late", "I told you my address is near the church", "I'll be waiting 10 minutes at the door", "what's your refund policy", "can I see the refund policy"]) expect(isComplaint(t), t).toBe(false);
   });
   it("very long messages are left to the normal flow", () => expect(isComplaint("worst ".repeat(100))).toBe(false));
 });
