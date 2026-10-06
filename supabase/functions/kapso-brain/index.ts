@@ -21,6 +21,7 @@ import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms,
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 import { fepWindow, referralRecord } from "./fep.ts";
+import { failureFromBody, failureKind, incidentAlertText, isPaused, pausedNotice, type FailureKind } from "./sendguard.ts";
 import { beginTurn, touchCustomer, type CustomerStart } from "./turnstart.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
@@ -83,14 +84,32 @@ function pnidOf(body: any, evt: any): string {
 type StagingOverride = { model?: string; cheap?: boolean; budget?: number };
 const OVERRIDE_MODELS = ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"];
 type Ctx = { hasQuick?: boolean; listSend?: boolean; quickCleared?: boolean; quickDel?: Promise<unknown>; to: string; pnid: string; dry: boolean; out: any[]; log: string[]; rich: number; ar?: boolean; cartThisTurn?: boolean; override?: StagingOverride; escalate?: boolean; fromVoice?: boolean; addon?: { basketId: string; vendorId: string }; admin?: string; acq?: Acquisition | null };
-async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> {
+async function rawSendK(pnid: string, payload: any, dry: boolean, out?: any[], noReport = false): Promise<{ ok: boolean; stop: FailureKind | null }> {
   payload = clampInteractive(payload); // last line of defence: never let an over-long title/body make Meta reject the whole message
-  if (dry) { out?.push(payload); timerStore.getStore()?.markFirstSend(); return true; }
+  if (dry) { out?.push(payload); timerStore.getStore()?.markFirstSend(); return { ok: true, stop: null }; }
   const res = await timed("send", () => fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${pnid}/messages`, {
     method: "POST", headers: { "X-API-Key": KAPSO_TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(payload) }));
   timerStore.getStore()?.markFirstSend();
-  if (!res.ok) console.error("Kapso send failed", pnid, res.status, (await res.text()).slice(0, 300));
-  return res.ok;
+  if (res.ok) return { ok: true, stop: null };
+  const text = await res.text();
+  console.error("Kapso send failed", pnid, res.status, text.slice(0, 300));
+  const f = failureFromBody(res.status, text); // payment eligibility / rate limit: record the incident (alerts the admin once, pauses broadcasts), never retry here
+  if (f && !noReport) { const rep = reportSendFailure(f.kind, f.code, pnid); const tmx = timerStore.getStore(); if (tmx) tmx.background(rep); else await rep; }
+  return { ok: false, stop: f?.kind ?? null };
+}
+async function rawSend(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<boolean> { return (await rawSendK(pnid, payload, dry, out)).ok; }
+/** Records a payment-eligibility / rate-limit failure atomically (backoff ladder, broadcasts paused) and tells the admin once per incident. */
+async function reportSendFailure(kind: FailureKind, code: number | null, pnid: string): Promise<void> {
+  try {
+    const { data, error } = await sb.rpc("record_send_failure", { p_kind: kind, p_code: code });
+    if (error) { console.error("record_send_failure failed", error.message); return; }
+    console.error(JSON.stringify({ send_incident: { kind, code, level: data?.level, failures: data?.failures, paused_until: data?.paused_until } })); // no content, no phone
+    if (!data?.alert) return;
+    const admin = normPhone(Deno.env.get("ADMIN_WHATSAPP_PHONE") ?? "");
+    const ok = admin ? (await rawSendK(pnid, { ...envl(admin), type: "text", text: { body: incidentAlertText(kind, code, String(data.paused_until)) } }, false, undefined, true)).ok : false;
+    await sb.from("send_incidents").update({ alert_ok: ok }).eq("kind", kind);
+    if (!ok) console.error("send incident alert not delivered (ADMIN_WHATSAPP_PHONE unset or its 24h window closed); retried at most hourly");
+  } catch (e) { console.error("reportSendFailure error", String((e as Error)?.message ?? e).slice(0, 160)); }
 }
 // Like rawSend, but also returns the WhatsApp message id (needed to map the admin's replies back to a customer).
 async function rawSendId(pnid: string, payload: any, dry: boolean, out?: any[]): Promise<{ ok: boolean; id?: string }> {
@@ -1406,6 +1425,8 @@ async function logAction(vendor_id: string, owner_phone: string, action: string,
 function beirutTime(d: Date) { return d.toLocaleTimeString("en-GB", { timeZone: "Asia/Beirut", hour: "2-digit", minute: "2-digit" }); }
 
 async function runBroadcast(c: Ctx, vendor: any, b: any): Promise<string> {
+  const { data: pausedUntil } = await sb.rpc("send_paused_until"); // payment-eligibility / rate-limit incident: nothing is claimed, reserved or sent
+  if (isPaused(pausedUntil, Date.now())) { await sendText(c, pausedNotice(String(pausedUntil), !!c.ar)); return "paused"; }
   const { data: claimed } = await sb.from("broadcasts").update({ status: "sending", confirmed_at: new Date().toISOString() }).eq("id", b.id).eq("status", "pending_confirm").select("id");
   if (!claimed?.length) return "already handled";
   const { data: ok } = await sb.rpc("reserve_broadcast_credits", { p_vendor: vendor.vendor_id, p_amount: b.cost_usd });
@@ -1422,11 +1443,14 @@ async function runBroadcast(c: Ctx, vendor: any, b: any): Promise<string> {
   const { data: recent } = phones.length ? await sb.from("conversations").select("phone").in("phone", phones).eq("role", "user").gte("created_at", since) : { data: [] };
   const inWindow = new Set((recent ?? []).map((r: any) => r.phone));
   const work = (async () => {
-    let sent = 0, failed = skipped;
+    let sent = 0, failed = skipped, stopKind: FailureKind | null = null;
     for (let i = 0; i < phones.length; i += 8) {
+      if (stopKind) { failed += phones.length - i; break; } // rate limit / payment failure: stop, never hammer on (the rest is credited back)
       const res = await Promise.all(phones.slice(i, i + 8).map(async (p) => {
         for (const payload of promoAttempts({ to: p, lang: langOf.get(p)!, message: b.message, vendorName: vendor.name_en, inWindow: inWindow.has(p), templates: PROMO_TEMPLATES })) {
-          if (await rawSend(c.pnid, payload, c.dry, c.out)) return true;
+          const r = await rawSendK(c.pnid, payload, c.dry, c.out);
+          if (r.ok) return true;
+          if (r.stop) { stopKind ||= r.stop; return false; } // no template fallback after a rate limit / payment failure
         }
         return false;
       }));
@@ -1437,6 +1461,7 @@ async function runBroadcast(c: Ctx, vendor: any, b: any): Promise<string> {
     await sb.from("broadcasts").update({ status: "sent", sent_count: sent, failed_count: failed, cost_usd: r2(sent * BCAST_COST) }).eq("id", b.id);
     const { data: v2 } = await sb.from("vendors").select("broadcast_credits_usd").eq("vendor_id", vendor.vendor_id).maybeSingle();
     await rawSend(c.pnid, { ...envl(c.to), type: "text", text: { body: c.ar ? `📣 *تم البث*\n✅ وصلت: ${sent}${failed ? `\n⚠️ ما وصلت: ${failed} (انرجعت للرصيد)` : ""}\n💳 الرصيد المتبقي: ${usd(v2?.broadcast_credits_usd ?? 0)}` : `📣 *Broadcast done*\n✅ Delivered: ${sent}${failed ? `\n⚠️ Couldn't reach: ${failed} (credited back)` : ""}\n💳 Credit left: ${usd(v2?.broadcast_credits_usd ?? 0)}` } }, c.dry, c.out);
+    if (stopKind) { const { data: pu } = await sb.rpc("send_paused_until"); if (pu) await sendText(c, pausedNotice(String(pu), !!c.ar)); } // stopped early: say why, in the owner's words
   })();
   // @ts-ignore EdgeRuntime
   if (!c.dry && typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work); else await work;
@@ -1886,6 +1911,10 @@ Deno.serve(async (req) => {
   const statusEvts = all.filter((e: any) => isStatusEvent(evHeader, e) || isOutboundEvent(e)), events = all.filter((e: any) => !statusEvts.includes(e)); // an event about our own message never starts a turn
   const billing = statusEvts.flatMap((e: any) => statusRows(e)).filter((r: any) => !dry || isTestPhone(String(r.to_phone)));
   if (billing.length) { const { error } = await sb.from("message_billing_log").upsert(billing, { onConflict: "wamid,status", ignoreDuplicates: true }); if (error) console.error("message_billing_log upsert failed", error.message); }
+  if (!dry) { // Meta rejected a message after accepting it (async failure): payment eligibility / rate limit start an incident (admin alerted once, broadcasts paused, backoff)
+    const bad = billing.filter((r: any) => r.status === "failed" && failureKind(r.error_code)).slice(0, 5);
+    for (const r of bad) await reportSendFailure(failureKind(r.error_code)!, r.error_code, String(body?.phone_number_id ?? DEFAULT_PNID));
+  }
   if (statusEvts.length && !events.length) return new Response(dry ? JSON.stringify({ recorded: billing.length }) : "OK", { status: 200, headers: dry ? { "content-type": "application/json" } : undefined });
   const out: any[] = [], timings: any[] = [];
   const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride, stagingOverride, timings); } catch (err) { console.error("event error", err); } } })();
