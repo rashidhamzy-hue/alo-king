@@ -2,6 +2,7 @@
 // Pure functions. The list is a deterministic function of the vendor's menu and the page; the server remembers which dishes the numbers on screen refer to (see quick_menus).
 import { META } from "../_shared/meta-limits.ts";
 import { isAlcohol } from "../_shared/alcohol.ts";
+import { daypartAt, daypartLabel, daypartScore, isExtraItem, type Daypart } from "./daypart.ts";
 
 export const NUMBERED_MAX_PER_PAGE = 10;
 const MAX_TOKENS = 40, MAX_QTY = 20;
@@ -13,19 +14,20 @@ const needsChoice = (r: Row) => (Array.isArray(r.customizations) ? r.customizati
 // Add-ons and extras ("Add Cheese", "Additional Bread", "Extra Sauce", an Extras / Add-ons section) are modifiers, not dishes: they are orderable by name but never listed as a numbered dish.
 const ADDON_EN = /^(?:add|additional|extras?|add-ons?)\s+\S+$/i, ADDON_AR = /^(?:إضافة|اضافة|إضافي|اضافي|زيادة)\s+\S+$/, ADDON_SECTION = /^\s*(?:add[\s-]?ons?|extras?|إضافات|اضافات|زيادات)\s*$/i; // a prefix plus ONE more word ("Add Cheese"); longer names ("Extra Large Pizza") are dishes
 export const isAddOn = (r: Row & { section?: string | null }) => ADDON_EN.test(String(r.item_name_en ?? "").trim()) || ADDON_AR.test(String(r.item_name_ar ?? "").trim()) || ADDON_SECTION.test(String(r.section ?? ""));
-export function orderForList<T extends Row & { section?: string | null }>(items: T[]): T[] {
+/** Order: dishes made for this daypart first, then the vendor's own order / the popular flag, then main dishes before extras (drinks, sides, sauces). Add-ons and alcohol are never listed. */
+export function orderForList<T extends Row & { section?: string | null }>(items: T[], now: Daypart = daypartAt()): T[] {
   const priced = items.filter((r) => Number(r.price_usd) > 0 && !isAlcohol(r)), dishes = priced.filter((r) => !isAddOn(r)); // alcohol is never listed
   return (dishes.length ? dishes : priced).sort((a, b) =>
-    Number(!!b.is_popular) - Number(!!a.is_popular) || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || String(a.item_name_en ?? "").localeCompare(String(b.item_name_en ?? "")));
+    daypartScore(b, now) - daypartScore(a, now) || Number(!!b.is_popular) - Number(!!a.is_popular) || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || Number(isExtraItem(a)) - Number(isExtraItem(b)) || String(a.item_name_en ?? "").localeCompare(String(b.item_name_en ?? "")));
 }
 
 const legend = (ar: boolean, more: boolean, anyOptions: boolean) => ar
-  ? `\n\nابعت الأرقام، مثلاً *1x2, 3* (الرقم x الكمية)${more ? "\nاكتب *كمان* للصفحة التالية" : ""}${anyOptions ? "\n⚙ = إلو خيارات" : ""}`
-  : `\n\nReply with numbers, e.g. *1x2, 3* (number x quantity)${more ? "\nType *more* for the next page" : ""}${anyOptions ? "\n⚙ = has options" : ""}`;
+  ? `\n\nابعت مثلاً *1x2, 4x1* (رقم الصنف x الكمية)${more ? "\nاكتب *كمان* للصفحة التالية" : ""}${anyOptions ? "\n⚙ = إلو خيارات" : ""}`
+  : `\n\nReply like *1x2, 4x1* (dish number x how many)${more ? "\nType *more* for the next page" : ""}${anyOptions ? "\n⚙ = has options" : ""}`;
 
-export function buildNumberedPage(o: { vendorName: string; items: Row[]; page: number; ar: boolean; both: (n: number) => string }): { body: string; shown: { n: number; item_id: string }[]; hasMore: boolean } {
-  const headWith = (popular: boolean) => `*${clip(o.vendorName, 60)}* 👑\n${popular ? (o.ar ? "الأكثر طلباً" : "Popular right now") : (o.ar ? "القائمة" : "Menu")}\n\n`;
-  const head = headWith(true); // the longer title is used while sizing the page, so the real one can never overflow
+export function buildNumberedPage(o: { vendorName: string; items: Row[]; page: number; ar: boolean; daypart?: Daypart; both: (n: number) => string }): { body: string; shown: { n: number; item_id: string }[]; hasMore: boolean } {
+  const headWith = (popular: boolean) => `*${clip(o.vendorName, 60)}* 👑\n${popular ? (o.ar ? "الأكثر طلباً" : "Popular right now") : o.daypart ? daypartLabel(o.daypart, o.ar) : (o.ar ? "القائمة" : "Menu")}\n\n`;
+  const head = headWith(true).length >= headWith(false).length ? headWith(true) : headWith(false); // the longer title is used while sizing the page, so the real one can never overflow
   const line = (r: Row, n: number) => `${n}. ${clip(String((o.ar && r.item_name_ar) || r.item_name_en || r.item_name_ar || r.item_id), 42)}${needsChoice(r) ? " ⚙" : ""} — ${o.both(Number(r.price_usd))}`;
   const reserve = legend(o.ar, true, true).length;
   let start = 0;
