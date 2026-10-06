@@ -25,7 +25,7 @@ export function estimateUsd(model: string, u: Usage): number {
 }
 
 export const parseBudget = (v: string | undefined | null): number => { const x = Number(v); return Number.isFinite(x) && x > 0 ? x : 5; };
-export const parseCap = (v: string | undefined | null): number => { const x = Math.floor(Number(v)); return Number.isFinite(x) && x > 0 ? x : 20; };
+export const parseCap = (v: string | undefined | null): number => { const x = Math.floor(Number(v)); return Number.isFinite(x) && x > 0 ? x : 60; }; // ~25 chat turns an hour (a turn is 1-3 model calls)
 
 /** "YYYY-MM-DD" in Asia/Beirut: the budget day. */
 export const beirutDay = (d = new Date()): string => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Beirut", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);

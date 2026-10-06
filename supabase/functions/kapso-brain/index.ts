@@ -21,6 +21,7 @@ import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, par
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
 import { alcoholRefusal, asksForAlcohol, isAlcohol, withoutAlcohol } from "../_shared/alcohol.ts";
+import { complaintApology, isComplaint } from "./complaint.ts";
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 import { fepWindow, referralRecord } from "./fep.ts";
@@ -1231,12 +1232,12 @@ async function sendButtonOnly(c: Ctx, phone: string, why: Guard, hasLoc = false)
   const { count: waiting } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString());
   const base = why === "budget"
     ? tr(c, "I'm in quick mode right now 🙏 Please use the buttons below.", "أنا بالوضع السريع هلأ 🙏 استعمل الأزرار تحت.")
-    : tr(c, "That's a lot of messages in a short time 🙏 Give me a few minutes, or use the buttons below.", "رسائل كتير بوقت قصير 🙏 استنى كم دقيقة، أو استعمل الأزرار تحت.");
+    : tr(c, "I need a short breather 🙏 You can use the buttons below, or tap *Talk to a person* and someone from the team will help you right away.", "بدي استريح شوي 🙏 فيك تستعمل الأزرار تحت، أو اضغط *احكي مع حدا* وحدا من الفريق بيساعدك فوراً.");
   const hint = waiting ? tr(c, "\nYour order is waiting: tap *Confirm Order* on its summary.", "\nطلبك بالانتظار: اضغط *تأكيد الطلب* على ملخصه.") : "";
   await sendButtons(c, { body: base + hint, buttons: [
+    { id: "HUMAN", title: tr(c, "🙋 Talk to a person", "🙋 احكي مع حدا") },
     { id: "BASKET", title: tr(c, "🧺 My basket", "🧺 سلتي") },
-    ...(hasLoc ? [] : [{ id: "LOC", title: tr(c, "📍 Share location", "📍 شارك موقعك") }]),
-    ...(last ? [{ id: `REORDER|${last.id}`, title: tr(c, "🔁 Reorder", "🔁 أعد الطلب") }] : []),
+    ...(last ? [{ id: `REORDER|${last.id}`, title: tr(c, "🔁 Reorder", "🔁 أعد الطلب") }] : hasLoc ? [] : [{ id: "LOC", title: tr(c, "📍 Share location", "📍 شارك موقعك") }]),
   ] });
 }
 
@@ -1392,6 +1393,12 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     await remember(phone, userText, "[forwarded to the team]"); return;
   }
   if (!reply && !loc && isHumanRequest(userText)) { await startHandoff(c, phone, `asked for a person: "${userText.replace(/\s+/g, " ").slice(0, 100)}"`); await remember(phone, userText, c.log.join("\n")); return; }
+  if (!reply && !loc && isComplaint(userText)) { // a complaint is never rate-limited and never waits for the model: apology plus a fix (a person takes it, with the order's context)
+    const { data: lo } = await sb.from("orders").select("short_code,status").eq("customer_phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    await sendText(c, complaintApology(!!c.ar, lo ? { code: lo.short_code, status: lo.status } : null));
+    await startHandoff(c, phone, `complaint: "${userText.replace(/\s+/g, " ").slice(0, 100)}"`);
+    await remember(phone, userText, c.log.join("\n")); return;
+  }
   // Greeting from a returning customer → one-tap reorder card; typed "reorder" → straight to the summary (the customer still has to confirm)
   if (!reply && !loc && (isGreeting(userText) || isReorderRequest(userText))) {
     const last = await lastOrder(phone);
