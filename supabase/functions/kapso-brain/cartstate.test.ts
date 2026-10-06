@@ -27,6 +27,17 @@ describe("wiring", () => {
     expect(body).toMatch(/cartRevival\(/);
     expect(body).toMatch(/prepareOrder\(/);
   });
+  it("revival: the old summary is claimed atomically first, checked with buildOrder BEFORE any explanation is sent, keeps the basket link, and does not overwrite a newer address", () => {
+    const seg = body.slice(body.indexOf("k === \"revive\""));
+    expect(seg).toMatch(/update\(\{ status: "expired" \}\)\.eq\("id", old\.id\)\.eq\("status", "pending"\)/);
+    expect(seg.indexOf("buildOrder(")).toBeGreaterThan(0);
+    expect(seg.indexOf("buildOrder(")).toBeLessThan(seg.indexOf("That summary had expired"));
+    expect(seg).toMatch(/basket_id: old\.basket_id/);
+    expect(seg).toMatch(/cu\?\.village/); // the customer's current village / landmark win over the old cart's
+  });
+  it("a second tap on a replaced summary points to the newer one instead of 'expired or already placed'", () => {
+    expect(body).toMatch(/newer summary/);
+  });
 });
 
 describe("empty basket shown by the model", () => {

@@ -10,10 +10,11 @@ const needsChoice = (r: Row) => (Array.isArray(r.customizations) ? r.customizati
 
 /** Popular dishes first, then the vendor's own order, then name. Unpriced dishes are never listed. */
 // Add-ons and extras ("Add Cheese", "Additional Bread", "Extra Sauce", an Extras / Add-ons section) are modifiers, not dishes: they are orderable by name but never listed as a numbered dish.
-const ADDON_EN = /^(?:add[\s-]?ons?|additional|add|extras?)(?![\p{L}\p{N}])/iu, ADDON_AR = /^(?:إضافة|اضافة|إضافي|اضافي|زيادة)/, ADDON_SECTION = /add[\s-]?ons?|extras?|toppings?|modifiers?|إضافات|اضافات|زيادات/i;
+const ADDON_EN = /^(?:add|additional|extras?|add-ons?)\s+\S+$/i, ADDON_AR = /^(?:إضافة|اضافة|إضافي|اضافي|زيادة)\s+\S+$/, ADDON_SECTION = /^\s*(?:add[\s-]?ons?|extras?|إضافات|اضافات|زيادات)\s*$/i; // a prefix plus ONE more word ("Add Cheese"); longer names ("Extra Large Pizza") are dishes
 export const isAddOn = (r: Row & { section?: string | null }) => ADDON_EN.test(String(r.item_name_en ?? "").trim()) || ADDON_AR.test(String(r.item_name_ar ?? "").trim()) || ADDON_SECTION.test(String(r.section ?? ""));
 export function orderForList<T extends Row & { section?: string | null }>(items: T[]): T[] {
-  return items.filter((r) => Number(r.price_usd) > 0 && !isAddOn(r)).sort((a, b) =>
+  const priced = items.filter((r) => Number(r.price_usd) > 0), dishes = priced.filter((r) => !isAddOn(r));
+  return (dishes.length ? dishes : priced).sort((a, b) =>
     Number(!!b.is_popular) - Number(!!a.is_popular) || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || String(a.item_name_en ?? "").localeCompare(String(b.item_name_en ?? "")));
 }
 
@@ -57,8 +58,8 @@ export function parseNumberedReply(text: string, listSize: number): NumberedRepl
   if (!t) return { kind: "none" };
   if (isMoreWord(t)) return { kind: "more" };
   // "1: 3 pieces 5: 2 pieces" / "1: 2, 3: 1" (number: quantity). A single "a:b" with no unit ("12:30", "3:1") is not an order.
-  const colon = [...t.matchAll(/(\d{1,2})\s*[:=]\s*(\d{1,2})(?:\s*(pieces?|pcs?|pc|قطعة|قطع|حبات|حبة|حباية)(?=\s|$|[,،;+]))?/g)];
-  if (colon.length >= 2 || colon.some((m) => m[3])) t = t.replace(/(\d{1,2})\s*[:=]\s*(\d{1,2})(?:\s*(?:pieces?|pcs?|pc|قطعة|قطع|حبات|حبة|حباية)(?=\s|$|[,،;+]))?/g, "$1x$2");
+  const colon = [...t.matchAll(/(\d{1,2})\s*:\s*(\d{1,2})(?:\s*(pieces?|pcs?|pc|قطعة|قطع|حبات|حبة|حباية)(?=\s|$|[,،;+]))?/g)];
+  if ((colon.length >= 2 || colon.some((m) => m[3])) && colon.every((m) => Number(m[2]) <= MAX_QTY)) t = t.replace(/(\d{1,2})\s*:\s*(\d{1,2})(?:\s*(?:pieces?|pcs?|pc|قطعة|قطع|حبات|حبة|حباية)(?=\s|$|[,،;+]))?/g, "$1x$2");
   t = t.replace(/\s*[x×*]\s*/g, "x").replace(/(^|\s)(?:and|و)(?=\s|$)/g, " ");
   const toks = t.split(/[\s,،;+]+/).filter(Boolean);
   if (!toks.length || !toks.every((k) => /^\d{1,2}(?:x\d{1,2})?$/.test(k))) return { kind: "none" };

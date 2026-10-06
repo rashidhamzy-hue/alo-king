@@ -324,15 +324,27 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
     if ((count ?? 0) > 1) { await sendText(c, tr(c, "You have more than one order waiting 🙏 Please tap *Confirm Order* on the one you want.", "عندك أكتر من طلب بالانتظار 🙏 اضغط *تأكيد الطلب* على الطلب يلي بدك ياه.")); return "ambiguous"; }
   }
   if (!cart && cartId) { // a summary that went stale: say whether it was placed, or rebuild it (server prices again, a fresh Confirm tap) instead of a dead end
-    const { data: old } = await sb.from("carts").select("id,status,items,vendor_id,village,address,notes,created_at,expires_at").eq("id", cartId).eq("customer_phone", phone).maybeSingle();
+    const { data: old } = await sb.from("carts").select("id,status,items,vendor_id,village,address,notes,basket_id,created_at,expires_at").eq("id", cartId).eq("customer_phone", phone).maybeSingle();
     const k = cartRevival(old, Date.now());
     if (k === "placed") { await sendText(c, tr(c, "That order was already placed ✅ I'll keep you posted on it.", "هيدا الطلب انسجّل من قبل ✅ بخبرك عنه.")); return "already placed"; }
     if (k === "revive" && old) {
-      const { data: cu } = await sb.from("customers").select("full_name").eq("phone_number", phone).maybeSingle();
+      const [{ data: cu }, { data: got }] = await Promise.all([
+        sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle(),
+        sb.from("carts").update({ status: "expired" }).eq("id", old.id).eq("status", "pending").select("id"), // atomic: a double tap rebuilds once
+      ]);
+      if (!got?.length) { await sendText(c, tr(c, "I already refreshed that summary above 👆 Tap Confirm Order there.", "جدّدت الملخص فوق 👆 اضغط تأكيد الطلب هناك.")); return "already refreshed"; }
+      const village = cu?.village || old.village || "", landmark = cu?.last_address || old.address || ""; // the customer's current address wins over the old summary's
+      const input = { vendor_id: old.vendor_id, items: old.items, customer_name: cu?.full_name ?? "Customer", delivery_village: village, building_landmark: landmark, notes: old.notes ?? null, basket_id: old.basket_id ?? null };
+      const check = await buildOrder(input.vendor_id, input.items as any[], village); // prices, fee and the cash cap are checked BEFORE saying anything
+      if (check.error) { await sendText(c, tr(c, `I couldn't rebuild that order: ${check.error}. Tell me what you'd like and I'll set it up again.`, `ما قدرت أعيد هالطلب: ${check.error}. خبرني شو بدك وبرتبه من جديد.`)); return "revival failed"; }
       await sendText(c, tr(c, "That summary had expired, so here is a fresh one with today's prices 👇", "انتهت صلاحية الملخص، هيدا ملخص جديد بالأسعار الحالية 👇"));
-      const res = JSON.parse(await prepareOrder(c, phone, { vendor_id: old.vendor_id, items: old.items, customer_name: cu?.full_name ?? "Customer", delivery_village: old.village ?? "", building_landmark: old.address ?? "", notes: old.notes ?? null }));
-      if (!res.error) return "revived";
-      console.error("cart revival failed:", String(res.error).slice(0, 120));
+      const res = JSON.parse(await prepareOrder(c, phone, input));
+      if (res.error) { console.error("cart revival failed:", String(res.error).slice(0, 120)); await sendText(c, tr(c, "I couldn't refresh it just now 🙏 Tell me what you'd like and I'll set it up again.", "ما قدرت جدّده هلأ 🙏 خبرني شو بدك وبرتبه من جديد.")); }
+      return res.error ? "revival failed" : "revived";
+    }
+    if (k === "gone" && old) { // replaced by a newer summary (for example a second tap): point to it
+      const { count } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString());
+      if ((count ?? 0) > 0) { await sendText(c, tr(c, "There is a newer summary above 👆 Tap Confirm Order there.", "في ملخص أحدث فوق 👆 اضغط تأكيد الطلب هناك.")); return "newer summary"; }
     }
   }
   if (!cart) { await sendText(c, "That order has expired or was already placed 🙏 Tell me what you'd like and I'll set it up again.\nانتهت صلاحية الطلب — خبرني شو بدك وبرتبه من جديد."); return "no pending cart"; }

@@ -95,6 +95,10 @@ describe("pinnedLandmark keeps the landmark the customer already gave (friction 
     expect(pinnedLandmark(pin, "Khraibeh", { village: "Baakleen", address: "Near the church" })).toBe(`Khraibeh (${mapsLink(33.6454, 35.6434)})`);
     expect(pinnedLandmark(pin, "Khraibeh", null)).toBe(`Khraibeh (${mapsLink(33.6454, 35.6434)})`);
   });
+  it("works with the real customers row (last_address), which is what the bot passes", () => {
+    const l = pinnedLandmark(pin, "Khraibeh", { village: "Khraibeh", last_address: "Villa Rashid, near the supermarket" } as any);
+    expect(l).toContain("Villa Rashid"); expect(l).toContain(mapsLink(33.6454, 35.6434));
+  });
   it("stays within 200 characters", () => {
     expect(pinnedLandmark(pin, "V", { village: "V", address: "z".repeat(500) }).length).toBeLessThanOrEqual(200);
   });
