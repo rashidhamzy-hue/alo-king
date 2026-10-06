@@ -214,3 +214,11 @@ describe("P1-7 welcome card and mood list (welcome.ts)", () => {
     for (const ar of [false, true]) expectOk(listMsg(moodRows(ar)));
   });
 });
+
+describe("P1-8 party spread card (party.spreadCard)", () => {
+  it("worst-case dishes and vendor name, both languages, two buttons", async () => {
+    const { spreadCard } = await import("./party.ts");
+    const spread = { lines: Array.from({ length: 4 }, (_, i) => ({ item: { item_id: `i${i}`, item_name_en: LONG_EN, item_name_ar: LONG_AR, price_usd: 9.99 }, qty: 20 })), subtotal: 799.2, feeds: 80 };
+    for (const ar of [false, true]) { const c = spreadCard({ vendorId: "v1", vendorName: "V".repeat(200), req: { adults: 40, kids: 20, meal: "breakfast" }, spread, meal: "breakfast", deliveryFee: 2, both, ar })!; expectOk(buttons(c.body, c.buttons)); expect(c.buttons).toHaveLength(2); }
+  });
+});
