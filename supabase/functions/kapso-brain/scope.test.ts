@@ -9,9 +9,9 @@ const OFF = [
   // English
   "write me a poem about the sea", "Can you write a song for my mother?", "compose an essay on climate change", "write python code to sort a list", "tell me a joke", "tell me a story",
   "what's the capital of France", "who won the world cup", "what is the weather in Beirut", "solve 2x + 3 = 7", "what is 15*12", "help me with my homework",
-  "give me medical advice for my headache", "what medicine for a cough", "should I invest in gold", "who should I vote for", "I need a lawyer", "send me nudes",
+  "give me medical advice for my headache", "should I invest in gold", "who should I vote for", "I need a lawyer", "send me porn",
   // Arabic
-  "اكتب لي قصيدة عن الوطن", "احكيلي نكتة", "شو عاصمة فرنسا", "مين ربح كاس العالم", "شو الطقس اليوم", "ساعدني بالواجب المدرسي", "اكتبلي كود بايثون", "شو الدوا للصداع",
+  "اكتب لي قصيدة عن الوطن", "احكيلي نكتة", "شو عاصمة فرنسا", "مين ربح كاس العالم", "شو الطقس اليوم", "ساعدني بالواجب المدرسي", "اكتبلي كود بايثون",
   // Arabizi
   "ahkili nokte", "ktoub li 2asside", "sa3dne bel wajeb el madrase",
   // French
@@ -30,6 +30,7 @@ const ON = [
   "where is the weather station building", "near the weather station", "building next to the bank", "write down my code 1234", "write code on the box: 1234", "write the address: script street", "write a letter to the driver",
   "write an email to the owner", "اكتب رساله للسواق", "عطيني كود الخصم", "قل لي كود الخصم", "عطيني برنامج الدوام", "شو الطقس، السواق جاي؟", "should i take a combo", "should I take the 2 pizzas", "dosage? no", "طبيب", "I live near the debug street",
   "my html address", "dating cafe menu", "css cafe", "sql burger", "diagnosis pizza", "translate the menu please", "translate this: poulet", "what's the bitcoin price",
+  "medicine for my mother, can you bring from pharmacy", "I need medicine for headache", "prescription for my mom pick up pharmacie", "شو الدوا للصداع", "what is 123", "what is 70123456", "who is the king of Alo", "Nude Beirut", "what medicine for a cough",
   "Hi", "thanks!", "ok", "1x2, 3", "yes", "", "Poem Cafe open?", "Java Coffee price",
 ];
 
