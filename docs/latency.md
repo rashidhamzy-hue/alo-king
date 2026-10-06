@@ -107,6 +107,6 @@ Samples are small (10 taps per region), so p95 is effectively the maximum. Query
 | Function region | Tap handler p50 / p95 | Tap over HTTP p50 / p95 | Taps under 1.5 s | Model calls per turn (mean / max) | Free-text handler p50 / p95 |
 |---|---|---|---|---|---|
 | pinned `ap-northeast-1` | **0.28 s / 0.89 s** | 1.1 s / 2.4 s | **10 of 10** | 0.26 / 3 | 1.5 s / 12.1 s (the 12 s tail is the three-call model-bound turn) |
-| default region | 1.9 s / 5.2 s | 2.8 s / 6.1 s | 5 of 10 | 0.32 / 4 | 5.3 s / 20.8 s |
+| default region | 1.9 s / 5.2 s | 2.8 s / 6.1 s | 6 of 10 | 0.32 / 4 | 5.3 s / 20.8 s |
 
 54 of 54 checks passed in the pinned run (taps under 1.5 s with no model call, resolvable free text in at most one call, cost per order about $0.006 of AI); in the default-region run the tap target missed on four taps and one model-bound turn used four calls (the cap in the script is three). The Kapso webhook URL already carries `forceFunctionRegion=ap-northeast-1` (owner change, 6 Oct 02:27 Beirut-3), so production now matches the pinned column.
