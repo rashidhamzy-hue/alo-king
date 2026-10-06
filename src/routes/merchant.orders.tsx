@@ -67,7 +67,7 @@ function Terminal({ vendorId }: { vendorId: string }) {
       .from("orders")
       .select(ORDER_COLUMNS)
       .eq("vendor_id", vendorId)
-      .or(`created_at.gte.${startOfToday()},status.in.(pending,accepted,preparing,ready)`)
+      .or(`created_at.gte.${startOfToday()},status.in.(pending,accepted,preparing,ready,out_for_delivery)`)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (!alive) return;
@@ -133,7 +133,7 @@ function Terminal({ vendorId }: { vendorId: string }) {
   const cols = [
     { title: "New", list: pending },
     { title: "In kitchen", list: orders.filter((o) => o.status === "accepted" || o.status === "preparing") },
-    { title: "Ready for pickup", list: orders.filter((o) => o.status === "ready") },
+    { title: "Ready / on the way", list: orders.filter((o) => o.status === "ready" || o.status === "out_for_delivery") },
   ];
 
   return (
@@ -180,6 +180,8 @@ function Terminal({ vendorId }: { vendorId: string }) {
                     onAccept={(m) => update(o, { status: "accepted", prep_minutes: m })}
                     onReject={(r) => update(o, { status: "rejected", notes: [o.notes, `REJECTED: ${r}`].filter(Boolean).join(" | ") })}
                     onReady={() => update(o, { status: "ready" })}
+                    onOutForDelivery={() => update(o, { status: "out_for_delivery" })}
+                    onDelivered={() => update(o, { status: "delivered" })}
                   />
                 </div>
               ))}
