@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { moodPhrase, moodRows, parseWelcomeTap, welcomeCard } from "./welcome.ts";
-import { moodTerms } from "./searchfirst.ts";
+import { looksLikeSearch, moodTerms } from "./searchfirst.ts";
 import { BASKET_TTL_MS, basketCutoffIso, basketIsStale } from "./cartstate.ts";
 
 describe("welcomeCard", () => {
@@ -19,6 +19,7 @@ describe("welcomeCard", () => {
 describe("browse moods", () => {
   it("rows fit a WhatsApp list (<=10 rows, titles <=24) in both languages", () => { for (const ar of [false, true]) { const r = moodRows(ar); expect(r.length).toBeLessThanOrEqual(10); expect(r.every((x) => x.title.length <= 24)).toBe(true); } });
   it("every mood phrase is understood by the free search (a mood, not a dish word)", () => { for (const r of moodRows(false)) expect(moodTerms(moodPhrase(r.id.split("|")[1])!), r.id).not.toBeNull(); });
+  it("every mood phrase and \"surprise me\" passes the free search entry check (a guard word would silently give the fallback text)", () => { for (const r of moodRows(false)) expect(looksLikeSearch(moodPhrase(r.id.split("|")[1])!), r.id).toBe(true); expect(looksLikeSearch("surprise me")).toBe(true); });
   it("tap parsing", () => { expect(parseWelcomeTap("WELCOME|browse")).toBe("browse"); expect(parseWelcomeTap("WELCOME|surprise")).toBe("surprise"); expect(parseWelcomeTap("MOOD|light")).toEqual({ mood: "light" }); expect(parseWelcomeTap("MOOD|nope")).toBeNull(); expect(parseWelcomeTap("BASKET")).toBeNull(); });
 });
 

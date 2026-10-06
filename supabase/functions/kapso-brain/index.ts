@@ -25,7 +25,7 @@ import { alcoholRefusal, asksForAlcohol, isAlcohol, withoutAlcohol } from "../_s
 import { complaintApology, isComplaint } from "./complaint.ts";
 import { kitchenState, receivedFooter, stillWaitingText, type KitchenState } from "./kitchen.ts";
 import { eitherOrOptions, isVagueAssent, reAskCard } from "./ambiguity.ts";
-import { basketCutoffIso } from "./cartstate.ts";
+import { basketCutoffIso, basketIsStale } from "./cartstate.ts";
 import { moodPhrase, moodRows, parseWelcomeTap, welcomeCard } from "./welcome.ts";
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
@@ -308,6 +308,7 @@ async function prepareOrder(c: Ctx, phone: string, input: any): Promise<string> 
   const { data: cart, error } = await sb.from("carts").insert({ customer_phone: phone, vendor_id: input.vendor_id, items, subtotal_usd: b.subtotal, delivery_fee_usd: DELIVERY_FEE_USD, total_usd: b.total, village: input.delivery_village, address: input.building_landmark, notes: input.notes ?? null, basket_id: input.basket_id ?? null }).select("id").single();
   if (error) return JSON.stringify({ error: error.message });
   c.cartThisTurn = true;
+  if (input.basket_id) await sb.from("baskets").update({ updated_at: new Date().toISOString() }).eq("id", input.basket_id).eq("status", "active"); // the customer is on the Confirm step: the basket is in use (it must not go stale underneath the summary)
   await sb.from("customers").upsert({ phone_number: phone, full_name: input.customer_name, village: input.delivery_village, last_address: input.building_landmark }, { onConflict: "phone_number" });
   const rowList = b.lines.map((l: any) => {
     const opts = l.choices?.length ? ` (${l.choices.map((x: any) => x.option).join(", ")})` : "";
@@ -347,7 +348,7 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
     if (k === "revive" && old) {
       if (old.basket_id) { // the basket behind that summary must still be the live one: if it was ordered, cleared or edited since, rebuilding the old items would be wrong
         const { data: bk } = await sb.from("baskets").select("status,updated_at").eq("id", old.basket_id).maybeSingle();
-        if (!bk || bk.status !== "active" || Date.parse(String(bk.updated_at)) > Date.parse(String(old.created_at)) + 60_000) { await sendText(c, tr(c, "That basket has changed since 🙏 Tap *Basket* to see the current one and check out from there.", "السلة تغيّرت من وقتها 🙏 اضغط *السلة* لتشوف الحالية وكمّل منها.")); return "basket changed"; }
+        if (!bk || bk.status !== "active" || basketIsStale(bk.updated_at) || Date.parse(String(bk.updated_at)) > Date.parse(String(old.created_at)) + 60_000) { await sendText(c, tr(c, "That basket has changed since 🙏 Tap *Basket* to see the current one and check out from there.", "السلة تغيّرت من وقتها 🙏 اضغط *السلة* لتشوف الحالية وكمّل منها.")); return "basket changed"; }
       }
       const [{ data: cu }, { data: got }] = await Promise.all([
         sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle(),
@@ -469,8 +470,8 @@ const clipTitle = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + 
 // Suggest one relevant drink per basket, once, after the basket card: never alcohol, never when the basket already has a drink.
 async function maybeOfferAddon(c: Ctx) {
   const a = c.addon; if (!a || c.cartThisTurn) return;
-  const { data: b } = await sb.from("baskets").select("id,status,addon_offered_at").eq("id", a.basketId).maybeSingle();
-  if (!b || b.status !== "active" || b.addon_offered_at) return;
+  const { data: b } = await sb.from("baskets").select("id,status,addon_offered_at,updated_at").eq("id", a.basketId).maybeSingle();
+  if (!b || b.status !== "active" || b.addon_offered_at || basketIsStale(b.updated_at)) return;
   const [menu, lines] = [await vendorMenu(a.vendorId), await basketLines(a.basketId)];
   const drink = pickAddon(menu, lines.map((l) => l.item_id));
   if (!drink) return;
@@ -775,7 +776,7 @@ async function editLinesOf(basketId: string, vendorId: string): Promise<EditLine
 }
 // Set one basket line's quantity (0 removes it). The line must belong to the customer's own active basket. Re-priced and summaries expired like every basket change.
 async function setLineQty(phone: string, lineId: string, qty: number): Promise<{ basketId: string; vendorId: string } | null> {
-  const { data: ln } = await sb.from("basket_lines").select("id,basket_id,baskets!inner(vendor_id,customer_phone,status)").eq("id", lineId).eq("baskets.customer_phone", phone).eq("baskets.status", "active").maybeSingle();
+  const { data: ln } = await sb.from("basket_lines").select("id,basket_id,baskets!inner(vendor_id,customer_phone,status)").eq("id", lineId).eq("baskets.customer_phone", phone).eq("baskets.status", "active").gte("baskets.updated_at", basketCutoffIso()).maybeSingle();
   const bk: any = Array.isArray((ln as any)?.baskets) ? (ln as any).baskets[0] : (ln as any)?.baskets;
   if (!ln || !bk) return null;
   const q = clampQty(qty);
@@ -786,7 +787,7 @@ async function setLineQty(phone: string, lineId: string, qty: number): Promise<{
 }
 async function handleEditTap(c: Ctx, phone: string, t: EditTap) {
   if (t.kind === "EDIT") {
-    const { data: bk } = await sb.from("baskets").select("id,vendor_id").eq("id", t.id).eq("customer_phone", phone).eq("status", "active").maybeSingle();
+    const { data: bk } = await sb.from("baskets").select("id,vendor_id").eq("id", t.id).eq("customer_phone", phone).eq("status", "active").gte("updated_at", basketCutoffIso()).maybeSingle();
     if (!bk) { await sendText(c, tr(c, "That basket is already gone 🧺", "هالسلة ما عادت موجودة 🧺")); return; }
     const lines = await editLinesOf(bk.id, bk.vendor_id);
     if (!lines.length) { await sendText(c, tr(c, "Your basket is empty 🧺", "سلتك فاضية 🧺")); return; }
@@ -794,7 +795,7 @@ async function handleEditTap(c: Ctx, phone: string, t: EditTap) {
     return;
   }
   if (t.kind === "LINE") {
-    const { data: ln } = await sb.from("basket_lines").select("id,quantity,basket_id,baskets!inner(vendor_id,customer_phone,status)").eq("id", t.id).eq("baskets.customer_phone", phone).eq("baskets.status", "active").maybeSingle();
+    const { data: ln } = await sb.from("basket_lines").select("id,quantity,basket_id,baskets!inner(vendor_id,customer_phone,status)").eq("id", t.id).eq("baskets.customer_phone", phone).eq("baskets.status", "active").gte("baskets.updated_at", basketCutoffIso()).maybeSingle();
     const bk: any = Array.isArray((ln as any)?.baskets) ? (ln as any).baskets[0] : (ln as any)?.baskets;
     if (!ln || !bk) { await sendText(c, tr(c, "That dish is no longer in your basket 🧺", "هالصنف ما عاد بالسلة 🧺")); return; }
     const one = (await editLinesOf(ln.basket_id, bk.vendor_id)).find((l) => l.id === ln.id);
@@ -1177,7 +1178,7 @@ async function startHandoff(c: Ctx, phone: string, reason: string, apology = "")
     sb.from("customers").select("full_name,language").eq("phone_number", phone).maybeSingle(),
     sb.from("conversations").select("content").eq("phone", phone).eq("role", "user").order("id", { ascending: false }).limit(5),
     sb.from("orders").select("short_code,status,total_usd").eq("customer_phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    sb.from("baskets").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "active"),
+    sb.from("baskets").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "active").gte("updated_at", basketCutoffIso()),
   ]);
   const text = handoffContext({ name: cu?.full_name ?? null, maskedPhone: maskPhone(phone), lang: cu?.language === "en" ? "en" : "ar", reason, recent: (recent ?? []).map((r: any) => r.content).reverse(), baskets: baskets ?? 0, lastOrder: lo ? { code: lo.short_code, status: lo.status, totalText: both(Number(lo.total_usd)) } : null });
   const sent = await rawSendId(c.pnid, { ...envl(c.admin), type: "text", text: { body: text } }, c.dry, c.out);
@@ -1746,7 +1747,13 @@ async function anonymiseDeletedCustomersOrders() {
 }
 async function purgeStale() {
   await anonymiseDeletedCustomersOrders();
-  await sb.from("baskets").update({ status: "cleared" }).eq("status", "active").lt("updated_at", basketCutoffIso()); // baskets untouched for 3 h
+  { // baskets untouched for 3 h, except one behind a live order summary (the customer is on the Confirm step)
+    const { data: live } = await sb.from("carts").select("basket_id").eq("status", "pending").gt("expires_at", new Date().toISOString()).not("basket_id", "is", null).limit(1000);
+    const keep = (live ?? []).map((r: any) => r.basket_id).filter(Boolean);
+    let q = sb.from("baskets").update({ status: "cleared" }).eq("status", "active").lt("updated_at", basketCutoffIso());
+    if (keep.length) q = q.not("id", "in", `(${keep.join(",")})`);
+    await q;
+  }
   await sb.from("handoff_log").delete().lt("created_at", new Date(Date.now() - 30 * 24 * 3600_000).toISOString()); // retention: customer phones in the handoff map
   await sb.from("quick_menus").delete().lt("expires_at", new Date().toISOString());
   const [v, l, b, f] = await Promise.all([
