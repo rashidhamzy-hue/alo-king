@@ -1,13 +1,13 @@
 // Sends the customer a WhatsApp message when their order's status changes (accepted, preparing, on the way, delivered, cancelled, rejected).
 // Shared by the order-notify function (called by the merchant/driver apps) and the kapso-brain sweep. Free-form messages only, so only inside
 // the customer's 24h window. Takes an injected Supabase client and sender so it never holds credentials itself.
-import { buildDeliveredRatingList, isNotifiable, isSilentStatus, lifecycleText, windowOpen, type Lang } from "./lifecycle.ts";
+import { buildDeliveredRatingList, etaMinutes, isNotifiable, isSilentStatus, lifecycleText, windowOpen, type Lang } from "./lifecycle.ts";
 
 export type Send = (payload: Record<string, unknown>) => Promise<boolean>;
 const envl = (to: string) => ({ messaging_product: "whatsapp", recipient_type: "individual", to });
 
 export async function notifyOrderStatus(sb: any, send: Send, orderId: string, opts: { trackBase?: string; now?: number } = {}): Promise<{ sent: boolean; reason: string }> {
-  const { data: o } = await sb.from("orders").select("id,short_code,vendor_id,customer_phone,status,customer_notified_status").eq("id", orderId).maybeSingle();
+  const { data: o } = await sb.from("orders").select("id,short_code,vendor_id,customer_phone,status,customer_notified_status,customer_lat,customer_lng,driver_lat,driver_lng,driver_location_at,picked_up_at,delivery_village").eq("id", orderId).maybeSingle();
   if (!o) return { sent: false, reason: "order not found" };
   if (!isNotifiable(o.status)) return { sent: false, reason: "status not notifiable" };
   if (!/^\d{8,15}$/.test(String(o.customer_phone ?? ""))) return { sent: false, reason: "not a WhatsApp customer" }; // web demo orders
@@ -25,15 +25,18 @@ export async function notifyOrderStatus(sb: any, send: Send, orderId: string, op
   if (!windowOpen(last?.created_at, opts.now)) return { sent: false, reason: "24h window closed" }; // nothing free-form can be sent; stays claimed so it is not retried forever
 
   const [{ data: cust }, { data: v }, { data: prof }] = await Promise.all([
-    sb.from("customers").select("language").eq("phone_number", o.customer_phone).maybeSingle(),
-    sb.from("vendors").select("name_en").eq("vendor_id", o.vendor_id).maybeSingle(),
+    sb.from("customers").select("language,last_lat,last_lng,village").eq("phone_number", o.customer_phone).maybeSingle(),
+    sb.from("vendors").select("name_en,latitude,longitude").eq("vendor_id", o.vendor_id).maybeSingle(),
     sb.from("vendor_profiles").select("prep_time_min").eq("vendor_id", o.vendor_id).maybeSingle(),
   ]);
   const lang: Lang = cust?.language === "en" ? "en" : "ar";
+  // the order's own pin; else the customer's saved pin, but only while it is still the same village as this delivery (an old address must not give a wrong ETA)
+  const sameVillage = !!o.delivery_village && !!cust?.village && String(o.delivery_village).trim().toLowerCase() === String(cust.village).trim().toLowerCase();
+  const savedPin = sameVillage ? { lat: cust?.last_lat, lng: cust?.last_lng } : null;
   // delivered: the delivery text and the five-row rating list are ONE message
   const payload = o.status === "delivered"
     ? buildDeliveredRatingList(o.customer_phone, o.id, lang, { code: o.short_code, vendor: v?.name_en ?? "" })
-    : { ...envl(o.customer_phone), type: "text", text: { body: lifecycleText(o.status, lang, { code: o.short_code, vendor: v?.name_en ?? "", prepMin: prof?.prep_time_min, trackUrl: o.status === "out_for_delivery" && opts.trackBase ? `${opts.trackBase}/${o.id}` : null }) } };
+    : { ...envl(o.customer_phone), type: "text", text: { body: lifecycleText(o.status, lang, { code: o.short_code, vendor: v?.name_en ?? "", prepMin: prof?.prep_time_min, trackUrl: o.status === "out_for_delivery" && opts.trackBase ? `${opts.trackBase}/${o.id}` : null, etaMin: o.status === "out_for_delivery" ? etaMinutes({ driverLat: o.driver_lat, driverLng: o.driver_lng, driverAt: o.driver_location_at, pickedUpAt: o.picked_up_at, vendorLat: v?.latitude, vendorLng: v?.longitude, customerLat: o.customer_lat ?? savedPin?.lat, customerLng: o.customer_lng ?? savedPin?.lng, now: opts.now }) : null }) } };
   const ok = await send(payload);
   if (!ok) { await release(); return { sent: false, reason: "send failed (will retry)" }; }
   return { sent: true, reason: "sent" };
