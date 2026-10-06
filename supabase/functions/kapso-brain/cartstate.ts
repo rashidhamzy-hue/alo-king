@@ -11,3 +11,8 @@ export function cartRevival(cart: CartRow, nowMs: number): "revive" | "placed" |
   if (!Number.isFinite(created) || nowMs - created > DAY) return "gone";
   return "revive";
 }
+
+/** A basket nobody has touched for this long is stale (people forget a basket from lunch by dinner): it is hidden, never repriced or resurrected, and cleared by the scheduled job. */
+export const BASKET_TTL_MS = 3 * 3600_000;
+export const basketCutoffIso = (nowMs: number = Date.now()): string => new Date(nowMs - BASKET_TTL_MS).toISOString();
+export const basketIsStale = (updatedAtIso: string | null | undefined, nowMs: number = Date.now()): boolean => { const t = Date.parse(String(updatedAtIso ?? "")); return !Number.isFinite(t) || nowMs - t >= BASKET_TTL_MS; };
