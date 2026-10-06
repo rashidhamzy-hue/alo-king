@@ -1,6 +1,8 @@
 // Pure helpers for menu browsing (flow spec item 2): category list, paged item lists, quantity picker, customization steps, one drink add-on.
 // No I/O: index.ts fetches menu rows (server prices) and sends the payloads. Ids never carry prices.
 
+import { isAlcohol } from "../_shared/alcohol.ts";
+
 export type MenuItemLite = { item_id: string; item_name_en?: string | null; item_name_ar?: string | null; price_usd: number | string; section?: string | null; is_popular?: boolean | null; sort_order?: number | null; contains_alcohol?: boolean | null };
 export type Row = { id: string; title: string; description?: string };
 export type Category = { key: string; slug: string; title: string; count: number; popular: number };
@@ -110,7 +112,7 @@ export function czNext(groups: CzGroup[], picks: string[], idPrefix: string, bot
 const DRINK = /\b(drinks?|beverages?|juices?|soft|soda|water|cola|lemonade|smoothies?)\b|مشروب|عصير|مياه|ماء|مرطبات|غازي/i;
 const ALCOHOL = /\b(alcohol(ic)?|beers?|wines?|arak|whisk(e)?y|vodka|liquors?|cocktails?|spirits?)\b|عرق|بيرة|نبيذ|كحول/i;
 export function isDrinkItem(it: MenuItemLite): boolean {
-  if (it.contains_alcohol) return false;
+  if (isAlcohol(it)) return false;
   const sec = String(it.section ?? "");
   return DRINK.test(sec) && !ALCOHOL.test(sec) && !ALCOHOL.test(`${it.item_name_en ?? ""} ${it.item_name_ar ?? ""}`);
 }
