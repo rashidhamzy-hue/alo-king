@@ -1,5 +1,5 @@
 -- P0-3: a kitchen that delivers itself (or the demo vendor, which has no driver) can move its own order on to out_for_delivery and delivered
--- from the /merchant screen. Only while NO driver is assigned: once a driver owns the order, only the driver moves it. Nothing else in the guard changes
+-- from the /merchant screen, in order only (ready -> out_for_delivery -> delivered) and only while NO driver is assigned: once a driver owns the order, only the driver moves it. Nothing else in the guard changes
 -- (staff still cannot touch totals, items, phone or vendor; the COD cap and timestamps are unchanged).
 create or replace function public.orders_guard() returns trigger
 language plpgsql set search_path = public as $$
@@ -10,7 +10,7 @@ begin
   if tg_op = 'UPDATE' then
     if new.status is distinct from old.status then
       if r = 'merchant' and new.status not in ('accepted','preparing','ready','rejected')
-         and not (new.status in ('out_for_delivery','delivered') and old.driver_id is null and new.driver_id is null) then
+         and not (old.driver_id is null and ((new.status = 'out_for_delivery' and old.status = 'ready') or (new.status = 'delivered' and old.status = 'out_for_delivery'))) then
         raise exception 'merchants cannot set status %', new.status;
       end if;
       if r = 'driver' and new.status not in ('out_for_delivery','delivered') then

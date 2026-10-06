@@ -94,7 +94,7 @@ export function KitchenOrderCard({ order: o, now, flashing, onAccept, onReject, 
           <div className="flex w-full flex-col gap-2">
             <p className="rounded-xl bg-secondary/40 py-3 text-center text-secondary-foreground">No driver assigned</p>
             {onOutForDelivery && (
-              <Button variant="emerald" size="xl" disabled={busy} onClick={onOutForDelivery}>Out for delivery (we deliver)</Button>
+              <Button variant="emerald" size="xl" className="flex-1" disabled={busy} onClick={onOutForDelivery}>Out for delivery (we deliver)</Button>
             )}
           </div>
         )}
