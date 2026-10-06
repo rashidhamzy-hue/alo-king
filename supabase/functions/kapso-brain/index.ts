@@ -1873,7 +1873,7 @@ Deno.serve(async (req) => {
   let body: any; try { body = rawBody ? JSON.parse(new TextDecoder().decode(rawBody)) : await req.json(); } catch { return new Response("bad request", { status: 400 }); }
   // Delivery / read / failure statuses of OUR messages (Kapso events whatsapp.message.sent|delivered|read|failed): billing log only, never the inbound pipeline.
   const all = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
-  const evHeader = req.headers.get("x-webhook-event");
+  const evHeader = body?.batch === true ? null : req.headers.get("x-webhook-event"); // a batch is classified event by event (its header says nothing about each member)
   const statusEvts = all.filter((e: any) => isStatusEvent(evHeader, e) || isOutboundEvent(e)), events = all.filter((e: any) => !statusEvts.includes(e)); // an event about our own message never starts a turn
   const billing = statusEvts.flatMap((e: any) => statusRows(e)).filter((r: any) => !dry || isTestPhone(String(r.to_phone)));
   if (billing.length) { const { error } = await sb.from("message_billing_log").upsert(billing, { onConflict: "wamid,status", ignoreDuplicates: true }); if (error) console.error("message_billing_log upsert failed", error.message); }
