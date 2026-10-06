@@ -13,7 +13,7 @@ create table if not exists public.send_incidents (
 );
 alter table public.send_incidents enable row level security;
 
--- Records one failure. A new incident starts when nothing failed for 24 h. Climbing a rung of the backoff ladder happens only for a failure that arrives after the previous
+-- Records one failure. A new incident starts after 24 quiet hours (counted from the end of the last pause). Climbing a rung of the backoff ladder happens only for a failure that arrives after the previous
 -- pause ran out (failures already in flight during a pause do not escalate). Returns whether to alert the admin: once per incident, retried at most hourly if the alert itself could not be delivered.
 -- Ladder (minutes): rate_limit 5, 15, 60, 180, 360; payment 60, 360, 1440, 1440, 1440.
 create or replace function public.record_send_failure(p_kind text, p_code integer default null)
@@ -23,7 +23,7 @@ begin
   if p_kind not in ('payment', 'rate_limit') then raise exception 'bad kind'; end if;
   insert into public.send_incidents(kind) values (p_kind) on conflict (kind) do nothing;
   select * into r from public.send_incidents where kind = p_kind for update;
-  fresh := r.last_at is null or n - r.last_at > interval '24 hours';
+  fresh := r.last_at is null or n - greatest(r.last_at, coalesce(r.paused_until, r.last_at)) > interval '24 hours'; -- 24 quiet hours counted from the end of the last pause, so the ladder can climb
   if fresh then r.level := 0; r.failures := 0; r.first_at := n; r.paused_until := null; r.alerted_at := null; r.alert_ok := null; end if;
   r.failures := r.failures + 1; r.last_at := n; r.last_code := p_code;
   ladder := case p_kind when 'rate_limit' then array[5, 15, 60, 180, 360] else array[60, 360, 1440, 1440, 1440] end;
@@ -31,7 +31,7 @@ begin
     r.level := least(r.level + 1, 5);
     r.paused_until := n + make_interval(mins => ladder[r.level]);
   end if;
-  if r.alerted_at is null or (r.alert_ok is false and r.alerted_at < n - interval '1 hour') then do_alert := true; r.alerted_at := n; r.alert_ok := null; end if;
+  if r.alerted_at is null or (r.alert_ok is distinct from true and r.alerted_at < n - interval '1 hour') then do_alert := true; r.alerted_at := n; r.alert_ok := null; end if;
   update public.send_incidents set level = r.level, failures = r.failures, first_at = r.first_at, last_at = r.last_at, last_code = r.last_code,
          paused_until = r.paused_until, alerted_at = r.alerted_at, alert_ok = r.alert_ok where kind = p_kind;
   return jsonb_build_object('alert', do_alert, 'level', r.level, 'paused_until', r.paused_until, 'failures', r.failures);

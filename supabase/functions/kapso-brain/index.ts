@@ -1448,7 +1448,7 @@ async function runBroadcast(c: Ctx, vendor: any, b: any): Promise<string> {
       if (stopKind) { failed += phones.length - i; break; } // rate limit / payment failure: stop, never hammer on (the rest is credited back)
       const res = await Promise.all(phones.slice(i, i + 8).map(async (p) => {
         for (const payload of promoAttempts({ to: p, lang: langOf.get(p)!, message: b.message, vendorName: vendor.name_en, inWindow: inWindow.has(p), templates: PROMO_TEMPLATES })) {
-          const r = await rawSendK(c.pnid, payload, c.dry, c.out);
+          const r = await rawSendK(c.pnid, payload, c.dry, c.out, true); // the incident is reported once, below, before the owner is told
           if (r.ok) return true;
           if (r.stop) { stopKind ||= r.stop; return false; } // no template fallback after a rate limit / payment failure
         }
@@ -1461,7 +1461,7 @@ async function runBroadcast(c: Ctx, vendor: any, b: any): Promise<string> {
     await sb.from("broadcasts").update({ status: "sent", sent_count: sent, failed_count: failed, cost_usd: r2(sent * BCAST_COST) }).eq("id", b.id);
     const { data: v2 } = await sb.from("vendors").select("broadcast_credits_usd").eq("vendor_id", vendor.vendor_id).maybeSingle();
     await rawSend(c.pnid, { ...envl(c.to), type: "text", text: { body: c.ar ? `📣 *تم البث*\n✅ وصلت: ${sent}${failed ? `\n⚠️ ما وصلت: ${failed} (انرجعت للرصيد)` : ""}\n💳 الرصيد المتبقي: ${usd(v2?.broadcast_credits_usd ?? 0)}` : `📣 *Broadcast done*\n✅ Delivered: ${sent}${failed ? `\n⚠️ Couldn't reach: ${failed} (credited back)` : ""}\n💳 Credit left: ${usd(v2?.broadcast_credits_usd ?? 0)}` } }, c.dry, c.out);
-    if (stopKind) { const { data: pu } = await sb.rpc("send_paused_until"); if (pu) await sendText(c, pausedNotice(String(pu), !!c.ar)); } // stopped early: say why, in the owner's words
+    if (stopKind) { if (!c.dry) await reportSendFailure(stopKind, stopKind === "payment" ? 131042 : 130429, c.pnid); const { data: pu } = await sb.rpc("send_paused_until"); if (pu) await sendText(c, pausedNotice(String(pu), !!c.ar)); } // stopped early: say why, in the owner's words
   })();
   // @ts-ignore EdgeRuntime
   if (!c.dry && typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work); else await work;
@@ -1913,7 +1913,7 @@ Deno.serve(async (req) => {
   if (billing.length) { const { error } = await sb.from("message_billing_log").upsert(billing, { onConflict: "wamid,status", ignoreDuplicates: true }); if (error) console.error("message_billing_log upsert failed", error.message); }
   if (!dry) { // Meta rejected a message after accepting it (async failure): payment eligibility / rate limit start an incident (admin alerted once, broadcasts paused, backoff)
     const bad = billing.filter((r: any) => r.status === "failed" && failureKind(r.error_code)).slice(0, 5);
-    for (const r of bad) await reportSendFailure(failureKind(r.error_code)!, r.error_code, String(body?.phone_number_id ?? DEFAULT_PNID));
+    for (const r of bad) await reportSendFailure(failureKind(r.error_code)!, r.error_code, pnidOf(body, statusEvts[0] ?? body));
   }
   if (statusEvts.length && !events.length) return new Response(dry ? JSON.stringify({ recorded: billing.length }) : "OK", { status: 200, headers: dry ? { "content-type": "application/json" } : undefined });
   const out: any[] = [], timings: any[] = [];
