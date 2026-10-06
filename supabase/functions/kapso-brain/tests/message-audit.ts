@@ -2,6 +2,7 @@
 // every outgoing payload comes back in `out`, so the count is exact. The model-free paths (numbered menu, tap flow, reorder, status updates) cost nothing;
 // the free-text path calls the model and only runs with --model (one capped live run).
 // Usage: SELFTEST_TOKEN=… bun tests/message-audit.ts [--model] [--out file.json]
+// Totals per path exclude the opt-in prompt (first order only), which is reported separately as optinPrompt. The default --out file holds message previews of test data.
 // Needs the audit customers seeded first (customers rows 96170000090001-96170000090004 with a saved profile, see tests/README.md).
 import { writeFileSync } from "node:fs";
 import { buttonsOf, textOf } from "./harness.ts";
@@ -20,14 +21,16 @@ async function call(qs: string, body: unknown) {
   const txt = await res.text(); try { return JSON.parse(txt); } catch { throw new Error(`${FN}${qs} said ${res.status}: ${txt.slice(0, 160)}`); }
 }
 let seq = 0; const wamid = () => `wamid.audit.${Date.now()}.${seq++}`;
-type Row = { path: string; step: string; to_customer: number; to_others: number; kinds: string[]; previews: string[]; model_calls: number };
+type Row = { path: string; step: string; to_customer: number; to_others: number; kinds: string[]; previews: string[]; optin: number; model_calls: number };
 const rows: Row[] = [];
 const kind = (m: any) => (m.type === "interactive" ? `interactive:${m.interactive?.type}` : m.type);
 async function turn(path: string, step: string, from: string, msg: any): Promise<any[]> {
   const r = await call("", { message: { id: wamid(), from, ...msg } });
   const all: any[] = r.out ?? [];
   const mine = all.filter((m) => m.to === from), others = all.filter((m) => m.to !== from);
-  rows.push({ path, step, to_customer: mine.length, to_others: others.length, kinds: all.map(kind), previews: all.map((m) => `${m.to === from ? "" : "(to " + String(m.to).slice(-4) + ") "}${textOf(m).replace(/\s+/g, " ").slice(0, 70)}`), model_calls: r.timings?.[0]?.model_calls ?? 0 });
+  const calls = r.timings?.[0]?.model_calls ?? 0;
+  if (calls > 0 && !WITH_MODEL) throw new Error(`ABORT: step "${step}" made ${calls} model call(s); run with --model (the capped live run) or fix the step`); // the model-free paths must stay model-free
+  rows.push({ path, step, to_customer: mine.length, to_others: others.length, kinds: all.map(kind), optin: mine.filter((m) => /first dibs|الأولوية|عروض/.test(textOf(m))).length, previews: all.map((m) => `${m.to === from ? "" : "(to " + String(m.to).slice(-4) + ") "}${textOf(m).replace(/\s+/g, " ").slice(0, 70)}`), model_calls: r.timings?.[0]?.model_calls ?? 0 });
   console.log(`${path.padEnd(9)} ${step.padEnd(26)} customer ${mine.length}  other ${others.length}  model ${r.timings?.[0]?.model_calls ?? 0}`); for (const p of rows[rows.length - 1].previews) console.log(`      - ${p}`);
   return all.filter((m) => m.to === from);
 }
@@ -69,14 +72,12 @@ async function main() {
     m = await say("text", "'2 shawarma and a pepsi'", P.text, "I want two shawarma and a pepsi");
     await finishOrder("text", P.text, m);
   }
-  // 5. status updates: the sweep sends what the apps missed; here the order is moved through the statuses in the database by the caller (see README) and the sweep run once per status
-  const sweep = await call("?job=order-watchdog", {});
-  console.log(`sweep: ${(sweep.out ?? []).length} message(s) for test orders in status accepted/preparing/…`);
+  // Status updates (accepted, preparing, on the way, delivered + rating) are not driven here: they are counted from _shared/lifecycle.ts and notify.ts (see docs/message-audit.md).
 }
 
 main().catch((e) => { console.error(String(e)); process.exitCode = 1; }).finally(() => {
-  const by: Record<string, { customer: number; others: number; steps: number }> = {};
-  for (const r of rows) { if (r.path === "seed") continue; const b = (by[r.path] ??= { customer: 0, others: 0, steps: 0 }); b.customer += r.to_customer; b.others += r.to_others; b.steps++; }
+  const by: Record<string, { customer: number; optinPrompt: number; others: number; steps: number }> = {};
+  for (const r of rows) { if (r.path === "seed") continue; const b = (by[r.path] ??= { customer: 0, optinPrompt: 0, others: 0, steps: 0 }); b.customer += r.to_customer - r.optin; b.optinPrompt += r.optin; b.others += r.to_others; b.steps++; }
   const summary = { withModel: WITH_MODEL, byPath: by, rows };
   writeFileSync(out, JSON.stringify(summary, null, 1));
   console.log(JSON.stringify(by, null, 1)); console.log(`wrote ${out}`);
