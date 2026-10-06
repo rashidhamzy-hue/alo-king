@@ -33,7 +33,7 @@ import { beginTurn, touchCustomer, type CustomerStart } from "./turnstart.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
 import { timed, timerStore, TurnTimer, receiveLagMs, summarize, turnKind } from "./timing.ts";
-import { detectLanguage, replyLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
+import { detectLanguage, replyLanguage, shouldStoreLanguage, isOptOutTitle, OPTOUT_PAYLOAD, promoAttempts, replyFrom, type Lang } from "./broadcast.ts";
 
 const KAPSO_TOKEN = Deno.env.get("KAPSO_API_TOKEN") ?? "";
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
@@ -1267,7 +1267,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   // The customer row: already touched (last_inbound_at drives the 24h window; the first text message decides the language) by the single start-of-turn query, else one upsert here.
   const cust = started ?? await touchCustomer(sb, phone, lang);
   let handoffActive = false;
-  { const cl = cust ?? (await sb.from("customers").select("language,handoff_until").eq("phone_number", phone).maybeSingle()).data; /* a failed touch must not lose the stored language */ const rl = replyLanguage(reply ? "" : text, cl?.language); /* a tap carries a button title, not the customer's words */ c.ar = rl.lang !== "en"; if (rl.clear && cl?.language && cl.language !== rl.lang) void sb.from("customers").update({ language: rl.lang, language_set_at: new Date().toISOString() }).eq("phone_number", phone).then(() => undefined, () => undefined); /* status messages and broadcasts follow the language they last wrote in */ handoffActive = !!cl?.handoff_until && new Date(cl.handoff_until) > new Date(); } // server-built cards follow the customer's stored language (default Arabic)
+  { const cl = cust ?? (await sb.from("customers").select("language,handoff_until").eq("phone_number", phone).maybeSingle()).data; /* a failed touch must not lose the stored language */ const rl = replyLanguage(reply ? "" : text, cl?.language); /* a tap carries a button title, not the customer's words */ c.ar = rl.lang !== "en"; if (rl.clear && cl?.language && cl.language !== rl.lang && shouldStoreLanguage(text, rl.lang)) void sb.from("customers").update({ language: rl.lang, language_set_at: new Date().toISOString() }).eq("phone_number", phone).then(() => undefined, () => undefined); /* status messages and broadcasts follow the language they last wrote in */ handoffActive = !!cl?.handoff_until && new Date(cl.handoff_until) > new Date(); } // server-built cards follow the customer's stored language (default Arabic)
   // First-touch source: click-to-WhatsApp ad referral, or a QR deep link (ORDER_<VILLAGE>_<MERCHANT>_<TABLE>)
   const qr = parseQrText(text);
   const acq = c.acq ?? qr;

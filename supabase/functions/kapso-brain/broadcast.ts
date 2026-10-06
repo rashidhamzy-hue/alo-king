@@ -23,7 +23,13 @@ export function detectLanguage(text: string): Lang | null {
 export function replyLanguage(text: string | null | undefined, stored: string | null | undefined): { lang: Lang; clear: boolean } {
   const seen = detectLanguage(String(text ?? ""));
   if (seen) return { lang: seen, clear: true };
-  return { lang: stored === "en" ? "en" : stored === "ar" ? "ar" : "ar", clear: false };
+  return { lang: stored === "en" ? "en" : "ar", clear: false };
+}
+
+/** Whether a clear message should also CHANGE the stored language (used by status messages and broadcasts). Arabic always can; English needs three or more English words, so an Arabic speaker typing an item name ("the chicken and fries") does not flip it. */
+export function shouldStoreLanguage(text: string | null | undefined, lang: Lang): boolean {
+  if (lang === "ar") return true;
+  return ((String(text ?? "").toLowerCase().match(/[a-z']+/g) ?? []).filter((w) => EN_WORDS.has(w)).length) >= 3;
 }
 
 const optOutLine: Record<Lang, string> = { ar: "لإيقاف العروض اكتب STOP", en: "Reply STOP to opt out." };
