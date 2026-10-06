@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectLanguage, isOptOutTitle, promoAttempts, replyFrom } from "./broadcast";
+import { detectLanguage, isOptOutTitle, promoAttempts, replyFrom, replyLanguage, shouldStoreLanguage } from "./broadcast";
 
 describe("detectLanguage", () => {
   it("Arabic script and Arabizi are Arabic", () => {
@@ -62,5 +62,26 @@ describe("replyFrom", () => {
   });
   it("returns null for plain text", () => {
     expect(replyFrom({ type: "text", text: { body: "hi" } })).toBeNull();
+  });
+});
+
+describe("replyLanguage: the latest message decides, the stored language is only a fallback", () => {
+  it("clear English wins over a stored Arabic", () => expect(replyLanguage("I want two shawarma please", "ar")).toEqual({ lang: "en", clear: true }));
+  it("clear Arabic wins over a stored English", () => expect(replyLanguage("بدي شاورما", "en")).toEqual({ lang: "ar", clear: true }));
+  it("Arabizi is Arabic", () => expect(replyLanguage("marhaba badde 2 shawarma", "en")).toEqual({ lang: "ar", clear: true }));
+  it("very short or unclear messages fall back to the stored language", () => {
+    for (const t of ["ok", "2", "hi", "menu", "", "👍", "1x2, 3"]) { expect(replyLanguage(t, "en")).toEqual({ lang: "en", clear: false }); expect(replyLanguage(t, "ar")).toEqual({ lang: "ar", clear: false }); }
+  });
+  it("neither: Arabic", () => { expect(replyLanguage("ok", null)).toEqual({ lang: "ar", clear: false }); expect(replyLanguage(undefined, undefined).lang).toBe("ar"); });
+  it("a tap (empty text) uses the stored language", () => expect(replyLanguage("", "en").lang).toBe("en"));
+});
+
+describe("shouldStoreLanguage: no flip-flopping on a typed item name", () => {
+  it("Arabic always updates the stored language", () => expect(shouldStoreLanguage("بدي شاورما", "ar")).toBe(true));
+  it("a short English phrase replies in English this turn but does not change the stored language", () => {
+    expect(replyLanguage("the menu please", "ar")).toEqual({ lang: "en", clear: true });
+    expect(shouldStoreLanguage("the menu please", "en")).toBe(false);
+    expect(shouldStoreLanguage("the chicken and fries", "en")).toBe(false); // an item name inside an Arabic chat
+    expect(shouldStoreLanguage("I want the chicken", "en")).toBe(true);
   });
 });

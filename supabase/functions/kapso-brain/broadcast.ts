@@ -17,6 +17,21 @@ export function detectLanguage(text: string): Lang | null {
   return words.filter((w) => EN_WORDS.has(w)).length >= 2 ? "en" : null;
 }
 
+/** The language to REPLY in: the language of the customer's latest message when it is clear (Arabic script, Arabizi, or two or more English words);
+ *  the stored language only as a fallback for very short or unclear messages ("ok", "2", "menu", a button tap); Arabic when there is neither.
+ *  `clear` says whether the message itself decided it (the caller may then update the stored language). */
+export function replyLanguage(text: string | null | undefined, stored: string | null | undefined): { lang: Lang; clear: boolean } {
+  const seen = detectLanguage(String(text ?? ""));
+  if (seen) return { lang: seen, clear: true };
+  return { lang: stored === "en" ? "en" : "ar", clear: false };
+}
+
+/** Whether a clear message should also CHANGE the stored language (used by status messages and broadcasts). Arabic always can; English needs three or more English words, so an Arabic speaker typing an item name ("the chicken and fries") does not flip it. */
+export function shouldStoreLanguage(text: string | null | undefined, lang: Lang): boolean {
+  if (lang === "ar") return true;
+  return ((String(text ?? "").toLowerCase().match(/[a-z']+/g) ?? []).filter((w) => EN_WORDS.has(w)).length) >= 3;
+}
+
 const optOutLine: Record<Lang, string> = { ar: "لإيقاف العروض اكتب STOP", en: "Reply STOP to opt out." };
 
 /** Payloads to try in order: a plain message when the customer's 24h window is open, then the approved template. */
