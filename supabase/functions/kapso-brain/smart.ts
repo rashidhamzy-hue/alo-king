@@ -37,9 +37,15 @@ const norm = (s: string) => String(s ?? "").normalize("NFKC").toLowerCase().repl
 export const addrKey = (village: string, landmark: string, lat?: number | null, lng?: number | null) =>
   lat != null && lng != null ? `pin:${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}` : `${norm(village)}|${norm(landmark)}`;
 export const mapsLink = (lat: number, lng: number) => `https://maps.google.com/?q=${lat},${lng}`;
-export function pinnedLandmark(loc: { latitude: number; longitude: number; address?: string | null; name?: string | null }, village: string): string {
+/** The landmark text the customer typed earlier (same village, map link stripped) so a shared pin adds to it instead of replacing it; null when there is none worth keeping. */
+function keptLandmark(prev: { village?: string | null; address?: string | null } | null | undefined, village: string): string | null {
+  if (!prev?.address || String(prev.village ?? "").trim().toLowerCase() !== village.trim().toLowerCase()) return null;
+  const text = String(prev.address).replace(/\s*\(?https?:\/\/\S+\)?\s*$/, "").replace(/\s+/g, " ").trim();
+  return text.length > 3 && text.toLowerCase() !== village.trim().toLowerCase() ? text : null;
+}
+export function pinnedLandmark(loc: { latitude: number; longitude: number; address?: string | null; name?: string | null }, village: string, prev?: { village?: string | null; address?: string | null } | null): string {
   const link = mapsLink(Number(loc.latitude), Number(loc.longitude));
-  const text = String(loc.address || loc.name || village || "Pinned location").replace(/\s+/g, " ").trim();
+  const text = String(keptLandmark(prev, village) || loc.address || loc.name || village || "Pinned location").replace(/\s+/g, " ").trim();
   const room = 200 - link.length - 3; // "text (link)"
   return `${text.slice(0, Math.max(0, room))} (${link})`.slice(0, 200);
 }

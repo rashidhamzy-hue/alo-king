@@ -9,8 +9,11 @@ const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…"
 const needsChoice = (r: Row) => (Array.isArray(r.customizations) ? r.customizations : []).some((g: any) => g?.name && (g.required || Number(g.min ?? 0) > 0));
 
 /** Popular dishes first, then the vendor's own order, then name. Unpriced dishes are never listed. */
-export function orderForList<T extends Row>(items: T[]): T[] {
-  return items.filter((r) => Number(r.price_usd) > 0).sort((a, b) =>
+// Add-ons and extras ("Add Cheese", "Additional Bread", "Extra Sauce", an Extras / Add-ons section) are modifiers, not dishes: they are orderable by name but never listed as a numbered dish.
+const ADDON_EN = /^(?:add[\s-]?ons?|additional|add|extras?)(?![\p{L}\p{N}])/iu, ADDON_AR = /^(?:إضافة|اضافة|إضافي|اضافي|زيادة)/, ADDON_SECTION = /add[\s-]?ons?|extras?|toppings?|modifiers?|إضافات|اضافات|زيادات/i;
+export const isAddOn = (r: Row & { section?: string | null }) => ADDON_EN.test(String(r.item_name_en ?? "").trim()) || ADDON_AR.test(String(r.item_name_ar ?? "").trim()) || ADDON_SECTION.test(String(r.section ?? ""));
+export function orderForList<T extends Row & { section?: string | null }>(items: T[]): T[] {
+  return items.filter((r) => Number(r.price_usd) > 0 && !isAddOn(r)).sort((a, b) =>
     Number(!!b.is_popular) - Number(!!a.is_popular) || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || String(a.item_name_en ?? "").localeCompare(String(b.item_name_en ?? "")));
 }
 
@@ -19,7 +22,8 @@ const legend = (ar: boolean, more: boolean, anyOptions: boolean) => ar
   : `\n\nReply with numbers, e.g. *1x2, 3* (number x quantity)${more ? "\nType *more* for the next page" : ""}${anyOptions ? "\n⚙ = has options" : ""}`;
 
 export function buildNumberedPage(o: { vendorName: string; items: Row[]; page: number; ar: boolean; both: (n: number) => string }): { body: string; shown: { n: number; item_id: string }[]; hasMore: boolean } {
-  const head = `*${clip(o.vendorName, 60)}* 👑\n${o.ar ? "الأكثر طلباً" : "Popular right now"}\n\n`;
+  const headWith = (popular: boolean) => `*${clip(o.vendorName, 60)}* 👑\n${popular ? (o.ar ? "الأكثر طلباً" : "Popular right now") : (o.ar ? "القائمة" : "Menu")}\n\n`;
+  const head = headWith(true); // the longer title is used while sizing the page, so the real one can never overflow
   const line = (r: Row, n: number) => `${n}. ${clip(String((o.ar && r.item_name_ar) || r.item_name_en || r.item_name_ar || r.item_id), 42)}${needsChoice(r) ? " ⚙" : ""} — ${o.both(Number(r.price_usd))}`;
   const reserve = legend(o.ar, true, true).length;
   let start = 0;
@@ -33,7 +37,8 @@ export function buildNumberedPage(o: { vendorName: string; items: Row[]; page: n
     if (p === o.page) {
       const pageItems = o.items.slice(start, start + k);
       const hasMore = start + k < o.items.length;
-      return { body: k ? clip(body + legend(o.ar, hasMore, pageItems.some(needsChoice)), META.body) : "", shown: pageItems.map((r, i) => ({ n: i + 1, item_id: r.item_id })), hasMore };
+      const real = headWith(pageItems.some((r) => !!r.is_popular)); // "Popular right now" only when popular dishes are really on this page
+      return { body: k ? clip(real + body.slice(head.length) + legend(o.ar, hasMore, pageItems.some(needsChoice)), META.body) : "", shown: pageItems.map((r, i) => ({ n: i + 1, item_id: r.item_id })), hasMore };
     }
     if (!k) return { body: "", shown: [], hasMore: false };
     start += k;
@@ -51,6 +56,9 @@ export function parseNumberedReply(text: string, listSize: number): NumberedRepl
   let t = String(text ?? "").trim().toLowerCase().replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)));
   if (!t) return { kind: "none" };
   if (isMoreWord(t)) return { kind: "more" };
+  // "1: 3 pieces 5: 2 pieces" / "1: 2, 3: 1" (number: quantity). A single "a:b" with no unit ("12:30", "3:1") is not an order.
+  const colon = [...t.matchAll(/(\d{1,2})\s*[:=]\s*(\d{1,2})(?:\s*(pieces?|pcs?|pc|قطعة|قطع|حبات|حبة|حباية)(?=\s|$|[,،;+]))?/g)];
+  if (colon.length >= 2 || colon.some((m) => m[3])) t = t.replace(/(\d{1,2})\s*[:=]\s*(\d{1,2})(?:\s*(?:pieces?|pcs?|pc|قطعة|قطع|حبات|حبة|حباية)(?=\s|$|[,،;+]))?/g, "$1x$2");
   t = t.replace(/\s*[x×*]\s*/g, "x").replace(/(^|\s)(?:and|و)(?=\s|$)/g, " ");
   const toks = t.split(/[\s,،;+]+/).filter(Boolean);
   if (!toks.length || !toks.every((k) => /^\d{1,2}(?:x\d{1,2})?$/.test(k))) return { kind: "none" };
