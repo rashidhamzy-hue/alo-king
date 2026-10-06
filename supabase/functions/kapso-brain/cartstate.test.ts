@@ -35,6 +35,12 @@ describe("wiring", () => {
     expect(seg).toMatch(/basket_id: old\.basket_id/);
     expect(seg).toMatch(/cu\?\.village/); // the customer's current village / landmark win over the old cart's
   });
+  it("revival checks the basket first (ordered, cleared or edited since: no rebuild) and 'newer summary' is scoped to the same vendor", () => {
+    const seg = body.slice(body.indexOf("k === \"revive\""));
+    expect(seg.indexOf('from("baskets")')).toBeGreaterThan(0);
+    expect(seg.indexOf('from("baskets")')).toBeLessThan(seg.indexOf('update({ status: "expired" })'));
+    expect(body).toMatch(/eq\("vendor_id", old\.vendor_id\)\.eq\("status", "pending"\)/);
+  });
   it("a second tap on a replaced summary points to the newer one instead of 'expired or already placed'", () => {
     expect(body).toMatch(/newer summary/);
   });

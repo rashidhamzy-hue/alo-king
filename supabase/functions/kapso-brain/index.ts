@@ -328,6 +328,10 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
     const k = cartRevival(old, Date.now());
     if (k === "placed") { await sendText(c, tr(c, "That order was already placed ✅ I'll keep you posted on it.", "هيدا الطلب انسجّل من قبل ✅ بخبرك عنه.")); return "already placed"; }
     if (k === "revive" && old) {
+      if (old.basket_id) { // the basket behind that summary must still be the live one: if it was ordered, cleared or edited since, rebuilding the old items would be wrong
+        const { data: bk } = await sb.from("baskets").select("status,updated_at").eq("id", old.basket_id).maybeSingle();
+        if (!bk || bk.status !== "active" || Date.parse(String(bk.updated_at)) > Date.parse(String(old.created_at)) + 60_000) { await sendText(c, tr(c, "That basket has changed since 🙏 Tap *Basket* to see the current one and check out from there.", "السلة تغيّرت من وقتها 🙏 اضغط *السلة* لتشوف الحالية وكمّل منها.")); return "basket changed"; }
+      }
       const [{ data: cu }, { data: got }] = await Promise.all([
         sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle(),
         sb.from("carts").update({ status: "expired" }).eq("id", old.id).eq("status", "pending").select("id"), // atomic: a double tap rebuilds once
@@ -343,7 +347,7 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
       return res.error ? "revival failed" : "revived";
     }
     if (k === "gone" && old) { // replaced by a newer summary (for example a second tap): point to it
-      const { count } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString());
+      const { count } = await sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("vendor_id", old.vendor_id).eq("status", "pending").gt("expires_at", new Date().toISOString());
       if ((count ?? 0) > 0) { await sendText(c, tr(c, "There is a newer summary above 👆 Tap Confirm Order there.", "في ملخص أحدث فوق 👆 اضغط تأكيد الطلب هناك.")); return "newer summary"; }
     }
   }
