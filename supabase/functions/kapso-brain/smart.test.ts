@@ -79,3 +79,27 @@ describe("voice STOP", () => {
     expect(isOptOutTitle("two soft drinks please")).toBe(false);
   });
 });
+
+describe("pinnedLandmark keeps the landmark the customer already gave (friction fix)", () => {
+  const pin = { latitude: 33.6454, longitude: 35.6434 };
+  it("sharing a pin in the same village adds the map link to the saved landmark instead of replacing it", () => {
+    const l = pinnedLandmark(pin, "Khraibeh", { village: "Khraibeh", address: "Villa Rashid Abou Hamzy, near Abou Adham Supermarket" });
+    expect(l).toContain("Villa Rashid Abou Hamzy"); expect(l).toContain(mapsLink(33.6454, 35.6434));
+  });
+  it("a previous landmark that already carries an old map link is refreshed, not stacked", () => {
+    const l = pinnedLandmark(pin, "Khraibeh", { village: "Khraibeh", address: `Villa Rashid (${mapsLink(1, 2)})` });
+    expect(l).toContain("Villa Rashid"); expect(l).toContain(mapsLink(33.6454, 35.6434)); expect(l).not.toContain(mapsLink(1, 2));
+  });
+  it("a pin-only previous address (just the village), another village, or nothing gives the plain pin as before", () => {
+    expect(pinnedLandmark(pin, "Khraibeh", { village: "Khraibeh", address: `Khraibeh (${mapsLink(1, 2)})` })).toBe(`Khraibeh (${mapsLink(33.6454, 35.6434)})`);
+    expect(pinnedLandmark(pin, "Khraibeh", { village: "Baakleen", address: "Near the church" })).toBe(`Khraibeh (${mapsLink(33.6454, 35.6434)})`);
+    expect(pinnedLandmark(pin, "Khraibeh", null)).toBe(`Khraibeh (${mapsLink(33.6454, 35.6434)})`);
+  });
+  it("works with the real customers row (last_address), which is what the bot passes", () => {
+    const l = pinnedLandmark(pin, "Khraibeh", { village: "Khraibeh", last_address: "Villa Rashid, near the supermarket" } as any);
+    expect(l).toContain("Villa Rashid"); expect(l).toContain(mapsLink(33.6454, 35.6434));
+  });
+  it("stays within 200 characters", () => {
+    expect(pinnedLandmark(pin, "V", { village: "V", address: "z".repeat(500) }).length).toBeLessThanOrEqual(200);
+  });
+});
