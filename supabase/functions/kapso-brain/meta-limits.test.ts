@@ -196,3 +196,10 @@ describe("item 6 search-first list (searchfirst.buildSearchRows)", () => {
     }
   });
 });
+
+describe("P1-5 re-ask card (ambiguity.reAskCard)", () => {
+  it("two buttons with worst-case option names, both languages", async () => {
+    const { reAskCard } = await import("./ambiguity.ts");
+    for (const ar of [false, true]) { const c = reAskCard([LONG_EN, LONG_AR], ar); expectOk(buttons(c.body, c.buttons)); expect(c.buttons).toHaveLength(2); }
+  });
+});
