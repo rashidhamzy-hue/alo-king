@@ -27,6 +27,7 @@ import { kitchenState, receivedFooter, stillWaitingText, type KitchenState } fro
 import { eitherOrOptions, isVagueAssent, reAskCard } from "./ambiguity.ts";
 import { basketCutoffIso, basketIsStale } from "./cartstate.ts";
 import { moodPhrase, moodRows, parseWelcomeTap, welcomeCard } from "./welcome.ts";
+import { buildSpread, parsePartyRequest, parsePartyTap, rankVendorsForParty, spreadCard } from "./party.ts";
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 import { fepWindow, referralRecord } from "./fep.ts";
@@ -731,6 +732,34 @@ async function tryDeterministicOrder(c: Ctx, phone: string, resolved: Resolved[]
   return true;
 }
 
+// ---------- PARTY BUILDER: "breakfast for 5 adults and 2 kids" -> one spread from one open vendor, with a total and a one-tap accept ----------
+// Dishes and prices come from the database; the proposal is NOT a basket: the accept tap adds the lines through addLine (open, available, no alcohol, server prices) and the customer still checks out and confirms as usual.
+async function handleParty(c: Ctx, phone: string, req: ReturnType<typeof parsePartyRequest> & object, prof: any): Promise<boolean> {
+  const idx = await loadMenuIndex();
+  const meal = req.meal ?? daypartAt();
+  const hasLoc = prof?.last_lat != null && prof?.last_lng != null;
+  const kmOf = (v: string): number | null => { const vm = idx.vmeta.get(v); if (hasLoc && vm?.lat != null && vm?.lng != null) return haversineKm(Number(prof.last_lat), Number(prof.last_lng), vm.lat, vm.lng); return prof?.village && vm?.village ? (normText(prof.village) === normText(vm.village) ? 0 : 6) : null; };
+  let tooBig = false;
+  for (const vid of rankVendorsForParty(idx.items, meal, kmOf).slice(0, 4)) {
+    if (!isOpenResult(await sb.rpc("vendor_is_open", { p_vendor_id: vid }))) continue; // an unknown or closed vendor is skipped: only open kitchens are proposed
+    const { data: info } = await sb.rpc("get_vendor_info", { p_vendor_id: vid });
+    const served: string[] = Array.isArray(info?.profile?.delivery_villages) ? info.profile.delivery_villages.map(lc) : [];
+    if (prof?.village && served.length && !served.includes(lc(prof.village))) continue;
+    const { data: menu, error } = await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,section,is_popular,sort_order,contains_alcohol,serves,portion_grams,customizations").eq("vendor_id", vid).eq("available", true).gt("price_usd", 0).limit(1000);
+    if (error) { console.error("party menu failed", error.message); continue; }
+    const built = buildSpread(menu ?? [], req, { meal, deliveryFee: DELIVERY_FEE_USD, codCap: COD_CAP_USD });
+    if (!built.ok) { if (built.reason === "too_big") tooBig = true; continue; }
+    const min = Number(info?.profile?.min_order_usd ?? 0);
+    if (min && built.spread.subtotal < min) continue;
+    const card = spreadCard({ vendorId: vid, vendorName: await vendorName(vid), req, spread: built.spread, meal, deliveryFee: DELIVERY_FEE_USD, both, ar: !!c.ar });
+    if (!card) continue;
+    await sendButtons(c, card);
+    return true;
+  }
+  if (tooBig) { await sendText(c, tr(c, `That is more than the $${COD_CAP_USD} cash limit for one order 🙏 Tell me how you'd like to split it (two orders from different places, or fewer dishes) and I'll set it up.`, `هيدا أكتر من حد الدفع كاش ($${COD_CAP_USD}) للطلب الواحد 🙏 خبرني كيف بدك نقسّمو (طلبين من أماكن مختلفة أو أصناف أقل) وبرتبو.`)); return true; }
+  return false; // nothing suitable: the normal flow answers
+}
+
 // ---------- NUMBERED QUICK-ORDER: "See Full Menu" = popular dishes as a numbered list; "1x2, 3, 5" / "1 1 3" become basket lines with no model call ----------
 async function sendNumberedMenu(c: Ctx, phone: string, vendorId: string, page = 0, silentIfMissing = false): Promise<boolean> {
   const [menu, vname] = await Promise.all([vendorMenu(vendorId), vendorName(vendorId)]);
@@ -1349,6 +1378,15 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       await maybeOfferAddon(c);
       await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return;
     }
+    const pt = parsePartyTap(tag);
+    if (pt) { // accept: every line goes through addLine (server prices, open, available, no alcohol); the customer still checks out and confirms (village, minimum order and the cash cap are checked at checkout)
+      const bk = await activeBasket(phone, pt.vendorId), have = bk ? await basketLines(bk.id) : [];
+      const todo = pt.lines.map((l) => ({ item_id: l.item_id, quantity: l.qty - (have.find((h: any) => h.item_id === l.item_id && h.line_key === l.item_id)?.quantity ?? 0) })).filter((l) => l.quantity > 0); // idempotent: a second tap on the same card adds only what is missing
+      if (bk && !todo.length) { await sendBasketCard(c, bk.id, pt.vendorId); await remember(phone, "[tapped Add all to basket again]", c.log.join("\n")); return; }
+      const r = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: pt.vendorId, items: todo }));
+      if (!r.ok) await sendText(c, tr(c, "I couldn't add that spread any more (something changed or the kitchen closed) 🙏 Tell me again what you need and I'll rebuild it.", "ما قدرت أضيف هالطلب (تغيّر شي أو المطبخ سكّر) 🙏 خبرني كمان مرة شو بدك وبرجع بجهزو."));
+      await remember(phone, "[tapped Add all to basket]", c.log.join("\n")); return;
+    }
     const wt = parseWelcomeTap(tag);
     if (wt) {
       if (wt === "browse") await sendList(c, { header: tr(c, "What are you in the mood for?", "شو مشتهي؟"), body: tr(c, "Pick one and I'll show what's open near you 👇", "اختار واحد وبفرجيك شو مفتوح حدّك 👇"), button: tr(c, "Moods", "اختيارات"), sections: [{ title: tr(c, "Browse", "تصفّح"), rows: moodRows(!!c.ar) }] });
@@ -1466,6 +1504,10 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   if (!reply && !loc && asksForAlcohol(userText)) { await sendText(c, alcoholRefusal(!!c.ar)); await remember(phone, userText, c.log.join("\n")); return; } // we do not sell alcohol: a fixed polite line, no search, no model call
   // Nothing earlier in a plain text turn changes these columns, so the row read at the start is current; a tap or a pin may have changed them, so those re-read.
   const prof = !reply && !loc && cust ? { full_name: cust.full_name, village: cust.village, last_address: cust.last_address, last_lat: cust.last_lat, last_lng: cust.last_lng } : (await sb.from("customers").select("full_name,village,last_address,last_lat,last_lng").eq("phone_number", phone).maybeSingle()).data;
+  if (!reply && !loc) { // "breakfast for 5 adults and 2 kids": one complete spread (free: no model call)
+    const pr = parsePartyRequest(userText);
+    if (pr) { try { if (await handleParty(c, phone, pr, prof)) { await remember(phone, userText, c.log.join("\n")); return; } } catch (e) { console.error("party builder failed, falling back", String((e as Error)?.message ?? e).slice(0, 160)); } }
+  }
   let resolved: Resolved[] = [];
   if (!reply && !loc) { try { resolved = await resolveMessage(phone, userText); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
   if (resolved.length && hasOrderIntent(userText)) { // free: no model call, so it also works in button-only mode
