@@ -4,7 +4,7 @@
 
 **What we record.** Every inbound message that carries a Meta `referral` (ad click) is stored once in `fep_referrals` (message id, customer phone, ad source type/id/url, headline, click id, when it arrived, and the 72-hour window). The ad body text is not stored. The first-touch fields on `customers` (`acquisition_source` and friends) are unchanged. **Nothing about sending changes**: the bot answers exactly as before; this only measures.
 
-**Window start is approximate.** The window really starts when our reply is delivered; the bot replies within seconds, so the window is taken to open when the referral is processed (a few seconds early: the tracked window ends slightly before Meta's). We cannot see whether the customer used the mobile app or desktop (desktop clicks do not open a window): `message_free_share_daily` therefore also reports Meta's own label.
+**The tracked window is an upper bound.** Meta opens the window only when our reply is actually delivered; a handoff turn or a failed reply would give a tracked window that never existed in Meta's books (and a re-click while a window is open does not reopen it). **Window start is approximate.** The window really starts when our reply is delivered; the bot replies within seconds, so the window is taken to open when the referral is processed (a few seconds early: the tracked window ends slightly before Meta's). We cannot see whether the customer used the mobile app or desktop (desktop clicks do not open a window): `message_free_share_daily` therefore also reports Meta's own label.
 
 ## Reading it (service role / SQL editor)
 - `customer_fep_windows`: the latest window per customer and whether it is `active` now.

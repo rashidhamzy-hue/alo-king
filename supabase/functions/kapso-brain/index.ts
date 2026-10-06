@@ -1766,7 +1766,8 @@ async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], a
   c.hasQuick = start.hasQuick;
   if (e.referral && !start.owner) { // free entry point: record the click and the 72 h window it opens (observation only; nothing about the reply changes)
     const w = fepWindow(Date.now());
-    timerStore.getStore()?.background(Promise.resolve(sb.from("fep_referrals").upsert({ ...e.referral, customer_phone: e.from, window_opens_at: w.opens_at, window_expires_at: w.expires_at }, { onConflict: "message_id", ignoreDuplicates: true })).then((r: any) => { if (r?.error) console.error("fep_referrals upsert failed", r.error.message); }));
+    const rec = Promise.resolve(sb.from("fep_referrals").upsert({ ...e.referral, customer_phone: e.from.replace(/\D/g, ""), window_opens_at: w.opens_at, window_expires_at: w.expires_at }, { onConflict: "message_id", ignoreDuplicates: true })).then((r: any) => { if (r?.error) console.error("fep_referrals upsert failed", r.error.message); }).catch(() => undefined);
+    const tmx = timerStore.getStore(); if (tmx) tmx.background(rec); else await rec; // always runs, and is always awaited before the isolate may stop
   }
   { // instant feedback, in parallel with everything else: blue ticks + "typing…" until our reply (or ~25 s). Best effort, never blocks or fails the turn.
     const ack = shouldAck({ id: e.id, dry, fromAdmin: !!c.admin && normPhone(e.from) === c.admin });
