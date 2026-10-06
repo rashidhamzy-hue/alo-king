@@ -28,6 +28,7 @@ import { eitherOrOptions, isVagueAssent, reAskCard } from "./ambiguity.ts";
 import { basketCutoffIso, basketIsStale } from "./cartstate.ts";
 import { moodPhrase, moodRows, parseWelcomeTap, welcomeCard } from "./welcome.ts";
 import { buildSpread, parsePartyRequest, parsePartyTap, rankVendorsForParty, spreadCard } from "./party.ts";
+import { matchVillage } from "./village.ts";
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 import { fepWindow, referralRecord } from "./fep.ts";
@@ -854,13 +855,31 @@ async function handleBasketEditText(c: Ctx, phone: string, text: string): Promis
 }
 
 // ---------- SEARCH-FIRST: any food word or mood -> ONE list of the best open, nearest dishes (no category tree, no model call) ----------
+// True when the bot's last message asked for delivery details (name, village, landmark...): the customer's next short answer belongs to that question.
+async function botAskedForDetails(phone: string): Promise<boolean> {
+  const { data: last } = await sb.from("conversations").select("content").eq("phone", phone).eq("role", "assistant").order("id", { ascending: false }).limit(1).maybeSingle();
+  const tail = String(last?.content ?? "").trim().split("\n").pop() ?? "";
+  return !tail.startsWith("[") && /[?؟]\s*$/.test(tail) && /name|village|landmark|address|building|floor|where|deliver|location|phone|اسم|بلد|عنوان|موقع|وين|بناية|طابق|معلم|رقم/i.test(tail); // "what are you craving?" is NOT such a question
+}
+// A village typed as text is a place, not a dish: remember it as the delivery area and show what is open near it (free, no model call).
+async function villageFirst(c: Ctx, phone: string, text: string, prof: any): Promise<boolean> {
+  if (text.length > 40 || /\d/.test(text)) return false;
+  const idx = await loadMenuIndex();
+  const village = matchVillage(text, [...new Set([...idx.vmeta.values()].map((v) => v.village).filter(Boolean) as string[])]);
+  if (!village) return false;
+  if (await botAskedForDetails(phone)) return false; // mid-checkout the model handles the answer
+  const { error } = await sb.from("customers").update({ village }).eq("phone_number", phone);
+  if (error) console.error("village save failed", error.message);
+  await sendText(c, tr(c, `📍 ${village}, got it. Here's what's open for you:`, `📍 ${village}، تمام. هيدا يلي مفتوح إلك:`));
+  let shown = false;
+  try { shown = await searchFirst(c, phone, "what's good", { ...prof, village, last_lat: null, last_lng: null }); } catch (e) { console.error("village search failed", String((e as Error)?.message ?? e).slice(0, 160)); }
+  if (!shown) await sendText(c, tr(c, "Tell me what you're craving and I'll find it 🍽", "خبرني شو مشتهي وبلاقيهالك 🍽"));
+  return true;
+}
+
 async function searchFirst(c: Ctx, phone: string, text: string, prof: any): Promise<boolean> {
   if (!looksLikeSearch(text)) return false;
-  { // a one-word answer to the bot's own question (name, village, landmark...) is never a search
-    const { data: last } = await sb.from("conversations").select("content").eq("phone", phone).eq("role", "assistant").order("id", { ascending: false }).limit(1).maybeSingle();
-    const tail = String(last?.content ?? "").trim().split("\n").pop() ?? "";
-    if (!tail.startsWith("[") && /[?؟]\s*$/.test(tail) && /name|village|landmark|address|building|floor|where|deliver|location|phone|اسم|بلد|عنوان|موقع|وين|بناية|طابق|معلم|رقم/i.test(tail)) return false; // the bot just asked for delivery details; "what are you craving?" is NOT such a question
-  }
+  if (await botAskedForDetails(phone)) return false; // a one-word answer to the bot's own question (name, village, landmark...) is never a search
   const idx = await loadMenuIndex();
   const mood = moodTerms(text);
   const scored = new Map<string, { item: IndexItem; score: number }>();
@@ -1508,6 +1527,7 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
     const pr = parsePartyRequest(userText);
     if (pr) { try { if (await handleParty(c, phone, pr, prof)) { await remember(phone, userText, c.log.join("\n")); return; } } catch (e) { console.error("party builder failed, falling back", String((e as Error)?.message ?? e).slice(0, 160)); } }
   }
+  if (!reply && !loc && !fromVoice) { try { if (await villageFirst(c, phone, userText, prof)) { await remember(phone, userText, c.log.join("\n")); return; } } catch (e) { console.error("village check failed", String((e as Error)?.message ?? e).slice(0, 160)); } } // "خريبة" / "Khriebeh" is a place, not a dish
   let resolved: Resolved[] = [];
   if (!reply && !loc) { try { resolved = await resolveMessage(phone, userText); } catch (e) { console.error("retrieval failed (the model will use search_menu)", String((e as Error)?.message ?? e).slice(0, 160)); } } // best effort: never blocks the turn
   if (resolved.length && hasOrderIntent(userText)) { // free: no model call, so it also works in button-only mode
