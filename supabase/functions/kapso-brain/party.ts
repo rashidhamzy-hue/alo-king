@@ -20,12 +20,15 @@ const INTENT = /\b(?:food|order|eat|feed|spread|catering|party|meal|menu|hungry)
 export function parsePartyRequest(text: string): PartyRequest | null {
   const t = norm(text);
   if (!t || t.length > 200) return null;
-  const num = (re: RegExp) => { const m = t.match(re); return m ? Math.min(60, Number(m[1])) : 0; };
-  let adults = num(new RegExp(`(?<![\\d.:/])(\\d{1,2})\\s*(?:x\\s*)?(?:${ADULT})(?![a-z\\u0600-\\u06ff])`)), kids = num(new RegExp(`(?<![\\d.:/])(\\d{1,2})\\s*(?:x\\s*)?(?:${KID})(?![a-z\\u0600-\\u06ff])`));
+  let rest = t;
+  const take = (re: RegExp): number => { const m = rest.match(re); if (!m) return 0; rest = rest.replace(m[0], " "); return Math.min(60, Number(m[1])); };
+  const adults0 = take(new RegExp(`(?<![\\d.:/])(\\d{1,2})\\s*(?:x\\s*)?(?:${ADULT})(?![a-z\\u0600-\\u06ff])`)), kids = take(new RegExp(`(?<![\\d.:/])(\\d{1,2})\\s*(?:x\\s*)?(?:${KID})(?![a-z\\u0600-\\u06ff])`));
   const meal = MEAL.find(([re]) => re.test(t))?.[1] ?? null;
-  if (!adults && !kids) { const m = t.match(/\b(?:for|ل|لـ)\s*(\d{1,2})\b(?!\s*(?:min|mins|minutes|hours?|days?|pm|am|usd|lbp|\$|dollars?))/) ?? t.match(/(?:^|\s)لـ?\s*(\d{1,2})(?:\s|$)/); if (m) adults = Math.min(60, Number(m[1])); }
+  let adults = adults0, bare = false;
+  if (!adults0 && !kids) { adults = take(/\b(?:for|ل|لـ)\s*(\d{1,2})\b(?!\s*(?:min|mins|minutes|hours?|days?|pm|am|usd|lbp|\$|dollars?))/) || take(/(?:^|\s)لـ?\s*(\d{1,2})(?:\s|$)/); bare = adults > 0; }
   if (adults + kids < 3 || adults + kids > 40) return null;
-  if (!meal && !INTENT.test(t)) return null;
+  if (bare ? !meal : !meal && !INTENT.test(t)) return null; // a bare "for N" needs a meal word; "order 3 shawarma for 5" is an order, not a party
+  if (/\d/.test(rest)) return null; // a leftover number is a dish quantity, a time or an address: "2 pizzas for 4 people at dinner" is the customer's own order
   return { adults, kids, meal };
 }
 
@@ -79,7 +82,7 @@ export function parsePartyTap(id: string): { vendorId: string; lines: { item_id:
 /** The proposal: the lines, what it feeds, the total (dual currency via `both`) and [Add all to basket] [Change]. Null when the accept id would not fit WhatsApp's id limit. */
 export function spreadCard(o: { vendorId: string; vendorName: string; req: PartyRequest; spread: Spread; meal: Daypart; deliveryFee: number; both: (n: number) => string; ar: boolean }): { body: string; buttons: { id: string; title: string }[] } | null {
   const id = partyTapId(o.vendorId, o.spread.lines.map((l) => ({ item_id: l.item.item_id, qty: l.qty })));
-  if (id.length > META.buttonId) return null;
+  if (id.length > META.buttonId || o.spread.lines.some((l) => /[,|:]/.test(l.item.item_id) || /[,|]/.test(o.vendorId))) return null; // ids are split on , | :
   const who = o.ar ? `${o.req.adults ? `${o.req.adults} كبار` : ""}${o.req.adults && o.req.kids ? " و" : ""}${o.req.kids ? `${o.req.kids} أولاد` : ""}` : `${o.req.adults ? `${o.req.adults} adult${o.req.adults > 1 ? "s" : ""}` : ""}${o.req.adults && o.req.kids ? " + " : ""}${o.req.kids ? `${o.req.kids} kid${o.req.kids > 1 ? "s" : ""}` : ""}`;
   const rows = o.spread.lines.map((l) => `• ${l.qty} × ${clip(nm(l.item, o.ar), 40)} — ${o.both(Number(l.item.price_usd) * l.qty)}`).join("\n");
   const total = Math.round((o.spread.subtotal + o.deliveryFee) * 100) / 100;

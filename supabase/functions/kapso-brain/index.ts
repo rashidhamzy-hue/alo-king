@@ -740,13 +740,13 @@ async function handleParty(c: Ctx, phone: string, req: ReturnType<typeof parsePa
   const hasLoc = prof?.last_lat != null && prof?.last_lng != null;
   const kmOf = (v: string): number | null => { const vm = idx.vmeta.get(v); if (hasLoc && vm?.lat != null && vm?.lng != null) return haversineKm(Number(prof.last_lat), Number(prof.last_lng), vm.lat, vm.lng); return prof?.village && vm?.village ? (normText(prof.village) === normText(vm.village) ? 0 : 6) : null; };
   let tooBig = false;
-  for (const vid of rankVendorsForParty(idx.items, meal, kmOf).slice(0, 6)) {
+  for (const vid of rankVendorsForParty(idx.items, meal, kmOf).slice(0, 4)) {
     if (!isOpenResult(await sb.rpc("vendor_is_open", { p_vendor_id: vid }))) continue; // an unknown or closed vendor is skipped: only open kitchens are proposed
     const { data: info } = await sb.rpc("get_vendor_info", { p_vendor_id: vid });
     const served: string[] = Array.isArray(info?.profile?.delivery_villages) ? info.profile.delivery_villages.map(lc) : [];
     if (prof?.village && served.length && !served.includes(lc(prof.village))) continue;
     const { data: menu, error } = await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,section,is_popular,sort_order,contains_alcohol,serves,portion_grams,customizations").eq("vendor_id", vid).eq("available", true).gt("price_usd", 0).limit(1000);
-    if (error) { console.error("party menu failed", error.message); return false; }
+    if (error) { console.error("party menu failed", error.message); continue; }
     const built = buildSpread(menu ?? [], req, { meal, deliveryFee: DELIVERY_FEE_USD, codCap: COD_CAP_USD });
     if (!built.ok) { if (built.reason === "too_big") tooBig = true; continue; }
     const min = Number(info?.profile?.min_order_usd ?? 0);
@@ -1379,8 +1379,11 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return;
     }
     const pt = parsePartyTap(tag);
-    if (pt) { // accept: every line goes through addLine (server prices, open, available, no alcohol); the customer still checks out and confirms
-      const r = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: pt.vendorId, items: pt.lines.map((l) => ({ item_id: l.item_id, quantity: l.qty })) }));
+    if (pt) { // accept: every line goes through addLine (server prices, open, available, no alcohol); the customer still checks out and confirms (village, minimum order and the cash cap are checked at checkout)
+      const bk = await activeBasket(phone, pt.vendorId), have = bk ? await basketLines(bk.id) : [];
+      const todo = pt.lines.map((l) => ({ item_id: l.item_id, quantity: l.qty - (have.find((h: any) => h.item_id === l.item_id && h.line_key === l.item_id)?.quantity ?? 0) })).filter((l) => l.quantity > 0); // idempotent: a second tap on the same card adds only what is missing
+      if (bk && !todo.length) { await sendBasketCard(c, bk.id, pt.vendorId); await remember(phone, "[tapped Add all to basket again]", c.log.join("\n")); return; }
+      const r = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: pt.vendorId, items: todo }));
       if (!r.ok) await sendText(c, tr(c, "I couldn't add that spread any more (something changed or the kitchen closed) 🙏 Tell me again what you need and I'll rebuild it.", "ما قدرت أضيف هالطلب (تغيّر شي أو المطبخ سكّر) 🙏 خبرني كمان مرة شو بدك وبرجع بجهزو."));
       await remember(phone, "[tapped Add all to basket]", c.log.join("\n")); return;
     }

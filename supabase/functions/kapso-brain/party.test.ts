@@ -13,10 +13,11 @@ describe("parsePartyRequest", () => {
     expect(parsePartyRequest("فطور لـ 5 كبار و 2 أولاد")).toEqual({ adults: 5, kids: 2, meal: "breakfast" });
     expect(parsePartyRequest("بدي غداء لـ ٦ أشخاص")).toEqual({ adults: 6, kids: 0, meal: "lunch" });
     expect(parsePartyRequest("badde ftour la 5 kbar w 2 wlad")).toEqual({ adults: 5, kids: 2, meal: "breakfast" });
-    expect(parsePartyRequest("food for 8")).toEqual({ adults: 8, kids: 0, meal: null });
+    expect(parsePartyRequest("food for 8")).toBeNull(); // a bare "for N" needs a meal word
+    expect(parsePartyRequest("order food for 8 adults")).toEqual({ adults: 8, kids: 0, meal: null });
   });
   it("small groups and unrelated numbers are not parties", () => {
-    for (const t of ["breakfast for 2", "1 adult and 1 kid breakfast", "2 shawarma", "I live on floor 5 for 3 days", "table for 5 at 8 pm", "meeting for 10 minutes", "my number is 70123456", "hi", "pizza", "12:30 for 5 people", "for 5"]) expect(parsePartyRequest(t), t).toBeNull();
+    for (const t of ["breakfast for 2", "1 adult and 1 kid breakfast", "2 shawarma", "I live on floor 5 for 3 days", "table for 5 at 8 pm", "meeting for 10 minutes", "my number is 70123456", "hi", "pizza", "12:30 for 5 people", "for 5", "2 pizzas for 4 people at dinner", "order 3 shawarma for 5", "lunch: 2 sandwich for 3", "order food for 5"]) expect(parsePartyRequest(t), t).toBeNull();
   });
 });
 
@@ -79,6 +80,7 @@ describe("spreadCard and the accept id", () => {
     expect(c.buttons[0].id).toBe("PARTY|v1|A1:3,B2:2"); expect(parsePartyTap(c.buttons[0].id)).toEqual({ vendorId: "v1", lines: [{ item_id: "A1", qty: 3 }, { item_id: "B2", qty: 2 }] });
     expect(c.buttons[1].id).toBe("MENU|v1"); // Change opens the numbered menu
   });
+  it("an item id with a separator is never put in an accept id", () => { const bad = { ...spread, lines: [{ item: it_("a:b", "S", 1), qty: 1 }] }; expect(spreadCard({ ...base, spread: bad, ar: false })).toBeNull(); });
   it("rejects malformed accept ids", () => { for (const id of ["PARTY|v1", "PARTY||A:1", "PARTY|v1|A:0", "PARTY|v1|A:21", "PARTY|v1|A:x", "PARTY|v1|a:1,b:1,c:1,d:1,e:1,f:1", "MENU|v1"]) expect(parsePartyTap(id), id).toBeNull(); expect(partyTapId("v", [{ item_id: "i", qty: 2 }])).toBe("PARTY|v|i:2"); });
   it("a card whose accept id would not fit is not built", () => { const long = { ...spread, lines: Array.from({ length: 5 }, (_, i) => ({ item: it_("x".repeat(50) + i, "S", 1), qty: 1 })) }; expect(spreadCard({ ...base, spread: long, ar: false })).toBeNull(); });
   it("worst-case names stay within WhatsApp limits in both languages", () => {
