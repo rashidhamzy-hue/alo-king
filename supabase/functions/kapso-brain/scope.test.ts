@@ -8,8 +8,8 @@ import { offTopic, scopeReply } from "./scope.ts";
 const OFF = [
   // English
   "write me a poem about the sea", "Can you write a song for my mother?", "compose an essay on climate change", "write python code to sort a list", "tell me a joke", "tell me a story",
-  "what's the capital of France", "who won the world cup", "what is the weather in Beirut", "what's the bitcoin price", "solve 2x + 3 = 7", "what is 15*12", "help me with my homework",
-  "translate this to French: good morning", "give me medical advice for my headache", "what medicine for a cough", "should I invest in gold", "who should I vote for", "I need a lawyer", "do you like my girlfriend",
+  "what's the capital of France", "who won the world cup", "what is the weather in Beirut", "solve 2x + 3 = 7", "what is 15*12", "help me with my homework",
+  "give me medical advice for my headache", "what medicine for a cough", "should I invest in gold", "who should I vote for", "I need a lawyer", "send me nudes",
   // Arabic
   "اكتب لي قصيدة عن الوطن", "احكيلي نكتة", "شو عاصمة فرنسا", "مين ربح كاس العالم", "شو الطقس اليوم", "ساعدني بالواجب المدرسي", "اكتبلي كود بايثون", "شو الدوا للصداع",
   // Arabizi
@@ -24,6 +24,12 @@ const ON = [
   "weather permitting can I order for tomorrow", "I'm allergic to nuts, what is safe", "give me the number of the restaurant", "what is in the kibbeh", "send me the menu in Arabic",
   "شو في ع المنيو", "كم سعر التوصيل", "بدي اطلب شاورما", "اكتب على الطلب بدون بصل", "شو احلى حلو عندكم", "وين طلبي", "في عندكم مناقيش", "عندي حساسية من الفول",
   "badde etneen shawarma", "shu fi lal ghada", "bonjour, je voudrais commander une pizza", "quelle est votre meilleure pizza",
+  // real messages that contain a word an off-topic pattern could want (found by review): all must reach the normal flow
+  "send 2 pizzas, I have an exam", "I have an exam, send fries and a chicken wrap", "wings for the exam", "what is 2*3 pizzas", "what is the dollar rate for LBP", "what's the exchange rate for LBP", "what is the exchange rate you use",
+  "كم سعر الدولار اليوم عندكم", "كم صرف الدولار", "calculate the total", "the bill is wrong, calculate again", "what is 2+3 items", "what's the weather, will the driver come", "what is the temperature of the fries",
+  "where is the weather station building", "near the weather station", "building next to the bank", "write down my code 1234", "write code on the box: 1234", "write the address: script street", "write a letter to the driver",
+  "write an email to the owner", "اكتب رساله للسواق", "عطيني كود الخصم", "قل لي كود الخصم", "عطيني برنامج الدوام", "شو الطقس، السواق جاي؟", "should i take a combo", "should I take the 2 pizzas", "dosage? no", "طبيب", "I live near the debug street",
+  "my html address", "dating cafe menu", "css cafe", "sql burger", "diagnosis pizza", "translate the menu please", "translate this: poulet", "what's the bitcoin price",
   "Hi", "thanks!", "ok", "1x2, 3", "yes", "", "Poem Cafe open?", "Java Coffee price",
 ];
 

@@ -6,40 +6,41 @@
 const norm = (s: string) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[ً-ٟـ]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").toLowerCase().replace(/[.,!?؟،"'`]+/g, " ").replace(/\s+/g, " ").trim();
 
 const FOODISH = new RegExp([
-  "(?<![a-z])(menu|order|orders|deliver\\w*|restaurants?|cafes?|dish|dishes|food|meal|meals|pizza|burgers?|shawarma|sandwich\\w*|soup|salad|kibbeh|kibbe|manoushe|manakish|falafel|coffee|juice|cake|dessert|drinks?|open|opening|close|closes|closed|hours|basket|cart|checkout|pay|payment|halal|vegan|vegetarian|allerg\\w*|nuts?|kitchen|vendors?|grocer\\w*|bakery|breakfast|lunch|dinner|eat|hungry|hunger|fee|promo|restaurant)(?![a-z])",
-  "منيو|قائمه|طلب|اطلب|توصيل|مطعم|مطاعم|كافيه|وجبه|اكل|اكله|اكلات|طعام|بيتزا|برغر|شاورما|ساندويش|مشروب|مفتوح|مسكر|ساعات|سله|دفع|حلال|نباتي|حساسيه|مطبخ|حلويات|حلو|مناقيش|منقوشه|قهوه|فطور|غداء|غدا|عشاء|جوعان|فلافل|عصير|شوربه|سلطه",
-  "(?<![a-z])(badde|baddi|talab|akel|akl|tawsil|ma3am|mat3am|ghada|3asha|ftour|mana2ish|manaesh)(?![a-z])",
-  "(?<![a-z])(commander|commande|livraison|restaurant|pizza|manger|carte|menu)(?![a-z])",
+  "(?<![a-z])(menus?|orders?|ordering|deliver\\w*|restaurants?|cafes?|dish\\w*|food\\w*|meals?|pizzas?|burgers?|shawarma|sandwich\\w*|wraps?|combos?|fries|fry|chicken|meat|beef|lamb|fish|wings?|kebab\\w*|kafta|kibbeh|kibbe|manoushe|manakish|falafel|hummus|hommos|labneh|tabbouleh|fattoush|mjaddara|rice|salad\\w*|soup\\w*|coffee|tea|juice|cakes?|desserts?|sweets?|drinks?|water|beer|wine|arak|open|opening|close|closes|closed|hours|basket|cart|checkout|pay|payment|paid|cash|halal|vegan|vegetarian|allerg\\w*|nuts?|gluten|dairy|kitchen|vendors?|groceries|grocer\\w*|bakery|breakfast|lunch|dinner|eat|eating|hungry|hunger|fee|fees|promo|coupon|driver|drivers|courier|late|arrive\\w*|rain|bill|total|wrong|missing|cold|refund|address|building|street|floor|near|next to|bank|station|lbp|lira|usd|dollar|rate)(?![a-z])",
+  "منيو|قائمه|طلب|اطلب|توصيل|مطعم|مطاعم|كافيه|وجبه|اكل|اكله|اكلات|طعام|بيتزا|برغر|شاورما|ساندويش|مشروب|مفتوح|مسكر|ساعات|سله|دفع|حلال|نباتي|حساسيه|مطبخ|حلويات|حلو|مناقيش|منقوشه|قهوه|فطور|غداء|غدا|عشاء|جوعان|فلافل|عصير|شوربه|سلطه|دجاج|لحم|سواق|سائق|متاخر|فاتوره|المجموع|عنوان|بناي|شارع|طابق|قرب|دولار|ليره|لبناني|كود الخصم|خصم",
+  "(?<![a-z])(badde|bade|baddi|3andkon|3endkon|talab|akel|akl|tawsil|ma3am|mat3am|ghada|3asha|ftour|mana2ish|manaesh|mjaddara|shawarma|3enwen|binaye|share3)(?![a-z])",
+  "(?<![a-z])(commander|commande|livraison|restaurant|pizza|manger|carte|menu|poulet|adresse|livreur)(?![a-z])",
 ].join("|"));
 
+// Every pattern needs an explicit request addressed to the bot. Bare words (code, exam, letter, weather, exchange rate, calculate, dosage, translate ...) are NOT triggers: they appear in real orders.
 const OFF = new RegExp([
-  // English: creative and generic requests
-  "\\b(write|compose|make up|generate)\\b.{0,25}\\b(poem|poems|poetry|song|songs|lyrics|essay|story|stories|letter|email|speech|code|script|program|cv|resume|haiku|joke|jokes)\\b",
+  // English
+  "\\b(write|compose|make up) (me )?(a |an |some )?(poem|poems|poetry|song|songs|lyrics|essay|story|stories|haiku|joke|jokes)\\b",
   "\\btell me (a |an |some )?(joke|jokes|story|riddle|fun fact)\\b",
-  "\\b(what( ?s| is| are)|who (is|was|are)|who won|when (is|was|did)|where is) .{0,40}\\b(capital of|president|prime minister|king of|election|world cup|champions league|bitcoin|crypto|stocks?|dollar rate|exchange rate|weather|temperature|horoscope|meaning of life)\\b",
-  "\\b(solve|calculate|integral|derivative|equation)\\b|what( ?s| is) \\d+\\s*[-+*/x×^]\\s*\\d+",
-  "\\b(homework|assignment|exam|thesis)\\b",
-  "\\b(python|javascript|typescript|html|css|sql|c\\+\\+|regex|algorithm|debug)\\b",
-  "\\b(translate|translation)\\b",
-  "\\b(medical advice|health advice|diagnos\\w*|symptoms? of|medicine for|medication|prescription|dosage|cure for|should i take)\\b",
-  "\\b(lawyer|legal advice|sue (him|her|them|someone)|should i invest|invest in|mortgage|tax return)\\b|should i buy (bitcoin|stocks?|gold|crypto)",
-  "\\b(who should i vote|your opinion on (the )?(war|politics|elections?|religion))\\b",
-  "\\b(girlfriend|boyfriend|dating|nude|porn)\\b",
+  "\\b(write|code|program|debug|fix)\\b.{0,20}\\b(python|javascript|typescript|html|css|sql|c\\+\\+|regex|algorithm)\\b",
+  "\\bwhat( ?s| is) the capital of\\b|\\bwho (is|was) the (president|prime minister|king|queen) of\\b|\\bwho won the (world cup|champions league|election)\\b",
+  "^(what( ?s| is)|how s) the weather( like)?( in \\w+)?( today| tomorrow| now)?$",
+  "^(solve|calculate|compute|what( ?s| is))\\s+[\\d\\sx×+\\-*/^=().]+$",
+  "\\b(help me with|do) my (homework|assignment|exam|thesis)\\b",
+  "\\b(medical advice|health advice|medicine for|prescription for)\\b",
+  "\\b(legal advice|should i invest|i need a lawyer)\\b|should i buy (bitcoin|stocks?|gold|crypto)",
+  "\\b(who should i vote for|your opinion on (the )?(war|politics|elections?|religion))\\b",
+  "\\b(porn|nudes?)\\b",
   // Arabic (normalised: ة->ه, ى->ي, hamza forms -> ا)
-  "(اكتب|اكتبلي|الف|نظم|احكيلي|احكي لي|قولي|قل لي|عطيني)\\s*(لي)?\\s*.{0,20}(قصيده|قصه|نكته|شعر|مقال|رساله|اغنيه|كود|برنامج|لغز)",
-  "(شو|ما|ماهي|ما هي|مين|من)\\s+(هي\\s+)?(عاصمه|رئيس|ملك|ربح|فاز|بطل)",
-  "(كم|شو|ما)\\s+(سعر|صرف)\\s+(الدولار|البيتكوين|الذهب)",
-  "(شو|كيف)\\s+الطقس",
-  "(ساعدني|ساعديني|حل لي|حللي)\\s*(ب|في)?\\s*(ال)?(واجب|امتحان|مساله|معادله|برمجه)",
-  "(?:^|\\s)(?:الدوا|دوا|دواء|علاج|اعراض|طبيب)(?:\\s|$)",
-  "(?:^|\\s)(?:ترجم|ترجملي)\\s",
+  "(?:اكتب لي|اكتبلي|الف لي|الفلي|احكيلي|احكي لي)\\s*(?:قصيده|قصه|نكته|شعر|اغنيه)",
+  "(?:اكتب لي|اكتبلي)\\s+كود\\s+(?:بايثون|جافا|html|sql)",
+  "(?:شو|ما|ماهي|ما هي)\\s+(?:هي\\s+)?عاصمه",
+  "مين\\s+(?:ربح|فاز)\\s+(?:كاس|بطوله|الانتخابات)",
+  "^(?:شو|كيف)\\s+الطقس(?:\\s+اليوم|\\s+بكره)?$",
+  "(?:ساعدني|ساعديني)\\s*(?:ب|في)?\\s*(?:ال)?(?:واجب|امتحان|برمجه)",
+  "(?:شو|ايش)\\s+(?:الدوا|الدواء)\\s+(?:ل|لل)",
   // Arabizi
   "\\b(ahki|e7ki|ehki|a7ki|ahkili|e7kili|a7kili)\\s+(li\\s+)?(nokte|noukte|nokta|2issa|kassa)\\b",
-  "\\b(ktoub|aktob|ektob|ektoub)\\s*(li|lee)?\\s*(2asside|2assida|shi3er|nokte|code|resume)\\b",
+  "\\b(ktoub|aktob|ektob|ektoub)\\s*(li|lee)?\\s*(2asside|2assida|shi3er|nokte)\\b",
   "\\bsa3dne\\b.{0,15}\\b(wajeb|imti7an|homework)\\b",
   // French
   "\\b(raconte|dis)[- ]moi une (blague|histoire)\\b",
-  "\\b(ecris|redige)[- ]moi\\b.{0,20}\\b(poeme|histoire|lettre|code)\\b",
+  "\\b(ecris|redige)[- ]moi\\b.{0,20}\\b(poeme|histoire)\\b",
   "\\bquelle est la capitale\\b|\\bqui est le president\\b",
 ].join("|"));
 

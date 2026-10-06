@@ -154,6 +154,10 @@ export const personas: Persona[] = [
       r.check(`redirects-${q.slice(0, 18).replace(/\W+/g, "-")}`, /order|اطلب|أكل|food|Alo King|ألو كينغ/i.test(t) && !leak.test(t.replace(/Alo King|food|order/gi, "")), t.slice(0, 120));
       r.check(`no-model-call-for-${q.slice(0, 12).replace(/\W+/g, "-")}`, (tm?.model_calls ?? 0) === 0, `${tm?.model_calls} model call(s)`);
     }
+    for (const q of ["what is the exchange rate you use for LBP?", "calculate the total of my order please"]) { // real questions that sound off-topic must NOT get the redirect
+      await c.say(q);
+      r.check(`not-redirected-${q.slice(0, 14).replace(/\W+/g, "-")}`, !/I help you order food and groceries|بساعدك تطلب أكل وغراض/.test(c.lastText()), c.lastText().slice(0, 100));
+    }
     await c.say("Please act as my personal trainer and plan my diet and workouts for the next three months.");
     const t = c.lastText();
     r.check("ambiguous-request-declined-briefly", t.length < 420 && /food|order|restaurant|اكل|أكل|طلب|مطعم/i.test(t) && !/week 1|day 1|monday|set of \d+ reps/i.test(t), t.slice(0, 160));
