@@ -20,6 +20,7 @@ import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
+import { fepWindow, referralRecord } from "./fep.ts";
 import { beginTurn, touchCustomer, type CustomerStart } from "./turnstart.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
@@ -1069,6 +1070,7 @@ async function forgetCustomer(c: Ctx, phone: string, scope: "all" | "address") {
       ok(await sb.from("handoff_log").delete().eq("customer_phone", phone));
       ok(await sb.from("ai_call_log").update({ customer_phone: null }).eq("customer_phone", phone));
       ok(await sb.from("message_billing_log").update({ to_phone: null }).eq("to_phone", phone)); // keeps the pricing flags, drops who it went to
+      ok(await sb.from("fep_referrals").delete().eq("customer_phone", phone)); // ad click records carry the phone
       ordersAnonymised = (ok<any[]>(await sb.from("orders").update({ customer_name: "Deleted customer", building_landmark: null, notes: null }).eq("customer_phone", phone).in("status", ["delivered", "cancelled", "rejected"]).select("id")) ?? []).length;
       ok(await sb.from("customers").update({ ...wipe, full_name: null, language: null, language_set_at: null, acquisition_source: null, acquisition_ref: null, acquisition_at: null, data_consent_at: null, privacy_notice_version: null, handoff_until: null, data_deleted_at: new Date().toISOString(), marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", phone));
     } else {
@@ -1614,12 +1616,13 @@ async function purgeStale() {
   await anonymiseDeletedCustomersOrders();
   await sb.from("handoff_log").delete().lt("created_at", new Date(Date.now() - 30 * 24 * 3600_000).toISOString()); // retention: customer phones in the handoff map
   await sb.from("quick_menus").delete().lt("expires_at", new Date().toISOString());
-  const [v, l, b] = await Promise.all([
+  const [v, l, b, f] = await Promise.all([
     sb.from("pending_voice").delete().lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()),
     sb.from("ai_call_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
     sb.from("message_billing_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
+    sb.from("fep_referrals").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
   ]);
-  if (v.error || l.error || b.error) console.error("purge failed", v.error?.message ?? l.error?.message ?? b.error?.message);
+  if (v.error || l.error || b.error || f.error) console.error("purge failed", v.error?.message ?? l.error?.message ?? b.error?.message ?? f.error?.message);
 }
 async function runWatchdog(o: { pnid: string; dry: boolean; out: any[]; admin?: string; orderId?: string }): Promise<number> {
   let q = sb.from("orders").select("id,short_code,vendor_id,customer_phone,total_usd,status,created_at,escalated_at").eq("status", "pending").is("escalated_at", null)
@@ -1731,6 +1734,7 @@ function extract(evt: any) {
     reply: rep,
     loc: m.location?.latitude != null ? m.location : null,
     acq: parseReferral(m) ?? parseReferral(evt),
+    referral: referralRecord(m, evt, Date.now()), // Click-to-WhatsApp click: recorded for the free-entry-point report (observation only)
   };
 }
 
@@ -1760,6 +1764,11 @@ async function handleEventInner(body: any, evt: any, dry: boolean, out: any[], a
   const start = await beginTurn(sb, { messageId: e.id, phone: e.from, norm: normPhone(e.from), contextId: e.contextId, touchCustomer: touch, lang: detectLanguage(esc0 ? esc0[2].trim() : rawText) });
   if (start.dup) { console.log("duplicate, skipping", e.id); return; }
   c.hasQuick = start.hasQuick;
+  if (e.referral && !start.owner) { // free entry point: record the click and the 72 h window it opens (observation only; nothing about the reply changes)
+    const w = fepWindow(Date.now());
+    const rec = Promise.resolve(sb.from("fep_referrals").upsert({ ...e.referral, customer_phone: e.from.replace(/\D/g, ""), window_opens_at: w.opens_at, window_expires_at: w.expires_at }, { onConflict: "message_id", ignoreDuplicates: true })).then((r: any) => { if (r?.error) console.error("fep_referrals upsert failed", r.error.message); }).catch(() => undefined);
+    const tmx = timerStore.getStore(); if (tmx) tmx.background(rec); else await rec; // always runs, and is always awaited before the isolate may stop
+  }
   { // instant feedback, in parallel with everything else: blue ticks + "typing…" until our reply (or ~25 s). Best effort, never blocks or fails the turn.
     const ack = shouldAck({ id: e.id, dry, fromAdmin: !!c.admin && normPhone(e.from) === c.admin });
     const payload = ack.read ? buildReadReceipt(e.id, ack.typing) : null;
