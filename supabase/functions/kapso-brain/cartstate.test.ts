@@ -22,7 +22,7 @@ describe("cartRevival: what to do when someone taps Confirm on a summary that is
 describe("wiring", () => {
   const src = readFileSync(resolve(__dirname, "index.ts"), "utf8");
   const i = src.indexOf("async function confirmCart");
-  const body = src.slice(i, i + 3500);
+  const body = src.slice(i, i + 9000);
   it("an expired summary is rebuilt through the same server-side pricing path, with one short explanation, and 'already placed' is said plainly", () => {
     expect(body).toMatch(/cartRevival\(/);
     expect(body).toMatch(/prepareOrder\(/);
