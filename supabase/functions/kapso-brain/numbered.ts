@@ -1,10 +1,11 @@
 // Numbered quick-order: "See Full Menu" shows popular dishes as a numbered text list; replies like "1x2, 3, 5" or "1 1 3" become basket lines with no model call.
 // Pure functions. The list is a deterministic function of the vendor's menu and the page; the server remembers which dishes the numbers on screen refer to (see quick_menus).
 import { META } from "../_shared/meta-limits.ts";
+import { isAlcohol } from "./alcohol.ts";
 
 export const NUMBERED_MAX_PER_PAGE = 10;
 const MAX_TOKENS = 40, MAX_QTY = 20;
-type Row = { item_id: string; item_name_en?: string | null; item_name_ar?: string | null; price_usd: number | string; is_popular?: boolean | null; sort_order?: number | null; customizations?: unknown };
+type Row = { contains_alcohol?: boolean | null; section?: string | null; item_id: string; item_name_en?: string | null; item_name_ar?: string | null; price_usd: number | string; is_popular?: boolean | null; sort_order?: number | null; customizations?: unknown };
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const needsChoice = (r: Row) => (Array.isArray(r.customizations) ? r.customizations : []).some((g: any) => g?.name && (g.required || Number(g.min ?? 0) > 0));
 
@@ -13,7 +14,7 @@ const needsChoice = (r: Row) => (Array.isArray(r.customizations) ? r.customizati
 const ADDON_EN = /^(?:add|additional|extras?|add-ons?)\s+\S+$/i, ADDON_AR = /^(?:إضافة|اضافة|إضافي|اضافي|زيادة)\s+\S+$/, ADDON_SECTION = /^\s*(?:add[\s-]?ons?|extras?|إضافات|اضافات|زيادات)\s*$/i; // a prefix plus ONE more word ("Add Cheese"); longer names ("Extra Large Pizza") are dishes
 export const isAddOn = (r: Row & { section?: string | null }) => ADDON_EN.test(String(r.item_name_en ?? "").trim()) || ADDON_AR.test(String(r.item_name_ar ?? "").trim()) || ADDON_SECTION.test(String(r.section ?? ""));
 export function orderForList<T extends Row & { section?: string | null }>(items: T[]): T[] {
-  const priced = items.filter((r) => Number(r.price_usd) > 0), dishes = priced.filter((r) => !isAddOn(r));
+  const priced = items.filter((r) => Number(r.price_usd) > 0 && !isAlcohol(r)), dishes = priced.filter((r) => !isAddOn(r)); // alcohol is never listed
   return (dishes.length ? dishes : priced).sort((a, b) =>
     Number(!!b.is_popular) - Number(!!a.is_popular) || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || String(a.item_name_en ?? "").localeCompare(String(b.item_name_en ?? "")));
 }
