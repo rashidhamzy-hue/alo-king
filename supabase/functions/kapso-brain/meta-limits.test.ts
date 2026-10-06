@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { META, checkInteractive } from "../_shared/meta-limits";
 import { buildClaimCard } from "../_shared/claims";
-import { buildRatingList, ratingRows } from "../_shared/lifecycle";
+import { buildDeliveredRatingList, buildRatingList, ratingRows } from "../_shared/lifecycle";
 import { basketCardText, basketTapId } from "./basket";
 import { addressRows, voiceCardText, voiceTapId } from "./smart";
 import { czNext, itemPageRows, qtyRows } from "./browse";
@@ -49,6 +49,9 @@ describe("pure builders never exceed Meta's limits", () => {
   });
   it("rating list as sent (body, footer, button, section, rows)", () => {
     for (const lang of ["en", "ar"] as const) expectOk(buildRatingList("96170000001", "11111111-1111-1111-1111-111111111111", lang));
+  });
+  it("delivered + rating list as sent (delivery text and rating prompt in one body)", () => {
+    for (const lang of ["en", "ar"] as const) expectOk(buildDeliveredRatingList("96170000001", "11111111-1111-1111-1111-111111111111", lang, { code: "AB12", vendor: "V".repeat(80) }));
   });
   it("address picker (9 saved + new) and rating list", () => {
     const saved = Array.from({ length: 12 }, (_, i) => ({ id: `id${i}`.padEnd(36, "0"), label: "L".repeat(60), village: "Baakleen", landmark: `${LONG_EN} ${i}`, last_used_at: `2026-09-${10 + i}` }));
@@ -140,7 +143,7 @@ describe("every function that posts to the Kapso messages API clamps interactive
   it("found the functions it should be checking", () => expect(files).toEqual(expect.arrayContaining(["kapso-brain/index.ts", "order-notify/index.ts", "claim-vendor/index.ts"])));
   it.each(files.filter((f) => /api\.kapso\.ai\/meta\/whatsapp/.test(read(f))))("%s", (f) => {
     const text = read(f);
-    const interactive = /type: "interactive"|buildClaimCard|buildRatingList|buildVendorOrderCard|buildReorderCard/.test(text) || /notifyOrderStatus/.test(text);
+    const interactive = /type: "interactive"|buildClaimCard|buildRatingList|buildDeliveredRatingList|buildVendorOrderCard|buildReorderCard/.test(text) || /notifyOrderStatus/.test(text);
     if (interactive) expect(text, `${f} sends interactive messages without clampInteractive`).toContain("clampInteractive(");
   });
 });

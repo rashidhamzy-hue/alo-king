@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPriceIncrease, swapNote, isNotifiable, lifecycleText, parseLifecycleTap, pickSubstitute, ratingRows, ratingTapId, swapLine, windowOpen } from "./lifecycle";
+import { buildDeliveredRatingList, isSilentStatus, isPriceIncrease, swapNote, isNotifiable, lifecycleText, parseLifecycleTap, pickSubstitute, ratingRows, ratingTapId, swapLine, windowOpen } from "./lifecycle";
 
 describe("isNotifiable", () => {
   it.each(["accepted", "preparing", "out_for_delivery", "delivered", "cancelled", "rejected"])("%s notifies", (s) => expect(isNotifiable(s)).toBe(true));
@@ -111,5 +111,33 @@ describe("price increase needs its own tap", () => {
     expect(n).toContain("#AB12");
     expect(n).toContain("Hummus -> Fattoush");
     expect(n).toContain("10.00 -> 10.50");
+  });
+});
+
+describe("deliberate status set (fewer messages)", () => {
+  it("only 'preparing' is silent: the customer hears accepted (with ETA), on the way, delivered (with rating), and cancelled / rejected", () => {
+    expect(isSilentStatus("preparing")).toBe(true);
+    for (const s of ["accepted", "out_for_delivery", "delivered", "cancelled", "rejected", "pending", "weird"]) expect(isSilentStatus(s)).toBe(false);
+  });
+  it("accepted carries the ETA and does not promise a 'being prepared' message that is no longer sent", () => {
+    const en = lifecycleText("accepted", "en", { code: "AB12", vendor: "V", prepMin: 25 }), ar = lifecycleText("accepted", "ar", { code: "AB12", vendor: "V", prepMin: 25 });
+    expect(en).toContain("25"); expect(ar).toContain("25");
+    expect(en).toMatch(/on the way|on its way/i);
+    expect(ar).toMatch(/بالطريق/);
+  });
+});
+
+describe("delivered + rating in ONE message", () => {
+  const id = "11111111-1111-1111-1111-111111111111";
+  for (const lang of ["en", "ar"] as const) it(`${lang}: one list message with the delivery text, the order code and five rating rows`, () => {
+    const m: any = buildDeliveredRatingList("96170000001", id, lang, { code: "AB12", vendor: "Al Tahouneh" });
+    expect(m.type).toBe("interactive"); expect(m.interactive.type).toBe("list");
+    expect(m.interactive.body.text).toContain("#AB12");
+    expect(m.interactive.body.text).toMatch(lang === "ar" ? /وصل/ : /delivered/i);
+    expect(m.interactive.body.text).toMatch(lang === "ar" ? /تجربتك/ : /How was/i);
+    expect(m.interactive.body.text.length).toBeLessThanOrEqual(1024);
+    const rows = m.interactive.action.sections.flatMap((s: any) => s.rows);
+    expect(rows.map((r: any) => r.id)).toEqual([5, 4, 3, 2, 1].map((n) => ratingTapId(id, n)));
+    expect(m.interactive.body.text).not.toMatch(/\$\d/); // no price in a status message
   });
 });

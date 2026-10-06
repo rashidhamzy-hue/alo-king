@@ -1,7 +1,7 @@
 // Sends the customer a WhatsApp message when their order's status changes (accepted, preparing, on the way, delivered, cancelled, rejected).
 // Shared by the order-notify function (called by the merchant/driver apps) and the kapso-brain sweep. Free-form messages only, so only inside
 // the customer's 24h window. Takes an injected Supabase client and sender so it never holds credentials itself.
-import { buildRatingList, isNotifiable, lifecycleText, windowOpen, type Lang } from "./lifecycle.ts";
+import { buildDeliveredRatingList, isNotifiable, isSilentStatus, lifecycleText, windowOpen, type Lang } from "./lifecycle.ts";
 
 export type Send = (payload: Record<string, unknown>) => Promise<boolean>;
 const envl = (to: string) => ({ messaging_product: "whatsapp", recipient_type: "individual", to });
@@ -18,6 +18,7 @@ export async function notifyOrderStatus(sb: any, send: Send, orderId: string, op
     .or(`customer_notified_status.is.null,customer_notified_status.neq.${o.status}`).select("id");
   if (!claimed?.length) return { sent: false, reason: "already notified" };
   const release = () => sb.from("orders").update({ customer_notified_status: o.customer_notified_status ?? null }).eq("id", o.id);
+  if (isSilentStatus(o.status)) return { sent: false, reason: "silent status (recorded, not messaged)" }; // e.g. preparing: the next message is on the way
 
   const { data: cu } = await sb.from("customers").select("last_inbound_at").eq("phone_number", o.customer_phone).maybeSingle();
   const { data: last } = cu?.last_inbound_at ? { data: { created_at: cu.last_inbound_at } } : await sb.from("conversations").select("created_at").eq("phone", o.customer_phone).eq("role", "user").order("id", { ascending: false }).limit(1).maybeSingle();
@@ -29,11 +30,11 @@ export async function notifyOrderStatus(sb: any, send: Send, orderId: string, op
     sb.from("vendor_profiles").select("prep_time_min").eq("vendor_id", o.vendor_id).maybeSingle(),
   ]);
   const lang: Lang = cust?.language === "en" ? "en" : "ar";
-  const text = lifecycleText(o.status, lang, { code: o.short_code, vendor: v?.name_en ?? "", prepMin: prof?.prep_time_min, trackUrl: o.status === "out_for_delivery" && opts.trackBase ? `${opts.trackBase}/${o.id}` : null });
-  const ok = await send({ ...envl(o.customer_phone), type: "text", text: { body: text } });
+  // delivered: the delivery text and the five-row rating list are ONE message
+  const payload = o.status === "delivered"
+    ? buildDeliveredRatingList(o.customer_phone, o.id, lang, { code: o.short_code, vendor: v?.name_en ?? "" })
+    : { ...envl(o.customer_phone), type: "text", text: { body: lifecycleText(o.status, lang, { code: o.short_code, vendor: v?.name_en ?? "", prepMin: prof?.prep_time_min, trackUrl: o.status === "out_for_delivery" && opts.trackBase ? `${opts.trackBase}/${o.id}` : null }) } };
+  const ok = await send(payload);
   if (!ok) { await release(); return { sent: false, reason: "send failed (will retry)" }; }
-  if (o.status === "delivered") { // rating prompt: five-row list, one tap
-    await send(buildRatingList(o.customer_phone, o.id, lang));
-  }
   return { sent: true, reason: "sent" };
 }

@@ -5,6 +5,8 @@ export type Lang = "ar" | "en";
 
 const NOTIFIABLE = new Set(["accepted", "preparing", "out_for_delivery", "delivered", "cancelled", "rejected"]);
 export const isNotifiable = (status: string) => NOTIFIABLE.has(status);
+/** Statuses that are recorded as handled but never messaged: the customer hears accepted (with the ETA), on the way, delivered (with the rating) and cancelled / rejected, not every kitchen step. */
+export const isSilentStatus = (status: string) => status === "preparing";
 
 type Ctx = { code: string; vendor: string; prepMin?: number | null; trackUrl?: string | null };
 export function lifecycleText(status: string, lang: Lang, o: Ctx): string {
@@ -12,7 +14,7 @@ export function lifecycleText(status: string, lang: Lang, o: Ctx): string {
   const ar = lang === "ar";
   switch (status) {
     case "accepted":
-      return ar ? `✅ *${o.vendor}* قبلوا طلبك ${c}${o.prepMin ? `\n⏱ حوالي ${o.prepMin} دقيقة` : ""}\nبخبرك أول ما يتجهز 👑` : `✅ *${o.vendor}* accepted your order ${c}${o.prepMin ? `\n⏱ About ${o.prepMin} min` : ""}\nI'll tell you as soon as it moves 👑`;
+      return ar ? `✅ *${o.vendor}* قبلوا طلبك ${c}${o.prepMin ? `\n⏱ حوالي ${o.prepMin} دقيقة` : ""}\nبخبرك أول ما يصير بالطريق إلك 👑` : `✅ *${o.vendor}* accepted your order ${c}${o.prepMin ? `\n⏱ About ${o.prepMin} min` : ""}\nI'll message you when it's on the way 👑`;
     case "preparing":
       return ar ? `👨‍🍳 طلبك ${c} عم يتحضّر عند *${o.vendor}*` : `👨‍🍳 Your order ${c} is being prepared at *${o.vendor}*`;
     case "out_for_delivery":
@@ -93,5 +95,14 @@ export function buildRatingList(to: string, orderId: string, lang: Lang) {
   const ar = lang === "ar";
   return { messaging_product: "whatsapp", recipient_type: "individual", to, type: "interactive", interactive: { type: "list",
     body: { text: ar ? "كيف كانت تجربتك؟ ⭐" : "How was your order? ⭐" }, footer: { text: "Alo King 👑" },
+    action: { button: ar ? "قيّم" : "Rate", sections: [{ title: ar ? "التقييم" : "Your rating", rows: ratingRows(orderId, lang) }] } } };
+}
+
+/** Delivered and the rating prompt as ONE list message (instead of a text followed by a list). */
+export function buildDeliveredRatingList(to: string, orderId: string, lang: Lang, o: { code: string; vendor?: string }) {
+  const ar = lang === "ar";
+  const body = ar ? `🎉 وصل طلبك #${o.code}! بالهنا والشفا 🙏\n\nكيف كانت تجربتك؟ ⭐` : `🎉 Your order #${o.code} has been delivered! Enjoy 🙏\n\nHow was your order? ⭐`;
+  return { messaging_product: "whatsapp", recipient_type: "individual", to, type: "interactive", interactive: { type: "list",
+    body: { text: body.slice(0, 1024) }, footer: { text: "Alo King 👑" },
     action: { button: ar ? "قيّم" : "Rate", sections: [{ title: ar ? "التقييم" : "Your rating", rows: ratingRows(orderId, lang) }] } } };
 }
