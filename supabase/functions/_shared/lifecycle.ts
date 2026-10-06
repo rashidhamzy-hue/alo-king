@@ -19,11 +19,19 @@ type Pt = { lat: number; lng: number };
 const pt = (lat: unknown, lng: unknown): Pt | null => { if (lat == null || lng == null || lat === "" || lng === "") return null; const la = Number(lat), ln = Number(lng); return Number.isFinite(la) && Number.isFinite(ln) && Math.abs(la) <= 90 && Math.abs(ln) <= 180 && !(la === 0 && ln === 0) ? { lat: la, lng: ln } : null; };
 /** Minutes until the order arrives, for the "on the way" message: straight-line distance from the driver (else the restaurant) to the customer, x1.3 for the roads, at 25 km/h
  *  (the same speed the tracking page uses), plus 3 minutes when it is still leaving the restaurant; rounded UP to 5, between 5 and 90. Null when a point is missing or it is implausibly far (never a guess). */
-export function etaMinutes(o: { driverLat?: unknown; driverLng?: unknown; vendorLat?: unknown; vendorLng?: unknown; customerLat?: unknown; customerLng?: unknown }): number | null {
+export const ETA_KMH = 25, ETA_ROAD_FACTOR = 1.3, ETA_DRIVER_FIX_MAX_AGE_MS = 2 * 60_000, ETA_RESTAURANT_LEG_MAX_AGE_MS = 10 * 60_000; // ETA_KMH is the speed src/routes/track.$orderId.tsx assumes
+export function etaMinutes(o: { driverLat?: unknown; driverLng?: unknown; driverAt?: string | null; vendorLat?: unknown; vendorLng?: unknown; customerLat?: unknown; customerLng?: unknown; pickedUpAt?: string | null; now?: number }): number | null {
+  const now = o.now ?? Date.now();
   const to = pt(o.customerLat, o.customerLng); if (!to) return null;
-  const driver = pt(o.driverLat, o.driverLng), from = driver ?? pt(o.vendorLat, o.vendorLng); if (!from) return null;
+  const at = Date.parse(String(o.driverAt ?? ""));
+  const driver = Number.isFinite(at) && now - at >= -60_000 && now - at <= ETA_DRIVER_FIX_MAX_AGE_MS ? pt(o.driverLat, o.driverLng) : null; // only a live fix counts; an old one may be from another delivery
+  if (!driver) { // the restaurant leg is only right shortly after pickup
+    const picked = Date.parse(String(o.pickedUpAt ?? ""));
+    if (Number.isFinite(picked) && now - picked > ETA_RESTAURANT_LEG_MAX_AGE_MS) return null;
+  }
+  const from = driver ?? pt(o.vendorLat, o.vendorLng); if (!from) return null;
   const km = kmBetween(from, to); if (km > 40) return null;
-  const min = (km * 1.3 / 25) * 60 + (driver ? 0 : 3);
+  const min = (km * ETA_ROAD_FACTOR / ETA_KMH) * 60 + (driver ? 0 : 3);
   return Math.min(90, Math.max(5, Math.ceil(min / 5) * 5));
 }
 export function lifecycleText(status: string, lang: Lang, o: Ctx): string {

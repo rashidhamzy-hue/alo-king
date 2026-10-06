@@ -41,6 +41,14 @@ describe("notifyOrderStatus: the deliberate set of status messages", () => {
     await notifyOrderStatus(sb, async (p) => { sent.push(p); return true; }, "11111111-1111-1111-1111-111111111111", { trackBase: "https://t.example" });
     expect(sent[0].text.body).toMatch(/about \d+ min/); expect(sent[0].text.body).toContain("https://t.example/");
   });
+  it("the customer's saved pin is used only when it is still the same village as this delivery", async () => {
+    const mk = (village: string) => { const r = rows("out_for_delivery"); (r.orders as any).delivery_village = "Baakleen"; (r.customers as any) = { ...r.customers, village, last_lat: 33.7, last_lng: 35.62 }; (r.vendors as any) = { name_en: "V", latitude: 33.69, longitude: 35.55 }; return r; };
+    for (const [village, expectEta] of [["Baakleen", true], ["Damour", false]] as const) {
+      const { sb } = fake(mk(village)); const sent: any[] = [];
+      await notifyOrderStatus(sb, async (p) => { sent.push(p); return true; }, "11111111-1111-1111-1111-111111111111");
+      expect(/Arriving in about \d+ min/.test(sent[0].text.body)).toBe(expectEta);
+    }
+  });
   it("on the way without any coordinates: still one message, no invented ETA", async () => {
     const { sb } = fake(rows("out_for_delivery")); const sent: any[] = [];
     await notifyOrderStatus(sb, async (p) => { sent.push(p); return true; }, "11111111-1111-1111-1111-111111111111", { trackBase: "https://t.example" });

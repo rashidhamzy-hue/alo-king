@@ -149,8 +149,19 @@ describe("on-the-way ETA", () => {
     expect(m).toBeGreaterThanOrEqual(25); expect(m! % 5).toBe(0); expect(m).toBeLessThanOrEqual(35);
   });
   it("from the driver when the driver is reporting (no restaurant leg)", () => {
-    const near = etaMinutes({ ...vendor, driverLat: 33.699, driverLng: 35.619, customerLat: 33.7, customerLng: 35.62 });
+    const now = Date.parse("2026-10-06T18:00:00Z"); const near = etaMinutes({ ...vendor, driverLat: 33.699, driverLng: 35.619, driverAt: "2026-10-06T17:59:40Z", customerLat: 33.7, customerLng: 35.62, now });
     expect(near).toBe(5);
+  });
+  it("only a live driver fix counts (within 2 minutes); an old one falls back to the restaurant leg", () => {
+    const now = Date.parse("2026-10-06T18:00:00Z"), base = { ...vendor, driverLat: 33.699, driverLng: 35.619, customerLat: 33.7, customerLng: 35.62, now };
+    expect(etaMinutes({ ...base, driverAt: "2026-10-06T17:59:30Z" })).toBe(5); // fresh
+    const stale = etaMinutes({ ...base, driverAt: "2026-10-06T17:40:00Z" }); expect(stale).toBeGreaterThan(5); // restaurant leg instead
+    const none = etaMinutes({ ...base, driverAt: null }); expect(none).toBe(stale);
+  });
+  it("no ETA when it left long ago and no live position is reporting", () => {
+    const now = Date.parse("2026-10-06T18:00:00Z");
+    expect(etaMinutes({ ...vendor, customerLat: 33.7, customerLng: 35.62, pickedUpAt: "2026-10-06T17:30:00Z", now })).toBeNull();
+    expect(etaMinutes({ ...vendor, customerLat: 33.7, customerLng: 35.62, pickedUpAt: "2026-10-06T17:55:00Z", now })).not.toBeNull();
   });
   it("never a guess: missing point, zero point or very far gives null", () => {
     expect(etaMinutes({ ...vendor })).toBeNull();
