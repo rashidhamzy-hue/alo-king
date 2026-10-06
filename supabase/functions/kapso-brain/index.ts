@@ -22,6 +22,7 @@ import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
 import { alcoholRefusal, asksForAlcohol, isAlcohol, withoutAlcohol } from "../_shared/alcohol.ts";
 import { complaintApology, isComplaint } from "./complaint.ts";
+import { kitchenState, receivedFooter, stillWaitingText, type KitchenState } from "./kitchen.ts";
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 import { fepWindow, referralRecord } from "./fep.ts";
@@ -318,6 +319,15 @@ async function prepareOrder(c: Ctx, phone: string, input: any): Promise<string> 
   return JSON.stringify({ ok: true, summary_sent_with_confirm_button: true, instruction: "Summary card already delivered. Do not repeat it. Reply with nothing." });
 }
 
+// Can anyone actually answer this vendor's orders? An owner WhatsApp number or a kitchen-screen login; else a demo order (vendor not live) or an unreached restaurant.
+async function kitchenStateOf(vendorId: string): Promise<KitchenState> {
+  const [{ data: v }, { count }] = await Promise.all([
+    sb.from("vendors").select("owner_whatsapp_phone,is_live").eq("vendor_id", vendorId).maybeSingle(),
+    sb.from("staff_profiles").select("user_id", { count: "exact", head: true }).eq("vendor_id", vendorId).eq("role", "merchant"),
+  ]);
+  return kitchenState({ ownerLinked: !!v?.owner_whatsapp_phone, hasKitchenScreen: (count ?? 0) > 0, isLive: !!v?.is_live });
+}
+
 async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<string> {
   let q = sb.from("carts").select("*").eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(1);
   if (cartId) q = q.eq("id", cartId);
@@ -371,7 +381,7 @@ async function confirmCart(c: Ctx, phone: string, cartId?: string): Promise<stri
   const { data: order, error } = await sb.from("orders").insert({ customer_phone: phone, customer_name: cust?.full_name ?? "Customer", vendor_id: cart.vendor_id, items: b.lines, subtotal_usd: b.subtotal, delivery_fee_usd: DELIVERY_FEE_USD, total_usd: b.total, payment_method: "cod", payment_status: "unpaid", status: "pending", delivery_village: cart.village, building_landmark: cart.address, notes: cart.notes }).select("id,short_code").single();
   if (error) { await sb.from("carts").update({ status: "pending" }).eq("id", cart.id); if (cart.basket_id) await sb.from("baskets").update({ status: "active" }).eq("id", cart.basket_id); await sendText(c, "Small hiccup placing that — please tap Confirm again in a moment 🙏"); return "order error"; }
   const track = TRACK_BASE ? `\n🔗 Track live: ${TRACK_BASE}/${order.id}` : "";
-  const receivedBody = `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\nThe kitchen is confirming it now — I'll keep you posted. 👑`;
+  const receivedBody = `✅ *ORDER RECEIVED — #${order.short_code}*\n\n🍽 ${b.vendorName}\n*Total ${both(b.total)}* · Cash on delivery\n${b.prof.prep_time_min ? `⏱ ~${b.prof.prep_time_min} min\n` : ""}${track}\n\n${receivedFooter(await kitchenStateOf(cart.vendor_id), b.vendorName, !!c.ar)}`;
   // Cancel stays one tap away until the kitchen accepts (after that the team handles changes)
   await sendButtons(c, { body: receivedBody, buttons: [{ id: `CANCEL|${order.id}`, title: tr(c, "❌ Cancel order", "❌ إلغاء الطلب") }] });
   if (cart.village && cart.address) await saveAddress(phone, cart.village, cart.address); // remembered for next time (the notice was shown with the summary)
@@ -1733,7 +1743,9 @@ async function runWatchdog(o: { pnid: string; dry: boolean; out: any[]; admin?: 
       sb.from("customers").select("language").eq("phone_number", ord.customer_phone).maybeSingle(),
     ]);
     const vname = vend?.name_en ?? "the kitchen";
-    const told = await rawSend(o.pnid, { ...envl(ord.customer_phone), type: "text", text: { body: customerNotice.stillConfirming(lang2(cust?.language), ord.short_code, vname) } }, o.dry, o.out);
+    const waitText = stillWaitingText(await kitchenStateOf(ord.vendor_id), ord.short_code, vname, lang2(cust?.language) === "ar");
+    if (waitText === null) { n--; continue; } // a demo order has no kitchen to wait for: no "still confirming" message
+    const told = await rawSend(o.pnid, { ...envl(ord.customer_phone), type: "text", text: { body: waitText } }, o.dry, o.out);
     if (!told) { await sb.from("orders").update({ escalated_at: null }).eq("id", ord.id); n--; console.error("escalation: customer notice failed, will retry", ord.short_code); continue; }
     if (!o.admin) console.log("order escalated but no admin number is configured", ord.short_code);
     else if (!(await rawSend(o.pnid, { ...envl(o.admin), type: "text", text: { body: adminPing(ord.short_code, vname, maskPhone(ord.customer_phone), both(Number(ord.total_usd))) } }, o.dry, o.out))) console.error("escalation: admin ping not delivered (admin window closed?)", ord.short_code);

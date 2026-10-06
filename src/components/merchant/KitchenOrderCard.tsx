@@ -15,10 +15,13 @@ type Props = {
   onAccept: (mins: number) => void;
   onReject: (reason: string) => void;
   onReady: () => void;
+  /** Self-delivery / demo: the kitchen moves an order with no driver on to the customer. */
+  onOutForDelivery?: () => void;
+  onDelivered?: () => void;
   busy: boolean;
 };
 
-export function KitchenOrderCard({ order: o, now, flashing, onAccept, onReject, onReady, busy }: Props) {
+export function KitchenOrderCard({ order: o, now, flashing, onAccept, onReject, onReady, onOutForDelivery, onDelivered, busy }: Props) {
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const demo = (o.notes ?? "").trim().toUpperCase().startsWith("DEMO");
@@ -84,10 +87,21 @@ export function KitchenOrderCard({ order: o, now, flashing, onAccept, onReject, 
             Food Ready{o.prep_minutes ? ` · ${o.prep_minutes}m` : ""}
           </Button>
         )}
-        {o.status === "ready" && (
-          <p className="w-full rounded-xl bg-secondary/40 py-4 text-center text-secondary-foreground">
-            {o.driver_id ? "Driver assigned, awaiting pickup" : "Waiting for a driver"}
-          </p>
+        {o.status === "ready" && o.driver_id && (
+          <p className="w-full rounded-xl bg-secondary/40 py-4 text-center text-secondary-foreground">Driver assigned, awaiting pickup</p>
+        )}
+        {o.status === "ready" && !o.driver_id && (
+          <div className="flex w-full flex-col gap-2">
+            <p className="rounded-xl bg-secondary/40 py-3 text-center text-secondary-foreground">No driver assigned</p>
+            {onOutForDelivery && (
+              <Button variant="emerald" size="xl" disabled={busy} onClick={onOutForDelivery}>Out for delivery (we deliver)</Button>
+            )}
+          </div>
+        )}
+        {o.status === "out_for_delivery" && (
+          o.driver_id || !onDelivered
+            ? <p className="w-full rounded-xl bg-secondary/40 py-4 text-center text-secondary-foreground">On the way with the driver</p>
+            : <Button variant="gold" size="xl" className="flex-1" disabled={busy} onClick={onDelivered}>Mark delivered</Button>
         )}
       </div>
 
