@@ -17,6 +17,7 @@ import { extractVendorHint, normText, prepareIndex, rankItems, resolveSegments, 
 import { agentLoop } from "./loop.ts";
 import { cartRevival } from "./cartstate.ts";
 import { offTopic, scopeReply } from "./scope.ts";
+import { daypartAt } from "./daypart.ts";
 import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, parseNumberedTap } from "./numbered.ts";
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
@@ -727,10 +728,10 @@ async function tryDeterministicOrder(c: Ctx, phone: string, resolved: Resolved[]
 // ---------- NUMBERED QUICK-ORDER: "See Full Menu" = popular dishes as a numbered list; "1x2, 3, 5" / "1 1 3" become basket lines with no model call ----------
 async function sendNumberedMenu(c: Ctx, phone: string, vendorId: string, page = 0, silentIfMissing = false): Promise<boolean> {
   const [menu, vname] = await Promise.all([vendorMenu(vendorId), vendorName(vendorId)]);
-  const ordered = orderForList(menu);
+  const dp = daypartAt(), ordered = orderForList(menu, dp);
   if (!ordered.length) { if (!silentIfMissing) await sendText(c, tr(c, "I'll pull up that menu for you — what are you in the mood for? 🍽", "رح جيبلك المنيو — شو مشتهي؟ 🍽")); return false; }
-  let p = page, pg = buildNumberedPage({ vendorName: vname, items: ordered, page: p, ar: !!c.ar, both });
-  if (!pg.shown.length) { p = 0; pg = buildNumberedPage({ vendorName: vname, items: ordered, page: 0, ar: !!c.ar, both }); } // past the last page: back to the first
+  let p = page, pg = buildNumberedPage({ vendorName: vname, items: ordered, page: p, ar: !!c.ar, daypart: dp, both });
+  if (!pg.shown.length) { p = 0; pg = buildNumberedPage({ vendorName: vname, items: ordered, page: 0, ar: !!c.ar, daypart: dp, both }); } // past the last page: back to the first
   const buttons = [...(pg.hasMore ? [{ id: numberedTapId(vendorId, p + 1), title: tr(c, "➕ More dishes", "➕ كمان أصناف") }] : []), { id: `CATS|${vendorId}`, title: tr(c, "📋 Categories", "📋 الأقسام") }, { id: "BASKET", title: tr(c, "🧺 My basket", "🧺 سلتي") }];
   await c.quickDel; // an earlier clear in this turn must land BEFORE the new list is stored
   const { error } = await sb.from("quick_menus").upsert({ customer_phone: phone, vendor_id: vendorId, page: p, item_ids: pg.shown.map((x) => x.item_id), expires_at: new Date(Date.now() + 5 * 60_000).toISOString() }, { onConflict: "customer_phone" }); // the numbers on screen must be remembered first
