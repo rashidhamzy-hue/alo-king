@@ -60,7 +60,7 @@ Because Meta bills only on delivery and we credit back non-delivery, **price per
 
 ### 1.2 Margin and minimum viable price
 
-Margin = revenue - Meta marketing cost - bot-reply cost (1.2b) - $0.30 payment - $0.10 per 100 messages. Columns: **A** no reply cost (the first draft of this spec); **C** replies at a 10% rate with service messages billed at the utility rate (the reading in Meta's announcement; the base case), 50% of repliers order; **D** stress: 20% reply rate, service billed. (A reading where service messages stay free costs only the AI: about $0.003 per delivered message at a 10% reply rate, so margins sit between A and C.)
+Margin = revenue - Meta marketing cost - bot-reply cost (1.2b) - $0.30 payment - $0.10 per 100 messages. Columns: **A** no reply cost (the first draft of this spec); **C** replies at a 10% rate with service messages billed at the utility rate (the reading in Meta's announcement; the planning case until pilot data exists), 50% of repliers order; **D** stress: 20% reply rate, service billed. (A reading where service messages stay free costs only the AI: about $0.003 per delivered message at a 10% reply rate, so margins sit between A and C.)
 
 **Prices after including the reply cost** (the first draft's $0.08 / $0.075 / $0.07 left too little in C):
 
@@ -282,7 +282,7 @@ Order chosen by marginal cost, risk to the shared WhatsApp number, and dependenc
 | 0 | **Measurement + consent growth** (log everything in section 6; fix the opt-in wording; real opt-in prompt placement) | costs almost nothing; no Meta charge; produces the first real opt-in rate and messages-per-order cost | Meta rate card checked (A1); logging live for 2 weeks | none (this is infrastructure) |
 | 1 | **Organic recommendations** (section 2) | marginal cost about $0 (SQL ranking, no model call); builds trust and the impression logs sponsored needs; improves conversion for everyone | ranker + no-pay-to-win tests pass; added latency under 200 ms p95 | revert to current `orderNearest` if order conversion or tap rate is worse than the current ordering over 2 weeks, or latency budget broken |
 | 2 | **Broadcast packs**, Starter only, 3-5 pilot merchants | each message costs $0.0421-$0.0471 to us plus about $0.006-$0.011 in replies, so today's $0.05 loses money and margin is healthy only from $0.075-$0.085; blast radius is the shared number (`TIER_250`, GREEN) | Meta rate verified; all templates APPROVED; at least **200 real opted-in customers** and at least 5 pilot merchants with 20+ opted-in past customers each; payments rail + ledger live; free-credit default removed | **pause selling** if any of: delivery rate under 70%; opt-out rate above 2% of recipients in one campaign (A15); number quality leaves GREEN; the all-in cost per delivered message (Meta marketing charge plus the bot's replies, from `message_billing_log` and `ai_call_log`) above $0.06 (the Starter price of $0.085 no longer leaves 25%); or after 4 pilot campaigns the holdout shows no incremental orders (then packs are not worth the risk) |
-| 3 | **Larger packs (Growth, Pro) and scheduling** | volume discounts only valid while margin stays above 20% in the base case C (floor $0.07) | 10+ paying merchants; repeat purchase by at least half of pilots | same as 2, plus any month with negative gross margin |
+| 3 | **Larger packs (Growth, Pro) and scheduling** | volume discounts only valid while margin stays above 20% in the planning case C (floor $0.07) | 10+ paying merchants; repeat purchase by at least half of pilots | same as 2, plus any month with negative gross margin |
 | 4 | **Sponsored slot**, one village, one meal period, free pilot first | near-zero marginal cost but needs traffic and carries the most trust risk; must not exist before organic is trusted | at least **1,000 list impressions per week** in the pilot area; disclosure wording approved by counsel (A10) and checked against Meta policy (A11); suppression tests for diet/allergy pass in production; 10% holdout wired | **stop** if any sponsored row ever appears in a diet/allergy answer (stop-ship); pause if tap rate on the sponsored row is below the organic last-position baseline, if order conversion in lists with a sponsored slot is more than 2 percentage points below the holdout, or if "why am I seeing this" complaints exceed 5 per 1,000 impressions (A15) |
 | 5 | **Per-order pricing / auction** | only meaningful with trusted attribution | holdout-validated attribution over 100+ orders | not built until then |
 
@@ -311,11 +311,11 @@ Free alternatives to keep in view: customer QR codes and Click-to-WhatsApp ads o
 | A18 | Today's in-window broadcast path (a plain message with an opt-out line first, template as fallback, see `docs/whatsapp-templates.md`) is billed as a service message, not marketing, so its real cost and the 1.1 unit cost differ by path | **Meta** + **Data** | section 1.1 |
 | A19 | Accepting LBP at a fixed 89,500 for packs; refund and expiry of unused prepaid credit; merchant terms of service content; whether merchants are controllers of the aggregates and replies we route (Law 81/2018) | **Lawyer** | sections 1.2, 4.2, 5.6 |
 | A20 | Licensing and terms of the payment rail (Whish, OMT, card) for collecting merchant prepayments | **Lawyer** + processor | section 4.1 |
+| A16 | Courier/VAT/tax treatment of selling prepaid messaging credit and advertising to merchants (invoice, VAT on services) | **Lawyer / accountant** | whether prices are VAT-inclusive |
 | A21 | Reply rate to a broadcast (2-20% scenarios) | **Data** (pilot: inbound within 24 h / delivered) | section 1.2b |
 | A22 | 4 outgoing messages for a reply that does not order | **Data** (`message_billing_log` per conversation) | section 1.2b |
 | A23 | AI cost per reply conversation ($0.02 / $0.04) | **Data** (`ai_call_log`) | section 1.2b |
 | A24 | Share of repliers who order (30-50%) | **Data** (pilot, with a holdout) | section 1.2b |
-| A16 | Courier/VAT/tax treatment of selling prepaid messaging credit and advertising to merchants (invoice, VAT on services) | **Lawyer / accountant** | whether prices are VAT-inclusive |
 
 ## 9. Out of scope here
 

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+// The inputs below are copied from the doc (section 1.2b), so this checks the doc's internal arithmetic, not the inputs themselves: change them in both places.
 // Recomputes the pack margin table in docs/merchant-products-spec.md section 1.2 from its stated inputs, so the table cannot drift from the arithmetic.
 const DOC = readFileSync(resolve(__dirname, "../../../docs/merchant-products-spec.md"), "utf8");
 const SVC = 0.0112, AI_BROWSE = 0.02, AI_ORDER = 0.04, MSGS_BROWSE = 4, MSGS_ORDER = 11, LBP = 89_500;
