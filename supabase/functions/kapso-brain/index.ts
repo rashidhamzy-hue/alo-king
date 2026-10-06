@@ -648,8 +648,7 @@ async function tryDeterministicOrder(c: Ctx, phone: string, resolved: Resolved[]
   if (d.kind === "add") {
     const r = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: d.vendorId, items: d.items.map((i) => ({ item_id: i.item_id, quantity: i.quantity })) }));
     if (!r.ok) return false; // nothing was sent: the model handles it with the matches
-    await maybeOfferAddon(c);
-    return true;
+    return true; // no optional drink card after a typed order: the customer already said what they want
   }
   const added: string[] = [], failed: string[] = [];
   for (const l of d.addNow) { const r = await addLine(phone, d.vendorId, l.item_id, clampQty(l.quantity), []); if ("error" in r) failed.push(l.name); else added.push(`${l.quantity}× ${l.name}`); }
@@ -688,7 +687,7 @@ async function handleNumberedReply(c: Ctx, phone: string, text: string): Promise
   const choice = wanted.filter((w) => needsChoices(byId.get(w.item_id) ?? {})), plain = wanted.filter((w) => !choice.includes(w));
   if (choice.length > 1) c.quickCleared = true; // the customer is told to send the remaining numbers again: the list must survive. A plain order consumes the list (Add more reopens it), so a later "3" is never read as a dish.
   if (choice.length > 1) await sendText(c, tr(c, `⚙ ${choice.slice(1).map((w) => itemName(c, byId.get(w.item_id) ?? { item_id: w.item_id })).join(", ")} need options: send ${choice.length > 2 ? "their numbers" : "its number"} again after this one 🙏`, `⚙ ${choice.slice(1).map((w) => itemName(c, byId.get(w.item_id) ?? { item_id: w.item_id })).join("، ")} إلها خيارات: ابعت ${choice.length > 2 ? "أرقامها" : "رقمها"} بعد هيدا 🙏`));
-  if (plain.length) { const res = JSON.parse(await basketTool(c, phone, "add_items", { vendor_id: qm.vendor_id, items: plain })); if (res.ok) await maybeOfferAddon(c); }
+  if (plain.length) await basketTool(c, phone, "add_items", { vendor_id: qm.vendor_id, items: plain }); // no optional drink card after a typed quick order
   if (choice.length) { const w = choice[0]; const row = byId.get(w.item_id); if (row && !tapSupported(row)) await sendItemCard(c, qm.vendor_id, w.item_id); else await sendCzStep(c, phone, qm.vendor_id, w.item_id, w.quantity, []); }
   return true;
 }

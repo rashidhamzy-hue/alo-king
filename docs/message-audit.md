@@ -54,3 +54,10 @@ At about $0.0112 per message, if all in-window messages were charged (not true i
 Rules the target must respect: never remove or merge away the allergy/diet notice, any price or total, or the order confirmation (summary and "order received"); keep cancel/rejected notices; keep the consent prompt exactly as it is until the owner decides (it touches consent, see M2 report).
 
 The changes behind the target (no "preparing" message, rating folded into "delivered", no drink suggestion after a typed quick order) are **proposals**; M2 implements them and the report calls them out for owner sign-off.
+
+## Implemented in M2
+
+- `preparing` is recorded but not messaged (`isSilentStatus`); accepted already carries the ETA and now promises "I'll message you when it's on the way".
+- Delivered and the rating prompt are one list message (`buildDeliveredRatingList`); one send, one retry unit.
+- No optional "Add a drink?" card after a typed quick order (numbered reply or parsed multi-item order); taps and model turns keep it (at most once per basket).
+- **Not changed, for the owner to decide (touches consent):** the opt-in prompt that follows the first "order received", and the privacy notice shown the first time a location is shared. Moving the opt-in question to the delivered message would remove one message from the first order, but it changes when consent is requested.

@@ -87,9 +87,9 @@ All in-window, localized, one message each, sent when the status changes (by the
 | Status | Message |
 |---|---|
 | accepted | "✅ {vendor} accepted order #{code} · ~{n} min" + **Cancel order** button until the kitchen starts preparing |
-| preparing | "👨‍🍳 Preparing" |
+| preparing | *(no message since the fewer-messages change: recorded only; the next message is "on the way")* |
 | out_for_delivery | "🛵 On the way" + live tracking link |
-| delivered | "🎉 Delivered. Enjoy!" followed by the **rating prompt** (list 1-5, optional comment) |
+| delivered | "🎉 Delivered. Enjoy!" and the **rating prompt** (list 1-5) in ONE list message |
 | rejected | apology + offer to pick another kitchen |
 | cancelled | confirmation of the cancellation |
 
