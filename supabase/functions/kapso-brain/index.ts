@@ -20,7 +20,7 @@ import { offTopic, scopeReply } from "./scope.ts";
 import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, parseNumberedTap } from "./numbered.ts";
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
-import { alcoholRefusal, asksForAlcohol, isAlcohol, withoutAlcohol } from "./alcohol.ts";
+import { alcoholRefusal, asksForAlcohol, isAlcohol, withoutAlcohol } from "../_shared/alcohol.ts";
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 import { fepWindow, referralRecord } from "./fep.ts";
@@ -432,12 +432,13 @@ async function sendItemCard(c: Ctx, vendorId: string, itemId: string) {
   ] });
 }
 async function sendQtyPicker(c: Ctx, vendorId: string, itemId: string) {
-  const { data: it } = await sb.from("menu_items").select("item_name_en,item_name_ar").eq("vendor_id", vendorId).eq("item_id", itemId).maybeSingle();
+  const { data: it } = await sb.from("menu_items").select("item_name_en,item_name_ar,section,contains_alcohol").eq("vendor_id", vendorId).eq("item_id", itemId).maybeSingle();
+  if (it && isAlcohol(it)) { await sendText(c, tr(c, "That dish isn't available right now 🙏", "هالصنف مش متوفر هلأ 🙏")); return; }
   await sendList(c, { header: tr(c, "How many?", "كم واحد؟"), body: tr(c, `How many *${itemName(c, it ?? { item_id: itemId })}* would you like?`, `كم *${itemName(c, it ?? { item_id: itemId })}* بدك؟`), button: tr(c, "Quantity", "الكمية"), sections: [{ title: tr(c, "Quantity", "الكمية"), rows: qtyRows(vendorId, itemId, "", !!c.ar).map((r, i) => ({ ...r, title: `${[1, 2, 3, 4, 5, 6, 8, 10][i]}` })) }] });
 }
 async function sendCzStep(c: Ctx, phone: string, vendorId: string, itemId: string, qty: number, picks: string[]) {
   const { data: it } = await sb.from("menu_items").select(MENU_COLS).eq("vendor_id", vendorId).eq("item_id", itemId).eq("available", true).maybeSingle();
-  if (!it) { await sendText(c, tr(c, "That dish isn't available right now 🙏", "هالصنف مش متوفر هلأ 🙏")); return; }
+  if (!it || isAlcohol(it)) { await sendText(c, tr(c, "That dish isn't available right now 🙏", "هالصنف مش متوفر هلأ 🙏")); return; }
   const step = czNext(czGroups(it), picks, `CZ|${vendorId}|${itemId}|${qty}|`, both, !!c.ar);
   if (step.kind === "invalid") { await sendItemCard(c, vendorId, itemId); return; }
   if (step.kind === "ask") {
@@ -489,13 +490,13 @@ async function basketLines(basketId: string) {
 // Re-price a basket from menu_items. Lines whose dish is gone, unpriced or no longer valid are dropped and reported.
 async function priceBasket(vendorId: string, lines: any[]) {
   const ids = [...new Set(lines.map((l) => l.item_id))];
-  const { data: rows } = ids.length ? await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,customizations").eq("vendor_id", vendorId).eq("available", true).in("item_id", ids) : { data: [] as any[] };
+  const { data: rows } = ids.length ? await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,customizations,section,contains_alcohol").eq("vendor_id", vendorId).eq("available", true).in("item_id", ids) : { data: [] as any[] };
   const byId = new Map((rows ?? []).map((r: any) => [r.item_id, r]));
   const ok: any[] = [], gone: { line: any; name: string }[] = [];
   let subtotal = 0;
   for (const l of lines) {
     const row: any = byId.get(l.item_id);
-    const pl: any = row && Number(row.price_usd) > 0 ? priceLine(row, l.choices) : { error: "gone" };
+    const pl: any = row && Number(row.price_usd) > 0 && !isAlcohol(row) ? priceLine(row, l.choices) : { error: "gone" }; // a basket made before the alcohol rule drops its alcohol lines
     if (pl.error) { gone.push({ line: l, name: row?.item_name_en ?? l.item_id }); continue; }
     const lineTotal = r2(pl.unit * l.quantity); subtotal += lineTotal;
     ok.push({ line: l, quantity: l.quantity, name: row.item_name_en || row.item_name_ar, choices: pl.chosen.map((x: any) => x.option), lineTotal });
@@ -1000,8 +1001,8 @@ async function handleSubstitution(c: Ctx, phone: string, offerId: string, answer
     await tellVendorOwner(c, ord.vendor_id, `❌ Order #${ord.short_code} was cancelled by the customer (item sold out).`);
     return;
   }
-  const { data: sub } = offer.sub_item_id ? await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd").eq("vendor_id", ord.vendor_id).eq("item_id", offer.sub_item_id).eq("available", true).maybeSingle() : { data: null };
-  const swap = sub ? swapLine(Array.isArray(ord.items) ? ord.items : [], offer.missing_item_id, { item_id: sub.item_id, item_name_en: sub.item_name_en, item_name_ar: sub.item_name_ar, price_usd: Number(sub.price_usd) }, DELIVERY_FEE_USD, COD_CAP_USD) : null;
+  const { data: sub } = offer.sub_item_id ? await sb.from("menu_items").select("item_id,item_name_en,item_name_ar,price_usd,section,contains_alcohol").eq("vendor_id", ord.vendor_id).eq("item_id", offer.sub_item_id).eq("available", true).maybeSingle() : { data: null };
+  const swap = sub && !isAlcohol(sub) ? swapLine(Array.isArray(ord.items) ? ord.items : [], offer.missing_item_id, { item_id: sub.item_id, item_name_en: sub.item_name_en, item_name_ar: sub.item_name_ar, price_usd: Number(sub.price_usd) }, DELIVERY_FEE_USD, COD_CAP_USD) : null;
   // Swaps are only for orders the kitchen has not accepted yet, and only at the exact total the customer was shown (a price change since the offer voids it).
   const higher = !!swap?.ok && isPriceIncrease(swap.total, Number(ord.total_usd));
   if (higher && answer !== "up") { // a higher total is never applied by the plain swap tap; this offer was issued as a plain swap, so it is void (no "Accept new total" button exists for it)

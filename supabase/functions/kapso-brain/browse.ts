@@ -1,7 +1,7 @@
 // Pure helpers for menu browsing (flow spec item 2): category list, paged item lists, quantity picker, customization steps, one drink add-on.
 // No I/O: index.ts fetches menu rows (server prices) and sends the payloads. Ids never carry prices.
 
-import { isAlcohol } from "./alcohol.ts";
+import { isAlcohol } from "../_shared/alcohol.ts";
 
 export type MenuItemLite = { item_id: string; item_name_en?: string | null; item_name_ar?: string | null; price_usd: number | string; section?: string | null; is_popular?: boolean | null; sort_order?: number | null; contains_alcohol?: boolean | null };
 export type Row = { id: string; title: string; description?: string };

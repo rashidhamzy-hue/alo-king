@@ -15,19 +15,19 @@ const STRONG_RAW = [
   // categories
   "alcohol", "alcoholic", "beer", "beers", "wine", "wines", "whisky", "whiskey", "whiskies", "vodka", "arak", "araq", "liquor", "liquors", "spirits", "champagne", "prosecco", "tequila", "cognac", "brandy", "scotch", "bourbon", "lager", "cider", "liqueur", "vermouth", "absinthe", "ouzo",
   // brands
-  "almaza", "amstel", "heineken", "budweiser", "carlsberg", "becks", "stella artois", "tuborg", "guinness", "moretti", "peroni", "mbeer", "johnnie walker", "johnny walker", "jack daniel", "jack daniels", "jameson", "chivas", "glenfiddich", "glenlivet", "ballantine", "ballantines", "dewars", "grey goose", "absolut", "smirnoff", "belvedere", "baileys", "jagermeister", "martini", "campari", "aperol", "hennessy", "remy martin", "bacardi", "captain morgan", "havana club", "jose cuervo", "ksara", "kefraya", "chateau musar", "massaya", "red label", "black label", "double black",
+  "almaza", "amstel", "heineken", "budweiser", "carlsberg", "becks", "stella artois", "tuborg", "guinness", "moretti", "peroni", "mbeer", "johnnie walker", "johnny walker", "jack daniel", "jack daniels", "jameson", "chivas", "glenfiddich", "glenlivet", "ballantine", "ballantines", "dewars", "grey goose", "absolut", "smirnoff", "belvedere", "baileys", "jagermeister", "martini", "campari", "aperol", "hennessy", "remy martin", "bacardi", "captain morgan", "havana club", "jose cuervo", "chateau ksara", "chateau kefraya", "chateau musar", "ksara reserve", "red label", "black label",
   // Arabic
   "كحول", "كحولي", "كحوليه", "مشروبات كحوليه", "مشروبات روحيه", "خمر", "خمور", "بيره", "بيرا", "نبيذ", "ويسكي", "وسكي", "فودكا", "عرق", "تيكيلا", "كونياك", "شمبانيا", "الماظه", "املاظه", "امستل", "هاينكن", "هاينيكن", "بدوايزر", "كارلسبرغ", "تيوبورغ", "جاك دانيلز", "جوني ووكر", "جوني واكر", "ريد ليبل", "بلاك ليبل", "شيفاس", "سمير نوف", "ابسولوت", "كسارا", "كفريا", "شاتو ميزار", "مسايا",
   // Arabizi
   "bira", "beera", "nbeez", "nabeez", "nabiz", "nbiz", "wiski", "wisky", "ouiski", "weski", "fodka", "3arak", "3araq", "3rak", "3raq", "arrak", "shampania",
 ];
 // Ambiguous words: alcohol only when they are the whole name or sit next to a drink word ("Gin & Tonic", "Rum shot", "Corona bottle").
-const WEAK_RAW = ["gin", "rum", "ale", "sake", "stout", "jager", "corona", "efes", "laziza", "stella", "white label", "blue label", "gold label", "green label", "gold reserve", "جن", "رم", "ستيلا"];
+const WEAK_RAW = ["ksara", "kefraya", "massaya", "musar", "double black", "gin", "rum", "ale", "sake", "stout", "jager", "corona", "efes", "laziza", "stella", "white label", "blue label", "gold label", "green label", "gold reserve", "جن", "رم", "ستيلا"];
 const WEAK_COMPANION = /\b(?:shot|shots|bottle|bottles|glass|glasses|tonic|cocktail|beer|lager|premium|draft|draught)\b|زجاجه|كاس|كاسه|قنينه|شوت/;
 const STRONG = STRONG_RAW.map(alcNorm), WEAK = WEAK_RAW.map(alcNorm);
 
 /** Wording that makes a boozy-looking name safe: root/ginger beer, malt drinks, "0%", "alcohol free", licorice "arak soos". */
-const SAFE_NAME = /\b(?:non alcoholic|nonalcoholic|alcohol free|zero alcohol|0 alcohol|0 0|zero|root beer|ginger beer|ginger ale|malt drink|malt beverage|moussy|barbican|malta|mocktail|virgin|sparkling grape|grape juice|vinegar|licorice|liquorice)\b|بدون كحول|خالي من الكحول|خاليه من الكحول|عديم الكحول|بلا كحول|زيرو|عرق سوس|مالت/;
+const SAFE_NAME = /\b(?:non alcoholic|nonalcoholic|alcohol free|zero alcohol|0 alcohol|0 0|zero|root beer|ginger beer|ginger ale|malt drink|malt beverage|moussy|barbican|malta|mocktail|virgin|sparkling grape|grape juice|vinegar|licorice|liquorice)\b|(?:beer|wine|cognac|bourbon|champagne|tequila|brandy|rum|cider|whisky|whiskey|vodka|arak)(?: \w+)? (?:battered|sauce|glaze|glazed|braised|reduction|cake|baba|infused|marinated|chicken|steak|bbq|lime|vinaigrette|dressing)|baba au rhum|بدون كحول|خالي من الكحول|خاليه من الكحول|عديم الكحول|بلا كحول|زيرو|عرق سوس|عرق ورد|عرق حلو|مالت/;
 const ALC_SECTION = /\b(?:alcohol|alcoholic|beers?|wines?|spirits|liquors?|whisk(?:e)?y|whiskies|vodka|arak|champagne)\b|كحول|كحوليه|خمور|خمر|بيره|نبيذ|مشروبات روحيه|ويسكي|فودكا|عرق|امستل|الماظه/;
 
 const hasPhrase = (hay: string, phrase: string) => ` ${hay} `.includes(` ${phrase} `);
@@ -54,7 +54,8 @@ export const withoutAlcohol = <T extends AlcoholLite>(items: T[]): T[] => items.
 /** The customer ASKED for alcohol ("beer", "bottle of arak", "red label", "بيرة"): answered with a fixed polite line, never with a search. */
 export function asksForAlcohol(text: string): boolean {
   const t = alcNorm(text);
-  return !!t && t.length <= 80 && !SAFE_NAME.test(t) && STRONG.some((w) => hasPhrase(t, w));
+  if (!t || t.split(" ").length > 5 || t.length > 60 || SAFE_NAME.test(t) || /\b(?:no|without|sans|bala|bdon)\b|بدون|بلا/.test(t)) return false; // a short request mainly about the drink; "no wine sauce please" or "beer battered onion rings?" go to the normal flow
+  return STRONG.some((w) => hasPhrase(t, w)) || WEAK.some((w) => t === w);
 }
 
 export const alcoholRefusal = (ar: boolean) => ar

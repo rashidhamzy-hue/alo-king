@@ -1,7 +1,7 @@
 // Numbered quick-order: "See Full Menu" shows popular dishes as a numbered text list; replies like "1x2, 3, 5" or "1 1 3" become basket lines with no model call.
 // Pure functions. The list is a deterministic function of the vendor's menu and the page; the server remembers which dishes the numbers on screen refer to (see quick_menus).
 import { META } from "../_shared/meta-limits.ts";
-import { isAlcohol } from "./alcohol.ts";
+import { isAlcohol } from "../_shared/alcohol.ts";
 
 export const NUMBERED_MAX_PER_PAGE = 10;
 const MAX_TOKENS = 40, MAX_QTY = 20;

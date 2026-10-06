@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { alcoholRefusal, asksForAlcohol, isAlcohol, withoutAlcohol } from "./alcohol.ts";
-import { orderForList } from "./numbered.ts";
-import { buildCategories, pickAddon } from "./browse.ts";
+import { orderForList } from "../kapso-brain/numbered.ts";
+import { buildCategories, pickAddon } from "../kapso-brain/browse.ts";
 
 const item = (name: string, section = "Drinks", extra: Record<string, unknown> = {}) => ({ item_id: name, item_name_en: name, section, price_usd: 3, ...extra });
 
@@ -67,4 +67,13 @@ describe("asking for alcohol", () => {
   it("is recognised in three scripts", () => { for (const t of ["beer", "a bottle of arak", "red label please", "بدي بيرة", "bira", "3arak"]) expect(asksForAlcohol(t), t).toBe(true); });
   it("is not triggered by food or safe drinks", () => { for (const t of ["root beer", "shawarma", "ginger beer", "2 falafel", "عصير ليمون"]) expect(asksForAlcohol(t), t).toBe(false); });
   it("the refusal is in both languages and offers a way forward", () => { expect(alcoholRefusal(false)).toMatch(/alcohol/i); expect(alcoholRefusal(true)).toMatch(/كحول/); expect(alcoholRefusal(false)).toMatch(/\?$/); });
+});
+
+describe("review follow-ups: cooking words and place names are not alcohol", () => {
+  it("dishes cooked with a drink stay visible", () => {
+    for (const n of ["Beer battered fish", "Wine sauce steak", "Cognac pepper sauce", "Bourbon BBQ chicken", "Champagne chicken", "Tequila lime chicken", "Rum cake", "Baba au rhum", "Double Black Forest cake", "Double Black Coffee", "Ksara sandwich", "Apple cider vinegar shot"]) expect(isAlcohol(item(n, "Mains")), n).toBe(false);
+  });
+  it("still catches the real thing", () => { for (const n of ["Chateau Ksara Red", "Ksara Reserve wine", "Massaya", "Double Black Johnnie Walker"]) expect(isAlcohol(item(n)), n).toBe(true); });
+  it("a request that is only about a cooking style is not refused", () => { for (const t of ["no wine sauce please", "do you have beer battered onion rings", "burger without cognac", "wine sauce steak with fries please thanks"]) expect(asksForAlcohol(t), t).toBe(false); });
+  it("short real requests are still refused", () => { for (const t of ["beer", "red label", "bottle of arak", "بيرة", "Stella"]) expect(asksForAlcohol(t), t).toBe(true); });
 });
