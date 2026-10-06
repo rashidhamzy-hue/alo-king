@@ -10,11 +10,18 @@ export function daypartAt(d: Date = new Date()): Daypart {
 }
 
 const norm = (s: unknown) => String(s ?? "").normalize("NFKD").replace(/[̀-ًͯ-ٟـ]/g, "").toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/\s+/g, " ").trim();
+// Arabic keywords match whole words only (حلو must not match حلوم, halloumi).
+const AR = (words: string) => new RegExp(`(?<![\\u0600-\\u06ff])(?:${words})(?![\\u0600-\\u06ff])`);
+// Tags are boosts for clear fits; ordinary all-day food (sandwiches, wraps, falafel, fries) is deliberately untagged. Score 0 only for a clear mismatch (breakfast food at dinner, dessert at breakfast).
 const RULES: { re: RegExp; parts: Daypart[] }[] = [
-  { re: /\b(?:breakfast|brunch|manakish|manoushe|manousheh|manaeesh|eggs?|omelet\w*|foul|fool|ful|labneh|croissants?|pancakes?|granola|oats|porridge|ftour)\b|فطور|فطار|منقوشه|مناقيش|بيض|فول|لبنه|كرواسون|بان كيك/, parts: ["breakfast"] },
-  { re: /\b(?:lunch|plates?|platters?|mains?|main dishes|stews?|rice|kebbeh|kibbeh|mezze|mezza|grills?|grilled|mixed grill|tawook|taouk|kafta|kofta|musakhan|mjaddara)\b|غداء|غدا|صحون|صحن|اطباق رئيسيه|طبق رئيسي|مشاوي|مشوي|كبه|كفته|طاووق|مجدره|مقبلات|مزه/, parts: ["lunch", "dinner"] },
-  { re: /\b(?:dinner|pizzas?|burgers?|steaks?|pasta|lasagna|calzone)\b|عشاء|بيتزا|برغر|ستيك|باستا/, parts: ["dinner", "late"] },
-  { re: /\b(?:late night|snacks?|shawarma|fries|nuggets?|wings?|wraps?|sandwich\w*|falafel|desserts?|sweets?|crepes?|waffles?|ice ?cream|knefe|kunafa|baklava|shakes?)\b|سناك|شاورما|بطاطا|وافل|كريب|بوظه|كنافه|حلويات|حلو|ساندويش|فلافل/, parts: ["late", "dinner"] },
+  { re: /\b(?:breakfast|brunch|manakish|manoushe|manousheh|manaeesh|eggs?|omelet\w*|foul|fool|ful|labneh|croissants?|pancakes?|granola|oats|porridge|ftour)\b/, parts: ["breakfast"] },
+  { re: AR("فطور|فطار|منقوشه|مناقيش|بيض|فول|لبنه|كرواسون|بان كيك"), parts: ["breakfast"] },
+  { re: /\b(?:lunch|plates?|platters?|mains?|main dishes|stews?|kebbeh|kibbeh|mezze|mezza|grills?|grilled|mixed grill|tawook|taouk|kafta|kofta|musakhan|mjaddara)\b/, parts: ["lunch", "dinner"] },
+  { re: AR("غداء|غدا|صحون|صحن|اطباق رئيسيه|طبق رئيسي|مشاوي|مشوي|كبه|كفته|طاووق|مجدره|مقبلات|مزه"), parts: ["lunch", "dinner"] },
+  { re: /\b(?:dinner|pizzas?|burgers?|steaks?|pasta|lasagna|calzone|shawarma)\b/, parts: ["lunch", "dinner", "late"] },
+  { re: AR("عشاء|بيتزا|برغر|ستيك|باستا|شاورما"), parts: ["lunch", "dinner", "late"] },
+  { re: /\b(?:late night|desserts?|crepes?|waffles?|ice ?cream|knefe|kunafa|baklava|shakes?)\b/, parts: ["late", "dinner"] },
+  { re: AR("حلويات|وافل|كريب|بوظه|كنافه|بقلاوه"), parts: ["late", "dinner"] },
 ];
 /** The dayparts a dish is meant for (from its section and name), or null when nothing says (all day). */
 export function itemDayparts(it: { section?: string | null; item_name_en?: string | null; item_name_ar?: string | null }): Daypart[] | null {
@@ -29,9 +36,9 @@ export function daypartScore(it: Parameters<typeof itemDayparts>[0], now: Daypar
   return p === null ? 1 : p.includes(now) ? 2 : 0;
 }
 
-const EXTRA = /\b(?:sides?|drinks?|beverages?|juices?|soft|sodas?|water|sauces?|dips?|breads?|extras?|add ?ons?|toppings?)\b|مشروبات|مشروب|عصير|عصائر|صوص|صلصه|خبز|جانبي|اضافات|إضافات/;
-/** Drinks, sides, sauces and bread: listed after the main dishes. */
-export const isExtraItem = (it: { section?: string | null; item_name_en?: string | null; item_name_ar?: string | null }): boolean => EXTRA.test(norm(`${it.section ?? ""} ${it.item_name_en ?? ""} ${it.item_name_ar ?? ""}`));
+const EXTRA = new RegExp(`\\b(?:sides?|drinks?|beverages?|juices?|soft drinks?|sodas?|water|sauces?|dips?|breads?|extras?|add ?ons?|toppings?)\\b|(?<![\\u0600-\\u06ff])(?:مشروبات|مشروب|عصير|عصائر|صوص|صلصات|خبز|جانبي|جانبيه|اضافات)(?![\\u0600-\\u06ff])`);
+/** Drinks, sides, sauces and bread: listed after the main dishes. Decided by the section only ("Pasta in Cream Sauce" is a main). */
+export const isExtraItem = (it: { section?: string | null }): boolean => EXTRA.test(norm(it.section ?? ""));
 
 export const daypartLabel = (d: Daypart, ar: boolean): string => ar
   ? { breakfast: "مناسب للفطور", lunch: "مناسب للغدا", dinner: "مناسب للعشا", late: "مناسب للسهرة" }[d]

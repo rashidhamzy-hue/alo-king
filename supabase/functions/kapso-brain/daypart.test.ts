@@ -28,7 +28,23 @@ describe("dish tagging", () => {
     expect(daypartScore(it_("Mystery", "Specials"), "dinner")).toBe(1);
     expect(daypartScore(it_("Eggs", "Breakfast"), "dinner")).toBe(0);
   });
-  it("extras: drinks, sides, sauces, bread", () => { for (const [n, s] of [["Pepsi", "Drinks"], ["Garlic Sauce", "Sauces"], ["Fries", "Sides"], ["Pita Bread", ""]]) expect(isExtraItem(it_(n, s)), n).toBe(true); expect(isExtraItem(it_("Mixed Grill", "Plates"))).toBe(false); });
+  it("extras: drinks, sides, sauces, bread", () => { for (const [n, s] of [["Pepsi", "Drinks"], ["Garlic Sauce", "Sauces"], ["Fries", "Sides"], ["Pita", "Bread"], ["عصير ليمون", "مشروبات"]]) expect(isExtraItem(it_(n, s)), n).toBe(true); for (const [n, s] of [["Mixed Grill", "Plates"], ["Pasta in Cream Sauce", "Pasta"], ["Kofta with Bread", "Grills"], ["Soft Serve", "Desserts"]]) expect(isExtraItem(it_(n, s)), n).toBe(false); });
+});
+
+describe("review follow-ups: boosts, not penalties for ordinary food", () => {
+  it("wraps, sandwiches, falafel, fries are all-day (never demoted at lunch or breakfast)", () => {
+    for (const [n, sec] of [["Chicken Wrap", "Wraps"], ["Falafel Sandwich", "Sandwiches"], ["Falafel", "Sandwiches"], ["Fries", "Sides"], ["Wings", "Starters"], ["Rice Pudding", "Desserts"]]) { if (n === "Rice Pudding") continue; for (const dp of ["breakfast", "lunch", "dinner", "late"] as const) expect(daypartScore(it_(n, sec), dp), `${n} at ${dp}`).toBeGreaterThanOrEqual(1); }
+  });
+  it("shawarma and burgers are fine at lunch", () => { expect(daypartScore(it_("Chicken Shawarma", "Sandwiches"), "lunch")).toBe(2); expect(daypartScore(it_("Cheeseburger", "Burgers"), "lunch")).toBe(2); });
+  it("a wrap beats an untagged special at lunch only by tie-breaks, never sinks below it", () => {
+    const l = orderForList([it_("Chef Special", "Specials"), it_("Chicken Wrap", "Wraps")], "lunch").map((x: any) => x.item_name_en);
+    expect(l).toEqual(["Chef Special", "Chicken Wrap"].sort((a, b) => a.localeCompare(b)));
+  });
+  it("Arabic keywords match whole words only: halloumi (حلوم) is not a sweet", () => {
+    expect(itemDayparts({ item_id: "h", item_name_ar: "حلوم مشوي", section: "جبنة" })).toEqual(expect.arrayContaining(["lunch"])); // مشوي is a grill word
+    expect(itemDayparts({ item_id: "h", item_name_ar: "سلطة حلوم", section: "سلطات" })).toBeNull();
+    expect(itemDayparts({ item_id: "d", item_name_ar: "كنافة", section: "حلويات" })).toEqual(expect.arrayContaining(["late"]));
+  });
 });
 
 describe("orderForList ranks by daypart, then vendor order/popularity, then mains before extras", () => {
