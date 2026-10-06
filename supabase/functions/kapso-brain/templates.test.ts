@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { promoAttempts } from "./broadcast.ts";
 
+// (The promotional-wording check for utility templates is a tripwire for the obvious cases, not a guarantee: Meta decides the final category.)
 // docs/whatsapp-templates.md is the source of truth for every template. These tests check each payload in it against Meta's categorization rules
 // (developers.facebook.com .../templates/template-categorization, as mirrored in the Kapso WhatsApp docs) so a template that Meta would re-categorize
 // (and bill as marketing) or reject cannot be added quietly.
@@ -55,6 +56,10 @@ describe("the code sends what the doc describes", () => {
     expect(bodyParams[0].text).not.toMatch(/[\n\t]|\s{2,}/); // Meta rejects line breaks, tabs and 4+ spaces inside a template variable
     expect(t.components.find((c: any) => c.type === "button").sub_type).toBe("quick_reply");
   });
+  it("a very long offer is clipped to 900 characters inside the variable", () => {
+    const a = promoAttempts({ to: "1", lang: "ar", message: "x".repeat(2000), vendorName: "V", inWindow: false, templates: { ar: { name: "a", language: "ar" }, en: { name: "b", language: "en_US" } } });
+    expect((a[0] as any).template.components[0].parameters[0].text.length).toBeLessThanOrEqual(900);
+  });
   it("an in-window promo is plain text with the sender and the opt-out line (never a bare offer)", () => {
     const a = promoAttempts({ to: "1", lang: "en", message: "Offer", vendorName: "Al Tahouneh", inWindow: true, templates: { ar: { name: "a", language: "ar" }, en: { name: "b", language: "en_US" } } });
     expect(a).toHaveLength(2); expect((a[0] as any).type).toBe("text"); expect((a[0] as any).text.body).toMatch(/Al Tahouneh/); expect((a[0] as any).text.body).toMatch(/STOP/i);
@@ -64,6 +69,7 @@ describe("the code sends what the doc describes", () => {
     const p: any = buildOtpPayload("96170000001", "alo_verify_code", "en_US", "123456");
     expect(p.template.components.map((c: any) => c.type)).toEqual(["body", "button"]);
     expect(p.template.components[1].sub_type).toBe("url"); // Meta's required shape for OTP buttons
-    expect("123456".length).toBeLessThanOrEqual(15); // authentication parameters are limited to 15 characters
+    const src = readFileSync(resolve(__dirname, "../claim-vendor/index.ts"), "utf8");
+    expect(src).toMatch(/% 1_000_000\)\.padStart\(6, "0"\)/); // the real generator makes six-digit codes, far under the 15-character limit for authentication parameters
   });
 });

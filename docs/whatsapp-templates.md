@@ -2,7 +2,7 @@
 
 Source of truth for the templates Alo King sends outside the 24h window. Create them with the Kapso connector (`whatsapp_templates` → `create`, Meta payload format) and keep this file in sync.
 
-| Template | Language | Category | Meta id | Status (checked 2026-10-06 in Kapso; synced 2026-10-05 09:27 -03, quality UNKNOWN) |
+| Template | Language | Category | Meta id | Status (checked 2026-10-06 in Kapso; Kapso sync 2026-10-05 12:27 UTC, quality UNKNOWN) |
 |---|---|---|---|---|
 | `alo_verify_code` | `ar`, `en_US` | AUTHENTICATION | – | **Not created.** Meta rejects creation: error 10 / subcode 2388185 "This WhatsApp Business account does not have permission to create message template" (authentication category only; marketing works). Needs the WABA's authentication-template permission / business verification fixed in Meta Business Manager. |
 | `alo_offer_ar` | `ar` | MARKETING | 1639972467727677 | PENDING review (has the quick reply "إيقاف العروض") |
@@ -84,13 +84,13 @@ Rules used (Meta "Template categorization", mirrored in the Kapso WhatsApp docs)
 | Utility templates | **None exist** | In-window order updates are free-form messages (no template, no category). A utility template only matters outside the 24-hour window; a clean draft is proposed above. |
 
 ### Risks found, with what to do (nothing below changes behaviour yet)
-1. **Merchant offer text is not moderated.** Meta's Commerce Policy prohibits promoting alcohol, tobacco, unverified medical claims and prize promotions in marketing templates; a violating template can be paused and hurts the number's quality rating for everyone. `contains_alcohol` exists on menu items, but a broadcast draft is not checked. Add a draft check before sending (spec: `docs/merchant-products-spec.md`, section 4.2). Needs an owner decision on the word list (Arabic terms need care).
+1. **Merchant offer text is not moderated.** Meta's Commerce Policy prohibits promoting alcohol, tobacco, unverified medical claims and prize promotions in marketing templates; a violating template can be paused and hurts the number's quality rating for everyone. `contains_alcohol` exists on menu items, but a broadcast draft is not checked. Add a draft check before sending (spec: `docs/merchant-products-spec.md`, section 4.2, which lands with the next change, M7). Needs an owner decision on the word list (Arabic terms need care).
 2. **Category drift is invisible until billed.** If Meta re-categorizes a template, cost changes silently. The billing log (M3) stores the template name and the category Meta charged; this query shows any mismatch:
    ```sql
    select template_name, pricing_category, count(*) from message_billing_log
-   where message_type = 'template' and status = 'sent' group by 1, 2;
+   where message_type = 'template' and pricing_category is not null group by 1, 2;
    ```
    `alo_offer_*` must show `marketing` only.
 3. **Things that look like service but are marketing.** Reorder nudges, cart-recovery reminders and "sorry for the delay, here is a credit" messages are marketing even when the customer asked for them, so outside the 24-hour window they need a marketing template, `marketing_opt_in`, and an opt-out. Inside the window they are plain messages (charged as service messages from Oct 2026 per Meta's announcement, see `docs/message-audit.md`).
 4. **Promo parameters.** Meta rejects line breaks, tabs and four or more spaces inside a template variable; `promoAttempts` collapses whitespace and clips to 900 characters (tested).
-5. **Marketing per-user limits.** Meta may not deliver a marketing template to someone who received many recently (error 131049, not billed). Our own caps are in `docs/merchant-products-spec.md`, section 5.
+5. **Marketing per-user limits.** Meta may not deliver a marketing template to someone who received many recently (error 131049, not billed). Our own caps are in `docs/merchant-products-spec.md`, section 5 (lands with M7).
