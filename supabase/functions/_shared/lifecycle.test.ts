@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDeliveredRatingList, isSilentStatus, isPriceIncrease, swapNote, isNotifiable, lifecycleText, parseLifecycleTap, pickSubstitute, ratingRows, ratingTapId, swapLine, windowOpen } from "./lifecycle";
+import { etaMinutes, buildDeliveredRatingList, isSilentStatus, isPriceIncrease, swapNote, isNotifiable, lifecycleText, parseLifecycleTap, pickSubstitute, ratingRows, ratingTapId, swapLine, windowOpen } from "./lifecycle";
 
 describe("isNotifiable", () => {
   it.each(["accepted", "preparing", "out_for_delivery", "delivered", "cancelled", "rejected"])("%s notifies", (s) => expect(isNotifiable(s)).toBe(true));
@@ -139,5 +139,32 @@ describe("delivered + rating in ONE message", () => {
     const rows = m.interactive.action.sections.flatMap((s: any) => s.rows);
     expect(rows.map((r: any) => r.id)).toEqual([5, 4, 3, 2, 1].map((n) => ratingTapId(id, n)));
     expect(m.interactive.body.text).not.toMatch(/\$\d/); // no price in a status message
+  });
+});
+
+describe("on-the-way ETA", () => {
+  const vendor = { vendorLat: 33.69, vendorLng: 35.55 }; // Baakleen area
+  it("from the restaurant: distance x1.3 at 25 km/h plus 3 min, rounded up to 5", () => {
+    const m = etaMinutes({ ...vendor, customerLat: 33.7, customerLng: 35.62 }); // about 6.5 km
+    expect(m).toBeGreaterThanOrEqual(25); expect(m! % 5).toBe(0); expect(m).toBeLessThanOrEqual(35);
+  });
+  it("from the driver when the driver is reporting (no restaurant leg)", () => {
+    const near = etaMinutes({ ...vendor, driverLat: 33.699, driverLng: 35.619, customerLat: 33.7, customerLng: 35.62 });
+    expect(near).toBe(5);
+  });
+  it("never a guess: missing point, zero point or very far gives null", () => {
+    expect(etaMinutes({ ...vendor })).toBeNull();
+    expect(etaMinutes({ customerLat: 33.7, customerLng: 35.6 })).toBeNull();
+    expect(etaMinutes({ ...vendor, customerLat: 0, customerLng: 0 })).toBeNull();
+    expect(etaMinutes({ ...vendor, customerLat: 35.5, customerLng: 35.5 })).toBeNull();
+    expect(etaMinutes({ ...vendor, customerLat: "x", customerLng: 35.6 })).toBeNull();
+  });
+  it("capped between 5 and 90 minutes", () => { expect(etaMinutes({ ...vendor, customerLat: 33.69, customerLng: 35.55 })).toBe(5); expect(etaMinutes({ ...vendor, customerLat: 33.69, customerLng: 35.9 })!).toBeLessThanOrEqual(90); });
+  it("the message carries the ETA and the tracking link, in both languages, and no prices", () => {
+    const o = { code: "AB12", vendor: "V", prepMin: 20, trackUrl: "https://t.example/x", etaMin: 20 };
+    expect(lifecycleText("out_for_delivery", "en", o)).toMatch(/about 20 min[\s\S]*https:\/\/t\.example\/x/);
+    expect(lifecycleText("out_for_delivery", "ar", o)).toMatch(/20 دقيقة[\s\S]*https:\/\/t\.example\/x/);
+    expect(lifecycleText("out_for_delivery", "en", { ...o, etaMin: null })).not.toMatch(/Arriving/);
+    expect(lifecycleText("out_for_delivery", "en", o)).not.toMatch(/\$\d/);
   });
 });

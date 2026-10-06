@@ -8,7 +8,24 @@ export const isNotifiable = (status: string) => NOTIFIABLE.has(status);
 /** Statuses that are recorded as handled but never messaged: the customer hears accepted (with the ETA), on the way, delivered (with the rating) and cancelled / rejected, not every kitchen step. */
 export const isSilentStatus = (status: string) => status === "preparing";
 
-type Ctx = { code: string; vendor: string; prepMin?: number | null; trackUrl?: string | null };
+type Ctx = { code: string; vendor: string; prepMin?: number | null; trackUrl?: string | null; etaMin?: number | null };
+
+const toRad = (d: number) => (d * Math.PI) / 180;
+const kmBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const h = Math.sin(toRad(b.lat - a.lat) / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(toRad(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+};
+type Pt = { lat: number; lng: number };
+const pt = (lat: unknown, lng: unknown): Pt | null => { if (lat == null || lng == null || lat === "" || lng === "") return null; const la = Number(lat), ln = Number(lng); return Number.isFinite(la) && Number.isFinite(ln) && Math.abs(la) <= 90 && Math.abs(ln) <= 180 && !(la === 0 && ln === 0) ? { lat: la, lng: ln } : null; };
+/** Minutes until the order arrives, for the "on the way" message: straight-line distance from the driver (else the restaurant) to the customer, x1.3 for the roads, at 25 km/h
+ *  (the same speed the tracking page uses), plus 3 minutes when it is still leaving the restaurant; rounded UP to 5, between 5 and 90. Null when a point is missing or it is implausibly far (never a guess). */
+export function etaMinutes(o: { driverLat?: unknown; driverLng?: unknown; vendorLat?: unknown; vendorLng?: unknown; customerLat?: unknown; customerLng?: unknown }): number | null {
+  const to = pt(o.customerLat, o.customerLng); if (!to) return null;
+  const driver = pt(o.driverLat, o.driverLng), from = driver ?? pt(o.vendorLat, o.vendorLng); if (!from) return null;
+  const km = kmBetween(from, to); if (km > 40) return null;
+  const min = (km * 1.3 / 25) * 60 + (driver ? 0 : 3);
+  return Math.min(90, Math.max(5, Math.ceil(min / 5) * 5));
+}
 export function lifecycleText(status: string, lang: Lang, o: Ctx): string {
   const c = `#${o.code}`;
   const ar = lang === "ar";
@@ -19,7 +36,7 @@ export function lifecycleText(status: string, lang: Lang, o: Ctx): string {
 
       return ar ? `👨‍🍳 طلبك ${c} عم يتحضّر عند *${o.vendor}*` : `👨‍🍳 Your order ${c} is being prepared at *${o.vendor}*`;
     case "out_for_delivery":
-      return ar ? `🛵 طلبك ${c} بالطريق إلك!${o.trackUrl ? `\n🔗 تابعه مباشرة: ${o.trackUrl}` : ""}` : `🛵 Your order ${c} is on the way!${o.trackUrl ? `\n🔗 Track it live: ${o.trackUrl}` : ""}`;
+      return ar ? `🛵 طلبك ${c} بالطريق إلك!${o.etaMin ? `\n⏱ بيوصل خلال حوالي ${o.etaMin} دقيقة` : ""}${o.trackUrl ? `\n🔗 تابعه مباشرة: ${o.trackUrl}` : ""}` : `🛵 Your order ${c} is on the way!${o.etaMin ? `\n⏱ Arriving in about ${o.etaMin} min` : ""}${o.trackUrl ? `\n🔗 Track it live: ${o.trackUrl}` : ""}`;
     case "delivered":
       return ar ? `🎉 وصل طلبك ${c}! بالهنا والشفا 🙏` : `🎉 Your order ${c} has been delivered! Enjoy 🙏`;
     case "cancelled":
