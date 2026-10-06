@@ -203,3 +203,14 @@ describe("P1-5 re-ask card (ambiguity.reAskCard)", () => {
     for (const ar of [false, true]) { const c = reAskCard([LONG_EN, LONG_AR], ar); expectOk(buttons(c.body, c.buttons)); expect(c.buttons).toHaveLength(2); }
   });
 });
+
+describe("P1-7 welcome card and mood list (welcome.ts)", () => {
+  it("welcome card: 3 buttons within limits, both languages, worst-case name", async () => {
+    const { welcomeCard } = await import("./welcome.ts");
+    for (const ar of [false, true]) { const c = welcomeCard({ ar, name: "N".repeat(200), lastOrderId: "11111111-1111-1111-1111-111111111111" }); expectOk(buttons(c.body, c.buttons)); expect(c.buttons).toHaveLength(3); }
+  });
+  it("mood list: <=10 rows, titles <=24", async () => {
+    const { moodRows } = await import("./welcome.ts");
+    for (const ar of [false, true]) expectOk(listMsg(moodRows(ar)));
+  });
+});

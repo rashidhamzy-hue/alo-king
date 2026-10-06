@@ -25,6 +25,8 @@ import { alcoholRefusal, asksForAlcohol, isAlcohol, withoutAlcohol } from "../_s
 import { complaintApology, isComplaint } from "./complaint.ts";
 import { kitchenState, receivedFooter, stillWaitingText, type KitchenState } from "./kitchen.ts";
 import { eitherOrOptions, isVagueAssent, reAskCard } from "./ambiguity.ts";
+import { basketCutoffIso } from "./cartstate.ts";
+import { moodPhrase, moodRows, parseWelcomeTap, welcomeCard } from "./welcome.ts";
 import { verifyWebhook } from "./webhookauth.ts";
 import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 import { fepWindow, referralRecord } from "./fep.ts";
@@ -494,7 +496,7 @@ async function expirePending(phone: string, vendorId?: string): Promise<number> 
   return data?.length ?? 0;
 }
 async function activeBasket(phone: string, vendorId: string) {
-  const { data } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("vendor_id", vendorId).eq("status", "active").maybeSingle();
+  const { data } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("vendor_id", vendorId).eq("status", "active").gte("updated_at", basketCutoffIso()).maybeSingle(); // untouched for 3 h = stale
   return data;
 }
 async function basketLines(basketId: string) {
@@ -526,7 +528,7 @@ async function sendBasketCard(c: Ctx, basketId: string, vendorId: string) {
     buttons: [{ id: basketTapId("CHECKOUT", basketId), title: tr(c, "✅ Checkout", "✅ إتمام الطلب") }, { id: `MENU|${vendorId}`, title: tr(c, "➕ Add more", "➕ زيد أصناف") }, { id: `BEDIT|${basketId}`, title: tr(c, "✏️ Edit", "✏️ تعديل") }] }); // sendButtons already counts it as a rich message
 }
 async function allBaskets(phone: string) {
-  const { data } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("status", "active").order("created_at");
+  const { data } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("status", "active").gte("updated_at", basketCutoffIso()).order("created_at");
   return data ?? [];
 }
 async function clearBasketById(phone: string, basketId: string) {
@@ -549,6 +551,7 @@ async function addLine(phone: string, vendorId: string, itemId: string, qty: num
   if (pl.error) return { error: pl.error, name: row.item_name_en };
   let basket = basket0;
   if (!basket) {
+    await sb.from("baskets").update({ status: "cleared" }).eq("customer_phone", phone).eq("vendor_id", vendorId).eq("status", "active").lt("updated_at", basketCutoffIso()); // a stale basket must not block the new one (one active basket per vendor)
     if ((await allBaskets(phone)).length >= MAX_BASKETS) return { error: `at most ${MAX_BASKETS} baskets at once; ask the customer to check out or clear one first`, name: row.item_name_en };
     const { data: nb, error } = await sb.from("baskets").insert({ customer_phone: phone, vendor_id: vendorId }).select("id,vendor_id").single();
     if (error) { basket = await activeBasket(phone, vendorId); if (!basket) return { error: "could not open a basket", name: row.item_name_en }; } else basket = nb;
@@ -805,7 +808,7 @@ async function handleEditTap(c: Ctx, phone: string, t: EditTap) {
 // "make it 3" / "remove the fries" / "شيل البطاطا": applied to the basket the customer touched last. Returns false when it is not clearly a basket edit (the normal flow handles it).
 async function handleBasketEditText(c: Ctx, phone: string, text: string): Promise<boolean> {
   if (!maybeEditText(text)) return false;
-  const { data: bks } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("status", "active").order("updated_at", { ascending: false }).limit(1);
+  const { data: bks } = await sb.from("baskets").select("id,vendor_id").eq("customer_phone", phone).eq("status", "active").gte("updated_at", basketCutoffIso()).order("updated_at", { ascending: false }).limit(1);
   const bk = bks?.[0]; if (!bk) return false;
   const lines = await editLinesOf(bk.id, bk.vendor_id);
   const r = parseBasketEdit(text, lines);
@@ -1109,7 +1112,7 @@ async function saveAddress(phone: string, village: string, landmark: string) {
 }
 // Checkout from the customer's saved profile. Returns a model instruction when something (name/village/landmark) is missing, else null after sending the summary.
 async function checkoutFromProfile(c: Ctx, phone: string, basketId: string): Promise<string | null> {
-  const { data: bk } = await sb.from("baskets").select("id,vendor_id").eq("id", basketId).eq("customer_phone", phone).eq("status", "active").maybeSingle();
+  const { data: bk } = await sb.from("baskets").select("id,vendor_id").eq("id", basketId).eq("customer_phone", phone).eq("status", "active").gte("updated_at", basketCutoffIso()).maybeSingle();
   if (!bk) { await sendText(c, tr(c, "That basket is already gone 🧺 Tell me what you'd like.", "هالسلة ما عادت موجودة 🧺 خبرني شو بدك.")); return null; }
   const { data: pf } = await sb.from("customers").select("full_name,village,last_address").eq("phone_number", phone).maybeSingle();
   if (pf?.full_name && pf?.village && pf?.last_address) { await basketTool(c, phone, "checkout", { vendor_ids: [bk.vendor_id], customer_name: pf.full_name, delivery_village: pf.village, building_landmark: pf.last_address }); return null; }
@@ -1345,6 +1348,18 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       await maybeOfferAddon(c);
       await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return;
     }
+    const wt = parseWelcomeTap(tag);
+    if (wt) {
+      if (wt === "browse") await sendList(c, { header: tr(c, "What are you in the mood for?", "شو مشتهي؟"), body: tr(c, "Pick one and I'll show what's open near you 👇", "اختار واحد وبفرجيك شو مفتوح حدّك 👇"), button: tr(c, "Moods", "اختيارات"), sections: [{ title: tr(c, "Browse", "تصفّح"), rows: moodRows(!!c.ar) }] });
+      else {
+        const phrase = wt === "surprise" ? "surprise me" : moodPhrase(wt.mood)!;
+        const { data: pr } = await sb.from("customers").select("full_name,village,last_address,last_lat,last_lng").eq("phone_number", phone).maybeSingle();
+        let shown = false;
+        try { shown = await searchFirst(c, phone, phrase, pr); } catch (e) { console.error("welcome search failed", String((e as Error)?.message ?? e).slice(0, 160)); }
+        if (!shown) await sendText(c, tr(c, "Tell me what you're craving and I'll find it 🍽", "خبرني شو مشتهي وبلاقيهالك 🍽"));
+      }
+      await remember(phone, `[tapped ${tag.split("|")[0]}]`, c.log.join("\n")); return;
+    }
     if (kind === "MENU") { await sendNumberedMenu(c, phone, a); await remember(phone, `[tapped See Full Menu]`, c.log.join("\n")); return; }
     const nt = parseNumberedTap(tag);
     if (nt) { await sendNumberedMenu(c, phone, nt.vendorId, nt.page); await remember(phone, `[tapped More dishes]`, c.log.join("\n")); return; }
@@ -1424,14 +1439,15 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
       await remember(phone, userText, c.log.join("\n")); return;
     }
   }
-  // Greeting from a returning customer → one-tap reorder card; typed "reorder" → straight to the summary (the customer still has to confirm)
-  if (!reply && !loc && (isGreeting(userText) || isReorderRequest(userText))) {
+  // A greeting gets a short welcome with [Reorder] [Browse] [Surprise me] (no big reorder card by default); typed "reorder" goes straight to the summary (the customer still has to confirm)
+  if (!reply && !loc && isGreeting(userText)) {
     const last = await lastOrder(phone);
-    if (last) {
-      if (isReorderRequest(userText)) await reorderLast(c, phone, last.id, lang ?? "ar");
-      else await sendReorderCard(c, phone, last, lang ?? "ar");
-      await remember(phone, userText, c.log.join("\n")); return;
-    }
+    await sendButtons(c, welcomeCard({ ar: !!c.ar, name: cust?.full_name, lastOrderId: last?.id }));
+    await remember(phone, userText, c.log.join("\n")); return;
+  }
+  if (!reply && !loc && isReorderRequest(userText)) {
+    const last = await lastOrder(phone);
+    if (last) { await reorderLast(c, phone, last.id, lang ?? "ar"); await remember(phone, userText, c.log.join("\n")); return; }
   }
   if (!reply && !loc && await handleNumberedReply(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "1x2, 3": no model, no search
   if (!reply && !loc && await handleBasketEditText(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "make it 3", "remove the fries": no model
@@ -1730,6 +1746,7 @@ async function anonymiseDeletedCustomersOrders() {
 }
 async function purgeStale() {
   await anonymiseDeletedCustomersOrders();
+  await sb.from("baskets").update({ status: "cleared" }).eq("status", "active").lt("updated_at", basketCutoffIso()); // baskets untouched for 3 h
   await sb.from("handoff_log").delete().lt("created_at", new Date(Date.now() - 30 * 24 * 3600_000).toISOString()); // retention: customer phones in the handoff map
   await sb.from("quick_menus").delete().lt("expires_at", new Date().toISOString());
   const [v, l, b, f] = await Promise.all([
