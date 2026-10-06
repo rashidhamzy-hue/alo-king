@@ -19,7 +19,7 @@ import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, par
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
 import { verifyWebhook } from "./webhookauth.ts";
-import { isStatusEvent, statusRows } from "./billing.ts";
+import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 import { beginTurn, touchCustomer, type CustomerStart } from "./turnstart.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
@@ -1614,12 +1614,12 @@ async function purgeStale() {
   await anonymiseDeletedCustomersOrders();
   await sb.from("handoff_log").delete().lt("created_at", new Date(Date.now() - 30 * 24 * 3600_000).toISOString()); // retention: customer phones in the handoff map
   await sb.from("quick_menus").delete().lt("expires_at", new Date().toISOString());
-  const [v, l] = await Promise.all([
+  const [v, l, b] = await Promise.all([
     sb.from("pending_voice").delete().lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()),
     sb.from("ai_call_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
     sb.from("message_billing_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
   ]);
-  if (v.error || l.error) console.error("purge failed", v.error?.message ?? l.error?.message);
+  if (v.error || l.error || b.error) console.error("purge failed", v.error?.message ?? l.error?.message ?? b.error?.message);
 }
 async function runWatchdog(o: { pnid: string; dry: boolean; out: any[]; admin?: string; orderId?: string }): Promise<number> {
   let q = sb.from("orders").select("id,short_code,vendor_id,customer_phone,total_usd,status,created_at,escalated_at").eq("status", "pending").is("escalated_at", null)
@@ -1872,12 +1872,12 @@ Deno.serve(async (req) => {
   }
   let body: any; try { body = rawBody ? JSON.parse(new TextDecoder().decode(rawBody)) : await req.json(); } catch { return new Response("bad request", { status: 400 }); }
   // Delivery / read / failure statuses of OUR messages (Kapso events whatsapp.message.sent|delivered|read|failed): billing log only, never the inbound pipeline.
-  if (isStatusEvent(req.headers.get("x-webhook-event"), body)) {
-    const rows = statusRows(body).filter((r) => !dry || isTestPhone(String(r.to_phone)));
-    if (rows.length) { const { error } = await sb.from("message_billing_log").upsert(rows, { onConflict: "wamid,status", ignoreDuplicates: true }); if (error) console.error("message_billing_log upsert failed", error.message); }
-    return new Response(dry ? JSON.stringify({ recorded: rows.length }) : "OK", { status: 200, headers: dry ? { "content-type": "application/json" } : undefined });
-  }
-  const events = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
+  const all = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
+  const evHeader = req.headers.get("x-webhook-event");
+  const statusEvts = all.filter((e: any) => isStatusEvent(evHeader, e) || isOutboundEvent(e)), events = all.filter((e: any) => !statusEvts.includes(e)); // an event about our own message never starts a turn
+  const billing = statusEvts.flatMap((e: any) => statusRows(e)).filter((r: any) => !dry || isTestPhone(String(r.to_phone)));
+  if (billing.length) { const { error } = await sb.from("message_billing_log").upsert(billing, { onConflict: "wamid,status", ignoreDuplicates: true }); if (error) console.error("message_billing_log upsert failed", error.message); }
+  if (statusEvts.length && !events.length) return new Response(dry ? JSON.stringify({ recorded: billing.length }) : "OK", { status: 200, headers: dry ? { "content-type": "application/json" } : undefined });
   const out: any[] = [], timings: any[] = [];
   const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride, stagingOverride, timings); } catch (err) { console.error("event error", err); } } })();
   if (dry) { await work; return new Response(JSON.stringify({ out, timings }), { status: 200, headers: { "content-type": "application/json" } }); }

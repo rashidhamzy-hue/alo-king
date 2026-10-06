@@ -18,6 +18,9 @@ export function isStatusEvent(eventName: string | null | undefined, body: any): 
   return !!m && m.kapso?.direction === "outbound" && !m.from && Array.isArray(m.kapso?.statuses) && m.kapso.statuses.length > 0;
 }
 
+/** Anything we sent (never a customer message): such an event must never start a conversation turn, whatever header it arrives with. */
+export function isOutboundEvent(evt: any): boolean { return evt?.message?.kapso?.direction === "outbound"; }
+
 export function statusRows(body: any): BillingRow[] {
   const m = body?.message;
   if (!m || typeof m !== "object" || m.from || m.kapso?.direction !== "outbound" || !Array.isArray(m.kapso?.statuses)) return [];

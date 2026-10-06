@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isStatusEvent, statusRows } from "./billing.ts";
+import { isOutboundEvent, isStatusEvent, statusRows } from "./billing.ts";
 
 const status = (st: string, extra: Record<string, unknown> = {}) => ({ id: "wamid.A1", status: st, timestamp: "1791224989", recipient_id: "9613956917", ...extra });
 const evt = (statuses: any[], over: Record<string, unknown> = {}) => ({
@@ -18,6 +18,11 @@ describe("isStatusEvent", () => {
     expect(isStatusEvent(null, { message: { id: "x", from: "9613956917", type: "text", kapso: { direction: "inbound" } } })).toBe(false);
     expect(isStatusEvent(null, {})).toBe(false);
     expect(isStatusEvent(null, null)).toBe(false);
+  });
+  it("isOutboundEvent: anything we sent is outbound, a customer message is not", () => {
+    expect(isOutboundEvent(evt([status("sent")]))).toBe(true);
+    expect(isOutboundEvent({ message: { from: "961", kapso: { direction: "inbound" } } })).toBe(false);
+    expect(isOutboundEvent({})).toBe(false); expect(isOutboundEvent(null)).toBe(false);
   });
   it("a batch of received messages is not a status event", () => expect(isStatusEvent(null, { batch: true, data: [{ message: { from: "1" } }] })).toBe(false));
 });
@@ -61,6 +66,14 @@ describe("wiring and storage", () => {
     expect(iStatus).toBeLessThan(src.indexOf("await handleEvent(body, evt"));
     expect(src.slice(iStatus, iStatus + 700)).toMatch(/message_billing_log/);
   });
+  it("per-event routing: batches of statuses are recorded, mixed batches keep only inbound events for the pipeline, and outbound events never start a turn", () => {
+    const i = src.indexOf("const statusEvts = all.filter(");
+    expect(i).toBeGreaterThan(0);
+    const seg = src.slice(i, i + 900);
+    expect(seg).toMatch(/isStatusEvent\(evHeader, e\) \|\| isOutboundEvent\(e\)/);
+    expect(seg).toMatch(/events = all\.filter\(\(e: any\) => !statusEvts\.includes\(e\)\)/);
+    expect(seg).toMatch(/flatMap\(\(e: any\) => statusRows\(e\)\)/);
+  });
   it("'delete my data' and the 90-day retention clear the phone / the rows", () => {
     expect(src).toMatch(/message_billing_log"\)\.update\(\{ to_phone: null \}\)\.eq\("to_phone", phone\)/);
     expect(src).toMatch(/message_billing_log"\)\.delete\(\)\.lt\("created_at"/);
@@ -77,5 +90,8 @@ describe("wiring and storage", () => {
     expect(mig).toMatch(/create or replace view public\.message_cost_per_order/i);
     expect(mig).toMatch(/create table if not exists public\.meta_rates/i);
     expect(mig).not.toMatch(/insert into public\.meta_rates/i);
+    expect(mig).toMatch(/message_cost_per_order with \(security_invoker = on\)/i);
+    expect(mig).toMatch(/min\(status_at\) over \(partition by wamid\)/i); // the sent time decides the window, not a later read
+    expect(mig).toMatch(/order by wamid, \(billable is null\)/i); // a row that carries pricing wins over one without
   });
 });
