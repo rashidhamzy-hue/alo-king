@@ -19,6 +19,7 @@ import { buildNumberedPage, numberedTapId, orderForList, parseNumberedReply, par
 import { editListRows, lineButtons, maybeEditText, parseBasketEdit, parseEditTap, type EditLine, type EditTap } from "./basketedit.ts";
 import { buildSearchRows, haversineKm, isOpenResult, looksLikeSearch, moodTerms, orderNearest, type SearchHit } from "./searchfirst.ts";
 import { verifyWebhook } from "./webhookauth.ts";
+import { isStatusEvent, statusRows } from "./billing.ts";
 import { beginTurn, touchCustomer, type CustomerStart } from "./turnstart.ts";
 import { buildAskCard, decideOrder, hasOrderIntent, parseOrder, type Cand } from "./orderparse.ts";
 import { addFailureReason, HISTORY_MAX_MESSAGES, matchesNote, slimSearchRow, trimHistory } from "./trim.ts";
@@ -1067,6 +1068,7 @@ async function forgetCustomer(c: Ctx, phone: string, scope: "all" | "address") {
       chats = (ok<any[]>(await sb.from("conversations").delete().eq("phone", phone).select("id")) ?? []).length;
       ok(await sb.from("handoff_log").delete().eq("customer_phone", phone));
       ok(await sb.from("ai_call_log").update({ customer_phone: null }).eq("customer_phone", phone));
+      ok(await sb.from("message_billing_log").update({ to_phone: null }).eq("to_phone", phone)); // keeps the pricing flags, drops who it went to
       ordersAnonymised = (ok<any[]>(await sb.from("orders").update({ customer_name: "Deleted customer", building_landmark: null, notes: null }).eq("customer_phone", phone).in("status", ["delivered", "cancelled", "rejected"]).select("id")) ?? []).length;
       ok(await sb.from("customers").update({ ...wipe, full_name: null, language: null, language_set_at: null, acquisition_source: null, acquisition_ref: null, acquisition_at: null, data_consent_at: null, privacy_notice_version: null, handoff_until: null, data_deleted_at: new Date().toISOString(), marketing_opt_in: false, opted_out_at: new Date().toISOString() }).eq("phone_number", phone));
     } else {
@@ -1615,6 +1617,7 @@ async function purgeStale() {
   const [v, l] = await Promise.all([
     sb.from("pending_voice").delete().lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()),
     sb.from("ai_call_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
+    sb.from("message_billing_log").delete().lt("created_at", new Date(Date.now() - 90 * 24 * 3600_000).toISOString()),
   ]);
   if (v.error || l.error) console.error("purge failed", v.error?.message ?? l.error?.message);
 }
@@ -1868,6 +1871,12 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(dry ? { escalated, lifecycle, out } : { escalated, lifecycle }), { status: 200, headers: { "content-type": "application/json" } });
   }
   let body: any; try { body = rawBody ? JSON.parse(new TextDecoder().decode(rawBody)) : await req.json(); } catch { return new Response("bad request", { status: 400 }); }
+  // Delivery / read / failure statuses of OUR messages (Kapso events whatsapp.message.sent|delivered|read|failed): billing log only, never the inbound pipeline.
+  if (isStatusEvent(req.headers.get("x-webhook-event"), body)) {
+    const rows = statusRows(body).filter((r) => !dry || isTestPhone(String(r.to_phone)));
+    if (rows.length) { const { error } = await sb.from("message_billing_log").upsert(rows, { onConflict: "wamid,status", ignoreDuplicates: true }); if (error) console.error("message_billing_log upsert failed", error.message); }
+    return new Response(dry ? JSON.stringify({ recorded: rows.length }) : "OK", { status: 200, headers: dry ? { "content-type": "application/json" } : undefined });
+  }
   const events = body?.batch === true && Array.isArray(body.data) ? body.data : [body];
   const out: any[] = [], timings: any[] = [];
   const work = (async () => { for (const evt of events) { try { await handleEvent(body, evt, dry, out, adminOverride, stagingOverride, timings); } catch (err) { console.error("event error", err); } } })();
