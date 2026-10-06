@@ -11,9 +11,8 @@ const withoutArticles = (n: string) => n.split(" ").filter((w) => !ARTICLE_TOKEN
 const keys = (s: string): string[] => {
   const n = normText(s).replace(/\s+/g, " ");
   const noArt = withoutArticles(n);
-  const long = n.replace(/\s/g, "").length >= 4; // a two-letter skeleton (Niha = nh) only from a name of four or more letters
-  const all = [skeleton(n), skeleton(noArt)].flatMap((k) => [k, k.replace(/h$/, "")]); // a final ه / h / e is spelled or dropped either way (خريبة, Khreibeh, khraibe)
-  return [...new Set(all.filter((k) => k.length >= 3 || (k.length === 2 && long)))];
+  const all = [skeleton(n), skeleton(noArt)].flatMap((k) => [k, k.replace(/h$/, "")]); // a final ه / h / e is spelled or dropped either way (خريبة, Khreibeh)
+  return [...new Set(all.filter((k) => k.length >= 4))]; // shorter skeletons collide with dishes (burek = Barouk, sham = Chhim): they only match by exact spelling, below
 };
 
 /** The vendors' village (as stored) the customer typed, or null. The whole message must be the village (plus filler like "in" or "في"), at most three words. */
@@ -21,8 +20,8 @@ export function matchVillage(text: string, villages: string[]): string | null {
   const words = normText(text).split(" ").filter((w) => w && !FILLER.has(w));
   if (!words.length || words.length > 3 || words.some((w) => /^\d+$/.test(w))) return null;
   const typed = keys(words.join(" "));
-  if (!typed.length) return null;
   const hits = new Set<string>();
-  for (const v of villages) { if (!v) continue; const vk = keys(v); if (typed.some((k) => vk.includes(k))) hits.add(v); }
+  const exact = normText(words.join(" "));
+  for (const v of villages) { if (!v) continue; const vk = keys(v); if (typed.some((k) => vk.includes(k)) || (exact.length >= 3 && exact === normText(v))) hits.add(v); }
   return hits.size === 1 ? [...hits][0] : null; // two different villages with the same skeleton: do not guess
 }

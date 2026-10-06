@@ -868,9 +868,19 @@ async function villageFirst(c: Ctx, phone: string, text: string, prof: any): Pro
   const village = matchVillage(text, [...new Set([...idx.vmeta.values()].map((v) => v.village).filter(Boolean) as string[])]);
   if (!village) return false;
   if (await botAskedForDetails(phone)) return false; // mid-checkout the model handles the answer
-  const { error } = await sb.from("customers").update({ village }).eq("phone_number", phone);
-  if (error) console.error("village save failed", error.message);
-  await sendText(c, tr(c, `📍 ${village}, got it. Here's what's open for you:`, `📍 ${village}، تمام. هيدا يلي مفتوح إلك:`));
+  const [{ count: waiting }, { count: baskets }, { data: last }] = await Promise.all([
+    sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString()),
+    sb.from("baskets").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "active").gte("updated_at", basketCutoffIso()),
+    sb.from("conversations").select("content").eq("phone", phone).eq("role", "assistant").order("id", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  if (waiting || baskets || String(last?.content ?? "").includes("[asked customer to share location]")) return false; // mid-order, or the bot just asked for the location: this is the address, not a browse
+  const had = String(prof?.village ?? "").trim();
+  let saved = false;
+  if (!had) { // only a customer with no delivery area yet gets one from a typed village; someone who already has an address just browses (their pin and landmark stay theirs)
+    const { data: row, error } = await sb.from("customers").update({ village }).eq("phone_number", phone).select("phone_number");
+    if (error) console.error("village save failed", error.message); else saved = !!row?.length;
+  }
+  await sendText(c, saved ? tr(c, `📍 ${village}, got it. Here's what's open for you:`, `📍 ${village}، تمام. هيدا يلي مفتوح إلك:`) : tr(c, `📍 Here's what's open around ${village}:`, `📍 هيدا يلي مفتوح حوالي ${village}:`));
   let shown = false;
   try { shown = await searchFirst(c, phone, "what's good", { ...prof, village, last_lat: null, last_lng: null }); } catch (e) { console.error("village search failed", String((e as Error)?.message ?? e).slice(0, 160)); }
   if (!shown) await sendText(c, tr(c, "Tell me what you're craving and I'll find it 🍽", "خبرني شو مشتهي وبلاقيهالك 🍽"));
