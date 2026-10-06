@@ -21,6 +21,12 @@ describe("eitherOrOptions", () => {
     expect(eitherOrOptions("[interactive buttons: Cancel order #AB? | ❌ Yes, cancel / Keep it]")).toBeNull();
     expect(eitherOrOptions("[interactive buttons: Add a drink? | ➕ Add drink / ✅ Checkout]")).toBeNull();
   });
+  it("yes/no cards are answered by their own flows (voice confirm, offers opt-in)", () => {
+    expect(eitherOrOptions("[interactive buttons: 🎙️ I heard: “2 shawarma” Is that right? | ✅ Yes / ✏️ No, retry]")).toBeNull();
+    expect(eitherOrOptions("[interactive buttons: Want first dibs on offers from Shouf restaurants near you? 🎁 Choose anytime to stop with STOP. | 🔔 Yes, send offers / No thanks]")).toBeNull();
+    expect(eitherOrOptions("[interactive buttons: هيك صح؟ | نعم / لا]")).toBeNull();
+  });
+  it("low-confidence text splits are not guessed", () => { expect(eitherOrOptions("Add it, or leave it?")).toBeNull(); expect(eitherOrOptions("Do you want it or not?")).toBeNull(); });
   it("not an either/or", () => {
     for (const t of ["What are you craving?", "Added to your basket 🧺", "[interactive menu list: Menu]", "Do you want a drink?", "Chicken or beef", "[interactive buttons: Pick | A / B / C]"]) expect(eitherOrOptions(t), t).toBeNull();
   });

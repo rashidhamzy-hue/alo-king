@@ -1436,8 +1436,13 @@ async function handleCustomer(c: Ctx, phone: string, text: string, reply: { id: 
   if (!reply && !loc && await handleBasketEditText(c, phone, userText)) { await remember(phone, userText, c.log.join("\n")); return; } // "make it 3", "remove the fries": no model
   if (!reply && !loc && !fromVoice && offTopic(userText)) { await sendText(c, scopeReply(!!c.ar)); await remember(phone, userText, c.log.join("\n")); return; } // scope: ordering and vendor questions only; a clear off-topic request gets a fixed redirect, no model call
   if (!reply && !loc && !fromVoice && isVagueAssent(userText)) { // "ok" / "deal" / "تمام" after an either/or question picks nothing: re-ask with the two options as buttons, apply nothing
-    const { data: last } = await sb.from("conversations").select("content").eq("phone", phone).eq("role", "assistant").order("id", { ascending: false }).limit(1).maybeSingle();
-    const opts = eitherOrOptions(String(last?.content ?? "").trim().split("\n").filter((l: string) => l.trim()).pop() ?? "");
+    const since = new Date(Date.now() - 10 * 60_000).toISOString(); // only a question asked in the last 10 minutes; a typed "ok" to anything older, or to an offer that is not logged (substitution, status messages), is not about it
+    const [{ data: last }, { count: waiting }, { count: offers }] = await Promise.all([
+      sb.from("conversations").select("content").eq("phone", phone).eq("role", "assistant").gt("created_at", since).order("id", { ascending: false }).limit(1).maybeSingle(),
+      sb.from("carts").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending").gt("expires_at", new Date().toISOString()),
+      sb.from("substitution_offers").select("id", { count: "exact", head: true }).eq("customer_phone", phone).eq("status", "pending"),
+    ]);
+    const opts = !waiting && !offers ? eitherOrOptions(String(last?.content ?? "").trim().split("\n").filter((l: string) => l.trim()).pop() ?? "") : null; // a waiting order summary or open offer: a plain yes keeps its normal meaning
     if (opts) { await sendButtons(c, reAskCard(opts, !!c.ar)); await remember(phone, userText, c.log.join("\n")); return; }
   }
   if (!reply && !loc && asksForAlcohol(userText)) { await sendText(c, alcoholRefusal(!!c.ar)); await remember(phone, userText, c.log.join("\n")); return; } // we do not sell alcohol: a fixed polite line, no search, no model call
