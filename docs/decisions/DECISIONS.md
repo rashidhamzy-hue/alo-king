@@ -1,6 +1,6 @@
 # Alo King decisions, 6 October 2026 (canonical, final)
 
-> **Update 6 Oct 2026, 16:10 (Beirut):** we run on free plans during the build. Lovable project deleted, repo private on GitHub's free plan, old Supabase project deleted (no dump was taken; nothing from it is needed), Sentry projects `alo-king-functions` and `javascript-tanstackstart-react` created, Anthropic API key ready. Claude created the Supabase project `alo-king-staging` (ref `tzugbbatfbvrfzxuacqx`, Frankfurt, free plan). The Vercel project `shouf-eats` already exists and is linked to the repo. Sections 2, 3, 9, 10 and 11 below are updated for this. Later the same day: sections 12 (WhatsApp Flows), 13 (NotebookLM brief) and 14 (owner preparation) added. 7 October: Kabsi confirmed a separate business; Kapso set-up and merchant call escalation decided. 7 October, 11:00: zones dropped as a launch mechanism, no field visits. 7 October, 12:00: Rasheed decided to keep the scraped vendor details; sections 15-18 rewritten (vendor data, menus, all-Lebanon places and categories, claims, merchant AI tools); repo instructions prepared on branch `rebuild/lebanon` (push pending).
+> **Update 6 Oct 2026, 16:10 (Beirut):** we run on free plans during the build. Lovable project deleted, repo private on GitHub's free plan, old Supabase project deleted (no dump was taken; nothing from it is needed), Sentry projects `alo-king-functions` and `javascript-tanstackstart-react` created, Anthropic API key ready. Claude created the Supabase project `alo-king-staging` (ref `tzugbbatfbvrfzxuacqx`, Frankfurt, free plan). The Vercel project `shouf-eats` already exists and is linked to the repo. Sections 2, 3, 9, 10 and 11 below are updated for this. Later the same day: sections 12 (WhatsApp Flows), 13 (NotebookLM brief) and 14 (owner preparation) added. 7 October: Kabsi confirmed a separate business; Kapso set-up and merchant call escalation decided. 7 October, 11:00: zones dropped as a launch mechanism, no field visits. 7 October, 12:00: Rasheed decided to keep the scraped vendor details; sections 15-18 rewritten (vendor data, menus, all-Lebanon places and categories, claims, merchant AI tools); repo instructions on branch `rebuild/lebanon` (pushed 7 October). 7 October, 11:45: payments and merchant credit decided (section 20); paid tools ready at launch.
 
 Drafted by Claude Sonnet 5.5 from the real repo; verified, corrected and finalised by Claude Opus 5.5 on 6 October 2026. This file overrides every other document. Manus reports are input only. Status words used below: VERIFIED (checked against an official or primary source today), DECIDED (Claude's call, final unless partners overrule), OPEN (needs a written answer from a provider or the lawyer; the build does not wait for it).
 
@@ -122,9 +122,9 @@ DECIDED:
 3. Customer bot and AI (typed tools, budgets, fixtures, eval set in Arabic, English, Arabizi and voice); claims, registration, pre-filled profiles, merchant editing on dashboard and WhatsApp, smart menu (section 18).
 4. Website: claimed-vendor pages, tracking, handoff, SEO.
 5. Merchant self-delivery first (5a); courier app and dispatch later (5b, after pilot).
-6. Payment adapter and ledger: cash on delivery first; Whish when credentials and written terms exist; Tap for foreign cards after that.
+6. Payment adapter and ledger (section 20): cash on delivery; Whish payments straight to the merchant's own Whish account; Alo King's own Whish account for merchant credit top-ups; Tap for foreign cards later.
 7. Simulator, evals, one capped live run per week on test numbers, pilot scorecard.
-8. Merchant growth tools: offers, paid broadcast, paid recommendations, insights (section 18.4). Not a pilot gate.
+8. Merchant growth tools and Alo King Credit: offers, paid broadcast, paid recommendations, insights, credit wallet and statements (sections 18.3, 20). Required before launch.
 
 Owner track in parallel (Rasheed, with partners Bassem and Firas on the company papers): SARL (one partner allowed; equity and roles memo for the three partners), lawyer engagement, Alfa or touch postpaid lines, Meta portfolio with all three owners as admins, Whish written terms, Tap application once the SARL exists, domain. No field visits: merchants claim or register themselves (section 15).
 
@@ -143,11 +143,11 @@ The build does not start until every line below is ✅.
 |---|---|---|
 | Repo private, Claude GitHub App installed | ✅ private; app installed, push access confirmed 7 October | none |
 | Repo name | ✅ `rashidhamzy-hue/alo-king` (old repo now `alo-king-legacy`) | none |
-| Repo instructions | Prepared by Claude 7 October: new `CLAUDE.md`, `AGENTS.md` and this file at `docs/decisions/DECISIONS.md`, committed on a new branch `rebuild/lebanon` in Claude's session. The push to GitHub was held by Claude's safety check (it changes the shared repo) and waits for Rasheed's yes | Rasheed: (1) say yes to the push; (2) then GitHub → Settings → General → Default branch → `rebuild/lebanon`, so every cloud session starts on the right branch |
+| Repo instructions | ✅ Pushed 7 October: branch `rebuild/lebanon` with the new `CLAUDE.md`, `AGENTS.md` and this file at `docs/decisions/DECISIONS.md`; `main` is legacy and frozen. Claude cannot change repository settings | Rasheed: GitHub → Settings → General → Default branch → `rebuild/lebanon` |
 | Supabase `alo-king-staging` (ref `tzugbbatfbvrfzxuacqx`, Frankfurt) | ✅ healthy, empty: 0 tables, 0 migrations, 0 functions | none |
 | Supabase ↔ GitHub integration | ✅ disconnected | none |
 | Supabase ↔ Vercel integration | ✅ confirmed by Rasheed as `alo-king-staging` | Phase 0 maps its variable names to the app's |
-| Vercel project `alo-king` | ✅ renamed 7 October; linked to repo, framework detected, no deployments yet, previews behind Vercel login | Rasheed: set functions region to Frankfurt (fra1) in Settings → Functions if not done |
+| Vercel project `alo-king` | ✅ renamed 7 October; functions region Frankfurt (fra1) set by Rasheed; no deployments yet; previews behind Vercel login | none |
 | Sentry | ✅ `alo-king-functions` and `javascript-tanstackstart-react` exist (org shared with Kabsi projects; free quota is shared) | none |
 | GitHub secrets and variable | Rasheed reports: old `WATCHDOG_SECRET` and `ADMIN_WHATSAPP_PHONE` deleted; `SUPABASE_ACCESS_TOKEN` (new), `SUPABASE_DB_PASSWORD`, `ANTHROPIC_API_KEY`, `SENTRY_AUTH_TOKEN`, `KAPSO_API_KEY`, `GOOGLE_PLACES_SERVER_KEY` added; variable `SUPABASE_PROJECT_REF` added. Claude cannot read GitHub Actions settings from its session | Phase 0 first PR: a `check-setup` workflow proves each secret works without printing it. That is the confirmation |
 | Kapso | ✅ Dead webhook deleted from Kabsi.co. New Kapso project `Alo King` (eef48fbd-bb4a-4597-9229-3fd145692ccb) created; its key is `KAPSO_API_KEY`. The claude.ai connector stays on Kabsi.co | Proven by `check-setup` |
@@ -319,17 +319,58 @@ On a successful claim the profile opens pre-filled from the seed (name, address,
 - Paid broadcast: a merchant pays for one WhatsApp promotion sent by Alo King to customers who opted in to marketing and match the merchant's area or past orders. Rules: approved marketing template, maximum 2 promotional messages per customer per week across all merchants, STOP honoured instantly. Price per recipient = Meta's marketing rate plus a margin, set before launch.
 - Paid recommendations: sponsored placement in bot suggestions and search, always labelled "مُموَّل · Sponsored", at most one per list, shown only when it matches what the customer asked for, delivers to the address and is open. Charged per delivered sponsored order; price set before launch.
 - Insights: orders, revenue, top items, missed and late orders, customer ratings from real orders.
-- Billing for all of this goes on the merchant's monthly statement with the $1 order fee (Whish transfer or cash). No prepaid balances or merchant wallets: stored value would need a payments licence.
+- Billing: merchants pay for everything from prepaid Alo King Credit topped up by Whish, with a monthly statement as fallback (section 20).
 
 ### 18.4 Build placement
-Claims, registration, pre-fill, profile and menu editing (dashboard and WhatsApp) and the smart menu are Phase 3. Offers, paid broadcast, paid recommendations and insights are a new Phase 8, built before launch if time allows; the pilot does not wait for Phase 8.
+Claims, registration, pre-fill, profile and menu editing (dashboard and WhatsApp) and the smart menu are Phase 3. Offers, paid broadcast, paid recommendations, insights and Alo King Credit are Phase 8 and are required before launch (decided 7 October).
 
 ## 19. Owner reminders (Claude raises these at every check until done)
+- Change the GitHub default branch to `rebuild/lebanon`.
+- Re-send the Gemini report on Lebanese villages and cities (it did not reach the project or the chat on 7 October).
+- Whish: send the question list in section 20.5 and get API documents and a sandbox key. After the SARL exists (about 17 October): open Alo King's own Whish business account.
 - Buy `aloking.com`; then create the browser Google key restricted to `aloking.com` and `*.vercel.app` and add it to Vercel's environment settings.
-- Google Cloud spending limits: daily quota per Places API and a $5 budget alert.
-- Vercel functions region: Frankfurt (fra1).
-- 50 voice notes for the transcription test.
-- Company track: SARL, lawyer, postpaid lines, Meta business account in the company name.
+- Before launch, Google Cloud spending limits (10 minutes): (1) console.cloud.google.com → Billing → Budgets & alerts → Create budget → $5 a month, alerts at 50%, 90%, 100% to Rasheed's email. (2) APIs & Services → Places API (New) → Quotas & system limits → set per-day caps: Text Search 150, Place Details 300, Autocomplete 300. (3) APIs & Services → Credentials → the server key → API restrictions → only Places API (New).
+- 50 voice notes for the transcription test (later).
+- Company track: SARL (ready in about 10 days), then lawyer letter on the money flows in section 20, postpaid lines, Meta business account in the company name.
+
+## 20. Money: customer payments, merchant credit, paid tools (DECIDED, 7 October)
+Three flows, kept separate so Alo King never holds customers' food money.
+
+### 20.1 Customer pays for food (customer → merchant)
+- Cash on delivery, paid to the merchant. Default for every order.
+- Whish online payment, straight to the merchant: each merchant connects its own Whish business account in the dashboard; when a customer chooses Whish, Alo King creates the payment link on that merchant's account, the money lands with the merchant, and Alo King only records the signed payment result. A merchant without a Whish business account takes cash only.
+- If Whish offers a marketplace product (one Alo King account that routes each payment to the right merchant), it replaces merchant-connected accounts once the lawyer approves it.
+- Refunds go back through Whish to the original payment, triggered by the merchant or by Alo King support with the merchant's agreement. No customer wallets or stored balances.
+- Foreign cards (diaspora): Tap, later, same rule (paid to the merchant, or Alo King as merchant of record only with the lawyer's written approval).
+
+### 20.2 Merchant pays Alo King (merchant → Alo King)
+- Alo King Credit: a prepaid balance a merchant tops up from the dashboard or WhatsApp with a Whish payment link into Alo King's own Whish business account (minimum $10).
+- Closed loop: spendable only on Alo King's own services (order fees, broadcasts, sponsored orders); not transferable, not withdrawable, not usable with any other merchant, no interest; unused credit refunded on request when the merchant closes its account. This makes it an advance payment for services rather than stored money; the lawyer confirms this in writing before launch.
+- Order fee ($1 per delivered order, first 30 days free) is deducted from credit when the order is marked delivered. If credit is short, the fee goes on the monthly statement. Statement unpaid after 15 days: paid tools pause. After 30 days: the merchant stops receiving orders until paid.
+- Paid tools are prepaid only: a campaign or sponsorship reserves its budget from credit when it starts, is charged for what was actually delivered, and releases the rest.
+- Every movement is an append-only ledger entry (top-up, order fee, broadcast charge, sponsored charge, refund to credit, adjustment by admin with reason). Statements and VAT invoices are generated from the ledger; VAT applies once the SARL is VAT-registered, at the rate in the VAT table.
+
+### 20.3 Launch prices (stored in a dated price table, changeable without code)
+| Product | Price | Rules |
+|---|---|---|
+| Order fee | $1.00 per delivered order | first 30 days free per merchant |
+| Paid broadcast | $0.08 per delivered message, minimum $5 per campaign | audience = customers who opted in to marketing AND either ordered from this merchant or live inside its delivery radius and order its category; max 2 promotional messages per customer per week across all merchants; merchant shown the audience size and exact cost before paying; undelivered messages not charged |
+| Sponsored recommendation | $0.40 per delivered order that came from a sponsored suggestion within 24 hours | labelled "مُموَّل · Sponsored"; at most one per list; shown only if relevant, open and delivering to the address; merchant sets a daily budget; sponsors rotate by remaining budget and quality score; no auction at launch |
+| Offers (discounts, combos, free delivery) | free to create | merchant-funded; server-validated |
+
+Broadcast margin check: Meta charges $0.0392 per delivered marketing message in Lebanon; $0.08 covers that plus replies and AI handling.
+
+### 20.4 Quality guards for paid tools
+- A merchant whose broadcasts get more than 2% STOP replies or any WhatsApp block-rate warning is paused from broadcasting for 14 days.
+- Sponsored placement is dropped for merchants with acceptance under 90% or more than 5% late orders in the last 14 days.
+- Paid placement never changes organic ranking; customers can always ask "show me without sponsored".
+
+### 20.5 Questions Rasheed sends to Whish (provider questions, not a negotiation)
+1. API documents and a sandbox key for Whish Pay payment links, payment status, webhooks (with signature) and refunds.
+2. Can a merchant connect its own Whish business account to a platform (API key or authorisation), so payment links created by Alo King pay that merchant directly?
+3. Do you offer a marketplace or split-payment product for platforms?
+4. Your 1% rate in writing, for which products, and the settlement timing to a Lebanese bank or Whish account.
+5. Requirements to open Alo King SARL's own Whish business account.
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
