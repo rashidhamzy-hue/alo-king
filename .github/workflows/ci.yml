@@ -44,13 +44,16 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: gitleaks on the commits of this pull request
+      - name: gitleaks on the lines this pull request adds
+        # PRs are squash-merged, so the gate is the net change: added lines of base...head.
         env:
           GITLEAKS_VERSION: 8.28.0
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
-          ./gitleaks git --no-banner --redact --exit-code 1 --log-opts="${BASE_SHA}..HEAD" .
+          git diff --no-color -U0 "$BASE_SHA...$HEAD_SHA" | grep -E '^\+' | grep -vE '^\+\+\+ ' > added.txt || true
+          ./gitleaks stdin --no-banner --redact --exit-code 1 < added.txt
       - name: No committed env files
         run: |
           bad=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$' || true)

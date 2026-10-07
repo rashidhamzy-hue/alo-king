@@ -33,11 +33,11 @@ description: Run end-to-end dry-run tests of the Alo King WhatsApp bot (kapso-br
 - `Send 10% off … to my customers` → one preview card: reach, cost ($0.05/msg), credit before → after, `BCAST|OK|<id>` / `BCAST|NO|<id>` buttons, nothing after it.
 - Send → payload to each opted-in customer: a plain `text` message if they wrote to us in the last 24h, otherwise the `template` for their language (`alo_offer_ar` / `alo_offer_en_optout`), "Broadcast done", credit reduced. Cancel → nothing sent, no charge. Tapping an already-handled card → "already handled".
 
-**Vendor order card and 90 s escalation** (see `docs/vendor-orders.md`)
+**Vendor order card and 90 s escalation** (see `docs/legacy/vendor-orders.md`)
 - Confirming an order → the owner (linked test number) gets a card with `ORDER|ACC|…` / `ORDER|REJ|…`; `reply "ORDER|ACC|<id>" "✅ Accept"` from the owner → status `accepted` + customer notice; Reject → `rejected` + notice; a second tap → "already handled".
 - Escalation: leave an order pending, backdate it (`update orders set created_at = now() - interval '2 minutes' where id = '…'`), then `curl -X POST -H "x-selftest: $SELFTEST_TOKEN" -H "x-selftest-admin: 961700000095" "$URL?job=order-watchdog"` → customer "still confirming" + admin ping; a second call escalates nothing. Dry job runs only touch `961700000…` orders.
 
-**Customer side** (see `docs/customer-side.md`)
+**Customer side** (see `docs/legacy/customer-side.md`)
 - Reorder: for a customer with a pending/accepted order, `hi` → card with `REORDER|<id>`; `reply "REORDER|<id>" "Reorder last order"` → a fresh summary (re-priced) with a Confirm button, no order until Confirm.
 - Opt-out: `STOP`, `Stop offers`, and `tpl-button OPTOUT "Stop offers"` each set `marketing_opt_in=false` at once (check `customers`); `stop the order` / `cancel my order` do not.
 - Source: an event with `"message": {..., "referral": {"source_type":"ad","source_id":"1","ctwa_clid":"x"}}` or the text `ORDER_BAAK_SANAWBAR_T12` sets `customers.acquisition_*` once.

@@ -1,3 +1,5 @@
+> **Note (7 October 2026):** this copy predates Meta's 1 October 2026 pricing change (service messages and in-window utility templates are now charged, with 1,000 free service messages per number per month). Use DECISIONS §6 and the dated rate table, not this file.
+
 \# Pricing on the WhatsApp Business Platform
 
 This document explains how pricing works on the WhatsApp Business Platform.
