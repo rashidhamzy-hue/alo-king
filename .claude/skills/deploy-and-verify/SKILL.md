@@ -1,28 +1,31 @@
 ---
 name: deploy-and-verify
-description: Ship Supabase edge function or frontend changes for Alo King and verify they are live (CI deploy, function version/hash, verify_jwt, smoke test, frontend build). Use after merging any change under supabase/functions or src.
+description: Ship Alo King changes to alo-king-staging and verify they are live (CI automerge, migrations, edge functions listed in DEPLOY, verify_jwt, Vercel preview). Use after a PR touching supabase/ or src/ merges, or when a deploy fails.
 ---
 
 # Deploy and verify
 
-## Edge functions
-1. Open a PR, merge to `main` (squash). A push touching `supabase/functions/**` or `supabase/config.toml` runs `.github/workflows/deploy-functions.yml` → `supabase functions deploy` for **all** functions (needs the `SUPABASE_ACCESS_TOKEN` repo secret; `verify_jwt` comes from `supabase/config.toml`).
-2. Wait for the run to finish (about 30 s once started; it can queue for a minute). Check `actions_list` → `list_workflow_runs`: `status=completed`, `conclusion=success`.
-3. Verify on Supabase (`list_edge_functions`, project `hnjkietmwvkgbyrcnweq`):
-   - `kapso-brain` and `demo-chat` → `verify_jwt: false`; `claim-vendor` and `merchant-ai` → `verify_jwt: true`.
-   - `version` increased and `ezbr_sha256` changed for the function you edited (other functions bump the version on every deploy even when unchanged).
-4. Smoke test with the `test-whatsapp-flow` skill (at least one order and one owner message for `kapso-brain`).
-5. Never edit functions only in the Supabase dashboard or via `deploy_edge_function`; the repo is the source of truth and CI will overwrite them.
+There is no manual deploy. Every PR into `rebuild/lebanon` runs `.github/workflows/ci.yml`; when all checks pass and the branch is up to date, the `automerge` job squash-merges it and `deploy-staging` runs in the same workflow run. Production does not exist yet; it deploys only from `main` after the pilot gate (DECISIONS §1, §10).
 
-## Test a PR before merging
-Run the workflow manually on the PR branch with `staging=true` (GitHub Actions → "Deploy Supabase edge functions" → Run workflow, or `actions_run_trigger`). It deploys the branch's `kapso-brain` as **`kapso-brain-test`** (`verify_jwt` off, nothing points a webhook at it), sharing the production database/secrets. Run the dry-run tests with `FN=kapso-brain-test`, review, then merge.
+## What deploy-staging does
+1. Applies `supabase/migrations/*` to `alo-king-staging` (`tzugbbatfbvrfzxuacqx`) through the session pooler (`scripts/staging-db-url.sh`).
+2. Deploys each function named in `supabase/functions/DEPLOY` (`verify_jwt` from `supabase/config.toml`). A function not listed there is not deployed.
+3. Runs the simulator suite (`pnpm run sim`) once it exists (Phase 7).
 
-## Database
-- Schema/RLS changes go in a new `supabase/migrations/<timestamp>_<name>.sql` and are applied with `apply_migration`; confirm with `list_migrations`. Never create tables from Lovable.
+## Verify after a merge
+1. The PR's CI run: `automerge` and `deploy to alo-king-staging` both green (GitHub MCP `pull_request_read` → `get_check_runs`).
+2. Migrations: Supabase MCP `list_migrations` with `project_id: tzugbbatfbvrfzxuacqx` shows the new version.
+3. Functions: `list_edge_functions` on the same project; the edited function's `version` rose and `verify_jwt` matches `config.toml`. Webhook functions are called with `?forceFunctionRegion=eu-central-1`.
+4. Front end: the Vercel preview link on the PR (Vercel project `alo-king`, functions in `fra1`). Post phone-size screenshots in Arabic and English for changed screens (§10).
+5. If CI went red after the merge (deploy step), fix it in a new PR at once; never deploy by hand with `deploy_edge_function` or `apply_migration`.
 
-## Frontend
-- `bun run lint`, `bun run test`, `bun run build` must pass. Lovable syncs `main`; do not rewrite pushed history.
-- In sandboxes where `bun install` fails with 403 on the private npm mirror, install without the lockfile for verification only (`mv bun.lock /tmp; bun install --registry https://registry.npmjs.org; mv /tmp/bun.lock .`) and do not commit lockfile changes.
+## When automerge refuses
+- "Branch is N commit(s) behind": `git merge origin/rebuild/lebanon`, push; CI reruns.
+- Claude review `VERDICT: FAIL`: read its PR comment, fix, push.
+- A PR that must not merge yet: add the `no-automerge` label.
 
-## Secrets / config reminders
-- `KAPSO_OTP_TEMPLATE` stays empty until `alo_verify_code` is APPROVED; `KAPSO_PROMO_TEMPLATE_AR`/`_EN` (defaults `alo_offer_ar` / `alo_offer_en_optout`) must be APPROVED marketing templates (see `docs/legacy/whatsapp-templates.md`).
+## Checks to run before pushing
+`pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
+
+## Secrets
+Only GitHub Actions secrets and Supabase/Vercel settings. `check-setup` (daily and on demand) proves each one works without printing it.
