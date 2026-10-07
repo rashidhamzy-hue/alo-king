@@ -1,0 +1,951 @@
+# Alo King Driver Operations and Dispatch Strategy
+
+## Executive recommendation
+
+Alo King should **not** use a permanent “one order per driver” rule, and it should **not** allow drivers to freely pick up a second order simply because it appears nearby.
+
+Use a controlled model:
+
+> **One active delivery by default. Add a second order only when the dispatch engine proves that the extra pickup/drop does not materially damage food quality, promised ETA, route safety, or cash control.**
+
+For Lebanon’s Shouf terrain, the best starting model is:
+
+- **one order per driver** for long-distance, fragile, high-value, delayed, or difficult mountain routes;
+- **two-order batching** only for the same restaurant or a compatible pickup corridor;
+- no more than **two active customer drops** in the initial pilot;
+- no driver self-selecting extra orders without dispatch authorization;
+- cars/4WDs for cross-valley and steep routes, scooters for short local ridge routes;
+- dispatch based on real road time, elevation, road constraints, food readiness, and driver capacity—not straight-line distance.
+
+---
+
+# 1. Driver operating model
+
+## 1.1 Driver types
+
+| Driver type | Best use |
+|---|---|
+| **Local scooter driver** | Short same-village or same-ridge deliveries, small hot-food orders |
+| **150cc scooter driver** | Longer paved routes with moderate elevation |
+| **Sedan driver** | Multi-order routes, weather, fragile orders, moderate cross-village travel |
+| **4WD driver** | Steep terrain, poor roads, snow/rain, valley crossings, large orders |
+| **Relief driver** | Peak periods, driver absence, overflow, failed delivery recovery |
+| **Dispatch supervisor** | Assignment approval, exception handling, cash reconciliation, quality control |
+
+Do not assign purely from vehicle type. Also record:
+
+```text
+vehicle_type
+vehicle_condition
+maximum_load
+maximum_active_orders
+approved_zones
+terrain_capability
+cash_limit
+shift_hours
+training_status
+insurance_status
+```
+
+## 1.2 Driver modes
+
+```text
+offline
+available
+offered
+assigned
+at_pickup
+picked_up
+en_route
+at_dropoff
+awaiting_customer
+completed
+exception
+returning
+suspended
+```
+
+A driver who is `at_dropoff` or `awaiting_customer` must not receive another order unless the dispatch engine explicitly authorizes it.
+
+## 1.3 Driver availability
+
+Drivers should be able to use:
+
+```text
+Go online
+Go offline
+Pause for fuel
+Pause for prayer/break
+Vehicle issue
+Emergency
+End shift
+```
+
+A driver cannot go offline while carrying active orders unless dispatch accepts the handoff or return plan.
+
+---
+
+# 2. One order versus two-order batching
+
+## 2.1 Default policy
+
+Start with **one active order per driver** until Alo King has reliable data for:
+
+- pickup readiness;
+- restaurant preparation time;
+- actual road travel times;
+- driver GPS reliability;
+- customer availability;
+- food quality after delivery;
+- cash reconciliation;
+- failed-delivery rate.
+
+This protects the brand during launch and creates a baseline for measuring batching.
+
+## 2.2 When a second order is allowed
+
+A second order may be assigned only if all hard conditions pass:
+
+1. The first order’s food is not delayed by the second pickup.
+2. Both orders are from the same restaurant, or the second restaurant is on the same route corridor.
+3. The second order will be ready within the driver’s planned pickup window.
+4. Both delivery locations are geographically compatible.
+5. The route does not require backtracking across a ridge or valley.
+6. The driver’s vehicle can safely carry both orders separately.
+7. The latest promised ETA remains protected with a safety buffer.
+8. Neither order contains a high-risk item requiring immediate delivery.
+9. Cash collection remains below the driver’s cash limit.
+10. The driver accepts the assignment through an explicit dispatch action.
+
+## 2.3 When batching is prohibited
+
+Do not batch when:
+
+- one order is already late;
+- one order contains ice cream, fragile desserts, or temperature-sensitive items;
+- the route includes steep, dangerous, or poorly surfaced roads;
+- there is heavy rain, snow, fog, or poor visibility;
+- the two restaurants are in opposite directions;
+- a customer paid for an urgent or priority delivery;
+- the driver has a vehicle or phone problem;
+- the driver has more than the allowed cash balance;
+- either customer has a special delivery or accessibility requirement;
+- the restaurant has a history of unpredictable preparation time;
+- the driver would need to carry more than two orders;
+- the second order is being accepted only to increase driver earnings without route validation.
+
+## 2.4 Practical batching rules
+
+### Same restaurant, same direction
+
+Preferred and safest:
+
+```text
+Restaurant → Customer A → Customer B
+```
+
+Allowed if the second customer is on the same route and the first order’s food quality is protected.
+
+### Same restaurant, opposite directions
+
+Normally reject. The driver should take the order with the earlier promised ETA or dispatch another driver.
+
+### Two restaurants, same corridor
+
+Allowed only when:
+
+- both kitchens are close;
+- both orders are ready or have reliable ready times;
+- pickup sequence is optimized;
+- the final route is still within SLA.
+
+### Two restaurants, different valleys/ridges
+
+Do not batch in the pilot. Mountain geography makes straight-line proximity misleading.
+
+## 2.5 Maximum active orders
+
+Initial policy:
+
+```text
+Scooter: 1 by default, 2 only for same restaurant and short local route
+Sedan: 2 if route-compatible
+4WD: 2, with a supervisor-approved exception for large grouped orders
+Maximum customer drops: 2
+Maximum pickups: 2
+```
+
+Do not introduce three-order batching until there are at least several weeks of clean data and reliable route-time prediction.
+
+---
+
+# 3. Dispatch decision engine
+
+## 3.1 Dispatch objective
+
+Dispatch should optimize the whole operation, not just driver distance:
+
+```text
+minimize:
+  late_delivery risk
+  food_quality degradation
+  unsafe driving
+  empty driver distance
+  customer waiting time
+  restaurant waiting time
+  cash exposure
+  driver deadhead time
+```
+
+## 3.2 Hard constraints first
+
+Before calculating a score, reject assignments that violate:
+
+- driver availability;
+- vehicle capability;
+- active-order maximum;
+- restaurant pickup readiness;
+- customer delivery zone;
+- order promised ETA;
+- weather or road closure rules;
+- cash capacity;
+- food handling restrictions;
+- driver shift or legal limits.
+
+## 3.3 Assignment score
+
+A practical score can be:
+
+```text
+assignment_score =
+  0.30 × predicted_on_time_probability
++ 0.20 × route_compatibility
++ 0.15 × food_quality_protection
++ 0.10 × driver_zone_familiarity
++ 0.10 × vehicle_terrain_fit
++ 0.05 × driver_utilization
++ 0.05 × cash_safety
++ 0.05 × fairness_adjustment
+```
+
+The score is only applied after hard constraints pass.
+
+## 3.4 Use real road travel time
+
+Do not use Euclidean distance for Shouf dispatch.
+
+Route calculations should consider:
+
+- actual road distance;
+- elevation gain and descent;
+- ridge versus valley route;
+- road surface;
+- known closures;
+- weather;
+- time of day;
+- driver vehicle type;
+- driver’s local familiarity;
+- current traffic or road incidents.
+
+The system should maintain a route matrix by village pair and update it with actual completed trip times.
+
+## 3.5 Food readiness and dispatch timing
+
+The best pickup is not always the nearest driver. It is the driver whose arrival matches food readiness.
+
+Track:
+
+```text
+order_confirmed_at
+estimated_ready_at
+actual_ready_at
+driver_assigned_at
+driver_arrived_at
+picked_up_at
+```
+
+Do not send a driver too early to wait outside a kitchen unless the wait is intentional and compensated.
+
+---
+
+# 4. Recommended dispatch workflow
+
+## Step 1 — Order confirmed
+
+Create the order and calculate:
+
+- restaurant;
+- pickup point;
+- customer destination;
+- estimated prep time;
+- expected ready time;
+- route time;
+- delivery promise;
+- cash amount;
+- vehicle requirements.
+
+## Step 2 — Restaurant accepts
+
+The restaurant confirms or updates the preparation estimate.
+
+If the estimate changes materially, recalculate dispatch before assigning a driver.
+
+## Step 3 — Candidate driver search
+
+Find drivers who are:
+
+- online and available;
+- within the pickup route;
+- capable of the terrain;
+- within shift limits;
+- under cash and load limits;
+- not already carrying incompatible orders.
+
+## Step 4 — Dispatch offer
+
+Show a driver:
+
+```text
+New delivery task
+Pickup restaurant
+Pickup ready estimate
+Drop-off village and landmark
+Estimated route time
+Cash to collect
+Driver payout
+Single or batched route
+Order count
+```
+
+Buttons:
+
+```text
+Accept task
+Decline
+Navigate to pickup
+```
+
+Never expose more customer data than needed before acceptance.
+
+## Step 5 — Acceptance timeout
+
+If the driver does not accept within a short configured window:
+
+1. withdraw the offer;
+2. offer the next candidate;
+3. avoid sending the same offer to multiple drivers unless the system supports atomic claiming;
+4. alert dispatch if the order is approaching its SLA.
+
+## Step 6 — Pickup verification
+
+At the restaurant, the driver taps:
+
+```text
+Arrived at pickup
+Order collected
+Problem with order
+Restaurant not ready
+```
+
+The driver must confirm the correct order code before collection.
+
+For a batch, each order is scanned/confirmed separately.
+
+## Step 7 — Route execution
+
+The driver receives a stop sequence:
+
+```text
+Pickup 1
+Pickup 2 if authorized
+Drop-off 1
+Drop-off 2
+```
+
+The sequence must protect the earliest promised ETA, not simply minimize distance.
+
+## Step 8 — Drop-off proof
+
+At the customer:
+
+```text
+Arrived
+Call customer
+Customer received order
+Customer unavailable
+Issue
+```
+
+Proof may include:
+
+- customer confirmation tap;
+- delivery PIN or short code;
+- photo proof where legally and operationally appropriate;
+- driver timestamp and GPS proximity;
+- cash collected amount.
+
+Never mark delivered solely because the driver pressed a button far from the destination.
+
+## Step 9 — Cash closeout
+
+At shift end or cash threshold:
+
+- reconcile cash by currency;
+- compare expected versus collected;
+- record shortages/overages;
+- block new COD orders if exposure is too high;
+- issue a digital driver statement.
+
+---
+
+# 5. Driver WhatsApp and web operations
+
+## 5.1 WhatsApp driver interface
+
+Use WhatsApp for lightweight commands and urgent events:
+
+```text
+Go online
+Go offline
+Accept
+Decline
+Arrived pickup
+Collected
+Arrived customer
+Delivered
+Customer unavailable
+Need support
+```
+
+Use a driver web app for:
+
+- live route map;
+- multi-stop sequence;
+- order details;
+- proof of delivery;
+- cash balance;
+- incident reporting;
+- shift history;
+- earnings.
+
+WhatsApp alone is not sufficient for safe multi-stop routing and live operational visibility.
+
+## 5.2 Driver task card
+
+```text
+📦 New delivery task
+
+Pickup: [Restaurant]
+Area: [Village]
+Ready: [Time]
+Drop-off: [Village + landmark]
+Route: [actual road time]
+Orders: [1 or 2]
+Cash to collect: [$ / LBP]
+Payout: [$]
+
+[Accept] [Decline] [Navigate]
+```
+
+For a batch, show each order separately and clearly label the sequence.
+
+## 5.3 Customer tracking
+
+The customer tracking page should show:
+
+- order status;
+- driver first name only;
+- vehicle type or neutral delivery icon;
+- approximate ETA;
+- last known location;
+- weak-signal message when GPS is stale;
+- support button.
+
+Do not expose a driver’s personal phone number by default.
+
+---
+
+# 6. Driver compensation and incentives
+
+## 6.1 Compensation model
+
+Use transparent pay, not opaque algorithmic payouts.
+
+Recommended structure:
+
+```text
+base pickup fee
++ distance/zone component
++ terrain component
++ waiting component
++ second-stop component
++ weather/late-night premium
++ approved return/exception fee
+```
+
+Batching should never reduce the driver’s pay compared with two fair single-order assignments. It can provide an efficiency bonus, but it should not transfer all savings to Alo King.
+
+## 6.2 Waiting pay
+
+Pay waiting compensation when:
+
+- the driver arrived within the assigned pickup window;
+- the restaurant was not ready;
+- the wait exceeded the grace period;
+- the driver did not cause the delay.
+
+This gives restaurants and dispatch a real incentive to provide accurate ready times.
+
+## 6.3 Driver scorecard
+
+Track:
+
+- on-time pickup;
+- on-time delivery;
+- cancellations after acceptance;
+- customer complaints;
+- missing/wrong order incidents;
+- cash discrepancies;
+- GPS availability;
+- safe driving incidents;
+- acceptance rate, but do not punish legitimate declines excessively;
+- batching quality;
+- customer ratings.
+
+Do not optimize only for acceptance rate. A driver who declines an unsafe or impossible route may be making the correct operational decision.
+
+## 6.4 Fairness and safety
+
+Drivers must be able to decline:
+
+- unsafe roads;
+- severe weather;
+- overloaded routes;
+- suspicious or abusive requests;
+- routes beyond vehicle capability;
+- cash exposure above their limit.
+
+A safety decline should not reduce a driver’s score in the same way as an avoidable decline.
+
+---
+
+# 7. Cash and payment operations
+
+## 7.1 Cash-on-delivery controls
+
+For each active driver store:
+
+```text
+cash_usd_expected
+cash_lbp_expected
+cash_collected_usd
+cash_collected_lbp
+cash_limit
+last_reconciled_at
+```
+
+Rules:
+
+- show the exact expected collection amount;
+- support USD and LBP separately;
+- store the exchange rate used for the order;
+- calculate change requirements before dispatch;
+- stop assigning new COD orders when the driver reaches the cash limit;
+- require reconciliation at shift end.
+
+## 7.2 Customer cannot pay
+
+Do not let the driver improvise a policy.
+
+Options:
+
+```text
+Customer pays exact amount
+Customer pays approved alternative currency
+Customer contacts support
+Order returns/exception process
+```
+
+Record the reason and who bears the loss according to the approved policy.
+
+## 7.3 Online payments
+
+The driver should never see sensitive card information.
+
+The order is dispatchable only when the payment backend provides a verified success event. A screenshot or customer claim is not payment confirmation.
+
+---
+
+# 8. Delivery exception playbooks
+
+## 8.1 Restaurant not ready
+
+1. Driver taps **Restaurant not ready**.
+2. Timer starts.
+3. Restaurant receives an alert.
+4. Driver sees wait estimate.
+5. After grace period, offer:
+   - wait with compensation;
+   - reassign;
+   - escalate to dispatch.
+6. Recalculate customer ETA.
+7. Notify the customer only if the promised time materially changes.
+
+## 8.2 Restaurant closed
+
+1. Verify with location/time rules.
+2. Contact restaurant or operations.
+3. Do not mark order collected.
+4. Cancel/reassign according to policy.
+5. Notify customer with alternatives or refund/credit process.
+
+## 8.3 Wrong or missing order at pickup
+
+1. Driver does not leave with an unverified package.
+2. Restaurant corrects the order.
+3. Update ready time.
+4. Record the issue against the restaurant.
+5. Recalculate SLA.
+
+## 8.4 Customer unreachable
+
+1. Driver taps **Arrived** only when near the destination.
+2. Attempt contact through approved channel.
+3. Wait the configured period.
+4. Notify operations.
+5. Send the customer one urgent message if the window allows.
+6. Decide whether to retry, leave safely, return to restaurant, or close as not collected.
+
+## 8.5 Wrong address or landmark
+
+- Ask the customer for a corrected landmark.
+- Validate whether the new location is serviceable.
+- Do not change the fee without showing it.
+- After dispatch, require dispatch approval for major address changes.
+
+## 8.6 Customer refuses order
+
+Distinguish:
+
+```text
+customer changed mind
+wrong item
+late delivery
+price disagreement
+cash unavailable
+suspected fraud
+```
+
+Do not automatically punish the customer or driver. Record evidence and use the resolution matrix.
+
+## 8.7 Damaged or spilled food
+
+1. Driver records incident.
+2. Customer may upload a photo.
+3. Restaurant and operations review.
+4. Offer replacement, credit, refund, or apology based on evidence and policy.
+5. Record packaging/route cause.
+
+## 8.8 Accident or driver emergency
+
+Priority order:
+
+1. human safety;
+2. emergency services if needed;
+3. notify dispatch;
+4. secure orders and cash;
+5. reassign active deliveries;
+6. contact customers with a safe delay explanation.
+
+Never require a driver to continue an unsafe journey to protect an SLA.
+
+## 8.9 GPS or cellular outage
+
+The driver app should cache the last known route and allow offline event capture.
+
+When connectivity returns:
+
+- upload events in order;
+- preserve original timestamps;
+- reconcile location gaps;
+- do not fabricate live tracking.
+
+The customer should see:
+
+> The driver is in an area with weak signal. The last location may be delayed, but the delivery is still being monitored.
+
+---
+
+# 9. Batching control in detail
+
+## 9.1 Batch eligibility record
+
+Every batch decision should be explainable:
+
+```json
+{
+  "batch_id": "batch_123",
+  "driver_id": "driver_456",
+  "orders": ["order_a", "order_b"],
+  "reason_codes": [
+    "same_restaurant",
+    "same_delivery_corridor",
+    "ready_times_compatible",
+    "eta_buffer_maintained",
+    "vehicle_capacity_ok"
+  ],
+  "predicted_late_risk": 0.08,
+  "predicted_extra_minutes": 6,
+  "approved_by": "dispatch_engine",
+  "created_at": "..."
+}
+```
+
+## 9.2 Batch rejection reasons
+
+```text
+opposite_directions
+late_risk_too_high
+food_quality_risk
+terrain_mismatch
+weather_risk
+cash_limit
+driver_capacity
+restaurant_not_ready
+customer_priority_order
+```
+
+## 9.3 Customer transparency
+
+Do not tell the customer that another customer’s order is in the car. Simply provide the correct ETA.
+
+If batching causes a delay, Alo King should not hide it. Notify the customer with a revised estimate and offer support when the delay crosses the policy threshold.
+
+---
+
+# 10. Dispatch dashboards
+
+## Dispatcher screen
+
+Show:
+
+```text
+orders waiting for driver
+orders approaching SLA
+restaurants with delayed preparation
+online drivers
+driver current zone
+active orders per driver
+unassigned orders
+batch candidates
+late-risk alerts
+cash exposure
+failed deliveries
+```
+
+## Driver screen
+
+Show only what the driver needs:
+
+```text
+current task
+next stop
+navigation
+customer landmark
+cash amount
+order code
+support button
+proof-of-delivery controls
+```
+
+## Restaurant screen
+
+Show:
+
+```text
+new order
+accepted/preparing/ready state
+driver ETA
+pickup delay button
+item unavailable button
+handoff/support
+```
+
+---
+
+# 11. Data model
+
+Recommended driver entities:
+
+```text
+couriers
+courier_vehicles
+courier_shifts
+courier_zone_permissions
+courier_locations
+courier_status_events
+courier_cash_ledger
+courier_earnings_ledger
+delivery_assignments
+delivery_assignment_events
+delivery_batches
+route_estimates
+pickup_events
+dropoff_events
+delivery_exceptions
+proof_of_delivery
+```
+
+For `delivery_assignments`, store:
+
+```text
+order_id
+courier_id
+batch_id
+assignment_status
+assigned_at
+accepted_at
+arrived_pickup_at
+picked_up_at
+arrived_dropoff_at
+completed_at
+predicted_eta
+actual_eta
+route_version
+cash_expected_usd
+cash_expected_lbp
+exception_code
+```
+
+All assignment and completion commands must be idempotent.
+
+---
+
+# 12. Notifications for drivers and customers
+
+## Driver events
+
+- new assignment;
+- assignment cancelled;
+- restaurant ready;
+- restaurant delayed;
+- customer address changed;
+- customer unreachable;
+- cash limit warning;
+- support response;
+- shift reminder;
+- emergency broadcast.
+
+## Customer events
+
+- driver assigned, only if useful;
+- order on the way;
+- ETA changed materially;
+- driver near destination;
+- delivery completed;
+- exception requiring customer action.
+
+Avoid spamming the driver or customer with every internal state update.
+
+---
+
+# 13. Recommended first launch policy
+
+For the first operational pilot:
+
+```text
+Default: one order per driver
+Batching: maximum two orders
+Allowed batching: same restaurant or same corridor only
+No cross-valley batching
+No batching in severe weather
+No batching for fragile/temperature-sensitive orders
+Every batch requires engine approval
+Every batch must preserve promised ETA buffer
+Every driver gets a clear cash limit
+Every delivery requires proof event
+Every exception has a reason code
+```
+
+Run this for at least several weeks while measuring:
+
+- actual route time;
+- pickup wait;
+- on-time delivery;
+- food quality complaints;
+- batch delay versus single-order baseline;
+- driver earnings;
+- driver acceptance/decline reasons;
+- customer satisfaction;
+- cash discrepancy;
+- failed delivery rate.
+
+Only expand batching when data proves that customers and drivers benefit.
+
+---
+
+# 14. Success metrics
+
+## Customer
+
+- on-time delivery rate;
+- ETA accuracy;
+- delivery complaint rate;
+- missing/wrong item rate;
+- not-collected rate;
+- repeat order rate;
+- tracking-page usage;
+- satisfaction score.
+
+## Restaurant
+
+- order acceptance time;
+- preparation accuracy;
+- ready-on-time rate;
+- driver waiting time;
+- packaging failure rate;
+- rejection rate.
+
+## Driver
+
+- earnings per online hour;
+- earnings per kilometer;
+- deadhead distance;
+- waiting time;
+- completed deliveries per hour;
+- safety incidents;
+- cash discrepancies;
+- assignment fairness.
+
+## Platform
+
+- cost per completed delivery;
+- batch savings;
+- batch-induced delay;
+- support contacts per order;
+- late-delivery compensation;
+- driver supply coverage by zone and hour.
+
+A batching strategy is successful only if it reduces cost **without** worsening on-time delivery, food quality, driver safety, or customer trust.
+
+---
+
+# 15. Final answer to the main question
+
+## Should one driver carry one order or pick up a second order?
+
+Use this rule:
+
+> **One order is the default. A second order is allowed only when the dispatch engine confirms same-direction routing, compatible preparation times, safe vehicle capacity, protected ETA, acceptable food quality, and cash limits.**
+
+For Alo King’s initial Shouf operation:
+
+- one order for most routes;
+- two orders for same-restaurant or same-corridor routes;
+- never allow arbitrary driver self-batching;
+- never let batching compromise the first customer’s promised delivery;
+- use cars/4WDs for cross-valley and difficult terrain;
+- use scooters for short local routes;
+- begin with a conservative two-drop maximum.
+
+> The objective is not to maximize drops per driver. It is to maximize **profitable, safe, on-time completed deliveries**.

@@ -1,0 +1,501 @@
+# Alo King AI Recommendation and Paid Campaign Strategy
+
+## Executive conclusion
+
+Alo King should build two connected but separate systems:
+
+1. A **persistent customer intelligence and recommendation engine** that remembers each customer in a structured, privacy-safe, explainable way.
+2. A **restaurant campaign engine** that turns paid broadcasts into measurable, controlled revenue campaigns rather than a simple message-sending feature.
+
+The LLM should be the conversational layer. Deterministic backend services must control truth, money, consent, safety, audience selection, ranking constraints, and delivery.
+
+---
+
+## 1. Persistent customer intelligence
+
+The bot should remember each customer, but memory must be structured, editable, explainable, and privacy-safe.
+
+### Customer signals to store
+
+| Signal | Example |
+|---|---|
+| Preferred language | Lebanese Arabic, Arabizi, English |
+| Preferred villages/addresses | Baakline, Beiteddine, Deir el Qamar |
+| Frequent restaurants | A preferred restaurant or cuisine |
+| Frequent dishes | Chicken shawarma, family platter |
+| Reorder patterns | Usually orders Friday evening |
+| Basket patterns | Shawarma often paired with fries and toum |
+| Budget range | Usually $10–$20 |
+| Dietary preferences | Only when explicitly stated |
+| Allergies | Only when explicitly stated; never inferred |
+| Household/group context | Family order, office order, individual order |
+| Delivery preferences | Call on arrival, leave at gate, preferred landmark |
+| Campaign preferences | Global opt-in, muted restaurant, muted sponsored suggestions |
+| Feedback | “Too spicy,” “more garlic,” “liked this restaurant” |
+
+### Sensitive-data rule
+
+Never infer that a customer is diabetic, religious, vegetarian, allergic, pregnant, health-conscious, wealthy, or financially constrained. Those attributes may only be stored when explicitly stated, and diet/allergy restrictions must be hard safety constraints rather than marketing signals.
+
+### Four memory layers
+
+#### A. Current conversation memory
+
+What the customer has said in the active conversation, such as:
+
+> “I want something light, no dairy, for three people.”
+
+This controls the immediate recommendation and order flow.
+
+#### B. Durable preference memory
+
+Stable signals learned from explicit statements or repeated behavior:
+
+```text
+preferred_language = ar-LB
+usual_village = Baakline
+favorite_vendor = vendor_123
+explicit_preference = “likes spicy food”
+```
+
+Every memory should include:
+
+```text
+source
+confidence
+created_at
+last_confirmed_at
+expires_at
+```
+
+#### C. Behavioral history
+
+Orders, reorder frequency, rejected recommendations, completed deliveries, ratings, and campaign responses. Behavioral signals should use recency decay so an old order does not dominate recent behavior.
+
+#### D. Semantic memory
+
+Optional embeddings for free-text feedback such as:
+
+> “Last time the chicken was dry.”
+
+Embeddings are useful for retrieval, but structured Supabase records remain the source of truth.
+
+---
+
+## 2. Constrained recommendation engine
+
+The pipeline should be:
+
+```text
+Customer request
+→ intent extraction
+→ hard safety and availability filters
+→ candidate restaurants/items
+→ personalized ranking
+→ complementary recommendation
+→ explanation
+→ feedback capture
+```
+
+### Hard filters always win
+
+Remove items that are:
+
+- unavailable;
+- from a closed restaurant;
+- outside the delivery area;
+- incompatible with an explicitly stated allergy or diet;
+- unavailable at the requested time;
+- outside an explicit budget;
+- unable to meet minimum order or delivery requirements.
+
+### Ranking signals
+
+Rank remaining candidates using:
+
+1. Exact request relevance.
+2. Explicit preferences.
+3. Previous successful orders.
+4. Reorder probability.
+5. Distance and delivery time.
+6. Current restaurant reliability.
+7. Time of day and occasion.
+8. Basket compatibility.
+9. Controlled exploration for new restaurants.
+10. Popularity as a secondary signal.
+
+Log why every item was ranked:
+
+```json
+{
+  "item_id": "item_123",
+  "reasons": [
+    "ordered_before",
+    "matches_spicy_preference",
+    "open_now",
+    "within_delivery_area"
+  ],
+  "ranker_version": "v3.2"
+}
+```
+
+When a customer asks “Why are you recommending this?”, the answer must come only from actual ranking signals.
+
+---
+
+## 3. Conversationally intelligent bot behavior
+
+The bot should understand shorthand and context rather than forcing the customer through a rigid menu.
+
+Example:
+
+> “Same as last Friday but for six people and add something not spicy.”
+
+The bot should retrieve the previous order, scale portions, preserve relevant preferences, avoid spicy items, suggest additions, reprice everything from the live menu, validate availability and delivery, and ask for final confirmation.
+
+The bot should:
+
+- remember what it already asked;
+- stop asking for the customer’s name repeatedly;
+- understand Lebanese Arabic, Arabizi, English, and mixed messages;
+- process voice notes after transcription;
+- understand “same order,” “usual,” “like last time,” and “for the office”;
+- detect corrections;
+- ask one clarification question at a time;
+- summarize before commitment;
+- never silently change an active cart;
+- hand off when confidence or risk is low.
+
+Recommended response policy:
+
+```text
+Confident + low risk → act directly
+Confident + money/order impact → show and ask for confirmation
+Uncertain → ask one targeted question
+Sensitive, allergic, disputed, or angry → fail safely and escalate
+```
+
+---
+
+## 4. Paid restaurant broadcast strategy
+
+Paid broadcasts should be a campaign product, not a “send messages” button.
+
+```text
+Objective
+→ eligible audience
+→ offer
+→ approved creative
+→ send-time optimization
+→ delivery
+→ replies
+→ orders
+→ attributed revenue
+→ campaign report
+```
+
+### Campaign objectives
+
+Let the restaurant choose a clear objective:
+
+- reactivate inactive customers;
+- promote a new item;
+- fill slow periods;
+- promote a family bundle;
+- increase average order value;
+- announce a limited-time offer;
+- target customers who ordered a specific item;
+- drive orders in a specific village or time period.
+
+The bot should ask what result the restaurant wants, then generate campaign options.
+
+### AI versus backend responsibilities
+
+The AI may propose:
+
+- audience;
+- offer wording;
+- Arabic and English copy;
+- call-to-action;
+- send time;
+- product;
+- campaign title;
+- follow-up reply flow.
+
+The backend must control:
+
+- audience eligibility;
+- opt-in and opt-out;
+- frequency caps;
+- pricing;
+- menu availability;
+- delivery villages;
+- campaign budget;
+- Meta template category;
+- prohibited content;
+- merchant balance;
+- sending limits;
+- refunds;
+- attribution.
+
+The model must never decide the final price or charge amount.
+
+### Safest launch audience
+
+At launch, target only:
+
+> Customers who explicitly opted in and previously ordered from that restaurant.
+
+Later segments may include inactive customers, customers who ordered a particular product, frequent Friday customers, customers near the delivery area, and customers who clicked but did not order.
+
+Avoid selling access to vague audiences such as “all people in Baakline.”
+
+---
+
+## 5. Excellent restaurant campaign flow
+
+### Step 1 — Objective
+
+Ask:
+
+> “What do you want to achieve?”
+
+### Step 2 — Campaign suggestion
+
+Example:
+
+```text
+Objective: Reactivate customers inactive for 30+ days
+Audience: 86 eligible opted-in customers
+Offer: Family shawarma meal for 4
+Recommended send time: Thursday at 5:30 PM
+Estimated spend: $X / LBP Y
+```
+
+### Step 3 — Preview
+
+Show the exact message in Lebanese Arabic and English, or in the selected customer language where appropriate.
+
+### Step 4 — Validation
+
+Check that:
+
+- the menu item exists;
+- the price is current;
+- the item is available;
+- the restaurant serves the selected villages;
+- the offer is not expired;
+- the template is approved;
+- the content is policy-compliant;
+- customer consent is valid;
+- frequency caps are respected.
+
+### Step 5 — Merchant confirmation
+
+Require an explicit action:
+
+```text
+Confirm and pay
+```
+
+Do not send because the owner vaguely says “okay.”
+
+### Step 6 — Controlled delivery
+
+Use pacing, quiet hours, daily and monthly merchant limits, customer frequency caps, automatic pauses when opt-outs or failures spike, and a small test group before broader sending.
+
+### Step 7 — Follow-up
+
+When a customer replies, the Alo King bot should know the campaign and offer context, build the cart, answer questions, hand off when necessary, and track whether the customer ordered.
+
+---
+
+## 6. Measurement: make campaigns excellent through evidence
+
+Do not promise restaurants that every campaign will be perfect. Give them measurable results:
+
+- exact audience size;
+- delivery count;
+- read count where available;
+- reply rate;
+- opt-out rate;
+- cart-start rate;
+- completed-order rate;
+- incremental orders;
+- revenue;
+- campaign cost;
+- estimated return on ad spend;
+- comparison with a holdout group.
+
+The key metric is:
+
+```text
+Incremental completed orders ÷ campaign cost
+```
+
+Every meaningful campaign should have a test audience, holdout audience, campaign ID, defined objective, start/end time, and success metric.
+
+---
+
+## 7. What is missing or needs strengthening
+
+The existing Alo King product specification already includes strong safeguards: organic recommendations separated from sponsored placement, no pay-to-win organic ranking, sponsored labels, opt-out handling, merchant-specific audiences, frequency caps, moderation, payment-ledger requirements, attribution, and pilot kill gates.
+
+The following items are still needed or should be strengthened.
+
+### P0 — Before selling campaigns
+
+#### 1. Persistent memory schema
+
+Create dedicated structures such as:
+
+```text
+customer_preferences
+customer_preference_events
+customer_feedback
+customer_recommendation_impressions
+customer_recommendation_actions
+customer_suppression_rules
+```
+
+Each preference needs a source, confidence, timestamp, and deletion behavior.
+
+#### 2. Memory correction and deletion
+
+Support:
+
+```text
+Forget that
+Remove my preferences
+What do you remember about me?
+I do not like spicy food anymore
+```
+
+The customer should be able to view, correct, delete, or disable personalization.
+
+#### 3. Recommendation feedback loop
+
+Add feedback options such as:
+
+```text
+More like this
+Not interested
+Too expensive
+Too far
+I ordered this before
+Show different restaurants
+```
+
+#### 4. Campaign attribution model
+
+Connect:
+
+```text
+campaign
+→ recipient
+→ delivery status
+→ reply
+→ cart
+→ order
+→ completed delivery
+→ revenue
+```
+
+Use campaign IDs and pseudonymous recipient IDs. Never expose customer phone numbers to merchants.
+
+#### 5. Holdouts and experiments
+
+Use a small control group to determine whether campaigns create incremental orders rather than merely receiving credit for orders that would have happened anyway.
+
+#### 6. Complete cost accounting
+
+The merchant price must account for Meta delivery charges, service replies, AI/API usage, failed-message refunds, payment processing, support cost, and discounts or credits.
+
+### P1 — For a genuinely intelligent bot
+
+#### 7. Explicit conversation state machine
+
+Do not rely on the LLM to remember workflow state. Store:
+
+```text
+intent
+order_id
+campaign_id
+cart_id
+current_step
+pending_confirmation
+last_question
+confidence
+handoff_status
+```
+
+#### 8. Customer-level experimentation
+
+Measure whether recommendations improve conversion, average order value, reorder rate, satisfaction, and cancellation rate.
+
+#### 9. Recommendation diversity and fairness
+
+Track exposure, provide controlled new-merchant exploration, limit restaurant fatigue, maintain category diversity, and keep paid placement separate from organic ranking.
+
+#### 10. Merchant campaign quality score
+
+Score each merchant using delivery rate, reply rate, opt-outs, blocks/reports, complaints, completed orders, and refunds. Automatically reduce or pause campaign access when quality deteriorates.
+
+#### 11. Lebanese Arabic evaluation set
+
+Test Lebanese Arabic, Arabizi, English switching, voice notes, spelling mistakes, village names, restaurant names, food slang, quantities, numbers, and ambiguous modifiers.
+
+### P2 — Advanced capabilities
+
+Later add send-time optimization, product propensity models, restaurant similarity, personalized bundles, churn prediction, customer lifetime value, campaign budget optimization, multi-armed bandits, loyalty personalization, referral optimization, voice-note ordering, group-order memory, and diaspora gift-order personalization.
+
+---
+
+## 8. Recommended architecture
+
+```text
+WhatsApp message
+        ↓
+Webhook validation + idempotency
+        ↓
+Intent and language detection
+        ↓
+Conversation state lookup
+        ↓
+Customer memory retrieval
+        ↓
+Hard safety / availability / consent filters
+        ↓
+Deterministic tools:
+  menu, price, availability, delivery, order, campaign, profile
+        ↓
+Recommendation or campaign ranker
+        ↓
+LLM response wording
+        ↓
+Confirmation gate for money/order/send actions
+        ↓
+Persist event + send WhatsApp reply
+        ↓
+Measure outcome
+```
+
+The LLM must not directly invent menu prices, decide whether a restaurant is open, send a campaign without confirmation, override allergy constraints, choose a paid ranking position, expose customer data, issue credits, or approve its own moderation exception.
+
+---
+
+## 9. Priority implementation order
+
+### 1. Customer Memory v1
+
+Structured preferences, reorder history, corrections, deletion, confidence, and recency decay.
+
+### 2. Recommendation Engine v1
+
+Hard constraints first, personalized ranking second, explainable reasons, feedback buttons, and no paid influence.
+
+### 3. Campaign Engine v1
+
+Objective-based campaign creation, consent-safe audience selection, preview, payment confirmation, moderation, pacing, holdout measurement, attribution, and automatic pause rules.
+
+Once reliable, Alo King can become a personal food concierge for customers and a measurable revenue engine for Lebanese restaurants.

@@ -1,0 +1,287 @@
+# Alo King WhatsApp API Integration Audit
+
+**Scope:** Lebanon recipient numbers using country code **+961**, Kapso, and WhatsApp Cloud API.  
+**Rate regime checked:** **1 October 2026 onward**.
+
+---
+
+## 1. Meta WhatsApp Business Platform rates for Lebanon (+961)
+
+Meta groups Lebanon under **Rest of Middle East**, together with Bahrain, Jordan, and Yemen.
+
+| Message category | Meta rate per delivered message |
+|---|---:|
+| **Marketing template** | **$0.0392** |
+| **Utility template** | **$0.0091** |
+| **Authentication template** | **$0.0091** |
+| **Service message** | **$0.0091 after the monthly free allowance** |
+
+### Service-message rule
+
+From **1 October 2026**:
+
+- The first **1,000 service messages per WhatsApp business phone number per calendar month are free**.
+- After that allowance, each additional service message to a Lebanese number costs **$0.0091**.
+- The allowance is per phone number, not per customer or sub-account.
+- It resets at the start of each calendar month.
+- Customer-to-business messages remain free.
+- Messages within a **72-hour Free Entry Point window** from a Click-to-WhatsApp ad or Facebook Page CTA remain free.
+- Utility templates sent inside an open 24-hour customer-service window should be treated as **billable at $0.0091 under the October 2026 pricing regime**.
+
+### Cost examples
+
+| Monthly outbound service messages from one Alo King number | Estimated Meta charge |
+|---:|---:|
+| 1,000 | $0.00 |
+| 2,000 | 1,000 × $0.0091 = **$9.10** |
+| 10,000 | 9,000 × $0.0091 = **$81.90** |
+| 50,000 | 49,000 × $0.0091 = **$445.90** |
+
+Meta charges when the message is **delivered**, not merely submitted to the API.
+
+### Implementation implications
+
+- Consolidate multiple short bot replies into one clear reply.
+- Avoid separate messages such as “One moment,” “I’m checking,” and then the answer.
+- Track outbound messages by category and phone number.
+- Track `billable`, `pricing_model`, `pricing_type`, and `category` from delivery-status webhooks.
+- Budget customer-support replies after the first 1,000 service messages monthly.
+- Do not assume that an open 24-hour customer-service window makes every outbound message free.
+
+### Sources
+
+- [Meta — Pricing on the WhatsApp Business Platform](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/)
+- [Meta — WhatsApp Business Platform Pricing](https://business.whatsapp.com/products/platform-pricing)
+- [Meta — WhatsApp message status webhook reference](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/reference/messages/status)
+- [Nateq — WhatsApp API pricing changes October 2026](https://nateq.io/blog/whatsapp-api-pricing-changes-october-2026)
+- [SleekFlow — WhatsApp pricing](https://help.sleekflow.io/en_US/whatsapp/pricing)
+- [GetGabs — Meta rate card 2026](https://getgabs.com/pricing/meta-rate-card/)
+
+> Meta’s pricing page uses a dynamic rate-card selector. Verify the actual billing currency, account timezone, and current rate card in WhatsApp Manager before finalizing production cost assumptions.
+
+---
+
+## 2. Standard Kapso WhatsApp webhook events
+
+| Event | Meaning |
+|---|---|
+| `whatsapp.message.received` | A new WhatsApp message was received from a customer |
+| `whatsapp.message.sent` | An outbound message was successfully sent to WhatsApp |
+| `whatsapp.message.delivered` | An outbound message was delivered to the recipient’s device |
+| `whatsapp.message.read` | The recipient read the outbound message |
+| `whatsapp.message.failed` | The outbound message failed to deliver |
+| `whatsapp.conversation.created` | A new WhatsApp conversation was initiated |
+| `whatsapp.conversation.ended` | A conversation ended through closure or inactivity |
+| `whatsapp.conversation.inactive` | No inbound or outbound messages occurred for the configured inactivity period |
+| `whatsapp.contact.identity_changed` | A contact’s business-scoped identity changed |
+| `whatsapp.contact.marketing_preference_changed` | A contact stopped or resumed marketing messages |
+
+Kapso sends the event name in:
+
+```http
+X-Webhook-Event: whatsapp.message.received
+```
+
+For `whatsapp.message.received`, Kapso may send a batch envelope when buffering is enabled. Alo King should support both single-event and batch payloads.
+
+### Kapso sources
+
+- [Kapso — Message events](https://docs.kapso.ai/docs/platform/webhooks/message-events)
+- [Kapso — Webhooks overview](https://docs.kapso.ai/docs/platform/webhooks/overview)
+- [Kapso — Webhook delivery and retries](https://docs.kapso.ai/docs/platform/webhooks/advanced)
+
+---
+
+## 3. Kapso HMAC signature verification
+
+Kapso signs webhook requests using **HMAC-SHA256** over the **raw request body**.
+
+The signature is provided in:
+
+```http
+X-Webhook-Signature: <signature>
+```
+
+The server must:
+
+1. Read the raw request bytes.
+2. Compute HMAC-SHA256 using `KAPSO_WEBHOOK_SIGNING_SECRET`.
+3. Compare the computed signature with `X-Webhook-Signature` using a timing-safe comparison.
+4. Only then parse and process the JSON payload.
+5. Return HTTP `200` quickly, preferably within 10 seconds.
+6. Deduplicate using `X-Idempotency-Key`.
+
+### Node.js / TypeScript example
+
+```ts
+import crypto from "node:crypto";
+
+function verifyKapsoSignature(
+  rawBody: Buffer,
+  providedSignature: string | null,
+  secret: string,
+): boolean {
+  if (!providedSignature || !secret) return false;
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody)
+    .digest("hex");
+
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(providedSignature, "utf8");
+
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+```
+
+Do not verify against:
+
+```ts
+JSON.stringify(JSON.parse(rawBody.toString()))
+```
+
+Parsing and reserializing JSON can change whitespace, key order, or Unicode escaping and cause a signature mismatch.
+
+### Kapso security source
+
+- [Kapso — Webhook security](https://docs.kapso.ai/docs/platform/webhooks/security)
+
+---
+
+## 4. Secret rotation from legacy `?key=` to HMAC
+
+Kapso’s public security documentation specifies HMAC verification through `X-Webhook-Signature`, but does **not** document a guaranteed atomic old-secret/new-secret overlap mode or a specific secret-rotation API.
+
+Therefore, do not assume that changing the only live Kapso secret in place is automatically zero-downtime.
+
+The safest migration is a **blue/green webhook migration** with temporary dual acceptance and idempotency.
+
+### Phase 1 — Prepare the application
+
+Deploy a verifier that temporarily supports:
+
+1. HMAC verification using the new secret.
+2. Legacy `?key=` authentication.
+3. HMAC verification using the old secret, if Kapso continues signing with it during transition.
+
+Example temporary variables:
+
+```env
+KAPSO_WEBHOOK_SIGNING_SECRET_NEW=...
+KAPSO_WEBHOOK_SIGNING_SECRET_OLD=...
+KAPSO_LEGACY_WEBHOOK_KEY=...
+```
+
+Never log the full URL containing `?key=`, either HMAC secret, or complete authorization headers.
+
+### Phase 2 — Make the endpoint migration-safe
+
+Before changing Kapso:
+
+- Preserve the raw request body.
+- Verify HMAC before parsing JSON.
+- Store `X-Idempotency-Key` with a database unique constraint.
+- Return `200` after durable enqueue/recording.
+- Process AI calls, database writes, and outbound replies asynchronously.
+- Ensure duplicates cannot create duplicate orders or customer replies.
+
+Example:
+
+```sql
+create table webhook_deliveries (
+  idempotency_key text primary key,
+  event_name text,
+  received_at timestamptz not null default now(),
+  payload jsonb not null
+);
+```
+
+Kapso retries failed webhook deliveries approximately immediately, after 10 seconds, and after 40 seconds. Repeated failures can cause the webhook to be paused.
+
+### Phase 3 — Create or configure the signed webhook
+
+Using the Kapso dashboard:
+
+1. Open **Integrations → Webhooks**.
+2. Select the relevant WhatsApp phone-number webhook.
+3. Create a new Kapso webhook or edit the existing webhook.
+4. Use the Alo King HTTPS endpoint.
+5. Copy and securely store the new generated secret.
+6. Subscribe to:
+   - `whatsapp.message.received`
+   - `whatsapp.message.sent`
+   - `whatsapp.message.delivered`
+   - `whatsapp.message.read`
+   - `whatsapp.message.failed`
+7. Enable the webhook.
+8. Send a controlled test message.
+9. Confirm the signature, idempotency key, single processing, and customer response.
+
+Kapso documents webhook updates through:
+
+```http
+PATCH /platform/v1/whatsapp/phone_numbers/{phone_number_id}/webhooks/{webhook_id}
+```
+
+Reference: [Kapso — Update webhook](https://docs.kapso.ai/api/platform/v1/webhooks/update-webhook)
+
+Because the public update example does not clearly document an atomic secret-replacement field, creating a second signed webhook is safer than changing the only live webhook in place.
+
+### Phase 4 — Run both paths temporarily
+
+For a short observation window:
+
+- Keep the legacy endpoint active.
+- Keep the new HMAC-signed webhook active.
+- Accept both authentication mechanisms temporarily.
+- Deduplicate using `X-Idempotency-Key`.
+- Monitor signature failures, duplicate deliveries, message lag, order duplicates, failed-delivery records, and webhook pause status.
+
+Duplicate delivery during the overlap is acceptable only if business side effects are idempotent.
+
+### Phase 5 — Remove legacy authentication
+
+After the signed webhook is processing real traffic successfully:
+
+1. Stop generating URLs containing `?key=`.
+2. Remove the legacy key from the production secret store.
+3. Disable or delete the old webhook.
+4. Remove legacy-key acceptance from application code.
+5. Deploy with only:
+
+```env
+KAPSO_WEBHOOK_SIGNING_SECRET=...
+```
+
+6. Send final inbound and outbound test messages.
+7. Verify valid HMAC succeeds, missing/invalid signatures return `401`, old URL-key requests fail, and duplicate idempotency keys do not repeat side effects.
+
+### Phase 6 — Keep rollback capability briefly
+
+Retain the previous application deployment and webhook configuration metadata for a short rollback window, but do not retain the old secret longer than operationally necessary.
+
+---
+
+## 5. Recommended Alo King webhook configuration
+
+```text
+Kapso webhook type:      Kapso event-based webhook
+Endpoint:                https://<alo-king-domain>/api/webhooks/kapso
+Authentication:          X-Webhook-Signature HMAC-SHA256
+Legacy ?key= support:    Temporary migration only
+Raw-body verification:   Required
+Idempotency:             X-Idempotency-Key + database unique constraint
+Response target:         HTTP 200 within 10 seconds
+Processing model:        Persist/enqueue first, process asynchronously
+Required events:         received, sent, delivered, read, failed
+```
+
+Do not equate **message sent** with **message delivered**:
+
+```text
+sent → delivered → read
+              ↘ failed
+```
+
+Store Kapso’s message ID, event name, status history, provider error code, idempotency key, and timestamps for every outbound notification.

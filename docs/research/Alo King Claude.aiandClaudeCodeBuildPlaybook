@@ -1,0 +1,1154 @@
+# Alo King Claude.ai and Claude Code Build Playbook
+
+## How to use Claude as the engineering system for Alo King
+
+Claude should not be treated as a chatbot that writes random code when asked. For Alo King, use Claude as a **controlled software-development operating system** with four layers:
+
+```text
+Claude.ai Project → product memory, decisions, research, specifications
+Claude Code       → repository exploration, implementation, tests, migrations, PRs
+MCP connectors     → GitHub, Supabase, documentation, monitoring, tickets, browser tools
+Skills and agents  → repeatable workflows and specialist reviews
+```
+
+The goal is not to give Claude unrestricted control. The goal is to give it:
+
+- enough context to make consistent decisions;
+- narrowly defined tools for each task;
+- repeatable skills instead of repeated explanations;
+- tests and hooks that catch dangerous mistakes;
+- a GitHub branch and pull-request workflow;
+- explicit production boundaries.
+
+Claude Code officially supports project instructions through `CLAUDE.md`, repeatable skills, custom subagents, MCP servers, hooks, Git workflows, parallel agents, worktrees, CI/headless operation, and scheduled routines. These capabilities are documented by Anthropic in the official Claude Code documentation. [1] [2] [3] [4] [5] [6]
+
+---
+
+# 1. The recommended Alo King stack
+
+## Product and operations
+
+```text
+Customer channel: WhatsApp
+Merchant channel: dedicated merchant WhatsApp number + portal
+Driver channel: driver portal/PWA or controlled web interface
+Customer website: discovery, menu, tracking, support, merchant claims
+Merchant portal: orders, menu, hours, campaigns, reports
+Operations console: dispatch, exceptions, refunds, support, verification
+```
+
+## Backend
+
+```text
+Supabase Postgres
+Supabase Auth
+Supabase Storage
+Supabase Realtime
+Supabase Edge Functions
+GitHub Actions
+```
+
+## AI
+
+```text
+Claude API: deep reasoning, difficult support, menu review, policy-sensitive workflows
+OpenAI API: structured extraction, embeddings or selected model workflows where appropriate
+Deterministic code: prices, permissions, status transitions, payments, dispatch, limits
+```
+
+AI must never own the business facts. It may interpret a message and choose a tool, but server code owns:
+
+- prices;
+- totals;
+- menu availability;
+- merchant ownership;
+- order state;
+- customer consent;
+- payment state;
+- delivery zones;
+- driver assignment;
+- refunds;
+- permissions.
+
+## Integrations
+
+Use MCP where a connector safely improves development or operations:
+
+```text
+GitHub: issues, pull requests, branch context, CI results
+Supabase: schema inspection, migrations, logs, read-only data checks
+Meta/Kapso documentation: current WhatsApp API details
+Monitoring: errors, webhook failures, latency, delivery failures
+Browser: merchant portal and customer-flow testing
+```
+
+MCP is a tool connection layer, not a reason to give Claude unrestricted production access. Anthropic’s documentation describes remote HTTP/SSE and local stdio MCP servers, project-scoped configuration, and connectors from Claude.ai that can also become available in Claude Code. [4]
+
+---
+
+# 2. What to put in Claude.ai
+
+## Create one Claude.ai Project: “Alo King — Product and Engineering”
+
+Add these project files:
+
+```text
+00-product-vision.md
+01-lebanon-operating-model.md
+02-customer-ordering-flow.md
+03-merchant-order-notification-strategy.md
+04-driver-dispatch-strategy.md
+05-menu-extraction-strategy.md
+06-payments-and-legal-research.md
+07-ai-recommendation-and-campaign-strategy.md
+08-security-and-privacy-rules.md
+09-database-domain-model.md
+10-release-roadmap.md
+```
+
+The Project should answer product and architecture questions before Claude Code edits the repository. Keep factual research, policy decisions, and unresolved questions separate.
+
+## Claude.ai project instructions
+
+Use instructions similar to:
+
+```text
+You are the product and architecture partner for Alo King, a Lebanon-based WhatsApp-native ordering and delivery platform. There is no mobile app. Customers order through WhatsApp and the website. Merchants use a dedicated merchant WhatsApp number and a web portal. Drivers use a web/PWA workflow or controlled operations interface.
+
+Always distinguish:
+1. Verified fact
+2. Product decision
+3. Assumption
+4. Open question
+5. Legal/provider confirmation item
+
+Never invent Meta, Kapso, Whish, OMT, Alfa, touch, Ogero, Google, Lebanese legal, tax, or payment-provider behavior. If a capability is undocumented, mark it as requiring provider confirmation.
+
+The server owns prices, totals, stock, permissions, status transitions, payment state, delivery zones, and consent. AI may interpret language and choose typed tools, but it must never write business facts directly.
+
+Default priorities:
+1. Correct order fulfilment
+2. Customer and merchant trust
+3. Security and privacy
+4. Operational recovery
+5. Speed and growth
+
+When proposing a feature, include:
+- user story;
+- state machine;
+- database changes;
+- API/tool changes;
+- WhatsApp messages;
+- failure scenarios;
+- permissions;
+- tests;
+- rollout plan;
+- observability;
+- rollback plan.
+
+Use English for code and database identifiers. Support English, Lebanese Arabic, Arabic script, Arabizi, and French in customer-facing flows.
+```
+
+## Use Claude.ai for these tasks
+
+Claude.ai is ideal for:
+
+- turning your business vision into specifications;
+- comparing product alternatives;
+- writing merchant and driver playbooks;
+- reviewing customer conversation transcripts;
+- designing campaign strategy;
+- drafting legal/provider question lists;
+- generating structured PRDs;
+- creating customer-facing copy and bilingual variants;
+- preparing GitHub issues that Claude Code can implement.
+
+Claude.ai should generally produce **the decision and specification**, while Claude Code produces **the repository change and tests**.
+
+---
+
+# 3. What to put in the repository
+
+Commit the project-specific instructions so every developer and Claude Code session shares the same rules.
+
+```text
+CLAUDE.md
+AGENTS.md, optional compatibility file
+.claude/
+  settings.json
+  skills/
+  agents/
+  hooks/
+  commands/, legacy-compatible if needed
+  worktreeinclude
+.mcp.json, only for safe project-scoped servers
+.github/
+  workflows/
+  pull_request_template.md
+  ISSUE_TEMPLATE/
+docs/
+  decisions/
+  contracts/
+  runbooks/
+  testing/
+```
+
+## Recommended `CLAUDE.md`
+
+```markdown
+# Alo King engineering instructions
+
+## Mission
+Build a reliable WhatsApp-native ordering and delivery platform for Lebanon. There is no native mobile app.
+
+## Non-negotiable invariants
+- Prices and totals come from server-side database calculations.
+- A customer order exists only after explicit confirmation.
+- A merchant order is confirmed only after an authenticated accept action.
+- A WhatsApp sent event is not merchant acknowledgement.
+- Every order transition is authorized, atomic, idempotent, and auditable.
+- No customer, merchant, driver, payment, or secret data leaks across tenants.
+- Never log API keys, tokens, OTPs, CVVs, card data, or full sensitive addresses.
+- Never bypass RLS or authorization checks in application code.
+- Never make a production schema change without a migration and rollback plan.
+- Never send marketing without consent and approved templates.
+
+## Architecture
+- React/TypeScript frontend.
+- Supabase Postgres, Auth, Storage, Realtime, and Edge Functions.
+- Kapso/WhatsApp webhooks are verified and idempotent.
+- OpenAI/Anthropic calls are server-side only.
+- Deterministic code owns facts; AI interprets language and calls typed tools.
+
+## Before editing
+1. Inspect the relevant routes, components, functions, migrations, tests, and docs.
+2. State the current behavior and the intended change.
+3. Identify affected states, permissions, messages, and failure paths.
+4. Make a plan before changing files.
+
+## Before finishing
+1. Run targeted tests.
+2. Run lint and build.
+3. Run security and authorization checks.
+4. Inspect the diff.
+5. Update docs and migrations.
+6. Report commands run, failures, and unresolved risks.
+```
+
+Keep this file short enough to be read every session. Put long reference material in `docs/` and tell Claude when to read it.
+
+---
+
+# 4. Organize Claude Code by workflow, not by vague capability
+
+## Project skills
+
+Create project skills under:
+
+```text
+.claude/skills/
+  alo-order-flow/SKILL.md
+  alo-merchant-notifications/SKILL.md
+  alo-whatsapp-webhooks/SKILL.md
+  alo-supabase-migration/SKILL.md
+  alo-ai-tool-safety/SKILL.md
+  alo-menu-extraction/SKILL.md
+  alo-driver-dispatch/SKILL.md
+  alo-security-review/SKILL.md
+  alo-release-check/SKILL.md
+```
+
+Anthropic documents `SKILL.md` files with frontmatter and reusable instructions. Project skills can be committed to GitHub and shared with the team. Skills can also include scripts and supporting files. [2]
+
+## Example skill: order-flow
+
+```markdown
+---
+name: alo-order-flow
+description: Use when implementing or reviewing customer ordering, cart, checkout, confirmation, order lifecycle, cancellation, substitution, or tracking behavior in Alo King.
+---
+
+# Alo King order-flow skill
+
+Before changing code, read:
+- docs/whatsapp-flow-spec.md
+- docs/vendor-orders.md
+- docs/customer-side.md
+- relevant migrations and tests
+
+Check every change against:
+- explicit customer confirmation;
+- server-side price calculation;
+- one order per vendor basket;
+- atomic status transitions;
+- idempotent webhook/message handling;
+- merchant acknowledgement before acceptance;
+- customer language and dual-currency display;
+- cancellation/substitution behavior;
+- customer and operations notifications;
+- audit trail and rollback.
+
+Required output:
+1. current behavior;
+2. plan;
+3. files changed;
+4. tests added or updated;
+5. commands run;
+6. risks and follow-up work.
+```
+
+## Example skill: release-check
+
+```markdown
+---
+name: alo-release-check
+description: Use before merging or deploying Alo King changes to run the full safe release checklist.
+---
+
+Run in order:
+1. git diff --check
+2. targeted unit and integration tests
+3. webhook signature/idempotency tests
+4. authorization/RLS tests
+5. lint
+6. typecheck
+7. build
+8. migration validation
+9. inspect changed files for secrets and PII logs
+10. produce a release report
+
+Never deploy if prices, permissions, payment state, webhook verification, or order transitions are untested.
+```
+
+Invoke skills directly:
+
+```text
+/alo-order-flow implement merchant order acceptance timeout
+/alo-security-review audit the payment webhook changes
+/alo-release-check validate this branch
+```
+
+---
+
+# 5. Create specialist Claude Code agents
+
+Project agents belong under `.claude/agents/`. Anthropic documents custom subagents with their own prompts, tool restrictions, permissions, model choice, skills, hooks, and memory. [3]
+
+Create these agents:
+
+```text
+.claude/agents/
+  alo-architect.md
+  supabase-reviewer.md
+  whatsapp-specialist.md
+  merchant-ops-reviewer.md
+  payment-security-reviewer.md
+  ai-safety-reviewer.md
+  test-engineer.md
+  release-reviewer.md
+```
+
+## Recommended roles
+
+### `alo-architect`
+
+Read-only first. Reviews boundaries, state machines, data ownership, and migration impact.
+
+### `supabase-reviewer`
+
+Checks migrations, RLS, indexes, functions, triggers, foreign keys, transaction safety, and tenant isolation.
+
+### `whatsapp-specialist`
+
+Checks templates, 24-hour windows, webhook verification, event idempotency, message limits, retries, buttons, lists, and bilingual copy.
+
+### `merchant-ops-reviewer`
+
+Checks merchant acceptance SLAs, fallback notifications, substitutions, pauses, refunds, driver handoff, and operational recovery.
+
+### `payment-security-reviewer`
+
+Read-only review of payment links, webhooks, amount/currency validation, idempotency, refunds, ledger entries, secrets, and PII.
+
+### `ai-safety-reviewer`
+
+Checks prompt injection, tool authorization, model claims, hallucinated prices, allergy advice, consent, and human handoff.
+
+### `test-engineer`
+
+Creates tests from the behavior contract, including unhappy paths and race conditions.
+
+### `release-reviewer`
+
+Runs final diff, tests, migration, deployment, and rollback review.
+
+Use read-only agents for review and editing agents only for narrowly scoped implementation. This reduces the chance that a single session changes architecture, code, data, and deployment all at once.
+
+---
+
+# 6. MCP strategy for Alo King
+
+## Use MCP for reading and controlled operations
+
+Recommended connector permissions:
+
+| Connector | Development | Staging | Production |
+|---|---|---|---|
+| GitHub read issues/PRs | allow | allow | allow |
+| GitHub create branch/PR | allow | allow | allow with review |
+| Supabase schema/read-only SQL | allow | allow | allow read-only |
+| Supabase migrations | local/staging | allow | manual approval only |
+| Logs/monitoring | allow | allow | allow read-only |
+| Payment provider | mock/sandbox | sandbox | no automatic money actions |
+| WhatsApp/Kapso send | mocked | test numbers | no autonomous bulk sends |
+| Customer data export | synthetic only | restricted | prohibited by default |
+
+## Safe `.mcp.json` principles
+
+- Keep secrets in environment variables or the provider’s secure authentication flow.
+- Do not commit API keys.
+- Prefer project-scoped servers for repo development.
+- Use read-only database tools by default.
+- Use separate sandbox and production server names.
+- Make production write tools require explicit approval.
+- Test connector startup in CI and fail if a required MCP server is skipped.
+
+Anthropic’s current headless documentation also explains that Claude Code can run with structured JSON output, restricted tools, and explicit permission modes. This is useful for safe CI reviews, but production actions should still require an approval boundary. [6]
+
+## MCP tools Alo King should eventually have
+
+```text
+github.get_issue
+ github.create_branch
+ github.open_pull_request
+ github.get_ci_status
+
+supabase.read_schema
+supabase.read_migration
+supabase.run_readonly_query
+supabase.create_migration_draft
+supabase.read_edge_function_logs
+
+alo.docs.search
+alo.docs.get_provider_contract
+alo.ops.get_order_timeline
+alo.ops.get_notification_attempts
+alo.ops.get_zone_health
+alo.ops.create_support_task
+```
+
+Do not give a general-purpose Claude agent a tool called `send_money`, `refund_any_order`, `send_broadcast_to_all`, or `delete_customer_data` without a dedicated approval workflow and narrow authorization.
+
+---
+
+# 7. Hooks: enforce safety automatically
+
+Claude Code hooks run at lifecycle events and can inspect or allow/deny tool calls. Anthropic documents `PreToolUse`, `PostToolUse`, `Stop`, session events, prompt-based hooks, and agent hooks. [5]
+
+Use hooks as guardrails, not as a replacement for normal code review.
+
+## Recommended hooks
+
+### Pre-tool destructive-command blocker
+
+Block or ask before:
+
+```text
+rm -rf
+DROP DATABASE
+TRUNCATE
+supabase db reset against non-test targets
+production deploy
+bulk WhatsApp send
+payment/refund commands
+```
+
+### Post-edit formatter and typecheck
+
+After edits to TypeScript:
+
+```text
+prettier
+eslint targeted files
+tsc --noEmit, where practical
+```
+
+### Stop hook release reminder
+
+Before Claude declares a task complete, require it to report:
+
+```text
+tests run
+lint/build results
+migration status
+security concerns
+unresolved TODOs
+```
+
+### Secret scanner
+
+After edits, scan for:
+
+```text
+OPENAI_API_KEY
+ANTHROPIC_API_KEY
+SUPABASE_SERVICE_ROLE_KEY
+KAPSO secrets
+webhook secrets
+payment keys
+JWTs
+private keys
+```
+
+### Production-environment guard
+
+The hook should detect the target environment and refuse autonomous destructive commands when:
+
+```text
+APP_ENV=production
+SUPABASE_PROJECT_REF=production
+PAYMENT_MODE=live
+WHATSAPP_MODE=live
+```
+
+---
+
+# 8. GitHub workflow: one issue, one branch, one PR
+
+## The standard loop
+
+```text
+Claude.ai product decision
+→ GitHub issue with acceptance criteria
+→ Claude Code plan
+→ feature branch/worktree
+→ implementation
+→ tests
+→ specialist review
+→ PR
+→ CI
+→ human approval
+→ staging
+→ smoke test
+→ production release
+```
+
+## Good GitHub issue template
+
+```markdown
+## Problem
+[What is broken or missing?]
+
+## User outcome
+[What should the customer, merchant, driver, or operator be able to do?]
+
+## Scope
+[Included and explicitly excluded behavior]
+
+## State transitions
+[Before → after states]
+
+## Acceptance criteria
+- [ ] ...
+- [ ] ...
+
+## Failure cases
+- [ ] duplicate webhook
+- [ ] timeout
+- [ ] unauthorized actor
+- [ ] provider failure
+- [ ] stale data
+
+## Data and security
+[Tables, RLS, PII, secrets, audit trail]
+
+## Tests required
+[Specific tests]
+```
+
+## Claude Code prompt for an issue
+
+```text
+Read the GitHub issue and inspect the repository before editing.
+
+Do not implement yet. First return:
+1. current behavior;
+2. affected files and migrations;
+3. state-machine impact;
+4. authorization and RLS impact;
+5. notification/message impact;
+6. test plan;
+7. rollout and rollback plan.
+
+Wait for my approval of the plan before changing files.
+```
+
+Once approved:
+
+```text
+Implement only the approved plan. Work on a feature branch. Add or update tests for happy paths, race conditions, duplicate webhooks, authorization failures, provider failures, and retries. Run targeted tests, lint, typecheck, and build. Do not deploy or modify production data. Open a PR summary when complete.
+```
+
+---
+
+# 9. Parallel development with worktrees
+
+Use separate Claude Code sessions or worktrees for independent work:
+
+```text
+Worktree A: customer ordering/cart
+Worktree B: merchant notifications
+Worktree C: menu extraction
+Worktree D: driver dispatch/tracking
+Worktree E: security and RLS review
+```
+
+Do not have two agents edit the same migration or shared domain file simultaneously.
+
+Each worktree must:
+
+- start from a known branch;
+- have a clear scope;
+- run its own tests;
+- commit small changes;
+- merge through a PR;
+- be reviewed before integration.
+
+Claude Desktop supports isolated Git worktrees for parallel sessions and provides diff/PR review and CI monitoring capabilities. [7]
+
+---
+
+# 10. The best Alo King development phases
+
+## Phase 0 — repository control
+
+Ask Claude Code:
+
+```text
+Inspect this repository without editing. Map the customer, merchant, driver, admin, payment, WhatsApp, Supabase, and AI domains. Identify current behavior, incomplete behavior, stale branding, security-sensitive code, migrations, tests, and deployment assumptions. Produce a prioritized implementation map.
+```
+
+Deliverables:
+
+```text
+architecture-map.md
+state-machines.md
+security-boundary.md
+missing-capabilities.md
+technical-debt.md
+```
+
+## Phase 1 — foundation and invariants
+
+Implement first:
+
+- environment separation;
+- typed configuration validation;
+- webhook verification and idempotency;
+- audit events;
+- RLS and membership authorization;
+- server-owned price calculation;
+- order state machine;
+- notification outbox;
+- error monitoring;
+- test fixtures and synthetic accounts.
+
+Do not start with AI recommendations or paid broadcasts before these are reliable.
+
+## Phase 2 — customer ordering
+
+Build and test:
+
+- discovery;
+- menu browsing;
+- bilingual item search;
+- cart per vendor;
+- options and modifiers;
+- address and landmark capture;
+- dual-currency summary;
+- explicit confirm;
+- order receipt;
+- cancellation and substitution;
+- tracking.
+
+## Phase 3 — merchant operations
+
+Build and test:
+
+- merchant claim;
+- merchant verification levels;
+- menu extraction draft;
+- merchant WhatsApp order card;
+- Utility template fallback;
+- merchant portal queue;
+- accept/reject timers;
+- pause and capacity controls;
+- notification redundancy;
+- staff roles.
+
+## Phase 4 — driver and zones
+
+Build and test:
+
+- driver verification;
+- service-zone readiness;
+- dispatch;
+- pickup handoff;
+- GPS freshness;
+- route-aware ETA;
+- delivery proof;
+- COD reconciliation;
+- not-collected and failed-delivery handling.
+
+## Phase 5 — payments
+
+Start with sandbox/test mode and one provider adapter:
+
+- payment-link creation;
+- signed return/webhook validation;
+- amount/currency matching;
+- idempotency;
+- refunds;
+- reconciliation;
+- ledger;
+- provider outage handling.
+
+Do not build split payments or stored value until providers and Lebanese counsel approve the model.
+
+## Phase 6 — AI recommendations and campaigns
+
+Only after order and menu data are reliable:
+
+- persistent customer preference profile;
+- recommendation explanations;
+- allergy-safe behavior;
+- campaign audience rules;
+- consent/opt-out enforcement;
+- frequency caps;
+- delivery and conversion attribution;
+- human review for high-risk campaigns;
+- cost and quality monitoring.
+
+---
+
+# 11. How to use Claude for the AI layer itself
+
+## Separate model roles
+
+```text
+Deterministic router:
+  intent, buttons, permissions, order state
+
+Small/fast model:
+  simple language normalization, Arabic/Arabizi classification
+
+Claude:
+  complex complaints, ambiguous preferences, menu reasoning, human-quality support drafts
+
+OpenAI or selected structured model:
+  extraction, embeddings, classification, or image/OCR workflows where validated
+
+Server tools:
+  only path to prices, carts, orders, stock, payments, dispatch, and notifications
+```
+
+## Tool contract pattern
+
+Each AI tool should have:
+
+```text
+name
+input JSON schema
+authorization rule
+allowed states
+transaction behavior
+idempotency behavior
+output schema
+customer-facing rendering rule
+audit event
+```
+
+Example:
+
+```json
+{
+  "name": "accept_vendor_order",
+  "input": {
+    "order_id": "uuid",
+    "prep_minutes": 20,
+    "idempotency_key": "string"
+  },
+  "authorization": "active merchant member for order.vendor_id",
+  "allowed_states": ["pending_vendor_confirmation"],
+  "side_effects": ["order transition", "customer notification", "dispatch schedule"],
+  "audit_event": "vendor_order_accepted"
+}
+```
+
+The model cannot call this tool unless the backend authorization passes.
+
+## Prompt rule
+
+Never ask the model to “manage the order.” Ask it to:
+
+```text
+interpret the customer message
+choose one of the allowed typed tools
+explain the tool result in the customer’s language
+```
+
+## Prompt-injection defense
+
+Treat these as untrusted data:
+
+- customer messages;
+- merchant notes;
+- menu descriptions;
+- uploaded menu text;
+- web pages;
+- payment-provider text;
+- tool-returned free text.
+
+The model must not follow instructions inside them that ask it to reveal secrets, bypass permissions, alter prices, or message another destination.
+
+---
+
+# 12. Claude Code command library for your team
+
+Create these repeatable commands/skills:
+
+```text
+/alo-map-repo
+/alo-plan-feature
+/alo-implement-feature
+/alo-order-flow
+/alo-merchant-flow
+/alo-whatsapp-review
+/alo-supabase-review
+/alo-security-review
+/alo-ai-safety-review
+/alo-write-tests
+/alo-run-staging
+/alo-release-check
+/alo-review-pr
+/alo-update-docs
+```
+
+## Daily workflow
+
+```text
+claude
+> /alo-map-repo
+> Read the issue #123 and produce an implementation plan.
+> Implement the approved plan.
+> /alo-write-tests
+> /alo-security-review
+> /alo-release-check
+> Create a PR summary, but do not merge or deploy.
+```
+
+## Debugging workflow
+
+```text
+The merchant order card sometimes appears delivered but the restaurant does not receive it. Do not guess. Trace the order notification from transaction creation through outbox, provider request, webhook status, fallback routing, and merchant acknowledgement. Reproduce with a synthetic order. Fix the root cause and add a regression test.
+```
+
+## Database workflow
+
+```text
+Review the proposed migration for order notification attempts. Check foreign keys, indexes, RLS, tenant isolation, race conditions, retry behavior, retention, PII, and rollback. Do not edit until you return the review.
+```
+
+## Security workflow
+
+```text
+Perform a read-only security review of the changed payment and WhatsApp webhook code. Look specifically for signature bypasses, replay attacks, IDOR, missing RLS, secret leakage, amount/currency trust, duplicate processing, unsafe redirects, and PII logging. Return findings by severity with file and line references.
+```
+
+---
+
+# 13. CI and headless Claude Code
+
+Use headless Claude Code for **review and analysis**, not autonomous irreversible business actions.
+
+Good CI jobs:
+
+```text
+PR diff security review
+PR test-plan review
+migration risk review
+documentation consistency check
+failed-CI diagnosis
+release-note generation
+weekly dependency review
+```
+
+Example shape:
+
+```bash
+claude -p \
+  --bare \
+  --permission-mode dontAsk \
+  --allowedTools Read,Grep,Glob \
+  --output-format json \
+  --json-schema '{"type":"object","properties":{"findings":{"type":"array"}},"required":["findings"]}' \
+  "Review the current PR diff for security and data-integrity risks. Do not edit files."
+```
+
+Use `--bare` for deterministic scripts when you do not want personal hooks, local MCP servers, memory, or unrelated skills loaded. Use structured output for CI parsers. Do not place live secrets in prompts or shell history. Anthropic documents headless mode, restricted tools, structured output, and permission modes for this use. [6]
+
+## CI safety rules
+
+- run on a read-only checkout where possible;
+- do not allow production MCP servers;
+- do not auto-approve payment, deletion, migration, or broadcast tools;
+- fail if a required MCP server is skipped;
+- store only sanitized logs;
+- pin or control tool versions;
+- require human review for merge and deployment.
+
+---
+
+# 14. What not to delegate to Claude autonomously
+
+Do not allow a general Claude session to autonomously:
+
+- send a mass WhatsApp campaign;
+- delete customer data broadly;
+- refund or transfer money;
+- change production RLS;
+- run a destructive migration;
+- rotate production secrets without a runbook;
+- change Meta/Kapso ownership;
+- change payment-provider configuration;
+- publish a legal or tax attestation;
+- expose customer or driver personal data;
+- mark an order delivered without evidence;
+- accept a vendor order without merchant authorization.
+
+Claude can prepare the change, show the exact payload, run tests, and create a PR or approval request. A human or dedicated protected workflow performs the irreversible action.
+
+---
+
+# 15. Metrics Claude should review every week
+
+Ask Claude Code to generate a weekly report from read-only analytics:
+
+## Customer
+
+```text
+checkout conversion
+confirmation drop-off
+order cancellation
+substitution acceptance
+repeat order rate
+support escalations
+```
+
+## Merchant
+
+```text
+notification delivery rate
+merchant acknowledgement rate
+acceptance SLA
+merchant timeout rate
+rejection rate
+ready-on-time rate
+menu-induced cancellation
+```
+
+## Driver
+
+```text
+assignment time
+pickup wait
+route km
+ETA accuracy
+failed delivery
+not-collected rate
+COD variance
+```
+
+## AI
+
+```text
+tool-call error rate
+hallucination/price violation rate
+human handoff rate
+recommendation conversion
+allergy-related escalation
+model cost per order
+```
+
+## WhatsApp
+
+```text
+sent/delivered/read ratio
+template quality
+failed messages
+customer-service-window coverage
+Free Entry Point usage
+marketing opt-out rate
+```
+
+Claude should identify trends and create issues. It should not silently change production logic based on a report.
+
+---
+
+# 16. The first 20 prompts to run in Claude Code
+
+1. `Map the entire repository and produce a domain architecture map without editing.`
+2. `Identify every path that can create, update, cancel, refund, or mark an order delivered.`
+3. `Audit all Supabase RLS policies for customer, merchant, driver, admin, and cross-tenant access.`
+4. `Trace a WhatsApp inbound message from webhook verification to response and identify retry/idempotency gaps.`
+5. `Trace a merchant order notification from order creation through delivered/read/acknowledged state.`
+6. `Build a state-transition table for orders, merchant decisions, dispatch, and payment.`
+7. `Find every place where a price is constructed outside a server-side database calculation.`
+8. `Find every log statement that may expose phone numbers, addresses, tokens, payment data, or secrets.`
+9. `Create a synthetic test fixture for a Lebanese Arabic customer, merchant, driver, and COD order.`
+10. `Implement the merchant notification outbox with retry and idempotency, after first producing a plan.`
+11. `Implement the merchant WhatsApp Utility-template fallback without changing production configuration.`
+12. `Add tests for duplicate merchant accept taps and out-of-order WhatsApp webhooks.`
+13. `Review menu extraction for invented prices, incorrect currency, duplicate items, and unsafe allergen claims.`
+14. `Review driver dispatch for zones with no verified merchant or no active driver.`
+15. `Review all payment webhooks for amount, currency, signature, replay, and refund correctness.`
+16. `Create a staged migration plan for the notification and escalation tables.`
+17. `Review the current customer ordering flow against the Alo King product specification.`
+18. `Create a release checklist for this branch and run it without deploying.`
+19. `Review the PR diff as a read-only security engineer and report critical/high/medium/low findings.`
+20. `Write the documentation and runbook for recovering when a merchant misses an order notification.`
+
+---
+
+# 17. The best division of labor
+
+## You, as founder/operator
+
+Decide:
+
+- product priorities;
+- merchant policies;
+- pricing and commissions;
+- legal/provider approvals;
+- launch zones;
+- whether a risk is acceptable;
+- final production actions.
+
+## Claude.ai
+
+Use for:
+
+- product thinking;
+- research synthesis;
+- requirements;
+- strategy;
+- conversations and copy;
+- decision records;
+- issue writing.
+
+## Claude Code
+
+Use for:
+
+- repository exploration;
+- implementation;
+- tests;
+- migrations;
+- refactors;
+- debugging;
+- PRs;
+- code review;
+- release reports.
+
+## Specialized agents
+
+Use for:
+
+- independent architecture review;
+- security review;
+- database/RLS review;
+- WhatsApp review;
+- merchant operations review;
+- testing;
+- release review.
+
+## Deterministic software
+
+Use for:
+
+- money;
+- permissions;
+- state transitions;
+- notifications;
+- retries;
+- audit trails;
+- limits;
+- reconciliation.
+
+---
+
+# 18. Recommended next 30 days
+
+## Week 1 — control the repository
+
+- Commit `CLAUDE.md`.
+- Create the project skills and specialist agents.
+- Define staging and production boundaries.
+- Add secret scanning and destructive-command hooks.
+- Ask Claude Code for a complete repository map.
+
+## Week 2 — make ordering reliable
+
+- Finish order state machine.
+- Finish merchant notification outbox.
+- Add WhatsApp delivery-state handling.
+- Add merchant portal order queue.
+- Add acceptance timeout and fallback notification tests.
+
+## Week 3 — secure the business boundaries
+
+- Audit RLS and membership permissions.
+- Audit payment and WhatsApp webhooks.
+- Add idempotency and replay tests.
+- Add synthetic customer/merchant/driver fixtures.
+- Add production migration and rollback runbooks.
+
+## Week 4 — run a controlled pilot
+
+- Launch one zone.
+- Use a small verified merchant group.
+- Use one trained driver group.
+- Use COD or one sandbox/payment pilot.
+- Review every failed notification manually.
+- Let Claude generate daily issues and weekly reports.
+- Do not expand before acceptance, delivery, cancellation, and support metrics are stable.
+
+---
+
+# Final operating principle
+
+> **Claude should accelerate Alo King’s thinking, coding, testing, and documentation—but deterministic backend rules and human approvals must control money, permissions, customer data, vendor orders, and production changes.**
+
+The strongest setup is not “Claude builds everything alone.” It is:
+
+```text
+Claude.ai decides and documents
+→ Claude Code plans and implements
+→ specialist agents review
+→ hooks block unsafe actions
+→ CI tests every change
+→ GitHub PR records the decision
+→ you approve consequential changes
+→ staging proves the workflow
+→ production is released deliberately
+```
+
+## References
+
+[1]: https://docs.anthropic.com/en/docs/claude-code "Claude Code official overview"
+[2]: https://docs.anthropic.com/en/docs/claude-code/skills "Claude Code skills documentation"
+[3]: https://docs.anthropic.com/en/docs/claude-code/sub-agents "Claude Code custom subagents documentation"
+[4]: https://docs.anthropic.com/en/docs/claude-code/mcp "Claude Code MCP documentation"
+[5]: https://docs.anthropic.com/en/docs/claude-code/hooks "Claude Code hooks documentation"
+[6]: https://docs.anthropic.com/en/docs/claude-code/headless "Claude Code headless and automation documentation"
+[7]: https://docs.anthropic.com/en/docs/claude-code/desktop "Claude Code Desktop, worktrees, review, and sessions documentation"

@@ -1,0 +1,1317 @@
+# Alo King Merchant Onboarding, Claiming, Verification, and Operations Strategy
+
+## Executive summary
+
+Alo King has a strong starting asset: a scraped directory of **2,087 Lebanese vendors** across:
+
+- Metn/Keserwan: 436
+- Beirut: 432
+- North/Akkar: 391
+- Chouf/Aley/Baabda: 335
+- South: 286
+- Bekaa: 207
+
+The dataset contains useful discovery information, but it must be treated as **unclaimed directory data**, not as verified merchant inventory.
+
+Current data-quality observations:
+
+- 1,823 records have an apparent phone number;
+- 1,202 are marked as WhatsApp candidates;
+- 722 have a website or menu link;
+- 264 lack a normalized phone number;
+- 22 phone numbers are duplicated;
+- 171 normalized names are duplicated or near-duplicated;
+- 66 records lack a rating;
+- all records have coordinates inside the expected Lebanon geographic range.
+
+The correct strategy is a two-layer marketplace:
+
+```text
+Directory layer:
+  searchable, clearly labelled, unclaimed, limited facts
+
+Verified merchant layer:
+  claimed, owner-controlled, live menu, orders, offers, campaigns, analytics
+```
+
+> **Alo King should never turn scraped data into operational truth until the business claims the profile and completes verification.**
+
+---
+
+# 1. Merchant product architecture
+
+## 1.1 The two Alo King identities
+
+Alo King should have two separate communication channels:
+
+### Customer number
+
+Used for:
+
+- food discovery;
+- customer ordering;
+- order support;
+- delivery notifications;
+- customer marketing with consent.
+
+### Merchant number
+
+Used only for verified merchant operations:
+
+- claim and ownership verification;
+- menu and price updates;
+- item availability;
+- opening hours;
+- accepting/pausing orders;
+- offers and campaigns;
+- campaign balance and recharge;
+- campaign previews and reporting;
+- merchant support.
+
+Do not mix merchant commands into the customer number except for a controlled claim handoff link.
+
+## 1.2 The merchant number is not identity by itself
+
+A person messaging from a merchant WhatsApp number is not automatically the owner.
+
+The identity model should be:
+
+```text
+WhatsApp number
+→ verified merchant user
+→ merchant membership
+→ vendor profile permissions
+```
+
+One business may have:
+
+- owner;
+- manager;
+- marketing manager;
+- kitchen/order operator;
+- finance user;
+- driver coordinator.
+
+Each role receives only the permissions it needs.
+
+---
+
+# 2. Importing the scraped vendor list
+
+## 2.1 Import into staging, not directly into live marketplace
+
+Create an import pipeline:
+
+```text
+CSV upload
+→ validation
+→ normalization
+→ duplicate detection
+→ geocoding/location checks
+→ category mapping
+→ staging review
+→ directory publication
+→ claim invitation
+→ verification
+→ live merchant activation
+```
+
+Recommended tables:
+
+```text
+vendor_import_batches
+vendor_import_rows
+vendor_candidates
+vendor_match_candidates
+vendor_claims
+vendor_verification_events
+vendors
+vendor_profiles
+vendor_memberships
+```
+
+## 2.2 Preserve source provenance
+
+For every scraped field, store:
+
+```text
+source_name
+source_record_id
+source_url
+scraped_at
+source_field
+source_confidence
+last_verified_at
+```
+
+Never present an old scraped phone number as confirmed. Show it internally as:
+
+```text
+Source: public directory
+Last checked: [date]
+Owner verified: No
+```
+
+## 2.3 Clean and deduplicate before importing
+
+The CSV already has unique `place_id` values, but names and phone numbers are not a safe unique key.
+
+Deduplication should compare:
+
+- normalized phone;
+- place ID;
+- normalized name in Arabic and Latin;
+- coordinates within a small radius;
+- address similarity;
+- website/domain;
+- social profile URL;
+- category.
+
+Do not merge two businesses automatically merely because they share a phone number. A chain, delivery office, or shared owner may use one number for multiple locations.
+
+## 2.4 Vendor record states
+
+Use explicit states:
+
+```text
+imported_unreviewed
+published_unclaimed
+claim_started
+pending_verification
+verified_unpublished
+live_directory
+live_ordering
+paused
+suspended
+closed
+duplicate_merged
+removed
+```
+
+Recommended default for the CSV:
+
+```text
+published_unclaimed
+is_live = false
+accepts_orders = false
+owner_verified = false
+menu_verified = false
+```
+
+A directory listing can be visible before a merchant claims it, but it must not receive orders until the merchant meets the live-ordering gate.
+
+## 2.5 Directory page labels
+
+Unclaimed page:
+
+> This business is listed on Alo King. The business owner has not claimed this page yet. Is this your business?
+
+Never imply:
+
+- that the business partnered with Alo King;
+- that the menu is current;
+- that the business accepts Alo King orders;
+- that Alo King has verified the phone, hours, prices, or rating.
+
+---
+
+# 3. Merchant acquisition funnel
+
+## 3.1 Acquisition channels
+
+Use several channels, but keep the claim workflow consistent:
+
+1. **Profile claim button** on the public Alo King page.
+2. **Merchant WhatsApp number** printed on the profile.
+3. **QR code** on flyers, receipts, or in-person visits.
+4. **Outbound phone call** by Alo King sales/operations.
+5. **Click-to-WhatsApp ad** for merchants.
+6. **Referral from another business or driver.**
+7. **Customer suggestion** for a missing business.
+8. **Merchant self-add flow**.
+
+## 3.2 Outreach message
+
+Do not say “your business is already approved.” Say:
+
+> Alo King has a public page for **[Business Name]** in **[Area]**. Claim it for free to update your information, add your menu, receive customer orders, and manage offers from WhatsApp or the Alo King merchant portal.
+
+Buttons:
+
+```text
+Claim this business
+This is not my business
+Add a different business
+```
+
+## 3.3 Merchant value proposition
+
+The first claim flow should deliver immediate value:
+
+- correct inaccurate phone/address/hours;
+- add menu with AI-assisted import;
+- receive WhatsApp orders;
+- pause unavailable items;
+- publish offers;
+- reach opted-in local customers;
+- receive reporting;
+- manage everything from a dedicated merchant WhatsApp number.
+
+Do not lead with paid campaigns before the merchant has a complete profile and can reliably fulfil orders.
+
+---
+
+# 4. Claiming a profile from the web portal
+
+## 4.1 Claim entry
+
+Public page includes:
+
+```text
+Claim this business
+Report incorrect information
+This business is closed
+```
+
+The claim page should display only public profile information and never expose private claim attempts, owner phone numbers, or internal notes.
+
+## 4.2 Claim form
+
+Collect:
+
+```text
+claiming_business_id
+claimant_name
+role: owner | manager | authorized_staff
+business_phone
+claimant_phone
+merchant_email, optional
+preferred_language
+proof method
+```
+
+Do not collect unnecessary identity documents before a lower-friction verification step fails.
+
+## 4.3 Automated verification options
+
+Preferred order:
+
+1. Call or WhatsApp OTP to the public business phone already in the vendor record.
+2. Merchant replies from that public business number to the Alo King merchant number.
+3. Website/domain verification if the business controls its official domain.
+4. Email verification using a clearly official business domain.
+5. Review of business documents or licence by Alo King operations.
+6. Manual phone call to a publicly listed number.
+7. Existing verified owner/admin confirms the claimant.
+
+A personal phone number that is not connected to the public business record should not automatically claim the profile.
+
+## 4.4 Web claim flow
+
+```text
+1. Customer/merchant clicks Claim.
+2. Alo King shows the selected business and location.
+3. Claimant selects Owner or Manager.
+4. Claimant chooses verification method.
+5. OTP or proof is completed.
+6. Alo King creates a pending claim.
+7. Automated checks run.
+8. Approve, request more evidence, or send to manual review.
+9. On approval, create merchant membership.
+10. Start onboarding checklist.
+```
+
+## 4.5 Claim security
+
+- One-time claim tokens expire quickly.
+- OTP attempts are rate-limited.
+- Claim links are single-use where possible.
+- Do not reveal whether another person is currently claiming the business.
+- Log every verification event.
+- Require reauthentication for sensitive actions.
+- Notify existing verified members of a new owner/manager request.
+- Never send secrets in URL query strings.
+
+---
+
+# 5. Claiming through WhatsApp
+
+## 5.1 Merchant onboarding number greeting
+
+When a new number messages the merchant number:
+
+> Welcome to Alo King Merchant 👑  
+> Are you claiming an existing business, adding a new business, or managing a business you already verified?
+
+Buttons:
+
+```text
+Claim a business
+Add a business
+Manage my business
+Talk to Alo King
+```
+
+## 5.2 Existing profile claim
+
+Flow:
+
+```text
+1. Merchant sends business name, phone, location, or profile link.
+2. Bot searches candidate vendor records.
+3. Bot shows up to three matches with area and public contact hint.
+4. Merchant selects the correct profile.
+5. Bot offers verification methods.
+6. Merchant completes OTP/proof.
+7. Claim enters approval state.
+8. Merchant receives status and next steps.
+```
+
+Do not display a full private phone number in a candidate list.
+
+## 5.3 WhatsApp OTP
+
+For a public business number:
+
+1. Merchant enters or confirms the public number.
+2. Alo King sends a short verification code through the approved channel.
+3. Merchant returns the code to the merchant number.
+4. Backend verifies the code, expiry, attempt count, and claim ID.
+5. Claim is approved automatically if no conflict exists.
+
+Never accept a code without binding it to:
+
+```text
+claim_id
+vendor_id
+phone number
+expiry
+attempt counter
+```
+
+## 5.4 Phone number already used by another member
+
+If the number belongs to an existing verified member:
+
+- do not automatically transfer ownership;
+- notify the existing owner/admin;
+- create a membership request;
+- require owner approval or manual review.
+
+## 5.5 Merchant WhatsApp command menu
+
+Once verified, the merchant can type or tap:
+
+```text
+Today
+Orders
+Menu
+Add item
+Change price
+Out of stock
+Opening hours
+Pause orders
+Offers
+Broadcasts
+Balance
+Recharge
+Reports
+Team access
+Help
+```
+
+Natural language should work too:
+
+```text
+سكر اليوم الساعة 8
+this burger is out of stock
+change the family meal to $25
+add shawarma with chicken and garlic
+pause orders for 30 minutes
+how much credit do I have?
+```
+
+The AI interprets the request but every change uses a typed backend tool and permission check.
+
+---
+
+# 6. Merchant verification levels
+
+Do not use a single binary verified/unverified flag.
+
+## Level 0 — Directory listed
+
+Requirements:
+
+- imported or submitted profile;
+- source provenance;
+- no owner claim.
+
+Capabilities:
+
+- public discovery page;
+- report correction;
+- no Alo King orders;
+- no merchant editing.
+
+## Level 1 — Contact verified
+
+Requirements:
+
+- OTP or verified reply from a public business number;
+- no unresolved ownership conflict.
+
+Capabilities:
+
+- edit public business facts;
+- add logo/photos;
+- set hours and service area;
+- start menu onboarding.
+
+## Level 2 — Merchant verified
+
+Requirements:
+
+- ownership/manager evidence;
+- business identity review;
+- approved merchant agreement;
+- operational contact;
+- payout/payment details if applicable.
+
+Capabilities:
+
+- accept Alo King orders;
+- publish verified menu;
+- receive order alerts;
+- manage availability;
+- issue approved substitutions.
+
+## Level 3 — Campaign-enabled
+
+Requirements:
+
+- completed profile and menu;
+- order fulfilment history;
+- active consent-safe campaign account;
+- payment/recharge method verified;
+- campaign terms accepted;
+- quality threshold met.
+
+Capabilities:
+
+- paid broadcasts;
+- audience targeting;
+- personalized recommendations;
+- analytics;
+- campaign credits.
+
+## Level 4 — Trusted merchant
+
+Requirements:
+
+- consistent fulfilment;
+- low complaint/rejection rate;
+- accurate menu and hours;
+- reliable order acceptance;
+- quality score sustained over time.
+
+Capabilities:
+
+- higher campaign limits;
+- faster approvals;
+- advanced promotions;
+- lower operational restrictions where justified.
+
+---
+
+# 7. If a business is not in Alo King
+
+## 7.1 Customer or merchant add flow
+
+Allow anyone to submit a missing business:
+
+```text
+Business name
+Category
+Village/area
+Public phone
+Map location
+Website/social link, optional
+Submitter relationship
+```
+
+Do not immediately publish it as a verified partner.
+
+## 7.2 Duplicate search before creating
+
+Search existing records by:
+
+- exact and fuzzy name;
+- Arabic/Latin transliteration;
+- phone;
+- map proximity;
+- address;
+- website/social domain;
+- category.
+
+If a likely match exists:
+
+> We found a possible existing page for this business. Would you like to claim it instead?
+
+## 7.3 New business state
+
+```text
+submitted
+possible_duplicate
+needs_contact_check
+contact_verified
+pending_merchant_review
+verified_unpublished
+live_directory
+live_ordering
+rejected
+```
+
+## 7.4 New business verification
+
+Minimum requirements before live ordering:
+
+- verified operator contact;
+- business name and location confirmed;
+- operating hours;
+- delivery/service area;
+- menu with prices;
+- order alert channel;
+- merchant agreement;
+- fulfilment and cancellation policy;
+- payment/reconciliation setup;
+- owner or manager role verified.
+
+## 7.5 Self-added business from a personal phone
+
+A personal phone can start a submission, but it should receive only:
+
+- pending status;
+- a request for proof;
+- a link to complete verification.
+
+Do not grant menu editing, order acceptance, or broadcasts until ownership is verified.
+
+---
+
+# 8. Merchant onboarding checklist
+
+## Profile
+
+```text
+Business name in English and Arabic
+Category
+Description
+Logo
+Cover photo
+Address
+Map pin
+Village/region
+Phone
+Website/social links
+```
+
+## Operations
+
+```text
+Opening hours by day
+Holiday/temporary closure rules
+Accept orders toggle
+Preparation time
+Delivery area
+Minimum order
+Payment methods
+Customer support contact
+```
+
+## Menu
+
+```text
+Sections
+Items
+Arabic and English names
+Descriptions
+Prices in USD and LBP display
+Required options
+Optional add-ons
+Availability
+Photos
+Ingredients
+Allergen review
+```
+
+## Order fulfilment
+
+```text
+Order alert number
+Backup alert number
+Kitchen operator
+Acceptance SLA
+Packaging readiness
+Substitution policy
+Cancellation policy
+Refund/contact process
+```
+
+## Campaign readiness
+
+```text
+Marketing terms accepted
+Campaign budget/recharge setup
+Approved target area
+Offer constraints
+Opt-out handling
+Template approval
+Test campaign completed
+```
+
+A merchant should see a completion score and the exact blockers before going live.
+
+---
+
+# 9. Merchant portal and merchant WhatsApp parity
+
+The portal and merchant WhatsApp should use the same backend capabilities.
+
+## Portal is best for
+
+- bulk menu editing;
+- photos;
+- opening-hours calendar;
+- analytics;
+- campaign audience review;
+- team permissions;
+- invoices and statements;
+- dispute history.
+
+## WhatsApp is best for
+
+- urgent out-of-stock updates;
+- opening/closing temporarily;
+- accepting orders;
+- quick price correction;
+- checking balance;
+- pausing campaigns;
+- receiving alerts;
+- simple offers.
+
+Do not implement separate business rules in the portal and WhatsApp bot. Use shared service functions and permission checks.
+
+---
+
+# 10. Menu and pricing operations
+
+## 10.1 Price update flow
+
+Merchant says:
+
+> Change the family meal to $25.
+
+The bot should reply:
+
+> I found **Family Meal**. Current price: **$24.00**. New price: **$25.00**. Should I apply this now?
+
+Buttons:
+
+```text
+Apply price
+Cancel
+```
+
+On confirmation:
+
+1. validate merchant permission;
+2. write an audit event;
+3. update the current menu price;
+4. preserve existing confirmed order prices;
+5. update future campaign eligibility;
+6. invalidate stale menu cache;
+7. notify any active campaign owner if the offer is affected.
+
+## 10.2 Out-of-stock flow
+
+Merchant says:
+
+```text
+The chicken shawarma is out
+خلص الشاورما
+```
+
+The bot should ask:
+
+```text
+Out of stock until:
+Today
+A specific time
+Until I turn it back on
+```
+
+Then:
+
+- mark item unavailable;
+- remove it from new recommendations;
+- update menu immediately;
+- identify affected pending orders;
+- offer approved substitutions to customers;
+- pause campaigns that depend on the item.
+
+## 10.3 Opening-hours flow
+
+Support:
+
+```text
+Open today until 10
+Closed tomorrow
+Pause orders for 45 minutes
+We are open for pickup but not delivery
+```
+
+Separate:
+
+```text
+business_open
+accepts_orders
+accepts_delivery
+accepts_pickup
+paused_until
+holiday_closure
+```
+
+Changing business hours should not automatically cancel already accepted orders. It should trigger an operational review.
+
+## 10.4 AI menu import
+
+Allow merchants to upload:
+
+- PDF menu;
+- image;
+- spreadsheet;
+- website link;
+- text message.
+
+The AI can extract candidate items, but the merchant must review:
+
+- item name;
+- price;
+- options;
+- ingredients;
+- allergens;
+- availability.
+
+Never publish AI-extracted prices without merchant confirmation.
+
+---
+
+# 11. Merchant broadcasts and paid campaigns
+
+## 11.1 Campaign access gate
+
+A merchant can create a paid campaign only when:
+
+- Level 3 campaign-enabled;
+- marketing terms accepted;
+- sufficient balance or approved payment intent;
+- valid menu and offer;
+- audience consent available;
+- no active quality suspension;
+- order capacity is sufficient.
+
+## 11.2 Campaign creation through merchant number
+
+Example:
+
+> Create a campaign for customers near Baakline who ordered shawarma more than 30 days ago. Offer a family meal for $24 this weekend.
+
+The bot should respond with a structured preview:
+
+```text
+Objective: Reactivate inactive customers
+Audience: 184 eligible opted-in customers
+Offer: Family Meal
+Price: $24.00
+Validity: Friday–Sunday
+Estimated message cost: $X.XX
+Estimated total: $X.XX
+Test batch: 20 customers
+```
+
+Buttons:
+
+```text
+Preview copy
+Change audience
+Change offer
+Schedule test
+Cancel
+```
+
+Final send requires a separate explicit confirmation.
+
+## 11.3 Campaign safety
+
+The AI cannot:
+
+- add customers who opted out;
+- invent a discount;
+- hide campaign cost;
+- use unverified menu prices;
+- target sensitive attributes;
+- send without the campaign gate;
+- continue after a kill rule triggers.
+
+## 11.4 Merchant campaign controls
+
+Merchant commands:
+
+```text
+Pause campaign
+Stop campaign
+Show results
+How much did I spend?
+Which offer converted?
+Recharge balance
+```
+
+A stop command should take effect immediately for unsent recipients.
+
+---
+
+# 12. Whish recharge strategy
+
+## 12.1 Start with a ledger, not a balance-only field
+
+Use:
+
+```text
+merchant_wallets
+merchant_wallet_ledger
+recharge_requests
+payment_proofs
+campaign_reservations
+campaign_spend_events
+refund_events
+```
+
+Every balance change must have:
+
+```text
+merchant_id
+amount_usd
+amount_lbp_display
+currency_received
+exchange_rate
+entry_type
+reference
+actor
+created_at
+idempotency_key
+```
+
+## 12.2 Whish payment flow — manual launch version
+
+Until a verified API integration exists:
+
+1. Merchant taps **Recharge**.
+2. Alo King shows the approved Whish destination and exact amount.
+3. Merchant sends payment through Whish outside the bot.
+4. Merchant submits the Whish reference number and optional receipt image.
+5. Alo King creates `pending_verification` recharge.
+6. Operations verifies the payment against the merchant account.
+7. Staff approves or rejects the recharge.
+8. Wallet ledger is credited only after approval.
+9. Merchant receives a receipt and updated balance.
+
+Do not credit funds merely because the merchant uploaded a screenshot.
+
+## 12.3 Future Whish API version
+
+If Whish provides a suitable business API, use:
+
+```text
+payment intent
+→ external payment reference
+→ verified webhook
+→ idempotent ledger credit
+→ receipt
+```
+
+The webhook must be authenticated, deduplicated, and reconciled against the merchant, amount, currency, and purpose.
+
+## 12.4 Campaign reservation
+
+Before sending a campaign:
+
+1. calculate expected cost;
+2. reserve the amount in the wallet;
+3. run the campaign;
+4. charge only delivered/eligible billable events according to the approved billing rule;
+5. refund unused reservation;
+6. issue a statement.
+
+Never decrement balance directly inside a model response.
+
+## 12.5 Recharge commands
+
+Merchant says:
+
+```text
+recharge 20
+add $50 campaign credit
+قديش عندي رصيد؟
+```
+
+The bot responds with:
+
+```text
+Current balance
+Requested recharge amount
+Whish instructions
+Reference field
+Expected verification time
+Support option
+```
+
+---
+
+# 13. Ownership transfer, staff, and disputes
+
+## 13.1 Add team member
+
+Owner says:
+
+> Add my manager Samir to the business account.
+
+Flow:
+
+1. owner chooses role;
+2. enters manager phone;
+3. manager receives invite;
+4. manager accepts;
+5. owner or admin confirms;
+6. membership becomes active.
+
+## 13.2 Role permissions
+
+| Role | Profile | Menu | Orders | Campaigns | Billing | Team |
+|---|---:|---:|---:|---:|---:|---:|
+| Owner | Yes | Yes | Yes | Yes | Yes | Yes |
+| Manager | Yes | Yes | Yes | Yes | Limited | No |
+| Kitchen operator | No | Stock only | Yes | No | No | No |
+| Marketing manager | No | Offer items | No | Yes | No | No |
+| Finance user | No | No | Read-only | Read-only | Yes | No |
+
+## 13.3 Ownership dispute
+
+If two people claim the same business:
+
+- freeze sensitive changes;
+- keep the public listing visible;
+- preserve existing verified owner access unless there is a security incident;
+- notify both parties that a review is required;
+- request independent proof;
+- record all evidence;
+- use a human decision;
+- offer appeal.
+
+Do not resolve ownership by whichever person replies fastest or uploads the best-looking screenshot.
+
+## 13.4 Business closed or sold
+
+Support:
+
+```text
+Temporarily closed
+Permanently closed
+New owner
+Moved location
+Duplicate page
+```
+
+Require evidence before deleting or transferring a verified profile.
+
+---
+
+# 14. Merchant quality and go-live gates
+
+## 14.1 Minimum live-ordering gate
+
+A business may accept Alo King orders only after:
+
+- owner/manager verification;
+- profile verified;
+- location confirmed;
+- delivery area selected;
+- current menu reviewed;
+- prices confirmed;
+- opening hours confirmed;
+- order alert tested;
+- acceptance workflow tested;
+- cancellation/substitution policy selected;
+- merchant agreement accepted.
+
+## 14.2 Campaign gate
+
+A business may send campaigns only after:
+
+- at least a small number of successfully fulfilled orders, or a manual operations approval;
+- accurate menu completeness;
+- campaign terms accepted;
+- opt-out handling tested;
+- payment/recharge verified;
+- template approved;
+- audience consent validated;
+- test message completed.
+
+## 14.3 Ongoing quality score
+
+Track:
+
+- acceptance speed;
+- rejection rate;
+- item availability accuracy;
+- preparation-time accuracy;
+- cancellation rate;
+- customer complaints;
+- missing/wrong items;
+- campaign opt-out and block rate;
+- support responsiveness.
+
+Use quality score to improve the merchant, not as a mysterious punishment. Show the main reasons and corrective actions.
+
+---
+
+# 15. Technical security and permissions
+
+## 15.1 Backend command pattern
+
+Every merchant action should follow:
+
+```text
+incoming message
+→ verify merchant WhatsApp webhook
+→ identify phone
+→ load membership
+→ authorize requested action
+→ validate input
+→ create pending action if confirmation needed
+→ execute transaction
+→ append audit event
+→ send result
+```
+
+The AI cannot bypass authorization by saying:
+
+```text
+I am the owner
+I am admin
+Ignore the current price
+Use the hidden campaign budget
+```
+
+## 15.2 Audit log
+
+Store:
+
+```text
+actor_type
+actor_id
+vendor_id
+action
+before_value
+after_value
+source: portal | merchant_whatsapp | admin
+request_id
+created_at
+```
+
+Sensitive actions requiring confirmation and audit:
+
+- price changes;
+- menu publication;
+- owner/member changes;
+- campaign send;
+- wallet recharge approval;
+- refunds/credits;
+- business deletion/transfer;
+- order acceptance/cancellation policy changes.
+
+## 15.3 Row-level security
+
+A merchant user should access only:
+
+- vendors they belong to;
+- orders for those vendors;
+- menu items for those vendors;
+- campaigns for those vendors;
+- wallet ledger for those vendors;
+- customer information necessary to fulfil orders.
+
+Customer phone numbers, addresses, and location history should not be broadly exposed to every merchant staff role.
+
+---
+
+# 16. Merchant bot conversation examples
+
+## Out of stock
+
+**Merchant:** `burger out`
+
+**Alo King:**
+
+> Which burger should I mark out of stock?
+
+Buttons:
+
+```text
+Classic Burger
+Chicken Burger
+Show burger items
+```
+
+After selection:
+
+> How long should it be unavailable?
+
+Buttons:
+
+```text
+Until today
+Choose a time
+Until I turn it on
+```
+
+## Temporary pause
+
+**Merchant:** `pause orders 30 minutes`
+
+**Alo King:**
+
+> Pause **delivery orders** for 30 minutes, until **[time]**? Existing accepted orders will stay active.
+
+Buttons:
+
+```text
+Pause orders
+Change
+Cancel
+```
+
+## Price update
+
+**Merchant:** `family meal now 25`
+
+**Alo King:**
+
+> I found **Family Meal**. Current price: **$24.00**. New price: **$25.00**. Apply the new price to future orders?
+
+Buttons:
+
+```text
+Apply $25
+Choose another item
+Cancel
+```
+
+## Recharge
+
+**Merchant:** `recharge 20`
+
+**Alo King:**
+
+> Your current campaign balance is **$6.40**. Recharge **$20.00** through Whish, then send me the Whish reference number. Your balance will update after verification.
+
+Buttons:
+
+```text
+Show Whish details
+Change amount
+Cancel
+```
+
+## New business
+
+**Merchant:** `my business is not listed`
+
+**Alo King:**
+
+> No problem. I can add a new business profile. Send me the business name, village, public phone, and map location. The profile will remain pending until ownership and business details are verified.
+
+Buttons:
+
+```text
+Start new profile
+Search again
+Talk to Alo King
+```
+
+---
+
+# 17. Recommended implementation roadmap
+
+## P0 — Safe directory import
+
+1. Import the 2,087 records into staging.
+2. Preserve source and scrape timestamps.
+3. Normalize phones and detect duplicates.
+4. Publish only unclaimed directory pages.
+5. Set `is_live = false` and `accepts_orders = false`.
+6. Add claim and correction buttons.
+
+## P1 — Claim and verification
+
+1. Web claim route.
+2. Merchant WhatsApp number.
+3. OTP to public business number.
+4. Manual-review queue.
+5. Verification-level state machine.
+6. Membership and role permissions.
+7. Claim audit logs.
+
+## P2 — Merchant operations
+
+1. Profile/hours updates.
+2. Menu import and review.
+3. Out-of-stock and pause commands.
+4. Merchant order alerts.
+5. Shared portal/WhatsApp backend actions.
+6. Live-ordering gate.
+
+## P3 — Campaign and wallet
+
+1. Campaign eligibility gate.
+2. Merchant broadcast preview.
+3. Whish manual recharge workflow.
+4. Wallet ledger and reservations.
+5. Campaign reporting.
+6. Pause/kill controls.
+
+## P4 — Scale and trust
+
+1. Automated quality scoring.
+2. Chain/location management.
+3. Whish API integration if available.
+4. Advanced staff permissions.
+5. Merchant self-service dispute and appeal.
+6. Automated claim invitations based on data confidence.
+
+---
+
+# Final operating rules
+
+1. **Scraped does not mean verified.**
+2. **Listed does not mean partnered.**
+3. **Claimed does not mean live for ordering.**
+4. **Verified owner does not mean every staff member has owner permissions.**
+5. **AI-extracted menu data is draft data until the merchant confirms it.**
+6. **A Whish screenshot is evidence for review, not a wallet credit.**
+7. **Campaign balance is a ledger, not a mutable number.**
+8. **Every merchant command must be permission-checked and audited.**
+9. **A missing business can be added, but it enters the same verification pipeline.**
+10. **The merchant portal and merchant WhatsApp must call the same backend services.**
+
+> Alo King’s competitive advantage is not merely having a large directory. It is converting that directory into a trusted, owner-controlled, operationally accurate marketplace—one verified business at a time.

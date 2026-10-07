@@ -1,0 +1,1096 @@
+# Alo King WhatsApp Latency, Database, Caching, and API-Cost Optimization Strategy
+
+## The real latency problem in the current repository
+
+The existing latency measurements already identify the largest bottleneck:
+
+- Kapso’s inbound buffer contributes roughly **5 seconds** before the function is called.
+- The Supabase database is in **Tokyo** while the function was sometimes running in a US region.
+- Cross-region database calls were taking roughly **0.45–0.65 seconds per request**.
+- Some simple taps were making 8–10 database queries.
+- Some deterministic text flows were making 18–70 database calls.
+- Free-text turns were sometimes making 3–5 model calls.
+- Button taps were taking approximately 10 seconds end to end, even without AI.
+
+The existing tests already show that pinning the function close to the database reduced handler latency from multiple seconds to roughly **0.3–0.9 seconds** in the measured staging runs. That is the first major fix.
+
+The goal should be:
+
+```text
+Interactive tap, no AI:
+first response target ≤ 2 seconds after our handler receives the event
+
+Simple text, deterministic:
+first response target ≤ 2.5 seconds after handler receipt
+
+AI-assisted text:
+acknowledgement ≤ 1 second, useful answer target ≤ 4 seconds
+
+Voice:
+acknowledgement immediately, transcription/result asynchronously
+```
+
+WhatsApp/Kapso network delay and Meta delivery time are outside Alo King’s complete control, so measure them separately from application latency.
+
+---
+
+# 1. The perfect WhatsApp response architecture
+
+## Do not make the webhook wait for the whole answer
+
+The webhook path must be divided into two phases:
+
+```text
+Phase A — acknowledge quickly
+receive webhook
+verify signature
+deduplicate event
+persist minimal event
+return HTTP 200
+
+Phase B — process asynchronously
+interpret message
+query database
+call AI if required
+send WhatsApp reply
+record delivery state
+```
+
+The webhook should not wait for:
+
+- an LLM response;
+- OCR or menu extraction;
+- a long database workflow;
+- payment-provider reconciliation;
+- driver routing;
+- campaign audience generation;
+- a human support lookup.
+
+The customer’s first acknowledgement should be sent through a fast deterministic path whenever possible:
+
+> One moment — I’m checking that for you.
+
+Use this only when the actual answer will take longer than the target. Do not send unnecessary filler for every tap.
+
+## Fast path versus slow path
+
+Every inbound event should be classified immediately:
+
+```text
+interactive button/list tap → fast deterministic path
+STOP/privacy command → fast deterministic path
+cart quantity/edit → fast deterministic path
+order status → fast deterministic path
+location pin → fast deterministic path
+simple menu search → deterministic path
+ambiguous natural language → one model call
+voice note → asynchronous transcription path
+menu upload → asynchronous extraction job
+complaint/refund/allergy → human-safe slower path
+```
+
+The fast path must not initialize an AI client, load large prompts, or query unnecessary tables.
+
+---
+
+# 2. Fix the current latency in the correct order
+
+## Fix 1 — reduce or remove the Kapso buffer for interactive messages
+
+The current measurements show a roughly 5-second Kapso buffer before Alo King receives the event. This is especially damaging for button taps, where the system already knows exactly what to do.
+
+Ask Kapso to confirm whether the inbound buffer can be configured by:
+
+- event type;
+- interactive button/list messages;
+- customer text;
+- voice notes;
+- batch size;
+- endpoint;
+- priority.
+
+Preferred configuration:
+
+```text
+interactive taps: 0–250 ms buffer
+STOP/privacy/payment commands: 0–250 ms buffer
+short text: 250–500 ms buffer
+voice and media: asynchronous queue
+```
+
+If Kapso cannot configure per-event buffering, use the lowest safe buffer for the primary ordering webhook and perform message grouping inside Alo King only for text messages.
+
+Do not wait five seconds to group button taps. A button tap is already a complete customer decision.
+
+## Fix 2 — place the function beside the database
+
+The current repository measurement showed that pinning the Edge Function to the database region reduced handler latency by approximately 8x.
+
+Immediate action:
+
+```text
+Set the Kapso webhook URL or regional invocation header to the Supabase function region nearest the database.
+```
+
+Long-term action:
+
+```text
+Choose one primary data plane region near the dominant workload:
+Supabase database
+Edge Functions
+queue workers
+cache
+```
+
+Do not randomly move only one service. Measure:
+
+```text
+Kapso → function
+function → database
+function → AI provider
+function → WhatsApp provider
+```
+
+For each path, collect p50, p95, and p99.
+
+If the database is in Tokyo and the majority of function calls are in North America, moving the database or creating the function region alignment is more important than optimizing TypeScript.
+
+## Fix 3 — reduce database round trips
+
+The existing repository already improved startup by combining multiple queries into a `bot_begin_turn` RPC. Continue this pattern.
+
+A simple tap should aim for:
+
+```text
+1 request for turn start/deduplication
+1 request for the complete read model
+1 request for the mutation
+1 request to enqueue the reply
+```
+
+Avoid:
+
+```text
+select customer
+select vendor
+select menu
+select item
+select basket
+select basket lines
+select options
+select conversation
+update customer
+update basket
+insert event
+```
+
+Combine related reads into:
+
+- one SQL function/RPC;
+- one carefully designed Postgres query;
+- one denormalized read model;
+- one server-side transaction.
+
+## Fix 4 — reduce model calls
+
+A normal customer turn should use:
+
+```text
+0 model calls for buttons, cart, order status, STOP, privacy, and simple search
+0–1 model call for resolvable natural language
+1 model call for a genuinely complex turn
+```
+
+Never allow an unbounded model/tool loop. Set:
+
+```text
+max model calls per turn
+max tool calls per turn
+max total model time
+max input tokens
+max output tokens
+```
+
+If the budget is exceeded, use a safe fallback or human handoff.
+
+---
+
+# 3. Database architecture from day one
+
+## Use three data shapes
+
+Do not force every WhatsApp message to read the normalized database directly through many API calls.
+
+Use three layers:
+
+```text
+Normalized source tables
+→ transactional truth and integrity
+
+Read models
+→ fast customer/merchant/order views
+
+Cache
+→ short-lived repeated reads
+```
+
+## Normalized source tables
+
+Keep normalized tables for:
+
+- vendors;
+- vendor profiles;
+- merchant memberships;
+- menu versions;
+- menu items;
+- option groups and options;
+- customers;
+- customer addresses;
+- baskets and basket lines;
+- carts and price snapshots;
+- orders and order lines;
+- order events;
+- drivers and assignments;
+- zones and routes;
+- notifications;
+- payments and ledger entries;
+- AI calls and cost records;
+- consent and suppression records.
+
+Use normalized tables for writes, constraints, permissions, and audit history.
+
+## Read models
+
+Create read models for hot paths:
+
+```text
+customer_order_context
+vendor_customer_menu
+customer_active_basket
+merchant_pending_orders
+order_tracking_snapshot
+active_zone_capacity
+```
+
+These can be:
+
+- SQL views for simple joins;
+- materialized views for expensive aggregate reads;
+- RPC functions returning exactly the JSON required by the WhatsApp card;
+- maintained snapshot tables for highly active operational data.
+
+Do not create a read model merely to duplicate data. Add one when measurements show a hot query or excessive joins.
+
+## One RPC per business operation
+
+Use business-level RPCs rather than many generic client queries:
+
+```text
+bot_begin_turn
+get_menu_page
+get_basket_card
+add_item_to_basket
+set_basket_quantity
+create_cart_summary
+confirm_cart
+accept_vendor_order
+reject_vendor_order
+mark_vendor_ready
+claim_notification
+record_payment_event
+get_tracking_snapshot
+```
+
+Each RPC should:
+
+- validate inputs;
+- enforce authorization;
+- perform atomic state checks;
+- return the exact fields needed;
+- write audit events where appropriate;
+- return a typed error code.
+
+## Do not use `select *`
+
+Every hot-path query must select only required fields.
+
+Bad:
+
+```sql
+select * from vendors where vendor_id = $1;
+```
+
+Better:
+
+```sql
+select vendor_id, name_en, name_ar, latitude, longitude, status
+from vendors
+where vendor_id = $1;
+```
+
+This reduces database work, network payload, serialization, and model context size.
+
+---
+
+# 4. Indexing plan
+
+Indexes must follow real query patterns. Do not add every possible index.
+
+## High-value indexes
+
+```sql
+-- webhook idempotency
+create unique index on processed_messages(provider_message_id);
+create unique index on webhook_events(provider_event_id);
+
+-- customer lookup
+create unique index on customers(phone_number);
+create index on customer_addresses(customer_id, is_default);
+
+-- active baskets and carts
+create index on baskets(customer_id, status, updated_at desc);
+create index on basket_lines(basket_id, position);
+create index on carts(customer_id, status, expires_at);
+
+-- order operations
+create index on orders(vendor_id, status, created_at desc);
+create index on orders(customer_id, created_at desc);
+create index on orders(driver_id, status, created_at desc);
+create index on orders(status, vendor_confirmation_deadline);
+
+-- event timeline
+create index on order_events(order_id, created_at);
+
+-- notification queue
+create index on notification_outbox(status, next_attempt_at)
+where status in ('queued', 'retry');
+create index on notification_attempts(order_id, created_at desc);
+
+-- driver dispatch
+create index on driver_assignments(zone_id, status, created_at desc);
+create index on driver_location_events(order_id, captured_at desc);
+
+-- menu search
+create index on menu_items(vendor_id, available, section_id);
+create index on menu_items using gin(search_vector);
+```
+
+Confirm every important query with:
+
+```sql
+explain (analyze, buffers)
+```
+
+Do not create indexes without checking write overhead and query plans.
+
+## Partial indexes
+
+Use partial indexes for active records:
+
+```sql
+create index on orders(vendor_id, created_at desc)
+where status in ('pending_vendor_confirmation', 'accepted', 'preparing', 'ready_for_pickup');
+```
+
+This keeps hot indexes smaller.
+
+## Avoid offset pagination
+
+For menus, orders, and events use cursor/keyset pagination:
+
+```text
+where created_at < last_seen_created_at
+order by created_at desc
+limit 20
+```
+
+Avoid large `offset` values in active operational tables.
+
+---
+
+# 5. Database connection and query discipline
+
+## One Supabase client per invocation
+
+Create one configured client per Edge Function invocation. Do not create a new client for every query.
+
+Reuse the client across the turn, but avoid unnecessary sequential calls.
+
+## Parallelize independent reads
+
+Use parallel requests only when:
+
+- they are independent;
+- the function and database are region-aligned;
+- the increased concurrent load is safe;
+- errors are handled explicitly.
+
+Example:
+
+```ts
+const [{ data: customer }, { data: vendor }, { data: menu }] = await Promise.all([
+  loadCustomer(sb, phone),
+  loadVendor(sb, vendorId),
+  loadMenuPage(sb, vendorId, page)
+]);
+```
+
+Prefer one RPC when the reads are always needed together and the database can perform the join more efficiently.
+
+## Use transactions for business operations
+
+A confirmation operation should do one atomic transaction:
+
+```text
+validate cart
+→ validate current price and availability
+→ create order
+→ snapshot lines and totals
+→ write order event
+→ enqueue merchant notification
+→ return order receipt data
+```
+
+Do not create the order, then separately calculate the total, then separately enqueue a notification without transactional protection.
+
+---
+
+# 6. Caching architecture
+
+## Cache only safe-to-cache data
+
+### Good cache candidates
+
+```text
+public vendor directory cards
+vendor profile display data
+menu sections and available items
+Arabic/English search aliases
+service-zone metadata
+route matrix
+merchant opening hours with short TTL
+feature flags
+AI prompt templates
+static provider documentation
+```
+
+### Do not cache as authoritative truth
+
+```text
+prices at confirmation
+stock at confirmation
+payment status
+refund state
+order status
+merchant authorization
+customer consent
+driver assignment
+COD balance
+```
+
+A cache can accelerate reading. It must never decide whether money can move or whether an order is valid.
+
+## Three cache layers
+
+### Layer 1 — request/invocation cache
+
+Use a per-request map to prevent duplicate reads during one turn:
+
+```ts
+const requestCache = new Map<string, unknown>();
+```
+
+This is free and safe because it disappears after the invocation.
+
+Use it for:
+
+- customer row;
+- vendor row;
+- menu page;
+- current order;
+- feature flags.
+
+### Layer 2 — edge/application cache
+
+Use a short-lived cache for public or semi-public reads:
+
+```text
+menu page: 30–120 seconds
+vendor profile: 5–15 minutes
+zone metadata: 1–5 minutes
+route matrix: 1–24 hours
+feature flags: 30–120 seconds
+```
+
+Invalidate immediately when a merchant changes menu availability, price, hours, or pause status.
+
+### Layer 3 — shared Redis or Postgres cache
+
+Use Redis/Upstash only when multiple function instances need shared cached reads or rate limits.
+
+Good shared-cache keys:
+
+```text
+vendor:{vendor_id}:menu:{menu_version}:{page}
+vendor:{vendor_id}:profile:{version}
+zone:{zone_id}:capacity
+route:{origin_zone}:{destination_zone}:{vehicle_type}
+search:{language}:{normalized_query}:{zone}:{menu_version}
+feature:{name}:{environment}
+```
+
+Always include a version or invalidation token in the key. A stale cache should become unreachable when the underlying version changes.
+
+## Cache-aside pattern
+
+```text
+read cache
+→ if fresh, return
+→ if miss, read database
+→ store safe result with TTL
+→ return result
+```
+
+Use stampede protection:
+
+```text
+if many requests miss the same key:
+  allow one refresh
+  let other requests await the refresh or use stale data
+```
+
+Do not let every simultaneous WhatsApp message rebuild the same menu cache.
+
+## Versioned invalidation
+
+Maintain:
+
+```text
+menu_version
+vendor_profile_version
+availability_version
+zone_version
+```
+
+When a merchant changes a menu or marks an item unavailable:
+
+1. write the authoritative change;
+2. increment the version;
+3. enqueue cache invalidation;
+4. publish a Realtime event if needed;
+5. future reads use the new version key.
+
+Versioned keys are safer than trying to delete every old key perfectly.
+
+---
+
+# 7. Search and menu caching
+
+## Menu read model
+
+For a menu page, return one compact payload:
+
+```json
+{
+  "vendor": {
+    "id": "...",
+    "name": "...",
+    "currency": "USD",
+    "is_open": true,
+    "menu_version": 12
+  },
+  "sections": [
+    {
+      "id": "...",
+      "name": "Shawarma",
+      "items": [
+        {
+          "id": "...",
+          "name": "Chicken Shawarma",
+          "price_usd": 6,
+          "available": true,
+          "has_options": false
+        }
+      ]
+    }
+  ],
+  "next_cursor": null
+}
+```
+
+Do not make the WhatsApp handler separately query vendor, sections, items, options, images, and availability for each screen.
+
+## Search strategy
+
+Use a layered search path:
+
+```text
+exact button/item ID
+→ normalized keyword search
+→ Arabic/English/Arabizi alias search
+→ structured cuisine/zone filters
+→ vector similarity only when needed
+→ AI only for genuine ambiguity
+```
+
+Cache deterministic search results briefly by normalized query and menu version.
+
+Do not cache a search result without including menu/version and zone context.
+
+---
+
+# 8. AI latency and cost control
+
+## Route by difficulty
+
+```text
+STOP/privacy/order status/button/cart → no model
+simple known item or restaurant search → no model
+minor typo/Arabic alias → deterministic normalization first
+ambiguous request → one fast model call
+complex recommendation → one capable model call
+complaint/refund/allergy → safe model + human path
+voice/menu upload → asynchronous job
+```
+
+## Cache AI results carefully
+
+### Safe candidates
+
+- translation of a stable menu item description;
+- normalized search alias;
+- classification of a repeated non-sensitive intent;
+- menu extraction draft for the same immutable file hash;
+- embeddings for an unchanged menu version;
+- recommendation candidates for the same customer/menu version/time bucket where privacy rules allow.
+
+### Do not blindly cache
+
+- customer-specific order decisions;
+- payment decisions;
+- current stock claims;
+- customer consent;
+- allergy safety conclusions;
+- real-time delivery ETA;
+- support decisions that depend on current state.
+
+## Cache key design
+
+Include:
+
+```text
+provider
+model
+prompt_version
+tool_schema_version
+language
+menu_version
+customer-preference version, where appropriate
+input hash
+```
+
+Example:
+
+```text
+ai:normalize-search:v3:ar:menu-192:sha256(...)
+```
+
+Never use raw customer phone numbers as cache keys.
+
+## Prompt caching and context reduction
+
+Reduce model cost by:
+
+- sending only the relevant menu section;
+- sending only the current basket;
+- sending a compact customer preference summary;
+- not sending the entire conversation every turn;
+- storing a rolling summary instead of full history;
+- keeping tool descriptions concise;
+- using structured outputs;
+- using smaller output limits;
+- reusing stable prompt prefixes where the provider supports prompt caching.
+
+Do not include full database rows or raw webhook payloads in the model context.
+
+## Model budget policy
+
+Set per-turn budgets:
+
+```text
+max_model_calls: 1 for ordinary text
+max_model_calls: 2 for complex support
+max_model_time_ms: 3500–5000
+max_input_tokens: route-specific
+max_output_tokens: route-specific
+max_cost_usd_per_turn
+```
+
+If the limit is reached:
+
+```text
+use deterministic fallback
+ask one concise clarification
+or hand off to a person
+```
+
+## AI result reuse
+
+Cache AI work only when the input facts are stable. Invalidate when:
+
+- menu version changes;
+- item availability changes;
+- customer preference version changes;
+- prompt version changes;
+- model changes;
+- campaign rules change.
+
+---
+
+# 9. API-cost control beyond caching
+
+## Avoid unnecessary outbound calls
+
+For each provider, record:
+
+```text
+provider
+endpoint
+purpose
+call count
+latency
+success rate
+cost
+cache hit/miss
+retry count
+```
+
+Use request coalescing so simultaneous requests for the same data share one in-flight request.
+
+## Batch where safe
+
+Batch:
+
+- menu embeddings;
+- analytics events;
+- driver location writes;
+- settlement reconciliation;
+- merchant daily reports.
+
+Do not batch interactive customer replies where it increases perceived latency.
+
+## Use webhooks instead of polling
+
+Use provider webhooks for:
+
+- WhatsApp message status;
+- payment status;
+- driver/dispatch events where available;
+- provider reconciliation.
+
+Use polling only as a bounded reconciliation fallback.
+
+## Backoff and dead letters
+
+Every external call should have:
+
+```text
+short timeout
+bounded retries
+exponential backoff
+idempotency key
+failure classification
+dead-letter record
+manual replay path
+```
+
+Never retry a customer-facing send forever.
+
+## Regional placement
+
+Keep high-frequency synchronous calls in the same or nearby region:
+
+```text
+WhatsApp/Kapso webhook worker
+Supabase database
+queue worker
+cache
+```
+
+Accept small cross-region latency for low-frequency model calls if the overall response remains inside target.
+
+---
+
+# 10. WhatsApp message design for speed
+
+## Send one useful message
+
+Follow the existing rule:
+
+```text
+one rich message per turn where possible
+```
+
+Avoid sending:
+
+```text
+“Checking…”
+then “I found…”
+then a card
+```
+
+unless the work truly crosses the response target.
+
+## Fast interactive replies
+
+Button taps should:
+
+- use opaque IDs;
+- avoid model calls;
+- query one read model/RPC;
+- perform one mutation if needed;
+- send one response;
+- enqueue non-essential analytics in the background.
+
+Do not wait for:
+
+- read receipts;
+- analytics;
+- recommendation scoring;
+- full conversation summarization;
+- non-critical audit enrichment.
+
+## Voice and media
+
+Reply quickly:
+
+> I received your voice note and I’m checking it now.
+
+Then process asynchronously. Do not hold the WhatsApp webhook open while transcribing or analyzing a long file.
+
+---
+
+# 11. Performance observability
+
+Track separate timers:
+
+```text
+receive_lag_ms
+webhook_ack_ms
+queue_wait_ms
+handler_total_ms
+first_send_ms
+db_ms and db_query_count
+model_ms and model_call_count
+transcribe_ms
+provider_send_ms
+provider_delivery_ms
+merchant_acknowledgement_ms
+```
+
+Track p50, p95, and p99 by:
+
+```text
+turn kind: tap/text/voice/location
+route
+language
+vendor
+zone
+function region
+model used
+provider
+cache hit/miss
+```
+
+Recommended starting SLOs:
+
+| Operation | p50 target | p95 target |
+|---|---:|---:|
+| webhook acknowledgement | <300 ms | <800 ms |
+| button handler before send | <700 ms | <1.5 s |
+| deterministic text | <1.2 s | <2.5 s |
+| AI first acknowledgement | <1 s | <2 s |
+| AI final response | <3 s | <5 s |
+| merchant notification enqueue | <300 ms | <800 ms |
+| payment status reconciliation | async | provider-specific |
+| menu page read | <200 ms | <500 ms |
+
+The exact WhatsApp delivery time should be measured separately from Alo King handler time.
+
+## Alert conditions
+
+Alert when:
+
+```text
+button p95 > 1.5 s
+webhook ack p95 > 800 ms
+db query count rises unexpectedly
+cache hit rate drops
+model calls per simple turn > 0
+AI cost per order rises
+notification queue age rises
+provider retry rate rises
+payment reconciliation lags
+```
+
+---
+
+# 12. Performance tests from day one
+
+## Database tests
+
+- `EXPLAIN ANALYZE` for every hot RPC.
+- Load test concurrent menu reads.
+- Load test simultaneous cart edits.
+- Test merchant acceptance races.
+- Test notification queue workers.
+- Test webhook deduplication.
+- Test RLS under realistic roles.
+- Test cache invalidation after price/stock changes.
+
+## WhatsApp tests
+
+- button tap with zero AI calls;
+- text with deterministic search;
+- text requiring one model call;
+- voice note asynchronous path;
+- duplicate inbound event;
+- provider delay;
+- message delivery failure;
+- Kapso buffer behavior;
+- template fallback.
+
+## Cost tests
+
+- model cost per simple turn;
+- model cost per confirmed order;
+- menu extraction cost per page;
+- cache hit ratio;
+- provider retry cost;
+- unnecessary duplicate API calls;
+- daily budget stop line.
+
+Use synthetic test phones and test vendors. Never use real customer data for load testing.
+
+---
+
+# 13. Database and cache rollout plan
+
+## P0
+
+1. Keep the function pinned to the database region.
+2. Confirm or reduce Kapso buffering for interactive events.
+3. Keep the `bot_begin_turn` consolidation.
+4. Add hot-path RPCs for menu, basket, checkout, and order status.
+5. Add query-count and cache-hit metrics.
+6. Add request-scoped caching.
+7. Add indexes and run `EXPLAIN ANALYZE`.
+8. Add a durable notification/job queue.
+
+## P1
+
+1. Add versioned menu/profile/zone read models.
+2. Add shared Redis/Postgres cache for safe reads.
+3. Add cache stampede protection.
+4. Add hybrid search and alias tables.
+5. Add AI model routing.
+6. Add prompt/context reduction.
+7. Add request coalescing for provider calls.
+
+## P2
+
+1. Add materialized reporting views.
+2. Add advanced route and ETA cache.
+3. Add recommendation candidate cache.
+4. Add load testing in CI or scheduled staging runs.
+5. Add OpenTelemetry if Sentry tracing is insufficient.
+
+---
+
+# 14. Final architecture
+
+```text
+WhatsApp/Kapso
+  ↓
+fast signature verification + deduplication
+  ↓
+webhook acknowledgement
+  ↓
+durable queue
+  ↓
+router
+  ├─ deterministic fast path
+  │   ├─ request cache
+  │   ├─ cached/read-model lookup
+  │   ├─ transactional RPC
+  │   └─ immediate WhatsApp reply
+  │
+  ├─ one-call AI path
+  │   ├─ compact context
+  │   ├─ typed tools
+  │   ├─ strict budget
+  │   └─ grounded reply
+  │
+  └─ asynchronous path
+      ├─ voice transcription
+      ├─ menu extraction
+      ├─ campaign generation
+      ├─ reconciliation
+      └─ support/operations task
+
+Supabase source tables
+  ↓
+read models and versioned caches
+  ↓
+metrics, traces, cost logs, and alerts
+```
+
+---
+
+# Final decision
+
+The biggest current latency problem is not that Claude or OpenAI is inherently slow. The measured system bottleneck is mainly:
+
+```text
+Kapso buffering
++ cross-region database calls
++ too many database round trips
++ too many model calls
+```
+
+Fix those in that order.
+
+The perfect day-one database is not the most complicated database. It is:
+
+```text
+normalized for integrity
+read-modeled for hot paths
+indexed from real query plans
+transactional for money and orders
+protected by RLS
+observable by default
+```
+
+The perfect cache is not a cache of everything. It is:
+
+```text
+short-lived
+versioned
+invalidated on merchant changes
+used only for safe reads
+never authoritative for money or order state
+```
+
+The best cost strategy is:
+
+```text
+zero-model deterministic flows
+one model call for ordinary ambiguity
+compact context
+cached stable AI work
+batched background work
+webhooks instead of polling
+strict budgets
+```
+
+If Alo King implements these foundations before scaling, it can deliver fast WhatsApp replies, lower AI/API costs, and a much more reliable customer and merchant experience.

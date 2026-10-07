@@ -1,0 +1,1291 @@
+# Alo King Complete Conversational-Commerce Operating System
+
+## Product goal
+
+Alo King should feel like a smart Lebanese food concierge inside WhatsApp:
+
+- the customer can speak naturally in Lebanese Arabic, Arabizi, English, or mixed language;
+- the bot remembers useful preferences without feeling invasive;
+- the menu is live, visual, searchable, and easy to tap;
+- the cart is always accurate and reversible;
+- ordering never happens without clear confirmation;
+- restaurants receive reliable, actionable orders;
+- customers get the right notification at the right moment;
+- loyalty and referrals create repeat behavior without becoming spam;
+- every cancellation, failure, refund, and exception has a defined path.
+
+> **The AI writes the conversation. The backend owns the truth. The customer owns consent.**
+
+---
+
+# 1. Non-negotiable design principles
+
+## 1.1 Server-owned facts
+
+The database and backend must own:
+
+- menu items;
+- prices in USD and LBP;
+- availability;
+- restaurant hours;
+- delivery villages and fees;
+- preparation times;
+- order totals;
+- COD limits;
+- payment state;
+- driver status;
+- campaign eligibility;
+- loyalty balances;
+- referral rewards;
+- notification delivery state.
+
+The AI can select a tool and phrase a response, but it must never invent any of these facts.
+
+## 1.2 One clear step per turn
+
+- One rich WhatsApp message wherever possible.
+- At most three messages in a turn.
+- Prefer buttons and lists over typing.
+- Every card includes a way back to **Menu** or **Basket**.
+- Ask one clarification question at a time.
+- Never repeat a question already answered in the current state or verified memory.
+
+## 1.3 No silent side effects
+
+The customer must explicitly confirm before:
+
+- creating an order;
+- paying or applying credits;
+- changing a confirmed order;
+- accepting a substitution;
+- cancelling after the restaurant accepts;
+- subscribing to marketing;
+- using a referral reward when it changes the total.
+
+## 1.4 Fail soft
+
+Every error ends with:
+
+1. a short explanation;
+2. a useful next action;
+3. no stack trace or silent failure.
+
+---
+
+# 2. The ideal first-time customer flow
+
+## Step 1 — Customer starts WhatsApp
+
+Possible inputs:
+
+```text
+Hi
+مرحبا
+Marhaba
+I want food
+شو في أكل؟
+```
+
+### AI behavior
+
+- Detect language.
+- Create or load the customer record.
+- Detect acquisition source from Click-to-WhatsApp, QR, referral, or direct message.
+- Do not ask for information already available.
+- Ask for a village or location only if needed for serviceability.
+
+### Recommended reply
+
+> أهلا فيك بـ **Alo King** 👑  
+> شو عبالك اليوم؟ فيك تكتب شو بدك، أو شارك موقعك لنفرجيك المطاعم اللي بتوصل لعندك.
+
+Buttons:
+
+```text
+Browse food
+Share location
+Usual order
+```
+
+For English:
+
+> Welcome to **Alo King** 👑  
+> What are you craving today? You can type it naturally, or share your location so I can show restaurants that deliver to you.
+
+## Step 2 — Location
+
+Accept:
+
+- WhatsApp location pin;
+- village name;
+- saved address;
+- landmark;
+- “same address.”
+
+The backend should resolve the location to:
+
+```text
+village_id
+address_id
+latitude/longitude if provided
+serviceability
+nearest eligible restaurants
+```
+
+Never show restaurants that cannot deliver to the customer’s area.
+
+## Step 3 — Understand the request
+
+Examples:
+
+```text
+بدّي شاورما دجاج
+bade shi khfif la 3 tnen
+I want a family meal for Friday
+same as last time but no onions
+شو في شي منيح ورخيص؟
+```
+
+The AI extracts:
+
+```json
+{
+  "intent": "recommend|search|reorder|order",
+  "language": "ar-LB",
+  "people_count": 3,
+  "occasion": null,
+  "constraints": [],
+  "budget_usd": null,
+  "requested_items": ["chicken shawarma"]
+}
+```
+
+The model then calls backend search and recommendation tools. It must not answer from memory alone.
+
+---
+
+# 3. Smart menu experience
+
+## 3.1 Menu entry points
+
+Customers can reach the menu through:
+
+- **Browse food**;
+- restaurant link;
+- QR code;
+- campaign CTA;
+- reorder flow;
+- “show me the menu”;
+- a natural-language request.
+
+## 3.2 Restaurant discovery card
+
+Show only restaurants that are:
+
+- open or accepting scheduled orders;
+- inside the delivery area;
+- able to fulfil the requested time;
+- not paused;
+- relevant to the request.
+
+Each restaurant card should contain:
+
+```text
+Restaurant name
+Cuisine/category
+Approximate preparation time
+Delivery fee
+Minimum order if relevant
+Rating or quality signal when reliable
+Open/closed state
+```
+
+Do not overload the customer with ten restaurants. Start with three strong results and offer **More restaurants**.
+
+## 3.3 Category menu
+
+Use a WhatsApp list for categories:
+
+```text
+Popular
+Shawarma
+Pizza
+Burgers
+Family meals
+Vegetarian
+Desserts
+Drinks
+```
+
+WhatsApp list constraints must be enforced server-side:
+
+- maximum 10 rows;
+- short row titles;
+- concise descriptions;
+- pagination for more categories.
+
+## 3.4 Item cards
+
+An item card should include:
+
+```text
+Photo, when available
+Item name
+Short description
+Verified allergen information, only if kitchen-reviewed
+Price in USD and LBP
+Availability
+Add
+Choose options
+Quantity
+Back to menu
+```
+
+Use buttons such as:
+
+```text
+Add $6.00
+Choose options
+Menu
+```
+
+Prices are shown from a server-built response only.
+
+## 3.5 Smart recommendations
+
+When the customer asks “what’s good,” rank using:
+
+1. hard dietary/allergen constraints;
+2. current request relevance;
+3. delivery serviceability;
+4. restaurant open state;
+5. explicit preferences;
+6. successful order history;
+7. time of day;
+8. basket compatibility;
+9. reliability and preparation time;
+10. controlled new-restaurant exploration.
+
+Paid campaigns must never silently change organic ranking.
+
+## 3.6 Recommendation language
+
+Good:
+
+> Since you usually choose shawarma, this family platter from an open restaurant nearby could work well. It serves four and stays within your usual budget.
+
+Avoid:
+
+> We know you order shawarma every Friday and spend $18–$25.
+
+The system may store detailed reasons internally, but customer-facing explanations should be natural and non-invasive.
+
+---
+
+# 4. Cart design
+
+## 4.1 Basket rules
+
+- One basket per restaurant.
+- Adding from another restaurant creates a separate basket.
+- Basket lines store item IDs, quantities, and option IDs, never trusted prices.
+- Baskets can persist for 48 hours but are repriced whenever viewed.
+- No order exists until confirmation.
+
+## 4.2 After adding an item
+
+Add the item and show one relevant optional suggestion at most once per order:
+
+> Added 1× Chicken Shawarma. Want to add fries or a drink?
+
+Buttons:
+
+```text
+Add fries
+Add drink
+No thanks
+View basket
+```
+
+Do not repeatedly upsell after a decline or silence.
+
+## 4.3 Basket card
+
+The basket should show:
+
+```text
+Restaurant
+Item lines and quantities
+Option selections
+Line totals
+Subtotal
+Delivery fee
+Total in USD and LBP
+Estimated preparation time
+```
+
+Buttons:
+
+```text
+Checkout
+Add more
+Edit basket
+Clear basket
+```
+
+## 4.4 Editing natural language
+
+Support:
+
+```text
+make it 3
+remove the drink
+change the burger to chicken
+no onions
+add two more
+I changed my mind
+```
+
+The AI interprets the request, then calls deterministic basket tools.
+
+After a change, show the updated summary. Do not silently apply an ambiguous change.
+
+## 4.5 Multiple restaurants
+
+Say clearly:
+
+> This item is from **Restaurant B**, so it will be a separate order with its own delivery fee.
+
+Keep each restaurant basket separate through checkout.
+
+---
+
+# 5. Checkout and confirmation
+
+## 5.1 Collect only missing information
+
+Use existing profile data for:
+
+- name;
+- language;
+- village;
+- saved address;
+- landmark;
+- delivery instructions.
+
+Ask only for the missing field.
+
+## 5.2 Server-built summary
+
+The final summary must include:
+
+```text
+Restaurant
+Items and modifiers
+Delivery name
+Village and address/landmark
+Subtotal
+Delivery fee
+Total in USD and LBP
+Payment method
+Estimated preparation time
+Cancellation conditions
+```
+
+Buttons:
+
+```text
+Confirm order
+Change order
+Change address
+```
+
+## 5.3 Confirmation rule
+
+Accept:
+
+- explicit **Confirm order** button;
+- clear “yes” in a later turn after the summary.
+
+Do not accept an earlier “yes” as confirmation if the customer has not yet seen the final summary.
+
+At confirmation:
+
+1. lock the cart;
+2. reprice from the database;
+3. revalidate availability and COD limits;
+4. create the order with an idempotency key;
+5. send the receipt and tracking link;
+6. notify the restaurant.
+
+If price or availability changed, do not create the order. Show the new summary and ask again.
+
+---
+
+# 6. Reordering and customer memory
+
+## 6.1 Reorder entry points
+
+Support:
+
+```text
+same order
+usual
+same as last time
+نفس الطلب
+زي العادة
+el 3ade
+reorder
+```
+
+A returning customer greeting may show:
+
+```text
+Reorder last order
+See full menu
+Try something different
+```
+
+## 6.2 Reorder behavior
+
+A reorder is always a **new order**:
+
+1. retrieve the previous non-cancelled/non-rejected order;
+2. rebuild the cart from item IDs and option IDs;
+3. reprice every line;
+4. check availability;
+5. check restaurant hours;
+6. check delivery area;
+7. check minimum order and COD cap;
+8. show the new summary;
+9. require confirmation.
+
+If something changed:
+
+> The garlic chicken is no longer available. I can remove it or suggest these two similar items.
+
+## 6.3 Memory controls
+
+Customers should be able to say:
+
+```text
+What do you remember about me?
+Forget that I like spicy food
+Remove my address
+Delete my data
+Stop personalized recommendations
+```
+
+Every durable preference should include:
+
+```text
+source
+confidence
+created_at
+last_confirmed_at
+expires_at
+```
+
+Never infer allergies, religion, medical status, or sensitive traits.
+
+---
+
+# 7. Order lifecycle and restaurant operations
+
+## 7.1 Recommended state machine
+
+```text
+pending
+  → accepted
+  → preparing
+  → ready
+  → out_for_delivery
+  → delivered
+
+pending → rejected
+pending → cancelled
+accepted → cancelled_by_restaurant
+preparing → issue_requires_customer
+out_for_delivery → delivery_failed
+out_for_delivery → not_collected
+```
+
+Every transition must be:
+
+- authorized;
+- atomic;
+- idempotent;
+- logged with actor and timestamp;
+- connected to customer and restaurant notifications.
+
+## 7.2 Restaurant confirmation
+
+Immediately after customer confirmation:
+
+- create the order;
+- send the customer receipt;
+- send restaurant order card/dashboard alert;
+- start the acceptance timer.
+
+Restaurant actions:
+
+```text
+Accept
+Reject
+Call customer/support
+```
+
+If still pending after 90 seconds:
+
+- notify the customer that confirmation is taking longer;
+- alert Alo King operations;
+- escalate once only;
+- do not send duplicate alerts.
+
+## 7.3 Kitchen timing
+
+Avoid unnecessary messages. A recommended sequence is:
+
+```text
+Order received
+Accepted + ETA
+On the way + tracking
+Delivered + rating
+```
+
+“Preparing” can be recorded without a separate customer notification unless it materially changes the ETA.
+
+---
+
+# 8. Notifications strategy
+
+## 8.1 Notification principles
+
+- Notify only when the information is useful.
+- One notification per meaningful status change.
+- Use the customer’s language.
+- Use the customer service window when open.
+- Use approved utility templates when a message must be sent outside the window.
+- Never claim delivery without a verified event.
+- Deduplicate every notification by order and status.
+
+## 8.2 Customer notification table
+
+| Event | Customer message | CTA |
+|---|---|---|
+| Order created | Order received with code and summary | Cancel while pending |
+| Accepted | Restaurant accepted; estimated time | Track/order help |
+| Preparing | Usually no message; status stored | None |
+| Delayed | New ETA and short explanation | Contact support |
+| Ready | Order ready for pickup or dispatch | Track |
+| Out for delivery | Driver/tracking link and ETA | Track driver |
+| Delivered | Delivered successfully | Rate order |
+| Rejected | Apology and reason if safe | Choose another restaurant |
+| Cancelled | Cancellation confirmed | Reorder/menu |
+| Substitution needed | Item issue and alternatives | Swap/remove/cancel |
+| Payment issue | Exact next step | Retry/contact support |
+
+## 8.3 Notification templates
+
+### Accepted
+
+> ✅ **[Restaurant]** accepted order **#[code]**. Estimated preparation: **[minutes] min**. We’ll let you know when it’s on the way.
+
+### Out for delivery
+
+> 🛵 Your order **#[code]** is on the way. Estimated arrival: **[time]**. Track it here: **[link]**
+
+### Delivered
+
+> 🎉 Order **#[code]** was delivered. Enjoy your meal! How was it?
+
+Buttons:
+
+```text
+1 ⭐
+2 ⭐
+3 ⭐
+4 ⭐
+5 ⭐
+```
+
+### Delay
+
+> We’re sorry — **[Restaurant]** needs about **[new ETA]** more minutes. Do you want to keep waiting or speak with our team?
+
+## 8.4 Notification failure policy
+
+If sending fails:
+
+1. record the failure code;
+2. retry according to a bounded schedule;
+3. do not send duplicate customer messages;
+4. use a template if the service window is closed and the message is eligible;
+5. show the status in the dashboard;
+6. alert operations for high-impact failures.
+
+---
+
+# 9. Broadcast strategy
+
+## 9.1 Broadcasts are campaigns, not blasts
+
+Every paid campaign must have:
+
+```text
+objective
+approved offer
+eligible audience
+consent proof
+frequency check
+template
+budget
+test batch
+holdout group
+attribution window
+kill rules
+```
+
+## 9.2 Safe audience
+
+At launch, use only:
+
+- explicit marketing opt-in;
+- prior order from the restaurant;
+- no restaurant mute;
+- no global opt-out;
+- frequency cap passed;
+- valid phone/WhatsApp state;
+- delivery/service area still relevant.
+
+## 9.3 Personalized broadcast content
+
+The campaign defines the approved offer. The recommendation engine selects the best item or variant for each customer from verified menu data.
+
+Example:
+
+```text
+Campaign objective: Reactivate customers inactive for 30+ days
+Approved offer: Family meal for 4, $24
+Customer history: ordered shawarma previously
+Personalized suggestion: family shawarma meal
+```
+
+The AI may personalize wording but may not alter the offer price, eligibility, validity, or terms.
+
+## 9.4 Campaign rollout
+
+1. Internal test.
+2. 10–25 customer test batch.
+3. Observe delivery, read, replies, opt-outs, and fulfilment capacity.
+4. Expand gradually.
+5. Preserve holdout recipients.
+6. Pause on quality or operational problems.
+
+Recommended initial Alo King limits:
+
+| Control | Rule |
+|---|---:|
+| Restaurant messages to one customer | Maximum 1 every 7 days |
+| All restaurant promotions to one customer | Maximum 2 every 30 days |
+| Quiet hours | 22:00–08:00 Asia/Beirut |
+| New campaign test batch | 10–25 recipients |
+| New restaurant daily campaign | 25–50 recipients |
+| Portfolio quota target | Keep 30–50% headroom |
+
+## 9.5 Broadcast opt-out
+
+Support:
+
+```text
+STOP
+UNSUBSCRIBE
+إيقاف
+إيقاف العروض
+```
+
+Use separate controls for:
+
+- mute one restaurant;
+- stop restaurant offers;
+- global marketing opt-out.
+
+Re-check consent immediately before each send.
+
+---
+
+# 10. Loyalty and rewards program
+
+## 10.1 Program goal
+
+Loyalty should increase profitable repeat orders, not create uncontrolled discounts.
+
+Use a wallet called **King Credits**, but keep it financially auditable.
+
+## 10.2 Earning rules
+
+Possible rewards:
+
+| Action | Suggested reward |
+|---|---:|
+| Completed order | Fixed points or small credit based on net order value |
+| Second order within 30 days | Bonus credit |
+| Rating completion | Small non-cash reward, not required for positive rating |
+| Successful referral | Reward only after first order is delivered |
+| Off-peak order | Restaurant-funded or platform-funded bonus |
+| Birthday/anniversary | Optional, with explicit date consent |
+
+Avoid rewarding only positive ratings. Reward submitting honest feedback instead.
+
+## 10.3 Redemption rules
+
+- Credits apply only to eligible orders.
+- Credits cannot exceed a configured percentage of the order subtotal.
+- Credits cannot be applied to delivery fees unless explicitly funded.
+- Credits expire only with clear notice.
+- Refunds and cancellations reverse unearned credits.
+- Every credit movement is an append-only ledger entry.
+
+## 10.4 Ledger model
+
+```text
+loyalty_ledger
+- id
+- customer_id
+- order_id or referral_id
+- amount_usd
+- amount_lbp_display
+- type: earn | redeem | reverse | expire | manual_adjustment
+- idempotency_key
+- created_at
+```
+
+Never use only a mutable balance without a ledger.
+
+## 10.5 Customer experience
+
+Customer asks:
+
+```text
+credits
+رصيدي
+my rewards
+```
+
+Reply:
+
+> You have **$3.50 King Credits** available. You can apply them to an eligible order.
+
+Buttons:
+
+```text
+Apply to basket
+How it works
+History
+```
+
+---
+
+# 11. Referral strategy
+
+## 11.1 Referral mechanics
+
+Each customer receives a short referral token:
+
+```text
+https://alo.king/r?c=HANI84
+```
+
+A referral becomes valid only when:
+
+1. a new customer enters through the token;
+2. the new customer is not an existing customer in disguise;
+3. the new customer completes a qualifying order;
+4. the order is delivered and not refunded or cancelled.
+
+## 11.2 Recommended reward
+
+Start with:
+
+```text
+Give $2, get $2
+```
+
+But control abuse through:
+
+- one first-order reward per new customer;
+- device/phone/payment/address risk checks where lawful and appropriate;
+- no self-referrals;
+- no reward for cancelled or refunded orders;
+- monthly referral caps;
+- delayed reward until delivery is complete.
+
+## 11.3 Sharing experience
+
+After a successful order:
+
+> Want to give a friend **$2 off their first Alo King order**? Share your referral link.
+
+Buttons:
+
+```text
+Share link
+My referral rewards
+Not now
+```
+
+Provide a prewritten WhatsApp message without exposing private order details.
+
+## 11.4 Referral attribution
+
+Store:
+
+```text
+referral_id
+referrer_customer_id
+new_customer_id
+source
+created_at
+qualifying_order_id
+reward_status
+fraud_review_status
+```
+
+Do not pay commissions based solely on a typed QR code or self-reported source.
+
+---
+
+# 12. Cancellation policy and order exceptions
+
+## 12.1 Customer cancellation windows
+
+### Before restaurant acceptance
+
+Allow immediate cancellation:
+
+- atomically race cancellation against restaurant acceptance;
+- tell the restaurant if it had already received the order;
+- confirm cancellation to the customer.
+
+### After acceptance, before preparation
+
+Show:
+
+> The restaurant has accepted your order. I can request cancellation, but the restaurant may need to approve it.
+
+Offer:
+
+```text
+Request cancellation
+Keep order
+Talk to a person
+```
+
+### During preparation
+
+Do not promise a refund automatically. Route to human/restaurant decision and record the reason.
+
+### Out for delivery
+
+Cancellation normally becomes a delivery exception. Offer support rather than an automatic refund.
+
+### Delivered
+
+No cancellation. Use complaint/refund workflow.
+
+## 12.2 Restaurant rejection
+
+If rejected:
+
+1. record a structured reason;
+2. notify the customer in their language;
+3. offer two or three nearby alternatives;
+4. restore any eligible credits;
+5. do not blame the restaurant unnecessarily;
+6. record the rejection against restaurant reliability.
+
+## 12.3 Item sold out after confirmation
+
+Offer:
+
+```text
+Swap for suggested alternative
+Remove item
+Cancel order
+```
+
+The substitute must be:
+
+- same restaurant;
+- available;
+- close in category;
+- within allowed price difference;
+- validated against allergies and options.
+
+Any change requires customer confirmation. If no response within the configured period, ask the kitchen to call or cancel according to policy.
+
+## 12.4 Restaurant closes or pauses
+
+If the order is still pending:
+
+```text
+Keep waiting
+Cancel order
+Talk to a person
+```
+
+Do not create new orders for a closed or paused restaurant.
+
+## 12.5 Price changes
+
+If the price changes before confirmation:
+
+- show the new price;
+- reprice the total;
+- ask for confirmation again.
+
+If the price changes after confirmation, use the confirmed order price unless a real operational exception requires contact.
+
+## 12.6 Delivery address problems
+
+Possible scenarios:
+
+- village not served;
+- missing landmark;
+- customer moved location;
+- wrong pin;
+- driver cannot find the address;
+- customer changes the address after dispatch.
+
+Rules:
+
+- validate address before restaurant acceptance where possible;
+- after dispatch, require human/driver coordination;
+- do not change delivery fee silently;
+- show any new fee and require confirmation when relevant.
+
+## 12.7 Customer not answering
+
+### Before dispatch
+
+Restaurant may hold briefly, then contact operations.
+
+### Driver at location
+
+Driver attempts contact using configured policy:
+
+1. call/message once;
+2. wait configured minutes;
+3. notify operations;
+4. mark **customer_unreachable**;
+5. record evidence.
+
+Do not mark “delivered” without proof.
+
+## 12.8 Not collected / failed delivery
+
+Use a distinct state:
+
+```text
+not_collected
+```
+
+Do not confuse it with cancellation or fraud.
+
+Process:
+
+1. driver records arrival and contact attempts;
+2. customer receives one urgent notification;
+3. operations attempts contact;
+4. restaurant and driver submit evidence;
+5. order is closed with a reason code;
+6. refund/credit decision follows policy;
+7. repeated incidents affect customer or restaurant risk scoring.
+
+For COD:
+
+- determine who bears food cost based on reason;
+- do not automatically give a full credit if the customer repeatedly refuses deliveries;
+- give a one-time goodwill response where justified;
+- require human review for disputes.
+
+## 12.9 Wrong or missing items
+
+Customer can report:
+
+```text
+missing item
+wrong item
+wrong customization
+food quality issue
+late delivery
+```
+
+Capture:
+
+```text
+order_id
+item_id
+issue_type
+photo if available
+customer_description
+restaurant_response
+driver evidence
+resolution
+```
+
+Possible resolutions:
+
+- replacement;
+- partial credit;
+- full credit;
+- refund;
+- no compensation with explanation;
+- human escalation.
+
+## 12.10 Payment and COD issues
+
+Scenarios:
+
+- customer has insufficient cash;
+- customer wants to change payment method;
+- card payment failed;
+- payment webhook delayed;
+- duplicate payment callback;
+- customer disputes a charge;
+- COD order exceeds cap.
+
+Use idempotent payment records. Never trust a screenshot as payment proof. Never mark paid based only on a model response.
+
+---
+
+# 13. Human handoff strategy
+
+Trigger human handoff when:
+
+- the customer asks for a person;
+- the same issue fails three times;
+- a complaint or refund is requested;
+- an allergy incident is reported;
+- a delivery dispute occurs;
+- an accepted order needs a material change;
+- a payment dispute occurs;
+- the model confidence is low in a high-impact context;
+- a restaurant owner disputes a campaign charge.
+
+The handoff packet should include:
+
+```text
+customer language
+masked phone or secure link
+order code
+restaurant
+current order status
+basket
+last five customer messages
+reason for handoff
+relevant campaign/loyalty/referral IDs
+```
+
+While handoff is active:
+
+- the bot stays quiet for free text;
+- STOP, privacy commands, and urgent operational buttons still work;
+- the customer can type **bot** or tap **Resume bot**;
+- the human’s response is logged.
+
+---
+
+# 14. Notification and event architecture
+
+Every event should be processed through an outbox:
+
+```text
+business_event
+→ notification_outbox
+→ eligibility/window check
+→ template or free-form selection
+→ send attempt
+→ provider status webhook
+→ dedupe/update
+→ customer timeline
+```
+
+Required idempotency keys:
+
+```text
+order_id + notification_type
+campaign_id + recipient_id
+loyalty_event_id
+referral_reward_id
+payment_event_id
+```
+
+Never allow webhook retries to create duplicate orders, duplicate rewards, or duplicate messages.
+
+---
+
+# 15. Core database concepts
+
+Recommended entities:
+
+```text
+customers
+customer_addresses
+customer_preferences
+customer_preference_events
+customer_feedback
+baskets
+basket_lines
+carts
+orders
+order_events
+order_exceptions
+order_ratings
+notification_outbox
+message_delivery_events
+marketing_consents
+marketing_suppressions
+campaigns
+campaign_recipients
+campaign_events
+loyalty_ledger
+referrals
+referral_rewards
+handoff_log
+```
+
+The order history should preserve operational facts while privacy deletion should remove or anonymize personal data according to the approved retention policy.
+
+---
+
+# 16. Metrics that matter
+
+## Customer funnel
+
+```text
+first message
+→ location shared
+→ restaurant viewed
+→ item viewed
+→ item added
+→ basket viewed
+→ checkout started
+→ order confirmed
+→ delivered
+→ repeat order
+```
+
+## Quality
+
+- wrong-item rate;
+- price mismatch rate;
+- unconfirmed-order rate, which must be zero;
+- duplicate-order rate, which must be zero;
+- order acceptance time;
+- cancellation rate;
+- delivery success rate;
+- complaint rate;
+- human-handoff rate;
+- bot latency;
+- WhatsApp message failure rate.
+
+## Growth
+
+- repeat order within 30 days;
+- reorder conversion;
+- loyalty redemption rate;
+- referral-qualified order rate;
+- incremental campaign orders;
+- cost per completed order;
+- average order value;
+- customer lifetime value;
+- opt-out/block/report rate.
+
+---
+
+# 17. Launch roadmap
+
+## P0 — Correctness and reliability
+
+1. Finalize order state machine.
+2. Make all order commands idempotent.
+3. Ensure server-side pricing and confirmation.
+4. Implement notification outbox and delivery events.
+5. Complete pending/accepted/rejected/timeout paths.
+6. Add sold-out, address, driver unreachable, and not-collected flows.
+7. Add customer and restaurant handoff.
+
+## P1 — Customer experience
+
+1. Smart menu and natural-language search.
+2. Reorder and usual-order flow.
+3. Structured customer memory.
+4. Feedback and ratings.
+5. Loyalty ledger.
+6. Referral ledger and anti-abuse controls.
+
+## P2 — Campaign growth
+
+1. Consent and suppression controls.
+2. Restaurant-specific broadcasts.
+3. Personalized campaign recommendations.
+4. Test batches and holdouts.
+5. Campaign attribution and merchant reporting.
+6. Quality-based automatic pauses.
+
+## P3 — Optimization
+
+1. Send-time optimization.
+2. Personalized bundles.
+3. Churn prevention.
+4. Voice-note ordering.
+5. Group and family ordering memory.
+6. Diaspora gift ordering.
+7. Advanced loyalty tiers.
+
+---
+
+# Final recommended customer experience
+
+The ideal interaction feels like this:
+
+```text
+Customer: “Marhaba, bade shi la 4 أشخاص الجمعة، مش حار.”
+
+Alo King:
+  Understands Lebanese Arabic + Arabic script.
+  Knows the customer’s village.
+  Filters out spicy items.
+  Finds open restaurants delivering there Friday.
+  Uses customer preferences and successful history.
+  Shows three relevant family meals with prices.
+
+Customer taps a meal.
+
+Alo King:
+  Shows customizations.
+  Adds the selection to the restaurant basket.
+  Suggests one relevant side once.
+  Shows exact dual-currency basket.
+
+Customer taps Checkout.
+
+Alo King:
+  Uses saved address and asks only for missing details.
+  Reprices and validates availability.
+  Shows final summary.
+
+Customer taps Confirm order.
+
+Alo King:
+  Creates one idempotent order.
+  Notifies the restaurant.
+  Sends receipt and tracking link.
+  Sends accepted/dispatch/delivery notifications.
+  Requests honest feedback after delivery.
+  Offers a measured loyalty reward.
+  Later offers a relevant, consented restaurant campaign.
+```
+
+> **Alo King wins when ordering feels effortless, but the underlying system is extremely strict about truth, consent, money, state transitions, and exceptions.**

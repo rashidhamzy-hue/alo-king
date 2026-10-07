@@ -1,0 +1,400 @@
+# Alo King Master Implementation and Launch Blueprint
+
+## Final consolidation of the product, technical, operational, AI, payments, merchant, driver, and launch strategy
+
+**Project:** Alo King — Lebanon WhatsApp-native ordering and delivery platform  
+**Date:** 6 October 2026  
+**Purpose:** Convert the previously prepared strategy documents into one execution order and identify what is still missing.
+
+---
+
+# 1. Are we done?
+
+The strategic planning is substantially covered. Alo King now has documented strategies for:
+
+- customer conversational ordering;
+- smart menus, carts, checkout, reorder, and tracking;
+- merchant claiming, verification, menu extraction, and merchant WhatsApp operations;
+- vendor order notifications and acceptance escalation;
+- driver operations, dispatch, batching, COD, and delivery exceptions;
+- delivery zones and activation gates;
+- AI recommendations, customer memory, broadcasts, and campaign compliance;
+- WhatsApp opt-in and messaging limits;
+- Whish, OMT, Meta, telecom, legal, tax, courier, diaspora, and Google Places research;
+- Claude.ai and Claude Code development operations;
+- `CLAUDE.md`, project settings, and five initial Claude Code skills;
+- recommended tools, monitoring, queues, routing, analytics, fraud controls, and AI evaluation.
+
+However, Alo King is **not finished as a production system**. The major remaining work is execution:
+
+```text
+strategy → implementation → integration tests → pilot → measured correction → controlled expansion
+```
+
+The next documents should not be more general strategy documents. The next work should be **implementation contracts, migration plans, runbooks, tests, and launch evidence**.
+
+---
+
+# 2. The final product model
+
+```text
+Directory layer
+  → unclaimed vendor discovery
+
+Verified merchant layer
+  → approved profile, menu, hours, operations
+
+Ordering layer
+  → customer WhatsApp/website ordering
+
+Merchant operations layer
+  → WhatsApp + portal order acceptance
+
+Dispatch layer
+  → active driver and zone coverage
+
+Payment layer
+  → COD or approved provider payment
+
+AI layer
+  → interpretation, extraction, recommendations, support
+
+Trust layer
+  → consent, privacy, security, audit, refunds, support
+```
+
+The platform should not activate all features at once. Each layer depends on the previous layer being reliable.
+
+---
+
+# 3. What is covered and what remains
+
+| Area | Strategy covered | Remaining execution work |
+|---|---|---|
+| Customer ordering | Yes | Finish state-machine tests, message tests, and production hardening |
+| Cart and checkout | Yes | Verify price snapshots, race conditions, and abandoned carts |
+| Merchant onboarding | Yes | Implement verification levels, roles, and claim conflict handling |
+| Menu extraction | Yes | Build async extraction pipeline, review UI, confidence handling, rollback |
+| Merchant notifications | Yes | Add outbox, delivery-state tracking, template fallback, portal alert |
+| Driver operations | Yes | Implement dispatch rules, capacity, GPS freshness, and COD reconciliation |
+| Delivery zones | Yes | Create zone tables, route matrix, activation workflow, pause controls |
+| Payments | Research and strategy | Obtain provider contracts, sandbox, API details, ledger, reconciliation |
+| WhatsApp | Research and strategy | Finalize Kapso/Meta configuration, templates, webhook verification |
+| AI | Strategy and prompts | Build tool contracts, eval suite, model router, cost/latency monitoring |
+| Broadcasts | Strategy and compliance | Build consent-safe audience engine, previews, pacing, attribution, stop controls |
+| Legal/tax | Research and questions | Obtain Lebanese counsel, BdL, MoF, CNSS, municipal, and provider confirmations |
+| Analytics | Recommendations | Define event taxonomy, implement tracking, dashboards, data retention |
+| Support | Strategy | Build order-linked inbox, assignment, SLA, escalation, refund workflow |
+| Claude Code | Complete foundation | Install files, test skills, add specialist agents, establish PR workflow |
+
+---
+
+# 4. The only sensible implementation order
+
+## Stage 0 — repository and environment control
+
+Complete before new feature work:
+
+- commit `CLAUDE.md`;
+- commit `.claude/settings.json`;
+- commit the five initial skills;
+- separate local, test, staging, and production environments;
+- document all secrets and where they live;
+- define test phone prefixes and synthetic users;
+- establish GitHub branch and PR rules;
+- add Sentry or equivalent error monitoring;
+- define backup and rollback procedure.
+
+**Exit gate:** A new Claude Code session can understand the repository, run tests, and cannot accidentally target production.
+
+## Stage 1 — data and authorization foundation
+
+Implement or audit:
+
+- customer ownership;
+- merchant memberships and roles;
+- driver permissions;
+- operations roles;
+- vendor claim states;
+- service zones;
+- RLS policies;
+- audit events;
+- redacted logging;
+- webhook event deduplication;
+- notification outbox;
+- immutable price/order/payment snapshots.
+
+**Exit gate:** Unauthorized users cannot read or mutate another party’s data, and every critical mutation has an audit event.
+
+## Stage 2 — reliable order lifecycle
+
+Implement and test:
+
+```text
+basket
+→ priced summary
+→ explicit customer confirmation
+→ pending vendor confirmation
+→ merchant accept/reject
+→ preparing
+→ ready
+→ driver assigned
+→ picked up
+→ out for delivery
+→ delivered / failed / not collected / cancelled
+```
+
+Add tests for every race:
+
+- customer cancellation versus merchant acceptance;
+- duplicate merchant taps;
+- merchant timeout versus late acceptance;
+- item sold out versus customer substitution;
+- payment success versus webhook retry;
+- driver assignment versus merchant pause.
+
+**Exit gate:** A synthetic order can complete successfully and every failure path produces a customer-safe outcome.
+
+## Stage 3 — merchant operational reliability
+
+Implement:
+
+- WhatsApp order card;
+- sent/delivered/read/acknowledged states;
+- approved Utility template fallback;
+- merchant portal order queue;
+- backup merchant member;
+- SMS and phone escalation;
+- merchant pause/capacity controls;
+- merchant SLA metrics;
+- order acceptance audit trail.
+
+**Exit gate:** A merchant can receive, accept, reject, pause, prepare, and complete orders without depending on a single WhatsApp message.
+
+## Stage 4 — zone and driver pilot
+
+Choose one connected launch cluster. Do not launch all Lebanon at once.
+
+Complete:
+
+- verified merchants;
+- active trained drivers;
+- route matrix;
+- delivery fees;
+- zone readiness checklist;
+- pickup and delivery proof;
+- COD reconciliation;
+- stale GPS behavior;
+- support escalation;
+- weather/road pause process.
+
+**Exit gate:** The first zone can fulfil orders reliably during defined operating hours.
+
+## Stage 5 — payment pilot
+
+Start with one provider and one payment model.
+
+Required:
+
+- written provider agreement;
+- sandbox access;
+- webhook/signature documentation;
+- payment-link flow;
+- amount/currency validation;
+- refunds;
+- settlement reports;
+- immutable ledger;
+- chargeback evidence;
+- merchant-of-record and legal classification.
+
+Start prepaid diaspora orders only after COD and payment reconciliation are stable.
+
+**Exit gate:** Alo King can prove the status of every payment and reconcile provider settlement to orders.
+
+## Stage 6 — AI and growth
+
+Only after operational stability:
+
+- customer preference memory;
+- recommendation engine;
+- menu semantic search;
+- voice notes;
+- merchant campaigns;
+- personalized broadcasts;
+- loyalty and referrals;
+- advanced forecasting.
+
+**Exit gate:** AI improves conversion or support without increasing incorrect orders, complaints, opt-outs, or unsafe claims.
+
+---
+
+# 5. Minimum production launch checklist
+
+## Customer
+
+- [ ] Customer can discover only appropriately labelled vendors.
+- [ ] Unclaimed vendors cannot accept orders.
+- [ ] Menu items and prices come from the server.
+- [ ] Cart supports quantity, options, and separate vendors.
+- [ ] Confirmation is explicit and immutable.
+- [ ] Customer receives a receipt and tracking link.
+- [ ] Customer can cancel according to state.
+- [ ] Customer receives safe substitution choices.
+- [ ] Arabic, English, Arabizi, and French behavior is tested.
+
+## Merchant
+
+- [ ] Merchant identity and membership are verified.
+- [ ] Merchant has a primary and backup notification path.
+- [ ] Merchant portal works on tablet/mobile browser.
+- [ ] WhatsApp card and template fallback are tested.
+- [ ] Accept/reject actions are authenticated and idempotent.
+- [ ] Merchant can pause and resume orders.
+- [ ] Merchant can mark items unavailable.
+- [ ] Merchant can set preparation time and ready state.
+- [ ] Merchant timeout creates an operations task.
+
+## Driver
+
+- [ ] Driver identity and vehicle requirements are reviewed.
+- [ ] Driver belongs to an active zone.
+- [ ] Driver sees only assigned delivery information.
+- [ ] Driver receives exact COD amount when relevant.
+- [ ] Driver location becomes stale safely.
+- [ ] Customer address and landmark are clear.
+- [ ] Pickup and delivery proof are recorded.
+- [ ] Not-collected and failed-delivery workflows are tested.
+
+## Payments
+
+- [ ] COD limits are enforced.
+- [ ] Payment provider is approved and documented.
+- [ ] Payment amount and currency are verified server-side.
+- [ ] Webhooks are signed and idempotent.
+- [ ] Refunds are recorded in the ledger.
+- [ ] Settlement reconciliation exists.
+- [ ] No card data is stored by Alo King.
+- [ ] Provider and legal questions are answered in writing.
+
+## Security and privacy
+
+- [ ] RLS is tested by role.
+- [ ] Service-role access is restricted.
+- [ ] Secrets are outside Git.
+- [ ] Logs are redacted.
+- [ ] Tracking tokens expire.
+- [ ] Customer deletion commands bypass the model.
+- [ ] Marketing opt-in and opt-out are separate from service consent.
+- [ ] Data retention and vendor/provider access are documented.
+
+## Operations
+
+- [ ] Support inbox exists.
+- [ ] Every order has an operations timeline.
+- [ ] Failed notifications are visible.
+- [ ] Human escalation is defined.
+- [ ] Zone pause and merchant pause are tested.
+- [ ] Daily reconciliation is assigned to a person.
+- [ ] Incident runbook exists.
+- [ ] Rollback plan exists.
+
+---
+
+# 6. Remaining documents worth creating
+
+The previous strategy documents are sufficient for product direction. The only additional documents that provide strong value now are execution documents:
+
+## Document A — API and event contracts
+
+Define exact payloads for:
+
+- WhatsApp inbound webhooks;
+- message status events;
+- merchant order notifications;
+- accept/reject actions;
+- payment provider webhooks;
+- driver location updates;
+- order state events;
+- notification outbox jobs;
+- AI tools;
+- support handoff.
+
+This should be the next technical document if development is active.
+
+## Document B — Supabase schema and RLS implementation plan
+
+Define:
+
+- tables;
+- relationships;
+- state enums;
+- indexes;
+- RLS policies;
+- RPCs/functions;
+- service-role boundaries;
+- audit tables;
+- retention;
+- migrations;
+- seed/test fixtures.
+
+## Document C — staging, production, and incident runbook
+
+Define:
+
+- environment variables;
+- deploy process;
+- webhook secret rotation;
+- provider outage response;
+- merchant notification outage;
+- payment mismatch;
+- duplicate order;
+- data leak response;
+- rollback;
+- customer communication;
+- escalation contacts.
+
+## Document D — launch pilot scorecard
+
+Define the exact metrics that decide whether Alo King expands:
+
+```text
+merchant acknowledgement rate
+merchant acceptance within SLA
+order rejection rate
+menu-induced cancellation
+driver assignment time
+ETA accuracy
+not-collected rate
+COD variance
+support response time
+payment failure rate
+refund rate
+repeat-order rate
+recommendation conversion
+WhatsApp opt-out rate
+```
+
+These four execution documents are more valuable now than another high-level strategy report.
+
+---
+
+# 7. Final recommendation
+
+Alo King has covered the major strategic questions. The project is not missing another broad business idea. It is missing the transition from strategy to controlled implementation.
+
+The correct next move is:
+
+```text
+freeze the product decisions
+→ create API/event contracts
+→ lock the Supabase/RLS model
+→ implement reliable order operations
+→ run one-zone pilot
+→ measure failures
+→ correct the system
+→ expand carefully
+```
+
+Do not add more AI providers, mobile applications, nationwide zones, loyalty complexity, or autonomous campaigns until the first zone demonstrates reliable fulfilment.
+
+> **Alo King is ready to move from planning into implementation and pilot execution.**

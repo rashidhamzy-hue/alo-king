@@ -1,0 +1,500 @@
+# Alo King Lebanon Payments, Telecom, Meta, Legal, Courier, Diaspora and Vendor-Data Research
+
+**Decision report for launch planning**  
+**Research context and cut-off:** 6 October 2026  
+**Status:** Practical synthesis of the seven supplied workstream memos. This report is not legal, tax, insurance, or regulatory advice.
+
+## Executive decision
+
+Alo King should launch as a **controlled, prepaid-first pilot** rather than as a fully automated marketplace or payment intermediary:
+
+1. **Payment pilot:** contact **Whish first**, with OMT as a closed-pilot alternative. Do not build against undocumented APIs. Obtain merchant credentials, sandbox access, signed commercial terms, settlement/refund rules, and written confirmation of any payout model before committing substantial engineering.
+2. **Merchant-of-record model:** use **one Alo King merchant-of-record account** initially. Keep vendor/driver payouts in a separately approved operational queue. Do not implement marketplace split payments, escrow, stored value, or hidden wallet behavior until a Lebanese legal opinion and provider confirmation support them.
+3. **Company identity:** buy one **company-controlled, postpaid Alfa or touch mobile number** in Alo King’s legal name; put the Meta Business Portfolio, WAAC/WABA, Messaging account, payment method, and Kapso project under Alo King—not a contractor or agency. Use Ogero only for an office landline/PBX requirement.
+4. **WhatsApp economics:** price messages by the **recipient’s country calling-code market**, not by Alo King’s Lebanon location. The current Meta developer pricing rules are effective **1 October 2026** by Messaging-account timezone; ordinary Service and in-window Utility deliveries are no longer assumed free after that date. [25] [26]
+5. **Legal launch gate:** form/use a Lebanese SARL only for the non-regulated technology, logistics-coordination, and marketplace activities that counsel confirms. Before live collection of customer funds, obtain written BdL classification and reconcile the **21 September 2026 Circular 777 / Decision 13846** amendment against the available January 2026 framework. [9] [11]
+6. **Courier model:** begin with a two-to-four-week paid pilot, base-plus-kilometre-plus-waiting compensation, explicit payment for approved returns/deadhead, and insurance endorsements for commercial delivery, cargo, cash, and rider risks. The regional payout bands below are **planning estimates, not market facts**.
+7. **Vendor data:** use Google Places as a live/read-through signal and retain `place_id` as a join key, but do not operate a permanent Google-derived vendor directory. Collect durable ordering information directly from merchants or independently licensed sources. [38] [39]
+
+## How to read this report
+
+- **Verified fact:** directly stated in an identified official, primary, or otherwise clearly attributed source.
+- **Planning estimate:** an internal operating assumption or range used for budgeting; it is not evidence of a market rate.
+- **Provider-confirmation item:** a question that must be answered in writing by Whish, OMT, Alfa, touch, Ogero, Kapso, Meta, Google, or another provider.
+- **Legal-counsel/regulator item:** a fact-specific matter for Lebanese counsel, BdL, MoF, CNSS, a municipality, or another authority. It must not be treated as cleared merely because a general rule is cited.
+
+---
+
+## 1. Payments: Whish, OMT, settlement and payout architecture
+
+### Decision
+
+**Contact Whish first for a bounded merchant pilot; keep OMT as a provider-contact/closed-pilot option.** This is a prioritization decision, not a finding that either provider has approved Alo King or offers an open API.
+
+### Verified facts and what they mean
+
+- Whish describes **Whish Pay as a wallet payment gateway for online merchants**, with integrations including Shopify, WordPress, and custom websites. Its corporate materials describe tailored checkout, collection services, payroll, and bulk payments. [1] [2] [3]
+- Whish’s official materials describe **payment links** in which the payer enters card details and funds a Whish Wallet; the Send & Receive material specifically mentions sharing payment links through SMS or WhatsApp. Whish terms state that card-funded transactions may undergo automated fraud checks and manual review and may take **up to one business day** to be verified and credited. [3] [4]
+- Whish’s published fee page lists **3% for international-card funding** and **3% through a payment link**, with local-card funding shown as free. These are published wallet-service fees—not a confirmed Alo King merchant discount rate, settlement fee, payout fee, or tax-inclusive price. [5]
+- OMT Pay publicly describes a **dual-currency LBP/USD wallet**, local and international card funding, payment links, QR store payments, and wallet-to-wallet transfers. OMT’s public corporate Cash Out page establishes that a business service exists, but the reviewed page does not publish API mechanics, test access, batch semantics, or a corporate contract. [6] [7]
+- OMT’s consumer Cash Access page gives a **USD 5,000 per-transaction maximum** and a **4.5% fee subject to a USD 9 minimum** for its described e-voucher cash-out flow. That is not evidence of the fee, limit, or process for corporate Alo King settlement. [8]
+- BdL Basic Circular No. 1 / Decision 13790, dated **9 January 2026**, defines payment-gateway activity in the EPSP framework and addresses payment accounts, AML/KYC, beneficial-owner due diligence, and prior approval for covered categories. The BdL supervised-company list includes OMT SAL and Whish Money SAL as electronic transfer companies. [9] [10]
+- BdL’s index lists **Circular 777 / Decision 13846 dated 21 September 2026**. The available English Basic Circular 1 PDF expressly says that it excludes the Circular 777 amendments, so current rules must be reconciled before launch. BdL’s detail page also lists **Basic Circular 173 / Decision 13810 dated 28 April 2026** on a merchant discount-rate cap; the numerical cap was not exposed in the extracted material. [11] [12]
+
+### Required payment design
+
+Implement a provider adapter and an immutable double-entry ledger before production. At minimum, retain:
+
+- provider and merchant-account identifier;
+- Alo King order/reference and provider transaction/reference;
+- gross amount, **currency**, fees, expected net, and settlement currency;
+- authorization/payment status, provider-authoritative status timestamp, webhook event ID, and idempotency key;
+- reversals, refunds, chargebacks, payout batches, settlement date, and settlement evidence;
+- payer, recipient, delivery address, and merchant/vendor references as separate entities.
+
+An order becomes **paid** only after a provider-authoritative status or signed webhook is verified server-side and the amount/currency match the order, or after a provider reconciliation process confirms it. A browser redirect, WhatsApp message, or customer screenshot is never sufficient.
+
+Keep USD and LBP as separate ledger currencies. Do not silently convert, round, or absorb FX differences in the Alo King application. Send only **provider-generated payment URLs** through Kapso; never request card numbers, CVVs, OTPs, wallet PINs, or identity documents in WhatsApp.
+
+### Provider-confirmation items
+
+Before engineering scope is approved, ask each candidate provider to confirm:
+
+- merchant-of-record eligibility for Alo King SARL and whether the service is a gateway, collection, payment-facilitation, or another regulated activity;
+- sandbox credentials, API reference, authentication method, IP allow-list/mTLS requirements, rate limits, key rotation, idempotency, and production cutover;
+- webhook registration, signing algorithm, replay protection, event schema, retry behavior, ordering, and reconciliation/report endpoints;
+- supported LBP/USD checkout and settlement currencies, FX source and lock time, rounding/minimums, cut-off, reserves, bank settlement timing, holidays, and all MDR/payment-link/refund/chargeback fees;
+- authorization, capture, void, reversal, refund, partial refund, dispute, and failed-payment semantics;
+- corporate disbursement or batch-payout API, beneficiary KYC, payout returns/failures, driver/vendor onboarding, and whether any split, connected-account, escrow, or delayed-capture model is supported;
+- data processing, retention, subprocessors, audit evidence, and customer-support/SLA commitments.
+
+### Launch boundary
+
+Use one merchant-of-record account and a manually approved payout queue. Treat **marketplace split, escrow, automatic vendor allocation, and stored-value/wallet features as out of scope** until both provider and Lebanese counsel confirm the model.
+
+---
+
+## 2. Lebanese telecom numbers, Meta account model, and Kapso
+
+### Recommended number and ownership pattern
+
+Buy Alo King’s primary production number in the company’s legal name on a **corporate postpaid plan**. Alfa is the first carrier to document a substantive corporate checklist; touch is a valid alternative if it confirms a one-line or small-fleet route. Do not use a personal prepaid line as the sole production WhatsApp identity.
+
+- **Alfa:** its Corporate Offer covers 5–20, 21–50, and 51+ line fleets and lists an authorized-person agreement, a recent commercial circular, stamped commercial register, Ministry of Finance registration certificate, company-name direct debit, and administrator/authorized-person IDs. Alfa’s general prepaid lifecycle is 10 days of validity followed by 12 days of retention, with progressive service degradation and expiry; accumulated validity is capped at 366 days. [13]
+- **touch:** its Corporate Offer is publicly framed for organizations with more than five corporate postpaid lines and has 5–20, 21–50, and 51+ tiers. Its corporate M2M material lists a commercial register, signatories register, authorizations, and signed contract for data SIMs, but does not publish a complete voice-line dossier or a one-line exception. Corporate Sales is listed at **+961 3 792099 / seg@touch.com.lb**. [15] [16]
+- **Ogero:** use for a fixed office line/PBX, not as the default mobile identity. Its business landline onboarding requires identity, premises/title or lease evidence, and commercial publication for institutions/companies. Ogero publishes an overdue sequence in which two unpaid bills can bar outgoing calls, three can bar incoming and outgoing calls, followed after a grace period by cancellation. [17]
+
+Persist in Supabase: E.164 number, carrier legal owner, SIM custodian, billing account, bill/expiry status, Meta Business Portfolio ID, WAAC ID, Messaging/WABA ID, phone-number ID, Kapso project/customer ID, display-name status, two-step-verification state, and admin ownership. Alert on carrier billing, Meta status, display name, WABA/WAAC, and webhook failures.
+
+### Meta’s 2026 account model and migration risk
+
+Meta’s 2026 model separates a **WhatsApp Account (WAAC)**—one phone number/business identity—from a **Messaging account** for templates, billing, analytics, and webhooks. Existing WABA IDs continue as Messaging-account IDs during the staged rollout. General availability began **23 September 2026**, with rollout expected to reach all businesses by mid-October 2026. [18] [21]
+
+New business portfolios initially have capacity for **two registered business phone numbers**; verification or a 2,000 messaging limit can automatically raise the cap to 20. Portfolio-level messaging limits are shared across numbers and are documented as 250 initially, then 2,000, 10,000, 100,000, and Unlimited through scaling/automatic scaling. [19] [20]
+
+Meta’s current programmatic migration documentation says migration is **not supported on the new account model** when the destination WAAC does not already own the number. Disconnecting the current account does not make the number available; sharing the owning WAAC is the supported pattern. Do not remove a production number from its WABA/WAAC merely to experiment. Use a separate test number and inspect whether the account is legacy or new before migration. [22]
+
+Kapso’s Bring Your Own SIM flow requires Alo King to control and verify the number, have it available for SMS/voice, and connect it through the Business Portfolio that owns it. Kapso-managed instant-setup numbers are not the appropriate substitute for a local, company-owned Lebanese number. [23] [24]
+
+### Provider-confirmation items
+
+- **Alfa:** Is one newly formed company-owned corporate postpaid line permitted? What are the exact documents, deposit/direct-debit requirements, billing suspension/reconnection stages, SIM replacement/delegation, owner-change, and post-cancellation reassignment rules?
+- **touch:** Is a one-line exception available? What are the complete voice-line legal documents, minimum commitment, billing suspension/reconnection, owner-change, SIM delegation, and reassignment terms?
+- **Ogero:** Can the proposed business line/PBX reliably receive Meta’s international voice-verification call? What are current activation, owner-change, overdue, reconnection, and cancellation fees?
+- **Kapso:** For Alo King’s current account model, should the WAAC be shared rather than the number migrated? Confirm BYON ownership, number removal/reconnect consequences, WABA/WAAC IDs, webhook behavior, data processing, subprocessors, and support SLA.
+- **Meta:** Confirm current portfolio capacity, WAAC/Messaging-account IDs, number ownership, display-name state, two-step verification, migration eligibility, and whether Alo King is in the legacy or new model.
+
+---
+
+## 3. Meta WhatsApp pricing and Free Entry Point
+
+### Effective rule set
+
+Meta’s developer pricing documentation was updated **30 September 2026** and states that the October rate card is effective **1 October 2026**, by Messaging-account timezone. Meta charges only delivered outbound business-to-user messages, by recipient country calling-code market and category. Inbound user-to-business messages are not charged. [25]
+
+From 1 October 2026:
+
+- Marketing, Utility, and Authentication templates remain category-priced.
+- Service messages are priced per delivered message after the free tier; the Service rate equals the market’s Utility/Authentication rate and has no Service volume tiers.
+- Utility templates sent inside the open 24-hour customer-service window are billable under the updated rule; do not model all ordinary replies as permanently free. [26]
+- Each business phone number gets **1,000 delivered Service messages free per calendar month**. Unused units do not roll over; the allowance resets at midnight in the Messaging-account timezone, and billing starts with the 1,001st Service delivery for that number. [25]
+- The latest developer pricing page says a Free Entry Point (FEP) window may remain open **up to seven days** when a user reaches the business through a Click-to-WhatsApp ad and Alo King responds within the customer-service window. During an open FEP window, Marketing, Utility, Authentication, and Service deliveries are free; Meta Business Agent messages are not. The WhatsApp Business marketing page still shows older 72-hour/three-day wording, so live-account testing is required. [25] [27] [28]
+- Meta Business Agent is a separate category introduced in 2026 and is charged at **$2.00 per 1 million input/output tokens**. Alo King’s own Kapso/Anthropic/OpenAI stack should be treated as Service, not Meta Business Agent, unless Meta’s own Agent Platform powers the interaction. [25]
+
+Instrument webhook pricing fields and analytics by `pricing_category`, `pricing_type`, recipient market, phone number, Messaging account, FEP state, and business/vendor. For Service, distinguish `free_customer_service` events from paid Service events.
+
+### October 2026 USD list-rate planning table
+
+The following values are **USD per delivered message at the October 1, 2026 list rate**. The exact official Meta CSV/PDF was not retrievable in this sandbox; the values below were cross-checked against a current secondary reproduction. Archive Meta’s own CSV/PDF or an exported pricing-selector result before finance sign-off. [29]
+
+| Recipient market | Meta market mapping | Marketing | Utility | Authentication | Service after free 1,000 |
+|---|---|---:|---:|---:|---:|
+| Lebanon | Rest of Middle East | $0.0392 | $0.0091 | $0.0091 | $0.0091 |
+| UAE | United Arab Emirates | $0.0576 | $0.0157 | $0.0157 | $0.0157 |
+| Saudi Arabia | Saudi Arabia | $0.0576 | $0.0107 | $0.0107 | $0.0107 |
+| Qatar | Qatar | $0.0341 | $0.0120 | $0.0120 | $0.0120 |
+| Kuwait | Kuwait | $0.0792 | $0.0440 | $0.0440 | $0.0440 |
+| France | France | $0.0859 | $0.0300 | $0.0300 | $0.0300 |
+| Germany | Germany | $0.1365 | $0.0550 | $0.0550 | $0.0550 |
+| United States/Canada | North America | $0.0250 | $0.0034 | $0.0034 | $0.0034 |
+| Australia | Rest of Asia Pacific | $0.0842 | $0.0113 | $0.0113 | $0.0113 |
+| Brazil | Brazil | $0.0625 | $0.0068 | $0.0068 | $0.0068 |
+
+Utility and Authentication may have volume tiers; Service does not. Add Kapso/BSP markup, taxes, payment-method fees, and currency-billing effects separately. The recipient’s country code—not the sender’s country or Alo King’s headquarters—sets the market.
+
+### Pricing decision
+
+Build the product so customer support and finance can answer: “Why did this message cost this amount?” Store the Meta event, category, recipient country, FEP eligibility/window, free-tier counter, applied list rate, BSP markup, and billed currency. Add a payment method before sending beyond each number’s free tier; Meta documentation says delivery can stop after the free tier if no payment method is on file.
+
+---
+
+## 4. Lebanese legal, tax, licensing, privacy and permits
+
+### Corporate form and regulated-payment gate
+
+IDAL’s current business-registration page says general registration commonly takes **10–15 days** and lists SARL documents including articles, subscription deed, bank-under-formation letter and confirmation, partners’ minutes, registration request, commercial circular, and domicile proof. The IDAL/MoET guide describes a Lebanese SARL as having **3–20 partners**, one or more managers rather than a board, a guide-stated minimum capital of **LBP 5,000,000**, and a compulsory annual lawyer retainer. The capital figure and current fees must be rechecked before filing. [30] [31]
+
+The January 2026 BdL framework states that covered non-bank EPSPs require prior licensing and a Lebanese joint-stock form. It defines categories including A e-money, B local transfer, C cross-border transfer, D money collection/payment, and E payment facilitators. The text states minimum capital of **LBP 50 billion (not less than USD 558,660) per category A–D** and **LBP 25 billion (not less than USD 279,330) for Category E**, cumulatively, plus an annual BdL fee of LBP 3 billion per category. Category D prohibits retaining collected funds and requires transfer/payment to concerned parties within a maximum of three business days; Category E includes gateways, third-party processors, and switches and requires prior licensing and PCI DSS for gateways. [9]
+
+These are **framework facts from the available January text**, not a conclusion that Alo King falls into a category or that the figures remain unchanged after Circular 777. Before live payment or COD remittance:
+
+- obtain a written BdL classification or a Lebanese counsel opinion grounded in the actual contracts and funds flow;
+- prefer a bank or BdL-licensed EPSP as collector/settler;
+- document whether Alo King is principal/merchant of record, disclosed agent, technology provider, logistics coordinator, or commission provider;
+- document who issues invoices, handles VAT, approves refunds, bears chargebacks, and owns customer funds;
+- separately classify cash-on-delivery collection and remittance.
+
+### VAT, invoices and records
+
+The MoF VAT page states mandatory registration when taxable activity plus turnover exceeds **LBP 150 million over four consecutive quarters**, with filing within two months; voluntary registration is available. The page says complete applications are processed the following day. The MoF rate page currently publishes **10% VAT**, while private 2026 summaries report 11%; no rate should be hard-coded until MoF/statutory counsel confirms the current rate. [32] [33]
+
+Invoice and ledger design should support supplier/customer identifiers, description, serial/date, amount, VAT amount and rate. The memo’s official MoF guidance indicates VAT books, invoices, and accounting records are retained for **10 years**. Model principal/agent invoices and vendor statements separately.
+
+### Drivers, food, municipal and insurance dependencies
+
+CNSS’s official forms include employer registration, employee hire/termination, multiple-employer registration, and driver forms. Current 2026 NSSF contribution rates, salary bases, injury coverage, and foreign-driver rules were not established in the supplied research. Whether drivers are employees or independent courier businesses depends on actual control, subordination, schedule, equipment, exclusivity, and economic dependence—not only contract labels. [34]
+
+For each pilot municipality and vendor, collect permit/health/tourism evidence and expiries, food-safety and allergen warranties, complaint cooperation, and suspension rights. A separate permit analysis is needed if Alo King stores, prepares, repacks, or transports food under its own control.
+
+### Privacy, WhatsApp consent and cross-border processing
+
+Law 81/2018 materials identify purpose limitation, notice, direct notice when data is not collected from the individual, access/correction/objection rights, retention tied to declaration/authorization, security, and processing declarations/licences as relevant controls. Commercial-promotion processing is expressly within the objection framework described in the supplied translation. [35]
+
+Meta’s WhatsApp policy, updated **23 September 2026**, requires the user’s number/username and opt-in before subsequent messages or calls, requires honoring opt-out/block requests, and recommends separate opt-ins by message category and calls. [36] [37]
+
+Implement separate Arabic/English consent flows for:
+
+1. operational order and delivery messages;
+2. optional marketing/promotional messages; and
+3. optional calls.
+
+Record consent version, timestamp, channel, purpose, language, number, withdrawal/STOP/block state, and the exact policy shown. Map Alo King, vendors, couriers, Kapso, Supabase, AI providers, and payment providers as controller/processor roles; execute data-processing and cross-border-transfer controls and ask Lebanese privacy counsel whether any Law 81 declaration or authorization is required.
+
+### Legal-counsel questions
+
+- Does the actual payment and settlement flow make Alo King a regulated collector, payment facilitator, remittance operator, or another licensed activity after Circular 777?
+- Is a Lebanese SARL suitable for the chosen activity, and what are the current October 2026 filing, publication, notary, Bar, accounting, and annual costs?
+- What VAT rate, registration point, invoice role, withholding, refund, and 10-year retention treatment applies to Alo King, vendors, and delivery fees?
+- Are drivers employees, independent contractors, or courier businesses under the actual pilot controls; what CNSS, work-injury, insurance, and foreign-worker obligations follow?
+- What permits apply by municipality and by Alo King’s actual food-storage, preparation, packaging, and transport role?
+- What Law 81 declarations/authorizations and cross-border-transfer safeguards apply to the proposed data stack?
+
+---
+
+## 5. Courier economics, COD controls and insurance
+
+### Verified cost anchors
+
+On **6 October 2026**, LBCI reported 95-octane fuel at **LBP 2,825,000 per 20 litres**; the Ministry of Energy’s schedule uses LBP per 20 litres. Xe showed approximately **LBP 90,228.7 per USD**, implying about **$1.565/litre** at the research-date reference rate. [40] [41] [42]
+
+A small-motorcycle reference gives approximately **2.0–3.0 L/100 km**. Applied to that dated fuel price, fuel-only cost is approximately **$0.031–$0.047 per route kilometre**. Maintenance, tyres, chains, brakes, batteries, registration, depreciation, insurance, and deadhead are additional. [50]
+
+Historical Toters reporting from February 2023 recorded interviewed-driver pay of 18,000 LBP per trip, a reported 26,000 LBP post-strike rate, customer delivery fees of 35,000–50,000 LBP, and longer trips reported up to 150,000 LBP. The Public Source documented per-delivery pay with distance adjustment, no hourly pay, fuel burden, and robbery/motorcycle-loss/benefit risks. These are historical context, **not 2026 market rates**. [43] [44]
+
+Wakilni’s public proposal lists $5 all-Lebanon delivery, $6 express delivery for specified areas, a $3,000 per-order cash-collection ceiling, monthly or twice-monthly cashbox settlement, and a three-working-day audit hold. Noknok’s FAQ displays a 139,990 LBP delivery-service fee and coverage focused on Beirut, Baabda, Tripoli, most Keserwan, and most Metn; verify the live checkout price before using it as a 2026 benchmark. [45] [46]
+
+Public insurance pages state that compulsory motorbike insurance is legally required; Amana lists bodily-injury cover up to $250,000 and third-party material damage up to $50,000, while Comin lists third-party injury up to $250,000, material damage up to $100,000, and towing. These public pages do not establish commercial-delivery, cargo, cash, night-work, high-risk-area, or fleet coverage. [47] [48] [49]
+
+### Planning estimate for an Alo King pilot
+
+Use these as **budgeting bands only**, then replace them with observed pilot data:
+
+| Operating condition | Initial payout planning band | Additional control |
+|---|---:|---|
+| Urban short trip | $1.25–$1.75 | Minimum payout; short wait included |
+| Ordinary suburban/regional | $1.50–$3.00 | Base + route-km + waiting |
+| Remote or security-sensitive | $2.50–$4.00 | Risk/zone supplement; explicit approval |
+
+Use an effective **$0.18–$0.30 per route-km** reasonableness check, not as a statutory or market rate. Pay approved return and failed-delivery kilometres so the platform does not recreate under-recovery. Keep dated fuel price, FX, route kilometres, waiting, return, and adjustment fields in each settlement record.
+
+### COD and insurance controls
+
+- Start with exact-currency confirmation and a receipt for every collection.
+- Set an order cash ceiling **below the $3,000 Wakilni benchmark** unless an insurer approves a higher amount.
+- Reconcile cash by shift/next business day, with driver and supervisor sign-off.
+- Define fake-note, refusal, no-show, return, missing-cash, variance, customer-dispute, and incident workflows.
+- Require legal motorcycle documents, compulsory insurance, written commercial-use confirmation, and coverage review for third-party injury, own-bike theft/damage, personal accident, cargo, cash-in-transit, and excluded/high-risk areas.
+
+Run a **two-to-four-week pilot** capturing GPS route km, deadhead km, online hours, pickup/drop wait, failed deliveries, substitutions, tips, fuel invoices, cash variance, incidents, claims, and payout acceptance. Re-estimate zone bands from the observed 50th and 80th percentiles before expanding.
+
+---
+
+## 6. Lebanese diaspora gifting and cross-border payments
+
+### Demand and product evidence
+
+Kafeel publicly offers weekly/on-demand Lebanese grocery baskets, custom lists, baby supplies, holiday baskets, broad Lebanon coverage, and photo proof. Toters publicly supports restaurant/grocery delivery, scheduled slots, saved addresses/payment, major cards, live tracking, and delivery prices that vary by store, hour, and location. Spinneys Lebanon advertises more than 9,000 products, seven-day slots, refrigerated delivery, and cash-on-delivery, card-on-delivery, and online-gateway payment options. These establish product patterns, not Alo King demand or conversion rates. [51] [52] [53]
+
+WorldRemit’s US-to-Lebanon corridor accepts bank, debit-card, or credit-card funding, shows fees and exchange rate upfront, and supports cash pickup, bank, or mobile-money receipt depending on method. OMT’s public Western Union price list shows $5 for $1–50, $10 for $50.01–200, $15 for $200.01–500, $20 for $500.01–1,000, $35 for $1,000.01–2,000, $70 for $2,000.01–3,000, and $100 for $3,000.01–7,500; those are remittance fees, not Alo King order-payment fees. [54] [55]
+
+The U.S. International Trade Administration cites a World Bank estimate that Lebanon’s cash economy was 45.7% of GDP in 2022 and describes more than one million digital accounts and stated individual digital-payment limits of $300 daily and $3,000 monthly as of March 2025. L’Orient Today reported BdL’s 2026 press-conference figures: card-payment transaction count up 130% in the first eight months of 2026 year-over-year, value up more than 50%, restaurant card share rising from 15% to 35%, large-supermarket share from 17% to 36%, medium-supermarket share from 7.5% to 20%, and online debit-card payments above 51%. These are useful directional context, not a forecast for Alo King. [56] [57]
+
+### Payment recommendation
+
+Use a PSP abstraction and obtain Lebanon-specific written terms. **Tap is the first provider-contact candidate** because its Lebanon page advertises local payments, PCI compliance, and payment links through WhatsApp, SMS, Instagram, and email; the page does not prove merchant eligibility, foreign-card acceptance, pricing, settlement, or marketplace support. [59]
+
+Do not make direct Stripe onboarding for a Lebanon-registered entity a launch dependency: Stripe’s official supported merchant-country list does not include Lebanon. Any foreign-entity/acquiring workaround is a legal, tax, KYC, merchant-of-record, and settlement decision—not a technical shortcut. [58]
+
+Model sender, recipient, payer, and delivery address as separate entities. Show one pre-authorization total containing goods, delivery, service/payment fee, currency/FX, and any substitution reserve. Make refunds, substitutions, price differences, and failed delivery explicit. Use prepaid sender-funded orders as the primary diaspora flow; retain COD/card-on-delivery only when the sender expressly selects it and the recipient confirms.
+
+### Fraud, disputes and evidence
+
+Use CVV, 3DS/step-up where supported, tokenization, velocity/device/IP/geolocation signals, and manual review for first orders, high values, rapid repeats, or unusual patterns. Do not automatically reject a normal payer-recipient country mismatch.
+
+Persist an append-only order timeline containing authorization ID, descriptor, item prices, substitution consent, WhatsApp messages, recipient OTP, driver GPS, delivery photo, named receiver, and refund/credit events. Use a stable statement descriptor such as `ALOKING*ORDER123` and repeat it in WhatsApp/email receipts. Visa identifies card-not-present risks including stolen credentials, fake identities, account abuse, and friendly fraud; Mastercard emphasizes merchant evidence for CNP chargebacks and can expose merchants to dispute consequences. [60] [61]
+
+Pilot recurring family baskets, custom grocery lists, and holiday/occasion baskets before a fully indexed marketplace. Track approval rate, manual-review rate, delivery failure, substitution, refund, recipient confirmation, and chargeback/credit metrics by sender country, order value, merchant, and payment rail. No reliable public Lebanon-specific CNP fraud, chargeback, diaspora order-volume, sender-country, average-basket, or recurring-order benchmark was found; do not invent one.
+
+---
+
+## 7. Vendor fields, uploaded dataset, and Google Places permissions
+
+### Current dataset as an operational input
+
+The uploaded vendor dataset contains **2,087 rows**, with **1,823 `phone_e164` values present**, **1,202 WhatsApp candidates**, **722 website/menu links**, **264 rows missing `phone_e164`**, **22 duplicate `phone_e164` values**, and **171 duplicate normalized names**. These are data-quality and outreach-planning statistics, not proof that a number is owned by a merchant, that WhatsApp contact is consented, or that a vendor is operational.
+
+Before outreach, deduplicate by verified legal/business identity and normalized E.164 number, validate ownership/consent, and separate merchant-submitted fields from any Google-derived fields. Treat website/menu links as durable only where Alo King has independent rights to retain and use them.
+
+### Verified Google rules and safe schema
+
+- Place Details (New) requires an explicit field mask; requesting `*` is not the safe default. [62] [63]
+- `place_id` may be stored indefinitely. Google recommends refreshing IDs older than **12 months** with an ID-only request; handle `NOT_FOUND` and `movedPlaceId`. [66]
+- Google generally prohibits pre-fetching, caching, storing, exporting, indexing, extracting, or rehosting Google Maps Content, and explicitly prohibits bulk downloading places information or copying/saving business names, addresses, or reviews. [38] [67]
+- Under the current non-EEA service-specific terms, only Places latitude/longitude has the explicit temporary-cache allowance of up to **30 consecutive calendar days**. Do not interpret that as permission to retain other Place fields for 30 days or longer. [39] [68]
+- `regularOpeningHours` represents typical hours; `currentOpeningHours` covers today plus the next six days and includes special hours. Delivery and takeout booleans do not prove Alo King ordering acceptance, service-area coverage, or driver availability. [63] [64]
+- Google’s documented Place fields do not include Instagram, WhatsApp/wa.me, Instagram-bio, or menu URLs. `websiteUri` is a business website, not a menu/social/WhatsApp field. Cuisine-adjacent types include Lebanese, Middle Eastern, Mediterranean, shawarma, falafel, halal, and restaurant. [63] [65]
+- Request `languageCode` as `en` or `ar` as appropriate. `displayName` is localized and may fall back to the closest available language. [62] [71]
+- When displaying Google-derived content without a Google map, provide the required Google Maps attribution/logo or prescribed text treatment and a Google Maps link where applicable. Do not combine Google Places content with a non-Google map. [38] [68]
+- Google’s official material is inconsistent on the billing tier for `priceLevel` between the Place Details and Place Data Fields pages; recheck the live pricing matrix before launch rather than hard-coding rates. [62] [63]
+
+### Recommended data model
+
+Keep a small Google reference/read-through record:
+
+- durable `google_place_id`, source timestamp, language, requested field mask, last lookup, and `moved_place_id`/`NOT_FOUND` state;
+- no raw Google Place Details JSON as a durable vendor snapshot;
+- temporary coordinates hard-deleted at 30 days if used;
+- attribution and Google Maps link in any customer-facing display.
+
+Keep durable Alo King/merchant records separately:
+
+- legal and trading names in Arabic/English;
+- merchant-submitted and verified Instagram URL, `wa.me`/ordering number, menu URL, website, cuisine taxonomy, price band, delivery/takeaway capability, service area, and ordering hours;
+- source, consent/permission, verification actor, `verified_at`, `last_checked_at`, and expiry;
+- Alo King visibility, onboarding, orderability, suspension, and service-level status—never conflated with Google `businessStatus`.
+
+Use a user-triggered server-side Places lookup with the smallest field mask and requested language. Use Google as a cross-check at customer interaction when freshness matters; require merchant confirmation for operational ordering windows.
+
+---
+
+## Decision matrix for Alo King
+
+| Decision | Recommended launch choice | Alternative / why not default | Gate and classification |
+|---|---|---|---|
+| First payment provider | Whish provider-contact pilot | OMT closed pilot; foreign PSP only after Lebanon eligibility review | Provider confirmation; no public API/sandbox/settlement proof yet |
+| Payment status | Signed/authoritative provider event plus amount/currency validation | Browser redirect, screenshot, or WhatsApp assertion | Engineering control; mandatory |
+| Settlement currency | Separate USD and LBP ledgers | Silent FX conversion | Provider confirmation and finance approval |
+| Marketplace payouts | One Alo King merchant account plus approved payout queue | Split/escrow/connected sub-merchants | Provider + Lebanese counsel/regulator item |
+| Production WhatsApp number | Company-owned Alfa or touch postpaid line | Personal prepaid; Kapso-managed foreign number | Carrier confirmation and company ownership |
+| Fixed office voice | Ogero only if office/PBX requires it | Ogero as primary mobile/WhatsApp identity | Ogero voice-OTP test and billing controls |
+| WhatsApp ownership | Alo King Business Portfolio/WAAC/Messaging account; Kapso BYON | Contractor/agency-owned assets | Meta/Kapso account-model confirmation |
+| Meta migration | Share owning WAAC on new model; use a test number | Removing production number to migrate | Meta current-model inspection |
+| Message budget | Recipient-market/category ledger using Oct 1, 2026 rules | Flat Lebanon-only rate or “all replies free” assumption | Meta rate-card archive and live-account test |
+| Legal form | SARL for counsel-confirmed non-regulated operations | Alo King custody of customer funds or unlicensed collection | BdL/counsel written classification |
+| VAT/invoicing | Role-based invoices and 10-year record design | Hard-code 10% or 11% without confirmation | MoF/tax counsel confirmation |
+| Courier economics | Two-to-four-week base + km + waiting pilot | Fixed universal payout or unpaid returns | Pilot evidence and insurance endorsements |
+| COD | Low ceiling, exact cash, next-day reconciliation | Open-ended driver cashbox | Insurer/provider/legal confirmation |
+| Diaspora payments | Prepaid sender-funded order with transparent total | Direct Stripe dependency or opaque foreign workaround | PSP, tax, KYC, MoR confirmation |
+| Vendor directory | Merchant-submitted/licensed durable fields plus live Google check | Permanent Google-derived snapshot | Google terms and source-permission review |
+
+---
+
+## Implementation priorities
+
+### P0 — launch gates
+
+1. Appoint Lebanese counsel/tax adviser and request written BdL classification after Circular 777.
+2. Confirm SARL status, contracts, principal/agent/MoR role, VAT position, invoice flow, refund/chargeback owner, CNSS/driver model, and municipal/food permits.
+3. Send the provider question set below to Whish, OMT, Alfa, touch, Ogero, Kapso, Meta, and Google; do not treat marketing pages as technical approval.
+4. Obtain written insurance endorsements and quotations for commercial delivery, cargo, cash, rider, third-party, own-bike, and high-risk-area exposure.
+5. Archive Meta’s official 1 October 2026 USD rate card and reconcile the applicable Kapso/BSP markup and tax treatment.
+
+### P1 — identity, ledger and controls
+
+1. Buy and document the company-controlled postpaid number; create the Alo King Meta Business Portfolio/WAAC/Messaging account and Kapso BYON connection.
+2. Build the provider adapter, immutable double-entry ledger, webhook verification, idempotency, refund/chargeback states, and USD/LBP separation.
+3. Implement operational/marketing/call consent, STOP/block/withdrawal handling, and Arabic/English notices.
+4. Clean the vendor dataset: de-duplicate 22 duplicate phone values and 171 duplicate normalized names, validate the 1,202 WhatsApp candidates, and resolve the 264 missing phone values without treating unverified records as outreach-ready.
+5. Create the Google read-through schema, field-mask policy, 30-day coordinate deletion job, attribution components, and 12-month Place ID refresh workflow.
+
+### P2 — bounded pilot
+
+1. Pilot one Alo King merchant-of-record account, Whish first, with OMT as a separately approved comparison.
+2. Start with prepaid diaspora baskets and a narrow merchant/zone set; allow COD only under the cash controls.
+3. Run the courier pilot for two-to-four weeks; collect route, wait, deadhead, failure, cash, fuel, incident, and claim data.
+4. Track card approval, manual review, delivery failure, substitutions, refunds, recipient OTP, chargebacks, Meta message cost, and provider settlement variance.
+
+### P3 — scale only after evidence
+
+1. Re-price courier zones from observed 50th/80th-percentile cost and risk data.
+2. Add additional Messaging accounts or numbers only after capacity, billing, and account-model effects are confirmed.
+3. Expand to recurring family baskets, custom lists, and occasion baskets before a broad marketplace.
+4. Add vendor/driver payouts, automated reconciliation, and additional payment rails only after provider, regulator, legal, and insurance gates clear.
+
+---
+
+## Concise provider question list
+
+### Whish
+
+1. Will Whish onboard Alo King SARL as merchant of record for online orders, and under which licensed product/category?
+2. Provide current API/sandbox docs, credentials process, auth, webhook signatures/replay protection, idempotency, refunds, reconciliation, and rate limits.
+3. Confirm LBP/USD checkout and settlement, FX/rounding, MDR/payment-link/refund/chargeback fees, reserves, cut-offs, and bank settlement timing.
+4. Does Whish support corporate driver/vendor batch disbursement, beneficiary KYC, split/connected accounts, escrow, or only one merchant wallet? Provide the contract and data-processing terms.
+
+### OMT
+
+1. Can OMT onboard Alo King for online merchant payments or corporate Cash Out, and what is the exact contract and regulatory product?
+2. Provide API/sandbox, auth, webhook, idempotency, refund/void, settlement report, reconciliation, and payout-batch specifications.
+3. Confirm current LBP/USD fees, FX, settlement currency/timing, reserves, payout failures, refunds, disputes, and chargeback liability.
+4. Confirm whether any marketplace split, driver/vendor payout, or beneficiary-KYC model is supported.
+
+### Alfa
+
+1. Can a newly formed company obtain exactly one corporate postpaid production line, and what documents/deposit/direct-debit terms apply?
+2. Confirm billing overdue/suspension/reconnection, SIM delegation/replacement, owner change, and post-cancellation number reassignment rules.
+3. Confirm SMS and international voice reception reliability for Meta verification and whether the line can remain under Alo King during staff changes.
+
+### touch
+
+1. Is a one-line corporate postpaid exception available despite the public >5-line offer, and what is the full voice-line dossier?
+2. Confirm minimum commitment, billing suspension/reconnection, SIM replacement/delegation, owner-change, and number reassignment terms.
+3. Confirm SMS and international voice reception for Meta verification and provide the corporate account-owner/admin model.
+
+### Ogero
+
+1. Can the proposed business line/PBX reliably receive Meta’s international voice-verification call?
+2. Confirm business activation, premises documents, owner change, overdue barring, reconnection, cancellation, and current fees.
+3. Confirm whether the number can be retained through office moves, PBX changes, or administrator changes.
+
+### Kapso
+
+1. Given Meta’s 2026 account model, should Alo King share the owning WAAC rather than migrate/remove the production number?
+2. Confirm BYON number ownership, WABA/WAAC/Messaging IDs, verification, display-name flow, webhook/event behavior, and test-number strategy.
+3. Provide current pricing, message markup, data-processing/subprocessor terms, retention, export, SLA, and support escalation.
+
+### Meta
+
+1. Confirm Alo King’s current WAAC/Messaging-account model, number ownership, portfolio capacity, messaging limit, display-name state, and two-step-verification state.
+2. Confirm migration eligibility, WAAC sharing, FEP duration in the live account, and the effective pricing rules for Service and in-window Utility after 1 October 2026.
+3. Provide or enable download of the official October 2026 USD list-rate and volume-tier CSV/PDF and clarify billing timezone, taxes, and payment-method failure behavior.
+4. Confirm category treatment for Alo King’s own AI/Kapso replies versus Meta Business Agent and the required webhook pricing fields.
+
+### Google
+
+1. Confirm the exact current Places API SKU/field-mask cost for the requested fields, especially `priceLevel`, `regularOpeningHours`, `currentOpeningHours`, service flags, types, names, website, and links.
+2. Confirm acceptable storage and deletion behavior for the proposed read-through schema, 30-day coordinate cache, place-ID refresh, `NOT_FOUND`, and `movedPlaceId` handling.
+3. Confirm required attribution/link treatment in WhatsApp and web cards without a map and whether the proposed display can use a non-Google map.
+4. For any field originating from Google or a Google-derived dataset, identify what may be retained, exported, indexed, or used for a durable vendor directory; do not assume the uploaded dataset has Google-data rights.
+
+---
+
+## Limitations note
+
+No additional research-stream failures were reported. The main evidence limitations are substantive: Whish and OMT public pages do not expose the merchant API/sandbox/settlement contracts needed for engineering; the official Meta October 2026 rate-card file was not directly downloadable in the research environment; the post-Circular-777 BdL text and numeric Circular 173 cap were not available in the extracted English material; Lebanese courier payouts, insurance premiums, CNP fraud, and diaspora order volumes lack reliable current public benchmarks; and current VAT, NSSF, permit, data-processing, and merchant-of-record outcomes require fact-specific confirmation. Estimates and secondary reproductions are marked as such and must not be presented as verified launch facts.
+
+---
+
+## References
+
+[1]: https://www.whish.money/whish-app 'Whish Wallet / Whish Pay official product page'
+[2]: https://www.whish.money/corporate-solutions 'Whish official Corporate Solutions'
+[3]: https://www.whish.money/faq 'Whish official FAQ'
+[4]: https://www.whish.money/terms-conditions 'Whish official Terms and Conditions'
+[5]: https://www.whish.money/fees-commissions 'Whish official Fees and Commissions'
+[6]: https://www.omt.com.lb/en/omt-pay 'OMT official OMT Pay page'
+[7]: https://www.omt.com.lb/en/services/payment/businesses/cash-out-3 'OMT official Cash Out - Cash to Business page'
+[8]: https://www.omt.com.lb/en/services/money-transfer/cash-access 'OMT official Cash Access page'
+[9]: https://www.bdl.gov.lb/CB%20Com/Laws%20And%20Regulations/Basic%20Circulars/Decision_13790_EN%C2%A711334_3.pdf 'BDL Basic Circular No. 1 / Decision 13790'
+[10]: https://bdl.gov.lb/CB%20Com/Laws%20And%20Regulations/Institutions%20supervised%20by%20BDL/Electronic_Transfer_of_Cash_Companies_en%C2%A73_39.pdf 'BDL Electronic Transfer of Cash Companies list'
+[11]: https://bdl.gov.lb/intermediatecirculars.php 'BDL Intermediate Circulars index'
+[12]: https://www.bdl.gov.lb/basiccircular_detail.php?id=11670&langid=EN 'BDL Basic Circular 173 detail page'
+[13]: https://www.alfa.com.lb/en/business/corporate-offers 'Alfa Corporate Offer'
+[14]: https://www.alfa.com.lb/en/support/faq 'Alfa FAQ'
+[15]: https://legacy.touch.com.lb/autoforms/portal/touch/business/corporate-offer 'touch Corporate Offer'
+[16]: https://legacy.touch.com.lb/autoforms/portal/touch/business/m2m/overview 'touch Corporate M2M Overview'
+[17]: https://ogero.gov.lb/service.php?type=business&id=18 'Ogero Business Landline — How to Subscribe'
+[18]: https://developers.facebook.com/documentation/business-messaging/whatsapp/whatsapp-business-accounts 'Meta WhatsApp Accounts and Messaging Accounts'
+[19]: https://developers.facebook.com/documentation/business-messaging/whatsapp/business-phone-numbers/phone-numbers 'Meta Business Phone Numbers'
+[20]: https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits 'Meta Messaging Limits'
+[21]: https://developers.facebook.com/documentation/business-messaging/whatsapp/account-model-evolution 'Meta Updates to WhatsApp Business Accounts'
+[22]: https://developers.facebook.com/documentation/business-messaging/whatsapp/solution-providers/support/migrating-phone-numbers-among-solution-partners-programmatically 'Meta Migrate a Phone Number Programmatically'
+[23]: https://docs.kapso.ai/docs/how-to/whatsapp/connect-whatsapp 'Kapso Connect WhatsApp'
+[24]: https://docs.kapso.ai/docs/how-to/whatsapp/bring-your-own-sim-troubleshooting 'Kapso Bring Your Own SIM Troubleshooting'
+[25]: https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/ 'Pricing on the WhatsApp Business Platform'
+[26]: https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages 'Upcoming pricing updates for Meta Business Agent, service messages and utility messages'
+[27]: https://developers.facebook.com/documentation/business-messaging/whatsapp/changelog 'WhatsApp changelog'
+[28]: https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-creative/messaging-ads/click-to-whatsapp 'Ads that Click to WhatsApp'
+[29]: https://zernio.com/whatsapp-api-pricing 'WhatsApp API pricing calculator'
+[30]: http://investinlebanon.gov.lb/en/doing_business/starting_a_business/register_your_business 'IDAL — Register your Business'
+[31]: http://investinlebanon.gov.lb/Content/uploads/Offshore_Company.pdf 'IDAL/MoET — Investment in Lebanon guide, SARL section'
+[32]: https://www.finance.gov.lb/en-us/Taxation/Individuals/VAT/Pages/Registration-in-VAT.aspx 'Lebanon Ministry of Finance — Registration in VAT'
+[33]: https://www.finance.gov.lb/en-us/Taxation/Individuals/VAT/Pages/Tax-Rate.aspx 'Lebanon Ministry of Finance — VAT Tax Rate'
+[34]: https://www.cnss.gov.lb/%D9%85%D8%B3%D8%AA%D9%86%D8%AF%D8%A7%D8%AA-%D9%88%D9%86%D9%85%D8%A7%D8%B0%D8%AC/ 'Lebanon NSSF — Documents and Forms'
+[35]: https://smex.org/wp-content/uploads/2018/10/E-transaction-law-Lebanon-Official-Gazette-English.pdf 'Law No. 81/2018 — English Official Gazette translation'
+[36]: https://business.whatsapp.com/policy 'Meta/WhatsApp — WhatsApp Business Messaging Policy'
+[37]: https://developers.facebook.com/documentation/business-messaging/whatsapp/getting-opt-in 'Meta for Developers — Get opt-in for WhatsApp'
+[38]: https://developers.google.com/maps/documentation/places/web-service/policies 'Google Maps Platform — Policies and attributions for Places API'
+[39]: https://cloud.google.com/maps-platform/terms/maps-service-terms 'Google Maps Platform — Service Specific Terms'
+[40]: https://www.lbcgroup.tv/news/economy/961401/fuel-prices-slightly-drop-across-lebanon/en 'Fuel prices slightly drop across Lebanon — LBCI, 6 October 2026'
+[41]: https://www.energyandwater.gov.lb/ar/prices?type=1 'Fuel prices — Lebanon Ministry of Energy and Water'
+[42]: https://www.xe.com/currencyconverter/convert/?Amount=1&From=LBP&To=USD 'LBP to USD — Xe Currency Converter'
+[43]: https://today.lorientlejour.com/article/1326987/toters-delivery-workers-hold-partial-strike-demanding-fair-wages.html 'Toters delivery workers hold partial strike demanding fair wages — L’Orient Today'
+[44]: https://thepublicsource.org/gig-economy-lebanon 'Always on the Move, Yet Trapped in Precarity — The Public Source'
+[45]: https://wiki.wakilni.com/quotations/online-stores-proposal 'Online Stores Proposal — Wakilni'
+[46]: https://noknok.co/faq 'Frequently Asked Questions — noknok Lebanon'
+[47]: https://www.amanainsurance.com/shop/coverages/motorbike-insurance 'Motorbike Insurance — Amana Insurance'
+[48]: https://www.uca.com.lb/our-products/motor/third-party 'Third Party Motor Insurance — UCA Lebanon'
+[49]: https://www.comin.insure/products/motorbike 'Motorbike Insurance — Comin Lebanon'
+[50]: https://www.champmotorcycle.com/motorcycle-fuel-consumption-125cc-500cc-does-bigger-engine-always-mean-higher-fuel-use/ 'Motorcycle Fuel Consumption (125cc–500cc) — Champ Motorcycle'
+[51]: https://kafeel.app/en/groceries 'Kafeel — Send groceries to Lebanon'
+[52]: https://www.totersapp.com/faq 'Toters FAQ'
+[53]: https://apps.apple.com/us/app/spinneys-lebanon/id1518229592 'Spinneys Lebanon App Store listing'
+[54]: https://www.worldremit.com/en-us/lebanon 'WorldRemit — Send money to Lebanon from the United States'
+[55]: https://www.omt.com.lb/en/services/money-transfer/western-union-international-money-transfer/price-list 'OMT — Western Union international money transfer price list'
+[56]: https://www.trade.gov/country-commercial-guides/lebanon-digital-economy 'U.S. International Trade Administration — Lebanon Digital Economy'
+[57]: https://today.lorientlejour.com/article/1547050/card-payments-surge-130-in-lebanon-bdl-outlines-measures-to-curb-cash-economy.html 'L’Orient Today — Card payments surge 130% in Lebanon'
+[58]: https://stripe.com/global 'Stripe — Global availability'
+[59]: https://www.tap.company/en-lb 'Tap Payments — Lebanon'
+[60]: https://corporate.visa.com/en/solutions/visa-protect/insights/ecommerce-fraud.html 'Visa — eCommerce fraud defense'
+[61]: https://www.mastercard.com/us/en/news-and-trends/Insights/2024/how-can-merchants-dispute-credit-card-chargebacks.html 'Mastercard — How can merchants dispute credit card chargebacks?'
+[62]: https://developers.google.com/maps/documentation/places/web-service/place-details 'Place Details (New) | Places API (New)'
+[63]: https://developers.google.com/maps/documentation/places/web-service/data-fields 'Place Data Fields (New) | Places API (New)'
+[64]: https://developers.google.com/maps/documentation/places/web-service/reference/rest/v1/places 'REST Resource: places | Places API (New)'
+[65]: https://developers.google.com/maps/documentation/places/web-service/place-types 'Place Types (New) | Places API (New)'
+[66]: https://developers.google.com/maps/documentation/places/web-service/place-id 'Place IDs | Places API (New)'
+[67]: https://cloud.google.com/maps-platform/terms 'Google Maps Platform Terms of Service'
+[68]: https://developers.google.com/maps/documentation/places/web-service/maps-links 'Link to Google Maps | Places API (New)'
+[69]: https://support.google.com/local-listings/answer/9851099?hl=en 'How Google sources and uses information in local listings'
+[70]: https://support.google.com/business/answer/13580646?hl=en 'Manage your social media links - Google Business Profile Help'
+[71]: https://developers.google.com/maps/faq#languagesupport 'Google Maps Platform FAQ — Supported languages'

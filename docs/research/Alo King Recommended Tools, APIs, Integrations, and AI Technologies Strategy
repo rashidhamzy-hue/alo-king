@@ -1,0 +1,825 @@
+# Alo King Recommended Tools, APIs, Integrations, and AI Technologies Strategy
+
+## What Alo King should add next — and what it should avoid for now
+
+**Project:** Alo King — Lebanon WhatsApp-native ordering and delivery platform  
+**Date:** 6 October 2026  
+**Scope:** Recommended technical tools, APIs, integrations, AI technologies, priorities, and launch boundaries.
+
+---
+
+# Executive decision
+
+Alo King is **not finished**, but the answer is not to add as many tools or AI models as possible.
+
+The current core stack can support the first real launch:
+
+```text
+Supabase
+WhatsApp/Kapso
+Claude
+OpenAI
+React/TypeScript
+GitHub
+```
+
+The next priority is making the existing system reliable in five areas:
+
+```text
+1. Merchant notification reliability
+2. Durable background jobs and retries
+3. Payment and reconciliation controls
+4. Road-aware delivery operations
+5. AI evaluation and safety
+```
+
+The most important questions are:
+
+```text
+Did the merchant actually receive the order?
+Did the restaurant explicitly accept it?
+Can the driver find the customer?
+Was the customer charged correctly?
+Can Alo King prove what happened?
+```
+
+These questions should determine the next engineering sprint.
+
+---
+
+# P0 — Add before serious public launch
+
+## 1. Sentry for errors and performance
+
+Use Sentry for:
+
+- frontend errors;
+- Supabase Edge Function failures;
+- failed WhatsApp webhooks;
+- payment callback errors;
+- AI tool failures;
+- slow database queries;
+- failed merchant notifications;
+- merchant order timeouts;
+- failed driver and tracking operations.
+
+Every event should include safe context:
+
+```text
+order_id
+vendor_id
+zone_id
+function_name
+provider
+message_type
+environment
+trace_id
+```
+
+Never include:
+
+- full customer phone numbers;
+- full addresses;
+- API keys;
+- webhook secrets;
+- payment credentials;
+- CVVs or OTPs;
+- unredacted customer conversations.
+
+**Recommendation:** Add Sentry immediately.
+
+---
+
+## 2. PostHog for product analytics and feature flags
+
+Use PostHog to understand:
+
+- where customers abandon checkout;
+- which vendors receive orders;
+- which menus convert;
+- WhatsApp versus website conversion;
+- reorder rate;
+- merchant acceptance rate;
+- delivery cancellation rate;
+- recommendation conversion;
+- broadcast revenue;
+- campaign opt-outs.
+
+Recommended events:
+
+```text
+menu_viewed
+item_added
+cart_started
+checkout_started
+order_confirmed
+merchant_notified
+merchant_delivered
+merchant_acknowledged
+merchant_accepted
+merchant_timeout
+driver_assigned
+order_delivered
+reorder_completed
+recommendation_clicked
+campaign_opted_out
+```
+
+Do not send raw customer messages or complete personal addresses to analytics.
+
+Create an event taxonomy before adding tracking. Each event should define:
+
+```text
+event_name
+meaning
+required properties
+forbidden properties
+owner
+retention
+```
+
+**Recommendation:** Add PostHog for analytics and later use its feature flags for controlled rollouts.
+
+---
+
+## 3. Durable background jobs and queue processing
+
+The current platform should not depend only on short-lived function timers, `EdgeRuntime.waitUntil`, or best-effort scheduled polling.
+
+Use a durable queue for:
+
+- merchant notification retries;
+- order timeout escalation;
+- customer lifecycle messages;
+- menu extraction;
+- campaign pacing;
+- payment reconciliation;
+- driver-location processing;
+- abandoned-cart reminders;
+- daily merchant reports;
+- webhook retry and dead-letter handling.
+
+Possible choices:
+
+```text
+Supabase/Postgres queue
+Inngest
+Trigger.dev
+Upstash QStash
+```
+
+Choose one, not all four.
+
+### Recommended choice
+
+Start with a **Postgres-backed queue** if you want the fewest additional vendors and full visibility in Supabase.
+
+Choose **Inngest or Trigger.dev** if you want easier durable workflows, retries, scheduled jobs, and workflow visibility.
+
+Choose **QStash** if the main requirement is reliable delayed HTTP execution.
+
+The queue must support:
+
+```text
+idempotency
+retry limits
+exponential backoff
+dead-letter state
+scheduled execution
+visibility timeout
+manual replay
+failure reason
+```
+
+**Recommendation:** This is one of the most important missing pieces before scaling.
+
+---
+
+## 4. OpenTelemetry or Sentry tracing
+
+One Alo King order crosses multiple systems:
+
+```text
+WhatsApp
+→ Kapso
+→ Supabase Edge Function
+→ Postgres
+→ merchant notification
+→ merchant acceptance
+→ driver dispatch
+→ customer notification
+```
+
+Use a shared `trace_id` across:
+
+- inbound WhatsApp webhook;
+- AI request;
+- database transaction;
+- notification outbox;
+- provider message ID;
+- merchant response;
+- driver assignment;
+- delivery completion.
+
+This makes it possible to answer:
+
+> Why did this order take eleven minutes to reach the restaurant?
+
+Start with Sentry performance tracing. Expand to OpenTelemetry if the system later spans multiple services or providers.
+
+**Recommendation:** Add Sentry first, then expand tracing as complexity grows.
+
+---
+
+## 5. Payment adapter and immutable ledger
+
+Do not hard-code Whish or OMT throughout the application.
+
+Use a provider adapter:
+
+```text
+PaymentProvider interface
+WhishAdapter
+OMTAdapter
+FutureProviderAdapter
+```
+
+The ledger should track:
+
+```text
+order_id
+provider
+provider_transaction_id
+currency
+gross_amount
+provider_fee
+platform_fee
+merchant_amount
+driver_amount
+refund_amount
+chargeback_amount
+settlement_batch
+settlement_date
+status
+```
+
+Provider adapter operations should include:
+
+```text
+create payment link
+verify payment
+handle webhook
+refund
+partial refund
+reconcile settlement
+```
+
+Rules:
+
+- payment status must come from a provider-authoritative response or verified webhook;
+- the server must verify amount and currency;
+- every provider event must be idempotent;
+- USD and LBP remain separate currencies;
+- refunds must create ledger events;
+- settlement reports must reconcile against order records;
+- split payments remain disabled until provider and Lebanese legal approval.
+
+**Recommendation:** Essential before scaling prepaid and diaspora orders.
+
+---
+
+# P1 — Add for better delivery and customer experience
+
+## 6. Road-aware routing and ETA
+
+Straight-line distance is not enough for Lebanon.
+
+Use one routing provider for:
+
+- driving distance;
+- road-aware ETA;
+- mountain routes;
+- village-to-village travel time;
+- driver navigation;
+- delivery-fee calculation;
+- route risk and route feasibility.
+
+Possible providers:
+
+```text
+Google Routes API
+Mapbox Directions
+OpenRouteService
+```
+
+Start with one provider. Do not run multiple routing APIs until you have measured their accuracy.
+
+Test real routes across:
+
+- Chouf;
+- Aley;
+- Baabda;
+- Metn;
+- Keserwan;
+- Beirut;
+- Bekaa;
+- North Lebanon;
+- South Lebanon.
+
+Maintain an internal route matrix for important village pairs because generic routing estimates may be poor on mountain roads.
+
+**Recommendation:** Add road-aware routing before expanding delivery zones.
+
+---
+
+## 7. Address and landmark intelligence
+
+Lebanese deliveries often depend on villages, landmarks, buildings, floors, local directions, and dropped pins rather than standardized street addresses.
+
+Store structured address data:
+
+```text
+village
+neighborhood
+landmark
+building
+floor
+phone contact
+map pin
+delivery instructions
+Arabic version
+English version
+```
+
+Use AI to normalize text, but never let AI decide whether a location is deliverable.
+
+Support:
+
+- dropped location pins;
+- “near [landmark]” directions;
+- voice-note instructions;
+- driver correction feedback;
+- saved addresses;
+- customer callback;
+- Arabic and English address summaries.
+
+**Recommendation:** This may improve successful delivery more than adding another AI model.
+
+---
+
+## 8. Support and operations inbox
+
+A single admin WhatsApp number is not enough once order volume grows.
+
+Add:
+
+- conversation assignment;
+- customer, merchant, driver, and order identity;
+- order-linked support threads;
+- internal notes;
+- tags;
+- SLA timers;
+- escalation;
+- refund-request workflow;
+- complaint categories;
+- support audit history.
+
+Possible tools:
+
+```text
+Custom Supabase support inbox
+Chatwoot
+Crisp
+Intercom
+Zendesk
+```
+
+### Recommendation
+
+Start with a **custom Supabase support inbox** if the team is small and the existing portal already exists.
+
+Consider **Chatwoot** when you need multi-agent inbox functionality without building every feature.
+
+Avoid Intercom or Zendesk until support volume justifies the cost.
+
+**Recommendation:** Build the minimum support inbox before public expansion.
+
+---
+
+# P1 — Improve AI quality
+
+## 9. Use a model router
+
+Do not send every message to the most expensive or most capable model.
+
+Recommended routing:
+
+```text
+Deterministic code:
+buttons, menus, cart changes, order status, STOP, privacy commands
+
+Fast/low-cost model:
+intent classification, typo correction, Arabizi normalization, simple search
+
+Structured vision model:
+menu extraction, item/price candidates, image understanding
+
+Claude:
+complex complaints, ambiguous requests, difficult support, menu reasoning
+
+OpenAI or selected structured model:
+extraction, embeddings, classification, or validated voice/vision workflows
+```
+
+Record:
+
+```text
+model_used
+provider
+prompt_version
+tool_version
+latency_ms
+input_tokens
+output_tokens
+estimated_cost
+success_or_failure
+human_handoff
+```
+
+Use Claude and OpenAI as complementary systems. Do not call both models for every message unless an evaluation proves the benefit is worth the cost and latency.
+
+**Recommendation:** Implement a model router after the deterministic order flow is reliable.
+
+---
+
+## 10. Automated AI evaluation system
+
+Create a Lebanese-specific evaluation dataset covering:
+
+- Lebanese Arabic;
+- Arabizi;
+- English;
+- French;
+- voice notes;
+- spelling mistakes;
+- mixed Arabic/English;
+- restaurant names;
+- LBP and USD;
+- allergy questions;
+- delivery landmarks;
+- prompt injection;
+- merchant instructions;
+- campaign opt-out;
+- cancellation;
+- “the usual” reordering.
+
+Score:
+
+```text
+intent accuracy
+correct tool selected
+price grounded
+currency correctness
+language match
+no unauthorized action
+no hallucinated availability
+safe allergy response
+human handoff correctness
+recommendation relevance
+```
+
+Every prompt, model, or tool change should run against this versioned test set.
+
+**Recommendation:** This is more valuable than adding a third AI provider.
+
+---
+
+## 11. Hybrid Arabic/English/Arabizi search
+
+Start with Postgres full-text search for:
+
+- Arabic names;
+- English names;
+- Arabizi aliases;
+- cuisine;
+- village;
+- restaurant names;
+- menu sections.
+
+Then add `pgvector` for:
+
+- similar dishes;
+- “something spicy and filling”;
+- semantic menu search;
+- related-item recommendations;
+- customer taste representation.
+
+Do not use embeddings as the source of truth for:
+
+- prices;
+- availability;
+- order state;
+- merchant eligibility;
+- delivery zones.
+
+Use hybrid search:
+
+```text
+keyword search
++ Arabic/English aliases
++ structured filters
++ vector similarity
++ availability rules
++ zone rules
+```
+
+**Recommendation:** Use Supabase Postgres and `pgvector` before adding Algolia or another search platform.
+
+---
+
+## 12. Voice-note ordering
+
+Support voice notes using a confirmation step:
+
+```text
+Voice note
+→ transcription
+→ “I heard: [text]. Is that correct?”
+→ customer confirms
+→ normal tool-based action
+```
+
+Possible technologies:
+
+```text
+OpenAI audio/transcription
+Deepgram
+Google Speech-to-Text
+```
+
+Test Lebanese dialect quality before committing.
+
+Voice must never directly execute without confirmation:
+
+- payment;
+- order confirmation;
+- cancellation;
+- address change;
+- quantity change;
+- refund request.
+
+**Recommendation:** Add voice after text ordering is reliable, but before attempting aggressive AI automation.
+
+---
+
+# P1 — Payments, fraud, and diaspora orders
+
+## 13. Fraud and abuse controls
+
+For diaspora and prepaid orders, add:
+
+- velocity limits;
+- device and IP risk signals;
+- repeated failed-payment detection;
+- unusual payer/recipient country detection;
+- high-value manual review;
+- first-order review;
+- multiple addresses in a short period;
+- delivery confirmation code;
+- chargeback evidence package;
+- merchant and customer dispute history.
+
+Do not reject every international order automatically. Use risk scoring and human review.
+
+Chargeback evidence should include:
+
+```text
+order summary
+payment authorization
+provider transaction ID
+customer confirmation
+WhatsApp conversation references
+recipient confirmation
+delivery time
+driver event timeline
+proof of delivery
+refund history
+```
+
+---
+
+# P2 — Add after operational proof
+
+## 14. Feature flags and experimentation
+
+Add feature flags for:
+
+```text
+recommendations
+new checkout
+campaigns
+payment providers
+new delivery fees
+zone activation
+voice ordering
+new AI model
+new merchant notification path
+```
+
+Possible tools:
+
+```text
+PostHog feature flags
+Statsig
+LaunchDarkly
+Supabase feature_flags table
+```
+
+Start with PostHog feature flags or a small Supabase table. Avoid LaunchDarkly until the team and release complexity justify it.
+
+---
+
+## 15. Data warehouse
+
+When Postgres analytics become slow or insufficient, consider:
+
+```text
+BigQuery
+ClickHouse
+Snowflake
+```
+
+Do not add a warehouse immediately. Start with PostHog, reporting views, and carefully designed operational metrics.
+
+---
+
+## 16. Kitchen printer or kitchen display system
+
+For larger restaurants, add:
+
+- thermal-printer integration;
+- kitchen display system;
+- preparation-time tracking;
+- station routing;
+- order sound;
+- ready-for-pickup workflow.
+
+Do not require this for every merchant on day one. WhatsApp plus the merchant portal is sufficient for the initial pilot.
+
+---
+
+## 17. Loyalty and referrals
+
+Eventually add:
+
+- points ledger;
+- referral codes;
+- referral fraud protection;
+- restaurant-funded rewards;
+- delivery-credit rewards;
+- campaign attribution;
+- expiry rules;
+- abuse limits.
+
+Never store loyalty balance as one editable number. Use an append-only points ledger:
+
+```text
+loyalty_account
+loyalty_ledger_entries
+reward_rules
+reward_redemptions
+referral_events
+fraud_flags
+```
+
+---
+
+# Tools to avoid for now
+
+Do not add these before the core operation is stable:
+
+- native iOS or Android apps;
+- blockchain or crypto payments;
+- a third AI provider;
+- complex microservice architecture;
+- a full data warehouse;
+- automatic marketplace split payments;
+- fully autonomous AI customer support;
+- nationwide delivery;
+- expensive enterprise support software;
+- real-time driver tracking while inactive;
+- automated bulk campaigns without human approval;
+- Google Places as a permanent scraped database;
+- a second map provider before the first is tested;
+- loyalty, subscriptions, and paid campaigns before fulfilment is stable.
+
+---
+
+# Recommended priority order
+
+## Immediate
+
+```text
+1. Sentry
+2. Durable background-job/queue system
+3. Merchant notification outbox
+4. PostHog event analytics
+5. Payment adapter and immutable ledger
+6. WhatsApp delivered/read/acknowledgement tracking
+7. RLS and security audit
+```
+
+## Next
+
+```text
+8. Road-aware routing and ETA
+9. Support inbox
+10. AI evaluation suite
+11. Model router
+12. Hybrid Arabic/English/Arabizi search
+13. Voice-note ordering with confirmation
+14. Fraud and chargeback controls
+```
+
+## Later
+
+```text
+15. Feature flags and experimentation
+16. Loyalty and referrals
+17. Kitchen printers/KDS
+18. Data warehouse
+19. Advanced forecasting
+20. Multi-region dispatch optimization
+```
+
+---
+
+# Recommended implementation sequence
+
+## Sprint 1 — reliability
+
+- Add Sentry.
+- Define PostHog events.
+- Build or harden the durable notification/job queue.
+- Trace merchant notification from order creation to acknowledgement.
+- Add merchant timeout metrics.
+
+## Sprint 2 — money and safety
+
+- Add payment adapter interface.
+- Add immutable ledger events.
+- Verify payment amount and currency server-side.
+- Complete webhook signature and replay tests.
+- Audit RLS and authorization.
+
+## Sprint 3 — delivery quality
+
+- Add road-aware routing.
+- Build the route matrix for the first launch zones.
+- Improve landmark and dropped-pin handling.
+- Add ETA freshness and confidence.
+- Test failed delivery and not-collected workflows.
+
+## Sprint 4 — AI quality
+
+- Add model routing.
+- Create the Lebanese evaluation dataset.
+- Add prompt-injection tests.
+- Add price-grounding tests.
+- Add Arabic, English, Arabizi, and French tests.
+
+## Sprint 5 — controlled growth
+
+- Add feature flags.
+- Pilot recommendations.
+- Pilot prepaid diaspora orders.
+- Add fraud scoring and chargeback evidence.
+- Introduce loyalty only after fulfilment metrics are stable.
+
+---
+
+# Final recommendation
+
+Alo King can launch with its current core stack if it adds the following before serious public growth:
+
+```text
+reliable notifications
+ durable background jobs
+payment reconciliation
+road-aware delivery
+support operations
+AI evaluation
+security monitoring
+```
+
+The biggest mistake would be adding more AI before answering these questions reliably:
+
+```text
+Did the merchant receive the order?
+Did the merchant accept it?
+Can the driver find the customer?
+Was the customer charged correctly?
+Can Alo King prove every important event?
+```
+
+Build those foundations first. Then add recommendations, voice, campaigns, loyalty, and advanced automation on top of a reliable operating system.

@@ -1,0 +1,1280 @@
+# Alo King AI Menu Extraction, Order Tracking, and Zone Activation Strategy
+
+## Executive decision
+
+Alo King should launch ordering through a **zone activation system**, not simply switch ordering on for every imported vendor.
+
+A zone becomes orderable only when all of the following are true:
+
+```text
+At least one verified merchant with a live menu
++ at least one active, trained, dispatchable driver
++ a configured delivery route/fee
++ a support and exception process
++ a tested customer notification path
+```
+
+The system must keep three concepts separate:
+
+```text
+Directory visibility: people can discover the business
+Ordering availability: customers can place an order
+Live dispatch coverage: Alo King can fulfil the order now
+```
+
+The AI menu extractor should turn uploaded images, PDFs, and WhatsApp media into a **reviewable draft**, never directly into a live menu. The order tracker should combine server-side order events, driver GPS, route-aware ETA, and clear fallback messaging. Lebanon’s irregular addresses, village landmarks, mobile coverage gaps, and mountain roads require more than a generic map pin.
+
+---
+
+# 1. End-to-end architecture
+
+```text
+Merchant claim through WhatsApp or portal
+→ identity and permission verification
+→ upload menu media
+→ secure file storage and malware/type checks
+→ OCR / PDF text extraction
+→ vision-language menu extraction
+→ normalization and duplicate detection
+→ price and currency interpretation
+→ merchant review and confirmation
+→ allergen/option review
+→ menu publication
+→ merchant live-ordering gate
+→ zone readiness check
+→ customer ordering enabled
+→ driver dispatch
+→ live tracking and delivery events
+```
+
+The system should use a shared backend for portal and merchant WhatsApp. The channel changes; the business rules do not.
+
+---
+
+# 2. Automated AI menu extraction from WhatsApp
+
+## 2.1 WhatsApp upload entry points
+
+After a merchant is verified or has a pending claim with permission to submit a draft, the merchant can send to the merchant number:
+
+```text
+Add my menu
+Update my menu
+Read this menu
+```
+
+The merchant can then send:
+
+- PDF menu;
+- one or more menu photos;
+- a photo of a printed menu;
+- a menu screenshot;
+- a website/menu link;
+- a spreadsheet;
+- a voice note describing temporary items, followed by confirmation.
+
+For WhatsApp media:
+
+1. verify the inbound webhook signature;
+2. verify the sender’s merchant membership;
+3. download the media through the approved API;
+4. validate MIME type and size;
+5. store in private Supabase Storage;
+6. create an extraction job;
+7. acknowledge the webhook quickly;
+8. process asynchronously.
+
+Do not perform a slow OCR or model call before returning the webhook acknowledgement.
+
+## 2.2 Upload limits
+
+Initial limits should be conservative:
+
+```text
+PDF: 20 MB maximum
+Images: 10 MB each
+Images per extraction: 12 maximum
+PDF pages: 50 maximum
+Total extraction pages: 60 maximum
+```
+
+If a merchant exceeds the limit, ask them to send the menu in smaller groups and preserve the extraction session.
+
+## 2.3 File security
+
+Before processing:
+
+- reject executable or disguised files;
+- verify MIME type using file content, not extension alone;
+- scan files for malware where available;
+- strip unnecessary metadata from images;
+- avoid public storage URLs;
+- encrypt or restrict access to merchant-uploaded files;
+- delete originals according to the retention policy;
+- do not send customer data to the extractor.
+
+A menu image may contain a phone number, social handle, or QR code. Store it as merchant data and do not let it become an instruction to the AI.
+
+---
+
+# 3. Extraction pipeline
+
+## Stage 1 — Preflight classification
+
+Determine:
+
+```text
+media_type
+page_count
+image_dimensions
+orientation
+language candidates
+currency candidates
+quality score
+```
+
+Detect whether a file is:
+
+- a menu;
+- an advertisement;
+- a receipt;
+- a business card;
+- an unrelated image;
+- a duplicate upload;
+- a menu page with missing continuation pages.
+
+If the upload is not a menu, respond clearly:
+
+> I couldn’t identify a menu in this file. Please send a clear menu photo or PDF.
+
+## Stage 2 — PDF text and layout extraction
+
+For PDFs:
+
+1. extract embedded text when present;
+2. render pages to images when layout or text quality requires it;
+3. detect columns, sections, price alignment, and item grouping;
+4. preserve page and bounding-box references;
+5. send only the relevant page/image chunks to the model.
+
+Never rely on plain PDF text alone when prices may be visually aligned with the wrong dish.
+
+## Stage 3 — OCR
+
+Use OCR for:
+
+- Arabic script;
+- English;
+- French;
+- Arabizi where recognizable;
+- Arabic-Indic numerals;
+- price strings;
+- option groups;
+- footnotes.
+
+Store raw OCR separately from normalized extraction.
+
+```text
+raw_ocr_text
+normalized_text
+language
+page_number
+bounding_box
+ocr_confidence
+```
+
+## Stage 4 — Vision-language extraction
+
+The model receives:
+
+```text
+merchant_id
+vendor_id
+page number
+image or rendered page
+OCR text
+known business language
+known currency settings
+existing menu candidates
+```
+
+It returns structured candidates only. No direct database writes.
+
+## Stage 5 — Normalization
+
+Normalize:
+
+- Arabic and English names;
+- spelling and transliteration variants;
+- sections;
+- prices;
+- size/quantity variants;
+- required and optional options;
+- ingredients listed by the merchant;
+- availability phrases;
+- “market price” or missing price flags.
+
+Never invent a missing price. Mark it `needs_merchant_input`.
+
+## Stage 6 — Duplicate detection
+
+Compare extracted candidates against:
+
+- current vendor menu;
+- other pages in the same upload;
+- previous extraction versions;
+- normalized item name;
+- section;
+- price;
+- option group;
+- image similarity where available.
+
+Do not automatically merge two items with similar names when their sizes or prices differ.
+
+## Stage 7 — Merchant review
+
+Send a compact WhatsApp summary first:
+
+> I found **42 menu items** in 5 pages. I detected prices mainly in **USD**. 6 items need your confirmation and 4 look like possible duplicates. I’ll send the review in sections.
+
+Then show review batches of 10–15 items with actions:
+
+```text
+Approve item
+Edit item
+Skip item
+Approve all in section
+```
+
+For a large menu, direct the merchant to the portal for table editing while keeping WhatsApp approval available for smaller corrections.
+
+## Stage 8 — Publish as draft, then live
+
+Use two separate states:
+
+```text
+extracted_draft
+merchant_reviewed
+published_hidden
+published_live
+```
+
+An extraction may be saved as a draft without becoming visible to customers. Publishing live requires merchant confirmation and the menu go-live gate.
+
+---
+
+# 4. Structured extraction schema
+
+Use a strict JSON schema similar to:
+
+```json
+{
+  "menu_document": {
+    "language_candidates": ["ar-LB", "en"],
+    "currency_candidates": ["USD", "LBP"],
+    "pages_processed": 5,
+    "quality_issues": [],
+    "questions_for_merchant": []
+  },
+  "items": [
+    {
+      "source_ref": "page2:block7",
+      "name_original": "شاورما دجاج",
+      "name_en": "Chicken Shawarma",
+      "name_ar": "شاورما دجاج",
+      "section": "Shawarma",
+      "description_original": "...",
+      "description_en": null,
+      "price_value": 6,
+      "price_currency": "USD",
+      "price_text_original": "$6",
+      "price_confidence": 0.99,
+      "name_confidence": 0.96,
+      "ingredients_listed": ["chicken", "garlic sauce"],
+      "allergens_mentioned": [],
+      "option_groups": [],
+      "availability_text": null,
+      "needs_merchant_review": false,
+      "warnings": []
+    }
+  ]
+}
+```
+
+Required fields must be explicit. Use `null` plus a warning instead of guessing.
+
+## Confidence policy
+
+| Confidence | Behavior |
+|---|---|
+| 0.95–1.00 | Highlight as high-confidence; merchant still approves publication |
+| 0.80–0.94 | Include in review with warning |
+| 0.60–0.79 | Require merchant edit or explicit approval |
+| Below 0.60 | Do not suggest publication; request a clearer image/manual input |
+
+Confidence is not truth. A visually clear but semantically ambiguous price can still be wrong.
+
+---
+
+# 5. Lebanese menu-specific rules
+
+## 5.1 Currency interpretation
+
+The extractor must distinguish:
+
+```text
+$6
+6 USD
+600,000 L.L.
+600
+600k
+6,000,000
+```
+
+Never assume that a bare number is USD.
+
+If prices look like LBP thousands, show the merchant the interpretation:
+
+> I think `450` means **450,000 LBP**, not 450 LBP. Is that correct?
+
+A price conversion requires:
+
+```text
+source_currency
+source_value
+exchange_rate_at_confirmation
+normalized_price_usd
+normalized_price_lbp
+rounding_policy
+```
+
+The merchant must confirm currency and any thousands multiplier before publication.
+
+## 5.2 Arabic and English names
+
+Keep the merchant’s original name and a normalized display name. Never remove Arabic from a Lebanese menu simply because the English translation is available.
+
+Allow:
+
+```text
+name_ar
+name_en
+name_original
+search_aliases
+```
+
+Search aliases can include transliterations such as:
+
+```text
+shawarma
+shawrma
+shawerma
+شاورما
+```
+
+## 5.3 Options and modifiers
+
+Extract separately:
+
+```text
+size
+bread
+sauce
+protein
+side
+extra
+removal
+combo choice
+```
+
+Required options must block checkout until selected. Optional options must be clearly labelled.
+
+## 5.4 Allergens
+
+AI may extract allergens explicitly written on the menu. It must not certify that a dish is allergen-free from a vague description.
+
+Use states:
+
+```text
+not_reviewed
+merchant_listed
+merchant_confirmed
+platform_reviewed
+```
+
+Customer-facing allergy answers must distinguish:
+
+> The menu lists sesame as an ingredient.
+
+from:
+
+> The restaurant confirms this item is safe for a sesame allergy.
+
+---
+
+# 6. Merchant review via WhatsApp
+
+## 6.1 Review batching
+
+Send one section at a time:
+
+> Section: Shawarma — 8 items found. Reply with `approve all`, or tell me the item number to edit.
+
+Example:
+
+```text
+1. Chicken Shawarma — $6.00
+2. Meat Shawarma — $7.00
+3. Family Shawarma — $24.00
+4. Extra Garlic — $1.00
+```
+
+Buttons where possible:
+
+```text
+Approve section
+Edit items
+Skip section
+Open portal
+```
+
+## 6.2 Merchant corrections
+
+Support:
+
+```text
+2 price 7.5
+3 remove onions as option
+4 out of stock
+add 2 chicken shawarma 6 dollars
+```
+
+The backend should parse these into typed actions and show a confirmation summary before changing the draft.
+
+## 6.3 Final publication confirmation
+
+Show:
+
+```text
+Items to publish
+Prices and currency
+Options
+Unresolved warnings
+Allergen review status
+Menu effective time
+```
+
+Require:
+
+```text
+Publish menu
+```
+
+If unresolved prices or required options remain, block publication or publish only a safe subset with clear warnings.
+
+---
+
+# 7. Extraction versioning and rollback
+
+Every menu publication should create a version:
+
+```text
+menu_versions
+menu_version_items
+menu_extraction_jobs
+menu_extraction_sources
+menu_review_events
+```
+
+Store:
+
+```text
+version_id
+vendor_id
+source_file_ids
+created_by
+approved_by
+published_at
+supersedes_version_id
+```
+
+A merchant must be able to:
+
+- compare current and previous menus;
+- restore a previous version;
+- see who changed a price;
+- undo a bulk extraction;
+- export the published menu.
+
+Do not delete historical prices from confirmed orders.
+
+---
+
+# 8. Extraction failure and safety paths
+
+## Blurry image
+
+> The menu photo is too blurry to read prices reliably. Please send a brighter, closer photo or use the portal to enter the prices manually.
+
+## Cropped page
+
+> This page looks cut off. Please send the full page so I don’t publish incomplete items.
+
+## Conflicting prices
+
+> I found two prices for Chicken Shawarma: $6 and $7. Which one should be active?
+
+## Menu has no prices
+
+Create item drafts with `price_required` and do not enable ordering for those items.
+
+## Menu changes while an order is active
+
+New prices apply to future orders. Confirmed orders retain their original server-priced totals.
+
+## Model unavailable
+
+Keep the upload in `processing_failed` with a retry button. Do not publish partial, unvalidated extraction.
+
+---
+
+# 9. Order tracking architecture
+
+## 9.1 Tracking is event-driven
+
+The current tracking page already provides a public tracking route, status timeline, map, and periodic refresh. The production strategy should evolve from a primarily polling/haversine model to:
+
+```text
+order state event
++ driver location event
++ route estimate
++ notification outbox
++ customer tracking view
+```
+
+Use Supabase Realtime for active tracking where feasible, with polling fallback for weak networks or suspended sockets.
+
+## 9.2 Customer tracking data boundary
+
+A public tracking token should expose only:
+
+```text
+order short code
+restaurant name
+sanitized status
+estimated time range
+last known driver position or coarse position
+route progress
+delivery village/landmark summary
+support action
+```
+
+Do not expose:
+
+- driver phone number;
+- exact driver identity beyond approved display name;
+- other customers in a batch;
+- full customer address to public viewers;
+- internal notes;
+- cash ledger;
+- private event metadata.
+
+Use a short-lived signed tracking token instead of relying only on a guessable order UUID.
+
+## 9.3 Tracking states
+
+Customer-facing states should be simpler than internal states:
+
+```text
+received
+accepted
+being_prepared
+ready
+driver_assigned
+on_the_way
+nearby
+delivered
+issue
+cancelled
+```
+
+Internal states can remain more detailed:
+
+```text
+pending
+accepted
+preparing
+ready
+assigned
+at_pickup
+picked_up
+en_route
+at_dropoff
+awaiting_customer
+delivered
+not_collected
+exception
+cancelled
+rejected
+```
+
+## 9.4 Timeline events
+
+Each event includes:
+
+```text
+event_id
+order_id
+previous_status
+new_status
+actor_type
+actor_id
+created_at
+source
+metadata
+```
+
+The customer view should render the timeline from trusted events, not derive it from the current order row alone.
+
+---
+
+# 10. Driver location tracking
+
+## 10.1 Location cadence
+
+Recommended cadence:
+
+```text
+active en-route: every 10–15 seconds
+near destination: every 5–10 seconds
+waiting/idle: every 60–120 seconds or no tracking
+weak battery/background: adaptive lower frequency
+```
+
+The driver app should send location only for active assignments and only while the driver is on shift or carrying an order.
+
+## 10.2 Location quality
+
+Store:
+
+```text
+latitude
+longitude
+accuracy_meters
+heading
+speed
+captured_at
+received_at
+battery_level, optional
+network_state, optional
+```
+
+Reject or flag impossible jumps:
+
+- location accuracy too poor;
+- timestamp too old;
+- speed impossible for the vehicle/road;
+- jump across incompatible routes;
+- location outside the active delivery corridor.
+
+## 10.3 Privacy controls
+
+- stop high-frequency tracking after delivery;
+- retain only what operations and legal policy require;
+- limit staff access;
+- do not use driver location for unrelated advertising;
+- explain location use to drivers;
+- support location pause only when no active delivery is in progress, except emergencies.
+
+---
+
+# 11. Route-aware ETA
+
+The current UI calculates a simple distance-based ETA. For Lebanon, production ETA should use road-aware estimates.
+
+## 11.1 ETA inputs
+
+```text
+driver location
+restaurant location
+customer location
+actual road route
+road distance
+ridge/valley route
+terrain/elevation
+vehicle type
+current traffic/incident data if available
+restaurant readiness
+batch stops
+historical route time
+GPS freshness
+```
+
+Never display a precise-looking ETA from stale or straight-line data.
+
+## 11.2 ETA output
+
+Show an honest range:
+
+```text
+Arriving in about 20–30 minutes
+```
+
+Use a narrower ETA only when:
+
+- GPS is fresh;
+- route is known;
+- food is collected;
+- the driver is not carrying an incompatible batch;
+- the route confidence is high.
+
+## 11.3 Mountain-road logic
+
+Alo King should maintain route metadata for village pairs:
+
+```text
+ridge_zone
+road_distance_km
+expected_minutes_by_vehicle
+ascent_meters
+descent_meters
+valley_crossing_penalty
+road_quality
+seasonal_risk
+night_risk
+```
+
+Reject routes that look close by coordinates but require an inefficient or unsafe valley crossing.
+
+## 11.4 Stale GPS behavior
+
+If the last location is older than the threshold:
+
+> The driver’s live location is temporarily delayed due to weak signal. The latest estimated arrival is **[range]**.
+
+Do not animate a moving marker from stale data as if it were real-time.
+
+---
+
+# 12. Customer tracking experience
+
+## Before driver assignment
+
+Show:
+
+```text
+Order received
+Restaurant accepted
+Estimated preparation time
+```
+
+No map is necessary yet unless it helps the customer.
+
+## Food preparing
+
+Show:
+
+```text
+Kitchen is preparing your order
+Estimated ready time
+```
+
+## Driver assigned
+
+Show:
+
+```text
+Driver assigned
+Estimated pickup
+```
+
+Protect driver privacy.
+
+## On the way
+
+Show:
+
+```text
+Map
+Last updated time
+ETA range
+Driver first name or delivery icon
+Support button
+```
+
+## Nearby
+
+Show:
+
+```text
+Your driver is nearby
+Please be ready at the landmark
+Cash amount if COD
+```
+
+Do not repeatedly send “nearby” messages; one notification is enough.
+
+## Delivered
+
+Show:
+
+```text
+Delivered time
+Receipt
+Rating
+Report an issue
+Reorder
+```
+
+---
+
+# 13. Zone activation strategy for Lebanon
+
+## 13.1 Zone is a first-class operational entity
+
+Do not treat `delivery_village` as a free-text string. Create:
+
+```text
+service_zones
+service_zone_aliases
+service_zone_boundaries
+zone_route_matrix
+zone_coverage_snapshots
+zone_activation_events
+```
+
+A zone may be:
+
+- a village;
+- a neighborhood;
+- a route corridor;
+- a delivery ring around a verified hub.
+
+Use normalized zone IDs with Arabic and English aliases.
+
+## 13.2 Zone states
+
+```text
+planned
+researching
+directory_only
+merchant_ready
+driver_ready
+soft_launch
+active
+capacity_limited
+paused_weather
+paused_no_driver
+paused_no_merchant
+suspended_quality
+retired
+```
+
+## 13.3 Zone activation gate
+
+A zone becomes `active` only when:
+
+### Merchant requirement
+
+- at least one merchant is verified;
+- merchant has a complete live menu;
+- prices and hours are confirmed;
+- merchant can receive and accept orders;
+- merchant has an operational contact;
+- substitution/cancellation policy is configured.
+
+### Driver requirement
+
+- at least one trained driver is verified;
+- driver has an approved vehicle;
+- driver is available for the intended service window;
+- route and delivery fee are configured;
+- cash/online payment process is ready;
+- tracking test has passed.
+
+### Platform requirement
+
+- customer ordering flow tested;
+- merchant alert tested;
+- dispatch assignment tested;
+- order tracking link tested;
+- support path tested;
+- exception and cancellation paths tested;
+- zone capacity limits configured.
+
+## 13.4 Two levels of activation
+
+### Soft launch
+
+Use when:
+
+- one verified merchant exists;
+- one driver exists but supply is limited;
+- support is actively monitoring;
+- order volume is capped.
+
+Soft launch rules:
+
+- invite-only or limited customer exposure;
+- one order per driver;
+- limited hours;
+- no complex batching;
+- manual dispatch oversight;
+- daily review.
+
+### Full active zone
+
+Use when:
+
+- merchant coverage is reliable;
+- driver coverage covers peak windows;
+- tracking and support are stable;
+- failure rates are within thresholds;
+- enough capacity exists for expected demand.
+
+---
+
+# 14. How a customer sees unavailable zones
+
+If no active merchant and driver exist:
+
+> Alo King is building delivery coverage in **[Area]**. We can show you nearby directory listings, but ordering is not available there yet.
+
+If merchants exist but no driver:
+
+> We found restaurants in **[Area]**, but delivery is temporarily unavailable because no Alo King driver is covering the area right now. You can join the notification list.
+
+If a driver exists but no verified merchant:
+
+> Delivery coverage is nearly ready in **[Area]**. We still need a verified restaurant with a live menu before orders can open.
+
+Never show an **Order** button for an inactive zone.
+
+## Waitlist
+
+Allow customers to:
+
+```text
+Notify me when ordering opens
+Suggest a business
+Share my area
+```
+
+Store consent separately from marketing consent. A zone alert is not automatically permission for promotional broadcasts.
+
+---
+
+# 15. Lebanon zone rollout model
+
+## Phase 1 — Shouf operational core
+
+Start with a small connected cluster rather than scattered coverage:
+
+```text
+Baakline
+Deir el Qamar
+Beiteddine
+Kfarhim
+Moukhtara
+```
+
+Activate corridors only after route testing, not merely because coordinates are nearby.
+
+## Phase 2 — adjacent connected routes
+
+Expand to neighboring villages when:
+
+- at least one merchant can serve the route;
+- route time is measured;
+- a driver can cover the route without excessive deadhead;
+- the delivery fee reflects actual operating cost.
+
+## Phase 3 — regional hubs
+
+For Metn/Keserwan, Beirut, North/Akkar, South, and Bekaa, create separate operational hubs rather than treating Lebanon as one dispatch pool.
+
+Each hub needs:
+
+```text
+local merchant manager
+local dispatch coverage
+route matrix
+driver pool
+cash reconciliation point
+support escalation
+```
+
+Do not advertise all 2,087 imported vendors as one operational marketplace before hub coverage exists.
+
+---
+
+# 16. Dynamic zone capacity
+
+A zone can be active but temporarily limited.
+
+Track:
+
+```text
+active drivers
+active orders
+unassigned orders
+average acceptance time
+restaurant capacity
+late-risk score
+weather/road status
+```
+
+Actions:
+
+```text
+normal
+limited menu
+longer ETA
+scheduled orders only
+pause new orders
+```
+
+If the last active driver goes offline while orders are active:
+
+- do not cancel automatically;
+- stop accepting new orders if no replacement exists;
+- show active customers honest ETAs;
+- alert dispatch;
+- recruit or reassign a driver;
+- use a human escalation for affected orders.
+
+---
+
+# 17. Merchant and driver onboarding dependency graph
+
+```text
+Vendor imported
+  ↓
+Merchant claim verified
+  ↓
+Profile and location verified
+  ↓
+Menu extracted and approved
+  ↓
+Hours, area, payments, alerts configured
+  ↓
+Merchant passes live-ordering gate
+
+Driver recruited
+  ↓
+Identity/vehicle/training verified
+  ↓
+Zone permissions assigned
+  ↓
+Tracking and dispatch test passed
+  ↓
+Driver becomes available in zone
+
+Merchant-ready + driver-ready + platform tests
+  ↓
+Zone soft launch
+  ↓
+Zone active
+```
+
+A directory record never bypasses this sequence.
+
+---
+
+# 18. Tracking and zone data model
+
+Recommended tables:
+
+```text
+menu_extraction_jobs
+menu_extraction_files
+menu_extraction_candidates
+menu_versions
+menu_review_events
+service_zones
+service_zone_aliases
+service_zone_boundaries
+zone_route_matrix
+zone_activation_events
+zone_capacity_snapshots
+driver_zone_memberships
+driver_location_events
+delivery_assignments
+order_events
+tracking_tokens
+tracking_view_events
+notification_outbox
+```
+
+Critical indexes:
+
+```text
+order_events(order_id, created_at)
+driver_location_events(driver_id, captured_at)
+driver_location_events(order_id, captured_at)
+service_zone_aliases(alias_normalized)
+delivery_assignments(zone_id, status)
+tracking_tokens(token_hash, expires_at)
+```
+
+---
+
+# 19. Security and privacy
+
+## Menu files
+
+- private storage;
+- merchant-scoped access;
+- signed temporary URLs;
+- extraction job authorization;
+- retention and deletion controls;
+- audit trail for publication.
+
+## Tracking
+
+- signed short-lived tokens;
+- rate-limit public tracking requests;
+- coarse location when appropriate;
+- no driver personal contact details;
+- stop precise location after delivery;
+- role-based operations access;
+- customer deletion workflow.
+
+## Zone waitlist
+
+A notification request is separate from marketing consent. Store:
+
+```text
+zone_waitlist_opt_in_at
+purpose
+zone_id
+language
+source
+```
+
+Do not use it to send unrelated promotions.
+
+---
+
+# 20. Testing requirements
+
+## AI extraction tests
+
+Include:
+
+- Arabic-only menu;
+- English-only menu;
+- bilingual menu;
+- Arabizi text;
+- Arabic-Indic numerals;
+- LBP prices in thousands;
+- USD and LBP on the same page;
+- columns with aligned prices;
+- handwritten correction;
+- blurry photo;
+- multi-page PDF;
+- duplicate pages;
+- missing page;
+- options and add-ons;
+- allergens and “may contain” language;
+- price conflict;
+- menu without prices;
+- prompt injection hidden in menu text.
+
+Universal assertions:
+
+```text
+no invented prices
+no automatic publication
+no missing required options
+currency interpretation shown
+merchant approval recorded
+old orders unchanged
+```
+
+## Tracking tests
+
+Test:
+
+- order created;
+- merchant acceptance;
+- driver assignment;
+- driver GPS update;
+- stale GPS;
+- cellular outage;
+- delivered state;
+- cancellation;
+- not-collected exception;
+- duplicate event;
+- expired tracking token;
+- unauthorized order ID;
+- two-order batch hiding other customer data;
+- route ETA change;
+- driver goes offline with an active order.
+
+## Zone activation tests
+
+Test:
+
+- verified merchant but no driver;
+- driver but no live merchant;
+- merchant menu incomplete;
+- driver outside zone;
+- last driver goes offline;
+- weather pause;
+- zone capacity exhausted;
+- route not configured;
+- merchant temporarily paused;
+- activation rollback.
+
+---
+
+# 21. Implementation roadmap
+
+## P0 — Safe menu extraction
+
+1. Add merchant WhatsApp media intake.
+2. Create private extraction job/file tables.
+3. Process asynchronously after webhook acknowledgement.
+4. Implement OCR/PDF/vision extraction with strict JSON schema.
+5. Save drafts only.
+6. Add currency and confidence review.
+7. Require merchant approval before publication.
+8. Add versioning and rollback.
+
+## P1 — Tracking reliability
+
+1. Add event-sourced order timeline.
+2. Add signed tracking tokens.
+3. Add driver location quality and freshness.
+4. Add Realtime plus polling fallback.
+5. Replace haversine-only ETA with road-aware route estimates.
+6. Add stale GPS messaging.
+7. Enforce driver/customer privacy boundaries.
+
+## P2 — Zone control
+
+1. Create service-zone entities and aliases.
+2. Add merchant and driver zone memberships.
+3. Implement readiness checks.
+4. Add soft-launch state and capacity limits.
+5. Hide ordering buttons outside active zones.
+6. Add zone waitlist.
+7. Add activation/rollback audit events.
+
+## P3 — Scale
+
+1. Route matrix by hub and vehicle type.
+2. Dynamic zone capacity.
+3. Weather/road incident controls.
+4. Batch-aware ETA.
+5. Automated quality gates.
+6. Multi-hub operations for Beirut, Metn/Keserwan, North/Akkar, South, Bekaa, and Chouf/Aley/Baabda.
+
+---
+
+# Final operating rule
+
+> **Alo King can list everywhere, but it should only accept orders where the menu is verified, the merchant is operational, a trained driver is available, the route is understood, and the customer can receive a truthful tracking experience.**
+
+That rule protects the brand while allowing the scraped directory to become a powerful merchant-acquisition engine rather than a source of inaccurate or unfulfillable orders.

@@ -1,0 +1,1021 @@
+# Alo King Multilingual Voice-Note Ordering Strategy
+
+## Lebanese Arabic, English, French, Arabizi, code-switching, and dialect-safe commerce
+
+**Project:** Alo King — Lebanon WhatsApp-native ordering and delivery platform  
+**Date:** 6 October 2026  
+**Purpose:** Define the production voice-note architecture so customers can send food and grocery orders in Lebanese Arabic, English, French, Arabizi, or any mixture of them.
+
+---
+
+# Executive decision
+
+Alo King should support voice notes as a **first-class ordering channel**, but it must not treat speech recognition as an order confirmation.
+
+The safe and fast flow is:
+
+```text
+Customer sends WhatsApp voice note
+→ webhook acknowledges immediately
+→ audio is downloaded asynchronously
+→ speech-to-text detects mixed language
+→ transcript is normalized without losing the original
+→ Alo King shows the transcript to the customer
+→ customer confirms the transcript
+→ the order parser finds real menu items
+→ server builds a priced basket
+→ customer reviews the basket
+→ customer explicitly confirms the order
+```
+
+There are two separate confirmations:
+
+```text
+1. “Did Alo King hear my voice note correctly?”
+2. “Do I want to place this order at this price?”
+```
+
+Never combine them into one vague “yes”.
+
+The customer can send:
+
+- Lebanese Arabic in Arabic script;
+- Lebanese Arabic in Arabizi;
+- English;
+- French;
+- Arabic-English code-switching;
+- Arabic-French code-switching;
+- English-French code-switching;
+- mixed Arabic, Arabizi, English, and French in one sentence;
+- restaurant and dish names pronounced in a local way;
+- background noise, cars, kitchens, and family voices.
+
+Alo King should be **dialect-tolerant**, not claim that every recording can be transcribed perfectly.
+
+---
+
+# 1. Customer experience
+
+## Customer sends a voice note
+
+The webhook should acknowledge the message quickly. The customer should receive a short progress message only when processing is not nearly immediate:
+
+### Arabic
+
+> 🎙️ وصلتني الرسالة الصوتية، عم بفهمها هلّق.
+
+### English
+
+> 🎙️ I received your voice note and I’m understanding it now.
+
+### French
+
+> 🎙️ J’ai reçu votre note vocale, je suis en train de la comprendre.
+
+The progress message should not be sent twice if the audio finishes quickly.
+
+## Transcript confirmation
+
+Show a compact transcript in the language most likely used by the customer. Preserve the original audio internally according to the retention policy.
+
+### Lebanese Arabic
+
+> 🎙️ سمعتك تقول:  
+> “بدي تنتين كولا وسندويشة شاورما من التاهونة”  
+> هيك قصدك؟
+
+Buttons:
+
+```text
+إي، صحيح
+عدّلها
+```
+
+### English
+
+> 🎙️ I heard:  
+> “I’d like two colas and one shawarma sandwich from Al Tahouneh.”  
+> Is that correct?
+
+Buttons:
+
+```text
+Yes, correct
+Edit it
+```
+
+### French
+
+> 🎙️ J’ai compris :  
+> « Je voudrais deux Coca et un sandwich shawarma de Al Tahouneh. »  
+> C’est bien ça ?
+
+Buttons:
+
+```text
+Oui, c’est ça
+Modifier
+```
+
+### Mixed-language response
+
+Mirror the customer’s dominant style where possible. If the customer mixed languages, use a simple bilingual or mixed response rather than forcing formal Arabic or formal French.
+
+## If the customer taps “correct”
+
+The transcript becomes an input to the normal ordering flow. It does **not** become an order immediately.
+
+The system then:
+
+1. parses intent and entities;
+2. identifies or asks for the vendor;
+3. searches current menu items;
+4. resolves quantities and options;
+5. asks one clarification at a time for ambiguity;
+6. builds a server-priced basket;
+7. shows the basket summary;
+8. requires final order confirmation.
+
+## If the customer taps “edit”
+
+Ask for the smallest correction:
+
+> Which part should I fix?
+
+Offer:
+
+```text
+The item
+The quantity
+The restaurant
+The address
+Record again
+Type it instead
+```
+
+If the customer sends another voice note, create a new transcript version. Do not overwrite the original transcript.
+
+## If confidence is low
+
+Do not show a confident-looking transcript when the speech is unclear.
+
+Use:
+
+> I’m not sure I heard the item correctly. Did you mean **Chicken Shawarma** or **Chicken Tawouk**?
+
+Buttons or list:
+
+```text
+Chicken Shawarma
+Chicken Tawouk
+Record again
+Type it
+```
+
+If the system cannot identify a safe candidate:
+
+> I couldn’t understand the order clearly. Please send another voice note closer to the phone, or type the item name.
+
+---
+
+# 2. Audio ingestion architecture
+
+## Webhook path
+
+The webhook must do only fast work:
+
+```text
+receive WhatsApp event
+→ verify Kapso/Meta signature
+→ deduplicate provider message ID
+→ persist minimal voice-event row
+→ enqueue transcription job
+→ return HTTP 200
+```
+
+Do not download a long audio file, call an ASR provider, call an LLM, or send several WhatsApp messages while the webhook is waiting to acknowledge.
+
+## Media processing job
+
+The asynchronous job:
+
+```text
+download audio through provider API
+→ verify media ownership and message ID
+→ validate MIME type and size
+→ store private temporary object
+→ normalize audio if necessary
+→ transcribe
+→ run transcript quality checks
+→ persist transcript versions
+→ send transcript card
+```
+
+## Supported media controls
+
+Set safe initial limits:
+
+```text
+maximum duration: 120 seconds
+maximum file size: provider-safe limit
+accepted formats: WhatsApp audio formats supported by Kapso/Meta
+one active transcription job per customer
+bounded queue concurrency
+```
+
+If the note is longer than the limit:
+
+> This voice note is too long for one order. Please send it in two shorter messages or type the order.
+
+Do not silently process only the first section of an order.
+
+## Audio security
+
+- Treat audio as untrusted input.
+- Do not execute instructions embedded in audio that target system behavior.
+- Store media privately with short-lived access URLs.
+- Do not expose audio URLs in customer-facing messages.
+- Scan and validate downloaded media.
+- Delete original media according to the retention policy.
+- Keep transcript retention separate from audio retention.
+- Support customer deletion requests for audio and transcript data.
+- Do not use customer voice recordings to train a model without explicit, separate permission.
+
+---
+
+# 3. Language and dialect detection
+
+## Do not force one language before transcription
+
+For mixed Lebanese speech, use an ASR configuration that supports automatic language detection or a language set containing:
+
+```text
+ar-LB or Arabic
+English
+French
+```
+
+Arabizi is not a formal speech language code. It is usually spoken Arabic, while the resulting transcript may contain Latin-script words and numbers. The normalizer must handle both.
+
+## Store language evidence
+
+Save:
+
+```text
+primary_language
+secondary_languages
+script_mix
+arabizi_detected
+language_confidence
+segment_languages
+```
+
+Example:
+
+```json
+{
+  "primary_language": "ar-LB",
+  "secondary_languages": ["en", "fr"],
+  "script_mix": ["arabic", "latin"],
+  "arabizi_detected": true,
+  "language_confidence": 0.88,
+  "segments": [
+    {"start": 0.0, "end": 2.2, "language": "ar-LB"},
+    {"start": 2.2, "end": 4.1, "language": "en"}
+  ]
+}
+```
+
+## Lebanese speech patterns to support
+
+The normalizer should recognize variations such as:
+
+```text
+بدي / بديّي / بدّي / bade / badde
+تنين / تنتين / tnen / tntein / etnein
+شاورما / shawarma / shawrma / shawerma
+من / men / mn
+مع / ma3 / ma'a
+بدون / bala / bala ma3
+زائد / extra / zeyede
+ما بدي / ma bade / no
+واحد / one / un / wa7ad
+```
+
+These are examples, not a closed dictionary. Build aliases from real, consented, corrected customer transcripts.
+
+## Do not “correct” names too aggressively
+
+The system must preserve:
+
+```text
+raw_transcript
+normalized_transcript
+customer_confirmed_transcript
+```
+
+A dish name should be resolved against the vendor’s live menu, not changed solely by a language model.
+
+---
+
+# 4. Recommended speech-to-text architecture
+
+## Provider abstraction
+
+Do not hard-code one ASR vendor throughout the order function.
+
+Use:
+
+```text
+SpeechProvider interface
+OpenAITranscriptionAdapter
+DeepgramTranscriptionAdapter
+GoogleTranscriptionAdapter, optional
+FallbackTranscriptionAdapter
+```
+
+Required adapter operations:
+
+```text
+transcribe(audio, languageHints, glossary, options)
+healthCheck()
+classifyFailure()
+```
+
+Required result fields:
+
+```text
+provider
+model
+transcript
+segments
+language
+language_confidence
+word_confidence, if available
+audio_duration_ms
+processing_time_ms
+provider_request_id
+cost_estimate
+```
+
+## Recommended starting strategy
+
+Because Alo King already uses OpenAI and has an existing Whisper-oriented design, use a staged approach:
+
+### Baseline
+
+Start with the existing OpenAI transcription path for the first controlled pilot. It reduces integration complexity and gives Alo King a measurable baseline.
+
+### Accuracy benchmark
+
+Run the same Lebanese voice-note evaluation set through:
+
+- the current OpenAI transcription model;
+- Deepgram’s Arabic-capable model;
+- another candidate such as Google Speech-to-Text or a dialect-performing provider.
+
+Evaluate on actual consented Lebanese recordings, not only generic Arabic samples.
+
+### Production choice
+
+Choose the provider based on a weighted score:
+
+```text
+Lebanese accuracy: 40%
+Mixed-language accuracy: 20%
+Order-item accuracy: 15%
+Latency: 10%
+Cost: 10%
+Reliability and privacy terms: 5%
+```
+
+The best provider is not necessarily the one with the best general Arabic benchmark. The correct provider is the one that correctly recognizes Alo King’s real Lebanese restaurant names, quantities, modifiers, villages, and code-switching patterns.
+
+## Do not use streaming unless necessary
+
+A WhatsApp voice note is already a completed recording. Streaming ASR is useful for live calls, but batch transcription is usually simpler for voice notes.
+
+Use streaming only if it materially improves:
+
+- very long recordings;
+- partial-progress UX;
+- live human support;
+- future voice-call products.
+
+For normal 5–30 second WhatsApp notes, prioritize accuracy, language handling, and predictable cost over streaming complexity.
+
+---
+
+# 5. Transcript normalization pipeline
+
+The transcript should pass through distinct stages.
+
+```text
+raw ASR transcript
+→ punctuation and whitespace cleanup
+→ language/script detection
+→ Arabizi normalization candidates
+→ quantity and modifier extraction
+→ vendor/menu entity resolution
+→ ambiguity detection
+→ customer confirmation
+→ commerce parser
+```
+
+## Never overwrite the raw transcript
+
+Store:
+
+```text
+transcript_versions
+- raw_text
+- normalized_text
+- confirmed_text
+- provider
+- model
+- prompt_version
+- confidence
+- created_at
+- confirmed_at
+```
+
+The raw transcript is needed for:
+
+- debugging;
+- customer correction;
+- provider comparison;
+- dispute analysis;
+- quality evaluation.
+
+## Normalization examples
+
+Input speech:
+
+> “bade etnein shawarma chicken w wa7ad fries bala toum w 3 cans Pepsi, ma3 extra garlic.”
+
+Normalized candidate:
+
+```json
+{
+  "language": ["ar-LB", "en"],
+  "items": [
+    {"query": "chicken shawarma", "quantity": 2},
+    {"query": "fries", "quantity": 1},
+    {"query": "Pepsi", "quantity": 3}
+  ],
+  "removals": ["garlic sauce"],
+  "additions": ["extra garlic sauce"],
+  "needs_clarification": ["possible contradiction: no garlic sauce and extra garlic"],
+  "confidence": 0.81
+}
+```
+
+The contradiction must be asked about. The model must not silently choose one interpretation.
+
+## Numbers are high risk
+
+Speech recognition commonly confuses:
+
+```text
+one / two / ten / twelve
+واحد / تنين / عشرة / تنتعش
+un / deux / douze
+3 / 7 / 8 in Arabizi
+```
+
+For every quantity, price, address number, or order code:
+
+- parse into a typed number;
+- compare against valid ranges;
+- show it in the transcript or clarification;
+- require confirmation if confidence is low;
+- never infer a price from speech when the database can provide it.
+
+---
+
+# 6. Commerce parsing after transcript confirmation
+
+After the customer confirms the transcript, call a typed parser.
+
+## Parser output
+
+```json
+{
+  "intent": "create_or_edit_basket",
+  "vendor_hint": "Al Tahouneh",
+  "items": [
+    {
+      "query": "chicken shawarma",
+      "quantity": 2,
+      "modifiers": [
+        {"query": "no garlic sauce", "type": "remove"}
+      ]
+    }
+  ],
+  "confidence": 0.91,
+  "ambiguities": [],
+  "requires_customer_confirmation": true
+}
+```
+
+## Entity resolution
+
+The server resolves each candidate against:
+
+```text
+vendor scope
+active menu version
+Arabic name
+English name
+French name
+Arabizi aliases
+search aliases
+section
+availability
+options
+```
+
+The model may suggest candidates, but the server decides whether a real item exists.
+
+## Multiple interpretations
+
+If there are two plausible matches, ask one question:
+
+> Did you mean **Chicken Shawarma** or **Chicken Tawouk**?
+
+Do not make the customer correct ten items in one giant message. Resolve the most important ambiguity first.
+
+## Order summary
+
+After resolution:
+
+```text
+2 × Chicken Shawarma
+1 × Fries
+3 × Pepsi
+No garlic sauce
+Extra garlic sauce — clarification required
+
+Subtotal: server-calculated USD and LBP
+Delivery: server-calculated USD and LBP
+Total: server-calculated USD and LBP
+```
+
+The final order still requires the normal **Confirm Order** action.
+
+---
+
+# 7. Voice note types
+
+## Type A — simple informational request
+
+> “What’s good tonight?”
+
+May use one model call or deterministic recommendations. No transcript confirmation is necessary if no order action follows, but show a short interpreted response when the meaning is uncertain.
+
+## Type B — menu search
+
+> “Do you have chicken shawarma?”
+
+Transcribe, search the current menu, show item cards. No order is created.
+
+## Type C — basket request
+
+> “I want two burgers and one fries.”
+
+Transcript confirmation, item resolution, basket card, final order confirmation.
+
+## Type D — address or location
+
+> “Deliver it near the church beside the blue pharmacy.”
+
+Extract a draft address only. Ask the customer to confirm the village and landmark. Prefer a shared location pin when the address is ambiguous.
+
+## Type E — cancellation or order change
+
+> “Cancel my order.”
+
+Do not execute based on transcription alone. Show the recognized order and a cancellation confirmation button. Check the current order state.
+
+## Type F — payment or refund request
+
+> “Refund my money” or “I paid already.”
+
+Route to a safe support/payment flow. Never let voice directly issue a refund or mark payment as complete.
+
+## Type G — allergy or medical concern
+
+> “I’m allergic to nuts.”
+
+Store only with the correct consent and profile policy. Ask the customer to confirm the allergy preference and tell them Alo King cannot guarantee kitchen safety unless the merchant confirms it. Escalate where needed.
+
+## Type H — merchant voice note
+
+Merchant voice notes require stricter authorization and a confirmation summary:
+
+> “I heard: mark chicken shawarma sold out until 8 PM and pause orders for 30 minutes. Apply these changes?
+
+Buttons:
+
+```text
+Apply changes
+Edit
+Cancel
+```
+
+Never execute multiple merchant mutations from an unconfirmed voice note.
+
+---
+
+# 8. Confidence and safety policy
+
+Use multiple confidence dimensions:
+
+```text
+asr_confidence
+language_confidence
+entity_confidence
+quantity_confidence
+modifier_confidence
+vendor_confidence
+```
+
+A high transcript confidence does not mean high order confidence.
+
+## Suggested behavior
+
+| Condition | Behavior |
+|---|---|
+| Clear speech, clear item, clear quantity | Show transcript confirmation, then continue |
+| Clear speech, unclear vendor | Ask vendor choice |
+| Clear speech, two menu matches | Ask one item clarification |
+| Low quantity confidence | Repeat quantity in clarification |
+| Low language confidence | Ask customer to record again or type |
+| Contradictory modifiers | Ask which preference is correct |
+| Address ambiguity | Ask for pin or landmark confirmation |
+| Payment/refund/cancel voice request | Require explicit action button and current-state check |
+| Allergy or complaint | Safe response plus human path |
+| Very low confidence | Request shorter, clearer note or text |
+
+## Confidence must not be the only safeguard
+
+Even when confidence is high:
+
+```text
+voice transcript confirmation
++ server-side menu/entity resolution
++ final basket review
++ explicit order confirmation
+```
+
+---
+
+# 9. Latency strategy for voice notes
+
+## Target timeline
+
+```text
+0–300 ms: webhook acknowledgement
+<1 s: progress message if needed
+1–4 s: transcription for short note where provider allows
+1–2 s: normalization/entity resolution
+<5–8 s: transcript/basket response target
+```
+
+Actual performance depends on audio length, provider, network, and queue load.
+
+## Asynchronous user experience
+
+For longer notes:
+
+```text
+received
+→ transcribing
+→ transcript ready
+→ clarification or basket
+```
+
+Use one progress message maximum. Do not send progress updates every second.
+
+## Audio duration policy
+
+For a voice note under 10 seconds, aim for a single fast transcription job.
+
+For 10–30 seconds, process normally with a timeout budget.
+
+For 30–120 seconds, process asynchronously and show progress.
+
+For more than 120 seconds, ask the customer to split the message.
+
+## Retry policy
+
+Retry ASR only for technical failures, not low-confidence content.
+
+```text
+technical failure → bounded retry or fallback provider
+low confidence → ask customer to clarify
+provider timeout → fallback or human path
+invalid media → ask customer to record again
+```
+
+Do not send the same transcript card twice if the job is retried.
+
+---
+
+# 10. Cost strategy
+
+## Avoid an expensive model for speech recognition decisions
+
+Use:
+
+```text
+ASR provider for transcription
+small deterministic normalizer for cleanup
+fast model for simple entity extraction
+capable model only for ambiguity and complex language
+```
+
+Do not send audio to both OpenAI and another ASR provider for every customer.
+
+## Conditional fallback
+
+Primary ASR result goes through quality checks. Use a second provider only when:
+
+- confidence is low;
+- a critical quantity is uncertain;
+- a restaurant/item cannot be resolved;
+- the customer corrects the transcript;
+- the primary provider fails;
+- the sample is part of an evaluation benchmark.
+
+## Cache safe work
+
+Cache by audio hash and provider/model version:
+
+```text
+voice:{sha256_audio}:{provider}:{model}:{language_config}
+```
+
+Safe cache uses:
+
+- duplicate webhook delivery;
+- provider retry;
+- repeated processing of the same media ID;
+- evaluation reruns.
+
+Do not use a cached transcript after a new audio file has been recorded.
+
+## Store compact context
+
+Do not send the whole menu and conversation to the model. Send:
+
+```text
+confirmed transcript
+current vendor candidates
+relevant menu search results
+current basket
+customer language
+known safe preferences
+```
+
+## Track voice cost
+
+Store:
+
+```text
+voice_event_id
+provider
+model
+audio_seconds
+transcription_cost
+normalization_cost
+commerce_model_cost
+total_cost
+latency
+cache_hit
+fallback_used
+order_created
+```
+
+Set per-customer and daily voice budgets to prevent abuse.
+
+---
+
+# 11. Privacy and retention
+
+Recommended separate retention:
+
+```text
+original audio: short retention, e.g. 7–30 days unless needed for a dispute
+raw transcript: according to privacy policy and customer deletion rights
+confirmed transcript: retain only when needed for order/audit/support
+normalized preference: retain only with a legitimate purpose and provenance
+```
+
+When the customer requests deletion:
+
+- delete original audio;
+- delete raw transcript where policy allows;
+- remove address and unnecessary personal data;
+- retain only legally/operationally required order records;
+- preserve opt-out suppression state;
+- record the deletion event without preserving the deleted content.
+
+Never use voice recordings for model training or staff review without an approved purpose and notice.
+
+---
+
+# 12. Multilingual test program
+
+## Build a real Lebanese evaluation set
+
+Collect consented, redacted, synthetic, or volunteer recordings covering:
+
+### Dialect and geography
+
+- Beirut speech;
+- Mount Lebanon;
+- Chouf;
+- Aley;
+- Metn/Keserwan;
+- Bekaa;
+- North/Akkar;
+- South/Nabatieh;
+- different ages and speaking speeds.
+
+### Language patterns
+
+- Arabic script concepts;
+- Arabizi;
+- English ordering words;
+- French ordering words;
+- Arabic-English mix;
+- Arabic-French mix;
+- three-language sentences;
+- restaurant names pronounced in English or French;
+- item names borrowed from Turkish, Italian, Armenian, or local usage.
+
+### Audio conditions
+
+- quiet room;
+- car;
+- street;
+- restaurant;
+- kitchen noise;
+- low microphone;
+- fast speech;
+- multiple speakers;
+- pauses and corrections;
+- short and long notes.
+
+## Score the full commerce result
+
+Do not score only word error rate. Score:
+
+```text
+language detection
+transcript meaning
+vendor resolution
+item resolution
+quantity accuracy
+modifier accuracy
+address accuracy
+no-invented-item rate
+no-unsafe-action rate
+customer correction rate
+order conversion
+latency
+cost
+```
+
+A transcription with a word error may still produce the correct item. A fluent transcript can still produce the wrong quantity. Commerce accuracy matters more than general WER.
+
+## Release thresholds
+
+Set thresholds before production. For example:
+
+```text
+critical quantity accuracy: ≥99% on tested set
+vendor/item resolution: ≥97%
+unsafe direct action: 0
+unconfirmed order creation: 0
+transcript confirmation bypass: 0
+p95 transcription path: within agreed target
+```
+
+Adjust thresholds based on real pilot data, but never relax the zero-tolerance safety rules.
+
+---
+
+# 13. Database additions
+
+Recommended tables:
+
+```text
+voice_messages
+voice_transcription_jobs
+voice_transcription_versions
+voice_language_segments
+voice_entity_candidates
+voice_confirmations
+voice_quality_events
+voice_provider_usage
+```
+
+Important fields:
+
+```text
+voice_message_id
+customer_id
+provider_message_id
+storage_object_id
+audio_sha256
+duration_ms
+mime_type
+status
+provider
+model
+raw_transcript
+normalized_transcript
+confirmed_transcript
+language
+language_confidence
+entity_confidence
+fallback_used
+created_at
+expires_at
+confirmed_at
+deleted_at
+```
+
+Indexes:
+
+```text
+unique(provider_message_id)
+unique(audio_sha256, provider, model, language_config)
+voice_transcription_jobs(status, next_attempt_at)
+voice_messages(customer_id, created_at desc)
+```
+
+Do not make raw audio or full transcript content publicly accessible.
+
+---
+
+# 14. Launch roadmap
+
+## P0 — safe text-confirmed voice ordering
+
+1. Accept WhatsApp audio webhooks.
+2. Acknowledge immediately.
+3. Download media asynchronously.
+4. Use the current OpenAI transcription path as the baseline.
+5. Store raw and normalized transcript separately.
+6. Show transcript confirmation.
+7. Parse only after confirmation.
+8. Require normal basket and order confirmation.
+9. Add voice retries and duplicate protection.
+10. Add Arabic, English, and mixed-language tests.
+
+## P1 — Lebanese quality
+
+1. Build the real Lebanese voice evaluation set.
+2. Benchmark OpenAI, Deepgram, and one additional provider.
+3. Add Arabizi and code-switching normalizer.
+4. Add menu aliases and restaurant-name vocabulary.
+5. Add confidence and ambiguity policy.
+6. Add address and landmark extraction.
+7. Add provider fallback for critical low-confidence cases.
+8. Add voice cost and latency dashboards.
+
+## P2 — advanced experience
+
+1. Voice-note reorder.
+2. Voice-based address updates with confirmation.
+3. Voice-based substitutions with confirmation.
+4. Merchant voice operations with apply/edit/cancel confirmation.
+5. Personal preference extraction from confirmed voice orders.
+6. Voice support and complaint routing.
+7. Optional voice replies only if customers request them.
+
+---
+
+# Final voice-note policy
+
+> **Alo King should understand how Lebanese people actually speak, but it must never pretend that speech recognition is certain when it is not.**
+
+The perfect voice-note system is:
+
+```text
+fast webhook acknowledgement
++ asynchronous audio processing
++ multilingual/dialect-capable ASR
++ Lebanese alias and code-switching normalization
++ transcript confirmation
++ server-side menu resolution
++ explicit basket confirmation
++ explicit final order confirmation
++ safe fallbacks
++ measurable accuracy and cost
+```
+
+The current repository already has a strong safety foundation: voice transcripts are shown back and acted upon only after the customer taps confirmation. The next major improvements are asynchronous media processing, real Lebanese evaluation data, provider benchmarking, Arabizi/code-switching normalization, and a complete voice-specific data and cost pipeline.

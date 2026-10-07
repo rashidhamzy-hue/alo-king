@@ -1,0 +1,969 @@
+# Alo King Perfect Vendor Order Notification and Operations Strategy
+
+## Decision: the vendor receives orders through four layers, not one channel
+
+Alo King should **not rely on WhatsApp alone**. WhatsApp is the primary merchant communication channel, but every order must also exist in the merchant portal and the Alo King operations console.
+
+The recommended notification hierarchy is:
+
+```text
+1. Merchant WhatsApp interactive order card
+2. Merchant web portal real-time order queue
+3. SMS / phone-call escalation for urgent unacknowledged orders
+4. Alo King operations dashboard and human dispatch intervention
+```
+
+The order is considered safely received only when the merchant has **accepted it through an authenticated channel** or an Alo King operator has manually confirmed the merchant by phone. A WhatsApp message being sent is not the same as the restaurant accepting the order.
+
+## The exact channel model
+
+### Primary: dedicated merchant WhatsApp number
+
+Each verified merchant receives access to Alo King’s merchant WhatsApp number. The merchant can use:
+
+- WhatsApp interactive buttons to accept, reject, pause, or request help;
+- order details and customer instructions;
+- menu and availability commands;
+- opening-hours updates;
+- substitution requests;
+- order status updates;
+- staff access and role management.
+
+The merchant does **not** need to install a mobile application.
+
+The merchant may operate through:
+
+- the owner’s WhatsApp number;
+- a manager’s WhatsApp number;
+- a kitchen/order operator’s WhatsApp number;
+- a tablet or desktop browser running WhatsApp where the business already uses it.
+
+Permissions are assigned per verified merchant member. The phone number alone is never treated as ownership.
+
+### Secondary: merchant web portal
+
+The portal is the reliable operational source of truth. It should be optimized for a kitchen tablet, desktop, or mobile browser and must work even if a WhatsApp message is delayed or a staff member misses it.
+
+The portal contains:
+
+```text
+New orders
+Accepted orders
+Preparing
+Ready for pickup
+Completed
+Rejected/cancelled
+Out-of-stock controls
+Opening hours
+Pause orders
+Printer/KDS settings, optional
+Team members
+Reports
+Support
+```
+
+The portal must use a prominent sound and visual alert for new orders, with an acknowledgement button. It should not require the merchant to keep the browser tab focused.
+
+### Tertiary: SMS and phone escalation
+
+SMS is a backup alert, not the full order channel. It should contain only:
+
+```text
+Alo King order #AK1234 is waiting for confirmation.
+Open: aloking.com/merchant/orders/...
+```
+
+Never send full customer addresses, order contents, or sensitive notes in SMS.
+
+If the order remains unacknowledged, Alo King’s operations team or automated voice system calls the merchant’s configured operational number. A call creates an escalation event; it does not automatically accept the order.
+
+### Operations console
+
+Every order appears in the Alo King operations console regardless of merchant notification status. Operations staff can:
+
+- see all notification attempts;
+- call the merchant;
+- re-send a WhatsApp template;
+- reassign to another merchant only if the customer approves;
+- cancel and refund/credit according to policy;
+- contact the customer;
+- assign or hold a driver;
+- record the reason for every intervention.
+
+---
+
+# 1. Order lifecycle from customer confirmation to delivery
+
+## State machine
+
+Use separate merchant, order, and delivery states. Do not overload one status field with every operational meaning.
+
+```text
+Order:
+pending_vendor_confirmation
+vendor_accepted
+vendor_rejected
+customer_cancelled
+vendor_cancelled
+preparing
+ready_for_pickup
+picked_up
+out_for_delivery
+arriving
+awaiting_customer
+delivered
+not_collected
+failed
+refunded
+```
+
+Merchant acknowledgement:
+
+```text
+not_delivered
+sent
+delivered
+viewed
+acknowledged
+expired
+failed
+```
+
+Merchant decision:
+
+```text
+waiting
+accepted
+rejected
+needs_customer_clarification
+needs_substitution
+```
+
+Driver dispatch:
+
+```text
+not_ready
+searching
+assigned
+at_vendor
+picked_up
+at_customer
+completed
+exception
+```
+
+## Order creation sequence
+
+When the customer taps **Confirm Order**:
+
+1. Re-price the basket on the server.
+2. Re-check menu availability, merchant hours, delivery zone, fees, and payment rules.
+3. Create the order with an immutable price snapshot.
+4. Generate a short order code such as `AK-4827`.
+5. Create a tracking token.
+6. Create a notification-outbox record for the merchant.
+7. Send the customer a receipt stating that the order is awaiting merchant confirmation.
+8. Notify the merchant using the primary channel set.
+9. Start the acceptance timer.
+10. Record every notification attempt and result.
+
+The customer must never be told “confirmed” until the merchant accepts. Use:
+
+> Your order **AK-4827** was sent to **[Restaurant]**. We’re waiting for the restaurant to confirm it.
+
+---
+
+# 2. The perfect merchant WhatsApp order card
+
+## First notification
+
+The first merchant message should be a compact interactive card:
+
+```text
+🔔 NEW ALO KING ORDER #AK-4827
+
+[Restaurant name]
+Customer: [first name]
+Delivery: [village] · [landmark summary]
+Payment: Cash on delivery · $18.50 / [LBP amount]
+
+2 × Chicken Shawarma
+1 × Fries
+1 × Cola
+
+Customer note: no pickles
+
+Please respond within 90 seconds.
+```
+
+Buttons:
+
+```text
+Accept order
+Reject order
+Need help
+```
+
+Do not put the customer’s full phone number in the first card. Show a masked number or reveal the number only to an authorized role after acceptance if the delivery process requires it.
+
+Do not include internal margin, platform fee, campaign data, or private risk flags.
+
+## Accept flow
+
+When the merchant taps **Accept order**:
+
+1. Verify the WhatsApp sender is an active member of that merchant.
+2. Atomically update the order from `pending_vendor_confirmation` to `vendor_accepted`.
+3. Reject duplicate taps with a safe “already accepted” response.
+4. Ask for or apply the merchant’s configured preparation time.
+5. Notify the customer immediately.
+6. Add the order to the merchant’s preparing queue.
+7. Create or update the driver-dispatch readiness event.
+
+Merchant response:
+
+```text
+✅ Order #AK-4827 accepted.
+Prep time: 20 minutes.
+Reply with a time if you need to change it.
+```
+
+Buttons:
+
+```text
+Start preparing
+Mark ready
+Contact Alo King
+```
+
+Customer response:
+
+> **[Restaurant] accepted order AK-4827.** Estimated preparation time: about 20 minutes.
+
+## Reject flow
+
+The merchant must select a reason:
+
+```text
+Restaurant too busy
+Item unavailable
+Closed unexpectedly
+Delivery area unavailable
+Price/menu issue
+Other reason
+```
+
+For “Other reason”, free text is collected but the order is not rejected solely from an ambiguous sentence.
+
+Customer response:
+
+> **[Restaurant] cannot accept order AK-4827 right now.** Would you like to choose another restaurant?
+
+Buttons:
+
+```text
+Choose another
+Contact Alo King
+No thanks
+```
+
+The merchant’s rejection reason is internal unless it is safe and useful to show the customer.
+
+## Need help flow
+
+“Need help” opens a short decision menu:
+
+```text
+Change prep time
+Item unavailable
+Customer question
+Payment question
+Call Alo King
+```
+
+It should not silently put the order into a dead queue. A human or support workflow must own the next action.
+
+---
+
+# 3. WhatsApp window and template strategy
+
+## Current technical weakness to fix
+
+A free-form interactive merchant card is delivered only when the merchant has recently messaged the Alo King merchant number. This means a restaurant can miss a new order even though the platform successfully sent a WhatsApp API request.
+
+The system must distinguish:
+
+```text
+API request accepted
+message sent
+message delivered
+message read
+merchant acknowledged
+```
+
+Only the last state proves operational receipt.
+
+## Required template messages
+
+Create and submit approved **Utility templates** for merchant order events, subject to Meta’s current template rules and pricing.
+
+Recommended templates:
+
+```text
+merchant_new_order
+merchant_order_reminder
+merchant_order_escalation
+merchant_order_cancelled
+merchant_customer_update_required
+merchant_substitution_request
+merchant_driver_arriving
+merchant_daily_summary
+```
+
+The new-order template should include:
+
+```text
+Alo King order {{1}} from {{2}} is waiting for confirmation.
+Total: {{3}}.
+Delivery area: {{4}}.
+Please open the order to accept or reject it.
+```
+
+The template should link to a signed merchant portal action page. The merchant can then tap **Accept** or **Reject** in the portal even if the WhatsApp interactive button cannot be used.
+
+Do not put a long order or full address into the template body. Keep the full order in the authenticated portal and the interactive follow-up card.
+
+## Merchant opt-in and reactivation
+
+During onboarding, the merchant explicitly agrees to receive transactional order notifications on the merchant WhatsApp number. The merchant should send a setup message such as:
+
+```text
+START ALO KING ORDERS
+```
+
+This establishes an active operational relationship and confirms the number. Still maintain the approved template fallback for future notifications.
+
+At onboarding, ask the merchant to keep the number active and reply to a periodic operational check:
+
+> Alo King merchant notifications are active. Reply **TEST** to verify this number.
+
+Do not send unnecessary promotional content to the merchant number. Keep the channel transactional and high-trust.
+
+---
+
+# 4. Notification routing and redundancy
+
+## Merchant notification profile
+
+Each merchant must configure:
+
+```text
+primary_whatsapp_members
+backup_whatsapp_members
+operational_phone
+portal_users
+notification_hours
+average_prep_time
+maximum_acceptance_time
+order_volume_limit
+holiday/closure schedule
+```
+
+At least two active merchant members should be configured before full ordering is enabled:
+
+```text
+Primary: kitchen/order operator
+Backup: owner or manager
+```
+
+A single-person restaurant may use one member during soft launch but should have an Alo King operations fallback.
+
+## Notification sequence
+
+Recommended default timers:
+
+```text
+T+0 seconds: WhatsApp interactive card + portal alert
+T+15 seconds: confirm delivery result; if not delivered, send Utility template
+T+45 seconds: notify backup WhatsApp member and portal escalation
+T+90 seconds: customer is told confirmation is taking longer; operations alert created
+T+120 seconds: SMS to operational phone if configured
+T+180 seconds: automated call or human call
+T+5 minutes: stop accepting new orders from that merchant unless operations takes ownership
+T+7 minutes: customer chooses keep waiting or cancel
+T+10 minutes: cancel automatically only under the merchant’s agreed policy and after customer notification
+```
+
+Do not use one timer for every merchant. A high-volume restaurant with a 5-minute acceptance SLA needs a different policy from a small village bakery. Store the SLA per merchant and per zone.
+
+## What happens if the merchant does not respond
+
+The order remains `pending_vendor_confirmation`, but the system must stop blindly waiting.
+
+At each escalation:
+
+1. Re-check whether a duplicate or late acceptance already occurred.
+2. Re-check merchant open/paused status.
+3. Re-check whether the item became unavailable.
+4. Send the next notification through the next available channel.
+5. Notify the customer truthfully.
+6. Create an operations task.
+7. Pause new orders for that merchant if the failure threshold is reached.
+
+Customer message:
+
+> We’re still waiting for **[Restaurant]** to confirm order **AK-4827**. You can keep waiting or cancel without a cancellation fee.
+
+Buttons:
+
+```text
+Keep waiting
+Cancel order
+Choose another
+```
+
+Never auto-accept an unacknowledged order.
+
+---
+
+# 5. Merchant portal design
+
+## New Order screen
+
+The first screen should show only operationally important information:
+
+```text
+NEW ORDER #AK-4827
+Deadline to accept: 01:12
+
+Customer: [first name]
+Delivery zone: [village]
+Payment: COD / prepaid
+Total: USD + LBP
+
+Items
+[large readable list]
+
+Customer note
+[readable note]
+
+[ACCEPT] [REJECT] [NEED HELP]
+```
+
+The portal must provide a loud but respectful alert, a visible countdown, and an acknowledgement state.
+
+## Accepted Order screen
+
+```text
+Order #AK-4827
+Accepted at 12:41
+Prep due: 13:01
+
+[START PREPARING]
+[MARK READY]
+[ITEM UNAVAILABLE]
+[CONTACT ALO KING]
+```
+
+## Ready screen
+
+The merchant taps **Mark ready** only when:
+
+- the order is packed;
+- the correct items are present;
+- the receipt/order code is visible;
+- the handoff area is ready.
+
+Then Alo King dispatches or confirms the driver pickup.
+
+## Restaurant pause controls
+
+Merchant actions:
+
+```text
+Pause for 15 minutes
+Pause for 30 minutes
+Pause until opening
+Close now
+Reduce order capacity
+```
+
+Every pause requires a reason and creates an audit event. A pause must immediately block new customer checkout while allowing active orders to continue.
+
+---
+
+# 6. Customer, merchant, driver, and operations timeline
+
+## Customer confirmation
+
+```text
+Order created
+Customer receives receipt and waiting status
+Merchant is notified
+```
+
+## Merchant accepts
+
+```text
+Customer receives acceptance and prep ETA
+Merchant queue receives order
+Driver dispatch is scheduled based on prep time
+```
+
+## Merchant starts preparing
+
+No unnecessary customer message is required if the acceptance message already included a prep ETA. Record the status internally.
+
+## Merchant marks ready
+
+```text
+Driver assignment begins or is confirmed
+Merchant receives driver name/code when assigned
+Customer sees “Your order is ready and a driver is being assigned” only if useful
+```
+
+## Driver picks up
+
+```text
+Merchant confirms handoff
+Driver receives customer landmark and contact policy
+Customer receives “On the way” plus tracking link
+```
+
+## Driver arrives
+
+```text
+Customer receives “Your driver is nearby”
+Driver sees the approved delivery details
+Merchant sees completed handoff
+```
+
+## Delivery complete
+
+Use a delivery proof policy appropriate to the order:
+
+```text
+customer confirmation code, or
+customer tap/confirmation, or
+approved delivery photo without exposing sensitive data
+```
+
+Then:
+
+- mark delivered;
+- reconcile COD;
+- send receipt and rating prompt;
+- close merchant task;
+- start driver settlement record.
+
+---
+
+# 7. Merchant actions that change the order
+
+## Item unavailable before preparation
+
+The merchant taps **Item unavailable** and selects the item.
+
+The server offers only safe choices:
+
+```text
+Remove item
+Suggest substitute
+Cancel entire order
+```
+
+A substitute must be:
+
+- available;
+- from the same merchant;
+- within the configured price difference;
+- clearly shown in USD and LBP;
+- confirmed by the customer before changing the total.
+
+The merchant never edits the customer’s order silently.
+
+## Price disagreement
+
+If the merchant says the menu price is wrong:
+
+1. preserve the price in the confirmed order;
+2. pause the order for customer decision;
+3. show the new price only if the merchant is authorized to request it;
+4. let the customer accept the difference or cancel;
+5. update the future menu only through the merchant menu workflow.
+
+## Customer address issue
+
+The merchant can request clarification through Alo King. The merchant should not receive more personal information than needed for fulfilment.
+
+Customer message:
+
+> The restaurant needs one more delivery detail. Please confirm your landmark.
+
+## Customer asks for a change after acceptance
+
+The merchant sees:
+
+```text
+Change requested by customer
+Approve
+Decline
+Call Alo King
+```
+
+The system never assumes that a free-text customer request changed the order. It requires explicit merchant and customer confirmation where the total or preparation is affected.
+
+---
+
+# 8. Payment and order notification rules
+
+## Cash on delivery
+
+The merchant card shows:
+
+```text
+Payment: Cash on delivery
+Collect: USD [amount] / LBP [amount]
+```
+
+The driver receives the amount to collect only after assignment. If a merchant needs to prepare a high-value COD order, use the configured COD risk rule and customer confirmation process.
+
+## Prepaid order
+
+The merchant card shows:
+
+```text
+Payment: Paid online
+Merchant collection: handled by Alo King/provider settlement
+Customer should not be charged again
+```
+
+The merchant and driver must never request an extra payment unless Alo King creates and logs an approved adjustment.
+
+## Payment failure
+
+Do not send the order to the merchant as accepted if payment authorization fails. If payment is pending, the customer sees payment pending and the merchant sees no fulfilment order.
+
+## Refund or cancellation
+
+Every cancellation has a typed reason:
+
+```text
+customer request
+merchant rejection
+merchant timeout
+item unavailable
+payment failure
+driver unavailable
+operational incident
+```
+
+The reason determines customer messaging, refund/credit behavior, merchant metrics, and whether the merchant is temporarily paused.
+
+---
+
+# 9. Security and authorization
+
+## Every merchant action must verify
+
+```text
+WhatsApp sender or portal session
+active merchant membership
+vendor_id
+order_id
+allowed role
+current order state
+one-time action token / idempotency key
+```
+
+A merchant member must not be able to:
+
+- accept another vendor’s order;
+- change an old order’s price;
+- view unrelated customer orders;
+- access customer payment credentials;
+- reveal platform margins;
+- modify settlement records;
+- grant themselves owner access.
+
+## Button security
+
+WhatsApp button IDs contain opaque references only. They must not contain:
+
+- price;
+- customer phone;
+- address;
+- secret;
+- authorization decision.
+
+The backend resolves the order and re-checks state. A button tap after expiry is safely rejected.
+
+## Portal links
+
+Use short-lived signed links with:
+
+```text
+merchant_id
+order_id
+action
+expiry
+nonce
+```
+
+A link should open a login or verified session if the action is sensitive. Do not put secrets in URL query strings.
+
+---
+
+# 10. Notification data model
+
+Add or formalize these tables:
+
+```text
+merchant_notification_profiles
+merchant_notification_members
+merchant_notification_channels
+merchant_order_notifications
+merchant_order_notification_attempts
+merchant_order_decisions
+merchant_escalations
+merchant_operational_tasks
+merchant_sla_events
+merchant_pauses
+```
+
+Recommended notification fields:
+
+```text
+order_id
+vendor_id
+recipient_member_id
+channel: whatsapp | portal | sms | voice | ops
+message_type
+provider_message_id
+status: queued | sent | delivered | read | failed | acknowledged | expired
+attempt_number
+sent_at
+delivered_at
+read_at
+acknowledged_at
+failure_code
+failure_reason
+created_at
+```
+
+Recommended order fields:
+
+```text
+vendor_confirmation_deadline
+vendor_first_notified_at
+vendor_last_notified_at
+vendor_acknowledged_at
+vendor_decision_at
+vendor_decision_by
+vendor_rejection_reason
+vendor_escalation_level
+customer_waiting_choice
+```
+
+Use an outbox pattern. The order transaction creates the outbox row; a worker sends it and records the provider response. This prevents an order from existing without a notification task.
+
+---
+
+# 11. Webhook and delivery-state handling
+
+For WhatsApp/Kapso events, persist every inbound and outbound event idempotently.
+
+Expected operational events include:
+
+```text
+message sent
+message delivered
+message read
+message button reply received
+message failed
+```
+
+Rules:
+
+- `sent` does not equal `delivered`;
+- `delivered` does not equal `read`;
+- `read` does not equal `accepted`;
+- only a validated merchant action changes the order decision;
+- duplicate webhook events must not duplicate notifications or state changes;
+- out-of-order events must not roll the order backward.
+
+If a WhatsApp notification fails, the portal alert remains active and the backup channel begins according to the merchant’s SLA.
+
+---
+
+# 12. Merchant service-level policy
+
+Each merchant signs or accepts a simple operating policy:
+
+```text
+Accept or reject within: [default 90 seconds]
+Start preparation within: [configured time]
+Mark ready by: accepted time + prep time
+Keep menu availability current
+Pause orders when overloaded
+Respond to substitution requests
+Keep at least one operational member active
+Maintain a backup contact
+```
+
+## Suggested performance thresholds
+
+Use a rolling seven-day window:
+
+| Metric | Healthy | Warning | Pause/review |
+|---|---:|---:|---:|
+| Acceptance within SLA | ≥95% | 85–94% | <85% |
+| Rejection after acceptance | <3% | 3–7% | >7% |
+| Merchant timeout rate | <2% | 2–5% | >5% |
+| Ready-on-time rate | ≥90% | 80–89% | <80% |
+| Customer complaint rate | <3% | 3–6% | >6% |
+| Menu-induced cancellation | <2% | 2–5% | >5% |
+
+These are starting operating thresholds, not permanent marketplace rules. Adjust them after pilot data.
+
+## Consequences
+
+```text
+Warning → merchant coaching and menu review
+Restricted → lower order volume or longer prep ETA
+Paused → no new orders until merchant confirms readiness
+Suspended → manual review and re-verification
+```
+
+Do not punish a merchant for a single telecom outage or force acceptance during a documented emergency.
+
+---
+
+# 13. Merchant onboarding before live ordering
+
+Ordering must remain off until the merchant passes:
+
+```text
+1. Business identity and role verification
+2. Merchant WhatsApp number verified
+3. Backup member or operations fallback configured
+4. Menu extracted and approved
+5. Prices and currency confirmed
+6. Opening hours and pause controls tested
+7. Order card test completed
+8. Portal login tested
+9. Accept/reject test completed
+10. Customer notification test completed
+11. Driver handoff test completed
+12. Cancellation and substitution test completed
+13. Payment/COD rules configured
+14. Support contact confirmed
+```
+
+Run a real-looking dry-run order using a test customer and test merchant. It must never touch a real customer or driver.
+
+---
+
+# 14. Recommended go-live configurations
+
+## Small merchant with one operator
+
+```text
+Primary: operator WhatsApp
+Backup: owner phone call
+Portal: one tablet/browser
+Acceptance SLA: 120 seconds
+Operations call: T+180 seconds
+```
+
+## Medium restaurant
+
+```text
+Primary: kitchen WhatsApp
+Backup: manager WhatsApp
+Portal: kitchen tablet + manager browser
+Acceptance SLA: 90 seconds
+Operations call: T+180 seconds
+```
+
+## High-volume restaurant
+
+```text
+Primary: portal/KDS
+Secondary: merchant WhatsApp
+Backup: manager WhatsApp
+Alo King operations escalation
+Acceptance SLA: 60–90 seconds
+Capacity controls and automatic pause
+```
+
+## Bakery or small village merchant
+
+```text
+Primary: WhatsApp
+Backup: owner phone call
+Longer acceptance SLA configured per opening hours
+Scheduled orders preferred
+Manual operations support during soft launch
+```
+
+---
+
+# 15. What Alo King should build first
+
+## P0 — fix before accepting real orders
+
+1. Replace “message sent” with explicit sent/delivered/read/acknowledged states.
+2. Build the merchant notification outbox.
+3. Add Utility template fallback for new orders.
+4. Add the portal new-order queue with sound and countdown.
+5. Add backup recipient routing.
+6. Add typed accept/reject/need-help actions.
+7. Add the 90-second customer/operations escalation.
+8. Add merchant pause and capacity controls.
+9. Add notification attempt audit logs.
+10. Add duplicate-tap and duplicate-webhook protection.
+
+## P1 — complete the operational system
+
+1. Add SMS and phone escalation.
+2. Add substitution and item-unavailable workflows.
+3. Add merchant SLA dashboards.
+4. Add role-based merchant members.
+5. Add driver-readiness integration.
+6. Add notification failure monitoring.
+7. Add merchant daily summaries.
+8. Add order printer/KDS integration only after portal reliability is proven.
+
+## P2 — optimize
+
+1. Predict merchant acceptance time.
+2. Select the best notification channel by historical reliability.
+3. Adjust acceptance windows by merchant type and zone.
+4. Forecast kitchen capacity.
+5. Automatically pause a merchant before failure when capacity risk is high.
+6. Measure the cost and conversion impact of WhatsApp, portal, SMS, and voice channels.
+
+---
+
+# Final decision
+
+> **Alo King should accept a vendor order only after the merchant has a reliable notification path, a visible portal queue, a backup contact, and an explicit acceptance event.**
+
+The perfect practical setup is:
+
+```text
+Customer confirms
+→ order is created as pending vendor confirmation
+→ WhatsApp interactive card is sent
+→ delivery is verified
+→ approved Utility template is used when needed
+→ portal alert remains active
+→ backup WhatsApp/SMS/voice escalation starts on timeout
+→ merchant explicitly accepts or rejects
+→ customer is updated
+→ preparation and driver dispatch begin
+→ every event is auditable
+```
+
+WhatsApp should be the **fastest and most natural merchant channel**. The portal should be the **operational source of truth**. SMS and voice should be the **recovery layer**. Alo King operations should be the **final safety net**.

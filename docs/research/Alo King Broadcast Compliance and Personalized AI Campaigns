@@ -1,0 +1,741 @@
+# Alo King Broadcast Compliance and Personalized AI Campaigns
+
+## Executive summary
+
+Alo King should combine two systems:
+
+1. A **permission-first broadcast engine** that protects WhatsApp quality, customer trust, and the shared business portfolio quota.
+2. A **personalized recommendation engine** that selects the most relevant food suggestion for each eligible customer without allowing the AI to control consent, pricing, safety, or delivery truth.
+
+The LLM should generate conversational wording and campaign ideas. Deterministic backend services must control consent, audience eligibility, ranking constraints, prices, inventory, budget, message limits, and final sending.
+
+---
+
+# Part I — WhatsApp opt-in compliance and rate limits
+
+## 1. Separate transactional and marketing consent
+
+Do not treat placing an order as automatic permission for restaurant promotions.
+
+Meta requires that the customer:
+
+1. Provides their mobile number or WhatsApp identity.
+2. Gives permission to receive subsequent messages from the business.
+3. Clearly understands which business they are opting in to receive messages from.
+
+Recommended consent categories:
+
+| Consent type | Purpose |
+|---|---|
+| **Transactional** | Order confirmations, delivery updates, payment messages, support |
+| **Alo King recommendations** | Personalized food suggestions from Alo King |
+| **Restaurant offers** | Promotions from restaurants the customer has ordered from |
+| **Calls** | Voice calls or call-back requests, if introduced later |
+
+A customer who agrees to order updates should not automatically be enrolled in restaurant marketing.
+
+## 2. Recommended opt-in wording
+
+### English
+
+> Yes, I want to receive occasional offers and new-menu updates from restaurants I order from through Alo King on WhatsApp. I can stop restaurant offers at any time by replying STOP.
+
+### Lebanese Arabic
+
+> نعم، بوافق استلم أحياناً عروض وتحديثات من المطاعم اللي بطلب منها عبر Alo King على واتساب. فيني أوقف عروض المطاعم بأي وقت عبر إرسال STOP أو إيقاف العروض.
+
+### Restaurant-specific wording
+
+> Would you like **[Restaurant Name]** to send you occasional offers and new-menu updates through Alo King on WhatsApp? You can mute this restaurant or reply STOP at any time.
+
+Restaurant campaigns should normally target customers who:
+
+- explicitly opted in;
+- previously ordered from that restaurant;
+- have not muted that restaurant;
+- are not globally opted out;
+- are inside applicable frequency limits.
+
+## 3. Store auditable consent records
+
+For each opt-in, store:
+
+```text
+customer_id
+phone_hash
+business_or_restaurant_id
+consent_category
+consent_text_version
+language
+source
+timestamp
+session_reference
+whatsapp_message_id
+last_confirmed_at
+opted_out_at
+```
+
+Examples of consent sources:
+
+```text
+post_order_whatsapp_prompt
+website_checkbox
+qr_code_landing_page
+restaurant_counter
+campaign_landing_page
+```
+
+Do not permit restaurant owners to upload phone lists and claim consent. Alo King should require a verifiable first-party consent record.
+
+Consent should be restaurant-scoped:
+
+```text
+restaurant_123 = opted in
+restaurant_456 = muted
+global_marketing = opted out
+```
+
+## 4. Immediate and layered opt-out
+
+Support:
+
+```text
+STOP
+UNSUBSCRIBE
+إيقاف
+ايقاف
+وقف
+توقف
+إيقاف العروض
+```
+
+| Customer action | Result |
+|---|---|
+| **Mute this restaurant** | Stops promotions from one restaurant |
+| **Stop restaurant offers** | Stops restaurant marketing while transactional messages continue |
+| **STOP / global opt-out** | Stops all promotional WhatsApp messages from Alo King and restaurants |
+
+Process STOP before normal routing and before any audience is generated. Re-check consent immediately before each delivery.
+
+If a customer reports an unwanted message:
+
+1. Opt them out immediately.
+2. Stop future messages.
+3. Flag the campaign and restaurant.
+4. Record the complaint.
+5. Require review before that restaurant sends again if complaints repeat.
+
+## 5. Lebanon compliance posture
+
+Lebanon’s Law No. 81/2018 requires consent for unsolicited electronic marketing in relevant circumstances and gives individuals a right to object to processing for commercial promotion. It also requires promotional advertisements to identify that they are promotional and identify the advertiser.
+
+Alo King’s conservative operating rule should be:
+
+> No promotional WhatsApp message without explicit, recorded, revocable consent that identifies the sender and the promotional purpose.
+
+Every campaign should include:
+
+- restaurant identification;
+- clear promotional wording;
+- a simple opt-out instruction;
+- a way to contact Alo King;
+- no misleading urgency or hidden conditions.
+
+Have Lebanese counsel review the final Arabic consent text, retention periods, restaurant terms, and data-processing responsibilities.
+
+## 6. Meta messaging limits
+
+### Business portfolio limit
+
+Meta’s messaging limit is based on the **business portfolio**, not independently per phone number. All Alo King business phone numbers in the same portfolio share the limit.
+
+The limit is the maximum number of unique WhatsApp user phone numbers to whom the business can deliver messages outside a customer-service window during a moving 24-hour period.
+
+New portfolios begin at:
+
+```text
+250 unique recipients
+```
+
+Possible higher tiers are:
+
+```text
+2,000
+10,000
+100,000
+Unlimited
+```
+
+Adding additional restaurant numbers does not automatically create a separate quota for each restaurant.
+
+### Scaling
+
+Meta documents a path to 2,000 through business/partner verification or by delivering 2,000 messages outside customer-service windows to unique WhatsApp users within a moving 30-day period using high-quality templates.
+
+Automatic scaling depends on:
+
+- high-quality messages across the portfolio;
+- using at least half of the current limit during the previous seven days;
+- maintaining acceptable quality.
+
+### Per-user marketing limits
+
+Meta also applies adaptive marketing limits to individual users based on factors such as recent marketing read rate and overall inbox activity.
+
+If error **131049** is received:
+
+- mark the recipient temporarily marketing-suppressed;
+- do not retry immediately;
+- wait at least 24 hours before considering another marketing attempt;
+- exclude the recipient from the active campaign as “not delivered due to user-level limit.”
+
+## 7. Use stricter Alo King limits
+
+Meta’s limits are a ceiling, not a recommended operating policy.
+
+| Control | Initial Alo King rule |
+|---|---:|
+| Restaurant messages to one customer | Maximum 1 every 7 days |
+| All restaurant promotions to one customer | Maximum 2 every 30 days |
+| Quiet hours | 22:00–08:00 Asia/Beirut |
+| New restaurant daily campaign | Start with 25–50 recipients |
+| New template initial batch | 10–25 recipients |
+| Campaign test period | 30–60 minutes before expansion |
+| Portfolio concurrency | Keep below 50–70% of available quota |
+| High opt-out campaign | Pause automatically |
+
+## 8. Template-quality controls
+
+Meta evaluates templates using negative feedback, read rate, and engagement.
+
+```text
+GREEN   high quality
+YELLOW  medium quality
+RED     low quality
+UNKNOWN insufficient feedback
+```
+
+| Template state | Alo King action |
+|---|---|
+| GREEN | Normal controlled campaigns |
+| UNKNOWN | Small test batch only |
+| YELLOW | Reduce audience, improve copy, require review |
+| RED | Stop using it and create a better variant |
+| PAUSED | Block campaign immediately |
+
+Meta may pace new, recently unpaused, or non-GREEN templates. Track:
+
+```text
+accepted
+held_for_quality_assessment
+sent
+delivered
+read
+failed
+```
+
+## 9. Campaign rollout
+
+### Phase 1 — Internal test
+
+Use Alo King test numbers and verify Arabic/English copy, opt-out behavior, template status, delivery events, and billing webhooks.
+
+### Phase 2 — Small test batch
+
+Send to 10–25 recently active, opted-in customers. Monitor delivery, reads, replies, opt-outs, and complaints.
+
+### Phase 3 — Controlled expansion
+
+Expand only if delivery is healthy, no unusual complaint/block activity appears, the template remains GREEN, replies are handled, prices are accurate, and the restaurant can fulfil demand.
+
+### Phase 4 — Full eligible audience
+
+Send only after the test batch passes. Preserve a holdout group when possible.
+
+## 10. Automatic kill switches
+
+Pause immediately if:
+
+- the template becomes YELLOW or RED;
+- Meta sends a template-paused event;
+- opt-outs or blocks spike;
+- delivery failures rise sharply;
+- the restaurant item becomes unavailable;
+- the offer price changes;
+- the restaurant cannot fulfil expected demand;
+- portfolio quota is nearly exhausted;
+- repeated 131049 errors occur;
+- support workload becomes excessive.
+
+---
+
+# Part II — Integrating AI recommendations with broadcasts
+
+## 11. The core idea
+
+Do not send the same promotion to every customer.
+
+Instead, the campaign engine should generate a **campaign offer family**, and the recommendation engine should select the best eligible food suggestion for each recipient.
+
+```text
+Restaurant campaign objective
+→ approved campaign offer family
+→ eligible opted-in audience
+→ customer profile and recent behavior
+→ candidate menu items
+→ hard safety and availability filters
+→ personalized ranking
+→ customer-specific message variables
+→ controlled send
+→ reply/cart/order attribution
+```
+
+The AI should personalize the **relevance and wording**, not the legal or financial controls.
+
+## 12. Example personalized campaign
+
+Restaurant campaign objective:
+
+```text
+Reactivate customers who have not ordered for 30+ days
+```
+
+Approved offer family:
+
+```text
+Family meal for 4
+Price: $24
+Available in: Baakline, Beiteddine
+Valid: Thursday–Sunday
+```
+
+Customer A:
+
+```text
+Previously ordered: chicken shawarma
+Usually orders: Friday evening
+Typical basket: $18–$25
+Language: Lebanese Arabic
+```
+
+Customer B:
+
+```text
+Previously ordered: vegetarian platter
+Usually orders: Sunday lunch
+Language: English
+```
+
+The system may send different approved variants:
+
+### Customer A
+
+> اشتقتوا للشاورما؟ عرض عيلة من **[Restaurant Name]** بيكفي 4 أشخاص بـ **$24**. متوفر للتوصيل اليوم ببلدتكم. اطلبوا هلّق.
+
+### Customer B
+
+> Your usual vegetarian-style meal from **[Restaurant Name]** is back. Try the family platter for four for **$24**, available for delivery today in your area.
+
+Both messages must be generated from the same approved offer, valid price, delivery area, and template constraints.
+
+## 13. Personalization signals
+
+Use these signals in priority order:
+
+1. Explicit dietary/allergen constraints.
+2. Restaurant-specific consent and mute state.
+3. Current delivery village and serviceability.
+4. Recent successful orders.
+5. Frequently ordered dishes.
+6. Time of day and ordering day.
+7. Basket pairings.
+8. Price range.
+9. Previous campaign engagement.
+10. Controlled exploration of new items.
+
+Do not infer sensitive health, religion, or financial traits from food orders.
+
+## 14. Candidate generation
+
+The campaign should not ask the LLM to invent a dish. Generate candidates from the restaurant’s live menu:
+
+```sql
+select item_id, name, description, price_usd, available,
+       delivery_villages, category, customization_options
+from menu_items
+where vendor_id = :vendor_id
+  and available = true;
+```
+
+Candidate items should also satisfy:
+
+- current inventory;
+- current price;
+- restaurant opening hours;
+- delivery village;
+- campaign validity dates;
+- minimum order rules;
+- allergy and diet constraints;
+- campaign offer eligibility.
+
+## 15. Personalized ranking formula
+
+Use a deterministic ranker such as:
+
+```text
+score(item, customer, campaign) =
+  hard_filter(item, customer, campaign)
+  × (
+    0.30 × request_or_campaign_fit
+  + 0.20 × recent_preference_fit
+  + 0.15 × reorder_probability
+  + 0.10 × basket_pairing_fit
+  + 0.10 × time_and_occasion_fit
+  + 0.05 × price_fit
+  + 0.05 × restaurant_reliability
+  + 0.05 × controlled_exploration
+  )
+```
+
+The exact weights should be versioned and changed only through experiments.
+
+Store the reasons:
+
+```json
+{
+  "customer_id_hash": "cust_abc",
+  "campaign_id": "camp_123",
+  "selected_item_id": "item_456",
+  "ranker_version": "broadcast_ranker_v1",
+  "reasons": [
+    "ordered_similar_item_14_days_ago",
+    "within_customer_price_range",
+    "available_in_village",
+    "matches_friday_evening_pattern"
+  ]
+}
+```
+
+## 16. Use the LLM for language, not truth
+
+The LLM can:
+
+- translate approved copy into Lebanese Arabic or English;
+- select a tone from approved options;
+- explain why the suggestion is relevant;
+- create short copy variants;
+- interpret a customer reply;
+- answer questions about the offer using verified tool data.
+
+The LLM must not:
+
+- invent prices;
+- invent discounts;
+- claim an item is available without a tool result;
+- recommend an item that violates an explicit allergy;
+- override consent or suppression;
+- choose recipients outside the approved audience;
+- send a campaign without merchant confirmation;
+- change a campaign budget;
+- make a prohibited health or dietary claim.
+
+## 17. Personalization levels
+
+Use a fallback ladder so every customer receives a valid message even when data is sparse:
+
+### Level 0 — No history
+
+Use a broadly relevant best seller or campaign item, subject to availability and consent.
+
+### Level 1 — Restaurant history
+
+Recommend a previously ordered item or a compatible alternative.
+
+### Level 2 — Basket history
+
+Add a complementary product based on previous baskets.
+
+### Level 3 — Timing and location
+
+Adjust item and wording for village, delivery feasibility, weekday, and meal period.
+
+### Level 4 — Explicit preferences
+
+Use explicit language, diet, spice, ingredient, and budget preferences.
+
+### Level 5 — Campaign learning
+
+Use prior campaign reads, replies, carts, and completed orders to improve future selection.
+
+Do not fabricate personalization when the customer has no history.
+
+## 18. Campaign message structure
+
+Keep the message short and useful:
+
+```text
+[Personal relevance]
+[Restaurant + approved offer]
+[Price and validity]
+[One clear CTA]
+[Opt-out instruction]
+```
+
+Example:
+
+> Your usual shawarma spot has a family bundle for 4 at **$24** this Friday. Tap below to order from **[Restaurant Name]**. Reply STOP to stop restaurant offers.
+
+Use one primary call to action:
+
+```text
+Order now
+View bundle
+Remind me later
+Mute this restaurant
+```
+
+A “mute restaurant” action should not be treated as a global STOP.
+
+## 19. Replies should enter a campaign-aware bot flow
+
+When a customer replies, pass the campaign context into the bot:
+
+```text
+campaign_id
+restaurant_id
+offer_id
+selected_item_id
+message_language
+customer_memory_snapshot
+```
+
+The bot should then:
+
+- answer offer questions;
+- explain availability and delivery;
+- build the cart;
+- preserve the campaign price if still valid;
+- revalidate price and inventory before checkout;
+- apply the correct campaign attribution;
+- request final order confirmation.
+
+Example:
+
+```text
+Customer: “Can I make it spicy and add extra toum?”
+Bot: validates customization and current price
+→ updates cart
+→ shows new total
+→ asks for confirmation
+```
+
+## 20. Attribution and learning loop
+
+Connect every campaign recipient to:
+
+```text
+campaign
+→ recipient
+→ message status
+→ reply
+→ item click
+→ cart
+→ order
+→ completed delivery
+→ revenue
+```
+
+Use a holdout group to measure incremental impact.
+
+Important metrics:
+
+- delivered-message rate;
+- read rate;
+- reply rate;
+- opt-out rate;
+- cart-start rate;
+- completed-order rate;
+- average order value;
+- incremental orders versus holdout;
+- revenue per delivered message;
+- campaign cost;
+- incremental profit;
+- repeat-order rate.
+
+The most important commercial metric is:
+
+```text
+Incremental completed orders ÷ campaign cost
+```
+
+## 21. Required architecture
+
+```text
+WhatsApp webhook
+        ↓
+Signature verification + idempotency
+        ↓
+Campaign context lookup
+        ↓
+Consent and suppression check
+        ↓
+Portfolio and customer rate-limit check
+        ↓
+Live menu and availability query
+        ↓
+Customer memory retrieval
+        ↓
+Deterministic recommendation ranker
+        ↓
+Approved offer/template renderer
+        ↓
+LLM language and tone layer
+        ↓
+Merchant confirmation / campaign gate
+        ↓
+Paced send queue
+        ↓
+Delivery and billing webhooks
+        ↓
+Campaign-aware reply bot
+        ↓
+Cart and order attribution
+        ↓
+Learning and reporting
+```
+
+## 22. Recommended data model
+
+```text
+marketing_consents
+marketing_suppressions
+customer_preferences
+customer_preference_events
+customer_feedback
+campaigns
+campaign_offers
+campaign_recipients
+campaign_message_variants
+campaign_events
+recommendation_impressions
+recommendation_actions
+template_quality_snapshots
+portfolio_limit_snapshots
+campaign_holdouts
+campaign_attributions
+```
+
+For each campaign recipient, store:
+
+```text
+campaign_id
+customer_id_hash
+restaurant_id
+consent_state_at_creation
+consent_state_at_send
+offer_id
+template_name
+message_id
+selected_item_id
+ranker_version
+delivery_status
+failure_code
+sent_at
+delivered_at
+read_at
+replied_at
+cart_started_at
+order_id
+opted_out_at
+```
+
+Never expose recipient phone numbers to restaurants.
+
+## 23. Automatic decision policy
+
+```text
+Valid consent?
+  no  → exclude
+  yes → continue
+
+Restaurant-specific permission?
+  no  → exclude
+  yes → continue
+
+Global or restaurant opt-out?
+  yes → exclude
+  no  → continue
+
+Frequency cap passed?
+  no  → defer
+  yes → continue
+
+Portfolio quota available?
+  no  → schedule later
+  yes → continue
+
+Template approved and acceptable quality?
+  no  → block
+  yes → continue
+
+Item, price, location, and fulfilment valid?
+  no  → block or regenerate
+  yes → continue
+
+Small test batch passed?
+  no  → pause
+  yes → expand gradually
+```
+
+## 24. Implementation priority
+
+### P0
+
+1. Consent and suppression tables.
+2. Immediate STOP handling.
+3. Restaurant-scoped opt-in and mute controls.
+4. Portfolio quota service.
+5. Campaign recipient eligibility service.
+6. Live menu/price/availability validation.
+7. Idempotent send queue and delivery-status tracking.
+8. Small-batch rollout and automatic kill switches.
+
+### P1
+
+1. Structured customer memory.
+2. Recommendation ranker with explanation reasons.
+3. Campaign-aware reply flow.
+4. Holdouts and attribution.
+5. Lebanese Arabic and Arabizi evaluation set.
+6. Merchant campaign quality score.
+7. Personalization feedback buttons.
+
+### P2
+
+1. Send-time optimization.
+2. Product propensity models.
+3. Churn prediction.
+4. Customer lifetime value.
+5. Multi-armed bandit testing.
+6. Personalized bundles.
+7. Voice-note campaign replies.
+8. Diaspora and group-order personalization.
+
+## Bottom line
+
+Alo King should not optimize for the largest broadcast. It should optimize for the highest number of **incremental completed orders per delivered promotional message without increasing blocks, complaints, or opt-outs**.
+
+The winning formula is:
+
+> **Explicit consent + restaurant-specific audiences + strict limits + live menu validation + deterministic personalization + short approved messages + paced rollout + campaign-aware conversation + holdout measurement.**
+
+## Sources
+
+- [Meta — Get opt-in for WhatsApp](https://developers.facebook.com/documentation/business-messaging/whatsapp/getting-opt-in)
+- [Meta — WhatsApp Business Messaging Policy](https://business.whatsapp.com/policy)
+- [Meta — Messaging Limits](https://developers.facebook.com/documentation/business-messaging/whatsapp/messaging-limits)
+- [Meta — Per-user marketing template message limits](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/marketing-templates/per-user-limits)
+- [Meta — Template quality rating](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-quality)
+- [Meta — Template pacing](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/template-pacing/)
+- [Meta — WhatsApp Business Platform policy and spam enforcement](https://developers.facebook.com/documentation/business-messaging/whatsapp/policy-enforcement)
+- [Lebanon Law No. 81/2018 — English translation](https://smex.org/wp-content/uploads/2018/10/E-transaction-law-Lebanon-Official-Gazette-English.pdf)
