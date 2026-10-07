@@ -98,6 +98,9 @@ psqlq -c "\copy (select * from out.places order by id) to '$OUT/places.csv' with
   echo "## Same name in the same district"
   psqlq -A -F ' | ' -c "select district_code, coalesce(name_en, name_ar), count(*) from out.places group by 1, 2 having count(*) > 1 order by 3 desc, 1, 2 limit 100" | sed '$d'
   echo
+  echo "## Same Arabic name in one district (separate villages more than 1.5 km apart)"
+  psqlq -A -F ' | ' -c "select id, other_id, name_ar, distance_m from b.report_dups" | sed '$d'
+  echo
   echo "## Places made from a zone with no OSM place (review: real village or uninhabited land)"
   psqlq -A -F ' | ' -c "select id, district_code, name_en, name_ar, elevation_m from b.report_zone_places" | sed '$d'
   echo

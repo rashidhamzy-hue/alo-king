@@ -30,6 +30,10 @@ $$;
 create function b.is_arabic(p text) returns boolean language sql immutable as $$
   select coalesce(p ~ '[؀-ۿ]', false)
 $$;
+-- CAS zones named "Litige" are disputed cadastral areas, not villages: kept for pin snapping only.
+create function b.is_litige(p text) returns boolean language sql immutable as $$
+  select coalesce(p ~* '^\s*litige', false)
+$$;
 -- Same phonetic key as app_private.place_phonetic_key() (Ba3qlin = Baakline = Baaqline = بعقلين).
 create function b.phon(p text) returns text
 language sql
@@ -248,8 +252,13 @@ select null, case when z.district_code = 'BEY' then 'neighbourhood' else 'villag
   z.name_ar, z.name_en, z.name_fr, '{}', z.pcode, z.district_code, st_pointonsurface(z.geom), 'zone', null
 from b.zones z
 where z.district_code is not null and coalesce(z.name_en, z.name_ar) is not null
+  and not b.is_litige(z.name_en)
   and not exists (select 1 from b.p p where p.zone_pcode = z.pcode
-                  and b.namesim(p.name_en, p.name_ar, z.name_en, z.name_ar) >= 0.4);
+                  and b.namesim(p.name_en, p.name_ar, z.name_en, z.name_ar) >= 0.4)
+  -- The village is already there as a place just across the zone line (Chattaha, Jabaa, Miriata).
+  and not exists (select 1 from b.p p where p.district_code = z.district_code
+                  and st_dwithin(p.geom::geography, st_pointonsurface(z.geom)::geography, 3000)
+                  and b.namesim(p.name_en, p.name_ar, z.name_en, z.name_ar) >= 0.8);
 
 -- Same name twice within 300 m (a node mapped twice): keep the more important one.
 delete from b.p a using b.p c
@@ -260,13 +269,45 @@ where a.ctid <> c.ctid and st_dwithin(a.geom::geography, c.geom::geography, 300)
     > (array_position(array['city', 'town', 'village', 'neighbourhood', 'hamlet'], c.kind),
        coalesce(c.osm_id, '~'));
 
+-- The same place under two spellings within 1.5 km in one district (same Arabic name or phonetic key:
+-- Adliyeh / Palais de Justice, Ras Beirut twice, Tripoli / Trablous et-Tell): keep one, curated first,
+-- then the more important kind; the other's names become aliases. Farther apart, same-name villages
+-- stay separate records (§16).
+create table b.dup as
+select a.ctid as drop_ctid, (
+    select c.ctid from b.p c
+    where c.ctid <> a.ctid and c.district_code = a.district_code
+      and st_dwithin(a.geom::geography, c.geom::geography, 1500)
+      and (b.norm(a.name_ar) = b.norm(c.name_ar) or b.namesim(a.name_en, a.name_ar, c.name_en, c.name_ar) >= 0.9)
+      and (a.origin not like '%curated', array_position(array['city', 'town', 'village', 'neighbourhood', 'hamlet'], a.kind),
+           coalesce(a.osm_id, '~'))
+        > (c.origin not like '%curated', array_position(array['city', 'town', 'village', 'neighbourhood', 'hamlet'], c.kind),
+           coalesce(c.osm_id, '~'))
+    order by (c.origin not like '%curated'), array_position(array['city', 'town', 'village', 'neighbourhood', 'hamlet'], c.kind),
+      coalesce(c.osm_id, '~')
+    limit 1) as keep_ctid
+from b.p a;
+delete from b.dup where keep_ctid is null;
+-- A kept place that is itself dropped would chain; resolve to the final keeper.
+update b.dup d set keep_ctid = d2.keep_ctid from b.dup d2 where d.keep_ctid = d2.drop_ctid;
+update b.p k set aliases = k.aliases || x.names
+from (
+  select d.keep_ctid, array_agg(n) filter (where n is not null) as names
+  from b.dup d join b.p p on p.ctid = d.drop_ctid
+  cross join lateral unnest(array[p.name_en, p.name_fr] || p.aliases) n
+  group by d.keep_ctid
+) x
+where k.ctid = x.keep_ctid;
+delete from b.p p using b.dup d where p.ctid = d.drop_ctid;
+
 -- 6. Identity: the anchor of each zone is the place named like the zone (its municipality village).
 alter table b.p add column pid serial, add column anchor boolean not null default false;
 update b.p p set anchor = true
 from (
   select distinct on (p2.zone_pcode) p2.pid
   from b.p p2 join b.zones z on z.pcode = p2.zone_pcode
-  where p2.kind <> 'neighbourhood' and b.namesim(p2.name_en, p2.name_ar, z.name_en, z.name_ar) >= 0.4
+  where p2.kind <> 'neighbourhood' and not b.is_litige(z.name_en)
+    and b.namesim(p2.name_en, p2.name_ar, z.name_en, z.name_ar) >= 0.4
   order by p2.zone_pcode, b.namesim(p2.name_en, p2.name_ar, z.name_en, z.name_ar) desc,
     array_position(array['city', 'town', 'village', 'hamlet'], p2.kind), p2.pid
 ) a
@@ -325,7 +366,7 @@ update b.p p set zone_type = case
 
 -- 10. Sub-regions from the review set (§16 example sub-regions), by zone.
 alter table b.p add column sub_region text, add column municipality text;
-update b.p p set municipality = coalesce(z.name_en, z.name_ar) from b.zones z where z.pcode = p.zone_pcode;
+update b.p p set municipality = coalesce(z.name_en, z.name_ar) from b.zones z where z.pcode = p.zone_pcode and not b.is_litige(z.name_en);
 create table b.review_match as
 select r.ref, r.name_en as review_name, r.sub_region, r.lat, r.lon, r.elevation_m as review_elevation,
   (select p.pid from b.p p
@@ -397,3 +438,30 @@ create table b.report_zone_places as
 select p.id, p.district_code, p.name_en, p.name_ar, p.elevation_m from b.p p where p.origin = 'zone' order by p.district_code, p.id;
 create table b.report_empty_zones as
 select pcode, district_code, name_en, name_ar, elevation_min_m, elevation_max_m from out.zones where not inhabited order by district_code, name_en;
+
+-- 13. §16 acceptance: the build fails rather than publish a seed that misses these.
+create table b.report_dups as
+select a.id, c.id as other_id, a.district_code, a.name_ar,
+  round(st_distance(st_setsrid(st_makepoint(a.lon, a.lat), 4326)::geography,
+    st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography))::int as distance_m
+from out.places a join out.places c
+  on a.id < c.id and a.district_code = c.district_code and b.norm(a.name_ar) = b.norm(c.name_ar)
+order by distance_m;
+do $$
+declare
+  v_missing text;
+begin
+  select string_agg(n, ', ') into v_missing
+  from unnest(array['بقعاتا', 'السمقانية', 'جديدة الشوف', 'كفر حيم']) n
+  where not exists (select 1 from out.places o where o.district_code = 'CHF' and b.norm(o.name_ar) = b.norm(n));
+  if v_missing is not null then
+    raise exception '§16 places missing: %', v_missing;
+  end if;
+  if exists (select 1 from out.places where b.is_litige(name_en)) then
+    raise exception 'a disputed (Litige) zone became a place';
+  end if;
+  if exists (select 1 from b.report_dups where distance_m <= 1500) then
+    raise exception 'same place twice: %', (select string_agg(id || '=' || other_id, ', ') from b.report_dups where distance_m <= 1500);
+  end if;
+end;
+$$;
