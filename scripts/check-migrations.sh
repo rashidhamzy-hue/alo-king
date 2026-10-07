@@ -3,13 +3,14 @@
 # Usage: scripts/check-migrations.sh <base-ref>
 set -euo pipefail
 base="${1:-origin/rebuild/lebanon}"
-# TRUNCATE counts only as a statement (start of line or after `;`), not inside `before truncate` triggers.
-pattern='\b(drop[[:space:]]+(table|column|schema|materialized[[:space:]]+view)|delete[[:space:]]+from)\b|(^|;)[[:space:]]*truncate\b'
+# Trigger events (`before truncate`, `or truncate`) are removed before matching, so every TRUNCATE
+# statement counts wherever it appears (top level, DO blocks, EXECUTE strings) and trigger definitions do not.
+pattern='\b(drop[[:space:]]+(table|column|schema|materialized[[:space:]]+view)|truncate|delete[[:space:]]+from)\b'
 status=0
 while IFS= read -r f; do
   [ -f "$f" ] || continue
   # strip SQL line comments before matching
-  if sed 's/--.*$//' "$f" | grep -qiE "$pattern"; then
+  if sed -E 's/--.*$//; s/(before|after|or)[[:space:]]+truncate//Ig' "$f" | grep -qiE "$pattern"; then
     rb="supabase/rollbacks/$(basename "$f")"
     if [ -f "$rb" ]; then
       echo "ok   $f drops or deletes data; rollback $rb present"
