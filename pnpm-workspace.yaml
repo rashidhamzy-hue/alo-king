@@ -1,0 +1,6 @@
+# 24h supply-chain guard: skip package versions published less than a day ago (was bunfig.toml).
+minimumReleaseAge: 1440
+onlyBuiltDependencies:
+  - esbuild
+overrides:
+  rolldown: 1.2.1

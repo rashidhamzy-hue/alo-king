@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Fails when a new or changed migration drops or deletes data without a rollback file (DECISIONS §10).
+# Usage: scripts/check-migrations.sh <base-ref>
+set -euo pipefail
+base="${1:-origin/rebuild/lebanon}"
+pattern='\b(drop[[:space:]]+(table|column|schema|materialized[[:space:]]+view)|truncate|delete[[:space:]]+from)\b'
+status=0
+while IFS= read -r f; do
+  [ -f "$f" ] || continue
+  # strip SQL line comments before matching
+  if sed 's/--.*$//' "$f" | grep -qiE "$pattern"; then
+    rb="supabase/rollbacks/$(basename "$f")"
+    if [ -f "$rb" ]; then
+      echo "ok   $f drops or deletes data; rollback $rb present"
+    else
+      echo "FAIL $f drops or deletes data but $rb is missing"
+      status=1
+    fi
+  fi
+done < <(git diff --name-only --diff-filter=AM "$base"...HEAD -- 'supabase/migrations/*.sql')
+[ "$status" = 0 ] && echo "migration guard: ok"
+exit "$status"

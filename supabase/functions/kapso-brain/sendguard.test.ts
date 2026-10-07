@@ -64,7 +64,7 @@ describe("wiring", () => {
     expect(src).not.toMatch(/while \(true\)[\s\S]{0,200}rawSend/);
     expect(src).not.toMatch(/for \(let attempt/);
   });
-  const mig = readdirSync(resolve(ROOT, "supabase/migrations")).filter((f) => /send_incidents/.test(f)).map((f) => readFileSync(resolve(ROOT, "supabase/migrations", f), "utf8")).join("\n");
+  const mig = readdirSync(resolve(ROOT, "supabase/migrations_legacy")).filter((f) => /send_incidents/.test(f)).map((f) => readFileSync(resolve(ROOT, "supabase/migrations_legacy", f), "utf8")).join("\n");
   it("the migration: incidents table with RLS, atomic record_send_failure with a backoff ladder per kind, service-role-only functions", () => {
     expect(mig).toMatch(/create table if not exists public\.send_incidents/i);
     expect(mig).toMatch(/enable row level security/i);
