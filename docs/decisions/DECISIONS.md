@@ -346,7 +346,7 @@ Same backend for the website (`/for-business`, merchant dashboard) and the merch
 | E. Not on Google at all (new shop, home business) | Register: name, type, pin on map, photos, registration document → Rasheed approves. Home kitchens need a registration document; otherwise they join a waitlist (lawyer to confirm the rule) |
 | F. Chain with branches | One brand account; each branch is its own vendor (pin, hours, kitchen number, delivery radius); one shared menu with per-branch prices and availability. HQ proves ownership once with a company document, then adds branches |
 | G. Two people claim the same place | Both frozen; each submits documents; Rasheed decides; full audit log |
-| H. Staff | Owner invites by phone number with a role: owner, manager, cashier, kitchen. Only owner and manager edit prices and menu |
+| H. Staff | Owner invites by phone number with a role: owner, manager, cashier, kitchen, driver (§27). Only owner and manager edit prices and menu |
 | I. Business sold / new owner | New owner claims with documents; old owner notified and has 72 hours to object; then transferred |
 | J. Closed, moved or wrong listing | Merchant marks closed or moved; customer reports or a Google "closed" status hide the listing until checked |
 | K. Owner wants the listing removed | Deleted; `place_id` kept as do-not-re-import marker |
@@ -483,7 +483,7 @@ Each one supports the same calls: quote, book, cancel, status, proof, cash repor
   - **Equipment:** an insulated bag with the Alo King logo, at a deposit.
 - **Pay:** 80% of the delivery fee plus 100% of tips, paid weekly by Whish. A guaranteed hourly minimum for booked shifts covers quiet hours in a new area (amount in config, decided when the first area opens).
 - **Dispatch:** automatic. Pick the nearest available driver by road time, considering their current load (max 2 orders batched if both pickups are within 1 km and the second drop adds under 8 minutes). The offer is accepted within 30 seconds or goes to the next driver; an operator steps in after 3 refusals.
-- **Driver app:** the existing PWA, rebuilt in Phase 5b. It has job offers, navigation hand-off to Google Maps or Waze, pickup and drop-off steps, cash collected, photo proof and an SOS button.
+- **Driver app:** the existing PWA, rebuilt in Phase 5b and wrapped with Capacitor as an Android app for background location (§27.2). It has job offers, navigation hand-off to Google Maps or Waze, pickup and drop-off steps, cash collected, photo proof and an SOS button.
 - **Safety:** no dispatch to South and Nabatieh while they are paused. Night cut-off by area (config). Weather and winter-risk places (section 16) block or delay automatically.
 
 ### 21.4 Cash custody for the fleet (the main risk)
@@ -718,6 +718,151 @@ Rasheed's rule: Claude Code works and auto-merges, and never asks him.
 | `gokapso/whatsapp-support-agent` (Bun + Slack) | **Not used** | Its "answer if confident, else hand to a human" pattern is already in §2's escalation; Slack is not in our stack |
 | `gokapso/claude-code-whatsapp` | **Rejected** | Runs Claude Code on GitHub repos from WhatsApp messages in remote sandboxes with repo tokens: a needless attack path. Builds run in claude.ai/code only |
 
+## 27. Delivery operations: drivers, tracking and proof (DECIDED, 7 October 14:50)
+Extends section 21 (which stays: three modes, one `delivery_provider` adapter, fleet opening rule, cash custody, partner kill-gate). This section decides how drivers in every mode are connected, chosen, tracked and proven, and what WhatsApp live location is used for.
+
+### 27.1 The fact that shapes everything: our API cannot see WhatsApp live location
+VERIFIED (ActiveCampaign's WhatsApp API help page, 7 October; consistent with Meta's unsupported-message webhook): the WhatsApp Business Platform does not receive live location. A live location shared with our number arrives as an `unsupported` message. A static location pin does arrive (type `location`). Session 4 confirms both on the Kapso sandbox number and records the payloads as fixtures.
+
+Consequences, DECIDED:
+- **Our own tracking never depends on WhatsApp live location.** Driver positions come from our driver app (fleet), our driver link (merchant drivers) or the partner's API.
+- **WhatsApp live location is used person-to-person only**, where it is genuinely the best tool: the customer shares it directly with the driver (or the driver with the customer) in the last few hundred metres. We create the moment with a button; we never see or store the stream.
+- When a customer sends us a live location, the bot replies once: "Live location doesn't reach us. Please send your current location (📎 → Location → Send your current location)", with a native location request. Never a loop: second failure goes to the `address_capture` Flow or the district/place lists.
+
+### 27.2 How drivers are connected, per mode
+| | Alo King fleet | Merchant's own driver | Partner |
+|---|---|---|---|
+| Identity | Driver account, verified remotely (§21.3) | Merchant staff with the new role `driver` (added to §18.1 H), invited by the owner by phone number | Partner account; their courier name and phone come from the partner API |
+| Device | **Alo King Driver app: the PWA wrapped with Capacitor as an Android app** (change to §21.3: a plain PWA cannot track in the background on Android or iOS). iOS drivers use the PWA with the screen on during a job | **No install.** Each job arrives on WhatsApp from the Merchant number with a signed driver link (valid until delivered + 2 hours) | Partner's own app |
+| Location | Background GPS: every 10 s or 50 m while on a job, every 60 s when online and idle, nothing when offline | Foreground GPS while the driver link is open (the page asks once and keeps the screen awake). Optional: the driver can reply with a static WhatsApp pin, which counts as one ping | Partner API or webhook, mapped to our states; position only if the partner provides it |
+| Offline (mountains, dead zones) | Every step is recorded on the phone with its own timestamp and GPS fix and synced when the signal returns; the server accepts late events in order | Link page queues taps the same way | Partner's problem; we time out on status |
+| Online/offline | Shift toggle; auto-offline after 15 min with no heartbeat; no offers while the phone reports battery under 15% | Merchant marks drivers available in the portal | Partner's availability per quote |
+
+Merchant drivers can run a whole job inside WhatsApp: the job card from the Merchant number carries the pickup, the customer's pin as a native location message, "Call customer", "Open driver link" and "Delivered" buttons. The link adds live tracking and geofenced proof; it is encouraged, not required. Merchants whose deliveries are tracked earn the "Live tracking" badge and better quality score (§20.5); paid placement still never touches organic ranking.
+
+Phone numbers: Lebanon has no practical call-masking. The driver sees the customer's or recipient's number (Lebanese delivery depends on calls); the customer sees the driver's first name and gets a "Call driver" button. Driver terms forbid keeping or reusing customer numbers; the number disappears from the driver's app and link 2 hours after delivery.
+
+### 27.3 How a driver is chosen
+- **Mode:** server only, per §21.2 (merchant → fleet → partner), never the AI.
+- **Fleet dispatch (automatic):** dispatch is timed to food readiness, not to acceptance: the offer goes out at `ready_at − driver_eta_to_pickup − 2 min`, so drivers don't wait at counters and food doesn't wait for drivers. Candidates are online drivers inside the area, scored:
+  - road time to pickup (largest weight)
+  - current load: one active order may batch with a second only under §21.3's rule (pickups within 1 km, second drop adds under 8 min)
+  - COD headroom: a COD order needs the driver's cash-in-hand plus this order under $150
+  - vehicle fit: water and gas jobs only to drivers flagged for heavy loads; winter-risk places (§16) only to drivers flagged for winter roads from November to April
+  - reliability: acceptance and on-time rate over 14 days
+  - fairness: drivers below the area's median earnings today get a small boost
+
+  The offer goes to one driver for 30 s, then the next; after 2 refusals the top 3 see it at once and the first tap wins; after 3 refusals an operator is alerted (§21.3). Weights live in config and are tuned from data, not guessed again in code.
+- **Merchant mode:** the merchant assigns a driver in the portal or by button ("Assign: Ali / Hassan"). A driver can also claim from the merchant's open jobs. If nobody is assigned 5 min after "ready", the merchant gets "Need a driver?" (one tap hands it to fleet or partner when they are on there; otherwise a reminder and the §2 escalation).
+- **Partner mode:** booked at checkout with the partner chosen by config for the area and hour (SLA first, price second). If the partner has not assigned a courier 10 min before ready time, we rebook with the next partner, or alert the operator.
+
+### 27.4 One status model for all modes
+`accepted → preparing → ready → driver_assigned → at_pickup → picked_up → near_drop (≤ 500 m) → arrived (≤ 100 m) → delivered | failed`.
+Fleet produces every state from the app and geofences. Merchant mode produces what the merchant and driver tap, plus geofence states when the driver link is open. Partner states are mapped by the adapter. Missing states are allowed; the customer only ever sees states we actually have.
+
+### 27.5 What the customer sees, and where live location helps
+Customer messages per order stay within the §6 cost model (about 11):
+1. Accepted, with the ETA range.
+2. Out for delivery, with the signed tracking link.
+3. **"Your driver is about 3 minutes away"**, sent once at `near_drop`, with two buttons:
+   - "Share live location with driver": opens a WhatsApp chat with the driver (wa.me link) where the customer shares live location person-to-person. Offered only when the drop pin's confidence (§28) is below "high", or the building has a "hard to find" note, or it's dark (after sunset).
+   - "Call driver".
+4. Delivered, with a "Received ✅ / Problem" pair.
+
+Tracking page: the driver's position is shown only between `picked_up` and `delivered`, updated every 15 s, never after delivery, never the customer's own pin on the public part (§3 stays). Merchant-mode orders without a driver link show status and the ETA range only.
+
+Driver side, mirror image: when the driver is at `arrived` for more than 2 min without `delivered`, the app or link shows "Ask customer to share live location", which sends the customer the button above, and "Call". After 2 calls and 10 min, §22.2 scenario 12 applies.
+
+Send Home: the recipient gets the "about 3 minutes away" message and the live-location button; the sender gets status only, never the driver's position or the recipient's address detail beyond the area.
+
+### 27.6 Proof of delivery
+| Check | Fleet | Merchant driver with link | Merchant driver without link | Partner |
+|---|---|---|---|---|
+| Geofence: "Delivered" tapped within 150 m of the drop pin or learned door point (§28) | required; outside it the tap needs a reason and photo | logged; outside it flags the order | not available | partner proof |
+| Photo of the handover (bag at the door or in hand, never the customer's face) | required | optional | — | partner proof |
+| 4-digit code from the customer (sent in the delivered-soon message) | orders over $50, every Send Home order, every new customer's first COD order | same | same, entered on the WhatsApp card | same, passed to the partner |
+| Customer "Received" tap | asked every time; silence for 30 min = accepted unless a problem is reported within 24 h | same | same | same |
+| COD | amount collected and currency entered; feeds §21.4 custody | merchant keeps cash | merchant keeps cash | partner remits |
+
+A "Delivered" more than 500 m from the drop with no code gets an immediate "Did you receive your order?" to the customer; a "no" opens an incident and holds that driver's next payout line (fleet) or flags the merchant (merchant mode).
+
+### 27.7 Scenarios
+| # | Situation | What happens |
+|---|---|---|
+| 1 | Restaurant is late | Dispatch moves with `ready_at`; customer gets a new ETA range only if it slips over 10 min (one message) |
+| 2 | Driver arrives early | Dispatch timing prevents most; waiting time over 8 min is logged against the merchant's prep accuracy |
+| 3 | Fleet driver cancels after accepting | Re-offer immediately with priority; second cancel in a day lowers their score; after pickup, cancel is impossible in the app (SOS or operator only) |
+| 4 | Merchant driver doesn't show | "Need a driver?" at 5 min after ready (27.3) |
+| 5 | Partner no-show | Rebook at ready − 10 min; partner late rate counts toward §21.5's kill-gate |
+| 6 | Phone dies or no signal mid-route | Last fix kept; ETA range widens; after 10 min silent on a job the operator calls the driver; offline events sync later |
+| 7 | Customer changes address after pickup | Allowed within the same delivery radius band and under 1 km from the original drop; fee difference charged or refunded by the server; otherwise "cancel and reorder" offer |
+| 8 | Customer adds an item after pickup | Not possible; offered as a new order |
+| 9 | Customer unreachable / refuses | §22.2 scenarios 12-13 apply to every order, not only Send Home: 2 calls, live-location button, 10 min wait, then return; COD orders return at no charge to the merchant; repeated no-shows (2 in 30 days) remove COD for that number |
+| 10 | Wrong pin (customer dropped it at work, or far away) | Detected at checkout when the pin is over 2 km from the address text's place or a saved address; the bot asks one question. At the door: the live-location button |
+| 11 | Building without a name or number | Driver records a quick tag after delivery (photo of the entrance optional, tags: gate colour, "next to", floor, "no elevator", "call on arrival"); it becomes the address note (§28) |
+| 12 | Generator off, no elevator, high floor | Driver tag `no_elevator`; for orders over 10 kg (water, gas) the customer is told at checkout "the driver delivers to the building entrance" unless the merchant offers stairs |
+| 13 | Damaged or spilled food | Photo at handover settles it: damage before the photo is the merchant's or driver's (fleet: Alo King absorbs and reviews), after it is not; refunds per §20.1 |
+| 14 | Accident, threat, checkpoint closure | SOS button: shares the driver's position with the operator and Rasheed, pauses new offers, reassigns the order; checkpoint or road closure tag marks the road segment for 6 h (§28) |
+| 15 | Security or weather | Area or place paused by config (§16, §21.3); orders in flight continue unless the operator recalls them |
+| 16 | Change for cash | Fleet drivers start a shift with a float of small USD and LBP notes (recorded in custody); the order shows both totals and the locked rate (§13) |
+| 17 | Tip | Customer can add a tip at checkout or after delivery (Whish or card); 100% to the fleet driver, or to the merchant in merchant mode |
+| 18 | Fake "delivered" | Geofence + code + customer silence/complaint rules above; two confirmed fakes end a fleet contract |
+| 19 | Batched orders | Customer 2 is told "your driver has one stop before you" only if it adds over 5 min |
+| 20 | Gift (Send Home) recipient not home | §22.2 scenario 12 |
+
+### 27.8 Build placement
+- Phase 2 (session 3): the status model in 27.4, merchant `driver` role, merchant assignment and the WhatsApp job card.
+- Phase 3a (session 4): the bot's live-location handling, the near-drop message and buttons, the confirm-code flow.
+- Phase 5 (session 8): Capacitor driver app, background location, offline queue, dispatch scoring, driver link, geofence proof, SOS, quick tags, partner state mapping.
+
+## 28. Location intelligence: the AI learns places, buildings, streets and landmarks (DECIDED, 7 October 14:50)
+Goal: every confirmed order and delivery makes the next address in that area faster to resolve and easier to find. "Learning" here means a growing, evidence-scored location knowledge base that the AI reads through server tools, not a fine-tuned model. Reasons: it is auditable, correctable, deletable on request, works from order 1, and cannot be poisoned by one bad message.
+
+### 28.1 What is learned
+| Knowledge | Learned from | Promoted to "confirmed" when |
+|---|---|---|
+| **Door point** of a customer address (where handover really happens; often not the pin the customer dropped) | Driver GPS at "Delivered" with accuracy ≤ 30 m inside the geofence | 2 deliveries within 25 m: robust median becomes the door point |
+| **Address note** ("green gate, 3rd floor, call on arrival") | Customer text, driver quick tags | Shown to the next driver immediately; the customer can edit or delete it |
+| **Buildings** (name, entrance point, floors, elevator, gated) | Door points of different customers within 15 m plus the same building name in text | 3 distinct customers, or 1 customer + 1 driver tag |
+| **Landmarks** (church, mosque, roundabout, shop, "the old school") — §16's `landmarks` table | Names the AI extracts from address text, pinned by the order's door point | 2 distinct customers within 150 m, or a merchant or driver confirmation |
+| **Local street names** ("طريق الجامع", "the main road to Moukhtara") as aliases on OpenStreetMap roads | Text mentions whose pin sits within 40 m of an OSM road | 3 distinct orders |
+| **Place aliases** (Arabizi, French, colloquial spellings: "ba3aleen", "Baakline", "Ba'aqlin") | Customer text resolved to a place by the pin | 3 distinct customers (auto); before that, used as a hint only |
+| **Travel time corrections** | Fleet and driver-link traces vs OpenRouteService estimates, by place pair, hour, weekday and season | 20 trips per cell; until then ORS × the area's default factor |
+| **Prep time** per merchant | Accepted → ready, by hour, weekday and basket size | 20 orders |
+| **Handover time** per building or place | Arrived → delivered | 5 deliveries |
+| **Temporary road problems** (closure, checkpoint, flood, snow) | Driver tags, cluster of stalled traces | Expires after 6 h unless re-reported |
+
+Evidence rules: a confirmation by someone at the place (driver at the geofence, merchant) weighs more than text; one customer can never confirm alone anything other than their own address; contradictions demote to "unconfirmed" and go to a weekly review list that Claude processes (Rasheed sees only the count).
+
+### 28.2 How the AI uses it
+- Server tool `resolve_location(text, pin?, customer_id?)` returns ranked candidates (saved address, building, landmark, street, place) with confidence. The AI picks or asks **one** short question ("Near the Baakline municipality, or the one by the church?"). It never invents coordinates.
+- Server tool `describe_location(point)` gives the nearest confirmed landmark and building, used to read an address back to the customer and to describe it to the driver ("Behind Saint Elias church, Abou Fadi building, 3rd floor, green gate").
+- The AI only proposes observations (`observe_location`): a name, a note, an alias. The server stores them as evidence and promotes them by the thresholds above. Prices, fees and radii never depend on unconfirmed knowledge.
+- ETA = ORS duration × learned correction + learned prep + learned handover, shown as a range whose width shrinks as confidence grows.
+- Delivery fee bands still use road distance from ORS, pin to pin. Door points only improve the destination point once confirmed.
+
+### 28.3 Privacy (Law 81/2018)
+- A customer's addresses, pins, door points and notes are their personal data, visible only to them, the merchant and driver of their active order, and admins.
+- Buildings, landmarks, street names and aliases are shared knowledge only once 3 distinct people support them; they keep no link to who supplied the evidence.
+- "Delete my data" removes the customer's addresses, door points and evidence rows; shared entities that drop below their threshold are demoted.
+- Driver traces are kept 90 days at full detail, then reduced to the travel-time statistics.
+
+### 28.4 Quality numbers (measured from the first order; shown on the pilot scorecard, §7)
+- Address first-time-right: share of deliveries with no driver call and no live-location request. Target 80% by order 500 in an area.
+- Search time: `arrived` → `delivered` median. Target under 3 min.
+- Resolution questions: share of new addresses needing more than one question. Target under 20%.
+- ETA honesty: share of deliveries inside the promised range. Target 85%.
+**Kill-gate:** if after 300 deliveries in an area the first-time-right rate has not improved by 10 points over the first 100, the learning rules are reviewed (thresholds, extraction prompts) before more areas open. The knowledge base is never turned off; only its promotion rules change.
+
+### 28.5 Build placement
+- Phase 1b (session 2): tables for `addresses`, `door_points`, `buildings`, `landmarks` (extends §16), `street_aliases`, `place_aliases`, `location_evidence`, `travel_time_stats`, `prep_time_stats`, `road_incidents`, with PostGIS indexes and the promotion functions (empty, seeded only with §16 data).
+- Phase 3a (session 4): `resolve_location`, `describe_location`, `observe_location` tools, the location eval set (100 real-style Lebanese address messages in four languages, with expected places).
+- Phase 2 and Phase 5 (sessions 3 and 8): door points, tags, traces and prep and handover times written as orders flow.
+- A nightly job promotes and demotes evidence and recomputes statistics.
+
+### 28.6 Why OpenRouteService (answer to Rasheed, 7 October)
+ORS is the road-routing service for the whole system: road distance for the $2 / $3 / $4.50 fee bands and the 10 km limit (never straight line), the "can this merchant deliver here" check, ETAs, and dispatch (which driver is closest by road). It is OpenStreetMap-based, so it works for Lebanese villages and costs nothing on the free plan. The basic free key is correct. Results are cached 1-24 h (§3), so free limits are far above pilot volume; if a day ever comes close to the limit, the build logs it and opens an `owner` issue.
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
@@ -735,3 +880,4 @@ Rasheed's rule: Claude Code works and auto-merges, and never asks him.
 - Anthropic: models overview (platform.claude.com/docs/en/models/overview); Claude Code cloud sessions, auto-fix and projects (code.claude.com/docs).
 - 7 October: Tap Payments Lebanon page (payment links over WhatsApp, payouts to Lebanese banks); Whish fees page (payment links 3%, international card 3%, corporate account balance limit USD 30,000); Wakilni delivery page (24-72 h, $6-$15+); BdL Decision 13790 of January 2026 (EPSP licensing framework, five service categories); BdL card-fee circulars reported 10 September 2026 (0.9%-1.2% merchant commission cap in essential sectors).
 - 7 October 12:45: XStak 'best POS software in Lebanon' (June 2026: Omega POS, Hamster POS, XStak, BIM POS); Deliverect help centre (connects delivery channels to restaurant POS).
+- 7 October 14:50: ActiveCampaign help centre, "Unsupported message types with WhatsApp API" (live location not supported inbound); confirmed on the Kapso sandbox in session 4 (§27.1).
