@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MAPBOX_TOKEN } from "@/lib/config";
 
 type LL = [number, number];
 
@@ -53,9 +52,7 @@ function GlidingDriver({ to }: { to: LL }) {
 
 async function fetchRoute(a: LL, b: LL): Promise<LL[]> {
   const coords = `${a[1]},${a[0]};${b[1]},${b[0]}`;
-  const url = MAPBOX_TOKEN
-    ? `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`
-    : `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("route");
   const j = (await res.json()) as { routes?: { geometry: { coordinates: [number, number][] } }[] };
@@ -92,19 +89,10 @@ export default function TrackMap({
 
   return (
     <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom={false}>
-      {MAPBOX_TOKEN ? (
-        <TileLayer
-          url={`https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`}
-          tileSize={512}
-          zoomOffset={-1}
-          attribution='© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        />
-      ) : (
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-      )}
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      />
       {route && (
         <Polyline
           positions={route.pts}

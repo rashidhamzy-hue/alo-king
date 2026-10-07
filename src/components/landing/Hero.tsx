@@ -44,7 +44,7 @@ export function Hero() {
           className="mt-10 flex flex-wrap gap-3"
         >
           <Button variant="gold" size="lg" asChild>
-            <a href="#simulator">{t("cta_try")}</a>
+            <a href="#merchants">{t("cta_try")}</a>
           </Button>
           <Button variant="hairline" size="lg" asChild>
             <a href={WHATSAPP_LINK} target="_blank" rel="noreferrer">

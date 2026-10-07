@@ -6,6 +6,18 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// Vercel's Supabase integration sets SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or the NEXT_PUBLIC_
+// and legacy anon names). Map the public ones to the VITE_ names the app reads. Never the service key.
+const pick = (...names: string[]) => names.map((n) => process.env[n]).find(Boolean);
+process.env.VITE_SUPABASE_URL ||= pick("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL") ?? "";
+process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||=
+  pick(
+    "SUPABASE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ) ?? "";
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).

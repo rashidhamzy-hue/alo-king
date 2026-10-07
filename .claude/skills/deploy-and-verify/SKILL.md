@@ -25,4 +25,4 @@ Run the workflow manually on the PR branch with `staging=true` (GitHub Actions â
 - In sandboxes where `bun install` fails with 403 on the private npm mirror, install without the lockfile for verification only (`mv bun.lock /tmp; bun install --registry https://registry.npmjs.org; mv /tmp/bun.lock .`) and do not commit lockfile changes.
 
 ## Secrets / config reminders
-- `KAPSO_OTP_TEMPLATE` stays empty until `alo_verify_code` is APPROVED; `KAPSO_PROMO_TEMPLATE_AR`/`_EN` (defaults `alo_offer_ar` / `alo_offer_en_optout`) must be APPROVED marketing templates (see `docs/whatsapp-templates.md`).
+- `KAPSO_OTP_TEMPLATE` stays empty until `alo_verify_code` is APPROVED; `KAPSO_PROMO_TEMPLATE_AR`/`_EN` (defaults `alo_offer_ar` / `alo_offer_en_optout`) must be APPROVED marketing templates (see `docs/legacy/whatsapp-templates.md`).

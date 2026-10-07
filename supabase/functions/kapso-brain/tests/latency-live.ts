@@ -6,7 +6,7 @@
 import { writeFileSync } from "node:fs";
 import { buttonsOf, textOf } from "./harness.ts";
 
-const BASE = process.env.SUPABASE_URL ?? "https://hnjkietmwvkgbyrcnweq.supabase.co";
+const BASE = process.env.SUPABASE_URL ?? "https://tzugbbatfbvrfzxuacqx.supabase.co";
 const FN = process.env.FN ?? "kapso-brain-test";
 const TOKEN = process.env.SELFTEST_TOKEN ?? "";
 const CAP = Number(process.env.CAP_USD ?? 1.5), STOP_AT = CAP * 0.8; // a model-bound turn that starts just under the line can still add a few cents: keep a 20% margin

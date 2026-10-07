@@ -3,9 +3,6 @@ project_id = "alo-king"
 [functions.kapso-brain]
 verify_jwt = false
 
-[functions.demo-chat]
-verify_jwt = false
-
 [functions.claim-vendor]
 verify_jwt = true
 

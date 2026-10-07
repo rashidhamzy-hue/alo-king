@@ -7,7 +7,7 @@
 import { writeFileSync } from "node:fs";
 import { buttonsOf, textOf } from "./harness.ts";
 
-const BASE = process.env.SUPABASE_URL ?? "https://hnjkietmwvkgbyrcnweq.supabase.co";
+const BASE = process.env.SUPABASE_URL ?? "https://tzugbbatfbvrfzxuacqx.supabase.co";
 const FN = process.env.FN ?? "kapso-brain-test";
 const TOKEN = process.env.SELFTEST_TOKEN ?? "";
 const VENDOR = process.env.VENDOR ?? "al-tahouneh-restaurant-36524";
@@ -73,7 +73,7 @@ async function main() {
     m = await say("text", "'2 Jebneh Baladiyi from Serail El Bek'", P.text, process.env.TEXT_ORDER ?? "I want 2 Jebneh Baladiyi from Serail El Bek");
     await finishOrder("text", P.text, m);
   }
-  // Status updates (accepted, preparing, on the way, delivered + rating) are not driven by this script: move a test order through the statuses in the database and call `?job=order-watchdog` (dry run) after each step; the results are in docs/message-audit.md.
+  // Status updates (accepted, preparing, on the way, delivered + rating) are not driven by this script: move a test order through the statuses in the database and call `?job=order-watchdog` (dry run) after each step; the results are in docs/legacy/message-audit.md.
 }
 
 main().catch((e) => { console.error(String(e)); process.exitCode = 1; }).finally(() => {

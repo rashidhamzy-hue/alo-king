@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Structural guards for the fewer-messages work (docs/message-audit.md): which paths may send the optional "Add a drink?" card.
+// Structural guards for the fewer-messages work (docs/legacy/message-audit.md): which paths may send the optional "Add a drink?" card.
 const SRC = readFileSync(resolve(__dirname, "index.ts"), "utf8");
 const lineWith = (needle: string) => SRC.split("\n").filter((l) => l.includes(needle));
 

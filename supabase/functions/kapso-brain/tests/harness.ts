@@ -3,7 +3,7 @@
 // Needs: SELFTEST_TOKEN (live row of selftest_tokens). Never put real secrets in this folder.
 
 export const FN = process.env.FN ?? "kapso-brain-test";
-export const BASE = process.env.SUPABASE_URL ?? "https://hnjkietmwvkgbyrcnweq.supabase.co";
+export const BASE = process.env.SUPABASE_URL ?? "https://tzugbbatfbvrfzxuacqx.supabase.co";
 const URL_FN = `${BASE}/functions/v1/${FN}`;
 export const LBP_RATE = 89_500;
 export const DELIVERY_FEE = 2;
