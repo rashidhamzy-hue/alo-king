@@ -149,12 +149,20 @@ $$;
 
 -- Elevation range per zone from the terrain model.
 alter table b.zones add column elevation_min_m int, add column elevation_max_m int;
+-- Lebanon spans -0 to ~3,090 m; anything outside -450..3,100 is a nodata or void pixel.
+create function b.elev(v double precision) returns int language sql immutable as $$
+  select case when v between -450 and 3100 then round(v)::int end
+$$;
 update b.zones z set elevation_min_m = s.mn, elevation_max_m = s.mx
 from (
-  select z2.pcode, round((st_summarystatsagg(st_clip(r.rast, z2.geom, true), 1, true)).min)::int as mn,
-    round((st_summarystatsagg(st_clip(r.rast, z2.geom, true), 1, true)).max)::int as mx
-  from b.zones z2 join raw.dem r on st_intersects(r.rast, z2.geom)
-  group by z2.pcode
+  select x.pcode, b.elev(min(x.mn)) as mn, b.elev(max(x.mx)) as mx
+  from (
+    select z2.pcode, (st_summarystats(st_clip(r.rast, z2.geom, true), 1, true)).min as mn,
+      (st_summarystats(st_clip(r.rast, z2.geom, true), 1, true)).max as mx
+    from b.zones z2 join raw.dem r on st_intersects(r.rast, z2.geom)
+  ) x
+  where x.mn between -450 and 3100 and x.mx between -450 and 3100
+  group by x.pcode
 ) s
 where s.pcode = z.pcode;
 
@@ -263,7 +271,7 @@ where p.parent_id is null and p.kind = 'neighbourhood';
 
 -- 9. Elevation, zone type, winter risk (§16 rules; LOG.md has the thresholds).
 alter table b.p add column elevation_m int, add column zone_type text, add column winter_risk boolean;
-update b.p p set elevation_m = round(st_value(r.rast, p.geom))::int
+update b.p p set elevation_m = b.elev(st_value(r.rast, p.geom))
 from raw.dem r where st_intersects(r.rast, p.geom);
 update b.p p set zone_type = case
     when p.elevation_m is null then null
