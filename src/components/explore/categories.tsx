@@ -1,4 +1,13 @@
-import { Cake, Coffee, Croissant, LayoutGrid, ShoppingBasket, Store, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import {
+  Cake,
+  Coffee,
+  Croissant,
+  LayoutGrid,
+  ShoppingBasket,
+  Store,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
 
 export const CATEGORIES: { value: string | null; en: string; ar: string; icon: LucideIcon }[] = [
   { value: null, en: "All", ar: "الكل", icon: LayoutGrid },
@@ -9,7 +18,13 @@ export const CATEGORIES: { value: string | null; en: string; ar: string; icon: L
   { value: "Sweets", en: "Sweets", ar: "حلويات", icon: Cake },
 ];
 
-export function CategoryIcon({ cat, className }: { cat: string | null | undefined; className?: string }) {
+export function CategoryIcon({
+  cat,
+  className,
+}: {
+  cat: string | null | undefined;
+  className?: string;
+}) {
   const I = CATEGORIES.find((c) => c.value && c.value === cat)?.icon ?? Store;
   return <I className={className} aria-hidden />;
 }

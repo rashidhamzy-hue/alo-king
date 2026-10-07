@@ -27,7 +27,11 @@ export const DEFAULT_FILTERS: ExploreFilters = {
   sort: "relevance",
 };
 
-export async function exploreVendors(f: Partial<ExploreFilters>, limit = 24, offset = 0): Promise<ExploreRow[]> {
+export async function exploreVendors(
+  f: Partial<ExploreFilters>,
+  limit = 24,
+  offset = 0,
+): Promise<ExploreRow[]> {
   const { data, error } = await supabase.rpc("explore_vendors", {
     p_q: f.q?.trim() || null,
     p_village: f.village ?? null,

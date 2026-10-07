@@ -7,7 +7,12 @@ import { MAPBOX_TOKEN } from "@/lib/config";
 type LL = [number, number];
 
 const pin = (cls: string, label: string) =>
-  L.divIcon({ className: "", html: `<div class="ak-pin ${cls}">${label}</div>`, iconSize: [34, 34], iconAnchor: [17, 17] });
+  L.divIcon({
+    className: "",
+    html: `<div class="ak-pin ${cls}">${label}</div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  });
 const vendorIcon = pin("ak-pin-vendor", "R");
 const destIcon = pin("ak-pin-dest", "★");
 const driverIcon = pin("ak-pin-driver", "▲");
@@ -59,7 +64,15 @@ async function fetchRoute(a: LL, b: LL): Promise<LL[]> {
   return c.map(([lng, lat]) => [lat, lng]);
 }
 
-export default function TrackMap({ vendor, dest, driver }: { vendor: LL | null; dest: LL | null; driver: LL | null }) {
+export default function TrackMap({
+  vendor,
+  dest,
+  driver,
+}: {
+  vendor: LL | null;
+  dest: LL | null;
+  driver: LL | null;
+}) {
   const [route, setRoute] = useState<{ pts: LL[]; fallback: boolean } | null>(null);
   const vKey = vendor?.join(",");
   const dKey = dest?.join(",");
@@ -69,7 +82,9 @@ export default function TrackMap({ vendor, dest, driver }: { vendor: LL | null; 
     fetchRoute(vendor, dest)
       .then((pts) => alive && setRoute({ pts, fallback: false }))
       .catch(() => alive && setRoute({ pts: [vendor, dest], fallback: true }));
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [vKey, dKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const points = [vendor, dest, driver].filter(Boolean) as LL[];
@@ -85,10 +100,21 @@ export default function TrackMap({ vendor, dest, driver }: { vendor: LL | null; 
           attribution='© <a href="https://www.mapbox.com/">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
       ) : (
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
       )}
       {route && (
-        <Polyline positions={route.pts} pathOptions={{ color: "#f59e0b", weight: 4, opacity: 0.85, dashArray: route.fallback ? "8 10" : undefined }} />
+        <Polyline
+          positions={route.pts}
+          pathOptions={{
+            color: "#f59e0b",
+            weight: 4,
+            opacity: 0.85,
+            dashArray: route.fallback ? "8 10" : undefined,
+          }}
+        />
       )}
       {vendor && <Marker position={vendor} icon={vendorIcon} />}
       {dest && <Marker position={dest} icon={destIcon} />}

@@ -170,13 +170,16 @@ export type VendorPage = {
 export const vendorName = (v: { name_en: string | null; name_ar: string | null }) =>
   clean(v.name_en) || clean(v.name_ar) || "Unnamed";
 
-export const priceTier = (n: number | null | undefined) => (n && n > 0 ? "$".repeat(Math.min(4, n)) : null);
+export const priceTier = (n: number | null | undefined) =>
+  n && n > 0 ? "$".repeat(Math.min(4, n)) : null;
 
 export const waLink = (text: string, number = WHATSAPP_NUMBER) =>
   `https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 
 export const mapsLink = (lat: number | null | undefined, lng: number | null | undefined) =>
-  lat != null && lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : null;
+  lat != null && lng != null
+    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    : null;
 
 export const toLbp = (usd: number) => Math.round(usd * LBP_RATE);
 
@@ -186,7 +189,8 @@ export function categoryGradient(cat: string | null | undefined) {
   if (c.includes("caf")) return "from-gold/30 via-card to-background";
   if (c.includes("bak")) return "from-warning/30 via-card to-background";
   if (c.includes("groc") || c.includes("market")) return "from-success/25 via-card to-background";
-  if (c.includes("sweet") || c.includes("dessert")) return "from-destructive/25 via-card to-background";
+  if (c.includes("sweet") || c.includes("dessert"))
+    return "from-destructive/25 via-card to-background";
   return "from-emerald/60 via-card to-background";
 }
 
@@ -199,7 +203,9 @@ export function beirutNow(d = new Date()) {
     minute: "2-digit",
     hour12: false,
   }).formatToParts(d);
-  const wd = (parts.find((p) => p.type === "weekday")?.value ?? "Mon").slice(0, 3).toLowerCase() as DayKey;
+  const wd = (parts.find((p) => p.type === "weekday")?.value ?? "Mon")
+    .slice(0, 3)
+    .toLowerCase() as DayKey;
   const h = parts.find((p) => p.type === "hour")?.value ?? "00";
   const m = parts.find((p) => p.type === "minute")?.value ?? "00";
   return { day: wd, time: `${h === "24" ? "00" : h}:${m}` };

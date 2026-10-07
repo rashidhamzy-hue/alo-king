@@ -17,7 +17,8 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         gold: "bg-gold-gradient text-gold-foreground font-semibold shadow-glow-gold hover:brightness-110",
-        emerald: "bg-secondary text-secondary-foreground font-semibold shadow-glow-emerald hover:brightness-110",
+        emerald:
+          "bg-secondary text-secondary-foreground font-semibold shadow-glow-emerald hover:brightness-110",
         hairline: "hairline bg-transparent text-gold hover:bg-gold/10",
       },
       size: {

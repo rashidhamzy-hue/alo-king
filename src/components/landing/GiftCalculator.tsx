@@ -27,15 +27,25 @@ export function GiftCalculator() {
           <p className="text-xs uppercase tracking-[0.3em] text-gold">For the diaspora</p>
           <h2 className="mt-4 text-4xl font-semibold md:text-6xl">{t("gift_title")}</h2>
           <p className="mt-4 max-w-md text-muted-foreground">
-            From Dearborn, Paris or Dubai, send a hot meal or a grocery run to family in the Shouf, with a personal message at the door.
+            From Dearborn, Paris or Dubai, send a hot meal or a grocery run to family in the Shouf,
+            with a personal message at the door.
           </p>
         </div>
         <div className="lux-card p-7">
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-muted-foreground">Gift value</span>
-            <span className="font-display text-4xl font-semibold text-gold-gradient">{usd(value)}</span>
+            <span className="font-display text-4xl font-semibold text-gold-gradient">
+              {usd(value)}
+            </span>
           </div>
-          <Slider className="mt-5" min={10} max={150} step={1} value={[value]} onValueChange={(v) => setValue(v[0] ?? 10)} />
+          <Slider
+            className="mt-5"
+            min={10}
+            max={150}
+            step={1}
+            value={[value]}
+            onValueChange={(v) => setValue(v[0] ?? 10)}
+          />
           <dl className="mt-7 space-y-3 text-sm">
             <Row k="Delivery fee" v={usd(DELIVERY_FEE)} />
             <Row k="Card processing (illustrative, 2.9% + $0.30)" v={usd(processing)} />
@@ -46,22 +56,38 @@ export function GiftCalculator() {
             <Row k="King Crowns earned" v={`${crowns}`} />
           </dl>
           <div className="mt-7 rounded-lg bg-secondary/30 p-4">
-            <p className="flex items-center gap-2 text-sm font-medium"><Gift className="size-4 text-gold" /> Card checkout for gifts is coming soon</p>
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Gift className="size-4 text-gold" /> Card checkout for gifts is coming soon
+            </p>
             {joined ? (
-              <p className="mt-2 text-sm text-muted-foreground">You're on the waitlist. We'll reach out first.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                You're on the waitlist. We'll reach out first.
+              </p>
             ) : (
               <form
                 className="mt-3 flex gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (contact.trim().length < 5) { toast.error("Enter an email or WhatsApp number"); return; }
-                  localStorage.setItem("ak_gift_waitlist", JSON.stringify({ contact: contact.trim(), at: new Date().toISOString() }));
+                  if (contact.trim().length < 5) {
+                    toast.error("Enter an email or WhatsApp number");
+                    return;
+                  }
+                  localStorage.setItem(
+                    "ak_gift_waitlist",
+                    JSON.stringify({ contact: contact.trim(), at: new Date().toISOString() }),
+                  );
                   setJoined(true);
                   toast.success("You're on the waitlist");
                 }}
               >
-                <Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Email or WhatsApp" />
-                <Button type="submit" variant="gold">Join</Button>
+                <Input
+                  value={contact}
+                  onChange={(e) => setContact(e.target.value)}
+                  placeholder="Email or WhatsApp"
+                />
+                <Button type="submit" variant="gold">
+                  Join
+                </Button>
               </form>
             )}
           </div>

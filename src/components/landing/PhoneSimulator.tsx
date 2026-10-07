@@ -11,12 +11,21 @@ import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; content: string; orderId?: string | null };
 
-const CHIPS = ["High-protein lunch in Baakleen", "Vegan mezze under $8", "شو في مناقيش بالباكلين؟", "Gluten-free dinner"];
+const CHIPS = [
+  "High-protein lunch in Baakleen",
+  "Vegan mezze under $8",
+  "شو في مناقيش بالباكلين؟",
+  "Gluten-free dinner",
+];
 
 export function PhoneSimulator() {
   const { t } = useLang();
   const [msgs, setMsgs] = useState<Msg[]>([
-    { role: "assistant", content: "Ahla w sahla! I'm Alo King. Tell me what you're craving in the Shouf, in English or Arabic." },
+    {
+      role: "assistant",
+      content:
+        "Ahla w sahla! I'm Alo King. Tell me what you're craving in the Shouf, in English or Arabic.",
+    },
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -37,23 +46,39 @@ export function PhoneSimulator() {
       const res = await fetch(DEMO_CHAT_URL, {
         method: "POST",
         headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.slice(-8).map(({ role, content }) => ({ role, content })) }),
+        body: JSON.stringify({
+          messages: next.slice(-8).map(({ role, content }) => ({ role, content })),
+        }),
       });
-      if (res.status === 429) throw new Error("The demo is busy right now. Give it a few seconds and try again.");
-      if (!res.ok) throw new Error(`The assistant couldn't answer (${res.status}). Please try again.`);
+      if (res.status === 429)
+        throw new Error("The demo is busy right now. Give it a few seconds and try again.");
+      if (!res.ok)
+        throw new Error(`The assistant couldn't answer (${res.status}). Please try again.`);
       const data = (await res.json()) as { reply?: string; order_id?: string | null };
-      setMsgs((m) => [...m, { role: "assistant", content: data.reply || "…", orderId: data.order_id ?? null }]);
+      setMsgs((m) => [
+        ...m,
+        { role: "assistant", content: data.reply || "…", orderId: data.order_id ?? null },
+      ]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Network error";
       toast.error(msg);
-      setMsgs((m) => [...m, { role: "assistant", content: "Sorry, I couldn't reach the kitchen just now. Try again in a moment." }]);
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content: "Sorry, I couldn't reach the kitchen just now. Try again in a moment.",
+        },
+      ]);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <section id="simulator" className="mx-auto grid max-w-6xl items-center gap-14 px-5 py-24 md:grid-cols-2">
+    <section
+      id="simulator"
+      className="mx-auto grid max-w-6xl items-center gap-14 px-5 py-24 md:grid-cols-2"
+    >
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-gold">Live demo</p>
         <h2 className="mt-4 text-4xl font-semibold md:text-6xl">{t("sim_title")}</h2>
@@ -71,7 +96,9 @@ export function PhoneSimulator() {
             </button>
           ))}
         </div>
-        <p className="mt-6 text-xs text-muted-foreground">Nutrition figures from the assistant are approximate estimates.</p>
+        <p className="mt-6 text-xs text-muted-foreground">
+          Nutrition figures from the assistant are approximate estimates.
+        </p>
       </div>
 
       {/* Phone frame */}
@@ -125,7 +152,11 @@ export function PhoneSimulator() {
                 <div className="flex">
                   <div className="flex gap-1 rounded-2xl rounded-es-sm bg-wa-in px-4 py-3">
                     {[0, 1, 2].map((d) => (
-                      <span key={d} className="typing-dot size-1.5 rounded-full bg-muted-foreground" style={{ animationDelay: `${d * 0.15}s` }} />
+                      <span
+                        key={d}
+                        className="typing-dot size-1.5 rounded-full bg-muted-foreground"
+                        style={{ animationDelay: `${d * 0.15}s` }}
+                      />
                     ))}
                   </div>
                 </div>

@@ -8,7 +8,8 @@ import { CrownsCalculator } from "@/components/landing/CrownsCalculator";
 import { HowItWorks, Footer } from "@/components/landing/HowItWorks";
 
 const TITLE = "Alo King (ألو كينغ) — Order the Shouf, on WhatsApp";
-const DESC = "Zero-download food, grocery and local delivery across the Shouf, Lebanon. Text or voice-note on WhatsApp, with AI macro tracking.";
+const DESC =
+  "Zero-download food, grocery and local delivery across the Shouf, Lebanon. Text or voice-note on WhatsApp, with AI macro tracking.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
