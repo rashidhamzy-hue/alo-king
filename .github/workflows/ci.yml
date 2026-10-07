@@ -81,6 +81,36 @@ jobs:
           echo "::add-mask::$DB_URL"
           supabase db push --dry-run --db-url "$DB_URL"
 
+  db-tests:
+    name: migrations and RLS tests on a throwaway Supabase Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        # Same image family as Supabase hosted (auth schema, anon/authenticated/service_role, pgmq, PostGIS).
+        image: supabase/postgres:17.6.1.011
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+    env:
+      DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v5
+      - name: psql client
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Wait until Supabase init scripts have finished
+        run: |
+          for i in $(seq 1 90); do
+            if psql "$DB_URL" -tAc "select 1 from pg_namespace where nspname = 'auth'" 2>/dev/null | grep -q 1; then
+              sleep 3; exit 0
+            fi
+            sleep 2
+          done
+          echo "database did not become ready"; exit 1
+      - name: Apply migrations and run supabase/tests
+        run: scripts/db-test.sh
+
   review:
     name: Claude review
     runs-on: ubuntu-latest
@@ -134,7 +164,7 @@ jobs:
 
   automerge:
     name: automerge
-    needs: [checks, secret-scan, migrations, review]
+    needs: [checks, secret-scan, migrations, db-tests, review]
     if: >-
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&

@@ -3,7 +3,8 @@
 # Usage: scripts/check-migrations.sh <base-ref>
 set -euo pipefail
 base="${1:-origin/rebuild/lebanon}"
-pattern='\b(drop[[:space:]]+(table|column|schema|materialized[[:space:]]+view)|truncate|delete[[:space:]]+from)\b'
+# TRUNCATE counts only as a statement (start of line or after `;`), not inside `before truncate` triggers.
+pattern='\b(drop[[:space:]]+(table|column|schema|materialized[[:space:]]+view)|delete[[:space:]]+from)\b|(^|;)[[:space:]]*truncate\b'
 status=0
 while IFS= read -r f; do
   [ -f "$f" ] || continue
