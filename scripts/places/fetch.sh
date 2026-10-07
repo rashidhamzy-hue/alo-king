@@ -34,6 +34,9 @@ fi
 # 3. OpenStreetMap place nodes in Lebanon (ODbL).
 query='[out:json][timeout:300];area["ISO3166-1"="LB"][admin_level=2]->.lb;nwr["place"~"^(city|town|village|hamlet|suburb|quarter|neighbourhood|locality|isolated_dwelling)$"](area.lb);out center tags;'
 ok=""
+# Overpass is a shared public service: three rounds over three endpoints before giving up.
+for round in 1 2 3; do
+[ -n "$ok" ] && break
 for ep in https://overpass-api.de/api/interpreter https://overpass.kumi.systems/api/interpreter https://overpass.private.coffee/api/interpreter; do
   if curl -fsSL -A "$UA" --max-time 360 --data-urlencode "data=$query" -o osm.json "$ep" && jq -e '.elements | length > 500' osm.json >/dev/null; then
     echo "OSM: $ep ($(jq '.elements | length' osm.json) nodes, $(date -u +%FT%TZ))" | tee -a sources.txt
@@ -41,6 +44,8 @@ for ep in https://overpass-api.de/api/interpreter https://overpass.kumi.systems/
     break
   fi
   sleep 10
+done
+[ -n "$ok" ] || sleep 60
 done
 [ -n "$ok" ] || { echo "Overpass failed on every endpoint"; exit 1; }
 jq -r '["osm_id","lat","lon","place","name","name_ar","name_en","name_fr","int_name","alt_name","old_name","loc_name","official_name","population"],
