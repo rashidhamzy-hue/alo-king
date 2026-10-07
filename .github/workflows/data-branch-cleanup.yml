@@ -1,0 +1,40 @@
+name: data-branch-cleanup
+
+# Deletes the data/places-<run id> branches that places-build leaves behind once a build session has
+# reviewed them. Cloud sessions cannot delete branches they did not create, so the deletion runs here.
+# - workflow_dispatch with all=true: delete every data/places-* branch (run it after the seed PR merges).
+# - daily: delete data/places-* branches whose last commit is older than three days.
+# Only data/places-* branches are ever touched.
+on:
+  workflow_dispatch:
+    inputs:
+      all:
+        description: Delete every data/places-* branch
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete data branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALL: ${{ inputs.all || 'false' }}
+        run: |
+          cutoff=$(date -u -d '3 days ago' +%s)
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name' |
+            grep -E '^data/places-[0-9]+$' |
+            while read -r branch; do
+              if [ "$ALL" != "true" ]; then
+                date=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${branch}" --jq '.commit.committer.date')
+                [ "$(date -u -d "$date" +%s)" -lt "$cutoff" ] || continue
+              fi
+              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${branch}"
+              echo "deleted ${branch}" | tee -a "$GITHUB_STEP_SUMMARY"
+            done
