@@ -71,6 +71,12 @@ describe("guard hook", () => {
     expect(mcp("mcp__Vercel__buy_domain", { domain: "aloking.com" })).toBeTruthy();
   });
 
+  it("GitHub text (PR bodies, comments) may name Kabsi", () => {
+    expect(
+      mcp("mcp__github__create_pull_request", { body: `Blocks kabsi-prod (${KABSI})` }),
+    ).toBeNull();
+  });
+
   it("the Kabsi Kapso connector and Kabsi Sentry projects are blocked", () => {
     expect(mcp("mcp__Kabso__whatsapp_numbers", {})).toBeTruthy();
     expect(mcp("mcp__Sentry__search_issues", { projectSlugOrId: "kabsi-functions" })).toBeTruthy();

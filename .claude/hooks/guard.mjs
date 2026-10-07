@@ -44,7 +44,9 @@ export function check(input) {
 
   // Kabsi is a separate business: never touched. File edits may mention it (docs and these rules do);
   // calls that reach a service may not.
-  const reachesService = tool.startsWith("mcp__") || (tool === "Bash" && NETWORK_CLI.test(command));
+  const reachesService =
+    /^mcp__(Supabase|Vercel|Sentry|Kabso)__/.test(tool) ||
+    (tool === "Bash" && NETWORK_CLI.test(command));
   if (
     reachesService &&
     (text.includes(KABSI_REF) || /\bkabsi([-_.]?(prod|co)\b|-[a-z])/i.test(text))
