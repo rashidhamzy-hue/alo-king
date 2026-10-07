@@ -32,7 +32,7 @@ if [ -n "$cas" ]; then
 fi
 
 # 3. OpenStreetMap place nodes in Lebanon (ODbL).
-query='[out:json][timeout:300];area["ISO3166-1"="LB"][admin_level=2]->.lb;node["place"~"^(city|town|village|hamlet|suburb|quarter|neighbourhood|locality|isolated_dwelling)$"](area.lb);out body;'
+query='[out:json][timeout:300];area["ISO3166-1"="LB"][admin_level=2]->.lb;nwr["place"~"^(city|town|village|hamlet|suburb|quarter|neighbourhood|locality|isolated_dwelling)$"](area.lb);out center tags;'
 ok=""
 for ep in https://overpass-api.de/api/interpreter https://overpass.kumi.systems/api/interpreter https://overpass.private.coffee/api/interpreter; do
   if curl -fsSL -A "$UA" --max-time 360 --data-urlencode "data=$query" -o osm.json "$ep" && jq -e '.elements | length > 500' osm.json >/dev/null; then
@@ -44,7 +44,8 @@ for ep in https://overpass-api.de/api/interpreter https://overpass.kumi.systems/
 done
 [ -n "$ok" ] || { echo "Overpass failed on every endpoint"; exit 1; }
 jq -r '["osm_id","lat","lon","place","name","name_ar","name_en","name_fr","int_name","alt_name","old_name","loc_name","official_name","population"],
-  (.elements[] | [.id, .lat, .lon, .tags.place, .tags.name, .tags["name:ar"], .tags["name:en"], .tags["name:fr"], .tags.int_name,
+  (.elements[] | [(if .type == "node" then .id else (if .type == "way" then 2000000000000 + .id else 3000000000000 + .id end) end),
+   (.lat // .center.lat), (.lon // .center.lon), .tags.place, .tags.name, .tags["name:ar"], .tags["name:en"], .tags["name:fr"], .tags.int_name,
    .tags.alt_name, .tags.old_name, .tags.loc_name, .tags.official_name, .tags.population]) | @csv' osm.json > osm.csv
 
 # 4. Terrain model: Copernicus GLO-30 (1 arc-second) tiles covering Lebanon.
