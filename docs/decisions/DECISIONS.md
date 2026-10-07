@@ -1,6 +1,6 @@
 # Alo King decisions, 6 October 2026 (canonical, final)
 
-> **Update 6 Oct 2026, 16:10 (Beirut):** we run on free plans during the build. Lovable project deleted, repo private on GitHub's free plan, old Supabase project deleted (no dump was taken; nothing from it is needed), Sentry projects `alo-king-functions` and `javascript-tanstackstart-react` created, Anthropic API key ready. Claude created the Supabase project `alo-king-staging` (ref `tzugbbatfbvrfzxuacqx`, Frankfurt, free plan). The Vercel project `shouf-eats` already exists and is linked to the repo. Sections 2, 3, 9, 10 and 11 below are updated for this. Later the same day: sections 12 (WhatsApp Flows), 13 (NotebookLM brief) and 14 (owner preparation) added. 7 October: Kabsi confirmed a separate business; Kapso set-up and merchant call escalation decided. 7 October, 11:00: zones dropped as a launch mechanism, no field visits. 7 October, 12:00: Rasheed decided to keep the scraped vendor details; sections 15-18 rewritten (vendor data, menus, all-Lebanon places and categories, claims, merchant AI tools); repo instructions on branch `rebuild/lebanon` (pushed 7 October). 7 October, 11:45: payments and merchant credit decided (section 20); paid tools ready at launch.
+> **Update 6 Oct 2026, 16:10 (Beirut):** we run on free plans during the build. Lovable project deleted, repo private on GitHub's free plan, old Supabase project deleted (no dump was taken; nothing from it is needed), Sentry projects `alo-king-functions` and `javascript-tanstackstart-react` created, Anthropic API key ready. Claude created the Supabase project `alo-king-staging` (ref `tzugbbatfbvrfzxuacqx`, Frankfurt, free plan). The Vercel project `shouf-eats` already exists and is linked to the repo. Sections 2, 3, 9, 10 and 11 below are updated for this. Later the same day: sections 12 (WhatsApp Flows), 13 (NotebookLM brief) and 14 (owner preparation) added. 7 October: Kabsi confirmed a separate business; Kapso set-up and merchant call escalation decided. 7 October, 11:00: zones dropped as a launch mechanism, no field visits. 7 October, 12:00: Rasheed decided to keep the scraped vendor details; sections 15-18 rewritten (vendor data, menus, all-Lebanon places and categories, claims, merchant AI tools); repo instructions on branch `rebuild/lebanon` (pushed 7 October). 7 October, 11:45: payments and merchant credit decided (section 20); paid tools ready at launch. 7 October, 12:00: places list sources fixed after Rasheed's Gemini report (section 16); pre-build checklist complete.
 
 Drafted by Claude Sonnet 5.5 from the real repo; verified, corrected and finalised by Claude Opus 5.5 on 6 October 2026. This file overrides every other document. Manus reports are input only. Status words used below: VERIFIED (checked against an official or primary source today), DECIDED (Claude's call, final unless partners overrule), OPEN (needs a written answer from a provider or the lawyer; the build does not wait for it).
 
@@ -143,7 +143,7 @@ The build does not start until every line below is ✅.
 |---|---|---|
 | Repo private, Claude GitHub App installed | ✅ private; app installed, push access confirmed 7 October | none |
 | Repo name | ✅ `rashidhamzy-hue/alo-king` (old repo now `alo-king-legacy`) | none |
-| Repo instructions | ✅ Pushed 7 October: branch `rebuild/lebanon` with the new `CLAUDE.md`, `AGENTS.md` and this file at `docs/decisions/DECISIONS.md`; `main` is legacy and frozen. Claude cannot change repository settings | Rasheed: GitHub → Settings → General → Default branch → `rebuild/lebanon` |
+| Repo instructions | ✅ Pushed 7 October: branch `rebuild/lebanon` with the new `CLAUDE.md`, `AGENTS.md` and this file at `docs/decisions/DECISIONS.md`; default branch set to `rebuild/lebanon` (verified); `main` is legacy and frozen | none |
 | Supabase `alo-king-staging` (ref `tzugbbatfbvrfzxuacqx`, Frankfurt) | ✅ healthy, empty: 0 tables, 0 migrations, 0 functions | none |
 | Supabase ↔ GitHub integration | ✅ disconnected | none |
 | Supabase ↔ Vercel integration | ✅ confirmed by Rasheed as `alo-king-staging` | Phase 0 maps its variable names to the app's |
@@ -273,13 +273,26 @@ All imported vendors start as `claim_status = unclaimed`, `orderable = false`, `
 Checked in full: `beirut_menus.json` and `chouf_aley_baabda_menus.json`; the other four come from the same scraper and share its format. Each entry holds at most 30 sample lines of website text, not a menu. Most entries are Instagram stubs (one line: "Instagram"), site navigation, cookie banners, empty app templates (`{{item.title}}`), "domain expired" pages, or unrelated sites (gas companies, hotels, an NGO). One restaurant's domain now serves a Turkish gambling site (`gialacucinadamore.com`), so its link must never be shown. A small minority contain real items and prices (for example Olivo in Bhamdoun, Bachir delivery, Beirut Waves, Jebneh w Zebdeh, Good Morning in Aley), but prices from websites are often outdated.
 Decision: no menu text is imported. From these files only a checked `menu_source_url` per vendor is kept. Menus are built at claim time from what the merchant provides (section 18.3), and the stored link is offered as "import your menu from this link?" with one tap.
 
-## 16. All-Lebanon places list (DECIDED)
-One list of every city, town, village and named neighbourhood in Lebanon, ready before launch; launch areas are chosen later by switching places on.
-- Fields: `id`, `name_ar`, `name_en`, `name_fr`, `aliases` (Arabizi and common spellings, e.g. Baakline / Baaqline / Ba3qlin / بعقلين), `kind` (city, town, village, neighbourhood), `governorate`, `district` (qada), `municipality`, `centroid`, `boundary` where available, `parent_id` (neighbourhood → city), `service_status` (`off`, `on`, `paused`), `paused_reason`.
-- Sources: the official governorate, district and municipality list (Ministry of Interior / CAS), cross-checked with OpenStreetMap place names and boundaries (ODbL licence, attribution in the site footer). Built by a script in GitHub Actions (cloud sessions cannot reach OpenStreetMap servers), stored as a seed file in the repo, reviewed by Claude for missing villages and duplicate spellings.
-- South: every place in the South and Nabatieh governorates is loaded with `service_status = paused`, `paused_reason = security`, so nothing there can be ordered until a person switches it on. Nothing else is special-cased.
+## 16. All-Lebanon places list (DECIDED; sources fixed 7 October)
+One list of every inhabited place in Lebanon, ready before launch; launch areas are chosen later by switching places on.
+
+Structure (confirmed by Rasheed's Gemini report "Lebanese Villages and Logistics Mapping"): 9 governorates (Beirut, Mount Lebanon, Keserwan-Jbeil, North, Akkar, Beqaa, Baalbek-Hermel, South, Nabatieh), 26 districts, about 1,030-1,050 municipalities, 1,623 cadastral zones. The report lists only about 166 villages and misses some we need (Bakaata, Semqanieh), and its elevations and distances are unsourced, so it is used for structure and design, not as the data.
+
+Sources, in order:
+1. Polygons and codes: OCHA/HDX "Lebanon - Subnational Administrative Boundaries" (COD-AB, from CDR, updated November 2024): governorates, districts and the cadastral zones, each with a P-code. HDX still uses 8 governorates; the build maps Keserwan and Jbeil districts into the Keserwan-Jbeil governorate.
+2. Arabic and official names: the CAS cadastral name and P-code list (HDX / Open Data Lebanon).
+3. Villages, hamlets and city neighbourhoods inside cadastral zones, plus common spellings: OpenStreetMap place points (ODbL; attribution in the site footer).
+4. Arabizi and colloquial spellings (Ba3qlin, Baaqline, Beit el Din): generated by Claude, reviewed against real customer messages over time.
+Built by a script in GitHub Actions (cloud sessions cannot reach these sites), stored as a seed file in the repo, checked by Claude for missing places and duplicates.
+
+Fields: `id`, `pcode`, `name_ar`, `name_en`, `name_fr`, `aliases`, `kind` (city, town, village, hamlet, neighbourhood), `governorate`, `district`, `municipality`, `sub_region` (e.g. Chouf el-Aala, Iklim el-Kharroub, Matn el-Aala), `zone_type` (coastal, lower mountain, middle mountain, high mountain, inland valley, semi-arid), `elevation_m` (from a terrain model, not from the report), `winter_risk` (true for places that regularly get snow and road closures, e.g. Faraya, Kfardebian, Ehden, Bcharre, Tannourine), `centroid`, `boundary`, `parent_id`, `service_status` (`off`, `on`, `paused`), `paused_reason`.
+
+Rules:
 - Every place starts `off`. Switching a place `on` is one admin action, recorded in the audit log.
-- Customer addresses always point to a place; free text alone is never an address.
+- South and Nabatieh governorates: all places loaded with `service_status = paused`, `paused_reason = security`.
+- Customer address: first ask for the WhatsApp location pin (Meta's native location-request message); the server snaps the pin to its place by polygon. Only if no pin is possible: pick district, then place, from lists (or the `address_capture` Flow). Free text alone is never an address.
+- Landmarks: a `landmarks` table (place, name in Arabic and English, aliases, point) grows from confirmed customer and merchant addresses; the bot uses the nearest landmark within 750 m to describe a pin back to the customer and the merchant.
+- `winter_risk` places get a wider ETA range and a winter notice from November to April; merchants there can set a smaller winter delivery radius.
 
 ## 17. Categories (DECIDED)
 Two levels plus flags, the same for vendors, menus, search and AI.
@@ -325,8 +338,6 @@ On a successful claim the profile opens pre-filled from the seed (name, address,
 Claims, registration, pre-fill, profile and menu editing (dashboard and WhatsApp) and the smart menu are Phase 3. Offers, paid broadcast, paid recommendations, insights and Alo King Credit are Phase 8 and are required before launch (decided 7 October).
 
 ## 19. Owner reminders (Claude raises these at every check until done)
-- Change the GitHub default branch to `rebuild/lebanon`.
-- Re-send the Gemini report on Lebanese villages and cities (it did not reach the project or the chat on 7 October).
 - Whish: send the question list in section 20.5 and get API documents and a sandbox key. After the SARL exists (about 17 October): open Alo King's own Whish business account.
 - Buy `aloking.com`; then create the browser Google key restricted to `aloking.com` and `*.vercel.app` and add it to Vercel's environment settings.
 - Before launch, Google Cloud spending limits (10 minutes): (1) console.cloud.google.com → Billing → Budgets & alerts → Create budget → $5 a month, alerts at 50%, 90%, 100% to Rasheed's email. (2) APIs & Services → Places API (New) → Quotas & system limits → set per-day caps: Text Search 150, Place Details 300, Autocomplete 300. (3) APIs & Services → Credentials → the server key → API restrictions → only Places API (New).
@@ -383,6 +394,7 @@ Broadcast margin check: Meta charges $0.0392 per delivered marketing message in 
 - GitHub community reports: free-plan private repos cannot use branch protection or rulesets.
 - Vercel Hobby plan page (non-commercial use only); Supabase pricing (free plan: 2 active projects, pause after a week of inactivity; Pro $25 a month).
 - Vendor file and menu files: checked by Claude on 7 October (section 15).
+- Places: Rasheed's Gemini report (structure only); OCHA/HDX COD-AB Lebanon (data.humdata.org/dataset/cod-ab-lbn); CAS cadastral names and P-codes (data.humdata.org/dataset/lebanon-cadastral-name-and-pcodes).
 - Google: Places API policies (place_id storage, attribution), Places data fields (SKU per field), Maps Platform pricing (free monthly caps).
 - Kapso docs: pricing FAQ, flows (Kapso integration, static vs dynamic, data endpoint), webhooks advanced. Flows client support and pricing: infiq.in Flows guide; Flowella (Web/Desktop rollout Dec 2025). GoDaddy availability check for aloking.com.
 - Anthropic: models overview (platform.claude.com/docs/en/models/overview); Claude Code cloud sessions, auto-fix and projects (code.claude.com/docs).
