@@ -17,6 +17,9 @@ process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||=
     "SUPABASE_ANON_KEY",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   ) ?? "";
+// Sentry environment and release from Vercel's system variables.
+process.env.VITE_VERCEL_ENV ||= process.env.VERCEL_ENV ?? "";
+process.env.VITE_VERCEL_GIT_COMMIT_SHA ||= process.env.VERCEL_GIT_COMMIT_SHA ?? "";
 
 export default defineConfig({
   tanstackStart: {
