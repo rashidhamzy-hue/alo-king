@@ -548,13 +548,15 @@ export function normalizeVendors(rows: RawVendor[]): NormalizeResult {
     const d = siteDomain(v.links);
     if (d) byDomain.set(d, [...(byDomain.get(d) ?? []), v]);
   }
-  // One phone on listings that share a distinctive name word (Ata / Ata ice cream, ملحمة الجمال /
+  // One phone on listings in one region that share a distinctive name word (Ata / Ata ice cream, ملحمة الجمال /
   // مطعم الجمّال) is one business listed twice: a brand, so the phone is kept.
   const byPhone = new Map<string, VendorRow[]>();
   for (const v of vendors)
     if (v.phone_seed) byPhone.set(v.phone_seed, [...(byPhone.get(v.phone_seed) ?? []), v]);
   const samePhoneBusiness = [...byPhone.values()].filter((group) => {
     if (group.length < 2) return false;
+    const regions = new Set(group.map((v) => v.import_labels.region_code));
+    if (regions.size > 1) return false;
     const [head, ...rest] = group.map(nameWords);
     return [...head].some((w) => rest.every((r) => r.has(w)));
   });
