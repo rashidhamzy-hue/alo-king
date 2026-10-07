@@ -718,102 +718,152 @@ Rasheed's rule: Claude Code works and auto-merges, and never asks him.
 | `gokapso/whatsapp-support-agent` (Bun + Slack) | **Not used** | Its "answer if confident, else hand to a human" pattern is already in §2's escalation; Slack is not in our stack |
 | `gokapso/claude-code-whatsapp` | **Rejected** | Runs Claude Code on GitHub repos from WhatsApp messages in remote sandboxes with repo tokens: a needless attack path. Builds run in claude.ai/code only |
 
-## 27. Delivery operations: drivers, tracking and proof (DECIDED, 7 October 14:50)
-Extends section 21 (which stays: three modes, one `delivery_provider` adapter, fleet opening rule, cash custody, partner kill-gate). This section decides how drivers in every mode are connected, chosen, tracked and proven, and what WhatsApp live location is used for.
+## 27. Delivery operations: drivers, live tracking and the dispatch brain (DECIDED, 7 October 15:30; replaces the 14:50 version)
+Extends section 21, which stays: three modes, one `delivery_provider` adapter, the fleet opening rule, cash custody and the partner kill-gate. This section decides how every driver in every mode is connected, tracked, chosen, watched and proven, and how WhatsApp live location is used both ways.
 
-### 27.1 The fact that shapes everything: our API cannot see WhatsApp live location
-VERIFIED (ActiveCampaign's WhatsApp API help page, 7 October; consistent with Meta's unsupported-message webhook): the WhatsApp Business Platform does not receive live location. A live location shared with our number arrives as an `unsupported` message. A static location pin does arrive (type `location`). Session 4 confirms both on the Kapso sandbox number and records the payloads as fixtures.
+### 27.1 Principles
+1. **Two tracking layers, always both.**
+   - *System tracking* (our app, our link or the partner API) is what the dispatch brain sees and decides on.
+   - *WhatsApp live location*, shared person to person, is what the customer sees inside WhatsApp.
 
-Consequences, DECIDED:
-- **Our own tracking never depends on WhatsApp live location.** Driver positions come from our driver app (fleet), our driver link (merchant drivers) or the partner's API.
-- **WhatsApp live location is used person-to-person only**, where it is genuinely the best tool: the customer shares it directly with the driver (or the driver with the customer) in the last few hundred metres. We create the moment with a button; we never see or store the stream.
-- When a customer sends us a live location, the bot replies once: "Live location doesn't reach us. Please send your current location (📎 → Location → Send your current location)", with a native location request. Never a loop: second failure goes to the `address_capture` Flow or the district/place lists.
+   VERIFIED (ActiveCampaign WhatsApp API help, 7 October): the WhatsApp Business Platform cannot receive live location; it arrives as an `unsupported` message. So WhatsApp live location can never feed our system, and our system never depends on it. It is still the most trusted tracking a Lebanese customer knows, so we use it on every order.
+2. **Every driver is tracked from pickup to handover, in every mode.** No tracked position means no "Live" label, a wider ETA range and a lower quality score, never a silent gap.
+3. **The dispatch brain is deterministic server code, not an LLM.** It runs on events plus a 15-second tick. The LLM only explains (customer asks "where is my order?") and drafts operator summaries. Assignments, reassignment, ETAs and alerts are computed, logged and replayable.
+4. **One driver app for everyone who drives.** The Alo King Driver app serves fleet drivers and, free, merchants' own drivers. For merchants it doubles as their own fleet tool, with their drivers on a map in the dashboard. The no-install fallback stays for drivers who refuse.
 
-### 27.2 How drivers are connected, per mode
-| | Alo King fleet | Merchant's own driver | Partner |
-|---|---|---|---|
-| Identity | Driver account, verified remotely (§21.3) | Merchant staff with the new role `driver` (added to §18.1 H), invited by the owner by phone number | Partner account; their courier name and phone come from the partner API |
-| Device | **Alo King Driver app: the PWA wrapped with Capacitor as an Android app** (change to §21.3: a plain PWA cannot track in the background on Android or iOS). iOS drivers use the PWA with the screen on during a job | **No install.** Each job arrives on WhatsApp from the Merchant number with a signed driver link (valid until delivered + 2 hours) | Partner's own app |
-| Location | Background GPS: every 10 s or 50 m while on a job, every 60 s when online and idle, nothing when offline | Foreground GPS while the driver link is open (the page asks once and keeps the screen awake). Optional: the driver can reply with a static WhatsApp pin, which counts as one ping | Partner API or webhook, mapped to our states; position only if the partner provides it |
-| Offline (mountains, dead zones) | Every step is recorded on the phone with its own timestamp and GPS fix and synced when the signal returns; the server accepts late events in order | Link page queues taps the same way | Partner's problem; we time out on status |
-| Online/offline | Shift toggle; auto-offline after 15 min with no heartbeat; no offers while the phone reports battery under 15% | Merchant marks drivers available in the portal | Partner's availability per quote |
+### 27.2 How every driver stays connected
+| | Alo King fleet | Merchant driver, with the app (target) | Merchant driver, no app (fallback) | Partner courier |
+|---|---|---|---|---|
+| Identity | Fleet driver account, remote verification (§21.3) | Merchant staff role `driver` (added to §18.1 H), invited by phone; signs in by WhatsApp OTP from the Merchant number | Same staff role | Partner account; courier name, phone and vehicle from the partner API |
+| Device | **Alo King Driver: Android app** (the PWA wrapped with Capacitor, background location; change to §21.3). iOS: the PWA with screen kept on during jobs | Same app | WhatsApp job card from the Merchant number plus a signed driver link (expires delivery + 2 h) | Partner app |
+| System tracking | Online: every 60 s; on a job: every 10 s or 50 m; offline: none | On a job only (merchant drivers are not tracked off the job) | While the link page is open (foreground); any static pin the driver sends counts as a ping | Partner API position; required at ≤ 30 s in every partner contract (§21.5 request for quote) |
+| Job offers | Push notification with loud sound (Firebase Cloud Messaging, free); if not opened in 10 s, a WhatsApp message from the Merchant number | Push, or WhatsApp | WhatsApp | Partner API |
+| Dead zones | Steps and positions queue on the phone with timestamps; synced on reconnect | Same | Taps queue in the page | Partner's |
+| Health checks | Heartbeat; auto-offline after 15 min silent; no offers below 15% battery or with location permission off; Android mock-location flag = suspended pending review | Same while on a job | — | Partner SLA timers |
 
-Merchant drivers can run a whole job inside WhatsApp: the job card from the Merchant number carries the pickup, the customer's pin as a native location message, "Call customer", "Open driver link" and "Delivered" buttons. The link adds live tracking and geofenced proof; it is encouraged, not required. Merchants whose deliveries are tracked earn the "Live tracking" badge and better quality score (§20.5); paid placement still never touches organic ranking.
+Data cost to drivers is small (about 10 MB a shift); no allowance at launch.
 
-Phone numbers: Lebanon has no practical call-masking. The driver sees the customer's or recipient's number (Lebanese delivery depends on calls); the customer sees the driver's first name and gets a "Call driver" button. Driver terms forbid keeping or reusing customer numbers; the number disappears from the driver's app and link 2 hours after delivery.
+### 27.3 WhatsApp live location, both directions
+**Driver → customer (every order, every mode):** at `picked_up`, the driver's job screen shows one step: **"Share live location with the customer (1 hour)"**. It opens a WhatsApp chat with the customer (wa.me link, pre-filled "Hi, I'm Ali from Alo King with your order from X"), where the driver taps 📎 → Location → Share live location → 1 hour.
+- **Fleet:** the step is mandatory. The app records the tap, and the order shows "Live" to the customer.
+- **Merchant drivers:** the same step is on the app, the link and the WhatsApp job card.
+- **Partners:** contractually required where the partner allows it; otherwise our tracking page only.
+- When the driver taps "Delivered", the app reminds them to stop sharing; WhatsApp's 1-hour limit ends it anyway.
 
-### 27.3 How a driver is chosen
-- **Mode:** server only, per §21.2 (merchant → fleet → partner), never the AI.
-- **Fleet dispatch (automatic):** dispatch is timed to food readiness, not to acceptance: the offer goes out at `ready_at − driver_eta_to_pickup − 2 min`, so drivers don't wait at counters and food doesn't wait for drivers. Candidates are online drivers inside the area, scored:
-  - road time to pickup (largest weight)
-  - current load: one active order may batch with a second only under §21.3's rule (pickups within 1 km, second drop adds under 8 min)
-  - COD headroom: a COD order needs the driver's cash-in-hand plus this order under $150
-  - vehicle fit: water and gas jobs only to drivers flagged for heavy loads; winter-risk places (§16) only to drivers flagged for winter roads from November to April
-  - reliability: acceptance and on-time rate over 14 days
-  - fairness: drivers below the area's median earnings today get a small boost
+**Customer → driver (on demand):** when the driver is at `near_drop` (≤ 500 m) and the drop confidence (§28) is below "high", or the building is tagged hard to find, or it is after sunset, the customer gets the button **"Share live location with your driver"**. It opens the driver's chat for a person-to-person live share. The driver app shows "Ask for live location" at any time after `arrived`.
 
-  The offer goes to one driver for 30 s, then the next; after 2 refusals the top 3 see it at once and the first tap wins; after 3 refusals an operator is alerted (§21.3). Weights live in config and are tuned from data, not guessed again in code.
-- **Merchant mode:** the merchant assigns a driver in the portal or by button ("Assign: Ali / Hassan"). A driver can also claim from the merchant's open jobs. If nobody is assigned 5 min after "ready", the merchant gets "Need a driver?" (one tap hands it to fleet or partner when they are on there; otherwise a reminder and the §2 escalation).
-- **Partner mode:** booked at checkout with the partner chosen by config for the area and hour (SLA first, price second). If the partner has not assigned a courier 10 min before ready time, we rebook with the next partner, or alert the operator.
-
-### 27.4 One status model for all modes
-`accepted → preparing → ready → driver_assigned → at_pickup → picked_up → near_drop (≤ 500 m) → arrived (≤ 100 m) → delivered | failed`.
-Fleet produces every state from the app and geofences. Merchant mode produces what the merchant and driver tap, plus geofence states when the driver link is open. Partner states are mapped by the adapter. Missing states are allowed; the customer only ever sees states we actually have.
-
-### 27.5 What the customer sees, and where live location helps
-Customer messages per order stay within the §6 cost model (about 11):
+**What the customer gets in the Alo King chat** (within the §6 cost model):
 1. Accepted, with the ETA range.
-2. Out for delivery, with the signed tracking link.
-3. **"Your driver is about 3 minutes away"**, sent once at `near_drop`, with two buttons:
-   - "Share live location with driver": opens a WhatsApp chat with the driver (wa.me link) where the customer shares live location person-to-person. Offered only when the drop pin's confidence (§28) is below "high", or the building has a "hard to find" note, or it's dark (after sunset).
-   - "Call driver".
-4. Delivered, with a "Received ✅ / Problem" pair.
+2. On the way: the driver's first name, a photo (fleet), "Ali is sharing his live location with you on WhatsApp", the tracking link and "Call driver".
+3. "About 3 minutes away" (once, at `near_drop`), with the live-location button when the conditions above hold.
+4. Delivered, with "Received ✅ / Problem".
 
-Tracking page: the driver's position is shown only between `picked_up` and `delivered`, updated every 15 s, never after delivery, never the customer's own pin on the public part (§3 stays). Merchant-mode orders without a driver link show status and the ETA range only.
+The tracking page shows the system position every 15 s between `picked_up` and `delivered`, never afterwards, never the customer's own pin publicly (§3 stays).
 
-Driver side, mirror image: when the driver is at `arrived` for more than 2 min without `delivered`, the app or link shows "Ask customer to share live location", which sends the customer the button above, and "Call". After 2 calls and 10 min, §22.2 scenario 12 applies.
+**Send Home:** the recipient gets the driver's live share and the near-drop message. The sender gets status and the tracking link with the driver dot only, never the recipient's exact pin.
 
-Send Home: the recipient gets the "about 3 minutes away" message and the live-location button; the sender gets status only, never the driver's position or the recipient's address detail beyond the area.
+**Numbers:** Lebanon has no practical call masking, so driver and customer see each other's WhatsApp numbers. Driver terms forbid keeping or reusing customer numbers. The app hides the customer's number 2 h after delivery. Customers can report misuse in one tap; a confirmed report ends a fleet contract or a merchant driver's access.
+
+### 27.4 The dispatch brain: assignment
+Triggered the moment an order is accepted, re-evaluated on every event and every 15 s until `picked_up`.
+
+**Step 1, mode** (server, per §21.2): merchant → fleet → partner. Before the customer confirms, the brain checks capacity: if no driver in any open mode can reach the pickup by `ready_at + 10 min`, the customer is shown a wider ETA or "pickup only" *before* paying. We never promise a delivery we can't staff.
+
+**Step 2, driver** (fleet, and merchant drivers using the app):
+1. **Idle drivers first.** Rasheed's rule: the closest available driver with no current order gets it. "Closest" means road time to the pickup (ORS, corrected by §28), not straight line.
+2. A driver with one active order is considered only if no idle driver can reach the pickup by `ready_at + 5 min`, and only under §21.3's batching rule (pickups within 1 km, second drop adds under 8 min, max 2 orders).
+3. Hard filters:
+   - COD headroom: cash-in-hand plus this order under $150
+   - vehicle fit: water and gas to heavy-load drivers only
+   - winter roads: winter-risk places (§16) from November to April only to drivers flagged for them
+   - battery: at least 20%
+   - not on a break
+4. Ties go to reliability (14-day acceptance and on-time), then to the driver with the lower earnings today (fairness).
+
+**Step 3, timing.** The offer goes out at `ready_at − driver ETA to pickup − 2 min`, so the driver arrives as the food is bagged. For idle drivers far away, the offer goes immediately. `ready_at` uses the merchant's learned prep time (§28), not the merchant's promise alone.
+
+**Step 4, offer.** One driver, 30 s; then the next; after 2 refusals the top 3 at once, first tap wins; after 3 refusals the operator is alerted (§21.3). Refusals with "too far" or "unsafe" reasons don't count against the driver.
+
+**Merchant mode:**
+- *With the app:* the brain suggests the closest idle merchant driver, and the merchant confirms with one tap or overrides. With auto-assign on, it assigns.
+- *No app:* the merchant assigns from the order card, or a driver claims the job from the merchant's open jobs.
+- *Unassigned at `ready_at + 5 min`:* the merchant gets "Need a driver?", which hands the order to the fleet or a partner where open.
+
+**Partner mode:** booked when the order is accepted, with the partner chosen by config for the area and hour (SLA first, price second). No courier assigned 10 min before `ready_at` means rebooking with the next partner, or the operator.
+
+**Pre-positioning (fleet):** idle drivers get a soft suggestion to wait near the area's hot spot for the next hour, from §28's demand history. It is never forced and earns no penalty.
+
+### 27.5 The dispatch brain: monitoring every active order
+One status model for all modes: `accepted → preparing → ready → driver_assigned → heading_to_pickup → at_pickup → picked_up → near_drop (≤ 500 m) → arrived (≤ 100 m) → delivered | failed`. Partner states are mapped by the adapter. A state we don't have is never shown to the customer.
+
+The brain checks each active order every 15 s and acts. Thresholds live in config.
+
+| Signal | Action |
+|---|---|
+| Merchant not "ready" 5 min after `ready_at` | Ping the merchant ("ready in?" buttons); tell the waiting driver; shift the ETA |
+| Driver's ETA to pickup rising for 3 min | Ping the driver; at 5 min reassign (fleet) or alert the merchant (merchant mode) |
+| Waiting at pickup over 8 min | Logged against merchant prep accuracy; customer gets a new ETA only if it slips over 10 min (one message) |
+| After pickup, distance to the drop not shrinking for 4 min while moving | App asks the driver "all OK?" with the route; no answer in 2 min means a call to the driver |
+| Stopped over 5 min mid-route (not at pickup or drop) | Same as above; at 10 min the operator calls and the order may be reassigned with re-preparation at Alo King's cost (fleet) |
+| No position for 3 min on a job | ETA range widens; at 10 min the operator calls the driver |
+| `arrived` for 3 min without `delivered` | Live-location button to the customer plus "Call" on the driver screen; at 10 min §22.2 scenario 12 |
+| "Delivered" more than 150 m from the drop | Driver must give a reason and a photo; over 500 m with no code, the customer is asked at once "did you get your order?" |
+| Food age (picked up → now) over 40 min | Customer apology message; logged for the driver and the area |
+| Speed over 100 km/h sustained for 1 min | Recorded; three in a week means a safety warning, and repeats affect offers |
+| SOS | Position to the operator and Rasheed; offers paused; order reassigned |
+| Driver's cash over the limit | No COD offers until a deposit (§21.4) |
+| Mock location detected | Driver suspended pending review; open jobs reassigned |
+
+The **operator** is whoever holds the operator role (Rasheed at pilot only for exceptions; a hired operator once a fleet area opens). The operator sees one live board: every active order, every online driver on a map, and the alert list sorted by customer impact. The LLM writes the one-line summary on each alert ("Ali stopped 6 min near Beiteddine checkpoint; food age 22 min; next nearest idle driver 9 min away").
 
 ### 27.6 Proof of delivery
-| Check | Fleet | Merchant driver with link | Merchant driver without link | Partner |
+| Check | Fleet | Merchant driver, app or link | Merchant driver, WhatsApp card only | Partner |
 |---|---|---|---|---|
-| Geofence: "Delivered" tapped within 150 m of the drop pin or learned door point (§28) | required; outside it the tap needs a reason and photo | logged; outside it flags the order | not available | partner proof |
-| Photo of the handover (bag at the door or in hand, never the customer's face) | required | optional | — | partner proof |
-| 4-digit code from the customer (sent in the delivered-soon message) | orders over $50, every Send Home order, every new customer's first COD order | same | same, entered on the WhatsApp card | same, passed to the partner |
-| Customer "Received" tap | asked every time; silence for 30 min = accepted unless a problem is reported within 24 h | same | same | same |
-| COD | amount collected and currency entered; feeds §21.4 custody | merchant keeps cash | merchant keeps cash | partner remits |
+| Geofence: "Delivered" within 150 m of the drop or learned door point (§28) | required | recorded, flags if outside | not available | partner proof |
+| Handover photo (bag at the door or in hand, never faces) | required | optional | optional (sent to the Merchant number) | partner proof |
+| 4-digit customer code | orders over $50, every Send Home order, a new customer's first COD order | same | same, typed on the card | passed to the partner |
+| Customer "Received" | asked every time; 30 min silence counts as accepted unless a problem is reported within 24 h | same | same | same |
+| Cash | amount and currency entered; §21.4 custody | merchant keeps it | merchant keeps it | partner remits |
 
-A "Delivered" more than 500 m from the drop with no code gets an immediate "Did you receive your order?" to the customer; a "no" opens an incident and holds that driver's next payout line (fleet) or flags the merchant (merchant mode).
+### 27.7 Driver lifecycle (fleet; merchant drivers get the parts that apply)
+- **Joining:** apply in the app. Upload ID, licence, motorcycle registration and insurance. Video call, then a test delivery watched live. Expiry dates are tracked, with reminders 30 and 7 days before; offers stop on expiry.
+- **Training:** 6 short in-app lessons in Arabic: the job flow, live-location sharing, cash, proof, safety, customer manners. A 10-question check must be passed before the first offer.
+- **Shifts:** drivers book shifts per area a week ahead. Booked shifts carry the hourly minimum (§21.3). Unbooked online time is allowed but has no minimum.
+- **Pay:** per §21.3, weekly by Whish, with a statement in the app per job (fee share, tips, cash collected and deposited).
+- **Ratings:** the customer rates the delivery (not the food) 1–5. The driver sees their average, never who rated.
+- **Tiers:** on-time, acceptance, rating and cash accuracy over 30 days. Gold drivers get offers first among equally close drivers and shift booking first.
+- **Ending a contract:** 2 confirmed fake "delivered", a cash shortfall not repaid within 2 weeks, misuse of a customer's number, or 3 safety warnings in a month. Logged with evidence.
 
-### 27.7 Scenarios
+### 27.8 Scenarios
 | # | Situation | What happens |
 |---|---|---|
-| 1 | Restaurant is late | Dispatch moves with `ready_at`; customer gets a new ETA range only if it slips over 10 min (one message) |
-| 2 | Driver arrives early | Dispatch timing prevents most; waiting time over 8 min is logged against the merchant's prep accuracy |
-| 3 | Fleet driver cancels after accepting | Re-offer immediately with priority; second cancel in a day lowers their score; after pickup, cancel is impossible in the app (SOS or operator only) |
-| 4 | Merchant driver doesn't show | "Need a driver?" at 5 min after ready (27.3) |
-| 5 | Partner no-show | Rebook at ready − 10 min; partner late rate counts toward §21.5's kill-gate |
-| 6 | Phone dies or no signal mid-route | Last fix kept; ETA range widens; after 10 min silent on a job the operator calls the driver; offline events sync later |
-| 7 | Customer changes address after pickup | Allowed within the same delivery radius band and under 1 km from the original drop; fee difference charged or refunded by the server; otherwise "cancel and reorder" offer |
-| 8 | Customer adds an item after pickup | Not possible; offered as a new order |
-| 9 | Customer unreachable / refuses | §22.2 scenarios 12-13 apply to every order, not only Send Home: 2 calls, live-location button, 10 min wait, then return; COD orders return at no charge to the merchant; repeated no-shows (2 in 30 days) remove COD for that number |
-| 10 | Wrong pin (customer dropped it at work, or far away) | Detected at checkout when the pin is over 2 km from the address text's place or a saved address; the bot asks one question. At the door: the live-location button |
-| 11 | Building without a name or number | Driver records a quick tag after delivery (photo of the entrance optional, tags: gate colour, "next to", floor, "no elevator", "call on arrival"); it becomes the address note (§28) |
-| 12 | Generator off, no elevator, high floor | Driver tag `no_elevator`; for orders over 10 kg (water, gas) the customer is told at checkout "the driver delivers to the building entrance" unless the merchant offers stairs |
-| 13 | Damaged or spilled food | Photo at handover settles it: damage before the photo is the merchant's or driver's (fleet: Alo King absorbs and reviews), after it is not; refunds per §20.1 |
-| 14 | Accident, threat, checkpoint closure | SOS button: shares the driver's position with the operator and Rasheed, pauses new offers, reassigns the order; checkpoint or road closure tag marks the road segment for 6 h (§28) |
-| 15 | Security or weather | Area or place paused by config (§16, §21.3); orders in flight continue unless the operator recalls them |
-| 16 | Change for cash | Fleet drivers start a shift with a float of small USD and LBP notes (recorded in custody); the order shows both totals and the locked rate (§13) |
-| 17 | Tip | Customer can add a tip at checkout or after delivery (Whish or card); 100% to the fleet driver, or to the merchant in merchant mode |
-| 18 | Fake "delivered" | Geofence + code + customer silence/complaint rules above; two confirmed fakes end a fleet contract |
-| 19 | Batched orders | Customer 2 is told "your driver has one stop before you" only if it adds over 5 min |
-| 20 | Gift (Send Home) recipient not home | §22.2 scenario 12 |
+| 1 | No idle driver in range | Brain offers to a batching driver (27.4), then partner, then a wider ETA before checkout; never an unstaffed promise |
+| 2 | Restaurant late | `ready_at` moves; offer timing moves with it; customer told only past 10 min slip |
+| 3 | Driver early at pickup | Timing prevents most; waits over 8 min count against merchant prep accuracy |
+| 4 | Fleet driver cancels after accepting | Immediate re-offer with priority; after pickup, cancel only through SOS or the operator |
+| 5 | Merchant driver absent | "Need a driver?" at ready + 5 min |
+| 6 | Partner no-show | Rebook at ready − 10 min; counts toward §21.5's kill-gate |
+| 7 | Driver forgets the live share | Fleet: the step blocks "start navigation" until tapped or skipped with a reason. Merchant: a reminder on the card; tracking page still works |
+| 8 | Customer's WhatsApp is on another phone or a landline was given | Driver's live share has no target; the tracking link carries the customer; driver calls |
+| 9 | Phone dies or dead zone | Last fix kept, queued events sync; operator calls at 10 min silent |
+| 10 | Wrong pin | Checkout check: pin over 2 km from the address's place or saved addresses gets one question; at the door, the customer live-location button |
+| 11 | Customer changes address after pickup | Allowed within 1 km and the same fee band; otherwise cancel-and-reorder offer |
+| 12 | Customer unreachable or refuses | §22.2 scenarios 12–13 for every order; two no-shows in 30 days remove COD for that number |
+| 13 | Building with no name, generator off, no elevator | Driver quick tags after delivery (§28); heavy orders (water, gas) delivered to the entrance unless the merchant offers stairs |
+| 14 | Damaged food | Handover photo decides; refunds per §20.1 |
+| 15 | Accident, threat, checkpoint, road closure | SOS; road incident tag marks the segment for 6 h; dispatch routes around it |
+| 16 | Snow or storm | Winter-risk places paused or limited to winter-flagged drivers; ETA ranges widen |
+| 17 | Change for cash | Shift float of small USD and LBP notes, recorded in custody; both totals and the locked rate on every order (§13) |
+| 18 | Tips | At checkout or after delivery; 100% to the driver (merchant mode: to the merchant) |
+| 19 | Batched order | The second customer is told "one stop before you" if it adds over 5 min |
+| 20 | Merchant overflow | "I deliver; use Alo King when busy": one tap on the order hands it to the brain |
+| 21 | Driver at two apps (also works for a competitor) | Allowed; acceptance and on-time rules handle conflicts; no exclusivity at launch |
+| 22 | Night | Area night cut-off by config; after sunset the customer live-location button always shows |
 
-### 27.8 Build placement
-- Phase 2 (session 3): the status model in 27.4, merchant `driver` role, merchant assignment and the WhatsApp job card.
-- Phase 3a (session 4): the bot's live-location handling, the near-drop message and buttons, the confirm-code flow.
-- Phase 5 (session 8): Capacitor driver app, background location, offline queue, dispatch scoring, driver link, geofence proof, SOS, quick tags, partner state mapping.
+### 27.9 Build placement
+- **Phase 2 (session 3):** the status model, merchant `driver` role, merchant assignment, the WhatsApp job card with the live-share step, the brain's monitoring tick and alert table.
+- **Phase 3a (session 4):** customer messages (on the way, near drop, live-location button), live-location handling (`unsupported` → ask for a pin), "where is my order?" via a typed tool reading the tracking state, the confirm-code flow.
+- **Phase 5 (session 8):** the Capacitor driver app for fleet and merchant drivers, background location, offline queue, push offers, assignment scoring, pre-positioning, geofence proof, SOS, quick tags, training and shifts, partner state and position mapping, the operator live board.
 
 ## 28. Location intelligence: the AI learns places, buildings, streets and landmarks (DECIDED, 7 October 14:50)
 Goal: every confirmed order and delivery makes the next address in that area faster to resolve and easier to find. "Learning" here means a growing, evidence-scored location knowledge base that the AI reads through server tools, not a fine-tuned model. Reasons: it is auditable, correctable, deletable on request, works from order 1, and cannot be poisoned by one bad message.
