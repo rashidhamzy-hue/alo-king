@@ -436,7 +436,7 @@ revoke all on function app_private.vendors_link_town() from public;
 
 -- Reference data ----------------------------------------------------------------------------------------
 select set_config('app.actor_kind', 'system', false);
-select set_config('app.audit_reason', 'seed from DECISIONS §16-§17, 7 October 2026', false);
+select set_config('app.audit_reason', 'seed from DECISIONS §16-§17, 8 October 2026', false);
 
 insert into public.governorates (code, name_ar, name_en, name_fr, sort_order) values
   ('beirut', 'بيروت', 'Beirut', 'Beyrouth', 1),
