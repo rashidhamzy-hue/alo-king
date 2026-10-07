@@ -30,9 +30,37 @@ $$;
 create function b.is_arabic(p text) returns boolean language sql immutable as $$
   select coalesce(p ~ '[؀-ۿ]', false)
 $$;
+-- CAS zones named "Litige" are disputed cadastral areas, not villages: kept for pin snapping only.
+create function b.is_litige(p text) returns boolean language sql immutable as $$
+  select coalesce(p ~* '^\s*litige', false)
+$$;
+-- Same phonetic key as app_private.place_phonetic_key() (Ba3qlin = Baakline = Baaqline = بعقلين).
+create function b.phon(p text) returns text
+language sql
+immutable
+parallel safe
+as $$
+  select nullif(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+    translate(
+      regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+        coalesce(b.norm(p), ''),
+        'kh', 'x', 'g'), 'gh', 'g', 'g'), '(sh|ch)', 's', 'g'), '(th|dh)', 't', 'g'),
+      -- Arabic consonants and Arabizi digits to Latin; ain, waw, ya, hamza, alef and 3 are dropped.
+      'بتثجحخدذرزسشصضطظغفقكلمنهqc275968عويءا3',
+      'bttjhxddrzsssdtzgfkklmnhkkkhxstg'
+    ),
+    -- word-final h (ة, ه, -eh, -ieh)
+    'h(\s|$)', '\1', 'g'),
+    '[aeiouyw''\s]', '', 'g'),
+    '(.)\1+', '\1', 'g'),
+    '[^a-z]', '', 'g'), '');
+$$;
 -- Similarity of two names in any script (best of the pairs).
 create function b.namesim(a1 text, a2 text, b1 text, b2 text) returns real language sql immutable as $$
   select greatest(
+    case when char_length(b.phon(coalesce(a1, a2))) >= 3
+          and b.phon(coalesce(a1, a2)) in (b.phon(b1), b.phon(b2)) then 0.9 else 0 end,
+    case when b.norm(a2) is not null and b.norm(a2) = b.norm(b2) then 1 else 0 end,
     coalesce(similarity(b.norm(a1), b.norm(b1)), 0), coalesce(similarity(b.norm(a1), b.norm(b2)), 0),
     coalesce(similarity(b.norm(a2), b.norm(b1)), 0), coalesce(similarity(b.norm(a2), b.norm(b2)), 0))
 $$;
@@ -85,12 +113,15 @@ create table b.adm2n as
 select pcode, parent_pcode, geom,
   (select n from unnest(array[n1, n3, n4, n2]) n where n is not null and not b.is_arabic(n) limit 1) as name_en,
   (select n from unnest(array[n2, n4, n3, n1]) n where b.is_arabic(n) limit 1) as name_ar
-from b.adm2;
+from b.adm2
+where pcode ~* '^LB';
+-- COD-AB also carries disputed-border polygons ("Conflict", P-code 0): not cadastral zones.
 create table b.adm3n as
 select pcode, parent_pcode, geom, fr as name_fr,
   (select n from unnest(array[n1, n3, n4, n2]) n where n is not null and not b.is_arabic(n) limit 1) as name_en,
   (select n from unnest(array[n2, n4, n3, n1]) n where b.is_arabic(n) limit 1) as name_ar
-from b.adm3;
+from b.adm3
+where nullif(pcode, '0') is not null and coalesce(n1, n3, '') !~* '^conflict';
 
 -- 2. Districts: COD-AB names to our 3-letter codes (first match wins; "bint jbeil" before "jbeil").
 create table b.district_patterns (ord int, code text, pattern text);
@@ -149,12 +180,20 @@ $$;
 
 -- Elevation range per zone from the terrain model.
 alter table b.zones add column elevation_min_m int, add column elevation_max_m int;
+-- Lebanon spans -0 to ~3,090 m; anything outside -450..3,100 is a nodata or void pixel.
+create function b.elev(v double precision) returns int language sql immutable as $$
+  select case when v between -450 and 3100 then round(v)::int end
+$$;
 update b.zones z set elevation_min_m = s.mn, elevation_max_m = s.mx
 from (
-  select z2.pcode, round((st_summarystatsagg(st_clip(r.rast, z2.geom, true), 1, true)).min)::int as mn,
-    round((st_summarystatsagg(st_clip(r.rast, z2.geom, true), 1, true)).max)::int as mx
-  from b.zones z2 join raw.dem r on st_intersects(r.rast, z2.geom)
-  group by z2.pcode
+  select x.pcode, b.elev(min(x.mn)) as mn, b.elev(max(x.mx)) as mx
+  from (
+    select z2.pcode, (st_summarystats(st_clip(r.rast, z2.geom, true), 1, true)).min as mn,
+      (st_summarystats(st_clip(r.rast, z2.geom, true), 1, true)).max as mx
+    from b.zones z2 join raw.dem r on st_intersects(r.rast, z2.geom)
+  ) x
+  where x.mn between -450 and 3100 and x.mx between -450 and 3100
+  group by x.pcode
 ) s
 where s.pcode = z.pcode;
 
@@ -182,7 +221,8 @@ create index on b.p using gist (geom);
 
 -- 5. Curated places (§16): merge into a matching OSM place within 1.5 km, else add.
 update b.p p
-set aliases = p.aliases || string_to_array(c.aliases, ';') || array[c.name_en, c.name_fr],
+set aliases = p.aliases || string_to_array(c.aliases, ';') || array[p.name_en, c.name_fr],
+  name_en = c.name_en,
   name_ar = coalesce(p.name_ar, c.name_ar),
   kind = case when c.kind = 'neighbourhood' and c.parent_name_en <> '' then 'neighbourhood' else p.kind end,
   parent_hint = nullif(c.parent_name_en, ''),
@@ -190,8 +230,10 @@ set aliases = p.aliases || string_to_array(c.aliases, ';') || array[c.name_en, c
 from raw.curated c
 where p.osm_id = (
   select p2.osm_id from b.p p2
-  where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 1500)
+  where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 3000)
     and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45
+    -- Never into its own parent (Dawha Aramoun is not Aramoun).
+    and not (c.parent_name_en <> '' and b.namesim(p2.name_en, p2.name_ar, c.parent_name_en, null) >= 0.8)
   order by b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) desc limit 1);
 
 insert into b.p (osm_id, kind, osm_place, name_ar, name_en, name_fr, aliases, zone_pcode, district_code, geom, origin, parent_hint)
@@ -201,8 +243,25 @@ from raw.curated c
 join b.zones z on st_covers(z.geom, st_setsrid(st_makepoint(c.lon, c.lat), 4326))
 where not exists (
   select 1 from b.p p2
-  where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 1500)
-    and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45);
+  where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 3000)
+    and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45
+    and not (c.parent_name_en <> '' and b.namesim(p2.name_en, p2.name_ar, c.parent_name_en, null) >= 0.8));
+
+-- A zone whose own village is not among its places (Jdeidet el-Chouf holds Boqaata but no Jdeidet node;
+-- Kfarhim and Bebnine have no OSM place at all) gets one named after the zone at a point inside it
+-- (centroid confidence medium; a quarter in Beirut). Listed in the report for review.
+insert into b.p (osm_id, kind, osm_place, name_ar, name_en, name_fr, aliases, zone_pcode, district_code, geom, origin, parent_hint)
+select null, case when z.district_code = 'BEY' then 'neighbourhood' else 'village' end, null,
+  z.name_ar, z.name_en, z.name_fr, '{}', z.pcode, z.district_code, st_pointonsurface(z.geom), 'zone', null
+from b.zones z
+where z.district_code is not null and coalesce(z.name_en, z.name_ar) is not null
+  and not b.is_litige(z.name_en)
+  and not exists (select 1 from b.p p where p.zone_pcode = z.pcode
+                  and b.namesim(p.name_en, p.name_ar, z.name_en, z.name_ar) >= 0.4)
+  -- The village is already there as a place just across the zone line (Chattaha, Jabaa, Miriata).
+  and not exists (select 1 from b.p p where p.district_code = z.district_code
+                  and st_dwithin(p.geom::geography, st_pointonsurface(z.geom)::geography, 3000)
+                  and b.namesim(p.name_en, p.name_ar, z.name_en, z.name_ar) >= 0.8);
 
 -- Same name twice within 300 m (a node mapped twice): keep the more important one.
 delete from b.p a using b.p c
@@ -213,13 +272,45 @@ where a.ctid <> c.ctid and st_dwithin(a.geom::geography, c.geom::geography, 300)
     > (array_position(array['city', 'town', 'village', 'neighbourhood', 'hamlet'], c.kind),
        coalesce(c.osm_id, '~'));
 
+-- The same place under two spellings within 1.5 km in one district (same Arabic name or phonetic key:
+-- Adliyeh / Palais de Justice, Ras Beirut twice, Tripoli / Trablous et-Tell): keep one, curated first,
+-- then the more important kind; the other's names become aliases. Farther apart, same-name villages
+-- stay separate records (§16).
+create table b.dup as
+select a.ctid as drop_ctid, (
+    select c.ctid from b.p c
+    where c.ctid <> a.ctid and c.district_code = a.district_code
+      and st_dwithin(a.geom::geography, c.geom::geography, 1500)
+      and (b.norm(a.name_ar) = b.norm(c.name_ar) or b.namesim(a.name_en, a.name_ar, c.name_en, c.name_ar) >= 0.9)
+      and (a.origin not like '%curated', array_position(array['city', 'town', 'village', 'neighbourhood', 'hamlet'], a.kind),
+           coalesce(a.osm_id, '~'))
+        > (c.origin not like '%curated', array_position(array['city', 'town', 'village', 'neighbourhood', 'hamlet'], c.kind),
+           coalesce(c.osm_id, '~'))
+    order by (c.origin not like '%curated'), array_position(array['city', 'town', 'village', 'neighbourhood', 'hamlet'], c.kind),
+      coalesce(c.osm_id, '~')
+    limit 1) as keep_ctid
+from b.p a;
+delete from b.dup where keep_ctid is null;
+-- A kept place that is itself dropped would chain; resolve to the final keeper.
+update b.dup d set keep_ctid = d2.keep_ctid from b.dup d2 where d.keep_ctid = d2.drop_ctid;
+update b.p k set aliases = k.aliases || x.names
+from (
+  select d.keep_ctid, array_agg(n) filter (where n is not null) as names
+  from b.dup d join b.p p on p.ctid = d.drop_ctid
+  cross join lateral unnest(array[p.name_en, p.name_fr] || p.aliases) n
+  group by d.keep_ctid
+) x
+where k.ctid = x.keep_ctid;
+delete from b.p p using b.dup d where p.ctid = d.drop_ctid;
+
 -- 6. Identity: the anchor of each zone is the place named like the zone (its municipality village).
 alter table b.p add column pid serial, add column anchor boolean not null default false;
 update b.p p set anchor = true
 from (
   select distinct on (p2.zone_pcode) p2.pid
   from b.p p2 join b.zones z on z.pcode = p2.zone_pcode
-  where p2.kind <> 'neighbourhood' and b.namesim(p2.name_en, p2.name_ar, z.name_en, z.name_ar) >= 0.4
+  where p2.kind <> 'neighbourhood' and not b.is_litige(z.name_en)
+    and b.namesim(p2.name_en, p2.name_ar, z.name_en, z.name_ar) >= 0.4
   order by p2.zone_pcode, b.namesim(p2.name_en, p2.name_ar, z.name_en, z.name_ar) desc,
     array_position(array['city', 'town', 'village', 'hamlet'], p2.kind), p2.pid
 ) a
@@ -263,7 +354,7 @@ where p.parent_id is null and p.kind = 'neighbourhood';
 
 -- 9. Elevation, zone type, winter risk (§16 rules; LOG.md has the thresholds).
 alter table b.p add column elevation_m int, add column zone_type text, add column winter_risk boolean;
-update b.p p set elevation_m = round(st_value(r.rast, p.geom))::int
+update b.p p set elevation_m = b.elev(st_value(r.rast, p.geom))
 from raw.dem r where st_intersects(r.rast, p.geom);
 update b.p p set zone_type = case
     when p.elevation_m is null then null
@@ -278,7 +369,7 @@ update b.p p set zone_type = case
 
 -- 10. Sub-regions from the review set (§16 example sub-regions), by zone.
 alter table b.p add column sub_region text, add column municipality text;
-update b.p p set municipality = coalesce(z.name_en, z.name_ar) from b.zones z where z.pcode = p.zone_pcode;
+update b.p p set municipality = coalesce(z.name_en, z.name_ar) from b.zones z where z.pcode = p.zone_pcode and not b.is_litige(z.name_en);
 create table b.review_match as
 select r.ref, r.name_en as review_name, r.sub_region, r.lat, r.lon, r.elevation_m as review_elevation,
   (select p.pid from b.p p
@@ -324,6 +415,7 @@ select p.id, case when p.anchor then p.zone_pcode end as pcode, p.zone_pcode,
     'name_ar', case when p.name_ar is null then null when p.anchor then 'high' else 'medium' end,
     'name_en', case when p.name_en is null then null else 'medium' end,
     'centroid', case when p.origin like 'osm%' then 'high' else 'medium' end,
+    'origin', p.origin,
     'elevation_m', case when p.elevation_m is null then null else 'high' end,
     'kind', 'medium',
     'parent_id', case when p.parent_id is null then null else 'medium' end,
@@ -345,5 +437,37 @@ select m.ref, m.review_name, o.id, o.name_en, o.elevation_m, m.review_elevation,
     st_setsrid(st_makepoint(o.lon, o.lat), 4326)::geography))::int as distance_m
 from b.review_match m left join b.p p on p.pid = m.pid left join out.places o on o.id = p.id
 order by o.id nulls first, m.ref;
+create table b.report_zone_places as
+select p.id, p.district_code, p.name_en, p.name_ar, p.elevation_m from b.p p where p.origin = 'zone' order by p.district_code, p.id;
 create table b.report_empty_zones as
 select pcode, district_code, name_en, name_ar, elevation_min_m, elevation_max_m from out.zones where not inhabited order by district_code, name_en;
+
+-- 13. §16 acceptance: the build fails rather than publish a seed that misses these.
+create table b.report_dups as
+select a.id, c.id as other_id, a.district_code, a.name_ar,
+  round(st_distance(st_setsrid(st_makepoint(a.lon, a.lat), 4326)::geography,
+    st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography))::int as distance_m
+from out.places a join out.places c
+  on a.id < c.id and a.district_code = c.district_code and b.norm(a.name_ar) = b.norm(c.name_ar)
+order by distance_m;
+do $$
+declare
+  v_missing text;
+begin
+  select string_agg(n, ', ') into v_missing
+  from unnest(array['بقعاتا', 'السمقانية', 'جديدة الشوف', 'كفر حيم']) n
+  where not exists (select 1 from out.places o where o.district_code = 'CHF' and b.norm(o.name_ar) = b.norm(n));
+  if v_missing is not null then
+    raise exception '§16 places missing: %', v_missing;
+  end if;
+  if not exists (select 1 from out.places where name_ar = 'عرمون' and district_code = 'ALY') then
+    raise exception 'Aramoun was merged into Dawha Aramoun';
+  end if;
+  if exists (select 1 from out.places where b.is_litige(name_en)) then
+    raise exception 'a disputed (Litige) zone became a place';
+  end if;
+  if exists (select 1 from b.report_dups where distance_m <= 1500) then
+    raise exception 'same place twice: %', (select string_agg(id || '=' || other_id, ', ') from b.report_dups where distance_m <= 1500);
+  end if;
+end;
+$$;
