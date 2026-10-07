@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/landing/SiteHeader";
 import { Hero } from "@/components/landing/Hero";
-import { PhoneSimulator } from "@/components/landing/PhoneSimulator";
 import { MerchantGrid } from "@/components/landing/MerchantGrid";
 import { GiftCalculator } from "@/components/landing/GiftCalculator";
 import { CrownsCalculator } from "@/components/landing/CrownsCalculator";
@@ -31,7 +30,6 @@ function Index() {
       <SiteHeader />
       <main>
         <Hero />
-        <PhoneSimulator />
         <MerchantGrid />
         <GiftCalculator />
         <CrownsCalculator />

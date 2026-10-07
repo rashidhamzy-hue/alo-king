@@ -6,7 +6,7 @@ export type Stage = "db" | "model" | "send" | "transcribe";
 export type StageStat = { ms: number; n: number };
 export type TimingSnapshot = Record<Stage, StageStat> & { total_ms: number; first_send_ms: number | null };
 
-/** Flow-spec latency targets (docs/whatsapp-flow-spec.md §5), enforced by tests where the code path is deterministic. */
+/** Flow-spec latency targets (docs/legacy/whatsapp-flow-spec.md §5), enforced by tests where the code path is deterministic. */
 export const LATENCY_TARGETS = { tapMs: 1500, freeTextModelCalls: 1 } as const;
 
 export class TurnTimer {

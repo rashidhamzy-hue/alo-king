@@ -4,10 +4,10 @@ import { describe, expect, it } from "vitest";
 import { promoAttempts } from "./broadcast.ts";
 
 // (The promotional-wording check for utility templates is a tripwire for the obvious cases, not a guarantee: Meta decides the final category.)
-// docs/whatsapp-templates.md is the source of truth for every template. These tests check each payload in it against Meta's categorization rules
+// docs/legacy/whatsapp-templates.md is the source of truth for every template. These tests check each payload in it against Meta's categorization rules
 // (developers.facebook.com .../templates/template-categorization, as mirrored in the Kapso WhatsApp docs) so a template that Meta would re-categorize
 // (and bill as marketing) or reject cannot be added quietly.
-const DOC = readFileSync(resolve(__dirname, "../../../docs/whatsapp-templates.md"), "utf8");
+const DOC = readFileSync(resolve(__dirname, "../../../docs/legacy/whatsapp-templates.md"), "utf8");
 const payloads: any[] = [...DOC.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1])).filter((j) => j && j.name && j.category);
 const of = (cat: string) => payloads.filter((p) => p.category === cat);
 const body = (p: any) => p.components.find((c: any) => c.type === "BODY");

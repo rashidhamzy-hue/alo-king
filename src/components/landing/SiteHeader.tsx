@@ -40,7 +40,7 @@ export function SiteHeader() {
           >
             {L("For business", "لأصحاب المحلات")}
           </Link>
-          <a href="/#simulator" className="hidden hover:text-gold md:inline">
+          <a href="/#merchants" className="hidden hover:text-gold md:inline">
             {L("Try it", "جرّب")}
           </a>
           <a href="/#gift" className="hidden hover:text-gold lg:inline">

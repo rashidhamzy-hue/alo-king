@@ -1952,7 +1952,7 @@ function extract(evt: any) {
   };
 }
 
-// One JSON line per event with per-stage time (numbers only). Query it from the function logs; see docs/latency.md.
+// One JSON line per event with per-stage time (numbers only). Query it from the function logs; see docs/legacy/latency.md.
 async function handleEvent(body: any, evt: any, dry: boolean, out: any[], adminOverride?: string | null, override?: StagingOverride, timings?: any[]) {
   const e = extract(evt);
   if (!e.from) return;
