@@ -18,6 +18,13 @@ Phase 0 starts now. Nothing in the legal, carrier or payment track blocks it, be
 7. **OMT has no public merchant API.** It is dropped from the build plan (section 8).
 8. **Edge functions must be pinned to Frankfurt** for webhook calls, or Supabase runs them near the caller (Kapso, likely in the US) and every database call crosses the Atlantic again. VERIFIED: Supabase supports `forceFunctionRegion=eu-central-1` as a query parameter for webhooks.
 
+### Changes from Rasheed, 7 October 12:28
+- Money: Whish payments go to Alo King's own Whish account; merchants are settled automatically every 2 weeks (monthly on request). Section 20 rewritten.
+- Delivery: three modes (merchant, Alo King fleet, outsourced partner) behind one adapter. New section 21.
+- Merchant credit: fully automated across Whish, the ledger, the dashboard, WhatsApp and the AI (section 20.3).
+- French added as a fourth ordering language (with Arabic, English and Arabizi), including mixed Arabic-French messages.
+- Send Home: orders paid from abroad for family in Lebanon, every number and location case, Tap Payments as the gateway. New section 22.
+
 ## 1. The build starts now; merchants gate only launch
 
 DECIDED, confirms the draft:
@@ -26,9 +33,9 @@ DECIDED, confirms the draft:
 - No zones (decided 7 October). Ordering is switched on per merchant, not per area: a merchant takes orders once it passes the go-live checklist (section 15), and only for addresses inside its own delivery radius (road distance, max 10 km). Towns and villages exist only as a list for addresses and search. The four Shouf villages (Baakline, Bakaata, Semqanieh, Beiteddine) remain the preferred first marketing area, not a technical limit.
 
 ### Pilot cash and delivery model (DECIDED; lawyer confirms in writing)
-- Merchant self-delivery. The customer pays the restaurant in cash on delivery. Alo King never holds customer money. This keeps Alo King out of the payment-services licensing question while the lawyer reviews it.
-- Delivery fee bands by road distance (from the route matrix, never straight-line): up to 3 km $2.00; 3 to 6 km $3.00; 6 to 10 km $4.50; no delivery beyond 10 km. A merchant may set a lower fee, never higher, during the pilot. The whole delivery fee belongs to the merchant.
-- Alo King's fee to the merchant: $1.00 per delivered order, free for each merchant's first 30 days, invoiced weekly, paid by Whish transfer or cash. One flat number is easy for merchants to understand and covers our variable cost (estimated below at about $0.15 per order).
+- Merchant self-delivery at pilot (Alo King fleet and outsourced partners follow: section 21). Customer pays cash on delivery to whoever delivers, or pays online by Whish into Alo King's own Whish account; Alo King settles merchants every 2 weeks (section 20, corrected 7 October). Online collection switches on only after the lawyer's written letter on the collection model (section 20.1); if the letter is late, the pilot opens cash-only and Whish switches on the day it arrives.
+- Delivery fee bands by road distance (from the route matrix, never straight-line): up to 3 km $2.00; 3 to 6 km $3.00; 6 to 10 km $4.50; no delivery beyond 10 km. A merchant may set a lower fee, never higher, during the pilot. When the merchant delivers, the whole delivery fee belongs to the merchant; when Alo King or a partner delivers, it belongs to Alo King (section 21).
+- Alo King's fee to the merchant: $1.00 per delivered order, free for each merchant's first 30 days, netted from the merchant's settlement or deducted from Alo King Credit (section 20). One flat number is easy for merchants to understand and covers our variable cost (estimated below at about $0.15 per order).
 - Cash-on-delivery cap per order: $150, held in config.
 
 ## 2. Repository: keep the repo (now `rashidhamzy-hue/alo-king`), rebuild inside it
@@ -107,7 +114,7 @@ DECIDED:
 | BdL circulars, capital figures, licence classes | OPEN, lawyer's job. Irrelevant to the pilot because Alo King holds no customer money | Lawyer memo before any prepaid payment |
 | Alfa or touch single-line corporate postpaid offer | OPEN; public offers start at 5 lines. Ask at a branch with the company papers. Never prepaid. | Owner track |
 | Google Places data rules | Conservative reading kept: store `place_id` only, refresh IDs after 12 months, no public pages or ratings for unclaimed vendors, no further scraping | Schema rule |
-| Courier pay bands, fuel cost per km | Planning estimates only | Not needed until platform delivery (Phase 5b) |
+| Courier pay bands, fuel cost per km | Planning estimates only | Set in config when the first fleet area opens (section 21) |
 
 ### Cost model per pilot order (DECIDED working estimate, measured from day 1)
 - WhatsApp: about 11 customer-side messages per order (bot replies plus status updates) and 2 merchant templates. Each number's first 1,000 service messages a month are free, so about the first 90 orders a month on the Customer number cost almost nothing. After that: about 13 × $0.0091 ≈ $0.12 per order.
@@ -119,21 +126,21 @@ DECIDED:
 0. Repo reset: branch `rebuild/lebanon`, delete list, `CLAUDE.md`, `.claude/settings.json` with hooks (block destructive commands, block production targets, scan for secrets), five Manus skills edited to match this file, CI and the automerge workflow (section 10), wiring to `alo-king-staging`, Sentry and Vercel, no production access from development sessions.
 1. Fresh schema, row-level security, roles, audit log, webhook (signature, idempotency, queue), all-Lebanon places list (section 16), categories (section 17), vendor import from the seed file (section 15), exchange-rate and VAT tables, fee bands.
 2. Order lifecycle (state machine with race tests), four-layer merchant notifications, merchant portal queue.
-3. Customer bot and AI (typed tools, budgets, fixtures, eval set in Arabic, English, Arabizi and voice); claims, registration, pre-filled profiles, merchant editing on dashboard and WhatsApp, smart menu (section 18).
+3. Customer bot and AI (typed tools, budgets, fixtures, eval set in Arabic, English, French, Arabizi and voice, including mixed Arabic-French and Arabic-English messages); claims, registration, pre-filled profiles, merchant editing on dashboard and WhatsApp, smart menu (section 18).
 4. Website: claimed-vendor pages, tracking, handoff, SEO.
-5. Merchant self-delivery first (5a); courier app and dispatch later (5b, after pilot).
-6. Payment adapter and ledger (section 20): cash on delivery; Whish payments straight to the merchant's own Whish account; Alo King's own Whish account for merchant credit top-ups; Tap for foreign cards later.
+5. Delivery (section 21): 5a merchant self-delivery with the `delivery_provider` adapter in place from day one; 5b Alo King fleet (driver app, dispatch, cash custody) and 5c partner adapter, both built before launch and switched on per area by config after the pilot.
+6. Payment adapter, ledger and settlement (section 20): cash on delivery; Whish payments into Alo King's Whish account; automated settlement every 2 weeks; Alo King Credit with automatic top-up and deduction; Send Home checkout with Tap (section 22), switched on when Tap approves the SARL.
 7. Simulator, evals, one capped live run per week on test numbers, pilot scorecard.
 8. Merchant growth tools and Alo King Credit: offers, paid broadcast, paid recommendations, insights, credit wallet and statements (sections 18.3, 20). Required before launch.
 
-Owner track in parallel (Rasheed, with partners Bassem and Firas on the company papers): SARL (one partner allowed; equity and roles memo for the three partners), lawyer engagement, Alfa or touch postpaid lines, Meta portfolio with all three owners as admins, Whish written terms, Tap application once the SARL exists, domain. No field visits: merchants claim or register themselves (section 15).
+Owner track in parallel (Rasheed, with partners Bassem and Firas on the company papers): SARL (one partner allowed; equity and roles memo for the three partners), lawyer engagement, Alfa or touch postpaid lines, Meta portfolio with all three owners as admins, Whish written terms, Tap application once the SARL exists (section 22.5), domain. No field visits: merchants claim or register themselves (section 15).
 
 ## 8. Open items from the draft: settled
 1. **TanStack Start on Vercel**: KEEP. Verified supported; no Next.js.
 2. **Gates**: pilot at 5 live merchants plus legal sign-off, numbers live and 7 green days on staging; ads and expansion at 15 merchants plus 14 days of the four reliability numbers (section 1).
 3. **Cash model and fees**: merchant self-delivery, cash to the restaurant, bands $2 / $3 / $4.50 up to 3 / 6 / 10 road-km, nothing beyond 10 km, merchant may go lower; Alo King charges merchants $1 per delivered order after 30 free days.
 4. **Meta rate card and cost model**: fixed in section 6. Rates live in a dated table; the cost ledger stores Meta's pricing category from each webhook so real cost replaces the estimate.
-5. **Payment rails**: cash on delivery for the pilot; Whish second (local wallet, written terms first); Tap third, for diaspora and foreign cards. OMT dropped: no merchant API. Stripe impossible for a Lebanese company.
+5. **Payment rails**: cash on delivery; Whish into Alo King's own account (local wallet, written terms first); Tap for Send Home and foreign cards (section 22). OMT dropped: no merchant API. Stripe impossible for a Lebanese company.
 6. **Review of sections 2, 4, 5 and 6**: done; corrections listed at the top.
 
 ## 9. Pre-build checklist (audited by Claude, 7 Oct 2026, 12:00)
@@ -223,7 +230,7 @@ Corrected or rejected:
 - Cash at the door: the order summary always shows both totals and the locked rate, for example "$12.50 = 1,118,750 LBP (rate 89,500, locked at order)". The rate comes from the dated rate table, never from code.
 - "OpenAI Whisper": not fixed; the transcription model is chosen by the 50-voice-note eval.
 - "Official rate e.g. 89,500": never hard-coded; dated rate table.
-- Urban courier fleet: after pilot (Phase 5b).
+- Courier fleet and partners: section 21.
 - The `orders` table sketch: ignored; the schema is designed fresh in Phase 1.
 - Tracking domain `aloking.com`: adopted. Checked 6 October: available.
 
@@ -232,7 +239,7 @@ Corrected or rejected:
 2. Answer the Kabsi question (section 9).
 3. Buy `aloking.com` now (about $10-15 a year, Cloudflare Registrar at cost, or any registrar). Needed for tracking links, the privacy policy Meta requires, and business verification.
 4. API keys into GitHub secrets when their phase comes: OpenAI (transcription, Phase 3), OpenRouteService free key (Phase 1 route matrix).
-5. Record 50 real WhatsApp voice notes ordering food in Lebanese Arabic, Arabizi-style mixed speech and English, from different people (family, friends; about 10-20 seconds each). This is the transcription eval set for Phase 3. No personal data in them.
+5. Record 50 real WhatsApp voice notes ordering food in Lebanese Arabic, Arabizi-style mixed speech, English and French (at least 8 French or Arabic-French), from different people (family, friends; about 10-20 seconds each). This is the transcription eval set for Phase 3. No personal data in them.
 6. (Removed 7 October: no field visits.)
 7. Vendor file: done (uploaded 7 October). Section 15 says what is kept from it.
 8. Company track: SARL papers with the lawyer; then two postpaid lines in the company name; then the Meta business portfolio in the company name (all three owners as admins) and business verification with the SARL documents and the domain.
@@ -292,7 +299,7 @@ Sources, in order:
 1. Polygons and codes: OCHA/HDX "Lebanon - Subnational Administrative Boundaries" (COD-AB, from CDR, updated November 2024): governorates, districts and the cadastral zones, each with a P-code. HDX still uses 8 governorates; the build maps Keserwan and Jbeil districts into the Keserwan-Jbeil governorate.
 2. Arabic and official names: the CAS cadastral name and P-code list (HDX / Open Data Lebanon).
 3. Villages, hamlets and city neighbourhoods inside cadastral zones, plus common spellings: OpenStreetMap place points (ODbL; attribution in the site footer).
-4. Arabizi and colloquial spellings (Ba3qlin, Baaqline, Beit el Din): generated by Claude, reviewed against real customer messages over time.
+4. Arabizi, French and colloquial spellings (Ba3qlin, Baaqline, Beit el Din, Beiteddine, Achrafieh/Ashrafieh, Jounié): generated by Claude, reviewed against real customer messages over time.
 Built by a script in GitHub Actions (cloud sessions cannot reach these sites), stored as a seed file in the repo, checked by Claude for missing places and duplicates.
 
 Fields: `id`, `pcode`, `name_ar`, `name_en`, `name_fr`, `aliases`, `kind` (city, town, village, hamlet, neighbourhood), `governorate`, `district`, `municipality`, `sub_region` (e.g. Chouf el-Aala, Iklim el-Kharroub, Matn el-Aala), `zone_type` (coastal, lower mountain, middle mountain, high mountain, inland valley, semi-arid), `elevation_m` (from a terrain model, not from the report), `winter_risk` (true for places that regularly get snow and road closures, e.g. Faraya, Kfardebian, Ehden, Bcharre, Tannourine), `centroid`, `boundary`, `parent_id`, `service_status` (`off`, `on`, `paused`), `paused_reason`.
@@ -336,7 +343,7 @@ On a successful claim the profile opens pre-filled from the seed (name, address,
 
 ### 18.3 AI tools for merchants
 - Smart menu: import from photos, PDF, a link, or Instagram screenshots (Sonnet 5.5 extracts sections, items, options, prices); the merchant approves section by section. Bulk edits ("raise all grills by 10%"), sold-out toggles by message, menus by time of day.
-- Profile writing: bilingual description, tags, translations and Arabizi aliases proposed by AI, approved by the merchant.
+- Profile writing: description in Arabic, English and French, tags, translations and Arabizi aliases proposed by AI, approved by the merchant.
 - Photos: upload from phone or WhatsApp; AI suggests which menu item each photo belongs to; only light cleanup (crop, brightness), never changes to the food itself.
 - Offers: discounts, combos, free delivery above an amount, time-limited deals; merchant-funded; validated and priced by the server.
 - Paid broadcast: a merchant pays for one WhatsApp promotion sent by Alo King to customers who opted in to marketing and match the merchant's area or past orders. Rules: approved marketing template, maximum 2 promotional messages per customer per week across all merchants, STOP honoured instantly. Price per recipient = Meta's marketing rate plus a margin, set before launch.
@@ -348,50 +355,215 @@ On a successful claim the profile opens pre-filled from the seed (name, address,
 Claims, registration, pre-fill, profile and menu editing (dashboard and WhatsApp) and the smart menu are Phase 3. Offers, paid broadcast, paid recommendations, insights and Alo King Credit are Phase 8 and are required before launch (decided 7 October).
 
 ## 19. Owner reminders (Claude raises these at every check until done)
-- Whish: send the question list in section 20.5 and get API documents and a sandbox key. After the SARL exists (about 17 October): open Alo King's own Whish business account.
+- Whish: send the extra questions in section 20.6 (the first list is already sent) and get API documents and a sandbox key. After the SARL exists (about 17 October): open Alo King's own Whish business account.
+- Lawyer: the questions in section 20.1 (collection model) and 21.6 (drivers). The letter gates online payments, not the build.
+- Tap: apply the week the SARL exists, with the documents in section 22.5.
 - Buy `aloking.com`; then create the browser Google key restricted to `aloking.com` and `*.vercel.app` and add it to Vercel's environment settings.
 - Before launch, Google Cloud spending limits (10 minutes): (1) console.cloud.google.com → Billing → Budgets & alerts → Create budget → $5 a month, alerts at 50%, 90%, 100% to Rasheed's email. (2) APIs & Services → Places API (New) → Quotas & system limits → set per-day caps: Text Search 150, Place Details 300, Autocomplete 300. (3) APIs & Services → Credentials → the server key → API restrictions → only Places API (New).
 - 50 voice notes for the transcription test (later).
-- Company track: SARL (ready in about 10 days), then lawyer letter on the money flows in section 20, postpaid lines, Meta business account in the company name.
+- Company track: SARL (ready in about 10 days), then a fresh-USD business bank account (needed for Tap payouts and the Whish sweep), lawyer letter on sections 20.1 and 21.6, postpaid lines, Meta business account in the company name.
 
-## 20. Money: customer payments, merchant credit, paid tools (DECIDED, 7 October)
-Three flows, kept separate so Alo King never holds customers' food money.
+## 20. Money: collection, settlement, merchant credit, paid tools (DECIDED; corrected 7 October 12:28)
+Correction by Rasheed: every Whish payment goes into Alo King's own Whish account, and Alo King settles with merchants. The earlier "paid straight to the merchant" rule is withdrawn. It stays only as the fallback if the lawyer refuses the collection model (20.1).
 
-### 20.1 Customer pays for food (customer → merchant)
-- Cash on delivery, paid to the merchant. Default for every order.
-- Whish online payment, straight to the merchant: each merchant connects its own Whish business account in the dashboard; when a customer chooses Whish, Alo King creates the payment link on that merchant's account, the money lands with the merchant, and Alo King only records the signed payment result. A merchant without a Whish business account takes cash only.
-- If Whish offers a marketplace product (one Alo King account that routes each payment to the right merchant), it replaces merchant-connected accounts once the lawyer approves it.
-- Refunds go back through Whish to the original payment, triggered by the merchant or by Alo King support with the merchant's agreement. No customer wallets or stored balances.
-- Foreign cards (diaspora): Tap, later, same rule (paid to the merchant, or Alo King as merchant of record only with the lawyer's written approval).
+### 20.1 Customer pays (customer → Alo King → merchant)
+- **Methods:** cash on delivery (cap $150, held in config); Whish payment link into Alo King's Whish business account; foreign card through Tap for Send Home and visitors (section 22).
+- **Who collects cash:** whoever delivers. Merchant delivery: the merchant keeps the cash. Alo King fleet: the driver collects for Alo King (section 21.4). Partner delivery: the partner collects and remits to Alo King under its contract.
+- **Legal model (lawyer confirms in writing before online collection goes live):** Alo King collects as the merchant's **disclosed commercial agent**, under a collection mandate the merchant accepts at go-live (one tap, stored with version and timestamp). The merchant stays the seller of the food and issues the food invoice. Alo King invoices only its own fees. BdL Decision 13790 (January 2026) now licenses electronic payment service providers, so the lawyer answers three questions:
+  1. Is agent collection with settlement every 2 weeks outside the EPSP licence?
+  2. If not, does acting as merchant of record (Alo King buys and resells the meal) avoid it, and at what VAT cost?
+  3. What is the longest settlement period allowed?
+  If both models need a licence, the fallback applies: payment links on each merchant's own Whish account, with Alo King recording the result only.
+- **Refunds:** back to the original Whish payment or card; never to a wallet. Charged to the merchant only when the merchant caused it (wrong or missing item, cancelled after accepting); otherwise Alo King absorbs it. Each refund is a ledger entry.
 
-### 20.2 Merchant pays Alo King (merchant → Alo King)
-- Alo King Credit: a prepaid balance a merchant tops up from the dashboard or WhatsApp with a Whish payment link into Alo King's own Whish business account (minimum $10).
-- Closed loop: spendable only on Alo King's own services (order fees, broadcasts, sponsored orders); not transferable, not withdrawable, not usable with any other merchant, no interest; unused credit refunded on request when the merchant closes its account. This makes it an advance payment for services rather than stored money; the lawyer confirms this in writing before launch.
-- Order fee ($1 per delivered order, first 30 days free) is deducted from credit when the order is marked delivered. If credit is short, the fee goes on the monthly statement. Statement unpaid after 15 days: paid tools pause. After 30 days: the merchant stops receiving orders until paid.
-- Paid tools are prepaid only: a campaign or sponsorship reserves its budget from credit when it starts, is charged for what was actually delivered, and releases the rest.
-- Every movement is an append-only ledger entry (top-up, order fee, broadcast charge, sponsored charge, refund to credit, adjustment by admin with reason). Statements and VAT invoices are generated from the ledger; VAT applies once the SARL is VAT-registered, at the rate in the VAT table.
+### 20.2 Settlement to merchants (automated)
+- **Cycle:** every 2 weeks; the cycle closes Sunday 23:59 Beirut time and payout runs Tuesday. A merchant may choose monthly in the dashboard. Every 2 weeks is the default because it keeps the float small and small restaurants need the cash.
+- **Net payout** = online payments collected for delivered orders + COD cash the Alo King fleet or a partner collected for this merchant − Alo King order fees − Alo King delivery fees on online orders it delivered − approved refunds caused by the merchant − unpaid paid-tool charges.
+- **Payment:** a Whish-to-Whish transfer (free on Whish's fee page) to the merchant's verified Whish account, through the Whish payout API. A bank transfer is used only if the merchant has no Whish account. Each payout needs the merchant's payout account confirmed by OTP; changing it freezes payouts for 72 hours and alerts the old number (anti-takeover).
+- **Negative balance** (mostly cash orders, so fees exceed collections): deducted from Alo King Credit first; the remainder carries to the next cycle. Unpaid after 2 cycles: paid tools pause. After 3 cycles: orders pause.
+- **Statement:** sent on WhatsApp as a PDF and shown in the dashboard: each order, gross, fees, refunds, net. The merchant can dispute a line within 7 days; the AI drafts the answer from the ledger, and Rasheed approves adjustments over $20.
+- **Reconciliation, daily and automatic:**
+  - Whish transactions are matched against `payments`, and payouts against `settlements`.
+  - Any mismatch opens a money incident, alerts the admin and blocks that merchant's next payout until resolved.
+  - "Zero unresolved money mismatches" is a customer-ads gate (section 1).
+- **Float control:** Whish lists a USD 30,000 balance limit for corporate accounts. When Alo King's Whish balance passes $15,000 (config), the excess moves automatically to the SARL's fresh-USD bank account. If the balance stays above that after the sweep, settlement switches to weekly. Ask Whish to raise the limit (20.6).
 
-### 20.3 Launch prices (stored in a dated price table, changeable without code)
+### 20.3 Alo King Credit (merchant → Alo King), automated end to end
+- **Purpose:** a prepaid, closed-loop balance spent only on Alo King services (paid broadcasts, sponsored orders, and order fees when settlement doesn't cover them). It cannot be transferred, withdrawn or used with another merchant, and earns no interest. Unused credit is refunded when the merchant closes its account. The lawyer confirms it in the same letter.
+- **Top-up, three ways:**
+  1. A Whish payment link from the dashboard or WhatsApp ("charge 20$" → link). Minimum $10.
+  2. Auto top-up from settlement: the merchant ticks "keep my credit at $X", and the next payout tops it up first.
+  3. Admin credit with a reason (promotions, compensation). Over $20 needs Rasheed's tap.
+- **Sync:**
+  - The Whish webhook (signature checked, idempotent) writes the ledger entry. A Postgres trigger updates the balance view.
+  - Supabase Realtime pushes the new balance to the dashboard.
+  - The WhatsApp bot answers "رصيدي / my balance" from the same view.
+  - The AI tools `get_credit_balance`, `quote_campaign` and `reserve_budget` read and write only through server functions. The AI never computes money.
+  - A missed webhook is recovered by the 5-minute Whish status poll and the daily reconciliation.
+- **Automation rules:**
+  - A campaign or sponsorship reserves its budget when it starts. It is charged per delivered message or order and releases the rest at the end.
+  - At 20% of a running budget or under $5 of credit, the merchant gets a WhatsApp alert with a one-tap top-up link.
+  - At zero, paid tools pause automatically and resume when the top-up lands.
+  - The AI brain suggests a top-up only with the numbers ("your weekend broadcast reached 412 customers and brought 9 orders").
+- **Ledger:** every movement is an append-only entry in one ledger:
+  - customer payment, refund, COD collected, COD deposited, order fee, delivery fee, settlement payout
+  - credit top-up, broadcast charge, sponsored charge, credit refund, admin adjustment with reason
+  Balances are views over the ledger, never edited. Statements and VAT invoices come from the ledger. VAT applies once the SARL is registered, at the rate in the VAT table.
+
+### 20.4 Launch prices (stored in a dated price table, changeable without code)
 | Product | Price | Rules |
 |---|---|---|
 | Order fee | $1.00 per delivered order | first 30 days free per merchant |
 | Paid broadcast | $0.08 per delivered message, minimum $5 per campaign | audience = customers who opted in to marketing AND either ordered from this merchant or live inside its delivery radius and order its category; max 2 promotional messages per customer per week across all merchants; merchant shown the audience size and exact cost before paying; undelivered messages not charged |
-| Sponsored recommendation | $0.40 per delivered order that came from a sponsored suggestion within 24 hours | labelled "مُموَّل · Sponsored"; at most one per list; shown only if relevant, open and delivering to the address; merchant sets a daily budget; sponsors rotate by remaining budget and quality score; no auction at launch |
+| Sponsored recommendation | $0.40 per delivered order that came from a sponsored suggestion within 24 hours | labelled "مُموَّل · Sponsored · Sponsorisé"; at most one per list; shown only if relevant, open and delivering to the address; merchant sets a daily budget; sponsors rotate by remaining budget and quality score; no auction at launch |
 | Offers (discounts, combos, free delivery) | free to create | merchant-funded; server-validated |
+| Send Home service fee | $1.50 per order, paid by the sender | covers card fees (about 3%) and the extra support; reviewed after 100 Send Home orders |
 
 Broadcast margin check: Meta charges $0.0392 per delivered marketing message in Lebanon; $0.08 covers that plus replies and AI handling.
 
-### 20.4 Quality guards for paid tools
+### 20.5 Quality guards for paid tools
 - A merchant whose broadcasts get more than 2% STOP replies or any WhatsApp block-rate warning is paused from broadcasting for 14 days.
 - Sponsored placement is dropped for merchants with acceptance under 90% or more than 5% late orders in the last 14 days.
 - Paid placement never changes organic ranking; customers can always ask "show me without sponsored".
 
-### 20.5 Questions Rasheed sends to Whish (provider questions, not a negotiation)
-1. API documents and a sandbox key for Whish Pay payment links, payment status, webhooks (with signature) and refunds.
-2. Can a merchant connect its own Whish business account to a platform (API key or authorisation), so payment links created by Alo King pay that merchant directly?
-3. Do you offer a marketplace or split-payment product for platforms?
-4. Your 1% rate in writing, for which products, and the settlement timing to a Lebanese bank or Whish account.
-5. Requirements to open Alo King SARL's own Whish business account.
+### 20.6 Questions for Whish
+The first list is already sent. Send these too as provider questions; no negotiation is needed.
+1. API documents and a sandbox key for payment links, payment status, signed webhooks, refunds **and payouts (Whish-to-Whish transfers from our account to merchants' accounts by API)**.
+2. Can international Visa/Mastercard holders pay our payment links, and at what fee?
+3. Can the USD 30,000 corporate balance limit be raised for a marketplace that settles merchants every 2 weeks?
+4. The 1% rate in writing: which products, and the settlement timing to a Lebanese bank.
+5. Requirements to open Alo King SARL's business account.
+
+## 21. Delivery: three modes, one adapter (DECIDED, 7 October)
+Every order has exactly one fulfilment mode, chosen by the server, never by the AI. The code talks to one `delivery_provider` interface with three implementations:
+- `merchant`: the merchant delivers.
+- `fleet`: Alo King drivers.
+- `partner`: an outside delivery company.
+
+Each one supports the same calls: quote, book, cancel, status, proof, cash report. Adding or swapping a partner is config plus one adapter file.
+
+### 21.1 The three modes
+| | Merchant delivers | Alo King fleet | Partner delivers |
+|---|---|---|---|
+| When | Default at pilot and for any merchant with its own drivers | Dense areas where volume pays for drivers | Areas or hours where we have no fleet and the merchant has no driver; scheduled non-hot deliveries |
+| Customer fee | Bands; merchant may go lower | Bands (Alo King's revenue) | Bands; Alo King pays the partner and covers any difference up to the subsidy cap |
+| Who holds COD cash | Merchant | Driver, for Alo King, then settlement | Partner, remitted to Alo King, then settlement |
+| Tracking | Merchant taps "out for delivery / delivered"; optional live pin from the merchant's driver link | Driver app with live location | Partner status by API or webhook mapped to our states |
+| Proof | Merchant tap + customer confirm | Photo + GPS + customer confirm or OTP for orders over $50 | Partner proof |
+
+### 21.2 How the mode is chosen (per merchant, per order)
+- In the dashboard, each merchant picks one of:
+  - "I deliver everything"
+  - "Alo King delivers everything"
+  - "I deliver up to X km, Alo King beyond"
+  - "I deliver; use Alo King when my drivers are busy" (one tap on the order: "need a driver")
+- At checkout the server takes the merchant's setting, checks which modes are open for the delivery point (fleet and partner areas are polygons in the database, switched on and off by config), and books the first available mode in this order: merchant → fleet → partner.
+- If no mode can deliver, the order is not offered (the customer sees "this place can't deliver to you now" plus pickup if the merchant allows it).
+- Pickup (customer collects) is a fourth option, free, on by merchant choice.
+
+### 21.3 Alo King fleet
+- **Opening rule:** a fleet area opens when a 5 km cluster averages 40 or more delivered orders a day for 14 days, or when merchants there representing 30% of orders ask for it. Both numbers live in config. Below that, a fleet loses money on idle time.
+- **Drivers:** independent contractors with their own motorcycle.
+  - **Onboarding** is remote, with no visits: ID, driving licence, motorcycle registration and valid insurance photographed in the driver app; a video call; a test delivery with an operator watching live tracking.
+  - **Equipment:** an insulated bag with the Alo King logo, at a deposit.
+- **Pay:** 80% of the delivery fee plus 100% of tips, paid weekly by Whish. A guaranteed hourly minimum for booked shifts covers quiet hours in a new area (amount in config, decided when the first area opens).
+- **Dispatch:** automatic. Pick the nearest available driver by road time, considering their current load (max 2 orders batched if both pickups are within 1 km and the second drop adds under 8 minutes). The offer is accepted within 30 seconds or goes to the next driver; an operator steps in after 3 refusals.
+- **Driver app:** the existing PWA, rebuilt in Phase 5b. It has job offers, navigation hand-off to Google Maps or Waze, pickup and drop-off steps, cash collected, photo proof and an SOS button.
+- **Safety:** no dispatch to South and Nabatieh while they are paused. Night cut-off by area (config). Weather and winter-risk places (section 16) block or delay automatically.
+
+### 21.4 Cash custody for the fleet (the main risk)
+- Each driver has a cash-in-hand limit of $150 (config). Above it they get no new COD jobs until they deposit.
+- Drivers deposit daily by Whish to Alo King's account or at a set cash point. Every deposit is matched to the cash the app says they collected. A shortfall is deducted from the driver's next pay and opens an incident.
+- The ledger tracks cash per driver: collected → deposited → settled to the merchant.
+
+### 21.5 Partners (outsourcing)
+- **Hot food:** Alo King contracts a local on-demand courier company per region for a pickup under 15 minutes and delivery under 45 minutes, with an API or webhook and COD remittance at least weekly.
+  - A partner is chosen by a short written request for quote (sent by Claude; Rasheed only signs).
+  - Toters and other ordering apps are competitors, so they are not used as partners.
+- **Parcel carriers** such as Wakilni (24–72 hours, $6–15+ per its site) are used only for scheduled non-hot deliveries: water, gas and essentials bundles, Send Home gift boxes and next-day orders.
+- **Partner kill-gate:** a partner whose late rate exceeds 10%, or whose cash is remitted more than 7 days late, is switched off by config.
+
+### 21.6 Questions for the lawyer (same letter as 20.1)
+1. Driver status as independent contractors: NSSF exposure, and the contract wording.
+2. The third-party motorcycle insurance a driver must hold, and whether Alo King needs its own liability cover.
+3. Liability split for food damaged in transit by fleet versus partner.
+
+### 21.7 Build and switch-on
+- **Built before launch:** the adapter and the `merchant` mode (pilot), then `fleet` and `partner`.
+- **Switched on after the pilot:** fleet and partner areas, by config, when the opening rule is met or a partner contract is signed.
+- **No delivery fee surcharges at launch:** no altitude, night or weather surcharges. These are revisited with fleet data.
+
+## 22. Send Home: orders paid from abroad (DECIDED, 7 October)
+Lebanese abroad order on WhatsApp for family in Lebanon and pay by card. The rule that resolves every scenario: **the phone number says nothing about where a person is. The delivery point decides where food goes; the payment method decides the risk checks.** We never infer location or nationality from a country code.
+
+### 22.1 Who is ordering for whom: the bot asks once
+When the delivery address is not one of the customer's own saved addresses, or the message says it's for someone else ("for my mom", "pour ma mère", "la emme"), the bot asks: "Is this order for you or someone else?". If it is for someone else, the order becomes a gift order with three people:
+- **sender:** pays, gets all updates
+- **recipient:** name, phone, address
+- **merchant**
+
+### 22.2 Scenarios
+| # | Situation | How it works |
+|---|---|---|
+| 1 | Foreign number, abroad, sends to family | Gift order. Pay by card (Tap) or Whish link. COD only if the recipient accepts paying (scenario 7). |
+| 2 | Lebanese number on roaming abroad, sends to family | Same as 1. We don't detect location and don't need to. |
+| 3 | Foreign number, in Lebanon (visiting or summer), orders for self | Normal order. Delivery point from the shared location pin. Pay COD, Whish or card. Until the number has one delivered order, COD is capped at $50 (config) and the merchant sees "new customer". |
+| 4 | Foreign number, in Lebanon, orders for someone else | Gift order, like 1. |
+| 5 | Lebanese number in Lebanon orders for someone else (e.g. parents in another village) | Gift order; all payment methods. |
+| 6 | Customer in Lebanon builds a basket and asks a relative abroad to pay ("pay for me") | The bot creates a pay-for-me link valid for 30 minutes. The relative pays by card or Whish on a web page. The order starts only when the payment lands. The payer gets a receipt and tracking. |
+| 7 | Sender orders, recipient pays cash | Allowed only after the recipient taps "Accept and pay on delivery" on WhatsApp. This prevents prank and harassment orders. |
+| 8 | Sender doesn't know the exact address | The sender gives the recipient's number. The recipient gets a utility template "Rami sent you an order from X. Share your location" with a button. The recipient's tap opens the chat, and the bot sends a location request. The order waits 2 hours for the pin, then is cancelled with a full refund. |
+| 9 | Scheduled for a date (birthday, Eid, Mother's Day, Christmas) | Up to 14 days ahead, by date and time window in Lebanon time, also shown in the sender's time zone. Paid at checkout. The merchant must confirm 24 hours before; if not, Alo King offers a similar merchant or a full refund. |
+| 10 | Recurring (weekly groceries, water, gas for parents) | After launch, phase 2 of Send Home. Card saved with Tap (token, sender consent). Each cycle is confirmed by the sender's tap 24 hours before and can be skipped or stopped anytime. |
+| 11 | Several family addresses | The sender's address book: "Mom – Baakline", "Teta – Achrafieh", each with the recipient's phone. |
+| 12 | Recipient not reachable at the door | The driver calls the recipient twice, then the sender (WhatsApp call link); waits 10 minutes; leaves it with a neighbour or concierge only with the sender's tap. Otherwise the order returns and the sender gets Alo King Credit for the food (the food was made), with the delivery fee refunded to the card. |
+| 13 | Recipient refuses the gift | Same as 12, without the waiting. |
+| 14 | Merchant rejects or runs out | Automatic full refund to the card within 1 minute of the rejection. The sender is offered a similar place first. |
+| 15 | Sender writes in French, English, Arabic or Arabizi | Full support in all four. The recipient's messages go in the recipient's language: Arabic by default, or as the sender chooses. |
+| 16 | Card country, number country and delivery country all differ | Normal for diaspora, so never a fraud signal on its own. |
+| 17 | Gift note | Up to 200 characters, printed on the merchant ticket and sent to the recipient on delivery. No photos from the sender (moderation). |
+| 18 | Company abroad sending to staff or clients in Lebanon | Later, through the same gift flow with an invoice in the company's name. |
+
+### 22.3 What sender and recipient see
+- **Sender:** confirmation, "accepted", "out for delivery" with tracking link, and "delivered at 19:42" with the delivery photo when the fleet delivers. These are utility messages in the 24-hour window or utility templates.
+- **Recipient:** at most two messages per order — "an order from Rami is on its way" (utility template) and, if needed, the location request. The sender ticks "they expect this order" before the first template, and the recipient can reply STOP to block all future gift messages.
+- Recipients are never added to marketing lists from a gift. Marketing consent is only ever given by the person themselves.
+
+### 22.4 Fraud and chargebacks
+- **3-D Secure on every card payment.**
+- New cards: max $150 per order and $300 per day, until 2 delivered orders.
+- 3 failed payments in an hour block that number for 24 hours.
+- **Chargeback evidence** is collected automatically: 3DS result, delivery photo and GPS, recipient or customer confirmation tap, and the message log.
+- Alo King, not the merchant, carries Send Home chargebacks. 2% of Send Home revenue is held in a reserve account in the ledger.
+- Sanctions and card screening are done by the gateway.
+
+### 22.5 Gateway decision: Tap Payments
+- **Primary: Tap Payments.** Tap markets itself for Lebanon and says it supports:
+  - Visa, Mastercard and Amex
+  - branded payment links shared over WhatsApp
+  - payouts to local banks in Lebanon
+  - an API, SDKs and a sandbox
+
+  This is the closest fit for WhatsApp checkout. Apple Pay, Google Pay and card tokenisation for recurring baskets must be confirmed for Lebanese merchants in the application. Pricing is not public: ask for it in the application; third-party sources suggest about 2.9% for international cards.
+- **Day-one bridge:** a Whish payment link, if Whish confirms foreign cards can pay it (20.6, question 2; 3% on its fee page).
+- **Fallback:** if Tap declines or stalls beyond 30 days, apply to Areeba (card acquiring through a Lebanese bank; slower paperwork).
+- **Not possible:** Stripe (not available to a Lebanese company), PayPal (no merchant payouts in Lebanon), WhatsApp native payments (not offered in Lebanon).
+- **Application, the week the SARL exists:**
+  - Documents: commercial registration, articles, IDs of the managers, a fresh-USD bank account, website on `aloking.com` with terms, privacy policy, refund policy and contact page (Phase 4 delivers these pages).
+  - Use case: "marketplace food and grocery delivery; WhatsApp payment links; diaspora gifting".
+  - Claude prepares all the text; Rasheed submits.
+- **How it plugs in:** the payment adapter gets a `tap` provider:
+  - create charge or payment link
+  - signed webhook
+  - refund
+  - token for recurring
+
+  The money lands in Alo King's Tap balance, pays out to the SARL bank account, and is settled to merchants in the same 2-week cycle (20.2).
+
+### 22.6 Build and switch-on
+- Phase 6 builds the gift order model, pay-for-me links, the recipient templates and the Tap adapter against Tap's sandbox.
+- It switches on in production when Tap approves the SARL and the lawyer letter covers collection.
+- The diaspora campaign (Meta ads in France, Canada, the Gulf, Australia, the US, West Africa) is a later decision, as Rasheed said.
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
@@ -408,3 +580,4 @@ Broadcast margin check: Meta charges $0.0392 per delivered marketing message in 
 - Google: Places API policies (place_id storage, attribution), Places data fields (SKU per field), Maps Platform pricing (free monthly caps).
 - Kapso docs: pricing FAQ, flows (Kapso integration, static vs dynamic, data endpoint), webhooks advanced. Flows client support and pricing: infiq.in Flows guide; Flowella (Web/Desktop rollout Dec 2025). GoDaddy availability check for aloking.com.
 - Anthropic: models overview (platform.claude.com/docs/en/models/overview); Claude Code cloud sessions, auto-fix and projects (code.claude.com/docs).
+- 7 October: Tap Payments Lebanon page (payment links over WhatsApp, payouts to Lebanese banks); Whish fees page (payment links 3%, international card 3%, corporate account balance limit USD 30,000); Wakilni delivery page (24-72 h, $6-$15+); BdL Decision 13790 of January 2026 (EPSP licensing framework, five service categories); BdL card-fee circulars reported 10 September 2026 (0.9%-1.2% merchant commission cap in essential sectors).

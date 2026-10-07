@@ -1,6 +1,6 @@
 # Alo King (ألو كينغ)
 
-WhatsApp-native food and essentials ordering for Lebanon. Customers order by typing, speaking or tapping in Arabic, English or Arabizi. The AI interprets; the server owns prices, baskets, payments and order states.
+WhatsApp-native food and essentials ordering for Lebanon. Customers order by typing, speaking or tapping in Arabic, English, French or Arabizi, for themselves or (Send Home) for family in Lebanon from abroad. The AI interprets; the server owns prices, baskets, payments and order states.
 
 ## Authority
 1. `docs/decisions/DECISIONS.md` is the single source of truth. It overrides this file, `AGENTS.md`, every doc in `docs/`, the research reports, and the existing code.
@@ -26,6 +26,7 @@ Never read or change Supabase project `kabsi-prod` (`ynjdqjlmdwjgbfezevxy`), Sen
 
 ## Product rules (apply to every change)
 - Server-side money: prices, fees, totals, COD cap and commissions come from the database. Never trust a price from the client, a WhatsApp message or the AI.
+- One append-only ledger: payments, refunds, COD cash, fees, settlements and merchant credit are ledger entries; balances are views, never edited (DECISIONS §20).
 - No hard-coded business numbers: exchange rate, VAT, fee bands, COD cap and message rates live in dated tables or config (DECISIONS §1, §6).
 - Dual currency: customer totals show USD and LBP at the rate locked on the order.
 - AI proposes, server decides: the AI may interpret and call typed tools; merchant-facing changes to prices, availability or hours need the merchant's confirming tap.
