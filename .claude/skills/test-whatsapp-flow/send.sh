@@ -4,8 +4,8 @@
 #        SELFTEST_TOKEN=... send.sh <phone> tpl-button "<payload>" "<text>"   (template quick reply)
 #        SELFTEST_TOKEN=... send.sh <phone> reply "<button id>" "<button title>"
 set -euo pipefail
-# FN=kapso-brain-test targets the staging copy deployed from a PR branch (see deploy-and-verify)
-URL="https://hnjkietmwvkgbyrcnweq.supabase.co/functions/v1/${FN:-kapso-brain}"
+# alo-king-staging only; FN picks the function (default kapso-brain)
+URL="https://tzugbbatfbvrfzxuacqx.supabase.co/functions/v1/${FN:-kapso-brain}?forceFunctionRegion=eu-central-1"
 : "${SELFTEST_TOKEN:?set SELFTEST_TOKEN to a live row of selftest_tokens}"
 case "$1" in 961700000*) ;; *) echo "use a test phone starting with 961700000" >&2; exit 2;; esac
 ID="wamid.t4.$RANDOM$RANDOM$(date +%s%N)"

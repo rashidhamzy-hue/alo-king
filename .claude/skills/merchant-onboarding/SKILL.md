@@ -1,20 +1,23 @@
 ---
 name: merchant-onboarding
-description: Walk a restaurant/grocery owner through onboarding on Alo King (claim the business, complete the profile and menu, link the WhatsApp owner console, go live, broadcast credit). Use when asked to onboard, claim, or set up a merchant.
+description: Build or review how a business claims or registers on Alo King, confirms its pre-filled profile, builds its menu, sets delivery and payment terms, and goes live. Use for claim, registration, staff roles, go-live and merchant self-service work.
 ---
 
 # Merchant onboarding
 
-Vendors are pre-seeded in `vendors` (never `select('*')`; use `VENDOR_COLUMNS`). Onboarding turns one into a claimed, live, WhatsApp-manageable business.
+DECISIONS §15 (vendor data), §17 (categories), §18 (claims and self-service), §20 (money), §21 (delivery), §23 (order channels) decide. No field visits and no outreach messages: businesses start themselves from ads, customers or the site. This is product behaviour built in Phases 3 and 8; until then, use it to design and review that work.
 
-1. **Claim** (site `/claim/<slug>`, edge function `claim-vendor`, JWT required, 5 attempts/day/user):
-   - `start` with owner name + phone. If `KAPSO_OTP_TEMPLATE` is set and the vendor has a WhatsApp/primary phone, a 6-digit code is sent with the **code in both the body and button parameters**; `verify` calls `finalize_claim` (creates `staff_profiles` merchant role, `vendor_profiles.claimed_at`, `vendor_private`).
-   - Otherwise the claim is `pending_review`: an admin approves in `/admin` (`review_claim`).
-2. **Profile** (`/merchant/profile`): hours (drive `vendor_is_open`, Asia/Beirut), delivery villages, min order, prep time, allergen policy, contacts. Aim for a high `vendor_completeness` score.
-3. **Menu** (`/merchant/menu`, import via `merchant-ai` `extract_menu`): check prices (USD stored; LBP at 89,500 is display only), customizations, allergens (`allergens_reviewed` gates allergy recommendations), photos. AI output is proposals the owner approves; macros/allergens are estimates.
-4. **Link WhatsApp** (Profile → "Manage by WhatsApp"): `create_owner_link_code` gives `ALO-XXXXXX` (30 min). The owner sends it from their phone to the Alo King number; `kapso-brain` sets `vendors.owner_whatsapp_phone`. One number per vendor. Then they can change prices, mark sold out, pause, see today's numbers, and draft broadcasts by text or voice.
-5. **Go live**: `vendors.is_live = true` (the bot only offers live vendors when `ALO_DEMO_MODE=false`). Check `vendor_is_open` isn't false and `accepts_orders` is true.
-6. **Marketing**: new customers are asked to opt in after their first order; broadcasts go only to opted-in customers, cost $0.05/msg from `broadcast_credits_usd` (default $10), each with an opt-out. Marketing templates must be APPROVED first.
-7. **Verify** with `test-whatsapp-flow` using test phones only, then undo test data (see that skill's cleanup).
+## Starting point
+2,087 seed vendors, all `claim_status = unclaimed`, `orderable = false`, `public_page = false`, seed fields marked `source = seed`. No ratings, no menus imported, phone seed internal only. Unclaimed vendors have no public page anywhere.
 
-Rules: never ask owners to paste API keys, OTPs or card numbers in chat; don't edit another vendor's data; prices are always set server-side.
+## Claim and registration cases (§18.1)
+A mobile seed phone on WhatsApp: code by WhatsApp. B landline: automated voice call reads the code. C wrong or missing phone: commercial registration or municipal permit plus shop-sign photo, Rasheed approves in one tap. D on Google but not in our list: live lookup with `GOOGLE_PLACES_SERVER_KEY`, then A-C. E not on Google: register with documents (home kitchens need a registration document, else waitlist). F chains: one brand, each branch its own vendor. G two claimants: both frozen, documents, audit log. H staff roles: owner, manager, cashier, kitchen (only owner and manager edit prices and menu). I sale, J closed or moved, K removal (delete, keep `place_id` as do-not-re-import), L lost access, M customer requests (counted, never messaged).
+
+## Profile and menu (§18.2, §18.3)
+Every seed field shows "please confirm"; confirming replaces `source = seed`. The merchant adds kitchen WhatsApp, owner mobile, delivery radius (road distance, max 10 km), hours, prep time, cash currencies, menu and photos. Smart menu import from photos, PDF, a link or Instagram screenshots is a draft approved section by section; prices are never invented. Later edits by dashboard or by message to the Merchant number become proposals the merchant confirms with one tap.
+
+## Go-live checklist (§1, §15)
+Claimed and verified; profile confirmed; tested menu; delivery radius and fee within the bands ($2 / $3 / $4.50 up to 3 / 6 / 10 road-km, lower allowed); order channel chosen with a backup (§23) and acknowledged in one dry-run order; collection mandate accepted with one tap (version and timestamp stored, §20.1); settlement details for the 2-weekly settlement. Then `orderable = true` and a public page.
+
+## Rules
+Never ask owners for API keys, OTPs or card numbers in chat; never edit another vendor's data; prices, availability and hours change only with the merchant's tap; marketing only to opted-in customers through approved templates.
