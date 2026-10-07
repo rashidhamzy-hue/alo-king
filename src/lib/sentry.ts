@@ -26,20 +26,43 @@ export function initSentry() {
       httpBodies: [],
       urlQueryParams: false,
     },
-    tracesSampleRate: 0.1,
+    // No performance tracing until the Phase 4 site: transactions and spans would carry unscrubbed URLs.
+    tracesSampleRate: 0,
     beforeSend: scrub,
+    beforeBreadcrumb: (b) => {
+      if (b.message) b.message = scrubText(b.message);
+      for (const k of ["url", "from", "to"] as const)
+        if (typeof b.data?.[k] === "string") b.data[k] = scrubUrl(b.data[k]);
+      return b;
+    },
   });
 }
 
-const PHONE = /\+?\d[\d\s-]{7,}\d/g;
+// 7+ digits with optional spaces or dashes: Lebanese local (03 123 456) and international numbers.
+const PHONE = /\+?\d[\d\s-]{5,}\d/g;
+// Path segments that act as bearer tokens (signed tracking links, claim and handoff links).
+const TOKEN_PATH = /\/(track|t|claim|h)\/[^/?#]+/g;
 
-/** Masks phone-like digit runs in messages and drops query strings (tracking tokens). */
+export const scrubText = (s: string) => s.replace(PHONE, "[phone]");
+export const scrubUrl = (u: string) =>
+  (u.split(/[?#]/)[0] ?? "").replace(TOKEN_PATH, "/$1/[token]");
+
+/** Masks phones, path tokens and query strings in everything an error event carries. */
 export function scrub<E extends Sentry.ErrorEvent>(event: E): E {
-  if (event.message) event.message = event.message.replace(PHONE, "[phone]");
-  for (const ex of event.exception?.values ?? [])
-    if (ex.value) ex.value = ex.value.replace(PHONE, "[phone]");
-  if (event.request?.url) event.request.url = event.request.url.split("?")[0];
-  delete event.request?.query_string;
+  if (event.message) event.message = scrubText(event.message);
+  for (const ex of event.exception?.values ?? []) if (ex.value) ex.value = scrubText(ex.value);
+  if (event.request) {
+    if (event.request.url) event.request.url = scrubUrl(event.request.url);
+    delete event.request.query_string;
+    delete event.request.headers;
+    delete event.request.cookies;
+  }
+  for (const b of event.breadcrumbs ?? []) {
+    if (b.message) b.message = scrubText(b.message);
+    for (const k of ["url", "from", "to"] as const)
+      if (typeof b.data?.[k] === "string") b.data[k] = scrubUrl(b.data[k]);
+  }
+  if (event.extra) event.extra = JSON.parse(scrubText(JSON.stringify(event.extra)));
   return event;
 }
 

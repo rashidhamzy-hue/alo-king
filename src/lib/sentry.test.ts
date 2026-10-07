@@ -12,7 +12,23 @@ describe("sentry scrub", () => {
     } as ErrorEvent);
     expect(e.message).toBe("no order for [phone]");
     expect(e.exception?.values?.[0]?.value).toBe("customer [phone] failed");
-    expect(e.request?.url).toBe("https://alo.example/track/abc");
+    expect(e.request?.url).toBe("https://alo.example/track/[token]");
     expect(e.request?.query_string).toBeUndefined();
+  });
+
+  it("masks local numbers, tracking tokens in paths, breadcrumbs and extra context", () => {
+    const e = scrub({
+      type: undefined,
+      message: "call 03 123 456",
+      request: { url: "https://aloking.com/track/eyJhbGciOi.sig?x=1", headers: { Referer: "r" } },
+      breadcrumbs: [{ message: "sent to 70123456", data: { url: "/track/abc123?t=1" } }],
+      extra: { phone: "+96170123456" },
+    } as ErrorEvent);
+    expect(e.message).toBe("call [phone]");
+    expect(e.request?.url).toBe("https://aloking.com/track/[token]");
+    expect(e.request?.headers).toBeUndefined();
+    expect(e.breadcrumbs?.[0]?.message).toBe("sent to [phone]");
+    expect(e.breadcrumbs?.[0]?.data?.url).toBe("/track/[token]");
+    expect(e.extra).toEqual({ phone: "[phone]" });
   });
 });
