@@ -22,7 +22,7 @@ Never read or change Supabase project `kabsi-prod` (`ynjdqjlmdwjgbfezevxy`), Sen
 - One task = one branch = one pull request into `rebuild/lebanon`. CI must pass; the automerge workflow merges green PRs (DECISIONS §10). Do not merge by hand, force-push or rewrite history.
 - Schema changes only through new files in `supabase/migrations/`. A migration that drops or truncates data needs a rollback file.
 - Before finishing: run lint, typecheck, tests and build; report what ran and what failed.
-- Ask the owner only blocking questions, each with a recommended answer. The owner runs no manual tests.
+- Never ask the owner. Decide per DECISIONS.md, log each judgement call as one line in `docs/decisions/LOG.md`, and continue. Anything only the owner can do (sign, pay, verify identity, use his accounts) becomes a GitHub issue labelled `owner` with exact click steps; keep working on everything else (DECISIONS §25). The owner runs no manual tests.
 
 ## Product rules (apply to every change)
 - Server-side money: prices, fees, totals, COD cap and commissions come from the database. Never trust a price from the client, a WhatsApp message or the AI.

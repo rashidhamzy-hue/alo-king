@@ -22,6 +22,7 @@ Phase 0 starts now. Nothing in the legal, carrier or payment track blocks it, be
 - Money: Whish payments go to Alo King's own Whish account; merchants are settled automatically every 2 weeks (monthly on request). Section 20 rewritten.
 - Delivery: three modes (merchant, Alo King fleet, outsourced partner) behind one adapter. New section 21.
 - Merchant credit: fully automated across Whish, the ledger, the dashboard, WhatsApp and the AI (section 20.3).
+- Order receiving through every channel incl. POS and Deliverect (section 23); full website revamp (section 24); build sessions never ask the owner (section 25).
 - French added as a fourth ordering language (with Arabic, English and Arabizi), including mixed Arabic-French messages.
 - Send Home: orders paid from abroad for family in Lebanon, every number and location case, Tap Payments as the gateway. New section 22.
 
@@ -92,7 +93,7 @@ DECIDED:
 ## 5. Website: adopted with one rule change (DECIDED)
 - Website and WhatsApp are two doors to one system: shared basket, menu versions, orders and identity; signed short-lived handoff tokens; anonymous basket until phone verification.
 - Public pages (`/m/{slug}`, area and category pages) exist only for claimed vendors that supplied their own data. Unclaimed, Google-derived vendors get no public page and no ratings anywhere. Private routes are `noindex`.
-- Server-rendered HTML, canonical URLs, Open Graph, structured data only where it matches visible content, no thin village pages, real 404s. `llms.txt` optional and low priority. Ignore Manus's `/manus-routes.json`. The Website report is in the repo at `docs/research/Alo-King-Complete-Website-Design-UX-SEO-AIO-GEO-Strategy.md` (input only).
+- Server-rendered HTML, canonical URLs, Open Graph, structured data only where it matches visible content, no thin village pages, real 404s. `llms.txt` included (section 24.6). Ignore Manus's `/manus-routes.json`. The Website report is in the repo at `docs/research/Alo-King-Complete-Website-Design-UX-SEO-AIO-GEO-Strategy.md` (input only).
 - Design system confirmed: Crown Gold #F4B63C, ink #17131A, cream #FFF9F0; Plus Jakarta Sans and IBM Plex Sans Arabic (they replace the current Cormorant Garamond, Inter and Tajawal); WCAG 2.2 AA; right-to-left is first-class. Contrast checked: gold on ink 10.1:1 (passes), ink on cream 17.5:1 (passes), gold on cream 1.7:1 (fails). Rule: gold is never text on cream; use gold for fills and buttons with ink text.
 
 ## 6. Manus claims: final verdicts
@@ -125,9 +126,9 @@ DECIDED:
 ## 7. Build order (starts now)
 0. Repo reset: branch `rebuild/lebanon`, delete list, `CLAUDE.md`, `.claude/settings.json` with hooks (block destructive commands, block production targets, scan for secrets), five Manus skills edited to match this file, CI and the automerge workflow (section 10), wiring to `alo-king-staging`, Sentry and Vercel, no production access from development sessions.
 1. Fresh schema, row-level security, roles, audit log, webhook (signature, idempotency, queue), all-Lebanon places list (section 16), categories (section 17), vendor import from the seed file (section 15), exchange-rate and VAT tables, fee bands.
-2. Order lifecycle (state machine with race tests), four-layer merchant notifications, merchant portal queue.
+2. Order lifecycle (state machine with race tests), four-layer merchant notifications, merchant portal queue, the `order_channel` router with portal, WhatsApp, call, printer and email channels (section 23).
 3. Customer bot and AI (typed tools, budgets, fixtures, eval set in Arabic, English, French, Arabizi and voice, including mixed Arabic-French and Arabic-English messages); claims, registration, pre-filled profiles, merchant editing on dashboard and WhatsApp, smart menu (section 18).
-4. Website: claimed-vendor pages, tracking, handoff, SEO.
+4. Website revamp (section 24): design system, every public page in Arabic, English and French, claim and registration with the AI onboarding assistant, legal pages, SEO and AIO, dashboard restyle.
 5. Delivery (section 21): 5a merchant self-delivery with the `delivery_provider` adapter in place from day one; 5b Alo King fleet (driver app, dispatch, cash custody) and 5c partner adapter, both built before launch and switched on per area by config after the pilot.
 6. Payment adapter, ledger and settlement (section 20): cash on delivery; Whish payments into Alo King's Whish account; automated settlement every 2 weeks; Alo King Credit with automatic top-up and deduction; Send Home checkout with Tap (section 22), switched on when Tap approves the SARL.
 7. Simulator, evals, one capped live run per week on test numbers, pilot scorecard.
@@ -565,6 +566,134 @@ When the delivery address is not one of the customer's own saved addresses, or t
 - It switches on in production when Tap approves the SARL and the lawyer letter covers collection.
 - The diaspora campaign (Meta ads in France, Canada, the Gulf, Australia, the US, West Africa) is a later decision, as Rasheed said.
 
+## 23. How merchants receive orders: every channel, one router (DECIDED, 7 October 12:45)
+Big Lebanese restaurants and chains run their own POS, call centre or ordering app and won't work orders from WhatsApp. Small ones have only a phone. Both must work.
+
+The server sends every order through one `order_channel` interface:
+- **Calls:** deliver, acknowledge, cancel, status, menu and availability sync.
+- **Channels:** one implementation per channel (below).
+
+An order counts as **received** only when its channel acknowledges it:
+- an API acknowledgement with the POS order ID
+- a printer job confirmed printed
+- a button tap
+- a call keypress
+- the portal opened on the order
+
+Sending alone never counts. The four-layer escalation in section 2 applies to every channel. If the primary channel hasn't acknowledged in 15 seconds, the backup fires. At 45 seconds the automated call goes out, and at 75–90 seconds an operator steps in.
+
+### 23.1 The channels
+| Channel | Who it fits | How it works | Built |
+|---|---|---|---|
+| Merchant portal (web app on phone or tablet) | Default for everyone | Loud alarm, accept or reject with prep time, item out of stock, ready, picked up | Phase 2 |
+| WhatsApp (Merchant number) | Small shops, owners on the move | Order card with Accept / Reject / prep time buttons; status by buttons | Phase 2 |
+| Automated phone call (Twilio voice) | Phone-only shops; backup for all | Arabic voice reads the order; press 1 to accept, 2 to reject, 3 to repeat; then WhatsApp gets a copy | Phase 2 |
+| Kitchen printer (cloud receipt printer: Star CloudPRNT or Epson Server Direct Print) | Busy kitchens without screens | Ticket prints automatically in Arabic and English; acceptance is a tap on the portal, WhatsApp or the call | Phase 2 (adapter), printer optional |
+| Through Deliverect | Chains already using Deliverect for other apps | Alo King joins as an ordering channel; orders land in their POS through Deliverect | When the first chain asks; channel-partner terms to be confirmed with Deliverect |
+| Direct POS or ordering-system API (Omega POS, Foodics, Oracle Simphony, Squirrel, XStak, a chain's own platform) | Chains with an API and enough volume | One adapter per system: push order, item ID mapping, status back, menu and availability pulled from the POS (POS becomes the menu source) | Built per system when a merchant brings 30+ orders a week or is a chain of 3+ branches; Claude builds it from the vendor's API documents |
+| Concierge relay | Chains that refuse all of the above but deliver by their own hotline | An Alo King operator places the order on the chain's hotline or their own WhatsApp, as a customer would, then relays status; later a voice agent does it | After the pilot, only for chains customers ask for most; menu and prices must be confirmed by the chain first |
+| Email | Never primary | Copy of each order and the daily summary, if the merchant wants it | Phase 2 |
+
+### 23.2 Scenarios
+1. **Owner-run shop, one phone:** WhatsApp primary, with the call as backup.
+2. **Restaurant with a cashier and a tablet:** the portal primary, WhatsApp as backup, printer optional.
+3. **Busy kitchen:** the printer plus the portal; the call goes to the manager's phone.
+4. **Chain with POS through Deliverect:** the Deliverect channel. The branch portal stays as backup and shows status read-only.
+5. **Chain with a direct POS API:** the POS adapter, with the portal as backup.
+6. **Chain with a central call centre** (one place for all branches): the call centre gets a brand dashboard with all branches and routes to the branch. Alo King still picks the branch by delivery radius and suggests it.
+7. **Chain that refuses integration:** the concierge relay.
+8. **Integration down** (the POS API errors or times out): an automatic fallback to the backup channel, with an incident logged. After 3 failures in an hour, the merchant switches to backup for the day.
+9. **Item unavailable in the POS:** the POS availability pull hides it within 5 minutes. An order already placed gets a substitution offer to the customer.
+10. **Price differs between the POS and Alo King:** the POS price is used only after the merchant approves the mapping once. Afterwards, any difference above 5% holds the item until the merchant confirms. This keeps "AI proposes, server decides".
+11. **Multi-branch brand:** one brand, many branches, each with its own radius, hours, channel and settlement account. Settlement goes to the branch, or to HQ if the brand chooses.
+
+### 23.3 Tools to add
+- **Now (Phase 2):** Twilio voice is already planned. The cloud-printer adapter is software only.
+- **Per merchant, optional:** a Star mC-Print3 or similar CloudPRNT printer bought by the merchant, or lent by Alo King against a deposit; a cheap Android tablet for the portal.
+- **When the first chain asks:** a Deliverect channel-partner application (Claude drafts it, Rasheed submits). For direct POS adapters, the API documents come from the chain's POS vendor.
+- **Not used:** Otter, UrbanPiper, Grubtech, unless a target chain already runs one. They are added the same way as Deliverect.
+
+## 24. Website revamp: every page rebuilt (DECIDED, 7 October 12:45)
+The old Lovable pages are discarded as designs. Route logic is reused only where it fits the new schema. The design system in section 5 stays: Crown Gold, ink, cream, Plus Jakarta Sans and IBM Plex Sans Arabic, WCAG 2.2 AA, right-to-left first-class. French is added as a third site language.
+
+### 24.1 How it is built
+- **Design system first:**
+  - Tokens, components (shadcn/ui themed), icons, imagery rules and motion, in `src/design/`.
+  - Built with the `frontend-design` skill in a Sonnet 5.5 session, before any page.
+  - Direction: warm, Lebanese, confident; the "Alo" phone-call motif. No stock-template look.
+- **Visual review without Rasheed testing:** every website PR runs Playwright and posts screenshots in the PR comment. These cover each changed page on mobile and desktop, in Arabic, English and French. The Claude review job checks them against the design system. The Vercel preview link is there if Rasheed wants to look; he never has to.
+- **Budgets enforced in CI:**
+  - Lighthouse mobile ≥ 90 for performance, accessibility and SEO.
+  - LCP under 2.5 s on simulated 4G.
+  - JavaScript under 150 KB on public pages.
+  - Accessibility checked with axe.
+
+### 24.2 Pages
+| Area | Pages |
+|---|---|
+| Customers | Home (search by place, dish or cuisine; "Order on WhatsApp"); place pages; cuisine and category pages; claimed vendor pages (menu, hours, delivery area, offers, "Order on WhatsApp" with the basket pre-filled); basket handoff; order tracking; pay page and pay-for-me page (section 22); Send Home landing (Arabic, English, French); help and FAQ; contact |
+| Merchants | "For merchants" landing; claim flow; registration flow; merchant dashboard (orders, menu, hours, delivery settings, channels, offers, broadcasts, sponsored, credit, settlements and statements, insights, team, branches) |
+| Drivers | Driver sign-up and the driver app (section 21.3) |
+| Admin | Claims queue, merchants, orders, money incidents, settlements, partners, places on/off, prices and config |
+| Legal | Terms, privacy, refund policy, merchant terms, collection mandate, driver terms, cookie notice (Tap and the lawyer need these) |
+
+### 24.3 Claim and registration on the website
+- **Search, then verify:**
+  1. Search your business by name or on the map, and pick the result.
+  2. Verify with an OTP on the seed phone by WhatsApp or SMS, or upload papers for cases C–M in section 18.
+- **Not found:** register as new — a business number OTP, a pin on the map, the type, papers.
+- **After verifying, an AI onboarding assistant** sits in a side panel in the dashboard:
+  - turns menu photos, a PDF or a link into a draft menu
+  - writes the descriptions in three languages
+  - suggests delivery radius and fees within the bands
+  - checks the go-live checklist
+
+  The merchant approves each item with a tap.
+
+### 24.4 AI on the website
+- **Customers:** no separate site chatbot. "Ask Alo King" opens WhatsApp with the context pre-filled (place, basket, dish), because ordering happens in one brain. Site search uses the same search the bot uses: dish, cuisine or place, in four languages and Arabizi.
+- **Merchants:** the dashboard copilot. It answers from the merchant's own data, drafts offers and broadcasts, and explains statements. It changes nothing without the merchant's tap.
+
+### 24.5 SEO
+- **Rendering and structure:**
+  - Server-rendered pages.
+  - Language URLs `/ar`, `/en` and `/fr` with hreflang, and an Arabic default for Lebanon.
+  - Canonical URLs, breadcrumbs, a real 404, and sitemaps per page type, regenerated nightly.
+- **Structured data:** schema.org Restaurant or LocalBusiness, Menu and Offer on claimed vendor pages; FAQPage on help; Organization on home. Only data that is visible on the page.
+- **What gets indexed:**
+  - Claimed vendor pages only.
+  - A place page is indexed only when 3 or more live merchants deliver there; otherwise it is `noindex`. This avoids thin pages.
+  - The Send Home pages target "send food to family in Lebanon" searches in English and French.
+- **Owner setup (Claude prepares, Rasheed clicks):** Google Search Console and Bing Webmaster after the domain is bought; a Google Business Profile for Alo King.
+
+### 24.6 AIO (being the answer in ChatGPT, Gemini, Claude and Perplexity)
+- **Crawlers:** `robots.txt` allows GPTBot, ClaudeBot, PerplexityBot and Google-Extended on public pages.
+- **`llms.txt`** (upgraded from "optional" in section 5): what Alo King is, where it delivers, how to order, and links to the live place and vendor lists.
+- **Pages written to be quoted:** each place page opens with one factual sentence ("12 restaurants deliver to Baakline through Alo King on WhatsApp; delivery $2–4.50"), generated from live data. The FAQ answers the questions people ask assistants.
+- **Consistent identity:** one name, number and description on the website, Google Business Profile, Meta and WhatsApp.
+
+### 24.7 Analytics and privacy
+- **PostHog**, cookieless by default, tracks: WhatsApp click, claim start and finish, registration, pay-page conversion, Send Home funnel.
+- No personal data in events.
+- Consent banner only if a marketing pixel is added (the Meta pixel is added with the ads decision).
+
+### 24.8 Build placement
+- **Phase 4 becomes "Website revamp":** design system, then public pages, claim and registration, legal pages, SEO and AIO, then the dashboard restyle.
+- **Pages in other phases** use the same design system: dashboard screens in Phases 2, 3 and 8, the driver app in 5b, pay pages in Phase 6.
+
+## 25. Build autonomy (DECIDED, 7 October 12:45)
+Rasheed's rule: Claude Code works and auto-merges, and never asks him.
+- **Decisions:** build sessions never stop to ask the owner. They decide per this file, write the decision and its reason as one line in `docs/decisions/LOG.md`, and continue. If this file is silent, they choose the option that is reversible and cheapest, and log it.
+- **Owner tasks:** something only Rasheed can do (sign, pay, verify identity, use his accounts) becomes a GitHub issue labelled `owner`, with exact click steps. The session continues with other work, and the issue list is the owner's to-do list.
+- **Merging:** every PR merges automatically when CI is green (section 10). A red CI is fixed by the same session; nobody is paged.
+- **Hard stops (the only exceptions):**
+  - anything touching `main` or production
+  - Kabsi resources
+  - spending money
+  - deleting data without a rollback
+
+  The session does not ask about these either; it opens an `owner` issue and works around them.
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
@@ -581,3 +710,4 @@ When the delivery address is not one of the customer's own saved addresses, or t
 - Kapso docs: pricing FAQ, flows (Kapso integration, static vs dynamic, data endpoint), webhooks advanced. Flows client support and pricing: infiq.in Flows guide; Flowella (Web/Desktop rollout Dec 2025). GoDaddy availability check for aloking.com.
 - Anthropic: models overview (platform.claude.com/docs/en/models/overview); Claude Code cloud sessions, auto-fix and projects (code.claude.com/docs).
 - 7 October: Tap Payments Lebanon page (payment links over WhatsApp, payouts to Lebanese banks); Whish fees page (payment links 3%, international card 3%, corporate account balance limit USD 30,000); Wakilni delivery page (24-72 h, $6-$15+); BdL Decision 13790 of January 2026 (EPSP licensing framework, five service categories); BdL card-fee circulars reported 10 September 2026 (0.9%-1.2% merchant commission cap in essential sectors).
+- 7 October 12:45: XStak 'best POS software in Lebanon' (June 2026: Omega POS, Hamster POS, XStak, BIM POS); Deliverect help centre (connects delivery channels to restaurant POS).
