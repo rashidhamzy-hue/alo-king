@@ -19,7 +19,7 @@
   - The Sentry token is an org token: enough for releases and source maps, but it can't list projects.
   - Kapso "Alo King" has no WhatsApp number yet (#67).
   - `ORS_API_KEY` and `OPENAI_API_KEY` aren't set yet (#76, #77).
-- **Session 1 (Phase 1a): done (7 October).** PRs #79 (schema core) and #80 (webhook intake) merged automatically and applied to staging.
+- **Session 1 (Phase 1a): done (7 October).** PRs #79 (schema core), #80 (webhook intake, review hardening) and #81 (deploy list fix) merged automatically; migrations and `whatsapp-webhook` are live on staging. The deploy list is now `supabase/functions-deploy.txt` (the CLI broke on a file inside `supabase/functions/`).
   - Schema: operators (admin/operator), customers, brands, vendors (no ratings; unclaimed never public or orderable; per-field seed provenance), `vendor_private`, `vendor_members` (owner/manager/cashier/kitchen), audit log, RLS with explicit grants on every table. Conventions are in `supabase/migrations/README.md`.
   - Dated tables seeded from DECISIONS: USD/LBP rate (89,500), VAT (11%), fee bands ($2/$3/$4.50 to 3/6/10 km), price list (§20.4), Meta message rates, config (COD cap $150 and the other §20-22 limits). The admin changes a value by inserting a newer row.
   - Ledger: append-only double-entry with the locked rate and USD and LBP on every entry; `ledger_post` and `ledger_reverse` (service role only); balance views. Phase 6 builds payments and settlement on it.
