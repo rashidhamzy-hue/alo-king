@@ -3,8 +3,11 @@ begin;
 
 select tests.ok((select count(*) from public.vendors where source = 'seed_2026_10') between 1500 and 2087,
   'most of the 2,087 rows are imported (the rest excluded with a reason)');
-select tests.ok((select count(*) from public.vendors where source = 'seed_2026_10')
-  + (select count(*) from public.vendor_import_exclusions) <= 2087, 'nothing is imported twice');
+-- Rows from the file carry Google place IDs (ChIJ...); the test fixtures in 00_helpers.sql do not.
+select tests.ok((select count(*) from public.vendors where source = 'seed_2026_10' and place_id like 'ChIJ%')
+  + (select count(*) from public.vendor_import_exclusions) = 2087, 'every row is imported or excluded, once');
+select tests.ok(not exists (select 1 from public.vendors v join public.vendor_import_exclusions e using (place_id)),
+  'nothing is both imported and excluded');
 select tests.ok(not exists (select 1 from public.vendors where source = 'seed_2026_10'
   and (claim_status <> 'unclaimed' or orderable or public_page)), 'every imported vendor is unclaimed, not orderable, not public');
 select tests.ok(not exists (select 1 from information_schema.columns where table_schema = 'public'
