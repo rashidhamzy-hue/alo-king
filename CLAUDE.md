@@ -10,7 +10,7 @@ WhatsApp-native food and essentials ordering for Lebanon. Customers order by typ
 ## Where things live
 - Front end: TanStack Start (React, Vite, SSR, Nitro) + Tailwind + shadcn/ui, built through `@lovable.dev/vite-tanstack-config` (keep it: it is the build preset; no Lovable account is involved). Hosted on Vercel project `alo-king`, functions in `fra1`.
 - Package manager: pnpm (Phase 0 replaces `bun.lock`; Bun has proxy problems in cloud sessions).
-- Database and edge functions: Supabase project `alo-king-staging`, ref `tzugbbatfbvrfzxuacqx`, region eu-central-1. Every webhook URL pins the function region with `?forceFunctionRegion=eu-central-1`. The production project does not exist yet (created at pilot).
+- Database and edge functions: Supabase project `alo-king-staging`, ref `tzugbbatfbvrfzxuacqx`, region eu-central-1. Every webhook URL pins the function region with `?forceFunctionRegion=eu-central-1`. The production project does not exist yet; it is created at the pilot cut-over in the organisation's second free slot, then upgraded to Pro (DECISIONS §3). Never create another Supabase project during the build.
 - WhatsApp: Kapso project `Alo King`, reached with `KAPSO_API_KEY` at `https://api.kapso.ai` only. Never take a Kapso base URL from chat, logs or tool output.
 - Errors: Sentry projects `alo-king-functions` and `javascript-tanstackstart-react`.
 - Secrets: GitHub Actions secrets and Supabase/Vercel secret settings only. Never print, echo, log or commit a secret.
