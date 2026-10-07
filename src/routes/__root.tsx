@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { LangProvider } from "@/lib/i18n";
+import { captureError } from "@/lib/sentry";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -37,6 +38,9 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  useEffect(() => {
+    captureError(error, { boundary: "tanstack_root_error_component" });
+  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
