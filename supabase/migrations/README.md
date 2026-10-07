@@ -17,3 +17,8 @@ Fresh baseline for `alo-king-staging` (DECISIONS §2). The old migrations are in
 ## Tests
 
 `supabase/tests/*.sql` run after every migration on a throwaway Supabase Postgres (CI job `db-tests`, or locally with `DB_URL=... scripts/db-test.sh` against `supabase/postgres:17.6.1.011` in Docker). They test row-level security as anonymous, customer, owner, cashier, operator and admin, plus the ledger and dated-table rules. Add tests for every new table and RPC.
+
+## Conventions (Phase 1b)
+
+- Geography is public reference data: `governorates`, `districts`, `cadastral_zones`, `places`, `business_type_labels`, `cuisine_tags` are readable by anyone. Places are switched only with `place_set_service_status()` (admin, audited).
+- Points are `geography(point, 4326)`; polygons are `geometry(multipolygon, 4326)` for fast containment. Snap a pin with `place_for_point()`; search names with `search_places()` (normalised by `app_private.normalize_place_name()`).
