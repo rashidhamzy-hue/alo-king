@@ -3,8 +3,8 @@
 Alo King is a WhatsApp-native food, grocery and local-delivery platform for the Shouf region of Lebanon. React + TypeScript + Tailwind + shadcn/ui, react-router, @supabase/supabase-js, @tanstack/react-query. Mobile-first, bilingual EN/AR with an RTL toggle (Arabic font Tajawal, headings Cormorant Garamond, body Inter).
 
 BACKEND: Do NOT provision a new database. Connect to my EXISTING Supabase project via env vars (add a .env and a single src/lib/supabase.ts):
-VITE_SUPABASE_URL=https://hnjkietmwvkgbyrcnweq.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xYOtf64oGjVcterTkS_saQ_tHSLthhy
+VITE_SUPABASE_URL=https://<deleted Tokyo project>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<publishable key of the deleted project>
 VITE_MAPBOX_TOKEN=(optional, leave empty)
 Never use a service-role key in the frontend. The schema already exists with RLS, do not create or alter tables.
 
@@ -15,7 +15,7 @@ SCHEMA FACTS (important):
 - staff_profiles(user_id, role in merchant|driver|admin, vendor_id, display_name): a logged-in user can read their own row. Staff sign in with Supabase Auth email+password; after login read staff_profiles to learn role/vendor. If no row or wrong role, show a friendly "Your account isn't linked to a kitchen/driver profile yet, contact Alo King" screen. Provide sign-in AND sign-up forms.
 - RPC track_order(p_order_id uuid) returns jsonb with: id,short_code,status,items,subtotal_usd,delivery_fee_usd,total_usd,payment_method,payment_status,delivery_village,is_expat_gift,gift_sender_name,gift_message,prep_minutes,created_at,accepted_at,ready_at,picked_up_at,delivered_at,vendor_name,vendor_lat,vendor_lng,customer_lat,customer_lng,driver_lat,driver_lng,driver_location_at. Callable by anon.
 - RPC driver_cash_on_hand() returns numeric (cash held by the logged-in driver). Drivers may hold at most $150 cash; the database raises an error if a claim would exceed it, so show that error nicely.
-- Edge function POST https://hnjkietmwvkgbyrcnweq.supabase.co/functions/v1/demo-chat with headers {apikey: <publishable key>, Content-Type: application/json} and body {messages:[{role:'user'|'assistant',content:string}]} returns {reply:string, order_id:string|null}. Send the last ~8 turns each time.
+- Edge function POST https://<deleted Tokyo project>.supabase.co/functions/v1/demo-chat with headers {apikey: <publishable key>, Content-Type: application/json} and body {messages:[{role:'user'|'assistant',content:string}]} returns {reply:string, order_id:string|null}. Send the last ~8 turns each time.
 - Currency: always show USD and LBP, $1 = 89,500 LBP (single constant).
 
 THEME: Emerald #064e3b, Gold #f59e0b, obsidian charcoal #090d16 background. Dark luxury look: subtle gold hairline borders, soft emerald glows, generous spacing, tasteful motion (framer-motion). No emoji overload, no generic stock-template feel.
