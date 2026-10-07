@@ -17,3 +17,4 @@ One line per judgement call made by a build session where DECISIONS.md was silen
 2026-10-07 · reset PR · front-end fallbacks point at alo-king-staging's URL and publishable key; `vite.config.ts` maps Vercel's Supabase integration names · both values are public by design, and Claude cannot read Vercel's env names (403) to map them exactly.
 2026-10-07 · reset PR · track map uses OSM tiles and the public OSRM demo router · Mapbox is dropped (§2); routing moves to OpenRouteService in Phase 1/5.
 2026-10-07 · reset PR · the Kapso skills become real directories under `.claude/skills/` before `.agents/` is deleted · they were symlinks into `.agents/`.
+2026-10-07 · PR #63 · secret-scan checks the lines a PR adds (base...head) instead of every commit · PRs are squash-merged, so a secret removed in a later commit of the same PR never reaches `rebuild/lebanon`; per-commit scanning blocked a fix for a dead key.
