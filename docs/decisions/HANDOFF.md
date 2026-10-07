@@ -19,7 +19,14 @@
   - The Sentry token is an org token: enough for releases and source maps, but it can't list projects.
   - Kapso "Alo King" has no WhatsApp number yet (#67).
   - `ORS_API_KEY` and `OPENAI_API_KEY` aren't set yet (#76, #77).
-- **Next: session 1 (Phase 1a).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
+- **Session 1 (Phase 1a): done (7 October).** PRs #79 (schema core) and #80 (webhook intake) merged automatically and applied to staging.
+  - Schema: operators (admin/operator), customers, brands, vendors (no ratings; unclaimed never public or orderable; per-field seed provenance), `vendor_private`, `vendor_members` (owner/manager/cashier/kitchen), audit log, RLS with explicit grants on every table. Conventions are in `supabase/migrations/README.md`.
+  - Dated tables seeded from DECISIONS: USD/LBP rate (89,500), VAT (11%), fee bands ($2/$3/$4.50 to 3/6/10 km), price list (§20.4), Meta message rates, config (COD cap $150 and the other §20-22 limits). The admin changes a value by inserting a newer row.
+  - Ledger: append-only double-entry with the locked rate and USD and LBP on every entry; `ledger_post` and `ledger_reverse` (service role only); balance views. Phase 6 builds payments and settlement on it.
+  - Webhook intake: edge function `whatsapp-webhook` (HMAC signature, fail closed without `KAPSO_WEBHOOK_SECRET`), `webhook_intake` RPC (dedupe, persist, pgmq `webhook_inbound`), `webhook_claim`/`webhook_finish` for consumers. Not yet registered in Kapso: needs the sandbox number (#67); registering it and setting the secret is done in session 3 or 4.
+  - CI now also runs every migration plus `supabase/tests` (RLS as each role, ledger, dated tables, intake) on a throwaway Supabase Postgres, and `deno check` on deployed functions.
+  - Open for later sessions: `orders` FK on the ledger (Phase 2); Sentry in edge functions with the first queue consumer (session 3); vendor coordinates are hidden from clients until a member-only read is added with the dashboard.
+- **Next: session 2 (Phase 1b).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
 
 ## How to start each build session
 At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon`. Pick the model and effort from §10, then send:

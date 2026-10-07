@@ -36,6 +36,13 @@ jobs:
       - name: Unit and edge-function tests
         run: pnpm test
       - run: pnpm build
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: deno check the edge functions listed in supabase/functions/DEPLOY
+        run: |
+          names=$(grep -vE '^[[:space:]]*(#|$)' supabase/functions/DEPLOY || true)
+          for fn in $names; do deno check --no-config "supabase/functions/$fn/index.ts"; done
 
   secret-scan:
     runs-on: ubuntu-latest
