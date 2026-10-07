@@ -93,7 +93,7 @@ select pcode, parent_pcode, geom, fr as name_fr,
   (select n from unnest(array[n1, n3, n4, n2]) n where n is not null and not b.is_arabic(n) limit 1) as name_en,
   (select n from unnest(array[n2, n4, n3, n1]) n where b.is_arabic(n) limit 1) as name_ar
 from b.adm3
-where pcode ~* '^LB' and coalesce(n1, n3, '') !~* '^conflict';
+where nullif(pcode, '0') is not null and coalesce(n1, n3, '') !~* '^conflict';
 
 -- 2. Districts: COD-AB names to our 3-letter codes (first match wins; "bint jbeil" before "jbeil").
 create table b.district_patterns (ord int, code text, pattern text);
