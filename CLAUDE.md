@@ -5,7 +5,7 @@ WhatsApp-native food and essentials ordering for Lebanon. Customers order by typ
 ## Authority
 1. `docs/decisions/DECISIONS.md` is the single source of truth. It overrides this file, `AGENTS.md`, every doc in `docs/`, the research reports, and the existing code.
 2. This repo is being rebuilt on branch `rebuild/lebanon`. `main` is legacy and frozen until the pilot gate (DECISIONS §1). Never push to `main`.
-3. Everything under `docs/` except `docs/decisions/` describes the OLD system (Tokyo Supabase project, flat $2 fee, 89,500 LBP constant, Lovable). Read it as input only.
+3. Everything under `docs/` except `docs/decisions/` is input only. `docs/research/` holds the research reports (Manus, Gemini, NotebookLM); where they disagree with DECISIONS.md, DECISIONS.md wins. The other files in `docs/` describe the OLD system (Tokyo Supabase project, flat $2 fee, 89,500 LBP constant, Lovable).
 
 ## Where things live
 - Front end: TanStack Start (React, Vite, SSR, Nitro) + Tailwind + shadcn/ui, built through `@lovable.dev/vite-tanstack-config` (keep it: it is the build preset; no Lovable account is involved). Hosted on Vercel project `alo-king`, functions in `fra1`.
