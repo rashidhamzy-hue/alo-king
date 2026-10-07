@@ -215,6 +215,16 @@ where not exists (
   where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 1500)
     and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45);
 
+-- A zone with no OpenStreetMap place still has its village (Jdeidet el-Chouf, Kfarhim, Bebnine...):
+-- add one named after the zone at a point inside it (centroid confidence medium). Curated places do not
+-- count, so Bakaata's zone still gets Jdeidet el-Chouf as its anchor. Listed in the report for review.
+insert into b.p (osm_id, kind, osm_place, name_ar, name_en, name_fr, aliases, zone_pcode, district_code, geom, origin, parent_hint)
+select null, 'village', null, z.name_ar, z.name_en, z.name_fr, '{}', z.pcode, z.district_code,
+  st_pointonsurface(z.geom), 'zone', null
+from b.zones z
+where z.district_code is not null and coalesce(z.name_en, z.name_ar) is not null
+  and not exists (select 1 from b.p p where p.zone_pcode = z.pcode and p.origin like 'osm%');
+
 -- Same name twice within 300 m (a node mapped twice): keep the more important one.
 delete from b.p a using b.p c
 where a.ctid <> c.ctid and st_dwithin(a.geom::geography, c.geom::geography, 300)
@@ -335,6 +345,7 @@ select p.id, case when p.anchor then p.zone_pcode end as pcode, p.zone_pcode,
     'name_ar', case when p.name_ar is null then null when p.anchor then 'high' else 'medium' end,
     'name_en', case when p.name_en is null then null else 'medium' end,
     'centroid', case when p.origin like 'osm%' then 'high' else 'medium' end,
+    'origin', p.origin,
     'elevation_m', case when p.elevation_m is null then null else 'high' end,
     'kind', 'medium',
     'parent_id', case when p.parent_id is null then null else 'medium' end,
@@ -356,5 +367,7 @@ select m.ref, m.review_name, o.id, o.name_en, o.elevation_m, m.review_elevation,
     st_setsrid(st_makepoint(o.lon, o.lat), 4326)::geography))::int as distance_m
 from b.review_match m left join b.p p on p.pid = m.pid left join out.places o on o.id = p.id
 order by o.id nulls first, m.ref;
+create table b.report_zone_places as
+select p.id, p.district_code, p.name_en, p.name_ar, p.elevation_m from b.p p where p.origin = 'zone' order by p.district_code, p.id;
 create table b.report_empty_zones as
 select pcode, district_code, name_en, name_ar, elevation_min_m, elevation_max_m from out.zones where not inhabited order by district_code, name_en;
