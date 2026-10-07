@@ -13,23 +13,25 @@
 - **GitHub secrets set:** `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `ANTHROPIC_API_KEY`, `SENTRY_AUTH_TOKEN`, `KAPSO_API_KEY`, `GOOGLE_PLACES_SERVER_KEY`. Variable: `SUPABASE_PROJECT_REF`.
 - **Build sessions never ask the owner (§25).** Judgement calls go to `docs/decisions/LOG.md`, and owner-only tasks become GitHub issues labelled `owner`.
 
-## Build order (DECISIONS §7)
-| Phase | Work | Model |
-|---|---|---|
-| 0 | Repo reset, CI and automerge, `check-setup` | Opus 5.5 |
-| 1 | Schema, places, categories, vendor import | Opus 5.5 |
-| 2 | Order lifecycle, notifications, order channels (§23) | Opus 5.5 |
-| 3 | Bot and AI, claims | Sonnet 5.5; Opus for the hard parts |
-| 4 | Website revamp (§24) | Sonnet 5.5 |
-| 5 | Delivery modes (§21) | Sonnet 5.5 |
-| 6 | Payments, ledger, settlement, Send Home (§20, §22) | Opus 5.5 |
-| 7 | Simulator and evals | Sonnet 5.5 |
-| 8 | Growth tools and credit | Sonnet 5.5 |
+## Progress
+- **Phase 0: done (7 October).** PRs #61–#66 merged automatically. CI runs typecheck, lint, tests, build, secret scan, a migration dry-run against staging and a Claude review. Guard hooks are in place. `check-setup` runs daily, which also keeps staging from pausing.
+  - check-setup confirmed that the Supabase, Anthropic, Google and Kapso keys work.
+  - The Sentry token is an org token: enough for releases and source maps, but it can't list projects.
+  - Kapso "Alo King" has no WhatsApp number yet (#67).
+  - `ORS_API_KEY` and `OPENAI_API_KEY` aren't set yet (#76, #77).
+- **Next: session 1 (Phase 1a).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
 
-Fable 5.1 does one security review before the pilot.
+## How to start each build session
+At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon`. Pick the model and effort from §10, then send:
+
+> Read docs/decisions/HANDOFF.md, DECISIONS.md and LOG.md. Do session N from DECISIONS §10 ("Which model"). Never ask me; follow §25. When done, update HANDOFF.md "Progress" in your last PR and reply with what merged and the open `owner` issues.
+
+## Planning chat (claude.ai, Alo King project)
+Use it for strategy, research and decisions. It cannot run code. Decisions it makes are written into DECISIONS.md by the next build session, or uploaded to the project directly.
 
 ## Owner to-do (Rasheed)
-1. **Whish:** send the extra questions in §20.6 and get the API documents and a sandbox key.
+0. **Kapso:** connect a sandbox or test number to the "Alo King" project (#67), and revoke the old Mapbox token (#68).
+1. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
 2. **SARL** (about 17 October). The same week:
    - open a fresh-USD bank account
    - open Alo King's Whish business account
