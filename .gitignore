@@ -38,3 +38,6 @@ dist-ssr
 
 # Build output
 .wrangler
+
+# Supabase CLI local state
+supabase/.temp/

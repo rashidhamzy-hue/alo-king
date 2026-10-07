@@ -1,6 +1,6 @@
 ---
 name: deploy-and-verify
-description: Ship Alo King changes to alo-king-staging and verify they are live (CI automerge, migrations, edge functions listed in DEPLOY, verify_jwt, Vercel preview). Use after a PR touching supabase/ or src/ merges, or when a deploy fails.
+description: Ship Alo King changes to alo-king-staging and verify they are live (CI automerge, migrations, edge functions listed in supabase/functions-deploy.txt, verify_jwt, Vercel preview). Use after a PR touching supabase/ or src/ merges, or when a deploy fails.
 ---
 
 # Deploy and verify
@@ -9,7 +9,7 @@ There is no manual deploy. Every PR into `rebuild/lebanon` runs `.github/workflo
 
 ## What deploy-staging does
 1. Applies `supabase/migrations/*` to `alo-king-staging` (`tzugbbatfbvrfzxuacqx`) through the session pooler (`scripts/staging-db-url.sh`).
-2. Deploys each function named in `supabase/functions/DEPLOY` (`verify_jwt` from `supabase/config.toml`). A function not listed there is not deployed.
+2. Deploys each function named in `supabase/functions-deploy.txt` (`verify_jwt` from `supabase/config.toml`). A function not listed there is not deployed.
 3. Runs the simulator suite (`pnpm run sim`) once it exists (Phase 7).
 
 ## Verify after a merge

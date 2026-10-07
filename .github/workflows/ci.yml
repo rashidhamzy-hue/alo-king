@@ -39,9 +39,9 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: deno check the edge functions listed in supabase/functions/DEPLOY
+      - name: deno check the edge functions listed in supabase/functions-deploy.txt
         run: |
-          names=$(grep -vE '^[[:space:]]*(#|$)' supabase/functions/DEPLOY || true)
+          names=$(grep -vE '^[[:space:]]*(#|$)' supabase/functions-deploy.txt || true)
           for fn in $names; do deno check --no-config "supabase/functions/$fn/index.ts"; done
 
   secret-scan:
@@ -225,9 +225,9 @@ jobs:
           DB_URL="$(scripts/staging-db-url.sh)"
           echo "::add-mask::$DB_URL"
           supabase db push --db-url "$DB_URL"
-      - name: Deploy edge functions listed in supabase/functions/DEPLOY
+      - name: Deploy edge functions listed in supabase/functions-deploy.txt
         run: |
-          names=$(grep -vE '^[[:space:]]*(#|$)' supabase/functions/DEPLOY || true)
+          names=$(grep -vE '^[[:space:]]*(#|$)' supabase/functions-deploy.txt || true)
           if [ -z "$names" ]; then echo "No functions listed; nothing to deploy."; exit 0; fi
           for fn in $names; do
             supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"
