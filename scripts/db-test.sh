@@ -21,4 +21,13 @@ for f in supabase/tests/*.sql; do
   n=$(echo "$out" | grep -c 'NOTICE:  ok - ' || true)
   echo "pass $(basename "$f") ($n checks)"
 done
+# The real places seed, when present: load it the way the deploy does, then check its quality.
+if [ -f supabase/seed/places/places.csv ]; then
+  DB_URL="$DB_URL" scripts/load-seed.sh
+  for f in supabase/tests/seed/*.sql; do
+    out=$(run -f "$f" 2>&1 >/dev/null) || { echo "$out" | grep -vE '^NOTICE:  ok - ' ; echo "FAIL seed/$(basename "$f")"; fail=1; continue; }
+    n=$(echo "$out" | grep -c 'NOTICE:  ok - ' || true)
+    echo "pass seed/$(basename "$f") ($n checks)"
+  done
+fi
 exit "$fail"

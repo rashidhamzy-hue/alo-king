@@ -1,0 +1,55 @@
+name: places-build
+
+# Builds the all-Lebanon places seed (DECISIONS §16) from OCHA COD-AB, CAS names, OpenStreetMap and the
+# Copernicus terrain model, in a throwaway PostGIS container, and pushes the result to a new branch
+# `data/places-<run id>`. A build session then reviews report.md and opens the pull request (a push made
+# with GITHUB_TOKEN does not start CI, so the workflow never opens it itself). Nothing here touches
+# staging or production.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: places-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgis:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v5
+      - name: Tools (GDAL, raster2pgsql, psql, jq)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin postgis postgresql-client jq unzip
+      - name: Download sources
+        run: scripts/places/fetch.sh "$RUNNER_TEMP/places"
+      - name: Build the seed
+        run: scripts/places/build.sh "$RUNNER_TEMP/places" supabase/seed/places
+      - name: Report
+        run: cat supabase/seed/places/report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Push to a data branch
+        env:
+          BRANCH: data/places-${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add supabase/seed/places
+          git commit -m "Places seed built by places-build run ${{ github.run_id }}" -m "Sources: OCHA/HDX COD-AB, CAS, OpenStreetMap (ODbL), Copernicus GLO-30."
+          git push origin "$BRANCH"
+          echo "Pushed $BRANCH" >> "$GITHUB_STEP_SUMMARY"

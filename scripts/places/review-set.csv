@@ -1,0 +1,177 @@
+ref,name_ar,name_en,type,district,sub_region,municipality,lat,lon,elevation_m,confidence
+BEY-001,بيروت - الحمراء,Hamra (Ras Beirut),Neighborhood,Beirut,Western Littoral,Beirut,33.8972,35.4819,35,Verified
+BEY-002,الأشرفية,Achrafieh,Quarter,Beirut,Eastern Ridge,Beirut,33.8886,35.5186,95,Verified
+BEY-003,الرميل (مار مخايل),Mar Mikhael / Rmeil,Neighborhood,Beirut,Port Escarpment,Beirut,33.8981,35.5264,30,Verified
+BEY-004,المزرعة (طريق الجديدة),Tariq el-Jdideh,Neighborhood,Beirut,Southern Plain,Beirut,33.8732,35.5028,45,Verified
+BEY-005,بدارو,Badaro,Neighborhood,Beirut,Central Plain,Beirut,33.8755,35.5189,50,Verified
+BEY-006,وسط بيروت,Beirut Central District,Commercial Core,Beirut,Historic Port,Beirut,33.8998,35.5052,15,Verified
+BEY-007,المصيطبة,Moussaitbeh,Quarter,Beirut,Western Uplands,Beirut,33.8856,35.4947,55,Verified
+BEY-008,عين المريسة,Ain el-Mreisseh,Waterfront,Beirut,Coastal Fringe,Beirut,33.9011,35.4883,10,Verified
+BEY-009,كركول الدروز,Karakol el-Druze,Locality,Beirut,Central Uplands,Beirut,33.8919,35.4939,48,High
+BEY-010,قريطم,Qoreitem,Locality,Beirut,Western Uplands,Beirut,33.8897,35.4789,42,High
+ML-BBD-001,بعبدا,Baabda,Town (Capital),Baabda,Wasat Baabda,Baabda - Louaizeh,33.8336,35.5442,220,Verified
+ML-BBD-002,الحازمية,Hazmieh,Town,Baabda,Wasat Baabda,Hazmieh,33.8608,35.5342,110,Verified
+ML-BBD-003,فرن الشباك,Furn el-Chebbak,Town,Baabda,Sahel Baabda,Furn el-Chebbak,33.8711,35.5267,45,Verified
+ML-BBD-004,حارة حريك,Haret Hreik,City Suburb,Baabda,Sahel Baabda (Dahiyeh),Haret Hreik,33.8544,35.5133,35,Verified
+ML-BBD-005,برج البراجنة,Bourj el-Barajneh,City Suburb,Baabda,Sahel Baabda (Dahiyeh),Bourj el-Barajneh,33.8439,35.5086,30,Verified
+ML-BBD-006,الغبيري,Ghobeiry,City Suburb,Baabda,Sahel Baabda (Dahiyeh),Ghobeiry,33.8642,35.5097,25,Verified
+ML-BBD-007,الحدث,Hadath,Town,Baabda,Wasat Baabda,Hadath,33.8425,35.5297,90,Verified
+ML-BBD-008,كفرشيما,Kfarchima,Town,Baabda,Wasat Baabda,Kfarchima,33.8122,35.5347,130,Verified
+ML-BBD-009,وادي شحرور العليا,Wadi Chahrour el-Oulya,Village,Baabda,Wasat Baabda,Wadi Chahrour el-Oulya,33.8242,35.5564,260,Verified
+ML-BBD-010,الجمهور,Jamhour,Village,Baabda,Wasat Baabda,Jamhour,33.8414,35.5658,320,Verified
+ML-BBD-011,عاريا,Araya,Village,Baabda,Wasat Baabda,Araya,33.8367,35.5806,480,Verified
+ML-BBD-012,حمانا,Hammana,Town,Baabda,Jabal al-Matn,Hammana,33.8292,35.7369,1180,Verified
+ML-BBD-013,فالوغا,Falougha,Village,Baabda,Jabal al-Matn,Falougha - Khalwat,33.8322,35.7511,1260,Verified
+ML-BBD-014,قرنايل,Qornayel,Village,Baabda,Jabal al-Matn,Qornayel,33.8569,35.7317,1120,Verified
+ML-BBD-015,بزبدين,Bzebdine,Village,Baabda,Jabal al-Matn,Bzebdine,33.8583,35.6986,880,Verified
+ML-BBD-016,العبادية,Abadiyeh,Town,Baabda,Wasat Baabda,Abadiyeh,33.8306,35.6186,620,Verified
+ML-BBD-017,شويت,Chouit,Small Village,Baabda,Wasat Baabda,Chouit,33.8447,35.5936,540,High
+ML-BBD-018,الكحالة,Kahale,Town,Baabda,Wasat Baabda,Kahale,33.8267,35.5861,510,Verified
+ML-BBD-019,بتشاي,Betchay,Hamlet,Baabda,Wasat Baabda,Betchay - Mardacha,33.8389,35.5417,180,High
+ML-BBD-020,بسابا,Bsaba,Village,Baabda,Wasat Baabda,Bsaba,33.8183,35.5433,240,Verified
+ML-MTN-001,الجديدة,Jdeideh,City (Capital),Metn,Matn al-Saheli,Jdeideh - Bouchrieh,33.8867,35.5647,40,Verified
+ML-MTN-002,برج حمود,Bourj Hammoud,City Suburb,Metn,Matn al-Saheli,Bourj Hammoud,33.8936,35.5397,15,Verified
+ML-MTN-003,سن الفيل,Sin el-Fil,City Suburb,Metn,Matn al-Saheli,Sin el-Fil,33.8744,35.5358,45,Verified
+ML-MTN-004,الدكوانة,Dekwaneh,Town,Metn,Matn al-Saheli,Dekwaneh - Mar Roukouz,33.8808,35.5469,60,Verified
+ML-MTN-005,أنطلياس,Antelias,Town,Metn,Matn al-Saheli,Antelias - Naccache,33.9161,35.5878,20,Verified
+ML-MTN-006,الضبية,Dbayeh,Town,Metn,Matn al-Saheli,Dbayeh - Zouk el-Khrab,33.9406,35.5969,15,Verified
+ML-MTN-007,جل الديب,Jal el-Dib,Town,Metn,Matn al-Saheli,Jal el-Dib - Bkenneya,33.9067,35.5786,30,Verified
+ML-MTN-008,المنصورية,Mansourieh,Town,Metn,Matn al-Awsat,Mansourieh - Mkalles,33.8617,35.5681,280,Verified
+ML-MTN-009,بيت مري,Beit Mery,Town,Metn,Matn al-Awsat,Beit Mery,33.8717,35.6022,720,Verified
+ML-MTN-010,برمانا,Broummana,Town,Metn,Matn al-Awsat,Broummana,33.8864,35.6186,760,Verified
+ML-MTN-011,بعبدات,Baabdat,Town,Metn,Matn al-Awsat,Baabdat,33.8961,35.6517,850,Verified
+ML-MTN-012,بكفيا,Bikfaya,Town,Metn,Matn al-Aala,Bikfaya - Mhaydseh,33.9197,35.6881,920,Verified
+ML-MTN-013,ضهور الشوير,Dhour el-Choueir,Town,Metn,Matn al-Aala,Choueir - Ain Sendianeh,33.9114,35.7114,1180,Verified
+ML-MTN-014,بتغرين,Bteghrine,Village,Metn,Matn al-Aala,Bteghrine,33.9264,35.7431,1050,Verified
+ML-MTN-015,بسكنتا,Baskinta,Town,Metn,Matn al-Aala,Baskinta,33.9486,35.7831,1340,Verified
+ML-MTN-016,بيت شباب,Beit Chabab,Town,Metn,Matn al-Aala,Beit Chabab - Chaouiye,33.9236,35.6631,680,Verified
+ML-MTN-017,بصاليم,Bsalim,Village,Metn,Matn al-Awsat,Bsalim - Mezher,33.9036,35.5978,240,Verified
+ML-MTN-018,عين سعادة,Ain Saadeh,Town,Metn,Matn al-Awsat,Ain Saadeh,33.8744,35.5861,420,Verified
+ML-MTN-019,الفنار,Fanar,Town Suburb,Metn,Matn al-Saheli,Fanar,33.8825,35.5714,160,Verified
+ML-MTN-020,الزعرور,Zaarour,Ski Resort Locality,Metn,Matn al-Aala,Mrouj (Territory),33.9497,35.7986,1520,High
+ML-CHF-001,بيت الدين,Beiteddine,Town (Capital),Chouf,Chouf el-Awsat,Beiteddine,33.6953,35.5806,860,Verified
+ML-CHF-002,دير القمر,Deir el-Qamar,Historic Town,Chouf,Chouf el-Awsat,Deir el-Qamar,33.6983,35.5647,820,Verified
+ML-CHF-003,بعقلين,Baakline,Major Town,Chouf,Chouf el-Awsat,Baakline,33.6821,35.5861,840,Verified
+ML-CHF-004,بقعاتا,Bakaata,Commercial Hub,Chouf,Chouf el-Awsat / Aala,Jdeidet el-Chouf (Admin),33.6738,35.6175,880,High
+ML-CHF-005,جديدة الشوف,Jdeidet el-Chouf,Village,Chouf,Chouf el-Awsat,Jdeidet el-Chouf,33.6686,35.6186,870,Verified
+ML-CHF-006,السمقانية,Semqanieh,Town,Chouf,Chouf el-Awsat,Semqanieh,33.6781,35.6022,890,Verified
+ML-CHF-007,عين وزين,Ain Wazein,Village,Chouf,Chouf el-Awsat,Ain Wzein,33.6869,35.6133,960,Verified
+ML-CHF-008,الخريبة,Khraybeh (El-Khraibe),Village,Chouf,Chouf el-Aala,Khraybeh,33.6425,35.6486,1040,Verified
+ML-CHF-009,المختارة,Moukhtara,Town,Chouf,Chouf el-Aala,Moukhtara,33.6558,35.6361,820,Verified
+ML-CHF-010,عماطور,Amatour,Village,Chouf,Chouf el-Aala,Amatour,33.6331,35.6264,850,Verified
+ML-CHF-011,بعدران,Baadaran,Village,Chouf,Chouf el-Aala,Baadaran,33.6264,35.6381,1020,Verified
+ML-CHF-012,الباروك,Barouk,Town,Chouf,Chouf el-Aala,Barouk - Freydiss,33.7125,35.6786,1140,Verified
+ML-CHF-013,معاصر الشوف,Maasser el-Chouf,Village,Chouf,Chouf el-Aala,Maasser el-Chouf,33.6617,35.6708,1200,Verified
+ML-CHF-014,باتر,Bater,Village,Chouf,Chouf el-Aala,Bater,33.5786,35.6086,820,Verified
+ML-CHF-015,نيحا الشوف,Niha Chouf,Village,Chouf,Chouf el-Aala,Niha Chouf,33.5897,35.6247,1080,Verified
+ML-CHF-016,جباع الشوف,Jbaa Chouf,Small Village,Chouf,Chouf el-Aala,Jbaa,33.6042,35.6435,1180,Verified
+ML-CHF-017,شحيم,Chhim,Major Town,Chouf,Iqlim al-Kharroub,Chhim,33.6333,35.4833,520,Verified
+ML-CHF-018,برجا,Barja,Major Town,Chouf,Iqlim al-Kharroub,Barja,33.6522,35.4386,310,Verified
+ML-CHF-019,كترمايا,Ketermaya,Town,Chouf,Iqlim al-Kharroub,Ketermaya,33.6256,35.4678,380,Verified
+ML-CHF-020,مزبود,Mazboud,Village,Chouf,Iqlim al-Kharroub,Mazboud,33.6242,35.4764,460,Verified
+ML-CHF-021,الدامور,Damour,Coastal Town,Chouf,Chouf el-Saheli,Damour,33.7314,35.4511,35,Verified
+ML-CHF-022,الجية,Jiyeh,Coastal Town,Chouf,Chouf el-Saheli,Jiyeh,33.6653,35.4247,25,Verified
+ML-CHF-023,كفرحيم,Kfarhim,Village,Chouf,Chouf el-Awsat,Kfarhim,33.7142,35.5386,580,Verified
+ML-CHF-024,كفرنبرخ,Kfar Nabrakh,Village,Chouf,Chouf el-Awsat,Kfar Nabrakh,33.7153,35.6264,980,Verified
+ML-CHF-025,بتلون,Batloun,Village,Chouf,Chouf el-Aala,Batloun,33.6936,35.6497,1050,Verified
+ML-ALY-001,عاليه,Aley,City (Capital),Aley,Al-Gharb al-Aala,Aley,33.8067,35.5986,860,Verified
+ML-ALY-002,الشويفات,Choueifat,City,Aley,Sahel Aley,Choueifat,33.8092,35.5186,80,Verified
+ML-ALY-003,خلدة,Khalde,Commercial Strip,Aley,Sahel Aley,Choueifat (Admin),33.7856,35.4831,15,High
+ML-ALY-004,عرمون (الدوحة),Aramoun (Dawha),Suburban Town,Aley,Sahel Aley / Foothills,Aramoun,33.7714,35.5036,280,Verified
+ML-ALY-005,بشامون,Bchamoun,Suburban Town,Aley,Sahel Aley / Foothills,Bchamoun,33.7878,35.5197,320,Verified
+ML-ALY-006,سوق الغرب,Souk el-Gharb,Town,Aley,Al-Gharb al-Aala,Souk el-Gharb,33.7911,35.5786,760,Verified
+ML-ALY-007,بحمدون الضيعة,Bhamdoun Village,Village,Aley,Jurd Aley,Bhamdoun el-Dayaa,33.7986,35.6517,1050,Verified
+ML-ALY-008,بحمدون المحطة,Bhamdoun Station,Commercial Resort,Aley,Jurd Aley,Bhamdoun el-Mhatta,33.8094,35.6539,1120,Verified
+ML-ALY-009,صوفر,Sofar,Mountain Resort,Aley,Jurd Aley,Sofar,33.8058,35.6961,1280,Verified
+ML-ALY-010,عين دارة,Ain Dara,Village,Aley,Jurd Aley,Ain Dara,33.7978,35.7314,1310,Verified
+KJ-KES-001,جونيه,Jounieh,City (Capital),Keserwan,Keserwan al-Saheli,Jounieh,33.9814,35.6178,20,Verified
+KJ-KES-002,الكسليك,Kaslik,Commercial Quarter,Keserwan,Keserwan al-Saheli,Jounieh (Admin),33.9786,35.6111,15,High
+KJ-KES-003,ذوق مكايل,Zouk Mikael,Town,Keserwan,Keserwan al-Saheli,Zouk Mikael,33.9631,35.6264,110,Verified
+KJ-KES-004,ذوق مصبح,Zouk Mosbeh,Town,Keserwan,Keserwan al-Saheli,Zouk Mosbeh,33.9556,35.6317,90,Verified
+KJ-KES-005,حريصا,Harissa,Religious Center,Keserwan,Al-Ftouh Ridge,Daraoun - Harissa,33.9825,35.6514,620,Verified
+KJ-KES-006,درعون,Daraoun,Village,Keserwan,Al-Ftouh Ridge,Daraoun - Harissa,33.9867,35.6617,640,Verified
+KJ-KES-007,غزير,Ghazir,Town,Keserwan,Al-Ftouh,Ghazir,34.0167,35.6639,360,Verified
+KJ-KES-008,عجلتون,Ajaltoun,Town,Keserwan,Keserwan al-Jurd,Ajaltoun,33.9686,35.6886,860,Verified
+KJ-KES-009,ريفون,Rayfoun,Town,Keserwan,Keserwan al-Jurd,Rayfoun,33.9806,35.7061,980,Verified
+KJ-KES-010,فيطرون,Feytroun,Town,Keserwan,Keserwan al-Jurd,Feytroun,33.9936,35.7369,1220,Verified
+KJ-KES-011,ميروبا,Mayrouba,Village,Keserwan,Keserwan al-Jurd,Mayrouba,34.0206,35.7667,1310,Verified
+KJ-KES-012,حراجل,Hrajel,Town,Keserwan,Keserwan al-Jurd,Hrajel,34.0175,35.7867,1360,Verified
+KJ-KES-013,فاريا,Faraya,Mountain Resort,Keserwan,Keserwan al-Jurd,Faraya,34.0125,35.8139,1320,Verified
+KJ-KES-014,كفرذبيان,Kfardebian,Mountain Town,Keserwan,Keserwan al-Jurd,Kfardebian,33.9986,35.8286,1260,Verified
+KJ-KES-015,فقرا,Faqra,Resort Club Loc.,Keserwan,Keserwan al-Jurd,Kfardebian (Admin),33.9972,35.8083,1580,High
+KJ-JBL-001,جبيل (بيبلوس),Byblos (Jbeil),City (Capital),Jbeil,Sahel Jbeil,Jbeil,34.1222,35.6481,15,Verified
+KJ-JBL-002,عمشيت,Amchit,Coastal Town,Jbeil,Sahel Jbeil,Amchit,34.1486,35.6444,40,Verified
+KJ-JBL-003,حالات,Halat,Coastal Town,Jbeil,Sahel Jbeil,Halat,34.0886,35.6492,50,Verified
+KJ-JBL-004,نهر إبراهيم,Nahr Ibrahim,Coastal Town,Jbeil,Sahel Jbeil,Nahr Ibrahim,34.0667,35.6417,25,Verified
+KJ-JBL-005,عنايا (كفربعل),Annaya (Kfar Baal),Pilgrimage Hub,Jbeil,Jbeil Wasat,Annaya - Kfar Baal,34.1444,35.7333,960,Verified
+KJ-JBL-006,إهمج,Ehmej,Village,Jbeil,Jbeil Jurd,Ehmej,34.1386,35.7867,1180,Verified
+KJ-JBL-007,قرطبا,Qartaba,Major Town,Jbeil,Adonis Valley Jurd,Qartaba,34.0936,35.8456,1220,Verified
+KJ-JBL-008,العاقورة,Aqoura,Mountain Town,Jbeil,Jbeil Jurd,Aqoura,34.1358,35.9011,1480,Verified
+KJ-JBL-009,اللقلوق,Laqlouq,Ski Resort Loc.,Jbeil,Jbeil Jurd,Laqlouq,34.1492,35.8647,1720,High
+KJ-JBL-010,أفقا,Afqa,Village,Jbeil,Adonis Valley Jurd,Afqa,34.0694,35.8942,1250,Verified
+NL-TRP-001,طرابلس,Tripoli,City (Capital),Tripoli,Sahel Tripoli,Tripoli,34.4367,35.8497,20,Verified
+NL-TRP-002,الميناء,Al-Mina,Coastal City,Tripoli,Sahel Tripoli,Al-Mina,34.4481,35.8197,5,Verified
+NL-TRP-003,البداوي,Beddawi,Industrial Town,Tripoli,Sahel Tripoli,Beddawi - Wadi Nahle,34.4556,35.8686,40,Verified
+NL-TRP-004,القلمون,Al-Qalamoun,Coastal Town,Tripoli,Sahel Tripoli,Al-Qalamoun,34.3878,35.7878,15,Verified
+NL-KOU-001,أميون,Amioun,Town (Capital),Koura,Hadabat al-Koura,Amioun,34.3017,35.8106,360,Verified
+NL-KOU-002,كوسبا,Kousba,Town,Koura,Hadabat al-Koura,Kousba,34.2986,35.8569,310,Verified
+NL-KOU-003,بشمزين,Bishmizzine,Village,Koura,Hadabat al-Koura,Bishmizzine,34.3264,35.8186,280,Verified
+NL-KOU-004,أنفه,Enfeh,Coastal Town,Koura,Sahel Koura,Enfeh,34.3544,35.7333,10,Verified
+NL-BAT-001,البترون,Batroun,City (Capital),Batroun,Sahel al-Batroun,Batroun,34.2547,35.6586,15,Verified
+NL-BAT-002,شكا,Chekka,Coastal Industrial,Batroun,Sahel al-Batroun,Chekka,34.3317,35.7278,25,Verified
+NL-BAT-003,حامات,Hamat,Village,Batroun,Sahel Promontory,Hamat,34.2961,35.7006,280,Verified
+NL-BAT-004,دوما,Douma,Heritage Town,Batroun,Jurd al-Batroun,Douma,34.2181,35.8456,1020,Verified
+NL-BAT-005,تنورين الفوقا,Tannourine el-Faouqa,Mountain Town,Batroun,Jurd al-Batroun,Tannourine,34.2114,35.9286,1480,Verified
+NL-BSC-001,بشري,Bcharre,Town (Capital),Bcharre,Jebbet Bcharre,Bcharre,34.2506,36.0117,1450,Verified
+NL-BSC-002,بقاع كفرا,Bqaa Kafra,Mountain Village,Bcharre,Jebbet Bcharre,Bqaa Kafra,34.2403,36.0028,1650,Verified
+NL-BSC-003,حدشيت,Hadchit,Village,Bcharre,Jebbet Bcharre,Hadchit,34.2567,35.9817,1380,Verified
+NL-BSC-004,حصرون,Hasroun,Village,Bcharre,Jebbet Bcharre,Hasroun,34.2436,35.9686,1420,Verified
+NL-BSC-005,الأرز,The Cedars (Al-Arz),Mountain Resort,Bcharre,Jebbet Bcharre,Bcharre (Admin),34.2431,36.0558,1920,High
+NL-ZGH-001,زغرتا,Zgharta,City (Capital),Zgharta,Wasat Zgharta,Zgharta - Ehden,34.3986,35.8956,130,Verified
+NL-ZGH-002,إهدن,Ehden,Alpine Town,Zgharta,Jurd Zgharta,Zgharta - Ehden,34.2936,35.9844,1520,Verified
+NL-ZGH-003,مجدليا,Mejdlaya,Suburban Town,Zgharta,Wasat Zgharta,Mejdlaya,34.4178,35.8756,150,Verified
+NL-MIN-001,المنية,Minieh,City (Capital),Minieh-Dan.,Sahel al-Minieh,Minieh,34.4842,35.9086,35,Verified
+NL-MIN-002,سير الضنية,Sir el-Dannieh,Town,Minieh-Dan.,Jurd Dannieh,Sir el-Dannieh,34.3886,36.0336,980,Verified
+NL-MIN-003,بخعون,Bakhoun,Town,Minieh-Dan.,Jurd Dannieh,Bakhoun,34.4142,35.9892,820,Verified
+AK-AKR-001,حلبا,Halba,City (Capital),Akkar,Al-Joumeh Margin,Halba,34.5422,36.0797,180,Verified
+AK-AKR-002,ببنين,Bebnine,Major Town,Akkar,Sahel Akkar,Bebnine - Abdeh,34.5264,35.9897,80,Verified
+AK-AKR-003,برقايل,Berkayel,Major Town,Akkar,Qora al-Qaytaa,Berkayel,34.5086,36.0317,240,Verified
+AK-AKR-004,القبيات,Kobayat (Al-Qobayat),Major Town,Akkar,Al-Drayb,Al-Qobayat,34.5681,36.2758,680,Verified
+AK-AKR-005,فنيدق,Fnaydek,Town,Akkar,Jurd al-Qaytaa,Fnaydek,34.4697,36.1764,1180,Verified
+BQ-ZAH-001,زحلة,Zahle,City (Capital),Zahle,Wasat Zahle,Zahle - Maalaka,33.8467,35.9022,1020,Verified
+BQ-ZAH-002,شتورا,Chtaura,Commercial Hub,Zahle,Sahel Zahle,Chtaura,33.8186,35.8542,920,Verified
+BQ-ZAH-003,بر الياس,Bar Elias,Town,Zahle,Sahel Zahle,Bar Elias,33.7714,35.9186,880,Verified
+BQ-ZAH-004,سعدنايل,Saadnayel,Town,Zahle,Sahel Zahle,Saadnayel,33.8292,35.8786,900,Verified
+BQ-WBO-001,جب جنين,Joub Jannine,Town (Capital),West Beqaa,Sahl al-Litani,Joub Jannine,33.6314,35.7867,890,Verified
+BQ-WBO-002,صغبين,Saghbine,Village (Capital),West Beqaa,Barouk Escarpment,Saghbine,33.6067,35.7006,1040,Verified
+BQ-WBO-003,القرعون,Qaraoun,Town,West Beqaa,Bohayrat Qaraoun,Qaraoun,33.5686,35.7197,910,Verified
+BQ-RAS-001,راشيا الوادي,Rashaya el-Wadi,Town (Capital),Rashaya,Jabal el-Sheikh,Rashaya,33.5017,35.8456,1240,Verified
+BQ-RAS-002,ضهر الأحمر,Dahr el-Ahmar,Commercial Town,Rashaya,Sahl Rashaya,Dahr el-Ahmar,33.5358,35.8317,1050,Verified
+BH-BAL-001,بعلبك,Baalbek,City (Capital),Baalbek,Sahel Baalbek,Baalbek,34.0058,36.2081,1180,Verified
+BH-BAL-002,دورس,Douris,Town,Baalbek,Sahel Baalbek,Douris,33.9856,36.1786,1150,Verified
+BH-BAL-003,شمسطار,Chmestar,Town,Baalbek,Gharbi Baalbek,Chmestar - Gharbi,33.9286,36.0097,1100,Verified
+BH-BAL-004,دير الأحمر,Deir el-Ahmar,Town,Baalbek,Gharbi Baalbek,Deir el-Ahmar,34.1264,36.1264,1080,Verified
+BH-BAL-005,عرسال,Arsal,High Mountain Town,Baalbek,Arsal Highlands,Arsal,34.1786,36.4217,1520,Verified
+BH-HER-001,الهرمل,Hermel,City (Capital),Hermel,Assi River Basin,Hermel,34.3986,36.3867,780,Verified
+BH-HER-002,القاع,Al-Qaa,Border Oasis Town,Hermel/Baalb.,Northern Graben,Al-Qaa,34.3542,36.4786,690,Verified
+SL-SID-001,صيدا,Sidon (Saida),City (Capital),Sidon,Saida al-Hadariyya,Sidon,33.5631,35.3689,15,Verified
+SL-SID-002,الغازية,Ghazieh,Coastal Town,Sidon,Sahel al-Zahrani,Ghazieh,33.5186,35.3647,35,Verified
+SL-SID-003,مغدوشة,Maghdouche,Town,Sidon,Hadabat Saida,Maghdouche,33.5264,35.3942,230,Verified
+SL-TYR-001,صور,Tyre (Sour),City (Capital),Tyre,Sahel Sour,Tyre,33.2733,35.1939,10,Verified
+SL-TYR-002,العباسية,Abbassieh,Town,Tyre,Sahel Sour,Abbassieh,33.3086,35.2386,90,Verified
+SL-TYR-003,قانا,Qana,Town,Tyre,Jabal Amel Uplands,Qana,33.2086,35.3022,310,Verified
+SL-TYR-004,الناقورة,Naqoura,Border Port Town,Tyre,Al-Sahel al-Janoubi,Naqoura,33.1186,35.1386,40,Verified
+SL-JZZ-001,جزين,Jezzine,Town (Capital),Jezzine,Hwd Jezzine,Jezzine - Ain Majdaleyn,33.5417,35.5833,980,Verified
+SL-JZZ-002,بكاسين,Bkassine,Village,Jezzine,Horsh Bkassine,Bkassine,33.5597,35.5686,840,Verified
+NA-NAB-001,النبطية التحتا,Nabatieh el-Tahta,City (Capital),Nabatieh,Hwd Nabatieh,Nabatieh el-Tahta,33.3789,35.4839,430,Verified
+NA-NAB-002,كفررمان,Kfar Remen,Town,Nabatieh,Hwd Nabatieh,Kfar Remen,33.3917,35.4986,490,Verified
+NA-NAB-003,حبوش,Habbouch,Town,Nabatieh,Hwd Nabatieh,Habbouch,33.4142,35.5036,410,Verified
+NA-BNT-001,بنت جبيل,Bint Jbeil,Town (Capital),Bint Jbeil,Jabal Amel Central,Bint Jbeil,33.1206,35.4336,790,Verified
+NA-BNT-002,تبنين,Tebnine,Town,Bint Jbeil,Jabal Amel Central,Tebnine,33.1936,35.4106,720,Verified
+NA-BNT-003,عين إبل,Ain Ebel,Village,Bint Jbeil,Jabal Amel Central,Ain Ebel,33.1097,35.4086,780,Verified
+NA-BNT-004,رميش,Rmeich,Border Town,Bint Jbeil,Al-Hadd al-Gharbi,Rmeich,33.0858,35.3856,610,Verified
+NA-MAR-001,مرجعيون (جديدة),Marjeyoun (Jdeidet),Town (Capital),Marjeyoun,Sahl Marjeyoun,Jdeidet Marjeyoun,33.3606,35.5906,760,Verified
+NA-MAR-002,الخيام,Khiam (Al-Khiam),Town,Marjeyoun,Sahl Marjeyoun,Al-Khiam,33.3186,35.6086,720,Verified
+NA-MAR-003,ميس الجبل,Meiss el-Jabal,Town,Marjeyoun,Meiss Eastern Escarp.,Meiss el-Jabal,33.1961,35.5186,710,Verified
+NA-HAS-001,حاصبيا,Hasbaya,Town (Capital),Hasbaya,Wadi el-Taym,Hasbaya,33.3986,35.6847,760,Verified
+NA-HAS-002,شبعا,Chebaa,Mountain Town,Hasbaya,Al-Arqoub,Chebaa,33.3639,35.7597,1280,Verified
