@@ -3,33 +3,33 @@
 Built 2026-10-07 by `.github/workflows/places-build.yml`.
 
 - COD-AB: https://data.humdata.org/dataset/569beba7-bad7-4951-a19d-468a035461cd/resource/1d8198d3-8f50-405a-9534-6c131fe3d6d2/download/lbn_admin_boundaries.shp.zip
-- OSM: https://overpass-api.de/api/interpreter (1981 nodes, 2026-10-07T18:22:00Z)
+- OSM: https://overpass.kumi.systems/api/interpreter (1983 nodes, 2026-10-07T18:36:07Z)
 - DEM: Copernicus GLO-30 (copernicus-dem-30m on AWS open data)
 
 ## Totals
 what | n
 zones without a place (snapping only) | 84
 zones | 1610
-places without an English name | 72
-places without an Arabic name | 24
+places without an English name | 77
+places without an Arabic name | 23
 winter-risk places | 202
-places with a parent | 648
-places | 2169
+places with a parent | 650
+places | 2172
 
 ## Places by kind
 kind | count
-village | 1766
-neighbourhood | 194
+village | 1765
+neighbourhood | 197
 hamlet | 110
-town | 90
+town | 91
 city | 9
 
 ## Places by district
 district_code | count
 AKR | 222
-ALY | 92
+ALY | 93
 BAB | 75
-BAT | 84
+BAT | 83
 BEY | 84
 BLB | 151
 BNJ | 45
@@ -46,7 +46,7 @@ MRJ | 41
 MTN | 125
 NBT | 62
 RSH | 43
-SAI | 103
+SAI | 106
 TRP | 21
 TYR | 101
 WBQ | 45
@@ -83,7 +83,6 @@ KJ-KES-004 | Zouk Mosbeh | LB-KSR-ZOUK-MOSBEH | 1529 | 184 | 90
 KJ-KES-006 | Daraoun | LB-KSR-DARAOUN | 1160 | 549 | 640
 KJ-KES-014 | Kfardebian | LB-KSR-KFARDEBIAN | 643 | 1643 | 1260
 KJ-KES-015 | Faqra | LB-KSR-FAQRA | 1518 | 1724 | 1580
-ML-ALY-004 | Aramoun (Dawha) | LB-ALY-DAWHA-ARAMOUN | 1925 | 416 | 280
 ML-ALY-005 | Bchamoun | LB-ALY-BESHAMOUN | 1278 | 444 | 320
 ML-ALY-010 | Ain Dara | LB-ALY-AIN-DARA | 1991 | 1258 | 1310
 ML-BBD-007 | Hadath | LB-BAB-HADATH | 1034 | 185 | 90
@@ -178,6 +177,7 @@ LB-ALY-HOMS-OUA-HAMA | ALY | Homs Oua Hama | حمص وحمى | 661
 LB-BAB-HARET-ES-SIT | BAB | Haret Es-Sit | حارة الست | 360
 LB-BAB-OUADI-CHAHROUR-EL-AAOULIA | BAB | Ouadi Chahrour El Aaoulia | وادي شحرور العليا | 193
 LB-BAB-TAHOUITAT-EL-GHADIR | BAB | Tahouitat El Ghadir | تحويطة الغدير | 16
+LB-BAT-AARTIZ | BAT | Aartiz | عرطز | 459
 LB-BAT-DAAEL | BAT | Daael | داعل | 561
 LB-BAT-DEIR-KFIFANE | BAT | Deir Kfifane | دير كفيفان | 432
 LB-BAT-DEIR-MAR-YOUHANNA-EL-BATROUN | BAT | Deir Mar Youhanna EL-Batroun | دير مار يوحنا دوما | 756
@@ -201,7 +201,6 @@ LB-BLB-QAA-JOUAR-MAQIYE | BLB | Qaa Jouar Maqiyé | قاع جوار مكية | 5
 LB-BLB-QAA-OUADI-EL-KHANZIR | BLB | Qaa Ouadi El-Khanzir | قاع وادي الخنزير | 640
 LB-BLB-RAS-BAALBEK-ECH-CHARQI | BLB | Ras Baalbek Ech-Charqi | راس بعلبك الشرقي | 1326
 LB-BLB-SLOUQI | BLB | Slouqi | سلوقي | 2310
-LB-BNJ-BENT-JBAYL | BNJ | Bent Jbayl | بنت جبيل | 765
 LB-BNJ-KAFRA-BANT-JBAYL | BNJ | Kafra Bant Jbayl | كفرا بنت جبيل | 591
 LB-BSH-MAZRAAT-AASSAF | BSH | Mazraat Aassaf | مزرعة عساف | 1007
 LB-BSH-MCHAA-EJ-JIBBE | BSH | Mchaa Ej-Jibbé | مشاع الجبه | 2447
