@@ -1,3 +1,4 @@
 # Edge functions the automerge workflow deploys to alo-king-staging, one name per line.
 # The legacy functions in this folder depend on the old schema and are ported in Phases 1-3;
 # each is added here once it runs against the new baseline schema.
+whatsapp-webhook

@@ -11,3 +11,7 @@ verify_jwt = true
 
 [functions.order-notify]
 verify_jwt = true
+
+[functions.whatsapp-webhook]
+# Authenticated by the Kapso HMAC signature, not a Supabase JWT.
+verify_jwt = false
