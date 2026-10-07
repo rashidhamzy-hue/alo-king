@@ -1,0 +1,26 @@
+name: route-check
+
+# OpenRouteService sanity check on about 20 Shouf trips (DECISIONS §3), run by hand or weekly.
+# Needs the ORS_API_KEY secret (owner issue #76); without it the job reports and passes.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Road distances for the Shouf trip list
+        env:
+          ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
+        shell: bash
+        run: node --experimental-strip-types scripts/routing/check-trips.ts | tee -a "$GITHUB_STEP_SUMMARY"
