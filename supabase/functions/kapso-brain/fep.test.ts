@@ -43,7 +43,7 @@ describe("fepWindow: Meta's free entry point window", () => {
 const ROOT = resolve(__dirname, "../../..");
 describe("storage, wiring, and no change to sending", () => {
   const src = readFileSync(resolve(__dirname, "index.ts"), "utf8");
-  const mig = readdirSync(resolve(ROOT, "supabase/migrations")).filter((f) => /free_entry_point|fep_/.test(f)).map((f) => readFileSync(resolve(ROOT, "supabase/migrations", f), "utf8")).join("\n");
+  const mig = readdirSync(resolve(ROOT, "supabase/migrations_legacy")).filter((f) => /free_entry_point|fep_/.test(f)).map((f) => readFileSync(resolve(ROOT, "supabase/migrations_legacy", f), "utf8")).join("\n");
   it("the referral is recorded (once per message) for customers, not for owners, and cleared by 'delete my data' and the 90-day purge", () => {
     expect(src).toMatch(/fep_referrals"\)\.upsert\(/);
     expect(src).toMatch(/onConflict: "message_id", ignoreDuplicates: true/);

@@ -32,7 +32,12 @@ export function ProposalCard({
 }) {
   const L = useL();
   const [busy, setBusy] = useState(false);
-  const label = proposal.target === "profile" ? L("Public profile", "الصفحة العامة") : proposal.target === "private" ? L("Private details", "معلومات خاصة") : title || L("Menu item", "صنف");
+  const label =
+    proposal.target === "profile"
+      ? L("Public profile", "الصفحة العامة")
+      : proposal.target === "private"
+        ? L("Private details", "معلومات خاصة")
+        : title || L("Menu item", "صنف");
   return (
     <div className="rounded-xl border border-gold/30 bg-card p-4">
       <p className="flex items-center gap-2 text-xs uppercase tracking-wider text-gold">
@@ -45,12 +50,18 @@ export function ProposalCard({
             <p className="font-mono text-[11px] text-muted-foreground">{k}</p>
             <div className="mt-1 grid gap-2 sm:grid-cols-2">
               <div>
-                <span className="text-[10px] uppercase text-muted-foreground">{L("Current", "الحالي")}</span>
-                <pre className="whitespace-pre-wrap break-words font-sans text-muted-foreground line-through decoration-destructive/50">{show(current?.[k])}</pre>
+                <span className="text-[10px] uppercase text-muted-foreground">
+                  {L("Current", "الحالي")}
+                </span>
+                <pre className="whitespace-pre-wrap break-words font-sans text-muted-foreground line-through decoration-destructive/50">
+                  {show(current?.[k])}
+                </pre>
               </div>
               <div>
                 <span className="text-[10px] uppercase text-gold">{L("Proposed", "المقترح")}</span>
-                <pre className="whitespace-pre-wrap break-words font-sans text-foreground">{show(v)}</pre>
+                <pre className="whitespace-pre-wrap break-words font-sans text-foreground">
+                  {show(v)}
+                </pre>
               </div>
             </div>
           </div>

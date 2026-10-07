@@ -78,7 +78,7 @@ describe("wiring and storage", () => {
     expect(src).toMatch(/message_billing_log"\)\.update\(\{ to_phone: null \}\)\.eq\("to_phone", phone\)/);
     expect(src).toMatch(/message_billing_log"\)\.delete\(\)\.lt\("created_at"/);
   });
-  const mig = readdirSync(resolve(ROOT, "supabase/migrations")).filter((f) => /message_billing_log/.test(f)).map((f) => readFileSync(resolve(ROOT, "supabase/migrations", f), "utf8")).join("\n");
+  const mig = readdirSync(resolve(ROOT, "supabase/migrations_legacy")).filter((f) => /message_billing_log/.test(f)).map((f) => readFileSync(resolve(ROOT, "supabase/migrations_legacy", f), "utf8")).join("\n");
   it("the migration exists, keeps RLS on with no anon/authenticated access, and stores no message content columns", () => {
     expect(mig).toMatch(/create table if not exists public\.message_billing_log/i);
     expect(mig).toMatch(/enable row level security/i);

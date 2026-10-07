@@ -19,14 +19,23 @@ export function TagInput({
     if (s && !value.includes(s)) onChange([...value, s]);
     setDraft("");
   };
-  const sugg = suggestions.filter((s) => !value.includes(s) && (!draft || s.toLowerCase().includes(draft.toLowerCase()))).slice(0, 10);
+  const sugg = suggestions
+    .filter((s) => !value.includes(s) && (!draft || s.toLowerCase().includes(draft.toLowerCase())))
+    .slice(0, 10);
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1.5">
         {value.map((t) => (
-          <span key={t} className="inline-flex items-center gap-1 rounded-full bg-secondary/60 px-2.5 py-1 text-xs">
+          <span
+            key={t}
+            className="inline-flex items-center gap-1 rounded-full bg-secondary/60 px-2.5 py-1 text-xs"
+          >
             {t}
-            <button type="button" aria-label={`Remove ${t}`} onClick={() => onChange(value.filter((x) => x !== t))}>
+            <button
+              type="button"
+              aria-label={`Remove ${t}`}
+              onClick={() => onChange(value.filter((x) => x !== t))}
+            >
               <X className="size-3" />
             </button>
           </span>
@@ -47,7 +56,12 @@ export function TagInput({
       {sugg.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {sugg.map((s) => (
-            <button type="button" key={s} onClick={() => add(s)} className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-gold hover:text-gold">
+            <button
+              type="button"
+              key={s}
+              onClick={() => add(s)}
+              className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-gold hover:text-gold"
+            >
               + {s}
             </button>
           ))}

@@ -21,7 +21,9 @@ export const ageLabel = (iso: string, now: number) => {
 export const hasArabic = (s: string) => /[\u0600-\u06FF]/.test(s);
 
 export const errMsg = (e: unknown) =>
-  e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : String(e);
+  e && typeof e === "object" && "message" in e
+    ? String((e as { message: unknown }).message)
+    : String(e);
 
 export const startOfToday = () => {
   const d = new Date();

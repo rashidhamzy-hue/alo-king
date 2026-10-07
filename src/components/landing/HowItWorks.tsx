@@ -3,9 +3,21 @@ import { useLang } from "@/lib/i18n";
 import { WHATSAPP_DISPLAY, WHATSAPP_LINK } from "@/lib/config";
 
 const STEPS = [
-  { icon: MessageSquareText, title: "Message Alo King", body: "Text or voice-note what you want, in Arabic, English or a bit of both." },
-  { icon: ChefHat, title: "The kitchen confirms", body: "The merchant accepts on their terminal and starts cooking. You get a live tracking link." },
-  { icon: Bike, title: "Delivered across the Shouf", body: "A local driver brings it to your door. Pay cash on delivery." },
+  {
+    icon: MessageSquareText,
+    title: "Message Alo King",
+    body: "Text or voice-note what you want, in Arabic, English or a bit of both.",
+  },
+  {
+    icon: ChefHat,
+    title: "The kitchen confirms",
+    body: "The merchant accepts on their terminal and starts cooking. You get a live tracking link.",
+  },
+  {
+    icon: Bike,
+    title: "Delivered across the Shouf",
+    body: "A local driver brings it to your door. Pay cash on delivery.",
+  },
 ];
 
 export function HowItWorks() {
@@ -39,11 +51,19 @@ export function Footer() {
           <span className="font-arabic text-muted-foreground">ألو كينغ</span>
         </div>
         <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
-          <a href={WHATSAPP_LINK} target="_blank" rel="noreferrer" className="hover:text-gold">WhatsApp {WHATSAPP_DISPLAY}</a>
-          <a href="/merchant" className="hover:text-gold">Kitchen terminal</a>
-          <a href="/driver" className="hover:text-gold">Driver app</a>
+          <a href={WHATSAPP_LINK} target="_blank" rel="noreferrer" className="hover:text-gold">
+            WhatsApp {WHATSAPP_DISPLAY}
+          </a>
+          <a href="/merchant" className="hover:text-gold">
+            Kitchen terminal
+          </a>
+          <a href="/driver" className="hover:text-gold">
+            Driver app
+          </a>
         </div>
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Alo King · Shouf, Lebanon</p>
+        <p className="text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Alo King · Shouf, Lebanon
+        </p>
       </div>
     </footer>
   );

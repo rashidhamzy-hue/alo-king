@@ -13,7 +13,9 @@ export class EdgeError extends Error {
 
 /** Invoke an edge function and surface the {error} message + status on failure. */
 export async function invokeFn<T>(name: string, body: unknown): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(name, { body: body as Record<string, unknown> });
+  const { data, error } = await supabase.functions.invoke(name, {
+    body: body as Record<string, unknown>,
+  });
   if (error) {
     const ctx = (error as { context?: Response }).context;
     let status = 500;
@@ -37,7 +39,11 @@ export async function invokeFn<T>(name: string, body: unknown): Promise<T> {
     throw new EdgeError(msg, status, parsed);
   }
   if (data && typeof data === "object" && "error" in data && (data as { error?: unknown }).error)
-    throw new EdgeError(String((data as { error: unknown }).error), 400, data as Record<string, unknown>);
+    throw new EdgeError(
+      String((data as { error: unknown }).error),
+      400,
+      data as Record<string, unknown>,
+    );
   return data as T;
 }
 
@@ -74,13 +80,16 @@ export async function resizeImage(file: Blob, max = 1600, quality = 0.85) {
 export async function fileToBase64(file: Blob) {
   const buf = new Uint8Array(await file.arrayBuffer());
   let s = "";
-  for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  for (let i = 0; i < buf.length; i += 0x8000)
+    s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
   return btoa(s);
 }
 
 /** Upload to vendor-media and return a cache-busted public URL. */
 export async function uploadMedia(path: string, blob: Blob) {
-  const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
+  const { error } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
   if (error) throw error;
   const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
   return `${data.publicUrl}?v=${Date.now()}`;

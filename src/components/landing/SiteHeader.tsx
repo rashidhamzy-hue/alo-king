@@ -25,17 +25,27 @@ export function SiteHeader() {
             <Crown className="size-4" />
           </span>
           <span className="font-display text-xl font-semibold">Alo King</span>
-          <span className="font-arabic hidden text-sm text-muted-foreground sm:inline">ألو كينغ</span>
+          <span className="font-arabic hidden text-sm text-muted-foreground sm:inline">
+            ألو كينغ
+          </span>
         </Link>
         <nav className="flex items-center gap-4 text-sm text-muted-foreground md:gap-6">
           <Link to="/explore" className="hover:text-gold" activeProps={{ className: "text-gold" }}>
             {L("Explore", "استكشف")}
           </Link>
-          <Link to="/for-business" className="hidden hover:text-gold sm:inline" activeProps={{ className: "text-gold" }}>
+          <Link
+            to="/for-business"
+            className="hidden hover:text-gold sm:inline"
+            activeProps={{ className: "text-gold" }}
+          >
             {L("For business", "لأصحاب المحلات")}
           </Link>
-          <a href="/#simulator" className="hidden hover:text-gold md:inline">{L("Try it", "جرّب")}</a>
-          <a href="/#gift" className="hidden hover:text-gold lg:inline">{L("Send home", "هدية للأهل")}</a>
+          <a href="/#simulator" className="hidden hover:text-gold md:inline">
+            {L("Try it", "جرّب")}
+          </a>
+          <a href="/#gift" className="hidden hover:text-gold lg:inline">
+            {L("Send home", "هدية للأهل")}
+          </a>
         </nav>
         <LangToggle />
       </div>
