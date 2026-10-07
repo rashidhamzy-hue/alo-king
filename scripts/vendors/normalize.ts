@@ -149,6 +149,33 @@ export function splitName(raw: string): {
   return { name_ar: ar, name_en: en, branch_label: branch };
 }
 
+// Words that name a kind of shop, not a business: never enough to call two listings one business.
+const GENERIC_WORDS = new Set(
+  "al el the la le les de du and cafe coffee shop restaurant resto ice cream meat grill bakery furn sweets market mini minimarket supermarket store water gaz gas co company branch مطعم ملحمه فرن حلويات سوبرماركت ميني ماركت محل مقهى قهوه مؤسسه شركه".split(
+    " ",
+  ),
+);
+
+/** Distinctive words of a vendor's names (both scripts), Arabic article stripped. */
+function nameWords(v: { name_en: string | null; name_ar: string | null }): Set<string> {
+  const words = normName(`${v.name_en ?? ""} ${v.name_ar ?? ""}`)
+    .split(/[^\p{L}\p{N}]+/u)
+    .map((w) => w.replace(/^ال(?=.{3})/, ""))
+    .filter((w) => w.length >= 3 && !GENERIC_WORDS.has(w));
+  return new Set(words);
+}
+
+/** The leading words every English name shares ("Lakkis Farm" from "Lakkis Farm - Zahle"), if any. */
+function commonName(names: (string | null)[]): string | null {
+  const lists = names.filter((n): n is string => !!n).map((n) => n.split(/\s+/));
+  if (lists.length < 2) return null;
+  const out: string[] = [];
+  for (let i = 0; lists.every((l) => i < l.length && normName(l[i]) === normName(lists[0][i])); i++)
+    out.push(lists[0][i]);
+  const name = out.join(" ").replace(/[\s\-–|/,]+$/, "");
+  return normName(name).replace(/[^\p{L}\p{N}]/gu, "").length >= 3 ? name : null;
+}
+
 export function normName(s: string | null | undefined): string {
   return (s ?? "")
     .normalize("NFD")
@@ -225,6 +252,7 @@ const GOOGLE_TYPES: Record<string, Rule> = {
   chocolate_shop: { type: "sweets_pastry" },
   pastry_shop: { type: "sweets_pastry" },
   ice_cream_shop: { type: "ice_cream", tags: ["booza_ice_cream"] },
+  coffee_roastery: { type: "roastery_nuts" },
   supermarket: { type: "grocery_supermarket" },
   grocery_store: { type: "grocery_supermarket" },
   food_store: { type: "grocery_supermarket" },
@@ -259,7 +287,7 @@ const KEYWORDS: { re: RegExp; rule: Rule }[] = [
     rule: { exclude: "fuel station" },
   },
   {
-    re: /\b(hotel|h[oô]tel|guest ?house|motel|hostel|resort)\b|فندق|نزل/i,
+    re: /\b(hotel|h[oô]tel|guest ?house|motel|hostel|resort)\b|فندق|(?<![\p{L}])نزل(?![\p{L}])/iu,
     rule: { exclude: "hotel or guesthouse" },
   },
   { re: /\bbeach( club)?\b|بلاج/i, rule: { exclude: "beach club" } },
@@ -335,6 +363,9 @@ const KEYWORDS: { re: RegExp; rule: Rule }[] = [
   { re: /\b(sea ?food|fish)\b|سمك|اسماك/i, rule: { tags: ["seafood"] } },
   { re: /\b(lebanese|libanais)\b|لبناني/i, rule: { tags: ["lebanese"] } },
   { re: /\b(restaurant|resto|mat3am)\b|مطعم/i, rule: { type: "restaurant" } },
+  // The file's "essentials" label is the water and gas-cylinder list (§15.2): last, so a food keyword
+  // in the name still wins.
+  { re: /\bessentials\b/i, rule: { type: "home_essentials" } },
 ];
 
 export function classify(
@@ -348,8 +379,14 @@ export function classify(
   const firstExclusion = [g?.exclude, ...kw.map((r) => r.exclude)].find(Boolean);
   // A Google food type outweighs an exclusion keyword in the name ("Hotel Dieu Bakery" stays a bakery),
   // except a fuel station, which is never imported.
-  if (firstExclusion && (!g?.type || firstExclusion === "fuel station"))
-    return { exclude: firstExclusion };
+  // Water and gas companies Google files as manufacturers or offices are kept as home essentials
+  // (§15.2); an exclusion from the name (Sofregaz, a fuel station) still applies.
+  const essentials = kw.some((r) => r.type === "home_essentials");
+  const nameExclusion = kw.map((r) => r.exclude).find(Boolean);
+  if (firstExclusion && (!g?.type || firstExclusion === "fuel station")) {
+    if (!essentials || nameExclusion || firstExclusion === "fuel station")
+      return { exclude: firstExclusion };
+  }
   // Type: a specific keyword (butcher, sweets, bakery...) beats a generic Google type; Google beats a
   // generic keyword (restaurant, cafe).
   const generic = new Set<BusinessType>([
@@ -511,8 +548,18 @@ export function normalizeVendors(rows: RawVendor[]): NormalizeResult {
     const d = siteDomain(v.links);
     if (d) byDomain.set(d, [...(byDomain.get(d) ?? []), v]);
   }
+  // One phone on listings that share a distinctive name word (Ata / Ata ice cream, ملحمة الجمال /
+  // مطعم الجمّال) is one business listed twice: a brand, so the phone is kept.
+  const byPhone = new Map<string, VendorRow[]>();
+  for (const v of vendors)
+    if (v.phone_seed) byPhone.set(v.phone_seed, [...(byPhone.get(v.phone_seed) ?? []), v]);
+  const samePhoneBusiness = [...byPhone.values()].filter((group) => {
+    if (group.length < 2) return false;
+    const [head, ...rest] = group.map(nameWords);
+    return [...head].some((w) => rest.every((r) => r.has(w)));
+  });
   const brandOf = new Map<VendorRow, VendorRow[]>();
-  for (const group of [...byName.values(), ...byDomain.values()]) {
+  for (const group of [...byName.values(), ...byDomain.values(), ...samePhoneBusiness]) {
     if (group.length < 2) continue;
     const merged = new Set<VendorRow>(group.flatMap((v) => brandOf.get(v) ?? [v]));
     const all = [...merged];
@@ -520,17 +567,16 @@ export function normalizeVendors(rows: RawVendor[]): NormalizeResult {
   }
   for (const [v, group] of brandOf) {
     const first = [...group].sort((a, b) => a.place_id.localeCompare(b.place_id))[0];
-    const en = group.map((g) => g.name_en).find(Boolean) ?? null;
+    const en =
+      commonName(group.map((g) => g.name_en)) ?? group.map((g) => g.name_en).find(Boolean) ?? null;
     const ar = group.map((g) => g.name_ar).find(Boolean) ?? null;
     v.brand_name_en = en;
     v.brand_name_ar = ar;
-    v.brand_slug = slugify(en ?? "") || `brand-${slugify(first.place_id).slice(-10)}`;
+    v.brand_slug =
+      slugify(en ?? "") || `brand-${slugify(first.place_id.slice(-10)) || slugify(first.place_id)}`;
   }
 
   // Shared phones: branches of one brand keep it; unrelated businesses lose it (data error).
-  const byPhone = new Map<string, VendorRow[]>();
-  for (const v of vendors)
-    if (v.phone_seed) byPhone.set(v.phone_seed, [...(byPhone.get(v.phone_seed) ?? []), v]);
   const phoneIssues: NormalizeResult["phoneIssues"] = [];
   for (const [phone, group] of byPhone) {
     if (group.length < 2) continue;
@@ -558,7 +604,8 @@ export function normalizeVendors(rows: RawVendor[]): NormalizeResult {
   const used = new Set<string>();
   for (const v of [...vendors].sort((a, b) => a.place_id.localeCompare(b.place_id))) {
     let base = slugify([v.name_en, v.branch_label].filter(Boolean).join(" "));
-    if (!base) base = `v-${slugify(v.place_id).slice(-10)}`;
+    // The place_id tail can start with '-' or '_' (ChIJ...-dUfOfTn8w); slugify it after slicing.
+    if (!base) base = `v-${slugify(v.place_id.slice(-10)) || slugify(v.place_id)}`;
     let slug = base;
     for (let n = 2; used.has(slug); n++) slug = `${base}-${n}`;
     used.add(slug);

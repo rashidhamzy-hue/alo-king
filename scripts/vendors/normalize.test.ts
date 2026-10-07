@@ -179,7 +179,7 @@ describe("normalizeVendors on the sample file", () => {
     expect(byId.get("ChIJsample005")!.lat).toBe(33.6738);
   });
   it("gives Arabic-only names a stable slug", () => {
-    expect(byId.get("ChIJsample005")!.slug).toMatch(/^v-[a-z0-9-]+$/);
+    expect(byId.get("ChIJsample005")!.slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
   });
   it("keeps the import labels", () => {
     expect(byId.get("ChIJsample001")!.import_labels).toEqual({
@@ -187,5 +187,73 @@ describe("normalizeVendors on the sample file", () => {
       google_primary_type: "lebanese_restaurant",
       region_code: "BEY",
     });
+  });
+});
+
+describe("review fixes on the real vendor file", () => {
+  const row = (place_id: string, name: string, extra: Record<string, string> = {}) => ({
+    place_id,
+    name,
+    alo_king_category: "desserts",
+    google_primary_type: "ice_cream_shop",
+    region_code: "BEKAA",
+    address: "",
+    phone_e164: "",
+    phone_raw: "",
+    is_whatsapp_candidate: "FALSE",
+    website_or_menu_link: "",
+    rating: "",
+    reviews_count: "",
+    latitude: "33.8367",
+    longitude: "35.9092",
+    ...extra,
+  });
+  it("keeps water and gas companies Google files as manufacturers, still excludes fuel stations and Sofregaz", () => {
+    expect(classify("manufacturer", "essentials", "Talaya Water")).toMatchObject({
+      business_type: "home_essentials",
+    });
+    expect(classify("gas_station", "essentials", "RasGas Hamra")).toEqual({
+      exclude: "fuel station",
+    });
+    expect(classify("", "essentials", "Sofregaz Liban")).toEqual({
+      exclude: "industrial or engineering firm",
+    });
+    expect(classify("supplier", "essentials", "شركة بيطار لتعبئة الغاز المنزلي")).toMatchObject({
+      business_type: "home_essentials",
+    });
+  });
+  it("types the essentials label as home essentials", () => {
+    expect(classify("supplier", "essentials", "Natgaz")).toMatchObject({
+      business_type: "home_essentials",
+    });
+  });
+  it("treats one phone on listings sharing a distinctive word as one business", () => {
+    const { vendors, phoneIssues } = normalizeVendors([
+      row("ChIJata-0000001", "Ata ice cream", { phone_e164: "+96170200001" }),
+      row("ChIJata-0000002", "ATA", { phone_e164: "+96170200001" }),
+      row("ChIJodeon000001", "Odeon Coffee Shop", { phone_e164: "+96171100001" }),
+      row("ChIJagora000001", "Agora Coffee Shop", { phone_e164: "+96171100001" }),
+    ]);
+    const by = new Map(vendors.map((v) => [v.place_id, v]));
+    expect(by.get("ChIJata-0000001")!.phone_seed).toBe("+96170200001");
+    expect(by.get("ChIJata-0000002")!.brand_slug).toBe(by.get("ChIJata-0000001")!.brand_slug);
+    expect(by.get("ChIJodeon000001")!.phone_seed).toBeNull();
+    expect(phoneIssues.map((p) => p.resolution).sort()).toEqual([
+      "chain branches",
+      "data error: phone dropped",
+    ]);
+  });
+  it("names a chain by the words its branches share and keeps slugs valid", () => {
+    const { vendors } = normalizeVendors([
+      row("ChIJlak-0000001", "Lakkis Farm Tripoli", { phone_e164: "+9614400001" }),
+      row("ChIJlak-0000002", "Lakkis Farm - Zahle", { phone_e164: "+9614400001" }),
+      row("ChIJxx--dUfOfTn8w", "فرن و ملحمة اللقمة الطيبة"),
+    ]);
+    const slugRe = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+    expect(vendors[0].brand_slug).toBe("lakkis-farm");
+    for (const v of vendors) {
+      expect(v.slug).toMatch(slugRe);
+      if (v.brand_slug) expect(v.brand_slug).toMatch(slugRe);
+    }
   });
 });
