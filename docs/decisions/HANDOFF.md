@@ -28,7 +28,14 @@
   - CI now also runs every migration plus `supabase/tests` (RLS as each role, ledger, dated tables, intake; 159 checks) on a throwaway Supabase Postgres, and `deno check` on deployed functions.
   - Review hardening (from #79's Claude review): no backdated dated rows through the API, strict ledger idempotency and 4-decimal amounts, audited customer consent, invoker-only public lookups (Supabase security advisor clean).
   - Open for later sessions: `orders` FK on the ledger (Phase 2); radius checks in session 2 use `least(delivery_radius_km, max_delivery_km())`; Sentry in edge functions with the first queue consumer (session 3); vendor coordinates are hidden from clients until a member-only read is added with the dashboard.
-- **Next: session 2 (Phase 1b).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
+- **Session 2 (Phase 1b): done (7 October).** PRs #87 (places schema, categories, vendor town link), #88 (route distances, location knowledge base), #89 (places pipeline, loader, spelling-tolerant search), #91 (vendor import), #94 (places seed and build fixes, vendor import fixes, branch cleanup), #95 (vendor check fix) and #92 (vendor file) merged automatically.
+  - Places on staging: 2,172 places, 1,610 cadastral zones, 26 districts, built by `places-build` (run 37667615171) from COD-AB, CAS, OSM and Copernicus GLO-30. Every place loads `off`; all 476 South and Nabatieh places are `paused` / `security`. Bakaata (under Jdeidet el-Chouf), Semqanieh, Jdeidet el-Chouf, Kfarhim, and Dawha Aramoun (under Aramoun) are present.
+  - The build now fails if a §16 place is missing, a disputed "Litige" zone becomes a place (64 had), or one place appears twice within 1.5 km (32 pairs had). Six same-name pairs in one district remain, 5.5–29 km apart, as separate villages.
+  - Vendors on staging: 2,044 imported (all unclaimed, not orderable, not public, each linked to a town) and 43 excluded with a reason (23 fuel stations, 11 hotels or guesthouses, 4 industrial or engineering firms incl. Sofregaz, 3 bars, 2 beach clubs). 83 brands. 78 `home_essentials` (water and gas). 1,758 vendors keep a seed phone.
+  - The 19 repeated phone numbers: 14 kept as one brand (chain branches, or one business listed twice in one region with a shared name word), 4 dropped as data errors (unrelated businesses), 1 left only on excluded rows (two Coral fuel stations).
+  - `data-branch-cleanup` deletes the `data/places-*` branches places-build leaves (daily after 3 days, or all on dispatch); all were deleted after #94.
+  - Open for later: the Chouf Bakaata carries an OSM alias "بقعاتة عشقوت" that belongs to Baqaata Achqout (Keserwan); the 14 kept shared phones are listed in the vendor import report for a check at claim time.
+- **Next: session 3 (Phase 2).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
 
 ## How to start each build session
 At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon`. Pick the model and effort from §10, then send:
