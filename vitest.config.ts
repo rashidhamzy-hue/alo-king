@@ -12,6 +12,7 @@ export default defineConfig({
       "src/**/*.{test,spec}.{ts,tsx}",
       "supabase/functions/**/*.test.ts",
       ".claude/hooks/**/*.test.ts",
+      "scripts/**/*.test.ts",
     ],
   },
   resolve: {

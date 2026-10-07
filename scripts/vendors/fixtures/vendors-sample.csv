@@ -1,0 +1,17 @@
+place_id,name,alo_king_category,google_primary_type,region_code,address,phone_e164,phone_raw,is_whatsapp_candidate,website_or_menu_link,rating,reviews_count,latitude,longitude
+ChIJsample001,مطعم مزيان - Mezyan,restaurant,lebanese_restaurant,BEY,"Hamra St, Beirut",+9611345678,01 345 678,FALSE,https://mezyan.example.com,4.5,1200,33.8969,35.4823
+ChIJsample002,Wooden Bakery - Hazmieh,bakery,bakery,BAB,"Hazmieh",+96170111111,70 111 111,TRUE,woodenbakery.example.com,4.1,300,33.8530,35.5390
+ChIJsample003,Wooden Bakery - Jounieh,bakery,bakery,KSR,"Jounieh",+96170111111,70 111 111,TRUE,https://www.woodenbakery.example.com/,4.0,250,33.9808,35.6178
+ChIJsample004,TotalEnergies Baakline,fuel,gas_station,CHF,"Baakline",+9615111222,05 111 222,FALSE,,3.9,40,33.6821,35.5861
+ChIJsample005,فرن أبو علي,bakery,,CHF,"7Q4X+2G Bakaata",0378123456,03 781 234,TRUE,https://instagram.com/fornabouali,4.8,90,33.6738,35.6175
+ChIJsample006,Sea Sweet - سي سويت - Jounieh,sweets,dessert_shop,KSR,"Jounieh",+9619222333,09 222 333,FALSE,https://www.facebook.com/seasweet,4.4,800,33.9800,35.6170
+ChIJsample007,Gialla Cucina,restaurant,italian_restaurant,BEY,"Mar Mikhael",+9611999888,,FALSE,http://gialacucinadamore.com,4.2,150,33.8950,35.5250
+ChIJsample008,Boucherie Chouf,butcher,butcher_shop,CHF,"Baakline",+96176222444,,TRUE,,4.6,20,33.6800,35.5850
+ChIJsample009,Shouf Water Delivery,water,,CHF,"Semqanieh",+96171333555,,TRUE,,,,33.6781,35.6022
+ChIJsample010,Grand Hotel Bhamdoun,hotel,lodging,ALY,"Bhamdoun",+9615444555,,FALSE,,4.0,500,33.8000,35.6500
+ChIJsample011,Snack Abou Fadi,restaurant,,CHF,"Baakline",+96176222444,,TRUE,https://menu.example.com/aboufadi,,,33.6825,35.5865
+ChIJsample012,Kaak Beirut (Achrafieh),fast_food,fast_food_restaurant,BEY,"Achrafieh",+9611888777,,FALSE,,,,33.8886,35.5186
+ChIJsample013,Coworking Hub,office,coworking_space,BEY,"Gemmayzeh",+9611777666,,FALSE,,,,33.8960,35.5150
+ChIJsample001,مطعم مزيان - Mezyan,restaurant,lebanese_restaurant,BEY,"Hamra St, Beirut",+9611345678,,FALSE,,,,33.8969,35.4823
+ChIJsample014,Broasted Al Jabal,restaurant,restaurant,CHF,"Beiteddine",+96181555666,,TRUE,,,,33.6953,35.5806
+ChIJsample015,Paris Snack,restaurant,restaurant,ZZZ,"Paris",+33140000000,,FALSE,,,,48.85,2.35

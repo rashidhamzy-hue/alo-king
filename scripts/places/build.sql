@@ -95,7 +95,7 @@ from b.adm3;
 -- 2. Districts: COD-AB names to our 3-letter codes (first match wins; "bint jbeil" before "jbeil").
 create table b.district_patterns (ord int, code text, pattern text);
 insert into b.district_patterns values
-  (1, 'BNJ', 'bint'), (2, 'WBQ', 'west|gharb|western'), (3, 'MND', 'mini|danni|denni|dinni'),
+  (1, 'BNJ', 'bint|bent'), (2, 'WBQ', 'west|gharb|western'), (3, 'MND', 'mini|danni|denni|dinni'),
   (4, 'BEY', 'beirut|bayrut|beyrouth'), (5, 'BAB', 'baabda'), (6, 'MTN', 'metn|meten|matn'),
   (7, 'CHF', 'chouf|shouf'), (8, 'ALY', 'aley|alay'), (9, 'KSR', 'kes|kas|kis'), (10, 'JBL', 'jbeil|jubail|byblos'),
   (11, 'TRP', 'tripoli|trabl|tarabl'), (12, 'ZGH', 'zgh'), (13, 'BSH', 'bcharr|bsharr|becharr|bsherr'),

@@ -16,14 +16,15 @@ psqlq -c "drop schema if exists raw cascade; create schema raw; create extension
 # COD-AB layers: the files or layers whose name says adm2 / adm3.
 load_level() { # $1 = level
   local lvl="$1" src layer
-  src=$(find "$WORK/codab" \( -iname "*adm${lvl}*.shp" -o -iname "*adm${lvl}*.geojson" -o -iname "*adm${lvl}*.json" \) \
-    ! -iname '*line*' ! -iname '*pt*' ! -iname '*point*' | sort | head -1)
+  # lbn_admbnda_adm3_cdr.shp, lbn_admin3.shp, ...; not the *_em, line or point variants.
+  src=$(find "$WORK/codab" -regextype posix-extended -iregex ".*adm(in|bnda_adm)?_?${lvl}(_[a-z]+_[0-9]+)?\.(shp|geojson|json)" \
+    ! -iname '*_em.*' ! -iname '*line*' ! -iname '*point*' | sort | head -1)
   if [ -n "$src" ]; then
     ogr2ogr -f PostgreSQL "$PG" "$src" -nln "raw.adm${lvl}" -nlt PROMOTE_TO_MULTI -t_srs EPSG:4326 -lco GEOMETRY_NAME=geom -overwrite
     return
   fi
   for ds in $(find "$WORK/codab" \( -iname '*.gdb' -o -iname '*.gpkg' -o -iname '*.geojson' -o -iname '*.json' \) | sort); do
-    layer=$(ogrinfo -ro -q "$ds" 2>/dev/null | sed -nE 's/^[0-9]+: ([^ ]+).*/\1/p' | grep -iE "adm_?${lvl}" | grep -viE 'line|pt|point|em$' | head -1 || true)
+    layer=$(ogrinfo -ro -q "$ds" 2>/dev/null | sed -nE 's/^[0-9]+: ([^ ]+).*/\1/p' | grep -iE "adm(in)?_?${lvl}" | grep -viE 'line|point|_em$' | head -1 || true)
     if [ -n "$layer" ]; then
       ogr2ogr -f PostgreSQL "$PG" "$ds" "$layer" -nln "raw.adm${lvl}" -nlt PROMOTE_TO_MULTI -t_srs EPSG:4326 -lco GEOMETRY_NAME=geom -overwrite
       return
