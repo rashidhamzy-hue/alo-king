@@ -39,7 +39,7 @@ if [ -z "$VENDOR_FILE" ] || [ ! -f "$VENDOR_FILE" ]; then
   return 0
 fi
 local sha out
-sha=$(cat "$VENDOR_FILE" scripts/vendors/normalize.ts | sha256sum | cut -c1-64)
+sha=$(cat "$VENDOR_FILE" scripts/vendors/normalize.ts scripts/vendors/build-seed.ts | sha256sum | cut -c1-64)
 if loaded vendors "$sha"; then
   echo "vendor seed: unchanged (${sha:0:12}); skipped"
   return 0

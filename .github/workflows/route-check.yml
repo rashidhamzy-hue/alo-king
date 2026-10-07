@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
       - name: Road distances for the Shouf trip list
         env:
           ORS_API_KEY: ${{ secrets.ORS_API_KEY }}

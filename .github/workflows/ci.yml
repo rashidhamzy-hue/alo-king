@@ -109,6 +109,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
       - name: Wait until Supabase init scripts have finished
         run: |
           for i in $(seq 1 90); do
