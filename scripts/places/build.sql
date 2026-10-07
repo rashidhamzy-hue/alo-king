@@ -30,9 +30,33 @@ $$;
 create function b.is_arabic(p text) returns boolean language sql immutable as $$
   select coalesce(p ~ '[؀-ۿ]', false)
 $$;
+-- Same phonetic key as app_private.place_phonetic_key() (Ba3qlin = Baakline = Baaqline = بعقلين).
+create function b.phon(p text) returns text
+language sql
+immutable
+parallel safe
+as $$
+  select nullif(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+    translate(
+      regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+        coalesce(b.norm(p), ''),
+        'kh', 'x', 'g'), 'gh', 'g', 'g'), '(sh|ch)', 's', 'g'), '(th|dh)', 't', 'g'),
+      -- Arabic consonants and Arabizi digits to Latin; ain, waw, ya, hamza, alef and 3 are dropped.
+      'بتثجحخدذرزسشصضطظغفقكلمنهqc275968عويءا3',
+      'bttjhxddrzsssdtzgfkklmnhkkkhxstg'
+    ),
+    -- word-final h (ة, ه, -eh, -ieh)
+    'h(\s|$)', '\1', 'g'),
+    '[aeiouyw''\s]', '', 'g'),
+    '(.)\1+', '\1', 'g'),
+    '[^a-z]', '', 'g'), '');
+$$;
 -- Similarity of two names in any script (best of the pairs).
 create function b.namesim(a1 text, a2 text, b1 text, b2 text) returns real language sql immutable as $$
   select greatest(
+    case when char_length(b.phon(coalesce(a1, a2))) >= 3
+          and b.phon(coalesce(a1, a2)) in (b.phon(b1), b.phon(b2)) then 0.9 else 0 end,
+    case when b.norm(a2) is not null and b.norm(a2) = b.norm(b2) then 1 else 0 end,
     coalesce(similarity(b.norm(a1), b.norm(b1)), 0), coalesce(similarity(b.norm(a1), b.norm(b2)), 0),
     coalesce(similarity(b.norm(a2), b.norm(b1)), 0), coalesce(similarity(b.norm(a2), b.norm(b2)), 0))
 $$;
@@ -193,7 +217,8 @@ create index on b.p using gist (geom);
 
 -- 5. Curated places (§16): merge into a matching OSM place within 1.5 km, else add.
 update b.p p
-set aliases = p.aliases || string_to_array(c.aliases, ';') || array[c.name_en, c.name_fr],
+set aliases = p.aliases || string_to_array(c.aliases, ';') || array[p.name_en, c.name_fr],
+  name_en = c.name_en,
   name_ar = coalesce(p.name_ar, c.name_ar),
   kind = case when c.kind = 'neighbourhood' and c.parent_name_en <> '' then 'neighbourhood' else p.kind end,
   parent_hint = nullif(c.parent_name_en, ''),
@@ -201,7 +226,7 @@ set aliases = p.aliases || string_to_array(c.aliases, ';') || array[c.name_en, c
 from raw.curated c
 where p.osm_id = (
   select p2.osm_id from b.p p2
-  where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 1500)
+  where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 3000)
     and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45
   order by b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) desc limit 1);
 
@@ -212,18 +237,19 @@ from raw.curated c
 join b.zones z on st_covers(z.geom, st_setsrid(st_makepoint(c.lon, c.lat), 4326))
 where not exists (
   select 1 from b.p p2
-  where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 1500)
+  where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 3000)
     and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45);
 
--- A zone with no OpenStreetMap place still has its village (Jdeidet el-Chouf, Kfarhim, Bebnine...):
--- add one named after the zone at a point inside it (centroid confidence medium). Curated places do not
--- count, so Bakaata's zone still gets Jdeidet el-Chouf as its anchor. Listed in the report for review.
+-- A zone whose own village is not among its places (Jdeidet el-Chouf holds Boqaata but no Jdeidet node;
+-- Kfarhim and Bebnine have no OSM place at all) gets one named after the zone at a point inside it
+-- (centroid confidence medium; a quarter in Beirut). Listed in the report for review.
 insert into b.p (osm_id, kind, osm_place, name_ar, name_en, name_fr, aliases, zone_pcode, district_code, geom, origin, parent_hint)
-select null, 'village', null, z.name_ar, z.name_en, z.name_fr, '{}', z.pcode, z.district_code,
-  st_pointonsurface(z.geom), 'zone', null
+select null, case when z.district_code = 'BEY' then 'neighbourhood' else 'village' end, null,
+  z.name_ar, z.name_en, z.name_fr, '{}', z.pcode, z.district_code, st_pointonsurface(z.geom), 'zone', null
 from b.zones z
 where z.district_code is not null and coalesce(z.name_en, z.name_ar) is not null
-  and not exists (select 1 from b.p p where p.zone_pcode = z.pcode and p.origin like 'osm%');
+  and not exists (select 1 from b.p p where p.zone_pcode = z.pcode
+                  and b.namesim(p.name_en, p.name_ar, z.name_en, z.name_ar) >= 0.4);
 
 -- Same name twice within 300 m (a node mapped twice): keep the more important one.
 delete from b.p a using b.p c
