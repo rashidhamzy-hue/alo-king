@@ -5,7 +5,7 @@ description: Dry-run the Alo King WhatsApp bot on alo-king-staging (customer ord
 
 # Test the WhatsApp flows (dry run on staging)
 
-**State:** the legacy `kapso-brain` is not deployed to `alo-king-staging` yet; it is ported in Phases 1-3 and added to `supabase/functions/DEPLOY`. Until then there is nothing to call. From Phase 7 the simulator suite (`pnpm run sim`, run by CI after every merge) is the main test; this skill stays for ad hoc checks.
+**State:** the legacy `kapso-brain` is not deployed to `alo-king-staging` yet; it is ported in Phases 1-3 and added to `supabase/functions-deploy.txt`. Until then there is nothing to call. From Phase 7 the simulator suite (`pnpm run sim`, run by CI after every merge) is the main test; this skill stays for ad hoc checks.
 
 ## Rules
 - Only `alo-king-staging` (`https://tzugbbatfbvrfzxuacqx.supabase.co`); the guard hook blocks every other project.

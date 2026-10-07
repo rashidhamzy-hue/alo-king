@@ -14,7 +14,7 @@ Check every item:
 5. **Vendors**: no `select('*')` on `vendors` from the front end; unclaimed vendors have no public page and no ratings; seed data stays `source = seed` until confirmed.
 6. **Marketing**: only opted-in customers, approved templates, STOP honoured at once, at most 2 promotions per customer per week.
 7. **Schema**: changes only as new files in `supabase/migrations/`; drops or deletes ship a rollback in `supabase/rollbacks/`; RLS answers who can read and write each table; no `anon` access to personal data.
-8. **Webhooks**: signature over the raw body, dedupe on provider ID, fast 200 then queue, `?forceFunctionRegion=eu-central-1` on webhook URLs; `verify_jwt` in `supabase/config.toml` matches intent; deployed functions are listed in `supabase/functions/DEPLOY`.
+8. **Webhooks**: signature over the raw body, dedupe on provider ID, fast 200 then queue, `?forceFunctionRegion=eu-central-1` on webhook URLs; `verify_jwt` in `supabase/config.toml` matches intent; deployed functions are listed in `supabase/functions-deploy.txt`.
 9. **WhatsApp limits**: every card goes through `supabase/functions/_shared/meta-limits.ts`; new card builders are added to its test.
 10. **Isolation**: only Supabase `tzugbbatfbvrfzxuacqx`, Vercel `alo-king`, Sentry `alo-king-functions` / `javascript-tanstackstart-react`, Kapso at `https://api.kapso.ai`. Nothing touches Kabsi or production; no secrets in code, logs, prompts or PR text.
 11. **Public data**: tracking links signed and expiring, no coordinates or items in public links; customer phones never shown to other parties beyond what delivery needs.
