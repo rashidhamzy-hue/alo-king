@@ -232,6 +232,8 @@ where p.osm_id = (
   select p2.osm_id from b.p p2
   where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 3000)
     and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45
+    -- Never into its own parent (Dawha Aramoun is not Aramoun).
+    and not (c.parent_name_en <> '' and b.namesim(p2.name_en, p2.name_ar, c.parent_name_en, null) >= 0.8)
   order by b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) desc limit 1);
 
 insert into b.p (osm_id, kind, osm_place, name_ar, name_en, name_fr, aliases, zone_pcode, district_code, geom, origin, parent_hint)
@@ -242,7 +244,8 @@ join b.zones z on st_covers(z.geom, st_setsrid(st_makepoint(c.lon, c.lat), 4326)
 where not exists (
   select 1 from b.p p2
   where st_dwithin(p2.geom::geography, st_setsrid(st_makepoint(c.lon, c.lat), 4326)::geography, 3000)
-    and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45);
+    and b.namesim(p2.name_en, p2.name_ar, c.name_en, c.name_ar) >= 0.45
+    and not (c.parent_name_en <> '' and b.namesim(p2.name_en, p2.name_ar, c.parent_name_en, null) >= 0.8));
 
 -- A zone whose own village is not among its places (Jdeidet el-Chouf holds Boqaata but no Jdeidet node;
 -- Kfarhim and Bebnine have no OSM place at all) gets one named after the zone at a point inside it
@@ -456,6 +459,9 @@ begin
   where not exists (select 1 from out.places o where o.district_code = 'CHF' and b.norm(o.name_ar) = b.norm(n));
   if v_missing is not null then
     raise exception '§16 places missing: %', v_missing;
+  end if;
+  if not exists (select 1 from out.places where name_ar = 'عرمون' and district_code = 'ALY') then
+    raise exception 'Aramoun was merged into Dawha Aramoun';
   end if;
   if exists (select 1 from out.places where b.is_litige(name_en)) then
     raise exception 'a disputed (Litige) zone became a place';
