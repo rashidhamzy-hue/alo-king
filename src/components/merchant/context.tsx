@@ -33,7 +33,11 @@ export function useVendorRow(id: string) {
   return useQuery({
     queryKey: mk.vendor(id),
     queryFn: async () => {
-      const { data, error } = await supabase.from("vendors").select(VENDOR_COLUMNS).eq("vendor_id", id).maybeSingle();
+      const { data, error } = await supabase
+        .from("vendors")
+        .select(VENDOR_COLUMNS)
+        .eq("vendor_id", id)
+        .maybeSingle();
       if (error) throw error;
       return data as unknown as Vendor | null;
     },
@@ -44,7 +48,11 @@ export function useVendorProfile(id: string) {
   return useQuery({
     queryKey: mk.profile(id),
     queryFn: async () => {
-      const { data, error } = await supabase.from("vendor_profiles").select("*").eq("vendor_id", id).maybeSingle();
+      const { data, error } = await supabase
+        .from("vendor_profiles")
+        .select("*")
+        .eq("vendor_id", id)
+        .maybeSingle();
       if (error) throw error;
       return (data ?? { vendor_id: id }) as VendorProfile;
     },
@@ -55,7 +63,11 @@ export function useVendorPrivate(id: string) {
   return useQuery({
     queryKey: mk.priv(id),
     queryFn: async () => {
-      const { data, error } = await supabase.from("vendor_private").select("*").eq("vendor_id", id).maybeSingle();
+      const { data, error } = await supabase
+        .from("vendor_private")
+        .select("*")
+        .eq("vendor_id", id)
+        .maybeSingle();
       if (error) throw error;
       return (data ?? { vendor_id: id }) as VendorPrivate;
     },
@@ -66,7 +78,12 @@ export function useMenuItems(id: string) {
   return useQuery({
     queryKey: mk.items(id),
     queryFn: async () => {
-      const { data, error } = await supabase.from("menu_items").select("*").eq("vendor_id", id).order("sort_order", { ascending: true, nullsFirst: false }).limit(2000);
+      const { data, error } = await supabase
+        .from("menu_items")
+        .select("*")
+        .eq("vendor_id", id)
+        .order("sort_order", { ascending: true, nullsFirst: false })
+        .limit(2000);
       if (error) throw error;
       return (data ?? []) as MenuItem[];
     },
@@ -78,7 +95,15 @@ export type Completeness = {
   menu_score: number;
   overall: number;
   missing_profile: string[];
-  menu: { items: number; with_description: number; with_photo: number; with_ingredients: number; allergens_reviewed: number; macros_verified: number; with_prep_time: number };
+  menu: {
+    items: number;
+    with_description: number;
+    with_photo: number;
+    with_ingredients: number;
+    allergens_reviewed: number;
+    macros_verified: number;
+    with_prep_time: number;
+  };
 };
 
 export function useCompleteness(id: string) {
@@ -94,16 +119,28 @@ export function useCompleteness(id: string) {
 
 export function useRefreshMerchant() {
   const qc = useQueryClient();
-  return (id: string, which: ("vendor" | "profile" | "priv" | "items" | "completeness")[] = ["profile", "priv", "items", "completeness", "vendor"]) =>
-    Promise.all(which.map((w) => qc.invalidateQueries({ queryKey: mk[w](id) })));
+  return (
+    id: string,
+    which: ("vendor" | "profile" | "priv" | "items" | "completeness")[] = [
+      "profile",
+      "priv",
+      "items",
+      "completeness",
+      "vendor",
+    ],
+  ) => Promise.all(which.map((w) => qc.invalidateQueries({ queryKey: mk[w](id) })));
 }
 
 export async function saveProfile(vendorId: string, patch: Partial<VendorProfile>) {
-  const { error } = await supabase.from("vendor_profiles").upsert({ ...patch, vendor_id: vendorId }, { onConflict: "vendor_id" });
+  const { error } = await supabase
+    .from("vendor_profiles")
+    .upsert({ ...patch, vendor_id: vendorId }, { onConflict: "vendor_id" });
   if (error) throw error;
 }
 export async function savePrivate(vendorId: string, patch: Partial<VendorPrivate>) {
-  const { error } = await supabase.from("vendor_private").upsert({ ...patch, vendor_id: vendorId }, { onConflict: "vendor_id" });
+  const { error } = await supabase
+    .from("vendor_private")
+    .upsert({ ...patch, vendor_id: vendorId }, { onConflict: "vendor_id" });
   if (error) throw error;
 }
 export async function updateItem(itemId: string, patch: Partial<MenuItem>) {

@@ -90,21 +90,23 @@ describe("tap ids", () => {
 });
 
 describe("friction fixes in the numbered menu (from a real test conversation)", () => {
+  // Pinned daypart: the default reads the clock, so these lists changed order with the time of day.
+  const listAtDinner: typeof orderForList = (rows) => orderForList(rows, "dinner");
   const item = (n: string, over: Record<string, unknown> = {}) => ({ item_id: n.toLowerCase().replace(/\W+/g, "-"), item_name_en: n, price_usd: 5, ...over });
   it("add-ons and extras are never listed as dishes (Add Cheese, Additional Bread, Extra sauce, an Extras section)", () => {
-    const rows = orderForList([item("Add Cheese"), item("Additional Bread"), item("Extra Sauce"), item("Cheese Kunafa"), item("Garlic Dip", { section: "Add-ons" }), item("Chicken Shawarma", { section: "Sandwiches" }), item("Add-on Fries"), item("Cheese extra", { item_name_ar: "إضافة جبنة", section: "" })]);
+    const rows = listAtDinner([item("Add Cheese"), item("Additional Bread"), item("Extra Sauce"), item("Cheese Kunafa"), item("Garlic Dip", { section: "Add-ons" }), item("Chicken Shawarma", { section: "Sandwiches" }), item("Add-on Fries"), item("Cheese extra", { item_name_ar: "إضافة جبنة", section: "" })]);
     expect(rows.map((r) => r.item_name_en)).toEqual(["Cheese Kunafa", "Chicken Shawarma"]);
   });
   it("real dishes that start with the same words are kept (Extra Large Pizza, Extra Virgin Salad, Extra Cheese Pizza, Add Ons Platter, Addition Pizza, Extraordinary Burger)", () => {
     const names = ["Addition Pizza", "Extraordinary Burger", "Extra Large Pizza", "Extra Virgin Salad", "Extra Cheese Pizza", "Add Ons Platter", "Additional Mixed Grill Platter"];
-    expect(orderForList(names.map((n) => item(n))).map((r) => r.item_name_en).sort()).toEqual([...names].sort());
-    expect(orderForList([item("Addition Pizza"), item("Add Egg")]).map((r) => r.item_name_en)).toEqual(["Addition Pizza"]);
+    expect(listAtDinner(names.map((n) => item(n))).map((r) => r.item_name_en).sort()).toEqual([...names].sort());
+    expect(listAtDinner([item("Addition Pizza"), item("Add Egg")]).map((r) => r.item_name_en)).toEqual(["Addition Pizza"]);
   });
   it("a section is an add-on section only when its whole title says so ('Pizza Toppings', 'Extra Large Pizzas' keep their dishes)", () => {
-    expect(orderForList([item("Margherita", { section: "Pizza Toppings" }), item("Calzone", { section: "Extra Large Pizzas" }), item("Fries", { section: "Extras" }), item("Sauce", { section: "Add-ons" }), item("Dip", { section: "إضافات" })]).map((r) => r.item_name_en)).toEqual(["Calzone", "Margherita"]);
+    expect(listAtDinner([item("Margherita", { section: "Pizza Toppings" }), item("Calzone", { section: "Extra Large Pizzas" }), item("Fries", { section: "Extras" }), item("Sauce", { section: "Add-ons" }), item("Dip", { section: "إضافات" })]).map((r) => r.item_name_en)).toEqual(["Calzone", "Margherita"]);
   });
   it("if every dish looks like an add-on the full priced list is used rather than an empty menu", () => {
-    expect(orderForList([item("Add Cheese"), item("Add Egg")]).map((r) => r.item_name_en).sort()).toEqual(["Add Cheese", "Add Egg"]);
+    expect(listAtDinner([item("Add Cheese"), item("Add Egg")]).map((r) => r.item_name_en).sort()).toEqual(["Add Cheese", "Add Egg"]);
   });
   it("the page is titled 'Popular right now' only when it really shows popular dishes, otherwise 'Menu'", () => {
     const both = (n: number) => `$${n}`;

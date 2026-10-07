@@ -55,7 +55,12 @@ const dict = {
 
 export type DictKey = keyof (typeof dict)["en"];
 
-type Ctx = { lang: Lang; setLang: (l: Lang) => void; t: (k: DictKey) => string; dir: "ltr" | "rtl" };
+type Ctx = {
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  t: (k: DictKey) => string;
+  dir: "ltr" | "rtl";
+};
 const LangCtx = createContext<Ctx | null>(null);
 
 export function LangProvider({ children }: { children: ReactNode }) {
@@ -73,7 +78,9 @@ export function LangProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("ak_lang", l);
   };
   return (
-    <LangCtx.Provider value={{ lang, setLang, t: (k) => dict[lang][k], dir: lang === "ar" ? "rtl" : "ltr" }}>
+    <LangCtx.Provider
+      value={{ lang, setLang, t: (k) => dict[lang][k], dir: lang === "ar" ? "rtl" : "ltr" }}
+    >
       {children}
     </LangCtx.Provider>
   );

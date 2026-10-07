@@ -9,9 +9,23 @@ export function CashGauge({ cash, pending = 0 }: { cash: number; pending?: numbe
   return (
     <div className="flex flex-col items-center">
       <svg viewBox="0 0 200 110" className="w-56">
-        <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="var(--muted)" strokeWidth="14" strokeLinecap="round" />
+        <path
+          d="M20 100 A80 80 0 0 1 180 100"
+          fill="none"
+          stroke="var(--muted)"
+          strokeWidth="14"
+          strokeLinecap="round"
+        />
         {pending > 0 && (
-          <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="var(--gold)" strokeOpacity="0.35" strokeWidth="14" strokeLinecap="round" strokeDasharray={`${after * len} ${len}`} />
+          <path
+            d="M20 100 A80 80 0 0 1 180 100"
+            fill="none"
+            stroke="var(--gold)"
+            strokeOpacity="0.35"
+            strokeWidth="14"
+            strokeLinecap="round"
+            strokeDasharray={`${after * len} ${len}`}
+          />
         )}
         <path
           d="M20 100 A80 80 0 0 1 180 100"
@@ -24,7 +38,9 @@ export function CashGauge({ cash, pending = 0 }: { cash: number; pending?: numbe
         />
       </svg>
       <p className="-mt-10 font-display text-3xl font-semibold">${cash.toFixed(2)}</p>
-      <p className="text-xs text-muted-foreground">${cash.toFixed(0)} of ${COD_CAP} cash held</p>
+      <p className="text-xs text-muted-foreground">
+        ${cash.toFixed(0)} of ${COD_CAP} cash held
+      </p>
     </div>
   );
 }

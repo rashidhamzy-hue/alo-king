@@ -3,7 +3,12 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-lea
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const icon = L.divIcon({ className: "", html: `<div class="ak-pin ak-pin-vendor">★</div>`, iconSize: [34, 34], iconAnchor: [17, 17] });
+const icon = L.divIcon({
+  className: "",
+  html: `<div class="ak-pin ak-pin-vendor">★</div>`,
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
+});
 
 function Recenter({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
@@ -40,7 +45,10 @@ export default function VendorMap({
   );
   return (
     <MapContainer center={[lat, lng]} zoom={15} scrollWheelZoom={false} className="h-full w-full">
-      <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer
+        attribution="&copy; OpenStreetMap contributors"
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
       <Marker position={[lat, lng]} icon={icon} draggable={draggable} eventHandlers={handlers} />
       <Recenter lat={lat} lng={lng} />
       {draggable && onMove && <ClickToMove onMove={onMove} />}

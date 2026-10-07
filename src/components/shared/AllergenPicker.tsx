@@ -3,9 +3,18 @@ import { ALLERGEN_LABEL } from "@/lib/vendor";
 import { useL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-export function AllergenPicker({ value, onChange, tone = "neutral" }: { value: string[]; onChange: (v: string[]) => void; tone?: "neutral" | "avoid" }) {
+export function AllergenPicker({
+  value,
+  onChange,
+  tone = "neutral",
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  tone?: "neutral" | "avoid";
+}) {
   const L = useL();
-  const toggle = (a: string) => onChange(value.includes(a) ? value.filter((x) => x !== a) : [...value, a]);
+  const toggle = (a: string) =>
+    onChange(value.includes(a) ? value.filter((x) => x !== a) : [...value, a]);
   return (
     <div className="flex flex-wrap gap-2" role="group">
       {ALLERGENS.map((a) => {

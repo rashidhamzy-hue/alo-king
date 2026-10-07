@@ -37,7 +37,12 @@ export function Hero() {
         >
           {t("hero_sub")}
         </motion.p>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="mt-10 flex flex-wrap gap-3">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45 }}
+          className="mt-10 flex flex-wrap gap-3"
+        >
           <Button variant="gold" size="lg" asChild>
             <a href="#simulator">{t("cta_try")}</a>
           </Button>

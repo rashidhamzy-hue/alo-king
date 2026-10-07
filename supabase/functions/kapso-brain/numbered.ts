@@ -18,7 +18,7 @@ export const isAddOn = (r: Row & { section?: string | null }) => ADDON_EN.test(S
 export function orderForList<T extends Row & { section?: string | null }>(items: T[], now: Daypart = daypartAt()): T[] {
   const priced = items.filter((r) => Number(r.price_usd) > 0 && !isAlcohol(r)), dishes = priced.filter((r) => !isAddOn(r)); // alcohol is never listed
   return (dishes.length ? dishes : priced).sort((a, b) =>
-    daypartScore(b, now) - daypartScore(a, now) || Number(!!b.is_popular) - Number(!!a.is_popular) || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || Number(isExtraItem(a)) - Number(isExtraItem(b)) || String(a.item_name_en ?? "").localeCompare(String(b.item_name_en ?? "")));
+    daypartScore(b, now) - daypartScore(a, now) || Number(!!b.is_popular) - Number(!!a.is_popular) || (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9) || Number(isExtraItem(a)) - Number(isExtraItem(b)) || String(a.item_name_en ?? "").localeCompare(String(b.item_name_en ?? "")) || (a.item_id < b.item_id ? -1 : a.item_id > b.item_id ? 1 : 0));
 }
 
 const legend = (ar: boolean, more: boolean, anyOptions: boolean) => ar
