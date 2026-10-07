@@ -225,6 +225,12 @@ jobs:
           DB_URL="$(scripts/staging-db-url.sh)"
           echo "::add-mask::$DB_URL"
           supabase db push --db-url "$DB_URL"
+      - name: Load the places seed (skipped when unchanged)
+        run: |
+          command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          DB_URL="$DB_URL" scripts/load-seed.sh
       - name: Deploy edge functions listed in supabase/functions-deploy.txt
         run: |
           names=$(grep -vE '^[[:space:]]*(#|$)' supabase/functions-deploy.txt || true)
