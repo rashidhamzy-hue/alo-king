@@ -22,6 +22,7 @@ Phase 0 starts now. Nothing in the legal, carrier or payment track blocks it, be
 - Money: Whish payments go to Alo King's own Whish account; merchants are settled automatically every 2 weeks (monthly on request). Section 20 rewritten.
 - Delivery: three modes (merchant, Alo King fleet, outsourced partner) behind one adapter. New section 21.
 - Merchant credit: fully automated across Whish, the ledger, the dashboard, WhatsApp and the AI (section 20.3).
+- Kapso open-source repos decided (section 26); model and effort per build session (section 10).
 - Order receiving through every channel incl. POS and Deliverect (section 23); full website revamp (section 24); build sessions never ask the owner (section 25).
 - French added as a fourth ordering language (with Arabic, English and Arabizi), including mixed Arabic-French messages.
 - Send Home: orders paid from abroad for family in Lebanon, every number and location case, Tap Payments as the gateway. New section 22.
@@ -174,15 +175,28 @@ Kabsi is a separate business with no link to Alo King. Alo King uses its own Kap
 - **claude.ai/code (Claude Code in the cloud) for all repo work.** It clones the repo, runs tests, pushes branches, opens pull requests and watches them. Use a Claude Code project there (one conversation that runs each task as a parallel cloud thread) if it appears in the sidebar; it is in beta and rolling out gradually. If it does not appear, start one cloud session per task at claude.ai/code.
 - **This claude.ai project chat only for decisions, research, provider letters and reviews of this file.** It does not edit the repo.
 
-### Which model
-| Work | Model | Why |
-|---|---|---|
-| Phase 0 repo reset, Phase 1 schema and security, Phase 2 state machine, Phase 6 payments and ledger | Opus 5.5 | Mistakes here are expensive and hard to see |
-| Phase 3 bot, tools and evals | Opus 5.5 to design the tool contracts, Sonnet 5.5 to fill fixtures and copy | Contracts need judgement; fixtures need volume |
-| Phase 4 website, porting UI, tests, docs, Arabic and English copy | Sonnet 5.5 | Fast and capable for well-specified work |
-| Project coordinator conversation (if Claude Code projects are available) | Opus 5.5 at low effort | Cheap routing, sound judgement |
-| One adversarial security review before the pilot opens (webhooks, row-level security, tracking links, money paths) | Fable 5.1 | Deepest review, used once, because it is the most expensive |
-| Not used for building | Haiku 4.5 | Runtime model only |
+### Which model (updated 7 October 13:51: model and effort for every session)
+Each phase runs in a fresh claude.ai/code session on `rebuild/lebanon`. A big phase is split so no session runs out of context. Effort is set in the session's model menu where shown; if it isn't shown, the model alone is enough.
+
+| # | Session | Model | Effort | Needs first (owner issue) |
+|---|---|---|---|---|
+| 0 | Repo reset, CI, automerge, hooks, check-setup | Opus 5.5 | high | done 7 Oct (PRs #61–#66) |
+| 1 | Phase 1a: schema core, RLS, roles, audit log, ledger tables, dated rate/VAT/fee/config tables, webhook intake (signature, idempotency, pgmq) | Opus 5.5 | high | none |
+| 2 | Phase 1b: all-Lebanon places (§16), categories (§17), vendor import (§15), route distances | Opus 5.5 | high | #76 ORS key |
+| 3 | Phase 2: order state machine with race tests, four-layer notifications, merchant portal queue, `order_channel` router (§23) | Opus 5.5 | high | none (#67 for live tests) |
+| 4 | Phase 3a: customer bot and AI: typed tools, budgets, four-language eval set, voice | Opus 5.5 | high | #77 OpenAI key, #67 Kapso number |
+| 5 | Phase 3b: claims and registration (§18), profile editing on dashboard and WhatsApp, smart menu, WhatsApp Flows (§12) | Sonnet 5.5 | high | #67 |
+| 6 | Phase 4a: design system and every public page in AR/EN/FR (§24) | Sonnet 5.5 | high | none |
+| 7 | Phase 4b: claim and registration UI, AI onboarding panel, legal pages, SEO and AIO, dashboard restyle | Sonnet 5.5 | high | none |
+| 8 | Phase 5: delivery adapter, fleet (driver app, dispatch, cash custody), partner adapter (§21) | Sonnet 5.5 | high | none |
+| 9 | Phase 6a: payments, ledger, Whish collection, settlement, Alo King Credit (§20) | Opus 5.5 | max | Whish sandbox key (#69) |
+| 10 | Phase 6b: Send Home, pay-for-me, Tap adapter (§22) | Opus 5.5 | high | Tap sandbox (#71) |
+| 11 | Phase 7: simulator, evals, weekly capped live run, pilot scorecard | Sonnet 5.5 | medium | #67 |
+| 12 | Phase 8: offers, paid broadcast (Kapso Broadcasts API, §26), sponsored, insights, credit UI | Sonnet 5.5 | high | none |
+| 13 | Security review: webhooks, RLS, tracking links, money paths | Fable 5.1 | max | sessions 1–12 merged |
+| 14 | Pilot cut-over: production project, numbers live, go-live checklist | Opus 5.5 | high | Supabase Pro, Vercel Pro, Kapso Pro, lawyer letter |
+
+A session whose "needs first" item is missing still runs: it builds against mocks and the sandbox, and switches on the live part in a later run (§25). Haiku 4.5 is never used for building; it is the runtime model only. A planning conversation (claude.ai Project chat, no code) uses Opus 5.5 at medium effort.
 
 ### Automated merging (DECIDED, free plan)
 - Every task is one branch and one pull request into `rebuild/lebanon`. Sessions never push to `rebuild/lebanon` or `main` directly: a Claude Code hook in `.claude/settings.json` blocks it, and `CLAUDE.md` states it. Auto-fix stays on, so Claude pushes fixes when checks fail or a review comment arrives.
@@ -693,6 +707,16 @@ Rasheed's rule: Claude Code works and auto-merges, and never asks him.
   - deleting data without a rollback
 
   The session does not ask about these either; it opens an `owner` issue and works around them.
+
+## 26. Kapso open-source repos (DECIDED, 7 October 13:51)
+| Repo | Decision | Why |
+|---|---|---|
+| `gokapso/whatsapp-cloud-api-js` (npm `@kapso/whatsapp-cloud-api`, MIT) | **Use.** The one WhatsApp client in edge functions (via `npm:` import), from Phase 2 | Typed sending of text, media, interactive, templates and Flows; webhook signature verification; Kapso proxy for history and contacts. Replaces hand-written send code. Every card still passes `meta-limits.ts`. |
+| `gokapso/agent-skills` | **Use** (already vendored in `.claude/skills/`) | The three Kapso skills. Refreshed with `npx skills add gokapso/agent-skills` at the start of Phase 3, with `skills-lock.json` updated in the same PR |
+| `gokapso/whatsapp-broadcasts-example` (MIT) | **Reference only** for Phase 8 | Paid broadcasts send through Kapso's Broadcasts API (rate limits, delivery stats); Alo King's server still owns audience, consent, STOP, pricing and billing (§20.4) |
+| `gokapso/whatsapp-cloud-inbox` (Next.js, MIT) | **Not deployed.** Operators use Kapso's hosted inbox at pilot; our admin conversation view borrows its patterns in Phase 4b | A separate Next.js app is one more thing to host and secure |
+| `gokapso/whatsapp-support-agent` (Bun + Slack) | **Not used** | Its "answer if confident, else hand to a human" pattern is already in §2's escalation; Slack is not in our stack |
+| `gokapso/claude-code-whatsapp` | **Rejected** | Runs Claude Code on GitHub repos from WhatsApp messages in remote sandboxes with repo tokens: a needless attack path. Builds run in claude.ai/code only |
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
