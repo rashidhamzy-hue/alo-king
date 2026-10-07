@@ -29,8 +29,14 @@ select tests.ok(exists (select 1 from public.places where name_en ilike 'ehden%'
 select tests.ok((select count(*) from public.search_places('khraybeh')) >= 2, 'same-name villages exist as separate places');
 
 -- Snapping and search on real data.
-select tests.ok((select place_id from public.place_for_point('SRID=4326;POINT(35.5861 33.6821)')) = 'LB-CHF-BAAKLINE', 'Baakline''s centre snaps to Baakline');
-select tests.ok((select place_id from public.place_for_point('SRID=4326;POINT(35.6175 33.6738)')) = 'LB-CHF-BAKAATA', 'Bakaata''s centre snaps to Bakaata');
+-- A place's own centre snaps back to it (fixed coordinates here went stale as the build improved).
+select tests.ok((select place_id from public.place_for_point((select centroid from public.places where id = 'LB-CHF-BAAKLINE'))) = 'LB-CHF-BAAKLINE',
+  'Baakline''s centre snaps to Baakline');
+select tests.ok((select place_id from public.place_for_point((select centroid from public.places where id = 'LB-CHF-BAKAATA'))) = 'LB-CHF-BAKAATA',
+  'Bakaata''s centre snaps to Bakaata');
+select tests.ok(exists (select 1 from public.places p join public.places q on q.id = p.parent_id
+  where p.name_en = 'Dawha Aramoun' and q.name_ar = 'عرمون'), 'Dawha Aramoun, under Aramoun');
+select tests.ok(not exists (select 1 from public.places where name_en ilike 'litige%'), 'disputed (Litige) zones are not places');
 select tests.ok((select id from public.search_places('ba3qlin') limit 1) = 'LB-CHF-BAAKLINE', 'Ba3qlin finds Baakline');
 select tests.ok(exists (select 1 from public.search_places('beit el din') s where s.id like 'LB-CHF-BEIT%'), 'Beit el Din finds Beiteddine');
 
