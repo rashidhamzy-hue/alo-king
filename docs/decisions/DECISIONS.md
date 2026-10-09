@@ -523,7 +523,7 @@ When the delivery address is not one of the customer's own saved addresses, or t
 |---|---|---|
 | 1 | Foreign number, abroad, sends to family | Gift order. Pay by card (Tap) or Whish link. COD only if the recipient accepts paying (scenario 7). |
 | 2 | Lebanese number on roaming abroad, sends to family | Same as 1. We don't detect location and don't need to. |
-| 3 | Foreign number, in Lebanon (visiting or summer), orders for self | Normal order. Delivery point from the shared location pin. Pay COD, Whish or card. Until the number has one delivered order, COD is capped at $50 (config) and the merchant sees "new customer". |
+| 3 | Foreign number, in Lebanon (visiting or summer), orders for self | Normal order. Delivery point from the shared location pin. Pay COD, Whish or card. Until the number has one delivered order, COD is capped at $50 (config, same rule for every new number: §29.4) and the merchant sees "new customer". |
 | 4 | Foreign number, in Lebanon, orders for someone else | Gift order, like 1. |
 | 5 | Lebanese number in Lebanon orders for someone else (e.g. parents in another village) | Gift order; all payment methods. |
 | 6 | Customer in Lebanon builds a basket and asks a relative abroad to pay ("pay for me") | The bot creates a pay-for-me link valid for 30 minutes. The relative pays by card or Whish on a web page. The order starts only when the payment lands. The payer gets a receipt and tracking. |
@@ -913,6 +913,77 @@ Evidence rules: a confirmation by someone at the place (driver at the geofence, 
 
 ### 28.6 Why OpenRouteService (answer to Rasheed, 7 October)
 ORS is the road-routing service for the whole system: road distance for the $2 / $3 / $4.50 fee bands and the 10 km limit (never straight line), the "can this merchant deliver here" check, ETAs, and dispatch (which driver is closest by road). It is OpenStreetMap-based, so it works for Lebanese villages and costs nothing on the free plan. The basic free key is correct. Results are cached 1-24 h (§3), so free limits are far above pilot volume; if a day ever comes close to the limit, the build logs it and opens an `owner` issue.
+
+## 29. Five external audits (Gemini ×3, ChatGPT, Perplexity), 9 October: verdicts (DECIDED, 9 October 10:30)
+Input only (CLAUDE.md "Authority"). Each recommendation is adopted, adapted or rejected below, with the reason. **The audits' proposed migration `20261009110000_consolidated_platform_hardening.sql` is rejected as a file and must never be applied.** It targets tables our schema does not have (`menu_items`, `order_items`, `orders`, `profiles`), hard-codes 89,500 LBP as a default rate (forbidden: §2, CLAUDE.md), duplicates tables that already exist (`road_incidents`, the dated price list, `ledger_entries` already carries USD and LBP), and adds categories rejected below. Adopted ideas are built inside the normal sessions, in the schema those sessions design.
+
+### 29.1 Money: the flat $1 fee is kept, gateway cost is passed through (adapted)
+The audits are right on one point: on an online-paid $40 order, a 3% gateway fee ($1.20) exceeds the $1 order fee. They are wrong that commissions of 12-15% are the fix: Alo King's whole merchant pitch is "flat and tiny next to Toters' 22-30%", and merchant count is the pilot gate (§1).
+- **Order fee stays $1.00 for prepared food** (restaurant, fast_food, cafe, bakery_manakish, sweets_pastry, ice_cream), free for the first 30 days (§20.4).
+- **Online payment cost is passed through at cost** on online-paid orders. The provider's actual fee for that payment (Whish or Tap, from the dated price table) is a separate ledger line netted from the merchant's settlement and shown on the statement as "online payment fee (provider cost, no markup)". Cash orders carry none. This is how a card terminal already works for them. Send Home keeps its $1.50 sender fee (§20.4).
+- **Price table gains per-`business_type` rules**: flat amount, percentage, minimum and maximum. Launch values: prepared food $1.00 flat; grocery_supermarket, minimarket, butcher, poultry, fish_market, produce, roastery_nuts: 2.5%, minimum $1.00, maximum $3.00; home_essentials: $0.50 flat; other_food: $1.00 flat.
+- **No small-basket surcharge at launch.** The merchant's minimum order covers it.
+- **Kill-gate:** if any `business_type`'s contribution margin per delivered order (fees minus message, AI, gateway and support costs from the cost ledger) is negative over 14 days with 50+ orders, its price row is changed before more merchants of that type go live.
+
+### 29.2 Categories: no new categories (rejected), two fulfilment features added (adopted)
+- **Rejected at launch:** pharmacies (prescriptions are health data, plus Ministry of Public Health pricing rules and liability), liquor (age verification and municipal rules), electronics, laundry, pet supplies, and flowers as a category. Revisit after the ads gate (§1). The `business_type` list in §17 stays.
+- **Adopted: variable-weight items** for butcher, poultry, fish_market and produce.
+  - The item is priced per kg with an estimated weight; the customer sees "about $X, final by weight".
+  - The merchant enters the actual weight on the order card or portal, and the server recomputes the total.
+  - An increase over 10% needs the customer's tap.
+  - COD collects the final total. Online-paid weighted orders charge the estimate; if the final is lower, the difference is refunded automatically, and if it is higher, the merchant is paid at most the estimate plus 10%.
+  - No pre-authorisation holds: neither Whish links nor COD support them.
+- **Adopted: empty-container exchange (تبديل)** for home_essentials (gas cylinders, water gallons).
+  - The order asks "do you have an empty to return?". With no empty, the merchant's deposit price is added.
+  - The driver confirms the empty was collected.
+  - A stairs fee per floor is a merchant option within the price rules, shown before checkout.
+- **Kept from §27:** heavy-load driver flag.
+
+### 29.3 Customer AI and search
+- **Runtime models are unchanged** (§3): Claude Haiku 4.5 for turns, Sonnet 5.5 for menu extraction and complaints. "Claude Haiku 5.5" named by the audits does not exist.
+- **Nutrition macros and an embeddings index are rejected for now.** Merchants won't supply macros, and AI-estimated macros or allergens are a food-safety liability. Item flags stay merchant-declared only (§17); any AI suggestion is labelled "estimated" and never used to answer "is this safe for my allergy". Search runs on Postgres full-text, trigram and the alias tables. Embeddings (pgvector) are reconsidered after pilot only if the search-miss rate on the eval set exceeds 10%.
+- **Large catalogues (supermarkets):** the web basket handoff in §5 is the catalogue. The bot sends a link to the merchant's page with the basket shared; nothing new.
+- **Interface choice:**
+  - free text or voice for open requests
+  - buttons for 1-3 choices
+  - lists for 4-10 choices
+  - Flows for multi-field input (§12)
+  - web basket for 10+ choices or big catalogues
+- **Addresses:** Google Places is not used for customer addresses. The places list, landmarks and the §28 knowledge base resolve them; the Google key stays for claims (§15.1).
+- **Abandoned basket:** one reminder 30 minutes after the last activity, only inside the 24-hour window (a service message), never twice for the same basket, never between 23:00 and 08:00.
+- **Upsells:** at most one suggestion per order, from the merchant's own items bought together in past orders, server-priced, shown as a button. No suggestion on reorders.
+
+### 29.4 Operations
+- **Merchant pause by message** ("مسكّر نص ساعة", "Mrakad 30 mins", "closed till 8"): the AI proposes a pause with an end time, the merchant taps, and the server pauses ordering and moves open ETAs. This extends §18.2.
+- **Driver-to-driver cash swaps are rejected.** They break §21.4 custody. Drivers start shifts with a recorded change float (§27.8 scenario 17).
+- **Spoken landmark directions (text-to-speech) for drivers:** after pilot, if search time (§28.4) misses its target.
+- **New-customer COD cap, unified:** every number's first order is capped at $50 COD until 1 delivered order. This replaces the foreign-number-only rule in §22.2 scenario 3.
+
+### 29.5 Security and resilience
+- **Adopted:**
+  - Whish webhook timestamp check (reject over 300 s drift) if Whish signs a timestamp; otherwise dedupe plus the status poll (§20.3).
+  - Customer text passed to models inside delimited blocks, never as instructions (already in `alo-ai-tool-safety`).
+  - Atomic AI usage quota in one database call (ChatGPT's P1; the legacy read-then-write must not be ported).
+  - Ledger idempotency key with request hash (done in session 1's hardening).
+  - Before session 4 ports `merchant-ai`: its model comes from config, never `claude-sonnet-4-5` or any hard-coded name, and a contract test proves every table and RPC it calls exists.
+- **Backups:** Supabase Pro's daily backups at pilot, plus a nightly encrypted database dump from GitHub Actions to a Cloudflare R2 bucket (free tier) from the pilot cut-over. Session 14 opens the `owner` issue for the R2 account. Point-in-time recovery (a paid add-on) is rejected until volume justifies it.
+- **Rejected:** hardware GSM SIM gateways for SMS failover (one more device to run; the automated cellular call in §13 already covers internet loss at the merchant).
+- **Analytics IDs:** PostHog distinct IDs are an HMAC of the phone number with a server secret (§24.7, after pilot).
+
+### 29.6 Number quality and standby failover (adopted, precise)
+- The webhook handler stores Meta's `phone_number_quality_update` and messaging-limit events.
+- On a quality drop to RED, or a restriction, of the Customer number A: new marketing pauses at once, and the admin is alerted. The config flag `active_customer_number` can switch to standby B (§3) in one admin action.
+- Customers in active orders get a utility template from B ("we've moved to this number for your order #…"), since B cannot free-message people who never wrote to it. Replies to B bind to the same customer, basket and order by phone number.
+- B exists only after Meta business verification (§3). Until then the plan is the quality monitor plus the §20.5 broadcast guards.
+
+### 29.7 Already decided (no change)
+Live location (§27, which the ChatGPT audit read in its older form), Google Places data handling (§15.1, Rasheed's decision), Whish written terms and the lawyer's letter gating online collection (§20.1, §20.6), POS routing (§23), the dual-currency ledger (§20.3), the RLS isolation model (session 1), the ban-prevention rules (§18.3, §20.5).
+
+### 29.8 Build placement
+- Session 3 (Phase 2): weighted-item and container-exchange order fields; the pause-by-message command; per-`business_type` fee rules in the price table; the quality-event table.
+- Session 4 (Phase 3a): interface choice rules, abandoned-basket reminder, upsell, `merchant-ai` model and contract test, atomic AI quota.
+- Session 9 (Phase 6a): gateway pass-through ledger line, weighted-order refunds, the contribution-margin report behind the 29.1 kill-gate.
+- Session 14 (cut-over): R2 dump and owner issue; standby switch drill once B exists.
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
