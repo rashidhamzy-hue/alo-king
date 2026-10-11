@@ -870,6 +870,8 @@ begin
     returning id
   )
   select count(*) into n_expired from x;
+  -- Only the last 24 hours matter; older inbound times are personal data with no use.
+  delete from app_private.whatsapp_last_inbound where at < now() - interval '2 days';
   update app_private.claim_codes cc set code_hash = null, code_salt = null, expires_at = null
   from public.vendor_claims c
   where c.id = cc.claim_id and cc.code_hash is not null and c.status <> 'code_sent';
