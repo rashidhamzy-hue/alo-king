@@ -68,6 +68,8 @@ function fakeDb(opts: {
         return opts.sender === undefined ? "PNID-M" : opts.sender;
       case "ops_alerts_claim":
         return opts.alerts ?? [];
+      case "onboarding_session_get":
+        return null;
       default:
         return { status: "ok" };
     }

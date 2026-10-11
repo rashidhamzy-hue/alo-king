@@ -218,3 +218,45 @@ describe("customer-cards: every builder passes the checker", () => {
     expect(checkInteractive(cc.ctaUrl("+1", "b", "ok", "http://evil")).join()).toMatch(/https/);
   });
 });
+
+// Merchant onboarding (session 5, §18.1): every builder, in all three languages, with long names.
+import * as ob from "./onboarding-cards";
+
+describe("onboarding-cards: every builder passes the checker", () => {
+  const U = "11111111-2222-3333-4444-555555555555";
+  const matches = Array.from({ length: 14 }, (_, k) => ({
+    vendor_id: U,
+    name: `مطعم الضيعة الكبير رقم ${k} مع اسم طويل جدا`,
+    branch_label: "فرع بعقلين الرئيسي على الطريق العام",
+    town: "جديدة الشوف",
+    claim_status: k % 2 ? "claimed" : "unclaimed",
+  })).map((m, k) => ({ ...m, vendor_id: U.replace(/5$/, String(k % 10)) }));
+  for (const lang of ["ar", "en", "fr"] as const) {
+    it(`builds valid onboarding messages in ${lang}`, () => {
+      const built: any[] = [
+        ob.claimSearchList("+96171000001", matches, lang),
+        ob.notListedButtons("+96171000001", lang),
+        ob.notListedButtons("+96171000001", lang, true),
+        ob.codeSentCard("+96171000001", U, "…56", "whatsapp", lang),
+        ob.codeSentCard("+96171000001", U, "…56", "voice", lang),
+        ob.documentsAsk("+96171000001", ["registration", "sign_photo"], lang),
+        ob.documentsAsk("+96171000001", ["registration"], lang, { homeKitchen: true, claimId: U, prefix: "x".repeat(400) }),
+        ob.documentsAsk("+96171000001", ["company"], lang, { next: true }),
+        ob.businessTypeList("+96171000001", lang),
+        ob.homeKitchenButtons("+96171000001", lang),
+        ob.pinRequest("+96171000001", lang),
+        ob.claimCodeText("+96170123456", "482913"),
+        ob.joinConfirm("+96171000001", lang),
+      ];
+      for (const p of built) expect(checkInteractive(clampInteractive(p)), JSON.stringify(p).slice(0, 80)).toEqual([]);
+      // Builders that need no clamping: all except the search list, whose names come from data.
+      for (const p of built.slice(1)) expect(checkInteractive(p), JSON.stringify(p).slice(0, 80)).toEqual([]);
+    });
+  }
+  it("tap ids round-trip", () => {
+    const l: any = ob.claimSearchList("+1", matches.slice(0, 2), "en");
+    expect(ob.parseOnboardingTap(l.interactive.action.sections[0].rows[0].id)).toEqual({ a: "vendor", vendorId: matches[0].vendor_id });
+    const t: any = ob.businessTypeList("+1", "ar");
+    for (const r of t.interactive.action.sections[0].rows) expect(ob.parseOnboardingTap(r.id)?.a).toBe("type");
+  });
+});

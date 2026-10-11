@@ -632,6 +632,9 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
     ref: refFor(c, "v", r.vendor_id, `${r.name_en ?? r.name_ar}${r.is_open ? "" : " (closed)"}`),
   }));
   c.summary.push(`[found ${vs.length} places for ${query ?? "nearby"}]`);
+  // A named business we lack is counted for growth (§18.1 M); nobody ever messages the business.
+  if (!vs.length && query && query.trim().length >= 3)
+    await c.deps.rpc("vendor_request_note", { p_query: query, p_place_id: null });
   if (vs.length === 1 && vs[0].is_open)
     return showMenu(c, vs[0].ref, vs[0].matched === "dish" ? query : null);
   push(c, ...vendorChoices(c.m.from, c.s.lang, vs, query));

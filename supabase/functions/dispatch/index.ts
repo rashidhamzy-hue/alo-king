@@ -167,6 +167,39 @@ async function fetchMedia(
   return { bytes, mime: res.headers.get("content-type")?.split(";")[0] || "audio/ogg" };
 }
 
+/**
+ * Claim documents (§18.1 C-L): the WhatsApp media is copied into the private `claim-documents` bucket
+ * (service role only), so the review and the audit of G and I outlive WhatsApp's media retention.
+ * Images and PDFs up to 10 MB; anything else keeps the WhatsApp reference.
+ */
+async function storeDocument(
+  phoneNumberId: string,
+  media: { id: string; url: string | null; mime: string },
+  claimId: string,
+): Promise<string | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(claimId)) return null;
+  const file = await fetchMedia({ url: media.url, id: media.id }, phoneNumberId, 10_000_000);
+  if (!file) return null;
+  const mime = file.mime || media.mime;
+  const ext =
+    mime === "application/pdf"
+      ? "pdf"
+      : mime === "image/png"
+        ? "png"
+        : mime.startsWith("image/")
+          ? "jpg"
+          : null;
+  if (!ext) return null;
+  const path = `${claimId}/${crypto.randomUUID()}.${ext}`;
+  const res = await fetch(`${supabaseUrl}/storage/v1/object/claim-documents/${path}`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${serviceKey}`, "content-type": mime },
+    body: file.bytes,
+    signal: AbortSignal.timeout(15_000),
+  });
+  return res.ok ? `storage:claim-documents/${path}` : null;
+}
+
 const routeCache = restRouteCache({ supabaseUrl, serviceKey });
 const routeProvider = orsKey ? orsProvider({ apiKey: orsKey }) : null;
 
@@ -339,6 +372,9 @@ Deno.serve(async (req) => {
               ),
             )
         : null,
+      // Claim codes to landlines (§18.1 B): the same voice provider, saying the code twice.
+      storeDocument,
+      voiceCode: twilio ? (to, script) => placeCall(twilio, to, sayTwiml(script)) : null,
       telegram: telegramToken && telegramChat ? telegram : null,
       adminUrl: env("ADMIN_BASE_URL"),
       log,
