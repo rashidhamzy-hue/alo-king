@@ -523,7 +523,7 @@ When the delivery address is not one of the customer's own saved addresses, or t
 |---|---|---|
 | 1 | Foreign number, abroad, sends to family | Gift order. Pay by card (Tap) or Whish link. COD only if the recipient accepts paying (scenario 7). |
 | 2 | Lebanese number on roaming abroad, sends to family | Same as 1. We don't detect location and don't need to. |
-| 3 | Foreign number, in Lebanon (visiting or summer), orders for self | Normal order. Delivery point from the shared location pin. Pay COD, Whish or card. Until the number has one delivered order, COD is capped at $50 (config) and the merchant sees "new customer". |
+| 3 | Foreign number, in Lebanon (visiting or summer), orders for self | Normal order. Delivery point from the shared location pin. Pay COD, Whish or card. Until the number has one delivered order, COD is capped at $50 (config, same rule for every new number: §29.4) and the merchant sees "new customer". |
 | 4 | Foreign number, in Lebanon, orders for someone else | Gift order, like 1. |
 | 5 | Lebanese number in Lebanon orders for someone else (e.g. parents in another village) | Gift order; all payment methods. |
 | 6 | Customer in Lebanon builds a basket and asks a relative abroad to pay ("pay for me") | The bot creates a pay-for-me link valid for 30 minutes. The relative pays by card or Whish on a web page. The order starts only when the payment lands. The payer gets a receipt and tracking. |
@@ -913,6 +913,207 @@ Evidence rules: a confirmation by someone at the place (driver at the geofence, 
 
 ### 28.6 Why OpenRouteService (answer to Rasheed, 7 October)
 ORS is the road-routing service for the whole system: road distance for the $2 / $3 / $4.50 fee bands and the 10 km limit (never straight line), the "can this merchant deliver here" check, ETAs, and dispatch (which driver is closest by road). It is OpenStreetMap-based, so it works for Lebanese villages and costs nothing on the free plan. The basic free key is correct. Results are cached 1-24 h (§3), so free limits are far above pilot volume; if a day ever comes close to the limit, the build logs it and opens an `owner` issue.
+
+## 29. Five external audits (Gemini ×3, ChatGPT, Perplexity), 9 October: verdicts (DECIDED, 9 October 10:30)
+Input only (CLAUDE.md "Authority"). Each recommendation is adopted, adapted or rejected below, with the reason. **The audits' proposed migration `20261009110000_consolidated_platform_hardening.sql` is rejected as a file and must never be applied.** It targets tables our schema does not have (`menu_items`, `order_items`, `orders`, `profiles`), hard-codes 89,500 LBP as a default rate (forbidden: §2, CLAUDE.md), duplicates tables that already exist (`road_incidents`, the dated price list, `ledger_entries` already carries USD and LBP), and adds categories rejected below. Adopted ideas are built inside the normal sessions, in the schema those sessions design.
+
+### 29.1 Money: the flat $1 fee is kept, gateway cost is passed through (adapted)
+The audits are right on one point: on an online-paid $40 order, a 3% gateway fee ($1.20) exceeds the $1 order fee. They are wrong that commissions of 12-15% are the fix: Alo King's whole merchant pitch is "flat and tiny next to Toters' 22-30%", and merchant count is the pilot gate (§1).
+- **Order fee stays $1.00 for prepared food** (restaurant, fast_food, cafe, bakery_manakish, sweets_pastry, ice_cream), free for the first 30 days (§20.4).
+- **Online payment cost is passed through at cost** on online-paid orders. The provider's actual fee for that payment (Whish or Tap, from the dated price table) is a separate ledger line netted from the merchant's settlement and shown on the statement as "online payment fee (provider cost, no markup)". Cash orders carry none. This is how a card terminal already works for them. Send Home keeps its $1.50 sender fee (§20.4).
+- **Price table gains per-`business_type` rules**: flat amount, percentage, minimum and maximum. Launch values: prepared food $1.00 flat; grocery_supermarket, minimarket, butcher, poultry, fish_market, produce, roastery_nuts: 2.5%, minimum $1.00, maximum $3.00; home_essentials: $0.50 flat; other_food: $1.00 flat.
+- **No small-basket surcharge at launch.** The merchant's minimum order covers it.
+- **Kill-gate:** if any `business_type`'s contribution margin per delivered order (fees minus message, AI, gateway and support costs from the cost ledger) is negative over 14 days with 50+ orders, its price row is changed before more merchants of that type go live.
+
+### 29.2 Categories: no new categories (rejected), two fulfilment features added (adopted)
+- **Rejected at launch:** pharmacies (prescriptions are health data, plus Ministry of Public Health pricing rules and liability), liquor (age verification and municipal rules), electronics, laundry, pet supplies, and flowers as a category. Revisit after the ads gate (§1). The `business_type` list in §17 stays.
+- **Adopted: variable-weight items** for butcher, poultry, fish_market and produce.
+  - The item is priced per kg with an estimated weight; the customer sees "about $X, final by weight".
+  - The merchant enters the actual weight on the order card or portal, and the server recomputes the total.
+  - An increase over 10% needs the customer's tap.
+  - COD collects the final total. Online-paid weighted orders charge the estimate; if the final is lower, the difference is refunded automatically, and if it is higher, the merchant is paid at most the estimate plus 10%.
+  - No pre-authorisation holds: neither Whish links nor COD support them.
+- **Adopted: empty-container exchange (تبديل)** for home_essentials (gas cylinders, water gallons).
+  - The order asks "do you have an empty to return?". With no empty, the merchant's deposit price is added.
+  - The driver confirms the empty was collected.
+  - A stairs fee per floor is a merchant option within the price rules, shown before checkout.
+- **Kept from §27:** heavy-load driver flag.
+
+### 29.3 Customer AI and search
+- **Runtime models are unchanged** (§3): Claude Haiku 4.5 for turns, Sonnet 5.5 for menu extraction and complaints. "Claude Haiku 5.5" named by the audits does not exist.
+- **Nutrition macros and an embeddings index are rejected for now.** Merchants won't supply macros, and AI-estimated macros or allergens are a food-safety liability. Item flags stay merchant-declared only (§17); any AI suggestion is labelled "estimated" and never used to answer "is this safe for my allergy". Search runs on Postgres full-text, trigram and the alias tables. Embeddings (pgvector) are reconsidered after pilot only if the search-miss rate on the eval set exceeds 10%.
+- **Large catalogues (supermarkets):** the web basket handoff in §5 is the catalogue. The bot sends a link to the merchant's page with the basket shared; nothing new.
+- **Interface choice:**
+  - free text or voice for open requests
+  - buttons for 1-3 choices
+  - lists for 4-10 choices
+  - Flows for multi-field input (§12)
+  - web basket for 10+ choices or big catalogues
+- **Addresses:** Google Places is not used for customer addresses. The places list, landmarks and the §28 knowledge base resolve them; the Google key stays for claims (§15.1).
+- **Abandoned basket:** one reminder 30 minutes after the last activity, only inside the 24-hour window (a service message), never twice for the same basket, never between 23:00 and 08:00.
+- **Upsells:** at most one suggestion per order, from the merchant's own items bought together in past orders, server-priced, shown as a button. No suggestion on reorders.
+
+### 29.4 Operations
+- **Merchant pause by message** ("مسكّر نص ساعة", "Mrakad 30 mins", "closed till 8"): the AI proposes a pause with an end time, the merchant taps, and the server pauses ordering and moves open ETAs. This extends §18.2.
+- **Driver-to-driver cash swaps are rejected.** They break §21.4 custody. Drivers start shifts with a recorded change float (§27.8 scenario 17).
+- **Spoken landmark directions (text-to-speech) for drivers:** after pilot, if search time (§28.4) misses its target.
+- **New-customer COD cap, unified:** every number's first order is capped at $50 COD until 1 delivered order. This replaces the foreign-number-only rule in §22.2 scenario 3.
+
+### 29.5 Security and resilience
+- **Adopted:**
+  - Whish webhook timestamp check (reject over 300 s drift) if Whish signs a timestamp; otherwise dedupe plus the status poll (§20.3).
+  - Customer text passed to models inside delimited blocks, never as instructions (already in `alo-ai-tool-safety`).
+  - Atomic AI usage quota in one database call (ChatGPT's P1; the legacy read-then-write must not be ported).
+  - Ledger idempotency key with request hash (done in session 1's hardening).
+  - Before session 4 ports `merchant-ai`: its model comes from config, never `claude-sonnet-4-5` or any hard-coded name, and a contract test proves every table and RPC it calls exists.
+- **Backups:** Supabase Pro's daily backups at pilot, plus a nightly encrypted database dump from GitHub Actions to a Cloudflare R2 bucket (free tier) from the pilot cut-over. Session 14 opens the `owner` issue for the R2 account. Point-in-time recovery (a paid add-on) is rejected until volume justifies it.
+- **Rejected:** hardware GSM SIM gateways for SMS failover (one more device to run; the automated cellular call in §13 already covers internet loss at the merchant).
+- **Analytics IDs:** PostHog distinct IDs are an HMAC of the phone number with a server secret (§24.7, after pilot).
+
+### 29.6 Number quality and standby failover (adopted, precise)
+- The webhook handler stores Meta's `phone_number_quality_update` and messaging-limit events.
+- On a quality drop to RED, or a restriction, of the Customer number A: new marketing pauses at once, and the admin is alerted. The config flag `active_customer_number` can switch to standby B (§3) in one admin action.
+- Customers in active orders get a utility template from B ("we've moved to this number for your order #…"), since B cannot free-message people who never wrote to it. Replies to B bind to the same customer, basket and order by phone number.
+- B exists only after Meta business verification (§3). Until then the plan is the quality monitor plus the §20.5 broadcast guards.
+
+### 29.7 Already decided (no change)
+Live location (§27, which the ChatGPT audit read in its older form), Google Places data handling (§15.1, Rasheed's decision), Whish written terms and the lawyer's letter gating online collection (§20.1, §20.6), POS routing (§23), the dual-currency ledger (§20.3), the RLS isolation model (session 1), the ban-prevention rules (§18.3, §20.5).
+
+### 29.8 Build placement
+- Session 3 (Phase 2): weighted-item and container-exchange order fields; the pause-by-message command; per-`business_type` fee rules in the price table; the quality-event table.
+- Session 4 (Phase 3a): interface choice rules, abandoned-basket reminder, upsell, `merchant-ai` model and contract test, atomic AI quota.
+- Session 9 (Phase 6a): gateway pass-through ledger line, weighted-order refunds, the contribution-margin report behind the 29.1 kill-gate.
+- Session 14 (cut-over): R2 dump and owner issue; standby switch drill once B exists.
+
+## 30. Second round of reports (9 reports, 10 October) and the human support model (DECIDED, 11 October 00:30)
+Rasheed asked for every useful idea to be judged on merit, not against the current gates. Below: adopted ideas with their exact rule and where they are built, then what is deferred or rejected and why. **None of the SQL in those reports is applied.** It targets tables that don't exist here (`menu_items`, `order_notifications_queue`, `logistics_landmarks`, `profiles`) and duplicates tables that do (`brands`, `landmarks`, `road_incidents`). Sessions build the ideas in our schema.
+
+### 30.1 Adopted: ordering and catalogue
+1. **Menu version check at confirmation.**
+   - Each vendor (each branch, §18.1 F) carries a `menu_version` that changes on any price, availability or option change, including POS pulls (§23).
+   - The basket stores the version it was priced at. At confirmation the server compares: if it changed, it re-prices, and the customer sees one message with the difference ("Knefe just sold out; total now $11.50") and buttons Confirm / Change.
+   - Nothing is charged and no order is created on a stale version. *(session 3)*
+2. **Native WhatsApp cart (Meta catalogue) as the main menu interface for claimed merchants, with the web basket as fallback.**
+   - Claimed merchants' items sync to one Meta commerce catalogue (one product set per branch; `retailer_id` = our item ID).
+   - The bot sends multi-product messages (up to 30 items, 10 sections) by category. The customer's "send cart" arrives as an `order` message; the server re-prices every line from the database and never trusts catalogue prices.
+   - Items with options open the `item_options` Flow (§12).
+   - It needs the company's Meta business portfolio (a catalogue can't attach to the sandbox), so it is built against fixtures in session 5 and switched on at cut-over.
+   - **Kill-gate:** if fewer than 50% of carts opened through the catalogue are sent within 10 minutes over 200 opens, the list-plus-text path becomes primary again.
+3. **Combos follow their parts.** A combo links to its component items; marking a component sold out hides every combo containing it at that branch. *(session 3)*
+4. **Optional daily quantities for small vendors.**
+   - A merchant may set "today: 50 croissants". At 3 left the item shows "last few", and the merchant gets buttons +10 / +20 / Sold out. At 0 it is sold out.
+   - Untracked items stay unlimited. No checkout holds. *(session 3)*
+5. **Customer memory profile.**
+   - A server-computed profile per customer: usual vendors and items, typical order times, saved addresses, the language they write in, and dietary choices *the customer stated*.
+   - It is passed to the model as a short structured block, never recited back.
+   - It powers "the usual?" reorders, better suggestions and shorter conversations.
+   - The customer can say "forget my history", which clears it (Law 81/2018). *(session 4)*
+6. **Two-stage voice understanding.**
+   - Transcription runs with a Lebanese vocabulary prompt built from our own data: dish names, places and Arabizi spellings.
+   - Then Claude normalises the transcript against the candidate merchant's menu and the places list before parsing.
+   - Voice notes over 60 s are accepted; the bot replies "listening…" within 2 s while processing.
+   - Real notes average 31 s (37 notes, 10 October), longer than assumed. *(session 4)*
+
+### 30.2 Adopted: merchants
+1. **Deterministic merchant commands first, AI second.**
+   - Common commands on the Merchant number are parsed by rules before any model call, in Arabic, English, French and Arabizi:
+     - sold out / back
+     - price X Y
+     - pause N minutes / closed till HH
+     - open
+     - balance
+     - top up N
+   - Only unrecognised text goes to the model. Every change still needs the merchant's confirming tap (§18.2). *(session 3, extended in 5)*
+2. **Auto-pause on missed orders.**
+   - 3 orders in a row not acknowledged through all four layers (§2): the merchant pauses automatically and gets "🟢 Reactivate when ready".
+   - Its open orders are cancelled with apologies and alternatives sent to customers.
+   - Logged in the audit log. *(session 3)*
+3. **Ratings from real orders, used carefully.**
+   - The rating message goes 30 min after delivery: one list with 1–5 for the food, plus 👍/👎 for the delivery when the fleet or a merchant driver with the app delivered. One message, no second reminder.
+   - A vendor rating shows publicly only after 20 ratings, on claimed vendor pages.
+   - It weighs in ranking. A vendor averaging under 3.5 over its last 30 ratings is left out of AI suggestions, though it can still be ordered by name, and the merchant is told why with its own numbers.
+   - Driver ratings feed §27.7 tiers.
+   - Ratings are never shown for unclaimed vendors (§5). *(rating capture session 4; ranking session 12)*
+4. **Brand nodes.** Branches get `delivery_enabled`, `pickup_enabled` and `public_listing` flags. A delivery-only kitchen takes orders for its radius but has no public map pin. *(session 3)*
+5. **Boost in one tap.**
+   - The Merchant number's menu has "🚀 Boost":
+     1. choose a budget ($5 / $10 / $20 from credit)
+     2. choose an audience (people nearby who opted in / past customers)
+     3. done
+   - It runs as a sponsored placement (pay per delivered order, §20.4) or a broadcast on pre-approved marketing templates with variables. Per-drop AI-written templates are rejected, because each new template needs Meta approval.
+   - Sponsored labels may quote only ratings from our own orders (30.2.3). *(session 12)*
+6. **Merchant-funded stamp cards** as an offer type ("5th manakish free"). The server counts, the AI reminds the customer. *(session 12)*
+
+### 30.3 Adopted: money and operations
+1. **Mixed-currency cash at the door.** The driver or merchant enters USD and LBP received. The server computes the change due at the order's locked rate and records both amounts in the ledger and custody (§21.4). *(sessions 5 and 9)*
+2. **Stairs fee in fleet mode goes 100% to the driver** (amends §29.2's merchant option for fleet orders). *(session 8)*
+3. **VAT reserve.** VAT collected on Alo King's own fees posts to a VAT-payable ledger account, so the amount due is always a balance, never a calculation. *(session 9)*
+4. **Finance answers for the admin.** A read-only admin RPC returns ledger balances (revenue, float by provider, payouts due, VAT payable, open money incidents). Claude turns it into a plain-language weekly finance note for Rasheed. It is not an accountant: the lawyer's accountant still signs filings. *(session 9)*
+5. **Ops alerts on Telegram, not WhatsApp.**
+   - Operator alerts go to a private Telegram group through a bot, with action buttons that open the admin page: merchant not answering, SOS, money incident, cash over limit, partner late.
+   - Reason: free, instant, no Meta templates, and alert traffic never touches the quality rating of our WhatsApp numbers.
+   - Email is the fallback. *(session 3; owner issue: create the bot, 2 minutes)*
+6. **Customer cancellation rule.**
+   - Free until the merchant accepts, and for 60 s after acceptance.
+   - Later, "Cancel" sends a request the merchant can accept. If refused, the order continues.
+   - A customer refusing at the door counts toward the no-show rule (§27.8 scenario 12).
+   - Online payments are refunded automatically on any accepted cancellation (§20.1). *(session 3)*
+7. **Referral program at launch, deliberately simple.**
+   - Each customer gets a personal link.
+   - The new customer gets $2 off their first delivered order. The referrer gets $2 off their next order after that first order is delivered.
+   - Alo King funds both sides as a discount line (not stored money, no cash value, expires in 60 days).
+   - Limits: 5 referrals per month; no reward when the two numbers share a door point or payment source; delivered orders only.
+   - **Kill-gate:** if referral cost per new ordering customer exceeds $4 over 100 conversions, the amounts are halved. *(session 12)*
+
+### 30.4 Deferred (recorded, not built now)
+- **"Crowns" points programme.** A points balance is a liability and a support load. Revisit after 1,000 delivered orders, using referral and stamp-card data.
+- **Errand service (pick up anything, Toters Butler-style).** Needs the fleet; built after the first fleet area opens, starting with paid-in-advance pickups from registered businesses only.
+- **One delivery from several shops.** Customers order separately; fleet batching (§27.4) combines trips when routes fit. Revisit with fleet data.
+- **Native POS adapters (Omega, BIM).** Built per §23 when a chain brings volume. The Deliverect channel-partner application is drafted by Claude in the SARL week (added to owner issue #70's week).
+- **Spoken landmark directions for drivers:** §29.4.
+
+### 30.5 Rejected
+- **AI-estimated "trending"/"4.8" claims in ads**: only real numbers from our own orders.
+- **Hiding a vendor below 4.0 from everything**: too harsh on small samples; rule 30.2.3 instead.
+- **15-minute stock holds for weighted items**: no inventory precision to hold against; §29.2 rules suffice.
+- **Slack**: Telegram covers it, free.
+- Report claims such as "87% net margin" and "Claude 3.5 Sonnet": not used for any decision.
+
+### 30.6 Human support: Rasheed as the named human (DECIDED)
+Rasheed offered to help vendors personally. That is a real advantage over Toters' faceless support, as long as it is inbound (no outreach, no sales: profile) and it never becomes the thing the product depends on.
+- **Who:** support is signed "Rasheed, Alo King". One name builds trust; partners Bassem and Firas can cover with the same inbox later.
+- **Where:**
+  - **Chat:** the Merchant number, answered in Kapso's hosted inbox (§26) on his phone's browser, so every conversation stays in the merchant's history and the AI sees it.
+  - **Calls:** from the company postpaid line once it exists (#73); until then, his own phone.
+- **When a human joins (the AI hands off with a summary of the problem, the merchant's data, and what it already tried):**
+  1. The merchant taps "👤 Talk to Rasheed" (always in the Merchant number's menu) or asks for a person.
+  2. Onboarding is stuck: claim documents (cases C–M, §18.1), a menu the AI couldn't extract, or no progress for 24 h after claiming.
+  3. Money: a disputed statement line over $20, or a payout problem.
+  4. Anything urgent: orders failing, a wrong order out, a customer complaint the merchant contests.
+  5. The AI's confidence is low twice in one conversation, or the merchant is clearly frustrated.
+- **Onboarding call, offered, never pushed:** after a claim succeeds, the merchant sees "Want a 10-minute setup call with Rasheed?" with time slots. On the call, Rasheed and the dashboard's AI assistant finish the menu, hours, radius and go-live checklist together. Target: live within 24 h of the claim.
+- **Promise and hours:** chat answered within 15 min from 09:00 to 23:00 Beirut time, within 1 h otherwise. Urgent cases (orders failing, money) page him through the Telegram ops group (30.3.5) at any hour. Outside hours, the AI says honestly when Rasheed will reply.
+- **Customers:** the same handoff to the same inbox (§2's human handoff). Rasheed is the pilot operator.
+- **Measures:** human minutes per merchant onboarded (target under 30), handoffs per 100 orders, and time to first human reply. **Kill-gate:** if human support passes 2 hours a day for a week, the top three handoff reasons go into the next build session as product fixes before any new feature.
+
+### 30.7 The real voice notes (10 October)
+- **Batch 1:** 37 notes, 19.4 minutes, from the Shouf, average 31 s (6–102 s). Committed as eval fixtures in `evals/voice/batch-01/` (private repo). Rasheed is collecting about 100 more.
+- **Use:**
+  1. pick the transcription model, comparing the leading OpenAI transcription models with the vocabulary prompt
+  2. build the Lebanese vocabulary list
+  3. become the intent eval: the expected basket for each note
+  4. measure end-to-end time
+- **Labels without manual testing:** a GitHub Actions job transcribes each note with two models, and Claude reconciles them into a draft transcript and expected order. Only notes where the two disagree on a dish, quantity or place go to Rasheed as a short list to confirm by listening. He confirms a list, not run tests.
+- **Collecting the next batch:**
+  - different people, with men, women, older and younger speakers
+  - some with background noise (car, kitchen, street)
+  - at least 15 in French or mixed Arabic-French, and some in English
+  - some that change their mind mid-note, and some that only name a place and a craving ("بدي شي طيب بالشوف")
+  - each person agrees to their voice being used for testing
+  - no names, phone numbers or addresses of real people spoken
+
+### 30.8 Build placement
+These items join the sessions named in brackets above. Session count stays at 12 remaining (3–14), with sessions 3, 4 and 12 the heaviest; any of them may split into two PRs or two runs.
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
