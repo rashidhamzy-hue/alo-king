@@ -12,7 +12,8 @@ if [ "${1:-}" = "-" ]; then
 else
   base="${1:?base sha required}"
   head="${2:-HEAD}"
-  files=$(git diff --name-only "$base...$head")
+  # --no-renames lists both sides of a move, so moving a sensitive file into docs/ is still sensitive.
+  files=$(git diff --name-only --no-renames "$base...$head")
 fi
 
 if [ -z "$files" ]; then
@@ -20,16 +21,15 @@ if [ -z "$files" ]; then
   exit 0
 fi
 
-# Paths that carry money, row-level security, webhooks or personal data, plus the CI gate itself:
-# - supabase/migrations, rollbacks, tests: schema, RLS, ledger, rates and fees all live there
-# - supabase/functions: webhooks and every server path that sends or prices
-# - supabase/seed: phones and addresses of businesses
-# - supabase/config.toml: verify_jwt and auth settings
+# Paths that carry money, row-level security, webhooks or personal data, plus the gate and the build:
+# - supabase/: schema, RLS, ledger, rates, fees, edge functions (webhooks), seed data, the deploy list
 # - .github/, .claude/: the review gate, secrets wiring and guard hooks
-# - scripts/*.sh that reach the staging database
-# - front-end files named for money, orders, tracking, auth or contact data
-sensitive_re='^(supabase/(migrations|rollbacks|tests|functions|seed)/|supabase/config\.toml$|\.github/|\.claude/|scripts/[^/]*\.sh$)'
-sensitive_src_re='^src/.*(pay|ledger|money|fee|price|checkout|order|basket|cart|wallet|credit|settle|track|phone|address|auth|login|otp|webhook|claim|admin|merchant|driver)'
+# - scripts/: database loaders and the scripts CI runs
+# - package.json, the lockfile, workspace, vite and vercel config: what is built and shipped
+# - src/ server entry points, the Supabase client, API routes, and files named for money, orders,
+#   tracking, auth or contact data
+sensitive_re='^(supabase/|\.github/|\.claude/|scripts/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|vite\.config\.ts$|vercel\.json$|src/(server|start|router)\.tsx?$|src/integrations/|src/routes/api)'
+sensitive_src_re='^src/.*(supabase|pay|ledger|money|fee|price|checkout|order|basket|cart|wallet|credit|settle|track|phone|address|auth|login|otp|webhook|claim|admin|merchant|driver)'
 
 if ! printf '%s\n' "$files" | grep -qvE '^(docs|evals)/'; then
   echo skip

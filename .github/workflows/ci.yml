@@ -135,7 +135,11 @@ jobs:
           fetch-depth: 0
       - name: Scope (docs/evals only, sensitive, or normal)
         id: scope
-        run: echo "scope=$(scripts/review-scope.sh '${{ github.event.pull_request.base.sha }}')" >> "$GITHUB_OUTPUT"
+        # A classifier error fails this job (fail closed); anything but skip/normal counts as sensitive below.
+        run: |
+          scope=$(scripts/review-scope.sh '${{ github.event.pull_request.base.sha }}')
+          case "$scope" in skip | sensitive | normal) ;; *) echo "unexpected scope '$scope'"; exit 1 ;; esac
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
       - name: Skip the review for a docs/evals-only change
         if: steps.scope.outputs.scope == 'skip'
         run: echo "::notice::Only docs/ or evals/ changed; the Claude review is skipped."
@@ -190,7 +194,7 @@ jobs:
           fi
           # No verdict: the review never reached a finding (auth, credit, API outage, turn cap).
           echo "::warning::Claude review produced no verdict (action outcome: $CLAUDE_OUTCOME)."
-          if [ "$SCOPE" = "sensitive" ]; then
+          if [ "$SCOPE" != "normal" ]; then
             {
               echo "### Claude review could not run"
               echo
