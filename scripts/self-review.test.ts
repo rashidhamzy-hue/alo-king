@@ -58,6 +58,18 @@ describe("self-review", () => {
       ]),
     ).toBe("none");
   });
+  it("an edited later changes-requested still beats an earlier approve", () => {
+    expect(
+      run([
+        { body: body(HEAD, "approve"), created_at: "2026-10-11T10:00:00Z" },
+        {
+          body: body(HEAD, "changes requested"),
+          created_at: "2026-10-11T11:00:00Z",
+          updated_at: "2026-10-11T11:05:00Z",
+        },
+      ]),
+    ).toBe("none");
+  });
   it("an edited comment never counts", () => {
     expect(
       run([

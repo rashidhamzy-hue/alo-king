@@ -26,15 +26,14 @@ verdict=$(printf '%s' "$comments" | jq -r --arg head "$head" '
   [ .[]
     | select(.author_association == "OWNER")
     | select((.user.type // "User") == "User")
-    | select((.updated_at // .created_at) == .created_at)
     | . as $c
     | ($c.body | split("\n") | map(rtrimstr("\r"))) as $l
     | select(($l | length) >= 3)
     | select($l[0] == "### pr-reviewer self-review (DECISIONS §32.7)")
     | select($l[1] == "Head: " + $head)
-    | {created_at, verdict: $l[2]}
+    | {created_at, edited: (($c.updated_at // $c.created_at) != $c.created_at), verdict: $l[2]}
   ]
   | sort_by(.created_at)
   | last
-  | if . != null and .verdict == "Verdict: approve" then "approved" else "none" end')
+  | if . != null and (.edited | not) and .verdict == "Verdict: approve" then "approved" else "none" end')
 echo "$verdict"
