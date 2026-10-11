@@ -5,6 +5,7 @@
 --   raw.osm             OpenStreetMap place nodes (Overpass, flattened to CSV)
 --   raw.dem             Copernicus GLO-30 terrain model tiles (raster2pgsql)
 --   raw.curated         scripts/places/curated.csv  (§16's named special places and alias examples)
+--   raw.alias_corrections scripts/places/alias-corrections.csv (OSM aliases that belong to another place)
 --   raw.review          scripts/places/review-set.csv (the Gazetteer report's places: review and test set)
 -- Outputs: out.districts, out.zones, out.places, and b.report_* tables for report.md.
 \set ON_ERROR_STOP on
@@ -406,6 +407,10 @@ select p.id, case when p.anchor then p.zone_pcode end as pcode, p.zone_pcode,
   array_to_string(array(
     select distinct a from unnest(p.aliases) a
     where btrim(a) <> '' and b.norm(a) is distinct from b.norm(p.name_en) and b.norm(a) is distinct from b.norm(p.name_ar)
+      and not exists (
+        select 1 from raw.alias_corrections x
+        where x.district_code = p.district_code and b.norm(x.name_ar) = b.norm(p.name_ar) and b.norm(x.alias) = b.norm(a)
+      )
     order by a), ';') as aliases,
   p.kind, p.district_code, p.municipality, p.sub_region, p.zone_type, p.elevation_m, p.winter_risk,
   round(st_y(p.geom)::numeric, 6) as lat, round(st_x(p.geom)::numeric, 6) as lon,
@@ -465,6 +470,13 @@ begin
   end if;
   if exists (select 1 from out.places where b.is_litige(name_en)) then
     raise exception 'a disputed (Litige) zone became a place';
+  end if;
+  if exists (
+    select 1 from out.places o join raw.alias_corrections x
+      on x.district_code = o.district_code and b.norm(x.name_ar) = b.norm(o.name_ar)
+    where b.norm(x.alias) = any (array(select b.norm(a) from unnest(string_to_array(o.aliases, ';')) a))
+  ) then
+    raise exception 'a corrected alias is still on its place';
   end if;
   if exists (select 1 from b.report_dups where distance_m <= 1500) then
     raise exception 'same place twice: %', (select string_agg(id || '=' || other_id, ', ') from b.report_dups where distance_m <= 1500);
