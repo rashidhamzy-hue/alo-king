@@ -1,0 +1,248 @@
+{
+  "version": "7.3",
+  "routing_model": {
+    "OPTIONS": []
+  },
+  "screens": [
+    {
+      "id": "OPTIONS",
+      "title": "Item options",
+      "terminal": true,
+      "data": {
+        "item_id": {
+          "type": "string",
+          "__example__": "00000000-0000-0000-0000-000000000000"
+        },
+        "item_name": {
+          "type": "string",
+          "__example__": "Chicken shawarma"
+        },
+        "g1_label": {
+          "type": "string",
+          "__example__": "Size"
+        },
+        "g1_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o1",
+              "title": "Small"
+            },
+            {
+              "id": "o2",
+              "title": "Large",
+              "description": "+$1.00"
+            }
+          ]
+        },
+        "g1_visible": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "g1_required": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "g2_label": {
+          "type": "string",
+          "__example__": "Extras"
+        },
+        "g2_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o3",
+              "title": "Cheese",
+              "description": "+$0.50"
+            }
+          ]
+        },
+        "g2_visible": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "g3_label": {
+          "type": "string",
+          "__example__": "Bread"
+        },
+        "g3_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o4",
+              "title": "Saj"
+            }
+          ]
+        },
+        "g3_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "g3_required": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "g2_min": {
+          "type": "number",
+          "__example__": 0
+        },
+        "g2_max": {
+          "type": "number",
+          "__example__": 2
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextSubheading",
+            "text": "${data.item_name}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "g1",
+            "label": "${data.g1_label}",
+            "data-source": "${data.g1_items}",
+            "visible": "${data.g1_visible}",
+            "required": "${data.g1_required}"
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "g2",
+            "label": "${data.g2_label}",
+            "data-source": "${data.g2_items}",
+            "visible": "${data.g2_visible}",
+            "required": false,
+            "min-selected-items": "${data.g2_min}",
+            "max-selected-items": "${data.g2_max}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "g3",
+            "label": "${data.g3_label}",
+            "data-source": "${data.g3_items}",
+            "visible": "${data.g3_visible}",
+            "required": "${data.g3_required}"
+          },
+          {
+            "type": "Dropdown",
+            "name": "quantity",
+            "label": "Quantity",
+            "required": true,
+            "init-value": "1",
+            "data-source": [
+              {
+                "id": "1",
+                "title": "1"
+              },
+              {
+                "id": "2",
+                "title": "2"
+              },
+              {
+                "id": "3",
+                "title": "3"
+              },
+              {
+                "id": "4",
+                "title": "4"
+              },
+              {
+                "id": "5",
+                "title": "5"
+              },
+              {
+                "id": "6",
+                "title": "6"
+              },
+              {
+                "id": "7",
+                "title": "7"
+              },
+              {
+                "id": "8",
+                "title": "8"
+              },
+              {
+                "id": "9",
+                "title": "9"
+              },
+              {
+                "id": "10",
+                "title": "10"
+              }
+            ]
+          },
+          {
+            "type": "TextArea",
+            "name": "note",
+            "label": "Note for kitchen",
+            "required": false,
+            "max-length": 200
+          },
+          {
+            "type": "TextCaption",
+            "text": "Alo King calculates the final price after you add the item."
+          },
+          {
+            "type": "Footer",
+            "label": "Add to basket",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "item_id": "${data.item_id}",
+                "g1": "${form.g1}",
+                "g2": "${form.g2}",
+                "g3": "${form.g3}",
+                "quantity": "${form.quantity}",
+                "note": "${form.note}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

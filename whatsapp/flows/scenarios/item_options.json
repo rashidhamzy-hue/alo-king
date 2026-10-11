@@ -1,0 +1,143 @@
+{
+  "tests": [
+    {
+      "name": "required size, two extras, quantity and note",
+      "start": {
+        "mode": "navigate",
+        "screen": "OPTIONS",
+        "data": {
+          "item_id": "51000000-0000-0000-0000-000000000001",
+          "item_name": "Chicken shawarma",
+          "g1_label": "Size",
+          "g1_items": [
+            {
+              "id": "o1",
+              "title": "Small"
+            },
+            {
+              "id": "o2",
+              "title": "Large",
+              "description": "+$1.00"
+            }
+          ],
+          "g1_visible": true,
+          "g1_required": true,
+          "g2_label": "Extras",
+          "g2_items": [
+            {
+              "id": "o3",
+              "title": "Cheese",
+              "description": "+$0.50"
+            },
+            {
+              "id": "o5",
+              "title": "Fries inside"
+            }
+          ],
+          "g2_visible": true,
+          "g3_label": "",
+          "g3_items": [],
+          "g3_visible": false,
+          "g3_required": false,
+          "g2_min": 0,
+          "g2_max": 2
+        }
+      },
+      "steps": [
+        {
+          "expect": {
+            "screen": "OPTIONS"
+          }
+        },
+        {
+          "fill": "g1",
+          "value": "o2"
+        },
+        {
+          "fill": "g2",
+          "value": [
+            "o3",
+            "o5"
+          ]
+        },
+        {
+          "fill": "quantity",
+          "value": "2"
+        },
+        {
+          "fill": "note",
+          "value": "no pickles"
+        },
+        {
+          "submit": true,
+          "expect": {
+            "status": "completed",
+            "completion": {
+              "item_id": "51000000-0000-0000-0000-000000000001",
+              "g1": "o2",
+              "g2": [
+                "o3",
+                "o5"
+              ],
+              "quantity": "2",
+              "note": "no pickles"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "a required group must be chosen",
+      "start": {
+        "mode": "navigate",
+        "screen": "OPTIONS",
+        "data": {
+          "item_id": "51000000-0000-0000-0000-000000000001",
+          "item_name": "Pizza",
+          "g1_label": "Size",
+          "g1_items": [
+            {
+              "id": "s",
+              "title": "Small"
+            },
+            {
+              "id": "l",
+              "title": "Large"
+            }
+          ],
+          "g1_visible": true,
+          "g1_required": true,
+          "g2_label": "",
+          "g2_items": [],
+          "g2_visible": false,
+          "g3_label": "Crust",
+          "g3_items": [
+            {
+              "id": "t",
+              "title": "Thin"
+            }
+          ],
+          "g3_visible": true,
+          "g3_required": true,
+          "g2_min": 0,
+          "g2_max": 2
+        }
+      },
+      "steps": [
+        {
+          "fill": "g3",
+          "value": "t"
+        },
+        {
+          "submit": true,
+          "expect": {
+            "screen": "OPTIONS",
+            "fieldErrors": {
+              "g1": "This field is required"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

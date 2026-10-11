@@ -1,0 +1,716 @@
+{
+  "version": "7.3",
+  "routing_model": {
+    "PROFILE": [
+      "TERMS"
+    ],
+    "TERMS": []
+  },
+  "screens": [
+    {
+      "id": "PROFILE",
+      "title": "Your business",
+      "data": {
+        "name_ar": {
+          "type": "string",
+          "__example__": "فرن الضيعة"
+        },
+        "name_en": {
+          "type": "string",
+          "__example__": "Furn el Day3a"
+        },
+        "vendor_id": {
+          "type": "string",
+          "__example__": "00000000-0000-0000-0000-000000000000"
+        },
+        "opens": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "closes": {
+          "type": "string",
+          "__example__": "23:00"
+        },
+        "radius_km": {
+          "type": "string",
+          "__example__": "5"
+        },
+        "cash": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": [
+            "USD",
+            "LBP"
+          ]
+        },
+        "closed_days": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": []
+        },
+        "fee_note": {
+          "type": "string",
+          "__example__": "Delivery fee: $2 up to 3 km"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextCaption",
+            "text": "You can change everything later from the dashboard or on WhatsApp."
+          },
+          {
+            "type": "TextInput",
+            "name": "name_ar",
+            "label": "Name in Arabic",
+            "input-type": "text",
+            "required": true,
+            "init-value": "${data.name_ar}",
+            "max-chars": 80
+          },
+          {
+            "type": "TextInput",
+            "name": "name_en",
+            "label": "Name in English",
+            "input-type": "text",
+            "required": false,
+            "init-value": "${data.name_en}",
+            "max-chars": 80
+          },
+          {
+            "type": "TextInput",
+            "name": "owner_name",
+            "label": "Owner name",
+            "input-type": "text",
+            "required": true,
+            "max-chars": 80
+          },
+          {
+            "type": "Footer",
+            "label": "Next",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "TERMS"
+              },
+              "payload": {
+                "vendor_id": "${data.vendor_id}",
+                "name_ar": "${form.name_ar}",
+                "name_en": "${form.name_en}",
+                "owner_name": "${form.owner_name}",
+                "opens": "${data.opens}",
+                "closes": "${data.closes}",
+                "radius_km": "${data.radius_km}",
+                "cash": "${data.cash}",
+                "closed_days": "${data.closed_days}",
+                "fee_note": "${data.fee_note}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TERMS",
+      "title": "Delivery and payment",
+      "terminal": true,
+      "data": {
+        "vendor_id": {
+          "type": "string",
+          "__example__": "x"
+        },
+        "name_ar": {
+          "type": "string",
+          "__example__": "x"
+        },
+        "name_en": {
+          "type": "string",
+          "__example__": "x"
+        },
+        "owner_name": {
+          "type": "string",
+          "__example__": "x"
+        },
+        "opens": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "closes": {
+          "type": "string",
+          "__example__": "23:00"
+        },
+        "radius_km": {
+          "type": "string",
+          "__example__": "5"
+        },
+        "cash": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": [
+            "USD",
+            "LBP"
+          ]
+        },
+        "closed_days": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": []
+        },
+        "fee_note": {
+          "type": "string",
+          "__example__": "Delivery fee: $2 up to 3 km"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Dropdown",
+            "name": "opens",
+            "label": "Opens",
+            "required": true,
+            "init-value": "${data.opens}",
+            "data-source": [
+              {
+                "id": "00:00",
+                "title": "00:00"
+              },
+              {
+                "id": "00:30",
+                "title": "00:30"
+              },
+              {
+                "id": "01:00",
+                "title": "01:00"
+              },
+              {
+                "id": "01:30",
+                "title": "01:30"
+              },
+              {
+                "id": "02:00",
+                "title": "02:00"
+              },
+              {
+                "id": "02:30",
+                "title": "02:30"
+              },
+              {
+                "id": "03:00",
+                "title": "03:00"
+              },
+              {
+                "id": "03:30",
+                "title": "03:30"
+              },
+              {
+                "id": "04:00",
+                "title": "04:00"
+              },
+              {
+                "id": "04:30",
+                "title": "04:30"
+              },
+              {
+                "id": "05:00",
+                "title": "05:00"
+              },
+              {
+                "id": "05:30",
+                "title": "05:30"
+              },
+              {
+                "id": "06:00",
+                "title": "06:00"
+              },
+              {
+                "id": "06:30",
+                "title": "06:30"
+              },
+              {
+                "id": "07:00",
+                "title": "07:00"
+              },
+              {
+                "id": "07:30",
+                "title": "07:30"
+              },
+              {
+                "id": "08:00",
+                "title": "08:00"
+              },
+              {
+                "id": "08:30",
+                "title": "08:30"
+              },
+              {
+                "id": "09:00",
+                "title": "09:00"
+              },
+              {
+                "id": "09:30",
+                "title": "09:30"
+              },
+              {
+                "id": "10:00",
+                "title": "10:00"
+              },
+              {
+                "id": "10:30",
+                "title": "10:30"
+              },
+              {
+                "id": "11:00",
+                "title": "11:00"
+              },
+              {
+                "id": "11:30",
+                "title": "11:30"
+              },
+              {
+                "id": "12:00",
+                "title": "12:00"
+              },
+              {
+                "id": "12:30",
+                "title": "12:30"
+              },
+              {
+                "id": "13:00",
+                "title": "13:00"
+              },
+              {
+                "id": "13:30",
+                "title": "13:30"
+              },
+              {
+                "id": "14:00",
+                "title": "14:00"
+              },
+              {
+                "id": "14:30",
+                "title": "14:30"
+              },
+              {
+                "id": "15:00",
+                "title": "15:00"
+              },
+              {
+                "id": "15:30",
+                "title": "15:30"
+              },
+              {
+                "id": "16:00",
+                "title": "16:00"
+              },
+              {
+                "id": "16:30",
+                "title": "16:30"
+              },
+              {
+                "id": "17:00",
+                "title": "17:00"
+              },
+              {
+                "id": "17:30",
+                "title": "17:30"
+              },
+              {
+                "id": "18:00",
+                "title": "18:00"
+              },
+              {
+                "id": "18:30",
+                "title": "18:30"
+              },
+              {
+                "id": "19:00",
+                "title": "19:00"
+              },
+              {
+                "id": "19:30",
+                "title": "19:30"
+              },
+              {
+                "id": "20:00",
+                "title": "20:00"
+              },
+              {
+                "id": "20:30",
+                "title": "20:30"
+              },
+              {
+                "id": "21:00",
+                "title": "21:00"
+              },
+              {
+                "id": "21:30",
+                "title": "21:30"
+              },
+              {
+                "id": "22:00",
+                "title": "22:00"
+              },
+              {
+                "id": "22:30",
+                "title": "22:30"
+              },
+              {
+                "id": "23:00",
+                "title": "23:00"
+              },
+              {
+                "id": "23:30",
+                "title": "23:30"
+              }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "closes",
+            "label": "Closes",
+            "required": true,
+            "init-value": "${data.closes}",
+            "data-source": [
+              {
+                "id": "00:00",
+                "title": "00:00"
+              },
+              {
+                "id": "00:30",
+                "title": "00:30"
+              },
+              {
+                "id": "01:00",
+                "title": "01:00"
+              },
+              {
+                "id": "01:30",
+                "title": "01:30"
+              },
+              {
+                "id": "02:00",
+                "title": "02:00"
+              },
+              {
+                "id": "02:30",
+                "title": "02:30"
+              },
+              {
+                "id": "03:00",
+                "title": "03:00"
+              },
+              {
+                "id": "03:30",
+                "title": "03:30"
+              },
+              {
+                "id": "04:00",
+                "title": "04:00"
+              },
+              {
+                "id": "04:30",
+                "title": "04:30"
+              },
+              {
+                "id": "05:00",
+                "title": "05:00"
+              },
+              {
+                "id": "05:30",
+                "title": "05:30"
+              },
+              {
+                "id": "06:00",
+                "title": "06:00"
+              },
+              {
+                "id": "06:30",
+                "title": "06:30"
+              },
+              {
+                "id": "07:00",
+                "title": "07:00"
+              },
+              {
+                "id": "07:30",
+                "title": "07:30"
+              },
+              {
+                "id": "08:00",
+                "title": "08:00"
+              },
+              {
+                "id": "08:30",
+                "title": "08:30"
+              },
+              {
+                "id": "09:00",
+                "title": "09:00"
+              },
+              {
+                "id": "09:30",
+                "title": "09:30"
+              },
+              {
+                "id": "10:00",
+                "title": "10:00"
+              },
+              {
+                "id": "10:30",
+                "title": "10:30"
+              },
+              {
+                "id": "11:00",
+                "title": "11:00"
+              },
+              {
+                "id": "11:30",
+                "title": "11:30"
+              },
+              {
+                "id": "12:00",
+                "title": "12:00"
+              },
+              {
+                "id": "12:30",
+                "title": "12:30"
+              },
+              {
+                "id": "13:00",
+                "title": "13:00"
+              },
+              {
+                "id": "13:30",
+                "title": "13:30"
+              },
+              {
+                "id": "14:00",
+                "title": "14:00"
+              },
+              {
+                "id": "14:30",
+                "title": "14:30"
+              },
+              {
+                "id": "15:00",
+                "title": "15:00"
+              },
+              {
+                "id": "15:30",
+                "title": "15:30"
+              },
+              {
+                "id": "16:00",
+                "title": "16:00"
+              },
+              {
+                "id": "16:30",
+                "title": "16:30"
+              },
+              {
+                "id": "17:00",
+                "title": "17:00"
+              },
+              {
+                "id": "17:30",
+                "title": "17:30"
+              },
+              {
+                "id": "18:00",
+                "title": "18:00"
+              },
+              {
+                "id": "18:30",
+                "title": "18:30"
+              },
+              {
+                "id": "19:00",
+                "title": "19:00"
+              },
+              {
+                "id": "19:30",
+                "title": "19:30"
+              },
+              {
+                "id": "20:00",
+                "title": "20:00"
+              },
+              {
+                "id": "20:30",
+                "title": "20:30"
+              },
+              {
+                "id": "21:00",
+                "title": "21:00"
+              },
+              {
+                "id": "21:30",
+                "title": "21:30"
+              },
+              {
+                "id": "22:00",
+                "title": "22:00"
+              },
+              {
+                "id": "22:30",
+                "title": "22:30"
+              },
+              {
+                "id": "23:00",
+                "title": "23:00"
+              },
+              {
+                "id": "23:30",
+                "title": "23:30"
+              }
+            ]
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "closed_days",
+            "label": "Closed days",
+            "required": false,
+            "init-value": "${data.closed_days}",
+            "data-source": [
+              {
+                "id": "0",
+                "title": "Sunday"
+              },
+              {
+                "id": "1",
+                "title": "Monday"
+              },
+              {
+                "id": "2",
+                "title": "Tuesday"
+              },
+              {
+                "id": "3",
+                "title": "Wednesday"
+              },
+              {
+                "id": "4",
+                "title": "Thursday"
+              },
+              {
+                "id": "5",
+                "title": "Friday"
+              },
+              {
+                "id": "6",
+                "title": "Saturday"
+              }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "radius_km",
+            "label": "Delivery distance",
+            "required": true,
+            "init-value": "${data.radius_km}",
+            "data-source": [
+              {
+                "id": "1",
+                "title": "1 km"
+              },
+              {
+                "id": "2",
+                "title": "2 km"
+              },
+              {
+                "id": "3",
+                "title": "3 km"
+              },
+              {
+                "id": "4",
+                "title": "4 km"
+              },
+              {
+                "id": "5",
+                "title": "5 km"
+              },
+              {
+                "id": "6",
+                "title": "6 km"
+              },
+              {
+                "id": "7",
+                "title": "7 km"
+              },
+              {
+                "id": "8",
+                "title": "8 km"
+              },
+              {
+                "id": "9",
+                "title": "9 km"
+              },
+              {
+                "id": "10",
+                "title": "10 km"
+              }
+            ]
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.fee_note}"
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "cash",
+            "label": "Cash currencies",
+            "required": true,
+            "min-selected-items": 1,
+            "data-source": [
+              {
+                "id": "USD",
+                "title": "US dollars"
+              },
+              {
+                "id": "LBP",
+                "title": "Lebanese pounds"
+              }
+            ],
+            "init-value": "${data.cash}"
+          },
+          {
+            "type": "OptIn",
+            "name": "menu_photos",
+            "label": "I'll send menu photos next",
+            "required": false
+          },
+          {
+            "type": "Footer",
+            "label": "Save",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "vendor_id": "${data.vendor_id}",
+                "name_ar": "${data.name_ar}",
+                "name_en": "${data.name_en}",
+                "owner_name": "${data.owner_name}",
+                "opens": "${form.opens}",
+                "closes": "${form.closes}",
+                "radius_km": "${form.radius_km}",
+                "cash": "${form.cash}",
+                "menu_photos": "${form.menu_photos}",
+                "closed_days": "${form.closed_days}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "note": "A cart sent from the WhatsApp catalogue, as the Cloud API delivers it inside a Kapso whatsapp.message.received event (fixture; §30.1.2). item_price is deliberately wrong: the server must ignore it.",
+  "message": {
+    "id": "wamid.CART1",
+    "from": "96170000001",
+    "type": "order",
+    "order": {
+      "catalog_id": "1234567890",
+      "text": "please fast",
+      "product_items": [
+        { "product_retailer_id": "53000000-0000-0000-0000-000000000001", "quantity": "2", "item_price": "0.01", "currency": "USD" },
+        { "product_retailer_id": "51000000-0000-0000-0000-000000000002", "quantity": "1", "item_price": "3.00", "currency": "USD" },
+        { "product_retailer_id": "53000000-0000-0000-0000-000000000001", "quantity": "1", "item_price": "0.01", "currency": "USD" },
+        { "product_retailer_id": "not-an-id", "quantity": "1", "item_price": "1", "currency": "USD" },
+        { "product_retailer_id": "51000000-0000-0000-0000-000000000003", "quantity": "0", "item_price": "12", "currency": "USD" }
+      ]
+    }
+  },
+  "conversation": { "phone_number": "+96170000001" }
+}

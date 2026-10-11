@@ -1,0 +1,5 @@
+[
+  { "retailer_id": "53000000-0000-0000-0000-000000000001", "name": "شاورما", "name_en": "Shawarma", "description": "", "price_minor": 500, "currency": "USD", "availability": "in stock", "product_set": "20000000-0000-0000-0000-00000000000a", "has_options": true, "section": "سندويشات" },
+  { "retailer_id": "51000000-0000-0000-0000-000000000002", "name": "كنافة", "name_en": "Knefe", "description": "", "price_minor": 300, "currency": "USD", "availability": "in stock", "product_set": "20000000-0000-0000-0000-00000000000a", "section": "حلويات" },
+  { "retailer_id": "51000000-0000-0000-0000-000000000003", "name": "قنينة غاز", "name_en": "Gas cylinder", "description": "", "price_minor": 1200, "currency": "USD", "availability": "out of stock", "product_set": "20000000-0000-0000-0000-00000000000a", "section": "Home" }
+]

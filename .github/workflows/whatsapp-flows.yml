@@ -1,0 +1,72 @@
+name: whatsapp-flows
+
+# DECISIONS §12 and §32.5: uploads the Flow JSON in whatsapp/flows/ to Kapso as drafts on a WhatsApp number,
+# after Flowso validates it and replays every scenario. Publishing is a separate, explicit run (`publish`),
+# after a Meta preview of each draft (a release step). Kapso is reached only at https://api.kapso.ai.
+# Published names: alo_<flow>_<lang> (supabase/functions/_shared/flows.ts publishedFlowName). Once a Flow
+# exists, pass its Kapso id in `flow_ids` ({"alo_address_capture_ar": "<uuid>", ...}) to update it in place.
+on:
+  workflow_dispatch:
+    inputs:
+      phone_number_id:
+        description: WhatsApp phone number id in Kapso (the sandbox until cut-over)
+        default: "597907523413541"
+        required: true
+      flow_ids:
+        description: JSON map of published name to existing Kapso Flow id (empty = create drafts)
+        default: "{}"
+        required: false
+      publish:
+        description: Publish after uploading (only after a Meta preview)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  flows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate and replay every scenario
+        run: |
+          for f in whatsapp/flows/*.json; do
+            name=$(basename "$f" .json); base=${name%.*}
+            pnpm exec flowso validate "$f" --json >/dev/null
+            pnpm exec flowso test "$f" --scenario "whatsapp/flows/scenarios/$base.json" --json >/dev/null
+            echo "ok $name"
+          done
+      - name: Upload drafts to Kapso
+        env:
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          KAPSO_API_URL: https://api.kapso.ai/platform/v1
+          PHONE_NUMBER_ID: ${{ inputs.phone_number_id }}
+          FLOW_IDS: ${{ inputs.flow_ids }}
+          PUBLISH: ${{ inputs.publish }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$PHONE_NUMBER_ID" =~ ^[0-9]{6,20}$ ]] || { echo "::error::bad phone number id"; exit 1; }
+          echo "$FLOW_IDS" | jq -e 'type == "object"' >/dev/null || { echo "::error::flow_ids must be a JSON object"; exit 1; }
+          for f in whatsapp/flows/*.json; do
+            name=$(basename "$f" .json); flow=${name%.*}; lang=${name##*.}
+            published="alo_${flow}_${lang}"
+            id=$(echo "$FLOW_IDS" | jq -r --arg k "$published" '.[$k] // empty')
+            args=(deploy "$f" --to kapso --phone-number-id "$PHONE_NUMBER_ID" --name "$published")
+            if [[ -n "$id" ]]; then
+              [[ "$id" =~ ^[0-9A-Za-z_-]{1,64}$ ]] || { echo "::error::bad flow id for $published"; exit 1; }
+              args+=(--flow-id "$id")
+            fi
+            if [[ "$PUBLISH" == "true" ]]; then args+=(--publish); fi
+            out=$(pnpm exec flowso "${args[@]}" --json)
+            echo "$out" | jq -c --arg n "$published" '{name: $n, ok, flow_id: (.flowId // .flow_id // .id // null)}' | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "$out" | jq -e '.ok == true' >/dev/null || { echo "::error::deploy failed for $published"; exit 1; }
+          done

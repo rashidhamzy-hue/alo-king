@@ -90,6 +90,30 @@ const S: Record<string, Record<CLang, string>> = {
   },
   lastFew: { ar: "آخر كم حبة", en: "last few", fr: "derniers", arabizi: "akher kam wa7de" },
   soldOut: { ar: "خلصان", en: "sold out", fr: "épuisé", arabizi: "khelsan" },
+  flowRetry: {
+    ar: "ما قدرت إحفظ هالخيارات. جرّب مرة تانية أو اكتبلي شو بدك.",
+    en: "I couldn't save those choices. Please try again or type what you'd like.",
+    fr: "Je n'ai pas pu enregistrer ces choix. Réessayez ou écrivez ce que vous voulez.",
+    arabizi: "Ma 2drt e7faz hal5ayarat. Jarreb marra tenye aw ekteble shu badak.",
+  },
+  cartSkipped: {
+    ar: "😔 {n} من أصناف السلّة مش متوفرة هلق، وما زدناها.",
+    en: "😔 {n} item(s) from your cart couldn't be added (not available, or from another place).",
+    fr: "😔 {n} article(s) de votre panier ne sont pas disponibles et n'ont pas été ajoutés.",
+    arabizi: "😔 {n} men asnaf el salle msh metwaffra hala2, ma zedneha.",
+  },
+  cartMoreOptions: {
+    ar: "ولـ {n} صنف تاني بدنا خيارات: اختار هيدا الأول، وبعدها زيدهن من المنيو.",
+    en: "{n} more item(s) need choices: pick this one first, then add them from the menu.",
+    fr: "{n} autre(s) article(s) demandent des choix : choisissez d'abord celui-ci, puis ajoutez-les depuis le menu.",
+    arabizi: "W la {n} sanf tene badna 5ayarat: e5tar hayda awal, w ba3den zidon men el menu.",
+  },
+  addressSaved: {
+    ar: "✅ حفظنا تفاصيل العنوان.",
+    en: "✅ Address details saved.",
+    fr: "✅ Détails de l'adresse enregistrés.",
+    arabizi: "✅ 7afazna tafasil el 3enwen.",
+  },
   noDietItem: {
     ar: "ما في شي عند {vendor} بيطابق طلبك من الأصناف اللي المحل صرّح عنها.",
     en: "Nothing at {vendor} matches, among the items the place has declared.",

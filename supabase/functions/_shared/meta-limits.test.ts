@@ -311,3 +311,48 @@ describe("dietaryList passes the checker", () => {
     }
   });
 });
+
+// WhatsApp Flows and the catalogue (session 5, §12, §30.1.2).
+import { flowMessage } from "./flows";
+import { productListMessage, type DesiredProduct } from "./catalog";
+import { branchPicker } from "../dispatch/merchant/flows";
+describe("Flow, product list and branch picker builders pass the checker", () => {
+  const TOKEN = `item_options:${"b".repeat(32)}`;
+  it("every Flow in both languages", () => {
+    for (const flow of ["address_capture", "item_options", "merchant_claim", "merchant_hours"] as const)
+      for (const lang of ["ar", "en"] as const)
+        expect(checkInteractive(flowMessage("+96170000001", { flow, lang, token: TOKEN, screen: "S", data: { x: 1 } }))).toEqual([]);
+  });
+  it("a product list with more items and sections than Meta allows is clamped to pass", () => {
+    const products: DesiredProduct[] = Array.from({ length: 45 }, (_, k) => ({
+      retailer_id: `5300000${k}`, name: `صنف ${k}`, price_minor: 500, currency: "USD", availability: "in stock",
+      product_set: "v", section: `قسم ${k % 14} ${"طويل ".repeat(8)}`,
+    }));
+    expect(checkInteractive(productListMessage("+96170000001", "cat1", "المنيو", "اختار", products))).toEqual([]);
+  });
+  it("the branch picker for owners of many branches", () => {
+    const editors = Array.from({ length: 13 }, (_, k) => ({
+      member_id: `00000000-0000-0000-0000-${String(k).padStart(12, "0")}`, vendor_id: "v", role: "owner",
+      vendor_name: `فرع ${k} ${"الأشرفية ".repeat(4)}`,
+    }));
+    for (const f of ["merchant_hours", "merchant_claim"] as const)
+      expect(checkInteractive(branchPicker("+96170000001", f, editors))).toEqual([]);
+  });
+  it("clampInteractive fixes an over-long Flow label and an oversized product list", () => {
+    const flow: any = flowMessage("+1", { flow: "item_options", lang: "en", token: TOKEN, screen: "S", data: {} });
+    flow.interactive.action.parameters.flow_cta = "x".repeat(40);
+    expect(checkInteractive(flow).join()).toMatch(/flow cta/);
+    expect(checkInteractive(clampInteractive(flow))).toEqual([]);
+    const pl = {
+      type: "interactive",
+      interactive: {
+        type: "product_list", header: { type: "text", text: "Menu" }, body: { text: "pick" },
+        action: { catalog_id: "c", sections: Array.from({ length: 12 }, (_, s) => ({
+          title: `Section ${s} ${"x".repeat(30)}`,
+          product_items: Array.from({ length: 4 }, (_, k) => ({ product_retailer_id: `${s}-${k}` })) })) },
+      },
+    };
+    expect(checkInteractive(pl).length).toBeGreaterThan(0);
+    expect(checkInteractive(clampInteractive(pl))).toEqual([]);
+  });
+});

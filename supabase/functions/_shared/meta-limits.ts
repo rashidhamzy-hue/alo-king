@@ -14,6 +14,9 @@ export const META = {
   header: 60,
   footer: 60,
   body: 1024,
+  flowCta: 30, // Flow button label
+  productListItems: 30, // multi-product message: items across all sections
+  productListSections: 10,
 } as const;
 
 /** Every way an interactive payload breaks Meta's limits (empty array = fine). Template and plain-text payloads are not interactive and are ignored. */
@@ -60,6 +63,25 @@ export function checkInteractive(payload: any): string[] {
     }
   } else if (i.type === "location_request_message") {
     if (len(i.body?.text) > META.body) v.push("location request body too long");
+  } else if (i.type === "flow") {
+    const p = i.action?.parameters ?? {};
+    if (len(p.flow_cta) > META.flowCta) v.push(`flow cta "${p.flow_cta}" > ${META.flowCta}`);
+    if (!String(p.flow_cta ?? "").trim()) v.push("empty flow cta");
+    if (!p.flow_id && !p.flow_name) v.push("flow needs flow_id or flow_name");
+    if (!String(p.flow_token ?? "").trim()) v.push("flow needs a flow_token");
+    if (p.flow_action === "navigate" && !p.flow_action_payload?.screen) v.push("navigate flow needs a screen");
+  } else if (i.type === "product_list") {
+    const secs = i.action?.sections ?? [];
+    const items = secs.flatMap((s: any) => s.product_items ?? []);
+    if (!i.header || i.header.type !== "text" || !String(i.header.text ?? "").trim()) v.push("product list needs a text header");
+    if (!String(i.action?.catalog_id ?? "").trim()) v.push("product list needs a catalog_id");
+    if (secs.length > META.productListSections) v.push(`${secs.length} sections > ${META.productListSections}`);
+    if (items.length < 1) v.push("no products");
+    if (items.length > META.productListItems) v.push(`${items.length} products > ${META.productListItems}`);
+    for (const s of secs) {
+      if (len(s.title) > META.sectionTitle) v.push(`section title "${s.title}" > ${META.sectionTitle}`);
+      if (!String(s.title ?? "").trim()) v.push("empty section title");
+    }
   } else if (i.type === "cta_url") {
     const p = i.action?.parameters ?? {};
     if (len(p.display_text) > META.buttonTitle) v.push(`cta label "${p.display_text}" > ${META.buttonTitle}`);
@@ -96,5 +118,13 @@ export function clampInteractive<T>(payload: T): T {
     }).filter((s: any) => s.rows.length);
   } else if (i.type === "location_request_message" && i.body?.text !== undefined) i.body.text = clipTo(i.body.text, META.body);
   else if (i.type === "cta_url" && i.action?.parameters) i.action.parameters = { ...i.action.parameters, display_text: clipTo(i.action.parameters.display_text, META.buttonTitle) };
+  else if (i.type === "flow" && i.action?.parameters) i.action.parameters = { ...i.action.parameters, flow_cta: clipTo(i.action.parameters.flow_cta, META.flowCta) };
+  else if (i.type === "product_list" && i.action) {
+    let left: number = META.productListItems;
+    i.action.sections = (i.action.sections ?? []).slice(0, META.productListSections).map((s: any) => {
+      const items = (s.product_items ?? []).slice(0, left); left -= items.length;
+      return { ...s, title: clipTo(s.title, META.sectionTitle), product_items: items };
+    }).filter((s: any) => s.product_items.length);
+  }
   return { ...p, interactive: i };
 }

@@ -40,3 +40,9 @@ Fresh baseline for `alo-king-staging` (DECISIONS §2). The old migrations are in
 - The Lebanese dish library (`dish_library`, `nutrition_ingredients`) is generated from `supabase/seed/nutrition/` by `scripts/nutrition/library.ts`; `scripts/nutrition/library.test.ts` fails if the migration's LIBRARY block differs. A library change is a new migration with the regenerated rows.
 - `menu_item_nutrition` holds per-item values with a source per value (`merchant_verified`, `estimated`, `unknown`). Estimates come only from `menu_nutrition_estimate` (library recipe × portion answer); merchants confirm with `menu_nutrition_confirm` or edit with `menu_nutrition_set`. Allergens and diet tags are written only by `menu_item_dietary_set`.
 - Menu drafts (`menu_drafts`) reach the menu only through `menu_draft_approve_section`, one section per merchant tap.
+
+## Conventions (session 5, Flows, hours and catalogue)
+
+- A WhatsApp Flow is opened only by `flow_open` (server-built initial data, a random token tied to the phone, context stored in `flow_sends`) and applied only by `flow_submit` (token once, payload re-validated against that context; prices recomputed by `basket_add_item`). Each Flow is sent only when its switch in `flows_enabled` is on and its kill-gate has not stopped it (`flow_enabled`); a token expires after `flow_token_ttl_min`.
+- Opening hours live in `vendor_hours` (Beirut time; closing before opening = past midnight; no rows = always open). `hours-tick` (every minute) pauses an orderable vendor outside its hours with reason `closed (hours)` and resumes it; a merchant's own pause is never touched.
+- The Meta catalogue is built from `catalog_desired` (retailer_id = our item id, one product set per branch) and diffed against `catalog_sync_items`; carts are re-priced from the menu (`catalog_enabled` is false until cut-over).
