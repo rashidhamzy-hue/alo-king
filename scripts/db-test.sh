@@ -21,6 +21,8 @@ for f in supabase/tests/*.sql; do
   n=$(echo "$out" | grep -c 'NOTICE:  ok - ' || true)
   echo "pass $(basename "$f") ($n checks)"
 done
+# Order races with real concurrent sessions (session 3).
+DB_URL="$DB_URL" scripts/db-race-test.sh || { echo "FAIL db-race-test"; fail=1; }
 # The real places and vendor seeds, when present: load it the way the deploy does, then check its quality.
 if [ -f supabase/seed/places/places.csv ] || ls supabase/seed/vendors/source/*.csv >/dev/null 2>&1; then
   DB_URL="$DB_URL" scripts/load-seed.sh
