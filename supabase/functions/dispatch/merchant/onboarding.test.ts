@@ -259,11 +259,12 @@ describe("handleOnboarding", () => {
     });
   });
 
-  it("STOP during onboarding is not swallowed as a cancel", async () => {
+  it("STOP and delete-my-data during onboarding go to the customer bot", async () => {
     const h = harness({ vendor_claim_search: () => [] });
     await handleOnboarding(h.deps, h.msg(tap("CLM|JOIN")));
-    await handleOnboarding(h.deps, h.msg(txt("STOP")));
-    expect(h.session).not.toBeNull();
+    expect(await handleOnboarding(h.deps, h.msg(txt("STOP")))).toBe(false);
+    expect(await handleOnboarding(h.deps, h.msg(txt("وقف")))).toBe(false);
+    expect(h.of("vendor_claim_search")).toHaveLength(0);
   });
 
   it("tapping the business again while the code is valid asks for the same code", async () => {

@@ -4,6 +4,7 @@
 select cron.unschedule('claims-tick');
 drop function if exists public.onboarding_session_set(text, text, jsonb, public.lang_code);
 drop function if exists public.onboarding_session_get(text);
+drop function if exists public.whatsapp_seen(text);
 drop function if exists public.vendor_request_note(text, text);
 drop function if exists public.member_recover_decide(text, uuid, boolean);
 drop function if exists public.member_recover_start(uuid, text, text, public.lang_code, text);
@@ -38,6 +39,7 @@ drop function if exists app_private.auth_user_for_phone(text);
 drop table if exists app_private.phone_logins;
 drop function if exists app_private.is_lebanese_mobile(text);
 drop table if exists public.vendor_requests;
+drop table if exists app_private.whatsapp_last_inbound;
 drop table if exists public.vendor_listing_reports;
 drop table if exists public.merchant_onboarding_sessions;
 drop table if exists app_private.claim_codes;

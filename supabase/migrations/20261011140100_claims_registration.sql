@@ -63,6 +63,7 @@ create table public.vendor_claims (
   confirm_member_id uuid references public.vendor_members (id) on delete set null,  -- L
   objection_deadline timestamptz,
   objection_done boolean not null default false,  -- I: the window ran (or Rasheed reached the owner by phone)
+  objection_unreached boolean not null default false, -- I: an owner was outside the 24-hour window; Rasheed calls
   member_id uuid references public.vendor_members (id) on delete set null,         -- created on approval
   decided_by uuid references auth.users (id) on delete set null,
   decided_at timestamptz,
@@ -105,6 +106,14 @@ create table public.merchant_onboarding_sessions (
   updated_at timestamptz not null default now()
 );
 
+-- When each WhatsApp number last wrote to us (any role). A free-form message reaches a number only inside
+-- WhatsApp's 24-hour window, so notices that decide someone's rights (the objection notice) check it.
+create table app_private.whatsapp_last_inbound (
+  phone_e164 text primary key check (phone_e164 ~ '^\+[1-9][0-9]{6,14}$'),
+  at timestamptz not null
+);
+revoke all on table app_private.whatsapp_last_inbound from public, anon, authenticated;
+
 -- J: customers report a listing closed, moved or wrong. One row per customer, vendor and kind.
 create table public.vendor_listing_reports (
   id bigint generated always as identity primary key,
@@ -138,7 +147,7 @@ grant all on table public.vendor_claims, public.merchant_onboarding_sessions, pu
 -- Operators review claims, reports and requests. Claimants see their claim through server functions only
 -- (a claimant has no login until the claim is approved). Code hashes are never granted to clients.
 grant select (id, vendor_id, claimant_phone, claimant_name, claim_case, status, contested, brand_wide, home_kitchen,
-  code_channel, codes_sent, lost_member_id, documents, objection_deadline, objection_done, member_id, decided_by, decided_at,
+  code_channel, codes_sent, lost_member_id, documents, objection_deadline, objection_done, objection_unreached, member_id, decided_by, decided_at,
   decision_note, lang, created_at, updated_at) on table public.vendor_claims to authenticated;
 create policy vendor_claims_operator_read on public.vendor_claims for select to authenticated
   using ((select app_private.is_operator()));
@@ -455,7 +464,10 @@ begin
   end if;
 
   -- F: HQ claims the whole brand with a company document.
-  if p_brand_wide and v_vendor.brand_id is not null then
+  if p_brand_wide and v_vendor.brand_id is null then
+    return jsonb_build_object('status', 'no_brand');
+  end if;
+  if p_brand_wide then
     insert into public.vendor_claims (vendor_id, claimant_phone, claimant_name, claim_case, status, brand_wide, lang)
     values (p_vendor_id, p_phone, left(p_name, 80), 'F', 'awaiting_documents', true, p_lang)
     returning * into v_claim;
@@ -739,6 +751,13 @@ begin
       select m.phone_e164 from public.vendor_members m
       where m.vendor_id = v_claim.vendor_id and m.status = 'active' and m.role in ('owner', 'manager')
     loop
+      -- Outside the 24-hour window WhatsApp drops a free-form notice: record it, and the tick then hands the
+      -- claim back to Rasheed instead of transferring it (until the utility template exists, §3).
+      if not exists (select 1 from app_private.whatsapp_last_inbound w
+                     where w.phone_e164 = v_owner.phone_e164 and w.at > now() - interval '23 hours') then
+        update public.vendor_claims set objection_unreached = true where id = p_claim_id;
+        continue;
+      end if;
       perform public.app_reply(v_owner.phone_e164, jsonb_build_object('interactive', jsonb_build_object(
         'type', 'button',
         'body', jsonb_build_object('text', left('⚠️ Someone says they are the new owner of ' || coalesce(v_vendor.name_ar, v_vendor.name_en)
@@ -824,7 +843,8 @@ begin
     select c.id from public.vendor_claims c where c.status = 'objection_window' and c.objection_deadline <= now()
     for update skip locked
   loop
-    if exists (select 1 from public.outbound_messages o where o.dedupe_key like 'reply:claim-objection:' || v_id || ':%')
+    if not (select c.objection_unreached from public.vendor_claims c where c.id = v_id)
+       and exists (select 1 from public.outbound_messages o where o.dedupe_key like 'reply:claim-objection:' || v_id || ':%')
        and not exists (select 1 from public.outbound_messages o where o.dedupe_key like 'reply:claim-objection:' || v_id || ':%'
                        and o.status <> 'sent') then
       perform app_private.claim_approve(v_id);
@@ -1230,6 +1250,14 @@ begin
 end;
 $$;
 
+create function public.whatsapp_seen(p_phone_e164 text) returns void
+language sql security definer set search_path = ''
+as $$
+  insert into app_private.whatsapp_last_inbound (phone_e164, at)
+  select p_phone_e164, now() where p_phone_e164 ~ '^\+[1-9][0-9]{6,14}$'
+  on conflict (phone_e164) do update set at = excluded.at;
+$$;
+
 -- Onboarding session store for the Merchant number (zero model calls; the steps live in code).
 create function public.onboarding_session_get(p_phone text) returns jsonb
 language sql stable security definer set search_path = ''
@@ -1276,6 +1304,7 @@ begin
     'public.member_recover_decide(text, uuid, boolean)',
     'public.vendor_request_note(text, text)',
     'public.onboarding_session_get(text)',
+    'public.whatsapp_seen(text)',
     'public.onboarding_session_set(text, text, jsonb, public.lang_code)'
   ] loop
     execute format('revoke all on function %s from public, anon, authenticated', f);

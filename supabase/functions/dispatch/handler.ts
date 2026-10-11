@@ -324,6 +324,9 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
   const m = readInbound(ev.payload);
   const o = readOnboardingInbound(ev.payload);
   if (!m || !o) return "ignored";
+  // When this number last wrote to us: a free-form notice is only deliverable inside WhatsApp's 24-hour
+  // window, so claim notices to current owners check it (§18.1 I).
+  await deps.rpc("whatsapp_seen", { p_phone_e164: m.from });
   const members: any[] =
     (await deps.rpc("merchant_members_by_phone", { p_phone_e164: m.from })) ?? [];
   // Claims and registration (§18.1): a non-member who asks to join or is mid-onboarding, and the answers

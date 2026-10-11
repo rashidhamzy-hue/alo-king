@@ -165,6 +165,7 @@ select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select public.claim_start('20000000-0000-0000-0000-0000000000d1', '+96176555005', 'New owner', 'en') as i1 \gset
 select tests.ok(:'i1'::jsonb ->> 'case' = 'I' and :'i1'::jsonb ->> 'status' = 'awaiting_documents', 'I: a claim on a claimed business needs documents');
 select public.claim_add_document('+96176555005', 'registration', 'wa-media:3'), public.claim_add_document('+96176555005', 'sign_photo', 'wa-media:4');
+select public.whatsapp_seen('+96176555001');
 select tests.ok(public.claim_decide((:'i1'::jsonb ->> 'claim_id')::uuid, true, 'sale contract', '00000000-0000-0000-0000-00000000000a') ->> 'status' = 'objection_window',
   'I: approving a sale opens the objection window');
 select tests.ok((select count(*) = 1 from public.outbound_messages where dedupe_key like 'reply:claim-objection:%' and target = '+96176555001'),
@@ -202,6 +203,9 @@ select tests.ok((select bool_and(claim_case = 'I' and contested) from public.ven
 select public.claim_add_document('+96176555031', 'registration', 'wa-media:g1'), public.claim_add_document('+96176555031', 'sign_photo', 'wa-media:g2');
 select tests.ok(public.claim_decide((:'gi2'::jsonb ->> 'claim_id')::uuid, true, null, '00000000-0000-0000-0000-00000000000a') ->> 'status' = 'objection_window',
   'approving it still opens the objection window for the current owner');
+select tests.ok((select objection_unreached from public.vendor_claims where id = (:'gi2'::jsonb ->> 'claim_id')::uuid)
+  and not exists (select 1 from public.outbound_messages where dedupe_key like 'reply:claim-objection:' || (:'gi2'::jsonb ->> 'claim_id') || ':%'),
+  'an owner outside the 24-hour window gets no undeliverable notice; the claim is marked unreached');
 -- The tick approves only when the objection notice was delivered.
 update public.vendor_claims set objection_deadline = now() - interval '1 minute' where id = (:'gi2'::jsonb ->> 'claim_id')::uuid;
 reset role;

@@ -25,6 +25,8 @@ import {
   type OLang,
 } from "../../_shared/onboarding-cards.ts";
 
+import { deterministicIntent } from "../customer/intents.ts";
+
 export type SendResult = { ok: true; id?: string } | { ok: false; retry: boolean; error: string };
 
 export type OnboardingDeps = {
@@ -101,6 +103,11 @@ export async function handleOnboarding(
   deps: OnboardingDeps,
   m: OnboardingInbound,
 ): Promise<boolean> {
+  // STOP, "delete my data" and "forget my history" always reach the customer bot, which honours them at
+  // once (CLAUDE.md marketing rules, Law 81/2018), even in the middle of onboarding.
+  const rule = m.text ? deterministicIntent(m.text) : null;
+  if (rule && ["stop", "delete_data", "forget_history", "start_marketing"].includes(rule.kind))
+    return false;
   const tap = parseOnboardingTap(m.buttonId);
   const s: Session = await deps.rpc("onboarding_session_get", { p_phone: m.from });
   if (!s && !tap && !(m.text && isJoinIntent(m.text))) return false;

@@ -246,6 +246,7 @@ describe("onboarding-cards: every builder passes the checker", () => {
         ob.homeKitchenButtons("+96171000001", lang),
         ob.pinRequest("+96171000001", lang),
         ob.claimCodeText("+96170123456", "482913"),
+        ob.joinConfirm("+96171000001", lang),
       ];
       for (const p of built) expect(checkInteractive(clampInteractive(p)), JSON.stringify(p).slice(0, 80)).toEqual([]);
       // Builders that need no clamping: all except the search list, whose names come from data.
