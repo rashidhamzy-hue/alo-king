@@ -9,7 +9,13 @@ const HEAD = "a".repeat(40);
 const OTHER = "b".repeat(40);
 const body = (sha: string, verdict: string) =>
   `### pr-reviewer self-review (DECISIONS §32.7)\nHead: ${sha}\nVerdict: ${verdict}\n\nNo findings.`;
-type C = { body: string; author_association?: string; type?: string; created_at?: string };
+type C = {
+  body: string;
+  author_association?: string;
+  type?: string;
+  created_at?: string;
+  updated_at?: string;
+};
 const run = (comments: C[], head = HEAD) => {
   const dir = mkdtempSync(path.join(tmpdir(), "self-review-"));
   const file = path.join(dir, "c.json");
@@ -21,6 +27,8 @@ const run = (comments: C[], head = HEAD) => {
         author_association: c.author_association ?? "OWNER",
         user: { type: c.type ?? "User" },
         created_at: c.created_at ?? `2026-10-11T10:00:${String(i).padStart(2, "0")}Z`,
+        updated_at:
+          c.updated_at ?? c.created_at ?? `2026-10-11T10:00:${String(i).padStart(2, "0")}Z`,
       })),
     ),
   );
@@ -38,6 +46,28 @@ describe("self-review", () => {
     expect(run([{ body: body(HEAD, "approve"), type: "Bot" }])).toBe("none");
     expect(run([{ body: body(HEAD, "approve"), author_association: "NONE" }])).toBe("none");
     expect(run([{ body: body(HEAD, "approve"), author_association: "CONTRIBUTOR" }])).toBe("none");
+    expect(run([{ body: body(HEAD, "approve"), author_association: "COLLABORATOR" }])).toBe("none");
+  });
+  it("only the header lines count: a later approve line in the text does not", () => {
+    expect(run([{ body: `${body(HEAD, "changes requested")}\nVerdict: approve` }])).toBe("none");
+    expect(
+      run([
+        {
+          body: `### pr-reviewer self-review (DECISIONS §32.7)\nHead: ${OTHER}\nVerdict: approve\nHead: ${HEAD}`,
+        },
+      ]),
+    ).toBe("none");
+  });
+  it("an edited comment never counts", () => {
+    expect(
+      run([
+        {
+          body: body(HEAD, "approve"),
+          created_at: "2026-10-11T10:00:00Z",
+          updated_at: "2026-10-11T10:05:00Z",
+        },
+      ]),
+    ).toBe("none");
   });
   it("a later changes-requested for the same head wins", () => {
     expect(run([{ body: body(HEAD, "approve") }, { body: body(HEAD, "changes requested") }])).toBe(
