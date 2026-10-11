@@ -1,0 +1,33 @@
+{
+  "tests": [
+    {
+      "name": "full address with driver phone",
+      "start": { "mode": "navigate", "screen": "ADDRESS", "data": { "address_id": "a1b2c3d4-0000-0000-0000-000000000001", "place_name": "Baakline" } },
+      "steps": [
+        { "expect": { "screen": "ADDRESS" } },
+        { "fill": "building", "value": "Bnayet Abou Fadi" },
+        { "fill": "floor", "value": "3" },
+        { "fill": "apartment", "value": "5" },
+        { "fill": "landmark", "value": "facing the pharmacy" },
+        { "fill": "driver_phone", "value": "+96171234567" },
+        { "fill": "notes", "value": "ring twice" },
+        { "submit": true, "expect": { "status": "completed", "completion": { "address_id": "a1b2c3d4-0000-0000-0000-000000000001", "building": "Bnayet Abou Fadi", "floor": "3", "landmark": "facing the pharmacy", "driver_phone": "+96171234567" } } }
+      ]
+    },
+    {
+      "name": "building only (everything else optional)",
+      "start": { "mode": "navigate", "screen": "ADDRESS", "data": { "address_id": "a1b2c3d4-0000-0000-0000-000000000001", "place_name": "Aley" } },
+      "steps": [
+        { "fill": "building", "value": "Centre Haddad" },
+        { "submit": true, "expect": { "status": "completed", "completion": { "building": "Centre Haddad" } } }
+      ]
+    },
+    {
+      "name": "the building is required",
+      "start": { "mode": "navigate", "screen": "ADDRESS", "data": { "address_id": "a1b2c3d4-0000-0000-0000-000000000001", "place_name": "Aley" } },
+      "steps": [
+        { "submit": true, "expect": { "screen": "ADDRESS", "fieldErrors": { "building": "This field is required" } } }
+      ]
+    }
+  ]
+}

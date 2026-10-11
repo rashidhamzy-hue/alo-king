@@ -590,3 +590,140 @@ describe("rendered messages stay inside Meta's limits", () => {
     for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
   });
 });
+
+describe("Flows and catalogue carts (§12, §30.1.2)", () => {
+  const OPT_GROUPS = [
+    {
+      group_id: "g1",
+      name: "Size",
+      min: 1,
+      max: 1,
+      options: [
+        { option_id: "o1", name: "S" },
+        { option_id: "o2", name: "L" },
+      ],
+    },
+    {
+      group_id: "g2",
+      name: "Extras",
+      min: 0,
+      max: 2,
+      options: [{ option_id: "o3", name: "Cheese" }],
+    },
+  ];
+  const opened = {
+    status: "ok",
+    token: `item_options:${"b".repeat(32)}`,
+    screen: "OPTIONS",
+    data: { item_id: ITEM },
+  };
+
+  it("an item with two option groups opens the item_options Flow when Flows are on", async () => {
+    const g = fake({
+      rpcs: {
+        menu_item_options: () => OPT_GROUPS,
+        flow_open: () => opened,
+        basket_clear: () => ({}),
+      },
+    });
+    await handleCustomerTurn(
+      g.deps,
+      msg({ type: "order", cart: { lines: [{ itemId: ITEM, quantity: 1 }] } }),
+    );
+    expect(g.of("flow_open")[0].args).toMatchObject({
+      p_flow: "item_options",
+      p_context: { item_id: ITEM },
+    });
+    const flowMsg = g.sent.find((p) => p.interactive?.type === "flow");
+    expect(flowMsg.interactive.action.parameters.flow_token).toBe(opened.token);
+    expect(g.of("basket_add_item")).toHaveLength(0);
+    for (const p of g.sent) expect(checkInteractive(p)).toEqual([]);
+  });
+
+  it("with Flows off the same item falls back to the option list", async () => {
+    const f = fake({
+      rpcs: {
+        menu_item_options: () => OPT_GROUPS,
+        flow_open: () => ({ status: "off" }),
+        basket_clear: () => ({}),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "order", cart: { lines: [{ itemId: ITEM, quantity: 1 }] } }),
+    );
+    expect(f.sent.some((p) => p.interactive?.type === "list")).toBe(true);
+  });
+
+  it("a cart re-prices every line on the server and ignores the catalogue's prices", async () => {
+    const f = fake({
+      rpcs: {
+        menu_item_options: () => [],
+        basket_clear: () => ({}),
+        basket_add_item: () => ({ status: "added", basket }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({
+        type: "order",
+        cart: {
+          lines: [
+            { itemId: ITEM, quantity: 3 },
+            { itemId: LINE, quantity: 1 },
+          ],
+        },
+      }),
+    );
+    expect(f.of("basket_clear")).toHaveLength(1);
+    expect(f.of("basket_add_item").map((c) => [c.args.p_item_id, c.args.p_quantity])).toEqual([
+      [ITEM, 3],
+      [LINE, 1],
+    ]);
+    expect(JSON.stringify(f.of("basket_add_item"))).not.toMatch(/price/);
+    expect(f.of("ai_quota_take")).toHaveLength(0);
+  });
+
+  it("a Flow submission is applied by the server and the basket is shown", async () => {
+    const f = fake({
+      rpcs: { flow_submit: () => ({ flow: "item_options", status: "added", basket }) },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "interactive", flow: { token: opened.token, payload: { g1: "o2" } } }),
+    );
+    expect(f.of("flow_submit")[0].args).toEqual({
+      p_phone: "+96176000001",
+      p_token: opened.token,
+      p_payload: { g1: "o2" },
+    });
+    expect(f.sent.length).toBeGreaterThan(0);
+    expect(f.of("ai_quota_take")).toHaveLength(0);
+  });
+
+  it("readCustomerInbound reads nfm_reply and order messages", () => {
+    const fr = readCustomerInbound({
+      message: {
+        id: "w",
+        from: "96176000001",
+        type: "interactive",
+        interactive: {
+          type: "nfm_reply",
+          nfm_reply: { response_json: `{"flow_token":"${opened.token}","g1":"o1"}` },
+        },
+      },
+    })!;
+    expect(fr.flow).toEqual({ token: opened.token, payload: { g1: "o1" } });
+    const cart = readCustomerInbound({
+      message: {
+        id: "w",
+        from: "96176000001",
+        type: "order",
+        order: {
+          product_items: [{ product_retailer_id: ITEM, quantity: "2", item_price: "0.01" }],
+        },
+      },
+    })!;
+    expect(cart.cart?.lines).toEqual([{ itemId: ITEM, quantity: 2 }]);
+  });
+});

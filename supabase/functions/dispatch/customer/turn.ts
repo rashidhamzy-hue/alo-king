@@ -44,6 +44,8 @@ import {
 } from "./render.ts";
 import { ALLERGENS, DIETS, NUTRITION_TAGS, SYSTEM_PROMPT, TOOLS, type ToolName } from "./tools.ts";
 import { buttons } from "../../_shared/customer-cards.ts";
+import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
+import { parseCartOrder } from "../../_shared/catalog.ts";
 
 type Msg = Record<string, unknown>;
 export type SendResult = { ok: true; id?: string } | { ok: false; retry: boolean; error: string };
@@ -120,6 +122,10 @@ export type CustomerInbound = {
     transcript: string | null;
   } | null;
   name: string | null;
+  /** A WhatsApp Flow submission (§12). */
+  flow?: { token: string; payload: Record<string, unknown> } | null;
+  /** A cart sent from the Meta catalogue (§30.1.2): item ids and quantities only. */
+  cart?: { lines: { itemId: string; quantity: number }[] } | null;
 };
 
 const E164 = /^\+[1-9][0-9]{6,14}$/;
@@ -160,6 +166,8 @@ export function readCustomerInbound(payload: any): CustomerInbound | null {
           }
         : null,
     name: payload?.conversation?.contact_name ?? msg.kapso?.contact_name ?? null,
+    flow: parseFlowReply(msg),
+    cart: parseCartOrder(msg),
   };
 }
 
@@ -287,6 +295,8 @@ async function route(c: Ctx, firstContact: boolean) {
     if (a) return tap(c, a);
     return say(c, "unsupported");
   }
+  if (m.flow) return flowReply(c, m.flow);
+  if (m.cart) return cartOrder(c, m.cart.lines);
   if (m.location) return locationPin(c, m.location);
   if (m.type === "unsupported") {
     // Live location arrives as `unsupported` on the Cloud API (§27.1): ask for a static pin instead.
@@ -574,7 +584,75 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
   if (r?.address?.place_status === "paused") return say(c, "placePaused");
   say(c, "savedPin", { where: where(c.s.lang, r.address) });
   c.summary.push("[address saved from the pin]");
+  // The address_capture Flow (§12) asks building, floor and a number for the driver in one sheet; the
+  // checkout continues when it is submitted. Without Flows the text path below runs as before.
+  if (
+    r.address?.id &&
+    !r.address?.building &&
+    (await openFlow(c, "address_capture", { address_id: r.address.id }))
+  )
+    return;
   if (c.basket?.lines?.length) return checkout(c, {});
+}
+
+// ---- WhatsApp Flows and catalogue carts --------------------------------------------------------------------------
+/** Sends a Flow when Flows are on (config flows_enabled); false means the caller uses the text path. */
+async function openFlow(
+  c: Ctx,
+  flow: FlowName,
+  context: Record<string, unknown>,
+): Promise<boolean> {
+  const lang = c.s.lang === "ar" || c.s.lang === "arabizi" ? "ar" : "en";
+  const r = await c.deps.rpc("flow_open", {
+    p_flow: flow,
+    p_lang: lang,
+    p_phone: c.m.from,
+    p_customer_id: c.customerId,
+    p_member_id: null,
+    p_context: context,
+  });
+  if (r?.status !== "ok") return false;
+  c.tools.push(`flow:${flow}`);
+  push(c, flowMessage(c.m.from, { flow, lang, token: r.token, screen: r.screen, data: r.data }));
+  return true;
+}
+
+/** A Flow submission: applied by the server (flow_submit), then the next step in the chat. */
+async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unknown> }) {
+  c.tools.push("flow_submit");
+  const r = await c.deps.rpc("flow_submit", {
+    p_phone: c.m.from,
+    p_token: f.token,
+    p_payload: f.payload,
+  });
+  if (r?.status === "duplicate") return;
+  if (r?.flow === "item_options") {
+    if (r.status === "added") {
+      c.basket = r.basket;
+      return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+    }
+    if (r.status === "other_vendor") return say(c, "otherVendor", { vendor: r.basket_vendor });
+    if (r.status === "unavailable") return say(c, "unavailable", { item: r.item });
+    return say(c, "flowRetry");
+  }
+  if (r?.flow === "address_capture") {
+    if (r.status === "rejected") return say(c, "flowRetry");
+    c.summary.push("[address details saved from the Flow]");
+    if (c.basket?.lines?.length) return checkout(c, {});
+    return say(c, "addressSaved");
+  }
+  return say(c, "flowRetry");
+}
+
+/** A cart sent from the catalogue (§30.1.2): every line re-priced by basket_add_item, catalogue prices ignored. */
+async function cartOrder(c: Ctx, lines: { itemId: string; quantity: number }[]) {
+  c.tools.push("cart");
+  if (!lines.length) return say(c, "unsupported");
+  await c.deps.rpc("basket_clear", { p_customer_id: c.customerId });
+  // addOne prices each line on the server and asks for required options (Flow or list) when missing.
+  for (const l of lines) if (!(await addOne(c, l.itemId, l.quantity, [], null, null))) break;
+  c.summary.push(`[cart from the catalogue: ${lines.length} lines]`);
+  if (c.s.pending.kind !== "options") push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
 }
 
 // ---- Baskets and checkout -----------------------------------------------------------------------------------------
@@ -694,6 +772,15 @@ async function addOne(
   const missing = groups.find(
     (g) => g.min > 0 && !g.options.some((o: any) => picked.has(o.option_id)),
   );
+  // Items with 2+ option groups or more than 3 options open the item_options Flow (§12) when Flows are on.
+  const optionCount = groups.reduce((n, g) => n + (g.options?.length ?? 0), 0);
+  if (
+    missing &&
+    !chosen?.length &&
+    (groups.length >= 2 || optionCount > 3) &&
+    (await openFlow(c, "item_options", { item_id: itemId }))
+  )
+    return false;
   if (missing) {
     c.s.pending = { kind: "options", item_id: itemId, qty, note, chosen: [...picked] };
     const label =

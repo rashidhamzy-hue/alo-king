@@ -228,6 +228,9 @@ importers:
       eslint-plugin-react-refresh:
         specifier: ^0.4.20
         version: 0.4.26(eslint@9.39.5(jiti@2.7.0))
+      flowso:
+        specifier: 0.1.0
+        version: 0.1.0
       globals:
         specifier: ^15.15.0
         version: 15.15.0
@@ -532,6 +535,10 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@kapso/whatsapp-cloud-api@0.3.0':
+    resolution: {integrity: sha512-j4PBmpT+7tDpdmcBy7hRWkCfz2w7tvW5loGNgFBX4iCdVBKT2XNjfAUnjlx65tFToWV65AMPUTY5ztDKV31xhQ==}
+    engines: {node: '>=20.19'}
 
   '@lovable.dev/vite-tanstack-config@2.25.2':
     resolution: {integrity: sha512-4kKPzMCMBHXxTSmHfoO479j0RG8Xe18nzry2bBVB+B5CTXfyQ4XNla481fMgsaA6S27Rm/rp011IcA8MUQEFbw==}
@@ -2491,6 +2498,16 @@ packages:
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
 
+  flowso@0.1.0:
+    resolution: {integrity: sha512-GbxIgUrFh1XttpEjbhNRGqkrhEbBg/n7E0a1JIzWCHg1o7yotar/J8uvHdNUHG7ryudDE29IfjsZ1erTfG/HLg==}
+    engines: {node: '>=20'}
+    hasBin: true
+    peerDependencies:
+      vue: ^3.5.0
+    peerDependenciesMeta:
+      vue:
+        optional: true
+
   form-data@4.0.6:
     resolution: {integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==}
     engines: {node: '>= 6'}
@@ -3904,6 +3921,10 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  '@kapso/whatsapp-cloud-api@0.3.0':
+    dependencies:
+      zod: 4.6.5
 
   '@lovable.dev/vite-tanstack-config@2.25.2(@emnapi/core@2.0.0-alpha.3)(@emnapi/runtime@2.0.0-alpha.3)(@tailwindcss/vite@4.3.3(vite@8.1.5(@types/node@22.20.5)(jiti@2.7.0)))(@tanstack/react-start@1.168.60(crossws@0.4.14(srvx@0.11.22))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.1)(vite@8.1.5(@types/node@22.20.5)(jiti@2.7.0)))(@tanstack/router-generator@1.167.40)(@vitejs/plugin-react@5.2.0(vite@8.1.5(@types/node@22.20.5)(jiti@2.7.0)))(nitro@3.0.260603-beta(jiti@2.7.0)(vite@8.1.5(@types/node@22.20.5)(jiti@2.7.0)))(vite-tsconfig-paths@6.1.1(typescript@5.9.3)(vite@8.1.5(@types/node@22.20.5)(jiti@2.7.0)))(vite@8.1.5(@types/node@22.20.5)(jiti@2.7.0))':
     dependencies:
@@ -5849,6 +5870,10 @@ snapshots:
       keyv: 4.5.4
 
   flatted@3.4.4: {}
+
+  flowso@0.1.0:
+    dependencies:
+      '@kapso/whatsapp-cloud-api': 0.3.0
 
   form-data@4.0.6:
     dependencies:

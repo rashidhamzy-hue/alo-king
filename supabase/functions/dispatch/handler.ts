@@ -29,6 +29,8 @@ import { handleCustomerTurn, readCustomerInbound, type CustomerDeps } from "./cu
 import { handleOnboarding, readOnboardingInbound } from "./merchant/onboarding.ts";
 import { parseOnboardingTap } from "../_shared/onboarding-cards.ts";
 import { handleMerchantMenu } from "./merchant/menu.ts";
+import { handleMerchantFlows } from "./merchant/flows.ts";
+import { parseFlowReply } from "../_shared/flows.ts";
 import type { MenuModel } from "../_shared/menu-draft.ts";
 import {
   nextBeirutTime,
@@ -374,6 +376,16 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
 
   // The smart menu (§18.3): "menu", menu photos or pasted text, and its section and nutrition taps.
   const menuSender = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+  // Merchant Flows (§12): "hours" / "profile" and the submissions of those Flows.
+  if (
+    menuSender &&
+    (await handleMerchantFlows(
+      { rpc: deps.rpc, send: (p) => deps.whatsapp(menuSender, p), log: deps.log },
+      { from: m.from, text: m.text, flow: parseFlowReply(ev.payload?.message) },
+      members,
+    ))
+  )
+    return "done";
   if (
     menuSender &&
     (await handleMerchantMenu(

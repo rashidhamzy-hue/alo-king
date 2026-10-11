@@ -1,0 +1,517 @@
+{
+  "version": "7.3",
+  "routing_model": {
+    "HOURS": []
+  },
+  "screens": [
+    {
+      "id": "HOURS",
+      "title": "Opening hours",
+      "terminal": true,
+      "data": {
+        "vendor_id": {
+          "type": "string",
+          "__example__": "x"
+        },
+        "opens": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "closes": {
+          "type": "string",
+          "__example__": "23:00"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextCaption",
+            "text": "Beirut time. A closing time before opening means after midnight."
+          },
+          {
+            "type": "Dropdown",
+            "name": "opens",
+            "label": "Opens",
+            "required": true,
+            "init-value": "${data.opens}",
+            "data-source": [
+              {
+                "id": "00:00",
+                "title": "00:00"
+              },
+              {
+                "id": "00:30",
+                "title": "00:30"
+              },
+              {
+                "id": "01:00",
+                "title": "01:00"
+              },
+              {
+                "id": "01:30",
+                "title": "01:30"
+              },
+              {
+                "id": "02:00",
+                "title": "02:00"
+              },
+              {
+                "id": "02:30",
+                "title": "02:30"
+              },
+              {
+                "id": "03:00",
+                "title": "03:00"
+              },
+              {
+                "id": "03:30",
+                "title": "03:30"
+              },
+              {
+                "id": "04:00",
+                "title": "04:00"
+              },
+              {
+                "id": "04:30",
+                "title": "04:30"
+              },
+              {
+                "id": "05:00",
+                "title": "05:00"
+              },
+              {
+                "id": "05:30",
+                "title": "05:30"
+              },
+              {
+                "id": "06:00",
+                "title": "06:00"
+              },
+              {
+                "id": "06:30",
+                "title": "06:30"
+              },
+              {
+                "id": "07:00",
+                "title": "07:00"
+              },
+              {
+                "id": "07:30",
+                "title": "07:30"
+              },
+              {
+                "id": "08:00",
+                "title": "08:00"
+              },
+              {
+                "id": "08:30",
+                "title": "08:30"
+              },
+              {
+                "id": "09:00",
+                "title": "09:00"
+              },
+              {
+                "id": "09:30",
+                "title": "09:30"
+              },
+              {
+                "id": "10:00",
+                "title": "10:00"
+              },
+              {
+                "id": "10:30",
+                "title": "10:30"
+              },
+              {
+                "id": "11:00",
+                "title": "11:00"
+              },
+              {
+                "id": "11:30",
+                "title": "11:30"
+              },
+              {
+                "id": "12:00",
+                "title": "12:00"
+              },
+              {
+                "id": "12:30",
+                "title": "12:30"
+              },
+              {
+                "id": "13:00",
+                "title": "13:00"
+              },
+              {
+                "id": "13:30",
+                "title": "13:30"
+              },
+              {
+                "id": "14:00",
+                "title": "14:00"
+              },
+              {
+                "id": "14:30",
+                "title": "14:30"
+              },
+              {
+                "id": "15:00",
+                "title": "15:00"
+              },
+              {
+                "id": "15:30",
+                "title": "15:30"
+              },
+              {
+                "id": "16:00",
+                "title": "16:00"
+              },
+              {
+                "id": "16:30",
+                "title": "16:30"
+              },
+              {
+                "id": "17:00",
+                "title": "17:00"
+              },
+              {
+                "id": "17:30",
+                "title": "17:30"
+              },
+              {
+                "id": "18:00",
+                "title": "18:00"
+              },
+              {
+                "id": "18:30",
+                "title": "18:30"
+              },
+              {
+                "id": "19:00",
+                "title": "19:00"
+              },
+              {
+                "id": "19:30",
+                "title": "19:30"
+              },
+              {
+                "id": "20:00",
+                "title": "20:00"
+              },
+              {
+                "id": "20:30",
+                "title": "20:30"
+              },
+              {
+                "id": "21:00",
+                "title": "21:00"
+              },
+              {
+                "id": "21:30",
+                "title": "21:30"
+              },
+              {
+                "id": "22:00",
+                "title": "22:00"
+              },
+              {
+                "id": "22:30",
+                "title": "22:30"
+              },
+              {
+                "id": "23:00",
+                "title": "23:00"
+              },
+              {
+                "id": "23:30",
+                "title": "23:30"
+              }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "closes",
+            "label": "Closes",
+            "required": true,
+            "init-value": "${data.closes}",
+            "data-source": [
+              {
+                "id": "00:00",
+                "title": "00:00"
+              },
+              {
+                "id": "00:30",
+                "title": "00:30"
+              },
+              {
+                "id": "01:00",
+                "title": "01:00"
+              },
+              {
+                "id": "01:30",
+                "title": "01:30"
+              },
+              {
+                "id": "02:00",
+                "title": "02:00"
+              },
+              {
+                "id": "02:30",
+                "title": "02:30"
+              },
+              {
+                "id": "03:00",
+                "title": "03:00"
+              },
+              {
+                "id": "03:30",
+                "title": "03:30"
+              },
+              {
+                "id": "04:00",
+                "title": "04:00"
+              },
+              {
+                "id": "04:30",
+                "title": "04:30"
+              },
+              {
+                "id": "05:00",
+                "title": "05:00"
+              },
+              {
+                "id": "05:30",
+                "title": "05:30"
+              },
+              {
+                "id": "06:00",
+                "title": "06:00"
+              },
+              {
+                "id": "06:30",
+                "title": "06:30"
+              },
+              {
+                "id": "07:00",
+                "title": "07:00"
+              },
+              {
+                "id": "07:30",
+                "title": "07:30"
+              },
+              {
+                "id": "08:00",
+                "title": "08:00"
+              },
+              {
+                "id": "08:30",
+                "title": "08:30"
+              },
+              {
+                "id": "09:00",
+                "title": "09:00"
+              },
+              {
+                "id": "09:30",
+                "title": "09:30"
+              },
+              {
+                "id": "10:00",
+                "title": "10:00"
+              },
+              {
+                "id": "10:30",
+                "title": "10:30"
+              },
+              {
+                "id": "11:00",
+                "title": "11:00"
+              },
+              {
+                "id": "11:30",
+                "title": "11:30"
+              },
+              {
+                "id": "12:00",
+                "title": "12:00"
+              },
+              {
+                "id": "12:30",
+                "title": "12:30"
+              },
+              {
+                "id": "13:00",
+                "title": "13:00"
+              },
+              {
+                "id": "13:30",
+                "title": "13:30"
+              },
+              {
+                "id": "14:00",
+                "title": "14:00"
+              },
+              {
+                "id": "14:30",
+                "title": "14:30"
+              },
+              {
+                "id": "15:00",
+                "title": "15:00"
+              },
+              {
+                "id": "15:30",
+                "title": "15:30"
+              },
+              {
+                "id": "16:00",
+                "title": "16:00"
+              },
+              {
+                "id": "16:30",
+                "title": "16:30"
+              },
+              {
+                "id": "17:00",
+                "title": "17:00"
+              },
+              {
+                "id": "17:30",
+                "title": "17:30"
+              },
+              {
+                "id": "18:00",
+                "title": "18:00"
+              },
+              {
+                "id": "18:30",
+                "title": "18:30"
+              },
+              {
+                "id": "19:00",
+                "title": "19:00"
+              },
+              {
+                "id": "19:30",
+                "title": "19:30"
+              },
+              {
+                "id": "20:00",
+                "title": "20:00"
+              },
+              {
+                "id": "20:30",
+                "title": "20:30"
+              },
+              {
+                "id": "21:00",
+                "title": "21:00"
+              },
+              {
+                "id": "21:30",
+                "title": "21:30"
+              },
+              {
+                "id": "22:00",
+                "title": "22:00"
+              },
+              {
+                "id": "22:30",
+                "title": "22:30"
+              },
+              {
+                "id": "23:00",
+                "title": "23:00"
+              },
+              {
+                "id": "23:30",
+                "title": "23:30"
+              }
+            ]
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "closed_days",
+            "label": "Closed days",
+            "required": false,
+            "data-source": [
+              {
+                "id": "0",
+                "title": "Sunday"
+              },
+              {
+                "id": "1",
+                "title": "Monday"
+              },
+              {
+                "id": "2",
+                "title": "Tuesday"
+              },
+              {
+                "id": "3",
+                "title": "Wednesday"
+              },
+              {
+                "id": "4",
+                "title": "Thursday"
+              },
+              {
+                "id": "5",
+                "title": "Friday"
+              },
+              {
+                "id": "6",
+                "title": "Saturday"
+              }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "pause",
+            "label": "Close for a while",
+            "required": true,
+            "init-value": "none",
+            "data-source": [
+              {
+                "id": "none",
+                "title": "No closure"
+              },
+              {
+                "id": "1h",
+                "title": "1 hour"
+              },
+              {
+                "id": "2h",
+                "title": "2 hours"
+              },
+              {
+                "id": "4h",
+                "title": "4 hours"
+              },
+              {
+                "id": "tomorrow",
+                "title": "Until tomorrow morning"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Save",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "vendor_id": "${data.vendor_id}",
+                "opens": "${form.opens}",
+                "closes": "${form.closes}",
+                "closed_days": "${form.closed_days}",
+                "pause": "${form.pause}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -90,6 +90,18 @@ const S: Record<string, Record<CLang, string>> = {
   },
   lastFew: { ar: "آخر كم حبة", en: "last few", fr: "derniers", arabizi: "akher kam wa7de" },
   soldOut: { ar: "خلصان", en: "sold out", fr: "épuisé", arabizi: "khelsan" },
+  flowRetry: {
+    ar: "ما قدرت إحفظ هالخيارات. جرّب مرة تانية أو اكتبلي شو بدك.",
+    en: "I couldn't save those choices. Please try again or type what you'd like.",
+    fr: "Je n'ai pas pu enregistrer ces choix. Réessayez ou écrivez ce que vous voulez.",
+    arabizi: "Ma 2drt e7faz hal5ayarat. Jarreb marra tenye aw ekteble shu badak.",
+  },
+  addressSaved: {
+    ar: "✅ حفظنا تفاصيل العنوان.",
+    en: "✅ Address details saved.",
+    fr: "✅ Détails de l'adresse enregistrés.",
+    arabizi: "✅ 7afazna tafasil el 3enwen.",
+  },
   noDietItem: {
     ar: "ما في شي عند {vendor} بيطابق طلبك من الأصناف اللي المحل صرّح عنها.",
     en: "Nothing at {vendor} matches, among the items the place has declared.",

@@ -1,0 +1,35 @@
+{
+  "tests": [
+    {
+      "name": "confirm the pre-filled names, set hours, radius and cash",
+      "start": { "mode": "navigate", "screen": "PROFILE", "data": { "vendor_id": "20000000-0000-0000-0000-0000000000d1", "name_ar": "مشاوي أبو كليم", "name_en": "Abu Claim Grill" } },
+      "steps": [
+        { "expect": { "screen": "PROFILE", "fields": { "name_ar": { "value": "مشاوي أبو كليم" } } } },
+        { "fill": "owner_name", "value": "Samir" },
+        { "submit": true, "expect": { "screen": "TERMS" } },
+        { "fill": "opens", "value": "11:00" },
+        { "fill": "closes", "value": "01:00" },
+        { "fill": "radius_km", "value": "6" },
+        { "fill": "cash", "value": ["USD", "LBP"] },
+        { "fill": "menu_photos", "value": true },
+        { "submit": true, "expect": { "status": "completed", "completion": { "vendor_id": "20000000-0000-0000-0000-0000000000d1", "name_ar": "مشاوي أبو كليم", "owner_name": "Samir", "opens": "11:00", "closes": "01:00", "radius_km": "6", "cash": ["USD", "LBP"], "menu_photos": true } } }
+      ]
+    },
+    {
+      "name": "the owner name is required",
+      "start": { "mode": "navigate", "screen": "PROFILE", "data": { "vendor_id": "x", "name_ar": "فرن", "name_en": "" } },
+      "steps": [
+        { "submit": true, "expect": { "screen": "PROFILE", "fieldErrors": { "owner_name": "This field is required" } } }
+      ]
+    },
+    {
+      "name": "back from terms keeps the profile",
+      "start": { "mode": "navigate", "screen": "PROFILE", "data": { "vendor_id": "x", "name_ar": "فرن", "name_en": "Bakery" } },
+      "steps": [
+        { "fill": "owner_name", "value": "Rita" },
+        { "submit": true, "expect": { "screen": "TERMS" } },
+        { "back": true, "expect": { "screen": "PROFILE" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "version": "7.3",
+  "routing_model": {
+    "ADDRESS": []
+  },
+  "screens": [
+    {
+      "id": "ADDRESS",
+      "title": "Address details",
+      "terminal": true,
+      "data": {
+        "address_id": {
+          "type": "string",
+          "__example__": "00000000-0000-0000-0000-000000000000"
+        },
+        "place_name": {
+          "type": "string",
+          "__example__": "Baakline"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextSubheading",
+            "text": "${data.place_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Used only to deliver your order. The location comes from the pin you sent."
+          },
+          {
+            "type": "TextInput",
+            "name": "building",
+            "label": "Building name",
+            "input-type": "text",
+            "required": true,
+            "max-chars": 120
+          },
+          {
+            "type": "TextInput",
+            "name": "floor",
+            "label": "Floor",
+            "input-type": "text",
+            "required": false,
+            "max-chars": 20
+          },
+          {
+            "type": "TextInput",
+            "name": "apartment",
+            "label": "Apartment",
+            "input-type": "text",
+            "required": false,
+            "max-chars": 20
+          },
+          {
+            "type": "TextInput",
+            "name": "landmark",
+            "label": "Nearby landmark",
+            "input-type": "text",
+            "required": false,
+            "max-chars": 120
+          },
+          {
+            "type": "TextInput",
+            "name": "driver_phone",
+            "label": "Phone for driver",
+            "input-type": "phone",
+            "required": false
+          },
+          {
+            "type": "TextArea",
+            "name": "notes",
+            "label": "Notes for driver",
+            "required": false,
+            "max-length": 300
+          },
+          {
+            "type": "Footer",
+            "label": "Save address",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "address_id": "${data.address_id}",
+                "building": "${form.building}",
+                "floor": "${form.floor}",
+                "apartment": "${form.apartment}",
+                "landmark": "${form.landmark}",
+                "driver_phone": "${form.driver_phone}",
+                "notes": "${form.notes}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

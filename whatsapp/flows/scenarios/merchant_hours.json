@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "new hours with a closed day and a 2-hour closure",
+      "start": { "mode": "navigate", "screen": "HOURS", "data": { "vendor_id": "20000000-0000-0000-0000-00000000000a", "opens": "09:00", "closes": "23:00" } },
+      "steps": [
+        { "expect": { "screen": "HOURS", "fields": { "opens": { "value": "09:00" } } } },
+        { "fill": "closes", "value": "02:00" },
+        { "fill": "closed_days", "value": ["1"] },
+        { "fill": "pause", "value": "2h" },
+        { "submit": true, "expect": { "status": "completed", "completion": { "vendor_id": "20000000-0000-0000-0000-00000000000a", "opens": "09:00", "closes": "02:00", "closed_days": ["1"], "pause": "2h" } } }
+      ]
+    }
+  ]
+}
