@@ -760,7 +760,7 @@ as $$
   select jsonb_build_object(
     'claimed_merchants', (select count(*) from public.vendors where claim_status = 'claimed'),
     'merchants_with_estimates', (select count(distinct vendor_id) from public.menu_item_nutrition where estimated_at is not null),
-    'merchants_confirmed', (select count(distinct vendor_id) from public.menu_item_nutrition where status = 'merchant_verified'),
+    'merchants_confirmed', (select count(distinct vendor_id) from public.menu_item_nutrition where status = 'merchant_verified' and estimated_at is not null),
     'searches_30d', (select coalesce(sum(searches), 0) from app_private.nutrition_filter_usage where day > current_date - 30),
     'filtered_30d', (select coalesce(sum(filtered), 0) from app_private.nutrition_filter_usage where day > current_date - 30),
     'thresholds', public.config_value('nutrition_kill_gate'));
