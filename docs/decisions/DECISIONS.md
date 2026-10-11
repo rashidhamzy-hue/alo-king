@@ -941,7 +941,7 @@ The audits are right on one point: on an online-paid $40 order, a 3% gateway fee
 - **Kept from §27:** heavy-load driver flag.
 
 ### 29.3 Customer AI and search
-- **Runtime models are unchanged** (§3): Claude Haiku 4.5 for turns, Sonnet 5.5 for menu extraction and complaints. "Claude Haiku 5.5" named by the audits does not exist.
+- **Runtime models are unchanged** (§3): Claude Haiku 4.5 for turns, Sonnet 5.5 for menu extraction and complaints. (Haiku 5.5: see §32.6.)
 - **Nutrition macros and an embeddings index are rejected for now.** Merchants won't supply macros, and AI-estimated macros or allergens are a food-safety liability. Item flags stay merchant-declared only (§17); any AI suggestion is labelled "estimated" and never used to answer "is this safe for my allergy". Search runs on Postgres full-text, trigram and the alias tables. Embeddings (pgvector) are reconsidered after pilot only if the search-miss rate on the eval set exceeds 10%.
 - **Large catalogues (supermarkets):** the web basket handoff in §5 is the catalogue. The bot sends a link to the merchant's page with the basket shared; nothing new.
 - **Interface choice:**
@@ -1050,7 +1050,7 @@ Rasheed asked for every useful idea to be judged on merit, not against the curre
 2. **Stairs fee in fleet mode goes 100% to the driver** (amends §29.2's merchant option for fleet orders). *(session 8)*
 3. **VAT reserve.** VAT collected on Alo King's own fees posts to a VAT-payable ledger account, so the amount due is always a balance, never a calculation. *(session 9)*
 4. **Finance answers for the admin.** A read-only admin RPC returns ledger balances (revenue, float by provider, payouts due, VAT payable, open money incidents). Claude turns it into a plain-language weekly finance note for Rasheed. It is not an accountant: the lawyer's accountant still signs filings. *(session 9)*
-5. **Ops alerts on Telegram, not WhatsApp.**
+5. **Ops alerts (superseded by §32.1: Slack, not Telegram).**
    - Operator alerts go to a private Telegram group through a bot, with action buttons that open the admin page: merchant not answering, SOS, money incident, cash over limit, partner late.
    - Reason: free, instant, no Meta templates, and alert traffic never touches the quality rating of our WhatsApp numbers.
    - Email is the fallback. *(session 3; owner issue: create the bot, 2 minutes)*
@@ -1126,6 +1126,192 @@ Rasheed's rule: the places list (§16), the vendor import (§15) and every deriv
 - A data problem found during a build session gets one line in `docs/decisions/DATA-ISSUES.md` (what, where, example), and the session moves on. Session D fixes the whole list.
 - New features use the existing tables and columns as they are. New tables that *reference* places or vendors are fine. If a feature truly needs a new column on a frozen table, it is added in a new migration with a default, without touching existing rows, and logged in `LOG.md`.
 - CI adds a guard: a PR touching the frozen paths fails unless its title starts with `Data:` (reserved for session D).
+
+## 32. Final product decisions: Slack operations, drivers on WhatsApp, nutrition, voice learning, final reports (DECIDED, 11 October 13:00)
+Rasheed's last input round: 7 Gemini answers, the ChatGPT review of the repo and Gemini, and the GoKapso repositories. He asked for every good idea to be taken on merit. This section **overrides earlier sections where they conflict**: §30.3.5 Telegram, §30.5's rejection of Slack, §29.3 macros and the Haiku 5.5 note, and §27.2 drivers. No SQL from any report is applied.
+
+### 32.1 Slack is the operations console (replaces Telegram everywhere)
+**Who uses what:**
+- **Slack:** Rasheed and the operations team only. Merchants, customers and drivers never touch Slack.
+- **WhatsApp:**
+  - customers: the Customer number A
+  - merchants and drivers: the Merchant number M, from their own personal numbers (§32.2)
+
+**Set-up:**
+- One Slack app ("Alo King Ops") in Rasheed's workspace, free plan.
+- Channels:
+  - `#ops-urgent`: merchant not answering at 75 s, SOS, a delivery at risk
+  - `#orders-live`: one line per order state change, threaded per order
+  - `#claims`: documents with approve and reject buttons
+  - `#money`: incidents, payouts due, float
+  - `#support`: human handoffs
+  - `#drivers`: shifts, cash over the limit, quick tags
+  - `#daily-brief`: 08:00 summary of yesterday plus open issues
+- Built behind one `ops_notifier` adapter, so the channel is config.
+- Alerts that need action carry buttons. Everything is also written to the database: Slack is never the record.
+
+**Control from Slack:** everything an operator may do in the admin pages, through buttons, slash commands and modals:
+- `/ak order <code>`: lifecycle, replay, audit trail
+- `/ak merchant <name>`: status, pause, resume, channel test, call
+- `/ak claim`: queue
+- `/ak driver <name>`: status, reassign
+- `/ak refund <order> <amount>`
+- `/ak credit <merchant> <amount> <reason>`
+- `/ak place on|off <place>`
+- `/ak finance`: the §30.3.4 snapshot
+- `/ak broadcast pause`: kill switch
+
+**Security for Slack actions:**
+- Every request is verified with Slack's signing secret.
+- The Slack user ID must map to an `operators` row with a role.
+- Each action calls the same server function the admin page uses, with the same limits.
+- Every action writes an audit row.
+- Money actions over $20, claim approvals and refunds open a confirm modal showing the exact effect.
+- Nothing in Slack can bypass a server rule.
+
+**Human support through Slack** (adopted from `gokapso/whatsapp-support-agent`'s pattern; supersedes Kapso's hosted inbox in §30.6):
+- A handoff opens a thread in `#support` with the AI's summary, the person's history and the last messages.
+- Rasheed replies in the thread, and the server sends it on WhatsApp as him ("Rasheed, Alo King"). Replies are inside the 24-hour window; outside it, an approved utility template asks the person to reply.
+- "Resolve" closes the case and hands the conversation back to the AI.
+- Case state lives in Supabase, so a Slack outage loses nothing.
+
+**Control from WhatsApp (mobile fallback):** Rasheed's own number is an `admin` operator recognised on the Merchant number, with a limited command set:
+- `status`
+- pause or resume a merchant
+- approve or reject a claim
+- reply to a handoff
+- refunds up to $20
+
+Each one asks for a confirming tap. Everything else stays in Slack.
+
+**Owner issue:** create the Slack app from a manifest the session commits; install it in the workspace; paste two secrets into GitHub. Telegram issue #104 drops its Telegram part.
+
+### 32.2 Drivers: WhatsApp first (amends §27.2)
+- **Every driver uses WhatsApp on their own number** with the Merchant number M:
+  - job offers as interactive cards (Accept / Decline)
+  - status buttons (at pickup / picked up / delivered)
+  - the cash entry (§30.3.1)
+  - delivery code entry
+  - SOS
+  - their earnings statement
+- **Location:** the WhatsApp job card opens the signed **driver link** (web page, no install), which shares GPS while a job is active.
+  - Fleet drivers on Android also install the light Alo King Driver app (§27.2) for background location, offline steps and loud offers. It is optional for merchant drivers.
+  - WhatsApp live location to the customer (§27.3) is unchanged.
+- **Slack is never required for drivers.** The operator sees drivers in `#drivers` and on the admin map.
+
+### 32.3 Nutrition and dietary data: full macros, with honest sources (amends §29.3)
+Rasheed wants full macros. They are built as an evidence-scored attribute system, not booleans and not raw AI guesses.
+- **Per item, per serving:**
+  - serving size in grams
+  - calories, protein, carbohydrates, fat (always when known)
+  - sugar, fibre, saturated fat, sodium (when known)
+- **Each value carries a source:**
+  - `merchant_verified`: the merchant supplied or confirmed it
+  - `estimated`: computed (below)
+  - `unknown`
+  - plus confidence and the assumptions used
+- **How estimates are made:** computed from ingredients, never guessed from a dish name.
+  - A curated **Lebanese dish library** of about 200 dishes (tawouk, shawarma, manoushe zaatar, falafel, fattoush and so on) holds standard recipes and portion weights. It is built once by Claude from USDA FoodData Central ingredient data (free, public API) and kept in the repo.
+  - During menu setup the AI matches each item to a library dish and asks the merchant at most two questions for the batch: portion size (S/M/L or grams) and anything unusual (oil, sauce, extras).
+  - The server computes the macros. The merchant sees "≈ 450 kcal · 38 g protein (estimated)" and taps Confirm or edits.
+- **Allergens and dietary claims:**
+  - Allergens (gluten, milk, eggs, peanuts, tree nuts, sesame, soy, fish, shellfish, mustard, celery, sulphites) are **merchant-declared only**. The AI may suggest "may contain X, please check", but never sets one.
+  - Cultural and diet tags (vegan, vegetarian, siyami, halal) need merchant confirmation.
+  - Derived tags use fixed thresholds per serving:
+    - high-protein: 25 g or more
+    - low-carb: 20 g or less
+    - low-fat: 10 g or less
+    - low-sodium: 600 mg or less
+    - sugar-free vs no-added-sugar kept distinct
+- **Search:**
+  - Hard filters (allergens, dietary must-haves) use only `merchant_verified` values. "Gluten-free" never shows an unverified item.
+  - Macro filters may use estimates, labelled "≈ estimated".
+  - The bot never says an item is safe for an allergy; it says what the merchant declared.
+  - Sponsored results obey the same filters (§20.5).
+- **Kill-gate:** after 30 claimed merchants, if fewer than 50% confirm their estimates, or fewer than 3% of searches use nutrition filters, the estimate prompt moves from setup to an optional later step.
+- **Build:** session 5.
+
+### 32.4 Voice notes: where they live and how the AI gets better from them
+- **Storage:** `evals/voice/batch-NN/` in the private repo, each batch with `manifest.csv` and, after labelling, `labels.csv`. When Rasheed uploads new notes to the planning chat or Project, the planning chat commits them as the next batch in a PR (done for batch 1, #98).
+- **The AI does not retrain a model.** It gets better through five assets that grow with every batch, all versioned and tested:
+  1. **Vocabulary prompt** for transcription: dishes, places and Arabizi spellings seen in confirmed transcripts.
+  2. **Normalisation dictionary:** mishearings mapped to the right word ("tawook", "ta2ouk" → طاووق), fed from every correction.
+  3. **Hard-case examples** in the parser prompt: the 30 most instructive confirmed notes (code-switching, changed minds, vague cravings).
+  4. **Golden test set:** every confirmed note becomes a regression test. CI fails if order accuracy drops.
+  5. **Model choice:** each batch re-runs the transcription and parsing comparison (OpenAI transcription models, Kapso's transcript, Haiku 4.5 vs 5.5), and the winner by accuracy, latency and cost is set in config.
+- **Production learning loop:**
+  - When a live customer corrects the bot ("no, I said two"), the note, transcript and correction are saved as a candidate hard case. The privacy policy covers this, and "delete my data" removes them.
+  - A weekly job proposes additions to the dictionary and examples; Claude reviews them in the next session.
+- **The metric is the basket, not the words:** exact basket correct (merchant, items, quantities, options) before any question, and after at most one question.
+  - Targets: 85% before any question and 98% after one question by 300 labelled notes.
+  - Every order still ends with the customer seeing the basket and tapping Confirm, so a mistake costs one tap, never a wrong order.
+  - 100% understanding of every voice note is not a real target; 100% correct confirmed orders is, and the Confirm step guarantees it.
+- **Labelling:** two transcriptions plus Claude reconciliation (§30.7), so Rasheed confirms only disagreements. It is blocked until the OpenAI key works (#77). Until then, sessions build the pipeline and run it on Kapso transcripts where available.
+
+### 32.5 Adopted from the final reports
+| Idea | Rule | Session |
+|---|---|---|
+| Order recovery engine | One `order_exceptions` table: every detected problem gets a rule-chosen recovery, a single next action per person, a Slack alert only when a human is needed, and a verified close. The AI drafts wording only. | 5b |
+| Group basket | A shareable link; friends add from their own phones; one payer confirms; per-person split shown. No corporate wallet. | 10 |
+| Kitchen capacity | Merchant sets max active orders. Above it, ETAs lengthen; at 2× it, new orders pause automatically until the queue drops. | 5 |
+| Generator mode | Items tagged `needs_power`. "ما في كهربا / generator off" hides them at that branch with one tap; "power back" restores them. | 5 |
+| Staff by WhatsApp | "Add Ali as kitchen +961…" / "remove Ali": roles per §18.1 H, confirmed by the owner's tap. | 5 |
+| Shift handover | On the first tap of a new staff member's shift: pending orders, sold-out items, open complaints. | 5 |
+| Menu quality coach | Weekly merchant tip from real data: missing sizes asked for, items often sold out, missing photos. Changes need a tap. | 12 |
+| Substitution preference | At checkout for grocery types: call me / replace under $X / remove. The merchant offers a substitute with the price difference; the customer taps. | 5 |
+| Visual order card | The confirmation and merchant statements also send a generated image (gold card: items, total in USD and LBP, locked rate). | 5 |
+| Mixed-cash calculator | "How to pay cash" button: enter USD, get the LBP remainder at the locked rate. | 9 |
+| Reorder and refill reminders | Opt-in only. The customer picks the day ("remind me Fridays" / "water every 9 days"). Sent as a utility template the customer asked for; each send confirms current price and stock; off by one tap. | 12 |
+| Diaspora occasions | Opt-in after a Send Home order: the sender saves a date, gets a reminder 2 days before. | 10 |
+| ETA honesty | A message only when the ETA moves more than 10 min, with a category reason (kitchen busy, traffic, road closure). Never a checkpoint name or the driver's exact position. | 9 |
+| Total-cost ranking | Suggestions under a budget rank by food plus delivery fee plus Alo King fee, within hard constraints. | 12 |
+| Same-price badge | "Same price as in the shop", shown only when the merchant confirms prices match. No estimated "savings vs other apps" claims. | 5 |
+| Merchant insight funnel | Events: search, eligible, impression (with rank), click, add, delivered. Normalised intent tags, no raw health searches kept beyond 90 days. Weekly insight first, Boost offer second. Never claims competitor orders. | 12 |
+| Community vouchers | Post-pilot, designed now. Senders add $2–$10 to a village bread/meal pot. Vouchers go only to people enrolled through a named local partner (municipality, parish, NGO), never chosen by AI. 100% of the donation buys food at cost; the delivery fee is shown separately. Anonymous impact receipt. Lawyer review first. | after 14 |
+| Voice reply on request | "Send me a voice summary" returns a short voice note. Not automatic. | 12 |
+| Kapso SDK | Spike in one send path, then migrate send paths one by one behind contract tests (`@kapso/whatsapp-cloud-api`, pinned). | 5b |
+| Flowso | Adopted for local validation and scenario tests of every Flow in CI; a Meta preview stays a release step. | 5 |
+| Upstream Kapso skills | Selective diff against a pinned `gokapso/agent-skills` commit; keep our safety rules. | 5b |
+
+### 32.6 Rejected or deferred from the final reports
+- **Rejected:**
+  - merchant-to-supplier Whish payments (money transmission, not our licence)
+  - "competitor markup 25%" savings claims
+  - AI choosing needy recipients
+  - electricity status hub
+  - checkpoint details in customer messages
+  - a 15% cut of donations
+  - automatic voice receipts
+- **Deferred:**
+  - corporate wallets and allowances (needs a real employer partner)
+  - errands/Butler (needs the fleet)
+  - points ("Crowns", §30.4)
+  - pgvector (§29.3 rule stands)
+- **Haiku 5.5:** ChatGPT reports Anthropic released `claude-haiku-5-5` on 7 October 2026. Not verified here. The model is config, and the next eval run with API credit compares Haiku 4.5 and 5.5 on the voice and text sets; the winner goes in config, and `usage.ts` prices are updated first.
+
+### 32.7 Working without paid AI keys (until credit returns)
+Rasheed's card can't add Anthropic credit right now, and OpenAI rejects its key.
+- **PR review:** when the CI Claude review cannot run, the build session runs the repo's `pr-reviewer` agent on its own diff before marking a PR ready, and posts the verdict as a PR comment tagged with the head commit. CI accepts that comment in place of the API review for every PR, including money, RLS, webhooks and personal data. Session 13's independent security review re-checks everything merged this way.
+- **Runtime AI on staging:** the deterministic paths work without AI (taps, pins, STOP, status, reorder, merchant commands). Free-text turns that need the model answer "please use the buttons or type it shorter", or hand off to a human. Evals that need a live model are marked skipped, not failed.
+- **Work Claude Code does itself in place of the API:** writing and labelling text evals, extracting test menus from photos, building the Lebanese dish library, drafting templates and copy.
+- **Voice labelling waits for a working transcription key.** Claude Code cannot listen to audio.
+- **Owner path:** ask the brother in Dubai to add $20 credit each to Anthropic and OpenAI with his UAE card, or use a prepaid virtual card. Both accounts stay in Alo King's name.
+
+### 32.8 Session plan from here (replaces the remaining rows of §10)
+| # | Session | Model | Effort |
+|---|---|---|---|
+| 5 | Claims and registration, smart menu with dish library and macros (32.3), Flows with Flowso, catalogue sync (fixtures), merchant WhatsApp OS extras (capacity, generator mode, staff, shift handover, substitution, visual card, same-price badge) | Opus 5.5 | high |
+| 5b | Slack ops console and support handoff (32.1), WhatsApp admin commands, order recovery engine, Kapso SDK migration, upstream skills diff | Opus 5.5 | high |
+| 6 | Website: design system and public pages (§24) | Sonnet 5.5 | high |
+| 7 | Website: claim/registration UI, legal pages, SEO/AIO, dashboard restyle | Sonnet 5.5 | high |
+| 8 | Delivery: drivers on WhatsApp + driver link + Android app, dispatch brain (§27, 32.2) | Opus 5.5 | high |
+| 9 | Payments, ledger, settlement, credit, mixed-cash, ETA honesty (§20, §30.3) | Opus 5.5 | max |
+| 10 | Send Home and Tap, group basket, diaspora occasions (§22) | Opus 5.5 | high |
+| 11 | Simulator, evals (voice and text), pilot scorecard | Sonnet 5.5 | medium |
+| 12 | Growth: offers, Boost, broadcasts, sponsored, insight funnel, referrals, reminders, quality coach, total-cost ranking | Sonnet 5.5 | high |
+| 13 | Independent security review (re-checks all PRs reviewed under 32.7) | Fable 5.1 | max |
+| D | Data finalisation (§31) | Opus 5.5 | high |
+| 14 | Pilot cut-over | Opus 5.5 | high |
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).

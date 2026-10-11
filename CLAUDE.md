@@ -24,6 +24,10 @@ Never read or change Supabase project `kabsi-prod` (`ynjdqjlmdwjgbfezevxy`), Sen
 - Before finishing: run lint, typecheck, tests and build; report what ran and what failed.
 - Never ask the owner. Decide per DECISIONS.md, log each judgement call as one line in `docs/decisions/LOG.md`, and continue. Anything only the owner can do (sign, pay, verify identity, use his accounts) becomes a GitHub issue labelled `owner` with exact click steps; keep working on everything else (DECISIONS §25). The owner runs no manual tests.
 
+## Operations, drivers and AI keys (DECISIONS §32)
+- Operations alerts and controls go to Slack through the `ops_notifier` adapter; Telegram is dropped. Slack is for operators only: customers, merchants and drivers use WhatsApp.
+- If the CI Claude review cannot run (no API credit), run `.claude/agents/pr-reviewer` on your own diff before the PR is ready and post its verdict as a PR comment tagged with the head SHA (§32.7).
+
 ## Data freeze (DECISIONS §31)
 Do not run `places-build` or the vendor import, and do not edit `supabase/seed/places/`, `supabase/seed/vendors/`, `scripts/places/`, `scripts/vendors/` or the structure of the places and vendor tables. Log data problems in `docs/decisions/DATA-ISSUES.md` and move on; the data finalisation session fixes them before cut-over.
 
