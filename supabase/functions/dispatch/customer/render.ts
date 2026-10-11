@@ -98,7 +98,7 @@ const S: Record<string, Record<CLang, string>> = {
   },
   cartSkipped: {
     ar: "😔 {n} من أصناف السلّة مش متوفرة هلق، وما زدناها.",
-    en: "😔 {n} item(s) from your cart aren't available right now, so they weren't added.",
+    en: "😔 {n} item(s) from your cart couldn't be added (not available, or from another place).",
     fr: "😔 {n} article(s) de votre panier ne sont pas disponibles et n'ont pas été ajoutés.",
     arabizi: "😔 {n} men asnaf el salle msh metwaffra hala2, ma zedneha.",
   },

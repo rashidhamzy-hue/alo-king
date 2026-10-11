@@ -660,8 +660,7 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
     const f = fake({
       rpcs: {
         menu_item_options: () => [],
-        basket_clear: () => ({}),
-        basket_add_item: () => ({ status: "added", basket }),
+        cart_apply: () => ({ added: 2, skipped: [], basket }),
       },
     });
     await handleCustomerTurn(
@@ -676,25 +675,25 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
         },
       }),
     );
-    expect(f.of("basket_clear")).toHaveLength(1);
-    expect(f.of("basket_add_item").map((c) => [c.args.p_item_id, c.args.p_quantity])).toEqual([
-      [ITEM, 3],
-      [LINE, 1],
+    expect(f.of("cart_apply")[0].args.p_lines).toEqual([
+      { item_id: ITEM, quantity: 3 },
+      { item_id: LINE, quantity: 1 },
     ]);
-    expect(JSON.stringify(f.of("basket_add_item"))).not.toMatch(/price/);
+    expect(JSON.stringify(f.of("cart_apply"))).not.toMatch(/price/);
+    expect(f.of("basket_clear")).toHaveLength(0);
     expect(f.of("ai_quota_take")).toHaveLength(0);
   });
 
-  it("a cart keeps the lines it can add, names the unavailable ones, and asks choices for the rest", async () => {
+  it("a cart names the lines not added and asks choices for the rest", async () => {
     const f = fake({
       rpcs: {
         menu_item_options: (a) => (a.p_item_id === OPT_ITEM ? OPT_GROUPS : []),
         flow_open: () => ({ status: "off" }),
-        basket_clear: () => ({}),
-        basket_add_item: (a) =>
-          a.p_item_id === LINE
-            ? { status: "unavailable", item: "Knefe" }
-            : { status: "added", basket },
+        cart_apply: () => ({
+          added: 1,
+          skipped: [{ item_id: LINE, status: "unavailable", item: "Knefe" }],
+          basket,
+        }),
       },
     });
     await handleCustomerTurn(
@@ -710,29 +709,30 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
         },
       }),
     );
-    // Both plain lines are tried (the unavailable one does not stop the rest), and the basket is cleared once.
-    expect(f.of("basket_add_item").map((c) => c.args.p_item_id)).toEqual([LINE, ITEM]);
-    expect(f.of("basket_clear")).toHaveLength(1);
-    const texts = JSON.stringify(f.sent);
-    expect(texts).toMatch(/1 item\(s\) from your cart/);
+    // The plain lines go to the server together; the line with required choices does not.
+    expect(f.of("cart_apply")[0].args.p_lines.map((l: any) => l.item_id)).toEqual([LINE, ITEM]);
+    expect(JSON.stringify(f.sent)).toMatch(/1 item\(s\) from your cart/);
     // The line with required choices gets its option list; the basket waits for the choice.
     expect(f.sent.some((p) => p.interactive?.type === "list")).toBe(true);
   });
 
-  it("a cart where nothing can be ordered says so", async () => {
+  it("a cart where nothing can be added says so (the server left the old basket alone)", async () => {
     const f = fake({
       rpcs: {
         menu_item_options: () => [],
-        basket_clear: () => ({}),
-        basket_add_item: () => ({ status: "unavailable", item: "Knefe" }),
+        cart_apply: () => ({
+          added: 0,
+          skipped: [{ item_id: LINE, status: "unavailable" }],
+          basket: null,
+        }),
       },
     });
     await handleCustomerTurn(
       f.deps,
       msg({ type: "order", cart: { lines: [{ itemId: LINE, quantity: 1 }] } }),
     );
-    // The cart is the customer's new order, so it replaces the basket; nothing in it could be added, and they are told.
-    expect(JSON.stringify(f.sent)).toMatch(/aren't available/);
+    expect(JSON.stringify(f.sent)).toMatch(/couldn't be added/);
+    expect(f.of("basket_clear")).toHaveLength(0);
   });
 
   it("a refused or expired item_options Flow falls back to the option list for the same item", async () => {

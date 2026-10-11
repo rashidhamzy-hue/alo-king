@@ -186,9 +186,15 @@ begin
                   when 'object' then (v_cfg ->> p_flow)::boolean end, false) then
     return false;
   end if;
-  select count(*), count(submitted_at) into v_sends, v_done from public.flow_sends where flow = p_flow;
+  -- Counted since the switch was last set (switching a Flow on again resets its gate), leaving out sends
+  -- still within their token lifetime.
+  select count(*), count(s.submitted_at) into v_sends, v_done from public.flow_sends s
+  where s.flow = p_flow
+    and s.sent_at >= (select max(c.effective_from) from public.app_config c where c.key = 'flows_enabled' and c.effective_from <= now())
+    and (s.submitted_at is not null
+         or s.sent_at <= now() - make_interval(mins => coalesce(public.config_numeric('flow_token_ttl_min'), 1440)::int));
   return not (v_sends >= coalesce((v_gate ->> 'min_sends')::int, 100)
-              and v_done::numeric / v_sends < coalesce((v_gate ->> 'min_completion')::numeric, 0.6));
+              and v_done::numeric / nullif(v_sends, 0) < coalesce((v_gate ->> 'min_completion')::numeric, 0.6));
 end;
 $$;
 revoke all on function app_private.flow_enabled(text) from public;
@@ -211,11 +217,12 @@ as $$
       then (select coalesce(jsonb_agg(d::text order by d), '[]') from generate_series(0, 6) d
             where not exists (select 1 from public.vendor_hours x where x.vendor_id = v.id and x.weekday = d))
       else '[]'::jsonb end,
+    -- The form's dropdown has whole kilometres 1-10.
     'radius_km', least(greatest(round(coalesce(v.delivery_radius_km, 3))::int, 1), 10)::text,
     'cash', to_jsonb(v.cash_currencies),
     'fee_note', case when p_lang = 'ar' then 'رسوم التوصيل حسب جدول Alo King: ' else 'Delivery fees follow Alo King''s bands: ' end
       || coalesce((select string_agg('$' || to_char(b.fee_usd, 'FM9990.00') || case when p_lang = 'ar' then ' لحد ' else ' up to ' end
-                                     || to_char(b.max_km, 'FM990.##') || ' km', ' · ' order by b.max_km) from b), '-'))
+                                     || trim_scale(b.max_km)::text || case when p_lang = 'ar' then ' كم' else ' km' end, ' · ' order by b.max_km) from b), '-'))
   from public.vendors v where v.id = p_vendor_id;
 $$;
 revoke all on function app_private.merchant_flow_data(uuid, text) from public;
@@ -432,7 +439,6 @@ begin
               left(nullif(trim(p_payload ->> 'note'), ''), 200), false);
           end if;
         end if;
-        v_r := v_r || jsonb_build_object('item_id', v_s.context ->> 'item_id');
       end if;
     when 'merchant_claim' then
       perform app_private.menu_editor(v_s.vendor_id, v_s.member_id);
@@ -442,8 +448,10 @@ begin
       if (p_payload ->> 'vendor_id') is distinct from (v_s.context ->> 'vendor_id') then
         v_r := jsonb_build_object('status', 'rejected', 'reason', 'vendor mismatch');
       elsif coalesce(p_payload ->> 'opens', '') !~ c_time or coalesce(p_payload ->> 'closes', '') !~ c_time
-            or p_payload ->> 'opens' = p_payload ->> 'closes' or cardinality(v_closed) = 7 then
+            or p_payload ->> 'opens' = p_payload ->> 'closes' then
         v_r := jsonb_build_object('status', 'rejected', 'reason', 'hours');
+      elsif cardinality(v_closed) = 7 then
+        v_r := jsonb_build_object('status', 'rejected', 'reason', 'closed every day');
       else
         perform set_config('app.actor_kind', 'whatsapp', true);
         perform set_config('app.audit_reason', 'merchant_claim Flow submitted by the merchant', true);
@@ -488,7 +496,8 @@ begin
         v_until := case p_payload ->> 'pause'
           when '1h' then now() + interval '1 hour' when '2h' then now() + interval '2 hours' when '4h' then now() + interval '4 hours'
           -- until the next opening window starts (tomorrow's opening, also for shops open past midnight)
-          when 'tomorrow' then coalesce(app_private.vendor_next_window(v_s.vendor_id),
+          when 'tomorrow' then coalesce(app_private.vendor_next_window(v_s.vendor_id,
+              ((now() at time zone 'Asia/Beirut')::date + 1)::timestamp at time zone 'Asia/Beirut'),
             ((now() at time zone 'Asia/Beirut')::date + 1 + time '08:00') at time zone 'Asia/Beirut')
           end;
         if v_until is not null then
@@ -502,6 +511,9 @@ begin
   end;
   end if;
   v_r := coalesce(v_r, '{}');
+  if v_s.flow = 'item_options' then
+    v_r := v_r || jsonb_build_object('item_id', v_s.context ->> 'item_id');
+  end if;
   if v_s.vendor_id is not null then
     v_r := v_r || jsonb_build_object('vendor_id', v_s.vendor_id, 'member_id', v_s.member_id);
   end if;
@@ -555,6 +567,47 @@ as $$
   where i.vendor_id = p_vendor_id and v.claim_status = 'claimed' and v.orderable;
 $$;
 
+-- A catalogue cart (§30.1.2) applied in one step: the lines without required choices are added (each priced
+-- by basket_add_item; the first line decides the branch, lines of another branch are skipped). The cart
+-- replaces the basket only if at least one line is added; otherwise the existing basket is left as it was.
+create function public.cart_apply(p_customer_id uuid, p_lines jsonb) returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  l jsonb;
+  r jsonb;
+  v_added int := 0;
+  v_skipped jsonb := '[]';
+  v_basket jsonb;
+begin
+  begin
+    perform public.basket_clear(p_customer_id);
+    for l in select x from jsonb_array_elements(coalesce(p_lines, '[]')) x limit 30 loop
+      begin
+        r := public.basket_add_item(p_customer_id, (l ->> 'item_id')::uuid,
+          least(greatest(coalesce((l ->> 'quantity')::int, 1), 1), 50), '{}', null, v_added = 0);
+      exception when no_data_found or data_exception or check_violation or foreign_key_violation then
+        r := jsonb_build_object('status', 'unknown');
+      end;
+      if r ->> 'status' = 'added' then
+        v_added := v_added + 1;
+        v_basket := r -> 'basket';
+      else
+        v_skipped := v_skipped || jsonb_build_array(jsonb_build_object('item_id', l ->> 'item_id', 'status', r ->> 'status',
+          'item', r ->> 'item'));
+      end if;
+    end loop;
+    if v_added = 0 then
+      raise exception 'cart_nothing_added' using errcode = 'P0001';
+    end if;
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'cart_nothing_added' then raise; end if;
+    v_basket := null;
+  end;
+  return jsonb_build_object('added', v_added, 'skipped', v_skipped, 'basket', v_basket);
+end;
+$$;
+
 create function public.catalog_sync_record(p_vendor_id uuid, p_items jsonb) returns integer
 language plpgsql security definer set search_path = ''
 as $$
@@ -589,7 +642,8 @@ begin
     'public.flow_kill_gate()',
     'public.catalog_desired(uuid)',
     'public.catalog_sync_record(uuid, jsonb)',
-    'public.catalog_synced(uuid)'
+    'public.catalog_synced(uuid)',
+    'public.cart_apply(uuid, jsonb)'
   ] loop
     execute format('revoke all on function %s from public, anon, authenticated', f);
     execute format('grant execute on function %s to service_role', f);

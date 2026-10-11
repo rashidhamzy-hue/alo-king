@@ -7,8 +7,9 @@ insert into public.places (id, zone_pcode, name_ar, name_en, kind, governorate_c
   ('LB-CHF-FLOWTOWN', 'TZ-FLW', 'فلوتاون', 'Flowtown', 'town', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.5861 33.6821)', 'test');
 insert into public.addresses (id, customer_id, place_id, pin, source) values
   ('56000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'LB-CHF-FLOWTOWN', 'SRID=4326;POINT(35.5861 33.6821)', 'pin');
-insert into public.menu_items (id, vendor_id, name_en, name_ar, price_usd) values
-  ('53000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-00000000000a', 'Shawarma', 'شاورما', 5.00);
+insert into public.menu_items (id, vendor_id, name_en, name_ar, price_usd, available) values
+  ('53000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-00000000000a', 'Shawarma', 'شاورما', 5.00, true),
+  ('53000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-00000000000a', 'Knefe', 'كنافة', 3.00, false);
 insert into public.menu_option_groups (id, item_id, name_en, min_select, max_select, sort_order) values
   ('53100000-0000-0000-0000-000000000001', '53000000-0000-0000-0000-000000000001', 'Size', 1, 1, 1),
   ('53100000-0000-0000-0000-000000000002', '53000000-0000-0000-0000-000000000001', 'Extras', 0, 2, 2);
@@ -76,7 +77,7 @@ select tests.ok(public.flow_open('merchant_hours', 'ar', '+96171000002', null, :
   'a cashier cannot open the hours Flow');
 select public.flow_open('merchant_claim', 'ar', '+96171000001', null, :'owner_a') as fc \gset
 select tests.ok(:'fc'::jsonb #>> '{data,name_en}' = 'Vendor A' and :'fc'::jsonb #> '{data,closed_days}' = '[]'
-  and :'fc'::jsonb #>> '{data,fee_note}' like '%$%km%' and :'fc'::jsonb #>> '{data,fee_note}' not like '%-' and (:'fc'::jsonb #> '{data}') ? 'cash',
+  and :'fc'::jsonb #>> '{data,fee_note}' like '%$%كم%' and :'fc'::jsonb #>> '{data,fee_note}' not like '%-' and (:'fc'::jsonb #> '{data}') ? 'cash',
   'merchant_claim is pre-filled from the profile, its hours, cash and the current fee bands (no fixed numbers)');
 -- A profile saved with the form's starting hours does not give an always-open branch fixed hours.
 select public.flow_open('merchant_claim', 'en', '+96171000001', null, :'owner_a') as fc0 \gset
@@ -126,6 +127,9 @@ select tests.ok((select count(*) = 6 and bool_and(opens = '11:00' and closes = '
 -- "Closed until tomorrow" for a shop open past midnight reopens at the next evening, not inside tonight.
 select tests.ok(app_private.vendor_next_window('20000000-0000-0000-0000-00000000000a', '2026-10-14 22:00 Asia/Beirut') = '2026-10-15 11:00 Asia/Beirut',
   'the next opening window skips the rest of tonight''s window');
+select tests.ok(app_private.vendor_next_window('20000000-0000-0000-0000-00000000000a', '2026-10-15 00:00 Asia/Beirut') = '2026-10-15 11:00 Asia/Beirut'
+  and app_private.vendor_next_window('20000000-0000-0000-0000-00000000000a', '2026-10-14 00:00 Asia/Beirut') = '2026-10-14 11:00 Asia/Beirut',
+  '"until tomorrow" searches from tomorrow 00:00, so a pause chosen before opening skips today');
 -- Hours: open at 23:30 and 00:30 (past midnight), closed at 05:00.
 select tests.ok(app_private.vendor_open_at('20000000-0000-0000-0000-00000000000a', '2026-10-14 23:30 Asia/Beirut')
   and app_private.vendor_open_at('20000000-0000-0000-0000-00000000000a', '2026-10-15 00:30 Asia/Beirut')
@@ -161,6 +165,20 @@ select tests.ok((select count(*) = 6 from public.vendor_hours where vendor_id = 
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select tests.ok((public.flow_kill_gate() -> 'item_options' ->> 'sends')::int = 3, 'sends and submissions are counted per Flow (kill-gate)');
+select public.flow_open('item_options', 'en', '+96170000001', '10000000-0000-0000-0000-000000000001', null,
+  '{"item_id": "53000000-0000-0000-0000-000000000001"}') as fi9 \gset
+reset role;
+update public.flow_sends set sent_at = now() - interval '2 days' where token = :'fi9'::jsonb ->> 'token';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok((select r ->> 'reason' = 'expired' and r ->> 'item_id' = '53000000-0000-0000-0000-000000000001'
+  from public.flow_submit('+96170000001', :'fi9'::jsonb ->> 'token', '{}') r), 'an expired item_options names its item, so the chat falls back to the option list');
+-- A catalogue cart replaces the basket only when a line is added.
+select tests.ok((select (r ->> 'added')::int = 0 and r -> 'basket' = 'null'
+  from public.cart_apply('10000000-0000-0000-0000-000000000001', '[{"item_id": "53000000-0000-0000-0000-000000000002", "quantity": 1}, {"item_id": "53000000-0000-0000-0000-0000000000ff", "quantity": 1}]') r)
+  and exists (select 1 from public.basket_items bi join public.baskets b on b.id = bi.basket_id
+              where b.customer_id = '10000000-0000-0000-0000-000000000001' and b.status = 'open' and bi.item_id = '53000000-0000-0000-0000-000000000001'),
+  'a cart where nothing can be added leaves the existing basket as it was');
 -- An item whose groups do not fit the Flow's shape uses the text path.
 reset role;
 insert into public.menu_option_groups (id, item_id, name_en, min_select, max_select, sort_order) values
@@ -173,7 +191,9 @@ select tests.ok(public.flow_open('item_options', 'en', '+96170000001', '10000000
 select public.flow_open('merchant_hours', 'en', '+96171000001', null, :'owner_a') ->> 'status' = 'ok' as opened \gset
 select public.flow_open('merchant_hours', 'en', '+96171000001', null, :'owner_a') ->> 'status' = 'ok' as opened \gset
 reset role;
+-- Two sends never submitted count against the Flow once past their token lifetime (0 here).
 insert into public.app_config (key, value, effective_from, note) values
+  ('flow_token_ttl_min', '0', now(), 'test'),
   ('flows_enabled', '{"address_capture": true, "item_options": true, "merchant_claim": false, "merchant_hours": true}', now(), 'test'),
   ('flow_kill_gate', '{"min_sends": 3, "min_completion": 0.9}', now(), 'test');
 set local role service_role;

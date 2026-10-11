@@ -653,8 +653,8 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
 
 /**
  * A cart sent from the catalogue (§30.1.2): every line re-priced by basket_add_item, catalogue prices ignored.
- * The cart replaces the basket only when something in it can be ordered; unavailable lines are named, and
- * lines that need choices are asked one at a time.
+ * The cart replaces the basket only when something in it is added (cart_apply); lines not added (unavailable,
+ * or another branch) are counted to the customer, and lines that need choices are asked one at a time.
  */
 async function cartOrder(c: Ctx, lines: { itemId: string; quantity: number }[]) {
   c.tools.push("cart");
@@ -665,30 +665,21 @@ async function cartOrder(c: Ctx, lines: { itemId: string; quantity: number }[]) 
     const groups: any[] = (await c.deps.rpc("menu_item_options", { p_item_id: l.itemId })) ?? [];
     (groups.some((g) => g.min > 0) ? needOptions : plain).push(l);
   }
-  let cleared = false;
+  // The lines without required choices in one server step: it replaces the basket only if one is added.
   let skipped = 0;
-  for (const l of plain) {
-    if (!cleared) {
-      await c.deps.rpc("basket_clear", { p_customer_id: c.customerId });
-      cleared = true;
-    }
-    const r = await c.deps.rpc("basket_add_item", {
+  if (plain.length) {
+    const r = await c.deps.rpc("cart_apply", {
       p_customer_id: c.customerId,
-      p_item_id: l.itemId,
-      p_quantity: l.quantity,
-      p_option_ids: [],
-      p_note: null,
-      p_replace: true,
+      p_lines: plain.map((l) => ({ item_id: l.itemId, quantity: l.quantity })),
     });
-    if (r?.status === "added") c.basket = r.basket;
-    else skipped++;
+    if (r?.basket) c.basket = r.basket;
+    skipped = Array.isArray(r?.skipped) ? r.skipped.length : plain.length;
   }
   c.summary.push(
-    `[cart from the catalogue: ${lines.length} lines, ${skipped} unavailable, ${needOptions.length} need choices]`,
+    `[cart from the catalogue: ${lines.length} lines, ${skipped} not added, ${needOptions.length} need choices]`,
   );
   if (skipped) say(c, "cartSkipped", { n: skipped });
   if (needOptions.length) {
-    if (!cleared) await c.deps.rpc("basket_clear", { p_customer_id: c.customerId });
     const flows = c.tools.length;
     const added = await addOne(c, needOptions[0].itemId, needOptions[0].quantity, [], null, null);
     if (needOptions.length > 1) say(c, "cartMoreOptions", { n: needOptions.length - 1 });

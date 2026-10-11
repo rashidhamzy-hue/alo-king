@@ -6,6 +6,7 @@ select cron.unschedule('hours-tick');
 -- Lift the pauses the hours tick set, so no branch stays closed by hours that no longer exist.
 update public.vendors set paused_until = null, pause_reason = null where pause_reason = 'closed (hours)';
 -- The config rows stay: dated rows are never deleted once in effect (dated_row_guard), and nothing reads them after this.
+drop function if exists public.cart_apply(uuid, jsonb);
 drop function if exists public.catalog_synced(uuid);
 drop function if exists public.catalog_sync_record(uuid, jsonb);
 drop function if exists public.catalog_desired(uuid);
