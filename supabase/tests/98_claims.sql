@@ -38,8 +38,11 @@ select tests.ok(:'a1'::jsonb ->> 'case' = 'A' and :'a1'::jsonb ->> 'status' = 'c
   'A: a 6-digit code goes by WhatsApp to the seed mobile, not to the claimant');
 select tests.ok((select claim_status = 'pending' from public.vendors where id = '20000000-0000-0000-0000-0000000000d1'),
   'the vendor is pending while a claim is open');
-select tests.ok((select code_hash is not null and code_hash <> (:'a1'::jsonb #>> '{send,code}') from public.vendor_claims
-  where id = (:'a1'::jsonb ->> 'claim_id')::uuid), 'only a salted hash of the code is stored');
+reset role;
+select tests.ok((select code_hash is not null and code_hash <> (:'a1'::jsonb #>> '{send,code}') from app_private.claim_codes
+  where claim_id = (:'a1'::jsonb ->> 'claim_id')::uuid), 'only a salted hash of the code is stored');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select tests.ok(public.claim_start('20000000-0000-0000-0000-0000000000d1', '+96176555001') ->> 'claim_id' = :'a1'::jsonb ->> 'claim_id',
   'starting again returns the open claim (no second code while the first is valid)');
 select tests.ok(public.claim_verify_code('+96176555999', :'a1'::jsonb #>> '{send,code}') ->> 'status' = 'no_claim',
@@ -67,17 +70,54 @@ select public.claim_start('20000000-0000-0000-0000-00000000000c', '+96176555002'
 select tests.ok(:'b1'::jsonb ->> 'case' = 'B' and :'b1'::jsonb #>> '{send,channel}' = 'voice'
   and :'b1'::jsonb #>> '{send,to}' = '+9615333333', 'B: a landline seed gets the code by voice call');
 reset role;
-update public.vendor_claims set code_hash = encode(extensions.digest(code_salt || '123456', 'sha256'), 'hex')
-where id = (:'b1'::jsonb ->> 'claim_id')::uuid;
+update app_private.claim_codes set code_hash = encode(extensions.digest(code_salt || '123456', 'sha256'), 'hex')
+where claim_id = (:'b1'::jsonb ->> 'claim_id')::uuid;
+select tests.ok((select count(*) = 0 from public.audit_log where table_name = 'vendor_claims' and (new_row ? 'code_hash' or new_row ? 'code_salt')),
+  'code hashes never reach the audit log');
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select tests.ok(public.claim_verify_code('+96176555002', '000001') ->> 'left' = '4', 'a wrong code says how many tries are left');
 select public.claim_verify_code('+96176555002', '000002'), public.claim_verify_code('+96176555002', '000003'),
   public.claim_verify_code('+96176555002', '000004');
 select tests.ok(public.claim_verify_code('+96176555002', '000005') ->> 'status' = 'locked', 'five wrong codes lock the code path');
-select tests.ok((select status = 'awaiting_documents' and code_hash is null from public.vendor_claims
+select tests.ok((select status = 'awaiting_documents' and claim_case = 'C' from public.vendor_claims
   where id = (:'b1'::jsonb ->> 'claim_id')::uuid), 'a locked claim continues with documents (C)');
 select tests.ok(public.claim_verify_code('+96176555002', '123456') ->> 'status' = 'no_claim', 'the old code no longer works');
+
+-- Resending never resets the total of wrong codes, and only 3 codes are sent per claim -------------------
+reset role;
+insert into public.vendors (id, slug, name_en, business_type, source, place_id) values
+  ('20000000-0000-0000-0000-0000000000e9', 'claim-resend', 'Resend Snack', 'fast_food', 'seed_2026_10', 'gpE9');
+insert into public.vendor_private (vendor_id, phone_seed) values ('20000000-0000-0000-0000-0000000000e9', '+96171999888');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select public.claim_start('20000000-0000-0000-0000-0000000000e9', '+96176555020') as r1 \gset
+select public.claim_verify_code('+96176555020', '000001'), public.claim_verify_code('+96176555020', '000002'),
+  public.claim_verify_code('+96176555020', '000003');
+select tests.ok(public.claim_start('20000000-0000-0000-0000-0000000000e9', '+96176555020') ->> 'send' is null,
+  'tapping again while the code is valid sends no new code');
+reset role;
+update app_private.claim_codes set expires_at = now() - interval '1 minute', sent_at = now() - interval '20 minutes'
+where claim_id = (:'r1'::jsonb ->> 'claim_id')::uuid;
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(public.claim_start('20000000-0000-0000-0000-0000000000e9', '+96176555020') #>> '{send,code}' ~ '^[0-9]{6}$',
+  'an expired code is replaced');
+reset role;
+select tests.ok((select attempts = 0 and attempts_total = 3 from app_private.claim_codes where claim_id = (:'r1'::jsonb ->> 'claim_id')::uuid),
+  'a resend keeps the running total of wrong codes');
+update app_private.claim_codes set expires_at = now() - interval '1 minute', sent_at = now() - interval '20 minutes'
+where claim_id = (:'r1'::jsonb ->> 'claim_id')::uuid;
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select public.claim_start('20000000-0000-0000-0000-0000000000e9', '+96176555020');
+reset role;
+update app_private.claim_codes set expires_at = now() - interval '1 minute', sent_at = now() - interval '20 minutes'
+where claim_id = (:'r1'::jsonb ->> 'claim_id')::uuid;
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(public.claim_start('20000000-0000-0000-0000-0000000000e9', '+96176555020') ->> 'status' = 'awaiting_documents',
+  'after three codes the claim moves to documents');
 
 -- C: no seed phone -> documents; Rasheed decides ------------------------------------------------------------
 select public.claim_start('20000000-0000-0000-0000-0000000000d2', '+96176555003', 'Nadim', 'ar') as c1 \gset
@@ -105,7 +145,7 @@ select tests.act_as('00000000-0000-0000-0000-00000000000c');
 select tests.throws(format('select public.claim_decide(%L, true)', :'c1'::jsonb ->> 'claim_id'), 'operators only',
   'a customer cannot decide a claim');
 select tests.ok((select count(*) = 0 from public.vendor_claims), 'a customer sees no claims');
-select tests.throws('select code_hash from public.vendor_claims', 'permission denied', 'code hashes are never readable by clients');
+select tests.throws('select code_hash from app_private.claim_codes', 'permission denied', 'code hashes are never readable by clients');
 select tests.act_as('00000000-0000-0000-0000-00000000000b');
 select tests.ok((select count(*) >= 3 from public.vendor_claims), 'an operator sees the claims');
 select tests.ok(public.claim_decide((:'c1'::jsonb ->> 'claim_id')::uuid, true, 'documents match') ->> 'status' = 'approved',
@@ -134,6 +174,7 @@ select tests.throws(format('select public.claim_decide(%L, true, null, %L)', :'i
 select tests.ok(public.claim_object('+96176555999', (:'i1'::jsonb ->> 'claim_id')::uuid) ->> 'status' = 'not_allowed',
   'only a current owner or manager can object');
 update public.vendor_claims set objection_deadline = now() - interval '1 minute' where id = (:'i1'::jsonb ->> 'claim_id')::uuid;
+update public.outbound_messages set status = 'sent' where dedupe_key like 'reply:claim-objection:' || (:'i1'::jsonb ->> 'claim_id') || ':%';
 reset role;
 select app_private.claims_tick();
 set local role service_role;
@@ -152,6 +193,27 @@ select tests.ok(public.claim_object('+96176555005', (:'i2'::jsonb ->> 'claim_id'
   'I: the current owner objects in time');
 select tests.ok((select status = 'pending_review' and contested from public.vendor_claims where id = (:'i2'::jsonb ->> 'claim_id')::uuid),
   'I: an objected sale goes back to Rasheed, contested');
+
+-- G on a claimed business stays a sale: objection window, no silent co-owner --------------------------------
+select public.claim_start('20000000-0000-0000-0000-00000000000b', '+96176555030') as gi1 \gset
+select public.claim_start('20000000-0000-0000-0000-00000000000b', '+96176555031') as gi2 \gset
+select tests.ok((select bool_and(claim_case = 'I' and contested) from public.vendor_claims where vendor_id = '20000000-0000-0000-0000-00000000000b'
+  and status not in ('rejected', 'expired')), 'G on a claimed business: both claims stay sales (I) and are contested');
+select public.claim_add_document('+96176555031', 'registration', 'wa-media:g1'), public.claim_add_document('+96176555031', 'sign_photo', 'wa-media:g2');
+select tests.ok(public.claim_decide((:'gi2'::jsonb ->> 'claim_id')::uuid, true, null, '00000000-0000-0000-0000-00000000000a') ->> 'status' = 'objection_window',
+  'approving it still opens the objection window for the current owner');
+-- The tick approves only when the objection notice was delivered.
+update public.vendor_claims set objection_deadline = now() - interval '1 minute' where id = (:'gi2'::jsonb ->> 'claim_id')::uuid;
+reset role;
+select app_private.claims_tick();
+select tests.ok((select status = 'pending_review' and objection_done from public.vendor_claims where id = (:'gi2'::jsonb ->> 'claim_id')::uuid),
+  'an owner the notice never reached keeps the business; Rasheed decides after calling them');
+select tests.ok((select status = 'active' from public.vendor_members where vendor_id = '20000000-0000-0000-0000-00000000000b' and phone_e164 = '+96171000003'),
+  'the current owner is untouched');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(public.claim_decide((:'gi2'::jsonb ->> 'claim_id')::uuid, true, 'owner reached by phone', '00000000-0000-0000-0000-00000000000a') ->> 'status' = 'approved',
+  'after the window has run, Rasheed''s second approval transfers it');
 
 -- E: registration; a home kitchen without a registration document joins the waitlist ---------------------
 select public.vendor_register('+96176555007', 'مطبخ أم علي', 'Um Ali Kitchen', 'restaurant', 33.68, 35.58, true, 'ar') as e1 \gset
@@ -205,15 +267,27 @@ insert into public.customers (id, phone_e164) values
   ('10000000-0000-0000-0000-0000000000c3', '+96170000003'), ('10000000-0000-0000-0000-0000000000c4', '+96170000004');
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
-select public.vendor_report('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-00000000000b', 'closed');
-select public.vendor_report('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-00000000000b', 'closed');
-select public.vendor_report('10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-00000000000b', 'wrong');
-select tests.ok((select listing_status = 'active' from public.vendors where id = '20000000-0000-0000-0000-00000000000b'),
-  'J: two customers (one reporting twice) do not hide a listing');
-select tests.ok(public.vendor_report('10000000-0000-0000-0000-0000000000c3', '20000000-0000-0000-0000-00000000000b', 'moved') ->> 'status' = 'hidden',
-  'J: a third customer hides it until checked');
-select tests.ok((select count(*) = 1 from public.ops_alerts where kind = 'listing_report' and vendor_id = '20000000-0000-0000-0000-00000000000b'),
+select public.vendor_report('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-0000000000f2', 'closed');
+select public.vendor_report('10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-0000000000f2', 'wrong');
+select tests.ok(public.vendor_report('10000000-0000-0000-0000-0000000000c3', '20000000-0000-0000-0000-0000000000f2', 'moved') ->> 'status' = 'recorded',
+  'J: reports from numbers that never received an order do not hide a listing');
+-- Give the three reporters a delivered order (fixture written past the status trigger).
+reset role;
+set local session_replication_role = replica;
+insert into public.orders (code, idempotency_key, customer_id, vendor_id, status, fulfilment, payment_method,
+  menu_version, usd_lbp_rate, food_subtotal_usd, total_usd, order_fee_usd, placed_at)
+select 'TJCL' || (k + 1) || 'A', 'tests:claims-j-' || k, c, '20000000-0000-0000-0000-00000000000a', 'delivered', 'pickup', 'cod', 1, 89500, 5, 5, 1, now()
+from (values (1, '10000000-0000-0000-0000-000000000001'::uuid), (2, '10000000-0000-0000-0000-000000000002'::uuid),
+             (3, '10000000-0000-0000-0000-0000000000c3'::uuid)) x (k, c);
+set local session_replication_role = origin;
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(public.vendor_report('10000000-0000-0000-0000-0000000000c3', '20000000-0000-0000-0000-0000000000f2', 'moved') ->> 'status' = 'hidden',
+  'J: three real customers hide it until checked');
+select tests.ok((select count(*) = 1 from public.ops_alerts where kind = 'listing_report' and vendor_id = '20000000-0000-0000-0000-0000000000f2'),
   'J: the operator is alerted');
+select tests.ok(public.claim_start('20000000-0000-0000-0000-0000000000f2', '+96176555040') ->> 'status' = 'not_available',
+  'a hidden listing cannot be claimed');
 
 -- K: removal ------------------------------------------------------------------------------------------------
 select id as d2_owner from public.vendor_members where vendor_id = '20000000-0000-0000-0000-0000000000d2' and role = 'owner' \gset
@@ -230,12 +304,46 @@ select tests.ok((select listing_status = 'hidden' and place_id is null from publ
   'K: its contacts and staff are removed');
 
 -- L: lost phone ---------------------------------------------------------------------------------------------
-select public.member_recover_start('20000000-0000-0000-0000-0000000000f1', '+96176555011', 'ar') as l1 \gset
+reset role;
+insert into public.vendor_members (vendor_id, user_id, phone_e164, role, status)
+values ('20000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-00000000000d', '+96176555012', 'owner', 'active'),
+       ('20000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-00000000000c', '+96176555013', 'manager', 'active');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select public.member_recover_start('20000000-0000-0000-0000-0000000000f1', '+96176555011', '+96176555010', 'ar', 'Hassan') as l1 \gset
 select tests.ok(:'l1'::jsonb ->> 'status' = 'awaiting_member', 'L: another owner is asked to confirm the new number');
-select tests.ok(public.member_recover_decide('+96176555999', (:'l1'::jsonb ->> 'claim_id')::uuid, true) ->> 'status' = 'not_allowed',
-  'L: only that member can confirm');
-select tests.ok(public.member_recover_decide('+96176555010', (:'l1'::jsonb ->> 'claim_id')::uuid, true) ->> 'status' = 'approved',
-  'L: the member''s tap adds the new number as an owner');
+select tests.ok((select count(*) = 1 from public.outbound_messages where dedupe_key like 'reply:claim-recover:%' and target = '+96176555012')
+  and (select count(*) = 0 from public.outbound_messages where dedupe_key like 'reply:claim-recover:%' and target in ('+96176555010', '+96176555013')),
+  'L: the card goes to the other owner, never to the lost phone or a manager');
+select tests.ok((select payload::text not like '%96176555011%' from public.outbound_messages where dedupe_key like 'reply:claim-recover:%'),
+  'L: the card shows only the last digits of the new number');
+select tests.ok(public.member_recover_decide('+96176555013', (:'l1'::jsonb ->> 'claim_id')::uuid, true) ->> 'status' = 'not_allowed',
+  'L: a manager cannot confirm an owner recovery');
+select tests.ok(public.member_recover_decide('+96176555012', (:'l1'::jsonb ->> 'claim_id')::uuid, true) ->> 'status' = 'approved',
+  'L: the other owner''s tap approves');
+reset role;
+select tests.ok((select role = 'owner' and status = 'active' from public.vendor_members where vendor_id = '20000000-0000-0000-0000-0000000000f1' and phone_e164 = '+96176555011')
+  and (select status = 'revoked' from public.vendor_members where vendor_id = '20000000-0000-0000-0000-0000000000f1' and phone_e164 = '+96176555010'),
+  'L: the new number takes the lost role and the lost number is revoked');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select public.member_recover_start('20000000-0000-0000-0000-0000000000f1', '+96176555014', '+96176555013') as l2 \gset
+select tests.ok(:'l2'::jsonb ->> 'status' = 'awaiting_member', 'L: a manager''s lost phone is confirmed by an owner too');
+reset role;
+set local session_replication_role = replica;
+update public.vendor_claims set updated_at = now() - interval '25 hours' where id = (:'l2'::jsonb ->> 'claim_id')::uuid;
+set local session_replication_role = origin;
+select app_private.claims_tick();
+select tests.ok((select status = 'awaiting_documents' from public.vendor_claims where id = (:'l2'::jsonb ->> 'claim_id')::uuid),
+  'L: nobody confirms within a day → documents');
+-- Frozen vendors with no open claim go back to unclaimed.
+update public.vendors set claim_status = 'frozen' where id = '20000000-0000-0000-0000-0000000000e9';
+update public.vendor_claims set status = 'expired' where vendor_id = '20000000-0000-0000-0000-0000000000e9';
+select app_private.claims_tick();
+select tests.ok((select claim_status = 'unclaimed' from public.vendors where id = '20000000-0000-0000-0000-0000000000e9'),
+  'a frozen vendor whose claims all ended is unfrozen');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 
 -- M: requests ------------------------------------------------------------------------------------------------
 select public.vendor_request_note('Kababji Hasbaya');
@@ -246,7 +354,7 @@ reset role;
 insert into public.app_config (key, value, effective_from, note) values ('claims_daily_per_phone', '1', now() - interval '1 second', 'test');
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
-select tests.ok(public.claim_start('20000000-0000-0000-0000-0000000000f2', '+96176555005') ->> 'status' = 'rate_limited',
+select tests.ok(public.claim_start('20000000-0000-0000-0000-0000000000e9', '+96176555005') ->> 'status' = 'rate_limited',
   'one number cannot start unlimited claims');
 
 rollback;

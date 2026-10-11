@@ -150,6 +150,9 @@ export const T: Record<OLang, Record<string, string>> = {
     recoverNo: "تمام، رفضنا الطلب.",
     notAllowed: "مش مسموح.",
     sendPhoto: "ابعت الصورة كصورة أو ملف PDF 📎.",
+    joinAsk: "بدك تسجّل محل أو مطعم على Alo King؟",
+    joinYes: "🏪 إيه، سجّل محلي",
+    notAvailable: "هالمحل مش متاح للتسجيل حاليا. احكي مع رشيد إذا في غلط.",
   },
   en: {
     welcome:
@@ -193,6 +196,9 @@ export const T: Record<OLang, Record<string, string>> = {
     recoverNo: "OK, request refused.",
     notAllowed: "Not allowed.",
     sendPhoto: "Send it as a photo or a PDF file 📎.",
+    joinAsk: "Do you want to register a shop or restaurant on Alo King?",
+    joinYes: "🏪 Yes, register",
+    notAvailable: "This business can't be claimed right now. Talk to Rasheed if that's wrong.",
   },
   fr: {
     welcome:
@@ -237,6 +243,9 @@ export const T: Record<OLang, Record<string, string>> = {
     recoverNo: "D'accord, demande refusée.",
     notAllowed: "Non autorisé.",
     sendPhoto: "Envoyez-la en photo ou en PDF 📎.",
+    joinAsk: "Voulez-vous inscrire un commerce ou un restaurant sur Alo King ?",
+    joinYes: "🏪 Oui, inscrire",
+    notAvailable: "Ce commerce ne peut pas être réclamé pour l'instant. Parlez à Rasheed si c'est une erreur.",
   },
 };
 
@@ -258,17 +267,24 @@ export function isJoinIntent(s: string | null | undefined): boolean {
     .toLowerCase()
     .replace(/[ّ]/g, "");
   return (
-    /\b(join( alo ?king)?|claim( my)?|register my|list my (shop|business|restaurant)|for business|sign ?up my|add my (shop|business|restaurant))\b/.test(
+    /\b(join alo ?king|claim my (shop|business|restaurant|store|bakery)|register my (shop|business|restaurant|store|bakery)|list my (shop|business|restaurant)|add my (shop|business|restaurant))\b/.test(
       t,
     ) ||
-    /\b(inscri(re|ption)|rejoindre|ajouter mon (commerce|restaurant))\b/.test(t) ||
-    /(سجل محلي|سجل مطعمي|سجل محل|بدي سجل|انضم|إنضم|ضيف محلي|اربط محلي|صاحب محل|صاحب مطعم|تسجيل محل)/.test(t) ||
+    /\b(inscrire mon (commerce|restaurant|magasin)|ajouter mon (commerce|restaurant))\b/.test(t) ||
+    /(سجل محلي|سجل مطعمي|سجل فرني|بدي سجل محل|ضيف محلي|اربط محلي|انضم ل ?(الو|ألو) ?كينغ|تسجيل محل)/.test(t) ||
     /\b(sajjel|sajel) (ma7ale|ma7alle|m7ale|mat3ame)\b/.test(t)
   );
 }
 
+// STOP is not a cancel word here: it is the marketing opt-out, which the customer bot honours (CLAUDE.md).
 export const isCancel = (s: string | null | undefined) =>
-  /^\s*(cancel|stop|annuler|الغاء|إلغاء|وقف|خلص|bas|ba2a)\s*$/i.test(String(s ?? ""));
+  /^\s*(cancel|annuler|الغاء|إلغاء|bas|ba2a)\s*$/i.test(String(s ?? ""));
+
+export const joinConfirm = (to: string, lang: OLang) =>
+  buttons(to, T[lang].joinAsk, [
+    { id: "CLM|JOIN", title: T[lang].joinYes },
+    { id: "CLM|X", title: T[lang].cancel },
+  ]);
 
 export type ClaimMatch = {
   vendor_id: string;
@@ -368,6 +384,7 @@ const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 export type OnboardingTap =
   | { a: "vendor"; vendorId: string }
   | { a: "new" }
+  | { a: "join" }
   | { a: "cancel" }
   | { a: "docs"; claimId: string }
   | { a: "noreg"; claimId: string }
@@ -381,6 +398,7 @@ export function parseOnboardingTap(id: string | null | undefined): OnboardingTap
   let m: RegExpMatchArray | null;
   if ((m = s.match(new RegExp(`^CLM\\|V\\|(${UUID})$`, "i")))) return { a: "vendor", vendorId: m[1] };
   if (s === "CLM|NEW") return { a: "new" };
+  if (s === "CLM|JOIN") return { a: "join" };
   if (s === "CLM|X") return { a: "cancel" };
   if ((m = s.match(new RegExp(`^CLM\\|DOCS\\|(${UUID})$`, "i")))) return { a: "docs", claimId: m[1] };
   if ((m = s.match(new RegExp(`^CLM\\|NOREG\\|(${UUID})$`, "i"))))

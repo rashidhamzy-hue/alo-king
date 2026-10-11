@@ -14,6 +14,7 @@ import {
   documentsAsk,
   guessLang,
   homeKitchenButtons,
+  joinConfirm,
   isCancel,
   isJoinIntent,
   notListedButtons,
@@ -32,6 +33,11 @@ export type OnboardingDeps = {
   send: (payload: Record<string, unknown>) => Promise<SendResult>;
   /** Places the call that reads a claim code to a landline (case B); null when no voice provider. */
   voiceCode: ((to: string, script: string) => Promise<SendResult>) | null;
+  /** Copies a claim document into private storage; returns its path, or null (the WhatsApp reference is kept). */
+  storeDocument?: (
+    media: { id: string; url: string | null; mime: string },
+    claimId: string,
+  ) => Promise<string | null>;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
 };
 
@@ -42,7 +48,7 @@ export type OnboardingInbound = {
   text: string | null;
   buttonId: string | null;
   location: { lat: number; lon: number } | null;
-  media: { ref: string; mime: string } | null;
+  media: { id: string; url: string | null; ref: string; mime: string } | null;
   name: string | null;
 };
 
@@ -75,6 +81,8 @@ export function readOnboardingInbound(payload: any): OnboardingInbound | null {
       type === "location" && Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null,
     media: mediaId
       ? {
+          id: mediaId,
+          url: msg.kapso?.media_url ?? msg.kapso?.media_data?.url ?? null,
           ref: `wa-media:${mediaId}`.slice(0, 300),
           mime: String(mediaObj?.mime_type ?? msg.kapso?.media_data?.content_type ?? ""),
         }
@@ -194,11 +202,12 @@ async function route(
     return reply(pinRequest(to, lang));
   }
 
-  // No session yet: a join intent opens one.
-  if (!s) {
+  if (tap?.a === "join") {
     await setStep("ask_name", {});
     return reply(text(to, say(lang, "welcome")));
   }
+  // No session yet: a join intent asks first, so a customer's message never starts onboarding by mistake.
+  if (!s) return reply(joinConfirm(to, lang));
 
   switch (s.step) {
     case "ask_name":
@@ -248,12 +257,21 @@ async function route(
           }),
         );
       const kind = (data.missing ?? [])[0] ?? "other";
+      // A copy in private storage outlives WhatsApp's media retention (the audit of G and I needs it).
+      let ref = m.media.ref;
+      if (deps.storeDocument && data.claim_id) {
+        try {
+          ref = (await deps.storeDocument(m.media, String(data.claim_id))) ?? ref;
+        } catch (e) {
+          deps.log?.("claim document copy failed", { error: String(e).slice(0, 120) });
+        }
+      }
       const r = await deps.rpc("claim_add_document", {
         p_phone: m.from,
         p_kind: ["registration", "permit", "company", "sign_photo", "id"].includes(kind)
           ? kind
           : "other",
-        p_media_ref: m.media.ref,
+        p_media_ref: ref,
         p_mime: m.media.mime || null,
         p_claim_id: data.claim_id ?? null,
       });
@@ -337,9 +355,25 @@ async function startClaim(
     case "rate_limited":
       await setStep(null);
       return reply(text(to, say(lang, "rateLimited")));
+    case "not_available":
+      await setStep(null);
+      return reply(text(to, say(lang, "notAvailable")));
     case "code_sent": {
+      if (!r.send) {
+        // The code sent earlier is still valid: ask for it again, never drop it.
+        await setStep("code", { claim_id: r.claim_id, vendor_id: vendorId });
+        return reply(
+          codeSentCard(
+            to,
+            r.claim_id,
+            String(r.phone_tail ?? ""),
+            r.channel === "voice" ? "voice" : "whatsapp",
+            lang,
+          ),
+        );
+      }
       // The code goes only to the shop's own number; the claimant types it here.
-      const sent = r.send ? await sendCode(deps, r.send) : null;
+      const sent = await sendCode(deps, r.send);
       if (!sent?.ok) {
         deps.log?.("claim code not delivered", { channel: String(r.send?.channel ?? "") });
         const d = await deps.rpc("claim_use_documents", {

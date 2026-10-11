@@ -50,6 +50,14 @@ export type DispatchDeps = {
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
   /** Reads a claim code to a landline by phone call (§18.1 B); null when no voice provider is configured. */
   voiceCode?: ((to: string, script: string) => Promise<SendResult>) | null;
+  /** Copies a claim document from WhatsApp into private storage (§18.1); null keeps the media reference. */
+  storeDocument?:
+    | ((
+        phoneNumberId: string,
+        media: { id: string; url: string | null; mime: string },
+        claimId: string,
+      ) => Promise<string | null>)
+    | null;
   /** The customer bot's model, transcription, media and routing (session 4); null = customers are ignored. */
   customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
 };
@@ -330,6 +338,9 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
           rpc: deps.rpc,
           send: (p) => deps.whatsapp(from, p),
           voiceCode: deps.voiceCode ?? null,
+          storeDocument: deps.storeDocument
+            ? (media, claimId) => deps.storeDocument!(from, media, claimId)
+            : undefined,
           log: deps.log,
         },
         o,

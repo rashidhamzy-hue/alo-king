@@ -57,7 +57,16 @@ describe("onboarding intents (zero model calls)", () => {
       "sajjel ma7ale",
     ])
       expect(isJoinIntent(s), s).toBe(true);
-    for (const s of ["بدي شاورما", "2 manakish zaatar", "where is my order", "un café svp"])
+    for (const s of [
+      "بدي شاورما",
+      "2 manakish zaatar",
+      "where is my order",
+      "un café svp",
+      "I want to claim a refund",
+      "join",
+      "انضم",
+      "stop",
+    ])
       expect(isJoinIntent(s), s).toBe(false);
   });
   it("guesses the language", () => {
@@ -97,6 +106,9 @@ describe("handleOnboarding", () => {
         a.p_code === "482913" ? { status: "approved" } : { status: "wrong_code", left: 4 },
     });
     await handleOnboarding(h.deps, h.msg(txt("سجّل محلي")));
+    expect(h.session).toBeNull();
+    expect(h.sent.at(-1).interactive.action.buttons[0].reply.id).toBe("CLM|JOIN");
+    await handleOnboarding(h.deps, h.msg(tap("CLM|JOIN")));
     expect(h.session.step).toBe("ask_name");
     await handleOnboarding(h.deps, h.msg(txt("ابو كليم")));
     expect(h.sent.at(-2).interactive.type).toBe("list");
@@ -198,7 +210,8 @@ describe("handleOnboarding", () => {
         missing: a.p_home_kitchen ? ["registration"] : ["registration", "sign_photo"],
       }),
     });
-    await handleOnboarding(h.deps, h.msg(txt("join")));
+    await handleOnboarding(h.deps, h.msg(txt("join Alo King")));
+    await handleOnboarding(h.deps, h.msg(tap("CLM|JOIN")));
     await handleOnboarding(h.deps, h.msg(txt("Um Ali Kitchen")));
     expect(h.sent.at(-1).interactive.action.buttons[0].reply.id).toBe("CLM|NEW");
     await handleOnboarding(h.deps, h.msg(tap("CLM|NEW")));
@@ -225,7 +238,8 @@ describe("handleOnboarding", () => {
 
   it("cancel ends the session at any step", async () => {
     const h = harness();
-    await handleOnboarding(h.deps, h.msg(txt("register my shop")));
+    await handleOnboarding(h.deps, h.msg(tap("CLM|JOIN")));
+    expect(h.session.step).toBe("ask_name");
     await handleOnboarding(h.deps, h.msg(txt("إلغاء")));
     expect(h.session).toBeNull();
   });
@@ -243,5 +257,59 @@ describe("handleOnboarding", () => {
       p_claim_id: C,
       p_approve: true,
     });
+  });
+
+  it("STOP during onboarding is not swallowed as a cancel", async () => {
+    const h = harness({ vendor_claim_search: () => [] });
+    await handleOnboarding(h.deps, h.msg(tap("CLM|JOIN")));
+    await handleOnboarding(h.deps, h.msg(txt("STOP")));
+    expect(h.session).not.toBeNull();
+  });
+
+  it("tapping the business again while the code is valid asks for the same code", async () => {
+    const h = harness({
+      claim_start: () => ({
+        claim_id: C,
+        case: "A",
+        status: "code_sent",
+        channel: "whatsapp",
+        phone_tail: "…56",
+      }),
+    });
+    await handleOnboarding(h.deps, h.msg(tap(`CLM|V|${V}`)));
+    expect(h.of("claim_use_documents")).toHaveLength(0);
+    expect(h.session.step).toBe("code");
+    expect(JSON.stringify(h.sent.at(-1))).toContain("…56");
+  });
+
+  it("copies a document to storage when it can, and keeps the WhatsApp reference when it cannot", async () => {
+    const h = harness({
+      claim_start: () => ({
+        claim_id: C,
+        case: "C",
+        status: "awaiting_documents",
+        missing: ["registration", "sign_photo"],
+      }),
+      claim_add_document: () => ({
+        status: "awaiting_documents",
+        claim_id: C,
+        missing: ["sign_photo"],
+      }),
+    });
+    h.deps.storeDocument = async (m, claim) =>
+      m.id === "OK" ? `storage:claim-documents/${claim}/x.jpg` : null;
+    await handleOnboarding(h.deps, h.msg(tap(`CLM|V|${V}`)));
+    await handleOnboarding(
+      h.deps,
+      h.msg({ type: "image", image: { id: "OK", mime_type: "image/jpeg" } }),
+    );
+    expect(h.of("claim_add_document")[0].args.p_media_ref).toBe(
+      `storage:claim-documents/${C}/x.jpg`,
+    );
+    await handleOnboarding(
+      h.deps,
+      h.msg({ type: "image", image: { id: "NO", mime_type: "image/jpeg" } }),
+    );
+    expect(h.of("claim_add_document")[1].args.p_media_ref).toBe("wa-media:NO");
   });
 });
