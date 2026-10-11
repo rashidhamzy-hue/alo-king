@@ -1,0 +1,74 @@
+# Lebanese vocabulary prompt for voice transcription (DECISIONS §30.1.6, §30.7). One term per line.
+# Places come from the places list (Shouf first, where batch 1 was recorded); dishes are common Lebanese
+# menu items until merchants' menus exist on staging, when voice_vocabulary() builds it from real menus.
+بعقلين
+بقعاتا
+السمقانية
+بيت الدين
+دير القمر
+المختارة
+كفرحيم
+الباروك
+عين زحلتا
+بتلون
+نيحا
+معاصر الشوف
+الدامور
+الناعمة
+شحيم
+عاليه
+بيروت
+شاورما
+شاورما دجاج
+شاورما لحمة
+فلافل
+منقوشة
+منقوشة زعتر
+منقوشة جبنة
+لحم بعجين
+كعك
+صفيحة
+فطاير
+بيتزا
+برغر
+كرسبي
+بروستد
+فروج
+شيش طاووق
+كباب
+مشاوي
+كفتة
+حمص
+متبل
+تبولة
+فتوش
+بطاطا
+بطاطا مقلية
+ثوم
+مناقيش
+كنافة
+بقلاوة
+معمول
+عصير
+بيبسي
+سفن أب
+مي
+قنينة غاز
+غالون مي
+سندويش
+سندويشة
+صحن
+وجبة
+كيلو
+نص كيلو
+بلا بصل
+عالجنب
+Shawarma
+Falafel
+Manakish
+Zaatar
+Broasted
+Crispy
+Taouk
+Knefe
+Pepsi

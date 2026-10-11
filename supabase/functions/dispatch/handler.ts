@@ -25,6 +25,7 @@ import {
 } from "../_shared/merchant-cards.ts";
 import { clampInteractive } from "../_shared/meta-limits.ts";
 import { afterSunset, customerStatusMessages } from "../_shared/customer-cards.ts";
+import { handleCustomerTurn, readCustomerInbound, type CustomerDeps } from "./customer/turn.ts";
 import {
   nextBeirutTime,
   parseMerchantCommand,
@@ -45,6 +46,8 @@ export type DispatchDeps = {
   now?: () => Date;
   budgetMs?: number;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
+  /** The customer bot's model, transcription, media and routing (session 4); null = customers are ignored. */
+  customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
 };
 
 type Outbox = {
@@ -79,7 +82,7 @@ export async function runDispatch(
   // 1. Inbound.
   while (left() > 2000) {
     const events: any[] =
-      (await deps.rpc("webhook_claim", { p_limit: 10, p_visibility_s: 30 })) ?? [];
+      (await deps.rpc("webhook_claim", { p_limit: 10, p_visibility_s: 90 })) ?? [];
     if (!events.length) break;
     for (const ev of events) {
       let status: "done" | "ignored" | "failed" = "done";
@@ -310,7 +313,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
   if (!m) return "ignored";
   const members: any[] =
     (await deps.rpc("merchant_members_by_phone", { p_phone_e164: m.from })) ?? [];
-  if (!members.length) return "ignored"; // a customer: the customer bot (session 4) handles it
+  if (!members.length) return customerInbound(deps, ev);
   const reply = (body: string | Record<string, unknown>) =>
     deps.rpc("app_reply", {
       p_to: m.from,
@@ -347,6 +350,26 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     return "done";
   }
   await reply(HELP);
+  return "done";
+}
+
+/** Everyone who is not an active merchant member is a customer (the sandbox serves both until cut-over, §3). */
+async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ignored"> {
+  if (!deps.customer) return "ignored";
+  const m = readCustomerInbound(ev.payload);
+  if (!m || !m.messageId) return "ignored";
+  const from = (await deps.rpc("whatsapp_sender", { p_audience: "customer" })) ?? null;
+  if (!from) return "ignored";
+  await handleCustomerTurn(
+    {
+      ...deps.customer,
+      rpc: deps.rpc,
+      send: (p) => deps.whatsapp(from, p),
+      now: deps.now,
+      log: deps.log,
+    },
+    m,
+  );
   return "done";
 }
 

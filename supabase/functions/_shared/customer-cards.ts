@@ -423,7 +423,8 @@ export type CustomerAction =
   | { a: "pick_item"; ref: string }
   | { a: "add_upsell"; itemId: string }
   | { a: "replace_basket"; itemId: string; qty: number }
-  | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "stop_ok" | "keep" | "usual" | "address_list" | "no_upsell" };
+  | { a: "option"; optionId: string }
+  | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "delete_ok" | "keep" | "usual" | "address_list" | "no_upsell" };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const re = (s: string) => new RegExp(`^${s}$`);
@@ -440,7 +441,8 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(re(`pi:(i\\d{1,3})`)))) return { a: "pick_item", ref: m[1] };
   if ((m = id.match(re(`ups:(${UUID})`)))) return { a: "add_upsell", itemId: m[1] };
   if ((m = id.match(re(`rpl:(${UUID}):(\\d{1,2})`)))) return { a: "replace_basket", itemId: m[1], qty: Number(m[2]) };
-  if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|stop_ok|keep|usual|address_list|no_upsell)$/)))
+  if ((m = id.match(re(`opt:(${UUID})`)))) return { a: "option", optionId: m[1] };
+  if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell)$/)))
     return { a: "simple", what: m[1] as any };
   return null;
 }

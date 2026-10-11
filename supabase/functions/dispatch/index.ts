@@ -7,6 +7,8 @@
 // Function secrets, synced by the deploy job from the GitHub secrets of the same name: KAPSO_API_KEY;
 // optional TELEGRAM_BOT_TOKEN and TELEGRAM_OPS_CHAT_ID (ops alerts), TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
 // TWILIO_FROM (voice layer), SENTRY_DSN (from SENTRY_DSN_FUNCTIONS); ADMIN_BASE_URL once the site exists.
+// Customer bot (session 4): ANTHROPIC_API_KEY (turns), OPENAI_API_KEY (voice transcription only, §3),
+// ORS_API_KEY (road routes for the delivery quote). Without a key that part is off, never faked.
 
 import { runDispatch, type SendResult } from "./handler.ts";
 import {
@@ -18,6 +20,9 @@ import {
   type TwilioConfig,
 } from "../_shared/twilio.ts";
 import { reportError } from "../_shared/sentry.ts";
+import { orsProvider, restRouteCache, roadRoutes } from "../_shared/routing.ts";
+import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts";
+import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
 
 // Kapso is reached only here (CLAUDE.md); never from configuration or message content.
 const KAPSO_BASE = "https://api.kapso.ai/meta/whatsapp/v24.0";
@@ -36,6 +41,151 @@ const twilio: TwilioConfig | null =
       }
     : null;
 const selfUrl = `${supabaseUrl}/functions/v1/dispatch`;
+
+// ---- Customer bot adapters --------------------------------------------------------------------------------
+const anthropicKey = env("ANTHROPIC_API_KEY");
+const openaiKey = env("OPENAI_API_KEY");
+const orsKey = env("ORS_API_KEY");
+const anthropic = anthropicKey ? new Anthropic({ apiKey: anthropicKey, maxRetries: 0 }) : null;
+
+async function callModel(req: ModelRequest): Promise<ModelResponse> {
+  const body = {
+    model: req.model,
+    max_tokens: req.maxTokens,
+    // The system prompt and the tool list never change between turns: cached (§6 cost model).
+    system: [
+      { type: "text" as const, text: req.system, cache_control: { type: "ephemeral" as const } },
+    ],
+    tools: req.tools as Anthropic.Tool[],
+    tool_choice: { type: "auto" as const },
+    messages: req.messages,
+  };
+  let msg: Anthropic.Message;
+  try {
+    msg = await anthropic!.messages.create(body, { timeout: req.timeoutMs });
+  } catch (e) {
+    // A model that does not take strict tool schemas gets the same tools without the flag; the server
+    // validates every input either way (turn.ts validate()).
+    if (e instanceof Anthropic.BadRequestError && /strict/i.test(e.message)) {
+      const tools = (req.tools as Record<string, unknown>[]).map(
+        ({ strict: _s, ...t }) => t,
+      ) as unknown as Anthropic.Tool[];
+      msg = await anthropic!.messages.create({ ...body, tools }, { timeout: req.timeoutMs });
+    } else throw e;
+  }
+  return {
+    content: msg.content.flatMap((b): ModelResponse["content"] =>
+      b.type === "text"
+        ? [{ type: "text", text: b.text }]
+        : b.type === "tool_use"
+          ? [{ type: "tool_use", id: b.id, name: b.name, input: b.input }]
+          : [],
+    ),
+    usage: { input_tokens: msg.usage.input_tokens, output_tokens: msg.usage.output_tokens },
+    stop_reason: msg.stop_reason,
+  };
+}
+
+async function transcribe(
+  audio: Uint8Array,
+  mime: string,
+  prompt: string,
+  model: string,
+): Promise<Transcript> {
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([new Uint8Array(audio)], { type: mime }),
+    mime.includes("ogg") ? "voice.ogg" : "voice.audio",
+  );
+  form.append("model", model);
+  form.append("prompt", prompt);
+  form.append("response_format", "json");
+  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { authorization: `Bearer ${openaiKey}` },
+    body: form,
+    signal: AbortSignal.timeout(25_000),
+  });
+  if (!res.ok) throw new Error(`openai transcription ${res.status}`);
+  const j = await res.json();
+  return {
+    text: String(j.text ?? ""),
+    seconds: j.usage?.seconds ?? j.duration ?? null,
+    model,
+    inputTokens: j.usage?.input_tokens,
+    outputTokens: j.usage?.output_tokens,
+  };
+}
+
+/**
+ * Inbound media (voice notes), at most maxBytes. The Kapso key is sent only to api.kapso.ai, never to the
+ * host of a redirect or of a signed media URL (review of #110); one redirect is followed, without the key.
+ */
+async function fetchMedia(
+  m: { url?: string | null; id?: string | null },
+  phoneNumberId: string,
+  maxBytes: number,
+) {
+  if (!kapsoKey) return null;
+  const isKapso = (u: string) =>
+    new URL(u).protocol === "https:" && new URL(u).host === "api.kapso.ai";
+  let url = m.url && isKapso(m.url) ? m.url : null;
+  if (!url && m.id) {
+    const r = await fetch(
+      `${KAPSO_BASE}/${encodeURIComponent(m.id)}?phone_number_id=${encodeURIComponent(phoneNumberId)}`,
+      {
+        headers: { "X-API-Key": kapsoKey },
+        redirect: "error",
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    if (!r.ok) return null;
+    url = (await r.json())?.url ?? null;
+  }
+  if (!url || !url.startsWith("https://")) return null;
+  let res = await fetch(url, {
+    headers: isKapso(url) ? { "X-API-Key": kapsoKey } : {},
+    redirect: "manual",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (res.status >= 300 && res.status < 400) {
+    const next = res.headers.get("location");
+    await res.body?.cancel();
+    if (!next) return null;
+    const to = new URL(next, url);
+    if (to.protocol !== "https:") return null;
+    res = await fetch(to, { redirect: "error", signal: AbortSignal.timeout(15_000) });
+  }
+  if (!res.ok) return null;
+  if (Number(res.headers.get("content-length") ?? 0) > maxBytes) {
+    await res.body?.cancel();
+    return null;
+  }
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > maxBytes) return null;
+  return { bytes, mime: res.headers.get("content-type")?.split(";")[0] || "audio/ogg" };
+}
+
+const routeCache = restRouteCache({ supabaseUrl, serviceKey });
+const routeProvider = orsKey ? orsProvider({ apiKey: orsKey }) : null;
+
+let configCache: { at: number; v: Record<string, unknown> } | null = null;
+async function botConfig() {
+  if (configCache && Date.now() - configCache.at < 60_000) return configCache.v;
+  const keys = [
+    "ai_customer_model",
+    "ai_escalation_model",
+    "ai_transcription_model",
+    "ai_turn_max_calls",
+    "ai_turn_max_ms",
+    "ai_low_confidence_handoff",
+  ];
+  const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
+  const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
+  configCache = { at: Date.now(), v };
+  return v;
+}
 
 const log = (msg: string, fields?: Record<string, string | number | boolean>) =>
   console.log(JSON.stringify({ fn: "dispatch", msg, ...fields }));
@@ -192,6 +342,34 @@ Deno.serve(async (req) => {
       telegram: telegramToken && telegramChat ? telegram : null,
       adminUrl: env("ADMIN_BASE_URL"),
       log,
+      budgetMs: 20_000,
+      customer: await (async () => {
+        const cfg = await botConfig();
+        const sender = (await rpc("whatsapp_sender", { p_audience: "customer" })) ?? "";
+        return {
+          model: anthropic ? callModel : null,
+          transcribe: openaiKey ? transcribe : null,
+          fetchMedia: (m: { url?: string | null; id?: string | null }) =>
+            fetchMedia(m, sender, 5_000_000),
+          route: async (o: { lat: number; lon: number }, d: { lat: number; lon: number }) =>
+            (
+              await roadRoutes(o, [d], {
+                cache: routeCache,
+                provider: routeProvider,
+                log: (msg, f) => log(msg, f as Record<string, string>),
+              })
+            )[0],
+          config: {
+            customerModel: String(cfg.ai_customer_model ?? "claude-haiku-4-5-20251001"),
+            escalationModel: String(cfg.ai_escalation_model ?? "claude-sonnet-5-5"),
+            transcriptionModel: String(cfg.ai_transcription_model ?? "gpt-4o-transcribe"),
+            maxCalls: Number(cfg.ai_turn_max_calls ?? 2),
+            turnMs: Number(cfg.ai_turn_max_ms ?? 8000),
+            lowConfidenceHandoff: Number(cfg.ai_low_confidence_handoff ?? 2),
+            voiceMaxBytes: 5_000_000,
+          },
+        };
+      })(),
     });
     return new Response(JSON.stringify(result), {
       headers: { "content-type": "application/json" },

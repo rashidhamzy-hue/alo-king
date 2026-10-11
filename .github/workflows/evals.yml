@@ -1,0 +1,36 @@
+name: evals
+
+# The customer AI eval (evals/customer/cases.jsonl) against the real models, on demand: the deterministic
+# cases already run in CI on every PR; this measures the model cases (tool choice and key arguments) per
+# language and model, with latency, into the run summary. Spends a few cents of API credit per run.
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: Space-separated model ids
+        default: "claude-haiku-4-5-20251001 claude-sonnet-5-5"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  customer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the customer eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODELS: ${{ inputs.models }}
+        run: |
+          [[ "$MODELS" =~ ^[a-z0-9.\ -]+$ ]] || { echo "::error::bad model list"; exit 1; }
+          node --experimental-strip-types scripts/evals/customer-eval.ts $MODELS | tee report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
