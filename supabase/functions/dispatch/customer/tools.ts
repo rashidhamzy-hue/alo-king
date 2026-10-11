@@ -9,6 +9,7 @@
 export type ToolName =
   | "search_vendors"
   | "show_menu"
+  | "dietary_menu"
   | "add_items"
   | "change_basket"
   | "show_basket"
@@ -51,6 +52,31 @@ export const BUSINESS_TYPES = [
   "other_food",
 ] as const;
 
+// DECISIONS §32.3: the twelve allergens (dairy = milk, nuts = tree nuts), diets and derived tags.
+export const ALLERGENS = [
+  "gluten",
+  "dairy",
+  "eggs",
+  "peanuts",
+  "nuts",
+  "sesame",
+  "soy",
+  "fish",
+  "shellfish",
+  "mustard",
+  "celery",
+  "sulphites",
+] as const;
+export const DIETS = ["vegan", "vegetarian", "siyami", "halal"] as const;
+export const NUTRITION_TAGS = [
+  "high_protein",
+  "low_carb",
+  "low_fat",
+  "low_sodium",
+  "sugar_free",
+  "no_added_sugar",
+] as const;
+
 export const TOOLS = [
   {
     name: "search_vendors",
@@ -74,6 +100,34 @@ export const TOOLS = [
     input_schema: obj({
       vendor_ref: str("A vendor ref from the context, e.g. v1"),
       query: nstr("Dish to look for at this place, or null for the menu"),
+    }),
+  },
+  {
+    name: "dietary_menu",
+    description:
+      "Show a place's items that fit a dietary need: free from allergens, a diet (vegan, siyami, halal...), calories or protein. Only what the place declared passes allergen and diet filters; never tell the customer an item is safe.",
+    input_schema: obj({
+      vendor_ref: str("A vendor ref from the context, e.g. v1"),
+      free_from: {
+        type: ["array", "null"],
+        items: { type: "string", enum: [...ALLERGENS] },
+        description: "Allergens the customer must avoid, or null",
+      },
+      diets: {
+        type: ["array", "null"],
+        items: { type: "string", enum: [...DIETS] },
+        description: "Diets the customer asked for, or null",
+      },
+      max_kcal: { type: ["number", "null"], description: "Most calories per serving, or null" },
+      min_protein_g: {
+        type: ["number", "null"],
+        description: "Least protein per serving in grams, or null",
+      },
+      tags: {
+        type: ["array", "null"],
+        items: { type: "string", enum: [...NUTRITION_TAGS] },
+        description: "Nutrition tags such as high_protein or low_carb, or null",
+      },
     }),
   },
   {
@@ -240,6 +294,13 @@ export const TOOL_CONTRACT: Record<
     idempotency: "read only",
     render: "list of up to 10 items with server prices",
   },
+  dietary_menu: {
+    rpc: ["menu_items_filter"],
+    auth: "vendor ref from this session",
+    states: "vendor orderable",
+    idempotency: "read only",
+    render: "list with ≈ estimated or ✓ declared labels and the merchant-declared allergen note",
+  },
   add_items: {
     rpc: ["vendor_menu", "menu_item_options", "basket_add_item"],
     auth: "own basket; item refs from this session",
@@ -345,7 +406,7 @@ How you work:
 - Quantities: "2 shawarma" = 2. Arabic number words count ("تنين" = 2, "tlete" = 3, "deux" = 2).
 - "Send it", "that's all", "خلص هيك", "c'est tout": checkout.
 - Addresses: the system asks for a WhatsApp location pin. If the customer describes a place in words, call find_address, and note_location for any landmark, building or street name they use.
-- Item flags come only from the merchant. Never say an item is safe for an allergy; say you can't confirm and suggest asking the shop.
+- Allergies, diets (vegan, siyami, halal), calories or protein at a place: dietary_menu. Item flags come only from the merchant. Never say an item is safe for an allergy; the system shows what the shop declared and suggests confirming with them.
 - If the customer wants a person, has a complaint or a refund, or you can't help: request_human.
 - If unsure what they want, reply with ONE short question and confidence "low".
 - Reply text: the customer's language (given in <context>), at most 2 short sentences, warm and plain. No markdown.

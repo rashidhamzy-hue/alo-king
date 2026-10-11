@@ -167,6 +167,24 @@ async function fetchMedia(
   return { bytes, mime: res.headers.get("content-type")?.split(";")[0] || "audio/ogg" };
 }
 
+/** The smart-menu model (§18.3): config `ai_menu_model`, one call per photo or PDF, JSON text back. */
+async function menuModel(
+  req: Parameters<import("../_shared/menu-draft.ts").MenuModel>[0],
+): Promise<string> {
+  const model = String((await rpc("config_value", { p_key: "ai_menu_model" })) ?? "");
+  if (!model) throw new Error("ai_menu_model is not configured");
+  const msg = await anthropic!.messages.create(
+    {
+      model,
+      max_tokens: 8000,
+      system: req.system,
+      messages: [{ role: "user", content: req.content as Anthropic.MessageParam["content"] }],
+    },
+    { timeout: 60_000 },
+  );
+  return msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+}
+
 /**
  * Claim documents (§18.1 C-L): the WhatsApp media is copied into the private `claim-documents` bucket
  * (service role only), so the review and the audit of G and I outlive WhatsApp's media retention.
@@ -374,6 +392,9 @@ Deno.serve(async (req) => {
         : null,
       // Claim codes to landlines (§18.1 B): the same voice provider, saying the code twice.
       storeDocument,
+      menuModel: anthropic ? menuModel : null,
+      fetchMenuMedia: (phoneNumberId: string, x: { id: string; url: string | null }) =>
+        fetchMedia(x, phoneNumberId, 5_000_000),
       voiceCode: twilio ? (to, script) => placeCall(twilio, to, sayTwiml(script)) : null,
       telegram: telegramToken && telegramChat ? telegram : null,
       adminUrl: env("ADMIN_BASE_URL"),

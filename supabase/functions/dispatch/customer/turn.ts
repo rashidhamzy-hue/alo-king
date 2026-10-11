@@ -29,6 +29,7 @@ import {
   cancelAsk,
   emptyQuestion,
   menuList,
+  dietaryList,
   optionList,
   summaryMessage,
   trackMessage,
@@ -41,7 +42,7 @@ import {
   type Quote,
   type Track,
 } from "./render.ts";
-import { SYSTEM_PROMPT, TOOLS, type ToolName } from "./tools.ts";
+import { ALLERGENS, DIETS, NUTRITION_TAGS, SYSTEM_PROMPT, TOOLS, type ToolName } from "./tools.ts";
 import { buttons } from "../../_shared/customer-cards.ts";
 
 type Msg = Record<string, unknown>;
@@ -615,6 +616,36 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   c.summary.push(`[showed ${menu.length} items from ${vendorRef}]`);
 }
 
+/** Items that fit a dietary need (§32.3): hard filters only on merchant declarations, labels on estimates. */
+async function dietaryMenu(c: Ctx, input: any) {
+  const v = c.s.refs[input.vendor_ref];
+  if (!v) return say(c, "pickPlaceFirst");
+  c.s.focus_vendor_id = v.id;
+  const rows: any[] =
+    (await c.deps.rpc("menu_items_filter", {
+      p_vendor_id: v.id,
+      p_free_from: input.free_from?.length ? input.free_from : null,
+      p_diets: input.diets?.length ? input.diets : null,
+      p_max_kcal: input.max_kcal ?? null,
+      p_min_protein_g: input.min_protein_g ?? null,
+      p_tags: input.tags?.length ? input.tags : null,
+      p_limit: 10,
+    })) ?? [];
+  resetRefs(c, "i");
+  const menu = rows.map((r) => ({
+    ...r,
+    orderable: true,
+    ref: refFor(c, "i", r.item_id, `${r.name_en ?? r.name_ar} $${Number(r.price_usd).toFixed(2)}`),
+  }));
+  push(
+    c,
+    ...dietaryList(c.m.from, c.s.lang, v.label.replace(/ \(.*\)$/, ""), menu, {
+      allergens: !!input.free_from?.length || !!input.diets?.length,
+    }),
+  );
+  c.summary.push(`[showed ${menu.length} items fitting the filters from ${input.vendor_ref}]`);
+}
+
 async function searchVendors(c: Ctx, query: string | null, businessType: string | null) {
   const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
   const rows: any[] =
@@ -1036,6 +1067,21 @@ export function validate(name: ToolName, input: any): boolean {
       return s(input.query, 120) && s(input.business_type, 40);
     case "show_menu":
       return ref(input.vendor_ref, "v") && s(input.query, 120);
+    case "dietary_menu": {
+      const arr = (v: unknown, allowed: readonly string[]) =>
+        v === null ||
+        (Array.isArray(v) && v.length <= 12 && v.every((x) => allowed.includes(String(x))));
+      const num = (v: unknown, max: number) =>
+        v === null || (typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= max);
+      return (
+        ref(input.vendor_ref, "v") &&
+        arr(input.free_from, ALLERGENS) &&
+        arr(input.diets, DIETS) &&
+        arr(input.tags, NUTRITION_TAGS) &&
+        num(input.max_kcal, 5000) &&
+        num(input.min_protein_g, 300)
+      );
+    }
     case "add_items":
       return (
         (input.vendor_ref === null || ref(input.vendor_ref, "v")) &&
@@ -1142,6 +1188,8 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
       return searchVendors(c, input.query, input.business_type);
     case "show_menu":
       return showMenu(c, input.vendor_ref, input.query);
+    case "dietary_menu":
+      return dietaryMenu(c, input);
     case "add_items": {
       const vref = input.vendor_ref ?? null;
       const vendorId = vref
