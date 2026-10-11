@@ -195,6 +195,7 @@ Each phase runs in a fresh claude.ai/code session on `rebuild/lebanon`. A big ph
 | 11 | Phase 7: simulator, evals, weekly capped live run, pilot scorecard | Sonnet 5.5 | medium | #67 |
 | 12 | Phase 8: offers, paid broadcast (Kapso Broadcasts API, §26), sponsored, insights, credit UI | Sonnet 5.5 | high | none |
 | 13 | Security review: webhooks, RLS, tracking links, money paths | Fable 5.1 | max | sessions 1–12 merged |
+| D | Data finalisation (§31): final places list, vendor file and every data fix in one run, before cut-over | Opus 5.5 | high | Rasheed's final village and vendor files |
 | 14 | Pilot cut-over: production project, numbers live, go-live checklist | Opus 5.5 | high | Supabase Pro, Vercel Pro, Kapso Pro, lawyer letter |
 
 A session whose "needs first" item is missing still runs: it builds against mocks and the sandbox, and switches on the live part in a later run (§25). Haiku 4.5 is never used for building; it is the runtime model only. A planning conversation (claude.ai Project chat, no code) uses Opus 5.5 at medium effort.
@@ -1114,6 +1115,17 @@ Rasheed offered to help vendors personally. That is a real advantage over Toters
 
 ### 30.8 Build placement
 These items join the sessions named in brackets above. Session count stays at 12 remaining (3–14), with sessions 3, 4 and 12 the heaviest; any of them may split into two PRs or two runs.
+
+## 31. Data freeze until the finalisation run (DECIDED, 11 October 08:00)
+Rasheed's rule: the places list (§16), the vendor import (§15) and every derived location or vendor dataset stay **exactly as they are on staging now** until the data finalisation session (session D in §10), which runs once, before the pilot cut-over, with his finalised village and vendor files. Reason: one places run cost about 59% of a session's budget; the data will be replaced anyway.
+- Build sessions **must not**:
+  - run `places-build` (it stays manual, `workflow_dispatch` only) or the vendor import
+  - edit anything under `supabase/seed/places/`, `supabase/seed/vendors/`, `scripts/places/` or `scripts/vendors/`
+  - rename or restructure the places, zones, districts, aliases, landmarks or vendor tables or their columns
+  - fix individual place or vendor records
+- A data problem found during a build session gets one line in `docs/decisions/DATA-ISSUES.md` (what, where, example), and the session moves on. Session D fixes the whole list.
+- New features use the existing tables and columns as they are. New tables that *reference* places or vendors are fine. If a feature truly needs a new column on a frozen table, it is added in a new migration with a default, without touching existing rows, and logged in `LOG.md`.
+- CI adds a guard: a PR touching the frozen paths fails unless its title starts with `Data:` (reserved for session D).
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).

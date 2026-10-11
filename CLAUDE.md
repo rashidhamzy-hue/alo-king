@@ -24,6 +24,9 @@ Never read or change Supabase project `kabsi-prod` (`ynjdqjlmdwjgbfezevxy`), Sen
 - Before finishing: run lint, typecheck, tests and build; report what ran and what failed.
 - Never ask the owner. Decide per DECISIONS.md, log each judgement call as one line in `docs/decisions/LOG.md`, and continue. Anything only the owner can do (sign, pay, verify identity, use his accounts) becomes a GitHub issue labelled `owner` with exact click steps; keep working on everything else (DECISIONS §25). The owner runs no manual tests.
 
+## Data freeze (DECISIONS §31)
+Do not run `places-build` or the vendor import, and do not edit `supabase/seed/places/`, `supabase/seed/vendors/`, `scripts/places/`, `scripts/vendors/` or the structure of the places and vendor tables. Log data problems in `docs/decisions/DATA-ISSUES.md` and move on; the data finalisation session fixes them before cut-over.
+
 ## Product rules (apply to every change)
 - Server-side money: prices, fees, totals, COD cap and commissions come from the database. Never trust a price from the client, a WhatsApp message or the AI.
 - One append-only ledger: payments, refunds, COD cash, fees, settlements and merchant credit are ledger entries; balances are views, never edited (DECISIONS §20).
