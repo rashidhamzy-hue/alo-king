@@ -339,6 +339,8 @@ Deno.serve(async (req) => {
               ),
             )
         : null,
+      // Claim codes to landlines (§18.1 B): the same voice provider, saying the code twice.
+      voiceCode: twilio ? (to, script) => placeCall(twilio, to, sayTwiml(script)) : null,
       telegram: telegramToken && telegramChat ? telegram : null,
       adminUrl: env("ADMIN_BASE_URL"),
       log,

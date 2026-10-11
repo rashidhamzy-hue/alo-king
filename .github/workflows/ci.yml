@@ -212,11 +212,7 @@ jobs:
           # posted as a PR comment tagged with this exact head commit, stands in for it on every PR.
           echo "::warning::Claude review produced no verdict (action outcome: $CLAUDE_OUTCOME)."
           # The base branch's copy of the script decides, so a PR cannot loosen its own stand-in gate.
-          if git cat-file -e "$BASE_SHA:scripts/self-review.sh" 2>/dev/null; then
-            git show "$BASE_SHA:scripts/self-review.sh" > /tmp/self-review.sh
-          else
-            cp scripts/self-review.sh /tmp/self-review.sh
-          fi
+          git show "$BASE_SHA:scripts/self-review.sh" > /tmp/self-review.sh || : > /tmp/self-review.sh
           if [ "$(bash /tmp/self-review.sh "$HEAD_SHA")" = "approved" ]; then
             echo "::notice::Accepted the pr-reviewer self-review for $HEAD_SHA (DECISIONS §32.7)."
             exit 0

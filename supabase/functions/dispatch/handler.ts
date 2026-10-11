@@ -26,6 +26,8 @@ import {
 import { clampInteractive } from "../_shared/meta-limits.ts";
 import { afterSunset, customerStatusMessages } from "../_shared/customer-cards.ts";
 import { handleCustomerTurn, readCustomerInbound, type CustomerDeps } from "./customer/turn.ts";
+import { handleOnboarding, readOnboardingInbound } from "./merchant/onboarding.ts";
+import { parseOnboardingTap } from "../_shared/onboarding-cards.ts";
 import {
   nextBeirutTime,
   parseMerchantCommand,
@@ -46,6 +48,8 @@ export type DispatchDeps = {
   now?: () => Date;
   budgetMs?: number;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
+  /** Reads a claim code to a landline by phone call (§18.1 B); null when no voice provider is configured. */
+  voiceCode?: ((to: string, script: string) => Promise<SendResult>) | null;
   /** The customer bot's model, transcription, media and routing (session 4); null = customers are ignored. */
   customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
 };
@@ -310,9 +314,29 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     return "done"; // statuses and other events: nothing to do here (quality events are classified in the database)
   }
   const m = readInbound(ev.payload);
-  if (!m) return "ignored";
+  const o = readOnboardingInbound(ev.payload);
+  if (!m || !o) return "ignored";
   const members: any[] =
     (await deps.rpc("merchant_members_by_phone", { p_phone_e164: m.from })) ?? [];
+  // Claims and registration (§18.1): a non-member who asks to join or is mid-onboarding, and the answers
+  // to our own claim cards (objection, lost-phone confirmation), which go to members.
+  const ot = parseOnboardingTap(o.buttonId);
+  if (!members.length || ot?.a === "object" || ot?.a === "recover") {
+    const from = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+    if (
+      from &&
+      (await handleOnboarding(
+        {
+          rpc: deps.rpc,
+          send: (p) => deps.whatsapp(from, p),
+          voiceCode: deps.voiceCode ?? null,
+          log: deps.log,
+        },
+        o,
+      ))
+    )
+      return "done";
+  }
   if (!members.length) return customerInbound(deps, ev);
   const reply = (body: string | Record<string, unknown>) =>
     deps.rpc("app_reply", {
