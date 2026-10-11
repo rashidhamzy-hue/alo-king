@@ -1,0 +1,104 @@
+{"id": "loc-001", "lang": "ar", "text": "أنا ببعقلين حد الساحة", "expect": ["LB-CHF-BAAKLINE"]}
+{"id": "loc-002", "lang": "arabizi", "text": "ana b ba3aleen 7ad el sa7a", "expect": ["LB-CHF-BAAKLINE"]}
+{"id": "loc-003", "lang": "en", "text": "Baakline, near the main square", "expect": ["LB-CHF-BAAKLINE"]}
+{"id": "loc-004", "lang": "fr", "text": "Je suis à Baaqline près de la place", "expect": ["LB-CHF-BAAKLINE"]}
+{"id": "loc-005", "lang": "arabizi", "text": "b ba3qlin, ta7t el jame3", "expect": ["LB-CHF-BAAKLINE"]}
+{"id": "loc-006", "lang": "ar", "text": "بقعاتا، بناية الحاج تالت طابق", "expect": ["LB-CHF-BAKAATA"]}
+{"id": "loc-007", "lang": "arabizi", "text": "b2aata, bineyet el 7aj", "expect": ["LB-CHF-BAKAATA"]}
+{"id": "loc-008", "lang": "en", "text": "Bkaata, 3rd floor", "expect": ["LB-CHF-BAKAATA"]}
+{"id": "loc-009", "lang": "ar", "text": "بالسمقانية حد الكنيسة", "expect": ["LB-CHF-SEMQANIEH"]}
+{"id": "loc-010", "lang": "arabizi", "text": "smaqanieh 7ad el knise", "expect": ["LB-CHF-SEMQANIEH"]}
+{"id": "loc-011", "lang": "en", "text": "Simkanieh, next to the church", "expect": ["LB-CHF-SEMQANIEH"]}
+{"id": "loc-012", "lang": "ar", "text": "بيت الدين قبال القصر", "expect": ["LB-CHF-BEITEDDINE"]}
+{"id": "loc-013", "lang": "fr", "text": "Beit el Din, en face du palais", "expect": ["LB-CHF-BEITEDDINE"]}
+{"id": "loc-014", "lang": "arabizi", "text": "bteddine 2bel el asr", "expect": ["LB-CHF-BEITEDDINE"]}
+{"id": "loc-015", "lang": "ar", "text": "كفرحيم الطريق العام", "expect": ["LB-CHF-KFARHIM"]}
+{"id": "loc-016", "lang": "arabizi", "text": "kfarheem el tari2 el 3am", "expect": ["LB-CHF-KFARHIM"]}
+{"id": "loc-017", "lang": "ar", "text": "المختارة حد السراي", "expect": ["LB-CHF-MOUKHTARA"]}
+{"id": "loc-018", "lang": "en", "text": "Mokhtara near the palace", "expect": ["LB-CHF-MOUKHTARA"]}
+{"id": "loc-019", "lang": "ar", "text": "الدامور عالأوتوستراد", "expect": ["LB-CHF-DAMOUR"]}
+{"id": "loc-020", "lang": "en", "text": "Damour highway, Total station", "expect": ["LB-CHF-DAMOUR"]}
+{"id": "loc-021", "lang": "ar", "text": "الناعمة", "expect": ["LB-CHF-NAAMEH"]}
+{"id": "loc-022", "lang": "arabizi", "text": "na3me", "expect": ["LB-CHF-NAAMEH"]}
+{"id": "loc-023", "lang": "ar", "text": "الباروك حد الأرز", "expect": ["LB-CHF-BAROUK"]}
+{"id": "loc-024", "lang": "ar", "text": "عين زحلتا", "expect": ["LB-CHF-AIN-ZHALTA"]}
+{"id": "loc-025", "lang": "en", "text": "Ain Zhalta", "expect": ["LB-CHF-AIN-ZHALTA"]}
+{"id": "loc-026", "lang": "ar", "text": "بتلون", "expect": ["LB-CHF-BATLOUN"]}
+{"id": "loc-027", "lang": "ar", "text": "شحيم الساحة", "expect": ["LB-CHF-SHAHIM"]}
+{"id": "loc-028", "lang": "arabizi", "text": "chehim", "expect": ["LB-CHF-SHAHIM"]}
+{"id": "loc-029", "lang": "ar", "text": "برجا", "expect": ["LB-CHF-BARJA"]}
+{"id": "loc-030", "lang": "ar", "text": "الجية حد المعمل", "expect": ["LB-CHF-JIEH"]}
+{"id": "loc-031", "lang": "ar", "text": "معاصر الشوف", "expect": ["LB-CHF-MAASSER-EL-SHOUF"]}
+{"id": "loc-032", "lang": "ar", "text": "عاليه السوق", "expect": ["LB-ALY-ALEY"]}
+{"id": "loc-033", "lang": "en", "text": "Aley main road", "expect": ["LB-ALY-ALEY"]}
+{"id": "loc-034", "lang": "ar", "text": "دوحة عرمون", "expect": ["LB-ALY-DAWHA-ARAMOUN"]}
+{"id": "loc-035", "lang": "en", "text": "Doha Aramoun, near the roundabout", "expect": ["LB-ALY-DAWHA-ARAMOUN"]}
+{"id": "loc-036", "lang": "ar", "text": "بشامون المدارس", "expect": ["LB-ALY-BESHAMOUN"]}
+{"id": "loc-037", "lang": "arabizi", "text": "bchamoun", "expect": ["LB-ALY-BESHAMOUN"]}
+{"id": "loc-038", "lang": "ar", "text": "بحمدون", "expect": ["LB-ALY-BHAMDOUN", "LB-ALY-BHAMDOUN-AL-MAHATTA"]}
+{"id": "loc-039", "lang": "ar", "text": "خلدة", "expect": ["LB-ALY-KHALDE"]}
+{"id": "loc-040", "lang": "ar", "text": "سوق الغرب", "expect": ["LB-ALY-SOUK-EL-GHARB"]}
+{"id": "loc-041", "lang": "ar", "text": "الكحالة", "expect": ["LB-ALY-KAHALE"]}
+{"id": "loc-042", "lang": "ar", "text": "الأشرفية ساسين", "expect": ["LB-BEY-ACHRAFIEH"]}
+{"id": "loc-043", "lang": "en", "text": "Ashrafieh, Sassine", "expect": ["LB-BEY-ACHRAFIEH"]}
+{"id": "loc-044", "lang": "fr", "text": "Achrafiyé, rue Monnot", "expect": ["LB-BEY-ACHRAFIEH"]}
+{"id": "loc-045", "lang": "arabizi", "text": "ashrafiyeh 7ad sassine", "expect": ["LB-BEY-ACHRAFIEH"]}
+{"id": "loc-046", "lang": "en", "text": "Mar Mikhael, Armenia street", "expect": ["LB-BEY-MAR-MIKHAEL"]}
+{"id": "loc-047", "lang": "ar", "text": "مار مخايل", "expect": ["LB-BEY-MAR-MIKHAEL"]}
+{"id": "loc-048", "lang": "en", "text": "Gemmayzeh", "expect": ["LB-BEY-GEMMAYZEH"]}
+{"id": "loc-049", "lang": "ar", "text": "الجميزة", "expect": ["LB-BEY-GEMMAYZEH"]}
+{"id": "loc-050", "lang": "en", "text": "Verdun, near the mall", "expect": ["LB-BEY-VERDUN"]}
+{"id": "loc-051", "lang": "fr", "text": "Ras Beyrouth", "expect": ["LB-BEY-RAS-BEIRUT"]}
+{"id": "loc-052", "lang": "ar", "text": "راس بيروت", "expect": ["LB-BEY-RAS-BEIRUT"]}
+{"id": "loc-053", "lang": "ar", "text": "فرن الحايك", "expect": ["LB-BEY-FURN-EL-HAYEK"]}
+{"id": "loc-054", "lang": "ar", "text": "بعبدا", "expect": ["LB-BAB-BAABDA"]}
+{"id": "loc-055", "lang": "ar", "text": "الحازمية مار تقلا", "expect": ["LB-BAB-HAZMIEH"]}
+{"id": "loc-056", "lang": "en", "text": "Hazmieh", "expect": ["LB-BAB-HAZMIEH"]}
+{"id": "loc-057", "lang": "ar", "text": "الحدث", "expect": ["LB-BAB-HADATH"]}
+{"id": "loc-058", "lang": "en", "text": "Furn el Chebbak", "expect": ["LB-BAB-FORN-EL-CHEBBAK"]}
+{"id": "loc-059", "lang": "ar", "text": "الشياح", "expect": ["LB-BAB-CHIYAH"]}
+{"id": "loc-060", "lang": "ar", "text": "برج البراجنة", "expect": ["LB-BAB-BURJ-EL-BRAJNEH"]}
+{"id": "loc-061", "lang": "ar", "text": "حمانا", "expect": ["LB-BAB-HAMMANA"]}
+{"id": "loc-062", "lang": "ar", "text": "يرزة", "expect": ["LB-BAB-YARZEH"]}
+{"id": "loc-063", "lang": "ar", "text": "كفرشيما", "expect": ["LB-BAB-KFARSHIMA"]}
+{"id": "loc-064", "lang": "ar", "text": "برج حمود", "expect": ["LB-MTN-BURJ-HAMMOUD"]}
+{"id": "loc-065", "lang": "en", "text": "Bourj Hammoud", "expect": ["LB-MTN-BURJ-HAMMOUD"]}
+{"id": "loc-066", "lang": "ar", "text": "الدورة", "expect": ["LB-MTN-DORA"]}
+{"id": "loc-067", "lang": "en", "text": "Dora roundabout", "expect": ["LB-MTN-DORA"]}
+{"id": "loc-068", "lang": "ar", "text": "سن الفيل", "expect": ["LB-MTN-SINN-EL-FIL"]}
+{"id": "loc-069", "lang": "ar", "text": "الدكوانة", "expect": ["LB-MTN-DEKWANEH"]}
+{"id": "loc-070", "lang": "ar", "text": "جل الديب", "expect": ["LB-MTN-JAL-EL-DIB"]}
+{"id": "loc-071", "lang": "ar", "text": "أنطلياس", "expect": ["LB-MTN-ANTELIAS"]}
+{"id": "loc-072", "lang": "en", "text": "Antelias", "expect": ["LB-MTN-ANTELIAS"]}
+{"id": "loc-073", "lang": "ar", "text": "بكفيا", "expect": ["LB-MTN-BIKFAYA"]}
+{"id": "loc-074", "lang": "arabizi", "text": "bekfaya", "expect": ["LB-MTN-BIKFAYA"]}
+{"id": "loc-075", "lang": "ar", "text": "برمانا", "expect": ["LB-MTN-BROUMANA"]}
+{"id": "loc-076", "lang": "ar", "text": "بيت مري", "expect": ["LB-MTN-BEIT-MERY"]}
+{"id": "loc-077", "lang": "ar", "text": "المنصورية", "expect": ["LB-MTN-MANSOURIEH"]}
+{"id": "loc-078", "lang": "ar", "text": "ضهور الشوير", "expect": ["LB-MTN-DHOUR-EL-CHOUEIR"]}
+{"id": "loc-079", "lang": "ar", "text": "بسكنتا", "expect": ["LB-MTN-BASKINTA"]}
+{"id": "loc-080", "lang": "ar", "text": "الفنار", "expect": ["LB-MTN-FANAR"]}
+{"id": "loc-081", "lang": "ar", "text": "الضبية", "expect": ["LB-MTN-DBAYEH"]}
+{"id": "loc-082", "lang": "ar", "text": "جونية", "expect": ["LB-KSR-JOUNIEH"]}
+{"id": "loc-083", "lang": "fr", "text": "Jounié, près du port", "expect": ["LB-KSR-JOUNIEH"]}
+{"id": "loc-084", "lang": "ar", "text": "الكسليك", "expect": ["LB-KSR-KASLIK"]}
+{"id": "loc-085", "lang": "ar", "text": "ذوق مكايل", "expect": ["LB-KSR-ZOUK-MIKAEL"]}
+{"id": "loc-086", "lang": "ar", "text": "ذوق مصبح", "expect": ["LB-KSR-ZOUK-MOSBEH"]}
+{"id": "loc-087", "lang": "ar", "text": "فاريا", "expect": ["LB-KSR-FARAYA", "LB-KSR-MZAAR"]}
+{"id": "loc-088", "lang": "en", "text": "Mzaar", "expect": ["LB-KSR-MZAAR"]}
+{"id": "loc-089", "lang": "ar", "text": "كفردبيان", "expect": ["LB-KSR-KFARDEBIAN"]}
+{"id": "loc-090", "lang": "ar", "text": "غزير", "expect": ["LB-KSR-GHAZIR"]}
+{"id": "loc-091", "lang": "ar", "text": "حريصا", "expect": ["LB-KSR-HARISSA"]}
+{"id": "loc-092", "lang": "ar", "text": "عجلتون", "expect": ["LB-KSR-AJALTOUN"]}
+{"id": "loc-093", "lang": "ar", "text": "جبيل", "expect": ["LB-JBL-BYBLOS"]}
+{"id": "loc-094", "lang": "en", "text": "Byblos old souk", "expect": ["LB-JBL-BYBLOS"]}
+{"id": "loc-095", "lang": "ar", "text": "عمشيت", "expect": ["LB-JBL-AAMCHIT"]}
+{"id": "loc-096", "lang": "ar", "text": "البترون", "expect": ["LB-BAT-BATROUN"]}
+{"id": "loc-097", "lang": "ar", "text": "طرابلس", "expect": ["LB-TRP-TRIPOLI"]}
+{"id": "loc-098", "lang": "en", "text": "Tripoli", "expect": ["LB-TRP-TRIPOLI"]}
+{"id": "loc-099", "lang": "ar", "text": "زحلة البولفار", "expect": ["LB-ZHL-ZAHLE"]}
+{"id": "loc-100", "lang": "en", "text": "Zahle", "expect": ["LB-ZHL-ZAHLE"]}
+{"id": "loc-101", "lang": "ar", "text": "شتورا", "expect": ["LB-ZHL-CHTOURA"]}
+{"id": "loc-102", "lang": "ar", "text": "إهدن", "expect": ["LB-ZGH-EHDEN"]}
+{"id": "loc-103", "lang": "ar", "text": "بشري", "expect": ["LB-BSH-BSHARRI"]}
+{"id": "loc-104", "lang": "en", "text": "Bcharre", "expect": ["LB-BSH-BSHARRI"]}

@@ -1,0 +1,73 @@
+name: kapso-webhook
+
+# Registers the Kapso webhook for the Alo King sandbox number (DECISIONS §3; phone number id 597907523413541)
+# so real phones can talk to the bot on staging. Run by hand (workflow_dispatch); safe to re-run: it removes
+# any earlier webhook pointing at the same URL, creates a fresh one, and writes its signing secret straight
+# into the Supabase function secret KAPSO_WEBHOOK_SECRET. The secret is masked and never printed.
+# Kapso is reached only at https://api.kapso.ai (CLAUDE.md). Nothing here touches production.
+on:
+  workflow_dispatch:
+    inputs:
+      phone_number_id:
+        description: Kapso phone number id (the sandbox until the pilot cut-over)
+        default: "597907523413541"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kapso-webhook
+  cancel-in-progress: false
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      PHONE_NUMBER_ID: ${{ inputs.phone_number_id }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Refuse anything but the staging project
+        run: |
+          [ "$SUPABASE_PROJECT_REF" = "tzugbbatfbvrfzxuacqx" ] || { echo "::error::only alo-king-staging"; exit 1; }
+          [[ "$PHONE_NUMBER_ID" =~ ^[0-9]{6,20}$ ]] || { echo "::error::bad phone number id"; exit 1; }
+      - name: Replace the webhook and store its secret
+        run: |
+          set -euo pipefail
+          api="https://api.kapso.ai/platform/v1/whatsapp/phone_numbers/${PHONE_NUMBER_ID}/webhooks"
+          url="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/whatsapp-webhook?forceFunctionRegion=eu-central-1"
+          k() { curl -fsS --proto '=https' --max-redirs 0 -H "X-API-Key: $KAPSO_API_KEY" -H 'content-type: application/json' "$@"; }
+
+          # Earlier webhooks for the same URL are removed, so only one signs with the current secret.
+          for id in $(k "$api" | jq -r --arg u "$url" '(.data // .) | (if type=="array" then . else [] end) | .[] | select(.url == $u) | .id'); do
+            k -X DELETE "$api/$id" >/dev/null
+            echo "removed earlier webhook $id"
+          done
+
+          body=$(jq -n --arg u "$url" '{whatsapp_webhook: {url: $u, kind: "kapso", payload_version: "v2", active: true,
+            buffer_enabled: false,
+            events: ["whatsapp.message.received", "whatsapp.message.sent", "whatsapp.message.delivered",
+                     "whatsapp.message.read", "whatsapp.message.failed"]}}')
+          umask 077
+          k -X POST "$api" -d "$body" > created.json
+          secret=$(jq -r '(.data // .) | .secret_key // empty' created.json)
+          id=$(jq -r '(.data // .) | .id // empty' created.json)
+          rm -f created.json
+          [ -n "$secret" ] || { echo "::error::Kapso returned no secret_key"; exit 1; }
+          echo "::add-mask::$secret"
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "KAPSO_WEBHOOK_SECRET=$secret" >/dev/null
+          echo "webhook $id registered for $url; KAPSO_WEBHOOK_SECRET updated (the function picks it up on its next start)"
+      - name: Check the webhook answers (an unsigned request must be refused)
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            "https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/whatsapp-webhook?forceFunctionRegion=eu-central-1" \
+            -H 'content-type: application/json' -d '{}')
+          echo "unsigned request answered $code"
+          [ "$code" = "401" ] || [ "$code" = "403" ] || { echo "::error::expected 401/403 for an unsigned request, got $code"; exit 1; }

@@ -34,5 +34,10 @@ if [ -f supabase/seed/places/places.csv ] || ls supabase/seed/vendors/source/*.c
     n=$(echo "$out" | grep -c 'NOTICE:  ok - ' || true)
     echo "pass seed/$(basename "$f") ($n checks)"
   done
+  # Location eval (§28.5): resolve_location on the real places list; fails below 90% top-3.
+  if [ -f supabase/seed/places/places.csv ]; then
+    DB_URL="$DB_URL" scripts/evals/location-eval.sh >/tmp/location-eval.txt 2>&1 && echo "pass location eval: $(grep -o 'top-3 [0-9.]*' /tmp/location-eval.txt)" \
+      || { cat /tmp/location-eval.txt; echo "FAIL location eval"; fail=1; }
+  fi
 fi
 exit "$fail"

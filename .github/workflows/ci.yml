@@ -296,9 +296,12 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
         run: |
           args=()
-          for k in KAPSO_API_KEY TELEGRAM_BOT_TOKEN TELEGRAM_OPS_CHAT_ID SENTRY_DSN TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM; do
+          for k in KAPSO_API_KEY TELEGRAM_BOT_TOKEN TELEGRAM_OPS_CHAT_ID SENTRY_DSN TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM ANTHROPIC_API_KEY OPENAI_API_KEY ORS_API_KEY; do
             v="${!k:-}"
             if [ -n "$v" ]; then args+=("$k=$v"); fi
           done
