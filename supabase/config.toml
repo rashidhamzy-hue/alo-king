@@ -20,3 +20,5 @@ verify_jwt = false
 # Authenticated by the dispatch secret (pg_cron), the service-role bearer (whatsapp-webhook) or Twilio's
 # signature (call keypresses), not a Supabase JWT.
 verify_jwt = false
+# The Noto fonts the visual order card is rendered with (§32.5), read at runtime.
+static_files = ["./functions/_shared/fonts/*.ttf"]

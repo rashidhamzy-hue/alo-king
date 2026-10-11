@@ -19,7 +19,9 @@ import {
   reactivateCard,
   readyCheckCard,
   rejectReasonList,
+  shiftHandoverText,
   textMessage,
+  type Handover,
   type Lang,
   type OrderCardData,
 } from "../_shared/merchant-cards.ts";
@@ -30,6 +32,7 @@ import { handleOnboarding, readOnboardingInbound } from "./merchant/onboarding.t
 import { parseOnboardingTap } from "../_shared/onboarding-cards.ts";
 import { handleMerchantMenu } from "./merchant/menu.ts";
 import { handleMerchantFlows } from "./merchant/flows.ts";
+import { orderCardImageMessage, orderCardSvg } from "../_shared/order-card-image.ts";
 import { parseFlowReply } from "../_shared/flows.ts";
 import type { MenuModel } from "../_shared/menu-draft.ts";
 import {
@@ -71,6 +74,8 @@ export type DispatchDeps = {
         claimId: string,
       ) => Promise<string | null>)
     | null;
+  /** Renders the gold order card SVG and uploads it as WhatsApp media (§32.5); returns the media id. */
+  orderCard?: ((phoneNumberId: string, svg: string) => Promise<string | null>) | null;
   /** The customer bot's model, transcription, media and routing (session 4); null = customers are ignored. */
   customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
 };
@@ -88,6 +93,7 @@ type Outbox = {
 };
 
 const MAX_ATTEMPTS = 3;
+const ORDER_CARD_MS = 6000;
 const E164 = /^\+[1-9][0-9]{6,14}$/;
 
 export async function runDispatch(
@@ -235,6 +241,31 @@ async function deliverCustomer(
   });
   if (!payloads.length)
     return { status: "skipped", error: `nothing to send for ${String(p.kind)}` };
+  // The gold order card goes before the confirmation text (§32.5); without it the text alone is sent.
+  if (p.kind === "accepted" && m.order_id && deps.orderCard && m.attempts <= 1) {
+    const step = async () => {
+      const card = await deps.rpc("order_card_image", { p_order_id: m.order_id });
+      if (!card?.code) return null;
+      const media = await deps.orderCard!(
+        from,
+        orderCardSvg(card, p.lang === "ar" || p.lang === "arabizi" ? "ar" : "en"),
+      );
+      return media ? orderCardImageMessage(m.target as string, media, card.code) : null;
+    };
+    // The text must never wait on the image: the card gets ORDER_CARD_MS, then it is skipped.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const msg = await Promise.race([
+        step(),
+        new Promise<null>((resolve) => (timer = setTimeout(() => resolve(null), ORDER_CARD_MS))),
+      ]);
+      if (msg) await deps.whatsapp(from, msg);
+    } catch (e) {
+      deps.log?.("order card failed", { error: String(e).slice(0, 120) });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   let ref: string | undefined;
   for (const x of payloads) {
     const r = await deps.whatsapp(from, clampInteractive(x));
@@ -367,6 +398,18 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
       return "done";
   }
   if (!members.length) return customerInbound(deps, ev);
+  // Shift handover (§32.5): a staff member's first message of a shift gets the open orders, items off and
+  // open complaints before anything else.
+  const touched = await deps
+    .rpc("staff_shift_touch", { p_phone_e164: m.from })
+    .catch((e: unknown) => deps.log?.("shift touch failed", { error: String(e).slice(0, 120) }));
+  const handovers: Handover[] = Array.isArray(touched) ? touched : [];
+  for (const h of handovers)
+    await deps.rpc("app_reply", {
+      p_to: m.from,
+      p_payload: { text: shiftHandoverText(m.from, h).text.body },
+      p_ref: `${m.messageId}:handover:${String((h as any).vendor_id ?? "")}`,
+    });
   const reply = (body: string | Record<string, unknown>) =>
     deps.rpc("app_reply", {
       p_to: m.from,
@@ -465,6 +508,9 @@ export const HELP = [
   "• «خلصت الكنافة» / «knefe back»",
   "• «سعر الكنافة 3.5»",
   "• «رصيدي» / «balance»",
+  "• «ما في كهربا» / «power back»",
+  "• «capacity 8» · «same price»",
+  "• «add Ali as kitchen +961…» / «remove Ali»",
 ].join("\n");
 
 async function handleTap(
@@ -604,11 +650,23 @@ async function handleTap(
     }
     case "proposal": {
       const member = await memberFor({ p_proposal_id: action.proposalId });
+      // A tap from a phone that is no longer a member of that branch is never applied as the system.
+      if (!member) return reply("⚠️ ما فيك تأكد هالتغيير");
       const r = await safe("merchant_proposal_decide", {
         p_proposal_id: action.proposalId,
         p_confirm: action.confirm,
         p_member_id: member,
       });
+      if (r.status === "confirmed" && r.kind === "power_off")
+        return reply(
+          Number(r.hidden) > 0
+            ? `🔌 خبّينا ${r.hidden} صنف لحد ما ترجع الكهربا. ابعت «رجعت الكهربا» لترجّعهن. / ${r.hidden} items hidden; send “power back” to restore them.`
+            : "🔌 ما في أصناف معلّمة إنها بدها كهربا. علّمها: «<الصنف> بدو كهربا». / No items are tagged as needing power; send “<item> needs power”.",
+        );
+      if (r.status === "confirmed" && r.kind === "power_on")
+        return reply(
+          `💡 رجّعنا ${Number(r.restored ?? 0)} صنف. / ${Number(r.restored ?? 0)} items are back.`,
+        );
       return reply(
         r.status === "confirmed"
           ? "✅ تم"
@@ -631,13 +689,29 @@ async function handleCommand(
 ) {
   const now = deps.now?.() ?? new Date();
   const propose = async (kind: string, payload: Record<string, unknown>, summary: string) => {
-    const id = await deps.rpc("merchant_proposal_create", {
-      p_vendor_id: member.vendor_id,
-      p_kind: kind,
-      p_payload: payload,
-      p_source: "rules",
-      p_member_id: member.member_id,
-    });
+    let id: string;
+    try {
+      id = await deps.rpc("merchant_proposal_create", {
+        p_vendor_id: member.vendor_id,
+        p_kind: kind,
+        p_payload: payload,
+        p_source: "rules",
+        p_member_id: member.member_id,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/not allowed/.test(msg))
+        return reply(
+          kind.startsWith("staff")
+            ? "👤 الموظفين بيزيدهن ويشيلهن صاحب المحل بس. / Only the owner adds or removes staff."
+            : "⚠️ هيدا التغيير لصاحب المحل أو المدير. / This change is for the owner or a manager.",
+        );
+      if (/owner of this branch|unknown staff|an owner is not removed/.test(msg))
+        return reply(
+          "⚠️ ما فينا نغيّر صاحب المحل من هون. / The owner can't be changed by message.",
+        );
+      throw e;
+    }
     return reply({
       type: "interactive",
       interactive: proposalCard(m.from, id, summary, "ar").interactive,
@@ -702,5 +776,135 @@ async function handleCommand(
     }
     case "top_up":
       return reply("💳 شحن الرصيد بـ Whish رح يكون متوفر قريباً. رح نبعتلك رابط الدفع هون.");
+    // Merchant WhatsApp extras (§32.5): each is a proposal the merchant confirms with a tap.
+    case "power_off":
+      return propose(
+        "power_off",
+        {},
+        "🔌 ما في كهربا: نخبّي الأصناف اللي بدها كهربا لحد ما ترجع؟ / No power: hide the items that need power until it's back?",
+      );
+    case "power_on":
+      return propose(
+        "power_on",
+        {},
+        "💡 رجعت الكهربا: نرجّع الأصناف؟ / Power back: show those items again?",
+      );
+    case "needs_power": {
+      const it = await item(cmd.item);
+      if (!it) return reply(`ما لقيت «${cmd.item}» بالمنيو. اكتب الاسم متل ما هو بالمنيو.`);
+      return propose(
+        "needs_power",
+        { item_id: it.item_id, on: cmd.on },
+        cmd.on
+          ? `🔌 «${it.name}» بدو كهربا (بيتخبّى وقت تنقطع)؟ / “${it.name}” needs power (hidden in a power cut)?`
+          : `«${it.name}» بيمشي بلا كهربا؟ / “${it.name}” works without power?`,
+      );
+    }
+    case "capacity":
+      return propose(
+        "capacity",
+        { max: cmd.max },
+        cmd.max
+          ? `👨‍🍳 المطبخ بياخد ${cmd.max} طلبات سوا؟ فوقها منطوّل الوقت، وعلى ${cmd.max * 2} منوقّف الطلبات الجديدة لحد ما يخفّ. / Kitchen handles ${cmd.max} orders at once? Above that ETAs grow; at ${cmd.max * 2} new orders pause until it eases.`
+          : "👨‍🍳 نلغي حد الطلبات؟ / Remove the kitchen limit?",
+      );
+    case "staff_add":
+      return propose(
+        "staff_add",
+        { name: cmd.name, role: cmd.role, phone: cmd.phone },
+        `👤 نزيد «${cmd.name}» (${STAFF_ROLE_AR[cmd.role]} · ${cmd.role}) على ${cmd.phone}؟ / Add ${cmd.name} as ${cmd.role}?`,
+      );
+    case "staff_remove": {
+      const rows: any[] =
+        (await deps.rpc("vendor_staff_find", {
+          p_vendor_id: member.vendor_id,
+          p_name: cmd.name,
+        })) ?? [];
+      const best = rows[0];
+      if (!best || best.score < 0.3 || (rows[1] && best.score - rows[1].score < 0.1))
+        return reply(`ما لقيت موظف اسمو «${cmd.name}». / No staff member called “${cmd.name}”.`);
+      return propose(
+        "staff_remove",
+        { member_id: best.member_id },
+        `👤 نشيل «${best.display_name}» (${best.role})؟ ما عاد توصلو الطلبات. / Remove ${best.display_name}? They stop getting orders.`,
+      );
+    }
+    case "same_price":
+      return propose(
+        "same_price",
+        { on: cmd.on },
+        cmd.on
+          ? "🏷️ أسعارك على Alo King نفس أسعار المحل؟ منحط «نفس سعر المحل» للزبون. / Your Alo King prices match the shop? Customers see “Same price as in the shop”."
+          : "🏷️ نشيل «نفس سعر المحل»؟ / Remove the “Same price as in the shop” badge?",
+      );
+    case "substitute": {
+      const it = await item(cmd.substitute);
+      if (!it)
+        return reply(
+          `ما لقيت «${cmd.substitute}» بالمنيو. / “${cmd.substitute}” isn't on your menu.`,
+        );
+      let r: any;
+      try {
+        r = await deps.rpc("order_substitution_offer", {
+          p_vendor_id: member.vendor_id,
+          p_code: cmd.code,
+          p_missing: cmd.missing,
+          p_substitute_item_id: it.item_id,
+          p_member_id: member.member_id,
+        });
+      } catch (e) {
+        if (/not allowed/.test(e instanceof Error ? e.message : String(e)))
+          return reply(
+            "⚠️ ما فيك تعرض بديل على هالطلب. / You can't offer a substitute on this order.",
+          );
+        throw e;
+      }
+      return reply(substitutionReply(cmd, r));
+    }
+  }
+}
+
+const STAFF_ROLE_AR: Record<string, string> = {
+  manager: "مدير",
+  cashier: "كاشير",
+  kitchen: "مطبخ",
+  driver: "سائق",
+};
+
+/** The merchant's answer after offering a substitute; the customer decides with a tap. */
+export function substitutionReply(cmd: { code: string; missing: string }, r: any): string {
+  const pref =
+    r?.pref === "call"
+      ? "\n📞 الزبون طالب تتصل فيه قبل أي بديل. / The customer asked to be called first."
+      : r?.pref === "remove"
+        ? "\n🚫 الزبون طالب تشيل الناقص بلا بديل. / The customer asked to remove missing items."
+        : r?.pref === "replace" && r?.max_usd != null
+          ? `\n✅ الزبون قابل ببديل لحد $${Number(r.max_usd).toFixed(2)} زيادة. / The customer accepts substitutes up to $${Number(r.max_usd).toFixed(2)} more.`
+          : "";
+  switch (r?.status) {
+    case "offered": {
+      const d = Number(r.diff_usd);
+      const diff =
+        d === 0 ? "نفس السعر / same price" : `${d > 0 ? "+" : "-"}$${Math.abs(d).toFixed(2)}`;
+      return `↔️ #${r.code}: «${r.line}» ← «${r.substitute}» (${diff}). سألنا الزبون. / We asked the customer.${pref}`;
+    }
+    case "unknown_order":
+      return `ما لقيت طلب #${cmd.code}. / No order #${cmd.code}.`;
+    case "unknown_line":
+      return `ما لقيت «${cmd.missing}» بالطلب #${r.code}. / “${cmd.missing}” isn't in order #${r.code}.`;
+    case "too_late":
+      return `⚠️ الطلب #${r.code} طلع، ما فينا نبدّل. / Order #${r.code} has left the kitchen.`;
+    case "not_cod":
+      return `⚠️ الطلب #${r.code} مدفوع أونلاين: اتصل بالزبون، أو رشيد بيساعدك. / #${r.code} was paid online: call the customer.`;
+    case "cod_cap":
+      return `⚠️ البديل بيطلّع الطلب #${r.code} فوق حد الكاش. / The substitute takes #${r.code} over the cash limit.`;
+    case "substitute_unavailable":
+      return "⚠️ البديل مش متوفر. / The substitute isn't available.";
+    case "same_item":
+      return "هيدا نفس الصنف. / That's the same item.";
+    case "deposit_item":
+      return "⚠️ أصناف الكفالة (غالونات، غاز) ما منبدّلها بالرسالة: اتصل بالزبون. / Items with a container deposit aren't substituted by message: call the customer.";
+    default:
+      return "⚠️ ما قدرنا نعرض البديل. / Couldn't offer the substitute.";
   }
 }

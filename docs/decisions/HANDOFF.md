@@ -1,4 +1,4 @@
-# Handoff — 11 October 2026 (after session 4)
+# Handoff — 11 October 2026 (after session 5)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
@@ -81,7 +81,39 @@
     - Live location inbound arriving as `unsupported` is assumed from §27.1; confirm on the first live sandbox test.
     - Driver names and photos in "on the way": session 8 (driver profiles).
     - `merchant-ai` port: session 5; the contract test covers it once it joins `functions-deploy.txt`.
-- **Next: session 5 (Phase 3b).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
+- **Session 5 (Phase 3b): done (11 October).** PRs #115 (§32.7 self-review gate, AI evals skip without credit, alo-ai-tool-safety now points to §30.7/§32.4), #116 (claims and registration), #117 (smart menu and nutrition), #118 (Flows, opening hours, catalogue) and #119 (merchant WhatsApp extras) merged automatically. There was no Anthropic or OpenAI credit, so every PR carries a pr-reviewer self-review comment tagged with its head SHA (§32.7); several ran more than one round, and every blocker was fixed before merge.
+  - **Self-review gate (§32.7):** `scripts/self-review.sh` accepts only an unedited comment by the owner account whose first three lines are the header, `Head: <sha>` and `Verdict: approve`. CI runs the base branch's copy of the script.
+  - **Claims and registration (§18.1 A–M):** onboarding on the Merchant number. A non-member's "join" gets a Yes button, then a name search, then a code to the shop's seed number (by WhatsApp, or a call to a landline) or documents. Also: registration of a new business, branches, brand-wide claims, objections and contests with a window, lost-phone recovery, reports and requests.
+    - Codes are 6-digit salted hashes with attempt limits.
+    - Notices outside WhatsApp's 24-hour window are recorded as not reached.
+    - STOP, delete and forget bypass onboarding.
+  - **Smart menu (§18.3, §32.3):**
+    - Menu import from photos, PDF or pasted text into a draft approved one section at a time. Prices are never invented, currency only as printed, and instruction-like text is refused. Pasted text works without a model; photos wait for API credit.
+    - Lebanese dish library: 203 dishes built from ingredients with evidence-scored macros (`nutrition-library.yml` re-checks values against USDA FDC from a runner).
+    - Merchants confirm estimates; allergens and diets are only what the merchant declared; the customer's `dietary_menu` filters on declarations only.
+  - **WhatsApp Flows (§12):**
+    - The four Flows, tested with Flowso in CI: address capture, item options, merchant profile, merchant hours.
+    - Server-built data, single-use tokens bound to the phone that expire after 24 h, and server re-pricing. Each Flow has its own switch in `flows_enabled` (all off) and a kill-gate. Merchant forms start from the branch's real hours, closed days, radius and cash.
+    - `whatsapp-flows.yml` uploads the drafts to Kapso. Publishing waits for a Meta preview on the company number.
+  - **Opening hours:** `vendor_hours` and the `hours-tick` pause outside hours; "closed until tomorrow" ends at the next opening window.
+  - **Catalogue (§30.1.2):** built against fixtures (desired catalogue, sync plan, product lists within Meta limits). `cart_apply` turns a cart into a basket priced by the server, and keeps the old basket if nothing can be added. `catalog_enabled` stays off until the business portfolio exists (#73).
+  - **Merchant WhatsApp extras (§32.5):** each is a proposal confirmed by a tap, with roles per §18.1 H.
+    - Kitchen capacity: ETAs lengthen above the limit, and new orders pause automatically at 2× until the queue drops.
+    - Generator mode: `needs_power` items are hidden and restored.
+    - Staff by WhatsApp (owner only).
+    - Shift handover on a staff member's first message of a shift.
+    - Substitutions: the preference at grocery checkouts; substitutes priced from the menu and decided by the customer's tap, LBP at the locked rate.
+    - Visual gold order card: rendered from SVG with resvg and bundled Noto fonts, off by config until checked on the sandbox.
+    - Same-price badge, only after the merchant's confirmation.
+  - **Open for later:**
+    - Photo menu import, model-based merchant text and AI evals need API credit (§32.7). `customer-eval.ts` prints SKIPPED meanwhile.
+    - Flows and the catalogue: publish on the company number after a Meta preview, then switch each Flow on in `flows_enabled`.
+    - The order card: switch on `order_card_image_enabled` after one sandbox render.
+    - Merchant statements reuse the card in Phase 6.
+    - "Open" sent outside the set hours is re-paused by the hours tick within a minute; the reply should say so (5b).
+    - A catalogue cart whose lines all need choices adds the first one to the existing basket.
+    - Open complaints in the handover use cancel requests and low ratings until `order_exceptions` (5b).
+- **Next: session 5b.** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model" and §32.8.
 
 ## How to start each build session
 At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon`. Pick the model and effort from §10, then send:

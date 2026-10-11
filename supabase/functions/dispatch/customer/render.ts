@@ -96,6 +96,61 @@ const S: Record<string, Record<CLang, string>> = {
     fr: "Je n'ai pas pu enregistrer ces choix. Réessayez ou écrivez ce que vous voulez.",
     arabizi: "Ma 2drt e7faz hal5ayarat. Jarreb marra tenye aw ekteble shu badak.",
   },
+  subPrefAsk: {
+    ar: "🛒 إذا صنف خلص عند المحل، شو منعمل؟",
+    en: "🛒 If an item is out of stock at the shop, what should we do?",
+    fr: "🛒 Si un article manque au magasin, que faisons-nous ?",
+    arabizi: "🛒 Iza sanf 5eles 3and el ma7al, shu men3mel?",
+  },
+  subCall: {
+    ar: "📞 اتصلوا فيي",
+    en: "📞 Call me",
+    fr: "📞 Appelez-moi",
+    arabizi: "📞 Ettesalo fiye",
+  },
+  subReplace: {
+    ar: "↔️ بدّلوا لحد ${max}+",
+    en: "↔️ Replace ≤ +${max}",
+    fr: "↔️ Remplacer ≤ ${max}",
+    arabizi: "↔️ Baddlo ≤ +${max}",
+  },
+  subRemove: { ar: "🚫 شيلو", en: "🚫 Remove it", fr: "🚫 Retirer", arabizi: "🚫 Shilo" },
+  subAccepted: {
+    ar: "✅ تمام، بدّلنا الصنف. المجموع الجديد {money}.",
+    en: "✅ Done, the item was replaced. New total {money}.",
+    fr: "✅ C'est fait, l'article est remplacé. Nouveau total {money}.",
+    arabizi: "✅ Tamem, baddalna el sanf. El majmou3 el jdid {money}.",
+  },
+  subDeclined: {
+    ar: "تمام، شلنا الصنف. المجموع الجديد {money}.",
+    en: "OK, the item was removed. New total {money}.",
+    fr: "D'accord, l'article est retiré. Nouveau total {money}.",
+    arabizi: "Tamem, shilna el sanf. El majmou3 el jdid {money}.",
+  },
+  subLast: {
+    ar: "هيدا آخر صنف بطلبك، فالمحل رح يتصل فيك.",
+    en: "That's the last item in your order, so the shop will call you.",
+    fr: "C'est le dernier article de la commande : le magasin va vous appeler.",
+    arabizi: "Hayda akher sanf b talabak, fa el ma7al ra7 yettesel fik.",
+  },
+  subCap: {
+    ar: "البديل بيطلّع الطلب فوق حد الدفع كاش، فالمحل رح يتصل فيك.",
+    en: "That substitute would take the order over the cash limit, so the shop will call you.",
+    fr: "Ce remplacement dépasserait la limite de paiement en espèces : le magasin va vous appeler.",
+    arabizi: "El badil bi tale3 el talab fo2 7add el cash, fa el ma7al ra7 yettesel fik.",
+  },
+  subGone: {
+    ar: "هالعرض ما عاد صالح (الطلب تحرّك).",
+    en: "That offer is no longer valid (the order has moved on).",
+    fr: "Cette proposition n'est plus valable.",
+    arabizi: "Hal 3ard ma 3ad sale7.",
+  },
+  sameShopPrice: {
+    ar: "🏷️ نفس سعر المحل",
+    en: "🏷️ Same price as in the shop",
+    fr: "🏷️ Même prix qu'en magasin",
+    arabizi: "🏷️ Nafs se3r el ma7al",
+  },
   cartSkipped: {
     ar: "😔 {n} من أصناف السلّة مش متوفرة هلق، وما زدناها.",
     en: "😔 {n} item(s) from your cart couldn't be added (not available, or from another place).",
@@ -605,12 +660,23 @@ export type MenuRow = {
   total_count?: number;
 };
 
+/** Checkout at a grocery-type shop (§32.5): what to do if an item is out. */
+export function substitutionAsk(to: string, lang: CLang, maxUsd: number): Msg {
+  const max = Number.isInteger(maxUsd) ? String(maxUsd) : maxUsd.toFixed(2);
+  return buttons(to, tr(lang, "subPrefAsk"), [
+    ["sbp:call", tr(lang, "subCall")],
+    ["sbp:replace", tr(lang, "subReplace", { max })],
+    ["sbp:remove", tr(lang, "subRemove")],
+  ]);
+}
+
 export function menuList(
   to: string,
   lang: CLang,
   vendor: string,
   rows: MenuRow[],
   query: string | null,
+  samePrice = false,
 ): Msg[] {
   if (!rows.length) return [text(to, tr(lang, "noItem", { q: query ?? "", vendor }))];
   const items = rows.slice(0, 10);
@@ -622,20 +688,26 @@ export function menuList(
       .filter(Boolean)
       .join(" · ");
   const out: Msg[] = [
-    list(to, tr(lang, "menuOf", { vendor }), tr(lang, "menuButton"), [
-      {
-        rows: items.map<Row>((r) => ({
-          id: `pi:${r.ref}`,
-          title: clip(
-            lang === "fr"
-              ? String(r.name_fr ?? r.name_en ?? r.name_ar ?? "")
-              : name(lang, r.name_ar, r.name_en),
-            24,
-          ),
-          description: clip(desc(r), 72),
-        })),
-      },
-    ]),
+    // The badge only after the merchant confirmed it (§32.5); never an estimated saving.
+    list(
+      to,
+      tr(lang, "menuOf", { vendor }) + (samePrice ? `\n${tr(lang, "sameShopPrice")}` : ""),
+      tr(lang, "menuButton"),
+      [
+        {
+          rows: items.map<Row>((r) => ({
+            id: `pi:${r.ref}`,
+            title: clip(
+              lang === "fr"
+                ? String(r.name_fr ?? r.name_en ?? r.name_ar ?? "")
+                : name(lang, r.name_ar, r.name_en),
+              24,
+            ),
+            description: clip(desc(r), 72),
+          })),
+        },
+      ],
+    ),
   ];
   if ((rows[0]?.total_count ?? rows.length) > 10) out.push(text(to, tr(lang, "moreItems")));
   return out;

@@ -799,3 +799,66 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
     expect(cart.cart?.lines).toEqual([{ itemId: ITEM, quantity: 2 }]);
   });
 });
+
+describe("substitutions (§32.5)", () => {
+  const SUB = "00000000-0000-0000-0000-0000000000c1";
+  const quote = {
+    status: "ok",
+    basket,
+    subtotal_usd: 10,
+    delivery_fee_usd: 2,
+    total_usd: 12,
+    total_lbp: 1074000,
+    usd_lbp_rate: 89500,
+    cod_cap_usd: 50,
+    over_cod_cap: false,
+  };
+  it("checkout at a grocery-type shop asks the substitution preference once, then shows the summary", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        basket_quote: () => quote,
+        basket_substitution_needed: () => ({ needed: true, max_usd: 2 }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:checkout" }));
+    const ask = f.sent.find((p) => p.interactive?.action?.buttons?.[0]?.reply?.id === "sbp:call");
+    expect(ask.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual([
+      "sbp:call",
+      "sbp:replace",
+      "sbp:remove",
+    ]);
+    expect(
+      f.sent.some((p) => p.interactive?.action?.buttons?.[0]?.reply?.id?.startsWith("cfm:")),
+    ).toBe(false);
+    const g = fake({
+      begin: { basket },
+      rpcs: { basket_quote: () => quote, basket_substitution_needed: () => ({ needed: false }) },
+    });
+    await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "sbp:replace" }));
+    expect(g.of("basket_set_substitution")[0].args).toMatchObject({ p_pref: "replace" });
+    expect(
+      g.sent.some((p) => p.interactive?.action?.buttons?.[0]?.reply?.id?.startsWith("cfm:")),
+    ).toBe(true);
+  });
+  it("the customer's tap on a substitute is decided by the server, which returns the new totals", async () => {
+    const f = fake({
+      rpcs: {
+        order_substitution_decide: () => ({
+          status: "accepted",
+          code: "K7M2QX",
+          total_usd: 12.25,
+          total_lbp: 1096375,
+          usd_lbp_rate: 89500,
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `sub:${SUB}:y` }));
+    expect(f.of("order_substitution_decide")[0].args).toMatchObject({
+      p_substitution_id: SUB,
+      p_accept: true,
+    });
+    expect(JSON.stringify(f.sent)).toContain("$12.25 = 1,096,375 LBP");
+    expect(f.of("ai_quota_take")).toHaveLength(0);
+  });
+});

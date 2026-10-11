@@ -356,3 +356,40 @@ describe("Flow, product list and branch picker builders pass the checker", () =>
     expect(checkInteractive(clampInteractive(pl))).toEqual([]);
   });
 });
+
+// Merchant WhatsApp extras (session 5, §32.5).
+import { shiftHandoverText, proposalCard } from "./merchant-cards";
+import { customerStatusMessages } from "./customer-cards";
+import { menuList, substitutionAsk } from "../dispatch/customer/render";
+describe("merchant extras builders pass the checker", () => {
+  const SUB = "00000000-0000-0000-0000-0000000000c1";
+  it("substitution offer and checkout question in every language", () => {
+    for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+      const msgs = customerStatusMessages(
+        "+96170000001",
+        {
+          kind: "substitution", lang, substitution_id: SUB, from_ar: "بيبسي ".repeat(20), from_en: "Pepsi ".repeat(20),
+          to_ar: "سفن اب ".repeat(20), to_en: "7up ".repeat(20), diff_usd: 0.25, diff_lbp: 22375,
+          new_total_usd: 12.75, new_total_lbp: 1141125, usd_lbp_rate: 89500,
+        },
+        { order_id: SUB, code: "K7M2QX" },
+      );
+      expect(msgs).toHaveLength(1);
+      for (const m of msgs) expect(checkInteractive(m)).toEqual([]);
+      for (const max of [2, 2.5, 10]) expect(checkInteractive(substitutionAsk("+96170000001", lang, max))).toEqual([]);
+      for (const p of menuList("+96170000001", lang, "سوبرماركت", [{ ref: "i1", item_id: "x", name_ar: "حليب", name_en: "Milk", price_usd: 1, orderable: true } as any], null, true))
+        expect(checkInteractive(p)).toEqual([]);
+    }
+    expect(customerStatusMessages("+1", { kind: "substitution", substitution_id: "bad" }, null)).toEqual([]);
+  });
+  it("shift handover and the extras' proposal cards", () => {
+    const h = shiftHandoverText("+96171000001", {
+      vendor_name: "فرن", pending: Array.from({ length: 10 }, (_, k) => ({ code: `ABC12${k}`, status: "accepted", minutes: k })),
+      pending_count: 14, sold_out: Array.from({ length: 10 }, (_, k) => `صنف ${k}`), complaints: 2,
+    });
+    expect(h.text.body).toMatch(/14/);
+    expect(h.text.body.length).toBeLessThanOrEqual(4096);
+    const summary = "👨‍🍳 المطبخ بياخد 200 طلبات سوا؟ ".repeat(30);
+    expect(checkInteractive(proposalCard("+96171000001", SUB, summary, "ar"))).toEqual([]);
+  });
+});
