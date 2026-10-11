@@ -1,9 +1,9 @@
-# Handoff — 7 October 2026 (end of the decision review chat)
+# Handoff — 11 October 2026 (after session 3)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
 ## State
-- **Decisions:** sections 0–25 are complete. Phase 0 is GO.
+- **Decisions:** sections 0–30 are complete (§29 audit verdicts and §30 second-round reports added 9–11 October). Phase 0 is GO.
 - **Repo:** `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon` (the default branch), private. `main` is legacy and frozen.
 - **Services ready:**
   - Supabase `alo-king-staging` (`tzugbbatfbvrfzxuacqx`, eu-central-1, free plan)
@@ -35,7 +35,32 @@
   - The 19 repeated phone numbers: 14 kept as one brand (chain branches, or one business listed twice in one region with a shared name word), 4 dropped as data errors (unrelated businesses), 1 left only on excluded rows (two Coral fuel stations).
   - `data-branch-cleanup` deletes the `data/places-*` branches places-build leaves (daily after 3 days, or all on dispatch); all were deleted after #94.
   - Open for later: the Chouf Bakaata carries an OSM alias "بقعاتة عشقوت" that belongs to Baqaata Achqout (Keserwan); the 14 kept shared phones are listed in the vendor import report for a check at claim time.
-- **Next: session 3 (Phase 2).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
+- **Between sessions (9–11 October).** #97 (DECISIONS §29 audit verdicts, §30 second-round reports, human support, voice notes) and #98 (37 real voice notes in `evals/voice/batch-01/`) merged once the Anthropic key was replaced (#99, closed; check-setup passes, and `OPENAI_API_KEY` and `ORS_API_KEY` are now set).
+  - #100 makes the Claude review resilient. It is skipped when a PR changes only `docs/` or `evals/`. When it gives no verdict (auth, credit, API outage), it blocks only changes to money, RLS, webhooks, personal data or the CI gate (`scripts/review-scope.sh`); other PRs pass with a warning comment. Renames count both paths, and a classifier error fails closed.
+- **Session 3 (Phase 2): done (11 October).** PRs #101 (menus, baskets, orders, state machine, race tests), #102 (Bakaata alias) and #103 (order_channel router, four-layer escalation, portal queue, auto-pause, merchant commands) merged automatically. Staging has all 13 migrations, `dispatch` is ACTIVE beside `whatsapp-webhook`, and the pg_cron jobs `order-escalation`, `order-monitor` and `dispatch-kick` run.
+  - **Orders:**
+    - The §27.5 status model is enforced by a trigger for every writer. Every change goes through `app_private.order_set_status` (conditional on the expected status, one `order_events` row).
+    - `order_place` checks, in order: the menu version (a stale summary returns `repriced` with the differences and no order, §30.1.1); availability, including combos following their parts and daily quantities with "last few" at 3 (§30.1.4); pause; delivery/pickup flags; paused places; the road-km fee band from the route cache; the stairs fee and container deposit (§29.2); the COD cap, with $50 until a first delivered order (§29.4). It then locks the rate and snapshots the order fee from the per-business_type rules (§29.1).
+    - Merchant actions: accept, reject with a reason, progress, the merchant `driver` role and assignment, final weights (an increase over 10%, or a total above the COD cap, waits for the customer's tap), empty container collected.
+    - Customer cancellation per §30.3.6.
+    - The ledger's `order_id` now has its foreign key.
+  - **Race tests:** `scripts/db-race-test.sh` runs real concurrent sessions in CI. Covered: last units, a duplicate confirmation, accept vs reject, accept vs cancel. It found a deadlock, fixed by serialising placements per vendor.
+  - **Merchant notifications:**
+    - Channels per vendor: portal by default, WhatsApp backup to the kitchen, call to the owner. "Received" means a channel acknowledged the order.
+    - The escalation runs on a 5 s pg_cron tick: backup at 15 s, call at 45 s, operator at 75 s, cancel at 300 s (all config). A failed primary fires the backup at once. Three channel failures in an hour put the merchant on its backup for the day.
+    - Three orders in a row missed through all four layers auto-pause the merchant, with a "🟢 Reactivate" card (§30.2.2).
+    - Outbox, ops alerts, the monitoring tick for merchant mode (§27.5), the portal queue view, number-quality events (§29.6).
+  - **Merchant commands (§30.2.1):** a rules parser in AR, EN, FR and Arabizi: pause / closed till, open, sold out / back, price, balance, top up. A typed change becomes a `merchant_proposals` row applied only by the confirming tap, and a tap on one of our own cards is the confirmation. There are no model calls; the merchant AI comes in session 5.
+  - **`dispatch` edge function:** handles merchant taps and commands, then the outbox (Kapso cards, all inside Meta limits), then ops alerts (Telegram). pg_net kicks it every 5 s, and `whatsapp-webhook` kicks it after each intake. The deploy job syncs function secrets from GitHub secrets (`KAPSO_API_KEY` now; Telegram, Sentry and Twilio once set).
+  - **Built but off:**
+    - Voice calls: `voice_calls_enabled` is false until #105.
+    - Telegram alerts: until #104. Alerts are stored for operators meanwhile.
+    - CloudPRNT poll endpoint: comes with the first merchant printer. A printer primary falls back to the backup at 15 s.
+  - **Open for later:**
+    - Register the Kapso webhook for the sandbox number (597907523413541) and set `KAPSO_WEBHOOK_SECRET`. Insert the sandbox row into `whatsapp_numbers` (role `sandbox`) so `dispatch` has a sender. This is session 4, which builds the customer bot. Until then, inbound messages from non-merchants are marked `ignored`.
+    - Brand-shared menus with per-branch prices come with the Phase 3 menu editor.
+    - The online-paid weight refund and payout cap are Phase 6.
+- **Next: session 4 (Phase 3a).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
 
 ## How to start each build session
 At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon`. Pick the model and effort from §10, then send:
@@ -46,14 +71,13 @@ At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branc
 Use it for strategy, research and decisions. It cannot run code. Decisions it makes are written into DECISIONS.md by the next build session, or uploaded to the project directly.
 
 ## Owner to-do (Rasheed)
-0. **Kapso:** connect a sandbox or test number to the "Alo King" project (#67), and revoke the old Mapbox token (#68).
+0. **Now (5 minutes each):** Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105). The next ~100 voice notes (#77; the key is set).
 1. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
 2. **SARL** (about 17 October). The same week:
    - open a fresh-USD bank account
    - open Alo King's Whish business account
-   - apply to Tap (Claude prepares the text, §22.5)
-3. **Lawyer:** one letter covering §20.1 (collection model, BdL Decision 13790), the merchant credit in §20.3, and §21.6 (drivers).
-4. **Lines:** Alfa or touch postpaid lines; Meta business portfolio in the company name, with all three owners as admins.
-5. **Domain:** buy `aloking.com`, then the browser Google key, Search Console, Bing Webmaster and a Google Business Profile (§24.5).
+   - apply to Tap (Claude prepares the text, §22.5) (#70, #71)
+3. **Lawyer:** one letter covering §20.1 (collection model, BdL Decision 13790), the merchant credit in §20.3, and §21.6 (drivers) (#72).
+4. **Lines:** Alfa or touch postpaid lines; Meta business portfolio in the company name, with all three owners as admins (#73).
+5. **Domain:** buy `aloking.com`, then the browser Google key, Search Console, Bing Webmaster and a Google Business Profile (§24.5) (#74).
 6. **Before launch:** set Google Cloud spending limits (§19).
-7. **Later:** record the 50 voice notes, including 8 in French or Arabic-French.
