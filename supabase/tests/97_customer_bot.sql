@@ -144,7 +144,7 @@ select public.basket_view(:'cid') as bv \gset
 select public.order_place((:'bv'::jsonb ->> 'basket_id')::uuid, (:'bv'::jsonb ->> 'menu_version')::bigint, 'wa:test:bot:1') as po \gset
 select tests.ok(:'po'::jsonb ->> 'status' = 'placed', 'the bot''s basket places through order_place');
 select (:'po'::jsonb ->> 'order_id') as oid \gset
-select tests.ok((select delivery_code_required and delivery_code ~ '^[0-9]{4}$' from public.orders where id = :'oid'),
+select tests.ok((select o.delivery_code_required and c.code ~ '^[0-9]{4}$' from public.orders o join public.order_delivery_codes c on c.order_id = o.id where o.id = :'oid'),
   'a new customer''s first COD order needs a 4-digit delivery code (§27.6)');
 select tests.ok(public.order_track(:'cid') ->> 'code' = (:'po'::jsonb ->> 'code') and public.order_track(:'cid') ? 'eta'
   and public.order_track('10000000-0000-0000-0000-000000000002', :'oid') is null, 'order_track shows only the customer''s own order');
@@ -158,11 +158,28 @@ select tests.ok(exists (select 1 from public.outbound_messages where dedupe_key 
   and payload ->> 'driver_phone' = '+96171000021'), '"on the way" carries the driver''s number for the call button');
 select tests.throws(format($$select public.order_progress(%L, 'delivered', '55000000-0000-0000-0000-000000000001', 'whatsapp')$$, :'oid'),
   'delivery_code_required', 'delivered without the code is refused');
-select tests.ok(public.order_confirm_delivery_code('+96171000021', '0000') ->> 'status' in ('wrong_code', 'delivered'), 'a code is checked');
-select tests.ok(public.order_confirm_delivery_code('+96171000021', (select delivery_code from public.orders where id = :'oid')) ->> 'status' = 'delivered'
+select tests.ok(public.order_confirm_delivery_code('+96171000021',
+  (select lpad(((code::int + 1) % 10000)::text, 4, '0') from public.order_delivery_codes where order_id = :'oid')) ->> 'status' = 'wrong_code',
+  'a wrong code is refused');
+select tests.ok(public.order_confirm_delivery_code('+96171000021', (select code from public.order_delivery_codes where order_id = :'oid')) ->> 'status' = 'delivered'
   or (select status = 'delivered' from public.orders where id = :'oid'), 'the right code from the driver''s number delivers the order');
 select tests.ok(exists (select 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':delivered'), 'the customer gets "Received ✅ / Problem"');
 select tests.ok(public.order_confirm_delivery_code('+96171000099', '1234') ->> 'status' = 'no_order', 'a stranger''s code does nothing');
+
+-- Five wrong codes lock the order; the right code no longer works after that (review of #109).
+update public.vendors set pickup_enabled = true where id = '20000000-0000-0000-0000-00000000000a';
+select public.basket_add_item('10000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000002', 1, '{}', null, true);
+select public.basket_set_checkout('10000000-0000-0000-0000-000000000002', 'pickup');
+select public.basket_view('10000000-0000-0000-0000-000000000002') as bv2 \gset
+select (public.order_place((:'bv2'::jsonb ->> 'basket_id')::uuid, (:'bv2'::jsonb ->> 'menu_version')::bigint, 'wa:test:bot:lock') ->> 'order_id') as lid \gset
+select public.order_accept(:'lid', 10, (select id from public.vendor_members where phone_e164 = '+96171000001'));
+select public.order_progress(:'lid', 'ready', (select id from public.vendor_members where phone_e164 = '+96171000001'), 'whatsapp');
+select (select lpad(((code::int + 1) % 10000)::text, 4, '0') from public.order_delivery_codes where order_id = :'lid') as wrong \gset
+select public.order_confirm_delivery_code('+96171000001', :'wrong') from generate_series(1, 4);
+select tests.ok(public.order_confirm_delivery_code('+96171000001', :'wrong') ->> 'status' = 'locked', 'the fifth wrong code locks the order');
+select tests.ok(public.order_confirm_delivery_code('+96171000001', (select code from public.order_delivery_codes where order_id = :'lid')) ->> 'status' = 'locked'
+  and (select status = 'ready' from public.orders where id = :'lid'), 'a locked order cannot be confirmed, even with the right code');
+select tests.ok(exists (select 1 from public.ops_alerts where dedupe_key = 'code_wrong:' || :'lid'), 'the operator is alerted');
 
 -- Ratings and feedback (§30.2.3)
 select tests.ok(public.order_rate('10000000-0000-0000-0000-000000000002', :'oid', 5) ->> 'status' = 'unknown_order', 'only the customer rates their order');
@@ -222,6 +239,11 @@ select tests.throws($$select public.basket_add_item('10000000-0000-0000-0000-000
   'permission denied', 'customers cannot call bot RPCs directly');
 select tests.ok(tests.count_of('select 1 from public.bot_sessions') = 0 and tests.count_of('select 1 from public.ai_calls') = 0,
   'customers read no bot sessions or AI calls');
+select tests.act_as('00000000-0000-0000-0000-000000000021');
+select tests.throws($$select code from public.order_delivery_codes$$, 'permission denied',
+  'the driver who collects the code cannot read it (review of #109)');
+select tests.ok(not exists (select 1 from information_schema.column_privileges where table_name = 'orders' and column_name like 'delivery_code' and grantee = 'authenticated'),
+  'orders has no code column clients could read');
 select tests.act_as('00000000-0000-0000-0000-00000000000b');
 select tests.ok(tests.count_of('select 1 from public.bot_turns') > 0, 'operators read turn records');
 reset role;

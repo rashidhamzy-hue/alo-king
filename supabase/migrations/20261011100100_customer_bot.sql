@@ -70,11 +70,22 @@ revoke all on function app_private.config_bool(text), app_private.config_text(te
 
 -- Order columns used below: the 4-digit delivery code (§27.6, section 9) and the customer's feedback (section 10).
 alter table public.orders
-  add column if not exists delivery_code text check (delivery_code ~ '^[0-9]{4}$'),
   add column if not exists delivery_code_required boolean not null default false,
   add column if not exists delivery_code_confirmed_at timestamptz,
   add column if not exists customer_received_at timestamptz,
   add column if not exists customer_problem_at timestamptz;
+
+-- The code itself lives in a table only the service role reads: merchant staff and drivers can read their
+-- orders (orders_read policy), and the person who must collect the code at the door must never be able to
+-- look it up (review of #109). Only the customer sees it, in their own WhatsApp messages.
+create table public.order_delivery_codes (
+  order_id uuid primary key references public.orders (id) on delete cascade,
+  code text not null check (code ~ '^[0-9]{4}$'),
+  created_at timestamptz not null default now()
+);
+alter table public.order_delivery_codes enable row level security;
+revoke all on table public.order_delivery_codes from public, anon, authenticated;
+grant select, insert on table public.order_delivery_codes to service_role;
 
 -- 2. Bot sessions and turns ---------------------------------------------------------------------------------
 -- Conversation state per customer. `refs` maps the short references the model sees (v1, i3, l2, a1, o1)
@@ -1250,7 +1261,7 @@ as $$
     'eta', public.order_eta_range(o.id),
     'driver_assigned', o.driver_member_id is not null,
     'delivery_code', case when o.delivery_code_required and o.status not in ('delivered', 'failed', 'rejected', 'cancelled')
-                          then o.delivery_code end,
+                          then (select c.code from public.order_delivery_codes c where c.order_id = o.id) end,
     'cancel_request', o.cancel_request_status, 'placed_at', o.placed_at)
   from public.orders o
   join public.vendors v on v.id = o.vendor_id
@@ -1263,20 +1274,36 @@ $$;
 -- Orders over the configured total, and a new customer's first COD order, need the customer's 4-digit code
 -- at handover (Send Home orders join in Phase 6b). The merchant or driver types it; an operator can override.
 
-create function app_private.orders_delivery_code() returns trigger
+
+create function app_private.orders_delivery_code_required() returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
 begin
-  new.delivery_code := lpad((floor(random() * 10000))::int::text, 4, '0');
   new.delivery_code_required := new.total_usd > public.config_numeric('delivery_code_over_usd')
     or (new.is_new_customer and new.payment_method = 'cod');
   return new;
 end;
 $$;
-create trigger orders_delivery_code before insert on public.orders
-  for each row execute function app_private.orders_delivery_code();
+create trigger orders_delivery_code_required before insert on public.orders
+  for each row execute function app_private.orders_delivery_code_required();
+
+-- Four digits from a cryptographic random source (pgcrypto), never random().
+create function app_private.orders_delivery_code_new() returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.order_delivery_codes (order_id, code)
+  values (new.id, lpad(((('x' || encode(extensions.gen_random_bytes(4), 'hex'))::bit(32)::bigint % 10000))::text, 4, '0'));
+  return null;
+end;
+$$;
+create trigger orders_delivery_code_new after insert on public.orders
+  for each row execute function app_private.orders_delivery_code_new();
+revoke all on function app_private.orders_delivery_code_required(), app_private.orders_delivery_code_new() from public;
 
 -- A delivered mark without the code is refused unless an operator makes it (§27.6).
 create function app_private.orders_delivery_code_guard() returns trigger
@@ -1307,43 +1334,54 @@ as $$
 declare
   v_o public.orders%rowtype;
   v_member uuid;
-  v_r jsonb;
+  v_r jsonb := null;
+  v_open integer := 0;
 begin
-  select o.* into v_o from public.orders o
-  join public.vendor_members m on m.vendor_id = o.vendor_id and m.phone_e164 = p_phone_e164 and m.status = 'active'
-    and m.role in ('owner', 'manager', 'cashier', 'driver')
-  where o.delivery_code_required and o.delivery_code_confirmed_at is null and o.delivery_code = p_code
-    and o.status in ('ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup', 'picked_up', 'near_drop', 'arrived')
-    and (m.role <> 'driver' or o.driver_member_id = m.id)
-  order by o.placed_at desc limit 1;
-  if v_o.id is null then
-    -- A wrong code is logged on each order still waiting for one; after 5 the operator is alerted and only
-    -- an operator can close the order (no guessing through 10,000 codes).
-    v_r := null;
-    for v_o in
-      select o.* from public.orders o join public.vendor_members m on m.vendor_id = o.vendor_id and m.phone_e164 = p_phone_e164
-        and m.status = 'active'
+  -- Orders of this member still waiting for a code. A locked order (5 wrong codes) is never matched, so
+  -- guessing through the 10,000 codes is impossible; only an operator can close it.
+  for v_o in
+    select o.* from public.orders o
+    join public.vendor_members m on m.vendor_id = o.vendor_id and m.phone_e164 = p_phone_e164 and m.status = 'active'
+      and m.role in ('owner', 'manager', 'cashier', 'driver')
+    where o.delivery_code_required and o.delivery_code_confirmed_at is null
+      and o.status in ('ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup', 'picked_up', 'near_drop', 'arrived')
+      and (m.role <> 'driver' or o.driver_member_id = m.id)
+      and (select count(*) from public.order_events e where e.order_id = o.id and e.event = 'delivery_code_wrong') < 5
+    order by o.placed_at desc
+  loop
+    v_open := v_open + 1;
+    if exists (select 1 from public.order_delivery_codes c where c.order_id = v_o.id and c.code = p_code) then
+      update public.orders set delivery_code_confirmed_at = now() where id = v_o.id;
+      v_member := public.merchant_member_for(p_phone_e164, v_o.id);
+      v_r := public.order_progress(v_o.id, 'delivered', v_member, 'whatsapp');
+      return jsonb_build_object('status', 'delivered', 'code', v_o.code, 'result', v_r);
+    end if;
+  end loop;
+  if v_open = 0 then
+    return jsonb_build_object('status', case when exists (
+      select 1 from public.orders o join public.vendor_members m on m.vendor_id = o.vendor_id and m.phone_e164 = p_phone_e164
       where o.delivery_code_required and o.delivery_code_confirmed_at is null
-        and o.status in ('ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup', 'picked_up', 'near_drop', 'arrived')
-    loop
-      insert into public.order_events (order_id, from_status, to_status, event, actor_kind, channel, detail)
-      values (v_o.id, v_o.status, v_o.status, 'delivery_code_wrong', 'whatsapp', 'whatsapp', '{}');
-      if (select count(*) from public.order_events e where e.order_id = v_o.id and e.event = 'delivery_code_wrong') >= 5 then
-        perform app_private.ops_alert('code_wrong:' || v_o.id, 'customer_problem', 'warning',
-          'Order ' || v_o.code || ': 5 wrong delivery codes; confirm the handover by phone', v_o.id, v_o.vendor_id);
-        v_r := jsonb_build_object('status', 'locked');
-      end if;
-      v_r := coalesce(v_r, jsonb_build_object('status', 'wrong_code'));
-    end loop;
-    return coalesce(v_r, jsonb_build_object('status', 'no_order'));
+        and o.status in ('ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup', 'picked_up', 'near_drop', 'arrived'))
+      then 'locked' else 'no_order' end);
   end if;
-  if (select count(*) from public.order_events e where e.order_id = v_o.id and e.event = 'delivery_code_wrong') >= 5 then
-    return jsonb_build_object('status', 'locked');
-  end if;
-  update public.orders set delivery_code_confirmed_at = now() where id = v_o.id;
-  v_member := public.merchant_member_for(p_phone_e164, v_o.id);
-  v_r := public.order_progress(v_o.id, 'delivered', v_member, 'whatsapp');
-  return jsonb_build_object('status', 'delivered', 'code', v_o.code, 'result', v_r);
+  -- A wrong code counts against every open order of this member; the fifth locks it and alerts the operator.
+  v_r := jsonb_build_object('status', 'wrong_code');
+  for v_o in
+    select o.* from public.orders o
+    join public.vendor_members m on m.vendor_id = o.vendor_id and m.phone_e164 = p_phone_e164 and m.status = 'active'
+    where o.delivery_code_required and o.delivery_code_confirmed_at is null
+      and o.status in ('ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup', 'picked_up', 'near_drop', 'arrived')
+      and (m.role <> 'driver' or o.driver_member_id = m.id)
+  loop
+    insert into public.order_events (order_id, from_status, to_status, event, actor_kind, channel, detail)
+    values (v_o.id, v_o.status, v_o.status, 'delivery_code_wrong', 'whatsapp', 'whatsapp', '{}');
+    if (select count(*) from public.order_events e where e.order_id = v_o.id and e.event = 'delivery_code_wrong') >= 5 then
+      perform app_private.ops_alert('code_wrong:' || v_o.id, 'customer_problem', 'warning',
+        'Order ' || v_o.code || ': 5 wrong delivery codes; confirm the handover by phone', v_o.id, v_o.vendor_id);
+      v_r := jsonb_build_object('status', 'locked');
+    end if;
+  end loop;
+  return v_r;
 end;
 $$;
 
