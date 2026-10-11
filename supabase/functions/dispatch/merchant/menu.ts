@@ -103,7 +103,9 @@ export async function handleMerchantMenu(
     }
   };
 
-  if (!editor && !tap) {
+  if (tap) {
+    await handleTap(deps, tap, editorFor, session, m, reply, text, safe);
+  } else if (!editor) {
     reply(
       text(
         "المنيو والأسعار بيغيّرها صاحب المحل أو المدير بس. / Only the owner or a manager can change the menu.",
@@ -117,8 +119,6 @@ export async function handleMerchantMenu(
       p_lang: null,
     });
     reply(menuImportHelp(m.from, !!deps.menuModel));
-  } else if (tap) {
-    await handleTap(deps, tap, editorFor, session, m, reply, text, safe);
   } else {
     // A photo, PDF or pasted text during import.
     const vendorId = session.data?.vendor_id ?? editor.vendor_id;
