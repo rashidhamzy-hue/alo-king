@@ -272,6 +272,25 @@ jobs:
           DB_URL="$(scripts/staging-db-url.sh)"
           echo "::add-mask::$DB_URL"
           supabase db push --db-url "$DB_URL"
+      - name: Sync edge-function secrets from GitHub secrets (only those that are set)
+        env:
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OPS_CHAT_ID: ${{ secrets.TELEGRAM_OPS_CHAT_ID }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_FUNCTIONS }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
+        run: |
+          args=()
+          for k in KAPSO_API_KEY TELEGRAM_BOT_TOKEN TELEGRAM_OPS_CHAT_ID SENTRY_DSN TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM; do
+            v="${!k:-}"
+            if [ -n "$v" ]; then args+=("$k=$v"); fi
+          done
+          if [ ${#args[@]} -gt 0 ]; then
+            supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "${args[@]}" >/dev/null
+            echo "synced ${#args[@]} function secret(s)"
+          fi
       - name: Deploy edge functions listed in supabase/functions-deploy.txt
         run: |
           names=$(grep -vE '^[[:space:]]*(#|$)' supabase/functions-deploy.txt || true)

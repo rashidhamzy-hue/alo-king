@@ -4,8 +4,9 @@
 // posts call keypresses to ?route=twilio, checked by Twilio's signature. verify_jwt is off
 // (supabase/config.toml): these checks are the authentication.
 //
-// Secrets (Supabase function secrets): KAPSO_API_KEY; optional TELEGRAM_BOT_TOKEN and TELEGRAM_OPS_CHAT_ID
-// (ops alerts), TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM (voice layer), SENTRY_DSN, ADMIN_BASE_URL.
+// Function secrets, synced by the deploy job from the GitHub secrets of the same name: KAPSO_API_KEY;
+// optional TELEGRAM_BOT_TOKEN and TELEGRAM_OPS_CHAT_ID (ops alerts), TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
+// TWILIO_FROM (voice layer), SENTRY_DSN (from SENTRY_DSN_FUNCTIONS); ADMIN_BASE_URL once the site exists.
 
 import { runDispatch, type SendResult } from "./handler.ts";
 import {
