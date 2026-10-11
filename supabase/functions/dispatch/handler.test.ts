@@ -378,3 +378,172 @@ describe("ops alerts", () => {
     expect(db.of("ops_alert_sent")[0].args).toEqual({ p_id: 5 });
   });
 });
+
+describe("merchant WhatsApp extras (§32.5)", () => {
+  const merchant = [{ member_id: MEMBER, vendor_id: VENDOR, role: "owner", vendor_name: "A" }];
+  const PROP = "77777777-2222-3333-4444-555555555555";
+  const run = async (body: string, rpcs: Record<string, (a: any) => any> = {}) => {
+    const db = fakeDb({
+      members: merchant,
+      events: [inbound({ type: "text", text: { body } })],
+      rpcs: { merchant_proposal_create: () => PROP, ...rpcs },
+    });
+    const out = deps(db);
+    await runDispatch(out.d);
+    return { db, sent: out.sent };
+  };
+  it("generator mode, capacity and the same-price badge are proposals the merchant confirms", async () => {
+    for (const [body, kind, payload] of [
+      ["ما في كهربا", "power_off", {}],
+      ["power back", "power_on", {}],
+      ["capacity 6", "capacity", { max: 6 }],
+      ["same price as in the shop", "same_price", { on: true }],
+    ] as const) {
+      const { db, sent } = await run(body);
+      const p = db.of("merchant_proposal_create")[0].args;
+      expect([p.p_kind, p.p_payload]).toEqual([kind, payload]);
+      expect(db.of("merchant_proposal_decide")).toHaveLength(0);
+      expect(sent[0].payload.interactive.action.buttons[0].reply.id).toBe(`pyes:${PROP}`);
+    }
+  });
+  it("adding staff proposes the phone in E.164 with the role; a non-owner is told it is the owner's job", async () => {
+    const { db } = await run("add Ali as kitchen 03 123 456");
+    expect(db.of("merchant_proposal_create")[0].args.p_payload).toEqual({
+      name: "Ali",
+      role: "kitchen",
+      phone: "+9613123456",
+    });
+    const x = await run("add Ali as kitchen 03 123 456", {
+      merchant_proposal_create: () => {
+        throw new Error("not allowed to act on this vendor's orders");
+      },
+    });
+    expect(x.sent[0].payload.text.body).toMatch(/Only the owner/);
+  });
+  it("removing staff finds the member by name, and refuses a vague name", async () => {
+    const { db } = await run("remove Ali", {
+      vendor_staff_find: () => [
+        { member_id: "m-ali", display_name: "Ali", role: "kitchen", score: 0.9 },
+      ],
+    });
+    expect(db.of("merchant_proposal_create")[0].args).toMatchObject({
+      p_kind: "staff_remove",
+      p_payload: { member_id: "m-ali" },
+    });
+    const y = await run("remove Ali", { vendor_staff_find: () => [] });
+    expect(y.db.of("merchant_proposal_create")).toHaveLength(0);
+    expect(y.sent[0].payload.text.body).toMatch(/No staff member/);
+  });
+  it("a substitute is offered with the item from the menu, never a price from the message", async () => {
+    const { db, sent } = await run("sub K7M2QX pepsi = 7up", {
+      menu_item_match: () => [{ item_id: "i-7up", name: "7up", score: 0.9 }],
+      order_substitution_offer: () => ({
+        status: "offered",
+        code: "K7M2QX",
+        line: "Pepsi",
+        substitute: "7up",
+        diff_usd: 0.25,
+        pref: "replace",
+        max_usd: 2,
+      }),
+    });
+    expect(db.of("order_substitution_offer")[0].args).toEqual({
+      p_vendor_id: VENDOR,
+      p_code: "K7M2QX",
+      p_missing: "pepsi",
+      p_substitute_item_id: "i-7up",
+      p_member_id: MEMBER,
+    });
+    expect(sent[0].payload.text.body).toMatch(/\+\$0\.25/);
+    expect(sent[0].payload.text.body).toMatch(/up to \$2\.00 more/);
+  });
+  it("a staff member's first message of a shift gets the handover first", async () => {
+    const db = fakeDb({
+      members: [{ member_id: MEMBER, vendor_id: VENDOR, role: "kitchen", vendor_name: "A" }],
+      events: [inbound({ type: "text", text: { body: "Mrakad 30 mins" } })],
+      rpcs: {
+        merchant_proposal_create: () => PROP,
+        staff_shift_touch: () => [
+          {
+            vendor_id: VENDOR,
+            vendor_name: "A",
+            pending: [{ code: "K7M2QX", status: "preparing", minutes: 12 }],
+            pending_count: 1,
+            sold_out: ["كنافة"],
+            complaints: 1,
+          },
+        ],
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(sent[0].payload.text.body).toMatch(/Shift start/);
+    expect(sent[0].payload.text.body).toMatch(/#K7M2QX/);
+    expect(sent[0].payload.text.body).toMatch(/كنافة/);
+    expect(sent[1].payload.interactive.action.buttons[0].reply.id).toBe(`pyes:${PROP}`);
+  });
+  it("a confirmed power cut says how many items were hidden", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [
+        inbound({
+          type: "interactive",
+          interactive: { type: "button_reply", button_reply: { id: `pyes:${PROP}`, title: "✅" } },
+        }),
+      ],
+      rpcs: {
+        merchant_proposal_decide: () => ({ status: "confirmed", kind: "power_off", hidden: 4 }),
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(sent[0].payload.text.body).toMatch(/4 items hidden/);
+  });
+  it("the accepted message is preceded by the gold order card image when it is switched on", async () => {
+    const outbox = [
+      {
+        id: 5,
+        order_id: ORDER,
+        vendor_id: VENDOR,
+        channel: "whatsapp",
+        purpose: "customer_message",
+        target: "+96170000001",
+        attempts: 1,
+        card: { ...card, vendor_name: "Shop" },
+        payload: { kind: "accepted", lang: "ar", customer_id: "c1" },
+      },
+    ];
+    const svgs: string[] = [];
+    const db = fakeDb({
+      outbox,
+      rpcs: {
+        whatsapp_sender: (a) => (a.p_audience === "customer" ? "PNID-C" : "PNID-M"),
+        order_track: () => ({}),
+        order_card_image: () => ({
+          code: "AB3CD9",
+          lines: [{ name_ar: "شاورما", quantity: 2, line_usd: 9 }],
+          total_usd: 12.5,
+          total_lbp: 1118750,
+          usd_lbp_rate: 89500,
+        }),
+      },
+    });
+    const { d, sent } = deps(db, { orderCard: async (_from, svg) => (svgs.push(svg), "MEDIA1") });
+    await runDispatch(d);
+    expect(svgs[0]).toContain("1,118,750 LBP");
+    expect(sent[0].payload).toMatchObject({ type: "image", image: { id: "MEDIA1" } });
+    expect(sent[1].payload.type).toBe("text");
+    // Switched off (null from the database): the text alone.
+    const off = fakeDb({
+      outbox,
+      rpcs: {
+        whatsapp_sender: () => "PNID-C",
+        order_track: () => ({}),
+        order_card_image: () => null,
+      },
+    });
+    const o = deps(off, { orderCard: async () => "MEDIA1" });
+    await runDispatch(o.d);
+    expect(o.sent.map((x) => x.payload.type)).toEqual(["text"]);
+  });
+});

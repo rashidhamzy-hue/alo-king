@@ -405,3 +405,33 @@ export function parseMerchantAction(id: string): MerchantAction | null {
       return null;
   }
 }
+
+// ---- Shift handover (§32.5) ------------------------------------------------------------------------------
+export type Handover = {
+  vendor_name?: string | null;
+  pending?: { code: string; status: string; minutes: number }[];
+  pending_count?: number;
+  sold_out?: string[];
+  complaints?: number;
+};
+const STATUS_AR: Record<string, string> = { placed: "جديد", accepted: "مقبول", preparing: "عم يتحضّر", ready: "جاهز" };
+
+/** The handover on a staff member's first message of a shift: orders still open, items off, open complaints. */
+export function shiftHandoverText(to: string, h: Handover) {
+  const pending = h.pending ?? [];
+  const lines = [
+    `👋 بداية الشيفت${h.vendor_name ? ` · ${h.vendor_name}` : ""} / Shift start`,
+    "",
+    pending.length
+      ? `🧾 طلبات مفتوحة (${h.pending_count ?? pending.length}) / Open orders:`
+      : "🧾 ما في طلبات مفتوحة. / No open orders.",
+    ...pending.slice(0, 10).map((o) => `• #${o.code} · ${STATUS_AR[o.status] ?? o.status} · ${o.minutes} د`),
+    ...((h.pending_count ?? 0) > pending.length ? ["…"] : []),
+    "",
+    (h.sold_out ?? []).length
+      ? `🚫 مش متوفر / Off: ${(h.sold_out ?? []).slice(0, 10).join("، ")}`
+      : "✅ كل الأصناف متوفرة. / Everything is available.",
+    h.complaints ? `⚠️ شكاوى مفتوحة / Open complaints: ${h.complaints}` : "",
+  ].filter((l, i, a) => l !== "" || (i > 0 && a[i - 1] !== ""));
+  return textMessage(to, lines.join("\n").trim().slice(0, 4000));
+}

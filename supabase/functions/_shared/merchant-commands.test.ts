@@ -125,3 +125,51 @@ describe("time helpers", () => {
     expect(nextBeirutTime(9, 0, NOW).toISOString()).toBe("2026-10-12T06:00:00.000Z");
   });
 });
+
+import { parseMerchantCommand as parseX, phoneE164 } from "./merchant-commands";
+describe("merchant WhatsApp extras (§32.5)", () => {
+  const p = (s: string) => parseX(s);
+  it("generator mode", () => {
+    for (const s of ["ما في كهربا", "ما فيّ كهربا", "generator off", "Ma fi kahraba", "no power", "coupure de courant"])
+      expect(p(s), s).toEqual({ kind: "power_off" });
+    for (const s of ["power back", "رجعت الكهربا", "إجت الكهربا", "kahraba rej3et", "le courant est revenu"])
+      expect(p(s), s).toEqual({ kind: "power_on" });
+    expect(p("الفرن بدو كهربا")).toEqual({ kind: "needs_power", item: "الفرن", on: true });
+    expect(p("Fries needs power")).toEqual({ kind: "needs_power", item: "fries", on: true });
+    expect(p("salad without power")).toEqual({ kind: "needs_power", item: "salad", on: false });
+  });
+  it("kitchen capacity", () => {
+    expect(p("capacity 8")).toEqual({ kind: "capacity", max: 8 });
+    expect(p("طاقة المطبخ ١٢")).toEqual({ kind: "capacity", max: 12 });
+    expect(p("capacity off")).toEqual({ kind: "capacity", max: null });
+    expect(p("capacity 0")).toBeNull();
+    expect(p("capacity 500")).toBeNull();
+  });
+  it("staff by WhatsApp", () => {
+    expect(p("Add Ali as kitchen +961 3 123 456")).toEqual({ kind: "staff_add", name: "Ali", role: "kitchen", phone: "+9613123456" });
+    expect(p("زيد علي مطبخ 03 123 456")).toMatchObject({ kind: "staff_add", role: "kitchen", phone: "+9613123456" });
+    expect(p("ajoute Rita caisse 71-234-567")).toMatchObject({ kind: "staff_add", name: "Rita", role: "cashier", phone: "+96171234567" });
+    expect(p("add Samir as driver 0096176111222")).toMatchObject({ role: "driver", phone: "+96176111222" });
+    expect(p("add Ali as boss +961 3 123 456")).toBeNull(); // unknown role: not guessed
+    expect(p("add Ali as owner +961 3 123 456")).toBeNull(); // owners are not added by message
+    expect(p("remove Ali")).toEqual({ kind: "staff_remove", name: "ali" });
+    expect(p("شيل علي")).toEqual({ kind: "staff_remove", name: "علي" });
+  });
+  it("same-price badge and substitutes", () => {
+    expect(p("same price as in the shop")).toEqual({ kind: "same_price", on: true });
+    expect(p("نفس اسعار المحل")).toEqual({ kind: "same_price", on: true });
+    expect(p("مش نفس السعر")).toEqual({ kind: "same_price", on: false });
+    expect(p("sub K7M2QX pepsi = 7up")).toEqual({ kind: "substitute", code: "K7M2QX", missing: "pepsi", substitute: "7up" });
+    expect(p("بديل #K7M2QX بيبسي = سفن اب")).toEqual({ kind: "substitute", code: "K7M2QX", missing: "بيبسي", substitute: "سفن اب" });
+  });
+  it("the older commands still parse as before", () => {
+    expect(p("ما في كنافة")).toEqual({ kind: "sold_out", item: "كنافه" });
+    expect(p("مسكر نص ساعة")).toMatchObject({ kind: "pause", minutes: 30 });
+  });
+  it("phone numbers to E.164", () => {
+    expect(phoneE164("+961 3 123 456")).toBe("+9613123456");
+    expect(phoneE164("03123456")).toBe("+9613123456");
+    expect(phoneE164("81 123 456")).toBe("+96181123456");
+    expect(phoneE164("12")).toBeNull();
+  });
+});

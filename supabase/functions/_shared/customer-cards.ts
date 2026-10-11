@@ -101,6 +101,9 @@ export const T: Record<CLang, S> = {
     problem: "⚠️ في مشكلة",
     weight: "⚖️ الوزن النهائي لطلبك #{code}: {total} (التقدير كان {est}). موافق؟",
     weightYes: "✅ موافق",
+    subOffer: "↔️ طلبك #{code}: «{from}» مش متوفر. المحل بيقترح «{to}» ({diff}). المجموع الجديد: {money}. موافق؟",
+    subYes: "✅ موافق عالبديل",
+    subNo: "❌ بلا بديل",
     weightNo: "❌ إلغاء",
     cancelRefused: "المحل ما قبل إلغاء الطلب #{code} لأنو صار عم يتحضّر. الطلب كمّل.",
     rating: "شو رأيك بطلبك من {vendor}؟",
@@ -152,6 +155,9 @@ export const T: Record<CLang, S> = {
     problem: "⚠️ Problem",
     weight: "⚖️ Final weight for order #{code}: {total} (estimate was {est}). OK?",
     weightYes: "✅ OK",
+    subOffer: "↔️ Order #{code}: \"{from}\" isn't available. The shop suggests \"{to}\" ({diff}). New total: {money}. OK?",
+    subYes: "✅ Take substitute",
+    subNo: "❌ No substitute",
     weightNo: "❌ Cancel",
     cancelRefused: "The shop couldn't cancel order #{code}: it's already being prepared. Your order continues.",
     rating: "How was your order from {vendor}?",
@@ -203,6 +209,9 @@ export const T: Record<CLang, S> = {
     problem: "⚠️ Problème",
     weight: "⚖️ Poids final de la commande #{code} : {total} (estimation {est}). D'accord ?",
     weightYes: "✅ D'accord",
+    subOffer: "↔️ Commande #{code} : « {from} » n'est pas disponible. Le magasin propose « {to} » ({diff}). Nouveau total : {money}. D'accord ?",
+    subYes: "✅ J'accepte",
+    subNo: "❌ Sans remplacement",
     weightNo: "❌ Annuler",
     cancelRefused: "Le commerçant n'a pas pu annuler la commande #{code} : elle est en préparation. Elle continue.",
     rating: "Comment était votre commande chez {vendor} ?",
@@ -254,6 +263,9 @@ export const T: Record<CLang, S> = {
     problem: "⚠️ Fi moshkle",
     weight: "⚖️ El wazn el niha2e la talabak #{code}: {total} (el ta2dir ken {est}). Mwefe2?",
     weightYes: "✅ Mwefe2",
+    subOffer: "↔️ Talabak #{code}: \"{from}\" msh metwaffar. El ma7al 3am ye2tere7 \"{to}\" ({diff}). El majmou3 el jdid: {money}. Mwefe2?",
+    subYes: "✅ Mwefe2",
+    subNo: "❌ Bala badil",
     weightNo: "❌ Elghe2",
     cancelRefused: "El mahal ma 2ebel yelghe talab #{code} la2an 3am yet7addar. El talab kammal.",
     rating: "Shu ra2yak b talabak men {vendor}?",
@@ -379,6 +391,29 @@ export function customerStatusMessages(
       ];
     case "cancel_refused":
       return [text(to, tr(lang, "cancelRefused", { code }))];
+    case "substitution": {
+      // A substitute the merchant offered (§32.5): priced by the server, shown in USD and LBP at the locked rate.
+      if (!/^[0-9a-f-]{36}$/.test(String(p.substitution_id ?? ""))) return [];
+      const d = n2(p.diff_usd);
+      const diff = d === 0 ? "=" : `${d > 0 ? "+" : "-"}${usd(Math.abs(d))} / ${d > 0 ? "+" : "-"}${lbp(Math.abs(n2(p.diff_lbp)))} LBP`;
+      const en = lang === "en" || lang === "fr";
+      return [
+        buttons(
+          to,
+          tr(lang, "subOffer", {
+            code,
+            from: en ? p.from_en : p.from_ar,
+            to: en ? p.to_en : p.to_ar,
+            diff,
+            money: moneyLine(p.new_total_usd, p.new_total_lbp, p.usd_lbp_rate, lang),
+          }),
+          [
+            [`sub:${p.substitution_id}:y`, tr(lang, "subYes")],
+            [`sub:${p.substitution_id}:n`, tr(lang, "subNo")],
+          ],
+        ),
+      ];
+    }
     case "rating":
       return [ratingList(to, oid, vendor, !!p.ask_delivery, lang)];
     case "basket_reminder": {
@@ -424,6 +459,8 @@ export type CustomerAction =
   | { a: "add_upsell"; itemId: string }
   | { a: "replace_basket"; itemId: string; qty: number }
   | { a: "option"; optionId: string }
+  | { a: "substitution"; substitutionId: string; accept: boolean }
+  | { a: "sub_pref"; pref: "call" | "replace" | "remove" }
   | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "delete_ok" | "keep" | "usual" | "address_list" | "no_upsell" };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -442,6 +479,8 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(re(`ups:(${UUID})`)))) return { a: "add_upsell", itemId: m[1] };
   if ((m = id.match(re(`rpl:(${UUID}):(\\d{1,2})`)))) return { a: "replace_basket", itemId: m[1], qty: Number(m[2]) };
   if ((m = id.match(re(`opt:(${UUID})`)))) return { a: "option", optionId: m[1] };
+  if ((m = id.match(re(`sub:(${UUID}):(y|n)`)))) return { a: "substitution", substitutionId: m[1], accept: m[2] === "y" };
+  if ((m = id.match(/^sbp:(call|replace|remove)$/))) return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
   if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell)$/)))
     return { a: "simple", what: m[1] as any };
   return null;

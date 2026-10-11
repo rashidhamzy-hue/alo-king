@@ -29,6 +29,7 @@ import {
   cancelAsk,
   emptyQuestion,
   menuList,
+  substitutionAsk,
   dietaryList,
   optionList,
   summaryMessage,
@@ -43,7 +44,7 @@ import {
   type Track,
 } from "./render.ts";
 import { ALLERGENS, DIETS, NUTRITION_TAGS, SYSTEM_PROMPT, TOOLS, type ToolName } from "./tools.ts";
-import { buttons } from "../../_shared/customer-cards.ts";
+import { buttons, moneyLine } from "../../_shared/customer-cards.ts";
 import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
 import { parseCartOrder } from "../../_shared/catalog.ts";
 
@@ -440,6 +441,22 @@ async function tap(c: Ctx, a: CustomerAction) {
         p_delivery_ok: a.deliveryOk ?? null,
       });
       return say(c, "thanksRating");
+    case "substitution": {
+      // The customer's answer to a substitute the merchant offered (§32.5); totals come from the server.
+      const r = await deps.rpc("order_substitution_decide", {
+        p_customer_id: id,
+        p_substitution_id: a.substitutionId,
+        p_accept: a.accept,
+      });
+      const money = moneyLine(r?.total_usd, r?.total_lbp, r?.usd_lbp_rate, c.s.lang);
+      if (r?.status === "accepted") return say(c, "subAccepted", { money });
+      if (r?.status === "declined") return say(c, "subDeclined", { money });
+      if (r?.status === "last_item") return say(c, "subLast");
+      return say(c, "subGone");
+    }
+    case "sub_pref":
+      await deps.rpc("basket_set_substitution", { p_customer_id: id, p_pref: a.pref });
+      return checkout(c, {});
     case "empty":
       await deps.rpc("basket_set_empty", {
         p_customer_id: id,
@@ -724,7 +741,8 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
     ...r,
     ref: refFor(c, "i", r.item_id, `${r.name_en ?? r.name_ar} $${Number(r.price_usd).toFixed(2)}`),
   }));
-  push(c, ...menuList(c.m.from, c.s.lang, v.label.replace(/ \(.*\)$/, ""), menu, query));
+  const samePrice = (await c.deps.rpc("vendor_same_price", { p_vendor_id: v.id })) === true;
+  push(c, ...menuList(c.m.from, c.s.lang, v.label.replace(/ \(.*\)$/, ""), menu, query, samePrice));
   c.summary.push(`[showed ${menu.length} items from ${vendorRef}]`);
 }
 
@@ -929,6 +947,11 @@ async function checkout(
             ),
           );
         return;
+      }
+      // Grocery-type shops (§32.5): what to do if an item is out, asked once per basket.
+      const sp = await deps.rpc("basket_substitution_needed", { p_customer_id: c.customerId });
+      if (sp?.needed) {
+        return push(c, substitutionAsk(c.m.from, lang, Number(sp.max_usd ?? 0)));
       }
       const newCustomer = Number(c.profile?.delivered_orders ?? 0) === 0;
       push(c, ...summaryMessage(c.m.from, lang, q, newCustomer));

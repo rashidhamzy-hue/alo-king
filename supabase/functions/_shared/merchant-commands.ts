@@ -11,7 +11,34 @@ export type MerchantCommand =
   | { kind: "pause_until"; hour: number; minute: number }
   | { kind: "open" }
   | { kind: "balance" }
-  | { kind: "top_up"; amountUsd: number };
+  | { kind: "top_up"; amountUsd: number }
+  // Merchant WhatsApp extras (§32.5)
+  | { kind: "power_off" }
+  | { kind: "power_on" }
+  | { kind: "needs_power"; item: string; on: boolean }
+  | { kind: "capacity"; max: number | null }
+  | { kind: "staff_add"; name: string; role: StaffRole; phone: string }
+  | { kind: "staff_remove"; name: string }
+  | { kind: "same_price"; on: boolean }
+  | { kind: "substitute"; code: string; missing: string; substitute: string };
+
+export type StaffRole = "manager" | "cashier" | "kitchen" | "driver";
+const ROLE_WORDS: [StaffRole, RegExp][] = [
+  ["kitchen", /^(?:kitchen|cook|chef|cuisine|cuisinier|matbakh|matba5|tabbakh|مطبخ|المطبخ|طباخ|شيف)$/],
+  ["cashier", /^(?:cashier|cash|caisse|caissier|caissiere|kashir|kasher|كاشير|كاشيره|صندوق)$/],
+  ["manager", /^(?:manager|gerant|gérant|responsable|modir|mdir|مدير|مديره|مسؤول)$/],
+  ["driver", /^(?:driver|delivery|livreur|chauffeur|shofer|shofeir|delivery boy|سائق|سايق|شوفير|دليفري|ديليفري)$/],
+];
+
+/** A Lebanese or international number as written ("+961 3 123 456", "03 123456", "71-234-567") in E.164. */
+export function phoneE164(raw: string): string | null {
+  const d = raw.replace(/[\s().-]/g, "");
+  if (/^\+[1-9]\d{6,14}$/.test(d)) return d;
+  if (/^00[1-9]\d{6,14}$/.test(d)) return `+${d.slice(2)}`;
+  if (/^0?(3|7[016-9]|81)\d{6}$/.test(d)) return `+961${d.replace(/^0/, "")}`;
+  if (/^961(3|7[016-9]|81)\d{6}$/.test(d)) return `+${d}`;
+  return null;
+}
 
 // Arabic-Indic and Persian digits to ASCII; Arabic decimal separator to a dot.
 const DIGITS: Record<string, string> = {
@@ -127,6 +154,9 @@ export function parseMerchantCommand(text: string, now: Date = new Date()): Merc
   );
   if (m && m[1].trim()) return { kind: "price", item: m[1].trim(), priceUsd: num(m[2]) };
 
+  const extra = parseExtras(t, text);
+  if (extra) return extra;
+
   for (const re of SOLD_OUT) {
     m = t.match(re);
     if (m && m[1].trim()) return { kind: "sold_out", item: m[1].trim() };
@@ -135,6 +165,46 @@ export function parseMerchantCommand(text: string, now: Date = new Date()): Merc
     m = t.match(re);
     if (m && m[1].trim()) return { kind: "back_in_stock", item: m[1].trim() };
   }
+  return null;
+}
+
+const POWER_OFF =
+  /^(?:ma ?fi kahraba2?|ma ?fi kahraba|ma fi kahraba|no power|power off|power cut|power is off|power outage|generator off|generator mode|generator|coupure|coupure de courant|pas de courant|ما ?في كهربا|ما ?في كهرباء|قطعت الكهربا|انقطعت الكهربا|راحت الكهربا|الكهربا مقطوعه|الموتور طافي|طفي الموتور)$/;
+const POWER_ON =
+  /^(?:power back|power is back|power on|power's back|kahraba rej3et|rej3et el kahraba|ijet el kahraba|ejet el kahraba|courant revenu|le courant est revenu|retour du courant|رجعت الكهربا|اجت الكهربا|الكهربا رجعت|في كهربا|رجعت الكهرباء)$/;
+
+/** The §32.5 extras: generator mode, capacity, staff, same-price badge and substitutes. */
+function parseExtras(t: string, raw: string): MerchantCommand | null {
+  if (POWER_OFF.test(t)) return { kind: "power_off" };
+  if (POWER_ON.test(t)) return { kind: "power_on" };
+  let m = t.match(/^(.+?)\s+(?:needs power|needs electricity|on power|بدو كهربا|بدها كهربا|بدو كهرباء|بدها كهرباء|bado kahraba|bada kahraba)$/);
+  if (m) return { kind: "needs_power", item: m[1].trim(), on: true };
+  m = t.match(/^(.+?)\s+(?:without power|no power needed|works without power|بلا كهربا|بيمشي بلا كهربا|ما بدو كهربا|ما بدها كهربا|bala kahraba)$/);
+  if (m) return { kind: "needs_power", item: m[1].trim(), on: false };
+  m = t.match(/^(?:capacity|max orders|max active orders|kitchen capacity|capacite|capacité|ta2a|طاقه|طاقتنا|طاقه المطبخ|اقصى عدد طلبات)\s+(\d{1,3}|off|none|no limit|بلا|الغي|annuler)$/);
+  if (m) {
+    const n = /^\d+$/.test(m[1]) ? Number(m[1]) : null;
+    return n === null || (n >= 1 && n <= 200) ? { kind: "capacity", max: n } : null;
+  }
+  // add Ali as kitchen +961 3 123 456 / زيد علي مطبخ 03123456 / ajoute Ali cuisine +961...
+  m = t.match(/^(?:add|ajoute|ajouter|zid|zeed|زيد|ضيف|اضف)\s+(.+?)\s+(?:as\s+|comme\s+|ك\s*)?(\S+(?: boy)?)\s+(\+?[\d\s-]{7,20})$/);
+  if (m) {
+    const role = ROLE_WORDS.find(([, re]) => re.test(m![2]))?.[0];
+    const phone = phoneE164(m[3]);
+    // The name as typed (original case), from the raw message.
+    const name = raw.trim().split(/\s+/).slice(1).join(" ").match(new RegExp(`^(.{1,60}?)\\s+(?:as\\s+|comme\\s+)?\\S+(?: boy)?\\s+\\+?[\\d\\s٠-٩-]{7,20}$`, "i"))?.[1] ?? m[1];
+    if (role && phone) return { kind: "staff_add", name: name.trim().slice(0, 60), role, phone };
+  }
+  m = t.match(/^(?:remove|delete|supprime|supprimer|enleve|enlève|shil|sheel|شيل|احذف|امحي)\s+(?:staff\s+)?(\S.{0,59})$/);
+  if (m && !/\d{3}/.test(m[1])) return { kind: "staff_remove", name: m[1].trim() };
+  if (/^(?:same price|same prices|same price as shop|same price as in the shop|meme prix|même prix|nafs el se3r|نفس السعر|نفس الاسعار|نفس اسعار المحل|نفس سعر المحل)$/.test(t))
+    return { kind: "same_price", on: true };
+  if (/^(?:not same price|different prices|prix differents|مش نفس السعر|الاسعار مختلفه|مش نفس الاسعار)$/.test(t))
+    return { kind: "same_price", on: false };
+  // sub ABC123 pepsi = 7up / بديل ABC123 بيبسي = سفن اب / remplace ABC123 pepsi = 7up
+  m = t.match(/^(?:sub|substitute|replace|remplace|remplacer|badil|بديل|بدل)\s+#?([a-z2-9]{6})\s+(.+?)\s*(?:=|->|→|=>)\s*(.+)$/);
+  if (m && m[2].trim() && m[3].trim())
+    return { kind: "substitute", code: m[1].toUpperCase(), missing: m[2].trim(), substitute: m[3].trim() };
   return null;
 }
 

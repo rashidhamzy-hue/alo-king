@@ -23,6 +23,7 @@ import { reportError } from "../_shared/sentry.ts";
 import { orsProvider, restRouteCache, roadRoutes } from "../_shared/routing.ts";
 import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
+import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
 
 // Kapso is reached only here (CLAUDE.md); never from configuration or message content.
 const KAPSO_BASE = "https://api.kapso.ai/meta/whatsapp/v24.0";
@@ -283,6 +284,52 @@ async function whatsapp(
   }
 }
 
+// ---- Visual order card (§32.5) ------------------------------------------------------------------------
+// The SVG from order-card-image.ts is rendered with resvg (WebAssembly, pinned) and the bundled Noto fonts
+// (supabase/functions/_shared/fonts, OFL), then uploaded to WhatsApp media through Kapso; the message
+// carries the media id, so no order data sits behind a public URL.
+const RESVG_WASM = "https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+const CARD_FONTS = [
+  "NotoNaskhArabic-Regular",
+  "NotoNaskhArabic-Bold",
+  "NotoSans-Regular",
+  "NotoSans-Bold",
+];
+let cardRenderer: Promise<Uint8Array[]> | null = null;
+function cardFonts(): Promise<Uint8Array[]> {
+  cardRenderer ??= (async () => {
+    await initWasm(fetch(RESVG_WASM));
+    return Promise.all(
+      CARD_FONTS.map((f) => Deno.readFile(new URL(`../_shared/fonts/${f}.ttf`, import.meta.url))),
+    );
+  })().catch((e) => {
+    cardRenderer = null;
+    throw e;
+  });
+  return cardRenderer;
+}
+async function orderCard(phoneNumberId: string, svg: string): Promise<string | null> {
+  if (!kapsoKey) return null;
+  const fontBuffers = await cardFonts();
+  const png = new Resvg(svg, {
+    font: { fontBuffers, loadSystemFonts: false, defaultFontFamily: "Noto Sans" },
+  })
+    .render()
+    .asPng();
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("type", "image/png");
+  form.append("file", new Blob([new Uint8Array(png)], { type: "image/png" }), "order.png");
+  const res = await fetch(`${KAPSO_BASE}/${encodeURIComponent(phoneNumberId)}/media`, {
+    method: "POST",
+    headers: { "X-API-Key": kapsoKey },
+    body: form,
+    signal: AbortSignal.timeout(15_000),
+  });
+  const body = await res.json().catch(() => ({}));
+  return res.ok && typeof body?.id === "string" ? body.id : null;
+}
+
 const telegramToken = env("TELEGRAM_BOT_TOKEN");
 const telegramChat = env("TELEGRAM_OPS_CHAT_ID");
 async function telegram(text: string, url?: string): Promise<SendResult> {
@@ -392,6 +439,7 @@ Deno.serve(async (req) => {
         : null,
       // Claim codes to landlines (§18.1 B): the same voice provider, saying the code twice.
       storeDocument,
+      orderCard,
       menuModel: anthropic ? menuModel : null,
       fetchMenuMedia: (phoneNumberId: string, x: { id: string; url: string | null }) =>
         fetchMedia(x, phoneNumberId, 5_000_000),
