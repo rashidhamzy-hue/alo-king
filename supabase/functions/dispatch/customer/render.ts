@@ -96,6 +96,18 @@ const S: Record<string, Record<CLang, string>> = {
     fr: "Je n'ai pas pu enregistrer ces choix. Réessayez ou écrivez ce que vous voulez.",
     arabizi: "Ma 2drt e7faz hal5ayarat. Jarreb marra tenye aw ekteble shu badak.",
   },
+  cartSkipped: {
+    ar: "😔 {n} من أصناف السلّة مش متوفرة هلق، وما زدناها.",
+    en: "😔 {n} item(s) from your cart aren't available right now, so they weren't added.",
+    fr: "😔 {n} article(s) de votre panier ne sont pas disponibles et n'ont pas été ajoutés.",
+    arabizi: "😔 {n} men asnaf el salle msh metwaffra hala2, ma zedneha.",
+  },
+  cartMoreOptions: {
+    ar: "ولـ {n} صنف تاني بدنا خيارات: اختار هيدا الأول، وبعدها زيدهن من المنيو.",
+    en: "{n} more item(s) need choices: pick this one first, then add them from the menu.",
+    fr: "{n} autre(s) article(s) demandent des choix : choisissez d'abord celui-ci, puis ajoutez-les depuis le menu.",
+    arabizi: "W la {n} sanf tene badna 5ayarat: e5tar hayda awal, w ba3den zidon men el menu.",
+  },
   addressSaved: {
     ar: "✅ حفظنا تفاصيل العنوان.",
     en: "✅ Address details saved.",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { handleMerchantFlows, merchantFlowRequest } from "./flows";
+import { handleMerchantFlows, merchantFlowRequest, parseBranchTap } from "./flows";
 import { checkInteractive } from "../../_shared/meta-limits";
 
 const V = "20000000-0000-0000-0000-00000000000a";
@@ -8,6 +8,13 @@ const CASHIER = {
   member_id: "55000000-0000-0000-0000-0000000000a2",
   vendor_id: V,
   role: "cashier",
+};
+const V2 = "20000000-0000-0000-0000-00000000000b";
+const OWNER2 = {
+  member_id: "55000000-0000-0000-0000-0000000000b1",
+  vendor_id: V2,
+  role: "owner",
+  vendor_name: "Branch B",
 };
 const TOKEN = `merchant_hours:${"c".repeat(32)}`;
 
@@ -61,18 +68,69 @@ describe("merchant Flows", () => {
   });
   it("a merchant_claim submission that asks for menu photos starts the menu import", async () => {
     const h = harness({
-      flow_submit: () => ({ flow: "merchant_claim", status: "saved", menu_photos: true }),
+      flow_submit: () => ({
+        flow: "merchant_claim",
+        status: "saved",
+        menu_photos: true,
+        vendor_id: V2,
+        member_id: OWNER2.member_id,
+      }),
     });
     await handleMerchantFlows(
       h.deps,
       { from: "+96171000001", text: null, flow: { token: TOKEN, payload: {} } },
-      [OWNER],
+      [OWNER, OWNER2],
     );
+    // The branch the Flow was opened for, not the first membership.
     expect(h.of("onboarding_session_set")[0].args).toMatchObject({
       p_step: "menu_import",
-      p_data: { vendor_id: V },
+      p_data: { vendor_id: V2, member_id: OWNER2.member_id },
     });
     expect(h.sent).toHaveLength(2);
+  });
+  it("an owner of two branches picks the branch first, then gets that branch's Flow", async () => {
+    const h = harness({
+      flow_open: () => ({ status: "ok", token: TOKEN, screen: "HOURS", data: {} }),
+    });
+    await handleMerchantFlows(h.deps, { from: "+96171000001", text: "hours", flow: null }, [
+      OWNER,
+      OWNER2,
+    ]);
+    expect(h.of("flow_open")).toHaveLength(0);
+    expect(checkInteractive(h.sent[0])).toEqual([]);
+    const id = h.sent[0].interactive.action.sections[0].rows[1].id;
+    expect(parseBranchTap(id)).toEqual({ flow: "merchant_hours", memberId: OWNER2.member_id });
+    await handleMerchantFlows(
+      h.deps,
+      { from: "+96171000001", text: null, buttonId: id, flow: null },
+      [OWNER, OWNER2],
+    );
+    expect(h.of("flow_open")[0].args).toMatchObject({
+      p_flow: "merchant_hours",
+      p_member_id: OWNER2.member_id,
+    });
+    // A tap naming a membership the sender does not hold opens nothing.
+    const x = harness();
+    await handleMerchantFlows(
+      x.deps,
+      { from: "+96171000001", text: null, buttonId: id, flow: null },
+      [OWNER],
+    );
+    expect(x.of("flow_open")).toHaveLength(0);
+  });
+  it("an expired or repeated form gets a reply, never silence", async () => {
+    for (const r of [
+      { flow: "merchant_hours", status: "rejected", reason: "expired" },
+      { flow: "merchant_hours", status: "duplicate" },
+    ]) {
+      const h = harness({ flow_submit: () => r });
+      await handleMerchantFlows(
+        h.deps,
+        { from: "+96171000001", text: null, flow: { token: TOKEN, payload: {} } },
+        [OWNER],
+      );
+      expect(h.sent[0].text.body).toMatch(/hours/);
+    }
   });
   it("ordinary messages are not Flow business", async () => {
     const h = harness();

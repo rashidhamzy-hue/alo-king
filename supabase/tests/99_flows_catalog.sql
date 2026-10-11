@@ -75,7 +75,17 @@ select tests.ok((select bi.quantity = 2 and bi.unit_price_usd = 6.50 from public
 select tests.ok(public.flow_open('merchant_hours', 'ar', '+96171000002', null, :'cashier_a') ->> 'status' = 'not_allowed',
   'a cashier cannot open the hours Flow');
 select public.flow_open('merchant_claim', 'ar', '+96171000001', null, :'owner_a') as fc \gset
-select tests.ok(:'fc'::jsonb #>> '{data,name_en}' = 'Vendor A', 'merchant_claim is pre-filled from the profile');
+select tests.ok(:'fc'::jsonb #>> '{data,name_en}' = 'Vendor A' and :'fc'::jsonb #> '{data,closed_days}' = '[]'
+  and :'fc'::jsonb #>> '{data,fee_note}' like '%$%km%' and :'fc'::jsonb #>> '{data,fee_note}' not like '%-' and (:'fc'::jsonb #> '{data}') ? 'cash',
+  'merchant_claim is pre-filled from the profile, its hours, cash and the current fee bands (no fixed numbers)');
+-- A profile saved with the form's starting hours does not give an always-open branch fixed hours.
+select public.flow_open('merchant_claim', 'en', '+96171000001', null, :'owner_a') as fc0 \gset
+select public.flow_submit('+96171000001', :'fc0'::jsonb ->> 'token', (:'fc0'::jsonb -> 'data') || '{"owner_name": "Samir"}');
+reset role;
+select tests.ok((select count(*) = 0 from public.vendor_hours where vendor_id = '20000000-0000-0000-0000-00000000000a'),
+  'saving the profile unchanged leaves a branch without hours always open');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select public.flow_submit('+96171000001', :'fc'::jsonb ->> 'token', jsonb_build_object('vendor_id', '20000000-0000-0000-0000-00000000000a',
   'name_ar', 'مطعم أ', 'name_en', 'Vendor A', 'owner_name', 'Samir', 'opens', '11:00', 'closes', '01:00', 'radius_km', '25',
   'cash', jsonb_build_array('USD'), 'menu_photos', true)) as sc \gset
@@ -87,6 +97,35 @@ select tests.ok((select name_ar = 'مطعم أ' and cash_currencies = '{USD}' an
 select tests.ok((select count(*) = 7 from public.vendor_hours where vendor_id = '20000000-0000-0000-0000-00000000000a' and opens = '11:00' and closes = '01:00'),
   'hours saved for every day');
 select tests.ok((select display_name = 'Samir' from public.vendor_members where id = :'owner_a'), 'the owner name is kept on the membership');
+-- Hours and closed days come back into both merchant Flows, so a save without changes keeps them.
+delete from public.vendor_hours where vendor_id = '20000000-0000-0000-0000-00000000000a' and weekday = 0;
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select public.flow_open('merchant_claim', 'en', '+96171000001', null, :'owner_a') as fc2 \gset
+select tests.ok(:'fc2'::jsonb #>> '{data,opens}' = '11:00' and :'fc2'::jsonb #>> '{data,closes}' = '01:00'
+  and :'fc2'::jsonb #> '{data,closed_days}' = '["0"]' and :'fc2'::jsonb #> '{data,cash}' = '["USD"]', 'merchant_claim starts from the real hours, closed days and cash');
+select public.flow_submit('+96171000001', :'fc2'::jsonb ->> 'token', (:'fc2'::jsonb -> 'data') || '{"owner_name": "Samir"}');
+select public.flow_open('merchant_hours', 'en', '+96171000001', null, :'owner_a') as fh0 \gset
+select tests.ok(:'fh0'::jsonb #> '{data,closed_days}' = '["0"]', 'merchant_hours starts from the real closed days');
+select tests.ok(public.flow_submit('+96171000001', :'fh0'::jsonb ->> 'token', (:'fh0'::jsonb -> 'data') || '{"opens": "29:00", "pause": "none"}') ->> 'reason' = 'hours',
+  'an impossible time is a rejection, not an error');
+select public.flow_open('merchant_claim', 'en', '+96171000001', null, :'owner_a') as fc3 \gset
+select tests.ok(public.flow_submit('+96171000001', :'fc3'::jsonb ->> 'token', (:'fc3'::jsonb -> 'data') || '{"radius_km": "far", "owner_name": "S"}') ->> 'reason' = 'invalid',
+  'a malformed number is a rejection, not an error');
+select public.flow_open('merchant_hours', 'en', '+96171000001', null, :'owner_a') as fh9 \gset
+reset role;
+update public.flow_sends set sent_at = now() - interval '2 days' where token = :'fh9'::jsonb ->> 'token';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(public.flow_submit('+96171000001', :'fh9'::jsonb ->> 'token', :'fh9'::jsonb -> 'data') ->> 'reason' = 'expired',
+  'a Flow submitted after the token lifetime is refused');
+reset role;
+select tests.ok((select count(*) = 6 and bool_and(opens = '11:00' and closes = '01:00') from public.vendor_hours where vendor_id = '20000000-0000-0000-0000-00000000000a')
+  and (select delivery_radius_km = public.max_delivery_km() from public.vendors where id = '20000000-0000-0000-0000-00000000000a'),
+  'after unchanged saves and rejections the hours, closed day and radius are as the merchant set them');
+-- "Closed until tomorrow" for a shop open past midnight reopens at the next evening, not inside tonight.
+select tests.ok(app_private.vendor_next_window('20000000-0000-0000-0000-00000000000a', '2026-10-14 22:00 Asia/Beirut') = '2026-10-15 11:00 Asia/Beirut',
+  'the next opening window skips the rest of tonight''s window');
 -- Hours: open at 23:30 and 00:30 (past midnight), closed at 05:00.
 select tests.ok(app_private.vendor_open_at('20000000-0000-0000-0000-00000000000a', '2026-10-14 23:30 Asia/Beirut')
   and app_private.vendor_open_at('20000000-0000-0000-0000-00000000000a', '2026-10-15 00:30 Asia/Beirut')
@@ -122,6 +161,26 @@ select tests.ok((select count(*) = 6 from public.vendor_hours where vendor_id = 
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select tests.ok((public.flow_kill_gate() -> 'item_options' ->> 'sends')::int = 3, 'sends and submissions are counted per Flow (kill-gate)');
+-- An item whose groups do not fit the Flow's shape uses the text path.
+reset role;
+insert into public.menu_option_groups (id, item_id, name_en, min_select, max_select, sort_order) values
+  ('53100000-0000-0000-0000-000000000003', '53000000-0000-0000-0000-000000000001', 'Sauces', 2, 3, 3);
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(public.flow_open('item_options', 'en', '+96170000001', '10000000-0000-0000-0000-000000000001', null,
+  '{"item_id": "53000000-0000-0000-0000-000000000001"}') ->> 'status' = 'unsuited', 'a third group with several choices is not sent as a Flow');
+-- Per-Flow switch and the kill-gate: a Flow under the completion floor is no longer sent.
+select public.flow_open('merchant_hours', 'en', '+96171000001', null, :'owner_a') ->> 'status' = 'ok' as opened \gset
+select public.flow_open('merchant_hours', 'en', '+96171000001', null, :'owner_a') ->> 'status' = 'ok' as opened \gset
+reset role;
+insert into public.app_config (key, value, effective_from, note) values
+  ('flows_enabled', '{"address_capture": true, "item_options": true, "merchant_claim": false, "merchant_hours": true}', now(), 'test'),
+  ('flow_kill_gate', '{"min_sends": 3, "min_completion": 0.9}', now(), 'test');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(public.flow_open('merchant_claim', 'en', '+96171000001', null, :'owner_a') ->> 'status' = 'off'
+  and public.flow_open('merchant_hours', 'en', '+96171000001', null, :'owner_a') ->> 'status' = 'off',
+  'each Flow has its own switch, and one under its kill-gate floor stops being sent');
 
 -- Catalogue ------------------------------------------------------------------------------------------------
 select tests.ok((select bool_and((x ->> 'retailer_id')::uuid is not null and (x ->> 'currency') = 'USD' and (x ->> 'product_set') = '20000000-0000-0000-0000-00000000000a')

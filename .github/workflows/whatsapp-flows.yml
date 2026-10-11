@@ -51,7 +51,9 @@ jobs:
           PHONE_NUMBER_ID: ${{ inputs.phone_number_id }}
           FLOW_IDS: ${{ inputs.flow_ids }}
           PUBLISH: ${{ inputs.publish }}
+        shell: bash
         run: |
+          set -euo pipefail
           [[ "$PHONE_NUMBER_ID" =~ ^[0-9]{6,20}$ ]] || { echo "::error::bad phone number id"; exit 1; }
           echo "$FLOW_IDS" | jq -e 'type == "object"' >/dev/null || { echo "::error::flow_ids must be a JSON object"; exit 1; }
           for f in whatsapp/flows/*.json; do
@@ -59,7 +61,12 @@ jobs:
             published="alo_${flow}_${lang}"
             id=$(echo "$FLOW_IDS" | jq -r --arg k "$published" '.[$k] // empty')
             args=(deploy "$f" --to kapso --phone-number-id "$PHONE_NUMBER_ID" --name "$published")
-            [[ -n "$id" ]] && args+=(--flow-id "$id")
-            [[ "$PUBLISH" == "true" ]] && args+=(--publish)
-            pnpm exec flowso "${args[@]}" --json | jq -c '{name: "'"$published"'", ok, flow_id: (.flowId // .flow_id // .id // null)}' | tee -a "$GITHUB_STEP_SUMMARY"
+            if [[ -n "$id" ]]; then
+              [[ "$id" =~ ^[0-9A-Za-z_-]{1,64}$ ]] || { echo "::error::bad flow id for $published"; exit 1; }
+              args+=(--flow-id "$id")
+            fi
+            if [[ "$PUBLISH" == "true" ]]; then args+=(--publish); fi
+            out=$(pnpm exec flowso "${args[@]}" --json)
+            echo "$out" | jq -c --arg n "$published" '{name: $n, ok, flow_id: (.flowId // .flow_id // .id // null)}' | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "$out" | jq -e '.ok == true' >/dev/null || { echo "::error::deploy failed for $published"; exit 1; }
           done

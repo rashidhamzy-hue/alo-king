@@ -381,7 +381,12 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     menuSender &&
     (await handleMerchantFlows(
       { rpc: deps.rpc, send: (p) => deps.whatsapp(menuSender, p), log: deps.log },
-      { from: m.from, text: m.text, flow: parseFlowReply(ev.payload?.message) },
+      {
+        from: m.from,
+        text: m.text,
+        buttonId: m.buttonId,
+        flow: parseFlowReply(ev.payload?.message),
+      },
       members,
     ))
   )

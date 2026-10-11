@@ -123,6 +123,14 @@
         "g3_required": {
           "type": "boolean",
           "__example__": false
+        },
+        "g2_min": {
+          "type": "number",
+          "__example__": 0
+        },
+        "g2_max": {
+          "type": "number",
+          "__example__": 2
         }
       },
       "layout": {
@@ -146,7 +154,9 @@
             "label": "${data.g2_label}",
             "data-source": "${data.g2_items}",
             "visible": "${data.g2_visible}",
-            "required": false
+            "required": false,
+            "min-selected-items": "${data.g2_min}",
+            "max-selected-items": "${data.g2_max}"
           },
           {
             "type": "RadioButtonsGroup",

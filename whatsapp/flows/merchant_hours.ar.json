@@ -20,6 +20,15 @@
         "closes": {
           "type": "string",
           "__example__": "23:00"
+        },
+        "closed_days": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": [
+            "0"
+          ]
         }
       },
       "layout": {
@@ -465,7 +474,8 @@
                 "id": "6",
                 "title": "السبت"
               }
-            ]
+            ],
+            "init-value": "${data.closed_days}"
           },
           {
             "type": "Dropdown",

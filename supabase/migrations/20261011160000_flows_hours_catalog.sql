@@ -10,8 +10,9 @@
 select set_config('app.actor_kind', 'system', false);
 select set_config('app.audit_reason', 'seed from DECISIONS.md §12, §30.1.2, 11 October 2026 (session 5)', false);
 insert into public.app_config (key, value, effective_from, note, created_by) values
-  ('flows_enabled', 'false', '2026-10-11 00:00+03', 'Send WhatsApp Flows (§12) once they are published on the sending number; until then the text paths run', null),
+  ('flows_enabled', '{"address_capture": false, "item_options": false, "merchant_claim": false, "merchant_hours": false}', '2026-10-11 00:00+03', 'Per Flow: send it once it is published on the sending number; until then the text path runs (§12)', null),
   ('flow_kill_gate', '{"min_sends": 100, "min_completion": 0.6}', '2026-10-11 00:00+03', 'After 100 sends a Flow completed by fewer than 60% is switched off (§12)', null),
+  ('flow_token_ttl_min', '1440', '2026-10-11 00:00+03', 'A Flow submitted later than this is refused and a fresh one is sent', null),
   ('catalog_enabled', 'false', '2026-10-11 00:00+03', 'Native WhatsApp cart from the Meta catalogue (§30.1.2); needs the company business portfolio, switched on at cut-over', null),
   ('catalog_kill_gate', '{"min_opens": 200, "min_sent_share": 0.5, "window_min": 10}', '2026-10-11 00:00+03', 'If fewer than 50% of opened carts are sent within 10 min over 200 opens, list-plus-text becomes primary (§30.1.2)', null);
 select set_config('app.actor_kind', '', false);
@@ -72,6 +73,17 @@ as $$
 $$;
 revoke all on function app_private.vendor_next_open(uuid, timestamptz) from public;
 
+-- The start of the next opening window after a moment: the first open half-hour that follows a closed one.
+-- "Closed until tomorrow" ends here, so a shop open 18:00-02:00 closed at 22:00 reopens at 18:00 the next
+-- day, not at 00:30 inside tonight's window. Null for a vendor that is always open or never opens.
+create function app_private.vendor_next_window(p_vendor_id uuid, p_at timestamptz default now()) returns timestamptz
+language sql stable security definer set search_path = ''
+as $$
+  select min(s) from generate_series(date_trunc('hour', p_at) + interval '30 minutes', p_at + interval '8 days', interval '30 minutes') s
+  where s > p_at and app_private.vendor_open_at(p_vendor_id, s) and not app_private.vendor_open_at(p_vendor_id, s - interval '30 minutes');
+$$;
+revoke all on function app_private.vendor_next_window(uuid, timestamptz) from public;
+
 -- Every minute: an orderable vendor outside its hours is paused until it opens (the quote then shows the
 -- reopening time, as for any pause); one reopened by its hours is resumed. A merchant's own pause is never
 -- touched.
@@ -113,7 +125,7 @@ create function app_private.vendor_hours_set(p_vendor_id uuid, p_opens time, p_c
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if p_opens = p_closes then
+  if p_opens is null or p_closes is null or p_opens = p_closes then
     raise exception 'opening and closing times must differ' using errcode = 'check_violation';
   end if;
   perform set_config('app.audit_reason', 'merchant set opening hours', true);
@@ -159,6 +171,55 @@ grant select on table public.flow_sends, public.flow_submissions to authenticate
 create policy flow_sends_operator_read on public.flow_sends for select to authenticated using ((select app_private.is_operator()));
 create policy flow_submissions_operator_read on public.flow_submissions for select to authenticated using ((select app_private.is_operator()));
 
+-- Whether a Flow is sent: switched on for it in config (published on the number) and not stopped by its
+-- kill-gate (§12: after enough sends, a completion share under the floor switches that Flow off).
+create function app_private.flow_enabled(p_flow text) returns boolean
+language plpgsql stable security definer set search_path = ''
+as $$
+declare
+  v_cfg jsonb := public.config_value('flows_enabled');
+  v_gate jsonb := public.config_value('flow_kill_gate');
+  v_sends int;
+  v_done int;
+begin
+  if not coalesce(case jsonb_typeof(v_cfg) when 'boolean' then (v_cfg #>> '{}')::boolean
+                  when 'object' then (v_cfg ->> p_flow)::boolean end, false) then
+    return false;
+  end if;
+  select count(*), count(submitted_at) into v_sends, v_done from public.flow_sends where flow = p_flow;
+  return not (v_sends >= coalesce((v_gate ->> 'min_sends')::int, 100)
+              and v_done::numeric / v_sends < coalesce((v_gate ->> 'min_completion')::numeric, 0.6));
+end;
+$$;
+revoke all on function app_private.flow_enabled(text) from public;
+
+-- A branch's current hours, closed days, radius, cash and fee bands as merchant Flow data, so a form saved
+-- unchanged writes back what is already there (never fixed defaults).
+create function app_private.merchant_flow_data(p_vendor_id uuid, p_lang text) returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  with h as (select * from public.vendor_hours where vendor_id = p_vendor_id order by weekday limit 1),
+  b as (
+    select b.max_km, b.fee_usd from public.delivery_fee_bands b
+    where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now())
+    order by b.max_km)
+  select jsonb_build_object('vendor_id', v.id,
+    'hours_set', exists (select 1 from public.vendor_hours x where x.vendor_id = v.id),
+    'opens', coalesce((select to_char(opens, 'HH24:MI') from h), '09:00'),
+    'closes', coalesce((select to_char(closes, 'HH24:MI') from h), '23:00'),
+    'closed_days', case when exists (select 1 from public.vendor_hours x where x.vendor_id = v.id)
+      then (select coalesce(jsonb_agg(d::text order by d), '[]') from generate_series(0, 6) d
+            where not exists (select 1 from public.vendor_hours x where x.vendor_id = v.id and x.weekday = d))
+      else '[]'::jsonb end,
+    'radius_km', least(greatest(round(coalesce(v.delivery_radius_km, 3))::int, 1), 10)::text,
+    'cash', to_jsonb(v.cash_currencies),
+    'fee_note', case when p_lang = 'ar' then 'رسوم التوصيل حسب جدول Alo King: ' else 'Delivery fees follow Alo King''s bands: ' end
+      || coalesce((select string_agg('$' || to_char(b.fee_usd, 'FM9990.00') || case when p_lang = 'ar' then ' لحد ' else ' up to ' end
+                                     || to_char(b.max_km, 'FM990.##') || ' km', ' · ' order by b.max_km) from b), '-'))
+  from public.vendors v where v.id = p_vendor_id;
+$$;
+revoke all on function app_private.merchant_flow_data(uuid, text) from public;
+
 -- Opens a Flow for a person: checks who may open it, builds its initial data from the database and returns
 -- {"token", "flow", "screen", "data"} for the message (or {"status": "off"} while Flows are disabled).
 create function public.flow_open(p_flow text, p_lang text, p_phone text, p_customer_id uuid default null,
@@ -184,7 +245,7 @@ declare
   v_items jsonb;
   v_note text;
 begin
-  if not app_private.config_bool('flows_enabled') then
+  if not app_private.flow_enabled(p_flow) then
     return jsonb_build_object('status', 'off');
   end if;
   if p_member_id is not null then
@@ -209,7 +270,15 @@ begin
     when 'item_options' then
       -- Up to three groups: the first and third as single choices, the second as a multiple choice. Option
       -- ids in the Flow are short keys (o1, o2…) mapped back to our ids on submit; prices are only labels.
+      -- An item that does not fit that shape uses the text path (status unsuited).
+      if (select count(*) from public.menu_option_groups gg where gg.item_id = (p_context ->> 'item_id')::uuid) > 3
+         or exists (select 1 from (select gg.max_select, row_number() over (order by gg.sort_order, gg.id) as rn
+                                   from public.menu_option_groups gg where gg.item_id = (p_context ->> 'item_id')::uuid) x
+                    where x.rn in (1, 3) and x.max_select > 1) then
+        return jsonb_build_object('status', 'unsuited');
+      end if;
       v_data := jsonb_build_object('item_id', p_context ->> 'item_id', 'g1_visible', false, 'g1_required', false,
+        'g2_min', 0, 'g2_max', 1,
         'g2_visible', false, 'g3_visible', false, 'g3_required', false, 'g1_label', '', 'g2_label', '', 'g3_label', '',
         'g1_items', '[]', 'g2_items', '[]', 'g3_items', '[]');
       select coalesce(case when v_lang = 'ar' then i.name_ar end, i.name_en, i.name_ar, i.name_fr) into v_note
@@ -238,6 +307,9 @@ begin
           'g' || k || '_items', v_items, 'g' || k || '_visible', jsonb_array_length(v_items) > 0);
         if k <> 2 then
           v_data := v_data || jsonb_build_object('g' || k || '_required', g.min_select > 0 and jsonb_array_length(v_items) > 0);
+        elsif jsonb_array_length(v_items) > 0 then
+          v_data := v_data || jsonb_build_object('g2_min', least(g.min_select, jsonb_array_length(v_items)),
+            'g2_max', greatest(1, least(g.max_select, jsonb_array_length(v_items))));
         end if;
         v_ctx := v_ctx || jsonb_build_object('g' || k, jsonb_build_object('group_id', g.id, 'min', g.min_select, 'max', g.max_select));
       end loop;
@@ -246,14 +318,16 @@ begin
     when 'merchant_claim' then
       if v_member.id is null then return jsonb_build_object('status', 'not_allowed'); end if;
       v_screen := 'PROFILE';
-      v_data := jsonb_build_object('vendor_id', v_vendor.id, 'name_ar', coalesce(v_vendor.name_ar, ''), 'name_en', coalesce(v_vendor.name_en, ''));
-      v_ctx := jsonb_build_object('vendor_id', v_vendor.id);
+      v_data := app_private.merchant_flow_data(v_vendor.id, v_lang)
+        || jsonb_build_object('name_ar', coalesce(v_vendor.name_ar, ''), 'name_en', coalesce(v_vendor.name_en, ''));
+      -- What the form started with: hours are written only when they were set before or the merchant changed them.
+      v_ctx := jsonb_build_object('vendor_id', v_vendor.id, 'initial', v_data);
+      v_data := v_data - 'hours_set';
     when 'merchant_hours' then
       if v_member.id is null then return jsonb_build_object('status', 'not_allowed'); end if;
       v_screen := 'HOURS';
-      v_data := jsonb_build_object('vendor_id', v_vendor.id,
-        'opens', coalesce((select to_char(h.opens, 'HH24:MI') from public.vendor_hours h where h.vendor_id = v_vendor.id order by h.weekday limit 1), '09:00'),
-        'closes', coalesce((select to_char(h.closes, 'HH24:MI') from public.vendor_hours h where h.vendor_id = v_vendor.id order by h.weekday limit 1), '23:00'));
+      v_data := (select jsonb_build_object('vendor_id', x -> 'vendor_id', 'opens', x -> 'opens', 'closes', x -> 'closes', 'closed_days', x -> 'closed_days')
+                 from app_private.merchant_flow_data(v_vendor.id, v_lang) x);
       v_ctx := jsonb_build_object('vendor_id', v_vendor.id);
     else
       raise exception 'unknown flow %', p_flow using errcode = 'invalid_parameter_value';
@@ -280,17 +354,27 @@ declare
   v_phone text;
   v_closed smallint[];
   v_until timestamptz;
+  v_init jsonb;
+  v_sources jsonb;
+  c_time constant text := '^([01][0-9]|2[0-3]):[0-5][0-9]$';
 begin
   select * into v_s from public.flow_sends where token = p_token for update;
   if v_s.token is null or v_s.phone_e164 <> p_phone then
     return jsonb_build_object('status', 'unknown');
   end if;
   if v_s.submitted_at is not null then
-    return coalesce((select f.result || jsonb_build_object('status', 'duplicate') from public.flow_submissions f where f.token = p_token),
-      jsonb_build_object('status', 'duplicate'));
+    return coalesce((select f.result || jsonb_build_object('status', 'duplicate', 'flow', f.flow, 'lang', v_s.lang)
+                     from public.flow_submissions f where f.token = p_token),
+      jsonb_build_object('status', 'duplicate', 'flow', v_s.flow, 'lang', v_s.lang));
   end if;
   update public.flow_sends set submitted_at = now() where token = p_token;
   p_payload := coalesce(p_payload, '{}');
+  if v_s.sent_at < now() - make_interval(mins => coalesce(public.config_numeric('flow_token_ttl_min'), 1440)::int) then
+    v_r := jsonb_build_object('status', 'rejected', 'reason', 'expired');
+  else
+  -- Malformed values (a bad time, number or flag) are a rejection the caller answers, never an error that
+  -- leaves the person without a reply.
+  begin
   case v_s.flow
     when 'address_capture' then
       if (p_payload ->> 'address_id') is distinct from (v_s.context ->> 'address_id') then
@@ -348,56 +432,82 @@ begin
               left(nullif(trim(p_payload ->> 'note'), ''), 200), false);
           end if;
         end if;
+        v_r := v_r || jsonb_build_object('item_id', v_s.context ->> 'item_id');
       end if;
     when 'merchant_claim' then
       perform app_private.menu_editor(v_s.vendor_id, v_s.member_id);
+      v_init := coalesce(v_s.context -> 'initial', '{}');
+      v_closed := array(select x::smallint from jsonb_array_elements_text(
+        case when jsonb_typeof(p_payload -> 'closed_days') = 'array' then p_payload -> 'closed_days' else '[]' end) x where x ~ '^[0-6]$');
       if (p_payload ->> 'vendor_id') is distinct from (v_s.context ->> 'vendor_id') then
         v_r := jsonb_build_object('status', 'rejected', 'reason', 'vendor mismatch');
+      elsif coalesce(p_payload ->> 'opens', '') !~ c_time or coalesce(p_payload ->> 'closes', '') !~ c_time
+            or p_payload ->> 'opens' = p_payload ->> 'closes' or cardinality(v_closed) = 7 then
+        v_r := jsonb_build_object('status', 'rejected', 'reason', 'hours');
       else
         perform set_config('app.actor_kind', 'whatsapp', true);
         perform set_config('app.audit_reason', 'merchant_claim Flow submitted by the merchant', true);
+        -- Only the fields the merchant actually sent become the merchant's.
+        v_sources := (select coalesce(jsonb_object_agg(k, 'merchant'), '{}') from unnest(array['name_ar', 'name_en', 'radius_km', 'cash']) k
+                      where case k when 'cash' then jsonb_typeof(p_payload -> 'cash') = 'array'
+                                   else nullif(trim(p_payload ->> k), '') is not null end);
+        if v_sources ? 'radius_km' then v_sources := (v_sources - 'radius_km') || '{"delivery_radius_km": "merchant"}'; end if;
+        if v_sources ? 'cash' then v_sources := (v_sources - 'cash') || '{"cash_currencies": "merchant"}'; end if;
         update public.vendors set
           name_ar = coalesce(left(nullif(trim(p_payload ->> 'name_ar'), ''), 80), name_ar),
           name_en = coalesce(left(nullif(trim(p_payload ->> 'name_en'), ''), 80), name_en),
           delivery_radius_km = least(greatest(coalesce(nullif(p_payload ->> 'radius_km', '')::numeric, delivery_radius_km, 3), 0.5), public.max_delivery_km()),
           cash_currencies = coalesce((select array_agg(distinct c order by c) from jsonb_array_elements_text(
             case when jsonb_typeof(p_payload -> 'cash') = 'array' then p_payload -> 'cash' else '[]' end) c where c in ('USD', 'LBP')), cash_currencies),
-          field_sources = field_sources || jsonb_build_object('name_ar', 'merchant', 'name_en', 'merchant', 'delivery_radius_km', 'merchant')
+          field_sources = field_sources || v_sources
         where id = v_s.vendor_id;
         update public.vendor_members set display_name = left(nullif(trim(p_payload ->> 'owner_name'), ''), 60)
         where id = v_s.member_id and nullif(trim(p_payload ->> 'owner_name'), '') is not null;
-        if (p_payload ->> 'opens') ~ '^[0-2][0-9]:[0-5][0-9]$' and (p_payload ->> 'closes') ~ '^[0-2][0-9]:[0-5][0-9]$' then
-          perform app_private.vendor_hours_set(v_s.vendor_id, (p_payload ->> 'opens')::time, (p_payload ->> 'closes')::time, '{}');
+        -- Hours: written when the branch already had hours or the merchant changed the form's values; a
+        -- branch with no hours (always open) is not given the form's starting values by a profile save.
+        if coalesce((v_init ->> 'hours_set')::boolean, false)
+           or p_payload ->> 'opens' is distinct from v_init ->> 'opens' or p_payload ->> 'closes' is distinct from v_init ->> 'closes'
+           or cardinality(v_closed) > 0 then
+          perform app_private.vendor_hours_set(v_s.vendor_id, (p_payload ->> 'opens')::time, (p_payload ->> 'closes')::time, v_closed);
         end if;
         v_r := jsonb_build_object('status', 'saved', 'menu_photos', coalesce((p_payload ->> 'menu_photos')::boolean, false));
       end if;
     when 'merchant_hours' then
       perform app_private.menu_editor(v_s.vendor_id, v_s.member_id);
+      v_closed := array(select x::smallint from jsonb_array_elements_text(
+        case when jsonb_typeof(p_payload -> 'closed_days') = 'array' then p_payload -> 'closed_days' else '[]' end) x where x ~ '^[0-6]$');
       if (p_payload ->> 'vendor_id') is distinct from (v_s.context ->> 'vendor_id')
-         or coalesce(p_payload ->> 'opens', '') !~ '^[0-2][0-9]:[0-5][0-9]$' or coalesce(p_payload ->> 'closes', '') !~ '^[0-2][0-9]:[0-5][0-9]$' then
+         or coalesce(p_payload ->> 'opens', '') !~ c_time or coalesce(p_payload ->> 'closes', '') !~ c_time
+         or p_payload ->> 'opens' = p_payload ->> 'closes' then
         v_r := jsonb_build_object('status', 'rejected', 'reason', 'hours');
+      elsif cardinality(v_closed) = 7 then
+        v_r := jsonb_build_object('status', 'rejected', 'reason', 'closed every day');
       else
         perform set_config('app.actor_kind', 'whatsapp', true);
-        v_closed := array(select x::smallint from jsonb_array_elements_text(
-          case when jsonb_typeof(p_payload -> 'closed_days') = 'array' then p_payload -> 'closed_days' else '[]' end) x where x ~ '^[0-6]$');
-        if cardinality(v_closed) = 7 then
-          v_r := jsonb_build_object('status', 'rejected', 'reason', 'closed every day');
-        else
-          perform app_private.vendor_hours_set(v_s.vendor_id, (p_payload ->> 'opens')::time, (p_payload ->> 'closes')::time, v_closed);
-          v_until := case p_payload ->> 'pause'
-            when '1h' then now() + interval '1 hour' when '2h' then now() + interval '2 hours' when '4h' then now() + interval '4 hours'
-            when 'tomorrow' then app_private.vendor_next_open(v_s.vendor_id, ((now() at time zone 'Asia/Beirut')::date + 1)::timestamp at time zone 'Asia/Beirut')
-            end;
-          if v_until is not null then
-            perform app_private.vendor_set_pause(v_s.vendor_id, v_until, 'merchant pause', 'pause');
-          end if;
-          v_r := jsonb_build_object('status', 'saved', 'paused_until', v_until);
+        perform app_private.vendor_hours_set(v_s.vendor_id, (p_payload ->> 'opens')::time, (p_payload ->> 'closes')::time, v_closed);
+        v_until := case p_payload ->> 'pause'
+          when '1h' then now() + interval '1 hour' when '2h' then now() + interval '2 hours' when '4h' then now() + interval '4 hours'
+          -- until the next opening window starts (tomorrow's opening, also for shops open past midnight)
+          when 'tomorrow' then coalesce(app_private.vendor_next_window(v_s.vendor_id),
+            ((now() at time zone 'Asia/Beirut')::date + 1 + time '08:00') at time zone 'Asia/Beirut')
+          end;
+        if v_until is not null then
+          perform app_private.vendor_set_pause(v_s.vendor_id, v_until, 'merchant pause', 'pause');
         end if;
+        v_r := jsonb_build_object('status', 'saved', 'paused_until', v_until);
       end if;
   end case;
+  exception when data_exception or check_violation then
+    v_r := jsonb_build_object('status', 'rejected', 'reason', 'invalid');
+  end;
+  end if;
+  v_r := coalesce(v_r, '{}');
+  if v_s.vendor_id is not null then
+    v_r := v_r || jsonb_build_object('vendor_id', v_s.vendor_id, 'member_id', v_s.member_id);
+  end if;
   insert into public.flow_submissions (token, flow, payload, status, result)
-  values (p_token, v_s.flow, p_payload, case when v_r ->> 'status' = 'rejected' then 'rejected' else 'applied' end, coalesce(v_r, '{}'));
-  return jsonb_build_object('flow', v_s.flow, 'lang', v_s.lang) || coalesce(v_r, '{}');
+  values (p_token, v_s.flow, p_payload, case when v_r ->> 'status' = 'rejected' then 'rejected' else 'applied' end, v_r);
+  return jsonb_build_object('flow', v_s.flow, 'lang', v_s.lang) || v_r;
 end;
 $$;
 

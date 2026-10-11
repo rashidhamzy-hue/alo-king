@@ -22,6 +22,39 @@
         "vendor_id": {
           "type": "string",
           "__example__": "00000000-0000-0000-0000-000000000000"
+        },
+        "opens": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "closes": {
+          "type": "string",
+          "__example__": "23:00"
+        },
+        "radius_km": {
+          "type": "string",
+          "__example__": "5"
+        },
+        "cash": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": [
+            "USD",
+            "LBP"
+          ]
+        },
+        "closed_days": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": []
+        },
+        "fee_note": {
+          "type": "string",
+          "__example__": "Delivery fee: $2 up to 3 km"
         }
       },
       "layout": {
@@ -70,7 +103,13 @@
                 "vendor_id": "${data.vendor_id}",
                 "name_ar": "${form.name_ar}",
                 "name_en": "${form.name_en}",
-                "owner_name": "${form.owner_name}"
+                "owner_name": "${form.owner_name}",
+                "opens": "${data.opens}",
+                "closes": "${data.closes}",
+                "radius_km": "${data.radius_km}",
+                "cash": "${data.cash}",
+                "closed_days": "${data.closed_days}",
+                "fee_note": "${data.fee_note}"
               }
             }
           }
@@ -97,6 +136,39 @@
         "owner_name": {
           "type": "string",
           "__example__": "x"
+        },
+        "opens": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "closes": {
+          "type": "string",
+          "__example__": "23:00"
+        },
+        "radius_km": {
+          "type": "string",
+          "__example__": "5"
+        },
+        "cash": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": [
+            "USD",
+            "LBP"
+          ]
+        },
+        "closed_days": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": []
+        },
+        "fee_note": {
+          "type": "string",
+          "__example__": "Delivery fee: $2 up to 3 km"
         }
       },
       "layout": {
@@ -107,7 +179,7 @@
             "name": "opens",
             "label": "بيفتح",
             "required": true,
-            "init-value": "09:00",
+            "init-value": "${data.opens}",
             "data-source": [
               {
                 "id": "00:00",
@@ -308,7 +380,7 @@
             "name": "closes",
             "label": "بيسكّر",
             "required": true,
-            "init-value": "23:00",
+            "init-value": "${data.closes}",
             "data-source": [
               {
                 "id": "00:00",
@@ -505,11 +577,48 @@
             ]
           },
           {
+            "type": "CheckboxGroup",
+            "name": "closed_days",
+            "label": "أيام الإقفال",
+            "required": false,
+            "init-value": "${data.closed_days}",
+            "data-source": [
+              {
+                "id": "0",
+                "title": "الأحد"
+              },
+              {
+                "id": "1",
+                "title": "الإثنين"
+              },
+              {
+                "id": "2",
+                "title": "الثلاثاء"
+              },
+              {
+                "id": "3",
+                "title": "الأربعاء"
+              },
+              {
+                "id": "4",
+                "title": "الخميس"
+              },
+              {
+                "id": "5",
+                "title": "الجمعة"
+              },
+              {
+                "id": "6",
+                "title": "السبت"
+              }
+            ]
+          },
+          {
             "type": "Dropdown",
             "name": "radius_km",
             "label": "مسافة التوصيل",
             "required": true,
-            "init-value": "5",
+            "init-value": "${data.radius_km}",
             "data-source": [
               {
                 "id": "1",
@@ -555,7 +664,7 @@
           },
           {
             "type": "TextCaption",
-            "text": "رسوم التوصيل حسب جدول Alo King ($2 / $3 / $4.50 لـ 3 / 6 / 10 كم)، وفيك تخفّضها."
+            "text": "${data.fee_note}"
           },
           {
             "type": "CheckboxGroup",
@@ -572,7 +681,8 @@
                 "id": "LBP",
                 "title": "ليرة"
               }
-            ]
+            ],
+            "init-value": "${data.cash}"
           },
           {
             "type": "OptIn",
@@ -594,7 +704,8 @@
                 "closes": "${form.closes}",
                 "radius_km": "${form.radius_km}",
                 "cash": "${form.cash}",
-                "menu_photos": "${form.menu_photos}"
+                "menu_photos": "${form.menu_photos}",
+                "closed_days": "${form.closed_days}"
               }
             }
           }

@@ -625,7 +625,6 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
     p_token: f.token,
     p_payload: f.payload,
   });
-  if (r?.status === "duplicate") return;
   if (r?.flow === "item_options") {
     if (r.status === "added") {
       c.basket = r.basket;
@@ -633,8 +632,16 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
     }
     if (r.status === "other_vendor") return say(c, "otherVendor", { vendor: r.basket_vendor });
     if (r.status === "unavailable") return say(c, "unavailable", { item: r.item });
+    // Refused, expired or sent again: the same item through the text path (a used Flow cannot reopen).
+    if (typeof r.item_id === "string" && r.status !== "duplicate") {
+      say(c, "flowRetry");
+      await addOne(c, r.item_id, 1, [], null, null, true);
+      return;
+    }
+    if (r.status === "duplicate") return;
     return say(c, "flowRetry");
   }
+  if (r?.status === "duplicate") return;
   if (r?.flow === "address_capture") {
     if (r.status === "rejected") return say(c, "flowRetry");
     c.summary.push("[address details saved from the Flow]");
@@ -644,15 +651,51 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
   return say(c, "flowRetry");
 }
 
-/** A cart sent from the catalogue (§30.1.2): every line re-priced by basket_add_item, catalogue prices ignored. */
+/**
+ * A cart sent from the catalogue (§30.1.2): every line re-priced by basket_add_item, catalogue prices ignored.
+ * The cart replaces the basket only when something in it can be ordered; unavailable lines are named, and
+ * lines that need choices are asked one at a time.
+ */
 async function cartOrder(c: Ctx, lines: { itemId: string; quantity: number }[]) {
   c.tools.push("cart");
   if (!lines.length) return say(c, "unsupported");
-  await c.deps.rpc("basket_clear", { p_customer_id: c.customerId });
-  // addOne prices each line on the server and asks for required options (Flow or list) when missing.
-  for (const l of lines) if (!(await addOne(c, l.itemId, l.quantity, [], null, null))) break;
-  c.summary.push(`[cart from the catalogue: ${lines.length} lines]`);
-  if (c.s.pending.kind !== "options") push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+  const needOptions: { itemId: string; quantity: number }[] = [];
+  const plain: { itemId: string; quantity: number }[] = [];
+  for (const l of lines) {
+    const groups: any[] = (await c.deps.rpc("menu_item_options", { p_item_id: l.itemId })) ?? [];
+    (groups.some((g) => g.min > 0) ? needOptions : plain).push(l);
+  }
+  let cleared = false;
+  let skipped = 0;
+  for (const l of plain) {
+    if (!cleared) {
+      await c.deps.rpc("basket_clear", { p_customer_id: c.customerId });
+      cleared = true;
+    }
+    const r = await c.deps.rpc("basket_add_item", {
+      p_customer_id: c.customerId,
+      p_item_id: l.itemId,
+      p_quantity: l.quantity,
+      p_option_ids: [],
+      p_note: null,
+      p_replace: true,
+    });
+    if (r?.status === "added") c.basket = r.basket;
+    else skipped++;
+  }
+  c.summary.push(
+    `[cart from the catalogue: ${lines.length} lines, ${skipped} unavailable, ${needOptions.length} need choices]`,
+  );
+  if (skipped) say(c, "cartSkipped", { n: skipped });
+  if (needOptions.length) {
+    if (!cleared) await c.deps.rpc("basket_clear", { p_customer_id: c.customerId });
+    const flows = c.tools.length;
+    const added = await addOne(c, needOptions[0].itemId, needOptions[0].quantity, [], null, null);
+    if (needOptions.length > 1) say(c, "cartMoreOptions", { n: needOptions.length - 1 });
+    // Waiting on choices (an option list or the item_options Flow): the basket is shown after them.
+    if (!added && (c.s.pending.kind === "options" || c.tools.length > flows)) return;
+  }
+  if (c.basket?.lines?.length) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
 }
 
 // ---- Baskets and checkout -----------------------------------------------------------------------------------------
@@ -757,6 +800,7 @@ async function addOne(
   optionNames: string[],
   note: string | null,
   chosen: string[] | null,
+  noFlow = false,
 ): Promise<boolean> {
   const groups: any[] = (await c.deps.rpc("menu_item_options", { p_item_id: itemId })) ?? [];
   const picked = new Set(chosen ?? []);
@@ -777,6 +821,7 @@ async function addOne(
   if (
     missing &&
     !chosen?.length &&
+    !noFlow &&
     (groups.length >= 2 || optionCount > 3) &&
     (await openFlow(c, "item_options", { item_id: itemId }))
   )
