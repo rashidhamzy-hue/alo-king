@@ -52,7 +52,7 @@ export function parsePrice(raw: unknown): { price: number | null; currency: "USD
   const s = toAsciiDigits(raw).toLowerCase().replace(/\s+/g, " ").trim();
   if (!s) return { price: null, currency: null };
   const usd = /(\$|usd|dollars?|دولار|dolar)/.test(s);
-  const thousand = /(ألف|الف|alf|k\b)/.test(s);
+  const thousand = /(ألف|الف|\balf\b)/.test(s);
   const lbp = thousand || /(l\.?\s?l\.?|lbp|ل\.?\s?ل|ليرة|lira|livres?)/.test(s);
   const m = s.match(/\d+(?:[.,]\d{3})*(?:[.,]\d+)?|\d+/);
   if (!m) return { price: null, currency: null };
@@ -108,11 +108,11 @@ export function validateDraft(raw: unknown, maxItems = 400): Draft {
         warnings.push(`stopped at ${maxItems} items`);
         break;
       }
-      // An explicit currency field wins only when it is one of ours; otherwise read it from the text.
-      const fromText = parsePrice(io.price_text ?? io.price);
-      const cur = typeof io.currency === "string" ? io.currency.toUpperCase() : null;
-      const currency = cur === "USD" || cur === "LBP" ? (cur as "USD" | "LBP") : fromText.currency;
-      const price = fromText.price;
+      // The currency comes only from what is printed (price_text, or a price string). A separate
+      // "currency" field from a model is ignored: it would be the model guessing.
+      const read = parsePrice(io.price_text ?? io.price);
+      const price = read.price;
+      const currency = read.currency;
       if (price === null) warnings.push(`no price for "${names.name_ar ?? names.name_en ?? names.name_fr}"`);
       else if (currency === null) warnings.push(`price without currency for "${names.name_ar ?? names.name_en ?? names.name_fr}"`);
       const conf = Number(io.confidence);
@@ -182,18 +182,28 @@ export async function extractMenu(
  * Everything still goes through validateDraft, so the same price and injection rules apply.
  */
 export function parseMenuText(textIn: string): Draft {
-  const PRICE =
-    /((?:\$|usd|lbp|l\.?l\.?)?\s*[0-9٠-٩][0-9٠-٩.,]*\s*(?:\$|usd|dollars?|دولار|ل\.?\s?ل\.?|lbp|l\.?\s?l\.?|ليرة|ألف|الف|k)?)/i;
+  // A price is a separate token: a number with an optional currency word or sign right before or after it,
+  // never letters glued to a name ("Roll 3" is "Roll" + 3, not "Ro" + "ll 3").
+  const CUR_BEFORE = "(?:\\$|usd|lbp|l\\.l\\.?)\\s*";
+  const CUR_AFTER = "\\s*(?:\\$|usd|dollars?|دولار|ل\\.?\\s?ل\\.?|lbp|l\\.l\\.?|ll|ليرة|ألف|الف)?";
+  const NUM = "[0-9٠-٩][0-9٠-٩.,]*";
+  const END = new RegExp(`^(.*\\S)\\s+((?:${CUR_BEFORE})?${NUM}${CUR_AFTER})$`, "i");
+  const START = new RegExp(`^((?:${CUR_BEFORE})?${NUM}${CUR_AFTER})\\s+(\\D.*)$`, "i");
   const sections: { name?: string; items: { name: string; price_text: string | null }[] }[] = [];
   let cur: (typeof sections)[number] | null = null;
   for (const raw of textIn.split(/\r?\n/).slice(0, 500)) {
-    const line = raw.replace(/[•·*\-–—|:]+/g, " ").replace(/\s+/g, " ").trim();
+    const line = raw
+      .replace(/[•·*|]+/g, " ")
+      .replace(/\s[-–—:]+\s/g, " ")
+      .replace(/[-–—:]+\s*$/, "")
+      .replace(/\s+/g, " ")
+      .trim();
     if (!line) continue;
-    const atEnd = line.match(new RegExp(`^(.*?\\D)\\s*${PRICE.source}\\s*$`, "i"));
-    const atStart = !atEnd && line.match(new RegExp(`^${PRICE.source}\\s+(.+)$`, "i"));
-    const name = atEnd ? atEnd[1] : atStart ? atStart[2] : null;
-    const price = atEnd ? atEnd[2] : atStart ? atStart[1] : null;
-    if (name && price && name.trim().length >= 2) {
+    const e = line.match(END);
+    const st = !e ? line.match(START) : null;
+    const name = e ? e[1] : st ? st[2] : null;
+    const price = e ? e[2] : st ? st[1] : null;
+    if (name && price && /\p{L}{2}/u.test(name)) {
       if (!cur) sections.push((cur = { items: [] }));
       cur.items.push({ name: name.trim(), price_text: price.trim() });
     } else if (!/[0-9٠-٩]/.test(line) && line.length <= 40) {
@@ -205,3 +215,7 @@ export function parseMenuText(textIn: string): Draft {
   }
   return validateDraft({ sections });
 }
+
+/** Lines of a pasted text that read as "item + price": the import treats a text as a menu only from 2. */
+export const pricedLineCount = (textIn: string) =>
+  parseMenuText(textIn).sections.reduce((n, s) => n + s.items.filter((i) => i.price !== null).length, 0);

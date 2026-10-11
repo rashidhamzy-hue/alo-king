@@ -67,7 +67,7 @@ export const ALLERGENS = [
   "celery",
   "sulphites",
 ] as const;
-export const DIETS = ["vegan", "vegetarian", "siyami", "halal", "no_pork", "no_alcohol"] as const;
+export const DIETS = ["vegan", "vegetarian", "siyami", "halal"] as const;
 export const NUTRITION_TAGS = [
   "high_protein",
   "low_carb",

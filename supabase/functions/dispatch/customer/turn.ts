@@ -640,7 +640,7 @@ async function dietaryMenu(c: Ctx, input: any) {
   push(
     c,
     ...dietaryList(c.m.from, c.s.lang, v.label.replace(/ \(.*\)$/, ""), menu, {
-      allergens: !!input.free_from?.length,
+      allergens: !!input.free_from?.length || !!input.diets?.length,
     }),
   );
   c.summary.push(`[showed ${menu.length} items fitting the filters from ${input.vendor_ref}]`);

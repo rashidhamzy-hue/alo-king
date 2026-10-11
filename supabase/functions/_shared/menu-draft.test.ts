@@ -92,6 +92,18 @@ describe("parseMenuText: a pasted menu without a model", () => {
       "Special of the day",
     ].join("\n"),
   );
+  it("never glues currency letters from a name (\"Roll 3\" is not LBP)", () => {
+    const t = parseMenuText("Falafel Roll 3\nMixed Grill 12\nAll in one 4$\nShell 2 LL");
+    const items = t.sections.flatMap((s) => s.items);
+    expect(items[0]).toMatchObject({ name_en: "Falafel Roll", price: 3, currency: null });
+    expect(items[1]).toMatchObject({ name_en: "Mixed Grill", price: 12, currency: null });
+    expect(items[2]).toMatchObject({ name_en: "All in one", price: 4, currency: "USD" });
+    expect(items[3]).toMatchObject({ name_en: "Shell", price: 2, currency: "LBP" });
+  });
+  it("a model's separate currency field is ignored; only the printed text counts", () => {
+    const d = validateDraft({ sections: [{ items: [{ name_en: "Kafta", price_text: "4", currency: "USD" }] }] });
+    expect(d.sections[0].items[0]).toMatchObject({ price: 4, currency: null });
+  });
   it("finds sections and prices with their currency", () => {
     expect(d.sections.map((s) => s.name_ar ?? s.name_en)).toEqual(["سندويشات", "Manakish"]);
     const items = d.sections.flatMap((s) => s.items);

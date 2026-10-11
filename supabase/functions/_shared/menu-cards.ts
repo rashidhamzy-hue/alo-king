@@ -97,12 +97,15 @@ export function estimateCard(
     ...r.items
       .slice(0, 8)
       .map((i) => `• ${i.name}: ≈ ${Math.round(i.kcal)} kcal · ${Math.round(i.protein_g)} g protein (estimated)`),
+    ...(r.estimated > r.items.length
+      ? ["", `«أكّد» بيأكّد هول بس؛ الباقي بيبقى تقدير لحتى تشوفو. / Confirm covers these ${r.items.length} only; the others stay estimated until you check them.`]
+      : []),
     ...(r.unknown ? ["", `${r.unknown} أصناف ما عرفناها، بتقدر تزيدها من لوحة التحكم. / ${r.unknown} items not recognised; add them on the dashboard.`] : []),
     "",
     "الحساسية (غلوتين، سمسم، حليب…) إنت بتحددها، نحنا ما منحددها. / Allergens are yours to declare; we never set them.",
   ];
   return buttons(to, lines.join("\n"), [
-    { id: `NUT|C|${vendorId}`, title: "✅ أكّد · Confirm all" },
+    { id: `NUT|C|${vendorId}`, title: "✅ أكّد · Confirm" },
     { id: "NUT|X", title: "لاحقا · Later" },
   ]);
 }

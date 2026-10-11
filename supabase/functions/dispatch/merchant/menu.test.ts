@@ -20,6 +20,7 @@ function harness(rpcs: Record<string, (a: any) => any> = {}, model: MenuDeps["me
     rpc: async (fn, args) => {
       calls.push({ fn, args });
       if (rpcs[fn]) return rpcs[fn](args);
+      if (fn === "menu_model_take") return true;
       if (fn === "onboarding_session_get") return session;
       if (fn === "onboarding_session_set") {
         session = args.p_step ? { step: args.p_step, data: args.p_data } : null;
@@ -46,6 +47,7 @@ function harness(rpcs: Record<string, (a: any) => any> = {}, model: MenuDeps["me
 }
 const summary = {
   draft_id: D,
+  vendor_id: V,
   sections: [
     { index: 0, name: "سندويشات", items: 3, priced: 2, approved: false, preview: ["شاورما · $4"] },
     { index: 1, name: "Manakish", items: 2, priced: 2, approved: false, preview: ["Zaatar · $1"] },
@@ -130,9 +132,23 @@ describe("smart menu on the Merchant number", () => {
       }),
       menu_draft_summary: () => summary,
       menu_nutrition_estimate: () => ({
-        estimated: 2,
+        estimated: 10,
         unknown: 1,
-        items: [{ name: "Tawook", dish: "Chicken tawouk sandwich", kcal: 560, protein_g: 38 }],
+        items: [
+          {
+            item_id: "i1",
+            name: "Tawook",
+            dish: "Chicken tawouk sandwich",
+            kcal: 560,
+            protein_g: 38,
+          },
+          ...Array.from({ length: 9 }, (_, k) => ({
+            item_id: `x${k}`,
+            name: `Item ${k}`,
+            kcal: 300,
+            protein_g: 10,
+          })),
+        ],
       }),
       menu_nutrition_confirm: () => ({ confirmed: 2 }),
     });
@@ -166,5 +182,50 @@ describe("smart menu on the Merchant number", () => {
     expect(await handleMerchantMenu(h.deps, h.msg({ text: "menu" }), [CASHIER])).toBe(true);
     expect(h.sent[0].text.body).toMatch(/owner or a manager/);
     expect(h.of("onboarding_session_set")).toHaveLength(0);
+  });
+
+  it("during an import, merchant commands and single lines stay commands", async () => {
+    const h = harness({ menu_draft_create: () => summary });
+    await handleMerchantMenu(h.deps, h.msg({ text: "menu" }), [OWNER]);
+    expect(await handleMerchantMenu(h.deps, h.msg({ text: "خلصت الكنافة اليوم" }), [OWNER])).toBe(
+      false,
+    );
+    expect(await handleMerchantMenu(h.deps, h.msg({ text: "Kafta sandwich 5$" }), [OWNER])).toBe(
+      false,
+    );
+    expect(h.of("menu_draft_create")).toHaveLength(0);
+  });
+
+  it("the daily model cap is checked before any model call", async () => {
+    let calls = 0;
+    const h = harness({ menu_model_take: () => false }, async () => {
+      calls++;
+      return "{}";
+    });
+    await handleMerchantMenu(h.deps, h.msg({ text: "menu" }), [OWNER]);
+    await handleMerchantMenu(
+      h.deps,
+      h.msg({ media: { id: "IMG1", url: null, mime: "image/jpeg" } }),
+      [OWNER],
+    );
+    expect(calls).toBe(0);
+    expect(h.sent.at(-1).text.body).toMatch(/limit/);
+  });
+
+  it("a member of two shops acts as the membership of the shop the card belongs to", async () => {
+    const OTHER = {
+      member_id: "55000000-0000-0000-0000-0000000000b1",
+      vendor_id: "20000000-0000-0000-0000-00000000000b",
+      role: "owner",
+    };
+    const h = harness({
+      menu_nutrition_estimate: () => ({
+        estimated: 1,
+        unknown: 0,
+        items: [{ item_id: "i1", name: "x", kcal: 1, protein_g: 1 }],
+      }),
+    });
+    await handleMerchantMenu(h.deps, h.msg({ buttonId: `NUT|E|${V}|M|0` }), [OTHER, OWNER]);
+    expect(h.of("menu_nutrition_estimate")[0].args.p_member_id).toBe(OWNER.member_id);
   });
 });

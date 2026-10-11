@@ -55,6 +55,10 @@ select tests.ok((select status = 'unknown' and value_sources ->> 'kcal' = 'merch
 select public.menu_nutrition_set('52000000-0000-0000-0000-000000000003', '{"carbs_g": 60, "fat_g": 35}', :'owner_a');
 select tests.ok((select status = 'merchant_verified' from public.menu_item_nutrition where item_id = '52000000-0000-0000-0000-000000000003'),
   'with the four core values the row is merchant_verified');
+select public.menu_nutrition_set('52000000-0000-0000-0000-000000000002', '{"kcal": 999}', :'owner_a');
+select public.menu_nutrition_estimate('20000000-0000-0000-0000-00000000000a', 'M', '{}', :'owner_a');
+select tests.ok((select kcal = 999 and value_sources ->> 'kcal' = 'merchant_verified' from public.menu_item_nutrition
+  where item_id = '52000000-0000-0000-0000-000000000002'), 're-running estimates never overwrites a value the merchant entered');
 select tests.throws(format('select public.menu_nutrition_set(%L, %L, %L)', '52000000-0000-0000-0000-000000000003', '{"kcal": -5}', :'owner_a'),
   'between 0', 'impossible values are refused');
 select tests.throws(format('select public.menu_nutrition_set(%L, %L, %L)', '52000000-0000-0000-0000-000000000003', '{"price_usd": 1}', :'owner_a'),
@@ -71,6 +75,13 @@ select tests.ok((select count(*) = 0 from public.menu_items_filter('20000000-000
   'a declared sesame item is excluded from sesame-free');
 select tests.ok((select count(*) = 1 from public.menu_items_filter('20000000-0000-0000-0000-00000000000a', null, array['vegan'])),
   'diet filters use only declared tags');
+select tests.ok((select count(*) = 0 from public.menu_items_filter('20000000-0000-0000-0000-00000000000a', null, array['halal'])),
+  'declaring vegan/siyami does not make halal count: each flag needs its own declaration');
+select public.menu_item_dietary_set('52000000-0000-0000-0000-000000000001', null, null, null, null, true, null, :'owner_a');
+select tests.ok((select diets_declared = '{halal}' and allergens_confirmed_at is null from public.menu_items where id = '52000000-0000-0000-0000-000000000001')
+  and (select count(*) = 0 from public.menu_items_filter('20000000-0000-0000-0000-00000000000a', null, array['vegetarian'])
+       where item_id = '52000000-0000-0000-0000-000000000001'),
+  'declaring halal alone does not make the old vegetarian flag count');
 select tests.ok((select bool_or(nutrition_source = 'estimated') from public.menu_items_filter('20000000-0000-0000-0000-00000000000a', null, null, 2000)),
   'macro filters may use estimates, and each row says it is estimated');
 select tests.ok((select 'high_protein' = any (tags) from public.menu_items_filter('20000000-0000-0000-0000-00000000000a', null, null, null, 25)
@@ -85,8 +96,10 @@ select tests.ok((public.nutrition_kill_gate() ->> 'searches_30d')::int >= 1, 'fi
 reset role;
 set local role anon;
 select tests.act_as(null);
-select tests.ok((select count(*) >= 2 from public.menu_item_nutrition where vendor_id = '20000000-0000-0000-0000-00000000000a'),
-  'anyone sees nutrition of a public vendor');
+select tests.ok((select count(*) >= 2 from (select kcal, status, value_sources from public.menu_item_nutrition
+  where vendor_id = '20000000-0000-0000-0000-00000000000a') x), 'anyone sees nutrition values and their sources for a public vendor');
+select tests.throws('select assumptions from public.menu_item_nutrition', 'permission denied', 'assumptions are not public');
+select tests.throws('select may_contain from public.menu_item_nutrition', 'permission denied', 'may-contain suggestions are not public (they could read like declarations)');
 select tests.throws('select public.menu_nutrition_estimate(''20000000-0000-0000-0000-00000000000a'')', 'permission denied', 'anon cannot run estimates');
 reset role;
 
@@ -134,6 +147,20 @@ select tests.ok(public.menu_draft_approve_section((:'draft'::jsonb ->> 'draft_id
 select tests.ok((select status = 'partly_approved' from public.menu_drafts where id = (:'draft'::jsonb ->> 'draft_id')::uuid), 'the draft is partly approved');
 select public.menu_draft_approve_section((:'draft'::jsonb ->> 'draft_id')::uuid, 1, :'owner_a');
 select tests.ok((select status = 'approved' from public.menu_drafts where id = (:'draft'::jsonb ->> 'draft_id')::uuid), 'all sections approved: the draft is approved');
+select public.menu_draft_create('20000000-0000-0000-0000-00000000000a', 'text',
+  '[{"name_en": "Misread", "items": [{"name_en": "Falafel Roll", "price": 3, "currency": "LBP"}]}]', '[]', 'rules', :'owner_a') as d2 \gset
+select tests.throws(format('select public.menu_draft_approve_section(%L, -1, %L)', :'d2'::jsonb ->> 'draft_id', :'owner_a'),
+  'no section', 'a negative section index is refused');
+select tests.ok((public.menu_draft_approve_section((:'d2'::jsonb ->> 'draft_id')::uuid, 0, :'owner_a') ->> 'inserted')::int = 0
+  and not exists (select 1 from public.menu_items where name_en = 'Falafel Roll')
+  and not exists (select 1 from public.menu_sections where name_en = 'Misread'),
+  'a positive price that converts to $0.00 is never sold; an all-unpriced section creates no empty section');
+select tests.ok(public.menu_model_take('20000000-0000-0000-0000-00000000000a', :'owner_a'), 'a menu-model read is taken before the call');
+reset role;
+insert into public.app_config (key, value, effective_from, note) values ('menu_model_calls_daily_per_vendor', '1', now() - interval '1 second', 'test');
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(not public.menu_model_take('20000000-0000-0000-0000-00000000000a', :'owner_a'), 'over the daily cap no model call is allowed');
 
 -- Members read their drafts; others do not.
 reset role;
@@ -141,6 +168,6 @@ set local role authenticated;
 select tests.act_as('00000000-0000-0000-0000-000000000010');
 select tests.ok((select count(*) = 0 from public.menu_drafts), 'another vendor''s owner sees no drafts');
 select tests.act_as('00000000-0000-0000-0000-00000000000e');
-select tests.ok((select count(*) = 1 from public.menu_drafts), 'the owner sees its draft');
+select tests.ok((select count(*) = 2 from public.menu_drafts), 'the owner sees its drafts');
 
 rollback;

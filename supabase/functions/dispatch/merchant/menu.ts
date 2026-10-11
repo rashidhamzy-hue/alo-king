@@ -8,9 +8,11 @@ import { clampInteractive } from "../../_shared/meta-limits.ts";
 import {
   extractMenu,
   parseMenuText,
+  pricedLineCount,
   type Draft,
   type MenuModel,
 } from "../../_shared/menu-draft.ts";
+import { parseMerchantCommand } from "../../_shared/merchant-commands.ts";
 import {
   draftSectionCard,
   estimateCard,
@@ -50,6 +52,9 @@ export type MenuInbound = {
 
 type Member = { member_id: string; vendor_id: string; role: string };
 
+/** How many estimated items the card lists, and so how many one Confirm tap verifies. */
+export const ESTIMATE_CARD_ITEMS = 8;
+
 const b64 = (bytes: Uint8Array) => {
   let s = "";
   for (let i = 0; i < bytes.length; i += 0x8000)
@@ -64,11 +69,20 @@ export async function handleMerchantMenu(
   members: Member[],
 ): Promise<boolean> {
   const tap = parseMenuTap(m.buttonId);
-  const editor = members.find((x) => x.role === "owner" || x.role === "manager");
   const session = await deps.rpc("onboarding_session_get", { p_phone: m.from });
   const inImport = session?.step === "menu_import";
-  if (!tap && !isMenuCommand(m.text) && !(inImport && (m.media || (m.text && m.text.length > 15))))
-    return false;
+  // The membership that may edit a given vendor's menu (owner or manager); chains have several (§18.1 F).
+  const editorFor = (vendorId?: string | null) =>
+    members.find(
+      (x) =>
+        (x.role === "owner" || x.role === "manager") && (!vendorId || x.vendor_id === vendorId),
+    );
+  const editor = editorFor(inImport ? session?.data?.vendor_id : null);
+  // During an import, text counts as a menu only with 2+ priced lines and when it is not a merchant command
+  // ("change closing time to 11" stays a command).
+  const textMenu =
+    !!m.text && pricedLineCount(m.text) >= 2 && !parseMerchantCommand(m.text, new Date());
+  if (!tap && !isMenuCommand(m.text) && !(inImport && (m.media || textMenu))) return false;
   const out: Record<string, unknown>[] = [];
   const reply = (p: Record<string, unknown>) => out.push(p);
   const text = (body: string) => ({
@@ -89,7 +103,7 @@ export async function handleMerchantMenu(
     }
   };
 
-  if (!editor) {
+  if (!editor && !tap) {
     reply(
       text(
         "المنيو والأسعار بيغيّرها صاحب المحل أو المدير بس. / Only the owner or a manager can change the menu.",
@@ -104,7 +118,7 @@ export async function handleMerchantMenu(
     });
     reply(menuImportHelp(m.from, !!deps.menuModel));
   } else if (tap) {
-    await handleTap(deps, tap, editor, m, reply, text, safe);
+    await handleTap(deps, tap, editorFor, session, m, reply, text, safe);
   } else {
     // A photo, PDF or pasted text during import.
     const vendorId = session.data?.vendor_id ?? editor.vendor_id;
@@ -113,6 +127,19 @@ export async function handleMerchantMenu(
     let source = "text";
     if (m.text) {
       draft = parseMenuText(m.text);
+    } else if (
+      m.media &&
+      deps.menuModel &&
+      deps.fetchMedia &&
+      !(await deps.rpc("menu_model_take", { p_vendor_id: vendorId, p_member_id: memberId }))
+    ) {
+      // Checked before the call, so the daily cap bounds model spend.
+      reply(
+        text(
+          "وصلت للحد اليومي لقراءة صور المنيو. كمّل بكرا أو الصق المنيو كنص. / Today's limit for reading menu photos is reached; continue tomorrow or paste the menu as text.",
+        ),
+      );
+      draft = { sections: [], warnings: ["quota"] };
     } else if (m.media && deps.menuModel && deps.fetchMedia) {
       const file = await deps.fetchMedia(m.media);
       const pdf = (file?.mime ?? m.media.mime) === "application/pdf";
@@ -151,6 +178,8 @@ export async function handleMerchantMenu(
           "📋 وصلت الصورة. رشيد من Alo King رح يساعدك تحطّ المنيو. فيك كمان تلصق المنيو كنص هون. / Got it. Rasheed will help you set up the menu; you can also paste it here as text.",
         ),
       );
+    } else if (draft.warnings.includes("quota")) {
+      // already answered
     } else if (!draft.sections.length) {
       reply(
         text(
@@ -189,22 +218,32 @@ export async function handleMerchantMenu(
 async function handleTap(
   deps: MenuDeps,
   tap: NonNullable<ReturnType<typeof parseMenuTap>>,
-  editor: Member,
+  editorFor: (vendorId?: string | null) => Member | undefined,
+  session: { step?: string; data?: Record<string, any> } | null,
   m: MenuInbound,
   reply: (p: Record<string, unknown>) => void,
   text: (body: string) => Record<string, unknown>,
   safe: (fn: string, args: Record<string, unknown>) => Promise<any>,
 ) {
+  const notAllowed = () =>
+    reply(
+      text(
+        "المنيو والأسعار بيغيّرها صاحب المحل أو المدير بس. / Only the owner or a manager can change the menu.",
+      ),
+    );
   switch (tap.a) {
     case "approve":
     case "skip": {
+      const before = await deps.rpc("menu_draft_summary", { p_draft_id: tap.draftId });
+      const editor = editorFor(before?.vendor_id);
+      if (!before?.vendor_id || !editor) return notAllowed();
       if (tap.a === "approve") {
         const r = await safe("menu_draft_approve_section", {
           p_draft_id: tap.draftId,
           p_index: tap.index,
           p_member_id: editor.member_id,
         });
-        if (r?.status === "not_allowed") return reply(text("مش مسموح. / Not allowed."));
+        if (r?.status === "not_allowed") return notAllowed();
         if (r?.status === "approved")
           reply(sectionAddedText(m.from, r.inserted ?? 0, r.needs_price ?? []));
       }
@@ -219,11 +258,14 @@ async function handleTap(
         p_data: {},
         p_lang: null,
       });
-      return reply(portionQuestion(m.from, editor.vendor_id));
+      return reply(portionQuestion(m.from, before.vendor_id));
     }
     case "size":
+      if (!editorFor(tap.vendorId)) return notAllowed();
       return reply(extrasQuestion(m.from, tap.vendorId, tap.size));
     case "extras": {
+      const editor = editorFor(tap.vendorId);
+      if (!editor) return notAllowed();
       const r = await safe("menu_nutrition_estimate", {
         p_vendor_id: tap.vendorId,
         p_size: tap.size,
@@ -242,13 +284,40 @@ async function handleTap(
             "ما لقينا أصناف من الوصفات المعروفة. فيك تزيد الأرقام من لوحة التحكم. / No items matched our standard recipes; add values on the dashboard.",
           ),
         );
-      return reply(estimateCard(m.from, tap.vendorId, r));
+      // Confirm covers exactly the items the card shows; the rest stay "estimated" until checked.
+      const shown = (r.items ?? []).slice(0, ESTIMATE_CARD_ITEMS);
+      await deps.rpc("onboarding_session_set", {
+        p_phone: m.from,
+        p_step: "nutrition_confirm",
+        p_data: {
+          vendor_id: tap.vendorId,
+          item_ids: shown.map((i: { item_id: string }) => i.item_id),
+        },
+        p_lang: null,
+      });
+      return reply(estimateCard(m.from, tap.vendorId, { ...r, items: shown }));
     }
     case "confirm": {
+      const editor = editorFor(tap.vendorId);
+      if (!editor) return notAllowed();
+      const ids: string[] =
+        session?.step === "nutrition_confirm" && session.data?.vendor_id === tap.vendorId
+          ? (session.data.item_ids ?? [])
+          : [];
+      if (!ids.length)
+        return reply(
+          text("انتهت صلاحية هالبطاقة. / This card has expired; run the estimate again."),
+        );
       const r = await safe("menu_nutrition_confirm", {
         p_vendor_id: tap.vendorId,
-        p_item_ids: null,
+        p_item_ids: ids,
         p_member_id: editor.member_id,
+      });
+      await deps.rpc("onboarding_session_set", {
+        p_phone: m.from,
+        p_step: null,
+        p_data: {},
+        p_lang: null,
       });
       if (r?.status === "not_allowed") return reply(text("مش مسموح. / Not allowed."));
       return reply(

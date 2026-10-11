@@ -17,7 +17,8 @@ insert into public.app_config (key, value, effective_from, note, created_by) val
   ('dish_match_min_score', '0.45', '2026-10-11 00:00+03', 'Lowest name similarity for a menu item to take a dish-library recipe', null),
   ('nutrition_kill_gate', '{"after_claimed": 30, "min_confirm_share": 0.5, "min_search_share": 0.03}', '2026-10-11 00:00+03', 'If fewer merchants confirm estimates or searches use filters, the prompt moves out of setup (DECISIONS §32.3)', null),
   ('menu_draft_max_items', '400', '2026-10-11 00:00+03', 'Largest menu draft accepted at once', null),
-  ('menu_drafts_daily_per_vendor', '10', '2026-10-11 00:00+03', 'Menu drafts one vendor may create per day (bounds menu-model spend)', null);
+  ('menu_drafts_daily_per_vendor', '10', '2026-10-11 00:00+03', 'Menu drafts one vendor may create per day', null),
+  ('menu_model_calls_daily_per_vendor', '15', '2026-10-11 00:00+03', 'Menu-model reads (photos, PDFs) one vendor may use per Beirut day; checked before each call', null);
 select set_config('app.actor_kind', '', false);
 select set_config('app.audit_reason', '', false);
 
@@ -471,7 +472,10 @@ create trigger menu_item_nutrition_audit after insert or update or delete on pub
 alter table public.menu_item_nutrition enable row level security;
 revoke all on table public.menu_item_nutrition from public, anon, authenticated;
 grant all on table public.menu_item_nutrition to service_role;
-grant select on table public.menu_item_nutrition to anon, authenticated;
+-- Clients read values, their sources and the status. Assumptions, may-contain suggestions and who confirmed
+-- stay with the merchant's dashboard (server-side), so a suggestion never reads like a declaration.
+grant select (item_id, vendor_id, dish_id, portion_g, kcal, protein_g, carbs_g, fat_g, sugar_g, fibre_g, sat_fat_g,
+  sodium_mg, value_sources, status, updated_at) on table public.menu_item_nutrition to anon, authenticated;
 create policy menu_item_nutrition_read on public.menu_item_nutrition for select to anon, authenticated
   using (app_private.menu_vendor_visible(vendor_id));
 
@@ -479,12 +483,15 @@ create policy menu_item_nutrition_read on public.menu_item_nutrition for select 
 -- The existing flags (allergens, vegetarian, vegan, fasting_friendly) stay merchant-declared (§17); these
 -- columns record that the merchant actually declared them, so an empty allergen list is never read as
 -- "free from". Adding columns with defaults is allowed during the data freeze (§31); menu_items is not frozen.
+-- `diets_declared` lists exactly which flags the merchant declared (vegetarian, vegan, siyami, halal,
+-- no_added_sugar), so declaring one never makes the others count.
 alter table public.menu_items
   add column allergens_confirmed_at timestamptz,
-  add column diet_confirmed_at timestamptz,
+  add column diets_declared text[] not null default '{}'
+    check (diets_declared <@ array['vegetarian', 'vegan', 'siyami', 'halal', 'no_added_sugar']),
   add column halal boolean not null default false,
   add column no_added_sugar boolean not null default false;
-grant select (allergens_confirmed_at, diet_confirmed_at, halal, no_added_sugar) on table public.menu_items to anon, authenticated;
+grant select (allergens_confirmed_at, diets_declared, halal, no_added_sugar) on table public.menu_items to anon, authenticated;
 
 -- Who may change an item's declarations or nutrition: owner and manager (§18.1 H), operators, or the server
 -- acting for such a member.
@@ -503,15 +510,23 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   v_vendor uuid;
+  v_declared text[];
 begin
   select i.vendor_id into v_vendor from public.menu_items i where i.id = p_item_id;
   if v_vendor is null then
     raise exception 'unknown item' using errcode = 'no_data_found';
   end if;
   perform app_private.menu_editor(v_vendor, p_member_id);
-  if coalesce(p_vegan, false) and not coalesce(p_vegetarian, true) then
+  if coalesce(p_vegan, false) and p_vegetarian is not null and not p_vegetarian then
     raise exception 'a vegan item is also vegetarian' using errcode = 'check_violation';
   end if;
+  -- Only the flags given (not null) become declared; a vegan declaration also declares vegetarian.
+  v_declared := array_remove(array[
+    case when p_vegetarian is not null or coalesce(p_vegan, false) then 'vegetarian' end,
+    case when p_vegan is not null then 'vegan' end,
+    case when p_siyami is not null then 'siyami' end,
+    case when p_halal is not null then 'halal' end,
+    case when p_no_added_sugar is not null then 'no_added_sugar' end], null);
   perform set_config('app.audit_reason', 'merchant declared allergens and diet tags', true);
   update public.menu_items set
     allergens = case when p_allergens is null then allergens else (select coalesce(array_agg(distinct a order by a), '{}') from unnest(p_allergens) a) end,
@@ -521,7 +536,7 @@ begin
     fasting_friendly = coalesce(p_siyami, fasting_friendly),
     halal = coalesce(p_halal, halal),
     no_added_sugar = coalesce(p_no_added_sugar, no_added_sugar),
-    diet_confirmed_at = case when coalesce(p_vegetarian, p_vegan, p_siyami, p_halal, p_no_added_sugar) is null then diet_confirmed_at else now() end
+    diets_declared = (select coalesce(array_agg(distinct d order by d), '{}') from unnest(diets_declared || v_declared) d)
   where id = p_item_id;
   return jsonb_build_object('status', 'saved');
 end;
@@ -551,7 +566,10 @@ begin
     select i.id, coalesce(i.name_en, i.name_ar, i.name_fr) as name, i.name_ar, i.name_en, i.name_fr
     from public.menu_items i
     left join public.menu_item_nutrition n on n.item_id = i.id
-    where i.vendor_id = p_vendor_id and coalesce(n.status, 'unknown') <> 'merchant_verified'
+    -- Rows with any value the merchant entered or confirmed are left alone (never overwritten or nulled).
+    where i.vendor_id = p_vendor_id
+      and coalesce(n.status, 'unknown') <> 'merchant_verified'
+      and not exists (select 1 from jsonb_each_text(coalesce(n.value_sources, '{}')) e where e.value = 'merchant_verified')
     order by i.sort_order, i.id
   loop
     select m.* into v_match from (
@@ -668,7 +686,7 @@ as $$
     case when n.fat_g <= (t ->> 'low_fat_max_g')::numeric then 'low_fat' end,
     case when n.sodium_mg <= (t ->> 'low_sodium_max_mg')::numeric then 'low_sodium' end,
     case when n.sugar_g <= (t ->> 'sugar_free_max_g')::numeric then 'sugar_free' end,
-    case when i.no_added_sugar and i.diet_confirmed_at is not null then 'no_added_sugar' end
+    case when i.no_added_sugar and 'no_added_sugar' = any (i.diets_declared) then 'no_added_sugar' end
   ], null)
   from public.menu_items i
   left join public.menu_item_nutrition n on n.item_id = i.id and n.status <> 'unknown'
@@ -720,13 +738,12 @@ begin
     and exists (select 1 from public.vendors v where v.id = p_vendor_id and v.orderable and v.listing_status = 'active')
     -- Allergens: only a merchant declaration counts; an undeclared item never passes a free-from filter.
     and (p_free_from is null or (i.allergens_confirmed_at is not null and not (i.allergens && p_free_from)))
-    and (p_diets is null or (i.diet_confirmed_at is not null
+    -- Diets: each asked flag must itself be declared by the merchant and true.
+    and (p_diets is null or (i.diets_declared @> p_diets
       and (not 'vegan' = any (p_diets) or i.vegan)
       and (not 'vegetarian' = any (p_diets) or i.vegetarian)
       and (not 'siyami' = any (p_diets) or i.fasting_friendly)
-      and (not 'halal' = any (p_diets) or i.halal)
-      and (not 'no_pork' = any (p_diets) or not i.contains_pork)
-      and (not 'no_alcohol' = any (p_diets) or not i.contains_alcohol)))
+      and (not 'halal' = any (p_diets) or i.halal)))
     and (p_max_kcal is null or (n.status <> 'unknown' and n.kcal <= p_max_kcal))
     and (p_min_protein_g is null or (n.status <> 'unknown' and n.protein_g >= p_min_protein_g))
     and (p_tags is null or app_private.nutrition_tags(i.id) @> p_tags)
@@ -810,6 +827,7 @@ begin
       end if;
       if exists (select 1 from jsonb_array_elements(coalesce(i -> 'options', '[]')) o, jsonb_array_elements(coalesce(o -> 'choices', '[]')) c
                  where (c ? 'price' and jsonb_typeof(c -> 'price') not in ('number', 'null'))
+                    or (jsonb_typeof(c -> 'price') = 'number' and ((c ->> 'price')::numeric < 0 or (c ->> 'price')::numeric > 100000000))
                     or coalesce(c ->> 'currency', 'USD') not in ('USD', 'LBP')) then
         raise exception 'option prices are numbers in USD or LBP' using errcode = 'invalid_parameter_value';
       end if;
@@ -848,7 +866,7 @@ $$;
 create function app_private.menu_draft_summary(p_draft_id uuid) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
-  select jsonb_build_object('draft_id', d.id, 'status', d.status, 'usd_lbp_rate', public.usd_lbp_rate(),
+  select jsonb_build_object('draft_id', d.id, 'vendor_id', d.vendor_id, 'status', d.status, 'usd_lbp_rate', public.usd_lbp_rate(),
     'sections', coalesce((select jsonb_agg(jsonb_build_object(
       'index', s.ord - 1,
       'name', coalesce(s.v ->> 'name_ar', s.v ->> 'name_en', s.v ->> 'name_fr', 'Menu'),
@@ -890,26 +908,26 @@ begin
     return jsonb_build_object('status', coalesce(v_d.status, 'unknown'));
   end if;
   perform app_private.menu_editor(v_d.vendor_id, p_member_id);
-  v_s := v_d.sections -> p_index;
+  v_s := case when p_index >= 0 then v_d.sections -> p_index end;
   if v_s is null then
     raise exception 'no section %', p_index using errcode = 'invalid_parameter_value';
   end if;
   if coalesce((v_s ->> 'approved')::boolean, false) then
     return jsonb_build_object('status', 'already_approved');
   end if;
-  perform set_config('app.actor_kind', 'whatsapp', true);
+  perform set_config('app.actor_kind', case when (select auth.uid()) is null then 'whatsapp' else 'user' end, true);
   perform set_config('app.audit_reason', 'menu draft ' || p_draft_id || ' section ' || p_index || ' approved by the merchant', true);
   select coalesce(max(sort_order), 0) + 10 into v_sort from public.menu_sections where vendor_id = v_d.vendor_id;
-  insert into public.menu_sections (vendor_id, name_ar, name_en, name_fr, sort_order)
-  values (v_d.vendor_id, left(v_s ->> 'name_ar', 80), left(v_s ->> 'name_en', 80),
-          coalesce(left(v_s ->> 'name_fr', 80), case when v_s ->> 'name_ar' is null and v_s ->> 'name_en' is null then 'Menu' end), v_sort)
-  returning id into v_section;
   for v_item in select * from jsonb_array_elements(v_s -> 'items') loop
     v_price := case
       when jsonb_typeof(v_item -> 'price') <> 'number' then null
       when v_item ->> 'currency' = 'USD' then round((v_item ->> 'price')::numeric, 2)
       when v_item ->> 'currency' = 'LBP' then round((v_item ->> 'price')::numeric / v_rate, 2)
       else null end;
+    -- A positive price that rounds to $0.00 is a misread (e.g. a USD price marked LBP): ask, never sell at 0.
+    if v_price = 0 and (v_item ->> 'price')::numeric > 0 then
+      v_price := null;
+    end if;
     -- An option with a price but no currency (its own or the item's) is as unclear as the item's own price.
     if v_price is null or exists (
       select 1 from jsonb_array_elements(coalesce(v_item -> 'options', '[]')) o, jsonb_array_elements(coalesce(o -> 'choices', '[]')) c
@@ -917,6 +935,12 @@ begin
         and coalesce(c ->> 'currency', v_item ->> 'currency') is null) then
       v_needs := v_needs || jsonb_build_array(left(coalesce(v_item ->> 'name_ar', v_item ->> 'name_en', v_item ->> 'name_fr'), 60));
       continue;
+    end if;
+    if v_section is null then
+      insert into public.menu_sections (vendor_id, name_ar, name_en, name_fr, sort_order)
+      values (v_d.vendor_id, left(v_s ->> 'name_ar', 80), left(v_s ->> 'name_en', 80),
+              coalesce(left(v_s ->> 'name_fr', 80), case when v_s ->> 'name_ar' is null and v_s ->> 'name_en' is null then 'Menu' end), v_sort)
+      returning id into v_section;
     end if;
     insert into public.menu_items (vendor_id, section_id, name_ar, name_en, name_fr, description, price_usd, sort_order)
     values (v_d.vendor_id, v_section, left(v_item ->> 'name_ar', 120), left(v_item ->> 'name_en', 120), left(v_item ->> 'name_fr', 120),
@@ -965,6 +989,33 @@ begin
   return jsonb_build_object('status', 'discarded');
 end;
 $$;
+
+-- One menu-model read for this vendor today, taken before the call (bounds spend; §29.5 style atomic take).
+create table app_private.menu_model_usage (
+  vendor_id uuid not null references public.vendors (id) on delete cascade,
+  day date not null,
+  calls integer not null default 0,
+  primary key (vendor_id, day)
+);
+revoke all on table app_private.menu_model_usage from public, anon, authenticated;
+
+create function public.menu_model_take(p_vendor_id uuid, p_member_id uuid) returns boolean
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_ok boolean;
+begin
+  perform app_private.menu_editor(p_vendor_id, p_member_id);
+  insert into app_private.menu_model_usage (vendor_id, day, calls)
+  values (p_vendor_id, (now() at time zone 'Asia/Beirut')::date, 1)
+  on conflict (vendor_id, day) do update set calls = app_private.menu_model_usage.calls + 1
+  where app_private.menu_model_usage.calls < public.config_numeric('menu_model_calls_daily_per_vendor')
+  returning true into v_ok;
+  return coalesce(v_ok, false);
+end;
+$$;
+revoke all on function public.menu_model_take(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.menu_model_take(uuid, uuid) to service_role;
 
 -- A merchant sent menu photos while the menu model is unavailable (no credit, §32.7) or could not read
 -- them: Rasheed is asked to help (one alert per vendor per day); nothing is guessed.
