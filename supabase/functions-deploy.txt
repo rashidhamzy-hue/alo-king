@@ -3,3 +3,4 @@
 # The legacy functions in supabase/functions/ depend on the old schema and are ported in Phases 1-3;
 # each is added here once it runs against the new baseline schema.
 whatsapp-webhook
+dispatch

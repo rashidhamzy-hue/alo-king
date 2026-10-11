@@ -15,3 +15,8 @@ verify_jwt = true
 [functions.whatsapp-webhook]
 # Authenticated by the Kapso HMAC signature, not a Supabase JWT.
 verify_jwt = false
+
+[functions.dispatch]
+# Authenticated by the dispatch secret (pg_cron), the service-role bearer (whatsapp-webhook) or Twilio's
+# signature (call keypresses), not a Supabase JWT.
+verify_jwt = false

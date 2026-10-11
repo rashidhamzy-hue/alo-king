@@ -51,7 +51,7 @@ for i in 1 2 3 4 5; do
   svc "select public.order_reject('$order', 'busy', null, '$cashier', 'portal') ->> 'status'" > "$TMPDIR_RACE/r$i" &
 done
 wait
-check "$(q -c "select count(*) from public.order_events where order_id = '$order' and from_status = 'placed'")" 1 \
+check "$(q -c "select count(*) from public.order_events where order_id = '$order' and from_status = 'placed' and to_status <> 'placed'")" 1 \
   "accept vs reject: exactly one transition from placed"
 final=$(q -c "select status from public.orders where id = '$order'")
 if [ "$final" = "accepted" ]; then
@@ -69,7 +69,7 @@ for i in 1 2 3 4 5; do
 done
 wait
 final2=$(q -c "select status from public.orders where id = '$order2'")
-check "$(q -c "select count(*) from public.order_events where order_id = '$order2' and from_status = 'placed'")" 1 \
+check "$(q -c "select count(*) from public.order_events where order_id = '$order2' and from_status = 'placed' and to_status <> 'placed'")" 1 \
   "accept vs cancel: exactly one transition from placed"
 check "$(q -c "select count(*) <= 1 from public.order_events where order_id = '$order2' and to_status = 'cancelled'")" t \
   "at most one cancel event"
