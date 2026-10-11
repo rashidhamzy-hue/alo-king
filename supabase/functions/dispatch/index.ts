@@ -101,9 +101,21 @@ async function telegram(text: string, url?: string): Promise<SendResult> {
     : { ok: false, retry: res.status >= 500, error: `telegram ${res.status}` };
 }
 
+async function sha256(s: string): Promise<Uint8Array> {
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+}
+
+/** Constant-time equality on SHA-256 digests (lengths never leak). */
+async function sameSecret(a: string, b: string): Promise<boolean> {
+  const [x, y] = await Promise.all([sha256(a), sha256(b)]);
+  let diff = 0;
+  for (let k = 0; k < x.length; k++) diff |= x[k] ^ y[k];
+  return diff === 0;
+}
+
 async function authorised(req: Request): Promise<boolean> {
   const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (bearer && serviceKey && bearer === serviceKey) return true;
+  if (bearer && serviceKey && (await sameSecret(bearer, serviceKey))) return true;
   const secret = req.headers.get("x-dispatch-secret");
   if (!secret) return false;
   return (await rpc("dispatch_secret_ok", { p_secret: secret })) === true;
@@ -121,6 +133,10 @@ async function twilioKeypress(req: Request, url: URL): Promise<Response> {
   }
   const xml = (s: string) => new Response(s, { headers: { "content-type": "text/xml" } });
   try {
+    // A replayed or late keypress changes nothing once the order has left "placed".
+    const card = await rpc("order_call_card", { p_order_id: order });
+    if (card?.status !== "placed")
+      return xml(sayTwiml("هالطلب انعالج من قبل. التفاصيل على واتساب."));
     await rpc("order_acknowledge", {
       p_order_id: order,
       p_channel: "call",
@@ -146,7 +162,6 @@ async function twilioKeypress(req: Request, url: URL): Promise<Response> {
       });
       return xml(sayTwiml("تم رفض الطلب."));
     }
-    const card = await rpc("order_call_card", { p_order_id: order });
     return xml(gatherTwiml(callScript(card), signedUrl));
   } catch (e) {
     log("twilio keypress failed", { error: String(e).slice(0, 200) });
