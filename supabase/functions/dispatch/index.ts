@@ -118,29 +118,52 @@ async function transcribe(
   };
 }
 
-/** Inbound media: only from Kapso (CLAUDE.md), by Kapso's media URL or the WhatsApp media id. */
-async function fetchMedia(m: { url?: string | null; id?: string | null }, phoneNumberId: string) {
+/**
+ * Inbound media (voice notes), at most maxBytes. The Kapso key is sent only to api.kapso.ai, never to the
+ * host of a redirect or of a signed media URL (review of #110); one redirect is followed, without the key.
+ */
+async function fetchMedia(
+  m: { url?: string | null; id?: string | null },
+  phoneNumberId: string,
+  maxBytes: number,
+) {
   if (!kapsoKey) return null;
-  let url = m.url ?? null;
-  if (url && new URL(url).host !== "api.kapso.ai") url = null;
+  const isKapso = (u: string) =>
+    new URL(u).protocol === "https:" && new URL(u).host === "api.kapso.ai";
+  let url = m.url && isKapso(m.url) ? m.url : null;
   if (!url && m.id) {
     const r = await fetch(
       `${KAPSO_BASE}/${encodeURIComponent(m.id)}?phone_number_id=${encodeURIComponent(phoneNumberId)}`,
       {
         headers: { "X-API-Key": kapsoKey },
+        redirect: "error",
+        signal: AbortSignal.timeout(10_000),
       },
     );
     if (!r.ok) return null;
     url = (await r.json())?.url ?? null;
   }
-  if (!url) return null;
-  const res = await fetch(url, {
-    headers: { "X-API-Key": kapsoKey },
-    redirect: "follow",
+  if (!url || !url.startsWith("https://")) return null;
+  let res = await fetch(url, {
+    headers: isKapso(url) ? { "X-API-Key": kapsoKey } : {},
+    redirect: "manual",
     signal: AbortSignal.timeout(15_000),
   });
+  if (res.status >= 300 && res.status < 400) {
+    const next = res.headers.get("location");
+    await res.body?.cancel();
+    if (!next) return null;
+    const to = new URL(next, url);
+    if (to.protocol !== "https:") return null;
+    res = await fetch(to, { redirect: "error", signal: AbortSignal.timeout(15_000) });
+  }
   if (!res.ok) return null;
+  if (Number(res.headers.get("content-length") ?? 0) > maxBytes) {
+    await res.body?.cancel();
+    return null;
+  }
   const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > maxBytes) return null;
   return { bytes, mime: res.headers.get("content-type")?.split(";")[0] || "audio/ogg" };
 }
 
@@ -326,7 +349,8 @@ Deno.serve(async (req) => {
         return {
           model: anthropic ? callModel : null,
           transcribe: openaiKey ? transcribe : null,
-          fetchMedia: (m: { url?: string | null; id?: string | null }) => fetchMedia(m, sender),
+          fetchMedia: (m: { url?: string | null; id?: string | null }) =>
+            fetchMedia(m, sender, 5_000_000),
           route: async (o: { lat: number; lon: number }, d: { lat: number; lon: number }) =>
             (
               await roadRoutes(o, [d], {
