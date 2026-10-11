@@ -452,6 +452,7 @@ async function tap(c: Ctx, a: CustomerAction) {
       if (r?.status === "accepted") return say(c, "subAccepted", { money });
       if (r?.status === "declined") return say(c, "subDeclined", { money });
       if (r?.status === "last_item") return say(c, "subLast");
+      if (r?.status === "cod_cap") return say(c, "subCap");
       return say(c, "subGone");
     }
     case "sub_pref":

@@ -288,7 +288,9 @@ async function whatsapp(
 // The SVG from order-card-image.ts is rendered with resvg (WebAssembly, pinned) and the bundled Noto fonts
 // (supabase/functions/_shared/fonts, OFL), then uploaded to WhatsApp media through Kapso; the message
 // carries the media id, so no order data sits behind a public URL.
+// The npm file of @resvg/resvg-wasm 2.6.2 served by jsDelivr, checked against its SHA-256 before use.
 const RESVG_WASM = "https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.6.2/index_bg.wasm";
+const RESVG_WASM_SHA256 = "22bf6e9f9a100d972da0411a69c5ba504367fc1fa87b3b64e3f35e53926d2d70";
 const CARD_FONTS = [
   "NotoNaskhArabic-Regular",
   "NotoNaskhArabic-Bold",
@@ -298,7 +300,14 @@ const CARD_FONTS = [
 let cardRenderer: Promise<Uint8Array[]> | null = null;
 function cardFonts(): Promise<Uint8Array[]> {
   cardRenderer ??= (async () => {
-    await initWasm(fetch(RESVG_WASM));
+    const res = await fetch(RESVG_WASM, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error(`resvg wasm ${res.status}`);
+    const wasm = new Uint8Array(await res.arrayBuffer());
+    const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", wasm)))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    if (digest !== RESVG_WASM_SHA256) throw new Error("resvg wasm checksum mismatch");
+    await initWasm(wasm);
     return Promise.all(
       CARD_FONTS.map((f) => Deno.readFile(new URL(`../_shared/fonts/${f}.ttf`, import.meta.url))),
     );

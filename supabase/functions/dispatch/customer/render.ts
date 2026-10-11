@@ -133,6 +133,12 @@ const S: Record<string, Record<CLang, string>> = {
     fr: "C'est le dernier article de la commande : le magasin va vous appeler.",
     arabizi: "Hayda akher sanf b talabak, fa el ma7al ra7 yettesel fik.",
   },
+  subCap: {
+    ar: "البديل بيطلّع الطلب فوق حد الدفع كاش، فالمحل رح يتصل فيك.",
+    en: "That substitute would take the order over the cash limit, so the shop will call you.",
+    fr: "Ce remplacement dépasserait la limite de paiement en espèces : le magasin va vous appeler.",
+    arabizi: "El badil bi tale3 el talab fo2 7add el cash, fa el ma7al ra7 yettesel fik.",
+  },
   subGone: {
     ar: "هالعرض ما عاد صالح (الطلب تحرّك).",
     en: "That offer is no longer valid (the order has moved on).",

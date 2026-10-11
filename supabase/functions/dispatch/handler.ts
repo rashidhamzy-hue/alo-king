@@ -93,6 +93,7 @@ type Outbox = {
 };
 
 const MAX_ATTEMPTS = 3;
+const ORDER_CARD_MS = 6000;
 const E164 = /^\+[1-9][0-9]{6,14}$/;
 
 export async function runDispatch(
@@ -242,17 +243,27 @@ async function deliverCustomer(
     return { status: "skipped", error: `nothing to send for ${String(p.kind)}` };
   // The gold order card goes before the confirmation text (§32.5); without it the text alone is sent.
   if (p.kind === "accepted" && m.order_id && deps.orderCard && m.attempts <= 1) {
-    try {
+    const step = async () => {
       const card = await deps.rpc("order_card_image", { p_order_id: m.order_id });
-      if (card?.code) {
-        const media = await deps.orderCard(
-          from,
-          orderCardSvg(card, p.lang === "ar" || p.lang === "arabizi" ? "ar" : "en"),
-        );
-        if (media) await deps.whatsapp(from, orderCardImageMessage(m.target, media, card.code));
-      }
+      if (!card?.code) return null;
+      const media = await deps.orderCard!(
+        from,
+        orderCardSvg(card, p.lang === "ar" || p.lang === "arabizi" ? "ar" : "en"),
+      );
+      return media ? orderCardImageMessage(m.target as string, media, card.code) : null;
+    };
+    // The text must never wait on the image: the card gets ORDER_CARD_MS, then it is skipped.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const msg = await Promise.race([
+        step(),
+        new Promise<null>((resolve) => (timer = setTimeout(() => resolve(null), ORDER_CARD_MS))),
+      ]);
+      if (msg) await deps.whatsapp(from, msg);
     } catch (e) {
       deps.log?.("order card failed", { error: String(e).slice(0, 120) });
+    } finally {
+      clearTimeout(timer);
     }
   }
   let ref: string | undefined;
@@ -639,6 +650,8 @@ async function handleTap(
     }
     case "proposal": {
       const member = await memberFor({ p_proposal_id: action.proposalId });
+      // A tap from a phone that is no longer a member of that branch is never applied as the system.
+      if (!member) return reply("⚠️ ما فيك تأكد هالتغيير");
       const r = await safe("merchant_proposal_decide", {
         p_proposal_id: action.proposalId,
         p_confirm: action.confirm,
@@ -889,6 +902,8 @@ export function substitutionReply(cmd: { code: string; missing: string }, r: any
       return "⚠️ البديل مش متوفر. / The substitute isn't available.";
     case "same_item":
       return "هيدا نفس الصنف. / That's the same item.";
+    case "deposit_item":
+      return "⚠️ أصناف الكفالة (غالونات، غاز) ما منبدّلها بالرسالة: اتصل بالزبون. / Items with a container deposit aren't substituted by message: call the customer.";
     default:
       return "⚠️ ما قدرنا نعرض البديل. / Couldn't offer the substitute.";
   }

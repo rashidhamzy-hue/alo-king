@@ -32,6 +32,8 @@ create table public.vendor_ops (
   vendor_id uuid primary key references public.vendors (id) on delete cascade,
   max_active_orders integer check (max_active_orders between 1 and 200),
   capacity_paused boolean not null default false,
+  -- The merchant reopened ("open") while the kitchen was full: no automatic pause until the queue drops.
+  capacity_override boolean not null default false,
   power_off_since timestamptz,
   same_price_confirmed_at timestamptz,
   same_price_member_id uuid references public.vendor_members (id) on delete set null,
@@ -120,7 +122,7 @@ begin
       raise exception 'staff needs a name, a phone in E.164 and a role (manager, cashier, kitchen or driver)' using errcode = 'check_violation';
     end if;
     if exists (select 1 from public.vendor_members m where m.vendor_id = p_vendor_id and m.phone_e164 = p_payload ->> 'phone'
-               and m.role = 'owner' and m.status = 'active') then
+               and m.role = 'owner') then
       raise exception 'that number is an owner of this branch' using errcode = 'check_violation';
     end if;
   end if;
@@ -160,6 +162,10 @@ begin
     raise exception 'unknown proposal' using errcode = 'no_data_found';
   end if;
   v_member := app_private.order_actor(v_p.vendor_id, app_private.proposal_roles(v_p.kind), p_member_id);
+  -- Staff changes are never confirmed as "the system": a member (or an operator) must be the one tapping.
+  if v_p.kind in ('staff_add', 'staff_remove') and v_member is null and not app_private.is_operator() then
+    raise exception 'not allowed to act on this vendor''s orders' using errcode = 'insufficient_privilege';
+  end if;
   if v_p.status <> 'proposed' then
     return jsonb_build_object('status', v_p.status);
   end if;
@@ -179,7 +185,8 @@ begin
     when 'resume' then
       perform app_private.vendor_set_pause(v_p.vendor_id, null, null, 'resume');
       update public.vendors set missed_orders_streak = 0 where id = v_p.vendor_id;
-      update public.vendor_ops set capacity_paused = false where vendor_id = v_p.vendor_id;
+      update public.vendor_ops set capacity_override = capacity_paused or capacity_override, capacity_paused = false
+      where vendor_id = v_p.vendor_id;
     when 'sold_out' then update public.menu_items set available = false where id = v_item and vendor_id = v_p.vendor_id;
     when 'back_in_stock' then update public.menu_items set available = true where id = v_item and vendor_id = v_p.vendor_id;
     when 'price' then update public.menu_items set price_usd = (v_p.payload ->> 'price_usd')::numeric where id = v_item and vendor_id = v_p.vendor_id;
@@ -208,7 +215,7 @@ begin
         same_price_member_id = excluded.same_price_member_id;
     when 'staff_add' then
       if exists (select 1 from public.vendor_members m where m.vendor_id = v_p.vendor_id and m.phone_e164 = v_p.payload ->> 'phone'
-                 and m.role = 'owner' and m.status = 'active') then
+                 and m.role = 'owner') then
         raise exception 'that number is an owner of this branch' using errcode = 'check_violation';
       end if;
       v_user := app_private.auth_user_for_phone(v_p.payload ->> 'phone');
@@ -260,6 +267,7 @@ begin
   v_queue := app_private.kitchen_queue(p_vendor_id);
   if v_ops.max_active_orders is not null
      and v_queue >= v_ops.max_active_orders * public.config_numeric('kitchen_pause_factor')
+     and not v_ops.capacity_override
      and (v_vendor.paused_until is null or v_vendor.paused_until <= now()) then
     perform app_private.vendor_set_pause(p_vendor_id, now() + make_interval(mins => public.config_numeric('kitchen_pause_max_min')::int),
       'kitchen full (auto)', 'kitchen full');
@@ -272,10 +280,15 @@ begin
         || '. ابعت «فتحنا» لترجع هلق. / Kitchen full (' || v_queue || ' orders): new orders are paused until the queue is under '
         || v_ops.max_active_orders || '. Send “open” to reopen now.'), 'kitchen_full:' || p_vendor_id || ':' || extract(epoch from now())::bigint);
     end loop;
-  elsif v_ops.capacity_paused and (v_ops.max_active_orders is null or v_queue < v_ops.max_active_orders) then
-    update public.vendor_ops set capacity_paused = false where vendor_id = p_vendor_id;
+  elsif (v_ops.capacity_paused or v_ops.capacity_override) and (v_ops.max_active_orders is null or v_queue < v_ops.max_active_orders) then
+    update public.vendor_ops set capacity_paused = false, capacity_override = false where vendor_id = p_vendor_id;
     if v_vendor.pause_reason = 'kitchen full (auto)' and v_vendor.paused_until > now() then
-      perform app_private.vendor_set_pause(p_vendor_id, null, null, 'kitchen queue cleared');
+      -- Outside opening hours the branch stays closed until it opens, as the hours tick would do.
+      if app_private.vendor_open_at(p_vendor_id) then
+        perform app_private.vendor_set_pause(p_vendor_id, null, null, 'kitchen queue cleared');
+      else
+        perform app_private.vendor_set_pause(p_vendor_id, app_private.vendor_next_open(p_vendor_id), 'closed (hours)', 'closed (hours)');
+      end if;
     end if;
   end if;
 end;
@@ -307,7 +320,8 @@ create function app_private.orders_capacity_after() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if exists (select 1 from public.vendor_ops o where o.vendor_id = new.vendor_id and (o.max_active_orders is not null or o.capacity_paused)) then
+  if exists (select 1 from public.vendor_ops o where o.vendor_id = new.vendor_id
+             and (o.max_active_orders is not null or o.capacity_paused or o.capacity_override)) then
     perform app_private.kitchen_capacity_check(new.vendor_id);
   end if;
   return null;
@@ -373,7 +387,7 @@ create table app_private.member_shifts (
 );
 revoke all on table app_private.member_shifts from public, anon, authenticated;
 
--- Called on every message from a member's phone. A staff member (not the owner) silent for shift_gap_hours,
+-- Called on every message from a member's phone. A manager, cashier or kitchen member silent for shift_gap_hours,
 -- or writing for the first time, starts a shift and gets the handover for each branch: orders the kitchen
 -- still has, items switched off, and open complaints (pending cancel requests, low ratings in 24 h).
 create function public.staff_shift_touch(p_phone_e164 text) returns jsonb
@@ -388,7 +402,7 @@ begin
   for v_m in
     select m.id, m.vendor_id, m.role, coalesce(v.name_ar, v.name_en) as vendor_name from public.vendor_members m
     join public.vendors v on v.id = m.vendor_id
-    where m.phone_e164 = p_phone_e164 and m.status = 'active' and m.role <> 'owner'
+    where m.phone_e164 = p_phone_e164 and m.status = 'active' and m.role in ('manager', 'cashier', 'kitchen')
   loop
     select s.last_seen_at into v_last from app_private.member_shifts s where s.member_id = v_m.id for update;
     insert into app_private.member_shifts (member_id, last_seen_at, shift_started_at) values (v_m.id, now(), now())
@@ -442,7 +456,7 @@ create trigger orders_copy_substitution before insert on public.orders
 create function public.basket_substitution_needed(p_customer_id uuid) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
-  select jsonb_build_object('needed', coalesce(bool_or(b.substitution_pref is null
+  select jsonb_build_object('needed', coalesce(bool_or(b.substitution_pref is null and b.payment_method = 'cod'
       and public.config_value('substitution_business_types') ? v.business_type::text
       and exists (select 1 from public.basket_items bi where bi.basket_id = b.id)), false),
     'max_usd', public.config_numeric('substitution_default_max_usd'))
@@ -474,7 +488,7 @@ create table public.order_substitutions (
   old_line_usd numeric(10, 2) not null,
   new_line_usd numeric(10, 2) not null,
   diff_usd numeric(10, 2) not null,
-  status text not null default 'offered' check (status in ('offered', 'accepted', 'declined')),
+  status text not null default 'offered' check (status in ('offered', 'accepted', 'declined', 'superseded')),
   offered_by uuid references public.vendor_members (id) on delete set null,
   created_at timestamptz not null default now(),
   decided_at timestamptz
@@ -495,7 +509,9 @@ create policy order_substitutions_read on public.order_substitutions for select 
 
 -- The merchant offers a substitute for a line it cannot supply: found by the order code and the line's
 -- name, priced from the menu (never from the message), within the COD cap. The customer is asked with the
--- difference in USD and LBP at the order's locked rate, and decides with a tap.
+-- difference in USD and LBP at the order's locked rate, and decides with a tap. A new offer for the same
+-- line supersedes the open one with a new id, so a tap on an older card never accepts a newer price.
+-- Lines and substitutes with a container deposit are not substituted by message (the deposit would change).
 create function app_private.order_substitution_offer(p_vendor_id uuid, p_code text, p_missing text, p_substitute_item_id uuid,
   p_member_id uuid default null) returns jsonb
 language plpgsql security definer set search_path = ''
@@ -508,7 +524,6 @@ declare
   v_new numeric;
   v_diff numeric;
   v_id uuid;
-  v_cap numeric;
 begin
   v_member := app_private.order_actor(p_vendor_id, array['owner', 'manager', 'cashier', 'kitchen']::public.member_role[], p_member_id);
   select * into v_o from public.orders o where o.vendor_id = p_vendor_id and o.code = upper(trim(p_code)) for update;
@@ -538,19 +553,18 @@ begin
   if v_sub.id = v_line.item_id then
     return jsonb_build_object('status', 'same_item', 'code', v_o.code);
   end if;
+  if v_line.container_deposit_usd > 0 or v_sub.container_deposit_usd is not null then
+    return jsonb_build_object('status', 'deposit_item', 'code', v_o.code);
+  end if;
   v_new := v_sub.price_usd * v_line.quantity;
   v_diff := v_new - v_line.line_total_usd;
-  v_cap := public.config_numeric('cod_cap_usd');
-  if v_o.is_new_customer then
-    v_cap := least(v_cap, public.config_numeric('cod_cap_new_number_usd'));
-  end if;
-  if v_o.total_usd + v_diff > v_cap then
+  if v_o.total_usd + v_diff > app_private.order_cod_cap(v_o.id) then
     return jsonb_build_object('status', 'cod_cap', 'code', v_o.code);
   end if;
+  update public.order_substitutions set status = 'superseded', decided_at = now()
+  where order_item_id = v_line.id and status = 'offered';
   insert into public.order_substitutions (order_id, order_item_id, substitute_item_id, quantity, old_line_usd, new_line_usd, diff_usd, offered_by)
   values (v_o.id, v_line.id, v_sub.id, v_line.quantity, v_line.line_total_usd, v_new, v_diff, v_member)
-  on conflict (order_item_id) where status = 'offered' do update set substitute_item_id = excluded.substitute_item_id,
-    new_line_usd = excluded.new_line_usd, diff_usd = excluded.diff_usd, offered_by = excluded.offered_by, created_at = now()
   returning id into v_id;
   insert into public.order_events (order_id, from_status, to_status, event, actor_kind, actor_id, channel, detail)
   values (v_o.id, v_o.status, v_o.status, 'substitution_offered', 'whatsapp', v_member, 'whatsapp',
@@ -561,7 +575,7 @@ begin
     'to_ar', coalesce(v_sub.name_ar, v_sub.name_en), 'to_en', coalesce(v_sub.name_en, v_sub.name_ar),
     'quantity', v_line.quantity, 'diff_usd', v_diff, 'diff_lbp', round(v_diff * v_o.usd_lbp_rate),
     'new_total_usd', v_o.total_usd + v_diff, 'new_total_lbp', round((v_o.total_usd + v_diff) * v_o.usd_lbp_rate),
-    'usd_lbp_rate', v_o.usd_lbp_rate), 'sub:' || v_id || ':' || extract(epoch from now())::bigint);
+    'usd_lbp_rate', v_o.usd_lbp_rate), 'sub:' || v_id);
   return jsonb_build_object('status', 'offered', 'code', v_o.code, 'substitution_id', v_id, 'diff_usd', v_diff,
     'pref', v_o.substitution_pref, 'max_usd', v_o.substitution_max_usd,
     'line', coalesce(v_line.name_ar, v_line.name_en), 'substitute', coalesce(v_sub.name_ar, v_sub.name_en));
@@ -576,8 +590,20 @@ as $$ select app_private.order_substitution_offer(p_vendor_id, p_code, p_missing
 revoke all on function public.order_substitution_offer(uuid, text, text, uuid, uuid) from public, anon, authenticated;
 grant execute on function public.order_substitution_offer(uuid, text, text, uuid, uuid) to service_role;
 
+-- The COD cap that applies to an order (§29.4): the per-order cap, and the new-number cap on a first order.
+create function app_private.order_cod_cap(p_order_id uuid) returns numeric
+language sql stable security definer set search_path = ''
+as $$
+  select case when o.is_new_customer then least(public.config_numeric('cod_cap_usd'), public.config_numeric('cod_cap_new_number_usd'))
+              else public.config_numeric('cod_cap_usd') end
+  from public.orders o where o.id = p_order_id;
+$$;
+revoke all on function app_private.order_cod_cap(uuid) from public;
+
 -- The customer's tap: accept swaps the line and adjusts the totals; decline removes the line (the item is
--- not available). Either way the merchant is told. The last line of an order is never removed here.
+-- not available). The order is locked first (the same order as an offer), everything is re-checked at the
+-- tap (stock, COD cap), daily quantities move like order_place, and the merchant is told either way. The
+-- last line of an order is never removed here: the merchant is asked to call the customer.
 create function public.order_substitution_decide(p_customer_id uuid, p_substitution_id uuid, p_accept boolean) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
@@ -586,52 +612,80 @@ declare
   v_o public.orders%rowtype;
   v_line public.order_items%rowtype;
   v_sub public.menu_items%rowtype;
+  v_order_id uuid;
   v_subtotal numeric;
+  v_diff numeric;
   v_phone text;
+  v_msg text;
 begin
+  select s.order_id into v_order_id from public.order_substitutions s where s.id = p_substitution_id;
+  select * into v_o from public.orders where id = v_order_id and customer_id = p_customer_id for update;
   select * into v_s from public.order_substitutions where id = p_substitution_id for update;
-  select * into v_o from public.orders where id = v_s.order_id and customer_id = p_customer_id for update;
   if v_s.id is null or v_o.id is null then
     return jsonb_build_object('status', 'unknown');
   end if;
   if v_s.status <> 'offered' then
-    return jsonb_build_object('status', v_s.status, 'code', v_o.code);
+    return jsonb_build_object('status', 'gone', 'code', v_o.code);
   end if;
   if v_o.status not in ('placed', 'accepted', 'preparing') then
     return jsonb_build_object('status', 'too_late', 'code', v_o.code);
   end if;
   select * into v_line from public.order_items where id = v_s.order_item_id;
+  select m.phone_e164 into v_phone from public.vendor_members m where m.id = v_s.offered_by and m.status = 'active';
   perform set_config('app.actor_kind', 'whatsapp', true);
   if p_accept then
     select * into v_sub from public.menu_items where id = v_s.substitute_item_id;
+    v_diff := v_s.new_line_usd - v_line.line_total_usd;
+    if v_line.id is null or v_sub.pricing_unit <> 'each' or not app_private.menu_item_orderable(v_sub.id, v_s.quantity) then
+      update public.order_substitutions set status = 'superseded', decided_at = now() where id = v_s.id;
+      return jsonb_build_object('status', 'gone', 'code', v_o.code);
+    end if;
+    if v_o.total_usd + v_diff > app_private.order_cod_cap(v_o.id) then
+      return jsonb_build_object('status', 'cod_cap', 'code', v_o.code);
+    end if;
+    -- Daily quantities: the substitute's units are taken (or the tap fails), the original's given back.
+    update public.menu_items set daily_remaining = daily_remaining - v_s.quantity
+    where id = v_sub.id and daily_remaining is not null and daily_date = current_date and daily_remaining >= v_s.quantity;
+    if not found and exists (select 1 from public.menu_items where id = v_sub.id and daily_remaining is not null and daily_date = current_date) then
+      update public.order_substitutions set status = 'superseded', decided_at = now() where id = v_s.id;
+      return jsonb_build_object('status', 'gone', 'code', v_o.code);
+    end if;
     update public.order_items set item_id = v_sub.id, name_ar = v_sub.name_ar, name_en = v_sub.name_en, name_fr = v_sub.name_fr,
       unit_price_usd = round(v_s.new_line_usd / v_s.quantity, 2), options = '[]', options_total_usd = 0, line_total_usd = v_s.new_line_usd
     where id = v_line.id;
   else
-    if (select count(*) from public.order_items where order_id = v_o.id) <= 1 then
+    if v_line.id is null or (select count(*) from public.order_items where order_id = v_o.id) <= 1 then
       update public.order_substitutions set status = 'declined', decided_at = now() where id = v_s.id;
+      if v_phone is not null then
+        perform public.app_reply(v_phone, jsonb_build_object('text',
+          '📞 #' || v_o.code || ': الزبون ما بدو البديل وهيدا آخر صنف بالطلب. اتصل فيه أو ألغي الطلب. / The customer declined and this is the last item: call them or cancel the order.'),
+          'sub_decided:' || v_s.id);
+      end if;
       return jsonb_build_object('status', 'last_item', 'code', v_o.code);
     end if;
+    v_diff := -v_line.line_total_usd;
     delete from public.order_items where id = v_line.id;
   end if;
+  -- The original line's units go back to today's count.
+  update public.menu_items set daily_remaining = least(daily_remaining + v_s.quantity, daily_quantity)
+  where id = v_line.item_id and daily_remaining is not null and daily_date = current_date;
   v_subtotal := (select coalesce(sum(line_total_usd), 0) from public.order_items where order_id = v_o.id);
   update public.orders set food_subtotal_usd = v_subtotal,
     total_usd = total_usd - food_subtotal_usd + v_subtotal,
-    order_fee_usd = public.order_fee_usd(vendor_id, v_subtotal)
+    estimated_total_usd = case when estimated_total_usd is not null then estimated_total_usd + v_diff end,
+    order_fee_usd = public.order_fee_usd(vendor_id, v_subtotal, placed_at)
   where id = v_o.id returning * into v_o;
   update public.order_substitutions set status = case when p_accept then 'accepted' else 'declined' end, decided_at = now()
   where id = v_s.id;
   insert into public.order_events (order_id, from_status, to_status, event, actor_kind, channel, detail)
   values (v_o.id, v_o.status, v_o.status, case when p_accept then 'substitution_accepted' else 'substitution_declined' end,
     'whatsapp', 'whatsapp', jsonb_build_object('substitution_id', v_s.id, 'total_usd', v_o.total_usd));
-  select m.phone_e164 into v_phone from public.vendor_members m where m.id = v_s.offered_by and m.status = 'active';
   if v_phone is not null then
-    perform public.app_reply(v_phone, jsonb_build_object('text',
-      case when p_accept then '✅ #' || v_o.code || ': الزبون قبل البديل. المجموع الجديد $' || to_char(v_o.total_usd, 'FM99990.00')
+    v_msg := case when p_accept then '✅ #' || v_o.code || ': الزبون قبل البديل. المجموع الجديد $' || to_char(v_o.total_usd, 'FM99990.00')
              || ' / the customer accepted the substitute; new total $' || to_char(v_o.total_usd, 'FM99990.00')
            else '❌ #' || v_o.code || ': الزبون ما بدو بديل، شلنا الصنف. المجموع الجديد $' || to_char(v_o.total_usd, 'FM99990.00')
-             || ' / no substitute: the item was removed; new total $' || to_char(v_o.total_usd, 'FM99990.00') end),
-      'sub_decided:' || v_s.id);
+             || ' / no substitute: the item was removed; new total $' || to_char(v_o.total_usd, 'FM99990.00') end;
+    perform public.app_reply(v_phone, jsonb_build_object('text', v_msg), 'sub_decided:' || v_s.id);
   end if;
   return jsonb_build_object('status', case when p_accept then 'accepted' else 'declined' end, 'code', v_o.code,
     'total_usd', v_o.total_usd, 'total_lbp', v_o.total_lbp, 'usd_lbp_rate', v_o.usd_lbp_rate);

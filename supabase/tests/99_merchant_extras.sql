@@ -73,6 +73,18 @@ select tests.ok((select pause_reason = 'kitchen full (auto)' and paused_until > 
   'at twice the capacity new orders pause');
 select tests.ok((select count(*) >= 1 from public.outbound_messages where purpose = 'reply' and target = '+96171000001'
   and payload ->> 'text' like '%Kitchen full%'), 'the owner is told the kitchen is full');
+-- "Open" while full: the merchant's choice holds until the queue drops below the limit.
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select public.merchant_proposal_create('20000000-0000-0000-0000-00000000000a', 'resume', '{}', 'rules', :'owner_a') as p_res \gset
+select public.merchant_proposal_decide(:'p_res', true, :'owner_a');
+reset role;
+select pg_temp.new_order('c4') as o4 \gset
+select tests.ok((select paused_until is null from public.vendors where id = '20000000-0000-0000-0000-00000000000a'),
+  'after the merchant reopens a full kitchen, the next order does not pause it again');
+update public.orders set status = 'rejected', reject_reason = 'busy' where id = :'o4';
+update public.vendors set paused_until = now() + interval '2 hours', pause_reason = 'kitchen full (auto)' where id = '20000000-0000-0000-0000-00000000000a';
+update public.vendor_ops set capacity_paused = true, capacity_override = false where vendor_id = '20000000-0000-0000-0000-00000000000a';
 update public.orders set status = 'rejected', reject_reason = 'busy' where id in (:'o1', :'o2', :'o3');
 select tests.ok((select paused_until is null from public.vendors where id = '20000000-0000-0000-0000-00000000000a')
   and (select not capacity_paused from public.vendor_ops where vendor_id = '20000000-0000-0000-0000-00000000000a'),
@@ -153,6 +165,12 @@ set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select tests.ok(public.order_substitution_decide('10000000-0000-0000-0000-000000000002', (:'so'::jsonb ->> 'substitution_id')::uuid, true) ->> 'status' = 'unknown',
   'another customer cannot answer');
+-- A second offer for the same line gets a new id; a tap on the first card never accepts the second price.
+select public.order_substitution_offer('20000000-0000-0000-0000-00000000000a', 'SUBTS2', 'pepsi', '57000000-0000-0000-0000-000000000002', :'cashier_a') as so_b \gset
+select tests.ok((:'so_b'::jsonb ->> 'substitution_id') <> (:'so'::jsonb ->> 'substitution_id')
+  and public.order_substitution_decide('10000000-0000-0000-0000-000000000001', (:'so'::jsonb ->> 'substitution_id')::uuid, true) ->> 'status' = 'gone',
+  'a newer offer supersedes the open one, and the old card answers that it is gone');
+select public.order_substitution_offer('20000000-0000-0000-0000-00000000000a', 'SUBTS2', 'pepsi', '57000000-0000-0000-0000-000000000004', :'cashier_a') as so \gset
 select tests.ok((select (r ->> 'total_usd')::numeric = 6.50 from public.order_substitution_decide('10000000-0000-0000-0000-000000000001',
   (:'so'::jsonb ->> 'substitution_id')::uuid, true) r), 'accepting swaps the line and the server recomputes the total');
 reset role;
@@ -169,6 +187,19 @@ select tests.ok(public.order_substitution_decide('10000000-0000-0000-0000-000000
   'the last line is never removed by a tap');
 select tests.ok(public.order_substitution_offer('20000000-0000-0000-0000-00000000000a', 'NOPE22', 'x', '57000000-0000-0000-0000-000000000003', :'cashier_a') ->> 'status' = 'unknown_order',
   'an unknown order code is refused');
+
+-- Deposit items are not substituted by message.
+reset role;
+update public.menu_items set container_deposit_usd = 5 where id = '57000000-0000-0000-0000-000000000002';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(public.order_substitution_offer('20000000-0000-0000-0000-00000000000a', 'SUBTS2', '7up', '57000000-0000-0000-0000-000000000002', :'cashier_a') ->> 'status' = 'deposit_item',
+  'a substitute with a container deposit is refused');
+-- Staff changes are never confirmed by the server without a member.
+select public.merchant_proposal_create('20000000-0000-0000-0000-00000000000a', 'staff_add',
+  '{"name": "Ziad", "role": "cashier", "phone": "+96176555444"}', 'rules', :'owner_a') as p_z \gset
+select tests.throws($$select public.merchant_proposal_decide('$$ || :'p_z' || $$', true, null)$$, 'not allowed',
+  'a staff change needs the owner''s own tap, never the system');
 
 -- Visual order card and the same-price badge --------------------------------------------------------------------------
 select tests.ok(public.order_card_image('59000000-0000-0000-0000-000000000001') is null, 'the order card stays off until switched on');
@@ -191,6 +222,6 @@ select tests.act_as('00000000-0000-0000-0000-00000000000c');
 select tests.throws('select public.staff_shift_touch(''+9613123456'')', 'permission denied', 'clients cannot read handovers');
 select tests.throws('select public.order_card_image(''59000000-0000-0000-0000-000000000001'')', 'permission denied', 'clients cannot read card data directly');
 select tests.ok((select count(*) = 0 from public.vendor_ops), 'a customer sees no merchant operating state');
-select tests.ok((select count(*) = 3 from public.order_substitutions), 'a customer sees the substitutions on their own order');
+select tests.ok((select count(*) = 5 from public.order_substitutions), 'a customer sees the substitutions on their own order');
 
 rollback;
