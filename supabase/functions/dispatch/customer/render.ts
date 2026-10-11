@@ -90,6 +90,32 @@ const S: Record<string, Record<CLang, string>> = {
   },
   lastFew: { ar: "آخر كم حبة", en: "last few", fr: "derniers", arabizi: "akher kam wa7de" },
   soldOut: { ar: "خلصان", en: "sold out", fr: "épuisé", arabizi: "khelsan" },
+  noDietItem: {
+    ar: "ما في شي عند {vendor} بيطابق طلبك من الأصناف اللي المحل صرّح عنها.",
+    en: "Nothing at {vendor} matches, among the items the place has declared.",
+    fr: "Rien chez {vendor} ne correspond, parmi les plats que l'établissement a déclarés.",
+    arabizi: "Ma fi shi 3end {vendor} byetaba2 men el asnaf yalli el ma7al sarra7 3anon.",
+  },
+  dietMenuOf: {
+    ar: "هيدا اللي بيناسبك عند {vendor}:",
+    en: "What fits at {vendor}:",
+    fr: "Ce qui vous convient chez {vendor} :",
+    arabizi: "Hayda yalli byenesbak 3end {vendor}:",
+  },
+  protein: { ar: "بروتين", en: "protein", fr: "protéines", arabizi: "protein" },
+  estimatedNote: {
+    ar: "≈ يعني تقدير من الوصفة، و ✓ يعني المحل أكّد الأرقام.",
+    en: "≈ means estimated from the recipe; ✓ means the place confirmed the numbers.",
+    fr: "≈ = estimé d'après la recette ; ✓ = chiffres confirmés par l'établissement.",
+    arabizi: "≈ ya3ne ta2dir men el wasfa, w ✓ ya3ne el ma7al akkad el ar2am.",
+  },
+  allergenNote: {
+    ar: "⚠️ مسببات الحساسية متل ما صرّح فيها {vendor}. إذا عندك حساسية قوية، أكّد معهن قبل ما تطلب.",
+    en: "⚠️ Allergens as declared by {vendor}. If you have a severe allergy, please confirm with them before ordering.",
+    fr: "⚠️ Allergènes tels que déclarés par {vendor}. En cas d'allergie sévère, confirmez avec eux avant de commander.",
+    arabizi:
+      "⚠️ El allergens metel ma sarra7 fiyon {vendor}. Iza 3andak 7asesiye awiye, akked ma3on abel ma totlob.",
+  },
   noItem: {
     ar: "ما لقيت «{q}» بمنيو {vendor}.",
     en: "I couldn't find \"{q}\" on {vendor}'s menu.",
@@ -588,6 +614,49 @@ export function menuList(
     ]),
   ];
   if ((rows[0]?.total_count ?? rows.length) > 10) out.push(text(to, tr(lang, "moreItems")));
+  return out;
+}
+
+/**
+ * Items that fit a dietary request (§32.3): each row says whether its numbers are estimated ("≈") or the
+ * merchant's own ("✓"); an allergen request adds the note that allergens are as the place declared them.
+ * Never says an item is safe.
+ */
+export function dietaryList(
+  to: string,
+  lang: CLang,
+  vendor: string,
+  rows: (MenuRow & {
+    kcal?: number | string | null;
+    protein_g?: number | string | null;
+    nutrition_source?: string;
+  })[],
+  opts: { allergens: boolean },
+): Msg[] {
+  if (!rows.length) return [text(to, tr(lang, "noDietItem", { vendor }))];
+  const est = (r: (typeof rows)[number]) =>
+    r.kcal === null || r.kcal === undefined
+      ? ""
+      : `${r.nutrition_source === "merchant_verified" ? "✓ " : "≈ "}${Math.round(Number(r.kcal))} kcal · ${Math.round(Number(r.protein_g ?? 0))}g ${tr(lang, "protein")}`;
+  const out: Msg[] = [
+    list(to, tr(lang, "dietMenuOf", { vendor }), tr(lang, "menuButton"), [
+      {
+        rows: rows.slice(0, 10).map<Row>((r) => ({
+          id: `pi:${r.ref}`,
+          title: clip(
+            lang === "fr"
+              ? String(r.name_fr ?? r.name_en ?? r.name_ar ?? "")
+              : name(lang, r.name_ar, r.name_en),
+            24,
+          ),
+          description: clip([usd(r.price_usd), est(r)].filter(Boolean).join(" · "), 72),
+        })),
+      },
+    ]),
+  ];
+  if (rows.some((r) => r.nutrition_source === "estimated"))
+    out.push(text(to, tr(lang, "estimatedNote")));
+  if (opts.allergens) out.push(text(to, tr(lang, "allergenNote", { vendor })));
   return out;
 }
 

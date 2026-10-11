@@ -28,6 +28,8 @@ import { afterSunset, customerStatusMessages } from "../_shared/customer-cards.t
 import { handleCustomerTurn, readCustomerInbound, type CustomerDeps } from "./customer/turn.ts";
 import { handleOnboarding, readOnboardingInbound } from "./merchant/onboarding.ts";
 import { parseOnboardingTap } from "../_shared/onboarding-cards.ts";
+import { handleMerchantMenu } from "./merchant/menu.ts";
+import type { MenuModel } from "../_shared/menu-draft.ts";
 import {
   nextBeirutTime,
   parseMerchantCommand,
@@ -48,6 +50,15 @@ export type DispatchDeps = {
   now?: () => Date;
   budgetMs?: number;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
+  /** The smart-menu model (§18.3); null without a key or API credit (§32.7). */
+  menuModel?: MenuModel | null;
+  /** Downloads a merchant's menu photo or PDF from WhatsApp media (sender phone number id given). */
+  fetchMenuMedia?:
+    | ((
+        phoneNumberId: string,
+        m: { id: string; url: string | null },
+      ) => Promise<{ bytes: Uint8Array; mime: string } | null>)
+    | null;
   /** Reads a claim code to a landline by phone call (§18.1 B); null when no voice provider is configured. */
   voiceCode?: ((to: string, script: string) => Promise<SendResult>) | null;
   /** Copies a claim document from WhatsApp into private storage (§18.1); null keeps the media reference. */
@@ -361,6 +372,23 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
       p_ref: m.messageId,
     });
 
+  // The smart menu (§18.3): "menu", menu photos or pasted text, and its section and nutrition taps.
+  const menuSender = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+  if (
+    menuSender &&
+    (await handleMerchantMenu(
+      {
+        rpc: deps.rpc,
+        send: (p) => deps.whatsapp(menuSender, p),
+        menuModel: deps.menuModel ?? null,
+        fetchMedia: deps.fetchMenuMedia ? (x) => deps.fetchMenuMedia!(menuSender, x) : null,
+        log: deps.log,
+      },
+      { from: m.from, messageId: m.messageId, text: m.text, buttonId: m.buttonId, media: o.media },
+      members,
+    ))
+  )
+    return "done";
   if (m.buttonId) {
     await handleTap(deps, m, reply);
     return "done";

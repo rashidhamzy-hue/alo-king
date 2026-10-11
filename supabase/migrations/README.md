@@ -34,3 +34,9 @@ Fresh baseline for `alo-king-staging` (DECISIONS §2). The old migrations are in
 ## Conventions (session 5, claims)
 
 - Claims and registrations are `vendor_claims` rows driven only by server functions (`claim_start`, `claim_verify_code`, `claim_add_document`, `claim_decide`, `vendor_register`, `vendor_from_google`, `member_recover_*`). Claim codes are 6 digits, sent only to the shop's own seed number, and stored as salted SHA-256 hashes. An approved claim makes the claimant an active `owner` with a phone login (`app_private.auth_user_for_phone`, linked in `app_private.phone_logins`). `claims-tick` (pg_cron, every minute) closes objection windows and expires stale claims.
+
+## Conventions (session 5, smart menu and nutrition)
+
+- The Lebanese dish library (`dish_library`, `nutrition_ingredients`) is generated from `supabase/seed/nutrition/` by `scripts/nutrition/library.ts`; `scripts/nutrition/library.test.ts` fails if the migration's LIBRARY block differs. A library change is a new migration with the regenerated rows.
+- `menu_item_nutrition` holds per-item values with a source per value (`merchant_verified`, `estimated`, `unknown`). Estimates come only from `menu_nutrition_estimate` (library recipe × portion answer); merchants confirm with `menu_nutrition_confirm` or edit with `menu_nutrition_set`. Allergens and diet tags are written only by `menu_item_dietary_set`.
+- Menu drafts (`menu_drafts`) reach the menu only through `menu_draft_approve_section`, one section per merchant tap.

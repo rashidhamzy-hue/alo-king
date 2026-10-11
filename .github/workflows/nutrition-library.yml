@@ -1,0 +1,26 @@
+name: nutrition-library
+
+# DECISIONS §32.3: re-checks the dish library's ingredient values against USDA FoodData Central from a
+# runner (build sessions cannot reach api.nal.usda.gov). Report only; it changes nothing. Uses the
+# FDC_API_KEY secret when set (a free api.data.gov key), else DEMO_KEY (rate-limited, slower).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Compare ingredients with FoodData Central
+        env:
+          FDC_API_KEY: ${{ secrets.FDC_API_KEY }}
+        run: |
+          node --experimental-strip-types scripts/nutrition/fdc-check.ts | tee report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"

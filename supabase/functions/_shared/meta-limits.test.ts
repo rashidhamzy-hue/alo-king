@@ -260,3 +260,54 @@ describe("onboarding-cards: every builder passes the checker", () => {
     for (const r of t.interactive.action.sections[0].rows) expect(ob.parseOnboardingTap(r.id)?.a).toBe("type");
   });
 });
+
+// Smart menu and nutrition cards (session 5, §18.3, §32.3).
+import * as mc from "./menu-cards";
+
+describe("menu-cards: every builder passes the checker", () => {
+  const U = "11111111-2222-3333-4444-555555555555";
+  it("builds valid cards with long names", () => {
+    const long = "سندويش شاورما دجاج مع بطاطا وكبيس وتوم إضافي ".repeat(4);
+    const built: any[] = [
+      mc.menuImportHelp("+96171000001", true),
+      mc.menuImportHelp("+96171000001", false),
+      mc.draftSectionCard("+96171000001", U, { index: 3, name: long, items: 40, priced: 31, preview: Array(12).fill(long) }, 12),
+      mc.sectionAddedText("+96171000001", 12, Array(30).fill(long)),
+      mc.portionQuestion("+96171000001", U),
+      mc.extrasQuestion("+96171000001", U, "M"),
+      mc.estimateCard("+96171000001", U, {
+        estimated: 40,
+        unknown: 7,
+        items: Array(12).fill({ name: long, kcal: 612.4, protein_g: 37.6 }),
+      }),
+    ];
+    for (const p of built) expect(checkInteractive(p), JSON.stringify(p).slice(0, 80)).toEqual([]);
+  });
+  it("tap ids round-trip", () => {
+    const p: any = mc.draftSectionCard("+1", U, { index: 2, name: "x", items: 1, priced: 1 }, 3);
+    expect(mc.parseMenuTap(p.interactive.action.buttons[0].reply.id)).toEqual({ a: "approve", draftId: U, index: 2 });
+    const e: any = mc.extrasQuestion("+1", U, "L");
+    expect(mc.parseMenuTap(e.interactive.action.buttons[2].reply.id)).toEqual({ a: "extras", vendorId: U, size: "L", extra: "sauce" });
+    expect(mc.parseMenuTap("NUT|E|x|M|butter")).toBeNull();
+  });
+});
+
+// Customer dietary list (session 5, §32.3).
+import { dietaryList } from "../dispatch/customer/render";
+describe("dietaryList passes the checker", () => {
+  it("in all languages, with estimates and the allergen note", () => {
+    for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+      const rows = Array.from({ length: 12 }, (_, k) => ({
+        ref: `i${k}`,
+        name_ar: "صحن طاووق مع رز وسلطة وصلصة ".repeat(3),
+        name_en: "Tawook plate with rice and salad ".repeat(3),
+        price_usd: 9.5,
+        orderable: true,
+        kcal: 812.3,
+        protein_g: 61.2,
+        nutrition_source: k % 2 ? "estimated" : "merchant_verified",
+      }));
+      for (const p of dietaryList("+96170000001", lang, "مطعم", rows, { allergens: true })) expect(checkInteractive(p)).toEqual([]);
+    }
+  });
+});

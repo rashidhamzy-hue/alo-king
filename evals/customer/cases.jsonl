@@ -74,3 +74,11 @@
 {"id": "cus-074", "lang": "en", "text": "how much is the chicken shawarma?", "expect": {"tool": "show_menu"}, "context": {"refs": {"v1": "Abou Ali Shawarma (open)", "i1": "Chicken shawarma $5.00", "i2": "Meat shawarma $6.00", "i3": "Fries $2.50"}, "focused_place": "v1"}}
 {"id": "cus-075", "lang": "ar", "text": "قديش الشاورما؟", "expect": {"tool": "show_menu"}, "context": {"refs": {"v1": "Abou Ali Shawarma (open)", "i1": "Chicken shawarma $5.00", "i2": "Meat shawarma $6.00", "i3": "Fries $2.50"}, "focused_place": "v1"}}
 {"id": "cus-076", "lang": "en", "text": "Hi! who are you?", "expect": {"tool": "reply"}}
+{"id": "cus-077", "lang": "en", "text": "anything gluten free here?", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Furn el Day3a (open)"}, "focused_place": "v1"}}
+{"id": "cus-078", "lang": "ar", "text": "في شي صيامي عندكن؟", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Abou Ali Shawarma (open)"}, "focused_place": "v1"}}
+{"id": "cus-079", "lang": "arabizi", "text": "baddi shi high protein ba3d el gym", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Healthy Bites (open)"}, "focused_place": "v1"}}
+{"id": "cus-080", "lang": "fr", "text": "vous avez des plats végans ?", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Le Jardin (open)"}, "focused_place": "v1"}}
+{"id": "cus-081", "lang": "en", "text": "something under 500 calories please", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Healthy Bites (open)"}, "focused_place": "v1"}}
+{"id": "cus-082", "lang": "ar", "text": "ابني عندو حساسية سمسم، شو فيني آخد؟", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Abou Ali Shawarma (open)"}, "focused_place": "v1"}}
+{"id": "cus-083", "lang": "arabizi", "text": "fi shi bala lactose?", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Café Najmeh (open)"}, "focused_place": "v1"}}
+{"id": "cus-084", "lang": "fr", "text": "un plat halal et sans porc svp", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Burger Spot (open)"}, "focused_place": "v1"}}
