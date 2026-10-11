@@ -13,6 +13,10 @@ select tests.ok((select count(*) filter (where elevation_m is not null) * 1.0 / 
 
 -- §16's named places.
 select tests.ok(exists (select 1 from public.places where id = 'LB-CHF-BAKAATA' and parent_id like 'LB-CHF-JDEIDET%'), 'Bakaata, under Jdeidet el-Chouf');
+select tests.ok(not exists (select 1 from public.places where id = 'LB-CHF-BAKAATA' and 'بقعاتة عشقوت' = any (aliases)),
+  'Chouf Bakaata no longer carries the name of Beqaata Aachqout (Keserwan)');
+select tests.ok((select id from public.search_places('بقعاتة عشقوت') limit 1) = 'LB-KSR-BEQAATA-AACHQOUT',
+  'searching Beqaata Aachqout finds the Keserwan village first');
 select tests.ok(exists (select 1 from public.search_places('Semqanieh', 'CHF')), 'Semqanieh');
 select tests.ok((select id from public.search_places('Baakline', 'CHF') limit 1) = 'LB-CHF-BAAKLINE', 'Baakline');
 select tests.ok(exists (select 1 from public.search_places('Beiteddine', 'CHF')), 'Beiteddine');

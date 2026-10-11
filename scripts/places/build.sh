@@ -45,6 +45,8 @@ create table raw.osm (osm_id bigint, lat double precision, lon double precision,
 create table raw.curated (name_en text, name_ar text, name_fr text, aliases text, kind text, parent_name_en text,
   lat double precision, lon double precision, note text);
 \copy raw.curated from '$HERE/curated.csv' with (format csv, header true)
+create table raw.alias_corrections (district_code text, name_ar text, alias text, reason text);
+\copy raw.alias_corrections from '$HERE/alias-corrections.csv' with (format csv, header true)
 create table raw.review (ref text, name_ar text, name_en text, type text, district text, sub_region text, municipality text,
   lat double precision, lon double precision, elevation_m text, confidence text);
 \copy raw.review from '$HERE/review-set.csv' with (format csv, header true)
