@@ -78,6 +78,32 @@ async function run(model: string, c: any): Promise<Res> {
   };
 }
 
+// DECISIONS §32.7: without API credit (or a key) a model eval is reported as skipped, not failed.
+async function modelUnavailable(): Promise<string | null> {
+  if (!process.env.ANTHROPIC_API_KEY) return "no ANTHROPIC_API_KEY";
+  try {
+    await claude.messages.create({
+      model: models[0],
+      max_tokens: 1,
+      messages: [{ role: "user", content: "ping" }],
+    });
+    return null;
+  } catch (e) {
+    const status = (e as { status?: number }).status;
+    const text = String(e);
+    if (status === 401 || status === 402 || status === 403 || /credit balance|billing/i.test(text))
+      return `API unavailable (${status ?? "error"}: ${text.slice(0, 80)})`;
+    return null;
+  }
+}
+const unavailable = await modelUnavailable();
+if (unavailable) {
+  console.log(
+    `## Customer AI eval\n\nSKIPPED: ${unavailable}. Model cases are skipped, not failed (DECISIONS §32.7).`,
+  );
+  process.exit(0);
+}
+
 const lines: string[] = ["| model | lang | cases | correct | p50 ms |", "|---|---|---|---|---|"];
 const misses: string[] = [];
 for (const model of models) {
