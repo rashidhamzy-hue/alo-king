@@ -22,3 +22,10 @@ Fresh baseline for `alo-king-staging` (DECISIONS §2). The old migrations are in
 
 - Geography is public reference data: `governorates`, `districts`, `cadastral_zones`, `places`, `business_type_labels`, `cuisine_tags` are readable by anyone. Places are switched only with `place_set_service_status()` (admin, audited).
 - Points are `geography(point, 4326)`; polygons are `geometry(multipolygon, 4326)` for fast containment. Snap a pin with `place_for_point()`; search names with `search_places()` (normalised by `app_private.normalize_place_name()`).
+
+## Conventions (Phase 2)
+
+- Orders change status only through `app_private.order_set_status()` (called by `order_accept`, `order_reject`, `order_progress`, `order_assign_driver`, the cancel functions and the router). A trigger enforces `app_private.order_transition_ok()` for every writer; every change writes one `order_events` row.
+- Client-callable RPCs are `security invoker` wrappers in `public` over definer functions in `app_private` that check the caller (`app_private.order_actor()`: member role, operator, or the server acting for a member id).
+- Prices are written only by `basket_price()` and `order_place()` from the menu; the client sends item and option IDs and quantities. `order_place()` re-checks the menu version, availability, pause, radius (road km from the route cache), COD caps and daily quantities, locks the rate and snapshots the order fee.
+- `scripts/db-race-test.sh` runs real concurrent sessions after the SQL tests (last units, duplicate confirmation, accept vs reject, accept vs cancel).

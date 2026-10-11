@@ -86,3 +86,11 @@ insert into public.vendor_members (vendor_id, user_id, phone_e164, role, status)
   ('20000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000e', '+96171000001', 'owner', 'active'),
   ('20000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000f', '+96171000002', 'cashier', 'active'),
   ('20000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-000000000010', '+96171000003', 'owner', 'active');
+
+-- A fixture order the ledger tests post against (orders exist from Phase 2; ledger_transactions.order_id
+-- has a foreign key). Pickup, so it needs no address.
+update public.vendors set pickup_enabled = true where id = '20000000-0000-0000-0000-00000000000a';
+insert into public.orders (id, code, idempotency_key, customer_id, vendor_id, status, fulfilment, payment_method,
+  menu_version, usd_lbp_rate, food_subtotal_usd, total_usd, order_fee_usd, placed_at) values
+  ('30000000-0000-0000-0000-000000000001', 'TESTA2', 'tests:fixture-order-1', '10000000-0000-0000-0000-000000000001',
+   '20000000-0000-0000-0000-00000000000a', 'placed', 'pickup', 'cod', 1, 89500, 12.50, 12.50, 1.00, now());
