@@ -6,7 +6,7 @@ name: CI
 on:
   pull_request:
     branches: [rebuild/lebanon]
-    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+    types: [opened, synchronize, reopened, edited, ready_for_review, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -65,6 +65,20 @@ jobs:
         run: |
           bad=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$' || true)
           if [ -n "$bad" ]; then echo "Committed env files: $bad"; exit 1; fi
+
+  data-freeze:
+    name: data freeze (DECISIONS §31)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Frozen places and vendor paths and tables need a `Data:` title
+        # The title goes through env, never into the script text.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: scripts/data-freeze.sh "${{ github.event.pull_request.base.sha }}"
 
   migrations:
     name: migration guard and dry-run against staging
@@ -219,7 +233,7 @@ jobs:
 
   automerge:
     name: automerge
-    needs: [checks, secret-scan, migrations, db-tests, review]
+    needs: [checks, secret-scan, data-freeze, migrations, db-tests, review]
     if: >-
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
