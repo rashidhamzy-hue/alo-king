@@ -54,30 +54,38 @@ jobs:
             cat "$out"; rm -f "$out"
           }
 
-          echo "1. existing webhooks for the number"
-          existing=$(k "$num" || k "$base/webhooks?phone_number_id=${PHONE_NUMBER_ID}" || echo '[]')
-          for id in $(printf '%s' "$existing" | jq -r --arg u "$url" '(.data // .) | (if type=="array" then . else [] end) | .[] | select(.url == $u) | .id'); do
-            k -X DELETE "$num/$id" >/dev/null || k -X DELETE "$base/webhooks/$id" >/dev/null
-            echo "   removed earlier webhook $id"
+          echo "1. remove earlier webhooks for this URL (per-number and project scope)"
+          for scope in "$num" "$base/webhooks"; do
+            existing=$(k "$scope" || echo '[]')
+            for id in $(printf '%s' "$existing" | jq -r --arg u "$url" '(.data // .) | (if type=="array" then . else [] end) | .[] | select(.url == $u) | .id'); do
+              k -X DELETE "$scope/$id" >/dev/null && echo "   removed $id"
+            done
           done
 
-          echo "2. create the webhook (per-number endpoint, then the project endpoint with the number)"
-          body=$(jq -n --arg u "$url" --arg p "$PHONE_NUMBER_ID" '{whatsapp_webhook: {url: $u, payload_version: "v2", active: true,
+          echo "2. create the per-number webhook with a secret we generate (Kapso requires secret_key there)"
+          umask 077
+          secret=$(openssl rand -hex 32)
+          echo "::add-mask::$secret"
+          body=$(jq -n --arg u "$url" --arg s "$secret" '{whatsapp_webhook: {url: $u, secret_key: $s, payload_version: "v2", active: true,
             buffer_enabled: false,
             events: ["whatsapp.message.received", "whatsapp.message.sent", "whatsapp.message.delivered",
                      "whatsapp.message.read", "whatsapp.message.failed"]}}')
-          umask 077
-          if ! k -X POST "$num" -d "$body" > created.json; then
+          if k -X POST "$num" -d "$body" > created.json; then
+            scope=phone_number
+          else
+            # Fallback: the project endpoint with the number (message events may not reach a project webhook).
             k -X POST "$base/webhooks" -d "$(printf '%s' "$body" | jq --arg p "$PHONE_NUMBER_ID" '.whatsapp_webhook.phone_number_id = $p')" > created.json
+            scope=project
           fi
-          secret=$(jq -r '(.data // .) | .secret_key // empty' created.json)
+          returned=$(jq -r '(.data // .) | .secret_key // empty' created.json)
+          [ -z "$returned" ] || { secret="$returned"; echo "::add-mask::$secret"; }
           id=$(jq -r '(.data // .) | .id // empty' created.json)
           rm -f created.json
           [ -n "$secret" ] || { echo "::error::Kapso returned no secret_key"; exit 1; }
           echo "::add-mask::$secret"
           echo "3. store the signing secret as the function secret"
           supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "KAPSO_WEBHOOK_SECRET=$secret" >/dev/null
-          echo "webhook $id registered for $url; KAPSO_WEBHOOK_SECRET updated"
+          echo "webhook $id ($scope scope) registered for $url; KAPSO_WEBHOOK_SECRET updated"
       - name: Check the webhook answers (an unsigned request must be refused)
         run: |
           code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \

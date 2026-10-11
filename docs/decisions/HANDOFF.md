@@ -1,4 +1,4 @@
-# Handoff — 11 October 2026 (after session 3)
+# Handoff — 11 October 2026 (after session 4)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
@@ -60,7 +60,28 @@
     - Register the Kapso webhook for the sandbox number (597907523413541) and set `KAPSO_WEBHOOK_SECRET`. Insert the sandbox row into `whatsapp_numbers` (role `sandbox`) so `dispatch` has a sender. This is session 4, which builds the customer bot. Until then, inbound messages from non-merchants are marked `ignored`.
     - Brand-shared menus with per-branch prices come with the Phase 3 menu editor.
     - The online-paid weight refund and payout cap are Phase 6.
-- **Next: session 4 (Phase 3a).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
+- **Session 4 (Phase 3a): done (11 October).** PRs #108 (§31 data-freeze guard), #109 (customer bot server side), #110 (customer bot, evals, voice pipeline), #111 and #113 (Kapso webhook registration) merged automatically. Staging has all 16 migrations; `dispatch` now runs the customer bot.
+  - **Data freeze (§31):** CI fails a PR that touches the places or vendor seeds or scripts or `places-build.yml`, or renames, drops or retypes a frozen table or column, unless its title starts with `Data:`. Data problems found during the session are in `DATA-ISSUES.md` (8 lines, none fixed).
+  - **Customer bot** (`supabase/functions/dispatch/customer/`): every sender who is not a merchant member.
+    - Zero model calls for taps, pins, live location (asks for a static pin), STOP, "delete my data" (asks first), "forget my history", a person, tracking, "the usual" and yes/no to a pending summary, in AR/EN/FR/Arabizi.
+    - Otherwise one model call (Haiku 4.5, config) choosing typed tools (`tools.ts`, strict schemas, server-validated, refs only to what the session showed); one retry on Sonnet 5.5, complaints straight to it; a price guard on model text. Only the Confirm tap (or a typed yes to that summary) places an order.
+    - Atomic daily AI quota per customer and globally (§29.5), cost logged per call; two unclear turns or the customer cap hand off to Rasheed (§30.6).
+    - Buttons for 1-3 choices, lists for 4-10 (§29.3); one upsell, never on a reorder; the abandoned-basket reminder once, outside quiet hours; ratings 30 min after delivery; "Received ✅ / Problem".
+    - Voice (§30.1.6): "listening…" first, then OpenAI transcription with a vocabulary from our own data, Kapso's transcript as fallback, then the model on the transcript.
+    - Customer memory profile and "forget my history" / "delete my data" (§30.1.5, Law 81).
+    - Delivery code (§27.6): over $50 or a first COD order; kept in a service-role-only table (#109 review); the merchant or driver types it; 5 wrong codes lock the order.
+    - Customer status messages from the outbox (§27.9): accepted with the ETA range, on the way with the driver's WhatsApp, near drop with the live-location button (§27.3), arrived, delivered, weight, cancel refused.
+  - **Location (§28.2, §28.5):** `resolve_location`, `describe_location`, `observe_location`; the eval (`evals/location/`, 104 messages, real places) runs in CI after the seed loads and fails below 90% top-3 (now 94%; the first version was 63%).
+  - **Evals:** `evals/customer/cases.jsonl` (76 cases, four languages): the 20 deterministic cases run on every PR; the model cases run on demand in `evals.yml`. Contract test (§29.5): every RPC and table the deployed functions call exists, and no model id is hard-coded.
+  - **Kapso webhook:** registered on the sandbox number (597907523413541) by `kapso-webhook.yml`, which generates the signing secret, stores it as the function secret `KAPSO_WEBHOOK_SECRET` (never printed) and checks that an unsigned request gets 401. Re-run it to rotate the secret. The sandbox row is in `whatsapp_numbers`.
+  - **Voice labels (§30.7):** `voice-label.yml` transcribes each note with two OpenAI models, Claude reads the order from each, and only notes where the two disagree on a dish, quantity or place go to Rasheed. **Not run yet:** OpenAI rejects the `OPENAI_API_KEY` secret (401); see #77. Re-run `voice-label.yml` (batch-01) once the key is replaced, then open a PR from its `data/voice-labels-<run>` branch.
+  - **Open for later:**
+    - Flows for addresses and item options (§12) and the web basket for 10+ choices: session 5 and Phase 4. Until then options are asked one group at a time as a list.
+    - Utility templates for messages outside the 24-hour window: they are stored as skipped until the company number exists (§3).
+    - Live location inbound arriving as `unsupported` is assumed from §27.1; confirm on the first live sandbox test.
+    - Driver names and photos in "on the way": session 8 (driver profiles).
+    - `merchant-ai` port: session 5; the contract test covers it once it joins `functions-deploy.txt`.
+- **Next: session 5 (Phase 3b).** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model".
 
 ## How to start each build session
 At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon`. Pick the model and effort from §10, then send:
@@ -71,7 +92,7 @@ At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branc
 Use it for strategy, research and decisions. It cannot run code. Decisions it makes are written into DECISIONS.md by the next build session, or uploaded to the project directly.
 
 ## Owner to-do (Rasheed)
-0. **Now (5 minutes each):** Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105). The next ~100 voice notes (#77; the key is set).
+0. **Now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
 1. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
 2. **SARL** (about 17 October). The same week:
    - open a fresh-USD bank account
