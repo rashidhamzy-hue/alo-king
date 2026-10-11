@@ -175,3 +175,46 @@ describe("merchant-cards: every builder passes the checker", () => {
     expect(cards.parseMerchantAction("acc:not-a-uuid:15")).toBeNull();
   });
 });
+
+// Every customer message builder (session 4) in all four languages, with long names and every kind.
+import * as cc from "./customer-cards";
+
+describe("customer-cards: every builder passes the checker", () => {
+  const U = "11111111-2222-3333-4444-555555555555";
+  const card = { order_id: U, code: "AB3CD9", vendor_name: "مطعم الضيعة ".repeat(6), fulfilment: "delivery", total_usd: 148.5, total_lbp: 13290750, usd_lbp_rate: 89500 };
+  const kinds = [
+    { kind: "accepted", eta: { min: 25, max: 35 } },
+    { kind: "rejected", reason: "busy" },
+    { kind: "cancelled", reason: "merchant_unreachable" },
+    { kind: "on_the_way", eta: { min: 12, max: 22 }, driver_phone: "+96171000009" },
+    { kind: "on_the_way", eta: { min: 12, max: 22 } },
+    { kind: "near_drop", driver_phone: "+96171000009", door_confirmed: false },
+    { kind: "near_drop", door_confirmed: true },
+    { kind: "arrived_wait", driver_phone: "+96171000009" },
+    { kind: "ready_for_pickup" },
+    { kind: "delivered" },
+    { kind: "weight_confirm", total_usd: 23.1, estimated_total_usd: 20, total_lbp: 2067450 },
+    { kind: "cancel_refused" },
+    { kind: "rating", ask_delivery: true },
+    { kind: "rating", ask_delivery: false },
+    { kind: "basket_reminder", basket: { vendor: "محل", vendor_en: "Shop", subtotal_usd: 12, lines: [{}] } },
+  ];
+  for (const lang of cc.LANGS) {
+    it(`builds valid customer messages in ${lang}`, () => {
+      for (const p of kinds) {
+        const out = cc.customerStatusMessages("+96170000001", { ...p, lang }, card, { deliveryCode: "1234", afterSunset: true });
+        expect(out.length, `${lang} ${p.kind}`).toBeGreaterThan(0);
+        for (const m of out) expect(checkInteractive(m), `${lang} ${p.kind}`).toEqual([]);
+      }
+      for (const m of [
+        cc.locationRequest("+96170000001", cc.T[lang].nearDrop),
+        cc.ratingList("+96170000001", U, "x".repeat(300), true, lang),
+      ])
+        expect(checkInteractive(m)).toEqual([]);
+    });
+  }
+  it("cta_url labels and urls are checked", () => {
+    expect(checkInteractive(cc.ctaUrl("+1", "b", "x".repeat(21), "https://wa.me/1")).join()).toMatch(/cta label/);
+    expect(checkInteractive(cc.ctaUrl("+1", "b", "ok", "http://evil")).join()).toMatch(/https/);
+  });
+});

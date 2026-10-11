@@ -240,6 +240,13 @@ select tests.act_as('00000000-0000-0000-0000-000000000011');
 select tests.ok(tests.count_of('select id from public.orders') = 1, 'the driver sees only the order assigned to them');
 select tests.ok(public.order_progress(:'o5', 'picked_up') ->> 'status' = 'picked_up', 'the driver picks it up');
 select tests.throws(format($$select public.order_progress(%L, 'preparing')$$, :'o5'), 'not allowed', 'a driver cannot set kitchen states');
+-- A new customer's first COD order needs the 4-digit code at handover (§27.6, session 4).
+select tests.throws(format($$select public.order_progress(%L, 'delivered')$$, :'o5'), 'delivery_code_required',
+  'delivered without the customer''s code is refused');
+reset role;
+update public.orders set delivery_code_confirmed_at = now() where id = :'o5';
+set local role authenticated;
+select tests.act_as('00000000-0000-0000-0000-000000000011');
 select tests.ok(public.order_progress(:'o5', 'delivered') ->> 'status' = 'delivered', 'the driver delivers');
 reset role;
 select tests.act_as(null);
