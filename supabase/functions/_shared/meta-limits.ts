@@ -60,6 +60,11 @@ export function checkInteractive(payload: any): string[] {
     }
   } else if (i.type === "location_request_message") {
     if (len(i.body?.text) > META.body) v.push("location request body too long");
+  } else if (i.type === "cta_url") {
+    const p = i.action?.parameters ?? {};
+    if (len(p.display_text) > META.buttonTitle) v.push(`cta label "${p.display_text}" > ${META.buttonTitle}`);
+    if (!String(p.display_text ?? "").trim()) v.push("empty cta label");
+    if (!/^https:\/\//.test(String(p.url ?? ""))) v.push("cta url must be https");
   }
   return v;
 }
@@ -90,5 +95,6 @@ export function clampInteractive<T>(payload: T): T {
       return { ...s, title: s.title === undefined ? undefined : clipTo(s.title, META.sectionTitle), rows: rows.map((r: any) => ({ ...r, id: clipTo(r.id, META.rowId), title: clipTo(r.title, META.rowTitle), ...(r.description ? { description: clipTo(r.description, META.rowDescription) } : {}) })) };
     }).filter((s: any) => s.rows.length);
   } else if (i.type === "location_request_message" && i.body?.text !== undefined) i.body.text = clipTo(i.body.text, META.body);
+  else if (i.type === "cta_url" && i.action?.parameters) i.action.parameters = { ...i.action.parameters, display_text: clipTo(i.action.parameters.display_text, META.buttonTitle) };
   return { ...p, interactive: i };
 }

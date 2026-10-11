@@ -24,6 +24,7 @@ import {
   type OrderCardData,
 } from "../_shared/merchant-cards.ts";
 import { clampInteractive } from "../_shared/meta-limits.ts";
+import { afterSunset, customerStatusMessages } from "../_shared/customer-cards.ts";
 import {
   nextBeirutTime,
   parseMerchantCommand,
@@ -68,11 +69,12 @@ export async function runDispatch(
   const budget = deps.budgetMs ?? 8000;
   const left = () => budget - (Date.now() - started);
   const out = { inbound: 0, outbox: 0, alerts: 0 };
-  let senderId: string | null | undefined;
-  const sender = async () =>
-    senderId === undefined
-      ? (senderId = (await deps.rpc("whatsapp_sender", { p_audience: "merchant" })) ?? null)
-      : senderId;
+  const senders: Record<string, string | null> = {};
+  const senderFor = async (audience: "merchant" | "customer") =>
+    audience in senders
+      ? senders[audience]
+      : (senders[audience] = (await deps.rpc("whatsapp_sender", { p_audience: audience })) ?? null);
+  const sender = () => senderFor("merchant");
 
   // 1. Inbound.
   while (left() > 2000) {
@@ -104,7 +106,10 @@ export async function runDispatch(
     const batch: Outbox[] = (await deps.rpc("outbox_claim", { p_limit: 20, p_lock_s: 30 })) ?? [];
     if (!batch.length) break;
     for (const m of batch) {
-      const r = await deliver(deps, m, sender);
+      const r =
+        m.purpose === "customer_message"
+          ? await deliverCustomer(deps, m, () => senderFor("customer"))
+          : await deliver(deps, m, sender);
       const status =
         r.status === "retry" ? (m.attempts >= MAX_ATTEMPTS ? "failed" : "queued") : r.status;
       await deps.rpc("outbox_finish", {
@@ -171,6 +176,44 @@ async function deliver(
     default:
       return { status: "skipped", error: `channel ${m.channel} has no adapter yet` };
   }
+}
+
+/** Customer status messages (§27.9): from the customer number (the sandbox until cut-over). */
+async function deliverCustomer(
+  deps: DispatchDeps,
+  m: Outbox,
+  sender: () => Promise<string | null>,
+): Promise<Delivery> {
+  if (!m.target || !E164.test(m.target)) return { status: "skipped", error: "no customer number" };
+  const from = await sender();
+  if (!from) return { status: "skipped", error: "no customer WhatsApp number connected" };
+  const p = m.payload ?? {};
+  let deliveryCode: string | null = null;
+  if (
+    m.order_id &&
+    ["accepted", "on_the_way", "near_drop"].includes(String(p.kind)) &&
+    p.customer_id
+  ) {
+    // Read now, never stored in the outbox row: shown only to the customer it belongs to.
+    const t = await deps.rpc("order_track", {
+      p_customer_id: p.customer_id,
+      p_order_id: m.order_id,
+    });
+    deliveryCode = t?.delivery_code ?? null;
+  }
+  const payloads = customerStatusMessages(m.target, p, m.card as any, {
+    deliveryCode,
+    afterSunset: afterSunset(deps.now?.() ?? new Date()),
+  });
+  if (!payloads.length)
+    return { status: "skipped", error: `nothing to send for ${String(p.kind)}` };
+  let ref: string | undefined;
+  for (const x of payloads) {
+    const r = await deps.whatsapp(from, clampInteractive(x));
+    if (!r.ok) return { status: r.retry ? "retry" : "failed", error: r.error };
+    ref ??= r.id;
+  }
+  return { status: "sent", ref };
 }
 
 const result = (r: SendResult): Delivery =>
@@ -279,6 +322,21 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     await handleTap(deps, m, reply);
     return "done";
   }
+  if (m.text !== null && /^\s*[0-9٠-٩]{4}\s*$/.test(m.text)) {
+    // The customer's 4-digit delivery code (§27.6), typed by the merchant or its driver.
+    const code = m.text.trim().replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+    const r = await deps.rpc("order_confirm_delivery_code", { p_phone_e164: m.from, p_code: code });
+    await reply(
+      r?.status === "delivered"
+        ? `✅ تم التسليم #${r.code}`
+        : r?.status === "wrong_code"
+          ? "❌ الرمز غلط. تأكد من الزبون وجرّب مرة تانية."
+          : r?.status === "locked"
+            ? "🔒 غلط بالرمز ٥ مرات. فريق Alo King رح يتصل فيك ليأكد التسليم."
+            : "ما في طلب ناطر رمز تسليم.",
+    );
+    return "done";
+  }
   if (m.text !== null) {
     const cmd = parseMerchantCommand(m.text, deps.now?.() ?? new Date());
     if (!cmd) {
@@ -316,6 +374,7 @@ async function handleTap(
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (/stale_status/.test(msg)) return { status: "too_late" };
+      if (/delivery_code_required/.test(msg)) return { status: "needs_code" };
       if (/not allowed|not assigned/.test(msg)) return { status: "not_allowed" };
       throw e;
     }
@@ -379,9 +438,11 @@ async function handleTap(
         p_channel: "whatsapp",
       });
       return reply(
-        r.status === "not_allowed" || r.status === "too_late"
-          ? "⚠️ ما فيك تغيّر حالة هالطلب"
-          : "👍",
+        r.status === "needs_code"
+          ? "🔐 هالطلب بدو رمز التسليم. اطلب من الزبون الرمز (٤ أرقام) وابعتو هون."
+          : r.status === "not_allowed" || r.status === "too_late"
+            ? "⚠️ ما فيك تغيّر حالة هالطلب"
+            : "👍",
       );
     }
     case "ready_in": {

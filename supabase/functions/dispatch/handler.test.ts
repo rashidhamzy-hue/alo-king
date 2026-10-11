@@ -288,6 +288,69 @@ describe("outbox through the order_channel router", () => {
   });
 });
 
+describe("customer messages and the delivery code (session 4)", () => {
+  const merchant = [{ member_id: MEMBER, vendor_id: VENDOR, role: "owner", vendor_name: "A" }];
+  it("a customer message goes from the customer number with the code read at send time", async () => {
+    const db = fakeDb({
+      outbox: [
+        {
+          id: 5,
+          order_id: ORDER,
+          vendor_id: VENDOR,
+          channel: "whatsapp",
+          purpose: "customer_message",
+          target: "+96170000001",
+          attempts: 1,
+          card: { ...card, vendor_name: "Shop" },
+          payload: { kind: "accepted", lang: "en", customer_id: "c1", eta: { min: 20, max: 30 } },
+        },
+      ],
+      rpcs: {
+        whatsapp_sender: (a) => (a.p_audience === "customer" ? "PNID-C" : "PNID-M"),
+        order_track: () => ({ delivery_code: "4821" }),
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(sent[0].from).toBe("PNID-C");
+    expect(sent[0].payload.text.body).toContain("4821");
+    expect(db.of("outbox_finish")[0].args.p_status).toBe("sent");
+  });
+  it("a delivered tap on a coded order asks for the code instead of failing", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [
+        inbound({ type: "interactive", interactive: { button_reply: { id: `dlv:${ORDER}` } } }),
+      ],
+      rpcs: {
+        order_progress: () => {
+          throw new Error(
+            "order_progress: 400 delivery_code_required: order AB3CD9 needs the code",
+          );
+        },
+      },
+    });
+    const { d } = deps(db);
+    await runDispatch(d);
+    expect(db.of("app_reply")[0]?.args.p_payload.text ?? "").toContain("رمز التسليم");
+    expect(db.of("webhook_finish")[0].args.p_status).toBe("done");
+  });
+  it("four digits typed by the merchant confirm the delivery code (Arabic digits too)", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [inbound({ type: "text", text: { body: " ٤٨٢١ " } })],
+      rpcs: { order_confirm_delivery_code: () => ({ status: "delivered", code: "AB3CD9" }) },
+    });
+    const { d } = deps(db);
+    await runDispatch(d);
+    expect(db.of("order_confirm_delivery_code")[0].args).toEqual({
+      p_phone_e164: "+96171000001",
+      p_code: "4821",
+    });
+    expect(db.of("app_reply")[0].args.p_payload.text).toContain("AB3CD9");
+  });
+});
+
 describe("ops alerts", () => {
   it("are not claimed while Telegram is not configured", async () => {
     const db = fakeDb({ alerts: [{ id: 1, severity: "urgent", summary: "x" }] });
