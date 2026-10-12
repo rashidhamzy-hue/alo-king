@@ -37,6 +37,9 @@ describe("deterministicIntent", () => {
     ["a person", "human"],
     ["Person", "human"],
     ["I need a person", "human"],
+    ["somebody", "human"],
+    ["human being", "human"],
+    ["I want someone please", "human"],
     ["بدي احكي حدا", "human"],
     ["baddi e7ke 7ada", "human"],
     ["where is my order", "track"],
@@ -53,6 +56,10 @@ describe("deterministicIntent", () => {
   it("leaves ordinary orders to the model", () => {
     for (const t of [
       "2 shawarma",
+      "a person's portion",
+      "two persons",
+      "I want a person's portion",
+      "can I get someone's usual",
       "بدي شي طيب بالشوف",
       "une pizza margherita",
       "stop the onions on my shawarma",
