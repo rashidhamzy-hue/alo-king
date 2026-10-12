@@ -84,7 +84,7 @@ jobs:
           pnpm exec tsx tests/e2e/run.ts
       - name: Remove the one-time secret
         if: always()
-        run: supabase secrets unset --project-ref "$SUPABASE_PROJECT_REF" E2E_WEBHOOK_SECRET >/dev/null || echo "::warning::could not unset E2E_WEBHOOK_SECRET"
+        run: echo y | supabase secrets unset --project-ref "$SUPABASE_PROJECT_REF" E2E_WEBHOOK_SECRET >/dev/null || echo "::warning::could not unset E2E_WEBHOOK_SECRET"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
