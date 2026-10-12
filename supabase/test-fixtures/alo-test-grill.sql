@@ -37,7 +37,7 @@ end;
 $$;
 
 -- 2. The test merchant ---------------------------------------------------------------------------------
-create function pg_temp.add_item(
+create or replace function pg_temp.add_item(
   p_vendor uuid, p_section uuid, p_sort integer, p_ar text, p_en text, p_price numeric,
   p_unit public.pricing_unit default 'each', p_kg numeric default null
 ) returns uuid
@@ -53,7 +53,7 @@ begin
 end;
 $$;
 
-create function pg_temp.add_group(p_item uuid, p_ar text, p_en text, p_min integer, p_max integer, p_opts jsonb)
+create or replace function pg_temp.add_group(p_item uuid, p_ar text, p_en text, p_min integer, p_max integer, p_opts jsonb)
 returns void
 language plpgsql
 as $$

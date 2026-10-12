@@ -651,7 +651,7 @@ describe("the one-phone test switch and the merchant's next-step cards (session 
       await runDispatch(d);
       return buttonIds(sent);
     };
-    const delivery = { code: "AB3CD9", fulfilment: "delivery" };
+    const delivery = { code: "AB3CD9", fulfilment: "delivery", is_test: true };
     expect(
       await run(`acc:${ORDER}:15`, delivery, { order_accept: () => ({ status: "accepted" }) }),
     ).toContain(`rdy:${ORDER}`);
@@ -664,10 +664,24 @@ describe("the one-phone test switch and the merchant's next-step cards (session 
     expect(
       await run(
         `rdy:${ORDER}`,
-        { code: "AB3CD9", fulfilment: "pickup" },
+        { code: "AB3CD9", fulfilment: "pickup", is_test: true },
         { order_progress: () => ({ status: "ready" }) },
       ),
     ).toEqual([`dlv:${ORDER}`]);
+  });
+
+  it("a real merchant gets no chained card", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [tap(`acc:${ORDER}:15`)],
+      rpcs: {
+        order_brief: () => ({ code: "AB3CD9", fulfilment: "delivery", is_test: false }),
+        order_accept: () => ({ status: "accepted" }),
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(buttonIds(sent)).toEqual([]);
   });
 
   it("a step that failed offers no next card", async () => {
@@ -675,7 +689,7 @@ describe("the one-phone test switch and the merchant's next-step cards (session 
       members: merchant,
       events: [tap(`acc:${ORDER}:15`)],
       rpcs: {
-        order_brief: () => ({ code: "AB3CD9", fulfilment: "delivery" }),
+        order_brief: () => ({ code: "AB3CD9", fulfilment: "delivery", is_test: true }),
         order_accept: () => {
           throw new Error("order_accept: 400 stale_status: order AB is cancelled");
         },

@@ -34,6 +34,7 @@ create table app_private.test_sides (
   updated_at timestamptz not null default now()
 );
 
+revoke all on table app_private.owner_phones, app_private.test_sides from public, anon, authenticated;
 alter table app_private.owner_phones enable row level security;
 alter table app_private.test_sides enable row level security;
 
@@ -119,10 +120,14 @@ begin
     jsonb_build_object('customer_id', p_customer_id, 'reason', left(p_reason, 300)));
   select c.phone_e164 into v_phone from public.customers c where c.id = p_customer_id;
   for v_owner in select o.phone_e164 from app_private.owner_phones o loop
-    perform public.app_reply(v_owner.phone_e164,
-      jsonb_build_object('text', '🙋 Alo King: ' || coalesce(v_phone, 'a customer') || ' needs a person: ' || left(coalesce(p_summary, p_reason), 200)
-        || E'\nThe bot stays quiet for ' || v_minutes::int || ' minutes, or until they send "menu".'),
-      'handoff:' || p_customer_id || ':' || to_char(now(), 'YYYYMMDDHH24MI'));
+    begin
+      perform public.app_reply(v_owner.phone_e164,
+        jsonb_build_object('text', '🙋 Alo King: ' || coalesce(v_phone, 'a customer') || ' needs a person: ' || left(coalesce(p_summary, p_reason), 200)
+          || E'\nThe bot stays quiet for ' || v_minutes::int || ' minutes, or until they send "menu".'),
+        'handoff:' || p_customer_id || ':' || to_char(now(), 'YYYYMMDDHH24MI'));
+    exception when others then
+      null; -- the handoff itself is stored whatever happens to the note
+    end;
   end loop;
   return jsonb_build_object('status', 'handed_off', 'support_open', v_open);
 end;
@@ -258,7 +263,8 @@ stable
 security definer
 set search_path = ''
 as $$
-  select jsonb_build_object('code', o.code, 'fulfilment', o.fulfilment, 'status', o.status)
+  select jsonb_build_object('code', o.code, 'fulfilment', o.fulfilment, 'status', o.status,
+    'is_test', exists (select 1 from public.vendors v where v.id = o.vendor_id and v.is_test))
   from public.orders o where o.id = p_order_id;
 $$;
 

@@ -576,7 +576,8 @@ async function handleTap(
   /** After a step succeeds, the card for the following one: ready -> out for delivery -> delivered. */
   const nextStep = async (orderId: string, done: string) => {
     const b = await deps.rpc("order_brief", { p_order_id: orderId }).catch(() => null);
-    if (!b?.code) return;
+    // Only the staging test merchant gets the chained cards; real merchants keep the timer cards (§34 scope).
+    if (!b?.code || !b.is_test) return;
     const card =
       done === "accepted"
         ? readyCheckCard(m.from, orderId, b.code, "ar")

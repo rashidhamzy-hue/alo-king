@@ -321,13 +321,6 @@ async function route(c: Ctx, firstContact: boolean) {
   if (m.text === null || !m.text.trim()) return say(c, "unsupported");
   const intent = deterministicIntent(m.text);
   if (intent) {
-    if (
-      intent.kind === "greeting" &&
-      !firstContact &&
-      c.deps.model &&
-      (c.basket || c.s.history.length)
-    )
-      return modelTurn(c, m.text, false);
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
       return modelTurn(c, m.text, false);
     return textIntent(c, intent.kind);
@@ -506,7 +499,8 @@ async function tap(c: Ctx, a: CustomerAction) {
     case "qty": {
       const it = c.s.refs[a.ref];
       if (!it) return say(c, "pickPlaceFirst");
-      const added = await addOne(c, it.id, a.qty, [], null, null);
+      // noFlow: the Flow would drop the quantity; the option list keeps it.
+      const added = await addOne(c, it.id, a.qty, [], null, null, true);
       if (added) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
       return;
     }
@@ -773,7 +767,7 @@ async function cartOrder(c: Ctx, lines: { itemId: string; quantity: number }[]) 
 }
 
 // ---- Baskets and checkout -----------------------------------------------------------------------------------------
-function refFor(c: Ctx, prefix: "v" | "i" | "l", id: string, label: string): string {
+function refFor(c: Ctx, prefix: "v" | "i" | "l" | "s", id: string, label: string): string {
   for (const [k, v] of Object.entries(c.s.refs))
     if (k.startsWith(prefix) && /^[a-z]\d+$/.test(k) && v.id === id) return k;
   let n = 1;
@@ -1257,7 +1251,7 @@ async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
   msgs.push({ role: "user", content: `<context>\n${contextBlock(c)}\n</context>\n${block}` });
 
   const deadline = Date.now() + deps.config.turnMs;
-  let apiFailures = 0;
+  let answered = false; // the API replied at least once (even with nothing usable)
   for (const model of models.slice(0, deps.config.maxCalls)) {
     const left = deadline - Date.now();
     if (left < 1500) break;
@@ -1277,7 +1271,6 @@ async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
     const t0 = Date.now();
     let res: ModelResponse | null = null;
     let err: string | null = null;
-    apiFailures++;
     try {
       res = await deps.model({
         model,
@@ -1308,8 +1301,9 @@ async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
         p_error: err ?? (res && calls.length !== valid.length ? "invalid tool input" : null),
       })) ?? 0,
     );
-    if (!res || res.stop_reason === "refusal") continue;
-    apiFailures--;
+    if (!res) continue;
+    answered = true;
+    if (res.stop_reason === "refusal") continue;
     if (valid.length) {
       for (const t of valid) await runTool(c, t.name as ToolName, t.input);
       return;
@@ -1323,7 +1317,7 @@ async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
   }
   // Every call failed (no credit, rate limit, outage, timeout): the buttons, and the customer is not counted
   // as unclear, so an API problem never hands anyone to a person (§34).
-  if (apiFailures > 0 && apiFailures >= models.slice(0, deps.config.maxCalls).length) {
+  if (!answered) {
     c.path = "error";
     return push(c, mainMenu(c.m.from, c.s.lang, "aiOff"));
   }
