@@ -1392,6 +1392,31 @@ Rasheed's rule: finish the ordering journey so he can test it on the sandbox; Sl
 
 The post-pilot sessions are unchanged (§33).
 
+## 35. Open testing: no radius for the test merchant, no Google Places, Kapso setup timing (DECIDED, 12 October 09:10)
+**Context:** session T2 merged (#124, 12 October); its CI was blocked only because the self-review comment came after the CI run, and a re-run passed. Rasheed has testers in the Chouf, Beirut and Dubai.
+
+**Test merchant delivers anywhere (staging only):**
+- Alo Test Grill accepts any pin, in any country, with no radius check.
+- A pin outside every place polygon (Dubai, say) resolves to a "Test location" record. A distance check is not needed for the test merchant. Its delivery fee is the 0–3 km band ($2) everywhere.
+- This replaces the 30 km test band from T2; remove that band.
+- Real merchants keep the 10 km road-distance rule and the bands in §1. The cut-over checklist asserts that no test merchant exists on production.
+
+**Testers:**
+- Each tester joins the Kapso sandbox. Rasheed adds their number under Sandbox WhatsApp → Add session; they send the 6-character code within 15 minutes.
+- Testers order as customers. Rasheed stays the only number that can switch to `#merchant`, so he accepts every test order.
+- The bot replies in the tester's language (§3), Arabic, English or French.
+
+**Google Places off until Rasheed adds credit:**
+- `GOOGLE_PLACES_SERVER_KEY` is not called anywhere: not by the claim lookup (§18.1 D), not by search, and not by `check-setup`.
+- Behind the config flag `google_places_enabled = false`. While off, the claim flow uses our vendor list and the "not in our list" path (§18.1 E) only, and `check-setup` reports the key as "skipped".
+
+**Kapso setup timing (no change; recorded because Rasheed asked):**
+- No templates, Flows or broadcasts are set up in Kapso yet, and that is intended.
+- The sandbox cannot send templates (§3). Flows and the catalogue stay off until the company number exists (§30.1.2). Broadcasts are a post-pilot tool (§33).
+- The code for all three exists and is tested against fixtures. Session 5b registers templates and publishes Flows on the company number just before the cut-over.
+
+**Session T3 (Sonnet 5.5, medium):** these changes plus fixes from the next live tests.
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
