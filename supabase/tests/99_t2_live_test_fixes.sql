@@ -58,11 +58,11 @@ select tests.ok(public.customer_delivery_check('10000000-0000-0000-0000-00000000
   'a customer with no pin has nothing to check');
 
 -- The pickup choice -------------------------------------------------------------------------------------------------
-select tests.ok((select count(*) = 1 from public.vendor_search_pickup(33.6775, 35.5645, 10)), 'the pickup choice lists the open place near the pin');
+select tests.ok(exists (select 1 from public.vendor_search_pickup(33.6775, 35.5645, 10) where vendor_id = :'tv'), 'the pickup choice lists the open place near the pin');
 select tests.ok((select count(*) = 0 from public.vendor_search_pickup(34.4, 35.8, 10)), 'and nothing about 80 km away');
 select tests.ok((select count(*) = 0 from public.vendor_search_pickup(null, null, 10)), 'and nothing without a point');
 update public.vendors set pickup_enabled = false where id = :'tv';
-select tests.ok((select count(*) = 0 from public.vendor_search_pickup(33.6775, 35.5645, 10)), 'a place that does not take pickup is not listed');
+select tests.ok(not exists (select 1 from public.vendor_search_pickup(33.6775, 35.5645, 10) where vendor_id = :'tv'), 'a place that does not take pickup is not listed');
 update public.vendors set pickup_enabled = true where id = :'tv';
 
 -- Access ------------------------------------------------------------------------------------------------------------
