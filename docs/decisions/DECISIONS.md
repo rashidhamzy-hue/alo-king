@@ -1417,6 +1417,39 @@ The post-pilot sessions are unchanged (§33).
 
 **Session T3 (Sonnet 5.5, medium):** these changes plus fixes from the next live tests.
 
+## 36. Claude Code does the testing: staging conversation simulator (DECIDED, 12 October 18:40)
+**Rasheed's rule:** Claude Code tests the bot itself. Human testers come later, only when they want to. This brings the simulator from session 11 forward as the next session.
+
+**How it works:**
+- **Test numbers.** Simulated customers and merchants use reserved numbers (`+999` prefix, plus a country code variant for Lebanon, Beirut and Dubai personas).
+  - Messages to these numbers are recorded in a `sim_outbox` table instead of being sent to Kapso.
+  - Real numbers are never touched.
+  - Staging only; the cut-over checklist asserts the sink is disabled on production.
+- **Real path, signed.** A GitHub Actions workflow `staging-e2e` posts signed Kapso-shaped webhook events (text, button replies, list replies, location pins, voice-note stubs) to the deployed `whatsapp-webhook` on staging. It uses the real webhook secret from GitHub secrets. The bot runs exactly as for a person.
+- **Scripted conversations with assertions,** in `tests/e2e/scenarios/*.yaml`. Each step sends a message and asserts the reply's type, buttons and key text, then the database state (basket, order status, ledger rows). Starting set:
+  1. Full delivery order from a Baakline pin, accepted by the merchant persona, delivered with the code, rated.
+  2. The same from a Beirut pin and a Dubai pin (test merchant, §35).
+  3. Pickup order.
+  4. Double checkout tap, back-and-forth between sections, a quantity change.
+  5. Merchant rejects; merchant doesn't answer (auto-cancel at 5 min, time-travelled).
+  6. Customer cancels inside 60 s, and after 60 s (§30.3.6).
+  7. Free text with no AI credit gets buttons, never silence. Handoff ends on "menu".
+  8. Arabic, English and French customers get replies in their language.
+  9. Your 12 October chat replayed (T2).
+- **Runs after every staging deploy and on demand.** The workflow writes a readable transcript per scenario (who said what, pass/fail per step) as a job summary and an artifact.
+  - A failure opens or updates one GitHub issue labelled `e2e`, with the transcript.
+  - Build sessions must run it after their merge and fix what breaks before finishing.
+- **Live phones stay a final check only:** Rasheed or testers tap through once before cut-over (§34 test steps). They are not needed for development.
+- **Kill-gate:** if a scenario fails on two consecutive runs with no code change (flaky), it is quarantined with a reason in LOG.md, and the session fixes the flakiness before adding scenarios.
+
+**Session order now:**
+1. 11-lite (this simulator; Sonnet 5.5, medium)
+2. 6 (lean website)
+3. 13 (security review)
+4. D (data)
+5. 5b (Slack and operations)
+6. 14 (cut-over)
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
