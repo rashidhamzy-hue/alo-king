@@ -9,7 +9,7 @@ steps:
   - note: the merchant accepts, then the customer cancels at once
     tap: { as: merchant, id_prefix: "acc:" }
     expect: [{ to: early, text_re: "accepted" }]
-  - tap: { as: early, id: "c:track" }
+  - say: { as: early, text: "track my order" }
     expect: [{ to: early, buttons: ["cxl:"] }]
   - tap: { as: early, id_prefix: "cxl:" }
     expect: [{ to: early }]
@@ -25,7 +25,7 @@ steps:
     sql: >
       update public.orders o set accepted_at = accepted_at - interval '90 seconds'
       from public.customers c where c.id = o.customer_id and c.phone_e164 = '{{late.phone}}' and o.status = 'accepted'
-  - tap: { as: late, id: "c:track" }
+  - say: { as: late, text: "track my order" }
     expect: [{ to: late, buttons: ["cxl:"] }]
   - tap: { as: late, id_prefix: "cxl:" }
     expect: [{ to: late }]

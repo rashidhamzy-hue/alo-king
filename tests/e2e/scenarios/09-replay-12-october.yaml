@@ -22,8 +22,6 @@ steps:
     expect: [{ to: cust }]
   - note: pickup, as in the live chat
     tap: { as: cust, raw_id: "c:pickup_list", title: "Pick up" }
-    expect: [{ to: cust, buttons: ["pv:"] }]
-  - tap: { as: cust, id_prefix: "pv:" }
     expect: [{ to: cust, buttons: ["ps:"] }]
   - tap: { as: cust, title: "Sandwiches" }
     expect: [{ to: cust, buttons: ["pi:"] }]
@@ -40,7 +38,7 @@ steps:
   - note: free text with no credit shows the buttons
     say: { as: cust, text: "can you add a pepsi" }
     expect: [{ to: cust, not_text: ["slow", "بطيء"] }]
-  - tap: { as: cust, id: "c:track" }
+  - say: { as: cust, text: "track my order" }
     expect: [{ to: cust }]
   - say: { as: cust, text: "yes" }
     expect: [{ to: cust }]
