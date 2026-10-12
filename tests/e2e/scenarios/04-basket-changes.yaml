@@ -35,7 +35,7 @@ steps:
     db:
       - sql: >
           select coalesce(sum(l.quantity), 0) as units
-          from public.basket_lines l join public.baskets b on b.id = l.basket_id join public.customers c on c.id = b.customer_id
+          from public.basket_items l join public.baskets b on b.id = l.basket_id join public.customers c on c.id = b.customer_id
           where c.phone_e164 = '{{cust.phone}}' and b.status = 'open'
         row: { units: 4 }
   - note: Checkout tapped twice in a row gives the same answer both times

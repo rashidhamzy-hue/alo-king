@@ -11,9 +11,7 @@ steps:
   - note: customer chooses pickup
     tap: { as: cust, raw_id: "c:pickup_list", title: "Pick up" }
     expect:
-      - { to: cust, buttons: ["pv:"], text_any: ["Alo Test Grill", "ألو تست"] }
-  - tap: { as: cust, id_prefix: "pv:" }
-    expect: [{ to: cust, buttons: ["ps:"] }]
+      - { to: cust, buttons: ["ps:"], text_any: ["Alo Test Grill", "ألو تست"] }
   - tap: { as: cust, title: "Sandwiches" }
     expect: [{ to: cust, buttons: ["pi:"] }]
   - tap: { as: cust, title: "Falafel" }
