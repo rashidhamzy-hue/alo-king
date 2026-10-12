@@ -474,6 +474,12 @@ const S: Record<string, Record<CLang, string>> = {
     fr: "❌ Oui, annuler",
     arabizi: "❌ Eh elghe",
   },
+  cancelOrderBtn: {
+    ar: "❌ إلغاء الطلب",
+    en: "❌ Cancel order",
+    fr: "❌ Annuler",
+    arabizi: "❌ Elghe el talab",
+  },
   cancelKeep: { ar: "لا، كمّل", en: "No, keep it", fr: "Non, garder", arabizi: "La, kammel" },
   cancelled: {
     ar: "❌ انلغى الطلب #{code}.",
@@ -1118,18 +1124,30 @@ export function trackMessage(to: string, lang: CLang, t: Track | null): Msg[] {
       })
     : "";
   const code = t.delivery_code ? `\n${baseTr(lang, "code", { dcode: t.delivery_code })}` : "";
-  return [
-    text(
-      to,
-      tr(lang, "track", {
-        code: t.code,
-        vendor: name(lang, t.vendor, t.vendor_en),
-        status: STATUS[t.status]?.[lang] ?? t.status,
-        eta,
-      }) + code,
-    ),
-  ];
+  const body =
+    tr(lang, "track", {
+      code: t.code,
+      vendor: name(lang, t.vendor, t.vendor_en),
+      status: STATUS[t.status]?.[lang] ?? t.status,
+      eta,
+    }) + code;
+  // The way to cancel without the AI (found by the staging simulator): a button while the order can still be
+  // cancelled or a cancel request can still be sent (order_cancel_by_customer decides which).
+  return CANCELLABLE.includes(t.status)
+    ? [buttons(to, body, [["c:cancel", tr(lang, "cancelOrderBtn")]])]
+    : [text(to, body)];
 }
+
+export const CANCELLABLE = [
+  "awaiting_payment",
+  "placed",
+  "accepted",
+  "preparing",
+  "ready",
+  "driver_assigned",
+  "heading_to_pickup",
+  "at_pickup",
+];
 
 export function cancelAsk(to: string, lang: CLang, t: Track): Msg {
   return buttons(to, tr(lang, "cancelAsk", { code: t.code }), [

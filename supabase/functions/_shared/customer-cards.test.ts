@@ -9,6 +9,15 @@ describe("customer cards", () => {
     expect(moneyLine(12.5, 1118750, 89500, "en")).toBe("$12.50 = 1,118,750 LBP (rate 89,500, locked at order)");
     expect(moneyLine(12.5, 1118750, 89500, "en", false)).toContain("today's rate");
   });
+  it("a pickup order's code is a pickup code for the shop, not a driver code (found by the staging simulator)", () => {
+    for (const lang of ["ar", "en", "fr", "arabizi"]) {
+      const [m]: any = customerStatusMessages("+96170000001", { kind: "accepted", lang, eta: { min: 10, max: 20 } }, { ...card, fulfilment: "pickup" }, { deliveryCode: "4821" });
+      expect(m.text.body).toContain("4821");
+      expect(m.text.body).not.toMatch(/driver|livreur|السايق|sayeq/i);
+    }
+    const [d]: any = customerStatusMessages("+96170000001", { kind: "accepted", lang: "en", eta: { min: 10, max: 20 } }, { ...card, fulfilment: "delivery" }, { deliveryCode: "4821" });
+    expect(d.text.body).toContain("driver");
+  });
   it("accepted carries the ETA range, the totals and the delivery code", () => {
     const [m]: any = customerStatusMessages("+96170000001", { kind: "accepted", lang: "en", eta: { min: 20, max: 30 } }, card, { deliveryCode: "4821" });
     expect(m.text.body).toContain("20-30 min");

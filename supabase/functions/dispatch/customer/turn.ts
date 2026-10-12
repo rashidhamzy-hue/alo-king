@@ -369,6 +369,8 @@ async function textIntent(c: Ctx, kind: string) {
       return handoff(c, "customer asked for a person");
     case "track":
       return track(c);
+    case "cancel_order":
+      return askCancel(c);
     case "basket":
       return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
     case "usual":
@@ -410,6 +412,17 @@ async function track(c: Ctx) {
   });
   push(c, ...trackMessage(c.m.from, c.s.lang, t));
   c.summary.push(t ? `[order ${t.code}: ${t.status}]` : "[no open order]");
+}
+
+/** "Cancel my order" by words, by the track card's button or by the model: always the same yes/no question. */
+async function askCancel(c: Ctx) {
+  const t: Track | null = await c.deps.rpc("order_track", {
+    p_customer_id: c.customerId,
+    p_order_id: null,
+  });
+  if (!t || ["delivered", "failed", "rejected", "cancelled"].includes(t.status))
+    return say(c, "trackNone");
+  return push(c, cancelAsk(c.m.from, c.s.lang, t));
 }
 
 async function reorder(c: Ctx) {
@@ -595,6 +608,8 @@ async function tap(c: Ctx, a: CustomerAction) {
           return startOrder(c);
         case "track":
           return track(c);
+        case "cancel":
+          return askCancel(c);
       }
   }
 }
@@ -1611,15 +1626,8 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
       });
     case "track_order":
       return track(c);
-    case "cancel_order": {
-      const t: Track | null = await deps.rpc("order_track", {
-        p_customer_id: id,
-        p_order_id: null,
-      });
-      if (!t || ["delivered", "failed", "rejected", "cancelled"].includes(t.status))
-        return say(c, "trackNone");
-      return push(c, cancelAsk(c.m.from, c.s.lang, t));
-    }
+    case "cancel_order":
+      return askCancel(c);
     case "find_address": {
       const pt = await deps.rpc("customer_search_point", { p_customer_id: id });
       const cands: any[] =

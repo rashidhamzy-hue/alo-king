@@ -29,9 +29,21 @@ steps:
           select o.status, o.fulfilment, o.delivery_fee_usd from public.orders o join public.customers c on c.id = o.customer_id
           where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
         row: { status: placed, fulfilment: pickup, delivery_fee_usd: 0 }
-  - tap: { as: merchant, id_prefix: "acc:" }
-    expect: [{ to: cust, text_re: "accepted|ready" }]
+  - note: the merchant accepts; the customer gets a pickup code for the shop, never a driver code
+    tap: { as: merchant, id_prefix: "acc:" }
+    expect:
+      - { to: cust, text_re: "accepted", not_text: "driver" }
+      - { to: cust, text_re: "code", capture: { code: "[Cc]ode[^0-9]{0,8}(\\d{4})" } }
   - tap: { as: merchant, id_prefix: "rdy:" }
     expect:
-      - { to: cust, text_re: "ready for pickup|ready" }
-      - { to: merchant, buttons: ["dlv:", "pku:"] }
+      - { to: cust, text_re: "ready for pickup" }
+      - { to: merchant, buttons: ["dlv:"] }
+  - note: the merchant types the pickup code at the handover
+    say: { as: merchant, text: "{{vars.code}}" }
+    expect:
+      - { to: cust, buttons: ["rcv:"] }
+    db:
+      - sql: >
+          select o.status from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: delivered }
