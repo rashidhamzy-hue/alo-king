@@ -6,6 +6,10 @@ import { pickLang } from "@/lib/site";
 export const Route = createFileRoute("/explore")({
   beforeLoad: async () => {
     const { acceptLanguage } = await getRequestInfo();
-    throw redirect({ to: "/$lang/places", params: { lang: pickLang(acceptLanguage) }, statusCode: 301 });
+    throw redirect({
+      to: "/$lang/places",
+      params: { lang: pickLang(acceptLanguage) },
+      statusCode: 301,
+    });
   },
 });

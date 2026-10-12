@@ -16,7 +16,9 @@ case "${1:-start}" in
       VITE_SUPABASE_URL=http://127.0.0.1:4020 VITE_WHATSAPP_NUMBER=96170000000 NITRO_PRESET=node-server pnpm build >/dev/null
     fi
     nohup node scripts/web/mock-supabase.mjs 4020 "$mode" >/dev/null 2>&1 & echo $! >> .qa-pids
-    PORT=4010 nohup node .output/server/index.mjs >/dev/null 2>&1 & echo $! >> .qa-pids
-    for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:4010/en && break; sleep 1; done
-    echo "serving http://127.0.0.1:4010 (mock: $mode)" ;;
+    # SITE_INDEXING=on in the checks, so the pages are measured the way production will serve them.
+    SITE_INDEXING="${SITE_INDEXING:-on}" PORT=4010 nohup node .output/server/index.mjs >/dev/null 2>&1 & echo $! >> .qa-pids
+    nohup node scripts/web/compress-proxy.mjs 4011 4010 >/dev/null 2>&1 & echo $! >> .qa-pids
+    for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:4011/en && break; sleep 1; done
+    echo "serving http://127.0.0.1:4010 (plain) and http://127.0.0.1:4011 (compressed), mock: $mode" ;;
 esac

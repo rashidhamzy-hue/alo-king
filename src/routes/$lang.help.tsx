@@ -19,7 +19,9 @@ export const Route = createFileRoute("/$lang/help")({
       jsonLd: [faqLd(faqItems(copy, EMPTY_OVERVIEW))],
     });
   },
-  headers: () => ({ "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=3600" }),
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=3600",
+  }),
   component: HelpPage,
 });
 
@@ -27,7 +29,11 @@ function HelpPage() {
   const { t, overview } = useSite();
   return (
     <>
-      <PageHero title={t.help.title} lead={t.help.lead} crumbs={[{ label: "", to: "/$lang" }, { label: t.nav.help }]}>
+      <PageHero
+        title={t.help.title}
+        lead={t.help.lead}
+        crumbs={[{ label: "", to: "/$lang" }, { label: t.nav.help }]}
+      >
         <OrderButton text={t.wa.person} label={t.help.contactCta} />
       </PageHero>
       <section className="tone-cream ak-section !pt-12">
@@ -37,7 +43,9 @@ function HelpPage() {
             <ol className="mt-5 space-y-3">
               {t.help.steps.map((s, i) => (
                 <li key={s} className="flex gap-4">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-extrabold text-gold">{i + 1}</span>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-extrabold text-gold">
+                    {i + 1}
+                  </span>
                   <span className="pt-1">{s}</span>
                 </li>
               ))}

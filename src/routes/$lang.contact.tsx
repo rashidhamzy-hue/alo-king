@@ -17,7 +17,9 @@ export const Route = createFileRoute("/$lang/contact")({
       info: info ?? { origin: "", indexing: false },
     });
   },
-  headers: () => ({ "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=3600" }),
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=3600",
+  }),
   component: ContactPage,
 });
 
@@ -26,7 +28,11 @@ function ContactPage() {
   const c = t.contact;
   return (
     <>
-      <PageHero title={c.title} lead={c.lead} crumbs={[{ label: "", to: "/$lang" }, { label: t.nav.contact }]} />
+      <PageHero
+        title={c.title}
+        lead={c.lead}
+        crumbs={[{ label: "", to: "/$lang" }, { label: t.nav.contact }]}
+      />
       <section className="tone-cream ak-section !pt-12">
         <div className="ak-container grid gap-4 md:grid-cols-2">
           <div id="whatsapp" className="ak-card p-6 md:col-span-2">
@@ -43,14 +49,24 @@ function ContactPage() {
           </div>
           <div className="ak-card p-6">
             <h2 className="ak-h3">{c.hoursTitle}</h2>
-            <p className="mt-2 text-tone-mute">{fmt(c.hours, { fast: SUPPORT.fastMinutes, from: SUPPORT.fastFrom, to: SUPPORT.fastTo })}</p>
+            <p className="mt-2 text-tone-mute">
+              {fmt(c.hours, {
+                fast: SUPPORT.fastMinutes,
+                from: SUPPORT.fastFrom,
+                to: SUPPORT.fastTo,
+              })}
+            </p>
             <h3 className="mt-5 font-bold">{c.languagesTitle}</h3>
             <p className="mt-1 text-tone-mute">{c.languages}</p>
           </div>
           <div className="ak-card p-6">
             <h2 className="ak-h3">{c.privacyTitle}</h2>
             <p className="mt-2 text-tone-mute">{c.privacyText}</p>
-            <Link to="/$lang/legal/$doc" params={{ lang, doc: "privacy" }} className="mt-3 inline-block font-bold underline underline-offset-4">
+            <Link
+              to="/$lang/legal/$doc"
+              params={{ lang, doc: "privacy" }}
+              className="mt-3 inline-block font-bold underline underline-offset-4"
+            >
               {t.footer.privacy}
             </Link>
           </div>
@@ -61,7 +77,10 @@ function ContactPage() {
           <div className="ak-card p-6">
             <h2 className="ak-h3">{c.merchantsTitle}</h2>
             <p className="mt-2 text-tone-mute">{c.merchantsText}</p>
-            <a href="/for-business" className="mt-3 inline-block font-bold underline underline-offset-4">
+            <a
+              href="/for-business"
+              className="mt-3 inline-block font-bold underline underline-offset-4"
+            >
               {t.nav.merchants}
             </a>
           </div>

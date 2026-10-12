@@ -30,7 +30,7 @@ import { Route as MerchantAssistantRouteImport } from './routes/merchant.assista
 import { Route as MerchantOnboardingRouteImport } from './routes/merchant.onboarding'
 import { Route as MerchantOrdersRouteImport } from './routes/merchant.orders'
 import { Route as MerchantProfileRouteImport } from './routes/merchant.profile'
-import { Route as SitemapKindDotxmlRouteImport } from './routes/sitemap.$kind[.]xml'
+import { Route as SitemapChar123kindChar125DotxmlRouteImport } from './routes/sitemap.{$kind}[.]xml'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as LangCuisineIndexRouteImport } from './routes/$lang.cuisine.index'
 import { Route as LangCuisineTagRouteImport } from './routes/$lang.cuisine.$tag'
@@ -147,11 +147,12 @@ const MerchantProfileRoute = MerchantProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => MerchantRoute,
 } as any)
-const SitemapKindDotxmlRoute = SitemapKindDotxmlRouteImport.update({
-  id: '/sitemap/$kind.xml',
-  path: '/sitemap/$kind.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const SitemapChar123kindChar125DotxmlRoute =
+  SitemapChar123kindChar125DotxmlRouteImport.update({
+    id: '/sitemap/{$kind}.xml',
+    path: '/sitemap/{$kind}.xml',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
   id: '/track/$orderId',
   path: '/track/$orderId',
@@ -223,7 +224,7 @@ export interface FileRoutesByFullPath {
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
   '/merchant/profile': typeof MerchantProfileRoute
-  '/sitemap/$kind.xml': typeof SitemapKindDotxmlRoute
+  '/sitemap/{$kind}.xml': typeof SitemapChar123kindChar125DotxmlRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/$lang/': typeof LangIndexRoute
   '/merchant/': typeof MerchantIndexRoute
@@ -255,7 +256,7 @@ export interface FileRoutesByTo {
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
   '/merchant/profile': typeof MerchantProfileRoute
-  '/sitemap/$kind.xml': typeof SitemapKindDotxmlRoute
+  '/sitemap/{$kind}.xml': typeof SitemapChar123kindChar125DotxmlRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/$lang': typeof LangIndexRoute
   '/merchant': typeof MerchantIndexRoute
@@ -290,7 +291,7 @@ export interface FileRoutesById {
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
   '/merchant/profile': typeof MerchantProfileRoute
-  '/sitemap/$kind.xml': typeof SitemapKindDotxmlRoute
+  '/sitemap/{$kind}.xml': typeof SitemapChar123kindChar125DotxmlRoute
   '/track/$orderId': typeof TrackOrderIdRoute
   '/$lang/': typeof LangIndexRoute
   '/merchant/': typeof MerchantIndexRoute
@@ -326,7 +327,7 @@ export interface FileRouteTypes {
     | '/merchant/onboarding'
     | '/merchant/orders'
     | '/merchant/profile'
-    | '/sitemap/$kind.xml'
+    | '/sitemap/{$kind}.xml'
     | '/track/$orderId'
     | '/$lang/'
     | '/merchant/'
@@ -358,7 +359,7 @@ export interface FileRouteTypes {
     | '/merchant/onboarding'
     | '/merchant/orders'
     | '/merchant/profile'
-    | '/sitemap/$kind.xml'
+    | '/sitemap/{$kind}.xml'
     | '/track/$orderId'
     | '/$lang'
     | '/merchant'
@@ -392,7 +393,7 @@ export interface FileRouteTypes {
     | '/merchant/onboarding'
     | '/merchant/orders'
     | '/merchant/profile'
-    | '/sitemap/$kind.xml'
+    | '/sitemap/{$kind}.xml'
     | '/track/$orderId'
     | '/$lang/'
     | '/merchant/'
@@ -420,7 +421,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ClaimSlugRoute: typeof ClaimSlugRoute
   MSlugRoute: typeof MSlugRoute
-  SitemapKindDotxmlRoute: typeof SitemapKindDotxmlRoute
+  SitemapChar123kindChar125DotxmlRoute: typeof SitemapChar123kindChar125DotxmlRoute
   TrackOrderIdRoute: typeof TrackOrderIdRoute
 }
 
@@ -573,11 +574,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantProfileRouteImport
       parentRoute: typeof MerchantRoute
     }
-    '/sitemap/$kind.xml': {
-      id: '/sitemap/$kind.xml'
-      path: '/sitemap/$kind.xml'
-      fullPath: '/sitemap/$kind.xml'
-      preLoaderRoute: typeof SitemapKindDotxmlRouteImport
+    '/sitemap/{$kind}.xml': {
+      id: '/sitemap/{$kind}.xml'
+      path: '/sitemap/{$kind}.xml'
+      fullPath: '/sitemap/{$kind}.xml'
+      preLoaderRoute: typeof SitemapChar123kindChar125DotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/track/$orderId': {
@@ -720,7 +721,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ClaimSlugRoute: ClaimSlugRoute,
   MSlugRoute: MSlugRoute,
-  SitemapKindDotxmlRoute: SitemapKindDotxmlRoute,
+  SitemapChar123kindChar125DotxmlRoute: SitemapChar123kindChar125DotxmlRoute,
   TrackOrderIdRoute: TrackOrderIdRoute,
 }
 export const routeTree = rootRouteImport

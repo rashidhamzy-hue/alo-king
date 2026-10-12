@@ -4,9 +4,27 @@ import { MIN_MERCHANTS_TO_INDEX } from "./site-config";
 import type { SiteOverview } from "./site-data";
 
 /** Paths that are never for search engines: private apps and tracking links. */
-const PRIVATE = ["/merchant", "/driver", "/admin", "/claim", "/track", "/ar/track", "/en/track", "/fr/track"];
+const PRIVATE = [
+  "/merchant",
+  "/driver",
+  "/admin",
+  "/claim",
+  "/track",
+  "/ar/track",
+  "/en/track",
+  "/fr/track",
+];
 /** The crawlers that answer questions in assistants and search (DECISIONS §24.6). */
-const WELCOME = ["Googlebot", "Bingbot", "GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended", "Twitterbot", "facebookexternalhit"];
+const WELCOME = [
+  "Googlebot",
+  "Bingbot",
+  "GPTBot",
+  "ClaudeBot",
+  "PerplexityBot",
+  "Google-Extended",
+  "Twitterbot",
+  "facebookexternalhit",
+];
 
 export function robotsTxt(info: RequestInfo): string {
   // Until the site is switched to indexing (cut-over), every deployment asks crawlers to stay out.
@@ -19,11 +37,13 @@ export function robotsTxt(info: RequestInfo): string {
 export const SITEMAP_KINDS = ["pages", "places", "cuisines", "vendors"] as const;
 export type SitemapKind = (typeof SITEMAP_KINDS)[number];
 
-const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export function sitemapIndex(origin: string, lastmod?: string): string {
   const items = SITEMAP_KINDS.map(
-    (k) => `<sitemap><loc>${esc(`${origin}/sitemap/${k}.xml`)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}</sitemap>`,
+    (k) =>
+      `<sitemap><loc>${esc(`${origin}/sitemap/${k}.xml`)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}</sitemap>`,
   ).join("");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${items}</sitemapindex>\n`;
 }
@@ -36,7 +56,10 @@ export function urlset(origin: string, entries: SitemapEntry[]): string {
     .flatMap((e) =>
       LANGS.map((l) => {
         const alts = [
-          ...LANGS.map((a) => `<xhtml:link rel="alternate" hreflang="${a}" href="${esc(origin + localePath(a, e.path))}"/>`),
+          ...LANGS.map(
+            (a) =>
+              `<xhtml:link rel="alternate" hreflang="${a}" href="${esc(origin + localePath(a, e.path))}"/>`,
+          ),
           `<xhtml:link rel="alternate" hreflang="x-default" href="${esc(origin + localePath(DEFAULT_LANG, e.path))}"/>`,
         ].join("");
         return `<url><loc>${esc(origin + localePath(l, e.path))}</loc>${e.lastmod ? `<lastmod>${e.lastmod}</lastmod>` : ""}${alts}</url>`;
@@ -46,31 +69,69 @@ export function urlset(origin: string, entries: SitemapEntry[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${body}</urlset>\n`;
 }
 
-const STATIC_PAGES = ["/", "/places", "/cuisine", "/send-home", "/help", "/contact", "/legal/terms", "/legal/privacy", "/legal/refund", "/legal/cookies"];
+const STATIC_PAGES = [
+  "/",
+  "/places",
+  "/cuisine",
+  "/send-home",
+  "/help",
+  "/contact",
+  "/legal/terms",
+  "/legal/privacy",
+  "/legal/refund",
+  "/legal/cookies",
+];
 
-export function sitemapEntries(kind: SitemapKind, overview: SiteOverview, vendors: { slug: string; updated_at: string }[]): SitemapEntry[] {
+export function sitemapEntries(
+  kind: SitemapKind,
+  overview: SiteOverview,
+  vendors: { slug: string; updated_at: string }[],
+): SitemapEntry[] {
   switch (kind) {
     case "pages":
       return STATIC_PAGES.map((path) => ({ path }));
     // Thin pages stay out of the sitemap, as they stay out of the index (§24.5).
     case "places":
-      return overview.places.filter((p) => p.merchants >= MIN_MERCHANTS_TO_INDEX).map((p) => ({ path: `/places/${p.slug}` }));
+      return overview.places
+        .filter((p) => p.merchants >= MIN_MERCHANTS_TO_INDEX)
+        .map((p) => ({ path: `/places/${p.slug}` }));
     case "cuisines":
-      return overview.cuisines.filter((c) => c.vendors >= MIN_MERCHANTS_TO_INDEX).map((c) => ({ path: `/cuisine/${c.tag}` }));
+      return overview.cuisines
+        .filter((c) => c.vendors >= MIN_MERCHANTS_TO_INDEX)
+        .map((c) => ({ path: `/cuisine/${c.tag}` }));
     case "vendors":
       return vendors.map((v) => ({ path: `/m/${v.slug}`, lastmod: v.updated_at.slice(0, 10) }));
   }
 }
 
 /** llms.txt: what Alo King is, where it delivers, how to order, and links to the live place and shop lists (§24.6). */
-export function llmsTxt(origin: string, o: SiteOverview, vendors: { slug: string; updated_at: string }[]): string {
+export function llmsTxt(
+  origin: string,
+  o: SiteOverview,
+  vendors: { slug: string; updated_at: string }[],
+): string {
   const url = (path: string) => `${origin}${localePath("en", path)}`;
-  const fee = o.fees.min_usd != null && o.fees.max_usd != null ? ` Delivery costs ${usd(o.fees.min_usd)} to ${usd(o.fees.max_usd)}, by road distance, and is shown before you confirm.` : "";
+  const fee =
+    o.fees.min_usd != null && o.fees.max_usd != null
+      ? ` Delivery costs ${usd(o.fees.min_usd)} to ${usd(o.fees.max_usd)}, by road distance, and is shown before you confirm.`
+      : "";
   const places = o.places.length
-    ? o.places.map((p) => `- [${pickName(p, "name", "en")}](${url(`/places/${p.slug}`)}): ${p.merchants} shop${p.merchants === 1 ? "" : "s"}`).join("\n")
+    ? o.places
+        .map(
+          (p) =>
+            `- [${pickName(p, "name", "en")}](${url(`/places/${p.slug}`)}): ${p.merchants} shop${p.merchants === 1 ? "" : "s"}`,
+        )
+        .join("\n")
     : "- Opening soon: Baakline, Bakaata, Semqanieh and Beiteddine in the Chouf, then village by village.";
-  const cuisines = o.cuisines.length ? o.cuisines.map((c) => `- [${pickName(c, "name", "en")}](${url(`/cuisine/${c.tag}`)}): ${c.vendors}`).join("\n") : "";
-  const shops = vendors.slice(0, 200).map((v) => `- ${url(`/m/${v.slug}`)}`).join("\n");
+  const cuisines = o.cuisines.length
+    ? o.cuisines
+        .map((c) => `- [${pickName(c, "name", "en")}](${url(`/cuisine/${c.tag}`)}): ${c.vendors}`)
+        .join("\n")
+    : "";
+  const shops = vendors
+    .slice(0, 200)
+    .map((v) => `- ${url(`/m/${v.slug}`)}`)
+    .join("\n");
   return `# Alo King (ألو كينغ)
 
 > Alo King lets people in Lebanon order food and everyday essentials from local shops by chatting on WhatsApp, in Arabic, English, French or Arabizi. No app and no sign-up. Alo means "hello" in Arabic. Customers can also order for family in Lebanon from abroad (Send Home, opening soon).

@@ -65,7 +65,11 @@ export type SitePlacePage = {
   rate: number | null;
 };
 
-export type SiteCuisinePage = { cuisine: Names & { tag: string }; vendors: VendorCard[]; rate: number | null };
+export type SiteCuisinePage = {
+  cuisine: Names & { tag: string };
+  vendors: VendorCard[];
+  rate: number | null;
+};
 
 export type MenuItem = Names & {
   description: string | null;
@@ -129,9 +133,12 @@ export const EMPTY_OVERVIEW: SiteOverview = {
   rate_at: null,
 };
 
-export const getOverview = async (): Promise<SiteOverview> => (await rpc<SiteOverview>("site_overview")) ?? EMPTY_OVERVIEW;
+export const getOverview = async (): Promise<SiteOverview> =>
+  (await rpc<SiteOverview>("site_overview")) ?? EMPTY_OVERVIEW;
 export const getPlace = (slug: string) => rpc<SitePlacePage>("site_place", { p_slug: slug });
 export const getCuisine = (tag: string) => rpc<SiteCuisinePage>("site_cuisine", { p_tag: tag });
 export const getVendorPage = (slug: string) => rpc<SiteVendorPage>("site_vendor", { p_slug: slug });
-export const getVendorSlugs = async () => (await rpc<{ slug: string; updated_at: string }[]>("site_vendor_slugs")) ?? [];
-export const getTrack = (token: string) => rpc<PublicTrack>("order_track_public", { p_token: token });
+export const getVendorSlugs = async () =>
+  (await rpc<{ slug: string; updated_at: string }[]>("site_vendor_slugs")) ?? [];
+export const getTrack = (token: string) =>
+  rpc<PublicTrack>("order_track_public", { p_token: token });

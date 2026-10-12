@@ -18,15 +18,18 @@ export type LegalCopy = {
 
 export const legalEn: LegalCopy = {
   updatedOn: "2026-10-13",
-  draftNote: "Pilot version. Alo King SARL is being formed; these pages will be updated, and re-dated, when the company is registered and our lawyer has reviewed them.",
+  draftNote:
+    "Pilot version. Alo King SARL is being formed; these pages will be updated, and re-dated, when the company is registered and our lawyer has reviewed them.",
   entityHeading: "Who we are",
-  entityText: "Alo King SARL (in formation), Lebanon. You can reach us on WhatsApp or through the contact page.",
+  entityText:
+    "Alo King SARL (in formation), Lebanon. You can reach us on WhatsApp or through the contact page.",
   docs: [
     {
       slug: "terms",
       title: "Terms of use",
       description: "The rules for ordering through Alo King on WhatsApp and on this website.",
-      intro: "Alo King lets you order food and everyday essentials from shops in Lebanon by chatting on WhatsApp. By ordering through Alo King you accept these terms.",
+      intro:
+        "Alo King lets you order food and everyday essentials from shops in Lebanon by chatting on WhatsApp. By ordering through Alo King you accept these terms.",
       sections: [
         {
           h: "What Alo King is",
@@ -46,11 +49,15 @@ export const legalEn: LegalCopy = {
         },
         {
           h: "Paying",
-          p: ["You pay cash on delivery, to the person who hands you your order, in the currency the shop accepts. A limit applies to cash orders, and we tell you if your order is over it. Online payment will be added later, with its own terms."],
+          p: [
+            "You pay cash on delivery, to the person who hands you your order, in the currency the shop accepts. A limit applies to cash orders, and we tell you if your order is over it. Online payment will be added later, with its own terms.",
+          ],
         },
         {
           h: "Delivery code",
-          p: ["For some orders (for example a first cash order, or a larger one) we give you a short code. Give it to the person handing over your order. It protects you and the shop."],
+          p: [
+            "For some orders (for example a first cash order, or a larger one) we give you a short code. Give it to the person handing over your order. It protects you and the shop.",
+          ],
         },
         {
           h: "Cancelling",
@@ -75,15 +82,19 @@ export const legalEn: LegalCopy = {
         },
         {
           h: "Changes and law",
-          p: ["We may update these terms and will change the date at the top. Lebanese law applies, and the courts of Beirut have jurisdiction, without removing any right a consumer has under mandatory law."],
+          p: [
+            "We may update these terms and will change the date at the top. Lebanese law applies, and the courts of Beirut have jurisdiction, without removing any right a consumer has under mandatory law.",
+          ],
         },
       ],
     },
     {
       slug: "privacy",
       title: "Privacy",
-      description: "What data Alo King keeps, why, who processes it, and how to delete it. Voice notes and Law 81/2018.",
-      intro: "We keep the minimum needed to take your order. This page explains what that is, in line with Lebanese Law 81/2018 on electronic transactions and personal data.",
+      description:
+        "What data Alo King keeps, why, who processes it, and how to delete it. Voice notes and Law 81/2018.",
+      intro:
+        "We keep the minimum needed to take your order. This page explains what that is, in line with Lebanese Law 81/2018 on electronic transactions and personal data.",
       sections: [
         {
           h: "What we collect",
@@ -136,19 +147,25 @@ export const legalEn: LegalCopy = {
         },
         {
           h: "Children",
-          p: ["Alo King is for adults. If you believe a child has used it, tell us and we will delete the data."],
+          p: [
+            "Alo King is for adults. If you believe a child has used it, tell us and we will delete the data.",
+          ],
         },
         {
           h: "Contact",
-          p: ["Questions or complaints about your data: use the contact page. Alo King SARL (in formation) is responsible for the data described here."],
+          p: [
+            "Questions or complaints about your data: use the contact page. Alo King SARL (in formation) is responsible for the data described here.",
+          ],
         },
       ],
     },
     {
       slug: "refund",
       title: "Refund policy",
-      description: "What happens when an order is cancelled, wrong, missing items or does not arrive.",
-      intro: "Most orders are paid in cash on delivery, so most problems are fixed before money changes hands. This is what we do when something goes wrong.",
+      description:
+        "What happens when an order is cancelled, wrong, missing items or does not arrive.",
+      intro:
+        "Most orders are paid in cash on delivery, so most problems are fixed before money changes hands. This is what we do when something goes wrong.",
       sections: [
         {
           h: "Cash on delivery",
@@ -167,15 +184,21 @@ export const legalEn: LegalCopy = {
         },
         {
           h: "Orders that cannot be cancelled",
-          p: ["Once the shop has started preparing your order, it may refuse a cancellation. Food that was prepared correctly as ordered is not refundable because of a change of mind."],
+          p: [
+            "Once the shop has started preparing your order, it may refuse a cancellation. Food that was prepared correctly as ordered is not refundable because of a change of mind.",
+          ],
         },
         {
           h: "Online payments",
-          p: ["When online payment is added, refunds will go back to the same method, and this page will say how long it takes."],
+          p: [
+            "When online payment is added, refunds will go back to the same method, and this page will say how long it takes.",
+          ],
         },
         {
           h: "Our promise",
-          p: ["We answer every message about a problem. Many cases are settled in the chat the same day."],
+          p: [
+            "We answer every message about a problem. Many cases are settled in the chat the same day.",
+          ],
         },
       ],
     },
@@ -195,11 +218,15 @@ export const legalEn: LegalCopy = {
         },
         {
           h: "Advertising",
-          p: ["We do not use advertising or tracking cookies today. If we add an advertising tool one day, we will ask you first and update this page."],
+          p: [
+            "We do not use advertising or tracking cookies today. If we add an advertising tool one day, we will ask you first and update this page.",
+          ],
         },
         {
           h: "Third parties",
-          p: ["Opening WhatsApp from this site hands you over to WhatsApp, which has its own policies. Fonts and images are served from our own site."],
+          p: [
+            "Opening WhatsApp from this site hands you over to WhatsApp, which has its own policies. Fonts and images are served from our own site.",
+          ],
         },
         {
           h: "Your control",

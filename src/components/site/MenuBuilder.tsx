@@ -25,7 +25,9 @@ function Tags({ item }: { item: MenuSection["items"][number] }) {
           {x}
         </span>
       ))}
-      {names.length > 0 && <span className="text-tone-mute">{fmt(v.allergens, { list: names.join(", ") })}</span>}
+      {names.length > 0 && (
+        <span className="text-tone-mute">{fmt(v.allergens, { list: names.join(", ") })}</span>
+      )}
     </p>
   );
 }
@@ -43,7 +45,13 @@ export function MenuBuilder({ page, canOrder }: { page: SiteVendorPage; canOrder
   const rows = useMemo(() => {
     const m = new Map<string, Row>();
     page.sections.forEach((s, si) =>
-      s.items.forEach((it, ii) => m.set(`${si}:${ii}`, { key: `${si}:${ii}`, name: pickName(it, "name", lang as SiteLang), price: it.price_usd })),
+      s.items.forEach((it, ii) =>
+        m.set(`${si}:${ii}`, {
+          key: `${si}:${ii}`,
+          name: pickName(it, "name", lang as SiteLang),
+          price: it.price_usd,
+        }),
+      ),
     );
     return m;
   }, [page.sections, lang]);
@@ -52,9 +60,13 @@ export function MenuBuilder({ page, canOrder }: { page: SiteVendorPage; canOrder
   const count = chosen.reduce((a, r) => a + (qty[r.key] ?? 0), 0);
   const subtotal = chosen.reduce((a, r) => a + (qty[r.key] ?? 0) * r.price, 0);
   const text = chosen.length
-    ? fmt(t.wa.vendorItems, { vendor: vendorName, items: chosen.map((r) => `${qty[r.key]}× ${r.name}`).join(", ") })
+    ? fmt(t.wa.vendorItems, {
+        vendor: vendorName,
+        items: chosen.map((r) => `${qty[r.key]}× ${r.name}`).join(", "),
+      })
     : fmt(t.wa.vendor, { vendor: vendorName });
-  const set = (key: string, d: number) => setQty((q) => ({ ...q, [key]: Math.max(0, Math.min(20, (q[key] ?? 0) + d)) }));
+  const set = (key: string, d: number) =>
+    setQty((q) => ({ ...q, [key]: Math.max(0, Math.min(20, (q[key] ?? 0) + d)) }));
 
   return (
     <div>
@@ -74,12 +86,19 @@ export function MenuBuilder({ page, canOrder }: { page: SiteVendorPage; canOrder
                   <li key={key} className="ak-card flex items-start justify-between gap-4 p-4">
                     <div className="min-w-0">
                       <p className="font-bold">{name}</p>
-                      {it.description && <p className="mt-1 text-sm text-tone-mute">{it.description}</p>}
+                      {it.description && (
+                        <p className="mt-1 text-sm text-tone-mute">{it.description}</p>
+                      )}
                       <Tags item={it} />
                       <p className="mt-2 flex flex-wrap items-baseline gap-x-3 text-sm">
                         <span className="ak-num text-base font-extrabold">
                           <bdi>{usd(it.price_usd)}</bdi>
-                          {it.per_kg && <span className="text-xs font-medium text-tone-mute"> {t.common.perKg}</span>}
+                          {it.per_kg && (
+                            <span className="text-xs font-medium text-tone-mute">
+                              {" "}
+                              {t.common.perKg}
+                            </span>
+                          )}
                         </span>
                         {rate ? (
                           <span className="ak-num text-xs text-tone-mute">
@@ -89,13 +108,25 @@ export function MenuBuilder({ page, canOrder }: { page: SiteVendorPage; canOrder
                       </p>
                     </div>
                     {canOrder && (
-                      <div className="flex shrink-0 items-center gap-1.5" role="group" aria-label={name}>
+                      <div
+                        className="flex shrink-0 items-center gap-1.5"
+                        role="group"
+                        aria-label={name}
+                      >
                         {q > 0 && (
                           <>
-                            <button type="button" className="grid size-9 place-items-center rounded-full border border-tone-line" onClick={() => set(key, -1)} aria-label={fmt(t.vendor.builder.remove, { item: name })}>
+                            <button
+                              type="button"
+                              className="grid size-9 place-items-center rounded-full border border-tone-line"
+                              onClick={() => set(key, -1)}
+                              aria-label={fmt(t.vendor.builder.remove, { item: name })}
+                            >
                               <Minus className="size-4" aria-hidden="true" />
                             </button>
-                            <span className="ak-num w-6 text-center font-extrabold" aria-live="polite">
+                            <span
+                              className="ak-num w-6 text-center font-extrabold"
+                              aria-live="polite"
+                            >
                               {q}
                             </span>
                           </>
@@ -119,10 +150,20 @@ export function MenuBuilder({ page, canOrder }: { page: SiteVendorPage; canOrder
       })}
 
       {canOrder && (
-        <div className="tone-night sticky bottom-3 z-30 mt-10 rounded-2xl border border-tone-line p-3 shadow-2xl sm:p-4" role="region" aria-label={t.vendor.builder.title}>
+        <div
+          className="tone-night sticky bottom-3 z-30 mt-10 rounded-2xl border border-tone-line p-3 shadow-2xl sm:p-4"
+          role="region"
+          aria-label={t.vendor.builder.title}
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-bold">{count === 0 ? t.vendor.builder.empty : count === 1 ? t.vendor.builder.itemsOne : fmt(t.vendor.builder.items, { n: count })}</p>
+              <p className="font-bold">
+                {count === 0
+                  ? t.vendor.builder.empty
+                  : count === 1
+                    ? t.vendor.builder.itemsOne
+                    : fmt(t.vendor.builder.items, { n: count })}
+              </p>
               {count > 0 && (
                 <p className="ak-num text-sm text-tone-mute">
                   {t.vendor.builder.subtotal}: <bdi>{usd(subtotal)}</bdi>
@@ -135,7 +176,11 @@ export function MenuBuilder({ page, canOrder }: { page: SiteVendorPage; canOrder
                 </p>
               )}
             </div>
-            <OrderButton text={text} label={count > 0 ? t.vendor.builder.orderWith : t.vendor.builder.orderNow} size="md" />
+            <OrderButton
+              text={text}
+              label={count > 0 ? t.vendor.builder.orderWith : t.vendor.builder.orderNow}
+              size="md"
+            />
           </div>
           {count > 0 && <p className="mt-2 text-xs text-tone-mute">{t.vendor.builder.note}</p>}
         </div>

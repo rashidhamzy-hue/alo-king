@@ -35,7 +35,9 @@ export function MerchantCalc() {
         <div>
           <p className="ak-eyebrow">{m.eyebrow}</p>
           <h2 id="merch-title" className="ak-display mt-3 !text-[clamp(2.2rem,1rem+4.6vw,4.2rem)]">
-            {fee != null ? fmt(m.title, { fee: feeText, pct: high }) : fmt(m.title.replace("{fee} ", ""), { pct: high })}
+            {fee != null
+              ? fmt(m.title, { fee: feeText, pct: high })
+              : fmt(m.title.replace("{fee} ", ""), { pct: high })}
           </h2>
           <p className="ak-lead mt-5">{days != null ? fmt(m.sub, { days }) : m.subNoFree}</p>
           <a href="/for-business" className="ak-btn ak-btn-ink ak-btn-lg mt-8">
@@ -82,7 +84,10 @@ export function MerchantCalc() {
                 </dd>
               </div>
               {[low, high].map((p, i) => (
-                <div key={p} className="flex items-baseline justify-between gap-4 py-3 text-tone-mute">
+                <div
+                  key={p}
+                  className="flex items-baseline justify-between gap-4 py-3 text-tone-mute"
+                >
                   <dt>{fmt(m.calc.withCommission, { pct: p })}</dt>
                   <dd className="ak-num text-lg font-bold text-tone-fg">
                     <bdi>{money(i === 0 ? cLow : cHigh)}</bdi>
@@ -91,7 +96,8 @@ export function MerchantCalc() {
               ))}
               <div className="flex items-baseline justify-between gap-4 py-3">
                 <dt className="font-bold">
-                  {m.calc.save} <span className="font-medium text-tone-mute">{m.calc.perMonth}</span>
+                  {m.calc.save}{" "}
+                  <span className="font-medium text-tone-mute">{m.calc.perMonth}</span>
                 </dt>
                 <dd className="ak-num text-xl font-extrabold">
                   <bdi>{money(Math.max(keepMax ?? 0, 0))}</bdi>
@@ -99,7 +105,9 @@ export function MerchantCalc() {
               </div>
             </dl>
             <p className="mt-2 text-sm font-semibold text-tone-ok">{m.calc.label}</p>
-            <p className="mt-1 text-xs text-tone-mute">{fmt(m.calc.fineprint, { fee: feeText, low, high })}</p>
+            <p className="mt-1 text-xs text-tone-mute">
+              {fmt(m.calc.fineprint, { fee: feeText, low, high })}
+            </p>
           </div>
         )}
       </div>

@@ -5,7 +5,10 @@ import { fmt, pickName } from "@/lib/site";
 import { useSite } from "../context";
 
 const { width: W, height: H, bounds, lonFactor, scale } = LEBANON_MAP;
-const project = (lat: number, lon: number): [number, number] => [(lon - bounds.minLon) * lonFactor * scale, (bounds.maxLat - lat) * scale];
+const project = (lat: number, lon: number): [number, number] => [
+  (lon - bounds.minLon) * lonFactor * scale,
+  (bounds.maxLat - lat) * scale,
+];
 
 /**
  * Where we deliver (DECISIONS §37.3.4): every place on our list is a dot; places that are switched on are lit gold, read live
@@ -21,11 +24,19 @@ export function LebanonMap() {
   const km = overview.fees.max_km;
   const sub = fmt(live.length > 0 ? m.subLive : m.subSoon, { n: live.length, km: km ?? "" });
   // The pilot villages sit within a few kilometres of each other: one ring on the map, the names in the list.
-  const cx = pilot.length ? pilot.reduce((a, [, p]) => a + project(p.lat, p.lon)[0], 0) / pilot.length : 0;
-  const cy = pilot.length ? pilot.reduce((a, [, p]) => a + project(p.lat, p.lon)[1], 0) / pilot.length : 0;
+  const cx = pilot.length
+    ? pilot.reduce((a, [, p]) => a + project(p.lat, p.lon)[0], 0) / pilot.length
+    : 0;
+  const cy = pilot.length
+    ? pilot.reduce((a, [, p]) => a + project(p.lat, p.lon)[1], 0) / pilot.length
+    : 0;
 
   return (
-    <section id="map" className="tone-night ak-section bg-[var(--ink-deep)]" aria-labelledby="map-title">
+    <section
+      id="map"
+      className="tone-night ak-section bg-[var(--ink-deep)]"
+      aria-labelledby="map-title"
+    >
       <div className="ak-container grid items-center gap-12 lg:grid-cols-[1fr_1fr]">
         <div className="lg:order-1">
           <p className="ak-eyebrow text-gold">{m.eyebrow}</p>
@@ -41,7 +52,11 @@ export function LebanonMap() {
                 <ul className="mt-2 flex flex-wrap gap-2">
                   {live.slice(0, 12).map((p) => (
                     <li key={p.id}>
-                      <Link to="/$lang/places/$slug" params={{ lang, slug: p.slug }} className="ak-chip ak-chip-gold no-underline">
+                      <Link
+                        to="/$lang/places/$slug"
+                        params={{ lang, slug: p.slug }}
+                        className="ak-chip ak-chip-gold no-underline"
+                      >
                         {pickName(p, "name", lang)}
                       </Link>
                     </li>
@@ -66,14 +81,24 @@ export function LebanonMap() {
             {m.seePlaces}
           </Link>
           <ul className="mt-8 grid gap-2 text-sm text-tone-mute" aria-label="Legend">
-            <li className="flex items-center gap-3">
-              <span className="size-3 rounded-full bg-gold shadow-[0_0_14px_3px_rgb(244_182_60/0.6)]" aria-hidden="true" />
-              {m.legendLive}
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="size-3 rounded-full border-2 border-dashed border-gold" aria-hidden="true" />
-              {m.legendSoon}
-            </li>
+            {live.length > 0 && (
+              <li className="flex items-center gap-3">
+                <span
+                  className="size-3 rounded-full bg-gold shadow-[0_0_14px_3px_rgb(244_182_60/0.6)]"
+                  aria-hidden="true"
+                />
+                {m.legendLive}
+              </li>
+            )}
+            {pilot.length > 0 && (
+              <li className="flex items-center gap-3">
+                <span
+                  className="size-3 rounded-full border-2 border-dashed border-gold"
+                  aria-hidden="true"
+                />
+                {m.legendSoon}
+              </li>
+            )}
             <li className="flex items-center gap-3">
               <span className="size-2 rounded-full bg-[rgb(248_241_231/0.5)]" aria-hidden="true" />
               {m.legendAll}
@@ -82,14 +107,25 @@ export function LebanonMap() {
         </div>
 
         <div className="mx-auto w-full max-w-[30rem] lg:order-2">
-          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${t.a11y.map}. ${m.legendAll}: ${LEBANON_MAP.count}`} className="h-auto w-full">
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            role="img"
+            aria-label={`${t.a11y.map}. ${m.legendAll}: ${LEBANON_MAP.count}`}
+            className="h-auto w-full"
+          >
             <defs>
               <radialGradient id="ak-halo">
                 <stop offset="0" stopColor="#f4b63c" stopOpacity=".55" />
                 <stop offset="1" stopColor="#f4b63c" stopOpacity="0" />
               </radialGradient>
             </defs>
-            <path d={LEBANON_MAP.dots} fill="none" stroke="rgb(248 241 231 / 0.5)" strokeWidth="4" strokeLinecap="round" />
+            <path
+              d={LEBANON_MAP.dots}
+              fill="none"
+              stroke="rgb(248 241 231 / 0.5)"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
             {live.map((p) => {
               const [x, y] = project(p.lat, p.lon);
               return (
@@ -101,10 +137,33 @@ export function LebanonMap() {
             })}
             {pilot.length > 0 && (
               <g>
-                <circle className="ak-ping" cx={cx} cy={cy} r="12" fill="none" stroke="#f4b63c" strokeWidth="2.5" />
-                <circle cx={cx} cy={cy} r="13" fill="none" stroke="#f4b63c" strokeWidth="2.5" strokeDasharray="4 5" />
+                <circle
+                  className="ak-ping"
+                  cx={cx}
+                  cy={cy}
+                  r="12"
+                  fill="none"
+                  stroke="#f4b63c"
+                  strokeWidth="2.5"
+                />
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r="13"
+                  fill="none"
+                  stroke="#f4b63c"
+                  strokeWidth="2.5"
+                  strokeDasharray="4 5"
+                />
                 <circle cx={cx} cy={cy} r="4" fill="#f4b63c" />
-                <text x={cx + 22} y={cy + 6} fill="#f8f1e7" fontSize="26" fontWeight="700" style={{ fontFamily: "inherit" }}>
+                <text
+                  x={cx + 22}
+                  y={cy + 6}
+                  fill="#f8f1e7"
+                  fontSize="26"
+                  fontWeight="700"
+                  style={{ fontFamily: "inherit" }}
+                >
                   {m.region}
                 </text>
               </g>

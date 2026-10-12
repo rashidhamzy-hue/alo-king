@@ -8,7 +8,10 @@ export const Route = createFileRoute("/sitemap.xml")({
       GET: async () => {
         const info = await getRequestInfo();
         return new Response(sitemapIndex(info.origin, new Date().toISOString().slice(0, 10)), {
-          headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=3600" },
+          headers: {
+            "content-type": "application/xml; charset=utf-8",
+            "cache-control": "public, max-age=0, s-maxage=3600",
+          },
         });
       },
     },

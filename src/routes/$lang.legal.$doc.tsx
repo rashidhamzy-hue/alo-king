@@ -11,10 +11,18 @@ export const Route = createFileRoute("/$lang/legal/$doc")({
     const legal = await loadLegal(params.lang as "ar" | "en" | "fr");
     const doc = legal.docs.find((d) => d.slug === params.doc);
     if (!doc) throw notFound();
-    return { doc, updatedOn: legal.updatedOn, draftNote: legal.draftNote, entityHeading: legal.entityHeading, entityText: legal.entityText };
+    return {
+      doc,
+      updatedOn: legal.updatedOn,
+      draftNote: legal.draftNote,
+      entityHeading: legal.entityHeading,
+      entityText: legal.entityText,
+    };
   },
   staleTime: 3_600_000,
-  headers: () => ({ "cache-control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }),
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
+  }),
   head: ({ loaderData, match, params }) => {
     if (!loaderData) return {};
     const { lang, info } = match.context;
@@ -32,19 +40,30 @@ export const Route = createFileRoute("/$lang/legal/$doc")({
 function LegalPage() {
   const { doc, updatedOn, draftNote, entityHeading, entityText } = Route.useLoaderData();
   const { t, lang } = useSite();
-  const date = new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : lang, { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${updatedOn}T00:00:00Z`));
+  const date = new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : lang, {
+    dateStyle: "long",
+    timeZone: "UTC",
+  }).format(new Date(`${updatedOn}T00:00:00Z`));
   return (
     <>
-      <PageHero title={doc.title} lead={doc.intro} crumbs={[{ label: "", to: "/$lang" }, { label: doc.title }]} />
+      <PageHero
+        title={doc.title}
+        lead={doc.intro}
+        crumbs={[{ label: "", to: "/$lang" }, { label: doc.title }]}
+      />
       <section className="tone-cream ak-section !pt-12">
         <div className="ak-container grid gap-12 lg:grid-cols-[1fr_16rem]">
           <article className="ak-prose">
-            <p className="text-sm font-semibold text-tone-mute">{t.common.updated.replace("{date}", date)}</p>
+            <p className="text-sm font-semibold text-tone-mute">
+              {t.common.updated.replace("{date}", date)}
+            </p>
             <p className="ak-card mt-4 p-4 text-sm text-tone-mute">{draftNote}</p>
             {doc.sections.map((s) => (
               <section key={s.h}>
                 <h2>{s.h}</h2>
-                {s.p?.map((p) => <p key={p}>{p}</p>)}
+                {s.p?.map((p) => (
+                  <p key={p}>{p}</p>
+                ))}
                 {s.ul && (
                   <ul>
                     {s.ul.map((li) => (

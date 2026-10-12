@@ -46,7 +46,9 @@ export function initSentry() {
         },
       });
     });
-  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  const w = window as Window & {
+    requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+  };
   if (w.requestIdleCallback) w.requestIdleCallback(() => void start(), { timeout: 5000 });
   else setTimeout(() => void start(), 3000);
 }
@@ -108,7 +110,9 @@ function startLite(dsn: string) {
       request: { url: window.location.href },
     } as unknown as ErrorEvent);
     const body = `${JSON.stringify({ event_id: (event as { event_id: string }).event_id, sent_at: new Date().toISOString() })}\n${JSON.stringify({ type: "event" })}\n${JSON.stringify(event)}`;
-    void fetch(url, { method: "POST", body, keepalive: true, mode: "no-cors" }).catch(() => undefined);
+    void fetch(url, { method: "POST", body, keepalive: true, mode: "no-cors" }).catch(
+      () => undefined,
+    );
   };
   lite = { send };
   window.addEventListener("error", (ev) => send(ev.error ?? ev.message));

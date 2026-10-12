@@ -33,7 +33,12 @@ export const fr: Copy = {
     person: "Bonjour Alo King, je voudrais parler à une personne",
     track: "Bonjour Alo King, où est ma commande ?",
   },
-  a11y: { skip: "Aller au contenu", phoneDemo: "Un exemple de conversation sur WhatsApp", replay: "Rejouer l'exemple", map: "Carte du Liban" },
+  a11y: {
+    skip: "Aller au contenu",
+    phoneDemo: "Un exemple de conversation sur WhatsApp",
+    replay: "Rejouer l'exemple",
+    map: "Carte du Liban",
+  },
   common: {
     home: "Accueil",
     places: "Lieux",
@@ -71,7 +76,8 @@ export const fr: Copy = {
     cancelled: "Annulée",
   },
   footer: {
-    blurb: "Repas et produits du quotidien sur WhatsApp, pour le Liban et pour les Libanais du monde entier.",
+    blurb:
+      "Repas et produits du quotidien sur WhatsApp, pour le Liban et pour les Libanais du monde entier.",
     explore: "Explorer",
     company: "Alo King",
     legal: "Mentions légales",
@@ -89,7 +95,10 @@ export const fr: Copy = {
     text: "Elle a peut-être été déplacée, ou le lien n'est pas tout à fait correct. Vous pouvez toujours dire Allô sur WhatsApp.",
     home: "Retour à l'accueil",
   },
-  error: { title: "Cette page ne s'est pas chargée", text: "Une erreur est survenue de notre côté. Réessayez dans un instant." },
+  error: {
+    title: "Cette page ne s'est pas chargée",
+    text: "Une erreur est survenue de notre côté. Réessayez dans un instant.",
+  },
 
   home: {
     seo: {
@@ -101,7 +110,11 @@ export const fr: Copy = {
       eyebrow: "Commandez sur WhatsApp · Liban",
       title: "Dites Allô. Votre commande arrive.",
       sub: "Repas et produits du quotidien des commerces près de chez vous. Écrivez, parlez ou touchez sur WhatsApp, en arabe, anglais, français ou arabizi. Sans application, sans inscription.",
-      points: ["Paiement à la livraison", "Prix fixés par le commerce", "Arabe · English · Français"],
+      points: [
+        "Paiement à la livraison",
+        "Prix fixés par le commerce",
+        "Arabe · English · Français",
+      ],
     },
     demo: {
       botName: "Alo King",
@@ -131,12 +144,28 @@ export const fr: Copy = {
       title: "Position. Choix. Confirmation.",
       sub: "Pas de formulaire, pas de mot de passe. Si vous savez envoyer un message, vous savez commander.",
       steps: [
-        { n: "1", title: "Position", text: "Partagez votre position. Alo King trouve les commerces qui livrent chez vous." },
-        { n: "2", title: "Choix", text: "Choisissez dans le menu, ou écrivez ou dites simplement ce que vous voulez. Les prix sont ceux du commerce." },
-        { n: "3", title: "Confirmation", text: "Voyez le total en dollars et en livres au taux du jour, puis touchez une seule fois." },
+        {
+          n: "1",
+          title: "Position",
+          text: "Partagez votre position. Alo King trouve les commerces qui livrent chez vous.",
+        },
+        {
+          n: "2",
+          title: "Choix",
+          text: "Choisissez dans le menu, ou écrivez ou dites simplement ce que vous voulez. Les prix sont ceux du commerce.",
+        },
+        {
+          n: "3",
+          title: "Confirmation",
+          text: "Voyez le total en dollars et en livres au taux du jour, puis touchez une seule fois.",
+        },
       ],
       phone1: { place: "Baakline", button: "Envoyer ma position" },
-      phone2: { shop: "Fournil Abou Ali", rows: ["Manakish zaatar", "Manakish fromage", "Sandwich falafel"], add: "Ajouter" },
+      phone2: {
+        shop: "Fournil Abou Ali",
+        rows: ["Manakish zaatar", "Manakish fromage", "Sandwich falafel"],
+        add: "Ajouter",
+      },
       phone3: { total: "Total", confirm: "Confirmer la commande" },
     },
     speak: {
@@ -153,8 +182,10 @@ export const fr: Copy = {
     map: {
       eyebrow: "Où nous livrons",
       title: "Le Liban, village par village.",
-      subLive: "Livraison en cours dans {n} lieux. Chaque commerce fixe son rayon de livraison, jusqu'à {km} km par la route.",
-      subSoon: "Nous ouvrons d'abord dans le Chouf, puis village après village. Chaque commerce fixe son rayon de livraison, jusqu'à {km} km par la route.",
+      subLive:
+        "Livraison en cours dans {n} lieux. Chaque commerce fixe son rayon de livraison, jusqu'à {km} km par la route.",
+      subSoon:
+        "Nous ouvrons d'abord dans le Chouf, puis village après village. Chaque commerce fixe son rayon de livraison, jusqu'à {km} km par la route.",
       legendLive: "Livraison en cours",
       legendSoon: "Bientôt ouvert",
       legendAll: "Chaque ville et village de notre liste",
@@ -167,7 +198,8 @@ export const fr: Copy = {
       eyebrow: "Pour les commerçants",
       title: "{fee} par commande. Pas {pct} %.",
       sub: "Un tarif fixe par commande livrée, rien sur les prix de votre menu, rien par mois. Vos {days} premiers jours sont gratuits.",
-      subNoFree: "Un tarif fixe par commande livrée, rien sur les prix de votre menu, rien par mois.",
+      subNoFree:
+        "Un tarif fixe par commande livrée, rien sur les prix de votre menu, rien par mois.",
       calc: {
         title: "Que paieriez-vous ?",
         orders: "Commandes par mois",
@@ -177,7 +209,8 @@ export const fr: Copy = {
         save: "Vous gardez jusqu'à",
         perMonth: "par mois",
         label: "Calculé à partir de vos chiffres",
-        fineprint: "Alo King facture {fee} par commande livrée. La commission va de {low} % à {high} % de la valeur de la commande.",
+        fineprint:
+          "Alo King facture {fee} par commande livrée. La commission va de {low} % à {high} % de la valeur de la commande.",
       },
       cta: "Pour les commerçants",
       ctaNote: "Réclamez votre commerce et démarrez en quelques minutes.",
@@ -188,7 +221,7 @@ export const fr: Copy = {
       sub: "Pour les Libanais de l'étranger : commandez pour votre famille au Liban, payez par carte et voyez la photo de livraison. Vous voyez les deux horloges, pour savoir quand c'est l'heure du dîner à la maison.",
       badges: ["Paiement par carte", "Photo de livraison"],
       soon: "Bientôt",
-      cta: "En savoir plus",
+      cta: "À propos de Send Home",
       here: "Là où vous êtes",
       there: "Beyrouth",
       pick: "Votre ville",
@@ -197,10 +230,22 @@ export const fr: Copy = {
       eyebrow: "Pourquoi on nous fait confiance",
       title: "Des faits simples.",
       items: [
-        { title: "Paiement à la livraison", text: "Vous payez la personne à votre porte, en dollars ou en livres si le commerce accepte les deux." },
-        { title: "Prix fixés par le commerce", text: "Nous n'ajoutons jamais rien au prix du menu. Les frais de livraison s'affichent avant de confirmer." },
-        { title: "Arabe, anglais, français", text: "Parlez-nous comme vous parlez. Nous répondons dans votre langue." },
-        { title: "Une vraie personne", text: "Rasheed, chez Alo King, lit ce que l'assistant ne sait pas traiter, et répond." },
+        {
+          title: "Paiement à la livraison",
+          text: "Vous payez la personne à votre porte, en dollars ou en livres si le commerce accepte les deux.",
+        },
+        {
+          title: "Prix fixés par le commerce",
+          text: "Nous n'ajoutons jamais rien au prix du menu. Les frais de livraison s'affichent avant de confirmer.",
+        },
+        {
+          title: "Arabe, anglais, français",
+          text: "Parlez-nous comme vous parlez. Nous répondons dans votre langue.",
+        },
+        {
+          title: "Une vraie personne",
+          text: "Rasheed, chez Alo King, lit ce que l'assistant ne sait pas traiter, et répond.",
+        },
       ],
     },
     faq: { eyebrow: "Questions", title: "Bon à savoir", more: "Plus de réponses" },
@@ -209,18 +254,22 @@ export const fr: Copy = {
   places: {
     indexTitle: "Où Alo King livre",
     indexSeoTitle: "Où Alo King livre au Liban",
-    indexSeoDescription: "Les lieux du Liban où vous pouvez commander sur WhatsApp avec Alo King, avec les commerces qui y livrent.",
-    indexLead: "Les lieux où des commerces sont ouverts. Chaque commerce fixe son rayon de livraison, jusqu'à {km} km par la route.",
+    indexSeoDescription:
+      "Les lieux du Liban où vous pouvez commander sur WhatsApp avec Alo King, avec les commerces qui y livrent.",
+    indexLead:
+      "Les lieux où des commerces sont ouverts. Chaque commerce fixe son rayon de livraison, jusqu'à {km} km par la route.",
     none: "Nous ouvrons bientôt. Les premiers villages sont {list}.",
     title: "Commander à {place}",
     seoTitle: "Commandez repas et produits du quotidien à {place} sur WhatsApp | Alo King",
-    seoDescription: "Les commerces qui livrent à {place}, Liban, avec Alo King sur WhatsApp. Paiement à la livraison.",
+    seoDescription:
+      "Les commerces qui livrent à {place}, Liban, avec Alo King sur WhatsApp. Paiement à la livraison.",
     fact: "{n} commerces livrent à {place} avec Alo King sur WhatsApp ; livraison de {min} à {max}.",
     factOne: "1 commerce livre à {place} avec Alo King sur WhatsApp ; livraison de {min} à {max}.",
     factNone: "Alo King ouvre bientôt à {place}. Les premiers commerces apparaîtront ici.",
     shops: "Commerces à {place}",
     district: "Caza de {district}",
-    noShops: "Pas encore de commerce. Dites Allô sur WhatsApp et nous vous prévenons dès qu'un commerce ouvre ici.",
+    noShops:
+      "Pas encore de commerce. Dites Allô sur WhatsApp et nous vous prévenons dès qu'un commerce ouvre ici.",
     howTitle: "Comment commander à {place}",
   },
   cuisine: {
@@ -231,7 +280,8 @@ export const fr: Copy = {
     none: "Les cuisines apparaîtront ici à mesure que des commerces nous rejoignent.",
     title: "{cuisine} sur WhatsApp",
     seoTitle: "Livraison de {cuisine} au Liban sur WhatsApp | Alo King",
-    seoDescription: "Les commerces de {cuisine} qui livrent avec Alo King sur WhatsApp. Paiement à la livraison.",
+    seoDescription:
+      "Les commerces de {cuisine} qui livrent avec Alo King sur WhatsApp. Paiement à la livraison.",
     fact: "{n} commerces de {cuisine} livrent avec Alo King sur WhatsApp.",
     factOne: "1 commerce de {cuisine} livre avec Alo King sur WhatsApp.",
     factNone: "Aucun commerce de {cuisine} n'a encore rejoint Alo King.",
@@ -239,7 +289,8 @@ export const fr: Copy = {
   },
   vendor: {
     seoTitle: "{name} : menu et commande sur WhatsApp | Alo King",
-    seoDescription: "{name}, {type}{where}. Voyez le menu et commandez sur WhatsApp avec Alo King. Paiement à la livraison.",
+    seoDescription:
+      "{name}, {type}{where}. Voyez le menu et commandez sur WhatsApp avec Alo King. Paiement à la livraison.",
     where: " à {place}",
     menu: "Menu",
     hours: "Horaires",
@@ -249,7 +300,8 @@ export const fr: Copy = {
     deliveryOnly: "Livraison uniquement.",
     both: "Livraison ou retrait, au choix.",
     cash: "Paiement à la livraison en {currencies}.",
-    paused: "Ce commerce ne prend pas de commandes pour le moment. Vous pouvez quand même voir le menu.",
+    paused:
+      "Ce commerce ne prend pas de commandes pour le moment. Vous pouvez quand même voir le menu.",
     closedToday: "Fermé",
     hoursUnknown: "Les horaires ne sont pas indiqués.",
     days: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"],
@@ -301,10 +353,22 @@ export const fr: Copy = {
       "Send Home arrive avec les paiements en ligne. D'ici là, vous pouvez déjà commander pour votre famille sur WhatsApp, et elle paie à la livraison.",
     stepsTitle: "Comment fonctionne Send Home",
     steps: [
-      { title: "Dites-nous pour qui", text: "Dites Allô sur WhatsApp, d'où que vous soyez, et donnez-nous le lieu au Liban ou leur position." },
-      { title: "Choisissez un commerce près d'eux", text: "Choisissez les plats. Les prix sont ceux du commerce, en dollars et en livres." },
-      { title: "Payez par carte", text: "Le paiement par carte arrive avec les paiements en ligne. Vous paierez en toute sécurité depuis l'étranger." },
-      { title: "Voyez-la arriver", text: "Vous recevez le statut et la photo de livraison, pour savoir qu'elle est bien arrivée." },
+      {
+        title: "Dites-nous pour qui",
+        text: "Dites Allô sur WhatsApp, d'où que vous soyez, et donnez-nous le lieu au Liban ou leur position.",
+      },
+      {
+        title: "Choisissez un commerce près d'eux",
+        text: "Choisissez les plats. Les prix sont ceux du commerce, en dollars et en livres.",
+      },
+      {
+        title: "Payez par carte",
+        text: "Le paiement par carte arrive avec les paiements en ligne. Vous paierez en toute sécurité depuis l'étranger.",
+      },
+      {
+        title: "Voyez-la arriver",
+        text: "Vous recevez le statut et la photo de livraison, pour savoir qu'elle est bien arrivée.",
+      },
     ],
     clocksTitle: "Les deux horloges, pour savoir quand c'est l'heure du dîner à la maison",
     clockHere: "Là où vous êtes",
@@ -316,13 +380,20 @@ export const fr: Copy = {
         q: "Puis-je commander pour ma famille dès aujourd'hui ?",
         a: "Oui, sur WhatsApp : dites-nous le lieu et ce qu'ils aimeraient. Aujourd'hui ils paient à la livraison. Le paiement par carte depuis l'étranger arrive avec les paiements en ligne.",
       },
-      { q: "Sauront-ils que cela vient de moi ?", a: "Oui. Vous pouvez ajouter votre nom et un court message à la commande." },
-      { q: "Comment saurai-je qu'elle est arrivée ?", a: "Vous recevez le statut de la commande sur WhatsApp. La photo de livraison arrive avec Send Home." },
+      {
+        q: "Sauront-ils que cela vient de moi ?",
+        a: "Oui. Vous pouvez ajouter votre nom et un court message à la commande.",
+      },
+      {
+        q: "Comment saurai-je qu'elle est arrivée ?",
+        a: "Vous recevez le statut de la commande sur WhatsApp. La photo de livraison arrive avec Send Home.",
+      },
     ],
   },
   help: {
     seoTitle: "Aide et réponses | Alo King",
-    seoDescription: "Comment commander sur WhatsApp avec Alo King, comment payer, frais de livraison, langues, messages vocaux et vos données.",
+    seoDescription:
+      "Comment commander sur WhatsApp avec Alo King, comment payer, frais de livraison, langues, messages vocaux et vos données.",
     title: "Aide",
     lead: "De courtes réponses aux questions les plus fréquentes. Toujours bloqué ? Dites Allô sur WhatsApp et une personne vous répond.",
     stepsTitle: "Commander en quatre étapes",
@@ -340,7 +411,11 @@ export const fr: Copy = {
       q: "Comment commander ?",
       a: "Touchez Commander sur WhatsApp et dites bonjour. Partagez votre position, puis choisissez dans le menu ou écrivez ou dites ce que vous voulez, par exemple « 2 shawarma et un Pepsi ». Vérifiez le récapitulatif et touchez Confirmer.",
     },
-    { id: "app", q: "Faut-il une application ou un compte ?", a: "Non. WhatsApp suffit. Il n'y a rien à télécharger et pas d'inscription." },
+    {
+      id: "app",
+      q: "Faut-il une application ou un compte ?",
+      a: "Non. WhatsApp suffit. Il n'y a rien à télécharger et pas d'inscription.",
+    },
     {
       id: "languages",
       q: "Quelles langues puis-je utiliser ?",
@@ -360,7 +435,8 @@ export const fr: Copy = {
       id: "fee",
       q: "Combien coûte la livraison ?",
       a: "Cela dépend de la distance par la route depuis le commerce : de {min} à {max}, jusqu'à {km} km. Vous voyez les frais avant de confirmer.",
-      fallback: "Cela dépend de la distance par la route depuis le commerce, et vous voyez les frais avant de confirmer.",
+      fallback:
+        "Cela dépend de la distance par la route depuis le commerce, et vous voyez les frais avant de confirmer.",
     },
     {
       id: "voice",
@@ -376,7 +452,8 @@ export const fr: Copy = {
       id: "where",
       q: "Où livrez-vous ?",
       a: "Partout où un commerce d'Alo King livre. Chaque commerce fixe son rayon, jusqu'à {km} km par la route. Nous commençons dans le Chouf et grandissons village après village.",
-      fallback: "Partout où un commerce d'Alo King livre. Chaque commerce fixe son rayon. Nous commençons dans le Chouf et grandissons village après village.",
+      fallback:
+        "Partout où un commerce d'Alo King livre. Chaque commerce fixe son rayon. Nous commençons dans le Chouf et grandissons village après village.",
     },
     {
       id: "wrong",
@@ -396,19 +473,24 @@ export const fr: Copy = {
   ],
   contact: {
     seoTitle: "Contacter Alo King",
-    seoDescription: "Joignez Alo King sur WhatsApp. Une personne répond, en arabe, anglais ou français.",
+    seoDescription:
+      "Joignez Alo King sur WhatsApp. Une personne répond, en arabe, anglais ou français.",
     title: "Contact",
     lead: "Le plus rapide, c'est WhatsApp. Une personne lit chaque message que l'assistant ne sait pas traiter.",
     whatsappTitle: "WhatsApp",
-    whatsappText: "Dites Allô et posez votre question. Dans la discussion, touchez « Une personne » à tout moment.",
-    whatsappSoon: "Notre numéro WhatsApp sera bientôt en service. Cette page l'affichera dès qu'il sera prêt.",
+    whatsappText:
+      "Dites Allô et posez votre question. Dans la discussion, touchez « Une personne » à tout moment.",
+    whatsappSoon:
+      "Notre numéro WhatsApp sera bientôt en service. Cette page l'affichera dès qu'il sera prêt.",
     hoursTitle: "Quand nous répondons",
-    hours: "Sous {fast} minutes de {from} à {to} (heure de Beyrouth), et sous une heure le reste du temps.",
+    hours:
+      "Sous {fast} minutes de {from} à {to} (heure de Beyrouth), et sous une heure le reste du temps.",
     languagesTitle: "Langues",
     languages: "Arabe, anglais et français.",
     companyTitle: "Société",
     privacyTitle: "Vos données",
-    privacyText: "Une question sur vos données, ou envie de les supprimer ? Dites-le sur WhatsApp, ou lisez notre page de confidentialité.",
+    privacyText:
+      "Une question sur vos données, ou envie de les supprimer ? Dites-le sur WhatsApp, ou lisez notre page de confidentialité.",
     merchantsTitle: "Commerces",
     merchantsText: "Vous avez un commerce ? Commencez par la page Pour les commerçants.",
   },
@@ -432,12 +514,14 @@ export const fr: Copy = {
     total: "Total",
     cancelled: "Cette commande a été annulée. Rien n'a été débité.",
     rejected: "Le commerce n'a pas pu prendre cette commande. Rien n'a été débité.",
-    failed: "Nous n'avons pas pu livrer cette commande. Écrivez-nous sur WhatsApp et nous réglons cela.",
+    failed:
+      "Nous n'avons pas pu livrer cette commande. Écrivez-nous sur WhatsApp et nous réglons cela.",
     helpTitle: "Besoin d'aide pour cette commande ?",
     helpCta: "Écrivez-nous sur WhatsApp",
     notFoundTitle: "Ce lien de suivi n'est pas valide",
-    notFoundText: "Il a peut-être expiré, ou le lien est incomplet. Ouvrez votre discussion WhatsApp avec Alo King et touchez « Ma commande ».",
+    notFoundText:
+      "Il a peut-être expiré, ou le lien est incomplet. Ouvrez votre discussion WhatsApp avec Alo King et touchez « Ma commande ».",
     refreshed: "Se met à jour toutes les quelques secondes.",
     privacy: "Cette page n'affiche que le statut de votre commande.",
   },
-}
+};

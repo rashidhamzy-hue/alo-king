@@ -15,11 +15,14 @@ import { captureError } from "@/lib/sentry";
 import { dirOf, isLang, type RequestInfo, type SiteLang } from "@/lib/site";
 import { getRequestInfo } from "@/lib/request";
 import { Crown } from "@/design/Crown";
+import { Contours, ContoursDefs } from "@/design/Contours";
 
 /** Shown for any address we don't know: all three languages at once, because the visitor's language is not known yet. */
 function NotFoundComponent() {
   return (
     <div className="tone-night ak-site ak-contours ak-glow ak-section grid min-h-screen place-items-center">
+      <ContoursDefs />
+      <Contours />
       <div className="ak-container text-center">
         <Crown className="mx-auto h-12 w-16 text-gold" />
         <p className="ak-eyebrow mt-6 text-gold">404</p>
@@ -62,7 +65,9 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
     <div className="tone-night ak-site ak-section grid min-h-screen place-items-center">
       <div className="ak-container text-center">
         <h1 className="ak-h2">This page didn't load</h1>
-        <p className="ak-lead mx-auto mt-3">Something went wrong on our side. Try again in a moment.</p>
+        <p className="ak-lead mx-auto mt-3">
+          Something went wrong on our side. Try again in a moment.
+        </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             onClick={() => {
@@ -88,6 +93,7 @@ export const Route = createRootRouteWithContext<{ info?: RequestInfo }>()({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#17131a" },
+      { title: "Alo King" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -105,7 +111,8 @@ export const Route = createRootRouteWithContext<{ info?: RequestInfo }>()({
 function RootShell({ children }: { children: ReactNode }) {
   const lang = useRouterState({
     select: (s) => {
-      const p = s.matches.find((m) => "lang" in (m.params as Record<string, string>))?.params as { lang?: string } | undefined;
+      const p = s.matches.find((m) => "lang" in (m.params as Record<string, string>))?.params as
+        { lang?: string } | undefined;
       return p?.lang && isLang(p.lang) ? (p.lang as SiteLang) : null;
     },
   });
@@ -123,8 +130,17 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
+  // On the public site the language is the URL's: the provider must agree from the first render, or hydration flips the
+  // page to left-to-right for a moment and everything shifts (CLS).
+  const lang = useRouterState({
+    select: (s) => {
+      const p = s.matches.find((m) => "lang" in (m.params as Record<string, string>))?.params as
+        { lang?: string } | undefined;
+      return p?.lang && isLang(p.lang) ? p.lang : null;
+    },
+  });
   return (
-    <LangProvider>
+    <LangProvider forced={lang ?? undefined}>
       <Outlet />
     </LangProvider>
   );

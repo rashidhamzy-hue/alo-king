@@ -16,7 +16,9 @@ export const Route = createFileRoute("/$lang/places/")({
       info: info ?? { origin: "", indexing: false },
     });
   },
-  headers: () => ({ "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600" }),
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600",
+  }),
   component: PlacesIndex,
 });
 
@@ -38,8 +40,15 @@ function PlacesIndex() {
           {overview.places.length > 0 ? (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {overview.places.map((p) => (
-                <li key={p.id} className="ak-card relative p-5 transition-transform hover:-translate-y-0.5">
-                  <Link to="/$lang/places/$slug" params={{ lang, slug: p.slug }} className="text-lg font-extrabold no-underline after:absolute after:inset-0 after:content-['']">
+                <li
+                  key={p.id}
+                  className="ak-card relative p-5 transition-transform hover:-translate-y-0.5"
+                >
+                  <Link
+                    to="/$lang/places/$slug"
+                    params={{ lang, slug: p.slug }}
+                    className="text-lg font-extrabold no-underline after:absolute after:inset-0 after:content-['']"
+                  >
                     {pickName(p, "name", lang)}
                   </Link>
                   <p className="mt-1 text-sm text-tone-mute ak-num">
@@ -51,7 +60,9 @@ function PlacesIndex() {
           ) : (
             <div className="ak-card max-w-2xl p-8">
               <p className="ak-h3">{t.common.news}</p>
-              <p className="mt-3 text-tone-mute">{fmt(t.places.none, { list: names.join(lang === "ar" ? "، " : ", ") })}</p>
+              <p className="mt-3 text-tone-mute">
+                {fmt(t.places.none, { list: names.join(lang === "ar" ? "، " : ", ") })}
+              </p>
             </div>
           )}
         </div>

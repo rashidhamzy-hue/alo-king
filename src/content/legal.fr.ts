@@ -4,15 +4,18 @@ import type { LegalCopy } from "./legal.en";
 
 export const legalFr: LegalCopy = {
   updatedOn: "2026-10-13",
-  draftNote: "Version pilote. Alo King SARL est en cours de constitution ; ces pages seront mises à jour, et re-datées, une fois la société enregistrée et relues par notre avocat.",
+  draftNote:
+    "Version pilote. Alo King SARL est en cours de constitution ; ces pages seront mises à jour, et re-datées, une fois la société enregistrée et relues par notre avocat.",
   entityHeading: "Qui sommes-nous",
-  entityText: "Alo King SARL (en cours de constitution), Liban. Vous pouvez nous joindre sur WhatsApp ou via la page de contact.",
+  entityText:
+    "Alo King SARL (en cours de constitution), Liban. Vous pouvez nous joindre sur WhatsApp ou via la page de contact.",
   docs: [
     {
       slug: "terms",
       title: "Conditions d'utilisation",
       description: "Les règles pour commander avec Alo King sur WhatsApp et sur ce site.",
-      intro: "Alo King vous permet de commander repas et produits du quotidien auprès de commerces du Liban en discutant sur WhatsApp. En commandant avec Alo King, vous acceptez ces conditions.",
+      intro:
+        "Alo King vous permet de commander repas et produits du quotidien auprès de commerces du Liban en discutant sur WhatsApp. En commandant avec Alo King, vous acceptez ces conditions.",
       sections: [
         {
           h: "Ce qu'est Alo King",
@@ -32,15 +35,21 @@ export const legalFr: LegalCopy = {
         },
         {
           h: "Paiement",
-          p: ["Vous payez à la livraison, en espèces, à la personne qui vous remet la commande, dans la devise acceptée par le commerce. Une limite s'applique aux commandes en espèces, et nous vous prévenons si votre commande la dépasse. Le paiement en ligne sera ajouté plus tard, avec ses propres conditions."],
+          p: [
+            "Vous payez à la livraison, en espèces, à la personne qui vous remet la commande, dans la devise acceptée par le commerce. Une limite s'applique aux commandes en espèces, et nous vous prévenons si votre commande la dépasse. Le paiement en ligne sera ajouté plus tard, avec ses propres conditions.",
+          ],
         },
         {
           h: "Code de livraison",
-          p: ["Pour certaines commandes (par exemple une première commande en espèces, ou une commande importante) nous vous donnons un court code. Donnez-le à la personne qui vous remet la commande. Il vous protège, ainsi que le commerce."],
+          p: [
+            "Pour certaines commandes (par exemple une première commande en espèces, ou une commande importante) nous vous donnons un court code. Donnez-le à la personne qui vous remet la commande. Il vous protège, ainsi que le commerce.",
+          ],
         },
         {
           h: "Annulation",
-          p: ["Vous pouvez annuler avant que le commerce accepte votre commande, et pendant un court moment après. Ensuite, nous transmettons votre demande au commerce, qui peut accepter s'il n'a pas commencé la préparation. Touchez « Ma commande » dans la discussion, puis Annuler."],
+          p: [
+            "Vous pouvez annuler avant que le commerce accepte votre commande, et pendant un court moment après. Ensuite, nous transmettons votre demande au commerce, qui peut accepter s'il n'a pas commencé la préparation. Touchez « Ma commande » dans la discussion, puis Annuler.",
+          ],
         },
         {
           h: "Votre part",
@@ -59,15 +68,19 @@ export const legalFr: LegalCopy = {
         },
         {
           h: "Modifications et droit applicable",
-          p: ["Nous pouvons mettre ces conditions à jour et changerons la date en haut de page. Le droit libanais s'applique et les tribunaux de Beyrouth sont compétents, sans retirer aucun droit qu'un consommateur tient de la loi impérative."],
+          p: [
+            "Nous pouvons mettre ces conditions à jour et changerons la date en haut de page. Le droit libanais s'applique et les tribunaux de Beyrouth sont compétents, sans retirer aucun droit qu'un consommateur tient de la loi impérative.",
+          ],
         },
       ],
     },
     {
       slug: "privacy",
       title: "Confidentialité",
-      description: "Les données qu'Alo King conserve, pourquoi, qui les traite et comment les supprimer. Messages vocaux et loi 81/2018.",
-      intro: "Nous conservons le minimum nécessaire pour prendre votre commande. Cette page explique de quoi il s'agit, conformément à la loi libanaise 81/2018 relative aux transactions électroniques et aux données à caractère personnel.",
+      description:
+        "Les données qu'Alo King conserve, pourquoi, qui les traite et comment les supprimer. Messages vocaux et loi 81/2018.",
+      intro:
+        "Nous conservons le minimum nécessaire pour prendre votre commande. Cette page explique de quoi il s'agit, conformément à la loi libanaise 81/2018 relative aux transactions électroniques et aux données à caractère personnel.",
       sections: [
         {
           h: "Ce que nous collectons",
@@ -105,7 +118,9 @@ export const legalFr: LegalCopy = {
         },
         {
           h: "Où elles sont stockées et combien de temps",
-          p: ["Notre base de données fonctionne dans l'Union européenne. Nous conservons les enregistrements de commandes aussi longtemps que la comptabilité et la loi l'exigent. L'historique des discussions et vos informations enregistrées sont conservés tant que vous utilisez Alo King, et jusqu'à ce que vous nous demandiez de les supprimer."],
+          p: [
+            "Notre base de données fonctionne dans l'Union européenne. Nous conservons les enregistrements de commandes aussi longtemps que la comptabilité et la loi l'exigent. L'historique des discussions et vos informations enregistrées sont conservés tant que vous utilisez Alo King, et jusqu'à ce que vous nous demandiez de les supprimer.",
+          ],
         },
         {
           h: "Vos droits",
@@ -118,19 +133,25 @@ export const legalFr: LegalCopy = {
         },
         {
           h: "Enfants",
-          p: ["Alo King s'adresse aux adultes. Si vous pensez qu'un enfant l'a utilisé, dites-le-nous et nous supprimerons les données."],
+          p: [
+            "Alo King s'adresse aux adultes. Si vous pensez qu'un enfant l'a utilisé, dites-le-nous et nous supprimerons les données.",
+          ],
         },
         {
           h: "Contact",
-          p: ["Pour toute question ou réclamation sur vos données, utilisez la page de contact. Alo King SARL (en cours de constitution) est responsable des données décrites ici."],
+          p: [
+            "Pour toute question ou réclamation sur vos données, utilisez la page de contact. Alo King SARL (en cours de constitution) est responsable des données décrites ici.",
+          ],
         },
       ],
     },
     {
       slug: "refund",
       title: "Politique de remboursement",
-      description: "Ce qui se passe lorsqu'une commande est annulée, erronée, incomplète ou n'arrive pas.",
-      intro: "La plupart des commandes sont payées en espèces à la livraison : la plupart des problèmes se règlent donc avant que l'argent change de mains. Voici ce que nous faisons quand quelque chose ne va pas.",
+      description:
+        "Ce qui se passe lorsqu'une commande est annulée, erronée, incomplète ou n'arrive pas.",
+      intro:
+        "La plupart des commandes sont payées en espèces à la livraison : la plupart des problèmes se règlent donc avant que l'argent change de mains. Voici ce que nous faisons quand quelque chose ne va pas.",
       sections: [
         {
           h: "Paiement à la livraison",
@@ -149,22 +170,29 @@ export const legalFr: LegalCopy = {
         },
         {
           h: "Commandes qui ne peuvent pas être annulées",
-          p: ["Une fois que le commerce a commencé à préparer votre commande, il peut refuser l'annulation. Un plat préparé correctement comme commandé n'est pas remboursable pour cause de changement d'avis."],
+          p: [
+            "Une fois que le commerce a commencé à préparer votre commande, il peut refuser l'annulation. Un plat préparé correctement comme commandé n'est pas remboursable pour cause de changement d'avis.",
+          ],
         },
         {
           h: "Paiements en ligne",
-          p: ["Lorsque le paiement en ligne sera ajouté, les remboursements retourneront vers le même moyen de paiement, et cette page indiquera le délai."],
+          p: [
+            "Lorsque le paiement en ligne sera ajouté, les remboursements retourneront vers le même moyen de paiement, et cette page indiquera le délai.",
+          ],
         },
         {
           h: "Notre engagement",
-          p: ["Nous répondons à chaque message concernant un problème. De nombreux cas sont réglés dans la discussion le jour même."],
+          p: [
+            "Nous répondons à chaque message concernant un problème. De nombreux cas sont réglés dans la discussion le jour même.",
+          ],
         },
       ],
     },
     {
       slug: "cookies",
       title: "Cookies",
-      description: "Comment ce site utilise les cookies et le stockage similaire. Nous n'en utilisons presque aucun.",
+      description:
+        "Comment ce site utilise les cookies et le stockage similaire. Nous n'en utilisons presque aucun.",
       intro: "Ce site est conçu pour ne presque pas avoir besoin de cookies.",
       sections: [
         {
@@ -177,15 +205,21 @@ export const legalFr: LegalCopy = {
         },
         {
           h: "Publicité",
-          p: ["Nous n'utilisons aujourd'hui ni cookies publicitaires ni cookies de suivi. Si nous ajoutons un jour un outil publicitaire, nous vous le demanderons d'abord et mettrons cette page à jour."],
+          p: [
+            "Nous n'utilisons aujourd'hui ni cookies publicitaires ni cookies de suivi. Si nous ajoutons un jour un outil publicitaire, nous vous le demanderons d'abord et mettrons cette page à jour.",
+          ],
         },
         {
           h: "Tiers",
-          p: ["Ouvrir WhatsApp depuis ce site vous transfère à WhatsApp, qui a ses propres règles. Les polices et les images sont servies par notre propre site."],
+          p: [
+            "Ouvrir WhatsApp depuis ce site vous transfère à WhatsApp, qui a ses propres règles. Les polices et les images sont servies par notre propre site.",
+          ],
         },
         {
           h: "Votre contrôle",
-          p: ["Vous pouvez effacer les données du site dans votre navigateur à tout moment. Le site fonctionne sans elles."],
+          p: [
+            "Vous pouvez effacer les données du site dans votre navigateur à tout moment. Le site fonctionne sans elles.",
+          ],
         },
       ],
     },

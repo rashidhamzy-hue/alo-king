@@ -9,7 +9,11 @@ export async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Pr
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
       method: "POST",
-      headers: { apikey: SUPABASE_KEY, authorization: `Bearer ${SUPABASE_KEY}`, "content-type": "application/json" },
+      headers: {
+        apikey: SUPABASE_KEY,
+        authorization: `Bearer ${SUPABASE_KEY}`,
+        "content-type": "application/json",
+      },
       body: JSON.stringify(args),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

@@ -66,7 +66,9 @@ export const Route = createFileRoute("/$lang/m/$slug")({
     return d;
   },
   staleTime: 60_000,
-  headers: () => ({ "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600" }),
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600",
+  }),
   head: ({ loaderData, match }) => {
     if (!loaderData) return {};
     const { lang, copy, info } = match.context;
@@ -89,7 +91,9 @@ export const Route = createFileRoute("/$lang/m/$slug")({
         vendorLd(loaderData, lang, url),
         crumbsLd([
           { label: copy.common.home, url: `${base}${localePath(lang)}` },
-          ...(v.place_slug && place ? [{ label: place, url: `${base}${localePath(lang, `/places/${v.place_slug}`)}` }] : []),
+          ...(v.place_slug && place
+            ? [{ label: place, url: `${base}${localePath(lang, `/places/${v.place_slug}`)}` }]
+            : []),
           { label: name, url },
         ]),
       ],
@@ -109,7 +113,12 @@ function VendorPage() {
   const canOrder = v.orderable && !v.paused;
   const km = v.delivery_radius_km;
   const f = d.fees;
-  const how = v.delivery && v.pickup ? t.vendor.both : v.delivery ? t.vendor.deliveryOnly : t.vendor.pickupOnly;
+  const how =
+    v.delivery && v.pickup
+      ? t.vendor.both
+      : v.delivery
+        ? t.vendor.deliveryOnly
+        : t.vendor.pickupOnly;
   const cur = (v.cash_currencies ?? []).join(" / ");
   const byDay = new Map(d.hours.map((h) => [h.weekday, h]));
   const cuisines = v.cuisines.map((c) => ({ tag: c.tag, label: pickName(c, "name", lang) }));
@@ -124,10 +133,23 @@ function VendorPage() {
           { label: name },
         ]}
       >
-        {canOrder ? <OrderButton text={fmt(t.wa.vendor, { vendor: name })} /> : <p className="ak-lead !mt-0">{t.vendor.paused}</p>}
-        {!v.paused && <span className={`ak-chip ${v.open_now ? "ak-chip-gold" : ""}`}>{v.open_now ? t.common.openNow : t.common.closed}</span>}
+        {canOrder ? (
+          <OrderButton text={fmt(t.wa.vendor, { vendor: name })} />
+        ) : (
+          <p className="ak-lead !mt-0">{t.vendor.paused}</p>
+        )}
+        {!v.paused && (
+          <span className={`ak-chip ${v.open_now ? "ak-chip-gold" : ""}`}>
+            {v.open_now ? t.common.openNow : t.common.closed}
+          </span>
+        )}
         {cuisines.map((c) => (
-          <Link key={c.tag} to="/$lang/cuisine/$tag" params={{ lang, tag: c.tag }} className="ak-chip no-underline">
+          <Link
+            key={c.tag}
+            to="/$lang/cuisine/$tag"
+            params={{ lang, tag: c.tag }}
+            className="ak-chip no-underline"
+          >
             {c.label}
           </Link>
         ))}
@@ -140,10 +162,17 @@ function VendorPage() {
               {t.vendor.menu}
             </h2>
             <p className="mt-2 text-sm text-tone-mute">
-              {t.common.lbpNote.replace("{rate}", d.rate ? Math.round(d.rate).toLocaleString("en-US") : "")}
+              {t.common.lbpNote.replace(
+                "{rate}",
+                d.rate ? Math.round(d.rate).toLocaleString("en-US") : "",
+              )}
             </p>
             <div className="mt-8">
-              {d.sections.length > 0 ? <MenuBuilder page={d} canOrder={canOrder} /> : <p className="text-tone-mute">{t.vendor.hoursUnknown}</p>}
+              {d.sections.length > 0 ? (
+                <MenuBuilder page={d} canOrder={canOrder} />
+              ) : (
+                <p className="text-tone-mute">{t.vendor.hoursUnknown}</p>
+              )}
             </div>
           </div>
 
@@ -155,14 +184,22 @@ function VendorPage() {
               </h3>
               <p className="mt-3">{how}</p>
               {v.delivery && km != null && f.min_usd != null && f.max_usd != null && (
-                <p className="mt-2 text-tone-mute">{fmt(t.vendor.deliversUp, { km, min: usd(f.min_usd), max: usd(f.max_usd) })}</p>
+                <p className="mt-2 text-tone-mute">
+                  {fmt(t.vendor.deliversUp, { km, min: usd(f.min_usd), max: usd(f.max_usd) })}
+                </p>
               )}
-              {cur && <p className="mt-2 text-tone-mute">{fmt(t.vendor.cash, { currencies: cur })}</p>}
+              {cur && (
+                <p className="mt-2 text-tone-mute">{fmt(t.vendor.cash, { currencies: cur })}</p>
+              )}
               {place && (
                 <p className="mt-3 flex items-center gap-2 text-sm">
                   <MapPin className="size-4" aria-hidden="true" />
                   {v.place_slug ? (
-                    <Link to="/$lang/places/$slug" params={{ lang, slug: v.place_slug }} className="underline underline-offset-4">
+                    <Link
+                      to="/$lang/places/$slug"
+                      params={{ lang, slug: v.place_slug }}
+                      className="underline underline-offset-4"
+                    >
                       {place}
                     </Link>
                   ) : (
@@ -183,7 +220,9 @@ function VendorPage() {
                     return (
                       <div key={wd} className="flex justify-between gap-4">
                         <dt className="text-tone-mute">{t.vendor.days[wd]}</dt>
-                        <dd className="ak-num font-semibold">{h ? <bdi>{`${h.opens} – ${h.closes}`}</bdi> : t.vendor.closedToday}</dd>
+                        <dd className="ak-num font-semibold">
+                          {h ? <bdi>{`${h.opens} – ${h.closes}`}</bdi> : t.vendor.closedToday}
+                        </dd>
                       </div>
                     );
                   })}

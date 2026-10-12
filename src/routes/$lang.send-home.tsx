@@ -6,6 +6,7 @@ import { OrderButton } from "@/components/site/OrderButton";
 import { Clocks } from "@/components/site/Clocks";
 import { FaqList } from "@/components/site/FaqList";
 import { faqLd } from "@/lib/faq";
+import { Contours } from "@/design/Contours";
 import { CreditCard, Camera } from "lucide-react";
 
 export const Route = createFileRoute("/$lang/send-home")({
@@ -21,7 +22,9 @@ export const Route = createFileRoute("/$lang/send-home")({
       jsonLd: [faqLd(faq)],
     });
   },
-  headers: () => ({ "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=3600" }),
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=300, stale-while-revalidate=3600",
+  }),
   component: SendHomePage,
 });
 
@@ -31,14 +34,21 @@ function SendHomePage() {
   const faq = s.faq.map((f, i) => ({ id: String(i), q: f.q, a: f.a }));
   return (
     <>
-      <PageHero eyebrow={s.eyebrow} title={s.title} lead={s.lead} crumbs={[{ label: "", to: "/$lang" }, { label: t.nav.sendHome }]}>
+      <PageHero
+        eyebrow={s.eyebrow}
+        title={s.title}
+        lead={s.lead}
+        crumbs={[{ label: "", to: "/$lang" }, { label: t.nav.sendHome }]}
+      >
         <OrderButton text={t.wa.sendHome} />
         <ul className="flex flex-wrap gap-2">
           {[CreditCard, Camera].map((Icon, i) => (
             <li key={i} className="ak-chip">
               <Icon className="size-4 text-gold" aria-hidden="true" />
               {t.home.sendHome.badges[i]}
-              <span className="ak-chip-gold rounded-full px-2 py-px text-[0.7rem] font-bold">{t.common.comingSoon}</span>
+              <span className="ak-chip-gold rounded-full px-2 py-px text-[0.7rem] font-bold">
+                {t.common.comingSoon}
+              </span>
             </li>
           ))}
         </ul>
@@ -56,7 +66,9 @@ function SendHomePage() {
           <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {s.steps.map((st, i) => (
               <li key={st.title} className="ak-card p-6">
-                <span className="grid size-10 place-items-center rounded-full bg-ink text-lg font-extrabold text-gold">{i + 1}</span>
+                <span className="grid size-10 place-items-center rounded-full bg-ink text-lg font-extrabold text-gold">
+                  {i + 1}
+                </span>
                 <h3 className="ak-h3 mt-4">{st.title}</h3>
                 <p className="mt-2 text-tone-mute">{st.text}</p>
               </li>
@@ -66,6 +78,7 @@ function SendHomePage() {
       </section>
 
       <section className="tone-night ak-contours ak-section" aria-labelledby="sh-clocks">
+        <Contours />
         <div className="ak-container grid items-center gap-10 lg:grid-cols-[1fr_1fr]">
           <h2 id="sh-clocks" className="ak-h2">
             {s.clocksTitle}

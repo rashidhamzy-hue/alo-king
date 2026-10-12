@@ -5,7 +5,10 @@ import { lbpAt, usd } from "@/lib/site";
 import { useSite } from "../context";
 
 // Heights (percent) of the voice-note waveform bars: a hand-picked, natural-looking speech shape.
-const WAVE = [28, 46, 70, 38, 82, 54, 30, 66, 90, 48, 34, 72, 58, 26, 62, 84, 44, 32, 70, 52, 36, 78, 50, 28, 60, 40, 24, 34];
+const WAVE = [
+  28, 46, 70, 38, 82, 54, 30, 66, 90, 48, 34, 72, 58, 26, 62, 84, 44, 32, 70, 52, 36, 78, 50, 28,
+  60, 40, 24, 34,
+];
 
 /**
  * A real, coded chat that plays an order in the visitor's language (DECISIONS §37.3.1): a voice note, its transcript,
@@ -25,7 +28,7 @@ export function ChatDemo() {
 
   return (
     <figure className="m-0" aria-label={t.a11y.phoneDemo}>
-      <div className="ak-phone" key={run}>
+      <div className="ak-phone ak-phone-chat" key={run}>
         <div className="ak-phone-screen">
           <div className="ak-chat-head">
             <span className="grid size-10 place-items-center rounded-full bg-gold text-ink">
@@ -35,7 +38,10 @@ export function ChatDemo() {
               <div className="font-bold">{d.botName}</div>
               <div className="relative h-4 text-xs" style={{ color: "var(--mute-night)" }}>
                 <span className="ak-typing-off absolute inset-y-0 start-0">{d.online}</span>
-                <span className="ak-typing-on absolute inset-y-0 start-0 flex items-center gap-1.5" aria-hidden="true">
+                <span
+                  className="ak-typing-on absolute inset-y-0 start-0 flex items-center gap-1.5"
+                  aria-hidden="true"
+                >
                   <span className="ak-typing">
                     <i />
                     <i />
@@ -48,14 +54,26 @@ export function ChatDemo() {
           <div className="ak-chat-body" aria-hidden={false}>
             <div className="ak-msg ak-bubble ak-bubble-me" style={at(0.5)}>
               <div className="flex items-center gap-2.5">
-                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-ink text-gold" aria-hidden="true">
+                <span
+                  className="grid size-8 shrink-0 place-items-center rounded-full bg-ink text-gold"
+                  aria-hidden="true"
+                >
                   <svg viewBox="0 0 24 24" className="size-4 fill-current">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </span>
                 <span className="ak-wave" role="img" aria-label={d.voiceLabel}>
                   {WAVE.map((h, i) => (
-                    <i key={i} style={{ ["--h" as string]: h, ["--i" as string]: i, ["--d" as string]: "0.9s" } as React.CSSProperties} />
+                    <i
+                      key={i}
+                      style={
+                        {
+                          ["--h" as string]: h,
+                          ["--i" as string]: i,
+                          ["--d" as string]: "0.9s",
+                        } as React.CSSProperties
+                      }
+                    />
                   ))}
                 </span>
                 <span className="ak-num whitespace-nowrap text-xs font-bold">{d.voiceTime}</span>
@@ -118,11 +136,21 @@ export function ChatDemo() {
               </div>
               <div className="ak-route" aria-hidden="true">
                 <svg className="ak-route-bg" viewBox="0 0 280 78" preserveAspectRatio="none">
-                  <path d="M 18 56 C 70 56, 90 18, 150 30 S 220 40, 262 22" fill="none" stroke="#f4b63c" strokeWidth="2" strokeDasharray="3 5" opacity=".7" />
+                  <path
+                    d="M 18 56 C 70 56, 90 18, 150 30 S 220 40, 262 22"
+                    fill="none"
+                    stroke="#f4b63c"
+                    strokeWidth="2"
+                    strokeDasharray="3 5"
+                    opacity=".7"
+                  />
                   <circle cx="262" cy="22" r="6" fill="none" stroke="#f4b63c" strokeWidth="2" />
                   <circle cx="262" cy="22" r="2.4" fill="#f4b63c" />
                 </svg>
-                <span className="ak-dot absolute left-0 top-0 block size-3.5 rounded-full bg-gold shadow-[0_0_0_5px_rgb(244_182_60/0.25)]" style={at(8.1)} />
+                <span
+                  className="ak-dot absolute left-0 top-0 block size-3.5 rounded-full bg-gold shadow-[0_0_0_5px_rgb(244_182_60/0.25)]"
+                  style={at(8.1)}
+                />
               </div>
             </div>
           </div>
@@ -130,7 +158,12 @@ export function ChatDemo() {
       </div>
       <figcaption className="mt-4 flex items-center justify-center gap-3 text-sm text-tone-mute">
         <span>{d.example}</span>
-        <button type="button" className="ak-btn ak-btn-line ak-btn-sm !min-h-9 gap-1.5 !px-3" onClick={() => setRun((n) => n + 1)} aria-label={t.a11y.replay}>
+        <button
+          type="button"
+          className="ak-btn ak-btn-line ak-btn-sm !min-h-9 gap-1.5 !px-3"
+          onClick={() => setRun((n) => n + 1)}
+          aria-label={t.a11y.replay}
+        >
           <RotateCcw className="size-4" aria-hidden="true" />
         </button>
       </figcaption>

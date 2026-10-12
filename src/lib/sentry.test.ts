@@ -36,7 +36,9 @@ describe("sentry scrub", () => {
 describe("lite reporter for public pages", () => {
   it("builds the envelope endpoint from the DSN and rejects anything else", async () => {
     const { envelopeUrl } = await import("./sentry");
-    expect(envelopeUrl("https://abc123@o1.ingest.de.sentry.io/42")).toBe("https://o1.ingest.de.sentry.io/api/42/envelope/?sentry_key=abc123&sentry_version=7");
+    expect(envelopeUrl("https://abc123@o1.ingest.de.sentry.io/42")).toBe(
+      "https://o1.ingest.de.sentry.io/api/42/envelope/?sentry_key=abc123&sentry_version=7",
+    );
     expect(envelopeUrl("http://abc@evil/1")).toBeNull();
     expect(envelopeUrl("off")).toBeNull();
   });

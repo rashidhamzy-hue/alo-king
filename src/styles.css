@@ -91,7 +91,8 @@
   --wa-bg: oklch(0.2 0.02 200);
   --wa-in: oklch(0.27 0.02 230);
   --wa-out: oklch(0.42 0.08 165);
-  --gradient-hero: radial-gradient(ellipse 80% 60% at 70% 20%, oklch(0.38 0.08 165 / 0.45), transparent 60%),
+  --gradient-hero:
+    radial-gradient(ellipse 80% 60% at 70% 20%, oklch(0.38 0.08 165 / 0.45), transparent 60%),
     radial-gradient(ellipse 50% 40% at 10% 80%, oklch(0.77 0.16 70 / 0.12), transparent 60%);
   --gradient-gold: linear-gradient(135deg, oklch(0.84 0.13 85), oklch(0.72 0.17 62));
   --shadow-glow-emerald: 0 0 60px -10px oklch(0.62 0.13 165 / 0.45);
@@ -99,30 +100,58 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { scroll-behavior: smooth; }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  [dir="rtl"] body, .font-arabic { font-family: var(--font-arabic); }
-  h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.02em; }
-  [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3 { font-family: var(--font-arabic); letter-spacing: 0; }
+  [dir="rtl"] body,
+  .font-arabic {
+    font-family: var(--font-arabic);
+  }
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  [dir="rtl"] h1,
+  [dir="rtl"] h2,
+  [dir="rtl"] h3 {
+    font-family: var(--font-arabic);
+    letter-spacing: 0;
+  }
 }
 
-@utility bg-hero { background-image: var(--gradient-hero); }
+@utility bg-hero {
+  background-image: var(--gradient-hero);
+}
 @utility text-gold-gradient {
   background-image: var(--gradient-gold);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
-@utility bg-gold-gradient { background-image: var(--gradient-gold); }
-@utility shadow-glow-emerald { box-shadow: var(--shadow-glow-emerald); }
-@utility shadow-glow-gold { box-shadow: var(--shadow-glow-gold); }
-@utility hairline { border: 1px solid oklch(0.77 0.16 70 / 0.18); }
+@utility bg-gold-gradient {
+  background-image: var(--gradient-gold);
+}
+@utility shadow-glow-emerald {
+  box-shadow: var(--shadow-glow-emerald);
+}
+@utility shadow-glow-gold {
+  box-shadow: var(--shadow-glow-gold);
+}
+@utility hairline {
+  border: 1px solid oklch(0.77 0.16 70 / 0.18);
+}
 @utility lux-card {
   background: linear-gradient(180deg, oklch(0.2 0.02 255 / 0.9), oklch(0.17 0.018 262 / 0.9));
   border: 1px solid oklch(0.77 0.16 70 / 0.16);
@@ -130,20 +159,60 @@
 }
 
 @keyframes gold-flash {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.77 0.16 70 / 0); border-color: oklch(0.77 0.16 70 / 0.3); }
-  50% { box-shadow: 0 0 0 6px oklch(0.77 0.16 70 / 0.5); border-color: var(--gold); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.77 0.16 70 / 0);
+    border-color: oklch(0.77 0.16 70 / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px oklch(0.77 0.16 70 / 0.5);
+    border-color: var(--gold);
+  }
 }
-@utility animate-gold-flash { animation: gold-flash 1s ease-in-out infinite; }
+@utility animate-gold-flash {
+  animation: gold-flash 1s ease-in-out infinite;
+}
 
-@keyframes typing { 0%, 60%, 100% { opacity: 0.25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
-@utility typing-dot { animation: typing 1.2s infinite; }
+@keyframes typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@utility typing-dot {
+  animation: typing 1.2s infinite;
+}
 
 /* Leaflet custom pins */
 .ak-pin {
-  width: 34px; height: 34px; border-radius: 9999px; display: grid; place-items: center;
-  font: 600 12px var(--font-sans); border: 2px solid var(--gold);
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  font: 600 12px var(--font-sans);
+  border: 2px solid var(--gold);
 }
-.ak-pin-vendor { background: var(--emerald); color: var(--secondary-foreground); }
-.ak-pin-dest { background: var(--obsidian); color: var(--gold); }
-.ak-pin-driver { background: var(--gold); color: var(--gold-foreground); box-shadow: var(--shadow-glow-gold); }
-.leaflet-container { background: var(--obsidian); font-family: var(--font-sans); }
+.ak-pin-vendor {
+  background: var(--emerald);
+  color: var(--secondary-foreground);
+}
+.ak-pin-dest {
+  background: var(--obsidian);
+  color: var(--gold);
+}
+.ak-pin-driver {
+  background: var(--gold);
+  color: var(--gold-foreground);
+  box-shadow: var(--shadow-glow-gold);
+}
+.leaflet-container {
+  background: var(--obsidian);
+  font-family: var(--font-sans);
+}

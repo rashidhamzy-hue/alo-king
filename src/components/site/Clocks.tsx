@@ -3,7 +3,12 @@ import { DIASPORA_ZONES } from "@/lib/site-config";
 import { useSite } from "./context";
 
 const fmtTime = (d: Date, timeZone: string) =>
-  new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone }).format(d);
+  new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(d);
 
 /** Both clocks (DECISIONS §37.3.6): where the visitor is, and Beirut. Client-only, so the server HTML never shows a stale time. */
 export function Clocks({ here, there, pick }: { here: string; there: string; pick: string }) {

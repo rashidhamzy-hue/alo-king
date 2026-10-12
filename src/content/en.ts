@@ -35,7 +35,12 @@ export const en = {
     person: "Hi Alo King, I need to talk to a person",
     track: "Hi Alo King, where is my order?",
   },
-  a11y: { skip: "Skip to the content", phoneDemo: "An example conversation on WhatsApp", replay: "Play the example again", map: "Map of Lebanon" },
+  a11y: {
+    skip: "Skip to the content",
+    phoneDemo: "An example conversation on WhatsApp",
+    replay: "Play the example again",
+    map: "Map of Lebanon",
+  },
   common: {
     home: "Home",
     places: "Places",
@@ -91,7 +96,10 @@ export const en = {
     text: "It may have moved, or the link is not quite right. You can always say Alo on WhatsApp.",
     home: "Go to the home page",
   },
-  error: { title: "This page didn't load", text: "Something went wrong on our side. Try again in a moment." },
+  error: {
+    title: "This page didn't load",
+    text: "Something went wrong on our side. Try again in a moment.",
+  },
 
   home: {
     seo: {
@@ -133,12 +141,28 @@ export const en = {
       title: "Pin. Pick. Confirm.",
       sub: "No forms and no passwords. If you can send a message, you can order.",
       steps: [
-        { n: "1", title: "Pin", text: "Share your location pin. Alo King finds the shops that deliver to you." },
-        { n: "2", title: "Pick", text: "Choose from the menu, or just type or say what you want. Prices are the shop's own." },
-        { n: "3", title: "Confirm", text: "See the total in dollars and in lira at today's rate, then tap once." },
+        {
+          n: "1",
+          title: "Pin",
+          text: "Share your location pin. Alo King finds the shops that deliver to you.",
+        },
+        {
+          n: "2",
+          title: "Pick",
+          text: "Choose from the menu, or just type or say what you want. Prices are the shop's own.",
+        },
+        {
+          n: "3",
+          title: "Confirm",
+          text: "See the total in dollars and in lira at today's rate, then tap once.",
+        },
       ],
       phone1: { place: "Baakline", button: "Send my location" },
-      phone2: { shop: "Shawarma Abou Ali", rows: ["Chicken shawarma", "Beef shawarma", "Falafel sandwich"], add: "Add" },
+      phone2: {
+        shop: "Shawarma Abou Ali",
+        rows: ["Chicken shawarma", "Beef shawarma", "Falafel sandwich"],
+        add: "Add",
+      },
       phone3: { total: "Total", confirm: "Confirm order" },
     },
     speak: {
@@ -155,8 +179,10 @@ export const en = {
     map: {
       eyebrow: "Where we deliver",
       title: "Lebanon, village by village.",
-      subLive: "Delivering now in {n} places. Every shop sets its own delivery radius, up to {km} km by road.",
-      subSoon: "We open in the Shouf first, then grow village by village. Every shop sets its own delivery radius, up to {km} km by road.",
+      subLive:
+        "Delivering now in {n} places. Every shop sets its own delivery radius, up to {km} km by road.",
+      subSoon:
+        "We open in the Shouf first, then grow village by village. Every shop sets its own delivery radius, up to {km} km by road.",
       legendLive: "Delivering now",
       legendSoon: "Opening soon",
       legendAll: "Every town and village on our list",
@@ -169,7 +195,8 @@ export const en = {
       eyebrow: "For merchants",
       title: "{fee} per order. Not {pct}%.",
       sub: "One flat fee for each delivered order, nothing on your menu prices, nothing monthly. Your first {days} days are free.",
-      subNoFree: "One flat fee for each delivered order, nothing on your menu prices, nothing monthly.",
+      subNoFree:
+        "One flat fee for each delivered order, nothing on your menu prices, nothing monthly.",
       calc: {
         title: "What would you pay?",
         orders: "Orders per month",
@@ -179,7 +206,8 @@ export const en = {
         save: "You keep up to",
         perMonth: "per month",
         label: "Calculated from your numbers",
-        fineprint: "Alo King charges {fee} per delivered order. The commission range is {low}% to {high}% of the order value.",
+        fineprint:
+          "Alo King charges {fee} per delivered order. The commission range is {low}% to {high}% of the order value.",
       },
       cta: "For merchants",
       ctaNote: "Claim your shop and start in minutes.",
@@ -190,7 +218,7 @@ export const en = {
       sub: "For Lebanese abroad: order for family in Lebanon from wherever you are, pay by card, and see the delivery photo. You see both clocks, so you know when it's dinner at home.",
       badges: ["Pay by card", "Delivery photo"],
       soon: "Opening soon",
-      cta: "Learn more",
+      cta: "About Send Home",
       here: "Where you are",
       there: "Beirut",
       pick: "Your city",
@@ -199,10 +227,22 @@ export const en = {
       eyebrow: "Why people trust it",
       title: "Plain facts.",
       items: [
-        { title: "Cash on delivery", text: "Pay the person at your door, in dollars or in lira if the shop takes both." },
-        { title: "Prices set by the shop", text: "We never add to a menu price. The delivery fee is shown before you confirm." },
-        { title: "Arabic, English, French", text: "Talk to us the way you talk. We answer in your language." },
-        { title: "A real person", text: "Rasheed at Alo King reads what the assistant can't answer, and replies." },
+        {
+          title: "Cash on delivery",
+          text: "Pay the person at your door, in dollars or in lira if the shop takes both.",
+        },
+        {
+          title: "Prices set by the shop",
+          text: "We never add to a menu price. The delivery fee is shown before you confirm.",
+        },
+        {
+          title: "Arabic, English, French",
+          text: "Talk to us the way you talk. We answer in your language.",
+        },
+        {
+          title: "A real person",
+          text: "Rasheed at Alo King reads what the assistant can't answer, and replies.",
+        },
       ],
     },
     faq: { eyebrow: "Questions", title: "Good to know", more: "More answers" },
@@ -211,12 +251,15 @@ export const en = {
   places: {
     indexTitle: "Where Alo King delivers",
     indexSeoTitle: "Where Alo King delivers in Lebanon",
-    indexSeoDescription: "The places in Lebanon where you can order on WhatsApp with Alo King, with the shops that deliver there.",
-    indexLead: "Places where shops are switched on. Every shop sets its own delivery radius, up to {km} km by road.",
+    indexSeoDescription:
+      "The places in Lebanon where you can order on WhatsApp with Alo King, with the shops that deliver there.",
+    indexLead:
+      "Places where shops are switched on. Every shop sets its own delivery radius, up to {km} km by road.",
     none: "We are opening soon. The first villages are {list}.",
     title: "Order in {place}",
     seoTitle: "Order food and essentials in {place} on WhatsApp | Alo King",
-    seoDescription: "Shops that deliver to {place}, Lebanon, through Alo King on WhatsApp. Cash on delivery.",
+    seoDescription:
+      "Shops that deliver to {place}, Lebanon, through Alo King on WhatsApp. Cash on delivery.",
     fact: "{n} shops deliver to {place} through Alo King on WhatsApp; delivery {min} to {max}.",
     factOne: "1 shop delivers to {place} through Alo King on WhatsApp; delivery {min} to {max}.",
     factNone: "Alo King is opening in {place}. The first shops will appear here.",
@@ -233,7 +276,8 @@ export const en = {
     none: "Cuisines will appear here as shops join.",
     title: "{cuisine} on WhatsApp",
     seoTitle: "{cuisine} delivery in Lebanon on WhatsApp | Alo King",
-    seoDescription: "Shops serving {cuisine} that deliver through Alo King on WhatsApp. Cash on delivery.",
+    seoDescription:
+      "Shops serving {cuisine} that deliver through Alo King on WhatsApp. Cash on delivery.",
     fact: "{n} shops serving {cuisine} deliver through Alo King on WhatsApp.",
     factOne: "1 shop serving {cuisine} delivers through Alo King on WhatsApp.",
     factNone: "No shop serving {cuisine} has joined yet.",
@@ -241,7 +285,8 @@ export const en = {
   },
   vendor: {
     seoTitle: "{name}: menu and order on WhatsApp | Alo King",
-    seoDescription: "{name}, {type}{where}. See the menu and order on WhatsApp with Alo King. Cash on delivery.",
+    seoDescription:
+      "{name}, {type}{where}. See the menu and order on WhatsApp with Alo King. Cash on delivery.",
     where: " in {place}",
     menu: "Menu",
     hours: "Opening hours",
@@ -303,10 +348,22 @@ export const en = {
       "Send Home arrives with online payments. Until then you can already order for family on WhatsApp, and they pay cash on delivery.",
     stepsTitle: "How Send Home works",
     steps: [
-      { title: "Tell us who it's for", text: "Say Alo on WhatsApp from anywhere and give us the place in Lebanon, or their pin." },
-      { title: "Pick from a shop near them", text: "Choose the dishes. The prices are the shop's own, shown in dollars and in lira." },
-      { title: "Pay by card", text: "Card payment is coming with online payments. You will pay safely from abroad." },
-      { title: "See it arrive", text: "You get the status, and the delivery photo, so you know it reached them." },
+      {
+        title: "Tell us who it's for",
+        text: "Say Alo on WhatsApp from anywhere and give us the place in Lebanon, or their pin.",
+      },
+      {
+        title: "Pick from a shop near them",
+        text: "Choose the dishes. The prices are the shop's own, shown in dollars and in lira.",
+      },
+      {
+        title: "Pay by card",
+        text: "Card payment is coming with online payments. You will pay safely from abroad.",
+      },
+      {
+        title: "See it arrive",
+        text: "You get the status, and the delivery photo, so you know it reached them.",
+      },
     ],
     clocksTitle: "Both clocks, so you know when it's dinner at home",
     clockHere: "Where you are",
@@ -318,13 +375,20 @@ export const en = {
         q: "Can I order for my family today?",
         a: "Yes, on WhatsApp: tell us the place and what they'd like. Today they pay cash on delivery. Paying by card from abroad arrives with online payments.",
       },
-      { q: "Will they know it's from me?", a: "Yes. You can add your name and a short message to the order." },
-      { q: "How will I know it arrived?", a: "You get the order status on WhatsApp. The delivery photo comes with Send Home." },
+      {
+        q: "Will they know it's from me?",
+        a: "Yes. You can add your name and a short message to the order.",
+      },
+      {
+        q: "How will I know it arrived?",
+        a: "You get the order status on WhatsApp. The delivery photo comes with Send Home.",
+      },
     ],
   },
   help: {
     seoTitle: "Help and answers | Alo King",
-    seoDescription: "How to order on WhatsApp with Alo King, how to pay, delivery fees, languages, voice notes and your data.",
+    seoDescription:
+      "How to order on WhatsApp with Alo King, how to pay, delivery fees, languages, voice notes and your data.",
     title: "Help",
     lead: "Short answers to the questions people ask most. Still stuck? Say Alo on WhatsApp and a person replies.",
     stepsTitle: "Ordering in four steps",
@@ -342,7 +406,11 @@ export const en = {
       q: "How do I order?",
       a: "Tap Order on WhatsApp and say hello. Share your pin, then pick from the menu or type or say what you want, like “2 shawarma and a Pepsi”. Check the summary and tap Confirm.",
     },
-    { id: "app", q: "Do I need an app or an account?", a: "No. WhatsApp is all you need. There is no app to download and no sign-up." },
+    {
+      id: "app",
+      q: "Do I need an app or an account?",
+      a: "No. WhatsApp is all you need. There is no app to download and no sign-up.",
+    },
     {
       id: "languages",
       q: "Which languages can I use?",
@@ -362,7 +430,8 @@ export const en = {
       id: "fee",
       q: "How much is delivery?",
       a: "It depends on the road distance from the shop: from {min} to {max}, up to {km} km. You see the fee before you confirm.",
-      fallback: "It depends on the road distance from the shop, and you see the fee before you confirm.",
+      fallback:
+        "It depends on the road distance from the shop, and you see the fee before you confirm.",
     },
     {
       id: "voice",
@@ -378,7 +447,8 @@ export const en = {
       id: "where",
       q: "Where do you deliver?",
       a: "Wherever a shop on Alo King delivers. Each shop sets its own radius, up to {km} km by road. We are starting in the Shouf and growing village by village.",
-      fallback: "Wherever a shop on Alo King delivers. Each shop sets its own radius. We are starting in the Shouf and growing village by village.",
+      fallback:
+        "Wherever a shop on Alo King delivers. Each shop sets its own radius. We are starting in the Shouf and growing village by village.",
     },
     {
       id: "wrong",
@@ -403,14 +473,17 @@ export const en = {
     lead: "The fastest way is WhatsApp. A person reads every message the assistant can't answer.",
     whatsappTitle: "WhatsApp",
     whatsappText: "Say Alo and ask. In the chat, tap “A person” at any time.",
-    whatsappSoon: "Our WhatsApp number is going live soon. This page will show it as soon as it is ready.",
+    whatsappSoon:
+      "Our WhatsApp number is going live soon. This page will show it as soon as it is ready.",
     hoursTitle: "When we reply",
-    hours: "Within {fast} minutes from {from} to {to} (Beirut time), and within an hour at other times.",
+    hours:
+      "Within {fast} minutes from {from} to {to} (Beirut time), and within an hour at other times.",
     languagesTitle: "Languages",
     languages: "Arabic, English and French.",
     companyTitle: "Company",
     privacyTitle: "Your data",
-    privacyText: "Questions about your data, or want it deleted? Say it on WhatsApp, or read our privacy page.",
+    privacyText:
+      "Questions about your data, or want it deleted? Say it on WhatsApp, or read our privacy page.",
     merchantsTitle: "Shops",
     merchantsText: "Own a shop? Start from the For merchants page.",
   },
@@ -438,10 +511,11 @@ export const en = {
     helpTitle: "Need help with this order?",
     helpCta: "Message us on WhatsApp",
     notFoundTitle: "This tracking link isn't valid",
-    notFoundText: "It may have expired, or the link is incomplete. Open your WhatsApp chat with Alo King and tap “My order”.",
+    notFoundText:
+      "It may have expired, or the link is incomplete. Open your WhatsApp chat with Alo King and tap “My order”.",
     refreshed: "Updates itself every few seconds.",
     privacy: "This page shows only the status of your order.",
   },
-}
+};
 
-export type Copy = typeof en
+export type Copy = typeof en;

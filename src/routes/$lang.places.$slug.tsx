@@ -15,7 +15,9 @@ export const Route = createFileRoute("/$lang/places/$slug")({
     return d;
   },
   staleTime: 60_000,
-  headers: () => ({ "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600" }),
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600",
+  }),
   head: ({ loaderData, match }) => {
     if (!loaderData) return {};
     const { lang, copy, info } = match.context;
@@ -49,7 +51,12 @@ function PlacePage() {
   const withFees = f.min_usd != null && f.max_usd != null;
   const raw = n === 0 ? t.places.factNone : n === 1 ? t.places.factOne : t.places.fact;
   // The one factual sentence the page opens with, generated from live data (DECISIONS §24.6).
-  const fact = fmt(withFees || n === 0 ? raw : raw.split(/[;؛]/)[0] + ".", { n, place, min: usd(f.min_usd), max: usd(f.max_usd) });
+  const fact = fmt(withFees || n === 0 ? raw : raw.split(/[;؛]/)[0] + ".", {
+    n,
+    place,
+    min: usd(f.min_usd),
+    max: usd(f.max_usd),
+  });
   const district = pickName(d.place, "district", lang);
   return (
     <>
@@ -57,7 +64,11 @@ function PlacePage() {
         eyebrow={district ? fmt(t.places.district, { district }) : undefined}
         title={fmt(t.places.title, { place })}
         lead={fact}
-        crumbs={[{ label: "", to: "/$lang" }, { label: t.common.places, to: "/$lang/places" }, { label: place }]}
+        crumbs={[
+          { label: "", to: "/$lang" },
+          { label: t.common.places, to: "/$lang/places" },
+          { label: place },
+        ]}
       >
         <OrderButton text={fmt(t.wa.place, { place })} />
       </PageHero>
@@ -79,7 +90,9 @@ function PlacePage() {
           <ol className="mt-5 grid gap-3 sm:grid-cols-2">
             {t.help.steps.map((s, i) => (
               <li key={s} className="ak-card flex gap-4 p-4">
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-extrabold text-gold">{i + 1}</span>
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-extrabold text-gold">
+                  {i + 1}
+                </span>
                 <span>{s}</span>
               </li>
             ))}

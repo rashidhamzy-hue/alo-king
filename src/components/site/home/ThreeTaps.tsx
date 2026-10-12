@@ -37,9 +37,14 @@ export function ThreeTaps() {
         <p className="ak-lead mt-4">{s.sub}</p>
         <ol className="mt-12 grid gap-12 md:grid-cols-3 md:gap-8">
           {s.steps.map((step, i) => (
-            <li key={step.title} className="flex flex-col items-center text-center md:items-start md:text-start">
+            <li
+              key={step.title}
+              className="flex flex-col items-center text-center md:items-start md:text-start"
+            >
               <div className="mb-5 flex items-center gap-3">
-                <span className="grid size-11 place-items-center rounded-full bg-ink text-lg font-extrabold text-gold">{step.n}</span>
+                <span className="grid size-11 place-items-center rounded-full bg-ink text-lg font-extrabold text-gold">
+                  {step.n}
+                </span>
                 <h3 className="ak-h3">{step.title}</h3>
               </div>
               <p className="mb-7 max-w-xs text-tone-mute">{step.text}</p>
@@ -48,12 +53,23 @@ export function ThreeTaps() {
                   <Screen title={step.title}>
                     <div className="ak-bubble ak-bubble-bot">{s.phone1.button}</div>
                     <div className="ak-route !mt-0 !h-28 self-stretch">
-                      <svg className="ak-route-bg" viewBox="0 0 280 112" preserveAspectRatio="none" aria-hidden="true">
+                      <svg
+                        className="ak-route-bg"
+                        viewBox="0 0 280 112"
+                        preserveAspectRatio="none"
+                        aria-hidden="true"
+                      >
                         <circle cx="140" cy="62" r="26" fill="rgb(244 182 60 / 0.14)" />
                         <circle cx="140" cy="62" r="9" fill="rgb(244 182 60 / 0.3)" />
                       </svg>
-                      <MapPin className="absolute start-1/2 top-[34%] size-8 -translate-x-1/2 text-gold rtl:translate-x-1/2" aria-hidden="true" strokeWidth={2.4} />
-                      <span className="absolute bottom-1.5 start-2 rounded bg-ink/80 px-1.5 text-[0.7rem] text-tone-fg">{s.phone1.place}</span>
+                      <MapPin
+                        className="absolute start-1/2 top-[34%] size-8 -translate-x-1/2 text-gold rtl:translate-x-1/2"
+                        aria-hidden="true"
+                        strokeWidth={2.4}
+                      />
+                      <span className="absolute bottom-1.5 start-2 rounded bg-ink/80 px-1.5 text-[0.7rem] text-tone-fg">
+                        {s.phone1.place}
+                      </span>
                     </div>
                     <div className="ak-wa-card !w-full">
                       <div className="ak-wa-btn !mt-0 !border-0">📍 {s.phone1.button}</div>
@@ -70,14 +86,20 @@ export function ThreeTaps() {
                           <li key={r} className="flex items-center justify-between gap-2">
                             <span className="min-w-0 leading-snug">
                               {r}
-                              <bdi className="ak-num block text-xs opacity-75">{usd(PRICES[k] ?? 0)}</bdi>
+                              <bdi className="ak-num block text-xs opacity-75">
+                                {usd(PRICES[k] ?? 0)}
+                              </bdi>
                             </span>
                             <span
                               className={`grid size-7 shrink-0 place-items-center rounded-full ${k === 0 ? "bg-gold text-ink" : "border border-tone-line text-gold"}`}
                               role="img"
                               aria-label={s.phone2.add}
                             >
-                              {k === 0 ? <Check className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
+                              {k === 0 ? (
+                                <Check className="size-4" aria-hidden="true" />
+                              ) : (
+                                <Plus className="size-4" aria-hidden="true" />
+                              )}
                             </span>
                           </li>
                         ))}
@@ -105,13 +127,16 @@ export function ThreeTaps() {
                           <bdi className="ak-num">{usd(total)}</bdi>
                           {overview.rate ? (
                             <span className="block text-xs font-medium opacity-75">
-                              <bdi className="ak-num">{lbpAt(total, overview.rate, lang)}</bdi> {t.common.lbp}
+                              <bdi className="ak-num">{lbpAt(total, overview.rate, lang)}</bdi>{" "}
+                              {t.common.lbp}
                             </span>
                           ) : null}
                         </span>
                       </div>
                     </div>
-                    <div className="ak-bubble ak-bubble-me !mt-1 self-stretch !max-w-none text-center font-bold">✅ {s.phone3.confirm}</div>
+                    <div className="ak-bubble ak-bubble-me !mt-1 self-stretch !max-w-none text-center font-bold">
+                      ✅ {s.phone3.confirm}
+                    </div>
                   </Screen>
                 )}
               </div>

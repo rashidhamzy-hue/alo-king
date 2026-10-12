@@ -18,5 +18,9 @@ export function faqItems(t: Copy, o: SiteOverview, only?: string[]): Faq[] {
 export const faqLd = (items: Faq[]) => ({
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  mainEntity: items.map((i) => ({ "@type": "Question", name: i.q, acceptedAnswer: { "@type": "Answer", text: i.a } })),
+  mainEntity: items.map((i) => ({
+    "@type": "Question",
+    name: i.q,
+    acceptedAnswer: { "@type": "Answer", text: i.a },
+  })),
 });

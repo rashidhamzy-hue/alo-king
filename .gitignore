@@ -41,3 +41,7 @@ dist-ssr
 
 # Supabase CLI local state
 supabase/.temp/
+
+# website quality checks
+.qa-pids
+qa-out/

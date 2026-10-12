@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { Contours } from "@/design/Contours";
 import { useSite } from "../context";
 import { OrderButton } from "../OrderButton";
 import { ChatDemo } from "./ChatDemo";
@@ -8,7 +9,11 @@ export function Hero() {
   const { t } = useSite();
   const h = t.home.hero;
   return (
-    <section className="tone-night ak-contours ak-glow ak-section !pb-16 !pt-10 sm:!pt-16 lg:!pt-20" aria-labelledby="hero-title">
+    <section
+      className="tone-night ak-contours ak-glow ak-section !pb-16 !pt-10 sm:!pt-16 lg:!pt-20"
+      aria-labelledby="hero-title"
+    >
+      <Contours />
       <div className="ak-container grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
         <div>
           <p className="ak-eyebrow text-gold">{h.eyebrow}</p>

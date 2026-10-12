@@ -28,7 +28,9 @@ export function OrderButton({
   const content = (
     <>
       <WhatsAppIcon className="size-5 shrink-0" />
-      <span className={iconOnlyOnMobile ? "sr-only sm:not-sr-only" : ""}>{label ?? t.cta.order}</span>
+      <span className={iconOnlyOnMobile ? "sr-only sm:not-sr-only" : ""}>
+        {label ?? t.cta.order}
+      </span>
     </>
   );
   if (href)

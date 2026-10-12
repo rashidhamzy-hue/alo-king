@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Contours } from "@/design/Contours";
 import { CreditCard, Camera } from "lucide-react";
 import { Clocks } from "../Clocks";
 import { useSite } from "../context";
@@ -9,6 +10,7 @@ export function SendHomeSection() {
   const s = t.home.sendHome;
   return (
     <section className="tone-night ak-contours ak-glow ak-section" aria-labelledby="sendhome-title">
+      <Contours />
       <div className="ak-container grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
         <div>
           <p className="ak-eyebrow text-gold">{s.eyebrow}</p>
@@ -21,7 +23,9 @@ export function SendHomeSection() {
               <li key={i} className="ak-chip">
                 <Icon className="size-4 text-gold" aria-hidden="true" />
                 {s.badges[i]}
-                <span className="ak-chip-gold rounded-full px-2 py-px text-[0.7rem] font-bold">{s.soon}</span>
+                <span className="ak-chip-gold rounded-full px-2 py-px text-[0.7rem] font-bold">
+                  {s.soon}
+                </span>
               </li>
             ))}
           </ul>

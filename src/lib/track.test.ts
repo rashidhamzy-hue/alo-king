@@ -3,7 +3,11 @@ import { stepOf } from "./track";
 
 describe("tracking steps", () => {
   it("walks a delivery order from sent to delivered", () => {
-    expect(["placed", "accepted", "preparing", "ready", "picked_up", "near_drop", "delivered"].map((s) => stepOf(s, false))).toEqual([0, 1, 2, 2, 3, 3, 4]);
+    expect(
+      ["placed", "accepted", "preparing", "ready", "picked_up", "near_drop", "delivered"].map((s) =>
+        stepOf(s, false),
+      ),
+    ).toEqual([0, 1, 2, 2, 3, 3, 4]);
   });
   it("a pickup order that is ready is at 'Ready at the shop', not 'Being prepared'", () => {
     expect(stepOf("ready", true)).toBe(3);

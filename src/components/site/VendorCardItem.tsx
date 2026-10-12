@@ -13,7 +13,11 @@ export function VendorCardItem({ v }: { v: VendorCard }) {
   const place = pickName(v, "place", lang);
   return (
     <li className="ak-card relative p-5 transition-transform hover:-translate-y-0.5">
-      <Link to="/$lang/m/$slug" params={{ lang, slug: v.slug }} className="text-lg font-extrabold no-underline after:absolute after:inset-0 after:content-['']">
+      <Link
+        to="/$lang/m/$slug"
+        params={{ lang, slug: v.slug }}
+        className="text-lg font-extrabold no-underline after:absolute after:inset-0 after:content-['']"
+      >
         {name}
         {branch ? <span className="font-medium text-tone-mute"> · {branch}</span> : null}
       </Link>
@@ -25,7 +29,9 @@ export function VendorCardItem({ v }: { v: VendorCard }) {
         {v.paused ? (
           <span className="ak-chip">{t.common.paused}</span>
         ) : (
-          <span className={`ak-chip ${v.open_now ? "ak-chip-gold" : ""}`}>{v.open_now ? t.common.openNow : t.common.closed}</span>
+          <span className={`ak-chip ${v.open_now ? "ak-chip-gold" : ""}`}>
+            {v.open_now ? t.common.openNow : t.common.closed}
+          </span>
         )}
         {v.delivery && (
           <span className="ak-chip">

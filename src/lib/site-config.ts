@@ -15,7 +15,12 @@ export const PILOT_PLACES_NAMES: Record<string, { ar: string; en: string; fr: st
 };
 
 /** The support promise (DECISIONS §30.6): answered within 15 minutes from 09:00 to 23:00 Beirut time, within an hour otherwise. */
-export const SUPPORT = { fastMinutes: 15, fastFrom: "09:00", fastTo: "23:00", otherwiseMinutes: 60 } as const;
+export const SUPPORT = {
+  fastMinutes: 15,
+  fastFrom: "09:00",
+  fastTo: "23:00",
+  otherwiseMinutes: 60,
+} as const;
 
 /** Send Home's two clocks: Beirut and a few cities where many Lebanese live. */
 export const DIASPORA_ZONES = [
@@ -27,7 +32,11 @@ export const DIASPORA_ZONES = [
 ] as const;
 
 /** Legal entity line until the company exists (DECISIONS §37.4). */
-export const COMPANY_LINE = { ar: "ألو كينغ ش.م.م (قيد التأسيس)", en: "Alo King SARL (in formation)", fr: "Alo King SARL (en cours de constitution)" } as const;
+export const COMPANY_LINE = {
+  ar: "ألو كينغ ش.م.م (قيد التأسيس)",
+  en: "Alo King SARL (in formation)",
+  fr: "Alo King SARL (en cours de constitution)",
+} as const;
 
 /** A place or cuisine page is indexed only with this many live merchants (DECISIONS §24.5): thin pages stay out of search. */
 export const MIN_MERCHANTS_TO_INDEX = 3;

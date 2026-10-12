@@ -9,19 +9,32 @@ const csv = readFileSync("supabase/seed/places/places.csv", "utf8");
 // Minimal CSV reader (quoted fields, doubled quotes, embedded newlines).
 function parse(text) {
   const rows = [];
-  let row = [], cell = "", q = false;
+  let row = [],
+    cell = "",
+    q = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (q) {
-      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
-      else if (c === '"') q = false;
+      if (c === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (c === '"') q = false;
       else cell += c;
     } else if (c === '"') q = true;
-    else if (c === ",") { row.push(cell); cell = ""; }
-    else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
-    else if (c !== "\r") cell += c;
+    else if (c === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (c === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else if (c !== "\r") cell += c;
   }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
+  if (cell || row.length) {
+    row.push(cell);
+    rows.push(row);
+  }
   return rows;
 }
 
@@ -46,13 +59,17 @@ const project = (lat, lon) => [
 const pts = places.map((p) => project(p.lat, p.lon));
 // De-duplicate identical rounded positions and order top-to-bottom for small relative moves.
 const seen = new Set();
-const uniq = pts.filter(([x, y]) => (seen.has(x * 10000 + y) ? false : (seen.add(x * 10000 + y), true)));
+const uniq = pts.filter(([x, y]) =>
+  seen.has(x * 10000 + y) ? false : (seen.add(x * 10000 + y), true),
+);
 uniq.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
 let d = "";
-let px = 0, py = 0;
+let px = 0,
+  py = 0;
 for (const [x, y] of uniq) {
   d += `m${x - px} ${y - py}h0`;
-  px = x; py = y;
+  px = x;
+  py = y;
 }
 
 const PILOT = ["LB-CHF-BAAKLINE", "LB-CHF-BAKAATA", "LB-CHF-SEMQANIEH", "LB-CHF-BEITEDDINE"];

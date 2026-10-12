@@ -17,7 +17,20 @@ const HOME_FAQ = ["how", "app", "languages", "pay", "prices", "where"];
 export const Route = createFileRoute("/$lang/")({
   head: ({ match }) => {
     const { lang, copy, info } = match.context;
-    const faq = faqItems(copy, { places: [], cuisines: [], merchants: 0, fees: { min_usd: null, max_usd: null, max_km: null }, order_fee_usd: null, order_fee_free_days: null, rate: null, rate_at: null }, HOME_FAQ);
+    const faq = faqItems(
+      copy,
+      {
+        places: [],
+        cuisines: [],
+        merchants: 0,
+        fees: { min_usd: null, max_usd: null, max_km: null },
+        order_fee_usd: null,
+        order_fee_free_days: null,
+        rate: null,
+        rate_at: null,
+      },
+      HOME_FAQ,
+    );
     const base = info?.origin ?? "";
     return buildHead({
       lang,
@@ -26,8 +39,22 @@ export const Route = createFileRoute("/$lang/")({
       description: copy.home.seo.description,
       info: info ?? { origin: "", indexing: false },
       jsonLd: [
-        { "@context": "https://schema.org", "@type": "Organization", name: "Alo King", alternateName: "ألو كينغ", url: `${base}/${lang}`, logo: `${base}/icon-512.png`, description: copy.home.seo.description },
-        { "@context": "https://schema.org", "@type": "WebSite", name: "Alo King", url: `${base}/${lang}`, inLanguage: lang },
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Alo King",
+          alternateName: "ألو كينغ",
+          url: `${base}/${lang}`,
+          logo: `${base}/icon-512.png`,
+          description: copy.home.seo.description,
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Alo King",
+          url: `${base}/${lang}`,
+          inLanguage: lang,
+        },
         faqLd(faq),
       ],
     });

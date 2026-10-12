@@ -15,7 +15,9 @@ export const Route = createFileRoute("/$lang/cuisine/$tag")({
     return d;
   },
   staleTime: 60_000,
-  headers: () => ({ "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600" }),
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600",
+  }),
   head: ({ loaderData, match }) => {
     if (!loaderData) return {};
     const { lang, copy, info } = match.context;
@@ -32,7 +34,10 @@ export const Route = createFileRoute("/$lang/cuisine/$tag")({
         crumbsLd([
           { label: copy.common.home, url: `${base}${localePath(lang)}` },
           { label: copy.common.cuisines, url: `${base}${localePath(lang, "/cuisine")}` },
-          { label: cuisine, url: `${base}${localePath(lang, `/cuisine/${loaderData.cuisine.tag}`)}` },
+          {
+            label: cuisine,
+            url: `${base}${localePath(lang, `/cuisine/${loaderData.cuisine.tag}`)}`,
+          },
         ]),
       ],
     });
@@ -45,13 +50,20 @@ function CuisinePage() {
   const { t, lang } = useSite();
   const cuisine = pickName(d.cuisine, "name", lang);
   const n = d.vendors.length;
-  const fact = fmt(n === 0 ? t.cuisine.factNone : n === 1 ? t.cuisine.factOne : t.cuisine.fact, { n, cuisine });
+  const fact = fmt(n === 0 ? t.cuisine.factNone : n === 1 ? t.cuisine.factOne : t.cuisine.fact, {
+    n,
+    cuisine,
+  });
   return (
     <>
       <PageHero
         title={fmt(t.cuisine.title, { cuisine })}
         lead={fact}
-        crumbs={[{ label: "", to: "/$lang" }, { label: t.common.cuisines, to: "/$lang/cuisine" }, { label: cuisine }]}
+        crumbs={[
+          { label: "", to: "/$lang" },
+          { label: t.common.cuisines, to: "/$lang/cuisine" },
+          { label: cuisine },
+        ]}
       >
         <OrderButton text={fmt(t.wa.cuisine, { cuisine })} />
       </PageHero>

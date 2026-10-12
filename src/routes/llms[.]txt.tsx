@@ -7,9 +7,16 @@ export const Route = createFileRoute("/llms.txt")({
   server: {
     handlers: {
       GET: async () => {
-        const [info, overview, vendors] = await Promise.all([getRequestInfo(), getOverview(), getVendorSlugs()]);
+        const [info, overview, vendors] = await Promise.all([
+          getRequestInfo(),
+          getOverview(),
+          getVendorSlugs(),
+        ]);
         return new Response(llmsTxt(info.origin, overview, vendors), {
-          headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=3600" },
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "cache-control": "public, max-age=0, s-maxage=3600",
+          },
         });
       },
     },

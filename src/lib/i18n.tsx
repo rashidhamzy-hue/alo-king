@@ -80,7 +80,13 @@ export function LangProvider({ children, forced }: { children: ReactNode; forced
     localStorage.setItem("ak_lang", l);
   };
   const d = dict[active === "ar" ? "ar" : "en"];
-  return <LangCtx.Provider value={{ lang: active, setLang, t: (k) => d[k], dir: active === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;
+  return (
+    <LangCtx.Provider
+      value={{ lang: active, setLang, t: (k) => d[k], dir: active === "ar" ? "rtl" : "ltr" }}
+    >
+      {children}
+    </LangCtx.Provider>
+  );
 }
 
 export function useLang() {
