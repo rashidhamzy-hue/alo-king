@@ -3,6 +3,7 @@
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
 ## State
+
 - **Decisions:** sections 0–34 are complete (§33 pilot-first order, §34 ordering testable first). Phase 0 is GO.
 - **Repo:** `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon` (the default branch), private. `main` is legacy and frozen.
 - **Services ready:**
@@ -14,6 +15,7 @@
 - **Build sessions never ask the owner (§25).** Judgement calls go to `docs/decisions/LOG.md`, and owner-only tasks become GitHub issues labelled `owner`.
 
 ## Progress
+
 - **Phase 0: done (7 October).** PRs #61–#66 merged automatically. CI runs typecheck, lint, tests, build, secret scan, a migration dry-run against staging and a Claude review. Guard hooks are in place. `check-setup` runs daily, which also keeps staging from pausing.
   - check-setup confirmed that the Supabase, Anthropic, Google and Kapso keys work.
   - The Sentry token is an org token: enough for releases and source maps, but it can't list projects.
@@ -130,28 +132,37 @@
   - **Delivery check after the pin:** only places whose road route reaches the pin are listed; none left means "no open place delivers here" with Pick up / Another pin, before any basket. The pickup choice lists open places that take pickup within `pickup_search_km`.
   - **No tap reaches the AI or gets "slow":** failures show the button menu; free text without credit shows the menu.
   - **Stale handoffs** ended by the migration; the handoff card has Menu and My order.
-  - **Staging only:** Alo Test Grill delivers up to 30 km (fixture adds a 10-30 km test fee band of $6.00 to staging's fee table; cut-over checklist in LOG.md).
+  - **Staging only:** Alo Test Grill delivered up to 30 km through a $6.00 10-30 km test band (retired in T3, which lets it take any pin instead).
   - **CUT-OVER (session 14):** production must have `max_delivery_km() = 10` (no fee band above 10 km), no `is_test` vendors and no `owner_phones.test_switch` rows; the staging fixture adds a $6.00 10-30 km band.
   - **Replay test:** `live-test-replay.test.ts` and `supabase/tests/99_t2_live_test_fixes.sql`.
+- **Session T3 (any pin for the test merchant, Google off, review race): done (12 October).** One PR (see LOG.md "session T3 PR" lines).
+  - **Any pin:** Alo Test Grill takes a pin anywhere, with no radius check, no road route and no paused-place block; the delivery fee is the 0-3 km band ($2.00). A pin outside every place polygon (Dubai, a gap, a paused place) is saved against the staging-only "Test location" place; a Beirut pin snaps to Beirut as usual. Real merchants keep every check. The T2 30 km band is retired by the fixture (a newer dated band set); the radius on record is 10 km again.
+  - **Google Places is off:** config `google_places_enabled = false`; `check-setup` reports "skipped" and never calls Google, `vendor_from_google` answers `disabled`, and a test fails if any other file reaches Google or the key. The claim flow uses our list and "not in our list" only.
+  - **Self-review gate:** the review job waits up to 10 minutes for the §32.7 comment instead of failing a race. Post the comment right after every push.
+  - **Tests:** `supabase/tests/99_t3_any_pin.sql` (Dubai and Beirut pins order from the test merchant, real merchant unchanged, production fallback, Google flag), the replay in `live-test-replay.test.ts`, `scripts/google-places-guard.test.ts`.
+  - **CUT-OVER (session 14), added:** `places` has no row `LB-TST-LOCATION`; with the earlier list: no `is_test` vendors, no `owner_phones.test_switch`, `max_delivery_km() = 10`.
 - **Next: session 6 (lean website)**, then 11, 13, D, 5b and 14 (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
 
 ## How to start each build session
+
 At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon`. Pick the model and effort from §10, then send:
 
 > Read docs/decisions/HANDOFF.md, DECISIONS.md and LOG.md. Do session N from DECISIONS §10 ("Which model"). Never ask me; follow §25. When done, update HANDOFF.md "Progress" in your last PR and reply with what merged and the open `owner` issues.
 
 ## Planning chat (claude.ai, Alo King project)
+
 Use it for strategy, research and decisions. It cannot run code. Decisions it makes are written into DECISIONS.md by the next build session, or uploaded to the project directly.
 
 ## Owner to-do (Rasheed)
+
 0. **Test the ordering path now (no API credit needed):** send `Order` to the sandbox number from your phone; see the steps in the session T reply and in issue #112. Optional: add the GitHub secret `OWNER_TEST_PHONE` (see the owner issue) if you want to be sure which number may switch sides.
-0. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
-1. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
-2. **SARL** (about 17 October). The same week:
+1. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
+2. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
+3. **SARL** (about 17 October). The same week:
    - open a fresh-USD bank account
    - open Alo King's Whish business account
    - apply to Tap (Claude prepares the text, §22.5) (#70, #71)
-3. **Lawyer:** one letter covering §20.1 (collection model, BdL Decision 13790), the merchant credit in §20.3, and §21.6 (drivers) (#72).
-4. **Lines:** Alfa or touch postpaid lines; Meta business portfolio in the company name, with all three owners as admins (#73).
-5. **Domain:** buy `aloking.com`, then the browser Google key, Search Console, Bing Webmaster and a Google Business Profile (§24.5) (#74).
-6. **Before launch:** set Google Cloud spending limits (§19).
+4. **Lawyer:** one letter covering §20.1 (collection model, BdL Decision 13790), the merchant credit in §20.3, and §21.6 (drivers) (#72).
+5. **Lines:** Alfa or touch postpaid lines; Meta business portfolio in the company name, with all three owners as admins (#73).
+6. **Domain:** buy `aloking.com`, then the browser Google key, Search Console, Bing Webmaster and a Google Business Profile (§24.5) (#74).
+7. **Before launch:** set Google Cloud spending limits (§19).

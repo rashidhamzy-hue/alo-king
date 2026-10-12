@@ -6,7 +6,8 @@
 //      before any basket exists;
 //   4. no tap ever reaches the model or gets the "slow" message, and free text without credit gets the buttons;
 //   5. a handoff left over from the day before ends on any tap, "Order" or "Menu";
-//   6. (staging fixture, tested in supabase/tests/99_t2_live_test_fixes.sql) a 30 km radius for Alo Test Grill.
+//   6. (session T3 replaced the 30 km radius: the test merchant takes any pin, see the last describe block and
+//      supabase/tests/99_t3_any_pin.sql.)
 import { describe, expect, it } from "vitest";
 import { checkInteractive } from "../../_shared/meta-limits";
 import { handleCustomerTurn, type CustomerDeps, type CustomerInbound } from "./turn";
@@ -62,6 +63,8 @@ function phone(opts: {
   failQuote?: boolean;
   routeDown?: boolean;
   withModel?: boolean;
+  /** Session T3: Alo Test Grill as the staging database now serves it (any pin, no route, the 0-3 km fee). */
+  testMerchant?: boolean;
 }) {
   const st = {
     session: {
@@ -74,6 +77,7 @@ function phone(opts: {
     },
     handoff: opts.staleHandoff,
     address: null as null | { lat: number; lon: number },
+    place: { ar: "بعقلين", en: "Baakline" },
     routeKnown: false,
     fulfilment: "delivery",
     cash: null as null | string,
@@ -139,9 +143,19 @@ function phone(opts: {
         return null;
       case "address_save_pin":
         st.address = { lat: a.p_lat, lon: a.p_lon };
+        if (opts.testMerchant) {
+          // address_save_pin as T3 defines it: a polygon snap inside Lebanon, the Test location everywhere else.
+          const inLebanon = a.p_lat >= 33 && a.p_lat <= 34.8 && a.p_lon >= 35 && a.p_lon <= 36.7;
+          st.place =
+            inLebanon && a.p_lat > 33.8
+              ? { ar: "بيروت", en: "Beirut" }
+              : inLebanon
+                ? { ar: "بعقلين", en: "Baakline" }
+                : { ar: "موقع تجريبي", en: "Test location" };
+        }
         return {
           status: "saved",
-          address: { id: ADDR, building: "x", place: "بعقلين", place_en: "Baakline" },
+          address: { id: ADDR, building: "x", place: st.place.ar, place_en: st.place.en },
         };
       case "customer_search_point":
         return st.address ? { ...st.address, address_id: ADDR } : null;
@@ -149,6 +163,11 @@ function phone(opts: {
         return [GRILL];
       case "customer_delivery_check":
         if (!st.address) return { status: "no_address", vendors: [] };
+        if (opts.testMerchant)
+          return {
+            status: "ok",
+            vendors: [{ vendor_id: VENDOR, status: "ok", road_km: 0, limit_km: null, fee_usd: 2 }],
+          };
         if (!st.routeKnown)
           return {
             status: "ok",
@@ -222,6 +241,18 @@ function phone(opts: {
             usd_lbp_rate: 89500,
             address: null,
             road_km: null,
+          };
+        if (opts.testMerchant)
+          return {
+            status: "ok",
+            basket: b,
+            subtotal_usd: b.subtotal_usd,
+            delivery_fee_usd: 2,
+            total_usd: b.subtotal_usd + 2,
+            total_lbp: (b.subtotal_usd + 2) * 89500,
+            usd_lbp_rate: 89500,
+            address: { place: st.place.ar, place_en: st.place.en },
+            road_km: 0,
           };
         if (ROAD_KM > opts.radiusKm)
           return {
@@ -427,13 +458,6 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     for (const m of out) expect(body(m)).not.toMatch(SLOW);
   });
 
-  it("with the 30 km radius the same pin lists Alo Test Grill and delivery works", async () => {
-    const p = phone({ radiusKm: 30, staleHandoff: false });
-    const out = await p.pin(33.645385742188, 35.64342880249);
-    expect(ids(out[out.length - 1])).toEqual(["ps:s1", "ps:s2"]);
-    expect(p.st.session.refs.fx).toBeUndefined();
-  });
-
   it("if the road route cannot be fetched the place is kept (not a guess), and Checkout checks it again", async () => {
     const p = phone({ radiusKm: 10, staleHandoff: false, routeDown: true });
     const out = await p.pin(33.645385742188, 35.64342880249);
@@ -505,5 +529,59 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     expect(p.st.modelCalls).toBeGreaterThan(0);
     expect(out).toHaveLength(1);
     expect(ids(out[0])).toEqual(["c:order", "c:track", "c:human"]);
+  });
+});
+
+describe("any pin orders from the test merchant (session T3)", () => {
+  // Alo Test Grill has no radius check and no road route: a Dubai pin and a Beirut pin both get its menu, the
+  // 0-3 km fee ($2.00) and an order the Confirm tap places. Nothing reaches the model; nothing fetches a route.
+  const order = async (lat: number, lon: number, place: string) => {
+    const p = phone({ radiusKm: 10, staleHandoff: false, testMerchant: true });
+    const all: any[] = [];
+    const turn = async (sent: any[]) => {
+      all.push(...sent);
+      return sent;
+    };
+    let out = await turn(await p.tap("c:order"));
+    expect(out[0].interactive.type).toBe("location_request_message");
+
+    // The pin: the test merchant is listed (a single open place opens its sections), no route is fetched.
+    out = await turn(await p.pin(lat, lon));
+    expect(ids(out[out.length - 1])).toEqual(["ps:s1", "ps:s2"]);
+    expect(p.st.routeKnown).toBe(false);
+    expect(p.st.rpcs.some((r) => r.fn === "vendor_search_pickup")).toBe(false);
+    expect(out.some((m) => body(m).includes("No open place delivers"))).toBe(false);
+    expect(out.some((m) => body(m).includes(place))).toBe(true);
+
+    out = await turn(await p.tap("ps:s1"));
+    out = await turn(await p.tap(rowIdOf(out[0], "Falafel Sandwich")));
+    out = await turn(await p.tap(ids(out[0])[1])); // quantity 2
+    expect(body(out[0])).toContain("2× Falafel Sandwich");
+    out = await turn(await p.tap("c:checkout"));
+    expect(ids(out[0])).toEqual(["cur:USD", "cur:LBP"]);
+    out = await turn(await p.tap("cur:LBP"));
+    expect(body(out[0])).toContain("Delivery: $2.00");
+    expect(body(out[0])).toContain("$7.00");
+    expect(body(out[0])).toContain(place);
+    const confirm = ids(out[0])[0];
+    expect(confirm).toBe(`cfm:${BASKET}:7`);
+    out = await turn(await p.tap(confirm));
+    expect(body(out[0])).toContain("T2-1");
+    expect(p.st.placed).toHaveLength(1);
+    expect(p.st.placed[0].p_basket_id).toBe(BASKET);
+
+    expect(p.st.modelCalls).toBe(0);
+    for (const m of all) {
+      expect(body(m)).not.toMatch(SLOW);
+      expect(checkInteractive(m)).toEqual([]);
+    }
+    return p;
+  };
+
+  it("a Dubai pin orders: Test location, $2.00 delivery, $7.00 total", async () => {
+    await order(25.2048, 55.2708, "Test location");
+  });
+  it("a Beirut pin orders: Beirut, $2.00 delivery, $7.00 total", async () => {
+    await order(33.8938, 35.5018, "Beirut");
   });
 });

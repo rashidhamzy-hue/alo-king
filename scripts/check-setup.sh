@@ -20,6 +20,7 @@ row() { # status name detail
 pass() { row "PASS" "$1" "$2"; }
 fail() { row "FAIL" "$1" "$2"; FAILED=1; }
 note() { row "INFO" "$1" "$2"; }
+skip() { row "SKIP" "$1" "$2"; }
 
 # curl wrapper: body goes to $TMP/body, prints only the HTTP status code.
 http() { curl -sS -o "$TMP/body" -w '%{http_code}' --max-time 30 "$@" 2>/dev/null || echo "000"; }
@@ -171,8 +172,21 @@ else
   fi
 fi
 
-# 7. Google Places (Place Details with field mask "id" is the free IDs-only SKU)
-if [ -z "${GOOGLE_PLACES_SERVER_KEY:-}" ]; then
+# 7. Google Places (Place Details with field mask "id" is the free IDs-only SKU). Live Google lookups are off
+# unless the database config google_places_enabled is exactly true: while it is off (the default) or cannot be read,
+# the key is never sent to Google and the check reports "skipped".
+google_on="false"
+if [ -n "$REF" ] && [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+  code=$(http -X POST -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+    -d '{"query": "select public.config_value('"'"'google_places_enabled'"'"') #>> '"'"'{}'"'"' as v"}' \
+    "https://api.supabase.com/v1/projects/$REF/database/query")
+  if [ "$code" = "200" ] || [ "$code" = "201" ]; then
+    [ "$(jq -r '.[0].v // "false"' "$TMP/body" 2>/dev/null)" = "true" ] && google_on="true"
+  fi
+fi
+if [ "$google_on" != "true" ]; then
+  skip "GOOGLE_PLACES_SERVER_KEY" "skipped: google_places_enabled is off, so Google is not called"
+elif [ -z "${GOOGLE_PLACES_SERVER_KEY:-}" ]; then
   fail "GOOGLE_PLACES_SERVER_KEY" "secret not set"
 else
   code=$(http -H "X-Goog-Api-Key: $GOOGLE_PLACES_SERVER_KEY" -H "X-Goog-FieldMask: id" \
