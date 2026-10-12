@@ -66,8 +66,9 @@ async function callModel(req: ModelRequest): Promise<ModelResponse> {
     msg = await anthropic!.messages.create(body, { timeout: req.timeoutMs });
   } catch (e) {
     // A model that does not take strict tool schemas gets the same tools without the flag; the server
-    // validates every input either way (turn.ts validate()).
-    if (e instanceof Anthropic.BadRequestError && /strict/i.test(e.message)) {
+    // validates every input either way (turn.ts validate()). tools.test.ts keeps the schemas valid; this
+    // only covers a rule the API adds later.
+    if (e instanceof Anthropic.BadRequestError && /strict|schema|enum|tools\./i.test(e.message)) {
       const tools = (req.tools as Record<string, unknown>[]).map(
         ({ strict: _s, ...t }) => t,
       ) as unknown as Anthropic.Tool[];

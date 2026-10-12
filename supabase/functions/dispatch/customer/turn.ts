@@ -27,8 +27,14 @@ import {
   basketMessage,
   beyondRadius,
   cancelAsk,
+  cashAsk,
   emptyQuestion,
+  handoffWaitCard,
+  localName,
+  mainMenu,
   menuList,
+  qtyList,
+  sectionList,
   substitutionAsk,
   dietaryList,
   optionList,
@@ -277,16 +283,24 @@ export async function handleCustomerTurn(
   return "done";
 }
 
+/**
+ * A conversation with a person (§30.6). The bot never goes silent (§34): every message gets an answer, and
+ * "menu", "hi", "order" or any button tap ends the handoff and carries on at once. STOP and deletion work
+ * throughout. The handoff also ends by itself after handoff_minutes (the database clears it).
+ */
 async function duringHandoff(c: Ctx) {
-  // STOP and deletion still work while a person handles the conversation; everything else waits for them.
   const intent = c.m.text ? deterministicIntent(c.m.text) : null;
   if (intent && ["stop", "delete_data", "forget_history"].includes(intent.kind))
     return textIntent(c, intent.kind);
-  c.path = "handoff";
-  if (!c.s.pending.handoff_told) {
-    say(c, "handoffWait");
-    c.s.pending = { ...c.s.pending, handoff_told: true };
+  const leaves = !!c.m.buttonId || intent?.kind === "greeting" || intent?.kind === "menu";
+  if (leaves) {
+    await c.deps.rpc("customer_handoff_end", { p_customer_id: c.customerId });
+    c.s.pending = {};
+    c.tools.push("handoff_end");
+    return route(c, false);
   }
+  c.path = "handoff";
+  push(c, handoffWaitCard(c.m.from, c.s.lang));
 }
 
 async function route(c: Ctx, firstContact: boolean) {
@@ -307,13 +321,11 @@ async function route(c: Ctx, firstContact: boolean) {
   if (m.text === null || !m.text.trim()) return say(c, "unsupported");
   const intent = deterministicIntent(m.text);
   if (intent) {
-    if (intent.kind === "greeting" && !firstContact && (c.basket || c.s.history.length))
-      return modelTurn(c, m.text, false);
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
       return modelTurn(c, m.text, false);
     return textIntent(c, intent.kind);
   }
-  if (firstContact && m.text.trim().length < 4) return say(c, "welcome");
+  if (firstContact && m.text.trim().length < 4) return push(c, mainMenu(m.from, c.s.lang));
   return modelTurn(c, m.text, false);
 }
 
@@ -350,7 +362,9 @@ async function textIntent(c: Ctx, kind: string) {
     case "usual":
       return reorder(c);
     case "greeting":
-      return say(c, "welcome");
+      return push(c, mainMenu(c.m.from, c.s.lang));
+    case "menu":
+      return startOrder(c);
     case "yes":
       if (c.s.pending.kind === "confirm")
         return confirm(c, c.s.pending.basket_id, c.s.pending.version);
@@ -419,7 +433,13 @@ async function tap(c: Ctx, a: CustomerAction) {
       await deps
         .rpc("order_customer_feedback", { p_customer_id: id, p_order_id: a.orderId, p_ok: a.ok })
         .catch(() => null);
-      if (a.ok) return say(c, "thanksRating");
+      if (a.ok) {
+        // A test merchant's order is rated at once (§34); a real one 30 minutes later (§30.2.3).
+        await deps
+          .rpc("order_rating_prompt_now", { p_customer_id: id, p_order_id: a.orderId })
+          .catch(() => null);
+        return say(c, "glad");
+      }
       c.path = "handoff";
       return say(c, "sorryProblem");
     }
@@ -471,9 +491,26 @@ async function tap(c: Ctx, a: CustomerAction) {
       return showMenu(c, a.ref, null);
     }
     case "pick_item": {
+      // How many? (§34 step 5); the quantity tap adds it.
       const it = c.s.refs[a.ref];
       if (!it) return say(c, "pickPlaceFirst");
-      return addOne(c, it.id, 1, [], null, null);
+      return push(c, qtyList(c.m.from, c.s.lang, it.label.replace(/ \$.*$/, ""), a.ref));
+    }
+    case "qty": {
+      const it = c.s.refs[a.ref];
+      if (!it) return say(c, "pickPlaceFirst");
+      // noFlow: the Flow would drop the quantity; the option list keeps it.
+      const added = await addOne(c, it.id, a.qty, [], null, null, true);
+      if (added) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+      return;
+    }
+    case "section":
+      return showSection(c, a.ref, 0);
+    case "more":
+      return showSection(c, a.ref, a.offset);
+    case "cash": {
+      await deps.rpc("basket_set_cash_currency", { p_customer_id: id, p_currency: a.currency });
+      return checkout(c, {});
     }
     case "option":
       return optionChosen(c, a.optionId);
@@ -538,6 +575,10 @@ async function tap(c: Ctx, a: CustomerAction) {
           return;
         case "address_list":
           return push(c, askPin(c.m.from, c.s.lang));
+        case "order":
+          return startOrder(c);
+        case "track":
+          return track(c);
       }
   }
 }
@@ -611,6 +652,24 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
   )
     return;
   if (c.basket?.lines?.length) return checkout(c, {});
+  // No basket yet: the open places that deliver here (§34 step 3), or the focused place's menu.
+  const focusRef = Object.entries(c.s.refs).find(
+    ([k, v]) => k.startsWith("v") && v.id === c.s.focus_vendor_id,
+  )?.[0];
+  const browse = c.s.pending.then === "browse" || !focusRef;
+  c.s.pending = {};
+  if (browse || !focusRef) return searchVendors(c, null, null);
+  return showMenu(c, focusRef, null);
+}
+
+/** "Order" / "menu": the places that deliver to the saved pin, or ask for the pin first (§34 steps 1-3). */
+async function startOrder(c: Ctx) {
+  const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
+  if (!pt?.address_id) {
+    c.s.pending = { kind: "await_pin", then: "browse" };
+    return push(c, askPin(c.m.from, c.s.lang));
+  }
+  return searchVendors(c, null, null);
 }
 
 // ---- WhatsApp Flows and catalogue carts --------------------------------------------------------------------------
@@ -708,7 +767,7 @@ async function cartOrder(c: Ctx, lines: { itemId: string; quantity: number }[]) 
 }
 
 // ---- Baskets and checkout -----------------------------------------------------------------------------------------
-function refFor(c: Ctx, prefix: "v" | "i" | "l", id: string, label: string): string {
+function refFor(c: Ctx, prefix: "v" | "i" | "l" | "s", id: string, label: string): string {
   for (const [k, v] of Object.entries(c.s.refs))
     if (k.startsWith(prefix) && /^[a-z]\d+$/.test(k) && v.id === id) return k;
   let n = 1;
@@ -729,6 +788,23 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   const v = c.s.refs[vendorRef];
   if (!v) return say(c, "pickPlaceFirst");
   c.s.focus_vendor_id = v.id;
+  // The menu by section, one list per tap (§34 step 4), when the shop has two or more sections.
+  if (!query) {
+    const sec = await c.deps.rpc("vendor_sections", { p_vendor_id: v.id });
+    const secs: any[] = Array.isArray(sec?.sections) ? sec.sections : [];
+    if (secs.length >= 2 && Number(sec?.unsectioned ?? 0) === 0) {
+      resetRefs(c, "s");
+      const rows = secs.map((x) => ({
+        ref: refFor(c, "s", x.section_id, localName(c.s.lang, x.name_ar, x.name_en)),
+        name_ar: x.name_ar,
+        name_en: x.name_en,
+        items: Number(x.items ?? 0),
+      }));
+      push(c, sectionList(c.m.from, c.s.lang, v.label.replace(/ \(.*\)$/, ""), rows));
+      c.summary.push(`[showed ${rows.length} menu sections of ${vendorRef}]`);
+      return;
+    }
+  }
   const rows: any[] =
     (await c.deps.rpc("vendor_menu", {
       p_vendor_id: v.id,
@@ -745,6 +821,42 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   const samePrice = (await c.deps.rpc("vendor_same_price", { p_vendor_id: v.id })) === true;
   push(c, ...menuList(c.m.from, c.s.lang, v.label.replace(/ \(.*\)$/, ""), menu, query, samePrice));
   c.summary.push(`[showed ${menu.length} items from ${vendorRef}]`);
+}
+
+/** One section of the focused place's menu, nine items and a "More" row at a time. */
+async function showSection(c: Ctx, sectionRef: string, offset: number) {
+  const sec = c.s.refs[sectionRef];
+  const vendorId = c.s.focus_vendor_id;
+  if (!sec || !vendorId) return say(c, "pickPlaceFirst");
+  const rows: any[] =
+    (await c.deps.rpc("vendor_menu", {
+      p_vendor_id: vendorId,
+      p_query: null,
+      p_section_id: sec.id,
+      p_limit: 10,
+      p_offset: Math.max(0, offset),
+    })) ?? [];
+  resetRefs(c, "i");
+  const more = rows.length === 10 && Number(rows[0]?.total_count ?? 0) > offset + 10;
+  const menu: MenuRow[] = rows.slice(0, more ? 9 : 10).map((r) => ({
+    ...r,
+    ref: refFor(c, "i", r.item_id, `${r.name_en ?? r.name_ar} $${Number(r.price_usd).toFixed(2)}`),
+  }));
+  const vref = Object.entries(c.s.refs).find(
+    ([k, v]) => k.startsWith("v") && v.id === vendorId,
+  )?.[0];
+  const vendor = (vref ? c.s.refs[vref].label : (c.basket?.vendor_en ?? "")).replace(
+    / \(.*\)$/,
+    "",
+  );
+  push(
+    c,
+    ...menuList(c.m.from, c.s.lang, vendor, menu, null, false, {
+      title: sec.label,
+      more: more ? { ref: sectionRef, offset: offset + 9 } : null,
+    }),
+  );
+  c.summary.push(`[showed ${menu.length} items of section ${sectionRef}]`);
 }
 
 /** Items that fit a dietary need (§32.3): hard filters only on merchant declarations, labels on estimates. */
@@ -954,8 +1066,12 @@ async function checkout(
       if (sp?.needed) {
         return push(c, substitutionAsk(c.m.from, lang, Number(sp.max_usd ?? 0)));
       }
+      // Cash in USD or LBP (§34 step 8), asked once per basket and only if the shop takes both.
+      const cs = await deps.rpc("basket_cash_state", { p_customer_id: c.customerId });
+      if (cs?.status === "ok" && !cs.cash_currency && (cs.allowed?.length ?? 0) > 1)
+        return push(c, cashAsk(c.m.from, lang, cs.allowed));
       const newCustomer = Number(c.profile?.delivered_orders ?? 0) === 0;
-      push(c, ...summaryMessage(c.m.from, lang, q, newCustomer));
+      push(c, ...summaryMessage(c.m.from, lang, q, newCustomer, cs?.cash_currency ?? null));
       if (!q.over_cod_cap) {
         c.s.pending = {
           kind: "confirm",
@@ -1108,8 +1224,9 @@ function contextBlock(c: Ctx): string {
 async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
   const { deps } = c;
   if (!deps.model) {
+    // No key or no credit: the buttons, never an error or silence (§34).
     c.path = "budget";
-    return say(c, "busy");
+    return push(c, mainMenu(c.m.from, c.s.lang, "aiOff"));
   }
   c.path = isVoice ? "voice" : "model";
   const complaint = looksLikeComplaint(userText);
@@ -1134,6 +1251,7 @@ async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
   msgs.push({ role: "user", content: `<context>\n${contextBlock(c)}\n</context>\n${block}` });
 
   const deadline = Date.now() + deps.config.turnMs;
+  let answered = false; // the API replied at least once (even with nothing usable)
   for (const model of models.slice(0, deps.config.maxCalls)) {
     const left = deadline - Date.now();
     if (left < 1500) break;
@@ -1183,7 +1301,9 @@ async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
         p_error: err ?? (res && calls.length !== valid.length ? "invalid tool input" : null),
       })) ?? 0,
     );
-    if (!res || res.stop_reason === "refusal") continue;
+    if (!res) continue;
+    answered = true;
+    if (res.stop_reason === "refusal") continue;
     if (valid.length) {
       for (const t of valid) await runTool(c, t.name as ToolName, t.input);
       return;
@@ -1195,7 +1315,13 @@ async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
       .trim();
     if (textOut && calls.length === 0) return replyText(c, textOut, "high");
   }
-  // Both calls failed or timed out: no invented answer, one short question, the basket untouched.
+  // Every call failed (no credit, rate limit, outage, timeout): the buttons, and the customer is not counted
+  // as unclear, so an API problem never hands anyone to a person (§34).
+  if (!answered) {
+    c.path = "error";
+    return push(c, mainMenu(c.m.from, c.s.lang, "aiOff"));
+  }
+  // The model answered but nothing usable: no invented answer, one short question, the basket untouched.
   c.path = "error";
   c.s.low_confidence++;
   if (c.s.low_confidence >= deps.config.lowConfidenceHandoff)

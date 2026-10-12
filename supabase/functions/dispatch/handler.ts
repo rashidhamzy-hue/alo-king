@@ -10,6 +10,7 @@
 
 import {
   cancelledText,
+  deliveredCard,
   driverJobCard,
   lowStockCard,
   needDriverCard,
@@ -26,7 +27,11 @@ import {
   type OrderCardData,
 } from "../_shared/merchant-cards.ts";
 import { clampInteractive } from "../_shared/meta-limits.ts";
-import { afterSunset, customerStatusMessages } from "../_shared/customer-cards.ts";
+import {
+  afterSunset,
+  customerStatusMessages,
+  parseCustomerAction,
+} from "../_shared/customer-cards.ts";
 import { handleCustomerTurn, readCustomerInbound, type CustomerDeps } from "./customer/turn.ts";
 import { handleOnboarding, readOnboardingInbound } from "./merchant/onboarding.ts";
 import { parseOnboardingTap } from "../_shared/onboarding-cards.ts";
@@ -375,6 +380,20 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     .catch((e: unknown) => deps.log?.("whatsapp_seen failed", { error: String(e).slice(0, 120) }));
   const members: any[] =
     (await deps.rpc("merchant_members_by_phone", { p_phone_e164: m.from })) ?? [];
+  // Staging only (§34): the owner's one phone plays both sides. `#merchant` and `#customer` choose which side
+  // the bot treats the text as; a tap goes to whoever owns the card (a merchant card to the merchant, a
+  // customer button to the customer bot). Null for every other number, so nothing changes for real people.
+  const side: string | null = await deps
+    .rpc("test_side_get", { p_phone_e164: m.from })
+    .catch(() => null);
+  if (side) {
+    const sw = m.text === null ? null : /^\s*#(merchant|customer)\s*$/i.exec(m.text);
+    if (sw) return switchTestSide(deps, m.from, sw[1].toLowerCase());
+    const merchantTap = !!m.buttonId && parseMerchantAction(m.buttonId) !== null;
+    const customerTap = !!m.buttonId && parseCustomerAction(m.buttonId) !== null;
+    if (customerTap && !merchantTap) return customerInbound(deps, ev);
+    if (side === "customer" && !merchantTap) return customerInbound(deps, ev);
+  }
   // Claims and registration (§18.1): a non-member who asks to join or is mid-onboarding, and the answers
   // to our own claim cards (objection, lost-phone confirmation), which go to members.
   const ot = parseOnboardingTap(o.buttonId);
@@ -481,6 +500,27 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
   return "done";
 }
 
+/** `#merchant` / `#customer` from the owner's phone (staging only): switches the side and says so. */
+async function switchTestSide(
+  deps: DispatchDeps,
+  phone: string,
+  side: string,
+): Promise<"done" | "ignored"> {
+  const r = await deps.rpc("test_side_set", { p_phone_e164: phone, p_side: side });
+  const from = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+  if (!from) return "ignored";
+  const body =
+    r?.status !== "ok"
+      ? r?.status === "no_test_vendor"
+        ? "The test merchant is not installed on this database yet."
+        : "This switch is not available for this number."
+      : side === "merchant"
+        ? `🏪 You are now the merchant of ${r.vendor}. Orders placed on the customer side reach you here as cards: tap Accept, then Ready, Out for delivery and Delivered (type the 4-digit code when asked). Send #customer to be the customer again.`
+        : "🛍️ You are the customer again. Send Order to start, or #merchant to switch back.";
+  await deps.whatsapp(from, textMessage(phone, body));
+  return "done";
+}
+
 /** Everyone who is not an active merchant member is a customer (the sandbox serves both until cut-over, §3). */
 async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ignored"> {
   if (!deps.customer) return "ignored";
@@ -533,6 +573,23 @@ async function handleTap(
       throw e;
     }
   };
+  /** After a step succeeds, the card for the following one: ready -> out for delivery -> delivered. */
+  const nextStep = async (orderId: string, done: string) => {
+    const b = await deps.rpc("order_brief", { p_order_id: orderId }).catch(() => null);
+    // Only the staging test merchant gets the chained cards; real merchants keep the timer cards (§34 scope).
+    if (!b?.code || !b.is_test) return;
+    const card =
+      done === "accepted"
+        ? readyCheckCard(m.from, orderId, b.code, "ar")
+        : done === "ready"
+          ? b.fulfilment === "pickup"
+            ? deliveredCard(m.from, orderId, b.code, "ar")
+            : needDriverCard(m.from, orderId, b.code, "ar")
+          : done === "picked_up"
+            ? deliveredCard(m.from, orderId, b.code, "ar")
+            : null;
+    if (card) await reply({ type: "interactive", interactive: (card as any).interactive });
+  };
   switch (action.a) {
     case "accept": {
       const member = await memberFor({ p_order_id: action.orderId });
@@ -542,13 +599,16 @@ async function handleTap(
         p_member_id: member,
         p_channel: "whatsapp",
       });
-      return reply(
+      await reply(
         r.status === "accepted"
           ? `✅ تم القبول، جاهز خلال ${action.prep} د`
           : r.status === "already_accepted"
             ? "✅ مقبول من قبل"
             : "⚠️ ما عاد فيك تقبل هالطلب (انلغى أو انرفض)",
       );
+      // The next step is one tap away, so the order never waits on a timer (§34 step 10).
+      if (r.status === "accepted") await nextStep(action.orderId, "accepted");
+      return;
     }
     case "reject_ask": {
       const member = await memberFor({ p_order_id: action.orderId });
@@ -591,13 +651,15 @@ async function handleTap(
         p_member_id: member,
         p_channel: "whatsapp",
       });
-      return reply(
+      await reply(
         r.status === "needs_code"
           ? "🔐 هالطلب بدو رمز التسليم. اطلب من الزبون الرمز (٤ أرقام) وابعتو هون."
           : r.status === "not_allowed" || r.status === "too_late"
             ? "⚠️ ما فيك تغيّر حالة هالطلب"
             : "👍",
       );
+      if (r.status === to || r.status === "unchanged") await nextStep(action.orderId, to);
+      return;
     }
     case "ready_in": {
       const member = await memberFor({ p_order_id: action.orderId });

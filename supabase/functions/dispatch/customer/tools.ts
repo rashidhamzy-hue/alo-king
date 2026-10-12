@@ -25,7 +25,15 @@ export type ToolName =
   | "reply";
 
 const str = (description: string) => ({ type: "string", description });
-const nstr = (description: string) => ({ type: ["string", "null"], description });
+// A nullable value is `anyOf: [T, null]`, never `type: [T, "null"]`: Anthropic's validator rejects an enum
+// whose values it cannot match against a type list ("Enum value 'restaurant' does not match declared type
+// ['string','null']"), and strict mode documents anyOf as the supported union. Value limits (minimum,
+// maximum, maxItems) are not allowed in strict schemas; the server enforces them in turn.ts validate().
+const nullable = (schema: Record<string, unknown>, description?: string) => ({
+  anyOf: [schema, { type: "null" }],
+  ...(description ? { description } : {}),
+});
+const nstr = (description: string) => nullable({ type: "string" }, description);
 const obj = (properties: Record<string, unknown>, description?: string) => ({
   type: "object",
   ...(description ? { description } : {}),
@@ -86,11 +94,10 @@ export const TOOLS = [
       query: nstr(
         "Dish, cuisine or shop name in the customer's words, normalised (e.g. 'shawarma', 'منقوشة', 'sushi'); null for 'anything nearby'",
       ),
-      business_type: {
-        type: ["string", "null"],
-        enum: [...BUSINESS_TYPES, null],
-        description: "Only when the customer asks for a kind of shop",
-      },
+      business_type: nullable(
+        { type: "string", enum: [...BUSINESS_TYPES] },
+        "Only when the customer asks for a kind of shop, else null",
+      ),
     }),
   },
   {
@@ -108,26 +115,20 @@ export const TOOLS = [
       "Show a place's items that fit a dietary need: free from allergens, a diet (vegan, siyami, halal...), calories or protein. Only what the place declared passes allergen and diet filters; never tell the customer an item is safe.",
     input_schema: obj({
       vendor_ref: str("A vendor ref from the context, e.g. v1"),
-      free_from: {
-        type: ["array", "null"],
-        items: { type: "string", enum: [...ALLERGENS] },
-        description: "Allergens the customer must avoid, or null",
-      },
-      diets: {
-        type: ["array", "null"],
-        items: { type: "string", enum: [...DIETS] },
-        description: "Diets the customer asked for, or null",
-      },
-      max_kcal: { type: ["number", "null"], description: "Most calories per serving, or null" },
-      min_protein_g: {
-        type: ["number", "null"],
-        description: "Least protein per serving in grams, or null",
-      },
-      tags: {
-        type: ["array", "null"],
-        items: { type: "string", enum: [...NUTRITION_TAGS] },
-        description: "Nutrition tags such as high_protein or low_carb, or null",
-      },
+      free_from: nullable(
+        { type: "array", items: { type: "string", enum: [...ALLERGENS] } },
+        "Allergens the customer must avoid, or null",
+      ),
+      diets: nullable(
+        { type: "array", items: { type: "string", enum: [...DIETS] } },
+        "Diets the customer asked for, or null",
+      ),
+      max_kcal: nullable({ type: "number" }, "Most calories per serving, or null"),
+      min_protein_g: nullable({ type: "number" }, "Least protein per serving in grams, or null"),
+      tags: nullable(
+        { type: "array", items: { type: "string", enum: [...NUTRITION_TAGS] } },
+        "Nutrition tags such as high_protein or low_carb, or null",
+      ),
     }),
   },
   {
@@ -140,16 +141,15 @@ export const TOOLS = [
       ),
       items: {
         type: "array",
-        maxItems: 10,
+        description: "At most 10 items",
         items: obj({
           item_ref: nstr("Item ref (i1...) if known"),
           name: nstr("Dish name as said, if no ref"),
-          quantity: { type: "integer", minimum: 1, maximum: 50 },
+          quantity: { type: "integer", description: "1 to 50" },
           options: {
             type: "array",
             items: { type: "string" },
-            maxItems: 6,
-            description: "Choices as said (size, extras)",
+            description: "Choices as said (size, extras), at most 6",
           },
           note: nstr("Kitchen note, e.g. 'no onions'"),
         }),
@@ -162,7 +162,7 @@ export const TOOLS = [
       "Change the quantity of a basket line (0 removes it). line_ref from the context (l1...).",
     input_schema: obj({
       line_ref: str("Basket line ref, e.g. l1"),
-      quantity: { type: "integer", minimum: 0, maximum: 50 },
+      quantity: { type: "integer", description: "0 to 50" },
     }),
   },
   {
@@ -175,14 +175,15 @@ export const TOOLS = [
     description:
       "Prepare the order summary for the customer to confirm by tapping. Asks for the location pin if needed. Never say the order is placed: only the customer's tap places it.",
     input_schema: obj({
-      fulfilment: { type: ["string", "null"], enum: ["delivery", "pickup", null] },
+      fulfilment: nullable(
+        { type: "string", enum: ["delivery", "pickup"] },
+        "delivery or pickup, or null",
+      ),
       note: nstr("Note for the whole order, or null"),
-      stairs_floors: {
-        type: ["integer", "null"],
-        minimum: 0,
-        maximum: 30,
-        description: "Floors to carry up, only when the customer says so",
-      },
+      stairs_floors: nullable(
+        { type: "integer" },
+        "Floors to carry up (0 to 30), only when the customer says so, else null",
+      ),
     }),
   },
   {

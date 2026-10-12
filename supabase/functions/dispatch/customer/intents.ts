@@ -53,7 +53,8 @@ export type Intent =
   | { kind: "no" }
   | { kind: "greeting" }
   | { kind: "basket" }
-  | { kind: "usual" };
+  | { kind: "usual" }
+  | { kind: "menu" };
 
 const any = (t: string, words: RegExp[]) => words.some((w) => w.test(t));
 
@@ -117,6 +118,13 @@ export function deterministicIntent(raw: string): Intent | null {
     )
   )
     return { kind: "usual" };
+  // "menu" / "order": the main menu, the way out of a handoff and the start of the button path (§34).
+  if (
+    /^(menu|the menu|main menu|home|order|i want to order|order now|المنيو|منيو|القايمه|اطلب|بدي اطلب|بدي طلب|commander|je veux commander|menu principal|otlob|badde otlob|baddi otlob|badde talab|talab)$/.test(
+      t,
+    )
+  )
+    return { kind: "menu" };
   if (/^(basket|cart|my basket|panier|mon panier|السله|سلتي|salle|salleti)$/.test(t))
     return { kind: "basket" };
   if (

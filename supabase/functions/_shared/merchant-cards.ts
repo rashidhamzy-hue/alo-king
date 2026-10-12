@@ -67,6 +67,7 @@ const T = {
     menu_or_price_issue: "سعر أو منيو غلط",
     other: "سبب تاني",
     readyAsk: "الطلب لازم يكون جاهز. جاهز هلق أو بعد قديش؟",
+    deliveredAsk: "وصل الطلب للزبون؟ (إذا في رمز تسليم، ابعتو هون)",
     ready: "✅ جاهز",
     needDriver: "الطلب جاهز وما في سائق. شو بتعمل؟",
     outForDelivery: "🛵 طلع للتوصيل",
@@ -112,6 +113,7 @@ const T = {
     menu_or_price_issue: "Menu or price wrong",
     other: "Other reason",
     readyAsk: "This order should be ready. Ready now, or in how long?",
+    deliveredAsk: "Did the order reach the customer? (If there is a delivery code, send it here.)",
     ready: "✅ Ready",
     needDriver: "The order is ready and has no driver. What now?",
     outForDelivery: "🛵 Out for delivery",
@@ -244,6 +246,12 @@ export function readyCheckCard(to: string, orderId: string, code: string, lang: 
     [`rin:${orderId}:10`, `⏱ 10 ${t.min}`],
     [`rin:${orderId}:20`, `⏱ 20 ${t.min}`],
   ]);
+}
+
+/** The last step: delivered (a code-protected order asks for the customer's 4-digit code instead, §27.6). */
+export function deliveredCard(to: string, orderId: string, code: string, lang: Lang = "ar") {
+  const t = T[lang];
+  return buttons(to, `#${code} · ${t.deliveredAsk}`, [[`dlv:${orderId}`, t.delivered]]);
 }
 
 export function needDriverCard(to: string, orderId: string, code: string, lang: Lang = "ar") {
@@ -414,7 +422,12 @@ export type Handover = {
   sold_out?: string[];
   complaints?: number;
 };
-const STATUS_AR: Record<string, string> = { placed: "جديد", accepted: "مقبول", preparing: "عم يتحضّر", ready: "جاهز" };
+const STATUS_AR: Record<string, string> = {
+  placed: "جديد",
+  accepted: "مقبول",
+  preparing: "عم يتحضّر",
+  ready: "جاهز",
+};
 
 /** The handover on a staff member's first message of a shift: orders still open, items off, open complaints. */
 export function shiftHandoverText(to: string, h: Handover) {
@@ -425,7 +438,9 @@ export function shiftHandoverText(to: string, h: Handover) {
     pending.length
       ? `🧾 طلبات مفتوحة (${h.pending_count ?? pending.length}) / Open orders:`
       : "🧾 ما في طلبات مفتوحة. / No open orders.",
-    ...pending.slice(0, 10).map((o) => `• #${o.code} · ${STATUS_AR[o.status] ?? o.status} · ${o.minutes} د`),
+    ...pending
+      .slice(0, 10)
+      .map((o) => `• #${o.code} · ${STATUS_AR[o.status] ?? o.status} · ${o.minutes} د`),
     ...((h.pending_count ?? 0) > pending.length ? ["…"] : []),
     "",
     (h.sold_out ?? []).length

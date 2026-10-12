@@ -547,3 +547,156 @@ describe("merchant WhatsApp extras (§32.5)", () => {
     expect(o.sent.map((x) => x.payload.type)).toEqual(["text"]);
   });
 });
+
+describe("the one-phone test switch and the merchant's next-step cards (session T, §34)", () => {
+  const merchant = [
+    { member_id: MEMBER, vendor_id: VENDOR, role: "owner", vendor_name: "Alo Test Grill" },
+  ];
+  const tap = (id: string) =>
+    inbound({ type: "interactive", interactive: { button_reply: { id } } });
+  const text = (body: string) => inbound({ type: "text", text: { body } });
+  const buttonIds = (sent: { payload: any }[]) =>
+    sent.flatMap((x) => (x.payload.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id));
+
+  it("#merchant from the owner's phone switches the side and says so; nothing else runs", async () => {
+    const db = fakeDb({
+      members: [],
+      events: [text("#merchant")],
+      rpcs: {
+        test_side_get: () => "customer",
+        test_side_set: () => ({ status: "ok", side: "merchant", vendor: "Alo Test Grill" }),
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(db.of("test_side_set")[0].args).toEqual({
+      p_phone_e164: "+96171000001",
+      p_side: "merchant",
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].payload.text.body).toMatch(/merchant of Alo Test Grill/);
+    expect(db.of("webhook_finish")[0].args.p_status).toBe("done");
+  });
+
+  it("#customer switches back (case and spaces do not matter)", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [text("  #Customer ")],
+      rpcs: {
+        test_side_get: () => "merchant",
+        test_side_set: () => ({ status: "ok", side: "customer", vendor: "Alo Test Grill" }),
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(db.of("test_side_set")[0].args.p_side).toBe("customer");
+    expect(sent[0].payload.text.body).toMatch(/customer again/);
+  });
+
+  it("any other number sending #merchant gets the normal paths, never the switch", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [text("#merchant")],
+      rpcs: { test_side_get: () => null },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(db.of("test_side_set")).toHaveLength(0);
+    expect(sent[0].payload.text.body).toMatch(/جرّب/); // the merchant help text
+  });
+
+  it("on the customer side a member's text goes to the customer bot, not the merchant help", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [text("hi")],
+      rpcs: { test_side_get: () => "customer" },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d); // no customer deps in this test: the customer path answers "ignored"
+    expect(db.of("webhook_finish")[0].args.p_status).toBe("ignored");
+    expect(sent).toHaveLength(0);
+  });
+
+  it("a merchant card tapped on the customer side still reaches the merchant handler", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [tap(`acc:${ORDER}:15`)],
+      rpcs: { test_side_get: () => "customer", order_accept: () => ({ status: "accepted" }) },
+    });
+    const { d } = deps(db);
+    await runDispatch(d);
+    expect(db.of("order_accept")).toHaveLength(1);
+  });
+
+  it("a customer button tapped on the merchant side goes to the customer bot", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [tap("c:order")],
+      rpcs: { test_side_get: () => "merchant" },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(db.of("webhook_finish")[0].args.p_status).toBe("ignored");
+    expect(sent).toHaveLength(0);
+  });
+
+  it("accepting offers the Ready card, ready offers Out for delivery, out offers Delivered", async () => {
+    const run = async (id: string, brief: any, rpcs: Record<string, (a: any) => any>) => {
+      const db = fakeDb({
+        members: merchant,
+        events: [tap(id)],
+        rpcs: { order_brief: () => brief, ...rpcs },
+      });
+      const { d, sent } = deps(db);
+      await runDispatch(d);
+      return buttonIds(sent);
+    };
+    const delivery = { code: "AB3CD9", fulfilment: "delivery", is_test: true };
+    expect(
+      await run(`acc:${ORDER}:15`, delivery, { order_accept: () => ({ status: "accepted" }) }),
+    ).toContain(`rdy:${ORDER}`);
+    expect(
+      await run(`rdy:${ORDER}`, delivery, { order_progress: () => ({ status: "ready" }) }),
+    ).toContain(`out:${ORDER}`);
+    expect(
+      await run(`out:${ORDER}`, delivery, { order_progress: () => ({ status: "picked_up" }) }),
+    ).toEqual([`dlv:${ORDER}`]);
+    expect(
+      await run(
+        `rdy:${ORDER}`,
+        { code: "AB3CD9", fulfilment: "pickup", is_test: true },
+        { order_progress: () => ({ status: "ready" }) },
+      ),
+    ).toEqual([`dlv:${ORDER}`]);
+  });
+
+  it("a real merchant gets no chained card", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [tap(`acc:${ORDER}:15`)],
+      rpcs: {
+        order_brief: () => ({ code: "AB3CD9", fulfilment: "delivery", is_test: false }),
+        order_accept: () => ({ status: "accepted" }),
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(buttonIds(sent)).toEqual([]);
+  });
+
+  it("a step that failed offers no next card", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [tap(`acc:${ORDER}:15`)],
+      rpcs: {
+        order_brief: () => ({ code: "AB3CD9", fulfilment: "delivery", is_test: true }),
+        order_accept: () => {
+          throw new Error("order_accept: 400 stale_status: order AB is cancelled");
+        },
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(buttonIds(sent)).toEqual([]);
+  });
+});

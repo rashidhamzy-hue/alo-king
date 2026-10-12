@@ -137,6 +137,7 @@ describe("merchant-cards: every builder passes the checker", () => {
         cards.rejectReasonList("+96171000001", U, "AB3CD9", lang),
         cards.readyCheckCard("+96171000001", U, "AB3CD9", lang),
         cards.needDriverCard("+96171000001", U, "AB3CD9", lang),
+        cards.deliveredCard("+96171000001", U, "AB3CD9", lang),
         cards.lowStockCard("+96171000001", U, "كرواسان بالزعتر والجبنة", 3, lang),
         cards.reactivateCard("+96171000001", U, 3, lang),
         cards.proposalCard("+96171000001", U, "أوقف استقبال الطلبات لمدة 30 دقيقة؟", lang),
@@ -391,5 +392,94 @@ describe("merchant extras builders pass the checker", () => {
     expect(h.text.body.length).toBeLessThanOrEqual(4096);
     const summary = "👨‍🍳 المطبخ بياخد 200 طلبات سوا؟ ".repeat(30);
     expect(checkInteractive(proposalCard("+96171000001", SUB, summary, "ar"))).toEqual([]);
+  });
+});
+
+// The button-driven ordering path (session T, DECISIONS §34): main menu, handoff card, sections, quantity,
+// cash currency and a paged section list stay inside Meta's limits in all four languages.
+import {
+  cashAsk,
+  handoffWaitCard,
+  mainMenu,
+  menuList as sectionMenuList,
+  qtyList,
+  sectionList,
+  summaryMessage,
+} from "../dispatch/customer/render";
+
+describe("the button path builders (session T)", () => {
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`builds valid messages in ${lang}`, () => {
+      const to = "+96171000001";
+      const sections = Array.from({ length: 12 }, (_, k) => ({
+        ref: `s${k + 1}`,
+        name_ar: `قسم طويل جداً رقم ${k}`,
+        name_en: `A very long section name number ${k}`,
+        items: 99,
+      }));
+      const rows = Array.from({ length: 10 }, (_, k) => ({
+        ref: `i${k + 1}`,
+        name_ar: `صنف طويل الاسم جداً رقم ${k}`,
+        name_en: `A very long item name number ${k}`,
+        name_fr: `Un article au nom très long numéro ${k}`,
+        price_usd: 12.5,
+        orderable: true,
+        total_count: 25,
+      }));
+      const built: any[] = [
+        mainMenu(to, lang),
+        mainMenu(to, lang, "aiOff"),
+        handoffWaitCard(to, lang),
+        sectionList(to, lang, "A restaurant with a rather long name", sections),
+        qtyList(to, lang, "A very long item name number 3", "i3"),
+        cashAsk(to, lang, ["USD", "LBP"]),
+        cashAsk(to, lang, ["LBP"]),
+        ...sectionMenuList(to, lang, "A restaurant with a rather long name", rows, null, false, {
+          title: "A very long section name",
+          more: { ref: "s2", offset: 9 },
+        }),
+        ...summaryMessage(
+          to,
+          lang,
+          {
+            status: "ok",
+            basket: {
+              basket_id: "11111111-2222-3333-4444-555555555555",
+              vendor: "مطعم",
+              subtotal_usd: 5,
+              menu_version: 3,
+              lines: [{ name: "فلافل", quantity: 2, line_total_usd: 5 }],
+            },
+            subtotal_usd: 5,
+            delivery_fee_usd: 2,
+            total_usd: 7,
+            total_lbp: 626500,
+            usd_lbp_rate: 89500,
+            address: { place: "بعقلين", place_en: "Baakline" },
+          },
+          true,
+          "LBP",
+        ),
+      ];
+      for (const p of built)
+        expect(checkInteractive(p), JSON.stringify(p).slice(0, 90)).toEqual([]);
+    });
+  }
+  it("a section page with more items has nine items and a More row", () => {
+    const rows = Array.from({ length: 10 }, (_, k) => ({
+      ref: `i${k + 1}`,
+      name_en: `Item ${k}`,
+      price_usd: 1,
+      orderable: true,
+      total_count: 25,
+    }));
+    const [p]: any[] = sectionMenuList("+96171000001", "en", "Shop", rows, null, false, {
+      title: "Grills",
+      more: { ref: "s2", offset: 9 },
+    });
+    const ids = p.interactive.action.sections[0].rows.map((r: any) => r.id);
+    expect(ids.length).toBe(10);
+    expect(ids[9]).toBe("mo:s2:9");
+    expect(ids.slice(0, 9).every((i: string) => i.startsWith("pi:i"))).toBe(true);
   });
 });
