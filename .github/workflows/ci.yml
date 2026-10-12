@@ -338,6 +338,18 @@ jobs:
           DB_URL="$(scripts/staging-db-url.sh)"
           echo "::add-mask::$DB_URL"
           DB_URL="$DB_URL" scripts/load-seed.sh
+      - name: Staging test merchant "Alo Test Grill" (DECISIONS §34; staging only, never part of the production cut-over)
+        env:
+          OWNER_TEST_PHONE: ${{ secrets.OWNER_TEST_PHONE }}
+        run: |
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          args=()
+          if [ -n "${OWNER_TEST_PHONE:-}" ]; then
+            echo "::add-mask::$OWNER_TEST_PHONE"
+            args+=(-v "owner_phone=$OWNER_TEST_PHONE")
+          fi
+          psql "$DB_URL" -X -q -1 -v ON_ERROR_STOP=1 "${args[@]}" -f supabase/test-fixtures/alo-test-grill.sql
       - name: Record where the edge functions live (the dispatch kick reads it)
         run: |
           DB_URL="$(scripts/staging-db-url.sh)"

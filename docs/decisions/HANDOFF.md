@@ -1,9 +1,9 @@
-# Handoff — 11 October 2026 (after session 5)
+# Handoff — 12 October 2026 (after session T)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
 ## State
-- **Decisions:** sections 0–30 are complete (§29 audit verdicts and §30 second-round reports added 9–11 October). Phase 0 is GO.
+- **Decisions:** sections 0–34 are complete (§33 pilot-first order, §34 ordering testable first). Phase 0 is GO.
 - **Repo:** `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon` (the default branch), private. `main` is legacy and frozen.
 - **Services ready:**
   - Supabase `alo-king-staging` (`tzugbbatfbvrfzxuacqx`, eu-central-1, free plan)
@@ -113,7 +113,19 @@
     - "Open" sent outside the set hours is re-paused by the hours tick within a minute; the reply should say so (5b).
     - A catalogue cart whose lines all need choices adds the first one to the existing basket.
     - Open complaints in the handover use cancel requests and low ratings until `order_exceptions` (5b).
-- **Next: session 5b.** The full session list, with the model and effort for each, is in DECISIONS §10 "Which model" and §32.8.
+- **Session T (testable ordering, §34): done (12 October).** One PR (see LOG.md "session T PR" lines). Done means the owner can place, accept and rate a test order from one phone with no API credit.
+  - **Tool-schema bug:** the API rejected `type: ["string","null"]` beside an `enum`, so every AI turn failed. Nullable values are now `anyOf`, value limits are out of the schemas (the server still enforces them), and `tools.test.ts` checks every schema against the API's rules on every PR.
+  - **No credit, no error:** any model failure shows the main menu (Order, My order, A person) and is not counted as an unclear turn.
+  - **Handoff never silent:** 30 minutes (`handoff_minutes`), every message answered with a Menu button, "menu", "order", "hi" or any tap ends it. Every row of `app_private.owner_phones` gets a WhatsApp note on the Merchant number (until Slack, 5b).
+  - **Button path, zero model calls:** Order -> pin -> open places that deliver there -> sections -> items (nine and "More") -> quantity 1-10 -> required options -> basket -> cash currency (USD or LBP, stored on the basket and order) -> summary -> Confirm; merchant Accept -> Ready -> Out for delivery -> Delivered cards (each reply carries the next step); status messages; "Received" and the rating (a test merchant's rating comes at once). Two silent gaps found and fixed on the way: an item tap with no options said nothing, and a pin with no basket only said "saved".
+  - **Alo Test Grill:** `supabase/test-fixtures/alo-test-grill.sql`, run by the staging deploy job only (`vendors.is_test`, `source = 'admin'`, Baakline, 15 items, 10 km, 24/7; Baakline, Bakaata, Semqanieh and Beiteddine switched on). **Never run it at the production cut-over** (LOG.md has the checklist line).
+  - **`#merchant` / `#customer`:** the owner's phone (`OWNER_TEST_PHONE`, else the only customer on staging) switches which side typed text goes to; taps always reach the owner of the card.
+  - **Open for later:**
+    - Entering a final weight by WhatsApp is portal-only, so test orders must leave out the lamb chops (weighed).
+    - The merchant card does not show the cash currency yet.
+    - Slack, ops console, admin commands, recovery engine, templates and the gold card image stay in 5b.
+    - The merchant portal link was not part of T.
+- **Next: session 6 (lean website)**, then 11, 13, D, 5b and 14 (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
 
 ## How to start each build session
 At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon`. Pick the model and effort from §10, then send:
@@ -124,7 +136,8 @@ At claude.ai/code, start a new session on repo `rashidhamzy-hue/alo-king`, branc
 Use it for strategy, research and decisions. It cannot run code. Decisions it makes are written into DECISIONS.md by the next build session, or uploaded to the project directly.
 
 ## Owner to-do (Rasheed)
-0. **Now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
+0. **Test the ordering path now (no API credit needed):** send `Order` to the sandbox number from your phone; see the steps in the session T reply and in issue #112. Optional: add the GitHub secret `OWNER_TEST_PHONE` (see the owner issue) if you want to be sure which number may switch sides.
+0. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
 1. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
 2. **SARL** (about 17 October). The same week:
    - open a fresh-USD bank account

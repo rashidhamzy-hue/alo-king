@@ -19,6 +19,12 @@ describe("detectLang", () => {
 
 describe("deterministicIntent", () => {
   it.each([
+    ["menu", "menu"],
+    ["Order", "menu"],
+    ["اطلب", "menu"],
+    ["القائمة", "menu"],
+    ["Commander", "menu"],
+    ["badde otlob", "menu"],
     ["STOP", "stop"],
     ["وقف", "stop"],
     ["Arrêter", "stop"],

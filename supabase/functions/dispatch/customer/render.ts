@@ -19,11 +19,48 @@ type V = Record<string, unknown>;
 
 const S: Record<string, Record<CLang, string>> = {
   welcome: {
-    ar: "أهلا بـ Alo King 👑 شو بتحب تطلب اليوم؟ اكتبلي أو ابعتلي صوت، مثلاً «بدي ٢ شاورما» أو «شي طيب بعقلين».",
-    en: 'Welcome to Alo King 👑 What would you like today? Type or send a voice note, e.g. "2 shawarma" or "pizza near me".',
-    fr: "Bienvenue chez Alo King 👑 Que voulez-vous commander ? Écrivez ou envoyez un vocal, par ex. « 2 shawarmas ».",
+    ar: "أهلا بـ Alo King 👑 شو بتحب تطلب اليوم؟ دوس «اطلب» أو اكتبلي أو ابعتلي صوت، مثلاً «بدي ٢ شاورما».",
+    en: 'Welcome to Alo King 👑 What would you like today? Tap Order, or type or send a voice note, e.g. "2 shawarma".',
+    fr: "Bienvenue chez Alo King 👑 Que voulez-vous commander ? Touchez Commander, ou écrivez ou envoyez un vocal, par ex. « 2 shawarmas ».",
     arabizi:
-      'Ahla w sahla b Alo King 👑 Shu badak totlob lyom? Ekteb aw b3at voice, metel "badde 2 shawarma".',
+      'Ahla w sahla b Alo King 👑 Shu badak totlob lyom? Dos "Otlob" aw ekteb aw b3at voice, metel "badde 2 shawarma".',
+  },
+  btnOrder: { ar: "🍽️ اطلب", en: "🍽️ Order", fr: "🍽️ Commander", arabizi: "🍽️ Otlob" },
+  btnTrack: { ar: "📦 طلبي", en: "📦 My order", fr: "📦 Ma commande", arabizi: "📦 Talabe" },
+  btnPerson: { ar: "🙋 حدا بشري", en: "🙋 A person", fr: "🙋 Une personne", arabizi: "🙋 Shakhs" },
+  btnMenu: { ar: "🍽️ المنيو", en: "🍽️ Menu", fr: "🍽️ Menu", arabizi: "🍽️ El menu" },
+  aiOff: {
+    ar: "ما فيني قرا الكتابة هلق 🙏 اختار من الأزرار:",
+    en: "I can't read free text right now 🙏 Please use the buttons:",
+    fr: "Je ne peux pas lire le texte libre pour l'instant 🙏 Utilisez les boutons :",
+    arabizi: "Ma fine read el kteybe hala2 🙏 Ekhtar men el azrar:",
+  },
+  glad: {
+    ar: "🙏 الحمدلله وصل!",
+    en: "🙏 Glad it arrived!",
+    fr: "🙏 Content que ça soit arrivé !",
+    arabizi: "🙏 Elhamdella wosel!",
+  },
+  moreBtn: { ar: "المزيد ›", en: "More ›", fr: "Plus ›", arabizi: "Aktar ›" },
+  sectionsOf: {
+    ar: "اختار قسم من {vendor}:",
+    en: "Pick a section of {vendor}:",
+    fr: "Choisissez une section de {vendor} :",
+    arabizi: "Na22e se2em men {vendor}:",
+  },
+  itemsCount: { ar: "{n} صنف", en: "{n} items", fr: "{n} articles", arabizi: "{n} sanf" },
+  qtyAsk: {
+    ar: "كم «{item}»؟",
+    en: 'How many "{item}"?',
+    fr: "Combien de « {item} » ?",
+    arabizi: 'Kam "{item}"?',
+  },
+  qtyButton: { ar: "الكمية", en: "Quantity", fr: "Quantité", arabizi: "El kammiye" },
+  cashAsk: {
+    ar: "بأي عملة رح تدفع كاش عالتسليم؟",
+    en: "Which currency will you pay cash in?",
+    fr: "En quelle devise paierez-vous en espèces ?",
+    arabizi: "Ayy 3emle ra7 tdfa3 cash 3al tasleem?",
   },
   askPin: {
     ar: "📍 ابعتلي موقعك (Location) لنعرف وين نوصّل.",
@@ -601,6 +638,7 @@ export const STATUS: Record<string, Record<CLang, string>> = {
 
 const name = (lang: CLang, ar?: unknown, en?: unknown) =>
   String((lang === "ar" ? (ar ?? en) : (en ?? ar)) ?? "");
+export { name as localName };
 const clip = (s: string, n: number) =>
   [...s].length > n ? [...s].slice(0, n - 1).join("") + "…" : s;
 
@@ -677,9 +715,10 @@ export function menuList(
   rows: MenuRow[],
   query: string | null,
   samePrice = false,
+  extra: { title?: string; more?: { ref: string; offset: number } | null } = {},
 ): Msg[] {
   if (!rows.length) return [text(to, tr(lang, "noItem", { q: query ?? "", vendor }))];
-  const items = rows.slice(0, 10);
+  const items = rows.slice(0, extra.more ? 9 : 10);
   const desc = (r: MenuRow) =>
     [
       `${usd(r.price_usd)}${r.pricing_unit === "kg" ? "/kg" : ""}`,
@@ -691,25 +730,33 @@ export function menuList(
     // The badge only after the merchant confirmed it (§32.5); never an estimated saving.
     list(
       to,
-      tr(lang, "menuOf", { vendor }) + (samePrice ? `\n${tr(lang, "sameShopPrice")}` : ""),
+      (extra.title ? `${vendor} · ${extra.title}` : tr(lang, "menuOf", { vendor })) +
+        (samePrice ? `\n${tr(lang, "sameShopPrice")}` : ""),
       tr(lang, "menuButton"),
       [
         {
-          rows: items.map<Row>((r) => ({
-            id: `pi:${r.ref}`,
-            title: clip(
-              lang === "fr"
-                ? String(r.name_fr ?? r.name_en ?? r.name_ar ?? "")
-                : name(lang, r.name_ar, r.name_en),
-              24,
-            ),
-            description: clip(desc(r), 72),
-          })),
+          rows: [
+            ...items.map<Row>((r) => ({
+              id: `pi:${r.ref}`,
+              title: clip(
+                lang === "fr"
+                  ? String(r.name_fr ?? r.name_en ?? r.name_ar ?? "")
+                  : name(lang, r.name_ar, r.name_en),
+                24,
+              ),
+              description: clip(desc(r), 72),
+            })),
+            ...(extra.more
+              ? [{ id: `mo:${extra.more.ref}:${extra.more.offset}`, title: tr(lang, "moreBtn") }]
+              : []),
+          ],
         },
       ],
     ),
   ];
-  if ((rows[0]?.total_count ?? rows.length) > 10) out.push(text(to, tr(lang, "moreItems")));
+  // A section page shows "More" instead; the flat list says the rest is by name.
+  if (!extra.more && (rows[0]?.total_count ?? rows.length) > 10 && !extra.title)
+    out.push(text(to, tr(lang, "moreItems")));
   return out;
 }
 
@@ -863,7 +910,13 @@ export function where(lang: CLang, a: Quote["address"]): string {
 }
 
 /** The order summary the customer confirms (§30.1.1): both totals at today's rate, then the Confirm button. */
-export function summaryMessage(to: string, lang: CLang, q: Quote, newCustomer: boolean): Msg[] {
+export function summaryMessage(
+  to: string,
+  lang: CLang,
+  q: Quote,
+  newCustomer: boolean,
+  cash: string | null = null,
+): Msg[] {
   const b = q.basket;
   const vendor = name(lang, b.vendor, b.vendor_en);
   if (q.over_cod_cap)
@@ -891,7 +944,7 @@ export function summaryMessage(to: string, lang: CLang, q: Quote, newCustomer: b
     q.address
       ? `📍 ${tr(lang, "deliverTo", { where: where(lang, q.address) })}`
       : `🛍️ ${tr(lang, "pickup")}`,
-    tr(lang, "payCash"),
+    tr(lang, "payCash") + (cash ? ` (${cash})` : ""),
   ];
   return [
     buttons(to, lines.join("\n"), [
@@ -900,6 +953,59 @@ export function summaryMessage(to: string, lang: CLang, q: Quote, newCustomer: b
       ["c:clear", tr(lang, "cancelBasket")],
     ]),
   ];
+}
+
+// ---- The button path (DECISIONS §34): main menu, sections, quantity, cash currency ----------------------------
+/** The first message and the way back: three buttons that need no model. */
+export function mainMenu(to: string, lang: CLang, bodyKey: "welcome" | "aiOff" = "welcome"): Msg {
+  return buttons(to, tr(lang, bodyKey), [
+    ["c:order", tr(lang, "btnOrder")],
+    ["c:track", tr(lang, "btnTrack")],
+    ["c:human", tr(lang, "btnPerson")],
+  ]);
+}
+
+/** Shown to a customer whose conversation is with a person: always an answer, and a way out. */
+export function handoffWaitCard(to: string, lang: CLang): Msg {
+  return buttons(to, tr(lang, "handoffWait"), [["c:order", tr(lang, "btnMenu")]]);
+}
+
+export type SectionRow = {
+  ref: string;
+  name_ar?: string | null;
+  name_en?: string | null;
+  items: number;
+};
+export function sectionList(to: string, lang: CLang, vendor: string, rows: SectionRow[]): Msg {
+  return list(to, tr(lang, "sectionsOf", { vendor }), tr(lang, "menuButton"), [
+    {
+      rows: rows.slice(0, 10).map<Row>((r) => ({
+        id: `ps:${r.ref}`,
+        title: clip(name(lang, r.name_ar, r.name_en), 24),
+        description: tr(lang, "itemsCount", { n: r.items }),
+      })),
+    },
+  ]);
+}
+
+/** 1 to 10 of an item, as a list. Weighed items count pieces; the merchant weighs them (§29.2). */
+export function qtyList(to: string, lang: CLang, item: string, ref: string): Msg {
+  return list(to, tr(lang, "qtyAsk", { item }), tr(lang, "qtyButton"), [
+    {
+      rows: Array.from({ length: 10 }, (_, k) => ({
+        id: `qt:${ref}:${k + 1}`,
+        title: String(k + 1),
+      })),
+    },
+  ]);
+}
+
+/** USD or LBP cash, only the currencies the shop takes (vendors.cash_currencies). */
+export function cashAsk(to: string, lang: CLang, allowed: string[]): Msg {
+  const bs: [string, string][] = [];
+  if (allowed.includes("USD")) bs.push(["cur:USD", "💵 USD"]);
+  if (allowed.includes("LBP")) bs.push(["cur:LBP", "💴 LBP"]);
+  return buttons(to, tr(lang, "cashAsk"), bs);
 }
 
 export function askPin(to: string, lang: CLang, place?: string | null): Msg {

@@ -426,18 +426,19 @@ describe("customer turn: the model (one call, typed tools, §4)", () => {
     await handleCustomerTurn(f.deps, msg({ text: "talk to me" }));
     expect(f.sent.length).toBe(3);
   });
-  it("during a handoff the bot answers once, then stays quiet", async () => {
+  it("during a handoff every message gets an answer with a way out (never silence, §34)", async () => {
     const f = fake({
       begin: { session: { lang: "en", pending: {}, refs: {}, history: [], handoff: true } },
     });
     await handleCustomerTurn(f.deps, msg({ text: "hello?" }));
     expect(f.sent.length).toBe(1);
-    const pending = f.of("customer_turn_end")[0].args.p_session.pending;
+    expect(f.of("customer_handoff_end")).toHaveLength(0); // "hello?" is not "hi"
+    expect(f.sent[0].interactive.action.buttons[0].reply.id).toBe("c:order");
     const g = fake({
-      begin: { session: { lang: "en", pending, refs: {}, history: [], handoff: true } },
+      begin: { session: { lang: "en", pending: {}, refs: {}, history: [], handoff: true } },
     });
     await handleCustomerTurn(g.deps, msg({ text: "hello again" }));
-    expect(g.sent.length).toBe(0);
+    expect(g.sent.length).toBe(1);
   });
   it("without a model key only deterministic paths run", async () => {
     const f = fake({ model: null });
@@ -860,5 +861,373 @@ describe("substitutions (§32.5)", () => {
     });
     expect(JSON.stringify(f.sent)).toContain("$12.25 = 1,096,375 LBP");
     expect(f.of("ai_quota_take")).toHaveLength(0);
+  });
+});
+
+describe("the button-driven ordering path (session T, §34)", () => {
+  const SEC1 = "70000000-0000-0000-0000-000000000001";
+  const SEC2 = "70000000-0000-0000-0000-000000000002";
+  const OPT = "80000000-0000-0000-0000-000000000001";
+  const ADDR = "90000000-0000-0000-0000-000000000001";
+  const vendors = [
+    {
+      vendor_id: VENDOR,
+      name_ar: "ألو تست غريل",
+      name_en: "Alo Test Grill",
+      is_open: true,
+      straight_km: 0.4,
+    },
+  ];
+  const sections = {
+    sections: [
+      { section_id: SEC1, name_ar: "سندويشات", name_en: "Sandwiches", items: 3 },
+      { section_id: SEC2, name_ar: "مشاوي", name_en: "Grills", items: 4 },
+    ],
+    unsectioned: 0,
+  };
+  const ids = (p: any) => [
+    ...(p.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id),
+    ...(p.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => r.id)),
+  ];
+  const sess = (extra: any = {}) => ({
+    session: {
+      lang: "en",
+      pending: {},
+      refs: {},
+      history: [],
+      low_confidence: 0,
+      handoff: false,
+      ...extra,
+    },
+  });
+  const model = null; // no API credit: everything below must work without it
+
+  it("a first message shows the main menu with Order, My order and A person", async () => {
+    const f = fake({ model, begin: { first_contact: true } });
+    await handleCustomerTurn(f.deps, msg({ text: "hi" }));
+    expect(ids(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+    expect(f.modelReqs).toHaveLength(0);
+  });
+
+  it('"menu" and "order" in four languages show the places or ask for the pin', async () => {
+    for (const t of ["menu", "Order", "اطلب", "commander", "otlob"]) {
+      const f = fake({ model, rpcs: { customer_search_point: () => null } });
+      await handleCustomerTurn(f.deps, msg({ text: t }));
+      expect(f.sent[0].interactive.type, t).toBe("location_request_message");
+    }
+  });
+
+  it("Order with no saved pin asks for the location pin; the pin lists the places that deliver there", async () => {
+    const f = fake({ model, rpcs: { customer_search_point: () => null } });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(f.sent[0].interactive.type).toBe("location_request_message");
+    const pending = f.of("customer_turn_end")[0].args.p_session.pending;
+    expect(pending).toEqual({ kind: "await_pin", then: "browse" });
+
+    const g = fake({
+      model,
+      begin: sess({ pending }),
+      rpcs: {
+        address_save_pin: () => ({
+          status: "saved",
+          address: { id: ADDR, building: "x", place: "بعقلين", place_en: "Baakline" },
+        }),
+        customer_search_point: () => ({ lat: 33.6775, lon: 35.5645, address_id: ADDR }),
+        vendor_search: () => vendors,
+        vendor_sections: () => sections,
+      },
+    });
+    await handleCustomerTurn(
+      g.deps,
+      msg({ type: "location", location: { lat: 33.6775, lon: 35.5645 } }),
+    );
+    const search = g.of("vendor_search")[0].args;
+    expect(search.p_query).toBeNull();
+    expect(search.p_lat).toBeCloseTo(33.6775);
+    // One open place that delivers there opens its menu sections straight away.
+    expect(ids(g.sent[g.sent.length - 1])).toEqual(["ps:s1", "ps:s2"]);
+  });
+
+  it("Order with a saved pin lists the open places that deliver there, with no model call", async () => {
+    const f = fake({
+      model,
+      rpcs: {
+        customer_search_point: () => ({ lat: 33.6775, lon: 35.5645, address_id: ADDR }),
+        vendor_search: () => [
+          vendors[0],
+          { ...vendors[0], vendor_id: "x2", name_en: "Closed one", is_open: false },
+        ],
+        vendor_sections: () => sections,
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(f.modelReqs).toHaveLength(0);
+    expect(ids(f.sent[0])).toEqual(["pv:v1", "pv:v2"]);
+  });
+
+  it("picking a place lists its menu sections; a section lists its items; More pages on", async () => {
+    const f = fake({
+      model,
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Alo Test Grill" } } }),
+      rpcs: { vendor_sections: () => sections },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(ids(f.sent[0])).toEqual(["ps:s1", "ps:s2"]);
+    const refs = f.of("customer_turn_end")[0].args.p_session.refs;
+    expect(refs.s2.id).toBe(SEC2);
+
+    const items = Array.from({ length: 10 }, (_, k) => ({
+      item_id: `5100000${k}-0000-0000-0000-000000000000`,
+      name_en: `Dish ${k}`,
+      price_usd: 3,
+      orderable: true,
+      total_count: 14,
+    }));
+    const g = fake({
+      model,
+      begin: sess({ refs, focus_vendor_id: VENDOR }),
+      rpcs: { vendor_menu: () => items },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "ps:s2", type: "interactive" }));
+    expect(g.of("vendor_menu")[0].args).toMatchObject({
+      p_vendor_id: VENDOR,
+      p_section_id: SEC2,
+      p_offset: 0,
+    });
+    const rows = ids(g.sent[0]);
+    expect(rows).toHaveLength(10);
+    expect(rows[9]).toBe("mo:s2:9");
+
+    const h = fake({
+      model,
+      begin: sess({ refs, focus_vendor_id: VENDOR }),
+      rpcs: { vendor_menu: () => items.slice(0, 5).map((x) => ({ ...x, total_count: 14 })) },
+    });
+    await handleCustomerTurn(h.deps, msg({ buttonId: "mo:s2:9", type: "interactive" }));
+    expect(h.of("vendor_menu")[0].args.p_offset).toBe(9);
+    expect(ids(h.sent[0]).some((i) => i.startsWith("mo:"))).toBe(false);
+  });
+
+  it("a single-section shop (or items without sections) shows the flat list", async () => {
+    const f = fake({
+      model,
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Shop" } } }),
+      rpcs: {
+        vendor_sections: () => ({ sections: [sections.sections[0]], unsectioned: 0 }),
+        vendor_menu: () => [{ item_id: ITEM, name_en: "Falafel", price_usd: 2.5, orderable: true }],
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(ids(f.sent[0])).toEqual(["pi:i1"]);
+  });
+
+  it("an item tap asks how many; the quantity tap adds that many at the server's price and shows the basket", async () => {
+    const f = fake({ model, begin: sess({ refs: { i1: { id: ITEM, label: "Falafel $2.50" } } }) });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pi:i1", type: "interactive" }));
+    expect(ids(f.sent[0])).toEqual(Array.from({ length: 10 }, (_, k) => `qt:i1:${k + 1}`));
+    expect(f.of("basket_add_item")).toHaveLength(0);
+
+    const g = fake({
+      model,
+      begin: sess({ refs: { i1: { id: ITEM, label: "Falafel $2.50" } } }),
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "added", basket }),
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "qt:i1:3", type: "interactive" }));
+    expect(g.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ITEM, p_quantity: 3 });
+    expect(ids(g.sent[0])).toEqual(["c:checkout", "c:menu", "c:clear"]);
+  });
+
+  it("an item with a required option asks the option, then adds with the quantity chosen", async () => {
+    const group = {
+      group_id: "g1",
+      name: "الحجم",
+      name_en: "Size",
+      min: 1,
+      max: 1,
+      options: [
+        { option_id: OPT, name: "عادي", name_en: "Regular", price_delta_usd: 0 },
+        {
+          option_id: "80000000-0000-0000-0000-000000000002",
+          name: "كبير",
+          name_en: "Large",
+          price_delta_usd: 1.5,
+        },
+      ],
+    };
+    const f = fake({
+      model,
+      begin: sess({ refs: { i1: { id: ITEM, label: "Shawarma $4.50" } } }),
+      rpcs: { menu_item_options: () => [group] },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "qt:i1:2", type: "interactive" }));
+    expect(ids(f.sent[0])).toEqual([`opt:${OPT}`, "opt:80000000-0000-0000-0000-000000000002"]);
+    const pending = f.of("customer_turn_end")[0].args.p_session.pending;
+    expect(pending).toMatchObject({ kind: "options", qty: 2 });
+
+    const g = fake({
+      model,
+      begin: sess({ pending, refs: { i1: { id: ITEM, label: "Shawarma $4.50" } } }),
+      rpcs: {
+        menu_item_options: () => [group],
+        basket_add_item: () => ({ status: "added", basket }),
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: `opt:${OPT}`, type: "interactive" }));
+    expect(g.of("basket_add_item")[0].args).toMatchObject({ p_quantity: 2, p_option_ids: [OPT] });
+    expect(ids(g.sent[0])).toEqual(["c:checkout", "c:menu", "c:clear"]);
+  });
+
+  describe("checkout: cash currency, summary, confirm", () => {
+    const quote = {
+      status: "ok",
+      basket,
+      subtotal_usd: 10,
+      delivery_fee_usd: 2,
+      total_usd: 12,
+      total_lbp: 1074000,
+      usd_lbp_rate: 89500,
+      address: { place: "بعقلين", place_en: "Baakline" },
+    };
+    it("asks USD or LBP once when the shop takes both, before the summary", async () => {
+      const f = fake({
+        model,
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_cash_state: () => ({ status: "ok", cash_currency: null, allowed: ["USD", "LBP"] }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+      expect(ids(f.sent[0])).toEqual(["cur:USD", "cur:LBP"]);
+      expect(f.sent.length).toBe(1);
+    });
+    it("the currency tap is stored by the server and the summary then names it", async () => {
+      const f = fake({
+        model,
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_set_cash_currency: () => ({ status: "ok", cash_currency: "LBP" }),
+          basket_cash_state: () => ({
+            status: "ok",
+            cash_currency: "LBP",
+            allowed: ["USD", "LBP"],
+          }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ buttonId: "cur:LBP", type: "interactive" }));
+      expect(f.of("basket_set_cash_currency")[0].args).toEqual({
+        p_customer_id: CUST,
+        p_currency: "LBP",
+      });
+      const summary = f.sent[0];
+      expect(bodyOf(summary)).toContain("1,074,000 LBP");
+      expect(bodyOf(summary)).toContain("(LBP)");
+      expect(ids(summary)[0]).toBe(`cfm:${BASKET}:7`);
+    });
+    it("a shop that takes one currency goes straight to the summary", async () => {
+      const f = fake({
+        model,
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_cash_state: () => ({ status: "ok", cash_currency: "USD", allowed: ["USD"] }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+      expect(ids(f.sent[0])[0]).toBe(`cfm:${BASKET}:7`);
+    });
+  });
+
+  it('"Received" asks the server to rate a test order at once and thanks the customer', async () => {
+    const O = "a0000000-0000-0000-0000-000000000001";
+    const f = fake({ model, rpcs: { order_customer_feedback: () => ({ status: "received" }) } });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `rcv:${O}:ok`, type: "interactive" }));
+    expect(f.of("order_rating_prompt_now")[0].args).toEqual({ p_customer_id: CUST, p_order_id: O });
+    expect(bodyOf(f.sent[0])).toMatch(/Glad/);
+  });
+
+  it("a rating tap is recorded", async () => {
+    const O = "a0000000-0000-0000-0000-000000000001";
+    const f = fake({ model });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `rate:${O}:f5`, type: "interactive" }));
+    expect(f.of("order_rate")[0].args).toMatchObject({ p_order_id: O, p_food_score: 5 });
+  });
+
+  describe("without API credit the customer gets buttons, never an error or silence", () => {
+    it("free text with no model key shows the main menu", async () => {
+      const f = fake({ model });
+      await handleCustomerTurn(f.deps, msg({ text: "I want pizza" }));
+      expect(ids(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+      expect(bodyOf(f.sent[0])).toMatch(/buttons/);
+    });
+    it("an API failure (no credit) shows the menu and is not counted as unclear: no handoff", async () => {
+      const f = fake({
+        begin: sess({ low_confidence: 1 }),
+        model: () => {
+          throw new Error("400 invalid_request_error: Your credit balance is too low");
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ text: "I want pizza" }));
+      expect(ids(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+      expect(f.of("customer_handoff")).toHaveLength(0);
+      expect(f.of("customer_turn_end")[0].args.p_session.low_confidence).toBe(1);
+    });
+    it("every rendered message in the button path is inside Meta's limits", async () => {
+      const f = fake({
+        model,
+        begin: sess({ refs: { i1: { id: ITEM, label: "Falafel $2.50" } } }),
+      });
+      await handleCustomerTurn(f.deps, msg({ buttonId: "pi:i1", type: "interactive" }));
+      const g = fake({ model });
+      await handleCustomerTurn(g.deps, msg({ text: "pizza" }));
+      for (const p of [...f.sent, ...g.sent]) expect(checkInteractive(p)).toEqual([]);
+    });
+  });
+
+  describe("handoff never goes silent and ends on its own terms (§34)", () => {
+    const inHandoff = {
+      session: { lang: "en", pending: {}, refs: {}, history: [], handoff: true },
+    };
+    it('"menu", "hi" and any tap end it at once and carry on', async () => {
+      const f = fake({ model, begin: inHandoff, rpcs: { customer_search_point: () => null } });
+      await handleCustomerTurn(f.deps, msg({ text: "menu" }));
+      expect(f.of("customer_handoff_end")).toHaveLength(1);
+      expect(f.sent[0].interactive.type).toBe("location_request_message");
+
+      const g = fake({ model, begin: inHandoff });
+      await handleCustomerTurn(g.deps, msg({ text: "hi" }));
+      expect(g.of("customer_handoff_end")).toHaveLength(1);
+      expect(ids(g.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+
+      const h = fake({ model, begin: inHandoff });
+      await handleCustomerTurn(h.deps, msg({ buttonId: "c:track", type: "interactive" }));
+      expect(h.of("customer_handoff_end")).toHaveLength(1);
+      expect(h.sent.length).toBeGreaterThan(0);
+    });
+    it("other messages stay with the person, but are always acknowledged with a Menu button", async () => {
+      const f = fake({ model, begin: inHandoff });
+      await handleCustomerTurn(f.deps, msg({ text: "where is Rasheed?" }));
+      expect(f.of("customer_handoff_end")).toHaveLength(0);
+      expect(ids(f.sent[0])).toEqual(["c:order"]);
+      const v = fake({ model, begin: inHandoff });
+      await handleCustomerTurn(
+        v.deps,
+        msg({
+          type: "audio",
+          audio: { url: "u", id: null, mime: "audio/ogg", bytes: 10, transcript: null },
+        }),
+      );
+      expect(v.sent.length).toBe(1);
+    });
+    it("STOP still opts out during a handoff", async () => {
+      const f = fake({ model, begin: inHandoff });
+      await handleCustomerTurn(f.deps, msg({ text: "STOP" }));
+      expect(f.of("customer_marketing_set")).toHaveLength(1);
+      expect(f.of("customer_handoff_end")).toHaveLength(0);
+    });
   });
 });

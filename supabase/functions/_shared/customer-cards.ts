@@ -461,7 +461,11 @@ export type CustomerAction =
   | { a: "option"; optionId: string }
   | { a: "substitution"; substitutionId: string; accept: boolean }
   | { a: "sub_pref"; pref: "call" | "replace" | "remove" }
-  | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "delete_ok" | "keep" | "usual" | "address_list" | "no_upsell" };
+  | { a: "section"; ref: string }
+  | { a: "more"; ref: string; offset: number }
+  | { a: "qty"; ref: string; qty: number }
+  | { a: "cash"; currency: "USD" | "LBP" }
+  | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "delete_ok" | "keep" | "usual" | "address_list" | "no_upsell" | "order" | "track" };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const re = (s: string) => new RegExp(`^${s}$`);
@@ -480,8 +484,12 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(re(`rpl:(${UUID}):(\\d{1,2})`)))) return { a: "replace_basket", itemId: m[1], qty: Number(m[2]) };
   if ((m = id.match(re(`opt:(${UUID})`)))) return { a: "option", optionId: m[1] };
   if ((m = id.match(re(`sub:(${UUID}):(y|n)`)))) return { a: "substitution", substitutionId: m[1], accept: m[2] === "y" };
+  if ((m = id.match(re(`ps:(s\\d{1,2})`)))) return { a: "section", ref: m[1] };
+  if ((m = id.match(re(`mo:(s\\d{1,2}):(\\d{1,3})`)))) return { a: "more", ref: m[1], offset: Number(m[2]) };
+  if ((m = id.match(re(`qt:(i\\d{1,3}):(\\d{1,2})`)))) return { a: "qty", ref: m[1], qty: Number(m[2]) };
+  if ((m = id.match(re(`cur:(USD|LBP)`)))) return { a: "cash", currency: m[1] as "USD" | "LBP" };
   if ((m = id.match(/^sbp:(call|replace|remove)$/))) return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
-  if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell)$/)))
+  if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track)$/)))
     return { a: "simple", what: m[1] as any };
   return null;
 }
