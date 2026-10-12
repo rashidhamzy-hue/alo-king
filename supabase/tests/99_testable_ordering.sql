@@ -41,15 +41,16 @@ select tests.ok(public.test_side_get('+96170000099') = 'customer', 'the owner st
 select tests.ok(public.test_side_get('+96170000001') is null, 'any other number cannot switch');
 select tests.ok(public.test_side_set('+96170000001', 'merchant') ->> 'status' = 'not_allowed', 'another number cannot become the merchant');
 select tests.ok(public.test_side_set('+96170000099', 'admin') ->> 'status' = 'bad_side', 'only the two sides exist');
-select tests.ok(public.test_side_set('+96170000099', 'merchant') ->> 'status' = 'ok' and public.test_side_get('+96170000099') = 'merchant',
-  '#merchant switches the owner to the merchant side');
+select tests.ok(public.test_side_set('+96170000099', 'merchant') ->> 'status' = 'ok', '#merchant is accepted for the owner');
+-- A separate statement: a stable function does not see a write made earlier in the same statement.
+select tests.ok(public.test_side_get('+96170000099') = 'merchant', '#merchant switches the owner to the merchant side');
 select tests.ok(exists (select 1 from public.merchant_members_by_phone('+96170000099') where vendor_id = :'tv' and role = 'owner'),
   'as merchant the owner is an active owner of the test vendor');
 select tests.ok((select primary_channel = 'whatsapp' and primary_target = '+96170000099' and backup_target is null
   from app_private.vendor_channels(:'tv')), 'order cards reach the owner on WhatsApp at once');
 select tests.ok(public.test_side_set('+96170000099', 'merchant') ->> 'status' = 'ok', 'switching to the same side twice is fine');
-select tests.ok(public.test_side_set('+96170000099', 'customer') ->> 'status' = 'ok' and public.test_side_get('+96170000099') = 'customer',
-  '#customer switches back');
+select tests.ok(public.test_side_set('+96170000099', 'customer') ->> 'status' = 'ok', '#customer is accepted');
+select tests.ok(public.test_side_get('+96170000099') = 'customer', '#customer switches back');
 
 -- A whole test order: cash currency, accept, deliver with the code, "Received", rating --------------------------
 select public.customer_turn_begin('+96170000099', 'wamid.t.1', 'text', 'Rasheed') as t1 \gset
@@ -62,8 +63,8 @@ select tests.ok(public.basket_cash_state(:'cid') ->> 'cash_currency' is null
   and public.basket_cash_state(:'cid') #>> '{allowed,0}' = 'USD' and public.basket_cash_state(:'cid') #>> '{allowed,1}' = 'LBP',
   'the shop takes USD and LBP and nothing is chosen yet');
 select tests.ok(public.basket_set_cash_currency(:'cid', 'EUR') ->> 'status' = 'not_accepted', 'a currency the shop does not take is refused');
-select tests.ok(public.basket_set_cash_currency(:'cid', 'LBP') ->> 'status' = 'ok' and public.basket_cash_state(:'cid') ->> 'cash_currency' = 'LBP',
-  'the customer chooses LBP');
+select tests.ok(public.basket_set_cash_currency(:'cid', 'LBP') ->> 'status' = 'ok', 'the customer chooses LBP');
+select tests.ok(public.basket_cash_state(:'cid') ->> 'cash_currency' = 'LBP', 'and the server remembers it');
 select public.route_cache_store(33.6770, 35.5640, array[33.6775], array[35.5645], array[900], array[120], 'ors');
 select public.basket_quote(:'cid') as q \gset
 select tests.ok(:'q'::jsonb ->> 'status' = 'ok' and (:'q'::jsonb ->> 'subtotal_usd')::numeric = 5.00, 'the quote prices from the menu: 2 x $2.50');
@@ -84,10 +85,10 @@ select public.order_progress(:'oid', 'picked_up', :'mid', 'whatsapp');
 select tests.ok((select status = 'picked_up' from public.orders where id = :'oid'), 'then out for delivery');
 select tests.ok(public.order_confirm_delivery_code('+96170000099', (select code from public.order_delivery_codes where order_id = :'oid')) ->> 'status' = 'delivered',
   'the owner types the delivery code and the order is delivered');
-select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'sent'
-  and exists (select 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':rating'), 'a test order is rated at once');
-select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'sent'
-  and (select count(*) = 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':rating'), 'asking twice queues one rating message');
+select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'sent', 'a delivered test order is rated at once');
+select tests.ok(exists (select 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':rating'), 'the rating message is queued');
+select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'sent', 'asking again is accepted');
+select tests.ok((select count(*) = 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':rating'), 'asking twice queues one rating message');
 select tests.ok(public.order_rate(:'cid', :'oid', 5, null) ->> 'status' = 'rated', 'the customer rates it');
 select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'rated', 'a rated order is not asked again');
 select tests.ok(public.order_rating_prompt_now('10000000-0000-0000-0000-000000000002', :'oid') ->> 'status' = 'no_order', 'only the customer''s own order');
