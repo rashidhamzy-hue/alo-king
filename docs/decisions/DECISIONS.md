@@ -1340,6 +1340,58 @@ Two sessions used about half of Rasheed's weekly Claude limit. The remaining wor
 - At most two review-fix rounds per PR; open remaining low findings as notes in LOG.md.
 - Sonnet 5.5 is the default model; Opus 5.5 only where the table says.
 
+## 34. Make ordering testable now; operations at the end (DECIDED, 12 October 07:15)
+Rasheed's rule: finish the ordering journey so he can test it on the sandbox; Slack, ops cards and every other operational tool wait until the cut-over. This reorders §33.
+
+**Staging check, 12 October (planning chat, read-only):** messages reach the bot, but:
+1. Every AI call fails: the Anthropic account has no credit ("credit balance is too low").
+2. One AI call also failed on a real bug: a tool schema declares a nullable string with an enum that lacks `null` ("Enum value 'restaurant' does not match declared type ['string','null']").
+3. After a handoff, the conversation stays in handoff mode and the bot answers nothing: no human console exists yet, so the customer hears silence.
+4. Nothing can be ordered: 0 orderable vendors, 0 places switched on, 0 menu items.
+
+**Session T: testable ordering (next, Sonnet 5.5, high):**
+- Fix the tool-schema bug and add a test that validates every tool schema against Anthropic's rules.
+- **Handoff never goes silent:**
+  - The bot always acknowledges.
+  - Handoff mode ends after 30 minutes, or when the customer sends "menu", "hi" or a button tap.
+  - Until the Slack console exists (session 5b), the handoff is stored and noted to Rasheed's number on the Merchant number.
+- **A fully button-driven ordering path that needs no AI call.** So ordering works with or without API credit:
+  1. "Order" or the menu button
+  2. location pin
+  3. list of open merchants that deliver there
+  4. merchant menu by section (lists)
+  5. add with quantity
+  6. options via list or Flow
+  7. basket
+  8. cash currency
+  9. Confirm
+  10. merchant accept or reject
+  11. status messages
+  12. delivered
+  13. rating
+
+  Free text and voice use AI when credit exists. When it doesn't, the bot replies with the buttons, never an error or silence.
+- **Test merchant on staging only.** A staging-only fixture creates one test brand and branch, "Alo Test Grill" in Baakline, with `source = test` and `is_test = true`:
+  - a real-looking menu of about 15 items with options and a weighed item
+  - 10 km radius, open 24/7
+  - switches on Baakline and the three nearby pilot villages for test only
+
+  This does not touch the frozen seeds, scripts or table structure (§31). It is excluded from production by the cut-over checklist and logged in LOG.md.
+- **One phone plays both sides (staging only).** Rasheed's admin number can send `#merchant` or `#customer` to switch which side the bot treats him as. As merchant he receives the order card and taps Accept, Ready, Delivered. The merchant portal link works too.
+- **Done means:** Rasheed can place a test order from his phone, accept it as the merchant, see every status message, and rate it, with no API credit and no other person.
+- **Not in T:** Slack, ops console, admin commands, recovery engine, Twilio, gold card image, templates. These are deferred to session 5b, now run right before the cut-over.
+
+**New order of remaining sessions:**
+1. T
+2. 6: lean website
+3. 11: simulator and scorecard
+4. 13: security review
+5. D: data
+6. 5b: Slack and operations
+7. 14: cut-over
+
+The post-pilot sessions are unchanged (§33).
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
