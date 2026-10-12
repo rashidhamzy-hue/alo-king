@@ -1,4 +1,5 @@
 import type { ErrorEvent } from "@sentry/react";
+import { isPrivatePath } from "./site";
 
 // The Sentry SDK is about 50 KB gzipped: it is loaded after the page is idle, never in the first bundle (DECISIONS §37.5).
 let sdk: typeof import("@sentry/react") | null = null;
@@ -19,7 +20,7 @@ export function initSentry() {
   started = true;
   // The public pages (/ar, /en, /fr) stay under the JavaScript budget (DECISIONS §37.5): they report errors through a
   // 1 KB reporter, not the SDK. Private pages (merchant, driver, admin, claim) load the full SDK after the page is idle.
-  if (/^\/(ar|en|fr)(\/|$)/.test(window.location.pathname)) return startLite(dsn);
+  if (!isPrivatePath(window.location.pathname)) return startLite(dsn);
   const start = () =>
     import("@sentry/react").then((S) => {
       sdk = S;

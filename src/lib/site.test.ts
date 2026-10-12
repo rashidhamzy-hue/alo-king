@@ -91,3 +91,28 @@ describe("page head", () => {
     expect(h.scripts[0]?.children).not.toContain("</script>");
   });
 });
+
+import { isPrivatePath } from "./site";
+describe("private paths", () => {
+  it("separates the staff apps from every public page, including the 404", () => {
+    for (const p of [
+      "/merchant",
+      "/merchant/orders",
+      "/driver",
+      "/admin",
+      "/claim/abou-ali",
+      "/for-business",
+    ])
+      expect(isPrivatePath(p)).toBe(true);
+    for (const p of [
+      "/",
+      "/en",
+      "/ar/m/x",
+      "/fr/track/abc",
+      "/this-page-does-not-exist",
+      "/merchants-are-great",
+      "/administrator",
+    ])
+      expect(isPrivatePath(p)).toBe(false);
+  });
+});

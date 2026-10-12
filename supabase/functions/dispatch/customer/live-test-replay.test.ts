@@ -276,9 +276,7 @@ function phone(opts: {
         };
       }
       case "basket_fulfilment_options":
-        return opts.takes
-          ? { status: "ok", ...opts.takes, fulfilment: st.fulfilment }
-          : null;
+        return opts.takes ? { status: "ok", ...opts.takes, fulfilment: st.fulfilment } : null;
       case "basket_substitution_needed":
         return { needed: false };
       case "basket_cash_state":
@@ -500,7 +498,12 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
       takes: { delivery: true, pickup: false },
     });
     await onlyDelivery.pin(33.645385742188, 35.64342880249);
-    onlyDelivery.st.lines.push({ item_id: FALAFEL, name_en: "Falafel Sandwich", quantity: 1, price: 2.5 });
+    onlyDelivery.st.lines.push({
+      item_id: FALAFEL,
+      name_en: "Falafel Sandwich",
+      quantity: 1,
+      price: 2.5,
+    });
     let out = await onlyDelivery.tap("c:checkout");
     expect(ids(out[0])).toEqual(["cur:USD", "cur:LBP"]);
 
@@ -510,7 +513,12 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
       testMerchant: true,
       takes: { delivery: false, pickup: true },
     });
-    onlyPickup.st.lines.push({ item_id: FALAFEL, name_en: "Falafel Sandwich", quantity: 1, price: 2.5 });
+    onlyPickup.st.lines.push({
+      item_id: FALAFEL,
+      name_en: "Falafel Sandwich",
+      quantity: 1,
+      price: 2.5,
+    });
     out = await onlyPickup.tap("c:checkout");
     expect(onlyPickup.st.fulfilment).toBe("pickup");
     expect(ids(out[0])).toEqual(["cur:USD", "cur:LBP"]);

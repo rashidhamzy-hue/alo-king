@@ -264,6 +264,8 @@ export const en = {
     factOne: "1 shop delivers to {place} through Alo King on WhatsApp; delivery {min} to {max}.",
     factNone: "Alo King is opening in {place}. The first shops will appear here.",
     shops: "Shops in {place}",
+    count: "{n} shops",
+    countOne: "1 shop",
     district: "{district} district",
     noShops: "No shops yet. Say Alo on WhatsApp and we'll tell you the moment one opens here.",
     howTitle: "How to order in {place}",

@@ -31,6 +31,13 @@ export function pickLang(acceptLanguage: string | null | undefined): SiteLang {
   return (ranked[0]?.base as SiteLang | undefined) ?? DEFAULT_LANG;
 }
 
+/**
+ * The private apps: staff pages and claim links. Everything else is public and held to the website budgets (JavaScript under
+ * 150 KB, no full error SDK, hydration after load).
+ */
+export const isPrivatePath = (pathname: string) =>
+  /^\/(merchant|driver|admin|claim|for-business)(\/|$)/.test(pathname);
+
 /** `/ar` + `/places/x` -> `/ar/places/x`; the home page is `/ar`. */
 export const localePath = (lang: SiteLang, path = "/") =>
   path === "/" || path === "" ? `/${lang}` : `/${lang}${path.startsWith("/") ? path : `/${path}`}`;

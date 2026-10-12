@@ -251,7 +251,8 @@ export async function handleCustomerTurn(
       history: Array.isArray(sess.history) ? sess.history : [],
       low_confidence: Number(sess.low_confidence ?? 0),
       // kept in refs: the only session column that survives between turns
-      fulfil: sess.refs?.fx?.id === "pickup" || sess.refs?.fx?.id === "delivery" ? sess.refs.fx.id : null,
+      fulfil:
+        sess.refs?.fx?.id === "pickup" || sess.refs?.fx?.id === "delivery" ? sess.refs.fx.id : null,
     },
     basket: begin.basket,
     orders: begin.orders ?? [],

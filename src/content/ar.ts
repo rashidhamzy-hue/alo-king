@@ -253,6 +253,8 @@ export const ar: Copy = {
     factOne: "محل واحد بيوصّل لـ{place} مع ألو كينغ عالواتساب؛ التوصيل من {min} لـ{max}.",
     factNone: "ألو كينغ قريباً بـ{place}. أول المحلات رح تظهر هون.",
     shops: "محلات {place}",
+    count: "{n} محلات",
+    countOne: "محل واحد",
     district: "قضاء {district}",
     noShops: "ما في محلات بعد. قول ألو عالواتساب ومنخبّرك أول ما يفتح محل بهالمنطقة.",
     howTitle: "كيف تطلب بـ{place}",

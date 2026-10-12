@@ -60,7 +60,13 @@ for (const lang of langs) {
       const page = await ctx.newPage();
       const errors = [];
       let jsBytes = 0;
-      page.on("console", (m) => m.type() === "error" && !(pg.expect === 404 && /404/.test(m.text())) && errors.push(m.text().slice(0, 160)));
+      page.on(
+        "console",
+        (m) =>
+          m.type() === "error" &&
+          !(pg.expect === 404 && /404/.test(m.text())) &&
+          errors.push(m.text().slice(0, 160)),
+      );
       page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
       page.on("response", async (r) => {
         if (
@@ -78,9 +84,12 @@ for (const lang of langs) {
         await page.close();
         continue;
       }
-      const res = await page.goto(`${base}${pg.bare ? "" : `/${lang}`}${pg.path === "/" ? "" : pg.path}`, {
-        waitUntil: "networkidle",
-      });
+      const res = await page.goto(
+        `${base}${pg.bare ? "" : `/${lang}`}${pg.path === "/" ? "" : pg.path}`,
+        {
+          waitUntil: "networkidle",
+        },
+      );
       const status = res?.status() ?? 0;
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,

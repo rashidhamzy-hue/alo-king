@@ -267,6 +267,8 @@ export const fr: Copy = {
     factOne: "1 commerce livre à {place} avec Alo King sur WhatsApp ; livraison de {min} à {max}.",
     factNone: "Alo King ouvre bientôt à {place}. Les premiers commerces apparaîtront ici.",
     shops: "Commerces à {place}",
+    count: "{n} commerces",
+    countOne: "1 commerce",
     district: "Caza de {district}",
     noShops:
       "Pas encore de commerce. Dites Allô sur WhatsApp et nous vous prévenons dès qu'un commerce ouvre ici.",

@@ -51,8 +51,10 @@ function PlacesIndex() {
                   >
                     {pickName(p, "name", lang)}
                   </Link>
-                  <p className="mt-1 text-sm text-tone-mute ak-num">
-                    {t.places.shops.replace("{place}", "").trim()}: <bdi>{p.merchants}</bdi>
+                  <p className="mt-1 text-sm text-tone-mute">
+                    {fmt(p.merchants === 1 ? t.places.countOne : t.places.count, {
+                      n: p.merchants,
+                    })}
                   </p>
                 </li>
               ))}

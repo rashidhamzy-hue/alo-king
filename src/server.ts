@@ -3,6 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { deferHydration } from "./lib/html-head";
+import { isPrivatePath } from "./lib/site";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -55,7 +56,7 @@ export default {
       const pathname = new URL(request.url).pathname;
       if (
         normalized.body &&
-        /^\/(ar|en|fr)(\/|$)/.test(pathname) &&
+        !isPrivatePath(pathname) &&
         (normalized.headers.get("content-type") ?? "").includes("text/html")
       ) {
         const headers = new Headers(normalized.headers);

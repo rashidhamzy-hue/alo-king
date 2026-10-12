@@ -1,0 +1,98 @@
+[
+  {
+    "lang": "ar",
+    "size": "mobile",
+    "page": "home",
+    "status": 200,
+    "jsKb": 111,
+    "notes": []
+  },
+  {
+    "lang": "ar",
+    "size": "mobile",
+    "page": "places",
+    "status": 200,
+    "jsKb": 113,
+    "notes": []
+  },
+  {
+    "lang": "ar",
+    "size": "mobile",
+    "page": "cuisines",
+    "status": 200,
+    "jsKb": 115,
+    "notes": []
+  },
+  {
+    "lang": "ar",
+    "size": "desktop",
+    "page": "home",
+    "status": 200,
+    "jsKb": 111,
+    "notes": []
+  },
+  {
+    "lang": "ar",
+    "size": "desktop",
+    "page": "places",
+    "status": 200,
+    "jsKb": 112,
+    "notes": []
+  },
+  {
+    "lang": "ar",
+    "size": "desktop",
+    "page": "cuisines",
+    "status": 200,
+    "jsKb": 111,
+    "notes": []
+  },
+  {
+    "lang": "en",
+    "size": "mobile",
+    "page": "home",
+    "status": 200,
+    "jsKb": 112,
+    "notes": []
+  },
+  {
+    "lang": "en",
+    "size": "mobile",
+    "page": "places",
+    "status": 200,
+    "jsKb": 113,
+    "notes": []
+  },
+  {
+    "lang": "en",
+    "size": "mobile",
+    "page": "cuisines",
+    "status": 200,
+    "jsKb": 14,
+    "notes": []
+  },
+  {
+    "lang": "en",
+    "size": "desktop",
+    "page": "home",
+    "status": 200,
+    "jsKb": 116,
+    "notes": []
+  },
+  {
+    "lang": "en",
+    "size": "desktop",
+    "page": "places",
+    "status": 200,
+    "jsKb": 113,
+    "notes": []
+  },
+  {
+    "lang": "en",
+    "size": "desktop",
+    "page": "cuisines",
+    "status": 200,
+    "jsKb": 114,
+    "notes": []
+  }
+]
