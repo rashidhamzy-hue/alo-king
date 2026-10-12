@@ -1450,6 +1450,90 @@ The post-pilot sessions are unchanged (§33).
 5. 5b (Slack and operations)
 6. 14 (cut-over)
 
+## 37. Website: full revamp, "out of this world" (DECIDED, 12 October 22:15; replaces the lean website in §33)
+Rasheed wants the whole website revamped to a world-class standard. §24 stays the base: pages, SEO, AIO, budgets. This section adds the creative direction and splits the work into two sessions.
+
+### 37.1 Concept: "Alo" means hello
+- The site *is* a conversation, because the product is one.
+- Every page leads to one action, **Order on WhatsApp**: a `wa.me` link to the Customer number, with text pre-filled from context (place, dish, merchant).
+- No app store badges, no sign-up walls.
+
+### 37.2 Visual direction
+- **Palette:**
+  - Night is the hero mode: ink #17131A with Crown Gold #F4B63C light, like a warm shop sign in a village at night.
+  - Cream #FFF9F0 for reading sections.
+  - Gold is never text on cream (§5).
+- **Type:** Plus Jakarta Sans and IBM Plex Sans Arabic. Arabic is set as carefully as English, never a fallback. Right-to-left is first-class.
+- **Motifs:**
+  - a hand-drawn crown
+  - the contour lines of the Chouf mountains as a quiet background texture (static SVG)
+  - WhatsApp-style chat bubbles as a design element
+- **Motion:** purposeful and light. Chat bubbles type in, the basket builds itself, the driver dot moves. Everything respects `prefers-reduced-motion`. No heavy video and no 3D.
+- **Built with the `frontend-design` skill.** No stock-template look, and no stock photos of people. Food imagery only from claimed merchants, or illustrated.
+
+### 37.3 Home page, top to bottom
+1. **Live chat hero.** A real, coded chat demo (not a video) plays an order in the visitor's language:
+   - a voice note waveform
+   - its transcript in Arabizi or French mix
+   - the basket card, then Confirm
+   - "Ali is 3 minutes away"
+
+   Big "Order on WhatsApp" button.
+2. **Three taps.** Pin, pick, confirm, shown as three phone frames.
+3. **"Speak Lebanese."** Arabic, Arabizi, English and French examples flip through ("بدي ٢ شاورما", "2 shawarma w pepsi", "deux manakish zaatar").
+4. **Where we deliver.** A Lebanon map with the places that are switched on lit in gold, read live from the places table (read-only, §31). Before launch it shows the pilot area as "opening soon".
+5. **For merchants.**
+   - "$1 per order. Not 30%."
+   - A savings calculator: the merchant enters monthly orders and average ticket; it shows their cost with Alo King vs a 22–30% commission, labelled "calculated from your numbers".
+   - Link to the merchant page.
+6. **Send Home.** For Lebanese abroad: order for family from anywhere, pay by card, see the delivery photo. Shows both time zones.
+7. **Trust.** Only real facts: cash on delivery, prices set by the shop, Arabic/English/French support, a named human ("Rasheed, Alo King"). No invented reviews, ratings or order counts. Real numbers appear only once they exist.
+8. **FAQ** (FAQPage schema) and footer.
+
+### 37.4 Pages
+- **Session 6a: customers and foundation.**
+  - design system refresh in `src/design/`
+  - home
+  - place pages (indexed only with 3 or more live merchants, §24.5)
+  - cuisine pages
+  - claimed-vendor pages: menu, hours, area, "Order on WhatsApp" with the basket pre-filled
+  - Send Home landing (AR/EN/FR)
+  - order tracking page restyle
+  - help/FAQ, contact
+  - legal pages: terms, privacy (voice notes, "delete my data", Law 81/2018), refund, cookies; "Alo King SARL (in formation)" until the SARL exists
+  - 404
+  - `llms.txt`, `robots.txt`, sitemaps, hreflang
+- **Session 6b: merchants.**
+  - "For merchants" landing with the calculator
+  - claim and registration flows (§18, §24.3)
+  - merchant terms and collection mandate
+  - merchant dashboard restyle, including the AI onboarding side panel shell
+  - driver sign-up page
+  - admin pages restyle (functional, not marketing)
+
+### 37.5 Quality bar, enforced in CI
+- Lighthouse mobile 90 or more for performance, accessibility and SEO; LCP under 2.5 s on simulated 4G; public-page JavaScript under 150 KB; axe with no serious issues; WCAG 2.2 AA (§24.1).
+- Every page in Arabic, English and French, at mobile and desktop.
+- **Visual self-review loop:**
+  1. Playwright screenshots of every changed page in each language and size.
+  2. The session reviews them against this section and fixes what looks off: spacing, RTL mirroring, Arabic line height, contrast, overflow.
+  3. It repeats until clean, at most three rounds.
+  4. The final screenshots go in the PR.
+- The Vercel preview link is in the PR for Rasheed. He reviews by looking only and never has to test.
+
+### 37.6 Also in 6a (from the simulator session)
+- When the merchant allows pickup, checkout offers **Delivery / Pickup** buttons.
+- The track card says "shop", not "driver", on pickup orders.
+- `staging-e2e` must stay green.
+
+**Session plan before the pilot:**
+1. 6a: Sonnet 5.5, high
+2. 6b: Sonnet 5.5, high
+3. 13: security review
+4. D: data
+5. 5b: Slack and operations
+6. 14: cut-over
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
