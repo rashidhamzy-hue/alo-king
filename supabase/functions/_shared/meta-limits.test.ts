@@ -402,7 +402,9 @@ import {
   handoffWaitCard,
   mainMenu,
   menuList as sectionMenuList,
+  noDeliveryCard,
   qtyList,
+  vendorChoices,
   sectionList,
   summaryMessage,
 } from "../dispatch/customer/render";
@@ -429,7 +431,28 @@ describe("the button path builders (session T)", () => {
       const built: any[] = [
         mainMenu(to, lang),
         mainMenu(to, lang, "aiOff"),
+        mainMenu(to, lang, "tapFailed"),
         handoffWaitCard(to, lang),
+        noDeliveryCard(to, lang),
+        ...vendorChoices(
+          to,
+          lang,
+          [{ ref: "v1", name_en: "A restaurant with a rather long name", is_open: true, straight_km: 8.2 }],
+          null,
+          "pickPickup",
+        ),
+        ...vendorChoices(
+          to,
+          lang,
+          Array.from({ length: 6 }, (_, k) => ({
+            ref: `v${k + 1}`,
+            name_ar: `محل طويل الاسم جداً رقم ${k}`,
+            is_open: k % 2 === 0,
+            straight_km: 9.5,
+          })),
+          null,
+          "pickPickup",
+        ),
         sectionList(to, lang, "A restaurant with a rather long name", sections),
         qtyList(to, lang, "A very long item name number 3", "i3"),
         cashAsk(to, lang, ["USD", "LBP"]),

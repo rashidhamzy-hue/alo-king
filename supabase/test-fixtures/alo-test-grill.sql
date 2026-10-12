@@ -6,7 +6,7 @@
 --
 -- What it makes:
 --   * "Alo Test Grill" in Baakline (brand, branch, kitchen contact filled in at #merchant time): a claimed,
---     orderable, non-public vendor with is_test = true, source = 'admin', 10 km radius, open 24/7, delivery and
+--     orderable, non-public vendor with is_test = true, source = 'admin', 30 km radius (10 km when created, raised by section 2b), open 24/7, delivery and
 --     pickup, cash in USD or LBP, and a menu of 15 items in 4 sections with options and a weighed item.
 --   * Baakline, Bakaata, Semqanieh and Beiteddine switched on (they load "off"; the places data itself is
 --     untouched, §31). The test merchant is the only orderable vendor there.
@@ -129,6 +129,26 @@ begin
     v_item := pg_temp.add_item(v_vendor, v_s4, 4, 'ليموناضة بالنعنع', 'Mint Lemonade', 2.50);
     perform pg_temp.add_group(v_item, 'الحجم', 'Size', 1, 1, '[["صغير", "Small", 0], ["كبير", "Large", 1.00]]');
   end if;
+end;
+$$;
+
+-- 2b. Every run (session T2): pickup on and a 30 km radius -------------------------------------------------
+-- The owner tests from anywhere in the Chouf, so the test merchant delivers up to 30 road km. The largest
+-- fee band caps every radius (max_delivery_km), so a new dated band set adds a 10-30 km band at a flat test
+-- fee of $6.00 and keeps the three existing bands as they are. This changes staging's fee table only, never
+-- production's: the file is never run at the cut-over (LOG.md checklist).
+do $$
+begin
+  if public.max_delivery_km() < 30 then
+    insert into public.delivery_fee_bands (effective_from, max_km, fee_usd, created_by)
+    select now(), b.max_km, b.fee_usd, null
+    from public.delivery_fee_bands b
+    where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now());
+    insert into public.delivery_fee_bands (effective_from, max_km, fee_usd, created_by) values (now(), 30, 6.00, null);
+  end if;
+  update public.vendors set delivery_radius_km = 30.0, delivery_enabled = true, pickup_enabled = true
+  where slug = 'alo-test-grill' and is_test
+    and (delivery_radius_km is distinct from 30.0 or not delivery_enabled or not pickup_enabled);
 end;
 $$;
 

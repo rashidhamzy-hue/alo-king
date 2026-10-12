@@ -344,6 +344,43 @@ const S: Record<string, Record<CLang, string>> = {
     fr: "😔 {vendor} ne livre pas à votre adresse (plus de {km} km).",
     arabizi: "😔 {vendor} ma bywassel la 3enwenak (ab3ad men {km} km).",
   },
+  noDelivery: {
+    ar: "😔 ما في محل مفتوح بيوصّل لهالموقع هلق. فيك تستلم من المحل أو تبعتلي موقع تاني.",
+    en: "😔 No open place delivers to this pin right now. You can pick up from a place, or send another pin.",
+    fr: "😔 Aucun endroit ouvert ne livre à cette position pour l'instant. Vous pouvez passer chercher votre commande, ou envoyer une autre position.",
+    arabizi:
+      "😔 Ma fi mahal maftou7 bywassel la hal location hala2. Fik testelem men el mahal aw tb3at location tene.",
+  },
+  pickupFrom: {
+    ar: "🛍️ استلام من المحل",
+    en: "🛍️ Pick up",
+    fr: "🛍️ Retrait",
+    arabizi: "🛍️ Estilam",
+  },
+  anotherPin: {
+    ar: "📍 موقع تاني",
+    en: "📍 Another pin",
+    fr: "📍 Autre position",
+    arabizi: "📍 Location tene",
+  },
+  pickPickup: {
+    ar: "🛍️ اختار محل للاستلام (بتدفع كاش عند الاستلام):",
+    en: "🛍️ Pick a place to collect from (you pay cash when you collect):",
+    fr: "🛍️ Choisissez un endroit où retirer (paiement en espèces au retrait) :",
+    arabizi: "🛍️ Ekhtar mahal testelem menno (bt dfa3 cash 3end el estilam):",
+  },
+  noPickup: {
+    ar: "ما في محل قريب منك بيقبل استلام هلق. جرّب موقع تاني؟",
+    en: "No place near you takes pickup orders right now. Try another pin?",
+    fr: "Aucun endroit près de vous ne prend de retrait pour l'instant. Une autre position ?",
+    arabizi: "Ma fi mahal 2arib menak byeb2al estilam hala2. Jarreb location tene?",
+  },
+  tapFailed: {
+    ar: "ما قدرت كمّل هالخطوة 🙏 اختار من الأزرار:",
+    en: "That step didn't go through 🙏 Please pick from the buttons:",
+    fr: "Cette étape n'a pas abouti 🙏 Choisissez parmi les boutons :",
+    arabizi: "Ma 2dert kammel hal khatwe 🙏 Ekhtar men el azrar:",
+  },
   pickupInstead: {
     ar: "🛍️ باستلم أنا",
     en: "🛍️ I'll pick up",
@@ -656,6 +693,7 @@ export function vendorChoices(
   lang: CLang,
   rows: VendorRow[],
   query: string | null,
+  bodyKey: "pickVendor" | "pickPickup" = "pickVendor",
 ): Msg[] {
   if (!rows.length)
     return [text(to, tr(lang, query ? "noVendors" : "noVendorsYet", { q: query ?? "" }))];
@@ -664,12 +702,12 @@ export function vendorChoices(
     return [
       buttons(
         to,
-        tr(lang, "pickVendor"),
+        tr(lang, bodyKey),
         rows.map((r) => [`pv:${r.ref}`, clip(label(r), 20)] as [string, string]),
       ),
     ];
   return [
-    list(to, tr(lang, "pickVendor"), tr(lang, "places"), [
+    list(to, tr(lang, bodyKey), tr(lang, "places"), [
       {
         rows: rows.slice(0, 10).map<Row>((r) => ({
           id: `pv:${r.ref}`,
@@ -957,7 +995,11 @@ export function summaryMessage(
 
 // ---- The button path (DECISIONS §34): main menu, sections, quantity, cash currency ----------------------------
 /** The first message and the way back: three buttons that need no model. */
-export function mainMenu(to: string, lang: CLang, bodyKey: "welcome" | "aiOff" = "welcome"): Msg {
+export function mainMenu(
+  to: string,
+  lang: CLang,
+  bodyKey: "welcome" | "aiOff" | "tapFailed" = "welcome",
+): Msg {
   return buttons(to, tr(lang, bodyKey), [
     ["c:order", tr(lang, "btnOrder")],
     ["c:track", tr(lang, "btnTrack")],
@@ -967,7 +1009,10 @@ export function mainMenu(to: string, lang: CLang, bodyKey: "welcome" | "aiOff" =
 
 /** Shown to a customer whose conversation is with a person: always an answer, and a way out. */
 export function handoffWaitCard(to: string, lang: CLang): Msg {
-  return buttons(to, tr(lang, "handoffWait"), [["c:order", tr(lang, "btnMenu")]]);
+  return buttons(to, tr(lang, "handoffWait"), [
+    ["c:order", tr(lang, "btnMenu")],
+    ["c:track", tr(lang, "btnTrack")],
+  ]);
 }
 
 export type SectionRow = {
@@ -1017,6 +1062,14 @@ export function beyondRadius(to: string, lang: CLang, q: Quote): Msg {
   const bs: [string, string][] = [["c:find", tr(lang, "otherPlace")]];
   if (q.pickup_enabled) bs.unshift(["c:pickup", tr(lang, "pickupInstead")]);
   return buttons(to, tr(lang, "beyond", { vendor, km: q.limit_km ?? "" }), bs);
+}
+
+/** Right after the pin: nothing open delivers there. Pickup or another pin, before any basket is built. */
+export function noDeliveryCard(to: string, lang: CLang): Msg {
+  return buttons(to, tr(lang, "noDelivery"), [
+    ["c:pickup_list", tr(lang, "pickupFrom")],
+    ["c:address_list", tr(lang, "anotherPin")],
+  ]);
 }
 
 export function emptyQuestion(

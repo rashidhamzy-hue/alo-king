@@ -33,6 +33,7 @@ import {
   localName,
   mainMenu,
   menuList,
+  noDeliveryCard,
   qtyList,
   sectionList,
   substitutionAsk,
@@ -187,6 +188,8 @@ type Session = {
   refs: Record<string, Ref>;
   history: { r: "u" | "a"; t: string }[];
   low_confidence: number;
+  /** Set by the pickup choice (T2): the basket is collected, not delivered, until the customer says otherwise. */
+  fulfil: "pickup" | null;
 };
 type Ctx = {
   deps: CustomerDeps;
@@ -211,6 +214,11 @@ const push = (c: Ctx, ...ms: Msg[]) => {
 };
 const say = (c: Ctx, key: string, v: Record<string, unknown> = {}) =>
   push(c, text(c.m.from, tr(c.s.lang, key, v)));
+/**
+ * Something failed on our side (T2): the customer sees the buttons, never "I'm a bit slow" (that wording is for a
+ * model that answered nothing usable). The failure itself is logged by the caller.
+ */
+const fail = (c: Ctx) => push(c, mainMenu(c.m.from, c.s.lang, "tapFailed"));
 
 export async function handleCustomerTurn(
   deps: CustomerDeps,
@@ -237,6 +245,7 @@ export async function handleCustomerTurn(
       refs: sess.refs ?? {},
       history: Array.isArray(sess.history) ? sess.history : [],
       low_confidence: Number(sess.low_confidence ?? 0),
+      fulfil: sess.fulfil === "pickup" ? "pickup" : null,
     },
     basket: begin.basket,
     orders: begin.orders ?? [],
@@ -260,7 +269,7 @@ export async function handleCustomerTurn(
   } catch (e) {
     c.path = "error";
     deps.log?.("customer turn failed", { error: String(e).slice(0, 200) });
-    if (!c.out.length) say(c, "busy");
+    if (!c.out.length) fail(c);
   }
 
   for (const p of c.out) {
@@ -545,6 +554,7 @@ async function tap(c: Ctx, a: CustomerAction) {
           await deps.rpc("basket_clear", { p_customer_id: id });
           c.basket = null;
           c.s.pending = {};
+          c.s.fulfil = null;
           return say(c, "done");
         case "basket":
           return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
@@ -556,8 +566,11 @@ async function tap(c: Ctx, a: CustomerAction) {
         case "pickup":
         case "delivery":
           return checkout(c, { fulfilment: a.what });
+        case "pickup_list":
+          return pickupPlaces(c);
         case "find":
           c.s.focus_vendor_id = null;
+          c.s.fulfil = null;
           return say(c, "pickPlaceFirst");
         case "human":
           return handoff(c, "customer tapped talk to a person");
@@ -572,7 +585,7 @@ async function tap(c: Ctx, a: CustomerAction) {
         case "usual":
           return reorder(c);
         case "no_upsell":
-          return;
+          return say(c, "done");
         case "address_list":
           return push(c, askPin(c.m.from, c.s.lang));
         case "order":
@@ -596,6 +609,7 @@ async function confirm(c: Ctx, basketId: string, version: number) {
   const lang = c.s.lang;
   switch (r?.status) {
     case "placed": {
+      c.s.fulfil = null;
       c.summary.push(`[order ${r.code} placed by the customer's tap]`);
       return say(c, "placed", {
         code: r.code,
@@ -623,7 +637,7 @@ async function confirm(c: Ctx, basketId: string, version: number) {
       return checkout(c, {});
     default:
       c.deps.log?.("order_place unexpected", { status: String(r?.status) });
-      return say(c, "busy");
+      return fail(c);
   }
 }
 
@@ -643,6 +657,7 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
   if (r?.address?.place_status === "paused") return say(c, "placePaused");
   say(c, "savedPin", { where: where(c.s.lang, r.address) });
   c.summary.push("[address saved from the pin]");
+  c.s.fulfil = null; // a new pin starts a delivery again
   // The address_capture Flow (§12) asks building, floor and a number for the driver in one sheet; the
   // checkout continues when it is submitted. Without Flows the text path below runs as before.
   if (
@@ -657,13 +672,16 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
     ([k, v]) => k.startsWith("v") && v.id === c.s.focus_vendor_id,
   )?.[0];
   const browse = c.s.pending.then === "browse" || !focusRef;
+  const wantsPickup = c.s.pending.then === "pickup";
   c.s.pending = {};
+  if (wantsPickup) return pickupPlaces(c);
   if (browse || !focusRef) return searchVendors(c, null, null);
   return showMenu(c, focusRef, null);
 }
 
 /** "Order" / "menu": the places that deliver to the saved pin, or ask for the pin first (§34 steps 1-3). */
 async function startOrder(c: Ctx) {
+  c.s.fulfil = null;
   const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
   if (!pt?.address_id) {
     c.s.pending = { kind: "await_pin", then: "browse" };
@@ -891,7 +909,7 @@ async function dietaryMenu(c: Ctx, input: any) {
 
 async function searchVendors(c: Ctx, query: string | null, businessType: string | null) {
   const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
-  const rows: any[] =
+  let rows: any[] =
     (await c.deps.rpc("vendor_search", {
       p_query: query,
       p_lat: pt?.lat ?? null,
@@ -900,6 +918,35 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
       p_cuisine: null,
       p_limit: 10,
     })) ?? [];
+  // Right after the pin (§34 step 3): only places whose road route reaches the pin, before any basket exists.
+  const found = rows.length;
+  if (pt?.address_id && found) {
+    const ids = rows.map((r) => r.vendor_id);
+    let chk = await c.deps.rpc("customer_delivery_check", {
+      p_customer_id: c.customerId,
+      p_vendor_ids: ids,
+    });
+    const unknown = (chk?.vendors ?? []).filter((v: any) => v.status === "no_route" && v.origin);
+    if (unknown.length) {
+      for (const v of unknown.slice(0, 5)) await c.deps.route(v.origin, v.dest).catch(() => null);
+      chk = await c.deps.rpc("customer_delivery_check", {
+        p_customer_id: c.customerId,
+        p_vendor_ids: ids,
+      });
+    }
+    if (chk?.status === "place_paused") return say(c, "placePaused");
+    // A route that still cannot be fetched (routing service down) is not a "no": the checkout checks it again.
+    const beyond = new Set(
+      (chk?.vendors ?? [])
+        .filter((v: any) => v.status === "beyond_radius")
+        .map((v: any) => v.vendor_id),
+    );
+    rows = rows.filter((r) => !beyond.has(r.vendor_id));
+  }
+  if (pt?.address_id && !rows.length && (found || !query)) {
+    c.summary.push("[no open place delivers to the saved pin; offered pickup]");
+    return push(c, noDeliveryCard(c.m.from, c.s.lang));
+  }
   resetRefs(c, "v");
   const vs = rows.map((r) => ({
     ...r,
@@ -912,6 +959,27 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
   if (vs.length === 1 && vs[0].is_open)
     return showMenu(c, vs[0].ref, vs[0].matched === "dish" ? query : null);
   push(c, ...vendorChoices(c.m.from, c.s.lang, vs, query));
+}
+
+/** The pickup choice (T2): open places near the pin that take pickup, when nothing delivers or the customer prefers it. */
+async function pickupPlaces(c: Ctx) {
+  const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
+  if (!pt?.address_id) {
+    c.s.pending = { kind: "await_pin", then: "pickup" };
+    return push(c, askPin(c.m.from, c.s.lang));
+  }
+  const rows: any[] =
+    (await c.deps.rpc("vendor_search_pickup", { p_lat: pt.lat, p_lon: pt.lon, p_limit: 10 })) ?? [];
+  if (!rows.length) return push(c, text(c.m.from, tr(c.s.lang, "noPickup")));
+  c.s.fulfil = "pickup";
+  resetRefs(c, "v");
+  const vs = rows.map((r) => ({
+    ...r,
+    ref: refFor(c, "v", r.vendor_id, `${r.name_en ?? r.name_ar}${r.is_open ? "" : " (closed)"}`),
+  }));
+  c.summary.push(`[pickup places near the pin: ${vs.length}]`);
+  if (vs.length === 1 && vs[0].is_open) return showMenu(c, vs[0].ref, null);
+  push(c, ...vendorChoices(c.m.from, c.s.lang, vs, null, "pickPickup"));
 }
 
 /** Adds one item; asks for required options one group at a time (§12: Flows for 2+ groups come in session 5). */
@@ -1016,10 +1084,12 @@ async function checkout(
   args: { fulfilment?: string | null; note?: string | null; stairs?: number | null },
 ) {
   const { deps } = c;
-  if (args.fulfilment || args.note || args.stairs != null)
+  if (args.fulfilment) c.s.fulfil = args.fulfilment === "pickup" ? "pickup" : null;
+  const fulfilment = args.fulfilment ?? c.s.fulfil;
+  if (fulfilment || args.note || args.stairs != null)
     await deps.rpc("basket_set_checkout", {
       p_customer_id: c.customerId,
-      p_fulfilment: args.fulfilment ?? null,
+      p_fulfilment: fulfilment ?? null,
       p_address_id: null,
       p_stairs_floors: args.stairs ?? null,
       p_note: args.note ?? null,
@@ -1085,7 +1155,8 @@ async function checkout(
       return;
     }
     default:
-      return say(c, "busy");
+      c.deps.log?.("basket_quote unexpected", { status: String(q?.status) });
+      return fail(c);
   }
 }
 
@@ -1265,7 +1336,7 @@ async function modelTurn(c: Ctx, userText: string, isVoice: boolean) {
       c.path = "budget";
       if (q?.reason === "customer_cap")
         return handoff(c, "daily AI budget reached for this customer");
-      return say(c, "busy");
+      return push(c, mainMenu(c.m.from, c.s.lang, "aiOff"));
     }
     c.calls++;
     const t0 = Date.now();

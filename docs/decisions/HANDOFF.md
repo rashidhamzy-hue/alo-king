@@ -125,6 +125,13 @@
     - The merchant card does not show the cash currency yet.
     - Slack, ops console, admin commands, recovery engine, templates and the gold card image stay in 5b.
     - The merchant portal link was not part of T.
+- **Session T2 (fixes from the first live test, 12 October): done.** One PR (see LOG.md "session T2 PR" lines).
+  - **Pickup and Checkout:** `basket_quote` raised on every pickup basket, which the bot showed as "Sorry, I'm a bit slow" (and the stored pickup choice broke every later Checkout). Fixed; pickup is deterministic and works.
+  - **Delivery check after the pin:** only places whose road route reaches the pin are listed; none left means "no open place delivers here" with Pick up / Another pin, before any basket. The pickup choice lists open places that take pickup within `pickup_search_km`.
+  - **No tap reaches the AI or gets "slow":** failures show the button menu; free text without credit shows the menu.
+  - **Stale handoffs** ended by the migration; the handoff card has Menu and My order.
+  - **Staging only:** Alo Test Grill delivers up to 30 km (fixture adds a 10-30 km test fee band of $6.00 to staging's fee table; cut-over checklist in LOG.md).
+  - **Replay test:** `live-test-replay.test.ts` and `supabase/tests/99_t2_live_test_fixes.sql`.
 - **Next: session 6 (lean website)**, then 11, 13, D, 5b and 14 (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
 
 ## How to start each build session
