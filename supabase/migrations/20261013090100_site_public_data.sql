@@ -28,7 +28,8 @@ set search_path = ''
 as $$ select lower(regexp_replace(p_id, '^LB-', '')) $$;
 revoke all on function app_private.place_slug(text) from public;
 grant execute on function app_private.place_slug(text) to anon, authenticated, service_role;
--- The public cards ask whether a vendor is open; the answer is one boolean from public hours.
+-- The public cards ask whether a vendor is open: one boolean from hours that are public anyway. Like order_track_public, this is a
+-- deliberate security-definer function an anonymous caller can reach (advisor lint 0028); it takes a vendor id and reveals nothing else.
 grant execute on function app_private.vendor_open_at(uuid, timestamptz) to anon, authenticated;
 
 -- A public vendor card: what a place page or a cuisine page lists.
@@ -84,7 +85,7 @@ as $$
         select t.tag, t.name_ar, t.name_en, t.name_fr, t.sort_order, count(*) as vendors
         from public.cuisine_tags t
         join public.vendors v on t.tag = any (v.cuisine_tags)
-          and v.public_page and v.listing_status = 'active' and v.claim_status = 'claimed'
+          and v.public_page and v.listing_status = 'active' and v.claim_status = 'claimed' and v.orderable
         where t.active
         group by t.tag, t.name_ar, t.name_en, t.name_fr, t.sort_order
       ) c), '[]'::jsonb),
@@ -180,7 +181,7 @@ begin
   select coalesce(jsonb_agg(app_private.site_vendor_card(v.id) order by v.name_en, v.name_ar), '[]'::jsonb)
     into v_vendors
   from public.vendors v
-  where p_tag = any (v.cuisine_tags) and v.public_page and v.listing_status = 'active' and v.claim_status = 'claimed';
+  where p_tag = any (v.cuisine_tags) and v.public_page and v.listing_status = 'active' and v.claim_status = 'claimed' and v.orderable;
   return jsonb_build_object(
     'cuisine', jsonb_build_object('tag', v_tag.tag, 'name_ar', v_tag.name_ar, 'name_en', v_tag.name_en, 'name_fr', v_tag.name_fr),
     'vendors', v_vendors,
@@ -200,30 +201,38 @@ security invoker
 set search_path = ''
 as $$
 declare
-  v public.vendors%rowtype;
+  -- Scalars, not `select *` or a rowtype: anonymous callers hold column-level grants on vendors, and a `*` would need all of them.
+  v_id uuid;
+  v_radius numeric;
+  v_paused_until timestamptz;
+  v_cash text[];
+  v_updated timestamptz;
+  v_tags text[];
 begin
   if p_slug is null or p_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' or char_length(p_slug) > 120 then
     return null;
   end if;
-  select * into v from public.vendors
-  where slug = p_slug and public_page and listing_status = 'active' and claim_status = 'claimed';
-  if v.id is null then
+  select v.id, v.delivery_radius_km, v.paused_until, v.cash_currencies::text[], v.updated_at, v.cuisine_tags
+    into v_id, v_radius, v_paused_until, v_cash, v_updated, v_tags
+  from public.vendors v
+  where v.slug = p_slug and v.public_page and v.listing_status = 'active' and v.claim_status = 'claimed';
+  if v_id is null then
     return null;
   end if;
   return jsonb_build_object(
-    'vendor', app_private.site_vendor_card(v.id) || jsonb_build_object(
-      'delivery_radius_km', v.delivery_radius_km,
-      'paused_until', case when public.vendor_is_paused(v.id) then v.paused_until end,
-      'cash_currencies', v.cash_currencies,
-      'updated_at', v.updated_at,
+    'vendor', app_private.site_vendor_card(v_id) || jsonb_build_object(
+      'delivery_radius_km', v_radius,
+      'paused_until', case when public.vendor_is_paused(v_id) then v_paused_until end,
+      'cash_currencies', v_cash,
+      'updated_at', v_updated,
       'cuisines', coalesce((
         select jsonb_agg(jsonb_build_object('tag', t.tag, 'name_ar', t.name_ar, 'name_en', t.name_en, 'name_fr', t.name_fr)
                          order by t.sort_order, t.tag)
-        from public.cuisine_tags t where t.tag = any (v.cuisine_tags) and t.active), '[]'::jsonb)),
+        from public.cuisine_tags t where t.tag = any (v_tags) and t.active), '[]'::jsonb)),
     'hours', coalesce((
       select jsonb_agg(jsonb_build_object('weekday', h.weekday, 'opens', to_char(h.opens, 'HH24:MI'), 'closes', to_char(h.closes, 'HH24:MI'))
                        order by h.weekday)
-      from public.vendor_hours h where h.vendor_id = v.id), '[]'::jsonb),
+      from public.vendor_hours h where h.vendor_id = v_id), '[]'::jsonb),
     'sections', coalesce((
       select jsonb_agg(jsonb_build_object(
         'name_ar', s.name_ar, 'name_en', s.name_en, 'name_fr', s.name_fr,
@@ -236,19 +245,19 @@ begin
             'allergens', case when i.allergens_confirmed_at is not null then to_jsonb(i.allergens) end)
             order by i.sort_order, i.name_en, i.name_ar)
           from public.menu_items i
-          where i.vendor_id = v.id and i.available and i.section_id is not distinct from s.id))
+          where i.vendor_id = v_id and i.available and i.section_id is not distinct from s.id))
         order by s.sort_order, s.name_en)
       from (
         select ms.id, ms.name_ar, ms.name_en, ms.name_fr, ms.sort_order
-        from public.menu_sections ms where ms.vendor_id = v.id
+        from public.menu_sections ms where ms.vendor_id = v_id
         union all
         select null::uuid, null, null, null, 2147483647
-        where exists (select 1 from public.menu_items x where x.vendor_id = v.id and x.available and x.section_id is null)
+        where exists (select 1 from public.menu_items x where x.vendor_id = v_id and x.available and x.section_id is null)
       ) s
-      where exists (select 1 from public.menu_items x where x.vendor_id = v.id and x.available and x.section_id is not distinct from s.id)), '[]'::jsonb),
+      where exists (select 1 from public.menu_items x where x.vendor_id = v_id and x.available and x.section_id is not distinct from s.id)), '[]'::jsonb),
     'fees', jsonb_build_object('min_usd', public.delivery_fee_usd(0),
-      'max_usd', public.delivery_fee_usd(least(coalesce(v.delivery_radius_km, public.max_delivery_km()), public.max_delivery_km())),
-      'max_km', least(coalesce(v.delivery_radius_km, public.max_delivery_km()), public.max_delivery_km())),
+      'max_usd', public.delivery_fee_usd(least(coalesce(v_radius, public.max_delivery_km()), public.max_delivery_km())),
+      'max_km', least(coalesce(v_radius, public.max_delivery_km()), public.max_delivery_km())),
     'rate', public.usd_lbp_rate());
 end;
 $$;

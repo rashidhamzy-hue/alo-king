@@ -14,7 +14,11 @@ export const Route = createFileRoute("/$lang/track/$token")({
   loader: async ({ params }) => ({ track: await getTrack(params.token) }),
   staleTime: 0,
   // A tracking link is a private page: never cached, never indexed (DECISIONS §3, §27).
-  headers: () => ({ "cache-control": "private, no-store", "x-robots-tag": "noindex, nofollow" }),
+  headers: () => ({
+    "cache-control": "private, no-store",
+    "x-robots-tag": "noindex, nofollow",
+    "referrer-policy": "no-referrer",
+  }),
   head: ({ match }) => privateHead(match.context.copy.track.seoTitle),
   component: TrackPage,
 });

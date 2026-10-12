@@ -43,3 +43,12 @@ describe("lite reporter for public pages", () => {
     expect(envelopeUrl("off")).toBeNull();
   });
 });
+
+describe("tokens in error messages", () => {
+  it("masks a tracking token that appears inside a message", async () => {
+    const { scrubText } = await import("./sentry");
+    expect(
+      scrubText("fetch failed for /ar/track/AbCdEf0123456789AbCdEf0123456789AbCdEf012 (timeout)"),
+    ).toBe("fetch failed for /ar/track/[token] (timeout)");
+  });
+});

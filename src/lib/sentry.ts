@@ -59,7 +59,10 @@ const PHONE = /\+?\d[\d\s-]{5,}\d/g;
 // Path segments that act as bearer tokens (signed tracking links, claim and handoff links).
 const TOKEN_PATH = /\/(track|t|claim|h)\/[^/?#]+/g;
 
-export const scrubText = (s: string) => s.replace(PHONE, "[phone]");
+// In free text a token ends at the first character a token cannot contain (a space, a bracket, a quote).
+const TOKEN_IN_TEXT = /\/(track|t|claim|h)\/[\w.~%-]+/g;
+export const scrubText = (s: string) =>
+  s.replace(TOKEN_IN_TEXT, "/$1/[token]").replace(PHONE, "[phone]");
 export const scrubUrl = (u: string) =>
   (u.split(/[?#]/)[0] ?? "").replace(TOKEN_PATH, "/$1/[token]");
 

@@ -45,3 +45,5 @@ supabase/.temp/
 # website quality checks
 .qa-pids
 qa-out/
+qa-out-prelaunch/
+*.whl

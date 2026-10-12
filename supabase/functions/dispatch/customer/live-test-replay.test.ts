@@ -523,7 +523,7 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     expect(onlyPickup.st.fulfilment).toBe("pickup");
     expect(ids(out[0])).toEqual(["cur:USD", "cur:LBP"]);
 
-    // A shop that takes both, a basket open, and the customer sends a pin: that is the answer "delivery".
+    // A shop that takes both, a basket open, and the customer sends a pin: the pin starts a delivery again, so checkout asks once more.
     const both = phone({
       radiusKm: 30,
       staleHandoff: false,
@@ -532,8 +532,21 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     });
     both.st.lines.push({ item_id: FALAFEL, name_en: "Falafel Sandwich", quantity: 1, price: 2.5 });
     out = await both.pin(33.645385742188, 35.64342880249);
-    expect(ids(out[out.length - 1])).toEqual(["cur:USD", "cur:LBP"]);
-    expect(both.st.fulfilment).toBe("delivery");
+    expect(ids(out[out.length - 1])).toEqual(["c:delivery", "c:pickup"]);
+  });
+
+  it("a choice kept from another shop is dropped when this shop does not take it", async () => {
+    const p = phone({
+      radiusKm: 30,
+      staleHandoff: false,
+      testMerchant: true,
+      takes: { delivery: false, pickup: true },
+    });
+    p.st.session.refs.fx = { id: "delivery", label: "delivery" }; // left over from a delivery shop
+    p.st.lines.push({ item_id: FALAFEL, name_en: "Falafel Sandwich", quantity: 1, price: 2.5 });
+    const out = await p.tap("c:checkout");
+    expect(p.st.fulfilment).toBe("pickup");
+    expect(ids(out[0])).toEqual(["cur:USD", "cur:LBP"]);
   });
 
   it("the old way out still works: the pickup button on the 'does not deliver' card", async () => {

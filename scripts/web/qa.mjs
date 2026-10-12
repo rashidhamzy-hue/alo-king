@@ -91,6 +91,12 @@ for (const lang of langs) {
         },
       );
       const status = res?.status() ?? 0;
+      if (pg.id.startsWith("track") && pg.id !== "track-invalid") {
+        const cc = res?.headers()["cache-control"] ?? "";
+        if (!cc.includes("no-store")) errors.push(`tracking page is cacheable: ${cc}`);
+        if ((res?.headers()["referrer-policy"] ?? "") !== "no-referrer")
+          errors.push("tracking page has no no-referrer policy");
+      }
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,
       );
