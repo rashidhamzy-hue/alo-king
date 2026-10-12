@@ -46,7 +46,10 @@ select tests.ok(public.site_place('nope-nope') is null and public.site_place('x;
 select public.site_place('chf-sitetown') as pl \gset
 select tests.ok(:'pl'::jsonb #>> '{place,name_en}' = 'Sitetown' and jsonb_array_length(:'pl'::jsonb -> 'vendors') = 1
   and :'pl'::jsonb #>> '{vendors,0,slug}' = 'vendor-a', 'the place page lists its public vendor only');
-select tests.ok(not (:'pl'::text like '%35.58%') and not (:'pl'::text like '%Seed address%') and not (:'pl'::text like '%+96%'),
+select tests.ok(not exists (
+  select 1 from jsonb_array_elements(:'pl'::jsonb -> 'vendors') v, jsonb_object_keys(v) k
+  where k in ('lat', 'lon', 'latitude', 'longitude', 'location', 'address', 'seed_address', 'phone', 'whatsapp_number', 'owner_id')
+) and not (:'pl'::text like '%Seed address%') and not (:'pl'::text like '%+96%'),
   'no vendor coordinates, seed address or phone in the place document');
 
 -- Cuisine page ---------------------------------------------------------------------------------------------------
