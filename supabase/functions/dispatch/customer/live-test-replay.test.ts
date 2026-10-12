@@ -66,11 +66,11 @@ function phone(opts: {
   const st = {
     session: {
       lang: "en",
+      focus_vendor_id: null as any,
       pending: {} as any,
       refs: {} as any,
       history: [] as any[],
       low_confidence: 0,
-      fulfil: null as any,
     },
     handoff: opts.staleHandoff,
     address: null as null | { lat: number; lon: number },
@@ -123,7 +123,16 @@ function phone(opts: {
           support_open: true,
         };
       case "customer_turn_end":
-        st.session = JSON.parse(JSON.stringify(a.p_session));
+        // Only what the real customer_turn_end stores.
+        for (const k of [
+          "lang",
+          "focus_vendor_id",
+          "pending",
+          "refs",
+          "history",
+          "low_confidence",
+        ] as const)
+          (st.session as any)[k] = JSON.parse(JSON.stringify(a.p_session[k]));
         return null;
       case "customer_handoff_end":
         st.handoff = false;
@@ -354,7 +363,7 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     // "🛍️ Pick up": the places that take pickup near the pin; one place opens its sections.
     out = await turn(await p.tap("c:pickup_list"));
     expect(ids(out[out.length - 1])).toEqual(["ps:s1", "ps:s2"]);
-    expect(p.st.session.fulfil).toBe("pickup");
+    expect(p.st.session.refs.fx?.id).toBe("pickup");
 
     // 07:46:57 Sandwiches, Falafel Sandwich, 5 of them.
     out = await turn(await p.tap("ps:s1"));
@@ -392,7 +401,7 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     out = await turn(await p.tap(confirm));
     expect(body(out[0])).toContain("T2-1");
     expect(p.st.placed).toHaveLength(1);
-    expect(p.st.session.fulfil).toBeNull();
+    expect(p.st.session.refs.fx).toBeUndefined();
 
     // Through all of it: no model call, no "slow", and every message inside Meta's limits.
     expect(p.st.modelCalls).toBe(0);
@@ -422,7 +431,7 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     const p = phone({ radiusKm: 30, staleHandoff: false });
     const out = await p.pin(33.645385742188, 35.64342880249);
     expect(ids(out[out.length - 1])).toEqual(["ps:s1", "ps:s2"]);
-    expect(p.st.session.fulfil).toBeNull();
+    expect(p.st.session.refs.fx).toBeUndefined();
   });
 
   it("if the road route cannot be fetched the place is kept (not a guess), and Checkout checks it again", async () => {

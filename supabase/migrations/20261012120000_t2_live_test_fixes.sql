@@ -57,7 +57,10 @@ begin
     if v_address.id is null or v_address.pin is null then
       return jsonb_build_object('status', 'no_address', 'basket', v_view);
     end if;
-    if (select p.service_status from public.places p where p.id = v_address.place_id) = 'paused' then
+    if v_addr.id is null or v_addr.pin is null then
+    return jsonb_build_object('status', 'no_address', 'vendors', '[]'::jsonb);
+  end if;
+  if (select p.service_status from public.places p where p.id = v_address.place_id) = 'paused' then
       return jsonb_build_object('status', 'place_paused', 'basket', v_view);
     end if;
     select * into v_route from public.route_cache_lookup(

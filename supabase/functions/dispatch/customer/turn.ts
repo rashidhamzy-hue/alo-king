@@ -245,7 +245,7 @@ export async function handleCustomerTurn(
       refs: sess.refs ?? {},
       history: Array.isArray(sess.history) ? sess.history : [],
       low_confidence: Number(sess.low_confidence ?? 0),
-      fulfil: sess.fulfil === "pickup" ? "pickup" : null,
+      fulfil: sess.refs?.fx?.id === "pickup" ? "pickup" : null, // kept in refs: the only session column that survives between turns
     },
     basket: begin.basket,
     orders: begin.orders ?? [],
@@ -279,6 +279,9 @@ export async function handleCustomerTurn(
   }
   if (m.text) c.s.history.push({ r: "u", t: m.text.slice(0, 300) });
   if (c.summary.length) c.s.history.push({ r: "a", t: c.summary.join(" ").slice(0, 300) });
+  // The session row has no fulfil column, so the pickup choice travels in refs (prefix "fx", never used by the lists).
+  delete c.s.refs.fx;
+  if (c.s.fulfil === "pickup") c.s.refs.fx = { id: "pickup", label: "pickup" };
   await deps.rpc("customer_turn_end", {
     p_customer_id: c.customerId,
     p_message_id: m.messageId,
@@ -360,7 +363,7 @@ async function textIntent(c: Ctx, kind: string) {
       );
     case "forget_history":
       await deps.rpc("customer_forget", { p_customer_id: c.customerId, p_scope: "history" });
-      c.s = { ...c.s, history: [], refs: {}, pending: {}, focus_vendor_id: null };
+      c.s = { ...c.s, history: [], refs: {}, pending: {}, focus_vendor_id: null, fulfil: null };
       return say(c, "forgotHistory");
     case "human":
       return handoff(c, "customer asked for a person");
@@ -577,7 +580,7 @@ async function tap(c: Ctx, a: CustomerAction) {
         case "delete_ok":
           if (c.s.pending.kind !== "delete") return say(c, "confirmDelete");
           await deps.rpc("customer_forget", { p_customer_id: id, p_scope: "all" });
-          c.s = { ...c.s, history: [], refs: {}, pending: {}, focus_vendor_id: null };
+          c.s = { ...c.s, history: [], refs: {}, pending: {}, focus_vendor_id: null, fulfil: null };
           return say(c, "deletedData");
         case "keep":
           c.s.pending = {};
@@ -928,7 +931,11 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
     });
     const unknown = (chk?.vendors ?? []).filter((v: any) => v.status === "no_route" && v.origin);
     if (unknown.length) {
-      for (const v of unknown.slice(0, 5)) await c.deps.route(v.origin, v.dest).catch(() => null);
+      for (const v of unknown.slice(0, 5))
+        await c.deps.route(v.origin, v.dest).catch((e: unknown) => {
+          c.deps.log?.("route fetch failed", { error: String(e).slice(0, 120) });
+          return null;
+        });
       chk = await c.deps.rpc("customer_delivery_check", {
         p_customer_id: c.customerId,
         p_vendor_ids: ids,

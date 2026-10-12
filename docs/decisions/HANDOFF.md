@@ -131,6 +131,7 @@
   - **No tap reaches the AI or gets "slow":** failures show the button menu; free text without credit shows the menu.
   - **Stale handoffs** ended by the migration; the handoff card has Menu and My order.
   - **Staging only:** Alo Test Grill delivers up to 30 km (fixture adds a 10-30 km test fee band of $6.00 to staging's fee table; cut-over checklist in LOG.md).
+  - **CUT-OVER (session 14):** production must have `max_delivery_km() = 10` (no fee band above 10 km), no `is_test` vendors and no `owner_phones.test_switch` rows; the staging fixture adds a $6.00 10-30 km band.
   - **Replay test:** `live-test-replay.test.ts` and `supabase/tests/99_t2_live_test_fixes.sql`.
 - **Next: session 6 (lean website)**, then 11, 13, D, 5b and 14 (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
 
