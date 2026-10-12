@@ -16,8 +16,8 @@ select set_config('app.fixture_owner_phone', '+96170000099', false);
 select tests.ok((select service_status = 'on' from public.places where id = 'LB-CHF-BAAKLINE'), 'the fixture switches Baakline on');
 select id as tv from public.vendors where slug = 'alo-test-grill' \gset
 select tests.ok((select is_test and orderable and claim_status = 'claimed' and listing_status = 'active' and not public_page
-  and source = 'admin' and delivery_radius_km = 10.0 and delivery_enabled and pickup_enabled
-  from public.vendors where id = :'tv'), 'Alo Test Grill is a claimed, orderable, non-public test vendor with a 10 km radius');
+  and source = 'admin' and delivery_radius_km = 30.0 and delivery_enabled and pickup_enabled
+  from public.vendors where id = :'tv'), 'Alo Test Grill is a claimed, orderable, non-public test vendor with a 30 km radius (raised by T2)');
 select tests.ok((select count(*) = 1 from public.vendors where is_test), 'there is exactly one test vendor');
 select tests.ok((select count(*) = 15 from public.menu_items where vendor_id = :'tv'), 'the menu has 15 items');
 select tests.ok((select count(*) = 4 from public.menu_sections where vendor_id = :'tv'), 'in 4 sections');

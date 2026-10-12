@@ -1212,7 +1212,7 @@ describe("the button-driven ordering path (session T, §34)", () => {
       const f = fake({ model, begin: inHandoff });
       await handleCustomerTurn(f.deps, msg({ text: "where is Rasheed?" }));
       expect(f.of("customer_handoff_end")).toHaveLength(0);
-      expect(ids(f.sent[0])).toEqual(["c:order"]);
+      expect(ids(f.sent[0])).toEqual(["c:order", "c:track"]);
       const v = fake({ model, begin: inHandoff });
       await handleCustomerTurn(
         v.deps,

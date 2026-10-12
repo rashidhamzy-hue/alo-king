@@ -465,7 +465,7 @@ export type CustomerAction =
   | { a: "more"; ref: string; offset: number }
   | { a: "qty"; ref: string; qty: number }
   | { a: "cash"; currency: "USD" | "LBP" }
-  | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "delete_ok" | "keep" | "usual" | "address_list" | "no_upsell" | "order" | "track" };
+  | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "delete_ok" | "keep" | "usual" | "address_list" | "no_upsell" | "order" | "track" | "pickup_list" };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const re = (s: string) => new RegExp(`^${s}$`);
@@ -489,7 +489,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(re(`qt:(i\\d{1,3}):(\\d{1,2})`)))) return { a: "qty", ref: m[1], qty: Number(m[2]) };
   if ((m = id.match(re(`cur:(USD|LBP)`)))) return { a: "cash", currency: m[1] as "USD" | "LBP" };
   if ((m = id.match(/^sbp:(call|replace|remove)$/))) return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
-  if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track)$/)))
+  if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list)$/)))
     return { a: "simple", what: m[1] as any };
   return null;
 }
