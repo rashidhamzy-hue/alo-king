@@ -1313,6 +1313,33 @@ Rasheed's card can't add Anthropic credit right now, and OpenAI rejects its key.
 | D | Data finalisation (§31) | Opus 5.5 | high |
 | 14 | Pilot cut-over | Opus 5.5 | high |
 
+## 33. Pilot-first order and lean sessions (DECIDED, 12 October 07:00)
+Two sessions used about half of Rasheed's weekly Claude limit. The remaining work is reordered so the pilot can open with the fewest sessions; features the pilot doesn't use move after it. Nothing is dropped. The pilot already runs on merchant self-delivery and cash on delivery (§1), so the fleet, online payments, Send Home and paid growth tools are not needed to open.
+
+**Before the pilot (6 sessions, in this order)**
+| # | Session | Model | Effort |
+|---|---|---|---|
+| 5b | Slack ops console and support handoff, WhatsApp admin commands, order recovery engine, templates for staff welcome and kitchen-full, "open outside hours" reply (§32.1, §32.5) | Sonnet 5.5 | high |
+| 6 | Lean website: home, claimed-vendor page, claim/registration pages, legal pages (terms, privacy, refund, merchant terms), contact, `llms.txt`, AR/EN/FR. Merges old sessions 6 and 7; the dashboard restyle and full SEO move after the pilot | Sonnet 5.5 | high |
+| 11 | Simulator, evals that run without credit, pilot scorecard | Sonnet 5.5 | medium |
+| 13 | Independent security review of everything merged | Opus 5.5 | high |
+| D | Data finalisation (§31) | Sonnet 5.5 | high |
+| 14 | Pilot cut-over | Opus 5.5 | high |
+
+**After the pilot opens (4 sessions, in order of need)**
+- 9: online payments, ledger settlement and credit (when the lawyer letter and Whish terms arrive; Opus 5.5, high)
+- 8: fleet drivers, driver app and dispatch brain (when a fleet area meets §21.3; Sonnet 5.5, high)
+- 12: growth tools: offers, Boost, broadcasts, sponsored, referrals, reminders (before the ads gate; Sonnet 5.5, high)
+- 10: Send Home and Tap, group basket (when Tap approves; Sonnet 5.5, high)
+- Plus: the dashboard restyle and full SEO left out of session 6
+
+**Rules for every remaining session, to save limits**
+- One session, one scope: no work outside the session's row; anything found goes to LOG.md for later.
+- Read only the DECISIONS sections the session needs, not the whole file.
+- Do not re-run the full database test suite locally after every edit; rely on CI for the full run.
+- At most two review-fix rounds per PR; open remaining low findings as notes in LOG.md.
+- Sonnet 5.5 is the default model; Opus 5.5 only where the table says.
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
