@@ -20,10 +20,7 @@ export const Route = createFileRoute("/$lang")({
   loader: async () => ({ overview: await getOverview() }),
   // The fonts the page needs are fetched with the HTML, so text appears in its final face and does not reflow (CLS).
   head: ({ params }) => ({
-    links: (params.lang === "ar"
-      ? [plexArabic400, plexArabic700]
-      : [jakartaLatin]
-    ).map((href) => ({
+    links: (params.lang === "ar" ? [plexArabic400, plexArabic700] : [jakartaLatin]).map((href) => ({
       rel: "preload",
       as: "font",
       type: "font/woff2",

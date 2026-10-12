@@ -1121,7 +1121,8 @@ async function checkout(
   // session from an earlier basket or shop is checked against what this shop takes, and dropped when it does not apply.
   const o = await deps.rpc("basket_fulfilment_options", { p_customer_id: c.customerId });
   if (o?.status === "ok") {
-    if ((c.s.fulfil === "delivery" && !o.delivery) || (c.s.fulfil === "pickup" && !o.pickup)) c.s.fulfil = null;
+    if ((c.s.fulfil === "delivery" && !o.delivery) || (c.s.fulfil === "pickup" && !o.pickup))
+      c.s.fulfil = null;
     if (!c.s.fulfil) {
       if (o.pickup && o.delivery) {
         c.summary.push("[asked delivery or pickup]");
