@@ -1,0 +1,46 @@
+name: replay-12-october
+description: "The 12 October live chat (session T2): a stale handoff, the Menu tap, a far pin, five falafel, Checkout twice, free text, My order, Confirm (DECISIONS §36 scenario 9)."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Replay" }
+  merchant: { role: merchant }
+steps:
+  - say: { as: cust, text: "hi" }
+    expect: [{ to: cust, buttons: ["c:order"] }]
+  - note: a handoff left over from the day before
+    sql: >
+      update public.bot_sessions s set handoff_until = now() + interval '11 hours', handoff_reason = 'left over'
+      from public.customers c where c.id = s.customer_id and c.phone_e164 = '{{cust.phone}}'
+  - note: the customer taps Menu on the handoff card; the handoff ends
+    tap: { as: cust, id: "c:order" }
+    expect: [{ to: cust }]
+    db:
+      - sql: >
+          select (s.handoff_until is null or s.handoff_until <= now()) as ended from public.bot_sessions s join public.customers c on c.id = s.customer_id
+          where c.phone_e164 = '{{cust.phone}}'
+        row: { ended: true }
+  - pin: { as: cust, lat: 33.7003, lon: 35.6321 }
+    expect: [{ to: cust }]
+  - note: pickup, as in the live chat
+    tap: { as: cust, id: "c:pickup_list" }
+    expect: [{ to: cust, buttons: ["pv:"] }]
+  - tap: { as: cust, id_prefix: "pv:" }
+    expect: [{ to: cust, buttons: ["ps:"] }]
+  - tap: { as: cust, title: "Sandwiches" }
+    expect: [{ to: cust, buttons: ["pi:"] }]
+  - tap: { as: cust, title: "Falafel" }
+    expect: [{ to: cust, buttons: ["qt:"] }]
+  - note: five falafel sandwiches
+    tap: { as: cust, id_re: "^qt:i\\d+:5$" }
+    expect: [{ to: cust, buttons: ["c:checkout"], text: "5" }]
+  - note: Checkout twice, never "slow"
+    tap: { as: cust, id: "c:checkout" }
+    expect: [{ to: cust, not_text: ["slow", "بطيء"] }]
+  - tap: { as: cust, id: "c:checkout" }
+    expect: [{ to: cust, not_text: ["slow", "بطيء"] }]
+  - note: free text with no credit shows the buttons
+    say: { as: cust, text: "can you add a pepsi" }
+    expect: [{ to: cust, not_text: ["slow", "بطيء"] }]
+  - tap: { as: cust, id: "c:track" }
+    expect: [{ to: cust }]
+  - say: { as: cust, text: "yes" }
+    expect: [{ to: cust }]

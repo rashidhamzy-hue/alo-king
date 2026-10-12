@@ -1,0 +1,27 @@
+name: languages
+description: "Arabic, English and French customers get replies in their own language (DECISIONS §3, §36 scenario 8)."
+personas:
+  ar: { role: customer, cc: "961", name: "Sim Arabic" }
+  en: { role: customer, cc: "971", name: "Sim English" }
+  fr: { role: customer, cc: "961", name: "Sim French" }
+steps:
+  - say: { as: ar, text: "مرحبا، بدي أطلب أكل" }
+    expect: [{ to: ar, lang: ar }]
+  - say: { as: en, text: "Hello, I want to order food" }
+    expect: [{ to: en, lang: en }]
+  - say: { as: fr, text: "Bonjour, je voudrais commander à manger s'il vous plaît" }
+    expect: [{ to: fr, lang: fr }]
+  - note: the pin prompt follows the same language
+    tap: { as: ar, id: "c:order" }
+    expect: [{ to: ar, lang: ar }]
+  - tap: { as: en, id: "c:order" }
+    expect: [{ to: en, lang: en }]
+  - tap: { as: fr, id: "c:order" }
+    expect: [{ to: fr, lang: fr }]
+  - note: the stored language of each customer
+    db:
+      - sql: >
+          select string_agg(distinct s.lang::text, ',' order by s.lang::text) as langs
+          from public.bot_sessions s join public.customers c on c.id = s.customer_id
+          where c.phone_e164 in ('{{ar.phone}}', '{{en.phone}}', '{{fr.phone}}')
+        row: { langs: "ar,en,fr" }

@@ -1,0 +1,34 @@
+name: merchant-reject-and-silence
+description: "The merchant rejects one order; another order is never answered and cancels itself after 5 minutes, time-travelled (DECISIONS §36 scenario 5)."
+personas:
+  rejected: { role: customer, cc: "961", name: "Sim Rejected" }
+  silent: { role: customer, cc: "961", name: "Sim Silent" }
+  merchant: { role: merchant }
+steps:
+  - include: { part: order-to-placed, as: rejected, lat: 33.6869, lon: 35.5518, qty: 1 }
+  - note: merchant rejects (busy)
+    tap: { as: merchant, id_prefix: "rej:" }
+    expect: [{ to: merchant, buttons: ["rjr:"] }]
+  - tap: { as: merchant, id_re: "^rjr:.*:busy$" }
+    expect: [{ to: rejected, text_re: "can't take|cancel|busy", buttons: ["c:find"] }]
+    db:
+      - sql: >
+          select o.status, o.reject_reason from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{rejected.phone}}' order by o.created_at desc limit 1
+        row: { status: rejected, reject_reason: busy }
+  - include: { part: order-to-placed, as: silent, lat: 33.6869, lon: 35.5518, qty: 1 }
+  - note: five minutes pass with no answer (time travel on the escalation clock)
+    sql: >
+      update public.order_dispatch d set started_at = started_at - interval '400 seconds'
+      from public.orders o join public.customers c on c.id = o.customer_id
+      where d.order_id = o.id and c.phone_e164 = '{{silent.phone}}' and d.stage in ('primary', 'backup', 'call', 'operator')
+  - note: the escalation ticks move it through backup, call, operator and give-up; the customer is told
+    expect:
+      - { to: silent, text_re: "cancel|answer|didn't", timeout_s: 90 }
+    timeout_s: 90
+    db:
+      - sql: >
+          select o.status, o.cancel_reason from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{silent.phone}}' order by o.created_at desc limit 1
+        row: { status: cancelled, cancel_reason: merchant_unreachable }
+        within_s: 60

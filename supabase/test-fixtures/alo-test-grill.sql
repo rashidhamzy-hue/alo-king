@@ -180,8 +180,9 @@ do $$
 declare
   v_phone text := nullif(current_setting('app.fixture_owner_phone', true), '');
 begin
-  if v_phone is null and (select count(*) from public.customers) = 1 then
-    select c.phone_e164 into v_phone from public.customers c;
+  -- Simulated customers (+999, DECISIONS §36) are not the owner.
+  if v_phone is null and (select count(*) from public.customers c where not app_private.is_sim_phone(c.phone_e164)) = 1 then
+    select c.phone_e164 into v_phone from public.customers c where not app_private.is_sim_phone(c.phone_e164);
   end if;
   if v_phone is not null then
     insert into app_private.owner_phones (phone_e164, note, test_switch)
@@ -193,6 +194,13 @@ begin
   end if;
 end;
 $$;
+
+-- 4. The simulator sink (DECISIONS §36) ----------------------------------------------------------------
+-- Messages to +999 test numbers are recorded in sim_outbox instead of sent. Staging only: the cut-over checklist
+-- asserts config sim_sink_enabled is false on production (this file is never run there).
+insert into public.app_config (key, value, effective_from, note, created_by)
+select 'sim_sink_enabled', 'true', now(), 'staging fixture: simulator sink on (DECISIONS §36)', null
+where not app_private.sim_sink_on();
 
 select set_config('app.actor_kind', '', false);
 select set_config('app.audit_reason', '', false);

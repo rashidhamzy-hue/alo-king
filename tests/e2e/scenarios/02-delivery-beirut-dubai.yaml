@@ -1,0 +1,17 @@
+name: delivery-beirut-dubai
+description: "The same order from a Beirut pin and from a Dubai pin; the test merchant takes any pin (DECISIONS §35, §36 scenario 2)."
+personas:
+  beirut: { role: customer, cc: "961", name: "Sim Beirut" }
+  dubai: { role: customer, cc: "971", name: "Sim Dubai" }
+  merchant: { role: merchant }
+steps:
+  - include: { part: order-to-placed, as: beirut, lat: 33.8938, lon: 35.5018, qty: 1 }
+  - include: { part: merchant-accepts-delivers, as: beirut }
+  - include: { part: order-to-placed, as: dubai, lat: 25.2048, lon: 55.2708, qty: 1 }
+  - note: the Dubai order is priced like the others, with the 0-3 km delivery fee
+    db:
+      - sql: >
+          select o.delivery_fee_usd, o.road_km from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{dubai.phone}}' order by o.created_at desc limit 1
+        row: { delivery_fee_usd: 2, road_km: 0 }
+  - include: { part: merchant-accepts-delivers, as: dubai }
