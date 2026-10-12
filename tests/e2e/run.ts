@@ -40,7 +40,14 @@ async function main() {
     );
   if (!scenarios.length) throw new Error("no scenario matched");
 
-  const client = new pg.Client({ connectionString: need("DB_URL") });
+  // The session pooler's certificate is not in Node's trust store; psql's sslmode=require (used by every other job)
+  // does not verify it either. The staging project is pinned by scripts/staging-db-url.sh.
+  const url = new URL(need("DB_URL"));
+  url.searchParams.delete("sslmode");
+  const client = new pg.Client({
+    connectionString: url.toString(),
+    ssl: { rejectUnauthorized: false },
+  });
   await client.connect();
   const results: ScenarioResult[] = [];
   try {
