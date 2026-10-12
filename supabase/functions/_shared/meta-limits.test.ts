@@ -506,3 +506,18 @@ describe("the button path builders (session T)", () => {
     expect(ids.slice(0, 9).every((i: string) => i.startsWith("pi:i"))).toBe(true);
   });
 });
+
+import { trackMessage, cancelAsk } from "../dispatch/customer/render";
+describe("the track card with its cancel button (staging simulator finding)", () => {
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`passes the checker in ${lang}, with a button only while the order can still be cancelled`, () => {
+      const t = { order_id: "0b9d7b53-1f0a-4a8e-9a4d-0c3d2f7a1b11", code: "ABC123", status: "accepted", vendor: "ألو", vendor_en: "Alo", eta: { min: 15, max: 25 }, delivery_code: "4821" };
+      const [m]: any = trackMessage("+96170000001", lang, t);
+      expect(checkInteractive(m)).toEqual([]);
+      expect(m.interactive.action.buttons[0].reply.id).toBe("c:cancel");
+      expect(checkInteractive(cancelAsk("+96170000001", lang, t) as any)).toEqual([]);
+      const [done]: any = trackMessage("+96170000001", lang, { ...t, status: "out_for_delivery" });
+      expect(done.type).toBe("text");
+    });
+  }
+});

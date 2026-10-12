@@ -49,6 +49,7 @@ export type Intent =
   | { kind: "forget_history" }
   | { kind: "human" }
   | { kind: "track" }
+  | { kind: "cancel_order" }
   | { kind: "yes" }
   | { kind: "no" }
   | { kind: "greeting" }
@@ -102,6 +103,15 @@ export function deterministicIntent(raw: string): Intent | null {
     ])
   )
     return { kind: "human" };
+  if (
+    any(t, [
+      /^(please )?cancel (my |the )?(last |current )?order( please)?$/,
+      /^(annuler|annule) (ma |la )?(derniere )?commande$/,
+      /^(بدي |ممكن )?(الغي|الغى|الغاء|إلغاء) (ال)?طلب(ي)?$/,
+      /^(bade|baddi|bde)? ?(elghe|lghe|elgha) (el |l)?talab(e|i)?$/,
+    ])
+  )
+    return { kind: "cancel_order" };
   if (
     any(t, [
       /\bwhere('?s| is)? my (order|food|delivery)\b/,

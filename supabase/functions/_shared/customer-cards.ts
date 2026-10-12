@@ -84,6 +84,7 @@ export const T: Record<CLang, S> = {
     accepted: "✅ {vendor} قبل طلبك #{code}. بيوصل خلال {eta} دقيقة تقريباً.",
     pickupAccepted: "✅ {vendor} قبل طلبك #{code}. بيكون جاهز خلال {eta} دقيقة تقريباً.",
     code: "🔐 رمز التسليم: {dcode} — عطيه للسايق بس يوصل.",
+    codePickup: "🔐 رمز الاستلام: {dcode} — عطيه للمحل بس تستلم.",
     rejected: "😔 {vendor} ما فيه ياخد طلبك #{code} هلق ({reason}). بدك لاقيلك محل تاني؟",
     findOther: "🔎 محل تاني",
     cancelled: "❌ انلغى طلبك #{code} ({reason}). ما في شي مدفوع. بدك نجرّب محل تاني؟",
@@ -138,6 +139,7 @@ export const T: Record<CLang, S> = {
     accepted: "✅ {vendor} accepted your order #{code}. Arriving in about {eta} min.",
     pickupAccepted: "✅ {vendor} accepted your order #{code}. Ready in about {eta} min.",
     code: "🔐 Delivery code: {dcode}. Give it to the driver at the door.",
+    codePickup: "🔐 Pickup code: {dcode}. Give it to the shop when you collect.",
     rejected: "😔 {vendor} can't take order #{code} right now ({reason}). Shall I find another place?",
     findOther: "🔎 Another place",
     cancelled: "❌ Order #{code} was cancelled ({reason}). Nothing was charged. Want to try another place?",
@@ -192,6 +194,7 @@ export const T: Record<CLang, S> = {
     accepted: "✅ {vendor} a accepté votre commande #{code}. Livraison dans {eta} min environ.",
     pickupAccepted: "✅ {vendor} a accepté votre commande #{code}. Prête dans {eta} min environ.",
     code: "🔐 Code de livraison : {dcode}. Donnez-le au livreur.",
+    codePickup: "🔐 Code de retrait : {dcode}. Donnez-le au magasin.",
     rejected: "😔 {vendor} ne peut pas prendre la commande #{code} ({reason}). Je cherche un autre endroit ?",
     findOther: "🔎 Autre endroit",
     cancelled: "❌ La commande #{code} est annulée ({reason}). Rien n'a été payé. Essayer un autre endroit ?",
@@ -246,6 +249,7 @@ export const T: Record<CLang, S> = {
     accepted: "✅ {vendor} 2ebel talabak #{code}. Byousal ba3d {eta} d2i2a ta2riban.",
     pickupAccepted: "✅ {vendor} 2ebel talabak #{code}. Bikoun jehez ba3d {eta} d2i2a ta2riban.",
     code: "🔐 Code el tasleem: {dcode}. 3ati lal driver bas yousal.",
+    codePickup: "🔐 Code el istilam: {dcode}. 3ati lal mahal bas testalem.",
     rejected: "😔 {vendor} ma fi yekhod talabak #{code} hala2 ({reason}). Badak le2ilak mahal tene?",
     findOther: "🔎 Mahal tene",
     cancelled: "❌ Nlagha talabak #{code} ({reason}). Ma fi shi madfou3. Badak njarreb mahal tene?",
@@ -341,7 +345,7 @@ export function customerStatusMessages(
   const vendor = card?.vendor_name ?? "";
   const oid = card?.order_id ?? "";
   const reason = (r: unknown) => tr(lang, `reason_${String(r ?? "other")}`);
-  const codeLine = extra.deliveryCode ? `\n${tr(lang, "code", { dcode: extra.deliveryCode })}` : "";
+  const codeLine = extra.deliveryCode ? `\n${tr(lang, card?.fulfilment === "pickup" ? "codePickup" : "code", { dcode: extra.deliveryCode })}` : "";
   const money = card ? `\n${moneyLine(card.total_usd, card.total_lbp, card.usd_lbp_rate, lang)}` : "";
   const driver = typeof p.driver_phone === "string" && /^\+[1-9]\d{6,14}$/.test(p.driver_phone) ? p.driver_phone : null;
   switch (p.kind) {
@@ -465,7 +469,7 @@ export type CustomerAction =
   | { a: "more"; ref: string; offset: number }
   | { a: "qty"; ref: string; qty: number }
   | { a: "cash"; currency: "USD" | "LBP" }
-  | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "delete_ok" | "keep" | "usual" | "address_list" | "no_upsell" | "order" | "track" | "pickup_list" };
+  | { a: "simple"; what: "find" | "checkout" | "clear" | "menu" | "basket" | "pickup" | "delivery" | "human" | "delete_ok" | "keep" | "usual" | "address_list" | "no_upsell" | "order" | "track" | "pickup_list" | "cancel" };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const re = (s: string) => new RegExp(`^${s}$`);
@@ -489,7 +493,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(re(`qt:(i\\d{1,3}):(\\d{1,2})`)))) return { a: "qty", ref: m[1], qty: Number(m[2]) };
   if ((m = id.match(re(`cur:(USD|LBP)`)))) return { a: "cash", currency: m[1] as "USD" | "LBP" };
   if ((m = id.match(/^sbp:(call|replace|remove)$/))) return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
-  if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list)$/)))
+  if ((m = id.match(/^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel)$/)))
     return { a: "simple", what: m[1] as any };
   return null;
 }
