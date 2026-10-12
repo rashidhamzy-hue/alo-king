@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PrivateShell } from "@/components/private/PrivateShell";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,12 +45,18 @@ export const Route = createFileRoute("/driver")({
       { rel: "apple-touch-icon", href: "/icon-192.png" },
     ],
   }),
-  component: () => (
-    <StaffGate roles={["driver", "admin"]} title="Driver">
-      {(_p, s) => <DriverApp uid={s.user.id} />}
-    </StaffGate>
-  ),
+  component: DriverRoute,
 });
+
+function DriverRoute() {
+  return (
+    <PrivateShell>
+      <StaffGate roles={["driver", "admin"]} title="Driver">
+        {(_p, s) => <DriverApp uid={s.user.id} />}
+      </StaffGate>
+    </PrivateShell>
+  );
+}
 
 const navLinks = (lat: number | null | undefined, lng: number | null | undefined, text: string) =>
   lat != null && lng != null

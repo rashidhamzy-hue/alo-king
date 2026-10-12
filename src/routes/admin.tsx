@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PrivateShell } from "@/components/private/PrivateShell";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Crown, LogOut, Phone, X } from "lucide-react";
@@ -32,12 +33,18 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: () => (
-    <StaffGate roles={["admin"]} title="Alo King Admin">
-      {() => <ClaimsQueue />}
-    </StaffGate>
-  ),
+  component: AdminRoute,
 });
+
+function AdminRoute() {
+  return (
+    <PrivateShell>
+      <StaffGate roles={["admin"]} title="Alo King Admin">
+        {() => <ClaimsQueue />}
+      </StaffGate>
+    </PrivateShell>
+  );
+}
 
 type Claim = {
   id: string;

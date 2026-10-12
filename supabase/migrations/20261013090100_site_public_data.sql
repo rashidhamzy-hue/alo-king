@@ -95,6 +95,10 @@ as $$
       'max_usd', public.delivery_fee_usd(public.max_delivery_km()),
       'max_km', public.max_delivery_km()),
     'order_fee_usd', public.price_usd('order_fee'),
+    -- The merchant's free days at the start (price_list rules), so the page never repeats a number from this file.
+    'order_fee_free_days', (select (p.rules ->> 'free_days')::int from public.price_list p
+                             where p.product = 'order_fee' and p.effective_from <= now()
+                             order by p.effective_from desc limit 1),
     'rate', public.usd_lbp_rate(),
     'rate_at', now());
 $$;

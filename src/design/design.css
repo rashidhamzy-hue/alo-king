@@ -1,0 +1,771 @@
+/* Alo King design system (DECISIONS §5, §24.1, §37.2).
+   Night is the hero mode: ink #17131A with Crown Gold #F4B63C light, like a warm shop sign in a village at night.
+   Cream #FFF9F0 is for reading. Gold is a fill or a glow, never text on cream (1.7:1). Contrast, measured:
+   gold on ink 10.1, ink on cream 17.5, text on night 16.4, mute on night 9.8, mute on cream 7.3.
+   Right-to-left is first-class: components use logical properties (start/end), never left/right. */
+
+:root {
+  --ink: #17131a;
+  --ink-2: #1f1923;
+  --ink-3: #2a2230;
+  --ink-deep: #0e0b10;
+  --gold: #f4b63c;
+  --gold-hi: #ffd27a;
+  --cream: #fff9f0;
+  --cream-2: #f7ebd8;
+  --cream-3: #ebddc6;
+  --text-night: #f8f1e7;
+  --mute-night: #c4bac9;
+  --mute-cream: #5b505f;
+  --ok-night: #7bd389;
+  --ok-cream: #1f7a3a;
+  --wa: #25d366;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --radius-card: 1.25rem;
+  --radius-pill: 999px;
+  --font-latin: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-arab: "IBM Plex Sans Arabic", "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, "Segoe UI", Tahoma, sans-serif;
+}
+
+/* Tones: a section picks one and its children read the variables. */
+.tone-night {
+  --tone-bg: var(--ink);
+  --tone-fg: var(--text-night);
+  --tone-mute: var(--mute-night);
+  --tone-surface: var(--ink-2);
+  --tone-surface-2: var(--ink-3);
+  --tone-line: rgb(244 182 60 / 0.2);
+  --tone-line-soft: rgb(248 241 231 / 0.1);
+  --tone-ok: var(--ok-night);
+  background-color: var(--tone-bg);
+  color: var(--tone-fg);
+  color-scheme: dark;
+}
+.tone-cream {
+  --tone-bg: var(--cream);
+  --tone-fg: var(--ink);
+  --tone-mute: var(--mute-cream);
+  --tone-surface: #ffffff;
+  --tone-surface-2: var(--cream-2);
+  --tone-line: var(--cream-3);
+  --tone-line-soft: rgb(23 19 26 / 0.1);
+  --tone-ok: var(--ok-cream);
+  background-color: var(--tone-bg);
+  color: var(--tone-fg);
+  color-scheme: light;
+}
+
+/* Language drives the type: Arabic is set as carefully as English, never as a fallback (§37.2). */
+html[lang="ar"] {
+  font-size: 106.25%; /* Plex Arabic runs smaller than Plus Jakarta at the same size */
+}
+.ak-site {
+  font-family: var(--font-latin);
+  font-weight: 450;
+  line-height: 1.65;
+  text-wrap: pretty;
+  -webkit-font-smoothing: antialiased;
+}
+html[lang="ar"] .ak-site {
+  font-family: var(--font-arab);
+  font-weight: 400;
+  line-height: 1.85;
+}
+.ak-site :where(h1, h2, h3, h4) {
+  font-family: inherit;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  word-spacing: 0.08em;
+  text-wrap: balance;
+}
+html[lang="ar"] .ak-site :where(h1, h2, h3, h4) {
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0;
+  word-spacing: 0;
+}
+.ak-display {
+  font-size: clamp(2.35rem, 1.1rem + 5.4vw, 4.9rem);
+}
+html[lang="ar"] .ak-display {
+  font-size: clamp(2.2rem, 1rem + 4.6vw, 4.2rem);
+  line-height: 1.3;
+}
+.ak-h2 {
+  font-size: clamp(1.75rem, 1rem + 2.8vw, 3rem);
+}
+.ak-h3 {
+  font-size: clamp(1.2rem, 1rem + 0.6vw, 1.5rem);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  line-height: 1.2;
+}
+html[lang="ar"] .ak-h3 {
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+.ak-callout {
+  position: relative;
+  padding-inline-start: 1.6rem;
+}
+.ak-callout::before {
+  content: "";
+  position: absolute;
+  inset-block: 1rem;
+  inset-inline-start: 0.7rem;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--gold);
+}
+.ak-lead {
+  font-size: clamp(1.05rem, 1rem + 0.3vw, 1.25rem);
+  color: var(--tone-mute);
+  max-width: 42rem;
+}
+.ak-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+html[lang="ar"] .ak-eyebrow {
+  letter-spacing: 0;
+  font-size: 0.9rem;
+  text-transform: none;
+}
+.ak-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Layout */
+.ak-container {
+  width: min(100% - 2rem, 72rem);
+  margin-inline: auto;
+}
+.ak-section {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-block: clamp(3.5rem, 2rem + 6vw, 7rem);
+}
+/* The Chouf contour lines, a quiet static texture behind a section. */
+.ak-contours::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("/chouf-contours.svg") center / cover no-repeat;
+  opacity: 0.075;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 25%, #000 70%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 25%, #000 70%, transparent);
+}
+.tone-cream.ak-contours::before {
+  filter: invert(1) sepia(0.4);
+  opacity: 0.06;
+}
+/* A warm glow from the top, like a shop sign lit in the dark. */
+.ak-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60rem 28rem at 78% -8%, rgb(244 182 60 / 0.16), transparent 62%),
+    radial-gradient(40rem 24rem at 4% 108%, rgb(244 182 60 / 0.08), transparent 60%);
+  pointer-events: none;
+}
+
+/* Buttons */
+.ak-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition:
+    transform 0.2s var(--ease),
+    background-color 0.2s,
+    box-shadow 0.2s,
+    border-color 0.2s;
+}
+.ak-btn:hover {
+  transform: translateY(-1px);
+}
+.ak-btn:active {
+  transform: translateY(0);
+}
+.ak-btn-gold {
+  background: var(--gold);
+  color: var(--ink);
+  box-shadow: 0 10px 30px -12px rgb(244 182 60 / 0.65);
+}
+.ak-btn-gold:hover {
+  background: var(--gold-hi);
+}
+.ak-btn-ink {
+  background: var(--ink);
+  color: var(--text-night);
+}
+.ak-btn-ink:hover {
+  background: var(--ink-3);
+}
+.ak-btn-line {
+  background: transparent;
+  color: inherit;
+  border-color: var(--tone-line);
+}
+.ak-btn-line:hover {
+  border-color: currentColor;
+}
+.ak-btn-lg {
+  min-height: 3.5rem;
+  padding-inline: 1.9rem;
+  font-size: 1.0625rem;
+}
+.ak-btn-sm {
+  min-height: 2.5rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.9375rem;
+}
+:where(a, button, summary, input, select, textarea):focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 0.4rem;
+}
+.tone-cream :where(a, button, summary, input, select, textarea):focus-visible {
+  outline-color: var(--ink);
+}
+.tone-cream .ak-btn-gold:focus-visible {
+  outline-color: var(--ink);
+}
+
+/* Cards, chips */
+.ak-card {
+  background: var(--tone-surface);
+  border: 1px solid var(--tone-line-soft);
+  border-radius: var(--radius-card);
+}
+.tone-night .ak-card {
+  border-color: var(--tone-line);
+}
+.ak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--tone-surface-2);
+  color: var(--tone-fg);
+  border: 1px solid var(--tone-line-soft);
+}
+.ak-chip-gold {
+  background: var(--gold);
+  color: var(--ink);
+  border-color: transparent;
+}
+
+/* ---- Chat (the product is a conversation, §37.1) -------------------------------------------------------------- */
+.ak-phone {
+  position: relative;
+  width: min(100%, 22.5rem);
+  margin-inline: auto;
+  border-radius: 2.6rem;
+  padding: 0.6rem;
+  background: var(--ink-deep);
+  border: 1px solid rgb(248 241 231 / 0.14);
+  box-shadow:
+    0 40px 80px -30px rgb(0 0 0 / 0.7),
+    0 0 0 1px rgb(0 0 0 / 0.6),
+    0 0 90px -30px rgb(244 182 60 / 0.35);
+}
+.ak-phone-screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2.1rem;
+  background: #120f15;
+  display: flex;
+  flex-direction: column;
+  min-height: 36rem;
+}
+.ak-phone-sm {
+  width: min(100%, 15.5rem);
+}
+.ak-phone-sm .ak-phone-screen {
+  min-height: 25rem;
+}
+.ak-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1.1rem 1rem 0.8rem;
+  background: var(--ink-2);
+  border-bottom: 1px solid rgb(248 241 231 / 0.08);
+  color: var(--text-night);
+}
+.ak-chat-body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem 0.8rem 1.2rem;
+  background:
+    radial-gradient(18rem 12rem at 100% 0, rgb(244 182 60 / 0.07), transparent 70%), #120f15;
+}
+.ak-bubble {
+  position: relative;
+  max-width: 86%;
+  padding: 0.55rem 0.8rem;
+  border-radius: 1.1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-night);
+  background: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+/* The visitor's messages sit at the end side, Alo King's at the start side, in either direction. */
+.ak-bubble-me {
+  align-self: flex-end;
+  background: var(--gold);
+  color: var(--ink);
+  border-end-end-radius: 0.3rem;
+}
+.ak-bubble-bot {
+  align-self: flex-start;
+  border-end-start-radius: 0.3rem;
+}
+.ak-bubble small {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+.ak-msg {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  animation: ak-rise 0.55s var(--ease) var(--d, 0s) forwards;
+}
+@keyframes ak-rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ak-wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 1.9rem;
+  min-width: 10.5rem;
+}
+.ak-wave i {
+  display: block;
+  width: 3px;
+  border-radius: 3px;
+  height: calc(var(--h) * 1%);
+  background: rgb(23 19 26 / 0.32);
+  animation: ak-played 0.1s linear calc(var(--d, 0s) + var(--i) * 60ms) forwards;
+}
+@keyframes ak-played {
+  to {
+    background: var(--ink);
+  }
+}
+.ak-typing {
+  display: inline-flex;
+  gap: 4px;
+  padding: 0.25rem 0;
+}
+.ak-typing i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mute-night);
+  animation: ak-bob 1s ease-in-out infinite;
+}
+.ak-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ak-typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes ak-bob {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: none;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+/* A card with buttons, like the basket the bot sends. */
+.ak-wa-card {
+  align-self: flex-start;
+  max-width: 92%;
+  width: 17.5rem;
+  padding: 0.7rem 0.8rem 0.5rem;
+  border-radius: 1.1rem;
+  border-end-start-radius: 0.3rem;
+  background: var(--ink-3);
+  color: var(--text-night);
+  font-size: 0.9rem;
+}
+.ak-wa-card hr {
+  border: 0;
+  border-top: 1px solid rgb(248 241 231 / 0.12);
+  margin: 0.45rem 0;
+}
+.ak-wa-btn {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.5rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--gold);
+  border-top: 1px solid rgb(248 241 231 / 0.12);
+  background: transparent;
+}
+.ak-wa-btn.is-pressed {
+  animation: ak-press 0.5s ease var(--d, 0s) forwards;
+}
+@keyframes ak-press {
+  40% {
+    background: rgb(244 182 60 / 0.28);
+    transform: scale(0.97);
+  }
+  100% {
+    background: rgb(244 182 60 / 0.14);
+  }
+}
+.ak-route {
+  position: relative;
+  height: 5.2rem;
+  margin-top: 0.5rem;
+  border-radius: 0.8rem;
+  overflow: hidden;
+  background: #120f15 url("/chouf-contours.svg") center / cover;
+  border: 1px solid rgb(248 241 231 / 0.1);
+}
+.ak-route > svg.ak-route-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.ak-dot {
+  offset-path: path("M 18 56 C 70 56, 90 18, 150 30 S 220 40, 262 22");
+  offset-rotate: 0deg;
+  animation: ak-drive 3.2s ease-in-out var(--d, 0s) forwards;
+  offset-distance: 0%;
+}
+@keyframes ak-drive {
+  to {
+    offset-distance: 88%;
+  }
+}
+
+/* Phrases that flip through (CSS only). All four stay in the DOM for readers and crawlers. */
+.ak-cycle {
+  display: grid;
+}
+.ak-cycle > * {
+  grid-area: 1 / 1;
+  opacity: 0;
+  animation: ak-cycle 12s infinite;
+  animation-delay: calc(var(--i) * 3s);
+}
+@keyframes ak-cycle {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  3%,
+  22% {
+    opacity: 1;
+    transform: none;
+  }
+  25%,
+  100% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+.ak-cycle-chip {
+  animation: ak-chip 12s infinite;
+  animation-delay: calc(var(--i) * 3s);
+}
+@keyframes ak-chip {
+  0%,
+  25%,
+  100% {
+    background: transparent;
+    color: var(--tone-mute);
+    border-color: var(--tone-line-soft);
+  }
+  1%,
+  22% {
+    background: var(--gold);
+    color: var(--ink);
+    border-color: var(--gold);
+  }
+}
+
+/* The map of Lebanon: every place is a dot; places that are switched on are lit gold. */
+.ak-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ak-ping 2.6s ease-out infinite;
+}
+@keyframes ak-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+/* Quiet entrance for sections, once. */
+@keyframes ak-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ak-in {
+  animation: ak-fade-up 0.7s var(--ease) both;
+}
+
+/* Details/summary accordion (no JavaScript). */
+.ak-faq details {
+  border-top: 1px solid var(--tone-line-soft);
+}
+.ak-faq details:last-child {
+  border-bottom: 1px solid var(--tone-line-soft);
+}
+.ak-faq summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 0.25rem;
+  font-weight: 700;
+  font-size: 1.0625rem;
+}
+.ak-faq summary::-webkit-details-marker {
+  display: none;
+}
+.ak-faq summary::after {
+  content: "+";
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--tone-surface-2);
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform 0.25s var(--ease);
+}
+.ak-faq details[open] summary::after {
+  content: "–";
+  transform: rotate(180deg);
+}
+.ak-faq .ak-answer {
+  padding: 0 0.25rem 1.25rem;
+  color: var(--tone-mute);
+  max-width: 46rem;
+}
+
+/* Prose for legal and help pages */
+.ak-prose {
+  max-width: 44rem;
+}
+.ak-prose h2 {
+  font-size: 1.5rem;
+  margin-top: 2.5rem;
+  margin-bottom: 0.6rem;
+}
+.ak-prose h3 {
+  font-size: 1.15rem;
+  margin-top: 1.6rem;
+}
+.ak-prose p,
+.ak-prose li {
+  color: var(--tone-fg);
+}
+.ak-prose p {
+  margin-top: 0.8rem;
+}
+.ak-prose ul {
+  margin-top: 0.6rem;
+  padding-inline-start: 1.4rem;
+  list-style: disc;
+}
+.ak-prose li {
+  margin-top: 0.35rem;
+}
+.ak-prose a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ak-skip {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.7rem 1rem;
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+  border-radius: 0.6rem;
+  transition: top 0.2s;
+}
+.ak-skip:focus {
+  top: 1rem;
+}
+
+/* Everything that moves stops for people who ask (§37.2). The final state is what they see. */
+@media (prefers-reduced-motion: reduce) {
+  .ak-msg,
+  .ak-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .ak-wave i,
+  .ak-wa-btn.is-pressed {
+    animation: none;
+  }
+  .ak-wave i {
+    background: var(--ink);
+  }
+  .ak-dot {
+    animation: none;
+    offset-distance: 88%;
+  }
+  .ak-typing i,
+  .ak-ping {
+    animation: none;
+  }
+  .ak-cycle {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .ak-cycle > * {
+    animation: none;
+    opacity: 1;
+  }
+  .ak-cycle-chip {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto !important;
+  }
+  .ak-btn,
+  .ak-faq summary::after {
+    transition: none;
+  }
+}
+
+/* The chat header swaps "online" for "typing" while the next message is on its way (no layout shift). */
+.ak-typing-off {
+  animation: ak-off 12s linear 1 both;
+}
+.ak-typing-on {
+  opacity: 0;
+  animation: ak-on 12s linear 1 both;
+}
+@keyframes ak-on {
+  0%,
+  24% {
+    opacity: 0;
+  }
+  25%,
+  34% {
+    opacity: 1;
+  }
+  35%,
+  53% {
+    opacity: 0;
+  }
+  54%,
+  62% {
+    opacity: 1;
+  }
+  63%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes ak-off {
+  0%,
+  24% {
+    opacity: 1;
+  }
+  25%,
+  34% {
+    opacity: 0;
+  }
+  35%,
+  53% {
+    opacity: 1;
+  }
+  54%,
+  62% {
+    opacity: 0;
+  }
+  63%,
+  100% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ak-typing-off {
+    animation: none;
+    opacity: 1;
+  }
+  .ak-typing-on {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.ak-h1 {
+  font-size: clamp(2rem, 1rem + 3.6vw, 3.6rem);
+}
+html[lang="ar"] .ak-h1 {
+  font-size: clamp(1.9rem, 1rem + 3.2vw, 3.2rem);
+  line-height: 1.3;
+}

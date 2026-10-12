@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PrivateShell } from "@/components/private/PrivateShell";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeCheck, Clock, Crown, LogOut, MessageCircle, RotateCcw } from "lucide-react";
@@ -41,7 +42,7 @@ export const Route = createFileRoute("/claim/$slug")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: ClaimPage,
+  component: ClaimRoute,
 });
 
 type Step =
@@ -360,5 +361,13 @@ function ClaimFlow({ vendorId, email }: { vendorId: string; email: string }) {
         </button>
       </p>
     </form>
+  );
+}
+
+function ClaimRoute() {
+  return (
+    <PrivateShell>
+      <ClaimPage />
+    </PrivateShell>
   );
 }

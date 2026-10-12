@@ -10,11 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LangRouteImport } from './routes/$lang'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ForBusinessRouteImport } from './routes/for-business'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as MerchantRouteImport } from './routes/merchant'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as LangIndexRouteImport } from './routes/$lang.index'
+import { Route as LangContactRouteImport } from './routes/$lang.contact'
+import { Route as LangHelpRouteImport } from './routes/$lang.help'
+import { Route as LangSendHomeRouteImport } from './routes/$lang.send-home'
 import { Route as ClaimSlugRouteImport } from './routes/claim.$slug'
 import { Route as MSlugRouteImport } from './routes/m.$slug'
 import { Route as MerchantIndexRouteImport } from './routes/merchant.index'
@@ -22,13 +30,26 @@ import { Route as MerchantAssistantRouteImport } from './routes/merchant.assista
 import { Route as MerchantOnboardingRouteImport } from './routes/merchant.onboarding'
 import { Route as MerchantOrdersRouteImport } from './routes/merchant.orders'
 import { Route as MerchantProfileRouteImport } from './routes/merchant.profile'
+import { Route as SitemapKindDotxmlRouteImport } from './routes/sitemap.$kind[.]xml'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
+import { Route as LangCuisineIndexRouteImport } from './routes/$lang.cuisine.index'
+import { Route as LangCuisineTagRouteImport } from './routes/$lang.cuisine.$tag'
+import { Route as LangLegalDocRouteImport } from './routes/$lang.legal.$doc'
+import { Route as LangMSlugRouteImport } from './routes/$lang.m.$slug'
+import { Route as LangPlacesIndexRouteImport } from './routes/$lang.places.index'
+import { Route as LangPlacesSlugRouteImport } from './routes/$lang.places.$slug'
+import { Route as LangTrackTokenRouteImport } from './routes/$lang.track.$token'
 import { Route as MerchantMenuIndexRouteImport } from './routes/merchant.menu.index'
 import { Route as MerchantMenuImportRouteImport } from './routes/merchant.menu.import'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LangRoute = LangRouteImport.update({
+  id: '/$lang',
+  path: '/$lang',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -51,10 +72,45 @@ const ForBusinessRoute = ForBusinessRouteImport.update({
   path: '/for-business',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MerchantRoute = MerchantRouteImport.update({
   id: '/merchant',
   path: '/merchant',
   getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LangIndexRoute = LangIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangContactRoute = LangContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangHelpRoute = LangHelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangSendHomeRoute = LangSendHomeRouteImport.update({
+  id: '/send-home',
+  path: '/send-home',
+  getParentRoute: () => LangRoute,
 } as any)
 const ClaimSlugRoute = ClaimSlugRouteImport.update({
   id: '/claim/$slug',
@@ -91,10 +147,50 @@ const MerchantProfileRoute = MerchantProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => MerchantRoute,
 } as any)
+const SitemapKindDotxmlRoute = SitemapKindDotxmlRouteImport.update({
+  id: '/sitemap/$kind.xml',
+  path: '/sitemap/$kind.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
   id: '/track/$orderId',
   path: '/track/$orderId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LangCuisineIndexRoute = LangCuisineIndexRouteImport.update({
+  id: '/cuisine/',
+  path: '/cuisine/',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangCuisineTagRoute = LangCuisineTagRouteImport.update({
+  id: '/cuisine/$tag',
+  path: '/cuisine/$tag',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangLegalDocRoute = LangLegalDocRouteImport.update({
+  id: '/legal/$doc',
+  path: '/legal/$doc',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangMSlugRoute = LangMSlugRouteImport.update({
+  id: '/m/$slug',
+  path: '/m/$slug',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangPlacesIndexRoute = LangPlacesIndexRouteImport.update({
+  id: '/places/',
+  path: '/places/',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangPlacesSlugRoute = LangPlacesSlugRouteImport.update({
+  id: '/places/$slug',
+  path: '/places/$slug',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangTrackTokenRoute = LangTrackTokenRouteImport.update({
+  id: '/track/$token',
+  path: '/track/$token',
+  getParentRoute: () => LangRoute,
 } as any)
 const MerchantMenuIndexRoute = MerchantMenuIndexRouteImport.update({
   id: '/menu/',
@@ -109,20 +205,36 @@ const MerchantMenuImportRoute = MerchantMenuImportRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$lang': typeof LangRouteWithChildren
   '/admin': typeof AdminRoute
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/for-business': typeof ForBusinessRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/merchant': typeof MerchantRouteWithChildren
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$lang/contact': typeof LangContactRoute
+  '/$lang/help': typeof LangHelpRoute
+  '/$lang/send-home': typeof LangSendHomeRoute
   '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
   '/merchant/assistant': typeof MerchantAssistantRoute
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
   '/merchant/profile': typeof MerchantProfileRoute
+  '/sitemap/$kind.xml': typeof SitemapKindDotxmlRoute
   '/track/$orderId': typeof TrackOrderIdRoute
+  '/$lang/': typeof LangIndexRoute
   '/merchant/': typeof MerchantIndexRoute
+  '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
+  '/$lang/legal/$doc': typeof LangLegalDocRoute
+  '/$lang/m/$slug': typeof LangMSlugRoute
+  '/$lang/places/$slug': typeof LangPlacesSlugRoute
+  '/$lang/track/$token': typeof LangTrackTokenRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/$lang/cuisine/': typeof LangCuisineIndexRoute
+  '/$lang/places/': typeof LangPlacesIndexRoute
   '/merchant/menu/': typeof MerchantMenuIndexRoute
 }
 export interface FileRoutesByTo {
@@ -131,54 +243,101 @@ export interface FileRoutesByTo {
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/for-business': typeof ForBusinessRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$lang/contact': typeof LangContactRoute
+  '/$lang/help': typeof LangHelpRoute
+  '/$lang/send-home': typeof LangSendHomeRoute
   '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
   '/merchant/assistant': typeof MerchantAssistantRoute
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
   '/merchant/profile': typeof MerchantProfileRoute
+  '/sitemap/$kind.xml': typeof SitemapKindDotxmlRoute
   '/track/$orderId': typeof TrackOrderIdRoute
+  '/$lang': typeof LangIndexRoute
   '/merchant': typeof MerchantIndexRoute
+  '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
+  '/$lang/legal/$doc': typeof LangLegalDocRoute
+  '/$lang/m/$slug': typeof LangMSlugRoute
+  '/$lang/places/$slug': typeof LangPlacesSlugRoute
+  '/$lang/track/$token': typeof LangTrackTokenRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/$lang/cuisine': typeof LangCuisineIndexRoute
+  '/$lang/places': typeof LangPlacesIndexRoute
   '/merchant/menu': typeof MerchantMenuIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$lang': typeof LangRouteWithChildren
   '/admin': typeof AdminRoute
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/for-business': typeof ForBusinessRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/merchant': typeof MerchantRouteWithChildren
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$lang/contact': typeof LangContactRoute
+  '/$lang/help': typeof LangHelpRoute
+  '/$lang/send-home': typeof LangSendHomeRoute
   '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
   '/merchant/assistant': typeof MerchantAssistantRoute
   '/merchant/onboarding': typeof MerchantOnboardingRoute
   '/merchant/orders': typeof MerchantOrdersRoute
   '/merchant/profile': typeof MerchantProfileRoute
+  '/sitemap/$kind.xml': typeof SitemapKindDotxmlRoute
   '/track/$orderId': typeof TrackOrderIdRoute
+  '/$lang/': typeof LangIndexRoute
   '/merchant/': typeof MerchantIndexRoute
+  '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
+  '/$lang/legal/$doc': typeof LangLegalDocRoute
+  '/$lang/m/$slug': typeof LangMSlugRoute
+  '/$lang/places/$slug': typeof LangPlacesSlugRoute
+  '/$lang/track/$token': typeof LangTrackTokenRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/$lang/cuisine/': typeof LangCuisineIndexRoute
+  '/$lang/places/': typeof LangPlacesIndexRoute
   '/merchant/menu/': typeof MerchantMenuIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$lang'
     | '/admin'
     | '/driver'
     | '/explore'
     | '/for-business'
+    | '/llms.txt'
     | '/merchant'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/$lang/contact'
+    | '/$lang/help'
+    | '/$lang/send-home'
     | '/claim/$slug'
     | '/m/$slug'
     | '/merchant/assistant'
     | '/merchant/onboarding'
     | '/merchant/orders'
     | '/merchant/profile'
+    | '/sitemap/$kind.xml'
     | '/track/$orderId'
+    | '/$lang/'
     | '/merchant/'
+    | '/$lang/cuisine/$tag'
+    | '/$lang/legal/$doc'
+    | '/$lang/m/$slug'
+    | '/$lang/places/$slug'
+    | '/$lang/track/$token'
     | '/merchant/menu/import'
+    | '/$lang/cuisine/'
+    | '/$lang/places/'
     | '/merchant/menu/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,45 +346,81 @@ export interface FileRouteTypes {
     | '/driver'
     | '/explore'
     | '/for-business'
+    | '/llms.txt'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/$lang/contact'
+    | '/$lang/help'
+    | '/$lang/send-home'
     | '/claim/$slug'
     | '/m/$slug'
     | '/merchant/assistant'
     | '/merchant/onboarding'
     | '/merchant/orders'
     | '/merchant/profile'
+    | '/sitemap/$kind.xml'
     | '/track/$orderId'
+    | '/$lang'
     | '/merchant'
+    | '/$lang/cuisine/$tag'
+    | '/$lang/legal/$doc'
+    | '/$lang/m/$slug'
+    | '/$lang/places/$slug'
+    | '/$lang/track/$token'
     | '/merchant/menu/import'
+    | '/$lang/cuisine'
+    | '/$lang/places'
     | '/merchant/menu'
   id:
     | '__root__'
     | '/'
+    | '/$lang'
     | '/admin'
     | '/driver'
     | '/explore'
     | '/for-business'
+    | '/llms.txt'
     | '/merchant'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/$lang/contact'
+    | '/$lang/help'
+    | '/$lang/send-home'
     | '/claim/$slug'
     | '/m/$slug'
     | '/merchant/assistant'
     | '/merchant/onboarding'
     | '/merchant/orders'
     | '/merchant/profile'
+    | '/sitemap/$kind.xml'
     | '/track/$orderId'
+    | '/$lang/'
     | '/merchant/'
+    | '/$lang/cuisine/$tag'
+    | '/$lang/legal/$doc'
+    | '/$lang/m/$slug'
+    | '/$lang/places/$slug'
+    | '/$lang/track/$token'
     | '/merchant/menu/import'
+    | '/$lang/cuisine/'
+    | '/$lang/places/'
     | '/merchant/menu/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LangRoute: typeof LangRouteWithChildren
   AdminRoute: typeof AdminRoute
   DriverRoute: typeof DriverRoute
   ExploreRoute: typeof ExploreRoute
   ForBusinessRoute: typeof ForBusinessRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   MerchantRoute: typeof MerchantRouteWithChildren
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ClaimSlugRoute: typeof ClaimSlugRoute
   MSlugRoute: typeof MSlugRoute
+  SitemapKindDotxmlRoute: typeof SitemapKindDotxmlRoute
   TrackOrderIdRoute: typeof TrackOrderIdRoute
 }
 
@@ -236,6 +431,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$lang': {
+      id: '/$lang'
+      path: '/$lang'
+      fullPath: '/$lang'
+      preLoaderRoute: typeof LangRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -266,12 +468,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForBusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/merchant': {
       id: '/merchant'
       path: '/merchant'
       fullPath: '/merchant'
       preLoaderRoute: typeof MerchantRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$lang/': {
+      id: '/$lang/'
+      path: '/'
+      fullPath: '/$lang/'
+      preLoaderRoute: typeof LangIndexRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/contact': {
+      id: '/$lang/contact'
+      path: '/contact'
+      fullPath: '/$lang/contact'
+      preLoaderRoute: typeof LangContactRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/help': {
+      id: '/$lang/help'
+      path: '/help'
+      fullPath: '/$lang/help'
+      preLoaderRoute: typeof LangHelpRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/send-home': {
+      id: '/$lang/send-home'
+      path: '/send-home'
+      fullPath: '/$lang/send-home'
+      preLoaderRoute: typeof LangSendHomeRouteImport
+      parentRoute: typeof LangRoute
     }
     '/claim/$slug': {
       id: '/claim/$slug'
@@ -322,12 +573,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantProfileRouteImport
       parentRoute: typeof MerchantRoute
     }
+    '/sitemap/$kind.xml': {
+      id: '/sitemap/$kind.xml'
+      path: '/sitemap/$kind.xml'
+      fullPath: '/sitemap/$kind.xml'
+      preLoaderRoute: typeof SitemapKindDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/track/$orderId': {
       id: '/track/$orderId'
       path: '/track/$orderId'
       fullPath: '/track/$orderId'
       preLoaderRoute: typeof TrackOrderIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/$lang/cuisine/': {
+      id: '/$lang/cuisine/'
+      path: '/cuisine'
+      fullPath: '/$lang/cuisine/'
+      preLoaderRoute: typeof LangCuisineIndexRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/cuisine/$tag': {
+      id: '/$lang/cuisine/$tag'
+      path: '/cuisine/$tag'
+      fullPath: '/$lang/cuisine/$tag'
+      preLoaderRoute: typeof LangCuisineTagRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/legal/$doc': {
+      id: '/$lang/legal/$doc'
+      path: '/legal/$doc'
+      fullPath: '/$lang/legal/$doc'
+      preLoaderRoute: typeof LangLegalDocRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/m/$slug': {
+      id: '/$lang/m/$slug'
+      path: '/m/$slug'
+      fullPath: '/$lang/m/$slug'
+      preLoaderRoute: typeof LangMSlugRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/places/': {
+      id: '/$lang/places/'
+      path: '/places'
+      fullPath: '/$lang/places/'
+      preLoaderRoute: typeof LangPlacesIndexRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/places/$slug': {
+      id: '/$lang/places/$slug'
+      path: '/places/$slug'
+      fullPath: '/$lang/places/$slug'
+      preLoaderRoute: typeof LangPlacesSlugRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/track/$token': {
+      id: '/$lang/track/$token'
+      path: '/track/$token'
+      fullPath: '/$lang/track/$token'
+      preLoaderRoute: typeof LangTrackTokenRouteImport
+      parentRoute: typeof LangRoute
     }
     '/merchant/menu/': {
       id: '/merchant/menu/'
@@ -345,6 +652,36 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface LangRouteChildren {
+  LangContactRoute: typeof LangContactRoute
+  LangHelpRoute: typeof LangHelpRoute
+  LangSendHomeRoute: typeof LangSendHomeRoute
+  LangIndexRoute: typeof LangIndexRoute
+  LangCuisineTagRoute: typeof LangCuisineTagRoute
+  LangLegalDocRoute: typeof LangLegalDocRoute
+  LangMSlugRoute: typeof LangMSlugRoute
+  LangPlacesSlugRoute: typeof LangPlacesSlugRoute
+  LangTrackTokenRoute: typeof LangTrackTokenRoute
+  LangCuisineIndexRoute: typeof LangCuisineIndexRoute
+  LangPlacesIndexRoute: typeof LangPlacesIndexRoute
+}
+
+const LangRouteChildren: LangRouteChildren = {
+  LangContactRoute: LangContactRoute,
+  LangHelpRoute: LangHelpRoute,
+  LangSendHomeRoute: LangSendHomeRoute,
+  LangIndexRoute: LangIndexRoute,
+  LangCuisineTagRoute: LangCuisineTagRoute,
+  LangLegalDocRoute: LangLegalDocRoute,
+  LangMSlugRoute: LangMSlugRoute,
+  LangPlacesSlugRoute: LangPlacesSlugRoute,
+  LangTrackTokenRoute: LangTrackTokenRoute,
+  LangCuisineIndexRoute: LangCuisineIndexRoute,
+  LangPlacesIndexRoute: LangPlacesIndexRoute,
+}
+
+const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
 
 interface MerchantRouteChildren {
   MerchantAssistantRoute: typeof MerchantAssistantRoute
@@ -372,13 +709,18 @@ const MerchantRouteWithChildren = MerchantRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LangRoute: LangRouteWithChildren,
   AdminRoute: AdminRoute,
   DriverRoute: DriverRoute,
   ExploreRoute: ExploreRoute,
   ForBusinessRoute: ForBusinessRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   MerchantRoute: MerchantRouteWithChildren,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   ClaimSlugRoute: ClaimSlugRoute,
   MSlugRoute: MSlugRoute,
+  SitemapKindDotxmlRoute: SitemapKindDotxmlRoute,
   TrackOrderIdRoute: TrackOrderIdRoute,
 }
 export const routeTree = rootRouteImport

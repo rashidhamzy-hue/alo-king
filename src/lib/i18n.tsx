@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Lang = "en" | "ar";
+// The language of the private pages (merchant, driver, admin, claim), kept as a toggle until session 6b restyles them.
+// The public pages take their language from the URL (/ar, /en, /fr: src/lib/site.ts); `forced` makes this context agree.
+export type Lang = "en" | "ar" | "fr";
 
 const dict = {
   en: {
@@ -8,17 +10,16 @@ const dict = {
     nav_merchants: "Merchants",
     nav_gift: "Send home",
     nav_crowns: "King Crowns",
-    hero_kicker: "WhatsApp-native delivery · Shouf, Lebanon",
-    hero_title: "Order the Shouf, on WhatsApp.",
-    hero_sub:
-      "Zero download. Type or send a Levantine voice note, and Alo King finds the dish, places the order and tracks your macros and dietary needs with AI.",
+    hero_kicker: "WhatsApp-native delivery · Lebanon",
+    hero_title: "Order on WhatsApp.",
+    hero_sub: "Zero download. Type, speak or tap, and Alo King takes care of the rest.",
     cta_try: "Try it now",
     cta_wa: "Open WhatsApp",
     sim_title: "Talk to Alo King",
     sim_sub: "A live demo of the WhatsApp assistant. Ask in English or Arabic.",
     sim_placeholder: "Type a message",
     sim_track: "Track this order live",
-    grid_title: "The Shouf, mapped",
+    grid_title: "Places",
     grid_search: "Search merchants",
     grid_all: "All",
     grid_more: "Load more",
@@ -32,17 +33,16 @@ const dict = {
     nav_merchants: "المحلات",
     nav_gift: "هدية للأهل",
     nav_crowns: "تيجان الملك",
-    hero_kicker: "توصيل عبر واتساب · الشوف، لبنان",
-    hero_title: "اطلب الشوف، عالواتساب.",
-    hero_sub:
-      "بلا تحميل تطبيق. اكتب أو ابعت رسالة صوتية باللهجة، وألو كينغ بيلاقي الأكلة، بيعمل الطلب، وبيتابع السعرات والحمية بالذكاء الاصطناعي.",
+    hero_kicker: "توصيل عبر واتساب · لبنان",
+    hero_title: "اطلب عالواتساب.",
+    hero_sub: "بلا تحميل تطبيق. اكتب أو احكي أو دوس، وألو كينغ بيهتم بالباقي.",
     cta_try: "جرّب هلّق",
     cta_wa: "افتح واتساب",
     sim_title: "احكي مع ألو كينغ",
     sim_sub: "تجربة حيّة للمساعد على واتساب. اسأل بالعربي أو بالإنكليزي.",
     sim_placeholder: "اكتب رسالة",
     sim_track: "تابع الطلب مباشرة",
-    grid_title: "الشوف على الخريطة",
+    grid_title: "المناطق",
     grid_search: "ابحث عن محل",
     grid_all: "الكل",
     grid_more: "عرض المزيد",
@@ -63,27 +63,24 @@ type Ctx = {
 };
 const LangCtx = createContext<Ctx | null>(null);
 
-export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
+export function LangProvider({ children, forced }: { children: ReactNode; forced?: Lang }) {
+  const [lang, setLangState] = useState<Lang>(forced ?? "en");
   useEffect(() => {
+    if (forced) return;
     const saved = localStorage.getItem("ak_lang");
-    if (saved === "ar" || saved === "en") setLangState(saved);
-  }, []);
+    if (saved === "ar" || saved === "en" || saved === "fr") setLangState(saved);
+  }, [forced]);
+  const active = forced ?? lang;
   useEffect(() => {
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
-  }, [lang]);
+    document.documentElement.lang = active;
+    document.documentElement.dir = active === "ar" ? "rtl" : "ltr";
+  }, [active]);
   const setLang = (l: Lang) => {
     setLangState(l);
     localStorage.setItem("ak_lang", l);
   };
-  return (
-    <LangCtx.Provider
-      value={{ lang, setLang, t: (k) => dict[lang][k], dir: lang === "ar" ? "rtl" : "ltr" }}
-    >
-      {children}
-    </LangCtx.Provider>
-  );
+  const d = dict[active === "ar" ? "ar" : "en"];
+  return <LangCtx.Provider value={{ lang: active, setLang, t: (k) => d[k], dir: active === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;
 }
 
 export function useLang() {
@@ -92,7 +89,7 @@ export function useLang() {
   return c;
 }
 
-/** Inline bilingual helper: const L = useL(); L("Hello", "مرحبا") */
+/** Inline bilingual helper for the private pages: const L = useL(); L("Hello", "مرحبا"). French reads the English. */
 export function useL() {
   const { lang } = useLang();
   return (en: string, ar: string) => (lang === "ar" ? ar : en);

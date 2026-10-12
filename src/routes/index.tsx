@@ -1,41 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { SiteHeader } from "@/components/landing/SiteHeader";
-import { Hero } from "@/components/landing/Hero";
-import { MerchantGrid } from "@/components/landing/MerchantGrid";
-import { GiftCalculator } from "@/components/landing/GiftCalculator";
-import { CrownsCalculator } from "@/components/landing/CrownsCalculator";
-import { HowItWorks, Footer } from "@/components/landing/HowItWorks";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { getRequestInfo } from "@/lib/request";
+import { pickLang } from "@/lib/site";
 
-const TITLE = "Alo King (ألو كينغ) — Order the Shouf, on WhatsApp";
-const DESC =
-  "Zero-download food, grocery and local delivery across the Shouf, Lebanon. Text or voice-note on WhatsApp, with AI macro tracking.";
-
+// "/" sends each visitor to the language of their browser (Arabic when it names none we support, §24.5).
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: TITLE },
-      { name: "description", content: DESC },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESC },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Index,
+  beforeLoad: async () => {
+    const { acceptLanguage } = await getRequestInfo();
+    throw redirect({ to: "/$lang", params: { lang: pickLang(acceptLanguage) }, statusCode: 302 });
+  },
 });
-
-function Index() {
-  return (
-    <div className="min-h-screen">
-      <SiteHeader />
-      <main>
-        <Hero />
-        <MerchantGrid />
-        <GiftCalculator />
-        <CrownsCalculator />
-        <HowItWorks />
-      </main>
-      <Footer />
-    </div>
-  );
-}

@@ -34,6 +34,8 @@ select tests.ok((:'ov'::jsonb ->> 'merchants')::int = 1, 'only vendor A is a liv
 select tests.ok((:'ov'::jsonb -> 'fees' ->> 'min_usd')::numeric = public.delivery_fee_usd(0)
   and (:'ov'::jsonb ->> 'order_fee_usd')::numeric = public.price_usd('order_fee')
   and (:'ov'::jsonb ->> 'rate')::numeric = public.usd_lbp_rate(), 'fees, order fee and rate come from the dated tables, not from the page');
+select tests.ok((:'ov'::jsonb ->> 'order_fee_free_days')::int = (select (rules ->> 'free_days')::int from public.price_list where product = 'order_fee' order by effective_from desc limit 1),
+  'the merchant free days come from the price list');
 select tests.ok((:'ov'::jsonb -> 'cuisines') @> '[{"tag": "lebanese", "vendors": 1}]'::jsonb, 'a cuisine counts only public vendors');
 select tests.ok(public.site_vendor_slugs()::text like '%vendor-a%' and public.site_vendor_slugs()::text not like '%vendor-b%'
   and public.site_vendor_slugs()::text not like '%vendor-c%', 'the sitemap list holds public vendors only');

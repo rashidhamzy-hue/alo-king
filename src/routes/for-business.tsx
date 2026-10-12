@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PrivateShell } from "@/components/private/PrivateShell";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeCheck, ClipboardList, Crown, Search, Sparkles, Store } from "lucide-react";
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/for-business")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: ForBusiness,
+  component: ForBusinessRoute,
 });
 
 function ForBusiness() {
@@ -152,5 +153,13 @@ function ForBusiness() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+function ForBusinessRoute() {
+  return (
+    <PrivateShell>
+      <ForBusiness />
+    </PrivateShell>
   );
 }
