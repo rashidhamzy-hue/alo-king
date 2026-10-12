@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Lighthouse, mobile (simulated 4G, the default), on the pages that matter (DECISIONS §37.5):
 // performance, accessibility and SEO at 90 or more, LCP under 2.5 s. Fails when any page misses.
-//   node scripts/web/lighthouse.mjs --base http://127.0.0.1:4010 --out qa-out
+// Each page is run three times and the run with the median LCP is reported: one slow run on a shared CI machine says
+// little, and Lighthouse itself recommends the median of several runs. The budgets do not change.
+//   node scripts/web/lighthouse.mjs --base http://127.0.0.1:4010 --out qa-out [--runs 3]
 import { mkdirSync, writeFileSync } from "node:fs";
 import lighthouse from "lighthouse";
 import { chromium } from "@playwright/test";
@@ -25,6 +27,7 @@ const PAGES = [
   // A tracking link is private on purpose (noindex), so it is held to performance and accessibility only.
   ["track-en", `/en/track/${TRACK_TOKENS.delivery}`, { private: true }],
 ];
+const RUNS = Math.max(1, Number(arg("runs", "3")) || 3);
 const MIN = 0.9,
   LCP_MS = 2500;
 mkdirSync(out, { recursive: true });
@@ -37,13 +40,22 @@ const browser = await chromium.launch({
 let failed = 0;
 const rows = [];
 for (const [id, path, opts] of PAGES) {
-  const r = await lighthouse(`${base}${path}`, {
-    port,
-    output: "json",
-    logLevel: "error",
-    onlyCategories: ["performance", "accessibility", "seo"],
-  });
-  const lhr = r?.lhr;
+  const runs = [];
+  for (let i = 0; i < RUNS; i++) {
+    const r = await lighthouse(`${base}${path}`, {
+      port,
+      output: "json",
+      logLevel: "error",
+      onlyCategories: ["performance", "accessibility", "seo"],
+    });
+    if (r?.lhr) runs.push(r.lhr);
+  }
+  runs.sort(
+    (a, b) =>
+      (a.audits["largest-contentful-paint"]?.numericValue ?? 0) -
+      (b.audits["largest-contentful-paint"]?.numericValue ?? 0),
+  );
+  const lhr = runs[Math.floor((runs.length - 1) / 2)];
   if (!lhr) {
     failed++;
     rows.push({ id, error: "no result" });
