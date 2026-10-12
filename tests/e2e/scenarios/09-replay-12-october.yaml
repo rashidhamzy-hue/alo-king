@@ -21,7 +21,7 @@ steps:
   - pin: { as: cust, lat: 33.7003, lon: 35.6321 }
     expect: [{ to: cust }]
   - note: pickup, as in the live chat
-    tap: { as: cust, id: "c:pickup_list" }
+    tap: { as: cust, raw_id: "c:pickup_list", title: "Pick up" }
     expect: [{ to: cust, buttons: ["pv:"] }]
   - tap: { as: cust, id_prefix: "pv:" }
     expect: [{ to: cust, buttons: ["ps:"] }]

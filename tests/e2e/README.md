@@ -12,12 +12,12 @@ Runs after every staging deploy (a job in `ci.yml`) and on demand: Actions → s
 ## Writing a scenario
 
 ```yaml
-name: my-scenario            # lowercase, dashes
+name: my-scenario # lowercase, dashes
 personas:
-  cust: { role: customer, cc: "961" }   # a fresh +999961… number per run
-  merchant: { role: merchant }          # the fixed simulated merchant
+  cust: { role: customer, cc: "961" } # a fresh +999961… number per run
+  merchant: { role: merchant } # the fixed simulated merchant
 steps:
-  - say: { as: cust, text: "Order" }    # or tap / pin / voice / sql / wait_s / include
+  - say: { as: cust, text: "Order" } # or tap / pin / voice / sql / wait_s / include
     expect:
       - { to: cust, kind: list, text_any: ["Grill"], buttons: ["ps:"] }
     db:

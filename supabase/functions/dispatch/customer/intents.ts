@@ -96,6 +96,9 @@ export function deterministicIntent(raw: string): Intent | null {
       /(بدي|بدنا|خليني) (احكي|حاكي) (حدا|شخص|انسان|موظف|رشيد)/,
       /\b(baddi|badde|bade) (e7ke|ehke|i7ki|ehki) (7ada|hada|shakhs|rasheed)\b/,
       /^(rasheed|rashid|رشيد)$/,
+      // The label of the "A person" button, typed back (found by the staging e2e simulator, 12 October).
+      /^(a |the )?(person|someone|somebody|human being)$/,
+      /^(i want|i need|i would like|can i have|can i get) (a |to talk to a |to speak to a )?(person|human|someone)\b/,
     ])
   )
     return { kind: "human" };

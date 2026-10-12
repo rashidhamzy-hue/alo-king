@@ -9,7 +9,7 @@ steps:
   - pin: { as: cust, lat: 33.6869, lon: 35.5518 }
     expect: [{ to: cust, buttons: ["ps:"] }]
   - note: customer chooses pickup
-    tap: { as: cust, id: "c:pickup_list" }
+    tap: { as: cust, raw_id: "c:pickup_list", title: "Pick up" }
     expect:
       - { to: cust, buttons: ["pv:"], text_any: ["Alo Test Grill", "ألو تست"] }
   - tap: { as: cust, id_prefix: "pv:" }

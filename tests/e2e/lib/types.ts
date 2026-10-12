@@ -58,6 +58,8 @@ export type Step = {
   include?: { part: string; as?: string; [param: string]: string | number | undefined };
   say?: { as: string; text: string };
   tap?: {
+    /** Sends this id even though the bot never offered it (e.g. pickup when delivery works). */
+    raw_id?: string;
     as: string;
     id?: string;
     id_prefix?: string;

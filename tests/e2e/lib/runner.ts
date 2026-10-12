@@ -99,10 +99,12 @@ export async function runScenario(env: Env, sc: Scenario, file: string): Promise
       await post(step.say.as, { type: "text", text: sent.text }, r);
     } else if (step.tap) {
       const t = step.tap;
-      const pick = findOption(
-        seen.filter((m) => m.to === phones[t.as]),
-        t,
-      );
+      const pick = t.raw_id
+        ? { o: { id: t.raw_id, title: t.title ?? t.raw_id }, list: false }
+        : findOption(
+            seen.filter((m) => m.to === phones[t.as]),
+            t,
+          );
       if (!pick) {
         r.failures.push(
           `no button or row to tap for ${JSON.stringify(t)} in what ${t.as} was sent`,
@@ -252,7 +254,7 @@ function findOption(
 function stepLabel(s: Step): string {
   if (s.say) return `${s.say.as} says "${s.say.text}"`;
   if (s.tap)
-    return `${s.tap.as} taps ${s.tap.id ?? s.tap.id_prefix ?? s.tap.id_re ?? s.tap.title ?? `#${s.tap.index}`}`;
+    return `${s.tap.as} taps ${s.tap.raw_id ?? s.tap.id ?? s.tap.id_prefix ?? s.tap.id_re ?? s.tap.title ?? `#${s.tap.index}`}`;
   if (s.pin) return `${s.pin.as} sends a pin`;
   if (s.voice) return `${s.voice.as} sends a voice note`;
   if (s.sql) return "database step";

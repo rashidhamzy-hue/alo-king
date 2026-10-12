@@ -10,15 +10,15 @@ steps:
     expect: [{ to: cust, buttons: ["ps:"] }]
   - note: Sandwiches, then Sides, then Sandwiches again
     tap: { as: cust, title: "Sandwiches" }
-    expect: [{ to: cust, buttons: ["pi:"], text: "Falafel" }]
+    expect: [{ to: cust, buttons: ["pi:", "Falafel"] }]
   - say: { as: cust, text: "menu" }
     expect: [{ to: cust, buttons: ["ps:"] }]
   - tap: { as: cust, title: "Sides" }
-    expect: [{ to: cust, buttons: ["pi:"], text: "Hummus" }]
+    expect: [{ to: cust, buttons: ["pi:", "Hummus"] }]
   - say: { as: cust, text: "menu" }
     expect: [{ to: cust, buttons: ["ps:"] }]
   - tap: { as: cust, title: "Sandwiches" }
-    expect: [{ to: cust, buttons: ["pi:"], text: "Falafel" }]
+    expect: [{ to: cust, buttons: ["pi:", "Falafel"] }]
   - tap: { as: cust, title: "Falafel" }
     expect: [{ to: cust, buttons: ["qt:"] }]
   - tap: { as: cust, id_re: "^qt:i\\d+:3$" }
