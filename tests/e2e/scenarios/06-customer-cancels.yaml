@@ -1,0 +1,36 @@
+name: customer-cancels
+description: "Cancel inside 60 s of acceptance is free; after 60 s it becomes a request to the merchant (DECISIONS §30.3.6, §36 scenario 6)."
+personas:
+  early: { role: customer, cc: "961", name: "Sim Early Cancel" }
+  late: { role: customer, cc: "961", name: "Sim Late Cancel" }
+  merchant: { role: merchant }
+steps:
+  - include: { part: order-to-placed, as: early, lat: 33.6869, lon: 35.5518, qty: 1 }
+  - note: the merchant accepts, then the customer cancels at once
+    tap: { as: merchant, id_prefix: "acc:" }
+    expect: [{ to: early, text_re: "accepted" }]
+  - tap: { as: early, id: "c:track" }
+    expect: [{ to: early, buttons: ["cxl:"] }]
+  - tap: { as: early, id_prefix: "cxl:" }
+    expect: [{ to: early }]
+    db:
+      - sql: >
+          select o.status, o.cancel_reason from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{early.phone}}' order by o.created_at desc limit 1
+        row: { status: cancelled, cancel_reason: customer }
+  - include: { part: order-to-placed, as: late, lat: 33.6869, lon: 35.5518, qty: 1 }
+  - tap: { as: merchant, id_prefix: "acc:" }
+    expect: [{ to: late, text_re: "accepted" }]
+  - note: 90 seconds pass (time travel), then the customer cancels
+    sql: >
+      update public.orders o set accepted_at = accepted_at - interval '90 seconds'
+      from public.customers c where c.id = o.customer_id and c.phone_e164 = '{{late.phone}}' and o.status = 'accepted'
+  - tap: { as: late, id: "c:track" }
+    expect: [{ to: late, buttons: ["cxl:"] }]
+  - tap: { as: late, id_prefix: "cxl:" }
+    expect: [{ to: late }]
+    db:
+      - sql: >
+          select o.status, o.cancel_request_status from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{late.phone}}' order by o.created_at desc limit 1
+        row: { status: accepted, cancel_request_status: pending }

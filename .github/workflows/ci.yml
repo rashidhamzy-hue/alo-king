@@ -372,3 +372,13 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run --if-present sim
+
+  e2e-staging:
+    name: staging e2e after the deploy (DECISIONS §36)
+    needs: deploy-staging
+    if: needs.deploy-staging.result == 'success'
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/staging-e2e.yml
+    secrets: inherit

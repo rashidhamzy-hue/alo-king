@@ -1,0 +1,45 @@
+# The merchant accepts, marks ready, sends out, and types the delivery code the customer was given; the customer
+# taps Received and rates. Every database check reads the customer's latest order.
+steps:
+  - note: merchant accepts
+    tap: { as: merchant, id_prefix: "acc:" }
+    expect:
+      - { to: $AS, text_re: "accepted" }
+      - { to: $AS, text_re: "code", capture: { code: "[Cc]ode[^0-9]{0,8}(\\d{4})" } }
+    db:
+      - sql: >
+          select o.status from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{$AS.phone}}' order by o.created_at desc limit 1
+        row: { status: accepted }
+  - note: merchant marks ready
+    tap: { as: merchant, id_prefix: "rdy:" }
+    expect:
+      - { to: merchant, buttons: ["out:"] }
+  - note: merchant sends it out
+    tap: { as: merchant, id_prefix: "out:" }
+    expect:
+      - { to: $AS, text_re: "on the way|en route|3al tari2|الطريق" }
+      - { to: merchant, buttons: ["dlv:"] }
+  - note: merchant types the delivery code
+    say: { as: merchant, text: "{{vars.code}}" }
+    expect:
+      - { to: merchant }
+      - { to: $AS, buttons: ["rcv:"] }
+    db:
+      - sql: >
+          select o.status from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{$AS.phone}}' order by o.created_at desc limit 1
+        row: { status: delivered }
+  - note: customer taps Received
+    tap: { as: $AS, id_re: "^rcv:.*:ok$" }
+    expect:
+      - { to: $AS, buttons: ["rate:"] }
+    db:
+      - sql: >
+          select o.customer_received_at is not null as received from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{$AS.phone}}' order by o.created_at desc limit 1
+        row: { received: true }
+  - note: customer rates the food
+    tap: { as: $AS, id_re: ":f5$" }
+    expect:
+      - { to: $AS }

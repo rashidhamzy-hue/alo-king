@@ -222,3 +222,49 @@ describe("makeHandler", () => {
     }
   });
 });
+
+describe("simulator secret (DECISIONS §36)", () => {
+  const E2E = "e2e-secret-not-real";
+  const sim = JSON.stringify({
+    ...received,
+    conversation: { ...received.conversation, phone_number: "+99996170000001" },
+  });
+
+  it("accepts a +999 delivery signed with the e2e secret", async () => {
+    const { intake } = fakeStore();
+    const res = await makeHandler({ secret: SECRET, e2eSecret: E2E, intake })(
+      await signedRequest(sim, {}, E2E),
+    );
+    expect(res.status).toBe(200);
+    expect(intake).toHaveBeenCalledOnce();
+  });
+
+  it("refuses a real number signed with the e2e secret", async () => {
+    const { intake } = fakeStore();
+    const res = await makeHandler({ secret: SECRET, e2eSecret: E2E, intake })(
+      await signedRequest(JSON.stringify(received), {}, E2E),
+    );
+    expect(res.status).toBe(403);
+    expect(intake).not.toHaveBeenCalled();
+  });
+
+  it("refuses the e2e secret when it is not configured, and a batch mixing real and +999 numbers", async () => {
+    const { intake } = fakeStore();
+    const off = await makeHandler({ secret: SECRET, intake })(await signedRequest(sim, {}, E2E));
+    expect(off.status).toBe(401);
+    const mixed = JSON.stringify([JSON.parse(sim), received]);
+    const res = await makeHandler({ secret: SECRET, e2eSecret: E2E, intake })(
+      await signedRequest(mixed, { "x-webhook-batch": "true" }, E2E),
+    );
+    expect(res.status).toBe(403);
+    expect(intake).not.toHaveBeenCalled();
+  });
+
+  it("still accepts the real secret for real numbers", async () => {
+    const { intake } = fakeStore();
+    const res = await makeHandler({ secret: SECRET, e2eSecret: E2E, intake })(
+      await signedRequest(JSON.stringify(received)),
+    );
+    expect(res.status).toBe(200);
+  });
+});

@@ -1,0 +1,15 @@
+name: delivery-baakline
+description: "Full delivery order from a Baakline pin, accepted by the merchant, delivered with the code, rated (DECISIONS §36 scenario 1)."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Baakline" }
+  merchant: { role: merchant }
+steps:
+  - include: { part: order-to-placed, as: cust, lat: 33.6869, lon: 35.5518, qty: 2 }
+  - include: { part: merchant-accepts-delivers, as: cust }
+  - note: the order has a full event trail and money locked at the order
+    db:
+      - sql: >
+          select count(*) filter (where e.to_status = 'delivered') as delivered_events, count(*) as events
+          from public.order_events e join public.orders o on o.id = e.order_id
+          where o.id = '{{vars.order_id}}'
+        row: { delivered_events: 1, events: ">=4" }

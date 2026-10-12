@@ -45,6 +45,7 @@ function kickDispatch() {
 
 const handler = makeHandler({
   secret: Deno.env.get("KAPSO_WEBHOOK_SECRET") || undefined,
+  e2eSecret: Deno.env.get("E2E_WEBHOOK_SECRET") || undefined,
   intake,
   log: (msg, fields) => console.log(JSON.stringify({ fn: "whatsapp-webhook", msg, ...fields })),
 });

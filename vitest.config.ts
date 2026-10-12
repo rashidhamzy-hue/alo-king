@@ -13,6 +13,7 @@ export default defineConfig({
       "supabase/functions/**/*.test.ts",
       ".claude/hooks/**/*.test.ts",
       "scripts/**/*.test.ts",
+      "tests/e2e/**/*.test.ts",
     ],
   },
   resolve: {

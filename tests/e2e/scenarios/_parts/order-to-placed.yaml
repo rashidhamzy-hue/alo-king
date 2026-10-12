@@ -1,0 +1,46 @@
+# A new customer orders $QTY falafel sandwiches from Alo Test Grill with a pin at $LAT, $LON, pays cash in USD and
+# confirms. Ends with the order placed and the merchant persona holding the order card.
+steps:
+  - note: $AS asks to order
+    say: { as: $AS, text: "Order" }
+    expect:
+      - { to: $AS }
+  - note: $AS sends the pin
+    pin: { as: $AS, lat: "$LAT", lon: "$LON" }
+    expect:
+      - { to: $AS, buttons: ["ps:"], text_any: ["Alo Test Grill", "ألو تست"] }
+  - tap: { as: $AS, title: "Sandwiches" }
+    expect:
+      - { to: $AS, buttons: ["pi:"], text_any: ["Falafel"] }
+  - tap: { as: $AS, title: "Falafel" }
+    expect:
+      - { to: $AS, buttons: ["qt:"] }
+  - note: $AS picks quantity $QTY
+    tap: { as: $AS, id_re: "^qt:i\\d+:$QTY$" }
+    expect:
+      - { to: $AS, buttons: ["c:checkout"], text: "Falafel" }
+  - tap: { as: $AS, id: "c:checkout" }
+    expect:
+      - { to: $AS, buttons: ["cur:USD", "cur:LBP"] }
+  - tap: { as: $AS, id: "cur:USD" }
+    expect:
+      - { to: $AS, buttons: ["cfm:"], text: "$" }
+  - note: $AS confirms
+    tap: { as: $AS, id_prefix: "cfm:" }
+    expect:
+      - { to: merchant, buttons: ["acc:"] }
+    db:
+      - sql: >
+          select o.id, o.status, o.cash_currency, o.food_subtotal_usd, o.delivery_fee_usd, o.total_usd, o.total_lbp, o.usd_lbp_rate
+          from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{$AS.phone}}' order by o.created_at desc limit 1
+        row:
+          {
+            status: placed,
+            cash_currency: USD,
+            food_subtotal_usd: ">0",
+            total_usd: ">0",
+            total_lbp: ">0",
+            usd_lbp_rate: ">0",
+          }
+        save: { order_id: id }

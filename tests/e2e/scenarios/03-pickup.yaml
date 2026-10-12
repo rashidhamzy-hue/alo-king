@@ -1,0 +1,39 @@
+name: pickup
+description: "Pickup order. The button path only offers pickup when nothing delivers, so the scenario taps the pickup list id directly (DECISIONS §36 scenario 3)."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Pickup" }
+  merchant: { role: merchant }
+steps:
+  - say: { as: cust, text: "Order" }
+    expect: [{ to: cust }]
+  - pin: { as: cust, lat: 33.6869, lon: 35.5518 }
+    expect: [{ to: cust, buttons: ["ps:"] }]
+  - note: customer chooses pickup
+    tap: { as: cust, id: "c:pickup_list" }
+    expect:
+      - { to: cust, buttons: ["pv:"], text_any: ["Alo Test Grill", "ألو تست"] }
+  - tap: { as: cust, id_prefix: "pv:" }
+    expect: [{ to: cust, buttons: ["ps:"] }]
+  - tap: { as: cust, title: "Sandwiches" }
+    expect: [{ to: cust, buttons: ["pi:"] }]
+  - tap: { as: cust, title: "Falafel" }
+    expect: [{ to: cust, buttons: ["qt:"] }]
+  - tap: { as: cust, id_re: "^qt:i\\d+:1$" }
+    expect: [{ to: cust, buttons: ["c:checkout"] }]
+  - tap: { as: cust, id: "c:checkout" }
+    expect: [{ to: cust, buttons: ["cur:USD"] }]
+  - tap: { as: cust, id: "cur:USD" }
+    expect: [{ to: cust, buttons: ["cfm:"] }]
+  - tap: { as: cust, id_prefix: "cfm:" }
+    expect: [{ to: merchant, buttons: ["acc:"] }]
+    db:
+      - sql: >
+          select o.status, o.fulfilment, o.delivery_fee_usd from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: placed, fulfilment: pickup, delivery_fee_usd: 0 }
+  - tap: { as: merchant, id_prefix: "acc:" }
+    expect: [{ to: cust, text_re: "accepted|ready" }]
+  - tap: { as: merchant, id_prefix: "rdy:" }
+    expect:
+      - { to: cust, text_re: "ready for pickup|ready" }
+      - { to: merchant, buttons: ["dlv:", "pku:"] }

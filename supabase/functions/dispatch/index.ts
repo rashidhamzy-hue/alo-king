@@ -262,6 +262,17 @@ async function whatsapp(
   phoneNumberId: string,
   payload: Record<string, unknown>,
 ): Promise<SendResult> {
+  // Simulator numbers (+999, DECISIONS §36) are recorded in sim_outbox and never sent. When the sink is off
+  // (production) the message is refused, so a +999 number can never reach Kapso.
+  if (/^\+?999[0-9]{6,12}$/.test(String(payload.to ?? ""))) {
+    const recorded = await rpc("sim_sink_record", {
+      p_phone_number_id: phoneNumberId,
+      p_payload: payload,
+    }).catch(() => false);
+    return recorded === true
+      ? { ok: true, id: `sim.${crypto.randomUUID()}` }
+      : { ok: false, retry: false, error: "simulator number and the sink is off" };
+  }
   if (!kapsoKey) return { ok: false, retry: false, error: "KAPSO_API_KEY not set" };
   try {
     const res = await fetch(`${KAPSO_BASE}/${encodeURIComponent(phoneNumberId)}/messages`, {

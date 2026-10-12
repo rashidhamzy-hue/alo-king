@@ -1,0 +1,36 @@
+name: no-credit-and-handoff
+description: 'Free text with no AI credit gets buttons, never silence. A handoff always answers and ends on "menu" (DECISIONS §34, §36 scenario 7).'
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Free Text" }
+steps:
+  - note: free text the rules cannot read
+    say: { as: cust, text: "I would like two chicken shawarma with extra garlic please" }
+    expect:
+      - { to: cust }
+  - note: the customer asks for a person
+    say: { as: cust, text: "a person" }
+    expect:
+      - { to: cust }
+    db:
+      - sql: >
+          select s.handoff_until > now() as in_handoff from public.bot_sessions s join public.customers c on c.id = s.customer_id
+          where c.phone_e164 = '{{cust.phone}}'
+        row: { in_handoff: true }
+  - note: while handed off, every message is still answered, with a way out
+    say: { as: cust, text: "hello? anybody?" }
+    expect:
+      - { to: cust, buttons: ["c:order"] }
+  - note: the word menu ends the handoff at once
+    say: { as: cust, text: "menu" }
+    expect:
+      - { to: cust }
+    db:
+      - sql: >
+          select (s.handoff_until is null or s.handoff_until <= now()) as ended from public.bot_sessions s join public.customers c on c.id = s.customer_id
+          where c.phone_e164 = '{{cust.phone}}'
+        row: { ended: true }
+  - note: the handoff left an alert for the operators, and no real phone was messaged
+    db:
+      - sql: >
+          select count(*) as alerts from public.ops_alerts a where a.kind = 'customer_handoff' and a.created_at > now() - interval '10 minutes'
+        row: { alerts: ">=1" }
