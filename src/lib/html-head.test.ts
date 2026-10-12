@@ -11,7 +11,9 @@ describe("deferHydration", () => {
     expect(out).toContain('<link rel="stylesheet" href="/s.css"/>');
     expect(out).not.toContain('<script type="module"');
     expect(out).toContain('addEventListener("load"');
+    expect(out).toContain("largest-contentful-paint");
     expect(out).toContain('import("/assets/index-abc.js")');
+    expect(out).toContain("setTimeout(go,1500)");
     expect(out).toContain("<h1>Hi</h1>");
   });
   it("leaves a page without the expected script tag as it was (apart from preloads)", () => {
