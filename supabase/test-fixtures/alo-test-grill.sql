@@ -6,8 +6,13 @@
 --
 -- What it makes:
 --   * "Alo Test Grill" in Baakline (brand, branch, kitchen contact filled in at #merchant time): a claimed,
---     orderable, non-public vendor with is_test = true, source = 'admin', 30 km radius (10 km when created, raised by section 2b), open 24/7, delivery and
---     pickup, cash in USD or LBP, and a menu of 15 items in 4 sections with options and a weighed item.
+--     orderable, non-public vendor with is_test = true, source = 'admin', 10 km radius on record (not checked: see
+--     below), open 24/7, delivery and pickup, cash in USD or LBP, and a menu of 15 items in 4 sections with
+--     options and a weighed item.
+--   * Session T3: the test merchant accepts a pin anywhere in the world. There is no road route, no radius
+--     check and no paused-place block for it, and its delivery fee is the 0-3 km band. A pin outside every
+--     place polygon (Dubai, the sea, a gap) is saved against the "Test location" place made in section 1b.
+--     Real merchants keep every check. The 30 km test fee band of T2 is retired (section 2b).
 --   * Baakline, Bakaata, Semqanieh and Beiteddine switched on (they load "off"; the places data itself is
 --     untouched, §31). The test merchant is the only orderable vendor there.
 --   * The owner's phone in app_private.owner_phones with the #merchant / #customer switch on. The phone is
@@ -33,6 +38,23 @@ begin
       perform public.place_set_service_status(v_id, 'on', 'staging test fixture (DECISIONS §34)');
     end if;
   end loop;
+end;
+$$;
+
+-- 1b. The "Test location" place (session T3) -------------------------------------------------------------
+-- Pins outside every place polygon resolve to this record (address_save_pin). It is made once, copies
+-- Baakline's district and centroid (the centroid is never used for routing) and is switched on like the others.
+-- `source = 'test'` marks it; nothing under the frozen seeds changes (§31).
+do $$
+begin
+  if not exists (select 1 from public.places where id = 'LB-TST-LOCATION') then
+    insert into public.places (id, name_ar, name_en, kind, governorate_code, district_code, centroid, source)
+    select 'LB-TST-LOCATION', 'موقع تجريبي', 'Test location', 'village', p.governorate_code, p.district_code, p.centroid, 'test'
+    from public.places p where p.id = 'LB-CHF-BAAKLINE';
+  end if;
+  if exists (select 1 from public.places p where p.id = 'LB-TST-LOCATION' and p.service_status = 'off') then
+    perform public.place_set_service_status('LB-TST-LOCATION', 'on', 'staging test fixture (DECISIONS §34)');
+  end if;
 end;
 $$;
 
@@ -132,23 +154,24 @@ begin
 end;
 $$;
 
--- 2b. Every run (session T2): pickup on and a 30 km radius -------------------------------------------------
--- The owner tests from anywhere in the Chouf, so the test merchant delivers up to 30 road km. The largest
--- fee band caps every radius (max_delivery_km), so a new dated band set adds a 10-30 km band at a flat test
--- fee of $6.00 and keeps the three existing bands as they are. This changes staging's fee table only, never
--- production's: the file is never run at the cut-over (LOG.md checklist).
+-- 2b. Every run (session T3): pickup and delivery on, the T2 test fee band retired ------------------------------
+-- Session T2 gave the test merchant a 30 km radius through a 10-30 km fee band of $6.00 (a dated band set). The
+-- test merchant now ignores the radius (public.delivery_quote), so that band goes: a new dated band set repeats
+-- the three real bands (<= 10 km) and nothing above, and the radius on record returns to 10 km. Dated rows are
+-- never edited, so this adds a newer set instead; it changes staging's fee table only, never production's
+-- (the file is never run at the cut-over, LOG.md checklist).
 do $$
 begin
-  if public.max_delivery_km() < 30 then
+  if public.max_delivery_km() > 10 then
     insert into public.delivery_fee_bands (effective_from, max_km, fee_usd, created_by)
     select now(), b.max_km, b.fee_usd, null
     from public.delivery_fee_bands b
-    where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now());
-    insert into public.delivery_fee_bands (effective_from, max_km, fee_usd, created_by) values (now(), 30, 6.00, null);
+    where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now())
+      and b.max_km <= 10;
   end if;
-  update public.vendors set delivery_radius_km = 30.0, delivery_enabled = true, pickup_enabled = true
+  update public.vendors set delivery_radius_km = 10.0, delivery_enabled = true, pickup_enabled = true
   where slug = 'alo-test-grill' and is_test
-    and (delivery_radius_km is distinct from 30.0 or not delivery_enabled or not pickup_enabled);
+    and (delivery_radius_km is distinct from 10.0 or not delivery_enabled or not pickup_enabled);
 end;
 $$;
 

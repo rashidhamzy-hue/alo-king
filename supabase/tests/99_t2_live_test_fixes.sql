@@ -13,17 +13,32 @@ select set_config('app.fixture_owner_phone', '+96170000099', false);
 \i supabase/test-fixtures/alo-test-grill.sql
 select id as tv from public.vendors where slug = 'alo-test-grill' \gset
 
--- The staging test merchant reaches 30 km -----------------------------------------------------------------------
-select tests.ok((select delivery_radius_km = 30.0 and pickup_enabled and delivery_enabled from public.vendors where id = :'tv'),
-  'Alo Test Grill delivers up to 30 km and takes pickup');
-select tests.ok(public.max_delivery_km() = 30, 'the fixture''s fee bands reach 30 km');
+-- The T2 30 km test band is retired (session T3) -----------------------------------------------------------------------
+select tests.ok((select delivery_radius_km = 10.0 and pickup_enabled and delivery_enabled from public.vendors where id = :'tv'),
+  'Alo Test Grill is back at a 10 km radius on record and takes pickup');
+select tests.ok(public.max_delivery_km() = 10, 'the fixture adds no fee band above 10 km');
 select tests.ok(public.delivery_fee_usd(2.5) = 2.00 and public.delivery_fee_usd(5) = 3.00 and public.delivery_fee_usd(9.5) = 4.50,
   'the existing bands keep their fees');
-select tests.ok(public.delivery_fee_usd(25) = 6.00 and public.delivery_fee_usd(31) is null, 'the test band covers 10-30 km and nothing beyond');
-select tests.ok((select deliverable and fee_usd = 6.00 from public.delivery_quote(:'tv', 12.64)), 'a 12.64 km road distance, over the old 10 km limit, is deliverable');
-select tests.ok(not (select deliverable from public.delivery_quote(:'tv', 30.5)), 'and 30.5 km is not');
+select tests.ok(public.delivery_fee_usd(25) is null and not exists (select 1 from public.delivery_fee_bands where max_km = 30),
+  'and there is no 10-30 km test band');
+-- A staging database that still has T2's band set: the fixture replaces it with a newer set of the three real bands.
+update public.vendors set delivery_radius_km = 10.0 where id = :'tv';
+insert into public.delivery_fee_bands (effective_from, max_km, fee_usd, created_by) values
+  (now() - interval '1 minute', 3, 2.00, null), (now() - interval '1 minute', 6, 3.00, null),
+  (now() - interval '1 minute', 10, 4.50, null), (now() - interval '1 minute', 30, 6.00, null);
+select tests.ok(public.max_delivery_km() = 30 and public.delivery_fee_usd(25) = 6.00, 'T2''s 30 km band set is in force');
 \i supabase/test-fixtures/alo-test-grill.sql
-select tests.ok((select count(*) = 1 from public.delivery_fee_bands where max_km = 30), 'running the fixture again adds no second band set');
+select tests.ok(public.max_delivery_km() = 10 and public.delivery_fee_usd(25) is null and public.delivery_fee_usd(9.5) = 4.50,
+  'the fixture retires it with a newer set of the three real bands');
+select tests.ok((select count(*) = 3 from public.delivery_fee_bands b
+  where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now())),
+  'three bands are in force');
+\i supabase/test-fixtures/alo-test-grill.sql
+select tests.ok((select count(*) = 3 from public.delivery_fee_bands b
+  where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now())),
+  'running the fixture again adds nothing');
+select tests.ok((select deliverable and fee_usd = 2.00 and road_km = 0 from public.delivery_quote(:'tv', 12.64)),
+  'the test merchant delivers any distance at the 0-3 km fee');
 
 -- A pickup basket quotes (the live-test bug) -------------------------------------------------------------------------
 select public.customer_turn_begin('+96170000098', 'wamid.t2.1', 'text', 'T2') as t1 \gset
@@ -42,18 +57,19 @@ select tests.ok(public.order_place((:'bv'::jsonb ->> 'basket_id')::uuid, (:'bv':
   'and the pickup order is placed');
 
 -- Delivery is checked on the road, per place, right after the pin ----------------------------------------------------
+-- The test merchant needs no route at all (T3); a real merchant does.
+select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'ok'
+  and (public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,fee_usd}')::numeric = 2.00,
+  'the test merchant is ok with no road route, at the 0-3 km fee');
+update public.vendors set is_test = false where id = :'tv';
 select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'no_route',
-  'an unknown road route asks the caller to fetch it');
+  'a real merchant''s unknown road route asks the caller to fetch it');
 select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,origin,lat}' is not null, 'with both points');
 select public.route_cache_store(33.6770, 35.5640, array[33.6775], array[35.5645], array[12640], array[1500], 'ors');
-select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'ok'
-  and (public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,fee_usd}')::numeric = 6.00,
-  '12.64 road km is inside the 30 km radius, with the test fee');
-update public.vendors set delivery_radius_km = 10.0 where id = :'tv';
 select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'beyond_radius'
   and (public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,limit_km}')::numeric = 10,
-  'the same road distance is beyond a 10 km radius');
-update public.vendors set delivery_radius_km = 30.0 where id = :'tv';
+  '12.64 road km is beyond a real merchant''s 10 km');
+update public.vendors set is_test = true where id = :'tv';
 select tests.ok(public.customer_delivery_check('10000000-0000-0000-0000-000000000002', array[:'tv'::uuid]) ->> 'status' = 'no_address',
   'a customer with no pin has nothing to check');
 

@@ -232,6 +232,8 @@ select tests.throws($$select public.vendor_register('+96176555008', 'x', null, '
   'E: the pin must be in Lebanon');
 
 -- D: live Google place --------------------------------------------------------------------------------------
+-- Live Google lookups are off by default (google_places_enabled); this case tests the stored result with the flag on.
+insert into public.app_config (key, value, effective_from, note) values ('google_places_enabled', 'true', now() - interval '1 second', 'test: flag on');
 select tests.ok(public.vendor_from_google('ChIJremovedplace00', 'Removed', 33.68, 35.58, 'cafe') ->> 'status' = 'removed',
   'D/K: a place the owner asked to remove is never re-created');
 select public.vendor_from_google('ChIJnewgoogleplace1', 'Google Cafe', 33.68, 35.58, 'cafe', '+96171222333', 'Main road') as d1 \gset

@@ -213,7 +213,19 @@ jobs:
           echo "::warning::Claude review produced no verdict (action outcome: $CLAUDE_OUTCOME)."
           # The base branch's copy of the script decides, so a PR cannot loosen its own stand-in gate.
           git show "$BASE_SHA:scripts/self-review.sh" > /tmp/self-review.sh || : > /tmp/self-review.sh
-          if [ "$(bash /tmp/self-review.sh "$HEAD_SHA")" = "approved" ]; then
+          verdict=$(bash /tmp/self-review.sh "$HEAD_SHA")
+          # The session posts the self-review comment for the new head right after each push, which can land a few
+          # seconds after this job starts. When the change would otherwise be blocked, wait for it (up to
+          # SELF_REVIEW_WAIT_S, 10 minutes by default) instead of failing a race that a re-run would pass.
+          if [ "$SCOPE" != "normal" ] || [ "$CLAUDE_OUTCOME" != "failure" ]; then
+            waited=0
+            while [ "$verdict" != "approved" ] && [ "$waited" -lt "${SELF_REVIEW_WAIT_S:-600}" ]; do
+              sleep 20
+              waited=$((waited + 20))
+              verdict=$(bash /tmp/self-review.sh "$HEAD_SHA")
+            done
+          fi
+          if [ "$verdict" = "approved" ]; then
             echo "::notice::Accepted the pr-reviewer self-review for $HEAD_SHA (DECISIONS §32.7)."
             exit 0
           fi
@@ -227,6 +239,7 @@ jobs:
               echo "This change touches money, RLS, webhooks, personal data or the CI gate, so it stays blocked"
               echo "until a review passes. Re-run the job once the cause (key, credit or API status) is fixed,"
               echo "or post the pr-reviewer self-review for \`$HEAD_SHA\` (DECISIONS §32.7) and re-run this job."
+              echo "(This job already waited for that comment; post it right after the push to avoid a re-run.)"
               footer
             } > comment.md
             gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment.md || true
