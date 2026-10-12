@@ -60,6 +60,7 @@ reset role;
 select tests.ok(not exists (
   select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.prosecdef
+    and p.proname <> 'order_track_public' -- the one deliberate exception: the signed tracking link (session 6a, DECISIONS §37)
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
 ), 'no security-definer function in public is executable by anon or authenticated');
 

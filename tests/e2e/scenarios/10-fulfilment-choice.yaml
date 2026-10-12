@@ -1,0 +1,36 @@
+name: fulfilment-choice
+description: "Checkout offers Delivery / Pickup when the shop takes both; the choice is asked once, and Pickup gives a pickup order with no delivery fee (DECISIONS §37.6)."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Fulfilment" }
+  merchant: { role: merchant }
+steps:
+  - say: { as: cust, text: "Order" }
+    expect: [{ to: cust }]
+  - pin: { as: cust, lat: 33.6869, lon: 35.5518 }
+    expect: [{ to: cust, buttons: ["ps:"], text_any: ["Alo Test Grill", "ألو تست"] }]
+  - tap: { as: cust, title: "Sandwiches" }
+    expect: [{ to: cust, buttons: ["pi:"] }]
+  - tap: { as: cust, title: "Falafel" }
+    expect: [{ to: cust, buttons: ["qt:"] }]
+  - tap: { as: cust, id_re: "^qt:i\\d+:2$" }
+    expect: [{ to: cust, buttons: ["c:checkout"] }]
+  - note: both ways are offered, and nothing is quoted before the customer chooses
+    tap: { as: cust, id: "c:checkout" }
+    expect: [{ to: cust, buttons: ["c:delivery", "c:pickup"] }]
+  - note: Pickup
+    tap: { as: cust, id: "c:pickup" }
+    expect: [{ to: cust, buttons: ["cur:USD"] }]
+    db:
+      - sql: >
+          select b.fulfilment from public.baskets b join public.customers c on c.id = b.customer_id
+          where c.phone_e164 = '{{cust.phone}}' and b.status = 'open'
+        row: { fulfilment: pickup }
+  - tap: { as: cust, id: "cur:USD" }
+    expect: [{ to: cust, buttons: ["cfm:"], text: "Pickup", not_text: "Delivery:" }]
+  - tap: { as: cust, id_prefix: "cfm:" }
+    expect: [{ to: merchant, buttons: ["acc:"] }]
+    db:
+      - sql: >
+          select o.status, o.fulfilment, o.delivery_fee_usd from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: placed, fulfilment: pickup, delivery_fee_usd: 0 }

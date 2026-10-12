@@ -507,7 +507,7 @@ describe("the button path builders (session T)", () => {
   });
 });
 
-import { trackMessage, cancelAsk } from "../dispatch/customer/render";
+import { trackMessage, cancelAsk, fulfilmentAsk } from "../dispatch/customer/render";
 describe("the track card with its cancel button (staging simulator finding)", () => {
   for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
     it(`passes the checker in ${lang}, with a button only while the order can still be cancelled`, () => {
@@ -520,4 +520,37 @@ describe("the track card with its cancel button (staging simulator finding)", ()
       expect(done.type).toBe("text");
     });
   }
+});
+
+describe("Delivery / Pickup card (session 6a, DECISIONS §37.6)", () => {
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`passes the checker in ${lang} with exactly two buttons`, () => {
+      const m: any = fulfilmentAsk("+96170000001", lang);
+      expect(checkInteractive(m)).toEqual([]);
+      expect(m.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual(["c:delivery", "c:pickup"]);
+    });
+  }
+});
+
+describe("the track card on a pickup order says shop, never driver (session 6a, DECISIONS §37.6)", () => {
+  const t = { order_id: "0b9d7b53-1f0a-4a8e-9a4d-0c3d2f7a1b11", code: "ABC123", status: "ready", vendor: "ألو", vendor_en: "Alo", delivery_code: "4821" };
+  const bodyOf = (m: any) => m.interactive?.body?.text ?? m.text?.body ?? "";
+  it("pickup: the code goes to the shop", () => {
+    const [m]: any = trackMessage("+96170000001", "en", { ...t, fulfilment: "pickup" });
+    expect(bodyOf(m)).toContain("Pickup code: 4821");
+    expect(bodyOf(m)).toContain("shop");
+    expect(bodyOf(m)).not.toMatch(/driver/i);
+    expect(checkInteractive(m)).toEqual([]);
+  });
+  it("pickup in French, Arabic and Arabizi names the shop too", () => {
+    for (const [lang, word] of [["fr", "magasin"], ["ar", "للمحل"], ["arabizi", "mahal"]] as const) {
+      const [m]: any = trackMessage("+96170000001", lang, { ...t, fulfilment: "pickup" });
+      expect(bodyOf(m)).toContain(word);
+      expect(bodyOf(m)).not.toMatch(/driver|livreur|للسايق|SAYEQ/i);
+    }
+  });
+  it("delivery keeps the driver wording", () => {
+    const [m]: any = trackMessage("+96170000001", "en", { ...t, fulfilment: "delivery" });
+    expect(bodyOf(m)).toContain("driver");
+  });
 });

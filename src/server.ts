@@ -2,6 +2,8 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { deferHydration } from "./lib/html-head";
+import { isPrivatePath } from "./lib/site";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -49,7 +51,23 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      // Public pages only: the script is fetched after the page has loaded (see lib/html-head.ts).
+      const pathname = new URL(request.url).pathname;
+      if (
+        normalized.body &&
+        !isPrivatePath(pathname) &&
+        (normalized.headers.get("content-type") ?? "").includes("text/html")
+      ) {
+        const headers = new Headers(normalized.headers);
+        headers.delete("content-length");
+        return new Response(deferHydration(await normalized.text()), {
+          status: normalized.status,
+          statusText: normalized.statusText,
+          headers,
+        });
+      }
+      return normalized;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

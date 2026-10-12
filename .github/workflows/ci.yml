@@ -44,6 +44,52 @@ jobs:
           names=$(grep -vE '^[[:space:]]*(#|$)' supabase/functions-deploy.txt || true)
           for fn in $names; do deno check --no-config "supabase/functions/$fn/index.ts"; done
 
+  web-quality:
+    name: website quality (Lighthouse, axe, screenshots; DECISIONS §37.5)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Build the site against the fixture mock and serve it (behind a compressing proxy, like the CDN)
+        run: scripts/web/qa-serve.sh start live
+      - name: Every public page, 3 languages, mobile and desktop (axe, overflow, console, JavaScript under 150 KB)
+        run: node scripts/web/qa.mjs --base http://127.0.0.1:4011 --out qa-out
+      - name: Lighthouse mobile (performance, accessibility, SEO 90 or more; LCP under 2.5 s)
+        if: always()
+        run: node scripts/web/lighthouse.mjs --base http://127.0.0.1:4011 --out qa-out
+      - name: Before launch, with nothing switched on, the pages still render
+        if: always()
+        run: |
+          scripts/web/qa-serve.sh stop
+          SKIP_BUILD=1 scripts/web/qa-serve.sh start prelaunch
+          node scripts/web/qa.mjs --base http://127.0.0.1:4011 --out qa-out-prelaunch --only home,places,cuisines --langs ar,en
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Website quality"
+            echo
+            echo '```'
+            node -e 'const r=JSON.parse(require("fs").readFileSync("qa-out/lighthouse.json","utf8"));console.log("page            perf  a11y  seo   LCP");for(const x of r)console.log(`${x.id.padEnd(15)} ${String(x.performance).padEnd(5)} ${String(x.accessibility).padEnd(5)} ${String(x.seo).padEnd(5)} ${x.lcpMs} ms`)' || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: website-screenshots
+          path: |
+            qa-out/*.png
+            qa-out/*.json
+            qa-out-prelaunch/*.png
+          retention-days: 14
+
   secret-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -257,7 +303,7 @@ jobs:
 
   automerge:
     name: automerge
-    needs: [checks, secret-scan, data-freeze, migrations, db-tests, review]
+    needs: [checks, web-quality, secret-scan, data-freeze, migrations, db-tests, review]
     if: >-
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&

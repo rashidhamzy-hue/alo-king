@@ -1,0 +1,239 @@
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { Clock, MapPin, Bike } from "lucide-react";
+import { buildHead, fmt, localePath, pickName, usd } from "@/lib/site";
+import { getVendorPage, type SiteVendorPage } from "@/lib/site-data";
+import { useSite } from "@/components/site/context";
+import { PageHero } from "@/components/site/PageHero";
+import { OrderButton } from "@/components/site/OrderButton";
+import { MenuBuilder } from "@/components/site/MenuBuilder";
+import { crumbsLd } from "@/components/site/Breadcrumbs";
+
+const SCHEMA_TYPE: Record<string, string> = {
+  restaurant: "Restaurant",
+  fast_food: "FastFoodRestaurant",
+  cafe: "CafeOrCoffeeShop",
+  bakery_manakish: "Bakery",
+  sweets_pastry: "Bakery",
+  ice_cream: "IceCreamShop",
+  grocery_supermarket: "GroceryStore",
+  minimarket: "ConvenienceStore",
+  butcher: "Store",
+  poultry: "Store",
+  fish_market: "Store",
+  produce: "Store",
+  roastery_nuts: "Store",
+  home_essentials: "Store",
+  other_food: "FoodEstablishment",
+};
+const DAY_URL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** schema.org for the claimed shop: only what the page shows (name, cuisines, area, hours, menu and prices). */
+function vendorLd(d: SiteVendorPage, lang: "ar" | "en" | "fr", url: string) {
+  const v = d.vendor;
+  return {
+    "@context": "https://schema.org",
+    "@type": SCHEMA_TYPE[v.business_type] ?? "FoodEstablishment",
+    name: pickName(v, "name", lang),
+    url,
+    servesCuisine: v.cuisines.map((c) => pickName(c, "name", lang)),
+    areaServed: pickName(v, "place", lang) || undefined,
+    openingHoursSpecification: d.hours.map((h) => ({
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: `https://schema.org/${DAY_URL[h.weekday]}`,
+      opens: h.opens,
+      closes: h.closes,
+    })),
+    hasMenu: {
+      "@type": "Menu",
+      hasMenuSection: d.sections.map((s) => ({
+        "@type": "MenuSection",
+        name: pickName(s, "name", lang) || undefined,
+        hasMenuItem: s.items.map((i) => ({
+          "@type": "MenuItem",
+          name: pickName(i, "name", lang),
+          description: i.description || undefined,
+          offers: { "@type": "Offer", price: i.price_usd.toFixed(2), priceCurrency: "USD" },
+        })),
+      })),
+    },
+  };
+}
+
+export const Route = createFileRoute("/$lang/m/$slug")({
+  loader: async ({ params }) => {
+    const d = await getVendorPage(params.slug);
+    if (!d) throw notFound();
+    return d;
+  },
+  staleTime: 60_000,
+  headers: () => ({
+    "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600",
+  }),
+  head: ({ loaderData, match }) => {
+    if (!loaderData) return {};
+    const { lang, copy, info } = match.context;
+    const v = loaderData.vendor;
+    const name = pickName(v, "name", lang);
+    const place = pickName(v, "place", lang);
+    const base = info?.origin ?? "";
+    const url = `${base}${localePath(lang, `/m/${v.slug}`)}`;
+    return buildHead({
+      lang,
+      path: `/m/${v.slug}`,
+      title: fmt(copy.vendor.seoTitle, { name }),
+      description: fmt(copy.vendor.seoDescription, {
+        name,
+        type: pickName(v, "business_type", lang),
+        where: place ? fmt(copy.vendor.where, { place }) : "",
+      }),
+      info: info ?? { origin: "", indexing: false },
+      jsonLd: [
+        vendorLd(loaderData, lang, url),
+        crumbsLd([
+          { label: copy.common.home, url: `${base}${localePath(lang)}` },
+          ...(v.place_slug && place
+            ? [{ label: place, url: `${base}${localePath(lang, `/places/${v.place_slug}`)}` }]
+            : []),
+          { label: name, url },
+        ]),
+      ],
+    });
+  },
+  component: VendorPage,
+});
+
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
+function VendorPage() {
+  const d = Route.useLoaderData();
+  const { t, lang } = useSite();
+  const v = d.vendor;
+  const name = pickName(v, "name", lang);
+  const place = pickName(v, "place", lang);
+  const canOrder = v.orderable && !v.paused;
+  const km = v.delivery_radius_km;
+  const f = d.fees;
+  const how =
+    v.delivery && v.pickup
+      ? t.vendor.both
+      : v.delivery
+        ? t.vendor.deliveryOnly
+        : t.vendor.pickupOnly;
+  const cur = (v.cash_currencies ?? []).join(" / ");
+  const byDay = new Map(d.hours.map((h) => [h.weekday, h]));
+  const cuisines = v.cuisines.map((c) => ({ tag: c.tag, label: pickName(c, "name", lang) }));
+  return (
+    <>
+      <PageHero
+        eyebrow={`${pickName(v, "business_type", lang)}${place ? ` · ${place}` : ""}`}
+        title={name + (v.branch_label ? ` · ${v.branch_label}` : "")}
+        crumbs={[
+          { label: "", to: "/$lang" },
+          { label: t.common.places, to: "/$lang/places" },
+          { label: name },
+        ]}
+      >
+        {canOrder ? (
+          <OrderButton text={fmt(t.wa.vendor, { vendor: name })} />
+        ) : (
+          <p className="ak-lead !mt-0">{t.vendor.paused}</p>
+        )}
+        {!v.paused && (
+          <span className={`ak-chip ${v.open_now ? "ak-chip-gold" : ""}`}>
+            {v.open_now ? t.common.openNow : t.common.closed}
+          </span>
+        )}
+        {cuisines.map((c) => (
+          <Link
+            key={c.tag}
+            to="/$lang/cuisine/$tag"
+            params={{ lang, tag: c.tag }}
+            className="ak-chip no-underline"
+          >
+            {c.label}
+          </Link>
+        ))}
+      </PageHero>
+
+      <section className="tone-cream ak-section !pt-12" aria-labelledby="menu-title">
+        <div className="ak-container grid items-start gap-10 lg:grid-cols-[1.7fr_1fr]">
+          <div>
+            <h2 id="menu-title" className="ak-h2">
+              {t.vendor.menu}
+            </h2>
+            <p className="mt-2 text-sm text-tone-mute">
+              {t.common.lbpNote.replace(
+                "{rate}",
+                d.rate ? Math.round(d.rate).toLocaleString("en-US") : "",
+              )}
+            </p>
+            <div className="mt-8">
+              {d.sections.length > 0 ? (
+                <MenuBuilder page={d} canOrder={canOrder} />
+              ) : (
+                <p className="text-tone-mute">{t.vendor.hoursUnknown}</p>
+              )}
+            </div>
+          </div>
+
+          <aside className="space-y-6 lg:sticky lg:top-24" aria-label={t.vendor.area}>
+            <div className="ak-card p-5">
+              <h3 className="ak-h3 flex items-center gap-2">
+                <Bike className="size-5" aria-hidden="true" />
+                {t.vendor.area}
+              </h3>
+              <p className="mt-3">{how}</p>
+              {v.delivery && km != null && f.min_usd != null && f.max_usd != null && (
+                <p className="mt-2 text-tone-mute">
+                  {fmt(t.vendor.deliversUp, { km, min: usd(f.min_usd), max: usd(f.max_usd) })}
+                </p>
+              )}
+              {cur && (
+                <p className="mt-2 text-tone-mute">{fmt(t.vendor.cash, { currencies: cur })}</p>
+              )}
+              {place && (
+                <p className="mt-3 flex items-center gap-2 text-sm">
+                  <MapPin className="size-4" aria-hidden="true" />
+                  {v.place_slug ? (
+                    <Link
+                      to="/$lang/places/$slug"
+                      params={{ lang, slug: v.place_slug }}
+                      className="underline underline-offset-4"
+                    >
+                      {place}
+                    </Link>
+                  ) : (
+                    place
+                  )}
+                </p>
+              )}
+            </div>
+            <div className="ak-card p-5">
+              <h3 className="ak-h3 flex items-center gap-2">
+                <Clock className="size-5" aria-hidden="true" />
+                {t.vendor.hours}
+              </h3>
+              {d.hours.length > 0 ? (
+                <dl className="mt-3 space-y-1.5">
+                  {WEEK_ORDER.map((wd) => {
+                    const h = byDay.get(wd);
+                    return (
+                      <div key={wd} className="flex justify-between gap-4">
+                        <dt className="text-tone-mute">{t.vendor.days[wd]}</dt>
+                        <dd className="ak-num font-semibold">
+                          {h ? <bdi>{`${h.opens} – ${h.closes}`}</bdi> : t.vendor.closedToday}
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              ) : (
+                <p className="mt-3 text-tone-mute">{t.vendor.hoursUnknown}</p>
+              )}
+            </div>
+          </aside>
+        </div>
+      </section>
+    </>
+  );
+}

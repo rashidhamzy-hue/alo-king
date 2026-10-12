@@ -32,3 +32,23 @@ describe("sentry scrub", () => {
     expect(e.extra).toEqual({ phone: "[phone]" });
   });
 });
+
+describe("lite reporter for public pages", () => {
+  it("builds the envelope endpoint from the DSN and rejects anything else", async () => {
+    const { envelopeUrl } = await import("./sentry");
+    expect(envelopeUrl("https://abc123@o1.ingest.de.sentry.io/42")).toBe(
+      "https://o1.ingest.de.sentry.io/api/42/envelope/?sentry_key=abc123&sentry_version=7",
+    );
+    expect(envelopeUrl("http://abc@evil/1")).toBeNull();
+    expect(envelopeUrl("off")).toBeNull();
+  });
+});
+
+describe("tokens in error messages", () => {
+  it("masks a tracking token that appears inside a message", async () => {
+    const { scrubText } = await import("./sentry");
+    expect(
+      scrubText("fetch failed for /ar/track/AbCdEf0123456789AbCdEf0123456789AbCdEf012 (timeout)"),
+    ).toBe("fetch failed for /ar/track/[token] (timeout)");
+  });
+});

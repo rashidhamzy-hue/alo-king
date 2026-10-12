@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PrivateShell } from "@/components/private/PrivateShell";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { ClipboardList, Crown, Home, LogOut, Sparkles, Store, UtensilsCrossed } from "lucide-react";
 import { StaffGate, signOut, type StaffProfile } from "@/components/staff/StaffGate";
@@ -25,16 +26,22 @@ export const Route = createFileRoute("/merchant")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: () => (
-    <StaffGate roles={["merchant", "admin"]} title="Merchant dashboard">
-      {(p) => (
-        <AssistantProvider>
-          <MerchantLayout profile={p} />
-        </AssistantProvider>
-      )}
-    </StaffGate>
-  ),
+  component: MerchantRoute,
 });
+
+function MerchantRoute() {
+  return (
+    <PrivateShell>
+      <StaffGate roles={["merchant", "admin"]} title="Merchant dashboard">
+        {(p) => (
+          <AssistantProvider>
+            <MerchantLayout profile={p} />
+          </AssistantProvider>
+        )}
+      </StaffGate>
+    </PrivateShell>
+  );
+}
 
 const NAV = [
   { to: "/merchant", en: "Home", ar: "الرئيسية", I: Home, exact: true },

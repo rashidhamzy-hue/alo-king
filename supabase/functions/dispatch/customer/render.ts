@@ -62,6 +62,24 @@ const S: Record<string, Record<CLang, string>> = {
     fr: "En quelle devise paierez-vous en espèces ?",
     arabizi: "Ayy 3emle ra7 tdfa3 cash 3al tasleem?",
   },
+  fulfilAsk: {
+    ar: "كيف بدك تستلم طلبك؟",
+    en: "How would you like to get your order?",
+    fr: "Comment voulez-vous recevoir votre commande ?",
+    arabizi: "Kif badak testalem talabak?",
+  },
+  btnDelivery: {
+    ar: "🛵 توصيل",
+    en: "🛵 Delivery",
+    fr: "🛵 Livraison",
+    arabizi: "🛵 Tawsil",
+  },
+  btnPickup: {
+    ar: "🛍️ استلام",
+    en: "🛍️ Pickup",
+    fr: "🛍️ Retrait",
+    arabizi: "🛍️ Istilam",
+  },
   askPin: {
     ar: "📍 ابعتلي موقعك (Location) لنعرف وين نوصّل.",
     en: "📍 Send me your location pin so we know where to deliver.",
@@ -1059,6 +1077,14 @@ export function cashAsk(to: string, lang: CLang, allowed: string[]): Msg {
   return buttons(to, tr(lang, "cashAsk"), bs);
 }
 
+/** Checkout, when the shop takes both (DECISIONS §37.6): the customer says how the order reaches them. */
+export function fulfilmentAsk(to: string, lang: CLang): Msg {
+  return buttons(to, tr(lang, "fulfilAsk"), [
+    ["c:delivery", tr(lang, "btnDelivery")],
+    ["c:pickup", tr(lang, "btnPickup")],
+  ]);
+}
+
 export function askPin(to: string, lang: CLang, place?: string | null): Msg {
   return locationRequest(to, place ? tr(lang, "pinFromWords", { place }) : tr(lang, "askPin"));
 }
@@ -1112,6 +1138,8 @@ export type Track = {
   status: string;
   vendor: string;
   vendor_en?: string;
+  /** `pickup` orders are collected at the shop: their code line says "shop", never "driver" (§37.6). */
+  fulfilment?: "delivery" | "pickup" | null;
   eta?: { min?: number; max?: number } | null;
   delivery_code?: string | null;
 };
@@ -1123,7 +1151,9 @@ export function trackMessage(to: string, lang: CLang, t: Track | null): Msg[] {
         eta: t.eta.max && t.eta.max !== t.eta.min ? `${t.eta.min}-${t.eta.max}` : t.eta.min,
       })
     : "";
-  const code = t.delivery_code ? `\n${baseTr(lang, "code", { dcode: t.delivery_code })}` : "";
+  const code = t.delivery_code
+    ? `\n${baseTr(lang, t.fulfilment === "pickup" ? "codePickup" : "code", { dcode: t.delivery_code })}`
+    : "";
   const body =
     tr(lang, "track", {
       code: t.code,

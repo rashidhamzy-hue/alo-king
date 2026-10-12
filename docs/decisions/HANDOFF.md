@@ -1,4 +1,4 @@
-# Handoff — 12 October 2026 (after session 11-lite)
+# Handoff — 13 October 2026 (after session 6a)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
@@ -147,7 +147,20 @@
   - **Bugs it found and fixed in the bot:** typing "a person" got the free-text menu (now hands off); a customer could not cancel an order without the AI (now "cancel my order", a track-card button and the model all open the same Yes/Keep card); pickup orders said "give it to the driver at the door" (now a pickup code for the shop). Runner-side: the pooler certificate and an interactive `supabase secrets unset` prompt.
   - **Open for later (notes):** the pickup button is never offered when delivery works (only when nothing delivers), so the pickup scenario taps its id directly (`raw_id`); the track card's own code line still says "driver" on a pickup order (needs the fulfilment in `order_track`); simulated customers and orders stay on staging (orders are ledger-linked), only `sim_outbox` rows older than 3 days are pruned; the runner connects to the pooler without verifying its certificate (same as `psql sslmode=require`), pinning the Supabase CA is a follow-up; voice-note stubs and a scenario for the merchant AI/Flows wait for API credit. Kill-gate (§36): a scenario failing on two consecutive runs with no code change is quarantined with a reason in `LOG.md`.
   - **CUT-OVER (session 14), added:** config `sim_sink_enabled` is false on production, `public.sim_outbox` and `app_private.sim_state` are empty, and no `E2E_WEBHOOK_SECRET` function secret exists.
-- **Next: session 6 (lean website)**, then 13, D, 5b and 14 (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
+- **Session 6a (full website, customers and foundation, §37): done (13 October).** One PR (see LOG.md "session 6a PR" lines); final screenshots and the Vercel preview link are in the PR, and the curated set is in `docs/design/session-6a/`.
+  - **Design system** (`src/design/`, README there): ink, gold and cream tokens, Plus Jakarta Sans and IBM Plex Sans Arabic (self-hosted), the hand-drawn crown, Chouf contour texture, chat bubbles, CSS-only motion that stops under `prefers-reduced-motion`. Right-to-left is first-class.
+  - **Pages, all in `/ar`, `/en`, `/fr` with hreflang:** home (live coded chat hero, three taps, "Speak Lebanese", the map of Lebanon read live from the places table, merchant calculator, Send Home with both clocks, trust, FAQ), places and place pages, cuisines and cuisine pages, claimed-vendor pages (menu, hours, area, order builder that writes the basket into the WhatsApp message), Send Home, help, contact, legal (terms, privacy, refunds, cookies), the restyled tracking page and a real 404. `llms.txt`, `robots.txt` and four sitemaps are server routes. Old `/m/`, `/track/` and `/explore` links redirect.
+  - **Data:** `site_overview`, `site_place`, `site_cuisine`, `site_vendor`, `site_vendor_slugs` (security invoker, public vendors only) and `order_track_public` with the hashed tracking token (`order_tracking_link_create` makes a link; nothing sends it yet).
+  - **Bot (§37.6):** checkout offers Delivery / Pickup when the shop takes both; the track card says "shop" on pickup orders; e2e scenarios updated, scenario 10 added.
+  - **CI:** the `web-quality` job (fixture mock, axe, overflow, console, JavaScript budget, interactions, Lighthouse, screenshots as an artifact) is part of the automerge gate. Measured: Lighthouse performance 98-99, accessibility 100, SEO 100, LCP at most 2.3 s, CLS 0, JavaScript at most 125 KB gzipped.
+  - **Open for later:**
+    - Indexing is off everywhere until the production project sets `SITE_URL`, `SITE_INDEXING=on` and `VITE_WHATSAPP_NUMBER` (CUT-OVER, session 14). Until the number exists the Order buttons lead to the contact page.
+    - Merchant, driver, admin, claim and for-business pages keep their old look (6b); they now get react-query and toasts from `PrivateShell`.
+    - Re-run `scripts/web/build-lebanon-dots.mjs` after session D replaces the places list.
+    - The bot does not send tracking links yet; session 13 should review `order_track_public` (the one anonymous security-definer function).
+    - Legal pages wait for the lawyer (#72); PostHog (§24.7) and a Google Business Profile are not in 6a.
+    - Business-type pages (bakery, grocery) were not built, only cuisines.
+- **Next: session 6b (merchants: landing and calculator page, claim and registration, merchant terms, dashboard restyle with the AI side-panel shell, driver sign-up, admin restyle)**, then 13, D, 5b and 14 (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
 
 ## How to start each build session
 

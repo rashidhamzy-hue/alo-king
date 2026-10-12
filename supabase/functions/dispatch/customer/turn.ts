@@ -29,6 +29,7 @@ import {
   cancelAsk,
   cashAsk,
   emptyQuestion,
+  fulfilmentAsk,
   handoffWaitCard,
   localName,
   mainMenu,
@@ -188,8 +189,12 @@ type Session = {
   refs: Record<string, Ref>;
   history: { r: "u" | "a"; t: string }[];
   low_confidence: number;
-  /** Set by the pickup choice (T2): the basket is collected, not delivered, until the customer says otherwise. */
-  fulfil: "pickup" | null;
+  /**
+   * How the basket reaches the customer. `pickup` (T2): collected, not delivered, until the customer says otherwise.
+   * `delivery`: the customer chose it on the Delivery / Pickup card (§37.6), so checkout does not ask again.
+   * null: not chosen yet; delivery is the default and checkout asks when the shop also takes pickup.
+   */
+  fulfil: "pickup" | "delivery" | null;
 };
 type Ctx = {
   deps: CustomerDeps;
@@ -245,7 +250,9 @@ export async function handleCustomerTurn(
       refs: sess.refs ?? {},
       history: Array.isArray(sess.history) ? sess.history : [],
       low_confidence: Number(sess.low_confidence ?? 0),
-      fulfil: sess.refs?.fx?.id === "pickup" ? "pickup" : null, // kept in refs: the only session column that survives between turns
+      // kept in refs: the only session column that survives between turns
+      fulfil:
+        sess.refs?.fx?.id === "pickup" || sess.refs?.fx?.id === "delivery" ? sess.refs.fx.id : null,
     },
     basket: begin.basket,
     orders: begin.orders ?? [],
@@ -279,9 +286,9 @@ export async function handleCustomerTurn(
   }
   if (m.text) c.s.history.push({ r: "u", t: m.text.slice(0, 300) });
   if (c.summary.length) c.s.history.push({ r: "a", t: c.summary.join(" ").slice(0, 300) });
-  // The session row has no fulfil column, so the pickup choice travels in refs (prefix "fx", never used by the lists).
+  // The session row has no fulfil column, so the choice travels in refs (prefix "fx", never used by the lists).
   delete c.s.refs.fx;
-  if (c.s.fulfil === "pickup") c.s.refs.fx = { id: "pickup", label: "pickup" };
+  if (c.s.fulfil) c.s.refs.fx = { id: c.s.fulfil, label: c.s.fulfil };
   await deps.rpc("customer_turn_end", {
     p_customer_id: c.customerId,
     p_message_id: m.messageId,
@@ -646,6 +653,9 @@ async function confirm(c: Ctx, basketId: string, version: number) {
           ["c:find", tr(lang, "otherPlace")],
         ]),
       );
+    case "fulfilment_unavailable":
+      c.s.fulfil = null; // the shop does not take that way: ask again
+      return checkout(c, {});
     case "needs_empty_answer":
     case "no_address":
     case "cod_cap":
@@ -675,7 +685,7 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
   if (r?.address?.place_status === "paused") return say(c, "placePaused");
   say(c, "savedPin", { where: where(c.s.lang, r.address) });
   c.summary.push("[address saved from the pin]");
-  c.s.fulfil = null; // a new pin starts a delivery again
+  c.s.fulfil = null; // a new pin starts a delivery again; checkout asks again when the shop takes both
   // The address_capture Flow (§12) asks building, floor and a number for the driver in one sheet; the
   // checkout continues when it is submitted. Without Flows the text path below runs as before.
   if (
@@ -1106,7 +1116,22 @@ async function checkout(
   args: { fulfilment?: string | null; note?: string | null; stairs?: number | null },
 ) {
   const { deps } = c;
-  if (args.fulfilment) c.s.fulfil = args.fulfilment === "pickup" ? "pickup" : null;
+  if (args.fulfilment) c.s.fulfil = args.fulfilment === "pickup" ? "pickup" : "delivery";
+  // Delivery / Pickup (§37.6): a shop that takes both is asked once per basket, before the pin or the quote. A choice kept in the
+  // session from an earlier basket or shop is checked against what this shop takes, and dropped when it does not apply.
+  const o = await deps.rpc("basket_fulfilment_options", { p_customer_id: c.customerId });
+  if (o?.status === "ok") {
+    if ((c.s.fulfil === "delivery" && !o.delivery) || (c.s.fulfil === "pickup" && !o.pickup))
+      c.s.fulfil = null;
+    if (!c.s.fulfil) {
+      if (o.pickup && o.delivery) {
+        c.summary.push("[asked delivery or pickup]");
+        return push(c, fulfilmentAsk(c.m.from, c.s.lang));
+      }
+      // A pickup-only shop: nothing to ask.
+      if (o.pickup && !o.delivery) c.s.fulfil = "pickup";
+    }
+  }
   const fulfilment = args.fulfilment ?? c.s.fulfil;
   if (fulfilment || args.note || args.stairs != null)
     await deps.rpc("basket_set_checkout", {
@@ -1620,7 +1645,8 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
       return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket as Basket));
     case "checkout":
       return checkout(c, {
-        fulfilment: input.fulfilment,
+        // Only the customer's own tap says "delivery" (§37.6): a model that guesses it must not skip the Delivery / Pickup card.
+        fulfilment: input.fulfilment === "pickup" ? "pickup" : null,
         note: input.note,
         stairs: input.stairs_floors,
       });
