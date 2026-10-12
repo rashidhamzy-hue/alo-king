@@ -11,7 +11,7 @@ steps:
       - { to: $AS, buttons: ["ps:"], text_any: ["Alo Test Grill", "ألو تست"] }
   - tap: { as: $AS, title: "Sandwiches" }
     expect:
-      - { to: $AS, buttons: ["pi:"], text_any: ["Falafel"] }
+      - { to: $AS, buttons: ["pi:", "Falafel"] }
   - tap: { as: $AS, title: "Falafel" }
     expect:
       - { to: $AS, buttons: ["qt:"] }
