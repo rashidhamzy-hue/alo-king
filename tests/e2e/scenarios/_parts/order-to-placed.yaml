@@ -19,7 +19,11 @@ steps:
     tap: { as: $AS, id_re: "^qt:i\\d+:$QTY$" }
     expect:
       - { to: $AS, buttons: ["c:checkout"], text: "Falafel" }
-  - tap: { as: $AS, id: "c:checkout" }
+  - note: the shop takes delivery and pickup, so checkout asks which (DECISIONS §37.6)
+    tap: { as: $AS, id: "c:checkout" }
+    expect:
+      - { to: $AS, buttons: ["c:delivery", "c:pickup"] }
+  - tap: { as: $AS, id: "c:delivery" }
     expect:
       - { to: $AS, buttons: ["cur:USD", "cur:LBP"] }
   - tap: { as: $AS, id: "cur:USD" }
