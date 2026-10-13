@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Search } from "lucide-react";
 import { buildHead, fmt } from "@/lib/site";
 import {
@@ -21,28 +21,6 @@ export const Route = createFileRoute("/$lang/claim")({
     q: typeof s.q === "string" && s.q.trim().length >= 2 ? s.q.trim().slice(0, 80) : undefined,
     v: typeof s.v === "string" && UUID.test(s.v) ? s.v : undefined,
   }),
-  loaderDeps: ({ search }) => ({ q: search.q, v: search.v }),
-  loader: async ({ deps }) => {
-    if (deps.v)
-      return {
-        business: await lookupBusiness(deps.v),
-        hits: null as ClaimHit[] | null,
-        failed: false,
-      };
-    if (deps.q) {
-      const r = await searchBusinesses(deps.q);
-      return {
-        business: null as ClaimBusiness | null,
-        hits: r.ok ? r.data.results : null,
-        failed: !r.ok,
-      };
-    }
-    return {
-      business: null as ClaimBusiness | null,
-      hits: null as ClaimHit[] | null,
-      failed: false,
-    };
-  },
   // A form with a person's details: never cached, never indexed.
   headers: () => ({ "cache-control": "no-store" }),
   head: ({ match }) => {
@@ -63,7 +41,38 @@ function ClaimPage() {
   const { t, lang } = useSite();
   const c = t.claim;
   const { q, v } = Route.useSearch();
-  const { business, hits, failed } = Route.useLoaderData();
+  // The search and the lookup run in the visitor's browser, never on our server: the platform counts calls per visitor
+  // address, and a server-side call would put every visitor behind one address and one shared limit.
+  const [data, setData] = useState<{
+    business: ClaimBusiness | null;
+    hits: ClaimHit[] | null;
+    failed: boolean;
+    loading: boolean;
+  }>({ business: null, hits: null, failed: false, loading: !!(q || v) });
+  useEffect(() => {
+    let live = true;
+    if (!q && !v) {
+      setData({ business: null, hits: null, failed: false, loading: false });
+      return;
+    }
+    setData((d) => ({ ...d, loading: true, failed: false }));
+    const run = v
+      ? lookupBusiness(v).then((business) => ({
+          business,
+          hits: null as ClaimHit[] | null,
+          failed: false,
+        }))
+      : searchBusinesses(q!).then((r) => ({
+          business: null as ClaimBusiness | null,
+          hits: r.ok ? r.data.results : null,
+          failed: !r.ok,
+        }));
+    void run.then((x) => live && setData({ ...x, loading: false }));
+    return () => {
+      live = false;
+    };
+  }, [q, v]);
+  const { business, hits, failed } = data;
   const navigate = useNavigate({ from: "/$lang/claim" });
   const [typed, setTyped] = useState(q ?? "");
 
@@ -86,7 +95,11 @@ function ClaimPage() {
       />
       <section className="tone-cream ak-section !pt-10">
         <div className="ak-container max-w-3xl">
-          {v ? (
+          {v && data.loading ? (
+            <p role="status" className="py-10 text-center text-tone-mute">
+              {t.form.sending}
+            </p>
+          ) : v ? (
             business ? (
               <ClaimFlow key={business.vendor_id} business={business} />
             ) : (

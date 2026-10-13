@@ -9,7 +9,7 @@ export const Route = createFileRoute("/for-business")({
     throw redirect({
       to: "/$lang/for-merchants",
       params: { lang: pickLang(acceptLanguage) },
-      statusCode: 301,
+      statusCode: 302,
     });
   },
 });

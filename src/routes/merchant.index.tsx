@@ -285,7 +285,9 @@ function MerchantHome() {
             <div>
               <p className="text-xs text-muted-foreground">{L("Revenue", "المبيعات")}</p>
               <p className="font-display text-3xl">{usd(todayQ.data?.revenue ?? 0)}</p>
-              <p className="text-xs text-muted-foreground">{lbp(todayQ.data?.revenue ?? 0)}</p>
+              {lbp(todayQ.data?.revenue ?? 0) && (
+                <p className="text-xs text-muted-foreground">{lbp(todayQ.data?.revenue ?? 0)}</p>
+              )}
             </div>
           </div>
         </div>

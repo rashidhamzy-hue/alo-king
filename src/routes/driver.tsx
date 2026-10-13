@@ -25,7 +25,7 @@ import { supabase } from "@/lib/supabase";
 import { ORDER_COLUMNS, type Order, type Vendor } from "@/lib/types";
 import { VENDOR_COLUMNS } from "@/lib/config";
 import { errMsg, fmtTime, isCOD, startOfToday, usd } from "@/lib/format";
-import { useLbp } from "@/lib/rate";
+import { lockedLbp } from "@/lib/rate";
 
 export const Route = createFileRoute("/driver")({
   head: () => ({
@@ -73,7 +73,6 @@ const navLinks = (lat: number | null | undefined, lng: number | null | undefined
       };
 
 function DriverApp({ uid }: { uid: string }) {
-  const lbp = useLbp();
   const qc = useQueryClient();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -275,7 +274,7 @@ function DriverApp({ uid }: { uid: string }) {
                 <span>
                   {isCOD(o.payment_method) ? "Collect" : "Prepaid"} <b>{usd(o.total_usd)}</b>
                 </span>
-                <span className="text-xs text-muted-foreground">{lbp(o.total_usd)}</span>
+                <span className="text-xs text-muted-foreground">{lockedLbp(o)}</span>
               </div>
               {o.status === "ready" ? (
                 <Button
@@ -349,7 +348,7 @@ function DriverApp({ uid }: { uid: string }) {
                 </p>
                 <p>
                   <span className="block text-xs text-muted-foreground">Total</span>
-                  {usd(offer.total_usd)} · {lbp(offer.total_usd)} ·{" "}
+                  {usd(offer.total_usd)} · {lockedLbp(offer) ? `${lockedLbp(offer)} · ` : ""}
                   {isCOD(offer.payment_method) ? "Cash on delivery" : "Prepaid"}
                 </p>
               </div>
@@ -391,7 +390,7 @@ function DriverApp({ uid }: { uid: string }) {
             <AlertDialogTitle>Confirm delivery #{confirm?.short_code}</AlertDialogTitle>
             <AlertDialogDescription>
               {confirm && isCOD(confirm.payment_method)
-                ? `Collect ${usd(confirm.total_usd)} (${lbp(confirm.total_usd)}) in cash from the customer.`
+                ? `Collect ${usd(confirm.total_usd)}${lockedLbp(confirm) ? ` (${lockedLbp(confirm)})` : ""} in cash from the customer.`
                 : "This order is prepaid. Hand it over and confirm."}
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -6,7 +6,7 @@ import type { BusinessTypeRow } from "@/lib/site-data";
 import { registerBusiness, toE164, type ClaimState } from "@/lib/site-claim";
 import { useSite } from "../context";
 import { DocsStep } from "./DocsStep";
-import { CheckRow, Field, Notice, PhoneField, Steps, TextInput } from "./ui";
+import { CheckRow, Field, focusFirstError, Notice, PhoneField, Steps, TextInput } from "./ui";
 import { withLinks } from "./withLinks";
 
 const PinMap = lazy(() => import("./PinMap"));
@@ -93,7 +93,7 @@ export function RegisterFlow({ types }: { types: BusinessTypeRow[] }) {
     if (!toE164(cc, typed)) next.phone = t.form.errors.phone;
     if (!consent) next.consent = t.form.errors.consent;
     setErrors(next);
-    if (Object.keys(next).length) return;
+    if (Object.keys(next).length) return focusFirstError();
     setTop(null);
     setStage("location");
   }
@@ -186,6 +186,18 @@ export function RegisterFlow({ types }: { types: BusinessTypeRow[] }) {
           </Notice>
         )}
 
+        {stage === "business" && types.length === 0 && (
+          <Notice tone="error" title={c.errorTitle}>
+            {t.form.errors.generic}{" "}
+            <button
+              type="button"
+              className="font-semibold underline underline-offset-4"
+              onClick={() => window.location.reload()}
+            >
+              {t.cta.tryAgain}
+            </button>
+          </Notice>
+        )}
         {stage === "business" && (
           <form onSubmit={nextFromBusiness} noValidate className="space-y-5">
             <h2 ref={heading} tabIndex={-1} className="sr-only">
@@ -351,10 +363,8 @@ export function RegisterFlow({ types }: { types: BusinessTypeRow[] }) {
 
         {stage === "docs" && claim && (
           <>
-            <h2 ref={heading} tabIndex={-1} className="sr-only">
-              {c.docsTitle}
-            </h2>
             <DocsStep
+              headingRef={heading}
               claimId={claim.id}
               phone={claim.phone}
               missing={claim.missing}

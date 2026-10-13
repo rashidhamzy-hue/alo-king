@@ -13,7 +13,7 @@ import {
 } from "@/lib/site-claim";
 import { useSite } from "../context";
 import { DocsStep } from "./DocsStep";
-import { CheckRow, Field, Notice, PhoneField, Steps, TextInput } from "./ui";
+import { CheckRow, Field, focusFirstError, Notice, PhoneField, Steps, TextInput } from "./ui";
 import { withLinks } from "./withLinks";
 
 type Stage =
@@ -171,7 +171,7 @@ export function ClaimFlow({ business }: { business: ClaimBusiness }) {
     if (!owner) next.owner = t.form.errors.consent;
     if (!consent) next.consent = t.form.errors.consent;
     setErrors(next);
-    if (Object.keys(next).length || !phone) return;
+    if (Object.keys(next).length || !phone) return focusFirstError();
     setBusy(true);
     setTop(null);
     const r = await startClaim({
@@ -382,10 +382,8 @@ export function ClaimFlow({ business }: { business: ClaimBusiness }) {
             {stage.notice === "undelivered" && <Notice>{c.codeNotDelivered}</Notice>}
             {stage.notice === "contested" && <Notice>{c.contested}</Notice>}
             {stage.notice === "sale" && <Notice>{c.sale}</Notice>}
-            <h2 ref={heading} tabIndex={-1} className="sr-only">
-              {c.docsTitle}
-            </h2>
             <DocsStep
+              headingRef={heading}
               claimId={claim.id}
               phone={claim.phone}
               missing={stage.missing}

@@ -216,7 +216,7 @@ export const fr: Copy = {
           "Alo King facture {fee} par commande livrée. La commission va de {low} % à {high} % de la valeur de la commande.",
       },
       cta: "Pour les commerçants",
-      ctaNote: "Réclamez votre commerce et démarrez en quelques minutes.",
+      ctaNote: "Commencez à revendiquer votre commerce depuis votre téléphone.",
     },
     sendHome: {
       eyebrow: "Send Home",
@@ -468,7 +468,7 @@ export const fr: Copy = {
     {
       id: "merchant",
       q: "J'ai un commerce. Comment le rejoindre ?",
-      a: "Réclamez votre commerce en quelques minutes depuis votre téléphone. Vous payez un tarif fixe par commande livrée et rien sur les prix de votre menu. Voir la page Pour les commerçants.",
+      a: "Commencez à revendiquer votre commerce depuis votre téléphone. Vous payez un tarif fixe par commande livrée et rien sur les prix de votre menu. Voir la page Pour les commerçants.",
     },
     {
       id: "abroad",
@@ -483,7 +483,7 @@ export const fr: Copy = {
     {
       id: "m_proof",
       q: "Comment prouver que le commerce est à moi ?",
-      a: "Si le numéro du commerce dans notre liste est un mobile, nous lui envoyons un code à 6 chiffres. Pour un fixe, nous l'appelons. Si le numéro est faux, manquant ou a changé, vous envoyez votre registre de commerce ou votre autorisation municipale et une photo de l'enseigne, et une personne valide.",
+      a: "Si le numéro du commerce dans notre liste est un mobile, nous lui envoyons un code à 6 chiffres. Pour un fixe, nous l'appelons lorsque les appels vocaux sont disponibles. Si le numéro est faux, manquant ou a changé, vous envoyez votre registre de commerce ou votre autorisation municipale et une photo de l'enseigne, et une personne valide.",
     },
     {
       id: "m_menu",
@@ -586,7 +586,7 @@ export const fr: Copy = {
     hero: {
       eyebrow: "Pour les commerçants",
       title: "Votre commerce est déjà sur la carte. Prenez maintenant ses commandes sur WhatsApp.",
-      lead: "Revendiquez votre commerce en quelques minutes depuis votre téléphone. Les clients commandent en arabe, en anglais ou en français, vous recevez la commande sur WhatsApp, et vos prix restent les vôtres.",
+      lead: "Commencez à revendiquer votre commerce depuis votre téléphone. Les clients commandent en arabe, en anglais ou en français, vous recevez la commande sur WhatsApp, et vos prix restent les vôtres.",
       searchLabel: "Trouvez votre commerce",
       searchPlaceholder: "Le nom de votre commerce",
       searchButton: "Trouver mon commerce",
@@ -656,7 +656,7 @@ export const fr: Copy = {
     faq: { eyebrow: "Questions", title: "Avant de nous rejoindre" },
     band: {
       title: "Prêt à démarrer ?",
-      text: "Cela prend quelques minutes, et la revendication est gratuite.",
+      text: "Commencer prend quelques minutes, et la revendication est gratuite. Une personne vérifie les documents que vous envoyez.",
       claim: "Revendiquer mon commerce",
       register: "Enregistrer une nouvelle activité",
     },
@@ -667,7 +667,7 @@ export const fr: Copy = {
       "Trouvez votre activité sur Alo King et revendiquez-la gratuitement pour prendre des commandes sur WhatsApp.",
     eyebrow: "Revendiquer votre commerce",
     title: "Trouvez votre activité",
-    lead: "Cherchez par nom. Si elle figure dans notre liste, vous pouvez la revendiquer gratuitement en quelques minutes.",
+    lead: "Cherchez par nom. Si elle figure dans notre liste, vous pouvez commencer à la revendiquer gratuitement.",
     searchLabel: "Nom de l'activité",
     placeholder: "Par exemple « Abou Ali Shawarma »",
     searchButton: "Chercher",
@@ -683,7 +683,7 @@ export const fr: Copy = {
     claimThis: "C'est mon activité",
     claimTitle: "Revendiquer {name}",
     claimLead:
-      "Nous vérifions que vous êtes le propriétaire. Si le numéro du commerce dans notre liste est un mobile, nous lui envoyons un code à 6 chiffres. Si c'est un fixe, nous l'appelons. Sinon, nous demandons vos documents.",
+      "Nous vérifions que vous êtes le propriétaire. Si le numéro du commerce dans notre liste est un mobile, nous lui envoyons un code à 6 chiffres. Si c'est un fixe, nous l'appelons lorsque les appels vocaux sont disponibles. Sinon, nous demandons vos documents.",
     changeBusiness: "Choisir une autre activité",
     tailHint: "Le code va au téléphone du commerce, qui se termine par {tail}.",
     stepLabels: ["Trouver", "Prouver", "Terminé"],

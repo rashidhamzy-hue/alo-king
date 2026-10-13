@@ -143,6 +143,14 @@ export const legalFr: LegalCopy = {
             "Pour toute question ou réclamation sur vos données, utilisez la page de contact. Alo King SARL (en cours de constitution) est responsable des données décrites ici.",
           ],
         },
+        {
+          h: "Commerçants et livreurs",
+          p: [
+            "Si vous revendiquez ou enregistrez une activité sur ce site, nous conservons votre nom, votre numéro WhatsApp, les informations sur l'activité que vous donnez et les documents que vous envoyez (registre de commerce, autorisation, document de société, photo de l'enseigne). Nous les utilisons uniquement pour vérifier que l'activité est la vôtre et pour vous répondre. Une personne chez Alo King les lit. Vous pouvez nous demander à tout moment de supprimer votre demande et vos documents.",
+            "Si vous postulez pour livrer, nous conservons votre nom, votre numéro, votre zone, votre véhicule, votre réponse sur le permis, vos langues et disponibilités, et votre note. Nous les utilisons uniquement pour vous contacter au sujet de la candidature. Dites-le-nous sur WhatsApp et nous la supprimons.",
+            "Pendant une revendication, votre navigateur garde le numéro de la demande et le téléphone saisi dans son stockage de session, pour qu'un rechargement ne vous fasse pas perdre votre place. Il est effacé quand vous fermez l'onglet.",
+          ],
+        },
       ],
     },
     {
@@ -212,7 +220,7 @@ export const legalFr: LegalCopy = {
         {
           h: "Tiers",
           p: [
-            "Ouvrir WhatsApp depuis ce site vous transfère à WhatsApp, qui a ses propres règles. Les polices et les images sont servies par notre propre site.",
+            "Ouvrir WhatsApp depuis ce site vous transfère à WhatsApp, qui a ses propres règles. Les polices et les images sont servies par notre propre site. La carte de la page d'enregistrement d'une activité charge ses tuiles depuis OpenStreetMap, qui voit alors votre adresse IP ; elle ne se charge que lorsque vous demandez la carte.",
           ],
         },
         {
@@ -260,10 +268,10 @@ export const legalFr: LegalCopy = {
         {
           h: "Frais",
           ul: [
-            "Alo King facture des frais pour chaque commande livrée ou retirée. Les frais, et toute période gratuite, figurent sur notre page Pour les commerçants et dans votre tableau de bord, et vous les voyez avant de démarrer.",
+            "Alo King facture des frais pour chaque commande livrée ou retirée. Les frais, et toute période gratuite, figurent sur notre page Pour les commerçants, et vous les voyez avant de démarrer.",
             "Nous n'ajoutons rien aux prix de votre menu et ne facturons rien par mois pour votre page.",
             "Un changement de frais ne s'applique qu'aux commandes passées après le changement, et nous vous prévenons avant qu'il ne commence.",
-            "Les frais sont enregistrés sur votre compte. Vous les réglez avec votre crédit Alo King ou par relevé mensuel, comme indiqué dans votre tableau de bord.",
+            "Les frais sont enregistrés sur votre compte. La façon dont ils sont réglés, avec un crédit Alo King ou par relevé mensuel, sera précisée avant le début du paiement en ligne.",
           ],
         },
         {
@@ -314,8 +322,8 @@ export const legalFr: LegalCopy = {
           h: "Ce que nous faisons de l'argent",
           ul: [
             "Chaque paiement, frais, remboursement et versement est une écriture distincte dans un registre qu'on ne modifie jamais, en dollars et en livres libanaises au taux verrouillé sur la commande. Une correction est une nouvelle écriture.",
-            "Nous vous versons ce que le registre montre qui vous est dû, selon le calendrier de règlement affiché dans votre tableau de bord, avec un relevé pour chaque période.",
-            "Nous gardons l'argent reçu pour vous séparé de notre propre argent de fonctionnement, de la manière que confirment notre avocat et notre banque, et nous ne le prêtons ni ne l'utilisons à autre chose.",
+            "Nous vous versons ce que le registre montre qui vous est dû, selon le calendrier de règlement que nous publierons avant le début du paiement en ligne, avec un relevé pour chaque période.",
+            "Avant l'activation du paiement en ligne, nous vous indiquerons comment l'argent reçu pour vous est détenu, de la manière que confirment notre avocat et notre banque.",
           ],
         },
         {
@@ -330,7 +338,7 @@ export const legalFr: LegalCopy = {
           h: "Limites et vos droits",
           ul: [
             "Nous pouvons fixer une limite de versement pendant que le commerce est nouveau, et nous vous l'indiquons.",
-            "Vous voyez dans votre tableau de bord chaque écriture qui vous concerne et pouvez nous demander de vous l'expliquer.",
+            "Vous pouvez demander à voir chaque écriture qui vous concerne et à ce qu'on vous l'explique.",
             "Vous pouvez retirer ce mandat à tout moment pour les nouvelles commandes. Les commandes déjà payées sont réglées comme ci-dessus.",
           ],
         },

@@ -42,6 +42,13 @@ export function Field({
   );
 }
 
+/** After a failed validation, puts the keyboard on the first field that has an error (after React has drawn the errors). */
+export function focusFirstError() {
+  setTimeout(() => {
+    document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, 0);
+}
+
 export function TextInput(props: ComponentProps<"input"> & { invalid?: boolean }) {
   const { invalid, className = "", ...rest } = props;
   return (

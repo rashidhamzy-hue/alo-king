@@ -19,6 +19,7 @@ export function DocsStep({
   homeKitchen,
   onState,
   intro,
+  headingRef,
 }: {
   claimId: string;
   phone: string;
@@ -26,6 +27,8 @@ export function DocsStep({
   homeKitchen?: boolean;
   onState: (s: ClaimState) => void;
   intro?: string;
+  /** The step's heading takes focus when the step appears. */
+  headingRef?: React.Ref<HTMLHeadingElement>;
 }) {
   const { t } = useSite();
   const c = t.claim;
@@ -73,7 +76,9 @@ export function DocsStep({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="ak-h3">{c.docsTitle}</h2>
+        <h2 ref={headingRef} tabIndex={-1} className="ak-h3 outline-none">
+          {c.docsTitle}
+        </h2>
         <p className="mt-2 text-tone-mute">{intro ?? c.docsLead}</p>
       </div>
       <ul className="space-y-3">
@@ -93,20 +98,25 @@ export function DocsStep({
                 accept="image/jpeg,image/png,image/webp,application/pdf"
                 className="sr-only"
                 id={`doc-${kind}`}
-                aria-label={c.docKinds[kind] ?? kind}
+                tabIndex={-1}
+                aria-hidden="true"
                 onChange={(e) => {
                   void send(kind, e.target.files?.[0]);
                   e.target.value = "";
                 }}
               />
               {sent ? (
-                <span className="inline-flex items-center gap-1.5 font-bold text-tone-ok">
+                <span
+                  role="status"
+                  className="inline-flex items-center gap-1.5 font-bold text-tone-ok"
+                >
                   <Check className="size-5" aria-hidden="true" /> {c.uploaded}
                 </span>
               ) : (
                 <button
                   type="button"
                   className="ak-btn ak-btn-ink ak-btn-sm"
+                  aria-label={`${c.docKinds[kind] ?? kind}: ${c.choose}`}
                   disabled={busy !== null}
                   onClick={() => inputs.current[kind]?.click()}
                 >

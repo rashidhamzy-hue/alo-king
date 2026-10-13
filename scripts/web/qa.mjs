@@ -199,6 +199,7 @@ for (const lang of langs) {
         ]).catch(() => stepFail("merchant search did not reach the claim page"));
       }
       if (pg.id === "claim-results") {
+        await page.waitForSelector('a[href*="claim?v="]', { timeout: 10000 }).catch(() => {});
         const links = await page.locator('a[href*="claim?v="]').count();
         if (links !== 2) stepFail(`expected 2 results, found ${links}`);
       }

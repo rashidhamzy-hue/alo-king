@@ -47,6 +47,8 @@ async function loadProfile(uid: string): Promise<StaffProfile | null> {
     .select("user_id,display_name,active")
     .eq("user_id", uid)
     .maybeSingle();
+  // A failed read must not look like "not an operator".
+  if (op.error) throw op.error;
   if (op.data && (op.data as { active: boolean }).active)
     return {
       user_id: uid,
@@ -96,6 +98,26 @@ export function StaffGate({
     return (
       <Shell>
         <Skeleton className="h-64 w-full max-w-sm rounded-[1.25rem]" />
+      </Shell>
+    );
+  if (uid && profileQ.isError)
+    return (
+      <Shell>
+        <div className="ak-card max-w-md p-8 text-center">
+          <h1 className="ak-h3">
+            {L(
+              "We couldn't check your account",
+              "ما قدرنا نتأكد من حسابك",
+              "Nous n'avons pas pu vérifier votre compte",
+            )}
+          </h1>
+          <p className="mt-3 text-tone-mute">
+            {L("Try again in a moment.", "جرّب مرة تانية بعد شوي.", "Réessayez dans un instant.")}
+          </p>
+          <Button variant="gold" className="mt-6" onClick={() => void profileQ.refetch()}>
+            {L("Try again", "جرّب مجدداً", "Réessayer")}
+          </Button>
+        </div>
       </Shell>
     );
   if (!session)

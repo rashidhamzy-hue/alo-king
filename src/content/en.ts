@@ -213,7 +213,7 @@ export const en = {
           "Alo King charges {fee} per delivered order. The commission range is {low}% to {high}% of the order value.",
       },
       cta: "For merchants",
-      ctaNote: "Claim your shop and start in minutes.",
+      ctaNote: "Start claiming your shop from your phone.",
     },
     sendHome: {
       eyebrow: "Send Home",
@@ -463,7 +463,7 @@ export const en = {
     {
       id: "merchant",
       q: "I own a shop. How do I join?",
-      a: "Claim your shop in minutes from your phone. You pay a flat fee per delivered order and nothing on your menu prices. See the For merchants page.",
+      a: "Start claiming your shop from your phone. You pay a flat fee per delivered order and nothing on your menu prices. See the For merchants page.",
     },
     {
       id: "abroad",
@@ -478,7 +478,7 @@ export const en = {
     {
       id: "m_proof",
       q: "How do I prove the shop is mine?",
-      a: "If the shop's phone number on our list is a mobile, we send a 6-digit code to it. For a landline we call it. If the number is wrong, missing or changed, you send your commercial registration or municipal permit and a photo of the shop sign, and a person approves.",
+      a: "If the shop's phone number on our list is a mobile, we send a 6-digit code to it. For a landline we call it when voice calls are available. If the number is wrong, missing or changed, you send your commercial registration or municipal permit and a photo of the shop sign, and a person approves.",
     },
     {
       id: "m_menu",
@@ -578,7 +578,7 @@ export const en = {
     hero: {
       eyebrow: "For merchants",
       title: "Your shop is already on the map. Now take its orders on WhatsApp.",
-      lead: "Claim your shop in minutes from your phone. Customers order in Arabic, English or French, you receive the order on WhatsApp, and your prices stay yours.",
+      lead: "Start claiming your shop from your phone. Customers order in Arabic, English or French, you receive the order on WhatsApp, and your prices stay yours.",
       searchLabel: "Find your business",
       searchPlaceholder: "Your shop's name",
       searchButton: "Find my shop",
@@ -648,7 +648,7 @@ export const en = {
     faq: { eyebrow: "Questions", title: "Before you join" },
     band: {
       title: "Ready to start?",
-      text: "It takes a few minutes, and claiming costs nothing.",
+      text: "Starting takes a few minutes, and claiming costs nothing. A person checks any papers you send.",
       claim: "Claim your shop",
       register: "Register a new business",
     },
@@ -659,7 +659,7 @@ export const en = {
       "Find your business on Alo King and claim it for free, to take orders on WhatsApp.",
     eyebrow: "Claim your shop",
     title: "Find your business",
-    lead: "Search by name. If it is on our list, you can claim it for free in a few minutes.",
+    lead: "Search by name. If it is on our list, you can start claiming it for free.",
     searchLabel: "Business name",
     placeholder: "For example “Abou Ali Shawarma”",
     searchButton: "Search",
@@ -674,7 +674,7 @@ export const en = {
     claimThis: "This is my business",
     claimTitle: "Claim {name}",
     claimLead:
-      "We check that you are the owner. For a shop with a mobile number on our list we send a 6-digit code to it. For a landline we call it. Otherwise we ask for your papers.",
+      "We check that you are the owner. For a shop with a mobile number on our list we send a 6-digit code to it. For a landline we call it when voice calls are available. Otherwise we ask for your papers.",
     changeBusiness: "Choose another business",
     tailHint: "The code goes to the shop's phone, ending {tail}.",
     stepLabels: ["Find", "Prove", "Done"],

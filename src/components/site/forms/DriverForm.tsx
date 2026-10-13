@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { applyToDrive, toE164 } from "@/lib/site-claim";
 import { useSite } from "../context";
-import { ChipOption, CheckRow, Field, Notice, PhoneField, TextInput } from "./ui";
+import { ChipOption, CheckRow, Field, focusFirstError, Notice, PhoneField, TextInput } from "./ui";
 import { withLinks } from "./withLinks";
 
 const VEHICLES = ["motorbike", "car", "bicycle", "van"] as const;
@@ -46,7 +46,7 @@ export function DriverForm() {
     if (!vehicle) next.vehicle = d.vehicleError;
     if (!consent) next.consent = t.form.errors.consent;
     setErrors(next);
-    if (Object.keys(next).length || !phone) return;
+    if (Object.keys(next).length || !phone) return focusFirstError();
     setBusy(true);
     setTop(null);
     const r = await applyToDrive({

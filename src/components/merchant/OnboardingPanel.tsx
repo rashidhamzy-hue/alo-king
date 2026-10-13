@@ -121,7 +121,7 @@ export function OnboardingPanel({ className }: { className?: string }) {
       aria-label={L("Setup assistant", "مساعد الإعداد", "Assistant de configuration")}
       className={cn("flex h-full min-h-0 flex-col", className)}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-tone-line-soft px-5 py-4">
+      <div className="flex items-center justify-between gap-3 border-b border-tone-line-soft py-4 ps-5 pe-16">
         <h2 className="flex items-center gap-2 text-lg font-extrabold">
           <Sparkles className="size-5 text-gold" aria-hidden="true" />
           {L("Setup assistant", "مساعد الإعداد", "Assistant de configuration")}

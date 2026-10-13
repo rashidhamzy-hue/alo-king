@@ -10,7 +10,7 @@ export const Route = createFileRoute("/claim/$slug")({
     throw redirect({
       to: "/$lang/claim",
       params: { lang: pickLang(acceptLanguage) },
-      statusCode: 301,
+      statusCode: 302,
     });
   },
 });

@@ -18,6 +18,10 @@ export function useRate() {
   });
 }
 
+/** An order's pound total, only from the amount locked on the order itself (never today's rate); "" when the row has none. */
+export const lockedLbp = (o: { total_lbp?: number | string | null }) =>
+  o.total_lbp ? `${Math.round(Number(o.total_lbp)).toLocaleString("en-US")} LBP` : "";
+
 /** Formats a dollar amount in Lebanese pounds at the live rate, or "" while the rate is not known. */
 export function useLbp() {
   const rate = useRate().data;

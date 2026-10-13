@@ -12,6 +12,7 @@ function setup(opts: {
   limitOk?: boolean;
   limiterThrows?: boolean;
   voice?: boolean;
+  allow?: (key: string) => boolean;
 }) {
   const calls: { fn: string; args: any }[] = [];
   const sent: { to: string; code: string; via: string }[] = [];
@@ -23,7 +24,7 @@ function setup(opts: {
       calls.push({ fn, args });
       if (fn === "web_rate_hit") {
         if (opts.limiterThrows) throw new Error("db down");
-        return opts.limitOk !== false;
+        return opts.limitOk !== false && (opts.allow?.(String(args.p_key)) ?? true);
       }
       return opts.rpcs?.[fn]?.(args) ?? null;
     },
@@ -85,7 +86,10 @@ const upload = (fields: Record<string, string>, bytes: Uint8Array = JPEG) => {
   }
   return new Request("https://x.test/functions/v1/site-claim", {
     method: "POST",
-    headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+    headers: {
+      "content-type": `multipart/form-data; boundary=${boundary}`,
+      "content-length": String(body.length),
+    },
     body,
   });
 };
@@ -243,6 +247,22 @@ describe("site-claim", () => {
       code_not_delivered: true,
     });
     expect(noVoice.calls.some((c) => c.fn === "claim_use_documents")).toBe(true);
+  });
+
+  it("caps the codes sent for one shop, whoever asks", async () => {
+    const { post, calls, sent } = setup({
+      allow: (key) => !key.startsWith("site:seed:"),
+      rpcs: {
+        claim_start: () => {
+          throw new Error("must not be reached");
+        },
+      },
+    });
+    const r = await j(await post({ action: "start", vendor_id: VENDOR, phone: PHONE }));
+    expect(r.body).toEqual({ ok: true, status: "rate_limited" });
+    expect(calls.map((c) => c.args?.p_key)).toContain(`site:seed:${VENDOR}`);
+    expect(calls.some((c) => c.fn === "claim_start")).toBe(false);
+    expect(sent).toEqual([]);
   });
 
   it("when WhatsApp refuses the code the claim moves to documents instead of waiting", async () => {
@@ -481,6 +501,21 @@ describe("site-claim", () => {
       await handler(upload({ claim_id: CLAIM, phone: PHONE, kind: "registration" }));
       expect(removed).toEqual(stored);
     });
+    it("refuses an oversize body before reading it", async () => {
+      const { handler, stored } = setup({ rpcs: claims() });
+      const req = upload({ claim_id: CLAIM, phone: PHONE, kind: "registration" });
+      const big = new Request(req.url, {
+        method: "POST",
+        headers: {
+          "content-type": req.headers.get("content-type")!,
+          "content-length": String(50 * 1024 * 1024),
+        },
+        body: new Uint8Array(10),
+      });
+      expect((await j(await handler(big))).body.error).toBe("file_size");
+      expect(stored).toEqual([]);
+    });
+
     it("refuses an unknown kind and an oversize file", async () => {
       const { handler } = setup({ rpcs: claims() });
       expect(

@@ -26,7 +26,11 @@ export async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Pr
 }
 
 /** Reads a public table (anon key, row-level security applies). Returns null on any failure, like `rpc`. */
+/** The public tables this reader may be pointed at: reference data only. */
+const READABLE = ["business_type_labels"];
+
 export async function select<T>(table: string, query: string): Promise<T[] | null> {
+  if (!READABLE.includes(table)) return null;
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
       headers: { apikey: SUPABASE_KEY, authorization: `Bearer ${SUPABASE_KEY}` },

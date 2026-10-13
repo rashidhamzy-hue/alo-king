@@ -97,10 +97,12 @@ Deno.serve(
     },
     // The visitor key is a hash of their address with a secret pepper: counters cannot be turned back into addresses.
     visitorKey: async (req) => {
+      // The address as the platform's edge saw it: the first entry of x-forwarded-for is whatever the client wrote, so only the
+      // edge's own header or the last entry (added by the platform) is used. With neither, the call is refused (the limiter fails closed).
       const ip =
         req.headers.get("cf-connecting-ip") ??
-        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-        "unknown";
+        req.headers.get("x-forwarded-for")?.split(",").pop()?.trim();
+      if (!ip) throw new Error("no visitor address");
       const digest = await crypto.subtle.digest(
         "SHA-256",
         new TextEncoder().encode(`${pepper}|${ip}`),

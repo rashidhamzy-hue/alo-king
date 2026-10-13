@@ -39,7 +39,7 @@ const MAX_DOC_BYTES = 8 * 1024 * 1024;
 const PHONE = /^\+[1-9][0-9]{6,14}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LANGS = ["ar", "en", "fr"] as const;
-const DOC_KINDS = ["registration", "permit", "company", "sign_photo", "id", "other"] as const;
+const DOC_KINDS = ["registration", "permit", "company", "sign_photo", "other"] as const;
 const BUSINESS_TYPES = [
   "restaurant",
   "fast_food",
@@ -131,6 +131,16 @@ export function makeHandler(deps: SiteClaimDeps) {
     }
   };
 
+  const hit = async (key: string, max: number, windowS: number) => {
+    try {
+      return (
+        (await deps.rpc("web_rate_hit", { p_key: key, p_max: max, p_window_s: windowS })) === true
+      );
+    } catch {
+      return false;
+    }
+  };
+
   async function sendCode(send: {
     channel?: string;
     to?: string;
@@ -148,6 +158,10 @@ export function makeHandler(deps: SiteClaimDeps) {
 
   async function documents(req: Request): Promise<Response> {
     if (!(await allowed(req, "document"))) return bad("rate_limited", 429);
+    // Refuse an oversize body before reading it: formData() would buffer all of it in memory first.
+    const declared = Number(req.headers.get("content-length"));
+    if (!Number.isFinite(declared) || declared <= 0 || declared > MAX_DOC_BYTES + 64 * 1024)
+      return bad("file_size", 413);
     let form: FormData;
     try {
       form = await req.formData();
@@ -174,13 +188,20 @@ export function makeHandler(deps: SiteClaimDeps) {
     if (!kindOfFile) return bad("file_type");
     const path = `${claimId}/${kind}-${crypto.randomUUID()}.${kindOfFile.ext}`;
     if (!(await deps.storeDocument(path, bytes, kindOfFile.mime))) return bad("storage", 502);
-    const r = await deps.rpc("claim_add_document", {
-      p_phone: phone,
-      p_kind: kind,
-      p_media_ref: `storage:claim-documents/${path}`,
-      p_mime: kindOfFile.mime,
-      p_claim_id: claimId,
-    });
+    let r: any;
+    try {
+      r = await deps.rpc("claim_add_document", {
+        p_phone: phone,
+        p_kind: kind,
+        p_media_ref: `storage:claim-documents/${path}`,
+        p_mime: kindOfFile.mime,
+        p_claim_id: claimId,
+      });
+    } catch (e) {
+      // The file was stored but not recorded: do not leave it behind.
+      await deps.removeDocument(path);
+      throw e;
+    }
     if (r?.status === "no_claim" || r?.status === "too_many") await deps.removeDocument(path);
     return out({ ok: true, ...claimView(r) });
   }
@@ -249,6 +270,10 @@ export function makeHandler(deps: SiteClaimDeps) {
           const phone = String(b.phone ?? "");
           if (!UUID.test(vendorId) || !PHONE.test(phone)) return bad("bad_request");
           if (!(await allowed(req, "start"))) return bad("rate_limited", 429);
+          // A cap per shop, whoever asks: rotating visitors and typed numbers must not make Alo King message or call one shop
+          // owner again and again (number quality, call cost).
+          if (!(await hit(`site:seed:${vendorId}`, 3, 86400)))
+            return out({ ok: true, status: "rate_limited" });
           const r = await deps.rpc("claim_start", {
             p_vendor_id: vendorId,
             p_phone: phone,

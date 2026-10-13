@@ -43,6 +43,8 @@ export type Order = {
   subtotal_usd: number | null;
   delivery_fee_usd: number | null;
   total_usd: number | null;
+  /** The pound total at the rate locked on the order (the rebuilt orders table has it); legacy rows do not. */
+  total_lbp?: number | null;
   status: OrderStatus;
   payment_method: string | null;
   payment_status: string | null;

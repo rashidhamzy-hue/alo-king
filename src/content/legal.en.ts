@@ -158,6 +158,14 @@ export const legalEn: LegalCopy = {
             "Questions or complaints about your data: use the contact page. Alo King SARL (in formation) is responsible for the data described here.",
           ],
         },
+        {
+          h: "Merchants and drivers",
+          p: [
+            "If you claim or register a business on this website, we keep your name, your WhatsApp number, the business details you give and the papers you upload (a commercial registration, a permit, a company document, a photo of the shop sign). We use them only to check that the business is yours and to reply to you. A person at Alo King reads them. You can ask us to delete your claim and your papers at any time.",
+            "If you apply to drive, we keep your name, number, area, vehicle, licence answer, languages and times, and your note. We use them only to contact you about the application. Say so on WhatsApp and we delete it.",
+            "While you are in the middle of a claim, your browser keeps the claim number and the phone number you typed in its session storage, so a reload does not lose your place. It is erased when you close the tab.",
+          ],
+        },
       ],
     },
     {
@@ -226,7 +234,7 @@ export const legalEn: LegalCopy = {
         {
           h: "Third parties",
           p: [
-            "Opening WhatsApp from this site hands you over to WhatsApp, which has its own policies. Fonts and images are served from our own site.",
+            "Opening WhatsApp from this site hands you over to WhatsApp, which has its own policies. Fonts and images are served from our own site. The map on the business registration page loads its tiles from OpenStreetMap, which then sees your IP address; it loads only when you ask for the map.",
           ],
         },
         {
@@ -272,10 +280,10 @@ export const legalEn: LegalCopy = {
         {
           h: "Fees",
           ul: [
-            "Alo King charges a fee for each order that is delivered or collected. The fee, and any free period, are shown on our For merchants page and in your dashboard, and you see them before you go live.",
+            "Alo King charges a fee for each order that is delivered or collected. The fee, and any free period, are shown on our For merchants page, and you see them before you go live.",
             "We add nothing to your menu prices and charge nothing monthly for your page.",
             "A change of fee applies only to orders placed after the change, and we tell you before it starts.",
-            "Fees are recorded on your account. You pay them from your Alo King Credit or by monthly statement, as set out in your dashboard.",
+            "Fees are recorded on your account. How they are settled, from Alo King Credit or by monthly statement, will be set out before online payment starts.",
           ],
         },
         {
@@ -326,8 +334,8 @@ export const legalEn: LegalCopy = {
           h: "What we do with the money",
           ul: [
             "Each payment, fee, refund and payout is a separate entry in an append-only ledger, in dollars and in Lebanese pounds at the rate locked on the order. Entries are never edited; a correction is a new entry.",
-            "We pay you what the ledger shows you are owed, on the settlement schedule shown in your dashboard, with a statement for each period.",
-            "We keep the money received for you separate from our own operating money, in the way our lawyer and our bank confirm, and we do not lend it or use it for anything else.",
+            "We pay you what the ledger shows you are owed, on the settlement schedule we will publish before online payment starts, with a statement for each period.",
+            "Before online payment is switched on, we will tell you how the money received for you is held, in the way our lawyer and our bank confirm.",
           ],
         },
         {
@@ -342,7 +350,7 @@ export const legalEn: LegalCopy = {
           h: "Limits and your rights",
           ul: [
             "We may set a limit on what we pay out at once while a shop is new, and we tell you the limit.",
-            "You can see every entry that concerns you in your dashboard and ask us to explain any of them.",
+            "You can ask to see every entry that concerns you, and to have any of them explained.",
             "You can withdraw this mandate at any time for new orders. Orders already paid are settled as above.",
           ],
         },

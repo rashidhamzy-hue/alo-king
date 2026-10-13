@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { ageLabel, isCOD, usd } from "@/lib/format";
-import { useLbp } from "@/lib/rate";
+import { lockedLbp } from "@/lib/rate";
 import { useL } from "@/lib/i18n";
 import type { Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -45,7 +45,6 @@ export function KitchenOrderCard({
   onDelivered,
   busy,
 }: Props) {
-  const lbp = useLbp();
   const L = useL();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
@@ -96,7 +95,7 @@ export function KitchenOrderCard({
       <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
         <div>
           <p className="text-2xl font-semibold">{usd(o.total_usd)}</p>
-          <p className="text-xs text-muted-foreground">{lbp(o.total_usd)}</p>
+          <p className="text-xs text-muted-foreground">{lockedLbp(o)}</p>
         </div>
         <span className="rounded-full border border-border px-3 py-1 text-xs uppercase">
           {isCOD(o.payment_method) ? L("Cash", "كاش", "Espèces") : o.payment_method} ·{" "}
