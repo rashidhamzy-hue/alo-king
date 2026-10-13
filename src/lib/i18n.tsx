@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-// The language of the private pages (merchant, driver, admin, claim), kept as a toggle until session 6b restyles them.
-// The public pages take their language from the URL (/ar, /en, /fr: src/lib/site.ts); `forced` makes this context agree.
+// The language of the private pages (merchant, driver, admin): a toggle between Arabic, English and French, remembered in the
+// browser. The public pages take their language from the URL (/ar, /en, /fr: src/lib/site.ts); `forced` makes this context agree.
 export type Lang = "en" | "ar" | "fr";
 
 const dict = {
@@ -95,8 +95,12 @@ export function useLang() {
   return c;
 }
 
-/** Inline bilingual helper for the private pages: const L = useL(); L("Hello", "مرحبا"). French reads the English. */
+/**
+ * Inline helper for the private pages: const L = useL(); L("Hello", "مرحبا", "Bonjour"). The French is optional: a screen that
+ * has not been translated into French yet reads the English (the staff pages are being translated screen by screen).
+ */
 export function useL() {
   const { lang } = useLang();
-  return (en: string, ar: string) => (lang === "ar" ? ar : en);
+  return (en: string, ar: string, fr?: string) =>
+    lang === "ar" ? ar : lang === "fr" ? (fr ?? en) : en;
 }

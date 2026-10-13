@@ -18,11 +18,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StaffGate, signOut } from "@/components/staff/StaffGate";
+import { Crown } from "@/design/Crown";
+import { LangToggle } from "@/components/landing/SiteHeader";
 import { CashGauge } from "@/components/driver/CashGauge";
 import { supabase } from "@/lib/supabase";
 import { ORDER_COLUMNS, type Order, type Vendor } from "@/lib/types";
 import { VENDOR_COLUMNS } from "@/lib/config";
-import { errMsg, fmtTime, isCOD, lbp, startOfToday, usd } from "@/lib/format";
+import { errMsg, fmtTime, isCOD, startOfToday, usd } from "@/lib/format";
+import { lockedLbp } from "@/lib/rate";
 
 export const Route = createFileRoute("/driver")({
   head: () => ({
@@ -51,7 +54,7 @@ export const Route = createFileRoute("/driver")({
 function DriverRoute() {
   return (
     <PrivateShell>
-      <StaffGate roles={["driver", "admin"]} title="Driver">
+      <StaffGate roles={["driver", "admin"]} title={["Driver", "السائق", "Livreur"]}>
         {(_p, s) => <DriverApp uid={s.user.id} />}
       </StaffGate>
     </PrivateShell>
@@ -210,11 +213,16 @@ function DriverApp({ uid }: { uid: string }) {
 
   return (
     <div className="mx-auto min-h-screen max-w-md pb-16">
-      <header className="flex items-center justify-between px-5 pt-5">
-        <h1 className="text-2xl font-semibold">Alo King · Driver</h1>
-        <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
-          <LogOut />
-        </Button>
+      <header className="flex items-center justify-between gap-3 px-5 pt-5">
+        <h1 className="flex items-center gap-2.5 text-xl font-extrabold">
+          <Crown className="h-7 w-9 text-gold" /> Alo King · Driver
+        </h1>
+        <div className="flex items-center gap-2">
+          <LangToggle />
+          <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+            <LogOut />
+          </Button>
+        </div>
       </header>
       <div className="lux-card mx-5 mt-4 py-5">
         {cashQ.isLoading ? <Skeleton className="mx-auto h-28 w-56" /> : <CashGauge cash={cash} />}
@@ -266,7 +274,7 @@ function DriverApp({ uid }: { uid: string }) {
                 <span>
                   {isCOD(o.payment_method) ? "Collect" : "Prepaid"} <b>{usd(o.total_usd)}</b>
                 </span>
-                <span className="text-xs text-muted-foreground">{lbp(o.total_usd)}</span>
+                <span className="text-xs text-muted-foreground">{lockedLbp(o)}</span>
               </div>
               {o.status === "ready" ? (
                 <Button
@@ -340,7 +348,7 @@ function DriverApp({ uid }: { uid: string }) {
                 </p>
                 <p>
                   <span className="block text-xs text-muted-foreground">Total</span>
-                  {usd(offer.total_usd)} · {lbp(offer.total_usd)} ·{" "}
+                  {usd(offer.total_usd)} · {lockedLbp(offer) ? `${lockedLbp(offer)} · ` : ""}
                   {isCOD(offer.payment_method) ? "Cash on delivery" : "Prepaid"}
                 </p>
               </div>
@@ -382,7 +390,7 @@ function DriverApp({ uid }: { uid: string }) {
             <AlertDialogTitle>Confirm delivery #{confirm?.short_code}</AlertDialogTitle>
             <AlertDialogDescription>
               {confirm && isCOD(confirm.payment_method)
-                ? `Collect ${usd(confirm.total_usd)} (${lbp(confirm.total_usd)}) in cash from the customer.`
+                ? `Collect ${usd(confirm.total_usd)}${lockedLbp(confirm) ? ` (${lockedLbp(confirm)})` : ""} in cash from the customer.`
                 : "This order is prepaid. Hand it over and confirm."}
             </AlertDialogDescription>
           </AlertDialogHeader>

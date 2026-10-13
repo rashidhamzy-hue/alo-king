@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Camera, Loader2, Lock, Plus, Sparkles, Trash2 } from "lucide-react";
@@ -198,10 +207,18 @@ function Card({
 }
 
 function F({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
+  // The label is tied to its control (a single input or textarea gets the id), so screen readers announce it.
+  const id = useId();
+  const only = isValidElement<{ id?: string }>(children) ? children : null;
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      {children}
+      <Label
+        htmlFor={only ? (only.props.id ?? id) : undefined}
+        className="text-xs text-muted-foreground"
+      >
+        {label}
+      </Label>
+      {only ? cloneElement(only, { id: only.props.id ?? id }) : children}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );

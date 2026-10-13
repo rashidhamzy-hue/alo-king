@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState } from "react";
 import { Camera, Check, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,8 @@ import { TagInput } from "@/components/shared/TagInput";
 import { PhotoTips } from "@/components/shared/PhotoTips";
 import { supabase } from "@/lib/supabase";
 import { aiFriendly, invokeFn, resizeImage, uploadMedia } from "@/lib/edge";
-import { errMsg, lbp } from "@/lib/format";
+import { errMsg } from "@/lib/format";
+import { useLbp } from "@/lib/rate";
 import { uuid, type Customization, type MenuItem } from "@/lib/vendor";
 import { useL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,7 @@ export function ItemEditor({
   onSaved: () => void;
 }) {
   const L = useL();
+  const lbp = useLbp();
   const [d, setD] = useState<MenuItem | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -771,10 +773,18 @@ export function ItemEditor({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  // The label is tied to its control (a single input or textarea gets the id), so screen readers announce it.
+  const id = useId();
+  const only = isValidElement<{ id?: string }>(children) ? children : null;
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      {children}
+      <Label
+        htmlFor={only ? (only.props.id ?? id) : undefined}
+        className="text-xs text-muted-foreground"
+      >
+        {label}
+      </Label>
+      {only ? cloneElement(only, { id: only.props.id ?? id }) : children}
     </div>
   );
 }

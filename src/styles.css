@@ -61,7 +61,7 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 1rem;
   --obsidian: #17131a;
   --background: #17131a;
   --foreground: #f8f1e7;
@@ -86,15 +86,15 @@
   --success: oklch(0.72 0.17 155);
   --warning: oklch(0.8 0.16 75);
   --border: oklch(0.77 0.16 70 / 0.16);
-  --input: oklch(0.77 0.16 70 / 0.22);
+  --input: #8a8091;
   --ring: oklch(0.77 0.16 70 / 0.6);
   --wa-bg: oklch(0.2 0.02 200);
   --wa-in: oklch(0.27 0.02 230);
   --wa-out: oklch(0.42 0.08 165);
   --gradient-hero:
-    radial-gradient(ellipse 80% 60% at 70% 20%, oklch(0.38 0.08 165 / 0.45), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 10% 80%, oklch(0.77 0.16 70 / 0.12), transparent 60%);
-  --gradient-gold: linear-gradient(135deg, oklch(0.84 0.13 85), oklch(0.72 0.17 62));
+    radial-gradient(60rem 28rem at 78% -8%, rgb(244 182 60 / 0.14), transparent 62%),
+    radial-gradient(40rem 24rem at 4% 108%, rgb(244 182 60 / 0.07), transparent 60%);
+  --gradient-gold: linear-gradient(180deg, #f4b63c, #f4b63c);
   --shadow-glow-emerald: 0 0 60px -10px oklch(0.62 0.13 165 / 0.45);
   --shadow-glow-gold: 0 10px 40px -12px oklch(0.77 0.16 70 / 0.55);
 }
@@ -152,10 +152,11 @@
 @utility hairline {
   border: 1px solid oklch(0.77 0.16 70 / 0.18);
 }
+/* The staff pages' card is the public site's card (src/design/design.css .ak-card). */
 @utility lux-card {
-  background: linear-gradient(180deg, oklch(0.2 0.02 255 / 0.9), oklch(0.17 0.018 262 / 0.9));
-  border: 1px solid oklch(0.77 0.16 70 / 0.16);
-  border-radius: var(--radius-xl);
+  background: var(--ink-2);
+  border: 1px solid rgb(244 182 60 / 0.2);
+  border-radius: var(--radius-card);
 }
 
 @keyframes gold-flash {
@@ -215,4 +216,9 @@
 .leaflet-container {
   background: var(--obsidian);
   font-family: var(--font-sans);
+}
+
+/* A link inside the map's attribution line is underlined, so it does not rely on colour alone (WCAG 1.4.1). */
+.leaflet-container .leaflet-control-attribution a {
+  text-decoration: underline;
 }

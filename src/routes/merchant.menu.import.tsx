@@ -12,8 +12,8 @@ import { enrichToItem, type Enriched } from "@/components/merchant/ItemEditor";
 import { useMenuItems, useMerchant, useRefreshMerchant } from "@/components/merchant/context";
 import { supabase } from "@/lib/supabase";
 import { aiFriendly, fileToBase64, invokeFn, resizeImage } from "@/lib/edge";
-import { LBP_RATE } from "@/lib/config";
 import { errMsg } from "@/lib/format";
+import { useRate } from "@/lib/rate";
 import { uuid } from "@/lib/vendor";
 import { useL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,7 @@ const norm = (s: string | null | undefined) =>
   (s ?? "").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, "");
 
 function ImportWizard() {
+  const rate = useRate().data;
   const L = useL();
   const { vendorId } = useMerchant();
   const existing = useMenuItems(vendorId).data ?? [];
@@ -123,7 +124,9 @@ function ImportWizard() {
   const toUsd = (p: number | null | undefined) => {
     const v = priceValue(p);
     if (v == null) return null;
-    return currency === "LBP" ? Math.round((v / LBP_RATE) * 100) / 100 : v;
+    if (currency !== "LBP") return v;
+    // Pounds are converted at the rate in force (from the database); with no rate the price is left for the merchant to enter.
+    return rate ? Math.round((v / rate) * 100) / 100 : null;
   };
 
   async function enrich() {

@@ -40,3 +40,10 @@ export const COMPANY_LINE = {
 
 /** A place or cuisine page is indexed only with this many live merchants (DECISIONS §24.5): thin pages stay out of search. */
 export const MIN_MERCHANTS_TO_INDEX = 3;
+
+/**
+ * Whether the merchant dashboard's assistant answers (DECISIONS §24.3, §32). The model-backed merchant assistant is ported to
+ * the rebuilt system in session 5b; until then the side panel shows its checklist and says so, and never sends to a function
+ * that is not deployed. Switch to true when `merchant-ai` joins supabase/functions-deploy.txt.
+ */
+export const MERCHANT_ASSISTANT_LIVE = false;

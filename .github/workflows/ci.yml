@@ -61,6 +61,9 @@ jobs:
         run: scripts/web/qa-serve.sh start live
       - name: Every public page, 3 languages, mobile and desktop (axe, overflow, console, JavaScript under 150 KB)
         run: node scripts/web/qa.mjs --base http://127.0.0.1:4011 --out qa-out
+      - name: Staff pages (merchant dashboard, admin, driver), 3 languages, mobile and desktop (axe, overflow, console)
+        if: always()
+        run: node scripts/web/qa-private.mjs --base http://127.0.0.1:4010 --out qa-out-private
       - name: Lighthouse mobile (performance, accessibility, SEO 90 or more; LCP under 2.5 s)
         if: always()
         run: node scripts/web/lighthouse.mjs --base http://127.0.0.1:4011 --out qa-out
@@ -88,6 +91,8 @@ jobs:
             qa-out/*.png
             qa-out/*.json
             qa-out-prelaunch/*.png
+            qa-out-private/*.png
+            qa-out-private/*.json
           retention-days: 14
 
   secret-scan:

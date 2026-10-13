@@ -6,6 +6,16 @@ import { useRouterState } from "@tanstack/react-router";
 import { useSite } from "./context";
 import { OrderButton } from "./OrderButton";
 
+/** The legal pages in the footer: customers' first, then the merchants' (DECISIONS §24.2). */
+export const LEGAL_LINKS = [
+  ["terms", "terms"],
+  ["privacy", "privacy"],
+  ["refund", "refund"],
+  ["cookies", "cookies"],
+  ["merchant-terms", "merchantTerms"],
+  ["collection-mandate", "collectionMandate"],
+] as const;
+
 export function Footer() {
   const { lang, t } = useSite();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -53,9 +63,13 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <a href="/for-business" className="no-underline hover:underline">
+              <Link
+                to="/$lang/for-merchants"
+                params={{ lang }}
+                className="no-underline hover:underline"
+              >
                 {t.nav.merchants}
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>
@@ -72,6 +86,11 @@ export function Footer() {
             <li>
               <Link to="/$lang/contact" params={{ lang }} className="no-underline hover:underline">
                 {t.nav.contact}
+              </Link>
+            </li>
+            <li>
+              <Link to="/$lang/drivers" params={{ lang }} className="no-underline hover:underline">
+                {t.footer.drivers}
               </Link>
             </li>
           </ul>
@@ -99,14 +118,14 @@ export function Footer() {
             {t.footer.legal}
           </h2>
           <ul className="mt-3 space-y-2">
-            {(["terms", "privacy", "refund", "cookies"] as const).map((d) => (
+            {LEGAL_LINKS.map(([d, key]) => (
               <li key={d}>
                 <Link
                   to="/$lang/legal/$doc"
                   params={{ lang, doc: d }}
                   className="no-underline hover:underline"
                 >
-                  {t.footer[d]}
+                  {t.footer[key]}
                 </Link>
               </li>
             ))}

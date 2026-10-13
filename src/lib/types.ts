@@ -43,6 +43,8 @@ export type Order = {
   subtotal_usd: number | null;
   delivery_fee_usd: number | null;
   total_usd: number | null;
+  /** The pound total at the rate locked on the order (the rebuilt orders table has it); legacy rows do not. */
+  total_lbp?: number | null;
   status: OrderStatus;
   payment_method: string | null;
   payment_status: string | null;
@@ -68,7 +70,7 @@ export type Order = {
 
 // Never includes customer_phone on screens.
 export const ORDER_COLUMNS =
-  "id,short_code,vendor_id,customer_name,items,subtotal_usd,delivery_fee_usd,total_usd,status,payment_method,payment_status,delivery_village,building_landmark,notes,customer_lat,customer_lng,driver_id,driver_lat,driver_lng,driver_location_at,prep_minutes,created_at,accepted_at,ready_at,picked_up_at,delivered_at,is_expat_gift,gift_sender_name,gift_message";
+  "id,short_code,vendor_id,customer_name,items,subtotal_usd,delivery_fee_usd,total_usd,total_lbp,status,payment_method,payment_status,delivery_village,building_landmark,notes,customer_lat,customer_lng,driver_id,driver_lat,driver_lng,driver_location_at,prep_minutes,created_at,accepted_at,ready_at,picked_up_at,delivered_at,is_expat_gift,gift_sender_name,gift_message";
 
 export type TrackedOrder = {
   id: string;

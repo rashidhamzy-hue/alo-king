@@ -86,6 +86,9 @@ export const fr: Copy = {
     privacy: "Confidentialité",
     refund: "Remboursements",
     cookies: "Cookies",
+    merchantTerms: "Conditions commerçants",
+    collectionMandate: "Mandat d'encaissement",
+    drivers: "Livrer avec nous",
     entity: "Alo King SARL (en cours de constitution)",
     rights: "Tous droits réservés.",
     madeIn: "Fait au Liban",
@@ -213,7 +216,7 @@ export const fr: Copy = {
           "Alo King facture {fee} par commande livrée. La commission va de {low} % à {high} % de la valeur de la commande.",
       },
       cta: "Pour les commerçants",
-      ctaNote: "Réclamez votre commerce et démarrez en quelques minutes.",
+      ctaNote: "Commencez à revendiquer votre commerce depuis votre téléphone.",
     },
     sendHome: {
       eyebrow: "Send Home",
@@ -465,12 +468,42 @@ export const fr: Copy = {
     {
       id: "merchant",
       q: "J'ai un commerce. Comment le rejoindre ?",
-      a: "Réclamez votre commerce en quelques minutes depuis votre téléphone. Vous payez un tarif fixe par commande livrée et rien sur les prix de votre menu. Voir la page Pour les commerçants.",
+      a: "Commencez à revendiquer votre commerce depuis votre téléphone. Vous payez un tarif fixe par commande livrée et rien sur les prix de votre menu. Voir la page Pour les commerçants.",
     },
     {
       id: "abroad",
       q: "Puis-je commander pour ma famille depuis l'étranger ?",
       a: "Oui, sur WhatsApp, et elle paie à la livraison. Le paiement par carte depuis l'étranger et la photo de livraison arrivent avec Send Home.",
+    },
+    {
+      id: "m_cost",
+      q: "Combien cela me coûte-t-il ?",
+      a: "La revendication est gratuite. Alo King facture un tarif fixe pour chaque commande livrée ou retirée, affiché sur la page Pour les commerçants. Rien n'est ajouté aux prix de votre menu et il n'y a pas d'abonnement mensuel.",
+    },
+    {
+      id: "m_proof",
+      q: "Comment prouver que le commerce est à moi ?",
+      a: "Si le numéro du commerce dans notre liste est un mobile, nous lui envoyons un code à 6 chiffres. Pour un fixe, nous l'appelons lorsque les appels vocaux sont disponibles. Si le numéro est faux, manquant ou a changé, vous envoyez votre registre de commerce ou votre autorisation municipale et une photo de l'enseigne, et une personne valide.",
+    },
+    {
+      id: "m_menu",
+      q: "Dois-je saisir tout mon menu ?",
+      a: "Non. Envoyez-le en texte ou en photos et l'assistant en fait un brouillon. Vous approuvez chaque section, et rien ne passe en ligne sans votre appui.",
+    },
+    {
+      id: "m_orders",
+      q: "Comment je reçois les commandes ?",
+      a: "Sur WhatsApp, sous forme de carte avec Accepter et Refuser. Vous pouvez aussi choisir un canal de secours. Si vous manquez une commande, nous essayons ce canal.",
+    },
+    {
+      id: "m_paid",
+      q: "Quand suis-je payé ?",
+      a: "Aujourd'hui, les clients paient en espèces à la livraison : l'argent est dans votre main au moment de la remise. Le paiement en ligne viendra plus tard, avec le mandat d'encaissement que vous pouvez lire dès maintenant.",
+    },
+    {
+      id: "m_chain",
+      q: "J'ai plusieurs succursales. Puis-je toutes les ajouter ?",
+      a: "Oui. Une chaîne prouve sa propriété une fois avec un document de l'entreprise, puis chaque succursale a son épingle, ses horaires et sa zone de livraison.",
     },
   ],
   contact: {
@@ -525,5 +558,291 @@ export const fr: Copy = {
       "Il a peut-être expiré, ou le lien est incomplet. Ouvrez votre discussion WhatsApp avec Alo King et touchez « Ma commande ».",
     refreshed: "Se met à jour toutes les quelques secondes.",
     privacy: "Cette page n'affiche que le statut de votre commande.",
+  },
+  form: {
+    required: "Obligatoire",
+    name: "Votre nom",
+    phone: "Votre numéro WhatsApp",
+    phoneHelp: "Le numéro que vous utilisez sur WhatsApp. Nous ne le partageons jamais.",
+    countryCode: "Indicatif du pays",
+    next: "Continuer",
+    back: "Retour",
+    sending: "Envoi…",
+    summary: "Merci de vérifier :",
+    errors: {
+      name: "Merci d'indiquer un nom.",
+      phone: "Merci d'indiquer un numéro de mobile valide.",
+      consent: "Merci de cocher la case pour continuer.",
+      generic: "Un problème est survenu. Réessayez dans un instant.",
+      rate: "Trop d'essais. Patientez un peu, ou écrivez-nous sur WhatsApp.",
+      offline: "Nous n'avons pas pu joindre le serveur. Vérifiez votre connexion et réessayez.",
+      file: "Utilisez une photo (JPG, PNG ou WebP) ou un PDF, jusqu'à 8 Mo.",
+    },
+  },
+  merchantsPage: {
+    seoTitle: "Alo King pour les commerçants : prenez vos commandes sur WhatsApp",
+    seoDescription:
+      "Revendiquez gratuitement votre commerce sur Alo King et prenez vos commandes sur WhatsApp. Un tarif fixe par commande livrée, rien sur les prix de votre menu, rien par mois.",
+    hero: {
+      eyebrow: "Pour les commerçants",
+      title: "Votre commerce est déjà sur la carte. Prenez maintenant ses commandes sur WhatsApp.",
+      lead: "Commencez à revendiquer votre commerce depuis votre téléphone. Les clients commandent en arabe, en anglais ou en français, vous recevez la commande sur WhatsApp, et vos prix restent les vôtres.",
+      searchLabel: "Trouvez votre commerce",
+      searchPlaceholder: "Le nom de votre commerce",
+      searchButton: "Trouver mon commerce",
+      notListed: "Pas dans notre liste ?",
+      register: "Enregistrer une nouvelle activité",
+    },
+    how: {
+      eyebrow: "Comment ça marche",
+      title: "De la revendication à la première commande",
+      steps: [
+        {
+          title: "Trouvez votre commerce",
+          text: "Cherchez par nom. Beaucoup de commerces figurent déjà dans notre liste, issue de sources publiques.",
+        },
+        {
+          title: "Prouvez qu'il est à vous",
+          text: "Nous envoyons un code au téléphone du commerce, ou vous envoyez votre registre de commerce et une photo de l'enseigne. Une personne valide les documents.",
+        },
+        {
+          title: "Confirmez et ajoutez votre menu",
+          text: "Vérifiez les informations pré-remplies, puis envoyez votre menu en texte ou en photos. L'assistant en fait un brouillon et vous approuvez chaque section.",
+        },
+        {
+          title: "Démarrez",
+          text: "Réglez vos horaires et votre zone de livraison, puis activez. Les commandes arrivent sur WhatsApp et vous les acceptez d'un appui.",
+        },
+      ],
+    },
+    gets: {
+      eyebrow: "Ce que vous obtenez",
+      title: "Pensé pour le vrai travail d'un commerce",
+      items: [
+        {
+          title: "Les commandes sur WhatsApp",
+          text: "Chaque commande arrive sous forme de carte avec Accepter et Refuser. Si vous la manquez, nous essayons votre canal de secours.",
+        },
+        {
+          title: "Vos prix, toujours",
+          text: "Nous n'ajoutons jamais rien à un prix, et ne changeons jamais un prix, un article ou vos horaires sans votre appui.",
+        },
+        {
+          title: "Un assistant pour le menu",
+          text: "Envoyez un PDF, des photos ou du texte. Il prépare les sections, les descriptions en trois langues et des suggestions de livraison. Vous approuvez.",
+        },
+        {
+          title: "Gérez par message",
+          text: "Mettre en pause, fermer, marquer un article épuisé ou changer un prix : un message, puis un appui pour confirmer.",
+        },
+        {
+          title: "Trois langues",
+          text: "Les clients commandent en arabe, anglais, français ou arabizi. Vous recevez toujours la commande clairement.",
+        },
+        {
+          title: "Espèces aujourd'hui, en ligne plus tard",
+          text: "Les clients paient en espèces à la livraison pour l'instant. Le paiement en ligne viendra plus tard, avec un mandat que vous pouvez lire dès maintenant.",
+        },
+      ],
+      dashboard:
+        "Un tableau de bord sur le site pour les commandes, le menu et les relevés arrive. D'ici là, tout fonctionne sur WhatsApp.",
+    },
+    terms: {
+      title: "Des conditions claires",
+      text: "Lisez ce que vous acceptez avant de commencer. Ce sont deux versions pilotes que notre avocat relira.",
+      merchantTerms: "Conditions pour les commerçants",
+      mandate: "Mandat d'encaissement",
+    },
+    faq: { eyebrow: "Questions", title: "Avant de nous rejoindre" },
+    band: {
+      title: "Prêt à démarrer ?",
+      text: "Commencer prend quelques minutes, et la revendication est gratuite. Une personne vérifie les documents que vous envoyez.",
+      claim: "Revendiquer mon commerce",
+      register: "Enregistrer une nouvelle activité",
+    },
+  },
+  claim: {
+    seoTitle: "Revendiquer votre commerce | Alo King",
+    seoDescription:
+      "Trouvez votre activité sur Alo King et revendiquez-la gratuitement pour prendre des commandes sur WhatsApp.",
+    eyebrow: "Revendiquer votre commerce",
+    title: "Trouvez votre activité",
+    lead: "Cherchez par nom. Si elle figure dans notre liste, vous pouvez commencer à la revendiquer gratuitement.",
+    searchLabel: "Nom de l'activité",
+    placeholder: "Par exemple « Abou Ali Shawarma »",
+    searchButton: "Chercher",
+    resultsCount: "{n} résultats",
+    resultsOne: "1 résultat",
+    noResults:
+      "Nous n'avons pas trouvé « {q} ». Essayez une autre orthographe, ou enregistrez-la comme nouvelle activité.",
+    registerInstead: "Enregistrer une nouvelle activité",
+    claimed: "Déjà revendiquée",
+    claimedHelp:
+      "Cette activité est la vôtre et quelqu'un d'autre l'a revendiquée ? Vous pouvez quand même lancer une revendication avec vos documents.",
+    frozen: "En cours d'examen",
+    claimThis: "C'est mon activité",
+    claimTitle: "Revendiquer {name}",
+    claimLead:
+      "Nous vérifions que vous êtes le propriétaire. Si le numéro du commerce dans notre liste est un mobile, nous lui envoyons un code à 6 chiffres. Si c'est un fixe, nous l'appelons lorsque les appels vocaux sont disponibles. Sinon, nous demandons vos documents.",
+    changeBusiness: "Choisir une autre activité",
+    tailHint: "Le code va au téléphone du commerce, qui se termine par {tail}.",
+    stepLabels: ["Trouver", "Prouver", "Terminé"],
+    owner:
+      "Je suis le propriétaire de cette activité, ou le propriétaire m'a autorisé à agir en son nom.",
+    chain: "C'est une chaîne et j'en gère toutes les succursales.",
+    chainHelp: "Nous demanderons un document de l'entreprise.",
+    consent: "J'accepte les {terms} et la {privacy}.",
+    termsLink: "conditions pour les commerçants",
+    privacyLink: "politique de confidentialité",
+    start: "Lancer la revendication",
+    codeTitle: "Saisissez le code",
+    codeLead:
+      "Nous avons envoyé un code à 6 chiffres par {channel} au numéro du commerce qui se termine par {tail}. Demandez à la personne qui répond à ce téléphone.",
+    channelWhatsapp: "WhatsApp",
+    channelVoice: "appel téléphonique",
+    codeLabel: "Code à 6 chiffres",
+    verify: "Vérifier",
+    wrongCode: "Ce code n'est pas bon. Il vous reste {left} essais.",
+    expired: "Ce code a expiré. Recommencez et nous en enverrons un nouveau.",
+    resend: "Envoyer un nouveau code",
+    wrongNumber: "Le numéro est faux, ou personne ne peut répondre",
+    useDocuments: "Envoyer des documents à la place",
+    docsTitle: "Envoyez vos documents",
+    docsLead:
+      "Une personne chez Alo King les lit et vous répond sur WhatsApp. Chaque fichier peut être une photo ou un PDF, jusqu'à 8 Mo.",
+    codeNotDelivered:
+      "Nous n'avons pas pu remettre le code au numéro du commerce, il nous faut donc vos documents.",
+    docKinds: {
+      registration: "Registre de commerce ou autorisation municipale",
+      permit: "Autorisation municipale",
+      company: "Document d'enregistrement de l'entreprise",
+      sign_photo: "Une photo de l'enseigne du commerce",
+      id: "Votre pièce d'identité",
+      other: "Un autre document",
+    } as Record<string, string>,
+    choose: "Choisir un fichier",
+    uploading: "Envoi…",
+    uploaded: "Envoyé",
+    noRegistration: "Je n'ai pas de document d'enregistrement",
+    approvedTitle: "{name} est à vous",
+    approvedText:
+      "Votre numéro WhatsApp est désormais le propriétaire de cette activité. Nous vous envoyons un message WhatsApp avec les prochaines étapes : confirmer vos informations et ajouter votre menu. S'il n'arrive pas, écrivez-nous depuis la page de contact.",
+    reviewTitle: "Nous avons vos documents",
+    reviewText:
+      "Une personne chez Alo King va les lire et vous répondre sur WhatsApp, au numéro que vous avez indiqué. Vous pouvez fermer cette page.",
+    waitlistTitle: "Vous êtes sur la liste d'attente",
+    waitlistText:
+      "Une cuisine à domicile a besoin d'un document d'enregistrement. Nous vous écrirons sur WhatsApp si cela change.",
+    contested:
+      "Quelqu'un d'autre a aussi revendiqué cette activité. Les deux demandes sont suspendues et une personne tranchera après avoir lu les documents. Cela vous protège tous les deux.",
+    sale: "Cette activité a déjà un propriétaire. Pour la reprendre, envoyez vos documents. Le propriétaire actuel est prévenu et dispose de 72 heures pour s'y opposer.",
+    alreadyOwner: "Ce numéro est déjà propriétaire de cette activité.",
+    rateLimited:
+      "Vous avez lancé plusieurs revendications aujourd'hui. Réessayez demain, ou écrivez-nous sur WhatsApp.",
+    notAvailable:
+      "Cette fiche ne peut pas être revendiquée pour le moment. Écrivez-nous sur WhatsApp.",
+    noBrand:
+      "Cette activité ne fait pas partie d'une chaîne dans notre liste. Décochez la case chaîne pour revendiquer cette succursale.",
+    contact: "Nous contacter",
+    errorTitle: "Quelque chose nous a arrêtés",
+  },
+  register: {
+    seoTitle: "Enregistrer une nouvelle activité | Alo King",
+    seoDescription:
+      "Pas encore sur Alo King ? Enregistrez votre commerce, boulangerie, restaurant ou cuisine à domicile pour prendre des commandes sur WhatsApp.",
+    eyebrow: "Nouvelle activité",
+    title: "Enregistrez votre activité",
+    lead: "Pour un commerce, une boulangerie, un restaurant ou une cuisine à domicile qui ne figure pas dans notre liste. Dites-nous ce que c'est et où, puis envoyez vos documents.",
+    stepLabels: ["Activité", "Lieu", "Documents"],
+    nameAr: "Nom de l'activité en arabe",
+    nameEn: "Nom de l'activité en lettres latines",
+    nameHelp: "Remplissez au moins l'un des deux noms.",
+    type: "Quel type d'activité ?",
+    typePlaceholder: "Choisissez un type",
+    homeKitchen: "C'est une cuisine à domicile.",
+    homeKitchenHelp: "Une cuisine à domicile a besoin d'un document d'enregistrement.",
+    chain: "C'est une chaîne et j'en ajouterai les succursales.",
+    phone: "Numéro WhatsApp de l'activité",
+    locationTitle: "Où se trouve-t-elle ?",
+    locationLead:
+      "Placez l'épingle sur l'entrée, sur la carte. Les livreurs utilisent ce point, placez-le avec soin.",
+    pickOnMap: "Choisir sur la carte",
+    useMyLocation: "Utiliser ma position",
+    locating: "Recherche de votre position…",
+    locationDenied: "Nous n'avons pas pu obtenir votre position. Choisissez plutôt sur la carte.",
+    pinned: "Épingle placée : {lat}, {lon}",
+    noPin: "Pas encore d'épingle.",
+    mapHint:
+      "Touchez la carte pour placer l'épingle. Faites glisser pour vous déplacer, zoomez avec + et −.",
+    coords: "Ou saisissez les coordonnées",
+    lat: "Latitude",
+    lon: "Longitude",
+    outside: "L'épingle doit être au Liban.",
+    consent:
+      "J'accepte les {terms} et la {privacy}, et je suis le propriétaire de cette activité ou autorisé par lui.",
+    submit: "Enregistrer et continuer",
+    typeError: "Merci de choisir un type.",
+    nameError: "Merci d'indiquer au moins un nom.",
+    pinError: "Merci de placer l'épingle sur la carte.",
+    reviewNote:
+      "Une nouvelle activité n'est pas visible des clients tant qu'une personne n'a pas approuvé vos documents.",
+  },
+  driversPage: {
+    seoTitle: "Livrez avec Alo King : inscription des livreurs",
+    seoDescription:
+      "Devenez livreur pour Alo King au Liban. Dites-nous où vous roulez, avec quoi et quand. Nous répondons sur WhatsApp.",
+    eyebrow: "Livreurs",
+    title: "Livrez avec Alo King.",
+    lead: "Dites-nous où vous roulez, avec quoi et quand vous êtes disponible. Nous répondons sur WhatsApp et vous expliquons comment les livraisons sont proposées et payées.",
+    honest:
+      "Pendant la phase pilote, les commerces livrent eux-mêmes leurs commandes. Nous construisons le réseau de livreurs zone par zone, et les candidatures nous aident à choisir par où commencer.",
+    stepsTitle: "Ce qui se passe ensuite",
+    steps: [
+      {
+        title: "Vous postulez",
+        text: "Un formulaire de deux minutes, sans documents pour l'instant.",
+      },
+      {
+        title: "Nous vous écrivons",
+        text: "Une personne vous écrit sur WhatsApp, en arabe, en anglais ou en français.",
+      },
+      {
+        title: "Un court échange",
+        text: "Nous expliquons comment le travail est proposé et payé, et vérifions votre véhicule et votre permis.",
+      },
+      {
+        title: "Vous démarrez",
+        text: "Quand la livraison par des livreurs ouvre dans votre zone, vous êtes parmi les premiers appelés.",
+      },
+    ],
+    formTitle: "Postuler pour livrer",
+    place: "Où roulez-vous ?",
+    placeHelp: "Votre village ou votre ville.",
+    vehicle: "Avec quoi roulez-vous ?",
+    vehicles: { motorbike: "Moto", car: "Voiture", bicycle: "Vélo", van: "Camionnette" } as Record<
+      string,
+      string
+    >,
+    licence: "J'ai un permis valide pour ce véhicule.",
+    languages: "Langues parlées",
+    langNames: { ar: "Arabe", en: "Anglais", fr: "Français" } as Record<string, string>,
+    availability: "Quand pouvez-vous rouler ?",
+    availNames: {
+      mornings: "Matins",
+      afternoons: "Après-midis",
+      evenings: "Soirs",
+      nights: "Tard le soir",
+      weekends: "Week-ends",
+    } as Record<string, string>,
+    note: "Autre chose à nous dire ?",
+    consent:
+      "J'accepte qu'Alo King me contacte sur WhatsApp au sujet de cette candidature, comme décrit dans la {privacy}. Postuler ne m'engage pas, ni Alo King.",
+    submit: "Envoyer ma candidature",
+    vehicleError: "Merci de choisir un véhicule.",
+    placeError: "Merci d'indiquer où vous roulez.",
+    doneTitle: "Merci, nous avons votre candidature",
+    doneText: "Une personne chez Alo King vous écrira sur WhatsApp. Vous pouvez fermer cette page.",
+    updated:
+      "Nous avions déjà une candidature de ce numéro, nous l'avons donc mise à jour avec vos nouvelles réponses.",
   },
 };

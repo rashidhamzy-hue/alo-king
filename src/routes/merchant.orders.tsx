@@ -9,7 +9,9 @@ import { useMerchant } from "@/components/merchant/context";
 import { KitchenOrderCard } from "@/components/merchant/KitchenOrderCard";
 import { supabase } from "@/lib/supabase";
 import { ORDER_COLUMNS, type Order } from "@/lib/types";
-import { errMsg, lbp, startOfToday, usd } from "@/lib/format";
+import { errMsg, startOfToday, usd } from "@/lib/format";
+import { useLbp } from "@/lib/rate";
+import { useL } from "@/lib/i18n";
 import { playChime, unlockAudio } from "@/lib/chime";
 import { useNow } from "@/hooks/use-now";
 
@@ -38,6 +40,8 @@ function OrdersPage() {
 }
 
 function Terminal({ vendorId }: { vendorId: string }) {
+  const lbp = useLbp();
+  const L = useL();
   const now = useNow(1000);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,13 +176,13 @@ function Terminal({ vendorId }: { vendorId: string }) {
   }
 
   const cols = [
-    { title: "New", list: pending },
+    { title: L("New", "جديدة", "Nouvelles"), list: pending },
     {
-      title: "In kitchen",
+      title: L("In kitchen", "بالمطبخ", "En cuisine"),
       list: orders.filter((o) => o.status === "accepted" || o.status === "preparing"),
     },
     {
-      title: "Ready / on the way",
+      title: L("Ready / on the way", "جاهزة / عالطريق", "Prêtes / en route"),
       list: orders.filter((o) => o.status === "ready" || o.status === "out_for_delivery"),
     },
   ];
@@ -187,21 +191,30 @@ function Terminal({ vendorId }: { vendorId: string }) {
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-4">
         <div>
-          <h1 className="text-3xl font-semibold">{vendorQ.data?.name_en ?? "Kitchen"}</h1>
+          <h1 className="text-3xl font-semibold">
+            {vendorQ.data?.name_en ?? L("Kitchen", "المطبخ", "Cuisine")}
+          </h1>
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             {online ? (
               <Wifi className="size-4 text-success" />
             ) : (
               <WifiOff className="size-4 text-destructive" />
             )}
-            {online ? "Live" : "Offline, reconnecting…"} · Today {today.count} orders ·{" "}
-            {usd(today.revenue)} ({lbp(today.revenue)})
+            {online
+              ? L("Live", "مباشر", "En direct")
+              : L(
+                  "Offline, reconnecting…",
+                  "مقطوع، عم نعيد الاتصال…",
+                  "Hors ligne, reconnexion…",
+                )}{" "}
+            · {L("Today", "اليوم", "Aujourd'hui")} {today.count} {L("orders", "طلبات", "commandes")}{" "}
+            · {usd(today.revenue)} {lbp(today.revenue) && `(${lbp(today.revenue)})`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {unacked.size > 0 && (
             <Button variant="gold" size="lg" onClick={() => setUnacked(new Set())}>
-              Acknowledge ({unacked.size})
+              {L("Acknowledge", "تأكيد الاستلام", "Accuser réception")} ({unacked.size})
             </Button>
           )}
           {!soundOn ? (
@@ -214,23 +227,24 @@ function Terminal({ vendorId }: { vendorId: string }) {
                 playChime();
               }}
             >
-              <Volume2 /> Enable sound
+              <Volume2 /> {L("Enable sound", "شغّل الصوت", "Activer le son")}
             </Button>
           ) : (
             <Button
               variant="hairline"
               size="lg"
               onClick={() => setMuted((m) => !m)}
-              aria-label="Toggle mute"
+              aria-label={L("Toggle mute", "كتم الصوت", "Couper le son")}
             >
-              {muted ? <VolumeX /> : <Volume2 />} {muted ? "Muted" : "Sound on"}
+              {muted ? <VolumeX /> : <Volume2 />}{" "}
+              {muted ? L("Muted", "صامت", "Muet") : L("Sound on", "الصوت شغّال", "Son activé")}
             </Button>
           )}
         </div>
       </header>
-      <div className="grid flex-1 gap-5 p-5 lg:grid-cols-3">
+      <div className="grid flex-1 grid-cols-1 gap-5 p-5 lg:grid-cols-3">
         {cols.map((c) => (
-          <section key={c.title} className="flex flex-col rounded-2xl bg-card/40 p-4">
+          <section key={c.title} className="flex min-w-0 flex-col rounded-[1.25rem] bg-card/40 p-4">
             <h2 className="mb-4 flex items-center justify-between text-2xl font-semibold">
               {c.title}{" "}
               <span className="rounded-full bg-muted px-3 text-base">{c.list.length}</span>
@@ -238,7 +252,9 @@ function Terminal({ vendorId }: { vendorId: string }) {
             <div className="space-y-4">
               {loading && <Skeleton className="h-56 rounded-xl" />}
               {!loading && c.list.length === 0 && (
-                <p className="py-10 text-center text-muted-foreground">Nothing here</p>
+                <p className="py-10 text-center text-muted-foreground">
+                  {L("Nothing here", "ما في شي", "Rien ici")}
+                </p>
               )}
               {c.list.map((o) => (
                 <div key={o.id} onPointerDown={() => ack(o.id)}>

@@ -7,11 +7,14 @@ export function TagInput({
   onChange,
   placeholder,
   suggestions = [],
+  id,
 }: {
   value: string[];
   onChange: (v: string[]) => void;
   placeholder?: string;
   suggestions?: string[];
+  /** Set by the label around it, so the field is announced by name. */
+  id?: string;
 }) {
   const [draft, setDraft] = useState("");
   const add = (t: string) => {
@@ -42,6 +45,8 @@ export function TagInput({
         ))}
       </div>
       <Input
+        id={id}
+        aria-label={id ? undefined : placeholder}
         value={draft}
         placeholder={placeholder}
         onChange={(e) => setDraft(e.target.value)}

@@ -780,3 +780,199 @@ html[lang="ar"] .ak-h1 {
   font-size: clamp(1.9rem, 1rem + 3.2vw, 3.2rem);
   line-height: 1.3;
 }
+
+/* ---- Forms (session 6b): claim, registration, driver sign-up ------------------------------------------------------
+   Boundaries of fields are 3:1 against their background (WCAG 1.4.11), errors never rely on colour alone. */
+.tone-night {
+  --tone-field-line: #9d93a3;
+  --tone-error: #ff9d8f;
+}
+.tone-cream {
+  --tone-field-line: #7a6f7e;
+  --tone-error: #b3261e;
+}
+.ak-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.ak-help {
+  margin-top: 0.3rem;
+  font-size: 0.875rem;
+  color: var(--tone-mute);
+}
+.ak-input {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.9rem;
+  border: 1.5px solid var(--tone-field-line);
+  background: var(--tone-surface);
+  color: var(--tone-fg);
+  font: inherit;
+  font-size: 1.0625rem;
+}
+.ak-input::placeholder {
+  color: var(--tone-mute);
+  opacity: 0.85;
+}
+.ak-input[dir="ltr"] {
+  text-align: start;
+}
+html[dir="rtl"] .ak-input[dir="ltr"] {
+  text-align: right;
+}
+textarea.ak-input {
+  min-height: 6rem;
+  resize: vertical;
+}
+.ak-input[aria-invalid="true"] {
+  border-color: var(--tone-error);
+  border-width: 2px;
+}
+.ak-error {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--tone-error);
+}
+.ak-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+.ak-check input {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-top: 0.15rem;
+  accent-color: var(--ink);
+}
+.tone-night .ak-check input {
+  accent-color: var(--gold);
+}
+/* A choice shown as a chip (vehicles, languages, times). The input is the chip: keyboard and screen readers keep working. */
+.ak-chip-input {
+  position: relative;
+}
+.ak-chip-input input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.ak-chip-input span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--tone-field-line);
+  background: var(--tone-surface);
+  font-weight: 600;
+}
+.ak-chip-input input:checked + span {
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--ink);
+}
+.tone-night .ak-chip-input input:checked + span {
+  background: var(--gold);
+  color: var(--ink);
+  border-color: var(--gold);
+}
+.ak-chip-input input:checked + span::before {
+  content: "✓";
+  font-weight: 800;
+}
+.ak-chip-input input:focus-visible + span {
+  outline: 3px solid var(--tone-fg);
+  outline-offset: 2px;
+}
+.ak-alert {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.9rem 1.1rem;
+  border-radius: 1rem;
+  border: 1.5px solid var(--tone-field-line);
+  background: var(--tone-surface-2);
+}
+.ak-alert-error {
+  border-color: var(--tone-error);
+}
+.ak-alert-ok {
+  border-color: var(--tone-ok);
+}
+.ak-steps {
+  display: flex;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.ak-steps li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--tone-mute);
+}
+.ak-steps li::before {
+  content: attr(data-n);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--tone-field-line);
+  font-size: 0.85rem;
+}
+.ak-steps li[aria-current="step"] {
+  color: var(--tone-fg);
+}
+.ak-steps li[aria-current="step"]::before {
+  background: var(--gold);
+  color: var(--ink);
+  border-color: var(--gold);
+}
+.ak-steps li[data-done="true"]::before {
+  content: "✓";
+  background: var(--ink);
+  color: var(--cream);
+  border-color: var(--ink);
+}
+.ak-steps li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 30rem) {
+  .ak-steps li:not([aria-current="step"]) {
+    flex: none;
+  }
+  .ak-steps li:not([aria-current="step"]) span {
+    display: none;
+  }
+  .ak-steps li[aria-current="step"] span {
+    overflow: visible;
+    white-space: normal;
+  }
+}
+.ak-map {
+  height: 20rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1.5px solid var(--tone-field-line);
+}

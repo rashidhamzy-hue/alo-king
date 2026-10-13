@@ -1,4 +1,4 @@
-# Handoff — 13 October 2026 (after session 6a)
+# Handoff — 13 October 2026 (after session 6b)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
@@ -155,12 +155,24 @@
   - **CI:** the `web-quality` job (fixture mock, axe, overflow, console, JavaScript budget, interactions, Lighthouse, screenshots as an artifact) is part of the automerge gate. Measured: Lighthouse performance 98-99, accessibility 100, SEO 100, LCP at most 2.3 s, CLS 0, JavaScript at most 125 KB gzipped.
   - **Open for later:**
     - Indexing is off everywhere until the production project sets `SITE_URL`, `SITE_INDEXING=on` and `VITE_WHATSAPP_NUMBER` (CUT-OVER, session 14). Until the number exists the Order buttons lead to the contact page.
-    - Merchant, driver, admin, claim and for-business pages keep their old look (6b); they now get react-query and toasts from `PrivateShell`.
+    - Merchant, driver, admin, claim and for-business pages keep their old look (done in 6b).
     - Re-run `scripts/web/build-lebanon-dots.mjs` after session D replaces the places list.
     - The bot does not send tracking links yet; session 13 should review `order_track_public` (the one anonymous security-definer function).
     - Legal pages wait for the lawyer (#72); PostHog (§24.7) and a Google Business Profile are not in 6a.
     - Business-type pages (bakery, grocery) were not built, only cuisines.
-- **Next: session 6b (merchants: landing and calculator page, claim and registration, merchant terms, dashboard restyle with the AI side-panel shell, driver sign-up, admin restyle)**, then 13, D, 5b and 14 (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
+- **Session 6b (website, merchants and staff, §37.4): done (13 October).** One PR (see LOG.md "session 6b PR" lines); final screenshots and the Vercel preview link are in the PR, the curated set is in `docs/design/session-6b/`.
+  - **New public pages** (in `/ar`, `/en`, `/fr`): `for-merchants` (the fee and savings calculator, how it works, what you get, the two legal pages, FAQ), `claim` (search, then a code to the shop's own phone or papers), `register` (a new business with a map pin and papers), `drivers` (sign-up form), and the legal pages `merchant-terms` and `collection-mandate`. Old `/for-business` and `/claim/<slug>` redirect.
+  - **Backend:** edge function `site-claim` (deployed, anonymous, rate limited per visitor), migrations `20261013120000/100` (`web_rate_hit`, `driver_applications`, `driver_apply`, `vendor_claim_lookup`, operator read of claim documents), SQL tests `99_site_forms.sql`, unit tests `_shared/site-claim.test.ts`.
+  - **Staff pages restyled** to the design system (tokens, buttons, inputs, cards; three-way language switch; fixture QA in CI): sign-in, the merchant layout with the **AI onboarding side panel** (docked at 1280 px and wider, a sheet below; a checklist from the shop's own data; the assistant itself is off, `MERCHANT_ASSISTANT_LIVE`), the kitchen terminal, the admin console (claims queue on the rebuilt `vendor_claims` with signed document links and `claim_decide`, and the driver applications queue), and the driver app's chrome. The legacy constants `LBP_RATE`, `COD_CAP`, `DELIVERY_FEE` are gone (the rate is read from `usd_lbp_rate`).
+  - **CI:** `web-quality` now also runs `scripts/web/qa-private.mjs` (staff pages, planted session against the fixture mock) and Lighthouse on the new public pages.
+  - **Open for later:**
+    - **The merchant dashboard pages (home data, menu, profile, import, orders) and the driver app still read the legacy tables** and cannot work on the rebuilt database; a merchant also has no web sign-in yet (phone sign-in by a WhatsApp code). That is a rewiring session (menu editor on `menu_items`, orders on the order tables, `vendor_ops`, hours), not a restyle; until then "For merchants" says everything works on WhatsApp.
+    - A website claim's code reaches the shop's own number only by WhatsApp inside the 24-hour window or by a voice call (no Twilio yet), so most claims fall to documents until the company templates exist (5b/14).
+    - Staff-page French covers the chrome, the kitchen terminal, the admin console and the panel; the long legacy forms (menu editor, profile, import wizard) are English and Arabic only.
+    - `site-claim` secrets: `KAPSO_API_KEY` (already synced); optional `SITE_VISITOR_PEPPER` (else the last 16 characters of the service key are used as the pepper), `TWILIO_*`, `SENTRY_DSN`.
+    - Cut-over (session 14): check that `/for-merchants` and `/drivers` appear in the sitemap, that `claim`/`register` stay `noindex`, and that no `+999` number can reach `site-claim`'s Kapso send (it is refused).
+    - Driver terms do not exist yet (applying binds nobody); the lawyer's letter (#72) covers §21.6.
+- **Next: session 13 (security review; look at `site-claim`, `order_track_public` and the storage policy), then D, 5b and 14** (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
 
 ## How to start each build session
 

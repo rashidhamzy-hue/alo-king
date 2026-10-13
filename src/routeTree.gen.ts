@@ -20,8 +20,12 @@ import { Route as MerchantRouteImport } from './routes/merchant'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LangIndexRouteImport } from './routes/$lang.index'
+import { Route as LangClaimRouteImport } from './routes/$lang.claim'
 import { Route as LangContactRouteImport } from './routes/$lang.contact'
+import { Route as LangDriversRouteImport } from './routes/$lang.drivers'
+import { Route as LangForMerchantsRouteImport } from './routes/$lang.for-merchants'
 import { Route as LangHelpRouteImport } from './routes/$lang.help'
+import { Route as LangRegisterRouteImport } from './routes/$lang.register'
 import { Route as LangSendHomeRouteImport } from './routes/$lang.send-home'
 import { Route as ClaimSlugRouteImport } from './routes/claim.$slug'
 import { Route as MSlugRouteImport } from './routes/m.$slug'
@@ -97,14 +101,34 @@ const LangIndexRoute = LangIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LangRoute,
 } as any)
+const LangClaimRoute = LangClaimRouteImport.update({
+  id: '/claim',
+  path: '/claim',
+  getParentRoute: () => LangRoute,
+} as any)
 const LangContactRoute = LangContactRouteImport.update({
   id: '/contact',
   path: '/contact',
   getParentRoute: () => LangRoute,
 } as any)
+const LangDriversRoute = LangDriversRouteImport.update({
+  id: '/drivers',
+  path: '/drivers',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangForMerchantsRoute = LangForMerchantsRouteImport.update({
+  id: '/for-merchants',
+  path: '/for-merchants',
+  getParentRoute: () => LangRoute,
+} as any)
 const LangHelpRoute = LangHelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangRegisterRoute = LangRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => LangRoute,
 } as any)
 const LangSendHomeRoute = LangSendHomeRouteImport.update({
@@ -215,8 +239,12 @@ export interface FileRoutesByFullPath {
   '/merchant': typeof MerchantRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$lang/claim': typeof LangClaimRoute
   '/$lang/contact': typeof LangContactRoute
+  '/$lang/drivers': typeof LangDriversRoute
+  '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
+  '/$lang/register': typeof LangRegisterRoute
   '/$lang/send-home': typeof LangSendHomeRoute
   '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
@@ -247,8 +275,12 @@ export interface FileRoutesByTo {
   '/llms.txt': typeof LlmsDottxtRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$lang/claim': typeof LangClaimRoute
   '/$lang/contact': typeof LangContactRoute
+  '/$lang/drivers': typeof LangDriversRoute
+  '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
+  '/$lang/register': typeof LangRegisterRoute
   '/$lang/send-home': typeof LangSendHomeRoute
   '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
@@ -282,8 +314,12 @@ export interface FileRoutesById {
   '/merchant': typeof MerchantRouteWithChildren
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$lang/claim': typeof LangClaimRoute
   '/$lang/contact': typeof LangContactRoute
+  '/$lang/drivers': typeof LangDriversRoute
+  '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
+  '/$lang/register': typeof LangRegisterRoute
   '/$lang/send-home': typeof LangSendHomeRoute
   '/claim/$slug': typeof ClaimSlugRoute
   '/m/$slug': typeof MSlugRoute
@@ -318,8 +354,12 @@ export interface FileRouteTypes {
     | '/merchant'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/$lang/claim'
     | '/$lang/contact'
+    | '/$lang/drivers'
+    | '/$lang/for-merchants'
     | '/$lang/help'
+    | '/$lang/register'
     | '/$lang/send-home'
     | '/claim/$slug'
     | '/m/$slug'
@@ -350,8 +390,12 @@ export interface FileRouteTypes {
     | '/llms.txt'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/$lang/claim'
     | '/$lang/contact'
+    | '/$lang/drivers'
+    | '/$lang/for-merchants'
     | '/$lang/help'
+    | '/$lang/register'
     | '/$lang/send-home'
     | '/claim/$slug'
     | '/m/$slug'
@@ -384,8 +428,12 @@ export interface FileRouteTypes {
     | '/merchant'
     | '/robots.txt'
     | '/sitemap.xml'
+    | '/$lang/claim'
     | '/$lang/contact'
+    | '/$lang/drivers'
+    | '/$lang/for-merchants'
     | '/$lang/help'
+    | '/$lang/register'
     | '/$lang/send-home'
     | '/claim/$slug'
     | '/m/$slug'
@@ -504,6 +552,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangIndexRouteImport
       parentRoute: typeof LangRoute
     }
+    '/$lang/claim': {
+      id: '/$lang/claim'
+      path: '/claim'
+      fullPath: '/$lang/claim'
+      preLoaderRoute: typeof LangClaimRouteImport
+      parentRoute: typeof LangRoute
+    }
     '/$lang/contact': {
       id: '/$lang/contact'
       path: '/contact'
@@ -511,11 +566,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangContactRouteImport
       parentRoute: typeof LangRoute
     }
+    '/$lang/drivers': {
+      id: '/$lang/drivers'
+      path: '/drivers'
+      fullPath: '/$lang/drivers'
+      preLoaderRoute: typeof LangDriversRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/for-merchants': {
+      id: '/$lang/for-merchants'
+      path: '/for-merchants'
+      fullPath: '/$lang/for-merchants'
+      preLoaderRoute: typeof LangForMerchantsRouteImport
+      parentRoute: typeof LangRoute
+    }
     '/$lang/help': {
       id: '/$lang/help'
       path: '/help'
       fullPath: '/$lang/help'
       preLoaderRoute: typeof LangHelpRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/register': {
+      id: '/$lang/register'
+      path: '/register'
+      fullPath: '/$lang/register'
+      preLoaderRoute: typeof LangRegisterRouteImport
       parentRoute: typeof LangRoute
     }
     '/$lang/send-home': {
@@ -655,8 +731,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface LangRouteChildren {
+  LangClaimRoute: typeof LangClaimRoute
   LangContactRoute: typeof LangContactRoute
+  LangDriversRoute: typeof LangDriversRoute
+  LangForMerchantsRoute: typeof LangForMerchantsRoute
   LangHelpRoute: typeof LangHelpRoute
+  LangRegisterRoute: typeof LangRegisterRoute
   LangSendHomeRoute: typeof LangSendHomeRoute
   LangIndexRoute: typeof LangIndexRoute
   LangCuisineTagRoute: typeof LangCuisineTagRoute
@@ -669,8 +749,12 @@ interface LangRouteChildren {
 }
 
 const LangRouteChildren: LangRouteChildren = {
+  LangClaimRoute: LangClaimRoute,
   LangContactRoute: LangContactRoute,
+  LangDriversRoute: LangDriversRoute,
+  LangForMerchantsRoute: LangForMerchantsRoute,
   LangHelpRoute: LangHelpRoute,
+  LangRegisterRoute: LangRegisterRoute,
   LangSendHomeRoute: LangSendHomeRoute,
   LangIndexRoute: LangIndexRoute,
   LangCuisineTagRoute: LangCuisineTagRoute,

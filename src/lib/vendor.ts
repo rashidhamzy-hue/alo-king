@@ -1,4 +1,4 @@
-import { LBP_RATE, WHATSAPP_NUMBER } from "./config";
+import { WHATSAPP_NUMBER } from "./config";
 
 /** Returns null for placeholder values like "0.0", "", "null". */
 export const clean = (s: string | null | undefined): string | null => {
@@ -180,8 +180,6 @@ export const mapsLink = (lat: number | null | undefined, lng: number | null | un
   lat != null && lng != null
     ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
     : null;
-
-export const toLbp = (usd: number) => Math.round(usd * LBP_RATE);
 
 /** Category -> gradient classes for card/hero fallbacks (uses theme tokens). */
 export function categoryGradient(cat: string | null | undefined) {

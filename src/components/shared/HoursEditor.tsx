@@ -36,6 +36,7 @@ export function HoursEditor({ value, onChange }: { value: Hours; onChange: (h: H
                   <Input
                     type="time"
                     value={r[0]}
+                    aria-label={`${L(...DAY_LABEL[d])} · ${L("opens", "بيفتح", "ouvre")}`}
                     className="w-32"
                     onChange={(e) =>
                       set(
@@ -48,6 +49,7 @@ export function HoursEditor({ value, onChange }: { value: Hours; onChange: (h: H
                   <Input
                     type="time"
                     value={r[1]}
+                    aria-label={`${L(...DAY_LABEL[d])} · ${L("closes", "بيسكّر", "ferme")}`}
                     className="w-32"
                     onChange={(e) =>
                       set(

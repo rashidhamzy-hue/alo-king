@@ -15,7 +15,9 @@ import {
   type Completeness,
 } from "@/components/merchant/context";
 import { supabase } from "@/lib/supabase";
-import { errMsg, lbp, startOfToday, usd } from "@/lib/format";
+import { errMsg, startOfToday, usd } from "@/lib/format";
+import { useLbp } from "@/lib/rate";
+import { MERCHANT_ASSISTANT_LIVE } from "@/lib/site-config";
 import { useL } from "@/lib/i18n";
 
 export const Route = createFileRoute("/merchant/")({
@@ -153,6 +155,7 @@ function buildTasks(c: Completeness): Task[] {
 
 function MerchantHome() {
   const L = useL();
+  const lbp = useLbp();
   const { vendorId, openAssistant } = useMerchant();
   const cQ = useCompleteness(vendorId);
   const pQ = useVendorProfile(vendorId);
@@ -282,7 +285,9 @@ function MerchantHome() {
             <div>
               <p className="text-xs text-muted-foreground">{L("Revenue", "المبيعات")}</p>
               <p className="font-display text-3xl">{usd(todayQ.data?.revenue ?? 0)}</p>
-              <p className="text-xs text-muted-foreground">{lbp(todayQ.data?.revenue ?? 0)}</p>
+              {lbp(todayQ.data?.revenue ?? 0) && (
+                <p className="text-xs text-muted-foreground">{lbp(todayQ.data?.revenue ?? 0)}</p>
+              )}
             </div>
           </div>
         </div>
@@ -306,9 +311,12 @@ function MerchantHome() {
             >
               <span>{L(t.en, t.ar)}</span>
               <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => openAssistant(t.prompt)}>
-                  <Sparkles /> {L("Fix with assistant", "صلّحها مع المساعد")}
-                </Button>
+                {MERCHANT_ASSISTANT_LIVE && (
+                  <Button size="sm" variant="ghost" onClick={() => openAssistant(t.prompt)}>
+                    <Sparkles />{" "}
+                    {L("Fix with assistant", "صلّحها مع المساعد", "Corriger avec l'assistant")}
+                  </Button>
+                )}
                 <Button size="sm" variant="hairline" asChild>
                   <Link to={t.to}>
                     {L("Open", "افتح")} <ArrowRight className="rtl:rotate-180" />

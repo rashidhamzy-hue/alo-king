@@ -2,7 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useSite } from "./context";
 
-export type Crumb = { label: string; to?: "/$lang" | "/$lang/places" | "/$lang/cuisine" };
+export type Crumb = {
+  label: string;
+  to?: "/$lang" | "/$lang/places" | "/$lang/cuisine" | "/$lang/for-merchants" | "/$lang/claim";
+};
 
 /** Visible breadcrumbs; the BreadcrumbList structured data is built from the same list by `crumbsLd`. */
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
