@@ -78,7 +78,7 @@ Deno.serve(
       const res = await fetch(`${supabaseUrl}/storage/v1/object/claim-documents/${path}`, {
         method: "POST",
         headers: { authorization: `Bearer ${serviceKey}`, "content-type": mime },
-        body: bytes,
+        body: new Uint8Array(bytes),
       });
       await res.body?.cancel();
       return res.ok;
