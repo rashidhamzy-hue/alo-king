@@ -136,7 +136,7 @@ function MenuManager() {
           {L("Menu", "المنيو")}{" "}
           <span className="text-base text-muted-foreground">{items.length}</span>
         </h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="hairline" asChild>
             <Link to="/merchant/menu/import">
               <Sparkles /> {L("Import menu with AI", "استورد المنيو بالذكاء")}
