@@ -25,10 +25,10 @@ export async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Pr
   }
 }
 
-/** Reads a public table (anon key, row-level security applies). Returns null on any failure, like `rpc`. */
-/** The public tables this reader may be pointed at: reference data only. */
+/** The public tables `select` may be pointed at: reference data only. */
 const READABLE = ["business_type_labels"];
 
+/** Reads a public table (anon key, row-level security applies). Returns null on any failure, like `rpc`. */
 export async function select<T>(table: string, query: string): Promise<T[] | null> {
   if (!READABLE.includes(table)) return null;
   try {
