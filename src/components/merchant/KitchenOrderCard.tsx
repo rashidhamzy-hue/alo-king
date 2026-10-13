@@ -15,7 +15,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ageLabel, isCOD, lbp, usd } from "@/lib/format";
+import { ageLabel, isCOD, usd } from "@/lib/format";
+import { useLbp } from "@/lib/rate";
+import { useL } from "@/lib/i18n";
 import type { Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +45,8 @@ export function KitchenOrderCard({
   onDelivered,
   busy,
 }: Props) {
+  const lbp = useLbp();
+  const L = useL();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const demo = (o.notes ?? "").trim().toUpperCase().startsWith("DEMO");
@@ -85,7 +89,8 @@ export function KitchenOrderCard({
         </p>
       )}
       <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-        <MapPin className="size-4 text-gold" /> {o.delivery_village ?? "Village n/a"}
+        <MapPin className="size-4 text-gold" />{" "}
+        {o.delivery_village ?? L("Village n/a", "القرية غير محددة", "Village non précisé")}
         {o.building_landmark ? ` · ${o.building_landmark}` : ""}
       </p>
       <div className="mt-3 flex items-end justify-between border-t border-border pt-3">
@@ -94,14 +99,15 @@ export function KitchenOrderCard({
           <p className="text-xs text-muted-foreground">{lbp(o.total_usd)}</p>
         </div>
         <span className="rounded-full border border-border px-3 py-1 text-xs uppercase">
-          {isCOD(o.payment_method) ? "COD" : o.payment_method} · {o.payment_status ?? "unpaid"}
+          {isCOD(o.payment_method) ? L("Cash", "كاش", "Espèces") : o.payment_method} ·{" "}
+          {o.payment_status ?? L("unpaid", "غير مدفوع", "non payé")}
         </span>
       </div>
 
-      <div className="mt-5 flex gap-2">
+      <div className="mt-5 flex flex-wrap gap-2">
         {o.status === "pending" && (
           <>
-            <div className="flex flex-1">
+            <div className="flex min-w-[12rem] flex-1">
               <Button
                 variant="gold"
                 size="xl"
@@ -109,7 +115,7 @@ export function KitchenOrderCard({
                 disabled={busy}
                 onClick={() => onAccept(15)}
               >
-                Accept (15m)
+                {L("Accept", "قبول", "Accepter")} (15m)
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -118,7 +124,11 @@ export function KitchenOrderCard({
                     size="xl"
                     className="rounded-s-none border-s border-gold-foreground/20 px-4"
                     disabled={busy}
-                    aria-label="Other prep times"
+                    aria-label={L(
+                      "Other prep times",
+                      "أوقات تحضير أخرى",
+                      "Autres temps de préparation",
+                    )}
                   >
                     <ChevronDown />
                   </Button>
@@ -130,31 +140,36 @@ export function KitchenOrderCard({
                       className="py-3 text-base"
                       onClick={() => onAccept(m)}
                     >
-                      Accept ({m}m)
+                      {L("Accept", "قبول", "Accepter")} ({m}m)
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
             <Button variant="hairline" size="xl" disabled={busy} onClick={() => setRejecting(true)}>
-              Reject
+              {L("Reject", "رفض", "Refuser")}
             </Button>
           </>
         )}
         {(o.status === "accepted" || o.status === "preparing") && (
           <Button variant="emerald" size="xl" className="flex-1" disabled={busy} onClick={onReady}>
-            Food Ready{o.prep_minutes ? ` · ${o.prep_minutes}m` : ""}
+            {L("Food ready", "الأكل جاهز", "Commande prête")}
+            {o.prep_minutes ? ` · ${o.prep_minutes}m` : ""}
           </Button>
         )}
         {o.status === "ready" && o.driver_id && (
           <p className="w-full rounded-xl bg-secondary/40 py-4 text-center text-secondary-foreground">
-            Driver assigned, awaiting pickup
+            {L(
+              "Driver assigned, awaiting pickup",
+              "السائق معيّن، بانتظار الاستلام",
+              "Livreur assigné, en attente de retrait",
+            )}
           </p>
         )}
         {o.status === "ready" && !o.driver_id && (
           <div className="flex w-full flex-col gap-2">
             <p className="rounded-xl bg-secondary/40 py-3 text-center text-secondary-foreground">
-              No driver assigned
+              {L("No driver assigned", "ما في سائق معيّن", "Aucun livreur assigné")}
             </p>
             {onOutForDelivery && (
               <Button
@@ -164,7 +179,11 @@ export function KitchenOrderCard({
                 disabled={busy}
                 onClick={onOutForDelivery}
               >
-                Out for delivery (we deliver)
+                {L(
+                  "Out for delivery (we deliver)",
+                  "عالطريق للتوصيل (منوصّل نحنا)",
+                  "En livraison (nous livrons)",
+                )}
               </Button>
             )}
           </div>
@@ -172,7 +191,7 @@ export function KitchenOrderCard({
         {o.status === "out_for_delivery" &&
           (o.driver_id || !onDelivered ? (
             <p className="w-full rounded-xl bg-secondary/40 py-4 text-center text-secondary-foreground">
-              On the way with the driver
+              {L("On the way with the driver", "عالطريق مع السائق", "En route avec le livreur")}
             </p>
           ) : (
             <Button
@@ -182,7 +201,7 @@ export function KitchenOrderCard({
               disabled={busy}
               onClick={onDelivered}
             >
-              Mark delivered
+              {L("Mark delivered", "تم التسليم", "Marquer livrée")}
             </Button>
           ))}
       </div>
@@ -190,16 +209,22 @@ export function KitchenOrderCard({
       <Dialog open={rejecting} onOpenChange={setRejecting}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject #{o.short_code}</DialogTitle>
+            <DialogTitle>
+              {L("Reject", "رفض", "Refuser")} #{o.short_code}
+            </DialogTitle>
           </DialogHeader>
           <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Reason (e.g. item unavailable, closing soon)"
+            placeholder={L(
+              "Reason (e.g. item unavailable, closing soon)",
+              "السبب (مثلاً الصنف خلص، عم نسكّر)",
+              "Motif (p. ex. article épuisé, fermeture proche)",
+            )}
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setRejecting(false)}>
-              Cancel
+              {L("Cancel", "إلغاء", "Annuler")}
             </Button>
             <Button
               variant="destructive"
@@ -209,7 +234,7 @@ export function KitchenOrderCard({
                 setRejecting(false);
               }}
             >
-              Reject order
+              {L("Reject order", "رفض الطلب", "Refuser la commande")}
             </Button>
           </DialogFooter>
         </DialogContent>

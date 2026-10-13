@@ -1,8 +1,4 @@
-import { LBP_RATE } from "./config";
-
 export const usd = (n: number | null | undefined) => `$${(Number(n) || 0).toFixed(2)}`;
-export const lbp = (n: number | null | undefined) =>
-  `${Math.round((Number(n) || 0) * LBP_RATE).toLocaleString("en-US")} LBP`;
 
 export const isCOD = (method: string | null | undefined) => {
   const m = (method || "cod").toLowerCase();

@@ -77,12 +77,13 @@ function ContactPage() {
           <div className="ak-card p-6">
             <h2 className="ak-h3">{c.merchantsTitle}</h2>
             <p className="mt-2 text-tone-mute">{c.merchantsText}</p>
-            <a
-              href="/for-business"
+            <Link
+              to="/$lang/for-merchants"
+              params={{ lang }}
               className="mt-3 inline-block font-bold underline underline-offset-4"
             >
               {t.nav.merchants}
-            </a>
+            </Link>
           </div>
         </div>
       </section>

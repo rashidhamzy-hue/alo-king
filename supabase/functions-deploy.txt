@@ -4,3 +4,4 @@
 # each is added here once it runs against the new baseline schema.
 whatsapp-webhook
 dispatch
+site-claim

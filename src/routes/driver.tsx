@@ -18,11 +18,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StaffGate, signOut } from "@/components/staff/StaffGate";
+import { Crown } from "@/design/Crown";
+import { LangToggle } from "@/components/landing/SiteHeader";
 import { CashGauge } from "@/components/driver/CashGauge";
 import { supabase } from "@/lib/supabase";
 import { ORDER_COLUMNS, type Order, type Vendor } from "@/lib/types";
 import { VENDOR_COLUMNS } from "@/lib/config";
-import { errMsg, fmtTime, isCOD, lbp, startOfToday, usd } from "@/lib/format";
+import { errMsg, fmtTime, isCOD, startOfToday, usd } from "@/lib/format";
+import { useLbp } from "@/lib/rate";
 
 export const Route = createFileRoute("/driver")({
   head: () => ({
@@ -51,7 +54,7 @@ export const Route = createFileRoute("/driver")({
 function DriverRoute() {
   return (
     <PrivateShell>
-      <StaffGate roles={["driver", "admin"]} title="Driver">
+      <StaffGate roles={["driver", "admin"]} title={["Driver", "السائق", "Livreur"]}>
         {(_p, s) => <DriverApp uid={s.user.id} />}
       </StaffGate>
     </PrivateShell>
@@ -70,6 +73,7 @@ const navLinks = (lat: number | null | undefined, lng: number | null | undefined
       };
 
 function DriverApp({ uid }: { uid: string }) {
+  const lbp = useLbp();
   const qc = useQueryClient();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,11 +214,16 @@ function DriverApp({ uid }: { uid: string }) {
 
   return (
     <div className="mx-auto min-h-screen max-w-md pb-16">
-      <header className="flex items-center justify-between px-5 pt-5">
-        <h1 className="text-2xl font-semibold">Alo King · Driver</h1>
-        <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
-          <LogOut />
-        </Button>
+      <header className="flex items-center justify-between gap-3 px-5 pt-5">
+        <h1 className="flex items-center gap-2.5 text-xl font-extrabold">
+          <Crown className="h-7 w-9 text-gold" /> Alo King · Driver
+        </h1>
+        <div className="flex items-center gap-2">
+          <LangToggle />
+          <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out">
+            <LogOut />
+          </Button>
+        </div>
       </header>
       <div className="lux-card mx-5 mt-4 py-5">
         {cashQ.isLoading ? <Skeleton className="mx-auto h-28 w-56" /> : <CashGauge cash={cash} />}

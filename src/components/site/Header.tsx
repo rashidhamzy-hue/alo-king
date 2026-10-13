@@ -71,12 +71,14 @@ export function Header() {
               {l.label}
             </Link>
           ))}
-          <a
-            href="/for-business"
+          <Link
+            to="/$lang/for-merchants"
+            params={{ lang }}
             className="rounded-full px-3.5 py-2 text-[0.95rem] font-semibold text-tone-mute no-underline hover:text-tone-fg"
+            activeProps={{ className: "text-tone-fg", "aria-current": "page" }}
           >
             {t.nav.merchants}
-          </a>
+          </Link>
         </nav>
         <div className="ms-auto flex items-center gap-2">
           <OrderButton
@@ -108,12 +110,13 @@ export function Header() {
                   {l.label}
                 </Link>
               ))}
-              <a
-                href="/for-business"
+              <Link
+                to="/$lang/for-merchants"
+                params={{ lang }}
                 className="block rounded-xl px-3 py-3 font-semibold no-underline hover:bg-tone-surface-2"
               >
                 {t.nav.merchants}
-              </a>
+              </Link>
             </nav>
           </details>
         </div>

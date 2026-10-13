@@ -13,6 +13,8 @@ const PRIVATE = [
   "/ar/track",
   "/en/track",
   "/fr/track",
+  // Forms: useful to a person, nothing for a search result.
+  ...(["ar", "en", "fr"] as const).flatMap((l) => [`/${l}/claim`, `/${l}/register`]),
 ];
 /** The crawlers that answer questions in assistants and search (DECISIONS §24.6). */
 const WELCOME = [
@@ -76,10 +78,14 @@ const STATIC_PAGES = [
   "/send-home",
   "/help",
   "/contact",
+  "/for-merchants",
+  "/drivers",
   "/legal/terms",
   "/legal/privacy",
   "/legal/refund",
   "/legal/cookies",
+  "/legal/merchant-terms",
+  "/legal/collection-mandate",
 ];
 
 export function sitemapEntries(
@@ -150,6 +156,8 @@ ${cuisines ? `\n## Cuisines\n${cuisines}\n` : ""}${shops ? `\n## Shops (claimed 
 - [Help and answers](${url("/help")})
 - [Send Home: order for family in Lebanon from abroad](${url("/send-home")})
 - [Contact](${url("/contact")})
+- [For merchants: claim your shop and take orders on WhatsApp](${url("/for-merchants")})
+- [Drive with Alo King](${url("/drivers")})
 - [Privacy](${url("/legal/privacy")}), [Terms](${url("/legal/terms")}), [Refunds](${url("/legal/refund")})
 
 ## Languages

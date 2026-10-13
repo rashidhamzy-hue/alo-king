@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { CALC_DEFAULTS, COMPETITOR_COMMISSION } from "@/lib/site-config";
 import { fmt } from "@/lib/site";
 import { useSite } from "../context";
@@ -10,8 +11,8 @@ const toNum = (s: string) => {
 };
 
 /** "{fee} per order. Not {pct}%." and the savings calculator (DECISIONS §37.3.5), labelled "calculated from your numbers". */
-export function MerchantCalc() {
-  const { t, overview } = useSite();
+export function MerchantCalc({ showCta = true }: { showCta?: boolean } = {}) {
+  const { t, lang, overview } = useSite();
   const m = t.home.merchants;
   const [orders, setOrders] = useState<string>(String(CALC_DEFAULTS.ordersPerMonth));
   const [ticket, setTicket] = useState<string>(String(CALC_DEFAULTS.averageTicketUsd));
@@ -40,10 +41,18 @@ export function MerchantCalc() {
               : fmt(m.title.replace("{fee} ", ""), { pct: high })}
           </h2>
           <p className="ak-lead mt-5">{days != null ? fmt(m.sub, { days }) : m.subNoFree}</p>
-          <a href="/for-business" className="ak-btn ak-btn-ink ak-btn-lg mt-8">
-            {m.cta}
-          </a>
-          <p className="mt-3 text-sm text-tone-mute">{m.ctaNote}</p>
+          {showCta && (
+            <>
+              <Link
+                to="/$lang/for-merchants"
+                params={{ lang }}
+                className="ak-btn ak-btn-ink ak-btn-lg mt-8"
+              >
+                {m.cta}
+              </Link>
+              <p className="mt-3 text-sm text-tone-mute">{m.ctaNote}</p>
+            </>
+          )}
         </div>
 
         {fee != null && (

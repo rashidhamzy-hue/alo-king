@@ -1,6 +1,7 @@
 // Legal pages, English (DECISIONS §37.4). Written against what the product does today (cash on delivery, WhatsApp, voice notes,
 // "delete my data", Law 81/2018). They are the pilot version: the lawyer reviews them before launch (owner issue #72).
-export type LegalSlug = "terms" | "privacy" | "refund" | "cookies";
+export type LegalSlug =
+  "terms" | "privacy" | "refund" | "cookies" | "merchant-terms" | "collection-mandate";
 export type LegalDoc = {
   slug: LegalSlug;
   title: string;
@@ -231,6 +232,125 @@ export const legalEn: LegalCopy = {
         {
           h: "Your control",
           p: ["You can clear site data in your browser at any time. The site works without it."],
+        },
+      ],
+    },
+    {
+      slug: "merchant-terms",
+      title: "Merchant terms",
+      description:
+        "The terms for shops that claim or register on Alo King and take orders through WhatsApp.",
+      intro:
+        "These terms are between your business and Alo King. They apply when you claim a shop, register a new one, or take orders through Alo King. They are the pilot version and our lawyer will review them before launch.",
+      sections: [
+        {
+          h: "Who may join",
+          ul: [
+            "You must be the owner of the business, or authorised by the owner to act for it. Claiming a business that is not yours, or giving false documents, ends your access and can be reported.",
+            "We check ownership by a code sent to the shop's own phone number, or by your registration or permit and a photo of the shop sign. A person at Alo King approves claims that need documents.",
+            "Two people claiming the same shop, a sale of a business, a lost phone and a request to remove a listing each follow the steps we show you in the claim flow. Until they are settled, we can freeze the listing.",
+          ],
+        },
+        {
+          h: "Your page and your menu",
+          ul: [
+            "Your listing starts with public details such as name, address and location. Each is marked “please confirm” until you confirm or correct it. Nothing is shown to customers as yours until you claim it.",
+            "You set your menu, prices, opening hours, delivery area and delivery fee within the bands we publish. We never change a price, an item's availability or your hours without your tap. The assistant only proposes; you confirm.",
+            "Allergen and diet labels are only what you declare. Estimates of calories and nutrients are marked as estimates until you confirm them. You are responsible for what you declare.",
+            "You may invite staff by phone number with a role: owner, manager, cashier, kitchen or driver. Only owners and managers change prices and menu.",
+          ],
+        },
+        {
+          h: "Orders",
+          ul: [
+            "Alo King sends each order to your shop through the channels you choose. You accept or reject it. When an order is not answered, we try your backup channel, then a call, then an operator, and after five minutes we cancel it and tell the customer.",
+            "If orders are missed three times in a row, we pause your shop until you reactivate it. Your pause is yours: we do not lift a pause you set yourself.",
+            "You prepare the order as accepted and keep the ready time you gave. You may reject an order for a reason such as an item running out. Repeatedly rejecting or missing orders can lead us to suspend your listing.",
+            "Where items are sold by weight, the final price follows the real weight. A large increase waits for the customer's tap.",
+          ],
+        },
+        {
+          h: "Fees",
+          ul: [
+            "Alo King charges a fee for each order that is delivered or collected. The fee, and any free period, are shown on our For merchants page and in your dashboard, and you see them before you go live.",
+            "We add nothing to your menu prices and charge nothing monthly for your page.",
+            "A change of fee applies only to orders placed after the change, and we tell you before it starts.",
+            "Fees are recorded on your account. You pay them from your Alo King Credit or by monthly statement, as set out in your dashboard.",
+          ],
+        },
+        {
+          h: "Payments and cash",
+          p: [
+            "Today every order is paid in cash on delivery, to the person who hands over the order, in the currencies your shop accepts. The customer sees dollars and Lebanese pounds at the rate locked on the order.",
+            "Online payment is not switched on. When it is, it follows the collection mandate, which you accept separately.",
+          ],
+        },
+        {
+          h: "Customers and their data",
+          ul: [
+            "Use a customer's name, number and address only to prepare and deliver their order and to deal with problems about it. Do not add them to your own lists, share them or message them for marketing.",
+            "Marketing to customers goes only through Alo King, only to customers who agreed to it, and stops the moment they say STOP.",
+            "Alo King protects personal data as Lebanese Law 81/2018 requires. A customer can ask us to delete their data.",
+          ],
+        },
+        {
+          h: "Ending",
+          p: [
+            "You can pause, close or ask to remove your listing at any time. Orders already accepted must still be honoured. We can suspend or remove a listing for false information, repeated missed orders, unsafe food or breaking these terms. Records that must be kept for accounts stay, without personal details where the law allows.",
+          ],
+        },
+        {
+          h: "Law",
+          p: [
+            "These terms are governed by Lebanese law. They will be updated, with a new date, when the company is registered and the lawyer has reviewed them.",
+          ],
+        },
+      ],
+    },
+    {
+      slug: "collection-mandate",
+      title: "Collection mandate",
+      description:
+        "How Alo King will collect online payments on behalf of a shop, once online payment is switched on.",
+      intro:
+        "This mandate is for the day online payment is switched on. Until then every order is paid in cash on delivery, nothing is collected for you, and this page has no effect. We publish it now so you can read it before you join.",
+      sections: [
+        {
+          h: "What you authorise",
+          p: [
+            "When a customer pays an order online (by card or by a payment service we offer), you authorise Alo King to receive that payment on your behalf, as your agent, for orders placed at your shop through Alo King and for those orders only.",
+            "The customer's payment is recorded in our ledger as money owed to you, less our fee and any refund. The payment is not Alo King's income.",
+          ],
+        },
+        {
+          h: "What we do with the money",
+          ul: [
+            "Each payment, fee, refund and payout is a separate entry in an append-only ledger, in dollars and in Lebanese pounds at the rate locked on the order. Entries are never edited; a correction is a new entry.",
+            "We pay you what the ledger shows you are owed, on the settlement schedule shown in your dashboard, with a statement for each period.",
+            "We keep the money received for you separate from our own operating money, in the way our lawyer and our bank confirm, and we do not lend it or use it for anything else.",
+          ],
+        },
+        {
+          h: "Refunds and problems",
+          ul: [
+            "If an order is cancelled, rejected, or wrong because of the shop, the customer is refunded and the amount comes off what we owe you. If the problem is ours, it does not.",
+            "If a customer disputes a payment, we tell you and show you what we hold. Until it is settled we may hold back the disputed amount.",
+            "Where an order is paid online and an item is sold by weight, the customer is charged for the real weight, and any difference is refunded or collected with their tap.",
+          ],
+        },
+        {
+          h: "Limits and your rights",
+          ul: [
+            "We may set a limit on what we pay out at once while a shop is new, and we tell you the limit.",
+            "You can see every entry that concerns you in your dashboard and ask us to explain any of them.",
+            "You can withdraw this mandate at any time for new orders. Orders already paid are settled as above.",
+          ],
+        },
+        {
+          h: "Status of this page",
+          p: [
+            "The exact collection model depends on the rules of the Banque du Liban and on our lawyer's advice, which we are waiting for. This page will be completed and re-dated before online payment is switched on, and you will be asked to accept the final text.",
+          ],
         },
       ],
     },

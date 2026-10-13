@@ -223,5 +223,124 @@ export const legalFr: LegalCopy = {
         },
       ],
     },
+    {
+      slug: "merchant-terms",
+      title: "Conditions pour les commerçants",
+      description:
+        "Les conditions pour les commerces qui revendiquent ou enregistrent leur fiche sur Alo King et prennent des commandes par WhatsApp.",
+      intro:
+        "Ces conditions lient votre activité à Alo King. Elles s'appliquent quand vous revendiquez un commerce, en enregistrez un nouveau ou prenez des commandes via Alo King. C'est la version pilote, que notre avocat relira avant le lancement.",
+      sections: [
+        {
+          h: "Qui peut rejoindre",
+          ul: [
+            "Vous devez être le propriétaire de l'activité, ou autorisé par lui à agir en son nom. Revendiquer une activité qui n'est pas la vôtre, ou fournir de faux documents, met fin à votre accès et peut être signalé.",
+            "Nous vérifions la propriété par un code envoyé au numéro de téléphone du commerce lui-même, ou par votre registre de commerce ou votre autorisation et une photo de l'enseigne. Une personne chez Alo King approuve les demandes qui exigent des documents.",
+            "Deux personnes qui revendiquent le même commerce, la vente d'une activité, la perte d'un téléphone et une demande de suppression de fiche suivent chacune les étapes affichées dans le parcours de revendication. Tant que rien n'est réglé, nous pouvons geler la fiche.",
+          ],
+        },
+        {
+          h: "Votre page et votre menu",
+          ul: [
+            "Votre fiche commence avec des informations publiques comme le nom, l'adresse et la position. Chacune est marquée « à confirmer » tant que vous ne l'avez pas confirmée ou corrigée. Rien n'est présenté aux clients comme vôtre avant que vous ne la revendiquiez.",
+            "Vous fixez votre menu, vos prix, vos horaires, votre zone et vos frais de livraison dans les tranches que nous publions. Nous ne modifions jamais un prix, la disponibilité d'un article ou vos horaires sans votre appui. L'assistant ne fait que proposer ; vous confirmez.",
+            "Les mentions d'allergènes et de régimes sont uniquement ce que vous déclarez. Les estimations de calories et de nutriments sont signalées comme des estimations tant que vous ne les confirmez pas. Vous êtes responsable de ce que vous déclarez.",
+            "Vous pouvez inviter du personnel par numéro de téléphone avec un rôle : propriétaire, gérant, caissier, cuisine ou livreur. Seuls les propriétaires et les gérants modifient les prix et le menu.",
+          ],
+        },
+        {
+          h: "Commandes",
+          ul: [
+            "Alo King envoie chaque commande à votre commerce par les canaux que vous choisissez. Vous l'acceptez ou la refusez. Sans réponse, nous essayons votre canal de secours, puis un appel, puis un opérateur, et au bout de cinq minutes nous annulons la commande et prévenons le client.",
+            "Si trois commandes de suite sont manquées, nous mettons votre commerce en pause jusqu'à ce que vous le réactiviez. Une pause que vous avez décidée est la vôtre : nous ne la levons pas.",
+            "Vous préparez la commande comme acceptée et tenez l'heure de préparation annoncée. Vous pouvez refuser une commande pour un motif comme une rupture. Refuser ou manquer des commandes à répétition peut nous conduire à suspendre votre fiche.",
+            "Pour les articles vendus au poids, le prix final suit le poids réel. Une hausse importante attend l'appui du client.",
+          ],
+        },
+        {
+          h: "Frais",
+          ul: [
+            "Alo King facture des frais pour chaque commande livrée ou retirée. Les frais, et toute période gratuite, figurent sur notre page Pour les commerçants et dans votre tableau de bord, et vous les voyez avant de démarrer.",
+            "Nous n'ajoutons rien aux prix de votre menu et ne facturons rien par mois pour votre page.",
+            "Un changement de frais ne s'applique qu'aux commandes passées après le changement, et nous vous prévenons avant qu'il ne commence.",
+            "Les frais sont enregistrés sur votre compte. Vous les réglez avec votre crédit Alo King ou par relevé mensuel, comme indiqué dans votre tableau de bord.",
+          ],
+        },
+        {
+          h: "Paiements et espèces",
+          p: [
+            "Aujourd'hui, chaque commande se paie en espèces à la livraison, à la personne qui remet la commande, dans les devises que votre commerce accepte. Le client voit les dollars et les livres libanaises au taux verrouillé sur la commande.",
+            "Le paiement en ligne n'est pas activé. Quand il le sera, il suivra le mandat d'encaissement, que vous acceptez séparément.",
+          ],
+        },
+        {
+          h: "Clients et leurs données",
+          ul: [
+            "Utilisez le nom, le numéro et l'adresse d'un client uniquement pour préparer et livrer sa commande et traiter les problèmes qui s'y rapportent. Ne les ajoutez pas à vos propres listes, ne les partagez pas et ne les contactez pas pour du marketing.",
+            "Le marketing auprès des clients passe uniquement par Alo King, uniquement pour ceux qui l'ont accepté, et s'arrête dès qu'ils disent STOP.",
+            "Alo King protège les données personnelles comme l'exige la loi libanaise 81/2018. Un client peut nous demander de supprimer ses données.",
+          ],
+        },
+        {
+          h: "Fin de la relation",
+          p: [
+            "Vous pouvez à tout moment mettre en pause, fermer ou demander la suppression de votre fiche. Les commandes déjà acceptées doivent être honorées. Nous pouvons suspendre ou supprimer une fiche en cas d'informations fausses, de commandes manquées à répétition, de nourriture dangereuse ou de non-respect de ces conditions. Les écritures à conserver pour la comptabilité restent, sans données personnelles lorsque la loi le permet.",
+          ],
+        },
+        {
+          h: "Droit applicable",
+          p: [
+            "Ces conditions sont régies par le droit libanais. Elles seront mises à jour, avec une nouvelle date, quand la société sera enregistrée et que l'avocat les aura relues.",
+          ],
+        },
+      ],
+    },
+    {
+      slug: "collection-mandate",
+      title: "Mandat d'encaissement",
+      description:
+        "Comment Alo King encaissera les paiements en ligne pour le compte d'un commerce, une fois le paiement en ligne activé.",
+      intro:
+        "Ce mandat est pour le jour où le paiement en ligne sera activé. D'ici là, chaque commande se paie en espèces à la livraison, nous n'encaissons rien pour vous et cette page n'a aucun effet. Nous la publions dès maintenant pour que vous puissiez la lire avant de nous rejoindre.",
+      sections: [
+        {
+          h: "Ce que vous autorisez",
+          p: [
+            "Quand un client paie une commande en ligne (par carte ou par un service de paiement que nous proposons), vous autorisez Alo King à recevoir ce paiement pour votre compte, en tant que mandataire, pour les commandes passées dans votre commerce via Alo King et pour ces commandes seulement.",
+            "Le paiement du client est inscrit dans notre registre comme une somme qui vous est due, moins nos frais et tout remboursement. Le paiement n'est pas un revenu d'Alo King.",
+          ],
+        },
+        {
+          h: "Ce que nous faisons de l'argent",
+          ul: [
+            "Chaque paiement, frais, remboursement et versement est une écriture distincte dans un registre qu'on ne modifie jamais, en dollars et en livres libanaises au taux verrouillé sur la commande. Une correction est une nouvelle écriture.",
+            "Nous vous versons ce que le registre montre qui vous est dû, selon le calendrier de règlement affiché dans votre tableau de bord, avec un relevé pour chaque période.",
+            "Nous gardons l'argent reçu pour vous séparé de notre propre argent de fonctionnement, de la manière que confirment notre avocat et notre banque, et nous ne le prêtons ni ne l'utilisons à autre chose.",
+          ],
+        },
+        {
+          h: "Remboursements et litiges",
+          ul: [
+            "Si une commande est annulée, refusée ou erronée par la faute du commerce, le client est remboursé et le montant est déduit de ce que nous vous devons. Si le problème vient de nous, il ne l'est pas.",
+            "Si un client conteste un paiement, nous vous le disons et vous montrons ce que nous détenons. Tant que ce n'est pas réglé, nous pouvons retenir le montant contesté.",
+            "Quand une commande est payée en ligne et qu'un article est vendu au poids, le client est débité du poids réel, et la différence est remboursée ou encaissée avec son accord.",
+          ],
+        },
+        {
+          h: "Limites et vos droits",
+          ul: [
+            "Nous pouvons fixer une limite de versement pendant que le commerce est nouveau, et nous vous l'indiquons.",
+            "Vous voyez dans votre tableau de bord chaque écriture qui vous concerne et pouvez nous demander de vous l'expliquer.",
+            "Vous pouvez retirer ce mandat à tout moment pour les nouvelles commandes. Les commandes déjà payées sont réglées comme ci-dessus.",
+          ],
+        },
+        {
+          h: "Statut de cette page",
+          p: [
+            "Le modèle d'encaissement exact dépend des règles de la Banque du Liban et de l'avis de notre avocat, que nous attendons. Cette page sera complétée et redatée avant l'activation du paiement en ligne, et il vous sera demandé d'accepter le texte final.",
+          ],
+        },
+      ],
+    },
   ],
 };

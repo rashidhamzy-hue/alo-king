@@ -1,8 +1,16 @@
-import { COD_CAP } from "@/lib/config";
-
-export function CashGauge({ cash, pending = 0 }: { cash: number; pending?: number }) {
-  const pct = Math.min(1, cash / COD_CAP);
-  const after = Math.min(1, (cash + pending) / COD_CAP);
+// The cash limit comes from the server when the rebuilt driver app arrives (session 8); until then there is no gauge, only the amount.
+export function CashGauge({
+  cash,
+  pending = 0,
+  cap = null,
+}: {
+  cash: number;
+  pending?: number;
+  cap?: number | null;
+}) {
+  if (!cap) return <p className="text-center text-2xl font-extrabold">${cash.toFixed(0)}</p>;
+  const pct = Math.min(1, cash / cap);
+  const after = Math.min(1, (cash + pending) / cap);
   const color = pct > 0.9 ? "var(--destructive)" : pct >= 0.6 ? "var(--warning)" : "var(--success)";
   const R = 80;
   const len = Math.PI * R;
@@ -39,7 +47,7 @@ export function CashGauge({ cash, pending = 0 }: { cash: number; pending?: numbe
       </svg>
       <p className="-mt-10 font-display text-3xl font-semibold">${cash.toFixed(2)}</p>
       <p className="text-xs text-muted-foreground">
-        ${cash.toFixed(0)} of ${COD_CAP} cash held
+        ${cash.toFixed(0)} of ${cap} cash held
       </p>
     </div>
   );

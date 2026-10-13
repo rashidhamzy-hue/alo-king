@@ -1,5 +1,5 @@
 // Typed access to what the public pages read (the site_* functions of migration 20261013090100).
-import { rpc } from "./rest";
+import { rpc, select } from "./rest";
 
 export type Names = { name_ar: string | null; name_en: string | null; name_fr: string | null };
 
@@ -142,3 +142,11 @@ export const getVendorSlugs = async () =>
   (await rpc<{ slug: string; updated_at: string }[]>("site_vendor_slugs")) ?? [];
 export const getTrack = (token: string) =>
   rpc<PublicTrack>("order_track_public", { p_token: token });
+
+export type BusinessTypeRow = Names & { business_type: string };
+/** The kinds of business a new registration can choose (public reference data, in the owner's language). */
+export const getBusinessTypes = async (): Promise<BusinessTypeRow[]> =>
+  (await select<BusinessTypeRow>(
+    "business_type_labels",
+    "select=business_type,name_ar,name_en,name_fr&order=sort_order",
+  )) ?? [];

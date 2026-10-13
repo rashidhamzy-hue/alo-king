@@ -24,3 +24,16 @@ export async function rpc<T>(fn: string, args: Record<string, unknown> = {}): Pr
     return null;
   }
 }
+
+/** Reads a public table (anon key, row-level security applies). Returns null on any failure, like `rpc`. */
+export async function select<T>(table: string, query: string): Promise<T[] | null> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+      headers: { apikey: SUPABASE_KEY, authorization: `Bearer ${SUPABASE_KEY}` },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    return res.ok ? ((await res.json()) as T[]) : null;
+  } catch {
+    return null;
+  }
+}

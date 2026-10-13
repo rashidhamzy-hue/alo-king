@@ -1,10 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { loadLegal, type LegalSlug } from "@/content";
+import { loadLegal } from "@/content";
 import { buildHead } from "@/lib/site";
 import { useSite } from "@/components/site/context";
 import { PageHero } from "@/components/site/PageHero";
 
-const SLUGS: LegalSlug[] = ["terms", "privacy", "refund", "cookies"];
+import { LEGAL_LINKS } from "@/components/site/Footer";
 
 export const Route = createFileRoute("/$lang/legal/$doc")({
   loader: async ({ params }) => {
@@ -78,7 +78,7 @@ function LegalPage() {
           </article>
           <nav aria-label={t.footer.legal} className="lg:sticky lg:top-24 lg:self-start">
             <ul className="space-y-1">
-              {SLUGS.map((s) => (
+              {LEGAL_LINKS.map(([s, key]) => (
                 <li key={s}>
                   <Link
                     to="/$lang/legal/$doc"
@@ -86,7 +86,7 @@ function LegalPage() {
                     className="block rounded-xl px-3 py-2 font-semibold no-underline hover:bg-tone-surface-2"
                     activeProps={{ className: "bg-ink text-cream hover:!bg-ink" }}
                   >
-                    {t.footer[s]}
+                    {t.footer[key]}
                   </Link>
                 </li>
               ))}

@@ -1,7 +1,3 @@
-export const LBP_RATE = 89500;
-export const COD_CAP = 150;
-export const DELIVERY_FEE = 2;
-
 const env = import.meta.env as Record<string, string | undefined>;
 
 // Alo King's own customer number (Kapso project "Alo King"). Unset until the number is connected;

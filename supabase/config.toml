@@ -22,3 +22,8 @@ verify_jwt = false
 verify_jwt = false
 # The Noto fonts the visual order card is rendered with (§32.5), read at runtime.
 static_files = ["./functions/_shared/fonts/*.ttf"]
+
+[functions.site-claim]
+# The website's claim, registration and driver forms. Visitors are anonymous: the protection is the per-visitor rate
+# limit, the code that goes only to the shop's own number, and human review of documents (see the function header).
+verify_jwt = false

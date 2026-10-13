@@ -279,3 +279,357 @@ export function respond(fn, args, mode = "live") {
       return null;
   }
 }
+
+// ---- Business types and the `site-claim` function (claim, registration and driver forms, session 6b) -----------------
+export const BUSINESS_TYPES = [
+  ["restaurant", "مطعم", "Restaurant", "Restaurant"],
+  ["fast_food", "سناك", "Fast food", "Restauration rapide"],
+  ["cafe", "مقهى", "Café", "Café"],
+  ["bakery_manakish", "مخبز ومناقيش", "Bakery & manakish", "Boulangerie et manakish"],
+  ["sweets_pastry", "حلويات", "Sweets & pastry", "Douceurs et pâtisserie"],
+  ["grocery_supermarket", "بقالة وسوبرماركت", "Grocery & supermarket", "Épicerie et supermarché"],
+  ["home_essentials", "مياه وغاز", "Water & gas", "Eau et gaz"],
+].map(([business_type, name_ar, name_en, name_fr]) => ({
+  business_type,
+  name_ar,
+  name_en,
+  name_fr,
+}));
+
+export const CLAIM_VENDOR_ID = "20000000-0000-0000-0000-0000000000d1";
+const CLAIM_BUSINESS = {
+  vendor_id: CLAIM_VENDOR_ID,
+  name: "شاورما أبو علي",
+  branch_label: null,
+  town: "بعقلين",
+  claimed: false,
+  frozen: false,
+  phone_tail: "…56",
+  in_brand: true,
+};
+const CLAIM_ID = "40000000-0000-0000-0000-000000000001";
+
+/** What the deployed function would answer, for the claim, registration and driver flows. Never a real claim. */
+export function siteClaim(body, upload) {
+  if (upload) {
+    // The registration comes first and the sign photo last: the sign photo completes the papers.
+    return upload.kind === "sign_photo" || upload.kind === "company"
+      ? { ok: true, status: "pending_review", claim_id: upload.claim_id }
+      : {
+          ok: true,
+          status: "awaiting_documents",
+          claim_id: upload.claim_id,
+          missing: ["sign_photo"],
+        };
+  }
+  switch (body.action) {
+    case "search":
+      return {
+        ok: true,
+        results: /nomatch/i.test(body.q)
+          ? []
+          : [
+              { ...CLAIM_BUSINESS, in_brand: undefined },
+              {
+                vendor_id: "20000000-0000-0000-0000-0000000000d2",
+                name: "Abou Ali Bakery",
+                branch_label: "Hazmieh",
+                town: "الحازمية",
+                claimed: true,
+                frozen: false,
+                phone_tail: "…11",
+              },
+            ],
+      };
+    case "lookup":
+      return body.vendor_id === CLAIM_VENDOR_ID
+        ? { ok: true, found: true, business: CLAIM_BUSINESS }
+        : { ok: true, found: false };
+    case "start":
+      return String(body.phone).includes("999")
+        ? {
+            ok: true,
+            status: "awaiting_documents",
+            claim_id: CLAIM_ID,
+            case: "C",
+            missing: ["registration", "sign_photo"],
+            code_not_delivered: true,
+          }
+        : {
+            ok: true,
+            status: "code_sent",
+            claim_id: CLAIM_ID,
+            case: "A",
+            channel: "whatsapp",
+            phone_tail: "…56",
+          };
+    case "verify":
+      return body.code === "123456"
+        ? { ok: true, status: "approved", claim_id: CLAIM_ID }
+        : { ok: true, status: "wrong_code", claim_id: CLAIM_ID, left: 4 };
+    case "use_documents":
+      return {
+        ok: true,
+        status: "awaiting_documents",
+        claim_id: CLAIM_ID,
+        missing: ["registration", "sign_photo"],
+      };
+    case "no_registration":
+      return { ok: true, status: "waitlist" };
+    case "status":
+      return { ok: true, status: "no_claim" };
+    case "register":
+      return {
+        ok: true,
+        status: "awaiting_documents",
+        claim_id: CLAIM_ID,
+        case: "E",
+        missing: body.home_kitchen ? ["registration"] : ["registration", "sign_photo"],
+      };
+    case "driver_apply":
+      return { ok: true, status: "received" };
+    default:
+      return { ok: false, error: "unknown_action" };
+  }
+}
+
+// ---- The staff pages (merchant dashboard, admin console, driver app; session 6b) -------------------------------------------
+// Made-up rows in the shapes the pages read. Who is signed in is decided by the `sub` of the fake token the checks plant.
+export const PERSONAS = {
+  merchant: { sub: "00000000-0000-0000-0000-0000000000a1", email: "owner@example.test" },
+  admin: { sub: "00000000-0000-0000-0000-0000000000a2", email: "team@example.test" },
+};
+const ago = (min) => new Date(Date.now() - min * 60_000).toISOString();
+const order = (n, code, status, items, total, minAgo) => ({
+  id: `50000000-0000-0000-0000-00000000000${n}`,
+  short_code: code,
+  vendor_id: CLAIM_VENDOR_ID,
+  customer_name: ["Maya", "Elie", "Rima"][n - 1],
+  items,
+  subtotal_usd: total - 2,
+  delivery_fee_usd: 2,
+  total_usd: total,
+  status,
+  payment_method: "cod",
+  payment_status: "unpaid",
+  delivery_village: "Baakline",
+  building_landmark: "Near the old mosque, second floor",
+  notes: n === 1 ? "No garlic please" : null,
+  customer_lat: 33.6774,
+  customer_lng: 35.5635,
+  driver_id: null,
+  driver_lat: null,
+  driver_lng: null,
+  driver_location_at: null,
+  prep_minutes: 20,
+  created_at: ago(minAgo),
+  accepted_at: status === "pending" ? null : ago(minAgo - 1),
+  ready_at: null,
+  picked_up_at: null,
+  delivered_at: null,
+  is_expat_gift: false,
+  gift_sender_name: null,
+  gift_message: null,
+});
+const menuItem = (n, section, en, ar, price, extra = {}) => ({
+  item_id: `60000000-0000-0000-0000-00000000000${n}`,
+  vendor_id: CLAIM_VENDOR_ID,
+  item_name_en: en,
+  item_name_ar: ar,
+  section,
+  price_usd: price,
+  available: true,
+  sort_order: n * 10,
+  description_en: null,
+  allergens_reviewed: false,
+  ...extra,
+});
+const TABLES = {
+  operators: [{ user_id: PERSONAS.admin.sub, display_name: "Rasheed (test)", active: true }],
+  vendor_members: [
+    {
+      vendor_id: CLAIM_VENDOR_ID,
+      role: "owner",
+      display_name: "Samir",
+      status: "active",
+      user_id: PERSONAS.merchant.sub,
+      created_at: ago(5000),
+    },
+  ],
+  vendors: [
+    {
+      vendor_id: CLAIM_VENDOR_ID,
+      slug: "abou-ali-shawarma",
+      name_en: "Abou Ali Shawarma",
+      name_ar: "شاورما أبو علي",
+      category_canonical: "Restaurant",
+      village_canonical: "Baakline",
+      address: "Main road, Baakline",
+      latitude: 33.6774,
+      longitude: 35.5635,
+      open_days: null,
+      open_time: null,
+      close_time: null,
+      menu_available: true,
+      is_live: false,
+      is_active: true,
+    },
+  ],
+  vendor_profiles: [
+    {
+      vendor_id: CLAIM_VENDOR_ID,
+      accepts_orders: true,
+      delivery_radius_km: 6,
+      hours: { mon: [["11:00", "23:00"]] },
+    },
+  ],
+  vendor_private: [{ vendor_id: CLAIM_VENDOR_ID, owner_phone_urgent: null }],
+  menu_items: [
+    menuItem(1, "Sandwiches", "Chicken shawarma", "شاورما دجاج", 3.5, {
+      description_en: "Garlic sauce, pickles, fries inside.",
+    }),
+    menuItem(2, "Sandwiches", "Beef shawarma", "شاورما لحمة", 4),
+    menuItem(3, "Sandwiches", "Falafel sandwich", "سندويش فلافل", 2.5),
+    menuItem(4, "Plates", "Mixed grill plate", "صحن مشاوي مشكل", 12, { available: false }),
+    menuItem(5, "Drinks", "Pepsi", "بيبسي", 1),
+  ],
+  orders: [
+    order(
+      1,
+      "K7M4PQ",
+      "pending",
+      [
+        { name_en: "Chicken shawarma", name_ar: "شاورما دجاج", unit_price_usd: 3.5, quantity: 2 },
+        { name_en: "Pepsi", name_ar: "بيبسي", unit_price_usd: 1, quantity: 1 },
+      ],
+      10,
+      1,
+    ),
+    order(
+      2,
+      "R2T9XA",
+      "preparing",
+      [
+        {
+          name_en: "Mixed grill plate",
+          name_ar: "صحن مشاوي مشكل",
+          unit_price_usd: 12,
+          quantity: 1,
+        },
+      ],
+      14,
+      9,
+    ),
+    order(
+      3,
+      "M5H8LC",
+      "ready",
+      [{ name_en: "Falafel sandwich", name_ar: "سندويش فلافل", unit_price_usd: 2.5, quantity: 3 }],
+      9.5,
+      22,
+    ),
+  ],
+  vendor_claims: [
+    {
+      id: "40000000-0000-0000-0000-000000000011",
+      vendor_id: CLAIM_VENDOR_ID,
+      claimant_phone: "+96176555001",
+      claimant_name: "Samir Khoury",
+      claim_case: "C",
+      status: "pending_review",
+      contested: false,
+      home_kitchen: false,
+      brand_wide: false,
+      documents: [
+        { kind: "registration", ref: "storage:claim-documents/x/registration-1.jpg" },
+        { kind: "sign_photo", ref: "storage:claim-documents/x/sign_photo-2.jpg" },
+      ],
+      decision_note: null,
+      created_at: ago(95),
+      vendors: { name_en: "Abou Ali Shawarma", name_ar: "شاورما أبو علي" },
+    },
+    {
+      id: "40000000-0000-0000-0000-000000000012",
+      vendor_id: CLAIM_VENDOR_ID,
+      claimant_phone: "+96171555123",
+      claimant_name: "Nadia Haddad",
+      claim_case: "E",
+      status: "pending_review",
+      contested: true,
+      home_kitchen: true,
+      brand_wide: false,
+      documents: [{ kind: "registration", ref: "storage:claim-documents/y/registration-1.pdf" }],
+      decision_note: null,
+      created_at: ago(400),
+      vendors: { name_en: "Nadia's Kitchen", name_ar: null },
+    },
+    {
+      id: "40000000-0000-0000-0000-000000000013",
+      vendor_id: CLAIM_VENDOR_ID,
+      claimant_phone: "+96103123456",
+      claimant_name: null,
+      claim_case: "A",
+      status: "code_sent",
+      contested: false,
+      home_kitchen: false,
+      brand_wide: false,
+      documents: [],
+      decision_note: null,
+      created_at: ago(20),
+      vendors: { name_en: "Hlou el Balad", name_ar: "حلو البلد" },
+    },
+  ],
+  driver_applications: [
+    {
+      id: "70000000-0000-0000-0000-000000000001",
+      full_name: "Karim Haddad",
+      phone_e164: "+96171555123",
+      place: "Baakline",
+      vehicle: "motorbike",
+      has_licence: true,
+      languages: ["ar", "en"],
+      availability: ["evenings", "weekends"],
+      note: "I know the Shouf roads well.",
+      status: "new",
+      created_at: ago(60),
+    },
+    {
+      id: "70000000-0000-0000-0000-000000000002",
+      full_name: "Joe Aoun",
+      phone_e164: "+96103999111",
+      place: "Beiteddine",
+      vehicle: "car",
+      has_licence: true,
+      languages: ["fr", "ar"],
+      availability: ["mornings"],
+      note: null,
+      status: "contacted",
+      created_at: ago(2000),
+    },
+  ],
+};
+const RPCS = {
+  usd_lbp_rate: () => RATE,
+  vendor_completeness: () => ({
+    profile_score: 54,
+    menu_score: 38,
+    overall: 46,
+    missing_profile: ["description", "urgent_phone", "logo"],
+    menu: {
+      items: 5,
+      with_description: 1,
+      with_photo: 0,
+      with_ingredients: 0,
+      allergens_reviewed: 0,
+      macros_verified: 0,
+      with_prep_time: 0,
+    },
+  }),
+  driver_cash_on_hand: () => 42,
+};
+
+/** A table read by the staff pages: every row (filters are not applied: the pages are being looked at, not tested). */
+export function restTable(name) {
+  return TABLES[name] ?? [];
+}
+export const restRpc = (fn) => (RPCS[fn] ? RPCS[fn]() : null);
