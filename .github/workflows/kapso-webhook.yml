@@ -31,9 +31,12 @@ jobs:
       PHONE_NUMBER_ID: ${{ inputs.phone_number_id }}
     steps:
       - uses: actions/checkout@v5
+      # Pinned (DECISIONS §39.1): "latest" asked the GitHub API for the newest release on every run and hit its rate limit.
       - uses: supabase/setup-cli@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          version: latest
+          version: 2.120.0
       - name: Refuse anything but the staging project
         run: |
           [ "$SUPABASE_PROJECT_REF" = "tzugbbatfbvrfzxuacqx" ] || { echo "::error::only alo-king-staging"; exit 1; }

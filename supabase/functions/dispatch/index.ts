@@ -20,6 +20,7 @@ import {
   type TwilioConfig,
 } from "../_shared/twilio.ts";
 import { reportError } from "../_shared/sentry.ts";
+import { restRpc } from "../_shared/rest-rpc.ts";
 import { orsProvider, restRouteCache, roadRoutes } from "../_shared/routing.ts";
 import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
@@ -27,6 +28,8 @@ import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
 
 // Kapso is reached only here (CLAUDE.md); never from configuration or message content.
 const KAPSO_BASE = "https://api.kapso.ai/meta/whatsapp/v24.0";
+// A send that has not answered by then is retried by the outbox (a stalled request never holds the worker).
+const KAPSO_TIMEOUT_MS = 15_000;
 
 const env = (k: string) => Deno.env.get(k) || undefined;
 const supabaseUrl = env("SUPABASE_URL") ?? "";
@@ -243,20 +246,8 @@ async function botConfig() {
 const log = (msg: string, fields?: Record<string, string | number | boolean>) =>
   console.log(JSON.stringify({ fn: "dispatch", msg, ...fields }));
 
-async function rpc(fn: string, args: Record<string, unknown>): Promise<any> {
-  const res = await fetch(`${supabaseUrl}/rest/v1/rpc/${fn}`, {
-    method: "POST",
-    headers: {
-      apikey: serviceKey,
-      authorization: `Bearer ${serviceKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(args),
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`${fn}: ${res.status} ${text.slice(0, 300)}`);
-  return text ? JSON.parse(text) : null;
-}
+// Every request has a deadline; a stalled read or idempotent write is retried once (rest-rpc.ts, #139).
+const rpc = restRpc({ url: supabaseUrl, key: serviceKey, log });
 
 async function whatsapp(
   phoneNumberId: string,
@@ -279,6 +270,7 @@ async function whatsapp(
       method: "POST",
       headers: { "X-API-Key": kapsoKey, "content-type": "application/json" },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(KAPSO_TIMEOUT_MS),
     });
     const body = await res.json().catch(() => ({}));
     if (res.ok) return { ok: true, id: body?.messages?.[0]?.id };
@@ -363,7 +355,9 @@ async function telegram(text: string, url?: string): Promise<SendResult> {
       disable_web_page_preview: true,
       ...(url ? { reply_markup: { inline_keyboard: [[{ text: "Open", url }]] } } : {}),
     }),
-  });
+    signal: AbortSignal.timeout(10_000),
+  }).catch(() => null);
+  if (!res) return { ok: false, retry: true, error: "telegram: no answer" };
   await res.body?.cancel();
   return res.ok
     ? { ok: true }
@@ -439,6 +433,8 @@ async function twilioKeypress(req: Request, url: URL): Promise<Response> {
 }
 
 Deno.serve(async (req) => {
+  // An edge function lives at most 150 s (wall clock); a turn's lease ends just after (#139).
+  const workerDeadline = new Date(Date.now() + 152_000);
   const url = new URL(req.url);
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   if (url.searchParams.get("route") === "twilio") return twilioKeypress(req, url);
@@ -469,6 +465,7 @@ Deno.serve(async (req) => {
       adminUrl: env("ADMIN_BASE_URL"),
       log,
       budgetMs: 20_000,
+      workerDeadline,
       customer: await (async () => {
         const cfg = await botConfig();
         const sender = (await rpc("whatsapp_sender", { p_audience: "customer" })) ?? "";

@@ -59,6 +59,8 @@ export type DispatchDeps = {
   adminUrl?: string;
   now?: () => Date;
   budgetMs?: number;
+  /** When this worker is certainly gone (its start + 152 s): a customer turn's lease never outlives it. */
+  workerDeadline?: Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
   /** The smart-menu model (§18.3); null without a key or API credit (§32.7). */
   menuModel?: MenuModel | null;
@@ -118,7 +120,9 @@ export async function runDispatch(
   // 1. Inbound.
   while (left() > 2000) {
     const events: any[] =
-      (await deps.rpc("webhook_claim", { p_limit: 10, p_visibility_s: 90 })) ?? [];
+      // Invisible for longer than an edge function can live (150 s), so a worker that dies is never overlapped by a
+      // retry; a failed event comes back in seconds through webhook_finish instead (#139).
+      (await deps.rpc("webhook_claim", { p_limit: 10, p_visibility_s: 160 })) ?? [];
     if (!events.length) break;
     for (const ev of events) {
       let status: "done" | "ignored" | "failed" = "done";
@@ -135,6 +139,7 @@ export async function runDispatch(
         p_event_id: ev.event_id,
         p_status: status,
         p_error: error ?? null,
+        p_attempt: ev.attempts ?? null,
       });
       out.inbound++;
     }
@@ -537,6 +542,9 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
       log: deps.log,
     },
     m,
+    // The queue's attempt number: a retry of a turn that never finished is replayed, not dropped (#139). The turn's
+    // lease ends when this worker must be gone (an edge function lives at most 150 s from its start).
+    { attempt: Number(ev.attempts ?? 1), leaseUntil: deps.workerDeadline },
   );
   return "done";
 }

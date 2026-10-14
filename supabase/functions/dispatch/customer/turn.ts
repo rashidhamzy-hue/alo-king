@@ -20,6 +20,7 @@ import {
   type CLang,
   type CustomerAction,
 } from "../../_shared/customer-cards.ts";
+import { RpcStalled, TurnBusy } from "../../_shared/rest-rpc.ts";
 import { clampInteractive } from "../../_shared/meta-limits.ts";
 import { deterministicIntent, detectLang, looksLikeComplaint, PRICE_RE } from "./intents.ts";
 import {
@@ -207,6 +208,8 @@ type Ctx = {
   supportOpen: boolean;
   out: Msg[];
   tools: string[];
+  /** basket adds in this turn (each keyed by message id + this number). */
+  adds: number;
   calls: number;
   cost: number;
   path: "deterministic" | "model" | "voice" | "handoff" | "budget" | "error";
@@ -214,6 +217,8 @@ type Ctx = {
 };
 
 const MAX_MESSAGES = 3;
+/** Queue attempts that replay a stalled turn before the customer is shown the buttons instead. */
+const STALL_REPLAYS = 3;
 const push = (c: Ctx, ...ms: Msg[]) => {
   for (const x of ms) if (c.out.length < MAX_MESSAGES) c.out.push(x);
 };
@@ -228,16 +233,35 @@ const fail = (c: Ctx) => push(c, mainMenu(c.m.from, c.s.lang, "tapFailed"));
 export async function handleCustomerTurn(
   deps: CustomerDeps,
   m: CustomerInbound,
+  opts: { attempt?: number; leaseUntil?: Date } = {},
 ): Promise<"done" | "duplicate"> {
   const started = Date.now();
   const kind = m.buttonId ? "tap" : m.type;
-  const begin = await deps.rpc("customer_turn_begin", {
-    p_phone_e164: m.from,
-    p_message_id: m.messageId,
-    p_kind: kind.replace(/[^a-z_]/g, "_").slice(0, 40) || "unknown",
-    p_display_name: m.name,
-  });
+  // A queue retry (attempt 2+) of a turn whose first attempt died before customer_turn_end replays it from the
+  // session the customer saw; a finished turn or a second delivery of the same message is a duplicate (#139).
+  // This attempt's own lease on the turn: only it can give the turn back.
+  const leaseId = crypto.randomUUID();
+  const release = () =>
+    deps
+      .rpc("customer_turn_release", { p_message_id: m.messageId, p_lease_id: leaseId })
+      .catch((x: unknown) => deps.log?.("turn release failed", { error: String(x).slice(0, 120) }));
+  const begin = await deps
+    .rpc("customer_turn_begin", {
+      p_phone_e164: m.from,
+      p_message_id: m.messageId,
+      p_kind: kind.replace(/[^a-z_]/g, "_").slice(0, 40) || "unknown",
+      p_display_name: m.name,
+      p_attempt: Math.max(1, Math.trunc(opts.attempt ?? 1)),
+      p_lease_id: leaseId,
+      p_lease_until: opts.leaseUntil?.toISOString() ?? null,
+    })
+    .catch(async (e: unknown) => {
+      // It may have begun the turn and taken its lease before the answer was lost: give it back, then fail.
+      if (e instanceof RpcStalled) await release();
+      throw e;
+    });
   if (begin?.duplicate) return "duplicate";
+  if (begin?.busy) throw new TurnBusy(m.messageId);
   const sess = begin.session ?? {};
   const c: Ctx = {
     deps,
@@ -260,6 +284,7 @@ export async function handleCustomerTurn(
     supportOpen: !!begin.support_open,
     out: [],
     tools: [],
+    adds: 0,
     calls: 0,
     cost: 0,
     path: "deterministic",
@@ -274,6 +299,13 @@ export async function handleCustomerTurn(
     } else if (sess.handoff) await duringHandoff(c);
     else await route(c, !!begin.first_contact);
   } catch (e) {
+    // A stalled request (#139): nothing has been sent and the session is untouched, so the event fails and the
+    // queue replays the whole turn within seconds. After STALL_REPLAYS attempts the customer gets the buttons.
+    if (e instanceof RpcStalled && (opts.attempt ?? 1) < STALL_REPLAYS) {
+      // Give the turn back so the queue's retry can replay it (best effort: the lease also expires by itself).
+      await release();
+      throw e;
+    }
     c.path = "error";
     deps.log?.("customer turn failed", { error: String(e).slice(0, 200) });
     if (!c.out.length) fail(c);
@@ -289,16 +321,22 @@ export async function handleCustomerTurn(
   // The session row has no fulfil column, so the choice travels in refs (prefix "fx", never used by the lists).
   delete c.s.refs.fx;
   if (c.s.fulfil) c.s.refs.fx = { id: c.s.fulfil, label: c.s.fulfil };
-  await deps.rpc("customer_turn_end", {
-    p_customer_id: c.customerId,
-    p_message_id: m.messageId,
-    p_session: c.s,
-    p_path: c.path,
-    p_model_calls: c.calls,
-    p_tools: c.tools,
-    p_cost_usd: c.cost,
-    p_latency_ms: Date.now() - started,
-  });
+  // The replies are out: from here nothing may fail the event, or the queue would replay a turn the customer has
+  // already been answered for (#139). A session that could not be saved keeps the previous one.
+  try {
+    await deps.rpc("customer_turn_end", {
+      p_customer_id: c.customerId,
+      p_message_id: m.messageId,
+      p_session: c.s,
+      p_path: c.path,
+      p_model_calls: c.calls,
+      p_tools: c.tools,
+      p_cost_usd: c.cost,
+      p_latency_ms: Date.now() - started,
+    });
+  } catch (e) {
+    deps.log?.("customer turn end failed", { error: String(e).slice(0, 200) });
+  }
   return "done";
 }
 
@@ -547,7 +585,7 @@ async function tap(c: Ctx, a: CustomerAction) {
     case "option":
       return optionChosen(c, a.optionId);
     case "add_upsell": {
-      await deps.rpc("basket_add_item", {
+      await addItem(c, {
         p_customer_id: id,
         p_item_id: a.itemId,
         p_quantity: 1,
@@ -558,7 +596,7 @@ async function tap(c: Ctx, a: CustomerAction) {
       return checkout(c, {});
     }
     case "replace_basket": {
-      const r = await deps.rpc("basket_add_item", {
+      const r = await addItem(c, {
         p_customer_id: id,
         p_item_id: a.itemId,
         p_quantity: a.qty,
@@ -1014,6 +1052,16 @@ async function pickupPlaces(c: Ctx) {
   push(c, ...vendorChoices(c.m.from, c.s.lang, vs, null, "pickPickup"));
 }
 
+/**
+ * basket_add_item keyed by the message, the add's number in this turn and the item, so a replayed turn (#139) never
+ * adds the same thing twice, and a replay that adds something else (a model turn can) adds it.
+ */
+const addItem = (c: Ctx, args: Record<string, unknown>) =>
+  c.deps.rpc("basket_add_item", {
+    ...args,
+    p_op_key: `${c.m.messageId}#${c.adds++}:${String(args.p_item_id)}`,
+  });
+
 /** Adds one item; asks for required options one group at a time (§12: Flows for 2+ groups come in session 5). */
 async function addOne(
   c: Ctx,
@@ -1058,7 +1106,7 @@ async function addOne(
     push(c, optionList(c.m.from, c.s.lang, label, missing));
     return false;
   }
-  const r = await c.deps.rpc("basket_add_item", {
+  const r = await addItem(c, {
     p_customer_id: c.customerId,
     p_item_id: itemId,
     p_quantity: qty,
