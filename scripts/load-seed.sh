@@ -97,8 +97,10 @@ if [ ! -f "$boundary" ] || [ ! -f "$deny" ] || [ ! -f "$DIR/places.csv" ]; then
   echo "delivery area: no $boundary yet; nothing to load"
   return 0
 fi
-local sha
-sha=$(cat "$boundary" "$deny" $( [ -f "$road" ] && echo "$road") | sha256sum | cut -c1-64)
+local sha km
+# The road cut uses max_delivery_km() (the fee bands): a change there re-runs the load too.
+km=$(run -tAc "select public.max_delivery_km()")
+sha=$( (cat "$boundary" "$deny" $( [ -f "$road" ] && echo "$road"); echo "max_delivery_km=$km") | sha256sum | cut -c1-64)
 if loaded delivery_area "$sha"; then
   echo "delivery area: unchanged (${sha:0:12}); skipped"
   return 0

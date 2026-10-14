@@ -273,7 +273,12 @@ describe("menu adapters", () => {
       ["Size", 1, 1],
       ["Cooking", 1, 1],
     ]);
-    expect(classic.options?.[0].choices[1]).toMatchObject({ name: "Double", price: 800000 });
+    // A choice price is what the choice adds: the item costs its cheapest size, Double adds the difference.
+    expect(classic).toMatchObject({ price: 500000, currency: "LBP" });
+    expect(classic.options?.[0].choices.map((c) => [c.name, c.price])).toEqual([
+      ["Single", 0],
+      ["Double", 300000],
+    ]);
 
     // USD branch: prices rounded to the two decimals the menu prints.
     const usd = fromOmega(
@@ -304,6 +309,17 @@ describe("menu adapters", () => {
       price: 450000,
       currency: null,
     });
+    // A `currency` that is the branch's second currency, not its main one, is not the menu's.
+    const second = {
+      branch: { MAINCURRENCY: 1, SECONDCURRENCY: 3 },
+      currency: { ...data.currency, ID: 3 },
+    };
+    const main = {
+      branch: { MAINCURRENCY: 3, SECONDCURRENCY: 2 },
+      currency: { ...data.currency, ID: 3 },
+    };
+    expect(fromOmega(menu, second).sections[0].items[0].currency).toBeNull();
+    expect(fromOmega(menu, main).sections[0].items[0].currency).toBe("LBP");
   });
 
   it("reads names in both languages, price lists and flat lists split by category", () => {
@@ -395,6 +411,9 @@ describe("menu adapters", () => {
       false,
     );
     expect(jsonFromSite("not a url", "https://x.com/")).toBe(false);
+    // Lebanese second-level domains: two .com.lb sites are not the same site.
+    expect(jsonFromSite("https://api.resto.com.lb/menu", "https://www.resto.com.lb/")).toBe(true);
+    expect(jsonFromSite("https://tracker.com.lb/collect", "https://www.resto.com.lb/")).toBe(false);
   });
 
   it("picks the candidate with the most priced items, none under three", () => {
@@ -441,6 +460,9 @@ describe("harvest report", async () => {
       ),
     );
     expect(sk).not.toMatch(/example\.com/);
+    expect(shape({ "owner@example.com": 1, "96170123456": 2, ok: 3 })).toBe(
+      "{*:number,*:number,ok:number}",
+    );
   });
 });
 

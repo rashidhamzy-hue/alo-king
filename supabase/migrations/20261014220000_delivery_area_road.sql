@@ -2,8 +2,9 @@
 -- (supabase/seed/places/shouf_delivery_road_km.csv, OpenRouteService from the nearest pilot merchant to each place):
 --   * `app_private.delivery_area_load()`: the dated pilot_place_ids row is the boundary minus the places *between*
 --     (role `between`) that are more than max_delivery_km() from every merchant by road. The per-order check would
---     refuse them anyway; leaving them on only showed "too far" after the pin. They come back on their own when a
---     nearer merchant joins or the fee bands go further (the loader reruns when the files change).
+--     refuse them anyway; leaving them on only showed "too far" after the pin. They come back when the fee bands go
+--     further (scripts/load-seed.sh re-runs this load when max_delivery_km() changes) or when area-data recomputes the
+--     road file after a nearer merchant joins and that file is committed.
 --   * the shop villages (§38.1) and the villages Rasheed named are always delivered to: §39.2 calls his list
 --     authoritative, and a centroid-to-merchant route (Jbaa 18.3 km, Bater 14.5 km by road from 6.5 and 7.0 km in a
 --     straight line) is a reason to look again, not to strike a village he named. The per-order road check from the

@@ -14,9 +14,7 @@ Harvested 2026-10-14: 5 menus from 54 links (32 skipped by rule).
 - Al Tahouneh Restaurant: skipped: Instagram (login wall, terms) — https://www.instagram.com/altahouneh/
 - Deli Dough: **350 items, 350 priced** in 23 sections (omega, omega https://menu.omegasoftware.ca/getRestaurantMenu) — https://menu.omegasoftware.ca/delidough
 - The Center Bakery: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — http://thecenterbakery.com/
-- Fred's Food Baakline: not read: TimeoutError: page.goto: Timeout 45000ms exceeded.
-Call log:
-  - navigating to "http://www.freds-foo — http://www.freds-food.com/
+- Fred's Food Baakline: not read: TimeoutError: page.goto: Timeout 45000ms exceeded. Call log: - navigating to "http://www.freds-food. — http://www.freds-food.com/
 - Campobar Baakline: skipped: Instagram (login wall, terms) — https://instagram.com/campobarbaakline?utm_source=qr&igshid=MzNlNGNkZWQ4Mg%3D%3D
 - Dash: skipped: Instagram (login wall, terms) — https://www.instagram.com/dash.resto.snack?igsh=MTg1NG04OWQzYnl4eA==
 - Em Laure | إم لور: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://leb.guide/emlaure.25467/
@@ -68,7 +66,7 @@ Call log:
 
 ## Dmit
 
-- Cool Al Fahem: skipped: WhatsApp chat link, not a menu — https://wa.me/message/BNZ5EDOF43WXP1
+- Cool Al Fahem: skipped: WhatsApp chat link, not a menu — wa.me
 - BeNuts Roastery: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://benutsroastery.com/
 
 ## Jahliyeh
@@ -77,12 +75,11 @@ Call log:
 
 ## Jdeideh
 
-- Qahwa lounge: skipped: WhatsApp chat link, not a menu — http://wa.me/96176610856
+- Qahwa lounge: skipped: WhatsApp chat link, not a menu — wa.me
 
 ## Kfar Him
 
-- Mattuccino Restaurent: not read: Error: page.goto: net::ERR_NAME_NOT_RESOLVED at https://qr-order.online/restaurant/mattuccino
-Call l — https://qr-order.online/restaurant/mattuccino
+- Mattuccino Restaurent: not read: Error: page.goto: net::ERR_NAME_NOT_RESOLVED at https://qr-order.online/restaurant/mattuccino Call l — https://qr-order.online/restaurant/mattuccino
 
 ## Kfar Nabrakh
 

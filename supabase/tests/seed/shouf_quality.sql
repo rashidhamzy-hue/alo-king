@@ -26,8 +26,11 @@ select tests.ok(not exists (select 1 from public.places) or not exists (
     and not (v.town_id = any (array(select jsonb_array_elements_text(public.config_value('pilot_merchant_place_ids')))))),
   'every merchant sits in one of the 12 pilot villages (when places are loaded)');
 select tests.ok(jsonb_array_length(public.config_value('pilot_merchant_place_ids')) = 12, 'there are 12 merchant villages');
-select tests.ok((select count(*) from public.menu_drafts where source = 'seed' and status = 'draft') = 23,
-  '19 menus, 2 supermarket catalogues and the 2 owner menus (§39.4) are draft menus');
+select tests.ok((select count(*) from public.menu_drafts where source = 'seed' and status = 'draft') = 26,
+  '19 menus, 2 supermarket catalogues, the 2 owner menus and 3 harvested menus (§39.4) are draft menus');
+select tests.ok((select array_agg(v.name_en order by v.name_en) from public.menu_drafts d join public.vendors v on v.id = d.vendor_id
+    where d.source = 'seed' and d.source_url ~ '^https://') = array['Al Kooz Cafe', 'Batloun Dairy Stores', 'INDINER time'],
+  'the harvested drafts keep their page as the source; Deli Dough and J.O''s keep their curated draft');
 select tests.ok(not exists (select 1 from public.menu_drafts where source = 'seed' and (source_url is null or captured_at is null)),
   'every seed draft says where it came from and when');
 select tests.ok((select sum(jsonb_array_length(s -> 'items')) from public.menu_drafts d join public.vendors v on v.id = d.vendor_id,

@@ -32,9 +32,7 @@
 
 ## Fred's Food Baakline (html)
 
-- page TimeoutError: page.goto: Timeout 45000ms exceeded.
-Call log:
-  - navigating to " http://www.freds-food.com/
+- page TimeoutError: page.goto: Timeout 45000ms exceeded. Call log: - navigating to "ht http://www.freds-food.com/
 
 ## Sama El Deir (html)
 
@@ -78,8 +76,8 @@ Call log:
 - page 200 https://linktr.ee/fenetre_cafe
 - page 200 https://linktr.ee/blog/how-to-make-a-qr-code-menu-for-your-restaurant
 - json foreign https://pixel-config.reddit.com/pixels/a2_hev74snde9r1/config {pixelEventConfigs:[{id:number,trackingType:string,triggers:[{id,triggerType,triggerSelectorType,triggerSelectorValue}],metadata:[{metadataType,metadataExtractorType,metadataFixedValue}]}],aam:{email:boolean},esc:{page_metadata:boolean}}
-- json foreign https://featureassets.org/v1/initialize {feature_gates:{4051941:{name,value,rule_id,id_type,secondary_exposures},5021426:{name,value,rule_id,id_type,secondary_exposures},8539387:{name,value,rule_id,id_type,secondary_exposures},15050366:{name,value,rule_id,id_type,secondary_exposures},17198435:{name,value,rule_id,id_type,secondary_exposure
-- json foreign https://featureassets.org/v1/initialize {feature_gates:{4051941:{name,value,rule_id,id_type,secondary_exposures},5021426:{name,value,rule_id,id_type,secondary_exposures},8539387:{name,value,rule_id,id_type,secondary_exposures},15050366:{name,value,rule_id,id_type,secondary_exposures},17198435:{name,value,rule_id,id_type,secondary_exposure
+- json foreign https://featureassets.org/v1/initialize {feature_gates:{*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type
+- json foreign https://featureassets.org/v1/initialize {feature_gates:{*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type
 - json foreign https://pixels.spotify.com/v1/config/741e5159b7b34061b37deb42544366d5 {pixelId:string,aamFields:[],cookieOptIn:boolean,autoCaptureFields:[],autoCaptureOptIn:boolean}
 - json foreign https://pixels.spotify.com/v1/ingest {response:string}
 - json foreign https://sr-client-cfg.amplitude.com/config/99681b5b192c190d708c1e659ff741a7 {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
@@ -111,9 +109,7 @@ Call log:
 
 ## INDINER time (omega)
 
-- page TimeoutError: page.goto: Timeout 45000ms exceeded.
-Call log:
-  - navigating to " https://menu.omegasoftware.ca/indinertime
+- page TimeoutError: page.goto: Timeout 45000ms exceeded. Call log: - navigating to "ht https://menu.omegasoftware.ca/indinertime
 - json own https://menu.omegasoftware.ca/js/page.json {EN:{search:string,menu:string,service:string,reviews:string,about:string,photos:string,instructions:string,price:string,add:string,subtotal:string,vieworder:string,close:string},AR:{search:string,menu:string,service:string,reviews:string,about:string,photos:string,instructions:string,price:string,a
 - json own https://menu.omegasoftware.ca/getRestaurantData {branch:{ID:number,OMEGA_CUSTID:number,BRANCHID:number,BRAND_ID:number,BARANCHNAME:string,OTHERNAME:string,REGION_ID:object,SUBREGION_ID:object,MAINCURRENCY:number,SECONDCURRENCY:number,STREET:string,CITY:string},has_omenu:boolean,has_merits:boolean,brand:{ID:number,MASTER_CUSTOMER_ID:number,BRAND_N
 - json own https://menu.omegasoftware.ca/getRestaurantMenu {branch:{ID:number,OMEGA_CUSTID:number,BRANCHID:number,BRAND_ID:number,BARANCHNAME:string,OTHERNAME:string,REGION_ID:object,SUBREGION_ID:object,MAINCURRENCY:number,SECONDCURRENCY:number,STREET:string,CITY:string},options:[number],menu:[{ID:number,DESCRIPTION:string,ADESCRIPTION:string,PIC:string,BG_
@@ -122,9 +118,7 @@ Call log:
 
 ## Sip N' Go (menutigr)
 
-- page TimeoutError: page.goto: Timeout 45000ms exceeded.
-Call log:
-  - navigating to " https://menutigr.com/sip-n-go-444971104032605
+- page TimeoutError: page.goto: Timeout 45000ms exceeded. Call log: - navigating to "ht https://menutigr.com/sip-n-go-444971104032605
 - json own https://alb.menutigr.com/api/customer-app/foods/featured {success:boolean,msg:string,data:[]}
 - json own https://alb.menutigr.com/api/carts {success:boolean,msg:string,data:{restaurantId:string,storeId:string,guestId:string,discounts:number,tax:number,customerTip:object,tip:number,subtotal:number,total:number,deliveryChargeAmount:number,_id:string,items:[]}}
 

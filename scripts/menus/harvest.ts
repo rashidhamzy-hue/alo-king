@@ -129,9 +129,10 @@ export async function capture(rawDir: string, list: MenuSource[] = sources()) {
       const visit = async (url: string, n: number) => {
         try {
           // Single-page menus keep a socket or a poll open, so "networkidle" may never come (INDINER time,
-          // menutigr): wait for the document, then give the menu API up to 15 s to answer.
+          // menutigr): wait for the document, then give the menu API up to 30 s to answer (a sleeping free-tier
+          // API host, like J.O's on onrender.com, takes 20 s or more to wake).
           const res = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
-          await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+          await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
           await page.waitForTimeout(1500);
           // Lazy menus: scroll once to the bottom.
           await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
@@ -241,9 +242,11 @@ export function shape(v: unknown, depth = 0): string {
   if (Array.isArray(v)) return `[${v.length ? shape(v[0], depth) : ""}]`;
   if (v && typeof v === "object") {
     const keys = Object.keys(v).slice(0, 12);
+    // A key can itself be data (a map keyed by email, phone or id): those print as "*".
+    const label = (k: string) => (/@|\+?\d{6,}/.test(k) ? "*" : k);
     return depth >= 2
-      ? `{${keys.join(",")}}`
-      : `{${keys.map((k) => `${k}:${shape((v as Record<string, unknown>)[k], depth + 1)}`).join(",")}}`;
+      ? `{${keys.map(label).join(",")}}`
+      : `{${keys.map((k) => `${label(k)}:${shape((v as Record<string, unknown>)[k], depth + 1)}`).join(",")}}`;
   }
   return typeof v;
 }
@@ -265,7 +268,9 @@ function parse(rawDir: string, outDir: string) {
     if (!meta.skip) {
       shapes.push(`## ${s.name} (${meta.adapter})`, "");
       for (const p of meta.pages)
-        shapes.push(`- page ${p.status ?? p.error?.slice(0, 80)} ${p.url.split("?")[0]}`);
+        shapes.push(
+          `- page ${p.status ?? p.error?.replace(/\s+/g, " ").slice(0, 80)} ${p.url.split("?")[0]}`,
+        );
       for (const p of meta.pdf) shapes.push(`- pdf ${p.chars} chars ${p.url.split("?")[0]}`);
       for (const j of meta.json) {
         let sk = "unreadable";
@@ -290,7 +295,7 @@ function parse(rawDir: string, outDir: string) {
       const most = Math.max(0, ...candidates.map((c) => pricedItems(c.draft)));
       line =
         errs.length && !meta.json.length
-          ? `not read: ${errs[0].slice(0, 100)}`
+          ? `not read: ${errs[0].replace(/\s+/g, " ").slice(0, 100)}`
           : scanned
             ? `not read: ${scanned} PDF(s) without text (scanned; the photo reader needs API credit)`
             : `not read: no menu with prices found (best ${most} priced items; ${meta.json.length} JSON responses)`;
@@ -313,7 +318,8 @@ function parse(rawDir: string, outDir: string) {
     rows.push({
       village: s.village || "(none)",
       name: s.name,
-      line: `${line} — ${meta.url.slice(0, 80)}`,
+      // A chat link is a phone number: the report names the host only.
+      line: `${line} — ${/^https?:\/\/(wa\.me|api\.whatsapp\.com)\//.test(meta.url) ? new URL(meta.url).hostname : meta.url.slice(0, 80)}`,
     });
   }
   mkdirSync(outDir, { recursive: true });

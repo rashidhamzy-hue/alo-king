@@ -1,5 +1,6 @@
 -- Rollback of 20261014220000_delivery_area_road.sql: the 20261014200000 loader and proposal (the whole boundary file
--- is the dated row; no shop-village exception). The next boundary load writes a new dated row.
+-- is the dated row; no shop-village exception). The load record is cleared so the next scripts/load-seed.sh run
+-- reloads the boundary and writes a dated row with the whole file again.
 drop function public.delivery_area_proposal();
 create function public.delivery_area_proposal()
 returns table (place_id text, name_en text, name_ar text, district_code text, service_status public.service_status,
@@ -97,3 +98,5 @@ end;
 $$;
 revoke all on function app_private.delivery_area_load(text) from public, anon, authenticated;
 drop function app_private.delivery_area_ids();
+
+delete from app_private.seed_loads where name = 'delivery_area';

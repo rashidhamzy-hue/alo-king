@@ -464,13 +464,22 @@ export function driveDownloadUrl(link: string): string {
 export function fromOmega(menu: unknown, data: unknown): Draft {
   const m = isObj(menu) ? menu : {};
   const c = isObj(data) && isObj(data.currency) ? (data.currency as J) : {};
-  const currency = currencyWord(c.DESCRIPTION) ?? currencyWord(c.SYNBOL);
+  // The currency the menu prints is the branch's main one; a `currency` that is not it (the branch's second
+  // currency) leaves the prices without a currency, asked at approval.
+  const branch =
+    isObj(data) && isObj(data.branch) ? (data.branch as J) : isObj(m.branch) ? (m.branch as J) : {};
+  const isMain = branch.MAINCURRENCY === undefined || String(branch.MAINCURRENCY) === String(c.ID);
+  const currency = isMain ? (currencyWord(c.DESCRIPTION) ?? currencyWord(c.SYNBOL)) : null;
   const digits = Number.isInteger(c.DIGITNUMBER)
     ? Math.min(3, Math.max(0, c.DIGITNUMBER as number))
     : 2;
-  const priceText = (v: unknown) => {
+  const round = (v: unknown) => {
     const n = typeof v === "number" ? v : Number(v);
-    if (!Number.isFinite(n) || n < 0) return null;
+    return Number.isFinite(n) && n >= 0 ? Number(n.toFixed(digits)) : null;
+  };
+  const priceText = (v: unknown) => {
+    const n = round(v);
+    if (n === null) return null;
     const t = n.toFixed(digits).replace(/\.0+$/, "");
     return currency ? `${t} ${currency}` : t;
   };
@@ -492,6 +501,12 @@ export function fromOmega(menu: unknown, data: unknown): Draft {
         const sizes = (Array.isArray(it.sizes) ? it.sizes.filter(isObj) : []).filter(
           (z) => pick(z, ["SIZENAME", "SIZE", "ITEMNAME", "DESCRIPTION", "NAME"]) !== undefined,
         );
+        // A choice's price is what it adds (menu_options.price_delta_usd): with sizes, the item costs its cheapest
+        // size and each size adds the difference, so "Single 500,000 / Double 800,000" stays exactly as printed.
+        const sizePrices = sizes.map((z) => round(z.PRICE));
+        const base = sizePrices.every((p) => p !== null)
+          ? Math.min(...(sizePrices as number[]))
+          : null;
         const options = [
           ...(sizes.length
             ? [
@@ -499,9 +514,12 @@ export function fromOmega(menu: unknown, data: unknown): Draft {
                   name: "Size",
                   min: 1,
                   max: 1,
-                  choices: sizes.map((z) => ({
+                  choices: sizes.map((z, i) => ({
                     name: String(pick(z, ["SIZENAME", "SIZE", "ITEMNAME", "DESCRIPTION", "NAME"])),
-                    price_text: priceText(z.PRICE),
+                    price_text:
+                      base === null
+                        ? null
+                        : priceText(Number(((sizePrices[i] as number) - base).toFixed(digits))),
                   })),
                 },
               ]
@@ -522,8 +540,14 @@ export function fromOmega(menu: unknown, data: unknown): Draft {
               };
             }),
         ];
-        // With sizes, the item's own PRICE is the first size's: the size choice carries the price.
-        const price = Number(it.PRICE) > 0 ? priceText(it.PRICE) : null;
+        // Without a price for every size, the sizes carry no price and the merchant prices them at approval.
+        const price = sizes.length
+          ? base !== null
+            ? priceText(base)
+            : null
+          : Number(it.PRICE) > 0
+            ? priceText(it.PRICE)
+            : null;
         return {
           ...names(it.ITEMNAME, it.AITEMNAME),
           ...(str(it.ITEMDESCRIPTION) ? { description: str(it.ITEMDESCRIPTION) } : {}),
@@ -566,12 +590,12 @@ export function fromProductCards(html: string): Draft {
 
 // Menu platforms whose API lives on their own host, not the merchant's.
 const PLATFORM_HOSTS = /(^|\.)(omegasoftware\.ca|menutigr\.com|qr-order\.online|qrscan-menu\.com)$/;
-const site = (host: string) =>
-  host
-    .replace(/^www\./, "")
-    .split(".")
-    .slice(-2)
-    .join(".");
+// The registrable part of a host: "x.com.lb" (Lebanese second-level domains), else the last two labels.
+const site = (host: string) => {
+  const labels = host.replace(/^www\./, "").split(".");
+  const n = labels.length >= 3 && /^(com|org|net|edu|gov)$/.test(labels[labels.length - 2]) ? 3 : 2;
+  return labels.slice(-n).join(".");
+};
 
 /**
  * Whether a JSON response belongs to the menu page that loaded it: same site, a known menu platform, or an API host
