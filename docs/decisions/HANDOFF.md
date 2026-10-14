@@ -1,11 +1,11 @@
-# Handoff — 14 October 2026 (after session D)
+# Handoff — 14 October 2026 (after session E)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
 ## State
 
-- **Decisions:** sections 0–38 are complete (§33 pilot-first order, §34 ordering testable first, §38 Shouf-first pilot). Phase 0 is GO.
-- **Repo:** `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon` (the default branch), private. `main` is legacy and frozen.
+- **Decisions:** sections 0–39 are complete (§33 pilot-first order, §34 ordering testable first, §38 Shouf-first pilot, §39 after session D: public repo, delivery area, public listings, full menus, agents, Kapso). Phase 0 is GO.
+- **Repo:** `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon` (the default branch), public since 14 October (§39.1: free Actions minutes). `main` is legacy and frozen.
 - **Services ready:**
   - Supabase `alo-king-staging` (`tzugbbatfbvrfzxuacqx`, eu-central-1, free plan)
   - Vercel `alo-king` (fra1)
@@ -185,7 +185,14 @@
   - **e2e after the #140 deploy:** 9 of 11 scenarios passed. `pickup` and `shouf-draft-market` failed because a reply came 60–100 s late: the dispatch worker's first attempt never finished, recorded no error, and the queue retried it (`webhook_events.attempts = 2`). The basket RPC itself answers in 60 ms. The pickup stall overlapped the 423 MB photo copy; the market one did not. The run after #141's deploy is the second data point (§36 kill-gate: two consecutive failures with no code change means quarantine plus a LOG line). Session 5c should look at where dispatch can block for a minute.
   - **check-setup:** proves `DEEPGRAM_API_KEY` (a note until the secret is added, §38.6).
   - **CUT-OVER (session 14), added:** no `alo-test-market` vendor and no `sim_market` use on production; run the Shouf load there after the places load (it switches the 12 villages on); copy the seed photos with the same script against production.
-- **Next: session 5c (directive engineering, §38.5), then 13, 5b and 14.** The full session list, with the model and effort for each, is in DECISIONS §38.5 (it replaces the order in §34).
+- **Session E (finish D, CI diet, delivery area, listings, §39.10): in progress (14 October).** PRs #145 (stall fix, scenario 11, CI diet) and the `Data:` PR for the delivery area and owner menus; see LOG.md "session E" lines.
+  - **Dispatch stall (#139), root cause:** about 1 in 2,000 requests from the edge functions to `/rest/v1` stalled 20–101 s in Supabase's network path while PostgREST and Postgres answered in milliseconds (edge logs). `dispatch` had no deadline, so the worker hung until the 150 s wall clock. The queue retried after 90 s, and the retry answered "duplicate" to the half-finished turn, so the tap was lost.
+  - **The fix (#145):** every request has a deadline (`_shared/rest-rpc.ts`); only read-only or idempotent calls are retried; a failed event comes back in 5 s. The retry replays the unfinished turn from the session the customer saw, with keyed basket adds and a turn lease (`busy` instead of duplicate while held). Tests that fail on the old code: `dispatch/stall-replay.test.ts` and `supabase/tests/99_dispatch_stall_replay.sql`.
+  - **CI diet (§39.1):** docs, data, migration and edge-function-only PRs skip the site build and website quality. Automerge requires each job by name. The Supabase CLI is pinned to 2.120.0. The review runs only on ready PRs, and fork PRs never get secrets. The ruleset file is `.github/rulesets/rebuild-lebanon.json`; the owner imports it (#144).
+  - **Delivery area (§39.2):** `pilot_place_ids` is now the delivery area, 259 places within 10 km in a straight line of a Shouf merchant (Beiteddine back on, Jezzine stays paused). `pilot_merchant_place_ids` keeps the 12 merchant villages. `delivery_area_proposal()` computes the rule, and a seed check fails when it and the dated row disagree. OSM landmarks and place names are fetched for the whole area by the deploy job.
+  - **Owner menus (§39.4 source 1):** SEVEN Burgers (44 items, LBP) and Nayeh w Meshwiyeh (121 items, USD) are seed drafts with `source_url` and `captured_at`. LBP converts at the dated rate when a section is approved, and the card shows "850,000 LBP → $9.50". "A / B" items are one item with a required choice. Nayeh's second listing is merged (314 merchants).
+  - **CUT-OVER (session 14), added:** the stall fix assumes the free plan's 150 s wall clock (lease at request start + 152 s, claim visibility 160 s). On Pro, `dispatch` must stop starting events near its deadline first.
+- **Next: session F (menu harvest, §39.4 sources 2–3, §39.5), then 5c (agents), 5b (Kapso and operations), 13 and 14.** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5).
 
 ## How to start each build session
 

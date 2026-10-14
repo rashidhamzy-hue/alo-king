@@ -33,7 +33,7 @@ select set_config('app.actor_kind', 'system', false);
 select set_config('app.audit_reason', 'staging test fixture Alo Test Grill (DECISIONS §34)', false);
 
 -- 1. Pilot places on ------------------------------------------------------------------------------------
--- Session D (DECISIONS §38.1): the 12 Shouf pilot villages (config pilot_place_ids) are on. Only switched on here:
+-- Session D (DECISIONS §38.1), widened in session E (§39.2): the delivery area (config pilot_place_ids) is on. Only switched on here:
 -- switching other places off is the migration's and the Shouf load's job (pilot_places_apply), so a village an
 -- operator opens on staging is not closed again by every deploy.
 do $$

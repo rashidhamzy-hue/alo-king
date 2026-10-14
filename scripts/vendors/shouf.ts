@@ -108,7 +108,29 @@ export type ShoufRow = VendorRow & {
 
 const FOOD_CATEGORIES = new Set(["restaurant", "cafe", "bakery", "grocery", "butcher", "desserts"]);
 
-export function normalizeShouf(rows: RawVendor[]) {
+/**
+ * `duplicates` (duplicate place id → kept place id, from the owner's menu file, §39.4): one shop listed twice. The
+ * duplicate row is not imported (an exclusion "duplicate of <kept>", which the load also uses to remove an unclaimed
+ * duplicate already in the database), and the kept row takes the Arabic name when it has none.
+ */
+export function normalizeShouf(rawRows: RawVendor[], duplicates: Map<string, string> = new Map()) {
+  const all = new Map(rawRows.map((r) => [r.place_id, r]));
+  const rows = rawRows
+    .filter((r) => !duplicates.has(r.place_id))
+    .map((r) => {
+      const dup = [...duplicates].find(([, keep]) => keep === r.place_id)?.[0];
+      const d = dup ? all.get(dup) : undefined;
+      if (!d || (r.name_ar ?? "").trim()) return r;
+      const ar = [d.name_ar, d.name_en].map((x) => (x ?? "").trim()).find((x) => /[؀-ۿ]/.test(x));
+      return ar ? { ...r, name_ar: ar } : r;
+    });
+  const merged = [...duplicates]
+    .filter(([dup, keep]) => all.has(dup) && all.has(keep))
+    .map(([dup, keep]) => ({
+      place_id: dup,
+      name: (all.get(dup)!.name_en || all.get(dup)!.name_ar || "").trim(),
+      reason: `duplicate of ${keep}`,
+    }));
   const byId = new Map(rows.map((r) => [r.place_id, r]));
   const adapt = (r: RawVendor, keepGoogleType: boolean): RawVendor => {
     const n = shoufNames(r.name_en ?? "", r.name_ar ?? "");
@@ -180,7 +202,7 @@ export function normalizeShouf(rows: RawVendor[]) {
       locality_raw: src.locality_raw ?? "",
     };
   });
-  return { ...result, vendors };
+  return { ...result, vendors, exclusions: [...result.exclusions, ...merged] };
 }
 
 function metres(a: VendorRow, b: VendorRow): number {

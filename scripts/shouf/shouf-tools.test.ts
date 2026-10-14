@@ -19,6 +19,17 @@ describe("OSM fetch (§38.2 items 4–5)", () => {
     expect(overpassQuery(box)).toContain(`(${box.join(",")})`);
   });
 
+  it("widens the box by the delivery radius for the §39.2 delivery area", () => {
+    const csv = readFileSync("supabase/seed/shouf/source/01_shouf_merchants_315.csv", "utf8");
+    const [s2, w2, n2, e2] = pilotBox(csv, 2);
+    const [s10, w10, n10, e10] = pilotBox(csv, 10);
+    // 8 km more on each side: about 0.072° of latitude and 0.086° of longitude at 33.7° N.
+    expect(s2 - s10).toBeCloseTo(8 / 111.32, 3);
+    expect(n10 - n2).toBeCloseTo(8 / 111.32, 3);
+    expect(w2 - w10).toBeGreaterThan(0.08);
+    expect(e10 - e2).toBeLessThan(0.09);
+  });
+
   it("maps OSM tags to the §38.2 landmark kinds", () => {
     expect(landmarkKind({ amenity: "place_of_worship", religion: "muslim" })).toBe("mosque");
     expect(landmarkKind({ amenity: "place_of_worship", religion: "christian" })).toBe("church");
