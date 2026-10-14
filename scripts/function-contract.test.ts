@@ -29,6 +29,7 @@ const code = [
 }));
 const sql = readdirSync("supabase/migrations")
   .filter((f) => f.endsWith(".sql"))
+  .sort() // migrations apply in name order, so the last definition of a function is the live one
   .map((f) => readFileSync(path.join("supabase/migrations", f), "utf8"))
   .join("\n");
 

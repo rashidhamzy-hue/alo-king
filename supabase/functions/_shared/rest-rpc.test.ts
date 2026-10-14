@@ -68,7 +68,8 @@ describe("rest-rpc deadlines (#139)", () => {
   it("only reads and idempotent writes are retry-safe", () => {
     expect(retrySafe("config_value")).toBe(true);
     expect(retrySafe("whatsapp_seen")).toBe(true);
-    expect(retrySafe("order_place")).toBe(false);
+    expect(retrySafe("order_place")).toBe(true); // keyed by basket and menu version
+    expect(retrySafe("basket_add_item")).toBe(false);
     expect(retrySafe("order_accept")).toBe(false);
     expect(retrySafe("customer_turn_begin")).toBe(false);
   });

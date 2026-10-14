@@ -345,11 +345,14 @@ jobs:
   automerge:
     name: automerge
     needs: [changes, checks, web-quality, secret-scan, data-freeze, migrations, db-tests, review]
-    # A job skipped by the CI diet counts as passed; any failure or cancellation stops the merge.
+    # Every job must pass; only the website-quality job may be skipped, and only when the CI diet found no web change.
     if: >-
       always() && !cancelled() &&
-      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') &&
-      needs.checks.result == 'success' && needs.review.result == 'success' && needs.migrations.result == 'success' &&
+      needs.changes.result == 'success' && needs.checks.result == 'success' && needs.secret-scan.result == 'success' &&
+      needs.data-freeze.result == 'success' && needs.migrations.result == 'success' &&
+      needs.db-tests.result == 'success' && needs.review.result == 'success' &&
+      (needs.web-quality.result == 'success' ||
+       (needs.web-quality.result == 'skipped' && needs.changes.outputs.web == 'false')) &&
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       !contains(github.event.pull_request.labels.*.name, 'no-automerge')

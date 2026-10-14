@@ -118,7 +118,9 @@ export async function runDispatch(
   // 1. Inbound.
   while (left() > 2000) {
     const events: any[] =
-      (await deps.rpc("webhook_claim", { p_limit: 10, p_visibility_s: 90 })) ?? [];
+      // Invisible for longer than an edge function can live (150 s), so a worker that dies is never overlapped by a
+      // retry; a failed event comes back in seconds through webhook_finish instead (#139).
+      (await deps.rpc("webhook_claim", { p_limit: 10, p_visibility_s: 160 })) ?? [];
     if (!events.length) break;
     for (const ev of events) {
       let status: "done" | "ignored" | "failed" = "done";
@@ -135,6 +137,7 @@ export async function runDispatch(
         p_event_id: ev.event_id,
         p_status: status,
         p_error: error ?? null,
+        p_attempt: ev.attempts ?? null,
       });
       out.inbound++;
     }

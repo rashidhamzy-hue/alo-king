@@ -19,7 +19,7 @@ const VENDOR = "20000000-0000-0000-0000-00000000000b";
 const ITEM = "51000000-0000-0000-0000-000000000011";
 const NAME = "Tannourine Natural Mineral Water (1.5L x 6 Pack)";
 
-function world() {
+function world(opts: { stallFirstAdd?: boolean } = {}) {
   let clock = 0; // seconds
   const queue = [
     {
@@ -42,7 +42,7 @@ function world() {
       },
     },
   ];
-  const turns = new Map<string, { finished: boolean }>();
+  const turns = new Map<string, { finished: boolean; leased: boolean }>();
   const ops = new Set<string>();
   const session = {
     lang: "en",
@@ -57,7 +57,7 @@ function world() {
     low_confidence: 0,
   };
   let qty = 0;
-  let stallNextAdd = true;
+  let stallNextAdd = opts.stallFirstAdd ?? true;
   const basket = () =>
     qty
       ? {
@@ -92,6 +92,7 @@ function world() {
       }
       case "webhook_finish": {
         const e = queue.find((x) => x.msg_id === a.p_msg_id)!;
+        if (a.p_attempt != null && a.p_attempt !== e.attempts) return null;
         e.status = a.p_status;
         if (a.p_status !== "failed" || e.attempts >= 5) e.archived = true;
         else e.vt = clock + Math.min(5 * e.attempts, 60);
@@ -101,9 +102,10 @@ function world() {
         const t = turns.get(a.p_message_id);
         let replay = false;
         if (t) {
-          if (t.finished || !((a.p_attempt ?? 1) > 1)) return { duplicate: true };
+          if (t.finished || t.leased || !((a.p_attempt ?? 1) > 1)) return { duplicate: true };
+          t.leased = true;
           replay = true;
-        } else turns.set(a.p_message_id, { finished: false });
+        } else turns.set(a.p_message_id, { finished: false, leased: true });
         return {
           duplicate: false,
           replay,
@@ -123,6 +125,9 @@ function world() {
           support_open: true,
         };
       }
+      case "customer_turn_release":
+        turns.get(a.p_message_id)!.leased = false;
+        return null;
       case "customer_turn_end":
         Object.assign(session, structuredClone(a.p_session));
         turns.get(a.p_message_id)!.finished = true;
@@ -226,5 +231,23 @@ describe("a request that stalls mid-turn (#139)", () => {
     expect(w.queue[0].status).toBe("done");
     expect(w.sent).toHaveLength(1);
     expect(JSON.stringify(w.sent[0])).toContain("c:order");
+  });
+
+  it("once the replies are out, a failure saving the session never replays the turn", async () => {
+    const w = world({ stallFirstAdd: false });
+    const rpc = w.deps.rpc;
+    let addCalls = 0;
+    w.deps.rpc = async (fn, a) => {
+      if (fn === "basket_add_item") addCalls++;
+      if (fn === "customer_turn_end") throw new RpcStalled(fn, 8000);
+      return rpc(fn, a);
+    };
+    await runDispatch(w.deps);
+    w.advance(60);
+    await runDispatch(w.deps);
+    expect(w.queue[0].status).toBe("done");
+    expect(w.queue[0].attempts).toBe(1);
+    expect(addCalls).toBe(1);
+    expect(w.sent).toHaveLength(1);
   });
 });

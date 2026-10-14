@@ -1,12 +1,15 @@
 -- Rollback of 20261014150000_dispatch_stall_replay.sql: the earlier webhook_finish, customer_turn_begin and
--- basket_add_item (from 20261007120400 and 20261011100100), without keyed adds. Deletes nothing a customer made.
+-- basket_add_item (from 20261007120400 and 20261011100100), without keyed adds or turn leases. Deletes nothing a customer made.
 select cron.unschedule('basket-add-ops-prune');
 drop function app_private.basket_add_ops_prune();
 drop function public.basket_add_item(uuid, uuid, integer, uuid[], text, boolean, text);
 drop table app_private.basket_add_ops;
+drop function public.customer_turn_release(text);
 drop function public.customer_turn_begin(text, text, text, text, integer);
+alter table public.bot_turns drop column lease_until;
+drop function public.webhook_finish(bigint, bigint, public.webhook_status, text, integer, integer);
 
-create or replace function public.webhook_finish(
+create function public.webhook_finish(
   p_msg_id bigint,
   p_event_id bigint,
   p_status public.webhook_status,
@@ -37,6 +40,7 @@ begin
   end if;
 end;
 $$;
+revoke all on function public.webhook_finish(bigint, bigint, public.webhook_status, text, integer) from public, anon, authenticated;
 grant execute on function public.webhook_finish(bigint, bigint, public.webhook_status, text, integer) to service_role;
 
 create function public.customer_turn_begin(

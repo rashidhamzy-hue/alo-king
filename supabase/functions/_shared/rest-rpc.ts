@@ -53,8 +53,10 @@ export const RETRY_SAFE_WRITES = new Set([
   "basket_set_checkout",
   "basket_set_substitution",
   "customer_turn_end", // overwrites the session with the same value
+  "customer_turn_release", // gives the turn's lease back
+  "order_place", // idempotency key wa:<basket>:<menu version>: a repeat returns the same order
   "whatsapp_seen", // upsert of "now"
-  "webhook_finish",
+  "webhook_finish", // takes the attempt it finishes: a late repeat never touches a later attempt
 ]);
 
 export const retrySafe = (fn: string) => RETRY_SAFE_READS.has(fn) || RETRY_SAFE_WRITES.has(fn);

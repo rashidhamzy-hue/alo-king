@@ -239,13 +239,23 @@ export async function handleCustomerTurn(
   const kind = m.buttonId ? "tap" : m.type;
   // A queue retry (attempt 2+) of a turn whose first attempt died before customer_turn_end replays it from the
   // session the customer saw; a finished turn or a second delivery of the same message is a duplicate (#139).
-  const begin = await deps.rpc("customer_turn_begin", {
-    p_phone_e164: m.from,
-    p_message_id: m.messageId,
-    p_kind: kind.replace(/[^a-z_]/g, "_").slice(0, 40) || "unknown",
-    p_display_name: m.name,
-    p_attempt: Math.max(1, Math.trunc(opts.attempt ?? 1)),
-  });
+  const release = () =>
+    deps
+      .rpc("customer_turn_release", { p_message_id: m.messageId })
+      .catch((x: unknown) => deps.log?.("turn release failed", { error: String(x).slice(0, 120) }));
+  const begin = await deps
+    .rpc("customer_turn_begin", {
+      p_phone_e164: m.from,
+      p_message_id: m.messageId,
+      p_kind: kind.replace(/[^a-z_]/g, "_").slice(0, 40) || "unknown",
+      p_display_name: m.name,
+      p_attempt: Math.max(1, Math.trunc(opts.attempt ?? 1)),
+    })
+    .catch(async (e: unknown) => {
+      // It may have begun the turn and taken its lease before the answer was lost: give it back, then fail.
+      if (e instanceof RpcStalled) await release();
+      throw e;
+    });
   if (begin?.duplicate) return "duplicate";
   const sess = begin.session ?? {};
   const c: Ctx = {
@@ -286,7 +296,11 @@ export async function handleCustomerTurn(
   } catch (e) {
     // A stalled request (#139): nothing has been sent and the session is untouched, so the event fails and the
     // queue replays the whole turn within seconds. After STALL_REPLAYS attempts the customer gets the buttons.
-    if (e instanceof RpcStalled && (opts.attempt ?? 1) < STALL_REPLAYS) throw e;
+    if (e instanceof RpcStalled && (opts.attempt ?? 1) < STALL_REPLAYS) {
+      // Give the turn back so the queue's retry can replay it (best effort: the lease also expires by itself).
+      await release();
+      throw e;
+    }
     c.path = "error";
     deps.log?.("customer turn failed", { error: String(e).slice(0, 200) });
     if (!c.out.length) fail(c);
@@ -302,16 +316,22 @@ export async function handleCustomerTurn(
   // The session row has no fulfil column, so the choice travels in refs (prefix "fx", never used by the lists).
   delete c.s.refs.fx;
   if (c.s.fulfil) c.s.refs.fx = { id: c.s.fulfil, label: c.s.fulfil };
-  await deps.rpc("customer_turn_end", {
-    p_customer_id: c.customerId,
-    p_message_id: m.messageId,
-    p_session: c.s,
-    p_path: c.path,
-    p_model_calls: c.calls,
-    p_tools: c.tools,
-    p_cost_usd: c.cost,
-    p_latency_ms: Date.now() - started,
-  });
+  // The replies are out: from here nothing may fail the event, or the queue would replay a turn the customer has
+  // already been answered for (#139). A session that could not be saved keeps the previous one.
+  try {
+    await deps.rpc("customer_turn_end", {
+      p_customer_id: c.customerId,
+      p_message_id: m.messageId,
+      p_session: c.s,
+      p_path: c.path,
+      p_model_calls: c.calls,
+      p_tools: c.tools,
+      p_cost_usd: c.cost,
+      p_latency_ms: Date.now() - started,
+    });
+  } catch (e) {
+    deps.log?.("customer turn end failed", { error: String(e).slice(0, 200) });
+  }
   return "done";
 }
 
@@ -1028,11 +1048,14 @@ async function pickupPlaces(c: Ctx) {
 }
 
 /**
- * basket_add_item keyed by the message and the add's number in this turn, so a replayed turn (#139) never adds
- * the same thing twice.
+ * basket_add_item keyed by the message, the add's number in this turn and the item, so a replayed turn (#139) never
+ * adds the same thing twice, and a replay that adds something else (a model turn can) adds it.
  */
 const addItem = (c: Ctx, args: Record<string, unknown>) =>
-  c.deps.rpc("basket_add_item", { ...args, p_op_key: `${c.m.messageId}#${c.adds++}` });
+  c.deps.rpc("basket_add_item", {
+    ...args,
+    p_op_key: `${c.m.messageId}#${c.adds++}:${String(args.p_item_id)}`,
+  });
 
 /** Adds one item; asks for required options one group at a time (§12: Flows for 2+ groups come in session 5). */
 async function addOne(
