@@ -10,12 +10,12 @@ import { restRpc } from "../_shared/rest-rpc.ts";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-// webhook_intake deduplicates on the event key, so a stalled call (#139) is retried once on a new request (6 s
-// each, inside Kapso's delivery timeout); if both stall the delivery fails with a 500 and Kapso redelivers.
+// webhook_intake deduplicates on the event key, so a stalled call (#139) is retried once on a new request. Two
+// 4.5 s attempts stay inside Kapso's 10 s delivery timeout; if both stall, Kapso redelivers and dedupe absorbs it.
 const rpc = restRpc({
   url: supabaseUrl,
   key: serviceKey,
-  timeoutMs: 6000,
+  timeoutMs: 4500,
   log: (msg, fields) => console.log(JSON.stringify({ fn: "whatsapp-webhook", msg, ...fields })),
 });
 
