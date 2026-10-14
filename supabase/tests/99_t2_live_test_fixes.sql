@@ -16,25 +16,29 @@ select id as tv from public.vendors where slug = 'alo-test-grill' \gset
 -- The T2 30 km test band is retired (session T3) -----------------------------------------------------------------------
 select tests.ok((select delivery_radius_km = 10.0 and pickup_enabled and delivery_enabled from public.vendors where id = :'tv'),
   'Alo Test Grill is back at a 10 km radius on record and takes pickup');
-select tests.ok(public.max_delivery_km() = 10, 'the fixture adds no fee band above 10 km');
+select tests.ok(public.max_delivery_km() = 20, 'the fixture adds no fee band above the real 20 km band (§39.2)');
 select tests.ok(public.delivery_fee_usd(2.5) = 2.00 and public.delivery_fee_usd(5) = 3.00 and public.delivery_fee_usd(9.5) = 4.50,
   'the existing bands keep their fees');
 select tests.ok(public.delivery_fee_usd(25) is null and not exists (select 1 from public.delivery_fee_bands where max_km = 30),
   'and there is no 10-30 km test band');
--- A staging database that still has T2's band set: the fixture replaces it with a newer set of the three real bands.
+-- A staging database that still has T2's band set: the fixture replaces it with a newer set without the 30 km band.
 update public.vendors set delivery_radius_km = 10.0 where id = :'tv';
+-- Between the newest set in force and now(): newer than the migrations' sets, older than the fixture's own now() set.
+select (select max(effective_from) from public.delivery_fee_bands where effective_from <= now())
+  + (now() - (select max(effective_from) from public.delivery_fee_bands where effective_from <= now())) / 2 as t2at \gset
 insert into public.delivery_fee_bands (effective_from, max_km, fee_usd, created_by) values
-  (now() - interval '1 minute', 3, 2.00, null), (now() - interval '1 minute', 6, 3.00, null),
-  (now() - interval '1 minute', 10, 4.50, null), (now() - interval '1 minute', 30, 6.00, null);
+  (:'t2at', 3, 2.00, null), (:'t2at', 6, 3.00, null),
+  (:'t2at', 10, 4.50, null), (:'t2at', 30, 6.00, null);
 select tests.ok(public.max_delivery_km() = 30 and public.delivery_fee_usd(25) = 6.00, 'T2''s 30 km band set is in force');
 \i supabase/test-fixtures/alo-test-grill.sql
-select tests.ok(public.max_delivery_km() = 10 and public.delivery_fee_usd(25) is null and public.delivery_fee_usd(9.5) = 4.50,
-  'the fixture retires it with a newer set of the three real bands');
-select tests.ok((select count(*) = 3 from public.delivery_fee_bands b
+select tests.ok(public.max_delivery_km() = 20 and public.delivery_fee_usd(25) is null and public.delivery_fee_usd(9.5) = 4.50
+    and public.delivery_fee_usd(15) = 6.00,
+  'the fixture retires it with a newer copy of the real bands, 20 km band included');
+select tests.ok((select count(*) = 4 from public.delivery_fee_bands b
   where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now())),
-  'three bands are in force');
+  'four bands are in force');
 \i supabase/test-fixtures/alo-test-grill.sql
-select tests.ok((select count(*) = 3 from public.delivery_fee_bands b
+select tests.ok((select count(*) = 4 from public.delivery_fee_bands b
   where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now())),
   'running the fixture again adds nothing');
 select tests.ok((select deliverable and fee_usd = 2.00 and road_km = 0 from public.delivery_quote(:'tv', 12.64)),

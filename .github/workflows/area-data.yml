@@ -12,6 +12,11 @@ name: area-data
 # that branch is missing.
 on:
   workflow_dispatch:
+    inputs:
+      recompute:
+        description: "Place ids to route again even though they have a road row, comma-separated (ORS and OSRM, the shorter wins)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -36,9 +41,12 @@ jobs:
       - name: Road distances from the nearest merchant (OpenRouteService)
         env:
           ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
+          RECOMPUTE: ${{ inputs.recompute }}
         run: |
           [ -n "${ORS_API_KEY:-}" ] || echo "ORS_API_KEY is not set: the public OSRM server only" | tee -a "$GITHUB_STEP_SUMMARY"
-          node scripts/shouf/area.mjs roads supabase/seed/places/shouf_delivery_road_km.csv | tee -a "$GITHUB_STEP_SUMMARY"
+          RECOMPUTE="${RECOMPUTE// /}"
+          [[ "${RECOMPUTE:-}" =~ ^[A-Z0-9,-]*$ ]] || { echo "recompute: place ids only"; exit 1; }
+          node scripts/shouf/area.mjs roads supabase/seed/places/shouf_delivery_road_km.csv ${RECOMPUTE:+--recompute "$RECOMPUTE"} | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Push to a data branch
         env:
           BRANCH: data/area-${{ github.run_id }}

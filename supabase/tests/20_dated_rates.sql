@@ -9,9 +9,16 @@ select tests.ok(public.delivery_fee_usd(3.01) = 3.00, 'just over 3 km is $3.00')
 select tests.ok(public.delivery_fee_usd(6) = 3.00, '6 km is $3.00');
 select tests.ok(public.delivery_fee_usd(9.99) = 4.50, '9.99 km is $4.50');
 select tests.ok(public.delivery_fee_usd(10) = 4.50, '10 km is $4.50');
-select tests.ok(public.delivery_fee_usd(10.01) is null, 'beyond 10 km there is no delivery');
+select tests.ok(public.delivery_fee_usd(10.01) = 6.00, 'just over 10 km is $6.00 (§39.2, 15 October set)');
+select tests.ok(public.delivery_fee_usd(20) = 6.00, '20 km is $6.00');
+select tests.ok(public.delivery_fee_usd(20.01) is null, 'beyond 20 km there is no delivery');
+select tests.ok(public.delivery_fee_usd(15, '2026-10-10') is null and public.delivery_fee_usd(10, '2026-10-10') = 4.50,
+  'the 7 October set still answers for its own dates: 10 km was the limit');
+select tests.ok((select count(*) = 3 from public.delivery_fee_bands where effective_from = '2026-10-07 00:00+03'),
+  'the 7 October rows are untouched');
 select tests.ok(public.delivery_fee_usd(-1) is null, 'a negative distance has no fee');
-select tests.ok(public.max_delivery_km() = 10, 'max delivery distance comes from the bands');
+select tests.ok(public.max_delivery_km() = 20, 'max delivery distance comes from the bands');
+select tests.ok(public.config_numeric('listing_radius_km') = 10, 'the listing radius has its own key, 10 km');
 select tests.ok(public.price_usd('order_fee') = 1.00, 'order fee is $1.00');
 select tests.ok(public.price_usd('send_home_fee') = 1.50, 'Send Home fee is $1.50');
 select tests.ok(public.config_numeric('cod_cap_usd') = 150, 'COD cap is $150');
@@ -31,7 +38,7 @@ select tests.throws($$update public.exchange_rates set rate = 1$$, 'never edited
 select tests.throws($$delete from public.exchange_rates$$, 'already in force', 'rates in force cannot be deleted');
 select tests.throws($$truncate public.app_config$$, 'append-only', 'config cannot be truncated');
 delete from public.delivery_fee_bands where effective_from > now();
-select tests.ok(public.max_delivery_km(now() + interval '2 days') = 10, 'a band set not yet in force can be withdrawn');
+select tests.ok(public.max_delivery_km(now() + interval '2 days') = 20, 'a band set not yet in force can be withdrawn');
 
 -- Who may read and write.
 set local role anon;
