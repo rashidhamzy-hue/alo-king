@@ -1,4 +1,8 @@
-# Vendor seed (DECISIONS §15)
+# Vendor seed (DECISIONS §15, §38)
+
+Session D (14 October 2026, §38.1) deleted the 2,044 nationwide seed vendors and removed their file from `source/`:
+the Shouf pilot file (`supabase/seed/shouf/`) is the vendor list until Rasheed's national dataset arrives. A file put
+back in `source/` is loaded the same way as before (below), in a `Data:` pull request.
 
 Put the vendor file `alo_king_master_lebanon_vendors_cleaned.csv` in `source/` (owner issue: upload it
 through GitHub). `scripts/load-seed.sh` then normalises it with `scripts/vendors/build-seed.ts` (names,

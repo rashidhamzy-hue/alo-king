@@ -637,26 +637,28 @@ export const VENDOR_COLUMNS = [
 ];
 
 export function vendorCsv(vendors: VendorRow[]): string {
-  return toCsv(
-    VENDOR_COLUMNS,
-    vendors.map((v) => [
-      v.place_id,
-      v.slug,
-      v.name_ar,
-      v.name_en,
-      v.branch_label,
-      v.business_type,
-      `{${v.cuisine_tags.join(",")}}`,
-      v.lat,
-      v.lon,
-      v.phone_seed,
-      v.phone_seed_mobile,
-      v.address_seed,
-      v.brand_slug,
-      v.brand_name_en,
-      v.brand_name_ar,
-      JSON.stringify(v.links),
-      JSON.stringify(v.import_labels),
-    ]),
-  );
+  return toCsv(VENDOR_COLUMNS, vendors.map(vendorCells));
+}
+
+/** One row of vendors.csv, in VENDOR_COLUMNS order. */
+export function vendorCells(v: VendorRow) {
+  return [
+    v.place_id,
+    v.slug,
+    v.name_ar,
+    v.name_en,
+    v.branch_label,
+    v.business_type,
+    `{${v.cuisine_tags.join(",")}}`,
+    v.lat,
+    v.lon,
+    v.phone_seed,
+    v.phone_seed_mobile,
+    v.address_seed,
+    v.brand_slug,
+    v.brand_name_en,
+    v.brand_name_ar,
+    JSON.stringify(v.links),
+    JSON.stringify(v.import_labels),
+  ];
 }

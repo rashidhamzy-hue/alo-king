@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Data freeze guard (DECISIONS §31). Until the data finalisation session (session D) the places list, the
-# vendor import and their tables stay exactly as they are on staging. A pull request fails when it
+# Data freeze guard (DECISIONS §31, §38.1). The seeds (places, vendors, the Shouf files, OSM, the dish library), their
+# build scripts and their tables change only in a pull request whose title starts with `Data:` (session D loaded the
+# Shouf pilot; every later data change is its own `Data:` pull request). A pull request fails when it
 #   1. touches a frozen path (the places and vendor seeds, their build scripts, the places-build workflow), or
 #   2. adds or changes a migration that renames, drops or retypes a frozen table or one of its columns,
-# unless its title starts with `Data:` (reserved for session D). Adding a column with a default is allowed
+# unless its title starts with `Data:`. Adding a column with a default is allowed
 # (§31) and is not matched here.
 # Usage: PR_TITLE=... scripts/data-freeze.sh <base-sha> [head-ref]
 #        PR_TITLE=... scripts/data-freeze.sh -          (file list on stdin, migrations read from disk; tests)
@@ -24,14 +25,14 @@ else
   files=$(git diff --name-only --no-renames "$base...$head")
 fi
 
-frozen_paths_re='^(supabase/seed/places/|supabase/seed/vendors/|scripts/places/|scripts/vendors/|\.github/workflows/places-build\.yml$)'
+frozen_paths_re='^(supabase/seed/|scripts/places/|scripts/vendors/|scripts/shouf/|\.github/workflows/places-build\.yml$)'
 # Places, zones, districts, aliases, landmarks and the vendor tables, plus the seed staging tables behind them.
 frozen_tables='(public\.)?(governorates|districts|cadastral_zones|places|place_aliases|landmarks|vendors|vendor_private|vendor_links|vendor_import_exclusions|vendor_removed_places|brands)|app_private\.seed_[a-z_]+'
 
 status=0
 hits=$(printf '%s\n' "$files" | grep -E "$frozen_paths_re" || true)
 if [ -n "$hits" ]; then
-  echo "FAIL frozen paths changed (DECISIONS §31):"
+  echo "FAIL frozen paths changed (DECISIONS §31, §38.1):"
   printf '  %s\n' $hits
   status=1
 fi

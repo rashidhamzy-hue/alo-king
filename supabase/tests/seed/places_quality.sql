@@ -5,7 +5,9 @@ select tests.ok((select count(*) from public.places) between 1500 and 4500, 'abo
 select tests.ok((select count(distinct district_code) from public.places) = 26, 'every district has places');
 select tests.ok((select count(*) from public.cadastral_zones) between 1400 and 1800, 'about 1,623 cadastral zones');
 select tests.ok(not exists (select 1 from public.districts where boundary is null or pcode is null), 'every district has its P-code and polygon');
-select tests.ok(not exists (select 1 from public.places where service_status = 'on'), 'every place loads off');
+select tests.ok(not exists (select 1 from public.places where service_status = 'on'
+  and not (id = any (array(select jsonb_array_elements_text(public.config_value('pilot_place_ids')))))),
+  'every place outside the pilot villages loads off (§38.1: the Shouf load switches the 12 on)');
 select tests.ok(not exists (select 1 from public.places where governorate_code in ('south', 'nabatieh') and service_status <> 'paused'),
   'South and Nabatieh are paused');
 select tests.ok((select count(*) filter (where name_ar is not null) * 1.0 / count(*) from public.places) >= 0.8, 'at least 80% of places have an Arabic name');

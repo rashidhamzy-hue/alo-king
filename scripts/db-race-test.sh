@@ -5,6 +5,8 @@
 #   2. one confirmation sent ten times at once: one order, every call returns it
 #   3. five staff accept while five reject the same order: exactly one wins, one event from `placed`
 #   4. accept races an operator cancel: one transition from `placed`, at most one cancel, nothing after it
+#   5. deadlock order (session D, §38.3): twenty orders holding the same two limited items, added in opposite
+#      orders, placed at once: all placed, no deadlock (stock rows are locked in item-id order)
 set -euo pipefail
 : "${DB_URL:?set DB_URL to a throwaway database}"
 case "$DB_URL" in
@@ -75,4 +77,31 @@ check "$(q -c "select count(*) <= 1 from public.order_events where order_id = '$
   "at most one cancel event"
 check "$(q -c "select count(*) = 0 from public.order_events e where e.order_id = '$order2' and e.from_status = 'cancelled'")" t \
   "nothing happens after the cancel (final: $final2)"
+# 5. Deadlock order: half the baskets hold labneh then zaatar, half zaatar then labneh.
+version=$(q -c "select menu_version from public.vendors where id = '20000000-0000-0000-0000-00000000000a'")
+q -c "select public.basket_price(('55000000-0000-0000-0000-0000000000' || lpad(g::text, 2, '0'))::uuid) from generate_series(1, 20) g" >/dev/null
+for g in $(seq -w 1 20); do
+  svc "select public.order_place('55000000-0000-0000-0000-0000000000$g', $version, 'race:deadlock:$g') ->> 'status'" > "$TMPDIR_RACE/k$g" &
+done
+wait
+check "$(cat "$TMPDIR_RACE"/k* | grep -ci 'deadlock' || true)" 0 "opposite item orders never deadlock"
+check "$(cat "$TMPDIR_RACE"/k* | grep -c '^placed$' || true)" 20 "all twenty orders are placed"
+check "$(q -c "select daily_remaining from public.menu_items where id = '51000000-0000-0000-0000-000000000003'")" 80 "labneh: 100 - 20"
+check "$(q -c "select daily_remaining from public.menu_items where id = '51000000-0000-0000-0000-000000000004'")" 80 "zaatar: 100 - 20"
+# Lock-order probe (deterministic): another session holds labneh (the lower id); basket 21 holds zaatar then labneh. Placing
+# it must wait on labneh first without holding zaatar, so zaatar stays free (it would be held by the old, basket-order code).
+q -c "select public.basket_price('55000000-0000-0000-0000-000000000021')" >/dev/null
+version=$(q -c "select menu_version from public.vendors where id = '20000000-0000-0000-0000-00000000000a'")
+psql "$DB_URL" -X -q -tA -c "begin; select 1 from public.menu_items where id = '51000000-0000-0000-0000-000000000003' for update; select pg_sleep(3); commit;" >/dev/null 2>&1 &
+holder=$!
+q -c "select pg_sleep(0.7)" >/dev/null
+# Index scans off: basket lines then come back in storage order (zaatar first), so the probe does not depend on the
+# planner happening to read them through an index in item order.
+svc "set enable_indexscan = off; set enable_bitmapscan = off; select public.order_place('55000000-0000-0000-0000-000000000021', $version, 'race:deadlock:probe') ->> 'status'" > "$TMPDIR_RACE/probe" &
+placer=$!
+q -c "select pg_sleep(0.7)" >/dev/null
+free=$(psql "$DB_URL" -X -q -tA -c "select 1 from public.menu_items where id = '51000000-0000-0000-0000-000000000004' for update nowait" 2>/dev/null || echo locked)
+wait "$holder" "$placer"
+check "$free" 1 "a placement waiting on the lower item id holds no higher one (stock locked in item-id order)"
+check "$(cat "$TMPDIR_RACE/probe")" placed "the waiting placement goes through once the lock is released"
 exit "$fail"

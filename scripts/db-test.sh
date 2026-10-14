@@ -24,11 +24,13 @@ done
 # Order races with real concurrent sessions (session 3).
 DB_URL="$DB_URL" scripts/db-race-test.sh || { echo "FAIL db-race-test"; fail=1; }
 # The real places and vendor seeds, when present: load it the way the deploy does, then check its quality.
-if [ -f supabase/seed/places/places.csv ] || ls supabase/seed/vendors/source/*.csv >/dev/null 2>&1; then
+if [ -f supabase/seed/places/places.csv ] || ls supabase/seed/vendors/source/*.csv >/dev/null 2>&1 \
+  || [ -f supabase/seed/shouf/source/01_shouf_merchants_315.csv ]; then
   DB_URL="$DB_URL" scripts/load-seed.sh
   checks=()
   [ -f supabase/seed/places/places.csv ] && checks+=(supabase/tests/seed/places_*.sql)
   ls supabase/seed/vendors/source/*.csv >/dev/null 2>&1 && checks+=(supabase/tests/seed/vendors_*.sql)
+  [ -f supabase/seed/shouf/source/01_shouf_merchants_315.csv ] && checks+=(supabase/tests/seed/shouf_*.sql)
   for f in "${checks[@]}"; do
     out=$(run -f "$f" 2>&1 >/dev/null) || { echo "$out" | grep -vE '^NOTICE:  ok - ' ; echo "FAIL seed/$(basename "$f")"; fail=1; continue; }
     n=$(echo "$out" | grep -c 'NOTICE:  ok - ' || true)

@@ -396,7 +396,19 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Load the places and vendor seeds (each skipped when unchanged)
+      - name: OpenStreetMap landmarks and place names for the Shouf pilot (fetched when not committed; DECISIONS §38.2)
+        run: |
+          if [ ! -f supabase/seed/shouf/osm/landmarks.csv ]; then
+            node scripts/shouf/osm-fetch.mjs supabase/seed/shouf/osm \
+              || echo "::warning::Overpass was unreachable; the OSM seed loads on the next deploy"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: hashFiles('supabase/seed/shouf/osm/landmarks.csv') != ''
+        with:
+          name: osm-pilot
+          path: supabase/seed/shouf/osm/
+          retention-days: 30
+      - name: Load the places, vendor, Shouf and OSM seeds (each skipped when unchanged)
         run: |
           command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
           DB_URL="$(scripts/staging-db-url.sh)"
@@ -423,6 +435,40 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run --if-present sim
+
+  seed-photos:
+    name: Shouf seed photos into Storage (DECISIONS §38.1)
+    needs: deploy-staging
+    if: needs.deploy-staging.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: seed-photos
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rebuild/lebanon
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Copy new seed photos, delete removed ones (each photo once; a failure is retried next deploy)
+        run: |
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          keys=$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true")
+          key=$(jq -r '([.[] | select(.type == "secret")][0].api_key) // ([.[] | select(.name == "service_role")][0].api_key) // empty' <<<"$keys")
+          [ -n "$key" ] || { echo "no service key"; exit 1; }
+          echo "::add-mask::$key"
+          DB_URL="$DB_URL" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co" SUPABASE_SERVICE_KEY="$key" \
+            node scripts/shouf/copy-photos.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 
   e2e-staging:
     name: staging e2e after the deploy (DECISIONS §36)

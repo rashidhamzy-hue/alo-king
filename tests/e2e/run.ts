@@ -71,6 +71,9 @@ async function main() {
       phoneNumberId: String(pn.rows[0].phone_number_id),
       merchantPhone: MERCHANT_PHONE,
     };
+    // The staging test market is orderable only inside its own scenario (DECISIONS §38.2.3); a run that stopped
+    // half-way must not leave a second orderable shop for the others.
+    await client.query("select public.sim_market($1, false)", [MERCHANT_PHONE]);
     for (const { f, sc } of scenarios) {
       console.log(`▶ ${sc.name}`);
       let r: ScenarioResult;
@@ -91,6 +94,9 @@ async function main() {
       console.log(`${r.ok ? "✅" : "❌"} ${sc.name}${r.error ? ` — ${r.error}` : ""}`);
     }
   } finally {
+    await client
+      .query("select public.sim_market($1, false)", [MERCHANT_PHONE])
+      .catch((e) => console.error("sim_market off failed", String(e)));
     await client
       .query("select public.sim_restore()")
       .catch((e) => console.error("sim_restore failed", String(e)));

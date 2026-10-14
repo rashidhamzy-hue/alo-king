@@ -1560,7 +1560,7 @@ Rasheed's decision on 14 October: stop, start from the Shouf with his three Shou
 | Item | Verdict | Rule |
 |---|---|---|
 | Shouf-first, 10–12 km radius, motorbike dispatch validation | Adopt | 38.1 |
-| Purge test data and ingest the three files | Adopt, with 38.1 and 38.2 (photos and reviews excluded) | session D |
+| Purge test data and ingest the three files | Adopt, with 38.1 and 38.2 (review texts excluded; photos per 38.1) | session D |
 | PostGIS GIST on vendor location | Already in place (session 2) | none |
 | Meta charges service and utility messages since 1 Oct 2026 | Already VERIFIED (§0 correction 1, §6); first 1,000 service messages per number per month are free | cost model |
 | ≤8 billable messages per order | Adopt as a **budget**: target 8, hard cap 12 per order, consolidated "confirmed + ETA", "on the way + tracking", "delivered + rate". The cost ledger reports the average; above 8 opens a LOG item | session 5c |
@@ -1592,7 +1592,7 @@ Rasheed's decision on 14 October: stop, start from the Shouf with his three Shou
 | Nightly ledger audit (debits = credits), cash sweeps, unmatched payments | Already (§20.2 reconciliation); the nightly balance assertion is added | session 9 |
 | `logistics_landmarks` and `delivery_addresses` tables | Reject the new tables: `landmarks`, `addresses`, `door_points` exist (§28). Adopt the missing fields: `landmark_relation`, `floor`, `has_elevator`, `lost_driver_calls`, running-average door point within 60 m at ≤25 m accuracy, and the metric **lost-driver calls per delivery < 0.5** | session D |
 | Food knowledge graph; `is_siyami` and `is_halal` computed from ingredients; sesame/tahini warning on hummus, mutabbal, tarator; `toum_contains_egg`; shared-kitchen disclaimer | Adopt into the dish library and item flags. Computed flags are shown as "estimated" until the merchant confirms (§32.3 evidence rule). The disclaimer appears on every menu | session 5c |
-| Google Maps terms: `place_id` only indefinitely, coordinates ≤30 days, no photos/reviews; replace seed values on claim | Adopt, and go further: no photos or reviews at all (38.1). Seed coordinates are refreshed from the merchant's own pin at claim | session D |
+| Google Maps terms: `place_id` only indefinitely, coordinates ≤30 days, no photos/reviews; replace seed values on claim | Adopt for ratings and reviews (none stored at all); photos kept per Rasheed's decision with the 38.1 limits. Seed coordinates are refreshed from the merchant's own pin at claim | session D |
 | Fixed peg 89,500, "no FX APIs" | Adapt: the rate stays in the dated rate table (§13), seeded at 89,500 (the official rate since February 2024, unchanged in October 2026); never a constant in code (CLAUDE.md) | none |
 | Flat $1 fee; fee bands; online payment pass-through | Already (§1, §29.1) | none |
 | "Alo King Plus" opt-in 5–8% tier | Defer: the per-delivered-order sponsored fee (§20.4) does the same job with less to explain; revisit after 500 delivered orders | after pilot |
