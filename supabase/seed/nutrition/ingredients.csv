@@ -99,3 +99,12 @@ espresso,"Espresso","Beverages, coffee, brewed, espresso, restaurant-prepared",u
 tea_brewed,"Tea, brewed","Beverages, tea, black, brewed, prepared with tap water",usda_sr_legacy,1,0,0.3,0,0,0,0,3
 water,"Water","Water",usda_sr_legacy,0,0,0,0,0,0,0,0
 salt,"Salt","Salt, table",usda_sr_legacy,0,0,0,0,0,0,0,38758
+lamb_leg_cooked,"Lamb leg, lean, roasted","Lamb, domestic, leg, whole (shank and sirloin), separable lean only, trimmed to 1/4"" fat, choice, cooked, roasted",usda_sr_legacy,191,28.3,0,7.7,0,0,2.8,68
+lamb_shoulder_cooked,"Lamb shoulder, lean, roasted","Lamb, domestic, shoulder, whole (arm and blade), separable lean only, trimmed to 1/4"" fat, choice, cooked, roasted",usda_sr_legacy,204,24.9,0,10.8,0,0,4.1,68
+lamb_liver_cooked,"Lamb liver, braised","Lamb, variety meats and by-products, liver, cooked, braised",usda_sr_legacy,220,30.6,2.5,8.8,0,0,3.4,56
+chicken_whole_roasted,"Chicken, meat and skin, roasted","Chicken, broilers or fryers, meat and skin, cooked, roasted",usda_sr_legacy,239,27.3,0,13.6,0,0,3.8,82
+squid_fried,"Squid (calamari), fried","Mollusks, squid, mixed species, cooked, fried",usda_sr_legacy,175,17.9,7.8,7.5,0,0,1.9,306
+lupini_cooked,"Lupini beans (termos), boiled","Lupins, mature seeds, cooked, boiled, without salt",usda_sr_legacy,119,15.6,9.9,2.9,0,2.8,0.3,4
+peanuts_roasted,"Peanuts, dry-roasted","Peanuts, all types, dry-roasted, without salt",usda_sr_legacy,585,24.4,21.3,49.7,4.9,8,6.9,6
+celery,"Celery, raw","Celery, raw",usda_sr_legacy,14,0.7,3,0.2,1.3,1.6,0,80
+mustard,"Mustard, prepared","Mustard, prepared, yellow",usda_sr_legacy,60,3.7,5.8,3.3,0.9,4,0.2,1104

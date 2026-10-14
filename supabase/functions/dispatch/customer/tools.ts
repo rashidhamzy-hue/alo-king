@@ -60,7 +60,8 @@ export const BUSINESS_TYPES = [
   "other_food",
 ] as const;
 
-// DECISIONS §32.3: the twelve allergens (dairy = milk, nuts = tree nuts), diets and derived tags.
+// DECISIONS §32.3, §38.2: the EU-14 allergens (dairy = milk, nuts = tree nuts, shellfish = crustaceans), diets and
+// derived tags.
 export const ALLERGENS = [
   "gluten",
   "dairy",
@@ -74,6 +75,8 @@ export const ALLERGENS = [
   "mustard",
   "celery",
   "sulphites",
+  "lupin",
+  "molluscs",
 ] as const;
 export const DIETS = ["vegan", "vegetarian", "siyami", "halal"] as const;
 export const NUTRITION_TAGS = [

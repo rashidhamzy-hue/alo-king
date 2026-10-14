@@ -75,6 +75,11 @@ export const INGREDIENT_ALLERGENS: Record<string, string[]> = {
   fish_white_cooked: ["fish"],
   tuna_oil_drained: ["fish"],
   shrimp_cooked: ["shellfish"],
+  squid_fried: ["molluscs", "gluten"],
+  lupini_cooked: ["lupin"],
+  peanuts_roasted: ["peanuts"],
+  celery: ["celery"],
+  mustard: ["mustard"],
   pickles: ["sulphites"],
   pickled_turnip: ["sulphites"],
   sausage_beef_cooked: ["sulphites"],
@@ -120,6 +125,59 @@ export function loadIngredients(): Ingredient[] {
   });
 }
 
+// The Levantine taxonomy (DECISIONS §38.2 item 6): food group, animal and cut for every ingredient, and whether it is
+// an animal product, pork or alcohol, so diets (siyami, halal) can be estimated from the recipe (§32.3: shown as
+// "estimated" until the merchant confirms).
+export const FOOD_GROUPS = [
+  "red_meat",
+  "poultry",
+  "offal",
+  "processed_meat",
+  "fish",
+  "seafood",
+  "egg",
+  "dairy",
+  "grain",
+  "legume",
+  "vegetable",
+  "fruit",
+  "nut_seed",
+  "herb_spice",
+  "fat_oil",
+  "sauce",
+  "pickle",
+  "sweetener",
+  "beverage",
+] as const;
+export type Taxon = {
+  id: string;
+  food_group: (typeof FOOD_GROUPS)[number];
+  animal: string | null;
+  cut: string | null;
+  animal_product: boolean;
+  pork: boolean;
+  alcohol: boolean;
+};
+
+export function loadTaxonomy(): Map<string, Taxon> {
+  const [head, ...rows] = parseCsv(readFileSync(`${dir}taxonomy.csv`, "utf8"));
+  return new Map(
+    rows.map((r) => {
+      const o = Object.fromEntries(head.map((h, i) => [h, r[i]]));
+      const t: Taxon = {
+        id: o.id,
+        food_group: o.food_group as Taxon["food_group"],
+        animal: o.animal || null,
+        cut: o.cut || null,
+        animal_product: o.animal_product === "true",
+        pork: o.pork === "true",
+        alcohol: o.alcohol === "true",
+      };
+      return [t.id, t];
+    }),
+  );
+}
+
 export function loadDishes(): Dish[] {
   return readFileSync(`${dir}dishes.jsonl`, "utf8")
     .trim()
@@ -152,21 +210,29 @@ export function mayContain(d: Dish): string[] {
 const lit = (s: string) => `'${s.replace(/'/g, "''")}'`;
 const arr = (a: string[]) => `array[${a.map(lit).join(", ")}]::text[]`;
 
-/** The SQL block between the BEGIN/END LIBRARY markers of the nutrition migration. */
+/** The SQL block between the BEGIN/END LIBRARY markers of the latest library migration: an upsert of every
+ * ingredient (with its taxonomy) and every dish, so a later migration can carry the grown library. */
 export function librarySql(): string {
   const ingredients = loadIngredients();
+  const taxonomy = loadTaxonomy();
   const dishes = loadDishes();
+  const opt = (v: string | null) => (v === null ? "null" : lit(v));
   const lines: string[] = [];
   lines.push(
-    "insert into public.nutrition_ingredients (id, name_en, fdc_query, source, allergens, kcal, protein_g, carbs_g, fat_g, sugar_g, fibre_g, sat_fat_g, sodium_mg) values",
+    "insert into public.nutrition_ingredients (id, name_en, fdc_query, source, allergens, kcal, protein_g, carbs_g, fat_g, sugar_g, fibre_g, sat_fat_g, sodium_mg, food_group, animal, cut, animal_product, pork, alcohol) values",
   );
   lines.push(
     ingredients
-      .map(
-        (i) =>
-          `  (${lit(i.id)}, ${lit(i.name_en)}, ${lit(i.fdc_query)}, ${lit(i.source)}, ${arr(INGREDIENT_ALLERGENS[i.id] ?? [])}::public.allergen[], ${NUTRIENTS.map((n) => i[n]).join(", ")})`,
-      )
-      .join(",\n") + ";",
+      .map((i) => {
+        const t = taxonomy.get(i.id);
+        if (!t) throw new Error(`${i.id}: no taxonomy row`);
+        return `  (${lit(i.id)}, ${lit(i.name_en)}, ${lit(i.fdc_query)}, ${lit(i.source)}, ${arr(INGREDIENT_ALLERGENS[i.id] ?? [])}::public.allergen[], ${NUTRIENTS.map((n) => i[n]).join(", ")}, ${lit(t.food_group)}, ${opt(t.animal)}, ${opt(t.cut)}, ${t.animal_product}, ${t.pork}, ${t.alcohol})`;
+      })
+      .join(",\n") +
+      "\non conflict (id) do update set name_en = excluded.name_en, fdc_query = excluded.fdc_query, source = excluded.source, allergens = excluded.allergens," +
+      " kcal = excluded.kcal, protein_g = excluded.protein_g, carbs_g = excluded.carbs_g, fat_g = excluded.fat_g, sugar_g = excluded.sugar_g," +
+      " fibre_g = excluded.fibre_g, sat_fat_g = excluded.sat_fat_g, sodium_mg = excluded.sodium_mg, food_group = excluded.food_group," +
+      " animal = excluded.animal, cut = excluded.cut, animal_product = excluded.animal_product, pork = excluded.pork, alcohol = excluded.alcohol;",
   );
   lines.push(
     "insert into public.dish_library (id, name_ar, name_en, name_fr, aliases, category, unit, portion_g, recipe, salt_g) values",
@@ -177,7 +243,9 @@ export function librarySql(): string {
         (d) =>
           `  (${lit(d.id)}, ${lit(d.ar)}, ${lit(d.en)}, ${lit(d.fr)}, ${arr(d.aka)}, ${lit(d.cat)}, ${lit(d.unit ?? "portion")}, ${lit(JSON.stringify(d.g))}, ${lit(JSON.stringify(d.r))}, ${d.salt ?? 0})`,
       )
-      .join(",\n") + ";",
+      .join(",\n") +
+      "\non conflict (id) do update set name_ar = excluded.name_ar, name_en = excluded.name_en, name_fr = excluded.name_fr, aliases = excluded.aliases," +
+      " category = excluded.category, unit = excluded.unit, portion_g = excluded.portion_g, recipe = excluded.recipe, salt_g = excluded.salt_g;",
   );
   return lines.join("\n");
 }
