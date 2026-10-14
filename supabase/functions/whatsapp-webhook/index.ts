@@ -5,28 +5,23 @@
 
 import { makeHandler, type IntakeResult } from "./handler.ts";
 import type { IntakeEvent } from "./intake.ts";
+import { restRpc } from "../_shared/rest-rpc.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
+// webhook_intake deduplicates on the event key, so a stalled call (#139) is retried once on a new request (6 s
+// each, inside Kapso's delivery timeout); if both stall the delivery fails with a 500 and Kapso redelivers.
+const rpc = restRpc({
+  url: supabaseUrl,
+  key: serviceKey,
+  timeoutMs: 6000,
+  log: (msg, fields) => console.log(JSON.stringify({ fn: "whatsapp-webhook", msg, ...fields })),
+});
+
 async function intake(events: IntakeEvent[]): Promise<IntakeResult[]> {
-  const res = await fetch(`${supabaseUrl}/rest/v1/rpc/webhook_intake`, {
-    method: "POST",
-    headers: {
-      apikey: serviceKey,
-      authorization: `Bearer ${serviceKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ p_provider: "kapso", p_events: events }),
-    // A stalled request (#139) fails the delivery with a 500 within Kapso's timeout; Kapso redelivers and
-    // webhook_intake deduplicates, so nothing is lost or doubled.
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!res.ok) {
-    await res.body?.cancel();
-    throw new Error(`webhook_intake returned ${res.status}`);
-  }
-  const results = (await res.json()) as IntakeResult[];
+  const results = ((await rpc("webhook_intake", { p_provider: "kapso", p_events: events })) ??
+    []) as IntakeResult[];
   if (results.some((r) => !r.duplicate)) kickDispatch();
   return results;
 }

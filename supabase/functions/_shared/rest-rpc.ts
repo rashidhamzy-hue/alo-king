@@ -67,6 +67,7 @@ export const RETRY_SAFE_WRITES = new Set([
   "order_place", // idempotency key wa:<basket>:<menu version>: a repeat returns the same order
   "whatsapp_seen", // upsert of "now"
   "webhook_finish", // takes the attempt it finishes: a late repeat never touches a later attempt
+  "webhook_intake", // deduplicated on the provider's event key: a repeat answers "duplicate"
 ]);
 
 export const retrySafe = (fn: string) => RETRY_SAFE_READS.has(fn) || RETRY_SAFE_WRITES.has(fn);

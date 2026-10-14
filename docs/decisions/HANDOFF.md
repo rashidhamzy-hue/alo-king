@@ -197,7 +197,7 @@
     - **"Ask them to join":** it goes through `site-claim?action=join`, which counts the tap with a server-side visitor key (HMAC of the address; 30 per hour per visitor, 200 per shop per day). It then opens the customer's own WhatsApp to the shop (the number only for a Lebanese mobile) with an invitation in the page language. The claim link is added once a `site_url` config row exists: none is seeded until `aloking.com` is owned (#74).
     - **Claim page:** shows "N customers asked for you".
     - **Bot:** a model search for a shop that is not on Alo King yet answers with the ask link and up to three orderable shops that deliver. The button path makes no new call.
-  - **e2e (§36):** 11/11 after #145's deploy (run 38566628571; it closed #139; the stall hit 11 times during the run and every case was absorbed: 2 events replayed, 0 failed). E2E_RUN_2.
+  - **e2e (§36):** 11/11 after #145's deploy (run 38566628571; it closed #139; the stall hit 11 times during the run and every case was absorbed: 2 events replayed, 0 failed). 10/11 after #146's deploy (run 38572016465): `replay-12-october` got a 500 from the webhook at step 7, because the same stall hit the webhook's own `webhook_intake` call and #145's new 8 s deadline turned it into "intake failed" (Kapso would redeliver; the simulator does not). The listings PR retries that idempotent call once (6 s each). The stall struck 3 more dispatch events in that run, all replayed. Runs after the listings deploy are reported in the session reply and on issue #147.
   - **Open for later:**
     - `SITE_VISITOR_PEPPER` must be a function secret, and `site-claim` should fail closed without it (session 13).
     - The WhatsApp claim flow does not show the "N customers asked" count yet (only the website does).
