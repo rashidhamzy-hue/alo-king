@@ -2,13 +2,15 @@
 // the Overpass API and writes the two files scripts/load-seed.sh loads:
 //   <out>/landmarks.csv      osm_ref, kind, name_ar, name_en, aliases, lat, lon
 //   <out>/place_aliases.csv  osm_ref, alias, lang, osm_key, lat, lon
-// The area is the box around the 315 Shouf merchants plus a margin: the delivery radius, max_delivery_km(), since
-// session E (DECISIONS §39.2), so every place switched on is covered; the loader keeps place names only for places
-// that are on. Build sessions cannot reach Overpass; the staging deploy job runs this when the files are not committed.
-// Usage: node scripts/shouf/osm-fetch.mjs <out dir> [merchants.csv] [--margin-km <km>]
+// The area is the box around the delivery boundary's places (supabase/seed/places/shouf_delivery_boundary.csv, DECISIONS
+// §39.2) plus a margin with --boundary (session F), or around the 315 Shouf merchants plus a margin without it; the
+// loader keeps landmarks and place names only for places that are on. Build sessions cannot reach Overpass: the
+// `area-data` workflow commits the files, and the staging deploy job runs this when they are not committed.
+// Usage: node scripts/shouf/osm-fetch.mjs <out dir> [merchants.csv] [--margin-km <km>] [--boundary]
 // © OpenStreetMap contributors, ODbL (attribution in the site footer, supabase/seed/README.md).
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { boundaryBox } from "./area.mjs";
 
 const ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
@@ -169,12 +171,22 @@ if (process.argv[1]?.endsWith("osm-fetch.mjs")) {
   const args = process.argv.slice(2);
   const flag = args.indexOf("--margin-km");
   const marginKm = flag >= 0 ? Number(args.splice(flag, 2)[1]) : 2;
+  const bflag = args.indexOf("--boundary");
+  const useBoundary = bflag >= 0 && args.splice(bflag, 1).length > 0;
   const [out, merchants = "supabase/seed/shouf/source/01_shouf_merchants_315.csv"] = args;
   if (!out || !(marginKm > 0 && marginKm <= 30)) {
-    console.error("usage: osm-fetch.mjs <out dir> [merchants.csv] [--margin-km <km, 0-30>]");
+    console.error(
+      "usage: osm-fetch.mjs <out dir> [merchants.csv] [--margin-km <km, 0-30>] [--boundary]",
+    );
     process.exit(2);
   }
-  const box = pilotBox(readFileSync(merchants, "utf8"), marginKm);
+  const box = useBoundary
+    ? boundaryBox(
+        readFileSync("supabase/seed/places/places.csv", "utf8"),
+        readFileSync("supabase/seed/places/shouf_delivery_boundary.csv", "utf8"),
+        marginKm,
+      )
+    : pilotBox(readFileSync(merchants, "utf8"), marginKm);
   const elements = await fetchOverpass(overpassQuery(box));
   const { landmarks, aliases } = toRows(elements);
   mkdirSync(out, { recursive: true });

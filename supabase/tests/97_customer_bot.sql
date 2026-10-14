@@ -8,6 +8,8 @@ insert into public.cadastral_zones (pcode, district_code, name_en, boundary, sou
   ('TZ-BOT', 'CHF', 'Bottown', 'SRID=4326;MULTIPOLYGON(((35.57 33.67,35.60 33.67,35.60 33.695,35.57 33.695,35.57 33.67)))', 'test');
 insert into public.places (id, zone_pcode, name_ar, name_en, aliases, kind, governorate_code, district_code, centroid, source) values
   ('LB-CHF-BOTTOWN', 'TZ-BOT', 'بوتاون', 'Bottown', '{Botaoun}', 'town', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.5861 33.6821)', 'test');
+-- A real merchant delivers only to places that are on (the delivery area, DECISIONS §39.2).
+select public.place_set_service_status('LB-CHF-BOTTOWN', 'on', 'test: in the delivery area');
 insert into public.landmarks (place_id, name_ar, name_en, point, source, status, shared) values
   ('LB-CHF-BOTTOWN', 'كنيسة مار الياس', 'Saint Elias church', 'SRID=4326;POINT(35.5863 33.6823)', 'seed', 'confirmed', true);
 

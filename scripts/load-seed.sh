@@ -8,8 +8,11 @@
 #    fields are never overwritten. Runs after the places so every vendor gets its village; switches the pilot
 #    villages on. The nationwide file (supabase/seed/vendors/source/, §15.2) is loaded only when present
 #    (it was removed by session D; Rasheed's national dataset replaces it later).
-# 3. OpenStreetMap landmarks and place aliases for the pilot area (supabase/seed/shouf/osm/, fetched by
-#    scripts/shouf/osm-fetch.mjs), when present.
+# 3. The delivery area (DECISIONS §39.2): supabase/seed/places/shouf_delivery_boundary.csv and
+#    shouf_delivery_denylist.csv, plus shouf_delivery_road_km.csv when committed; a changed boundary becomes a new
+#    dated pilot_place_ids row and the places are switched to match (app_private.delivery_area_load).
+# 4. OpenStreetMap landmarks and place aliases for the delivery area (supabase/seed/shouf/osm/, fetched by
+#    scripts/shouf/osm-fetch.mjs), when present; only places that are on keep them.
 set -euo pipefail
 : "${DB_URL:?set DB_URL}"
 DIR="${SEED_DIR:-supabase/seed/places}"
@@ -87,6 +90,27 @@ SQL
 rm -rf "$out"
 }
 
+load_area() {
+local boundary="$DIR/shouf_delivery_boundary.csv" deny="$DIR/shouf_delivery_denylist.csv" road="$DIR/shouf_delivery_road_km.csv"
+if [ ! -f "$boundary" ] || [ ! -f "$deny" ] || [ ! -f "$DIR/places.csv" ]; then
+  echo "delivery area: no $boundary yet; nothing to load"
+  return 0
+fi
+local sha
+sha=$(cat "$boundary" "$deny" $( [ -f "$road" ] && echo "$road") | sha256sum | cut -c1-64)
+if loaded delivery_area "$sha"; then
+  echo "delivery area: unchanged (${sha:0:12}); skipped"
+  return 0
+fi
+run --single-transaction <<SQL
+truncate app_private.delivery_boundary, app_private.delivery_denylist, app_private.delivery_road_km;
+\copy app_private.delivery_boundary (place_id, name_en, name_ar, role) from '$boundary' with (format csv, header true)
+\copy app_private.delivery_denylist (place_id, name_en, name_ar, reason) from '$deny' with (format csv, header true)
+$( [ -f "$road" ] && echo "\\copy app_private.delivery_road_km (place_id, road_km, nearest_vendor_place_id, provider, computed_on) from '$road' with (format csv, header true)")
+select 'delivery area loaded: ' || app_private.delivery_area_load('$sha')::text;
+SQL
+}
+
 load_osm() {
 local dir="$SHOUF_DIR/osm"
 if [ ! -f "$dir/landmarks.csv" ] || [ ! -f "$dir/place_aliases.csv" ]; then
@@ -94,7 +118,8 @@ if [ ! -f "$dir/landmarks.csv" ] || [ ! -f "$dir/place_aliases.csv" ]; then
   return 0
 fi
 local sha
-sha=$(cat "$dir/landmarks.csv" "$dir/place_aliases.csv" | sha256sum | cut -c1-64)
+# The delivery area decides which places keep OSM rows, so a changed boundary reloads them.
+sha=$(cat "$dir/landmarks.csv" "$dir/place_aliases.csv" "$DIR/shouf_delivery_boundary.csv" 2>/dev/null | sha256sum | cut -c1-64)
 if loaded osm_pilot "$sha"; then
   echo "osm seed: unchanged (${sha:0:12}); skipped"
   return 0
@@ -111,4 +136,5 @@ SQL
 load_places
 load_vendors
 load_shouf
+load_area
 load_osm

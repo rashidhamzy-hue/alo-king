@@ -24,6 +24,7 @@ LB-CHF-DEIR-AL-QAMAR,Deir Al Qamar,دير القمر,shop_village
 LB-CHF-DEIR-BABA,Deir Baba,دير بابا,between
 LB-CHF-DEIR-DOURIT,Deir Dourit,دير دوريت,named_by_rasheed
 LB-CHF-DEIR-KOUCHEH,Deir Koucheh,دير كوشه,named_by_rasheed
+LB-CHF-DELGHANI,Delghani,دلغاني,between
 LB-CHF-EL-BIREH,El Bireh,بيرة,between
 LB-CHF-EL-KHRAIBE,El Khraibe,الخريبة,named_by_rasheed
 LB-CHF-FAWARA,Fawara,فوارة,between
@@ -40,8 +41,8 @@ LB-CHF-KFAR-HAMEL,Kfar Hamel,كفر حمل,between
 LB-CHF-KFAR-KATRA,Kfar Katra,كفر قطرة,named_by_rasheed
 LB-CHF-KFAR-NABRAKH,Kfar Nabrakh,كفر نبرخ‎,shop_village
 LB-CHF-KFARHIM,Kfarhim,كفر حيم,shop_village
-LB-CHF-KHALLAT-DARAJAT-AL-MISRI,Khallat Darajat al Misri,خلة درجة المصري,between
 LB-CHF-KHALLAT-AL-KABIRAH,Khallat al Kabirah,خلة الكبيرة,between
+LB-CHF-KHALLAT-DARAJAT-AL-MISRI,Khallat Darajat al Misri,خلة درجة المصري,between
 LB-CHF-KNAISSEH,Knaisseh,كنيسة,between
 LB-CHF-MAASSER-BEIT-ED-DINE,Maasser Beit Ed Dine,معاصر بيت الدين,between
 LB-CHF-MAASSER-EL-SHOUF,Maasser El Shouf,معاصر الشوف,shop_village
@@ -52,8 +53,9 @@ LB-CHF-MOUKHTARA,Moukhtara,مختارة,named_by_rasheed
 LB-CHF-MRESTI,Mresti,مرستي,named_by_rasheed
 LB-CHF-MTAYLEH,Mtayleh,مطيلة,between
 LB-CHF-NIHA,Niha,نيحا,named_by_rasheed
-LB-CHF-OUADI-ED-DEIR,Ouadi Ed-Deir,وادي الدير,between
 LB-CHF-OUADI-BNEHLAY,Ouadi bnehlay,وادي بنحليه,between
+LB-CHF-OUADI-ED-DEIR,Ouadi Ed-Deir,وادي الدير,between
+LB-CHF-SAQIET-EL-HAOUAKIR,Saqiet el Haouakir,ساقية الحواقير,between
 LB-CHF-SEMQANIEH,Semqanieh,السمقانية,shop_village
 LB-CHF-SIRJBAL,Sirjbal,سرجبال,between
 LB-CHF-WADI-EL-SITT,Wadi El Sitt,وادي الست,between
