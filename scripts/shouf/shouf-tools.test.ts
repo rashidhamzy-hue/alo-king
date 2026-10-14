@@ -164,4 +164,18 @@ describe("delivery area data (§39.2)", async () => {
       expect(["ors", "osrm"]).toContain(r.provider);
     }
   });
+
+  it("recomputes a place on request and keeps the shorter of ORS and OSRM", () => {
+    expect([...area.recomputeIds(["node", "area.mjs", "roads", "x.csv", "--recompute", "LB-CHF-EL-BIREH, LB-CHF-DELGHANI"])]).toEqual([
+      "LB-CHF-EL-BIREH",
+      "LB-CHF-DELGHANI",
+    ]);
+    expect(area.recomputeIds(["node", "area.mjs", "roads", "x.csv"]).size).toBe(0);
+    const ors = { provider: "ors", hit: { nearest: "a", roadKm: 12.71 } };
+    const osrm = { provider: "osrm", hit: { nearest: "b", roadKm: 4.2 } };
+    expect(area.shorterRoad(ors, osrm)).toBe(osrm);
+    expect(area.shorterRoad(ors, { provider: "osrm", hit: null })).toBe(ors);
+    expect(area.shorterRoad({ provider: "ors", hit: { limited: true } }, osrm)).toBe(osrm);
+    expect(area.shorterRoad({ provider: "ors", hit: null }, { provider: "osrm", hit: { none: true } }).hit).toEqual({ none: true });
+  });
 });

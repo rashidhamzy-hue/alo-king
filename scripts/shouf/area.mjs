@@ -7,7 +7,9 @@
 //     (place_id, road_km, nearest_vendor_place_id, provider, computed_on). Rows already in the file are kept; only
 //     places without one are asked. delivery_area_proposal() reads it; a place without a row falls back to the
 //     straight line.
-// Usage: [ORS_API_KEY=...] node scripts/shouf/area.mjs roads <out.csv>
+//   * roads --recompute <id,id>: asks those places again even though they have a row (a route worth a second look,
+//     DATA-ISSUES), from the 25 straight-line-nearest merchants, by ORS and OSRM both; the shorter road wins.
+// Usage: [ORS_API_KEY=...] node scripts/shouf/area.mjs roads <out.csv> [--recompute <place_id,place_id>]
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const KM_PER_DEG_LAT = 111.32;
@@ -133,6 +135,22 @@ export function existingRoads(csv) {
   return new Map(parseCsv(csv).map((r) => [r.place_id, r]));
 }
 
+/** The shorter of two answers ({ nearest, roadKm } or null/{ none }), with the provider that gave it. */
+export function shorterRoad(a, b) {
+  const ok = (x) => x && !x.none && !x.limited && typeof x.roadKm === "number";
+  if (ok(a.hit) && ok(b.hit)) return a.hit.roadKm <= b.hit.roadKm ? a : b;
+  if (ok(a.hit)) return a;
+  if (ok(b.hit)) return b;
+  return { hit: a.hit?.none || b.hit?.none ? { none: true } : null, provider: a.provider };
+}
+
+/** `--recompute a,b` → Set of place ids (empty without the flag). */
+export function recomputeIds(argv) {
+  const i = argv.indexOf("--recompute");
+  if (i < 0) return new Set();
+  return new Set((argv[i + 1] ?? "").split(",").map((s) => s.trim()).filter(Boolean));
+}
+
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** One place by ORS: the nearest merchant, { none } when no merchant reaches it, { limited } on the quota, or null. */
@@ -192,7 +210,7 @@ async function osrmNearest(place, near, misses) {
   return null;
 }
 
-async function roads(out) {
+async function roads(out, recompute = new Set()) {
   const key = process.env.ORS_API_KEY;
   const places = boundaryPlaces(
     readFileSync("supabase/seed/places/places.csv", "utf8"),
@@ -204,6 +222,12 @@ async function roads(out) {
   const today = new Date().toISOString().slice(0, 10);
   const kept = existsSync(out) ? existingRoads(readFileSync(out, "utf8")) : new Map();
   const ids = new Set(places.map((p) => p.id));
+  for (const id of recompute) {
+    if (!ids.has(id)) throw new Error(`--recompute ${id}: not a boundary place`);
+    const old = kept.get(id);
+    if (old) console.log(`${id}\trecompute (was ${old.road_km} km by ${old.provider} from ${old.nearest_vendor_place_id})`);
+    kept.delete(id);
+  }
   const rows = [...kept.values()]
     .filter((r) => ids.has(r.place_id))
     .map((r) => [r.place_id, r.road_km, r.nearest_vendor_place_id, r.provider, r.computed_on]);
@@ -212,6 +236,21 @@ async function roads(out) {
   let orsOk = !!key;
   for (const place of places) {
     if (kept.has(place.id)) continue;
+    if (recompute.has(place.id)) {
+      // A second look: more candidate merchants, both providers, the shorter road.
+      const near = nearestMerchants(place, merchants, 25);
+      const ors = { provider: "ors", hit: orsOk ? await orsNearest(place, near, key, misses) : null };
+      const osrm = { provider: "osrm", hit: await osrmNearest(place, near, misses) };
+      const best = shorterRoad(ors, osrm);
+      const fmt = (x) => (x.hit && typeof x.hit.roadKm === "number" ? `${x.hit.roadKm.toFixed(2)} km` : "-");
+      if (best.hit && !best.hit.none)
+        rows.push([place.id, best.hit.roadKm.toFixed(2), best.hit.nearest, best.provider, today]);
+      else misses.push(`${place.id}: recompute found no road`);
+      console.log(
+        `${place.id}\t${place.name}\tstraight ${near[0].km.toFixed(2)} km\tors ${fmt(ors)}\tosrm ${fmt(osrm)}\tkept ${best.provider}`,
+      );
+      continue;
+    }
     const near = nearestMerchants(place, merchants);
     let hit = null;
     let provider = "ors";
@@ -251,9 +290,9 @@ async function roads(out) {
 
 if (process.argv[1]?.endsWith("area.mjs")) {
   const [cmd, out] = process.argv.slice(2);
-  if (cmd === "roads" && out) await roads(out);
+  if (cmd === "roads" && out) await roads(out, recomputeIds(process.argv));
   else {
-    console.error("usage: area.mjs roads <out.csv>");
+    console.error("usage: area.mjs roads <out.csv> [--recompute <place_id,place_id>]");
     process.exit(2);
   }
 }
