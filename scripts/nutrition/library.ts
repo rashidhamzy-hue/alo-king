@@ -75,7 +75,7 @@ export const INGREDIENT_ALLERGENS: Record<string, string[]> = {
   fish_white_cooked: ["fish"],
   tuna_oil_drained: ["fish"],
   shrimp_cooked: ["shellfish"],
-  squid_fried: ["molluscs"],
+  squid_fried: ["molluscs", "gluten"],
   lupini_cooked: ["lupin"],
   peanuts_roasted: ["peanuts"],
   celery: ["celery"],

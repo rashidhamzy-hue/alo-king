@@ -125,6 +125,7 @@ describe("Lebanese dish library", () => {
     const calamari = loadDishes().find((d) => d.id === "fried_calamari")!;
     expect(mayContain(termos)).toContain("lupin");
     expect(mayContain(calamari)).toContain("molluscs");
+    expect(mayContain(calamari)).toContain("gluten"); // flour-dusted, as the USDA entry
   });
 
   it("the library migration adds the two EU-14 allergens and the label table", () => {
