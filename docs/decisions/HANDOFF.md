@@ -1,10 +1,10 @@
-# Handoff — 13 October 2026 (after session 6b)
+# Handoff — 14 October 2026 (after session D)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
 ## State
 
-- **Decisions:** sections 0–34 are complete (§33 pilot-first order, §34 ordering testable first). Phase 0 is GO.
+- **Decisions:** sections 0–38 are complete (§33 pilot-first order, §34 ordering testable first, §38 Shouf-first pilot). Phase 0 is GO.
 - **Repo:** `rashidhamzy-hue/alo-king`, branch `rebuild/lebanon` (the default branch), private. `main` is legacy and frozen.
 - **Services ready:**
   - Supabase `alo-king-staging` (`tzugbbatfbvrfzxuacqx`, eu-central-1, free plan)
@@ -172,7 +172,20 @@
     - `site-claim` secrets: `KAPSO_API_KEY` (already synced); optional `SITE_VISITOR_PEPPER` (else the last 16 characters of the service key are used as the pepper), `TWILIO_*`, `SENTRY_DSN`.
     - Cut-over (session 14): check that `/for-merchants` and `/drivers` appear in the sitemap, that `claim`/`register` stay `noindex`, and that no `+999` number can reach `site-claim`'s Kapso send (it is refused).
     - Driver terms do not exist yet (applying binds nobody); the lawyer's letter (#72) covers §21.6.
-- **Next: session 13 (security review; look at `site-claim`, `order_track_public` and the storage policy), then D, 5b and 14** (DECISIONS §34 "New order of remaining sessions"). The full session list, with the model and effort for each, is in DECISIONS §10 "Which model", §32.8, §33 and §34.
+- **Session D (Shouf data load, §38.1–38.2): done (14 October).** PRs #140 (load) and #141 (dish library and this handoff; see LOG.md "session D" lines). §38 itself came in #138.
+  - **Vendors:** the 2,044 nationwide seed vendors are deleted. The 315 Shouf merchants (`supabase/seed/shouf/source/`) load through `scripts/vendors/build-shouf.ts` and `app_private.shouf_load_seed()`: names split by script (57 in Arabic, 18 of them in both scripts), localities backfilled from the address (8, plus 1 nearest by pin), 218 WhatsApp candidates decided by the number. All are unclaimed, not orderable, with no public page, `source = seed_shouf_2026_10`.
+  - **Villages:** the 12 are config `pilot_place_ids`; `pilot_places_apply()` switches them on and every other place that was on, off (paused places stay paused; Beiteddine went off). To add a village, add a new dated config row.
+  - **Draft menus:** the 19 menus and 2 catalogues are `menu_drafts` with `source = seed`, `status = draft`. They reach the menu only through `menu_draft_approve_section` after a claim; unpriced items stay out.
+  - **Seed photos:** 2,927 photos (423 MB, ≤800 px) are in the private `vendor-photos` bucket, copied by the `seed-photos` CI job after each staging deploy. Only the URL's hash is kept. Anonymous read only for photos a merchant has `confirmed` on a claimed, public vendor. `vendor_photo_decide` and `vendor_photos_remove_seed` are service-role RPCs. Not built yet (5c): showing confirmed photos on the vendor page and the WhatsApp "keep / remove" card.
+  - **OSM:** 70 landmarks (26 pharmacies, 16 churches, 12 schools, 7 hospitals, 6 municipalities, 3 other places of worship) and 26 place aliases are fetched by the deploy job (`scripts/shouf/osm-fetch.mjs`; Overpass is unreachable from build sessions). Landmarks start unconfirmed but shared, confidence 0.3. The files are in the `osm-pilot` artifact of that CI run, to be committed in a later `Data:` PR.
+  - **Address fields (§38.3):** `addresses.landmark_relation` and `has_elevator`; door points at 25 m accuracy / 60 m agreement; `orders.lost_driver_calls` and `lost_driver_calls_metric()` against a 0.5 target. Nothing increments the counter yet (session 8).
+  - **Checkout lock order:** `order_place` now locks stock rows in item-id order. Before, it followed basket order and was only safe when the planner happened to use the index. The deadlock-order race test plus a deterministic probe failed on the old code and pass on the fix.
+  - **Dish library (#141):** the Levantine taxonomy covers every ingredient (food group, animal, cut, animal-product, pork and alcohol flags). The EU-14 allergens are complete (`lupin` and `molluscs` added; the customer filter lists 14) with `allergen_labels` in three languages. There are 9 new ingredients and 4 new dishes. For 5c: siyami must handle seafood, honey and toum with egg explicitly.
+  - **Simulator:** "Alo Test Market" (staging fixture, `is_test`) carries Coop Baakleen's draft catalogue. e2e scenario 11 (`shouf-draft-market`) opens it with `public.sim_market` and checks that the real 315 merchants are untouched drafts.
+  - **e2e after the #140 deploy:** 9 of 11 scenarios passed. `pickup` and `shouf-draft-market` failed because a reply came 60–100 s late: the dispatch worker's first attempt never finished, recorded no error, and the queue retried it (`webhook_events.attempts = 2`). The basket RPC itself answers in 60 ms. The pickup stall overlapped the 423 MB photo copy; the market one did not. The run after #141's deploy is the second data point (§36 kill-gate: two consecutive failures with no code change means quarantine plus a LOG line). Session 5c should look at where dispatch can block for a minute.
+  - **check-setup:** proves `DEEPGRAM_API_KEY` (a note until the secret is added, §38.6).
+  - **CUT-OVER (session 14), added:** no `alo-test-market` vendor and no `sim_market` use on production; run the Shouf load there after the places load (it switches the 12 villages on); copy the seed photos with the same script against production.
+- **Next: session 5c (directive engineering, §38.5), then 13, 5b and 14.** The full session list, with the model and effort for each, is in DECISIONS §38.5 (it replaces the order in §34).
 
 ## How to start each build session
 
@@ -187,7 +200,8 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 ## Owner to-do (Rasheed)
 
 0. **Test the ordering path now (no API credit needed):** send `Order` to the sandbox number from your phone; see the steps in the session T reply and in issue #112. Optional: add the GitHub secret `OWNER_TEST_PHONE` (see the owner issue) if you want to be sure which number may switch sides.
-1. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
+1. **Deepgram:** add the GitHub secret `DEEPGRAM_API_KEY` (§38.6); check-setup then proves it.
+2. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
 2. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
 3. **SARL** (about 17 October). The same week:
    - open a fresh-USD bank account

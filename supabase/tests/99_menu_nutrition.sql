@@ -170,4 +170,14 @@ select tests.ok((select count(*) = 0 from public.menu_drafts), 'another vendor''
 select tests.act_as('00000000-0000-0000-0000-00000000000e');
 select tests.ok((select count(*) = 2 from public.menu_drafts), 'the owner sees its drafts');
 
+-- Session D (§38.2 item 6): the Levantine taxonomy and the EU-14 labels.
+select tests.ok((select count(*) from public.allergen_labels) = 14, 'the 14 EU allergens have labels');
+select tests.ok(not exists (select 1 from public.nutrition_ingredients where food_group is null), 'every ingredient has a food group');
+select tests.ok((select allergens @> array['molluscs', 'gluten']::public.allergen[] from public.nutrition_ingredients where id = 'squid_fried'),
+  'fried calamari may contain molluscs and gluten');
+set local role anon;
+select tests.ok((select count(*) from public.allergen_labels) = 14, 'anyone can read the labels');
+select tests.throws($$insert into public.allergen_labels values ('gluten', true, 'x', 'x', 'x', 99)$$, 'permission denied', 'nobody but the server writes them');
+reset role;
+
 rollback;
