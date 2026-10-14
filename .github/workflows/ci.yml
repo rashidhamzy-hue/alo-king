@@ -19,8 +19,34 @@ env:
   SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
 
 jobs:
+  # CI diet (DECISIONS §39.1): a change that cannot alter the website (docs, evals, data seeds, migrations, edge
+  # functions, e2e scenarios) skips the site build and the website-quality job. Anything else, workflows
+  # included, counts as a web change.
+  changes:
+    name: what changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      web: ${{ steps.c.outputs.web }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: c
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+          if echo "$files" | grep -qvE '^(docs/|evals/|supabase/|tests/e2e/|scripts/(places|vendors|shouf|nutrition|evals)/|\.claude/|[^/]+\.md$)'; then
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web=false" >> "$GITHUB_OUTPUT"; echo "::notice::No website change: the site build and website-quality job are skipped."
+          fi
+
   checks:
     name: install, typecheck, lint, test, build
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -36,6 +62,7 @@ jobs:
       - name: Unit and edge-function tests
         run: pnpm test
       - run: pnpm build
+        if: needs.changes.outputs.web == 'true'
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -46,6 +73,8 @@ jobs:
 
   web-quality:
     name: website quality (Lighthouse, axe, screenshots; DECISIONS §37.5)
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -133,6 +162,8 @@ jobs:
 
   migrations:
     name: migration guard and dry-run against staging
+    # Secrets never reach a fork's pull request (§39.1, public repository).
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -141,9 +172,12 @@ jobs:
           fetch-depth: 0
       - name: Drops and truncates need a rollback file
         run: scripts/check-migrations.sh "${{ github.event.pull_request.base.sha }}"
+      # Pinned (DECISIONS §39.1): "latest" asked the GitHub API for the newest release on every run and hit its rate limit.
       - uses: supabase/setup-cli@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          version: latest
+          version: 2.120.0
       - name: Dry-run pending migrations on alo-king-staging
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -189,6 +223,8 @@ jobs:
 
   review:
     name: Claude review
+    # Only on a ready pull request from this repository (§39.1): a draft gets it when it is marked ready.
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -308,8 +344,12 @@ jobs:
 
   automerge:
     name: automerge
-    needs: [checks, web-quality, secret-scan, data-freeze, migrations, db-tests, review]
+    needs: [changes, checks, web-quality, secret-scan, data-freeze, migrations, db-tests, review]
+    # A job skipped by the CI diet counts as passed; any failure or cancellation stops the merge.
     if: >-
+      always() && !cancelled() &&
+      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') &&
+      needs.checks.result == 'success' && needs.review.result == 'success' && needs.migrations.result == 'success' &&
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       !contains(github.event.pull_request.labels.*.name, 'no-automerge')
@@ -354,9 +394,12 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: rebuild/lebanon
+      # Pinned (DECISIONS §39.1): "latest" asked the GitHub API for the newest release on every run and hit its rate limit.
       - uses: supabase/setup-cli@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          version: latest
+          version: 2.120.0
       - name: Apply migrations
         run: |
           DB_URL="$(scripts/staging-db-url.sh)"

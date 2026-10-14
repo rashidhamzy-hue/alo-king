@@ -537,6 +537,8 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
       log: deps.log,
     },
     m,
+    // The queue's attempt number: a retry of a turn that never finished is replayed, not dropped (#139).
+    { attempt: Number(ev.attempts ?? 1) },
   );
   return "done";
 }

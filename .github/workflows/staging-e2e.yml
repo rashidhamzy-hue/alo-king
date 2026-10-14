@@ -45,9 +45,12 @@ jobs:
           ref: rebuild/lebanon
       - name: Refuse anything but the staging project
         run: '[ "$SUPABASE_PROJECT_REF" = "tzugbbatfbvrfzxuacqx" ] || { echo "::error::only alo-king-staging"; exit 1; }'
+      # Pinned (DECISIONS §39.1): "latest" asked the GitHub API for the newest release on every run and hit its rate limit.
       - uses: supabase/setup-cli@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          version: latest
+          version: 2.120.0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:

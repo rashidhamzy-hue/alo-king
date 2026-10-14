@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { RETRY_SAFE_READS, RETRY_SAFE_WRITES } from "../supabase/functions/_shared/rest-rpc";
 
 // Contract test (DECISIONS §29.5, §29.8): every RPC and table the deployed edge functions call exists in
 // supabase/migrations, and no model name is hard-coded in function code (models are config rows). It covers
@@ -61,5 +62,26 @@ describe("edge function contract", () => {
       });
     }
     expect(hits).toEqual([]);
+  });
+  it("an RPC retried after a stall is read-only or idempotent (rest-rpc.ts, #139)", () => {
+    // The latest definition of each function, from `create ... function public.<fn>(` to the start of its body.
+    const header = (fn: string) => {
+      const all = [
+        ...sql.matchAll(
+          new RegExp(
+            `create (?:or replace )?function public\\.${fn}\\(([\\s\\S]*?)\\bas\\s+\\$`,
+            "g",
+          ),
+        ),
+      ];
+      return all.length ? all[all.length - 1][1] : null;
+    };
+    const notRead: string[] = [];
+    for (const fn of RETRY_SAFE_READS) {
+      const h = header(fn);
+      if (!h || !/\b(stable|immutable)\b/i.test(h)) notRead.push(fn);
+    }
+    expect(notRead).toEqual([]);
+    for (const fn of RETRY_SAFE_WRITES) expect(header(fn), fn).not.toBeNull();
   });
 });

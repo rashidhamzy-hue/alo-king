@@ -18,6 +18,9 @@ async function intake(events: IntakeEvent[]): Promise<IntakeResult[]> {
       "content-type": "application/json",
     },
     body: JSON.stringify({ p_provider: "kapso", p_events: events }),
+    // A stalled request (#139) fails the delivery with a 500 within Kapso's timeout; Kapso redelivers and
+    // webhook_intake deduplicates, so nothing is lost or doubled.
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) {
     await res.body?.cancel();
