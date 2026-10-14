@@ -1633,13 +1633,15 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 
 ### 39.2 Delivery area: Rasheed's boundary around the Shouf merchants (authoritative list, 14 October evening)
 - **Rule:** shops stay in the 12 pilot villages (§38.1; the vendor list). Customers can order **to** any place within about 10 km **by road** of a pilot shop (`max_delivery_km()`, from the fee bands; road distance from the routing provider, straight line only as the fallback), **inside the boundary below**. Price and the per-order distance check stay per order (§29.1); an address outside the boundary is refused even if it is within 10 km.
-- **Delivered-to places (Rasheed's list):**
-  - Upper and middle Shouf: **Niha** (the top edge), Mristi, Jbaa, Bater, Haret Jandal, Jbaaliyeh, Ammatour, **Ain Qani** (near Ammatour; there is no "Qanibeh"), Botmeh, Khraibeh, Baadarane, Moukhtara, Jdeideh, up to Barouk and **Ain Zhalta**.
-  - Lower Shouf ("El Manasef"): Derkoush, Bchetfine, Kfar Qatra, Kfarfakoud, Dardriet and the villages of that group, delivered from Kfar Him, Dmit and Baakleen.
-  - Deir el Qamar and Beiteddine.
-  - Southern side: Ammatour, Aatrine, Baakleen, Samqaniyeh, down to **Gharifeh**.
-  - Any village physically between these places counts.
-- **Hard stops:** no Iqlim el Kharroub village; nothing past Ain Zhalta (not Nabaa el Safa or beyond); Bater is the last village up the southern side; nothing past Gharifeh; nothing toward Damour.
+- **Delivered-to places (Rasheed's list, corrected 14 October evening; this list is authoritative):**
+  - **Shop villages (§38.1):** the 12 pilot villages; on the north side Ain Zhalta's neighbours Barouk, Batloun, Ain w Zain, Boqaata and Baakleen.
+  - **Top edge:** Niha, Jbaa, Mristi, Khraibeh, Baadarane, Botmeh.
+  - **South edge:** Bater is the last village; before it, coming toward it: Ain Qani (there is no "Qanibeh"), Ammatour, Haret Jandal, Jbaaliyeh.
+  - **North edge:** Ain Zhalta is the maximum; nothing past it.
+  - **South-west, from Baakleen:** Ainbal, Aatrine, Gharifeh.
+  - **Back down:** Deir Dourit, Deir el Qamar, Beiteddine, Kfar Him, Dmit, and the El Manasef villages (Lower Shouf): Kfar Qatra, Kfarfakoud, Derkoush, Bchetfine.
+  - Any village physically between these places counts (for example Moukhtara and Samqaniyeh).
+- **Hard stops:** no Iqlim el Kharroub village; nothing past Ain Zhalta (not Nabaa el Safa or beyond); Bater is the last village on the south side; nothing past Gharifeh; nothing toward Damour.
 - **How it is stored:** the boundary is a dated `pilot_place_ids` row listing every delivered-to place (authoritative); a SQL function checks road distance from the chosen shop per order and proposes additions when new shops join, which take effect only through a new dated row. Names the gazetteer cannot match are logged in DATA-ISSUES.md, never guessed.
 - **OSM landmarks and place aliases (§38.2 items 4–5) are run for every delivered-to place**, not only the 12 villages. Same categories, same `source = osm`, low confidence.
 - **The "where we deliver" page** shows this as an interactive map of the zone (session W, 39.11), not a list of village blocks.
