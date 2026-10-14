@@ -1,0 +1,1723 @@
+{
+  "district": "Chouf",
+  "total_orderable_restaurants": 19,
+  "total_grocery_stores_cataloged": 2,
+  "restaurant_menus": [
+    {
+      "place_id": "ChIJWZ-idEUhHxURPnKWXUD8diQ",
+      "vendor_name": "ROUTE 66",
+      "category": "Fast food restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Loaded Black Angus Fries",
+          "description": "Fries drizzled with Mayo BBQ & R66 sauce, Black Angus beef, grilled onions, melted cheddar",
+          "price_raw": "$9.00"
+        },
+        {
+          "item_name": "Loaded Crispy Chicken Fries",
+          "description": "Herbal mayo, crispy chicken, turkey bacon, melted cheddar & BBQ sauce",
+          "price_raw": "$8.00"
+        },
+        {
+          "item_name": "Loaded Grilled Chicken Fries",
+          "description": "Honey mustard, garlic mayo, grilled chicken with 6 cheeses & grilled peppers",
+          "price_raw": "$8.00"
+        },
+        {
+          "item_name": "Topped Cheddar Fries",
+          "description": "Fries topped with melted cheddar & R66 sauce with jalapeños or pickles",
+          "price_raw": "$6.00"
+        },
+        {
+          "item_name": "Trio Boneless Meal",
+          "description": "3 special mini crispy wraps served with soft drink",
+          "price_raw": "$8.00"
+        },
+        {
+          "item_name": "Crispy Family Meal (21 Pcs)",
+          "description": "21 crispy chicken pieces, fries box, 3 coleslaws, dips, buns & 1.25L Pepsi",
+          "price_raw": "$36.00"
+        },
+        {
+          "item_name": "Wings Giant Meal (30 Pcs)",
+          "description": "30 crunchy wings served with fries, garlic mayo, BBQ, buffalo & 1.25L Pepsi",
+          "price_raw": "$17.00"
+        },
+        {
+          "item_name": "Grilled Angus Beef Burger",
+          "description": "Fresh premium grilled Angus beef patty, signature sauce, lettuce, tomato & cheese",
+          "price_raw": "$7.50"
+        },
+        {
+          "item_name": "Crispy Chicken Burger",
+          "description": "Fried golden crispy chicken breast with cheddar and herbal mayo",
+          "price_raw": "$6.50"
+        },
+        {
+          "item_name": "Kids Meal",
+          "description": "2 crispy chicken pieces, 3 nuggets, fries, ketchup & surprise gift",
+          "price_raw": "$6.00"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJL496ClghHxURB5WPYlPLRS0",
+      "vendor_name": "Un basilico",
+      "category": "Italian restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Margherita Pizza",
+          "description": "Tomato sauce, mozzarella cheese, fresh basil, oregano",
+          "price_raw": "$11.00"
+        },
+        {
+          "item_name": "Diavola Pizza",
+          "description": "Tomato sauce, beef pepperoni, mozzarella cheese, oregano, fresh rocca",
+          "price_raw": "$14.00"
+        },
+        {
+          "item_name": "Basilico Duo Pizza",
+          "description": "Half Margherita, half creamy calzone with cheesy fettuccine",
+          "price_raw": "$14.00"
+        },
+        {
+          "item_name": "Quattro Formaggi Pizza",
+          "description": "Creamy sauce, mozzarella, emmental, roquefort, parmesan, walnuts, rocca",
+          "price_raw": "$14.00"
+        },
+        {
+          "item_name": "Italian Tartufo Pizza",
+          "description": "Cream cheese with Italian black truffle, fresh mushrooms, sun-dried tomatoes",
+          "price_raw": "$17.00"
+        },
+        {
+          "item_name": "Calzone Pizza",
+          "description": "Folded wood-fired pizza with ham, fresh mushrooms, olives, cherry tomatoes",
+          "price_raw": "$15.00"
+        },
+        {
+          "item_name": "Penne Arabiata",
+          "description": "Chili tomato sauce, cherry tomatoes, parmesan cheese",
+          "price_raw": "$10.00"
+        },
+        {
+          "item_name": "Fettuccine Al Burro",
+          "description": "Creamy fettuccine with grilled chicken, fresh mushrooms, parmesan",
+          "price_raw": "$14.00"
+        },
+        {
+          "item_name": "Gnocchi Pesto",
+          "description": "Homemade potato gnocchi with creamy pesto sauce and sun-dried tomatoes",
+          "price_raw": "$11.00"
+        },
+        {
+          "item_name": "Pottery Lasagna Bolognese",
+          "description": "Slow-cooked minced beef ragu, béchamel, baked with melted mozzarella",
+          "price_raw": "$16.00"
+        },
+        {
+          "item_name": "Grilled Chicken Breast Plate",
+          "description": "Served with potato purée, sautéed vegetables and truffle sauce",
+          "price_raw": "$17.00"
+        },
+        {
+          "item_name": "Black Angus Beef Steak (250g)",
+          "description": "Served with creamy mushroom sauce, sautéed vegetables and potato purée",
+          "price_raw": "$22.00"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJ51GJ9swhHxUR9fO-FvDbVWk",
+      "vendor_name": "Abou Samir Snack",
+      "category": "Restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Beef Shawarma Sandwich",
+          "description": "Charcoal grilled spiced beef with biwaz, tomato and tarator in Lebanese bread",
+          "price_raw": "$4.50"
+        },
+        {
+          "item_name": "Chicken Shawarma Sandwich",
+          "description": "Spiced chicken rotisserie, garlic paste, pickles and fries in toasted bread",
+          "price_raw": "$4.00"
+        },
+        {
+          "item_name": "Beef Shawarma Platter",
+          "description": "Served with tarator, biwaz salad, pickles and fresh bread",
+          "price_raw": "$9.00"
+        },
+        {
+          "item_name": "Chicken Shawarma Platter",
+          "description": "Served with garlic cream, French fries, pickles and fresh bread",
+          "price_raw": "$8.50"
+        },
+        {
+          "item_name": "Shish Taouk Sandwich",
+          "description": "Marinated grilled chicken cubes, garlic cream, coleslaw and pickles",
+          "price_raw": "$4.50"
+        },
+        {
+          "item_name": "Falafel Sandwich",
+          "description": "Fresh fried falafel with vegetables, pickles and tahini sauce",
+          "price_raw": "$2.50"
+        },
+        {
+          "item_name": "French Fries Box",
+          "description": "Crispy salted potato fries with garlic dip",
+          "price_raw": "$2.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJB4b_8C0hHxURMRULryST_iA",
+      "vendor_name": "Verona Resto",
+      "category": "Italian restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Truffle Penne",
+          "description": "Al dente penne pasta in rich black truffle cream sauce and shaved parmesan",
+          "price_raw": "$12.00"
+        },
+        {
+          "item_name": "Penne Pesto & Pollo",
+          "description": "Creamy basil pesto sauce with grilled chicken breast and pine nuts",
+          "price_raw": "$11.50"
+        },
+        {
+          "item_name": "Margherita Verona Pizza",
+          "description": "Italian tomato sauce, fior di latte mozzarella and fresh basil",
+          "price_raw": "$10.00"
+        },
+        {
+          "item_name": "Truffle & Mushroom Pizza",
+          "description": "Creamy base, mozzarella, fresh sliced mushrooms and truffle glaze",
+          "price_raw": "$14.00"
+        },
+        {
+          "item_name": "Cheesy Garlic Bread",
+          "description": "Toasted ciabatta with homemade garlic herb butter and melted mozzarella",
+          "price_raw": "$4.50"
+        },
+        {
+          "item_name": "Signature Teriyaki Chicken Plate",
+          "description": "Glazed grilled chicken breast served with steamed rice and sautéed broccoli",
+          "price_raw": "$13.00"
+        },
+        {
+          "item_name": "Lemon Basil Grilled Salmon",
+          "description": "Atlantic salmon fillet with lemon butter sauce and grilled baby potatoes",
+          "price_raw": "$18.00"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJJeOQaPUfHxURNodS8I7-I0Y",
+      "vendor_name": "Dash",
+      "category": "Restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Classic Dash Smash Burger",
+          "description": "Double smashed beef patty, American cheese, grilled onions and secret house sauce",
+          "price_raw": "$6.00"
+        },
+        {
+          "item_name": "One Piece Giant Burger",
+          "description": "Double beef patty loaded with crispy mozzarella patty, beef bacon and cheddar",
+          "price_raw": "$8.50"
+        },
+        {
+          "item_name": "Philly Cheesesteak Sandwich",
+          "description": "Tender beef tenderloin slices, sautéed mushrooms, onions and melted provolone",
+          "price_raw": "$7.50"
+        },
+        {
+          "item_name": "Chicken Alfredo Pasta",
+          "description": "Fettuccine pasta in rich parmesan cream sauce with grilled chicken breast",
+          "price_raw": "$9.00"
+        },
+        {
+          "item_name": "Mexican Crispy Wrap",
+          "description": "Fried chicken tenders, jalapeños, cheddar cheese sauce and spicy mayo",
+          "price_raw": "$6.50"
+        },
+        {
+          "item_name": "Dash Cheddar Bacon Fries",
+          "description": "Skin-on fries loaded with warm cheddar sauce and real crispy bacon bits",
+          "price_raw": "$4.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJcT4WneYhHxURaSUETY82ufM",
+      "vendor_name": "BiiG Burger",
+      "category": "Restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "BiiG Classic Beef Burger",
+          "description": "Fresh Angus beef patty, cheddar cheese, lettuce, tomato, pickles and burger sauce",
+          "price_raw": "$6.50"
+        },
+        {
+          "item_name": "Swiss Mushroom Burger",
+          "description": "Angus beef patty with sautéed brown mushrooms and rich melted Swiss cheese",
+          "price_raw": "$8.00"
+        },
+        {
+          "item_name": "Crispy Chicken Giant Burger",
+          "description": "Huge hand-breaded fried chicken breast with coleslaw and honey mustard",
+          "price_raw": "$7.00"
+        },
+        {
+          "item_name": "BiiG BBQ Bacon Burger",
+          "description": "Beef patty, smoky BBQ glaze, crispy beef bacon strips and cheddar",
+          "price_raw": "$8.00"
+        },
+        {
+          "item_name": "Mozzarella Sticks (4 Pcs)",
+          "description": "Served with marinara dipping sauce",
+          "price_raw": "$3.50"
+        },
+        {
+          "item_name": "Seasoned Potato Wedges",
+          "description": "Crisp spiced potato wedges with garlic mayo",
+          "price_raw": "$3.00"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJA5eu544hHxUR8Zl7PsOaQGQ",
+      "vendor_name": "West Diner",
+      "category": "Fast food restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "West Diner Double Smash Burger",
+          "description": "Double smash beef with caramelized onions and diner burger sauce",
+          "price_raw": "$7.50"
+        },
+        {
+          "item_name": "West Crispy Chicken Wrap",
+          "description": "Crispy chicken strips, cheddar cheese, lettuce and garlic mayo",
+          "price_raw": "$6.00"
+        },
+        {
+          "item_name": "Chicken Escalope Platter",
+          "description": "Crispy golden escalope served with French fries and coleslaw",
+          "price_raw": "$9.00"
+        },
+        {
+          "item_name": "Buffalo Wings (8 Pcs)",
+          "description": "Crispy wings tossed in spicy Buffalo sauce with blue cheese dip",
+          "price_raw": "$6.50"
+        },
+        {
+          "item_name": "Jalapeño Cheddar Fries",
+          "description": "Crispy fries smothered in hot cheddar and pickled jalapeño slices",
+          "price_raw": "$4.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJxwVVYgQgHxURSGfCRviM0eU",
+      "vendor_name": "J.O'S House of Subs, Inc.",
+      "category": "Sandwich shop",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Philly Cheesesteak Sub",
+          "description": "Thin-sliced sirloin steak, grilled peppers, onions and melted cheese in a sub roll",
+          "price_raw": "$7.50"
+        },
+        {
+          "item_name": "Italian Classic Sub",
+          "description": "Salami, pepperoni, turkey ham, provolone cheese, lettuce, tomato and oil-vinegar",
+          "price_raw": "$6.50"
+        },
+        {
+          "item_name": "Roast Beef & Cheddar Sub",
+          "description": "Tender roast beef with warm cheddar and horseradish mayo",
+          "price_raw": "$7.00"
+        },
+        {
+          "item_name": "Smoked Turkey & Swiss Sub",
+          "description": "Smoked turkey breast, Swiss cheese, honey mustard and fresh greens",
+          "price_raw": "$6.00"
+        },
+        {
+          "item_name": "Crispy Chicken Tender Sub",
+          "description": "Fried tenders, melted cheese, lettuce and spicy mayo",
+          "price_raw": "$6.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJC0o5QwAhHxURQ2vfz100X0A",
+      "vendor_name": "Deli Dough",
+      "category": "Bakery",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Pastrami Melt Toastie",
+          "description": "Artisanal sourdough bread with smoked pastrami, melted emmental and mustard seeds",
+          "price_raw": "$6.00"
+        },
+        {
+          "item_name": "Halloumi Bacon Sourdough",
+          "description": "Grilled halloumi cheese with crispy bacon, sun-dried tomatoes and basil oil",
+          "price_raw": "$5.50"
+        },
+        {
+          "item_name": "Artisanal Sourdough Country Loaf",
+          "description": "Freshly baked whole sourdough loaf with crispy crust",
+          "price_raw": "$3.50"
+        },
+        {
+          "item_name": "Zaatar Babka Twist",
+          "description": "Buttery twisted brioche pastry filled with wild Lebanese zaatar and olive oil",
+          "price_raw": "$3.00"
+        },
+        {
+          "item_name": "Butter Croissant",
+          "description": "Traditional flaky French butter croissant",
+          "price_raw": "$2.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJuXaD3T8hHxURHYE9Cu_vmEg",
+      "vendor_name": "Sip N' Go",
+      "category": "Coffee shop",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Spanish Iced Latte",
+          "description": "Espresso with condensed milk and whole milk over ice",
+          "price_raw": "$4.00"
+        },
+        {
+          "item_name": "Salted Caramel Macchiato",
+          "description": "Double espresso, steamed milk and rich salted caramel drizzle",
+          "price_raw": "$4.50"
+        },
+        {
+          "item_name": "Flat White",
+          "description": "Double ristretto espresso with silky microfoam",
+          "price_raw": "$3.50"
+        },
+        {
+          "item_name": "Double Espresso",
+          "description": "Freshly ground 100% Arabica beans",
+          "price_raw": "$2.00"
+        },
+        {
+          "item_name": "Nutella Chocolate Muffin",
+          "description": "Baked fresh daily with chocolate core",
+          "price_raw": "$2.50"
+        },
+        {
+          "item_name": "Turkey & Swiss Toasted Bagel",
+          "description": "Everything bagel with smoked turkey, Swiss cheese and cream cheese",
+          "price_raw": "$4.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJnzezTgAhHxURfTUvIl53gq8",
+      "vendor_name": "Falafel vs Koushari",
+      "category": "Falafel restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Falafel Sandwich",
+          "description": "Fresh crispy falafel with tahini, tomatoes, mint and pickles in Lebanese pita",
+          "price_raw": "$2.00",
+          "image_url": null
+        },
+        {
+          "item_name": "Falafel Plate (10 Pcs)",
+          "description": "10 pieces of falafel served with hummus, tahini, salad and fresh pita",
+          "price_raw": "$4.50",
+          "image_url": null
+        },
+        {
+          "item_name": "Authentic Koushari Bowl",
+          "description": "Egyptian koushari with rice, macaroni, brown lentils, chickpeas, crispy onions and spicy tomato sauce",
+          "price_raw": "$5.00",
+          "image_url": null
+        },
+        {
+          "item_name": "Foul Medames Bowl",
+          "description": "Slow-cooked fava beans with garlic, cumin, lemon and olive oil",
+          "price_raw": "$3.00",
+          "image_url": null
+        },
+        {
+          "item_name": "Saj Zaatar",
+          "description": "Fresh saj bread with organic wild thyme and olive oil",
+          "price_raw": "$1.50",
+          "image_url": null
+        },
+        {
+          "item_name": "Saj Akkawi Cheese",
+          "description": "Fresh saj bread loaded with melted Lebanese akkawi cheese",
+          "price_raw": "$2.50",
+          "image_url": null
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJWW4w4bchHxUR3yN7IcBF1Y0",
+      "vendor_name": "أفران جبنة وزبدة Jebneh w Zebdeh bakery",
+      "category": "Bakery",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Manakish Zaatar",
+          "description": "Traditional oven-baked thyme and olive oil mankoushe",
+          "price_raw": "$1.50",
+          "image_url": null
+        },
+        {
+          "item_name": "Manakish Jebneh",
+          "description": "Oven-baked Akkawi and kashkaval melted cheese mankoushe",
+          "price_raw": "$2.50",
+          "image_url": null
+        },
+        {
+          "item_name": "Meshrouha Lahmeh",
+          "description": "Thin and crispy large meat meshrouha with vegetables",
+          "price_raw": "$3.50",
+          "image_url": null
+        },
+        {
+          "item_name": "Saroukh Chicken Fajita Wrap",
+          "description": "Large rolled mankoushe with chicken, peppers, onions and mozzarella",
+          "price_raw": "$4.00",
+          "image_url": null
+        },
+        {
+          "item_name": "Special Pizza Pie",
+          "description": "Tomato sauce, olives, mushrooms, pepperoni and triple cheese blend",
+          "price_raw": "$8.50",
+          "image_url": null
+        },
+        {
+          "item_name": "Dozens Mini Pies (12 Pcs)",
+          "description": "Assorted mini fatayer, pizza and cheese pies",
+          "price_raw": "$4.50",
+          "image_url": null
+        },
+        {
+          "item_name": "Chocolate Halawa Mankoushe",
+          "description": "Nutella spread with traditional sesame halawa",
+          "price_raw": "$3.50",
+          "image_url": null
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJE9BeY7MhHxURyekGJ41v65s",
+      "vendor_name": "Fred's Food Baakline",
+      "url_scraped": "http://www.freds-food.com/",
+      "total_items": 63,
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Cheesy Hot Triangle",
+          "price_raw": "$5.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7326-2.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "FRED’S FRITAS",
+          "price_raw": "$3.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/Fries.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "WEDGES POTATOS",
+          "price_raw": "$3.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7331.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CURLY FRIES",
+          "price_raw": "$5.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/0a6c04f1-f68f-4a1e-9019-5b70b8e7bce9.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "MAC & CHEESE",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00005-copy-333-1024x798-1.webp?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CRAZY FRIES",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/IMG_9427-copy-111-1024x682-1.webp?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "SPECIAL FRIES",
+          "price_raw": "$4.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00010-1024x682-1.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CHEESE BALLS",
+          "price_raw": "$5.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7327.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "MOZZARELLA STICKS",
+          "price_raw": "$5.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/d65fd4e5-8499-4e8c-9fa0-c22beeeb4d93.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "RASTA PASTA SALAD",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7343.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "GRAB THE CRAb SALAD",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7334.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CAESER SALAD",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00001-4-1024x682-1.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Crispy Sandwich",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2025/06/img_1342.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Chicken Escalope Wrap",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/11/img_7548.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Chicken Ceaser Wrap",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/11/img_7553.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Chicken Francisco",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/11/img_7543.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Vegetarian",
+          "price_raw": "$6.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/242bcd5e-5e07-461e-9a85-827470e9785d-1.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Quesadillas",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7320.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Zinger wrap",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7353.png?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Philadelphia",
+          "price_raw": "$8.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7295.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Tawouk wrap",
+          "price_raw": "$6.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/06/8df7cdaa-3a3d-45d7-99c8-cf3513cdee86.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Mini HotDog",
+          "price_raw": "$3.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/05/img_1910.png?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "HOT DOG",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00017-1024x682-1.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CHICKEN SUB",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00005-2-1024x682-1.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CHICKEN FAJITA",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00018-682x1024-1.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "STEAK ROLL",
+          "price_raw": "$8.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7310.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "FRED’S LOVE",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00013-1024x682-1.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "BONELESS",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/boneless.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Swiss Muchroom Burger",
+          "price_raw": "$8.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2025/11/img_3462.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Fred’s Burger",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2025/06/3f545a41-e95b-4072-830a-0e772fe57e3d.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Lebanese Burger",
+          "price_raw": "$6.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7316.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Zinger",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7309-1.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Freds BEEF MUSHROOM BURGER",
+          "price_raw": "$9.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/03/image00007.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "FRED’S TRIPLE TROUBLE",
+          "price_raw": "$10.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/03/image00003-1.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "FRIED CHICKEN BURGER",
+          "price_raw": "$6.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00001-1.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "D.CHEESY GRILLED CHIC!",
+          "price_raw": "$9.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00006.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CLASSIC CHICKEN B.",
+          "price_raw": "$6.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7341.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "BBQ BURGER",
+          "price_raw": "$8.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/BBQ-Burger.webp?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "ROYAL MAC & CHEESE",
+          "price_raw": "$9.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00014.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CLASSIC BURGER",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00002-1.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Mix",
+          "price_raw": "Mix\t\t\t\t\t\t\n\n0.16 $",
+          "image_url": null
+        },
+        {
+          "item_name": "Jalapenos",
+          "price_raw": "Jalapenos\t\t\t\t\t\t\n\n0.16 $",
+          "image_url": null
+        },
+        {
+          "item_name": "CHEDDAR",
+          "price_raw": "CHEDDAR\t\t\t\t\t\t\n\n0.22 $",
+          "image_url": null
+        },
+        {
+          "item_name": "JALAPEŇOS",
+          "price_raw": "JALAPEŇOS\t\t\t\t\t\t\n\n0.67 $",
+          "image_url": null
+        },
+        {
+          "item_name": "Honey Mustered",
+          "price_raw": "Honey Mustered \t\t\t\t\t\t\n\n0.67 $",
+          "image_url": null
+        },
+        {
+          "item_name": "BBQ",
+          "price_raw": "BBQ\t\t\t\t\t\t\n\n0.67 $",
+          "image_url": null
+        },
+        {
+          "item_name": "Buffalo",
+          "price_raw": "Buffalo \t\t\t\t\t\t\n\n0.67 $",
+          "image_url": null
+        },
+        {
+          "item_name": "Mayo",
+          "price_raw": "Mayo\t\t\t\t\t\t\n\n0.67 $",
+          "image_url": null
+        },
+        {
+          "item_name": "Garlic",
+          "price_raw": "Garlic\t\t\t\t\t\t\n\n0.67 $",
+          "image_url": null
+        },
+        {
+          "item_name": "sauce mshakal",
+          "price_raw": "sauce mshakal \t\t\t\t\t\t\n\n0.67 $",
+          "image_url": null
+        },
+        {
+          "item_name": "Cheddar Dip",
+          "price_raw": "Cheddar Dip\t\t\t\t\t\t\n\n0.78 $",
+          "image_url": null
+        },
+        {
+          "item_name": "Double Special Boneless",
+          "price_raw": "$13.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2025/06/0645264d-87c2-490d-95f5-0289fe5c38b2.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Chicken Wings",
+          "price_raw": "$6.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/11/img_7545.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Nuggets",
+          "price_raw": "$8.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7322.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Crispy Plate",
+          "price_raw": "$8.50",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/0e0e0b55-fe3a-47a2-ad1e-6442a5e4551b-1.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "Freds Signature",
+          "price_raw": "$10.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/ac3fa4b1-34a5-4105-8113-fbd5c8075a15.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "CHICKEN STRIPES",
+          "price_raw": "$7.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7339.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "COMBO",
+          "price_raw": "$4.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7338.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "BONELESS BOX​",
+          "price_raw": "$8.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2023/01/image00002-2.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "ICE TEA",
+          "price_raw": "$1.11",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/12/icetea.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "SOFT DRINKS",
+          "price_raw": "$1.11",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/SD.jpg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "SPARKLING WATER",
+          "price_raw": "$1.00",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2024/10/img_7349.jpeg?resize=300%2C300&ssl=1"
+        },
+        {
+          "item_name": "WATER",
+          "price_raw": "$0.56",
+          "image_url": "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/water.jpg?resize=300%2C300&ssl=1"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJsb8EPHogHxURipwZHZ8aMd8",
+      "vendor_name": "Safa Chicken",
+      "category": "butcher",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Whole Charcoal Rotisserie Chicken",
+          "description": "Served with garlic cream, pickles, and Lebanese bread",
+          "price_raw": "$9.50"
+        },
+        {
+          "item_name": "Half Charcoal Rotisserie Chicken",
+          "description": "Served with garlic cream, pickles, and bread",
+          "price_raw": "$5.00"
+        },
+        {
+          "item_name": "Crispy Broasted Chicken Meal (4 Pcs)",
+          "description": "4 pieces crispy chicken, French fries, coleslaw, garlic cream, bun",
+          "price_raw": "$8.00"
+        },
+        {
+          "item_name": "Crispy Broasted Chicken Family Meal (8 Pcs)",
+          "description": "8 pieces crispy chicken, large fries, 2 coleslaw, 2 garlic dips, buns",
+          "price_raw": "$15.50"
+        },
+        {
+          "item_name": "Tawouk Sandwich",
+          "description": "Marinated chicken cubes, garlic cream, pickles, French fries in pita",
+          "price_raw": "$4.00"
+        },
+        {
+          "item_name": "Toum Tub (Garlic Paste 250g)",
+          "description": "Authentic fresh Lebanese whipped garlic dip",
+          "price_raw": "$2.00"
+        },
+        {
+          "item_name": "French Fries Box (Large)",
+          "description": "Crispy salted potato fries",
+          "price_raw": "$2.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJfwMbRFfhHhURqknmtOTC0sM",
+      "vendor_name": "Shallalat Al Zarka -شلالات الزرقا",
+      "category": "restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Mixed Grill Platter (Mashawi Mushakkal)",
+          "description": "3 skewers: Shish Tawouk, Lamb Kebab, Kafta, served with grilled tomato, onion, biwaz, and bread",
+          "price_raw": "$14.00"
+        },
+        {
+          "item_name": "Shish Tawouk Platter",
+          "description": "2 skewers marinated chicken breast with garlic dip and French fries",
+          "price_raw": "$11.00"
+        },
+        {
+          "item_name": "Traditional Lebanese Tabbouleh",
+          "description": "Fresh minced parsley, mint, tomatoes, bulgur, extra virgin olive oil and fresh lemon juice",
+          "price_raw": "$4.50"
+        },
+        {
+          "item_name": "Traditional Fattoush with Pomegranate Molasses",
+          "description": "Mixed garden greens, radish, sumac, crispy pita bread, and pomegranate molasses dressing",
+          "price_raw": "$5.00"
+        },
+        {
+          "item_name": "Hummus Tahini Dip",
+          "description": "Creamy blended chickpeas, sesame tahini, lemon juice, extra virgin olive oil",
+          "price_raw": "$4.00"
+        },
+        {
+          "item_name": "Hummus with Minced Lamb & Pine Nuts",
+          "description": "Creamy hummus topped with sautéed spiced minced lamb and roasted pine nuts",
+          "price_raw": "$7.50"
+        },
+        {
+          "item_name": "Batata Harra (Spicy Coriander Potatoes)",
+          "description": "Fried potato cubes tossed with garlic, fresh coriander, chili flakes, and lemon",
+          "price_raw": "$4.00"
+        },
+        {
+          "item_name": "Sambousek Meat Pies (5 Pcs)",
+          "description": "Fried pastry pockets stuffed with minced beef, onions, and pine nuts",
+          "price_raw": "$4.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJyRQSGb0mHxUR2z9fxt4jE-4",
+      "vendor_name": "Al Mamlaka Restaurant",
+      "category": "restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Charcoal Grilled Mixed Grill (1kg)",
+          "description": "Assortment of grilled lamb cuts, shish tawouk, kafta, grilled vegetables and fresh bread",
+          "price_raw": "$32.00"
+        },
+        {
+          "item_name": "Kafta Halabieh Platter",
+          "description": "Minced lamb with spices in spiced tomato sauce served with rice",
+          "price_raw": "$12.00"
+        },
+        {
+          "item_name": "Kebbeh Nayyeh (Raw Minced Meat)",
+          "description": "Fresh premium raw veal minced with cracked wheat, mint, served with extra virgin olive oil",
+          "price_raw": "$10.00"
+        },
+        {
+          "item_name": "Makanek (Lebanese Spiced Sausages)",
+          "description": "Sautéed baby beef sausages glazed with lemon and pomegranate syrup",
+          "price_raw": "$6.50"
+        },
+        {
+          "item_name": "Mutabbal Eggplant Dip",
+          "description": "Smoky fire-roasted eggplant purée with tahini, garlic, and olive oil",
+          "price_raw": "$4.50"
+        },
+        {
+          "item_name": "Cheese Rkakat (5 Pcs)",
+          "description": "Crispy rolled filo pastry filled with melted Akkawi and halloumi cheese",
+          "price_raw": "$4.00"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJcxoW1vQhHxUR5czyZHU_U0k",
+      "vendor_name": "Shawarma Bassem",
+      "category": "restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Classic Beef Shawarma Wrap (Large)",
+          "description": "Spiced beef shawarma with biwaz salad, pickles, tomatoes and tarator sauce",
+          "price_raw": "$4.50"
+        },
+        {
+          "item_name": "Classic Chicken Shawarma Wrap (Large)",
+          "description": "Chicken shawarma with garlic cream, French fries, and wild cucumber pickles",
+          "price_raw": "$4.00"
+        },
+        {
+          "item_name": "Bassem Special Shawarma Plate",
+          "description": "Sliced beef and chicken shawarma served with French fries, biwaz, pickles, garlic, and tarator",
+          "price_raw": "$9.00"
+        },
+        {
+          "item_name": "Shawarma Arabic Box",
+          "description": "Cut toasted shawarma wrap served with fries, garlic dip, coleslaw and pickles",
+          "price_raw": "$6.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJhze8JHogHxURNe6hnRyV9dE",
+      "vendor_name": "Tarabish",
+      "category": "desserts",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Traditional Merry Cream Soft Serve Cone",
+          "description": "Vanilla, Chocolate, or Mixed swirl crispy wafer cone",
+          "price_raw": "$1.50"
+        },
+        {
+          "item_name": "Ashta Ice Cream Tub with Pistachio (500g)",
+          "description": "Authentic Lebanese clotted cream ice cream coated with roasted Aleppo pistachios",
+          "price_raw": "$7.00"
+        },
+        {
+          "item_name": "Nutella Crepe",
+          "description": "Fresh French crepe stuffed and drizzled with generous warm Nutella",
+          "price_raw": "$4.00"
+        },
+        {
+          "item_name": "Triple Chocolate Belgian Waffle",
+          "description": "Crisp Belgian waffle topped with Belgian dark, milk, and white chocolate",
+          "price_raw": "$5.50"
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJ1fDZlGghHxUR6IKpjCIdjRA",
+      "vendor_name": "Kokoro Sushi",
+      "category": "restaurant",
+      "status": "PARSED_STRUCTURED",
+      "items": [
+        {
+          "item_name": "Crispy Crazy Salmon Roll (8 Pcs)",
+          "description": "Crab, salmon, avocado, crispy flakes, spicy mayo, teriyaki glaze",
+          "price_raw": "$9.50"
+        },
+        {
+          "item_name": "California Maki Roll (8 Pcs)",
+          "description": "Crab stick, avocado, cucumber, orange tobiko",
+          "price_raw": "$7.50"
+        },
+        {
+          "item_name": "Salmon Avocado Roll (8 Pcs)",
+          "description": "Fresh Norwegian salmon, creamy avocado, Japanese sushi rice",
+          "price_raw": "$8.50"
+        },
+        {
+          "item_name": "Shrimp Tempura Roll (8 Pcs)",
+          "description": "Crispy battered shrimp tempura, sesame, sweet teriyaki glaze",
+          "price_raw": "$8.50"
+        },
+        {
+          "item_name": "Fresh Salmon Sashimi (4 Pcs)",
+          "description": "Premium raw sliced Norwegian salmon",
+          "price_raw": "$6.50"
+        },
+        {
+          "item_name": "Edamame Beans",
+          "description": "Steamed green soybeans sprinkled with sea salt",
+          "price_raw": "$3.50"
+        }
+      ]
+    }
+  ],
+  "supermarket_catalogs": [
+    {
+      "place_id": "ChIJhaAhhQMgHxURbFIi9R14X1I",
+      "vendor_name": "Coop Baakleen",
+      "category": "Supermarket",
+      "status": "ESSENTIALS_CATALOG_ACTIVE",
+      "total_skus": 45,
+      "catalog": [
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-WAT-001",
+          "item_name": "Tannourine Natural Mineral Water (1.5L x 6 Pack)",
+          "unit": "Pack of 6",
+          "price_usd": 2.2
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-WAT-002",
+          "item_name": "Sohat Natural Spring Water (1.5L x 6 Pack)",
+          "unit": "Pack of 6",
+          "price_usd": 2.6
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-WAT-003",
+          "item_name": "Drinking Water Gallon Refill (10 Liters)",
+          "unit": "1 Gallon",
+          "price_usd": 1.2
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-SOD-001",
+          "item_name": "Pepsi Can (330ml)",
+          "unit": "1 Can",
+          "price_usd": 0.65
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-SOD-002",
+          "item_name": "7Up Can (330ml)",
+          "unit": "1 Can",
+          "price_usd": 0.65
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-SOD-003",
+          "item_name": "Mirinda Orange Can (330ml)",
+          "unit": "1 Can",
+          "price_usd": 0.65
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-JUC-001",
+          "item_name": "Bonjus Cocktail Pyramid Juice (250ml)",
+          "unit": "1 Piece",
+          "price_usd": 0.35
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-LAB-001",
+          "item_name": "Taani Fresh Traditional Labneh (500g)",
+          "unit": "500g Tub",
+          "price_usd": 3.0
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-MLK-001",
+          "item_name": "Candia Full Cream Milk UHT (1 Liter)",
+          "unit": "1 Liter",
+          "price_usd": 1.4
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-CHS-001",
+          "item_name": "Picon Cheese Triangles (8 Portions)",
+          "unit": "1 Box",
+          "price_usd": 1.3
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-CHS-002",
+          "item_name": "Chtaura Dairy Halloumi Cheese (250g)",
+          "unit": "250g Vacuum Pack",
+          "price_usd": 3.2
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-EGG-001",
+          "item_name": "Fresh Farm Table Eggs (Carton of 30)",
+          "unit": "30 Eggs Tray",
+          "price_usd": 4.5
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-BUT-001",
+          "item_name": "Lurpak Unsalted Butter (200g)",
+          "unit": "200g Block",
+          "price_usd": 2.8
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-YOG-001",
+          "item_name": "Chtaura Ayran Yogurt Drink (330ml)",
+          "unit": "1 Bottle",
+          "price_usd": 0.7
+        },
+        {
+          "category": "Bakery & Bread",
+          "sku": "BAK-BRD-001",
+          "item_name": "Fresh Shouf Markouk Saj Bread (Large Pack)",
+          "unit": "1 Pack (5 Sheets)",
+          "price_usd": 1.2
+        },
+        {
+          "category": "Bakery & Bread",
+          "sku": "BAK-BRD-002",
+          "item_name": "Lebanese White Pita Bread (Large Bag)",
+          "unit": "1 Bag (8 Loaves)",
+          "price_usd": 0.85
+        },
+        {
+          "category": "Bakery & Bread",
+          "sku": "BAK-BRD-003",
+          "item_name": "Brown Wheat Diet Pita Bread (Large Bag)",
+          "unit": "1 Bag",
+          "price_usd": 1.1
+        },
+        {
+          "category": "Bakery & Bread",
+          "sku": "BAK-BUN-001",
+          "item_name": "Burger Buns with Sesame (Pack of 6)",
+          "unit": "Pack of 6",
+          "price_usd": 1.5
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-CAN-001",
+          "item_name": "California Garden Foul Medames Canned (400g)",
+          "unit": "1 Can",
+          "price_usd": 0.9
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-CAN-002",
+          "item_name": "Chtaura Ready Boiled Chickpeas (400g)",
+          "unit": "1 Can",
+          "price_usd": 0.85
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-TAH-001",
+          "item_name": "Al Wadi Al Akhdar 100% Pure Sesame Tahina (450g)",
+          "unit": "1 Jar",
+          "price_usd": 3.8
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-OIL-001",
+          "item_name": "Afia Pure Corn Oil (1.5 Liters)",
+          "unit": "1.5L Bottle",
+          "price_usd": 4.5
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-RIC-001",
+          "item_name": "Egyptian Short Grain White Rice (1kg)",
+          "unit": "1kg Bag",
+          "price_usd": 1.6
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-PAS-001",
+          "item_name": "Barilla Italian Spaghetti No. 5 (500g)",
+          "unit": "500g Box",
+          "price_usd": 1.3
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-PAS-002",
+          "item_name": "Barilla Italian Penne Rigate (500g)",
+          "unit": "500g Box",
+          "price_usd": 1.3
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-SPO-001",
+          "item_name": "Maggi Halal Chicken Bouillon Cubes (24 Cubes)",
+          "unit": "1 Box",
+          "price_usd": 2.2
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-SUG-001",
+          "item_name": "White Fine Granulated Sugar (1kg)",
+          "unit": "1kg Bag",
+          "price_usd": 1.1
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-SLT-001",
+          "item_name": "Al Mokhtara Iodized Table Salt (700g)",
+          "unit": "1 Box",
+          "price_usd": 0.4
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-SAU-001",
+          "item_name": "Heinz Tomato Ketchup Squeeze (400g)",
+          "unit": "1 Bottle",
+          "price_usd": 2.1
+        },
+        {
+          "category": "Coffee & Tea",
+          "sku": "COF-TUR-001",
+          "item_name": "Café Najjar Turkish Coffee with Cardamom (200g)",
+          "unit": "200g Vacuum Bag",
+          "price_usd": 2.5
+        },
+        {
+          "category": "Coffee & Tea",
+          "sku": "COF-TUR-002",
+          "item_name": "Café Najjar Classic Pure Brazilian Coffee (200g)",
+          "unit": "200g Bag",
+          "price_usd": 2.4
+        },
+        {
+          "category": "Coffee & Tea",
+          "sku": "COF-TEA-001",
+          "item_name": "Lipton Yellow Label Black Tea Bags (100 Bags)",
+          "unit": "100 Tea Bags Box",
+          "price_usd": 4.2
+        },
+        {
+          "category": "Coffee & Tea",
+          "sku": "COF-INS-001",
+          "item_name": "Nescafé 3-in-1 Classic Coffee Sticks (Pack of 10)",
+          "unit": "Pack of 10",
+          "price_usd": 2.6
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-CHP-001",
+          "item_name": "Master Potato Chips Salt & Vinegar (Family Size)",
+          "unit": "1 Large Bag",
+          "price_usd": 1.25
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-CHP-002",
+          "item_name": "Master Potato Chips Barbecue (Family Size)",
+          "unit": "1 Large Bag",
+          "price_usd": 1.25
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-WAF-001",
+          "item_name": "Gandour Unica Chocolate Wafer (Box of 24 Bars)",
+          "unit": "Box of 24",
+          "price_usd": 5.0
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-BSC-001",
+          "item_name": "Gandour Dabke Sandwich Biscuits (Pack of 12)",
+          "unit": "Pack of 12",
+          "price_usd": 2.2
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-NUT-001",
+          "item_name": "Nutella Hazelnut Cocoa Spread Jar (350g)",
+          "unit": "1 Jar",
+          "price_usd": 3.7
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-HAL-001",
+          "item_name": "Al Wadi Pure Sesame Halawa (400g)",
+          "unit": "400g Tub",
+          "price_usd": 2.8
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "BAB-MLK-001",
+          "item_name": "Nestlé Nido Fortified Milk Powder (900g Tin)",
+          "unit": "900g Tin",
+          "price_usd": 10.5
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "BAB-DIA-001",
+          "item_name": "Pampers Baby Dry Diapers Size 4 (Pack of 44)",
+          "unit": "Pack of 44",
+          "price_usd": 12.8
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "HOU-PPR-001",
+          "item_name": "Fine Deluxe Toilet Paper Rolls (Pack of 4)",
+          "unit": "Pack of 4",
+          "price_usd": 2.1
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "HOU-DSH-001",
+          "item_name": "Fairy Lemon Dishwashing Liquid (750ml)",
+          "unit": "750ml Bottle",
+          "price_usd": 2.4
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "HOU-BLE-001",
+          "item_name": "Clorox Regular Disinfectant Bleach (1 Liter)",
+          "unit": "1L Bottle",
+          "price_usd": 1.8
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "HOU-DET-001",
+          "item_name": "Ariel Automatic Laundry Powder Detergent (1.5kg)",
+          "unit": "1.5kg Bag",
+          "price_usd": 5.2
+        }
+      ]
+    },
+    {
+      "place_id": "ChIJVUAyov0fHxUR0SmXdu0WWRA",
+      "vendor_name": "Baakline Supermarket",
+      "category": "Supermarket",
+      "status": "ESSENTIALS_CATALOG_ACTIVE",
+      "total_skus": 45,
+      "catalog": [
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-WAT-001",
+          "item_name": "Tannourine Natural Mineral Water (1.5L x 6 Pack)",
+          "unit": "Pack of 6",
+          "price_usd": 2.2
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-WAT-002",
+          "item_name": "Sohat Natural Spring Water (1.5L x 6 Pack)",
+          "unit": "Pack of 6",
+          "price_usd": 2.6
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-WAT-003",
+          "item_name": "Drinking Water Gallon Refill (10 Liters)",
+          "unit": "1 Gallon",
+          "price_usd": 1.2
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-SOD-001",
+          "item_name": "Pepsi Can (330ml)",
+          "unit": "1 Can",
+          "price_usd": 0.65
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-SOD-002",
+          "item_name": "7Up Can (330ml)",
+          "unit": "1 Can",
+          "price_usd": 0.65
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-SOD-003",
+          "item_name": "Mirinda Orange Can (330ml)",
+          "unit": "1 Can",
+          "price_usd": 0.65
+        },
+        {
+          "category": "Water & Beverages",
+          "sku": "BEV-JUC-001",
+          "item_name": "Bonjus Cocktail Pyramid Juice (250ml)",
+          "unit": "1 Piece",
+          "price_usd": 0.35
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-LAB-001",
+          "item_name": "Taani Fresh Traditional Labneh (500g)",
+          "unit": "500g Tub",
+          "price_usd": 3.0
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-MLK-001",
+          "item_name": "Candia Full Cream Milk UHT (1 Liter)",
+          "unit": "1 Liter",
+          "price_usd": 1.4
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-CHS-001",
+          "item_name": "Picon Cheese Triangles (8 Portions)",
+          "unit": "1 Box",
+          "price_usd": 1.3
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-CHS-002",
+          "item_name": "Chtaura Dairy Halloumi Cheese (250g)",
+          "unit": "250g Vacuum Pack",
+          "price_usd": 3.2
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-EGG-001",
+          "item_name": "Fresh Farm Table Eggs (Carton of 30)",
+          "unit": "30 Eggs Tray",
+          "price_usd": 4.5
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-BUT-001",
+          "item_name": "Lurpak Unsalted Butter (200g)",
+          "unit": "200g Block",
+          "price_usd": 2.8
+        },
+        {
+          "category": "Dairy & Eggs",
+          "sku": "DAI-YOG-001",
+          "item_name": "Chtaura Ayran Yogurt Drink (330ml)",
+          "unit": "1 Bottle",
+          "price_usd": 0.7
+        },
+        {
+          "category": "Bakery & Bread",
+          "sku": "BAK-BRD-001",
+          "item_name": "Fresh Shouf Markouk Saj Bread (Large Pack)",
+          "unit": "1 Pack (5 Sheets)",
+          "price_usd": 1.2
+        },
+        {
+          "category": "Bakery & Bread",
+          "sku": "BAK-BRD-002",
+          "item_name": "Lebanese White Pita Bread (Large Bag)",
+          "unit": "1 Bag (8 Loaves)",
+          "price_usd": 0.85
+        },
+        {
+          "category": "Bakery & Bread",
+          "sku": "BAK-BRD-003",
+          "item_name": "Brown Wheat Diet Pita Bread (Large Bag)",
+          "unit": "1 Bag",
+          "price_usd": 1.1
+        },
+        {
+          "category": "Bakery & Bread",
+          "sku": "BAK-BUN-001",
+          "item_name": "Burger Buns with Sesame (Pack of 6)",
+          "unit": "Pack of 6",
+          "price_usd": 1.5
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-CAN-001",
+          "item_name": "California Garden Foul Medames Canned (400g)",
+          "unit": "1 Can",
+          "price_usd": 0.9
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-CAN-002",
+          "item_name": "Chtaura Ready Boiled Chickpeas (400g)",
+          "unit": "1 Can",
+          "price_usd": 0.85
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-TAH-001",
+          "item_name": "Al Wadi Al Akhdar 100% Pure Sesame Tahina (450g)",
+          "unit": "1 Jar",
+          "price_usd": 3.8
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-OIL-001",
+          "item_name": "Afia Pure Corn Oil (1.5 Liters)",
+          "unit": "1.5L Bottle",
+          "price_usd": 4.5
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-RIC-001",
+          "item_name": "Egyptian Short Grain White Rice (1kg)",
+          "unit": "1kg Bag",
+          "price_usd": 1.6
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-PAS-001",
+          "item_name": "Barilla Italian Spaghetti No. 5 (500g)",
+          "unit": "500g Box",
+          "price_usd": 1.3
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-PAS-002",
+          "item_name": "Barilla Italian Penne Rigate (500g)",
+          "unit": "500g Box",
+          "price_usd": 1.3
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-SPO-001",
+          "item_name": "Maggi Halal Chicken Bouillon Cubes (24 Cubes)",
+          "unit": "1 Box",
+          "price_usd": 2.2
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-SUG-001",
+          "item_name": "White Fine Granulated Sugar (1kg)",
+          "unit": "1kg Bag",
+          "price_usd": 1.1
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-SLT-001",
+          "item_name": "Al Mokhtara Iodized Table Salt (700g)",
+          "unit": "1 Box",
+          "price_usd": 0.4
+        },
+        {
+          "category": "Pantry & Staples",
+          "sku": "PAN-SAU-001",
+          "item_name": "Heinz Tomato Ketchup Squeeze (400g)",
+          "unit": "1 Bottle",
+          "price_usd": 2.1
+        },
+        {
+          "category": "Coffee & Tea",
+          "sku": "COF-TUR-001",
+          "item_name": "Café Najjar Turkish Coffee with Cardamom (200g)",
+          "unit": "200g Vacuum Bag",
+          "price_usd": 2.5
+        },
+        {
+          "category": "Coffee & Tea",
+          "sku": "COF-TUR-002",
+          "item_name": "Café Najjar Classic Pure Brazilian Coffee (200g)",
+          "unit": "200g Bag",
+          "price_usd": 2.4
+        },
+        {
+          "category": "Coffee & Tea",
+          "sku": "COF-TEA-001",
+          "item_name": "Lipton Yellow Label Black Tea Bags (100 Bags)",
+          "unit": "100 Tea Bags Box",
+          "price_usd": 4.2
+        },
+        {
+          "category": "Coffee & Tea",
+          "sku": "COF-INS-001",
+          "item_name": "Nescafé 3-in-1 Classic Coffee Sticks (Pack of 10)",
+          "unit": "Pack of 10",
+          "price_usd": 2.6
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-CHP-001",
+          "item_name": "Master Potato Chips Salt & Vinegar (Family Size)",
+          "unit": "1 Large Bag",
+          "price_usd": 1.25
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-CHP-002",
+          "item_name": "Master Potato Chips Barbecue (Family Size)",
+          "unit": "1 Large Bag",
+          "price_usd": 1.25
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-WAF-001",
+          "item_name": "Gandour Unica Chocolate Wafer (Box of 24 Bars)",
+          "unit": "Box of 24",
+          "price_usd": 5.0
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-BSC-001",
+          "item_name": "Gandour Dabke Sandwich Biscuits (Pack of 12)",
+          "unit": "Pack of 12",
+          "price_usd": 2.2
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-NUT-001",
+          "item_name": "Nutella Hazelnut Cocoa Spread Jar (350g)",
+          "unit": "1 Jar",
+          "price_usd": 3.7
+        },
+        {
+          "category": "Snacks & Sweets",
+          "sku": "SNK-HAL-001",
+          "item_name": "Al Wadi Pure Sesame Halawa (400g)",
+          "unit": "400g Tub",
+          "price_usd": 2.8
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "BAB-MLK-001",
+          "item_name": "Nestlé Nido Fortified Milk Powder (900g Tin)",
+          "unit": "900g Tin",
+          "price_usd": 10.5
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "BAB-DIA-001",
+          "item_name": "Pampers Baby Dry Diapers Size 4 (Pack of 44)",
+          "unit": "Pack of 44",
+          "price_usd": 12.8
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "HOU-PPR-001",
+          "item_name": "Fine Deluxe Toilet Paper Rolls (Pack of 4)",
+          "unit": "Pack of 4",
+          "price_usd": 2.1
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "HOU-DSH-001",
+          "item_name": "Fairy Lemon Dishwashing Liquid (750ml)",
+          "unit": "750ml Bottle",
+          "price_usd": 2.4
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "HOU-BLE-001",
+          "item_name": "Clorox Regular Disinfectant Bleach (1 Liter)",
+          "unit": "1L Bottle",
+          "price_usd": 1.8
+        },
+        {
+          "category": "Household & Baby",
+          "sku": "HOU-DET-001",
+          "item_name": "Ariel Automatic Laundry Powder Detergent (1.5kg)",
+          "unit": "1.5kg Bag",
+          "price_usd": 5.2
+        }
+      ]
+    }
+  ]
+}
