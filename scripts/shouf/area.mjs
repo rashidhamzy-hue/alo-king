@@ -148,7 +148,12 @@ export function shorterRoad(a, b) {
 export function recomputeIds(argv) {
   const i = argv.indexOf("--recompute");
   if (i < 0) return new Set();
-  return new Set((argv[i + 1] ?? "").split(",").map((s) => s.trim()).filter(Boolean));
+  return new Set(
+    (argv[i + 1] ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
 }
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -225,7 +230,10 @@ async function roads(out, recompute = new Set()) {
   for (const id of recompute) {
     if (!ids.has(id)) throw new Error(`--recompute ${id}: not a boundary place`);
     const old = kept.get(id);
-    if (old) console.log(`${id}\trecompute (was ${old.road_km} km by ${old.provider} from ${old.nearest_vendor_place_id})`);
+    if (old)
+      console.log(
+        `${id}\trecompute (was ${old.road_km} km by ${old.provider} from ${old.nearest_vendor_place_id})`,
+      );
     kept.delete(id);
   }
   const rows = [...kept.values()]
@@ -239,10 +247,14 @@ async function roads(out, recompute = new Set()) {
     if (recompute.has(place.id)) {
       // A second look: more candidate merchants, both providers, the shorter road.
       const near = nearestMerchants(place, merchants, 25);
-      const ors = { provider: "ors", hit: orsOk ? await orsNearest(place, near, key, misses) : null };
+      const ors = {
+        provider: "ors",
+        hit: orsOk ? await orsNearest(place, near, key, misses) : null,
+      };
       const osrm = { provider: "osrm", hit: await osrmNearest(place, near, misses) };
       const best = shorterRoad(ors, osrm);
-      const fmt = (x) => (x.hit && typeof x.hit.roadKm === "number" ? `${x.hit.roadKm.toFixed(2)} km` : "-");
+      const fmt = (x) =>
+        x.hit && typeof x.hit.roadKm === "number" ? `${x.hit.roadKm.toFixed(2)} km` : "-";
       if (best.hit && !best.hit.none)
         rows.push([place.id, best.hit.roadKm.toFixed(2), best.hit.nearest, best.provider, today]);
       else misses.push(`${place.id}: recompute found no road`);
