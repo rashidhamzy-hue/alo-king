@@ -12,7 +12,7 @@ Check every item:
 2. **Ledger**: payments, refunds, COD cash, fees, settlements and merchant credit are append-only ledger rows; balances are views; nothing updates a balance.
 3. **Dual currency**: customer totals show USD and LBP at the rate locked on the order.
 4. **AI proposes, server decides**: model output never changes order, payment, price, availability or hours state; merchant-facing changes need the merchant's confirming tap; typed tools enforce authorization in the backend.
-5. **Vendors**: no `select('*')` on `vendors` from the front end; unclaimed vendors have no public page and no ratings; seed data stays `source = seed` until confirmed.
+5. **Vendors**: no `select('*')` on `vendors` from the front end; unclaimed vendors have no ratings, are never orderable and get only the "Not on Alo King yet" listing (§39.3); seed data stays `source = seed` until confirmed.
 6. **Marketing**: only opted-in customers, approved templates, STOP honoured at once, at most 2 promotions per customer per week.
 7. **Schema**: changes only as new files in `supabase/migrations/`; drops or deletes ship a rollback in `supabase/rollbacks/`; RLS answers who can read and write each table; no `anon` access to personal data.
 8. **Webhooks**: signature over the raw body, dedupe on provider ID, fast 200 then queue, `?forceFunctionRegion=eu-central-1` on webhook URLs; `verify_jwt` in `supabase/config.toml` matches intent; deployed functions are listed in `supabase/functions-deploy.txt`.

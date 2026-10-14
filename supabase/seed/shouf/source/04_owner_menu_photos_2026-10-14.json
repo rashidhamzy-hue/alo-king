@@ -6,7 +6,7 @@
   {
    "place_id": "ChIJJ8-7quchHxURgn5sxhONNLI",
    "vendor_name": "SEVEN Burgers & Beyond",
-   "locality": "Bakaata",
+   "locality": "Boqaata",
    "currency": "LBP",
    "status": "PARSED_STRUCTURED",
    "items": [
@@ -278,7 +278,7 @@
    ],
    "vendor_name": "Nayeh w Meshwiyeh",
    "vendor_name_ar": "نية و مشوية",
-   "locality": "Baakline",
+   "locality": "Baakleen",
    "currency": "USD",
    "whatsapp": "+96171334607",
    "services": [
