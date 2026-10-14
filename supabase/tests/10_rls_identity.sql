@@ -98,8 +98,8 @@ select tests.throws($$update public.vendors set public_page = true where slug = 
   'vendors_public_needs_claim', 'an unclaimed vendor cannot get a public page');
 select tests.throws($$update public.vendors set orderable = true where slug = 'vendor-c'$$,
   'vendors_orderable_needs_claim', 'an unclaimed vendor cannot be orderable');
-select tests.throws($$update public.vendors set delivery_radius_km = 12 where slug = 'vendor-a'$$,
-  'exceeds the 10', 'delivery radius above the largest fee band is rejected');
+select tests.throws($$update public.vendors set delivery_radius_km = 21 where slug = 'vendor-a'$$,
+  'exceeds the 20', 'delivery radius above the largest fee band is rejected');
 select tests.throws($$insert into public.customers (phone_e164) values ('70123456')$$, 'customers_phone_e164_check', 'customer phone must be E.164');
 
 -- Audit log ---------------------------------------------------------------------------------------------

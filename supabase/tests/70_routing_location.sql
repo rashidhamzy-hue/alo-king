@@ -28,15 +28,17 @@ select tests.ok((select distance_m from public.route_cache_lookup(33.6821, 35.58
 select tests.throws($$select public.route_cache_store(33.6, 35.5, array[33.6], array[35.6], array[1, 2], array[1], 'ors')$$,
   'same length', 'mismatched arrays are rejected');
 
--- Delivery quote: vendor A has a 5 km radius, vendor C none (capped by the 10 km band).
+-- Delivery quote: vendor A has a 5 km radius, vendor C none (capped by the 20 km band).
 select tests.ok((select (deliverable, reason, fee_usd, limit_km) = (true, 'ok', 2.00::numeric, 5::numeric)
   from public.delivery_quote('20000000-0000-0000-0000-00000000000a', 2.4)), '2.4 road km from A: $2.00');
 select tests.ok((select (deliverable, fee_usd) = (true, 3.00::numeric) from public.delivery_quote('20000000-0000-0000-0000-00000000000a', 4.9)), '4.9 km: $3.00');
 select tests.ok((select (deliverable, reason) = (false, 'beyond_radius') from public.delivery_quote('20000000-0000-0000-0000-00000000000a', 5.1)),
   'beyond the vendor''s own radius: no delivery');
-select tests.ok((select (deliverable, fee_usd, limit_km) = (true, 4.50::numeric, 10::numeric) from public.delivery_quote('20000000-0000-0000-0000-00000000000c', 9.5)),
+select tests.ok((select (deliverable, fee_usd, limit_km) = (true, 4.50::numeric, 20::numeric) from public.delivery_quote('20000000-0000-0000-0000-00000000000c', 9.5)),
   'no radius set: the largest band is the limit');
-select tests.ok((select (deliverable, reason) = (false, 'beyond_radius') from public.delivery_quote('20000000-0000-0000-0000-00000000000c', 10.5)), 'never beyond 10 km');
+select tests.ok((select (deliverable, fee_usd) = (true, 6.00::numeric) from public.delivery_quote('20000000-0000-0000-0000-00000000000c', 18.3)),
+  '18.3 road km (Jbaa from the nearest shop): $6.00');
+select tests.ok((select (deliverable, reason) = (false, 'beyond_radius') from public.delivery_quote('20000000-0000-0000-0000-00000000000c', 20.5)), 'never beyond 20 km');
 select tests.ok((select (deliverable, reason) = (false, 'no_route') from public.delivery_quote('20000000-0000-0000-0000-00000000000a', null)),
   'no road distance means no quote (never straight line)');
 reset role;

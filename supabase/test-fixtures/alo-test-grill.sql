@@ -164,17 +164,18 @@ $$;
 -- 2b. Every run (session T3): pickup and delivery on, the T2 test fee band retired ------------------------------
 -- Session T2 gave the test merchant a 30 km radius through a 10-30 km fee band of $6.00 (a dated band set). The
 -- test merchant now ignores the radius (public.delivery_quote), so that band goes: a new dated band set repeats
--- the three real bands (<= 10 km) and nothing above, and the radius on record returns to 10 km. Dated rows are
--- never edited, so this adds a newer set instead; it changes staging's fee table only, never production's
--- (the file is never run at the cut-over, LOG.md checklist).
+-- the real bands and nothing above, and the radius on record returns to 10 km. Dated rows are never edited, so this
+-- adds a newer set instead; it changes staging's fee table only, never production's (the file is never run at the
+-- cut-over, LOG.md checklist). Since 15 October the real bands go to 20 km (DECISIONS §39.2, 20261014230000), so only
+-- a band above 20 km is a test band.
 do $$
 begin
-  if public.max_delivery_km() > 10 then
+  if public.max_delivery_km() > 20 then
     insert into public.delivery_fee_bands (effective_from, max_km, fee_usd, created_by)
     select now(), b.max_km, b.fee_usd, null
     from public.delivery_fee_bands b
     where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now())
-      and b.max_km <= 10;
+      and b.max_km <= 20;
   end if;
   update public.vendors set delivery_radius_km = 10.0, delivery_enabled = true, pickup_enabled = true
   where slug = 'alo-test-grill' and is_test

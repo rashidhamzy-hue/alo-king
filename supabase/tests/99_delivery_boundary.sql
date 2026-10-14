@@ -53,7 +53,7 @@ select tests.ok((select distance_source = 'route_cache' and distance_km = 9.40
   from public.delivery_area_proposal() where place_id = 'LB-CHF-NIHA'), 'a cached route gives the road distance');
 -- Niha stands in for a place between the named villages here: those are dropped beyond road distance.
 update app_private.delivery_boundary set role = 'between' where place_id = 'LB-CHF-NIHA';
-insert into app_private.delivery_road_km values ('LB-CHF-NIHA', 12.30, 'ChIJtest', 'ors', '2026-10-15');
+insert into app_private.delivery_road_km values ('LB-CHF-NIHA', 22.30, 'ChIJtest', 'ors', '2026-10-15');
 select tests.ok(not exists (select 1 from public.delivery_area_proposal() where place_id = 'LB-CHF-NIHA'),
   'beyond max_delivery_km() by road (committed file), a place between is not proposed');
 select tests.ok(exists (select 1 from jsonb_array_elements_text(public.config_value('pilot_place_ids')) a(id)
@@ -61,15 +61,15 @@ select tests.ok(exists (select 1 from jsonb_array_elements_text(public.config_va
   'so pilot_place_ids ⊄ proposal: the seed check flags it');
 -- The loader keeps a place between beyond road distance out of pilot_place_ids, never a shop village nor a village
 -- Rasheed named (20261014220000).
-insert into app_private.delivery_road_km values ('LB-CHF-BAAKLINE', 11.00, 'ChIJtest', 'ors', '2026-10-15');
+insert into app_private.delivery_road_km values ('LB-CHF-BAAKLINE', 21.00, 'ChIJtest', 'ors', '2026-10-15');
 select tests.ok(app_private.delivery_area_ids() = array['LB-CHF-BAAKLINE'],
-  'with road distances the area drops a place between at 12.3 km by road; Baakline, a shop village, stays even at 11 km');
+  'with road distances the area drops a place between at 22.3 km by road; Baakline, a shop village, stays even at 21 km');
 select tests.ok(not exists (select 1 from unnest(app_private.delivery_area_ids()) a(id)
   where not exists (select 1 from public.delivery_area_proposal() d where d.place_id = a.id)), 'and that area ⊆ proposal');
 update app_private.delivery_boundary set role = 'named_by_rasheed' where place_id = 'LB-CHF-NIHA';
 select tests.ok(app_private.delivery_area_ids() = array['LB-CHF-BAAKLINE', 'LB-CHF-NIHA']
-    and exists (select 1 from public.delivery_area_proposal() where place_id = 'LB-CHF-NIHA' and distance_km = 12.30),
-  'a village Rasheed named stays in at 12.3 km by road (his list is authoritative; the per-order check still applies)');
+    and exists (select 1 from public.delivery_area_proposal() where place_id = 'LB-CHF-NIHA' and distance_km = 22.30),
+  'a village Rasheed named stays in at 22.3 km by road (his list is authoritative; the per-order check still applies)');
 delete from app_private.delivery_road_km;
 select tests.ok(app_private.delivery_area_ids() = array['LB-CHF-BAAKLINE', 'LB-CHF-NIHA'], 'without road distances the whole boundary');
 

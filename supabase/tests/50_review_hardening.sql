@@ -55,7 +55,7 @@ select tests.ok((select count(*) from public.audit_log
 set local role anon;
 select tests.act_as(null);
 select tests.ok(public.delivery_fee_usd(4) = 3.00 and public.usd_lbp_rate() > 0 and public.price_usd('order_fee') = 1.00
-  and public.vat_rate() = 0.11 and public.max_delivery_km() = 10, 'public lookups work for anon as security invoker');
+  and public.vat_rate() = 0.11 and public.max_delivery_km() = 20, 'public lookups work for anon as security invoker');
 reset role;
 select tests.ok(not exists (
   select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace

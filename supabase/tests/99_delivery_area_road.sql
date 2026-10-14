@@ -18,9 +18,9 @@ insert into app_private.delivery_boundary (place_id, name_en, role) values
   ('LB-CHF-BAAKLINE', 'Baakline', 'shop_village'), ('LB-CHF-NIHA', 'Niha', 'named_by_rasheed'),
   ('LB-CHF-MOUKHTARA', 'Moukhtara', 'between');
 insert into app_private.delivery_road_km values
-  ('LB-CHF-BAAKLINE', 11.00, 'ChIJtest', 'ors', '2026-10-15'),
-  ('LB-CHF-NIHA', 16.20, 'ChIJtest', 'osrm', '2026-10-15'),
-  ('LB-CHF-MOUKHTARA', 12.70, 'ChIJtest', 'osrm', '2026-10-15');
+  ('LB-CHF-BAAKLINE', 21.00, 'ChIJtest', 'ors', '2026-10-15'),
+  ('LB-CHF-NIHA', 22.20, 'ChIJtest', 'osrm', '2026-10-15'),
+  ('LB-CHF-MOUKHTARA', 20.70, 'ChIJtest', 'osrm', '2026-10-15');
 select app_private.delivery_area_load('road1') as l1 \gset
 
 select tests.ok((:'l1'::jsonb ->> 'new_dated_row')::boolean and (:'l1'::jsonb ->> 'delivered_to')::int = 2,
