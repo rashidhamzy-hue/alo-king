@@ -1534,6 +1534,91 @@ Rasheed wants the whole website revamped to a world-class standard. §24 stays t
 5. 5b: Slack and operations
 6. 14: cut-over
 
+## 38. Shouf-first pilot: final plan (DECIDED, 14 October 12:30; Rasheed's decision, reviewed by Claude Fable 5.1)
+Rasheed's decision on 14 October: stop, start from the Shouf with his three Shouf files, and finish to a world-class standard on the Max plan. This section records what he decided, the verdict on every item in the "§40 executive directive" (a Gemini draft; recorded here as §38, since the file's numbering is sequential), the ChatGPT "unknown unknowns" report and the "Operational and Technical Specifications" document, and the final session plan. **This section overrides §31 (the data freeze) and the pilot area in §1 and §16.** Everything else stands unless named below.
+
+### 38.1 Scope: the Shouf, 12 villages, 315 merchants
+- **Pilot area:** Baakleen, Boqaata, Barouk, Deir El Qamar, Samqaniyeh, Batloun, Kfar Nabrakh, Kfar Him, Dmit, Ain w Zain, Maaser El Chouf, Jdeideh (the localities in the file). These places are switched `on`; every other place in Lebanon stays `off`. The all-Lebanon places list (§16) stays as built.
+- **Vendor data is replaced.** The 2,044 nationwide seed vendors on staging are deleted (they came from the same Google pull and will be superseded by Rasheed's 8,101-row national dataset later). The 315 Shouf merchants become the vendor list: 143 restaurants, 63 cafés, 42 bakeries, 41 groceries, 14 butchers, 12 dessert shops; 218 with a mobile number that can receive a WhatsApp claim code.
+- **The data freeze (§31) ends with session D, which is now the Shouf load.** The freeze rule stays for every other session: data changes only in a `Data:` PR.
+- **Files, committed in `supabase/seed/shouf/source/`** (ratings and review counts removed before commit, §15.2):
+  - `01_shouf_merchants_315.csv`
+  - `03_shouf_digital_menus.json`: 19 restaurant menus (4–63 items each; Fred's Food has 63 with real image URLs) and 2 supermarket catalogues of 45 essentials each.
+  - `02_shouf_photos.json`: 2,927 Google photo URLs for 234 merchants. **Rasheed's decision (14 October 12:13): include the photos, Google's terms notwithstanding.** Claude's note, recorded once as in §15.1: Google's terms forbid caching Places photos, and the realistic consequence is the Places key being suspended, which §35 has already switched off. Rules that limit the exposure: session D copies each photo into Supabase Storage (the Google URLs expire), marks them `source = seed`, shows them only on claimed vendors' pages after the merchant confirms or replaces them, and deletes them on the merchant's request. The 447 review texts are **not** committed or used: §5 forbids ratings for unclaimed vendors, and the CSV's `cuisine_tags` and `search_tokens` already carry what they add.
+- **Decisions confirmed by Rasheed, 14 October 12:13:** the 2,044 nationwide vendors are deleted (his full dataset comes later); all 12 villages stay in the pilot.
+
+### 38.2 Data rules for the Shouf load (session D)
+1. **Merchants:** import per §15.2. Split the 57 names that mix scripts into `name_ar` and `name_en`. Backfill the 11 missing localities from the address. Set `is_whatsapp_candidate` from the number, not from the file's column. Everything stays `unclaimed`, `orderable = false`, `public_page = false`, `source = seed_shouf_2026_10`.
+2. **Menus:** import the 19 menus as **draft menus** (`status = draft`, `source = seed`), never orderable until the merchant claims and confirms them section by section (§18.3). They exist to make claiming a 2-minute job: the merchant sees their menu pre-filled. Prices are shown to the merchant as "please confirm"; an item with no price stays hidden. This replaces §15.3's "no menu text imported" for these 19 only.
+3. **Supermarkets:** the 45-SKU essentials catalogues for Coop Baakleen and Baakline Supermarket import as draft menus the same way, under `grocery_supermarket`, and double as the realistic test catalogue (the staging simulator uses them).
+4. **Landmarks seed:** from OpenStreetMap for the pilot area only: mosques, churches, pharmacies, roundabouts, squares, fountains, hospitals, schools, municipal buildings. Into the existing `landmarks` table (§16, §28) with `source = osm` and low confidence; confirmations come from deliveries. The spec document's Overpass queries are the starting point.
+5. **Place aliases:** add OSM `alt_name`, `loc_name` and `old_name` for the pilot villages into `place_aliases`.
+6. **Dish library:** merge the spec document's Levantine taxonomy (ingredients, cuts, EU-14 allergens) into the 203-dish library (§32.3). Sesame/tahini and toum-egg rules in 38.4.
+7. **Verification output** of session D: counts of merchants per village, draft items for ROUTE 66, Un basilico and Fred's Food, SKUs for Coop Baakleen, and one simulated quote returning USD and LBP at the dated rate.
+
+### 38.3 Verdicts on the executive directive
+| Item | Verdict | Rule |
+|---|---|---|
+| Shouf-first, 10–12 km radius, motorbike dispatch validation | Adopt | 38.1 |
+| Purge test data and ingest the three files | Adopt, with 38.1 and 38.2 (photos and reviews excluded) | session D |
+| PostGIS GIST on vendor location | Already in place (session 2) | none |
+| Meta charges service and utility messages since 1 Oct 2026 | Already VERIFIED (§0 correction 1, §6); first 1,000 service messages per number per month are free | cost model |
+| ≤8 billable messages per order | Adopt as a **budget**: target 8, hard cap 12 per order, consolidated "confirmed + ETA", "on the way + tracking", "delivered + rate". The cost ledger reports the average; above 8 opens a LOG item | session 5c |
+| Driver limited to 1 WhatsApp message; telemetry via the driver web app | Adapt: fleet drivers use the app (§32.2) and get at most 2 WhatsApp messages per job (offer, settlement). Merchant drivers on WhatsApp keep the job card and status buttons (about 4 messages, $0.04, inside the $1 fee) | session 8 |
+| Scope the assistant to food, grocery, delivery and support only (Meta Business Solution Terms) | Adopt: the system prompt refuses general chat politely in all four languages | session 5c |
+| CTWA 72-hour window flag (`is_ctwa_attributed`) | Adopt; the real window is read from the webhook pricing fields (§6) | session 12 |
+| AI proposes, PostgreSQL decides; `propose_cart` → `quote_cart` | Already the design (§3, session 4). **Reject "applies 11% VAT" to menu prices**: shop prices are the shop's prices (same-price badge, §32.5); VAT applies only to Alo King's own fees once the SARL is VAT-registered (§20.3) | none |
+| Optimistic locking on checkout, `FOR UPDATE` ordered by item ID | Already built (menu version, race tests in session 3); session D adds a deadlock-order test | session D |
+| Burst intake under 100 ms, pgmq, dead-letter after 5 attempts, audio never downloaded in intake | Already built (session 1); add the dead-letter queue | session 5c |
+| Outbound budget 60 msg/s per number; ≥6 s gap for non-urgent messages to the same person (Meta error 131056, VERIFIED) | Adopt in the outbox sender | session 5c |
+| Customer agent: 2-tap "Repeat last order / New order" greeting for returning customers | Adopt | session 5c |
+| Arabizi number normalisation and brand words (Picon, Bonjus, Nido) | Adopt into the normalisation dictionary (§32.4) | session 5c |
+| "Mood and macro" queries into SQL filters | Already (§32.3 search rules) | none |
+| One rule-based upsell per order | Already (§29.3) | none |
+| Kitchen station generator mode with auto-reactivation (`set_availability(station, minutes)`) | Adopt: items carry a `station` (fryer, oven, grill, espresso, cold); "fryer off 15 min" hides that station's items and pg_cron restores them | session 5c |
+| Vision menu OCR under 60 s | Already (§18.3, §32.3); needs API credit | none |
+| Weekly merchant report with 1-tap Boost | Already (§30.2.5, §32.5) | session 12 |
+| Batching rule: pickups ≤600 m, same 15-min window, detour ≤1.5 km, first customer delayed ≤8 min | Adopt as config (tighter than §21.3) | session 8 |
+| Driver pay P = 1.20 + 0.20·km + 0.60·(n−1) + stairs + weight | Adopt as the fleet pay formula in config, replacing "80% of the fee" in §21.3; tips still 100% | session 8 |
+| Stairs surcharge min($2, $0.25·max(0, floor−2)·E) + $0.50·max(0, heavy−1), E=1 with no elevator or power cut; 100% to driver | Adopt as config; charged only when shown before checkout (§29.2) | sessions 5c and 8 |
+| Cash cap $150, pause until deposit at Whish/OMT | Already (§21.4) | none |
+| Geofence completion with PIN or photo beyond 150 m | Already (§27.6) | none |
+| Offline GPS queue in the driver PWA | Already (§27.2) | session 8 |
+| Send Home: Whish 3% links; roadmap to a UAE entity and Apple Pay | Already Whish + Tap (§22); the UAE entity is a later owner decision, not a build item | none |
+| Care-package subscriptions | Already opt-in reminders and recurring (§22.2, §32.5) | session 10 |
+| **Medicine delivery ban** | Adopt. VERIFIED: the Order of Pharmacists announced on 2 June 2026 that ordering medicines through delivery apps is illegal and is pursuing violators. The bot refuses medicine or pharmacy requests in all four languages and points to a pharmacy; pharmacies stay out of the categories (§29.2) | session 5c |
+| Dispute arbitrator: missing item ≤$8 auto-credit if the customer's dispute rate <10%; cold food by GPS time ×1.5 → 30% credit; prep delay >15 min → merchant pays; damage photo → remake | Adopt as deterministic rules, inside §20's limits: automatic up to $8, Rasheed's tap above $20, logged. Photo classification waits for API credit | session 5c |
+| Escalation ladder 0/15/45/60/75/120 s, auto-cancel at 120 s | Adapt: keep 15/45/75 s (§23); Slack alert at 60 s joins 5b; auto-cancel and reroute at **180 s** (not 120, too short for a small kitchen), with alternatives offered to the customer | sessions 5b and 5c |
+| Nightly ledger audit (debits = credits), cash sweeps, unmatched payments | Already (§20.2 reconciliation); the nightly balance assertion is added | session 9 |
+| `logistics_landmarks` and `delivery_addresses` tables | Reject the new tables: `landmarks`, `addresses`, `door_points` exist (§28). Adopt the missing fields: `landmark_relation`, `floor`, `has_elevator`, `lost_driver_calls`, running-average door point within 60 m at ≤25 m accuracy, and the metric **lost-driver calls per delivery < 0.5** | session D |
+| Food knowledge graph; `is_siyami` and `is_halal` computed from ingredients; sesame/tahini warning on hummus, mutabbal, tarator; `toum_contains_egg`; shared-kitchen disclaimer | Adopt into the dish library and item flags. Computed flags are shown as "estimated" until the merchant confirms (§32.3 evidence rule). The disclaimer appears on every menu | session 5c |
+| Google Maps terms: `place_id` only indefinitely, coordinates ≤30 days, no photos/reviews; replace seed values on claim | Adopt, and go further: no photos or reviews at all (38.1). Seed coordinates are refreshed from the merchant's own pin at claim | session D |
+| Fixed peg 89,500, "no FX APIs" | Adapt: the rate stays in the dated rate table (§13), seeded at 89,500 (the official rate since February 2024, unchanged in October 2026); never a constant in code (CLAUDE.md) | none |
+| Flat $1 fee; fee bands; online payment pass-through | Already (§1, §29.1) | none |
+| "Alo King Plus" opt-in 5–8% tier | Defer: the per-delivered-order sponsored fee (§20.4) does the same job with less to explain; revisit after 500 delivered orders | after pilot |
+
+### 38.4 Verdicts on the ChatGPT report and the specifications document
+- **Transcription candidates:** Deepgram Nova-3 (VERIFIED: supports Lebanese Arabic `ar-LB` with keyterm prompting) joins the eval alongside the OpenAI transcription models, Kapso's transcript and ElevenLabs Scribe. The eval on the real voice notes (§32.4) picks the winner by basket accuracy, latency and cost; it is config.
+- **Runtime model:** Claude Haiku 5.5 is real (VERIFIED: released 7 October 2026, $0.10 input / $0.50 output per million tokens, ten times cheaper than Haiku 4.5). It becomes the default customer-turn model once the text and voice evals confirm it is at least as accurate; `usage.ts` prices are updated first. Sonnet 5.5 stays for menu extraction, photos and complaints.
+- **Rejected tooling:** Upstash Redis, Cloudflare Workers, Fly.io, Valhalla self-hosting with elevation tiles, Playwright scraping of product photos, Stripe (not available in Lebanon), a 10% commission. Reason: each adds a vendor or a server a solo operator must run; Postgres in Frankfurt plus learned travel-time corrections (§28) covers the need. Langfuse observability: deferred; `ai_calls` plus Sentry suffice for the pilot.
+- **Adopted from the specifications document:** the OSM colloquial-gazetteer and landmark queries (38.2), the Levantine taxonomy (38.2), the Omega/BIM POS integration notes as input for §23 adapters, the OBA green-tick requirements as an owner track after launch (needs press coverage), the shift float in two currencies and mixed-cash change math (already §27.8, §30.3.1). Cash cap stays $150, not $250.
+
+### 38.5 Final session plan (all on the Max plan; Sonnet 5.5 unless stated)
+| # | Session | Model | Content |
+|---|---|---|---|
+| D | Shouf data load | Opus 5.5, high | 38.1–38.2: purge, import merchants and draft menus, landmarks and aliases from OSM, dish-library merge, address fields, verification queries; switch the 12 villages on; point the simulator (§36) at real Shouf merchants in draft mode; update HANDOFF |
+| 5c | Directive engineering | Sonnet 5.5, high | message budget and consolidation, scope prompt, medicine refusal, station generator mode, outbox rate limits and dead-letter, 2-tap greeting, Arabizi dictionary, dispute rules, sesame/toum/disclaimer, stairs config, 180 s auto-cancel, Haiku 5.5 in config behind the eval |
+| 13 | Security review | Opus 5.5, high | everything merged, including the §32.7 self-reviewed PRs |
+| 5b | Slack and operations | Sonnet 5.5, high | §32.1 console and handoff threads, admin WhatsApp commands, recovery engine, Kapso templates and Flows on the company number, 60 s Slack alert |
+| 14 | Pilot cut-over | Opus 5.5, high | production project, numbers, go-live checklist (no test merchant, no sim sink, no E2E secret), Twilio, Pro plans |
+| after | 9 payments, 8 fleet, 12 growth, 10 Send Home | per §33 | unchanged |
+
+### 38.6 Owner track for the Shouf pilot (in order)
+1. API credit: Anthropic and OpenAI. Deepgram: account and key created 14 October; add it as the GitHub secret `DEEPGRAM_API_KEY` (the transcription eval reads it; `check-setup` proves it).
+2. `aloking.com` (#74).
+3. SARL → bank account and Whish business account (#70) → company lines and the Meta portfolio (#73) → Tap (#71) and the lawyer letter (#72).
+4. First five merchants: they claim themselves from the pre-filled Shouf list (no outreach); Rasheed's 10-minute setup call (§30.6) finishes each menu.
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
@@ -1552,3 +1637,4 @@ Rasheed wants the whole website revamped to a world-class standard. §24 stays t
 - 7 October: Tap Payments Lebanon page (payment links over WhatsApp, payouts to Lebanese banks); Whish fees page (payment links 3%, international card 3%, corporate account balance limit USD 30,000); Wakilni delivery page (24-72 h, $6-$15+); BdL Decision 13790 of January 2026 (EPSP licensing framework, five service categories); BdL card-fee circulars reported 10 September 2026 (0.9%-1.2% merchant commission cap in essential sectors).
 - 7 October 12:45: XStak 'best POS software in Lebanon' (June 2026: Omega POS, Hamster POS, XStak, BIM POS); Deliverect help centre (connects delivery channels to restaurant POS).
 - 7 October 14:50: ActiveCampaign help centre, "Unsupported message types with WhatsApp API" (live location not supported inbound); confirmed on the Kapso sandbox in session 4 (§27.1).
+- 14 October: Vals AI model page for Claude Haiku 5.5 (released 7 October 2026, $0.10/$0.50 per M tokens); Al-Modon, 2 June 2026, Order of Pharmacists pursuing pharmacies selling through delivery apps; Deepgram Nova-3 Arabic page (ar-LB, keyterm prompting); DoubleTick guide to WhatsApp error 131056 (pair rate limit).
