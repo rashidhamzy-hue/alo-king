@@ -351,6 +351,49 @@ describe("customer messages and the delivery code (session 4)", () => {
     });
     expect(db.of("app_reply")[0].args.p_payload.text).toContain("AB3CD9");
   });
+  it("a barcode typed by the merchant shows what Open Food Facts says, cached (§39.5)", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [inbound({ type: "text", text: { body: "4006381333931" } })],
+      rpcs: { off_product_get: () => null, off_product_put: () => null },
+    });
+    const offFetch = (async () =>
+      new Response(
+        JSON.stringify({
+          status: 1,
+          product: {
+            product_name: "Labneh",
+            brands: "Taanayel",
+            quantity: "500 g",
+            allergens_tags: ["en:milk"],
+          },
+        }),
+      )) as unknown as typeof fetch;
+    const { d } = deps(db, { offFetch });
+    await runDispatch(d);
+    expect(db.of("off_product_put")[0].args.p_product).toMatchObject({
+      barcode: "4006381333931",
+      found: true,
+      allergens: ["dairy"],
+    });
+    expect(db.of("app_reply")[0].args.p_payload.text).toMatch(
+      /Labneh · Taanayel · 500 g[\s\S]*estimated/,
+    );
+    expect(db.of("order_confirm_delivery_code")).toHaveLength(0);
+  });
+  it("a number that is not a valid barcode is not looked up", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [inbound({ type: "text", text: { body: "4006381333932" } })],
+    });
+    const { d } = deps(db, {
+      offFetch: (async () => {
+        throw new Error("must not fetch");
+      }) as unknown as typeof fetch,
+    });
+    await runDispatch(d);
+    expect(db.of("off_product_get")).toHaveLength(0);
+  });
 });
 
 describe("ops alerts", () => {

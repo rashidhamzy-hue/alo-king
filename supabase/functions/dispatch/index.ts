@@ -21,6 +21,7 @@ import {
 } from "../_shared/twilio.ts";
 import { reportError } from "../_shared/sentry.ts";
 import { restRpc } from "../_shared/rest-rpc.ts";
+import { isSimNumber, simSinkSend } from "../_shared/sim-sink.ts";
 import { orsProvider, restRouteCache, roadRoutes } from "../_shared/routing.ts";
 import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
@@ -253,17 +254,8 @@ async function whatsapp(
   phoneNumberId: string,
   payload: Record<string, unknown>,
 ): Promise<SendResult> {
-  // Simulator numbers (+999, DECISIONS §36) are recorded in sim_outbox and never sent. When the sink is off
-  // (production) the message is refused, so a +999 number can never reach Kapso.
-  if (/^\+?999[0-9]{6,12}$/.test(String(payload.to ?? ""))) {
-    const recorded = await rpc("sim_sink_record", {
-      p_phone_number_id: phoneNumberId,
-      p_payload: payload,
-    }).catch(() => false);
-    return recorded === true
-      ? { ok: true, id: `sim.${crypto.randomUUID()}` }
-      : { ok: false, retry: false, error: "simulator number and the sink is off" };
-  }
+  // Simulator numbers (+999, DECISIONS §36): recorded, never sent; refused when the sink is off (_shared/sim-sink.ts).
+  if (isSimNumber(payload.to)) return simSinkSend(rpc, phoneNumberId, payload);
   if (!kapsoKey) return { ok: false, retry: false, error: "KAPSO_API_KEY not set" };
   try {
     const res = await fetch(`${KAPSO_BASE}/${encodeURIComponent(phoneNumberId)}/messages`, {

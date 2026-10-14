@@ -13,6 +13,7 @@
 #    dated pilot_place_ids row and the places are switched to match (app_private.delivery_area_load).
 # 4. OpenStreetMap landmarks and place aliases for the delivery area (supabase/seed/shouf/osm/, fetched by
 #    scripts/shouf/osm-fetch.mjs), when present; only places that are on keep them.
+# 5. Seed photo classes (supabase/seed/shouf/harvest/photo_classes.csv, from scripts/menus/photos.ts), when present.
 set -euo pipefail
 : "${DB_URL:?set DB_URL}"
 DIR="${SEED_DIR:-supabase/seed/places}"
@@ -71,7 +72,7 @@ if [ ! -f "$SHOUF_DIR/source/01_shouf_merchants_315.csv" ]; then
 fi
 local sha out
 sha=$(cat "$SHOUF_DIR"/source/01_shouf_merchants_315.csv "$SHOUF_DIR"/source/03_shouf_digital_menus.json \
-  $(ls "$SHOUF_DIR"/source/04_owner_menu_photos_*.json 2>/dev/null) \
+  $(ls "$SHOUF_DIR"/source/04_owner_menu_photos_*.json "$SHOUF_DIR"/harvest/0[56]_*.json 2>/dev/null) \
   scripts/vendors/normalize.ts scripts/vendors/shouf.ts scripts/vendors/shouf-menus.ts scripts/vendors/build-shouf.ts | sha256sum | cut -c1-64)
 if loaded vendors_shouf "$sha"; then
   echo "shouf seed: unchanged (${sha:0:12}); skipped"
@@ -133,8 +134,29 @@ truncate app_private.seed_osm_landmarks, app_private.seed_osm_aliases;
 SQL
 }
 
+load_photo_classes() {
+local f="$SHOUF_DIR/harvest/photo_classes.csv"
+if [ ! -f "$f" ]; then
+  echo "photo classes: no $f yet; nothing to load"
+  return 0
+fi
+local sha
+sha=$(cat "$f" | sha256sum | cut -c1-64)
+if loaded photo_classes "$sha"; then
+  echo "photo classes: unchanged (${sha:0:12}); skipped"
+  return 0
+fi
+run --single-transaction <<SQL
+truncate app_private.seed_photo_classes;
+\copy app_private.seed_photo_classes (origin_hash, place_id, kind, confidence, model, classified_on) from '$f' with (format csv, header true)
+select 'photo classes loaded: ' || app_private.photo_classes_load('$sha')::text;
+truncate app_private.seed_photo_classes;
+SQL
+}
+
 load_places
 load_vendors
 load_shouf
 load_area
 load_osm
+load_photo_classes

@@ -262,3 +262,56 @@ export function ownerDuplicates(raw: RawOwnerMenus): Map<string, string> {
     ),
   );
 }
+
+// ---- Harvested menus (DECISIONS §39.4 sources 2 and 3) -----------------------------------------------------------
+
+type RawHarvest = {
+  menus: {
+    place_id: string;
+    vendor_name: string;
+    source_url?: string;
+    captured_at: string;
+    sections: {
+      name_ar?: string;
+      name_en?: string;
+      name_fr?: string;
+      items: Record<string, unknown>[];
+    }[];
+  }[];
+};
+
+export const HARVEST_MENUS = "supabase/seed/shouf/harvest/05_harvested_menus.json";
+export const PHOTO_MENUS = "supabase/seed/shouf/harvest/06_photo_menus.json";
+
+/**
+ * Menus read by the menu-harvest workflow (scripts/menus/): from a menu link (05, source_url = the link) or from the
+ * merchant's seed photos (06, source_url = the file and the place id; the photos stay hidden, §38.1). They were
+ * validated by validateDraft() when harvested; here each item gets the seed confidence and a section without a name
+ * becomes "Menu". A merchant that already has a draft from the owner's files (03, 04) keeps that one.
+ */
+export function harvestedDrafts(raw: RawHarvest, file: string): ShoufDraft[] {
+  return raw.menus
+    .filter((m) => m.sections.some((s) => s.items.length))
+    .map((m) => ({
+      place_id: m.place_id,
+      kind: "restaurant" as const,
+      vendor_name: m.vendor_name,
+      sections: m.sections
+        .filter((s) => s.items.length)
+        .slice(0, 60)
+        .map((s) => ({
+          name_ar: s.name_ar ?? (s.name_en || s.name_fr ? null : "القائمة"),
+          name_en: s.name_en ?? (s.name_ar || s.name_fr ? "" : "Menu"),
+          name_fr: s.name_fr ?? null,
+          items: s.items.map(
+            (i) => ({ ...i, confidence: SEED_CONFIDENCE }) as unknown as DraftItem,
+          ),
+        }))
+        .map((s) => (s.name_en === "" ? { ...s, name_en: s.name_ar ?? s.name_fr ?? "Menu" } : s)),
+      source_url:
+        m.source_url && /^https?:\/\//.test(m.source_url)
+          ? m.source_url.slice(0, 500)
+          : `${file}#${m.place_id}`,
+      captured_at: m.captured_at,
+    }));
+}

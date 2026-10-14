@@ -133,7 +133,7 @@ async function roads(out) {
   for (const place of places) {
     const near = nearestMerchants(place, merchants);
     let hit = null;
-    for (let attempt = 0; attempt < 3 && !hit; attempt++) {
+    for (let attempt = 0; attempt < 4 && !hit; attempt++) {
       try {
         const res = await fetch("https://api.openrouteservice.org/v2/matrix/driving-car", {
           method: "POST",
@@ -148,13 +148,21 @@ async function roads(out) {
         if (res.ok) {
           hit = nearestByRoad(near, (await res.json()).distances) ?? { none: true };
         } else {
-          misses.push(`${place.id}: HTTP ${res.status} ${(await res.text()).slice(0, 120)}`);
-          if (res.status < 500 && res.status !== 429) break;
+          const body = (await res.text()).slice(0, 120);
+          // The free plan's per-minute matrix quota answers 429 or 403 "Quota exceeded": wait out the minute and retry.
+          const limited = res.status === 429 || (res.status === 403 && /quota/i.test(body));
+          if (!limited || attempt === 3) misses.push(`${place.id}: HTTP ${res.status} ${body}`);
+          if (limited) {
+            if (attempt < 3) await new Promise((r) => setTimeout(r, 65_000));
+            continue;
+          }
+          if (res.status < 500) break;
         }
       } catch (e) {
         misses.push(`${place.id}: ${String(e).slice(0, 120)}`);
       }
-      await new Promise((r) => setTimeout(r, 1600)); // free plan: 40 matrix requests a minute
+      // Free plan: 40 matrix requests a minute; 2.5 s keeps it at 24 with room for retries.
+      await new Promise((r) => setTimeout(r, 2500));
     }
     if (hit && !hit.none) rows.push([place.id, hit.roadKm.toFixed(2), hit.nearest, "ors", today]);
     else if (hit?.none) misses.push(`${place.id}: no merchant reaches it by road`);

@@ -36,6 +36,7 @@ import { handleCustomerTurn, readCustomerInbound, type CustomerDeps } from "./cu
 import { handleOnboarding, readOnboardingInbound } from "./merchant/onboarding.ts";
 import { parseOnboardingTap } from "../_shared/onboarding-cards.ts";
 import { handleMerchantMenu } from "./merchant/menu.ts";
+import { lookupProduct, normalizeGtin, productCardText } from "../_shared/open-food-facts.ts";
 import { handleMerchantFlows } from "./merchant/flows.ts";
 import { orderCardImageMessage, orderCardSvg } from "../_shared/order-card-image.ts";
 import { parseFlowReply } from "../_shared/flows.ts";
@@ -83,6 +84,8 @@ export type DispatchDeps = {
     | null;
   /** Renders the gold order card SVG and uploads it as WhatsApp media (§32.5); returns the media id. */
   orderCard?: ((phoneNumberId: string, svg: string) => Promise<string | null>) | null;
+  /** The fetch used for Open Food Facts (§39.5); tests inject one. */
+  offFetch?: typeof fetch | null;
   /** The customer bot's model, transcription, media and routing (session 4); null = customers are ignored. */
   customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
 };
@@ -477,6 +480,15 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     await handleTap(deps, m, reply);
     return "done";
   }
+  const gtin = m.text !== null ? normalizeGtin(m.text.trim()) : null;
+  if (gtin) {
+    // §39.5: a scanned or typed barcode → what Open Food Facts says about the product, cached, marked estimated.
+    const p = await lookupProduct(gtin, { rpc: deps.rpc, fetch: deps.offFetch ?? undefined }).catch(
+      () => null,
+    );
+    await reply(productCardText(p, gtin));
+    return "done";
+  }
   if (m.text !== null && /^\s*[0-9٠-٩]{4}\s*$/.test(m.text)) {
     // The customer's 4-digit delivery code (§27.6), typed by the merchant or its driver.
     const code = m.text.trim().replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
@@ -559,6 +571,7 @@ export const HELP = [
   "• «ما في كهربا» / «power back»",
   "• «capacity 8» · «same price»",
   "• «add Ali as kitchen +961…» / «remove Ali»",
+  "• باركود المنتج / a product barcode: 5281234567896",
 ].join("\n");
 
 async function handleTap(
