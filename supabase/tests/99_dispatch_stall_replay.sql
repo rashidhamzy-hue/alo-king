@@ -56,7 +56,7 @@ select tests.ok(:'b2'::jsonb #>> '{session,refs,i1,label}' = 'Falafel Sandwich',
   'with the options the customer was shown');
 select tests.ok((public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 3) ->> 'busy')::boolean,
   'and the replay holds the turn in turn: a third copy waits');
-select public.customer_turn_begin('+96170000097', 'wamid.stall.held', 'tap', 'Stall', 1, null, now() + interval '1 hour') as lb \gset
+select public.customer_turn_begin('+96170000093', 'wamid.stall.held', 'tap', 'Held', 1, null, now() + interval '1 hour') as lb \gset
 select tests.ok((select lease_until <= now() + interval '156 seconds' from public.bot_turns where message_id = 'wamid.stall.held'),
   'a lease never outlives an edge function, whatever the caller asks');
 select public.customer_turn_end(:'cid', 'wamid.stall.tap', :'b2'::jsonb -> 'session', 'deterministic', 0, '{}', 0, 10);

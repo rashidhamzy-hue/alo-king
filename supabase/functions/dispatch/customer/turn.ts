@@ -265,6 +265,8 @@ export async function handleCustomerTurn(
       throw e;
     });
   if (begin?.duplicate) return "duplicate";
+  // Busy: this message's turn is held by another attempt, or the customer's previous turn is still running (its
+  // session may not be saved yet). The event fails and the queue tries again within seconds.
   if (begin?.busy) throw new TurnBusy(m.messageId);
   const sess = begin.session ?? {};
   const c: Ctx = {
