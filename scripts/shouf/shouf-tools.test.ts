@@ -91,3 +91,58 @@ describe("seed photo copy (§38.1)", () => {
     expect(path).not.toContain("google");
   });
 });
+
+describe("delivery area data (§39.2)", async () => {
+  // @ts-expect-error plain ES module without types
+  const area = await import("./area.mjs");
+  const placesCsv = readFileSync("supabase/seed/places/places.csv", "utf8");
+  const boundaryCsv = readFileSync("supabase/seed/places/shouf_delivery_boundary.csv", "utf8");
+
+  it("parses quoted CSV cells with commas, quotes and newlines", () => {
+    expect(area.parseCsv('a,b\n"x, ""y""","line1\nline2"\n')).toEqual([
+      { a: 'x, "y"', b: "line1\nline2" },
+    ]);
+  });
+
+  it("finds every boundary place in the places list, all in the Chouf", () => {
+    const pts = area.boundaryPlaces(placesCsv, boundaryCsv);
+    expect(pts).toHaveLength(59);
+    for (const p of pts) {
+      expect(p.id).toMatch(/^LB-CHF-/);
+      expect(p.lat).toBeGreaterThan(33.5);
+      expect(p.lon).toBeGreaterThan(35.4);
+    }
+  });
+
+  it("boxes the boundary for the OSM fetch, short of Damour and the coast", () => {
+    const [s, w, n, e] = area.boundaryBox(placesCsv, boundaryCsv, 3);
+    const damour = area.parseCsv(placesCsv).find((p: { id: string }) => p.id === "LB-CHF-DAMOUR");
+    expect(Number(damour.lon)).toBeLessThan(w);
+    expect(s).toBeLessThan(n);
+    expect(w).toBeLessThan(e);
+    expect(overpassQuery([s, w, n, e])).toContain(`(${[s, w, n, e].join(",")})`);
+  });
+
+  it("asks ORS from the nearest merchants to the place and keeps the shortest road", () => {
+    const merchants = area.merchantPoints(
+      readFileSync("supabase/seed/shouf/source/01_shouf_merchants_315.csv", "utf8"),
+    );
+    expect(merchants.length).toBeGreaterThan(300);
+    const niha = area
+      .boundaryPlaces(placesCsv, boundaryCsv)
+      .find((p: { id: string }) => p.id === "LB-CHF-NIHA");
+    const near = area.nearestMerchants(niha, merchants, 3);
+    expect(near).toHaveLength(3);
+    expect(near[0].km).toBeLessThanOrEqual(near[2].km);
+    const body = area.matrixBody(niha, near);
+    expect(body.locations).toHaveLength(4);
+    expect(body.locations[3]).toEqual([niha.lon, niha.lat]);
+    expect(body.sources).toEqual([0, 1, 2]);
+    expect(body.destinations).toEqual([3]);
+    expect(area.nearestByRoad(near, [[9400], [null], [8123]])).toEqual({
+      nearest: near[2].id,
+      roadKm: 8.12,
+    });
+    expect(area.nearestByRoad(near, [[null], [null], [null]])).toBeNull();
+  });
+});

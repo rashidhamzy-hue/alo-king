@@ -9,6 +9,8 @@ insert into public.places (id, zone_pcode, name_en, kind, governorate_code, dist
   ('LB-CHF-ORDTOWN', 'TZ-ORD', 'Ordertown', 'town', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.5861 33.6821)', 'test'),
   ('LB-CHF-ORDPAUSE', null, 'Pausedtown', 'town', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.59 33.69)', 'test');
 select public.place_set_service_status('LB-CHF-ORDPAUSE', 'paused', 'test pause');
+-- A real merchant delivers only to places that are on (the delivery area, DECISIONS §39.2).
+select public.place_set_service_status('LB-CHF-ORDTOWN', 'on', 'test: in the delivery area');
 
 -- Vendor A (restaurant, 5 km) went live 40 days ago: past its 30 free days.
 update public.vendors set live_since = now() - interval '40 days', pickup_enabled = true, stairs_fee_per_floor_usd = 0.50

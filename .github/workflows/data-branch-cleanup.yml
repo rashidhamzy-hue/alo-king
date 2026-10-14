@@ -1,15 +1,15 @@
 name: data-branch-cleanup
 
-# Deletes the data/places-<run id> branches that places-build leaves behind once a build session has
+# Deletes the data/places-, data/area- and data/menu-harvest-<run id> branches the data workflows leave behind once a build session has
 # reviewed them. Cloud sessions cannot delete branches they did not create, so the deletion runs here.
-# - workflow_dispatch with all=true: delete every data/places-* branch (run it after the seed PR merges).
-# - daily: delete data/places-* branches whose last commit is older than three days.
-# Only data/places-* branches are ever touched.
+# - workflow_dispatch with all=true: delete every such branch (run it after the seed PR merges).
+# - daily: delete those branches whose last commit is older than three days.
+# Only those data branches are ever touched.
 on:
   workflow_dispatch:
     inputs:
       all:
-        description: Delete every data/places-* branch
+        description: Delete every data/places-, data/area- and data/menu-harvest- branch
         type: boolean
         default: false
   schedule:
@@ -30,7 +30,7 @@ jobs:
         run: |
           cutoff=$(date -u -d '3 days ago' +%s)
           gh api --paginate "repos/${GITHUB_REPOSITORY}/branches?per_page=100" --jq '.[].name' |
-            grep -E '^data/places-[0-9]+$' |
+            grep -E '^data/(places|area|menu-harvest)-[0-9]+$' |
             while read -r branch; do
               if [ "$ALL" != "true" ]; then
                 date=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${branch}" --jq '.commit.committer.date')

@@ -91,15 +91,17 @@ select tests.ok(not exists (select 1 from public.vendor_search(null, 25.2048, 55
   'a real merchant is not listed for a Dubai pin');
 select tests.ok(not exists (select 1 from public.vendor_search(null, 33.8938, 35.5018, null, null, 10) where vendor_id = :'tv'),
   'nor for a Beirut pin beyond its radius');
-select tests.ok(public.customer_delivery_check(:'dcid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'no_route'
-  and public.customer_delivery_check(:'bcid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'no_route',
+select tests.ok(public.customer_delivery_check(:'dcid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'no_route',
   'its road check needs a route');
+select tests.ok(public.customer_delivery_check(:'bcid', array[:'tv'::uuid]) ->> 'status' = 'place_paused',
+  'and Beirut is outside the delivery area (off), whatever the route (DECISIONS §39.2)');
 select tests.ok(public.basket_add_item(:'dcid', :'falafel', 1, '{}', null, true) ->> 'status' = 'added', 'another basket for the Dubai customer');
 select tests.ok(public.basket_quote(:'dcid') ->> 'status' = 'no_route', 'a real merchant''s quote needs a route');
 select public.basket_view(:'dcid') as dbv2 \gset
 select tests.ok(public.order_place((:'dbv2'::jsonb ->> 'basket_id')::uuid, (:'dbv2'::jsonb ->> 'menu_version')::bigint, 'wa:t3:dubai:2') ->> 'status' = 'no_route',
   'and a real merchant''s order is refused with no route');
 select public.route_cache_store(33.6770, 35.5640, array[33.8938], array[35.5018], array[28000], array[2400], 'ors');
+update public.places set service_status = 'on' where id = 'LB-BEY-BEIRUT';
 select tests.ok(public.customer_delivery_check(:'bcid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'beyond_radius',
   'with a route, 28 road km is beyond a real merchant''s radius');
 -- Production: no test merchant, so no Test location fallback ------------------------------------------------------------
