@@ -1,0 +1,7230 @@
+{
+ "harvested": "2026-10-14",
+ "menus": [
+  {
+   "place_id": "ChIJC0o5QwAhHxURQ2vfz100X0A",
+   "vendor_name": "Deli Dough",
+   "village": "Baakleen",
+   "source_url": "https://menu.omegasoftware.ca/delidough",
+   "adapter": "omega",
+   "method": "omega",
+   "captured_at": "2026-10-14",
+   "sections": [
+    {
+     "name_en": "FORON",
+     "items": [
+      {
+       "name_en": "HELLO MI",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ZAATAR",
+       "price": 1.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "AKKAWI",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KASHKAWAN",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHEESE",
+       "price": 3.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FOUR CHEESE",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KECHEK",
+       "price": 1.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KECHEK & CHEESE",
+       "price": 2.75,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ZAATAR & JEBNE",
+       "price": 2.75,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LAHME",
+       "price": 3.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LABNE",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LABNE & AWARMA",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SBENEKH",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KAFTA",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KAFTA & CHEESE",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LAHME & CHEESE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SEJOK & CHEESE",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KHODRA",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KHODRA & CHEESE",
+       "price": 3.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FARFAHEEN",
+       "price": 1.75,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TURKEY & CHEESE",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "EGG AWARMA",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KASHKAWAN & PARSLEY",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MINI DD DOUGH",
+       "price": 0.42,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "POTATO AWARMA",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BROWN DOUGH",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "OAT DOUGH",
+       "price": 1,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "BAGUETTES",
+     "items": [
+      {
+       "name_en": "PISTON WHITE 23CM",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PISTON BROWN 23CM",
+       "price": 0.55,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CIABATA WHITE 270G",
+       "price": 1.15,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CIABATA MULTICEREALES 270G",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CIABATA OLIVE",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CIA WHITE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PLAIN SOUR DOUGH",
+       "price": 6.66,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SANDWICH RUSTIC MULTI",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SANDWICH RUSTIC NATURE",
+       "price": 1.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PAIN RUGBY MULTICEREALES",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PAIN RUGBY BLANC",
+       "price": 0.4,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "CROISSANT",
+     "items": [
+      {
+       "name_en": "CROISSANT BEURRE THYM",
+       "price": 2.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CROISSANT BEURRE FROMAGE",
+       "price": 3.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CROISSANT AU CHOCOLAT",
+       "price": 3.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CROISSANT PLAIN",
+       "price": 2.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CROISSANT ALMOND",
+       "price": 3.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CROISSANT CHOCONUTS",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CINNAMON ROLL",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "RAISIN ROLL",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SUISSE LOUNGE PEPTIS CHOCOLAT",
+       "price": 3.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SALAMI BLISS",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TURKEY & CHEESE CROISSANT",
+       "price": 5.75,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "DELI SANDWICHES",
+     "items": [
+      {
+       "name_en": "TURKEY HEAVEN",
+       "description": "Turkey, green onions, pineapple, coriander, iceberg, walnuts and special sauce",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TURKEY BACON BLUE CHEESE",
+       "description": "Turkey bacon, arugula, cherry tomatoes, mayo and blue cheese",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TROPICAL BEEF SANDWICH",
+       "description": "Sliced beef, mango, pineapple, arugula and cream cheese",
+       "price": 11.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GRILLED STEAK",
+       "description": "Sliced Beef, Tomatoes, Rocca, Olives And Soy Sauce",
+       "price": 11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CALIFORNIA CHICKEN",
+       "description": "Chicken, fresh avocado, green pepper, cucumber, iceberg, arugula and truffle mayo",
+       "price": 9.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHICKEN WALNUT",
+       "description": "Chicken, iceberg, walnuts,cheese and special sauce",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SALMON KALE SAND.",
+       "description": "Salmon, kale, iceberg, fresh avocado and truffle mayo",
+       "price": 14,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SALMON CREAM CHEESE SAND.",
+       "description": "Salmon, cream cheese, parsley, green onions and lemon juice",
+       "price": 13.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SALMON CRAB SAND.",
+       "description": "Salmon, crab sticks, green onions, parsley, iceberg, fresh avocado, mayo and lemon juice",
+       "price": 15,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CRAB MANGO SAND.",
+       "description": "Crab sticks, mango, fresh avocado, green onions, parsley, mayo and lemon juice",
+       "price": 10.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CRAB COLESLAW SAND.",
+       "description": "Crab sticks, coleslaw, fresh avocado, lemon cubes and cucumber julienne",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHICKEN MIX CHEESE SAND.",
+       "description": "Grilled chicken, iceberg, cherry tomatoes, mixed cheese and special sauce",
+       "price": 9.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TURKEY CHEESE SAND.",
+       "description": "Turkey, cheese, iceberg, oregano and truffle mayo",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "HALLOUMI PESTO",
+       "description": "Halloum cheese, pesto sauce, vegetables",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BRESAOLA PARMESAN",
+       "description": "Bresaola, Parmesan, balsamic, olive oil, rocca",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "RACLETTE TURKEY BACON",
+       "description": "Raclette, turkey bacon, arugula, truffle mayo, olive oil",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PASTRAMI & CHEESE",
+       "description": "Pastrami, cheese, pickles, mayo mustard, rocca",
+       "price": 10.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BRIE JAM WALNUTS",
+       "description": "Brie cheese ,jam ,walnuts",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GOUDA PESTO CHEESE BRESAOLA",
+       "description": "GOUDA PESTO, BRESAOLA, HONEY, WALNUT, ARUGULA",
+       "price": 10.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GOAT CHEESE SANDWICH",
+       "description": "GOAT CHEESE, SUNDRIEDTOMATOES, WALNUT, HONEY, BABY ROCCA",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FOUR CHEESE SANDWICH",
+       "description": "EMMENTAL, CHEDDAR, MOZZARELLA AND AKKAWI CHEESE",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SALAMEH PROVOLONE",
+       "description": "SALAMEH, PROVOLONE CHEESE, ARUGULA, MAYO TRUFFLE",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FAMOUS TUNA",
+       "description": "TUNA SALAD, AIOLI, AVOCADO, PESTO, TOMATO",
+       "price": 11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHICKEN RANCH",
+       "description": "CHICKEN BREAST, RANCH SAUCE, RED SALSA, CORIENDER",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MR BEEF",
+       "description": "GREEN SALSA, ROAST BEEF, CHERRY TOMATO, PARMESAN",
+       "price": 11.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SHRIMP CATCH",
+       "description": "GRILLED SHRIMPS, ICEBERG, AVOCADO, SWEET CHILI SAUCE",
+       "price": 13,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FRIED ON TOAST",
+       "description": "HOT HONEY, FRIED EGGS, COTTAGE CHEESE, AVOCADO",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "PROTEIN SHAKES",
+     "items": [
+      {
+       "name_en": "GREEN CHARGE",
+       "description": "Avocado, spinach, peanut butter, greek yogurt, cinnamon kcal~405 protein~23",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PINK ENERGY",
+       "description": "Strawberry, cottage cheese, greek yogurt, banana, peanut butter, flax seed kcal~350 protein~23g",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BERRY GINGER",
+       "description": "Raspberry, cottage cheese, greek yogurt, banana, ginger, milk kcal~248 protein ~22g",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BLUE CREAM",
+       "description": "Blueberry, banana, cottage cheese, greek yogurt, peanut butter kcal~367 protein~25g",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DATE FUEL",
+       "description": "Chickpeas, banana, dates, peanut butter, cinnamon kcal~398 protein~19",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "APPLE SPICE",
+       "description": "Apples, greek yogurt, cottage cheese, dates,peanut butter,cinnamon kcal ~498 protein ~23g",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PUMPKIN BUZZ",
+       "description": "Banana, cottage cheese, peanut butter, pumpkin, dates, cinnamon kcal~415 protein~24g",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CORE VELVET",
+       "description": "Avocado, banana, cottage cheese, cocoa powder kcal~278 protein~23g",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "CHARCUTERIE",
+     "items": [
+      {
+       "name_en": "DANISH BLUE CHEESE",
+       "price": 24.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ALIMENTIAS MANCHEGO DON JUAN",
+       "price": 48.02,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "VOLYS.FORMED TURKEY",
+       "price": 38.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "VOLYS. GRILLED TURKEY",
+       "price": 41,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MANCHEGO TRUFFLE",
+       "price": 49.11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FROZEN MOZZARELLA LOAF",
+       "price": 18.4,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MOZZARELLA BURGER VRAC",
+       "price": 11.44,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BRIE COEUR DE LION",
+       "price": 31,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "RAMBOL DECOR",
+       "price": 45.83,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "L'EXQUIS MINI BUCHE AIL FINE HERBE 150G",
+       "price": 4.81,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "L'EXQUIS MINI BUCHE CENDREE 150G",
+       "price": 4.81,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "L'EXQUIS MINI BUCHE BLANCHE 150G",
+       "price": 4.81,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FOL EPI",
+       "price": 30.45,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "RACLETTE",
+       "price": 36.01,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ROULE AIL FINES HERBES",
+       "price": 28.37,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GRAND VITA",
+       "price": 53.36,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TOMME DE SAVOIE",
+       "price": 37.54,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SAV.ETORKI",
+       "price": 61.08,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ROULE ANANAS",
+       "price": 30.56,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ROULE CRANBERRY",
+       "price": 30.56,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BOURSIN ECHALOTE & CIBOULETTE",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BOUSIN POIVRE 150G",
+       "price": 7.53,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BOURSIN TRUFFLE 150G",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BOURSIN AIL 150G",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GARCIA MANCHEGO CHEESE 12 MONTHS",
+       "price": 56.42,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GARCIA GOAT CHEESE",
+       "price": 41.62,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHEVRE SOIGNON HARD GOAT",
+       "price": 37.56,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SOIGNON BUCHE DE CHEVRE GOAT",
+       "price": 31.65,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SOIGNON CENDRE CHEVRE GOAT",
+       "price": 31.65,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "AVONMORE ORANGE CHEDDAR",
+       "price": 16.53,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LAPIARA SALAMEH TURKEY",
+       "price": 47.1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "NEGRINI POITRINE DE DINDE",
+       "price": 36.01,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CASA RECTANGULAIRE",
+       "price": 14.19,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GOAT CHEESE LE CHEVRE",
+       "price": 39.24,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GOUDA PESTO VERT",
+       "price": 42.56,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PARMESAN GRAN VITA",
+       "price": 26.99,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KASHKAVAL BIIHAR COW",
+       "price": 19.15,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "EMMENTAL FRIKO EDAME",
+       "price": 20.04,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ROYAL HOLANDIA EDAME",
+       "price": 14.72,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ALKASH SHEEP AGED 20MNTH",
+       "price": 38.69,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SOFT CHEESE SMOKED SALMON",
+       "price": 44,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SOFT CHEESE WALNUTS",
+       "price": 39.07,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BF SMOKED CHEESE CHILI",
+       "price": 20.73,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BF SMOKED CHEESE PLAIN",
+       "price": 18.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DIET SALAMI 100% BEEF",
+       "price": 75.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "REINERT ORIGINAL TURKEY BREAST",
+       "price": 60.02,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LILA TURKEY SALAMI",
+       "price": 68.75,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FALLINI PARMESAN RAPE BOITE",
+       "price": 2.19,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GRANAROLO MASCARPONE",
+       "price": 11.57,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GRANAROLO FROZEN MOZZARELLA",
+       "price": 2.73,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GRANAROLO FROZEN BURRATA",
+       "price": 9.71,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "L'EXQUIS BUCHE BLANCHE",
+       "price": 30.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SINGLETONS RED CHEDDAR",
+       "price": 20.35,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PROVOLONE DOUX CYLINDRE",
+       "price": 23.46,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PROVOLONE PIQUANT CYLINDRE",
+       "price": 23.95,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "VOLYS RURE TURKEY BREAST",
+       "price": 30.01,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "VOLYS TURKEY BACON",
+       "price": 24.01,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FRESH PEELABLE CHEESE",
+       "price": 0.76,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DAILY DAIRY GOUDA MILD",
+       "price": 20.62,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DAILY DAIRY GOUDA CUMIN",
+       "price": 24.01,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "L'EXQUIS BRESAOLA",
+       "price": 57.84,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BRESAOLA BLACK ANGUS",
+       "price": 63.49,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PASTRAMI",
+       "price": 48.02,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PEPPERONI BEEF HALAL",
+       "price": 29.79,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ZONCOLAN DI CAPRA AL PEPE",
+       "price": 103.67,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KEFALOTIRI",
+       "price": 52.38,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MILITERNO AL TARTOUFO",
+       "price": 129.86,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TRUFFLE KINARA CHEESE1\\8",
+       "price": 72.57,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PROVOLONE DOLCE AFFUMICATO",
+       "price": 27.17,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "OCCELLI IN FOGLIE DI CASTAGNO 1\\4",
+       "price": 87.08,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BRESAOLA PUNTA D ANCA CLASSICA 1\\2",
+       "price": 51.59,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "COMT",
+       "price": 41.47,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GORGONZOLA DOLCE",
+       "price": 26.74,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "NIGRINI DINDE FUME",
+       "price": 38.19,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ROQUEFORT SOCIETE 100G",
+       "price": 6.33,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "SOFT DRINKS",
+     "items": [
+      {
+       "name_en": "7up",
+       "price": 1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DIET 7UP",
+       "price": 1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PEPSI",
+       "price": 1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DIET PEPSI",
+       "price": 1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MIRINDA",
+       "price": 1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICE TEA PEACH",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICE TEA LEMON",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICE TEA RASPBERRY",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PERRIER",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "RIM",
+       "price": 1.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FRESH YOGURT",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "WATER SMALL",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "S.PELLEGRINO",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "HOT BEVERAGES",
+     "items": [
+      {
+       "name_en": "ESPRESSO",
+       "price": 1.75,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ESPRESSO DOUBLE",
+       "price": 2.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "AMERICANO",
+       "price": 2.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CAPPUCCINO",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CAFFE LATTE",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SINGLE MACCHIATO",
+       "price": 2.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DOUBLE MACCHIATO",
+       "price": 2.75,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FLAT WHITE",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CORTADO",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LATTE MACCHIATO",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PICCOLO",
+       "price": 2.25,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "FRAPPE",
+     "items": [
+      {
+       "name_en": "ICED FRAPPE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CARAMEL FRAPPUCCINO",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MOCHA FRAPPUCINO",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MOCHA COCONUT FRAPPE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "COFFEE FRAPPE",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "HAZELNUT FRAPPE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHOCO BROWNIE FRAPPE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MATCHA FRAPPUCCINO",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MOCHA HAZELNUT FRAPPE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MATCHA STRAWBERRY",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DD SPECIALTY",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "COOKIE AND CREAM FRAPPE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "VANILLA MATCHA FRAPPUCCINO",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "SALADS",
+     "items": [
+      {
+       "name_en": "HALLOUMI PESTO SALAD",
+       "description": "Haloumi, arugula, cherry tomatoes, fresh mushrooms, walnuts, croutons and pesto dressing",
+       "price": 11.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FALL PUMPKIN",
+       "description": "GREEN MIX, QUINOA, PUMPKIN CUBES, FETA CRUMBLES, CRANBERRY, WALNUT, BALSAMIC DRESSING",
+       "price": 13,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SALMON VIBE",
+       "description": "SALMON, MANGO, AVOCADO, RED ONION, MIX GREENS, SEEDS, LEMON DRESSING.",
+       "price": 16.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "WHO KALED CAESAR",
+       "description": "Iceberg, kale, pineapple, chicken, croutons, caesar dressing and parmesan cheese",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CRAB SALAD",
+       "description": "Crab sticks, iceberg, corn, fresh avocado, orange, cherry tomatoes and special dressing",
+       "price": 12.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GOAT CHEESE SALAD",
+       "description": "GREEN MIX, GOAT CHEESE, SUNDRIED TOMATO, WALNUTS, SUNFLOWER SEED, PUMPKIN SEED, CAMBERIE, DRIED APRICOT, HONEY BALSAMIN SAUCE",
+       "price": 12.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "QUINOA BEETROOT",
+       "description": "QUINOA, BEETROOT, KALE, POMEGRANATE, WALNUTS WITH STAWBERRY BALSAIC DRESSING",
+       "price": 11.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SMOKEY BLUE SALAD",
+       "description": "MIX GREENS, TURKEY BACON, ROQUEFORT CHEESE, CARAMALIZED WALNUT, RED ONION, APPLES, LEMON VINAIGRETTE.",
+       "price": 14.75,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "DD STORE",
+     "items": [
+      {
+       "name_en": "LA TOURANGELLE HUILE DE SESAME 250ml",
+       "price": 16,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BOSCO DORO HUILE DE TRUFFEL BLANCHE 250ml",
+       "price": 18.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "URBANI CHAMPIGNONS AND SUMMER TRUFFLES SAUCE 500g",
+       "price": 25.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DON MARCELLO BALSAMIC VINEGAR 250ml",
+       "price": 3.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DON MARCELLO BALSAMIC VINEGAR 500ml",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA CHILI SAUCE 160G",
+       "price": 1.35,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA SWEET CHILI SAUCE 280G",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA SWEET & SOUR SAUCE 280G",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA TERYAKI SAUCE 150ML",
+       "price": 1.6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA OYSTER SAUCE",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA PURE SESAME OIL 150ML",
+       "price": 3.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA FISH SAUCE 150ML",
+       "price": 1.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA HOISIN SAUCE 230G",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA CROUTONS GARLIC & HERBS 110G",
+       "price": 1.6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA CROUTONS PLAIN 90G",
+       "price": 1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA TOAST CEREAL 200G",
+       "price": 3.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA TOAST NO SALT 200G",
+       "price": 2.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA TOAST ORIGINAL 200G",
+       "price": 2.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA HIMALAYAN SALT MILL ROUND 100G",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA HIMALAYAN DARK PINK ROCK SALT 500G",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA SUNDRIED TOMATOES 200G",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA DRIED PORCINI 60G",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LA TOURANGELLE HUILE D'AMANDE 250ML",
+       "price": 16,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LA TOURANGELLE HUILE D'AVOCAT 250ML",
+       "price": 17.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LA TOURANGELLE HUILE DE NOISETTE 250ML",
+       "price": 10.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LA TOURANGELLE HUILE DE NOIX 250ML",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DIJON MUSTARD 200G",
+       "price": 2.6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "WHOLE GRAINY MUSTARD 200G",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SMOKED LIQUID 103ML",
+       "price": 5.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SOY SAUCE 150ML USA",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SOY SAUCE LITE 150ML USA",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ANCHOVY FILET 80G",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SWEET CHILI SAUCE 700ML S.ROLLS",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHILI GARLIC SAUCE 730ML",
+       "price": 7.1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TUC ORIGINAL 100G",
+       "price": 1.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TUC PAPRIKA 100G",
+       "price": 1.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TUC CHEESE 100G",
+       "price": 1.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TRI-COLOR QUINOA",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BLACK QUINOA",
+       "price": 10.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "RED",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "WHITE QUINOA",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHIA",
+       "price": 10.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GREEN PEPPERCON MUSTRAD 200",
+       "price": 3.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "HP STEAK SAUCE",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PROVENCE HERBS MUSTARD",
+       "price": 3.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TARRAGON MUSTARD",
+       "price": 3.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "WALNUT MUSTARD",
+       "price": 3.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "HONEY MUSTARD 200G",
+       "price": 3.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KIKKOMAN VEGAN",
+       "price": 6.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KIKKOMAN VEGAN LITE",
+       "price": 8.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BLACK TRUFFLE CREAM",
+       "price": 26.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA DRIED SHITAKE",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BENINA SUSHI GINGER",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SUSHI VINEGAR",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MAPLE JOE SYRUP 312G",
+       "price": 13.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Revolution Tea (30 pcs)",
+       "price": 30,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "SPECIALTIES",
+     "items": [
+      {
+       "name_en": "HIGH PROTEIN PIE",
+       "description": "Pesto sauce, chicken, mozzarella, arugula, cottage cheese, cherry tomatoes, red onion, balsamic glaze",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LABNEH, HONEY?",
+       "description": "Labneh, zaatar, honey, pomegranate",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TURKEY TWIST",
+       "description": "Turkey mix, mozzarella cheese, avocado, iceberg",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KASHKAWAN, ARUGULA & MSHALALEH",
+       "description": "MSHALLALEH CHEESE, KASHKAWAN CHEESE, ARUGULA, SESAME,",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ZAATAR ZAATAR",
+       "description": "ZAATAR PIE, ZAATAR AKHDAR, MIX VEGETABLES",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Pomegranate spinach 6",
+       "description": "SPINACH MIXED IN POMEGRANATE MOLASSES, DIP IN LABNEH AND CHILLI SAUCE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ZAATAR WRAP",
+       "description": "ZAATAR PIE FILLED WITH ONION, PICKELS, TOMATOES, CUCUMBERS, MINT, OLIVES, CHILLI SAUCE, POMEGRANATE MOLASSES",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "EGG AVOCADO",
+       "description": "SCRAMBLED EGGS, ONION, AVOCADO, CHILLI PEPPER",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DOUBLE LAYERED CHEESE ZAATAR",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "SHAKHTOURA",
+     "items": [
+      {
+       "name_en": "KASKAWAN & PARSLEY",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BULGHAREH & MINT",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHILLI CHICKEN CHEESE",
+       "price": 7.75,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "MINI",
+     "items": [
+      {
+       "name_en": "MSHAKAL(12PCS)",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ZAATAR(1PCS)",
+       "price": 0.42,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "KISHEK(1PCS)",
+       "price": 0.42,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LAHME(1PCS)",
+       "price": 0.42,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHEESE(1PCS)",
+       "price": 0.42,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SPINACH(1PCS)",
+       "price": 0.42,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Pizza mini",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "PIZZA",
+     "items": [
+      {
+       "name_en": "PIZZA MARGARITA",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PIZZA PEPERONI",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PIZZA VEGETERIAN",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PIZZA SALAMI",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "PIZZA CHICKEN BARBECUE",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "ICED LATTE",
+     "items": [
+      {
+       "name_en": "ICED VANILLA LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED LATTE",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED AMERICANO",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED CARAMEL LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED MOCHA LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED SPANISH LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED MATCHA LATTE",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED WHITE MOCHA",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED CARAMEL MACCHIATO",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED SALTED CARAMEL LATTE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED HAZELNUT LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "ICED VANILLA MATCHA LATTE",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "FLAVORED DRINKS",
+     "items": [
+      {
+       "name_en": "MOCHA LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SPANISH LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "VANILLA LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CARAMEL CAPPUCCINO",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "HAZELNUT LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CARAMEL MACCHIATO",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "WHITE MOCHA LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SALTED CARAMEL LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Red Velvet Hot Chocolate",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Honey Cinnamon latte",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CARAMEL LATTE",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "FILTERED COFFEE",
+     "items": [
+      {
+       "name_en": "AMERICAN COFFEE",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FRENCH PRESS",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CAFE AU LAIT",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "MILKSHAKE",
+     "items": [
+      {
+       "name_en": "VANILLA MILKSHAKE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "STRAWBERRY MILKSHAKE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LOTUS MILKSHAKE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "NUTELLA MILKSHAKE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CHOCOLATE MILKSHAKE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "OTHER DELIGHTS",
+     "items": [
+      {
+       "name_en": "TEA",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "HOT CHOCOLATE",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TURKISH COFFEE 1",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TURKISH COFFEE",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BELGIUM HOT CHOCOLATE",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "ICED YOGURT",
+     "items": [
+      {
+       "name_en": "FROZEN YOGURT",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MANGO",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BLUEBERRY",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "HEALTHY DELIGHTS",
+     "items": [
+      {
+       "name_en": "BERRY OAT MEAL",
+       "description": "Oats, blueberry, strawberry, pistachio, full fat milk.",
+       "price": 11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CARAMELIZED BANANA OAT MEAL",
+       "description": "Oats, caramelized honey banana, roasted almond, Belgium chocolate",
+       "price": 11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GREEK YOGURT",
+       "description": "Greek yogurt., strawberry, blueberry, pistachio, granola.",
+       "price": 11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "FROZEN YOGURT(with 2 toppings)",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "SWEETS",
+     "items": [
+      {
+       "name_en": "MUFFINS",
+       "price": 3.15,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MINI MUFFINS",
+       "price": 1.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "COOKIES",
+       "price": 3.8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DD COOKIES",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "COCONUT CASHEW COOKIES",
+       "price": 4.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BROWNIES",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LEMON CAKE LOAF",
+       "price": 16.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CARROT LOAF",
+       "price": 16.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "RED VELVET LOAF",
+       "price": 16.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DARK CHOCOLATE LOAF",
+       "price": 17,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BLUEBERRY LOAF",
+       "price": 19,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "MINI LOAF",
+       "price": 3.3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "NUTS BAR",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "TART",
+       "price": 28,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "DARK CHOCOLATE CAKE",
+       "price": 35,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CARROT CAKE",
+       "price": 30,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "RED VELVET CAKE",
+       "price": 30,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "HEART CAKE",
+       "price": 30,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "CARAMEL WALNUT LOAF",
+       "price": 18,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BRIE CRUMBLE",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "SUGAR FREE DATE LOAF",
+       "price": 18,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "GLUTEN-FREE COOKIES",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "LEEMON CAKE",
+       "price": 30,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    }
+   ],
+   "warnings": []
+  },
+  {
+   "place_id": "ChIJDf1wp3YhHxURgHQQVjPKMY4",
+   "vendor_name": "Batloun Dairy Stores",
+   "village": "Batloun",
+   "source_url": "https://batloundairystores.com/",
+   "adapter": "html",
+   "method": "odoo",
+   "captured_at": "2026-10-14",
+   "sections": [
+    {
+     "name_en": "Products",
+     "items": [
+      {
+       "name_en": "Nestle Fitness original 420g",
+       "price": 3.6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Oaty Biscuits",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Gullon mini bites mix 250g",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Nabat Brown Rice Vinegar 250ml",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Nescafé 3in1 Strong",
+       "price": 0.2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Organic Virgin Avocado Cooking oil",
+       "price": 15.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Ozmo Farm Cereal Balls 325g",
+       "price": 3.1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Poppins Frosted Flakes 350g",
+       "price": 3.56,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Puidor Pomegranate Molasses + Ketchup Free",
+       "price": 3.89,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Soft Skin Sugar Paste For Hair Removal",
+       "price": 0.55,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Taj Pancake Syrup 710g",
+       "price": 3.97,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Vaseline Original Healing Jelly 250ml",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    }
+   ],
+   "warnings": []
+  },
+  {
+   "place_id": "ChIJWa2yX4YmHxUReJKJfoxeVrQ",
+   "vendor_name": "Al Kooz Cafe",
+   "village": "Barouk",
+   "source_url": "https://alkoozcafe.com/",
+   "adapter": "html",
+   "method": "json",
+   "captured_at": "2026-10-14",
+   "sections": [
+    {
+     "name_ar": "صاج وترويقة",
+     "name_en": "Saj & Breakfast",
+     "items": [
+      {
+       "name_ar": "زعتر",
+       "name_en": "Zaatar",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "زعتر و جبنة",
+       "name_en": "Zaatar & Cheese",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "كشك",
+       "name_en": "Kishk",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "كشك و جبنة",
+       "name_en": "Kishk & Cheese",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "جبنة",
+       "name_en": "Cheese",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "جبنة و جومبون",
+       "name_en": "Cheese & Jambon",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "قاورما",
+       "name_en": "Qawerma",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "قاورما ولبنة",
+       "name_en": "Qawerma & Labneh",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "لحمة ناعمة",
+       "name_en": "Minced Meat",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بيتزا",
+       "name_en": "Pizza",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بيض",
+       "name_en": "Eggs",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بيض وجبنه",
+       "name_en": "Cheese Omelette",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "حلوم",
+       "name_en": "Halloum",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "لبنة بلدي",
+       "name_en": "Oriental Labneh",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "لبنة امبريس",
+       "name_en": "Labneh Ampris",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "فول",
+       "name_en": "Foul",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "مسبحة",
+       "name_en": "Mosabaha",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "فتي",
+       "name_en": "Fatteh",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "مقلة كشك",
+       "name_en": "Kishk pan",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "مقلة قورما",
+       "name_en": "Qawerma Pan",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "عصير طازج",
+       "name_en": "Fresh Juice",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بريق شاي",
+       "name_en": "Tea Pot",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "قهوة تركية",
+       "name_en": "Turkish Coffee",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "نسكافيه",
+       "name_en": "Nescafe",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "كابوشينو",
+       "name_en": "Cappuccino",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "كاكاو",
+       "name_en": "Hot Chocolate",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "زهورات",
+       "name_en": "Herbs",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "شاي",
+       "name_en": "Tea",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_ar": "مقبلات",
+     "name_en": "Lebanese Mezza",
+     "items": [
+      {
+       "name_ar": "تبوله",
+       "name_en": "Tabbouleh",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "فتوش",
+       "name_en": "Fattoush",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "حمص",
+       "name_en": "Hommos",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "متبل باذنجان",
+       "name_en": "Motabal",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "شنكليش",
+       "name_en": "Shankleesh",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "لبنة بالتوم",
+       "name_en": "Labneh & Garlic",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "ورق عنب",
+       "name_en": "Grape leaves",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "مكدوس",
+       "name_en": "Makdous",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "حمص بقورما",
+       "name_en": "Hommos & Qawerma",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "كبة",
+       "name_en": "Kebeh",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بطاطا",
+       "name_en": "Fries",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بطاط حره",
+       "name_en": "Spicy Potato",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "رقاقات جبنة",
+       "name_en": "Cheese Roll",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "مقانق",
+       "name_en": "Makanik",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "سجق",
+       "name_en": "Soujok",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "سودا دجاج",
+       "name_en": "Chicken Liver",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_ar": "صحن ساخن",
+     "name_en": "Hot Plate",
+     "items": [
+      {
+       "name_ar": "لحمة مشوي",
+       "name_en": "Grilled Meat",
+       "price": 15,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "كباب",
+       "name_en": "Kabab",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "طاووق",
+       "name_en": "Tawouk",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "برجر",
+       "name_en": "Burger",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "دبل برغر",
+       "name_en": "Double Burger",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "نغتس",
+       "name_en": "Nuggets",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "تندرس دجاج",
+       "name_en": "Chicken Tenders",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "إسكالوب",
+       "name_en": "Chicken Escalope",
+       "price": 11,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "هوت دوغ",
+       "name_en": "Hot Dog",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_ar": "حلو",
+     "name_en": "Desserts",
+     "items": [
+      {
+       "name_ar": "نوتلا",
+       "name_en": "Nutella",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "الكوز بومب",
+       "name_en": "Al Kooz Bomb",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_ar": "مشروبات باردة",
+     "name_en": "Cold Drinks",
+     "items": [
+      {
+       "name_ar": "مياه",
+       "name_en": "Water",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "مشروبات غازية",
+       "name_en": "Soft Drinks",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "أيس تي",
+       "name_en": "Iced Tea",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بيريه",
+       "name_en": "Perrier",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بيرة بلا كحول",
+       "name_en": "Non-Alcoholic Beer",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "مشروب طاقة",
+       "name_en": "Energy Drink",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_ar": "مشروبات روحية",
+     "name_en": "Alcohol",
+     "items": [
+      {
+       "name_ar": "بيره",
+       "name_en": "Beer",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "بيره مكسيكان",
+       "name_en": "Mexican Beer",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "إبريق عرق",
+       "name_en": "Arak Jug",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "قنينة نبيذ",
+       "name_en": "Wine Bottle",
+       "price": 25,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_ar": "أركيلة",
+     "name_en": "Argile",
+     "items": [
+      {
+       "name_ar": "أركيلة",
+       "name_en": "Shisha",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "رأس إضافي",
+       "name_en": "Extra Bowl",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_ar": "خدمات إضافية",
+     "name_en": "Extra Services",
+     "items": [
+      {
+       "name_ar": "خدمة كيك",
+       "name_en": "Cake Service",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "خدمة كحول",
+       "name_en": "Alcohol Service",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_ar": "خدمة أركيلة",
+       "name_en": "Shisha Service",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    }
+   ],
+   "warnings": []
+  },
+  {
+   "place_id": "ChIJrYBazXsgHxUR9Xc2RHygzgc",
+   "vendor_name": "INDINER time",
+   "village": "chouf",
+   "source_url": "https://menu.omegasoftware.ca/indinertime",
+   "adapter": "omega",
+   "method": "omega",
+   "captured_at": "2026-10-14",
+   "sections": [
+    {
+     "name_en": "Side",
+     "items": [
+      {
+       "name_en": "Chickin Popcorn",
+       "description": "Chicken popcorn bites served with your choice of cheddar cheese or garlic dipping sauce.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Onion Rings",
+       "description": "5 pieces crispy golden onion rings served with cocktail sauce.",
+       "price": 270000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Mozzarella Sticks",
+       "description": "5 crispy mozzarella sticks served with cheddar cheese dip.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Buffalo Wings",
+       "description": "10 pieces of spicy Buffalo wings served with honey mustard sauce.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Combo (Fries and Drink)",
+           "price": 250000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Louisiana Wings",
+       "description": "10 pieces of Southern - Style Louisiana wings served with honey mustard sauce.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Combo (Fries and Drink)",
+           "price": 250000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "BBQ Wings",
+       "description": "10 pieces of BBQ wings served with honey mustard sauce.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Combo (Fries and Drink)",
+           "price": 250000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Regular Fries",
+       "description": "Golden, crispy froes- the classic you always crave.",
+       "price": 180000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Mega Fries",
+       "description": "More of the golden crunch you love, made for serious cravings.",
+       "price": 500000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Curly Fries",
+       "description": "Twisty, crispy, and seasoned for the extra flavor in every bite.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Potatoes Wedges",
+       "description": "Twisty-cut, fluffy inside, crispy outside- real comfort bites served cocktail sauce.",
+       "price": 360000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "The Starter Sampler",
+       "description": "Onion rings, mozzarella sticks, potato wedges, chicken popcorn, Cheddar and cocktail sauce dips. Regular portions.",
+       "price": 1170000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Flavors on the Side",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Honey Mustard Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cocktail Sauce",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Louisiana Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Hot Sauce Cup",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Truffle Sauce",
+           "price": 180000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name_en": "Salads",
+     "items": [
+      {
+       "name_en": "Indiner Salad",
+       "description": "Fresh iceberg lettuce, cherry tomatoes, sweet corn, olives, topped with marinated chargrilled chicken breast, sharp cheddar cheese, avocado, and crispy tortilla strips.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Chicken Caesar Salad",
+       "description": "Crisp iceberg lettuce, homemade Caesar dressing, crunchy croutons, shaved Parmesan, and topped with marinated chargrilled chicken breast.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Caesar Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Parmesan Cheese",
+           "price": 135000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Caesar Salad",
+       "description": "Crisp iceberg lettuce, homemade Caesar dressing, crunchy croutons, and shaved parmesan.",
+       "price": 540000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Caesar Sauce",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Parmesan Cheese",
+           "price": 135000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Green Salad",
+       "description": "Fresh Lettuce, cherry tomatoes, green peppers, cucumber, sweet corn, and onions, with a choice of tangy lemon sauce or classic Italian dressing.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name_en": "Crispy Strips",
+     "items": [
+      {
+       "name_en": "3 Pc Chicken Crispy Combo",
+       "description": "3 pieces of freshly prepared crispy tenders served with coleslaw, golden fries, fresh bun, cheddar cheese, and a soft drink.",
+       "price": 770000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Crispy Tender Piece",
+           "price": 100000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries",
+           "price": 180000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Upgrade to curly fries",
+           "price": 270000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "4 Pcs Crispy",
+       "description": "4 pieces of freshly prepared crispy tenders served with coleslaw salads, fries, and a fresh bun.",
+       "price": 765000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Crispy Tender Piece",
+           "price": 100000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries",
+           "price": 180000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Upgrade to curly fries",
+           "price": 270000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 3",
+         "min": 0,
+         "max": 7,
+         "choices": [
+          {
+           "name": "Pepsi Can 355ML",
+           "price": 110000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Pepsi Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Diet Pepsi Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "7UP Can 355ML",
+           "price": 110000,
+           "currency": "LBP"
+          },
+          {
+           "name": "7up Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Diet 7up Plastic 330 ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Miranda Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "4 Pcs Crispy Combo",
+       "description": "4 pieces of freshly prepared crispy tenders served with coleslaw, golden fries, and a fresh bun, cheddar cheese, and a Pepsi.",
+       "price": 855000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Crispy Tender Piece",
+           "price": 100000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries",
+           "price": 180000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Upgrade to curly fries",
+           "price": 270000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "5 Pcs Crispy",
+       "description": "5 pieces of freshly prepared crispy tenders served with coleslaw salad, fries, and a fresh bun.",
+       "price": 810000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 7,
+         "choices": [
+          {
+           "name": "Pepsi Can 355ML",
+           "price": 110000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Pepsi Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Diet Pepsi Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "7UP Can 355ML",
+           "price": 110000,
+           "currency": "LBP"
+          },
+          {
+           "name": "7up Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Diet 7up Plastic 330 ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Miranda Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 3",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Crispy Tender Piece",
+           "price": 100000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries",
+           "price": 180000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Upgrade to curly fries",
+           "price": 270000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "5 Pcs Crispy Combo",
+       "description": "5 pieces of freshly prepared crispy tenders served with coleslaw, golden fries, and a fresh bun, cheddar cheese, and a Pepsi.",
+       "price": 900000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Crispy Tender Piece",
+           "price": 100000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries",
+           "price": 180000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Upgrade to curly fries",
+           "price": 270000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "21 Pcs Crispy Box",
+       "description": "21 pieces of freshly prepared crispy tenders served with large fries, 3 coleslaw salad, 5 fresh buns, and a 1.25-liter soft drink.",
+       "price": 3150000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 6,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mega Fries",
+           "price": 500000,
+           "currency": "LBP"
+          },
+          {
+           "name": "The Starter Sampler",
+           "price": 1170000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "21 Pcs Crispy Combo",
+       "description": "21 pieces of freshly prepared crispy tenders served with large fries, 3 coleslaw salad, 3 cheddar dips, 2 garlic dips, 5 fresh buns, and 1.25 liters Pepsi.",
+       "price": 3330000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Chick Shakes Cup",
+       "description": "Freshly prepared Tender crispy chicken mixed with fries, smothered with barbecue sauce, and topped with cheddar cheese, chips and our special house sauce.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Broasted Chicken",
+     "items": [
+      {
+       "name_en": "4 Pcs Broasted Combo",
+       "description": "4 pieces of freshly prepared broasted chicken served with fries, coleslaw salad, garlic dip, fresh bun and a soft drink.",
+       "price": 1000000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 9,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Breast",
+           "price": 315000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Drum",
+           "price": 135000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries",
+           "price": 180000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Upgrade to curly fries",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cup Kabis",
+           "price": 50000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "8 Pcs Broasted",
+       "description": "8 pieces of freshly prepared broasted chicken served with 2 regular fries, 2 garlic dips, and 2 fresh buns.",
+       "price": 1800000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Breast",
+           "price": 315000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Drum",
+           "price": 135000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries",
+           "price": 180000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cup Kabis",
+           "price": 50000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Broasted Dozen Combo",
+       "description": "12 pieces of freshly prepared broasted chicken served with large fries, 3 garlic dips, 2 coleslaw salad, 3 fresh buns, and 1.25-liter soft drink.",
+       "price": 2850000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "18 Pcs Broasted Combo",
+       "description": "18 pieces of freshly prepared crispy broasted chicken served with large fries, 3 coleslaw salad, 5 garlic dips, 5 fresh buns and 1.25-liter soft drink.",
+       "price": 4000000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 6,
+         "choices": [
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Breast",
+           "price": 315000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Drum",
+           "price": 135000,
+           "currency": "LBP"
+          },
+          {
+           "name": "The Starter Sampler",
+           "price": 1170000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cup Kabis",
+           "price": 50000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Broast 'n' Crisp Combo",
+       "description": "2 pieces of freshly prepared broasted chicken, 3 crispy tenders, served with fries, coleslaw, garlic dip, fresh bun and a soft drink.",
+       "price": 1000000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 9,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Breast",
+           "price": 315000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Drum",
+           "price": 135000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Crispy Tender Piece",
+           "price": 100000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries",
+           "price": 180000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Upgrade to curly fries",
+           "price": 270000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "18 Pcs Mixed Chicken Box",
+       "description": "8 pieces of freshly prepared broasted chicken, 10 crispy tenders, served with large fries, large coleslaw salad, 2 cheddar dips, 2 garlic dips, 4 fresh buns and 1.25 liters soft drink.",
+       "price": 3420000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mix (Spicy and Mild)",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 8,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Garlic Cream Dip",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cheddar Cheese Dip",
+           "price": 90000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Breast",
+           "price": 315000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Broasted Chicken Drum",
+           "price": 135000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Crispy Tender Piece",
+           "price": 100000,
+           "currency": "LBP"
+          },
+          {
+           "name": "The Starter Sampler",
+           "price": 1170000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Cup Kabis",
+           "price": 50000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name_en": "Crispy Burgers",
+     "items": [
+      {
+       "name_en": "Crispy Cheddar (Mild or Spicy)",
+       "description": "Crispy chicken breast topped with cheddar, iceberg lettuce, tomatoes, pickles, and creamy mayo.",
+       "price": 550000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Smoky Crispy",
+       "description": "Crispy chicken breast layered with mozzarella cheese, iceberg lettuce, tomatoes, pickles and our special smoky sauce.",
+       "price": 550000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Korean Crispy",
+       "description": "Crispy chicken coated in Korean heat, balanced with coleslaw, pickles, and our signature gochujang sauce.",
+       "price": 550000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "BBQ Crispy",
+       "description": "Crispy chicken breast topped with mozzarella cheese, iceberg lettuce, pickles finished with our rich smoky BBQ sauce.",
+       "price": 550000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Dynamite Crispy",
+       "description": "Crispy chicken breast layered with mozzarella cheese, iceberg lettuce, pickles and our special dynamite sauce.",
+       "price": 550000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crispy Box",
+       "description": "A crispy burger, two golden crispy strips, regular fries, fresh coleslaw, and a soft drink. Everything you crave in one box.",
+       "price": 1000000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Crispy Cheddar (Mild or Spicy).",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Smoky Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Korean Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Dynamite Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crispy Pop Mix",
+       "description": "A crispy burger served with golden chicken popcorn, regular fries, fresh coleslaw, and a soft drink. All in one satisfying mix.",
+       "price": 1000000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Crispy Cheddar (Mild or Spicy).",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Smoky Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Korean Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Dynamite Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crispy Duo",
+       "description": "2 Crispy Burgers served with 2 regular fries, and 2 soft drinks. Perfect for two.",
+       "price": 1500000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Crispy Cheddar (Mild or Spicy).",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Smoky Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Korean Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Dynamite Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crispy Trio",
+       "description": "3 Crispy Burgers served with mega fries and a 1.25L soft drink. The crispy choice for three.",
+       "price": 2150000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Crispy Cheddar (Mild or Spicy).",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Smoky Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Korean Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Dynamite Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crispy Quattro",
+       "description": "4 Crispy Burgers served with mega fries and a 1.25L soft drink. Made to share.",
+       "price": 2700000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Crispy Cheddar (Mild or Spicy).",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Smoky Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Korean Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "BBQ Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Dynamite Crispy.",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crispy Mozzarella",
+       "description": "Crispy chicken breast, patty mozzarella , iceberg lettuce, tomato, pickles, with creamy mayo and tangy barbecue sauce.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Korean Mozza Crispy",
+       "description": "Crispy chicken coated in Korean heat topped with mozzarella patty, coleslaw, pickles, and our signature gochujang sauce.",
+       "price": 770000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name_en": "CHICKEN BURGERS",
+     "items": [
+      {
+       "name_en": "Max Avocado",
+       "description": "Chargrilled marinated chicken breast topped with Jalapeño, creamy avocado, iceberg lettuce, tomatoes, mozzarella cheese, and a creamy mayo.",
+       "price": 630000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Combo (Fries and Drink)",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Grilled Chicken Breast",
+           "price": 225000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Classic Chicken",
+       "description": "Chargrilled marinated chicken breast topped with iceberg lettuce, tomatoes, pickles, cheddar cheese and creamy mayo.",
+       "price": 600000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Combo (Fries and Drink)",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Grilled Chicken Breast",
+           "price": 225000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Woodland Beef",
+       "description": "Grilled beef patty topped with melted Emmental cheese, sautéed mushrooms, crispy fried onions, and our signature Parmesan aioli.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Burgers",
+     "items": [
+      {
+       "name_en": "Cheesy Mushroom",
+       "description": "Flame-grilled beef patty OR chargrilled chicken breast topped with sautéed mushroom, melted cheddar and mozzarella cheese and rich creamy mushroom sauce .",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "California Crunch",
+       "description": "Flame-grilled beef patty OR chargrilled chicken breast with tomatoes, iceberg lettuce, pickles, crispy chips, mozzarella pane and tangy California sauce.",
+       "price": 770000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Supreme Crunch",
+       "description": "Flame-grilled marinated chicken breast OR grilled beef patty with turkey bacon, crispy mozzarella pane, cheddar cheese, crunchy chips, iceberg lettuce, tomatoes, and signature sauce.",
+       "price": 900000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Classic American",
+       "description": "Flame-grilled beef OR chargrilled chicken breast, with iceberg lettuce, tomato, grilled onions pickles, and classic house sauce.",
+       "price": 600000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Cuban Flame",
+       "description": "Flame-grilled beef patty OR chargrilled chicken breast with grilled onions, iceberg lettuce, tomatoes, pickles, melted mozzarella cheese, and a spicy Cuban sauce.",
+       "price": 650000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Swiss Entrecote",
+       "description": "Chargrilled beef patty topped with melted mozzarella, mushrooms, and Sautéed onions, fished with our signature entrecôte sauce – served with crispy fries.",
+       "price": 990000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Upgrade to curly fries",
+           "price": 270000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 7,
+         "choices": [
+          {
+           "name": "Pepsi Can 355ML",
+           "price": 110000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Pepsi Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Diet Pepsi Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "7UP Can 355ML",
+           "price": 110000,
+           "currency": "LBP"
+          },
+          {
+           "name": "7up Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Diet 7up Plastic 330 ML",
+           "price": 80000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Miranda Plastic 330ML",
+           "price": 80000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Bacon Cheddar",
+       "description": "Flame-grilled beef patty topped with melted patty cheddar cheese, beef bacon, onion, iceberg lettuce, tomato, and tangy cocktail sauce.",
+       "price": 945000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Grandmaster Beef",
+       "description": "Chargrilled beef patty, mozzarella cheese, caramelized onions, crispy chips and a blend of honey mustard, lettuce and BBQ sauce.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Beirut Classic",
+       "description": "Smoky Flame- grilled beef patty layered with coleslaw, cheddar, fries, pickles and a drizzle of ketchup.",
+       "price": 630000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 4,
+         "choices": [
+          {
+           "name": "Cut In Half",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Double Patty",
+           "price": 225000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name_en": "Sandwiches & Wraps",
+     "items": [
+      {
+       "name_en": "Double Crispy",
+       "description": "Crispy tenders, cheddar cheese, fresh lettuce, tomato, pickles and creamy mayo.",
+       "price": 540000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Mild",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          },
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Royal Mushroom",
+       "description": "Grilled marinated chicken breast, melted mozzarella, sautéed mushroom, lettuce, and mayo with our signature rich house sauce.",
+       "price": 810000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Chicken Sub",
+       "description": "Flame grilled marinated chicken breast, fresh lettuce, tomatoes, pickles, creamy mayonnaise and rich garlic cream.",
+       "price": 585000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Chicken Avocado",
+       "description": "Chargrilled chicken breast laid on lettuce, avocado slices, Emmental cheese and drizzled with rich honey mustard sauce.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Avocado",
+           "price": 90000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Fajita Guac",
+       "description": "Grilled fajita chicken with sautéed onions, green pepper, mozzarella cheese and creamy guacamole.",
+       "price": 675000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Francisco Grilled",
+       "description": "Chargrilled marinated chicken breast, lettuce, corn, mozzarella, and a creamy mayo - soya sauce blend.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Classic Escalope",
+       "description": "Deep-fried breaded chicken breast, lettuce, sweet corn, pickles, cheddar cheese and a creamy cocktail sauce.",
+       "price": 630000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Jalapeno Mexican",
+       "description": "Flame- grilled marinated chicken breast, tangy tomato sauce, onion, corn, green peppers, mozzarella, Jalapeño and a touch of mayo.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Classic Philadelphia",
+       "description": "Grilled tender beef, sautéed onions, green pepper, fresh mushrooms, mozzarella cheese and drizzle of fillet sauce and creamy mayo.",
+       "price": 900000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Tokyo Beef",
+       "description": "Thinly sliced grilled fillet beef with melted Emmental cheese, sautéed mushrooms, caramelized onions, tartar and our signature spicy mayo sauce, served in a soft sandwich roll.",
+       "price": 900000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Fillet Beef",
+       "description": "Thinly sliced grilled fillet beef with melted Emmental cheese, caramelized onions, fresh Rocca, and our signature entrecôte sauce, served in toasted ciabatta.",
+       "price": 1170000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Crispy Cheddar (Mild or Spicy)",
+       "description": "Crispy chicken tenders, cheddar cheese, lettuce, tomatoes, and a drizzle of special sauce.",
+       "price": 540000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "California Mozza",
+       "description": "Chargrilled marinated chicken breast, mozzarella patty, lettuce, tomatoes, pickles, and rich mayo sauce.",
+       "price": 720000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crispy BBQ",
+       "description": "Crispy chicken tenders, sharp cheddar cheese, crunchy chips, creamy mayo and smoky BBQ sauce.",
+       "price": 540000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Spicy",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Boneless Bliss",
+       "description": "Tender boneless chicken with melted mozzarella and crispy chips, finished with BBQ, honey mustard and creamy mayo.",
+       "price": 540000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crunchy Boxy Blast",
+       "description": "Crispy breaded chicken, fried mozzarella, cheddar cheese, lettuce, tomatoes, and pickles and a tangy cocktail sauce, all coming together for a crunchy, cheesy and flavorful boxy experience.",
+       "price": 765000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Grilled Chicken Sandwich",
+       "description": "Chargrilled marinated chicken breasts, crispy fries, pickles, rich garlic cream, a drizzle of sumac and a special Arabian sauce",
+       "price": 540000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 6,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Potatoes Wedges",
+           "price": 360000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Classic Tawouk",
+       "description": "Grilled Tawouk paired with pickles, creamy garlic cream, fresh coleslaw, crispy fries and a touch of ketchup.",
+       "price": 540000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Extra Sauce",
+           "price": 0,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 5,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Fries Classic",
+       "description": "Crispy fries, coleslaw salad, pickles, topped with ketchup and garlic cream, wrapped in large Arabic bread.",
+       "price": 270000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Sandwich Combo (Fries and Pepsi)",
+           "price": 230000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          }
+         ]
+        },
+        {
+         "name": "Modifier 2",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Chickin Popcorn",
+           "price": 450000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Onion Rings",
+           "price": 270000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Mozzarella Sticks",
+           "price": 450000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name_en": "Veggie",
+     "items": [
+      {
+       "name_en": "Veggie Mozzarella Burger",
+       "description": "Mozzarella penne with a fresh mix of cabbage, corn, carrots, onions, green pepper and fresh mushrooms, topped with creamy mayo and our signature house sauce.",
+       "price": 630000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Veggie Sub",
+       "description": "A fresh mix of cabbage, carrots, onions, green pepper, corn, and fresh mushrooms, layered with mozzarella cheese, and creamy mayo.",
+       "price": 540000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Regular Fries Combo",
+           "price": 250000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Curly Fries Combo",
+           "price": 520000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name_en": "Protein Zone",
+     "items": [
+      {
+       "name_en": "Power Beef",
+       "description": "63g Protein | 630 kcal 220g grilled marinated beef served with cooked quinoa, broccoli, zucchini, carrots, toasted almonds, and our house-made Greek yogurt herb sauce.",
+       "price": 1350000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Power Chicken",
+       "description": "60g Protein | 600 kcal 200g grilled marinated chicken served with cooked quinoa, kidney beans, iceberg lettuce, cucumber, cherry tomatoes, bell peppers, onions, avocado, and our house-made Greek yogurt herb sauce.",
+       "price": 1100000,
+       "currency": "LBP",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Kids Meals",
+     "items": [
+      {
+       "name_en": "Nuggets Mini Meal",
+       "description": "Five fresh tender chicken nuggets, crunchy fries, and fruity juice. A tasty meal that’s as fun as it is filling.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 2,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Crispy Mini Meal",
+       "description": "Two tender, crispy chicken pieces served with fries and refreshing juice. A crispy and delicious combo for hungry little ones.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 3,
+         "choices": [
+          {
+           "name": "Bun",
+           "price": 70000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          },
+          {
+           "name": "Crispy Tender Piece",
+           "price": 100000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Chicken Burger Mini Meal",
+       "description": "A Kid-sized chicken burger, served with crunchy fries and fruity juice. A fun and tasty meal for playful appetites.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Beef Burger Mini Meal",
+       "description": "A tasty mini beef burger with a side of crispy fries and juice. A delicious and filling treat for mini burger fans.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9,
+       "options": [
+        {
+         "name": "Modifier 1",
+         "min": 0,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Coleslaw Salad",
+           "price": 60000,
+           "currency": "LBP"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Popcorn Mini Meal",
+       "description": "Crispy golden chicken popcorn served with fries and a refreshing Mr. Juicy.",
+       "price": 450000,
+       "currency": "LBP",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Dips & Sauces",
+     "items": [
+      {
+       "name_en": "Garlic Cream Dip",
+       "price": 70000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BBQ Sauce",
+       "price": 70000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Cheddar Cheese Dip",
+       "price": 90000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Honey Mustard Sauce",
+       "price": 90000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Cocktail Sauce",
+       "price": 70000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Louisiana Sauce",
+       "price": 90000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Hot Sauce Cup",
+       "price": 70000,
+       "currency": "LBP",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Extras",
+     "items": [
+      {
+       "name_en": "Bun",
+       "price": 70000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Parmesan Cheese",
+       "price": 135000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Regular Fries Combo",
+       "description": "Golden regular fries served with a chilled Pepsi 330ML for the perfect crispy refreshment.",
+       "price": 250000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Coleslaw Salad",
+       "price": 60000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Broasted Chicken Breast",
+       "price": 315000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Curly Fries Combo",
+       "description": "Seasoned crispy curly fires paired with a chilled Pepsi 330ML for a fun flavorful combo.",
+       "price": 520000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Broasted Chicken Drum",
+       "price": 135000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Crispy Tender Piece",
+       "price": 100000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Make it Curly Fries",
+       "description": "Swap your regular fries for our crispy curly fries in any combo or meal.",
+       "price": 270000,
+       "currency": "LBP",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Desserts",
+     "items": [
+      {
+       "name_en": "Choco Peanut Cup",
+       "description": "Rich brownie layered with crunchy peanut butter mix, Hershey dark chocolate, and topped with crushed peanuts.",
+       "price": 180000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Lotus Choco Cup",
+       "description": "Rich brownie layered with Lotus Biscoff mix, Hershey dark chocolate, and topped with crushed Lotus biscuits.",
+       "price": 270000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Caramel Cheesecake Cup",
+       "description": "Crunchy biscuits base layered with creamy cheesecake, salted caramel, and finished with crushed biscuits.",
+       "price": 360000,
+       "currency": "LBP",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Soft Drinks",
+     "items": [
+      {
+       "name_en": "Pepsi Can 355ML",
+       "price": 110000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Pepsi Plastic 330ML",
+       "price": 80000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Diet Pepsi Plastic 330ML",
+       "price": 80000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Pepsi Bottle 1.25L",
+       "price": 210000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "7UP Can 355ML",
+       "price": 110000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "7up Plastic 330ML",
+       "price": 80000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Diet 7up Plastic 330 ML",
+       "price": 80000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "7UP Bottle 1.25L",
+       "price": 210000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Miranda Plastic 330ML",
+       "price": 80000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Miranda Bottle 1.25L",
+       "price": 210000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Iced Tea Lemon 335ML",
+       "price": 110000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Iced Tea Zero Sugar Lemon 335ML",
+       "price": 110000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Iced Tea Peach 335ML",
+       "price": 110000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Iced Tea Zero Sugar Peach 335ML",
+       "price": 110000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Iced Tea Red Fruits 335ML",
+       "price": 110000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Iced Tea Zero Sugar Red Fruits 335ML",
+       "price": 110000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Mr. Juicy Pineapple 180ML",
+       "price": 40000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Mr. Juicy Mango 180ML",
+       "price": 40000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Mr. Juicy Apple 180ML",
+       "price": 40000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Mr. Juicy Orange 180ML",
+       "price": 40000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Water Small",
+       "price": 50000,
+       "currency": "LBP",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Sparkling Water Can 330ML",
+       "price": 80000,
+       "currency": "LBP",
+       "confidence": 0.9
+      }
+     ]
+    }
+   ],
+   "warnings": []
+  },
+  {
+   "place_id": "ChIJxwVVYgQgHxURSGfCRviM0eU",
+   "vendor_name": "J.O'S House of Subs, Inc.",
+   "village": "Baakleen",
+   "source_url": "http://www.joshouseofsubs.com/",
+   "adapter": "html",
+   "method": "json",
+   "captured_at": "2026-10-14",
+   "sections": [
+    {
+     "name_en": "Appetizers",
+     "items": [
+      {
+       "name_en": "Breaded Shrimps",
+       "description": "5 pieces of breaded shrimps, served with cocktail sauce.",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chilly & Cheese",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Curly Fries",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "French Fries",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Kids Meal",
+       "description": "6 pieces of chicken nuggets, served with French fries.",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Mozzarella Sticks",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Wedges",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Beverages",
+     "items": [
+      {
+       "name_en": "Ice Tea",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Soft Drink Can",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Sparkling water",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Water",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Burgers",
+     "items": [
+      {
+       "name_en": "Chicken B.B.Q",
+       "description": "Grilled chicken breast grilled bun topped with B.B.Q sauce, turkey bacon, fresh saute mushrooms, lettuce, tomato and mayo",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Burger",
+       "description": "Chicken breast grilled to perfection served on toasted bun with lettuce, tomato, onions and mayo.",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Fusion Burger",
+       "description": "Fresh chicken breast charcoaled to perfection, topped with Parmesan, mixed cheese, Jalapenos , rocket leaves and fresh tomatoes. Served on our fresh burger bun with Aioli and honey mustard sauce.",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Honey Mustard",
+       "description": "Fresh breast of chicken grilled to perfection served on toasted bun with lettuce, tomato and our honey mustard sauce",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Honey Smoked",
+       "description": "Fresh meat patty grilled to perfection, served on toasted bun with lettuce, Rocca leaves, fresh mushrooms, grilled onions, and our secret sauce.",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "J.O'S Hamburger",
+       "description": "Fresh meat patty grilled to perfection, served on toasted bun with lettuce, tomato, onions and mayo.",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "JO'S Cheesy Chicken",
+       "description": "Chicken breast grilled to perfection, mozzarella pane, served on a toasted bun with lettuce, tomato, pickles and mayo garlic sauce.",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Mozarella Burger",
+       "description": "Fresh beef patty grilled to perfection, topped with our mozzarella pane, served with lettuce, tomato, pickles and JO'S cocktail sauce.",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Texas Hold'em",
+       "description": "Fresh meat patty grilled to perfection, cheddar cheese, saute onions, saute mushrooms on toasted bun with turkey bacon, lettuce, tomato, onions and mayo",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "The SmokeHouse Burger",
+       "description": "Fresh meat patty charcoaled to perfection, topped with cheddar cheese slice, fresh mushrooms, double turkey bacon, onion rings and our Signature BBQ mayo sauce.",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Turkey and Cheese",
+       "description": "Fresh meat patty grilled to perfection, served on a toasted bun with turkey, cheese, pepperoni, lettuce, tomatoes, pickles and our secret sauce.",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Cold Cuts",
+     "items": [
+      {
+       "name_en": "Halloumi Sub",
+       "description": "Grilled halloum cheese on our fresh French baguette, topped with cucumber, tomatoes and pesto sauce.",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Turkey Sub",
+       "description": "Fresh turkey breast in our french baguette, topped with fresh iceberg, tomatoes, mayo.",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Kabab Corner",
+     "items": [
+      {
+       "name_en": "Combo Kabab",
+       "description": "One skewer of charbroiled shrimps and one chicken kabab skewer. JOS own recipe. Plate served with pita bread, greek salad and french fries.",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Double Kabab Platter",
+       "description": "Two skewer of marinated chicken -J.O'S own recipe- on a platter with grilled pita bread, french fries and greek salad",
+       "price": 9.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Shrimp Kabab",
+       "description": "One skewer of charbroiled shrimps. JOS own recipe. Plate served with pita bread, greek salad and french fries.",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Single Kabab Platter",
+       "description": "One skewer of marinated chicken -J.O'S own recipe- on a platter with grilled pita bread, french fries and greek salad",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Pasta",
+     "items": [
+      {
+       "name_en": "Chicken Fettuccine Alfredo",
+       "description": "Grilled chicken breast on top of pasta drowned in Alfredo sauce",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Fettuccine Alfredo",
+       "description": "Pasta drowned in Alfredo sauce",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Salads",
+     "items": [
+      {
+       "name_en": "Greek Salad",
+       "description": "Fresh iceberg lettuce, cherry tomatoes, sliced cucumbers, topped with feta cheese served with J.O'S house dressing",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Green Salad",
+       "description": "Fresh iceberg lettuce, cherry tomatoes, sliced cucumbers, served with J.O'S house dressing",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Grilled Chicken Salad",
+       "description": "Charboilled chicken strips on a bed of fresh iceberg lettuce, cherry tomatoes, sliced cucumbers, topped with feta cheese served with J.O'S house dressing",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "J.O'S Caesar Salad",
+       "description": "Fresh iceberg lettuce, cherry tomatoes, sliced cucumbers, parmesan cheese, croutons and caesar dressing",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "J.O'S Chicken Caesar Salad",
+       "description": "Charboilled chicken strips on a bed of fresh iceberg lettuce, cherry tomatoes, sliced cucumbers, parmesan cheese, croutons and caesar dressing",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Philly Chicken Salad",
+       "description": "Fresh iceberg lettuce, cherry tomatoes, sliced cucumbers with grilled philly chicken and mozarella cheese, served with J.O'S house dressing",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Philly Steak Salad",
+       "description": "Fresh iceberg lettuce, cherry tomatoes, sliced cucumbers with grilled philly steak and mozzarella cheese, served with J.O'S house dressing",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Subs",
+     "items": [
+      {
+       "name_en": "Chicken & Garlic",
+       "description": "Grilled chicken breast strips with garlic paste, French fries and sliced pickles",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Alfredo (JO'S Signature)",
+       "description": "Grilled chicken breast strips in our famous own Alfredo sauce with turkey bacon bites.",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Pepperoni Sub",
+       "description": "Grilled chicken breast strips, topped with beef pepperoni, mozzarella cheese and basil tomato sauce",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Pesto",
+       "description": "Grilled chicken breast fillet strips with pesto sauce topped with shredded lettuce and tomatoes",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Philly Sub",
+       "description": "Grilled chicken breast strips with sauteed onions, mozzarella cheese, topped with shredded lettuce, tomatoes and J.O'S house dressing",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Teriyaki",
+       "description": "Grilled chicken breast strips sauteed in teriyaki sauce, cocktail sauce topped with shredded lettuce and French fries",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "J.O S Steak Sub",
+       "description": "Grilled beef strips topped with mozzarella cheese, saute mixed peppers, saute mushrooms and saute onions with Worcestershire Sauce",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Mexican Chicken",
+       "description": "Grilled chicken breast strips smothered in grilled tomatoes, sweet corn, onions, green pepper and mozzarella cheese. Served on our fresh French baguette.",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Parisien Steak Sub",
+       "description": "Grilled beef steak, sauteed with onions and fresh mushrooms, toped with Rocket leaves, Swiss and Parmesan cheese. Served on our fresh French baguette with Mustard Mayo sauce and herbs.",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Philly Cheese Steak & Mushroom",
+       "description": "Grilled beef strips sauteed with onions, mushrooms, mozzarella cheese, shredded lettuce, and J.O'S house dressing",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Roasted Pepper",
+       "description": "Mix of yellow, green and red pepper, Caramelized with fresh mushrooms and onions, Drizzled with mayo soya sauce and mozzarella topping",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Shawarma Sub",
+       "description": "Fresh meat shawarma in our french baguette grilled to perfection, topped with parsley, onions,grilled tomatoes and Lebanese tarator sauce.",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Sloppy JOS Sub",
+       "description": "Grilled hamburger on a freshly baked bread, topped with mozzarella cheese, marinara sauce, sauteed mushrooms and sriracha sauce",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Steak Thermidor",
+       "description": "Grilled beef strips, sauteed with onions, fresh mushrooms drizzled with Alfredo sauce",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Veggie Sub",
+       "description": "Fresh green pepper, tomato, corn, onions grilled to perfection, and topped with mozzarella cheese served on our fresh baguette.",
+       "price": 4,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    }
+   ],
+   "warnings": []
+  }
+ ]
+}

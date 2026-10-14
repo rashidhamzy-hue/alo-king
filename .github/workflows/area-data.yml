@@ -4,20 +4,27 @@ name: area-data
 # Overpass or OpenRouteService:
 #   * OSM landmarks and place names for the boundary's places (scripts/shouf/osm-fetch.mjs --boundary), into
 #     supabase/seed/shouf/osm/ (© OpenStreetMap contributors, ODbL);
-#   * the road distance from the nearest pilot merchant to each boundary place (scripts/shouf/area.mjs roads, needs the
-#     ORS_API_KEY secret), into supabase/seed/places/shouf_delivery_road_km.csv.
+#   * the road distance from the nearest pilot merchant to each boundary place (scripts/shouf/area.mjs roads: ORS with
+#     the ORS_API_KEY secret, the public OSRM server once that quota is spent), into
+#     supabase/seed/places/shouf_delivery_road_km.csv; rows already committed there are kept.
 # The result is pushed to a new branch `data/area-<run id>`; a build session reviews it and opens the `Data:` pull
-# request. Run it again after the boundary file changes.
+# request. Run it again after the boundary file changes; run it on a branch (workflow_dispatch ref) to fill the rows
+# that branch is missing.
 on:
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# `shell: bash` runs with -eo pipefail, so `node … | tee` fails the step when node fails.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -30,11 +37,8 @@ jobs:
         env:
           ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
         run: |
-          if [ -z "${ORS_API_KEY:-}" ]; then
-            echo "ORS_API_KEY is not set; no road distances (the proposal falls back to the straight line)" | tee -a "$GITHUB_STEP_SUMMARY"
-          else
-            node scripts/shouf/area.mjs roads supabase/seed/places/shouf_delivery_road_km.csv | tee -a "$GITHUB_STEP_SUMMARY"
-          fi
+          [ -n "${ORS_API_KEY:-}" ] || echo "ORS_API_KEY is not set: the public OSRM server only" | tee -a "$GITHUB_STEP_SUMMARY"
+          node scripts/shouf/area.mjs roads supabase/seed/places/shouf_delivery_road_km.csv | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Push to a data branch
         env:
           BRANCH: data/area-${{ github.run_id }}

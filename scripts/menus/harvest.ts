@@ -5,8 +5,9 @@
 //                       linked PDF (pdftotext). One "menu" link on the same site is followed, one level down.
 //   parse <raw dir> <out dir>
 //                       reads the captures with scripts/menus/adapters.ts and writes
-//                       <out>/05_harvested_menus.json (the drafts build-shouf.ts loads) and <out>/report.md
-//                       (per village and merchant: adapter, method, items, priced items, or why nothing was read).
+//                       <out>/05_harvested_menus.json (the drafts build-shouf.ts loads), <out>/harvest-report.md
+//                       (per village and merchant: adapter, method, items, priced items, or why nothing was read)
+//                       and <out>/harvest-shapes.md (what each page loaded, as URLs and JSON key skeletons).
 // Instagram, Facebook and other login-walled pages are never opened (scripts/menus/sources.ts).
 // Usage: node --experimental-strip-types scripts/menus/harvest.ts capture <raw> | parse <raw> <out>
 import { execFileSync } from "node:child_process";
@@ -18,8 +19,11 @@ import {
   driveDownloadUrl,
   fromJson,
   fromJsonLd,
+  fromOmega,
+  fromProductCards,
   fromText,
   htmlText,
+  jsonFromSite,
   menuLinks,
   pricedItems,
 } from "./adapters.ts";
@@ -124,7 +128,10 @@ export async function capture(rawDir: string, list: MenuSource[] = sources()) {
       });
       const visit = async (url: string, n: number) => {
         try {
-          const res = await page.goto(url, { waitUntil: "networkidle", timeout: 45_000 });
+          // Single-page menus keep a socket or a poll open, so "networkidle" may never come (INDINER time,
+          // menutigr): wait for the document, then give the menu API up to 15 s to answer.
+          const res = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
+          await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
           await page.waitForTimeout(1500);
           // Lazy menus: scroll once to the bottom.
           await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
@@ -177,25 +184,50 @@ export type Harvested = {
 export function readCapture(dir: string) {
   const meta = JSON.parse(readFileSync(join(dir, "meta.json"), "utf8")) as Meta;
   const candidates: { method: string; draft: ReturnType<typeof fromJson> }[] = [];
-  for (const j of meta.json) {
+  const read = (file: string) => {
     try {
-      candidates.push({
-        method: `json ${j.url}`,
-        draft: fromJson(JSON.parse(readFileSync(join(dir, j.file), "utf8"))),
-      });
+      return JSON.parse(readFileSync(join(dir, file), "utf8")) as unknown;
     } catch {
-      // not JSON after all
+      return undefined; // not JSON after all
     }
+  };
+  // Only the page's own JSON: ads, analytics and feature flags are not the menu.
+  const own = meta.json.filter((j) => jsonFromSite(j.url, meta.url));
+  const omegaMenu = own.find((j) => /omegasoftware\.ca\/getRestaurantMenu/.test(j.url));
+  if (omegaMenu) {
+    const data = own.find((j) => /omegasoftware\.ca\/getRestaurantData/.test(j.url));
+    candidates.push({
+      method: `omega ${omegaMenu.url}`,
+      draft: fromOmega(read(omegaMenu.file), data ? read(data.file) : undefined),
+    });
+  }
+  const cards: string[] = [];
+  for (const j of own) {
+    const v = read(j.file);
+    if (v === undefined) continue;
+    candidates.push({ method: `json ${j.url}`, draft: fromJson(v) });
+    // Odoo snippets answer JSON-RPC with HTML product cards inside.
+    const walk = (x: unknown): void => {
+      if (typeof x === "string" && x.includes("oe_product_cart")) cards.push(x);
+      else if (Array.isArray(x)) x.forEach(walk);
+      else if (x && typeof x === "object") Object.values(x).forEach(walk);
+    };
+    walk(v);
   }
   for (const f of readdirSync(dir).filter((f) => /^page-\d+\.html$/.test(f))) {
     const html = readFileSync(join(dir, f), "utf8");
     candidates.push({ method: `json-ld ${f}`, draft: fromJsonLd(html) });
+    if (html.includes("oe_product_cart")) cards.push(html);
     const txt = join(dir, f.replace(/\.html$/, ".txt"));
     candidates.push({
       method: `text ${f}`,
-      draft: fromText(existsSync(txt) ? readFileSync(txt, "utf8") : htmlText(html)),
+      draft: fromText(existsSync(txt) ? readFileSync(txt, "utf8") : htmlText(html), {
+        requireCurrency: true,
+      }),
     });
   }
+  if (cards.length)
+    candidates.push({ method: "odoo product cards", draft: fromProductCards(cards.join("\n")) });
   for (const p of meta.pdf)
     candidates.push({
       method: `pdf ${p.url}`,
@@ -204,17 +236,50 @@ export function readCapture(dir: string) {
   return { meta, candidates, best: bestDraft(candidates) };
 }
 
+/** The key skeleton of a JSON value, two levels deep, no values: enough to write an adapter for a new platform. */
+export function shape(v: unknown, depth = 0): string {
+  if (Array.isArray(v)) return `[${v.length ? shape(v[0], depth) : ""}]`;
+  if (v && typeof v === "object") {
+    const keys = Object.keys(v).slice(0, 12);
+    return depth >= 2
+      ? `{${keys.join(",")}}`
+      : `{${keys.map((k) => `${k}:${shape((v as Record<string, unknown>)[k], depth + 1)}`).join(",")}}`;
+  }
+  return typeof v;
+}
+
 function parse(rawDir: string, outDir: string) {
   const list = sources();
   const byPlace = new Map(list.map((s) => [s.place_id, s]));
   const menus: Harvested[] = [];
   const lines: string[] = [];
   const rows: { village: string; name: string; line: string }[] = [];
+  // What each page loaded, as URLs without query strings and JSON key skeletons (no values): the raw captures stay
+  // on the runner, since a platform's answer can carry the branch's contact details.
+  const shapes: string[] = ["# What the menu pages loaded (key skeletons only)", ""];
   for (const d of readdirSync(rawDir).sort()) {
     if (!existsSync(join(rawDir, d, "meta.json"))) continue;
     const { meta, candidates, best } = readCapture(join(rawDir, d));
     const s = byPlace.get(meta.place_id);
     if (!s) continue;
+    if (!meta.skip) {
+      shapes.push(`## ${s.name} (${meta.adapter})`, "");
+      for (const p of meta.pages)
+        shapes.push(`- page ${p.status ?? p.error?.slice(0, 80)} ${p.url.split("?")[0]}`);
+      for (const p of meta.pdf) shapes.push(`- pdf ${p.chars} chars ${p.url.split("?")[0]}`);
+      for (const j of meta.json) {
+        let sk = "unreadable";
+        try {
+          sk = shape(JSON.parse(readFileSync(join(rawDir, d, j.file), "utf8"))).slice(0, 300);
+        } catch {
+          // not JSON
+        }
+        shapes.push(
+          `- json ${jsonFromSite(j.url, meta.url) ? "own" : "foreign"} ${j.url.split("?")[0].slice(0, 120)} ${sk}`,
+        );
+      }
+      shapes.push("");
+    }
     let line: string;
     if (meta.skip) line = `skipped: ${meta.skip}`;
     else if (!best) {
@@ -269,6 +334,7 @@ function parse(rawDir: string, outDir: string) {
     lines.push("");
   }
   writeFileSync(join(outDir, "harvest-report.md"), lines.join("\n"));
+  writeFileSync(join(outDir, "harvest-shapes.md"), shapes.join("\n"));
   console.log(
     `harvest: ${menus.length} menus, ${menus.reduce((n, m) => n + m.sections.reduce((k, s) => k + s.items.length, 0), 0)} items`,
   );

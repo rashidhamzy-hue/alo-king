@@ -8,8 +8,10 @@ name: menu-harvest
 #   * source 3 (input `photos`, needs Anthropic API credit): the seed photos are sorted by the photo model and the menu
 #     photos read by the menu model into photo_classes.csv and 06_photo_menus.json. Without credit it says so and
 #     writes nothing.
-# Everything is pushed to a new branch `data/menu-harvest-<run id>` (with the raw captures under harvest-raw/ for
-# review); a build session opens the `Data:` pull request with the drafts. Nothing here touches the database.
+# The drafts, the report and harvest-shapes.md (what each page loaded, as URLs and JSON key skeletons, no values) are
+# pushed to a new branch `data/menu-harvest-<run id>`; a build session opens the `Data:` pull request with the drafts.
+# The raw captures stay on the runner: a platform's answer can carry the branch's own contact details. Nothing here
+# touches the database. Run it on a branch (workflow_dispatch ref) to try adapters before they merge.
 on:
   workflow_dispatch:
     inputs:
@@ -56,8 +58,6 @@ jobs:
           node --experimental-strip-types --no-warnings scripts/menus/harvest.ts capture harvest-raw
           node --experimental-strip-types --no-warnings scripts/menus/harvest.ts parse harvest-raw supabase/seed/shouf/harvest | tee -a "$GITHUB_STEP_SUMMARY"
           cat supabase/seed/shouf/harvest/harvest-report.md >> "$GITHUB_STEP_SUMMARY"
-          # Keep the raw captures reviewable but small: drop pages and files over 1 MB.
-          find harvest-raw -type f -size +1M -delete
       - name: Source 3, seed photos (Anthropic API credit)
         if: inputs.photos
         env:
@@ -84,8 +84,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add supabase/seed/shouf/harvest harvest-raw
-          git commit -m "Menus harvested by menu-harvest run ${{ github.run_id }}" -m "DECISIONS §39.4 sources 2-3: drafts the merchant confirms; raw captures under harvest-raw/ for review only."
+          git add supabase/seed/shouf/harvest
+          git commit -m "Menus harvested by menu-harvest run ${{ github.run_id }}" -m "DECISIONS §39.4 sources 2-3: drafts the merchant confirms."
           auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
           echo "::add-mask::$auth"
           git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" push origin "$BRANCH"

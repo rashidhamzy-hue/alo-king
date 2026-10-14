@@ -6,7 +6,10 @@ import {
   driveDownloadUrl,
   fromJson,
   fromJsonLd,
+  fromOmega,
+  fromProductCards,
   fromText,
+  jsonFromSite,
   menuLinks,
   pricedItems,
 } from "./adapters.ts";
@@ -169,6 +172,231 @@ describe("menu adapters", () => {
     ]);
   });
 
+  it("on a web page counts only lines with a stated currency (ratings and review counts are not prices)", () => {
+    const page =
+      "YMY\nreviews 29\nService: 5.0\nFood 4.8\nMenu\nShawarma 4$\nFalafel 3$\nFries 2 USD\n";
+    expect(pricedItems(fromText(page))).toBe(6);
+    const d = fromText(page, { requireCurrency: true });
+    expect(d.sections.flatMap((s) => s.items).map((i) => i.name_en)).toEqual([
+      "Shawarma",
+      "Falafel",
+      "Fries",
+    ]);
+  });
+
+  it("reads Omega menus: currency and decimals from the branch, groups as sections, modifiers as options", () => {
+    const data = { currency: { DESCRIPTION: "LBP", SYNBOL: "LL", DIGITNUMBER: 0 } };
+    const menu = {
+      menu: [
+        {
+          DESCRIPTION: "Side",
+          ADESCRIPTION: "Wings",
+          groups: [
+            {
+              GROUPNAME: "Side",
+              AGROUPNAME: "On The Side",
+              items: [
+                {
+                  ITEMNAME: "Chickin Popcorn",
+                  AITEMNAME: "Chicken Popcorn",
+                  ITEMDESCRIPTION: "Bites with a dip.",
+                  PRICE: 450000,
+                  sizes: [],
+                  modifiers: [
+                    {
+                      GROUPNAME: "Flavors on the Side",
+                      MANDATORY: 0,
+                      QTY: 0,
+                      items: [
+                        { ITEMNAME: "Garlic Cream Dip", PRICE: 70000 },
+                        { ITEMNAME: "BBQ Sauce", PRICE: 70000 },
+                      ],
+                    },
+                  ],
+                },
+                { ITEMNAME: "Onion Rings", AITEMNAME: "حلقات البصل", PRICE: 270000.4 },
+              ],
+            },
+          ],
+        },
+        {
+          DESCRIPTION: "Burgers",
+          groups: [
+            { GROUPNAME: "Empty", items: [] },
+            { GROUPNAME: "CHICKEN BURGERS", items: [{ ITEMNAME: "Crispy", PRICE: 600000 }] },
+            {
+              GROUPNAME: "Burgers",
+              items: [
+                {
+                  ITEMNAME: "Classic",
+                  PRICE: 500000,
+                  HAS_MULTIPLE_SIZE: 1,
+                  sizes: [
+                    { SIZENAME: "Single", PRICE: 500000 },
+                    { SIZENAME: "Double", PRICE: 800000 },
+                  ],
+                  modifiers: [
+                    {
+                      GROUPNAME: "Cooking",
+                      MANDATORY: 1,
+                      QTY: 1,
+                      items: [{ ITEMNAME: "Well done", PRICE: 0 }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const d = fromOmega(menu, data);
+    expect(d.sections.map((s) => s.name_en)).toEqual(["Side", "CHICKEN BURGERS", "Burgers"]);
+    const [popcorn, rings] = d.sections[0].items;
+    expect(popcorn).toMatchObject({
+      name_en: "Chickin Popcorn",
+      description: "Bites with a dip.",
+      price: 450000,
+      currency: "LBP",
+    });
+    // The "A" name is a second English name here: not kept as Arabic.
+    expect(popcorn.name_ar).toBeUndefined();
+    expect(popcorn.options?.[0]).toMatchObject({ name: "Flavors on the Side", min: 0, max: 2 });
+    expect(popcorn.options?.[0].choices[0]).toEqual({
+      name: "Garlic Cream Dip",
+      price: 70000,
+      currency: "LBP",
+    });
+    expect(rings).toMatchObject({ name_ar: "حلقات البصل", price: 270000 });
+    const classic = d.sections[2].items[0];
+    expect(classic.options?.map((o) => [o.name, o.min, o.max])).toEqual([
+      ["Size", 1, 1],
+      ["Cooking", 1, 1],
+    ]);
+    expect(classic.options?.[0].choices[1]).toMatchObject({ name: "Double", price: 800000 });
+
+    // USD branch: prices rounded to the two decimals the menu prints.
+    const usd = fromOmega(
+      {
+        menu: [
+          {
+            DESCRIPTION: "Foron",
+            groups: [
+              {
+                GROUPNAME: "F",
+                items: [
+                  { ITEMNAME: "Baguette", PRICE: 0.5016642775 },
+                  { ITEMNAME: "Zaatar", PRICE: 1.25 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { currency: { DESCRIPTION: "USD", SYNBOL: "$", DIGITNUMBER: 2 } },
+    );
+    expect(usd.sections[0].items.map((i) => [i.price, i.currency])).toEqual([
+      [0.5, "USD"],
+      [1.25, "USD"],
+    ]);
+    // Without the branch data the currency is not guessed.
+    expect(fromOmega(menu, undefined).sections[0].items[0]).toMatchObject({
+      price: 450000,
+      currency: null,
+    });
+  });
+
+  it("reads names in both languages, price lists and flat lists split by category", () => {
+    const kooz = fromJson({
+      categoryList: [
+        {
+          name: { nameArabic: "صاج وترويقة", nameEnglish: "Saj & Breakfast" },
+          itemList: [
+            {
+              name: { nameArabic: "زعتر", nameEnglish: "Zaatar" },
+              priceList: [{ amount: 3, currency: "usd" }],
+            },
+            {
+              name: { nameArabic: "كشك", nameEnglish: "Kishk" },
+              priceList: [{ amount: 4, currency: "usd" }],
+            },
+          ],
+        },
+      ],
+    });
+    expect(kooz.sections[0]).toMatchObject({ name_en: "Saj & Breakfast", name_ar: "صاج وترويقة" });
+    expect(kooz.sections[0].items[0]).toMatchObject({
+      name_en: "Zaatar",
+      name_ar: "زعتر",
+      price: 3,
+      currency: "USD",
+    });
+    const subs = fromJson([
+      { name: "Breaded Shrimps", category: "Appetizers", price: 4.5, currency: "USD" },
+      { name: "Curly Fries", category: "Appetizers", price: 4.5, currency: "USD" },
+      { name: "Ice Tea", category: "Beverages", price: 1.5, currency: "USD" },
+    ]);
+    expect(subs.sections.map((s) => [s.name_en, s.items.length])).toEqual([
+      ["Appetizers", 2],
+      ["Beverages", 1],
+    ]);
+  });
+
+  it("reads Odoo product cards", () => {
+    const card = (name: string, price: string) =>
+      `<div class="oe_product_cart o_carousel_product_card d-flex" role="article" aria-label=" ${name} "><h2>${name}</h2><div class="product_price"><span class="mb-0 fw-bold" name="product_price" data-oe-type="monetary" data-oe-expression="data['price']">$ <span class="oe_currency_value">${price}</span></span></div></div>`;
+    const d = fromProductCards(
+      card("Nestle Fitness original 420g", "3.60") +
+        card("Oaty Biscuits", "3.00") +
+        card("Oaty Biscuits", "3.00"),
+    );
+    expect(d.sections[0].items).toEqual([
+      { name_en: "Nestle Fitness original 420g", price: 3.6, currency: "USD", confidence: 0.9 },
+      { name_en: "Oaty Biscuits", price: 3, currency: "USD", confidence: 0.9 },
+    ]);
+  });
+
+  it("keeps only the page's own JSON, never ads, analytics or feature flags", () => {
+    expect(jsonFromSite("https://alkoozcafe.com/menu.json", "https://alkoozcafe.com/")).toBe(true);
+    expect(
+      jsonFromSite(
+        "https://www.batloundairystores.com/website/snippet/filters",
+        "https://batloundairystores.com/",
+      ),
+    ).toBe(true);
+    expect(
+      jsonFromSite(
+        "https://joshouseofsubs-api.onrender.com/api/v1/menu",
+        "http://www.joshouseofsubs.com/",
+      ),
+    ).toBe(true);
+    expect(
+      jsonFromSite(
+        "https://menu.omegasoftware.ca/getRestaurantMenu",
+        "https://menu.omegasoftware.ca/delidough",
+      ),
+    ).toBe(true);
+    expect(
+      jsonFromSite(
+        "https://alb.menutigr.com/api/customer-app/foods",
+        "https://menutigr.com/sip-n-go-1",
+      ),
+    ).toBe(true);
+    expect(
+      jsonFromSite("https://featureassets.org/v1/initialize?k=x", "https://linktr.ee/fenetre_cafe"),
+    ).toBe(false);
+    expect(
+      jsonFromSite(
+        "https://www.googleadservices.com/pagead/conversion/1/",
+        "https://leb.directory/ymy.15244/",
+      ),
+    ).toBe(false);
+    expect(jsonFromSite("https://m.stripe.com/6", "https://menu.omegasoftware.ca/delidough")).toBe(
+      false,
+    );
+    expect(jsonFromSite("not a url", "https://x.com/")).toBe(false);
+  });
+
   it("picks the candidate with the most priced items, none under three", () => {
     const a = fromText("Fries 1$\nSalad 2$\n");
     const b = fromText("Fries 1$\nSalad 2$\nSoup 3$\nTea 4$\n");
@@ -182,6 +410,9 @@ describe("menu adapters", () => {
   });
 
   it("finds menu links and Google Drive downloads", () => {
+    expect(menuLinks(`<a href="/shop">Shop</a>`, "https://batloundairystores.com/")).toEqual([
+      "https://batloundairystores.com/shop",
+    ]);
     const html = `<a href="/about">About</a><a href="/our-menu">Our Menu</a><a href="https://drive.google.com/file/d/1AbCdEfGhIjK/view">Menu PDF</a><a href="https://instagram.com/x">Menu</a>`;
     expect(menuLinks(html, "https://example.com/")).toEqual([
       "https://example.com/our-menu",
@@ -193,6 +424,23 @@ describe("menu adapters", () => {
     expect(currencyWord("$")).toBe("USD");
     expect(currencyWord("ل.ل")).toBe("LBP");
     expect(currencyWord("EUR")).toBeNull();
+  });
+});
+
+describe("harvest report", async () => {
+  const { shape } = await import("./harvest.ts");
+  it("describes a JSON answer by its keys only, never its values", () => {
+    const sk = shape({
+      branch: { EMAIL: "owner@example.com", NAME: "x" },
+      menu: [{ groups: [{ items: [] }] }],
+    });
+    expect(sk).toBe(
+      "{branch:{EMAIL:string,NAME:string},menu:[{groups:[{items,}]}]}".replace(
+        "{items,}",
+        "{items}",
+      ),
+    );
+    expect(sk).not.toMatch(/example\.com/);
   });
 });
 
