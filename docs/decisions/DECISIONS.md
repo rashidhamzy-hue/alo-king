@@ -1619,7 +1619,7 @@ Rasheed's decision on 14 October: stop, start from the Shouf with his three Shou
 3. SARL → bank account and Whish business account (#70) → company lines and the Meta portfolio (#73) → Tap (#71) and the lawyer letter (#72).
 4. First five merchants: they claim themselves from the pre-filled Shouf list (no outreach); Rasheed's 10-minute setup call (§30.6) finishes each menu.
 
-## 39. After session D: CI billing, delivery area, public listings, full menus, agents, Kapso (DECIDED, 14 October 14:30; Rasheed's requests, decided by Claude)
+## 39. After session D: CI billing, delivery area, public listings, full menus, agents, Kapso, website (DECIDED, 14 October 14:30, extended 14 October evening; Rasheed's requests, decided by Claude)
 Rasheed's requests after session D, and the decision on each. **This section overrides:** §5, §6 ("no public pages for unclaimed vendors", "no further scraping"), §15.2 (`public_page = false`; `phone_seed` never shown publicly, now visible through "Ask them to join"), §15.3 and §38.2 items 1–2 (menu text only for the 19 menus), §32.4 and the voice README ("private repo"), §38.1 (which places are `on`), the "generator mode" naming in §38.3, §30.1 item 2 (native WhatsApp cart, deferred until the Meta portfolio exists) and §35 (broadcasts post-pilot: the broadcast sender is built in 5b but stays off until the pilot gate). Everything else stands.
 
 ### 39.1 CI was red because the private repo ran out of free GitHub Actions minutes; the repo is now public
@@ -1631,10 +1631,18 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 - **CI diet stays** (good practice and faster PRs): `concurrency` with `cancel-in-progress`; path filters so docs-only and data-only changes skip the web build and website-quality jobs; Supabase CLI via pinned `supabase/setup-cli` authenticated with `GITHUB_TOKEN` (ends the "rate limit exceeded" failures); `staging-e2e` only after a deploy; Claude review only on ready PRs; job timeouts. Session E logs the change in LOG.md.
 - Issue #142 is closed: fixed by making the repo public.
 
-### 39.2 Delivery area: every place within reach of a Shouf merchant, not only the 12 villages
-- **Rule:** merchants stay in the 12 pilot villages (§38.1). Customers can order **to** any place whose centre is within `max_delivery_km()` (10 km, from the fee bands) in a straight line of at least one pilot merchant. Price and the per-order distance check stay per order (§29.1); a far address simply gets the higher band or "too far for this shop".
-- **Places switched on by this rule** include the ones Rasheed named: Niha, Bater, Jbaa, Mristi, Khraibeh, Moukhtara, Ain Qani, Ammatour, Botmeh, Maasser el Chouf, Haret Jandal, Ainbal, Deir Dourit, Beiteddine (switched off by mistake in session D) and the villages around Kfar Him and Dmit; "Jeblai" is matched to the gazetteer or logged in DATA-ISSUES.md. The rule is computed by a SQL function from merchant coordinates, the function proposes the list and a dated `pilot_place_ids` row records each change (the row is authoritative).
-- **OSM landmarks and place aliases (§38.2 items 4–5) are re-run for every place switched on by this rule**, not only the 12 villages. Same categories, same `source = osm`, low confidence.
+### 39.2 Delivery area: Rasheed's boundary around the Shouf merchants (authoritative list, 14 October evening)
+- **Rule:** shops stay in the 12 pilot villages (§38.1; the vendor list). Customers can order **to** any place within about 10 km **by road** of a pilot shop (`max_delivery_km()`, from the fee bands; road distance from the routing provider, straight line only as the fallback), **inside the boundary below**. Price and the per-order distance check stay per order (§29.1); an address outside the boundary is refused even if it is within 10 km.
+- **Delivered-to places (Rasheed's list):**
+  - Upper and middle Shouf: **Niha** (the top edge), Mristi, Jbaa, Bater, Haret Jandal, Jbaaliyeh, Ammatour, **Ain Qani** (near Ammatour; there is no "Qanibeh"), Botmeh, Khraibeh, Baadarane, Moukhtara, Jdeideh, up to Barouk and **Ain Zhalta**.
+  - Lower Shouf ("El Manasef"): Derkoush, Bchetfine, Kfar Qatra, Kfarfakoud, Dardriet and the villages of that group, delivered from Kfar Him, Dmit and Baakleen.
+  - Deir el Qamar and Beiteddine.
+  - Southern side: Ammatour, Aatrine, Baakleen, Samqaniyeh, down to **Gharifeh**.
+  - Any village physically between these places counts.
+- **Hard stops:** no Iqlim el Kharroub village; nothing past Ain Zhalta (not Nabaa el Safa or beyond); Bater is the last village up the southern side; nothing past Gharifeh; nothing toward Damour.
+- **How it is stored:** the boundary is a dated `pilot_place_ids` row listing every delivered-to place (authoritative); a SQL function checks road distance from the chosen shop per order and proposes additions when new shops join, which take effect only through a new dated row. Names the gazetteer cannot match are logged in DATA-ISSUES.md, never guessed.
+- **OSM landmarks and place aliases (§38.2 items 4–5) are run for every delivered-to place**, not only the 12 villages. Same categories, same `source = osm`, low confidence.
+- **The "where we deliver" page** shows this as an interactive map of the zone (session W, 39.11), not a list of village blocks.
 
 ### 39.3 Unclaimed Shouf merchants are listed publicly ("Not on Alo King yet")
 - **Why:** an empty village page sells nothing. Customers should see every shop near them, and the shops should see demand.
@@ -1658,25 +1666,38 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 ### 39.6 Customer agent: one smart catalogue across every shop
 - The agent searches one index across every orderable menu and catalogue in the customer's delivery area, plus the dish library's synonyms (Arabic, Arabizi, French, English, brand words): "bade shi 7arr w rkhis", "manoushe kishk", "Pepsi diet 2", "akel lal wled" all resolve to real items with server prices. It compares shops, suggests one rule-based upsell (§29.3), remembers usual orders, and handles text, voice and button taps. Unclaimed shops answer per 39.3.
 - The code exists (session 4); what is missing is API credit (owner, §38.6 item 1) and the 5c items. Free text and voice stay off until the eval passes on the real voice notes (§32.4).
+- **Customer memory (Rasheed's decision, 14 October):** the agent remembers each customer by phone number: name, saved addresses, order history and usual orders, language and way of writing, and **dietary preferences taken only from what the customer says or orders** ("gluten-free", "no sugar", "no nuts, allergy"). The agent never asks about health. Memory is stored as facts with their source and date in the database, not in prompts; a dietary note is shown back as "you asked for gluten-free last time", never as a diagnosis. The customer can ask to see it ("what do you remember about me?") and delete any part or all of it with one tap. Memory is used only to help that customer order, never for marketing segments, never shown to merchants beyond what an order needs (an allergy note on that order). It follows the four-language rules and the §20 data rules.
+- **Address scenarios:** the delivery address is confirmed on **every** order, even when saved addresses exist ("Home in Baakleen, or somewhere else today?"), with a new pin or landmark when it changes, because Lebanese customers order from relatives' homes and other places. A new address is saved only when the customer agrees.
+- **Send Home and international numbers:** an expat abroad ordering for family uses the Send Home flow (§22) with the recipient's address and phone; the same expat visiting Lebanon and ordering from the international number while in the Shouf is a normal local order to the address they confirm. The agent asks "Is this for you here, or for someone in Lebanon?" when an international number orders, once, and remembers the answer per address.
+- **Scope of the agent:** ordering, basket changes, checkout, tracking, cancellations, refunds and returns within §20's rules, support and human handoff (§30), recommendations and one upsell, and the opted-in offers and sponsored placements from the ad system (§20.4), all reading live menus, prices and availability from the database. **Zero invented facts:** every item, price, fee, time and policy in a reply comes from a tool result; when the database has no answer the agent says so and offers the closest real option or a human.
 
 ### 39.7 Merchant copilot: full control of the shop, not "generator mode"
 - The station switch from §38.3 is renamed **availability**; generators are only one reason a station goes off. The copilot covers, in four languages, by text, voice or tap: item and section on/off with auto-restore; stock counts for groceries; price changes; add, edit and remove items; menu import from photo, PDF, link or text; offers (percent off, bundle, free item, happy-hour schedule, first-order offer); opening hours and closures; minimum order and own-delivery radius; Boost and sponsored placement (§20.4, §30.2.5) start, stop and budget; staff and their roles; daily and weekly reports. Every change that touches price, availability or money needs the merchant's confirming tap (product rules).
+- **Merchant memory:** the copilot remembers each shop's habits, usual hours, stock patterns, regular closures, the way the owner and staff write, and past decisions, as dated facts in the database. It is **predictive and proactive** inside the rules: suggests marking an item sold out when it usually runs out, reminds before a usual closure, flags slow acceptance, proposes an offer on a quiet day, and summarises the week; every suggestion needs a confirming tap and never changes money or availability on its own.
 
 ### 39.8 Kapso: full setup on a US test number first
 - Rasheed switched the GitHub secret `KAPSO_API_KEY` and his claude.ai Kapso connector to the `Alo King` project (14 October; checked: project `Alo King`, sandbox number only, instant US number setup available). `Kabsi.co` stays off limits.
 - **Session 5b does, on a US test number in the Alo King Kapso project:** number via Kapso setup (if a US number cannot be created by API, an owner issue with click steps); webhooks pinned to `eu-central-1`; all utility templates in four languages (order confirmed + ETA, on the way + tracking, delivered + rate, merchant new order, claim code, payment link, Send Home receipt); marketing templates for opted-in customers only; Flows (address with landmark, checkout, merchant claim, menu section confirm, merchant settings); broadcasts to opted-in segments with STOP; the "smart menu" as list messages and Flows driven by the database.
 - **No Meta product catalogue in the pilot:** it needs Commerce Manager per business portfolio, caps multi-product messages at 30 items, and duplicates prices outside the server. Revisit after the Meta portfolio exists (#73).
 - The company numbers (§38.6) replace the US number at cut-over (session 14).
+- **Kapso's new features:** 5b reviews Kapso's Meta Business Agent tab, workflows, functions, events and the Kapso example repositories on GitHub, and adopts one only where it replaces our own code with less to run; our agent stays the brain (server owns prices, baskets and orders). Rasheed prepares nothing in Kapso by hand.
 
 ### 39.9 Models
 - Build sessions stay on Opus 5.5 (high) for data and agent work and Sonnet 5.5 (high) for routine work. **Claude Fable 5.1 is not needed**: no task here is beyond Opus 5.5, and its extra cybersecurity safeguards can get in the way of session 13 (security review).
+
+### 39.11 Website: full revamp with a delivery map and a hard customer/merchant split
+- **Rasheed's direction (14 October):** the current site looks unfinished; the "where we deliver" page in village blocks is the example. Every page must look like a well-funded 2030 product, building on §37.
+- **Hard split:** customers and merchants never share pages, navigation or FAQs. Customer side: home, search, places and the delivery map, shops and menus, ordering on WhatsApp, Send Home, help for customers. Merchant side under its own section (for example `/business`): join or claim, pricing and terms, the dashboard, help for merchants. Each side has its own FAQ.
+- **"Where we deliver":** an interactive map of the 39.2 zone with the villages, shops per village and the "Not on Alo King yet" shops; search by village name in four languages.
+- **Scope:** redesign every public page and restyle the app and dashboard in the same design system; keep the working logic, data calls and tests.
 
 ### 39.10 Session plan from here (replaces the rows after D in §38.5)
 | # | Session | Model | Content |
 |---|---|---|---|
 | E | Finish D, CI diet, delivery area, listings | Opus 5.5, high | 39.1 ruleset, voice README and CI diet; root-cause the intermittent dispatch stall (an attempt dies with no error, the queue retries after 60–100 s, the session's tappable options are lost; it hit pickup and the market tap in run 1 and the merchant Accept tap in customer-cancels in run 2, see #139); fix scenario 11 (tap `sbp:remove` at the grocery substitution question, then expect `cur:USD`); 39.1 CI cuts; 39.2 delivery area + OSM re-run; 39.3 public listings and "Ask them to join"; import 04 owner menus; merge the Nayeh duplicate; e2e 11/11 |
-| F | Menu harvest | Opus 5.5, high | 39.4 sources 2 and 3 (adapters, `menu-harvest` workflow, photo classification and extraction once credit exists); 39.5 Open Food Facts |
-| 5c | Agents | Opus 5.5, high | §38.3 rows for 5c, 39.6, 39.7 |
+| F | Menu harvest and the boundary | Opus 5.5, high | apply the 39.2 boundary (correct E's place list, landmarks for every delivered-to place); 39.4 sources 2 and 3 (adapters, `menu-harvest` workflow, photo classification and extraction once credit exists); 39.5 Open Food Facts |
+| W | Website revamp | Opus 5.5, high | 39.11: design system, customer/merchant split, delivery map, every public page, app and dashboard restyle; website-quality checks (§37.5) |
+| 5c | Agents | Opus 5.5, high | §38.3 rows for 5c, 39.6 including customer memory, 39.7 including merchant memory |
 | 5b | Kapso and operations | Sonnet 5.5, high | §38.5 row 5b plus 39.8 |
 | 13 | Security review | Opus 5.5, high | unchanged |
 | 14 | Pilot cut-over | Opus 5.5, high | unchanged |
