@@ -20,7 +20,7 @@
 
 insert into public.app_config (key, value, effective_from, note, created_by) values
   ('pilot_merchant_place_ids', '["LB-CHF-BAAKLINE", "LB-CHF-BAKAATA", "LB-CHF-BAROUK", "LB-CHF-DEIR-AL-QAMAR", "LB-CHF-SEMQANIEH", "LB-CHF-BATLOUN", "LB-CHF-KFAR-NABRAKH", "LB-CHF-KFARHIM", "LB-CHF-DAMIT", "LB-CHF-AIN-OUZAIN", "LB-CHF-MAASSER-EL-SHOUF", "LB-CHF-JDEIDET-EL-CHOUF"]',
-   '2026-10-14 12:00+00', 'Shouf pilot: the 12 villages merchants are in (DECISIONS §38.1, §39.2)', null),
+   now(), 'Shouf pilot: the 12 villages merchants are in (DECISIONS §38.1, §39.2)', null),
   ('pilot_place_ids', '[
      "LB-ALY-AAYNAB", "LB-ALY-ABEY", "LB-ALY-AIN-ANOUB", "LB-ALY-AIN-DARA", "LB-ALY-AIN-DRAFIL", "LB-ALY-AIN-EL-FRAYDIS",
      "LB-ALY-AIN-EL-HALAZOUN", "LB-ALY-AIN-EL-MARJ", "LB-ALY-AIN-KSOUR", "LB-ALY-AIN-TREZ", "LB-ALY-ARAMOUN", "LB-ALY-AYTAT",
@@ -67,7 +67,7 @@ insert into public.app_config (key, value, effective_from, note, created_by) val
      "LB-WBQ-KHIRBAT-QANAFAR", "LB-WBQ-OUADI-CHARAF-ED-DINE", "LB-WBQ-SAGHBINE", "LB-WBQ-TALL-ZNOUB", "LB-WBQ-TELL-ZNOUB-EJ-JDIDE", "LB-ZHL-MZARAAT-ZAHLEH",
      "LB-ZHL-TCHEFLIK-EDDE-HAOUCH"
    ]',
-   '2026-10-14 12:00+00', 'Delivery area: places within max_delivery_km() of a pilot merchant, 259 places (DECISIONS §39.2)', null);
+   now(), 'Delivery area: places within max_delivery_km() of a pilot merchant, 259 places (DECISIONS §39.2)', null);
 
 -- Where a seed menu came from and when (§39.4): a repo path for the seed files, later a menu link.
 alter table public.menu_drafts add column source_url text check (char_length(source_url) <= 500),
@@ -89,8 +89,8 @@ as $$
                  where jsonb_typeof(i -> 'price') = 'number' and i ->> 'currency' in ('USD', 'LBP')),
       'preview', (select jsonb_agg(left(coalesce(i ->> 'name_ar', i ->> 'name_en', i ->> 'name_fr'), 40)
                                    || coalesce(' · ' || case i ->> 'currency' when 'USD' then '$' || (i ->> 'price')
-                                     when 'LBP' then to_char((i ->> 'price')::numeric, 'FM999,999,999') || ' LBP → $'
-                                       || round((i ->> 'price')::numeric / public.usd_lbp_rate(), 2)::text end, ''))
+                                     when 'LBP' then to_char((i ->> 'price')::numeric, 'FM999,999,999') || ' LBP'
+                                       || coalesce(' → $' || round((i ->> 'price')::numeric / public.usd_lbp_rate(), 2)::text, '') end, ''))
                   from (select i from jsonb_array_elements(s.v -> 'items') i limit 8) x)
     ) order by s.ord) from jsonb_array_elements(d.sections) with ordinality s (v, ord)), '[]'))
   from public.menu_drafts d where d.id = p_draft_id;
@@ -187,8 +187,15 @@ begin
   using app_private.seed_vendor_exclusions e
   where v.place_id = e.place_id and e.reason like 'duplicate of %' and v.source = 'seed_shouf_2026_10'
     and v.claim_status = 'unclaimed'
+    -- the kept listing exists, so a bad exclusion row never removes the only copy of a shop
+    and exists (select 1 from public.vendors k where k.place_id = substring(e.reason from '^duplicate of (.+)$'))
+    -- nothing anyone did with it: no order, money, claim, report, member or photo (a photo would orphan its file)
     and not exists (select 1 from public.orders o where o.vendor_id = v.id)
-    and not exists (select 1 from public.ledger_accounts a where a.vendor_id = v.id);
+    and not exists (select 1 from public.ledger_accounts a where a.vendor_id = v.id)
+    and not exists (select 1 from public.vendor_claims c where c.vendor_id = v.id)
+    and not exists (select 1 from public.vendor_listing_reports lr where lr.vendor_id = v.id)
+    and not exists (select 1 from public.vendor_members m where m.vendor_id = v.id)
+    and not exists (select 1 from public.vendor_photos ph where ph.vendor_id = v.id);
   get diagnostics n_duplicates = row_count;
   -- The removed listing is an exclusion from now on (the vendor loader skipped it while the vendor still existed).
   insert into public.vendor_import_exclusions (place_id, name, reason, source)

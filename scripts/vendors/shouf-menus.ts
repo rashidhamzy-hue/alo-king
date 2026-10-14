@@ -200,10 +200,14 @@ export function choiceOf(name: string): DraftOption | null {
   const size = parts[parts.length - 1].match(SHARED_SIZE);
   if (size) parts[parts.length - 1] = parts[parts.length - 1].slice(0, size.index).trim();
   return {
-    name: "Choice",
+    // One name field: Arabic and English together, like the merchant cards.
+    name: "اختيار / Choice",
     min: 1,
     max: 1,
-    choices: parts.map((p) => ({ name: clip(size ? `${p} ${size[1]}` : p, 60) })),
+    // A choice that already names its own size keeps it.
+    choices: parts.map((p) => ({
+      name: clip(size && !SHARED_SIZE.test(p) ? `${p} ${size[1]}` : p, 60),
+    })),
   };
 }
 

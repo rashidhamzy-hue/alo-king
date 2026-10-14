@@ -449,7 +449,7 @@ jobs:
             DB_URL="$(scripts/staging-db-url.sh)"
             echo "::add-mask::$DB_URL"
             # The box is the merchants plus the delivery radius, read from the fee bands (never a constant here).
-            km=$(psql "$DB_URL" -X -tAc "select public.max_delivery_km()")
+            km=$(psql "$DB_URL" -X -tAc "select public.max_delivery_km()") || km=""
             node scripts/shouf/osm-fetch.mjs supabase/seed/shouf/osm --margin-km "$km" \
               || echo "::warning::Overpass was unreachable; the OSM seed loads on the next deploy"
           fi

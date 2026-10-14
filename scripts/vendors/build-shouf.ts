@@ -2,7 +2,7 @@
 // Usage: node --experimental-strip-types scripts/vendors/build-shouf.ts <source dir> <out dir>
 // Writes vendors.csv and exclusions.csv (the vendor loader's format plus town_id), menus.csv (draft menus)
 // and report.md. scripts/load-seed.sh loads them.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { toCsv, VENDOR_COLUMNS, vendorCells } from "./normalize.ts";
 import { normalizeShouf, parseCsv, whatsappDisagreements } from "./shouf.ts";
@@ -15,8 +15,13 @@ if (!src || !out) {
 }
 const rows = parseCsv(readFileSync(join(src, "01_shouf_merchants_315.csv"), "utf8"));
 // The owner's transcribed menu photos (§39.4 source 1), when present.
-const ownerFile = join(src, "04_owner_menu_photos_2026-10-14.json");
-const owner = existsSync(ownerFile) ? JSON.parse(readFileSync(ownerFile, "utf8")) : null;
+// The same files scripts/load-seed.sh hashes: one is expected; a second dated file must be merged into it first.
+const ownerFiles = readdirSync(src).filter((f) => /^04_owner_menu_photos_.*\.json$/.test(f));
+if (ownerFiles.length > 1) {
+  console.error(`more than one owner menu file: ${ownerFiles.join(", ")}`);
+  process.exit(1);
+}
+const owner = ownerFiles.length ? JSON.parse(readFileSync(join(src, ownerFiles[0]), "utf8")) : null;
 const { vendors, exclusions, phoneIssues } = normalizeShouf(
   rows,
   owner ? ownerDuplicates(owner) : new Map(),
