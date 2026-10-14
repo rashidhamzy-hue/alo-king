@@ -1544,7 +1544,8 @@ Rasheed's decision on 14 October: stop, start from the Shouf with his three Shou
 - **Files, committed in `supabase/seed/shouf/source/`** (ratings and review counts removed before commit, §15.2):
   - `01_shouf_merchants_315.csv`
   - `03_shouf_digital_menus.json`: 19 restaurant menus (4–63 items each; Fred's Food has 63 with real image URLs) and 2 supermarket catalogues of 45 essentials each.
-  - **Not committed and not used:** `02_shouf_photos_and_reviews.json` (2,927 Google photo URLs and 447 review texts). Google's terms forbid caching photos and reviews, and §5 forbids ratings for unclaimed vendors. Photos come from merchants at claim time; the CSV's own `cuisine_tags` and `search_tokens` already carry what the reviews would have added.
+  - `02_shouf_photos.json`: 2,927 Google photo URLs for 234 merchants. **Rasheed's decision (14 October 12:13): include the photos, Google's terms notwithstanding.** Claude's note, recorded once as in §15.1: Google's terms forbid caching Places photos, and the realistic consequence is the Places key being suspended, which §35 has already switched off. Rules that limit the exposure: session D copies each photo into Supabase Storage (the Google URLs expire), marks them `source = seed`, shows them only on claimed vendors' pages after the merchant confirms or replaces them, and deletes them on the merchant's request. The 447 review texts are **not** committed or used: §5 forbids ratings for unclaimed vendors, and the CSV's `cuisine_tags` and `search_tokens` already carry what they add.
+- **Decisions confirmed by Rasheed, 14 October 12:13:** the 2,044 nationwide vendors are deleted (his full dataset comes later); all 12 villages stay in the pilot.
 
 ### 38.2 Data rules for the Shouf load (session D)
 1. **Merchants:** import per §15.2. Split the 57 names that mix scripts into `name_ar` and `name_en`. Backfill the 11 missing localities from the address. Set `is_whatsapp_candidate` from the number, not from the file's column. Everything stays `unclaimed`, `orderable = false`, `public_page = false`, `source = seed_shouf_2026_10`.
@@ -1613,7 +1614,7 @@ Rasheed's decision on 14 October: stop, start from the Shouf with his three Shou
 | after | 9 payments, 8 fleet, 12 growth, 10 Send Home | per §33 | unchanged |
 
 ### 38.6 Owner track for the Shouf pilot (in order)
-1. API credit: Anthropic and OpenAI (via the brother's UAE card), plus a Deepgram account for the eval ($200 free credit on sign-up).
+1. API credit: Anthropic and OpenAI. Deepgram: account and key created 14 October; add it as the GitHub secret `DEEPGRAM_API_KEY` (the transcription eval reads it; `check-setup` proves it).
 2. `aloking.com` (#74).
 3. SARL → bank account and Whish business account (#70) → company lines and the Meta portfolio (#73) → Tap (#71) and the lawyer letter (#72).
 4. First five merchants: they claim themselves from the pre-filled Shouf list (no outreach); Rasheed's 10-minute setup call (§30.6) finishes each menu.
