@@ -6,7 +6,8 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { toCsv, VENDOR_COLUMNS, vendorCells } from "./normalize.ts";
 import { normalizeShouf, parseCsv, whatsappDisagreements } from "./shouf.ts";
-import { ownerDrafts, ownerDuplicates, shoufDrafts } from "./shouf-menus.ts";
+import { existsSync } from "node:fs";
+import { harvestedDrafts, ownerDrafts, ownerDuplicates, shoufDrafts } from "./shouf-menus.ts";
 
 const [src, out] = process.argv.slice(2);
 if (!src || !out) {
@@ -26,10 +27,28 @@ const { vendors, exclusions, phoneIssues } = normalizeShouf(
   rows,
   owner ? ownerDuplicates(owner) : new Map(),
 );
-const drafts = [
+const curated = [
   ...shoufDrafts(JSON.parse(readFileSync(join(src, "03_shouf_digital_menus.json"), "utf8"))),
   ...(owner ? ownerDrafts(owner) : []),
 ];
+// Harvested menus (§39.4 sources 2-3, supabase/seed/shouf/harvest/, next to source/): a link's menu first, then one
+// read from the seed photos; never for a merchant that already has a curated draft (03, 04), and never for a listing
+// the owner file marks as a duplicate.
+const harvestDir = join(src, "..", "harvest");
+const harvested = [
+  ["05_harvested_menus.json", "supabase/seed/shouf/harvest/05_harvested_menus.json"],
+  ["06_photo_menus.json", "supabase/seed/shouf/harvest/06_photo_menus.json"],
+].flatMap(([f, repoPath]) =>
+  existsSync(join(harvestDir, f))
+    ? harvestedDrafts(JSON.parse(readFileSync(join(harvestDir, f), "utf8")), repoPath)
+    : [],
+);
+const drafts = [...curated];
+for (const h of harvested)
+  if (!drafts.some((d) => d.place_id === h.place_id) && !exclusionsHave(h.place_id)) drafts.push(h);
+function exclusionsHave(placeId: string) {
+  return exclusions.some((e) => e.place_id === placeId);
+}
 const twice = drafts.filter((d, k) => drafts.findIndex((x) => x.place_id === d.place_id) !== k);
 if (twice.length) {
   console.error(`two draft menus for: ${twice.map((d) => d.vendor_name).join(", ")}`);
@@ -87,6 +106,7 @@ writeFileSync(
     `- seed phones: ${vendors.filter((v) => v.phone_seed).length}; WhatsApp candidates (mobile): ${vendors.filter((v) => v.phone_seed_mobile).length}; rows where the file's flag disagrees with the number: ${whatsappDisagreements(rows)}`,
     `- localities backfilled from the address: ${vendors.filter((v) => v.import_labels.locality_backfilled_from !== undefined).length}; no village in the file (nearest village at load): ${vendors.filter((v) => !v.village).length}`,
     `- draft menus: ${drafts.length} (${drafts.filter((d) => d.kind === "supermarket").length} supermarket catalogues), ${items.length} items, ${items.filter((i) => i.price === null).length} without a price (hidden)`,
+    `- harvested menus (§39.4 sources 2-3): ${drafts.filter((d) => d.source_url.startsWith("http") || d.source_url.includes("/harvest/")).length} loaded, ${harvested.length - drafts.filter((d) => harvested.includes(d)).length} skipped (a curated draft exists or the listing is a duplicate)`,
     "",
     "## Villages",
     ...count(vendors, (v) => v.village ?? "(nearest at load)").map(([k, n]) => `- ${k}: ${n}`),

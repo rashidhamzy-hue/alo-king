@@ -1,0 +1,81 @@
+name: menu-harvest
+
+# Full menus for the Shouf merchants, as drafts the merchant confirms (DECISIONS §39.4), fetched from a runner because
+# build sessions cannot reach these hosts:
+#   * source 2: every merchant's menu link (Omega, menutigr, qr-order.online, leb.directory and plain sites; never
+#     Instagram or Facebook) is opened in headless Chromium and read by scripts/menus/ into
+#     supabase/seed/shouf/harvest/05_harvested_menus.json plus harvest-report.md;
+#   * source 3 (input `photos`, needs Anthropic API credit): the seed photos are sorted by the photo model and the menu
+#     photos read by the menu model into photo_classes.csv and 06_photo_menus.json. Without credit it says so and
+#     writes nothing.
+# Everything is pushed to a new branch `data/menu-harvest-<run id>` (with the raw captures under harvest-raw/ for
+# review); a build session opens the `Data:` pull request with the drafts. Nothing here touches the database.
+on:
+  workflow_dispatch:
+    inputs:
+      photos:
+        description: Also read the seed photos (needs Anthropic API credit; about $10 for the whole set)
+        type: boolean
+        default: false
+      photo_limit:
+        description: At most this many photos to classify (empty for all)
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+env:
+  SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: pdftotext
+        run: command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
+      - name: Source 2, menu links (capture, then read)
+        run: |
+          node --experimental-strip-types --no-warnings scripts/menus/harvest.ts capture harvest-raw
+          node --experimental-strip-types --no-warnings scripts/menus/harvest.ts parse harvest-raw supabase/seed/shouf/harvest | tee -a "$GITHUB_STEP_SUMMARY"
+          cat supabase/seed/shouf/harvest/harvest-report.md >> "$GITHUB_STEP_SUMMARY"
+          # Keep the raw captures reviewable but small: drop pages and files over 1 MB.
+          find harvest-raw -type f -size +1M -delete
+      - name: Source 3, seed photos (Anthropic API credit)
+        if: inputs.photos
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PHOTO_LIMIT: ${{ inputs.photo_limit }}
+        run: |
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          keys=$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/api-keys?reveal=true")
+          key=$(jq -r '([.[] | select(.type == "secret")][0].api_key) // ([.[] | select(.name == "service_role")][0].api_key) // empty' <<<"$keys")
+          [ -n "$key" ] || { echo "no service key"; exit 1; }
+          echo "::add-mask::$key"
+          [ -n "$PHOTO_LIMIT" ] || unset PHOTO_LIMIT
+          DB_URL="$DB_URL" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co" SUPABASE_SERVICE_KEY="$key" \
+            node --experimental-strip-types --no-warnings scripts/menus/photos.ts supabase/seed/shouf/harvest | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Push to a data branch
+        env:
+          BRANCH: data/menu-harvest-${{ github.run_id }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add supabase/seed/shouf/harvest harvest-raw
+          git commit -m "Menus harvested by menu-harvest run ${{ github.run_id }}" -m "DECISIONS §39.4 sources 2-3: drafts the merchant confirms; raw captures under harvest-raw/ for review only."
+          git push origin "$BRANCH"
+          echo "pushed $BRANCH" | tee -a "$GITHUB_STEP_SUMMARY"
