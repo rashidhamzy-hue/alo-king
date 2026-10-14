@@ -29,6 +29,9 @@ describe("data-freeze", () => {
     for (const f of [
       "supabase/seed/places/places.csv",
       "supabase/seed/vendors/source/vendors.csv",
+      "supabase/seed/shouf/source/01_shouf_merchants_315.csv",
+      "supabase/seed/nutrition/dishes.jsonl",
+      "scripts/shouf/osm-fetch.mjs",
       "scripts/places/curated.csv",
       "scripts/vendors/normalize.ts",
       ".github/workflows/places-build.yml",

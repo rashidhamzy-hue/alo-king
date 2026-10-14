@@ -29,7 +29,7 @@ Never read or change Supabase project `kabsi-prod` (`ynjdqjlmdwjgbfezevxy`), Sen
 - If the CI Claude review cannot run (no API credit), run `.claude/agents/pr-reviewer` on your own diff before the PR is ready and post its verdict as a PR comment tagged with the head SHA (§32.7).
 
 ## Data (DECISIONS §31, §38)
-The pilot is Shouf-first: vendors come from `supabase/seed/shouf/source/` (§38), loaded by session D. Outside a PR whose title starts with `Data:`, do not run `places-build` or any vendor import, and do not edit `supabase/seed/`, `scripts/places/`, `scripts/vendors/` or the structure of the places and vendor tables. Log data problems in `docs/decisions/DATA-ISSUES.md`. Never store Google ratings, reviews or photos. Never deliver medicines (§38.3).
+The pilot is Shouf-first: vendors come from `supabase/seed/shouf/source/` (§38), loaded by session D. Outside a PR whose title starts with `Data:`, do not run `places-build` or any vendor import, and do not edit `supabase/seed/`, `scripts/places/`, `scripts/vendors/` or the structure of the places and vendor tables. Log data problems in `docs/decisions/DATA-ISSUES.md`. Never store Google ratings or reviews; Google photos only under the §38.1 rules (copied to Storage as `source = seed`, shown only on a claimed vendor after the merchant confirms them, deleted on request). Never deliver medicines (§38.3).
 
 ## Product rules (apply to every change)
 - Server-side money: prices, fees, totals, COD cap and commissions come from the database. Never trust a price from the client, a WhatsApp message or the AI.

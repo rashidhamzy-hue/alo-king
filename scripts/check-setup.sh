@@ -199,7 +199,21 @@ else
   fi
 fi
 
-# 8. Secrets for later phases: presence only
+# 8. Deepgram (DECISIONS §38.4, §38.6): a transcription candidate for the voice-note eval. Listing the key's
+# projects is read-only and free. Not required until the eval runs, so a missing key is only noted.
+if [ -z "${DEEPGRAM_API_KEY:-}" ]; then
+  note "DEEPGRAM_API_KEY" "not set yet (owner issue: add the key created on 14 October; the transcription eval reads it)"
+else
+  code=$(http -H "Authorization: Token $DEEPGRAM_API_KEY" "https://api.deepgram.com/v1/projects")
+  if [ "$code" = "200" ]; then
+    n=$(jq -r '(.projects // []) | length' "$TMP/body" 2>/dev/null)
+    pass "DEEPGRAM_API_KEY" "valid; sees ${n:-0} Deepgram project(s)"
+  else
+    fail "DEEPGRAM_API_KEY" "Deepgram API returned HTTP $code"
+  fi
+fi
+
+# 9. Secrets for later phases: presence only
 for s in OPENAI_API_KEY:3 ORS_API_KEY:1 VERCEL_TOKEN:none; do
   name="${s%%:*}"; phase="${s##*:}"
   if [ -n "${!name:-}" ]; then

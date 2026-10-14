@@ -11,3 +11,8 @@ One line per problem: date, table, record or pattern, example. Session D fixes t
 2026-10-11 · places · `LB-BAT-TANNOURINE-EL-TAHTA` and `LB-CHF-MAZRAAT-ED-DOUAIR` have no name_ar.
 2026-10-11 · places · `LB-JZN-MAZRAAT-EL-MATHANE` has three spellings in one alias string separated by commas, instead of separate aliases.
 2026-10-11 · places · location eval misses (evals/location): "na3me" does not reach `LB-CHF-NAAMEH` (Naameh has no Arabizi alias); French "place" in "près de la place" matches Beirut squares.
+2026-10-14 · vendors (Shouf) · `ChIJ99swKwAhHxURTrM_oUn0mp8` "Shawarma Albasha" and `ChIJM7QVRQAhHxURMvKEj1aW7W4` "Al Basha" are one shop listed twice (same number, a few metres apart); both kept, merge at claim.
+2026-10-14 · menu_drafts (Shouf) · the Coop Baakleen and Baakline Supermarket catalogues are identical (45 SKUs, same prices): a template, not each shop's prices; the merchant confirms section by section.
+2026-10-14 · vendor_links (Shouf) · one website is a raw IP (`https://185.76.176.87/`); stays `unchecked`, never shown.
+2026-10-14 · vendors (Shouf) · `1.2.1 Coffee` has locality "Beit ed-Dine" with an address on "Barouk Rd"; it gets the pilot village nearest its pin at load.
+2026-10-14 · vendors (Shouf) · Latin leftovers that are not names were dropped: "أبو فؤاد market", "mr فروج" (Mr Farrouj?) have only an Arabic name until the merchant confirms.

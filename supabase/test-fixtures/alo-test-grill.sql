@@ -13,8 +13,12 @@
 --     check and no paused-place block for it, and its delivery fee is the 0-3 km band. A pin outside every
 --     place polygon (Dubai, the sea, a gap) is saved against the "Test location" place made in section 1b.
 --     Real merchants keep every check. The 30 km test fee band of T2 is retired (section 2b).
---   * Baakline, Bakaata, Semqanieh and Beiteddine switched on (they load "off"; the places data itself is
---     untouched, §31). The test merchant is the only orderable vendor there.
+--   * The 12 Shouf pilot villages switched on, everything else off (session D, §38.1). The test merchant is the
+--     only orderable vendor there; the 315 real Shouf merchants are unclaimed drafts.
+--   * Session D: "Alo Test Market", a second test vendor whose menu is the Coop Baakleen draft catalogue (45
+--     essentials, §38.2.3), published for the simulator. It is not orderable except while the e2e scenario
+--     `shouf-draft-market` runs (public.sim_market switches it on and off), so every other scenario still sees
+--     one orderable shop.
 --   * The owner's phone in app_private.owner_phones with the #merchant / #customer switch on. The phone is
 --     `-v owner_phone=...` when given; otherwise the only customer on the database when there is exactly one
 --     (the owner, who has been writing to the sandbox bot), otherwise nobody and the switch stays off.
@@ -28,14 +32,17 @@ select set_config('app.fixture_owner_phone', :'owner_phone', false);
 select set_config('app.actor_kind', 'system', false);
 select set_config('app.audit_reason', 'staging test fixture Alo Test Grill (DECISIONS §34)', false);
 
--- 1. Test places on -------------------------------------------------------------------------------------
+-- 1. Pilot places on ------------------------------------------------------------------------------------
+-- Session D (DECISIONS §38.1): the 12 Shouf pilot villages (config pilot_place_ids) are on. Only switched on here:
+-- switching other places off is the migration's and the Shouf load's job (pilot_places_apply), so a village an
+-- operator opens on staging is not closed again by every deploy.
 do $$
 declare
   v_id text;
 begin
-  foreach v_id in array array['LB-CHF-BAAKLINE', 'LB-CHF-BAKAATA', 'LB-CHF-SEMQANIEH', 'LB-CHF-BEITEDDINE'] loop
+  for v_id in select jsonb_array_elements_text(public.config_value('pilot_place_ids')) loop
     if exists (select 1 from public.places p where p.id = v_id and p.service_status = 'off') then
-      perform public.place_set_service_status(v_id, 'on', 'staging test fixture (DECISIONS §34)');
+      perform public.place_set_service_status(v_id, 'on', 'staging test fixture (DECISIONS §38.1)');
     end if;
   end loop;
 end;
@@ -172,6 +179,55 @@ begin
   update public.vendors set delivery_radius_km = 10.0, delivery_enabled = true, pickup_enabled = true
   where slug = 'alo-test-grill' and is_test
     and (delivery_radius_km is distinct from 10.0 or not delivery_enabled or not pickup_enabled);
+end;
+$$;
+
+-- 2c. The test market (session D, DECISIONS §38.2.3) ---------------------------------------------------------
+-- Made once the Shouf load has put Coop Baakleen's seed catalogue in menu_drafts (staging; skipped elsewhere).
+-- The real Coop stays an unclaimed draft: this copies its catalogue into a separate is_test vendor at the same
+-- spot, as published sections and items, with the catalogue's prices.
+do $$
+declare
+  v_coop record;
+  v_market uuid;
+  v_section uuid;
+  s jsonb;
+  i jsonb;
+  n_s integer := 0;
+  n_i integer;
+begin
+  select v.id, v.location, d.sections into v_coop
+  from public.vendors v join public.menu_drafts d on d.vendor_id = v.id and d.source = 'seed'
+  where v.place_id = 'ChIJhaAhhQMgHxURbFIi9R14X1I';
+  if v_coop.id is null then
+    return;
+  end if;
+  select id into v_market from public.vendors where slug = 'alo-test-market';
+  if v_market is null then
+    insert into public.vendors (
+      slug, name_ar, name_en, business_type, claim_status, listing_status, orderable, public_page, source, field_sources,
+      location, delivery_radius_km, delivery_enabled, pickup_enabled, public_listing, default_prep_minutes, is_test
+    ) values (
+      'alo-test-market', 'ألو تست ماركت', 'Alo Test Market', 'grocery_supermarket', 'claimed', 'active', false, false,
+      'admin', '{"test": "fixture", "catalogue": "Coop Baakleen seed draft"}', v_coop.location, 10.0, true, false, false, 10, true
+    ) returning id into v_market;
+  end if;
+  insert into public.vendor_private (vendor_id) values (v_market) on conflict (vendor_id) do nothing;
+  if not exists (select 1 from public.menu_items where vendor_id = v_market) then
+    for s in select * from jsonb_array_elements(v_coop.sections) loop
+      n_s := n_s + 1;
+      n_i := 0;
+      insert into public.menu_sections (vendor_id, name_ar, name_en, name_fr, sort_order)
+      values (v_market, s ->> 'name_ar', s ->> 'name_en', s ->> 'name_fr', n_s) returning id into v_section;
+      for i in select * from jsonb_array_elements(s -> 'items') loop
+        n_i := n_i + 1;
+        if jsonb_typeof(i -> 'price') = 'number' and i ->> 'currency' = 'USD' then
+          insert into public.menu_items (vendor_id, section_id, sort_order, name_en, description, price_usd)
+          values (v_market, v_section, n_i, i ->> 'name_en', nullif(i ->> 'unit', ''), (i ->> 'price')::numeric);
+        end if;
+      end loop;
+    end loop;
+  end if;
 end;
 $$;
 
