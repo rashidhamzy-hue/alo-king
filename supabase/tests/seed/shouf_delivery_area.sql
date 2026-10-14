@@ -9,8 +9,10 @@ select tests.ok(not exists (select 1 from app_private.delivery_boundary) or not 
   'pilot_place_ids ⊆ proposal: every delivered-to place is in the boundary, not deny-listed and within road distance');
 select tests.ok(not exists (select 1 from app_private.delivery_boundary) or (
   select array_agg(x order by x) from jsonb_array_elements_text(public.config_value('pilot_place_ids')) x)
-  = (select array_agg(place_id order by place_id) from app_private.delivery_boundary),
-  'pilot_place_ids is exactly the boundary file (shouf_delivery_boundary.csv)');
+  = (select array_agg(b.place_id order by b.place_id) from app_private.delivery_boundary b
+     where b.role in ('shop_village', 'named_by_rasheed') or not exists (select 1 from app_private.delivery_road_km r
+       where r.place_id = b.place_id and r.road_km > public.max_delivery_km())),
+  'pilot_place_ids is the boundary file minus the places between that are beyond max_delivery_km() by road');
 select tests.ok(not exists (select 1 from app_private.delivery_denylist) or not exists (
   select 1 from app_private.delivery_denylist x join public.places p on p.id = x.place_id where p.service_status = 'on'),
   'every deny-listed place is off');
@@ -27,14 +29,19 @@ select tests.ok(not exists (select 1 from app_private.delivery_boundary) or not 
     'LB-CHF-DEIR-DOURIT', 'LB-CHF-DEIR-AL-QAMAR', 'LB-CHF-BEITEDDINE', 'LB-CHF-KFARHIM', 'LB-CHF-DAMIT',
     'LB-CHF-JAHLIYEH', 'LB-CHF-KFAR-KATRA', 'LB-CHF-KFAR-FAQOUD', 'LB-CHF-DEIR-KOUCHEH', 'LB-CHF-BCHETFINE',
     'LB-CHF-MOUKHTARA', 'LB-CHF-SEMQANIEH']) n(id)
-  where (select service_status from public.places p where p.id = n.id) is distinct from 'on'),
-  'the villages Rasheed named (§39.2) and the places between them are on');
+  where (select service_status from public.places p where p.id = n.id) is distinct from 'on'
+    and not exists (select 1 from app_private.delivery_road_km r join app_private.delivery_boundary b using (place_id)
+      where r.place_id = n.id and b.role = 'between' and r.road_km > public.max_delivery_km())),
+  'the villages Rasheed named (§39.2) and the places between them are on (a place between only within road distance)');
 select tests.ok(not exists (select 1 from app_private.delivery_boundary) or not exists (
   select 1 from unnest(array['LB-CHF-DAMOUR', 'LB-CHF-NAAMEH', 'LB-CHF-NABAA-AL-SAFA', 'LB-CHF-SHAHIM', 'LB-CHF-BARJA',
     'LB-CHF-KETERMAYA', 'LB-CHF-MAZBOUD', 'LB-CHF-ES-SAADIYAT', 'LB-CHF-JIEH', 'LB-CHF-DEBBIEH', 'LB-CHF-SIBLINE',
     'LB-CHF-JOUN', 'LB-CHF-JADRA', 'LB-CHF-WARDANIYEH', 'LB-CHF-DEIR-EL-MKHALLES']) n(id)
   where (select service_status from public.places p where p.id = n.id) = 'on'),
   'the hard stops are off: Damour, the coast, the Iqlim el Kharroub, Nabaa el Safa');
+select tests.ok(not exists (select 1 from app_private.delivery_boundary b where b.role in ('shop_village', 'named_by_rasheed')
+    and (select service_status from public.places p where p.id = b.place_id) is distinct from 'on'),
+  'every shop village and every village Rasheed named is on, whatever its road distance');
 select tests.ok(not exists (select 1 from app_private.delivery_boundary) or not exists (
   select 1 from unnest(array['LB-CHF-BAAKLINE', 'LB-CHF-BAKAATA', 'LB-CHF-BAROUK', 'LB-CHF-DEIR-AL-QAMAR', 'LB-CHF-SEMQANIEH',
     'LB-CHF-BATLOUN', 'LB-CHF-KFAR-NABRAKH', 'LB-CHF-KFARHIM', 'LB-CHF-DAMIT', 'LB-CHF-AIN-OUZAIN', 'LB-CHF-MAASSER-EL-SHOUF',

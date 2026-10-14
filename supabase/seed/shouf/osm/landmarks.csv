@@ -1,0 +1,110 @@
+osm_ref,kind,name_ar,name_en,aliases,lat,lon
+node/12071213731,pharmacy,,Pharmacy Ste Rita,,33.6961799,35.5534457
+node/13123593501,municipality,مصلحة مياه بيروت وجبل لبنان EBML,,,33.7520862,35.5439563
+node/13674272363,pharmacy,,unkown,,33.6490859,35.5060201
+node/1886805877,pharmacy,,Aida Pharmacy,,33.6828717,35.4748587
+node/1888088140,municipality,بلدية الدبية,Municipality of Debbiyeh,,33.6649877,35.4889622
+node/2215963977,school,,Ecole Officiele Ain Zhalta,,33.7398305,35.7019135
+node/260285329,pharmacy,الخازن,Al-Khazen,,33.629839,35.5156286
+node/294190470,pharmacy,أليسار,,,33.6316203,35.5139198
+node/3073300728,municipality,بلدية وادي الست,Municipality of Wadi El Sitt,,33.7144901,35.6310262
+node/3419658655,school,مدرسة الرهبان الأنطونية,,,33.7339224,35.5937257
+node/4506605892,pharmacy,الأطباء الشوف,doctors shouf,,33.666844,35.601701
+node/4506616990,pharmacy,,Hekma,,33.6817598,35.5881774
+node/4506662389,pharmacy,,hayat chouf,,33.675376,35.616974
+node/4506665589,pharmacy,,isis bak3ata,,33.6843751,35.5847736
+node/4507790292,pharmacy,وائل بعقلين,,,33.6785758,35.5584169
+node/4507790293,pharmacy,راما بعقلين,,,33.6755653,35.5583749
+node/4507790411,pharmacy,الأطباء بقعاتا,,,33.6668967,35.6017524
+node/4507790489,pharmacy,فاملي شحيم,Family Shahim,,33.6315758,35.5037352
+node/4507790491,pharmacy,,rana kfarnabrakh,,33.6954781,35.647034
+node/4507790493,pharmacy,الاخاء,akhaa,,33.7561024,35.5474335
+node/4507790589,pharmacy,,al kamal,,33.7502675,35.5449084
+node/4507790592,pharmacy,,nour kfarnabrakh,,33.6951448,35.6412102
+node/4507790593,pharmacy,القصر,Al Qasr,,33.6423116,35.479022
+node/4507790596,pharmacy,الأحمد,Al Ahmad,,33.6329666,35.5046439
+node/4507790629,pharmacy,اورشيديا عانوت,,,33.6266761,35.5192587
+node/4661434134,pharmacy,,Rayan,,33.7630926,35.508405
+node/4661434233,pharmacy,,Quobbeh,,33.7630814,35.5073029
+node/4661434319,pharmacy,عرمون,Aramoun,,33.7603312,35.519901
+node/4664015090,pharmacy,برجين,,,33.6599476,35.4883868
+node/4664015092,pharmacy,الأطباء,,,33.6667735,35.6018945
+node/4664144591,pharmacy,هلا,,,33.6412788,35.4745522
+node/4730340589,place_of_worship,دير الخلص,,,33.5841607,35.4784127
+node/4849543424,pharmacy,بهاكو عبيه,,,33.734992,35.5338781
+node/5581124722,school,جامعة رفيق الحريري,Rafiq Hariri University,"{""Université Rafiq Hariri""}",33.7139783,35.4837198
+node/608634179,school,ليسه باسكال,Lycée Pascal,,33.6220051,35.516782
+node/7935858789,pharmacy,,Abir Pharmacy,,33.6888967,35.5215241
+node/8022491887,school,,Collège Saint-Jean,,33.6411598,35.7178959
+node/8040212043,church,,knisit el sayde,,33.6101075,35.6972016
+node/8040212044,church,,Mar gerious church,,33.609734,35.6960202
+node/8040212050,municipality,,Municipality of Saghbine,"{""Saghbine Municipality""}",33.6124943,35.6995284
+node/8040212056,church,,Deir St. Takla,,33.59657,35.6918749
+node/8040212071,municipality,,Municipality of Ain Zebde,"{""Ain Zebde Municipality""}",33.6210069,35.7031932
+node/8040212072,church,,St. Joseph Church,,33.6209466,35.703787
+node/8045136311,pharmacy,,Enipharm,,33.6897563,35.5135644
+node/8210281883,hospital,,Pet market & Vet hospital,,33.6850118,35.584888
+node/8279251338,pharmacy,,Al Housam Pharmacy,,33.7550668,35.5390839
+node/8634749199,fountain,,Aïn,,33.6238636,35.7011317
+node/9111868409,place_of_worship,,El Mahkama El Mathhabiah,,33.6743081,35.5542987
+node/9135956837,hospital,,Al Irfan Hospital,"{""Irfan Hospital""}",33.6752712,35.5922749
+node/9180849308,school,,Niha Public High School,,33.5959007,35.6260096
+node/9180849309,church,مار جريس,,,33.5963055,35.6253868
+node/9180849310,church,مار يوسف,,,33.5948474,35.6247532
+node/9180879617,place_of_worship,مقام النبي أيوب,,,33.5843164,35.6275358
+way/1050140593,church,,Saint Charbel Church,,33.7357785,35.5866618
+way/1051031220,church,,St. Georges Church,,33.7333753,35.5693275
+way/1053772459,church,,Saint Elias Church,,33.6052504,35.5275081
+way/1054300074,church,,Mar Elias Church,,33.7237227,35.518408
+way/1087022652,mosque,,Al Salam Mosque,,33.6282692,35.5347555
+way/1136344912,hospital,,Deir El Qamar Governmental Hospital,"{""Hôpital gouvernemental de Deïr el Qamar""}",33.7051091,35.5742658
+way/1180178197,church,,Saydet Al Fakira Church,"{""Église Saydet Al Fakira""}",33.6971515,35.5629192
+way/1340870368,church,,St. Charbel Church,,33.583119,35.5745181
+way/136880017,place_of_worship,,Byt Baakline,,33.676619,35.5619734
+way/24310900,school,ثانوية عانوت الرسمية,,,33.6276804,35.517224
+way/24712050,mosque,الجامع,,,33.6297737,35.5160133
+way/303033872,church,مار جرجس المعوش,St. Georges,,33.7255283,35.6247533
+way/303038412,church,مار متى وادي الست,St. Mathieu,,33.7144849,35.6308114
+way/487025938,mosque,مسجد المير فخر الدين المعني,Al Mir Fakhredine Al Maani Mosque,"{""Mosquée Al Mir Fakhredine Al Maani""}",33.6980407,35.564448
+way/487025943,church,سيدة التلة,Saydet El Talle,"{""Saidet et Tallé""}",33.6973179,35.5654415
+way/641550559,municipality,,Bteddine El Loqsh Municipality,,33.5693834,35.5578131
+way/672828464,school,متوسطة عماطور,,,33.6369045,35.6090678
+way/672833158,school,الرسمية المتوسطة المختلطة مزرعة الشوف,,,33.6472931,35.5839068
+way/672844614,school,متوسطة كمال جنبلاط المختارة,,,33.6600583,35.6144899
+way/678978095,church,كنيسة الوردية,Al Wardiyeh Church,"{""Église Al Wardiyé""}",33.697081,35.5637026
+way/678978662,municipality,سراي دير القمر,Municipality of Deir El Qamar,"{""Saray de Deir el Qamar""}",33.6975766,35.5647115
+way/691012352,church,,holy mary of bisri church,,33.578826,35.5400159
+way/734947155,church,كنيسة مار مارون,Saint Maron Church,,33.6829227,35.4759148
+way/735162409,municipality,بلدية مزبود,Municipality of Mazboud,,33.6110554,35.4796348
+way/735162419,mosque,مسجد مزبود,Mazboud Mosque,,33.6114497,35.479157
+way/735211990,church,,St. Maroun Church,,33.5953547,35.5096119
+way/735265839,church,,Mar Takla,,33.7294355,35.5160504
+way/735274184,church,,Saint Georgios Orthodox Church,,33.7270498,35.5243057
+way/738927145,mosque,جامع السوق شحيم,,,33.6234972,35.4848121
+way/769242232,church,,st john baptist church,,33.5740268,35.5447865
+way/779091772,school,,Johann Ludwig Schneller Institute,,33.642461,35.7325343
+way/779565645,hospital,,Kherbet Kanafar Governmental Hospital,,33.6392126,35.7265608
+way/779565667,hospital,,roland clinic,"{""Clinique Roland""}",33.6371367,35.7225832
+way/798537031,school,,Shouf National College,,33.6805864,35.5553371
+way/798537038,pharmacy,,Rodaina Pharmacy,,33.6767632,35.5603895
+way/798537043,pharmacy,,Lavida,,33.6783199,35.5657183
+way/798537046,municipality,,CashUnited,,33.6775684,35.568527
+way/798537075,pharmacy,,Nadia Pharmacy,,33.6792078,35.5738044
+way/798537077,hospital,,Baakline Medical Center,,33.6785497,35.5745646
+way/798537091,pharmacy,,Rawan Pharmacy,,33.6817939,35.5730225
+way/798537098,school,,Marj Al Toufola,,33.6836715,35.5731155
+way/798537103,pharmacy,,Procare Pharmacy,,33.6854706,35.5777519
+way/842359835,hospital,عين وزين,Ain Wazein Medical Village,"{""Ain w Zein""}",33.6808451,35.6105491
+way/850669098,church,,Mar Maroun Church,,33.6957129,35.5811602
+way/850669107,municipality,,Domaine des Mirs,,33.7025681,35.5913324
+way/850669113,church,,Mar Taqla Church,,33.7128041,35.5827193
+way/850669118,church,,Mazar Haml llah,,33.7023123,35.5634626
+way/863065339,school,,saghbine official school,,33.6008912,35.6917825
+way/863622527,church,,St. Michael,,33.6806407,35.5282253
+way/863622530,pharmacy,,Wissam Pharmacy,,33.6883516,35.5187308
+way/893987313,church,,St. Elias Church,,33.7672182,35.5485199
+way/911345083,church,,Saint Elias Church,,33.7348785,35.5964936
+way/911345086,church,,Saint Kiryakos,,33.7371853,35.59826
+way/931342227,school,,Collège Saint-Jean,,33.6419599,35.7181067
+way/95415300,school,,Collège Mar Abda,,33.7033537,35.5697268
+way/985621395,school,,Baakline Official Secondary School,,33.6687132,35.5470322

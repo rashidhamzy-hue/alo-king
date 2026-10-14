@@ -144,5 +144,24 @@ describe("delivery area data (§39.2)", async () => {
       roadKm: 8.12,
     });
     expect(area.nearestByRoad(near, [[null], [null], [null]])).toBeNull();
+    // The OSRM fallback asks the same question: merchants as sources, the place as the one destination.
+    const url = new URL(area.osrmTableUrl(niha, near));
+    expect(url.hostname).toBe("router.project-osrm.org");
+    expect(url.pathname.split(";")).toHaveLength(4);
+    expect(url.pathname.endsWith(`${niha.lon.toFixed(6)},${niha.lat.toFixed(6)}`)).toBe(true);
+    expect(url.searchParams.get("sources")).toBe("0;1;2");
+    expect(url.searchParams.get("destinations")).toBe("3");
+    expect(url.searchParams.get("annotations")).toBe("distance");
+  });
+
+  it("keeps the road rows already committed, so a second run only asks for the missing places", () => {
+    const kept = area.existingRoads(
+      readFileSync("supabase/seed/places/shouf_delivery_road_km.csv", "utf8"),
+    );
+    expect(kept.size).toBeGreaterThan(40);
+    for (const r of kept.values()) {
+      expect(Number(r.road_km)).toBeGreaterThan(0);
+      expect(["ors", "osrm"]).toContain(r.provider);
+    }
   });
 });

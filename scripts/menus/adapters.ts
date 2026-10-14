@@ -103,8 +103,11 @@ const SECTION_KEYS = [
   "group_name",
   "section",
 ];
+const PRICE_LIST_KEYS = ["prices", "Prices", "priceList", "price_list", "variants", "sizes"];
 // Lists that hold items inside a section, as platforms name them.
 const ITEM_LIST_KEYS = [
+  "itemList",
+  "item_list",
   "items",
   "products",
   "Items",
@@ -126,34 +129,58 @@ export function currencyWord(v: unknown): "USD" | "LBP" | null {
   return null;
 }
 
+/** Translations as an object: {"en": …, "ar": …} or {"nameEnglish": …, "nameArabic": …}. */
+function localized(v: unknown): { en?: string; ar?: string; fr?: string } {
+  if (!isObj(v)) return {};
+  const first = (keys: string[]) => keys.map((k) => str(v[k])).find(Boolean) || undefined;
+  return {
+    en: first(["en", "EN", "english", "English", "nameEnglish", "name_en"]),
+    ar: first(["ar", "AR", "arabic", "Arabic", "nameArabic", "name_ar"]),
+    fr: first(["fr", "FR", "french", "French", "nameFrench", "name_fr"]),
+  };
+}
+
 /** The first non-empty value of the keys present on an object. */
 const pick = (o: J, keys: string[]) => {
   for (const k of keys) {
     const v = o[k];
     if (typeof v === "string" && v.trim()) return v.trim();
     if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (isObj(v)) {
-      // Translations as objects: {"en": "...", "ar": "..."}.
-      const t = v.en ?? v.EN ?? v.ar ?? v.AR ?? v.fr;
-      if (typeof t === "string" && t.trim()) return t.trim();
-    }
+    const t = localized(v);
+    if (t.en ?? t.ar ?? t.fr) return t.en ?? t.ar ?? t.fr;
   }
   return undefined;
 };
 
+/** A section's name from its holder object, in English and Arabic when the platform gives both. */
+function sectionNames(holder: J | null): { name_en?: string; name_ar?: string } {
+  if (!holder) return {};
+  for (const k of SECTION_KEYS) {
+    const t = localized(holder[k]);
+    if (t.en || t.ar)
+      return { ...(t.en ? { name_en: t.en } : {}), ...(t.ar ? { name_ar: t.ar } : {}) };
+  }
+  const n = pick(holder, SECTION_KEYS);
+  return n === undefined ? {} : { [ARABIC.test(String(n)) ? "name_ar" : "name_en"]: String(n) };
+}
+
 /** A price value from an item: a number, a numeric string, a price string with a currency, or prices[0]. */
 function priceOf(o: J): { text: string | null; currency: "USD" | "LBP" | null } {
   let raw: unknown = pick(o, PRICE_KEYS);
+  let cur = currencyWord(pick(o, CURRENCY_KEYS));
   if (raw === undefined) {
-    const list = o.prices ?? o.Prices ?? o.variants ?? o.sizes;
-    if (Array.isArray(list) && list.length && isObj(list[0])) raw = pick(list[0] as J, PRICE_KEYS);
+    const list = PRICE_LIST_KEYS.map((k) => o[k]).find(Array.isArray);
+    if (list?.length && isObj(list[0])) {
+      raw = pick(list[0] as J, PRICE_KEYS);
+      cur = currencyWord(pick(list[0] as J, CURRENCY_KEYS)) ?? cur;
+    }
   }
   if (raw === undefined || raw === null || raw === "") return { text: null, currency: null };
-  const cur = currencyWord(pick(o, CURRENCY_KEYS));
   return { text: str(raw), currency: cur };
 }
 
 type RawItem = {
+  category?: string;
   name?: string;
   name_ar?: string;
   name_en?: string;
@@ -164,12 +191,14 @@ type RawItem = {
 
 /** An object reads as a menu item when it has a name and a price-ish key (even a null price). */
 function asItem(o: J, docCurrency: "USD" | "LBP" | null): RawItem | null {
-  const name = pick(o, NAME_KEYS);
-  const en = pick(o, NAME_EN_KEYS);
-  const ar = pick(o, NAME_AR_KEYS);
-  const fr = pick(o, NAME_FR_KEYS);
+  // {"name": {"nameEnglish": …, "nameArabic": …}} carries both languages.
+  const t = NAME_KEYS.map((k) => localized(o[k])).find((x) => x.en || x.ar || x.fr) ?? {};
+  const name = t.en || t.ar || t.fr ? undefined : pick(o, NAME_KEYS);
+  const en = pick(o, NAME_EN_KEYS) ?? t.en;
+  const ar = pick(o, NAME_AR_KEYS) ?? t.ar;
+  const fr = pick(o, NAME_FR_KEYS) ?? t.fr;
   if (!name && !en && !ar && !fr) return null;
-  const hasPriceKey = [...PRICE_KEYS, "prices", "Prices", "variants", "sizes"].some((k) => k in o);
+  const hasPriceKey = [...PRICE_KEYS, ...PRICE_LIST_KEYS].some((k) => k in o);
   if (!hasPriceKey) return null;
   const p = priceOf(o);
   const currency = p.currency ?? docCurrency;
@@ -183,6 +212,11 @@ function asItem(o: J, docCurrency: "USD" | "LBP" | null): RawItem | null {
         : p.text;
   const desc = pick(o, DESC_KEYS);
   const item: RawItem = { price_text };
+  // A flat list of every item, each naming its category (J.O's House of Subs): split into sections later.
+  const cat = ["category", "categoryName", "category_name", "CategoryName"]
+    .map((k) => o[k])
+    .find((v) => typeof v === "string" && v.trim());
+  if (typeof cat === "string") item.category = cat.trim();
   if (ar) item.name_ar = String(ar);
   if (en) item.name_en = String(en);
   if (fr) item.name_fr = String(fr);
@@ -217,7 +251,7 @@ function docCurrencyOf(root: unknown): "USD" | "LBP" | null {
  */
 export function fromJson(root: unknown): Draft {
   const docCurrency = docCurrencyOf(root);
-  const sections: { name?: string; items: RawItem[] }[] = [];
+  const sections: { names: { name_en?: string; name_ar?: string }; items: RawItem[] }[] = [];
   const seenLists = new Set<unknown>();
   const walk = (v: unknown, holder: J | null, key: string | null, depth: number) => {
     if (depth > 14) return;
@@ -232,13 +266,23 @@ export function fromJson(root: unknown): Draft {
           isObj(o) && ITEM_LIST_KEYS.some((k) => Array.isArray(o[k]) && (o[k] as unknown[]).length),
       );
       if (found.length >= 2 && found.length >= v.length * 0.6 && !nested) {
-        const sname = holder ? pick(holder, SECTION_KEYS) : undefined;
+        const cats = [...new Set(found.map((i) => i.category).filter(Boolean))] as string[];
+        if (cats.length >= 2 && found.every((i) => i.category)) {
+          for (const c of cats)
+            sections.push({
+              names: { [ARABIC.test(c) ? "name_ar" : "name_en"]: c },
+              items: found.filter((i) => i.category === c),
+            });
+          return;
+        }
+        const names = sectionNames(holder);
         sections.push({
-          name: sname
-            ? String(sname)
-            : key && !/^\d+$/.test(key) && !ITEM_LIST_KEYS.includes(key)
-              ? key
-              : undefined,
+          names:
+            names.name_en || names.name_ar
+              ? names
+              : key && !/^\d+$/.test(key) && !ITEM_LIST_KEYS.includes(key)
+                ? { name_en: key }
+                : {},
           items: found,
         });
         return;
@@ -259,8 +303,8 @@ export function fromJson(root: unknown): Draft {
   }
   return validateDraft({
     sections: [...uniq.values()].map((s) => ({
-      ...(s.name ? { [ARABIC.test(s.name) ? "name_ar" : "name_en"]: s.name } : {}),
-      items: s.items,
+      ...s.names,
+      items: s.items.map(({ category: _c, ...i }) => i),
     })),
   });
 }
@@ -322,7 +366,7 @@ export function fromJsonLd(html: string): Draft {
 const PHONE = /\+\s?\d{2,3}[\s-]?\d|\b\d{1,2}[\s-]\d{3}[\s-]\d{3}\b|\b\d{8}\b/;
 const HOURS = /\b\d{1,2}(:\d{2})?\s?(am|pm)\b|\b\d{1,2}:\d{2}\s?[-–]\s?\d{1,2}:\d{2}\b/i;
 
-export function fromText(text: string): Draft {
+export function fromText(text: string, opts: { requireCurrency?: boolean } = {}): Draft {
   // Phone numbers, opening hours and years are numbers, not prices.
   const d = parseMenuText(
     text
@@ -330,8 +374,15 @@ export function fromText(text: string): Draft {
       .filter((l) => !PHONE.test(l) && !HOURS.test(l) && !/©|\b(19|20)\d{2}\b/.test(l))
       .join("\n"),
   );
+  // On a web page, a bare number is too often a rating, a review count or a date ("Service: 5.0", "reviews 29"):
+  // there only lines with a stated currency count. A PDF menu keeps bare numbers (the merchant is asked).
   const sections = d.sections
-    .map((s) => ({ ...s, items: s.items.filter((i) => i.price !== null) }))
+    .map((s) => ({
+      ...s,
+      items: s.items.filter(
+        (i) => i.price !== null && (!opts.requireCurrency || i.currency !== null),
+      ),
+    }))
     .filter((s) => s.items.length);
   return { sections, warnings: d.warnings.filter((w) => !w.startsWith("no price for")) };
 }
@@ -382,8 +433,9 @@ export function menuLinks(html: string, base: string): string[] {
     }
     const label = htmlText(m[2]).toLowerCase();
     const isMenu =
-      /\b(menu|menus|carte|our food|food|order)\b|منيو|قائمة|المنيو|لائحة/.test(label) ||
-      /menu|carte/i.test(u.pathname);
+      /\b(menu|menus|carte|our food|food|order|shop|products)\b|منيو|قائمة|المنيو|لائحة/.test(
+        label,
+      ) || /menu|carte|^\/shop\b/i.test(u.pathname);
     const isFile = /\.pdf$/i.test(u.pathname) || /^(drive|docs)\.google\.com$/.test(u.hostname);
     if (
       (isMenu && u.hostname === baseUrl.hostname) ||
@@ -400,4 +452,166 @@ export function driveDownloadUrl(link: string): string {
   return m && /google\.com/.test(link)
     ? `https://drive.google.com/uc?export=download&id=${m[1]}`
     : link;
+}
+
+/**
+ * Omega Software menus (menu.omegasoftware.ca/<slug>): `getRestaurantMenu` (categories → groups → items, each with
+ * PRICE and modifier groups) and `getRestaurantData` (the branch's currency: DESCRIPTION "USD" / "LBP" and
+ * DIGITNUMBER, the decimals it prints). A price is the number the menu shows, rounded to those decimals, in that
+ * currency; modifier groups become options (MANDATORY → at least one, QTY → at most that many). Omega's "A" names
+ * are a second name, Arabic only on some menus: they are kept as name_ar only when written in Arabic.
+ */
+export function fromOmega(menu: unknown, data: unknown): Draft {
+  const m = isObj(menu) ? menu : {};
+  const c = isObj(data) && isObj(data.currency) ? (data.currency as J) : {};
+  // The currency the menu prints is the branch's main one; a `currency` that is not it (the branch's second
+  // currency) leaves the prices without a currency, asked at approval.
+  const branch =
+    isObj(data) && isObj(data.branch) ? (data.branch as J) : isObj(m.branch) ? (m.branch as J) : {};
+  const isMain = branch.MAINCURRENCY === undefined || String(branch.MAINCURRENCY) === String(c.ID);
+  const currency = isMain ? (currencyWord(c.DESCRIPTION) ?? currencyWord(c.SYNBOL)) : null;
+  const digits = Number.isInteger(c.DIGITNUMBER)
+    ? Math.min(3, Math.max(0, c.DIGITNUMBER as number))
+    : 2;
+  const round = (v: unknown) => {
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) && n >= 0 ? Number(n.toFixed(digits)) : null;
+  };
+  const priceText = (v: unknown) => {
+    const n = round(v);
+    if (n === null) return null;
+    const t = n.toFixed(digits).replace(/\.0+$/, "");
+    return currency ? `${t} ${currency}` : t;
+  };
+  const names = (en: unknown, alt: unknown) => {
+    const a = str(en);
+    const b = str(alt);
+    const out: { name_en?: string; name_ar?: string } = {};
+    if (a) out[ARABIC.test(a) ? "name_ar" : "name_en"] = a;
+    if (b && ARABIC.test(b) && !out.name_ar) out.name_ar = b;
+    return out;
+  };
+  const sections: unknown[] = [];
+  for (const cat of Array.isArray(m.menu) ? m.menu.filter(isObj) : []) {
+    const groups = (Array.isArray(cat.groups) ? cat.groups.filter(isObj) : []).filter(
+      (g) => Array.isArray(g.items) && g.items.length,
+    );
+    for (const g of groups) {
+      const items = (g.items as unknown[]).filter(isObj).map((it) => {
+        const sizes = (Array.isArray(it.sizes) ? it.sizes.filter(isObj) : []).filter(
+          (z) => pick(z, ["SIZENAME", "SIZE", "ITEMNAME", "DESCRIPTION", "NAME"]) !== undefined,
+        );
+        // A choice's price is what it adds (menu_options.price_delta_usd): with sizes, the item costs its cheapest
+        // size and each size adds the difference, so "Single 500,000 / Double 800,000" stays exactly as printed.
+        const sizePrices = sizes.map((z) => round(z.PRICE));
+        const base = sizePrices.every((p) => p !== null)
+          ? Math.min(...(sizePrices as number[]))
+          : null;
+        const options = [
+          ...(sizes.length
+            ? [
+                {
+                  name: "Size",
+                  min: 1,
+                  max: 1,
+                  choices: sizes.map((z, i) => ({
+                    name: String(pick(z, ["SIZENAME", "SIZE", "ITEMNAME", "DESCRIPTION", "NAME"])),
+                    price_text:
+                      base === null
+                        ? null
+                        : priceText(Number(((sizePrices[i] as number) - base).toFixed(digits))),
+                  })),
+                },
+              ]
+            : []),
+          ...(Array.isArray(it.modifiers) ? it.modifiers.filter(isObj) : [])
+            .filter((mg) => Array.isArray(mg.items) && mg.items.length)
+            .map((mg) => {
+              const choices = (mg.items as unknown[]).filter(isObj).map((x) => ({
+                name: str(x.ITEMNAME),
+                price_text: priceText(x.PRICE),
+              }));
+              const qty = Number(mg.QTY);
+              return {
+                name: str(mg.GROUPNAME) || "Options",
+                min: Number(mg.MANDATORY) ? 1 : 0,
+                max: qty > 0 ? qty : choices.length,
+                choices,
+              };
+            }),
+        ];
+        // Without a price for every size, the sizes carry no price and the merchant prices them at approval.
+        const price = sizes.length
+          ? base !== null
+            ? priceText(base)
+            : null
+          : Number(it.PRICE) > 0
+            ? priceText(it.PRICE)
+            : null;
+        return {
+          ...names(it.ITEMNAME, it.AITEMNAME),
+          ...(str(it.ITEMDESCRIPTION) ? { description: str(it.ITEMDESCRIPTION) } : {}),
+          price_text: price,
+          confidence: 0.9,
+          ...(options.length ? { options } : {}),
+        };
+      });
+      sections.push({
+        ...(groups.length === 1
+          ? names(cat.DESCRIPTION, cat.ADESCRIPTION)
+          : names(g.GROUPNAME, g.AGROUPNAME)),
+        items,
+      });
+    }
+  }
+  return validateDraft({ sections });
+}
+
+/**
+ * Odoo eCommerce product cards (Batloun Dairy): `<div class="oe_product_cart" aria-label="Name">` with the price in
+ * `<span class="oe_currency_value">3.60</span>` after or before its currency symbol. One "Products" section.
+ */
+export function fromProductCards(html: string): Draft {
+  const items: unknown[] = [];
+  const seen = new Set<string>();
+  const cards = html.split(/(?=<div[^>]+class="[^"]*\boe_product_cart\b)/);
+  for (const card of cards.filter((c) => /^<div[^>]+class="[^"]*\boe_product_cart\b/.test(c))) {
+    const name = htmlText(card.match(/aria-label="([^"]+)"/)?.[1] ?? "");
+    const price = card.match(
+      /data-oe-type="monetary"[^>]*>([\s\S]{0,40}?)<span class="oe_currency_value">([\d.,]+)<\/span>([\s\S]{0,40}?)<\/span>/,
+    );
+    if (!name || !price || seen.has(name)) continue;
+    seen.add(name);
+    const cur = currencyWord(htmlText(price[1])) ?? currencyWord(htmlText(price[3]));
+    items.push({ name, price_text: cur ? `${price[2]} ${cur}` : price[2], confidence: 0.9 });
+  }
+  return validateDraft({ sections: items.length ? [{ name_en: "Products", items }] : [] });
+}
+
+// Menu platforms whose API lives on their own host, not the merchant's.
+const PLATFORM_HOSTS = /(^|\.)(omegasoftware\.ca|menutigr\.com|qr-order\.online|qrscan-menu\.com)$/;
+// The registrable part of a host: "x.com.lb" (Lebanese second-level domains), else the last two labels.
+const site = (host: string) => {
+  const labels = host.replace(/^www\./, "").split(".");
+  const n = labels.length >= 3 && /^(com|org|net|edu|gov)$/.test(labels[labels.length - 2]) ? 3 : 2;
+  return labels.slice(-n).join(".");
+};
+
+/**
+ * Whether a JSON response belongs to the menu page that loaded it: same site, a known menu platform, or an API host
+ * named after the site ("joshouseofsubs-api.onrender.com" for joshouseofsubs.com). Ads, analytics and feature-flag
+ * services (googleadservices, amplitude, featureassets, stripe…) are not the merchant's menu.
+ */
+export function jsonFromSite(jsonUrl: string, pageUrl: string): boolean {
+  let j: URL;
+  let p: URL;
+  try {
+    j = new URL(jsonUrl);
+    p = new URL(pageUrl);
+  } catch {
+    return false;
+  }
+  if (site(j.hostname) === site(p.hostname) || PLATFORM_HOSTS.test(j.hostname)) return true;
+  const key = site(p.hostname).split(".")[0];
+  return key.length >= 5 && j.hostname.split(".")[0].includes(key);
 }

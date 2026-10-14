@@ -2,11 +2,13 @@
 // Overpass or OpenRouteService):
 //   * boundaryBox(): the box around the boundary places' centres, for the OSM fetch (scripts/shouf/osm-fetch.mjs
 //     --boundary), so landmarks and place names cover every delivered-to place and nothing toward Damour or the Iqlim.
-//   * roads: the road distance from the nearest pilot merchant to each boundary place, from OpenRouteService, written
-//     to supabase/seed/places/shouf_delivery_road_km.csv (place_id, road_km, nearest_vendor_place_id, provider,
-//     computed_on). delivery_area_proposal() reads it; a place without a row falls back to the straight line.
-// Usage: ORS_API_KEY=... node scripts/shouf/area.mjs roads <out.csv>
-import { readFileSync, writeFileSync } from "node:fs";
+//   * roads: the road distance from the nearest pilot merchant to each boundary place, from OpenRouteService (the
+//     public OSRM server once the ORS free quota is spent), written to supabase/seed/places/shouf_delivery_road_km.csv
+//     (place_id, road_km, nearest_vendor_place_id, provider, computed_on). Rows already in the file are kept; only
+//     places without one are asked. delivery_area_proposal() reads it; a place without a row falls back to the
+//     straight line.
+// Usage: [ORS_API_KEY=...] node scripts/shouf/area.mjs roads <out.csv>
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const KM_PER_DEG_LAT = 111.32;
 
@@ -117,9 +119,81 @@ export function nearestByRoad(merchants, distances) {
   return best && { nearest: best.id, roadKm: Math.round(best.m / 10) / 100 };
 }
 
+/** The same request for the OSRM table service: merchants are sources, the place is the destination. */
+export function osrmTableUrl(place, merchants, base = "https://router.project-osrm.org") {
+  const coords = [...merchants, place]
+    .map((p) => `${p.lon.toFixed(6)},${p.lat.toFixed(6)}`)
+    .join(";");
+  const sources = merchants.map((_, i) => i).join(";");
+  return `${base}/table/v1/driving/${coords}?sources=${sources}&destinations=${merchants.length}&annotations=distance`;
+}
+
+/** Rows already in the road file (kept: a place is asked again only when it has no row). */
+export function existingRoads(csv) {
+  return new Map(parseCsv(csv).map((r) => [r.place_id, r]));
+}
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** One place by ORS: the nearest merchant, { none } when no merchant reaches it, { limited } on the quota, or null. */
+async function orsNearest(place, near, key, misses) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch("https://api.openrouteservice.org/v2/matrix/driving-car", {
+        method: "POST",
+        headers: {
+          authorization: key,
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify(matrixBody(place, near)),
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (res.ok) return nearestByRoad(near, (await res.json()).distances) ?? { none: true };
+      const body = (await res.text()).slice(0, 120);
+      // The free plan's quota answers 429 or 403 "Quota exceeded": once per minute, or for the rest of the day.
+      if (res.status === 429 || (res.status === 403 && /quota/i.test(body))) {
+        if (attempt === 0) {
+          await wait(65_000);
+          continue;
+        }
+        return { limited: true };
+      }
+      misses.push(`${place.id}: ORS HTTP ${res.status} ${body}`);
+      if (res.status < 500) return null;
+    } catch (e) {
+      misses.push(`${place.id}: ORS ${String(e).slice(0, 120)}`);
+    }
+    await wait(2500);
+  }
+  return null;
+}
+
+/** One place by the public OSRM server (fair use: one request a second, a named User-Agent). */
+async function osrmNearest(place, near, misses) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await wait(1100);
+    try {
+      const res = await fetch(osrmTableUrl(place, near), {
+        headers: {
+          "user-agent": "alo-king area-data (https://github.com/rashidhamzy-hue/alo-king)",
+        },
+        signal: AbortSignal.timeout(20_000),
+      });
+      const j = res.ok ? await res.json() : null;
+      if (j?.code === "Ok") return nearestByRoad(near, j.distances) ?? { none: true };
+      misses.push(`${place.id}: OSRM HTTP ${res.status} ${j?.code ?? ""}`);
+      if (res.status < 500 && res.status !== 429) return null;
+    } catch (e) {
+      misses.push(`${place.id}: OSRM ${String(e).slice(0, 120)}`);
+    }
+    await wait(5000);
+  }
+  return null;
+}
+
 async function roads(out) {
   const key = process.env.ORS_API_KEY;
-  if (!key) throw new Error("ORS_API_KEY is not set");
   const places = boundaryPlaces(
     readFileSync("supabase/seed/places/places.csv", "utf8"),
     readFileSync("supabase/seed/places/shouf_delivery_boundary.csv", "utf8"),
@@ -128,47 +202,37 @@ async function roads(out) {
     readFileSync("supabase/seed/shouf/source/01_shouf_merchants_315.csv", "utf8"),
   );
   const today = new Date().toISOString().slice(0, 10);
-  const rows = [];
+  const kept = existsSync(out) ? existingRoads(readFileSync(out, "utf8")) : new Map();
+  const ids = new Set(places.map((p) => p.id));
+  const rows = [...kept.values()]
+    .filter((r) => ids.has(r.place_id))
+    .map((r) => [r.place_id, r.road_km, r.nearest_vendor_place_id, r.provider, r.computed_on]);
   const misses = [];
+  // ORS first (the provider session E chose); once its quota is spent, the public OSRM server for the rest.
+  let orsOk = !!key;
   for (const place of places) {
+    if (kept.has(place.id)) continue;
     const near = nearestMerchants(place, merchants);
     let hit = null;
-    for (let attempt = 0; attempt < 4 && !hit; attempt++) {
-      try {
-        const res = await fetch("https://api.openrouteservice.org/v2/matrix/driving-car", {
-          method: "POST",
-          headers: {
-            authorization: key,
-            "content-type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify(matrixBody(place, near)),
-          signal: AbortSignal.timeout(20_000),
-        });
-        if (res.ok) {
-          hit = nearestByRoad(near, (await res.json()).distances) ?? { none: true };
-        } else {
-          const body = (await res.text()).slice(0, 120);
-          // The free plan's per-minute matrix quota answers 429 or 403 "Quota exceeded": wait out the minute and retry.
-          const limited = res.status === 429 || (res.status === 403 && /quota/i.test(body));
-          if (!limited || attempt === 3) misses.push(`${place.id}: HTTP ${res.status} ${body}`);
-          if (limited) {
-            if (attempt < 3) await new Promise((r) => setTimeout(r, 65_000));
-            continue;
-          }
-          if (res.status < 500) break;
-        }
-      } catch (e) {
-        misses.push(`${place.id}: ${String(e).slice(0, 120)}`);
+    let provider = "ors";
+    if (orsOk) {
+      hit = await orsNearest(place, near, key, misses);
+      if (hit?.limited) {
+        console.log("ORS quota spent: OSRM for the remaining places");
+        orsOk = false;
+        hit = null;
       }
-      // Free plan: 40 matrix requests a minute; 2.5 s keeps it at 24 with room for retries.
-      await new Promise((r) => setTimeout(r, 2500));
+      await wait(2500);
     }
-    if (hit && !hit.none) rows.push([place.id, hit.roadKm.toFixed(2), hit.nearest, "ors", today]);
+    if (!hit) {
+      provider = "osrm";
+      hit = await osrmNearest(place, near, misses);
+    }
+    if (hit && !hit.none)
+      rows.push([place.id, hit.roadKm.toFixed(2), hit.nearest, provider, today]);
     else if (hit?.none) misses.push(`${place.id}: no merchant reaches it by road`);
-    const s = near[0].km.toFixed(2);
     console.log(
-      `${place.id}\t${place.name}\tstraight ${s} km\troad ${hit && !hit.none ? hit.roadKm.toFixed(2) : "-"} km`,
+      `${place.id}\t${place.name}\tstraight ${near[0].km.toFixed(2)} km\troad ${hit && !hit.none ? `${hit.roadKm.toFixed(2)} km (${provider})` : "-"}`,
     );
   }
   rows.sort((a, b) => a[0].localeCompare(b[0]));
@@ -179,7 +243,9 @@ async function roads(out) {
       ...rows.map((r) => r.join(",")),
     ].join("\n") + "\n",
   );
-  console.log(`roads: ${rows.length} of ${places.length} places; misses: ${misses.length}`);
+  console.log(
+    `roads: ${rows.length} of ${places.length} places (${kept.size} kept from the file); misses: ${misses.length}`,
+  );
   for (const m of misses) console.log(`  miss ${m}`);
 }
 
