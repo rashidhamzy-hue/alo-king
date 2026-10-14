@@ -254,6 +254,11 @@ export function ClaimFlow({ business }: { business: ClaimBusiness }) {
               <p className="mt-1 text-tone-mute">
                 {[business.branch_label, business.town].filter(Boolean).join(" · ")}
               </p>
+              {(business.asked ?? 0) > 0 && (
+                <p className="mt-3 font-bold" data-testid="claim-asked">
+                  {business.asked === 1 ? c.askedOne : fmt(c.asked, { n: business.asked ?? 0 })}
+                </p>
+              )}
               <p className="mt-3 text-tone-mute">{c.claimLead}</p>
               {business.phone_tail && (
                 <p className="mt-2 text-sm font-semibold">

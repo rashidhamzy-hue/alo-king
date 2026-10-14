@@ -182,7 +182,15 @@ import * as cc from "./customer-cards";
 
 describe("customer-cards: every builder passes the checker", () => {
   const U = "11111111-2222-3333-4444-555555555555";
-  const card = { order_id: U, code: "AB3CD9", vendor_name: "مطعم الضيعة ".repeat(6), fulfilment: "delivery", total_usd: 148.5, total_lbp: 13290750, usd_lbp_rate: 89500 };
+  const card = {
+    order_id: U,
+    code: "AB3CD9",
+    vendor_name: "مطعم الضيعة ".repeat(6),
+    fulfilment: "delivery",
+    total_usd: 148.5,
+    total_lbp: 13290750,
+    usd_lbp_rate: 89500,
+  };
   const kinds = [
     { kind: "accepted", eta: { min: 25, max: 35 } },
     { kind: "rejected", reason: "busy" },
@@ -198,12 +206,18 @@ describe("customer-cards: every builder passes the checker", () => {
     { kind: "cancel_refused" },
     { kind: "rating", ask_delivery: true },
     { kind: "rating", ask_delivery: false },
-    { kind: "basket_reminder", basket: { vendor: "محل", vendor_en: "Shop", subtotal_usd: 12, lines: [{}] } },
+    {
+      kind: "basket_reminder",
+      basket: { vendor: "محل", vendor_en: "Shop", subtotal_usd: 12, lines: [{}] },
+    },
   ];
   for (const lang of cc.LANGS) {
     it(`builds valid customer messages in ${lang}`, () => {
       for (const p of kinds) {
-        const out = cc.customerStatusMessages("+96170000001", { ...p, lang }, card, { deliveryCode: "1234", afterSunset: true });
+        const out = cc.customerStatusMessages("+96170000001", { ...p, lang }, card, {
+          deliveryCode: "1234",
+          afterSunset: true,
+        });
         expect(out.length, `${lang} ${p.kind}`).toBeGreaterThan(0);
         for (const m of out) expect(checkInteractive(m), `${lang} ${p.kind}`).toEqual([]);
       }
@@ -215,7 +229,9 @@ describe("customer-cards: every builder passes the checker", () => {
     });
   }
   it("cta_url labels and urls are checked", () => {
-    expect(checkInteractive(cc.ctaUrl("+1", "b", "x".repeat(21), "https://wa.me/1")).join()).toMatch(/cta label/);
+    expect(
+      checkInteractive(cc.ctaUrl("+1", "b", "x".repeat(21), "https://wa.me/1")).join(),
+    ).toMatch(/cta label/);
     expect(checkInteractive(cc.ctaUrl("+1", "b", "ok", "http://evil")).join()).toMatch(/https/);
   });
 });
@@ -241,7 +257,11 @@ describe("onboarding-cards: every builder passes the checker", () => {
         ob.codeSentCard("+96171000001", U, "…56", "whatsapp", lang),
         ob.codeSentCard("+96171000001", U, "…56", "voice", lang),
         ob.documentsAsk("+96171000001", ["registration", "sign_photo"], lang),
-        ob.documentsAsk("+96171000001", ["registration"], lang, { homeKitchen: true, claimId: U, prefix: "x".repeat(400) }),
+        ob.documentsAsk("+96171000001", ["registration"], lang, {
+          homeKitchen: true,
+          claimId: U,
+          prefix: "x".repeat(400),
+        }),
         ob.documentsAsk("+96171000001", ["company"], lang, { next: true }),
         ob.businessTypeList("+96171000001", lang),
         ob.homeKitchenButtons("+96171000001", lang),
@@ -249,16 +269,22 @@ describe("onboarding-cards: every builder passes the checker", () => {
         ob.claimCodeText("+96170123456", "482913"),
         ob.joinConfirm("+96171000001", lang),
       ];
-      for (const p of built) expect(checkInteractive(clampInteractive(p)), JSON.stringify(p).slice(0, 80)).toEqual([]);
+      for (const p of built)
+        expect(checkInteractive(clampInteractive(p)), JSON.stringify(p).slice(0, 80)).toEqual([]);
       // Builders that need no clamping: all except the search list, whose names come from data.
-      for (const p of built.slice(1)) expect(checkInteractive(p), JSON.stringify(p).slice(0, 80)).toEqual([]);
+      for (const p of built.slice(1))
+        expect(checkInteractive(p), JSON.stringify(p).slice(0, 80)).toEqual([]);
     });
   }
   it("tap ids round-trip", () => {
     const l: any = ob.claimSearchList("+1", matches.slice(0, 2), "en");
-    expect(ob.parseOnboardingTap(l.interactive.action.sections[0].rows[0].id)).toEqual({ a: "vendor", vendorId: matches[0].vendor_id });
+    expect(ob.parseOnboardingTap(l.interactive.action.sections[0].rows[0].id)).toEqual({
+      a: "vendor",
+      vendorId: matches[0].vendor_id,
+    });
     const t: any = ob.businessTypeList("+1", "ar");
-    for (const r of t.interactive.action.sections[0].rows) expect(ob.parseOnboardingTap(r.id)?.a).toBe("type");
+    for (const r of t.interactive.action.sections[0].rows)
+      expect(ob.parseOnboardingTap(r.id)?.a).toBe("type");
   });
 });
 
@@ -272,7 +298,12 @@ describe("menu-cards: every builder passes the checker", () => {
     const built: any[] = [
       mc.menuImportHelp("+96171000001", true),
       mc.menuImportHelp("+96171000001", false),
-      mc.draftSectionCard("+96171000001", U, { index: 3, name: long, items: 40, priced: 31, preview: Array(12).fill(long) }, 12),
+      mc.draftSectionCard(
+        "+96171000001",
+        U,
+        { index: 3, name: long, items: 40, priced: 31, preview: Array(12).fill(long) },
+        12,
+      ),
       mc.sectionAddedText("+96171000001", 12, Array(30).fill(long)),
       mc.portionQuestion("+96171000001", U),
       mc.extrasQuestion("+96171000001", U, "M"),
@@ -286,9 +317,18 @@ describe("menu-cards: every builder passes the checker", () => {
   });
   it("tap ids round-trip", () => {
     const p: any = mc.draftSectionCard("+1", U, { index: 2, name: "x", items: 1, priced: 1 }, 3);
-    expect(mc.parseMenuTap(p.interactive.action.buttons[0].reply.id)).toEqual({ a: "approve", draftId: U, index: 2 });
+    expect(mc.parseMenuTap(p.interactive.action.buttons[0].reply.id)).toEqual({
+      a: "approve",
+      draftId: U,
+      index: 2,
+    });
     const e: any = mc.extrasQuestion("+1", U, "L");
-    expect(mc.parseMenuTap(e.interactive.action.buttons[2].reply.id)).toEqual({ a: "extras", vendorId: U, size: "L", extra: "sauce" });
+    expect(mc.parseMenuTap(e.interactive.action.buttons[2].reply.id)).toEqual({
+      a: "extras",
+      vendorId: U,
+      size: "L",
+      extra: "sauce",
+    });
     expect(mc.parseMenuTap("NUT|E|x|M|butter")).toBeNull();
   });
 });
@@ -308,7 +348,8 @@ describe("dietaryList passes the checker", () => {
         protein_g: 61.2,
         nutrition_source: k % 2 ? "estimated" : "merchant_verified",
       }));
-      for (const p of dietaryList("+96170000001", lang, "مطعم", rows, { allergens: true })) expect(checkInteractive(p)).toEqual([]);
+      for (const p of dietaryList("+96170000001", lang, "مطعم", rows, { allergens: true }))
+        expect(checkInteractive(p)).toEqual([]);
     }
   });
 });
@@ -320,37 +361,69 @@ import { branchPicker } from "../dispatch/merchant/flows";
 describe("Flow, product list and branch picker builders pass the checker", () => {
   const TOKEN = `item_options:${"b".repeat(32)}`;
   it("every Flow in both languages", () => {
-    for (const flow of ["address_capture", "item_options", "merchant_claim", "merchant_hours"] as const)
+    for (const flow of [
+      "address_capture",
+      "item_options",
+      "merchant_claim",
+      "merchant_hours",
+    ] as const)
       for (const lang of ["ar", "en"] as const)
-        expect(checkInteractive(flowMessage("+96170000001", { flow, lang, token: TOKEN, screen: "S", data: { x: 1 } }))).toEqual([]);
+        expect(
+          checkInteractive(
+            flowMessage("+96170000001", { flow, lang, token: TOKEN, screen: "S", data: { x: 1 } }),
+          ),
+        ).toEqual([]);
   });
   it("a product list with more items and sections than Meta allows is clamped to pass", () => {
     const products: DesiredProduct[] = Array.from({ length: 45 }, (_, k) => ({
-      retailer_id: `5300000${k}`, name: `صنف ${k}`, price_minor: 500, currency: "USD", availability: "in stock",
-      product_set: "v", section: `قسم ${k % 14} ${"طويل ".repeat(8)}`,
+      retailer_id: `5300000${k}`,
+      name: `صنف ${k}`,
+      price_minor: 500,
+      currency: "USD",
+      availability: "in stock",
+      product_set: "v",
+      section: `قسم ${k % 14} ${"طويل ".repeat(8)}`,
     }));
-    expect(checkInteractive(productListMessage("+96170000001", "cat1", "المنيو", "اختار", products))).toEqual([]);
+    expect(
+      checkInteractive(productListMessage("+96170000001", "cat1", "المنيو", "اختار", products)),
+    ).toEqual([]);
   });
   it("the branch picker for owners of many branches", () => {
     const editors = Array.from({ length: 13 }, (_, k) => ({
-      member_id: `00000000-0000-0000-0000-${String(k).padStart(12, "0")}`, vendor_id: "v", role: "owner",
+      member_id: `00000000-0000-0000-0000-${String(k).padStart(12, "0")}`,
+      vendor_id: "v",
+      role: "owner",
       vendor_name: `فرع ${k} ${"الأشرفية ".repeat(4)}`,
     }));
     for (const f of ["merchant_hours", "merchant_claim"] as const)
       expect(checkInteractive(branchPicker("+96170000001", f, editors))).toEqual([]);
   });
   it("clampInteractive fixes an over-long Flow label and an oversized product list", () => {
-    const flow: any = flowMessage("+1", { flow: "item_options", lang: "en", token: TOKEN, screen: "S", data: {} });
+    const flow: any = flowMessage("+1", {
+      flow: "item_options",
+      lang: "en",
+      token: TOKEN,
+      screen: "S",
+      data: {},
+    });
     flow.interactive.action.parameters.flow_cta = "x".repeat(40);
     expect(checkInteractive(flow).join()).toMatch(/flow cta/);
     expect(checkInteractive(clampInteractive(flow))).toEqual([]);
     const pl = {
       type: "interactive",
       interactive: {
-        type: "product_list", header: { type: "text", text: "Menu" }, body: { text: "pick" },
-        action: { catalog_id: "c", sections: Array.from({ length: 12 }, (_, s) => ({
-          title: `Section ${s} ${"x".repeat(30)}`,
-          product_items: Array.from({ length: 4 }, (_, k) => ({ product_retailer_id: `${s}-${k}` })) })) },
+        type: "product_list",
+        header: { type: "text", text: "Menu" },
+        body: { text: "pick" },
+        action: {
+          catalog_id: "c",
+          sections: Array.from({ length: 12 }, (_, s) => ({
+            title: `Section ${s} ${"x".repeat(30)}`,
+            product_items: Array.from({ length: 4 }, (_, k) => ({
+              product_retailer_id: `${s}-${k}`,
+            })),
+          })),
+        },
       },
     };
     expect(checkInteractive(pl).length).toBeGreaterThan(0);
@@ -369,24 +442,59 @@ describe("merchant extras builders pass the checker", () => {
       const msgs = customerStatusMessages(
         "+96170000001",
         {
-          kind: "substitution", lang, substitution_id: SUB, from_ar: "بيبسي ".repeat(20), from_en: "Pepsi ".repeat(20),
-          to_ar: "سفن اب ".repeat(20), to_en: "7up ".repeat(20), diff_usd: 0.25, diff_lbp: 22375,
-          new_total_usd: 12.75, new_total_lbp: 1141125, usd_lbp_rate: 89500,
+          kind: "substitution",
+          lang,
+          substitution_id: SUB,
+          from_ar: "بيبسي ".repeat(20),
+          from_en: "Pepsi ".repeat(20),
+          to_ar: "سفن اب ".repeat(20),
+          to_en: "7up ".repeat(20),
+          diff_usd: 0.25,
+          diff_lbp: 22375,
+          new_total_usd: 12.75,
+          new_total_lbp: 1141125,
+          usd_lbp_rate: 89500,
         },
         { order_id: SUB, code: "K7M2QX" },
       );
       expect(msgs).toHaveLength(1);
       for (const m of msgs) expect(checkInteractive(m)).toEqual([]);
-      for (const max of [2, 2.5, 10]) expect(checkInteractive(substitutionAsk("+96170000001", lang, max))).toEqual([]);
-      for (const p of menuList("+96170000001", lang, "سوبرماركت", [{ ref: "i1", item_id: "x", name_ar: "حليب", name_en: "Milk", price_usd: 1, orderable: true } as any], null, true))
+      for (const max of [2, 2.5, 10])
+        expect(checkInteractive(substitutionAsk("+96170000001", lang, max))).toEqual([]);
+      for (const p of menuList(
+        "+96170000001",
+        lang,
+        "سوبرماركت",
+        [
+          {
+            ref: "i1",
+            item_id: "x",
+            name_ar: "حليب",
+            name_en: "Milk",
+            price_usd: 1,
+            orderable: true,
+          } as any,
+        ],
+        null,
+        true,
+      ))
         expect(checkInteractive(p)).toEqual([]);
     }
-    expect(customerStatusMessages("+1", { kind: "substitution", substitution_id: "bad" }, null)).toEqual([]);
+    expect(
+      customerStatusMessages("+1", { kind: "substitution", substitution_id: "bad" }, null),
+    ).toEqual([]);
   });
   it("shift handover and the extras' proposal cards", () => {
     const h = shiftHandoverText("+96171000001", {
-      vendor_name: "فرن", pending: Array.from({ length: 10 }, (_, k) => ({ code: `ABC12${k}`, status: "accepted", minutes: k })),
-      pending_count: 14, sold_out: Array.from({ length: 10 }, (_, k) => `صنف ${k}`), complaints: 2,
+      vendor_name: "فرن",
+      pending: Array.from({ length: 10 }, (_, k) => ({
+        code: `ABC12${k}`,
+        status: "accepted",
+        minutes: k,
+      })),
+      pending_count: 14,
+      sold_out: Array.from({ length: 10 }, (_, k) => `صنف ${k}`),
+      complaints: 2,
     });
     expect(h.text.body).toMatch(/14/);
     expect(h.text.body.length).toBeLessThanOrEqual(4096);
@@ -403,6 +511,7 @@ import {
   mainMenu,
   menuList as sectionMenuList,
   noDeliveryCard,
+  notOnAloKingCard,
   qtyList,
   vendorChoices,
   sectionList,
@@ -437,7 +546,14 @@ describe("the button path builders (session T)", () => {
         ...vendorChoices(
           to,
           lang,
-          [{ ref: "v1", name_en: "A restaurant with a rather long name", is_open: true, straight_km: 8.2 }],
+          [
+            {
+              ref: "v1",
+              name_en: "A restaurant with a rather long name",
+              is_open: true,
+              straight_km: 8.2,
+            },
+          ],
           null,
           "pickPickup",
         ),
@@ -511,7 +627,15 @@ import { trackMessage, cancelAsk, fulfilmentAsk } from "../dispatch/customer/ren
 describe("the track card with its cancel button (staging simulator finding)", () => {
   for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
     it(`passes the checker in ${lang}, with a button only while the order can still be cancelled`, () => {
-      const t = { order_id: "0b9d7b53-1f0a-4a8e-9a4d-0c3d2f7a1b11", code: "ABC123", status: "accepted", vendor: "ألو", vendor_en: "Alo", eta: { min: 15, max: 25 }, delivery_code: "4821" };
+      const t = {
+        order_id: "0b9d7b53-1f0a-4a8e-9a4d-0c3d2f7a1b11",
+        code: "ABC123",
+        status: "accepted",
+        vendor: "ألو",
+        vendor_en: "Alo",
+        eta: { min: 15, max: 25 },
+        delivery_code: "4821",
+      };
       const [m]: any = trackMessage("+96170000001", lang, t);
       expect(checkInteractive(m)).toEqual([]);
       expect(m.interactive.action.buttons[0].reply.id).toBe("c:cancel");
@@ -527,13 +651,23 @@ describe("Delivery / Pickup card (session 6a, DECISIONS §37.6)", () => {
     it(`passes the checker in ${lang} with exactly two buttons`, () => {
       const m: any = fulfilmentAsk("+96170000001", lang);
       expect(checkInteractive(m)).toEqual([]);
-      expect(m.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual(["c:delivery", "c:pickup"]);
+      expect(m.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual([
+        "c:delivery",
+        "c:pickup",
+      ]);
     });
   }
 });
 
 describe("the track card on a pickup order says shop, never driver (session 6a, DECISIONS §37.6)", () => {
-  const t = { order_id: "0b9d7b53-1f0a-4a8e-9a4d-0c3d2f7a1b11", code: "ABC123", status: "ready", vendor: "ألو", vendor_en: "Alo", delivery_code: "4821" };
+  const t = {
+    order_id: "0b9d7b53-1f0a-4a8e-9a4d-0c3d2f7a1b11",
+    code: "ABC123",
+    status: "ready",
+    vendor: "ألو",
+    vendor_en: "Alo",
+    delivery_code: "4821",
+  };
   const bodyOf = (m: any) => m.interactive?.body?.text ?? m.text?.body ?? "";
   it("pickup: the code goes to the shop", () => {
     const [m]: any = trackMessage("+96170000001", "en", { ...t, fulfilment: "pickup" });
@@ -543,7 +677,11 @@ describe("the track card on a pickup order says shop, never driver (session 6a, 
     expect(checkInteractive(m)).toEqual([]);
   });
   it("pickup in French, Arabic and Arabizi names the shop too", () => {
-    for (const [lang, word] of [["fr", "magasin"], ["ar", "للمحل"], ["arabizi", "mahal"]] as const) {
+    for (const [lang, word] of [
+      ["fr", "magasin"],
+      ["ar", "للمحل"],
+      ["arabizi", "mahal"],
+    ] as const) {
       const [m]: any = trackMessage("+96170000001", lang, { ...t, fulfilment: "pickup" });
       expect(bodyOf(m)).toContain(word);
       expect(bodyOf(m)).not.toMatch(/driver|livreur|للسايق|SAYEQ/i);
@@ -552,5 +690,48 @@ describe("the track card on a pickup order says shop, never driver (session 6a, 
   it("delivery keeps the driver wording", () => {
     const [m]: any = trackMessage("+96170000001", "en", { ...t, fulfilment: "delivery" });
     expect(bodyOf(m)).toContain("driver");
+  });
+});
+
+describe('"Not on Alo King yet" and the places instead (DECISIONS §39.3)', () => {
+  const long = {
+    name_ar: "مطعم ومشاوي وحلويات بإسم طويل جداً جداً جداً جداً لتجربة الحدود",
+    name_en: "A restaurant, grill and sweets shop with a very very long name to test the limits",
+    place_ar: "معاصر بيت الدين",
+    place_en: "Maasser Beit ed Dine",
+    ask_url: "https://aloking.com/ar/ask/a-restaurant-grill-and-sweets-shop?ch=bot",
+  };
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`builds a valid ask card and alternatives in ${lang}`, () => {
+      const card: any = notOnAloKingCard("+96171000001", lang, long);
+      expect(card.interactive.type).toBe("cta_url");
+      expect(card.interactive.action.parameters.url).toBe(long.ask_url);
+      const built: any[] = [
+        card,
+        notOnAloKingCard("+96171000001", lang, { ...long, ask_url: null }),
+        ...vendorChoices(
+          "+96171000001",
+          lang,
+          Array.from({ length: 3 }, (_, k) => ({
+            ref: `v${k + 1}`,
+            name_ar: `محل رقم ${k}`,
+            name_en: `Shop number ${k}`,
+            is_open: true,
+            straight_km: 2.5,
+          })),
+          null,
+          "pickInstead",
+        ),
+      ];
+      for (const p of built)
+        expect(checkInteractive(p), JSON.stringify(p).slice(0, 90)).toEqual([]);
+    });
+  }
+  it("never puts a non-https link in the card", () => {
+    const p: any = notOnAloKingCard("+96171000001", "en", {
+      ...long,
+      ask_url: "javascript:alert(1)",
+    });
+    expect(p.type).toBe("text");
   });
 });

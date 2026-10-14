@@ -1,12 +1,18 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Clock, MapPin, Bike } from "lucide-react";
 import { buildHead, fmt, localePath, pickName, usd } from "@/lib/site";
-import { getVendorPage, type SiteVendorPage } from "@/lib/site-data";
+import {
+  getVendorPage,
+  getVendorUnclaimed,
+  type SiteVendorPage,
+  type UnclaimedVendorPage,
+} from "@/lib/site-data";
 import { useSite } from "@/components/site/context";
 import { PageHero } from "@/components/site/PageHero";
 import { OrderButton } from "@/components/site/OrderButton";
 import { MenuBuilder } from "@/components/site/MenuBuilder";
 import { crumbsLd } from "@/components/site/Breadcrumbs";
+import { UnclaimedVendor } from "@/components/site/UnclaimedVendor";
 
 const SCHEMA_TYPE: Record<string, string> = {
   restaurant: "Restaurant",
@@ -60,10 +66,17 @@ function vendorLd(d: SiteVendorPage, lang: "ar" | "en" | "fr", url: string) {
 }
 
 export const Route = createFileRoute("/$lang/m/$slug")({
-  loader: async ({ params }) => {
+  // A claimed shop's page, or (DECISIONS §39.3) the noindex page of a shop that is not on Alo King yet.
+  loader: async ({
+    params,
+  }): Promise<
+    { claimed: SiteVendorPage; unclaimed: null } | { claimed: null; unclaimed: UnclaimedVendorPage }
+  > => {
     const d = await getVendorPage(params.slug);
-    if (!d) throw notFound();
-    return d;
+    if (d) return { claimed: d, unclaimed: null };
+    const u = await getVendorUnclaimed(params.slug);
+    if (!u) throw notFound();
+    return { claimed: null, unclaimed: u };
   },
   staleTime: 60_000,
   headers: () => ({
@@ -72,7 +85,22 @@ export const Route = createFileRoute("/$lang/m/$slug")({
   head: ({ loaderData, match }) => {
     if (!loaderData) return {};
     const { lang, copy, info } = match.context;
-    const v = loaderData.vendor;
+    if (loaderData.unclaimed) {
+      const u = loaderData.unclaimed.vendor;
+      const name = pickName(u, "name", lang);
+      const place = pickName(u, "place", lang);
+      // Never indexed and never in a sitemap until the shop is claimed (§39.3, §5).
+      return buildHead({
+        lang,
+        path: `/m/${u.slug}`,
+        title: fmt(copy.unclaimed.seoTitle, { name, where: place ? ` · ${place}` : "" }),
+        description: fmt(copy.unclaimed.seoDescription, { name }),
+        info: info ?? { origin: "", indexing: false },
+        noindex: true,
+      });
+    }
+    const page = loaderData.claimed;
+    const v = page.vendor;
     const name = pickName(v, "name", lang);
     const place = pickName(v, "place", lang);
     const base = info?.origin ?? "";
@@ -88,7 +116,7 @@ export const Route = createFileRoute("/$lang/m/$slug")({
       }),
       info: info ?? { origin: "", indexing: false },
       jsonLd: [
-        vendorLd(loaderData, lang, url),
+        vendorLd(page, lang, url),
         crumbsLd([
           { label: copy.common.home, url: `${base}${localePath(lang)}` },
           ...(v.place_slug && place
@@ -99,13 +127,17 @@ export const Route = createFileRoute("/$lang/m/$slug")({
       ],
     });
   },
-  component: VendorPage,
+  component: VendorRoute,
 });
 
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-function VendorPage() {
+function VendorRoute() {
   const d = Route.useLoaderData();
+  return d.claimed ? <VendorPage d={d.claimed} /> : <UnclaimedVendor d={d.unclaimed} />;
+}
+
+function VendorPage({ d }: { d: SiteVendorPage }) {
   const { t, lang } = useSite();
   const v = d.vendor;
   const name = pickName(v, "name", lang);

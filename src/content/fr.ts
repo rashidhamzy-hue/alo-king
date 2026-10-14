@@ -395,6 +395,42 @@ export const fr: Copy = {
       },
     ],
   },
+  // « Pas encore sur Alo King » (décisions §39.3).
+  unclaimed: {
+    title: "Pas encore sur Alo King",
+    leadPlace:
+      "Des commerces à portée de {place} qui ne prennent pas encore de commandes sur Alo King. Vous en voulez un ? Demandez-lui de rejoindre : un geste ouvre votre WhatsApp avec un message prêt pour le commerce.",
+    leadCuisine:
+      "Des commerces {cuisine} du Chouf qui ne prennent pas encore de commandes sur Alo King. Demandez-leur de rejoindre : un geste ouvre votre WhatsApp avec un message prêt pour le commerce.",
+    badge: "Pas encore sur Alo King",
+    count: "{n} commerces",
+    countOne: "1 commerce",
+    ask: "Inviter à rejoindre",
+    askLabel: "Inviter {name} à rejoindre Alo King, depuis votre WhatsApp",
+    askHelp:
+      "Ouvre votre propre WhatsApp avec un message prêt à envoyer au commerce. Alo King n'écrit jamais lui-même aux commerces.",
+    onMenu: "Au menu : {items}",
+    moreItems: "{n} autres",
+    hours: "Horaires",
+    hoursNote: "D'après des informations publiques. Le commerce ne les a pas confirmés.",
+    everyDay: "Tous les jours",
+    allDay: "Ouvert 24 h/24",
+    daysShort: ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."],
+    menuTitle: "Menu",
+    noPrices: "Les prix apparaissent quand le commerce rejoint Alo King et confirme son menu.",
+    noMenu: "Nous n'avons pas encore le menu de ce commerce.",
+    claimTitle: "C'est votre commerce ?",
+    claimText:
+      "Réclamez-le gratuitement pour confirmer vos informations et votre menu, et prendre des commandes sur WhatsApp.",
+    claimLink: "Réclamer ce commerce",
+    seoTitle: "{name}{where} : pas encore sur Alo King",
+    seoDescription:
+      "{name} ne prend pas encore de commandes sur Alo King. Voyez son menu et invitez-le à rejoindre depuis votre WhatsApp.",
+    pages: "D'autres commerces pas encore sur Alo King",
+    pageOf: "Page {page} sur {pages}",
+    prev: "Précédent",
+    next: "Suivant",
+  },
   help: {
     seoTitle: "Aide et réponses | Alo King",
     seoDescription:
@@ -686,6 +722,8 @@ export const fr: Copy = {
       "Nous vérifions que vous êtes le propriétaire. Si le numéro du commerce dans notre liste est un mobile, nous lui envoyons un code à 6 chiffres. Si c'est un fixe, nous l'appelons lorsque les appels vocaux sont disponibles. Sinon, nous demandons vos documents.",
     changeBusiness: "Choisir une autre activité",
     tailHint: "Le code va au téléphone du commerce, qui se termine par {tail}.",
+    asked: "{n} clients vous ont demandé sur Alo King.",
+    askedOne: "1 client vous a demandé sur Alo King.",
     stepLabels: ["Trouver", "Prouver", "Terminé"],
     owner:
       "Je suis le propriétaire de cette activité, ou le propriétaire m'a autorisé à agir en son nom.",

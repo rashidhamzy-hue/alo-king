@@ -490,6 +490,9 @@ Deno.serve(async (req) => {
             turnMs: Number(cfg.ai_turn_max_ms ?? 8000),
             lowConfidenceHandoff: Number(cfg.ai_low_confidence_handoff ?? 2),
             voiceMaxBytes: 5_000_000,
+            joinFunctionUrl: supabaseUrl
+              ? `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/site-claim`
+              : null,
           },
         };
       })(),

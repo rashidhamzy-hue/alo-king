@@ -285,8 +285,8 @@ export const TOOL_CONTRACT: Record<
   }
 > = {
   search_vendors: {
-    rpc: ["vendor_search"],
-    auth: "any customer; orderable claimed vendors only",
+    rpc: ["vendor_search", "customer_delivery_check", "vendor_search_unclaimed"],
+    auth: "any customer; orderable claimed vendors, and a named shop not on Alo King yet (§39.3)",
     states: "any",
     idempotency: "read only",
     render: "buttons for 1-3, list for 4-10",

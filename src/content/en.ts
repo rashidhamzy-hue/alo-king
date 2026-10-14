@@ -390,6 +390,42 @@ export const en = {
       },
     ],
   },
+  // "Not on Alo King yet" (DECISIONS §39.3): seed merchants listed after the shops that take orders.
+  unclaimed: {
+    title: "Not on Alo King yet",
+    leadPlace:
+      "Shops within reach of {place} that don't take orders on Alo King yet. Want one of them? Ask them to join: one tap opens your WhatsApp with a message ready for the shop.",
+    leadCuisine:
+      "{cuisine} shops in the Shouf that don't take orders on Alo King yet. Ask them to join: one tap opens your WhatsApp with a message ready for the shop.",
+    badge: "Not on Alo King yet",
+    count: "{n} shops",
+    countOne: "1 shop",
+    ask: "Ask them to join",
+    askLabel: "Ask {name} to join Alo King, from your WhatsApp",
+    askHelp:
+      "Opens your own WhatsApp with a message ready to send to the shop. Alo King never messages shops itself.",
+    onMenu: "On the menu: {items}",
+    moreItems: "{n} more",
+    hours: "Opening hours",
+    hoursNote: "From public listings. The shop has not confirmed them.",
+    everyDay: "Every day",
+    allDay: "Open 24 hours",
+    daysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    menuTitle: "Menu",
+    noPrices: "Prices appear once the shop joins Alo King and confirms its menu.",
+    noMenu: "We don't have this shop's menu yet.",
+    claimTitle: "Is this your business?",
+    claimText:
+      "Claim it for free to confirm your details and menu, and start taking orders on WhatsApp.",
+    claimLink: "Claim this business",
+    seoTitle: "{name}{where}: not on Alo King yet",
+    seoDescription:
+      "{name} does not take orders on Alo King yet. See what is on its menu and ask it to join from your own WhatsApp.",
+    pages: "More shops not on Alo King yet",
+    pageOf: "Page {page} of {pages}",
+    prev: "Previous",
+    next: "Next",
+  },
   help: {
     seoTitle: "Help and answers | Alo King",
     seoDescription:
@@ -677,6 +713,8 @@ export const en = {
       "We check that you are the owner. For a shop with a mobile number on our list we send a 6-digit code to it. For a landline we call it when voice calls are available. Otherwise we ask for your papers.",
     changeBusiness: "Choose another business",
     tailHint: "The code goes to the shop's phone, ending {tail}.",
+    asked: "{n} customers asked for you on Alo King.",
+    askedOne: "1 customer asked for you on Alo King.",
     stepLabels: ["Find", "Prove", "Done"],
     owner: "I am the owner of this business, or the owner has authorised me to act for it.",
     chain: "This is a chain and I manage all of its branches.",

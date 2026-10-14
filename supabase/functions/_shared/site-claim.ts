@@ -74,6 +74,97 @@ const out = (body: Json, status = 200) =>
   });
 const bad = (error: string, status = 400) => out({ ok: false, error }, status);
 
+// ---- "Ask them to join" (DECISIONS §39.3) ------------------------------------------------------------------------------
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const SITE = /^https:\/\/[^\s/?#]+$/;
+/** The only places the join route sends a browser: the customer's own WhatsApp, on the shop's number or none. */
+export const JOIN_TARGET = /^https:\/\/wa\.me\/(\d{8,15})?(\?text=.*)?$/;
+export type JoinLang = "ar" | "en" | "fr";
+
+/** The invitation the customer sends the shop, in the page language; the claim link only once the site's address is set. */
+export const JOIN_WORDS: Record<
+  JoinLang,
+  { invite: string; inviteNoLink: string; tooMany: string; gone: string; onAloKing: string }
+> = {
+  ar: {
+    invite:
+      "مرحبا {name}! حابب اطلب منكن عبر ألو كينغ، خدمة الطلب عالواتساب بالشوف. محلكن موجود عليه بس بعدو ما عم ياخد طلبات. استلامو ببلاش: {link}",
+    inviteNoLink:
+      "مرحبا {name}! حابب اطلب منكن عبر ألو كينغ، خدمة الطلب عالواتساب بالشوف. محلكن موجود عليه بس بعدو ما عم ياخد طلبات. انضمّوا لألو كينغ، استلام المحل ببلاش.",
+    tooMany: "طلبات كتير من هالاتصال. جرّب بعد ساعة.",
+    gone: "هالمحل ما عاد موجود عنا.",
+    onAloKing: "هالمحل صار على ألو كينغ: فيك تطلب منو عالواتساب.",
+  },
+  en: {
+    invite:
+      "Hello {name}! I'd like to order from you on Alo King, the WhatsApp ordering service in the Shouf. Your shop is listed there but doesn't take orders yet. Claiming it is free: {link}",
+    inviteNoLink:
+      "Hello {name}! I'd like to order from you on Alo King, the WhatsApp ordering service in the Shouf. Your shop is listed there but doesn't take orders yet. Please join Alo King: claiming your shop is free.",
+    tooMany: "Too many requests from this connection. Please try again in an hour.",
+    gone: "This shop is not listed any more.",
+    onAloKing: "This shop is on Alo King now: you can order from it on WhatsApp.",
+  },
+  fr: {
+    invite:
+      "Bonjour {name} ! J'aimerais commander chez vous sur Alo King, le service de commande par WhatsApp dans le Chouf. Votre commerce y est listé mais ne prend pas encore de commandes. Le réclamer est gratuit : {link}",
+    inviteNoLink:
+      "Bonjour {name} ! J'aimerais commander chez vous sur Alo King, le service de commande par WhatsApp dans le Chouf. Votre commerce y est listé mais ne prend pas encore de commandes. Rejoignez Alo King : réclamer votre commerce est gratuit.",
+    tooMany: "Trop de demandes depuis cette connexion. Réessayez dans une heure.",
+    gone: "Ce commerce n'est plus listé.",
+    onAloKing: "Ce commerce est sur Alo King : vous pouvez y commander sur WhatsApp.",
+  },
+};
+
+export function joinInvite(l: JoinLang, name: string, claimLink: string | null): string {
+  const w = JOIN_WORDS[l];
+  return (claimLink ? w.invite : w.inviteNoLink)
+    .replace("{name}", () => name.replace(/\s+/g, " ").trim())
+    .replace("{link}", () => claimLink ?? "");
+}
+
+/** wa.me with the invitation; null unless the database gave a wa.me address and the result is one the route may send. */
+export function joinTarget(waUrl: unknown, text: string): string | null {
+  if (typeof waUrl !== "string" || !/^https:\/\/wa\.me\/(\d{8,15})?$/.test(waUrl)) return null;
+  const t = `${waUrl}?text=${encodeURIComponent(text)}`;
+  return JOIN_TARGET.test(t) ? t : null;
+}
+
+/** The link the website's button and the bot's card open: this function, in the customer's browser. */
+export const joinLink = (functionUrl: string, slug: string, l: JoinLang, ch: "web" | "bot") =>
+  `${functionUrl}?action=join&slug=${encodeURIComponent(slug)}&lang=${l}&ch=${ch}`;
+
+/**
+ * The visitor key: HMAC-SHA256 of the visitor's address with the function's secret pepper, hex. The address is the one the
+ * platform's edge saw (cf-connecting-ip, else the LAST x-forwarded-for entry, which the platform appends; the first
+ * entries are whatever the client wrote). Address only, no user agent. Throws when there is no platform address.
+ */
+export async function visitorKeyFrom(req: Request, pepper: string): Promise<string> {
+  const ip =
+    req.headers.get("cf-connecting-ip")?.trim() ||
+    req.headers.get("x-forwarded-for")?.split(",").pop()?.trim();
+  if (!ip) throw new Error("no visitor address");
+  const k = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(pepper),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const mac = await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(ip));
+  return Array.from(new Uint8Array(mac))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+const JOIN_HEADERS = { "cache-control": "no-store", "x-robots-tag": "noindex, nofollow" };
+const joinRedirect = (to: string) =>
+  new Response(null, { status: 302, headers: { location: to, ...JOIN_HEADERS } });
+const joinPage = (status: number, body: string, extra: Record<string, string> = {}) =>
+  new Response(body, {
+    status,
+    headers: { "content-type": "text/plain; charset=utf-8", ...JOIN_HEADERS, ...extra },
+  });
+
 const str = (v: unknown, min: number, max: number): string | null => {
   if (typeof v !== "string") return null;
   const s = v.trim();
@@ -206,8 +297,65 @@ export function makeHandler(deps: SiteClaimDeps) {
     return out({ ok: true, ...claimView(r) });
   }
 
+  /**
+   * "Ask them to join" (DECISIONS §39.3): GET ?action=join&slug=…&lang=ar|en|fr&ch=web|bot, opened by the customer's own
+   * browser from the website's button or the bot's link. The tap is counted against a visitor key made here from the
+   * platform's view of the request (never from anything the caller sends), then the customer goes to their own WhatsApp.
+   */
+  async function join(url: URL, req: Request): Promise<Response> {
+    const slug = url.searchParams.get("slug") ?? "";
+    const l = lang(url.searchParams.get("lang"));
+    const chRaw = url.searchParams.get("ch");
+    const ch = chRaw === null ? "web" : pick(["web", "bot"] as const, chRaw);
+    if (!SLUG.test(slug) || slug.length > 120 || !l || !ch) return joinPage(400, "Bad request");
+    const words = JOIN_WORDS[l as JoinLang];
+    let key: string;
+    try {
+      key = await deps.visitorKey(req);
+    } catch {
+      // No platform address: the limiter fails closed.
+      return joinPage(400, words.tooMany);
+    }
+    if (!/^[0-9a-f]{64}$/.test(key)) return joinPage(400, words.tooMany);
+    let r: any;
+    try {
+      r = await deps.rpc("vendor_join_request", { p_slug: slug, p_channel: ch, p_visitor: key });
+    } catch (e) {
+      deps.log("site-claim failed", { action: "join", error: String(e).slice(0, 200) });
+      return joinPage(503, words.gone);
+    }
+    const site = typeof r?.site_url === "string" && SITE.test(r.site_url) ? r.site_url : null;
+    if (r?.status === "claimed")
+      return site ? joinRedirect(`${site}/${l}/m/${slug}`) : joinPage(200, words.onAloKing);
+    if (r?.status === "rate_limited")
+      return joinPage(429, words.tooMany, { "retry-after": "3600" });
+    if (r?.status !== "ok" || !UUID.test(String(r.vendor_id))) return joinPage(404, words.gone);
+    const name =
+      (l === "ar" ? r.name_ar : l === "fr" ? r.name_fr : r.name_en) ??
+      r.name_en ??
+      r.name_ar ??
+      r.name_fr ??
+      "";
+    const target = joinTarget(
+      r.wa_url,
+      joinInvite(l as JoinLang, String(name), site ? `${site}/${l}/claim?v=${r.vendor_id}` : null),
+    );
+    return target ? joinRedirect(target) : joinPage(404, words.gone);
+  }
+
   return async function handler(req: Request): Promise<Response> {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+    if (req.method === "GET") {
+      const url = new URL(req.url);
+      if (url.searchParams.get("action") === "join") {
+        try {
+          return await join(url, req);
+        } catch (e) {
+          deps.log("site-claim failed", { action: "join", error: String(e).slice(0, 200) });
+          return joinPage(500, "Error");
+        }
+      }
+    }
     if (req.method !== "POST") return bad("method_not_allowed", 405);
     const type = req.headers.get("content-type") ?? "";
     try {
@@ -261,6 +409,8 @@ export function makeHandler(deps: SiteClaimDeps) {
               frozen: r.claim_status === "frozen",
               phone_tail: r.seed_phone_tail ?? null,
               in_brand: r.in_brand === true,
+              // "N customers asked for you" (DECISIONS §39.3): taps on "Ask them to join", distinct people.
+              asked: Math.max(0, Math.trunc(Number(r.asked ?? 0)) || 0),
             },
           });
         }

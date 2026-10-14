@@ -36,6 +36,7 @@ import {
   mainMenu,
   menuList,
   noDeliveryCard,
+  notOnAloKingCard,
   qtyList,
   sectionList,
   substitutionAsk,
@@ -56,6 +57,7 @@ import { ALLERGENS, DIETS, NUTRITION_TAGS, SYSTEM_PROMPT, TOOLS, type ToolName }
 import { buttons, moneyLine } from "../../_shared/customer-cards.ts";
 import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
 import { parseCartOrder } from "../../_shared/catalog.ts";
+import { joinLink } from "../../_shared/site-claim.ts";
 
 type Msg = Record<string, unknown>;
 export type SendResult = { ok: true; id?: string } | { ok: false; retry: boolean; error: string };
@@ -111,6 +113,8 @@ export type CustomerDeps = {
     turnMs: number;
     lowConfidenceHandoff: number;
     voiceMaxBytes: number;
+    /** The site-claim edge function's public URL, for the "Ask them to join" link (§39.3); null without one. */
+    joinFunctionUrl?: string | null;
   };
   now?: () => Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
@@ -975,6 +979,80 @@ async function dietaryMenu(c: Ctx, input: any) {
 
 async function searchVendors(c: Ctx, query: string | null, businessType: string | null) {
   const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
+  const r = await deliveringPlaces(c, pt, query, businessType);
+  if (r.paused) return say(c, "placePaused");
+  let rows = r.rows;
+  const found = r.found;
+  // DECISIONS §39.3: the customer named a shop that is not on Alo King yet (and no orderable place matched that
+  // name): say so, offer the counted "Ask them to join" link and the closest places that deliver instead.
+  // A typed or spoken query only: the zero-model button path never searches by name.
+  if (query && query.trim().length >= 3 && !rows.some((x) => x.matched === "name")) {
+    const shop = (
+      ((await c.deps.rpc("vendor_search_unclaimed", {
+        p_query: query,
+        p_limit: 1,
+      })) ?? []) as any[]
+    )[0];
+    if (shop) {
+      // The counted "Ask them to join" link: the site-claim edge function, opened in the customer's browser (§39.3).
+      const base = c.deps.config.joinFunctionUrl;
+      const ask =
+        base && shop.slug
+          ? joinLink(
+              base,
+              shop.slug,
+              c.s.lang === "en" || c.s.lang === "fr" ? c.s.lang : "ar",
+              "bot",
+            )
+          : null;
+      push(c, notOnAloKingCard(c.m.from, c.s.lang, { ...shop, ask_url: ask }));
+      if (!rows.length) {
+        rows = (await deliveringPlaces(c, pt, null, shop.business_type ?? null)).rows;
+        if (!rows.length) rows = (await deliveringPlaces(c, pt, null, null)).rows;
+      }
+      rows = rows.slice(0, 3);
+      c.summary.push(
+        `[${shop.name_en ?? shop.name_ar} is not on Alo King yet: offered the ask link and ${rows.length} places instead]`,
+      );
+      if (!rows.length) return;
+      resetRefs(c, "v");
+      const alt = rows.map((x) => ({
+        ...x,
+        ref: refFor(
+          c,
+          "v",
+          x.vendor_id,
+          `${x.name_en ?? x.name_ar}${x.is_open ? "" : " (closed)"}`,
+        ),
+      }));
+      return push(c, ...vendorChoices(c.m.from, c.s.lang, alt, null, "pickInstead"));
+    }
+  }
+  if (pt?.address_id && !rows.length && (found || !query)) {
+    c.summary.push("[no open place delivers to the saved pin; offered pickup]");
+    return push(c, noDeliveryCard(c.m.from, c.s.lang));
+  }
+  resetRefs(c, "v");
+  const vs = rows.map((r) => ({
+    ...r,
+    ref: refFor(c, "v", r.vendor_id, `${r.name_en ?? r.name_ar}${r.is_open ? "" : " (closed)"}`),
+  }));
+  c.summary.push(`[found ${vs.length} places for ${query ?? "nearby"}]`);
+  // A named business we lack is counted for growth (§18.1 M); nobody ever messages the business.
+  if (!vs.length && query && query.trim().length >= 3)
+    await c.deps.rpc("vendor_request_note", { p_query: query, p_place_id: null });
+  if (vs.length === 1 && vs[0].is_open)
+    return showMenu(c, vs[0].ref, vs[0].matched === "dish" ? query : null);
+  push(c, ...vendorChoices(c.m.from, c.s.lang, vs, query));
+}
+
+/** Orderable places for a query that deliver to the customer's saved pin (when there is one). */
+async function deliveringPlaces(
+  c: Ctx,
+  pt: any,
+  query: string | null,
+  businessType: string | null,
+): Promise<{ rows: any[]; found: number; paused: boolean }> {
   let rows: any[] =
     (await c.deps.rpc("vendor_search", {
       p_query: query,
@@ -1004,7 +1082,7 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
         p_vendor_ids: ids,
       });
     }
-    if (chk?.status === "place_paused") return say(c, "placePaused");
+    if (chk?.status === "place_paused") return { rows: [], found, paused: true };
     // A route that still cannot be fetched (routing service down) is not a "no": the checkout checks it again.
     const beyond = new Set(
       (chk?.vendors ?? [])
@@ -1013,22 +1091,7 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
     );
     rows = rows.filter((r) => !beyond.has(r.vendor_id));
   }
-  if (pt?.address_id && !rows.length && (found || !query)) {
-    c.summary.push("[no open place delivers to the saved pin; offered pickup]");
-    return push(c, noDeliveryCard(c.m.from, c.s.lang));
-  }
-  resetRefs(c, "v");
-  const vs = rows.map((r) => ({
-    ...r,
-    ref: refFor(c, "v", r.vendor_id, `${r.name_en ?? r.name_ar}${r.is_open ? "" : " (closed)"}`),
-  }));
-  c.summary.push(`[found ${vs.length} places for ${query ?? "nearby"}]`);
-  // A named business we lack is counted for growth (§18.1 M); nobody ever messages the business.
-  if (!vs.length && query && query.trim().length >= 3)
-    await c.deps.rpc("vendor_request_note", { p_query: query, p_place_id: null });
-  if (vs.length === 1 && vs[0].is_open)
-    return showMenu(c, vs[0].ref, vs[0].matched === "dish" ? query : null);
-  push(c, ...vendorChoices(c.m.from, c.s.lang, vs, query));
+  return { rows, found, paused: false };
 }
 
 /** The pickup choice (T2): open places near the pin that take pickup, when nothing delivers or the customer prefers it. */

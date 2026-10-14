@@ -1,18 +1,25 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { buildHead, fmt, localePath, pickName, usd } from "@/lib/site";
-import { getPlace } from "@/lib/site-data";
+import { buildHead, fmt, localePath, pickName, unclaimedPage, usd } from "@/lib/site";
+import { getPlace, getPlaceUnclaimed } from "@/lib/site-data";
 import { MIN_MERCHANTS_TO_INDEX } from "@/lib/site-config";
 import { useSite } from "@/components/site/context";
 import { PageHero } from "@/components/site/PageHero";
 import { OrderButton } from "@/components/site/OrderButton";
 import { VendorCardItem } from "@/components/site/VendorCardItem";
 import { crumbsLd } from "@/components/site/Breadcrumbs";
+import { UnclaimedSection } from "@/components/site/UnclaimedSection";
 
 export const Route = createFileRoute("/$lang/places/$slug")({
-  loader: async ({ params }) => {
-    const d = await getPlace(params.slug);
+  // ?u=<n>: the page of the "Not on Alo King yet" list (DECISIONS §39.3).
+  validateSearch: (s: Record<string, unknown>): { u?: number } => ({ u: unclaimedPage(s.u) }),
+  loaderDeps: ({ search }) => ({ u: search.u ?? 1 }),
+  loader: async ({ params, deps }) => {
+    const [d, unclaimed] = await Promise.all([
+      getPlace(params.slug),
+      getPlaceUnclaimed(params.slug, deps.u),
+    ]);
     if (!d) throw notFound();
-    return d;
+    return { ...d, unclaimed };
   },
   staleTime: 60_000,
   headers: () => ({
@@ -29,7 +36,8 @@ export const Route = createFileRoute("/$lang/places/$slug")({
       title: fmt(copy.places.seoTitle, { place }),
       description: fmt(copy.places.seoDescription, { place }),
       info: info ?? { origin: "", indexing: false },
-      noindex: loaderData.vendors.length < MIN_MERCHANTS_TO_INDEX,
+      // Indexed on its live merchants only; the other pages of the unclaimed list stay out (§24.5: no thin pages).
+      noindex: loaderData.vendors.length < MIN_MERCHANTS_TO_INDEX || loaderData.unclaimed.page > 1,
       jsonLd: [
         crumbsLd([
           { label: copy.common.home, url: `${base}${localePath(lang)}` },
@@ -86,6 +94,12 @@ function PlacePage() {
           ) : (
             <p className="mt-6 max-w-2xl text-lg text-tone-mute">{t.places.noShops}</p>
           )}
+          <UnclaimedSection
+            list={d.unclaimed}
+            lead={fmt(t.unclaimed.leadPlace, { place })}
+            to="/$lang/places/$slug"
+            params={{ lang, slug: d.place.slug }}
+          />
           <h2 className="ak-h3 mt-14">{fmt(t.places.howTitle, { place })}</h2>
           <ol className="mt-5 grid gap-3 sm:grid-cols-2">
             {t.help.steps.map((s, i) => (

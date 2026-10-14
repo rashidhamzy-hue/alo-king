@@ -51,6 +51,13 @@ export function splitLangPath(pathname: string): { lang: SiteLang | null; path: 
 export const swapLang = (pathname: string, to: SiteLang) =>
   localePath(to, splitLangPath(pathname).path);
 
+/** The `?u=` page of a "Not on Alo King yet" list (DECISIONS §39.3): 2-100, anything else is the first page. */
+export function unclaimedPage(v: unknown): number | undefined {
+  const n =
+    typeof v === "number" ? v : typeof v === "string" && /^\d{1,3}$/.test(v) ? Number(v) : NaN;
+  return Number.isInteger(n) && n >= 2 && n <= 100 ? n : undefined;
+}
+
 /** Fills {name} placeholders. A missing value leaves nothing behind. */
 export const fmt = (s: string, v: Record<string, string | number | null | undefined> = {}) =>
   s.replace(/\{(\w+)\}/g, (_, k: string) => String(v[k] ?? ""));
