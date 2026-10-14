@@ -138,7 +138,7 @@ describe("Lebanese dish library", () => {
     expect(
       (
         readFileSync(MIGRATION, "utf8").match(
-          /^  \('[a-z]+', '[^']+', '[^']+', '[^']+', \d+\)/gm,
+          /^ {2}\('[a-z]+', '[^']+', '[^']+', '[^']+', \d+\)/gm,
         ) ?? []
       ).length,
     ).toBe(14);
