@@ -29,6 +29,6 @@ export const faqLd = (items: Faq[]) => ({
 
 /** Each side has its own FAQ (DECISIONS §39.11): the customers' questions, and the businesses' (ids starting "m_"). */
 export const customerFaqIds = (t: Copy) =>
-  t.faq.filter((i) => !i.id.startsWith("m_") && i.id !== "merchant").map((i) => i.id);
+  t.faq.filter((i) => !i.id.startsWith("m_")).map((i) => i.id);
 export const businessFaqIds = (t: Copy) =>
   t.faq.filter((i) => i.id.startsWith("m_")).map((i) => i.id);

@@ -210,6 +210,13 @@ for (const lang of langs) {
         const msg = await page.textContent(".zm-noresult").catch(() => "");
         if (!msg?.trim()) stepFail("a place outside the zone gets no answer");
       }
+      if (pg.id === "business" && sizeName === "desktop") {
+        // Old merchant addresses answer 301 to the business side, keeping the claim link's query (§39.11).
+        const r = await fetch(`${base}/${lang}/claim?v=${CLAIM_VENDOR_ID}`, { redirect: "manual" });
+        const to = r.headers.get("location") ?? "";
+        if (r.status !== 301 || !to.endsWith(`/${lang}/business/claim?v=${CLAIM_VENDOR_ID}`))
+          stepFail(`old claim link: ${r.status} -> ${to}`);
+      }
       if (pg.id === "business") {
         await hydrated(page, ".ak-faq").catch(() => {});
         await page

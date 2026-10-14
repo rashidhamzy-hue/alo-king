@@ -80,7 +80,8 @@ export function DeliveryMap({ counts, initial }: { counts: DeliveryMapData; init
       .then((r) => (r.ok ? r.text() : ""))
       .then((s) => {
         const inner = s.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
-        if (alive) setBase(inner);
+        // Our own static file, but only plain <path> elements are ever inserted.
+        if (alive && /^(<path [^<>]*\/>)*$/.test(inner.trim())) setBase(inner);
       })
       .catch(() => undefined);
     return () => {

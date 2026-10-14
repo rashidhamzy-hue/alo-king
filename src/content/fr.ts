@@ -545,11 +545,6 @@ export const fr: Copy = {
       a: "Touchez « Une personne » dans la discussion, ou dites Allô sur WhatsApp et racontez-nous. Rasheed ou l'équipe répond. Notre politique de remboursement explique ce que nous faisons en cas d'article manquant ou erroné.",
     },
     {
-      id: "merchant",
-      q: "J'ai un commerce. Comment le rejoindre ?",
-      a: "Commencez à revendiquer votre commerce depuis votre téléphone. Vous payez un tarif fixe par commande livrée et rien sur les prix de votre menu. Voir la page Pour les commerçants.",
-    },
-    {
       id: "abroad",
       q: "Puis-je commander pour ma famille depuis l'étranger ?",
       a: "Oui, sur WhatsApp, et elle paie à la livraison. Le paiement par carte depuis l'étranger et la photo de livraison arrivent avec Send Home.",

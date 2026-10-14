@@ -538,11 +538,6 @@ export const en = {
       a: "Tap “A person” in the chat, or say Alo on WhatsApp and tell us. Rasheed or the team replies. Our refund policy explains what we do about missing or wrong items.",
     },
     {
-      id: "merchant",
-      q: "I own a shop. How do I join?",
-      a: "Start claiming your shop from your phone. You pay a flat fee per delivered order and nothing on your menu prices. See the For merchants page.",
-    },
-    {
       id: "abroad",
       q: "Can I order for my family from abroad?",
       a: "Yes, on WhatsApp, and they pay cash on delivery. Paying by card from abroad, and the delivery photo, arrive with Send Home.",
