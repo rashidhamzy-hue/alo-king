@@ -98,6 +98,127 @@ export type SiteVendorPage = {
   rate: number | null;
 };
 
+// ---- "Not on Alo King yet" (DECISIONS §39.3, migration 20261014170000) ---------------------------------------------------
+/** A seed merchant that is not on Alo King yet: public fields only. No price, rating, photo, phone or coordinates. */
+export type UnclaimedCard = Names & {
+  slug: string;
+  branch_label: string | null;
+  business_type: string;
+  business_type_ar: string | null;
+  business_type_en: string | null;
+  business_type_fr: string | null;
+  cuisine_tags: string[];
+  cuisines: (Names & { tag: string })[];
+  place_slug: string | null;
+  place_ar: string | null;
+  place_en: string | null;
+  place_fr: string | null;
+  /** The seed file's opening-hours text, unconfirmed ("Monday: 8 AM to 8 PM | …"). */
+  hours_seed: string | null;
+  /** How many items the draft menu has, and the first few names. */
+  menu_items: number;
+  menu_preview: Names[];
+};
+export type UnclaimedList = {
+  total: number;
+  page: number;
+  page_size: number;
+  vendors: UnclaimedCard[];
+};
+export type UnclaimedVendorPage = {
+  vendor: UnclaimedCard & { vendor_id: string };
+  sections: (Names & { items: (Names & { description: string | null })[] })[];
+};
+
+const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+const names = (r: Record<string, unknown>): Names => ({
+  name_ar: str(r.name_ar),
+  name_en: str(r.name_en),
+  name_fr: str(r.name_fr),
+});
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** Checks one card from the database: a card without a usable slug or name is dropped, missing lists become empty. */
+export function toUnclaimedCard(raw: unknown): UnclaimedCard | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const n = names(r);
+  if (typeof r.slug !== "string" || !SLUG.test(r.slug) || !(n.name_ar || n.name_en || n.name_fr))
+    return null;
+  const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+  return {
+    ...n,
+    slug: r.slug,
+    branch_label: str(r.branch_label),
+    business_type: typeof r.business_type === "string" ? r.business_type : "other_food",
+    business_type_ar: str(r.business_type_ar),
+    business_type_en: str(r.business_type_en),
+    business_type_fr: str(r.business_type_fr),
+    cuisine_tags: arr(r.cuisine_tags).filter((t): t is string => typeof t === "string"),
+    cuisines: arr(r.cuisines)
+      .filter((c) => c && typeof c === "object" && typeof (c as { tag?: unknown }).tag === "string")
+      .map((c) => ({ tag: (c as { tag: string }).tag, ...names(c as Record<string, unknown>) })),
+    place_slug: typeof r.place_slug === "string" && SLUG.test(r.place_slug) ? r.place_slug : null,
+    place_ar: str(r.place_ar),
+    place_en: str(r.place_en),
+    place_fr: str(r.place_fr),
+    hours_seed: str(r.hours_seed),
+    menu_items: Number.isFinite(Number(r.menu_items)) ? Number(r.menu_items) : 0,
+    menu_preview: arr(r.menu_preview)
+      .filter((x) => x && typeof x === "object")
+      .map((x) => names(x as Record<string, unknown>))
+      .filter((x) => x.name_ar || x.name_en || x.name_fr),
+  };
+}
+
+export const EMPTY_UNCLAIMED: UnclaimedList = { total: 0, page: 1, page_size: 24, vendors: [] };
+
+/** A page of the list; an empty list when the call fails (the orderable list above it still shows). */
+export function toUnclaimedList(raw: unknown): UnclaimedList {
+  if (!raw || typeof raw !== "object") return EMPTY_UNCLAIMED;
+  const r = raw as Record<string, unknown>;
+  const vendors = (Array.isArray(r.vendors) ? r.vendors : [])
+    .map(toUnclaimedCard)
+    .filter((v): v is UnclaimedCard => v !== null);
+  const size = Number(r.page_size) > 0 ? Number(r.page_size) : EMPTY_UNCLAIMED.page_size;
+  return {
+    total: Math.max(Number(r.total) || 0, vendors.length),
+    page: Number(r.page) >= 1 ? Number(r.page) : 1,
+    page_size: size,
+    vendors,
+  };
+}
+
+export function toUnclaimedVendorPage(raw: unknown): UnclaimedVendorPage | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const card = toUnclaimedCard(r.vendor);
+  const id = (r.vendor as Record<string, unknown> | null)?.vendor_id;
+  if (!card || typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const sections = (Array.isArray(r.sections) ? r.sections : [])
+    .filter((s) => s && typeof s === "object")
+    .map((s) => {
+      const x = s as Record<string, unknown>;
+      const items = (Array.isArray(x.items) ? x.items : [])
+        .filter((i) => i && typeof i === "object")
+        .map((i) => ({
+          ...names(i as Record<string, unknown>),
+          description: str((i as Record<string, unknown>).description),
+        }))
+        .filter((i) => i.name_ar || i.name_en || i.name_fr);
+      return { ...names(x), items };
+    })
+    .filter((s) => s.items.length > 0);
+  return { vendor: { ...card, vendor_id: id }, sections };
+}
+
+export const getPlaceUnclaimed = async (slug: string, page = 1) =>
+  toUnclaimedList(await rpc("site_place_unclaimed", { p_slug: slug, p_page: page }));
+export const getCuisineUnclaimed = async (tag: string, page = 1) =>
+  toUnclaimedList(await rpc("site_cuisine_unclaimed", { p_tag: tag, p_page: page }));
+export const getVendorUnclaimed = async (slug: string) =>
+  toUnclaimedVendorPage(await rpc("site_vendor_unclaimed", { p_slug: slug }));
+
 export type PublicTrack = {
   code: string;
   status: string;

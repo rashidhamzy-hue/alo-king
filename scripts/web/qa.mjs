@@ -27,6 +27,8 @@ const PAGES = [
   { id: "cuisines", path: "/cuisine" },
   { id: "cuisine", path: "/cuisine/shawarma" },
   { id: "vendor", path: "/m/abou-ali-shawarma" },
+  // DECISIONS §39.3: the noindex page of a shop that is not on Alo King yet.
+  { id: "vendor-unclaimed", path: "/m/shawarma-el-midan" },
   { id: "send-home", path: "/send-home" },
   { id: "help", path: "/help" },
   { id: "contact", path: "/contact" },

@@ -7,7 +7,7 @@
 // WhatsApp); optional TWILIO_* (the code by voice call to a landline) and SENTRY_DSN. Without Kapso or Twilio the code
 // cannot be delivered and the claim moves to documents, exactly as in the WhatsApp onboarding.
 
-import { makeHandler, type SendResult } from "../_shared/site-claim.ts";
+import { makeHandler, visitorKeyFrom, type SendResult } from "../_shared/site-claim.ts";
 import { claimCodeScript, claimCodeText } from "../_shared/onboarding-cards.ts";
 import { placeCall, sayTwiml, type TwilioConfig } from "../_shared/twilio.ts";
 import { reportError } from "../_shared/sentry.ts";
@@ -95,21 +95,8 @@ Deno.serve(
       if (msg === "site-claim failed")
         void reportError(sentryDsn, new Error(fields?.error ?? msg), { fn: "site-claim" });
     },
-    // The visitor key is a hash of their address with a secret pepper: counters cannot be turned back into addresses.
-    visitorKey: async (req) => {
-      // The address as the platform's edge saw it: the first entry of x-forwarded-for is whatever the client wrote, so only the
-      // edge's own header or the last entry (added by the platform) is used. With neither, the call is refused (the limiter fails closed).
-      const ip =
-        req.headers.get("cf-connecting-ip") ??
-        req.headers.get("x-forwarded-for")?.split(",").pop()?.trim();
-      if (!ip) throw new Error("no visitor address");
-      const digest = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(`${pepper}|${ip}`),
-      );
-      return Array.from(new Uint8Array(digest).slice(0, 12))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-    },
+    // The visitor key is an HMAC of their address (as the platform's edge saw it) with a secret pepper: counters and the
+    // "Ask them to join" taps cannot be turned back into addresses, and no caller can choose its own key.
+    visitorKey: (req) => visitorKeyFrom(req, pepper),
   }),
 );

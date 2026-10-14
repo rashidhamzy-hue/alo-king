@@ -16,6 +16,7 @@ const VENDOR = "20000000-0000-0000-0000-00000000000a";
 const ITEM = "51000000-0000-0000-0000-000000000001";
 const BASKET = "60000000-0000-0000-0000-000000000001";
 const LINE = "61000000-0000-0000-0000-000000000001";
+const FN_JOIN = "https://x.supabase.co/functions/v1/site-claim";
 
 const basket = {
   basket_id: BASKET,
@@ -41,6 +42,7 @@ function fake(opts: {
   rpcs?: Record<string, (a: any) => any>;
   model?: ((req: any) => ModelResponse | Promise<ModelResponse>) | null;
   transcribe?: CustomerDeps["transcribe"];
+  join?: string | null;
 }) {
   const calls: { fn: string; args: any }[] = [];
   const sent: any[] = [];
@@ -104,6 +106,7 @@ function fake(opts: {
       turnMs: 8000,
       lowConfidenceHandoff: 2,
       voiceMaxBytes: 5_000_000,
+      joinFunctionUrl: opts.join === undefined ? FN_JOIN : opts.join,
     },
     now: () => new Date("2026-10-11T12:00:00Z"),
   };
@@ -1229,5 +1232,95 @@ describe("the button-driven ordering path (session T, §34)", () => {
       expect(f.of("customer_marketing_set")).toHaveLength(1);
       expect(f.of("customer_handoff_end")).toHaveLength(0);
     });
+  });
+});
+
+describe("a shop that is not on Alo King yet (DECISIONS §39.3)", () => {
+  const ASK = `${FN_JOIN}?action=join&slug=al-mamlaka-restaurant&lang=en&ch=bot`;
+  const shop = {
+    vendor_id: "20000000-0000-0000-0000-0000000000c1",
+    slug: "al-mamlaka-restaurant",
+    name_ar: null,
+    name_en: "Al Mamlaka Restaurant",
+    business_type: "restaurant",
+    cuisine_tags: ["lebanese"],
+    place_ar: "بعقلين",
+    place_en: "Baakline",
+  };
+  const near = [
+    { vendor_id: VENDOR, name_en: "Vendor A", is_open: true, straight_km: 1.2 },
+    { vendor_id: "20000000-0000-0000-0000-00000000000b", name_en: "Vendor B", is_open: true },
+  ];
+
+  it("says so, offers the counted ask link and the closest places that deliver instead", async () => {
+    const f = fake({
+      model: () => tool("search_vendors", { query: "al mamlaka", business_type: null }),
+      rpcs: {
+        // Nothing orderable has that name; the same kind of shop nearby does.
+        vendor_search: (a) => (a.p_query ? [] : near),
+        vendor_search_unclaimed: () => [shop],
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "I want to order from al mamlaka" }));
+    expect(f.of("vendor_search_unclaimed")[0].args).toEqual({
+      p_query: "al mamlaka",
+      p_limit: 1,
+    });
+    expect(f.sent[0].interactive.type).toBe("cta_url");
+    expect(f.sent[0].interactive.action.parameters.url).toBe(ASK);
+    expect(bodyOf(f.sent[0])).toMatch(/Al Mamlaka Restaurant" in Baakline is not on Alo King yet/);
+    // The alternatives: the same kind of shop first, closest first (vendor_search orders by distance).
+    expect(f.of("vendor_search")[1].args.p_business_type).toBe("restaurant");
+    expect(f.of("vendor_search")[1].args.p_query).toBeNull();
+    expect(bodyOf(f.sent[1])).toMatch(/order from these instead/);
+    expect(f.sent[1].interactive.action.buttons.map((b: any) => b.reply.id)).toEqual([
+      "pv:v1",
+      "pv:v2",
+    ]);
+    // The shop is known: no "missing business" note, and Alo King sends nothing to the shop.
+    expect(f.of("vendor_request_note")).toHaveLength(0);
+    expect(f.sent.every((p) => p.to === "96176000001")).toBe(true);
+    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+  });
+
+  it("falls back to any place nearby when none of that kind delivers, and to plain text without a join link", async () => {
+    const f = fake({
+      join: null,
+      model: () => tool("search_vendors", { query: "al mamlaka", business_type: null }),
+      rpcs: {
+        vendor_search: (a) => (a.p_query || a.p_business_type ? [] : near.slice(0, 1)),
+        vendor_search_unclaimed: () => [shop],
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "al mamlaka" }));
+    expect(f.of("vendor_search")).toHaveLength(3);
+    expect(f.sent[0].type).toBe("text");
+    expect(bodyOf(f.sent[0])).toMatch(/not on Alo King yet/);
+    expect(f.sent[1].interactive.action.buttons.map((b: any) => b.reply.id)).toEqual(["pv:v1"]);
+  });
+
+  it("an orderable shop matching the name wins: no lookup of unclaimed shops", async () => {
+    const f = fake({
+      model: () => tool("search_vendors", { query: "vendor a", business_type: null }),
+      rpcs: {
+        vendor_search: () => [{ ...near[0], matched: "name" }],
+        vendor_sections: () => ({ sections: [], unsectioned: 0 }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "vendor a please" }));
+    expect(f.of("vendor_search_unclaimed")).toHaveLength(0);
+  });
+
+  it("the zero-model button path never looks up unclaimed shops", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => ({ lat: 33.6775, lon: 35.5645, address_id: null }),
+        vendor_search: () => near,
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(f.of("vendor_search_unclaimed")).toHaveLength(0);
+    expect(f.modelReqs).toHaveLength(0);
   });
 });

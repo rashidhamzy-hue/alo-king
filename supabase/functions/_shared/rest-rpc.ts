@@ -41,11 +41,13 @@ export const RETRY_SAFE_READS = new Set([
   "menu_item_vendor",
   "merchant_member_for",
   "merchant_members_by_phone",
+  "onboarding_session_get",
   "order_brief",
   "order_call_card",
   "order_card_image",
   "test_side_get",
   "vendor_menu",
+  "vendor_search_unclaimed",
   "vendor_sections",
   "whatsapp_sender",
 ]);

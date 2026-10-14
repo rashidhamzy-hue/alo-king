@@ -173,6 +173,98 @@ const VENDOR_PAGE = {
   rate: RATE,
 };
 
+// "Not on Alo King yet" (DECISIONS §39.3): made-up seed shops in the shapes of site_place_unclaimed, site_cuisine_unclaimed
+// and site_vendor_unclaimed. Names only, never a price, phone or coordinates.
+const EVERY_DAY = (h) =>
+  ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    .map((d) => `${d}: ${h(d)}`)
+    .join(" | ");
+const ucard = (slug, en, ar, type, tags, place, hours, preview, count) => ({
+  slug,
+  ...names(en, ar),
+  branch_label: null,
+  business_type: type,
+  business_type_ar: type === "bakery_manakish" ? "مخبز ومناقيش" : type === "cafe" ? "مقهى" : "مطعم",
+  business_type_en:
+    type === "bakery_manakish" ? "Bakery & manakish" : type === "cafe" ? "Café" : "Restaurant",
+  business_type_fr:
+    type === "bakery_manakish"
+      ? "Boulangerie et manakish"
+      : type === "cafe"
+        ? "Café"
+        : "Restaurant",
+  cuisine_tags: tags,
+  cuisines: CUISINES.filter((c) => tags.includes(c.tag)).map(
+    ({ tag, name_ar, name_en, name_fr }) => ({
+      tag,
+      name_ar,
+      name_en,
+      name_fr,
+    }),
+  ),
+  place_slug: place.slug,
+  place_ar: place.name_ar,
+  place_en: place.name_en,
+  place_fr: place.name_fr,
+  hours_seed: hours,
+  menu_items: count,
+  menu_preview: preview.map(([e, a]) => names(e, a)),
+});
+const UNCLAIMED = [
+  ucard(
+    "kaak-abou-salim",
+    "Kaak Abou Salim",
+    "كعك أبو سليم",
+    "bakery_manakish",
+    ["manakish"],
+    PLACES[0],
+    EVERY_DAY(() => "6 AM to 2 PM"),
+    [
+      ["Zaatar manousheh", "منقوشة زعتر"],
+      ["Cheese manousheh", "منقوشة جبنة"],
+      ["Kaak with sesame", "كعك بسمسم"],
+      ["Lahm bi ajine", "لحم بعجين"],
+    ],
+    14,
+  ),
+  ucard(
+    "shawarma-el-midan",
+    "Shawarma el Midan",
+    "شاورما الميدان",
+    "restaurant",
+    ["shawarma", "lebanese"],
+    PLACES[2],
+    EVERY_DAY((d) => (d === "Monday" ? "Closed" : "11 AM to 11:30 PM")),
+    [
+      ["Chicken shawarma", "شاورما دجاج"],
+      ["Beef shawarma", "شاورما لحمة"],
+    ],
+    2,
+  ),
+  ucard("ahwet-el-saha", "Ahwet el Saha", "قهوة الساحة", "cafe", [], PLACES[1], null, [], 0),
+];
+const UNCLAIMED_PAGE = {
+  vendor: { ...UNCLAIMED[1], vendor_id: "20000000-0000-0000-0000-0000000000e1" },
+  sections: [
+    {
+      ...names("Sandwiches", "سندويشات", "Sandwichs"),
+      items: [
+        {
+          ...names("Chicken shawarma", "شاورما دجاج", "Shawarma poulet"),
+          description: "Garlic sauce and pickles.",
+        },
+        { ...names("Beef shawarma", "شاورما لحمة", "Shawarma bœuf"), description: null },
+      ],
+    },
+  ],
+};
+const unclaimedList = (vendors, page = 1) => ({
+  total: vendors.length,
+  page,
+  page_size: 24,
+  vendors: page === 1 ? vendors : [],
+});
+
 const TRACK = (over) => ({
   code: "K7M4PQ",
   status: "picked_up",
@@ -273,6 +365,19 @@ export function respond(fn, args, mode = "live") {
     }
     case "site_vendor":
       return live && args.p_slug === "abou-ali-shawarma" ? VENDOR_PAGE : null;
+    case "site_place_unclaimed":
+      return PLACES.some((x) => x.slug === args.p_slug) && live
+        ? unclaimedList(UNCLAIMED, args.p_page ?? 1)
+        : null;
+    case "site_cuisine_unclaimed":
+      return CUISINES.some((x) => x.tag === args.p_tag) && live
+        ? unclaimedList(
+            UNCLAIMED.filter((u) => u.cuisine_tags.includes(args.p_tag)),
+            args.p_page ?? 1,
+          )
+        : null;
+    case "site_vendor_unclaimed":
+      return live && args.p_slug === UNCLAIMED_PAGE.vendor.slug ? UNCLAIMED_PAGE : null;
     case "order_track_public":
       return TRACKS[args.p_token] ?? null;
     default:
@@ -306,6 +411,7 @@ const CLAIM_BUSINESS = {
   frozen: false,
   phone_tail: "…56",
   in_brand: true,
+  asked: 12,
 };
 const CLAIM_ID = "40000000-0000-0000-0000-000000000001";
 

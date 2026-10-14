@@ -80,7 +80,8 @@ const post = <T>(body: Record<string, unknown>) =>
 export const searchBusinesses = (q: string) =>
   post<{ results: ClaimHit[] }>({ action: "search", q });
 
-export type ClaimBusiness = ClaimHit & { in_brand: boolean };
+/** `asked`: how many customers asked the shop to join Alo King (DECISIONS §39.3). */
+export type ClaimBusiness = ClaimHit & { in_brand: boolean; asked?: number };
 
 /** One business by id (the claim page's address names it). Null when it does not exist or cannot be claimed. */
 export async function lookupBusiness(vendorId: string): Promise<ClaimBusiness | null> {

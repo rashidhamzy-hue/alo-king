@@ -4,6 +4,7 @@
 
 import {
   buttons,
+  ctaUrl,
   list,
   locationRequest,
   moneyLine,
@@ -129,6 +130,33 @@ const S: Record<string, Record<CLang, string>> = {
     arabizi: "Na22e mahal:",
   },
   places: { ar: "المحلات", en: "Places", fr: "Endroits", arabizi: "El mahallet" },
+  // DECISIONS §39.3: a shop the customer named that is not on Alo King yet.
+  notOnAloKing: {
+    ar: "«{vendor}»{where} مش على Alo King بعد، فما فيك تطلب منو هون. دوس تحت لتطلب منو ينضمّ: بيفتحلك واتساب مع رسالة جاهزة إلو.",
+    en: '"{vendor}"{where} is not on Alo King yet, so it can\'t take orders here. Tap below to ask them to join: it opens your WhatsApp with a message ready for them.',
+    fr: "« {vendor} »{where} n'est pas encore sur Alo King : pas de commande possible ici. Touchez ci-dessous pour l'inviter à rejoindre : votre WhatsApp s'ouvre avec un message prêt.",
+    arabizi:
+      '"{vendor}"{where} mesh 3a Alo King ba3d, fa ma fik totlob meno hon. Dos ta7t la totlob meno yenddam: byeftahlak WhatsApp ma3 message jehze.',
+  },
+  notOnAloKingNoLink: {
+    ar: "«{vendor}»{where} مش على Alo King بعد، فما فيك تطلب منو هون.",
+    en: '"{vendor}"{where} is not on Alo King yet, so it can\'t take orders here.',
+    fr: "« {vendor} »{where} n'est pas encore sur Alo King : pas de commande possible ici.",
+    arabizi: '"{vendor}"{where} mesh 3a Alo King ba3d, fa ma fik totlob meno hon.',
+  },
+  inPlace: { ar: " ب{place}", en: " in {place}", fr: " à {place}", arabizi: " b {place}" },
+  askJoinBtn: {
+    ar: "اطلب ينضمّوا",
+    en: "Ask them to join",
+    fr: "Inviter à rejoindre",
+    arabizi: "Otlob yenddammo",
+  },
+  pickInstead: {
+    ar: "فيك تطلب من هول بدالو:",
+    en: "You can order from these instead:",
+    fr: "Vous pouvez commander ici à la place :",
+    arabizi: "Fik totlob men hawde badalo:",
+  },
   closedUntil: { ar: "مسكّر هلق", en: "closed now", fr: "fermé", arabizi: "msakkar hala2" },
   menuOf: {
     ar: "منيو {vendor}:",
@@ -704,6 +732,33 @@ const clip = (s: string, n: number) =>
   [...s].length > n ? [...s].slice(0, n - 1).join("") + "…" : s;
 
 // ---- Vendors ---------------------------------------------------------------------------------------------
+/** A shop that is not on Alo King yet (DECISIONS §39.3), from vendor_search_unclaimed: names and village only. */
+export type UnclaimedShop = {
+  name_ar?: string | null;
+  name_en?: string | null;
+  place_ar?: string | null;
+  place_en?: string | null;
+  /** The counted "Ask them to join" route on the website (…/<lang>/ask/<slug>?ch=bot); null without a site_url. */
+  ask_url?: string | null;
+};
+
+/**
+ * "Not on Alo King yet": the customer's own WhatsApp opens on the shop with an invitation, through the website's counted
+ * route. Alo King never messages the shop itself (§25). Without a link, the same words as plain text.
+ */
+export function notOnAloKingCard(to: string, lang: CLang, shop: UnclaimedShop): Msg {
+  const place = name(lang, shop.place_ar, shop.place_en);
+  const v = {
+    vendor: name(lang, shop.name_ar, shop.name_en),
+    where: place ? tr(lang, "inPlace", { place }) : "",
+  };
+  const url =
+    typeof shop.ask_url === "string" && /^https:\/\/\S+$/.test(shop.ask_url) ? shop.ask_url : null;
+  return url
+    ? ctaUrl(to, tr(lang, "notOnAloKing", v), tr(lang, "askJoinBtn"), url)
+    : text(to, tr(lang, "notOnAloKingNoLink", v));
+}
+
 export type VendorRow = {
   ref: string;
   name_ar?: string | null;
@@ -717,7 +772,7 @@ export function vendorChoices(
   lang: CLang,
   rows: VendorRow[],
   query: string | null,
-  bodyKey: "pickVendor" | "pickPickup" = "pickVendor",
+  bodyKey: "pickVendor" | "pickPickup" | "pickInstead" = "pickVendor",
 ): Msg[] {
   if (!rows.length)
     return [text(to, tr(lang, query ? "noVendors" : "noVendorsYet", { q: query ?? "" }))];

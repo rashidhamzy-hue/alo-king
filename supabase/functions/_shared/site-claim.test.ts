@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { LIMITS, makeHandler, type SiteClaimDeps } from "./site-claim";
+import {
+  JOIN_TARGET,
+  LIMITS,
+  joinInvite,
+  joinLink,
+  joinTarget,
+  makeHandler,
+  visitorKeyFrom,
+  type SiteClaimDeps,
+} from "./site-claim";
 
 const VENDOR = "20000000-0000-0000-0000-0000000000d1";
 const CLAIM = "40000000-0000-0000-0000-000000000001";
@@ -13,6 +22,7 @@ function setup(opts: {
   limiterThrows?: boolean;
   voice?: boolean;
   allow?: (key: string) => boolean;
+  visitorKey?: (req: Request) => Promise<string>;
 }) {
   const calls: { fn: string; args: any }[] = [];
   const sent: { to: string; code: string; via: string }[] = [];
@@ -46,7 +56,7 @@ function setup(opts: {
       removed.push(path);
     },
     log: (m) => logs.push(m),
-    visitorKey: async () => "visitor1",
+    visitorKey: opts.visitorKey ?? (async () => "visitor1"),
   };
   const handler = makeHandler(deps);
   const post = (body: unknown) =>
@@ -160,6 +170,7 @@ describe("site-claim", () => {
                   claim_status: "frozen",
                   seed_phone_tail: "…56",
                   in_brand: true,
+                  asked: 7,
                   secret: SEED,
                 },
               ]
@@ -179,6 +190,7 @@ describe("site-claim", () => {
         frozen: true,
         phone_tail: "…56",
         in_brand: true,
+        asked: 7,
       },
     });
     expect((await j(await post({ action: "lookup", vendor_id: CLAIM }))).body).toEqual({
@@ -573,5 +585,168 @@ describe("site-claim", () => {
     const r = await j(await post({ action: "search", q: "abu" }));
     expect(r).toEqual({ status: 500, body: { ok: false, error: "server" } });
     expect(logs).toContain("site-claim failed");
+  });
+});
+
+describe('site-claim: "Ask them to join" (DECISIONS §39.3)', () => {
+  const FN = "https://x.supabase.co/functions/v1/site-claim";
+  const VID = "00fee5cc-ab52-4263-9277-9c6133345cad";
+  const OK = {
+    status: "ok",
+    wa_url: "https://wa.me/96171123456",
+    vendor_id: VID,
+    name_ar: "فلافل",
+    name_en: "Falafel vs Koushari",
+    name_fr: null,
+    counted: true,
+    site_url: null,
+  };
+  const get = (
+    handler: (r: Request) => Promise<Response>,
+    q: string,
+    headers: Record<string, string> = { "x-forwarded-for": "198.51.100.9" },
+  ) => handler(new Request(`${FN}?${q}`, { headers }));
+  const joining = (answer: any) =>
+    setup({
+      visitorKey: (req) => visitorKeyFrom(req, "test-pepper"),
+      rpcs: { vendor_join_request: () => answer },
+    });
+
+  it("keys the visitor on the platform's address only, with an HMAC: spoofed first entries and the browser are ignored", async () => {
+    const k = (h: Record<string, string>) => visitorKeyFrom(new Request(FN, { headers: h }), "p");
+    const real = await k({ "x-forwarded-for": "198.51.100.9" });
+    expect(real).toMatch(/^[0-9a-f]{64}$/);
+    // A client that writes its own X-Forwarded-For only adds entries before the platform's.
+    expect(await k({ "x-forwarded-for": "1.2.3.4, 5.6.7.8, 198.51.100.9" })).toBe(real);
+    expect(await k({ "x-forwarded-for": "198.51.100.9", "user-agent": "other browser" })).toBe(
+      real,
+    );
+    expect(
+      await k({ "cf-connecting-ip": "203.0.113.5", "x-forwarded-for": "198.51.100.9" }),
+    ).not.toBe(real);
+    expect(await k({ "x-forwarded-for": "198.51.100.10" })).not.toBe(real);
+    // Another pepper, another key: the stored hash cannot be recomputed without the secret.
+    expect(
+      await visitorKeyFrom(
+        new Request(FN, { headers: { "x-forwarded-for": "198.51.100.9" } }),
+        "q",
+      ),
+    ).not.toBe(real);
+    await expect(k({})).rejects.toThrow(/no visitor address/);
+  });
+
+  it("counts the tap with the server's key and redirects to the customer's own WhatsApp", async () => {
+    const { handler, calls } = joining(OK);
+    const r = await get(handler, "action=join&slug=falafel-vs-koushari&lang=en&ch=bot", {
+      "x-forwarded-for": "6.6.6.6, 198.51.100.9",
+      "user-agent": "x",
+    });
+    expect(r.status).toBe(302);
+    expect(r.headers.get("cache-control")).toBe("no-store");
+    expect(r.headers.get("x-robots-tag")).toMatch(/noindex/);
+    const to = r.headers.get("location")!;
+    expect(JOIN_TARGET.test(to)).toBe(true);
+    expect(to.startsWith("https://wa.me/96171123456?text=")).toBe(true);
+    const text = decodeURIComponent(to.split("?text=")[1]!);
+    // No site address yet: the invitation asks the shop to join, without a claim link.
+    expect(text).toContain("Hello Falafel vs Koushari!");
+    expect(text).toContain("Please join Alo King");
+    expect(text).not.toMatch(/https?:/);
+    const call = calls.find((c) => c.fn === "vendor_join_request")!;
+    expect(call.args).toEqual({
+      p_slug: "falafel-vs-koushari",
+      p_channel: "bot",
+      p_visitor: await visitorKeyFrom(
+        new Request(FN, { headers: { "x-forwarded-for": "198.51.100.9" } }),
+        "test-pepper",
+      ),
+    });
+  });
+
+  it("adds the claim link once the site's address is configured, in the page language", async () => {
+    const { handler } = joining({
+      ...OK,
+      wa_url: "https://wa.me/",
+      site_url: "https://aloking.test",
+    });
+    const r = await get(handler, "action=join&slug=falafel-vs-koushari&lang=ar");
+    const to = r.headers.get("location")!;
+    expect(to.startsWith("https://wa.me/?text=")).toBe(true);
+    const text = decodeURIComponent(to.split("?text=")[1]!);
+    expect(text).toContain("مرحبا فلافل!");
+    expect(text.endsWith(`https://aloking.test/ar/claim?v=${VID}`)).toBe(true);
+  });
+
+  it("refuses a bad slug, language or channel before calling the database", async () => {
+    const { handler, calls } = joining(OK);
+    for (const q of [
+      "action=join&slug=Bad Slug&lang=en",
+      "action=join&slug=a&lang=de",
+      "action=join&slug=a&lang=en&ch=email",
+      "action=join&lang=en",
+      `action=join&slug=${"a".repeat(121)}&lang=en`,
+    ])
+      expect((await get(handler, q)).status, q).toBe(400);
+    expect(calls.filter((c) => c.fn === "vendor_join_request")).toHaveLength(0);
+  });
+
+  it("refuses when the platform gave no address (the limiter fails closed)", async () => {
+    const { handler, calls } = joining(OK);
+    expect((await get(handler, "action=join&slug=a&lang=en", {})).status).toBe(400);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("only ever redirects to wa.me", async () => {
+    for (const wa of [
+      "https://evil.example/96171123456",
+      "https://wa.me/123",
+      "javascript:alert(1)",
+      null,
+    ]) {
+      const { handler } = joining({ ...OK, wa_url: wa });
+      const r = await get(handler, "action=join&slug=a&lang=en");
+      expect(r.status, String(wa)).toBe(404);
+      expect(r.headers.get("location")).toBeNull();
+    }
+    expect(joinTarget("https://wa.me/96171123456", "hi")).toBe("https://wa.me/96171123456?text=hi");
+    expect(joinTarget("https://wa.me/", "a b")).toBe("https://wa.me/?text=a%20b");
+    expect(JOIN_TARGET.test("https://wa.me.evil.example/1")).toBe(false);
+  });
+
+  it("claimed shops go to their page (or a short note), refusals and limits answer without a number", async () => {
+    let r = await get(
+      joining({ status: "claimed", site_url: "https://aloking.test" }).handler,
+      "action=join&slug=a&lang=fr",
+    );
+    expect(r.status).toBe(302);
+    expect(r.headers.get("location")).toBe("https://aloking.test/fr/m/a");
+    r = await get(
+      joining({ status: "claimed", site_url: null }).handler,
+      "action=join&slug=a&lang=en",
+    );
+    expect(r.status).toBe(200);
+    expect(await r.text()).toMatch(/on Alo King now/);
+    r = await get(joining({ status: "not_found" }).handler, "action=join&slug=a&lang=en");
+    expect(r.status).toBe(404);
+    r = await get(joining({ status: "rate_limited" }).handler, "action=join&slug=a&lang=en");
+    expect(r.status).toBe(429);
+    expect(await r.text()).not.toMatch(/\d{8}/);
+  });
+
+  it("other GETs are still refused, and POST actions are unchanged", async () => {
+    const { handler } = joining(OK);
+    expect((await get(handler, "action=search&q=abc")).status).toBe(405);
+  });
+
+  it("builds the link the website and the bot use, and the three invitations", () => {
+    expect(joinLink(FN, "kaak-abou-salim", "fr", "web")).toBe(
+      `${FN}?action=join&slug=kaak-abou-salim&lang=fr&ch=web`,
+    );
+    for (const l of ["ar", "en", "fr"] as const) {
+      expect(joinInvite(l, "X $& Y", "https://s.test/c")).toContain("X $& Y");
+      expect(joinInvite(l, "X", "https://s.test/c").endsWith("https://s.test/c")).toBe(true);
+      expect(joinInvite(l, "X", null)).not.toMatch(/https?:|\{link\}/);
+      expect(joinInvite(l, "X", null)).toMatch(/Alo King|ألو كينغ/);
+    }
   });
 });
