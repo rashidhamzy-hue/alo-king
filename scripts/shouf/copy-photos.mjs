@@ -49,6 +49,7 @@ async function main() {
   const url = new URL(DB_URL);
   url.searchParams.delete("sslmode");
   const local = /^(localhost|127\.0\.0\.1)$/.test(url.hostname);
+  // The session pooler's certificate is not in Node's trust store (as in tests/e2e/run.ts); staging only.
   const db = new pg.Client({
     connectionString: url.toString(),
     ssl: local ? false : { rejectUnauthorized: false },

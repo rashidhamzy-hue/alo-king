@@ -19,6 +19,7 @@ select set_config('app.audit_reason', 'session D: Shouf-first pilot (DECISIONS �
 
 -- 1. Nationwide seed vendors -----------------------------------------------------------------------------
 -- Only rows nothing else depends on: an order or a ledger account would keep its vendor (none on staging).
+-- §38.1 deletes all 2,044; on staging one had a pending test claim (6b), which goes with it.
 delete from public.vendors v
 where v.source = 'seed_2026_10'
   and not exists (select 1 from public.orders o where o.vendor_id = v.id)
@@ -206,7 +207,8 @@ insert into public.app_config (key, value, effective_from, note, created_by) val
   ('seed_photo_max_px', '800', '2026-10-14 00:00+03', 'Longest side of a seed photo copied into Storage (DECISIONS §38.1)', null);
 
 -- Switches the pilot villages on and every other place that is on, off. Paused places (security, §16) stay
--- paused and a paused pilot village is not switched on; the staging-only
+-- paused and a paused pilot village is not switched on. It runs in this migration and in every Shouf load, so adding
+-- a village to the pilot is a new dated `pilot_place_ids` row, not the admin switch alone; the staging-only
 -- "Test location" (LB-TST-LOCATION, §35) is left as it is. Called by this migration and by the Shouf load.
 create function app_private.pilot_places_apply() returns jsonb
 language plpgsql
@@ -320,7 +322,35 @@ grant execute on function public.vendor_photos_remove_seed(uuid) to service_role
 
 -- The bucket is private. Anyone may read an object only when it is a confirmed photo of a claimed vendor
 -- with a public page; staff of the vendor and operators read their pending photos with signed URLs.
--- Skipped where the storage schema does not exist (the CI database).
+-- The check is a security-definer function: a policy's subquery runs with the caller's rights, and anonymous callers
+-- cannot read vendor_photos (a subquery there would fail every anonymous storage request).
+create function app_private.vendor_photo_is_public(p_name text) returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.vendor_photos p join public.vendors v on v.id = p.vendor_id
+    where p.storage_path = p_name and p.status = 'confirmed'
+      and v.claim_status = 'claimed' and v.public_page and v.listing_status = 'active');
+$$;
+create function app_private.vendor_photo_staff_can_read(p_name text) returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.vendor_photos p
+    where p.storage_path = p_name and p.status <> 'removed'
+      and (app_private.is_operator() or app_private.has_vendor_role(p.vendor_id, array['owner', 'manager']::public.member_role[])));
+$$;
+revoke all on function app_private.vendor_photo_is_public(text), app_private.vendor_photo_staff_can_read(text) from public;
+grant execute on function app_private.vendor_photo_is_public(text) to anon, authenticated, service_role;
+grant execute on function app_private.vendor_photo_staff_can_read(text) to authenticated, service_role;
+
+-- Skipped where the storage schema does not exist.
 do $$
 begin
   if exists (select 1 from information_schema.columns where table_schema = 'storage' and table_name = 'buckets'
@@ -332,16 +362,10 @@ begin
   if to_regclass('storage.objects') is not null then
     execute 'drop policy if exists "confirmed vendor photos are public" on storage.objects';
     execute $q$create policy "confirmed vendor photos are public" on storage.objects for select to anon, authenticated
-      using (bucket_id = 'vendor-photos' and exists (
-        select 1 from public.vendor_photos p join public.vendors v on v.id = p.vendor_id
-        where p.storage_path = storage.objects.name and p.status = 'confirmed'
-          and v.claim_status = 'claimed' and v.public_page and v.listing_status = 'active'))$q$;
+      using (bucket_id = 'vendor-photos' and app_private.vendor_photo_is_public(name))$q$;
     execute 'drop policy if exists "vendor staff and operators read vendor photos" on storage.objects';
     execute $q$create policy "vendor staff and operators read vendor photos" on storage.objects for select to authenticated
-      using (bucket_id = 'vendor-photos' and exists (
-        select 1 from public.vendor_photos p
-        where p.storage_path = storage.objects.name and p.status <> 'removed'
-          and ((select app_private.is_operator()) or app_private.has_vendor_role(p.vendor_id, array['owner', 'manager']::public.member_role[]))))$q$;
+      using (bucket_id = 'vendor-photos' and app_private.vendor_photo_staff_can_read(name))$q$;
   end if;
 end;
 $$;

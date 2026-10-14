@@ -33,9 +33,20 @@ select set_config('app.actor_kind', 'system', false);
 select set_config('app.audit_reason', 'staging test fixture Alo Test Grill (DECISIONS §34)', false);
 
 -- 1. Pilot places on ------------------------------------------------------------------------------------
--- Session D (DECISIONS §38.1): the 12 Shouf pilot villages are on and every other place is off (Beiteddine, on
--- since session T, goes off). The same function runs in the Shouf load, so staging and production agree.
-select app_private.pilot_places_apply();
+-- Session D (DECISIONS §38.1): the 12 Shouf pilot villages (config pilot_place_ids) are on. Only switched on here:
+-- switching other places off is the migration's and the Shouf load's job (pilot_places_apply), so a village an
+-- operator opens on staging is not closed again by every deploy.
+do $$
+declare
+  v_id text;
+begin
+  for v_id in select jsonb_array_elements_text(public.config_value('pilot_place_ids')) loop
+    if exists (select 1 from public.places p where p.id = v_id and p.service_status = 'off') then
+      perform public.place_set_service_status(v_id, 'on', 'staging test fixture (DECISIONS §38.1)');
+    end if;
+  end loop;
+end;
+$$;
 
 -- 1b. The "Test location" place (session T3) -------------------------------------------------------------
 -- Pins outside every place polygon resolve to this record (address_save_pin). It is made once, copies
