@@ -1619,6 +1619,64 @@ Rasheed's decision on 14 October: stop, start from the Shouf with his three Shou
 3. SARL → bank account and Whish business account (#70) → company lines and the Meta portfolio (#73) → Tap (#71) and the lawyer letter (#72).
 4. First five merchants: they claim themselves from the pre-filled Shouf list (no outreach); Rasheed's 10-minute setup call (§30.6) finishes each menu.
 
+## 39. After session D: CI billing, delivery area, public listings, full menus, agents, Kapso (DECIDED, 14 October 14:30; Rasheed's requests, decided by Claude)
+Rasheed's requests after session D, and the decision on each. **This section overrides §5 and §15 on public pages for unclaimed vendors, §38.1 on which places are `on`, and the "generator mode" naming in §38.3.** Everything else stands.
+
+### 39.1 CI is red because GitHub Actions billing stopped every job
+- **Root cause (VERIFIED from the run annotations, 14 October):** "The job was not started because recent account payments have failed or your spending limit needs to be increased." The private repo used up the free Actions minutes (about 100 runs since 1 October). Nothing in the code is broken.
+- **Owner (now, 5 minutes):** GitHub → Settings → Billing and plans → add a payment method and set an Actions budget of **$20 a month** (issue #142).
+- **Session E cuts CI use so the free minutes cover a normal month and the budget is only insurance:** `concurrency` with `cancel-in-progress` on every workflow; path filters so docs-only and `supabase/seed/` data-only changes skip the web build and website-quality jobs; the Supabase CLI installed once with `supabase/setup-cli` pinned and authenticated with `GITHUB_TOKEN` (this also ends the "rate limit exceeded" failures); `staging-e2e` only after a deploy, never per PR; job timeouts on every job. Target: under 1,500 minutes a month. Logged in LOG.md with the before and after.
+
+### 39.2 Delivery area: every place within reach of a Shouf merchant, not only the 12 villages
+- **Rule:** merchants stay in the 12 pilot villages (§38.1). Customers can order **to** any place whose centre is within `max_delivery_km()` (10 km, from the fee bands) in a straight line of at least one pilot merchant. Price and the per-order distance check stay per order (§29.1); a far address simply gets the higher band or "too far for this shop".
+- **Places switched on by this rule** include the ones Rasheed named: Niha, Bater, Jbaa, Mristi, Khraibeh, Moukhtara, Ain Qani, Ammatour, Botmeh, Maasser el Chouf, Haret Jandal, Ainbal, Deir Dourit, Beiteddine (switched off by mistake in session D) and the villages around Kfar Him and Dmit; "Jeblai" is matched to the gazetteer or logged in DATA-ISSUES.md. The rule is computed by a SQL function from merchant coordinates, so it updates itself when merchants are added; `pilot_place_ids` keeps a dated row per change.
+- **OSM landmarks and place aliases (§38.2 items 4–5) are re-run for every place switched on by this rule**, not only the 12 villages. Same categories, same `source = osm`, low confidence.
+
+### 39.3 Unclaimed Shouf merchants are listed publicly ("Not on Alo King yet")
+- **Why:** an empty village page sells nothing. Customers should see every shop near them, and the shops should see demand.
+- **Place pages, cuisine pages and the bot** list every seed merchant in the delivery area after the orderable ones, as "Not on Alo King yet" cards: name, category, village, cuisine tags, opening hours, and the draft menu's **item names and descriptions without prices** (prices are unconfirmed). No ratings (§5), no Google photos (§38.1), no ordering. Vendor pages for unclaimed merchants exist with `noindex` until claimed.
+- **"Ask them to join"** on the card and in the bot: the customer gets a one-tap `wa.me` link that opens **their own** WhatsApp to the shop's number with a pre-written invitation and the shop's claim link. Alo King never messages an unclaimed merchant itself (Meta opt-in rules; no outreach, §25). Each tap is counted, and the claim page shows the merchant "N customers asked for you".
+- The bot, asked for an unclaimed shop, says it is not on Alo King yet, offers the "Ask them to join" link and the closest orderable alternatives.
+
+### 39.4 Full menus for all 315 merchants, as drafts the merchant confirms
+- **Goal:** every merchant that claims finds its menu already there; old prices are fine because the merchant confirms each section (§38.2 item 2). Every imported menu is `status = draft`, `source = seed`, with `source_url` and `captured_at`.
+- **Sources, in order:**
+  1. Owner menu photos: `supabase/seed/shouf/source/04_owner_menu_photos_2026-10-14.json` (SEVEN Burgers & Beyond, Bakaata: 44 items in LBP; Nayeh w Meshwiyeh, Baakline: 121 items in USD; the photos are in `owner_menu_photos/`). LBP prices are stored as LBP and converted at the dated rate for display. Nayeh w Meshwiyeh appears twice in the merchant file (two place_ids): merge into one vendor, logged in DATA-ISSUES.md.
+  2. The 53 `website_or_menu_link` values, through small platform adapters: Omega (`menu.omegasoftware.ca`, e.g. INDINER time `/indinertime`, Che Vita, Labne w Jebne: read the JSON the page loads), qrscan-menu, Restbits/Thrubits, leb.directory, Coverbox, mymenus.site, ScanGOW, public Google Drive PDFs, plain HTML. Instagram and Facebook are skipped (login walls, terms). Runs as a `workflow_dispatch` job `menu-harvest` (build sessions cannot reach these hosts), output committed in a `Data:` PR.
+  3. Menu boards inside the 2,927 seed photos: Haiku 5.5 classifies each photo (menu or not); Sonnet 5.5 extracts the menu photos into draft items. Internal use only; the photos stay hidden (§38.1). Needs Anthropic API credit (§38.6 item 1); estimated under $10 for the whole set.
+  4. Merchants without any source: no invented menu. The copilot imports theirs from a photo, PDF, link or text at claim (§18.3).
+- The verification output lists, per village, merchants with a draft menu and items per merchant.
+
+### 39.5 Ingredient and nutrition data
+- **Already in place:** USDA FoodData Central (public domain) behind the 203-dish library and the `nutrition-library` check (§32.3). No other ingredient database is needed for restaurant dishes.
+- **Added for groceries:** Open Food Facts (ODbL) by barcode, on demand, when a grocery item is created or scanned: name, brand, quantity, allergens, ingredients, Nutri-Score, image. Results are cached in their own table with attribution (share-alike stays contained to that table); never a bulk download. Shown as "estimated" until the merchant confirms (§32.3 evidence rule). No health claims beyond allergens and estimated calories.
+
+### 39.6 Customer agent: one smart catalogue across every shop
+- The agent searches one index across every orderable menu and catalogue in the customer's delivery area, plus the dish library's synonyms (Arabic, Arabizi, French, English, brand words): "bade shi 7arr w rkhis", "manoushe kishk", "Pepsi diet 2", "akel lal wled" all resolve to real items with server prices. It compares shops, suggests one rule-based upsell (§29.3), remembers usual orders, and handles text, voice and button taps. Unclaimed shops answer per 39.3.
+- The code exists (session 4); what is missing is API credit (owner, §38.6 item 1) and the 5c items. Free text and voice stay off until the eval passes on the real voice notes (§32.4).
+
+### 39.7 Merchant copilot: full control of the shop, not "generator mode"
+- The station switch from §38.3 is renamed **availability**; generators are only one reason a station goes off. The copilot covers, in four languages, by text, voice or tap: item and section on/off with auto-restore; stock counts for groceries; price changes; add, edit and remove items; menu import from photo, PDF, link or text; offers (percent off, bundle, free item, happy-hour schedule, first-order offer); opening hours and closures; minimum order and own-delivery radius; Boost and sponsored placement (§20.4, §30.2.5) start, stop and budget; staff and their roles; daily and weekly reports. Every change that touches price, availability or money needs the merchant's confirming tap (product rules).
+
+### 39.8 Kapso: full setup on a US test number first
+- The Kapso connection in Rasheed's claude.ai is the **Kabsi.co** project, which is off limits. Kapso work for Alo King runs only in Claude Code with `KAPSO_API_KEY` for the `Alo King` project.
+- **Session 5b does, on a US test number in the Alo King Kapso project:** number via Kapso setup (if a US number cannot be created by API, an owner issue with click steps); webhooks pinned to `eu-central-1`; all utility templates in four languages (order confirmed + ETA, on the way + tracking, delivered + rate, merchant new order, claim code, payment link, Send Home receipt); marketing templates for opted-in customers only; Flows (address with landmark, checkout, merchant claim, menu section confirm, merchant settings); broadcasts to opted-in segments with STOP; the "smart menu" as list messages and Flows driven by the database.
+- **No Meta product catalogue in the pilot:** it needs Commerce Manager per business portfolio, caps multi-product messages at 30 items, and duplicates prices outside the server. Revisit after the Meta portfolio exists (#73).
+- The company numbers (§38.6) replace the US number at cut-over (session 14).
+
+### 39.9 Models
+- Build sessions stay on Opus 5.5 (high) for data and agent work and Sonnet 5.5 (high) for routine work. **Claude Fable 5.1 is not needed**: no task here is beyond Opus 5.5, and its extra cybersecurity safeguards can get in the way of session 13 (security review).
+
+### 39.10 Session plan from here (replaces the rows after D in §38.5)
+| # | Session | Model | Content |
+|---|---|---|---|
+| E | Finish D, CI diet, delivery area, listings | Opus 5.5, high | merge #141; root-cause the 1-minute worker stall from session D's two e2e failures; 39.1 CI cuts; 39.2 delivery area + OSM re-run; 39.3 public listings and "Ask them to join"; import 04 owner menus; merge the Nayeh duplicate; e2e 11/11 |
+| F | Menu harvest | Opus 5.5, high | 39.4 sources 2 and 3 (adapters, `menu-harvest` workflow, photo classification and extraction once credit exists); 39.5 Open Food Facts |
+| 5c | Agents | Opus 5.5, high | §38.3 rows for 5c, 39.6, 39.7 |
+| 5b | Kapso and operations | Sonnet 5.5, high | §38.5 row 5b plus 39.8 |
+| 13 | Security review | Opus 5.5, high | unchanged |
+| 14 | Pilot cut-over | Opus 5.5, high | unchanged |
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
