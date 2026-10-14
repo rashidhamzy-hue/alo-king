@@ -50,6 +50,11 @@ describe("Open Food Facts (§39.5)", () => {
       product: { ...NIDO.product, image_front_url: "https://evil.example/x.jpg" },
     });
     expect(bad.image_url).toBeNull();
+    const lookalike = normalizeOff("4006381333931", {
+      status: 1,
+      product: { ...NIDO.product, image_front_url: "https://evil-openfoodfacts.org/x.jpg" },
+    });
+    expect(lookalike.image_url).toBeNull();
     expect(normalizeOff("4006381333931", { status: 0 })).toMatchObject({
       found: false,
       name: null,

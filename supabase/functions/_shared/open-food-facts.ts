@@ -72,7 +72,7 @@ export function normalizeOff(barcode: string, json: unknown): OffProduct {
     ingredients_text: text(p.ingredients_text_en ?? p.ingredients_text, 2000),
     nutriscore_grade: grade && /^[a-e]$/.test(grade) ? grade : null,
     energy_kcal_100g: Number.isFinite(kcal) && kcal >= 0 && kcal < 1000 ? Math.round(kcal) : null,
-    image_url: image && /^https:\/\/[a-z0-9.-]*openfoodfacts\.org\//.test(image) ? image : null,
+    image_url: image && /^https:\/\/([a-z0-9-]+\.)*openfoodfacts\.org\//.test(image) ? image : null,
   };
 }
 
@@ -117,7 +117,8 @@ export async function lookupProduct(
   } catch {
     return null;
   }
-  await deps.rpc("off_product_put", { p_product: p });
+  // A failed cache write still answers the merchant with what OFF said.
+  await deps.rpc("off_product_put", { p_product: p }).catch(() => null);
   return p;
 }
 
@@ -148,7 +149,7 @@ export function productCardText(p: OffProduct | null, barcode: string): string {
     `📦 ${[p.name, p.brand, p.quantity].filter(Boolean).join(" · ") || barcode}`,
     p.allergens.length
       ? `⚠️ مسببات حساسية (تقديرية) / Allergens (estimated): ${p.allergens.map((a) => `${ALLERGEN_AR[a] ?? a} ${a}`).join(", ")}`
-      : "⚠️ ما في مسببات حساسية مذكورة (تقديري) / No allergens listed (estimated)",
+      : "⚠️ Open Food Facts ما بيذكر مسببات حساسية، تأكّد من العلبة / Open Food Facts lists no allergens; check the pack",
     ...(p.energy_kcal_100g !== null
       ? [`🔥 ~${p.energy_kcal_100g} kcal / 100 g (تقديري / estimated)`]
       : []),

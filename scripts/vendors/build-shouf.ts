@@ -44,8 +44,14 @@ const harvested = [
     : [],
 );
 const drafts = [...curated];
-for (const h of harvested)
-  if (!drafts.some((d) => d.place_id === h.place_id) && !exclusionsHave(h.place_id)) drafts.push(h);
+const knownIds = new Set(vendors.map((v) => v.place_id));
+for (const h of harvested) {
+  // A harvested menu for a place id no longer in the file is skipped with a note, never a failed load.
+  if (!knownIds.has(h.place_id))
+    console.error(`harvested menu for an unknown place_id skipped: ${h.vendor_name}`);
+  else if (!drafts.some((d) => d.place_id === h.place_id) && !exclusionsHave(h.place_id))
+    drafts.push(h);
+}
 function exclusionsHave(placeId: string) {
   return exclusions.some((e) => e.place_id === placeId);
 }

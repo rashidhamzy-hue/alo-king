@@ -28,12 +28,20 @@ permissions:
 env:
   SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
 
+# `shell: bash` runs with -eo pipefail, so `node … | tee` fails the step when node fails.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   harvest:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
+      # Chromium and pdftotext read untrusted pages: no write credentials on disk until the push step.
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
@@ -71,11 +79,14 @@ jobs:
       - name: Push to a data branch
         env:
           BRANCH: data/menu-harvest-${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add supabase/seed/shouf/harvest harvest-raw
           git commit -m "Menus harvested by menu-harvest run ${{ github.run_id }}" -m "DECISIONS §39.4 sources 2-3: drafts the merchant confirms; raw captures under harvest-raw/ for review only."
-          git push origin "$BRANCH"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" push origin "$BRANCH"
           echo "pushed $BRANCH" | tee -a "$GITHUB_STEP_SUMMARY"

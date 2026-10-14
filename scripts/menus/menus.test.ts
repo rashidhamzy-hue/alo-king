@@ -197,7 +197,15 @@ describe("menu adapters", () => {
 });
 
 describe("seed photos (§39.4 source 3)", async () => {
-  const { parseClass, menuPhotosOf, isNoCredit, CLASSIFY_PROMPT } = await import("./photos.ts");
+  const { parseClass, menuPhotosOf, isNoCredit, imageType, CLASSIFY_PROMPT } =
+    await import("./photos.ts");
+  it("sends only image types the API accepts", () => {
+    expect(imageType("image/jpeg")).toBe("image/jpeg");
+    expect(imageType("image/jpg")).toBe("image/jpeg");
+    expect(imageType("image/webp; charset=binary")).toBe("image/webp");
+    expect(imageType("application/octet-stream")).toBeNull();
+    expect(imageType(null)).toBeNull();
+  });
   it("reads the photo model's answer strictly", () => {
     expect(parseClass('{"kind":"menu","confidence":0.92}')).toEqual({
       kind: "menu",
@@ -231,7 +239,7 @@ describe("seed photos (§39.4 source 3)", async () => {
         '{"error":{"message":"Your credit balance is too low to access the Anthropic API"}}',
       ),
     ).toBe(true);
-    expect(isNoCredit(401, "invalid x-api-key")).toBe(true);
+    expect(isNoCredit(401, "invalid x-api-key")).toBe(false);
     expect(isNoCredit(400, "messages: field required")).toBe(false);
     expect(isNoCredit(529, "overloaded")).toBe(false);
   });

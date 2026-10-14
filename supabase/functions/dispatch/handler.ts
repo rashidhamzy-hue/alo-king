@@ -571,7 +571,7 @@ export const HELP = [
   "• «ما في كهربا» / «power back»",
   "• «capacity 8» · «same price»",
   "• «add Ali as kitchen +961…» / «remove Ali»",
-  "• باركود المنتج / a product barcode: 5281234567890",
+  "• باركود المنتج / a product barcode: 5281234567896",
 ].join("\n");
 
 async function handleTap(

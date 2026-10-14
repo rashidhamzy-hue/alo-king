@@ -7,7 +7,8 @@
 //                own photo import (supabase/functions/_shared/menu-draft.ts): names as printed, prices only as printed.
 // Writes <out>/photo_classes.csv and <out>/06_photo_menus.json; build-shouf.ts loads the drafts and load-seed.sh the
 // classes. Internal use only: the photos stay hidden (§38.1). Without credit the first call fails and the script
-// writes nothing and says so (exit 0), so the workflow stays green until credit exists.
+// writes nothing and says so (exit 0), so the workflow stays green until credit exists; credit that runs out during
+// the menu reading keeps what was read and says PARTIAL. A rejected key (401) is an error, never a skip.
 // Env: DB_URL, SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY; optional PHOTO_LIMIT (photos to classify).
 // Usage: node --experimental-strip-types scripts/menus/photos.ts <out dir>
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -53,9 +54,14 @@ export function menuPhotosOf<T extends { kind: PhotoKind; confidence: number }>(
 
 /** True when an Anthropic error means "no credit" rather than a broken request. */
 export const isNoCredit = (status: number, body: string) =>
-  status === 402 ||
-  (status === 400 && /credit balance|billing|purchase credits/i.test(body)) ||
-  status === 401;
+  status === 402 || (status === 400 && /credit balance|billing|purchase credits/i.test(body));
+
+/** Image types the API accepts; anything else in Storage is skipped rather than failing the run. */
+export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+export const imageType = (contentType: string | null) => {
+  const t = (contentType ?? "").split(";")[0].trim().toLowerCase();
+  return IMAGE_TYPES.includes(t) ? t : t === "image/jpg" ? "image/jpeg" : null;
+};
 
 export class NoCredit extends Error {}
 
@@ -141,7 +147,8 @@ async function main(out: string) {
       name: string;
       town_id: string;
     }[];
-    const limit = Number(process.env.PHOTO_LIMIT ?? Infinity);
+    const rawLimit = Number(process.env.PHOTO_LIMIT);
+    const limit = Number.isInteger(rawLimit) && rawLimit > 0 ? rawLimit : Infinity;
     const headers = {
       authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
       apikey: SUPABASE_SERVICE_KEY,
@@ -151,8 +158,11 @@ async function main(out: string) {
         `${SUPABASE_URL}/storage/v1/object/authenticated/vendor-photos/${path}`,
         { headers },
       );
-      if (!res.ok) return null;
-      const mime = res.headers.get("content-type") ?? "image/jpeg";
+      const mime = imageType(res.headers.get("content-type"));
+      if (!res.ok || !mime) {
+        await res.body?.cancel();
+        return null;
+      }
       return {
         type: "image",
         source: {
@@ -173,9 +183,10 @@ async function main(out: string) {
       confidence: number;
     }[] = [];
     let i = 0;
+    let stop = false;
     const todo = photos.slice(0, limit);
     const work = async () => {
-      while (i < todo.length) {
+      while (i < todo.length && !stop) {
         const p = todo[i++];
         const img = await image(p.storage_path);
         if (!img) continue;
@@ -198,7 +209,14 @@ async function main(out: string) {
       }
     };
     try {
-      await Promise.all(Array.from({ length: 4 }, work));
+      await Promise.all(
+        Array.from({ length: 4 }, () =>
+          work().catch((e) => {
+            stop = true; // the other workers stop asking the API
+            throw e;
+          }),
+        ),
+      );
     } catch (e) {
       if (e instanceof NoCredit) {
         console.log(
@@ -221,16 +239,25 @@ async function main(out: string) {
 
     const model: MenuModel = (req) => call(menuModelId, req.system, req.content, 8000);
     const menus = [];
+    let partial = "";
     for (const place of [...new Set(classes.map((c) => c.place_id))]) {
       const pick = menuPhotosOf(classes.filter((c) => c.place_id === place));
       if (!pick.length) continue;
       const parts = (await Promise.all(pick.map((p) => image(p.path)))).filter(
         Boolean,
       ) as Parameters<MenuModel>[0]["content"];
-      const draft = await extractMenu(model, [
-        ...parts,
-        { type: "text", text: "Read every menu item in these photos of one shop's menu." },
-      ]);
+      let draft;
+      try {
+        draft = await extractMenu(model, [
+          ...parts,
+          { type: "text", text: "Read every menu item in these photos of one shop's menu." },
+        ]);
+      } catch (e) {
+        if (!(e instanceof NoCredit)) throw e;
+        // Credit ran out part-way: keep the classes and the menus read so far, and say so.
+        partial = ` PARTIAL: the API credit ran out after ${menus.length} merchants (${e.message.slice(0, 80)})`;
+        break;
+      }
       if (!draft.sections.length) continue;
       menus.push({
         place_id: place,
@@ -252,7 +279,7 @@ async function main(out: string) {
       {} as Record<string, number>,
     );
     console.log(
-      `photos: ${classes.length} classified ${JSON.stringify(kinds)}; ${menus.length} merchants' menus read; tokens in ${usage.input}, out ${usage.output}`,
+      `photos: ${classes.length} classified ${JSON.stringify(kinds)}; ${menus.length} merchants' menus read; tokens in ${usage.input}, out ${usage.output}.${partial}`,
     );
   } finally {
     await db.end();

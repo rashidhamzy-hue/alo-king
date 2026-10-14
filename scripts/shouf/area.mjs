@@ -153,7 +153,7 @@ async function roads(out) {
           const limited = res.status === 429 || (res.status === 403 && /quota/i.test(body));
           if (!limited || attempt === 3) misses.push(`${place.id}: HTTP ${res.status} ${body}`);
           if (limited) {
-            await new Promise((r) => setTimeout(r, 65_000));
+            if (attempt < 3) await new Promise((r) => setTimeout(r, 65_000));
             continue;
           }
           if (res.status < 500) break;

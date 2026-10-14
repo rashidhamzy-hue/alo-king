@@ -69,7 +69,7 @@ create table public.off_products (
   ingredients_text text check (char_length(ingredients_text) <= 2000),
   nutriscore_grade text check (nutriscore_grade ~ '^[a-e]$'),
   energy_kcal_100g integer check (energy_kcal_100g between 0 and 999),
-  image_url text check (image_url ~ '^https://[a-z0-9.-]*openfoodfacts\.org/'),
+  image_url text check (image_url ~ '^https://([a-z0-9-]+\.)*openfoodfacts\.org/'),
   -- ODbL: the data stays in this table with its attribution (§39.5).
   license text not null default 'ODbL-1.0' check (license = 'ODbL-1.0'),
   attribution text not null default 'Open Food Facts contributors, https://world.openfoodfacts.org',
