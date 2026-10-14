@@ -49,16 +49,24 @@ select tests.ok((public.customer_turn_begin('+96170000094', 'wamid.order.r1', 't
   'bbbbbbbb-0000-0000-0000-000000000007', now() + interval '150 seconds') ->> 'busy')::boolean,
   'its replay waits while the later turn runs');
 
--- 7. A turn whose worker is gone holds nobody for long --------------------------------------------------------------
-update public.bot_turns set received_at = now() - interval '31 seconds' where message_id = 'wamid.order.r2';
-select tests.ok((public.customer_turn_begin('+96170000094', 'wamid.order.r3', 'text', 'Replay', 1,
-  'bbbbbbbb-0000-0000-0000-000000000008', now() + interval '150 seconds') ->> 'busy') is null,
-  'a turn begun more than 30 s ago no longer holds the next message (it is never held past the queue''s retries)');
-update public.bot_turns set lease_until = now() - interval '1 second' where message_id = 'wamid.order.r3';
-update public.bot_turns set received_at = now() where message_id = 'wamid.order.r2';
-update public.bot_turns set lease_until = now() - interval '1 second', finished_at = now() where message_id = 'wamid.order.r2';
-select tests.ok((public.customer_turn_begin('+96170000094', 'wamid.order.r4', 'text', 'Replay', 1) ->> 'busy') is null,
-  'a finished turn or an expired lease holds nobody');
+-- 7. Attempts 4 and 5 always run, so a held message is never archived unanswered ------------------------------------
+select tests.ok((public.customer_turn_begin('+96170000094', 'wamid.order.r3', 'text', 'Replay', 3,
+  'bbbbbbbb-0000-0000-0000-000000000008', now() + interval '150 seconds') ->> 'busy')::boolean,
+  'attempt 3 is still held while the later turn runs');
+select tests.ok((public.customer_turn_begin('+96170000094', 'wamid.order.r3', 'text', 'Replay', 4,
+  'bbbbbbbb-0000-0000-0000-000000000009', now() + interval '150 seconds') ->> 'busy') is null,
+  'attempt 4 runs even while another turn is running (the queue archives after attempt 5)');
+
+-- 8. A finished turn holds nobody, even with its lease still in the future; nor does an expired lease ----------------
+update public.bot_turns set finished_at = now() where message_id in ('wamid.order.r2', 'wamid.order.r3');
+select tests.ok((select lease_until > now() from public.bot_turns where message_id = 'wamid.order.r2'),
+  '(the finished turn still has a live lease)');
+select tests.ok((public.customer_turn_begin('+96170000094', 'wamid.order.r4', 'text', 'Replay', 1,
+  'bbbbbbbb-0000-0000-0000-00000000000a', now() + interval '150 seconds') ->> 'busy') is null,
+  'a finished turn holds nobody');
+update public.bot_turns set lease_until = now() - interval '1 second' where message_id = 'wamid.order.r4';
+select tests.ok((public.customer_turn_begin('+96170000094', 'wamid.order.r5', 'text', 'Replay', 1) ->> 'busy') is null,
+  'an unfinished turn whose lease has expired (its worker is gone) holds nobody');
 
 select tests.ok(exists (select 1 from pg_indexes where schemaname = 'public' and indexname = 'bot_turns_running_idx'),
   'running turns are found by an index');

@@ -4,7 +4,7 @@
 -- the RPC client and saved the session at 16:07:36.0. The customer's tap on "Alo Test Market" (pv:v1) reached another
 -- worker at 16:07:32, began its own turn, read the session from before the pin turn (no v1) and answered "From which
 -- place?". customer_turn_begin now holds a customer's next message back (`busy`, retried by the queue within seconds)
--- while the previous turn is still running, so a tap always reads the session its card was sent with.
+-- while the previous turn is still running, so a tap reads the session its card was sent with (attempts 1 to 3).
 -- No data changes; the function keeps its signature.
 
 create index if not exists bot_turns_running_idx on public.bot_turns (customer_id) where finished_at is null;
@@ -41,15 +41,15 @@ begin
   returning * into v_customer;
   v_first := v_customer.created_at > now() - interval '5 seconds';
 
-  -- One turn at a time per customer. The upsert above locks the customer row, so two workers beginning turns for the
-  -- same customer take turns here and the second sees the first one's row. A turn still running (unfinished, lease
-  -- held) holds the next message back: its replies may be out while its session is not saved yet, and the next tap
-  -- would read the old session and miss the options it answers. `busy` makes the queue try again in 5, 10, 15 s.
-  -- A turn older than 30 s no longer holds anyone (its worker is gone or about to be), so a message is never held
-  -- past the queue's retries.
-  v_other := exists (select 1 from public.bot_turns t
+  -- A customer's turns do not overlap. The upsert above locks the customer row, so two workers beginning turns for
+  -- the same customer take turns here and the second sees the first one's row. While a turn is still running
+  -- (unfinished, lease held) its replies may be out before its session is saved, and the next tap would read the old
+  -- session and miss the options it answers; `busy` makes the queue try that message again 5, 10 and 15 s later.
+  -- Held on attempts 1 to 3 only: attempts 4 and 5 always run, so a held message is never archived unanswered
+  -- (each busy answer uses one of the queue's 5 attempts). Waiting messages run in the order their retries come up.
+  v_other := coalesce(p_attempt, 1) < 4 and exists (select 1 from public.bot_turns t
     where t.customer_id = v_customer.id and t.message_id <> p_message_id and t.finished_at is null
-      and t.lease_until > now() and t.received_at > now() - interval '30 seconds');
+      and t.lease_until > now());
   if v_other and not exists (select 1 from public.bot_turns t where t.message_id = p_message_id) then
     return jsonb_build_object('duplicate', false, 'busy', true);
   end if;
