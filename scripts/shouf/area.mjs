@@ -227,6 +227,8 @@ async function roads(out, recompute = new Set()) {
   const today = new Date().toISOString().slice(0, 10);
   const kept = existsSync(out) ? existingRoads(readFileSync(out, "utf8")) : new Map();
   const ids = new Set(places.map((p) => p.id));
+  // The committed rows of the places asked again: put back when neither provider answers.
+  const previous = new Map();
   for (const id of recompute) {
     if (!ids.has(id)) throw new Error(`--recompute ${id}: not a boundary place`);
     const old = kept.get(id);
@@ -234,6 +236,7 @@ async function roads(out, recompute = new Set()) {
       console.log(
         `${id}\trecompute (was ${old.road_km} km by ${old.provider} from ${old.nearest_vendor_place_id})`,
       );
+    if (old) previous.set(id, old);
     kept.delete(id);
   }
   const rows = [...kept.values()]
@@ -251,13 +254,27 @@ async function roads(out, recompute = new Set()) {
         provider: "ors",
         hit: orsOk ? await orsNearest(place, near, key, misses) : null,
       };
+      if (ors.hit?.limited) orsOk = false;
       const osrm = { provider: "osrm", hit: await osrmNearest(place, near, misses) };
       const best = shorterRoad(ors, osrm);
       const fmt = (x) =>
         x.hit && typeof x.hit.roadKm === "number" ? `${x.hit.roadKm.toFixed(2)} km` : "-";
       if (best.hit && !best.hit.none)
         rows.push([place.id, best.hit.roadKm.toFixed(2), best.hit.nearest, best.provider, today]);
-      else misses.push(`${place.id}: recompute found no road`);
+      else {
+        const old = previous.get(place.id);
+        if (old)
+          rows.push([
+            old.place_id,
+            old.road_km,
+            old.nearest_vendor_place_id,
+            old.provider,
+            old.computed_on,
+          ]);
+        misses.push(
+          `${place.id}: recompute found no road${old ? "; the committed row is kept" : ""}`,
+        );
+      }
       console.log(
         `${place.id}\t${place.name}\tstraight ${near[0].km.toFixed(2)} km\tors ${fmt(ors)}\tosrm ${fmt(osrm)}\tkept ${best.provider}`,
       );

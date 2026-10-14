@@ -172,10 +172,11 @@ do $$
 begin
   if public.max_delivery_km() > 20 then
     insert into public.delivery_fee_bands (effective_from, max_km, fee_usd, created_by)
+    -- A copy of the newest set in force that has no band above 20 km (the real bands), so the 20 km band survives.
     select now(), b.max_km, b.fee_usd, null
     from public.delivery_fee_bands b
-    where b.effective_from = (select max(x.effective_from) from public.delivery_fee_bands x where x.effective_from <= now())
-      and b.max_km <= 20;
+    where b.effective_from = (select max(s.effective_from) from (select x.effective_from from public.delivery_fee_bands x
+                                where x.effective_from <= now() group by x.effective_from having max(x.max_km) <= 20) s);
   end if;
   update public.vendors set delivery_radius_km = 10.0, delivery_enabled = true, pickup_enabled = true
   where slug = 'alo-test-grill' and is_test

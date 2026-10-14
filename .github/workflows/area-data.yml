@@ -44,6 +44,7 @@ jobs:
           RECOMPUTE: ${{ inputs.recompute }}
         run: |
           [ -n "${ORS_API_KEY:-}" ] || echo "ORS_API_KEY is not set: the public OSRM server only" | tee -a "$GITHUB_STEP_SUMMARY"
+          RECOMPUTE="${RECOMPUTE// /}"
           [[ "${RECOMPUTE:-}" =~ ^[A-Z0-9,-]*$ ]] || { echo "recompute: place ids only"; exit 1; }
           node scripts/shouf/area.mjs roads supabase/seed/places/shouf_delivery_road_km.csv ${RECOMPUTE:+--recompute "$RECOMPUTE"} | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Push to a data branch
