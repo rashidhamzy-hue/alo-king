@@ -218,7 +218,7 @@
   - **Open Food Facts (§39.5):** a merchant who types or scans a barcode on the Merchant number gets name, brand, quantity, allergens (EU-14), estimated kcal and Nutri-Score, cached in `off_products` with the ODbL attribution, shown as estimated.
   - **e2e (§36):** 10/11 after #156's deploy (run 38611719257: a stalled `sim_sink_record` call was read as "sink off"; fixed in #157). 11/11 after #157's deploy (run 38618343610). **11/11 twice in a row on the final code:** after #158's deploy (run 38629532611) and the dispatched run on fa5229a (38634854820).
   - **Open for later:** run the photo step when API credit exists; the 17 merchants without an online menu get theirs from photos or at claim; recheck El Bireh's and the named edge villages' routes once real orders come in; the Omega size handling is tested but no committed draft has sizes yet.
-- **Next: 5c (agents), 5b (Kapso and operations), 13 and 14.** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5).
+- **Next: W (website revamp, §39.11), then 5c (agents), 5b (Kapso and operations), 13 and 14.** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5).
 
 ## How to start each build session
 
