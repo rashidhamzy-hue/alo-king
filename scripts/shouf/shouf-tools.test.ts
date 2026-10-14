@@ -106,7 +106,7 @@ describe("delivery area data (§39.2)", async () => {
 
   it("finds every boundary place in the places list, all in the Chouf", () => {
     const pts = area.boundaryPlaces(placesCsv, boundaryCsv);
-    expect(pts).toHaveLength(59);
+    expect(pts).toHaveLength(61);
     for (const p of pts) {
       expect(p.id).toMatch(/^LB-CHF-/);
       expect(p.lat).toBeGreaterThan(33.5);

@@ -40,6 +40,9 @@ create table app_private.delivery_road_km (
   provider text not null check (provider ~ '^[a-z][a-z0-9_]*$'),
   computed_on date not null
 );
+alter table app_private.delivery_boundary enable row level security;
+alter table app_private.delivery_denylist enable row level security;
+alter table app_private.delivery_road_km enable row level security;
 revoke all on table app_private.delivery_boundary, app_private.delivery_denylist, app_private.delivery_road_km
   from public, anon, authenticated;
 
@@ -94,7 +97,8 @@ revoke all on function public.delivery_area_proposal() from public, anon, authen
 grant execute on function public.delivery_area_proposal() to service_role;
 
 -- 3. OSM for the area only --------------------------------------------------------------------------------------------
--- OSM landmarks and place names outside the places that are on go; learned ones (customers, drivers) are never touched.
+-- OSM landmarks and place names outside the places that are on go, unless deliveries already back them: a row
+-- with location evidence (which cascades) or a landmark no longer unconfirmed stays. Learned rows are never touched.
 create function app_private.osm_prune_outside_area() returns jsonb
 language plpgsql
 security definer
@@ -107,9 +111,11 @@ declare
 begin
   perform set_config('app.actor_kind', 'system', true);
   perform set_config('app.audit_reason', 'OSM outside the delivery area (DECISIONS §39.2)', true);
-  delete from public.landmarks l where l.source = 'osm' and (l.place_id is null or not (l.place_id = any (v_area)));
+  delete from public.landmarks l where l.source = 'osm' and (l.place_id is null or not (l.place_id = any (v_area)))
+    and l.status = 'unconfirmed' and not exists (select 1 from public.location_evidence e where e.landmark_id = l.id);
   get diagnostics n_landmarks = row_count;
-  delete from public.place_aliases a where a.source = 'osm' and not (a.place_id = any (v_area));
+  delete from public.place_aliases a where a.source = 'osm' and not (a.place_id = any (v_area))
+    and not exists (select 1 from public.location_evidence e where e.place_alias_id = a.id);
   get diagnostics n_aliases = row_count;
   return jsonb_build_object('landmarks_removed', n_landmarks, 'aliases_removed', n_aliases);
 end;

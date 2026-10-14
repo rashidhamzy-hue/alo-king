@@ -41,6 +41,13 @@ select tests.ok(not exists (select 1 from app_private.delivery_boundary) or not 
     'LB-CHF-JDEIDET-EL-CHOUF']) n(id)
   where not exists (select 1 from app_private.delivery_boundary b where b.place_id = n.id and b.role = 'shop_village')),
   'the 12 shop villages (§38.1) are in the boundary as shop villages');
+select tests.ok(not exists (select 1 from app_private.delivery_boundary) or not exists (
+  select 1 from public.places p
+  where (p.parent_id in (select place_id from app_private.delivery_boundary)
+         or p.zone_pcode in (select q.zone_pcode from public.places q join app_private.delivery_boundary b on b.place_id = q.id))
+    and not exists (select 1 from app_private.delivery_boundary b where b.place_id = p.id)
+    and not exists (select 1 from app_private.delivery_denylist x where x.place_id = p.id)),
+  'every hamlet or zone-mate of a delivered village is in the boundary or deny-listed (a pin snaps to the nearest place in its zone)');
 select tests.ok(not exists (select 1 from public.places) or not exists (
   select 1 from public.places where service_status = 'on' and district_code = 'JZN'),
   'paused places (Jezzine) stay paused');
