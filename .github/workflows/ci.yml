@@ -384,7 +384,9 @@ jobs:
   deploy-staging:
     name: deploy to alo-king-staging
     needs: automerge
-    if: needs.automerge.outputs.merged == 'true'
+    # always(): without a status function GitHub adds success(), which looks at every job upstream, so a skipped
+    # website-quality job (CI diet, no web change) skipped the deploy even though automerge had merged (#149, #150, #152).
+    if: always() && !cancelled() && needs.automerge.outputs.merged == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
@@ -490,7 +492,7 @@ jobs:
   seed-photos:
     name: Shouf seed photos into Storage (DECISIONS §38.1)
     needs: deploy-staging
-    if: needs.deploy-staging.result == 'success'
+    if: always() && !cancelled() && needs.deploy-staging.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     concurrency:
@@ -524,7 +526,7 @@ jobs:
   e2e-staging:
     name: staging e2e after the deploy (DECISIONS §36)
     needs: deploy-staging
-    if: needs.deploy-staging.result == 'success'
+    if: always() && !cancelled() && needs.deploy-staging.result == 'success'
     permissions:
       contents: read
       issues: write
