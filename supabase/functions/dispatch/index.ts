@@ -433,6 +433,8 @@ async function twilioKeypress(req: Request, url: URL): Promise<Response> {
 }
 
 Deno.serve(async (req) => {
+  // An edge function lives at most 150 s (wall clock); a turn's lease ends just after (#139).
+  const workerDeadline = new Date(Date.now() + 152_000);
   const url = new URL(req.url);
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   if (url.searchParams.get("route") === "twilio") return twilioKeypress(req, url);
@@ -463,6 +465,7 @@ Deno.serve(async (req) => {
       adminUrl: env("ADMIN_BASE_URL"),
       log,
       budgetMs: 20_000,
+      workerDeadline,
       customer: await (async () => {
         const cfg = await botConfig();
         const sender = (await rpc("whatsapp_sender", { p_audience: "customer" })) ?? "";

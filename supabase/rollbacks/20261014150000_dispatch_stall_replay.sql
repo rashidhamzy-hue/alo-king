@@ -4,9 +4,9 @@ select cron.unschedule('basket-add-ops-prune');
 drop function app_private.basket_add_ops_prune();
 drop function public.basket_add_item(uuid, uuid, integer, uuid[], text, boolean, text);
 drop table app_private.basket_add_ops;
-drop function public.customer_turn_release(text);
-drop function public.customer_turn_begin(text, text, text, text, integer);
-alter table public.bot_turns drop column lease_until;
+drop function public.customer_turn_release(text, uuid);
+drop function public.customer_turn_begin(text, text, text, text, integer, uuid, timestamptz);
+alter table public.bot_turns drop column lease_until, drop column lease_id;
 drop function public.webhook_finish(bigint, bigint, public.webhook_status, text, integer, integer);
 
 create function public.webhook_finish(

@@ -35,23 +35,30 @@ select tests.ok((select status = 'done' from public.webhook_events where id = :e
   and not exists (select 1 from pgmq.q_webhook_inbound where msg_id = :msg_id), 'attempt 2''s own finish archives it');
 
 -- 2. The retry replays an unfinished turn; a finished one is still a duplicate ----------------------------------------
-select public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall') as b1 \gset
+select public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 1, 'aaaaaaaa-0000-0000-0000-000000000001') as b1 \gset
 select tests.ok((:'b1'::jsonb ->> 'duplicate')::boolean is false and (:'b1'::jsonb ->> 'replay')::boolean is false,
   'the first attempt begins the turn');
 select (:'b1'::jsonb #>> '{customer,id}') as cid \gset
 update public.bot_sessions set refs = '{"i1": {"id": "x", "label": "Falafel Sandwich"}}' where customer_id = :'cid';
 select tests.ok((public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall') ->> 'duplicate')::boolean,
   'the same message delivered again by Kapso (attempt 1) is a duplicate');
-select tests.ok((public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 2) ->> 'duplicate')::boolean,
-  'while the first attempt still holds the turn, a retry does not run it a second time');
-select public.customer_turn_release('wamid.stall.tap');
-select public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 2) as b2 \gset
+select public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 2, 'aaaaaaaa-0000-0000-0000-000000000002') as held \gset
+select tests.ok((:'held'::jsonb ->> 'busy')::boolean and not (:'held'::jsonb ->> 'duplicate')::boolean,
+  'while the first attempt still holds the turn, a retry is told busy (it fails and tries again; the tap is not dropped)');
+select public.customer_turn_release('wamid.stall.tap', 'aaaaaaaa-0000-0000-0000-000000000002');
+select tests.ok((public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 2, 'aaaaaaaa-0000-0000-0000-000000000003') ->> 'busy')::boolean,
+  'another attempt cannot release a lease it does not hold');
+select public.customer_turn_release('wamid.stall.tap', 'aaaaaaaa-0000-0000-0000-000000000001');
+select public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 2, 'aaaaaaaa-0000-0000-0000-000000000004') as b2 \gset
 select tests.ok((:'b2'::jsonb ->> 'duplicate')::boolean is false and (:'b2'::jsonb ->> 'replay')::boolean,
   'the queue''s retry (attempt 2) of the unfinished turn replays it');
 select tests.ok(:'b2'::jsonb #>> '{session,refs,i1,label}' = 'Falafel Sandwich',
   'with the options the customer was shown');
-select tests.ok((public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 3) ->> 'duplicate')::boolean,
-  'and the replay holds the turn in turn: a third copy is refused');
+select tests.ok((public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 3) ->> 'busy')::boolean,
+  'and the replay holds the turn in turn: a third copy waits');
+select public.customer_turn_begin('+96170000097', 'wamid.stall.held', 'tap', 'Stall', 1, null, now() + interval '1 hour') as lb \gset
+select tests.ok((select lease_until <= now() + interval '156 seconds' from public.bot_turns where message_id = 'wamid.stall.held'),
+  'a lease never outlives an edge function, whatever the caller asks');
 select public.customer_turn_end(:'cid', 'wamid.stall.tap', :'b2'::jsonb -> 'session', 'deterministic', 0, '{}', 0, 10);
 select tests.ok((public.customer_turn_begin('+96170000097', 'wamid.stall.tap', 'tap', 'Stall', 3) ->> 'duplicate')::boolean,
   'once the turn has finished, a later retry is a duplicate');
@@ -80,8 +87,9 @@ update public.menu_items set available = true where id = :'falafel';
 select tests.ok(public.basket_add_item(:'cid', :'falafel', 1, '{}', null, false, 'wamid.stall.refused#0') ->> 'replayed' is null,
   'and its key is not kept: the replay adds for real once the item is back');
 select tests.ok(not has_function_privilege('anon', 'public.basket_add_item(uuid, uuid, integer, uuid[], text, boolean, text)', 'execute')
-  and not has_function_privilege('authenticated', 'public.customer_turn_begin(text, text, text, text, integer)', 'execute')
-  and has_function_privilege('service_role', 'public.customer_turn_begin(text, text, text, text, integer)', 'execute'),
+  and not has_function_privilege('authenticated', 'public.customer_turn_begin(text, text, text, text, integer, uuid, timestamptz)', 'execute')
+  and not has_function_privilege('authenticated', 'public.customer_turn_release(text, uuid)', 'execute')
+  and has_function_privilege('service_role', 'public.customer_turn_begin(text, text, text, text, integer, uuid, timestamptz)', 'execute'),
   'both stay service-role only');
 
 rollback;

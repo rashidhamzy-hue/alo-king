@@ -63,9 +63,11 @@ revoke all on function public.webhook_finish(bigint, bigint, public.webhook_stat
 grant execute on function public.webhook_finish(bigint, bigint, public.webhook_status, text, integer, integer) to service_role;
 
 -- 2. Replay of an unfinished turn ---------------------------------------------------------------------------
--- While a turn runs it holds a lease (longer than the 150 s an edge function may live); a turn that stalls releases
--- it before failing, and a replay takes it again.
-alter table public.bot_turns add column lease_until timestamptz;
+-- While a turn runs it holds a lease that ends when the worker running it must be gone (its start + 152 s; an edge
+-- function lives at most 150 s, and the claim keeps the event invisible for 160 s). A lease carries the attempt's own
+-- token, so only that attempt can release it (it does when it stalls). A retry that finds the lease still held is
+-- told `busy` and fails, so the queue tries again a few seconds later instead of archiving the tap.
+alter table public.bot_turns add column lease_until timestamptz, add column lease_id uuid;
 
 drop function public.customer_turn_begin(text, text, text, text);
 create function public.customer_turn_begin(
@@ -73,7 +75,9 @@ create function public.customer_turn_begin(
   p_message_id text,
   p_kind text,
   p_display_name text default null,
-  p_attempt integer default 1
+  p_attempt integer default 1,
+  p_lease_id uuid default null,
+  p_lease_until timestamptz default null
 ) returns jsonb
 language plpgsql
 security definer
@@ -84,6 +88,8 @@ declare
   v_session public.bot_sessions%rowtype;
   v_first boolean := false;
   v_replay boolean := false;
+  -- Never longer than an edge function can live, whatever the caller says.
+  v_lease timestamptz := least(coalesce(p_lease_until, now() + interval '150 seconds'), now() + interval '155 seconds');
 begin
   if p_phone_e164 !~ '^\+[1-9][0-9]{6,14}$' then
     raise exception 'phone must be E.164' using errcode = 'invalid_parameter_value';
@@ -95,17 +101,22 @@ begin
   returning * into v_customer;
   v_first := v_customer.created_at > now() - interval '5 seconds';
 
-  insert into public.bot_turns (message_id, customer_id, kind, lease_until)
-  values (p_message_id, v_customer.id, left(p_kind, 40), now() + interval '170 seconds')
+  insert into public.bot_turns (message_id, customer_id, kind, lease_until, lease_id)
+  values (p_message_id, v_customer.id, left(p_kind, 40), v_lease, p_lease_id)
   on conflict (message_id) do nothing;
   if not found then
-    -- Only the queue's own retry (attempt 2+) of a turn that never finished, and that nobody is running (its lease
-    -- released or expired), may run it again; taking the lease is atomic, so two retries never run it at once.
-    update public.bot_turns t set lease_until = now() + interval '170 seconds'
-    where t.message_id = p_message_id and t.customer_id = v_customer.id and t.finished_at is null
-      and coalesce(p_attempt, 1) > 1 and (t.lease_until is null or t.lease_until <= now());
-    if not found then
+    -- A finished turn, another customer's message id, or Kapso delivering the same message again (attempt 1): duplicate.
+    if coalesce(p_attempt, 1) <= 1 or not exists (select 1 from public.bot_turns t
+        where t.message_id = p_message_id and t.customer_id = v_customer.id and t.finished_at is null) then
       return jsonb_build_object('duplicate', true);
+    end if;
+    -- The queue's retry of a turn that never finished: run it again only once nobody holds it (taking the lease is
+    -- atomic, so two retries never run it at once); while it is held, `busy` makes the retry try again later.
+    update public.bot_turns t set lease_until = v_lease, lease_id = p_lease_id
+    where t.message_id = p_message_id and t.customer_id = v_customer.id and t.finished_at is null
+      and (t.lease_until is null or t.lease_until <= now());
+    if not found then
+      return jsonb_build_object('duplicate', false, 'busy', true);
     end if;
     v_replay := true;
     v_first := false;
@@ -144,15 +155,16 @@ begin
   );
 end;
 $$;
-revoke all on function public.customer_turn_begin(text, text, text, text, integer) from public, anon, authenticated;
-grant execute on function public.customer_turn_begin(text, text, text, text, integer) to service_role;
+revoke all on function public.customer_turn_begin(text, text, text, text, integer, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.customer_turn_begin(text, text, text, text, integer, uuid, timestamptz) to service_role;
 
 -- A turn that stalled gives its lease back before failing, so the queue's retry can replay it at once.
-create function public.customer_turn_release(p_message_id text) returns void
+create function public.customer_turn_release(p_message_id text, p_lease_id uuid) returns void
 language sql security definer set search_path = ''
-as $$ update public.bot_turns set lease_until = now() where message_id = p_message_id and finished_at is null $$;
-revoke all on function public.customer_turn_release(text) from public, anon, authenticated;
-grant execute on function public.customer_turn_release(text) to service_role;
+as $$ update public.bot_turns set lease_until = now()
+      where message_id = p_message_id and lease_id = p_lease_id and finished_at is null $$;
+revoke all on function public.customer_turn_release(text, uuid) from public, anon, authenticated;
+grant execute on function public.customer_turn_release(text, uuid) to service_role;
 
 -- 3. Keyed basket adds ------------------------------------------------------------------------------------
 -- One row per add that succeeded (key = WhatsApp message id, the add's number in the turn and the item); pruned
@@ -233,7 +245,8 @@ begin
     returning id into v_line;
   end if;
   update public.baskets set last_activity_at = now(), reminded_at = null where id = v_basket.id;
-  -- Recorded only now: an add that was refused (unknown, closed, unavailable, other shop) is answered again.
+  -- Recorded only now: an add that was refused (unknown, closed, unavailable, other shop) is answered again. Two
+  -- calls with one key at the same moment cannot both add: the second hits the primary key and rolls back.
   if p_op_key is not null then
     insert into app_private.basket_add_ops (op_key, customer_id) values (p_op_key, p_customer_id);
   end if;

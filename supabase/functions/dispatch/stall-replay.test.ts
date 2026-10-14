@@ -42,7 +42,7 @@ function world(opts: { stallFirstAdd?: boolean } = {}) {
       },
     },
   ];
-  const turns = new Map<string, { finished: boolean; leased: boolean }>();
+  const turns = new Map<string, { finished: boolean; lease: string | null }>();
   const ops = new Set<string>();
   const session = {
     lang: "en",
@@ -102,10 +102,11 @@ function world(opts: { stallFirstAdd?: boolean } = {}) {
         const t = turns.get(a.p_message_id);
         let replay = false;
         if (t) {
-          if (t.finished || t.leased || !((a.p_attempt ?? 1) > 1)) return { duplicate: true };
-          t.leased = true;
+          if (t.finished || !((a.p_attempt ?? 1) > 1)) return { duplicate: true };
+          if (t.lease) return { duplicate: false, busy: true };
+          t.lease = a.p_lease_id;
           replay = true;
-        } else turns.set(a.p_message_id, { finished: false, leased: true });
+        } else turns.set(a.p_message_id, { finished: false, lease: a.p_lease_id });
         return {
           duplicate: false,
           replay,
@@ -125,9 +126,11 @@ function world(opts: { stallFirstAdd?: boolean } = {}) {
           support_open: true,
         };
       }
-      case "customer_turn_release":
-        turns.get(a.p_message_id)!.leased = false;
+      case "customer_turn_release": {
+        const t = turns.get(a.p_message_id)!;
+        if (t.lease === a.p_lease_id) t.lease = null;
         return null;
+      }
       case "customer_turn_end":
         Object.assign(session, structuredClone(a.p_session));
         turns.get(a.p_message_id)!.finished = true;

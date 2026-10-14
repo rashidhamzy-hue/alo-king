@@ -59,6 +59,8 @@ export type DispatchDeps = {
   adminUrl?: string;
   now?: () => Date;
   budgetMs?: number;
+  /** When this worker is certainly gone (its start + 152 s): a customer turn's lease never outlives it. */
+  workerDeadline?: Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
   /** The smart-menu model (§18.3); null without a key or API credit (§32.7). */
   menuModel?: MenuModel | null;
@@ -540,8 +542,9 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
       log: deps.log,
     },
     m,
-    // The queue's attempt number: a retry of a turn that never finished is replayed, not dropped (#139).
-    { attempt: Number(ev.attempts ?? 1) },
+    // The queue's attempt number: a retry of a turn that never finished is replayed, not dropped (#139). The turn's
+    // lease ends when this worker must be gone (an edge function lives at most 150 s from its start).
+    { attempt: Number(ev.attempts ?? 1), leaseUntil: deps.workerDeadline },
   );
   return "done";
 }

@@ -20,7 +20,7 @@ import {
   type CLang,
   type CustomerAction,
 } from "../../_shared/customer-cards.ts";
-import { RpcStalled } from "../../_shared/rest-rpc.ts";
+import { RpcStalled, TurnBusy } from "../../_shared/rest-rpc.ts";
 import { clampInteractive } from "../../_shared/meta-limits.ts";
 import { deterministicIntent, detectLang, looksLikeComplaint, PRICE_RE } from "./intents.ts";
 import {
@@ -233,15 +233,17 @@ const fail = (c: Ctx) => push(c, mainMenu(c.m.from, c.s.lang, "tapFailed"));
 export async function handleCustomerTurn(
   deps: CustomerDeps,
   m: CustomerInbound,
-  opts: { attempt?: number } = {},
+  opts: { attempt?: number; leaseUntil?: Date } = {},
 ): Promise<"done" | "duplicate"> {
   const started = Date.now();
   const kind = m.buttonId ? "tap" : m.type;
   // A queue retry (attempt 2+) of a turn whose first attempt died before customer_turn_end replays it from the
   // session the customer saw; a finished turn or a second delivery of the same message is a duplicate (#139).
+  // This attempt's own lease on the turn: only it can give the turn back.
+  const leaseId = crypto.randomUUID();
   const release = () =>
     deps
-      .rpc("customer_turn_release", { p_message_id: m.messageId })
+      .rpc("customer_turn_release", { p_message_id: m.messageId, p_lease_id: leaseId })
       .catch((x: unknown) => deps.log?.("turn release failed", { error: String(x).slice(0, 120) }));
   const begin = await deps
     .rpc("customer_turn_begin", {
@@ -250,6 +252,8 @@ export async function handleCustomerTurn(
       p_kind: kind.replace(/[^a-z_]/g, "_").slice(0, 40) || "unknown",
       p_display_name: m.name,
       p_attempt: Math.max(1, Math.trunc(opts.attempt ?? 1)),
+      p_lease_id: leaseId,
+      p_lease_until: opts.leaseUntil?.toISOString() ?? null,
     })
     .catch(async (e: unknown) => {
       // It may have begun the turn and taken its lease before the answer was lost: give it back, then fail.
@@ -257,6 +261,7 @@ export async function handleCustomerTurn(
       throw e;
     });
   if (begin?.duplicate) return "duplicate";
+  if (begin?.busy) throw new TurnBusy(m.messageId);
   const sess = begin.session ?? {};
   const c: Ctx = {
     deps,

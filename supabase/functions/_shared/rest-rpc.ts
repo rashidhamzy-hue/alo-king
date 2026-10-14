@@ -12,6 +12,14 @@
 // the queue replays it within seconds (webhook_finish). scripts/function-contract.test.ts keeps RETRY_SAFE
 // honest against the migrations.
 
+/** The turn is still held by another attempt (#139): the event fails and the queue tries again shortly. */
+export class TurnBusy extends Error {
+  constructor(readonly messageId: string) {
+    super(`turn ${messageId} is still running in another attempt`);
+    this.name = "TurnBusy";
+  }
+}
+
 export class RpcStalled extends Error {
   constructor(
     readonly fn: string,
