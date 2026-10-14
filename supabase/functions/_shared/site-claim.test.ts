@@ -674,7 +674,7 @@ describe('site-claim: "Ask them to join" (DECISIONS §39.3)', () => {
     expect(to.startsWith("https://wa.me/?text=")).toBe(true);
     const text = decodeURIComponent(to.split("?text=")[1]!);
     expect(text).toContain("مرحبا فلافل!");
-    expect(text.endsWith(`https://aloking.test/ar/claim?v=${VID}`)).toBe(true);
+    expect(text.endsWith(`https://aloking.test/ar/business/claim?v=${VID}`)).toBe(true);
   });
 
   it("refuses a bad slug, language or channel before calling the database", async () => {

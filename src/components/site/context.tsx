@@ -6,6 +6,8 @@ import type { SiteOverview } from "@/lib/site-data";
 
 export type SiteCtx = {
   lang: SiteLang;
+  /** Which side of the site this page is on (DECISIONS §39.11): customers at night, businesses by day. */
+  side: "customer" | "business";
   dir: "ltr" | "rtl";
   t: Copy;
   info: RequestInfo;

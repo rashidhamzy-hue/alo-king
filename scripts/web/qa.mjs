@@ -23,6 +23,8 @@ const JS_BUDGET_KB = 150;
 const PAGES = [
   { id: "home", path: "/" },
   { id: "places", path: "/places" },
+  // Session W (DECISIONS §39.11): the map with a village open from the address.
+  { id: "map-village", path: "/places?v=chf-baakline" },
   { id: "place", path: "/places/chf-baakline" },
   { id: "cuisines", path: "/cuisine" },
   { id: "cuisine", path: "/cuisine/shawarma" },
@@ -36,15 +38,17 @@ const PAGES = [
   { id: "privacy", path: "/legal/privacy" },
   { id: "refund", path: "/legal/refund" },
   { id: "cookies", path: "/legal/cookies" },
-  { id: "merchant-terms", path: "/legal/merchant-terms" },
-  { id: "mandate", path: "/legal/collection-mandate" },
+  { id: "merchant-terms", path: "/business/legal/merchant-terms" },
+  { id: "mandate", path: "/business/legal/collection-mandate" },
   // Session 6b: merchants and drivers.
-  { id: "for-merchants", path: "/for-merchants" },
-  { id: "claim", path: "/claim" },
-  { id: "claim-results", path: "/claim?q=abou" },
-  { id: "claim-flow", path: `/claim?v=${CLAIM_VENDOR_ID}` },
-  { id: "register", path: "/register" },
-  { id: "drivers", path: "/drivers" },
+  // The business side (session W: its own section under /business).
+  { id: "business", path: "/business" },
+  { id: "business-help", path: "/business/help" },
+  { id: "claim", path: "/business/claim" },
+  { id: "claim-results", path: "/business/claim?q=abou" },
+  { id: "claim-flow", path: `/business/claim?v=${CLAIM_VENDOR_ID}` },
+  { id: "register", path: "/business/register" },
+  { id: "drivers", path: "/business/drivers" },
   { id: "track-delivery", path: `/track/${TRACK_TOKENS.delivery}` },
   { id: "track-pickup", path: `/track/${TRACK_TOKENS.pickup}` },
   { id: "track-done", path: `/track/${TRACK_TOKENS.done}` },
@@ -152,13 +156,11 @@ for (const lang of langs) {
         await page
           .click("button[aria-label]:has(svg.lucide-rotate-ccw)")
           .catch(() => errors.push("replay button missing"));
-        const before = await page.inputValue('input[inputmode="numeric"]').catch(() => "");
-        await page
-          .fill('input[inputmode="numeric"]', "1000")
-          .catch(() => errors.push("calculator input missing"));
-        const dd = await page.textContent('[aria-live="polite"]').catch(() => "");
-        if (!/1,000|\$1,000/.test(dd ?? ""))
-          errors.push(`calculator did not update (was ${before})`);
+        // The calculator lives on the business side now (§39.11): the customer home has none.
+        if (await page.locator('input[inputmode="numeric"]').count())
+          errors.push("the customer home shows the merchant calculator");
+        if (!(await page.locator('a[href$="/business"]').count()))
+          errors.push("the For businesses link is missing on the home page");
         await page.click(".ak-faq summary").catch(() => errors.push("FAQ summary missing"));
         if (!(await page.locator(".ak-faq details[open]").count())) errors.push("FAQ did not open");
       }
@@ -187,7 +189,35 @@ for (const lang of langs) {
           serious.push({ id: `${v.id} (${name})`, nodes: v.nodes });
       };
       const stepFail = (what) => errors.push(`${what}`);
-      if (pg.id === "for-merchants") {
+      if (pg.id === "places") {
+        // The map: search in Arabizi, pick the village, see its panel with the shops (§39.11).
+        await hydrated(page, ".zm-search input").catch(() => {});
+        await page.fill(".zm-search input", "ba3e2lin").catch(() => stepFail("map search missing"));
+        await page
+          .waitForSelector('.zm-result[id$="chf-baakline"]', { timeout: 5000 })
+          .catch(() => stepFail("Arabizi search did not find Baakline"));
+        await page.press(".zm-search input", "Enter").catch(() => {});
+        await page
+          .waitForSelector(".zm-card", { timeout: 8000 })
+          .catch(() => stepFail("village panel did not open"));
+        // Live, Baakline has shops and the panel lists them; before launch it says the village opens soon.
+        if (await page.locator(".zm-pt-shops").count())
+          await page
+            .waitForSelector(".zm-card .zm-shop", { timeout: 8000 })
+            .catch(() => stepFail("village panel did not list its shops"));
+        await state("village");
+        await page.fill(".zm-search input", "Damour").catch(() => {});
+        const msg = await page.textContent(".zm-noresult").catch(() => "");
+        if (!msg?.trim()) stepFail("a place outside the zone gets no answer");
+      }
+      if (pg.id === "business" && sizeName === "desktop") {
+        // Old merchant addresses answer 301 to the business side, keeping the claim link's query (§39.11).
+        const r = await fetch(`${base}/${lang}/claim?v=${CLAIM_VENDOR_ID}`, { redirect: "manual" });
+        const to = r.headers.get("location") ?? "";
+        if (r.status !== 301 || !to.endsWith(`/${lang}/business/claim?v=${CLAIM_VENDOR_ID}`))
+          stepFail(`old claim link: ${r.status} -> ${to}`);
+      }
+      if (pg.id === "business") {
         await hydrated(page, ".ak-faq").catch(() => {});
         await page
           .fill('input[inputmode="numeric"]', "1000")
@@ -196,7 +226,7 @@ for (const lang of langs) {
         if (!/1,000|\$1,000/.test(dd ?? "")) stepFail("calculator did not update");
         await page.fill("#hero-q", "abou").catch(() => stepFail("search box missing"));
         await Promise.all([
-          page.waitForURL(/\/claim\?q=abou/, { timeout: 10000 }),
+          page.waitForURL(/\/business\/claim\?q=abou/, { timeout: 10000 }),
           page.press("#hero-q", "Enter"),
         ]).catch(() => stepFail("merchant search did not reach the claim page"));
       }

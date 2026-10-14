@@ -149,9 +149,7 @@ export function StaffGate({
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Button variant="gold" asChild>
-              <a href="/for-business">
-                {L("For merchants", "لأصحاب المحلات", "Pour les commerçants")}
-              </a>
+              <a href="/business">{L("For merchants", "لأصحاب المحلات", "Pour les commerçants")}</a>
             </Button>
             <Button variant="hairline" onClick={signOut}>
               <LogOut /> {L("Sign out", "خروج", "Se déconnecter")}

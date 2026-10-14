@@ -99,6 +99,42 @@
   --shadow-glow-gold: 0 10px 40px -12px oklch(0.77 0.16 70 / 0.55);
 }
 
+/* The merchant dashboard by day (session W, §39.11): the component colours follow the tone they sit in, so a page in a
+   tone-cream shell reads on paper and a tone-night panel inside it (the kitchen terminal) stays dark. */
+.tone-cream {
+  --background: #fff9f0;
+  --foreground: #17131a;
+  --card: #fffdf8;
+  --card-foreground: #17131a;
+  --popover: #fffdf8;
+  --popover-foreground: #17131a;
+  --muted: #f7ebd8;
+  --muted-foreground: #5b505f;
+  --accent: #f7ebd8;
+  --accent-foreground: #17131a;
+  --border: #e6d6bd;
+  --input: #8a8091;
+  --ring: #17131a;
+  --success: oklch(0.48 0.13 155);
+  --warning: oklch(0.52 0.13 70);
+}
+.tone-night {
+  --background: #17131a;
+  --foreground: #f8f1e7;
+  --card: #1f1923;
+  --card-foreground: #f8f1e7;
+  --popover: #1f1923;
+  --popover-foreground: #f8f1e7;
+  --muted: #2a2230;
+  --muted-foreground: #c4bac9;
+  --accent: #2a2230;
+  --accent-foreground: #f8f1e7;
+  --border: oklch(0.77 0.16 70 / 0.16);
+  --ring: oklch(0.77 0.16 70 / 0.6);
+  --success: oklch(0.72 0.17 155);
+  --warning: oklch(0.8 0.16 75);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
@@ -154,8 +190,8 @@
 }
 /* The staff pages' card is the public site's card (src/design/design.css .ak-card). */
 @utility lux-card {
-  background: var(--ink-2);
-  border: 1px solid rgb(244 182 60 / 0.2);
+  background: var(--card-bg, var(--ink-2));
+  border: 1px solid var(--card-line, rgb(244 182 60 / 0.2));
   border-radius: var(--radius-card);
 }
 

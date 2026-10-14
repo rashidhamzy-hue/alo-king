@@ -1,142 +1,189 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { Contours } from "@/design/Contours";
 import { Crown } from "@/design/Crown";
 import { LANGS, LANG_NAME, splitLangPath } from "@/lib/site";
-import { useRouterState } from "@tanstack/react-router";
 import { useSite } from "./context";
+import { BUSINESS_LEGAL, CUSTOMER_LEGAL } from "./LegalView";
 import { OrderButton } from "./OrderButton";
 
-/** The legal pages in the footer: customers' first, then the merchants' (DECISIONS §24.2). */
-export const LEGAL_LINKS = [
-  ["terms", "terms"],
-  ["privacy", "privacy"],
-  ["refund", "refund"],
-  ["cookies", "cookies"],
-  ["merchant-terms", "merchantTerms"],
-  ["collection-mandate", "collectionMandate"],
-] as const;
+function Col({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <nav aria-label={title}>
+      <h2 className="ak-foot-title">{title}</h2>
+      <ul className="mt-4 space-y-2.5">{children}</ul>
+    </nav>
+  );
+}
 
-export function Footer() {
+function Languages() {
   const { lang, t } = useSite();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const rest = splitLangPath(pathname).path;
-  const year = 2026;
   return (
-    <footer className="tone-night ak-contours border-t border-tone-line pb-10 pt-14">
+    <ul className="ak-foot-langs" aria-label={t.footer.languages}>
+      {LANGS.map((l) => (
+        <li key={l}>
+          <a
+            href={`/${l}${rest === "/" ? "" : rest}`}
+            hrefLang={l}
+            lang={l}
+            aria-current={l === lang ? "true" : undefined}
+          >
+            {LANG_NAME[l]}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The customers' footer (DECISIONS §39.11): no merchant link, no merchant terms. */
+export function Footer() {
+  const { lang, t } = useSite();
+  return (
+    <footer className="tone-night ak-contours ak-foot">
       <Contours />
-      <div className="ak-container grid gap-10 md:grid-cols-[1.3fr_1fr_1fr_1fr]">
-        <div>
+      <div className="ak-container">
+        <div className="ak-foot-sign">
           <Link
             to="/$lang"
             params={{ lang }}
-            className="flex items-center gap-2.5 no-underline"
+            className="flex items-center gap-3 no-underline"
             aria-label={t.nav.homeLabel}
           >
-            <Crown className="h-8 w-10 text-gold" />
-            <span className="text-xl font-extrabold tracking-tight">{t.site.name}</span>
+            <Crown className="h-9 w-11 text-gold" />
+            <span className="text-2xl font-extrabold tracking-tight">{t.site.name}</span>
           </Link>
-          <p className="mt-4 max-w-xs text-tone-mute">{t.footer.blurb}</p>
-          <OrderButton className="mt-5" size="md" />
+          <p className="ak-foot-blurb">{t.footer.blurb}</p>
+          <OrderButton size="md" />
         </div>
-        <nav aria-label={t.footer.explore}>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-tone-mute rtl:tracking-normal">
-            {t.footer.explore}
-          </h2>
-          <ul className="mt-3 space-y-2">
+        <div className="ak-foot-cols">
+          <Col title={t.footer.explore}>
             <li>
-              <Link to="/$lang/places" params={{ lang }} className="no-underline hover:underline">
+              <Link to="/$lang/places" params={{ lang }}>
                 {t.nav.places}
               </Link>
             </li>
             <li>
-              <Link to="/$lang/cuisine" params={{ lang }} className="no-underline hover:underline">
+              <Link to="/$lang/cuisine" params={{ lang }}>
                 {t.common.cuisines}
               </Link>
             </li>
             <li>
-              <Link
-                to="/$lang/send-home"
-                params={{ lang }}
-                className="no-underline hover:underline"
-              >
+              <Link to="/$lang/send-home" params={{ lang }}>
                 {t.nav.sendHome}
               </Link>
             </li>
+          </Col>
+          <Col title={t.footer.company}>
             <li>
-              <Link
-                to="/$lang/for-merchants"
-                params={{ lang }}
-                className="no-underline hover:underline"
-              >
-                {t.nav.merchants}
-              </Link>
-            </li>
-          </ul>
-        </nav>
-        <nav aria-label={t.footer.company}>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-tone-mute rtl:tracking-normal">
-            {t.footer.company}
-          </h2>
-          <ul className="mt-3 space-y-2">
-            <li>
-              <Link to="/$lang/help" params={{ lang }} className="no-underline hover:underline">
+              <Link to="/$lang/help" params={{ lang }}>
                 {t.nav.help}
               </Link>
             </li>
             <li>
-              <Link to="/$lang/contact" params={{ lang }} className="no-underline hover:underline">
+              <Link to="/$lang/contact" params={{ lang }}>
                 {t.nav.contact}
               </Link>
             </li>
-            <li>
-              <Link to="/$lang/drivers" params={{ lang }} className="no-underline hover:underline">
-                {t.footer.drivers}
-              </Link>
-            </li>
-          </ul>
-          <h2 className="mt-6 text-sm font-bold uppercase tracking-wider text-tone-mute rtl:tracking-normal">
-            {t.footer.languages}
-          </h2>
-          <ul className="mt-3 space-y-2">
-            {LANGS.map((l) => (
-              <li key={l}>
-                <a
-                  href={`/${l}${rest === "/" ? "" : rest}`}
-                  hrefLang={l}
-                  lang={l}
-                  className="no-underline hover:underline"
-                  aria-current={l === lang ? "true" : undefined}
-                >
-                  {LANG_NAME[l]}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <nav aria-label={t.footer.legal}>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-tone-mute rtl:tracking-normal">
-            {t.footer.legal}
-          </h2>
-          <ul className="mt-3 space-y-2">
-            {LEGAL_LINKS.map(([d, key]) => (
+          </Col>
+          <Col title={t.footer.legal}>
+            {CUSTOMER_LEGAL.map(([d, key]) => (
               <li key={d}>
-                <Link
-                  to="/$lang/legal/$doc"
-                  params={{ lang, doc: d }}
-                  className="no-underline hover:underline"
-                >
+                <Link to="/$lang/legal/$doc" params={{ lang, doc: d }}>
                   {t.footer[key]}
                 </Link>
               </li>
             ))}
-          </ul>
-        </nav>
+          </Col>
+        </div>
+        <div className="ak-foot-base">
+          <Languages />
+          <p>
+            © 2026 {t.footer.entity}. {t.footer.rights}
+          </p>
+        </div>
       </div>
-      <div className="ak-container mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-tone-line-soft pt-6 text-sm text-tone-mute">
-        <p>
-          © {year} {t.footer.entity}. {t.footer.rights}
-        </p>
-        <p>{t.footer.madeIn}</p>
+    </footer>
+  );
+}
+
+/** The businesses' footer: their pages and terms only, and one way back to ordering. */
+export function BizFooter() {
+  const { lang, t } = useSite();
+  const b = t.biz;
+  return (
+    <footer className="tone-cream ak-foot ak-foot-biz">
+      <div className="ak-container">
+        <div className="ak-foot-sign">
+          <Link
+            to="/$lang/business"
+            params={{ lang }}
+            className="flex items-center gap-3 no-underline"
+            aria-label={b.nav.home}
+          >
+            <Crown className="h-9 w-11 text-ink" />
+            <span className="text-2xl font-extrabold tracking-tight">{t.site.name}</span>
+            <span className="ak-biz-tag">{b.nav.short}</span>
+          </Link>
+          <p className="ak-foot-blurb">{b.footer.blurb}</p>
+          <Link to="/$lang/business/claim" params={{ lang }} className="ak-btn ak-btn-ink">
+            {b.nav.claim}
+          </Link>
+        </div>
+        <div className="ak-foot-cols">
+          <Col title={b.nav.primary}>
+            <li>
+              <Link to="/$lang/business" params={{ lang }} hash="pricing">
+                {b.nav.pricing}
+              </Link>
+            </li>
+            <li>
+              <Link to="/$lang/business/claim" params={{ lang }}>
+                {b.nav.claim}
+              </Link>
+            </li>
+            <li>
+              <Link to="/$lang/business/register" params={{ lang }}>
+                {t.merchantsPage.hero.register}
+              </Link>
+            </li>
+            <li>
+              <Link to="/$lang/business/drivers" params={{ lang }}>
+                {b.nav.drivers}
+              </Link>
+            </li>
+          </Col>
+          <Col title={b.nav.help}>
+            <li>
+              <Link to="/$lang/business/help" params={{ lang }}>
+                {b.help.title}
+              </Link>
+            </li>
+            <li>
+              <Link to="/merchant">{b.nav.signIn}</Link>
+            </li>
+          </Col>
+          <Col title={b.footer.legal}>
+            {BUSINESS_LEGAL.map(([d, key]) => (
+              <li key={d}>
+                <Link to="/$lang/business/legal/$doc" params={{ lang, doc: d }}>
+                  {t.footer[key]}
+                </Link>
+              </li>
+            ))}
+          </Col>
+        </div>
+        <div className="ak-foot-base">
+          <Languages />
+          <p>
+            © 2026 {t.footer.entity}. {t.footer.rights}
+          </p>
+          <Link to="/$lang" params={{ lang }} className="ak-foot-back">
+            {b.nav.customerSite}
+          </Link>
+        </div>
       </div>
     </footer>
   );

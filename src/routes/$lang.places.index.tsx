@@ -1,11 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { buildHead, fmt, pickName } from "@/lib/site";
-import { PILOT_PLACES_NAMES } from "@/lib/site-config";
-import { useSite } from "@/components/site/context";
-import { PageHero } from "@/components/site/PageHero";
-import { OrderButton } from "@/components/site/OrderButton";
+import { createFileRoute } from "@tanstack/react-router";
+import { buildHead } from "@/lib/site";
+import { getDeliveryMap } from "@/lib/site-data";
+import { DeliveryMap, VillageIndex } from "@/components/site/map/DeliveryMap";
 
+// "Where we deliver" (DECISIONS §39.2, §39.11): the interactive map of the delivery zone, then every place as a list.
 export const Route = createFileRoute("/$lang/places/")({
+  validateSearch: (s: Record<string, unknown>): { v?: string } =>
+    typeof s.v === "string" && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s.v) && s.v.length <= 80
+      ? { v: s.v }
+      : {},
+  loader: async () => ({ counts: await getDeliveryMap() }),
   head: ({ match }) => {
     const { lang, copy, info } = match.context;
     return buildHead({
@@ -23,52 +27,14 @@ export const Route = createFileRoute("/$lang/places/")({
 });
 
 function PlacesIndex() {
-  const { t, lang, overview } = useSite();
-  const km = overview.fees.max_km;
-  const names = Object.values(PILOT_PLACES_NAMES).map((n) => n[lang]);
+  const { counts } = Route.useLoaderData();
+  const { v } = Route.useSearch();
   return (
     <>
-      <PageHero
-        title={t.places.indexTitle}
-        lead={fmt(t.places.indexLead, { km: km ?? "" })}
-        crumbs={[{ label: "", to: "/$lang" }, { label: t.common.places }]}
-      >
-        <OrderButton />
-      </PageHero>
-      <section className="tone-cream ak-section !pt-12">
-        <div className="ak-container">
-          {overview.places.length > 0 ? (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {overview.places.map((p) => (
-                <li
-                  key={p.id}
-                  className="ak-card relative p-5 transition-transform hover:-translate-y-0.5"
-                >
-                  <Link
-                    to="/$lang/places/$slug"
-                    params={{ lang, slug: p.slug }}
-                    className="text-lg font-extrabold no-underline after:absolute after:inset-0 after:content-['']"
-                  >
-                    {pickName(p, "name", lang)}
-                  </Link>
-                  <p className="mt-1 text-sm text-tone-mute">
-                    {fmt(p.merchants === 1 ? t.places.countOne : t.places.count, {
-                      n: p.merchants,
-                    })}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="ak-card max-w-2xl p-8">
-              <p className="ak-h3">{t.common.news}</p>
-              <p className="mt-3 text-tone-mute">
-                {fmt(t.places.none, { list: names.join(lang === "ar" ? "، " : ", ") })}
-              </p>
-            </div>
-          )}
-        </div>
+      <section className="tone-night zm-section">
+        <DeliveryMap counts={counts} initial={v} />
       </section>
+      <VillageIndex counts={counts} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { buildHead } from "@/lib/site";
-import { faqItems, faqLd } from "@/lib/faq";
+import { customerFaqIds, faqItems, faqLd } from "@/lib/faq";
 import { EMPTY_OVERVIEW } from "@/lib/site-data";
 import { useSite } from "@/components/site/context";
 import { PageHero } from "@/components/site/PageHero";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/$lang/help")({
       title: copy.help.seoTitle,
       description: copy.help.seoDescription,
       info: info ?? { origin: "", indexing: false },
-      jsonLd: [faqLd(faqItems(copy, EMPTY_OVERVIEW))],
+      jsonLd: [faqLd(faqItems(copy, EMPTY_OVERVIEW, customerFaqIds(copy)))],
     });
   },
   headers: () => ({
@@ -51,7 +51,7 @@ function HelpPage() {
               ))}
             </ol>
           </div>
-          <FaqList items={faqItems(t, overview)} />
+          <FaqList items={faqItems(t, overview, customerFaqIds(t))} />
         </div>
       </section>
     </>

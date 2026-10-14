@@ -5,6 +5,7 @@ export type FaqItem = { id: string; q: string; a: string; fallback?: string };
 export const en = {
   site: { name: "Alo King", local: "ألو كينغ", tagline: "Order on WhatsApp across Lebanon" },
   nav: {
+    business: "For businesses",
     places: "Where we deliver",
     sendHome: "Send Home",
     merchants: "For merchants",
@@ -115,6 +116,8 @@ export const en = {
       title: "Say Alo. It's on its way.",
       sub: "Food and essentials from the shops near you. Type, speak or tap on WhatsApp, in Arabic, English, French or Arabizi. No app, no sign-up.",
       points: ["Cash on delivery", "Prices set by the shop", "Arabic · English · Français"],
+      statusLive: "Delivering now in {n} places in the Shouf",
+      statusSoon: "Opening first in the Shouf",
     },
     demo: {
       botName: "Alo King",
@@ -181,7 +184,7 @@ export const en = {
     },
     map: {
       eyebrow: "Where we deliver",
-      title: "Lebanon, village by village.",
+      title: "Lit up across the Shouf.",
       subLive:
         "Delivering now in {n} places. Every shop sets its own delivery radius, up to {km} km by road.",
       subSoon:
@@ -191,8 +194,8 @@ export const en = {
       legendAll: "Every town and village on our list",
       region: "Shouf",
       soonList: "Opening soon in",
-      liveList: "Delivering in",
-      seePlaces: "See the places",
+      liveList: "Villages with shops on Alo King",
+      seePlaces: "Open the map",
     },
     merchants: {
       eyebrow: "For merchants",
@@ -248,6 +251,7 @@ export const en = {
         },
       ],
     },
+    bizLine: "Own a shop in the Shouf?",
     faq: { eyebrow: "Questions", title: "Good to know", more: "More answers" },
   },
 
@@ -272,6 +276,43 @@ export const en = {
     district: "{district} district",
     noShops: "No shops yet. Say Alo on WhatsApp and we'll tell you the moment one opens here.",
     howTitle: "How to order in {place}",
+    mini: "{place} on the map",
+    map: {
+      title: "Where we deliver",
+      lead: "{n} villages and towns in the Shouf, from Ain Zhalta to Bater. Delivery costs {min} to {max}, by road distance from the shop.",
+      leadSoon:
+        "{n} villages and towns in the Shouf, from Ain Zhalta to Bater. Shops switch on one by one.",
+      label: "Find your village",
+      placeholder: "Baakline, بعقلين, ba3e2lin…",
+      hint: "Arabic, English, French or Arabizi",
+      noResult: "“{q}” is not in our delivery area yet.",
+      notHere: "{name} is outside our delivery area for now.",
+      results: "{n} matches",
+      legendShops: "Shops on Alo King",
+      legendUnclaimed: "Shops not on Alo King yet",
+      legendOn: "We deliver here",
+      zoomIn: "Zoom in",
+      zoomOut: "Zoom out",
+      reset: "Show the whole area",
+      mapLabel: "Map of the Alo King delivery area in the Shouf",
+      panelOn: "We deliver to {place}.",
+      panelOff: "{place} is in our area and opens soon.",
+      shopsHere: "On Alo King in {place}",
+      noShopsHere: "No shop based in {place} is on Alo King yet. Shops nearby deliver here.",
+      unclaimedHere: "Not on Alo King yet",
+      unclaimedNote: "From public listings. Ask them to join and you can order from them here.",
+      unclaimedMore: "and {n} more",
+      openPlace: "Everything in {place}",
+      order: "Order in {place}",
+      close: "Close",
+      loading: "Loading the shops of {place}…",
+      allTitle: "Every place we deliver to",
+      shopVillages: "With shops of their own",
+      otherVillages: "Delivered from shops nearby",
+      countShops: "{n} on Alo King",
+      countUnclaimed: "{n} not yet",
+      elevation: "{m} m",
+    },
   },
   cuisine: {
     indexTitle: "Cuisines",
@@ -497,11 +538,6 @@ export const en = {
       a: "Tap “A person” in the chat, or say Alo on WhatsApp and tell us. Rasheed or the team replies. Our refund policy explains what we do about missing or wrong items.",
     },
     {
-      id: "merchant",
-      q: "I own a shop. How do I join?",
-      a: "Start claiming your shop from your phone. You pay a flat fee per delivered order and nothing on your menu prices. See the For merchants page.",
-    },
-    {
       id: "abroad",
       q: "Can I order for my family from abroad?",
       a: "Yes, on WhatsApp, and they pay cash on delivery. Paying by card from abroad, and the delivery photo, arrive with Send Home.",
@@ -607,6 +643,43 @@ export const en = {
       file: "Use a photo (JPG, PNG or WebP) or a PDF, up to 8 MB.",
     },
   },
+  // The business side (DECISIONS §39.11): its own navigation, footer, help and FAQ. Customers never see it.
+  biz: {
+    nav: {
+      home: "Alo King for business",
+      short: "For business",
+      pricing: "Pricing",
+      claim: "Claim your shop",
+      help: "Help",
+      drivers: "Drive with us",
+      signIn: "Sign in",
+      primary: "Business",
+      customerSite: "Ordering food? Go to Alo King",
+    },
+    footer: {
+      blurb:
+        "Take orders on WhatsApp for one flat fee per delivered order. Your menu, your prices, your customers.",
+      start: "Get started",
+      company: "Alo King",
+      legal: "Terms",
+      contact: "Talk to Rasheed on WhatsApp",
+    },
+    help: {
+      seoTitle: "Help for businesses | Alo King",
+      seoDescription:
+        "Answers for shops on Alo King: what it costs, proving the shop is yours, menus, receiving orders and getting paid.",
+      title: "Help for businesses",
+      lead: "Short answers for shop owners and their staff. A person replies on WhatsApp to anything else.",
+      contactTitle: "Talk to a person",
+      contactText:
+        "Rasheed and the team set up every new shop with you, usually in ten minutes on a call.",
+      contactCta: "Message us on WhatsApp",
+      dashboardTitle: "Already on Alo King?",
+      dashboardText:
+        "Your orders, menu and settings work on WhatsApp. Staff sign in to the dashboard here.",
+      dashboardCta: "Sign in",
+    },
+  },
   merchantsPage: {
     seoTitle: "Alo King for merchants: take orders on WhatsApp",
     seoDescription:
@@ -620,6 +693,10 @@ export const en = {
       searchButton: "Find my shop",
       notListed: "Not on our list?",
       register: "Register a new business",
+    },
+    listed: {
+      title: "shops in the Shouf are already on our list.",
+      text: "We built it from public listings. Find yours, prove it is yours, and confirm what we filled in. Until you do, customers see it as “Not on Alo King yet” and can ask you to join.",
     },
     how: {
       eyebrow: "How it works",

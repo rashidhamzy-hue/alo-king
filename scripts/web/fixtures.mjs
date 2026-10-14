@@ -2,6 +2,8 @@
 // nothing in this file is a real business, price or customer. Shapes match the site_* functions of
 // supabase/migrations/20261013090100_site_public_data.sql.
 
+import { readFileSync } from "node:fs";
+
 const names = (en, ar, fr = en) => ({ name_en: en, name_ar: ar, name_fr: fr });
 const pl = (slug, en, ar, merchants, lat, lon, fr = en) => ({
   id: `LB-${slug.toUpperCase()}`,
@@ -20,6 +22,22 @@ const PLACES = [
   pl("chf-semqanieh", "Semqanieh", "السمقانية", 1, 33.679, 35.5885),
   pl("chf-bakaata", "Bakaata", "بقعاتا", 0, 33.6666, 35.5997),
 ];
+// Session W: every other place of the real §39.2 zone (src/design/chouf-map.generated.ts) is switched on with no shop, so
+// the map and its index look like the pilot. Only the four above have shops (made up).
+// The generated file is TypeScript formatted by prettier: take the ZONE array literal and evaluate it (our own file).
+const ZONE = new Function(
+  `return ${
+    readFileSync(new URL("../../src/design/chouf-map.generated.ts", import.meta.url), "utf8").match(
+      /export const ZONE: ZonePlace\[\] = (\[[\s\S]*?\n\]);/,
+    )[1]
+  }`,
+)();
+const ALL_PLACES = [
+  ...PLACES,
+  ...ZONE.filter((z) => !PLACES.some((p) => p.slug === z.slug)).map((z) =>
+    pl(z.slug, z.en, z.ar, 0, 33.68, 35.6, z.fr),
+  ),
+];
 const CUISINES = [
   { tag: "lebanese", ...names("Lebanese", "لبناني", "Libanais"), sort_order: 1, vendors: 6 },
   { tag: "shawarma", ...names("Shawarma", "شاورما"), sort_order: 4, vendors: 3 },
@@ -31,7 +49,7 @@ const CUISINES = [
     vendors: 2,
   },
 ];
-const FEES = { min_usd: 2, max_usd: 4.5, max_km: 10 };
+const FEES = { min_usd: 2, max_usd: 6, max_km: 20 };
 const RATE = 89500;
 
 const card = (slug, en, ar, type, tags, place, open = true, extra = {}) => ({
@@ -319,7 +337,7 @@ export function respond(fn, args, mode = "live") {
   switch (fn) {
     case "site_overview":
       return {
-        places: live ? PLACES : [],
+        places: live ? ALL_PLACES : [],
         cuisines: live ? CUISINES : [],
         merchants: live ? VENDORS.length : 0,
         fees: FEES,
@@ -331,7 +349,7 @@ export function respond(fn, args, mode = "live") {
     case "site_vendor_slugs":
       return live ? VENDORS.map((v) => ({ slug: v.slug, updated_at: "2026-10-12T10:00:00Z" })) : [];
     case "site_place": {
-      const p = PLACES.find((x) => x.slug === args.p_slug);
+      const p = ALL_PLACES.find((x) => x.slug === args.p_slug);
       if (!live || !p) return null;
       const { id, slug, kind, district_code, lat, lon, name_ar, name_en, name_fr } = p;
       return {
@@ -376,6 +394,22 @@ export function respond(fn, args, mode = "live") {
             args.p_page ?? 1,
           )
         : null;
+    case "site_delivery_map":
+      return live
+        ? {
+            places: ALL_PLACES.map((p) => ({
+              slug: p.slug,
+              shops: p.merchants,
+              unclaimed: UNCLAIMED.filter((u) => u.place_slug === p.slug).length,
+            })),
+            unclaimed_total: UNCLAIMED.length,
+          }
+        : { places: [], unclaimed_total: 0 };
+    case "site_village_unclaimed": {
+      if (!live || !ALL_PLACES.some((x) => x.slug === args.p_slug)) return null;
+      const v = UNCLAIMED.filter((u) => u.place_slug === args.p_slug);
+      return { total: v.length, vendors: v };
+    }
     case "site_vendor_unclaimed":
       return live && args.p_slug === UNCLAIMED_PAGE.vendor.slug ? UNCLAIMED_PAGE : null;
     case "order_track_public":

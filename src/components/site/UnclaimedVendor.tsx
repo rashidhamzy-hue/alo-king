@@ -133,7 +133,7 @@ export function UnclaimedVendor({ d }: { d: UnclaimedVendorPage }) {
               </h3>
               <p className="mt-3 text-tone-mute">{u.claimText}</p>
               <Link
-                to="/$lang/claim"
+                to="/$lang/business/claim"
                 params={{ lang }}
                 search={{ v: v.vendor_id }}
                 rel="nofollow"

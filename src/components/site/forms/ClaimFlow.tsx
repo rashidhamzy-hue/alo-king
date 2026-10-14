@@ -308,7 +308,7 @@ export function ClaimFlow({ business }: { business: ClaimBusiness }) {
                 {busy ? t.form.sending : c.start}
               </button>
               <Link
-                to="/$lang/claim"
+                to="/$lang/business/claim"
                 params={{ lang }}
                 className="font-semibold underline underline-offset-4"
               >

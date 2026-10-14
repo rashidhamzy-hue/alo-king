@@ -31,7 +31,7 @@ export const Route = createFileRoute("/merchant")({
 
 function MerchantRoute() {
   return (
-    <PrivateShell>
+    <PrivateShell tone="cream">
       <StaffGate
         roles={["merchant", "admin"]}
         title={["Merchant dashboard", "لوحة التاجر", "Tableau de bord commerçant"]}
@@ -125,7 +125,7 @@ function MerchantLayout({ profile }: { profile: StaffProfile }) {
         </Button>
       </aside>
       <div className="min-w-0 pb-24 lg:pb-0">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-tone-line bg-[color-mix(in_srgb,var(--ink)_90%,transparent)] px-4 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-tone-line bg-[color-mix(in_srgb,var(--tone-bg)_90%,transparent)] px-4 backdrop-blur-xl">
           <p className="truncate text-xl font-extrabold">{name}</p>
           <div className="flex items-center gap-2">
             {profile.role === "admin" && (
@@ -190,7 +190,7 @@ function MerchantLayout({ profile }: { profile: StaffProfile }) {
         </MerchantCtx.Provider>
       )}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-tone-line bg-[color-mix(in_srgb,var(--ink)_95%,transparent)] backdrop-blur-xl lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-tone-line bg-[color-mix(in_srgb,var(--tone-bg)_95%,transparent)] backdrop-blur-xl lg:hidden"
         aria-label={L("Dashboard", "لوحة التحكم", "Tableau de bord")}
       >
         {NAV.map(({ to, en, ar, fr, I, ...r }) => (
@@ -199,7 +199,7 @@ function MerchantLayout({ profile }: { profile: StaffProfile }) {
             to={to}
             activeOptions={{ exact: "exact" in r }}
             className="flex min-h-14 flex-col items-center justify-center gap-0.5 py-2 text-[0.72rem] font-semibold text-tone-mute no-underline"
-            activeProps={{ className: "!text-gold" }}
+            activeProps={{ className: "!text-[var(--gold-text)]" }}
           >
             <I className="size-5" aria-hidden="true" /> {L(en, ar, fr)}
           </Link>

@@ -20,19 +20,21 @@ const PAGES = [
   ["home-en", "/en"],
   ["home-fr", "/fr"],
   ["place-en", "/en/places/chf-baakline"],
+  ["map-ar", "/ar/places"],
   ["vendor-ar", "/ar/m/abou-ali-shawarma"],
   ["send-home-fr", "/fr/send-home"],
   ["help-en", "/en/help"],
   ["privacy-en", "/en/legal/privacy"],
   // Session 6b: merchants and drivers.
-  ["for-merchants-ar", "/ar/for-merchants"],
-  ["for-merchants-en", "/en/for-merchants"],
-  ["for-merchants-fr", "/fr/for-merchants"],
-  ["drivers-en", "/en/drivers"],
-  ["merchant-terms-fr", "/fr/legal/merchant-terms"],
+  ["business-ar", "/ar/business"],
+  ["business-en", "/en/business"],
+  ["business-fr", "/fr/business"],
+  ["business-help-en", "/en/business/help"],
+  ["drivers-en", "/en/business/drivers"],
+  ["merchant-terms-fr", "/fr/business/legal/merchant-terms"],
   // Forms are not for search results (noindex), so they are held to performance and accessibility only.
-  ["claim-ar", "/ar/claim?q=abou", { private: true }],
-  ["register-en", "/en/register", { private: true }],
+  ["claim-ar", "/ar/business/claim?q=abou", { private: true }],
+  ["register-en", "/en/business/register", { private: true }],
   // A tracking link is private on purpose (noindex), so it is held to performance and accessibility only.
   ["track-en", `/en/track/${TRACK_TOKENS.delivery}`, { private: true }],
 ];

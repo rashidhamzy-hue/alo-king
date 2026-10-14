@@ -1,13 +1,24 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { loadLegal } from "@/content";
 import { buildHead } from "@/lib/site";
-import { useSite } from "@/components/site/context";
-import { PageHero } from "@/components/site/PageHero";
+import { BUSINESS_LEGAL, CUSTOMER_LEGAL, LegalView } from "@/components/site/LegalView";
 
-import { LEGAL_LINKS } from "@/components/site/Footer";
-
+// The customers' legal pages (DECISIONS §24.2). The merchant terms and the collection mandate moved to the business side
+// (§39.11); their old addresses redirect there.
 export const Route = createFileRoute("/$lang/legal/$doc")({
+  beforeLoad: ({ params }) => {
+    if (
+      !CUSTOMER_LEGAL.some(([s]) => s === params.doc) &&
+      BUSINESS_LEGAL.some(([s]) => s === params.doc)
+    )
+      throw redirect({
+        to: "/$lang/business/legal/$doc",
+        params: { lang: params.lang, doc: params.doc },
+        statusCode: 301,
+      });
+  },
   loader: async ({ params }) => {
+    if (!CUSTOMER_LEGAL.some(([s]) => s === params.doc)) throw notFound();
     const legal = await loadLegal(params.lang as "ar" | "en" | "fr");
     const doc = legal.docs.find((d) => d.slug === params.doc);
     if (!doc) throw notFound();
@@ -38,62 +49,5 @@ export const Route = createFileRoute("/$lang/legal/$doc")({
 });
 
 function LegalPage() {
-  const { doc, updatedOn, draftNote, entityHeading, entityText } = Route.useLoaderData();
-  const { t, lang } = useSite();
-  const date = new Intl.DateTimeFormat(lang === "ar" ? "ar-u-nu-latn" : lang, {
-    dateStyle: "long",
-    timeZone: "UTC",
-  }).format(new Date(`${updatedOn}T00:00:00Z`));
-  return (
-    <>
-      <PageHero
-        title={doc.title}
-        lead={doc.intro}
-        crumbs={[{ label: "", to: "/$lang" }, { label: doc.title }]}
-      />
-      <section className="tone-cream ak-section !pt-12">
-        <div className="ak-container grid gap-12 lg:grid-cols-[1fr_16rem]">
-          <article className="ak-prose">
-            <p className="text-sm font-semibold text-tone-mute">
-              {t.common.updated.replace("{date}", date)}
-            </p>
-            <p className="ak-card mt-4 p-4 text-sm text-tone-mute">{draftNote}</p>
-            {doc.sections.map((s) => (
-              <section key={s.h}>
-                <h2>{s.h}</h2>
-                {s.p?.map((p) => (
-                  <p key={p}>{p}</p>
-                ))}
-                {s.ul && (
-                  <ul>
-                    {s.ul.map((li) => (
-                      <li key={li}>{li}</li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            ))}
-            <h2>{entityHeading}</h2>
-            <p>{entityText}</p>
-          </article>
-          <nav aria-label={t.footer.legal} className="lg:sticky lg:top-24 lg:self-start">
-            <ul className="space-y-1">
-              {LEGAL_LINKS.map(([s, key]) => (
-                <li key={s}>
-                  <Link
-                    to="/$lang/legal/$doc"
-                    params={{ lang, doc: s }}
-                    className="block rounded-xl px-3 py-2 font-semibold no-underline hover:bg-tone-surface-2"
-                    activeProps={{ className: "bg-ink text-cream hover:!bg-ink" }}
-                  >
-                    {t.footer[key]}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </section>
-    </>
-  );
+  return <LegalView {...Route.useLoaderData()} side="customer" />;
 }

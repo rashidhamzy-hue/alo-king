@@ -4,7 +4,7 @@ import { useSite } from "./context";
 
 export type Crumb = {
   label: string;
-  to?: "/$lang" | "/$lang/places" | "/$lang/cuisine" | "/$lang/for-merchants" | "/$lang/claim";
+  to?: "/$lang" | "/$lang/places" | "/$lang/cuisine" | "/$lang/business" | "/$lang/business/claim";
 };
 
 /** Visible breadcrumbs; the BreadcrumbList structured data is built from the same list by `crumbsLd`. */

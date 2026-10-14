@@ -8,7 +8,7 @@ export const Route = createFileRoute("/claim/$slug")({
   beforeLoad: async () => {
     const { acceptLanguage } = await getRequestInfo();
     throw redirect({
-      to: "/$lang/claim",
+      to: "/$lang/business/claim",
       params: { lang: pickLang(acceptLanguage) },
       statusCode: 302,
     });

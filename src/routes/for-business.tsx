@@ -7,7 +7,7 @@ export const Route = createFileRoute("/for-business")({
   beforeLoad: async () => {
     const { acceptLanguage } = await getRequestInfo();
     throw redirect({
-      to: "/$lang/for-merchants",
+      to: "/$lang/business",
       params: { lang: pickLang(acceptLanguage) },
       statusCode: 302,
     });

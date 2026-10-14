@@ -4,6 +4,7 @@ import type { Copy, FaqItem } from "./en";
 export const fr: Copy = {
   site: { name: "Alo King", local: "ألو كينغ", tagline: "Commandez sur WhatsApp partout au Liban" },
   nav: {
+    business: "Pour les commerces",
     places: "Où nous livrons",
     sendHome: "Send Home",
     merchants: "Pour les commerçants",
@@ -113,6 +114,8 @@ export const fr: Copy = {
       eyebrow: "Commandez sur WhatsApp · Liban",
       title: "Dites Allô. Votre commande arrive.",
       sub: "Repas et produits du quotidien des commerces près de chez vous. Écrivez, parlez ou touchez sur WhatsApp, en arabe, anglais, français ou arabizi. Sans application, sans inscription.",
+      statusLive: "Livraison en cours dans {n} lieux du Chouf",
+      statusSoon: "Ouverture d'abord dans le Chouf",
       points: [
         "Paiement à la livraison",
         "Prix fixés par le commerce",
@@ -184,7 +187,7 @@ export const fr: Copy = {
     },
     map: {
       eyebrow: "Où nous livrons",
-      title: "Le Liban, village par village.",
+      title: "Le Chouf s'allume.",
       subLive:
         "Livraison en cours dans {n} lieux. Chaque commerce fixe son rayon de livraison, jusqu'à {km} km par la route.",
       subSoon:
@@ -194,8 +197,8 @@ export const fr: Copy = {
       legendAll: "Chaque ville et village de notre liste",
       region: "Chouf",
       soonList: "Bientôt à",
-      liveList: "Livraison à",
-      seePlaces: "Voir les lieux",
+      liveList: "Villages avec des commerces sur Alo King",
+      seePlaces: "Ouvrir la carte",
     },
     merchants: {
       eyebrow: "Pour les commerçants",
@@ -251,6 +254,7 @@ export const fr: Copy = {
         },
       ],
     },
+    bizLine: "Vous avez un commerce dans le Chouf ?",
     faq: { eyebrow: "Questions", title: "Bon à savoir", more: "Plus de réponses" },
   },
 
@@ -276,6 +280,45 @@ export const fr: Copy = {
     noShops:
       "Pas encore de commerce. Dites Allô sur WhatsApp et nous vous prévenons dès qu'un commerce ouvre ici.",
     howTitle: "Comment commander à {place}",
+    mini: "{place} sur la carte",
+    map: {
+      title: "Où nous livrons",
+      lead: "{n} villages et localités du Chouf, d'Aïn Zhalta à Bater. Livraison de {min} à {max}, selon la distance par la route depuis le commerce.",
+      leadSoon:
+        "{n} villages et localités du Chouf, d'Aïn Zhalta à Bater. Les commerces ouvrent un par un.",
+      label: "Trouvez votre village",
+      placeholder: "Baakline, بعقلين, ba3e2lin…",
+      hint: "En arabe, anglais, français ou arabizi",
+      noResult: "« {q} » n'est pas encore dans notre zone de livraison.",
+      notHere: "{name} est hors de notre zone de livraison pour l'instant.",
+      results: "{n} résultats",
+      legendShops: "Commerces sur Alo King",
+      legendUnclaimed: "Pas encore sur Alo King",
+      legendOn: "Nous livrons ici",
+      zoomIn: "Zoomer",
+      zoomOut: "Dézoomer",
+      reset: "Voir toute la zone",
+      mapLabel: "Carte de la zone de livraison d'Alo King dans le Chouf",
+      panelOn: "Nous livrons à {place}.",
+      panelOff: "{place} est dans notre zone et ouvre bientôt.",
+      shopsHere: "Sur Alo King à {place}",
+      noShopsHere:
+        "Aucun commerce de {place} n'est encore sur Alo King. Les commerces voisins y livrent.",
+      unclaimedHere: "Pas encore sur Alo King",
+      unclaimedNote:
+        "D'après des annuaires publics. Demandez-leur de rejoindre Alo King pour commander chez eux ici.",
+      unclaimedMore: "et {n} de plus",
+      openPlace: "Tout {place}",
+      order: "Commander à {place}",
+      close: "Fermer",
+      loading: "Chargement des commerces de {place}…",
+      allTitle: "Tous les lieux où nous livrons",
+      shopVillages: "Avec leurs propres commerces",
+      otherVillages: "Livrés par les commerces voisins",
+      countShops: "{n} sur Alo King",
+      countUnclaimed: "{n} pas encore",
+      elevation: "{m} m",
+    },
   },
   cuisine: {
     indexTitle: "Cuisines",
@@ -502,11 +545,6 @@ export const fr: Copy = {
       a: "Touchez « Une personne » dans la discussion, ou dites Allô sur WhatsApp et racontez-nous. Rasheed ou l'équipe répond. Notre politique de remboursement explique ce que nous faisons en cas d'article manquant ou erroné.",
     },
     {
-      id: "merchant",
-      q: "J'ai un commerce. Comment le rejoindre ?",
-      a: "Commencez à revendiquer votre commerce depuis votre téléphone. Vous payez un tarif fixe par commande livrée et rien sur les prix de votre menu. Voir la page Pour les commerçants.",
-    },
-    {
       id: "abroad",
       q: "Puis-je commander pour ma famille depuis l'étranger ?",
       a: "Oui, sur WhatsApp, et elle paie à la livraison. Le paiement par carte depuis l'étranger et la photo de livraison arrivent avec Send Home.",
@@ -615,6 +653,42 @@ export const fr: Copy = {
       file: "Utilisez une photo (JPG, PNG ou WebP) ou un PDF, jusqu'à 8 Mo.",
     },
   },
+  biz: {
+    nav: {
+      home: "Alo King pour les commerces",
+      short: "Commerces",
+      pricing: "Tarifs",
+      claim: "Revendiquer votre commerce",
+      help: "Aide",
+      drivers: "Livrer avec nous",
+      signIn: "Se connecter",
+      primary: "Commerces",
+      customerSite: "Vous commandez ? Allez sur Alo King",
+    },
+    footer: {
+      blurb:
+        "Recevez vos commandes sur WhatsApp pour un forfait par commande livrée. Votre menu, vos prix, vos clients.",
+      start: "Commencer",
+      company: "Alo King",
+      legal: "Conditions",
+      contact: "Écrire à Rasheed sur WhatsApp",
+    },
+    help: {
+      seoTitle: "Aide pour les commerces | Alo King",
+      seoDescription:
+        "Réponses pour les commerces sur Alo King : le coût, prouver que le commerce est à vous, les menus, les commandes et les paiements.",
+      title: "Aide pour les commerces",
+      lead: "Des réponses courtes pour les commerçants et leur équipe. Pour le reste, une personne répond sur WhatsApp.",
+      contactTitle: "Parler à une personne",
+      contactText:
+        "Rasheed et l'équipe configurent chaque nouveau commerce avec vous, en général en dix minutes au téléphone.",
+      contactCta: "Nous écrire sur WhatsApp",
+      dashboardTitle: "Déjà sur Alo King ?",
+      dashboardText:
+        "Vos commandes, votre menu et vos réglages fonctionnent sur WhatsApp. L'équipe se connecte au tableau de bord ici.",
+      dashboardCta: "Se connecter",
+    },
+  },
   merchantsPage: {
     seoTitle: "Alo King pour les commerçants : prenez vos commandes sur WhatsApp",
     seoDescription:
@@ -628,6 +702,10 @@ export const fr: Copy = {
       searchButton: "Trouver mon commerce",
       notListed: "Pas dans notre liste ?",
       register: "Enregistrer une nouvelle activité",
+    },
+    listed: {
+      title: "commerces du Chouf sont déjà sur notre liste.",
+      text: "Nous l'avons construite à partir d'annuaires publics. Trouvez le vôtre, prouvez qu'il est à vous et confirmez ce que nous avons pré-rempli. En attendant, les clients le voient « Pas encore sur Alo King » et peuvent vous demander de nous rejoindre.",
     },
     how: {
       eyebrow: "Comment ça marche",

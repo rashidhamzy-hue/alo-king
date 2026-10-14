@@ -1,4 +1,4 @@
-# Handoff — 14 October 2026 (after session F)
+# Handoff — 15 October 2026 (after session W)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
@@ -156,7 +156,7 @@
   - **Open for later:**
     - Indexing is off everywhere until the production project sets `SITE_URL`, `SITE_INDEXING=on` and `VITE_WHATSAPP_NUMBER` (CUT-OVER, session 14). Until the number exists the Order buttons lead to the contact page.
     - Merchant, driver, admin, claim and for-business pages keep their old look (done in 6b).
-    - Re-run `scripts/web/build-lebanon-dots.mjs` after session D replaces the places list.
+    - (Done in W: the Lebanon dot map is replaced by the delivery-zone map, `scripts/web/build-chouf-map.mjs`.)
     - The bot does not send tracking links yet; session 13 should review `order_track_public` (the one anonymous security-definer function).
     - Legal pages wait for the lawyer (#72); PostHog (§24.7) and a Google Business Profile are not in 6a.
     - Business-type pages (bakery, grocery) were not built, only cuisines.
@@ -218,7 +218,17 @@
   - **Open Food Facts (§39.5):** a merchant who types or scans a barcode on the Merchant number gets name, brand, quantity, allergens (EU-14), estimated kcal and Nutri-Score, cached in `off_products` with the ODbL attribution, shown as estimated.
   - **e2e (§36):** 10/11 after #156's deploy (run 38611719257: a stalled `sim_sink_record` call was read as "sink off"; fixed in #157). 11/11 after #157's deploy (run 38618343610). **11/11 twice in a row on the final code:** after #158's deploy (run 38629532611) and the dispatched run on fa5229a (38634854820).
   - **Open for later:** run the photo step when API credit exists; the 17 merchants without an online menu get theirs from photos or at claim; recheck El Bireh's and the named edge villages' routes once real orders come in; the Omega size handling is tested but no committed draft has sizes yet.
-- **Next: W (website revamp, §39.11), then 5c (agents), 5b (Kapso and operations), 13 and 14.** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5).
+- **Session W (fees inside the boundary, website revamp, §39.2 and §39.11): done (15 October).** PRs #161 (`Data:` 20 km band) and the session W PR (website); see LOG.md "session W" lines.
+  - **Road and fees (§39.2 as decided in #160):** a new dated fee band set (3/6/10 km restated, **20 km $6.00** added; the 7 October rows untouched), config `listing_radius_km` = 10 for the place pages' "Not on Alo King yet" lists, the merchant profile Flow's distance options up to 20 km (its data no longer capped at 10), and the staging fixture retires only bands above 20 km. El Bireh re-routed (`area.mjs --recompute`, ORS and OSRM over the 25 nearest shops): 12.39 km by road.
+    - **On staging after #161's deploy:** `max_delivery_km()` = 20; 61 boundary places on (Delghani and El Bireh back). An order to each far village (Baadaran 10.91, El Bireh 12.39, Maasser el Shouf 12.46, Mresti 13.23, Bater 14.53, Delghani 15.55, Niha 16.20, Jbaa 18.30 km by road) is placed with a $6.00 delivery fee (rollback-only check through `order_place`); before, every one was refused as beyond 10 km.
+  - **Website (§39.11, design notes in `src/design/README.md`):** "lights in the Chouf": customers at night, businesses by day, same system.
+    - **Hard split:** merchant pages live under `/<lang>/business` (landing with the calculator as a receipt, claim, register, drivers, help with the merchants' FAQ, merchant terms, collection mandate, privacy); the old addresses answer 301; customer pages carry no merchant link except "For businesses" at the foot of the home page (and "Claim this shop" on an unclaimed shop's own noindex page, addressed to its owner). Each side has its own header, footer and FAQ.
+    - **"Where we deliver"** is an interactive map of the 61 boundary places (`/places`): lit from live data (`site_delivery_map`, `site_village_unclaimed`, migration 20261015090000), tap a village for its shops on Alo King and its shops not on Alo King yet, search in Arabic, English, French and Arabizi, a full village index under it. Place pages show the village on the zone map.
+    - Home redesigned (the brand word "ألو" behind the headline, a live status line, the zone picture, plain facts as a list, no merchant calculator); every public page and the merchant dashboard restyled (the dashboard by day, the kitchen terminal at night inside it; the team console and the driver app at night).
+    - **Checks:** public QA 170 visits (3 languages × 2 sizes) and staff QA 72 visits with 0 problems; JavaScript at most 131 KB gzipped; Lighthouse mobile 100/100/100 on every public page, LCP 1.36–1.81 s.
+  - **Open for later:** re-run `scripts/web/build-chouf-map.mjs` after every change to `shouf_delivery_boundary.csv` (a village switched on by a new dated `pilot_place_ids` row is not drawn until then); the map does not write `?v=` back into the address while browsing (it reads it on arrival; see the README for why); the `merchant_claim` Flow JSON with 12/15/20 km options is re-uploaded with 5b's publish; the photo step of the menu harvest still waits for API credit.
+  - **CUT-OVER (session 14), added:** production has `max_delivery_km() = 20` (the 15 October set) and `listing_radius_km` = 10.
+- **Next: 5c (agents), then 5b (Kapso and operations), 13 and 14.** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5).
 
 ## How to start each build session
 
