@@ -1,4 +1,4 @@
-import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
+import { createFileRoute, notFound, Outlet, useRouterState } from "@tanstack/react-router";
 import jakartaLatin from "../../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2?url";
 import plexArabic400 from "../design/fonts/plex-arabic-400.woff2?url";
 import plexArabic700 from "../design/fonts/plex-arabic-700.woff2?url";
@@ -7,8 +7,8 @@ import { isLang, type SiteLang } from "@/lib/site";
 import { getOverview } from "@/lib/site-data";
 import { ContoursDefs } from "@/design/Contours";
 import { SiteProvider } from "@/components/site/context";
-import { Header } from "@/components/site/Header";
-import { Footer } from "@/components/site/Footer";
+import { BizHeader, Header } from "@/components/site/Header";
+import { BizFooter, Footer } from "@/components/site/Footer";
 
 // The public site lives under /ar, /en and /fr (DECISIONS §24.5). Anything else is a real 404.
 export const Route = createFileRoute("/$lang")({
@@ -38,20 +38,25 @@ export const Route = createFileRoute("/$lang")({
 function LangLayout() {
   const { lang, copy, info } = Route.useRouteContext();
   const { overview } = Route.useLoaderData();
+  // Customers and businesses never share navigation (DECISIONS §39.11): /<lang>/business/… has its own shell.
+  const business = useRouterState({
+    select: (s) => /^\/[a-z]{2}\/business(\/|$)/.test(s.location.pathname),
+  });
+  const side = business ? "business" : "customer";
   return (
     <SiteProvider
-      value={{ lang, t: copy, info: info ?? { origin: "", indexing: false }, overview }}
+      value={{ lang, side, t: copy, info: info ?? { origin: "", indexing: false }, overview }}
     >
-      <div className="ak-site tone-night min-h-screen">
+      <div className={`ak-site min-h-screen ${business ? "tone-cream ak-side-biz" : "tone-night"}`}>
         <ContoursDefs />
         <a className="ak-skip" href="#main">
           {copy.a11y.skip}
         </a>
-        <Header />
+        {business ? <BizHeader /> : <Header />}
         <main id="main">
           <Outlet />
         </main>
-        <Footer />
+        {business ? <BizFooter /> : <Footer />}
       </div>
     </SiteProvider>
   );

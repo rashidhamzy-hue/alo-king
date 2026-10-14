@@ -5,8 +5,7 @@ import { useSite } from "@/components/site/context";
 import { Hero } from "@/components/site/home/Hero";
 import { ThreeTaps } from "@/components/site/home/ThreeTaps";
 import { SpeakLebanese } from "@/components/site/home/SpeakLebanese";
-import { LebanonMap } from "@/components/site/home/LebanonMap";
-import { MerchantCalc } from "@/components/site/home/MerchantCalc";
+import { ZoneTeaser } from "@/components/site/home/ZoneTeaser";
 import { SendHomeSection } from "@/components/site/home/SendHomeSection";
 import { Trust } from "@/components/site/home/Trust";
 import { FaqList } from "@/components/site/FaqList";
@@ -70,15 +69,13 @@ function Home() {
       <Hero />
       <ThreeTaps />
       <SpeakLebanese />
-      <LebanonMap />
-      <MerchantCalc />
+      <ZoneTeaser />
       <SendHomeSection />
       <Trust />
       <section className="tone-cream ak-section !pt-0" aria-labelledby="faq-title">
-        <div className="ak-container grid gap-10 lg:grid-cols-[0.8fr_1.4fr]">
+        <div className="ak-container grid gap-10 lg:grid-cols-[0.8fr_1.4fr] lg:gap-16">
           <div>
-            <p className="ak-eyebrow">{t.home.faq.eyebrow}</p>
-            <h2 id="faq-title" className="ak-h2 mt-3">
+            <h2 id="faq-title" className="ak-h2">
               {t.home.faq.title}
             </h2>
             <Link to="/$lang/help" params={{ lang }} className="ak-btn ak-btn-ink mt-6">
@@ -86,6 +83,17 @@ function Home() {
             </Link>
           </div>
           <FaqList items={faq} />
+        </div>
+      </section>
+      {/* The one way to the business side from the customer site (DECISIONS §39.11). */}
+      <section className="tone-cream ak-biz-line" aria-label={t.nav.business}>
+        <div className="ak-container">
+          <p>
+            {t.home.bizLine}{" "}
+            <Link to="/$lang/business" params={{ lang }}>
+              {t.nav.business}
+            </Link>
+          </p>
         </div>
       </section>
     </>

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Clock, MapPin, Bike } from "lucide-react";
-import { buildHead, fmt, localePath, pickName, usd } from "@/lib/site";
+import { buildHead, fmt, iso, localePath, pickName, usd } from "@/lib/site";
 import {
   getVendorPage,
   getVendorUnclaimed,
@@ -217,7 +217,11 @@ function VendorPage({ d }: { d: SiteVendorPage }) {
               <p className="mt-3">{how}</p>
               {v.delivery && km != null && f.min_usd != null && f.max_usd != null && (
                 <p className="mt-2 text-tone-mute">
-                  {fmt(t.vendor.deliversUp, { km, min: usd(f.min_usd), max: usd(f.max_usd) })}
+                  {fmt(t.vendor.deliversUp, {
+                    km: iso(km ?? ""),
+                    min: iso(usd(f.min_usd)),
+                    max: iso(usd(f.max_usd)),
+                  })}
                 </p>
               )}
               {cur && (

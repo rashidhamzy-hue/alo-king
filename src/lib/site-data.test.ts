@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { toUnclaimedCard, toUnclaimedList, toUnclaimedVendorPage } from "./site-data";
+import {
+  toDeliveryMap,
+  toUnclaimedCard,
+  toUnclaimedList,
+  toUnclaimedVendorPage,
+} from "./site-data";
 
 const card = {
   slug: "falafel-vs-koushari",
@@ -84,5 +89,28 @@ describe('"Not on Alo King yet" data (DECISIONS §39.3)', () => {
       },
     ]);
     expect(toUnclaimedVendorPage({ vendor: card, sections: [] })).toBeNull();
+  });
+});
+
+describe("delivery map counts (§39.11)", () => {
+  it("keeps valid rows and defaults bad counts to 0", () => {
+    expect(
+      toDeliveryMap({
+        places: [
+          { slug: "chf-baakline", shops: 2, unclaimed: "41" },
+          { slug: "Bad Slug", shops: 1 },
+          { slug: "chf-niha", shops: -3, unclaimed: null },
+          null,
+        ],
+        unclaimed_total: 41,
+      }),
+    ).toEqual({
+      places: [
+        { slug: "chf-baakline", shops: 2, unclaimed: 41 },
+        { slug: "chf-niha", shops: 0, unclaimed: 0 },
+      ],
+      unclaimed_total: 41,
+    });
+    expect(toDeliveryMap(null)).toEqual({ places: [], unclaimed_total: 0 });
   });
 });

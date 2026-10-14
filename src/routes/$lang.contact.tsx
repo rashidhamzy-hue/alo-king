@@ -74,17 +74,6 @@ function ContactPage() {
             <h2 className="ak-h3">{c.companyTitle}</h2>
             <p className="mt-2 text-tone-mute">{COMPANY_LINE[lang]}</p>
           </div>
-          <div className="ak-card p-6">
-            <h2 className="ak-h3">{c.merchantsTitle}</h2>
-            <p className="mt-2 text-tone-mute">{c.merchantsText}</p>
-            <Link
-              to="/$lang/for-merchants"
-              params={{ lang }}
-              className="mt-3 inline-block font-bold underline underline-offset-4"
-            >
-              {t.nav.merchants}
-            </Link>
-          </div>
         </div>
       </section>
     </>

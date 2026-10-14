@@ -161,3 +161,6 @@ export const usd = (n: number | string | null | undefined) => `$${(Number(n) || 
 /** LBP at a given rate (never a hard-coded one): rounded to a whole number, grouped. */
 export const lbpAt = (usdAmount: number, rate: number, lang: SiteLang = "en") =>
   `${Math.round(usdAmount * rate).toLocaleString(lang === "ar" ? "en-US" : lang === "fr" ? "fr-FR" : "en-US")}`;
+
+/** A value set inside running text in its own direction (U+2068 … U+2069), so "$2.00" or "20 km" reads right in Arabic. */
+export const iso = (v: string | number) => `⁨${v}⁩`;

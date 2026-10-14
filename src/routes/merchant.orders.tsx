@@ -187,8 +187,9 @@ function Terminal({ vendorId }: { vendorId: string }) {
     },
   ];
 
+  // The kitchen terminal stays a night panel inside the day dashboard: high contrast at the counter.
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+    <div className="tone-night flex min-h-[calc(100vh-4rem)] flex-col rounded-[var(--r-lg)]">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-4">
         <div>
           <h1 className="text-3xl font-semibold">

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LangRouteImport } from './routes/$lang'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as BusinessRouteImport } from './routes/business'
 import { Route as DriverRouteImport } from './routes/driver'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ForBusinessRouteImport } from './routes/for-business'
@@ -36,6 +37,11 @@ import { Route as MerchantOrdersRouteImport } from './routes/merchant.orders'
 import { Route as MerchantProfileRouteImport } from './routes/merchant.profile'
 import { Route as SitemapChar123kindChar125DotxmlRouteImport } from './routes/sitemap.{$kind}[.]xml'
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
+import { Route as LangBusinessIndexRouteImport } from './routes/$lang.business.index'
+import { Route as LangBusinessClaimRouteImport } from './routes/$lang.business.claim'
+import { Route as LangBusinessDriversRouteImport } from './routes/$lang.business.drivers'
+import { Route as LangBusinessHelpRouteImport } from './routes/$lang.business.help'
+import { Route as LangBusinessRegisterRouteImport } from './routes/$lang.business.register'
 import { Route as LangCuisineIndexRouteImport } from './routes/$lang.cuisine.index'
 import { Route as LangCuisineTagRouteImport } from './routes/$lang.cuisine.$tag'
 import { Route as LangLegalDocRouteImport } from './routes/$lang.legal.$doc'
@@ -45,6 +51,7 @@ import { Route as LangPlacesSlugRouteImport } from './routes/$lang.places.$slug'
 import { Route as LangTrackTokenRouteImport } from './routes/$lang.track.$token'
 import { Route as MerchantMenuIndexRouteImport } from './routes/merchant.menu.index'
 import { Route as MerchantMenuImportRouteImport } from './routes/merchant.menu.import'
+import { Route as LangBusinessLegalDocRouteImport } from './routes/$lang.business.legal.$doc'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,6 +66,11 @@ const LangRoute = LangRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessRoute = BusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DriverRoute = DriverRouteImport.update({
@@ -182,6 +194,31 @@ const TrackOrderIdRoute = TrackOrderIdRouteImport.update({
   path: '/track/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LangBusinessIndexRoute = LangBusinessIndexRouteImport.update({
+  id: '/business/',
+  path: '/business/',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangBusinessClaimRoute = LangBusinessClaimRouteImport.update({
+  id: '/business/claim',
+  path: '/business/claim',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangBusinessDriversRoute = LangBusinessDriversRouteImport.update({
+  id: '/business/drivers',
+  path: '/business/drivers',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangBusinessHelpRoute = LangBusinessHelpRouteImport.update({
+  id: '/business/help',
+  path: '/business/help',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangBusinessRegisterRoute = LangBusinessRegisterRouteImport.update({
+  id: '/business/register',
+  path: '/business/register',
+  getParentRoute: () => LangRoute,
+} as any)
 const LangCuisineIndexRoute = LangCuisineIndexRouteImport.update({
   id: '/cuisine/',
   path: '/cuisine/',
@@ -227,11 +264,17 @@ const MerchantMenuImportRoute = MerchantMenuImportRouteImport.update({
   path: '/menu/import',
   getParentRoute: () => MerchantRoute,
 } as any)
+const LangBusinessLegalDocRoute = LangBusinessLegalDocRouteImport.update({
+  id: '/business/legal/$doc',
+  path: '/business/legal/$doc',
+  getParentRoute: () => LangRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$lang': typeof LangRouteWithChildren
   '/admin': typeof AdminRoute
+  '/business': typeof BusinessRoute
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/for-business': typeof ForBusinessRoute
@@ -256,19 +299,26 @@ export interface FileRoutesByFullPath {
   '/track/$orderId': typeof TrackOrderIdRoute
   '/$lang/': typeof LangIndexRoute
   '/merchant/': typeof MerchantIndexRoute
+  '/$lang/business/claim': typeof LangBusinessClaimRoute
+  '/$lang/business/drivers': typeof LangBusinessDriversRoute
+  '/$lang/business/help': typeof LangBusinessHelpRoute
+  '/$lang/business/register': typeof LangBusinessRegisterRoute
   '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
   '/$lang/legal/$doc': typeof LangLegalDocRoute
   '/$lang/m/$slug': typeof LangMSlugRoute
   '/$lang/places/$slug': typeof LangPlacesSlugRoute
   '/$lang/track/$token': typeof LangTrackTokenRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/$lang/business/': typeof LangBusinessIndexRoute
   '/$lang/cuisine/': typeof LangCuisineIndexRoute
   '/$lang/places/': typeof LangPlacesIndexRoute
   '/merchant/menu/': typeof MerchantMenuIndexRoute
+  '/$lang/business/legal/$doc': typeof LangBusinessLegalDocRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/business': typeof BusinessRoute
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/for-business': typeof ForBusinessRoute
@@ -292,21 +342,28 @@ export interface FileRoutesByTo {
   '/track/$orderId': typeof TrackOrderIdRoute
   '/$lang': typeof LangIndexRoute
   '/merchant': typeof MerchantIndexRoute
+  '/$lang/business/claim': typeof LangBusinessClaimRoute
+  '/$lang/business/drivers': typeof LangBusinessDriversRoute
+  '/$lang/business/help': typeof LangBusinessHelpRoute
+  '/$lang/business/register': typeof LangBusinessRegisterRoute
   '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
   '/$lang/legal/$doc': typeof LangLegalDocRoute
   '/$lang/m/$slug': typeof LangMSlugRoute
   '/$lang/places/$slug': typeof LangPlacesSlugRoute
   '/$lang/track/$token': typeof LangTrackTokenRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/$lang/business': typeof LangBusinessIndexRoute
   '/$lang/cuisine': typeof LangCuisineIndexRoute
   '/$lang/places': typeof LangPlacesIndexRoute
   '/merchant/menu': typeof MerchantMenuIndexRoute
+  '/$lang/business/legal/$doc': typeof LangBusinessLegalDocRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$lang': typeof LangRouteWithChildren
   '/admin': typeof AdminRoute
+  '/business': typeof BusinessRoute
   '/driver': typeof DriverRoute
   '/explore': typeof ExploreRoute
   '/for-business': typeof ForBusinessRoute
@@ -331,15 +388,21 @@ export interface FileRoutesById {
   '/track/$orderId': typeof TrackOrderIdRoute
   '/$lang/': typeof LangIndexRoute
   '/merchant/': typeof MerchantIndexRoute
+  '/$lang/business/claim': typeof LangBusinessClaimRoute
+  '/$lang/business/drivers': typeof LangBusinessDriversRoute
+  '/$lang/business/help': typeof LangBusinessHelpRoute
+  '/$lang/business/register': typeof LangBusinessRegisterRoute
   '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
   '/$lang/legal/$doc': typeof LangLegalDocRoute
   '/$lang/m/$slug': typeof LangMSlugRoute
   '/$lang/places/$slug': typeof LangPlacesSlugRoute
   '/$lang/track/$token': typeof LangTrackTokenRoute
   '/merchant/menu/import': typeof MerchantMenuImportRoute
+  '/$lang/business/': typeof LangBusinessIndexRoute
   '/$lang/cuisine/': typeof LangCuisineIndexRoute
   '/$lang/places/': typeof LangPlacesIndexRoute
   '/merchant/menu/': typeof MerchantMenuIndexRoute
+  '/$lang/business/legal/$doc': typeof LangBusinessLegalDocRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -347,6 +410,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$lang'
     | '/admin'
+    | '/business'
     | '/driver'
     | '/explore'
     | '/for-business'
@@ -371,19 +435,26 @@ export interface FileRouteTypes {
     | '/track/$orderId'
     | '/$lang/'
     | '/merchant/'
+    | '/$lang/business/claim'
+    | '/$lang/business/drivers'
+    | '/$lang/business/help'
+    | '/$lang/business/register'
     | '/$lang/cuisine/$tag'
     | '/$lang/legal/$doc'
     | '/$lang/m/$slug'
     | '/$lang/places/$slug'
     | '/$lang/track/$token'
     | '/merchant/menu/import'
+    | '/$lang/business/'
     | '/$lang/cuisine/'
     | '/$lang/places/'
     | '/merchant/menu/'
+    | '/$lang/business/legal/$doc'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
+    | '/business'
     | '/driver'
     | '/explore'
     | '/for-business'
@@ -407,20 +478,27 @@ export interface FileRouteTypes {
     | '/track/$orderId'
     | '/$lang'
     | '/merchant'
+    | '/$lang/business/claim'
+    | '/$lang/business/drivers'
+    | '/$lang/business/help'
+    | '/$lang/business/register'
     | '/$lang/cuisine/$tag'
     | '/$lang/legal/$doc'
     | '/$lang/m/$slug'
     | '/$lang/places/$slug'
     | '/$lang/track/$token'
     | '/merchant/menu/import'
+    | '/$lang/business'
     | '/$lang/cuisine'
     | '/$lang/places'
     | '/merchant/menu'
+    | '/$lang/business/legal/$doc'
   id:
     | '__root__'
     | '/'
     | '/$lang'
     | '/admin'
+    | '/business'
     | '/driver'
     | '/explore'
     | '/for-business'
@@ -445,21 +523,28 @@ export interface FileRouteTypes {
     | '/track/$orderId'
     | '/$lang/'
     | '/merchant/'
+    | '/$lang/business/claim'
+    | '/$lang/business/drivers'
+    | '/$lang/business/help'
+    | '/$lang/business/register'
     | '/$lang/cuisine/$tag'
     | '/$lang/legal/$doc'
     | '/$lang/m/$slug'
     | '/$lang/places/$slug'
     | '/$lang/track/$token'
     | '/merchant/menu/import'
+    | '/$lang/business/'
     | '/$lang/cuisine/'
     | '/$lang/places/'
     | '/merchant/menu/'
+    | '/$lang/business/legal/$doc'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LangRoute: typeof LangRouteWithChildren
   AdminRoute: typeof AdminRoute
+  BusinessRoute: typeof BusinessRoute
   DriverRoute: typeof DriverRoute
   ExploreRoute: typeof ExploreRoute
   ForBusinessRoute: typeof ForBusinessRoute
@@ -494,6 +579,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business': {
+      id: '/business'
+      path: '/business'
+      fullPath: '/business'
+      preLoaderRoute: typeof BusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/driver': {
@@ -664,6 +756,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrackOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$lang/business/': {
+      id: '/$lang/business/'
+      path: '/business'
+      fullPath: '/$lang/business/'
+      preLoaderRoute: typeof LangBusinessIndexRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/business/claim': {
+      id: '/$lang/business/claim'
+      path: '/business/claim'
+      fullPath: '/$lang/business/claim'
+      preLoaderRoute: typeof LangBusinessClaimRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/business/drivers': {
+      id: '/$lang/business/drivers'
+      path: '/business/drivers'
+      fullPath: '/$lang/business/drivers'
+      preLoaderRoute: typeof LangBusinessDriversRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/business/help': {
+      id: '/$lang/business/help'
+      path: '/business/help'
+      fullPath: '/$lang/business/help'
+      preLoaderRoute: typeof LangBusinessHelpRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/business/register': {
+      id: '/$lang/business/register'
+      path: '/business/register'
+      fullPath: '/$lang/business/register'
+      preLoaderRoute: typeof LangBusinessRegisterRouteImport
+      parentRoute: typeof LangRoute
+    }
     '/$lang/cuisine/': {
       id: '/$lang/cuisine/'
       path: '/cuisine'
@@ -727,6 +854,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MerchantMenuImportRouteImport
       parentRoute: typeof MerchantRoute
     }
+    '/$lang/business/legal/$doc': {
+      id: '/$lang/business/legal/$doc'
+      path: '/business/legal/$doc'
+      fullPath: '/$lang/business/legal/$doc'
+      preLoaderRoute: typeof LangBusinessLegalDocRouteImport
+      parentRoute: typeof LangRoute
+    }
   }
 }
 
@@ -739,13 +873,19 @@ interface LangRouteChildren {
   LangRegisterRoute: typeof LangRegisterRoute
   LangSendHomeRoute: typeof LangSendHomeRoute
   LangIndexRoute: typeof LangIndexRoute
+  LangBusinessClaimRoute: typeof LangBusinessClaimRoute
+  LangBusinessDriversRoute: typeof LangBusinessDriversRoute
+  LangBusinessHelpRoute: typeof LangBusinessHelpRoute
+  LangBusinessRegisterRoute: typeof LangBusinessRegisterRoute
   LangCuisineTagRoute: typeof LangCuisineTagRoute
   LangLegalDocRoute: typeof LangLegalDocRoute
   LangMSlugRoute: typeof LangMSlugRoute
   LangPlacesSlugRoute: typeof LangPlacesSlugRoute
   LangTrackTokenRoute: typeof LangTrackTokenRoute
+  LangBusinessIndexRoute: typeof LangBusinessIndexRoute
   LangCuisineIndexRoute: typeof LangCuisineIndexRoute
   LangPlacesIndexRoute: typeof LangPlacesIndexRoute
+  LangBusinessLegalDocRoute: typeof LangBusinessLegalDocRoute
 }
 
 const LangRouteChildren: LangRouteChildren = {
@@ -757,13 +897,19 @@ const LangRouteChildren: LangRouteChildren = {
   LangRegisterRoute: LangRegisterRoute,
   LangSendHomeRoute: LangSendHomeRoute,
   LangIndexRoute: LangIndexRoute,
+  LangBusinessClaimRoute: LangBusinessClaimRoute,
+  LangBusinessDriversRoute: LangBusinessDriversRoute,
+  LangBusinessHelpRoute: LangBusinessHelpRoute,
+  LangBusinessRegisterRoute: LangBusinessRegisterRoute,
   LangCuisineTagRoute: LangCuisineTagRoute,
   LangLegalDocRoute: LangLegalDocRoute,
   LangMSlugRoute: LangMSlugRoute,
   LangPlacesSlugRoute: LangPlacesSlugRoute,
   LangTrackTokenRoute: LangTrackTokenRoute,
+  LangBusinessIndexRoute: LangBusinessIndexRoute,
   LangCuisineIndexRoute: LangCuisineIndexRoute,
   LangPlacesIndexRoute: LangPlacesIndexRoute,
+  LangBusinessLegalDocRoute: LangBusinessLegalDocRoute,
 }
 
 const LangRouteWithChildren = LangRoute._addFileChildren(LangRouteChildren)
@@ -796,6 +942,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LangRoute: LangRouteWithChildren,
   AdminRoute: AdminRoute,
+  BusinessRoute: BusinessRoute,
   DriverRoute: DriverRoute,
   ExploreRoute: ExploreRoute,
   ForBusinessRoute: ForBusinessRoute,

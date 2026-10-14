@@ -271,3 +271,30 @@ export const getBusinessTypes = async (): Promise<BusinessTypeRow[]> =>
     "business_type_labels",
     "select=business_type,name_ar,name_en,name_fr&order=sort_order",
   )) ?? [];
+
+// ---- The "Where we deliver" map (DECISIONS §39.11, migration 20261015090000) ----------------------------------------------
+/** Per place that is on: shops on Alo King and shops not on Alo King yet that have their home there. */
+export type DeliveryMapData = {
+  places: { slug: string; shops: number; unclaimed: number }[];
+  unclaimed_total: number;
+};
+export const EMPTY_DELIVERY_MAP: DeliveryMapData = { places: [], unclaimed_total: 0 };
+
+/** Checks the map counts: rows without a usable slug are dropped, counts default to 0. */
+export function toDeliveryMap(raw: unknown): DeliveryMapData {
+  if (!raw || typeof raw !== "object") return EMPTY_DELIVERY_MAP;
+  const r = raw as Record<string, unknown>;
+  const n = (v: unknown) =>
+    Number.isFinite(Number(v)) && Number(v) > 0 ? Math.floor(Number(v)) : 0;
+  return {
+    places: (Array.isArray(r.places) ? r.places : [])
+      .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
+      .filter((p) => typeof p.slug === "string" && SLUG.test(p.slug))
+      .map((p) => ({ slug: p.slug as string, shops: n(p.shops), unclaimed: n(p.unclaimed) })),
+    unclaimed_total: n(r.unclaimed_total),
+  };
+}
+export const getDeliveryMap = async () => toDeliveryMap(await rpc("site_delivery_map"));
+/** The "Not on Alo King yet" shops based in one village (the map's panel). */
+export const getVillageUnclaimed = async (slug: string) =>
+  toUnclaimedList(await rpc("site_village_unclaimed", { p_slug: slug }));

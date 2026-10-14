@@ -1,9 +1,10 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { buildHead, fmt, localePath, pickName, unclaimedPage, usd } from "@/lib/site";
+import { buildHead, fmt, iso, localePath, pickName, unclaimedPage, usd } from "@/lib/site";
 import { getPlace, getPlaceUnclaimed } from "@/lib/site-data";
 import { MIN_MERCHANTS_TO_INDEX } from "@/lib/site-config";
 import { useSite } from "@/components/site/context";
 import { PageHero } from "@/components/site/PageHero";
+import { VillageMini } from "@/components/site/map/VillageMini";
 import { OrderButton } from "@/components/site/OrderButton";
 import { VendorCardItem } from "@/components/site/VendorCardItem";
 import { crumbsLd } from "@/components/site/Breadcrumbs";
@@ -62,8 +63,8 @@ function PlacePage() {
   const fact = fmt(withFees || n === 0 ? raw : raw.split(/[;؛]/)[0] + ".", {
     n,
     place,
-    min: usd(f.min_usd),
-    max: usd(f.max_usd),
+    min: iso(usd(f.min_usd)),
+    max: iso(usd(f.max_usd)),
   });
   const district = pickName(d.place, "district", lang);
   return (
@@ -77,6 +78,7 @@ function PlacePage() {
           { label: t.common.places, to: "/$lang/places" },
           { label: place },
         ]}
+        aside={<VillageMini slug={d.place.slug} name={place} />}
       >
         <OrderButton text={fmt(t.wa.place, { place })} />
       </PageHero>

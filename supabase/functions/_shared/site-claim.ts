@@ -338,7 +338,7 @@ export function makeHandler(deps: SiteClaimDeps) {
       "";
     const target = joinTarget(
       r.wa_url,
-      joinInvite(l as JoinLang, String(name), site ? `${site}/${l}/claim?v=${r.vendor_id}` : null),
+      joinInvite(l as JoinLang, String(name), site ? `${site}/${l}/business/claim?v=${r.vendor_id}` : null),
     );
     return target ? joinRedirect(target) : joinPage(404, words.gone);
   }
