@@ -1,0 +1,1022 @@
+{
+ "source": "owner_menu_photos",
+ "received": "2026-10-14",
+ "note": "Transcribed by Claude from menu photos Rasheed sent on 14 Oct 2026. Import as draft menus per DECISIONS §38.2 item 2 (status=draft, source=seed, merchant confirms each section). Prices may be outdated; merchant confirms on claim.",
+ "restaurant_menus": [
+  {
+   "place_id": "ChIJJ8-7quchHxURgn5sxhONNLI",
+   "vendor_name": "SEVEN Burgers & Beyond",
+   "locality": "Boqaata",
+   "currency": "LBP",
+   "status": "PARSED_STRUCTURED",
+   "items": [
+    {
+     "section": "Beef Burgers",
+     "item_name": "Classic",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries or coleslaw or soft drink",
+     "description": "140g char-grilled beef patty, cheddar, onion slices, French lettuce, tomato & signature sauce"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Lebanese",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries or coleslaw or soft drink",
+     "description": "140g char-grilled beef patty, coleslaw, chips sticks & ketchup"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Caramelized",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries or coleslaw or soft drink",
+     "description": "140g char-grilled beef patty, Emmental, caramelized onions & BBQ mayo sauce"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Swiss Mushroom",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries or coleslaw or soft drink",
+     "description": "140g char-grilled beef patty, Emmental, sautéed mushrooms & creamy sauce"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Double Cheese",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries or coleslaw or soft drink",
+     "description": "140g char-grilled beef patty, cheddar, chopped onions, dill pickles, ketchup & mustard"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Cherry Crunch",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries or coleslaw or soft drink",
+     "description": "140g char-grilled beef patty, Emmental, cherry jam, onion rings & creamy sauce"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Truffle",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries or coleslaw or soft drink",
+     "description": "140g char-grilled beef patty, Emmental, chips sticks & truffle sauce"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Volcano",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries or coleslaw or soft drink",
+     "description": "140g char-grilled beef patty, cheddar, onion slices, French lettuce, tomato, jalapeños & volcano sauce"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Fried Chicken",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries, coleslaw or soft drink",
+     "description": "140g crispy chicken, cheddar, dill pickles, French lettuce & honey mustard sauce"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Spicy Fried Chicken",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries, coleslaw or soft drink",
+     "description": "140g crispy chicken, cheddar, dill pickles, French lettuce, jalapeños, honey mustard & volcano sauce"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Grilled Chicken",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries, coleslaw or soft drink",
+     "description": "160g char-grilled chicken breast, French lettuce, dill pickles & garlic mayo sauce"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Light Grilled Chicken",
+     "price_raw": "850,000 LBP",
+     "section_note": "Served with French fries, coleslaw or soft drink",
+     "description": "160g char-grilled chicken breast, French lettuce, tomato, dill pickles & light sauce; brown bun, served with French lettuce salad"
+    },
+    {
+     "section": "Add-ons",
+     "item_name": "Beef Patty",
+     "price_raw": "300,000 LBP"
+    },
+    {
+     "section": "Add-ons",
+     "item_name": "Chicken Fillet",
+     "price_raw": "300,000 LBP"
+    },
+    {
+     "section": "Add-ons",
+     "item_name": "Beef Bacon",
+     "price_raw": "200,000 LBP"
+    },
+    {
+     "section": "Add-ons",
+     "item_name": "Mozzarella Patty",
+     "price_raw": "200,000 LBP"
+    },
+    {
+     "section": "Add-ons",
+     "item_name": "Cheddar Patty",
+     "price_raw": "200,000 LBP"
+    },
+    {
+     "section": "Intruders",
+     "item_name": "Hot Dog",
+     "price_raw": "550,000 LBP",
+     "description": "Beef hot dog, cheddar, chips sticks, ketchup, mustard & jalapeños"
+    },
+    {
+     "section": "Intruders",
+     "item_name": "Crispy Loaded Fries",
+     "price_raw": "750,000 LBP",
+     "description": "Crispy chicken strips, French fries, chips sticks, jalapeños, cheddar, honey mustard & BBQ mayo sauce"
+    },
+    {
+     "section": "Combo Meals",
+     "item_name": "Crispy Meal",
+     "price_raw": "1,250,000 LBP",
+     "description": "6 crispy chicken strips, French fries, coleslaw, bun, 2 dips & a soft drink"
+    },
+    {
+     "section": "Combo Meals",
+     "item_name": "Duo Meal",
+     "price_raw": "1,350,000 LBP",
+     "description": "Burger of your choice + cheeseburger (90g) or chicken burger (90g), French fries, 1 dip & a soft drink"
+    },
+    {
+     "section": "Kids Meal",
+     "item_name": "Cheeseburger / Chicken Burger",
+     "price_raw": "700,000 LBP",
+     "section_note": "Includes French fries, fresh juice & a surprise gift"
+    },
+    {
+     "section": "Kids Meal",
+     "item_name": "6 Chicken Nuggets",
+     "price_raw": "700,000 LBP",
+     "section_note": "Includes French fries, fresh juice & a surprise gift"
+    },
+    {
+     "section": "Kids Meal",
+     "item_name": "3 Crispy Chicken Strips",
+     "price_raw": "700,000 LBP",
+     "section_note": "Includes French fries, fresh juice & a surprise gift"
+    },
+    {
+     "section": "Sides",
+     "item_name": "4 Crispy Chicken Strips",
+     "price_raw": "500,000 LBP",
+     "section_note": "Served with a dip of your choice"
+    },
+    {
+     "section": "Sides",
+     "item_name": "4 Mozzarella Sticks",
+     "price_raw": "400,000 LBP",
+     "section_note": "Served with a dip of your choice"
+    },
+    {
+     "section": "Sides",
+     "item_name": "4 Jalapeño Cheese Triangles",
+     "price_raw": "400,000 LBP",
+     "section_note": "Served with a dip of your choice"
+    },
+    {
+     "section": "Sides",
+     "item_name": "6 Onion Rings",
+     "price_raw": "350,000 LBP",
+     "section_note": "Served with a dip of your choice"
+    },
+    {
+     "section": "Sides",
+     "item_name": "Curly Fries",
+     "price_raw": "450,000 LBP",
+     "section_note": "Served with a dip of your choice"
+    },
+    {
+     "section": "Sides",
+     "item_name": "French Fries",
+     "price_raw": "300,000 LBP",
+     "section_note": "Served with a dip of your choice"
+    },
+    {
+     "section": "Sides",
+     "item_name": "Coleslaw",
+     "price_raw": "200,000 LBP",
+     "section_note": "Served with a dip of your choice"
+    },
+    {
+     "section": "Sides",
+     "item_name": "French Lettuce Salad",
+     "price_raw": "250,000 LBP",
+     "section_note": "Served with a dip of your choice"
+    },
+    {
+     "section": "Dips",
+     "item_name": "Signature",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Dips",
+     "item_name": "Honey Mustard",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Dips",
+     "item_name": "Cheddar",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Dips",
+     "item_name": "BBQ",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Dips",
+     "item_name": "Thousand Island",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Dips",
+     "item_name": "Volcano",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Dips",
+     "item_name": "Garlic Mayo",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Dips",
+     "item_name": "Truffle",
+     "price_raw": "150,000 LBP"
+    },
+    {
+     "section": "Drinks",
+     "item_name": "Fresh Orange Juice / Lemonade",
+     "price_raw": "200,000 LBP"
+    },
+    {
+     "section": "Drinks",
+     "item_name": "Soft Drinks / Iced Tea",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Drinks",
+     "item_name": "Sparkling Water",
+     "price_raw": "100,000 LBP"
+    },
+    {
+     "section": "Drinks",
+     "item_name": "Mineral Water",
+     "price_raw": "50,000 LBP"
+    }
+   ]
+  },
+  {
+   "place_id": "ChIJX_XVOO0hHxURJO_Dq1Kl-Lo",
+   "duplicate_place_ids": [
+    "ChIJR6VlRAAhHxURSemilwLScnE"
+   ],
+   "vendor_name": "Nayeh w Meshwiyeh",
+   "vendor_name_ar": "نية و مشوية",
+   "locality": "Baakleen",
+   "currency": "USD",
+   "whatsapp": "+96171334607",
+   "services": [
+    "delivery",
+    "takeaway",
+    "dine-in"
+   ],
+   "status": "PARSED_STRUCTURED",
+   "items": [
+    {
+     "section": "Hot Appetizers",
+     "item_name": "French Fries",
+     "price_raw": "$4",
+     "item_name_ar": "بطاطا مقلية"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Spicy Potatoes",
+     "price_raw": "$4.5",
+     "item_name_ar": "بطاطا حرة"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Fried Kebbeh",
+     "price_raw": "$6",
+     "item_name_ar": "كبة مقلية"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Meat Sambusek",
+     "price_raw": "$5",
+     "item_name_ar": "سمبوسك لحمة"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Cheese Sambusek",
+     "price_raw": "$5",
+     "item_name_ar": "سمبوسك جبنة"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Cheese Rolls",
+     "price_raw": "$4.5",
+     "item_name_ar": "رقائق جبنة"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Mixed Pies (6)",
+     "price_raw": "$6",
+     "item_name_ar": "معجنات مشكلة (٦ حبات)"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Hummus with Meat",
+     "price_raw": "$11",
+     "item_name_ar": "حمص باللحمة"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Sausage (Makanek)",
+     "price_raw": "$8",
+     "item_name_ar": "مقانق"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Sujuk",
+     "price_raw": "$8",
+     "item_name_ar": "سجق"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Lamb Ras Asfour",
+     "price_raw": "$12",
+     "item_name_ar": "راس عصفور"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Cerveller (Brain) Plate",
+     "price_raw": "$11",
+     "item_name_ar": "صحن نخاعات"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Fried Lamb Liver Plate",
+     "price_raw": "$12",
+     "item_name_ar": "صحن سودة غنم مقلية"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Chicken Liver Plate",
+     "price_raw": "$6.5",
+     "item_name_ar": "صحن سودة دجاج"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Fried Birds (per piece)",
+     "price_raw": "$1.5",
+     "item_name_ar": "عصافير مقلية (١)"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Lamb Testicles Plate",
+     "price_raw": "$11",
+     "item_name_ar": "صحن بيض غنم"
+    },
+    {
+     "section": "Hot Appetizers",
+     "item_name": "Sanasel (Spinal Cord) Plate",
+     "price_raw": "$13",
+     "item_name_ar": "صحن سناسل"
+    },
+    {
+     "section": "Salads",
+     "item_name": "Tabbouleh",
+     "price_raw": "$5.5",
+     "item_name_ar": "تبولة"
+    },
+    {
+     "section": "Salads",
+     "item_name": "Fattoush",
+     "price_raw": "$5.5",
+     "item_name_ar": "فتوش"
+    },
+    {
+     "section": "Salads",
+     "item_name": "Rocca",
+     "price_raw": "$5",
+     "item_name_ar": "روكا"
+    },
+    {
+     "section": "Salads",
+     "item_name": "Coleslaw",
+     "price_raw": "$3.5",
+     "item_name_ar": "سلطة ملفوف"
+    },
+    {
+     "section": "Cold Appetizers",
+     "item_name": "Hummus",
+     "price_raw": "$3.5",
+     "item_name_ar": "حمص"
+    },
+    {
+     "section": "Cold Appetizers",
+     "item_name": "Mtabbal Eggplant",
+     "price_raw": "$4",
+     "item_name_ar": "متبل"
+    },
+    {
+     "section": "Cold Appetizers",
+     "item_name": "Stuffed Vine Leaves",
+     "price_raw": "$5",
+     "item_name_ar": "ورق عنب"
+    },
+    {
+     "section": "Cold Appetizers",
+     "item_name": "Shankleesh",
+     "price_raw": "$4.5",
+     "item_name_ar": "شنكليش"
+    },
+    {
+     "section": "Cold Appetizers",
+     "item_name": "Labneh with Garlic",
+     "price_raw": "$4",
+     "item_name_ar": "لبنة بالثوم"
+    },
+    {
+     "section": "Cold Appetizers",
+     "item_name": "Tajen",
+     "price_raw": "$4",
+     "item_name_ar": "طاجن"
+    },
+    {
+     "section": "Cold Appetizers",
+     "item_name": "Mohammara",
+     "price_raw": "$4.5",
+     "item_name_ar": "محمرة"
+    },
+    {
+     "section": "Cold Appetizers",
+     "item_name": "Basterma",
+     "price_raw": "$9",
+     "item_name_ar": "بسترما"
+    },
+    {
+     "section": "Raw Meat",
+     "item_name": "Raw Kebbeh",
+     "price_raw": "$9",
+     "item_name_ar": "كبة نية"
+    },
+    {
+     "section": "Raw Meat",
+     "item_name": "Raw Tabelah",
+     "price_raw": "$9",
+     "item_name_ar": "تابلة نية"
+    },
+    {
+     "section": "Raw Meat",
+     "item_name": "Raw Frakeh",
+     "price_raw": "$9",
+     "item_name_ar": "فراكة نية"
+    },
+    {
+     "section": "Raw Meat",
+     "item_name": "Raw Kafta",
+     "price_raw": "$9",
+     "item_name_ar": "كفتة نية"
+    },
+    {
+     "section": "Raw Meat",
+     "item_name": "Raw Lamb Liver",
+     "price_raw": "$12",
+     "item_name_ar": "سودة نية"
+    },
+    {
+     "section": "Raw Meat",
+     "item_name": "Small Tablieh",
+     "price_raw": "$29",
+     "item_name_ar": "خشبة نية صغيرة"
+    },
+    {
+     "section": "Raw Meat",
+     "item_name": "Large Tablieh",
+     "price_raw": "$34",
+     "item_name_ar": "خشبة نية كبيرة"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Lamb Chops Platter",
+     "price_raw": "$16",
+     "item_name_ar": "صحن شقف غنم"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Veal Chops Platter",
+     "price_raw": "$13",
+     "item_name_ar": "صحن شقف عجل"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Tawook Platter",
+     "price_raw": "$10",
+     "item_name_ar": "صحن طاووق"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Kafta Platter",
+     "price_raw": "$11",
+     "item_name_ar": "صحن كفتة"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Kabab Platter",
+     "price_raw": "$11",
+     "item_name_ar": "صحن كباب"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Orfali Kabab Platter",
+     "price_raw": "$13",
+     "item_name_ar": "صحن كباب اورفلي"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Mixed Grills Platter",
+     "price_raw": "$13.5",
+     "item_name_ar": "صحن مشاوي مشكل"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Kafta Arayes Platter",
+     "price_raw": "$10",
+     "item_name_ar": "صحن كفتة عرايس"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Sujuk Arayes Platter",
+     "price_raw": "$10",
+     "item_name_ar": "صحن عرايس سجق"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Chicken Wings Platter",
+     "price_raw": "$8",
+     "item_name_ar": "صحن جوانح مشوية"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Castaletta Lamb Platter",
+     "price_raw": "$18",
+     "item_name_ar": "صحن ريش غنم"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Grilled Lamb Liver Platter",
+     "price_raw": "$13",
+     "item_name_ar": "صحن سودة مشوية"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Sujuk & Cheese Platter",
+     "price_raw": "$12",
+     "item_name_ar": "صحن سجق جبنة"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Grilled Potato Platter",
+     "price_raw": "$5",
+     "item_name_ar": "صحن بطاطا مشوية"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Lamb Testicles Platter",
+     "price_raw": "$13",
+     "item_name_ar": "صحن بيض غنم"
+    },
+    {
+     "section": "Grill Platters",
+     "item_name": "Tabliyeh Tawook",
+     "price_raw": "$9",
+     "item_name_ar": "طبلية طاووق"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Lamb Chops ½ kg",
+     "price_raw": "$23",
+     "item_name_ar": "نصف كيلو شقف غنم"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Lamb Chops 1 kg",
+     "price_raw": "$43",
+     "item_name_ar": "كيلو شقف غنم"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Veal Chops ½ kg",
+     "price_raw": "$20",
+     "item_name_ar": "نصف كيلو شقف عجل"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Veal Chops 1 kg",
+     "price_raw": "$39",
+     "item_name_ar": "كيلو شقف عجل"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Tawook ½ kg",
+     "price_raw": "$12",
+     "item_name_ar": "نصف كيلو طاووق"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Kafta ½ kg",
+     "price_raw": "$16",
+     "item_name_ar": "نصف كيلو كفتة"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Kabab ½ kg",
+     "price_raw": "$16",
+     "item_name_ar": "نصف كيلو كباب"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Orfali ½ kg",
+     "price_raw": "$18",
+     "item_name_ar": "نصف كيلو اورفلي"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Mixed Grills 600 g",
+     "price_raw": "$20",
+     "item_name_ar": "نصف كيلو مشاوي مشكل (٦٠٠غ)"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Mixed Grills 1 kg",
+     "price_raw": "$37",
+     "item_name_ar": "كيلو مشاوي مشكل"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Grilled Chicken",
+     "price_raw": "$13",
+     "item_name_ar": "فروج عالفحم"
+    },
+    {
+     "section": "Grills by Weight",
+     "item_name": "Grilled Birds (per piece)",
+     "price_raw": "$1.5",
+     "item_name_ar": "عصافير مشوية (١)"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Raw Lamb Liver Sandwich",
+     "price_raw": "$8",
+     "item_name_ar": "ساندويش سودة نية"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Tabelah Sandwich",
+     "price_raw": "$7",
+     "item_name_ar": "ساندويش تابلة"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Potato Sandwich",
+     "price_raw": "$4.5",
+     "item_name_ar": "ساندويش بطاطا"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Lamb Chops Sandwich",
+     "price_raw": "$7.5",
+     "item_name_ar": "ساندويش شقف غنم"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Veal Chops Sandwich",
+     "price_raw": "$7",
+     "item_name_ar": "ساندويش شقف عجل"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Small Tawook Sandwich",
+     "price_raw": "$5",
+     "item_name_ar": "ساندويش طاووق صغير"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Large Tawook Sandwich",
+     "price_raw": "$6",
+     "item_name_ar": "ساندويش طاووق كبير"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Chicken Sandwich",
+     "price_raw": "$6",
+     "item_name_ar": "ساندويش دجاج"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Kafta Sandwich",
+     "price_raw": "$6",
+     "item_name_ar": "ساندويش كفتة"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Kebab Sandwich",
+     "price_raw": "$6",
+     "item_name_ar": "ساندويش كباب"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Cheese Kebab Sandwich",
+     "price_raw": "$6.5",
+     "item_name_ar": "ساندويش كباب جبنة"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Kebab Orfali Sandwich",
+     "price_raw": "$6.5",
+     "item_name_ar": "ساندويش كباب اورفلي"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Eggplant Kebab Sandwich",
+     "price_raw": "$6.5",
+     "item_name_ar": "ساندويش كباب باذنجان"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Kebab with Nuts Sandwich",
+     "price_raw": "$7",
+     "item_name_ar": "ساندويش كباب مكسرات"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Chicken Liver Sandwich",
+     "price_raw": "$6",
+     "item_name_ar": "ساندويش سودة دجاج"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Grilled Liver Sandwich",
+     "price_raw": "$6.5",
+     "item_name_ar": "ساندويش سودة مشوية"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Fried Lamb Liver Sandwich",
+     "price_raw": "$7.5",
+     "item_name_ar": "ساندويش سودة غنم مقلية"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Sanasel (Spinal Cord) Sandwich",
+     "price_raw": "$8.5",
+     "item_name_ar": "ساندويش سناسل"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Lamb Testicles Sandwich",
+     "price_raw": "$6.5",
+     "item_name_ar": "ساندويش بيض غنم"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Sujuk Sandwich",
+     "price_raw": "$6.5",
+     "item_name_ar": "ساندويش سجق"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Sujuk & Cheese Sandwich",
+     "price_raw": "$6.5",
+     "item_name_ar": "ساندويش سجق بالجبنة"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Sausage Sandwich",
+     "price_raw": "$6.5",
+     "item_name_ar": "ساندويش مقانق"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Basterma Sandwich",
+     "price_raw": "$7",
+     "item_name_ar": "ساندويش بسترما"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Cerveller Sandwich",
+     "price_raw": "$7.5",
+     "item_name_ar": "ساندويش نخاعات"
+    },
+    {
+     "section": "Sandwiches",
+     "item_name": "Raw Kebbeh Sandwich",
+     "price_raw": "$7",
+     "item_name_ar": "ساندويش كبة نية"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Kibbeh (12)",
+     "price_raw": "$9",
+     "item_name_ar": "كبة قراص (١٢ حبة)"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Meat Sambusek (12)",
+     "price_raw": "$7",
+     "item_name_ar": "سمبوسك لحمة (١٢ حبة)"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Cheese Rolls (12)",
+     "price_raw": "$6",
+     "item_name_ar": "رقائق جبنة (١٢ حبة)"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Cheese Sambusek (12)",
+     "price_raw": "$7",
+     "item_name_ar": "سمبوسك جبنة (١٢ حبة)"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Shish Barak (40)",
+     "price_raw": "$7",
+     "item_name_ar": "شيش برك (٤٠ حبة)"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Marinated Chicken Wings 1 kg",
+     "price_raw": "$7",
+     "item_name_ar": "جوانح متبلة كيلو"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Marinated Tawook 1 kg",
+     "price_raw": "$10",
+     "item_name_ar": "طاووق متبل كيلو"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Kafta / Kabab 1 kg",
+     "price_raw": "$20",
+     "item_name_ar": "كفتة / كباب كيلو"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Raw Arayes Kafta",
+     "price_raw": "$8",
+     "item_name_ar": "عرايس كفتة جاهزة"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Marinated Veal Chops 1 kg",
+     "price_raw": "$26",
+     "item_name_ar": "شقف عجل متبل كيلو"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Lamb Chops 1 kg",
+     "price_raw": "$30",
+     "item_name_ar": "شقف غنم كيلو"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Sausage ½ kg",
+     "price_raw": "$8.5",
+     "item_name_ar": "مقانق نص كيلو"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Sujuk ½ kg",
+     "price_raw": "$8",
+     "item_name_ar": "سجق نص كيلو"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Basterma 200 g",
+     "price_raw": "$8.5",
+     "item_name_ar": "بسترما (٢٠٠غ)"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Castaleta Lamb 1 kg",
+     "price_raw": "$24",
+     "item_name_ar": "ريش غنم كيلو"
+    },
+    {
+     "section": "Ready to Cook",
+     "item_name": "Marinated Orfali 1 kg",
+     "price_raw": "$22",
+     "item_name_ar": "اورفلي متبل كيلو"
+    },
+    {
+     "section": "Sides",
+     "item_name": "Hot Chilli Sauce",
+     "price_raw": "$1.5",
+     "item_name_ar": "شطة حلبية"
+    },
+    {
+     "section": "Sides",
+     "item_name": "Pickles",
+     "price_raw": "$1.5",
+     "item_name_ar": "كبيس"
+    },
+    {
+     "section": "Sides",
+     "item_name": "Garlic Sauce Small",
+     "price_raw": "$1.5",
+     "item_name_ar": "ثوم صغير"
+    },
+    {
+     "section": "Sides",
+     "item_name": "Garlic Sauce Large",
+     "price_raw": "$2.5",
+     "item_name_ar": "ثوم كبير"
+    },
+    {
+     "section": "Sides",
+     "item_name": "Chilli Garlic Sauce",
+     "price_raw": "$1.5",
+     "item_name_ar": "ثوم حر"
+    },
+    {
+     "section": "Desserts",
+     "item_name": "Custard",
+     "price_raw": "$2.5",
+     "item_name_ar": "كسترد",
+     "section_note": "Ask about today's desserts"
+    },
+    {
+     "section": "Desserts",
+     "item_name": "Meghli",
+     "price_raw": "$3",
+     "item_name_ar": "مغلي",
+     "section_note": "Ask about today's desserts"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Soft Drinks",
+     "price_raw": "$2",
+     "item_name_ar": "مشروبات غازية"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Soft Drinks 1.5 L",
+     "price_raw": "$3",
+     "item_name_ar": "مشروبات غازية (١.٥ل)"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Perrier",
+     "price_raw": "$3",
+     "item_name_ar": "بارييه"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Ice Tea",
+     "price_raw": "$2.5",
+     "item_name_ar": "آيس تي"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Energy Drink",
+     "price_raw": "$2.5",
+     "item_name_ar": "مشروب طاقة"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Juice",
+     "price_raw": "$1.5",
+     "item_name_ar": "عصير"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Ayran Yogurt",
+     "price_raw": "$1.5",
+     "item_name_ar": "لبن عيران"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Small Water",
+     "price_raw": "$1",
+     "item_name_ar": "ماء صغير"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Large Water",
+     "price_raw": "$1.5",
+     "item_name_ar": "ماء كبير"
+    }
+   ]
+  }
+ ]
+}

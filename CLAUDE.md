@@ -37,7 +37,7 @@ The pilot is Shouf-first: vendors come from `supabase/seed/shouf/source/` (§38)
 - No hard-coded business numbers: exchange rate, VAT, fee bands, COD cap and message rates live in dated tables or config (DECISIONS §1, §6).
 - Dual currency: customer totals show USD and LBP at the rate locked on the order.
 - AI proposes, server decides: the AI may interpret and call typed tools; merchant-facing changes to prices, availability or hours need the merchant's confirming tap.
-- Vendors: unclaimed vendors have no public page and no ratings; seed data is marked `source = seed` until the merchant confirms it (DECISIONS §15).
+- Vendors: unclaimed vendors have no ratings, are never orderable and get only the "Not on Alo King yet" listing (DECISIONS §39.3); seed data is marked `source = seed` until the merchant confirms it (DECISIONS §15).
 - Marketing only to customers who opted in, via approved templates, with STOP honoured instantly.
 - WhatsApp interactive limits are enforced in `supabase/functions/_shared/meta-limits.ts` and its test; add every new card builder to that test.
 - Never read the `vendors` table with `select('*')` from the front end.
