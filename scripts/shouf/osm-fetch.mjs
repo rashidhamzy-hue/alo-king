@@ -2,9 +2,10 @@
 // the Overpass API and writes the two files scripts/load-seed.sh loads:
 //   <out>/landmarks.csv      osm_ref, kind, name_ar, name_en, aliases, lat, lon
 //   <out>/place_aliases.csv  osm_ref, alias, lang, osm_key, lat, lon
-// The area is the box around the 315 Shouf merchants plus a margin (no coordinates are written here).
-// Build sessions cannot reach Overpass; the staging deploy job runs this when the files are not committed.
-// Usage: node scripts/shouf/osm-fetch.mjs <out dir> [merchants.csv]
+// The area is the box around the 315 Shouf merchants plus a margin: the delivery radius, max_delivery_km(), since
+// session E (DECISIONS §39.2), so every place switched on is covered; the loader keeps place names only for places
+// that are on. Build sessions cannot reach Overpass; the staging deploy job runs this when the files are not committed.
+// Usage: node scripts/shouf/osm-fetch.mjs <out dir> [merchants.csv] [--margin-km <km>]
 // © OpenStreetMap contributors, ODbL (attribution in the site footer, supabase/seed/README.md).
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -14,10 +15,10 @@ const ENDPOINTS = [
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",
 ];
-const MARGIN_DEG = 0.02; // about 2 km around the outermost merchant
+const KM_PER_DEG_LAT = 111.32;
 
-/** Box (south, west, north, east) around the merchants' coordinates, plus the margin. */
-export function pilotBox(csvText) {
+/** Box (south, west, north, east) around the merchants' coordinates, plus `marginKm` on every side. */
+export function pilotBox(csvText, marginKm = 2) {
   const [head, ...lines] = csvText.trim().split("\n");
   const cols = head.split(",");
   const iLat = cols.indexOf("latitude");
@@ -36,11 +37,14 @@ export function pilotBox(csvText) {
   }
   if (!lats.length) throw new Error("no merchant coordinates");
   const r = (n) => Math.round(n * 1e4) / 1e4;
+  const dLat = marginKm / KM_PER_DEG_LAT;
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const dLon = marginKm / (KM_PER_DEG_LAT * Math.cos((midLat * Math.PI) / 180));
   return [
-    r(Math.min(...lats) - MARGIN_DEG),
-    r(Math.min(...lons) - MARGIN_DEG),
-    r(Math.max(...lats) + MARGIN_DEG),
-    r(Math.max(...lons) + MARGIN_DEG),
+    r(Math.min(...lats) - dLat),
+    r(Math.min(...lons) - dLon),
+    r(Math.max(...lats) + dLat),
+    r(Math.max(...lons) + dLon),
   ];
 }
 
@@ -162,13 +166,15 @@ async function fetchOverpass(query) {
 }
 
 if (process.argv[1]?.endsWith("osm-fetch.mjs")) {
-  const out = process.argv[2];
-  const merchants = process.argv[3] ?? "supabase/seed/shouf/source/01_shouf_merchants_315.csv";
-  if (!out) {
-    console.error("usage: osm-fetch.mjs <out dir> [merchants.csv]");
+  const args = process.argv.slice(2);
+  const flag = args.indexOf("--margin-km");
+  const marginKm = flag >= 0 ? Number(args.splice(flag, 2)[1]) : 2;
+  const [out, merchants = "supabase/seed/shouf/source/01_shouf_merchants_315.csv"] = args;
+  if (!out || !(marginKm > 0 && marginKm <= 30)) {
+    console.error("usage: osm-fetch.mjs <out dir> [merchants.csv] [--margin-km <km, 0-30>]");
     process.exit(2);
   }
-  const box = pilotBox(readFileSync(merchants, "utf8"));
+  const box = pilotBox(readFileSync(merchants, "utf8"), marginKm);
   const elements = await fetchOverpass(overpassQuery(box));
   const { landmarks, aliases } = toRows(elements);
   mkdirSync(out, { recursive: true });

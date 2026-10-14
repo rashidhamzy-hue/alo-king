@@ -2,11 +2,11 @@
 // Usage: node --experimental-strip-types scripts/vendors/build-shouf.ts <source dir> <out dir>
 // Writes vendors.csv and exclusions.csv (the vendor loader's format plus town_id), menus.csv (draft menus)
 // and report.md. scripts/load-seed.sh loads them.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { toCsv, VENDOR_COLUMNS, vendorCells } from "./normalize.ts";
 import { normalizeShouf, parseCsv, whatsappDisagreements } from "./shouf.ts";
-import { shoufDrafts } from "./shouf-menus.ts";
+import { ownerDrafts, ownerDuplicates, shoufDrafts } from "./shouf-menus.ts";
 
 const [src, out] = process.argv.slice(2);
 if (!src || !out) {
@@ -14,10 +14,22 @@ if (!src || !out) {
   process.exit(2);
 }
 const rows = parseCsv(readFileSync(join(src, "01_shouf_merchants_315.csv"), "utf8"));
-const { vendors, exclusions, phoneIssues } = normalizeShouf(rows);
-const drafts = shoufDrafts(
-  JSON.parse(readFileSync(join(src, "03_shouf_digital_menus.json"), "utf8")),
+// The owner's transcribed menu photos (§39.4 source 1), when present.
+const ownerFile = join(src, "04_owner_menu_photos_2026-10-14.json");
+const owner = existsSync(ownerFile) ? JSON.parse(readFileSync(ownerFile, "utf8")) : null;
+const { vendors, exclusions, phoneIssues } = normalizeShouf(
+  rows,
+  owner ? ownerDuplicates(owner) : new Map(),
 );
+const drafts = [
+  ...shoufDrafts(JSON.parse(readFileSync(join(src, "03_shouf_digital_menus.json"), "utf8"))),
+  ...(owner ? ownerDrafts(owner) : []),
+];
+const twice = drafts.filter((d, k) => drafts.findIndex((x) => x.place_id === d.place_id) !== k);
+if (twice.length) {
+  console.error(`two draft menus for: ${twice.map((d) => d.vendor_name).join(", ")}`);
+  process.exit(1);
+}
 const known = new Set(vendors.map((v) => v.place_id));
 const missing = drafts.filter((d) => !known.has(d.place_id));
 if (missing.length) {
@@ -44,8 +56,14 @@ writeFileSync(
 writeFileSync(
   join(out, "menus.csv"),
   toCsv(
-    ["place_id", "kind", "sections"],
-    drafts.map((d) => [d.place_id, d.kind, JSON.stringify(d.sections)]),
+    ["place_id", "kind", "sections", "source_url", "captured_at"],
+    drafts.map((d) => [
+      d.place_id,
+      d.kind,
+      JSON.stringify(d.sections),
+      d.source_url,
+      d.captured_at,
+    ]),
   ),
 );
 

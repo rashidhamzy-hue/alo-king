@@ -8,8 +8,9 @@ insert into public.places (id, zone_pcode, name_ar, name_en, kind, governorate_c
   ('LB-CHF-BAAKLINE', 'TZ-SHF', 'بعقلين', 'Baakline', 'town', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.5635 33.6774)', 'test'),
   ('LB-CHF-BAKAATA', null, 'بقعاتا', 'Bakaata', 'village', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.6000 33.6690)', 'test'),
   ('LB-CHF-BEITEDDINE', null, 'بيت الدين', 'Beiteddine', 'town', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.5800 33.6950)', 'test'),
-  ('LB-CHF-TEST-PAUSED', null, 'مكان', 'Paused test place', 'village', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.62 33.65)', 'test');
-update public.places set service_status = 'on' where id = 'LB-CHF-BEITEDDINE';
+  ('LB-CHF-TEST-PAUSED', null, 'مكان', 'Paused test place', 'village', 'mount_lebanon', 'CHF', 'SRID=4326;POINT(35.62 33.65)', 'test'),
+  ('LB-NRT-TEST-FAR', null, 'بعيد', 'Far test place', 'village', 'north', 'BAT', 'SRID=4326;POINT(35.84 34.25)', 'test');
+update public.places set service_status = 'on' where id in ('LB-CHF-BEITEDDINE', 'LB-NRT-TEST-FAR');
 update public.places set service_status = 'paused', paused_reason = 'security' where id = 'LB-CHF-TEST-PAUSED';
 
 -- Seed sources ---------------------------------------------------------------------------------------------------
@@ -20,9 +21,10 @@ select tests.throws($$insert into public.vendors (slug, name_en, business_type, 
 select app_private.pilot_places_apply() as pa \gset
 select tests.ok((select service_status from public.places where id = 'LB-CHF-BAAKLINE') = 'on'
   and (select service_status from public.places where id = 'LB-CHF-BAKAATA') = 'on', 'the pilot villages are switched on');
-select tests.ok((select service_status from public.places where id = 'LB-CHF-BEITEDDINE') = 'off', 'a place outside the pilot goes off');
+select tests.ok((select service_status from public.places where id = 'LB-CHF-BEITEDDINE') = 'on', 'Beiteddine is in the delivery area (§39.2) and stays on');
+select tests.ok((select service_status from public.places where id = 'LB-NRT-TEST-FAR') = 'off', 'a place outside the delivery area goes off');
 select tests.ok((select service_status from public.places where id = 'LB-CHF-TEST-PAUSED') = 'paused', 'a paused place stays paused');
-select tests.ok((:'pa'::jsonb ->> 'missing')::int = 10, 'the 10 pilot villages this database lacks are reported missing');
+select tests.ok((:'pa'::jsonb ->> 'missing')::int = 256, 'the 256 delivery-area places this database lacks are reported missing');
 select tests.ok((app_private.pilot_places_apply() ->> 'switched_on')::int = 0, 'running it again changes nothing');
 
 -- The Shouf load -------------------------------------------------------------------------------------------------
@@ -119,14 +121,14 @@ insert into app_private.seed_osm_landmarks (osm_ref, kind, name_ar, name_en, ali
 insert into app_private.seed_osm_aliases (osm_ref, alias, lang, osm_key, lat, lon) values
   ('node/201', 'Baakleen', '', 'alt_name', 33.6774, 35.5635),
   ('node/201', 'Ba3klin', 'arabizi', 'loc_name', 33.6774, 35.5635),
-  ('node/202', 'Beit ed-Dine', '', 'alt_name', 33.6950, 35.5800);
+  ('node/202', 'Far Alias', '', 'alt_name', 34.2500, 35.8400);
 select app_private.osm_load_seed('osm-sha-1') as o1 \gset
 select tests.ok((:'o1'::jsonb ->> 'landmarks')::int = 2, 'named OSM landmarks are loaded, an unnamed one is not');
 select tests.ok((select bool_and(source = 'osm' and status = 'unconfirmed' and shared and confidence = 0.3) from public.landmarks), 'OSM landmarks start low: unconfirmed, shared, 0.3');
 select tests.ok((select place_id from public.landmarks where osm_ref = 'node/101') = 'LB-CHF-BAAKLINE', 'a landmark gets its place from the point');
 select tests.ok((select count(*) from public.place_aliases where source = 'osm' and place_id = 'LB-CHF-BAAKLINE' and status = 'confirmed') = 2,
   'OSM names of a pilot village become confirmed aliases');
-select tests.ok(not exists (select 1 from public.place_aliases where alias = 'Beit ed-Dine'), 'a name outside the pilot villages is skipped');
+select tests.ok(not exists (select 1 from public.place_aliases where alias = 'Far Alias'), 'a name outside the delivery area is skipped');
 select app_private.promote_landmarks();
 select app_private.promote_place_aliases();
 select tests.ok((select bool_and(shared) from public.landmarks where source = 'osm'), 'promotion keeps OSM landmarks shared');
@@ -172,5 +174,30 @@ select tests.ok((select orderable from public.vendors where id = :'mv')
 select tests.ok(public.sim_market('+99996100000001', false) ->> 'status' = 'ok', 'sim_market closes the test market');
 select tests.ok(not (select orderable from public.vendors where id = :'mv'), 'it is no longer orderable');
 select tests.ok(not exists (select 1 from public.vendor_members where vendor_id = :'mv' and status = 'active'), 'the simulated merchant is revoked');
+
+-- One shop listed twice (§39.4): a later load names the second listing as a duplicate; the unclaimed copy is removed.
+truncate app_private.seed_vendors, app_private.seed_vendor_exclusions, app_private.seed_menu_drafts;
+insert into app_private.seed_vendors (place_id, slug, name_ar, name_en, branch_label, business_type, cuisine_tags, lat, lon,
+  phone_seed, phone_seed_mobile, address_seed, brand_slug, brand_name_en, brand_name_ar, links, import_labels, town_id) values
+  ('ChIJtestdupkeep', 'dup-keep-test', null, 'Dup Keep', null, 'restaurant', '{}', 33.6790, 35.5640,
+   null, null, 'Baakleen', null, null, null, '[]', '{}', 'LB-CHF-BAAKLINE'),
+  ('ChIJtestdupcopy', 'dup-copy-test', 'نسخة', null, null, 'restaurant', '{}', 33.6791, 35.5641,
+   null, null, 'Baakleen', null, null, null, '[]', '{}', 'LB-CHF-BAAKLINE');
+select app_private.shouf_load_seed('test-sha-dup-1') as d1 \gset
+select tests.ok((select count(*) = 2 from public.vendors where place_id in ('ChIJtestdupkeep', 'ChIJtestdupcopy')), 'both listings load at first');
+truncate app_private.seed_vendors, app_private.seed_vendor_exclusions, app_private.seed_menu_drafts;
+insert into app_private.seed_vendors (place_id, slug, name_ar, name_en, branch_label, business_type, cuisine_tags, lat, lon,
+  phone_seed, phone_seed_mobile, address_seed, brand_slug, brand_name_en, brand_name_ar, links, import_labels, town_id) values
+  ('ChIJtestdupkeep', 'dup-keep-test', 'نسخة', 'Dup Keep', null, 'restaurant', '{}', 33.6790, 35.5640,
+   null, null, 'Baakleen', null, null, null, '[]', '{}', 'LB-CHF-BAAKLINE');
+insert into app_private.seed_vendor_exclusions (place_id, name, reason) values ('ChIJtestdupcopy', 'نسخة', 'duplicate of ChIJtestdupkeep');
+select app_private.shouf_load_seed('test-sha-dup-2') as d2 \gset
+select tests.ok((:'d2'::jsonb ->> 'duplicates_removed')::int = 1
+  and not exists (select 1 from public.vendors where place_id = 'ChIJtestdupcopy')
+  and exists (select 1 from public.vendors where place_id = 'ChIJtestdupkeep'),
+  'the duplicate is removed, the kept listing stays');
+select tests.ok(exists (select 1 from public.vendor_import_exclusions where place_id = 'ChIJtestdupcopy' and reason like 'duplicate of %'),
+  'and it is recorded as an exclusion, so it is never imported again');
+truncate app_private.seed_vendors, app_private.seed_vendor_exclusions, app_private.seed_menu_drafts;
 
 rollback;

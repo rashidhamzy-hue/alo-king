@@ -68,6 +68,7 @@ if [ ! -f "$SHOUF_DIR/source/01_shouf_merchants_315.csv" ]; then
 fi
 local sha out
 sha=$(cat "$SHOUF_DIR"/source/01_shouf_merchants_315.csv "$SHOUF_DIR"/source/03_shouf_digital_menus.json \
+  $(ls "$SHOUF_DIR"/source/04_owner_menu_photos_*.json 2>/dev/null) \
   scripts/vendors/normalize.ts scripts/vendors/shouf.ts scripts/vendors/shouf-menus.ts scripts/vendors/build-shouf.ts | sha256sum | cut -c1-64)
 if loaded vendors_shouf "$sha"; then
   echo "shouf seed: unchanged (${sha:0:12}); skipped"
@@ -79,7 +80,7 @@ run --single-transaction <<SQL
 truncate app_private.seed_vendors, app_private.seed_vendor_exclusions, app_private.seed_menu_drafts;
 \copy app_private.seed_vendors (place_id, slug, name_ar, name_en, branch_label, business_type, cuisine_tags, lat, lon, phone_seed, phone_seed_mobile, address_seed, brand_slug, brand_name_en, brand_name_ar, links, import_labels, town_id) from '$out/vendors.csv' with (format csv, header true)
 \copy app_private.seed_vendor_exclusions from '$out/exclusions.csv' with (format csv, header true)
-\copy app_private.seed_menu_drafts from '$out/menus.csv' with (format csv, header true)
+\copy app_private.seed_menu_drafts (place_id, kind, sections, source_url, captured_at) from '$out/menus.csv' with (format csv, header true)
 select 'shouf seed loaded: ' || app_private.shouf_load_seed('$sha')::text;
 truncate app_private.seed_vendors, app_private.seed_vendor_exclusions, app_private.seed_menu_drafts;
 SQL

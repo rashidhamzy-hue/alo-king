@@ -442,10 +442,15 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: OpenStreetMap landmarks and place names for the Shouf pilot (fetched when not committed; DECISIONS §38.2)
+      - name: OpenStreetMap landmarks and place names for the delivery area (fetched when not committed; DECISIONS §38.2, §39.2)
         run: |
           if [ ! -f supabase/seed/shouf/osm/landmarks.csv ]; then
-            node scripts/shouf/osm-fetch.mjs supabase/seed/shouf/osm \
+            command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+            DB_URL="$(scripts/staging-db-url.sh)"
+            echo "::add-mask::$DB_URL"
+            # The box is the merchants plus the delivery radius, read from the fee bands (never a constant here).
+            km=$(psql "$DB_URL" -X -tAc "select public.max_delivery_km()")
+            node scripts/shouf/osm-fetch.mjs supabase/seed/shouf/osm --margin-km "$km" \
               || echo "::warning::Overpass was unreachable; the OSM seed loads on the next deploy"
           fi
       - uses: actions/upload-artifact@v4
