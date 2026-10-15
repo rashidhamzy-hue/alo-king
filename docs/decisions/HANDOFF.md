@@ -296,3 +296,10 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 7. **Lines:** Alfa or touch postpaid lines; Meta business portfolio in the company name, with all three owners as admins (#73).
 8. **Domain:** buy `aloking.com`, then the browser Google key, Search Console, Bing Webmaster and a Google Business Profile (§24.5) (#74).
 9. **Before launch:** set Google Cloud spending limits (§19).
+
+## Kapso account change (planning chat, 15 October)
+- Kapso is on a new account: project `Alo King` (`d4461380-e8d8-4a33-9b87-7b3fffc67d6d`), US test number +1 203-660-2328 (`1378974041965966`, WABA `1086076707594153`, Meta portfolio "Memo Tiles"), Meta fees on Kapso credits. Details in DECISIONS §39.8.
+- Webhooks registered and verified on both numbers. #170 closed by the kapso-number workflow.
+- Open for session 13: five templates refused for emoji in buttons (alo_order_delivered, alo_gift_request, alo_merchant_new_order, alo_copilot_suggestion, and check alo_claim_code); whatsapp-flows run 38762070639 failed with exit code 5; the kapso-number workflow reported success despite refusals.
+- Slack (#175) moved to go-live at Rasheed's request.
+
