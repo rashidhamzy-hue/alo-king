@@ -272,7 +272,17 @@
     - **What syncs:** claimed, orderable, listed shops, with published items only. Retailer id = menu item id; one product set per shop.
     - **When:** on every menu, price, stock, claim or photo change (`app_private.catalog_sync_queue`, leased per shop), plus a 10-minute reconcile and a nightly full sync at 00:20 UTC. Hidden items are never deleted.
     - **Status:** Rasheed made catalogue "Alo King" (1684040949979106) in his portfolio (131819648080461), connected it to the WhatsApp account with the catalogue icon and Add to cart on, and set `META_CATALOG_TOKEN` (#181, done). The token reads and writes the catalogue but cannot read the WhatsApp account (no `whatsapp_business_management`), so #185 checks the catalogue directly and takes the connection as his (LOG). Products synced: Alo Test Grill 15 of 15 (18:01 UTC, after #185 brought the token), none refused; Meta refused each new shop's product set as empty (asked for while the products were still being ingested); since #189 the set is asked for after the products and retried up to five times (product messages do not need sets). After the demo deploy the catalogue held 1,069 products (Alo Test Grill and the 27 demo shops) with nothing pending in the sync queue.
-  - **Demo mode (DECISIONS §39.12):** every real shop with a priced draft menu (27) is a demo shop on staging, orderable, in search, the list menu and the catalogue, with item photos (Fred's Food's website photos, an illustration for the rest). Every order goes to Rasheed's number marked "Demo", and nothing ever reaches a shop's own number.
+  - **8 more full menus (Rasheed, 15 October, `Data:` PR):** harvested by menu-harvest runs (new adapters: rendered item cards with pictures, oddmenu, GloriaFood JSON with sizes and options; menus drawn by clicking are clicked through). Items and photos per shop (demo menu, real photos as `merchant_site`):
+    - Safa Chicken (oddmenu): 140 items, 125 priced, 0 photos (the menu has none);
+    - Tarabish (Thrubits, LBP): 77 items, 76 priced, 29 with sizes, 15 photos;
+    - ROUTE 66 (route66-eatery.com, clicked through): 72 items, 0 photos (section pictures only);
+    - BUN BROS (GloriaFood): 42 items, 7 with options, 14 photos;
+    - Un basilico (Thrubits): 135 items, 87 in the demo (alcohol and shisha left out), 87 photos;
+    - Verona Resto (leb.guide shop page): 14 items, 12 photos;
+    - West Diner (west-diner.pages.dev): 48 items, 15 photos;
+    - Sushi Bell (Thrubits): 196 items, 177 in the demo (alcohol left out), 158 photos.
+    BUN BROS and Sushi Bell had no menu before: demo shops now 29. Items without a picture keep an illustrative one; a picture under 500 px is framed on an 800 × 800 tile. A harvested menu bigger than the curated seed draft now replaces it in the seed.
+  - **Demo mode (DECISIONS §39.12):** every real shop with a priced draft menu (29 since the 8 menus) is a demo shop on staging, orderable, in search, the list menu and the catalogue, with item photos (Fred's Food's website photos, an illustration for the rest). Every order goes to Rasheed's number marked "Demo", and nothing ever reaches a shop's own number.
   - **What the customer sees:**
     - a shop of 30 items or fewer opens as one multi-product message by section;
     - a bigger shop gets its best sellers plus the list menu;

@@ -6,12 +6,13 @@
 -- Safe to run again.
 --
 -- What it does (Rasheed, 15 October: every shop on staging with a menu, growing as menus are added):
---   * the demo shops are every real seed shop whose menu has at least one priced item (27 on 15 October, Eatout included);
---     the menu is the seed draft, or the full harvested one for the shops demo-shops.json lists (Deli Dough, J.O'S);
+--   * the demo shops are every real seed shop whose menu has at least one priced item (29 on 15 October, Eatout included);
+--     the menu is the seed draft, or the full harvested one for the shops demo-shops.json lists;
 --   * writes the dated config row demo_shops (a new row only when the list changed);
 --   * makes each one claimed, orderable and active on staging, marked field_sources.demo, so it shows in search, the
 --     smart list menu and the catalogue (and syncs to the Meta catalogue once it is connected, #181);
---   * publishes its menu once (Deli Dough 350 items, J.O'S 52 from the harvest), LBP prices converted at the dated rate exactly as a merchant's approval does
+--   * publishes its menu once (the full harvested menus: Deli Dough, J.O'S and the 8 Rasheed found on 15 October, without
+--     alcohol or tobacco, which Meta's catalogue refuses), LBP prices converted at the dated rate exactly as a merchant's approval does
 --     (menu_draft_approve_section), without touching the draft; a changed source is published again while the shop has
 --     never had an order;
 --   * makes the owner's phone (app_private.owner_phones) its owner, kitchen WhatsApp and primary order channel, so every
