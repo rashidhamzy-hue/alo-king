@@ -1,0 +1,5044 @@
+{
+ "id": "inv",
+ "fps": 30,
+ "durationInFrames": 8831,
+ "voice": "bm_george",
+ "speed": 0.9,
+ "asrCheck": {
+  "wordErrors": 147,
+  "words": 645,
+  "wer": 0.2279
+ },
+ "lines": [
+  {
+   "scene": "ring",
+   "chapter": 0,
+   "text": "In Lebanon, every phone call starts with one word.",
+   "startMs": 1300,
+   "endMs": 4907
+  },
+  {
+   "scene": "alo",
+   "chapter": 0,
+   "text": "Alo.",
+   "startMs": 5357,
+   "endMs": 6247
+  },
+  {
+   "scene": "promise",
+   "chapter": 0,
+   "text": "Alo King turns that word into an order: food and essentials, ordered in a WhatsApp chat.",
+   "startMs": 7047,
+   "endMs": 13682
+  },
+  {
+   "scene": "habit",
+   "chapter": 1,
+   "text": "Lebanese families already live on WhatsApp: voice notes, Arabizi, even water and gas ordered by message.",
+   "startMs": 14782,
+   "endMs": 22547
+  },
+  {
+   "scene": "apps",
+   "chapter": 1,
+   "text": "Delivery apps ask them to download, sign up and switch, and take twenty-two to thirty percent of every restaurant order.",
+   "startMs": 22997,
+   "endMs": 31430
+  },
+  {
+   "scene": "shops",
+   "chapter": 1,
+   "text": "And most village shops only have a phone.",
+   "startMs": 31880,
+   "endMs": 34770
+  },
+  {
+   "scene": "answer",
+   "chapter": 2,
+   "text": "Alo King is WhatsApp-native. No app to download, no sign-up. Just a chat.",
+   "startMs": 35870,
+   "endMs": 41748
+  },
+  {
+   "scene": "split",
+   "chapter": 2,
+   "text": "The customer talks, the AI understands, and our server decides prices, payments and every order state.",
+   "startMs": 42198,
+   "endMs": 49697
+  },
+  {
+   "scene": "ways",
+   "chapter": 3,
+   "text": "Customers order the way they talk: type it, send a voice note, or tap through the menu.",
+   "startMs": 50797,
+   "endMs": 56546
+  },
+  {
+   "scene": "langs",
+   "chapter": 3,
+   "text": "Arabic, English, French and Arabizi, even mixed in one message.",
+   "startMs": 56996,
+   "endMs": 61572
+  },
+  {
+   "scene": "search",
+   "chapter": 3,
+   "text": "One smart catalogue searches every shop that delivers to them.",
+   "startMs": 62022,
+   "endMs": 66484
+  },
+  {
+   "scene": "basket",
+   "chapter": 3,
+   "text": "The basket comes back as a card, priced by our server in dollars and lira. One tap confirms it.",
+   "startMs": 66934,
+   "endMs": 73725
+  },
+  {
+   "scene": "pay",
+   "chapter": 3,
+   "text": "They pay cash on delivery, or check out with a Whish payment link.",
+   "startMs": 74175,
+   "endMs": 78696
+  },
+  {
+   "scene": "track",
+   "chapter": 3,
+   "text": "Then they track it in the same chat, down to the driver's live location.",
+   "startMs": 79146,
+   "endMs": 84251
+  },
+  {
+   "scene": "diaspora",
+   "chapter": 4,
+   "text": "For the Lebanese abroad, Send Home orders for family in Lebanon and pays by card.",
+   "startMs": 85351,
+   "endMs": 91423
+  },
+  {
+   "scene": "gift",
+   "chapter": 4,
+   "text": "They can schedule it for a birthday or Eid, add a gift note, and follow it from abroad.",
+   "startMs": 91873,
+   "endMs": 97487
+  },
+  {
+   "scene": "brain",
+   "chapter": 5,
+   "text": "Behind the chat is the Alo King brain.",
+   "startMs": 98587,
+   "endMs": 101623
+  },
+  {
+   "scene": "paths",
+   "chapter": 5,
+   "text": "Taps and simple commands need no AI at all, so they are instant and nearly free. Free text uses one model call at most.",
+   "startMs": 102073,
+   "endMs": 111190
+  },
+  {
+   "scene": "tools",
+   "chapter": 5,
+   "text": "The AI never invents a price: every item, fee and time comes from our database, through typed tools.",
+   "startMs": 111640,
+   "endMs": 118896
+  },
+  {
+   "scene": "memory",
+   "chapter": 5,
+   "text": "It remembers each customer's usual order, addresses, language and stated preferences, and they can see or delete it with one tap.",
+   "startMs": 119346,
+   "endMs": 128659
+  },
+  {
+   "scene": "copilot",
+   "chapter": 5,
+   "text": "Merchants get a copilot that updates availability, prices, hours and offers by text or voice, and changes nothing until the owner confirms.",
+   "startMs": 129109,
+   "endMs": 139427
+  },
+  {
+   "scene": "learn",
+   "chapter": 5,
+   "text": "And every corrected voice note makes the next one easier to understand.",
+   "startMs": 139877,
+   "endMs": 144721
+  },
+  {
+   "scene": "listed",
+   "chapter": 6,
+   "text": "Merchants don't start from zero: every shop in our pilot area is already listed, many with a draft menu.",
+   "startMs": 145821,
+   "endMs": 153299
+  },
+  {
+   "scene": "claim",
+   "chapter": 6,
+   "text": "Customers can ask them to join. The owner claims the shop with a code sent to its own phone, approves the menu, and goes live.",
+   "startMs": 153749,
+   "endMs": 162757
+  },
+  {
+   "scene": "channels",
+   "chapter": 6,
+   "text": "Orders reach every kitchen: a WhatsApp order card, a tablet portal, a kitchen printer, a phone call, or a point of sale system.",
+   "startMs": 163207,
+   "endMs": 172389
+  },
+  {
+   "scene": "escalate",
+   "chapter": 6,
+   "text": "No answer in fifteen seconds? The backup fires. At forty-five, the owner's phone rings. At seventy-five, a person steps in.",
+   "startMs": 172839,
+   "endMs": 182034
+  },
+  {
+   "scene": "fee",
+   "chapter": 6,
+   "text": "And the fee is flat: one dollar per delivered meal, the first thirty days free. Not a percentage.",
+   "startMs": 182484,
+   "endMs": 189107
+  },
+  {
+   "scene": "modes",
+   "chapter": 7,
+   "text": "Delivery runs on one system with three modes: the merchant's own driver, our fleet, or a partner courier.",
+   "startMs": 190207,
+   "endMs": 197462
+  },
+  {
+   "scene": "dispatch",
+   "chapter": 7,
+   "text": "The dispatch brain picks the closest idle driver by road time, batches orders that fit, and checks every active order every fifteen seconds.",
+   "startMs": 197912,
+   "endMs": 208049
+  },
+  {
+   "scene": "driverapp",
+   "chapter": 7,
+   "text": "Drivers work from WhatsApp and a live link, with no install, and proof of delivery and cash tracking built in.",
+   "startMs": 208499,
+   "endMs": 216036
+  },
+  {
+   "scene": "learnmap",
+   "chapter": 7,
+   "text": "And every delivery teaches the map: landmarks, door points, and real kitchen times.",
+   "startMs": 216486,
+   "endMs": 222239
+  },
+  {
+   "scene": "db",
+   "chapter": 8,
+   "text": "Underneath, one database is the single source of truth.",
+   "startMs": 223339,
+   "endMs": 227370
+  },
+  {
+   "scene": "dbstack",
+   "chapter": 8,
+   "text": "Two thousand places across Lebanon, two hundred and three Lebanese dishes with nutrition, versioned menus, and a race-tested order engine.",
+   "startMs": 227820,
+   "endMs": 238112
+  },
+  {
+   "scene": "ledger",
+   "chapter": 8,
+   "text": "Every payment, fee and refund is an entry in an append-only ledger, in dollars and lira.",
+   "startMs": 238562,
+   "endMs": 245188
+  },
+  {
+   "scene": "revenue",
+   "chapter": 9,
+   "text": "We earn a flat fee per order, paid promotions and sponsored placements from merchants, and a service fee on Send Home.",
+   "startMs": 246288,
+   "endMs": 254421
+  },
+  {
+   "scene": "cost",
+   "chapter": 9,
+   "text": "Our variable cost is about fifteen cents per order, WhatsApp messages and AI included.",
+   "startMs": 254871,
+   "endMs": 261623
+  },
+  {
+   "scene": "shouf",
+   "chapter": 10,
+   "text": "We start in the Shouf: three hundred and fourteen merchants already listed, twelve villages, and about sixty places served.",
+   "startMs": 262723,
+   "endMs": 270863
+  },
+  {
+   "scene": "built",
+   "chapter": 10,
+   "text": "The platform is built, and a simulator places real test orders end to end after every change.",
+   "startMs": 271313,
+   "endMs": 278412
+  },
+  {
+   "scene": "next",
+   "chapter": 10,
+   "text": "Next, the first five merchants go live, then online payments, then growth.",
+   "startMs": 278862,
+   "endMs": 283993
+  },
+  {
+   "scene": "close",
+   "chapter": 11,
+   "text": "Lebanon already answers with Alo. Alo King makes it an order.",
+   "startMs": 285093,
+   "endMs": 289861
+  }
+ ],
+ "words": [
+  {
+   "text": "In",
+   "startMs": 1300,
+   "endMs": 1440,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "Lebanon,",
+   "startMs": 1440,
+   "endMs": 2150,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 2440,
+   "endMs": 2720,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "phone",
+   "startMs": 2720,
+   "endMs": 3170,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "call",
+   "startMs": 3170,
+   "endMs": 3530,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "starts",
+   "startMs": 3530,
+   "endMs": 3970,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 3970,
+   "endMs": 4130,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 4130,
+   "endMs": 4440,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "word.",
+   "startMs": 4440,
+   "endMs": 4900,
+   "line": 0,
+   "lastInLine": true
+  },
+  {
+   "text": "Alo.",
+   "startMs": 5497,
+   "endMs": 6067,
+   "line": 1,
+   "lastInLine": true
+  },
+  {
+   "text": "Alo",
+   "startMs": 7137,
+   "endMs": 7427,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "King",
+   "startMs": 7427,
+   "endMs": 7817,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "turns",
+   "startMs": 7817,
+   "endMs": 8317,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "that",
+   "startMs": 8317,
+   "endMs": 8507,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "word",
+   "startMs": 8507,
+   "endMs": 8867,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "into",
+   "startMs": 8867,
+   "endMs": 9137,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "an",
+   "startMs": 9137,
+   "endMs": 9237,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "order:",
+   "startMs": 9237,
+   "endMs": 9777,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "food",
+   "startMs": 10127,
+   "endMs": 10687,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 10817,
+   "endMs": 10937,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "essentials,",
+   "startMs": 10937,
+   "endMs": 11757,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "ordered",
+   "startMs": 12017,
+   "endMs": 12417,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 12417,
+   "endMs": 12547,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 12547,
+   "endMs": 12587,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp",
+   "startMs": 12587,
+   "endMs": 13167,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "chat.",
+   "startMs": 13167,
+   "endMs": 13667,
+   "line": 2,
+   "lastInLine": true
+  },
+  {
+   "text": "Lebanese",
+   "startMs": 14782,
+   "endMs": 15352,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "families",
+   "startMs": 15352,
+   "endMs": 15922,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "already",
+   "startMs": 15922,
+   "endMs": 16312,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "live",
+   "startMs": 16312,
+   "endMs": 16612,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "on",
+   "startMs": 16612,
+   "endMs": 16782,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp:",
+   "startMs": 16782,
+   "endMs": 17462,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "voice",
+   "startMs": 17892,
+   "endMs": 18232,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "notes,",
+   "startMs": 18232,
+   "endMs": 18742,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "Arabizi,",
+   "startMs": 19052,
+   "endMs": 19752,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "even",
+   "startMs": 20002,
+   "endMs": 20302,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "water",
+   "startMs": 20302,
+   "endMs": 20672,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 20672,
+   "endMs": 20802,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "gas",
+   "startMs": 20802,
+   "endMs": 21252,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "ordered",
+   "startMs": 21252,
+   "endMs": 21692,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "by",
+   "startMs": 21692,
+   "endMs": 21892,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "message.",
+   "startMs": 21892,
+   "endMs": 22532,
+   "line": 3,
+   "lastInLine": true
+  },
+  {
+   "text": "Delivery",
+   "startMs": 22997,
+   "endMs": 23487,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "apps",
+   "startMs": 23487,
+   "endMs": 23947,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "ask",
+   "startMs": 23947,
+   "endMs": 24377,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "them",
+   "startMs": 24377,
+   "endMs": 24577,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 24577,
+   "endMs": 24757,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "download,",
+   "startMs": 24757,
+   "endMs": 25497,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "sign",
+   "startMs": 25747,
+   "endMs": 26127,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "up",
+   "startMs": 26127,
+   "endMs": 26437,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 26437,
+   "endMs": 26567,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "switch,",
+   "startMs": 26567,
+   "endMs": 27207,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 27647,
+   "endMs": 27787,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "take",
+   "startMs": 27787,
+   "endMs": 28007,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "twenty-two",
+   "startMs": 28007,
+   "endMs": 28377,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 28377,
+   "endMs": 28727,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "thirty",
+   "startMs": 28727,
+   "endMs": 28867,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "percent",
+   "startMs": 28867,
+   "endMs": 29227,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "of",
+   "startMs": 29227,
+   "endMs": 29817,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 29957,
+   "endMs": 30097,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "restaurant",
+   "startMs": 30097,
+   "endMs": 30427,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "order.",
+   "startMs": 30427,
+   "endMs": 30937,
+   "line": 4,
+   "lastInLine": true
+  },
+  {
+   "text": "And",
+   "startMs": 31880,
+   "endMs": 32030,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "most",
+   "startMs": 32030,
+   "endMs": 32400,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "village",
+   "startMs": 32400,
+   "endMs": 32850,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "shops",
+   "startMs": 32850,
+   "endMs": 33400,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "only",
+   "startMs": 33590,
+   "endMs": 33860,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "have",
+   "startMs": 33860,
+   "endMs": 34060,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 34060,
+   "endMs": 34100,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "phone.",
+   "startMs": 34100,
+   "endMs": 34760,
+   "line": 5,
+   "lastInLine": true
+  },
+  {
+   "text": "Alo",
+   "startMs": 35870,
+   "endMs": 36250,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "King",
+   "startMs": 36250,
+   "endMs": 36670,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "is",
+   "startMs": 36670,
+   "endMs": 36860,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp-native.",
+   "startMs": 36860,
+   "endMs": 37390,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "No",
+   "startMs": 37390,
+   "endMs": 37950,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "app",
+   "startMs": 38390,
+   "endMs": 38650,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 38650,
+   "endMs": 38870,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "download,",
+   "startMs": 38870,
+   "endMs": 38990,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "no",
+   "startMs": 38990,
+   "endMs": 39630,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "sign-up.",
+   "startMs": 39630,
+   "endMs": 39850,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "Just",
+   "startMs": 39850,
+   "endMs": 40250,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 40250,
+   "endMs": 40570,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "chat.",
+   "startMs": 40810,
+   "endMs": 41090,
+   "line": 6,
+   "lastInLine": true
+  },
+  {
+   "text": "The",
+   "startMs": 42198,
+   "endMs": 42288,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "customer",
+   "startMs": 42288,
+   "endMs": 42818,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "talks,",
+   "startMs": 42818,
+   "endMs": 43408,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 43648,
+   "endMs": 43768,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "AI",
+   "startMs": 43768,
+   "endMs": 44218,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "understands,",
+   "startMs": 44218,
+   "endMs": 45158,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 45508,
+   "endMs": 45618,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "our",
+   "startMs": 45618,
+   "endMs": 45728,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "server",
+   "startMs": 45728,
+   "endMs": 46158,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "decides",
+   "startMs": 46158,
+   "endMs": 46698,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "prices,",
+   "startMs": 46698,
+   "endMs": 47398,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "payments",
+   "startMs": 47398,
+   "endMs": 48068,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 48278,
+   "endMs": 48418,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 48418,
+   "endMs": 48788,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 48788,
+   "endMs": 49148,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "state.",
+   "startMs": 49148,
+   "endMs": 49688,
+   "line": 7,
+   "lastInLine": true
+  },
+  {
+   "text": "Customers",
+   "startMs": 50797,
+   "endMs": 51457,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 51457,
+   "endMs": 51697,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 51697,
+   "endMs": 51797,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "way",
+   "startMs": 51797,
+   "endMs": 52047,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "they",
+   "startMs": 52047,
+   "endMs": 52237,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "talk:",
+   "startMs": 52237,
+   "endMs": 52777,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "type",
+   "startMs": 53067,
+   "endMs": 53387,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "it,",
+   "startMs": 53387,
+   "endMs": 53687,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "send",
+   "startMs": 53887,
+   "endMs": 54197,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 54197,
+   "endMs": 54237,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "voice",
+   "startMs": 54237,
+   "endMs": 54667,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "note,",
+   "startMs": 54667,
+   "endMs": 55077,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "or",
+   "startMs": 55187,
+   "endMs": 55307,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "tap",
+   "startMs": 55307,
+   "endMs": 55637,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "through",
+   "startMs": 55637,
+   "endMs": 55887,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 55887,
+   "endMs": 55967,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "menu.",
+   "startMs": 55967,
+   "endMs": 56537,
+   "line": 8,
+   "lastInLine": true
+  },
+  {
+   "text": "Arabic,",
+   "startMs": 56996,
+   "endMs": 57556,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "English,",
+   "startMs": 57656,
+   "endMs": 58186,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "French",
+   "startMs": 58386,
+   "endMs": 58786,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 58786,
+   "endMs": 58906,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "Arabizi,",
+   "startMs": 58906,
+   "endMs": 59636,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "even",
+   "startMs": 59946,
+   "endMs": 60196,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "mixed",
+   "startMs": 60196,
+   "endMs": 60536,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 60536,
+   "endMs": 60716,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 60716,
+   "endMs": 60866,
+   "line": 9,
+   "lastInLine": false
+  },
+  {
+   "text": "message.",
+   "startMs": 60866,
+   "endMs": 61556,
+   "line": 9,
+   "lastInLine": true
+  },
+  {
+   "text": "One",
+   "startMs": 62022,
+   "endMs": 62342,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "smart",
+   "startMs": 62342,
+   "endMs": 62782,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "catalogue",
+   "startMs": 62782,
+   "endMs": 63472,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "searches",
+   "startMs": 63752,
+   "endMs": 64272,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 64272,
+   "endMs": 64622,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "shop",
+   "startMs": 64622,
+   "endMs": 65082,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "that",
+   "startMs": 65082,
+   "endMs": 65282,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "delivers",
+   "startMs": 65282,
+   "endMs": 65862,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 65862,
+   "endMs": 66062,
+   "line": 10,
+   "lastInLine": false
+  },
+  {
+   "text": "them.",
+   "startMs": 66062,
+   "endMs": 66472,
+   "line": 10,
+   "lastInLine": true
+  },
+  {
+   "text": "The",
+   "startMs": 66934,
+   "endMs": 67014,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "basket",
+   "startMs": 67014,
+   "endMs": 67494,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "comes",
+   "startMs": 67494,
+   "endMs": 67844,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "back",
+   "startMs": 67844,
+   "endMs": 68204,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "as",
+   "startMs": 68204,
+   "endMs": 68324,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 68324,
+   "endMs": 68374,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "card,",
+   "startMs": 68374,
+   "endMs": 68984,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "priced",
+   "startMs": 69224,
+   "endMs": 69604,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "by",
+   "startMs": 69604,
+   "endMs": 69754,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "our",
+   "startMs": 69754,
+   "endMs": 69874,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "server",
+   "startMs": 69874,
+   "endMs": 70394,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 70394,
+   "endMs": 70594,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "dollars",
+   "startMs": 70594,
+   "endMs": 71184,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 71184,
+   "endMs": 71334,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "lira.",
+   "startMs": 71334,
+   "endMs": 71784,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "One",
+   "startMs": 72234,
+   "endMs": 72494,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "tap",
+   "startMs": 72494,
+   "endMs": 72784,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "confirms",
+   "startMs": 72784,
+   "endMs": 73444,
+   "line": 11,
+   "lastInLine": false
+  },
+  {
+   "text": "it.",
+   "startMs": 73444,
+   "endMs": 73714,
+   "line": 11,
+   "lastInLine": true
+  },
+  {
+   "text": "They",
+   "startMs": 74175,
+   "endMs": 74315,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "pay",
+   "startMs": 74315,
+   "endMs": 74655,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "cash",
+   "startMs": 74655,
+   "endMs": 75165,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "on",
+   "startMs": 75165,
+   "endMs": 75375,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "delivery,",
+   "startMs": 75375,
+   "endMs": 76055,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "or",
+   "startMs": 76335,
+   "endMs": 76475,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "check",
+   "startMs": 76475,
+   "endMs": 76805,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "out",
+   "startMs": 76805,
+   "endMs": 77145,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 77325,
+   "endMs": 77445,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 77445,
+   "endMs": 77485,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "Whish",
+   "startMs": 77485,
+   "endMs": 77825,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "payment",
+   "startMs": 77825,
+   "endMs": 78275,
+   "line": 12,
+   "lastInLine": false
+  },
+  {
+   "text": "link.",
+   "startMs": 78275,
+   "endMs": 78685,
+   "line": 12,
+   "lastInLine": true
+  },
+  {
+   "text": "Then",
+   "startMs": 79146,
+   "endMs": 79396,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "they",
+   "startMs": 79396,
+   "endMs": 79526,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "track",
+   "startMs": 79526,
+   "endMs": 79956,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "it",
+   "startMs": 79956,
+   "endMs": 80206,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 80446,
+   "endMs": 80556,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 80556,
+   "endMs": 80626,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "same",
+   "startMs": 80626,
+   "endMs": 81036,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "chat,",
+   "startMs": 81036,
+   "endMs": 81586,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "down",
+   "startMs": 81856,
+   "endMs": 82266,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 82266,
+   "endMs": 82406,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 82406,
+   "endMs": 82506,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "driver's",
+   "startMs": 82506,
+   "endMs": 83116,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "live",
+   "startMs": 83116,
+   "endMs": 83376,
+   "line": 13,
+   "lastInLine": false
+  },
+  {
+   "text": "location.",
+   "startMs": 83376,
+   "endMs": 84236,
+   "line": 13,
+   "lastInLine": true
+  },
+  {
+   "text": "For",
+   "startMs": 85351,
+   "endMs": 85451,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 85451,
+   "endMs": 85561,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "Lebanese",
+   "startMs": 85561,
+   "endMs": 86161,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "abroad,",
+   "startMs": 86161,
+   "endMs": 86791,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "Send",
+   "startMs": 87111,
+   "endMs": 87401,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "Home",
+   "startMs": 87401,
+   "endMs": 87741,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "orders",
+   "startMs": 87741,
+   "endMs": 88161,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "for",
+   "startMs": 88161,
+   "endMs": 88261,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "family",
+   "startMs": 88261,
+   "endMs": 88881,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 88881,
+   "endMs": 89011,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "Lebanon",
+   "startMs": 89011,
+   "endMs": 89651,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 89941,
+   "endMs": 90091,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "pays",
+   "startMs": 90091,
+   "endMs": 90581,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "by",
+   "startMs": 90581,
+   "endMs": 90791,
+   "line": 14,
+   "lastInLine": false
+  },
+  {
+   "text": "card.",
+   "startMs": 90791,
+   "endMs": 91411,
+   "line": 14,
+   "lastInLine": true
+  },
+  {
+   "text": "They",
+   "startMs": 91873,
+   "endMs": 92023,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "can",
+   "startMs": 92023,
+   "endMs": 92203,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "schedule",
+   "startMs": 92203,
+   "endMs": 92753,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "it",
+   "startMs": 92753,
+   "endMs": 92863,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "for",
+   "startMs": 92863,
+   "endMs": 93053,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 93053,
+   "endMs": 93093,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "birthday",
+   "startMs": 93093,
+   "endMs": 93713,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "or",
+   "startMs": 93713,
+   "endMs": 93903,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "Eid,",
+   "startMs": 94243,
+   "endMs": 94443,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "add",
+   "startMs": 94773,
+   "endMs": 94963,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 94963,
+   "endMs": 95013,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "gift",
+   "startMs": 95013,
+   "endMs": 95363,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "note,",
+   "startMs": 95363,
+   "endMs": 95763,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 96003,
+   "endMs": 96133,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "follow",
+   "startMs": 96133,
+   "endMs": 96563,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "it",
+   "startMs": 96563,
+   "endMs": 96653,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "from",
+   "startMs": 96653,
+   "endMs": 96853,
+   "line": 15,
+   "lastInLine": false
+  },
+  {
+   "text": "abroad.",
+   "startMs": 96853,
+   "endMs": 97473,
+   "line": 15,
+   "lastInLine": true
+  },
+  {
+   "text": "Behind",
+   "startMs": 98587,
+   "endMs": 99027,
+   "line": 16,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 99027,
+   "endMs": 99117,
+   "line": 16,
+   "lastInLine": false
+  },
+  {
+   "text": "chat",
+   "startMs": 99117,
+   "endMs": 99667,
+   "line": 16,
+   "lastInLine": false
+  },
+  {
+   "text": "is",
+   "startMs": 99917,
+   "endMs": 100107,
+   "line": 16,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 100107,
+   "endMs": 100347,
+   "line": 16,
+   "lastInLine": false
+  },
+  {
+   "text": "Alo",
+   "startMs": 100347,
+   "endMs": 100667,
+   "line": 16,
+   "lastInLine": false
+  },
+  {
+   "text": "King",
+   "startMs": 100667,
+   "endMs": 101027,
+   "line": 16,
+   "lastInLine": false
+  },
+  {
+   "text": "brain.",
+   "startMs": 101027,
+   "endMs": 101617,
+   "line": 16,
+   "lastInLine": true
+  },
+  {
+   "text": "Taps",
+   "startMs": 102073,
+   "endMs": 102503,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 102503,
+   "endMs": 102643,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "simple",
+   "startMs": 102643,
+   "endMs": 103013,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "commands",
+   "startMs": 103013,
+   "endMs": 103553,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "need",
+   "startMs": 103553,
+   "endMs": 103793,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "no",
+   "startMs": 103793,
+   "endMs": 104073,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "AI",
+   "startMs": 104073,
+   "endMs": 104523,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "at",
+   "startMs": 104523,
+   "endMs": 104653,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "all,",
+   "startMs": 104653,
+   "endMs": 105013,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "so",
+   "startMs": 105303,
+   "endMs": 105473,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "they",
+   "startMs": 105473,
+   "endMs": 105643,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "are",
+   "startMs": 105643,
+   "endMs": 105803,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "instant",
+   "startMs": 105803,
+   "endMs": 106423,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 106663,
+   "endMs": 106833,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "nearly",
+   "startMs": 106833,
+   "endMs": 107183,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "free.",
+   "startMs": 107183,
+   "endMs": 107763,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "Free",
+   "startMs": 108233,
+   "endMs": 108493,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "text",
+   "startMs": 108493,
+   "endMs": 108973,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "uses",
+   "startMs": 109073,
+   "endMs": 109493,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 109493,
+   "endMs": 109763,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "model",
+   "startMs": 109763,
+   "endMs": 110143,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "call",
+   "startMs": 110143,
+   "endMs": 110503,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "at",
+   "startMs": 110503,
+   "endMs": 110613,
+   "line": 17,
+   "lastInLine": false
+  },
+  {
+   "text": "most.",
+   "startMs": 110613,
+   "endMs": 111183,
+   "line": 17,
+   "lastInLine": true
+  },
+  {
+   "text": "The",
+   "startMs": 111640,
+   "endMs": 111740,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "AI",
+   "startMs": 111740,
+   "endMs": 112200,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "never",
+   "startMs": 112200,
+   "endMs": 112630,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "invents",
+   "startMs": 112630,
+   "endMs": 113070,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 113070,
+   "endMs": 113130,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "price:",
+   "startMs": 113130,
+   "endMs": 113680,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 114070,
+   "endMs": 114440,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "item,",
+   "startMs": 114440,
+   "endMs": 115020,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "fee",
+   "startMs": 115100,
+   "endMs": 115470,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 115470,
+   "endMs": 115610,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "time",
+   "startMs": 115610,
+   "endMs": 116020,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "comes",
+   "startMs": 116020,
+   "endMs": 116320,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "from",
+   "startMs": 116320,
+   "endMs": 116470,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "our",
+   "startMs": 116470,
+   "endMs": 116560,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "database,",
+   "startMs": 116560,
+   "endMs": 117300,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "through",
+   "startMs": 117600,
+   "endMs": 117830,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "typed",
+   "startMs": 117830,
+   "endMs": 118200,
+   "line": 18,
+   "lastInLine": false
+  },
+  {
+   "text": "tools.",
+   "startMs": 118200,
+   "endMs": 118890,
+   "line": 18,
+   "lastInLine": true
+  },
+  {
+   "text": "It",
+   "startMs": 119346,
+   "endMs": 119456,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "remembers",
+   "startMs": 119456,
+   "endMs": 120076,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "each",
+   "startMs": 120076,
+   "endMs": 120426,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "customer's",
+   "startMs": 120426,
+   "endMs": 121056,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "usual",
+   "startMs": 121056,
+   "endMs": 121556,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "order,",
+   "startMs": 121556,
+   "endMs": 121976,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "addresses,",
+   "startMs": 122396,
+   "endMs": 123186,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "language",
+   "startMs": 123476,
+   "endMs": 124036,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 124036,
+   "endMs": 124186,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "stated",
+   "startMs": 124186,
+   "endMs": 124626,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "preferences,",
+   "startMs": 124626,
+   "endMs": 125476,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 125896,
+   "endMs": 126016,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "they",
+   "startMs": 126016,
+   "endMs": 126136,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "can",
+   "startMs": 126136,
+   "endMs": 126316,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "see",
+   "startMs": 126316,
+   "endMs": 126766,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "or",
+   "startMs": 126766,
+   "endMs": 126956,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "delete",
+   "startMs": 126956,
+   "endMs": 127336,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "it",
+   "startMs": 127336,
+   "endMs": 127536,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 127646,
+   "endMs": 127786,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 127786,
+   "endMs": 128146,
+   "line": 19,
+   "lastInLine": false
+  },
+  {
+   "text": "tap.",
+   "startMs": 128146,
+   "endMs": 128646,
+   "line": 19,
+   "lastInLine": true
+  },
+  {
+   "text": "Merchants",
+   "startMs": 129109,
+   "endMs": 129629,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "get",
+   "startMs": 129629,
+   "endMs": 129799,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 129799,
+   "endMs": 129869,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "copilot",
+   "startMs": 129869,
+   "endMs": 130469,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "that",
+   "startMs": 130469,
+   "endMs": 130639,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "updates",
+   "startMs": 130639,
+   "endMs": 131109,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "availability,",
+   "startMs": 131109,
+   "endMs": 132039,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "prices,",
+   "startMs": 132299,
+   "endMs": 133049,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "hours",
+   "startMs": 133389,
+   "endMs": 133899,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 133899,
+   "endMs": 133999,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "offers",
+   "startMs": 133999,
+   "endMs": 134509,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "by",
+   "startMs": 134509,
+   "endMs": 134679,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "text",
+   "startMs": 134679,
+   "endMs": 135219,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "or",
+   "startMs": 135219,
+   "endMs": 135399,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "voice,",
+   "startMs": 135399,
+   "endMs": 135949,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 136329,
+   "endMs": 136469,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "changes",
+   "startMs": 136469,
+   "endMs": 136959,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "nothing",
+   "startMs": 136959,
+   "endMs": 137489,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "until",
+   "startMs": 137749,
+   "endMs": 138019,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 138019,
+   "endMs": 138129,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "owner",
+   "startMs": 138129,
+   "endMs": 138499,
+   "line": 20,
+   "lastInLine": false
+  },
+  {
+   "text": "confirms.",
+   "startMs": 138499,
+   "endMs": 139419,
+   "line": 20,
+   "lastInLine": true
+  },
+  {
+   "text": "And",
+   "startMs": 139877,
+   "endMs": 140047,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 140047,
+   "endMs": 140457,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "corrected",
+   "startMs": 140457,
+   "endMs": 140987,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "voice",
+   "startMs": 140987,
+   "endMs": 141407,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "note",
+   "startMs": 141407,
+   "endMs": 141857,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "makes",
+   "startMs": 142157,
+   "endMs": 142417,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 142417,
+   "endMs": 142507,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "next",
+   "startMs": 142507,
+   "endMs": 142817,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 142817,
+   "endMs": 143067,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "easier",
+   "startMs": 143067,
+   "endMs": 143587,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 143587,
+   "endMs": 143787,
+   "line": 21,
+   "lastInLine": false
+  },
+  {
+   "text": "understand.",
+   "startMs": 143787,
+   "endMs": 144707,
+   "line": 21,
+   "lastInLine": true
+  },
+  {
+   "text": "Merchants",
+   "startMs": 145821,
+   "endMs": 146391,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "don't",
+   "startMs": 146391,
+   "endMs": 146701,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "start",
+   "startMs": 146701,
+   "endMs": 147081,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "from",
+   "startMs": 147081,
+   "endMs": 147291,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "zero:",
+   "startMs": 147291,
+   "endMs": 147901,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 148261,
+   "endMs": 148541,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "shop",
+   "startMs": 148541,
+   "endMs": 148971,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 148971,
+   "endMs": 149041,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "our",
+   "startMs": 149041,
+   "endMs": 149171,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "pilot",
+   "startMs": 149171,
+   "endMs": 149581,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "area",
+   "startMs": 149581,
+   "endMs": 149951,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "is",
+   "startMs": 149951,
+   "endMs": 150201,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "already",
+   "startMs": 150201,
+   "endMs": 150621,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "listed,",
+   "startMs": 150621,
+   "endMs": 151191,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "many",
+   "startMs": 151571,
+   "endMs": 152021,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 152121,
+   "endMs": 152281,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 152281,
+   "endMs": 152321,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "draft",
+   "startMs": 152321,
+   "endMs": 152781,
+   "line": 22,
+   "lastInLine": false
+  },
+  {
+   "text": "menu.",
+   "startMs": 152781,
+   "endMs": 153291,
+   "line": 22,
+   "lastInLine": true
+  },
+  {
+   "text": "Customers",
+   "startMs": 153749,
+   "endMs": 154349,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "can",
+   "startMs": 154349,
+   "endMs": 154519,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "ask",
+   "startMs": 154519,
+   "endMs": 154909,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "them",
+   "startMs": 154909,
+   "endMs": 155099,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 155099,
+   "endMs": 155279,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "join.",
+   "startMs": 155279,
+   "endMs": 155899,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "The",
+   "startMs": 156389,
+   "endMs": 156469,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "owner",
+   "startMs": 156469,
+   "endMs": 156809,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "claims",
+   "startMs": 156809,
+   "endMs": 157249,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 157249,
+   "endMs": 157339,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "shop",
+   "startMs": 157339,
+   "endMs": 157779,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 157779,
+   "endMs": 157919,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 157919,
+   "endMs": 157979,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "code",
+   "startMs": 157979,
+   "endMs": 158419,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "sent",
+   "startMs": 158419,
+   "endMs": 158749,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 158749,
+   "endMs": 158909,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "its",
+   "startMs": 158909,
+   "endMs": 159099,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "own",
+   "startMs": 159099,
+   "endMs": 159349,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "phone,",
+   "startMs": 159349,
+   "endMs": 159919,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "approves",
+   "startMs": 160249,
+   "endMs": 160699,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 160699,
+   "endMs": 160789,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "menu,",
+   "startMs": 160789,
+   "endMs": 161289,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 161609,
+   "endMs": 161789,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "goes",
+   "startMs": 161789,
+   "endMs": 162219,
+   "line": 23,
+   "lastInLine": false
+  },
+  {
+   "text": "live.",
+   "startMs": 162219,
+   "endMs": 162749,
+   "line": 23,
+   "lastInLine": true
+  },
+  {
+   "text": "Orders",
+   "startMs": 163207,
+   "endMs": 163627,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "reach",
+   "startMs": 163627,
+   "endMs": 163917,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 163917,
+   "endMs": 164287,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "kitchen:",
+   "startMs": 164287,
+   "endMs": 164927,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 165307,
+   "endMs": 165367,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp",
+   "startMs": 165367,
+   "endMs": 165907,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 165907,
+   "endMs": 166247,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "card,",
+   "startMs": 166247,
+   "endMs": 166747,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 166957,
+   "endMs": 167027,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "tablet",
+   "startMs": 167027,
+   "endMs": 167537,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "portal,",
+   "startMs": 167537,
+   "endMs": 168087,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 168347,
+   "endMs": 168417,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "kitchen",
+   "startMs": 168417,
+   "endMs": 168887,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "printer,",
+   "startMs": 168887,
+   "endMs": 169417,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 169597,
+   "endMs": 169657,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "phone",
+   "startMs": 169657,
+   "endMs": 170107,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "call,",
+   "startMs": 170107,
+   "endMs": 170557,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "or",
+   "startMs": 170797,
+   "endMs": 170907,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 170907,
+   "endMs": 170957,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "point",
+   "startMs": 170957,
+   "endMs": 171277,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "of",
+   "startMs": 171277,
+   "endMs": 171367,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "sale",
+   "startMs": 171367,
+   "endMs": 171717,
+   "line": 24,
+   "lastInLine": false
+  },
+  {
+   "text": "system.",
+   "startMs": 171717,
+   "endMs": 172377,
+   "line": 24,
+   "lastInLine": true
+  },
+  {
+   "text": "No",
+   "startMs": 172839,
+   "endMs": 173119,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "answer",
+   "startMs": 173119,
+   "endMs": 173569,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 173569,
+   "endMs": 173679,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "fifteen",
+   "startMs": 173679,
+   "endMs": 174219,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "seconds?",
+   "startMs": 174219,
+   "endMs": 174859,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "The",
+   "startMs": 175169,
+   "endMs": 175259,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "backup",
+   "startMs": 175259,
+   "endMs": 175709,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "fires.",
+   "startMs": 175709,
+   "endMs": 176339,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "At",
+   "startMs": 176709,
+   "endMs": 176829,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "forty-five,",
+   "startMs": 176829,
+   "endMs": 177139,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 177139,
+   "endMs": 177659,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "owner's",
+   "startMs": 177659,
+   "endMs": 177799,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "phone",
+   "startMs": 177799,
+   "endMs": 178259,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "rings.",
+   "startMs": 178259,
+   "endMs": 178689,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "At",
+   "startMs": 178689,
+   "endMs": 179239,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "seventy-five,",
+   "startMs": 179609,
+   "endMs": 179739,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 179739,
+   "endMs": 180139,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "person",
+   "startMs": 180139,
+   "endMs": 180629,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "steps",
+   "startMs": 180719,
+   "endMs": 180779,
+   "line": 25,
+   "lastInLine": false
+  },
+  {
+   "text": "in.",
+   "startMs": 180779,
+   "endMs": 181269,
+   "line": 25,
+   "lastInLine": true
+  },
+  {
+   "text": "And",
+   "startMs": 182484,
+   "endMs": 182614,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 182614,
+   "endMs": 182684,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "fee",
+   "startMs": 182684,
+   "endMs": 183094,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "is",
+   "startMs": 183094,
+   "endMs": 183254,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "flat:",
+   "startMs": 183254,
+   "endMs": 183714,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 184014,
+   "endMs": 184264,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "dollar",
+   "startMs": 184264,
+   "endMs": 184594,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "per",
+   "startMs": 184594,
+   "endMs": 184734,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "delivered",
+   "startMs": 184734,
+   "endMs": 185254,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "meal,",
+   "startMs": 185254,
+   "endMs": 185784,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 185914,
+   "endMs": 185984,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "first",
+   "startMs": 185984,
+   "endMs": 186404,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "thirty",
+   "startMs": 186404,
+   "endMs": 186734,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "days",
+   "startMs": 186734,
+   "endMs": 187134,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "free.",
+   "startMs": 187134,
+   "endMs": 187654,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "Not",
+   "startMs": 188004,
+   "endMs": 188204,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 188204,
+   "endMs": 188254,
+   "line": 26,
+   "lastInLine": false
+  },
+  {
+   "text": "percentage.",
+   "startMs": 188254,
+   "endMs": 189094,
+   "line": 26,
+   "lastInLine": true
+  },
+  {
+   "text": "Delivery",
+   "startMs": 190207,
+   "endMs": 190767,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "runs",
+   "startMs": 190767,
+   "endMs": 191177,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "on",
+   "startMs": 191177,
+   "endMs": 191397,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 191397,
+   "endMs": 191597,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "system",
+   "startMs": 191597,
+   "endMs": 192157,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 192157,
+   "endMs": 192337,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "three",
+   "startMs": 192337,
+   "endMs": 192637,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "modes:",
+   "startMs": 192637,
+   "endMs": 193277,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 193647,
+   "endMs": 193727,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "merchant's",
+   "startMs": 193727,
+   "endMs": 194267,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "own",
+   "startMs": 194267,
+   "endMs": 194557,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "driver,",
+   "startMs": 194557,
+   "endMs": 195137,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "our",
+   "startMs": 195227,
+   "endMs": 195367,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "fleet,",
+   "startMs": 195367,
+   "endMs": 195937,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "or",
+   "startMs": 196227,
+   "endMs": 196387,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 196387,
+   "endMs": 196437,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "partner",
+   "startMs": 196437,
+   "endMs": 196877,
+   "line": 27,
+   "lastInLine": false
+  },
+  {
+   "text": "courier.",
+   "startMs": 196877,
+   "endMs": 197447,
+   "line": 27,
+   "lastInLine": true
+  },
+  {
+   "text": "The",
+   "startMs": 197912,
+   "endMs": 198002,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "dispatch",
+   "startMs": 198002,
+   "endMs": 198572,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "brain",
+   "startMs": 198572,
+   "endMs": 199052,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "picks",
+   "startMs": 199052,
+   "endMs": 199462,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 199462,
+   "endMs": 199562,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "closest",
+   "startMs": 199562,
+   "endMs": 200112,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "idle",
+   "startMs": 200112,
+   "endMs": 200492,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "driver",
+   "startMs": 200492,
+   "endMs": 200962,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "by",
+   "startMs": 200962,
+   "endMs": 201132,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "road",
+   "startMs": 201132,
+   "endMs": 201602,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "time,",
+   "startMs": 201602,
+   "endMs": 202142,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "batches",
+   "startMs": 202562,
+   "endMs": 202982,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "orders",
+   "startMs": 202982,
+   "endMs": 203442,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "that",
+   "startMs": 203442,
+   "endMs": 203622,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "fit,",
+   "startMs": 203622,
+   "endMs": 204082,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 204472,
+   "endMs": 204622,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "checks",
+   "startMs": 204622,
+   "endMs": 205092,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 205222,
+   "endMs": 205542,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "active",
+   "startMs": 205542,
+   "endMs": 205982,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 205982,
+   "endMs": 206422,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 206542,
+   "endMs": 206782,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "fifteen",
+   "startMs": 206782,
+   "endMs": 207372,
+   "line": 28,
+   "lastInLine": false
+  },
+  {
+   "text": "seconds.",
+   "startMs": 207372,
+   "endMs": 208042,
+   "line": 28,
+   "lastInLine": true
+  },
+  {
+   "text": "Drivers",
+   "startMs": 208499,
+   "endMs": 209009,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "work",
+   "startMs": 209009,
+   "endMs": 209289,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "from",
+   "startMs": 209289,
+   "endMs": 209549,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp",
+   "startMs": 209549,
+   "endMs": 210199,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 210199,
+   "endMs": 210309,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 210309,
+   "endMs": 210369,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "live",
+   "startMs": 210369,
+   "endMs": 210649,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "link,",
+   "startMs": 210649,
+   "endMs": 211049,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 211379,
+   "endMs": 211519,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "no",
+   "startMs": 211519,
+   "endMs": 211849,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "install,",
+   "startMs": 211849,
+   "endMs": 212589,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 212899,
+   "endMs": 213039,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "proof",
+   "startMs": 213039,
+   "endMs": 213369,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "of",
+   "startMs": 213369,
+   "endMs": 213509,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "delivery",
+   "startMs": 213509,
+   "endMs": 214169,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 214249,
+   "endMs": 214379,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "cash",
+   "startMs": 214379,
+   "endMs": 214789,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "tracking",
+   "startMs": 214789,
+   "endMs": 215349,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "built",
+   "startMs": 215349,
+   "endMs": 215649,
+   "line": 29,
+   "lastInLine": false
+  },
+  {
+   "text": "in.",
+   "startMs": 215649,
+   "endMs": 216029,
+   "line": 29,
+   "lastInLine": true
+  },
+  {
+   "text": "And",
+   "startMs": 216486,
+   "endMs": 216646,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 216646,
+   "endMs": 216986,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "delivery",
+   "startMs": 216986,
+   "endMs": 217566,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "teaches",
+   "startMs": 217566,
+   "endMs": 218026,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 218026,
+   "endMs": 218106,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "map:",
+   "startMs": 218106,
+   "endMs": 218586,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "landmarks,",
+   "startMs": 218916,
+   "endMs": 219656,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "door",
+   "startMs": 219816,
+   "endMs": 220086,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "points,",
+   "startMs": 220086,
+   "endMs": 220596,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 220746,
+   "endMs": 220876,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "real",
+   "startMs": 220876,
+   "endMs": 221166,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "kitchen",
+   "startMs": 221166,
+   "endMs": 221596,
+   "line": 30,
+   "lastInLine": false
+  },
+  {
+   "text": "times.",
+   "startMs": 221596,
+   "endMs": 222226,
+   "line": 30,
+   "lastInLine": true
+  },
+  {
+   "text": "Underneath,",
+   "startMs": 223339,
+   "endMs": 224029,
+   "line": 31,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 224199,
+   "endMs": 224539,
+   "line": 31,
+   "lastInLine": false
+  },
+  {
+   "text": "database",
+   "startMs": 224539,
+   "endMs": 225239,
+   "line": 31,
+   "lastInLine": false
+  },
+  {
+   "text": "is",
+   "startMs": 225489,
+   "endMs": 225629,
+   "line": 31,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 225629,
+   "endMs": 225729,
+   "line": 31,
+   "lastInLine": false
+  },
+  {
+   "text": "single",
+   "startMs": 225729,
+   "endMs": 226199,
+   "line": 31,
+   "lastInLine": false
+  },
+  {
+   "text": "source",
+   "startMs": 226199,
+   "endMs": 226599,
+   "line": 31,
+   "lastInLine": false
+  },
+  {
+   "text": "of",
+   "startMs": 226599,
+   "endMs": 226729,
+   "line": 31,
+   "lastInLine": false
+  },
+  {
+   "text": "truth.",
+   "startMs": 226729,
+   "endMs": 227359,
+   "line": 31,
+   "lastInLine": true
+  },
+  {
+   "text": "Two",
+   "startMs": 227820,
+   "endMs": 228030,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "thousand",
+   "startMs": 228030,
+   "endMs": 228500,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "places",
+   "startMs": 228500,
+   "endMs": 229060,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "across",
+   "startMs": 229060,
+   "endMs": 229530,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "Lebanon,",
+   "startMs": 229530,
+   "endMs": 230210,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "two",
+   "startMs": 230570,
+   "endMs": 230820,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "hundred",
+   "startMs": 230820,
+   "endMs": 231270,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 231270,
+   "endMs": 231520,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "three",
+   "startMs": 231520,
+   "endMs": 231800,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "Lebanese",
+   "startMs": 231800,
+   "endMs": 232380,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "dishes",
+   "startMs": 232380,
+   "endMs": 232900,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 233040,
+   "endMs": 233200,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "nutrition,",
+   "startMs": 233200,
+   "endMs": 233940,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "versioned",
+   "startMs": 234290,
+   "endMs": 234740,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "menus,",
+   "startMs": 234740,
+   "endMs": 235420,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 235770,
+   "endMs": 235880,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 235880,
+   "endMs": 235920,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "race-tested",
+   "startMs": 235920,
+   "endMs": 236500,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 236620,
+   "endMs": 237070,
+   "line": 32,
+   "lastInLine": false
+  },
+  {
+   "text": "engine.",
+   "startMs": 237070,
+   "endMs": 237500,
+   "line": 32,
+   "lastInLine": true
+  },
+  {
+   "text": "Every",
+   "startMs": 238562,
+   "endMs": 238832,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "payment,",
+   "startMs": 238832,
+   "endMs": 239352,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "fee",
+   "startMs": 239552,
+   "endMs": 240002,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 240002,
+   "endMs": 240122,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "refund",
+   "startMs": 240122,
+   "endMs": 240762,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "is",
+   "startMs": 240892,
+   "endMs": 241032,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "an",
+   "startMs": 241032,
+   "endMs": 241152,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "entry",
+   "startMs": 241152,
+   "endMs": 241752,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 241752,
+   "endMs": 241862,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "an",
+   "startMs": 241862,
+   "endMs": 241942,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "append-only",
+   "startMs": 241942,
+   "endMs": 242362,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "ledger,",
+   "startMs": 242362,
+   "endMs": 242752,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 242752,
+   "endMs": 243262,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "dollars",
+   "startMs": 243612,
+   "endMs": 243772,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 243772,
+   "endMs": 244442,
+   "line": 33,
+   "lastInLine": false
+  },
+  {
+   "text": "lira.",
+   "startMs": 244522,
+   "endMs": 244692,
+   "line": 33,
+   "lastInLine": true
+  },
+  {
+   "text": "We",
+   "startMs": 246288,
+   "endMs": 246468,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "earn",
+   "startMs": 246468,
+   "endMs": 246658,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 246658,
+   "endMs": 246708,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "flat",
+   "startMs": 246708,
+   "endMs": 247098,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "fee",
+   "startMs": 247098,
+   "endMs": 247398,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "per",
+   "startMs": 247398,
+   "endMs": 247598,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "order,",
+   "startMs": 247598,
+   "endMs": 248128,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "paid",
+   "startMs": 248448,
+   "endMs": 248798,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "promotions",
+   "startMs": 248798,
+   "endMs": 249598,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 249758,
+   "endMs": 249898,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "sponsored",
+   "startMs": 249898,
+   "endMs": 250498,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "placements",
+   "startMs": 250498,
+   "endMs": 251058,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "from",
+   "startMs": 251058,
+   "endMs": 251268,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "merchants,",
+   "startMs": 251268,
+   "endMs": 251888,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 252288,
+   "endMs": 252398,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 252398,
+   "endMs": 252438,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "service",
+   "startMs": 252438,
+   "endMs": 252928,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "fee",
+   "startMs": 252928,
+   "endMs": 253298,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "on",
+   "startMs": 253298,
+   "endMs": 253508,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "Send",
+   "startMs": 253508,
+   "endMs": 253858,
+   "line": 34,
+   "lastInLine": false
+  },
+  {
+   "text": "Home.",
+   "startMs": 253858,
+   "endMs": 254408,
+   "line": 34,
+   "lastInLine": true
+  },
+  {
+   "text": "Our",
+   "startMs": 254871,
+   "endMs": 255011,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "variable",
+   "startMs": 255011,
+   "endMs": 255561,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "cost",
+   "startMs": 255561,
+   "endMs": 256101,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "is",
+   "startMs": 256291,
+   "endMs": 256441,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "about",
+   "startMs": 256441,
+   "endMs": 256731,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "fifteen",
+   "startMs": 256731,
+   "endMs": 257261,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "cents",
+   "startMs": 257261,
+   "endMs": 257591,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "per",
+   "startMs": 257591,
+   "endMs": 257751,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "order,",
+   "startMs": 257751,
+   "endMs": 258301,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp",
+   "startMs": 258691,
+   "endMs": 259161,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "messages",
+   "startMs": 259161,
+   "endMs": 259891,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 260121,
+   "endMs": 260311,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "AI",
+   "startMs": 260311,
+   "endMs": 260801,
+   "line": 35,
+   "lastInLine": false
+  },
+  {
+   "text": "included.",
+   "startMs": 260801,
+   "endMs": 261611,
+   "line": 35,
+   "lastInLine": true
+  },
+  {
+   "text": "We",
+   "startMs": 262723,
+   "endMs": 262863,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "start",
+   "startMs": 262863,
+   "endMs": 263253,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 263253,
+   "endMs": 263363,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 263363,
+   "endMs": 263433,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "Shouf:",
+   "startMs": 263433,
+   "endMs": 263943,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "three",
+   "startMs": 264353,
+   "endMs": 264583,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "hundred",
+   "startMs": 264583,
+   "endMs": 265003,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 265003,
+   "endMs": 265163,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "fourteen",
+   "startMs": 265163,
+   "endMs": 265683,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "merchants",
+   "startMs": 265683,
+   "endMs": 266213,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "already",
+   "startMs": 266213,
+   "endMs": 266663,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "listed,",
+   "startMs": 266663,
+   "endMs": 267203,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "twelve",
+   "startMs": 267503,
+   "endMs": 267833,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "villages,",
+   "startMs": 267833,
+   "endMs": 268483,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 268803,
+   "endMs": 268913,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "about",
+   "startMs": 268913,
+   "endMs": 269183,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "sixty",
+   "startMs": 269183,
+   "endMs": 269683,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "places",
+   "startMs": 269683,
+   "endMs": 270173,
+   "line": 36,
+   "lastInLine": false
+  },
+  {
+   "text": "served.",
+   "startMs": 270173,
+   "endMs": 270853,
+   "line": 36,
+   "lastInLine": true
+  },
+  {
+   "text": "The",
+   "startMs": 271313,
+   "endMs": 271383,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "platform",
+   "startMs": 271383,
+   "endMs": 272013,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "is",
+   "startMs": 272013,
+   "endMs": 272163,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "built,",
+   "startMs": 272163,
+   "endMs": 272643,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 272973,
+   "endMs": 273083,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 273083,
+   "endMs": 273123,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "simulator",
+   "startMs": 273123,
+   "endMs": 273813,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "places",
+   "startMs": 273813,
+   "endMs": 274363,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "real",
+   "startMs": 274363,
+   "endMs": 274713,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "test",
+   "startMs": 274713,
+   "endMs": 275203,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "orders",
+   "startMs": 275403,
+   "endMs": 275833,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "end",
+   "startMs": 275833,
+   "endMs": 276193,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 276193,
+   "endMs": 276383,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "end",
+   "startMs": 276383,
+   "endMs": 276843,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "after",
+   "startMs": 277073,
+   "endMs": 277383,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "every",
+   "startMs": 277383,
+   "endMs": 277703,
+   "line": 37,
+   "lastInLine": false
+  },
+  {
+   "text": "change.",
+   "startMs": 277703,
+   "endMs": 278403,
+   "line": 37,
+   "lastInLine": true
+  },
+  {
+   "text": "Next,",
+   "startMs": 278862,
+   "endMs": 279362,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 279362,
+   "endMs": 279462,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "first",
+   "startMs": 279462,
+   "endMs": 279832,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "five",
+   "startMs": 279832,
+   "endMs": 280152,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "merchants",
+   "startMs": 280152,
+   "endMs": 280642,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "go",
+   "startMs": 280642,
+   "endMs": 280862,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "live,",
+   "startMs": 280862,
+   "endMs": 281272,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "then",
+   "startMs": 281602,
+   "endMs": 281802,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "online",
+   "startMs": 281802,
+   "endMs": 282372,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "payments,",
+   "startMs": 282372,
+   "endMs": 282952,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "then",
+   "startMs": 283172,
+   "endMs": 283402,
+   "line": 38,
+   "lastInLine": false
+  },
+  {
+   "text": "growth.",
+   "startMs": 283402,
+   "endMs": 283982,
+   "line": 38,
+   "lastInLine": true
+  },
+  {
+   "text": "Lebanon",
+   "startMs": 285093,
+   "endMs": 285713,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "already",
+   "startMs": 285713,
+   "endMs": 286213,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "answers",
+   "startMs": 286213,
+   "endMs": 286763,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 286763,
+   "endMs": 287053,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "Alo.",
+   "startMs": 287053,
+   "endMs": 287493,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "Alo",
+   "startMs": 287993,
+   "endMs": 288243,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "King",
+   "startMs": 288243,
+   "endMs": 288693,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "makes",
+   "startMs": 288813,
+   "endMs": 289083,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "it",
+   "startMs": 289083,
+   "endMs": 289233,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "an",
+   "startMs": 289233,
+   "endMs": 289333,
+   "line": 39,
+   "lastInLine": false
+  },
+  {
+   "text": "order.",
+   "startMs": 289333,
+   "endMs": 289733,
+   "line": 39,
+   "lastInLine": true
+  }
+ ],
+ "scenes": [
+  {
+   "id": "ring",
+   "line": 0,
+   "chapter": 0,
+   "from": 0,
+   "to": 153
+  },
+  {
+   "id": "alo",
+   "line": 1,
+   "chapter": 0,
+   "from": 153,
+   "to": 204
+  },
+  {
+   "id": "promise",
+   "line": 2,
+   "chapter": 0,
+   "from": 204,
+   "to": 436
+  },
+  {
+   "id": "habit",
+   "line": 3,
+   "chapter": 1,
+   "from": 436,
+   "to": 682
+  },
+  {
+   "id": "apps",
+   "line": 4,
+   "chapter": 1,
+   "from": 682,
+   "to": 949
+  },
+  {
+   "id": "shops",
+   "line": 5,
+   "chapter": 1,
+   "from": 949,
+   "to": 1069
+  },
+  {
+   "id": "answer",
+   "line": 6,
+   "chapter": 2,
+   "from": 1069,
+   "to": 1258
+  },
+  {
+   "id": "split",
+   "line": 7,
+   "chapter": 2,
+   "from": 1258,
+   "to": 1516
+  },
+  {
+   "id": "ways",
+   "line": 8,
+   "chapter": 3,
+   "from": 1516,
+   "to": 1702
+  },
+  {
+   "id": "langs",
+   "line": 9,
+   "chapter": 3,
+   "from": 1702,
+   "to": 1853
+  },
+  {
+   "id": "search",
+   "line": 10,
+   "chapter": 3,
+   "from": 1853,
+   "to": 2001
+  },
+  {
+   "id": "basket",
+   "line": 11,
+   "chapter": 3,
+   "from": 2001,
+   "to": 2218
+  },
+  {
+   "id": "pay",
+   "line": 12,
+   "chapter": 3,
+   "from": 2218,
+   "to": 2367
+  },
+  {
+   "id": "track",
+   "line": 13,
+   "chapter": 3,
+   "from": 2367,
+   "to": 2553
+  },
+  {
+   "id": "diaspora",
+   "line": 14,
+   "chapter": 4,
+   "from": 2553,
+   "to": 2749
+  },
+  {
+   "id": "gift",
+   "line": 15,
+   "chapter": 4,
+   "from": 2749,
+   "to": 2950
+  },
+  {
+   "id": "brain",
+   "line": 16,
+   "chapter": 5,
+   "from": 2950,
+   "to": 3055
+  },
+  {
+   "id": "paths",
+   "line": 17,
+   "chapter": 5,
+   "from": 3055,
+   "to": 3342
+  },
+  {
+   "id": "tools",
+   "line": 18,
+   "chapter": 5,
+   "from": 3342,
+   "to": 3573
+  },
+  {
+   "id": "memory",
+   "line": 19,
+   "chapter": 5,
+   "from": 3573,
+   "to": 3866
+  },
+  {
+   "id": "copilot",
+   "line": 20,
+   "chapter": 5,
+   "from": 3866,
+   "to": 4189
+  },
+  {
+   "id": "learn",
+   "line": 21,
+   "chapter": 5,
+   "from": 4189,
+   "to": 4367
+  },
+  {
+   "id": "listed",
+   "line": 22,
+   "chapter": 6,
+   "from": 4367,
+   "to": 4605
+  },
+  {
+   "id": "claim",
+   "line": 23,
+   "chapter": 6,
+   "from": 4605,
+   "to": 4889
+  },
+  {
+   "id": "channels",
+   "line": 24,
+   "chapter": 6,
+   "from": 4889,
+   "to": 5178
+  },
+  {
+   "id": "escalate",
+   "line": 25,
+   "chapter": 6,
+   "from": 5178,
+   "to": 5467
+  },
+  {
+   "id": "fee",
+   "line": 26,
+   "chapter": 6,
+   "from": 5467,
+   "to": 5699
+  },
+  {
+   "id": "modes",
+   "line": 27,
+   "chapter": 7,
+   "from": 5699,
+   "to": 5930
+  },
+  {
+   "id": "dispatch",
+   "line": 28,
+   "chapter": 7,
+   "from": 5930,
+   "to": 6247
+  },
+  {
+   "id": "driverapp",
+   "line": 29,
+   "chapter": 7,
+   "from": 6247,
+   "to": 6487
+  },
+  {
+   "id": "learnmap",
+   "line": 30,
+   "chapter": 7,
+   "from": 6487,
+   "to": 6693
+  },
+  {
+   "id": "db",
+   "line": 31,
+   "chapter": 8,
+   "from": 6693,
+   "to": 6827
+  },
+  {
+   "id": "dbstack",
+   "line": 32,
+   "chapter": 8,
+   "from": 6827,
+   "to": 7149
+  },
+  {
+   "id": "ledger",
+   "line": 33,
+   "chapter": 8,
+   "from": 7149,
+   "to": 7381
+  },
+  {
+   "id": "revenue",
+   "line": 34,
+   "chapter": 9,
+   "from": 7381,
+   "to": 7639
+  },
+  {
+   "id": "cost",
+   "line": 35,
+   "chapter": 9,
+   "from": 7639,
+   "to": 7874
+  },
+  {
+   "id": "shouf",
+   "line": 36,
+   "chapter": 10,
+   "from": 7874,
+   "to": 8132
+  },
+  {
+   "id": "built",
+   "line": 37,
+   "chapter": 10,
+   "from": 8132,
+   "to": 8358
+  },
+  {
+   "id": "next",
+   "line": 38,
+   "chapter": 10,
+   "from": 8358,
+   "to": 8545
+  },
+  {
+   "id": "close",
+   "line": 39,
+   "chapter": 11,
+   "from": 8545,
+   "to": 8831
+  }
+ ]
+}

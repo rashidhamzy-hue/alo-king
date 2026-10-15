@@ -1,0 +1,206 @@
+{
+ "id": "inv",
+ "title": "Alo King: how it works (investors and partners)",
+ "lines": [
+  {
+   "chapter": 0,
+   "scene": "ring",
+   "text": "In Lebanon, every phone call starts with one word."
+  },
+  {
+   "chapter": 0,
+   "scene": "alo",
+   "text": "Alo."
+  },
+  {
+   "chapter": 0,
+   "scene": "promise",
+   "text": "Alo King turns that word into an order: food and essentials, ordered in a WhatsApp chat."
+  },
+  {
+   "chapter": 1,
+   "scene": "habit",
+   "text": "Lebanese families already live on WhatsApp: voice notes, Arabizi, even water and gas ordered by message."
+  },
+  {
+   "chapter": 1,
+   "scene": "apps",
+   "text": "Delivery apps ask them to download, sign up and switch, and take twenty-two to thirty percent of every restaurant order."
+  },
+  {
+   "chapter": 1,
+   "scene": "shops",
+   "text": "And most village shops only have a phone."
+  },
+  {
+   "chapter": 2,
+   "scene": "answer",
+   "text": "Alo King is WhatsApp-native. No app to download, no sign-up. Just a chat."
+  },
+  {
+   "chapter": 2,
+   "scene": "split",
+   "text": "The customer talks, the AI understands, and our server decides prices, payments and every order state."
+  },
+  {
+   "chapter": 3,
+   "scene": "ways",
+   "text": "Customers order the way they talk: type it, send a voice note, or tap through the menu."
+  },
+  {
+   "chapter": 3,
+   "scene": "langs",
+   "text": "Arabic, English, French and Arabizi, even mixed in one message."
+  },
+  {
+   "chapter": 3,
+   "scene": "search",
+   "text": "One smart catalogue searches every shop that delivers to them."
+  },
+  {
+   "chapter": 3,
+   "scene": "basket",
+   "text": "The basket comes back as a card, priced by our server in dollars and lira. One tap confirms it."
+  },
+  {
+   "chapter": 3,
+   "scene": "pay",
+   "text": "They pay cash on delivery, or check out with a Whish payment link."
+  },
+  {
+   "chapter": 3,
+   "scene": "track",
+   "text": "Then they track it in the same chat, down to the driver's live location."
+  },
+  {
+   "chapter": 4,
+   "scene": "diaspora",
+   "text": "For the Lebanese abroad, Send Home orders for family in Lebanon and pays by card."
+  },
+  {
+   "chapter": 4,
+   "scene": "gift",
+   "text": "They can schedule it for a birthday or Eid, add a gift note, and follow it from abroad."
+  },
+  {
+   "chapter": 5,
+   "scene": "brain",
+   "text": "Behind the chat is the Alo King brain."
+  },
+  {
+   "chapter": 5,
+   "scene": "paths",
+   "text": "Taps and simple commands need no AI at all, so they are instant and nearly free. Free text uses one model call at most."
+  },
+  {
+   "chapter": 5,
+   "scene": "tools",
+   "text": "The AI never invents a price: every item, fee and time comes from our database, through typed tools."
+  },
+  {
+   "chapter": 5,
+   "scene": "memory",
+   "text": "It remembers each customer's usual order, addresses, language and stated preferences, and they can see or delete it with one tap."
+  },
+  {
+   "chapter": 5,
+   "scene": "copilot",
+   "text": "Merchants get a copilot that updates availability, prices, hours and offers by text or voice, and changes nothing until the owner confirms."
+  },
+  {
+   "chapter": 5,
+   "scene": "learn",
+   "text": "And every corrected voice note makes the next one easier to understand."
+  },
+  {
+   "chapter": 6,
+   "scene": "listed",
+   "text": "Merchants don't start from zero: every shop in our pilot area is already listed, many with a draft menu."
+  },
+  {
+   "chapter": 6,
+   "scene": "claim",
+   "text": "Customers can ask them to join. The owner claims the shop with a code sent to its own phone, approves the menu, and goes live."
+  },
+  {
+   "chapter": 6,
+   "scene": "channels",
+   "text": "Orders reach every kitchen: a WhatsApp order card, a tablet portal, a kitchen printer, a phone call, or a point of sale system."
+  },
+  {
+   "chapter": 6,
+   "scene": "escalate",
+   "text": "No answer in fifteen seconds? The backup fires. At forty-five, the owner's phone rings. At seventy-five, a person steps in."
+  },
+  {
+   "chapter": 6,
+   "scene": "fee",
+   "text": "And the fee is flat: one dollar per delivered meal, the first thirty days free. Not a percentage."
+  },
+  {
+   "chapter": 7,
+   "scene": "modes",
+   "text": "Delivery runs on one system with three modes: the merchant's own driver, our fleet, or a partner courier."
+  },
+  {
+   "chapter": 7,
+   "scene": "dispatch",
+   "text": "The dispatch brain picks the closest idle driver by road time, batches orders that fit, and checks every active order every fifteen seconds."
+  },
+  {
+   "chapter": 7,
+   "scene": "driverapp",
+   "text": "Drivers work from WhatsApp and a live link, with no install, and proof of delivery and cash tracking built in."
+  },
+  {
+   "chapter": 7,
+   "scene": "learnmap",
+   "text": "And every delivery teaches the map: landmarks, door points, and real kitchen times."
+  },
+  {
+   "chapter": 8,
+   "scene": "db",
+   "text": "Underneath, one database is the single source of truth."
+  },
+  {
+   "chapter": 8,
+   "scene": "dbstack",
+   "text": "Two thousand places across Lebanon, two hundred and three Lebanese dishes with nutrition, versioned menus, and a race-tested order engine."
+  },
+  {
+   "chapter": 8,
+   "scene": "ledger",
+   "text": "Every payment, fee and refund is an entry in an append-only ledger, in dollars and lira."
+  },
+  {
+   "chapter": 9,
+   "scene": "revenue",
+   "text": "We earn a flat fee per order, paid promotions and sponsored placements from merchants, and a service fee on Send Home."
+  },
+  {
+   "chapter": 9,
+   "scene": "cost",
+   "text": "Our variable cost is about fifteen cents per order, WhatsApp messages and AI included."
+  },
+  {
+   "chapter": 10,
+   "scene": "shouf",
+   "text": "We start in the Shouf: three hundred and fourteen merchants already listed, twelve villages, and about sixty places served."
+  },
+  {
+   "chapter": 10,
+   "scene": "built",
+   "text": "The platform is built, and a simulator places real test orders end to end after every change."
+  },
+  {
+   "chapter": 10,
+   "scene": "next",
+   "text": "Next, the first five merchants go live, then online payments, then growth."
+  },
+  {
+   "chapter": 11,
+   "scene": "close",
+   "text": "Lebanon already answers with Alo. Alo King makes it an order."
+  }
+ ]
+}

@@ -21,10 +21,12 @@ SAMPLE_RATE = 24000
 OVERRIDES = {
     "whatsapp": "wˈʌtsˌæp",
     "arabizi": "ˌɛɹəbˈizi",
-    "alo": "ɑlˈO",
+    "alo": "ʔalˈoː",  # Lebanese "ألو", as when picking up the phone: short a, pure long o, stress on the second syllable
     "arrives": "əɹˈIvz",
     "live": "lˈɪv",  # "customers already live on WhatsApp" (verb)
     "the": "ðə",
+    "shouf": "ʃˈuf",
+    "catalogue": "kˈæɾəlˌɔɡ",
     "a": "ə",
 }
 
@@ -53,7 +55,7 @@ def _session() -> ort.InferenceSession:
     return ort.InferenceSession(os.path.join(MODELS, "kokoro-v1.0-fp32.onnx"), opts, providers=["CPUExecutionProvider"])
 
 
-def word_phonemes(word: str) -> str:
+def _lookup(word: str) -> str | None:
     key = word.lower()
     if key in OVERRIDES:
         return OVERRIDES[key]
@@ -62,6 +64,38 @@ def word_phonemes(word: str) -> str:
         v = lex.get(k)
         if v is not None:
             return v["DEFAULT"] if isinstance(v, dict) else v
+    return None
+
+
+_VOICELESS = set("ptkfθ")
+_SIBILANT = ("s", "z", "ʃ", "ʒ", "ʧ", "ʤ")
+
+
+def _plural(base: str) -> str:
+    """English -s: ɪz after sibilants, s after voiceless consonants, z otherwise."""
+    last = base.rstrip("ˈˌː")[-1]
+    return base + ("ɪz" if last in _SIBILANT else "s" if last in _VOICELESS else "z")
+
+
+def word_phonemes(word: str) -> str:
+    hit = _lookup(word)
+    if hit is not None:
+        return hit
+    w = word.lower()
+    # Regular inflections built on a word the lexicon knows: possessive 's, plural or third person -s/-es/-ies, past -ed.
+    if w.endswith("'s") and (b := _lookup(w[:-2])):
+        return _plural(b)
+    if w.endswith("ies") and (b := _lookup(w[:-3] + "y")):
+        return _plural(b)
+    if w.endswith("es") and (b := _lookup(w[:-2])) and w[-3] in "sxzh":
+        return _plural(b)
+    if w.endswith("s") and (b := _lookup(w[:-1])):
+        return _plural(b)
+    if w.endswith("ed"):
+        for stem in (w[:-1], w[:-2]):
+            if b := _lookup(stem):
+                last = b.rstrip("ˈˌː")[-1]
+                return b + ("ᵻd" if last in "td" else "t" if last in _VOICELESS or last in ("ʃ", "ʧ", "s") else "d")
     raise KeyError(f"no pronunciation for {word!r}: add it to OVERRIDES")
 
 

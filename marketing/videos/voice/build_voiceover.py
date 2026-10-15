@@ -151,6 +151,11 @@ def build(vid: str, voice: str) -> dict:
 def main() -> None:
     with open(os.path.join(HERE, "selection.json"), encoding="utf-8") as f:
         voice = json.load(f)["winner"]
+    if sys.argv[1:] == ["investor"]:
+        d = build_long(os.path.join(ROOT, "investor", "script.json"), voice)
+        lens = [s["to"] - s["from"] for s in d["scenes"]]
+        print("investor", d["durationInFrames"] / FPS, "s", "asr", d["asrCheck"], "scenes", len(lens), "avg", round(sum(lens) / len(lens) / FPS, 2), "max", round(max(lens) / FPS, 2))
+        return
     for vid in ("v1", "v2"):
         d = build(vid, voice)
         lens = [s["to"] - s["from"] for s in d["scenes"]]
@@ -158,6 +163,57 @@ def main() -> None:
               "scenes", len(lens), "avg", round(sum(lens) / len(lens) / FPS, 2), "s", "max", round(max(lens) / FPS, 2), "s")
         for s in d["scenes"]:
             print("  ", s["id"], s["from"], s["to"], round((s["to"] - s["from"]) / FPS, 2))
+
+
+
+# ---------- long form (the investor explainer) ----------
+def build_long(script_path: str, voice: str, speed: float = 0.90, gap_s: float = 0.45, chapter_gap_s: float = 1.1,
+               lead_s: float = 1.3, tail_s: float = 4.5) -> dict:
+    """Same pipeline as build(), but the length follows the script: slower read, longer pauses, chapter breaks."""
+    with open(script_path, encoding="utf-8") as f:
+        script = json.load(f)
+    vid = script["id"]
+    sr = k.SAMPLE_RATE
+    clips = [trim(k.synthesize(l["text"], voice, speed)) for l in script["lines"]]
+    starts, t = [], lead_s
+    for i, (line, clip) in enumerate(zip(script["lines"], clips)):
+        starts.append(t)
+        t += len(clip) / sr
+        nxt = script["lines"][i + 1] if i + 1 < len(script["lines"]) else None
+        if nxt is not None:
+            t += chapter_gap_s if nxt["chapter"] != line["chapter"] else gap_s + (0.35 if line["scene"] == "alo" else 0)
+    duration = round(t + tail_s, 2)
+    n_frames = int(round(duration * FPS))
+    timeline = np.zeros(int(n_frames / FPS * sr) + sr, np.float32)
+    lines, words, errs, n = [], [], 0, 0
+    for i, (line, clip, start) in enumerate(zip(script["lines"], clips, starts)):
+        s0 = int(start * sr)
+        timeline[s0: s0 + len(clip)] += clip
+        al = sc.align(clip, sr, line["text"])
+        e, m = sc.wer(sc.norm_words(line["text"]), sc.recognize(clip, sr))
+        errs, n = errs + e, n + m
+        toks = display_tokens(line["text"])
+        for j, (tok, a) in enumerate(zip(toks, al)):
+            words.append({"text": tok, "startMs": round((start + a["start"]) * 1000), "endMs": round((start + a["end"]) * 1000),
+                          "line": i, "lastInLine": j == len(toks) - 1})
+        lines.append({"scene": line["scene"], "chapter": line["chapter"], "text": line["text"],
+                      "startMs": round(start * 1000), "endMs": round((start + len(clip) / sr) * 1000)})
+    pre = 0.25
+    scenes = []
+    for i, line in enumerate(lines):
+        a = 0.0 if i == 0 else line["startMs"] / 1000 - pre
+        b = n_frames / FPS if i == len(lines) - 1 else lines[i + 1]["startMs"] / 1000 - pre
+        scenes.append({"id": line["scene"], "line": i, "chapter": line["chapter"], "from": round(a * FPS), "to": round(b * FPS)})
+    for a, b in zip(scenes, scenes[1:]):
+        b["from"] = a["to"]
+    out = os.path.join(ROOT, "out", vid)
+    os.makedirs(out, exist_ok=True)
+    sf.write(os.path.join(out, "voice.wav"), resample_poly(timeline[: int(n_frames / FPS * sr)], 2, 1).astype(np.float32), 48000)
+    data = {"id": vid, "fps": FPS, "durationInFrames": n_frames, "voice": voice, "speed": speed,
+            "asrCheck": {"wordErrors": errs, "words": n, "wer": round(errs / n, 4)}, "lines": lines, "words": words, "scenes": scenes}
+    with open(os.path.join(ROOT, "remotion", "src", "data", f"{vid}.json"), "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=1, ensure_ascii=False)
+    return data
 
 
 if __name__ == "__main__":

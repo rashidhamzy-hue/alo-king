@@ -13,7 +13,13 @@ from pocketsphinx import Decoder
 from scipy.signal import resample_poly
 
 # Words missing from the CMU dictionary, in ARPAbet.
-EXTRA_WORDS = {"arabizi": "AE R AH B IY Z IY", "alo": "AA L OW"}
+EXTRA_WORDS = {
+    "arabizi": "AE R AH B IY Z IY",
+    "alo": "AA L OW",
+    "whish": "W IH SH",
+    "shouf": "SH UW F",
+    "versioned": "V ER ZH AH N D",
+}
 
 
 def to_pcm16k(audio: np.ndarray, sr: int) -> bytes:
