@@ -23,7 +23,8 @@ insert into public.app_config (key, value, effective_from, note, created_by) val
    now(), 'Order recovery engine thresholds (DECISIONS §32.5, §38.5 row 5b: Slack alert at 60 s)', null),
   ('ops_money_confirm_usd', '20', now(), 'Money actions above this need a confirm step in Slack and an admin (DECISIONS §32.1)', null),
   ('whatsapp_admin_refund_max_usd', '20', now(), 'Refunds by WhatsApp admin command are capped here; larger ones are done in Slack (DECISIONS §32.1)', null),
-  ('ops_credit_max_usd', '500', now(), 'The most one operator credit to a merchant may be (§20.3 admin credit)', null);
+  ('ops_credit_max_usd', '500', now(), 'The most one operator credit to a merchant may be (§20.3 admin credit)', null),
+  ('support_case_idle_hours', '48', now(), 'A support case nobody has written in for this long closes (the customer is back with the assistant)', null);
 
 -- 1. Channels and operators -------------------------------------------------------------------------------------------------
 create table app_private.slack_channels (
@@ -342,8 +343,8 @@ end;
 $$;
 
 -- A case closes when the customer is back with the assistant without an operator's Resolve: they said "menu" or tapped a
--- button (customer_handoff_end), or the handoff ran out (recovery_tick). Said in the thread; a later operator reply then
--- finds no open case instead of silencing the assistant again.
+-- button (customer_handoff_end), or nobody wrote in it for support_case_idle_hours (recovery_tick). Said in the thread; a
+-- later operator reply is then refused with a note in the thread, never silently dropped.
 create function app_private.support_case_close(p_customer_id uuid, p_why text) returns void
 language plpgsql security definer set search_path = ''
 as $$
@@ -446,6 +447,11 @@ begin
   end if;
   select * into v_case from public.support_cases where id = p_case_id;
   if v_case.id is null or v_case.status <> 'open' then
+    -- The operator must never believe a reply went out: said in the case's thread.
+    if v_case.id is not null and coalesce(p_source, 'slack') = 'slack' then
+      perform app_private.slack_post('support', 'case:' || v_case.id,
+        '⚠️ Not sent: this case is closed and the customer is back with the assistant. Open a new case from the order or the customer if they still need a person.');
+    end if;
     return jsonb_build_object('status', 'not_open');
   end if;
   if nullif(trim(coalesce(p_text, '')), '') is null then
@@ -688,11 +694,14 @@ begin
       perform app_private.recovery_failed(e.order_id, 'close', sqlstate, sqlerrm);
     end;
   end loop;
-  -- A support case whose handoff ran out (no message either way for handoff_minutes) closes; the assistant is back.
-  for o in select c.customer_id from public.support_cases c left join public.bot_sessions s on s.customer_id = c.customer_id
-           where c.status = 'open' and (s.handoff_until is null or s.handoff_until < now()) loop
+  -- A support case nobody has written in for support_case_idle_hours closes. Not when the handoff runs out: a reply
+  -- the next morning must still reach the customer (free-form in the window, else the template, §32.1).
+  for o in select c.customer_id from public.support_cases c
+           where c.status = 'open'
+             and greatest(c.opened_at, coalesce((select max(m.created_at) from public.support_messages m where m.case_id = c.id), c.opened_at))
+                 < now() - make_interval(hours => coalesce(public.config_numeric('support_case_idle_hours'), 48)::int) loop
     begin
-      perform app_private.support_case_close(o.customer_id, 'The handoff ended without a reply for a while');
+      perform app_private.support_case_close(o.customer_id, format('No message for %s hours', coalesce(public.config_numeric('support_case_idle_hours'), 48)));
     exception when others then
       perform app_private.recovery_failed(null, 'case_close', sqlstate, sqlerrm);
     end;
@@ -1031,7 +1040,8 @@ begin
   if v_o.id is null then
     return jsonb_build_object('status', 'unknown');
   end if;
-  -- An order that never went out was never paid for (COD), so there is nothing to give back.
+  -- An order that never went out was never paid for (COD), so there is nothing to give back. An order still on its way may
+  -- get goodwill in advance (a late order compensated before it arrives): the credit is for the next order either way.
   if v_o.status in ('awaiting_payment', 'placed', 'rejected', 'cancelled', 'failed') then
     return jsonb_build_object('status', 'not_paid', 'code', v_o.code, 'order_status', v_o.status);
   end if;

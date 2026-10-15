@@ -82,12 +82,24 @@ select (public.customer_handoff(:'c1', 'third time', 'still lost') ->> 'case_id'
 reset role;
 select tests.ok(:'case3' <> :'case2' and exists (select 1 from public.slack_messages where thread_key = 'case:' || :'case3' and text like '%needs a person%'),
   'the next handoff opens a new case with its own #support post');
--- A handoff that runs out closes its case on the next tick; a late operator reply then finds no open case.
+-- The handoff runs out with nobody answering: the case stays open, and the morning reply still reaches the customer.
 update public.bot_sessions set handoff_until = now() - interval '1 second' where customer_id = :'c1';
 select app_private.recovery_tick();
-select tests.ok((select status = 'resolved' from public.support_cases where id = :'case3'), 'a handoff that ran out closes its case');
+select tests.ok((select status = 'open' from public.support_cases where id = :'case3'), 'a handoff that ran out keeps its case open');
 set local role service_role;
-select tests.ok(public.support_reply(:'case3', :'op', 'late answer') ->> 'status' = 'not_open', 'and a late reply does not silence the assistant again');
+select tests.ok(public.support_reply(:'case3', :'op', 'Good morning, sorting it now') ->> 'status' = 'queued', 'so a late reply is still sent (or held behind the template)');
+reset role;
+-- Nobody writes in it for support_case_idle_hours: it closes; a reply after that is refused with a note in its thread.
+update public.support_cases set opened_at = now() - interval '49 hours' where id = :'case3';
+update public.support_messages set created_at = now() - interval '49 hours' where case_id = :'case3';
+select app_private.recovery_tick();
+select tests.ok((select status = 'resolved' from public.support_cases where id = :'case3'), 'an idle case closes after support_case_idle_hours');
+set local role service_role;
+select tests.ok(public.support_reply(:'case3', :'op', 'late answer') ->> 'status' = 'not_open', 'a reply to a closed case is not sent');
+reset role;
+select tests.ok(exists (select 1 from public.slack_messages where thread_key = 'case:' || :'case3' and text like '⚠️ Not sent%'),
+  'and the operator is told so in the thread');
+set local role service_role;
 
 -- 3. The recovery engine ---------------------------------------------------------------------------------------------------------
 reset role;
