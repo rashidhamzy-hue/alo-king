@@ -366,12 +366,20 @@ export function fromJson(root: unknown, base?: string): Draft {
   const docCurrency = docCurrencyOf(root);
   const sections: { names: { name_en?: string; name_ar?: string }; items: RawItem[] }[] = [];
   const seenLists = new Set<unknown>();
-  const walk = (v: unknown, holder: J | null, key: string | null, depth: number) => {
+  // The currency stated on the object holding the menu (GloriaFood: restaurant.menu.currency) counts for the items
+  // under it, even when the document also names another one (the restaurant's country currency).
+  const walk = (
+    v: unknown,
+    holder: J | null,
+    key: string | null,
+    depth: number,
+    cur: "USD" | "LBP" | null = null,
+  ) => {
     if (depth > 14) return;
     if (Array.isArray(v)) {
       if (seenLists.has(v)) return;
       seenLists.add(v);
-      const items = v.filter(isObj).map((o) => asItem(o, docCurrency, base));
+      const items = v.filter(isObj).map((o) => asItem(o, cur ?? docCurrency, base));
       const found = items.filter((x): x is RawItem => !!x);
       // A list of sections whose entries also carry a price-ish key would read as items; prefer the nested lists.
       const nested = v.some(
@@ -400,9 +408,10 @@ export function fromJson(root: unknown, base?: string): Draft {
         });
         return;
       }
-      v.forEach((x) => walk(x, holder, key, depth + 1));
+      v.forEach((x) => walk(x, holder, key, depth + 1, cur));
     } else if (isObj(v)) {
-      for (const [k, x] of Object.entries(v)) walk(x, v, k, depth + 1);
+      const own = currencyWord(pick(v, CURRENCY_KEYS));
+      for (const [k, x] of Object.entries(v)) walk(x, v, k, depth + 1, own ?? cur);
     }
   };
   walk(root, null, null, 0);

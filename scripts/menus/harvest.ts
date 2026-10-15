@@ -162,6 +162,60 @@ type Meta = {
   pdf: { url: string; file: string; chars: number }[];
 };
 
+type Page = import("@playwright/test").Page;
+
+/**
+ * Clicks up to 25 visible tiles, tabs or buttons with a short label (or a picture with an alt text) and keeps the item
+ * cards each click shows, in a section named after the clicked label. A click that opens another
+ * page is read there and the page goes back.
+ */
+export async function clickThrough(page: Page, url: string): Promise<Card[]> {
+  const out: Card[] = [];
+  const seen = new Set<string>();
+  const targets = await page
+    .locator(
+      "[onclick], [data-target], [data-toggle], [data-bs-toggle], [data-category], [role=tab], a[href='#'], a[href^='javascript'], button, img[alt]",
+    )
+    .all()
+    .catch(() => []);
+  let clicks = 0;
+  for (const t of targets) {
+    if (clicks >= 25) break;
+    const label = (
+      (await t.getAttribute("alt").catch(() => null)) ??
+      (await t.innerText({ timeout: 500 }).catch(() => ""))
+    )
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!label || label.length > 40 || seen.has(label) || !(await t.isVisible().catch(() => false)))
+      continue;
+    if (
+      /log ?in|sign|cart|checkout|whatsapp|call|share|close|cookie|language|english|عربي/i.test(
+        label,
+      )
+    )
+      continue;
+    seen.add(label);
+    clicks++;
+    try {
+      await t.click({ timeout: 2000 });
+      await page.waitForTimeout(1500);
+      const got = (await page.evaluate(extractCards).catch(() => [])) as Card[];
+      for (const c of got)
+        if (!out.some((o) => o.text === c.text && o.price === c.price))
+          // What a click reveals belongs to the clicked tile or tab, not to the page's own heading.
+          out.push({ ...c, section: label });
+      if (page.url().split("#")[0] !== url.split("#")[0]) {
+        await page.goBack({ timeout: 15_000 }).catch(() => page.goto(url).catch(() => null));
+        await page.waitForTimeout(1000);
+      }
+    } catch {
+      // not clickable after all
+    }
+  }
+  return out;
+}
+
 export async function capture(rawDir: string, list: MenuSource[] = sources()) {
   // Playwright is a dev dependency (web-quality); the workflow installs Chromium.
   const { chromium } = await import("@playwright/test");
@@ -257,7 +311,9 @@ export async function capture(rawDir: string, list: MenuSource[] = sources()) {
           }
           await page.waitForTimeout(1000);
           const html = await page.content();
-          const cards = await page.evaluate(extractCards).catch(() => []);
+          let cards = await page.evaluate(extractCards).catch(() => []);
+          // A menu drawn by clicking (section tiles, tabs: ROUTE 66, leb.guide shops) shows no prices until clicked.
+          if (cards.length < 3) cards = [...cards, ...(await clickThrough(page, url))];
           writeFileSync(join(dir, `cards-${n}.json`), JSON.stringify(cards));
           writeFileSync(join(dir, `page-${n}.html`), html.slice(0, 3_000_000));
           writeFileSync(

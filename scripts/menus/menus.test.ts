@@ -726,6 +726,27 @@ describe("item cards with pictures (Rasheed's 8 menus)", () => {
     expect(d.sections[0]!.items[1]).not.toHaveProperty("image_url");
   });
 
+  it("takes the currency the menu itself states over the restaurant's country currency", () => {
+    const d = fromJson({
+      restaurant: {
+        country: { currency: "LBP" },
+        menu: {
+          currency: "USD",
+          categories: [
+            {
+              name: "Wraps",
+              items: [
+                { name: "Zinger", price: 7 },
+                { name: "Tawouk", price: 6 },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    expect(d.sections[0]!.items[0]).toMatchObject({ name_en: "Zinger", price: 7, currency: "USD" });
+  });
+
   it("puts pictures back after validation by section and name", () => {
     const d = attachImages(
       {
