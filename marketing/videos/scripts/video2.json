@@ -1,0 +1,14 @@
+{
+  "id": "v2",
+  "title": "Orders, on the counter (merchants)",
+  "lines": [
+    {"scene": "hook", "text": "Your customers already live on WhatsApp."},
+    {"scene": "order", "text": "Now they can order from you, right there."},
+    {"scene": "ticket", "text": "Every order arrives as a clean ticket:"},
+    {"scene": "details", "text": "items, options and notes, ready for the kitchen."},
+    {"scene": "accept", "text": "Accept with one tap, and set your prep time."},
+    {"scene": "noapp", "text": "No new app for your customers to download."},
+    {"scene": "dashboard", "text": "One place to see everything: orders, menu and hours."},
+    {"scene": "cta", "text": "Alo King. Claim your shop and get listed."}
+  ]
+}

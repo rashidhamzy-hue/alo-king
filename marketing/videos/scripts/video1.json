@@ -1,0 +1,15 @@
+{
+  "id": "v1",
+  "title": "Just WhatsApp it (customers)",
+  "lines": [
+    {"scene": "hook", "text": "Hungry? Just WhatsApp it."},
+    {"scene": "type", "text": "Type your order,"},
+    {"scene": "voice", "text": "send a voice note,"},
+    {"scene": "tap", "text": "or tap through the menu."},
+    {"scene": "languages", "text": "In Arabic, English, French or Arabizi."},
+    {"scene": "basket", "text": "Check your basket, then confirm it right in the chat."},
+    {"scene": "paytrack", "text": "Pay and track your order in the same thread."},
+    {"scene": "sendhome", "text": "Living abroad? Send Home lets you order for family in Lebanon."},
+    {"scene": "cta", "text": "Alo King. Order on WhatsApp."}
+  ]
+}
