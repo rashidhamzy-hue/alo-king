@@ -1,0 +1,153 @@
+{
+ "source": "owner_menu_photos",
+ "received": "2026-10-15",
+ "note": "Transcribed by Claude from a menu photo Rasheed sent on 15 Oct 2026. Import as a draft menu per DECISIONS §38.2 item 2 and §39.4 (status=draft, source=seed; LBP converted to price_usd at section approval). The menu prints 'Jdaldeh' (likely Jdeideh) but Rasheed places the shop in Boqaata, matching the merchant file row and its Google Maps pin.",
+ "restaurant_menus": [
+  {
+   "place_id": "ChIJSVk-bgAhHxURr-4t76SU8nA",
+   "vendor_name": "Eatout",
+   "locality": "Boqaata",
+   "currency": "LBP",
+   "phone_from_menu": "+96176904875",
+   "phone_note": "The merchant file has no phone for Eatout; the menu prints 'For delivery: 76 904875'. Backfill as the vendor's seed phone and WhatsApp candidate (mobile prefix 76).",
+   "status": "PARSED_STRUCTURED",
+   "items": [
+    {
+     "section": "Subs",
+     "item_name": "Chicken Sub",
+     "price_raw": "450,000 LBP",
+     "description": "Mayo, lettuce, grilled chicken, corn, soya, mozzarella cheese"
+    },
+    {
+     "section": "Subs",
+     "item_name": "Crispy Sub",
+     "price_raw": "450,000 LBP",
+     "description": "Mayo, lettuce, corn, crunchy fries"
+    },
+    {
+     "section": "Subs",
+     "item_name": "Fajita",
+     "price_raw": "500,000 LBP",
+     "description": "Avocado sauce, chicken, soya, mozzarella cheese"
+    },
+    {
+     "section": "Subs",
+     "item_name": "BBQ Creamy Chicken",
+     "price_raw": "590,000 LBP",
+     "description": "Mayo, lettuce, fresh onion, green pepper, creamy grilled chicken, BBQ"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Classic Burger",
+     "price_raw": "450,000 LBP",
+     "description": "Single beef patty, grilled onion, pickles, special sauce, cheddar slice"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Swiss Mushroom Burger",
+     "price_raw": "590,000 LBP",
+     "description": "Single beef patty, fresh mushroom sauce, Swiss cheese, lettuce"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Truffle Burger",
+     "price_raw": "630,000 LBP",
+     "description": "Single beef patty, mushroom truffle sauce, Swiss cheese, crunchy fries, mayo, honey mustard"
+    },
+    {
+     "section": "Beef Burgers",
+     "item_name": "Eatout Burger",
+     "price_raw": "750,000 LBP",
+     "description": "Special sauce, lettuce, pickles, crunchy fries, double beef, cheddar slice, emmental slice, tomato, turkey bacon, BBQ, caramelized onions"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Classic Chicken Burger",
+     "price_raw": "400,000 LBP",
+     "description": "Grilled chicken breast, lettuce, tomatoes, pickles, special sauce, cheddar cheese"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Chicken Mushroom",
+     "price_raw": "540,000 LBP",
+     "description": "Grilled chicken, creamy mushroom, mayo, mozzarella cheese, Swiss cheese"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Chicken Zinger",
+     "price_raw": "490,000 LBP",
+     "description": "Crispy chicken, lettuce, pickles, cheddar cheese, mayo"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Golden Drip",
+     "price_raw": "590,000 LBP",
+     "description": "Grilled chicken breast, honey mustard, chips, lettuce, pickles, mozzarella patty"
+    },
+    {
+     "section": "Chicken Burgers",
+     "item_name": "Flaming Chicken",
+     "price_raw": "690,000 LBP",
+     "description": "Grilled chicken breast, cheddar cheese, mozzarella patty, Tokis, lettuce, jalapeño, special sauce"
+    },
+    {
+     "section": "Starters",
+     "item_name": "French Fries",
+     "price_raw": "360,000 LBP",
+     "description": "Crispy golden fries"
+    },
+    {
+     "section": "Starters",
+     "item_name": "Loaded Fries (Small)",
+     "price_raw": "400,000 LBP",
+     "description": "Fries, chicken, cheddar cheese, crunchy fries, BBQ, ranch, honey mustard, jalapeños"
+    },
+    {
+     "section": "Starters",
+     "item_name": "Cheesy Fries",
+     "price_raw": "450,000 LBP",
+     "description": "Served with cheddar cheese"
+    },
+    {
+     "section": "Starters",
+     "item_name": "Mozzarella Sticks (6 pcs)",
+     "price_raw": "450,000 LBP",
+     "description": "Mozzarella sticks served with special sauce"
+    },
+    {
+     "section": "Starters",
+     "item_name": "Loaded Fries (Large)",
+     "price_raw": "790,000 LBP",
+     "description": "Fries, chicken, cheddar cheese, crunchy fries, BBQ, ranch, honey mustard, jalapeños"
+    },
+    {
+     "section": "Wings",
+     "item_name": "Barbecue Wings (6 pcs)",
+     "price_raw": "400,000 LBP"
+    },
+    {
+     "section": "Wings",
+     "item_name": "Honey Mustard Wings (6 pcs)",
+     "price_raw": "400,000 LBP"
+    },
+    {
+     "section": "Wings",
+     "item_name": "Buffalo Wings (6 pcs)",
+     "price_raw": "400,000 LBP"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Water",
+     "price_raw": "45,000 LBP",
+     "description": "Still water"
+    },
+    {
+     "section": "Beverages",
+     "item_name": "Soft Drinks",
+     "price_raw": "90,000 LBP",
+     "description": "Coca-Cola, Coca-Cola Zero, Sprite, Fanta"
+    }
+   ]
+  }
+ ]
+}
