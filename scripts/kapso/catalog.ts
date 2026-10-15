@@ -58,9 +58,24 @@ export function why(a: Answer): string {
   return `${a.status} ${String(msg).slice(0, 240)}${code}`;
 }
 
-/** The catalogue a GET /{catalog_id}?fields=id,name answered with, when it is the one asked for. */
-export function readCatalog(body: any, id: string): { id: string; name: string | null } | null {
-  return String(body?.id ?? "") === id ? { id, name: body?.name ?? null } : null;
+/** Meta refused because the token may not see the object (not an outage, not a missing object). */
+export function permissionRefused(a: Answer): boolean {
+  const e = a.body?.error;
+  return a.status === 403 || [10, 200].includes(Number(e?.code)) || Number(e?.error_subcode) === 33;
+}
+
+/**
+ * The catalogue a GET /{catalog_id}?fields=id,name,business answered with: only the one asked for, owned by the configured
+ * portfolio (a token that can read some other catalogue proves nothing).
+ */
+export function readCatalog(
+  body: any,
+  id: string,
+  business: string,
+): { id: string; name: string | null } | null {
+  return String(body?.id ?? "") === id && String(body?.business?.id ?? "") === business
+    ? { id, name: body?.name ?? null }
+    : null;
 }
 
 /** The catalogue connected to the account, from GET /{waba}/product_catalogs. */
@@ -113,8 +128,9 @@ async function main() {
   const configuredBusiness = ID.test(process.env.META_BUSINESS_ID ?? "")
     ? process.env.META_BUSINESS_ID!
     : "";
-  // The token cannot read the WhatsApp account: the connection and the icons are the owner's (#181).
+  // The token cannot read the WhatsApp account: the connection and the icons are the owner's (#181), unverified.
   let ownerConfirmed = false;
+  let graphListing: Answer | null = null;
 
   const res = await fetch(`${KAPSO}/platform/v1/whatsapp/phone_numbers/${pn}`, {
     headers: { "X-API-Key": key },
@@ -132,20 +148,35 @@ async function main() {
   const listed = await firstOk(
     "list connected catalogues",
     routes,
-    (r) => call(r, `/${waba}/product_catalogs`),
+    (r) =>
+      call(r, `/${waba}/product_catalogs`).then((a) => {
+        if (r === "graph") graphListing = a;
+        return a;
+      }),
     notes,
   );
   if (listed) catalog = connectedCatalog(listed.answer.body);
   // 1b. The token cannot list the account's catalogues: the catalogue the owner made and connected, checked directly.
-  if (!catalog && !listed && configuredCatalog && token) {
-    const read = await call("graph", `/${configuredCatalog}?fields=id,name`);
-    catalog = read.ok ? readCatalog(read.body, configuredCatalog) : null;
+  // Only when Meta refused for permission (never on an outage), and only the configured portfolio's own catalogue.
+  if (
+    !catalog &&
+    !listed &&
+    graphListing &&
+    permissionRefused(graphListing) &&
+    configuredCatalog &&
+    configuredBusiness
+  ) {
+    const read = await call("graph", `/${configuredCatalog}?fields=id,name,business`);
+    catalog = read.ok ? readCatalog(read.body, configuredCatalog, configuredBusiness) : null;
     if (catalog) {
       ownerConfirmed = true;
       notes.push(
-        `catalogue ${configuredCatalog} (${catalog.name ?? ""}): read with the token; its connection to the account is the owner's (#181): this token cannot read the account (no whatsapp_business_management)`,
+        `catalogue ${configuredCatalog} (${catalog.name ?? ""}) of portfolio ${configuredBusiness}: read with the token; its connection to the account is the owner's (#181), unverified: this token cannot read the account (no whatsapp_business_management)`,
       );
-    } else notes.push(`catalogue ${configuredCatalog}: graph refused: ${why(read)}`);
+    } else
+      notes.push(
+        `catalogue ${configuredCatalog}: ${read.ok ? `not owned by portfolio ${configuredBusiness}` : `graph refused: ${why(read)}`}`,
+      );
   }
 
   // 2. Otherwise create one in the owning portfolio and connect it.
@@ -157,9 +188,9 @@ async function main() {
       (r) => call(r, `/${waba}?fields=owner_business_info,name`),
       notes,
     );
-    const business =
-      (owner ? ownerBusiness(owner.answer.body) : null) ?? (configuredBusiness || null);
-    if (!owner && configuredBusiness)
+    const found = owner ? ownerBusiness(owner.answer.body) : null;
+    const business = found ?? (configuredBusiness || null);
+    if (!found && configuredBusiness)
       notes.push(`owning business: ${configuredBusiness} (configured)`);
     if (!business) blocked = "create";
     else {
@@ -226,9 +257,8 @@ async function main() {
     );
     const s = got?.answer.body?.data?.[0] ?? {};
     if (!set && !got && ownerConfirmed) {
-      // The owner switched both on in WhatsApp Manager (#181); this token cannot read the number's settings.
-      settings = "on (set by the owner, #181; not readable with this token)";
-      commerceOn = true;
+      // The owner switched both on in WhatsApp Manager (#181); this token cannot read them, so they are not recorded as on.
+      settings = "unverified (switched on by the owner, #181; not readable with this token)";
     } else {
       settings = set
         ? `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`
