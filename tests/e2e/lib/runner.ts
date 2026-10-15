@@ -80,6 +80,19 @@ export async function runScenario(env: Env, sc: Scenario, file: string): Promise
       break; // later steps depend on this one
     }
   }
+  // An order the scenario left waiting would be given up minutes later as a missed order; three in a row auto-pause
+  // the test shop (DECISIONS §30.2.2) and every later scenario finds it paused. Its customer cancels it instead.
+  const customers = Object.entries(sc.personas)
+    .filter(([, p]) => p.role !== "merchant")
+    .map(([k]) => phones[k]);
+  await env.db
+    .query(
+      `select public.order_cancel_by_customer(o.id, o.customer_id) from public.orders o
+         join public.customers c on c.id = o.customer_id
+        where c.phone_e164 = any($1) and o.status in ('awaiting_payment', 'placed')`,
+      [customers],
+    )
+    .catch((e) => console.error(`cancelling ${sc.name}'s waiting orders failed`, String(e)));
   return {
     name: sc.name,
     file,

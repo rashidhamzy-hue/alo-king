@@ -59,6 +59,14 @@ async function main() {
       throw new Error(
         `sim_prepare answered ${prep.status} (is the sink on and the test merchant installed?)`,
       );
+    // A test shop auto-paused for missed orders (left waiting by an interrupted run) is reactivated by the
+    // simulated merchant, as a real merchant taps "Reactivate"; a pause set by an operator stays.
+    await client.query(
+      `select public.vendor_reactivate(v.id, m.id) from public.vendors v
+         join public.vendor_members m on m.vendor_id = v.id and m.phone_e164 = $2 and m.status = 'active'
+        where v.id = $1 and v.paused_until is not null and v.pause_reason = 'missed_orders'`,
+      [prep.vendor_id, MERCHANT_PHONE],
+    );
     // The number the bot sends from (the US test number once connected, else the sandbox): the 24-hour window is per
     // business number (DECISIONS §39.8), so the simulated customers write to the number that answers them.
     const pn = await client.query(
