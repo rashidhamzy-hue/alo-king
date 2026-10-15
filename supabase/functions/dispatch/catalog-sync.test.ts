@@ -21,6 +21,7 @@ function fake(o: {
   jobs?: any[];
   refused?: string[];
   setRefused?: boolean;
+  setThrows?: boolean;
 }) {
   const calls: { fn: string; args: any }[] = [];
   let claims = 0;
@@ -57,6 +58,7 @@ function fake(o: {
     },
     productSet: async (c, t, b) => {
       sets.push({ c, t, b });
+      if (o.setThrows) throw new Error("timeout");
       return o.setRefused ? null : "555555555555";
     },
     imageUrl: (id, h) => `https://x.test/dispatch?route=catalog-image&i=${id}&v=${h}`,
@@ -131,6 +133,12 @@ describe("catalogue sync step in dispatch (DECISIONS §39.12)", () => {
     });
     await catalogSyncStep(g.rpc, g.api);
     expect(g.of("catalog_sync_finish")[0].args.p_error).toBe("catalogue product set not created");
+  });
+  it("a set request that fails outright counts as a refusal, the products stay recorded", async () => {
+    const f = fake({ setThrows: true });
+    expect(await catalogSyncStep(f.rpc, f.api)).toBe(1);
+    expect(f.of("catalog_sync_record")).toHaveLength(1);
+    expect(f.of("catalog_sync_finish")[0].args.p_error).toBe("catalogue product set not created");
   });
   it("a failed batch is the error reported, and no set is asked for", async () => {
     const f = fake({ batchOk: false, setRefused: true });

@@ -106,11 +106,10 @@ export async function catalogSyncStep(
         });
         if (!have) {
           const name = desired[0].brand || j.vendor_id;
-          const id = await api.productSet(
-            cat.catalog_id,
-            cat.transport,
-            productSetBody(j.vendor_id, name),
-          );
+          // A set request that fails outright counts as a refusal: the products are already in.
+          const id = await api
+            .productSet(cat.catalog_id, cat.transport, productSetBody(j.vendor_id, name))
+            .catch(() => null);
           if (id)
             await rpc("catalog_product_set", {
               p_vendor_id: j.vendor_id,
