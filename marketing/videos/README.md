@@ -137,6 +137,7 @@ Everything that ends up in the videos, or produced them, is listed here.
 | lucide-react | 1.57.0 | ISC | icons |
 | Plus Jakarta Sans (`@fontsource/plus-jakarta-sans`) | 5.3.0 | OFL-1.1 (text in `remotion/public/fonts/`) | Latin type |
 | IBM Plex Sans Arabic (`@fontsource/ibm-plex-sans-arabic`) | 5.3.0 | OFL-1.1 (text in `remotion/public/fonts/`) | Arabic type |
+| Roboto (`@fontsource/roboto`) | 5.2.8 | OFL-1.1 (text in `remotion/public/fonts/`) | WhatsApp screens in the investor explainer |
 | TypeScript | 5.9.3 | Apache-2.0 | build |
 | Kokoro-82M v1.0 ONNX weights (fp32) | npm `kokoro-fp32a/b/c-shards` 1.0.0 | Apache-2.0 | voice model |
 | Kokoro voice tensors (`bm_george` used; 10 tested) | npm `kokoro-js` 1.2.1 (hexgrad, Xenova) | Apache-2.0 | voice |

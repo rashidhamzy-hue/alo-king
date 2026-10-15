@@ -1,0 +1,36 @@
+{
+  "inv": {
+    "file": "investor/alo-king-investor-explainer.mp4",
+    "format": {
+      "video": "h264 High 1920x1080 30/1 yuv420p",
+      "audio": "aac 48000 Hz 2 ch",
+      "duration_s": 294.37
+    },
+    "loudness": {
+      "file": "alo-king-investor-explainer.mp4",
+      "integrated_lufs": -14.2,
+      "true_peak_dbtp": -4.9,
+      "lra_lu": 1.8
+    },
+    "loudness_ok": true,
+    "caption_sync_ms": {
+      "words": 638,
+      "mean": 12.4,
+      "p95": 40.0,
+      "max": 320.0
+    },
+    "caption_sync_ok": true,
+    "lines_not_aligned_on_final_mix": [],
+    "final_audio_wer": 0.353,
+    "hook": {
+      "first_word_s": 1.3,
+      "picture_change_0_to_1_5s": 0.025
+    },
+    "hook_ok": false,
+    "cadence_s": {
+      "scenes": 40,
+      "mean": 7.36,
+      "max": 10.77
+    }
+  }
+}
