@@ -32,9 +32,7 @@ const SOMEONE: Record<TemplateLang, string> = {
 const total = (u: unknown, l: unknown) =>
   l !== undefined && l !== null ? `${usd(u)} / ${lbp(l)} LBP` : usd(u);
 const eta = (e: any, lang: TemplateLang) =>
-  e?.min
-    ? `${e.max && e.max !== e.min ? `${e.min}-${e.max}` : e.min} ${MIN[lang]}`
-    : `30-45 ${MIN[lang]}`;
+  e?.min ? `${e.max && e.max !== e.min ? `${e.min}-${e.max}` : e.min} ${MIN[lang]}` : ""; // no ETA computed: the template is not filled (never a made-up time)
 const items = (card: Record<string, any> | null) =>
   (Array.isArray(card?.items) ? card!.items : [])
     .slice(0, 8)
@@ -43,8 +41,9 @@ const items = (card: Record<string, any> | null) =>
 const UUID = /^[0-9a-f-]{36}$/;
 
 /**
- * Template values and quick-reply payloads for one outbox row, or null when the row lacks what the template needs
- * (then nothing is sent: a template with an empty hole is never better than none).
+ * Template values and quick-reply payloads for one outbox row, or null when the row is not one the template covers. A
+ * value the row lacks stays blank, and templateMessage refuses a blank variable: nothing is sent rather than a template
+ * with a hole or an invented fact (an ETA the server never computed, a "-" for a name).
  */
 export function templateFill(
   key: string,
@@ -93,7 +92,7 @@ export function templateFill(
       return p.code || c.code
         ? {
             values: {
-              recipient: String(p.recipient_name ?? "").trim() || "-",
+              recipient: String(p.recipient_name ?? "").trim(),
               vendor: c.vendor_name ?? "",
               code: p.code ?? c.code,
               total: total(c.total_usd, c.total_lbp),
@@ -104,7 +103,7 @@ export function templateFill(
     case "new_order":
       return c.code && UUID.test(oid)
         ? {
-            values: { code: c.code, items: items(c) || "-", total: usd(c.total_usd) },
+            values: { code: c.code, items: items(c), total: usd(c.total_usd) },
             payloads: [`acc:${oid}:15`, `acc:${oid}:30`, `rej:${oid}`],
           }
         : null;
@@ -120,10 +119,10 @@ export function templateFill(
         ? {
             values: {
               shop: p.shop ?? "",
-              orders: p.orders ?? "0",
-              delivered: p.delivered ?? "0",
-              sales: p.sales ?? "$0.00",
-              rating: p.rating ?? "–",
+              orders: p.orders ?? "",
+              delivered: p.delivered ?? "",
+              sales: p.sales ?? "",
+              rating: p.rating ?? "",
             },
             payloads: ["mcmd:week"],
           }

@@ -44,6 +44,7 @@ jobs:
       - name: Record the number, submit and sync the templates
         id: n
         run: |
+          set -o pipefail
           DB_URL="$(scripts/staging-db-url.sh)"
           echo "::add-mask::$DB_URL"
           DB_URL="$DB_URL" pnpm exec tsx scripts/kapso/number.ts | tee -a "$GITHUB_STEP_SUMMARY"

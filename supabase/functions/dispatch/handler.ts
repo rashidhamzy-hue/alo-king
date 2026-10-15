@@ -201,7 +201,7 @@ export async function runDispatch(
 
   // 3. Broadcasts (§39.8): one approved broadcast per run while config broadcasts_enabled is on; the database fixes the
   // audience (opted in at this second) and the daily cap, Kapso paces the sends.
-  if (deps.kapsoBroadcast !== undefined && left() > 4000) {
+  if (deps.kapsoBroadcast != null && left() > 4000) {
     const b = await deps.rpc("broadcast_claim", {}).catch((e: unknown) => {
       deps.log?.("broadcast claim failed", { error: String(e).slice(0, 120) });
       return null;
@@ -247,7 +247,7 @@ async function deliver(
     case "whatsapp": {
       if (!m.target || !E164.test(m.target))
         return { status: "skipped", error: "no WhatsApp number for this merchant" };
-      const from = await sender();
+      const from = await senderFor(deps, "merchant", m.target, sender);
       if (!from) return { status: "skipped", error: "no merchant WhatsApp number connected (#67)" };
       const outside = await outsideWindow(deps, m, from, "merchant");
       if (outside) return outside;
@@ -273,7 +273,7 @@ async function deliverCustomer(
   sender: () => Promise<string | null>,
 ): Promise<Delivery> {
   if (!m.target || !E164.test(m.target)) return { status: "skipped", error: "no customer number" };
-  const from = await sender();
+  const from = await senderFor(deps, "customer", m.target, sender);
   if (!from) return { status: "skipped", error: "no customer WhatsApp number connected" };
   const outside = await outsideWindow(deps, m, from, "customer");
   if (outside) return outside;
@@ -367,6 +367,37 @@ async function outsideWindow(
   return { status: "sent", ref: r.id ?? (choice.dry_run ? `dry-run:${choice.name}` : undefined) };
 }
 
+/**
+ * The number to send an outbox row from: the one where this person's 24-hour window is open, else the default sender
+ * for the audience (whatsapp_sender_for). An older database without the function keeps the default.
+ */
+async function senderFor(
+  deps: DispatchDeps,
+  audience: "customer" | "merchant",
+  target: string,
+  fallback: () => Promise<string | null>,
+): Promise<string | null> {
+  const n = await deps
+    .rpc("whatsapp_sender_for", { p_audience: audience, p_target: target })
+    .catch(() => null);
+  return typeof n === "string" && n ? n : fallback();
+}
+
+/** The number to answer an inbound message from: the one it arrived on when it is ours, else the default sender. */
+async function replySender(deps: DispatchDeps, ev: any, audience: "customer" | "merchant") {
+  const n = ev?.phone_number_id
+    ? await deps
+        .rpc("whatsapp_reply_number", {
+          p_phone_number_id: String(ev.phone_number_id),
+          p_audience: audience,
+        })
+        .catch(() => null)
+    : null;
+  return typeof n === "string" && n
+    ? n
+    : ((await deps.rpc("whatsapp_sender", { p_audience: audience })) as string | null);
+}
+
 const MARKETING_PAYLOADS = ["c:order", "mkt:stop"];
 
 /**
@@ -388,6 +419,7 @@ async function sendBroadcast(
   const errors: string[] = [];
   const ids: string[] = [];
   const dry: string[] = [];
+  const sent: string[] = [];
   const from = await sender();
   const def = templateByName(String(b.template));
   if (!from || !def || def.category !== "MARKETING") {
@@ -397,6 +429,7 @@ async function sendBroadcast(
       p_kapso_ids: [],
       p_error: !from ? "no customer number" : "not a marketing template",
       p_dry_run_phones: [],
+      p_sent_phones: [],
     });
     return;
   }
@@ -443,6 +476,7 @@ async function sendBroadcast(
         );
       await deps.kapsoBroadcast.send(id);
       ids.push(id);
+      sent.push(...real);
     } catch (e) {
       errors.push(`${lang}: ${String(e instanceof Error ? e.message : e).slice(0, 160)}`);
     }
@@ -453,6 +487,7 @@ async function sendBroadcast(
     p_kapso_ids: ids,
     p_error: errors.length ? errors.join("; ").slice(0, 500) : null,
     p_dry_run_phones: dry,
+    p_sent_phones: sent,
   });
 }
 
@@ -585,7 +620,16 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
   if (/marketing_preference_changed$/.test(String(ev.event_type))) {
     const wa = String(ev.payload?.contact?.wa_id ?? "").replace(/^\+/, "");
     const stopped = ev.payload?.marketing_preference?.status === "stopped";
-    if (!/^[1-9][0-9]{6,14}$/.test(wa)) return "ignored";
+    if (
+      !/^[1-9][0-9]{6,14}$/.test(wa) ||
+      !["stopped", "resumed"].includes(String(ev.payload?.marketing_preference?.status))
+    ) {
+      // A shape we do not recognise is never silently "done": logged and kept as ignored for a look.
+      deps.log?.("marketing preference event not recognised", {
+        event_id: Number(ev.event_id ?? 0),
+      });
+      return "ignored";
+    }
     await deps.rpc("customer_marketing_stop_by_phone", {
       p_phone_e164: `+${wa}`,
       p_stopped: stopped,
@@ -613,6 +657,17 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     .catch((e: unknown) => deps.log?.("whatsapp_seen failed", { error: String(e).slice(0, 120) }));
   const members: any[] =
     (await deps.rpc("merchant_members_by_phone", { p_phone_e164: m.from })) ?? [];
+  // "Stop promotions" on a marketing template is STOP for anyone, a merchant member who is also a customer included
+  // (§18.3: honoured at once); the customer bot handles it for everyone else.
+  if (m.buttonId === "mkt:stop" && members.length) {
+    await deps.rpc("customer_marketing_stop_by_phone", { p_phone_e164: m.from, p_stopped: true });
+    await deps.rpc("app_reply", {
+      p_to: m.from,
+      p_payload: { text: "✅ وقّفنا العروض. / Promotions stopped. / Promotions arrêtées." },
+      p_ref: m.messageId,
+    });
+    return "done";
+  }
   // Staging only (§34): the owner's one phone plays both sides. `#merchant` and `#customer` choose which side
   // the bot treats the text as; a tap goes to whoever owns the card (a merchant card to the merchant, a
   // customer button to the customer bot). Null for every other number, so nothing changes for real people.
@@ -621,7 +676,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     .catch(() => null);
   if (side) {
     const sw = m.text === null ? null : /^\s*#(merchant|customer)\s*$/i.exec(m.text);
-    if (sw) return switchTestSide(deps, m.from, sw[1].toLowerCase());
+    if (sw) return switchTestSide(deps, ev, m.from, sw[1].toLowerCase());
     const merchantTap = !!m.buttonId && parseMerchantAction(m.buttonId) !== null;
     const customerTap = !!m.buttonId && parseCustomerAction(m.buttonId) !== null;
     if (customerTap && !merchantTap) return customerInbound(deps, ev);
@@ -631,7 +686,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
   // to our own claim cards (objection, lost-phone confirmation), which go to members.
   const ot = parseOnboardingTap(o.buttonId);
   if (!members.length || ot?.a === "object" || ot?.a === "recover") {
-    const from = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+    const from = await replySender(deps, ev, "merchant");
     if (
       from &&
       (await handleOnboarding(
@@ -651,7 +706,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
   }
   if (!members.length) return customerInbound(deps, ev);
   // A merchant template's button that stands for a typed command (the weekly summary's "Details").
-  if (m.buttonId && m.buttonId in TEMPLATE_COMMANDS) {
+  if (m.buttonId && Object.hasOwn(TEMPLATE_COMMANDS, m.buttonId)) {
     m.text = TEMPLATE_COMMANDS[m.buttonId];
     m.buttonId = null;
   }
@@ -675,7 +730,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     });
 
   // The smart menu (§18.3): "menu", menu photos or pasted text, and its section and nutrition taps.
-  const menuSender = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+  const menuSender = await replySender(deps, ev, "merchant");
   // Merchant Flows (§12): "hours" / "profile" and the submissions of those Flows.
   if (
     menuSender &&
@@ -765,11 +820,12 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
 /** `#merchant` / `#customer` from the owner's phone (staging only): switches the side and says so. */
 async function switchTestSide(
   deps: DispatchDeps,
+  ev: any,
   phone: string,
   side: string,
 ): Promise<"done" | "ignored"> {
   const r = await deps.rpc("test_side_set", { p_phone_e164: phone, p_side: side });
-  const from = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+  const from = await replySender(deps, ev, "merchant");
   if (!from) return "ignored";
   const body =
     r?.status !== "ok"
@@ -788,7 +844,7 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
   if (!deps.customer) return "ignored";
   const m = readCustomerInbound(ev.payload);
   if (!m || !m.messageId) return "ignored";
-  const from = (await deps.rpc("whatsapp_sender", { p_audience: "customer" })) ?? null;
+  const from = (await replySender(deps, ev, "customer")) ?? null;
   if (!from) return "ignored";
   await handleCustomerTurn(
     {

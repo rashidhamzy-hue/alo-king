@@ -25,6 +25,16 @@ k() {
 umask 077
 secret=$(openssl rand -hex 32)
 echo "::add-mask::$secret"
+# As soon as one number signs with the new secret, the function must have it, even if a later number fails: otherwise
+# that number's deliveries get 401 until someone re-runs this by hand.
+registered=0
+store_secret() {
+  if [ "$registered" -gt 0 ]; then
+    supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "KAPSO_WEBHOOK_SECRET=$secret" >/dev/null
+    echo "KAPSO_WEBHOOK_SECRET updated for $registered number(s)"
+  fi
+}
+trap store_secret EXIT
 for pn in "$@"; do
   num="$base/phone_numbers/${pn}/webhooks"
   echo "number ${pn}: remove earlier webhooks for this URL (per-number and project scope)"
@@ -47,13 +57,14 @@ for pn in "$@"; do
   returned=$(jq -r '(.data // .) | .secret_key // empty' created.json)
   id=$(jq -r '(.data // .) | .id // empty' created.json)
   rm -f created.json
+  registered=$((registered + 1))
   if [ -n "$returned" ] && [ "$returned" != "$secret" ]; then
     echo "::error::Kapso replaced the signing secret for ${pn}; one secret for all numbers is required"; exit 1
   fi
   echo "number ${pn}: webhook ${id} (${scope} scope) registered"
 done
-supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" "KAPSO_WEBHOOK_SECRET=$secret" >/dev/null
-echo "KAPSO_WEBHOOK_SECRET updated for $# number(s)"
+store_secret
+trap - EXIT
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url" -H 'content-type: application/json' -d '{}')
 echo "unsigned request answered $code"

@@ -67,15 +67,48 @@ as $$
                    and w.last_inbound_at > now() - interval '23 hours 50 minutes');
 $$;
 
--- The US test number (role 'test') speaks to customers and merchants until cut-over and goes before the sandbox; a
--- company number of the right role goes before both.
+-- Which of our numbers sends to whom. A company number of the right role goes first. The US test number (role 'test')
+-- speaks to both sides until cut-over, but goes before the sandbox only once its account has an approved utility template:
+-- until then people write to the sandbox and nobody has a window on the test number (5b review). For a given person, a
+-- number with their 24-hour window open goes before all of that, so a reply always leaves from the number they wrote to.
+-- plpgsql: its body reads whatsapp_templates, created further down.
+create function app_private.whatsapp_sender_rank(p_role public.whatsapp_number_role, p_waba text) returns integer
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  return case p_role when 'customer' then 0 when 'merchant' then 0 when 'sandbox' then 2
+    when 'test' then case when exists (select 1 from public.whatsapp_templates t where t.waba_id = p_waba
+                                       and t.status = 'approved' and t.category = 'UTILITY') then 1 else 3 end
+    else 9 end;
+end;
+$$;
+
 create or replace function public.whatsapp_sender(p_audience text) returns text
 language sql stable security definer set search_path = ''
 as $$
   select w.phone_number_id from public.whatsapp_numbers w
   where w.active and w.role = any (case when p_audience = 'merchant' then array['merchant', 'test', 'sandbox']
                                         else array['customer', 'test', 'sandbox'] end::public.whatsapp_number_role[])
-  order by case w.role when 'sandbox' then 2 when 'test' then 1 else 0 end, w.created_at limit 1;
+  order by app_private.whatsapp_sender_rank(w.role, w.waba_id), w.created_at limit 1;
+$$;
+
+create function public.whatsapp_sender_for(p_audience text, p_target text) returns text
+language sql stable security definer set search_path = ''
+as $$
+  select w.phone_number_id from public.whatsapp_numbers w
+  where w.active and w.role = any (case when p_audience = 'merchant' then array['merchant', 'test', 'sandbox']
+                                        else array['customer', 'test', 'sandbox'] end::public.whatsapp_number_role[])
+  order by public.whatsapp_window_open(p_target, w.phone_number_id) desc,
+           app_private.whatsapp_sender_rank(w.role, w.waba_id), w.created_at
+  limit 1;
+$$;
+
+-- The number to answer an inbound message from: the one it arrived on, when it is one of ours and active.
+create function public.whatsapp_reply_number(p_phone_number_id text, p_audience text) returns text
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce((select w.phone_number_id from public.whatsapp_numbers w where w.phone_number_id = p_phone_number_id and w.active),
+                  public.whatsapp_sender(p_audience));
 $$;
 
 -- 2. Templates -----------------------------------------------------------------------------------------------------------
@@ -119,6 +152,12 @@ begin
     on conflict (waba_id, name, language) do update set category = excluded.category, status = excluded.status,
       meta_template_id = coalesce(excluded.meta_template_id, t.meta_template_id),
       kapso_template_id = coalesce(excluded.kapso_template_id, t.kapso_template_id), reason = excluded.reason, synced_at = now();
+    if upper(r ->> 'category') is distinct from app_private.template_category(
+         (select e.key from jsonb_each_text(public.config_value('whatsapp_template_map')) e where e.value = r ->> 'name' limit 1)) then
+      perform app_private.ops_alert('template-category:' || p_waba_id || ':' || (r ->> 'name') || ':' || (r ->> 'language') || ':' || upper(r ->> 'category'),
+        'template_status', 'warning', format('WhatsApp template %s (%s) is %s at Meta, not the category it was written for: it is not sent',
+          r ->> 'name', r ->> 'language', upper(r ->> 'category')));
+    end if;
     if v_old is distinct from lower(r ->> 'status') and (v_old = 'approved' or lower(r ->> 'status') in ('approved', 'rejected', 'paused', 'disabled')) then
       perform app_private.ops_alert('template:' || p_waba_id || ':' || (r ->> 'name') || ':' || (r ->> 'language') || ':' || lower(r ->> 'status'),
         'template_status', case when lower(r ->> 'status') = 'approved' then 'info' else 'warning' end,
@@ -130,6 +169,11 @@ begin
   return n;
 end;
 $$;
+
+-- The category a template key was written for (the registry in _shared/whatsapp-templates.ts says the same).
+create function app_private.template_category(p_key text) returns text
+language sql immutable set search_path = ''
+as $$ select case when p_key like 'marketing_%' then 'MARKETING' when p_key = 'claim_code' then 'AUTHENTICATION' else 'UTILITY' end $$;
 
 -- Which template carries p_key to p_target now, or null. The customer's language first, then Arabic, then English.
 -- A simulator number (+999) with the sink on gets a dry run: dispatch records the template instead of sending it, which is
@@ -149,12 +193,14 @@ begin
   if app_private.is_sim_phone(p_target) then
     return case when app_private.sim_sink_on() then jsonb_build_object('name', v_name, 'lang', v_lang, 'dry_run', true) end;
   end if;
-  select w.waba_id into v_waba from public.whatsapp_numbers w where w.phone_number_id = public.whatsapp_sender(p_audience);
+  select w.waba_id into v_waba from public.whatsapp_numbers w where w.phone_number_id = public.whatsapp_sender_for(p_audience, p_target);
   if v_waba is null then
     return null;
   end if;
+  -- Only in the category it was written for: Meta may re-categorise a utility template as marketing, and a marketing
+  -- message must never reach someone who did not opt in (§18.3).
   select * into v_t from public.whatsapp_templates t
-  where t.waba_id = v_waba and t.name = v_name and t.status = 'approved'
+  where t.waba_id = v_waba and t.name = v_name and t.status = 'approved' and t.category = app_private.template_category(p_key)
   order by (t.language = v_lang) desc, (t.language = 'ar') desc, (t.language = 'en') desc
   limit 1;
   return case when v_t.id is not null then jsonb_build_object('name', v_t.name, 'lang', v_t.language, 'dry_run', false) end;
@@ -170,7 +216,7 @@ create function app_private.whatsapp_reachable(p_phone text, p_audience text, p_
 language sql stable security definer set search_path = ''
 as $$
   select p_phone is not null
-    and (public.whatsapp_window_open(p_phone, public.whatsapp_sender(p_audience))
+    and (public.whatsapp_window_open(p_phone, public.whatsapp_sender_for(p_audience, p_phone))
          or app_private.template_for(p_key, p_lang, p_phone, p_audience) is not null);
 $$;
 
@@ -455,6 +501,17 @@ begin
   if public.config_value('whatsapp_template_map') ->> p_template_key is null or p_template_key not like 'marketing_%' then
     raise exception 'broadcasts use a marketing template' using errcode = 'check_violation';
   end if;
+  -- Every variable of the template, filled (a promotion is never sent with a hole), at most 100 characters.
+  if exists (select 1 from unnest(case p_template_key when 'marketing_offer' then array['shop', 'offer']
+                                                      else array['shop', 'village'] end) k
+             where coalesce(trim(p_values ->> k), '') = '' or char_length(p_values ->> k) > 100) then
+    raise exception 'every template variable needs a value of at most 100 characters' using errcode = 'check_violation';
+  end if;
+  -- A shop named in the segment is a claimed shop that takes orders (§39.3: never an unclaimed listing).
+  if p_segment ? 'vendor_id' and not exists (select 1 from public.vendors v where v.id::text = p_segment ->> 'vendor_id'
+                                             and v.claim_status = 'claimed' and v.orderable) then
+    raise exception 'the segment''s shop must be claimed and orderable' using errcode = 'check_violation';
+  end if;
   insert into public.broadcasts (name, template_key, template_values, segment, created_by)
   values (p_name, p_template_key, coalesce(p_values, '{}'), coalesce(p_segment, '{}'), p_actor_id)
   returning id into v_id;
@@ -508,6 +565,9 @@ begin
   if not coalesce((public.config_value('broadcasts_enabled') #>> '{}')::boolean, false) then
     return null;
   end if;
+  -- One claim at a time: two runs taking two broadcasts at once would each miss the other's recipients in the weekly cap
+  -- and the other's cost in the daily cap.
+  perform pg_advisory_xact_lock(hashtext('broadcast_claim'));
   select * into v_b from public.broadcasts where status = 'approved' order by approved_at limit 1 for update skip locked;
   if v_b.id is null then
     return null;
@@ -519,16 +579,19 @@ begin
   get diagnostics v_n = row_count;
   select coalesce(sum(b.est_usd), 0) into v_spent from public.broadcasts b
   where b.sent_at > date_trunc('day', now() at time zone 'Asia/Beirut') at time zone 'Asia/Beirut';
-  if v_n = 0 or v_spent + v_n * coalesce(v_rate, 0.05) > public.config_numeric('broadcast_daily_usd') then
+  -- No dated marketing rate: fail closed (rates live in message_rates, never in code, §6).
+  if v_n = 0 or v_rate is null or v_spent + v_n * v_rate > public.config_numeric('broadcast_daily_usd') then
     update public.broadcasts set status = 'failed', recipients = v_n,
-      last_error = case when v_n = 0 then 'nobody opted in matches the segment' else 'over the daily marketing budget' end
+      last_error = case when v_n = 0 then 'nobody opted in matches the segment' when v_rate is null then 'no dated marketing rate'
+                        else 'over the daily marketing budget' end
     where id = v_b.id;
     delete from public.broadcast_recipients where broadcast_id = v_b.id;
     perform app_private.ops_alert('broadcast:' || v_b.id, 'broadcast', 'warning',
-      format('Broadcast "%s" not sent: %s', v_b.name, case when v_n = 0 then 'nobody opted in matches' else 'over the daily marketing budget' end));
+      format('Broadcast "%s" not sent: %s', v_b.name, case when v_n = 0 then 'nobody opted in matches' when v_rate is null then 'no dated marketing rate'
+                                                      else 'over the daily marketing budget' end));
     return null;
   end if;
-  update public.broadcasts set status = 'sending', recipients = v_n, est_usd = v_n * coalesce(v_rate, 0.05), sent_at = now()
+  update public.broadcasts set status = 'sending', recipients = v_n, est_usd = v_n * v_rate, sent_at = now()
   where id = v_b.id;
   return jsonb_build_object('id', v_b.id, 'name', v_b.name, 'template_key', v_b.template_key,
     'template', public.config_value('whatsapp_template_map') ->> v_b.template_key, 'values', v_b.template_values,
@@ -549,15 +612,18 @@ as $$
   limit 1;
 $$;
 
-create function public.broadcast_finish(p_id uuid, p_ok boolean, p_kapso_ids text[], p_error text, p_dry_run_phones text[] default '{}')
+-- p_sent_phones: handed to a Kapso broadcast; p_dry_run_phones: recorded through the simulator sink. Everyone else in the
+-- audience failed (their language's template was not approved, or Kapso refused), so the weekly cap counts exactly who got it.
+create function public.broadcast_finish(p_id uuid, p_ok boolean, p_kapso_ids text[], p_error text,
+  p_dry_run_phones text[] default '{}', p_sent_phones text[] default '{}')
 returns void
 language plpgsql security definer set search_path = ''
 as $$
 begin
   update public.broadcast_recipients set status = case when phone_e164 = any (coalesce(p_dry_run_phones, '{}')) then 'dry_run'
-                                                       when p_ok then 'sent' else 'failed' end
+                                                       when phone_e164 = any (coalesce(p_sent_phones, '{}')) then 'sent' else 'failed' end
   where broadcast_id = p_id and status = 'queued';
-  update public.broadcasts set status = case when p_ok then 'sent' else 'failed' end,
+  update public.broadcasts set status = case when p_ok or cardinality(coalesce(p_sent_phones, '{}')) > 0 then 'sent' else 'failed' end,
     kapso_broadcast_ids = coalesce(p_kapso_ids, '{}'), last_error = left(p_error, 500)
   where id = p_id and status = 'sending';
   if not p_ok then
@@ -591,12 +657,15 @@ revoke all on function public.whatsapp_seen(text, text), public.whatsapp_window_
   public.whatsapp_template_for(text, text, text, text), app_private.whatsapp_reachable(text, text, text, text),
   app_private.broadcast_audience(jsonb, integer), public.broadcast_create(uuid, text, text, jsonb, jsonb),
   public.broadcast_approve(uuid, uuid), public.broadcasts_pause(uuid), public.broadcast_claim(),
-  public.broadcast_template_id(text, text), public.broadcast_finish(uuid, boolean, text[], text, text[]),
+  public.broadcast_template_id(text, text), public.broadcast_finish(uuid, boolean, text[], text, text[], text[]),
   public.customer_marketing_stop_by_phone(text, boolean), public.gift_request_create(uuid, uuid, bigint)
   from public, anon, authenticated;
+revoke all on function app_private.whatsapp_sender_rank(public.whatsapp_number_role, text), app_private.template_category(text),
+  public.whatsapp_sender_for(text, text), public.whatsapp_reply_number(text, text) from public, anon, authenticated;
+grant execute on function public.whatsapp_sender_for(text, text), public.whatsapp_reply_number(text, text) to service_role;
 grant execute on function public.whatsapp_seen(text, text), public.whatsapp_window_open(text, text),
   public.whatsapp_template_sync(text, jsonb), public.whatsapp_template_for(text, text, text, text),
   public.broadcast_create(uuid, text, text, jsonb, jsonb), public.broadcast_approve(uuid, uuid), public.broadcasts_pause(uuid),
-  public.broadcast_claim(), public.broadcast_template_id(text, text), public.broadcast_finish(uuid, boolean, text[], text, text[]),
+  public.broadcast_claim(), public.broadcast_template_id(text, text), public.broadcast_finish(uuid, boolean, text[], text, text[], text[]),
   public.customer_marketing_stop_by_phone(text, boolean), public.gift_request_create(uuid, uuid, bigint)
   to service_role;

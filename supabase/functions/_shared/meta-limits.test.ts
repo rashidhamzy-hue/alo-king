@@ -971,10 +971,10 @@ describe("WhatsApp templates (DECISIONS §39.8)", () => {
     });
   it("the dispatch filler builds a sendable template for every message it covers", () => {
     const UUID = "11111111-2222-3333-4444-555555555555";
-    const card = { order_id: UUID, code: "ABC123", vendor_name: "V", total_usd: 1, total_lbp: 89500, items: [] };
+    const card = { order_id: UUID, code: "ABC123", vendor_name: "V", total_usd: 1, total_lbp: 89500, items: [{ name: "Wrap", quantity: 1 }] };
     for (const [key, purpose, payload] of [
-      ["accepted", "customer_message", { kind: "accepted" }],
-      ["on_the_way", "customer_message", { kind: "on_the_way" }],
+      ["accepted", "customer_message", { kind: "accepted", eta: { min: 20, max: 30 } }],
+      ["on_the_way", "customer_message", { kind: "on_the_way", eta: { min: 5 } }],
       ["delivered", "customer_message", { kind: "delivered" }],
       ["gift_accepted", "customer_message", { kind: "gift_accepted", code: "ABC123", recipient_name: "M" }],
       ["gift_request", "customer_message", { kind: "gift_request", gift_id: UUID, sender: "R", vendor: "V", total_usd: 1, total_lbp: 1 }],

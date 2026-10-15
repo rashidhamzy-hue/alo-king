@@ -297,8 +297,10 @@ export function templateMessage(
   values: Record<string, unknown>,
   payloads: string[] = [],
 ): Record<string, unknown> {
+  // A blank variable is refused, never padded: a template with a hole ("an offer from - on Alo King") is worse than none.
   for (const p of def.params)
-    if (values[p] === undefined || values[p] === null) throw new Error(`template ${def.name}: ${p} missing`);
+    if (values[p] === undefined || values[p] === null || !String(values[p]).trim())
+      throw new Error(`template ${def.name}: ${p} missing`);
   const text = def.params.map((p) => ({ type: "text", text: templateParam(values[p]) }));
   const components: Record<string, unknown>[] = [{ type: "body", parameters: text }];
   if (def.category === "AUTHENTICATION") {

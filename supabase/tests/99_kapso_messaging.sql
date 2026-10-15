@@ -23,8 +23,10 @@ select tests.ok(not public.whatsapp_window_open('+96170000001', :sandbox), 'ten 
 reset role;
 insert into public.whatsapp_numbers (phone_number_id, role, waba_id, active) values ('15550001111', 'test', '900000000001', true);
 set local role service_role;
-select tests.ok(public.whatsapp_sender('customer') = '15550001111' and public.whatsapp_sender('merchant') = '15550001111',
-  'the test number sends to both sides');
+select tests.ok(public.whatsapp_sender('customer') = :sandbox and public.whatsapp_sender('merchant') = :sandbox,
+  'without an approved utility template the test number stays behind the sandbox (nobody has a window on it yet)');
+select tests.ok(public.whatsapp_reply_number('15550001111', 'customer') = '15550001111' and public.whatsapp_reply_number('999', 'customer') = :sandbox,
+  'an inbound message is answered from the number it arrived on, when it is ours');
 
 -- 3. Templates ----------------------------------------------------------------------------------------------------------
 select tests.ok(public.whatsapp_template_for('accepted', 'ar', '+96170000001', 'customer') is null,
@@ -33,8 +35,19 @@ select public.whatsapp_template_sync('900000000001', '[
   {"name": "alo_order_confirmed", "language": "ar", "category": "utility", "status": "APPROVED", "kapso_template_id": "k-ar"},
   {"name": "alo_order_confirmed", "language": "en", "category": "utility", "status": "PENDING"},
   {"name": "alo_offer_nearby", "language": "ar", "category": "marketing", "status": "APPROVED", "kapso_template_id": "k-mkt-ar"}]');
+select tests.ok(public.whatsapp_sender('customer') = '15550001111' and public.whatsapp_sender('merchant') = '15550001111',
+  'once a utility template is approved on its account, the test number sends to both sides');
+select public.whatsapp_seen('+96170000002', :sandbox);
+select tests.ok(public.whatsapp_sender_for('customer', '+96170000002') = :sandbox,
+  'but someone whose window is open on the sandbox is still answered from the sandbox');
 select tests.ok(public.whatsapp_template_for('accepted', 'en', '+96170000001', 'customer') = '{"name": "alo_order_confirmed", "lang": "ar", "dry_run": false}',
   'English not approved yet: the Arabic one carries it');
+-- Meta re-categorised a utility template as marketing: it is never sent as a utility message.
+select public.whatsapp_template_sync('900000000001', '[{"name": "alo_order_delivered", "language": "ar", "category": "marketing", "status": "APPROVED"}]');
+select tests.ok(public.whatsapp_template_for('delivered', 'ar', '+96170000001', 'customer') is null, 'a re-categorised template is not used');
+reset role;
+select tests.ok(exists (select 1 from public.ops_alerts where summary like '%alo_order_delivered (ar) is MARKETING%'), 'and the operators are told');
+set local role service_role;
 select tests.ok(public.whatsapp_template_for('near_drop', 'ar', '+96170000001', 'customer') is null, 'a kind without a template has none');
 reset role;
 select tests.ok(exists (select 1 from public.ops_alerts where kind = 'template_status' and summary like '%alo_order_confirmed (ar): approved%'),
@@ -77,6 +90,10 @@ select tests.throws($$select public.broadcast_create('00000000-0000-0000-0000-00
   'not allowed', 'a merchant is not an operator');
 select tests.throws($$select public.broadcast_create('00000000-0000-0000-0000-00000000000b', 'Wraps week', 'accepted', '{}', '{}')$$,
   'marketing template', 'a broadcast never uses a utility template');
+select tests.throws($$select public.broadcast_create('00000000-0000-0000-0000-00000000000b', 'Wraps week', 'marketing_offer', '{"shop": "Vendor A", "offer": " "}', '{}')$$,
+  'needs a value', 'a promotion is never sent with an empty variable');
+select tests.throws($$select public.broadcast_create('00000000-0000-0000-0000-00000000000b', 'C week', 'marketing_offer', '{"shop": "C", "offer": "x"}',
+  '{"vendor_id": "20000000-0000-0000-0000-00000000000c"}')$$, 'claimed and orderable', 'nor for an unclaimed shop');
 select public.broadcast_create('00000000-0000-0000-0000-00000000000b', 'Wraps week', 'marketing_offer',
   '{"shop": "Vendor A", "offer": "20% off wraps"}', '{}') as b1 \gset
 select tests.ok((:'b1'::jsonb ->> 'audience')::int = 1, 'only the opted-in customer is in the audience');
@@ -86,7 +103,7 @@ select tests.throws(format($$select public.broadcast_approve('00000000-0000-0000
 select tests.ok(public.broadcast_approve('00000000-0000-0000-0000-00000000000a', :'bid') ->> 'enabled' = 'false', 'approved, but the switch is off');
 select tests.ok(public.broadcast_claim() is null, 'nothing is sent while broadcasts_enabled is false');
 reset role;
-insert into public.app_config (key, value, effective_from, note) values ('broadcasts_enabled', 'true', now() - interval '1 second', 'test');
+insert into public.app_config (key, value, effective_from, note) values ('broadcasts_enabled', 'true', now() - interval '1 millisecond', 'test');
 -- STOP between approval and sending: the audience is taken at send time.
 update public.customers set marketing_opt_in = true, marketing_opt_in_at = now() - interval '1 day' where id = :'c2';
 select public.customer_marketing_set(:'c2', false);
@@ -96,7 +113,7 @@ select tests.ok(:'claim'::jsonb -> 'groups' = '{"en": ["+96170000001"]}' and :'c
   'the claim takes the opted-in customer in their language and leaves out the one who sent STOP');
 select tests.ok(public.broadcast_template_id('alo_offer_nearby', 'ar') = 'k-mkt-ar' and public.broadcast_template_id('alo_offer_nearby', 'en') is null,
   'the Kapso template id per language, approved marketing only');
-select public.broadcast_finish(:'bid', true, array['kb-1'], null, '{}');
+select public.broadcast_finish(:'bid', true, array['kb-1'], null, '{}', array['+96170000001']);
 reset role;
 select tests.ok((select status = 'sent' and recipients = 1 and est_usd > 0 from public.broadcasts where id = :'bid')
   and (select status = 'sent' from public.broadcast_recipients where broadcast_id = :'bid'), 'finished and recorded');

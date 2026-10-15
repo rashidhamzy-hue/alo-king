@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { runDispatch, type DispatchDeps, type SendResult } from "./handler";
-import { templateFill, templateKey } from "./templates";
+import { templateFill, templateKey, templatePayload } from "./templates";
 
 const ORDER = "11111111-2222-3333-4444-555555555555";
 const GIFT = "33333333-2222-3333-4444-555555555555";
@@ -39,8 +39,12 @@ describe("templateFill: each message's template values (DECISIONS §39.8)", () =
       payloads: ["c:track"],
     });
     expect(
-      templateFill("on_the_way", row("customer_message", { kind: "on_the_way" }), "ar")?.values.eta,
-    ).toBe("30-45 د");
+      templateFill(
+        "on_the_way",
+        row("customer_message", { kind: "on_the_way", eta: { min: 10, max: 15 } }),
+        "ar",
+      )?.values.eta,
+    ).toBe("10-15 د");
     expect(
       templateFill(
         "gift_accepted",
@@ -113,6 +117,22 @@ describe("templateFill: each message's template values (DECISIONS §39.8)", () =
         "ar",
       )?.payloads,
     ).toEqual(["mcmd:week"]);
+  });
+  it("a missing value is left blank, so the template is refused rather than sent with a hole or a made-up ETA", () => {
+    expect(
+      templatePayload(
+        { name: "alo_order_on_the_way", lang: "en" },
+        "on_the_way",
+        row("customer_message", { kind: "on_the_way" }),
+      ),
+    ).toBeNull();
+    expect(
+      templatePayload(
+        { name: "alo_order_delivered", lang: "en" },
+        "delivered",
+        row("customer_message", { kind: "delivered" }, { ...card, vendor_name: null }),
+      ),
+    ).toBeNull();
   });
   it("a row missing what the template needs fills nothing", () => {
     expect(
@@ -346,6 +366,7 @@ describe("broadcasts (DECISIONS §39.8)", () => {
       p_ok: true,
       p_kapso_ids: ["kb-t-en", "kb-t-ar"],
       p_dry_run_phones: ["+99996100000009"],
+      p_sent_phones: ["+96170000001", "+96170000002"],
     });
   });
   it("a language whose template is not approved fails that group and says why", async () => {
@@ -363,6 +384,8 @@ describe("broadcasts (DECISIONS §39.8)", () => {
     const fin = h.calls.find((c) => c.fn === "broadcast_finish")!.args;
     expect(fin.p_ok).toBe(false);
     expect(fin.p_error).toMatch(/en: alo_offer_nearby is not approved/);
+    // The Arabic group did go out: those recipients count as sent (weekly cap), only the English one failed.
+    expect(fin.p_sent_phones).toEqual(["+96170000002"]);
   });
   it("a utility template is never broadcast", async () => {
     const k = kapso();
@@ -412,5 +435,62 @@ describe("STOP inside WhatsApp (Kapso marketing preference event)", () => {
       p_stopped: true,
     });
     expect(calls.find((c) => c.fn === "webhook_finish")?.args.p_status).toBe("done");
+  });
+});
+
+describe("which number sends (5b review)", () => {
+  it("an outbox row leaves from the number where the person's window is open", async () => {
+    const h = harness({
+      open: true,
+      template: null,
+      outbox: [outboxRow("customer_message", { kind: "on_the_way", lang: "en", eta: { min: 5 } })],
+      rpcs: { whatsapp_sender_for: (a) => (a.p_target === "+96170000001" ? "PN-SANDBOX" : "PNID") },
+    });
+    await runDispatch(h.d);
+    expect(h.sent[0].from).toBe("PN-SANDBOX");
+  });
+  it("a merchant member's 'Stop promotions' tap is STOP too", async () => {
+    const calls: any[] = [];
+    let events = [
+      {
+        msg_id: 1,
+        event_id: 3,
+        event_type: "whatsapp.message.received",
+        phone_number_id: "PNID",
+        payload: {
+          message: {
+            id: "wamid.s",
+            type: "button",
+            button: { payload: "mkt:stop" },
+            kapso: { direction: "inbound" },
+          },
+          conversation: { phone_number: "+96171000001" },
+        },
+      },
+    ];
+    await runDispatch({
+      rpc: async (fn, args) => {
+        calls.push({ fn, args });
+        if (fn === "webhook_claim") {
+          const e = events;
+          events = [];
+          return e;
+        }
+        if (fn === "merchant_members_by_phone")
+          return [{ member_id: "m", vendor_id: "v", role: "owner" }];
+        return null;
+      },
+      whatsapp: async () => ({ ok: true }),
+      call: null,
+      telegram: null,
+      budgetMs: 60_000,
+    });
+    expect(calls.find((c) => c.fn === "customer_marketing_stop_by_phone")?.args).toEqual({
+      p_phone_e164: "+96171000001",
+      p_stopped: true,
+    });
+    expect(calls.find((c) => c.fn === "app_reply")?.args.p_payload.text).toMatch(
+      /Promotions stopped/,
+    );
   });
 });
