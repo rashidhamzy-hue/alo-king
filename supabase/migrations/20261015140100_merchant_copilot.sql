@@ -446,7 +446,8 @@ begin
          not between (public.config_value('boost_budget_usd') ->> 'min')::numeric and (public.config_value('boost_budget_usd') ->> 'max')::numeric
        or coalesce(p_payload ->> 'audience', '') not in ('nearby', 'past_customers')
        or coalesce(p_payload ->> 'kind', 'sponsored') not in ('sponsored', 'broadcast')) then
-    raise exception 'Boost needs a budget of $5-$500 and an audience (nearby or past customers)' using errcode = 'check_violation';
+    raise exception 'Boost needs a budget of $%-$% and an audience (nearby or past customers)',
+      public.config_value('boost_budget_usd') ->> 'min', public.config_value('boost_budget_usd') ->> 'max' using errcode = 'check_violation';
   end if;
 end;
 $$;
@@ -976,7 +977,8 @@ language plpgsql security definer set search_path = ''
 as $$
 begin
   if new.offer_usd > 0 then
-    new.order_fee_usd := public.order_fee_usd(new.vendor_id, greatest(new.food_subtotal_usd - new.offer_usd, 0));
+    -- The band in force when the order was placed, like every other recalculation (dated config, §1).
+    new.order_fee_usd := public.order_fee_usd(new.vendor_id, greatest(new.food_subtotal_usd - new.offer_usd, 0), new.placed_at);
   end if;
   return new;
 end;

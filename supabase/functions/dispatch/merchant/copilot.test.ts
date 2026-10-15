@@ -469,6 +469,18 @@ describe("review fixes (§39.7)", () => {
       p_kind: "availability_on",
       p_payload: { scope: "section", target: SECTION },
     });
+    // An item whose name starts with a section's name is the item, not the section.
+    const pz = harness({
+      merchant_menu_parts: () => ({
+        sections: [{ section_id: SECTION, name_en: "Pizza", name_ar: "بيتزا" }],
+      }),
+      menu_item_match: () => [{ item_id: "it-marg", name: "Pizza Margherita", score: 0.9 }],
+    });
+    await pz.text("pizza margherita back");
+    expect(pz.proposal()).toMatchObject({
+      p_kind: "back_in_stock",
+      p_payload: { item_id: "it-marg" },
+    });
     const k = harness();
     await k.text("knefe back");
     expect(k.proposal()).toMatchObject({
@@ -546,6 +558,21 @@ describe("review fixes (§39.7)", () => {
   it("a hostile page cannot break the reader", () => {
     expect(htmlText("<li>Falafel &#9999999; 4$</li>")).toBe("Falafel 4$");
     expect(htmlText("<li>Falafel &#99999999; 4$</li>")).toBe("Falafel &#99999999; 4$");
+    for (const evil of [
+      "<".repeat(1_000_000),
+      "<!--".repeat(250_000),
+      "<a".repeat(500_000),
+      "<script>".repeat(100_000),
+    ]) {
+      const t = Date.now();
+      htmlText(evil);
+      expect(Date.now() - t, evil.slice(0, 8)).toBeLessThan(1000);
+    }
+    expect(htmlText("<p>a<!-- x --> b</p><style>p{}</style><li>Falafel 4$</li>")).toBe(
+      "a b\nFalafel 4$",
+    );
+    for (const ip of ["64:ff9b::7f00:1", "2002:7f00:1::", "::127.0.0.1"])
+      expect(privateAddress(ip), ip).toBe(true);
     // An unclosed script tag stays text, cut to the parser's limit, quickly.
     const t0 = Date.now();
     expect(htmlText("<script>" + "x".repeat(2_000_000)).length).toBeLessThanOrEqual(50_000);

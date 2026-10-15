@@ -29,9 +29,43 @@ export function firstLink(text: string | null | undefined): string | null {
   return m ? m[0].replace(/[).,!?]+$/, "") : null;
 }
 
-/** True for loopback, private, link-local, CGNAT, multicast, reserved and unique-local addresses (IPv4 and IPv6). */
+/** Comments, scripts, styles and similar blocks removed with indexOf (an unclosed one runs to the end). */
+function dropBlocks(html: string): string {
+  const lower = html.toLowerCase();
+  const out: string[] = [];
+  let at = 0;
+  for (;;) {
+    const next = lower.indexOf("<", at);
+    if (next < 0) break;
+    let end = -1;
+    if (lower.startsWith("<!--", next)) {
+      const close = lower.indexOf("-->", next + 4);
+      end = close < 0 ? lower.length : close + 3;
+    } else {
+      const tag = /^<(script|style|noscript|svg|template)\b/.exec(lower.slice(next, next + 12));
+      if (tag) {
+        const close = lower.indexOf(`</${tag[1]}`, next + 1);
+        const gt = close < 0 ? -1 : lower.indexOf(">", close);
+        end = gt < 0 ? lower.length : gt + 1;
+      }
+    }
+    if (end < 0) {
+      out.push(html.slice(at, next + 1));
+      at = next + 1;
+    } else {
+      out.push(html.slice(at, next), " ");
+      at = end;
+    }
+  }
+  out.push(html.slice(at));
+  return out.join("");
+}
+
+/** True for loopback, private, link-local, CGNAT, multicast, reserved and unique-local addresses (IPv4 and IPv6),
+ * including IPv4 inside IPv6 (mapped, compatible, NAT64 and 6to4). */
 export function privateAddress(ip: string): boolean {
   const a = ip.toLowerCase();
+  if (/^(64:ff9b::|2002:|::(?!ffff:)\d)/.test(a)) return true; // embedded IPv4 forms: refused outright
   const v4 = a.replace(/^::ffff:/, "").match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (v4) {
     const [x, y] = [Number(v4[1]), Number(v4[2])];
@@ -122,12 +156,13 @@ export async function safeFetch(
 
 /** Visible text of an HTML page, one line per block, for the menu parser (scripts, styles and tags dropped). */
 export function htmlText(html: string): string {
-  return html
-    .slice(0, 1_000_000)
-    .replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<(br|\/p|\/div|\/li|\/tr|\/h[1-6]|\/section|\/article)\b[^>]*>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
+  // Linear in the input whatever the page holds (no backtracking regex on unclosed tags): blocks are cut out with
+  // indexOf, and the tag patterns cannot cross a "<".
+  let s = dropBlocks(html.slice(0, 1_000_000));
+  s = s
+    .replace(/<(br|\/p|\/div|\/li|\/tr|\/h[1-6]|\/section|\/article)\b[^<>]*>/gi, "\n")
+    .replace(/<[^<>]*>/g, " ");
+  return s
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")

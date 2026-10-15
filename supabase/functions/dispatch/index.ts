@@ -463,6 +463,7 @@ Deno.serve(async (req) => {
               Deno.resolveDns(host, "A").catch(() => [] as string[]),
               Deno.resolveDns(host, "AAAA").catch(() => [] as string[]),
             ]);
+            if (!a.length && !aaaa.length) log("menu link: no DNS answer", { host });
             return [...a, ...aaaa];
           },
         }),

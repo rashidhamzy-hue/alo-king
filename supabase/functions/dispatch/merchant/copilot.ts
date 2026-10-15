@@ -62,7 +62,7 @@ const days = (wd: number[]) =>
     : { ar: wd.map((d) => WEEKDAY_AR[d]).join("، "), en: wd.map((d) => WEEKDAY[d]).join(", ") };
 
 /** A section of this branch named by the words (exact, or one containing the other), else null. */
-async function section(ctx: CopilotCtx, q: string) {
+async function section(ctx: CopilotCtx, q: string, exact = false) {
   const parts = await ctx.rpc("merchant_menu_parts", {
     p_vendor_id: ctx.member.vendor_id,
     p_member_id: ctx.member.member_id,
@@ -77,7 +77,7 @@ async function section(ctx: CopilotCtx, q: string) {
     [s.name_en, s.name_ar].some((x: string | null) => {
       if (!x) return false;
       const v = key(x);
-      return v === n || (n.length >= 4 && (v.startsWith(n) || n.startsWith(v)));
+      return v === n || (!exact && n.length >= 4 && (v.startsWith(n) || n.startsWith(v)));
     }),
   );
   return hits.length === 1
@@ -169,9 +169,11 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
   const c = cmd as CopilotCommand;
   const vendor = ctx.member.vendor_id;
   const memberId = ctx.member.member_id;
-  // "<section> back" switches a section back on (the item rule below would find one item at most).
+  // "<section> back" switches a section back on, but only when no item has that name and the section name is exact:
+  // "pizza margherita back" is the item, never the whole "Pizza" section.
   if (cmd.kind === "back_in_stock") {
-    const s = await section(ctx, cmd.item);
+    if (await ctx.item(cmd.item)) return false;
+    const s = await section(ctx, cmd.item, true);
     if (!s) return false;
     await ctx.propose(
       "availability_on",
@@ -236,6 +238,10 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
     case "item_describe":
     case "item_station":
     case "item_remove": {
+      if (c.kind === "item_rename" && isMedicineRequest(c.name)) {
+        await ctx.reply("💊 ما منبيع أدوية على Alo King. / Medicines can't be sold on Alo King.");
+        return true;
+      }
       const it = await ctx.item(c.item);
       if (!it) {
         await notFound(ctx, c.item);
