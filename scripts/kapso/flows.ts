@@ -174,6 +174,7 @@ async function main() {
     }
   }
 
+  let encryptionFailed = false;
   // Encryption is per business account; Kapso sets it up through any Flow of the number (and verifies it on Meta).
   const flows = await listFlows(pn);
   if (flows.length) {
@@ -184,6 +185,7 @@ async function main() {
       });
       console.log("Flow encryption: configured on the number's business account");
     } catch (e) {
+      encryptionFailed = true;
       failures.push(`encryption: ${String(e).slice(0, 300)}`);
     }
   }
@@ -226,9 +228,10 @@ async function main() {
     );
   }
 
-  // Live: both languages published on the number. Switched on: only the Flows that became live through a publish in this
-  // run, and only when the whole run succeeded; a Flow an operator switched off, or one the §12 kill-gate stopped, is never
-  // switched on again by a later run (a new flows_enabled row also restarts every Flow's kill-gate window).
+  // Live: both languages published on the number. Switched on: each Flow that became live through a publish in this run
+  // (a failure of another Flow does not hold it back: a published Flow is never published again, so it would stay off for
+  // good); a failed encryption set-up holds back all. A Flow an operator switched off, or one the §12 kill-gate stopped,
+  // is never switched on again by a later run (a new flows_enabled row also restarts every Flow's kill-gate window).
   const both = (flow: string) => files.filter((f) => f.flow === flow);
   const live = [...new Set(files.map((f) => f.flow))].filter((flow) =>
     both(flow).every((f) => final.find((x) => x.name === f.name)?.status === "published"),
@@ -244,7 +247,7 @@ async function main() {
     });
     await db.connect();
     try {
-      if (publish && switchOn.length && !failures.length) {
+      if (publish && switchOn.length && !encryptionFailed) {
         const cur =
           (await db.query("select public.config_value('flows_enabled') as v")).rows[0]?.v ?? {};
         const next = { ...cur, ...Object.fromEntries(switchOn.map((f) => [f, true])) };
