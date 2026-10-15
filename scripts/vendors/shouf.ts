@@ -113,9 +113,20 @@ const FOOD_CATEGORIES = new Set(["restaurant", "cafe", "bakery", "grocery", "but
  * duplicate row is not imported (an exclusion "duplicate of <kept>", which the load also uses to remove an unclaimed
  * duplicate already in the database), and the kept row takes the Arabic name when it has none.
  */
-export function normalizeShouf(rawRows: RawVendor[], duplicates: Map<string, string> = new Map()) {
-  const all = new Map(rawRows.map((r) => [r.place_id, r]));
-  const rows = rawRows
+export function normalizeShouf(
+  rawRows: RawVendor[],
+  duplicates: Map<string, string> = new Map(),
+  menuPhones: Map<string, string> = new Map(),
+) {
+  // A phone printed on the owner's menu photo fills a merchant the file lists without one (Eatout, 76 904875); the
+  // file's own number always wins.
+  const withPhones = rawRows.map((r) =>
+    !(r.phone_e164 ?? "").trim() && !(r.phone_raw ?? "").trim() && menuPhones.has(r.place_id)
+      ? { ...r, phone_raw: menuPhones.get(r.place_id)!, phone_from_menu: "1" }
+      : r,
+  );
+  const all = new Map(withPhones.map((r) => [r.place_id, r]));
+  const rows = withPhones
     .filter((r) => !duplicates.has(r.place_id))
     .map((r) => {
       const dup = [...duplicates].find(([, keep]) => keep === r.place_id)?.[0];
@@ -186,6 +197,7 @@ export function normalizeShouf(rawRows: RawVendor[], duplicates: Map<string, str
     const labels: Record<string, string> = { ...v.import_labels };
     labels.alo_king_category = src.alo_king_category ?? "";
     if (src.google_primary_type) labels.google_primary_type = src.google_primary_type;
+    if (src.phone_from_menu) labels.phone_source = "menu photo";
     if ((src.opening_hours ?? "").trim())
       labels.hours_seed = src.opening_hours.replace(/\u202f/g, " ").trim();
     if (village && village !== (src.locality_raw ?? "").trim())

@@ -27,6 +27,8 @@ export type OrderCardData = {
   allergy_note?: string | null;
   area_ar?: string | null;
   area_en?: string | null;
+  /** A demo shop on staging (DECISIONS §39.12): the order is a demonstration; the real shop never hears of it. */
+  demo?: boolean;
   items: {
     name: string;
     name_en?: string | null;
@@ -56,6 +58,7 @@ const T = {
     rate: "سعر الصرف",
     locked: "مقفل على الطلب",
     newCustomer: "🆕 زبون جديد",
+    demo: "🧪 طلب تجريبي (Demo): المحل الحقيقي ما بيعرف فيه",
     gift: "🎁 هدية لـ{name} · {phone} (هو بيستلم وبيدفع)",
     allergy: "⚠️ حساسية: {note}",
     note: "ملاحظة",
@@ -104,6 +107,7 @@ const T = {
     rate: "rate",
     locked: "locked at order",
     newCustomer: "🆕 New customer",
+    demo: "🧪 Demo order: the real shop is never told",
     gift: "🎁 Gift for {name} · {phone} (they receive and pay)",
     allergy: "⚠️ Allergy: {note}",
     note: "Note",
@@ -179,7 +183,7 @@ export function orderCard(to: string, d: OrderCardData, lang: Lang = "ar") {
   const area = lang === "en" ? (d.area_en ?? d.area_ar) : (d.area_ar ?? d.area_en);
   const len = (x: string) => [...x].length;
   const clip = (x: string, n: number) => (len(x) > n ? [...x].slice(0, n - 1).join("") + "…" : x);
-  const head = `${d.fulfilment === "pickup" ? t.pickup : t.delivery}${area ? ` · ${t.area}: ${area}` : ""}`;
+  const head = `${d.demo ? `${t.demo}\n` : ""}${d.fulfilment === "pickup" ? t.pickup : t.delivery}${area ? ` · ${t.area}: ${area}` : ""}`;
   // The money line and flags always fit; items fill the rest, then "+N more" (the portal has them all).
   const tail = [
     d.allergy_note ? t.allergy.replace("{note}", clip(d.allergy_note, 120)) : "",

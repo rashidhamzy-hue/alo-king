@@ -476,6 +476,15 @@ jobs:
             args+=(-v "owner_phone=$OWNER_TEST_PHONE")
           fi
           psql "$DB_URL" -X -q -1 -v ON_ERROR_STOP=1 "${args[@]}" -f supabase/test-fixtures/alo-test-grill.sql
+      - name: Demo shops for investors (DECISIONS §39.12; staging only, the production cut-over checks demo_shops is empty)
+        run: |
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          list=$(mktemp)
+          node --experimental-strip-types --no-warnings scripts/demo/build-demo-menus.ts "$list"
+          psql "$DB_URL" -X -q -1 -v ON_ERROR_STOP=1 -v demo_csv="$list" -f supabase/test-fixtures/demo-shops.sql 2>&1 \
+            | grep -E 'NOTICE|ERROR' | sed 's/^.*NOTICE: *//' | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
       - name: Record where the edge functions live (the dispatch kick reads it)
         run: |
           DB_URL="$(scripts/staging-db-url.sh)"

@@ -465,13 +465,16 @@ async function catalogImage(url: URL): Promise<Response> {
   if (!d) return new Response("not found", { status: 404 });
   const v = url.searchParams.get("v") ?? "";
   if (String(d.hash ?? "") !== v) {
+    // Only a well-formed content hash is worth checking against the shop's desired catalogue (#183 review).
+    if (!/^[0-9a-f]{8}$/.test(v)) return new Response("not found", { status: 404 });
     const desired: DesiredProduct[] =
       (await rpc("catalog_desired", { p_vendor_id: d.vendor_id }).catch(() => [])) ?? [];
     const p = desired.find((x) => x.retailer_id === id);
     if (!p || productHash(p) !== v) return new Response("not found", { status: 404 });
   }
   if (typeof d.photo === "string" && d.photo) {
-    const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/vendor-photos/${d.photo}`, {
+    // The item's own photo (menu_item_photos, DECISIONS §39.12): never a shop or Google place photo.
+    const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/menu-item-photos/${d.photo}`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${serviceKey}`,

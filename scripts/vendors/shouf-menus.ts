@@ -172,6 +172,8 @@ type RawOwnerMenus = {
     vendor_name: string;
     vendor_name_ar?: string;
     currency: "USD" | "LBP";
+    /** A phone printed on the menu photo, used when the merchant file has none (DECISIONS-ISSUES, Eatout). */
+    phone_from_menu?: string;
     items: {
       section: string;
       item_name: string;
@@ -255,6 +257,15 @@ export function ownerDrafts(raw: RawOwnerMenus): ShoufDraft[] {
 }
 
 /** Listings the owner file names as the same shop (§39.4): duplicate place id → the place id that is kept. */
+/** Phones printed on the owner's menu photos (place id → number), for merchants the file lists without one. */
+export function ownerPhones(raw: RawOwnerMenus): Map<string, string> {
+  return new Map(
+    raw.restaurant_menus
+      .filter((m) => (m.phone_from_menu ?? "").trim())
+      .map((m) => [m.place_id, m.phone_from_menu!.trim()] as const),
+  );
+}
+
 export function ownerDuplicates(raw: RawOwnerMenus): Map<string, string> {
   return new Map(
     raw.restaurant_menus.flatMap((m) =>

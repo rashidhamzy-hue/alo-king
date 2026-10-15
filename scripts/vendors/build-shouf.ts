@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { toCsv, VENDOR_COLUMNS, vendorCells } from "./normalize.ts";
 import { normalizeShouf, parseCsv, whatsappDisagreements } from "./shouf.ts";
 import { existsSync } from "node:fs";
-import { harvestedDrafts, ownerDrafts, ownerDuplicates, shoufDrafts } from "./shouf-menus.ts";
+import { harvestedDrafts, ownerDrafts, ownerDuplicates, ownerPhones, shoufDrafts } from "./shouf-menus.ts";
 
 const [src, out] = process.argv.slice(2);
 if (!src || !out) {
@@ -26,6 +26,7 @@ const owner = ownerFiles.length ? JSON.parse(readFileSync(join(src, ownerFiles[0
 const { vendors, exclusions, phoneIssues } = normalizeShouf(
   rows,
   owner ? ownerDuplicates(owner) : new Map(),
+  owner ? ownerPhones(owner) : new Map(),
 );
 const curated = [
   ...shoufDrafts(JSON.parse(readFileSync(join(src, "03_shouf_digital_menus.json"), "utf8"))),
