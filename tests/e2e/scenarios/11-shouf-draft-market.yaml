@@ -1,5 +1,5 @@
 name: shouf-draft-market
-description: "Real Shouf merchants are loaded as unclaimed drafts and never offered to customers; the staging test market, built from Coop Baakleen's draft catalogue, takes a grocery order quoted in USD and LBP at the dated rate (DECISIONS §38.2)."
+description: "Real Shouf merchants are loaded as unclaimed drafts and none is live outside staging demo mode, whose shops are hidden from simulated customers who did not opt in (DECISIONS §39.12); the staging test market, built from Coop Baakleen's draft catalogue, takes a grocery order quoted in USD and LBP at the dated rate (DECISIONS §38.2)."
 personas:
   cust: { role: customer, cc: "961", name: "Sim Shouf" }
   merchant: { role: merchant }
@@ -25,6 +25,13 @@ steps:
     pin: { as: cust, lat: 33.6802, lon: 35.5708 }
     expect:
       - { to: cust, buttons: ["pv:", "Alo Test Market"] }
+    db:
+      - sql: >
+          select count(*) as real_listed
+          from public.customers c, public.vendor_search(null, 33.6802, 35.5708, null, null, 10, c.id) s
+          join public.vendors v on v.id = s.vendor_id
+          where c.phone_e164 = '{{cust.phone}}' and not v.is_test
+        row: { real_listed: 0 }
   - tap: { as: cust, title: "Alo Test Market" }
     expect: [{ to: cust, buttons: ["ps:", "Water"] }]
   - tap: { as: cust, title: "Water" }
