@@ -1,0 +1,59 @@
+name: demo-coop-list-menu
+description: "Demo mode (DECISIONS §39.12): a customer orders essentials from Baakleen Coop, a real Shouf shop, through the smart list menu (no catalogue); the order card goes to the merchant marked Demo."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Coop Shopper" }
+  merchant: { role: merchant }
+steps:
+  - note: this customer sees the demo shops (staging only, +999 numbers only); no catalogue, so the list menu
+    sql: select public.sim_demo('{{cust.phone}}', '{{merchant.phone}}', true)
+  - db:
+      - sql: >
+          select v.id as shop, extensions.st_y(v.location::extensions.geometry) as lat,
+                 extensions.st_x(v.location::extensions.geometry) as lon,
+                 coalesce(s.name_en, s.name_ar) as section, coalesce(i.name_en, i.name_ar) as item, i.price_usd
+          from public.vendors v join public.menu_sections s on s.vendor_id = v.id join public.menu_items i on i.section_id = s.id
+          where v.place_id = 'ChIJhaAhhQMgHxURbFIi9R14X1I' and app_private.vendor_is_demo(v.id) and v.orderable
+            and app_private.menu_item_orderable(i.id, 1)
+            and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
+          order by s.sort_order, i.sort_order, i.id limit 1
+        row: { price_usd: ">0" }
+        save: { shop: shop, lat: lat, lon: lon, section: section, item: item, price: price_usd }
+  - say: { as: cust, text: "Order" }
+    expect:
+      - { to: cust }
+  - pin: { as: cust, lat: "{{vars.lat}}", lon: "{{vars.lon}}" }
+    expect:
+      - { to: cust, buttons: ["Baakleen Coop"] }
+  - note: 45 essentials in 7 sections; without the catalogue the shop opens as the list of its sections
+    tap: { as: cust, title: "Baakleen Coop" }
+    expect:
+      - { to: cust, kind: list, text: "Baakleen Coop" }
+  - tap: { as: cust, title: "{{vars.section}}" }
+    expect:
+      - { to: cust, buttons: ["pi:"] }
+  - tap: { as: cust, title: "{{vars.item}}" }
+    expect:
+      - { to: cust, buttons: ["qt:"] }
+  - tap: { as: cust, id_re: "^qt:i\\d+:1$" }
+    expect:
+      - { to: cust, buttons: ["c:checkout"] }
+  - note: a delivery-only shop asks no delivery-or-pickup question
+    tap: { as: cust, id: "c:checkout" }
+    expect:
+      - { to: cust, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }
+  - tap: { as: cust, id: "fw:self_save" }
+    expect:
+      - { to: cust, buttons: ["cur:USD", "cur:LBP"] }
+  - tap: { as: cust, id: "cur:USD" }
+    expect:
+      - { to: cust, buttons: ["cfm:"] }
+  - tap: { as: cust, id_prefix: "cfm:" }
+    expect:
+      - { to: merchant, buttons: ["acc:"], text: "Demo" }
+    db:
+      - sql: >
+          select o.status, o.vendor_id = '{{vars.shop}}' as coop, o.food_subtotal_usd = {{vars.price}} as server_priced
+          from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: placed, coop: true, server_priced: true }
+  - sql: select public.sim_demo('{{cust.phone}}', '{{merchant.phone}}', false)

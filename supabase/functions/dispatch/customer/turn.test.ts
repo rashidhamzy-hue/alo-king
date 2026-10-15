@@ -1041,6 +1041,8 @@ describe("the button-driven ordering path (session T, §34)", () => {
     const search = g.of("vendor_search")[0].args;
     expect(search.p_query).toBeNull();
     expect(search.p_lat).toBeCloseTo(33.6775);
+    // The customer goes with the search, so the server hides what this customer must not see (demo mode, §39.12).
+    expect(search.p_customer_id).toBe(CUST);
     // One open place that delivers there opens its menu sections straight away.
     expect(ids(g.sent[g.sent.length - 1])).toEqual(["ps:s1", "ps:s2"]);
   });

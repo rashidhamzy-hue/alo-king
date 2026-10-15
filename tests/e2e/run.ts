@@ -101,6 +101,10 @@ async function main() {
     await client
       .query("select public.sim_market($1, false)", [MERCHANT_PHONE])
       .catch((e) => console.error("sim_market off failed", String(e)));
+    // A demo scenario that stopped half-way leaves its simulated merchant on the demo shops (DECISIONS §39.12).
+    await client
+      .query("select public.sim_demo_reset()")
+      .catch((e) => console.error("sim_demo_reset failed", String(e)));
     await client
       .query("select public.sim_restore()")
       .catch((e) => console.error("sim_restore failed", String(e)));

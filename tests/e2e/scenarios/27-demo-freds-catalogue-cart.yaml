@@ -1,0 +1,59 @@
+name: demo-freds-catalogue-cart
+description: "Demo mode (DECISIONS §39.12): an investor-like customer orders from Fred's Food, a real Shouf shop, through the WhatsApp catalogue cart; the server prices the cart, and the order card goes to the merchant marked Demo, never to the shop's own number."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Investor" }
+  merchant: { role: merchant }
+steps:
+  - note: this customer sees the demo shops, with the simulated catalogue (staging only, +999 numbers only)
+    sql: select public.sim_demo('{{cust.phone}}', '{{merchant.phone}}', true), public.sim_catalog('{{cust.phone}}', true)
+  - db:
+      - sql: >
+          select v.id as shop, extensions.st_y(v.location::extensions.geometry) as lat,
+                 extensions.st_x(v.location::extensions.geometry) as lon, i.id as item, i.price_usd
+          from public.vendors v join public.menu_items i on i.vendor_id = v.id
+          where v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s' and app_private.vendor_is_demo(v.id) and v.orderable
+            and app_private.menu_item_orderable(i.id, 1)
+            and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
+          order by i.price_usd desc, i.id limit 1
+        row: { price_usd: ">0" }
+        save: { shop: shop, lat: lat, lon: lon, item: item, price: price_usd }
+  - say: { as: cust, text: "Order" }
+    expect:
+      - { to: cust }
+  - note: a pin at the shop's door; the shops that deliver there are listed, Fred's Food among them
+    pin: { as: cust, lat: "{{vars.lat}}", lon: "{{vars.lon}}" }
+    expect:
+      - { to: cust, buttons: ["Fred"] }
+  - note: 63 items is more than one catalogue message holds, so its best sellers come as products, the rest as the list
+    tap: { as: cust, title: "Fred" }
+    expect:
+      - { to: cust, kind: products }
+  - note: the cart carries the price the catalogue showed; the server prices it again
+    cart: { as: cust, items: [{ id: "{{vars.item}}", qty: 2, price: "{{vars.price}}" }] }
+    expect:
+      - { to: cust, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }
+  - tap: { as: cust, id: "fw:self_save" }
+    expect:
+      - { to: cust, buttons: ["cur:USD", "cur:LBP"] }
+  - tap: { as: cust, id: "cur:USD" }
+    expect:
+      - { to: cust, buttons: ["cfm:"] }
+  - note: the order card goes to the merchant of the demo shop (here the simulated one, for Rasheed on real phones), marked Demo
+    tap: { as: cust, id_prefix: "cfm:" }
+    expect:
+      - { to: merchant, buttons: ["acc:"], text: "Demo" }
+    db:
+      - sql: >
+          select o.status, o.vendor_id = '{{vars.shop}}' as freds,
+                 o.food_subtotal_usd = 2 * {{vars.price}} as server_priced
+          from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: placed, freds: true, server_priced: true }
+      - sql: >
+          select count(*) as to_the_shop from public.outbound_messages m join public.vendor_private p on p.vendor_id = m.vendor_id
+          where m.vendor_id = '{{vars.shop}}' and m.target = p.phone_seed and m.status not in ('skipped')
+        row: { to_the_shop: 0 }
+  - tap: { as: merchant, id_prefix: "acc:" }
+    expect:
+      - { to: cust }
+  - sql: select public.sim_demo('{{cust.phone}}', '{{merchant.phone}}', false), public.sim_catalog('{{cust.phone}}', false)

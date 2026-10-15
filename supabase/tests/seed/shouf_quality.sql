@@ -13,7 +13,12 @@ select tests.ok(not exists (select 1 from public.vendors where source = 'seed_sh
 select tests.ok(not exists (select 1 from public.vendors v where v.source = 'seed_shouf_2026_10'
   and (v.field_sources ->> 'name_en') is distinct from 'seed'), 'every imported field is marked seed');
 select tests.ok((select count(*) from public.vendors v join public.vendor_private p on p.vendor_id = v.id
-  where v.source = 'seed_shouf_2026_10' and p.phone_seed_mobile) = 218, '218 WhatsApp claim candidates, decided by the number');
+  where v.source = 'seed_shouf_2026_10' and p.phone_seed_mobile) = 219,
+  '219 WhatsApp claim candidates, decided by the number (Eatout''s from its menu photo)');
+select tests.ok(exists (select 1 from public.vendors v join public.vendor_private p on p.vendor_id = v.id
+  where v.place_id = 'ChIJSVk-bgAhHxURr-4t76SU8nA' and p.phone_seed = '+96176904875' and p.phone_seed_mobile
+    and p.import_labels ->> 'phone_source' = 'menu photo'),
+  'Eatout has the phone printed on its menu (phone_from_menu), marked as such');
 select tests.ok(not exists (select 1 from public.vendors v join public.vendor_private p on p.vendor_id = v.id
   where v.source = 'seed_shouf_2026_10' and p.phone_seed_mobile and not app_private.is_lebanese_mobile(p.phone_seed)),
   'a candidate always has a Lebanese mobile');
@@ -26,8 +31,8 @@ select tests.ok(not exists (select 1 from public.places) or not exists (
     and not (v.town_id = any (array(select jsonb_array_elements_text(public.config_value('pilot_merchant_place_ids')))))),
   'every merchant sits in one of the 12 pilot villages (when places are loaded)');
 select tests.ok(jsonb_array_length(public.config_value('pilot_merchant_place_ids')) = 12, 'there are 12 merchant villages');
-select tests.ok((select count(*) from public.menu_drafts where source = 'seed' and status = 'draft') = 26,
-  '19 menus, 2 supermarket catalogues, the 2 owner menus and 3 harvested menus (§39.4) are draft menus');
+select tests.ok((select count(*) from public.menu_drafts where source = 'seed' and status = 'draft') = 27,
+  '19 menus, 2 supermarket catalogues, the 3 owner menus (Eatout added) and 3 harvested menus (§39.4) are draft menus');
 select tests.ok((select array_agg(v.name_en order by v.name_en) from public.menu_drafts d join public.vendors v on v.id = d.vendor_id
     where d.source = 'seed' and d.source_url ~ '^https://') = array['Al Kooz Cafe', 'Batloun Dairy Stores', 'INDINER time'],
   'the harvested drafts keep their page as the source; Deli Dough and J.O''s keep their curated draft');
