@@ -1,21 +1,26 @@
 name: evals
 
-# The customer AI eval (evals/customer/cases.jsonl) against the real models, on demand: the deterministic
-# cases already run in CI on every PR; this measures the model cases (tool choice and key arguments) per
-# language and model, with latency, into the run summary. Spends a few cents of API credit per run.
+# The agents' live evals (DECISIONS §32.4, §39.6): the customer text set (evals/customer/cases.jsonl, four languages) and
+# the real voice notes (evals/voice/), against the real models with the bot's own prompt and typed tools. The current
+# model and the Haiku 5.5 candidate (§32.6) run side by side. Free text and voice stay off until their eval passes; a
+# PASS is switched on by a dated config row in a PR, never by this workflow. Without API credit every job prints SKIPPED
+# and succeeds (§32.7). The deterministic cases and the recorded model answers run on every PR in CI instead.
 on:
   workflow_dispatch:
     inputs:
       models:
-        description: Space-separated model ids
-        default: "claude-haiku-4-5-20251001 claude-sonnet-5-5"
+        description: Space-separated model ids for the text eval
+        default: "claude-haiku-4-5-20251001 claude-haiku-5-5 claude-sonnet-5-5"
         required: true
+  schedule:
+    - cron: "17 5 * * 1" # Mondays, after a weekend of new voice notes and corrections (§32.4 weekly loop)
 
 permissions:
   contents: read
 
 jobs:
-  customer:
+  text:
+    name: customer text eval
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -29,8 +34,28 @@ jobs:
       - name: Run the customer eval
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          MODELS: ${{ inputs.models }}
+          MODELS: ${{ inputs.models || 'claude-haiku-4-5-20251001 claude-haiku-5-5 claude-sonnet-5-5' }}
         run: |
           [[ "$MODELS" =~ ^[a-z0-9.\ -]+$ ]] || { echo "::error::bad model list"; exit 1; }
           node --experimental-strip-types scripts/evals/customer-eval.ts $MODELS | tee report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+  voice:
+    name: customer voice eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run the voice eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          node --experimental-strip-types scripts/evals/voice-eval.ts | tee report.md
           cat report.md >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,28 @@
+name: unclaimed-shop
+description: 'A customer types a Shouf shop that is not on Alo King yet: no model, the "Ask them to join" answer and shops that deliver instead (DECISIONS §39.3, §39.6).'
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Unclaimed" }
+steps:
+  - say: { as: cust, text: "Order" }
+    expect:
+      - { to: cust }
+  - pin: { as: cust, lat: 33.6869, lon: 35.5518 }
+    expect:
+      - { to: cust, buttons: ["ps:"] }
+  - note: the shop's name, typed; free text has no model on staging, the catalogue search and the rules answer
+    say: { as: cust, text: "Nayeh w Meshwiyeh" }
+    expect:
+      - { to: cust, text_any: ["not on Alo King yet", "Not on Alo King yet"] }
+      - { to: cust, buttons: ["pv:"] }
+    db:
+      - sql: >
+          select count(*) filter (where t.model_calls > 0) as model_turns from public.bot_turns t join public.customers c on c.id = t.customer_id
+          where c.phone_e164 = '{{cust.phone}}'
+        row: { model_turns: 0 }
+  - note: a dish by name finds the real item with the server's price, across the shops that deliver
+    say: { as: cust, text: "2 falafel" }
+    expect:
+      - { to: cust, buttons: ["pi:"], text_re: "Falafel|falafel" }
+  - tap: { as: cust, id_prefix: "pi:" }
+    expect:
+      - { to: cust, buttons: ["c:checkout"], text: "2×" }

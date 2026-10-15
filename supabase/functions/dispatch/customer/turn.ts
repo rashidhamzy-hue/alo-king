@@ -22,7 +22,18 @@ import {
 } from "../../_shared/customer-cards.ts";
 import { RpcStalled, TurnBusy } from "../../_shared/rest-rpc.ts";
 import { clampInteractive } from "../../_shared/meta-limits.ts";
-import { deterministicIntent, detectLang, looksLikeComplaint, PRICE_RE } from "./intents.ts";
+import {
+  deterministicIntent,
+  detectLang,
+  FACT_RE,
+  isMedicineRequest,
+  isMemoryQuestion,
+  isOffTopic,
+  looksLikeComplaint,
+  mentionsSomeoneElse,
+  PRICE_RE,
+} from "./intents.ts";
+import { readQuantity, readRecipient } from "../../_shared/lexicon.ts";
 import {
   askPin,
   basketMessage,
@@ -48,12 +59,29 @@ import {
   upsellMessage,
   vendorChoices,
   where,
+  addressConfirmCard,
+  catalogList,
+  consentAsk,
+  forWhomCard,
+  memoryCard,
+  problemLinesList,
+  problemList,
+  welcomeBack,
+  type CatalogItem,
   type Basket,
   type MenuRow,
   type Quote,
   type Track,
 } from "./render.ts";
-import { ALLERGENS, DIETS, NUTRITION_TAGS, SYSTEM_PROMPT, TOOLS, type ToolName } from "./tools.ts";
+import {
+  ALLERGENS,
+  DIETS,
+  NUTRITION_TAGS,
+  PREFERENCE_KEYS,
+  SYSTEM_PROMPT,
+  TOOLS,
+  type ToolName,
+} from "./tools.ts";
 import { buttons, moneyLine } from "../../_shared/customer-cards.ts";
 import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
 import { parseCartOrder } from "../../_shared/catalog.ts";
@@ -115,6 +143,13 @@ export type CustomerDeps = {
     voiceMaxBytes: number;
     /** The site-claim edge function's public URL, for the "Ask them to join" link (§39.3); null without one. */
     joinFunctionUrl?: string | null;
+    /**
+     * Model turns for typed text (config ai_free_text_enabled) and voice notes (ai_voice_enabled): off until the evals
+     * pass (DECISIONS §32.4, §39.6). Off, typed text goes to the catalogue search and the rules, never to a model, and a
+     * voice note gets the buttons. Undefined counts as on (unit tests of the model path); dispatch always sets both.
+     */
+    freeText?: boolean;
+    voice?: boolean;
   };
   now?: () => Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
@@ -380,17 +415,266 @@ async function route(c: Ctx, firstContact: boolean) {
     // Live location arrives as `unsupported` on the Cloud API (§27.1): ask for a static pin instead.
     return push(c, locationRequest(m.from, tr(c.s.lang, "liveLocation")));
   }
-  if (m.audio) return voice(c);
+  if (m.audio) {
+    if (c.deps.config.voice === false) {
+      c.tools.push("voice_off");
+      return push(c, mainMenu(m.from, c.s.lang, "voiceOff"));
+    }
+    return voice(c);
+  }
   if (m.text === null || !m.text.trim()) return say(c, "unsupported");
   const intent = deterministicIntent(m.text);
   if (intent) {
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
-      return modelTurn(c, m.text, false);
+      return freeText(c, m.text);
+    if (intent.kind === "greeting") return greet(c, firstContact);
     return textIntent(c, intent.kind);
   }
+  // Rules that never reach a model or a search (§38.3, §39.6).
+  if (isMemoryQuestion(m.text)) return showMemory(c);
+  if (isMedicineRequest(m.text)) return medicine(c);
+  if (c.s.pending.kind === "recipient") return recipientText(c, m.text);
+  if (isOffTopic(m.text)) return offTopic(c);
+  if (mentionsSomeoneElse(m.text)) c.s.refs.xe = { id: "someone_else", label: "someone_else" };
   if (firstContact && m.text.trim().length < 4) return push(c, mainMenu(m.from, c.s.lang));
-  return modelTurn(c, m.text, false);
+  return freeText(c, m.text);
 }
+
+/** Typed text: the model when free text is on and a model exists; otherwise the catalogue search (§32.4, §39.6). */
+async function freeText(c: Ctx, t: string) {
+  if (c.deps.config.freeText !== false && c.deps.model) return modelTurn(c, t, false);
+  return catalogText(c, t, null);
+}
+
+/** A greeting: the 2-tap "same again / new order" for a returning customer (§38.3), the main menu otherwise. */
+async function greet(c: Ctx, firstContact: boolean) {
+  c.tools.push("intent:greeting");
+  const last = c.profile?.last_order;
+  if (!firstContact && last?.order_id && Number(c.profile?.delivered_orders ?? 0) > 0)
+    return push(c, welcomeBack(c.m.from, c.s.lang, last, c.profile?.name ?? null));
+  return push(c, mainMenu(c.m.from, c.s.lang));
+}
+
+/** Medicines are never ordered through Alo King (§38.3, Order of Pharmacists, 2 June 2026). */
+function medicine(c: Ctx) {
+  c.tools.push("refuse:medicine");
+  c.summary.push("[refused a medicine request and pointed to a pharmacy]");
+  return push(c, mainMenu(c.m.from, c.s.lang, "medicine"));
+}
+
+function offTopic(c: Ctx) {
+  c.tools.push("refuse:off_topic");
+  return push(c, mainMenu(c.m.from, c.s.lang, "offTopic"));
+}
+
+// ---- The catalogue search (§39.6): one index across every orderable menu in the customer's area ----------------------
+async function catalogText(c: Ctx, raw: string, qtyArg: number | null) {
+  const { qty, rest } = readQuantity(raw);
+  const quantity = qtyArg ?? qty;
+  const q = (rest || raw).trim().slice(0, 120);
+  c.tools.push("catalog_search");
+  const r = await c.deps.rpc("catalog_search", {
+    p_customer_id: c.customerId,
+    p_query: q,
+    p_limit: 10,
+  });
+  const items: any[] = r?.status === "ok" && Array.isArray(r.items) ? r.items : [];
+  if (items.length) {
+    resetRefs(c, "i");
+    const hints =
+      (await c.deps.rpc("menu_item_hints", { p_item_ids: items.map((x) => x.item_id) })) ?? {};
+    const rows: CatalogItem[] = items.map((x) => ({
+      ...x,
+      ref: refFor(
+        c,
+        "i",
+        x.item_id,
+        `${x.name_en ?? x.name_ar} $${Number(x.price_usd).toFixed(2)}`,
+      ),
+      hint: hints?.[x.item_id]?.may_contain ?? [],
+    }));
+    c.s.pending = quantity ? { kind: "qty_hint", qty: Math.min(Math.max(quantity, 1), 50) } : {};
+    c.summary.push(
+      `[catalogue: ${rows.length} items for "${q}"${quantity ? `, quantity ${quantity}` : ""}]`,
+    );
+    return push(c, catalogList(c.m.from, c.s.lang, q, rows, quantity));
+  }
+  // A shop's name (on Alo King, or not yet: §39.3) is answered by the place search.
+  const named: any[] =
+    q.length >= 3
+      ? ((await c.deps.rpc("vendor_search", {
+          p_query: q,
+          p_lat: null,
+          p_lon: null,
+          p_business_type: null,
+          p_cuisine: null,
+          p_limit: 3,
+        })) ?? [])
+      : [];
+  if (named.some((x) => x.matched === "name")) return searchVendors(c, q, null);
+  const unclaimed: any[] =
+    q.length >= 3
+      ? ((await c.deps.rpc("vendor_search_unclaimed", { p_query: q, p_limit: 1 })) ?? [])
+      : [];
+  if (unclaimed.length) return searchVendors(c, q, null);
+  c.summary.push(`[catalogue: nothing for "${q}"]`);
+  return push(c, mainMenu(c.m.from, c.s.lang, "catalogNone", { q: q.slice(0, 40) }));
+}
+
+// ---- Memory (§39.6) ------------------------------------------------------------------------------------------------
+async function showMemory(c: Ctx) {
+  c.tools.push("show_memory");
+  const mem = await c.deps.rpc("customer_memory", { p_customer_id: c.customerId });
+  resetRefs(c, "a");
+  const refs = ((mem?.addresses ?? []) as any[]).map((a) =>
+    refFor(c, "a", a.address_id, String(a.label ?? a.place_en ?? "")),
+  );
+  c.summary.push("[showed what Alo King remembers, with delete buttons]");
+  return push(c, ...memoryCard(c.m.from, c.s.lang, mem ?? {}, refs));
+}
+
+const MEMORY_PART: Record<string, string> = {
+  all: "all",
+  name: "name",
+  lang: "language",
+  orders: "orders",
+  addrs: "addresses",
+  facts: "facts",
+  address: "address",
+  fact: "fact",
+};
+async function forgetPart(c: Ctx, part: string, ref?: string) {
+  const target = part === "address" ? c.s.refs[ref ?? ""]?.id : ref;
+  if (part === "address" && !target) return showMemory(c);
+  await c.deps.rpc("customer_memory_forget", {
+    p_customer_id: c.customerId,
+    p_part: MEMORY_PART[part],
+    p_ref: target ?? null,
+  });
+  c.tools.push(`forget:${part}`);
+  if (part === "all") {
+    c.s = { ...c.s, history: [], refs: {}, pending: {}, focus_vendor_id: null, fulfil: null };
+    return say(c, "deletedData");
+  }
+  if (part === "orders") c.s.history = [];
+  say(c, "memDeleted");
+  return showMemory(c);
+}
+
+/** What the customer says about themselves; health information waits for the consent tap (§39.6, Law 81/2018). */
+async function rememberFact(c: Ctx, key: string, value: string) {
+  const r = await c.deps.rpc("customer_fact_set", {
+    p_customer_id: c.customerId,
+    p_key: key,
+    p_value: value,
+    p_source: "said",
+    p_consent: false,
+  });
+  if (r?.status === "needs_consent") {
+    c.s.refs.xm = { id: key, label: String(r.value ?? value).slice(0, 60) };
+    push(c, consentAsk(c.m.from, c.s.lang, key, String(r.value ?? value)));
+  }
+}
+
+// ---- The address on every order and who the order is for (§22.1, §39.6) --------------------------------------------
+async function recipientText(c: Ctx, t: string) {
+  const addressId = c.s.pending.address_id;
+  const { name, phone } = readRecipient(t);
+  if (!addressId) {
+    c.s.pending = {};
+    return checkout(c, {});
+  }
+  if (!name || !phone) return say(c, "recipientBad");
+  const r = await c.deps.rpc("address_set_recipient", {
+    p_customer_id: c.customerId,
+    p_address_id: addressId,
+    p_name: name,
+    p_phone: phone,
+  });
+  if (r?.status === "own_number") return say(c, "recipientOwn");
+  if (r?.status !== "saved") return say(c, "recipientBad");
+  c.s.pending = {};
+  c.tools.push("gift_recipient");
+  say(c, "recipientSaved", { name: r.name });
+  return checkout(c, {});
+}
+
+// ---- Problems with a delivered order (§20.1, §38.3): the server decides ------------------------------------------------
+async function problemStart(c: Ctx, orderId: string | null, kind: string | null): Promise<void> {
+  let order = orderId ? { order_id: orderId, code: c.s.refs.xd?.label ?? "" } : null;
+  if (orderId && !order?.code) {
+    const t = await c.deps.rpc("order_track", { p_customer_id: c.customerId, p_order_id: orderId });
+    order = { order_id: orderId, code: t?.code ?? "" };
+  }
+  if (!order) {
+    const last = await c.deps.rpc("customer_last_delivered", { p_customer_id: c.customerId });
+    if (!last?.order_id) return say(c, "disputeNone");
+    order = { order_id: last.order_id, code: last.code };
+  }
+  c.s.refs.xd = { id: order.order_id, label: order.code };
+  if (!kind) return push(c, problemList(c.m.from, c.s.lang, order.code));
+  return problemKind(c, kind as any);
+}
+
+async function problemKind(c: Ctx, kind: string): Promise<void> {
+  const order = c.s.refs.xd;
+  if (!order) return problemStart(c, null, kind);
+  if (kind === "missing_item" || kind === "wrong_item") {
+    const lines: any[] =
+      (await c.deps.rpc("order_lines_for_customer", {
+        p_customer_id: c.customerId,
+        p_order_id: order.id,
+      })) ?? [];
+    if (lines.length === 1) return problemLine(c, lines[0].order_item_id, kind);
+    return push(c, problemLinesList(c.m.from, c.s.lang, kind, lines));
+  }
+  return disputeOpen(c, kind, null);
+}
+
+const problemLine = (c: Ctx, itemId: string, kind: string): Promise<void> =>
+  disputeOpen(c, kind, itemId);
+
+async function disputeOpen(c: Ctx, kind: string, itemId: string | null): Promise<void> {
+  const order = c.s.refs.xd;
+  if (!order) return say(c, "disputeNone");
+  const r = await c.deps.rpc("dispute_open", {
+    p_customer_id: c.customerId,
+    p_order_id: order.id,
+    p_kind: kind,
+    p_order_item_id: itemId,
+  });
+  c.tools.push(`dispute:${kind}`);
+  c.summary.push(`[problem ${kind} on order ${order.label}: ${r?.status}]`);
+  switch (r?.status) {
+    case "auto_credit":
+      return say(c, "disputeCredit", {
+        amount: moneyUsd(r.amount_usd),
+        lbp: Math.round(Number(r.amount_lbp ?? 0)).toLocaleString("en-US"),
+        days: r.credit_days,
+      });
+    case "review":
+    case "owner_review":
+      // A person takes it from here (§30.6): the conversation is handed over with the dispute's summary.
+      await c.deps.rpc("customer_handoff", {
+        p_customer_id: c.customerId,
+        p_reason: `problem with order ${order.label}: ${kind}`.slice(0, 300),
+        p_summary: String(r.rule ?? "").slice(0, 300),
+      });
+      c.path = "handoff";
+      return say(c, kind === "damaged" ? "disputeDamaged" : "disputeReview", { code: order.label });
+    case "rejected":
+      return say(c, "disputeRejected", { code: order.label });
+    case "already_reported":
+      return say(c, "disputeAlready");
+    case "too_late":
+      return say(c, "disputeTooLate", { days: r.days });
+    case "pick_line":
+      return problemKind(c, kind);
+    default:
+      return say(c, "disputeNone");
+  }
+}
+const moneyUsd = (v: unknown) => `$${Number(v ?? 0).toFixed(2)}`;
 
 // ---- Deterministic text intents ---------------------------------------------------------------------------------
 async function textIntent(c: Ctx, kind: string) {
@@ -506,6 +790,13 @@ async function tap(c: Ctx, a: CustomerAction) {
       return say(c, "tooLate");
     }
     case "received": {
+      // "Problem" on the delivered message opens the problem list (§38.3); the server decides any credit.
+      if (!a.ok) {
+        await deps
+          .rpc("order_customer_feedback", { p_customer_id: id, p_order_id: a.orderId, p_ok: false })
+          .catch(() => null);
+        return problemStart(c, a.orderId, null);
+      }
       await deps
         .rpc("order_customer_feedback", { p_customer_id: id, p_order_id: a.orderId, p_ok: a.ok })
         .catch(() => null);
@@ -530,6 +821,10 @@ async function tap(c: Ctx, a: CustomerAction) {
       return say(c, r?.status === "cancelled" ? "cancelled" : "done", { code: "" });
     }
     case "rate":
+      // The rating is on the delivered message (§38.3): rating it also says it arrived.
+      await deps
+        .rpc("order_customer_feedback", { p_customer_id: id, p_order_id: a.orderId, p_ok: true })
+        .catch(() => null);
       await deps.rpc("order_rate", {
         p_customer_id: id,
         p_order_id: a.orderId,
@@ -567,9 +862,16 @@ async function tap(c: Ctx, a: CustomerAction) {
       return showMenu(c, a.ref, null);
     }
     case "pick_item": {
-      // How many? (§34 step 5); the quantity tap adds it.
+      // How many? (§34 step 5); the quantity tap adds it. A quantity the customer already typed adds it at once.
       const it = c.s.refs[a.ref];
       if (!it) return say(c, "pickPlaceFirst");
+      if (c.s.pending.kind === "qty_hint") {
+        const qty = Number(c.s.pending.qty ?? 1);
+        c.s.pending = {};
+        const added = await addOne(c, it.id, qty, [], null, null, true);
+        if (added) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+        return;
+      }
       return push(c, qtyList(c.m.from, c.s.lang, it.label.replace(/ \$.*$/, ""), a.ref));
     }
     case "qty": {
@@ -613,8 +915,69 @@ async function tap(c: Ctx, a: CustomerAction) {
       c.basket = r?.basket ?? c.basket;
       return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
     }
+    case "gift": {
+      // The recipient's answer (§22.2 scenario 7): only the number the gift was sent to can answer.
+      const r = await deps.rpc("gift_respond", {
+        p_phone_e164: c.m.from,
+        p_gift_id: a.giftId,
+        p_accept: a.accept,
+      });
+      c.tools.push("gift_respond");
+      if (r?.status === "placed")
+        return say(c, "giftThanks", { code: r.code, sender: r.sender || tr(c.s.lang, "someone") });
+      if (r?.status === "declined") return say(c, "giftNoThanks");
+      return say(c, "giftGone");
+    }
+    case "memory_delete":
+      return forgetPart(c, a.part, a.ref);
+    case "consent": {
+      const f = c.s.refs.xm;
+      delete c.s.refs.xm;
+      if (!a.ok || !f || f.id !== a.key) return say(c, "consentDeclined");
+      await deps.rpc("customer_fact_set", {
+        p_customer_id: id,
+        p_key: f.id,
+        p_value: f.label,
+        p_source: "said",
+        p_consent: true,
+      });
+      return say(c, "consentSaved");
+    }
+    case "address": {
+      const ad = c.s.refs[a.ref];
+      if (!ad) return checkout(c, {});
+      await deps.rpc("basket_confirm_address", { p_customer_id: id, p_address_id: ad.id });
+      c.s.pending = {};
+      return checkout(c, {});
+    }
+    case "for_whom": {
+      const addressId = c.s.pending.address_id;
+      if (!addressId) return checkout(c, {});
+      await deps.rpc("address_set_for_whom", {
+        p_customer_id: id,
+        p_address_id: addressId,
+        p_for_whom: a.what === "other" ? "other" : "self",
+        p_save: a.what === "self_save",
+      });
+      delete c.s.refs.xe;
+      if (a.what === "other") {
+        c.s.pending = { kind: "recipient", address_id: addressId };
+        return say(c, "recipientAsk");
+      }
+      c.s.pending = {};
+      return checkout(c, {});
+    }
+    case "problem_kind":
+      return problemKind(c, a.kind);
+    case "problem_line":
+      return problemLine(c, a.itemId, a.kind);
     case "simple":
       switch (a.what) {
+        case "remember":
+          return showMemory(c);
+        case "new_address":
+          c.s.pending = { kind: "await_pin" };
+          return push(c, askPin(c.m.from, c.s.lang));
         case "checkout":
           return checkout(c, {});
         case "clear":
@@ -680,6 +1043,9 @@ async function confirm(c: Ctx, basketId: string, version: number) {
     case "placed": {
       c.s.fulfil = null;
       c.summary.push(`[order ${r.code} placed by the customer's tap]`);
+      // The summary and this reply count against the order's message budget (§38.3).
+      if (r.order_id)
+        await deps.rpc("order_messages_add", { p_order_id: r.order_id, p_n: 2 }).catch(() => null);
       return say(c, "placed", {
         code: r.code,
         vendor: lang === "ar" ? c.basket.vendor : (c.basket.vendor_en ?? c.basket.vendor),
@@ -699,6 +1065,23 @@ async function confirm(c: Ctx, basketId: string, version: number) {
       );
     case "fulfilment_unavailable":
       c.s.fulfil = null; // the shop does not take that way: ask again
+      return checkout(c, {});
+    case "gift_needs_recipient": {
+      // A gift is placed only when the recipient accepts and agrees to pay cash (§22.2 scenario 7).
+      const g = await deps.rpc("gift_request_create", {
+        p_customer_id: c.customerId,
+        p_basket_id: basketId,
+        p_menu_version: version,
+      });
+      c.tools.push("gift_request");
+      if (g?.status === "asked")
+        return say(c, "giftAsked", { name: g.recipient_name, min: g.minutes });
+      if (g?.status === "unreachable") return say(c, "giftUnreachable", { name: g.recipient_name });
+      if (g?.status === "blocked")
+        return say(c, "giftBlocked", { name: c.basket?.recipient_name ?? "" });
+      return checkout(c, {});
+    }
+    case "address_unconfirmed":
       return checkout(c, {});
     case "needs_empty_answer":
     case "no_address":
@@ -857,7 +1240,7 @@ async function cartOrder(c: Ctx, lines: { itemId: string; quantity: number }[]) 
 }
 
 // ---- Baskets and checkout -----------------------------------------------------------------------------------------
-function refFor(c: Ctx, prefix: "v" | "i" | "l" | "s", id: string, label: string): string {
+function refFor(c: Ctx, prefix: "v" | "i" | "l" | "s" | "a", id: string, label: string): string {
   for (const [k, v] of Object.entries(c.s.refs))
     if (k.startsWith(prefix) && /^[a-z]\d+$/.test(k) && v.id === id) return k;
   let n = 1;
@@ -904,9 +1287,11 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
       p_offset: 0,
     })) ?? [];
   resetRefs(c, "i");
+  const hints = await itemHints(c, rows);
   const menu: MenuRow[] = rows.map((r) => ({
     ...r,
     ref: refFor(c, "i", r.item_id, `${r.name_en ?? r.name_ar} $${Number(r.price_usd).toFixed(2)}`),
+    hint: hints[r.item_id] ?? [],
   }));
   const samePrice = (await c.deps.rpc("vendor_same_price", { p_vendor_id: v.id })) === true;
   push(c, ...menuList(c.m.from, c.s.lang, v.label.replace(/ \(.*\)$/, ""), menu, query, samePrice));
@@ -928,9 +1313,12 @@ async function showSection(c: Ctx, sectionRef: string, offset: number) {
     })) ?? [];
   resetRefs(c, "i");
   const more = rows.length === 10 && Number(rows[0]?.total_count ?? 0) > offset + 10;
-  const menu: MenuRow[] = rows.slice(0, more ? 9 : 10).map((r) => ({
+  const page = rows.slice(0, more ? 9 : 10);
+  const hints = await itemHints(c, page);
+  const menu: MenuRow[] = page.map((r) => ({
     ...r,
     ref: refFor(c, "i", r.item_id, `${r.name_en ?? r.name_ar} $${Number(r.price_usd).toFixed(2)}`),
+    hint: hints[r.item_id] ?? [],
   }));
   const vref = Object.entries(c.s.refs).find(
     ([k, v]) => k.startsWith("v") && v.id === vendorId,
@@ -947,6 +1335,18 @@ async function showSection(c: Ctx, sectionRef: string, offset: number) {
     }),
   );
   c.summary.push(`[showed ${menu.length} items of section ${sectionRef}]`);
+}
+
+/** Allergens the dish library suggests for these items and the merchant has not declared (§38.3); {} when unknown. */
+async function itemHints(c: Ctx, rows: any[]): Promise<Record<string, string[]>> {
+  if (!rows.length) return {};
+  const h = await c.deps
+    .rpc("menu_item_hints", { p_item_ids: rows.map((r) => r.item_id) })
+    .catch(() => null);
+  const out: Record<string, string[]> = {};
+  for (const [id, v] of Object.entries((h ?? {}) as Record<string, any>))
+    if (Array.isArray(v?.may_contain)) out[id] = v.may_contain;
+  return out;
 }
 
 /** Items that fit a dietary need (§32.3): hard filters only on merchant declarations, labels on estimates. */
@@ -1254,6 +1654,45 @@ async function checkout(
       p_stairs_floors: args.stairs ?? null,
       p_note: args.note ?? null,
     });
+  // The delivery address is confirmed on every order, and a new one asks who the order is for (§22.1, §39.6).
+  const st = await deps.rpc("basket_address_state", { p_customer_id: c.customerId });
+  if (st?.status === "confirm") {
+    resetRefs(c, "a");
+    const cur = {
+      ref: refFor(c, "a", st.address_id, "current"),
+      where: addrLabel(c.s.lang, st.label, st.recipient_name, st.address),
+    };
+    const others = ((st.others ?? []) as any[]).map((o) => ({
+      ref: refFor(c, "a", o.address_id, "saved"),
+      where: addrLabel(c.s.lang, o.label, o.recipient_name, o.card),
+    }));
+    c.summary.push("[asked to confirm the delivery address]");
+    return push(c, addressConfirmCard(c.m.from, c.s.lang, cur, others));
+  }
+  if (st?.status === "for_whom") {
+    c.s.pending = { kind: "for_whom", address_id: st.address_id };
+    c.summary.push("[asked whether the order is for the customer or someone else]");
+    return push(c, forWhomCard(c.m.from, c.s.lang, where(c.s.lang, st.address)));
+  }
+  if (st?.status === "recipient") {
+    c.s.pending = { kind: "recipient", address_id: st.address_id };
+    return say(c, "recipientAsk");
+  }
+  // "For my mom" said earlier, on an address of the customer's own: ask once (§22.1).
+  if (st?.status === "ok" && !st.gift && c.s.refs.xe && st.address_id) {
+    delete c.s.refs.xe;
+    c.s.pending = { kind: "for_whom", address_id: st.address_id };
+    return push(c, forWhomCard(c.m.from, c.s.lang, where(c.s.lang, st.address)));
+  }
+  // A consented allergy note goes to the kitchen on this order (§39.6).
+  const allergy = c.profile?.preferences?.allergy;
+  if (allergy && !c.s.refs.xa) {
+    await deps.rpc("basket_set_allergy_note", {
+      p_customer_id: c.customerId,
+      p_note: String(allergy),
+    });
+    c.s.refs.xa = { id: "allergy", label: "set" };
+  }
   let q: Quote = await deps.rpc("basket_quote", { p_customer_id: c.customerId });
   if (q?.status === "no_route" && (q as any).origin && (q as any).dest) {
     await deps.route((q as any).origin, (q as any).dest);
@@ -1318,6 +1757,13 @@ async function checkout(
       c.deps.log?.("basket_quote unexpected", { status: String(q?.status) });
       return fail(c);
   }
+}
+
+/** "Home – Baakline (Building X)": a saved address as the customer named it, then the place. */
+function addrLabel(lang: CLang, label: string | null, recipient: string | null, card: any): string {
+  const w = where(lang, card);
+  const n = label ?? recipient;
+  return n ? `${n} – ${w}` : w;
 }
 
 // ---- Voice (§30.1.6) --------------------------------------------------------------------------------------------
@@ -1389,6 +1835,7 @@ async function voice(c: Ctx) {
   transcript ??= a.transcript?.trim() || null;
   if (!transcript) return say(c, "voiceFail");
   c.s.lang = detectLang(transcript, c.s.lang);
+  if (isMedicineRequest(transcript)) return medicine(c);
   const intent = deterministicIntent(transcript);
   if (intent && !["yes", "no", "greeting"].includes(intent.kind)) return textIntent(c, intent.kind);
   c.s.history.push({ r: "u", t: `[voice] ${transcript.slice(0, 280)}` });
@@ -1637,18 +2084,24 @@ export function validate(name: ToolName, input: any): boolean {
         input.text.length > 1 &&
         input.text.length <= 120
       );
+    case "search_items":
+      return (
+        typeof input.query === "string" &&
+        input.query.trim().length > 0 &&
+        input.query.length <= 120 &&
+        (input.quantity === null ||
+          (Number.isInteger(input.quantity) && input.quantity >= 1 && input.quantity <= 50))
+      );
+    case "report_problem":
+      return ["missing_item", "wrong_item", "cold_food", "late", "damaged", "other"].includes(
+        input.kind,
+      );
+    case "show_memory":
+    case "decline_off_topic":
+      return true;
     case "set_preference":
       return (
-        [
-          "vegetarian",
-          "vegan",
-          "no_pork",
-          "no_alcohol",
-          "fasting",
-          "allergy",
-          "spice",
-          "note",
-        ].includes(input.key) &&
+        (PREFERENCE_KEYS as readonly string[]).includes(input.key) &&
         typeof input.value === "string" &&
         input.value.length <= 120
       );
@@ -1674,6 +2127,10 @@ function replyText(c: Ctx, raw: string, confidence: "high" | "low") {
   if (PRICE_RE.test(t)) {
     c.deps.log?.("model text dropped by the price guard");
     say(c, "pickPlaceFirst");
+  } else if (FACT_RE.test(t)) {
+    // Zero invented facts (§39.6): times, distances, fees and policies come only from tool results.
+    c.deps.log?.("model text dropped by the fact guard");
+    say(c, "busy");
   } else push(c, text(c.m.from, t));
   c.summary.push(t.slice(0, 200));
   if (confidence === "low") {
@@ -1811,12 +2268,15 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
       });
       return;
     case "set_preference":
-      await deps.rpc("customer_preference_set", {
-        p_customer_id: id,
-        p_key: input.key,
-        p_value: input.value,
-      });
-      return;
+      return rememberFact(c, input.key, input.value);
+    case "search_items":
+      return catalogText(c, input.query, input.quantity ?? null);
+    case "report_problem":
+      return problemStart(c, null, input.kind);
+    case "show_memory":
+      return showMemory(c);
+    case "decline_off_topic":
+      return offTopic(c);
     case "reorder":
       return reorder(c);
     case "request_human":

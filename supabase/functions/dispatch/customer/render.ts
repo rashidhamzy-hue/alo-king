@@ -813,6 +813,8 @@ export type MenuRow = {
   orderable: boolean;
   last_few?: boolean;
   total_count?: number;
+  /** Allergens the dish library suggests and the merchant has not declared (§38.3), shown as "≈ may contain". */
+  hint?: string[];
 };
 
 /** Checkout at a grocery-type shop (§32.5): what to do if an item is out. */
@@ -840,6 +842,7 @@ export function menuList(
     [
       `${usd(r.price_usd)}${r.pricing_unit === "kg" ? "/kg" : ""}`,
       !r.orderable ? tr(lang, "soldOut") : r.last_few ? tr(lang, "lastFew") : "",
+      r.hint?.length ? hintText(lang, r.hint) : "",
     ]
       .filter(Boolean)
       .join(" · ");
@@ -869,6 +872,7 @@ export function menuList(
           ],
         },
       ],
+      tr(lang, "kitchenDisclaimer"),
     ),
   ];
   // A section page shows "More" instead; the flat list says the rest is by name.
@@ -899,20 +903,26 @@ export function dietaryList(
       ? ""
       : `${r.nutrition_source === "merchant_verified" ? "✓ " : "≈ "}${Math.round(Number(r.kcal))} kcal · ${Math.round(Number(r.protein_g ?? 0))}g ${tr(lang, "protein")}`;
   const out: Msg[] = [
-    list(to, tr(lang, "dietMenuOf", { vendor }), tr(lang, "menuButton"), [
-      {
-        rows: rows.slice(0, 10).map<Row>((r) => ({
-          id: `pi:${r.ref}`,
-          title: clip(
-            lang === "fr"
-              ? String(r.name_fr ?? r.name_en ?? r.name_ar ?? "")
-              : name(lang, r.name_ar, r.name_en),
-            24,
-          ),
-          description: clip([usd(r.price_usd), est(r)].filter(Boolean).join(" · "), 72),
-        })),
-      },
-    ]),
+    list(
+      to,
+      tr(lang, "dietMenuOf", { vendor }),
+      tr(lang, "menuButton"),
+      [
+        {
+          rows: rows.slice(0, 10).map<Row>((r) => ({
+            id: `pi:${r.ref}`,
+            title: clip(
+              lang === "fr"
+                ? String(r.name_fr ?? r.name_en ?? r.name_ar ?? "")
+                : name(lang, r.name_ar, r.name_en),
+              24,
+            ),
+            description: clip([usd(r.price_usd), est(r)].filter(Boolean).join(" · "), 72),
+          })),
+        },
+      ],
+      tr(lang, "kitchenDisclaimer"),
+    ),
   ];
   if (rows.some((r) => r.nutrition_source === "estimated"))
     out.push(text(to, tr(lang, "estimatedNote")));
@@ -1010,6 +1020,13 @@ export type Quote = {
   estimated?: boolean;
   limit_km?: number | string;
   pickup_enabled?: boolean;
+  /** Customer credits taken off the total (disputes, §38.3). */
+  credit_usd?: number | string;
+  /** A gift order (§22.1): the recipient accepts and pays cash. */
+  is_gift?: boolean;
+  recipient_name?: string | null;
+  /** The customer's consented allergy note, sent to the kitchen on this order (§39.6). */
+  allergy_note?: string | null;
   address?: {
     place?: string;
     place_en?: string;
@@ -1056,12 +1073,15 @@ export function summaryMessage(
     ...(Number(q.stairs_fee_usd ?? 0) > 0
       ? [`${tr(lang, "stairs")}: ${usd(q.stairs_fee_usd)}`]
       : []),
+    ...(Number(q.credit_usd ?? 0) > 0 ? [`${tr(lang, "creditLine")}: −${usd(q.credit_usd)}`] : []),
     `*${tr(lang, "total")}: ${moneyLine(q.total_usd, q.total_lbp, q.usd_lbp_rate, lang, false)}*`,
     ...(q.estimated ? [`* ${tr(lang, "estimated")}`] : []),
     q.address
       ? `📍 ${tr(lang, "deliverTo", { where: where(lang, q.address) })}`
       : `🛍️ ${tr(lang, "pickup")}`,
     tr(lang, "payCash") + (cash ? ` (${cash})` : ""),
+    ...(q.allergy_note ? [tr(lang, "allergyLine", { note: q.allergy_note })] : []),
+    ...(q.is_gift && q.recipient_name ? [tr(lang, "giftLine", { name: q.recipient_name })] : []),
   ];
   return [
     buttons(to, lines.join("\n"), [
@@ -1077,9 +1097,18 @@ export function summaryMessage(
 export function mainMenu(
   to: string,
   lang: CLang,
-  bodyKey: "welcome" | "aiOff" | "tapFailed" = "welcome",
+  bodyKey:
+    | "welcome"
+    | "aiOff"
+    | "tapFailed"
+    | "offTopic"
+    | "voiceOff"
+    | "catalogNone"
+    | "medicine"
+    | "memoryDone" = "welcome",
+  v: V = {},
 ): Msg {
-  return buttons(to, tr(lang, bodyKey), [
+  return buttons(to, tr(lang, bodyKey, v), [
     ["c:order", tr(lang, "btnOrder")],
     ["c:track", tr(lang, "btnTrack")],
     ["c:human", tr(lang, "btnPerson")],
@@ -1101,15 +1130,21 @@ export type SectionRow = {
   items: number;
 };
 export function sectionList(to: string, lang: CLang, vendor: string, rows: SectionRow[]): Msg {
-  return list(to, tr(lang, "sectionsOf", { vendor }), tr(lang, "menuButton"), [
-    {
-      rows: rows.slice(0, 10).map<Row>((r) => ({
-        id: `ps:${r.ref}`,
-        title: clip(name(lang, r.name_ar, r.name_en), 24),
-        description: tr(lang, "itemsCount", { n: r.items }),
-      })),
-    },
-  ]);
+  return list(
+    to,
+    tr(lang, "sectionsOf", { vendor }),
+    tr(lang, "menuButton"),
+    [
+      {
+        rows: rows.slice(0, 10).map<Row>((r) => ({
+          id: `ps:${r.ref}`,
+          title: clip(name(lang, r.name_ar, r.name_en), 24),
+          description: tr(lang, "itemsCount", { n: r.items }),
+        })),
+      },
+    ],
+    tr(lang, "kitchenDisclaimer"),
+  );
 }
 
 /** 1 to 10 of an item, as a list. Weighed items count pieces; the merchant weighs them (§29.2). */
@@ -1238,5 +1273,648 @@ export function cancelAsk(to: string, lang: CLang, t: Track): Msg {
   return buttons(to, tr(lang, "cancelAsk", { code: t.code }), [
     [`cxl:${t.order_id}`, tr(lang, "cancelYes")],
     ["c:keep", tr(lang, "cancelKeep")],
+  ]);
+}
+
+// ---- Session 5c: the customer agent (DECISIONS §38.3, §39.6) ----------------------------------------------------------
+const S5C: Record<string, Record<CLang, string>> = {
+  welcomeBack: {
+    ar: "أهلا فيك من جديد{name} 👑 بدك متل آخر مرة ({items} من {vendor})، ولا شي جديد؟",
+    en: "Welcome back{name} 👑 Same as last time ({items} from {vendor}), or something new?",
+    fr: "Bon retour{name} 👑 Comme la dernière fois ({items} chez {vendor}), ou autre chose ?",
+    arabizi:
+      "Ahla fik men jdid{name} 👑 Badak metel akher marra ({items} men {vendor}), wala shi jdid?",
+  },
+  btnSameAgain: {
+    ar: "🔁 متل آخر مرة",
+    en: "🔁 Same again",
+    fr: "🔁 Pareil",
+    arabizi: "🔁 Metel akher marra",
+  },
+  btnNewOrder: {
+    ar: "🍽️ طلب جديد",
+    en: "🍽️ New order",
+    fr: "🍽️ Nouvelle commande",
+    arabizi: "🍽️ Talab jdid",
+  },
+  medicine: {
+    ar: "💊 ما منقدر نوصّل أدوية: طلب الأدوية عبر تطبيقات التوصيل ممنوع بلبنان. تواصل مع أقرب صيدلية إلك. بدك شي تاني؟",
+    en: "💊 We can't deliver medicines: ordering them through delivery apps isn't allowed in Lebanon. Please contact a pharmacy near you. Anything else?",
+    fr: "💊 Nous ne livrons pas de médicaments : les commander via une application de livraison est interdit au Liban. Contactez une pharmacie proche. Autre chose ?",
+    arabizi:
+      "💊 Ma mn2ader nwasel adwye: talab el adwye 3abr apps el delivery mamnou3 b Lebnen. Ehke ma3 a2rab saydaliye. Badak shi tene?",
+  },
+  offTopic: {
+    ar: "بساعدك بس بالأكل والأغراض والتوصيل وطلباتك 🙏 اختار:",
+    en: "I can only help with food, groceries, delivery and your orders 🙏 Choose:",
+    fr: "Je peux seulement vous aider pour les repas, les courses, la livraison et vos commandes 🙏 Choisissez :",
+    arabizi: "Bse3dak bas bel akel wel aghrad wel delivery w talabetak 🙏 Ekhtar:",
+  },
+  voiceOff: {
+    ar: "ما فيني إسمع رسايل صوتية هلق 🙏 اكتب اسم الأكلة (مثلاً «منقوشة كشك») أو اختار:",
+    en: 'I can\'t listen to voice notes yet 🙏 Type the dish (e.g. "manoushe kishk") or choose:',
+    fr: "Je ne peux pas encore écouter les vocaux 🙏 Écrivez le plat (ex. « manouché kishk ») ou choisissez :",
+    arabizi: 'Ma fine esma3 voice hala2 🙏 Ekteb esm el akle (metel "manoushe kishk") aw ekhtar:',
+  },
+  catalogNone: {
+    ar: "ما لقيت «{q}» عند المحلات اللي بتوصّل لعندك 🙏 اختار:",
+    en: 'I couldn\'t find "{q}" at the shops that deliver to you 🙏 Choose:',
+    fr: "Je n'ai pas trouvé « {q} » chez les commerces qui livrent chez vous 🙏 Choisissez :",
+    arabizi: 'Ma le2et "{q}" bel ma7alat li bwaslo la 3endak 🙏 Ekhtar:',
+  },
+  catalogFound: {
+    ar: "هيدا اللي لقيتو لـ«{q}» (الأسعار من المحلات):",
+    en: 'Here\'s what I found for "{q}" (prices from the shops):',
+    fr: "Voici ce que j'ai trouvé pour « {q} » (prix des commerces) :",
+    arabizi: 'Hayda li le2eto la "{q}" (el as3ar men el ma7alat):',
+  },
+  catalogQty: {
+    ar: " الكمية: {n}.",
+    en: " Quantity: {n}.",
+    fr: " Quantité : {n}.",
+    arabizi: " El kammiye: {n}.",
+  },
+  itemsBtn: { ar: "الأصناف", en: "Items", fr: "Articles", arabizi: "El asnaf" },
+  kitchenDisclaimer: {
+    ar: "مطبخ مشترك: ممكن آثار لأي مسبّب حساسية",
+    en: "Shared kitchens: traces of any allergen possible",
+    fr: "Cuisines partagées : traces d'allergènes possibles",
+    arabizi: "Matbakh moshtarak: momken asar la ay allergy",
+  },
+  mayContain: {
+    ar: "≈ ممكن فيه: {a}",
+    en: "≈ may contain {a}",
+    fr: "≈ peut contenir {a}",
+    arabizi: "≈ momken fi {a}",
+  },
+  // Memory (§39.6)
+  memTitle: {
+    ar: "🧠 هيدا اللي بتذكّرو عنك (بس لنساعدك تطلب، ما منستعملو للإعلانات وما منعطيه للمحلات):",
+    en: "🧠 Here's what I remember about you (only to help you order; never for ads, never shown to shops):",
+    fr: "🧠 Voici ce que je retiens de vous (seulement pour vous aider à commander ; jamais pour la pub ni montré aux commerces) :",
+    arabizi:
+      "🧠 Hayda li btzakaro 3anak (bas la nse3dak totlob; ma mnesta3mlo lal i3lanet w ma mn3ateh lal ma7alat):",
+  },
+  memName: { ar: "• الاسم: {v}", en: "• Name: {v}", fr: "• Nom : {v}", arabizi: "• El esm: {v}" },
+  memLang: {
+    ar: "• اللغة: {v}",
+    en: "• Language: {v}",
+    fr: "• Langue : {v}",
+    arabizi: "• El lugha: {v}",
+  },
+  memAddress: {
+    ar: "• عنوان: {v}",
+    en: "• Address: {v}",
+    fr: "• Adresse : {v}",
+    arabizi: "• 3enwen: {v}",
+  },
+  memUsual: {
+    ar: "• عادةً بتطلب: {v}",
+    en: "• You usually order: {v}",
+    fr: "• Vous commandez souvent : {v}",
+    arabizi: "• 3ade btotlob: {v}",
+  },
+  memOrders: {
+    ar: "• طلبات وصلت: {v}",
+    en: "• Delivered orders: {v}",
+    fr: "• Commandes livrées : {v}",
+    arabizi: "• Talabet wislo: {v}",
+  },
+  memFact: {
+    ar: "• طلبت «{v}» ({d})",
+    en: "• You asked for {v} ({d})",
+    fr: "• Vous avez demandé : {v} ({d})",
+    arabizi: "• Talabt {v} ({d})",
+  },
+  memNothing: {
+    ar: "🧠 ما عندي شي محفوظ عنك.",
+    en: "🧠 I don't have anything saved about you.",
+    fr: "🧠 Je n'ai rien d'enregistré sur vous.",
+    arabizi: "🧠 Ma 3ende shi ma7fouz 3anak.",
+  },
+  memDeleteBtn: { ar: "امحي", en: "Delete", fr: "Effacer", arabizi: "Em7i" },
+  memDelAll: {
+    ar: "🗑️ امحي كل شي",
+    en: "🗑️ Delete everything",
+    fr: "🗑️ Tout effacer",
+    arabizi: "🗑️ Em7i kel shi",
+  },
+  memDelName: {
+    ar: "امحي الاسم",
+    en: "Delete my name",
+    fr: "Effacer mon nom",
+    arabizi: "Em7i el esm",
+  },
+  memDelLang: {
+    ar: "امحي اللغة",
+    en: "Delete my language",
+    fr: "Effacer ma langue",
+    arabizi: "Em7i el lugha",
+  },
+  memDelOrders: {
+    ar: "انسى طلباتي",
+    en: "Forget my orders",
+    fr: "Oublier mes commandes",
+    arabizi: "Insa talabete",
+  },
+  memDelAddrs: {
+    ar: "امحي كل العناوين",
+    en: "Delete all addresses",
+    fr: "Effacer les adresses",
+    arabizi: "Em7i kel el 3anawin",
+  },
+  memDelFacts: {
+    ar: "امحي كل الملاحظات",
+    en: "Delete all notes",
+    fr: "Effacer les notes",
+    arabizi: "Em7i kel el notes",
+  },
+  memDeleted: {
+    ar: "🗑️ انمحى. ",
+    en: "🗑️ Deleted. ",
+    fr: "🗑️ Effacé. ",
+    arabizi: "🗑️ Nma7a. ",
+  },
+  memoryDone: {
+    ar: "🗑️ انمحى. شو بتحب تعمل؟",
+    en: "🗑️ Deleted. What would you like to do?",
+    fr: "🗑️ Effacé. Que voulez-vous faire ?",
+    arabizi: "🗑️ Nma7a. Shu badak ta3mel?",
+  },
+  consentAsk: {
+    ar: "ذكرت «{v}». بدك إتذكّرها لطلباتك الجاية؟ هيدي معلومة صحية: بحفظها بس إذا وافقت، وبتنبعت ملاحظة للمطبخ عطلباتك. فيك تمحيها بأي وقت.",
+    en: 'You mentioned "{v}". Shall I remember it for your next orders? It\'s health information: I keep it only if you agree, and it goes to the kitchen as a note on your orders. You can delete it anytime.',
+    fr: "Vous avez mentionné « {v} ». Je m'en souviens pour vos prochaines commandes ? C'est une information de santé : je la garde seulement si vous êtes d'accord, et elle va en cuisine comme note sur vos commandes. Effaçable à tout moment.",
+    arabizi:
+      'Zakart "{v}". Badak etzakkara la talabetak el jeye? Hayde ma3loume sa77iye: b7fazha bas iza wafa2t, w btenba3at note lal matbakh 3a talabetak. Fik tem7iya ay wa2et.',
+  },
+  consentYes: {
+    ar: "✅ إيه، تذكّر",
+    en: "✅ Yes, remember",
+    fr: "✅ Oui, retenir",
+    arabizi: "✅ Eh, tzakkar",
+  },
+  consentNo: { ar: "❌ لا", en: "❌ No", fr: "❌ Non", arabizi: "❌ La2" },
+  consentSaved: {
+    ar: "✅ تمام، بتذكّر. تذكّر: المحل هو اللي بيأكّد شو فيه بالأكل.",
+    en: "✅ Got it, I'll remember. Remember: only the shop can confirm what's in the food.",
+    fr: "✅ C'est noté. Rappel : seul le commerce peut confirmer ce que contient un plat.",
+    arabizi: "✅ Tamem, btzakkar. Tzakkar: el ma7al bas fi y2akked shu fi bel akel.",
+  },
+  consentDeclined: {
+    ar: "تمام، ما حفظتها.",
+    en: "OK, I haven't saved it.",
+    fr: "D'accord, je ne l'ai pas enregistré.",
+    arabizi: "Tamem, ma 7afazta.",
+  },
+  // Address on every order and §22.1
+  addressConfirm: {
+    ar: "📍 منوصّل على {where}، ولا لمحل تاني اليوم؟",
+    en: "📍 Deliver to {where}, or somewhere else today?",
+    fr: "📍 Livraison à {where}, ou ailleurs aujourd'hui ?",
+    arabizi: "📍 Nwasel 3a {where}, wala la ma7al tene lyom?",
+  },
+  addressPick: {
+    ar: "📍 لوين منوصّل اليوم؟",
+    en: "📍 Where should we deliver today?",
+    fr: "📍 Où livrer aujourd'hui ?",
+    arabizi: "📍 La wen nwasel lyom?",
+  },
+  btnDeliverHere: { ar: "✅ هون", en: "✅ Deliver here", fr: "✅ Ici", arabizi: "✅ Hon" },
+  btnElsewhere: {
+    ar: "📍 محل تاني",
+    en: "📍 Somewhere else",
+    fr: "📍 Ailleurs",
+    arabizi: "📍 Ma7al tene",
+  },
+  addressesBtn: { ar: "العناوين", en: "Addresses", fr: "Adresses", arabizi: "El 3anawin" },
+  forWhom: {
+    ar: "📍 {where}. هالطلب إلك ولا لحدا تاني؟",
+    en: "📍 {where}. Is this order for you or someone else?",
+    fr: "📍 {where}. Cette commande est pour vous ou pour quelqu'un d'autre ?",
+    arabizi: "📍 {where}. Hal talab elak wala la 7ada tene?",
+  },
+  btnMeSave: {
+    ar: "🏠 إلي، احفظو",
+    en: "🏠 Me, save it",
+    fr: "🏠 Moi, garder",
+    arabizi: "🏠 Ele, e7fazo",
+  },
+  btnMeOnce: {
+    ar: "📍 إلي، هالمرة",
+    en: "📍 Me, just once",
+    fr: "📍 Moi, cette fois",
+    arabizi: "📍 Ele, hal marra",
+  },
+  btnSomeoneElse: {
+    ar: "🎁 لحدا تاني",
+    en: "🎁 Someone else",
+    fr: "🎁 Quelqu'un d'autre",
+    arabizi: "🎁 La 7ada tene",
+  },
+  recipientAsk: {
+    ar: "🎁 لمين الطلب؟ ابعت اسمو ورقم الواتساب تبعو، مثلاً «ماما 70 123 456».",
+    en: '🎁 Who is it for? Send their name and WhatsApp number, e.g. "Mom 70 123 456".',
+    fr: "🎁 C'est pour qui ? Envoyez son nom et son numéro WhatsApp, ex. « Maman 70 123 456 ».",
+    arabizi: '🎁 La min el talab? B3at esmo w ra2m el WhatsApp, metel "Mama 70 123 456".',
+  },
+  recipientBad: {
+    ar: "بدي اسم ورقم واتساب، مثلاً «ماما 70 123 456».",
+    en: 'I need a name and a WhatsApp number, e.g. "Mom 70 123 456".',
+    fr: "Il me faut un nom et un numéro WhatsApp, ex. « Maman 70 123 456 ».",
+    arabizi: 'Badde esm w ra2m WhatsApp, metel "Mama 70 123 456".',
+  },
+  recipientOwn: {
+    ar: "هيدا رقمك إنت 🙂 ابعت رقم الشخص اللي رح يستلم.",
+    en: "That's your own number 🙂 Send the number of the person receiving it.",
+    fr: "C'est votre propre numéro 🙂 Envoyez celui de la personne qui reçoit.",
+    arabizi: "Hayda ra2mak enta 🙂 B3at ra2m li ra7 yestelem.",
+  },
+  recipientSaved: {
+    ar: "🎁 لـ{name}. حفظتو بعناوينك.",
+    en: "🎁 For {name}. Saved in your addresses.",
+    fr: "🎁 Pour {name}. Enregistré dans vos adresses.",
+    arabizi: "🎁 La {name}. 7afazto b 3anawinak.",
+  },
+  giftLine: {
+    ar: "🎁 لـ{name}: بيدفع كاش عالتسليم بعد ما يقبل. دوس «أكّد» بس إذا {name} ناطر هالطلب.",
+    en: "🎁 For {name}: they pay cash on delivery after accepting. Tap Confirm only if {name} expects this order.",
+    fr: "🎁 Pour {name} : paiement en espèces à la livraison après acceptation. Confirmez seulement si {name} attend cette commande.",
+    arabizi:
+      "🎁 La {name}: byedfa3 cash 3al tasleem ba3d ma y2ebal. Dos Confirm bas iza {name} nater hal talab.",
+  },
+  giftAsked: {
+    ar: "🎁 بعتنا الطلب لـ{name} ليقبل. بيبلّش أول ما يدوس «قبول» (خلال {min} دقيقة).",
+    en: "🎁 We sent the order to {name} to accept. It starts as soon as they tap Accept (within {min} minutes).",
+    fr: "🎁 Nous avons envoyé la commande à {name}. Elle démarre dès qu'il/elle accepte (sous {min} minutes).",
+    arabizi:
+      "🎁 Ba3atna el talab la {name} ta y2ebal. Byballesh awwal ma ydous Accept (khilel {min} d2i2a).",
+  },
+  giftUnreachable: {
+    ar: "ما فينا نبعت لـ{name} بعد: واتساب بيسمحلنا نكتب بس للي بعتولنا خلال آخر ٢٤ ساعة. خلّي {name} يبعت «مرحبا» لهالرقم، وبعدين دوس «أكّد» مرة تانية.",
+    en: 'We can\'t message {name} yet: WhatsApp lets us write only to people who messaged us in the last 24 hours. Ask {name} to send "hi" to this number, then tap Confirm again.',
+    fr: "Nous ne pouvons pas encore écrire à {name} : WhatsApp ne nous permet d'écrire qu'aux personnes qui nous ont écrit ces dernières 24 h. Demandez-lui d'envoyer « bonjour » à ce numéro, puis confirmez à nouveau.",
+    arabizi:
+      'Ma fina neb3at la {name} ba3d: WhatsApp byesma7elna nekteb bas lal nas li ba3atulna bi akher 24 se3a. Khalli {name} yeb3at "marhaba" la hal ra2m, w ba3den dos Confirm marra tenye.',
+  },
+  giftBlocked: {
+    ar: "رقم {name} طالب ما توصلو طلبات هدايا.",
+    en: "{name}'s number has asked not to receive gift orders.",
+    fr: "Le numéro de {name} a demandé à ne pas recevoir de commandes cadeaux.",
+    arabizi: "Ra2m {name} taleb ma tousalo talabet hadaya.",
+  },
+  allergyLine: {
+    ar: "⚠️ ملاحظة للمطبخ: حساسية {note}",
+    en: "⚠️ Kitchen note: allergy, {note}",
+    fr: "⚠️ Note pour la cuisine : allergie, {note}",
+    arabizi: "⚠️ Note lal matbakh: allergy {note}",
+  },
+  creditLine: {
+    ar: "رصيد من Alo King",
+    en: "Alo King credit",
+    fr: "Crédit Alo King",
+    arabizi: "Credit men Alo King",
+  },
+  // Problems and refunds (§20.1, §38.3)
+  problemAsk: {
+    ar: "😔 آسفين! شو صار بطلبك #{code}؟",
+    en: "😔 Sorry! What went wrong with order #{code}?",
+    fr: "😔 Désolé ! Quel est le problème avec la commande #{code} ?",
+    arabizi: "😔 Asfin! Shu sar b talabak #{code}?",
+  },
+  problemBtn: { ar: "المشكلة", en: "The problem", fr: "Le problème", arabizi: "El moshkle" },
+  pk_missing_item: {
+    ar: "صنف ناقص",
+    en: "Missing item",
+    fr: "Article manquant",
+    arabizi: "Sanf na2es",
+  },
+  pk_wrong_item: { ar: "صنف غلط", en: "Wrong item", fr: "Mauvais article", arabizi: "Sanf ghalat" },
+  pk_cold_food: {
+    ar: "الأكل وصل بارد",
+    en: "Food arrived cold",
+    fr: "Plat arrivé froid",
+    arabizi: "El akel wosel bared",
+  },
+  pk_late: { ar: "تأخّر كتير", en: "Very late", fr: "Très en retard", arabizi: "T2akhar ktir" },
+  pk_damaged: {
+    ar: "وصل مخربط/منكبّ",
+    en: "Damaged or spilled",
+    fr: "Abîmé ou renversé",
+    arabizi: "Wosel mkharbat",
+  },
+  pk_other: { ar: "شي تاني", en: "Something else", fr: "Autre chose", arabizi: "Shi tene" },
+  problemLines: { ar: "أي صنف؟", en: "Which item?", fr: "Quel article ?", arabizi: "Ayya sanf?" },
+  disputeCredit: {
+    ar: "🙏 آسفين. {amount} ({lbp} ل.ل) رصيد عطلبك الجاي (صالح {days} يوم).",
+    en: "🙏 Sorry about that. {amount} ({lbp} LBP) is credited to your next order (valid {days} days).",
+    fr: "🙏 Désolé. {amount} ({lbp} LBP) sont crédités sur votre prochaine commande (valable {days} jours).",
+    arabizi: "🙏 Asfin. {amount} ({lbp} LBP) credit 3a talabak el jeye (sale7 {days} yom).",
+  },
+  disputeReview: {
+    ar: "🙏 شكراً إنك خبّرتنا. حدا من Alo King رح يشوف الطلب #{code} ويرد عليك هون.",
+    en: "🙏 Thanks for telling us. A person from Alo King will look at order #{code} and reply here.",
+    fr: "🙏 Merci de nous l'avoir signalé. Une personne d'Alo King va examiner la commande #{code} et vous répondre ici.",
+    arabizi:
+      "🙏 Merci ennak khabbartna. 7ada men Alo King ra7 ychouf el talab #{code} w yrodd 3alek hon.",
+  },
+  disputeDamaged: {
+    ar: "📷 ابعتلنا صورة للمشكلة هون، وحدا من Alo King بيقرر (منعيد الطلب أو منعطيك رصيد).",
+    en: "📷 Please send a photo of the problem here; a person from Alo King decides (remake or credit).",
+    fr: "📷 Envoyez une photo du problème ici ; une personne d'Alo King décide (refaire ou créditer).",
+    arabizi:
+      "📷 B3atelna sura lal moshkle hon, w 7ada men Alo King by2arrer (mn3id el talab aw mna3tik credit).",
+  },
+  disputeRejected: {
+    ar: "شيّكنا الطلب #{code}: الوقت كان ضمن المتوقع، فما في رصيد هالمرة. إذا في شي تاني دوس «حدا بشري».",
+    en: "We checked order #{code}: the times were within what we expect, so there's no credit this time. If something else went wrong, tap A person.",
+    fr: "Nous avons vérifié la commande #{code} : les délais étaient dans la norme, pas de crédit cette fois. Autre souci ? Touchez Une personne.",
+    arabizi:
+      "Chayyakna el talab #{code}: el wa2et kan dimn el metwa22a3, fa ma fi credit hal marra. Iza fi shi tene dos Shakhs.",
+  },
+  disputeAlready: {
+    ar: "خبّرتنا عن هيدا من قبل، عم نشتغل عليه.",
+    en: "You've already reported this; we're on it.",
+    fr: "Vous l'avez déjà signalé ; nous nous en occupons.",
+    arabizi: "Khabbartna 3an hayda men 2abl, 3am neshtighel 3leh.",
+  },
+  disputeTooLate: {
+    ar: "منقدر نستقبل المشاكل خلال {days} يوم من التسليم. دوس «حدا بشري» إذا لازم.",
+    en: "Problems can be reported within {days} days of delivery. Tap A person if needed.",
+    fr: "Les problèmes se signalent sous {days} jours après la livraison. Touchez Une personne si besoin.",
+    arabizi:
+      "Mn2ader nesta2bel el mashakel khilel {days} yom men el tasleem. Dos Shakhs iza lezem.",
+  },
+  disputeNone: {
+    ar: "ما لقيت طلب وصلك مأخراً.",
+    en: "I can't find a recently delivered order.",
+    fr: "Je ne trouve pas de commande livrée récemment.",
+    arabizi: "Ma le2et talab wsolak mn2akhran.",
+  },
+};
+Object.assign(S, S5C);
+
+const ALLERGEN_NAMES: Record<string, Record<CLang, string>> = {
+  sesame: { ar: "سمسم", en: "sesame", fr: "sésame", arabizi: "semsom" },
+  eggs: { ar: "بيض", en: "egg", fr: "œuf", arabizi: "bayd" },
+  gluten: { ar: "غلوتين", en: "gluten", fr: "gluten", arabizi: "gluten" },
+  dairy: { ar: "حليب", en: "milk", fr: "lait", arabizi: "7alib" },
+  nuts: { ar: "مكسرات", en: "nuts", fr: "fruits à coque", arabizi: "mkassarat" },
+  peanuts: { ar: "فول سوداني", en: "peanuts", fr: "arachides", arabizi: "fol soudene" },
+  fish: { ar: "سمك", en: "fish", fr: "poisson", arabizi: "samak" },
+  shellfish: { ar: "قشريات", en: "shellfish", fr: "crustacés", arabizi: "2eshriyet" },
+  soy: { ar: "صويا", en: "soy", fr: "soja", arabizi: "soya" },
+  mustard: { ar: "خردل", en: "mustard", fr: "moutarde", arabizi: "khardal" },
+  celery: { ar: "كرفس", en: "celery", fr: "céleri", arabizi: "karafs" },
+  sulphites: { ar: "كبريتات", en: "sulphites", fr: "sulfites", arabizi: "sulphites" },
+  lupin: { ar: "ترمس", en: "lupin", fr: "lupin", arabizi: "tormos" },
+  molluscs: { ar: "رخويات", en: "molluscs", fr: "mollusques", arabizi: "rakhwiyet" },
+};
+/** "≈ may contain sesame, egg" (§38.3 estimates: never a declaration, never "safe"). */
+export function hintText(lang: CLang, allergens: string[]): string {
+  const a = allergens.map((x) => ALLERGEN_NAMES[x]?.[lang] ?? x).join(lang === "ar" ? "، " : ", ");
+  return tr(lang, "mayContain", { a });
+}
+
+const LANG_NAMES: Record<string, Record<CLang, string>> = {
+  ar: { ar: "عربي", en: "Arabic", fr: "arabe", arabizi: "3arabe" },
+  en: { ar: "إنكليزي", en: "English", fr: "anglais", arabizi: "english" },
+  fr: { ar: "فرنساوي", en: "French", fr: "français", arabizi: "fransawe" },
+  arabizi: { ar: "عربيزي", en: "Arabizi", fr: "arabizi", arabizi: "arabizi" },
+};
+const FACT_NAMES: Record<string, Record<CLang, string>> = {
+  vegetarian: { ar: "نباتي", en: "vegetarian", fr: "végétarien", arabizi: "nabete" },
+  vegan: { ar: "نباتي صرف", en: "vegan", fr: "végan", arabizi: "vegan" },
+  no_pork: { ar: "بلا خنزير", en: "no pork", fr: "sans porc", arabizi: "bala khanzir" },
+  no_alcohol: { ar: "بلا كحول", en: "no alcohol", fr: "sans alcool", arabizi: "bala ko7ol" },
+  fasting: { ar: "صيامي", en: "siyami (fasting)", fr: "siyami (jeûne)", arabizi: "siyami" },
+  halal: { ar: "حلال", en: "halal", fr: "halal", arabizi: "7alal" },
+  gluten_free: { ar: "بلا غلوتين", en: "gluten-free", fr: "sans gluten", arabizi: "bala gluten" },
+  no_sugar: { ar: "بلا سكر", en: "no sugar", fr: "sans sucre", arabizi: "bala sekkar" },
+  allergy: { ar: "حساسية", en: "allergy", fr: "allergie", arabizi: "allergy" },
+  spice: { ar: "حرّ", en: "spice", fr: "piquant", arabizi: "7arr" },
+  note: { ar: "ملاحظة", en: "note", fr: "note", arabizi: "note" },
+};
+/** "gluten-free", "allergy: nuts": how a remembered fact is shown back, never as a diagnosis (§39.6). */
+export function factLabel(lang: CLang, key: string, value: string): string {
+  const k = FACT_NAMES[key]?.[lang] ?? key;
+  return ["allergy", "spice", "note"].includes(key) ? `${k}: ${value}` : k;
+}
+
+export type Memory = {
+  name?: string | null;
+  language?: string | null;
+  addresses?: {
+    address_id: string;
+    label?: string | null;
+    place_ar?: string | null;
+    place_en?: string | null;
+    for_whom?: string | null;
+    recipient_name?: string | null;
+  }[];
+  usual?: { name?: string; name_en?: string; n?: number }[];
+  orders?: number;
+  facts?: { key: string; value: string; since?: string; health?: boolean }[];
+};
+
+/**
+ * "What do you remember about me?" (§39.6): every kept fact with its source, then a list where one tap deletes a part
+ * or everything. `refs` maps the list's address rows (a1…) to address ids, kept in the session.
+ */
+export function memoryCard(to: string, lang: CLang, m: Memory, addrRefs: string[]): Msg[] {
+  const lines: string[] = [];
+  const day = (s?: string) =>
+    s
+      ? new Date(s).toLocaleDateString(
+          lang === "ar" ? "ar-LB" : lang === "fr" ? "fr-FR" : "en-GB",
+          { day: "numeric", month: "short", timeZone: "Asia/Beirut" },
+        )
+      : "";
+  if (m.name) lines.push(tr(lang, "memName", { v: m.name }));
+  if (m.language && LANG_NAMES[m.language])
+    lines.push(tr(lang, "memLang", { v: LANG_NAMES[m.language][lang] }));
+  for (const a of m.addresses ?? [])
+    lines.push(
+      tr(lang, "memAddress", {
+        v: [a.label ?? a.recipient_name, name(lang, a.place_ar, a.place_en)]
+          .filter(Boolean)
+          .join(" – "),
+      }),
+    );
+  if (m.usual?.length)
+    lines.push(
+      tr(lang, "memUsual", {
+        v: m.usual
+          .slice(0, 3)
+          .map((u) => name(lang, u.name, u.name_en))
+          .join(lang === "ar" ? "، " : ", "),
+      }),
+    );
+  if (Number(m.orders ?? 0) > 0) lines.push(tr(lang, "memOrders", { v: m.orders }));
+  for (const f of m.facts ?? [])
+    lines.push(tr(lang, "memFact", { v: factLabel(lang, f.key, f.value), d: day(f.since) }));
+  if (!lines.length) return [text(to, tr(lang, "memNothing"))];
+  const rows: Row[] = [];
+  (m.addresses ?? []).slice(0, 3).forEach((a, k) => {
+    if (addrRefs[k])
+      rows.push({
+        id: `mem:a:${addrRefs[k]}`,
+        title: clip(`🗑️ ${a.label ?? a.recipient_name ?? name(lang, a.place_ar, a.place_en)}`, 24),
+      });
+  });
+  for (const f of (m.facts ?? []).slice(0, 3))
+    rows.push({ id: `mem:f:${f.key}`, title: clip(`🗑️ ${factLabel(lang, f.key, f.value)}`, 24) });
+  if (m.name) rows.push({ id: "mem:name", title: tr(lang, "memDelName") });
+  if (Number(m.orders ?? 0) > 0) rows.push({ id: "mem:orders", title: tr(lang, "memDelOrders") });
+  if (m.language) rows.push({ id: "mem:lang", title: tr(lang, "memDelLang") });
+  rows.push({ id: "mem:all", title: tr(lang, "memDelAll") });
+  return [
+    list(to, clip([tr(lang, "memTitle"), ...lines].join("\n"), 1024), tr(lang, "memDeleteBtn"), [
+      { rows: rows.slice(0, 10) },
+    ]),
+  ];
+}
+
+/** Health information is kept only after this tap (Law 81/2018, §39.6). */
+export function consentAsk(to: string, lang: CLang, key: string, value: string): Msg {
+  return buttons(to, tr(lang, "consentAsk", { v: factLabel(lang, key, value) }), [
+    [`mok:${key}`, tr(lang, "consentYes")],
+    ["mno", tr(lang, "consentNo")],
+  ]);
+}
+
+/** The 2-tap greeting for a returning customer (§38.3): the same order again, or a new one. */
+export function welcomeBack(
+  to: string,
+  lang: CLang,
+  last: { vendor?: string; vendor_en?: string; items?: string; items_ar?: string },
+  nm?: string | null,
+): Msg {
+  return buttons(
+    to,
+    tr(lang, "welcomeBack", {
+      name: nm ? (lang === "ar" ? ` ${nm}` : ` ${nm}`) : "",
+      items: clip(String((lang === "ar" ? last.items_ar : last.items) ?? last.items ?? ""), 120),
+      vendor: name(lang, last.vendor, last.vendor_en),
+    }),
+    [
+      ["c:usual", tr(lang, "btnSameAgain")],
+      ["c:order", tr(lang, "btnNewOrder")],
+      ["c:human", tr(lang, "btnPerson")],
+    ],
+  );
+}
+
+export type CatalogItem = {
+  ref: string;
+  name_ar?: string | null;
+  name_en?: string | null;
+  price_usd: number | string;
+  vendor_ar?: string | null;
+  vendor_en?: string | null;
+  is_open?: boolean;
+  hint?: string[];
+};
+/** Items across every shop that delivers to the customer (§39.6), each with its server price and its shop. */
+export function catalogList(
+  to: string,
+  lang: CLang,
+  q: string,
+  rows: CatalogItem[],
+  qty: number | null,
+): Msg {
+  return list(
+    to,
+    tr(lang, "catalogFound", { q: clip(q, 40) }) + (qty ? tr(lang, "catalogQty", { n: qty }) : ""),
+    tr(lang, "itemsBtn"),
+    [
+      {
+        rows: rows.slice(0, 10).map<Row>((r) => ({
+          id: `pi:${r.ref}`,
+          title: clip(`${r.is_open === false ? "⏸ " : ""}${name(lang, r.name_ar, r.name_en)}`, 24),
+          description: clip(
+            [
+              usd(r.price_usd),
+              name(lang, r.vendor_ar, r.vendor_en),
+              r.hint?.length ? hintText(lang, r.hint) : "",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            72,
+          ),
+        })),
+      },
+    ],
+    tr(lang, "kitchenDisclaimer"),
+  );
+}
+
+/** "Deliver to Home in Baakline, or somewhere else today?" on every order (§39.6). */
+export function addressConfirmCard(
+  to: string,
+  lang: CLang,
+  current: { ref: string; where: string },
+  others: { ref: string; where: string }[],
+): Msg {
+  if (!others.length)
+    return buttons(to, tr(lang, "addressConfirm", { where: current.where }), [
+      [`adr:${current.ref}`, tr(lang, "btnDeliverHere")],
+      ["c:new_address", tr(lang, "btnElsewhere")],
+    ]);
+  return list(to, tr(lang, "addressPick"), tr(lang, "addressesBtn"), [
+    {
+      rows: [
+        {
+          id: `adr:${current.ref}`,
+          title: clip(`✅ ${current.where}`, 24),
+          description: clip(current.where, 72),
+        },
+        ...others.slice(0, 8).map<Row>((o) => ({
+          id: `adr:${o.ref}`,
+          title: clip(o.where, 24),
+          description: clip(o.where, 72),
+        })),
+        { id: "c:new_address", title: tr(lang, "btnElsewhere") },
+      ],
+    },
+  ]);
+}
+
+/** §22.1: asked once per new address; the answer is remembered on the address. */
+export function forWhomCard(to: string, lang: CLang, where: string): Msg {
+  return buttons(to, tr(lang, "forWhom", { where }), [
+    ["fw:self_save", tr(lang, "btnMeSave")],
+    ["fw:self_once", tr(lang, "btnMeOnce")],
+    ["fw:other", tr(lang, "btnSomeoneElse")],
+  ]);
+}
+
+const PROBLEM_KINDS = [
+  "missing_item",
+  "wrong_item",
+  "cold_food",
+  "late",
+  "damaged",
+  "other",
+] as const;
+/** "What went wrong?" (§20.1, §38.3): the server decides eligibility and amount for each answer. */
+export function problemList(to: string, lang: CLang, code: string): Msg {
+  return list(to, tr(lang, "problemAsk", { code }), tr(lang, "problemBtn"), [
+    { rows: PROBLEM_KINDS.map<Row>((k) => ({ id: `dpk:${k}`, title: tr(lang, `pk_${k}`) })) },
+  ]);
+}
+export function problemLinesList(
+  to: string,
+  lang: CLang,
+  kind: "missing_item" | "wrong_item",
+  lines: { order_item_id: string; name_ar?: string; name_en?: string; quantity?: number }[],
+): Msg {
+  return list(to, tr(lang, "problemLines"), tr(lang, "itemsBtn"), [
+    {
+      rows: lines.slice(0, 10).map<Row>((l) => ({
+        id: `dpl:${l.order_item_id}:${kind === "missing_item" ? "m" : "w"}`,
+        title: clip(`${l.quantity ?? 1}× ${name(lang, l.name_ar, l.name_en)}`, 24),
+      })),
+    },
   ]);
 }

@@ -1,0 +1,65 @@
+name: send-home
+description: "A customer abroad orders for Teta in the Shouf: someone else, her name and number, she accepts and pays cash (DECISIONS §22.1, §22.2 scenarios 1 and 7)."
+personas:
+  sender: { role: customer, cc: "33", name: "Sim Paris" }
+  teta: { role: customer, cc: "961", name: "Sim Teta" }
+  merchant: { role: merchant }
+steps:
+  - note: Teta has written to Alo King today, so WhatsApp lets us reach her
+    say: { as: teta, text: "hi" }
+    expect:
+      - { to: teta }
+  - say: { as: sender, text: "Order" }
+    expect:
+      - { to: sender }
+  - pin: { as: sender, lat: 33.6869, lon: 35.5518 }
+    expect:
+      - { to: sender, buttons: ["ps:"] }
+  - tap: { as: sender, title: "Sandwiches" }
+    expect:
+      - { to: sender, buttons: ["pi:"] }
+  - tap: { as: sender, title: "Falafel" }
+    expect:
+      - { to: sender, buttons: ["qt:"] }
+  - tap: { as: sender, id_re: "^qt:i\\d+:2$" }
+    expect:
+      - { to: sender, buttons: ["c:checkout"] }
+  - tap: { as: sender, id: "c:checkout" }
+    expect:
+      - { to: sender, buttons: ["c:delivery", "c:pickup"] }
+  - note: the country code says nothing; the bot asks who the order is for
+    tap: { as: sender, id: "c:delivery" }
+    expect:
+      - { to: sender, buttons: ["fw:other"] }
+  - tap: { as: sender, id: "fw:other" }
+    expect:
+      - { to: sender, text_re: "Who is it for" }
+  - say: { as: sender, text: "Teta {{teta.phone}}" }
+    expect:
+      - { to: sender, text_re: "For Teta" }
+      - { to: sender, buttons: ["cur:USD"] }
+  - tap: { as: sender, id: "cur:USD" }
+    expect:
+      - { to: sender, buttons: ["cfm:"], text_re: "Teta" }
+  - note: the sender's Confirm only asks Teta; nothing is ordered yet
+    tap: { as: sender, id_prefix: "cfm:" }
+    expect:
+      - { to: sender, text_re: "sent the order to Teta" }
+      - { to: teta, buttons: ["gft:"] }
+    db:
+      - sql: >
+          select count(*) as orders from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{sender.phone}}'
+        row: { orders: 0 }
+  - note: Teta accepts and will pay cash; the order is placed and the merchant gets it
+    tap: { as: teta, id_re: "^gft:.*:y$" }
+    expect:
+      - { to: merchant, buttons: ["acc:"] }
+      - { to: teta, text_re: "Thank you" }
+      - { to: sender, text_re: "Teta accepted" }
+    db:
+      - sql: >
+          select o.is_gift, o.recipient_name, o.recipient_phone = '{{teta.phone}}' as to_teta, o.status
+          from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{sender.phone}}' order by o.created_at desc limit 1
+        row: { is_gift: true, recipient_name: Teta, to_teta: true, status: placed }

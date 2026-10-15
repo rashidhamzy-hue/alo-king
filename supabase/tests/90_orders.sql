@@ -157,9 +157,9 @@ select pg_temp.basket('10000000-0000-0000-0000-000000000001',
   'delivery', '44000000-0000-0000-0000-000000000001', 3::smallint) as b5 \gset
 select pg_temp.place(:'b5', 'test:place:b5') as r5 \gset
 select tests.ok((select (fulfilment, delivery_mode, road_km, delivery_fee_usd, stairs_fee_usd, total_usd)
-                 = ('delivery'::public.fulfilment_kind, 'merchant'::public.delivery_mode, 2.40::numeric, 2.00::numeric, 1.50::numeric, 9.50::numeric)
+                 = ('delivery'::public.fulfilment_kind, 'merchant'::public.delivery_mode, 2.40::numeric, 2.00::numeric, 0.25::numeric, 8.25::numeric)
                  from public.orders where idempotency_key = 'test:place:b5'),
-  'delivery: $2.00 band for 2.4 road km, 3 floors × $0.50 stairs, total $9.50');
+  'delivery: $2.00 band for 2.4 road km, 3rd floor by the §38.3 rule ($0.25 above the 2nd floor), total $8.25');
 select pg_temp.basket('10000000-0000-0000-0000-000000000001',
   '[{"item": "41000000-0000-0000-0000-000000000001", "qty": 1, "options": ["43000000-0000-0000-0000-000000000001"]}]',
   'delivery', '44000000-0000-0000-0000-000000000002') as b6 \gset

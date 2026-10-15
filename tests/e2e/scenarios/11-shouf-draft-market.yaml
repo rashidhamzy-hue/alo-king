@@ -32,8 +32,11 @@ steps:
     expect: [{ to: cust, buttons: ["qt:"] }]
   - tap: { as: cust, id_re: "^qt:i\\d+:2$" }
     expect: [{ to: cust, buttons: ["c:checkout"], text: "Tannourine" }]
-  - note: a grocery checkout first asks what to do with an out-of-stock item (§32.5); the market delivers only, so there is no Delivery / Pickup question
+  - note: the market delivers only, so there is no Delivery / Pickup question; a new address asks who the order is for (§22.1)
     tap: { as: cust, id: "c:checkout" }
+    expect: [{ to: cust, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }]
+  - note: then a grocery checkout asks what to do with an out-of-stock item (§32.5)
+    tap: { as: cust, id: "fw:self_save" }
     expect: [{ to: cust, buttons: ["sbp:call", "sbp:replace", "sbp:remove"] }]
   - note: remove it, then the cash currency
     tap: { as: cust, id: "sbp:remove" }

@@ -43,8 +43,17 @@ steps:
     expect: [{ to: cust, buttons: ["c:delivery", "c:pickup"] }]
   - tap: { as: cust, id: "c:checkout" }
     expect: [{ to: cust, buttons: ["c:delivery", "c:pickup"] }]
-  - tap: { as: cust, id: "c:delivery" }
+  - note: a new address asks once who the order is for (DECISIONS §22.1)
+    tap: { as: cust, id: "c:delivery" }
+    expect: [{ to: cust, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }]
+  - note: for me, this time only (the address is not kept)
+    tap: { as: cust, id: "fw:self_once" }
     expect: [{ to: cust, buttons: ["cur:USD"] }]
+    db:
+      - sql: >
+          select a.saved, a.for_whom from public.addresses a join public.customers c on c.id = a.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by a.created_at desc limit 1
+        row: { saved: false, for_whom: self }
   - note: once chosen, Checkout goes straight on
     tap: { as: cust, id: "c:checkout" }
     expect: [{ to: cust, buttons: ["cur:USD"] }]

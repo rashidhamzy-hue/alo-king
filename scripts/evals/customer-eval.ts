@@ -2,20 +2,25 @@
 // against the real model with the bot's own system prompt and typed tools. Cases with `expect.intent` are
 // deterministic and run in CI on every PR (intents.test.ts); this script scores the model cases: the right
 // tool, and the key argument where the case names one. Prints a table by language and model.
+// Gate (DECISIONS §32.4, §39.6): free text stays off (config ai_free_text_enabled) until a model reaches GATE_ALL overall
+// and GATE_LANG in every language; the report says PASS or FAIL per model. Switching it on is a dated config row in a PR.
 // Usage: node --experimental-strip-types scripts/evals/customer-eval.ts [model ...]
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "node:fs";
 import { SYSTEM_PROMPT, TOOLS } from "../../supabase/functions/dispatch/customer/tools.ts";
 
+// The candidate (config ai_customer_model_candidate, §32.6) runs beside the current model until it wins.
 const models = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"];
+  : ["claude-haiku-4-5-20251001", "claude-haiku-5-5", "claude-sonnet-5-5"];
+const GATE_ALL = 0.9;
+const GATE_LANG = 0.85;
 const claude = new Anthropic();
 const cases = readFileSync("evals/customer/cases.jsonl", "utf8")
   .trim()
   .split("\n")
   .map((l) => JSON.parse(l))
-  .filter((c) => c.expect.tool);
+  .filter((c) => c.expect.tool || c.expect.tools);
 const LANG: Record<string, string> = {
   ar: "Lebanese Arabic",
   en: "English",
@@ -58,7 +63,11 @@ async function run(model: string, c: any): Promise<Res> {
     ],
   });
   const uses = msg.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
-  const hit = uses.find((u) => u.name === c.expect.tool) as any;
+  // A dish by name may go to the shop search or, since 5c, the item search across every shop (§39.6).
+  const accepted: string[] = c.expect.tools ?? [c.expect.tool];
+  if (c.expect.tool === "search_vendors" && c.expect.args?.query_contains)
+    accepted.push("search_items");
+  const hit = uses.find((u) => accepted.includes(u.name)) as any;
   let ok = !!hit;
   const a = c.expect.args ?? {};
   if (ok && a.query_contains)
@@ -106,6 +115,7 @@ if (unavailable) {
 
 const lines: string[] = ["| model | lang | cases | correct | p50 ms |", "|---|---|---|---|---|"];
 const misses: string[] = [];
+const gates: string[] = [];
 for (const model of models) {
   const res: Res[] = [];
   for (const c of cases) {
@@ -130,6 +140,13 @@ for (const model of models) {
       `| ${model} | ${lang} | ${r.length} | ${((100 * r.filter((x) => x.ok).length) / Math.max(r.length, 1)).toFixed(0)}% | ${ms} |`,
     );
   }
+  const share = (lang: string) => {
+    const r = res.filter((x) => lang === "all" || x.lang === lang);
+    return r.filter((x) => x.ok).length / Math.max(r.length, 1);
+  };
+  const pass =
+    share("all") >= GATE_ALL && ["ar", "arabizi", "en", "fr"].every((l) => share(l) >= GATE_LANG);
+  gates.push(`| ${model} | ${(100 * share("all")).toFixed(0)}% | ${pass ? "PASS" : "FAIL"} |`);
   for (const r of res.filter((x) => !x.ok)) {
     const c = cases.find((x: any) => x.id === r.id);
     misses.push(`| ${model} | ${r.id} | ${c.text} | ${c.expect.tool} | ${r.got} |`);
@@ -138,6 +155,14 @@ for (const model of models) {
 console.log(
   [
     "## Customer AI eval",
+    "",
+    `Gate for free text (§32.4): ${GATE_ALL * 100}% overall and ${GATE_LANG * 100}% in every language.`,
+    "",
+    "| model | overall | gate |",
+    "|---|---|---|",
+    ...gates,
+    "",
+    "A PASS means free text may be switched on: a PR with a dated app_config row ai_free_text_enabled = true (and ai_customer_model set to the passing model). Nothing switches by itself.",
     "",
     ...lines,
     "",

@@ -1,0 +1,50 @@
+name: address-confirm
+description: "A returning customer's saved address is confirmed again on the next order: deliver here or somewhere else (DECISIONS §39.6)."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Address" }
+  merchant: { role: merchant }
+steps:
+  - include: { part: order-to-placed, as: cust, lat: 33.6869, lon: 35.5518, qty: 1 }
+  - include: { part: merchant-accepts-delivers, as: cust }
+  - note: the next order, a few hours later (time travel)
+    sql: >
+      update public.addresses a set pinned_at = now() - interval '3 hours' from public.customers c
+      where c.id = a.customer_id and c.phone_e164 = '{{cust.phone}}'
+  - say: { as: cust, text: "Order" }
+    expect:
+      - { to: cust, buttons: ["ps:"] }
+  - tap: { as: cust, title: "Sandwiches" }
+    expect:
+      - { to: cust, buttons: ["pi:"] }
+  - tap: { as: cust, title: "Falafel" }
+    expect:
+      - { to: cust, buttons: ["qt:"] }
+  - tap: { as: cust, id_re: "^qt:i\\d+:1$" }
+    expect:
+      - { to: cust, buttons: ["c:checkout"] }
+  - tap: { as: cust, id: "c:checkout" }
+    expect:
+      - { to: cust, buttons: ["c:delivery", "c:pickup"] }
+  - note: the saved address is not assumed; the customer confirms it or picks another place
+    tap: { as: cust, id: "c:delivery" }
+    expect:
+      - { to: cust, buttons: ["adr:a1", "c:new_address"], text_re: "or somewhere else" }
+    db:
+      - sql: >
+          select b.address_confirmed_at is null as unconfirmed from public.baskets b join public.customers c on c.id = b.customer_id
+          where c.phone_e164 = '{{cust.phone}}' and b.status = 'open'
+        row: { unconfirmed: true }
+  - tap: { as: cust, id: "adr:a1" }
+    expect:
+      - { to: cust, buttons: ["cur:USD", "cur:LBP"] }
+  - tap: { as: cust, id: "cur:USD" }
+    expect:
+      - { to: cust, buttons: ["cfm:"] }
+  - tap: { as: cust, id_prefix: "cfm:" }
+    expect:
+      - { to: merchant, buttons: ["acc:"] }
+    db:
+      - sql: >
+          select count(*) as orders from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}'
+        row: { orders: 2 }

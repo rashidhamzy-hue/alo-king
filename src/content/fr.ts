@@ -359,6 +359,8 @@ export const fr: Copy = {
     alcohol: "Contient de l'alcool",
     spicy: "Épicé",
     allergens: "Allergènes : {list}",
+    kitchenNote:
+      "Cuisines partagées : tout plat peut contenir des traces de n'importe quel allergène. Les allergènes indiqués sont ceux déclarés par le commerce ; en cas d'allergie, demandez-lui.",
     allergenNames: {
       gluten: "gluten",
       crustaceans: "crustacés",

@@ -43,10 +43,12 @@ async function main() {
   // The session pooler's certificate is not in Node's trust store; psql's sslmode=require (used by every other job)
   // does not verify it either. The staging project is pinned by scripts/staging-db-url.sh.
   const url = new URL(need("DB_URL"));
+  // sslmode=disable: a local Postgres for a run before merging (tests/e2e/README.md "Running locally").
+  const local = url.searchParams.get("sslmode") === "disable";
   url.searchParams.delete("sslmode");
   const client = new pg.Client({
     connectionString: url.toString(),
-    ssl: { rejectUnauthorized: false },
+    ssl: local ? false : { rejectUnauthorized: false },
   });
   await client.connect();
   const results: ScenarioResult[] = [];

@@ -168,3 +168,62 @@ export function looksLikeComplaint(raw: string): boolean {
 /** Spots a price-like amount in model text, so a model can never state a price the server did not render. */
 export const PRICE_RE =
   /(\$\s?[\d٠-٩]|[\d٠-٩][\d٠-٩,.]*\s?(\$|usd|lbp|l\.l|ll\b|dollars?|dollar|euros?|ليره|ل\.ل|دولار|الف|ألف))/i;
+
+// ---- Session 5c (DECISIONS §38.3, §39.6) ---------------------------------------------------------------------------
+
+/**
+ * Medicine or pharmacy requests. VERIFIED (§38.3): the Order of Pharmacists ruled on 2 June 2026 that ordering medicines
+ * through delivery apps is illegal, so the bot refuses in all four languages and points to a pharmacy. Checked before any
+ * search or model call.
+ */
+export function isMedicineRequest(raw: string): boolean {
+  const t = norm(raw);
+  return /\b(medicine|medicines|medication|meds|pharmacy|pharmacie|prescription|ordonnance|medicament|medicaments|antibiotic|antibiotics|antibiotique|painkiller|panadol|paracetamol|doliprane|aspirin|aspirine|ibuprofen|advil|brufen|augmentin|insulin|insuline|dawa|dewe|adwye|saydaliye|saydaleyye|saydalieh)\b|((^|\s)دوا($|\s)|ادويه|ادويه|دويه|صيدليه|صيدليه|وصفه طبيه|روشته|حبوب وجع|بانادول|مضاد حيوي|انسولين)/.test(
+    t,
+  );
+}
+
+/** "What do you remember about me?" in four languages (§39.6): shows the memory card, never the model's version of it. */
+export function isMemoryQuestion(raw: string): boolean {
+  const t = norm(raw);
+  return (
+    /\b(what do you (know|remember|have|keep) (about|on) me|what (data|information|info) do you (have|keep)|my data|my profile)\b/.test(
+      t,
+    ) ||
+    /\b(qu.?est.?ce que (tu sais|vous savez|tu as|vous avez) (sur|de) moi|que savez.?vous (sur|de) moi|mes donnees)\b/.test(
+      t,
+    ) ||
+    /(شو بتعرف عني|شو بتعرفو عني|شو بتتذكر عني|شو بتتذكرو عني|شو عندكن عني|شو عندك عني|معلوماتي|شو محفوظ عني)/.test(
+      t,
+    ) ||
+    /\b(shu (bta3ref|bta3refo|btetzakar|btetzakaro|3endak|3endkon|ma7fouz) (3anne|3ani|3anni)|ma3lomete)\b/.test(
+      t,
+    )
+  );
+}
+
+/**
+ * Chat outside food, groceries, delivery and support (Meta Business Solution Terms, §38.3): weather, news, politics,
+ * homework, jokes, crypto. Answered with one polite fixed line in the customer's language, never by a model.
+ */
+export function isOffTopic(raw: string): boolean {
+  const t = norm(raw);
+  return /\b(weather|forecast|politic|politics|election|news|homework|translate|joke|bitcoin|crypto|horoscope|football score|meteo|politique|blague|devoirs|traduire|ta2es|siyase|nekte)\b|(طقس|الطقس|سياسه|سياسه|انتخابات|اخبار|اخبار|نكته|نكته|ترجم|بيتكوين|ابراج)/.test(
+    t,
+  );
+}
+
+/** The message says the order is for someone else (§22.1: "for my mom", "pour ma mère", "la emme"). */
+export function mentionsSomeoneElse(raw: string): boolean {
+  const t = norm(raw);
+  return /\b(for my (mom|mum|mother|dad|father|parents|grandma|grandmother|grandpa|sister|brother|wife|husband|son|daughter|aunt|uncle|friend|family)|send home|pour (ma|mon|mes) (mere|maman|pere|papa|parents|grand.?mere|soeur|frere|femme|mari|famille|amie?)|la (emme|emmi|mama|bayye|bayyi|teta|jeddo|ekhte|khayye|marte|jawze|ahle))\b|(لامي|لامي|لماما|لبيي|لبابا|لاهلي|لاهلي|لتيتا|لجدو|لاختي|لخيي|لمرتي|لجوزي)/.test(
+    t,
+  );
+}
+
+/**
+ * Facts a model may not state on its own (§39.6 "zero invented facts"): times, distances, percentages and policies such
+ * as refunds or free delivery. Model text that contains one is dropped; the tools render those facts from the database.
+ */
+export const FACT_RE =
+  /([\d٠-٩]+\s?(min|mins|minute|minutes|دقيقه|دقايق|دقيقة|hour|hours|heure|heures|ساعه|ساعة|km|كم|كلم|%)|free delivery|livraison gratuite|توصيل مجاني|delivery is free|refund|rembours|استرجاع|مرتجع)/i;

@@ -352,6 +352,8 @@ export const en = {
     alcohol: "Contains alcohol",
     spicy: "Spicy",
     allergens: "Allergens: {list}",
+    kitchenNote:
+      "Shared kitchens: any dish may contain traces of any allergen. Allergens listed are as the shop declared them; ask the shop if you have an allergy.",
     allergenNames: {
       gluten: "gluten",
       crustaceans: "crustaceans",

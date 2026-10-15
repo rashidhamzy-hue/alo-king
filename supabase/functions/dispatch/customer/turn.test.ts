@@ -1161,11 +1161,12 @@ describe("the button-driven ordering path (session T, §34)", () => {
   });
 
   describe("without API credit the customer gets buttons, never an error or silence", () => {
-    it("free text with no model key shows the main menu", async () => {
+    it("free text with no model key searches the catalogue, then shows the main menu (§39.6)", async () => {
       const f = fake({ model });
       await handleCustomerTurn(f.deps, msg({ text: "I want pizza" }));
+      expect(f.of("catalog_search")[0].args.p_query).toBe("I want pizza");
       expect(ids(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
-      expect(bodyOf(f.sent[0])).toMatch(/buttons/);
+      expect(bodyOf(f.sent[0])).toMatch(/couldn't find "I want pizza"/);
     });
     it("an API failure (no credit) shows the menu and is not counted as unclear: no handoff", async () => {
       const f = fake({
