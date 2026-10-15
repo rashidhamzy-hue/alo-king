@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { connectedCatalog, ownedCatalog, ownerBusiness, why } from "./catalog";
+import { connectedCatalog, ownedCatalog, ownerBusiness, readCatalog, why } from "./catalog";
 
 describe("kapso-catalog (DECISIONS §39.12)", () => {
   it("reads the connected catalogue and the owning portfolio from Meta's answers", () => {
@@ -26,6 +26,14 @@ describe("kapso-catalog (DECISIONS §39.12)", () => {
       ),
     ).toBe("222222222222");
     expect(ownedCatalog({ data: [] }, "Alo King")).toBeNull();
+  });
+  it("accepts the owner's catalogue read directly, only when Meta answers with that id (#181)", () => {
+    expect(readCatalog({ id: "1684040949979106", name: "Alo King" }, "1684040949979106")).toEqual({
+      id: "1684040949979106",
+      name: "Alo King",
+    });
+    expect(readCatalog({ id: "999" }, "1684040949979106")).toBeNull();
+    expect(readCatalog({ error: { code: 100 } }, "1684040949979106")).toBeNull();
   });
   it("explains a refusal with Meta's message and codes only", () => {
     expect(

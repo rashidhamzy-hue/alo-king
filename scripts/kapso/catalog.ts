@@ -7,8 +7,12 @@
 // failed so the owner issue can carry the click steps (DECISIONS §25). Nothing is printed from a response but ids,
 // statuses and error text.
 //
-// Env: KAPSO_API_KEY, PHONE_NUMBER_ID; optional META_CATALOG_TOKEN, DB_URL (staging). Writes `catalog_id`, `transport`
-// and `blocked` to GITHUB_OUTPUT.
+// Env: KAPSO_API_KEY, PHONE_NUMBER_ID; optional META_CATALOG_TOKEN, DB_URL (staging), META_CATALOG_ID and
+// META_BUSINESS_ID (the catalogue and the portfolio the owner made in Commerce Manager, #181). A token with
+// catalog_management and business_management but not whatsapp_business_management cannot read the WhatsApp account
+// (Meta: "(#200) You do not have permission", "Object ... cannot be loaded due to missing permissions"); then the
+// configured catalogue is checked directly and its connection to the account is the owner's (#181), and the cart and
+// catalogue icons are the ones the owner switched on. Writes `catalog_id`, `transport` and `blocked` to GITHUB_OUTPUT.
 import { appendFileSync } from "node:fs";
 import pg from "pg";
 
@@ -54,6 +58,11 @@ export function why(a: Answer): string {
   return `${a.status} ${String(msg).slice(0, 240)}${code}`;
 }
 
+/** The catalogue a GET /{catalog_id}?fields=id,name answered with, when it is the one asked for. */
+export function readCatalog(body: any, id: string): { id: string; name: string | null } | null {
+  return String(body?.id ?? "") === id ? { id, name: body?.name ?? null } : null;
+}
+
 /** The catalogue connected to the account, from GET /{waba}/product_catalogs. */
 export function connectedCatalog(body: any): { id: string; name: string | null } | null {
   const c = (body?.data ?? []).find((x: any) => /^[0-9]{5,30}$/.test(String(x?.id ?? "")));
@@ -97,6 +106,15 @@ async function main() {
   if (!/^[0-9]{6,20}$/.test(pn)) throw new Error("PHONE_NUMBER_ID is not a phone number id");
   const notes: string[] = [];
   const routes: Route[] = token ? ["kapso", "graph"] : ["kapso"];
+  const ID = /^[0-9]{5,30}$/;
+  const configuredCatalog = ID.test(process.env.META_CATALOG_ID ?? "")
+    ? process.env.META_CATALOG_ID!
+    : "";
+  const configuredBusiness = ID.test(process.env.META_BUSINESS_ID ?? "")
+    ? process.env.META_BUSINESS_ID!
+    : "";
+  // The token cannot read the WhatsApp account: the connection and the icons are the owner's (#181).
+  let ownerConfirmed = false;
 
   const res = await fetch(`${KAPSO}/platform/v1/whatsapp/phone_numbers/${pn}`, {
     headers: { "X-API-Key": key },
@@ -118,6 +136,17 @@ async function main() {
     notes,
   );
   if (listed) catalog = connectedCatalog(listed.answer.body);
+  // 1b. The token cannot list the account's catalogues: the catalogue the owner made and connected, checked directly.
+  if (!catalog && !listed && configuredCatalog && token) {
+    const read = await call("graph", `/${configuredCatalog}?fields=id,name`);
+    catalog = read.ok ? readCatalog(read.body, configuredCatalog) : null;
+    if (catalog) {
+      ownerConfirmed = true;
+      notes.push(
+        `catalogue ${configuredCatalog} (${catalog.name ?? ""}): read with the token; its connection to the account is the owner's (#181): this token cannot read the account (no whatsapp_business_management)`,
+      );
+    } else notes.push(`catalogue ${configuredCatalog}: graph refused: ${why(read)}`);
+  }
 
   // 2. Otherwise create one in the owning portfolio and connect it.
   let blocked: string | null = null;
@@ -128,7 +157,10 @@ async function main() {
       (r) => call(r, `/${waba}?fields=owner_business_info,name`),
       notes,
     );
-    const business = owner ? ownerBusiness(owner.answer.body) : null;
+    const business =
+      (owner ? ownerBusiness(owner.answer.body) : null) ?? (configuredBusiness || null);
+    if (!owner && configuredBusiness)
+      notes.push(`owning business: ${configuredBusiness} (configured)`);
     if (!business) blocked = "create";
     else {
       // A catalogue named "Alo King" made by an earlier run (created, then refused to connect) is reused, never duplicated.
@@ -193,10 +225,16 @@ async function main() {
       notes,
     );
     const s = got?.answer.body?.data?.[0] ?? {};
-    settings = set
-      ? `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`
-      : "refused";
-    commerceOn = s.is_cart_enabled === true && s.is_catalog_visible === true;
+    if (!set && !got && ownerConfirmed) {
+      // The owner switched both on in WhatsApp Manager (#181); this token cannot read the number's settings.
+      settings = "on (set by the owner, #181; not readable with this token)";
+      commerceOn = true;
+    } else {
+      settings = set
+        ? `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`
+        : "refused";
+      commerceOn = s.is_cart_enabled === true && s.is_catalog_visible === true;
+    }
   }
 
   // 4. Which route can write items (the sync in dispatch uses it).
