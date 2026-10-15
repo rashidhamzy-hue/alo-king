@@ -158,13 +158,9 @@ describe("merchant-cards: every builder passes the checker", () => {
   it("a demo shop's order card says Demo first, in both languages (DECISIONS §39.12)", () => {
     const en: any = cards.orderCard("+96171000001", { ...order, demo: true }, "en");
     const ar: any = cards.orderCard("+96171000001", { ...order, demo: true }, "ar");
-    expect(en.interactive.body.text.split("\n")[0]).toBe(
-      "🧪 Demo order: the real shop is never told",
-    );
+    expect(en.interactive.body.text.split("\n")[0]).toBe("🧪 Demo order: the real shop is never told");
     expect(ar.interactive.body.text.split("\n")[0]).toContain("Demo");
-    expect(
-      (cards.orderCard("+96171000001", order, "en") as any).interactive.body.text,
-    ).not.toContain("Demo");
+    expect((cards.orderCard("+96171000001", order, "en") as any).interactive.body.text).not.toContain("Demo");
   });
   it("button ids round-trip through parseMerchantAction", () => {
     const p: any = cards.orderCard("+96171000001", order, "ar");
@@ -843,11 +839,7 @@ describe("session 5c customer agent cards (DECISIONS §38.3, §39.6)", () => {
         ),
         forWhomCard(to, lang, "Baakline, Building Saint Elias, near the church with a long name"),
         problemList(to, lang, "ABC123"),
-        belowMinimumMessage(to, lang, {
-          status: "below_minimum",
-          min_order_usd: 500,
-          missing_usd: 499.5,
-        }),
+        belowMinimumMessage(to, lang, { status: "below_minimum", min_order_usd: 500, missing_usd: 499.5 }),
         problemLinesList(
           to,
           lang,
@@ -980,13 +972,7 @@ describe("WhatsApp templates (DECISIONS §39.8)", () => {
       expect(checkTemplate(t)).toEqual([]);
       for (const lang of TEMPLATE_LANGS) {
         const n = t.category === "AUTHENTICATION" ? 0 : (t.buttons?.[lang]?.length ?? 0);
-        const msg: any = templateMessage(
-          "+96170000001",
-          t,
-          lang,
-          t.example,
-          Array.from({ length: n }, (_, i) => `p${i}`),
-        );
+        const msg: any = templateMessage("+96170000001", t, lang, t.example, Array.from({ length: n }, (_, i) => `p${i}`));
         expect(msg.type).toBe("template");
         expect(checkInteractive(msg)).toEqual([]);
         for (const b of msg.template.components.filter((c: any) => c.sub_type === "quick_reply"))
@@ -995,59 +981,20 @@ describe("WhatsApp templates (DECISIONS §39.8)", () => {
     });
   it("the dispatch filler builds a sendable template for every message it covers", () => {
     const UUID = "11111111-2222-3333-4444-555555555555";
-    const card = {
-      order_id: UUID,
-      code: "ABC123",
-      vendor_name: "V",
-      total_usd: 1,
-      total_lbp: 89500,
-      items: [{ name: "Wrap", quantity: 1 }],
-    };
+    const card = { order_id: UUID, code: "ABC123", vendor_name: "V", total_usd: 1, total_lbp: 89500, items: [{ name: "Wrap", quantity: 1 }] };
     for (const [key, purpose, payload] of [
       ["accepted", "customer_message", { kind: "accepted", eta: { min: 20, max: 30 } }],
       ["on_the_way", "customer_message", { kind: "on_the_way", eta: { min: 5 } }],
       ["delivered", "customer_message", { kind: "delivered" }],
-      [
-        "gift_accepted",
-        "customer_message",
-        { kind: "gift_accepted", code: "ABC123", recipient_name: "M" },
-      ],
-      [
-        "gift_request",
-        "customer_message",
-        {
-          kind: "gift_request",
-          gift_id: UUID,
-          sender: "R",
-          vendor: "V",
-          total_usd: 1,
-          total_lbp: 1,
-        },
-      ],
+      ["gift_accepted", "customer_message", { kind: "gift_accepted", code: "ABC123", recipient_name: "M" }],
+      ["gift_request", "customer_message", { kind: "gift_request", gift_id: UUID, sender: "R", vendor: "V", total_usd: 1, total_lbp: 1 }],
       ["new_order", "new_order", {}],
       ["proposal", "proposal", { proposal_id: UUID, summary: "s", vendor_name: "V" }],
-      [
-        "merchant_weekly",
-        "reply",
-        {
-          kind: "merchant_weekly",
-          shop: "V",
-          orders: "1",
-          delivered: "1",
-          sales: "$1.00",
-          rating: "5",
-        },
-      ],
+      ["merchant_weekly", "reply", { kind: "merchant_weekly", shop: "V", orders: "1", delivered: "1", sales: "$1.00", rating: "5" }],
     ] as const) {
       const t = TEMPLATES.find((x) => x.key === key)!;
       for (const lang of TEMPLATE_LANGS) {
-        const msg = templatePayload({ name: t.name, lang }, key, {
-          order_id: UUID,
-          target: "+96170000001",
-          purpose,
-          payload,
-          card,
-        });
+        const msg = templatePayload({ name: t.name, lang }, key, { order_id: UUID, target: "+96170000001", purpose, payload, card });
         expect(msg, `${key}/${lang}`).not.toBeNull();
       }
     }
@@ -1061,36 +1008,19 @@ describe("admin and support messages (5b)", () => {
   it("the admin confirm card stays inside the button limits, with a long question", async () => {
     const sent: any[] = [];
     await handleAdmin(
-      {
-        rpc: async (fn: string, a: any) =>
-          fn === "ops_action_propose"
-            ? "6a000000-0000-0000-0000-000000000001"
-            : fn === "app_reply"
-              ? sent.push(a)
-              : null,
-      },
+      { rpc: async (fn: string, a: any) => (fn === "ops_action_propose" ? "6a000000-0000-0000-0000-000000000001" : fn === "app_reply" ? sent.push(a) : null) },
       { from: "+96170009999", messageId: "m" },
       { user_id: "u", role: "admin", name: "R" },
       null,
       { kind: "reply", text: "x".repeat(1500) },
     );
-    expect(
-      checkInteractive({ type: "interactive", interactive: sent[0].p_payload.interactive }),
-    ).toEqual([]);
+    expect(checkInteractive({ type: "interactive", interactive: sent[0].p_payload.interactive })).toEqual([]);
   });
   it("support replies and the closing note are plain text", () => {
     for (const lang of ["ar", "en", "fr", "arabizi"]) {
-      const [r]: any = customerStatusMessages(
-        "+96170000001",
-        { kind: "support_reply", lang, name: "Rasheed", text: "On its way" },
-        null,
-      );
+      const [r]: any = customerStatusMessages("+96170000001", { kind: "support_reply", lang, name: "Rasheed", text: "On its way" }, null);
       expect(r.text.body).toBe("👤 Rasheed, Alo King:\nOn its way");
-      const [c]: any = customerStatusMessages(
-        "+96170000001",
-        { kind: "support_closed", lang },
-        null,
-      );
+      const [c]: any = customerStatusMessages("+96170000001", { kind: "support_closed", lang }, null);
       expect(c.text.body.length).toBeGreaterThan(10);
     }
   });
@@ -1109,37 +1039,16 @@ describe("catalogue and cart builders (session 5d, §39.12)", () => {
   }));
   it("a multi-product message of a big shop, in every language, stays within 30 items, 10 sections and the title limits", () => {
     for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
-      const m = productListMessage(
-        "+96170000001",
-        "1234567890",
-        "مطعم باسم طويل جداً يتجاوز الستين حرفاً في العنوان مرة واحدة",
-        "x".repeat(1100),
-        products,
-        {
-          lang,
-          footer: "y".repeat(80),
-        },
-      );
+      const m = productListMessage("+96170000001", "1234567890", "مطعم باسم طويل جداً يتجاوز الستين حرفاً في العنوان مرة واحدة", "x".repeat(1100), products, {
+        lang,
+        footer: "y".repeat(80),
+      });
       expect(checkInteractive(m), lang).toEqual([]);
     }
   });
   it("a single-product message passes, with and without a footer", () => {
-    expect(
-      checkInteractive(
-        productMessage(
-          "+96170000001",
-          "1234567890",
-          products[0].retailer_id,
-          "b".repeat(1100),
-          "f".repeat(80),
-        ),
-      ),
-    ).toEqual([]);
-    expect(
-      checkInteractive(
-        productMessage("+96170000001", "1234567890", products[0].retailer_id, "Found it"),
-      ),
-    ).toEqual([]);
+    expect(checkInteractive(productMessage("+96170000001", "1234567890", products[0].retailer_id, "b".repeat(1100), "f".repeat(80)))).toEqual([]);
+    expect(checkInteractive(productMessage("+96170000001", "1234567890", products[0].retailer_id, "Found it"))).toEqual([]);
   });
   it("the cart from another shop card (Use the new cart / Keep basket) passes in every language", () => {
     const titles: Record<string, [string, string]> = {
