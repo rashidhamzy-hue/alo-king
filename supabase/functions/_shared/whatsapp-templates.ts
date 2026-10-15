@@ -199,7 +199,10 @@ export const TEMPLATES: TemplateDef[] = [
     },
     footer: FOOTER,
     buttons: { ar: ["✅ نعم", "لا"], en: ["✅ Yes", "No"], fr: ["✅ Oui", "Non"] },
-    example: { shop: "Alo Test Grill", suggestion: "mark Knefe sold out after 9 pm, as on most days?" },
+    example: {
+      shop: "Alo Test Grill",
+      suggestion: "mark Knefe sold out after 9 pm, as on most days?",
+    },
   },
   {
     name: "alo_merchant_weekly",
@@ -214,7 +217,45 @@ export const TEMPLATES: TemplateDef[] = [
     },
     footer: FOOTER,
     buttons: { ar: ["التفاصيل"], en: ["Details"], fr: ["Détails"] },
-    example: { shop: "Alo Test Grill", orders: "42", delivered: "40", sales: "$612.00", rating: "4.6" },
+    example: {
+      shop: "Alo Test Grill",
+      orders: "42",
+      delivered: "40",
+      sales: "$612.00",
+      rating: "4.6",
+    },
+  },
+  {
+    name: "alo_staff_welcome",
+    category: "UTILITY",
+    key: "staff_welcome",
+    audience: "merchant",
+    params: ["shop", "role"],
+    // A new staff member has never written to us, so the owner's "add Ali as kitchen" reaches them by template (§32.5).
+    body: {
+      ar: "أهلا! {{1}} زادك على ألو كينغ بدور {{2}}. الطلبات والتنبيهات بتوصلك هون. اضغط تحت لتشوف شو فيك تعمل.",
+      en: "Welcome! {{1}} added you on Alo King as {{2}}. Orders and alerts for the shop reach you here. Tap below to see what you can do.",
+      fr: "Bienvenue ! {{1}} vous a ajouté sur Alo King comme {{2}}. Les commandes et alertes de la boutique arrivent ici. Touchez ci-dessous pour voir ce que vous pouvez faire.",
+    },
+    footer: FOOTER,
+    buttons: { ar: ["شو فيني إعمل"], en: ["What I can do"], fr: ["Ce que je peux faire"] },
+    example: { shop: "Alo Test Grill", role: "kitchen" },
+  },
+  {
+    name: "alo_kitchen_full",
+    category: "UTILITY",
+    key: "kitchen_full",
+    audience: "merchant",
+    params: ["shop", "queue", "max"],
+    // At twice the shop's capacity new orders pause on their own (§32.5); the owner may be outside the window.
+    body: {
+      ar: "مطبخ {{1}} مليان: في {{2}} طلبات عم تنعمل. وقّفنا الطلبات الجديدة لحد ما ينزل العدد تحت {{3}}. اضغط تحت لترجع تستقبل طلبات هلق.",
+      en: "The kitchen at {{1}} is full: {{2}} orders in progress. New orders are paused until fewer than {{3}} are left. Tap below to take orders again now.",
+      fr: "La cuisine de {{1}} est pleine : {{2}} commandes en cours. Les nouvelles commandes sont en pause jusqu'à moins de {{3}}. Touchez ci-dessous pour les reprendre maintenant.",
+    },
+    footer: FOOTER,
+    buttons: { ar: ["رجّع الطلبات"], en: ["Take orders again"], fr: ["Reprendre"] },
+    example: { shop: "Alo Test Grill", queue: "16", max: "8" },
   },
   {
     name: "alo_claim_code",
@@ -281,7 +322,13 @@ export function templateLang(lang: unknown): TemplateLang {
 
 /** A variable value as Meta accepts it: one line, no tabs, no run of more than 4 spaces, never empty. */
 export function templateParam(v: unknown, max = 300): string {
-  const s = [...String(v ?? "").replace(/\s+/g, " ").trim()].slice(0, max).join("");
+  const s = [
+    ...String(v ?? "")
+      .replace(/\s+/g, " ")
+      .trim(),
+  ]
+    .slice(0, max)
+    .join("");
   return s || "-";
 }
 
@@ -313,7 +360,8 @@ export function templateMessage(
     });
   } else {
     const n = def.buttons?.[lang]?.length ?? 0;
-    if (payloads.length !== n) throw new Error(`template ${def.name}: ${n} buttons, ${payloads.length} payloads`);
+    if (payloads.length !== n)
+      throw new Error(`template ${def.name}: ${n} buttons, ${payloads.length} payloads`);
     payloads.forEach((p, i) =>
       components.push({
         type: "button",
@@ -333,7 +381,11 @@ export function templateMessage(
 }
 
 /** The body as the recipient reads it (dry runs, the simulator transcript and the tests). */
-export function renderTemplate(def: TemplateDef, lang: TemplateLang, values: Record<string, unknown>): string {
+export function renderTemplate(
+  def: TemplateDef,
+  lang: TemplateLang,
+  values: Record<string, unknown>,
+): string {
   return def.body[lang].replace(/\{\{(\d+)\}\}/g, (_, n) =>
     templateParam(values[def.params[Number(n) - 1] ?? ""]),
   );
@@ -388,8 +440,12 @@ export function checkTemplate(def: TemplateDef): string[] {
       if (/\{\{\d+\}\}\s*$/.test(b)) v.push(`${def.name}/${lang}: ends with a variable`);
       if (/\}\}\s*\{\{/.test(b)) v.push(`${def.name}/${lang}: two variables side by side`);
       // Meta refuses a body with too many variables for its length; keep at least 3 words of text per variable.
-      const words = b.replace(/\{\{\d+\}\}/g, " ").split(/\s+/).filter(Boolean).length;
-      if (words < 3 * def.params.length) v.push(`${def.name}/${lang}: ${words} words for ${def.params.length} variables`);
+      const words = b
+        .replace(/\{\{\d+\}\}/g, " ")
+        .split(/\s+/)
+        .filter(Boolean).length;
+      if (words < 3 * def.params.length)
+        v.push(`${def.name}/${lang}: ${words} words for ${def.params.length} variables`);
       if (/\n{3,}/.test(b)) v.push(`${def.name}/${lang}: more than two line breaks in a row`);
     }
     const f = def.footer?.[lang];
@@ -400,12 +456,15 @@ export function checkTemplate(def: TemplateDef): string[] {
     const bs = def.buttons?.[lang] ?? [];
     if (bs.length > 3) v.push(`${def.name}/${lang}: ${bs.length} buttons > 3`);
     if (new Set(bs).size !== bs.length) v.push(`${def.name}/${lang}: duplicate button`);
-    for (const t of bs) if (!t.trim() || len(t) > 25) v.push(`${def.name}/${lang}: button "${t}" (${len(t)} > 25)`);
-    if ((def.buttons?.ar?.length ?? 0) !== bs.length) v.push(`${def.name}/${lang}: button count differs from ar`);
+    for (const t of bs)
+      if (!t.trim() || len(t) > 25) v.push(`${def.name}/${lang}: button "${t}" (${len(t)} > 25)`);
+    if ((def.buttons?.ar?.length ?? 0) !== bs.length)
+      v.push(`${def.name}/${lang}: button count differs from ar`);
   }
   if (def.category === "MARKETING") {
     for (const lang of TEMPLATE_LANGS)
-      if (!/STOP/.test(def.footer?.[lang] ?? "")) v.push(`${def.name}/${lang}: marketing without STOP`);
+      if (!/STOP/.test(def.footer?.[lang] ?? ""))
+        v.push(`${def.name}/${lang}: marketing without STOP`);
     if (!def.buttons) v.push(`${def.name}: marketing without an opt-out button`);
   }
   if (def.category === "AUTHENTICATION" && (def.buttons || def.params.length !== 1))

@@ -392,6 +392,8 @@ async function duringHandoff(c: Ctx) {
   const intent = c.m.text ? deterministicIntent(c.m.text) : null;
   if (intent && ["stop", "delete_data", "forget_history"].includes(intent.kind))
     return textIntent(c, intent.kind);
+  // "Read the reply" on the support template: the person's held replies, and the conversation stays with them.
+  if (c.m.buttonId === "c:support") return showSupportReplies(c);
   const leaves = !!c.m.buttonId || intent?.kind === "greeting" || intent?.kind === "menu";
   if (leaves) {
     await c.deps.rpc("customer_handoff_end", { p_customer_id: c.customerId });
@@ -400,7 +402,32 @@ async function duringHandoff(c: Ctx) {
     return route(c, false);
   }
   c.path = "handoff";
+  // The message joins the support case's Slack thread, where Rasheed answers (§32.1).
+  if (c.m.text) {
+    const joined = await c.deps
+      .rpc("support_inbound", { p_customer_id: c.customerId, p_text: c.m.text })
+      .catch(() => false);
+    if (joined === true) c.tools.push("support_inbound");
+  }
+  // Never silent (§34): every message during the handoff gets the waiting card with its Menu button.
   push(c, handoffWaitCard(c.m.from, c.s.lang));
+}
+
+/** The replies a person sent while the customer was outside the 24-hour window (held behind the template). */
+async function showSupportReplies(c: Ctx) {
+  c.path = "handoff";
+  c.tools.push("support_pending");
+  const replies: { name: string | null; text: string }[] =
+    (await c.deps.rpc("support_pending", { p_customer_id: c.customerId }).catch(() => [])) ?? [];
+  if (!replies.length) return push(c, handoffWaitCard(c.m.from, c.s.lang));
+  for (const r of replies)
+    push(c, {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: c.m.from.replace(/^\+/, ""),
+      type: "text",
+      text: { body: `👤 ${r.name ?? "Rasheed"}, Alo King:\n${r.text}` },
+    });
 }
 
 async function route(c: Ctx, firstContact: boolean) {
@@ -1003,6 +1030,8 @@ async function tap(c: Ctx, a: CustomerAction) {
       return problemLine(c, a.itemId, a.kind, a.qty);
     case "simple":
       switch (a.what) {
+        case "support":
+          return showSupportReplies(c);
         case "remember":
           return showMemory(c);
         case "new_address":

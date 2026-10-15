@@ -52,6 +52,8 @@ import { copilotModelCommand, type CopilotModel } from "./merchant/copilot-model
 import { templateKey, templatePayload, type TemplateChoice } from "./templates.ts";
 import { templateByName, templateLang, templateMessage } from "../_shared/whatsapp-templates.ts";
 import { isSimNumber } from "../_shared/sim-sink.ts";
+import type { SlackPost } from "../_shared/ops-notifier.ts";
+import { adminTap, handleAdmin, parseAdminCommand } from "./admin.ts";
 
 export type SendResult = { ok: true; id?: string } | { ok: false; retry: boolean; error: string };
 
@@ -61,9 +63,8 @@ export type DispatchDeps = {
   whatsapp: (phoneNumberId: string, payload: Record<string, unknown>) => Promise<SendResult>;
   /** Places the automated cellular call (§13); null when no voice provider is configured. */
   call: ((to: string, card: OrderCardData) => Promise<SendResult>) | null;
-  /** Sends an ops alert to the operators' Telegram group; null when not configured. */
-  telegram: ((text: string, url?: string) => Promise<SendResult>) | null;
-  adminUrl?: string;
+  /** Posts one queued Slack message (the ops_notifier adapter, §32.1); null until SLACK_BOT_TOKEN is set. */
+  slack?: SlackPost | null;
   now?: () => Date;
   budgetMs?: number;
   /** When this worker is certainly gone (its start + 152 s): a customer turn's lease never outlives it. */
@@ -209,14 +210,24 @@ export async function runDispatch(
     if (b?.id) await sendBroadcast(deps, b, () => senderFor("customer"));
   }
 
-  // 4. Ops alerts (only claimed when Telegram is configured, so attempts are not burnt).
-  if (deps.telegram && left() > 1000) {
-    const alerts: any[] = (await deps.rpc("ops_alerts_claim", { p_limit: 20 })) ?? [];
-    for (const a of alerts) {
-      const icon = a.severity === "urgent" ? "🚨" : a.severity === "warning" ? "⚠️" : "ℹ️";
-      const url = deps.adminUrl ? `${deps.adminUrl}/admin?alert=${a.id}` : undefined;
-      const r = await deps.telegram(`${icon} ${a.summary}`, url);
-      if (r.ok) await deps.rpc("ops_alert_sent", { p_id: a.id });
+  // 4. The Slack queue (§32.1): ops alerts, #orders-live lines and support threads, oldest first; a thread reply waits for
+  // its root. Only claimed when Slack is installed, so attempts are not burnt.
+  if (deps.slack && left() > 1000) {
+    const rows: any[] = (await deps.rpc("slack_claim", { p_limit: 20 })) ?? [];
+    for (const r of rows) {
+      const res = await deps.slack({
+        channel: String(r.channel_id),
+        threadTs: r.thread_ts ?? null,
+        text: String(r.text ?? ""),
+        actions: Array.isArray(r.actions) ? r.actions : [],
+      });
+      await deps.rpc("slack_finish", {
+        p_id: r.id,
+        p_ok: res.ok,
+        p_channel_id: r.channel_id,
+        p_ts: res.ok ? res.ts : null,
+        p_error: res.ok ? null : res.error,
+      });
       out.alerts++;
     }
   }
@@ -224,7 +235,13 @@ export async function runDispatch(
 }
 
 // ---- Outbound -----------------------------------------------------------------------------------------
-type Delivery = { status: "sent" | "failed" | "skipped" | "retry"; ref?: string; error?: string };
+type Delivery = {
+  status: "sent" | "failed" | "skipped" | "retry";
+  ref?: string;
+  error?: string;
+  /** Sent as a template (outside the window). */
+  template?: boolean;
+};
 
 async function deliver(
   deps: DispatchDeps,
@@ -276,7 +293,15 @@ async function deliverCustomer(
   const from = await senderFor(deps, "customer", m.target, sender);
   if (!from) return { status: "skipped", error: "no customer WhatsApp number connected" };
   const outside = await outsideWindow(deps, m, from, "customer");
-  if (outside) return outside;
+  if (outside) {
+    // A person's reply behind the template is held until the customer taps "Read the reply" (§32.1).
+    if (outside.status === "sent" && m.payload?.kind === "support_reply")
+      await deps.rpc("support_message_status", {
+        p_message_id: m.payload.message_id,
+        p_status: "held",
+      });
+    return outside;
+  }
   const p = m.payload ?? {};
   let deliveryCode: string | null = null;
   if (
@@ -328,6 +353,8 @@ async function deliverCustomer(
     if (!r.ok) return { status: r.retry ? "retry" : "failed", error: r.error };
     ref ??= r.id;
   }
+  if (p.kind === "support_reply")
+    await deps.rpc("support_message_status", { p_message_id: p.message_id, p_status: "sent" });
   return { status: "sent", ref };
 }
 
@@ -364,7 +391,11 @@ async function outsideWindow(
   if (!payload) return { status: "skipped", error: `template ${choice.name} could not be filled` };
   const r = await deps.whatsapp(from, payload);
   if (!r.ok) return { status: r.retry ? "retry" : "failed", error: r.error };
-  return { status: "sent", ref: r.id ?? (choice.dry_run ? `dry-run:${choice.name}` : undefined) };
+  return {
+    status: "sent",
+    ref: r.id ?? (choice.dry_run ? `dry-run:${choice.name}` : undefined),
+    template: true,
+  };
 }
 
 /**
@@ -655,6 +686,18 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
         : { p_phone_e164: m.from },
     )
     .catch((e: unknown) => deps.log?.("whatsapp_seen failed", { error: String(e).slice(0, 120) }));
+  // WhatsApp admin commands (§32.1): only from an operator's own number; anything else carries on as usual.
+  const adminTapped = adminTap(m.buttonId);
+  const adminCmd = adminTapped ? null : parseAdminCommand(m.text);
+  if (adminTapped || adminCmd) {
+    const op = await deps
+      .rpc("ops_operator", { p_slack_user_id: null, p_phone_e164: m.from })
+      .catch(() => null);
+    if (op?.user_id) {
+      await handleAdmin(deps, m, op, adminTapped, adminCmd);
+      return "done";
+    }
+  }
   const members: any[] =
     (await deps.rpc("merchant_members_by_phone", { p_phone_e164: m.from })) ?? [];
   // "Stop promotions" on a marketing template is STOP for anyone, a merchant member who is also a customer included
@@ -863,7 +906,12 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
   return "done";
 }
 
-const TEMPLATE_COMMANDS: Record<string, string> = { "mcmd:week": "weekly report" };
+// A tap on a merchant template's button runs the same words the merchant could type.
+const TEMPLATE_COMMANDS: Record<string, string> = {
+  "mcmd:week": "weekly report",
+  "mcmd:help": "help",
+  "mcmd:open": "open",
+};
 
 export const HELP = [
   "ما فهمت عليك 🙏 جرّب («help» للائحة كاملة / for everything):",
@@ -1052,6 +1100,16 @@ async function handleTap(
         );
       const done = copilotDoneText(r);
       if (done) return reply(done);
+      if (r.status === "confirmed" && r.kind === "resume") {
+        // Open outside the set hours: the hours check closes the shop again within a minute, so say so (session 5).
+        const h = await deps
+          .rpc("vendor_hours_after_resume", { p_proposal_id: action.proposalId })
+          .catch(() => null);
+        if (h?.has_hours && h.open_now === false)
+          return reply(
+            "🟢 فتحنا، بس الدوام المسجّل بيقول مسكّر هلق: فحص الدوام رح يسكّر المحل من جديد خلال دقيقة. غيّر الدوام بـ «دوام». / Open, but your set hours say closed now: the hours check will close you again within a minute. Change them with “hours”.",
+          );
+      }
       if (r.status === "confirmed" && r.kind === "power_on")
         return reply(
           `💡 رجّعنا ${Number(r.restored ?? 0)} صنف. / ${Number(r.restored ?? 0)} items are back.`,

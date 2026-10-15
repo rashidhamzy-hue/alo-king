@@ -73,6 +73,10 @@ select tests.ok((select pause_reason = 'kitchen full (auto)' and paused_until > 
   'at twice the capacity new orders pause');
 select tests.ok((select count(*) >= 1 from public.outbound_messages where purpose = 'reply' and target = '+96171000001'
   and payload ->> 'text' like '%Kitchen full%'), 'the owner is told the kitchen is full');
+select tests.ok((select payload ->> 'kind' = 'kitchen_full' and (payload ->> 'queue')::int >= 4 and payload ->> 'max' = '2'
+  and payload ->> 'shop' is not null from public.outbound_messages where purpose = 'reply' and target = '+96171000001'
+  and payload ->> 'text' like '%Kitchen full%' order by id desc limit 1),
+  'the kitchen-full reply carries what its template needs outside the 24-hour window (§32.5)');
 -- "Open" while full: the merchant's choice holds until the queue drops below the limit.
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
@@ -108,6 +112,9 @@ select tests.ok((select count(*) = 1 from public.merchant_members_by_phone('+961
 reset role;
 select tests.ok((select count(*) = 1 from public.outbound_messages where purpose = 'reply' and target = '+9613123456'),
   'the new staff member is told on the Merchant number');
+select tests.ok((select payload ->> 'kind' = 'staff_welcome' and payload ->> 'role' = 'kitchen' and payload ->> 'shop' is not null
+  from public.outbound_messages where purpose = 'reply' and target = '+9613123456'),
+  'the welcome carries what its template needs: they have never written to us (§32.5)');
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select member_id as ali from public.vendor_staff_find('20000000-0000-0000-0000-00000000000a', 'ali') limit 1 \gset

@@ -82,7 +82,7 @@ function harness(rpcs: Record<string, (a: any) => any> = {}, extra: Partial<Disp
       return { ok: true, id: `wamid.${sent.length}` };
     },
     call: null,
-    telegram: null,
+
     now: () => NOW,
     budgetMs: 60_000,
     ...extra,

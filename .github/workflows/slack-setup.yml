@@ -1,0 +1,42 @@
+name: slack-setup
+
+# DECISIONS §32.1: once the owner has installed the "Alo King Ops" Slack app (slack/manifest.yml) and set the secrets
+# SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET, this creates the ops channels, records their ids in the staging database and
+# links operators to their Slack users by e-mail (scripts/slack/setup.ts). Daily and on demand; without the token it
+# changes nothing. Staging only.
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: slack-setup
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Channels and operators
+        run: |
+          set -o pipefail
+          if [ -z "${SLACK_BOT_TOKEN:-}" ]; then echo "SLACK_BOT_TOKEN is not set yet (owner issue)."; exit 0; fi
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          DB_URL="$DB_URL" pnpm exec tsx scripts/slack/setup.ts | tee -a "$GITHUB_STEP_SUMMARY"

@@ -52,6 +52,9 @@ describe("the template registry (DECISIONS §39.8)", () => {
     const m = /\('whatsapp_template_map', '(\{[\s\S]*?\})', now\(\)/.exec(sql);
     expect(m).not.toBeNull();
     const map = JSON.parse(m![1]) as Record<string, string>;
+    // Later migrations add keys on top of the current map.
+    for (const x of sql.matchAll(/config_value\('whatsapp_template_map'\) \|\| '(\{[^']*\})'/g))
+      Object.assign(map, JSON.parse(x[1]));
     expect(map).toEqual(Object.fromEntries(TEMPLATES.map((t) => [t.key, t.name])));
   });
 });

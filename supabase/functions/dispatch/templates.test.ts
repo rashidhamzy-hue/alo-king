@@ -153,7 +153,38 @@ describe("templateFill: each message's template values (DECISIONS §39.8)", () =
     expect(templateKey(row("customer_message", { kind: "on_the_way" }))).toBe("on_the_way");
     expect(templateKey(row("new_order", {}))).toBe("new_order");
     expect(templateKey(row("reply", { kind: "merchant_weekly" }))).toBe("merchant_weekly");
+    expect(templateKey(row("reply", { kind: "staff_welcome" }))).toBe("staff_welcome");
+    expect(templateKey(row("reply", { kind: "kitchen_full" }))).toBe("kitchen_full");
     expect(templateKey(row("reply", { text: "hi" }))).toBeNull();
+  });
+  it("staff welcome and kitchen full (§32.5): the role in the template's language, a button the merchant could type", () => {
+    const w = templatePayload(
+      { name: "alo_staff_welcome", lang: "fr" },
+      "staff_welcome",
+      row("reply", { kind: "staff_welcome", shop: "Grill", role: "kitchen" }),
+    ) as any;
+    expect(JSON.stringify(w)).toContain("cuisine");
+    expect(JSON.stringify(w)).toContain("mcmd:help");
+    expect(
+      templateFill(
+        "staff_welcome",
+        row("reply", { kind: "staff_welcome", shop: "Grill", role: "owner" }),
+        "en",
+      ),
+    ).toBeNull();
+    const k = templatePayload(
+      { name: "alo_kitchen_full", lang: "ar" },
+      "kitchen_full",
+      row("reply", { kind: "kitchen_full", shop: "Grill", queue: "16", max: "8" }),
+    ) as any;
+    expect(JSON.stringify(k)).toContain("mcmd:open");
+    expect(
+      templatePayload(
+        { name: "alo_kitchen_full", lang: "en" },
+        "kitchen_full",
+        row("reply", { kind: "kitchen_full", shop: "Grill", queue: "16" }),
+      ),
+    ).toBeNull();
   });
 });
 
@@ -197,7 +228,7 @@ function harness(opts: {
       return { ok: true, id: `wamid.${sent.length}` };
     },
     call: null,
-    telegram: null,
+
     budgetMs: 60_000,
     ...(opts.rpcs?.__kapso ? { kapsoBroadcast: opts.rpcs.__kapso({}) } : {}),
   };
@@ -427,7 +458,7 @@ describe("STOP inside WhatsApp (Kapso marketing preference event)", () => {
       },
       whatsapp: async () => ({ ok: true }),
       call: null,
-      telegram: null,
+
       budgetMs: 60_000,
     });
     expect(calls.find((c) => c.fn === "customer_marketing_stop_by_phone")?.args).toEqual({
@@ -482,7 +513,7 @@ describe("which number sends (5b review)", () => {
       },
       whatsapp: async () => ({ ok: true }),
       call: null,
-      telegram: null,
+
       budgetMs: 60_000,
     });
     expect(calls.find((c) => c.fn === "customer_marketing_stop_by_phone")?.args).toEqual({

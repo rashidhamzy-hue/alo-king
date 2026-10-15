@@ -86,7 +86,7 @@ function deps(db: ReturnType<typeof fakeDb>, extra: Partial<DispatchDeps> = {}) 
       return { ok: true, id: `wamid.${sent.length}` };
     },
     call: null,
-    telegram: null,
+
     now: () => NOW,
     budgetMs: 60_000,
     ...extra,
@@ -396,29 +396,49 @@ describe("customer messages and the delivery code (session 4)", () => {
   });
 });
 
-describe("ops alerts", () => {
-  it("are not claimed while Telegram is not configured", async () => {
-    const db = fakeDb({ alerts: [{ id: 1, severity: "urgent", summary: "x" }] });
+describe("the Slack queue (§32.1; Telegram dropped)", () => {
+  it("is not claimed while Slack is not installed", async () => {
+    const db = fakeDb({});
     await runDispatch(deps(db).d);
-    expect(db.of("ops_alerts_claim")).toHaveLength(0);
+    expect(db.of("slack_claim")).toHaveLength(0);
   });
-  it("go to Telegram with a link to the admin page and are marked sent", async () => {
-    const texts: string[] = [];
+  it("posts each queued message to its channel and thread, then records the ts", async () => {
+    const posted: any[] = [];
     const db = fakeDb({
-      alerts: [{ id: 5, severity: "urgent", summary: "Order AB not acknowledged after 76 s" }],
+      rpcs: {
+        slack_claim: () => [
+          {
+            id: 7,
+            channel_id: "C0URGENT",
+            thread_ts: null,
+            text: "🚨 Order AB not acknowledged",
+            actions: [{ action_id: "ack_alert", text: "Acknowledge", value: "5" }],
+          },
+          {
+            id: 8,
+            channel_id: "C0ORDERS",
+            thread_ts: "1700.1",
+            text: "#AB → accepted",
+            actions: [],
+          },
+        ],
+      },
     });
     const { d } = deps(db, {
-      telegram: async (t, url) => {
-        texts.push(`${t} ${url}`);
-        return { ok: true };
+      slack: async (m) => {
+        posted.push(m);
+        return { ok: true, ts: `ts-${posted.length}` };
       },
-      adminUrl: "https://aloking.com",
     });
     await runDispatch(d);
-    expect(texts[0]).toBe(
-      "🚨 Order AB not acknowledged after 76 s https://aloking.com/admin?alert=5",
-    );
-    expect(db.of("ops_alert_sent")[0].args).toEqual({ p_id: 5 });
+    expect(posted.map((p) => [p.channel, p.threadTs])).toEqual([
+      ["C0URGENT", null],
+      ["C0ORDERS", "1700.1"],
+    ]);
+    expect(db.of("slack_finish").map((c) => c.args)).toEqual([
+      { p_id: 7, p_ok: true, p_channel_id: "C0URGENT", p_ts: "ts-1", p_error: null },
+      { p_id: 8, p_ok: true, p_channel_id: "C0ORDERS", p_ts: "ts-2", p_error: null },
+    ]);
   });
 });
 
