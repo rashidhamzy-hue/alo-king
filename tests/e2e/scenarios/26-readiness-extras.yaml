@@ -18,6 +18,11 @@ steps:
     say: { as: cust, text: "hummus" }
     expect:
       - { to: cust, kind: list, buttons: ["pi:"], text_any: ["Hummus", "hummus"] }
+    db:
+      - sql: >
+          select t.path, t.model_calls from public.bot_turns t join public.customers c on c.id = t.customer_id
+          where c.phone_e164 = '{{cust.phone}}' and 'catalog_search' = any (t.tools) order by t.received_at desc limit 1
+        row: { path: deterministic, model_calls: 0 }
   - say: { as: cust, text: "STOP" }
     expect:
       - { to: cust, text: "promotional" }
@@ -36,6 +41,6 @@ steps:
       - { to: cust, text: "voice notes yet" }
     db:
       - sql: >
-          select t.path from public.bot_turns t join public.customers c on c.id = t.customer_id
-          where c.phone_e164 = '{{cust.phone}}' order by t.finished_at desc nulls last limit 1
-        row: { path: deterministic }
+          select t.path, t.model_calls from public.bot_turns t join public.customers c on c.id = t.customer_id
+          where c.phone_e164 = '{{cust.phone}}' and 'voice_off' = any (t.tools) order by t.received_at desc limit 1
+        row: { path: deterministic, model_calls: 0 }

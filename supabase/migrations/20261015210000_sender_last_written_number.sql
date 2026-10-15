@@ -8,6 +8,7 @@ as $$
   select w.phone_number_id from public.whatsapp_numbers w
   left join app_private.whatsapp_windows x
     on x.phone_e164 = p_target and x.phone_number_id = w.phone_number_id
+   -- The same window as public.whatsapp_window_open (20261015160100_kapso_messaging.sql): change both together.
    and x.last_inbound_at > now() - interval '23 hours 50 minutes'
   where w.active and w.role = any (case when p_audience = 'merchant' then array['merchant', 'test', 'sandbox']
                                         else array['customer', 'test', 'sandbox'] end::public.whatsapp_number_role[])
