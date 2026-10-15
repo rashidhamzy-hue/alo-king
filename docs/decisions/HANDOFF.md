@@ -243,7 +243,7 @@
     - `ai_voice_enabled`: voice notes (transcription then the model; voice eval on the labelled notes, 85% exact baskets).
     - `ai_merchant_text_enabled`: merchant messages the rules do not read, through 22 typed tools (merchant eval, 50 cases, same gate).
     - The menu model for photos and PDFs (built in session F) and the photo step of the menu harvest.
-  - **e2e (§36):** local stack 16/16 on #164's head and 19/19 on #166 (before its last two review commits, which no scenario covers). Staging after #164's deploy: 15/16 (run 38683264688, issue #165): `refund` got "intake failed" from the webhook at step 9, the known staging stall on `webhook_intake`, not 5c code. **Staging after #166's deploy, the last code merge of the session: 19/19** (run 38687967891, including the 8 new scenarios); it closed #165, so the `refund` miss was the stall.
+  - **e2e (§36):** local stack 16/16 on #164's head and 19/19 on #166 (on 96a5c2b; the three review commits after it change nothing a scenario covers). Staging after #164's deploy: 15/16 (run 38683264688, issue #165): `refund` got "intake failed" from the webhook at step 9, the known staging stall on `webhook_intake`, not 5c code. **Staging after #166's deploy, the last code merge of the session: 19/19** (run 38687967891, including the 8 new scenarios); it closed #165, so the `refund` miss was the stall.
   - **New scenarios:** 12 memory-see-delete, 13 address-confirm, 14 send-home, 15 refund, 16 unclaimed-shop, 17 copilot-availability, 18 copilot-price, 19 copilot-offer.
   - **Open for later:**
     - Prove `Deno.resolveDns` on the Edge Runtime with one real menu link (without it every link fails closed, logged "menu link: no DNS answer").
