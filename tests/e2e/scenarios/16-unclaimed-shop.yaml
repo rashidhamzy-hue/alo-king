@@ -9,8 +9,21 @@ steps:
   - pin: { as: cust, lat: 33.6869, lon: 35.5518 }
     expect:
       - { to: cust, buttons: ["ps:"] }
+  - note: a Shouf shop near the pin that is still not on Alo King (not a staging demo shop; DECISIONS §39.12), and not named like a dish
+    db:
+      - sql: >
+          select v.name_en as shop from public.vendors v
+          where v.source = 'seed_shouf_2026_10' and v.claim_status = 'unclaimed' and not v.orderable
+            and not app_private.vendor_is_demo(v.id) and v.business_type::text in ('restaurant', 'cafe')
+            and v.name_en ~ '^[A-Za-z][A-Za-z'' ]{6,22}$'
+            and v.name_en !~* '(grill|shawarma|falafel|pizza|burger|sushi|coffee|breakfast|bakery|sweet|chicken|manoush)'
+            and exists (select 1 from public.vendor_search_unclaimed(v.name_en, 1) s where s.vendor_id = v.id)
+          order by extensions.st_distance(v.location, extensions.st_setsrid(extensions.st_makepoint(35.5518, 33.6869), 4326)::extensions.geography), v.name_en
+          limit 1
+        row: { shop: "~^[A-Za-z]" }
+        save: { shop: shop }
   - note: the shop's name, typed; free text has no model on staging, the catalogue search and the rules answer
-    say: { as: cust, text: "Nayeh w Meshwiyeh" }
+    say: { as: cust, text: "{{vars.shop}}" }
     expect:
       - { to: cust, text_any: ["not on Alo King yet", "Not on Alo King yet"] }
       - { to: cust, buttons: ["pv:"] }

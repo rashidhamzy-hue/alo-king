@@ -111,7 +111,13 @@ export async function runScenario(env: Env, sc: Scenario, file: string): Promise
       sent = { as: step.say.as, text: render(step.say.text, scope()) };
       await post(step.say.as, { type: "text", text: sent.text }, r);
     } else if (step.tap) {
-      const t = step.tap;
+      // A tap may name what a database step saved ({{vars.x}}).
+      const t = Object.fromEntries(
+        Object.entries(step.tap).map(([k, v]) => [
+          k,
+          typeof v === "string" ? render(v, scope()) : v,
+        ]),
+      ) as typeof step.tap;
       const pick = t.raw_id
         ? { o: { id: t.raw_id, title: t.title ?? t.raw_id }, list: false }
         : findOption(
