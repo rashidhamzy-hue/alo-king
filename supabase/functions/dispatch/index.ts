@@ -9,6 +9,8 @@
 // TWILIO_FROM (voice layer), SENTRY_DSN (from SENTRY_DSN_FUNCTIONS); ADMIN_BASE_URL once the site exists.
 // Customer bot (session 4): ANTHROPIC_API_KEY (turns), OPENAI_API_KEY (voice transcription only, §3),
 // ORS_API_KEY (road routes for the delivery quote). Without a key that part is off, never faked.
+// Meta catalogue (§39.12): optional META_CATALOG_TOKEN when Kapso's proxy cannot write catalogue items. GET
+// ?route=catalog-image is public (Meta fetches product images) and draws only items that are in the catalogue.
 
 import {
   runDispatch,
@@ -33,6 +35,9 @@ import { safeFetch } from "../_shared/safe-fetch.ts";
 import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
 import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
+import type { CatalogApi, CatalogTransport } from "./catalog-sync.ts";
+import { catalogTileSvg } from "../_shared/catalog-image.ts";
+import { productHash, type DesiredProduct } from "../_shared/catalog.ts";
 
 // Kapso is reached only here (CLAUDE.md); never from configuration or message content.
 const KAPSO_BASE = "https://api.kapso.ai/meta/whatsapp/v24.0";
@@ -388,6 +393,112 @@ async function orderCard(phoneNumberId: string, svg: string): Promise<string | n
   return res.ok && typeof body?.id === "string" ? body.id : null;
 }
 
+// ---- Meta catalogue (§39.12) -------------------------------------------------------------------------------
+// Items are written through Kapso's Meta proxy or, when kapso-catalog found that route closed, the Graph API with the
+// META_CATALOG_TOKEN function secret (synced by the deploy job). Kapso only at https://api.kapso.ai.
+const metaCatalogToken = env("META_CATALOG_TOKEN");
+const GRAPH = "https://graph.facebook.com/v24.0";
+async function catalogPost(
+  transport: CatalogTransport,
+  path: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: boolean; status: number; body: any }> {
+  const url = transport === "graph" ? `${GRAPH}${path}` : `${KAPSO_BASE}${path}`;
+  const headers: Record<string, string> =
+    transport === "graph"
+      ? { authorization: `Bearer ${metaCatalogToken ?? ""}`, "content-type": "application/json" }
+      : { "X-API-Key": kapsoKey ?? "", "content-type": "application/json" };
+  if (transport === "graph" ? !metaCatalogToken : !kapsoKey)
+    return { ok: false, status: 0, body: { error: `no credentials for the ${transport} route` } };
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+    redirect: "error",
+    signal: AbortSignal.timeout(20_000),
+  });
+  return { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) };
+}
+const catalogApi: CatalogApi = {
+  batch: async (catalogId, transport, requests) => {
+    const r = await catalogPost(transport, `/${encodeURIComponent(catalogId)}/items_batch`, {
+      allow_upsert: true,
+      item_type: "PRODUCT_ITEM",
+      requests,
+    });
+    if (!r.ok)
+      return {
+        ok: false,
+        error: `meta ${r.status} ${JSON.stringify(r.body?.error ?? r.body).slice(0, 300)}`,
+      };
+    // Per-item problems come back in validation_status: those items are recorded as not shown and sent again later.
+    const refused: string[] = [];
+    for (const v of r.body?.validation_status ?? [])
+      if (v?.errors?.length && v?.retailer_id) {
+        refused.push(String(v.retailer_id));
+        if (refused.length <= 5)
+          log("catalogue item refused", {
+            item: String(v.retailer_id),
+            error: JSON.stringify(v.errors).slice(0, 160),
+          });
+      }
+    return { ok: true, refused };
+  },
+  productSet: async (catalogId, transport, body) => {
+    const r = await catalogPost(transport, `/${encodeURIComponent(catalogId)}/product_sets`, body);
+    return r.ok && /^[0-9]{5,30}$/.test(String(r.body?.id ?? "")) ? String(r.body.id) : null;
+  },
+  imageUrl: (itemId, hash) =>
+    `${supabaseUrl}/functions/v1/dispatch?route=catalog-image&i=${encodeURIComponent(itemId)}&v=${encodeURIComponent(hash)}`,
+};
+
+/**
+ * GET ?route=catalog-image&i=<item>: the product image Meta fetches. Only items in the catalogue are drawn (catalog_image
+ * answers nothing for any other id). The shop's confirmed photo is a short-lived signed redirect; otherwise a tile.
+ */
+async function catalogImage(url: URL): Promise<Response> {
+  const id = url.searchParams.get("i") ?? "";
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response("not found", { status: 404 });
+  const d = await rpc("catalog_image", { p_item_id: id }).catch(() => null);
+  // Only the version Meta was given is drawn (no re-render for any other cache-buster): the hash recorded for the item, or
+  // the one being sent right now (Meta may fetch the image before the sync records its new hash).
+  if (!d) return new Response("not found", { status: 404 });
+  const v = url.searchParams.get("v") ?? "";
+  if (String(d.hash ?? "") !== v) {
+    const desired: DesiredProduct[] =
+      (await rpc("catalog_desired", { p_vendor_id: d.vendor_id }).catch(() => [])) ?? [];
+    const p = desired.find((x) => x.retailer_id === id);
+    if (!p || productHash(p) !== v) return new Response("not found", { status: 404 });
+  }
+  if (typeof d.photo === "string" && d.photo) {
+    const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/vendor-photos/${d.photo}`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ expiresIn: 3600 }),
+      signal: AbortSignal.timeout(8000),
+    }).catch(() => null);
+    const signed = res?.ok ? (await res.json().catch(() => ({})))?.signedURL : null;
+    if (typeof signed === "string")
+      return Response.redirect(
+        `${supabaseUrl}/storage/v1${signed.startsWith("/") ? "" : "/"}${signed}`,
+        302,
+      );
+  }
+  const fontBuffers = await cardFonts();
+  const png = new Resvg(catalogTileSvg(d), {
+    font: { fontBuffers, loadSystemFonts: false, defaultFontFamily: "Noto Sans" },
+  })
+    .render()
+    .asPng();
+  return new Response(new Uint8Array(png), {
+    headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" },
+  });
+}
+
 // Ops alerts and the console go to Slack (§32.1): SLACK_BOT_TOKEN, synced by the deploy job once the owner installs the app.
 const slackToken = env("SLACK_BOT_TOKEN");
 
@@ -463,6 +574,14 @@ Deno.serve(async (req) => {
   // An edge function lives at most 150 s (wall clock); a turn's lease ends just after (#139).
   const workerDeadline = new Date(Date.now() + 152_000);
   const url = new URL(req.url);
+  if (req.method === "GET" && url.searchParams.get("route") === "catalog-image") {
+    try {
+      return await catalogImage(url);
+    } catch (e) {
+      log("catalogue image failed", { error: String(e).slice(0, 160) });
+      return new Response("unavailable", { status: 503 });
+    }
+  }
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   if (url.searchParams.get("route") === "twilio") return twilioKeypress(req, url);
   if (!(await authorised(req))) return new Response("unauthorised", { status: 401 });
@@ -509,6 +628,7 @@ Deno.serve(async (req) => {
         fetchMedia(x, phoneNumberId, 5_000_000),
       voiceCode: twilio ? (to, script) => placeCall(twilio, to, sayTwiml(script)) : null,
       slack: slackToken ? slackPoster(slackToken) : null,
+      catalog: catalogApi,
       log,
       budgetMs: 20_000,
       workerDeadline,

@@ -7,7 +7,12 @@ export type Inbound =
   | { type: "button"; id: string; title: string }
   | { type: "list"; id: string; title: string }
   | { type: "location"; lat: number; lon: number; name?: string }
-  | { type: "voice"; transcript: string };
+  | { type: "voice"; transcript: string }
+  | {
+      type: "order";
+      catalogId: string;
+      items: { id: string; quantity: number; price: number | null }[];
+    };
 
 export function sign(secret: string, body: string): string {
   return createHmac("sha256", secret).update(body).digest("hex");
@@ -55,6 +60,22 @@ export function inboundPayload(opts: {
         ...base,
         type: "location",
         location: { latitude: m.lat, longitude: m.lon, ...(m.name ? { name: m.name } : {}) },
+      };
+      break;
+    case "order":
+      // A cart sent from the WhatsApp catalogue (DECISIONS §39.12), as the Cloud API delivers it.
+      message = {
+        ...base,
+        type: "order",
+        order: {
+          catalog_id: m.catalogId,
+          text: "",
+          product_items: m.items.map((x) => ({
+            product_retailer_id: x.id,
+            quantity: String(x.quantity),
+            ...(x.price === null ? {} : { item_price: String(x.price), currency: "USD" }),
+          })),
+        },
       };
       break;
     case "voice":

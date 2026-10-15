@@ -1,31 +1,58 @@
 #!/usr/bin/env bash
 # The body of the owner issue kapso-catalog opens when a catalogue step needs Meta's own dashboards (DECISIONS §25, §39.12).
-# Usage: scripts/kapso/catalog-owner-issue.sh create | connect:<catalog id>
-#   create            no "Alo King" catalogue exists and the API could not create one: create it, then connect it
-#   connect:<id>      the API created (or found) catalogue <id> but could not connect it: connect that one, create nothing
+# Kapso's Meta proxy has no catalogue endpoints (404 "Unsupported endpoint", 15 October), so the catalogue is created and
+# connected in Meta's dashboards and our server writes items with a catalogue token (GitHub secret META_CATALOG_TOKEN).
+# Usage: scripts/kapso/catalog-owner-issue.sh create | connect:<catalog id> | token
+#   create          no "Alo King" catalogue could be found or created: create it, connect it, make the token
+#   connect:<id>    catalogue <id> exists but is not connected to the WhatsApp account: connect that one, make the token
+#   token           the catalogue is connected but nothing can write its items: only the token
 set -euo pipefail
 step="${1:-create}"
-connect_steps='1. Open https://business.facebook.com/wa/manage/home → pick the account of **+1 203-660-2328** → left menu **Account tools** → **Catalogue** → **Choose a catalogue** → **Alo King**'
-if [[ "$step" =~ ^connect:([0-9]{5,30})$ ]]; then
-  id="${BASH_REMATCH[1]}"
-  steps="The catalogue **Alo King** already exists (id \`${id}\`, created by the workflow): **do not create another one**.
+create='**A. Create the catalogue**
+1. Open https://business.facebook.com/commerce. If a catalogue named **Alo King** is already listed, skip to step 3.
+2. **Add catalogue** → **E-commerce** → **Next** → **Upload product info** → owner **Memo Tiles** → name **Alo King** → **Create**. Do not add products: Alo King syncs them.
+'
+connect='**B. Connect it to the WhatsApp number**
+3. Open https://business.facebook.com/wa/manage/home → pick the account of **+1 203-660-2328** → left menu **Account tools** → **Catalogue** → **Choose a catalogue** → **Alo King**CATID → **Connect catalogue**.
+4. Same page: switch on **Show catalogue icon in chat header** and **Add to cart button** (if shown).
+'
+token='**C. A token that can write the catalogue**
+5. https://business.facebook.com/settings → **Users** → **System users** → **Add** → name `alo-king-catalog`, role **Admin** → **Create system user**.
+6. Select `alo-king-catalog` → **Assign assets** → **Catalogues** → **Alo King** → switch on **Manage catalogue** → **Save changes**.
+7. **Generate new token** → pick an app of the Memo Tiles portfolio (none listed: https://developers.facebook.com/apps → **Create app** → **Other** → **Business** → choose Memo Tiles, then come back) → token expiration **Never** → tick **catalog_management** and **business_management** → **Generate token** → copy it.
+8. https://github.com/rashidhamzy-hue/alo-king/settings/secrets/actions → **New repository secret** → name `META_CATALOG_TOKEN` → paste the token → **Add secret**.
+'
+case "$step" in
+  connect:*)
+    id="${step#connect:}"
+    [[ "$id" =~ ^[0-9]{5,30}$ ]] || id=""
+    steps="The catalogue **Alo King** already exists${id:+ (id \`$id\`)}: **do not create another one**.
 
-${connect_steps} (id \`${id}\`) → **Connect catalogue**.
-2. Same page: switch on **Show catalogue icon in chat header** and **Add to cart button** (if shown)."
-else
-  steps="1. Open https://business.facebook.com/commerce → if a catalogue named **Alo King** is already listed, skip to step 3.
-2. **Add catalogue** → **E-commerce** → **Next** → **Upload product info** → owner **Memo Tiles** → name it **Alo King** → **Create**. Do not add products: Alo King syncs them.
-3. ${connect_steps#1. } → **Connect catalogue**.
-4. Same page: switch on **Show catalogue icon in chat header** and **Add to cart button** (if shown)."
-fi
+${connect//CATID/${id:+ (id \`$id\`)}}
+${token}"
+    ;;
+  token) steps="The catalogue is connected; only the token is missing.
+
+${token}" ;;
+  *) steps="${create}
+${connect//CATID/}
+${token}" ;;
+esac
 cat <<MD
-The Meta catalogue for the native WhatsApp cart (DECISIONS §39.12) could not be set up by API. Everything else (sync, product
-messages, cart checkout) is built and waits for it.
+The native WhatsApp cart (DECISIONS §39.12) needs a Meta catalogue connected to the WhatsApp account of **+1 203-660-2328**,
+and a token our server uses to write the products into it. Kapso's Meta proxy does not support catalogue endpoints, so
+this needs your business portfolio. Everything else (the sync from the database on every change, every 10 minutes and
+nightly; product messages per shop; the cart re-priced by the server; the e2e scenarios) is built and tested.
 
-**Steps (about 10 minutes, on a computer, logged in as the admin of the "Memo Tiles" business portfolio):**
+**Steps (about 15 minutes, on a computer, logged in as the admin of the "Memo Tiles" business portfolio):**
+
 ${steps}
+**D. Let the workflow finish**
+9. https://github.com/rashidhamzy-hue/alo-king/actions/workflows/kapso-catalog.yml → **Run workflow**. It finds the connected
+catalogue, records it, checks the token can write items and turns on the cart and catalogue icons. The next deploy copies
+the token to the server and the products sync within a minute; this issue then closes itself.
 
-Then run **Actions → kapso-catalog → Run workflow**. It finds the connected catalogue, records it and closes this issue.
+At the cut-over (session 14) the same steps are repeated on the company portfolio (#73).
 
 ---
 _Generated by [Claude Code](https://claude.ai/code)_

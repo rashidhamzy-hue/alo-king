@@ -422,9 +422,10 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
+          META_CATALOG_TOKEN: ${{ secrets.META_CATALOG_TOKEN }}
         run: |
           args=()
-          for k in KAPSO_API_KEY SLACK_BOT_TOKEN SLACK_SIGNING_SECRET SENTRY_DSN TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM ANTHROPIC_API_KEY OPENAI_API_KEY ORS_API_KEY; do
+          for k in KAPSO_API_KEY SLACK_BOT_TOKEN SLACK_SIGNING_SECRET SENTRY_DSN TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM ANTHROPIC_API_KEY OPENAI_API_KEY ORS_API_KEY META_CATALOG_TOKEN; do
             v="${!k:-}"
             if [ -n "$v" ]; then args+=("$k=$v"); fi
           done

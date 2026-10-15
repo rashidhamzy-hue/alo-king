@@ -22,7 +22,10 @@ export type Out = {
 export type Expect = {
   /** Persona key the message went to. */
   to?: string;
-  /** text | interactive:button | interactive:list | image | any (default any). Short forms: button, list. */
+  /**
+   * text | interactive:button | interactive:list | interactive:product_list | interactive:product | image | any (default
+   * any). Short forms: button, list, products, product.
+   */
   kind?: string;
   /** Every string must appear (case-insensitive) in the body or header. */
   text?: string | string[];
@@ -69,6 +72,15 @@ export type Step = {
   };
   pin?: { as: string; lat: number | string; lon: number | string; name?: string };
   voice?: { as: string; transcript: string };
+  /**
+   * Sends a cart from the WhatsApp catalogue (§39.12): items picked from the last product message the persona got, by
+   * position (`index`) or product id (`id`); `price` is what the catalogue showed (default: none), so a stale price can
+   * be tested.
+   */
+  cart?: {
+    as: string;
+    items: { index?: number; id?: string; qty: number; price?: number | string }[];
+  };
   /** SQL run before the next step (time travel, setup). */
   sql?: string;
   wait_s?: number;

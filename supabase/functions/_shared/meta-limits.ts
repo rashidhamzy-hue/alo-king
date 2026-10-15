@@ -82,6 +82,12 @@ export function checkInteractive(payload: any): string[] {
       if (len(s.title) > META.sectionTitle) v.push(`section title "${s.title}" > ${META.sectionTitle}`);
       if (!String(s.title ?? "").trim()) v.push("empty section title");
     }
+  } else if (i.type === "product") {
+    // Single-product message: one catalogue item; no header (Meta draws the product), body and footer optional.
+    if (!String(i.action?.catalog_id ?? "").trim()) v.push("product needs a catalog_id");
+    if (!String(i.action?.product_retailer_id ?? "").trim()) v.push("product needs a product_retailer_id");
+    if (i.header) v.push("a single-product message takes no header");
+    if (len(i.body?.text) > META.body) v.push(`body ${len(i.body?.text)} > ${META.body}`);
   } else if (i.type === "cta_url") {
     const p = i.action?.parameters ?? {};
     if (len(p.display_text) > META.buttonTitle) v.push(`cta label "${p.display_text}" > ${META.buttonTitle}`);

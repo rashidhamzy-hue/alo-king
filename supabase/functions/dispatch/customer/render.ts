@@ -1985,3 +1985,82 @@ export function belowMinimumMessage(to: string, lang: CLang, q: Quote): Msg {
     [["c:basket", tr(lang, "change")]],
   );
 }
+
+// ---- Session 5d: the Meta catalogue and the native cart (DECISIONS §39.12) ----------------------------------------------
+const S5D: Record<string, Record<CLang, string>> = {
+  catalogBrowse: {
+    ar: "دوس على أي صنف لتشوفو، زيد اللي بدك ياه عالسلّة 🛒، وبعدين ابعت السلّة. منأكّدلك السعر قبل ما تطلب.",
+    en: "Tap an item to see it, add what you want to the cart 🛒, then send the cart. We confirm the price before you order.",
+    fr: "Touchez un article pour le voir, ajoutez ce que vous voulez au panier 🛒, puis envoyez le panier. Le prix est confirmé avant la commande.",
+    arabizi:
+      "Dous 3a ay sanf la tchoufo, zid li badak ye 3al salle 🛒, w ba3den eb3at el salle. Mn2akkedlak el se3r abel ma totlob.",
+  },
+  catalogFooter: {
+    ar: "الأسعار من المحل، والمجموع بيتأكّد بالآخر",
+    en: "Prices from the shop; the total is confirmed at the end",
+    fr: "Prix du commerce ; total confirmé à la fin",
+    arabizi: "El as3ar men el ma7al, w el majmou3 byet2akkad bel 2a5er",
+  },
+  catalogBest: {
+    ar: "⭐ الأكتر طلباً. باقي المنيو بالأقسام تحت.",
+    en: "⭐ The most ordered. The rest of the menu is in the sections below.",
+    fr: "⭐ Les plus commandés. Le reste du menu est dans les sections ci-dessous.",
+    arabizi: "⭐ El aktar talab. Ba2e el menu bel a2sem ta7t.",
+  },
+  bestSellers: {
+    ar: "الأكتر طلباً",
+    en: "Best sellers",
+    fr: "Les plus commandés",
+    arabizi: "El aktar talab",
+  },
+  catalogSearch: {
+    ar: "هيدا اللي لقيناه لـ «{q}». زيد عالسلّة 🛒 وابعتها.",
+    en: 'Here is what we found for "{q}". Add to the cart 🛒 and send it.',
+    fr: "Voici ce que nous avons trouvé pour « {q} ». Ajoutez au panier 🛒 et envoyez-le.",
+    arabizi: 'Hayda li le2ayne la "{q}". Zid 3al salle 🛒 w eb3ata.',
+  },
+  catalogOne: {
+    ar: "لقينا «{q}». زيدو عالسلّة 🛒 وابعتها، أو كمّل تسوّق.",
+    en: 'We found "{q}". Add it to the cart 🛒 and send it, or keep browsing.',
+    fr: "Nous avons trouvé « {q} ». Ajoutez-le au panier 🛒 et envoyez-le, ou continuez.",
+    arabizi: 'Le2ayna "{q}". Zido 3al salle 🛒 w eb3ata, aw kammel.',
+  },
+  cartOtherVendor: {
+    ar: "سلّتك فيها أغراض من {basket}، والسلّة اللي بعتّها من {cart}. منقدر ناخد من محل واحد بالطلب. شو بتحب؟",
+    en: "Your basket has items from {basket}, and the cart you sent is from {cart}. One order is from one shop. What would you like?",
+    fr: "Votre panier contient des articles de {basket}, et celui que vous avez envoyé vient de {cart}. Une commande = un commerce. Que préférez-vous ?",
+    arabizi:
+      "Sallet-ak fiya aghrad men {basket}, w el salle li ba3atta men {cart}. Talab wa7ad men ma7al wa7ad. Chou bt7eb?",
+  },
+  cartReplace: {
+    ar: "خود السلّة الجديدة",
+    en: "Use the new cart",
+    fr: "Prendre le nouveau",
+    arabizi: "Esta3mel el jdide",
+  },
+  cartUnknown: {
+    ar: "😔 ما عرفنا الأصناف بهالسلّة. جرّب المنيو من جديد.",
+    en: "😔 We couldn't match the items in that cart. Please open the menu again.",
+    fr: "😔 Nous n'avons pas reconnu les articles de ce panier. Rouvrez le menu.",
+    arabizi: "😔 Ma 3refna el asnaf b hal salle. Jarreb el menu men jdid.",
+  },
+  cartNothing: {
+    ar: "😔 ولا صنف من السلّة متوفّر هلق. سلّتك متل ما هيّي.",
+    en: "😔 None of the items in that cart is available right now. Your basket is as it was.",
+    fr: "😔 Aucun article de ce panier n'est disponible pour le moment. Votre panier n'a pas changé.",
+    arabizi: "😔 Wala sanf men el salle metwaffar hala2. Sallet-ak metel ma hiye.",
+  },
+  cartDiffs: {
+    ar: "💲 تغيّرت أسعار عند المحل، وهيدي الأسعار اللي منحسب فيها:\n{lines}",
+    en: "💲 Some prices changed at the shop; these are the prices we charge:\n{lines}",
+    fr: "💲 Des prix ont changé chez le commerce ; voici les prix appliqués :\n{lines}",
+    arabizi: "💲 Tghayyaret as3ar 3and el ma7al, hayde el as3ar li mne7seb fiya:\n{lines}",
+  },
+  cartDiffLine: {
+    ar: "• {item}: كان ${was}، هلق ${now}",
+    en: "• {item}: was ${was}, now ${now}",
+    fr: "• {item} : était ${was}, maintenant ${now}",
+    arabizi: "• {item}: ken ${was}, hala2 ${now}",
+  },
+};
+Object.assign(S, S5D);

@@ -1017,3 +1017,47 @@ describe("admin and support messages (5b)", () => {
     }
   });
 });
+
+// The Meta catalogue and the native cart (session 5d, DECISIONS §39.12).
+import { productMessage } from "./catalog";
+import { buttons as cartButtons } from "./customer-cards";
+
+describe("catalogue and cart builders (session 5d, §39.12)", () => {
+  const products = Array.from({ length: 45 }, (_, k) => ({
+    retailer_id: `53000000-0000-0000-0000-${String(k).padStart(12, "0")}`,
+    name_en: `Dish ${k}`,
+    section: `قسم طويل جداً رقم ${k % 12} مع اسم طويل`,
+    section_en: `A very long section name number ${k % 12}`,
+  }));
+  it("a multi-product message of a big shop, in every language, stays within 30 items, 10 sections and the title limits", () => {
+    for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+      const m = productListMessage("+96170000001", "1234567890", "مطعم باسم طويل جداً يتجاوز الستين حرفاً في العنوان مرة واحدة", "x".repeat(1100), products, {
+        lang,
+        footer: "y".repeat(80),
+      });
+      expect(checkInteractive(m), lang).toEqual([]);
+    }
+  });
+  it("a single-product message passes, with and without a footer", () => {
+    expect(checkInteractive(productMessage("+96170000001", "1234567890", products[0].retailer_id, "b".repeat(1100), "f".repeat(80)))).toEqual([]);
+    expect(checkInteractive(productMessage("+96170000001", "1234567890", products[0].retailer_id, "Found it"))).toEqual([]);
+  });
+  it("the cart from another shop card (Use the new cart / Keep basket) passes in every language", () => {
+    const titles: Record<string, [string, string]> = {
+      ar: ["خود السلّة الجديدة", "خلّي السلّة"],
+      en: ["Use the new cart", "Keep basket"],
+      fr: ["Prendre le nouveau", "Garder"],
+      arabizi: ["Esta3mel el jdide", "Khalle el salle"],
+    };
+    for (const [lang, [a, b]] of Object.entries(titles))
+      expect(
+        checkInteractive(
+          cartButtons("+96170000001", "x".repeat(900), [
+            ["c:cart_replace", a],
+            ["c:keep", b],
+          ]),
+        ),
+        lang,
+      ).toEqual([]);
+  });
+});

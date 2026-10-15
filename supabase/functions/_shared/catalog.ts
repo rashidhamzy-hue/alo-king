@@ -1,11 +1,12 @@
-// Native WhatsApp cart from the Meta catalogue (DECISIONS §30.1.2), built against fixtures: it needs the
-// company's Meta business portfolio, so it is switched on at cut-over (config `catalog_enabled`).
-//   - sync: the desired catalogue (catalog_desired) is diffed against what was last pushed
-//     (catalog_synced) into Catalog Batch API requests; retailer_id = our menu item id, one product set
-//     per branch
-//   - browse: a multi-product message by section (at most 30 items, 10 sections)
-//   - order: the customer's "send cart" arrives as an `order` message; only retailer ids and quantities
-//     are read. Catalogue prices are never trusted: the server re-prices every line from the database.
+// Native WhatsApp cart from the Meta catalogue (DECISIONS §39.12, §30.1.2 as amended): built now on the US test number. The
+// server stays the source of truth: the catalogue is a synced mirror of the database, and every cart is re-priced by the
+// server before checkout.
+//   - sync: the desired catalogue (catalog_desired) is diffed against what was last pushed (catalog_sync_state) into
+//     Catalog Batch API requests (items_batch); retailer id = our menu item id, one product set per shop (custom_label_0 =
+//     the shop's id). An item that leaves the menu is hidden (visibility "staging"), never deleted.
+//   - browse: a single-product message, or a multi-product message by section (at most 30 items in 10 sections)
+//   - order: the customer's "send cart" arrives as an `order` message; only retailer ids and quantities are used. The
+//     catalogue's price is kept only to tell the customer when the server's price differs; it is never charged.
 
 export type DesiredProduct = {
   retailer_id: string;
@@ -16,73 +17,125 @@ export type DesiredProduct = {
   currency: "USD";
   availability: "in stock" | "out of stock";
   product_set: string;
+  brand?: string | null;
   has_options?: boolean;
   section?: string;
+  section_en?: string;
+  /** The shop's confirmed photo (Storage path) or null: then a generated tile is the image. */
+  photo?: string | null;
 };
 
 /** A stable hash of what Meta shows for a product, so unchanged items are not re-sent. */
 export function productHash(p: DesiredProduct): string {
-  const s = JSON.stringify([p.name, p.description ?? "", p.price_minor, p.currency, p.availability, p.product_set]);
+  const s = JSON.stringify([
+    p.name,
+    p.description ?? "",
+    p.price_minor,
+    p.currency,
+    p.availability,
+    p.product_set,
+    p.brand ?? "",
+    p.photo ?? "",
+  ]);
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return (h >>> 0).toString(16).padStart(8, "0");
 }
 
-export type BatchRequest = {
-  method: "CREATE" | "UPDATE" | "DELETE";
-  retailer_id: string;
-  data?: Record<string, unknown>;
-};
+/** One request of the Catalog Batch API (POST /{catalog_id}/items_batch, item_type PRODUCT_ITEM, allow_upsert). */
+export type BatchRequest = { method: "UPDATE"; data: Record<string, unknown> };
+export type SyncState = Record<string, { hash: string; visible: boolean }>;
 
-/** Catalog Batch API requests that turn the synced state into the desired one. */
+const price = (minor: number) => `${(Math.max(0, Math.round(minor)) / 100).toFixed(2)} USD`;
+
+/**
+ * The requests that turn the synced state into the desired one, and the state to record once Meta took them. A product
+ * is (re)sent when it is new, changed, was hidden, or on a forced (nightly) sync; an item no longer desired and still
+ * visible is hidden. Hidden items stay in the state, so a later hide is never repeated.
+ */
 export function catalogSyncPlan(
   desired: DesiredProduct[],
-  synced: Record<string, string>,
-  imageUrl: (p: DesiredProduct) => string,
-): { requests: BatchRequest[]; record: { retailer_id: string; hash: string }[] } {
+  state: SyncState,
+  imageUrl: (p: DesiredProduct, hash: string) => string,
+  force = false,
+): { requests: BatchRequest[]; record: { retailer_id: string; hash: string; visible: boolean }[] } {
   const requests: BatchRequest[] = [];
+  const record: { retailer_id: string; hash: string; visible: boolean }[] = [];
   const seen = new Set<string>();
   for (const p of desired) {
     seen.add(p.retailer_id);
     const hash = productHash(p);
-    if (synced[p.retailer_id] === hash) continue;
+    const cur = state[p.retailer_id];
+    record.push({ retailer_id: p.retailer_id, hash, visible: true });
+    if (!force && cur?.visible && cur.hash === hash) continue;
+    const img = imageUrl(p, hash);
     requests.push({
-      method: synced[p.retailer_id] ? "UPDATE" : "CREATE",
-      retailer_id: p.retailer_id,
+      method: "UPDATE",
       data: {
-        name: p.name.slice(0, 150),
+        id: p.retailer_id,
+        title: p.name.slice(0, 150),
         description: (p.description || p.name_en || p.name).slice(0, 500),
-        price: p.price_minor,
-        currency: p.currency,
         availability: p.availability,
         condition: "new",
-        image_url: imageUrl(p),
-        url: imageUrl(p),
-        retailer_product_group_id: p.product_set,
+        price: price(p.price_minor),
+        link: img,
+        image_link: img,
+        brand: (p.brand || "Alo King").slice(0, 100),
+        custom_label_0: p.product_set,
+        visibility: "published",
       },
     });
   }
-  for (const id of Object.keys(synced)) if (!seen.has(id)) requests.push({ method: "DELETE", retailer_id: id });
-  return { requests, record: desired.map((p) => ({ retailer_id: p.retailer_id, hash: productHash(p) })) };
+  for (const [id, cur] of Object.entries(state)) {
+    if (seen.has(id)) continue;
+    record.push({ retailer_id: id, hash: cur.visible ? "hidden" : cur.hash, visible: false });
+    if (cur.visible || force)
+      requests.push({
+        method: "UPDATE",
+        data: { id, availability: "out of stock", visibility: "staging" },
+      });
+  }
+  return { requests, record };
 }
 
-/** A multi-product message for one branch, by section, within Meta's limits (30 items, 10 sections). */
+/** The product set of one shop: every product whose custom_label_0 is the shop's id. */
+export const productSetBody = (vendorId: string, name: string) => ({
+  name: name.slice(0, 100),
+  filter: JSON.stringify({ custom_label_0: { eq: vendorId } }),
+});
+
+export type CatalogProduct = {
+  retailer_id: string;
+  name_ar?: string | null;
+  name_en?: string | null;
+  price_usd?: number | string;
+  section?: string | null;
+  section_en?: string | null;
+};
+
+/** A multi-product message, by section, within Meta's limits (30 items, 10 sections). */
 export function productListMessage(
   to: string,
   catalogId: string,
   header: string,
   body: string,
-  products: DesiredProduct[],
+  products: (CatalogProduct | DesiredProduct)[],
+  opts: { lang?: "ar" | "en" | "fr" | "arabizi"; footer?: string } = {},
 ) {
   const sections = new Map<string, string[]>();
   let n = 0;
   for (const p of products) {
-    if (p.availability !== "in stock" || n >= 30) continue;
-    const key = (p.section || "Menu").slice(0, 24);
+    if ("availability" in p && p.availability !== "in stock") continue;
+    if (n >= 30) break;
+    const title = opts.lang === "ar" ? p.section : (p.section_en ?? p.section);
+    const key = Array.from(String(title || "Menu"))
+      .slice(0, 24)
+      .join("");
     if (!sections.has(key)) {
       if (sections.size >= 10) continue;
       sections.set(key, []);
     }
+    if (sections.get(key)!.includes(p.retailer_id)) continue;
     sections.get(key)!.push(p.retailer_id);
     n++;
   }
@@ -93,8 +146,9 @@ export function productListMessage(
     type: "interactive",
     interactive: {
       type: "product_list",
-      header: { type: "text", text: header.slice(0, 60) },
+      header: { type: "text", text: Array.from(header).slice(0, 60).join("") },
       body: { text: body.slice(0, 1024) },
+      ...(opts.footer ? { footer: { text: Array.from(opts.footer).slice(0, 60).join("") } } : {}),
       action: {
         catalog_id: catalogId,
         sections: [...sections].map(([title, ids]) => ({
@@ -106,23 +160,62 @@ export function productListMessage(
   };
 }
 
+/** A single-product message: one item with its image, price and description from the catalogue. */
+export function productMessage(
+  to: string,
+  catalogId: string,
+  retailerId: string,
+  body: string,
+  footer?: string,
+) {
+  return {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: to.replace(/^\+/, ""),
+    type: "interactive",
+    interactive: {
+      type: "product",
+      body: { text: body.slice(0, 1024) },
+      ...(footer ? { footer: { text: Array.from(footer).slice(0, 60).join("") } } : {}),
+      action: { catalog_id: catalogId, product_retailer_id: retailerId },
+    },
+  };
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export type CartLine = { itemId: string; quantity: number; shownUsd: number | null };
+
 /**
- * The lines of a cart the customer sent (`type: "order"`): our item ids and quantities only. Prices in the
- * message (`item_price`) are ignored; unknown ids and silly quantities are dropped.
+ * The lines of a cart the customer sent (`type: "order"`): our item ids and quantities, merged per item; unknown ids
+ * and silly quantities are dropped. The catalogue's price (`item_price`, USD only) is kept as `shownUsd` so the server
+ * can tell the customer when its own price differs; it is never charged.
  */
-export function parseCartOrder(msg: any): { catalogId: string | null; lines: { itemId: string; quantity: number }[] } | null {
+export function parseCartOrder(
+  msg: any,
+): { catalogId: string | null; text: string | null; lines: CartLine[] } | null {
   if (msg?.type !== "order" || !Array.isArray(msg?.order?.product_items)) return null;
-  const lines = new Map<string, number>();
+  const lines = new Map<string, CartLine>();
   for (const it of msg.order.product_items) {
     const id = String(it?.product_retailer_id ?? "");
     const q = Math.trunc(Number(it?.quantity));
     if (!UUID.test(id) || !Number.isFinite(q) || q < 1) continue;
-    lines.set(id, Math.min(50, (lines.get(id) ?? 0) + q));
+    const shown = Number(it?.item_price);
+    const usd =
+      String(it?.currency ?? "USD").toUpperCase() === "USD" && Number.isFinite(shown) && shown >= 0
+        ? Math.round(shown * 100) / 100
+        : null;
+    const cur = lines.get(id);
+    lines.set(id, {
+      itemId: id,
+      quantity: Math.min(50, (cur?.quantity ?? 0) + q),
+      shownUsd: cur ? cur.shownUsd : usd,
+    });
   }
+  const text = typeof msg.order.text === "string" ? msg.order.text.slice(0, 300) : null;
   return {
     catalogId: msg.order.catalog_id ? String(msg.order.catalog_id) : null,
-    lines: [...lines].slice(0, 30).map(([itemId, quantity]) => ({ itemId, quantity })),
+    text,
+    lines: [...lines.values()].slice(0, 30),
   };
 }

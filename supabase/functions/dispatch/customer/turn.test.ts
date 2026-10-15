@@ -638,18 +638,28 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
     data: { item_id: ITEM },
   };
 
-  it("an item with two option groups opens the item_options Flow when Flows are on", async () => {
+  const cartMsg = (lines: { itemId: string; quantity: number; shownUsd?: number | null }[]) =>
+    msg({
+      type: "order",
+      cart: { lines: lines.map((l) => ({ shownUsd: null, ...l })) },
+    });
+
+  it("a cart line with two option groups opens the item_options Flow when Flows are on", async () => {
     const g = fake({
       rpcs: {
+        cart_merge: () => ({
+          status: "ok",
+          added: 0,
+          skipped: [],
+          diffs: [],
+          needs_options: [{ item_id: ITEM, quantity: 1 }],
+          basket: null,
+        }),
         menu_item_options: () => OPT_GROUPS,
         flow_open: () => opened,
-        basket_clear: () => ({}),
       },
     });
-    await handleCustomerTurn(
-      g.deps,
-      msg({ type: "order", cart: { lines: [{ itemId: ITEM, quantity: 1 }] } }),
-    );
+    await handleCustomerTurn(g.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
     expect(g.of("flow_open")[0].args).toMatchObject({
       p_flow: "item_options",
       p_context: { item_id: ITEM },
@@ -660,45 +670,68 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
     for (const p of g.sent) expect(checkInteractive(p)).toEqual([]);
   });
 
-  it("with Flows off the same item falls back to the option list", async () => {
+  it("with Flows off the same line falls back to the option list", async () => {
     const f = fake({
       rpcs: {
+        cart_merge: () => ({
+          status: "ok",
+          added: 0,
+          skipped: [],
+          diffs: [],
+          needs_options: [{ item_id: ITEM, quantity: 1 }],
+          basket: null,
+        }),
         menu_item_options: () => OPT_GROUPS,
         flow_open: () => ({ status: "off" }),
-        basket_clear: () => ({}),
       },
     });
-    await handleCustomerTurn(
-      f.deps,
-      msg({ type: "order", cart: { lines: [{ itemId: ITEM, quantity: 1 }] } }),
-    );
+    await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
     expect(f.sent.some((p) => p.interactive?.type === "list")).toBe(true);
   });
 
-  it("a cart re-prices every line on the server and ignores the catalogue's prices", async () => {
+  it("a cart is merged into the one basket by the server, keyed by the message, and price changes are shown before checkout", async () => {
     const f = fake({
       rpcs: {
-        menu_item_options: () => [],
-        cart_apply: () => ({ added: 2, skipped: [], basket }),
+        cart_merge: () => ({
+          status: "ok",
+          added: 2,
+          skipped: [],
+          needs_options: [],
+          diffs: [
+            { item_id: ITEM, item: "شاورما", item_en: "Shawarma", shown_usd: 4.5, now_usd: 5 },
+          ],
+          basket,
+        }),
       },
     });
     await handleCustomerTurn(
       f.deps,
-      msg({
-        type: "order",
-        cart: {
-          lines: [
-            { itemId: ITEM, quantity: 3 },
-            { itemId: LINE, quantity: 1 },
-          ],
-        },
-      }),
+      cartMsg([
+        { itemId: ITEM, quantity: 3, shownUsd: 4.5 },
+        { itemId: LINE, quantity: 1, shownUsd: 3 },
+      ]),
     );
-    expect(f.of("cart_apply")[0].args.p_lines).toEqual([
-      { item_id: ITEM, quantity: 3 },
-      { item_id: LINE, quantity: 1 },
-    ]);
-    expect(JSON.stringify(f.of("cart_apply"))).not.toMatch(/price/);
+    expect(f.of("cart_merge")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_message_id: "wamid.in.1",
+      p_lines: [
+        { item_id: ITEM, quantity: 3, shown_usd: 4.5 },
+        { item_id: LINE, quantity: 1, shown_usd: 3 },
+      ],
+      p_replace: false,
+    });
+    // The catalogue's price is only reported, never sent to a pricing call.
+    expect(JSON.stringify(f.of("basket_add_item"))).toBe("[]");
+    expect(JSON.stringify(f.sent[0])).toMatch(/Shawarma: was \$4\.50, now \$5\.00/);
+    // Then the normal checkout (here: the address question, since the test has no saved address).
+    expect(
+      f.calls.some(
+        (c) =>
+          c.fn === "basket_quote" ||
+          c.fn === "customer_addresses" ||
+          c.fn === "customer_search_point",
+      ),
+    ).toBe(true);
     expect(f.of("basket_clear")).toHaveLength(0);
     expect(f.of("ai_quota_take")).toHaveLength(0);
   });
@@ -708,50 +741,96 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
       rpcs: {
         menu_item_options: (a) => (a.p_item_id === OPT_ITEM ? OPT_GROUPS : []),
         flow_open: () => ({ status: "off" }),
-        cart_apply: () => ({
+        cart_merge: () => ({
+          status: "ok",
           added: 1,
           skipped: [{ item_id: LINE, status: "unavailable", item: "Knefe" }],
+          needs_options: [{ item_id: OPT_ITEM, quantity: 1 }],
+          diffs: [],
           basket,
         }),
       },
     });
     await handleCustomerTurn(
       f.deps,
-      msg({
-        type: "order",
-        cart: {
-          lines: [
-            { itemId: LINE, quantity: 1 },
-            { itemId: OPT_ITEM, quantity: 1 },
-            { itemId: ITEM, quantity: 2 },
-          ],
-        },
-      }),
+      cartMsg([
+        { itemId: LINE, quantity: 1 },
+        { itemId: OPT_ITEM, quantity: 1 },
+        { itemId: ITEM, quantity: 2 },
+      ]),
     );
-    // The plain lines go to the server together; the line with required choices does not.
-    expect(f.of("cart_apply")[0].args.p_lines.map((l: any) => l.item_id)).toEqual([LINE, ITEM]);
     expect(JSON.stringify(f.sent)).toMatch(/1 item\(s\) from your cart/);
-    // The line with required choices gets its option list; the basket waits for the choice.
+    // The line with required choices gets its option list; checkout waits for the choice.
     expect(f.sent.some((p) => p.interactive?.type === "list")).toBe(true);
   });
 
-  it("a cart where nothing can be added says so (the server left the old basket alone)", async () => {
+  it("a cart where nothing can be added says so and leaves the basket alone", async () => {
     const f = fake({
       rpcs: {
-        menu_item_options: () => [],
-        cart_apply: () => ({
+        cart_merge: () => ({
+          status: "ok",
           added: 0,
           skipped: [{ item_id: LINE, status: "unavailable" }],
+          needs_options: [],
+          diffs: [],
           basket: null,
         }),
       },
     });
-    await handleCustomerTurn(
-      f.deps,
-      msg({ type: "order", cart: { lines: [{ itemId: LINE, quantity: 1 }] } }),
-    );
+    await handleCustomerTurn(f.deps, cartMsg([{ itemId: LINE, quantity: 1 }]));
     expect(JSON.stringify(f.sent)).toMatch(/couldn't be added/);
+    expect(JSON.stringify(f.sent)).toMatch(/None of the items in that cart/);
     expect(f.of("basket_clear")).toHaveLength(0);
+  });
+
+  it("a cart from another shop than the open basket asks first, and Use the new cart replaces it", async () => {
+    const f = fake({
+      rpcs: {
+        cart_merge: () => ({
+          status: "other_vendor",
+          basket_vendor: "مطعم أ",
+          basket_vendor_en: "Vendor A",
+          cart_vendor: "مطعم ب",
+          cart_vendor_en: "Vendor B",
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 2, shownUsd: 5 }]));
+    const card = f.sent[0];
+    expect(card.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual([
+      "c:cart_replace",
+      "c:keep",
+    ]);
+    expect(card.interactive.body.text).toMatch(/Vendor A.*Vendor B/);
+    expect(checkInteractive(card)).toEqual([]);
+    const pending = f.of("customer_turn_end")[0].args.p_session.pending;
+    expect(pending).toEqual({ kind: "cart", lines: [{ i: ITEM, q: 2, p: 5 }] });
+
+    const g = fake({
+      begin: {
+        session: { lang: "en", pending, refs: {}, history: [], low_confidence: 0, handoff: false },
+      },
+      rpcs: {
+        cart_merge: () => ({
+          status: "ok",
+          added: 1,
+          skipped: [],
+          needs_options: [],
+          diffs: [],
+          basket,
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      g.deps,
+      msg({ buttonId: "c:cart_replace", type: "interactive", messageId: "wamid.in.2" }),
+    );
+    expect(g.of("cart_merge")[0].args).toMatchObject({
+      p_message_id: "wamid.in.2",
+      p_replace: true,
+      p_lines: [{ item_id: ITEM, quantity: 2, shown_usd: 5 }],
+    });
+    expect(g.of("customer_turn_end")[0].args.p_session.pending).toEqual({});
   });
 
   it("a refused or expired item_options Flow falls back to the option list for the same item", async () => {
@@ -815,7 +894,7 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
         },
       },
     })!;
-    expect(cart.cart?.lines).toEqual([{ itemId: ITEM, quantity: 2 }]);
+    expect(cart.cart?.lines).toEqual([{ itemId: ITEM, quantity: 2, shownUsd: 0.01 }]);
   });
 });
 
@@ -1338,5 +1417,138 @@ describe("a shop that is not on Alo King yet (DECISIONS §39.3)", () => {
     await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
     expect(f.of("vendor_search_unclaimed")).toHaveLength(0);
     expect(f.modelReqs).toHaveLength(0);
+  });
+});
+
+describe("the Meta catalogue in the chat (§39.12)", () => {
+  const sess = (extra: any = {}) => ({
+    session: {
+      lang: "en",
+      pending: {},
+      refs: {},
+      history: [],
+      low_confidence: 0,
+      handoff: false,
+      ...extra,
+    },
+  });
+  const products = (n: number) =>
+    Array.from({ length: n }, (_, k) => ({
+      retailer_id: `5100000${k % 10}-0000-0000-0000-00000000000${Math.floor(k / 10)}`,
+      name_en: `Dish ${k}`,
+      price_usd: 3,
+      section: k % 2 ? "مشاوي" : "سندويش",
+      section_en: k % 2 ? "Grills" : "Sandwiches",
+    }));
+  const sections = {
+    sections: [
+      { section_id: "s-1", name_ar: "سندويش", name_en: "Sandwiches", items: 5 },
+      { section_id: "s-2", name_ar: "مشاوي", name_en: "Grills", items: 5 },
+    ],
+    unsectioned: 0,
+  };
+
+  it("a shop of 30 items or fewer, all in the catalogue, gets one multi-product message by section", async () => {
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Alo Test Grill" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_products: () => ({ total: 10, section_total: 0, products: products(10) }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(f.sent).toHaveLength(1);
+    const m = f.sent[0];
+    expect(m.interactive.type).toBe("product_list");
+    expect(m.interactive.action.catalog_id).toBe("1234567890");
+    expect(m.interactive.header.text).toBe("Alo Test Grill");
+    expect(m.interactive.action.sections.map((s: any) => s.title)).toEqual([
+      "Sandwiches",
+      "Grills",
+    ]);
+    expect(checkInteractive(m)).toEqual([]);
+  });
+
+  it("without a catalogue, or when a shop is not fully synced, the list menu runs as before", async () => {
+    for (const rpcs of [
+      { catalog_for_number: () => null },
+      {
+        catalog_for_number: () => "1234567890",
+        catalog_products: () => ({ total: 10, section_total: 0, products: products(7) }),
+      },
+    ]) {
+      const f = fake({
+        begin: sess({ refs: { v1: { id: VENDOR, label: "Alo Test Grill" } } }),
+        rpcs: { vendor_sections: () => sections, ...rpcs },
+      });
+      await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+      expect(f.sent.map((p) => p.interactive.type)).toEqual(["list"]);
+    }
+  });
+
+  it("a shop with more than 30 items gets its best sellers as products and the section list", async () => {
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_best_sellers: () => products(4).map((p) => p.retailer_id),
+        catalog_products: (a) =>
+          a.p_item_ids
+            ? { total: 80, section_total: 0, products: products(4) }
+            : { total: 80, section_total: 0, products: products(30) },
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(f.sent.map((p) => p.interactive.type)).toEqual(["product_list", "list"]);
+    expect(f.sent[0].interactive.action.sections[0].title).toBe("Best sellers");
+    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+  });
+
+  it("a catalogue message Meta refuses is replaced by the list", async () => {
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Alo Test Grill" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_products: () => ({ total: 2, section_total: 0, products: products(2) }),
+      },
+    });
+    const tried: string[] = [];
+    f.deps.send = async (p: any) => {
+      tried.push(p.interactive?.type);
+      return p.interactive?.type === "product_list"
+        ? { ok: false, retry: false, error: "kapso 400 product not found" }
+        : { ok: true, id: "w" };
+    };
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(tried).toEqual(["product_list", "list"]);
+  });
+
+  it("a search that finds items of one shop, all in the catalogue, answers with a product message", async () => {
+    const one = {
+      item_id: ITEM,
+      vendor_id: VENDOR,
+      name_en: "Shawarma",
+      price_usd: 5,
+      vendor_ar: "مطعم أ",
+      vendor_en: "Vendor A",
+    };
+    const f = fake({
+      model: null,
+      rpcs: {
+        catalog_search: () => ({ status: "ok", items: [one] }),
+        catalog_for_number: () => "1234567890",
+        catalog_products: () => ({ total: 9, section_total: 0, products: [{ retailer_id: ITEM }] }),
+      },
+    });
+    f.deps.config.freeText = false;
+    await handleCustomerTurn(f.deps, msg({ text: "shawarma" }));
+    const m = f.sent[0];
+    expect(m.interactive.type).toBe("product");
+    expect(m.interactive.action).toEqual({ catalog_id: "1234567890", product_retailer_id: ITEM });
+    expect(checkInteractive(m)).toEqual([]);
+    expect(f.of("catalog_for_number")[0].args.p_to).toBe("+96176000001");
   });
 });

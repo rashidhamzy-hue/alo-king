@@ -22,6 +22,13 @@ export function toOut(r: Row): Out {
   for (const s of i.action?.sections ?? [])
     for (const row of s?.rows ?? [])
       if (row?.id) options.push({ id: String(row.id), title: String(row.title ?? "") });
+  // Catalogue messages (§39.12): every product is an option (its retailer id), titled with its section.
+  for (const sec of i.action?.sections ?? [])
+    for (const pi of sec?.product_items ?? [])
+      if (pi?.product_retailer_id)
+        options.push({ id: String(pi.product_retailer_id), title: String(sec.title ?? "") });
+  if (i.type === "product" && i.action?.product_retailer_id)
+    options.push({ id: String(i.action.product_retailer_id), title: "product" });
   if (i.action?.parameters?.display_text)
     options.push({ id: "url", title: String(i.action.parameters.display_text) });
   // A template (outside the 24-hour window, §39.8; on staging a dry run): its text as the person would read it, prefixed
@@ -68,6 +75,8 @@ export function kindMatches(want: string | undefined, got: string): boolean {
   if (!want || want === "any") return true;
   if (want === "button") return got === "interactive:button";
   if (want === "list") return got === "interactive:list";
+  if (want === "products") return got === "interactive:product_list";
+  if (want === "product") return got === "interactive:product";
   return got === want;
 }
 
