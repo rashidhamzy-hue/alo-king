@@ -268,7 +268,8 @@ begin
     end if;
     select s.merchant_phone into v_to from app_private.sim_demo_customers s where s.phone_e164 = v_customer;
   else
-    if exists (select 1 from app_private.owner_phones o where o.phone_e164 = new.target) then
+    -- An owner's phone, or a simulator number (it never leaves the sink: a scenario's merchant, e.g. a copilot proposal).
+    if app_private.is_sim_phone(new.target) or exists (select 1 from app_private.owner_phones o where o.phone_e164 = new.target) then
       return new;
     end if;
     select o.phone_e164 into v_to from app_private.owner_phones o order by o.created_at, o.phone_e164 limit 1;

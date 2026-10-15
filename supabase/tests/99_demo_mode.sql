@@ -116,6 +116,10 @@ select tests.ok((select target from public.outbound_messages where dedupe_key = 
   'the customer''s own messages are left alone');
 select tests.ok((select status from public.outbound_messages where dedupe_key = 'demo-test:sim3') = 'skipped',
   'a demo shop''s email copy is never sent');
+insert into public.outbound_messages (dedupe_key, vendor_id, channel, purpose, target)
+values ('demo-test:sim4', :'d2', 'whatsapp', 'proposal', '+99996100000072');
+select tests.ok((select target from public.outbound_messages where dedupe_key = 'demo-test:sim4') = '+99996100000072',
+  'a shop message without an order to the simulated merchant stays with it (never rerouted to a real phone)');
 select tests.ok(public.sim_demo('+99996100000071', '+99996100000072', false) ->> 'status' = 'ok', 'the scenario opts out at the end');
 select tests.ok(not exists (select 1 from public.vendor_members where phone_e164 = '+99996100000072' and status = 'active' and vendor_id in (:'d1', :'d2')),
   'which revokes the simulated merchant');
