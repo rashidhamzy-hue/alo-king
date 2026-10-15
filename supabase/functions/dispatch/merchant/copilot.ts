@@ -12,6 +12,7 @@ import {
   type OfferSpec,
   type Station,
 } from "../../_shared/merchant-commands.ts";
+import { isMedicineRequest } from "../customer/intents.ts";
 
 export type CopilotCtx = {
   rpc: (fn: string, args: Record<string, unknown>) => Promise<any>;
@@ -168,6 +169,17 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
   const c = cmd as CopilotCommand;
   const vendor = ctx.member.vendor_id;
   const memberId = ctx.member.member_id;
+  // "<section> back" switches a section back on (the item rule below would find one item at most).
+  if (cmd.kind === "back_in_stock") {
+    const s = await section(ctx, cmd.item);
+    if (!s) return false;
+    await ctx.propose(
+      "availability_on",
+      { scope: "section", target: s.section_id },
+      `▶️ «${s.name_ar ?? s.name_en}» رجع؟ منرجّع أصنافو. / “${s.name_en ?? s.name_ar}” back on? Its items come back.`,
+    );
+    return true;
+  }
   switch (c.kind) {
     case "help":
       await ctx.reply(COPILOT_HELP);
@@ -209,6 +221,11 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
       return true;
     }
     case "item_add":
+      // Never medicines (§38.3, the ban of 2 June 2026), whatever the shop.
+      if (isMedicineRequest(c.name)) {
+        await ctx.reply("💊 ما منبيع أدوية على Alo King. / Medicines can't be sold on Alo King.");
+        return true;
+      }
       await ctx.propose(
         "item_add",
         { name: c.name, price_usd: c.priceUsd, section: c.section },

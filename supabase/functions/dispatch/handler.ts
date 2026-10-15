@@ -517,11 +517,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     // What the rules do not read goes to the copilot's model, behind ai_merchant_text_enabled (§32.4, §39.7). It
     // answers with the same typed commands, so every change still waits for the merchant's tap.
     if (!cmd && deps.merchantCopilot)
-      cmd = await copilotModelCommand(
-        deps.merchantCopilot,
-        m.text,
-        deps.now?.() ?? new Date(),
-      ).catch((e: unknown) => {
+      cmd = await merchantModelCommand(deps, deps.merchantCopilot, m.text).catch((e: unknown) => {
         deps.log?.("merchant model failed", { error: String(e).slice(0, 120) });
         return null;
       });
@@ -1064,3 +1060,52 @@ const beirutHhmm = (d: Date) => {
   const c = beirutClock(d);
   return `${String(c.hour).padStart(2, "0")}:${String(c.minute).padStart(2, "0")}`;
 };
+
+/** One copilot model call inside the AI budget, logged in ai_calls like the customer's (§6 cost model, §32.6). */
+async function merchantModelCommand(
+  deps: DispatchDeps,
+  m: CopilotModel,
+  text: string,
+): Promise<MerchantCommand | null> {
+  const q = await deps.rpc("ai_quota_take", {
+    p_customer_id: null,
+    p_purpose: "merchant",
+    p_model: m.model,
+    p_est_usd: 0.003,
+  });
+  if (!q?.ok) return null; // the daily budget is spent: the rules' help answers
+  const t0 = Date.now();
+  let usage: { input_tokens: number; output_tokens: number } | null = null;
+  let error: string | null = null;
+  let cmd: MerchantCommand | null = null;
+  try {
+    cmd = await copilotModelCommand(
+      {
+        model: m.model,
+        call: async (req) => {
+          const r = await m.call(req);
+          usage = r.usage;
+          return r;
+        },
+      },
+      text,
+      deps.now?.() ?? new Date(),
+    );
+  } catch (e) {
+    error = String(e).slice(0, 200);
+  }
+  const u = usage as { input_tokens: number; output_tokens: number } | null;
+  await deps
+    .rpc("ai_call_finish", {
+      p_call_id: q.call_id,
+      p_input_tokens: u?.input_tokens ?? null,
+      p_output_tokens: u?.output_tokens ?? null,
+      p_audio_seconds: null,
+      p_latency_ms: Date.now() - t0,
+      p_ok: !error,
+      p_error: error,
+    })
+    .catch(() => null);
+  if (error) throw new Error(error);
+  return cmd;
+}

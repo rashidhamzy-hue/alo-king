@@ -1,11 +1,11 @@
 -- Rollback of 20261015140100_merchant_copilot.sql (session 5c merchant copilot): restores vendor_open_at, hours_tick,
--- proposal_roles, basket_quote and order_place exactly as they were after 20261015120100, puts the merchant proposal
+-- proposal_roles, vendor_power_on, basket_quote and order_place exactly as they were before it, puts the merchant proposal
 -- functions back under their own names, and removes everything the copilot added.
 -- What goes with it: running offers, availability holds (items they hid stay off: switch them on by hand or with
 -- "back" first), closures, Boost budgets (never charged), merchant facts and suggestions, the station, stock-carry and
 -- removed marks on menu items, and the offer columns on orders (their discount stays in discount_usd, so totals still
--- add up). The proposal_kind values added by 20261015140000 stay (Postgres cannot drop an enum value); nothing creates
--- them after this, and proposals of those kinds can no longer be confirmed.
+-- add up). The proposal_kind and ops_alert_kind values added by 20261015140000 stay (Postgres cannot drop an enum
+-- value); nothing creates them after this, and proposals of those kinds can no longer be confirmed.
 select set_config('app.actor_kind', 'system', true);
 select set_config('app.audit_reason', 'rollback of 20261015140100_merchant_copilot', true);
 
@@ -16,6 +16,24 @@ select cron.unschedule('merchant-suggestions');
 select cron.unschedule('merchant-weekly-summary');
 
 -- 1. The replaced functions, as they were.
+CREATE OR REPLACE FUNCTION app_private.vendor_power_on(p_vendor_id uuid)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  n int;
+begin
+  update public.menu_items i set available = true
+  from app_private.power_hidden_items h where h.item_id = i.id and h.vendor_id = p_vendor_id and not i.available;
+  get diagnostics n = row_count;
+  delete from app_private.power_hidden_items where vendor_id = p_vendor_id;
+  update public.vendor_ops set power_off_since = null where vendor_id = p_vendor_id;
+  return n;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.basket_quote(p_customer_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -436,6 +454,14 @@ alter table public.orders drop column offer_id, drop column offer_usd;
 drop table public.vendor_offers;
 drop function app_private.vendor_offers_bump_version();
 drop table public.vendor_closures;
+drop trigger orders_fee_after_offer on public.orders;
+drop function app_private.orders_fee_after_offer();
+alter table public.baskets drop column quoted_offer_usd, drop column quoted_offer_id;
 drop table public.availability_holds;
 alter table public.vendor_ops drop column min_order_usd;
 alter table public.menu_items drop column station, drop column stock_tracked, drop column removed_at;
+
+-- 4. Config is dated (§1): the copilot's switches go off; the other new keys stay unread.
+insert into public.app_config (key, value, effective_from, note, created_by) values
+  ('ai_merchant_text_enabled', 'false', now(), 'Rollback of 20261015140100', null),
+  ('merchant_suggestions_enabled', 'false', now(), 'Rollback of 20261015140100', null);

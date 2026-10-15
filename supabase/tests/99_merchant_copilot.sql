@@ -76,6 +76,18 @@ select tests.ok((select not available and removed_at is not null from public.men
   'a removed item is off and marked removed, kept for order history');
 select tests.throws($$select public.merchant_proposal_create('20000000-0000-0000-0000-00000000000a', 'back_in_stock',
   '{"item_id": "58000000-0000-0000-0000-000000000004"}', 'rules', null)$$, 'removed from the menu', 'and nothing switches it back on');
+-- Removed during a power cut: "power back" does not bring it back.
+reset role;
+insert into app_private.power_hidden_items (item_id, vendor_id) values ('58000000-0000-0000-0000-000000000003', :'va');
+update public.menu_items set available = false where id = '58000000-0000-0000-0000-000000000003';
+set local role service_role;
+select public.merchant_proposal_create(:'va', 'item_remove', '{"item_id": "58000000-0000-0000-0000-000000000003"}', 'rules', :'owner_a') as p7b \gset
+select public.merchant_proposal_decide(:'p7b', true, :'owner_a');
+reset role;
+select app_private.vendor_power_on(:'va');
+select tests.ok((select not available from public.menu_items where id = '58000000-0000-0000-0000-000000000003'), 'an item removed in a power cut stays off when the power comes back');
+update public.menu_items set removed_at = null, available = true where id = '58000000-0000-0000-0000-000000000003';
+set local role service_role;
 
 -- 3. Offers, priced by the server into the order (§20.4) -----------------------------------------------------------------
 select tests.throws(format($$select public.merchant_proposal_create(%L, 'offer_create', '{"kind": "percent", "percent": 80}', 'rules', %L)$$, :'va', :'owner_a'),
@@ -83,8 +95,14 @@ select tests.throws(format($$select public.merchant_proposal_create(%L, 'offer_c
 select public.merchant_proposal_create(:'va', 'offer_create', '{"kind": "percent", "percent": 10, "section_id": "58000000-0000-0000-0000-0000000000a1", "days": 3}',
   'rules', :'owner_a') as p8 \gset
 select public.merchant_proposal_decide(:'p8', true, :'owner_a') as r8 \gset
-select tests.ok((select cardinality(item_ids) = 4 and ends_at > now() + interval '71 hours' from public.vendor_offers where id = (:'r8'::jsonb ->> 'offer_id')::uuid),
-  'a section offer covers that section''s items for 3 days');
+select tests.ok((select section_id = '58000000-0000-0000-0000-0000000000a1' and cardinality(item_ids) = 0 and ends_at > now() + interval '71 hours'
+                 from public.vendor_offers where id = (:'r8'::jsonb ->> 'offer_id')::uuid),
+  'a section offer names the section (items added later count) and runs 3 days');
+reset role;
+insert into public.menu_sections (id, vendor_id, name_en) values ('58000000-0000-0000-0000-0000000000a2', '20000000-0000-0000-0000-00000000000a', 'Desserts');
+set local role service_role;
+select tests.throws(format($$select public.merchant_proposal_create(%L, 'offer_create', '{"kind": "percent", "percent": 10, "section_id": "58000000-0000-0000-0000-0000000000a2"}', 'rules', %L)$$,
+  :'va', :'owner_a'), 'with items', 'an offer on an empty section is refused (it would read as the whole menu)');
 select public.basket_add_item('10000000-0000-0000-0000-000000000002', '58000000-0000-0000-0000-000000000003', 2);
 select public.basket_add_item('10000000-0000-0000-0000-000000000002', '58000000-0000-0000-0000-000000000001', 1);
 select public.basket_set_checkout('10000000-0000-0000-0000-000000000002', 'pickup');
@@ -95,10 +113,30 @@ select tests.ok((:'q1'::jsonb ->> 'offer_usd')::numeric = 1.50 and (:'q1'::jsonb
 select b.id as bid, b.priced_menu_version as ver from public.baskets b where b.customer_id = '10000000-0000-0000-0000-000000000002' and b.status = 'open' \gset
 select public.order_place(:'bid', :'ver', 'test:copilot:o1') as o1 \gset
 select tests.ok(:'o1'::jsonb ->> 'status' = 'placed', 'the order is placed');
+select tests.ok((select quoted_offer_usd = 1.50 from public.baskets where id = :'bid'), 'the basket remembers the offer it was quoted');
 select tests.ok((select offer_usd = 1.50 and discount_usd = 1.50 and total_usd = 13.50 and offer_id = (:'r8'::jsonb ->> 'offer_id')::uuid
                         and order_fee_usd = public.order_fee_usd(vendor_id, 13.50)
                  from public.orders where id = (:'o1'::jsonb ->> 'order_id')::uuid),
   'the order carries the offer in its discount, and the commission is on the food after the offer');
+-- The commission stays on the food after the offer when the food changes later (a substitution, a weight).
+reset role;
+update public.orders set food_subtotal_usd = food_subtotal_usd + 3, total_usd = total_usd + 3 where id = (:'o1'::jsonb ->> 'order_id')::uuid;
+select tests.ok((select order_fee_usd = public.order_fee_usd(vendor_id, food_subtotal_usd - offer_usd) from public.orders
+                 where id = (:'o1'::jsonb ->> 'order_id')::uuid), 'a later change of the food keeps the commission after the offer');
+set local role service_role;
+-- An offer that changed between the summary and the Confirm tap (a happy hour ending) re-prices, never a surprise total.
+select public.basket_add_item('10000000-0000-0000-0000-000000000002', '58000000-0000-0000-0000-000000000003', 1);
+select public.basket_set_checkout('10000000-0000-0000-0000-000000000002', 'pickup');
+select public.basket_set_cash_currency('10000000-0000-0000-0000-000000000002', 'USD');
+select public.basket_quote('10000000-0000-0000-0000-000000000002');
+select b.id as bid3, b.priced_menu_version as ver3 from public.baskets b where b.customer_id = '10000000-0000-0000-0000-000000000002' and b.status = 'open' \gset
+reset role;
+update public.baskets set quoted_offer_usd = 0, quoted_offer_id = null where id = :'bid3';
+set local role service_role;
+select tests.ok(public.order_place(:'bid3', :'ver3', 'test:copilot:o3') ->> 'status' = 'repriced', 'a different offer than the one shown is a new price');
+reset role;
+update public.baskets set status = 'abandoned' where id = :'bid3';
+set local role service_role;
 select public.merchant_proposal_create(:'va', 'offer_stop', '{}', 'rules', :'owner_a') as p9 \gset
 select tests.ok((public.merchant_proposal_decide(:'p9', true, :'owner_a') ->> 'stopped')::int = 1, 'stop the offer');
 
@@ -155,6 +193,10 @@ select tests.ok(public.merchant_memory(:'va', :'owner_a') #>> '{facts,writes_in,
   and (public.merchant_memory(:'va', :'owner_a') -> 'facts') ? 'recent_changes', 'merchant memory: how they write and the last changes');
 reset role;
 update public.vendor_private set owner_mobile = '+96171000001' where vendor_id = :'va';
+select tests.ok(app_private.merchant_suggest(:'va', 'test0', 'availability_off',
+  '{"scope": "station", "target": "grill", "until": null}', 'grill?') is null, 'no card outside the owner''s 24-hour WhatsApp window');
+insert into app_private.whatsapp_last_inbound (phone_e164, at) values ('+96171000001', now())
+  on conflict (phone_e164) do update set at = excluded.at;
 select app_private.merchant_suggest(:'va', 'test', 'availability_off',
   '{"scope": "station", "target": "grill", "until": null}', 'grill?') as sg \gset
 select tests.ok(:'sg' <> '' and exists (select 1 from public.outbound_messages where purpose = 'proposal' and payload ->> 'proposal_id' = :'sg'),

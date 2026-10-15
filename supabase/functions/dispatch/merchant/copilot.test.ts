@@ -7,7 +7,13 @@ import { checkInteractive } from "../../_shared/meta-limits";
 import { memoryText, reportText, writesIn } from "./copilot";
 import { toolToCommand } from "./copilot-model";
 import { parseMerchantCommand } from "../../_shared/merchant-commands";
-import { firstLink, htmlText, linkAllowed, safeFetch } from "../../_shared/safe-fetch";
+import {
+  firstLink,
+  htmlText,
+  linkAllowed,
+  privateAddress,
+  safeFetch,
+} from "../../_shared/safe-fetch";
 
 const MEMBER = "99999999-2222-3333-4444-555555555555";
 const VENDOR = "20000000-0000-0000-0000-00000000000a";
@@ -52,6 +58,8 @@ function harness(rpcs: Record<string, (a: any) => any> = {}, extra: Partial<Disp
         return "PNID-M";
       case "merchant_proposal_create":
         return PROP;
+      case "ai_quota_take":
+        return { ok: true, call_id: 41 };
       case "merchant_menu_parts":
         return {
           sections: [{ section_id: SECTION, name_en: "Sandwiches", name_ar: "سندويشات", items: 4 }],
@@ -368,7 +376,7 @@ describe("the copilot's model (behind ai_merchant_text_enabled, §32.4)", () => 
     expect(
       toolToCommand("set_hours", { weekdays: [9], opens: "09:00", closes: "17:00" }, NOW),
     ).toBeNull();
-    expect(toolToCommand("boost", { budget_usd: 1000, audience: "nearby" }, NOW)).toBeNull();
+    expect(toolToCommand("boost", { budget_usd: 20000, audience: "nearby" }, NOW)).toBeNull();
     expect(
       toolToCommand("set_availability", { target: "oven", on: true, minutes: null }, NOW),
     ).toEqual({
@@ -451,4 +459,96 @@ describe("the merchant eval's rule cases (evals/merchant/cases.jsonl, every PR)"
     it(`${c.id} ${c.lang}: "${c.text}" → ${c.expect.kind}`, () => {
       expect(parseMerchantCommand(c.text, NOW)?.kind ?? "none").toBe(c.expect.kind);
     });
+});
+
+describe("review fixes (§39.7)", () => {
+  it("'<section> back' switches the section on; an item name still means back in stock", async () => {
+    const h = harness();
+    await h.text("sandwiches back");
+    expect(h.proposal()).toMatchObject({
+      p_kind: "availability_on",
+      p_payload: { scope: "section", target: SECTION },
+    });
+    const k = harness();
+    await k.text("knefe back");
+    expect(k.proposal()).toMatchObject({
+      p_kind: "back_in_stock",
+      p_payload: { item_id: "it-knefe" },
+    });
+  });
+  it("no medicine is added to a menu", async () => {
+    const h = harness();
+    await h.text("add item panadol 3");
+    expect(h.of("merchant_proposal_create")).toHaveLength(0);
+    expect(h.body()).toMatch(/Medicines can't be sold/);
+  });
+  it("the model's call is taken from the AI budget and logged; a spent budget means the help", async () => {
+    const call = async () => ({
+      content: [{ type: "tool_use" as const, id: "t0", name: "set_radius", input: { km: 2 } }],
+      usage: { input_tokens: 321, output_tokens: 12 },
+      stop_reason: "tool_use",
+    });
+    const h = harness({}, { merchantCopilot: { model: "m", call } });
+    await h.text("ma ba3ad bade wasel aktar men 2 km");
+    expect(h.of("ai_quota_take")[0].args).toMatchObject({
+      p_purpose: "merchant",
+      p_customer_id: null,
+    });
+    expect(h.of("ai_call_finish")[0].args).toMatchObject({
+      p_call_id: 41,
+      p_input_tokens: 321,
+      p_ok: true,
+    });
+    expect(h.proposal()).toMatchObject({ p_kind: "radius", p_payload: { km: 2 } });
+    const spent = harness(
+      { ai_quota_take: () => ({ ok: false, reason: "daily_cap" }) },
+      { merchantCopilot: { model: "m", call } },
+    );
+    await spent.text("ma ba3ad bade wasel aktar men 2 km");
+    expect(spent.of("merchant_proposal_create")).toHaveLength(0);
+    expect(spent.body()).toMatch(/ما فهمت عليك/);
+  });
+  it("a link whose DNS answer is private is never fetched", async () => {
+    for (const ip of [
+      "127.0.0.1",
+      "10.1.2.3",
+      "172.20.0.1",
+      "192.168.1.1",
+      "169.254.169.254",
+      "100.64.0.1",
+      "::1",
+      "fd00::1",
+      "fe80::1",
+      "::ffff:127.0.0.1",
+    ])
+      expect(privateAddress(ip), ip).toBe(true);
+    for (const ip of ["93.184.216.34", "8.8.8.8", "2606:4700::1111"])
+      expect(privateAddress(ip), ip).toBe(false);
+    let fetched = 0;
+    const f = (async () => {
+      fetched++;
+      return new Response("x", { headers: { "content-type": "text/html" } });
+    }) as unknown as typeof fetch;
+    expect(
+      await safeFetch("https://x.nip.io/menu", { fetch: f, resolve: async () => ["127.0.0.1"] }),
+    ).toBeNull();
+    expect(
+      await safeFetch("https://example.com/menu", { fetch: f, resolve: async () => [] }),
+    ).toBeNull();
+    expect(fetched).toBe(0);
+    expect(
+      await safeFetch("https://example.com/menu", {
+        fetch: f,
+        resolve: async () => ["93.184.216.34"],
+      }),
+    ).not.toBeNull();
+  });
+  it("a hostile page cannot break the reader", () => {
+    expect(htmlText("<li>Falafel &#9999999; 4$</li>")).toBe("Falafel 4$");
+    expect(htmlText("<li>Falafel &#99999999; 4$</li>")).toBe("Falafel &#99999999; 4$");
+    // An unclosed script tag stays text, cut to the parser's limit, quickly.
+    const t0 = Date.now();
+    expect(htmlText("<script>" + "x".repeat(2_000_000)).length).toBeLessThanOrEqual(50_000);
+    expect(Date.now() - t0).toBeLessThan(2000);
+  });
 });

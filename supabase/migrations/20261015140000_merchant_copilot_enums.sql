@@ -14,3 +14,4 @@ alter type public.proposal_kind add value if not exists 'min_order';
 alter type public.proposal_kind add value if not exists 'radius';
 alter type public.proposal_kind add value if not exists 'boost_start';
 alter type public.proposal_kind add value if not exists 'boost_stop';
+alter type public.ops_alert_kind add value if not exists 'copilot_error';

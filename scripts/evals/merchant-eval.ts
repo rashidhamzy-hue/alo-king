@@ -12,6 +12,7 @@ import {
   MERCHANT_TOOLS,
   toolToCommand,
 } from "../../supabase/functions/dispatch/merchant/copilot-model.ts";
+import { beirutDate } from "../../supabase/functions/_shared/merchant-commands.ts";
 
 const models = process.argv.slice(2).length
   ? process.argv.slice(2)
@@ -59,12 +60,13 @@ async function run(model: string, c: any): Promise<Res> {
     system: [
       {
         type: "text",
-        text: `${MERCHANT_SYSTEM}\nToday in Beirut: ${now.toISOString().slice(0, 10)}.`,
+        text: `${MERCHANT_SYSTEM}\nToday in Beirut: ${beirutDate(now)}.`,
         cache_control: { type: "ephemeral" },
       },
     ],
     tools: MERCHANT_TOOLS as unknown as Anthropic.Tool[],
-    tool_choice: { type: "any" },
+    // The same request the bot sends (copilot-model.ts through callModel): auto, so a text answer counts as "none".
+    tool_choice: { type: "auto" },
     messages: [{ role: "user", content: c.text }],
   });
   const use = msg.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");

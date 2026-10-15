@@ -455,7 +455,17 @@ Deno.serve(async (req) => {
       storeDocument,
       orderCard,
       menuModel: anthropic ? menuModel : null,
-      fetchLink: (url: string) => safeFetch(url, { maxBytes: 5_000_000 }),
+      fetchLink: (url: string) =>
+        safeFetch(url, {
+          maxBytes: 5_000_000,
+          resolve: async (host) => {
+            const [a, aaaa] = await Promise.all([
+              Deno.resolveDns(host, "A").catch(() => [] as string[]),
+              Deno.resolveDns(host, "AAAA").catch(() => [] as string[]),
+            ]);
+            return [...a, ...aaaa];
+          },
+        }),
       // The copilot's model reads what the merchant rules do not, once its eval passes (§32.4, §39.7).
       merchantCopilot: await (async () => {
         const cfg = await botConfig();

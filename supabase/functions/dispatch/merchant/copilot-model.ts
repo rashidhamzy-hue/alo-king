@@ -135,14 +135,14 @@ export const MERCHANT_TOOLS = [
   {
     name: "set_radius",
     description: "How far the shop delivers itself, in km.",
-    input_schema: obj({ km: { type: "number", minimum: 0.5, maximum: 20 } }),
+    input_schema: obj({ km: { type: "number", minimum: 0.5, maximum: 50 } }),
   },
   {
     name: "boost",
     description:
       "Start a Boost (sponsored placement) with a USD budget for people nearby or past customers.",
     input_schema: obj({
-      budget_usd: { type: "number", minimum: 5, maximum: 500 },
+      budget_usd: { type: "number", minimum: 1, maximum: 10000 },
       audience: { type: "string", enum: ["nearby", "past_customers"] },
     }),
   },
@@ -305,9 +305,10 @@ export function toolToCommand(name: string, input: any, now: Date): MerchantComm
       if (i.usd === null) return { kind: "min_order", usd: null };
       return num(i.usd, 1, 500) ? { kind: "min_order", usd: i.usd } : null;
     case "set_radius":
-      return num(i.km, 0.5, 20) ? { kind: "radius", km: i.km } : null;
+      // The server checks the radius against max_delivery_km() and the budget against config boost_budget_usd.
+      return num(i.km, 0.5, 50) ? { kind: "radius", km: i.km } : null;
     case "boost":
-      return num(i.budget_usd, 5, 500) &&
+      return num(i.budget_usd, 1, 10000) &&
         (i.audience === "nearby" || i.audience === "past_customers")
         ? { kind: "boost", budgetUsd: i.budget_usd, audience: i.audience }
         : null;

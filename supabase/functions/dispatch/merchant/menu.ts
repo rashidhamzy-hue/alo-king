@@ -131,7 +131,8 @@ export async function handleMerchantMenu(
     let draft: Draft | null = null;
     let source = "text";
     if (link) {
-      const file = deps.fetchLink ? await deps.fetchLink(link) : null;
+      // A broken or hostile page never fails the event (it would be retried, fetching the link again).
+      const file = deps.fetchLink ? await deps.fetchLink(link).catch(() => null) : null;
       if (file && file.mime === "application/pdf") {
         source = "pdf";
         if (deps.menuModel && file.bytes.length <= 5_000_000) {
@@ -149,7 +150,12 @@ export async function handleMerchantMenu(
       } else if (file) {
         source = "link";
         // The page's text through the same rules as pasted text (no model, §32.7).
-        draft = parseMenuText(htmlText(new TextDecoder().decode(file.bytes)));
+        try {
+          draft = parseMenuText(htmlText(new TextDecoder().decode(file.bytes)));
+        } catch (e) {
+          deps.log?.("menu link unreadable", { error: String(e).slice(0, 120) });
+          draft = { sections: [], warnings: [] };
+        }
       } else {
         reply(
           text(

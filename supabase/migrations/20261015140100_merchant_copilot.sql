@@ -26,7 +26,8 @@ insert into public.app_config (key, value, effective_from, note, created_by) val
   ('merchant_suggestion_ttl_min', '180', now(), 'A proactive suggestion card stays tappable this long (DECISIONS §39.7)', null),
   ('merchant_suggestions_enabled', 'true', now(), 'Proactive copilot suggestions (sell-outs, usual closures, quiet-day offers, weekly summary); each needs a tap (DECISIONS §39.7)', null),
   ('offer_max_percent', '50', now(), 'Largest percent off a merchant offer may give (DECISIONS §20.4: offers are merchant-funded, server-validated)', null),
-  ('offer_max_days', '30', now(), 'Longest an offer runs before the merchant renews it', null);
+  ('offer_max_days', '30', now(), 'Longest an offer runs before the merchant renews it', null),
+  ('boost_budget_usd', '{"min": 5, "max": 500}', now(), 'Boost budget a merchant may set by message, USD (DECISIONS §20.4); charged only when the ad system runs', null);
 
 -- 2. Availability (§38.3, §39.7) ------------------------------------------------------------------------------------------
 -- Items carry the kitchen station they come from; "fryer off 15 min" hides that station's items and the tick brings back
@@ -136,7 +137,8 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   v_n integer;
-  v_today date := (now() at time zone 'Asia/Beirut')::date;
+  -- The same calendar as every other stock check (basket_price, order_place, stock_add compare with current_date).
+  v_today date := current_date;
 begin
   perform set_config('app.actor_kind', 'system', true);
   update public.menu_items set daily_date = v_today, daily_quantity = daily_remaining
@@ -153,6 +155,9 @@ create table public.vendor_offers (
   vendor_id uuid not null references public.vendors (id) on delete cascade,
   kind text not null check (kind in ('percent', 'bundle', 'free_item', 'happy_hour', 'first_order')),
   percent numeric(5, 2) check (percent > 0 and percent <= 100),
+  -- What the offer covers: a section (resolved at pricing, so items added later count), listed items, or, with
+  -- neither, the whole menu.
+  section_id uuid references public.menu_sections (id) on delete cascade,
   item_ids uuid[] not null default '{}',
   free_item_id uuid references public.menu_items (id) on delete cascade,
   min_quantity integer not null default 1 check (min_quantity between 1 and 50),
@@ -195,6 +200,9 @@ create policy vendor_offers_read on public.vendor_offers for select to anon, aut
 alter table public.orders
   add column offer_id uuid references public.vendor_offers (id) on delete set null,
   add column offer_usd numeric(10, 2) not null default 0 check (offer_usd >= 0);
+-- The offer the customer was shown (basket_quote): order_place re-prices instead of placing a different total when the
+-- offer changed in between (a happy hour ending, an offer stopped or expired).
+alter table public.baskets add column quoted_offer_usd numeric(10, 2), add column quoted_offer_id uuid;
 comment on column public.orders.offer_usd is 'The merchant offer''s part of discount_usd (DECISIONS §20.4); credit_usd is the customer-credit part.';
 
 -- The best offer for a basket and its amount, from the server's line prices. One offer per order.
@@ -203,8 +211,9 @@ language sql stable security definer set search_path = ''
 as $$
   with b as (select * from public.baskets where id = p_basket_id),
   lines as (
-    select bi.item_id, bi.quantity, bi.line_total_usd, coalesce(bi.unit_price_usd, 0) as unit
-    from public.basket_items bi where bi.basket_id = p_basket_id and bi.line_total_usd is not null
+    select bi.item_id, i.section_id, bi.quantity, bi.line_total_usd, coalesce(bi.unit_price_usd, 0) as unit
+    from public.basket_items bi join public.menu_items i on i.id = bi.item_id
+    where bi.basket_id = p_basket_id and bi.line_total_usd is not null
   ),
   t as (select (now() at time zone 'Asia/Beirut') as l),
   o as (
@@ -216,17 +225,23 @@ as $$
         select 1 from public.orders x where x.customer_id = b.customer_id and x.vendor_id = b.vendor_id
           and x.status not in ('cancelled', 'rejected', 'failed')))
   ),
+  -- The lines each offer covers.
+  covered as (
+    select o.id as offer_id, l.* from o, lines l
+    where (o.section_id is not null and l.section_id = o.section_id)
+       or (o.section_id is null and cardinality(o.item_ids) > 0 and l.item_id = any (o.item_ids))
+       or (o.section_id is null and cardinality(o.item_ids) = 0)
+  ),
   scored as (
     select o.id,
       case
         when o.kind in ('percent', 'happy_hour', 'first_order') then round(coalesce((
-          select sum(l.line_total_usd) from lines l
-          where cardinality(o.item_ids) = 0 or l.item_id = any (o.item_ids)), 0) * o.percent / 100.0, 2)
+          select sum(c.line_total_usd) from covered c where c.offer_id = o.id), 0) * o.percent / 100.0, 2)
         when o.kind = 'bundle' then case
           when (select count(distinct l.item_id) from lines l where l.item_id = any (o.item_ids)) = cardinality(o.item_ids)
           then round((select sum(l.line_total_usd) from lines l where l.item_id = any (o.item_ids)) * o.percent / 100.0, 2) else 0 end
         when o.kind = 'free_item' then case
-          when coalesce((select sum(l.quantity) from lines l where cardinality(o.item_ids) = 0 or l.item_id = any (o.item_ids)), 0) >= o.min_quantity
+          when coalesce((select sum(c.quantity) from covered c where c.offer_id = o.id), 0) >= o.min_quantity
           then coalesce((select min(l.unit) from lines l where l.item_id = o.free_item_id), 0) else 0 end
         else 0 end as amount
     from o
@@ -310,7 +325,7 @@ create table public.merchant_campaigns (
   vendor_id uuid not null references public.vendors (id) on delete cascade,
   kind text not null check (kind in ('sponsored', 'broadcast')),
   audience text not null check (audience in ('nearby', 'past_customers')),
-  budget_usd numeric(10, 2) not null check (budget_usd >= 5 and budget_usd <= 500),
+  budget_usd numeric(10, 2) not null check (budget_usd > 0),
   status text not null default 'waiting' check (status in ('waiting', 'running', 'stopped')),
   proposal_id uuid references public.merchant_proposals (id) on delete set null,
   created_at timestamptz not null default now(),
@@ -385,9 +400,10 @@ begin
        not between 1 and public.config_numeric('offer_max_percent') then
       raise exception 'an offer is 1-% percent off', public.config_numeric('offer_max_percent') using errcode = 'check_violation';
     end if;
-    if nullif(p_payload ->> 'section_id', '') is not null and not exists (select 1 from public.menu_sections s
-         where s.id = (p_payload ->> 'section_id')::uuid and s.vendor_id = p_vendor_id) then
-      raise exception 'offer section must be on this menu' using errcode = 'check_violation';
+    -- A section with no live item would read as "the whole menu": refused.
+    if nullif(p_payload ->> 'section_id', '') is not null and not exists (select 1 from public.menu_items i
+         where i.section_id = (p_payload ->> 'section_id')::uuid and i.vendor_id = p_vendor_id and i.removed_at is null) then
+      raise exception 'offer section must be on this menu with items' using errcode = 'check_violation';
     end if;
     if exists (select 1 from jsonb_array_elements_text(coalesce(p_payload -> 'item_ids', '[]')) x
                where not exists (select 1 from public.menu_items i where i.id = x::uuid and i.vendor_id = p_vendor_id))
@@ -426,7 +442,8 @@ begin
   if p_kind = 'radius' and coalesce((p_payload ->> 'km')::numeric, 0) not between 0.5 and public.max_delivery_km() then
     raise exception 'the delivery radius is 0.5-% km', public.max_delivery_km() using errcode = 'check_violation';
   end if;
-  if p_kind = 'boost_start' and (coalesce((p_payload ->> 'budget_usd')::numeric, 0) not between 5 and 500
+  if p_kind = 'boost_start' and (coalesce((p_payload ->> 'budget_usd')::numeric, 0)
+         not between (public.config_value('boost_budget_usd') ->> 'min')::numeric and (public.config_value('boost_budget_usd') ->> 'max')::numeric
        or coalesce(p_payload ->> 'audience', '') not in ('nearby', 'past_customers')
        or coalesce(p_payload ->> 'kind', 'sponsored') not in ('sponsored', 'broadcast')) then
     raise exception 'Boost needs a budget of $5-$500 and an audience (nearby or past customers)' using errcode = 'check_violation';
@@ -441,6 +458,8 @@ create function app_private.merchant_proposal_create(p_vendor_id uuid, p_kind pu
 language plpgsql security definer set search_path = ''
 as $$
 begin
+  -- Who may ask first, then what is asked (the base checks the role again).
+  perform app_private.order_actor(p_vendor_id, app_private.proposal_roles(p_kind), p_member_id);
   perform app_private.proposal_check_copilot(p_vendor_id, p_kind, coalesce(p_payload, '{}'));
   return app_private.merchant_proposal_create_base(p_vendor_id, p_kind, p_payload, p_source, p_member_id);
 end;
@@ -483,7 +502,7 @@ begin
       v_r := jsonb_build_object('restored', v_n);
     when 'stock_set' then
       update public.menu_items set daily_quantity = (p_p.payload ->> 'quantity')::int, daily_remaining = (p_p.payload ->> 'quantity')::int,
-        daily_date = (now() at time zone 'Asia/Beirut')::date, stock_tracked = true,
+        daily_date = current_date, stock_tracked = true,
         available = case when (p_p.payload ->> 'quantity')::int > 0 then true else available end
       where id = v_item and vendor_id = p_p.vendor_id;
     when 'item_add' then
@@ -513,14 +532,14 @@ begin
       update public.menu_items set available = false, removed_at = now(), daily_quantity = null, daily_remaining = null,
         daily_date = null, stock_tracked = false
       where id = v_item and vendor_id = p_p.vendor_id;
+      -- "Power back" must not bring it back either.
+      delete from app_private.power_hidden_items where item_id = v_item;
     when 'offer_create' then
-      insert into public.vendor_offers (vendor_id, kind, percent, item_ids, free_item_id, min_quantity, weekdays, from_time, to_time,
-        starts_at, ends_at, proposal_id)
+      insert into public.vendor_offers (vendor_id, kind, percent, section_id, item_ids, free_item_id, min_quantity, weekdays, from_time,
+        to_time, starts_at, ends_at, proposal_id)
       values (p_p.vendor_id, p_p.payload ->> 'kind', nullif(p_p.payload ->> 'percent', '')::numeric,
-        case when nullif(p_p.payload ->> 'section_id', '') is not null
-             then coalesce((select array_agg(i.id) from public.menu_items i where i.section_id = (p_p.payload ->> 'section_id')::uuid
-                            and i.removed_at is null), '{}')
-             else coalesce((select array_agg(x::uuid) from jsonb_array_elements_text(coalesce(p_p.payload -> 'item_ids', '[]')) x), '{}') end,
+        nullif(p_p.payload ->> 'section_id', '')::uuid,
+        coalesce((select array_agg(x::uuid) from jsonb_array_elements_text(coalesce(p_p.payload -> 'item_ids', '[]')) x), '{}'),
         nullif(p_p.payload ->> 'free_item_id', '')::uuid, coalesce((p_p.payload ->> 'min_quantity')::int, 1),
         (select array_agg(x::smallint) from jsonb_array_elements_text(p_p.payload -> 'weekdays') x),
         nullif(p_p.payload ->> 'from', '')::time, nullif(p_p.payload ->> 'to', '')::time,
@@ -824,6 +843,10 @@ begin
   if v_to is null or v_to !~ '^\+[1-9][0-9]{6,14}$' then
     return null;
   end if;
+  -- A free-form card reaches the owner only inside WhatsApp's 24-hour window (no template for suggestions).
+  if not exists (select 1 from app_private.whatsapp_last_inbound w where w.phone_e164 = v_to and w.at > now() - interval '23 hours') then
+    return null;
+  end if;
   insert into app_private.merchant_suggestions (vendor_id, key, day) values (p_vendor_id, p_key, v_day) on conflict do nothing;
   if not found then
     return null;
@@ -832,6 +855,11 @@ begin
     v_id := app_private.merchant_proposal_create(p_vendor_id, p_kind, p_payload, 'rules', null);
   exception when check_violation then
     return null; -- the suggestion no longer fits (the item left the menu, nothing to switch off)
+  when others then
+    -- One shop's unexpected error never stops the run for the others; the operators see it.
+    perform app_private.ops_alert('suggest:' || p_vendor_id || ':' || p_key, 'copilot_error', 'warning',
+      format('Copilot suggestion %s failed (%s: %s)', p_key, sqlstate, left(sqlerrm, 200)), null, p_vendor_id, '{}'::jsonb);
+    return null;
   end;
   update public.merchant_proposals set expires_at = now() + make_interval(mins => public.config_numeric('merchant_suggestion_ttl_min')::int)
   where id = v_id;
@@ -913,6 +941,8 @@ begin
   for v in select x.id, coalesce(x.name_ar, x.name_en) as name from public.vendors x where x.orderable and not x.is_test loop
     v_to := (select p.owner_mobile from public.vendor_private p where p.vendor_id = v.id);
     continue when v_to is null or v_to !~ '^\+[1-9][0-9]{6,14}$';
+    -- Free-form text needs the owner's 24-hour window; outside it the summary waits for next week.
+    continue when not exists (select 1 from app_private.whatsapp_last_inbound w where w.phone_e164 = v_to and w.at > now() - interval '23 hours');
     r := public.merchant_report(v.id, null, 'week');
     continue when coalesce((r ->> 'orders')::int, 0) = 0;
     perform app_private.outbox_add('weekly:' || v.id || ':' || to_char(now() at time zone 'Asia/Beirut', 'IYYY-IW'), null, v.id, 'whatsapp', 'reply', v_to,
@@ -938,6 +968,40 @@ revoke all on function public.merchant_menu_parts(uuid, uuid), public.merchant_r
 grant execute on function public.merchant_menu_parts(uuid, uuid), public.merchant_report(uuid, uuid, text), public.merchant_memory(uuid, uuid),
   public.merchant_fact_writes_in(uuid, text), public.vendor_staff_list(uuid, uuid) to service_role;
 revoke all on function app_private.vendor_offers_bump_version() from public;
+
+-- A substitution or a weight changes the food after placement (20261011170100, 20261011090200): the commission stays
+-- on the food after the offer. The offer itself stays as placed (merchant-funded, in the customer's favour).
+create function app_private.orders_fee_after_offer() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if new.offer_usd > 0 then
+    new.order_fee_usd := public.order_fee_usd(new.vendor_id, greatest(new.food_subtotal_usd - new.offer_usd, 0));
+  end if;
+  return new;
+end;
+$$;
+create trigger orders_fee_after_offer before update of food_subtotal_usd on public.orders
+  for each row when (new.food_subtotal_usd is distinct from old.food_subtotal_usd)
+  execute function app_private.orders_fee_after_offer();
+revoke all on function app_private.orders_fee_after_offer() from public;
+
+-- "Power back" restores what the power cut hid, except an item removed from the menu meanwhile.
+create or replace function app_private.vendor_power_on(p_vendor_id uuid) returns integer
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  n int;
+begin
+  update public.menu_items i set available = true
+  from app_private.power_hidden_items h
+  where h.item_id = i.id and h.vendor_id = p_vendor_id and not i.available and i.removed_at is null;
+  get diagnostics n = row_count;
+  delete from app_private.power_hidden_items where vendor_id = p_vendor_id;
+  update public.vendor_ops set power_off_since = null where vendor_id = p_vendor_id;
+  return n;
+end;
+$$;
 
 -- 10. The customer side (§20.4, §39.7): the best running offer comes off the food (merchant-funded: with cash on
 -- delivery the merchant simply collects less) before any customer credit; the commission is on the food after the
@@ -992,6 +1056,7 @@ begin
   -- The best running merchant offer (§20.4: merchant-funded, priced here from the server's lines).
   select f.offer_id, f.amount_usd into v_offer_id, v_offer_usd from app_private.offer_for_basket(v_basket.id) f;
   v_offer_usd := coalesce(v_offer_usd, 0);
+  update public.baskets set quoted_offer_usd = v_offer_usd, quoted_offer_id = v_offer_id where id = v_basket.id;
   select coalesce(sum(case when (l ->> 'has_empty')::boolean is false then (l ->> 'deposit_usd')::numeric * (l ->> 'quantity')::int else 0 end), 0)
     into v_deposit from jsonb_array_elements(v_view -> 'lines') l;
   if v_basket.fulfilment = 'delivery' then
@@ -1155,6 +1220,10 @@ begin
   end if;
   select f.offer_id, f.amount_usd into v_offer_id, v_offer_usd from app_private.offer_for_basket(v_basket.id) f;
   v_offer_usd := coalesce(v_offer_usd, 0);
+  -- The customer confirmed the total with the quoted offer: a different offer now is a new price, never a surprise.
+  if coalesce(v_basket.quoted_offer_usd, 0) <> v_offer_usd or v_basket.quoted_offer_id is distinct from v_offer_id then
+    return jsonb_build_object('status', 'repriced', 'offer_usd', v_offer_usd);
+  end if;
   select coalesce(sum((l ->> 'container_deposit_usd')::numeric), 0), bool_or((l ->> 'estimated')::boolean)
     into v_deposit, v_weighted from jsonb_array_elements(v_priced -> 'lines') l;
 
