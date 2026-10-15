@@ -21,8 +21,11 @@ describe("menu sources (§39.4 source 2)", () => {
     readFileSync("supabase/seed/shouf/menu_sources_extra.csv", "utf8"),
   );
 
-  it("takes the 53 links from the merchant file plus the extra Omega page", () => {
-    expect(list).toHaveLength(54);
+  it("takes the 53 links from the merchant file plus the extra pages (Omega, and the 8 Rasheed found)", () => {
+    expect(list).toHaveLength(62);
+    expect(list.find((s) => s.name === "Safa Chicken")?.adapter).toBe("oddmenu");
+    expect(list.find((s) => s.name === "BUN BROS")?.adapter).toBe("foodbooking");
+    expect(list.find((s) => s.name === "Sushi Bell" && s.adapter)?.adapter).toBe("restbits");
     expect(list.find((s) => s.name === "INDINER time")).toMatchObject({
       adapter: "omega",
       url: "https://menu.omegasoftware.ca/indinertime",

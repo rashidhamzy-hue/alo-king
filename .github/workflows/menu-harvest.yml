@@ -23,6 +23,10 @@ on:
         description: At most this many photos to classify (empty for all)
         type: string
         default: ""
+      only:
+        description: Only these merchants (place ids, comma separated); their menus are merged into the committed drafts and the shapes file gets redacted samples
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -54,6 +58,8 @@ jobs:
       - name: pdftotext
         run: command -v pdftotext || (sudo apt-get update && sudo apt-get install -y poppler-utils)
       - name: Source 2, menu links (capture, then read)
+        env:
+          ONLY: ${{ inputs.only }}
         run: |
           node --experimental-strip-types --no-warnings scripts/menus/harvest.ts capture harvest-raw
           node --experimental-strip-types --no-warnings scripts/menus/harvest.ts parse harvest-raw supabase/seed/shouf/harvest | tee -a "$GITHUB_STEP_SUMMARY"

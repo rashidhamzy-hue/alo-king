@@ -35,10 +35,116 @@ const MAX_JSON_BYTES = 2_000_000;
 const MAX_PDF_BYTES = 15_000_000;
 
 export function sources(): MenuSource[] {
-  return menuSources(
+  const all = menuSources(
     readFileSync(MERCHANTS, "utf8"),
     existsSync(EXTRA) ? readFileSync(EXTRA, "utf8") : null,
   );
+  // ONLY=<place id>,<place id>: harvest just these merchants (the parse step then merges into the committed drafts).
+  const only = onlyIds();
+  return only.size ? all.filter((s) => only.has(s.place_id)) : all;
+}
+
+export function onlyIds(): Set<string> {
+  return new Set(
+    (process.env.ONLY ?? "")
+      .split(/[\s,]+/)
+      .map((x) => x.trim())
+      .filter(Boolean),
+  );
+}
+
+/**
+ * Runs inside the menu page (page.evaluate): every element whose own text is one price, grown to the largest block
+ * that still holds only that price (the item's card), with the card's text, its picture (an <img> or a CSS
+ * background) and the nearest heading before it (the section). Works on plain sites and on platforms whose menu is
+ * rendered HTML; the parser reads the cards with fromCards().
+ */
+export function extractCards() {
+  const PRICE =
+    /^[\s(]*(?:(?:\$|usd|us\$|lbp|l\.?l\.?|ل\.?ل\.?)\s*)?\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{1,2})?\s*(?:\$|usd|lbp|l\.?l\.?|ل\.?ل\.?|ليرة|k)?[\s)]*$/i;
+  const ownText = (e: Element) =>
+    Array.from(e.childNodes)
+      .filter((n) => n.nodeType === 3)
+      .map((n) => n.textContent)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  const isPrice = (e: Element) => {
+    const t =
+      (e.children.length ? ownText(e) : (e.textContent || "").replace(/\s+/g, " ").trim()) || "";
+    return t.length > 0 && t.length <= 24 && /\d/.test(t) && PRICE.test(t);
+  };
+  const all = Array.from(document.querySelectorAll("body *")).filter(
+    (e) => !/^(SCRIPT|STYLE|NOSCRIPT|SVG|OPTION|SELECT|INPUT|TEXTAREA)$/.test(e.tagName),
+  );
+  const prices = all.filter((e) => isPrice(e) && e.getClientRects().length);
+  const count = (root: Element) => {
+    let n = 0;
+    for (const p of prices) if (root.contains(p)) n++;
+    return n;
+  };
+  const picture = (root: Element) => {
+    for (const img of Array.from(root.querySelectorAll("img"))) {
+      const src =
+        img.currentSrc ||
+        img.getAttribute("src") ||
+        img.getAttribute("data-src") ||
+        (img.getAttribute("srcset") || "").split(/\s+/)[0];
+      if (!src || src.startsWith("data:")) continue;
+      if (img.naturalWidth && img.naturalWidth < 80) continue;
+      return new URL(src, location.href).toString();
+    }
+    for (const el of [root, ...Array.from(root.querySelectorAll("*"))].slice(0, 60)) {
+      const bg = getComputedStyle(el).backgroundImage;
+      const m = bg && bg.match(/url\(["']?([^"')]+)["']?\)/);
+      if (m && !m[1].startsWith("data:")) return new URL(m[1], location.href).toString();
+    }
+    return null;
+  };
+  const headings = all.filter(
+    (e) => /^H[1-6]$/.test(e.tagName) || e.getAttribute("role") === "heading",
+  );
+  const sectionOf = (el: Element) => {
+    let best: Element | null = null;
+    for (const h of headings) {
+      if (h.contains(el)) continue;
+      if (h.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) best = h;
+      else break;
+    }
+    return best ? (best.textContent || "").replace(/\s+/g, " ").trim().slice(0, 80) : null;
+  };
+  const roots: { card: Element; price: Element }[] = [];
+  const seen = new Set<Element>();
+  for (const p of prices) {
+    let card: Element = p;
+    while (
+      card.parentElement &&
+      card.parentElement !== document.body &&
+      count(card.parentElement) <= 1
+    )
+      card = card.parentElement;
+    if (seen.has(card)) continue;
+    seen.add(card);
+    roots.push({ card, price: p });
+    if (roots.length >= 1500) break;
+  }
+  // A heading inside an item's card is the item's name, not a section.
+  const inCard = (h: Element) => roots.some((r) => r.card.contains(h));
+  for (let k = headings.length - 1; k >= 0; k--) if (inCard(headings[k]!)) headings.splice(k, 1);
+  const cards: { section: string | null; text: string; price: string; image: string | null }[] = [];
+  for (const { card, price } of roots) {
+    const text = ((card as HTMLElement).innerText || card.textContent || "")
+      .replace(/[ \t]+/g, " ")
+      .trim();
+    if (!text || text.length > 600) continue;
+    cards.push({
+      section: sectionOf(card),
+      text,
+      price: (price.textContent || "").replace(/\s+/g, " ").trim(),
+      image: picture(card),
+    });
+  }
+  return cards;
 }
 
 type Meta = {
@@ -134,10 +240,21 @@ export async function capture(rawDir: string, list: MenuSource[] = sources()) {
           const res = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
           await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
           await page.waitForTimeout(1500);
-          // Lazy menus: scroll once to the bottom.
-          await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
+          // Lazy menus and lazy pictures: scroll down a screen at a time, then back to the top.
+          for (let k = 0; k < 60; k++) {
+            const more = await page
+              .evaluate(() => {
+                window.scrollBy(0, window.innerHeight);
+                return window.scrollY + window.innerHeight < document.body.scrollHeight;
+              })
+              .catch(() => false);
+            await page.waitForTimeout(250);
+            if (!more) break;
+          }
           await page.waitForTimeout(1000);
           const html = await page.content();
+          const cards = await page.evaluate(extractCards).catch(() => []);
+          writeFileSync(join(dir, `cards-${n}.json`), JSON.stringify(cards));
           writeFileSync(join(dir, `page-${n}.html`), html.slice(0, 3_000_000));
           writeFileSync(
             join(dir, `page-${n}.txt`),
@@ -237,6 +354,59 @@ export function readCapture(dir: string) {
   return { meta, candidates, best: bestDraft(candidates) };
 }
 
+/**
+ * A sample for writing an adapter, with contact details and key-like strings taken out (the session F incident: never
+ * commit a page's emails, phones or platform keys): emails, phone numbers, query strings and long tokens.
+ */
+export function redact(s: string): string {
+  return s
+    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "<email>")
+    .replace(/(https?:\/\/[^\s?"'#]+)[?#][^\s"']*/g, "$1")
+    .replace(/\+?\d[\d\s-]{6,}\d/g, (m) => (m.replace(/\D/g, "").length >= 7 ? "<phone>" : m))
+    .replace(/\b(?=[\w-]*\d)(?=[\w-]*[A-Za-z])[\w-]{24,}\b/g, "<token>");
+}
+
+const NAMEISH = /^(name|title|item_?name|label|product_?name)/i;
+const PRICEISH = /price|amount|cost/i;
+
+/** The first menu-like object in a JSON answer (one of at least two with a name and a price key), values redacted. */
+export function menuSample(v: unknown): string | null {
+  let found: string | null = null;
+  const walk = (x: unknown, path: string, depth: number) => {
+    if (found || depth > 12) return;
+    if (Array.isArray(x)) {
+      const objs = x.filter((o) => o && typeof o === "object" && !Array.isArray(o)) as Record<
+        string,
+        unknown
+      >[];
+      const items = objs.filter(
+        (o) =>
+          Object.keys(o).some((k) => NAMEISH.test(k)) &&
+          Object.keys(o).some((k) => PRICEISH.test(k)),
+      );
+      if (items.length >= 2) {
+        const o = items[0];
+        const vals = Object.entries(o)
+          .slice(0, 30)
+          .map(([k, val]) =>
+            typeof val === "string"
+              ? `${k}=${JSON.stringify(redact(val.slice(0, 80)))}`
+              : typeof val === "number" || typeof val === "boolean" || val === null
+                ? `${k}=${String(val)}`
+                : `${k}=${shape(val, 1).slice(0, 160)}`,
+          );
+        found = `${path || "$"} (${items.length} of ${x.length}): {${vals.join(", ")}}`;
+        return;
+      }
+      x.slice(0, 5).forEach((y, i) => walk(y, `${path}[${i}]`, depth + 1));
+    } else if (x && typeof x === "object") {
+      for (const [k, y] of Object.entries(x)) walk(y, `${path}.${k}`, depth + 1);
+    }
+  };
+  walk(v, "", 0);
+  return found;
+}
+
 /** The key skeleton of a JSON value, two levels deep, no values: enough to write an adapter for a new platform. */
 export function shape(v: unknown, depth = 0): string {
   if (Array.isArray(v)) return `[${v.length ? shape(v[0], depth) : ""}]`;
@@ -253,6 +423,10 @@ export function shape(v: unknown, depth = 0): string {
 
 function parse(rawDir: string, outDir: string) {
   const list = sources();
+  // ONLY: a run for a few merchants adds detailed (redacted) samples to the shapes file and merges its menus into the
+  // committed drafts instead of replacing the whole file.
+  const only = onlyIds();
+  const detail = only.size > 0;
   const byPlace = new Map(list.map((s) => [s.place_id, s]));
   const menus: Harvested[] = [];
   const lines: string[] = [];
@@ -282,6 +456,38 @@ function parse(rawDir: string, outDir: string) {
         shapes.push(
           `- json ${jsonFromSite(j.url, meta.url) ? "own" : "foreign"} ${j.url.split("?")[0].slice(0, 120)} ${sk}`,
         );
+        if (detail && jsonFromSite(j.url, meta.url)) {
+          try {
+            const sample = menuSample(JSON.parse(readFileSync(join(rawDir, d, j.file), "utf8")));
+            if (sample) shapes.push(`  - item sample ${sample.slice(0, 900)}`);
+          } catch {
+            // not JSON
+          }
+        }
+      }
+      if (detail) {
+        for (const f of readdirSync(join(rawDir, d)).filter((x) => /^cards-\d+\.json$/.test(x))) {
+          const cards = JSON.parse(readFileSync(join(rawDir, d, f), "utf8")) as {
+            section: string | null;
+            text: string;
+            image: string | null;
+          }[];
+          shapes.push(
+            `- ${f}: ${cards.length} priced blocks, ${cards.filter((c) => c.image).length} with a picture, ${new Set(cards.map((c) => c.section)).size} headings`,
+          );
+          for (const c of cards.slice(0, 8))
+            shapes.push(
+              `  - [${redact(c.section ?? "-")}] ${redact(c.text.replace(/\s*\n\s*/g, " / ").slice(0, 140))} | ${c.image ? redact(c.image).slice(0, 140) : "no picture"}`,
+            );
+        }
+        for (const f of readdirSync(join(rawDir, d)).filter((x) => /^page-\d+\.txt$/.test(x))) {
+          const lines = readFileSync(join(rawDir, d, f), "utf8")
+            .split(/\n/)
+            .map((l) => l.trim())
+            .filter((l) => /\d/.test(l) && l.length <= 90);
+          shapes.push(`- ${f}: ${lines.length} short lines with a number; the first ones:`);
+          for (const l of lines.slice(0, 20)) shapes.push(`  - ${redact(l)}`);
+        }
       }
       shapes.push("");
     }
@@ -299,9 +505,17 @@ function parse(rawDir: string, outDir: string) {
           : scanned
             ? `not read: ${scanned} PDF(s) without text (scanned; the photo reader needs API credit)`
             : `not read: no menu with prices found (best ${most} priced items; ${meta.json.length} JSON responses)`;
-    } else if (menus.some((m) => m.place_id === meta.place_id)) {
-      line = "second link: the first one already gave a menu";
+    } else if (
+      menus.some(
+        (m) =>
+          m.place_id === meta.place_id &&
+          m.sections.reduce((n, x) => n + x.items.length, 0) >= allItems(best.draft),
+      )
+    ) {
+      line = "second link: the other one gave a bigger menu";
     } else {
+      const k = menus.findIndex((m) => m.place_id === meta.place_id);
+      if (k >= 0) menus.splice(k, 1);
       menus.push({
         place_id: meta.place_id,
         vendor_name: s.name,
@@ -324,10 +538,50 @@ function parse(rawDir: string, outDir: string) {
   }
   mkdirSync(outDir, { recursive: true });
   const harvested = new Date().toISOString().slice(0, 10);
-  writeFileSync(
-    join(outDir, "05_harvested_menus.json"),
-    JSON.stringify({ harvested, menus }, null, 1) + "\n",
-  );
+  const outFile = join(outDir, "05_harvested_menus.json");
+  if (only.size && existsSync(outFile)) {
+    // Merge: the other merchants' committed menus stay as they are.
+    const prev = JSON.parse(readFileSync(outFile, "utf8")) as {
+      harvested: string;
+      menus: Harvested[];
+    };
+    const kept = prev.menus.filter((m) => !only.has(m.place_id));
+    writeFileSync(
+      outFile,
+      JSON.stringify({ harvested: prev.harvested, menus: [...kept, ...menus] }, null, 1) + "\n",
+    );
+    const names = new Set(list.map((s) => s.name));
+    const keepLines = (file: string, block: boolean) => {
+      if (!existsSync(file)) return [];
+      const out: string[] = [];
+      let skipping = false;
+      for (const l of readFileSync(file, "utf8").split("\n")) {
+        if (block && l.startsWith("## "))
+          skipping = [...names].some((n) => l.startsWith(`## ${n} (`));
+        if (skipping) continue;
+        if (!block && [...names].some((n) => l.startsWith(`- ${n}: `))) continue;
+        out.push(l);
+      }
+      return out;
+    };
+    writeFileSync(
+      join(outDir, "harvest-report.md"),
+      [
+        ...keepLines(join(outDir, "harvest-report.md"), false),
+        `## Harvested again ${harvested} (${only.size} merchants)`,
+        "",
+        ...rows.map((r) => `- ${r.name}: ${r.line}`),
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      join(outDir, "harvest-shapes.md"),
+      [...keepLines(join(outDir, "harvest-shapes.md"), true), ...shapes.slice(2)].join("\n"),
+    );
+    console.log(`harvest (merged): ${menus.length} menus for ${only.size} merchants`);
+    return;
+  }
+  writeFileSync(outFile, JSON.stringify({ harvested, menus }, null, 1) + "\n");
   lines.push(
     "# Menu harvest report (DECISIONS §39.4 source 2)",
     "",
