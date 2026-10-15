@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  attachImages,
   bestDraft,
+  fromCards,
   currencyWord,
   driveDownloadUrl,
   fromJson,
@@ -14,6 +16,7 @@ import {
   pricedItems,
 } from "./adapters.ts";
 import { classify, menuSources } from "./sources.ts";
+import { childLinks, htmlHints, menuSample, redact } from "./harvest.ts";
 
 describe("menu sources (§39.4 source 2)", () => {
   const list = menuSources(
@@ -561,5 +564,213 @@ describe("harvested drafts in the Shouf load", async () => {
       "supabase/seed/shouf/harvest/06_photo_menus.json",
     );
     expect(p.source_url).toBe("supabase/seed/shouf/harvest/06_photo_menus.json#ChIJy");
+  });
+});
+
+describe("item cards with pictures (Rasheed's 8 menus)", () => {
+  const img = (n: string) => `https://rest.thrubits.com/uploads/restorants/${n}_medium.jpg`;
+  it("reads Thrubits cards: name, description, price, section and the item's own picture", () => {
+    const d = fromCards([
+      { section: "Antipasti", text: "Edamame\n$5.00", price: "$5.00", image: img("a") },
+      {
+        section: "New items",
+        text: "Blue bell\nSalmon and Tuna wrap, mango.\n$9.40",
+        price: "$9.40",
+        image: img("b"),
+      },
+      { section: "Antipasti", text: "Truffle fries\n$7.00\nAdd", price: "$7.00", image: null },
+    ]);
+    expect(d.sections.map((s) => s.name_en)).toEqual(["Antipasti", "New items"]);
+    expect(d.sections[0]!.items[0]).toMatchObject({
+      name_en: "Edamame",
+      price: 5,
+      currency: "USD",
+      image_url: img("a"),
+    });
+    expect(d.sections[0]!.items[1]).not.toHaveProperty("image_url");
+    expect(d.sections[1]!.items[0]).toMatchObject({
+      name_en: "Blue bell",
+      description: "Salmon and Tuna wrap, mango.",
+    });
+  });
+
+  it("drops badges, buttons, navigation and ratings; counts a featured item once; never a shared logo", () => {
+    const logo = "https://west-diner.pages.dev/assets/west-diner-wordmark.png";
+    const d = fromCards([
+      {
+        section: null,
+        text: "Home\nMenu\nAbout\n+961 3 123 456\n1:00",
+        price: "1:00",
+        image: logo,
+      },
+      { section: "Highlights", text: "5.0\n29 reviews", price: "5.0", image: null },
+      {
+        section: "Big Flavor",
+        text: "SIGNATURE\nClassic Icon\n$7.5\nCiabatta, smashed beef.\nView on menu",
+        price: "$7.5",
+        image: "https://west-diner.pages.dev/assets/classic-icon.png",
+      },
+      ...["Pesto Chicken", "Classic Icon", "Signature Chicken", "Zinger"].map((n) => ({
+        section: "Subs",
+        text: `${n}\nSignature\n$7.5\nCiabatta bread.`,
+        price: "$7.5",
+        image: n === "Zinger" ? logo : `https://west-diner.pages.dev/assets/${n}.png`,
+      })),
+      { section: "Subs", text: "Wrap\n$6", price: "$6", image: logo },
+      { section: "Subs", text: "Fries\n$3", price: "$3", image: logo },
+    ]);
+    const names = d.sections.flatMap((s) => s.items.map((i) => i.name_en));
+    expect(names).toEqual([
+      "Pesto Chicken",
+      "Classic Icon",
+      "Signature Chicken",
+      "Zinger",
+      "Wrap",
+      "Fries",
+    ]);
+    expect(d.sections.map((s) => s.name_en)).toEqual(["Subs"]);
+    const items = d.sections[0]!.items as { name_en?: string; image_url?: string }[];
+    expect(items.find((i) => i.name_en === "Classic Icon")?.image_url).toContain("Classic Icon");
+    expect(items.find((i) => i.name_en === "Zinger")).not.toHaveProperty("image_url");
+  });
+
+  it("makes sizes priced one by one a Size choice, each adding its difference (LBP as printed)", () => {
+    const d = fromCards(
+      ["s 400,000", "m 600,000", "l 800,000"].map((x) => {
+        const [z, p] = x.split(" ");
+        return {
+          section: "Shakes",
+          text: `Oreo Shake ${z}\n${p} L.L.`,
+          price: `${p} L.L.`,
+          image: "https://rest.thrubits.com/uploads/restorants/oreo_medium.jpg",
+        };
+      }),
+    );
+    expect(d.sections[0]!.items).toHaveLength(1);
+    expect(d.sections[0]!.items[0]).toMatchObject({
+      name_en: "Oreo Shake",
+      image_url: "https://rest.thrubits.com/uploads/restorants/oreo_medium.jpg",
+      price: 400000,
+      currency: "LBP",
+      options: [
+        {
+          name: "Size",
+          min: 1,
+          max: 1,
+          choices: [
+            { name: "s", price: 0, currency: "LBP" },
+            { name: "m", price: 200000, currency: "LBP" },
+            { name: "l", price: 400000, currency: "LBP" },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("reads pictures, sizes and option groups from platform JSON (GloriaFood)", () => {
+    const d = fromJson(
+      {
+        currency: "USD",
+        categories: [
+          {
+            name: "Burgers",
+            items: [
+              {
+                name: "Classic",
+                price: 0,
+                picture: "/pictures/classic.jpg",
+                sizes: [
+                  { name: "Single", price: 6 },
+                  { name: "Double", price: 8.5 },
+                ],
+                groups: [
+                  {
+                    name: "Sauce",
+                    force_min: 1,
+                    force_max: 1,
+                    options: [
+                      { name: "BBQ", price: 0 },
+                      { name: "Cheddar", price: 1 },
+                    ],
+                  },
+                ],
+              },
+              { name: "Chicken", price: 7, picture: "data:image/png;base64,xx" },
+            ],
+          },
+        ],
+      },
+      "https://www.fbgcdn.com/api/menu",
+    );
+    expect(d.sections[0]!.items[0]).toMatchObject({
+      name_en: "Classic",
+      price: 6,
+      currency: "USD",
+      image_url: "https://www.fbgcdn.com/pictures/classic.jpg",
+      options: [
+        {
+          name: "Size",
+          choices: [
+            { name: "Single", price: 0 },
+            { name: "Double", price: 2.5 },
+          ],
+        },
+        {
+          name: "Sauce",
+          min: 1,
+          max: 1,
+          choices: [{ name: "BBQ" }, { name: "Cheddar", price: 1 }],
+        },
+      ],
+    });
+    expect(d.sections[0]!.items[1]).not.toHaveProperty("image_url");
+  });
+
+  it("puts pictures back after validation by section and name", () => {
+    const d = attachImages(
+      {
+        sections: [
+          { name_en: "A", items: [{ name_en: "X", price: 1, currency: "USD", confidence: 1 }] },
+        ],
+        warnings: [],
+      },
+      [{ names: ["x"], image: "https://e.example/x.jpg", section: "a" }],
+    );
+    expect(d.sections[0]!.items[0]).toMatchObject({ image_url: "https://e.example/x.jpg" });
+  });
+});
+
+describe("harvest diagnostics never carry contact details or keys", () => {
+  it("redacts emails, phones, query strings and tokens", () => {
+    const t = redact(
+      "Call +961 3 123 456 or 71123456, mail a.b@shop.com, https://x.com/m?key=SECRET, tok A1b2C3d4E5f6G7h8I9j0K1l2M3",
+    );
+    expect(t).not.toMatch(/123 456|71123456|a\.b@|SECRET|A1b2C3d4/);
+    expect(redact("$7.5 and 150,000 L.L.")).toBe("$7.5 and 150,000 L.L.");
+  });
+  it("samples a menu item, follows child pages and lists page hints", () => {
+    expect(
+      menuSample({
+        menus: [
+          {
+            items: [
+              { name: "A", price: 1, email: "x@y.co" },
+              { name: "B", price: 2 },
+            ],
+          },
+        ],
+      }),
+    ).toBe('.menus[0].items (2 of 2): {name="A", price=1, email="<email>"}');
+    expect(
+      childLinks(
+        '<a href="/ar/p/shop/menu-1">x</a><a href="/ar/p/other">y</a><a href="https://e.com/ar/p/shop/2">z</a>',
+        "https://oddmenu.com/ar/p/shop",
+      ),
+    ).toEqual(["https://oddmenu.com/ar/p/shop/menu-1"]);
+    expect(
+      htmlHints(
+        '<iframe src="https://menu.example/x?k=1"></iframe><img src="/a.jpg" alt="Menu">',
+      ).join("\n"),
+    ).toMatch(/iframe https:\/\/menu\.example\/x[\s\S]*1 <img>/);
   });
 });

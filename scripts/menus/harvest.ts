@@ -15,10 +15,13 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "node:path";
 import {
   allItems,
+  attachImages,
   bestDraft,
   driveDownloadUrl,
   fromJson,
+  fromCards,
   fromJsonLd,
+  fromOddmenu,
   fromOmega,
   fromProductCards,
   fromText,
@@ -26,6 +29,7 @@ import {
   jsonFromSite,
   menuLinks,
   pricedItems,
+  type Card,
 } from "./adapters.ts";
 import { menuSources, type MenuSource } from "./sources.ts";
 
@@ -314,6 +318,9 @@ export function readCapture(dir: string) {
   };
   // Only the page's own JSON: ads, analytics and feature flags are not the menu.
   const own = meta.json.filter((j) => jsonFromSite(j.url, meta.url));
+  const odd = own.find((j) => /api\.oddmenu\.com\/place\//.test(j.url));
+  if (odd)
+    candidates.push({ method: `oddmenu ${odd.url}`, draft: fromOddmenu(read(odd.file), odd.url) });
   const omegaMenu = own.find((j) => /omegasoftware\.ca\/getRestaurantMenu/.test(j.url));
   if (omegaMenu) {
     const data = own.find((j) => /omegasoftware\.ca\/getRestaurantData/.test(j.url));
@@ -326,7 +333,7 @@ export function readCapture(dir: string) {
   for (const j of own) {
     const v = read(j.file);
     if (v === undefined) continue;
-    candidates.push({ method: `json ${j.url}`, draft: fromJson(v) });
+    candidates.push({ method: `json ${j.url}`, draft: fromJson(v, j.url) });
     // Odoo snippets answer JSON-RPC with HTML product cards inside.
     const walk = (x: unknown): void => {
       if (typeof x === "string" && x.includes("oe_product_cart")) cards.push(x);
@@ -354,7 +361,33 @@ export function readCapture(dir: string) {
       method: `pdf ${p.url}`,
       draft: fromText(readFileSync(join(dir, p.file.replace(/\.pdf$/, ".txt")), "utf8")),
     });
-  return { meta, candidates, best: bestDraft(candidates) };
+  // The rendered page's item cards, with their pictures.
+  const pageCards: Card[] = [];
+  for (const f of readdirSync(dir).filter((x) => /^cards-\d+\.json$/.test(x))) {
+    try {
+      const list = JSON.parse(readFileSync(join(dir, f), "utf8")) as Card[];
+      candidates.push({ method: `cards ${f}`, draft: fromCards(list) });
+      pageCards.push(...list);
+    } catch {
+      // an unreadable capture
+    }
+  }
+  const best = bestDraft(candidates);
+  // A menu read from JSON without pictures takes them from the page's cards (same item names).
+  if (best && !best.method.startsWith("cards") && pageCards.length) {
+    const fromPage = fromCards(pageCards);
+    best.draft = attachImages(
+      best.draft,
+      fromPage.sections.flatMap((s) =>
+        s.items.map((i) => ({
+          names: [i.name_en, i.name_ar, i.name_fr].filter((n): n is string => !!n),
+          image: (i as { image_url?: string }).image_url ?? null,
+          section: s.name_en ?? s.name_ar ?? s.name_fr ?? "",
+        })),
+      ),
+    );
+  }
+  return { meta, candidates, best };
 }
 
 /**
@@ -410,6 +443,23 @@ export function menuSample(v: unknown): string | null {
   return found;
 }
 
+/** Every key that names a currency, with its value (a menu's prices are useless without it). */
+export function currencyHints(v: unknown): string[] {
+  const out: string[] = [];
+  const walk = (x: unknown, path: string, depth: number) => {
+    if (out.length >= 12 || depth > 10) return;
+    if (Array.isArray(x)) x.slice(0, 3).forEach((y, i) => walk(y, `${path}[${i}]`, depth + 1));
+    else if (x && typeof x === "object")
+      for (const [k, y] of Object.entries(x)) {
+        if (/curr/i.test(k) && (typeof y === "string" || typeof y === "number"))
+          out.push(`${path}.${k}=${JSON.stringify(redact(String(y)).slice(0, 20))}`);
+        else walk(y, `${path}.${k}`, depth + 1);
+      }
+  };
+  walk(v, "", 0);
+  return out;
+}
+
 /** The key skeleton of a JSON value, two levels deep, no values: enough to write an adapter for a new platform. */
 export function shape(v: unknown, depth = 0, maxDepth = 2, maxKeys = 12): string {
   if (Array.isArray(v)) return `[${v.length ? shape(v[0], depth, maxDepth, maxKeys) : ""}]`;
@@ -442,6 +492,18 @@ export function htmlHints(html: string): string[] {
     .filter((l) => /menu|carte|منيو|قائمة|\/m\/|\/p\/|category/i.test(l));
   if (links.length) out.push(`menu-like links: ${[...new Set(links)].slice(0, 15).join(" | ")}`);
   if (/<canvas\b/i.test(html)) out.push("has <canvas>");
+  const paths = [...html.matchAll(/<a\b[^>]*href=["'](\/[^"'#?]*|https?:\/\/[^"'#?]+)/gi)].map(
+    (m) => m[1]!,
+  );
+  out.push(
+    `links: ${[...new Set(paths)]
+      .slice(0, 40)
+      .map((p) => redact(p).slice(0, 80))
+      .join(" ")}`,
+  );
+  const clickable = (html.match(/onclick=|data-(target|toggle|bs-toggle|category|id)=/gi) ?? [])
+    .length;
+  if (clickable) out.push(`${clickable} click handlers or data-target attributes`);
   return out;
 }
 
@@ -501,8 +563,11 @@ function parse(rawDir: string, outDir: string) {
         );
         if (detail && jsonFromSite(j.url, meta.url)) {
           try {
-            const sample = menuSample(JSON.parse(readFileSync(join(rawDir, d, j.file), "utf8")));
+            const v = JSON.parse(readFileSync(join(rawDir, d, j.file), "utf8"));
+            const sample = menuSample(v);
             if (sample) shapes.push(`  - item sample ${sample.slice(0, 900)}`);
+            const cur = currencyHints(v);
+            if (cur.length) shapes.push(`  - currency keys ${cur.join("; ")}`);
           } catch {
             // not JSON
           }

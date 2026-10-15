@@ -41,8 +41,55 @@ export function sizedImageUrl(url: string): string {
   return u.toString();
 }
 
+/** Width and height of a PNG, JPEG or WebP from its header; null when it cannot be read. */
+export function imageSize(b: Uint8Array): { w: number; h: number } | null {
+  const u16be = (i: number) => (b[i]! << 8) | b[i + 1]!;
+  const u32be = (i: number) =>
+    ((b[i]! << 24) >>> 0) + (b[i + 1]! << 16) + (b[i + 2]! << 8) + b[i + 3]!;
+  if (b.length > 24 && b[0] === 0x89 && b[1] === 0x50) return { w: u32be(16), h: u32be(20) };
+  if (b.length > 4 && b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) return null;
+      const m = b[i + 1]!;
+      // SOF0-SOF15 except DHT (C4), JPG (C8) and DAC (CC) carry the frame size.
+      if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc)
+        return { h: u16be(i + 5), w: u16be(i + 7) };
+      i += 2 + u16be(i + 2);
+    }
+    return null;
+  }
+  if (b.length > 30 && String.fromCharCode(...b.slice(8, 12)) === "WEBP") {
+    const kind = String.fromCharCode(...b.slice(12, 16));
+    if (kind === "VP8 ")
+      return { w: (b[26]! | (b[27]! << 8)) & 0x3fff, h: (b[28]! | (b[29]! << 8)) & 0x3fff };
+    if (kind === "VP8L")
+      return {
+        w: 1 + (((b[22]! & 0x3f) << 8) | b[21]!),
+        h: 1 + (((b[24]! & 0x0f) << 10) | (b[23]! << 2) | ((b[22]! & 0xc0) >> 6)),
+      };
+    if (kind === "VP8X")
+      return {
+        w: 1 + (b[24]! | (b[25]! << 8) | (b[26]! << 16)),
+        h: 1 + (b[27]! | (b[28]! << 8) | (b[29]! << 16)),
+      };
+  }
+  return null;
+}
+
+// Meta's catalogue wants item images of at least 500 × 500.
+export const MIN_SIDE = 500;
+
+/** A small picture centred on an 800 × 800 white tile (the whole picture shows, nothing is cropped). */
+export function framedSvg(bytes: Uint8Array, type: string): string {
+  const data = `data:${type};base64,${Buffer.from(bytes).toString("base64")}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="800" height="800" viewBox="0 0 800 800"><rect width="800" height="800" fill="#ffffff"/><image x="0" y="0" width="800" height="800" preserveAspectRatio="xMidYMid meet" xlink:href="${data}"/></svg>`;
+}
+
 /** What one item needs: nothing (unchanged), its website image, or a drawing; with the origin hash that decides it. */
-export function plan(item: TodoItem): { kind: "merchant_site" | "illustrative"; hash: string } | null {
+export function plan(
+  item: TodoItem,
+): { kind: "merchant_site" | "illustrative"; hash: string } | null {
   const kind = item.image_url ? "merchant_site" : "illustrative";
   const hash =
     kind === "merchant_site"
@@ -132,8 +179,21 @@ async function main() {
           if (!res.ok || !["image/jpeg", "image/png", "image/webp"].includes(type))
             throw new Error(`image ${res.status} ${type}`);
           body = new Uint8Array(await res.arrayBuffer());
-          if (body.byteLength > MAX_BYTES) throw new Error("image too large");
+          if (body.byteLength > 8 * MAX_BYTES) throw new Error("image too large");
           ext = type === "image/jpeg" ? "jpg" : type === "image/webp" ? "webp" : "png";
+          const size = imageSize(body);
+          // Too small for Meta (or unreadable): framed on an 800 × 800 tile, the whole picture kept.
+          if (!size || Math.min(size.w, size.h) < MIN_SIDE || body.byteLength > MAX_BYTES) {
+            // resvg draws embedded PNG and JPEG only: a small WebP stays without a photo (the catalogue draws a tile).
+            if (type === "image/webp")
+              throw new Error(`webp too small to frame ${JSON.stringify(size)}`);
+            body = new resvg.Resvg(framedSvg(body, type), { fitTo: { mode: "width", value: 800 } })
+              .render()
+              .asPng();
+            ext = "png";
+            type = "image/png";
+            if (body.byteLength > MAX_BYTES) throw new Error("framed image too large");
+          }
         } else {
           const svg = illustrationSvg({ ...item, category: categoryOf(item) });
           body = new resvg.Resvg(svg, {
