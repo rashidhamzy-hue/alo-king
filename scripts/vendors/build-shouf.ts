@@ -39,8 +39,9 @@ const curated = [
   ...(owner ? ownerDrafts(owner) : []),
 ];
 // Harvested menus (§39.4 sources 2-3, supabase/seed/shouf/harvest/, next to source/): a link's menu first, then one
-// read from the seed photos; never for a merchant that already has a curated draft (03, 04), and never for a listing
-// the owner file marks as a duplicate.
+// read from the seed photos; never for a listing the owner file marks as a duplicate. A merchant with a curated draft
+// (03, 04) keeps it unless the harvested menu has more items (Rasheed, 15 October: a full online menu replaces the
+// short one).
 const harvestDir = join(src, "..", "harvest");
 const harvested = [
   ["05_harvested_menus.json", "supabase/seed/shouf/harvest/05_harvested_menus.json"],
@@ -56,8 +57,15 @@ for (const h of harvested) {
   // A harvested menu for a place id no longer in the file is skipped with a note, never a failed load.
   if (!knownIds.has(h.place_id))
     console.error(`harvested menu for an unknown place_id skipped: ${h.vendor_name}`);
-  else if (!drafts.some((d) => d.place_id === h.place_id) && !exclusionsHave(h.place_id))
-    drafts.push(h);
+  else if (exclusionsHave(h.place_id)) continue;
+  else {
+    const k = drafts.findIndex((d) => d.place_id === h.place_id);
+    if (k < 0) drafts.push(h);
+    else if (itemCount(h) > itemCount(drafts[k]!) && curated.includes(drafts[k]!)) drafts[k] = h;
+  }
+}
+function itemCount(d: { sections: { items: unknown[] }[] }) {
+  return d.sections.reduce((n, s) => n + s.items.length, 0);
 }
 function exclusionsHave(placeId: string) {
   return exclusions.some((e) => e.place_id === placeId);
@@ -119,7 +127,7 @@ writeFileSync(
     `- seed phones: ${vendors.filter((v) => v.phone_seed).length}; WhatsApp candidates (mobile): ${vendors.filter((v) => v.phone_seed_mobile).length}; rows where the file's flag disagrees with the number: ${whatsappDisagreements(rows)}`,
     `- localities backfilled from the address: ${vendors.filter((v) => v.import_labels.locality_backfilled_from !== undefined).length}; no village in the file (nearest village at load): ${vendors.filter((v) => !v.village).length}`,
     `- draft menus: ${drafts.length} (${drafts.filter((d) => d.kind === "supermarket").length} supermarket catalogues), ${items.length} items, ${items.filter((i) => i.price === null).length} without a price (hidden)`,
-    `- harvested menus (§39.4 sources 2-3): ${drafts.filter((d) => d.source_url.startsWith("http") || d.source_url.includes("/harvest/")).length} loaded, ${harvested.length - drafts.filter((d) => harvested.includes(d)).length} skipped (a curated draft exists or the listing is a duplicate)`,
+    `- harvested menus (§39.4 sources 2-3): ${drafts.filter((d) => d.source_url.startsWith("http") || d.source_url.includes("/harvest/")).length} loaded, ${drafts.filter((d) => harvested.includes(d) && curated.some((c) => c.place_id === d.place_id)).length} of them replacing a smaller curated draft, ${harvested.length - drafts.filter((d) => harvested.includes(d)).length} skipped (a bigger curated draft exists or the listing is a duplicate)`,
     "",
     "## Villages",
     ...count(vendors, (v) => v.village ?? "(nearest at load)").map(([k, n]) => `- ${k}: ${n}`),

@@ -156,7 +156,7 @@ select tests.ok((select bool_and(p ->> 'photo' is null) from jsonb_array_element
 select tests.ok(public.menu_item_photo_set((select i.id from public.menu_items i where i.vendor_id = :'tv' limit 1), 'illustrative',
   'illustrative/' || :'tv' || '/' || gen_random_uuid() || '.png', null) ->> 'status' = 'not_demo', 'illustrative photos are for demo shops only');
 select tests.throws($$insert into public.menu_item_photos (item_id, vendor_id, storage_path, source)
-  select i.id, i.vendor_id, 'website/' || i.vendor_id || '/' || i.id || '.png', 'illustrative' from public.menu_items i limit 1$$,
+  select i.id, i.vendor_id, 'merchant_site/' || i.vendor_id || '/' || i.id || '.png', 'illustrative' from public.menu_items i limit 1$$,
   'menu_item_photos_path_source', 'a photo''s path matches its source');
 
 -- Leaving the list, and a claim, remove illustrative photos --------------------------------------------------------------------------

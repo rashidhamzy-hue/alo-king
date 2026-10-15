@@ -76,7 +76,7 @@ describe("the photo plan per item", () => {
   it("prefers the shop's own website image (Fred's Food), at 800 px", () => {
     const url =
       "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/Fries.jpg?resize=300%2C300&ssl=1";
-    expect(plan({ ...item, image_url: url })!.kind).toBe("website");
+    expect(plan({ ...item, image_url: url })!.kind).toBe("merchant_site");
     expect(sizedImageUrl(url)).toContain("resize=800%2C800");
   });
 });

@@ -1,7 +1,7 @@
 // Item photos for the staging demo shops (DECISIONS §39.12): every demo item gets an image for the Meta catalogue. The
-// shop's own website image when its menu had one (Fred's Food), else one illustrative picture drawn from the item
-// (scripts/demo/illustration.ts). Stored in the private bucket menu-item-photos as public.menu_item_photos rows
-// (source = website or illustrative) through public.menu_item_photo_set; never a Google place photo (§38.1). A photo whose
+// shop's own picture when its online menu or website had one (source = merchant_site: Fred's Food and the menus
+// harvested by scripts/menus/), else one illustrative picture drawn from the item (scripts/demo/illustration.ts). Stored in
+// the private bucket menu-item-photos as public.menu_item_photos rows (source = merchant_site or illustrative) through public.menu_item_photo_set; never a Google place photo (§38.1). A photo whose
 // origin is unchanged is never uploaded again; objects whose row is gone (a claim, a shop that left demo mode) are deleted.
 // Env: DB_URL, SUPABASE_URL (https://<ref>.supabase.co), SUPABASE_SERVICE_KEY. Optional PHOTO_LIMIT (default 2000).
 // Usage: node --experimental-strip-types scripts/demo/demo-photos.ts
@@ -42,10 +42,10 @@ export function sizedImageUrl(url: string): string {
 }
 
 /** What one item needs: nothing (unchanged), its website image, or a drawing; with the origin hash that decides it. */
-export function plan(item: TodoItem): { kind: "website" | "illustrative"; hash: string } | null {
-  const kind = item.image_url ? "website" : "illustrative";
+export function plan(item: TodoItem): { kind: "merchant_site" | "illustrative"; hash: string } | null {
+  const kind = item.image_url ? "merchant_site" : "illustrative";
   const hash =
-    kind === "website"
+    kind === "merchant_site"
       ? sha256(String(item.image_url))
       : sha256(
           JSON.stringify([
@@ -105,7 +105,7 @@ async function main() {
     if (!res.ok) throw new Error(`upload ${res.status}`);
   };
 
-  const done = { website: 0, illustrative: 0, unchanged: 0, failed: 0, deleted: 0 };
+  const done = { merchant_site: 0, illustrative: 0, unchanged: 0, failed: 0, deleted: 0 };
   try {
     const todo: TodoItem[] =
       (
@@ -123,7 +123,7 @@ async function main() {
         let body: Uint8Array;
         let ext = "png";
         let type = "image/png";
-        if (p.kind === "website") {
+        if (p.kind === "merchant_site") {
           const res = await fetch(sizedImageUrl(String(item.image_url)), {
             redirect: "follow",
             signal: AbortSignal.timeout(20_000),
@@ -175,7 +175,8 @@ async function main() {
       });
       return res.ok ? ((await res.json()) as { name: string; id: string | null }[]) : [];
     };
-    for (const source of ["website", "illustrative"]) {
+    // website/: the folder of the old name of merchant_site (20261016000000_merchant_site_photos.sql).
+    for (const source of ["merchant_site", "illustrative", "website"]) {
       for (const folder of await list(`${source}/`)) {
         if (folder.id) continue; // a file at the top level: not ours
         const files = (await list(`${source}/${folder.name}/`)).filter((f) => f.id);
@@ -196,7 +197,7 @@ async function main() {
     await db.end();
   }
   console.log(
-    `demo item photos: ${done.website} from the shop's website, ${done.illustrative} drawn, ${done.unchanged} unchanged, ${done.failed} failed, ${done.deleted} old objects deleted`,
+    `demo item photos: ${done.merchant_site} from the shop's own menu or website, ${done.illustrative} drawn, ${done.unchanged} unchanged, ${done.failed} failed, ${done.deleted} old objects deleted`,
   );
 }
 

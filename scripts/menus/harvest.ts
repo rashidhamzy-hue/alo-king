@@ -268,14 +268,17 @@ export async function capture(rawDir: string, list: MenuSource[] = sources()) {
         }
       };
       const html = await visit(s.url, 0);
+      let n = 1;
       if (html && (s.adapter === "html" || s.adapter === "directory")) {
-        let n = 1;
         for (const link of menuLinks(html, s.url)) {
           if (/\.pdf$/i.test(new URL(link).pathname) || /google\.com/.test(link))
             await savePdf(link);
           else if (n < 3) await visit(link, n++);
         }
       }
+      // A platform that lists its menus first (oddmenu: /p/<shop> → /p/<shop>/<menu>) shows items one page down.
+      if (html && (s.adapter === "oddmenu" || s.adapter === "html" || s.adapter === "directory"))
+        for (const link of childLinks(html, s.url)) if (n < 9) await visit(link, n++);
       await page.close();
     }
     writeFileSync(join(dir, "meta.json"), JSON.stringify(meta, null, 1));
@@ -408,17 +411,56 @@ export function menuSample(v: unknown): string | null {
 }
 
 /** The key skeleton of a JSON value, two levels deep, no values: enough to write an adapter for a new platform. */
-export function shape(v: unknown, depth = 0): string {
-  if (Array.isArray(v)) return `[${v.length ? shape(v[0], depth) : ""}]`;
+export function shape(v: unknown, depth = 0, maxDepth = 2, maxKeys = 12): string {
+  if (Array.isArray(v)) return `[${v.length ? shape(v[0], depth, maxDepth, maxKeys) : ""}]`;
   if (v && typeof v === "object") {
-    const keys = Object.keys(v).slice(0, 12);
+    const keys = Object.keys(v).slice(0, maxKeys);
     // A key can itself be data (a map keyed by email, phone or id): those print as "*".
     const label = (k: string) => (/@|\+?\d{6,}/.test(k) ? "*" : k);
-    return depth >= 2
+    return depth >= maxDepth
       ? `{${keys.map(label).join(",")}}`
-      : `{${keys.map((k) => `${label(k)}:${shape((v as Record<string, unknown>)[k], depth + 1)}`).join(",")}}`;
+      : `{${keys.map((k) => `${label(k)}:${shape((v as Record<string, unknown>)[k], depth + 1, maxDepth, maxKeys)}`).join(",")}}`;
   }
   return typeof v;
+}
+
+/** Where a page keeps a menu it does not print as text: frames, pictures, embedded files and menu links (redacted). */
+export function htmlHints(html: string): string[] {
+  const out: string[] = [];
+  const frames = [
+    ...html.matchAll(/<(iframe|embed|object)\b[^>]*(?:src|data)=["']([^"']+)["']/gi),
+  ].map((m) => `${m[1]} ${redact(m[2]!)}`);
+  if (frames.length) out.push(`frames: ${frames.slice(0, 6).join("; ")}`);
+  const imgs = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => {
+    const src = m[0].match(/\s(?:src|data-src)=["']([^"']+)["']/i)?.[1] ?? "";
+    const alt = m[0].match(/\salt=["']([^"']*)["']/i)?.[1] ?? "";
+    return `${redact(src).slice(0, 110)}${alt ? ` alt="${redact(alt).slice(0, 40)}"` : ""}`;
+  });
+  out.push(`${imgs.length} <img>; the first ones: ${imgs.slice(0, 12).join(" | ")}`);
+  const links = [...html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
+    .map((m) => `${redact(m[1]!).slice(0, 100)} "${redact(htmlText(m[2]!)).slice(0, 30)}"`)
+    .filter((l) => /menu|carte|منيو|قائمة|\/m\/|\/p\/|category/i.test(l));
+  if (links.length) out.push(`menu-like links: ${[...new Set(links)].slice(0, 15).join(" | ")}`);
+  if (/<canvas\b/i.test(html)) out.push("has <canvas>");
+  return out;
+}
+
+/** Same-site pages under a page's own path (a menu platform's per-menu pages: /p/<shop>/<menu>), best first. */
+export function childLinks(html: string, base: string): string[] {
+  const b = new URL(base);
+  const root = b.pathname.replace(/\/$/, "") + "/";
+  const out: string[] = [];
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["']/gi)) {
+    let u: URL;
+    try {
+      u = new URL(m[1]!, b);
+    } catch {
+      continue;
+    }
+    if (u.hostname === b.hostname && u.pathname.startsWith(root) && u.pathname.length > root.length)
+      out.push(u.origin + u.pathname);
+  }
+  return [...new Set(out)].slice(0, 6);
 }
 
 function parse(rawDir: string, outDir: string) {
@@ -449,7 +491,8 @@ function parse(rawDir: string, outDir: string) {
       for (const j of meta.json) {
         let sk = "unreadable";
         try {
-          sk = shape(JSON.parse(readFileSync(join(rawDir, d, j.file), "utf8"))).slice(0, 300);
+          const v = JSON.parse(readFileSync(join(rawDir, d, j.file), "utf8"));
+          sk = detail ? shape(v, 0, 5, 30).slice(0, 5000) : shape(v).slice(0, 300);
         } catch {
           // not JSON
         }
@@ -480,6 +523,9 @@ function parse(rawDir: string, outDir: string) {
               `  - [${redact(c.section ?? "-")}] ${redact(c.text.replace(/\s*\n\s*/g, " / ").slice(0, 140))} | ${c.image ? redact(c.image).slice(0, 140) : "no picture"}`,
             );
         }
+        for (const f of readdirSync(join(rawDir, d)).filter((x) => /^page-\d+\.html$/.test(x)))
+          for (const h of htmlHints(readFileSync(join(rawDir, d, f), "utf8")))
+            shapes.push(`- ${f} ${h}`);
         for (const f of readdirSync(join(rawDir, d)).filter((x) => /^page-\d+\.txt$/.test(x))) {
           const lines = readFileSync(join(rawDir, d, f), "utf8")
             .split(/\n/)
