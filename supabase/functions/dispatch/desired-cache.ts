@@ -6,36 +6,47 @@
 export function desiredCache<T extends { retailer_id: string }>(
   load: (vendorId: string) => Promise<T[]>,
   hashOf: (p: T) => string,
-  o: { ttlMs?: number; refreshMs?: number; now?: () => number; max?: number } = {},
+  o: {
+    ttlMs?: number;
+    refreshMs?: number;
+    now?: () => number;
+    max?: number;
+    onError?: (vendorId: string, e: unknown) => void;
+  } = {},
 ) {
   const ttlMs = o.ttlMs ?? 60_000;
   const refreshMs = o.refreshMs ?? 5_000;
   const now = o.now ?? (() => Date.now());
   const max = o.max ?? 200;
-  const entries = new Map<string, { at: number; list: Promise<T[]> }>();
-  const get = (vendorId: string, maxAge: number): Promise<T[]> => {
+  // Only each item's version is kept (retailer id to hash), not the shop's whole menu; null is a failed load.
+  type Hashes = Map<string, string> | null;
+  const entries = new Map<string, { at: number; hashes: Promise<Hashes> }>();
+  const get = (vendorId: string, maxAge: number): Promise<Hashes> => {
     const e = entries.get(vendorId);
-    if (e && now() - e.at < maxAge) return e.list;
-    const entry = { at: now(), list: Promise.resolve([] as T[]) };
-    entry.list = load(vendorId).catch(() => {
-      if (entries.get(vendorId) === entry) entries.delete(vendorId);
-      return [] as T[];
-    });
+    if (e && now() - e.at < maxAge) return e.hashes;
+    const entry = { at: now(), hashes: Promise.resolve(null as Hashes) };
+    entry.hashes = load(vendorId).then(
+      (list) => new Map(list.map((p) => [p.retailer_id, hashOf(p)])),
+      (err) => {
+        if (entries.get(vendorId) === entry) entries.delete(vendorId);
+        o.onError?.(vendorId, err);
+        return null;
+      },
+    );
     entries.delete(vendorId);
     entries.set(vendorId, entry);
-    // The oldest shop goes first (a Map keeps insertion order).
+    // The oldest load goes first (a Map keeps insertion order).
     while (entries.size > max) entries.delete(entries.keys().next().value as string);
-    return entry.list;
-  };
-  const matches = (list: T[], itemId: string, hash: string) => {
-    const p = list.find((x) => x.retailer_id === itemId);
-    return !!p && hashOf(p) === hash;
+    return entry.hashes;
   };
   return {
     /** Whether `hash` is the version of item `itemId` the shop's catalogue has now. */
     async has(vendorId: string, itemId: string, hash: string): Promise<boolean> {
-      if (matches(await get(vendorId, ttlMs), itemId, hash)) return true;
-      return matches(await get(vendorId, refreshMs), itemId, hash);
+      const first = await get(vendorId, ttlMs);
+      // A failed load answers not found at once: no second attempt while the database is stalling.
+      if (!first) return false;
+      if (first.get(itemId) === hash) return true;
+      return (await get(vendorId, refreshMs))?.get(itemId) === hash;
     },
   };
 }

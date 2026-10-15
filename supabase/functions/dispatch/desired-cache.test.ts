@@ -50,11 +50,37 @@ describe("the image route's desired catalogue (a crawl of 1,400 images starved s
     expect(s.calls()).toBe(3);
   });
 
-  it("never keeps a failed load: a stalled database answers not found, the next request reloads", async () => {
-    const s = setup([[{ retailer_id: "a", v: "h1" }]], 2);
-    expect(await s.c.has(V, "a", "h1")).toBe(false);
-    expect(s.calls()).toBe(2);
-    expect(await s.c.has(V, "a", "h1")).toBe(true);
-    expect(s.calls()).toBe(3);
+  it("never keeps a failed load: a stalled database answers not found at once, the next request reloads", async () => {
+    const failed: string[] = [];
+    let calls = 0;
+    const c = desiredCache<P>(
+      async () => {
+        if (++calls === 1) throw new Error("stalled");
+        return [{ retailer_id: "a", v: "h1" }];
+      },
+      (p) => p.v,
+      { now: () => 0, onError: (v) => failed.push(v) },
+    );
+    expect(await c.has(V, "a", "h1")).toBe(false);
+    expect(calls).toBe(1);
+    expect(failed).toEqual([V]);
+    expect(await c.has(V, "a", "h1")).toBe(true);
+    expect(calls).toBe(2);
+  });
+
+  it("keeps at most `max` shops", async () => {
+    let calls = 0;
+    const c = desiredCache<P>(
+      async () => (calls++, [{ retailer_id: "a", v: "h" }]),
+      (p) => p.v,
+      { now: () => 0, max: 2 },
+    );
+    for (const v of ["s1", "s2", "s3"]) await c.has(v, "a", "h");
+    expect(calls).toBe(3);
+    await c.has("s3", "a", "h");
+    await c.has("s2", "a", "h");
+    expect(calls).toBe(3);
+    await c.has("s1", "a", "h");
+    expect(calls).toBe(4);
   });
 });

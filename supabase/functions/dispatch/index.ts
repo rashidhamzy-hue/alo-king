@@ -461,18 +461,22 @@ const catalogApi: CatalogApi = {
     `${supabaseUrl}/functions/v1/dispatch?route=catalog-image&i=${encodeURIComponent(itemId)}&v=${encodeURIComponent(hash)}`,
 };
 
-/**
- * GET ?route=catalog-image&i=<item>: the product image Meta fetches. Only items in the catalogue are drawn (catalog_image
- * answers nothing for any other id). The shop's confirmed photo is a short-lived signed redirect; otherwise a tile.
- */
 // Meta's crawl fetches a shop's images by the hundred before the sync records their hashes; each one used to compute the
 // shop's whole desired catalogue and starved staging (LOG 2026-10-15). One computation per shop serves them all.
 const desired = desiredCache<DesiredProduct>(
   async (vendorId) =>
     ((await rpc("catalog_desired", { p_vendor_id: vendorId })) as DesiredProduct[] | null) ?? [],
   productHash,
+  {
+    onError: (vendor, e) =>
+      log("catalogue desired load failed", { vendor, error: String(e).slice(0, 200) }),
+  },
 );
 
+/**
+ * GET ?route=catalog-image&i=<item>: the product image Meta fetches. Only items in the catalogue are drawn (catalog_image
+ * answers nothing for any other id). The shop's confirmed photo is a short-lived signed redirect; otherwise a tile.
+ */
 async function catalogImage(url: URL): Promise<Response> {
   const id = url.searchParams.get("i") ?? "";
   if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response("not found", { status: 404 });
