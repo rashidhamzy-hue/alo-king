@@ -1079,6 +1079,7 @@ async function confirm(c: Ctx, basketId: string, version: number) {
       if (g?.status === "unreachable") return say(c, "giftUnreachable", { name: g.recipient_name });
       if (g?.status === "blocked")
         return say(c, "giftBlocked", { name: c.basket?.recipient_name ?? "" });
+      if (g?.status === "too_many") return say(c, "giftTooMany", { name: g.recipient_name });
       return checkout(c, {});
     }
     case "address_unconfirmed":
@@ -1684,15 +1685,8 @@ async function checkout(
     c.s.pending = { kind: "for_whom", address_id: st.address_id };
     return push(c, forWhomCard(c.m.from, c.s.lang, where(c.s.lang, st.address)));
   }
-  // A consented allergy note goes to the kitchen on this order (§39.6).
-  const allergy = c.profile?.preferences?.allergy;
-  if (allergy && !c.s.refs.xa) {
-    await deps.rpc("basket_set_allergy_note", {
-      p_customer_id: c.customerId,
-      p_note: String(allergy),
-    });
-    c.s.refs.xa = { id: "allergy", label: "set" };
-  }
+  // A consented allergy note reaches the kitchen on every own order: basket_quote and the order copy it from memory on
+  // the server (never on a gift for someone else, §39.6).
   let q: Quote = await deps.rpc("basket_quote", { p_customer_id: c.customerId });
   if (q?.status === "no_route" && (q as any).origin && (q as any).dest) {
     await deps.route((q as any).origin, (q as any).dest);
@@ -2272,7 +2266,8 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
     case "search_items":
       return catalogText(c, input.query, input.quantity ?? null);
     case "report_problem":
-      return problemStart(c, null, input.kind);
+      // The model never opens a dispute: the customer taps the problem on the list (AI proposes, server decides).
+      return problemStart(c, null, null);
     case "show_memory":
       return showMemory(c);
     case "decline_off_topic":

@@ -38,8 +38,9 @@
       "text": "il manquait les frites dans ma commande",
       "response": [{ "name": "report_problem", "input": { "kind": "missing_item" } }],
       "expect": {
-        "rpc": ["customer_last_delivered", "order_lines_for_customer"],
-        "first_id": "dpl:"
+        "rpc": ["customer_last_delivered"],
+        "never": ["dispute_open"],
+        "first_id": "dpk:"
       }
     },
     {

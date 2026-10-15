@@ -39,6 +39,8 @@ insert into public.app_config (key, value, effective_from, note, created_by) val
    'min(cap, per_floor x max(0, floors - free) x E) + heavy_unit x max(0, heavy - free_units); E = 0 with a working lift (DECISIONS §38.3)', null),
   ('gift_accept_minutes', '30', now(),
    'How long a gift order waits for the recipient''s "accept and pay cash" tap (DECISIONS §22.2 scenario 7)', null),
+  ('gift_requests_per_day', '3', now(),
+   'Gift requests one sender may send one number in 24 hours (no harassment, DECISIONS §22.2 scenario 7)', null),
   ('address_fresh_minutes', '30', now(),
    'A pin sent this recently counts as the address confirmed for the basket (DECISIONS §39.6)', null),
   ('dispute_rules', '{"auto_max_usd": 8, "owner_over_usd": 20, "max_dispute_rate": 0.10, "rate_window_days": 90, "cold_factor": 1.5, "cold_credit_pct": 30, "late_prep_min": 15, "credit_days": 60, "report_days": 2}', now(),
@@ -370,6 +372,8 @@ alter table public.addresses
   add column recipient_phone text check (recipient_phone ~ '^\+[1-9][0-9]{6,14}$'),
   add column pinned_at timestamptz not null default now(),
   add constraint addresses_recipient_for_other check ((recipient_name is null and recipient_phone is null) or for_whom = 'other');
+-- Existing addresses were pinned when last used, not at this migration (else every address would read as just pinned).
+update public.addresses set pinned_at = coalesce(last_used_at, created_at);
 comment on column public.addresses.pinned_at is 'When the customer last sent this pin: a pin sent while ordering confirms the address (DECISIONS §39.6).';
 comment on column public.addresses.saved is 'The customer agreed to keep this address (DECISIONS §39.6); false = used for one order.';
 comment on column public.addresses.for_whom is 'Answer to "for you or someone else?" (§22.1), remembered per address.';
@@ -383,6 +387,7 @@ create table public.customer_credits (
   dispute_id uuid,
   expires_at timestamptz not null,
   used_order_id uuid references public.orders (id) on delete set null,
+  expired_tx uuid,
   created_at timestamptz not null default now()
 );
 create index customer_credits_open_idx on public.customer_credits (customer_id, expires_at) where used_order_id is null;
@@ -776,6 +781,8 @@ create table public.gift_requests (
   recipient_phone text not null check (recipient_phone ~ '^\+[1-9][0-9]{6,14}$'),
   recipient_name text not null check (char_length(recipient_name) between 1 and 60),
   menu_version bigint not null,
+  total_usd numeric(10, 2) not null,
+  fingerprint text not null,
   status text not null default 'pending' check (status in ('pending', 'accepted', 'declined', 'expired', 'failed', 'unreachable')),
   order_id uuid references public.orders (id) on delete set null,
   expires_at timestamptz not null,
@@ -784,14 +791,27 @@ create table public.gift_requests (
 );
 create unique index gift_requests_one_pending on public.gift_requests (basket_id) where status = 'pending';
 create index gift_requests_recipient_idx on public.gift_requests (recipient_phone, status);
+create index gift_requests_sender_idx on public.gift_requests (sender_id, recipient_phone, created_at);
 alter table public.gift_requests enable row level security;
 revoke all on table public.gift_requests from public, anon, authenticated;
 grant all on table public.gift_requests to service_role;
 grant select on table public.gift_requests to authenticated;
 create policy gift_requests_operator_read on public.gift_requests for select to authenticated using ((select app_private.is_operator()));
 
+-- What the recipient is shown and accepts: the quoted lines, total, address, recipient and payment. gift_respond places the
+-- order only when the basket still quotes to the same fingerprint, so the sender cannot change it after asking.
+create function app_private.gift_fingerprint(p_basket_id uuid, p_quote jsonb) returns text
+language sql stable security definer set search_path = ''
+as $$
+  select md5(jsonb_build_object('lines', p_quote -> 'basket' -> 'lines', 'total', p_quote -> 'total_usd',
+    'address', b.address_id, 'fulfilment', b.fulfilment, 'stairs', b.stairs_floors, 'pay', b.payment_method,
+    'currency', b.cash_currency, 'gift', b.is_gift, 'recipient', b.recipient_phone, 'name', b.recipient_name)::text)
+  from public.baskets b where b.id = p_basket_id;
+$$;
+
 -- The sender's Confirm tap on a gift basket: checks the order could be placed now (same rules as order_place, by quoting),
--- then asks the recipient. Nothing is ordered or charged yet.
+-- then asks the recipient. Nothing is ordered or charged yet. A repeated tap on an unchanged basket does not ask again,
+-- and one sender asks one number at most gift_requests_per_day times a day (no harassment, §22.2 scenario 7).
 create function public.gift_request_create(p_customer_id uuid, p_basket_id uuid, p_menu_version bigint) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
@@ -801,6 +821,8 @@ declare
   v_q jsonb;
   v_id uuid;
   v_sender public.customers%rowtype;
+  v_fp text;
+  v_pending public.gift_requests%rowtype;
 begin
   select * into v_b from public.baskets where id = p_basket_id and customer_id = p_customer_id and status = 'open' for update;
   if v_b.id is null or not v_b.is_gift then
@@ -824,10 +846,22 @@ begin
   if v_r.id is null or v_r.last_inbound_at is null or v_r.last_inbound_at < now() - interval '24 hours' then
     return jsonb_build_object('status', 'unreachable', 'recipient_name', v_b.recipient_name);
   end if;
+  v_fp := app_private.gift_fingerprint(v_b.id, v_q);
+  select * into v_pending from public.gift_requests
+  where basket_id = v_b.id and status = 'pending' and expires_at > now() for update;
+  if v_pending.id is not null and v_pending.fingerprint = v_fp then
+    return jsonb_build_object('status', 'asked', 'gift_id', v_pending.id, 'recipient_name', v_pending.recipient_name,
+      'minutes', greatest(1, ceil(extract(epoch from v_pending.expires_at - now()) / 60)), 'again', true);
+  end if;
+  if (select count(*) from public.gift_requests
+      where sender_id = p_customer_id and recipient_phone = v_b.recipient_phone
+        and created_at > now() - interval '24 hours') >= public.config_numeric('gift_requests_per_day') then
+    return jsonb_build_object('status', 'too_many', 'recipient_name', v_b.recipient_name);
+  end if;
   update public.gift_requests set status = 'expired', decided_at = now() where basket_id = v_b.id and status = 'pending';
   select * into v_sender from public.customers where id = p_customer_id;
-  insert into public.gift_requests (basket_id, sender_id, recipient_phone, recipient_name, menu_version, expires_at)
-  values (v_b.id, p_customer_id, v_b.recipient_phone, v_b.recipient_name, p_menu_version,
+  insert into public.gift_requests (basket_id, sender_id, recipient_phone, recipient_name, menu_version, total_usd, fingerprint, expires_at)
+  values (v_b.id, p_customer_id, v_b.recipient_phone, v_b.recipient_name, p_menu_version, (v_q ->> 'total_usd')::numeric, v_fp,
           now() + make_interval(mins => public.config_numeric('gift_accept_minutes')::int))
   returning id into v_id;
   perform app_private.outbox_add('gift:' || v_id, null, v_b.vendor_id, 'whatsapp', 'customer_message', v_b.recipient_phone,
@@ -843,7 +877,9 @@ end;
 $$;
 
 -- The recipient's tap. Only the number the gift was sent to can answer; "accept" places the sender's order exactly as
--- quoted (order_place re-checks everything, including the menu version and the cash cap).
+-- quoted: the basket must still be open, still a gift and still quote to the fingerprint the recipient was shown, and
+-- order_place re-checks everything else (menu version, cash cap). Any failure ends the request as failed and tells the
+-- sender; it never aborts the recipient's turn.
 create function public.gift_respond(p_phone_e164 text, p_gift_id uuid, p_accept boolean) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
@@ -851,6 +887,8 @@ declare
   v_g public.gift_requests%rowtype;
   v_r jsonb;
   v_sender text;
+  v_b public.baskets%rowtype;
+  v_q jsonb;
 begin
   select * into v_g from public.gift_requests where id = p_gift_id for update;
   if v_g.id is null or v_g.recipient_phone <> p_phone_e164 then
@@ -871,7 +909,23 @@ begin
         'recipient_name', v_g.recipient_name));
     return jsonb_build_object('status', 'declined');
   end if;
-  v_r := public.order_place(v_g.basket_id, v_g.menu_version, 'gift:' || v_g.id);
+  select * into v_b from public.baskets where id = v_g.basket_id for update;
+  if v_b.id is null or v_b.status <> 'open' or not v_b.is_gift then
+    v_r := jsonb_build_object('status', 'changed');
+  else
+    v_q := public.basket_quote(v_g.sender_id);
+    if v_q ->> 'status' <> 'ok' then
+      v_r := jsonb_build_object('status', v_q ->> 'status');
+    elsif app_private.gift_fingerprint(v_b.id, v_q) <> v_g.fingerprint then
+      v_r := jsonb_build_object('status', 'changed');
+    else
+      begin
+        v_r := public.order_place(v_g.basket_id, v_g.menu_version, 'gift:' || v_g.id);
+      exception when others then
+        v_r := jsonb_build_object('status', 'failed');
+      end;
+    end if;
+  end if;
   if v_r ->> 'status' = 'placed' then
     update public.gift_requests set status = 'accepted', decided_at = now(), order_id = (v_r ->> 'order_id')::uuid where id = v_g.id;
     perform app_private.outbox_add('gift-answer:' || v_g.id, (v_r ->> 'order_id')::uuid, null, 'whatsapp', 'customer_message', v_sender,
@@ -912,13 +966,24 @@ end;
 $$;
 select cron.schedule('gift-expire', '* * * * *', $$select app_private.gift_requests_expire()$$);
 
+-- The kitchen's allergy note for a basket: one typed on the basket, else the customer's consented allergy from memory.
+-- Never the sender's own allergy on a gift for someone else (health data only where the order needs it, §39.6).
+create function app_private.basket_allergy_note(p_basket_id uuid) returns text
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(b.allergy_note,
+    case when not b.is_gift then (select p.value from public.customer_preferences p
+      where p.customer_id = b.customer_id and p.key = 'allergy' and p.consented_at is not null) end)
+  from public.baskets b where b.id = p_basket_id;
+$$;
+
 -- Gift and allergy details travel from the basket to the order (no money here; order_place prices).
 create function app_private.orders_copy_customer_agent() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
   if new.basket_id is not null then
-    select b.is_gift, b.recipient_name, b.recipient_phone, b.allergy_note
+    select b.is_gift, b.recipient_name, b.recipient_phone, app_private.basket_allergy_note(b.id)
       into new.is_gift, new.recipient_name, new.recipient_phone, new.allergy_note
     from public.baskets b where b.id = new.basket_id;
     new.is_gift := coalesce(new.is_gift, false);
@@ -994,16 +1059,28 @@ begin
 end;
 $$;
 
--- Credits that fit in a basket's food subtotal, oldest first, each used whole.
+-- Credits that fit in a basket's food subtotal, soonest to expire first, each used whole; a credit too large for what
+-- is left is skipped, and a smaller later one still applies.
 create function app_private.credits_for(p_customer_id uuid, p_subtotal numeric) returns table (credit_id uuid, amount_usd numeric)
-language sql stable security definer set search_path = ''
+language plpgsql stable security definer set search_path = ''
 as $$
-  with c as (
-    select cc.id, cc.amount_usd, sum(cc.amount_usd) over (order by cc.expires_at, cc.id) as run
-    from public.customer_credits cc
+declare
+  v_left numeric := coalesce(p_subtotal, 0);
+  v_c record;
+begin
+  for v_c in
+    select cc.id, cc.amount_usd from public.customer_credits cc
     where cc.customer_id = p_customer_id and cc.used_order_id is null and cc.expires_at > now()
-  )
-  select c.id, c.amount_usd from c where c.run <= p_subtotal;
+    order by cc.expires_at, cc.id
+  loop
+    if v_c.amount_usd <= v_left then
+      credit_id := v_c.id;
+      amount_usd := v_c.amount_usd;
+      v_left := v_left - v_c.amount_usd;
+      return next;
+    end if;
+  end loop;
+end;
 $$;
 
 create or replace function public.basket_quote(p_customer_id uuid) returns jsonb
@@ -1086,7 +1163,7 @@ begin
     'estimated', exists (select 1 from jsonb_array_elements(v_view -> 'lines') l where (l ->> 'estimated')::boolean),
     'needs_empty_answer', exists (select 1 from jsonb_array_elements(v_view -> 'lines') l where (l ->> 'needs_empty_answer')::boolean),
     'stairs_fee_per_floor_usd', v_vendor.stairs_fee_per_floor_usd,
-    'is_gift', v_basket.is_gift, 'recipient_name', v_basket.recipient_name, 'allergy_note', v_basket.allergy_note,
+    'is_gift', v_basket.is_gift, 'recipient_name', v_basket.recipient_name, 'allergy_note', app_private.basket_allergy_note(v_basket.id),
     'address', case when v_address.id is not null then public.address_card(v_address.id) end);
 end;
 $$;
@@ -1403,8 +1480,44 @@ begin
 end;
 $$;
 
--- The customer's report (a tap or the model's report_problem tool). The server decides eligibility and amount.
-create function public.dispute_open(p_customer_id uuid, p_order_id uuid, p_kind text, p_order_item_id uuid default null)
+-- A credit that expires unused goes back to whoever funded it, so customer_refund_payable never carries a dead liability:
+-- one reversal of the dispute's transaction per credit (a credit is always the whole dispute amount, §20). Daily.
+create function app_private.credits_expire() returns integer
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_c record;
+  v_tx uuid;
+  v_n integer := 0;
+begin
+  for v_c in
+    select cc.id, cc.amount_usd, d.payer, d.ledger_tx, o.vendor_id, o.id as order_id, o.code, o.usd_lbp_rate
+    from public.customer_credits cc
+    join public.order_disputes d on d.id = cc.dispute_id
+    join public.orders o on o.id = d.order_id
+    where cc.used_order_id is null and cc.expired_tx is null and cc.expires_at <= now() and d.ledger_tx is not null
+    for update of cc skip locked
+  loop
+    v_tx := public.ledger_post('reversal', 'credit-expired:' || v_c.id,
+      jsonb_build_array(
+        jsonb_build_object('account_id', public.ledger_account('customer_refund_payable', 'USD'), 'amount', v_c.amount_usd,
+          'memo', 'expired customer credit, order ' || v_c.code),
+        jsonb_build_object('account_id', case when v_c.payer = 'merchant'
+                                              then public.ledger_account('merchant_payable', 'USD', v_c.vendor_id)
+                                              else public.ledger_account('expense_refunds', 'USD') end,
+          'amount', -v_c.amount_usd, 'memo', 'credit expired unused, order ' || v_c.code)),
+      v_c.order_id, v_c.usd_lbp_rate, 'customer credit expired unused', p_reverses_id => v_c.ledger_tx);
+    update public.customer_credits set expired_tx = v_tx where id = v_c.id;
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end;
+$$;
+select cron.schedule('credits-expire', '17 3 * * *', $$select app_private.credits_expire()$$);
+
+-- The customer's report (a problem tapped on the list). The server decides eligibility and amount.
+create function public.dispute_open(p_customer_id uuid, p_order_id uuid, p_kind text, p_order_item_id uuid default null,
+  p_quantity integer default 1)
 returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
@@ -1459,9 +1572,10 @@ begin
 
   case p_kind
     when 'missing_item', 'wrong_item' then
-      v_amount := v_line.line_total_usd;
+      -- Per unit reported (one unless the customer says more), never more than the line.
+      v_amount := round(v_line.line_total_usd / greatest(v_line.quantity, 1) * least(greatest(coalesce(p_quantity, 1), 1), v_line.quantity), 2);
       v_payer := 'merchant';
-      v_rule := p_kind || ': line total, merchant pays';
+      v_rule := format('%s: %s of %s, merchant pays', p_kind, least(greatest(coalesce(p_quantity, 1), 1), v_line.quantity), v_line.quantity);
     when 'cold_food' then
       -- The delivery leg (out for delivery → delivered) against 1.5 x the expected road time: the cached route's
       -- duration, else 25 km/h over the road distance.
@@ -1506,10 +1620,8 @@ begin
     v_decision := 'review'; -- refunded to the original payment (Phase 6), never a credit
   elsif v_amount > (v_r ->> 'owner_over_usd')::numeric then
     v_decision := 'owner_review';
-  elsif (p_kind in ('missing_item', 'wrong_item') and v_amount <= (v_r ->> 'auto_max_usd')::numeric
-           and v_rate < (v_r ->> 'max_dispute_rate')::numeric)
-        or (p_kind in ('cold_food', 'late') and v_rate < (v_r ->> 'max_dispute_rate')::numeric) then
-    v_decision := 'auto_credit';
+  elsif v_amount <= (v_r ->> 'auto_max_usd')::numeric and v_rate < (v_r ->> 'max_dispute_rate')::numeric then
+    v_decision := 'auto_credit'; -- up to $8 and a low dispute rate; between $8 and $20 a person, above $20 Rasheed
   else
     v_decision := 'review';
   end if;
@@ -1535,32 +1647,44 @@ begin
 end;
 $$;
 
--- An operator's decision on a dispute in review (the ops console and Slack actions call this, 5b). Above $20 only an
--- admin (Rasheed) approves.
-create function public.dispute_decide(p_dispute_id uuid, p_approve boolean, p_amount_usd numeric default null) returns jsonb
+-- The operator role of a user (null when not an active operator). The service-role callers (ops console, Slack
+-- actions) pass the acting person's id, so the role check never depends on auth.uid().
+create function app_private.operator_role(p_user_id uuid) returns text
+language sql stable security definer set search_path = ''
+as $$
+  select o.role::text from public.operators o where o.user_id = p_user_id and o.active;
+$$;
+
+-- An operator's decision on a dispute in review (the ops console and Slack actions call this, 5b). The acting person is
+-- required; above $20 only an admin (Rasheed) approves; the amount never exceeds the order (or the line).
+create function public.dispute_decide(p_dispute_id uuid, p_approve boolean, p_actor_id uuid, p_amount_usd numeric default null)
+returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
   v_d public.order_disputes%rowtype;
   v_amount numeric;
+  v_role text := app_private.operator_role(p_actor_id);
+  v_max numeric;
 begin
+  if v_role is null then
+    raise exception 'not allowed: an active operator decides disputes' using errcode = 'insufficient_privilege';
+  end if;
   select * into v_d from public.order_disputes where id = p_dispute_id for update;
   if v_d.id is null or v_d.decision not in ('review', 'owner_review') then
     return jsonb_build_object('status', 'not_open');
   end if;
   v_amount := coalesce(p_amount_usd, v_d.amount_usd);
-  if v_amount < 0 then
-    return jsonb_build_object('status', 'invalid');
+  select coalesce((select i.line_total_usd from public.order_items i where i.id = v_d.order_item_id), o.total_usd)
+    into v_max from public.orders o where o.id = v_d.order_id;
+  if v_amount < 0 or v_amount > v_max then
+    return jsonb_build_object('status', 'invalid', 'max_usd', v_max);
   end if;
-  if (select auth.uid()) is not null and not (select app_private.is_operator()) then
-    raise exception 'not allowed' using errcode = 'insufficient_privilege';
-  end if;
-  if p_approve and v_amount > (public.config_value('dispute_rules') ->> 'owner_over_usd')::numeric
-     and (select auth.uid()) is not null and not (select app_private.is_admin()) then
+  if p_approve and v_amount > (public.config_value('dispute_rules') ->> 'owner_over_usd')::numeric and v_role <> 'admin' then
     raise exception 'not allowed: over the owner limit' using errcode = 'insufficient_privilege';
   end if;
   update public.order_disputes set decision = case when p_approve then 'approved' else 'rejected' end,
-    amount_usd = v_amount, payer = coalesce(payer, 'alo_king'), decided_by = (select auth.uid()), decided_at = now()
+    amount_usd = v_amount, payer = coalesce(payer, 'alo_king'), decided_by = p_actor_id, decided_at = now()
   where id = v_d.id;
   if p_approve and v_amount > 0 then
     return public.dispute_book(v_d.id) || jsonb_build_object('decision', 'approved');
@@ -1723,6 +1847,9 @@ create function app_private.outbox_non_urgent(p_purpose public.outbox_purpose, p
 language sql immutable set search_path = ''
 as $$ select p_purpose = 'customer_message' and coalesce(p_payload ->> 'kind', '') in ('rating', 'basket_reminder', 'near_drop', 'gift_expired') $$;
 
+create index if not exists outbound_messages_sent_idx on public.outbound_messages (sent_at) where channel = 'whatsapp';
+create index if not exists outbound_messages_target_sent_idx on public.outbound_messages (target, sent_at);
+
 create or replace function public.outbox_claim(p_limit integer default 20, p_lock_s integer default 30)
 returns table (id bigint, order_id uuid, vendor_id uuid, channel public.order_channel_kind, purpose public.outbox_purpose,
   target text, payload jsonb, attempts integer, card jsonb)
@@ -1733,9 +1860,11 @@ declare
   v_room integer;
   v_gap interval := make_interval(secs => coalesce((v_pacing ->> 'same_person_gap_s')::int, 6));
 begin
-  -- Room in this second for the WhatsApp channel (one sending number per audience in the pilot).
+  -- Room in this second for the WhatsApp channel (one sending number per audience in the pilot), counting what
+  -- another worker has claimed and not sent yet.
   select greatest(0, coalesce((v_pacing ->> 'per_number_per_s')::int, 60) - count(*))::int into v_room
-  from public.outbound_messages m where m.channel = 'whatsapp' and m.sent_at > now() - interval '1 second';
+  from public.outbound_messages m where m.channel = 'whatsapp'
+    and (m.sent_at > now() - interval '1 second' or (m.status = 'sending' and m.locked_until > now()));
   -- Non-urgent messages to someone who got a message a moment ago wait their turn (Meta error 131056).
   update public.outbound_messages x set available_at = now() + v_gap
   where x.status = 'queued' and x.available_at <= now() and app_private.outbox_non_urgent(x.purpose, x.payload)
@@ -1807,14 +1936,17 @@ $$;
 
 -- Puts a dead-lettered event back on the inbound queue (operators, after a fix). The event keeps its id, so the bot's
 -- dedupe still applies.
-create function public.webhook_dead_replay(p_event_id bigint) returns jsonb
+create function public.webhook_dead_replay(p_event_id bigint, p_actor_id uuid) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if (select auth.uid()) is not null and not (select app_private.is_operator()) then
-    raise exception 'not allowed' using errcode = 'insufficient_privilege';
+  if app_private.operator_role(p_actor_id) is null then
+    raise exception 'not allowed: an active operator replays dead letters' using errcode = 'insufficient_privilege';
   end if;
-  update public.webhook_events set status = 'queued', attempts = 0, dead_lettered_at = null
+  -- attempts = 1, so the next claim is attempt 2: the bot's turn guard treats attempt 1 on a known message as Kapso
+  -- delivering it twice (skipped), and attempt 2+ as a retry of a turn that never finished (run again). A turn that
+  -- did finish stays a duplicate, so a replay never answers the customer twice.
+  update public.webhook_events set status = 'queued', attempts = 1, dead_lettered_at = null
   where id = p_event_id and dead_lettered_at is not null;
   if not found then
     return jsonb_build_object('status', 'not_dead');
@@ -1873,22 +2005,23 @@ revoke all on function public.search_expand(text), public.catalog_search(uuid, t
   public.customer_memory(uuid), public.customer_memory_forget(uuid, text, text), public.basket_address_state(uuid),
   public.basket_confirm_address(uuid, uuid), public.address_set_for_whom(uuid, uuid, text, boolean),
   public.address_set_recipient(uuid, uuid, text, text), public.basket_set_allergy_note(uuid, text),
-  public.gift_request_create(uuid, uuid, bigint), public.gift_respond(text, uuid, boolean), public.dispute_open(uuid, uuid, text, uuid),
-  public.dispute_decide(uuid, boolean, numeric), public.order_lines_for_customer(uuid, uuid), public.customer_last_delivered(uuid),
-  public.order_messages_add(uuid, integer), public.customer_message_report(integer), public.webhook_dead_replay(bigint),
+  public.gift_request_create(uuid, uuid, bigint), public.gift_respond(text, uuid, boolean), public.dispute_open(uuid, uuid, text, uuid, integer),
+  public.dispute_decide(uuid, boolean, uuid, numeric), public.order_lines_for_customer(uuid, uuid), public.customer_last_delivered(uuid),
+  public.order_messages_add(uuid, integer), public.customer_message_report(integer), public.webhook_dead_replay(bigint, uuid),
   public.menu_item_hints(uuid[])
   from public, anon, authenticated;
 grant execute on function public.search_expand(text), public.catalog_search(uuid, text, integer), public.customer_fact_set(uuid, text, text, text, boolean),
   public.customer_memory(uuid), public.customer_memory_forget(uuid, text, text), public.basket_address_state(uuid),
   public.basket_confirm_address(uuid, uuid), public.address_set_for_whom(uuid, uuid, text, boolean),
   public.address_set_recipient(uuid, uuid, text, text), public.basket_set_allergy_note(uuid, text),
-  public.gift_request_create(uuid, uuid, bigint), public.gift_respond(text, uuid, boolean), public.dispute_open(uuid, uuid, text, uuid),
-  public.dispute_decide(uuid, boolean, numeric), public.order_lines_for_customer(uuid, uuid), public.customer_last_delivered(uuid),
-  public.order_messages_add(uuid, integer), public.customer_message_report(integer), public.webhook_dead_replay(bigint),
+  public.gift_request_create(uuid, uuid, bigint), public.gift_respond(text, uuid, boolean), public.dispute_open(uuid, uuid, text, uuid, integer),
+  public.dispute_decide(uuid, boolean, uuid, numeric), public.order_lines_for_customer(uuid, uuid), public.customer_last_delivered(uuid),
+  public.order_messages_add(uuid, integer), public.customer_message_report(integer), public.webhook_dead_replay(bigint, uuid),
   public.menu_item_hints(uuid[])
   to service_role;
 revoke all on function app_private.search_stopword(text), app_private.fact_is_health(text), app_private.basket_address_confirmed(uuid), app_private.stairs_fee_usd(uuid),
   app_private.credits_for(uuid, numeric), app_private.dispute_book(uuid), app_private.customer_message_essential(text),
   app_private.offer_alternatives(uuid), app_private.message_budget_check(), app_private.outbox_non_urgent(public.outbox_purpose, jsonb),
-  app_private.gift_requests_expire(), app_private.orders_copy_customer_agent(), app_private.orders_credit_settle()
+  app_private.gift_requests_expire(), app_private.orders_copy_customer_agent(), app_private.orders_credit_settle(),
+  app_private.gift_fingerprint(uuid, jsonb), app_private.basket_allergy_note(uuid), app_private.operator_role(uuid), app_private.credits_expire()
   from public;

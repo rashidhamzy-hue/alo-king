@@ -339,6 +339,8 @@ const T5C: Record<CLang, S> = {
     giftExpired: "{name} ما ردّ عالوقت، ما انطلب شي. سلّتك بعدها موجودة.",
     giftFailed:
       "{name} قبل بس ما قدرنا نبعت الطلب ({reason}). ما في شي مدفوع؛ افتح سلّتك وجرّب من جديد.",
+    giftChanged:
+      "{name} قبل، بس سلّتك تغيّرت بعد ما سألناه، فما انطلب شي. دوس «أكّد» لنبعتلو الطلب الجديد.",
     giftThanks: "🙏 شكراً! الطلب #{code} صار عند المحل. منخبّر {sender} بكل شي.",
     giftNoThanks: "تمام، ما انطلب شي.",
     giftGone: "هالطلب ما عاد ناطر جواب.",
@@ -359,6 +361,8 @@ const T5C: Record<CLang, S> = {
     giftExpired: "{name} didn't answer in time; nothing was ordered. Your basket is still here.",
     giftFailed:
       "{name} accepted, but the order couldn't be placed ({reason}). Nothing was charged; open your basket to try again.",
+    giftChanged:
+      "{name} accepted, but your basket changed after we asked them, so nothing was ordered. Tap Confirm to send them the new order.",
     giftThanks: "🙏 Thank you! Order #{code} is with the shop. We'll keep {sender} updated.",
     giftNoThanks: "OK, nothing was ordered.",
     giftGone: "This order is no longer waiting for an answer.",
@@ -380,6 +384,8 @@ const T5C: Record<CLang, S> = {
       "{name} n'a pas répondu à temps ; rien n'a été commandé. Votre panier est toujours là.",
     giftFailed:
       "{name} a accepté, mais la commande n'a pas pu être passée ({reason}). Rien n'a été payé ; ouvrez votre panier pour réessayer.",
+    giftChanged:
+      "{name} a accepté, mais votre panier a changé après notre demande : rien n'a été commandé. Confirmez pour lui envoyer la nouvelle commande.",
     giftThanks:
       "🙏 Merci ! La commande #{code} est chez le commerce. Nous tenons {sender} informé(e).",
     giftNoThanks: "D'accord, rien n'a été commandé.",
@@ -401,6 +407,8 @@ const T5C: Record<CLang, S> = {
     giftExpired: "{name} ma radd 3al wa2et, ma ntalab shi. Salltak ba3da mawjoude.",
     giftFailed:
       "{name} 2ebel bas ma 2derna neb3at el talab ({reason}). Ma fi shi madfou3; efta7 salltak w jarreb men jdid.",
+    giftChanged:
+      "{name} 2ebel, bas salltak tghayaret ba3d ma sa2alne, fa ma ntalab shi. Dos Confirm ta neb3atlo el talab el jdid.",
     giftThanks: "🙏 Merci! El talab #{code} sar 3and el ma7al. Mnkhabber {sender} b kel shi.",
     giftNoThanks: "Tamem, ma ntalab shi.",
     giftGone: "Hal talab ma 3ad nater jaweb.",
@@ -630,7 +638,9 @@ export function customerStatusMessages(
       return [
         buttons(
           to,
-          tr(lang, "giftFailed", { name: p.recipient_name, reason: String(p.reason ?? "") }),
+          p.reason === "changed"
+            ? tr(lang, "giftChanged", { name: p.recipient_name })
+            : tr(lang, "giftFailed", { name: p.recipient_name, reason: String(p.reason ?? "") }),
           [["c:basket", tr(lang, "continue")]],
         ),
       ];

@@ -164,9 +164,9 @@ update public.orders set accepted_at = now() - interval '50 minutes', ready_mark
   picked_up_at = now() - interval '25 minutes', delivered_at = now() - interval '5 minutes' where id = :'oid1';
 set local role service_role;
 select id as line1 from public.order_items where order_id = :'oid1' limit 1 \gset
-select public.dispute_open(:'rami', :'oid1', 'missing_item', :'line1') as d1 \gset
+select public.dispute_open(:'rami', :'oid1', 'missing_item', :'line1', 2) as d1 \gset
 select tests.ok(:'d1'::jsonb ->> 'status' = 'auto_credit' and (:'d1'::jsonb ->> 'amount_usd')::numeric = 5.00 and :'d1'::jsonb ->> 'payer' = 'merchant',
-  'a missing $5.00 line under $8: automatic credit, the merchant pays (§38.3)');
+  'both manoushes missing ($5.00, under $8): automatic credit, the merchant pays (§38.3)');
 select tests.ok(public.dispute_open(:'rami', :'oid1', 'missing_item', :'line1') ->> 'status' = 'already_reported', 'the same line once');
 select tests.ok((select count(*) = 2 and sum(e.amount) = 0 from public.ledger_entries e join public.ledger_transactions t on t.id = e.transaction_id
                  where t.idempotency_key = 'dispute:' || (:'d1'::jsonb ->> 'dispute_id')),
@@ -188,6 +188,46 @@ values (:'oid1', '71000000-0000-0000-0000-000000000008', 'Mixed grill', 1, 'each
 set local role service_role;
 select id as line2 from public.order_items where order_id = :'oid1' and name_en = 'Mixed grill' \gset
 select tests.ok(public.dispute_open(:'rami', :'oid1', 'wrong_item', :'line2') ->> 'status' = 'owner_review', 'above $20: Rasheed''s tap');
+-- Deciding a dispute in review needs an active operator, an admin above $20, and never more than the line.
+select id as d3 from public.order_disputes where order_id = :'oid1' and kind = 'wrong_item' \gset
+select tests.throws(format('select public.dispute_decide(%L, true, null)', :'d3'), 'an active operator', 'no actor, no decision');
+select tests.throws(format('select public.dispute_decide(%L, true, %L)', :'d3', '00000000-0000-0000-0000-00000000000b'),
+  'over the owner limit', 'an operator cannot approve above $20');
+select tests.ok(public.dispute_decide(:'d3', true, '00000000-0000-0000-0000-00000000000a', 31) ->> 'status' = 'invalid',
+  'never more than the line');
+select tests.ok(public.dispute_decide(:'d3', false, '00000000-0000-0000-0000-00000000000a') ->> 'status' = 'rejected', 'the admin decides');
+select tests.ok((select decided_by = '00000000-0000-0000-0000-00000000000a' from public.order_disputes where id = :'d3'), '…and it is recorded');
+-- Cold food above $8 is never automatic: a $30 basket delivered late by a fresh customer goes to a person (§38.3).
+reset role;
+update public.order_disputes set decision = 'rejected' where order_id = :'oid1';
+update public.order_disputes set created_at = now() - interval '200 days' where order_id = :'oid1';
+do $$
+declare
+  v_cols text;
+begin
+  select string_agg(quote_ident(column_name), ', ') into v_cols from information_schema.columns
+  where table_schema = 'public' and table_name = 'orders' and is_generated = 'NEVER' and column_default is distinct from 'now()'
+    and column_name not in ('id', 'code', 'idempotency_key', 'status', 'food_subtotal_usd', 'total_usd', 'basket_id',
+      'accepted_at', 'ready_marked_at', 'picked_up_at', 'delivered_at', 'delivery_code_confirmed_at', 'created_at', 'updated_at');
+  execute format('insert into public.orders (id, code, idempotency_key, status, food_subtotal_usd, total_usd, %s)
+    select %L, %L, %L, %L, food_subtotal_usd + 35, total_usd + 35, %s from public.orders where idempotency_key = %L',
+    v_cols, '72000000-0000-0000-0000-000000000001', 'CQLDZZ', 'test:cold01', 'placed', v_cols, 'test:agent:o1');
+end;
+$$;
+update public.orders set status = 'accepted' where id = '72000000-0000-0000-0000-000000000001';
+update public.orders set status = 'ready' where id = '72000000-0000-0000-0000-000000000001';
+update public.orders set status = 'picked_up' where id = '72000000-0000-0000-0000-000000000001';
+update public.orders set delivery_code_confirmed_at = now() where id = '72000000-0000-0000-0000-000000000001';
+update public.orders set status = 'delivered' where id = '72000000-0000-0000-0000-000000000001';
+update public.orders o set accepted_at = x.accepted_at, ready_marked_at = x.ready_marked_at, picked_up_at = x.picked_up_at,
+  delivered_at = x.delivered_at
+from public.orders x where x.id = :'oid1' and o.id = '72000000-0000-0000-0000-000000000001';
+set local role service_role;
+select public.dispute_open(:'rami', '72000000-0000-0000-0000-000000000001', 'cold_food', null) as d4 \gset
+select tests.ok(:'d4'::jsonb ->> 'status' = 'review' and (:'d4'::jsonb ->> 'amount_usd')::numeric = 12.00,
+  'cold food worth $12 is over the $8 automatic limit: a person decides');
+-- The consented allergy reaches the kitchen on the customer's own orders, from memory, with no per-session step.
+select public.customer_fact_set(:'rami', 'allergy', 'sesame', 'said', true);
 -- The credit pays part of the next order; on delivery the ledger records it for the merchant.
 select public.basket_add_item(:'rami', '71000000-0000-0000-0000-000000000004', 2) as b2 \gset
 select public.basket_confirm_address(:'rami', :'a1');
@@ -199,12 +239,27 @@ select tests.ok((:'q2'::jsonb ->> 'credit_usd')::numeric = 5.00
 select b.id as bid2, b.priced_menu_version as ver2 from public.baskets b where b.customer_id = :'rami' and b.status = 'open' \gset
 select public.order_place(:'bid2', :'ver2', 'test:agent:o2') as o2 \gset
 select (:'o2'::jsonb ->> 'order_id') as oid2 \gset
+select tests.ok((select allergy_note = 'sesame' from public.orders where id = :'oid2'), 'the consented allergy is on the order for the kitchen');
 select tests.ok((select credit_usd = 5.00 from public.orders where id = :'oid2')
   and exists (select 1 from public.customer_credits where used_order_id = :'oid2'), 'the order uses the credit');
 reset role;
 update public.orders set status = 'cancelled', cancel_reason = 'operator' where id = :'oid2';
 set local role service_role;
 select tests.ok(not exists (select 1 from public.customer_credits where used_order_id = :'oid2'), 'a cancelled order gives the credit back');
+-- An unused credit that expires goes back to whoever funded it, once (§20).
+reset role;
+update public.customer_credits set expires_at = now() - interval '1 minute' where customer_id = :'rami';
+select tests.ok(app_private.credits_expire() = 1 and app_private.credits_expire() = 0, 'an expired credit is reversed once');
+select tests.ok((select sum(e.amount) = 0 from public.ledger_entries e join public.ledger_accounts a on a.id = e.account_id
+                 join public.ledger_transactions t on t.id = e.transaction_id
+                 where a.kind = 'customer_refund_payable' and t.idempotency_key like any (array['dispute:%', 'credit-expired:%'])),
+  'nothing is left owed to the customer on the ledger');
+-- The soonest-expiring credit too big for the basket is skipped; a smaller one still applies.
+insert into public.customer_credits (customer_id, amount_usd, reason, expires_at) values
+  (:'rami', 50.00, 'test big credit', now() + interval '1 day'), (:'rami', 1.00, 'test small credit', now() + interval '2 days');
+select tests.ok((select sum(amount_usd) = 1.00 from app_private.credits_for(:'rami', 10)), 'a credit that fits is used even after one that does not');
+delete from public.customer_credits where reason like 'test % credit';
+set local role service_role;
 
 -- 7. Gift orders ---------------------------------------------------------------------------------------------------
 select public.basket_add_item(:'rami', '71000000-0000-0000-0000-000000000002', 2) as b3 \gset
@@ -228,6 +283,9 @@ select tests.ok(:'g1'::jsonb ->> 'status' = 'asked', 'the recipient is asked');
 select tests.ok(exists (select 1 from public.outbound_messages where target = '+96176100002' and payload ->> 'kind' = 'gift_request'),
   'Mom gets "accept and pay on delivery"');
 select tests.ok(public.gift_respond('+96176100003', (:'g1'::jsonb ->> 'gift_id')::uuid, true) ->> 'status' = 'unknown', 'only Mom can answer');
+select tests.ok(public.gift_request_create(:'rami', :'bid3', :'ver3') ->> 'gift_id' = :'g1'::jsonb ->> 'gift_id', 'a second Confirm tap returns the same request');
+select tests.ok((select count(*) = 1 from public.outbound_messages where target = '+96176100002' and payload ->> 'kind' = 'gift_request'),
+  'tapping Confirm again does not message Mom again');
 select public.gift_respond('+96176100002', (:'g1'::jsonb ->> 'gift_id')::uuid, true) as g2 \gset
 select tests.ok(:'g2'::jsonb ->> 'status' = 'placed', 'Mom accepts: the order is placed');
 select tests.ok((select is_gift and recipient_name = 'Mom' and recipient_phone = '+96176100002' and customer_id = :'rami'
@@ -235,6 +293,32 @@ select tests.ok((select is_gift and recipient_name = 'Mom' and recipient_phone =
 select tests.ok(exists (select 1 from public.outbound_messages where target = '+96176100001' and payload ->> 'kind' = 'gift_accepted'),
   'Rami hears Mom accepted');
 select tests.ok(public.gift_respond('+96176100002', (:'g1'::jsonb ->> 'gift_id')::uuid, true) ->> 'status' = 'already_accepted', 'once');
+select tests.ok((select allergy_note is null from public.orders where id = (:'g2'::jsonb ->> 'order_id')::uuid),
+  'the sender''s own allergy never goes on a gift for someone else');
+-- A basket changed after Mom was asked is never ordered on her tap.
+select public.basket_add_item(:'rami', '71000000-0000-0000-0000-000000000002', 1) as b5 \gset
+select public.basket_confirm_address(:'rami', :'a2');
+select public.basket_set_cash_currency(:'rami', 'USD');
+select public.basket_quote(:'rami');
+select b.id as bid5, b.priced_menu_version as ver5 from public.baskets b where b.customer_id = :'rami' and b.status = 'open' \gset
+select public.gift_request_create(:'rami', :'bid5', :'ver5') as g5 \gset
+select tests.ok(:'g5'::jsonb ->> 'status' = 'asked', 'a second gift for Mom is asked');
+select public.basket_add_item(:'rami', '71000000-0000-0000-0000-000000000002', 3);
+select tests.ok(public.gift_respond('+96176100002', (:'g5'::jsonb ->> 'gift_id')::uuid, true) ->> 'status' = 'changed', 'a changed basket is refused');
+select tests.ok((select status = 'failed' from public.gift_requests where id = (:'g5'::jsonb ->> 'gift_id')::uuid)
+  and (select status = 'open' from public.baskets where id = :'bid5'),
+  'the sender added items after asking: Mom''s tap orders nothing, and Rami hears it failed');
+select tests.ok(exists (select 1 from public.outbound_messages where target = '+96176100001' and payload ->> 'kind' = 'gift_failed'), '…told to the sender');
+-- At most three requests a day from one sender to one number.
+reset role;
+update public.gift_requests set created_at = now() - interval '1 hour', status = 'expired' where sender_id = :'rami';
+insert into public.gift_requests (basket_id, sender_id, recipient_phone, recipient_name, menu_version, total_usd, fingerprint, status, expires_at)
+values (:'bid5', :'rami', '+96176100002', 'Mom', :'ver5', 1, 'x', 'expired', now());
+set local role service_role;
+select tests.ok(public.gift_request_create(:'rami', :'bid5', :'ver5') ->> 'status' = 'too_many', 'a fourth request in a day is refused');
+reset role;
+delete from public.gift_requests where fingerprint = 'x';
+set local role service_role;
 -- STOP from the recipient blocks gift messages.
 select public.customer_marketing_set(:'mom', false);
 select public.basket_add_item(:'rami', '71000000-0000-0000-0000-000000000002', 1) as b4 \gset
@@ -279,7 +363,10 @@ select tests.ok(exists (select 1 from pgmq.read('webhook_dead', 1, 10) m where (
   and m.message ->> 'error' = 'boom'), '…with its error');
 set local role service_role;
 select tests.ok(exists (select 1 from public.ops_alerts where kind = 'dead_letter'), 'the operators are alerted');
-select tests.ok(public.webhook_dead_replay(:'evid') ->> 'status' = 'requeued', 'and it can be replayed');
+select tests.throws(format('select public.webhook_dead_replay(%s, null)', :'evid'), 'an active operator', 'only an operator replays');
+select tests.ok(public.webhook_dead_replay(:'evid', '00000000-0000-0000-0000-00000000000b') ->> 'status' = 'requeued', 'an operator replays it');
+select tests.ok((select attempts = 1 and status = 'queued' from public.webhook_events where id = :'evid'),
+  'an operator replays it as a retry (attempt 2 next), so an unfinished turn runs again');
 
 -- 11. Allergen hints (§38.3) ---------------------------------------------------------------------------------------------
 select public.menu_item_hints(array['71000000-0000-0000-0000-000000000005', '71000000-0000-0000-0000-000000000006',
@@ -297,7 +384,8 @@ select tests.ok(not (public.menu_item_hints(array['71000000-0000-0000-0000-00000
 reset role;
 select tests.ok(not exists (
   select 1 from (values ('public.catalog_search(uuid,text,integer)'), ('public.customer_memory_forget(uuid,text,text)'),
-    ('public.gift_respond(text,uuid,boolean)'), ('public.dispute_open(uuid,uuid,text,uuid)'), ('public.dispute_decide(uuid,boolean,numeric)'),
+    ('public.gift_respond(text,uuid,boolean)'), ('public.dispute_open(uuid,uuid,text,uuid,integer)'), ('public.dispute_decide(uuid,boolean,uuid,numeric)'),
+    ('public.webhook_dead_replay(bigint,uuid)'), ('public.gift_request_create(uuid,uuid,bigint)'),
     ('public.customer_fact_set(uuid,text,text,text,boolean)')) f(sig)
   where has_function_privilege('anon', f.sig, 'execute') or has_function_privilege('authenticated', f.sig, 'execute')),
   'none of the new functions is reachable without the service role');

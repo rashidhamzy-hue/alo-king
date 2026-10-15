@@ -912,6 +912,11 @@ describe("session 5c customer agent cards (DECISIONS §38.3, §39.6)", () => {
           { order_id: UUID, code: "ABC123" },
         ),
         ...customerStatusMessages(to, { kind: "gift_expired", lang, recipient_name: "Mom" }, null),
+        ...customerStatusMessages(
+          to,
+          { kind: "gift_failed", lang, recipient_name: longName, reason: "changed" },
+          null,
+        ),
       ];
       for (const p of built)
         expect(checkInteractive(p), JSON.stringify(p).slice(0, 120)).toEqual([]);

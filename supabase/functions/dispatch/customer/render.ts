@@ -1557,6 +1557,12 @@ const S5C: Record<string, Record<CLang, string>> = {
     arabizi:
       'Ma fina neb3at la {name} ba3d: WhatsApp byesma7elna nekteb bas lal nas li ba3atulna bi akher 24 se3a. Khalli {name} yeb3at "marhaba" la hal ra2m, w ba3den dos Confirm marra tenye.',
   },
+  giftTooMany: {
+    ar: "بعتنا لـ{name} كذا طلب اليوم. جرّب بكرا، أو خلّي {name} يطلب لحالو.",
+    en: "We've already asked {name} several times today. Try again tomorrow, or ask {name} to order directly.",
+    fr: "Nous avons déjà sollicité {name} plusieurs fois aujourd'hui. Réessayez demain, ou demandez-lui de commander directement.",
+    arabizi: "Ba3atna la {name} kaza talab el yom. Jarreb bokra, aw khalli {name} yotlob la7alo.",
+  },
   giftBlocked: {
     ar: "رقم {name} طالب ما توصلو طلبات هدايا.",
     en: "{name}'s number has asked not to receive gift orders.",

@@ -15,7 +15,7 @@ import {
   isOffTopic,
   mentionsSomeoneElse,
 } from "./intents";
-import { parseCustomerAction } from "../../_shared/customer-cards";
+import { customerStatusMessages, parseCustomerAction } from "../../_shared/customer-cards";
 
 const CUST = "10000000-0000-0000-0000-000000000001";
 const VENDOR = "20000000-0000-0000-0000-00000000000a";
@@ -567,7 +567,7 @@ describe("the address on every order and who it is for (§22.1, §39.6)", () => 
     await handleCustomerTurn(f.deps, tap("c:checkout"));
     expect(ids(f.sent[0])).toEqual(["fw:self_save", "fw:self_once", "fw:other"]);
   });
-  it("a consented allergy note goes to the kitchen and is on the summary", async () => {
+  it("the server's allergy note (consented, not on a gift) is on the summary", async () => {
     const f = fake({
       begin: {
         basket,
@@ -579,7 +579,7 @@ describe("the address on every order and who it is for (§22.1, §39.6)", () => 
       },
     });
     await handleCustomerTurn(f.deps, tap("c:checkout"));
-    expect(f.of("basket_set_allergy_note")[0].args.p_note).toBe("nuts");
+    expect(f.of("basket_set_allergy_note")).toHaveLength(0); // the server fills it from the consented fact
     expect(bodyOf(f.sent[0])).toMatch(/Kitchen note: allergy, nuts/);
   });
 });
@@ -610,6 +610,25 @@ describe("gift orders (§22.2 scenario 7)", () => {
     });
     await handleCustomerTurn(f.deps, tap(`cfm:${BASKET}:7`));
     expect(bodyOf(f.sent[0])).toMatch(/Ask Mom to send "hi"/);
+  });
+  it("a sender who already asked one number three times today is told to wait", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        order_place: () => ({ status: "gift_needs_recipient" }),
+        gift_request_create: () => ({ status: "too_many", recipient_name: "Mom" }),
+      },
+    });
+    await handleCustomerTurn(f.deps, tap(`cfm:${BASKET}:7`));
+    expect(bodyOf(f.sent[0])).toMatch(/already asked Mom several times today/);
+  });
+  it("the sender hears that a basket changed after asking was not ordered", () => {
+    const [m]: any = customerStatusMessages(
+      "+96176000001",
+      { kind: "gift_failed", lang: "en", recipient_name: "Mom", reason: "changed" },
+      null,
+    );
+    expect(JSON.stringify(m)).toMatch(/your basket changed after we asked them/);
   });
   it("the recipient's tap accepts with their own number", async () => {
     const f = fake({
@@ -719,6 +738,7 @@ describe("recorded model answers, replayed (evals/customer/fixtures/model-turns.
       });
       await handleCustomerTurn(f.deps, msg({ text: c.text }));
       for (const fn of c.expect.rpc) expect(f.fns(), fn).toContain(fn);
+      for (const fn of c.expect.never ?? []) expect(f.fns(), fn).not.toContain(fn);
       for (const [fn, args] of Object.entries(c.expect.args ?? {}))
         expect(f.of(fn)[0].args).toMatchObject(args as object);
       const all = f.sent.flatMap(ids);
