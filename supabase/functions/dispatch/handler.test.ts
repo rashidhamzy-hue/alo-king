@@ -763,3 +763,35 @@ describe("the one-phone test switch and the merchant's next-step cards (session 
     expect(buttonIds(sent)).toEqual([]);
   });
 });
+
+describe("the catalogue sync step runs inside a normal dispatch run (§39.12)", () => {
+  it("with the usual 20 s reply budget, the sync still takes shops while the worker has time left", async () => {
+    const db = fakeDb({});
+    const api = {
+      batch: async () => ({ ok: true as const }),
+      productSet: async () => null,
+      imageUrl: (id: string, h: string) => `https://x.test/${id}?v=${h}`,
+    };
+    const { d } = deps(db, {
+      budgetMs: 20_000,
+      workerDeadline: new Date(Date.now() + 150_000),
+      catalog: api,
+    });
+    await runDispatch(d);
+    expect(db.of("catalog_sync_claim").length).toBeGreaterThan(0);
+  });
+  it("a worker near its end takes no shop", async () => {
+    const db = fakeDb({});
+    const { d } = deps(db, {
+      budgetMs: 20_000,
+      workerDeadline: new Date(Date.now() + 20_000),
+      catalog: {
+        batch: async () => ({ ok: true as const }),
+        productSet: async () => null,
+        imageUrl: () => "",
+      },
+    });
+    await runDispatch(d);
+    expect(db.of("catalog_sync_claim")).toHaveLength(0);
+  });
+});

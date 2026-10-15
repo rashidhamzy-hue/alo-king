@@ -37,6 +37,7 @@ import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
 import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
 import type { CatalogApi, CatalogTransport } from "./catalog-sync.ts";
 import { catalogTileSvg } from "../_shared/catalog-image.ts";
+import { productHash, type DesiredProduct } from "../_shared/catalog.ts";
 
 // Kapso is reached only here (CLAUDE.md); never from configuration or message content.
 const KAPSO_BASE = "https://api.kapso.ai/meta/whatsapp/v24.0";
@@ -459,9 +460,16 @@ async function catalogImage(url: URL): Promise<Response> {
   const id = url.searchParams.get("i") ?? "";
   if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response("not found", { status: 404 });
   const d = await rpc("catalog_image", { p_item_id: id }).catch(() => null);
-  // Only the version Meta was given (the content hash in the URL) is drawn: no re-render for any other cache-buster.
-  if (!d || String(d.hash ?? "") !== (url.searchParams.get("v") ?? ""))
-    return new Response("not found", { status: 404 });
+  // Only the version Meta was given is drawn (no re-render for any other cache-buster): the hash recorded for the item, or
+  // the one being sent right now (Meta may fetch the image before the sync records its new hash).
+  if (!d) return new Response("not found", { status: 404 });
+  const v = url.searchParams.get("v") ?? "";
+  if (String(d.hash ?? "") !== v) {
+    const desired: DesiredProduct[] =
+      (await rpc("catalog_desired", { p_vendor_id: d.vendor_id }).catch(() => [])) ?? [];
+    const p = desired.find((x) => x.retailer_id === id);
+    if (!p || productHash(p) !== v) return new Response("not found", { status: 404 });
+  }
   if (typeof d.photo === "string" && d.photo) {
     const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/vendor-photos/${d.photo}`, {
       method: "POST",

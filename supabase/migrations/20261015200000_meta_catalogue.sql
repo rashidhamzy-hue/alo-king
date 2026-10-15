@@ -148,12 +148,13 @@ as $$
   select jsonb_build_object('name_ar', i.name_ar, 'name_en', coalesce(i.name_en, i.name_fr),
     'vendor', coalesce(v.name_en, v.name_ar), 'vendor_ar', v.name_ar,
     'hash', (select c.content_hash from public.catalog_sync_items c where c.item_id = i.id),
+    'vendor_id', v.id,
     'photo', (select p.storage_path from public.vendor_photos p where p.vendor_id = v.id and p.status = 'confirmed'
               order by p.sort_order, p.created_at limit 1))
   from public.menu_items i join public.vendors v on v.id = i.vendor_id
-  -- Only an item that is in the catalogue (synced) is ever drawn: nothing else is reachable through this public route.
-  where i.id = p_item_id and exists (select 1 from public.catalog_sync_items c where c.item_id = i.id)
-    and v.claim_status = 'claimed' and v.listing_status = 'active';
+  -- Only an item of the catalogue (synced, or of a shop that syncs) is ever drawn: nothing else is reachable here.
+  where i.id = p_item_id and v.claim_status = 'claimed' and v.listing_status = 'active'
+    and (v.orderable or exists (select 1 from public.catalog_sync_items c where c.item_id = i.id));
 $$;
 
 -- 5. The sync queue ----------------------------------------------------------------------------------------------------
@@ -527,7 +528,8 @@ begin
   if not exists (select 1 from public.outbound_messages where status in ('queued', 'sending') and available_at <= now())
      and not exists (select 1 from public.ops_alerts where sent_at is null and send_attempts < 10)
      and not exists (select 1 from public.webhook_events where status in ('queued', 'failed') and attempts < 5)
-     and not exists (select 1 from app_private.catalog_sync_queue where next_at <= now()) then
+     and not exists (select 1 from app_private.catalog_sync_queue where next_at <= now()
+                     and coalesce(leased_until, '-infinity') < now()) then
     return null;
   end if;
   return net.http_post(

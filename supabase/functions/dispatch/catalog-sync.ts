@@ -101,9 +101,14 @@ export async function catalogSyncStep(
         for (const id of r.refused ?? []) refused.add(id);
       }
       // A product Meta refused is recorded as not shown (never offered in a product message) and is sent again next time.
+      // A product shown before keeps its visibility (Meta still shows the earlier version, so a later hide still applies).
       const record = plan.record.map((x) =>
         refused.has(x.retailer_id)
-          ? { retailer_id: x.retailer_id, hash: "refused", visible: false }
+          ? {
+              retailer_id: x.retailer_id,
+              hash: "refused",
+              visible: state[x.retailer_id]?.visible ?? false,
+            }
           : x,
       );
       await rpc("catalog_sync_record", { p_vendor_id: j.vendor_id, p_items: record });
