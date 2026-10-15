@@ -282,7 +282,7 @@
     - On the sandbox, the list menu runs as before.
   - **Templates:** 45 versions. 42 are pending at Meta. The 3 alo_claim_code versions are blocked by the 2K messaging tier.
   - **Flows:** 12 valid drafts with encryption set up. Meta's integrity gate blocks publishing them until business verification (#182).
-  - **Live check on the US number with Rasheed's phone:** greeting, list menu and handoff passed. The handoff's operator alert went out from the expired sandbox and failed; this PR fixes that (sent from the number the person wrote to last).
+  - **Live check on the US number with Rasheed's phone:** greeting, list menu and handoff passed. The handoff's operator alert went out from the expired sandbox and failed; fixed in the sender PR of this session (sent from the number the person wrote to last).
   - **e2e:** E2E_RESULT
   - **New scenarios:** 23 catalogue-browse, 24 native-cart-price-change, 25 mixed-cart-and-buttons, 26 readiness-extras (2-tap repeat, typed search, STOP/START, voice "not yet"), 27 demo-freds-catalogue-cart, 28 demo-coop-list-menu.
   - **Open for later:** one #183 round-3 nit: the webhook's dispatch kick should abort after a few seconds (the other, a wrong image hash running `catalog_desired`, is fixed here).

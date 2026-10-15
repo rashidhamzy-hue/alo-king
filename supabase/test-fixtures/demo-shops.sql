@@ -1,7 +1,8 @@
 -- STAGING ONLY (DECISIONS §39.12, demo mode). Never applied by the migration job and never run at the production cut-over:
 -- the cut-over checks that config demo_shops is empty on production. The staging deploy runs it after
 -- alo-test-grill.sql, with the menu overrides built by scripts/demo/build-demo-menus.ts:
---   psql "$DB_URL" -1 -v ON_ERROR_STOP=1 -v demo_csv=<file> -f supabase/test-fixtures/demo-shops.sql
+--   psql "$DB_URL" -1 -v ON_ERROR_STOP=1 -v demo=on -v demo_csv=<file> -f supabase/test-fixtures/demo-shops.sql
+-- Without -v demo=on it changes nothing.
 -- Safe to run again.
 --
 -- What it does (Rasheed, 15 October: every shop on staging with a menu, growing as menus are added):
@@ -26,12 +27,16 @@ select set_config('app.audit_reason', 'staging demo shops (DECISIONS §39.12)', 
 drop table if exists demo_in;
 drop table if exists demo_shops_now;
 create temp table demo_in (place_id text, name text, menu text, sections text, source_url text) on commit drop;
+select set_config('app.demo_fixture', 'off', false);
+\if :{?demo}
+select set_config('app.demo_fixture', :'demo', false);
+\endif
 \if :{?demo_csv}
 -- psql does not expand variables inside \copy: build the command first.
 \set demo_copy '\\copy demo_in from ' :'demo_csv' ' with (format csv, header true)'
 :demo_copy
 \else
-\echo 'demo shops: no list given (-v demo_csv=...); nothing changes'
+\echo 'demo shops: no menu overrides given (-v demo_csv=...)'
 \endif
 
 -- One shop's menu from draft sections: the conversion of app_private.menu_draft_approve_section (USD as is, LBP at the
@@ -133,8 +138,9 @@ declare
   v_user uuid;
   v_n int;
 begin
-  -- Only when the deploy asks for it (it always passes the override list): never by accident elsewhere.
-  if not exists (select 1 from demo_in) then
+  -- Only when the deploy asks for it (-v demo=on): never by accident elsewhere.
+  if current_setting('app.demo_fixture', true) is distinct from 'on' then
+    raise notice 'demo shops: not switched on (-v demo=on); nothing changes';
     return;
   end if;
   -- The demo shops: every real (seed) shop whose menu, the full harvested one where demo-shops.json says so, else its seed
@@ -169,7 +175,13 @@ begin
       and (phone_e164 in (select o.phone_e164 from app_private.owner_phones o) or app_private.is_sim_phone(phone_e164));
     update public.vendor_order_channels set enabled = false where vendor_id = v.id and enabled;
     update public.vendor_private set owner_mobile = null, kitchen_whatsapp = null where vendor_id = v.id;
-    delete from public.menu_item_photos where vendor_id = v.id and source = 'illustrative';
+    delete from public.menu_item_photos where vendor_id = v.id and source in ('illustrative', 'website');
+    -- The menu the demo published from seed prices goes too (a claim must start from the merchant's confirmation, §15),
+    -- unless the shop has orders.
+    if not exists (select 1 from public.order_items oi join public.menu_items i on i.id = oi.item_id where i.vendor_id = v.id) then
+      delete from public.menu_items where vendor_id = v.id;
+      delete from public.menu_sections where vendor_id = v.id;
+    end if;
     update public.vendors set orderable = false, claim_status = 'unclaimed', field_sources = field_sources - 'demo' - 'demo_menu'
     where id = v.id;
   end loop;

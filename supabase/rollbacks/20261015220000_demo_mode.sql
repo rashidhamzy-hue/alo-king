@@ -1,10 +1,31 @@
 -- Rollback of 20261015220000_demo_mode.sql: back to the test shop only. Item photos are dropped (their Storage objects
 -- in menu-item-photos stay until the bucket is emptied by hand); the search functions get their old signatures back.
 begin;
-drop trigger if exists vendors_drop_illustrative on public.vendors;
+-- Demo mode off first, as the staging fixture does for a shop that leaves the list: the shops go back to unclaimed seed
+-- listings (their demo menu removed when they never had an order), so no orderable shop is left without the guard.
+select set_config('app.actor_kind', 'system', true);
+select set_config('app.audit_reason', 'rollback of demo mode (DECISIONS §39.12)', true);
+insert into public.app_config (key, value, effective_from, note, created_by)
+select 'demo_shops', '[]', now(), 'rollback of 20261015220000_demo_mode.sql', null
+where coalesce(jsonb_array_length(public.config_value('demo_shops')), 0) > 0;
+update public.vendor_members m set status = 'revoked'
+from public.vendors v where v.id = m.vendor_id and v.field_sources ? 'demo' and m.status <> 'revoked'
+  and (m.phone_e164 in (select o.phone_e164 from app_private.owner_phones o) or app_private.is_sim_phone(m.phone_e164));
+update public.vendor_order_channels c set enabled = false from public.vendors v where v.id = c.vendor_id and v.field_sources ? 'demo';
+update public.vendor_private p set owner_mobile = null, kitchen_whatsapp = null from public.vendors v
+where v.id = p.vendor_id and v.field_sources ? 'demo';
+delete from public.menu_items i using public.vendors v where v.id = i.vendor_id and v.field_sources ? 'demo'
+  and not exists (select 1 from public.order_items oi join public.menu_items x on x.id = oi.item_id where x.vendor_id = v.id);
+delete from public.menu_sections s using public.vendors v where v.id = s.vendor_id and v.field_sources ? 'demo'
+  and not exists (select 1 from public.menu_items i where i.section_id = s.id);
+update public.vendors set orderable = false, claim_status = 'unclaimed', field_sources = field_sources - 'demo' - 'demo_menu'
+where field_sources ? 'demo';
+
+drop trigger if exists vendors_drop_demo_photos on public.vendors;
 drop trigger if exists outbound_messages_demo_guard on public.outbound_messages;
 drop function if exists public.sim_demo(text, text, boolean);
-drop function if exists app_private.vendors_drop_illustrative();
+drop function if exists public.sim_demo_reset();
+drop function if exists app_private.vendors_drop_demo_photos();
 drop function if exists public.menu_item_photo_set(uuid, text, text, text);
 drop function if exists public.demo_photos_todo(integer);
 drop table if exists app_private.demo_item_sources;
@@ -164,6 +185,40 @@ begin
                         from jsonb_array_elements(sections) with ordinality x (s, ord)) then 'approved' else 'partly_approved' end
   where id = p_draft_id;
   return jsonb_build_object('status', 'approved', 'section_id', v_section, 'inserted', v_inserted, 'needs_price', v_needs);
+end;
+$$;
+
+create or replace function app_private.offer_alternatives(p_order_id uuid) returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_o public.orders%rowtype;
+  v_rows jsonb;
+  v_refs jsonb := '{}';
+  v_i integer := 0;
+  v_v record;
+begin
+  select * into v_o from public.orders where id = p_order_id;
+  if v_o.id is null or v_o.delivery_pin is null then
+    return '[]';
+  end if;
+  v_rows := '[]';
+  for v_v in
+    select s.vendor_id, s.name_ar, s.name_en from public.vendor_search(null, extensions.st_y(v_o.delivery_pin::extensions.geometry),
+      extensions.st_x(v_o.delivery_pin::extensions.geometry),
+      (select v.business_type from public.vendors v where v.id = v_o.vendor_id), null, 10) s
+    where s.vendor_id <> v_o.vendor_id and s.is_open
+    limit 3
+  loop
+    v_i := v_i + 1;
+    v_refs := v_refs || jsonb_build_object('v' || v_i, jsonb_build_object('id', v_v.vendor_id, 'label', left(coalesce(v_v.name_en, v_v.name_ar), 60)));
+    v_rows := v_rows || jsonb_build_object('ref', 'v' || v_i, 'name_ar', v_v.name_ar, 'name_en', v_v.name_en);
+  end loop;
+  if v_i > 0 then
+    update public.bot_sessions s set refs = (select coalesce(jsonb_object_agg(k, v), '{}') from jsonb_each(s.refs) e(k, v) where k !~ '^v\d+$') || v_refs
+    where s.customer_id = v_o.customer_id;
+  end if;
+  return v_rows;
 end;
 $$;
 

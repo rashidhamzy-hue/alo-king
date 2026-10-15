@@ -37,7 +37,11 @@ select set_config('app.fixture_owner_phone', '+96170000096', false);
 \i supabase/test-fixtures/alo-test-grill.sql
 -- The override list: the corner shop's full harvested menu (two drinks) instead of its one-item draft.
 \copy (select * from (values ('ChIJdemoTestShop00000002', 'Demo Corner Shop', 'harvest', '[{"name_en": "Drinks", "items": [{"name_en": "Water", "price": 0.5, "currency": "USD"}, {"name_en": "Juice", "price": 2, "currency": "USD"}]}]', 'https://example.test/menu')) t (place_id, name, menu, sections, source_url)) to '/tmp/alo-demo-test.csv' with (format csv, header true)
+-- Without the switch the fixture changes nothing.
 \set demo_csv /tmp/alo-demo-test.csv
+\i supabase/test-fixtures/demo-shops.sql
+select tests.ok(cardinality(app_private.demo_vendor_ids()) = 0, 'without -v demo=on the fixture changes nothing');
+\set demo on
 \i supabase/test-fixtures/demo-shops.sql
 
 select tests.ok(app_private.demo_vendor_ids() @> array[:'d1', :'d2']::uuid[] and cardinality(app_private.demo_vendor_ids()) = 2,
@@ -94,6 +98,24 @@ select tests.ok(not exists (select 1 from public.vendor_search_pickup(33.6775, 3
   'the pickup search hides the same shops');
 select tests.ok(not exists (select 1 from jsonb_array_elements(public.catalog_search(:'real', 'hummus') -> 'items') x
                             where (x ->> 'vendor_id')::uuid = :'tv'), 'and so does the dish search');
+-- A simulated customer's order at a demo shop: everything for the merchant goes to the simulated merchant, never to a real
+-- phone, the owner's included (§36), although the shop's channel points at the owner.
+insert into public.orders (code, idempotency_key, customer_id, vendor_id, status, fulfilment, payment_method, menu_version,
+  usd_lbp_rate, food_subtotal_usd, total_usd, order_fee_usd)
+values ('DEMQ2X', 'test:demo:sim-order', :'sim', :'d2', 'placed', 'pickup', 'cod', 1, public.usd_lbp_rate(), 2, 2, 0);
+select id as so from public.orders where idempotency_key = 'test:demo:sim-order' \gset
+insert into public.outbound_messages (dedupe_key, order_id, vendor_id, channel, purpose, target)
+values ('demo-test:sim1', :'so', :'d2', 'whatsapp', 'new_order', '+96170000096'),
+       ('demo-test:sim2', :'so', :'d2', 'whatsapp', 'customer_message', '+99996100000071'),
+       ('demo-test:sim3', :'so', :'d2', 'email', 'copy', 'shop@example.test');
+select tests.ok((select target from public.outbound_messages where dedupe_key = 'demo-test:sim1') = '+99996100000072',
+  'a simulated customer''s order card goes to the simulated merchant, not the owner''s real phone');
+select tests.ok(not exists (select 1 from public.outbound_messages where order_id = :'so' and channel in ('whatsapp', 'call')
+  and target not in ('+99996100000072', '+99996100000071')), 'nothing about that order reaches a real phone');
+select tests.ok((select target from public.outbound_messages where dedupe_key = 'demo-test:sim2') = '+99996100000071',
+  'the customer''s own messages are left alone');
+select tests.ok((select status from public.outbound_messages where dedupe_key = 'demo-test:sim3') = 'skipped',
+  'a demo shop''s email copy is never sent');
 select tests.ok(public.sim_demo('+99996100000071', '+99996100000072', false) ->> 'status' = 'ok', 'the scenario opts out at the end');
 select tests.ok(not exists (select 1 from public.vendor_members where phone_e164 = '+99996100000072' and status = 'active' and vendor_id in (:'d1', :'d2')),
   'which revokes the simulated merchant');

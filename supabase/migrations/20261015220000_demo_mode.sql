@@ -1,4 +1,4 @@
--- Demo mode (DECISIONS §39.12, Rasheed's request of 15 October): on staging only, investors order from 20 real Shouf shops
+-- Demo mode (DECISIONS §39.12, Rasheed's request of 15 October): on staging only, investors order from the real Shouf shops that have a menu (27 on 15 October)
 -- instead of Alo Test Grill. This migration is the machinery and is safe on production, where it does nothing:
 --   1. config `demo_shops` (written only by the staging fixture supabase/test-fixtures/demo-shops.sql; the cut-over checks
 --      that production has none) and app_private.vendor_is_demo().
@@ -6,15 +6,16 @@
 --      (public.sim_demo), so the other e2e scenarios keep their one test shop; while demo mode is on, the test shops are
 --      hidden from real customers who are not owners, so an investor sees only real shops. vendor_search,
 --      vendor_search_pickup and catalog_search apply it.
---   3. Nothing is ever sent to a real shop's number: every WhatsApp or call message about a demo shop goes to the owner's
---      phone (or, for a simulated customer's order, to the simulated merchant), whatever channel the shop has on record.
---      The customer, a gift's recipient, an owner phone and a simulator number are left alone; anything else is
---      rerouted, or skipped when there is nobody to route to.
+--   3. Nothing is ever sent to a real shop: every WhatsApp or call message about a demo shop goes to the owner's phone,
+--      and for a simulated customer's order to the scenario's simulated merchant (never a real phone, §36), whatever the
+--      shop has on record; the customer and a gift's recipient are left alone; anything else is rerouted, or skipped when
+--      there is nobody to route to. A demo shop's email, printer and POS copies are skipped.
 --   4. The merchant's order card says "Demo" (order_card_payload.demo).
 --   5. Item photos (public.menu_item_photos, private bucket `menu-item-photos`): the catalogue's image for an item is its
 --      own photo (the merchant's, the shop's website, or an illustrative one), never a shop photo, so a Google place
---      photo is never shown as an item photo (§38.1); without one, the generated tile. Illustrative photos are removed
---      when the shop is claimed (the merchant's own replace them).
+--      photo is never shown as an item photo (§38.1); without one, the generated tile. Illustrative and website photos
+--      are removed when the shop is claimed (the merchant confirms their own, §15).
+--   6. Alternatives offered after a rejection hide the same shops as the search.
 
 -- 1. Demo shops ---------------------------------------------------------------------------------------------------------
 -- config demo_shops: [{"id": <vendor id>, "name": <shop name>}, ...]; absent or [] means demo mode is off.
@@ -236,29 +237,40 @@ declare
   v_vendor uuid := new.vendor_id;
   v_customer text;
   v_recipient text;
+  v_gift text;
   v_to text;
 begin
-  if new.channel not in ('whatsapp', 'call') then
-    return new;
-  end if;
   if v_vendor is null and new.order_id is not null then
     select o.vendor_id into v_vendor from public.orders o where o.id = new.order_id;
   end if;
-  if not app_private.vendor_is_demo(v_vendor) then
+  if not app_private.vendor_is_demo(v_vendor) or new.channel = 'portal' then
+    return new;
+  end if;
+  if new.channel not in ('whatsapp', 'call') then
+    new.status := 'skipped';
+    new.last_error := 'demo shop: ' || new.channel || ' copies are never sent';
     return new;
   end if;
   if new.order_id is not null then
     select c.phone_e164, o.recipient_phone into v_customer, v_recipient
     from public.orders o join public.customers c on c.id = o.customer_id where o.id = new.order_id;
   end if;
-  if new.target is not null and (new.target = v_customer or new.target = v_recipient
-     or app_private.is_sim_phone(new.target)
-     or exists (select 1 from app_private.owner_phones o where o.phone_e164 = new.target)) then
+  if new.payload ->> 'gift_id' ~ '^[0-9a-f-]{36}$' then
+    select g.recipient_phone into v_gift from public.gift_requests g where g.id = (new.payload ->> 'gift_id')::uuid;
+  end if;
+  if new.target is not null and new.target in (v_customer, v_recipient, v_gift) then
     return new;
   end if;
   if app_private.is_sim_phone(v_customer) then
+    -- A simulated customer's order (§36): only the scenario's simulated merchant, never a real phone (the owner's included).
+    if app_private.is_sim_phone(new.target) then
+      return new;
+    end if;
     select s.merchant_phone into v_to from app_private.sim_demo_customers s where s.phone_e164 = v_customer;
   else
+    if exists (select 1 from app_private.owner_phones o where o.phone_e164 = new.target) then
+      return new;
+    end if;
     select o.phone_e164 into v_to from app_private.owner_phones o order by o.created_at, o.phone_e164 limit 1;
   end if;
   if v_to is null then
@@ -379,7 +391,7 @@ as $$
 $$;
 
 -- The photos the demo-photos script still has to make: every item of a demo shop without a photo, with the image the
--- shop's own website shows for it, when its draft had one (scripts/demo/demo-photos.mjs).
+-- shop's own website shows for it, when its draft had one (scripts/demo/demo-photos.ts).
 create table app_private.demo_item_sources (
   item_id uuid primary key references public.menu_items (id) on delete cascade,
   image_url text check (image_url ~ '^https://' and char_length(image_url) <= 500)
@@ -406,7 +418,7 @@ as $$
   ) t;
 $$;
 
--- Records a photo the script uploaded; never replaces a merchant's own.
+-- Records a photo the script uploaded (demo shops only); never replaces a merchant's own.
 create function public.menu_item_photo_set(p_item_id uuid, p_source text, p_storage_path text, p_origin_hash text)
 returns jsonb
 language plpgsql security definer set search_path = ''
@@ -418,7 +430,7 @@ begin
   if v_vendor is null then
     return jsonb_build_object('status', 'no_item');
   end if;
-  if p_source = 'illustrative' and not app_private.vendor_is_demo(v_vendor) then
+  if p_source <> 'merchant' and not app_private.vendor_is_demo(v_vendor) then
     return jsonb_build_object('status', 'not_demo');
   end if;
   perform set_config('app.actor_kind', 'system', true);
@@ -432,21 +444,21 @@ begin
 end;
 $$;
 
--- Illustrative photos go when the shop is claimed (a real merchant's photos replace them), or leaves demo mode. Their
--- Storage objects are deleted by the next demo-photos run (objects without a row).
-create function app_private.vendors_drop_illustrative() returns trigger
+-- Illustrative and website photos go when the shop is claimed (the merchant confirms their own, §15), or leaves demo mode.
+-- Their Storage objects are deleted by the next demo-photos run (objects without a row).
+create function app_private.vendors_drop_demo_photos() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 begin
   if new.claim_status = 'claimed' and old.claim_status is distinct from 'claimed' and not app_private.vendor_is_demo(new.id) then
-    delete from public.menu_item_photos where vendor_id = new.id and source = 'illustrative';
+    delete from public.menu_item_photos where vendor_id = new.id and source in ('illustrative', 'website');
   end if;
   return new;
 end;
 $$;
-revoke all on function app_private.vendors_drop_illustrative() from public;
-create trigger vendors_drop_illustrative after update of claim_status on public.vendors
-  for each row execute function app_private.vendors_drop_illustrative();
+revoke all on function app_private.vendors_drop_demo_photos() from public;
+create trigger vendors_drop_demo_photos after update of claim_status on public.vendors
+  for each row execute function app_private.vendors_drop_demo_photos();
 
 -- 6. The simulator (DECISIONS §36) -----------------------------------------------------------------------------------------
 -- Opts a simulated customer into the demo shops (or out), with the simulated merchant their orders go to; that merchant
@@ -485,7 +497,60 @@ begin
 end;
 $$;
 
--- 7. A draft choice without a price (an A / B item: "Kafta / Kabab 1 kg") is a free choice: the merchant's approval
+-- The e2e runner's teardown (tests/e2e/run.ts): whatever a scenario that stopped half-way left opted in is undone.
+create function public.sim_demo_reset() returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  n integer;
+begin
+  perform set_config('app.actor_kind', 'system', true);
+  perform set_config('app.audit_reason', 'simulator teardown (DECISIONS §36)', true);
+  update public.vendor_members set status = 'revoked'
+  where app_private.is_sim_phone(phone_e164) and status <> 'revoked' and vendor_id = any (app_private.demo_vendor_ids());
+  get diagnostics n = row_count;
+  delete from app_private.sim_demo_customers;
+  return jsonb_build_object('status', 'ok', 'revoked', n);
+end;
+$$;
+
+-- 7. Alternatives after a rejection hide the same shops as the search (demo shops from simulated customers, test shops from
+-- real ones while demo mode is on).
+create or replace function app_private.offer_alternatives(p_order_id uuid) returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_o public.orders%rowtype;
+  v_rows jsonb;
+  v_refs jsonb := '{}';
+  v_i integer := 0;
+  v_v record;
+begin
+  select * into v_o from public.orders where id = p_order_id;
+  if v_o.id is null or v_o.delivery_pin is null then
+    return '[]';
+  end if;
+  v_rows := '[]';
+  for v_v in
+    select s.vendor_id, s.name_ar, s.name_en from public.vendor_search(null, extensions.st_y(v_o.delivery_pin::extensions.geometry),
+      extensions.st_x(v_o.delivery_pin::extensions.geometry),
+      (select v.business_type from public.vendors v where v.id = v_o.vendor_id), null, 10, v_o.customer_id) s
+    where s.vendor_id <> v_o.vendor_id and s.is_open
+    limit 3
+  loop
+    v_i := v_i + 1;
+    v_refs := v_refs || jsonb_build_object('v' || v_i, jsonb_build_object('id', v_v.vendor_id, 'label', left(coalesce(v_v.name_en, v_v.name_ar), 60)));
+    v_rows := v_rows || jsonb_build_object('ref', 'v' || v_i, 'name_ar', v_v.name_ar, 'name_en', v_v.name_en);
+  end loop;
+  if v_i > 0 then
+    update public.bot_sessions s set refs = (select coalesce(jsonb_object_agg(k, v), '{}') from jsonb_each(s.refs) e(k, v) where k !~ '^v\d+$') || v_refs
+    where s.customer_id = v_o.customer_id;
+  end if;
+  return v_rows;
+end;
+$$;
+
+-- 8. A draft choice without a price (an A / B item: "Kafta / Kabab 1 kg") is a free choice: the merchant's approval
 -- inserted a null price for it and failed (found loading the demo shops; Nayeh w Meshwiyeh's draft has them).
 create or replace function app_private.menu_draft_approve_section(p_draft_id uuid, p_index integer, p_member_id uuid default null)
 returns jsonb
@@ -577,14 +642,16 @@ begin
 end;
 $$;
 
--- 8. Grants -----------------------------------------------------------------------------------------------------------------
+-- 9. Grants -----------------------------------------------------------------------------------------------------------------
 revoke all on function app_private.demo_vendor_ids(), app_private.vendor_is_demo(uuid),
   app_private.customer_hidden_vendors(uuid) from public, anon, authenticated;
 grant execute on function app_private.demo_vendor_ids(), app_private.vendor_is_demo(uuid),
   app_private.customer_hidden_vendors(uuid) to service_role;
 revoke all on function public.vendor_search(text, double precision, double precision, public.business_type, text, integer, uuid),
   public.vendor_search_pickup(double precision, double precision, integer, uuid), public.demo_photos_todo(integer),
-  public.menu_item_photo_set(uuid, text, text, text), public.sim_demo(text, text, boolean) from public, anon, authenticated;
+  public.menu_item_photo_set(uuid, text, text, text), public.sim_demo(text, text, boolean), public.sim_demo_reset()
+  from public, anon, authenticated;
 grant execute on function public.vendor_search(text, double precision, double precision, public.business_type, text, integer, uuid),
   public.vendor_search_pickup(double precision, double precision, integer, uuid), public.demo_photos_todo(integer),
-  public.menu_item_photo_set(uuid, text, text, text), public.sim_demo(text, text, boolean) to service_role;
+  public.menu_item_photo_set(uuid, text, text, text), public.sim_demo(text, text, boolean), public.sim_demo_reset()
+  to service_role;
