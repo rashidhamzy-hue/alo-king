@@ -237,6 +237,8 @@ async function botConfig() {
     "ai_turn_max_calls",
     "ai_turn_max_ms",
     "ai_low_confidence_handoff",
+    "ai_free_text_enabled",
+    "ai_voice_enabled",
   ];
   const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
   const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
@@ -482,6 +484,9 @@ Deno.serve(async (req) => {
             turnMs: Number(cfg.ai_turn_max_ms ?? 8000),
             lowConfidenceHandoff: Number(cfg.ai_low_confidence_handoff ?? 2),
             voiceMaxBytes: 5_000_000,
+            // Off until the evals pass (DECISIONS §32.4); a missing row counts as off.
+            freeText: cfg.ai_free_text_enabled === true,
+            voice: cfg.ai_voice_enabled === true,
             joinFunctionUrl: supabaseUrl
               ? `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/site-claim`
               : null,

@@ -199,6 +199,8 @@ function VendorPage({ d }: { d: SiteVendorPage }) {
                 d.rate ? Math.round(d.rate).toLocaleString("en-US") : "",
               )}
             </p>
+            {/* DECISIONS §38.3: the shared-kitchen disclaimer appears on every menu. */}
+            <p className="mt-1 text-sm text-tone-mute">{t.vendor.kitchenNote}</p>
             <div className="mt-8">
               {d.sections.length > 0 ? (
                 <MenuBuilder page={d} canOrder={canOrder} />

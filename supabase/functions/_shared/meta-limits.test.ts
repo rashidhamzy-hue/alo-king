@@ -735,3 +735,214 @@ describe('"Not on Alo King yet" and the places instead (DECISIONS §39.3)', () =
     expect(p.type).toBe("text");
   });
 });
+
+import {
+  addressConfirmCard,
+  catalogList,
+  consentAsk,
+  forWhomCard,
+  memoryCard,
+  problemLinesList,
+  problemQtyList,
+  problemList,
+  welcomeBack,
+} from "../dispatch/customer/render";
+import { alternativesCard, deliveredRateList } from "./customer-cards";
+describe("session 5c customer agent cards (DECISIONS §38.3, §39.6)", () => {
+  const to = "+96171000001";
+  const UUID = "0b9d7b53-1f0a-4a8e-9a4d-0c3d2f7a1b11";
+  const longName = "مطعم ومشاوي وحلويات بإسم طويل جداً جداً جداً جداً لتجربة الحدود القصوى";
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`every new card passes the checker in ${lang}`, () => {
+      const items = Array.from({ length: 12 }, (_, k) => ({
+        ref: `i${k + 1}`,
+        name_ar: longName,
+        name_en: "A very long item name that goes well beyond any WhatsApp row limit",
+        price_usd: 12.5,
+        vendor_ar: longName,
+        vendor_en: "Vendor with a really long name for testing",
+        hint: ["sesame", "eggs", "gluten"],
+      }));
+      const built: any[] = [
+        catalogList(
+          to,
+          lang,
+          "manoushe kishk with extra cheese and a very long request text indeed",
+          items,
+          2,
+        ),
+        ...memoryCard(
+          to,
+          lang,
+          {
+            name: "Rami",
+            language: "arabizi",
+            addresses: Array.from({ length: 5 }, (_, k) => ({
+              address_id: UUID,
+              label: `Home number ${k} with a long label`,
+              place_ar: "بعقلين",
+              place_en: "Baakline",
+            })),
+            usual: [{ name: "شاورما", name_en: "Shawarma" }],
+            orders: 4,
+            facts: [
+              { key: "vegetarian", value: "yes", since: "2026-10-14T10:00:00Z" },
+              {
+                key: "allergy",
+                value: "nuts and sesame and something very long",
+                since: "2026-10-14T10:00:00Z",
+                health: true,
+              },
+              { key: "gluten_free", value: "yes", since: "2026-10-14T10:00:00Z", health: true },
+              { key: "note", value: "no onions please", since: "2026-10-14T10:00:00Z" },
+            ],
+          },
+          ["a1", "a2", "a3", "a4", "a5"],
+        ),
+        consentAsk(to, lang, "allergy", "nuts and sesame"),
+        welcomeBack(
+          to,
+          lang,
+          {
+            vendor: longName,
+            vendor_en: "Vendor",
+            items: "2× Shawarma, 1× Fries",
+            items_ar: "٢× شاورما",
+          },
+          "Rami",
+        ),
+        addressConfirmCard(
+          to,
+          lang,
+          { ref: "a1", where: "Home – Baakline, Building with a long name" },
+          [],
+        ),
+        addressConfirmCard(
+          to,
+          lang,
+          { ref: "a1", where: "Home – Baakline" },
+          Array.from({ length: 9 }, (_, k) => ({
+            ref: `a${k + 2}`,
+            where: `Teta's house number ${k} – Deir el Qamar`,
+          })),
+        ),
+        forWhomCard(to, lang, "Baakline, Building Saint Elias, near the church with a long name"),
+        problemList(to, lang, "ABC123"),
+        problemLinesList(
+          to,
+          lang,
+          "missing_item",
+          Array.from({ length: 12 }, (_, k) => ({
+            order_item_id: UUID.slice(0, -2) + String(10 + k),
+            name_ar: longName,
+            name_en: longName,
+            quantity: 2,
+          })),
+        ),
+        problemQtyList(to, lang, "wrong_item", {
+          order_item_id: UUID,
+          name_ar: longName,
+          name_en: longName,
+          quantity: 40,
+        }),
+        mainMenu(to, lang, "medicine"),
+        mainMenu(to, lang, "offTopic"),
+        mainMenu(to, lang, "voiceOff"),
+        mainMenu(to, lang, "catalogNone", { q: "sushi" }),
+        deliveredRateList(to, UUID, true, lang, "ABC123"),
+        alternativesCard(
+          to,
+          "Cancelled",
+          [
+            { ref: "v1", name_ar: longName, name_en: longName },
+            { ref: "v2", name_en: "B" },
+          ],
+          lang,
+        ),
+        ...summaryMessage(
+          to,
+          lang,
+          {
+            status: "ok",
+            basket: {
+              basket_id: UUID,
+              vendor: "ألو",
+              vendor_en: "Alo",
+              subtotal_usd: 10,
+              lines: [{ name: "x", quantity: 1, line_total_usd: 10 }],
+            },
+            subtotal_usd: 10,
+            delivery_fee_usd: 2,
+            credit_usd: 5,
+            total_usd: 7,
+            total_lbp: 626500,
+            usd_lbp_rate: 89500,
+            is_gift: true,
+            recipient_name: "Mom",
+            allergy_note: "nuts",
+            address: { place: "بعقلين", place_en: "Baakline" },
+          },
+          false,
+          "USD",
+        ),
+        ...customerStatusMessages(
+          to,
+          {
+            kind: "gift_request",
+            lang,
+            gift_id: UUID,
+            sender: "Rami",
+            vendor: longName,
+            vendor_en: "Vendor",
+            lines: Array.from({ length: 20 }, () => ({ q: 2, name: longName, name_en: "Item" })),
+            total_usd: 20,
+            total_lbp: 1790000,
+            usd_lbp_rate: 89500,
+            place: "بعقلين",
+            place_en: "Baakline",
+          },
+          null,
+        ),
+        ...customerStatusMessages(
+          to,
+          { kind: "delivered", lang, ask_delivery: true },
+          { order_id: UUID, code: "ABC123" },
+        ),
+        ...customerStatusMessages(
+          to,
+          {
+            kind: "on_the_way",
+            lang,
+            track_url: "https://aloking.com/t/abc",
+            driver_phone: "+96171000009",
+          },
+          { order_id: UUID, code: "ABC123" },
+        ),
+        ...customerStatusMessages(to, { kind: "gift_expired", lang, recipient_name: "Mom" }, null),
+        ...customerStatusMessages(
+          to,
+          { kind: "gift_failed", lang, recipient_name: longName, reason: "changed" },
+          null,
+        ),
+      ];
+      for (const p of built)
+        expect(checkInteractive(p), JSON.stringify(p).slice(0, 120)).toEqual([]);
+    });
+  }
+  it("the delivered message carries the rating and the problem row, never a separate Received button", () => {
+    const [m]: any = customerStatusMessages(
+      to,
+      { kind: "delivered", lang: "en", ask_delivery: false },
+      { order_id: UUID, code: "ABC123" },
+    );
+    const ids = m.interactive.action.sections.flatMap((s: any) => s.rows.map((r: any) => r.id));
+    expect(ids).toContain(`rate:${UUID}:f5`);
+    expect(ids).toContain(`rcv:${UUID}:no`);
+    expect(ids).not.toContain(`rcv:${UUID}:ok`);
+  });
+  it("a gift request without a valid id sends nothing", () => {
+    expect(
+      customerStatusMessages(to, { kind: "gift_request", lang: "en", gift_id: "x" }, null),
+    ).toEqual([]);
+  });
+});

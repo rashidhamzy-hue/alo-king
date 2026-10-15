@@ -10,7 +10,9 @@ status=0
 while IFS= read -r f; do
   [ -f "$f" ] || continue
   # strip SQL line comments before matching
-  if sed -E 's/--.*$//; s/(before|after|or)[[:space:]]+truncate//Ig' "$f" | grep -qiE "$pattern"; then
+  # grep -c reads all of its input: with `grep -q` and pipefail a large file made sed die of SIGPIPE and
+  # the pipeline read as "no match".
+  if [ "$(sed -E 's/--.*$//; s/(before|after|or)[[:space:]]+truncate//Ig' "$f" | grep -ciE "$pattern" || true)" != 0 ]; then
     rb="supabase/rollbacks/$(basename "$f")"
     if [ -f "$rb" ]; then
       echo "ok   $f drops or deletes data; rollback $rb present"

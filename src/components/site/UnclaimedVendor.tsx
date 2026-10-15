@@ -49,6 +49,8 @@ export function UnclaimedVendor({ d }: { d: UnclaimedVendorPage }) {
             {d.sections.length > 0 ? (
               <>
                 <p className="mt-2 text-sm text-tone-mute">{u.noPrices}</p>
+                {/* DECISIONS §38.3: the shared-kitchen disclaimer appears on every menu. */}
+                <p className="mt-1 text-sm text-tone-mute">{t.vendor.kitchenNote}</p>
                 <div className="mt-8 space-y-10">
                   {d.sections.map((s, k) => {
                     const title = pickName(s, "name", lang);

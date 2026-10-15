@@ -19,6 +19,12 @@ export type OrderCardData = {
   estimated?: boolean;
   is_new_customer?: boolean;
   customer_note?: string | null;
+  /** A gift (§22.1): the recipient receives it and pays cash; the driver reaches them on this number. */
+  is_gift?: boolean;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  /** The customer's consented allergy note for this order (§39.6). */
+  allergy_note?: string | null;
   area_ar?: string | null;
   area_en?: string | null;
   items: {
@@ -50,6 +56,8 @@ const T = {
     rate: "سعر الصرف",
     locked: "مقفل على الطلب",
     newCustomer: "🆕 زبون جديد",
+    gift: "🎁 هدية لـ{name} · {phone} (هو بيستلم وبيدفع)",
+    allergy: "⚠️ حساسية: {note}",
     note: "ملاحظة",
     area: "المنطقة",
     estimated: "⚖️ تقريبي، السعر النهائي حسب الوزن",
@@ -96,6 +104,8 @@ const T = {
     rate: "rate",
     locked: "locked at order",
     newCustomer: "🆕 New customer",
+    gift: "🎁 Gift for {name} · {phone} (they receive and pay)",
+    allergy: "⚠️ Allergy: {note}",
     note: "Note",
     area: "Area",
     estimated: "⚖️ Estimate, final price by weight",
@@ -172,6 +182,12 @@ export function orderCard(to: string, d: OrderCardData, lang: Lang = "ar") {
   const head = `${d.fulfilment === "pickup" ? t.pickup : t.delivery}${area ? ` · ${t.area}: ${area}` : ""}`;
   // The money line and flags always fit; items fill the rest, then "+N more" (the portal has them all).
   const tail = [
+    d.allergy_note ? t.allergy.replace("{note}", clip(d.allergy_note, 120)) : "",
+    d.is_gift && d.recipient_name
+      ? t.gift
+          .replace("{name}", clip(d.recipient_name, 40))
+          .replace("{phone}", d.recipient_phone ?? "")
+      : "",
     d.customer_note ? `${t.note}: ${clip(d.customer_note, 200)}` : "",
     moneyLine(d, lang),
     d.estimated ? t.estimated : "",

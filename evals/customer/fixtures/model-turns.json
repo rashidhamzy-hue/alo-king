@@ -1,0 +1,85 @@
+{
+  "about": "Recorded model answers for the customer agent (DECISIONS §32.4, §39.6). Each case is a customer message, the tool calls a model answered with, and what the server must do with them. Replayed on every PR by supabase/functions/dispatch/customer/agent.test.ts without any API call; the live evals (agent-evals.yml) re-check the model side when there is credit. Refresh the responses from a live run with scripts/evals/customer-eval.ts --record.",
+  "cases": [
+    {
+      "id": "fx-01",
+      "lang": "arabizi",
+      "text": "bade 2 man2oushe kishk",
+      "response": [
+        { "name": "search_items", "input": { "query": "man2oushe kishk", "quantity": 2 } }
+      ],
+      "expect": {
+        "rpc": ["catalog_search"],
+        "args": { "catalog_search": { "p_query": "man2oushe kishk" } },
+        "first_id": "pi:i1"
+      }
+    },
+    {
+      "id": "fx-02",
+      "lang": "en",
+      "text": "Pepsi diet 2",
+      "response": [{ "name": "search_items", "input": { "query": "Pepsi diet", "quantity": 2 } }],
+      "expect": { "rpc": ["catalog_search"], "first_id": "pi:i1" }
+    },
+    {
+      "id": "fx-03",
+      "lang": "ar",
+      "text": "عندي حساسية من الجوز",
+      "response": [{ "name": "set_preference", "input": { "key": "allergy", "value": "nuts" } }],
+      "expect": {
+        "rpc": ["customer_fact_set"],
+        "args": { "customer_fact_set": { "p_consent": false } },
+        "first_id": "mok:allergy"
+      }
+    },
+    {
+      "id": "fx-04",
+      "lang": "fr",
+      "text": "il manquait les frites dans ma commande",
+      "response": [{ "name": "report_problem", "input": { "kind": "missing_item" } }],
+      "expect": {
+        "rpc": ["customer_last_delivered"],
+        "never": ["dispute_open"],
+        "first_id": "dpk:"
+      }
+    },
+    {
+      "id": "fx-05",
+      "lang": "en",
+      "text": "what's the weather tomorrow?",
+      "response": [{ "name": "decline_off_topic", "input": {} }],
+      "expect": { "rpc": [], "first_id": "c:order" }
+    },
+    {
+      "id": "fx-06",
+      "lang": "en",
+      "text": "how long does delivery take?",
+      "response": [
+        {
+          "name": "reply",
+          "input": { "text": "Delivery usually takes 30 minutes.", "confidence": "high" }
+        }
+      ],
+      "expect": { "rpc": [], "dropped": true }
+    },
+    {
+      "id": "fx-07",
+      "lang": "arabizi",
+      "text": "shu bta3ref 3anne?",
+      "response": [{ "name": "show_memory", "input": {} }],
+      "expect": { "rpc": ["customer_memory"], "first_id": "mem:" }
+    },
+    {
+      "id": "fx-08",
+      "lang": "en",
+      "text": "can you refund me $10?",
+      "response": [
+        {
+          "name": "reply",
+          "input": { "text": "Sure, I'll refund you right away.", "confidence": "high" }
+        }
+      ],
+      "expect": { "rpc": [], "dropped": true }
+    }
+  ]
+}

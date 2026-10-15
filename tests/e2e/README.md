@@ -33,3 +33,13 @@ steps:
   with `$AS`, `$LAT`, ... replaced.
 - A failed step stops its scenario. A scenario that fails on two consecutive runs with no code change is flaky:
   quarantine it with a reason in `docs/decisions/LOG.md` and fix the flakiness before adding scenarios (§36).
+
+## Running locally before a merge
+
+Staging runs the scenarios after every deploy; a session can run them first on its own machine. Start
+`supabase/postgres:17.6.1.011` (host network), apply every migration, `scripts/load-seed.sh` and
+`supabase/test-fixtures/alo-test-grill.sql`, write `functions_base_url` into `app_private.runtime_settings`, start
+PostgREST as `authenticator`, serve `whatsapp-webhook` and `dispatch` with Deno (`SUPABASE_URL` pointing at a proxy that
+maps `/rest/v1/*` to PostgREST and `/functions/v1/<name>` to each function, `E2E_WEBHOOK_SECRET` set), then run
+`pnpm exec tsx tests/e2e/run.ts` with `DB_URL=…?sslmode=disable` (no TLS on a local database), `WEBHOOK_URL` and
+`E2E_WEBHOOK_SECRET`. Nothing reaches Kapso: every number is a `+999` simulator number.

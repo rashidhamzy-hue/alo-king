@@ -1,0 +1,32 @@
+name: memory-see-delete
+description: 'After an order the customer asks "what do you remember about me?", sees it, deletes the address with one tap, then everything (DECISIONS §39.6).'
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Memory" }
+  merchant: { role: merchant }
+steps:
+  - include: { part: order-to-placed, as: cust, lat: 33.6869, lon: 35.5518, qty: 1 }
+  - include: { part: merchant-accepts-delivers, as: cust }
+  - note: the question in plain words is answered by the rules (no model), with what is kept and a delete list
+    say: { as: cust, text: "What do you remember about me?" }
+    expect:
+      - { to: cust, buttons: ["mem:a:a1", "mem:orders", "mem:all"], text_any: ["never for ads"] }
+  - note: one tap deletes the saved address
+    tap: { as: cust, id: "mem:a:a1" }
+    expect:
+      - { to: cust, text_re: "Deleted" }
+    db:
+      - sql: >
+          select count(*) filter (where a.saved) as saved from public.addresses a join public.customers c on c.id = a.customer_id
+          where c.phone_e164 = '{{cust.phone}}'
+        row: { saved: 0 }
+  - note: and one tap deletes everything; orders stay for the merchant and the ledger, but memory starts again
+    tap: { as: cust, id: "mem:all" }
+    expect:
+      - { to: cust }
+    db:
+      - sql: >
+          select c.profile_reset_at is not null as reset, c.display_name is null as no_name, c.marketing_opt_in as opt_in,
+            (select count(*) from public.customer_preferences p where p.customer_id = c.id) as facts,
+            (select count(*) from public.orders o where o.customer_id = c.id) as orders
+          from public.customers c where c.phone_e164 = '{{cust.phone}}'
+        row: { reset: true, no_name: true, opt_in: false, facts: 0, orders: 1 }

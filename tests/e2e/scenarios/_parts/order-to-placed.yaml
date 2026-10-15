@@ -1,5 +1,5 @@
-# A new customer orders $QTY falafel sandwiches from Alo Test Grill with a pin at $LAT, $LON, pays cash in USD and
-# confirms. Ends with the order placed and the merchant persona holding the order card.
+# A new customer orders $QTY falafel sandwiches from Alo Test Grill with a pin at $LAT, $LON, says it is for them and keeps
+# the address, pays cash in USD and confirms. Ends with the order placed and the merchant persona holding the order card.
 steps:
   - note: $AS asks to order
     say: { as: $AS, text: "Order" }
@@ -23,7 +23,12 @@ steps:
     tap: { as: $AS, id: "c:checkout" }
     expect:
       - { to: $AS, buttons: ["c:delivery", "c:pickup"] }
-  - tap: { as: $AS, id: "c:delivery" }
+  - note: a new address asks once who the order is for (DECISIONS §22.1, §39.6)
+    tap: { as: $AS, id: "c:delivery" }
+    expect:
+      - { to: $AS, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }
+  - note: $AS orders for themselves and keeps the address
+    tap: { as: $AS, id: "fw:self_save" }
     expect:
       - { to: $AS, buttons: ["cur:USD", "cur:LBP"] }
   - tap: { as: $AS, id: "cur:USD" }

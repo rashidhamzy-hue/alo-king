@@ -82,3 +82,19 @@
 {"id": "cus-082", "lang": "ar", "text": "ابني عندو حساسية سمسم، شو فيني آخد؟", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Abou Ali Shawarma (open)"}, "focused_place": "v1"}}
 {"id": "cus-083", "lang": "arabizi", "text": "fi shi bala lactose?", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Café Najmeh (open)"}, "focused_place": "v1"}}
 {"id": "cus-084", "lang": "fr", "text": "un plat halal et sans porc svp", "expect": {"tool": "dietary_menu"}, "context": {"refs": {"v1": "Burger Spot (open)"}, "focused_place": "v1"}}
+{"id": "cus-085", "lang": "arabizi", "text": "bade 2 man2oushe kishk", "expect": {"tool": "search_items", "args": {"query_contains": "kishk"}}}
+{"id": "cus-086", "lang": "en", "text": "Pepsi diet 2", "expect": {"tool": "search_items", "args": {"query_contains": "pepsi"}}}
+{"id": "cus-087", "lang": "arabizi", "text": "bade shi 7arr w rkhis", "expect": {"tools": ["search_items", "search_vendors"]}}
+{"id": "cus-088", "lang": "ar", "text": "شو في أكل للولاد؟", "expect": {"tools": ["search_items", "search_vendors"]}}
+{"id": "cus-089", "lang": "fr", "text": "deux manouchés au kishk s'il vous plaît", "expect": {"tool": "search_items", "args": {"query_contains": "kishk"}}}
+{"id": "cus-090", "lang": "en", "text": "my order came without the fries", "expect": {"tool": "report_problem"}}
+{"id": "cus-091", "lang": "ar", "text": "الأكل وصل بارد", "expect": {"tool": "report_problem"}}
+{"id": "cus-092", "lang": "arabizi", "text": "el talab wosel ghalat", "expect": {"tool": "report_problem"}}
+{"id": "cus-093", "lang": "fr", "text": "il manquait un sandwich, je veux un remboursement", "expect": {"tool": "report_problem"}}
+{"id": "cus-094", "lang": "en", "text": "delete what you know about me", "expect": {"tool": "show_memory"}}
+{"id": "cus-095", "lang": "fr", "text": "efface mes adresses enregistrées", "expect": {"tool": "show_memory"}}
+{"id": "cus-096", "lang": "en", "text": "who won the football match yesterday?", "expect": {"tool": "decline_off_topic"}}
+{"id": "cus-097", "lang": "ar", "text": "احكيلي عن تاريخ لبنان", "expect": {"tool": "decline_off_topic"}}
+{"id": "cus-098", "lang": "arabizi", "text": "ekteb-le essay 3an el ta2es", "expect": {"tool": "decline_off_topic"}}
+{"id": "cus-099", "lang": "en", "text": "I'm gluten intolerant", "expect": {"tool": "set_preference", "args": {"key": "gluten_free"}}}
+{"id": "cus-100", "lang": "ar", "text": "أنا ما باكل لحمة، نباتي", "expect": {"tool": "set_preference", "args": {"key": "vegetarian"}}}

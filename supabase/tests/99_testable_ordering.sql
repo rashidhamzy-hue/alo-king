@@ -85,10 +85,11 @@ select public.order_progress(:'oid', 'picked_up', :'mid', 'whatsapp');
 select tests.ok((select status = 'picked_up' from public.orders where id = :'oid'), 'then out for delivery');
 select tests.ok(public.order_confirm_delivery_code('+96170000099', (select code from public.order_delivery_codes where order_id = :'oid')) ->> 'status' = 'delivered',
   'the owner types the delivery code and the order is delivered');
-select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'sent', 'a delivered test order is rated at once');
-select tests.ok(exists (select 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':rating'), 'the rating message is queued');
-select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'sent', 'asking again is accepted');
-select tests.ok((select count(*) = 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':rating'), 'asking twice queues one rating message');
+-- Session 5c (DECISIONS §38.3 "delivered + rate"): the delivered message carries the rating, so none is sent after it.
+select tests.ok(exists (select 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':delivered'), 'the delivered message is queued');
+select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'sent', 'asking for the rating at once is accepted');
+select tests.ok(not exists (select 1 from public.outbound_messages where dedupe_key = 'cust:' || :'oid' || ':rating'),
+  'no separate rating message after the delivered message (it carries the rating)');
 select tests.ok(public.order_rate(:'cid', :'oid', 5, null) ->> 'status' = 'rated', 'the customer rates it');
 select tests.ok(public.order_rating_prompt_now(:'cid', :'oid') ->> 'status' = 'rated', 'a rated order is not asked again');
 select tests.ok(public.order_rating_prompt_now('10000000-0000-0000-0000-000000000002', :'oid') ->> 'status' = 'no_order', 'only the customer''s own order');

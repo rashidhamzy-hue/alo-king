@@ -1,0 +1,27 @@
+name: refund
+description: "A delivered order with a missing item: the customer taps Problem, the server's rule credits the next order and books it in the ledger (DECISIONS §20.1, §38.3)."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Refund" }
+  merchant: { role: merchant }
+steps:
+  - include: { part: order-to-placed, as: cust, lat: 33.6869, lon: 35.5518, qty: 1 }
+  - include: { part: merchant-accepts-delivers, as: cust }
+  - note: Problem on the delivered message opens what can go wrong
+    tap: { as: cust, id_re: "^rcv:.*:no$" }
+    expect:
+      - { to: cust, buttons: ["dpk:missing_item", "dpk:cold_food", "dpk:damaged"] }
+  - note: one line on the order, so the missing item is that line; under $8 and a first claim, the rule credits it
+    tap: { as: cust, id: "dpk:missing_item" }
+    expect:
+      - { to: cust, text_re: "credited to your next order" }
+    db:
+      - sql: >
+          select d.decision, d.payer, d.amount_usd > 0 as has_amount, d.ledger_tx is not null as booked,
+            (select count(*) from public.customer_credits cc where cc.dispute_id = d.id and cc.used_order_id is null) as credits
+          from public.order_disputes d join public.customers c on c.id = d.customer_id
+          where c.phone_e164 = '{{cust.phone}}'
+        row: { decision: auto_credit, payer: merchant, has_amount: true, booked: true, credits: 1 }
+  - note: the same report again changes nothing
+    tap: { as: cust, id: "dpk:missing_item" }
+    expect:
+      - { to: cust, text_re: "already reported" }
