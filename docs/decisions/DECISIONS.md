@@ -1734,6 +1734,20 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 - **Native cart:** single-product and multi-product messages (at most 30 items in 10 sections) chosen by the agent: a shop's best sellers, search results, a section. The cart and catalogue icons are turned on for the number. The inbound `order` message is mapped to our menu, re-priced by the server, differences shown, then the normal checkout runs (address confirmation, the checkout Flow, payment choice). Cart and button taps build **one** basket.
 - **Smart menu:** list messages stay the fallback and the menu for shops with more than 30 items; the agent picks a catalogue message or a list per shop.
 - **Kill-gate** of §30.1 item 2 still applies (50% of opened carts sent within 10 minutes over 200 opens).
+- **Demo mode on staging (Rasheed, 15 October):** investors use the whole customer experience on real Shouf shops instead of Alo Test Grill.
+  - **Which shops:** config `demo_shops` (a dated row) lists every real shop on staging whose draft menu has at least one priced item. That was 27 on 15 October, Eatout included, and the list grows as menus are added. The staging fixture `supabase/test-fixtures/demo-shops.sql` computes it on every deploy.
+  - **What they get:** these shops are claimed, orderable and listed on staging, so they appear in search, the smart list menu and the catalogue, and they sync to the Meta catalogue with photos.
+  - **Menus:** each menu is the seed draft. LBP prices are converted at the dated rate, exactly as a merchant's approval converts them. Deli Dough (350 items) and J.O'S (52) use their full harvested menu instead of the short curated draft.
+  - **Shops without a priced menu** keep the "Not on Alo King yet" listing (39.3).
+  - **Routing:** every order to a demo shop goes to Rasheed's number (`app_private.owner_phones`) as the merchant: the card, accept and reject, the copilot. A database guard on `outbound_messages` reroutes any WhatsApp message or call for a demo shop that would reach anyone but the customer, a gift's recipient, an owner or a simulator number. A shop's own number is never used. The merchant's card carries a "Demo" line; customers see none.
+  - **Visibility:** simulated customers see demo shops only when a scenario opts them in (`sim_demo`). Real customers who are not owners do not see the test shops while demo mode is on.
+  - **Photos:** every catalogue product has an image of its own item (`menu_item_photos`, never a shop or Google place photo, §38.1). That is the shop's own website photo where its menu had one (Fred's Food), else one drawn illustration per item, labelled "Illustration", stored with `source = illustrative` and removed when the shop is claimed.
+  - **Not done:** AI-generated photos need paid image credits (the connected image service has none), an owner decision under §25.
+  - **Flows:** business verification is deferred to the SARL (Rasheed, 15 October, #182). The chat steps stay the address and checkout path, and Flow publishing is not retried.
+  - **Cut-over (session 14):**
+    - production never runs the demo fixture and must show `demo_shops` empty and no illustrative photos;
+    - the test catalogue is cleared;
+    - the production catalogue syncs only claimed shops whose merchant confirmed the menu.
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).

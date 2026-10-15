@@ -267,27 +267,28 @@
   - **New scenarios:** 20 template-outside-window (dry run on the sandbox), 21 menu-link-dns, 22 slack-handoff.
   - **Open for later:** two round-4 nits on the Slack "Not sent" note (no dedupe key on a Slack retry; its wording suggests opening a case by hand), in the next change to that area; a WhatsApp message to the customer about an operator refund (USD and LBP at the locked rate) is not built.
   - **CUT-OVER (session 14), added:** remove the sim operator ("Rasheed (sim)", `5b000000-…-00000000005b`) and its fixture; the production numbers are added by role (customer, merchant) and the `test` number is retired; create the admin and operator rows so `slack-setup` links them by e-mail; set the Slack secrets on production; register the Kapso project webhook for the account events (number quality, template status) on the production project; submit the templates on the production WABA; keep `broadcasts_enabled` false until the pilot gate.
-- **Session 5d (Meta catalogue, native cart and Kapso readiness, §39.12, §39.8): done (15 October).** PRs #178 (`Data:` §39.12), #179 (templates, kapso-number, Flows uploader, kapso-catalog), #183 (catalogue sync, product messages, native cart) and this handoff; see LOG.md "session 5d" lines. #179 and #183 carry the pr-reviewer verdict for their head (§32.7); #183 took three rounds.
+- **Session 5d (Meta catalogue, native cart and Kapso readiness, §39.12, §39.8): done (15 October).** PRs #178 (`Data:` §39.12), #179 (templates, kapso-number, Flows uploader, kapso-catalog), #183 (catalogue sync, product messages, native cart), #185 (kapso-catalog accepts the catalogue Rasheed made) and this `Data:` PR (demo mode, handoff); see LOG.md "session 5d" lines. #179 and #183 carry the pr-reviewer verdict for their head (§32.7); #183 took three rounds.
   - **Catalogue:** it is synced from the database by `dispatch`.
     - **What syncs:** claimed, orderable, listed shops, with published items only. Retailer id = menu item id; one product set per shop.
     - **When:** on every menu, price, stock, claim or photo change (`app_private.catalog_sync_queue`, leased per shop), plus a 10-minute reconcile and a nightly full sync at 00:20 UTC. Hidden items are never deleted.
-    - **Status: 0 products synced.** The catalogue does not exist yet: Kapso's Meta proxy has no catalogue endpoints, so creating and connecting it and the `META_CATALOG_TOKEN` are owner steps (#181). `kapso-catalog` (daily and on demand) then connects everything and queues a full sync on its own.
-  - **What the customer sees (once #181 is done):**
+    - **Status:** Rasheed made catalogue "Alo King" (1684040949979106) in his portfolio (131819648080461), connected it to the WhatsApp account with the catalogue icon and Add to cart on, and set `META_CATALOG_TOKEN` (#181, done). The token reads and writes the catalogue but cannot read the WhatsApp account (no `whatsapp_business_management`), so #185 checks the catalogue directly and takes the connection as his (LOG). Products synced: SYNC_RESULT.
+  - **Demo mode (DECISIONS §39.12):** every real shop with a priced draft menu (27) is a demo shop on staging, orderable, in search, the list menu and the catalogue, with item photos (Fred's Food's website photos, an illustration for the rest). Every order goes to Rasheed's number marked "Demo", and nothing ever reaches a shop's own number.
+  - **What the customer sees:**
     - a shop of 30 items or fewer opens as one multi-product message by section;
     - a bigger shop gets its best sellers plus the list menu;
     - a one-shop search answers with a product or multi-product message;
     - the cart icon is on.
     - A cart sent from WhatsApp lands in the same basket as button taps. The server re-prices it, lists any price differences, then runs the normal checkout.
-    - Until #181 is done, and on the sandbox, the list menu runs as before.
+    - On the sandbox, the list menu runs as before.
   - **Templates:** 45 versions. 42 are pending at Meta. The 3 alo_claim_code versions are blocked by the 2K messaging tier.
   - **Flows:** 12 valid drafts with encryption set up. Meta's integrity gate blocks publishing them until business verification (#182).
   - **Live check on the US number with Rasheed's phone:** greeting, list menu and handoff passed. The handoff's operator alert went out from the expired sandbox and failed; this PR fixes that (sent from the number the person wrote to last).
   - **e2e:** E2E_RESULT
-  - **New scenarios:** 23 catalogue-browse, 24 native-cart-price-change, 25 mixed-cart-and-buttons, 26 readiness-extras (2-tap repeat, typed search, STOP/START, voice "not yet").
-  - **Open for later:** two #183 round-3 nits.
-    - The public image route can be made to run `catalog_desired` with a wrong hash.
-    - The webhook's dispatch kick should abort after a few seconds.
+  - **New scenarios:** 23 catalogue-browse, 24 native-cart-price-change, 25 mixed-cart-and-buttons, 26 readiness-extras (2-tap repeat, typed search, STOP/START, voice "not yet"), 27 demo-freds-catalogue-cart, 28 demo-coop-list-menu.
+  - **Open for later:** one #183 round-3 nit: the webhook's dispatch kick should abort after a few seconds (the other, a wrong image hash running `catalog_desired`, is fixed here).
   - **CUT-OVER (session 14), added:**
+    - demo mode off: production never runs `supabase/test-fixtures/demo-shops.sql`; check `select public.config_value('demo_shops')` is null or `[]` and `select count(*) from public.menu_item_photos where source = 'illustrative'` is 0;
+    - clear the US test catalogue (1684040949979106) of demo products; the production catalogue syncs only claimed shops whose merchant confirmed the menu;
     - run kapso-catalog against the production number;
     - no `app_private.sim_catalog_customers` rows on production;
     - submit the templates on the company WABA once it reaches the 2K tier (claim code).
@@ -306,7 +307,8 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 ## Owner to-do (Rasheed)
 
 0. **Connect the US test number (#170, 5 minutes):** open the Kapso setup link in the issue; everything after it (templates, Flows, webhooks) runs by itself.
-0. **Meta catalogue (#181, 15 minutes):** create the catalogue "Alo King" in Commerce Manager, connect it to the WhatsApp account, and add the `META_CATALOG_TOKEN` GitHub secret (exact clicks in the issue); the sync starts by itself.
+0. **Optional (2 minutes):** give the system user `alo-king-catalog` the WhatsApp account and the `whatsapp_business_management` permission, so kapso-catalog can verify the catalogue's connection and the cart icons itself (Business settings → Users → System users → alo-king-catalog → Assign assets → WhatsApp accounts → the US account, Full control; then generate a new token with `whatsapp_business_management` added and replace `META_CATALOG_TOKEN`).
+0. **Demo for investors:** they message +1 203-660-2328 from their own phones; every order card comes to your phone marked "Demo" (accept or reject it there).
 0. **Verify the "Memo Tiles" business in Meta (#182):** until then Meta blocks Flows (address and checkout forms) and the claim-code template.
 0. **Test on the US number +1 203-660-2328:** the checklist in the session 5d reply (catalogue and cart need #181 first).
 0. **Install the Slack app (#175, 10 minutes):** create it from `slack/manifest.yml`, install it, paste `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` into GitHub secrets.
