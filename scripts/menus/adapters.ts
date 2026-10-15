@@ -424,14 +424,16 @@ export function fromJson(root: unknown, base?: string): Draft {
     if (!uniq.has(sig)) uniq.set(sig, s);
   }
   const kept = [...uniq.values()];
-  const draft = validateDraft(
-    {
-      sections: kept.map((s) => ({
-        ...s.names,
-        items: s.items.map(({ category: _c, image: _i, ...i }) => i),
-      })),
-    },
-    600,
+  const draft = tidy(
+    validateDraft(
+      {
+        sections: kept.map((s) => ({
+          ...s.names,
+          items: s.items.map(({ category: _c, image: _i, ...i }) => i),
+        })),
+      },
+      600,
+    ),
   );
   return attachImages(
     draft,
@@ -767,6 +769,8 @@ export function httpsImage(v: unknown, base?: string): string | null {
   if (!raw || raw.startsWith("data:") || raw.length > 480) return null;
   try {
     const u = new URL(raw, base);
+    // A shop's logo, an icon or a placeholder is not the item's picture.
+    if (/logo|icon|favicon|placeholder|no[-_]?image|default[-_.]/i.test(u.pathname)) return null;
     return u.protocol === "https:" ? u.toString() : null;
   } catch {
     return null;
@@ -811,6 +815,33 @@ export function attachImages(
         }),
       };
     }),
+  };
+}
+
+// A menu page's own cart or order widget, not an item.
+const CART =
+  /^(total|sub-?total|your (order|cart|bag)|cart|bag|\d+ items?|checkout|delivery fee)\b/i;
+
+/**
+ * The last pass over a harvested draft: a price of 0 is no price (a page shows 0 for "ask us" or for an item priced
+ * by its choices), an amount in LBP under 1,000 is not a Lebanese price (a digit read from next to "L.L."), and the
+ * page's cart widget ("Total", "Your Order", "0 ITEMS") is not an item.
+ */
+export function tidy(d: Draft): Draft {
+  return {
+    ...d,
+    sections: d.sections
+      .map((s) => ({
+        ...s,
+        items: s.items
+          .filter((i) => !CART.test(String(i.name_en ?? i.name_ar ?? i.name_fr ?? "")))
+          .map((i) =>
+            i.price !== null && (i.price <= 0 || (i.currency === "LBP" && i.price < 1000))
+              ? { ...i, price: null, currency: null }
+              : i,
+          ),
+      }))
+      .filter((s) => s.items.length),
   };
 }
 
@@ -959,7 +990,7 @@ export function fromCards(cards: Card[]): Draft {
     }
     return { [ARABIC.test(sec) ? "name_ar" : "name_en"]: sec.slice(0, 80), items };
   });
-  const draft = validateDraft({ sections }, 600);
+  const draft = tidy(validateDraft({ sections }, 600));
   return attachImages(
     draft,
     kept.map((r) => ({
@@ -1010,5 +1041,5 @@ export function fromOddmenu(root: unknown, base?: string): Draft {
       items: list,
     };
   });
-  return attachImages(validateDraft({ sections }, 600), raw);
+  return attachImages(tidy(validateDraft({ sections }, 600)), raw);
 }

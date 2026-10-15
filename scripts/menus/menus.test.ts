@@ -4,6 +4,9 @@ import {
   attachImages,
   bestDraft,
   fromCards,
+  fromOddmenu,
+  httpsImage,
+  tidy,
   currencyWord,
   driveDownloadUrl,
   fromJson,
@@ -793,5 +796,79 @@ describe("harvest diagnostics never carry contact details or keys", () => {
         '<iframe src="https://menu.example/x?k=1"></iframe><img src="/a.jpg" alt="Menu">',
       ).join("\n"),
     ).toMatch(/iframe https:\/\/menu\.example\/x[\s\S]*1 <img>/);
+  });
+});
+
+describe("the last pass over a harvested menu", () => {
+  it("drops the cart widget, and a 0 price or a few LBP is no price", () => {
+    const d = tidy({
+      sections: [
+        {
+          name_en: "Menu",
+          items: [
+            { name_en: "Total", price: 0, currency: "USD", confidence: 0.9 },
+            { name_en: "0 ITEMS", price: 0, currency: "USD", confidence: 0.9 },
+            { name_ar: "فروج فحم", price: 0, currency: "USD", confidence: 0.9 },
+            { name_en: "Lotus Addict", price: 7, currency: "LBP", confidence: 0.9 },
+            { name_en: "Oreo Shake", price: 400000, currency: "LBP", confidence: 0.9 },
+          ],
+        },
+      ],
+      warnings: [],
+    });
+    expect(d.sections[0]!.items.map((i) => [i.name_en ?? i.name_ar, i.price, i.currency])).toEqual([
+      ["فروج فحم", null, null],
+      ["Lotus Addict", null, null],
+      ["Oreo Shake", 400000, "LBP"],
+    ]);
+  });
+  it("never takes a logo, an icon or a placeholder as an item's picture", () => {
+    expect(httpsImage("https://rest.thrubits.com/uploads/restorants_icon/1.jpeg")).toBeNull();
+    expect(httpsImage("/assets/west-diner-logo.png", "https://west-diner.pages.dev/")).toBeNull();
+    expect(httpsImage("http://x.example/a.jpg")).toBeNull();
+    expect(httpsImage("/assets/classic-icon-burger.png", "https://w.dev/")).toBeNull();
+    expect(httpsImage("/assets/classic.png", "https://w.dev/")).toBe(
+      "https://w.dev/assets/classic.png",
+    );
+  });
+  it("reads oddmenu's place JSON: categories, items, the place's currency and pictures", () => {
+    const d = fromOddmenu(
+      {
+        place: { currency: "USD", currencySymbol: "$" },
+        menuCategories: [
+          { id: "c2", position: 2, info: { name: "SALADS /سلطات" } },
+          { id: "c1", position: 1, info: { name: "APPETIZERS / مقبلات" } },
+          { id: "c3", position: 3, isVisible: false, info: { name: "Hidden" } },
+        ],
+        menuItems: [
+          {
+            menuCategoryId: "c1",
+            position: 1,
+            price: "3.5",
+            image: "https://cdn.example/i/1.jpg",
+            info: { name: "متبل باذنجان" },
+          },
+          {
+            menuCategoryId: "c1",
+            position: 2,
+            price: "3",
+            image: "",
+            info: { name: "حمص", description: "كلاسيك" },
+          },
+          { menuCategoryId: "c2", position: 1, price: "6", info: { name: "تبولة" } },
+          { menuCategoryId: "c2", position: 2, price: "0", info: { name: "فروج فحم" } },
+          { menuCategoryId: "c3", position: 1, price: "9", info: { name: "x" } },
+        ],
+      },
+      "https://api.oddmenu.com/place/AR/shop",
+    );
+    expect(d.sections.map((s) => s.name_en)).toEqual(["APPETIZERS / مقبلات", "SALADS /سلطات"]);
+    expect(d.sections[0]!.items[0]).toMatchObject({
+      name_ar: "متبل باذنجان",
+      price: 3.5,
+      currency: "USD",
+      image_url: "https://cdn.example/i/1.jpg",
+    });
+    expect(d.sections[1]!.items[1]).toMatchObject({ name_ar: "فروج فحم", price: null });
   });
 });

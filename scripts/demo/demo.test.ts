@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { harvestedDrafts, HARVEST_MENUS } from "../vendors/shouf-menus.ts";
-import { demoRows, DEMO_SHOPS } from "./build-demo-menus.ts";
+import { demoRows, DEMO_SHOPS, withoutRestricted } from "./build-demo-menus.ts";
 import { DRAWING_VERSION, plan, sizedImageUrl, type TodoItem } from "./demo-photos.ts";
 import { categoryOf, illustrationSvg, lines } from "./illustration.ts";
 
@@ -78,5 +78,29 @@ describe("the photo plan per item", () => {
       "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/Fries.jpg?resize=300%2C300&ssl=1";
     expect(plan({ ...item, image_url: url })!.kind).toBe("merchant_site");
     expect(sizedImageUrl(url)).toContain("resize=800%2C800");
+  });
+});
+
+describe("demo menus and the Meta catalogue", () => {
+  it("leave out alcohol and tobacco (Meta commerce policy), keeping cocktail sauce and soft drinks", () => {
+    const item = (name_en: string) => ({
+      name_en,
+      price: 5,
+      currency: "USD" as const,
+      confidence: 0.5,
+    });
+    const out = withoutRestricted([
+      { name_ar: null, name_en: "Wine", name_fr: null, items: [item("les coteaux BTL")] },
+      { name_ar: null, name_en: "Shisha", name_fr: null, items: [item("Lemon mint")] },
+      {
+        name_ar: null,
+        name_en: "Beverage",
+        name_fr: null,
+        items: [item("black label glass"), item("Pepsi"), item("Hookahs"), item("Cocktail sauce")],
+      },
+    ]);
+    expect(out.map((s) => [s.name_en, s.items.map((i) => i.name_en)])).toEqual([
+      ["Beverage", ["Pepsi", "Cocktail sauce"]],
+    ]);
   });
 });
