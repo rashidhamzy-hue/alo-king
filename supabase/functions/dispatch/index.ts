@@ -446,7 +446,15 @@ const catalogApi: CatalogApi = {
   },
   productSet: async (catalogId, transport, body) => {
     const r = await catalogPost(transport, `/${encodeURIComponent(catalogId)}/product_sets`, body);
-    return r.ok && /^[0-9]{5,30}$/.test(String(r.body?.id ?? "")) ? String(r.body.id) : null;
+    if (r.ok && /^[0-9]{5,30}$/.test(String(r.body?.id ?? ""))) return String(r.body.id);
+    // Meta's reason, never headers or tokens (the first sync on staging was refused without a word).
+    const e = r.body?.error ?? r.body;
+    log("catalogue product set refused", {
+      status: r.status ?? 0,
+      error: String(e?.error_user_msg ?? e?.message ?? JSON.stringify(e ?? {})).slice(0, 200),
+      code: String(e?.code ?? ""),
+    });
+    return null;
   },
   imageUrl: (itemId, hash) =>
     `${supabaseUrl}/functions/v1/dispatch?route=catalog-image&i=${encodeURIComponent(itemId)}&v=${encodeURIComponent(hash)}`,
