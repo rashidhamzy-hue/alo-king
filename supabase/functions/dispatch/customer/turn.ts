@@ -405,6 +405,8 @@ async function duringHandoff(c: Ctx) {
 
 async function route(c: Ctx, firstContact: boolean) {
   const m = c.m;
+  // A marketing template's "Stop promotions" button is STOP (§18.3, §39.8): honoured at once, like the typed word.
+  if (m.buttonId === "mkt:stop") return textIntent(c, "stop");
   if (m.buttonId) {
     const a = parseCustomerAction(m.buttonId);
     if (a) return tap(c, a);

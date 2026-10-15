@@ -29,6 +29,9 @@ steps:
 - `expect` items are met by any message in the step window; `none: persona` asserts silence; `capture` stores a
   regex group in `vars`. `lang: ar|en|fr` checks the language of the reply.
 - `db.row` values: plain values, `~regex`, `>=2`, `null`; `save` stores a column in `vars`.
+- A template (sent outside the 24-hour window; on staging a dry run, DECISIONS §39.8) has `kind: template`; its text
+  reads `[template <name>/<lang>] <body as the person sees it>` and its quick replies are options (payload as id).
+  Close a persona's window with `update app_private.whatsapp_windows set last_inbound_at = now() - interval '25 hours'`.
 - `include: { part: order-to-placed, as: cust, lat: 33.68, lon: 35.55, qty: 2 }` expands `_parts/<part>.yaml`
   with `$AS`, `$LAT`, ... replaced.
 - A failed step stops its scenario. A scenario that fails on two consecutive runs with no code change is flaky:

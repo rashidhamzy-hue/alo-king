@@ -59,10 +59,12 @@ async function main() {
       throw new Error(
         `sim_prepare answered ${prep.status} (is the sink on and the test merchant installed?)`,
       );
+    // The number the bot sends from (the US test number once connected, else the sandbox): the 24-hour window is per
+    // business number (DECISIONS §39.8), so the simulated customers write to the number that answers them.
     const pn = await client.query(
-      "select phone_number_id from public.whatsapp_numbers where role = 'sandbox' and active limit 1",
+      "select public.whatsapp_sender('customer') as phone_number_id where public.whatsapp_sender('customer') is not null",
     );
-    if (!pn.rows[0]) throw new Error("no active sandbox number in whatsapp_numbers");
+    if (!pn.rows[0]) throw new Error("no active sending number in whatsapp_numbers");
     await client.query(
       "delete from public.sim_outbox where created_at < now() - interval '3 days'",
     );

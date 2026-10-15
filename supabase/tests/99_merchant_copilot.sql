@@ -195,8 +195,7 @@ reset role;
 update public.vendor_private set owner_mobile = '+96171000001' where vendor_id = :'va';
 select tests.ok(app_private.merchant_suggest(:'va', 'test0', 'availability_off',
   '{"scope": "station", "target": "grill", "until": null}', 'grill?') is null, 'no card outside the owner''s 24-hour WhatsApp window');
-insert into app_private.whatsapp_last_inbound (phone_e164, at) values ('+96171000001', now())
-  on conflict (phone_e164) do update set at = excluded.at;
+select public.whatsapp_seen('+96171000001', public.whatsapp_sender('merchant'));
 select app_private.merchant_suggest(:'va', 'test', 'availability_off',
   '{"scope": "station", "target": "grill", "until": null}', 'grill?') as sg \gset
 select tests.ok(:'sg' <> '' and exists (select 1 from public.outbound_messages where purpose = 'proposal' and payload ->> 'proposal_id' = :'sg'),

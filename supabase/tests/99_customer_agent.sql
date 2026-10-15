@@ -29,6 +29,8 @@ insert into public.customers (id, phone_e164, display_name) values
   ('17000000-0000-0000-0000-000000000002', '+96176100002', 'Mom'),
   ('17000000-0000-0000-0000-000000000003', '+96176100003', null);
 update public.customers set last_inbound_at = now() where id in ('17000000-0000-0000-0000-000000000001', '17000000-0000-0000-0000-000000000002');
+-- The window is per business number since 5b (§39.8): dispatch records it on every inbound message.
+select public.whatsapp_seen(p, public.whatsapp_sender('customer')) from unnest(array['+96176100001', '+96176100002']) p;
 
 set local role service_role;
 select tests.act_as(null);

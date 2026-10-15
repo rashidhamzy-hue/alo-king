@@ -40,6 +40,8 @@ select tests.ok((:'t1'::jsonb ->> 'duplicate')::boolean = false and (:'t1'::json
 select tests.ok((public.customer_turn_begin('+96176000001', 'wamid.bot.1', 'text') ->> 'duplicate')::boolean,
   'the same message id again is a duplicate (queue redelivery is a no-op)');
 select (:'t1'::jsonb #>> '{customer,id}') as cid \gset
+-- dispatch records the window on the number the message reached (per business number since 5b, §39.8).
+select public.whatsapp_seen('+96176000001', public.whatsapp_sender('customer'));
 select tests.ok((select last_inbound_at > now() - interval '1 minute' from public.customers where id = :'cid'), 'last inbound time is recorded (24-hour window)');
 select public.customer_turn_end(:'cid', 'wamid.bot.1', '{"lang": "arabizi", "history": [{"r":"u","t":"1"},{"r":"a","t":"2"},{"r":"u","t":"3"},{"r":"a","t":"4"},{"r":"u","t":"5"},{"r":"a","t":"6"},{"r":"u","t":"7"},{"r":"a","t":"8"},{"r":"u","t":"9"},{"r":"a","t":"10"}]}',
   'model', 1, '{search_vendors}', 0.002, 1800);
@@ -217,6 +219,7 @@ update public.baskets set last_activity_at = now() - interval '25 hours' where c
 select app_private.customer_bot_tick();
 select tests.ok(not exists (select 1 from public.baskets where customer_id = :'cid' and status = 'open'), 'an idle basket expires after its life');
 update public.customers set last_inbound_at = now() - interval '2 days' where id = :'cid';
+update app_private.whatsapp_windows set last_inbound_at = now() - interval '2 days' where phone_e164 = '+96176000001';
 select app_private.customer_notify(:'oid', 'test_outside');
 select tests.ok((select status = 'skipped' and last_error like 'outside the 24-hour window%' from public.outbound_messages
                  where dedupe_key = 'cust:' || :'oid' || ':test_outside'), 'outside the 24-hour window no free-form message is sent');

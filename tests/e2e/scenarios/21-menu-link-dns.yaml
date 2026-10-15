@@ -1,0 +1,19 @@
+name: menu-link-dns
+description: "A merchant sends a real menu link during 'menu' (DECISIONS §39.7, 5c leftover): the deployed edge runtime resolves the host with Deno.resolveDns, checks every address is public, and fetches the page. Any answer but 'couldn't open that link' proves the lookup works on the runtime; the draft it may create is removed afterwards."
+personas:
+  merchant: { role: merchant }
+steps:
+  - note: the owner starts a menu import
+    say: { as: merchant, text: "menu" }
+    expect:
+      - { to: merchant }
+  - note: a public menu page (Al Kooz Cafe, Barouk; harvested in session F)
+    say: { as: merchant, text: "https://alkoozcafe.com/" }
+    timeout_s: 45
+    expect:
+      - { to: merchant, not_text: ["couldn't open", "ما قدرت إفتح"] }
+  - note: clean up the import (the test merchant's real menu is untouched)
+    sql: >
+      delete from public.menu_drafts d using public.vendors v
+      where v.id = d.vendor_id and v.slug = 'alo-test-grill' and d.source = 'link' and d.created_at > now() - interval '15 minutes';
+      select public.onboarding_session_set('{{merchant.phone}}', null, '{}'::jsonb, null);
