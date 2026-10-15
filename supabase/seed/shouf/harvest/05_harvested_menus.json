@@ -7225,6 +7225,381 @@
     }
    ],
    "warnings": []
+  },
+  {
+   "place_id": "ChIJQTmYx0IhHxURsxJZBXpBGuo",
+   "vendor_name": "BUN BROS",
+   "village": "Boqaata",
+   "source_url": "https://www.foodbooking.com/ordering/restaurant/menu?restaurant_uid=407cab1a-d6a2-4682-867f-9cbf48446ada",
+   "adapter": "foodbooking",
+   "method": "json",
+   "captured_at": "2026-10-15",
+   "sections": [
+    {
+     "name_en": "Appetizers",
+     "items": [
+      {
+       "name_en": "Mozzarella Bricks",
+       "description": "4pcs mozzarella bricks (plain or dipped) served with any dip of your choice.",
+       "price": 5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Onion Rings",
+       "description": "6pcs onion rings , served with any dip of your choice",
+       "price": 4.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Popcorn",
+       "description": "20 pcs served with a dip of your choice",
+       "price": 9,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Haloumi bricks",
+       "description": "4 pcs haloumi bricks plain or dipped served with any sauce of your choice.",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Cheddar Jalapeno triangles",
+       "description": "5pcsCheddar Jalapeno triangles served with any dip of your choice.",
+       "price": 5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Regular Fries",
+       "description": "served with any dip of your choice",
+       "price": 2.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Curly Fries",
+       "description": "served with any dip of your choice",
+       "price": 4.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Messy bros small",
+       "description": "LoadedFries served with crispy Chicken tenders, cheddar sauce, chips, BBQ sauce(optional: add jalapeños)",
+       "price": 3.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Messy Bros Large",
+       "description": "Loaded fries, served with crispy chicken tenders, cheddar sauce, chips, bbq sauce (optional add jalapeños",
+       "price": 6.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "The Bros box",
+       "description": "3pcs Chicken crispy, 3pcs Mozzarella bricks, 3pcs Cheddar jalapeno triangles, 5pcs chicken popcorn, 3.pcs onion rings, 3pcs haloumi bricks with 3 dips of your choice",
+       "price": 25,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "The BB waffle",
+       "description": "signature waffle topped with crispy strips and dips on top with chips sticks",
+       "price": 8,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "kinder rolls",
+       "description": "4 pcs kinder rolls",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Chicken Burgers",
+     "items": [
+      {
+       "name_en": "Classic Chicken Burger",
+       "description": "Grilled marinated chicken, signature sauce, cheddar slice, tomato, onions, dill pickles.",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Golden BB Burger",
+       "description": "Crispy chicken, grilled mozzarella, onion rings, bbq sauce, iceberg, garlic mayo sauce.",
+       "price": 7.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Honey Bros",
+       "description": "Grilled marinated chicken , iceberg, tomato slices, honey mustard, ranch sauce , dill pickles, Emmental cheese.",
+       "price": 7,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Beef Burgers",
+     "items": [
+      {
+       "name_en": "Classic Burger",
+       "description": "Grilled Beef Patty, iceberg, tomato, Onion, BB Sauce, cheddar slice.",
+       "price": 6.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Lebanese Burger",
+       "description": "150g Grilled beef patty, coleslaw, grilled onions, ketchup, regular fries inside the bun",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "The Pitmaster Burger",
+       "description": "150g Grilled Beef Patty, caramelized onions, BBQ mayo sauce, and swiss cheese",
+       "price": 7.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Myco Swiss Burger",
+       "description": "150g Grilled Beef Patty, sauted Mushrooms, swiss emmental cheese, and mayo sauce",
+       "price": 8.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Signature BB Burger",
+       "description": "150g Grilled Beef Patty, mozarella patty, cheddar slice, iceberg, ketshup, mustard, chopped onions, bbq sauce",
+       "price": 8.5,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Wraps",
+     "items": [
+      {
+       "name_en": "Crispy Wrap",
+       "description": "Fried Crispy Chicken, Coleslaw, Cheddar, Cocktail Sauce.",
+       "price": 5.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Boneless Wrap",
+       "description": "Boneless Chicken dipped with bbq sauce, cheddar sauce, chips, honey mustard, Jalapeno (optional)",
+       "price": 5.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Twister Chicken Wrap",
+       "description": "Fried Crispy Chicken, Iceberg, Tomato, Cheddar sauce, Mayo, Jalapenos (optional)",
+       "price": 5.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Ceasar Wrap",
+       "description": "Grilled Chicken, iceberg, ceasar sauce, parmesan cheese.",
+       "price": 7,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Tawouk wrap",
+       "description": "Tawouk , garlic paste, fries, pickles, and coleslaw",
+       "price": 4.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Sawda wrap",
+       "description": "sawda dipped with dibs el remen, garlic paste, caramelized onions, pickles, fries and iceberg",
+       "price": 4.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "fries wrap",
+       "description": "ketchup, fries, coleslaw , mayo",
+       "price": 3.5,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "MEALS",
+     "items": [
+      {
+       "name_en": "The Big Deal",
+       "description": "2 burgers,( 1 beef, 1 chicken) +2 wraps of your choice,8 crispy strips, coleslaw, 2 buns, 4 dips of your choice, 4 mozzarella bricks, 4 kinder rolls, large fries, Pepsi 1.25L",
+       "price": 50,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Duo Meal",
+       "description": "Two burgers (1 beef, 1 chicken) served with regular fries, 2 dips and 2 soft drink.",
+       "price": 16.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Crispy Meal",
+       "description": "5 pcs crispy strips, served with regular fries , bun, coleslaw, cheddar sauce, garlic dip, soft drink.",
+       "price": 12,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Captain Nuggy Meal (Kids Meal)",
+       "description": "Nugget sticks + regular fries+toy",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Bun Chick Meal (kids meal)",
+       "description": "Classic Chicken burger + regular fries+toy",
+       "price": 7,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Bun Beef Meal (kids meal)",
+       "description": "Classic Beef burger + regular fries+toy",
+       "price": 7,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Beverages",
+     "items": [
+      {
+       "name_en": "Pepsi",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Pepsi diet",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Mirinda",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "7-UP",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "7up diet",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "7 up zero sugar extra fizz",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Ice Tea",
+       "price": 2,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Water",
+       "price": 0.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Sparkling water",
+       "price": 2,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    }
+   ],
+   "warnings": [
+    "price without currency for \"Mozzarella Bricks\"",
+    "price without currency for \"Onion Rings\"",
+    "price without currency for \"Chicken Popcorn\"",
+    "price without currency for \"Haloumi bricks\"",
+    "price without currency for \"Cheddar Jalapeno triangles\"",
+    "price without currency for \"Regular Fries\"",
+    "price without currency for \"Curly Fries\"",
+    "price without currency for \"Messy bros small\"",
+    "price without currency for \"Messy Bros Large\"",
+    "price without currency for \"The Bros box\"",
+    "price without currency for \"The BB waffle\"",
+    "price without currency for \"kinder rolls\"",
+    "price without currency for \"Classic Chicken Burger\"",
+    "price without currency for \"Golden BB Burger\"",
+    "price without currency for \"Honey Bros\"",
+    "price without currency for \"Classic Burger\"",
+    "price without currency for \"Lebanese Burger\"",
+    "price without currency for \"The Pitmaster Burger\"",
+    "price without currency for \"Myco Swiss Burger\"",
+    "price without currency for \"Signature BB Burger\"",
+    "price without currency for \"Crispy Wrap\"",
+    "price without currency for \"Boneless Wrap\"",
+    "price without currency for \"Twister Chicken Wrap\"",
+    "price without currency for \"Chicken Ceasar Wrap\"",
+    "price without currency for \"Tawouk wrap\"",
+    "price without currency for \"Sawda wrap\"",
+    "price without currency for \"fries wrap\"",
+    "price without currency for \"The Big Deal\"",
+    "price without currency for \"Duo Meal\"",
+    "price without currency for \"Crispy Meal\"",
+    "price without currency for \"Captain Nuggy Meal (Kids Meal)\"",
+    "price without currency for \"Bun Chick Meal (kids meal)\"",
+    "price without currency for \"Bun Beef Meal (kids meal)\"",
+    "price without currency for \"Pepsi\"",
+    "price without currency for \"Pepsi diet\"",
+    "price without currency for \"Mirinda\"",
+    "price without currency for \"7-UP\"",
+    "price without currency for \"7up diet\"",
+    "price without currency for \"7 up zero sugar extra fizz\"",
+    "price without currency for \"Ice Tea\"",
+    "price without currency for \"Water\"",
+    "price without currency for \"Sparkling water\""
+   ]
   }
  ]
 }

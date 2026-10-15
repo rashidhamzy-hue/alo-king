@@ -18,7 +18,6 @@ Harvested 2026-10-14: 5 menus from 54 links (32 skipped by rule).
 - Campobar Baakline: skipped: Instagram (login wall, terms) — https://instagram.com/campobarbaakline?utm_source=qr&igshid=MzNlNGNkZWQ4Mg%3D%3D
 - Dash: skipped: Instagram (login wall, terms) — https://www.instagram.com/dash.resto.snack?igsh=MTg1NG04OWQzYnl4eA==
 - Em Laure | إم لور: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://leb.guide/emlaure.25467/
-- Sushi Bell: skipped: Facebook (login wall, terms) — https://www.facebook.com/sushi.bell.lb/
 - J.O'S House of Subs, Inc.: **52 items, 52 priced** in 8 sections (html, json https://joshouseofsubs-api.onrender.com/api/v1/menu) — http://www.joshouseofsubs.com/
 - New Garbatella - Restaurant: skipped: Instagram (login wall, terms) — https://www.instagram.com/newgarbatella?igsh=MWg3ZTZiNnYyeXlqZg==
 
@@ -41,13 +40,10 @@ Harvested 2026-10-14: 5 menus from 54 links (32 skipped by rule).
 
 ## Boqaata
 
-- West Diner: skipped: Instagram (login wall, terms) — https://www.instagram.com/west.diner?igsh=MTZ0a3FlZmg0Z2t5MA==
 - One Stop&Shop: skipped: a raw IP address — http://185.76.176.87/
 - أفران جبنة وزبدة Jebneh w Zebdeh bakery: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://jebnehwzebdeh.github.io/jebneh-website/#follow
-- ROUTE 66: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://route66-eatery.com/
 - Ocean Golden Bites: skipped: Instagram (login wall, terms) — https://www.instagram.com/ocean_golden_bites?igsh=MWN3bWRkNnppemV5dg==&utm_sourc
 - Boneless Bakaata: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — http://www.bonelesslb.com/
-- Tarabish: skipped: Facebook (login wall, terms) — https://m.facebook.com/tarabish.com.lb
 - Falafel vs Koushari: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://falafelvskoushari.lovable.app/
 - Shawarma Mosleh: skipped: Instagram (login wall, terms) — https://www.instagram.com/maculatmosleh/
 - Meat Master: skipped: Instagram (login wall, terms) — https://www.instagram.com/meatmaster.lb/
@@ -92,8 +88,23 @@ Harvested 2026-10-14: 5 menus from 54 links (32 skipped by rule).
 ## Samqaniyeh
 
 - Sekrab: skipped: Facebook (login wall, terms) — http://www.faceboom.com/sekrab
-- Verona Resto: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://leb.directory/veronaresto.3208/
 
 ## chouf
 
 - INDINER time: **122 items, 122 priced** in 15 sections (omega, omega https://menu.omegasoftware.ca/getRestaurantMenu) — https://menu.omegasoftware.ca/indinertime
+
+## Harvested again 2026-10-15 (8 merchants)
+
+- West Diner: skipped: Instagram (login wall, terms) — https://www.instagram.com/west.diner?igsh=MTZ0a3FlZmg0Z2t5MA==
+- West Diner: not read: no menu with prices found (best 0 priced items; 3 JSON responses) — https://west-diner.pages.dev/
+- Verona Resto: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://leb.directory/veronaresto.3208/
+- Verona Resto: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://leb.guide/veronaresto.3208/
+- Un basilico: not read: no menu with prices found (best 0 priced items; 3 JSON responses) — https://rest.thrubits.com/restaurant/un-basilico
+- BUN BROS: **42 items, 42 priced** in 6 sections (foodbooking, json https://www.foodbooking.com/api/cart/init) — https://www.foodbooking.com/ordering/restaurant/menu?restaurant_uid=407cab1a-d6a
+- Sushi Bell: skipped: Facebook (login wall, terms) — https://www.facebook.com/sushi.bell.lb/
+- Sushi Bell: not read: no menu with prices found (best 1 priced items; 3 JSON responses) — https://rest.thrubits.com/restaurant/sushi-bell
+- ROUTE 66: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://route66-eatery.com/
+- ROUTE 66: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://route66-eatery.com/menu
+- Tarabish: skipped: Facebook (login wall, terms) — https://m.facebook.com/tarabish.com.lb
+- Tarabish: not read: no menu with prices found (best 0 priced items; 3 JSON responses) — https://rest.thrubits.com/restaurant/tarabish
+- Safa Chicken: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://oddmenu.com/ar/p/ssafa-chicken
