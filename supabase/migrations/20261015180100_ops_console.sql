@@ -218,6 +218,7 @@ begin
     'alert:' || new.id, new.id);
   return null;
 exception when others then
+  raise warning 'ops_alerts_to_slack: % %', sqlstate, left(sqlerrm, 200);
   return null; -- Slack is a mirror: it never blocks the alert it mirrors (the alert row stays the record)
 end;
 $$;
@@ -249,6 +250,7 @@ begin
     '[]', 'order:' || new.id || ':' || new.status);
   return null;
 exception when others then
+  raise warning 'orders_to_slack: % %', sqlstate, left(sqlerrm, 200);
   return null; -- Slack is a mirror: it never blocks an order's state change
 end;
 $$;
@@ -325,8 +327,47 @@ begin
         coalesce(E'\n*Last messages:*\n' || v_hist, '')) || E'\nReply in this thread to answer on WhatsApp as Rasheed.',
       jsonb_build_array(jsonb_build_object('action_id', 'case_resolve', 'text', 'Resolve', 'value', v_id::text, 'style', 'primary')),
       'case:' || v_id || ':open');
+  else
+    -- A case still open (the customer asked again within the handoff): said again at the channel's top level, so a
+    -- thread nobody follows any more is not where the only signal lands.
+    select * into v_c from public.customers where id = p_customer_id;
+    perform app_private.slack_post('support', null,
+      format('🙋 %s asks for a person again (case %s, see its thread): %s', coalesce(v_c.display_name, 'A customer'),
+        left(v_id::text, 6), left(coalesce(p_summary, p_reason), 300)),
+      jsonb_build_array(jsonb_build_object('action_id', 'case_resolve', 'text', 'Resolve', 'value', v_id::text)),
+      'case:' || v_id || ':again:' || to_char(now(), 'YYYYMMDDHH24MISS'));
   end if;
   return v_id;
+end;
+$$;
+
+-- A case closes when the customer is back with the assistant without an operator's Resolve: they said "menu" or tapped a
+-- button (customer_handoff_end), or the handoff ran out (recovery_tick). Said in the thread; a later operator reply then
+-- finds no open case instead of silencing the assistant again.
+create function app_private.support_case_close(p_customer_id uuid, p_why text) returns void
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_id uuid;
+begin
+  update public.support_cases set status = 'resolved', resolved_at = now(), resolved_by = null
+  where customer_id = p_customer_id and status = 'open' returning id into v_id;
+  if v_id is not null then
+    perform app_private.slack_post('support', 'case:' || v_id, '↩︎ ' || p_why || '; the assistant is back. Case closed.');
+  end if;
+end;
+$$;
+revoke all on function app_private.support_case_close(uuid, text) from public, anon, authenticated;
+
+-- customer_handoff_end (as in 20261011100100) also closes the open case.
+create or replace function public.customer_handoff_end(p_customer_id uuid) returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.bot_sessions set handoff_until = null, handoff_reason = null where customer_id = p_customer_id;
+  perform app_private.support_case_close(p_customer_id, 'The customer went back to the assistant');
 end;
 $$;
 
@@ -439,16 +480,26 @@ as $$
   update public.support_messages set status = p_status where id = p_message_id and direction = 'out' and p_status in ('sent', 'held');
 $$;
 
--- The customer tapped "Read the reply" on the template: the held replies, oldest first, marked shown.
+-- The held replies, oldest first, with their ids; support_shown marks them once dispatch has sent them, so a turn that
+-- stalls and is replayed (#139) still finds them.
 create function public.support_pending(p_customer_id uuid) returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'name', (select o.display_name from public.operators o where o.user_id = m.operator_user_id),
+    'text', m.body) order by m.id), '[]')
+  from public.support_messages m join public.support_cases c on c.id = m.case_id
+  where c.customer_id = p_customer_id and m.direction = 'out' and m.status = 'held';
+$$;
+
+create function public.support_shown(p_customer_id uuid, p_ids bigint[]) returns integer
 language sql security definer set search_path = ''
 as $$
-  with h as (
+  with u as (
     update public.support_messages m set status = 'shown'
     from public.support_cases c
-    where c.id = m.case_id and c.customer_id = p_customer_id and m.direction = 'out' and m.status = 'held'
-    returning m.id, m.body, (select o.display_name from public.operators o where o.user_id = m.operator_user_id) as name)
-  select coalesce(jsonb_agg(jsonb_build_object('name', name, 'text', body) order by id), '[]') from h;
+    where c.id = m.case_id and c.customer_id = p_customer_id and m.id = any (p_ids) and m.direction = 'out' and m.status = 'held'
+    returning 1)
+  select count(*)::integer from u;
 $$;
 
 create function public.support_resolve(p_case_id uuid, p_actor_id uuid) returns jsonb
@@ -637,6 +688,15 @@ begin
       perform app_private.recovery_failed(e.order_id, 'close', sqlstate, sqlerrm);
     end;
   end loop;
+  -- A support case whose handoff ran out (no message either way for handoff_minutes) closes; the assistant is back.
+  for o in select c.customer_id from public.support_cases c left join public.bot_sessions s on s.customer_id = c.customer_id
+           where c.status = 'open' and (s.handoff_until is null or s.handoff_until < now()) loop
+    begin
+      perform app_private.support_case_close(o.customer_id, 'The handoff ended without a reply for a while');
+    exception when others then
+      perform app_private.recovery_failed(null, 'case_close', sqlstate, sqlerrm);
+    end;
+  end loop;
   -- Old Slack rows (posted or given up) are pruned.
   delete from public.slack_messages where status in ('sent', 'failed') and created_at < now() - make_interval(days => (r ->> 'slack_keep_days')::int);
   return n;
@@ -811,6 +871,140 @@ begin
 end;
 $$;
 
+-- dispute_open as in 20261015120100, with one change: the operator refunds below (rule 'operator …') do not count towards
+-- the customer's dispute rate, so goodwill never switches off their automatic credits.
+create or replace function public.dispute_open(p_customer_id uuid, p_order_id uuid, p_kind text, p_order_item_id uuid default null,
+  p_quantity integer default 1)
+returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_o public.orders%rowtype;
+  v_r jsonb := public.config_value('dispute_rules');
+  v_line public.order_items%rowtype;
+  v_amount numeric := 0;
+  v_payer text;
+  v_decision text;
+  v_rule text;
+  v_rate numeric;
+  v_delivered integer;
+  v_prior integer;
+  v_leg_min numeric;
+  v_expected_min numeric;
+  v_prep_late numeric;
+  v_id uuid;
+  v_booked jsonb;
+  v_promised timestamptz;
+begin
+  select * into v_o from public.orders where id = p_order_id and customer_id = p_customer_id;
+  if v_o.id is null then
+    return jsonb_build_object('status', 'unknown_order');
+  end if;
+  if v_o.status <> 'delivered' then
+    return jsonb_build_object('status', 'not_delivered', 'order_status', v_o.status);
+  end if;
+  if v_o.delivered_at < now() - make_interval(days => (v_r ->> 'report_days')::int) then
+    return jsonb_build_object('status', 'too_late', 'days', (v_r ->> 'report_days')::int);
+  end if;
+  if p_kind not in ('missing_item', 'wrong_item', 'cold_food', 'late', 'damaged', 'other') then
+    return jsonb_build_object('status', 'invalid');
+  end if;
+  if p_kind in ('missing_item', 'wrong_item') then
+    select * into v_line from public.order_items where id = p_order_item_id and order_id = v_o.id;
+    if v_line.id is null then
+      return jsonb_build_object('status', 'pick_line');
+    end if;
+  end if;
+  if exists (select 1 from public.order_disputes d where d.order_id = v_o.id and d.kind = p_kind
+             and d.order_item_id is not distinct from v_line.id) then
+    return jsonb_build_object('status', 'already_reported');
+  end if;
+
+  select count(*) into v_delivered from public.orders o where o.customer_id = p_customer_id and o.status = 'delivered'
+    and o.delivered_at > now() - make_interval(days => (v_r ->> 'rate_window_days')::int);
+  select count(*) into v_prior from public.order_disputes d where d.customer_id = p_customer_id
+    and d.created_at > now() - make_interval(days => (v_r ->> 'rate_window_days')::int)
+    and d.decision in ('auto_credit', 'approved', 'review', 'owner_review')
+    and d.rule not like 'operator %'; -- an operator's goodwill refund is not the customer's dispute
+  v_rate := v_prior::numeric / greatest(v_delivered, 1);
+
+  case p_kind
+    when 'missing_item', 'wrong_item' then
+      -- Per unit reported (one unless the customer says more), never more than the line.
+      v_amount := round(v_line.line_total_usd / greatest(v_line.quantity, 1) * least(greatest(coalesce(p_quantity, 1), 1), v_line.quantity), 2);
+      v_payer := 'merchant';
+      v_rule := format('%s: %s of %s, merchant pays', p_kind, least(greatest(coalesce(p_quantity, 1), 1), v_line.quantity), v_line.quantity);
+    when 'cold_food' then
+      -- The delivery leg (out for delivery → delivered) against 1.5 x the expected road time: the cached route's
+      -- duration, else 25 km/h over the road distance.
+      if v_o.picked_up_at is null or v_o.delivered_at is null or v_o.road_km is null or v_o.delivery_pin is null then
+        v_rule := 'cold_food: no delivery times to check';
+      else
+        v_leg_min := extract(epoch from (v_o.delivered_at - v_o.picked_up_at)) / 60.0;
+        select r.duration_s / 60.0 into v_expected_min
+        from public.vendors v, public.route_cache_lookup(extensions.st_y(v.location::extensions.geometry), extensions.st_x(v.location::extensions.geometry),
+          array[extensions.st_y(v_o.delivery_pin::extensions.geometry)], array[extensions.st_x(v_o.delivery_pin::extensions.geometry)]) r
+        where v.id = v_o.vendor_id;
+        v_expected_min := greatest(5, coalesce(v_expected_min, v_o.road_km / 25.0 * 60.0));
+        if v_leg_min > (v_r ->> 'cold_factor')::numeric * v_expected_min then
+          v_amount := round(v_o.food_subtotal_usd * (v_r ->> 'cold_credit_pct')::numeric / 100.0, 2);
+          v_payer := case when v_o.delivery_mode = 'merchant' then 'merchant' else 'alo_king' end;
+          v_rule := format('cold_food: delivery took %s min against %s expected', round(v_leg_min), round(v_expected_min));
+        else
+          v_rule := format('cold_food: delivery took %s min, within 1.5 x %s', round(v_leg_min), round(v_expected_min));
+        end if;
+      end if;
+    when 'late' then
+      v_promised := v_o.accepted_at + make_interval(mins => coalesce(v_o.prep_minutes, 20)::int);
+      if v_o.ready_marked_at is not null and v_o.ready_marked_at > v_promised + make_interval(mins => (v_r ->> 'late_prep_min')::int) then
+        v_prep_late := extract(epoch from (v_o.ready_marked_at - v_promised)) / 60.0;
+        v_amount := v_o.delivery_fee_usd;
+        v_payer := 'merchant';
+        v_rule := format('late: ready %s min after the promised time, merchant pays', round(v_prep_late));
+      else
+        v_rule := 'late: preparation within 15 min of the promise';
+      end if;
+    when 'damaged' then
+      v_rule := 'damaged: photo needed, a person decides (remake or credit)';
+    else
+      v_rule := 'other: a person decides';
+  end case;
+
+  if p_kind in ('damaged', 'other') or v_amount = 0 and p_kind not in ('cold_food', 'late') then
+    v_decision := 'review';
+  elsif v_amount = 0 then
+    v_decision := 'rejected';
+  elsif v_o.payment_method <> 'cod' then
+    v_decision := 'review'; -- refunded to the original payment (Phase 6), never a credit
+  elsif v_amount > (v_r ->> 'owner_over_usd')::numeric then
+    v_decision := 'owner_review';
+  elsif v_amount <= (v_r ->> 'auto_max_usd')::numeric and v_rate < (v_r ->> 'max_dispute_rate')::numeric then
+    v_decision := 'auto_credit'; -- up to $8 and a low dispute rate; between $8 and $20 a person, above $20 Rasheed
+  else
+    v_decision := 'review';
+  end if;
+
+  insert into public.order_disputes (order_id, customer_id, kind, order_item_id, amount_usd, payer, decision, rule)
+  values (v_o.id, p_customer_id, p_kind, v_line.id, v_amount, v_payer, v_decision, v_rule || format(' (dispute rate %s)', round(v_rate, 2)))
+  returning id into v_id;
+  update public.orders set customer_problem_at = coalesce(customer_problem_at, now()) where id = v_o.id;
+
+  if v_decision = 'auto_credit' then
+    v_booked := app_private.dispute_book(v_id);
+  elsif v_decision in ('review', 'owner_review') then
+    perform app_private.ops_alert('dispute:' || v_id, 'customer_dispute',
+      case when v_decision = 'owner_review' then 'urgent' else 'warning' end,
+      format('Order %s: customer reports %s%s; %s', v_o.code, replace(p_kind, '_', ' '),
+             case when v_amount > 0 then format(' ($%s)', v_amount) else '' end,
+             case when v_decision = 'owner_review' then 'over $20: Rasheed decides' else 'a person decides' end),
+      v_o.id, v_o.vendor_id, jsonb_build_object('dispute_id', v_id, 'rule', v_rule, 'amount_usd', v_amount));
+  end if;
+  return jsonb_build_object('status', v_decision, 'dispute_id', v_id, 'amount_usd', v_amount, 'payer', v_payer,
+    'code', v_o.code, 'credit_days', (v_r ->> 'credit_days')::int, 'rule', v_rule,
+    'usd_lbp_rate', v_o.usd_lbp_rate, 'amount_lbp', round(v_amount * v_o.usd_lbp_rate, 0));
+end;
+$$;
+
 -- /ak refund <order> <amount> [shop]: a customer credit for the next order (COD pilot: there is no card to refund to). It is
 -- an operator dispute on the order, decided by dispute_decide and booked by dispute_book like every other dispute (§20):
 -- the payer is Alo King unless the operator says the shop caused it (§20.1), the credit expires back to whoever funded
@@ -836,6 +1030,10 @@ begin
   select * into v_o from public.orders where code = upper(trim(p_code)) for update;
   if v_o.id is null then
     return jsonb_build_object('status', 'unknown');
+  end if;
+  -- An order that never went out was never paid for (COD), so there is nothing to give back.
+  if v_o.status in ('awaiting_payment', 'placed', 'rejected', 'cancelled', 'failed') then
+    return jsonb_build_object('status', 'not_paid', 'code', v_o.code, 'order_status', v_o.status);
   end if;
   if p_amount_usd is null or p_amount_usd <= 0 or round(p_amount_usd, 2) <> p_amount_usd then
     raise exception 'the amount must be positive and in cents' using errcode = 'check_violation';
@@ -1030,7 +1228,7 @@ begin
     'cases_open', (select count(*) from public.support_cases where status = 'open'),
     'claims_waiting', (select count(*) from public.vendor_claims where status = 'pending_review'),
     -- The open cases a WhatsApp "reply" can go to: id, a short id to type, and the first name the customer gave.
-    'open_cases', (select coalesce(jsonb_agg(jsonb_build_object('id', x.id, 'short', left(x.id::text, 4),
+    'open_cases', (select coalesce(jsonb_agg(jsonb_build_object('id', x.id, 'short', left(x.id::text, 6),
                      'name', coalesce(split_part(nullif(trim(c.display_name), ''), ' ', 1), 'customer')) order by x.opened_at desc), '[]')
                    from (select * from public.support_cases where status = 'open' order by opened_at desc limit 10) x
                    join public.customers c on c.id = x.customer_id));
@@ -1054,7 +1252,7 @@ begin
   foreach f in array array[
     'public.slack_channel_set(text, text, text)', 'public.ops_operator(text, text, text)', 'public.slack_claim(integer)',
     'public.slack_finish(bigint, boolean, text, text, text, boolean)', 'public.support_inbound(uuid, text)',
-    'public.support_reply(uuid, uuid, text, text, text)', 'public.support_message_status(bigint, text)', 'public.support_pending(uuid)',
+    'public.support_reply(uuid, uuid, text, text, text)', 'public.support_message_status(bigint, text)', 'public.support_pending(uuid)', 'public.support_shown(uuid, bigint[])',
     'public.support_resolve(uuid, uuid)', 'public.support_case_for_thread(text)', 'public.ops_order(uuid, text)',
     'public.ops_merchant(uuid, text)', 'public.ops_merchant_pause(uuid, uuid, integer, text)', 'public.ops_merchant_resume(uuid, uuid, text)',
     'public.ops_claims(uuid)', 'public.ops_claim_decide(uuid, uuid, boolean, text)', 'public.ops_refund(uuid, text, numeric, text, text)',

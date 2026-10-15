@@ -190,8 +190,8 @@ describe("'open' outside the set hours (session 5 leftover)", () => {
   });
   it("reply: with several open cases the operator names one, and the card says who receives it", async () => {
     const cases = [
-      { id: "ab12aaaa-0000-0000-0000-000000000001", short: "ab12", name: "Maya" },
-      { id: "cd34aaaa-0000-0000-0000-000000000002", short: "cd34", name: "Karim" },
+      { id: "ab12aaaa-0000-0000-0000-000000000001", short: "ab12aa", name: "Maya" },
+      { id: "cd34aaaa-0000-0000-0000-000000000002", short: "cd34aa", name: "Karim" },
     ];
     const h = harness({
       ops_status: () => ({ open_cases: cases }),
@@ -202,15 +202,15 @@ describe("'open' outside the set hours (session 5 leftover)", () => {
       text: "on its way",
     });
     expect(h.of("ops_action_propose")).toHaveLength(0);
-    expect(h.of("app_reply")[0].args.p_payload.text).toMatch(/ab12 Maya[\s\S]*cd34 Karim/);
+    expect(h.of("app_reply")[0].args.p_payload.text).toMatch(/ab12aa Maya[\s\S]*cd34aa Karim/);
     await handleAdmin(h.deps, { from: "+96170009999", messageId: "w2" }, OP, null, {
       kind: "reply",
-      text: "cd34 on its way",
+      text: "cd34aa on its way",
     });
     expect(h.of("ops_action_propose")[0].args.p_args).toEqual({
       case_id: cases[1].id,
       text: "on its way",
     });
-    expect(JSON.stringify(h.of("app_reply")[1].args.p_payload)).toContain("Karim (case cd34)");
+    expect(JSON.stringify(h.of("app_reply")[1].args.p_payload)).toContain("Karim (case cd34aa)");
   });
 });

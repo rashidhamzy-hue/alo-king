@@ -143,8 +143,9 @@ export async function handleAdmin(
       const s = await deps.rpc("ops_status", { p_actor_id: op.user_id });
       const cases: { id: string; short: string; name: string }[] = s?.open_cases ?? [];
       if (!cases.length) return reply("No open support case.");
-      const m = cmd.text.match(/^#?([0-9a-f]{4})\s+([\s\S]+)$/i);
-      const named = m ? cases.find((c) => c.short.toLowerCase() === m[1].toLowerCase()) : undefined;
+      const m = cmd.text.match(/^#?([0-9a-f]{6})\s+([\s\S]+)$/i);
+      const hits = m ? cases.filter((c) => c.short.toLowerCase() === m[1].toLowerCase()) : [];
+      const named = hits.length === 1 ? hits[0] : undefined;
       const target = named ?? (cases.length === 1 ? cases[0] : undefined);
       if (!target)
         return reply(

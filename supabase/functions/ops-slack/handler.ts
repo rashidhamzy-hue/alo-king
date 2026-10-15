@@ -99,8 +99,13 @@ export async function runAction(
         if (r?.status === "credited")
           return `💵 ${money(r.amount_usd)} credited to the customer of #${r.code}${r.payer === "merchant" ? " (charged to the shop)" : ""}.`;
         if (r?.status === "already")
-          return `#${r.code} already has an operator refund (${money(r.amount_usd)}, ${r.decision}).`;
-        return `No order #${a.code}.`;
+          return r.decision === "rejected"
+            ? `#${r.code} has a dispute that was rejected (${money(r.amount_usd)}); a refund needs the admin page.`
+            : `#${r.code} already has an operator refund (${money(r.amount_usd)}).`;
+        if (r?.status === "not_paid")
+          return `#${r.code} is ${r.order_status}: it never went out, so there is nothing to refund.`;
+        if (r?.status === "unknown") return `No order #${a.code}.`;
+        return `Refund on #${a.code}: ${String(r?.status ?? "not done")}.`;
       }
       case "credit": {
         // The confirm modal's view id makes a retried submit book once.

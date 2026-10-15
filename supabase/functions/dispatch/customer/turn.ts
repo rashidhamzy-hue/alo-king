@@ -255,6 +255,8 @@ type Ctx = {
   cost: number;
   path: "deterministic" | "model" | "voice" | "handoff" | "budget" | "error";
   summary: string[];
+  /** Held support replies in this turn's messages, marked shown once they are sent. */
+  shownReplies?: number[];
 };
 
 const MAX_MESSAGES = 3;
@@ -364,6 +366,13 @@ export async function handleCustomerTurn(
     if (!r.ok && r.retry) r = await deps.send(clampInteractive(p)); // Kapso 409 (one in flight) or 5xx: once more
     if (!r.ok) deps.log?.("customer send failed", { error: r.error.slice(0, 120) });
   }
+  // Held support replies count as shown only once the turn's messages went out (a replayed turn finds them again).
+  if (c.shownReplies?.length)
+    await deps
+      .rpc("support_shown", { p_customer_id: c.customerId, p_ids: c.shownReplies })
+      .catch((e: unknown) =>
+        deps.log?.("support_shown failed", { error: String(e).slice(0, 120) }),
+      );
   if (m.text) c.s.history.push({ r: "u", t: m.text.slice(0, 300) });
   if (c.summary.length) c.s.history.push({ r: "a", t: c.summary.join(" ").slice(0, 300) });
   // The session row has no fulfil column, so the choice travels in refs (prefix "fx", never used by the lists).
@@ -420,10 +429,11 @@ async function duringHandoff(c: Ctx) {
 
 /** The replies a person sent while the customer was outside the 24-hour window (held behind the template). */
 async function heldReplies(c: Ctx): Promise<number> {
-  const replies: { name: string | null; text: string }[] =
+  const replies: { id: number; name: string | null; text: string }[] =
     (await c.deps.rpc("support_pending", { p_customer_id: c.customerId }).catch(() => [])) ?? [];
   if (!Array.isArray(replies) || !replies.length) return 0;
   c.tools.push("support_pending");
+  c.shownReplies = replies.map((r) => Number(r.id)).filter((n) => Number.isFinite(n));
   for (const r of replies)
     push(
       c,

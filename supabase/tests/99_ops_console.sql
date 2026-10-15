@@ -44,6 +44,8 @@ select tests.ok((select status = 'open' from public.support_cases where id = :'c
               and text like '%wants to change the address%' and text not like '%+961%' and actions @> '[{"action_id": "case_resolve"}]'),
   'the case thread carries the summary and a Resolve button, never the phone number');
 select tests.ok((public.customer_handoff(:'c1', 'again', null) ->> 'case_id') = :'case_id', 'one open case per customer');
+select tests.ok(exists (select 1 from public.slack_messages where channel_key = 'support' and thread_key is null and text like '%asks for a person again%'),
+  'and asking again is said at the channel''s top level');
 set local role service_role;
 select tests.ok(public.support_inbound(:'c1', 'it''s Bnayet Saad now'), 'a customer message during the handoff joins the thread');
 select tests.throws(format($$select public.support_reply(%L, %L, 'hello')$$, :'case_id', :'owner'), 'not allowed', 'a merchant is not support');
@@ -57,13 +59,35 @@ select tests.ok((select payload ->> 'kind' = 'support_reply' and payload ->> 'na
 select tests.ok((select handoff_until > now() from public.bot_sessions where customer_id = :'c1'), 'the bot stays quiet while a person talks');
 set local role service_role;
 select public.support_message_status((:'rp'::jsonb ->> 'message_id')::bigint, 'held');
-select tests.ok(public.support_pending(:'c1') -> 0 ->> 'text' like 'Done%' and public.support_pending(:'c1') = '[]',
-  'a reply held behind the template is shown once, when the customer taps it');
+select public.support_pending(:'c1') as pend \gset
+select tests.ok(:'pend'::jsonb -> 0 ->> 'text' like 'Done%' and public.support_pending(:'c1') = :'pend'::jsonb,
+  'a held reply stays held until it has been sent (a replayed turn finds it again)');
+select tests.ok(public.support_shown(:'c1', array[(:'pend'::jsonb -> 0 ->> 'id')::bigint]) = 1, 'once sent it is marked shown');
+select tests.ok(public.support_pending(:'c1') = '[]' and public.support_shown(:'c1', array[(:'pend'::jsonb -> 0 ->> 'id')::bigint]) = 0,
+  'once');
 select tests.ok(public.support_resolve(:'case_id', :'op') ->> 'status' = 'resolved', 'Resolve closes the case');
 reset role;
 select tests.ok((select handoff_until is null from public.bot_sessions where customer_id = :'c1')
   and exists (select 1 from public.outbound_messages where dedupe_key = 'support-closed:' || :'case_id'), 'and hands the customer back to the assistant');
 set local role service_role;
+-- The customer leaves the handoff on their own ("menu"): the case closes, and the next handoff is a new case and a new thread.
+select (public.customer_handoff(:'c1', 'second time', 'lost the driver') ->> 'case_id') as case2 \gset
+select public.customer_handoff_end(:'c1');
+reset role;
+select tests.ok((select status = 'resolved' and resolved_by is null from public.support_cases where id = :'case2')
+  and exists (select 1 from public.slack_messages where thread_key = 'case:' || :'case2' and text like '%went back to the assistant%'),
+  'leaving the handoff closes the case, said in its thread');
+set local role service_role;
+select (public.customer_handoff(:'c1', 'third time', 'still lost') ->> 'case_id') as case3 \gset
+reset role;
+select tests.ok(:'case3' <> :'case2' and exists (select 1 from public.slack_messages where thread_key = 'case:' || :'case3' and text like '%needs a person%'),
+  'the next handoff opens a new case with its own #support post');
+-- A handoff that runs out closes its case on the next tick; a late operator reply then finds no open case.
+update public.bot_sessions set handoff_until = now() - interval '1 second' where customer_id = :'c1';
+select app_private.recovery_tick();
+select tests.ok((select status = 'resolved' from public.support_cases where id = :'case3'), 'a handoff that ran out closes its case');
+set local role service_role;
+select tests.ok(public.support_reply(:'case3', :'op', 'late answer') ->> 'status' = 'not_open', 'and a late reply does not silence the assistant again');
 
 -- 3. The recovery engine ---------------------------------------------------------------------------------------------------------
 reset role;
@@ -121,6 +145,11 @@ select tests.throws(format($$select public.ops_refund(%L, 'TESTA2', 6)$$, :'op')
 select tests.throws(format($$select public.ops_refund(%L, 'TESTA2', 999)$$, :'admin'), 'exceed its total', 'never more than the order');
 select tests.throws(format($$select public.ops_refund(%L, 'TESTA2', 5, 'slack', 'driver')$$, :'op'), 'the payer', 'Alo King or the shop pays');
 select tests.ok(public.ops_refund(:'op', 'TESTA2', 5, 'slack', 'merchant') ->> 'status' = 'credited', 'an operator refunds $5 as a customer credit');
+reset role;
+select tests.ok((select count(*) = 0 from public.order_disputes d where d.customer_id = (select customer_id from public.orders where id = :'order1')
+                 and d.decision in ('auto_credit', 'approved', 'review', 'owner_review') and d.rule not like 'operator %'),
+  'an operator refund is not the customer''s dispute (dispute_open leaves rule ''operator …'' out of the rate)');
+set local role service_role;
 select tests.ok(public.ops_refund(:'op', 'TESTA2', 5) ->> 'status' = 'already', 'a repeated or retried confirm books nothing twice');
 reset role;
 select tests.ok((select d.payer = 'merchant' and d.decision = 'approved' and d.ledger_tx is not null and c.dispute_id = d.id
