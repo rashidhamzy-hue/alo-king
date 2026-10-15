@@ -1422,7 +1422,8 @@ async function cartOrder(c: Ctx, lines: CartLine[], replace = false) {
     // Waiting on choices (an option list or the item_options Flow): checkout comes after them.
     if (!added && (c.s.pending.kind === "options" || c.tools.length > flows)) return;
   }
-  if (!c.basket?.lines?.length) return say(c, "cartNothing");
+  // Nothing of this cart went in (the old basket, if any, is as it was): say so, never check out the old basket.
+  if (!Number(r.added ?? 0) || !c.basket?.lines?.length) return say(c, "cartNothing");
   // The normal checkout: address confirmation, the checkout Flow or the cash question, then the summary to confirm.
   return checkout(c, {});
 }

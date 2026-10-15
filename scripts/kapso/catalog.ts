@@ -209,6 +209,8 @@ async function main() {
       notes,
     );
     transport = probe?.route ?? null;
+    // Connected, but nothing can write its items (Kapso's proxy has no catalogue endpoints): the token is missing.
+    if (!transport && !blocked) blocked = "token";
   }
 
   console.log(`\n| step | result |\n|---|---|`);

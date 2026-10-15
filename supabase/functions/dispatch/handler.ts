@@ -239,7 +239,7 @@ export async function runDispatch(
   // 5. The catalogue sync (§39.12): shops queued by a menu, price, availability, stock or shop change, the reconcile and
   // the nightly full sync. Last, so it never delays a reply.
   if (deps.catalog && left() > 3000) {
-    await catalogSyncStep(deps.rpc, deps.catalog, deps.log).catch((e: unknown) =>
+    await catalogSyncStep(deps.rpc, deps.catalog, deps.log, left).catch((e: unknown) =>
       deps.log?.("catalogue sync step failed", { error: String(e).slice(0, 160) }),
     );
   }

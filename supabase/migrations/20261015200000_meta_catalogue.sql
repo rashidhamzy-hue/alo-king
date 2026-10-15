@@ -43,13 +43,18 @@ create function public.whatsapp_catalog_record(p_waba_id text, p_catalog_id text
   p_blocked text) returns void
 language plpgsql security definer set search_path = ''
 as $$
+declare
+  v_before public.whatsapp_catalogs%rowtype;
 begin
+  select * into v_before from public.whatsapp_catalogs where waba_id = p_waba_id;
   insert into public.whatsapp_catalogs (waba_id, catalog_id, transport, commerce_on, blocked, checked_at)
   values (p_waba_id, p_catalog_id, nullif(p_transport, ''), coalesce(p_commerce_on, false), nullif(left(p_blocked, 300), ''), now())
   on conflict (waba_id) do update set catalog_id = excluded.catalog_id, transport = excluded.transport,
     commerce_on = excluded.commerce_on, blocked = excluded.blocked, checked_at = now();
-  -- A catalogue that can be written gets every shop queued for a full sync.
-  if nullif(p_transport, '') is not null then
+  -- A catalogue that became writable (new, another catalogue, another route) gets every shop queued for a full sync; the
+  -- daily re-check of an unchanged catalogue queues nothing.
+  if nullif(p_transport, '') is not null and (v_before.waba_id is null or v_before.catalog_id is distinct from p_catalog_id
+     or v_before.transport is distinct from nullif(p_transport, '')) then
     perform app_private.catalog_enqueue_all(true, 'catalogue connected');
   end if;
 end;
@@ -116,7 +121,8 @@ as $$
       'name', left(case when i.name_ar is not null and i.name_en is not null and i.name_ar <> i.name_en
                         then i.name_ar || ' · ' || i.name_en else coalesce(i.name_ar, i.name_en, i.name_fr) end, 150),
       'name_en', i.name_en,
-      'description', left(coalesce(nullif(i.description, ''), s.name_en, s.name_ar, coalesce(v.name_en, v.name_ar)), 500)
+      'description', left(coalesce(nullif(i.description, ''), s.name_en, s.name_ar, coalesce(v.name_en, v.name_ar)),
+                          case when i.pricing_unit = 'kg' then 450 else 500 end)
                      || case when i.pricing_unit = 'kg' then ' (≈ ' || i.est_weight_kg || ' kg, final by weight)' else '' end,
       'price_minor', round(case when i.pricing_unit = 'kg' then i.price_usd * i.est_weight_kg else i.price_usd end * 100)::int,
       'currency', 'USD',
@@ -141,6 +147,7 @@ language sql stable security definer set search_path = ''
 as $$
   select jsonb_build_object('name_ar', i.name_ar, 'name_en', coalesce(i.name_en, i.name_fr),
     'vendor', coalesce(v.name_en, v.name_ar), 'vendor_ar', v.name_ar,
+    'hash', (select c.content_hash from public.catalog_sync_items c where c.item_id = i.id),
     'photo', (select p.storage_path from public.vendor_photos p where p.vendor_id = v.id and p.status = 'confirmed'
               order by p.sort_order, p.created_at limit 1))
   from public.menu_items i join public.vendors v on v.id = i.vendor_id
@@ -157,7 +164,9 @@ create table app_private.catalog_sync_queue (
   queued_at timestamptz not null default now(),
   next_at timestamptz not null default now(),
   attempts integer not null default 0,
-  last_error text check (char_length(last_error) <= 500)
+  last_error text check (char_length(last_error) <= 500),
+  -- Taken by a dispatch worker until then (longer than a worker lives); a change meanwhile only marks the row queued again.
+  leased_until timestamptz
 );
 create index catalog_sync_queue_next_idx on app_private.catalog_sync_queue (next_at);
 alter table app_private.catalog_sync_queue enable row level security;
@@ -172,10 +181,19 @@ begin
   if not exists (select 1 from public.whatsapp_catalogs c where c.transport is not null) then
     return;
   end if;
-  insert into app_private.catalog_sync_queue (vendor_id, reason, force)
-  values (p_vendor_id, left(p_reason, 80), coalesce(p_force, false))
+  -- A shop being deleted (its photos cascade first) is never queued.
+  if not exists (select 1 from public.vendors v where v.id = p_vendor_id) then
+    return;
+  end if;
+  -- A taken row (lease) or one in backoff after a failure keeps its time; queued_at moving on makes it run again after.
+  -- clock_timestamp: a change in the same transaction as a claim still counts as newer than that claim.
+  insert into app_private.catalog_sync_queue (vendor_id, reason, force, queued_at)
+  values (p_vendor_id, left(p_reason, 80), coalesce(p_force, false), clock_timestamp())
   on conflict (vendor_id) do update set reason = excluded.reason, force = app_private.catalog_sync_queue.force or excluded.force,
-    queued_at = now(), next_at = least(app_private.catalog_sync_queue.next_at, now());
+    queued_at = clock_timestamp(),
+    next_at = case when coalesce(app_private.catalog_sync_queue.leased_until, '-infinity') < now()
+                        and app_private.catalog_sync_queue.last_error is null
+                   then least(app_private.catalog_sync_queue.next_at, now()) else app_private.catalog_sync_queue.next_at end;
 end;
 $$;
 
@@ -226,18 +244,20 @@ $$;
 create trigger vendor_photos_catalog_sync after insert or update of status or delete on public.vendor_photos
   for each row execute function app_private.catalog_photo_changed();
 
--- The worker (dispatch) takes due shops with a 2-minute lease, and reports each one back.
-create function public.catalog_sync_claim(p_limit integer default 5) returns jsonb
+-- The worker (dispatch) takes due shops with a lease, and reports each one back.
+create function public.catalog_sync_claim(p_limit integer default 1) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
   v_out jsonb;
 begin
   with due as (
-    select q.vendor_id from app_private.catalog_sync_queue q where q.next_at <= now()
-    order by q.next_at limit least(greatest(coalesce(p_limit, 5), 1), 20) for update skip locked
+    select q.vendor_id from app_private.catalog_sync_queue q
+    where q.next_at <= now() and coalesce(q.leased_until, '-infinity') < now()
+    order by q.next_at limit least(greatest(coalesce(p_limit, 1), 1), 20) for update skip locked
   ), taken as (
-    update app_private.catalog_sync_queue q set next_at = now() + interval '2 minutes', attempts = q.attempts + 1
+    -- The lease outlives any worker (an edge function lives at most 150 s), so one shop never syncs twice at once.
+    update app_private.catalog_sync_queue q set leased_until = now() + interval '170 seconds', attempts = q.attempts + 1
     from due where q.vendor_id = due.vendor_id
     returning q.vendor_id, q.force, q.queued_at, q.attempts
   )
@@ -265,12 +285,14 @@ begin
     if q.queued_at <= p_queued_at then
       delete from app_private.catalog_sync_queue where vendor_id = p_vendor_id;
     else
-      update app_private.catalog_sync_queue set next_at = now(), attempts = 0, last_error = null where vendor_id = p_vendor_id;
+      update app_private.catalog_sync_queue set next_at = now(), attempts = 0, last_error = null, leased_until = null
+      where vendor_id = p_vendor_id;
     end if;
     return;
   end if;
   update app_private.catalog_sync_queue
-  set last_error = left(p_error, 500), next_at = now() + make_interval(secs => least(3600, 30 * power(2, least(q.attempts, 7))))
+  set last_error = left(p_error, 500), leased_until = null,
+      next_at = now() + make_interval(secs => least(3600, 30 * power(2, least(q.attempts, 7))))
   where vendor_id = p_vendor_id;
   if q.attempts = 5 then
     insert into public.ops_alerts (kind, severity, vendor_id, message)
@@ -448,8 +470,9 @@ begin
     end if;
     r := public.basket_add_item(p_customer_id, v_item.id, least(greatest(coalesce((l ->> 'quantity')::int, 1), 1), 50), '{}',
       null, v_first and coalesce(p_replace, false), p_message_id || '#cart:' || v_item.id);
-    v_first := false;
     if r ->> 'status' = 'added' then
+      -- Only an added line has replaced the old basket; until then the next line still carries the replace.
+      v_first := false;
       v_added := v_added + 1;
       v_now := case when v_item.pricing_unit = 'kg' then round(v_item.price_usd * v_item.est_weight_kg, 2) else v_item.price_usd end;
       if jsonb_typeof(l -> 'shown_usd') = 'number' and abs((l ->> 'shown_usd')::numeric - v_now) >= 0.005 then

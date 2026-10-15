@@ -53,10 +53,25 @@ select tests.ok(not exists (select 1 from app_private.catalog_sync_queue where v
 -- The worker takes it with a lease and reports back --------------------------------------------------------------------------
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
-select public.catalog_sync_claim(5) as cl \gset
+select public.catalog_sync_claim(1) as cl \gset
 select tests.ok(:'cl'::jsonb #>> '{catalog,catalog_id}' = '987654321012' and :'cl'::jsonb #>> '{catalog,transport}' = 'kapso'
   and jsonb_array_length(:'cl'::jsonb -> 'items') = 1, 'the claim returns the shop and the catalogue route');
 select tests.ok(jsonb_array_length(public.catalog_sync_claim(5) -> 'items') = 0, 'a taken shop is not taken twice during its lease');
+reset role;
+update public.menu_items set price_usd = 5.25 where id = '55000000-0000-0000-0000-000000000001';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok(jsonb_array_length(public.catalog_sync_claim(5) -> 'items') = 0,
+  'a change during the lease does not make the shop due again (no second worker on the same shop)');
+select public.catalog_sync_finish('20000000-0000-0000-0000-00000000000a', (:'cl'::jsonb #>> '{items,0,queued_at}')::timestamptz, null);
+reset role;
+select tests.ok((select next_at <= now() and leased_until is null from app_private.catalog_sync_queue
+                 where vendor_id = '20000000-0000-0000-0000-00000000000a'),
+  'a shop changed while it synced runs again at once after the lease');
+update public.menu_items set price_usd = 5.50 where id = '55000000-0000-0000-0000-000000000001';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select public.catalog_sync_claim(5) as cl \gset
 select public.catalog_sync_record('20000000-0000-0000-0000-00000000000a', '[
   {"retailer_id": "55000000-0000-0000-0000-000000000001", "hash": "h1", "visible": true},
   {"retailer_id": "55000000-0000-0000-0000-000000000002", "hash": "h2", "visible": true},
@@ -165,8 +180,37 @@ select tests.ok(public.cart_merge('10000000-0000-0000-0000-000000000001', 'wamid
 select tests.ok((select (r ->> 'added')::int = 1 and r #>> '{basket,vendor_id}' = '20000000-0000-0000-0000-00000000000b'
                  from public.cart_merge('10000000-0000-0000-0000-000000000001', 'wamid.TAP', '[{"item_id": "55000000-0000-0000-0000-000000000004", "quantity": 1}]', true) r),
   'after the customer chose it, the cart replaces the basket');
+select public.cart_merge('10000000-0000-0000-0000-000000000001', 'wamid.TAP',
+  '[{"item_id": "55000000-0000-0000-0000-000000000004", "quantity": 1}]', true);
+select tests.ok((select bi.quantity = 1 from public.basket_items bi join public.baskets b on b.id = bi.basket_id
+                 where b.customer_id = '10000000-0000-0000-0000-000000000001' and b.status = 'open'
+                   and bi.item_id = '55000000-0000-0000-0000-000000000004'),
+  'a replayed replace adds nothing twice');
+-- Replacing with a cart whose first line is sold out: the next line still replaces the basket (never the old shop's checkout).
+reset role;
+insert into public.menu_items (id, vendor_id, name_en, price_usd, available) values
+  ('55000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-00000000000a', 'Fries', 2.00, true);
+update public.menu_items set available = false where id = '55000000-0000-0000-0000-000000000001';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok((select (r ->> 'added')::int = 1 and r #>> '{basket,vendor_id}' = '20000000-0000-0000-0000-00000000000a'
+                 from public.cart_merge('10000000-0000-0000-0000-000000000001', 'wamid.TAP3', '[
+                   {"item_id": "55000000-0000-0000-0000-000000000001", "quantity": 1},
+                   {"item_id": "55000000-0000-0000-0000-000000000005", "quantity": 1}]', true) r),
+  'a sold-out first line does not stop the replace');
 select tests.ok(public.cart_merge('10000000-0000-0000-0000-000000000001', 'wamid.X', '[{"item_id": "55000000-0000-0000-0000-0000000000ff", "quantity": 1}]') ->> 'status' = 'unknown_items',
   'a cart of unknown ids changes nothing');
+
+-- A shop with photos can still be deleted while a catalogue is connected (its photos cascade first).
+reset role;
+insert into public.vendors (id, slug, name_en, business_type, claim_status, orderable, public_page, source, place_id, location)
+values ('20000000-0000-0000-0000-0000000000dd', 'vendor-dd', 'Vendor DD', 'cafe', 'claimed', true, false, 'merchant', 'gpDD', 'SRID=4326;POINT(35.58 33.68)');
+insert into public.vendor_photos (vendor_id, storage_path, source, status)
+values ('20000000-0000-0000-0000-0000000000dd', 'merchant/20000000-0000-0000-0000-0000000000dd/0123456789abcdef.jpg', 'merchant', 'confirmed');
+delete from public.vendors where id = '20000000-0000-0000-0000-0000000000dd';
+select tests.ok(not exists (select 1 from public.vendors where id = '20000000-0000-0000-0000-0000000000dd')
+  and not exists (select 1 from app_private.catalog_sync_queue where vendor_id = '20000000-0000-0000-0000-0000000000dd'),
+  'deleting a shop with photos works and queues nothing');
 
 reset role;
 set local role authenticated;

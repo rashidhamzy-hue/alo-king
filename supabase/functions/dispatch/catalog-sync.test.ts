@@ -14,16 +14,27 @@ const item = (k: number, extra: any = {}) => ({
   ...extra,
 });
 
-function fake(o: { state?: any; set?: string | null; batchOk?: boolean; jobs?: any[] }) {
+function fake(o: {
+  state?: any;
+  set?: string | null;
+  batchOk?: boolean;
+  jobs?: any[];
+  refused?: string[];
+}) {
   const calls: { fn: string; args: any }[] = [];
+  let claims = 0;
   const batches: any[] = [];
   const sets: any[] = [];
   const rpc = async (fn: string, args: any) => {
     calls.push({ fn, args });
     switch (fn) {
       case "catalog_sync_claim":
+        // One shop per claim, then the queue is empty.
         return {
-          items: o.jobs ?? [{ vendor_id: V, force: false, queued_at: "2026-10-15T16:00:00Z" }],
+          items:
+            claims++ === 0
+              ? (o.jobs ?? [{ vendor_id: V, force: false, queued_at: "2026-10-15T16:00:00Z" }])
+              : [],
           catalog: { catalog_id: "987654321012", transport: "kapso" },
         };
       case "catalog_desired":
@@ -39,7 +50,9 @@ function fake(o: { state?: any; set?: string | null; batchOk?: boolean; jobs?: a
   const api: CatalogApi = {
     batch: async (c, t, r) => {
       batches.push({ c, t, r });
-      return o.batchOk === false ? { ok: false, error: "meta 500" } : { ok: true };
+      return o.batchOk === false
+        ? { ok: false, error: "meta 500" }
+        : { ok: true, refused: o.refused ?? [] };
     },
     productSet: async (c, t, b) => {
       sets.push({ c, t, b });
@@ -86,6 +99,28 @@ describe("catalogue sync step in dispatch (DECISIONS §39.12)", () => {
     expect(await catalogSyncStep(f.rpc, f.api)).toBe(0);
     expect(f.of("catalog_sync_record")).toHaveLength(0);
     expect(f.of("catalog_sync_finish")[0].args.p_error).toBe("meta 500");
+  });
+});
+
+describe("catalogue sync step: leases, budget and refused products (§39.12)", () => {
+  it("takes one shop per claim, and stops when the worker has no time left for a whole job", async () => {
+    const f = fake({});
+    expect(await catalogSyncStep(f.rpc, f.api, undefined, () => 10_000)).toBe(0);
+    expect(f.of("catalog_sync_claim")).toHaveLength(0);
+    const g = fake({});
+    await catalogSyncStep(g.rpc, g.api);
+    expect(g.of("catalog_sync_claim").map((c) => c.args)).toEqual([{ p_limit: 1 }, { p_limit: 1 }]);
+  });
+  it("a product Meta refused is recorded as not shown, so it is never offered and is sent again", async () => {
+    const f = fake({ set: "444444444444", refused: [item(2).retailer_id] });
+    await catalogSyncStep(f.rpc, f.api);
+    const rec = f.of("catalog_sync_record")[0].args.p_items;
+    expect(rec.find((r: any) => r.retailer_id === item(2).retailer_id)).toEqual({
+      retailer_id: item(2).retailer_id,
+      hash: "refused",
+      visible: false,
+    });
+    expect(rec.find((r: any) => r.retailer_id === item(1).retailer_id).visible).toBe(true);
   });
 });
 

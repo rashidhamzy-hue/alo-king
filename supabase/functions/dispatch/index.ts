@@ -430,14 +430,18 @@ const catalogApi: CatalogApi = {
         ok: false,
         error: `meta ${r.status} ${JSON.stringify(r.body?.error ?? r.body).slice(0, 300)}`,
       };
-    // Per-item problems come back in validation_status; they are logged, the batch counts as taken.
-    for (const v of (r.body?.validation_status ?? []).slice(0, 5))
-      if (v?.errors?.length)
-        log("catalogue item refused", {
-          item: String(v.retailer_id ?? ""),
-          error: JSON.stringify(v.errors).slice(0, 160),
-        });
-    return { ok: true };
+    // Per-item problems come back in validation_status: those items are recorded as not shown and sent again later.
+    const refused: string[] = [];
+    for (const v of r.body?.validation_status ?? [])
+      if (v?.errors?.length && v?.retailer_id) {
+        refused.push(String(v.retailer_id));
+        if (refused.length <= 5)
+          log("catalogue item refused", {
+            item: String(v.retailer_id),
+            error: JSON.stringify(v.errors).slice(0, 160),
+          });
+      }
+    return { ok: true, refused };
   },
   productSet: async (catalogId, transport, body) => {
     const r = await catalogPost(transport, `/${encodeURIComponent(catalogId)}/product_sets`, body);
@@ -455,7 +459,9 @@ async function catalogImage(url: URL): Promise<Response> {
   const id = url.searchParams.get("i") ?? "";
   if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response("not found", { status: 404 });
   const d = await rpc("catalog_image", { p_item_id: id }).catch(() => null);
-  if (!d) return new Response("not found", { status: 404 });
+  // Only the version Meta was given (the content hash in the URL) is drawn: no re-render for any other cache-buster.
+  if (!d || String(d.hash ?? "") !== (url.searchParams.get("v") ?? ""))
+    return new Response("not found", { status: 404 });
   if (typeof d.photo === "string" && d.photo) {
     const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/vendor-photos/${d.photo}`, {
       method: "POST",
