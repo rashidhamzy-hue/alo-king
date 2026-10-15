@@ -20,6 +20,7 @@ function fake(o: {
   batchOk?: boolean;
   jobs?: any[];
   refused?: string[];
+  setRefused?: boolean;
 }) {
   const calls: { fn: string; args: any }[] = [];
   let claims = 0;
@@ -56,7 +57,7 @@ function fake(o: {
     },
     productSet: async (c, t, b) => {
       sets.push({ c, t, b });
-      return "555555555555";
+      return o.setRefused ? null : "555555555555";
     },
     imageUrl: (id, h) => `https://x.test/dispatch?route=catalog-image&i=${id}&v=${h}`,
   };
@@ -93,6 +94,14 @@ describe("catalogue sync step in dispatch (DECISIONS §39.12)", () => {
     expect(f.sets).toHaveLength(0);
     expect(f.batches).toHaveLength(0);
     expect(f.of("catalog_sync_finish")[0].args.p_error).toBeNull();
+  });
+  it("a product set Meta refuses (still empty) leaves the products recorded and the job to retry", async () => {
+    const f = fake({ setRefused: true });
+    expect(await catalogSyncStep(f.rpc, f.api)).toBe(1);
+    expect(f.batches).toHaveLength(1);
+    expect(f.of("catalog_sync_record")[0].args.p_items).toHaveLength(2);
+    expect(f.of("catalog_product_set")).toHaveLength(1);
+    expect(f.of("catalog_sync_finish")[0].args.p_error).toBe("catalogue product set not created");
   });
   it("a refused batch is reported back (retried later) and nothing is recorded", async () => {
     const f = fake({ batchOk: false, set: "444444444444" });

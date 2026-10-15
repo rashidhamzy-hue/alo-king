@@ -66,6 +66,9 @@ export async function catalogSyncStep(
         (await rpc("catalog_desired", { p_vendor_id: j.vendor_id })) ?? [];
       const state: SyncState =
         (await rpc("catalog_sync_state", { p_vendor_id: j.vendor_id })) ?? {};
+      // Meta refuses an empty product set, and a shop's first products are still being ingested when the set is asked
+      // for; the job then finishes with an error and its retry (30 s later) creates the set over the products.
+      let setMissing = false;
       if (desired.length) {
         const have = await rpc("catalog_product_set", {
           p_vendor_id: j.vendor_id,
@@ -85,7 +88,10 @@ export async function catalogSyncStep(
               p_catalog_id: cat.catalog_id,
               p_product_set_id: id,
             });
-          else log?.("catalogue product set not created", { vendor: j.vendor_id });
+          else {
+            setMissing = true;
+            log?.("catalogue product set not created", { vendor: j.vendor_id });
+          }
         }
       }
       const plan = catalogSyncPlan(
@@ -112,7 +118,7 @@ export async function catalogSyncStep(
           : x,
       );
       await rpc("catalog_sync_record", { p_vendor_id: j.vendor_id, p_items: record });
-      await finish(null);
+      await finish(setMissing ? "catalogue product set not created" : null);
       log?.("catalogue synced", {
         vendor: j.vendor_id,
         sent: plan.requests.length,
