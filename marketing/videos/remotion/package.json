@@ -1,0 +1,30 @@
+{
+  "name": "alo-king-reels",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Alo King marketing Reels (Remotion). See ../README.md.",
+  "scripts": {
+    "studio": "remotion studio",
+    "typecheck": "tsc --noEmit",
+    "frames": "node render.mjs frames",
+    "render": "node render.mjs video"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-sans-arabic": "5.3.0",
+    "@fontsource/plus-jakarta-sans": "5.3.0",
+    "@react-three/fiber": "9.8.2",
+    "@remotion/cli": "4.0.535",
+    "@remotion/fonts": "4.0.535",
+    "@remotion/three": "4.0.535",
+    "lucide-react": "1.57.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.535",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "@types/three": "0.186.0",
+    "typescript": "5.9.3"
+  }
+}

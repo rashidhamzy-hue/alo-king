@@ -1,0 +1,561 @@
+{
+ "id": "v2",
+ "fps": 30,
+ "durationInFrames": 750,
+ "voice": "bm_george",
+ "speed": 1.143,
+ "asrCheck": {
+  "wordErrors": 12,
+  "words": 63,
+  "wer": 0.1905
+ },
+ "lines": [
+  {
+   "scene": "hook",
+   "text": "Your customers already live on WhatsApp.",
+   "startMs": 120,
+   "endMs": 2650
+  },
+  {
+   "scene": "order",
+   "text": "Now they can order from you, right there.",
+   "startMs": 2917,
+   "endMs": 5132
+  },
+  {
+   "scene": "ticket",
+   "text": "Every order arrives as a clean ticket:",
+   "startMs": 5399,
+   "endMs": 7941
+  },
+  {
+   "scene": "details",
+   "text": "items, options and notes, ready for the kitchen.",
+   "startMs": 8207,
+   "endMs": 11096
+  },
+  {
+   "scene": "accept",
+   "text": "Accept with one tap, and set your prep time.",
+   "startMs": 11362,
+   "endMs": 14049
+  },
+  {
+   "scene": "noapp",
+   "text": "No new app for your customers to download.",
+   "startMs": 14316,
+   "endMs": 16727
+  },
+  {
+   "scene": "dashboard",
+   "text": "One place to see everything: orders, menu and hours.",
+   "startMs": 16994,
+   "endMs": 20530
+  },
+  {
+   "scene": "cta",
+   "text": "Alo King. Claim your shop and get listed.",
+   "startMs": 20797,
+   "endMs": 23100
+  }
+ ],
+ "words": [
+  {
+   "text": "Your",
+   "startMs": 120,
+   "endMs": 270,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "customers",
+   "startMs": 270,
+   "endMs": 910,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "already",
+   "startMs": 1110,
+   "endMs": 1490,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "live",
+   "startMs": 1490,
+   "endMs": 1830,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "on",
+   "startMs": 1830,
+   "endMs": 2060,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp.",
+   "startMs": 2060,
+   "endMs": 2640,
+   "line": 0,
+   "lastInLine": true
+  },
+  {
+   "text": "Now",
+   "startMs": 2917,
+   "endMs": 3127,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "they",
+   "startMs": 3127,
+   "endMs": 3277,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "can",
+   "startMs": 3277,
+   "endMs": 3467,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 3467,
+   "endMs": 3827,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "from",
+   "startMs": 3827,
+   "endMs": 4077,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "you,",
+   "startMs": 4077,
+   "endMs": 4357,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "right",
+   "startMs": 4517,
+   "endMs": 4767,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "there.",
+   "startMs": 4767,
+   "endMs": 4997,
+   "line": 1,
+   "lastInLine": true
+  },
+  {
+   "text": "Every",
+   "startMs": 5399,
+   "endMs": 5709,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 5709,
+   "endMs": 6089,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "arrives",
+   "startMs": 6089,
+   "endMs": 6669,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "as",
+   "startMs": 6839,
+   "endMs": 6959,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 6959,
+   "endMs": 7019,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "clean",
+   "startMs": 7019,
+   "endMs": 7419,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "ticket:",
+   "startMs": 7419,
+   "endMs": 7929,
+   "line": 2,
+   "lastInLine": true
+  },
+  {
+   "text": "items,",
+   "startMs": 8207,
+   "endMs": 8737,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "options",
+   "startMs": 8737,
+   "endMs": 9307,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 9307,
+   "endMs": 9457,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "notes,",
+   "startMs": 9457,
+   "endMs": 9867,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "ready",
+   "startMs": 10107,
+   "endMs": 10337,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "for",
+   "startMs": 10337,
+   "endMs": 10457,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 10457,
+   "endMs": 10547,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "kitchen.",
+   "startMs": 10547,
+   "endMs": 11087,
+   "line": 3,
+   "lastInLine": true
+  },
+  {
+   "text": "Accept",
+   "startMs": 11362,
+   "endMs": 11762,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "with",
+   "startMs": 11762,
+   "endMs": 11912,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "one",
+   "startMs": 11912,
+   "endMs": 12192,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "tap,",
+   "startMs": 12192,
+   "endMs": 12592,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 12812,
+   "endMs": 12922,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "set",
+   "startMs": 12922,
+   "endMs": 13152,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "your",
+   "startMs": 13152,
+   "endMs": 13322,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "prep",
+   "startMs": 13322,
+   "endMs": 13572,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "time.",
+   "startMs": 13572,
+   "endMs": 14042,
+   "line": 4,
+   "lastInLine": true
+  },
+  {
+   "text": "No",
+   "startMs": 14316,
+   "endMs": 14486,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "new",
+   "startMs": 14486,
+   "endMs": 14716,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "app",
+   "startMs": 14716,
+   "endMs": 14966,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "for",
+   "startMs": 14966,
+   "endMs": 15096,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "your",
+   "startMs": 15096,
+   "endMs": 15236,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "customers",
+   "startMs": 15236,
+   "endMs": 15876,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 15876,
+   "endMs": 16056,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "download.",
+   "startMs": 16056,
+   "endMs": 16716,
+   "line": 5,
+   "lastInLine": true
+  },
+  {
+   "text": "One",
+   "startMs": 16994,
+   "endMs": 17204,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "place",
+   "startMs": 17204,
+   "endMs": 17494,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "to",
+   "startMs": 17494,
+   "endMs": 17614,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "see",
+   "startMs": 17614,
+   "endMs": 17874,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "everything:",
+   "startMs": 17874,
+   "endMs": 18484,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "orders,",
+   "startMs": 18704,
+   "endMs": 19234,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "menu",
+   "startMs": 19364,
+   "endMs": 19864,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 19864,
+   "endMs": 19984,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "hours.",
+   "startMs": 19984,
+   "endMs": 20524,
+   "line": 6,
+   "lastInLine": true
+  },
+  {
+   "text": "Alo",
+   "startMs": 20797,
+   "endMs": 21087,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "King.",
+   "startMs": 21087,
+   "endMs": 21547,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "Claim",
+   "startMs": 21677,
+   "endMs": 21887,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "your",
+   "startMs": 21887,
+   "endMs": 21987,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "shop",
+   "startMs": 21987,
+   "endMs": 22337,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 22337,
+   "endMs": 22477,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "get",
+   "startMs": 22477,
+   "endMs": 22607,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "listed.",
+   "startMs": 22607,
+   "endMs": 23087,
+   "line": 7,
+   "lastInLine": true
+  }
+ ],
+ "scenes": [
+  {
+   "id": "hook",
+   "line": 0,
+   "from": 0,
+   "to": 84
+  },
+  {
+   "id": "order",
+   "line": 1,
+   "from": 84,
+   "to": 158
+  },
+  {
+   "id": "ticket",
+   "line": 2,
+   "from": 158,
+   "to": 243
+  },
+  {
+   "id": "details",
+   "line": 3,
+   "from": 243,
+   "to": 337
+  },
+  {
+   "id": "accept",
+   "line": 4,
+   "from": 337,
+   "to": 426
+  },
+  {
+   "id": "noapp",
+   "line": 5,
+   "from": 426,
+   "to": 506
+  },
+  {
+   "id": "dashboard",
+   "line": 6,
+   "from": 506,
+   "to": 558
+  },
+  {
+   "id": "dashboard-b",
+   "line": 6,
+   "from": 558,
+   "to": 620
+  },
+  {
+   "id": "cta",
+   "line": 7,
+   "from": 620,
+   "to": 750
+  }
+ ]
+}

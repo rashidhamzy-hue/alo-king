@@ -1,0 +1,543 @@
+{
+ "id": "v1",
+ "fps": 30,
+ "durationInFrames": 750,
+ "voice": "bm_george",
+ "speed": 1.009,
+ "asrCheck": {
+  "wordErrors": 15,
+  "words": 57,
+  "wer": 0.2632
+ },
+ "lines": [
+  {
+   "scene": "hook",
+   "text": "Hungry? Just WhatsApp it.",
+   "startMs": 120,
+   "endMs": 1759
+  },
+  {
+   "scene": "type",
+   "text": "Type your order,",
+   "startMs": 2022,
+   "endMs": 3110
+  },
+  {
+   "scene": "voice",
+   "text": "send a voice note,",
+   "startMs": 3373,
+   "endMs": 4642
+  },
+  {
+   "scene": "tap",
+   "text": "or tap through the menu.",
+   "startMs": 4904,
+   "endMs": 6603
+  },
+  {
+   "scene": "languages",
+   "text": "In Arabic, English, French or Arabizi.",
+   "startMs": 6865,
+   "endMs": 9687
+  },
+  {
+   "scene": "basket",
+   "text": "Check your basket, then confirm it right in the chat.",
+   "startMs": 9949,
+   "endMs": 13175
+  },
+  {
+   "scene": "paytrack",
+   "text": "Pay and track your order in the same thread.",
+   "startMs": 13438,
+   "endMs": 16179
+  },
+  {
+   "scene": "sendhome",
+   "text": "Living abroad? Send Home lets you order for family in Lebanon.",
+   "startMs": 16442,
+   "endMs": 20605
+  },
+  {
+   "scene": "cta",
+   "text": "Alo King. Order on WhatsApp.",
+   "startMs": 20867,
+   "endMs": 23100
+  }
+ ],
+ "words": [
+  {
+   "text": "Hungry?",
+   "startMs": 120,
+   "endMs": 680,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "Just",
+   "startMs": 680,
+   "endMs": 950,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp",
+   "startMs": 950,
+   "endMs": 1500,
+   "line": 0,
+   "lastInLine": false
+  },
+  {
+   "text": "it.",
+   "startMs": 1500,
+   "endMs": 1750,
+   "line": 0,
+   "lastInLine": true
+  },
+  {
+   "text": "Type",
+   "startMs": 2022,
+   "endMs": 2312,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "your",
+   "startMs": 2312,
+   "endMs": 2492,
+   "line": 1,
+   "lastInLine": false
+  },
+  {
+   "text": "order,",
+   "startMs": 2492,
+   "endMs": 3102,
+   "line": 1,
+   "lastInLine": true
+  },
+  {
+   "text": "send",
+   "startMs": 3373,
+   "endMs": 3663,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "a",
+   "startMs": 3663,
+   "endMs": 3713,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "voice",
+   "startMs": 3713,
+   "endMs": 4153,
+   "line": 2,
+   "lastInLine": false
+  },
+  {
+   "text": "note,",
+   "startMs": 4153,
+   "endMs": 4633,
+   "line": 2,
+   "lastInLine": true
+  },
+  {
+   "text": "or",
+   "startMs": 4904,
+   "endMs": 5054,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "tap",
+   "startMs": 5054,
+   "endMs": 5434,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "through",
+   "startMs": 5434,
+   "endMs": 5894,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 5894,
+   "endMs": 5984,
+   "line": 3,
+   "lastInLine": false
+  },
+  {
+   "text": "menu.",
+   "startMs": 5984,
+   "endMs": 6594,
+   "line": 3,
+   "lastInLine": true
+  },
+  {
+   "text": "In",
+   "startMs": 6865,
+   "endMs": 7015,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "Arabic,",
+   "startMs": 7015,
+   "endMs": 7535,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "English,",
+   "startMs": 7655,
+   "endMs": 8155,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "French",
+   "startMs": 8155,
+   "endMs": 8715,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "or",
+   "startMs": 8715,
+   "endMs": 8935,
+   "line": 4,
+   "lastInLine": false
+  },
+  {
+   "text": "Arabizi.",
+   "startMs": 8935,
+   "endMs": 9675,
+   "line": 4,
+   "lastInLine": true
+  },
+  {
+   "text": "Check",
+   "startMs": 9949,
+   "endMs": 10189,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "your",
+   "startMs": 10189,
+   "endMs": 10309,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "basket,",
+   "startMs": 10309,
+   "endMs": 10959,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "then",
+   "startMs": 11169,
+   "endMs": 11409,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "confirm",
+   "startMs": 11409,
+   "endMs": 11899,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "it",
+   "startMs": 11899,
+   "endMs": 12019,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "right",
+   "startMs": 12019,
+   "endMs": 12429,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 12429,
+   "endMs": 12569,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 12569,
+   "endMs": 12649,
+   "line": 5,
+   "lastInLine": false
+  },
+  {
+   "text": "chat.",
+   "startMs": 12649,
+   "endMs": 13169,
+   "line": 5,
+   "lastInLine": true
+  },
+  {
+   "text": "Pay",
+   "startMs": 13438,
+   "endMs": 13858,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "and",
+   "startMs": 13858,
+   "endMs": 14008,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "track",
+   "startMs": 14008,
+   "endMs": 14338,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "your",
+   "startMs": 14338,
+   "endMs": 14468,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 14468,
+   "endMs": 14838,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 15088,
+   "endMs": 15188,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "the",
+   "startMs": 15188,
+   "endMs": 15258,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "same",
+   "startMs": 15258,
+   "endMs": 15628,
+   "line": 6,
+   "lastInLine": false
+  },
+  {
+   "text": "thread.",
+   "startMs": 15628,
+   "endMs": 16168,
+   "line": 6,
+   "lastInLine": true
+  },
+  {
+   "text": "Living",
+   "startMs": 16442,
+   "endMs": 16762,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "abroad?",
+   "startMs": 16762,
+   "endMs": 17342,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "Send",
+   "startMs": 17552,
+   "endMs": 17832,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "Home",
+   "startMs": 17832,
+   "endMs": 18242,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "lets",
+   "startMs": 18242,
+   "endMs": 18532,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "you",
+   "startMs": 18532,
+   "endMs": 18682,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "order",
+   "startMs": 18682,
+   "endMs": 18972,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "for",
+   "startMs": 18972,
+   "endMs": 19122,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "family",
+   "startMs": 19122,
+   "endMs": 19752,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "in",
+   "startMs": 19872,
+   "endMs": 20002,
+   "line": 7,
+   "lastInLine": false
+  },
+  {
+   "text": "Lebanon.",
+   "startMs": 20002,
+   "endMs": 20592,
+   "line": 7,
+   "lastInLine": true
+  },
+  {
+   "text": "Alo",
+   "startMs": 20867,
+   "endMs": 21187,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "King.",
+   "startMs": 21187,
+   "endMs": 21697,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "Order",
+   "startMs": 21857,
+   "endMs": 22227,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "on",
+   "startMs": 22227,
+   "endMs": 22367,
+   "line": 8,
+   "lastInLine": false
+  },
+  {
+   "text": "WhatsApp.",
+   "startMs": 22367,
+   "endMs": 23087,
+   "line": 8,
+   "lastInLine": true
+  }
+ ],
+ "scenes": [
+  {
+   "id": "hook-a",
+   "line": 0,
+   "from": 0,
+   "to": 17
+  },
+  {
+   "id": "hook-b",
+   "line": 0,
+   "from": 17,
+   "to": 57
+  },
+  {
+   "id": "type",
+   "line": 1,
+   "from": 57,
+   "to": 98
+  },
+  {
+   "id": "voice",
+   "line": 2,
+   "from": 98,
+   "to": 144
+  },
+  {
+   "id": "tap",
+   "line": 3,
+   "from": 144,
+   "to": 202
+  },
+  {
+   "id": "languages",
+   "line": 4,
+   "from": 202,
+   "to": 295
+  },
+  {
+   "id": "basket",
+   "line": 5,
+   "from": 295,
+   "to": 331
+  },
+  {
+   "id": "confirm",
+   "line": 5,
+   "from": 331,
+   "to": 400
+  },
+  {
+   "id": "paytrack",
+   "line": 6,
+   "from": 400,
+   "to": 490
+  },
+  {
+   "id": "abroad",
+   "line": 7,
+   "from": 490,
+   "to": 523
+  },
+  {
+   "id": "sendhome",
+   "line": 7,
+   "from": 523,
+   "to": 622
+  },
+  {
+   "id": "cta",
+   "line": 8,
+   "from": 622,
+   "to": 750
+  }
+ ]
+}

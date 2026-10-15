@@ -1,0 +1,6 @@
+# Intermediates are rebuilt by the pipeline; only the final MP4s are committed.
+out/*/*.wav
+out/*/silent.mp4
+out/*/stems/
+remotion/out/
+__pycache__/
