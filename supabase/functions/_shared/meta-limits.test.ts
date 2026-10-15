@@ -134,6 +134,7 @@ describe("merchant-cards: every builder passes the checker", () => {
     it(`builds valid cards in ${lang}`, () => {
       const built: any[] = [
         cards.orderCard("+96171000001", order, lang),
+        cards.orderCard("+96171000001", { ...order, demo: true }, lang),
         cards.rejectReasonList("+96171000001", U, "AB3CD9", lang),
         cards.readyCheckCard("+96171000001", U, "AB3CD9", lang),
         cards.needDriverCard("+96171000001", U, "AB3CD9", lang),
@@ -153,6 +154,13 @@ describe("merchant-cards: every builder passes the checker", () => {
       "$148.50 = 13,290,750 LBP (rate 89,500, locked at order)",
     );
     expect(JSON.stringify(p.interactive)).not.toMatch(/\+?9617\d{6}/);
+  });
+  it("a demo shop's order card says Demo first, in both languages (DECISIONS §39.12)", () => {
+    const en: any = cards.orderCard("+96171000001", { ...order, demo: true }, "en");
+    const ar: any = cards.orderCard("+96171000001", { ...order, demo: true }, "ar");
+    expect(en.interactive.body.text.split("\n")[0]).toBe("🧪 Demo order: the real shop is never told");
+    expect(ar.interactive.body.text.split("\n")[0]).toContain("Demo");
+    expect((cards.orderCard("+96171000001", order, "en") as any).interactive.body.text).not.toContain("Demo");
   });
   it("button ids round-trip through parseMerchantAction", () => {
     const p: any = cards.orderCard("+96171000001", order, "ar");

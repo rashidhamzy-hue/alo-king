@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { normalizeShouf, parseCsv } from "./shouf.ts";
-import { choiceOf, ownerDrafts, ownerDuplicates } from "./shouf-menus.ts";
+import { choiceOf, ownerDrafts, ownerDuplicates, ownerPhones } from "./shouf-menus.ts";
 
 // DECISIONS §39.4 source 1: the owner's transcribed menu photos and the Nayeh w Meshwiyeh merge.
 const SRC = "supabase/seed/shouf/source";
@@ -87,5 +87,31 @@ describe("one shop listed twice (§39.4)", () => {
       name: "نية و مشوية",
       reason: "duplicate of ChIJX_XVOO0hHxURJO_Dq1Kl-Lo",
     });
+  });
+});
+
+describe("a phone printed on the menu (phone_from_menu)", () => {
+  const rows = parseCsv(readFileSync(`${SRC}/01_shouf_merchants_315.csv`, "utf8"));
+  const eatout = "ChIJSVk-bgAhHxURr-4t76SU8nA";
+  it("fills Eatout, which the merchant file lists without a phone, as a mobile WhatsApp candidate", () => {
+    const phones = ownerPhones(owner);
+    expect(phones.get(eatout)).toBe("+96176904875");
+    const { vendors } = normalizeShouf(rows, ownerDuplicates(owner), phones);
+    expect(vendors.find((v) => v.place_id === eatout)).toMatchObject({
+      phone_seed: "+96176904875",
+      phone_seed_mobile: true,
+      import_labels: expect.objectContaining({ phone_source: "menu photo" }),
+    });
+  });
+  it("never replaces a number the merchant file has", () => {
+    const withPhone = rows.find((r) => (r.phone_e164 ?? "").trim())!;
+    const { vendors } = normalizeShouf(
+      rows,
+      new Map(),
+      new Map([[withPhone.place_id, "+96176000000"]]),
+    );
+    const v = vendors.find((x) => x.place_id === withPhone.place_id)!;
+    expect(v.phone_seed).not.toBe("+96176000000");
+    expect(v.import_labels.phone_source).toBeUndefined();
   });
 });

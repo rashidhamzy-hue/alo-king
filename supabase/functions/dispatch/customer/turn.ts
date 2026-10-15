@@ -607,6 +607,7 @@ async function catalogText(c: Ctx, raw: string, qtyArg: number | null) {
           p_business_type: null,
           p_cuisine: null,
           p_limit: 3,
+          p_customer_id: c.customerId,
         })) ?? [])
       : [];
   if (named.some((x) => x.matched === "name")) return searchVendors(c, q, null);
@@ -1782,6 +1783,7 @@ async function deliveringPlaces(
       p_business_type: businessType,
       p_cuisine: null,
       p_limit: 10,
+      p_customer_id: c.customerId,
     })) ?? [];
   // Right after the pin (§34 step 3): only places whose road route reaches the pin, before any basket exists.
   const found = rows.length;
@@ -1823,7 +1825,12 @@ async function pickupPlaces(c: Ctx) {
     return push(c, askPin(c.m.from, c.s.lang));
   }
   const rows: any[] =
-    (await c.deps.rpc("vendor_search_pickup", { p_lat: pt.lat, p_lon: pt.lon, p_limit: 10 })) ?? [];
+    (await c.deps.rpc("vendor_search_pickup", {
+      p_lat: pt.lat,
+      p_lon: pt.lon,
+      p_limit: 10,
+      p_customer_id: c.customerId,
+    })) ?? [];
   if (!rows.length) return push(c, text(c.m.from, tr(c.s.lang, "noPickup")));
   c.s.fulfil = "pickup";
   resetRefs(c, "v");

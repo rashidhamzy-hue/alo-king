@@ -446,7 +446,15 @@ const catalogApi: CatalogApi = {
   },
   productSet: async (catalogId, transport, body) => {
     const r = await catalogPost(transport, `/${encodeURIComponent(catalogId)}/product_sets`, body);
-    return r.ok && /^[0-9]{5,30}$/.test(String(r.body?.id ?? "")) ? String(r.body.id) : null;
+    if (r.ok && /^[0-9]{5,30}$/.test(String(r.body?.id ?? ""))) return String(r.body.id);
+    // Meta's reason, never headers or tokens (the first sync on staging was refused without a word).
+    const e = r.body?.error ?? r.body;
+    log("catalogue product set refused", {
+      status: r.status ?? 0,
+      error: String(e?.error_user_msg ?? e?.message ?? JSON.stringify(e ?? {})).slice(0, 200),
+      code: String(e?.code ?? ""),
+    });
+    return null;
   },
   imageUrl: (itemId, hash) =>
     `${supabaseUrl}/functions/v1/dispatch?route=catalog-image&i=${encodeURIComponent(itemId)}&v=${encodeURIComponent(hash)}`,
@@ -465,13 +473,16 @@ async function catalogImage(url: URL): Promise<Response> {
   if (!d) return new Response("not found", { status: 404 });
   const v = url.searchParams.get("v") ?? "";
   if (String(d.hash ?? "") !== v) {
+    // Only a well-formed content hash is worth checking against the shop's desired catalogue (#183 review).
+    if (!/^[0-9a-f]{8}$/.test(v)) return new Response("not found", { status: 404 });
     const desired: DesiredProduct[] =
       (await rpc("catalog_desired", { p_vendor_id: d.vendor_id }).catch(() => [])) ?? [];
     const p = desired.find((x) => x.retailer_id === id);
     if (!p || productHash(p) !== v) return new Response("not found", { status: 404 });
   }
   if (typeof d.photo === "string" && d.photo) {
-    const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/vendor-photos/${d.photo}`, {
+    // The item's own photo (menu_item_photos, DECISIONS §39.12): never a shop or Google place photo.
+    const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/menu-item-photos/${d.photo}`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${serviceKey}`,

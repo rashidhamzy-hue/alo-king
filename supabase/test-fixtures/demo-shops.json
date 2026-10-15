@@ -1,0 +1,7 @@
+{
+  "note": "STAGING ONLY (DECISIONS §39.12, demo mode). Every real Shouf shop with a priced draft menu is a demo shop on staging (supabase/test-fixtures/demo-shops.sql); the shops listed here use their full harvested menu (supabase/seed/shouf/harvest/05_harvested_menus.json) instead of the short curated draft. Never loaded on production; the cut-over checks that config demo_shops is empty there.",
+  "full_harvested_menu": [
+    { "place_id": "ChIJC0o5QwAhHxURQ2vfz100X0A", "name": "Deli Dough" },
+    { "place_id": "ChIJxwVVYgQgHxURSGfCRviM0eU", "name": "J.O'S House of Subs" }
+  ]
+}
