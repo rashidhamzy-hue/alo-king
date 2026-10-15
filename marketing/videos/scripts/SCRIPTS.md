@@ -59,4 +59,5 @@ the ink "counter" panel where the work happens (`src/design/README.md`).
 - Paid customer ads wait for the §1 gate: 15 merchants live plus 14 days of the four reliability numbers. Video 1 is ready
   for that day. Organic posting is the owner's call.
 - Send Home (video 1, scene 8) switches on when Tap approves the SARL and the lawyer's letter covers collection (§22.6).
-  Until then, either hold video 1 or post the cut without scene 8 (`npm run render:v1-nosendhome` builds that cut).
+  Until then, hold video 1. A cut without scene 8 was not built: it needs the `sendhome` line removed from `video1.json`,
+  its cues removed from `cues.json` and its scene removed from `V1Customers.tsx`, then the pipeline re-run (README, "Rebuild").
