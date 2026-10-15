@@ -107,8 +107,8 @@ select tests.ok(public.flow_open('menu_section', 'en', '+96171000002', null, :'c
 select public.flow_open('menu_section', 'en', '+96171000001', null, :'owner_a', jsonb_build_object('draft_id', :'did', 'index', 0)) as fm \gset
 select tests.ok(:'fm'::jsonb #> '{data,all_items}' = '["i1", "i2", "i3"]' and :'fm'::jsonb #>> '{data,items,0,description}' = 'USD 4.5',
   'every item ticked to start, with its price exactly as read');
-select public.flow_submit('+96171000001', :'fm'::jsonb ->> 'token', jsonb_build_object('draft_id', :'did', 'keep', jsonb_build_array('i1', 'i2', 'i7'))) as sm \gset
-select tests.ok((:'sm'::jsonb ->> 'left_out')::int = 1, 'one left out (a key it never offered is ignored)');
+select public.flow_submit('+96171000001', :'fm'::jsonb ->> 'token', jsonb_build_object('draft_id', :'did', 'keep', jsonb_build_array('i1', 'i2', 'i2', 'i7'))) as sm \gset
+select tests.ok((:'sm'::jsonb ->> 'left_out')::int = 1, 'one left out (a key it never offered, or sent twice, is ignored)');
 reset role;
 select tests.ok((select count(*) from public.menu_items where vendor_id = '20000000-0000-0000-0000-00000000000a' and name_en in ('Shish taouk', 'Kafta')) = 2
   and not exists (select 1 from public.menu_items where vendor_id = '20000000-0000-0000-0000-00000000000a' and name_en = 'Not ours'),

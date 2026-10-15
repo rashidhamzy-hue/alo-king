@@ -9,7 +9,7 @@
           "basket_id": "b1b2c3d4-0000-0000-0000-000000000001",
           "vendor": "Alo Test Grill",
           "lines": "2 × Shish taouk  $9.00\n1 × Fries  $2.50",
-          "total": "$13.50 = 1,208,250 LBP",
+          "total": "Items: $11.50 = 1,035,000 LBP",
           "fulfilment_options": [
             {
               "id": "delivery",
@@ -80,7 +80,7 @@
           "basket_id": "b1b2c3d4-0000-0000-0000-000000000001",
           "vendor": "Alo Test Grill",
           "lines": "2 × Shish taouk  $9.00\n1 × Fries  $2.50",
-          "total": "$13.50 = 1,208,250 LBP",
+          "total": "Items: $11.50 = 1,035,000 LBP",
           "fulfilment_options": [
             {
               "id": "delivery",

@@ -103,6 +103,9 @@ begin
     if v_v.pickup_enabled then
       v_opts := v_opts || jsonb_build_array(jsonb_build_object('id', 'pickup', 'title', case when v_lang = 'ar' then 'استلام من المحل' else 'Pickup at the shop' end));
     end if;
+    if jsonb_array_length(v_opts) = 0 then
+      return jsonb_build_object('status', 'not_ready', 'reason', 'no_fulfilment');
+    end if;
     insert into public.flow_sends (token, flow, lang, phone_e164, customer_id, vendor_id, context)
     values (v_token, p_flow, v_lang, p_phone, p_customer_id, v_v.id,
       jsonb_build_object('basket_id', v_b.id, 'fulfilments', (select jsonb_agg(x ->> 'id') from jsonb_array_elements(v_opts) x),
@@ -242,7 +245,7 @@ begin
     end if;
   else
     -- menu_section: the kept items by their short keys; at least one; prices untouched.
-    v_keep := array(select substr(x, 2)::int from jsonb_array_elements_text(
+    v_keep := array(select distinct substr(x, 2)::int from jsonb_array_elements_text(
       case when jsonb_typeof(p_payload -> 'keep') = 'array' then p_payload -> 'keep' else '[]' end) x
       where x ~ '^i[0-9]{1,2}$' and substr(x, 2)::int between 1 and (v_s.context ->> 'count')::int);
     if (p_payload ->> 'draft_id') is distinct from (v_s.context ->> 'draft_id') or cardinality(v_keep) = 0 then

@@ -366,6 +366,8 @@ describe("Flow, product list and branch picker builders pass the checker", () =>
       "item_options",
       "merchant_claim",
       "merchant_hours",
+      "checkout",
+      "menu_section",
     ] as const)
       for (const lang of ["ar", "en"] as const)
         expect(
