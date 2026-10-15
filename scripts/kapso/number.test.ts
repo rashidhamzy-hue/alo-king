@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { missingTemplates, productionNumbers, syncRows } from "./number";
+import {
+  classifySubmitError,
+  missingTemplates,
+  productionNumbers,
+  statusReport,
+  syncRows,
+  tierLimit,
+} from "./number";
 import { TEMPLATES } from "../../supabase/functions/_shared/whatsapp-templates";
 
 describe("kapso-number (DECISIONS §39.8)", () => {
@@ -21,6 +28,7 @@ describe("kapso-number (DECISIONS §39.8)", () => {
         business_account_id: "9001",
         kind: "production",
         display_phone_number: "+15550001111",
+        messaging_tier: null,
       },
     ]);
   });
@@ -69,5 +77,60 @@ describe("kapso-number (DECISIONS §39.8)", () => {
         reason: null,
       },
     ]);
+  });
+  it("an authentication template on a number below the 2K tier is blocked, any other refusal fails the run", () => {
+    const auth = {
+      code: 10,
+      error_subcode: 2388185,
+      message: "Application does not have permission for this action",
+    };
+    expect(tierLimit("TIER_250")).toBe(250);
+    expect(tierLimit("TIER_2K")).toBe(2000);
+    expect(tierLimit("TIER_UNLIMITED")).toBe(Infinity);
+    expect(classifySubmitError("AUTHENTICATION", auth, "TIER_250").kind).toBe("blocked");
+    expect(classifySubmitError("AUTHENTICATION", auth, "TIER_10K").kind).toBe("refused");
+    expect(classifySubmitError("UTILITY", auth, "TIER_250").kind).toBe("refused");
+    const emoji = {
+      code: 100,
+      error_subcode: 2388060,
+      error_user_msg: "Buttons can't have any variables, newlines, emoji",
+    };
+    expect(classifySubmitError("UTILITY", emoji, "TIER_250")).toEqual({
+      kind: "refused",
+      reason: "Buttons can't have any variables, newlines, emoji",
+    });
+  });
+  it("reports every registry version: Meta's status, or blocked, refused or missing", () => {
+    const rows = [
+      {
+        name: "alo_order_confirmed",
+        language: "ar",
+        category: "UTILITY",
+        status: "approved",
+        reason: null,
+      },
+      {
+        name: "alo_staff_welcome",
+        language: "en",
+        category: "MARKETING",
+        status: "pending",
+        reason: null,
+      },
+    ];
+    const r = statusReport(
+      rows,
+      new Map([["alo_claim_code/ar", "tier"]]),
+      new Map([["alo_order_delivered/en", "emoji"]]),
+    );
+    expect(r).toHaveLength(TEMPLATES.length * 3);
+    const at = (n: string, l: string) => r.find((x) => x.name === n && x.language === l)!;
+    expect(at("alo_order_confirmed", "ar").status).toBe("approved");
+    expect(at("alo_staff_welcome", "en")).toMatchObject({
+      ours: "UTILITY",
+      meta_category: "MARKETING",
+    });
+    expect(at("alo_claim_code", "ar")).toMatchObject({ status: "blocked", note: "tier" });
+    expect(at("alo_order_delivered", "en")).toMatchObject({ status: "refused", note: "emoji" });
+    expect(at("alo_order_on_the_way", "fr").status).toBe("missing");
   });
 });

@@ -93,9 +93,9 @@ export const TEMPLATES: TemplateDef[] = [
     },
     footer: FOOTER,
     buttons: {
-      ar: ["ممتاز ⭐⭐⭐⭐⭐", "مقبول ⭐⭐⭐", "في مشكلة"],
-      en: ["Great ⭐⭐⭐⭐⭐", "OK ⭐⭐⭐", "A problem"],
-      fr: ["Excellent ⭐⭐⭐⭐⭐", "Correct ⭐⭐⭐", "Un problème"],
+      ar: ["ممتاز", "مقبول", "في مشكلة"],
+      en: ["Great", "OK", "A problem"],
+      fr: ["Excellent", "Correct", "Un problème"],
     },
     example: { code: "4821", vendor: "Alo Test Grill" },
   },
@@ -112,9 +112,9 @@ export const TEMPLATES: TemplateDef[] = [
     },
     footer: FOOTER,
     buttons: {
-      ar: ["✅ موافق، بدفع", "لا شكراً"],
-      en: ["✅ Accept, I'll pay", "No thanks"],
-      fr: ["✅ J'accepte, je paie", "Non merci"],
+      ar: ["موافق، بدفع", "لا شكراً"],
+      en: ["Accept, I'll pay", "No thanks"],
+      fr: ["J'accepte, je paie", "Non merci"],
     },
     example: { sender: "Rami", vendor: "Alo Test Grill", total: "$18.00 / 1,611,000 LBP" },
   },
@@ -180,9 +180,9 @@ export const TEMPLATES: TemplateDef[] = [
     },
     footer: FOOTER,
     buttons: {
-      ar: ["✅ قبول ١٥ د", "✅ قبول ٣٠ د", "❌ رفض"],
-      en: ["✅ Accept 15 min", "✅ Accept 30 min", "❌ Reject"],
-      fr: ["✅ Accepter 15 min", "✅ Accepter 30 min", "❌ Refuser"],
+      ar: ["قبول ١٥ د", "قبول ٣٠ د", "رفض"],
+      en: ["Accept 15 min", "Accept 30 min", "Reject"],
+      fr: ["Accepter 15 min", "Accepter 30 min", "Refuser"],
     },
     example: { code: "4821", items: "2 × Shish taouk, 1 × Fries", total: "$14.00" },
   },
@@ -198,7 +198,7 @@ export const TEMPLATES: TemplateDef[] = [
       fr: "Une suggestion d'Alo King pour {{1}} : {{2}} Rien ne change sans votre Oui.",
     },
     footer: FOOTER,
-    buttons: { ar: ["✅ نعم", "لا"], en: ["✅ Yes", "No"], fr: ["✅ Oui", "Non"] },
+    buttons: { ar: ["نعم", "لا"], en: ["Yes", "No"], fr: ["Oui", "Non"] },
     example: {
       shop: "Alo Test Grill",
       suggestion: "mark Knefe sold out after 9 pm, as on most days?",
@@ -418,6 +418,11 @@ export function metaTemplateCreate(def: TemplateDef, lang: TemplateLang): Record
   return { name: def.name, language: lang, category: def.category, components };
 }
 
+/** What Meta refuses in a quick-reply button: emoji and pictographs (with their joiners and variation selectors),
+ *  flags, keycaps, a {{variable}} and line breaks. */
+export const BUTTON_FORBIDDEN =
+  /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u{FE0F}|\u{200D}|\u{20E3}|\{\{|\}\}|[\r\n]/u;
+
 /** Every way a template breaks Meta's rules (empty array = fine). */
 export function checkTemplate(def: TemplateDef): string[] {
   const v: string[] = [];
@@ -456,8 +461,12 @@ export function checkTemplate(def: TemplateDef): string[] {
     const bs = def.buttons?.[lang] ?? [];
     if (bs.length > 3) v.push(`${def.name}/${lang}: ${bs.length} buttons > 3`);
     if (new Set(bs).size !== bs.length) v.push(`${def.name}/${lang}: duplicate button`);
-    for (const t of bs)
+    for (const t of bs) {
       if (!t.trim() || len(t) > 25) v.push(`${def.name}/${lang}: button "${t}" (${len(t)} > 25)`);
+      // Meta refuses the whole template (error 2388060, 15 October): "Buttons can't have any variables, newlines, emoji".
+      if (BUTTON_FORBIDDEN.test(t))
+        v.push(`${def.name}/${lang}: button "${t}" has an emoji, a variable or a newline`);
+    }
     if ((def.buttons?.ar?.length ?? 0) !== bs.length)
       v.push(`${def.name}/${lang}: button count differs from ar`);
   }
