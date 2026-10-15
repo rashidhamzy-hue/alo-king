@@ -10,7 +10,7 @@ steps:
       - sql: >
           select v.id as shop, extensions.st_y(v.location::extensions.geometry) as lat,
                  extensions.st_x(v.location::extensions.geometry) as lon,
-                 coalesce(s.name_en, s.name_ar) as section, coalesce(i.name_en, i.name_ar) as item, i.price_usd
+                 left(coalesce(s.name_en, s.name_ar), 12) as section, left(coalesce(i.name_en, i.name_ar), 12) as item, i.price_usd
           from public.vendors v join public.menu_sections s on s.vendor_id = v.id join public.menu_items i on i.section_id = s.id
           where v.place_id = 'ChIJhaAhhQMgHxURbFIi9R14X1I' and app_private.vendor_is_demo(v.id) and v.orderable
             and app_private.menu_item_orderable(i.id, 1)
