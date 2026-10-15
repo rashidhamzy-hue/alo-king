@@ -27,11 +27,11 @@ steps:
       - { to: cust, buttons: ["pv:", "Alo Test Market"] }
     db:
       - sql: >
-          select count(*) as real_listed
-          from public.customers c, public.vendor_search(null, 33.6802, 35.5708, null, null, 10, c.id) s
-          join public.vendors v on v.id = s.vendor_id
-          where c.phone_e164 = '{{cust.phone}}' and not v.is_test
-        row: { real_listed: 0 }
+          select (select count(*) from public.customers where phone_e164 = '{{cust.phone}}') as customers,
+                 (select count(*) from public.customers c, public.vendor_search(null, 33.6802, 35.5708, null, null, 10, c.id) s
+                    join public.vendors v on v.id = s.vendor_id
+                  where c.phone_e164 = '{{cust.phone}}' and not v.is_test) as real_listed
+        row: { customers: 1, real_listed: 0 }
   - tap: { as: cust, title: "Alo Test Market" }
     expect: [{ to: cust, buttons: ["ps:", "Water"] }]
   - tap: { as: cust, title: "Water" }
