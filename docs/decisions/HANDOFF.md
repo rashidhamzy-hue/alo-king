@@ -234,7 +234,7 @@
     - One search index (`catalog_search`) across every orderable menu and catalogue in the customer's delivery area, with the dictionary `search_lexicon` (Arabizi, French, English and brand words, attributes such as spicy or cheap). Typed text that the rules read ("2 man2oushe kishk", "Pepsi diet 2") goes to it without a model; unclaimed shops are never in results and asking for one gets "Not on Alo King yet" (§39.3).
     - Memory by phone number: name, language, saved addresses, last and usual order, dietary preferences only from what the customer says or orders; an allergy only after a consent tap (unconsented health notes were deleted by the migration). "What do you remember about me?" lists it with a one-tap delete per part, audited; no marketing function can read it (SQL test).
     - The address is confirmed on every order (a pin sent in the last 30 minutes counts); a new address asks once "for you or someone else?" (§22.1, never the country code).
-    - Send Home: a gift order is placed only when the recipient taps "Accept and pay on delivery", for exactly the basket they were shown (fingerprint of lines, total, LBP rate, address, recipient); at most 3 requests a day per sender and number; STOP blocks gift messages.
+    - Send Home: a gift order is placed only when the recipient taps "✅ Accept, I'll pay" (cash on delivery), for exactly the basket they were shown (fingerprint of lines, total, LBP rate, address, recipient); at most 3 requests a day per sender and number; STOP blocks gift messages.
     - Problems: deterministic rules (§38.3). Missing or wrong item (how many?), cold food (against the route time), late (against the promised prep time) are credited automatically up to $8 with a low dispute rate, a person decides between $8 and $20, Rasheed above $20; every credit is a balanced ledger transaction, used on the next order, reversed if it expires. Damaged and other go to a person with a handover.
     - The §38.3 rows: message budget 8 (cap 12) with the delivered message carrying the rating; scope and medicine refusal by rule; outbox pacing (60/s, 6 s per person); dead-letter queue with an operator replay; 2-tap greeting; sesame/toum hints and the shared-kitchen disclaimer (WhatsApp and website); stairs rule from config; 180 s auto-cancel with alternatives; Haiku 5.5 as the eval candidate.
   - **Merchant copilot with buttons only (on now):** availability by station, section or item with automatic restore ("fryer off 15 min"), stock that carries over, add/rename/describe/remove items, prices, offers (percent, happy hour, first order, free item; merchant-funded, priced by the server, commission after the offer), hours and closure days, minimum order, own-delivery radius, Boost budgets (recorded, never charged before the ad system), staff list, daily and weekly reports, merchant memory and suggestions (cards to the owner inside the 24-hour window), menu import from a link beside photo, PDF and text. Every change is a proposal card applied only by a member's tap.
@@ -266,14 +266,14 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 
 0. **Test the ordering path now (no API credit needed):** send `Order` to the sandbox number from your phone; see the steps in the session T reply and in issue #112. Optional: add the GitHub secret `OWNER_TEST_PHONE` (see the owner issue) if you want to be sure which number may switch sides.
 1. **Anthropic API credit (#167, about $50 with a monthly limit):** the agents' evals (customer text, voice, merchant) and the menu-photo harvest wait for it; each passing eval is then switched on by a PR.
-1. **Deepgram:** add the GitHub secret `DEEPGRAM_API_KEY` (§38.6); check-setup then proves it.
-2. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
-2. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
-3. **SARL** (about 17 October). The same week:
+2. **Deepgram:** add the GitHub secret `DEEPGRAM_API_KEY` (§38.6); check-setup then proves it.
+3. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
+4. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
+5. **SARL** (about 17 October). The same week:
    - open a fresh-USD bank account
    - open Alo King's Whish business account
    - apply to Tap (Claude prepares the text, §22.5) (#70, #71)
-4. **Lawyer:** one letter covering §20.1 (collection model, BdL Decision 13790), the merchant credit in §20.3, and §21.6 (drivers) (#72).
-5. **Lines:** Alfa or touch postpaid lines; Meta business portfolio in the company name, with all three owners as admins (#73).
-6. **Domain:** buy `aloking.com`, then the browser Google key, Search Console, Bing Webmaster and a Google Business Profile (§24.5) (#74).
-7. **Before launch:** set Google Cloud spending limits (§19).
+6. **Lawyer:** one letter covering §20.1 (collection model, BdL Decision 13790), the merchant credit in §20.3, and §21.6 (drivers) (#72).
+7. **Lines:** Alfa or touch postpaid lines; Meta business portfolio in the company name, with all three owners as admins (#73).
+8. **Domain:** buy `aloking.com`, then the browser Google key, Search Console, Bing Webmaster and a Google Business Profile (§24.5) (#74).
+9. **Before launch:** set Google Cloud spending limits (§19).
