@@ -56,15 +56,24 @@ def check(vid: str) -> dict:
     lv = measure(path)
 
     audio = audio16k(path)
-    offsets, errs, n = [], 0, 0
+    offsets, errs, n, unaligned = [], 0, 0, []
     for i, line in enumerate(tl["lines"]):
-        s0 = max(0, int((line["startMs"] / 1000 - 0.25) * 16000))
-        s1 = int((line["endMs"] / 1000 + 0.25) * 16000)
-        seg = audio[s0:s1]
-        al = sc.align(seg, 16000, line["text"])
-        words = [w for w in tl["words"] if w["line"] == i]
-        for w, m in zip(words, al):
-            offsets.append(abs((s0 / 16000 + m["start"]) * 1000 - w["startMs"]))
+        al = None
+        for pad in (0.25, 0.4, 0.15, 0.6):  # the music can throw the aligner off; try a few windows
+            s0 = max(0, int((line["startMs"] / 1000 - pad) * 16000))
+            s1 = int((line["endMs"] / 1000 + pad) * 16000)
+            seg = audio[s0:s1]
+            try:
+                al = sc.align(seg, 16000, line["text"])
+                break
+            except (RuntimeError, TypeError):
+                continue
+        if al is None:
+            unaligned.append(line["text"])
+        else:
+            words = [w for w in tl["words"] if w["line"] == i]
+            for w, m in zip(words, al):
+                offsets.append(abs((s0 / 16000 + m["start"]) * 1000 - w["startMs"]))
         e, k = sc.wer(sc.norm_words(line["text"]), sc.recognize(seg, 16000))
         errs, n = errs + e, n + k
     offsets = np.array(offsets)
@@ -79,6 +88,7 @@ def check(vid: str) -> dict:
         "loudness_ok": abs(lv["integrated_lufs"] + 14) <= 0.5 and lv["true_peak_dbtp"] < -1.0,
         "caption_sync_ms": {"words": int(len(offsets)), "mean": round(float(offsets.mean()), 1), "p95": round(float(np.percentile(offsets, 95)), 1), "max": round(float(offsets.max()), 1)},
         "caption_sync_ok": float(np.percentile(offsets, 95)) <= 100,
+        "lines_not_aligned_on_final_mix": unaligned,
         "final_audio_wer": round(errs / n, 3),
         "hook": {"first_word_s": tl["words"][0]["startMs"] / 1000, "picture_change_0_to_1_5s": round(change, 3)},
         "hook_ok": tl["words"][0]["startMs"] <= 500 and change > 0.05,

@@ -44,12 +44,13 @@ const ChatList: React.FC = () => {
     ['Cousins', 'Photo', '8'],
   ];
   const hit = cue('hookWord');
+  const push = sp(frame, hit, SPRING.bouncy);
   return (
-    <div style={{position: 'absolute', left: 80, top: 650, width: 920, opacity: 1 - out, transform: `translateY(${out * 80}px)`}}>
+    <div style={{position: 'absolute', left: 80, top: 650, width: 920, opacity: 1 - out, transform: `translateY(${out * 80}px) scale(${1 + 0.05 * push})`, transformOrigin: '50% 0%'}}>
       <div style={{background: C.paper, borderRadius: 40, padding: '12px 0', boxShadow: '0 40px 90px -40px rgba(23,19,26,0.45)', border: `1px solid ${C.sand}`, overflow: 'hidden', fontFamily: T.latin}}>
         {frame >= hit ? <Row key="ak" frame={frame} at={hit} name="Alo King" text="New order from a customer" badge="1" gold /> : null}
         {rows.slice(0, frame >= hit ? 4 : 5).map(([n, t, b], i) => (
-          <Row key={n} frame={frame} at={i * 3 - 16} name={n} text={t} badge={b} />
+          <Row key={n} frame={frame} at={i * 3 - 6} name={n} text={t} badge={b} />
         ))}
       </div>
     </div>
@@ -348,7 +349,7 @@ export const V2Merchants: React.FC = () => {
   return (
     <AbsoluteFill style={{background: C.cream, overflow: 'hidden'}}>
       <Backdrop tone="day" />
-      <Kinetic words={[['Already', -6], ['on WhatsApp.', cue('hookWord') - 8]]} tone="day" size={118} x={80} y={330} width={920} exitAt={hook.to - 4} />
+      <Kinetic words={[['Already', -6], ['on WhatsApp.', cue('hookLive')]]} tone="day" size={118} x={80} y={330} width={920} exitAt={hook.to - 4} />
       <ChatList />
       <Phone3D pose={pose} tone="day" glow={enter}>
         <PhoneScreens />
