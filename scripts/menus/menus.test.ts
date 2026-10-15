@@ -633,7 +633,7 @@ describe("item cards with pictures (Rasheed's 8 menus)", () => {
     ]);
     expect(d.sections.map((s) => s.name_en)).toEqual(["Subs"]);
     const items = d.sections[0]!.items as { name_en?: string; image_url?: string }[];
-    expect(items.find((i) => i.name_en === "Classic Icon")?.image_url).toContain("Classic Icon");
+    expect(items.find((i) => i.name_en === "Classic Icon")?.image_url).toContain("Classic%20Icon");
     expect(items.find((i) => i.name_en === "Zinger")).not.toHaveProperty("image_url");
   });
 
@@ -771,6 +771,21 @@ describe("harvest diagnostics never carry contact details or keys", () => {
     );
     expect(t).not.toMatch(/123 456|71123456|a\.b@|SECRET|A1b2C3d4/);
     expect(redact("$7.5 and 150,000 L.L.")).toBe("$7.5 and 150,000 L.L.");
+    for (const phone of [
+      "https://wa.me/3509666",
+      "03.509.666",
+      "03/509666",
+      "(03) 509666",
+      "tel:03/509666",
+      "+961 3 509 666",
+      "api.whatsapp.com/send/?phone=9613509666",
+    ])
+      expect(redact(phone), phone).not.toMatch(/509\D?666/);
+    expect(redact(redact("wa.me/3509666"))).toBe("wa.me/<phone>");
+  });
+  it("the committed diagnostics carry no phone number, chat link or contact", () => {
+    const t = readFileSync("supabase/seed/shouf/harvest/harvest-shapes.md", "utf8");
+    expect(t).not.toMatch(/wa\.me\/\d|tel:\d|phone=\d|\d{7,}|[\w.+-]+@[\w-]+\.[a-z]{2,}/i);
   });
   it("samples a menu item, follows child pages and lists page hints", () => {
     expect(
@@ -826,7 +841,12 @@ describe("the last pass over a harvested menu", () => {
     expect(httpsImage("https://rest.thrubits.com/uploads/restorants_icon/1.jpeg")).toBeNull();
     expect(httpsImage("/assets/west-diner-logo.png", "https://west-diner.pages.dev/")).toBeNull();
     expect(httpsImage("http://x.example/a.jpg")).toBeNull();
-    expect(httpsImage("/assets/classic-icon-burger.png", "https://w.dev/")).toBeNull();
+    expect(httpsImage("/assets/classic-icon.png", "https://w.dev/")).toBe(
+      "https://w.dev/assets/classic-icon.png",
+    );
+    expect(httpsImage("/icons/cart.svg", "https://w.dev/")).toBeNull();
+    expect(httpsImage("https://lh3.googleusercontent.com/p/AF1Q=s800")).toBeNull();
+    expect(httpsImage("https://maps.gstatic.com/x.png")).toBeNull();
     expect(httpsImage("/assets/classic.png", "https://w.dev/")).toBe(
       "https://w.dev/assets/classic.png",
     );

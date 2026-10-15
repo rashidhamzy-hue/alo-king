@@ -87,9 +87,21 @@ export function framedSvg(bytes: Uint8Array, type: string): string {
 }
 
 /** What one item needs: nothing (unchanged), its website image, or a drawing; with the origin hash that decides it. */
+// A Google-hosted picture is never an item photo (DECISIONS §38.1), whatever a draft carries.
+const GOOGLE_HOST =
+  /(^|\.)(googleusercontent\.com|ggpht\.com|gstatic\.com|googleapis\.com|google\.[a-z.]+|goo\.gl)$/i;
+const ownPicture = (url: string | null) => {
+  try {
+    return url && !GOOGLE_HOST.test(new URL(url).hostname) ? url : null;
+  } catch {
+    return null;
+  }
+};
+
 export function plan(
   item: TodoItem,
 ): { kind: "merchant_site" | "illustrative"; hash: string } | null {
+  item = { ...item, image_url: ownPicture(item.image_url) };
   const kind = item.image_url ? "merchant_site" : "illustrative";
   const hash =
     kind === "merchant_site"

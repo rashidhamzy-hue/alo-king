@@ -41,7 +41,7 @@
 ## Em Laure | إم لور (directory)
 
 - page 200 https://leb.guide/emlaure.25467/
-- json foreign https://www.googleadservices.com/pagead/conversion/11300758674/ unreadable
+- json foreign https://www.googleadservices.com/pagead/conversion/<phone>/ unreadable
 
 ## Mattuccino Restaurent (qr_order)
 
@@ -49,7 +49,7 @@
 
 ## أفران جبنة وزبدة Jebneh w Zebdeh bakery (html)
 
-- page 200 https://jebnehwzebdeh.github.io/jebneh-website/#follow
+- page 200 https://jebnehwzebdeh.github.io/jebneh-website/
 
 ## Al Kooz Cafe (html)
 
@@ -68,12 +68,12 @@
 - json foreign https://pixel-config.reddit.com/pixels/a2_hev74snde9r1/config {pixelEventConfigs:[{id:number,trackingType:string,triggers:[{id,triggerType,triggerSelectorType,triggerSelectorValue}],metadata:[{metadataType,metadataExtractorType,metadataFixedValue}]}],aam:{email:boolean},esc:{page_metadata:boolean}}
 - json foreign https://featureassets.org/v1/initialize {feature_gates:{*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type
 - json foreign https://featureassets.org/v1/initialize {feature_gates:{*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type,secondary_exposures},*:{name,value,rule_id,id_type
-- json foreign https://pixels.spotify.com/v1/config/741e5159b7b34061b37deb42544366d5 {pixelId:string,aamFields:[],cookieOptIn:boolean,autoCaptureFields:[],autoCaptureOptIn:boolean}
+- json foreign https://pixels.spotify.com/v1/config/741e5159b7b34061b37deb<phone>d5 {pixelId:string,aamFields:[],cookieOptIn:boolean,autoCaptureFields:[],autoCaptureOptIn:boolean}
 - json foreign https://pixels.spotify.com/v1/ingest {response:string}
-- json foreign https://sr-client-cfg.amplitude.com/config/99681b5b192c190d708c1e659ff741a7 {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
-- json foreign https://sr-client-cfg.amplitude.com/config/99681b5b192c190d708c1e659ff741a7 {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
-- json foreign https://sr-client-cfg.amplitude.com/config/99681b5b192c190d708c1e659ff741a7 {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
-- json foreign https://sr-client-cfg.amplitude.com/config/99681b5b192c190d708c1e659ff741a7 {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
+- json foreign https://sr-client-cfg.amplitude.com/config/<token> {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
+- json foreign https://sr-client-cfg.amplitude.com/config/<token> {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
+- json foreign https://sr-client-cfg.amplitude.com/config/<token> {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
+- json foreign https://sr-client-cfg.amplitude.com/config/<token> {configs:{diagnostics:{browserSDK},sessionReplay:{sr_interaction_config,sr_targeting_config,sr_privacy_config,sr_sampling_config},analyticsSDK:{}}}
 - json foreign https://api2.amplitude.com/2/httpapi {code:number,server_upload_time:number,payload_size_bytes:number,events_ingested:number}
 - json foreign https://api2.amplitude.com/2/httpapi {code:number,server_upload_time:number,payload_size_bytes:number,events_ingested:number}
 
@@ -108,14 +108,14 @@
 
 ## Sip N' Go (menutigr)
 
-- page TimeoutError: page.goto: Timeout 45000ms exceeded. Call log: - navigating to "ht https://menutigr.com/sip-n-go-444971104032605
+- page TimeoutError: page.goto: Timeout 45000ms exceeded. Call log: - navigating to "ht https://menutigr.com/sip-n-go-<phone>
 - json own https://alb.menutigr.com/api/customer-app/foods/featured {success:boolean,msg:string,data:[]}
 - json own https://alb.menutigr.com/api/carts {success:boolean,msg:string,data:{restaurantId:string,storeId:string,guestId:string,discounts:number,tax:number,customerTip:object,tip:number,subtotal:number,total:number,deliveryChargeAmount:number,_id:string,items:[]}}
 
 ## YMY (directory)
 
 - page 200 https://leb.directory/ymy.15244/
-- json foreign https://www.googleadservices.com/pagead/conversion/11300758674/ unreadable
+- json foreign https://www.googleadservices.com/pagead/conversion/<phone>/ unreadable
 
 ## J.O'S House of Subs, Inc. (html)
 
@@ -167,7 +167,7 @@
 
 - page 200 https://leb.directory/veronaresto.3208/
 - page 200 https://leb.directory/app/veronaresto.3208/
-- json foreign https://www.googleadservices.com/pagead/conversion/11300758674/ unreadable
+- json foreign https://www.googleadservices.com/pagead/conversion/<phone>/ unreadable
 - cards-0.json: 7 priced blocks, 1 with a picture, 1 headings
   - [Highlights] 5.0 / 29 reviews | https://leb.guide/imgs/stars/back.png
   - [Highlights] 5.0 | no picture
@@ -180,12 +180,12 @@
 - page-0.html 70 <img>; the first ones: /crm/ctc/profile/-3208-/img_5648~1074x1072.webp?width=250&amp;height=250&amp;ratio=center alt="Profile Picture Of Verona Resto
 " | /crm/ctc/covers/-3208-/img_5362~1741x1500.webp?width=800&amp;quality=90&amp;format=jpg alt="Cover Picture 1 Of Verona Resto
 " | /crm/ctc/images/-3208-/<token>.mp4?width=400&amp;height=400&amp;ratio=center&amp;quality=85&amp;format=jpg | /srv/prd/images/-12446-/img_6018~2000x1500.webp?width=400&amp;height=400&amp;ratio=center | /app/page/post/images/-13006-/img_3938~843x1500.webp?width=250&amp;height=500&amp;ratio=center | /app/page/post/images/-13007-/copy%20of%20menu.zip%20-%2016~970x1500.webp?width=250&amp;height=500&amp;ratio=c | /app/page/post/images/-13008-/copy%20of%20menu.zip%20-%2012~970x1500.webp?width=250&amp;height=500&amp;ratio=c | /app/page/post/images/-13009-/copy%20of%20menu.zip%20-%2018~970x1500.webp?width=250&amp;height=500&amp;ratio=c | /app/page/post/images/-13010-/copy%20of%20menu.zip%20-%2014~970x1500.webp?width=250&amp;height=500&amp;ratio=c | /app/page/post/images/-13011-/copy%20of%20menu.zip%20-%2011~970x1500.webp?width=250&amp;height=500&amp;ratio=c | /app/page/post/images/-13012-/copy%20of%20menu.zip%20-%2013~970x1500.webp?width=250&amp;height=500&amp;ratio=c | /app/page/post/images/-13013-/copy%20of%20menu.zip%20-%2015~970x1500.webp?width=250&amp;height=500&amp;ratio=c
-- page-0.html links: /app/usr/edit/ /app/usr/edit/page/3208/ https://tiktok.com/@verona.resto https://facebook.com/veronaresto1 https://instagram.com/verona.resto https://api.whatsapp.com/send/ /location/ /app/veronaresto.3208/ https://wa.me/<phone> https://www.google.com/maps/dir/ / https://idaw.net/
+- page-0.html links: /app/usr/edit/ /app/usr/edit/page/3208/ https://tiktok.com/@verona.resto https://facebook.com/veronaresto1 https://instagram.com/verona.resto https://api.whatsapp.com/send/<phone> /location/ /app/veronaresto.3208/ https://wa.me/<phone> https://www.google.com/maps/dir/ / https://idaw.net/
 - page-0.html 134 click handlers or data-target attributes
 - page-1.html 5 <img>; the first ones: /crm/ctc/profile/-3208-/img_5648~1074x1072.webp?width=70&amp;height=70&amp;ratio=crop | /crm/ctc/covers/-3208-/img_5362~1741x1500.webp?width=500&amp;height=280&amp;ratio=center |  |  | /crm/ctc/profile/-3208-/img_5648~1074x1072.webp alt="Profile Picture Of Verona Resto
 "
 - page-1.html menu-like links: /app/veronaresto.3208/shop/ "Menu / Shop Online"
-- page-1.html links: / /app/veronaresto.3208/ /veronaresto.3208/ https://tiktok.com/@verona.resto https://facebook.com/veronaresto1 https://instagram.com/verona.resto https://api.whatsapp.com/send/ /app/veronaresto.3208/location/ /app/veronaresto.3208/shop/ /app/veronaresto.3208/feedback/ https://idaw.net/
+- page-1.html links: / /app/veronaresto.3208/ /veronaresto.3208/ https://tiktok.com/@verona.resto https://facebook.com/veronaresto1 https://instagram.com/verona.resto https://api.whatsapp.com/send/<phone> /app/veronaresto.3208/location/ /app/veronaresto.3208/shop/ /app/veronaresto.3208/feedback/ https://idaw.net/
 - page-1.html 7 click handlers or data-target attributes
 - page-0.txt: 28 short lines with a number; the first ones:
   - 5.0
@@ -230,7 +230,7 @@
 - page-1.html 5 <img>; the first ones: /crm/ctc/profile/-3208-/img_5648~1074x1072.webp?width=70&amp;height=70&amp;ratio=crop | /crm/ctc/covers/-3208-/img_5362~1741x1500.webp?width=500&amp;height=280&amp;ratio=center |  |  | /crm/ctc/profile/-3208-/img_5648~1074x1072.webp alt="Profile Picture Of Verona Resto
 "
 - page-1.html menu-like links: /app/veronaresto.3208/shop/ "Menu / Shop Online"
-- page-1.html links: / /app/veronaresto.3208/ /veronaresto.3208/ https://tiktok.com/@verona.resto https://facebook.com/veronaresto1 https://instagram.com/verona.resto https://api.whatsapp.com/send/ /app/veronaresto.3208/location/ /app/veronaresto.3208/shop/ /app/veronaresto.3208/feedback/ https://idaw.net/
+- page-1.html links: / /app/veronaresto.3208/ /veronaresto.3208/ https://tiktok.com/@verona.resto https://facebook.com/veronaresto1 https://instagram.com/verona.resto https://api.whatsapp.com/send/<phone> /app/veronaresto.3208/location/ /app/veronaresto.3208/shop/ /app/veronaresto.3208/feedback/ https://idaw.net/
 - page-1.html 7 click handlers or data-target attributes
 - page-0.txt: 21 short lines with a number; the first ones:
   - 9 usd
@@ -302,7 +302,7 @@
 - json own https://www.foodbooking.com/api/translation/language_pack [{name:string,language_code:string,id:number,app:string,app_version:string,url:string}]
 - json foreign https://www.fbgcdn.com/api/translation/language_pack/118850 {DELIVERY:string,PICKUP:string,INCLUDED:string,RESERVATION:string,CLOSE:string,BACK:string,CANCEL:string,SUPPORTED_BY:string,SUPPORTED_BY_PROMO:string,MORE_INFO:string,READ_WHY:string,PICKER_LOCATION:string,PICKER_METHOD:string,PICKER_TIME:string,ORDER_ONLY_FOR_LATER:string,MENU_NO_ORDERING:string,MENU_NO_ORDERING_MORE:string,MENU_DEMO:string,MENU_CLOSED_OPENING:string,MENU_CLOSED_DELIVERY:string,MENU_CLOSED_PICKUP:string,MENU_CLOSED_ORDER_LATER:string,ITEM_NOT_AVAILABLE:string,INFO_DELIVERY_PICKUP:string,INFO_ONLY_PICKUP:string,INFO_ONLY_DELIVERY:string,INFO_NO_ORDERING:string,INFO_SHOW_LARGE:string,INFO_OPENING_HOURS:string,INFO_OPENING_HOURS_CLOSED:string}
 - json own https://www.foodbooking.com/api/cart/init {tracker:string,order:{client_address:object,instructions:string,coupons:[],client_address_parts:object,taxable_amount:number,tax_list:[],taxes_items:number,timeout_timer:boolean,tracker:string,missed_reason:object,payment_method_name:object,payment_provider_name:object,settings:{service_fees:{sales_tax:number},akamai_bot_detected:boolean,code_validation:{required:boolean}},billing_details:object,card_details:object,pos_hw_delivery_details:object,deliveryDistance:object,deliveryDuration:object,analyticsData:object,serviceFeesData:{sales_tax:number},paymentProvider:{},fulfillment_message_type:object,fulfillment_message:object,marketing_source:object,marketing_campaign:object,table_number:object,is_eligible_for_payment_link:boolean,stripe_payment_link:object,is_simphony_order:boolean,simphony_check_ref:object},errors:[{type:string,category:string,message:string}],menu_extra_details:[{extras:object,id:number,name:string,default:boolean,type:string}],restaurant:{sales_tax:number,pickup_payment:[string],delivery_payment:[string],preserve_payment:[string],dine_in_payment:[string],terms:{company_name:string,address:string,city:string,zip:string,country_code:string,state_code:object,phone:string,agree:boolean,company:object,tax:object,officer:object},allowed_languages:[],flags:[string],cookie_list_parsed:[],foodbooking_rejected:[{code:string,ok:boolean}],has_ordering:boolean,phones:string,settings:{menu_item_count:number,optional_phones:[],extended_address:[string],wants_first_promo:boolean,wants_promo_flyer:boolean,setup_completed_admin:boolean,custom_payment_methods:[],completed_screens_admin:[string],menu_item_picture_count:number,end_of_day_reported_date:string,delivery_outside_disabled:boolean,wants_import_cor:boolean,autopilot_language_confirm:boolean,autopilot_consent_status:string,privacy_guide_last_used:string},has_custom_printing:boolean,has_new_ota:boolean,hide_foodbooking_skip_map_pin:boolean,allow_billing_details:boolean,extended_address:[string],extended_address_mandatory:[],wants_dine_in_flyer:object,wants_first_promo:boolean,wants_promo_flyer:boolean,wants_order_ahead_flyer:object,wants_import_cor:boolean,menu_item_count:number,menu_item_picture_count:number,has_fulfillment_options:boolean,fulfillment_options:[],custom_payment_methods:[],autopilot_consent_status:string},scheduled_orders_intervals:{pickup:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}],delivery:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}],reservation:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}],preserve:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}],dine_in:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}]},gateway_transaction:object,client_device:object,items:[],promotions:{active:number,showcase:[],alternatives:{appliedList:[],exclusiveList:[],normalList:[]},incompatibilities:[],highlight:[],cart:{},autoAdded:[],simphonyAutoAdded:[],conditions:{},benefits:{},cartValue:number}}
-  - item sample .restaurant.menu.categories[0].items (12 of 12): {extras=null, id=16554794, menu_category_id=2784246, name="Mozzarella Bricks", description="4pcs mozzarella bricks (plain or dipped) served with any dip of your choice.", price=5, active=true, active_begin=null, active_end=null, active_days=0, sort=0, tags=null, hidden_until=null, tax_category_id=275254, hide_instructions=false, active_exact_from=null, active_exact_until=null, ingredients=null, additives=null, restaurant_menu_availabilities=[], sizes=[], groups=[{extras:object,id:number,menu_id:number,name:string,sort:number,required:boolean,force_min:number,force_max:number,allow_quantity:boolean,tax_category_id:numbe, is_out_of_stock=false}
+  - item sample .restaurant.menu.categories[0].items (12 of 12): {extras=null, id=<phone>, menu_category_id=<phone>, name="Mozzarella Bricks", description="4pcs mozzarella bricks (plain or dipped) served with any dip of your choice.", price=5, active=true, active_begin=null, active_end=null, active_days=0, sort=0, tags=null, hidden_until=null, tax_category_id=275254, hide_instructions=false, active_exact_from=null, active_exact_until=null, ingredients=null, additives=null, restaurant_menu_availabilities=[], sizes=[], groups=[{extras:object,id:number,menu_id:number,name:string,sort:number,required:boolean,force_min:number,force_max:number,allow_quantity:boolean,tax_category_id:numbe, is_out_of_stock=false}
   - currency keys .order.currency="USD"; .restaurant.sim_currency="USD"; .restaurant.restaurantAccount.country.currency="LBP"; .restaurant.restaurantAccount.country.currency_name="Lebanese Pound"; .restaurant.companyAccount.country.currency="LBP"; .restaurant.companyAccount.country.currency_name="Lebanese Pound"; .restaurant.menu.currency="USD"; .restaurant.menu.currency_config.currency="USD"
 - json own https://www.foodbooking.com/api/cart/update {tracker:string,order:{client_address:object,instructions:string,client_instructions:object,coupons:[],client_address_parts:object,taxable_amount:number,tax_list:[],taxes_items:number,timeout_timer:boolean,tracker:string,missed_reason:object,payment_method_name:object,payment_provider_name:object,settings:{service_fees:{sales_tax:number},code_validation:{required:boolean,validated:boolean},akamai_bot_detected:boolean,payment_provider:{}},billing_details:object,card_details:object,pos_hw_delivery_details:object,deliveryDistance:object,deliveryDuration:object,analyticsData:object,serviceFeesData:{sales_tax:number},paymentProvider:{},fulfillment_message_type:object,fulfillment_message:object,marketing_source:object,marketing_campaign:object,table_number:object,is_eligible_for_payment_link:boolean,stripe_payment_link:object,is_simphony_order:boolean},errors:[{type:string,category:string,message:string}],menu_extra_details:object,restaurant:object,scheduled_orders_intervals:{pickup:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}],delivery:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}],reservation:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}],preserve:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}],dine_in:[{name:string,idx:number,date:number,offset:number,intervals:[],label:string,label_day_name:string}]},gateway_transaction:object,client_device:object,items:[],promotions:{active:number,showcase:[],alternatives:{appliedList:[],exclusiveList:[],normalList:[]},incompatibilities:[],highlight:[],cart:{},autoAdded:[],simphonyAutoAdded:[],conditions:{},benefits:{},cartValue:number}}
   - currency keys .order.currency="USD"
@@ -595,7 +595,7 @@
   - [Shakes] Strawberry Shake s / 400,000 L.L. | no picture
   - [Shakes] Strawberry Shake m / 600,000 L.L. | no picture
 - page-0.html 49 <img>; the first ones:  | /uploads/restorants/54cb<phone>-<token>.jpg | /uploads/restorants/<token>.jpg | /uploads/restorants/54cb<phone>-b84d-ad1c80dd9aef_large.jpg alt="logo" | https://rest.thrubits.com/uploads/restorants_icon/allcategories.png alt="All Categories" | https://rest.thrubits.com/uploads/restorants_icon/<phone>.png alt="Shakes" | https://rest.thrubits.com/uploads/restorants_icon/<phone>.png alt="Juices" | https://rest.thrubits.com/uploads/restorants_icon/<phone>.png alt="Merry Cream Cornet" | https://rest.thrubits.com/uploads/restorants_icon/<phone>.png alt="Ice Cream" | https://rest.thrubits.com/uploads/restorants_icon/<phone>.png alt="Special Cups" | https://rest.thrubits.com/uploads/restorants_icon/<phone>.png alt="Waffle and Crepe" | https://rest.thrubits.com/uploads/restorants_icon/<phone>.png alt="Shakes"
-- page-0.html links: / https://rest.thrubits.com/register/visit/971 https://www.google.com/maps/search/ https://wa.me/3509666 https://rest.thrubits.com/new/restaurant/register
+- page-0.html links: / https://rest.thrubits.com/register/visit/971 https://www.google.com/maps/search/ https://wa.me/<phone> https://rest.thrubits.com/new/restaurant/register
 - page-0.html 214 click handlers or data-target attributes
 - page-0.txt: 139 short lines with a number; the first ones:
   - Lebanon |  <phone>
@@ -622,12 +622,12 @@
 ## Safa Chicken (oddmenu)
 
 - page 200 https://oddmenu.com/ar/p/ssafa-chicken
-- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm8mupejh1157468l6whk3n7yrrv
-- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm47b8gim1498779cklcdftfrl29
-- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm47at68q1486918cklc4dtvlihp
-- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm47b0e0w1492168cklcsyajnhmh
-- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cmtbr0pep08msuh2wck52zpjx
-- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm493qswe1604014dxlcuyzwwphb
+- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm8mupejh<phone>l6whk3n7yrrv
+- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm47b8gim<phone>cklcdftfrl29
+- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm47at68q<phone>cklc4dtvlihp
+- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm47b0e0w<phone>cklcsyajnhmh
+- page 200 https://oddmenu.com/ar/p/ssafa-chicken/<token>
+- page 200 https://oddmenu.com/ar/p/ssafa-chicken/cm493qswe<phone>dxlcuyzwwphb
 - json own https://api.oddmenu.com/place/AR/ssafa-chicken {place:{id:string,slug:string,wifi:string,phone:string,bgImage:string,name:string,logo:string,googleMapsLink:string,googleReviewsLink:object,croppedLogo:string,imageCropParams:{top:number,left:number,height:number,width:number},currency:string,currencySymbol:string,mainLocale:string,isBlocked:boolean,canMakeOrder:boolean,isMenuButtonsHidden:boolean,locales:[string],qrCode:string,themeColor:string,theme:string,info:{locale:string,address:string,description:string,country:string,city:string},socialMedia:{id:string,instagram:string,facebook:string,x:object,tripadvisor:object,tiktok:object}},menus:[{id:string,position:number,placeId:string,isVisible:boolean,info:{locale:string,name:string}}],menuCategories:[{id:string,image:string,menuId:string,position:number,placeId:string,isVisible:boolean,croppedImage:string,imageCropParams:{top:number,left:number,height:number,width:number},info:{locale:string,name:string,description:string}}],menuItems:[{id:string,price:string,oldPrice:string,image:string,croppedImage:string,isAvailable:boolean,isVisible:boolean,menuCategoryId:string,position:number,placeId:string,info:{locale:string,name:string,description:string,weight:string},badge:[],variant:object,imageCropParams:{top:number,left:number,height:number,width:number},addon:[]}]}
   - currency keys .place.currency="USD"; .place.currencySymbol="$"
 - json own https://api.oddmenu.com/place/AR/ssafa-chicken {place:{id:string,slug:string,wifi:string,phone:string,bgImage:string,name:string,logo:string,googleMapsLink:string,googleReviewsLink:object,croppedLogo:string,imageCropParams:{top:number,left:number,height:number,width:number},currency:string,currencySymbol:string,mainLocale:string,isBlocked:boolean,canMakeOrder:boolean,isMenuButtonsHidden:boolean,locales:[string],qrCode:string,themeColor:string,theme:string,info:{locale:string,address:string,description:string,country:string,city:string},socialMedia:{id:string,instagram:string,facebook:string,x:object,tripadvisor:object,tiktok:object}},menus:[{id:string,position:number,placeId:string,isVisible:boolean,info:{locale:string,name:string}}],menuCategories:[{id:string,image:string,menuId:string,position:number,placeId:string,isVisible:boolean,croppedImage:string,imageCropParams:{top:number,left:number,height:number,width:number},info:{locale:string,name:string,description:string}}],menuItems:[{id:string,price:string,oldPrice:string,image:string,croppedImage:string,isAvailable:boolean,isVisible:boolean,menuCategoryId:string,position:number,placeId:string,info:{locale:string,name:string,description:string,weight:string},badge:[],variant:object,imageCropParams:{top:number,left:number,height:number,width:number},addon:[]}]}

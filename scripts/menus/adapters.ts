@@ -763,14 +763,24 @@ const norm = (s: unknown) =>
     .trim()
     .slice(0, 100);
 
+export const GOOGLE_HOST =
+  /(^|\.)(googleusercontent\.com|ggpht\.com|gstatic\.com|googleapis\.com|google\.[a-z.]+|goo\.gl)$/i;
+
 /** A picture an item may carry: https only, never a data URI. */
 export function httpsImage(v: unknown, base?: string): string | null {
   const raw = typeof v === "string" ? v.trim() : "";
   if (!raw || raw.startsWith("data:") || raw.length > 480) return null;
   try {
     const u = new URL(raw, base);
-    // A shop's logo, an icon or a placeholder is not the item's picture.
-    if (/logo|icon|favicon|placeholder|no[-_]?image|default[-_.]/i.test(u.pathname)) return null;
+    // A shop's logo, an icon folder or a placeholder is not the item's picture ("classic-icon.png", West Diner's Classic
+    // Icon burger, is); a Google-hosted picture never is (DECISIONS §38.1).
+    if (
+      /(^|\/)(logos?|icons?|favicons?|placeholders?)(\/|[-_.])|[-_](logo|favicon)[-_.]|restorants_icon|no[-_]?image|default[-_.]/i.test(
+        u.pathname,
+      ) ||
+      GOOGLE_HOST.test(u.hostname)
+    )
+      return null;
     return u.protocol === "https:" ? u.toString() : null;
   } catch {
     return null;
@@ -915,7 +925,7 @@ export function fromCards(cards: Card[]): Draft {
       name,
       description: [...named.slice(1), ...after].join(". ").slice(0, 500),
       price: c.price,
-      image: c.image,
+      image: httpsImage(c.image),
     });
   }
   // Listed twice: the occurrence in the section with the most items wins.

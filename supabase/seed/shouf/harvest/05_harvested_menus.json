@@ -11311,8 +11311,7 @@
        "description": "hookah",
        "price": 7,
        "currency": "USD",
-       "confidence": 0.9,
-       "image_url": "https://rest.thrubits.com/uploads/restorants_icon/1691560194.jpeg"
+       "confidence": 0.9
       }
      ]
     }

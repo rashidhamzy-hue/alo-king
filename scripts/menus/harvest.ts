@@ -190,7 +190,8 @@ export async function clickThrough(page: Page, url: string): Promise<Card[]> {
     if (!label || label.length > 40 || seen.has(label) || !(await t.isVisible().catch(() => false)))
       continue;
     if (
-      /log ?in|sign|cart|checkout|whatsapp|call|share|close|cookie|language|english|عربي/i.test(
+      // Never an ordering, booking or sending button (an ordering platform would fill a cart).
+      /log ?in|sign|cart|checkout|whatsapp|call|share|close|cookie|language|english|عربي|\b(add|order|submit|pay|book|reserve|send|buy)\b|أضف|اطلب|ادفع/i.test(
         label,
       )
     )
@@ -451,11 +452,20 @@ export function readCapture(dir: string) {
  * commit a page's emails, phones or platform keys): emails, phone numbers, query strings and long tokens.
  */
 export function redact(s: string): string {
-  return s
-    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "<email>")
-    .replace(/(https?:\/\/[^\s?"'#]+)[?#][^\s"']*/g, "$1")
-    .replace(/\+?\d[\d\s-]{6,}\d/g, (m) => (m.replace(/\D/g, "").length >= 7 ? "<phone>" : m))
-    .replace(/\b(?=[\w-]*\d)(?=[\w-]*[A-Za-z])[\w-]{24,}\b/g, "<token>");
+  return (
+    s
+      .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "<email>")
+      // A chat or call link is a phone number, whatever its format.
+      .replace(/(wa\.me\/|tel:|api\.whatsapp\.com\/send\/?)(?!<phone>)[^\s"'<>|]*/gi, "$1<phone>")
+      .replace(/(https?:\/\/[^\s?"'#]+)[?#][^\s"']*/g, "$1")
+      // 03 509666, 03.509.666, 03/509666, (03) 509666, +961 3 509 666: seven digits or more in a phone shape. A price
+      // ("150,000 L.L.", six digits with a comma) stays.
+      .replace(/\+?\(?\d[\d\s()./-]{5,}\d/g, (m) =>
+        m.replace(/\D/g, "").length >= 7 ? "<phone>" : m,
+      )
+      .replace(/\b\d{7,}\b/g, "<phone>")
+      .replace(/\b(?=[\w-]*\d)(?=[\w-]*[A-Za-z])[\w-]{24,}\b/g, "<token>")
+  );
 }
 
 const NAMEISH = /^(name|title|item_?name|label|product_?name)/i;

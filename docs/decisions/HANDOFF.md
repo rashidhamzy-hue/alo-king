@@ -281,7 +281,7 @@
     - Verona Resto (leb.guide shop page): 14 items, 12 photos;
     - West Diner (west-diner.pages.dev): 48 items, 15 photos;
     - Sushi Bell (Thrubits): 196 items, 177 in the demo (alcohol left out), 158 photos.
-    BUN BROS and Sushi Bell had no menu before: demo shops now 29. Items without a picture keep an illustrative one; a picture under 500 px is framed on an 800 × 800 tile. A harvested menu bigger than the curated seed draft now replaces it in the seed.
+    BUN BROS and Sushi Bell had no menu before: demo shops now 29. Items without a picture keep an illustrative one; a picture under 500 px is framed on an 800 × 800 tile. Every demo shop's menu leaves out alcohol and tobacco (Meta commerce policy) and $0 items. In the seed, a link menu with more priced items replaces a menu-file (03) draft.
   - **Demo mode (DECISIONS §39.12):** every real shop with a priced draft menu (29 since the 8 menus) is a demo shop on staging, orderable, in search, the list menu and the catalogue, with item photos (Fred's Food's website photos, an illustration for the rest). Every order goes to Rasheed's number marked "Demo", and nothing ever reaches a shop's own number.
   - **What the customer sees:**
     - a shop of 30 items or fewer opens as one multi-product message by section;
