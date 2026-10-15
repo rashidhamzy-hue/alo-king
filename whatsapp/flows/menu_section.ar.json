@@ -1,0 +1,100 @@
+{
+  "version": "7.3",
+  "routing_model": {
+    "SECTION": []
+  },
+  "screens": [
+    {
+      "id": "SECTION",
+      "title": "قسم المنيو",
+      "terminal": true,
+      "data": {
+        "draft_id": {
+          "type": "string",
+          "__example__": "00000000-0000-0000-0000-000000000000"
+        },
+        "section_key": {
+          "type": "string",
+          "__example__": "s1"
+        },
+        "section_name": {
+          "type": "string",
+          "__example__": "Grills"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "i1",
+              "title": "Shish taouk",
+              "description": "$4.50"
+            },
+            {
+              "id": "i2",
+              "title": "Kafta",
+              "description": "$4.00"
+            }
+          ]
+        },
+        "all_items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "__example__": [
+            "i1",
+            "i2"
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextSubheading",
+            "text": "${data.section_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "شيل الصح عن أي صنف مش بالمنيو. الأسعار متل ما انقرت؛ صحّح الغلط برسالة بعد الحفظ."
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "keep",
+            "label": "الأصناف اللي بتنحط عالمنيو",
+            "required": true,
+            "min-selected-items": 1,
+            "init-value": "${data.all_items}",
+            "data-source": "${data.items}"
+          },
+          {
+            "type": "Footer",
+            "label": "حطّها عالمنيو",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "draft_id": "${data.draft_id}",
+                "section_key": "${data.section_key}",
+                "keep": "${form.keep}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

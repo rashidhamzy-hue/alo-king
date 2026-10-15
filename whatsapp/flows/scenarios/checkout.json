@@ -1,0 +1,132 @@
+{
+  "tests": [
+    {
+      "name": "delivery, paying in LBP, with a note",
+      "start": {
+        "mode": "navigate",
+        "screen": "CHECKOUT",
+        "data": {
+          "basket_id": "b1b2c3d4-0000-0000-0000-000000000001",
+          "vendor": "Alo Test Grill",
+          "lines": "2 × Shish taouk  $9.00\n1 × Fries  $2.50",
+          "total": "Items: $11.50 = 1,035,000 LBP",
+          "fulfilment_options": [
+            {
+              "id": "delivery",
+              "title": "Delivery to Home – Baakline"
+            },
+            {
+              "id": "pickup",
+              "title": "Pickup at the shop"
+            }
+          ],
+          "fulfilment": "delivery",
+          "cash": "USD",
+          "show_sub": false,
+          "cash_options": [
+            {
+              "id": "USD",
+              "title": "US dollars (USD)"
+            },
+            {
+              "id": "LBP",
+              "title": "Lebanese pounds (LBP)"
+            }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "expect": {
+            "screen": "CHECKOUT",
+            "fields": {
+              "fulfilment": {
+                "value": "delivery"
+              },
+              "cash": {
+                "value": "USD"
+              }
+            }
+          }
+        },
+        {
+          "fill": "cash",
+          "value": "LBP"
+        },
+        {
+          "fill": "note",
+          "value": "extra garlic"
+        },
+        {
+          "submit": true,
+          "expect": {
+            "status": "completed",
+            "completion": {
+              "basket_id": "b1b2c3d4-0000-0000-0000-000000000001",
+              "fulfilment": "delivery",
+              "cash": "LBP",
+              "note": "extra garlic"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pickup at a grocery that asks what to do with a missing item",
+      "start": {
+        "mode": "navigate",
+        "screen": "CHECKOUT",
+        "data": {
+          "basket_id": "b1b2c3d4-0000-0000-0000-000000000001",
+          "vendor": "Alo Test Grill",
+          "lines": "2 × Shish taouk  $9.00\n1 × Fries  $2.50",
+          "total": "Items: $11.50 = 1,035,000 LBP",
+          "fulfilment_options": [
+            {
+              "id": "delivery",
+              "title": "Delivery to Home – Baakline"
+            },
+            {
+              "id": "pickup",
+              "title": "Pickup at the shop"
+            }
+          ],
+          "fulfilment": "delivery",
+          "cash": "USD",
+          "show_sub": true,
+          "cash_options": [
+            {
+              "id": "USD",
+              "title": "US dollars (USD)"
+            },
+            {
+              "id": "LBP",
+              "title": "Lebanese pounds (LBP)"
+            }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "fill": "fulfilment",
+          "value": "pickup"
+        },
+        {
+          "fill": "sub_pref",
+          "value": "replace"
+        },
+        {
+          "submit": true,
+          "expect": {
+            "status": "completed",
+            "completion": {
+              "fulfilment": "pickup",
+              "cash": "USD",
+              "sub_pref": "replace"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

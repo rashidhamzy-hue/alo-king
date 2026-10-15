@@ -16,9 +16,12 @@ const flowso = (args: string[]) => {
 };
 
 describe("Flow JSON with Flowso", () => {
-  it("has the four §12 Flows in Arabic and English", () => {
+  it("has the §12 Flows and the 5b ones (checkout, menu section) in Arabic and English", () => {
     expect(FLOWS.sort()).toEqual(
-      ["address_capture", "item_options", "merchant_claim", "merchant_hours"].flatMap((f) => [`${f}.ar.json`, `${f}.en.json`]),
+      ["address_capture", "checkout", "item_options", "menu_section", "merchant_claim", "merchant_hours"].flatMap((f) => [
+        `${f}.ar.json`,
+        `${f}.en.json`,
+      ]),
     );
   });
   for (const f of FLOWS) {
@@ -44,7 +47,7 @@ describe("Flow messages", () => {
       flow_action: "navigate",
       flow_action_payload: { screen: "OPTIONS", data: { item_id: "x" } },
     });
-    for (const flow of ["address_capture", "item_options", "merchant_claim", "merchant_hours"] as const)
+    for (const flow of ["address_capture", "item_options", "merchant_claim", "merchant_hours", "checkout", "menu_section"] as const)
       for (const lang of ["ar", "en"] as const)
         expect(checkInteractive(flowMessage("+1", { flow, lang, token: TOKEN, screen: "S", data: {} }))).toEqual([]);
   });

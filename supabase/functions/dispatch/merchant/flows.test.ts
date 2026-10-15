@@ -143,3 +143,125 @@ describe("merchant Flows", () => {
     ).toBe(false);
   });
 });
+
+// Session 5b (§39.8): "settings" opens the profile form; the menu-section Flow approves a draft section.
+import { sectionPrompt } from "./menu";
+
+describe("menu section Flow and settings (5b)", () => {
+  const DRAFT = "60000000-0000-0000-0000-000000000001";
+  const sec = (index: number) =>
+    ({ index, name: `S${index}`, items: 2, priced: 2, sample: ["a", "b"] }) as any;
+  it("'settings' opens the profile form, in three languages", () => {
+    for (const t of ["settings", "إعدادات", "paramètres"])
+      expect(merchantFlowRequest(t)).toBe("merchant_claim");
+  });
+  it("a draft section is the Flow once published, else the chat card", async () => {
+    const on = harness({
+      flow_open: () => ({
+        status: "ok",
+        token: `menu_section:${"d".repeat(32)}`,
+        screen: "SECTION",
+        data: { draft_id: DRAFT },
+      }),
+    });
+    const f: any = await sectionPrompt(on.deps, "+96171000001", DRAFT, sec(0), 2, OWNER.member_id);
+    expect(f.interactive.type).toBe("flow");
+    expect(f.interactive.action.parameters.flow_name).toBe("alo_menu_section_ar");
+    expect(on.of("flow_open")[0].args).toMatchObject({
+      p_flow: "menu_section",
+      p_member_id: OWNER.member_id,
+      p_context: { draft_id: DRAFT, index: 0 },
+    });
+    const off = harness({ flow_open: () => ({ status: "off" }) });
+    const card: any = await sectionPrompt(
+      off.deps,
+      "+96171000001",
+      DRAFT,
+      sec(0),
+      2,
+      OWNER.member_id,
+    );
+    expect(card.interactive.type).not.toBe("flow");
+    expect(checkInteractive(card)).toEqual([]);
+  });
+  it("a submitted section: added, then the next section waiting", async () => {
+    const h = harness({
+      flow_submit: () => ({
+        flow: "menu_section",
+        status: "approved",
+        inserted: 2,
+        needs_price: [],
+        member_id: OWNER.member_id,
+      }),
+      menu_draft_summary: () => ({
+        vendor_id: V,
+        sections: [
+          { ...sec(0), approved: true },
+          { ...sec(1), approved: false },
+        ],
+      }),
+      flow_open: () => ({ status: "off" }),
+    });
+    await handleMerchantFlows(
+      h.deps,
+      {
+        from: "+96171000001",
+        text: null,
+        flow: {
+          token: `menu_section:${"d".repeat(32)}`,
+          payload: { draft_id: DRAFT, keep: ["i1", "i2"] },
+        },
+      },
+      [OWNER],
+    );
+    expect(h.sent.length).toBe(2);
+    expect(JSON.stringify(h.sent[1])).toContain(DRAFT);
+    expect(h.of("onboarding_session_set")).toEqual([]);
+  });
+  it("the last section: the onboarding step ends, then the portion questions", async () => {
+    const h = harness({
+      flow_submit: () => ({
+        flow: "menu_section",
+        status: "approved",
+        inserted: 1,
+        needs_price: [],
+        member_id: OWNER.member_id,
+      }),
+      menu_draft_summary: () => ({ vendor_id: V, sections: [{ ...sec(0), approved: true }] }),
+    });
+    await handleMerchantFlows(
+      h.deps,
+      {
+        from: "+96171000001",
+        text: null,
+        flow: {
+          token: `menu_section:${"d".repeat(32)}`,
+          payload: { draft_id: DRAFT, keep: ["i1"] },
+        },
+      },
+      [OWNER],
+    );
+    expect(h.of("onboarding_session_set")[0].args).toMatchObject({
+      p_phone: "+96171000001",
+      p_step: null,
+    });
+    expect(h.sent.length).toBe(2);
+  });
+  it("a section sent twice points back to the menu, not to hours", async () => {
+    const h = harness({ flow_submit: () => ({ flow: "menu_section", status: "duplicate" }) });
+    await handleMerchantFlows(
+      h.deps,
+      {
+        from: "+96171000001",
+        text: null,
+        flow: {
+          token: `menu_section:${"d".repeat(32)}`,
+          payload: { draft_id: DRAFT, keep: ["i1"] },
+        },
+      },
+      [OWNER],
+    );
+    expect(JSON.stringify(h.sent[0])).toContain("menu");
+    expect(JSON.stringify(h.sent[0])).not.toContain("hours");
+  });
+});

@@ -29,8 +29,9 @@ const SOMEONE: Record<TemplateLang, string> = {
 };
 
 /** "$12.50 / 1,118,750 LBP": both currencies at the rate locked on the order (§13). */
+// Both amounts or nothing: a blank total refuses the template rather than showing "$0.00".
 const total = (u: unknown, l: unknown) =>
-  l !== undefined && l !== null ? `${usd(u)} / ${lbp(l)} LBP` : usd(u);
+  u === undefined || u === null || l === undefined || l === null ? "" : `${usd(u)} / ${lbp(l)} LBP`;
 const eta = (e: any, lang: TemplateLang) =>
   e?.min ? `${e.max && e.max !== e.min ? `${e.min}-${e.max}` : e.min} ${MIN[lang]}` : ""; // no ETA computed: the template is not filled (never a made-up time)
 const items = (card: Record<string, any> | null) =>

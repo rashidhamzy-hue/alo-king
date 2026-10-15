@@ -1,32 +1,151 @@
 {
   "tests": [
     {
-      "name": "full address with driver phone",
-      "start": { "mode": "navigate", "screen": "ADDRESS", "data": { "address_id": "a1b2c3d4-0000-0000-0000-000000000001", "place_name": "Baakline" } },
+      "name": "full address with a known landmark, the relation and the lift",
+      "start": {
+        "mode": "navigate",
+        "screen": "ADDRESS",
+        "data": {
+          "address_id": "a1b2c3d4-0000-0000-0000-000000000001",
+          "place_name": "Baakline",
+          "landmarks": [
+            {
+              "id": "l1",
+              "title": "Baakline municipality"
+            },
+            {
+              "id": "none",
+              "title": "Not listed"
+            }
+          ]
+        }
+      },
       "steps": [
-        { "expect": { "screen": "ADDRESS" } },
-        { "fill": "building", "value": "Bnayet Abou Fadi" },
-        { "fill": "floor", "value": "3" },
-        { "fill": "apartment", "value": "5" },
-        { "fill": "landmark", "value": "facing the pharmacy" },
-        { "fill": "driver_phone", "value": "+96171234567" },
-        { "fill": "notes", "value": "ring twice" },
-        { "submit": true, "expect": { "status": "completed", "completion": { "address_id": "a1b2c3d4-0000-0000-0000-000000000001", "building": "Bnayet Abou Fadi", "floor": "3", "landmark": "facing the pharmacy", "driver_phone": "+96171234567" } } }
+        {
+          "expect": {
+            "screen": "ADDRESS"
+          }
+        },
+        {
+          "fill": "building",
+          "value": "Bnayet Abou Fadi"
+        },
+        {
+          "fill": "floor",
+          "value": "3"
+        },
+        {
+          "fill": "has_elevator",
+          "value": "no"
+        },
+        {
+          "fill": "apartment",
+          "value": "5"
+        },
+        {
+          "fill": "landmark_id",
+          "value": "l1"
+        },
+        {
+          "fill": "landmark_relation",
+          "value": "opposite"
+        },
+        {
+          "fill": "driver_phone",
+          "value": "+96171234567"
+        },
+        {
+          "fill": "notes",
+          "value": "ring twice"
+        },
+        {
+          "submit": true,
+          "expect": {
+            "status": "completed",
+            "completion": {
+              "address_id": "a1b2c3d4-0000-0000-0000-000000000001",
+              "building": "Bnayet Abou Fadi",
+              "floor": "3",
+              "has_elevator": "no",
+              "landmark_id": "l1",
+              "landmark_relation": "opposite",
+              "driver_phone": "+96171234567"
+            }
+          }
+        }
       ]
     },
     {
-      "name": "building only (everything else optional)",
-      "start": { "mode": "navigate", "screen": "ADDRESS", "data": { "address_id": "a1b2c3d4-0000-0000-0000-000000000001", "place_name": "Aley" } },
+      "name": "a landmark that is not listed, typed",
+      "start": {
+        "mode": "navigate",
+        "screen": "ADDRESS",
+        "data": {
+          "address_id": "a1b2c3d4-0000-0000-0000-000000000001",
+          "place_name": "Aley",
+          "landmarks": [
+            {
+              "id": "l1",
+              "title": "Baakline municipality"
+            },
+            {
+              "id": "none",
+              "title": "Not listed"
+            }
+          ]
+        }
+      },
       "steps": [
-        { "fill": "building", "value": "Centre Haddad" },
-        { "submit": true, "expect": { "status": "completed", "completion": { "building": "Centre Haddad" } } }
+        {
+          "fill": "building",
+          "value": "Centre Haddad"
+        },
+        {
+          "fill": "landmark",
+          "value": "facing the pharmacy"
+        },
+        {
+          "submit": true,
+          "expect": {
+            "status": "completed",
+            "completion": {
+              "building": "Centre Haddad",
+              "landmark": "facing the pharmacy"
+            }
+          }
+        }
       ]
     },
     {
       "name": "the building is required",
-      "start": { "mode": "navigate", "screen": "ADDRESS", "data": { "address_id": "a1b2c3d4-0000-0000-0000-000000000001", "place_name": "Aley" } },
+      "start": {
+        "mode": "navigate",
+        "screen": "ADDRESS",
+        "data": {
+          "address_id": "a1b2c3d4-0000-0000-0000-000000000001",
+          "place_name": "Aley",
+          "landmarks": [
+            {
+              "id": "l1",
+              "title": "Baakline municipality"
+            },
+            {
+              "id": "none",
+              "title": "Not listed"
+            }
+          ]
+        }
+      },
       "steps": [
-        { "submit": true, "expect": { "screen": "ADDRESS", "fieldErrors": { "building": "This field is required" } } }
+        {
+          "submit": true,
+          "expect": {
+            "screen": "ADDRESS",
+            "fieldErrors": {
+              "building": "This field is required"
+            }
+          }
+        }
       ]
     }
   ]

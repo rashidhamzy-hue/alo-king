@@ -693,6 +693,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
         {
           rpc: deps.rpc,
           send: (p) => deps.whatsapp(from, p),
+          sendFrom: (n, p) => deps.whatsapp(n, p),
           voiceCode: deps.voiceCode ?? null,
           storeDocument: deps.storeDocument
             ? (media, claimId) => deps.storeDocument!(from, media, claimId)

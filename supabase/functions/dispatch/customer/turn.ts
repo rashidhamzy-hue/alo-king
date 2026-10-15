@@ -1225,6 +1225,12 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
     return say(c, "flowRetry");
   }
   if (r?.status === "duplicate") return;
+  if (r?.flow === "checkout") {
+    if (r.status !== "saved") return say(c, "flowRetry");
+    c.summary.push("[checkout choices saved from the Flow]");
+    // The rest of checkout as usual (address, quote, summary); only the Confirm tap places the order.
+    return checkout(c, { fulfilment: r.fulfilment === "pickup" ? "pickup" : "delivery" });
+  }
   if (r?.flow === "address_capture") {
     if (r.status === "rejected") return say(c, "flowRetry");
     c.summary.push("[address details saved from the Flow]");
@@ -1671,6 +1677,11 @@ async function checkout(
       c.s.fulfil = null;
     if (!c.s.fulfil) {
       if (o.pickup && o.delivery) {
+        // One screen (the checkout Flow, once published): delivery or pickup, the cash currency, a note (§39.8).
+        if (await openFlow(c, "checkout", {})) {
+          c.summary.push("[checkout form sent]");
+          return;
+        }
         c.summary.push("[asked delivery or pickup]");
         return push(c, fulfilmentAsk(c.m.from, c.s.lang));
       }

@@ -34,6 +34,8 @@ export type OnboardingDeps = {
   rpc: (fn: string, args: Record<string, unknown>) => Promise<any>;
   /** Sends one payload from the Merchant number (the sandbox until cut-over). */
   send: (payload: Record<string, unknown>) => Promise<SendResult>;
+  /** Sends from a given number: the claim code goes to the shop's own number from the number where its window is open. */
+  sendFrom?: (from: string, payload: Record<string, unknown>) => Promise<SendResult>;
   /** Places the call that reads a claim code to a landline (case B); null when no voice provider. */
   voiceCode: ((to: string, script: string) => Promise<SendResult>) | null;
   /** Copies a claim document into private storage; returns its path, or null (the WhatsApp reference is kept). */
@@ -419,11 +421,16 @@ async function sendCode(
     if (!deps.voiceCode) return { ok: false, retry: false, error: "voice provider not configured" };
     return deps.voiceCode(send.to, claimCodeScript(send.code));
   }
-  // Outside the shop's 24-hour window the approved authentication template carries the code (§39.8).
-  const sender = await deps.rpc("whatsapp_sender", { p_audience: "merchant" }).catch(() => null);
-  return deps.send(
-    sender
-      ? await claimCodePayload(deps.rpc, String(sender), send.to, send.code)
-      : claimCodeText(send.to, send.code),
-  );
+  // The shop's own number may never have written to us: the number to send from is chosen for it (its open window, else
+  // the default), and the same number decides free-form or the approved authentication template (§39.8).
+  // As site-claim: the target's open window, else the default merchant sender, so the template still goes out.
+  const sender = deps.sendFrom
+    ? ((await deps
+        .rpc("whatsapp_sender_for", { p_audience: "merchant", p_target: send.to })
+        .catch(() => null)) ??
+      (await deps.rpc("whatsapp_sender", { p_audience: "merchant" }).catch(() => null)))
+    : null;
+  if (typeof sender === "string" && sender && deps.sendFrom)
+    return deps.sendFrom(sender, await claimCodePayload(deps.rpc, sender, send.to, send.code));
+  return deps.send(claimCodeText(send.to, send.code));
 }
