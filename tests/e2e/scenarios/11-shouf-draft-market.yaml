@@ -4,11 +4,12 @@ personas:
   cust: { role: customer, cc: "961", name: "Sim Shouf" }
   merchant: { role: merchant }
 steps:
-  - note: the Shouf load is on staging and the real Coop Baakleen is an unclaimed, unorderable draft
+  - note: the Shouf load is on staging and no real Shouf merchant is live outside demo mode (the demo shops, Coop Baakleen among them, are staging-only and hidden from this customer; DECISIONS §39.12)
     db:
       - sql: >
           select count(*) filter (where v.source = 'seed_shouf_2026_10') as shouf,
-                 count(*) filter (where v.source = 'seed_shouf_2026_10' and (v.orderable or v.public_page or v.claim_status <> 'unclaimed')) as live
+                 count(*) filter (where v.source = 'seed_shouf_2026_10' and not app_private.vendor_is_demo(v.id)
+                                    and (v.orderable or v.public_page or v.claim_status <> 'unclaimed')) as live
           from public.vendors v
         row: { shouf: 314, live: 0 }
       - sql: >
@@ -71,11 +72,12 @@ steps:
           }
         save: { order_id: id }
   - include: { part: merchant-accepts-delivers, as: cust }
-  - note: the real Coop's draft is untouched by the test order
+  - note: the real Coop's draft is untouched by the test order, and the Coop is orderable only as a demo shop
     db:
       - sql: >
-          select d.status, v.orderable, v.claim_status from public.menu_drafts d join public.vendors v on v.id = d.vendor_id
+          select d.status, (v.orderable or v.claim_status <> 'unclaimed') and not app_private.vendor_is_demo(v.id) as live_outside_demo
+          from public.menu_drafts d join public.vendors v on v.id = d.vendor_id
           where v.place_id = 'ChIJhaAhhQMgHxURbFIi9R14X1I' and d.source = 'seed'
-        row: { status: draft, orderable: false, claim_status: unclaimed }
+        row: { status: draft, live_outside_demo: false }
   - note: the test market closes again
     sql: select public.sim_market('{{merchant.phone}}', false)
