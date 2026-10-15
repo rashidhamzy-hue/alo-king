@@ -65,7 +65,7 @@ function dropBlocks(html: string): string {
  * including IPv4 inside IPv6 (mapped, compatible, NAT64 and 6to4). */
 export function privateAddress(ip: string): boolean {
   const a = ip.toLowerCase();
-  if (/^(64:ff9b::|2002:|::(?!ffff:)\d)/.test(a)) return true; // embedded IPv4 forms: refused outright
+  if (/^(64:ff9b:|2002:|::(?!ffff:)[0-9a-f])/.test(a)) return true; // embedded IPv4 forms: refused outright
   const v4 = a.replace(/^::ffff:/, "").match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (v4) {
     const [x, y] = [Number(v4[1]), Number(v4[2])];

@@ -571,9 +571,17 @@ describe("review fixes (§39.7)", () => {
     expect(htmlText("<p>a<!-- x --> b</p><style>p{}</style><li>Falafel 4$</li>")).toBe(
       "a b\nFalafel 4$",
     );
-    for (const ip of ["64:ff9b::7f00:1", "2002:7f00:1::", "::127.0.0.1"])
+    for (const ip of [
+      "64:ff9b::7f00:1",
+      "64:ff9b:1::a00:1",
+      "2002:7f00:1::",
+      "::127.0.0.1",
+      "::a00:1",
+      "::a9fe:a9fe",
+      "::c0a8:101",
+    ])
       expect(privateAddress(ip), ip).toBe(true);
-    // An unclosed script tag stays text, cut to the parser's limit, quickly.
+    // An unclosed script tag drops the rest of the page (fails closed: the merchant is asked for photos or text), quickly.
     const t0 = Date.now();
     expect(htmlText("<script>" + "x".repeat(2_000_000)).length).toBeLessThanOrEqual(50_000);
     expect(Date.now() - t0).toBeLessThan(2000);
