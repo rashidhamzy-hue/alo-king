@@ -14,6 +14,17 @@ tools only: no paid APIs, no keys, no Higgsfield, ElevenLabs or Canva. Nothing h
 - Review frames (five per video, with safe-zone sheets): `review/`
 - Stage 4 checks (loudness, true peak, caption sync, hook, cuts): [`VERIFY.md`](VERIFY.md), `verify.json`
 
+## Results (stage 4)
+| | Video 1, customers | Video 2, merchants |
+|---|---|---|
+| Format | H.264 High, yuv420p, 1080×1920, 30 fps, 25.0 s; AAC 48 kHz stereo | same |
+| Loudness / true peak | -14.2 LUFS / -5.1 dBTP | -14.2 LUFS / -4.9 dBTP |
+| Caption sync (final mix) | mean 25 ms, p95 96 ms | mean 23 ms, p95 40 ms |
+| Hook | voice at 0.12 s; "Hungry?" fills the frame, then the 3D phone lands with the chat open by 1.2 s | voice at 0.12 s; chat list streams in, then the "new order" row lands at 1.1 s |
+| Cuts | 12 shots, average 2.1 s | 9 shots, average 2.8 s, with in-shot changes on the words |
+
+All five stages are done. Each stage was committed and pushed as it finished.
+
 ## Before posting (from the decisions)
 - **Paid ads wait for the §1 gate:** 15 merchants live and 14 days of the four reliability numbers. Organic posting is
   the owner's call.
