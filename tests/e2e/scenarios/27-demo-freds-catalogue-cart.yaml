@@ -12,7 +12,7 @@ steps:
                  extensions.st_x(v.location::extensions.geometry) as lon, i.id as item, i.price_usd
           from public.vendors v join public.menu_items i on i.vendor_id = v.id
           where v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s' and app_private.vendor_is_demo(v.id) and v.orderable
-            and app_private.menu_item_orderable(i.id, 1)
+            and app_private.menu_item_orderable(i.id, 1) and i.id = any (public.catalog_best_sellers(v.id, 10))
             and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
           order by i.price_usd desc, i.id limit 1
         row: { price_usd: ">0" }

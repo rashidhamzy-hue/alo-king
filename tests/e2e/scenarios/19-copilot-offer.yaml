@@ -4,6 +4,10 @@ personas:
   cust: { role: customer, cc: "961", name: "Sim Offer" }
   merchant: { role: merchant }
 steps:
+  - note: an offer left running by an interrupted run is stopped first, so this run counts its own
+    sql: >
+      update public.vendor_offers o set status = 'stopped' from public.vendors v
+      where v.id = o.vendor_id and v.slug = 'alo-test-grill' and o.status = 'active'
   - say: { as: merchant, text: "10% off sandwiches 1 day" }
     expect:
       - { to: merchant, buttons: ["pyes:", "pno:"], text: "10%" }
