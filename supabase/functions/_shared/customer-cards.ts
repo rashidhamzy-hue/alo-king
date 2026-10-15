@@ -112,6 +112,7 @@ export const T: Record<CLang, S> = {
     subYes: "✅ موافق عالبديل",
     subNo: "❌ بلا بديل",
     weightNo: "❌ إلغاء",
+    supportClosed: "رشيد سكّر المحادثة. المساعد رجع معك؛ ابعت «منيو» أي وقت.",
     cancelRefused: "المحل ما قبل إلغاء الطلب #{code} لأنو صار عم يتحضّر. الطلب كمّل.",
     rating: "شو رأيك بطلبك من {vendor}؟",
     rateButton: "قيّم",
@@ -173,6 +174,7 @@ export const T: Record<CLang, S> = {
     subYes: "✅ Take substitute",
     subNo: "❌ No substitute",
     weightNo: "❌ Cancel",
+    supportClosed: "Rasheed closed the conversation. The assistant is back; send “menu” any time.",
     cancelRefused:
       "The shop couldn't cancel order #{code}: it's already being prepared. Your order continues.",
     rating: "How was your order from {vendor}?",
@@ -235,6 +237,7 @@ export const T: Record<CLang, S> = {
     subYes: "✅ J'accepte",
     subNo: "❌ Sans remplacement",
     weightNo: "❌ Annuler",
+    supportClosed: "Rasheed a clôturé la conversation. L’assistant est de retour ; envoyez « menu » à tout moment.",
     cancelRefused:
       "Le commerçant n'a pas pu annuler la commande #{code} : elle est en préparation. Elle continue.",
     rating: "Comment était votre commande chez {vendor} ?",
@@ -295,6 +298,7 @@ export const T: Record<CLang, S> = {
     subYes: "✅ Mwefe2",
     subNo: "❌ Bala badil",
     weightNo: "❌ Elghe2",
+    supportClosed: "Rasheed sakkar el mo7adase. El assistant rje3; b3at “menu” ayya wa2t.",
     cancelRefused: "El mahal ma 2ebel yelghe talab #{code} la2an 3am yet7addar. El talab kammal.",
     rating: "Shu ra2yak b talabak men {vendor}?",
     rateButton: "2ayyem",
@@ -561,6 +565,13 @@ export function customerStatusMessages(
           ],
         ),
       ];
+    case "support_reply":
+      // A person's answer from the #support thread (§32.1), signed with their name.
+      return String(p.text ?? "").trim()
+        ? [text(to, `👤 ${String(p.name ?? "Rasheed")}, Alo King:\n${String(p.text).trim()}`)]
+        : [];
+    case "support_closed":
+      return [text(to, tr(lang, "supportClosed"))];
     case "cancel_refused":
       return [text(to, tr(lang, "cancelRefused", { code }))];
     case "substitution": {
@@ -791,7 +802,8 @@ export type CustomerAction =
         | "pickup_list"
         | "cancel"
         | "remember"
-        | "new_address";
+        | "new_address"
+        | "support";
     };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -829,7 +841,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
     return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
   if (
     (m = id.match(
-      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address)$/,
+      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support)$/,
     ))
   )
     return { a: "simple", what: m[1] as any };

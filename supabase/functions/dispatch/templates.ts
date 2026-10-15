@@ -40,6 +40,12 @@ const items = (card: Record<string, any> | null) =>
     .map((i: any) => `${Number(i.quantity ?? 1)} × ${String(i.name ?? i.name_en ?? "")}`)
     .join(", ");
 const UUID = /^[0-9a-f-]{36}$/;
+const ROLE: Record<string, Record<TemplateLang, string>> = {
+  manager: { ar: "مدير", en: "manager", fr: "gérant" },
+  cashier: { ar: "كاشير", en: "cashier", fr: "caissier" },
+  kitchen: { ar: "مطبخ", en: "kitchen", fr: "cuisine" },
+  driver: { ar: "سائق", en: "driver", fr: "livreur" },
+};
 
 /**
  * Template values and quick-reply payloads for one outbox row, or null when the row is not one the template covers. A
@@ -101,6 +107,9 @@ export function templateFill(
             payloads: ["c:track"],
           }
         : null;
+    case "support_reply":
+      // The reply itself is held and shown when they tap "Read the reply" (support_pending).
+      return { values: { name: String(p.name ?? "").trim() }, payloads: ["c:support"] };
     case "new_order":
       return c.code && UUID.test(oid)
         ? {
@@ -128,6 +137,17 @@ export function templateFill(
             payloads: ["mcmd:week"],
           }
         : null;
+    case "staff_welcome":
+      return p.kind === "staff_welcome" && p.shop && ROLE[String(p.role)]
+        ? { values: { shop: p.shop, role: ROLE[String(p.role)][lang] }, payloads: ["mcmd:help"] }
+        : null;
+    case "kitchen_full":
+      return p.kind === "kitchen_full"
+        ? {
+            values: { shop: p.shop ?? "", queue: p.queue ?? "", max: p.max ?? "" },
+            payloads: ["mcmd:open"],
+          }
+        : null;
     default:
       return null;
   }
@@ -137,7 +157,11 @@ export function templateFill(
 export function templateKey(row: Row): string | null {
   if (row.purpose === "customer_message") return String(row.payload?.kind ?? "") || null;
   if (row.purpose === "new_order" || row.purpose === "proposal") return row.purpose;
-  if (row.purpose === "reply" && row.payload?.kind === "merchant_weekly") return "merchant_weekly";
+  if (
+    row.purpose === "reply" &&
+    ["merchant_weekly", "staff_welcome", "kitchen_full"].includes(row.payload?.kind)
+  )
+    return row.payload.kind;
   return null;
 }
 

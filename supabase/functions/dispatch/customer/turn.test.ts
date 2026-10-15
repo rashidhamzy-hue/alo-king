@@ -443,6 +443,21 @@ describe("customer turn: the model (one call, typed tools, §4)", () => {
     await handleCustomerTurn(g.deps, msg({ text: "hello again" }));
     expect(g.sent.length).toBe(1);
   });
+  it("held support replies come with the next typed message, also after the handoff ended (no reply lost to the window)", async () => {
+    const f = fake({
+      rpcs: {
+        support_pending: () => [{ id: 41, name: "Rasheed", text: "Your driver is at the door" }],
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "hi" }));
+    expect(f.sent[0].text.body).toMatch(/Rasheed, Alo King:\nYour driver is at the door/);
+    expect(f.sent.length).toBeGreaterThan(1); // and the turn carries on as usual
+    // Marked shown only after the turn's messages went out, so a replayed turn would find it again.
+    expect(f.of("support_shown")[0].args).toEqual({ p_customer_id: CUST, p_ids: [41] });
+    expect(f.calls.findIndex((c) => c.fn === "support_shown")).toBeGreaterThan(
+      f.calls.findIndex((c) => c.fn === "support_pending"),
+    );
+  });
   it("without a model key only deterministic paths run", async () => {
     const f = fake({ model: null });
     await handleCustomerTurn(f.deps, msg({ text: "I want pizza" }));

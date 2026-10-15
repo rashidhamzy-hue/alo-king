@@ -167,7 +167,7 @@ function world(opts: { stallFirstAdd?: boolean } = {}) {
       return { ok: true, id: `wamid.out.${sent.length}` };
     },
     call: null,
-    telegram: null,
+
     budgetMs: 60_000,
     customer: {
       model: null,

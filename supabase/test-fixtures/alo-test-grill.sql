@@ -260,5 +260,15 @@ insert into public.app_config (key, value, effective_from, note, created_by)
 select 'sim_sink_enabled', 'true', now(), 'staging fixture: simulator sink on (DECISIONS §36)', null
 where not app_private.sim_sink_on();
 
+-- 5. A simulated operator (DECISIONS §32.1, §36) -----------------------------------------------------------
+-- "Rasheed (sim)" answers support in the e2e handoff scenario through the WhatsApp admin commands, from a +999 phone the
+-- scenario links for its run. Staging only: the cut-over checklist asserts no `sim-operator@test.invalid` operator.
+insert into auth.users (id, email)
+values ('5b000000-0000-0000-0000-00000000005b', 'sim-operator@test.invalid')
+on conflict (id) do nothing;
+insert into public.operators (user_id, role, display_name, active)
+values ('5b000000-0000-0000-0000-00000000005b', 'operator', 'Rasheed (sim)', true)
+on conflict (user_id) do update set active = true;
+
 select set_config('app.actor_kind', '', false);
 select set_config('app.audit_reason', '', false);

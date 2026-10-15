@@ -1,0 +1,59 @@
+name: slack-handoff
+description: "Human support through the ops console (DECISIONS §32.1): a handoff opens a support case and its #support thread (summary, no phone number); Rasheed answers (here from his phone with the WhatsApp admin commands, the mobile fallback of the same server function a Slack thread reply calls) and the customer gets it signed with his name; the customer's answer joins the case; Resolve hands back to the assistant."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Support" }
+  rasheed: { role: customer, cc: "961", name: "Sim Rasheed" }
+steps:
+  - note: the customer asks for a person; a case opens with its #support thread
+    say: { as: cust, text: "a person" }
+    expect:
+      - { to: cust }
+    db:
+      - sql: >
+          select c.status, exists (select 1 from public.slack_messages m where m.thread_key = 'case:' || c.id and m.channel_key = 'support'
+            and m.text like '%needs a person%' and m.text not like '%{{cust.phone}}%' and m.actions::text like '%case_resolve%') as thread
+          from public.support_cases c join public.customers u on u.id = c.customer_id
+          where u.phone_e164 = '{{cust.phone}}' order by c.opened_at desc limit 1
+        row: { status: open, thread: true }
+  - note: the simulated operator's phone is linked for this run (staging fixture "Rasheed (sim)")
+    sql: >
+      insert into public.operator_phones (phone_e164, operator_user_id)
+      values ('{{rasheed.phone}}', '5b000000-0000-0000-0000-00000000005b') on conflict (phone_e164) do nothing;
+  - note: '"status" from an operator''s phone is the ops summary, not the customer bot'
+    say: { as: rasheed, text: "status" }
+    expect:
+      - { to: rasheed, text: "support cases" }
+  - note: Rasheed writes his answer; it is a card to confirm, nothing goes before the tap
+    say: { as: rasheed, text: "reply The driver has your new building, he is 5 minutes away" }
+    expect:
+      - { to: rasheed, buttons: ["adm:"] }
+      - { none: cust }
+  - note: he confirms; the customer gets it signed with his name
+    tap: { as: rasheed, id_re: "^adm:.*:y$" }
+    expect:
+      - { to: rasheed, text: "Done" }
+      - { to: cust, text: ["Rasheed (sim), Alo King", "5 minutes away"] }
+  - note: the customer's answer joins the case (and still gets the waiting card)
+    say: { as: cust, text: "thank you, I see him" }
+    expect:
+      - { to: cust }
+    db:
+      - sql: >
+          select count(*) filter (where m.direction = 'in') as from_customer, count(*) filter (where m.direction = 'out' and m.status = 'sent') as replies
+          from public.support_messages m join public.support_cases c on c.id = m.case_id join public.customers u on u.id = c.customer_id
+          where u.phone_e164 = '{{cust.phone}}'
+        row: { from_customer: 1, replies: 1 }
+  - note: Resolve (the Slack button calls this server function) closes the case and the assistant is back
+    sql: >
+      select public.support_resolve(c.id, '5b000000-0000-0000-0000-00000000005b')
+      from public.support_cases c join public.customers u on u.id = c.customer_id
+      where u.phone_e164 = '{{cust.phone}}' and c.status = 'open';
+    expect:
+      - { to: cust, text_any: ["assistant is back", "المساعد رجع", "assistant rje3"] }
+    db:
+      - sql: >
+          select c.status, (s.handoff_until is null) as bot_back from public.support_cases c join public.customers u on u.id = c.customer_id
+          join public.bot_sessions s on s.customer_id = u.id where u.phone_e164 = '{{cust.phone}}' order by c.opened_at desc limit 1
+        row: { status: resolved, bot_back: true }
+  - note: unlink the run's operator phone
+    sql: delete from public.operator_phones where phone_e164 = '{{rasheed.phone}}';

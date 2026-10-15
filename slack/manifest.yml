@@ -1,0 +1,40 @@
+# The "Alo King Ops" Slack app (DECISIONS §32.1). Owner issue: create the app from this manifest at
+# https://api.slack.com/apps?new_app=1 (From a manifest), install it in the workspace, then paste the Bot User OAuth Token
+# and the Signing Secret into GitHub secrets SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET. Everything else is automatic: the
+# deploy syncs the secrets to the functions and slack-setup creates the channels and links operators by email.
+display_information:
+  name: Alo King Ops
+  description: Operations console for Alo King (operators only)
+  background_color: "#0b1b2b"
+features:
+  bot_user:
+    display_name: Alo King Ops
+    always_online: true
+  slash_commands:
+    - command: /ak
+      url: https://tzugbbatfbvrfzxuacqx.supabase.co/functions/v1/ops-slack?forceFunctionRegion=eu-central-1
+      description: Alo King ops (order, merchant, claim, driver, refund, credit, place, finance, broadcast pause)
+      usage_hint: order <code> | merchant <name> | claim | refund <code> <amount> | help
+      should_escape: false
+oauth_config:
+  scopes:
+    bot:
+      - chat:write
+      - chat:write.public
+      - commands
+      - channels:read
+      - channels:manage
+      - channels:history
+      - users:read
+      - users:read.email
+settings:
+  event_subscriptions:
+    request_url: https://tzugbbatfbvrfzxuacqx.supabase.co/functions/v1/ops-slack?forceFunctionRegion=eu-central-1
+    bot_events:
+      - message.channels
+  interactivity:
+    is_enabled: true
+    request_url: https://tzugbbatfbvrfzxuacqx.supabase.co/functions/v1/ops-slack?forceFunctionRegion=eu-central-1
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

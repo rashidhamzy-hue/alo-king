@@ -992,3 +992,28 @@ describe("WhatsApp templates (DECISIONS §39.8)", () => {
     }
   });
 });
+
+// Session 5b ops console (§32.1): the WhatsApp admin confirm card and the support messages.
+import { handleAdmin } from "../dispatch/admin";
+
+describe("admin and support messages (5b)", () => {
+  it("the admin confirm card stays inside the button limits, with a long question", async () => {
+    const sent: any[] = [];
+    await handleAdmin(
+      { rpc: async (fn: string, a: any) => (fn === "ops_action_propose" ? "6a000000-0000-0000-0000-000000000001" : fn === "app_reply" ? sent.push(a) : null) },
+      { from: "+96170009999", messageId: "m" },
+      { user_id: "u", role: "admin", name: "R" },
+      null,
+      { kind: "reply", text: "x".repeat(1500) },
+    );
+    expect(checkInteractive({ type: "interactive", interactive: sent[0].p_payload.interactive })).toEqual([]);
+  });
+  it("support replies and the closing note are plain text", () => {
+    for (const lang of ["ar", "en", "fr", "arabizi"]) {
+      const [r]: any = customerStatusMessages("+96170000001", { kind: "support_reply", lang, name: "Rasheed", text: "On its way" }, null);
+      expect(r.text.body).toBe("👤 Rasheed, Alo King:\nOn its way");
+      const [c]: any = customerStatusMessages("+96170000001", { kind: "support_closed", lang }, null);
+      expect(c.text.body.length).toBeGreaterThan(10);
+    }
+  });
+});

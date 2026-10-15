@@ -5,7 +5,7 @@
 // (supabase/config.toml): these checks are the authentication.
 //
 // Function secrets, synced by the deploy job from the GitHub secrets of the same name: KAPSO_API_KEY;
-// optional TELEGRAM_BOT_TOKEN and TELEGRAM_OPS_CHAT_ID (ops alerts), TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
+// optional SLACK_BOT_TOKEN (ops alerts and the console, §32.1), TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
 // TWILIO_FROM (voice layer), SENTRY_DSN (from SENTRY_DSN_FUNCTIONS); ADMIN_BASE_URL once the site exists.
 // Customer bot (session 4): ANTHROPIC_API_KEY (turns), OPENAI_API_KEY (voice transcription only, §3),
 // ORS_API_KEY (road routes for the delivery quote). Without a key that part is off, never faked.
@@ -25,6 +25,7 @@ import {
   type TwilioConfig,
 } from "../_shared/twilio.ts";
 import { reportError } from "../_shared/sentry.ts";
+import { slackPoster } from "../_shared/ops-notifier.ts";
 import { restRpc } from "../_shared/rest-rpc.ts";
 import { isSimNumber, simSinkSend } from "../_shared/sim-sink.ts";
 import { orsProvider, restRouteCache, roadRoutes } from "../_shared/routing.ts";
@@ -387,26 +388,8 @@ async function orderCard(phoneNumberId: string, svg: string): Promise<string | n
   return res.ok && typeof body?.id === "string" ? body.id : null;
 }
 
-const telegramToken = env("TELEGRAM_BOT_TOKEN");
-const telegramChat = env("TELEGRAM_OPS_CHAT_ID");
-async function telegram(text: string, url?: string): Promise<SendResult> {
-  const res = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      chat_id: telegramChat,
-      text,
-      disable_web_page_preview: true,
-      ...(url ? { reply_markup: { inline_keyboard: [[{ text: "Open", url }]] } } : {}),
-    }),
-    signal: AbortSignal.timeout(10_000),
-  }).catch(() => null);
-  if (!res) return { ok: false, retry: true, error: "telegram: no answer" };
-  await res.body?.cancel();
-  return res.ok
-    ? { ok: true }
-    : { ok: false, retry: res.status >= 500, error: `telegram ${res.status}` };
-}
+// Ops alerts and the console go to Slack (§32.1): SLACK_BOT_TOKEN, synced by the deploy job once the owner installs the app.
+const slackToken = env("SLACK_BOT_TOKEN");
 
 async function sha256(s: string): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
@@ -525,8 +508,7 @@ Deno.serve(async (req) => {
       fetchMenuMedia: (phoneNumberId: string, x: { id: string; url: string | null }) =>
         fetchMedia(x, phoneNumberId, 5_000_000),
       voiceCode: twilio ? (to, script) => placeCall(twilio, to, sayTwiml(script)) : null,
-      telegram: telegramToken && telegramChat ? telegram : null,
-      adminUrl: env("ADMIN_BASE_URL"),
+      slack: slackToken ? slackPoster(slackToken) : null,
       log,
       budgetMs: 20_000,
       workerDeadline,

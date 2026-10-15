@@ -413,8 +413,8 @@ jobs:
       - name: Sync edge-function secrets from GitHub secrets (only those that are set)
         env:
           KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_OPS_CHAT_ID: ${{ secrets.TELEGRAM_OPS_CHAT_ID }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_FUNCTIONS }}
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
@@ -424,7 +424,7 @@ jobs:
           ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
         run: |
           args=()
-          for k in KAPSO_API_KEY TELEGRAM_BOT_TOKEN TELEGRAM_OPS_CHAT_ID SENTRY_DSN TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM ANTHROPIC_API_KEY OPENAI_API_KEY ORS_API_KEY; do
+          for k in KAPSO_API_KEY SLACK_BOT_TOKEN SLACK_SIGNING_SECRET SENTRY_DSN TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN TWILIO_FROM ANTHROPIC_API_KEY OPENAI_API_KEY ORS_API_KEY; do
             v="${!k:-}"
             if [ -n "$v" ]; then args+=("$k=$v"); fi
           done

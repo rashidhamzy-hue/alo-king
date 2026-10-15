@@ -84,7 +84,7 @@ import {
   TOOLS,
   type ToolName,
 } from "./tools.ts";
-import { buttons, moneyLine } from "../../_shared/customer-cards.ts";
+import { buttons, customerStatusMessages, moneyLine } from "../../_shared/customer-cards.ts";
 import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
 import { parseCartOrder } from "../../_shared/catalog.ts";
 import { joinLink } from "../../_shared/site-claim.ts";
@@ -255,6 +255,8 @@ type Ctx = {
   cost: number;
   path: "deterministic" | "model" | "voice" | "handoff" | "budget" | "error";
   summary: string[];
+  /** Held support replies in this turn's messages, marked shown once they are sent. */
+  shownReplies?: number[];
 };
 
 const MAX_MESSAGES = 3;
@@ -339,8 +341,13 @@ export async function handleCustomerTurn(
     if (!begin.bot_enabled) say(c, "off");
     else if (begin.customer.blocked) {
       /* blocked numbers get no reply */
-    } else if (sess.handoff) await duringHandoff(c);
-    else await route(c, !!begin.first_contact);
+    } else {
+      // Replies a person sent while the customer was outside the window come with whatever they write next (any message
+      // reopens the window), not only with the template's button; the handoff may have ended meanwhile.
+      if (c.m.buttonId !== "c:support") await heldReplies(c);
+      if (sess.handoff) await duringHandoff(c);
+      else await route(c, !!begin.first_contact);
+    }
   } catch (e) {
     // A stalled request (#139): nothing has been sent and the session is untouched, so the event fails and the
     // queue replays the whole turn within seconds. After STALL_REPLAYS attempts the customer gets the buttons.
@@ -359,6 +366,13 @@ export async function handleCustomerTurn(
     if (!r.ok && r.retry) r = await deps.send(clampInteractive(p)); // Kapso 409 (one in flight) or 5xx: once more
     if (!r.ok) deps.log?.("customer send failed", { error: r.error.slice(0, 120) });
   }
+  // Held support replies count as shown only once the turn's messages went out (a replayed turn finds them again).
+  if (c.shownReplies?.length)
+    await deps
+      .rpc("support_shown", { p_customer_id: c.customerId, p_ids: c.shownReplies })
+      .catch((e: unknown) =>
+        deps.log?.("support_shown failed", { error: String(e).slice(0, 120) }),
+      );
   if (m.text) c.s.history.push({ r: "u", t: m.text.slice(0, 300) });
   if (c.summary.length) c.s.history.push({ r: "a", t: c.summary.join(" ").slice(0, 300) });
   // The session row has no fulfil column, so the choice travels in refs (prefix "fx", never used by the lists).
@@ -392,6 +406,8 @@ async function duringHandoff(c: Ctx) {
   const intent = c.m.text ? deterministicIntent(c.m.text) : null;
   if (intent && ["stop", "delete_data", "forget_history"].includes(intent.kind))
     return textIntent(c, intent.kind);
+  // "Read the reply" on the support template: the person's held replies, and the conversation stays with them.
+  if (c.m.buttonId === "c:support") return showSupportReplies(c);
   const leaves = !!c.m.buttonId || intent?.kind === "greeting" || intent?.kind === "menu";
   if (leaves) {
     await c.deps.rpc("customer_handoff_end", { p_customer_id: c.customerId });
@@ -400,7 +416,40 @@ async function duringHandoff(c: Ctx) {
     return route(c, false);
   }
   c.path = "handoff";
+  // The message joins the support case's Slack thread, where Rasheed answers (§32.1).
+  if (c.m.text) {
+    const joined = await c.deps
+      .rpc("support_inbound", { p_customer_id: c.customerId, p_text: c.m.text })
+      .catch(() => false);
+    if (joined === true) c.tools.push("support_inbound");
+  }
+  // Never silent (§34): every message during the handoff gets the waiting card with its Menu button.
   push(c, handoffWaitCard(c.m.from, c.s.lang));
+}
+
+/** The replies a person sent while the customer was outside the 24-hour window (held behind the template). */
+async function heldReplies(c: Ctx): Promise<number> {
+  const replies: { id: number; name: string | null; text: string }[] =
+    (await c.deps.rpc("support_pending", { p_customer_id: c.customerId }).catch(() => [])) ?? [];
+  if (!Array.isArray(replies) || !replies.length) return 0;
+  c.tools.push("support_pending");
+  c.shownReplies = replies.map((r) => Number(r.id)).filter((n) => Number.isFinite(n));
+  for (const r of replies)
+    push(
+      c,
+      ...customerStatusMessages(
+        c.m.from,
+        { kind: "support_reply", lang: c.s.lang, name: r.name, text: r.text },
+        null,
+      ),
+    );
+  return replies.length;
+}
+
+/** "Read the reply" on the support template. */
+async function showSupportReplies(c: Ctx) {
+  c.path = "handoff";
+  if (!(await heldReplies(c))) push(c, handoffWaitCard(c.m.from, c.s.lang));
 }
 
 async function route(c: Ctx, firstContact: boolean) {
@@ -1003,6 +1052,8 @@ async function tap(c: Ctx, a: CustomerAction) {
       return problemLine(c, a.itemId, a.kind, a.qty);
     case "simple":
       switch (a.what) {
+        case "support":
+          return showSupportReplies(c);
         case "remember":
           return showMemory(c);
         case "new_address":
