@@ -95,13 +95,48 @@ describe("catalogue sync step in dispatch (DECISIONS §39.12)", () => {
     expect(f.batches).toHaveLength(0);
     expect(f.of("catalog_sync_finish")[0].args.p_error).toBeNull();
   });
-  it("a product set Meta refuses (still empty) leaves the products recorded and the job to retry", async () => {
+  it("a product set Meta refuses (still empty) is asked for after the products, and the job retries", async () => {
     const f = fake({ setRefused: true });
     expect(await catalogSyncStep(f.rpc, f.api)).toBe(1);
     expect(f.batches).toHaveLength(1);
     expect(f.of("catalog_sync_record")[0].args.p_items).toHaveLength(2);
-    expect(f.of("catalog_product_set")).toHaveLength(1);
+    const order = f.calls.map((c) => c.fn);
+    expect(order.indexOf("catalog_sync_record")).toBeLessThan(order.indexOf("catalog_product_set"));
     expect(f.of("catalog_sync_finish")[0].args.p_error).toBe("catalogue product set not created");
+  });
+  it("the retry sends nothing again and creates the set over the products already in", async () => {
+    const { productHash } = await import("../_shared/catalog");
+    const state = Object.fromEntries(
+      [item(1), item(2)].map((p: any) => [p.retailer_id, { hash: productHash(p), visible: true }]),
+    );
+    const f = fake({
+      state,
+      jobs: [{ vendor_id: V, force: false, queued_at: "2026-10-15T16:00:00Z", attempts: 2 }],
+    });
+    expect(await catalogSyncStep(f.rpc, f.api)).toBe(1);
+    expect(f.batches).toHaveLength(0);
+    expect(f.of("catalog_product_set")[1].args.p_product_set_id).toBe("555555555555");
+    expect(f.of("catalog_sync_finish")[0].args.p_error).toBeNull();
+  });
+  it("after the fifth refusal (the ops alert) the job finishes clean, so the shop's updates are not held", async () => {
+    const f = fake({
+      setRefused: true,
+      jobs: [{ vendor_id: V, force: false, queued_at: "2026-10-15T16:00:00Z", attempts: 6 }],
+    });
+    await catalogSyncStep(f.rpc, f.api);
+    expect(f.of("catalog_sync_finish")[0].args.p_error).toBeNull();
+    const g = fake({
+      setRefused: true,
+      jobs: [{ vendor_id: V, force: false, queued_at: "2026-10-15T16:00:00Z", attempts: 5 }],
+    });
+    await catalogSyncStep(g.rpc, g.api);
+    expect(g.of("catalog_sync_finish")[0].args.p_error).toBe("catalogue product set not created");
+  });
+  it("a failed batch is the error reported, and no set is asked for", async () => {
+    const f = fake({ batchOk: false, setRefused: true });
+    await catalogSyncStep(f.rpc, f.api);
+    expect(f.sets).toHaveLength(0);
+    expect(f.of("catalog_sync_finish")[0].args.p_error).toBe("meta 500");
   });
   it("a refused batch is reported back (retried later) and nothing is recorded", async () => {
     const f = fake({ batchOk: false, set: "444444444444" });
