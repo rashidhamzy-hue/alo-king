@@ -49,6 +49,9 @@ import {
 } from "../_shared/merchant-commands.ts";
 import { runCopilot, writesIn } from "./merchant/copilot.ts";
 import { copilotModelCommand, type CopilotModel } from "./merchant/copilot-model.ts";
+import { templateKey, templatePayload, type TemplateChoice } from "./templates.ts";
+import { templateByName, templateLang, templateMessage } from "../_shared/whatsapp-templates.ts";
+import { isSimNumber } from "../_shared/sim-sink.ts";
 
 export type SendResult = { ok: true; id?: string } | { ok: false; retry: boolean; error: string };
 
@@ -66,8 +69,13 @@ export type DispatchDeps = {
   /** When this worker is certainly gone (its start + 152 s): a customer turn's lease never outlives it. */
   workerDeadline?: Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
-  /** The smart-menu model (§18.3); null without a key or API credit (§32.7). */
-  menuModel?: MenuModel | null;
+  /**
+   * The smart-menu model (§18.3); null without a key or API credit (§32.7). Every call is reserved against the daily AI
+   * budget first (ai_quota_take, purpose "menu") and booked after with its real usage (5c leftover, §32.6).
+   */
+  menuModelCall?: MenuModelCall | null;
+  /** Kapso's broadcast API (§39.8); null leaves approved broadcasts waiting. */
+  kapsoBroadcast?: KapsoBroadcast | null;
   /** Downloads a merchant's menu photo or PDF from WhatsApp media (sender phone number id given). */
   fetchMenuMedia?:
     | ((
@@ -95,6 +103,20 @@ export type DispatchDeps = {
   fetchLink?: ((url: string) => Promise<{ bytes: Uint8Array; mime: string } | null>) | null;
   /** The customer bot's model, transcription, media and routing (session 4); null = customers are ignored. */
   customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
+};
+
+export type MenuModelCall = (
+  req: Parameters<MenuModel>[0] & { model: string },
+) => Promise<{ text: string; usage: { input_tokens: number; output_tokens: number } | null }>;
+
+/** Kapso's broadcast API: create a draft for one approved template, add recipients (≤ 1000 a call), send. */
+export type KapsoBroadcast = {
+  create: (name: string, phoneNumberId: string, templateId: string) => Promise<string>;
+  addRecipients: (
+    id: string,
+    recipients: { phone_number: string; components: Record<string, unknown>[] }[],
+  ) => Promise<void>;
+  send: (id: string) => Promise<void>;
 };
 
 type Outbox = {
@@ -177,7 +199,17 @@ export async function runDispatch(
     }
   }
 
-  // 3. Ops alerts (only claimed when Telegram is configured, so attempts are not burnt).
+  // 3. Broadcasts (§39.8): one approved broadcast per run while config broadcasts_enabled is on; the database fixes the
+  // audience (opted in at this second) and the daily cap, Kapso paces the sends.
+  if (deps.kapsoBroadcast != null && left() > 4000) {
+    const b = await deps.rpc("broadcast_claim", {}).catch((e: unknown) => {
+      deps.log?.("broadcast claim failed", { error: String(e).slice(0, 120) });
+      return null;
+    });
+    if (b?.id) await sendBroadcast(deps, b, () => senderFor("customer"));
+  }
+
+  // 4. Ops alerts (only claimed when Telegram is configured, so attempts are not burnt).
   if (deps.telegram && left() > 1000) {
     const alerts: any[] = (await deps.rpc("ops_alerts_claim", { p_limit: 20 })) ?? [];
     for (const a of alerts) {
@@ -215,8 +247,10 @@ async function deliver(
     case "whatsapp": {
       if (!m.target || !E164.test(m.target))
         return { status: "skipped", error: "no WhatsApp number for this merchant" };
-      const from = await sender();
+      const from = await senderFor(deps, "merchant", m.target, sender);
       if (!from) return { status: "skipped", error: "no merchant WhatsApp number connected (#67)" };
+      const outside = await outsideWindow(deps, m, from, "merchant");
+      if (outside) return outside;
       const payloads = buildWhatsApp(m, "ar");
       if (!payloads.length) return { status: "skipped", error: `nothing to send for ${m.purpose}` };
       let ref: string | undefined;
@@ -239,8 +273,10 @@ async function deliverCustomer(
   sender: () => Promise<string | null>,
 ): Promise<Delivery> {
   if (!m.target || !E164.test(m.target)) return { status: "skipped", error: "no customer number" };
-  const from = await sender();
+  const from = await senderFor(deps, "customer", m.target, sender);
   if (!from) return { status: "skipped", error: "no customer WhatsApp number connected" };
+  const outside = await outsideWindow(deps, m, from, "customer");
+  if (outside) return outside;
   const p = m.payload ?? {};
   let deliveryCode: string | null = null;
   if (
@@ -293,6 +329,207 @@ async function deliverCustomer(
     ref ??= r.id;
   }
   return { status: "sent", ref };
+}
+
+/**
+ * Outside the 24-hour window on the sending number (§3, §39.8): the approved template that carries this row, or a dry run
+ * for a simulator number. Null = inside the window (or a row no template covers): send the free-form message as before.
+ * A customer message no template can carry is skipped (Meta would refuse it); a merchant card is still tried, because
+ * the escalation's backup channels take over when it fails.
+ */
+async function outsideWindow(
+  deps: DispatchDeps,
+  m: Outbox,
+  from: string,
+  audience: "customer" | "merchant",
+): Promise<Delivery | null> {
+  const key = templateKey(m);
+  if (!key || !m.target) return null;
+  const open = await deps.rpc("whatsapp_window_open", {
+    p_phone_e164: m.target,
+    p_phone_number_id: from,
+  });
+  if (open !== false) return null;
+  const choice: TemplateChoice | null = await deps.rpc("whatsapp_template_for", {
+    p_key: key,
+    p_lang: String(m.payload?.lang ?? "ar"),
+    p_target: m.target,
+    p_audience: audience,
+  });
+  if (!choice)
+    return audience === "customer"
+      ? { status: "skipped", error: `outside the 24-hour window: no approved template for ${key}` }
+      : null;
+  const payload = templatePayload(choice, key, m);
+  if (!payload) return { status: "skipped", error: `template ${choice.name} could not be filled` };
+  const r = await deps.whatsapp(from, payload);
+  if (!r.ok) return { status: r.retry ? "retry" : "failed", error: r.error };
+  return { status: "sent", ref: r.id ?? (choice.dry_run ? `dry-run:${choice.name}` : undefined) };
+}
+
+/**
+ * The number to send an outbox row from: the one where this person's 24-hour window is open, else the default sender
+ * for the audience (whatsapp_sender_for). An older database without the function keeps the default.
+ */
+async function senderFor(
+  deps: DispatchDeps,
+  audience: "customer" | "merchant",
+  target: string,
+  fallback: () => Promise<string | null>,
+): Promise<string | null> {
+  const n = await deps
+    .rpc("whatsapp_sender_for", { p_audience: audience, p_target: target })
+    .catch(() => null);
+  return typeof n === "string" && n ? n : fallback();
+}
+
+/** The number to answer an inbound message from: the one it arrived on when it is ours, else the default sender. */
+async function replySender(deps: DispatchDeps, ev: any, audience: "customer" | "merchant") {
+  const n = ev?.phone_number_id
+    ? await deps
+        .rpc("whatsapp_reply_number", {
+          p_phone_number_id: String(ev.phone_number_id),
+          p_audience: audience,
+        })
+        .catch(() => null)
+    : null;
+  return typeof n === "string" && n
+    ? n
+    : ((await deps.rpc("whatsapp_sender", { p_audience: audience })) as string | null);
+}
+
+const MARKETING_PAYLOADS = ["c:order", "mkt:stop"];
+
+/**
+ * One claimed broadcast (§39.8, reference: gokapso/whatsapp-broadcasts-example): per template language, the simulator
+ * numbers are recorded through the sink (a dry run; never sent), and the rest go to one Kapso broadcast of the approved
+ * template in that language. Kapso paces the sends and suppresses anyone who stopped marketing inside WhatsApp.
+ */
+async function sendBroadcast(
+  deps: DispatchDeps,
+  b: {
+    id: string;
+    name: string;
+    template: string;
+    values: Record<string, unknown>;
+    groups: Record<string, string[]> | null;
+  },
+  sender: () => Promise<string | null>,
+) {
+  const errors: string[] = [];
+  const ids: string[] = [];
+  const dry: string[] = [];
+  const sent: string[] = [];
+  const from = await sender();
+  const def = templateByName(String(b.template));
+  if (!from || !def || def.category !== "MARKETING") {
+    await deps.rpc("broadcast_finish", {
+      p_id: b.id,
+      p_ok: false,
+      p_kapso_ids: [],
+      p_error: !from ? "no customer number" : "not a marketing template",
+      p_dry_run_phones: [],
+      p_sent_phones: [],
+    });
+    return;
+  }
+  for (const [code, phones] of Object.entries(b.groups ?? {})) {
+    const lang = templateLang(code);
+    let message: Record<string, unknown>;
+    try {
+      message = templateMessage("+0", def, lang, b.values ?? {}, MARKETING_PAYLOADS);
+    } catch (e) {
+      errors.push(`${lang}: ${String(e instanceof Error ? e.message : e).slice(0, 100)}`);
+      continue;
+    }
+    const components = (message.template as { components: Record<string, unknown>[] }).components;
+    const sim = phones.filter((p) => isSimNumber(p));
+    const real = phones.filter((p) => !isSimNumber(p));
+    for (const ph of sim) {
+      const r = await deps.whatsapp(from, { ...message, to: ph.replace(/^\+/, "") });
+      if (r.ok) dry.push(ph);
+      else errors.push(`${lang}: dry run refused`);
+    }
+    if (!real.length) continue;
+    if (!deps.kapsoBroadcast) {
+      errors.push(`${lang}: no Kapso key`);
+      continue;
+    }
+    const templateId = await deps.rpc("broadcast_template_id", {
+      p_template: def.name,
+      p_lang: lang,
+    });
+    if (!templateId) {
+      errors.push(`${lang}: ${def.name} is not approved on the sending number`);
+      continue;
+    }
+    try {
+      const id = await deps.kapsoBroadcast.create(
+        `${b.name} (${lang})`.slice(0, 120),
+        from,
+        templateId,
+      );
+      for (let i = 0; i < real.length; i += 1000)
+        await deps.kapsoBroadcast.addRecipients(
+          id,
+          real.slice(i, i + 1000).map((phone_number) => ({ phone_number, components })),
+        );
+      await deps.kapsoBroadcast.send(id);
+      ids.push(id);
+      sent.push(...real);
+    } catch (e) {
+      errors.push(`${lang}: ${String(e instanceof Error ? e.message : e).slice(0, 160)}`);
+    }
+  }
+  await deps.rpc("broadcast_finish", {
+    p_id: b.id,
+    p_ok: errors.length === 0,
+    p_kapso_ids: ids,
+    p_error: errors.length ? errors.join("; ").slice(0, 500) : null,
+    p_dry_run_phones: dry,
+    p_sent_phones: sent,
+  });
+}
+
+/** The menu model inside the daily AI budget: reserve, call, book the real usage (§32.6; 5c leftover). */
+export function budgetedMenuModel(deps: DispatchDeps): MenuModel | null {
+  const call = deps.menuModelCall;
+  if (!call) return null;
+  return async (req) => {
+    const [model, est] = await Promise.all([
+      deps.rpc("config_value", { p_key: "ai_menu_model" }),
+      deps.rpc("config_value", { p_key: "ai_menu_est_usd" }),
+    ]);
+    if (!model) throw new Error("ai_menu_model is not configured");
+    const q = await deps.rpc("ai_quota_take", {
+      p_customer_id: null,
+      p_purpose: "menu",
+      p_model: String(model),
+      p_est_usd: Number(est ?? 0.05),
+    });
+    if (!q?.ok) throw new Error(`menu model: daily AI budget (${String(q?.reason ?? "refused")})`);
+    const t0 = Date.now();
+    let error: string | null = null;
+    let out: Awaited<ReturnType<MenuModelCall>> | null = null;
+    try {
+      out = await call({ ...req, model: String(model) });
+    } catch (e) {
+      error = String(e).slice(0, 200);
+    }
+    await deps
+      .rpc("ai_call_finish", {
+        p_call_id: q.call_id,
+        p_input_tokens: out?.usage?.input_tokens ?? null,
+        p_output_tokens: out?.usage?.output_tokens ?? null,
+        p_audio_seconds: null,
+        p_latency_ms: Date.now() - t0,
+        p_ok: !error,
+        p_error: error,
+      })
+      .catch(() => null);
+    if (error || !out) throw new Error(error ?? "menu model: no answer");
+    return out.text;
+  };
 }
 
 const result = (r: SendResult): Delivery =>
@@ -379,6 +616,26 @@ export function readInbound(payload: any): Inbound | null {
 }
 
 async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ignored"> {
+  // A contact stopped marketing inside WhatsApp itself (Meta's opt-out, §18.3): the same as typing STOP.
+  if (/marketing_preference_changed$/.test(String(ev.event_type))) {
+    const wa = String(ev.payload?.contact?.wa_id ?? "").replace(/^\+/, "");
+    const stopped = ev.payload?.marketing_preference?.status === "stopped";
+    if (
+      !/^[1-9][0-9]{6,14}$/.test(wa) ||
+      !["stopped", "resumed"].includes(String(ev.payload?.marketing_preference?.status))
+    ) {
+      // A shape we do not recognise is never silently "done": logged and kept as ignored for a look.
+      deps.log?.("marketing preference event not recognised", {
+        event_id: Number(ev.event_id ?? 0),
+      });
+      return "ignored";
+    }
+    await deps.rpc("customer_marketing_stop_by_phone", {
+      p_phone_e164: `+${wa}`,
+      p_stopped: stopped,
+    });
+    return "done";
+  }
   if (
     !/message\.received$/.test(String(ev.event_type)) &&
     !(ev.payload?.message && ev.payload?.message?.kapso?.direction === "inbound")
@@ -388,13 +645,29 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
   const m = readInbound(ev.payload);
   const o = readOnboardingInbound(ev.payload);
   if (!m || !o) return "ignored";
-  // When this number last wrote to us: a free-form notice is only deliverable inside WhatsApp's 24-hour
-  // window, so claim notices to current owners check it (§18.1 I).
+  // When this number last wrote to which of our numbers: a free-form message is only deliverable inside WhatsApp's
+  // 24-hour window on that number (§3, §18.1 I); outside it a template carries the message (§39.8).
   await deps
-    .rpc("whatsapp_seen", { p_phone_e164: m.from })
+    .rpc(
+      "whatsapp_seen",
+      ev.phone_number_id
+        ? { p_phone_e164: m.from, p_phone_number_id: String(ev.phone_number_id) }
+        : { p_phone_e164: m.from },
+    )
     .catch((e: unknown) => deps.log?.("whatsapp_seen failed", { error: String(e).slice(0, 120) }));
   const members: any[] =
     (await deps.rpc("merchant_members_by_phone", { p_phone_e164: m.from })) ?? [];
+  // "Stop promotions" on a marketing template is STOP for anyone, a merchant member who is also a customer included
+  // (§18.3: honoured at once); the customer bot handles it for everyone else.
+  if (m.buttonId === "mkt:stop" && members.length) {
+    await deps.rpc("customer_marketing_stop_by_phone", { p_phone_e164: m.from, p_stopped: true });
+    await deps.rpc("app_reply", {
+      p_to: m.from,
+      p_payload: { text: "✅ وقّفنا العروض. / Promotions stopped. / Promotions arrêtées." },
+      p_ref: m.messageId,
+    });
+    return "done";
+  }
   // Staging only (§34): the owner's one phone plays both sides. `#merchant` and `#customer` choose which side
   // the bot treats the text as; a tap goes to whoever owns the card (a merchant card to the merchant, a
   // customer button to the customer bot). Null for every other number, so nothing changes for real people.
@@ -403,7 +676,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     .catch(() => null);
   if (side) {
     const sw = m.text === null ? null : /^\s*#(merchant|customer)\s*$/i.exec(m.text);
-    if (sw) return switchTestSide(deps, m.from, sw[1].toLowerCase());
+    if (sw) return switchTestSide(deps, ev, m.from, sw[1].toLowerCase());
     const merchantTap = !!m.buttonId && parseMerchantAction(m.buttonId) !== null;
     const customerTap = !!m.buttonId && parseCustomerAction(m.buttonId) !== null;
     if (customerTap && !merchantTap) return customerInbound(deps, ev);
@@ -413,7 +686,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
   // to our own claim cards (objection, lost-phone confirmation), which go to members.
   const ot = parseOnboardingTap(o.buttonId);
   if (!members.length || ot?.a === "object" || ot?.a === "recover") {
-    const from = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+    const from = await replySender(deps, ev, "merchant");
     if (
       from &&
       (await handleOnboarding(
@@ -432,6 +705,11 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
       return "done";
   }
   if (!members.length) return customerInbound(deps, ev);
+  // A merchant template's button that stands for a typed command (the weekly summary's "Details").
+  if (m.buttonId && Object.hasOwn(TEMPLATE_COMMANDS, m.buttonId)) {
+    m.text = TEMPLATE_COMMANDS[m.buttonId];
+    m.buttonId = null;
+  }
   // Shift handover (§32.5): a staff member's first message of a shift gets the open orders, items off and
   // open complaints before anything else.
   const touched = await deps
@@ -452,7 +730,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     });
 
   // The smart menu (§18.3): "menu", menu photos or pasted text, and its section and nutrition taps.
-  const menuSender = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+  const menuSender = await replySender(deps, ev, "merchant");
   // Merchant Flows (§12): "hours" / "profile" and the submissions of those Flows.
   if (
     menuSender &&
@@ -474,7 +752,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
       {
         rpc: deps.rpc,
         send: (p) => deps.whatsapp(menuSender, p),
-        menuModel: deps.menuModel ?? null,
+        menuModel: budgetedMenuModel(deps),
         fetchMedia: deps.fetchMenuMedia ? (x) => deps.fetchMenuMedia!(menuSender, x) : null,
         log: deps.log,
         fetchLink: deps.fetchLink ?? null,
@@ -542,11 +820,12 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
 /** `#merchant` / `#customer` from the owner's phone (staging only): switches the side and says so. */
 async function switchTestSide(
   deps: DispatchDeps,
+  ev: any,
   phone: string,
   side: string,
 ): Promise<"done" | "ignored"> {
   const r = await deps.rpc("test_side_set", { p_phone_e164: phone, p_side: side });
-  const from = await deps.rpc("whatsapp_sender", { p_audience: "merchant" });
+  const from = await replySender(deps, ev, "merchant");
   if (!from) return "ignored";
   const body =
     r?.status !== "ok"
@@ -565,7 +844,7 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
   if (!deps.customer) return "ignored";
   const m = readCustomerInbound(ev.payload);
   if (!m || !m.messageId) return "ignored";
-  const from = (await deps.rpc("whatsapp_sender", { p_audience: "customer" })) ?? null;
+  const from = (await replySender(deps, ev, "customer")) ?? null;
   if (!from) return "ignored";
   await handleCustomerTurn(
     {
@@ -582,6 +861,8 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
   );
   return "done";
 }
+
+const TEMPLATE_COMMANDS: Record<string, string> = { "mcmd:week": "weekly report" };
 
 export const HELP = [
   "ما فهمت عليك 🙏 جرّب («help» للائحة كاملة / for everything):",

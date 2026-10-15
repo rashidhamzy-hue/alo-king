@@ -4,6 +4,7 @@
 // number for customers and merchants until cut-over (§3), so this runs for a non-member who asks to join
 // or who is in the middle of onboarding; everyone else stays with the customer bot.
 
+import { claimCodePayload } from "../../_shared/claim-code.ts";
 import { clampInteractive } from "../../_shared/meta-limits.ts";
 import {
   businessTypeList,
@@ -418,5 +419,11 @@ async function sendCode(
     if (!deps.voiceCode) return { ok: false, retry: false, error: "voice provider not configured" };
     return deps.voiceCode(send.to, claimCodeScript(send.code));
   }
-  return deps.send(claimCodeText(send.to, send.code));
+  // Outside the shop's 24-hour window the approved authentication template carries the code (§39.8).
+  const sender = await deps.rpc("whatsapp_sender", { p_audience: "merchant" }).catch(() => null);
+  return deps.send(
+    sender
+      ? await claimCodePayload(deps.rpc, String(sender), send.to, send.code)
+      : claimCodeText(send.to, send.code),
+  );
 }

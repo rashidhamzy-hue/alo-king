@@ -1,5 +1,9 @@
 // Pure matching: sim_outbox rows -> Out, expectations -> failures, DB values -> expectations. Unit-tested.
 import type { Expect, Out } from "./types";
+import {
+  templateByName,
+  templateLang,
+} from "../../../supabase/functions/_shared/whatsapp-templates";
 
 type Row = {
   id: number | string;
@@ -20,11 +24,34 @@ export function toOut(r: Row): Out {
       if (row?.id) options.push({ id: String(row.id), title: String(row.title ?? "") });
   if (i.action?.parameters?.display_text)
     options.push({ id: "url", title: String(i.action.parameters.display_text) });
+  // A template (outside the 24-hour window, §39.8; on staging a dry run): its text as the person would read it, prefixed
+  // with the template name, and its quick replies as options (payload as id, the button's title).
+  let text = r.body ?? "";
+  if (p.type === "template" && p.template?.name) {
+    const def = templateByName(String(p.template.name));
+    const lang = templateLang(p.template.language?.code);
+    const comps: any[] = p.template.components ?? [];
+    const params: string[] = (comps.find((c) => c.type === "body")?.parameters ?? []).map(
+      (x: any) => String(x.text ?? ""),
+    );
+    const body = def
+      ? def.body[lang].replace(/\{\{(\d+)\}\}/g, (_, n) => params[Number(n) - 1] ?? "")
+      : params.join(" | ");
+    text = `[template ${p.template.name}/${lang}] ${body}`;
+    comps
+      .filter((c) => c.sub_type === "quick_reply")
+      .forEach((c) =>
+        options.push({
+          id: String(c.parameters?.[0]?.payload ?? ""),
+          title: def?.buttons?.[lang]?.[Number(c.index)] ?? "",
+        }),
+      );
+  }
   return {
     id: Number(r.id),
     to: r.to_phone,
     kind: r.kind,
-    text: r.body ?? "",
+    text,
     header: String(i.header?.text ?? ""),
     options,
     raw: p,

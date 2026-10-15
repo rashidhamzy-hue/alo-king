@@ -1,0 +1,46 @@
+name: template-outside-window
+description: "Outside WhatsApp's 24-hour window the delivered + rate message goes as the approved template (DECISIONS §3, §39.8). On the sandbox templates do not exist, so a simulator number gets a dry run: the template is built and recorded, never sent. A tap on its button reopens the window and lands on the same handler as the free-form card."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Window" }
+  merchant: { role: merchant }
+steps:
+  - include: { part: order-to-placed, as: cust, lat: 33.6869, lon: 35.5518, qty: 1 }
+  - note: merchant accepts; the customer wrote minutes ago, so the confirmation is free-form
+    tap: { as: merchant, id_prefix: "acc:" }
+    expect:
+      - { to: cust, kind: text, text_re: "accepted", capture: { code: "[Cc]ode[^0-9]{0,8}(\\d{4})" } }
+  - tap: { as: merchant, id_prefix: "rdy:" }
+    expect:
+      - { to: merchant, buttons: ["out:"] }
+  - tap: { as: merchant, id_prefix: "out:" }
+    expect:
+      - { to: cust, kind: text, text_re: "on the way|en route|الطريق" }
+  - note: a day passes without a word from the customer (time travel on the per-number window)
+    sql: >
+      update app_private.whatsapp_windows set last_inbound_at = now() - interval '25 hours'
+      where phone_e164 = '{{cust.phone}}'
+    db:
+      - sql: select public.whatsapp_window_open('{{cust.phone}}', public.whatsapp_sender('customer')) as open
+        row: { open: false }
+  - note: the merchant types the code; the delivered message goes as the template, rating buttons included
+    say: { as: merchant, text: "{{vars.code}}" }
+    expect:
+      - { to: merchant }
+      - { to: cust, kind: template, text: "[template alo_order_delivered", buttons: ["rate:", "rcv:"] }
+    db:
+      - sql: >
+          select m.status, m.provider_ref from public.outbound_messages m join public.orders o on o.id = m.order_id
+          join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' and m.dedupe_key like '%:delivered' order by m.id desc limit 1
+        row: { status: sent, provider_ref: "~^(dry-run:alo_order_delivered|sim)" }
+  - note: the customer taps a rating on the template; it is recorded and the window is open again
+    tap: { as: cust, id_re: ":f5$" }
+    expect:
+      - { to: cust }
+    db:
+      - sql: >
+          select exists (select 1 from public.order_ratings r where r.order_id = o.id) as rated,
+                 public.whatsapp_window_open('{{cust.phone}}', public.whatsapp_sender('customer')) as open
+          from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { rated: true, open: true }

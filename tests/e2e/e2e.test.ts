@@ -173,3 +173,49 @@ describe("scenario files", () => {
     });
   }
 });
+
+describe("toOut: templates (session 5b, DECISIONS §39.8)", () => {
+  it("renders a template's text and quick replies the way the person would see them", () => {
+    const o = toOut({
+      id: 9,
+      to_phone: "+99996100000009",
+      kind: "template",
+      body: "",
+      payload: {
+        type: "template",
+        template: {
+          name: "alo_order_delivered",
+          language: { code: "en" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: "AB3CD9" },
+                { type: "text", text: "Alo Test Grill" },
+              ],
+            },
+            {
+              type: "button",
+              sub_type: "quick_reply",
+              index: "0",
+              parameters: [{ type: "payload", payload: "rate:x:f5" }],
+            },
+            {
+              type: "button",
+              sub_type: "quick_reply",
+              index: "2",
+              parameters: [{ type: "payload", payload: "rcv:x:no" }],
+            },
+          ],
+        },
+      },
+    });
+    expect(o.text).toBe(
+      "[template alo_order_delivered/en] Your order #AB3CD9 from Alo Test Grill was delivered. How was the food? Pick a rating below; it helps the shop.",
+    );
+    expect(o.options).toEqual([
+      { id: "rate:x:f5", title: "Great ⭐⭐⭐⭐⭐" },
+      { id: "rcv:x:no", title: "A problem" },
+    ]);
+  });
+});

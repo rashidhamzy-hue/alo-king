@@ -950,3 +950,43 @@ describe("session 5c customer agent cards (DECISIONS §38.3, §39.6)", () => {
     ).toEqual([]);
   });
 });
+
+// Session 5b: templates are not interactive messages, but they have limits of their own (body 1024, footer 60, quick
+// replies of 25 characters, at most 3 here); every template, in every language, built for sending and for Meta.
+import { TEMPLATES, TEMPLATE_LANGS, checkTemplate, templateMessage } from "./whatsapp-templates";
+import { templatePayload } from "../dispatch/templates";
+
+describe("WhatsApp templates (DECISIONS §39.8)", () => {
+  for (const t of TEMPLATES)
+    it(`${t.name} stays inside Meta's template limits and builds in ar, en and fr`, () => {
+      expect(checkTemplate(t)).toEqual([]);
+      for (const lang of TEMPLATE_LANGS) {
+        const n = t.category === "AUTHENTICATION" ? 0 : (t.buttons?.[lang]?.length ?? 0);
+        const msg: any = templateMessage("+96170000001", t, lang, t.example, Array.from({ length: n }, (_, i) => `p${i}`));
+        expect(msg.type).toBe("template");
+        expect(checkInteractive(msg)).toEqual([]);
+        for (const b of msg.template.components.filter((c: any) => c.sub_type === "quick_reply"))
+          expect(String(b.parameters[0].payload).length).toBeLessThanOrEqual(META.buttonId);
+      }
+    });
+  it("the dispatch filler builds a sendable template for every message it covers", () => {
+    const UUID = "11111111-2222-3333-4444-555555555555";
+    const card = { order_id: UUID, code: "ABC123", vendor_name: "V", total_usd: 1, total_lbp: 89500, items: [{ name: "Wrap", quantity: 1 }] };
+    for (const [key, purpose, payload] of [
+      ["accepted", "customer_message", { kind: "accepted", eta: { min: 20, max: 30 } }],
+      ["on_the_way", "customer_message", { kind: "on_the_way", eta: { min: 5 } }],
+      ["delivered", "customer_message", { kind: "delivered" }],
+      ["gift_accepted", "customer_message", { kind: "gift_accepted", code: "ABC123", recipient_name: "M" }],
+      ["gift_request", "customer_message", { kind: "gift_request", gift_id: UUID, sender: "R", vendor: "V", total_usd: 1, total_lbp: 1 }],
+      ["new_order", "new_order", {}],
+      ["proposal", "proposal", { proposal_id: UUID, summary: "s", vendor_name: "V" }],
+      ["merchant_weekly", "reply", { kind: "merchant_weekly", shop: "V", orders: "1", delivered: "1", sales: "$1.00", rating: "5" }],
+    ] as const) {
+      const t = TEMPLATES.find((x) => x.key === key)!;
+      for (const lang of TEMPLATE_LANGS) {
+        const msg = templatePayload({ name: t.name, lang }, key, { order_id: UUID, target: "+96170000001", purpose, payload, card });
+        expect(msg, `${key}/${lang}`).not.toBeNull();
+      }
+    }
+  });
+});

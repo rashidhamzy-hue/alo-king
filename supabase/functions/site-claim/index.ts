@@ -8,7 +8,8 @@
 // cannot be delivered and the claim moves to documents, exactly as in the WhatsApp onboarding.
 
 import { makeHandler, visitorKeyFrom, type SendResult } from "../_shared/site-claim.ts";
-import { claimCodeScript, claimCodeText } from "../_shared/onboarding-cards.ts";
+import { claimCodeScript } from "../_shared/onboarding-cards.ts";
+import { claimCodePayload } from "../_shared/claim-code.ts";
 import { placeCall, sayTwiml, type TwilioConfig } from "../_shared/twilio.ts";
 import { reportError } from "../_shared/sentry.ts";
 
@@ -58,7 +59,7 @@ async function whatsappCode(to: string, code: string): Promise<SendResult> {
     const res = await fetch(`${KAPSO_BASE}/${encodeURIComponent(sender)}/messages`, {
       method: "POST",
       headers: { "X-API-Key": kapsoKey, "content-type": "application/json" },
-      body: JSON.stringify(claimCodeText(to, code)),
+      body: JSON.stringify(await claimCodePayload(rpc, sender, to, code)),
       signal: AbortSignal.timeout(8000),
     });
     const body = await res.json().catch(() => ({}));

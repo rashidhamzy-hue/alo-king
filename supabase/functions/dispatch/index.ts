@@ -10,7 +10,12 @@
 // Customer bot (session 4): ANTHROPIC_API_KEY (turns), OPENAI_API_KEY (voice transcription only, §3),
 // ORS_API_KEY (road routes for the delivery quote). Without a key that part is off, never faked.
 
-import { runDispatch, type SendResult } from "./handler.ts";
+import {
+  runDispatch,
+  type KapsoBroadcast,
+  type MenuModelCall,
+  type SendResult,
+} from "./handler.ts";
 import {
   callScript,
   gatherTwiml,
@@ -174,23 +179,65 @@ async function fetchMedia(
   return { bytes, mime: res.headers.get("content-type")?.split(";")[0] || "audio/ogg" };
 }
 
-/** The smart-menu model (§18.3): config `ai_menu_model`, one call per photo or PDF, JSON text back. */
-async function menuModel(
-  req: Parameters<import("../_shared/menu-draft.ts").MenuModel>[0],
-): Promise<string> {
-  const model = String((await rpc("config_value", { p_key: "ai_menu_model" })) ?? "");
-  if (!model) throw new Error("ai_menu_model is not configured");
+/**
+ * The smart-menu model (§18.3): config `ai_menu_model` (chosen by the handler, which reserves the call against the daily
+ * AI budget first), one call per photo or PDF, JSON text back with the real usage.
+ */
+const menuModelCall: MenuModelCall = async (req) => {
   const msg = await anthropic!.messages.create(
     {
-      model,
+      model: req.model,
       max_tokens: 8000,
       system: req.system,
       messages: [{ role: "user", content: req.content as Anthropic.MessageParam["content"] }],
     },
     { timeout: 60_000 },
   );
-  return msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+  return {
+    text: msg.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
+    usage: { input_tokens: msg.usage.input_tokens, output_tokens: msg.usage.output_tokens },
+  };
+};
+
+// ---- Broadcasts (§39.8): Kapso's broadcast API, reference gokapso/whatsapp-broadcasts-example ---------------------------
+const KAPSO_PLATFORM = "https://api.kapso.ai/platform/v1/whatsapp";
+async function kapsoPlatform(path: string, body?: unknown): Promise<any> {
+  const res = await fetch(`${KAPSO_PLATFORM}${path}`, {
+    method: "POST",
+    headers: { "X-API-Key": kapsoKey!, "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    redirect: "error",
+    signal: AbortSignal.timeout(KAPSO_TIMEOUT_MS),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok)
+    throw new Error(`kapso ${res.status} ${JSON.stringify(j?.error ?? {}).slice(0, 160)}`);
+  return j;
 }
+const kapsoBroadcast: KapsoBroadcast | null = kapsoKey
+  ? {
+      create: async (name, phoneNumberId, templateId) => {
+        const j = await kapsoPlatform("/broadcasts", {
+          whatsapp_broadcast: {
+            name,
+            phone_number_id: phoneNumberId,
+            whatsapp_template_id: templateId,
+          },
+        });
+        const id = j?.data?.id;
+        if (typeof id !== "string") throw new Error("kapso broadcast: no id");
+        return id;
+      },
+      addRecipients: async (id, recipients) => {
+        await kapsoPlatform(`/broadcasts/${encodeURIComponent(id)}/recipients`, {
+          whatsapp_broadcast: { recipients },
+        });
+      },
+      send: async (id) => {
+        await kapsoPlatform(`/broadcasts/${encodeURIComponent(id)}/send`);
+      },
+    }
+  : null;
 
 /**
  * Claim documents (§18.1 C-L): the WhatsApp media is copied into the private `claim-documents` bucket
@@ -454,7 +501,8 @@ Deno.serve(async (req) => {
       // Claim codes to landlines (§18.1 B): the same voice provider, saying the code twice.
       storeDocument,
       orderCard,
-      menuModel: anthropic ? menuModel : null,
+      menuModelCall: anthropic ? menuModelCall : null,
+      kapsoBroadcast,
       fetchLink: (url: string) =>
         safeFetch(url, {
           maxBytes: 5_000_000,
