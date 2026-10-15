@@ -1,4 +1,4 @@
-# Handoff — 15 October 2026 (after session W)
+# Handoff — 15 October 2026 (after session 5c)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
@@ -229,7 +229,28 @@
   - **e2e (§36):** 11/11 after #161's deploy (run 38641472145) and 11/11 after #162's deploy (run 38651584873), the last merge of the session.
   - **Open for later:** re-run `scripts/web/build-chouf-map.mjs` after every change to `shouf_delivery_boundary.csv` (a village switched on by a new dated `pilot_place_ids` row is not drawn until then); the map does not write `?v=` back into the address while browsing (it reads it on arrival; see the README for why); the `merchant_claim` Flow JSON with 12/15/20 km options is re-uploaded with 5b's publish; the photo step of the menu harvest still waits for API credit.
   - **CUT-OVER (session 14), added:** production has `max_delivery_km() = 20` (the 15 October set) and `listing_radius_km` = 10.
-- **Next: 5c (agents), then 5b (Kapso and operations), 13 and 14.** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5).
+- **Session 5c (agents, §39.6, §39.7, §38.3 rows marked 5c): done (15 October).** PRs #164 (customer agent), #166 (merchant copilot) and this handoff; see LOG.md "session 5c" lines. No API credit: everything below runs on typed tools, rules and taps; the model paths are built, tested with recorded answers, and switched off.
+  - **Customer agent with buttons only (on now):**
+    - One search index (`catalog_search`) across every orderable menu and catalogue in the customer's delivery area, with the dictionary `search_lexicon` (Arabizi, French, English and brand words, attributes such as spicy or cheap). Typed text that the rules read ("2 man2oushe kishk", "Pepsi diet 2") goes to it without a model; unclaimed shops are never in results and asking for one gets "Not on Alo King yet" (§39.3).
+    - Memory by phone number: name, language, saved addresses, last and usual order, dietary preferences only from what the customer says or orders; an allergy only after a consent tap (unconsented health notes were deleted by the migration). "What do you remember about me?" lists it with a one-tap delete per part, audited; no marketing function can read it (SQL test).
+    - The address is confirmed on every order (a pin sent in the last 30 minutes counts); a new address asks once "for you or someone else?" (§22.1, never the country code).
+    - Send Home: a gift order is placed only when the recipient taps "Accept and pay on delivery", for exactly the basket they were shown (fingerprint of lines, total, LBP rate, address, recipient); at most 3 requests a day per sender and number; STOP blocks gift messages.
+    - Problems: deterministic rules (§38.3). Missing or wrong item (how many?), cold food (against the route time), late (against the promised prep time) are credited automatically up to $8 with a low dispute rate, a person decides between $8 and $20, Rasheed above $20; every credit is a balanced ledger transaction, used on the next order, reversed if it expires. Damaged and other go to a person with a handover.
+    - The §38.3 rows: message budget 8 (cap 12) with the delivered message carrying the rating; scope and medicine refusal by rule; outbox pacing (60/s, 6 s per person); dead-letter queue with an operator replay; 2-tap greeting; sesame/toum hints and the shared-kitchen disclaimer (WhatsApp and website); stairs rule from config; 180 s auto-cancel with alternatives; Haiku 5.5 as the eval candidate.
+  - **Merchant copilot with buttons only (on now):** availability by station, section or item with automatic restore ("fryer off 15 min"), stock that carries over, add/rename/describe/remove items, prices, offers (percent, happy hour, first order, free item; merchant-funded, priced by the server, commission after the offer), hours and closure days, minimum order, own-delivery radius, Boost budgets (recorded, never charged before the ad system), staff list, daily and weekly reports, merchant memory and suggestions (cards to the owner inside the 24-hour window), menu import from a link beside photo, PDF and text. Every change is a proposal card applied only by a member's tap.
+  - **Turns on with API credit (each a dated config row in a PR after its eval passes; nothing switches by itself):**
+    - `ai_free_text_enabled`: customer free text through the model with 20 typed tools (gate 90% overall, 85% per language; `evals.yml` text job, Haiku 4.5 vs Haiku 5.5 vs Sonnet 5.5).
+    - `ai_voice_enabled`: voice notes (transcription then the model; voice eval on the labelled notes, 85% exact baskets).
+    - `ai_merchant_text_enabled`: merchant messages the rules do not read, through 22 typed tools (merchant eval, 50 cases, same gate).
+    - The menu model for photos and PDFs (built in session F) and the photo step of the menu harvest.
+  - **e2e (§36):** local stack 16/16 on #164's head and 19/19 on #166 before its last review fixes. Staging after #164's deploy: 15/16 (run 38683264688, issue #165): `refund` got "intake failed" from the webhook at step 9, the known staging stall on `webhook_intake`, not 5c code. Staging after #166's deploy: running when this was written; the result is added to this entry before the PR merges.
+  - **New scenarios:** 12 memory-see-delete, 13 address-confirm, 14 send-home, 15 refund, 16 unclaimed-shop, 17 copilot-availability, 18 copilot-price, 19 copilot-offer.
+  - **Open for later:**
+    - Prove `Deno.resolveDns` on the Edge Runtime with one real menu link (without it every link fails closed, logged "menu link: no DNS answer").
+    - 5b: a utility template for copilot suggestions and the weekly summary outside the 24-hour window; key the window by business number; put the menu model's photo and PDF calls under `ai_quota_take`.
+    - The CI Claude review still runs without credit; every PR of this session carries the pr-reviewer verdict for its head.
+  - **CUT-OVER (session 14), added:** production gets the same config rows switched off (`ai_free_text_enabled`, `ai_voice_enabled`, `ai_merchant_text_enabled` false) and turns each on only with its eval report.
+- **Next: 5b (Kapso and operations), then 13 and 14.** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5). 5b also picks up the 5c leftovers above (templates for copilot messages, the window per business number, the menu model under the AI budget).
 
 ## How to start each build session
 
@@ -244,6 +265,7 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 ## Owner to-do (Rasheed)
 
 0. **Test the ordering path now (no API credit needed):** send `Order` to the sandbox number from your phone; see the steps in the session T reply and in issue #112. Optional: add the GitHub secret `OWNER_TEST_PHONE` (see the owner issue) if you want to be sure which number may switch sides.
+1. **Anthropic API credit (#167, about $50 with a monthly limit):** the agents' evals (customer text, voice, merchant) and the menu-photo harvest wait for it; each passing eval is then switched on by a PR.
 1. **Deepgram:** add the GitHub secret `DEEPGRAM_API_KEY` (§38.6); check-setup then proves it.
 2. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). Telegram ops bot and the Sentry DSN for edge functions (#104). Twilio account for the automated merchant call, which spends money (#105).
 2. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
