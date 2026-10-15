@@ -1,27 +1,30 @@
 -- STAGING ONLY (DECISIONS §39.12, demo mode). Never applied by the migration job and never run at the production cut-over:
 -- the cut-over checks that config demo_shops is empty on production. The staging deploy runs it after
--- alo-test-grill.sql, with the list built by scripts/demo/build-demo-menus.ts:
+-- alo-test-grill.sql, with the menu overrides built by scripts/demo/build-demo-menus.ts:
 --   psql "$DB_URL" -1 -v ON_ERROR_STOP=1 -v demo_csv=<file> -f supabase/test-fixtures/demo-shops.sql
 -- Safe to run again.
 --
--- What it does, for the 20 real Shouf shops in supabase/test-fixtures/demo-shops.json:
+-- What it does (Rasheed, 15 October: every shop on staging with a menu, growing as menus are added):
+--   * the demo shops are every real seed shop whose menu has at least one priced item (27 on 15 October, Eatout included);
+--     the menu is the seed draft, or the full harvested one for the shops demo-shops.json lists (Deli Dough, J.O'S);
 --   * writes the dated config row demo_shops (a new row only when the list changed);
 --   * makes each one claimed, orderable and active on staging, marked field_sources.demo, so it shows in search, the
 --     smart list menu and the catalogue (and syncs to the Meta catalogue once it is connected, #181);
---   * publishes its menu once: the seed draft on staging, or the full harvested menu where demo-shops.json says so (Deli
---     Dough 350 items, J.O'S 52), LBP prices converted at the dated rate exactly as a merchant's approval does
+--   * publishes its menu once (Deli Dough 350 items, J.O'S 52 from the harvest), LBP prices converted at the dated rate exactly as a merchant's approval does
 --     (menu_draft_approve_section), without touching the draft; a changed source is published again while the shop has
 --     never had an order;
 --   * makes the owner's phone (app_private.owner_phones) its owner, kitchen WhatsApp and primary order channel, so every
 --     order card goes to Rasheed; the shop's own numbers stay on record and are never used (the outbound guard of
 --     20261015220000_demo_mode.sql reroutes anything else);
---   * puts a shop that left the list back as an unclaimed, not orderable seed listing.
+--   * puts a shop that is no longer a demo shop back as an unclaimed, not orderable seed listing; a shop without a priced
+--     menu keeps its "Not on Alo King yet" listing (§39.3).
 
 \set ON_ERROR_STOP on
 select set_config('app.actor_kind', 'system', false);
 select set_config('app.audit_reason', 'staging demo shops (DECISIONS §39.12)', false);
 
-drop table if exists pg_temp.demo_in;
+drop table if exists demo_in;
+drop table if exists demo_shops_now;
 create temp table demo_in (place_id text, name text, menu text, sections text, source_url text) on commit drop;
 \if :{?demo_csv}
 -- psql does not expand variables inside \copy: build the command first.
@@ -111,40 +114,55 @@ begin
 end;
 $$;
 
+-- A draft with at least one priced item (the rule that makes a shop a demo shop).
+create or replace function pg_temp.demo_priced(p_sections jsonb) returns boolean
+language sql immutable
+as $$
+  select exists (select 1 from jsonb_array_elements(coalesce(p_sections, '[]')) s, jsonb_array_elements(coalesce(s -> 'items', '[]')) i
+                 where jsonb_typeof(i -> 'price') = 'number' and (i ->> 'price')::numeric > 0 and i ->> 'currency' in ('USD', 'LBP'));
+$$;
+
 do $$
 declare
   r record;
   v public.vendors%rowtype;
   v_list jsonb := '[]';
   v_ids uuid[] := '{}';
-  v_sections jsonb;
   v_md5 text;
   v_owner text := (select o.phone_e164 from app_private.owner_phones o order by o.created_at, o.phone_e164 limit 1);
   v_user uuid;
   v_n int;
 begin
+  -- Only when the deploy asks for it (it always passes the override list): never by accident elsewhere.
   if not exists (select 1 from demo_in) then
     return;
   end if;
+  -- The demo shops: every real (seed) shop whose menu, the full harvested one where demo-shops.json says so, else its seed
+  -- draft, has at least one priced item. A shop without one keeps its "Not on Alo King yet" listing.
+  create temp table demo_shops_now on commit drop as
+    select x.id as vendor_id, coalesce(x.name_en, x.name_ar) as name, m.sections
+    from public.vendors x
+    cross join lateral (
+      select coalesce(
+        (select d.sections::jsonb from demo_in d where d.place_id = x.place_id and d.menu = 'harvest' and coalesce(d.sections, '') <> ''),
+        (select dr.sections from public.menu_drafts dr where dr.vendor_id = x.id and dr.source = 'seed' order by dr.created_at desc limit 1)
+      ) as sections) m
+    where x.source like 'seed%' and not x.is_test and x.listing_status = 'active' and pg_temp.demo_priced(m.sections)
+    order by coalesce(x.name_en, x.name_ar), x.id;
+
   -- 1. The list, as a dated config row (a new row only when it changed).
-  for r in select * from demo_in loop
-    select * into v from public.vendors x where x.place_id = r.place_id and x.source like 'seed%' and not x.is_test;
-    if v.id is null then
-      raise notice 'demo shops: % (%) is not on this database; skipped', r.name, r.place_id;
-      continue;
-    end if;
-    v_list := v_list || jsonb_build_array(jsonb_build_object('id', v.id, 'name', coalesce(v.name_en, v.name_ar)));
-    v_ids := v_ids || v.id;
-  end loop;
+  select coalesce(jsonb_agg(jsonb_build_object('id', d.vendor_id, 'name', d.name) order by d.name, d.vendor_id), '[]'),
+         coalesce(array_agg(d.vendor_id), '{}')
+    into v_list, v_ids from demo_shops_now d;
   if public.config_value('demo_shops') is distinct from v_list then
     insert into public.app_config (key, value, effective_from, note, created_by)
     -- After the newest row (two runs inside one transaction share now()).
     values ('demo_shops', v_list, greatest(now(), (select max(c.effective_from) + interval '1 millisecond' from public.app_config c
                                                     where c.key = 'demo_shops')),
-            'staging fixture: demo shops for investors (DECISIONS §39.12)', null);
+            'staging fixture: demo shops for investors, every shop with a priced menu (DECISIONS §39.12)', null);
   end if;
 
-  -- 2. A shop that left the list is a seed listing again.
+  -- 2. A shop that is no longer a demo shop is a seed listing again.
   for v in select * from public.vendors x where x.field_sources ? 'demo' and not (x.id = any (v_ids)) loop
     update public.vendor_members set status = 'revoked'
     where vendor_id = v.id and status <> 'revoked'
@@ -156,29 +174,26 @@ begin
     where id = v.id;
   end loop;
 
-  -- 3. Each demo shop: claimed and orderable, its menu, and the owner as its merchant.
-  for r in select d.*, x.id as vendor_id from demo_in d join public.vendors x on x.place_id = d.place_id and x.id = any (v_ids) loop
-    v_sections := case when r.menu = 'harvest' and coalesce(r.sections, '') <> '' then r.sections::jsonb
-                       else (select dr.sections from public.menu_drafts dr where dr.vendor_id = r.vendor_id and dr.source = 'seed'
-                             order by dr.created_at desc limit 1) end;
-    v_md5 := md5(coalesce(v_sections::text, ''));
-    update public.vendors set claim_status = 'claimed', orderable = v_sections is not null, listing_status = 'active',
-      delivery_enabled = true, field_sources = field_sources || jsonb_build_object('demo', 'staging demo shop (DECISIONS §39.12)')
-    where id = r.vendor_id and (claim_status <> 'claimed' or orderable is distinct from (v_sections is not null)
-                                or not delivery_enabled or not field_sources ? 'demo');
-    if v_sections is null then
-      raise notice 'demo shops: % has no menu on this database; listed, not orderable', r.name;
-    elsif (select field_sources ->> 'demo_menu' from public.vendors where id = r.vendor_id) is distinct from v_md5 then
+  -- 3. Each demo shop: its menu, claimed and orderable, and the owner as its merchant.
+  for r in select * from demo_shops_now loop
+    v_md5 := md5(r.sections::text);
+    update public.vendors set claim_status = 'claimed', listing_status = 'active', delivery_enabled = true,
+      field_sources = field_sources || jsonb_build_object('demo', 'staging demo shop (DECISIONS §39.12)')
+    where id = r.vendor_id and (claim_status <> 'claimed' or not delivery_enabled or not field_sources ? 'demo');
+    if (select field_sources ->> 'demo_menu' from public.vendors where id = r.vendor_id) is distinct from v_md5 then
       if exists (select 1 from public.order_items oi join public.menu_items i on i.id = oi.item_id where i.vendor_id = r.vendor_id) then
         raise notice 'demo shops: % has orders; its menu is kept as published', r.name;
       else
         delete from public.menu_items where vendor_id = r.vendor_id;
         delete from public.menu_sections where vendor_id = r.vendor_id;
-        v_n := pg_temp.demo_publish(r.vendor_id, v_sections);
+        v_n := pg_temp.demo_publish(r.vendor_id, r.sections);
         update public.vendors set field_sources = field_sources || jsonb_build_object('demo_menu', v_md5) where id = r.vendor_id;
         raise notice 'demo shops: % published with % items', r.name, v_n;
       end if;
     end if;
+    -- Orderable once it has a published item (a draft whose prices all round to $0 publishes none).
+    update public.vendors set orderable = exists (select 1 from public.menu_items i where i.vendor_id = r.vendor_id)
+    where id = r.vendor_id and orderable is distinct from exists (select 1 from public.menu_items i where i.vendor_id = r.vendor_id);
     insert into public.vendor_private (vendor_id) values (r.vendor_id) on conflict (vendor_id) do nothing;
     if v_owner is not null then
       v_user := app_private.auth_user_for_phone(v_owner);
@@ -194,6 +209,7 @@ begin
       end if;
     end if;
   end loop;
+  raise notice 'demo shops: % on staging', jsonb_array_length(v_list);
   if v_owner is null then
     raise notice 'demo shops: no owner phone on this database; demo orders are not sent anywhere (see alo-test-grill.sql)';
   end if;

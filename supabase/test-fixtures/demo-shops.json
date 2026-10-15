@@ -1,25 +1,7 @@
 {
-  "note": "STAGING ONLY. The demo shops (DECISIONS §39.12, Rasheed's request of 15 October 2026): real Shouf shops investors order from on staging instead of Alo Test Grill. menu: 'seed' publishes the shop's seed draft menu, 'harvest' its full harvested menu (supabase/seed/shouf/harvest/05_harvested_menus.json) instead of the short curated draft. Never loaded on production; the cut-over checks that config demo_shops is empty there.",
-  "shops": [
-    { "place_id": "ChIJrYBazXsgHxUR9Xc2RHygzgc", "name": "INDINER time", "menu": "seed" },
-    { "place_id": "ChIJX_XVOO0hHxURJO_Dq1Kl-Lo", "name": "Nayeh w Meshwiyeh", "menu": "seed" },
-    { "place_id": "ChIJWa2yX4YmHxUReJKJfoxeVrQ", "name": "Al Kooz Cafe", "menu": "seed" },
-    { "place_id": "ChIJE9BeY7MhHxURyekGJ41v65s", "name": "Fred's Food Baakline", "menu": "seed" },
-    { "place_id": "ChIJhaAhhQMgHxURbFIi9R14X1I", "name": "Baakleen Coop", "menu": "seed" },
-    { "place_id": "ChIJJ8-7quchHxURgn5sxhONNLI", "name": "SEVEN Burgers & Beyond", "menu": "seed" },
-    { "place_id": "ChIJSVk-bgAhHxURr-4t76SU8nA", "name": "Eatout", "menu": "seed" },
-    { "place_id": "ChIJDf1wp3YhHxURgHQQVjPKMY4", "name": "Batloun Dairy Stores", "menu": "seed" },
-    { "place_id": "ChIJL496ClghHxURB5WPYlPLRS0", "name": "Un basilico", "menu": "seed" },
-    { "place_id": "ChIJWZ-idEUhHxURPnKWXUD8diQ", "name": "ROUTE 66", "menu": "seed" },
-    { "place_id": "ChIJC0o5QwAhHxURQ2vfz100X0A", "name": "Deli Dough", "menu": "harvest" },
-    { "place_id": "ChIJxwVVYgQgHxURSGfCRviM0eU", "name": "J.O'S House of Subs", "menu": "harvest" },
-    { "place_id": "ChIJB4b_8C0hHxURMRULryST_iA", "name": "Verona Resto", "menu": "seed" },
-    { "place_id": "ChIJWW4w4bchHxUR3yN7IcBF1Y0", "name": "Jebneh w Zebdeh bakery", "menu": "seed" },
-    { "place_id": "ChIJsb8EPHogHxURipwZHZ8aMd8", "name": "Safa Chicken", "menu": "seed" },
-    { "place_id": "ChIJnzezTgAhHxURfTUvIl53gq8", "name": "Falafel vs Koushari", "menu": "seed" },
-    { "place_id": "ChIJcT4WneYhHxURaSUETY82ufM", "name": "BiiG Burger", "menu": "seed" },
-    { "place_id": "ChIJ1fDZlGghHxUR6IKpjCIdjRA", "name": "laffet shawarma", "menu": "seed" },
-    { "place_id": "ChIJuXaD3T8hHxURHYE9Cu_vmEg", "name": "Sip N' Go", "menu": "seed" },
-    { "place_id": "ChIJhze8JHogHxURNe6hnRyV9dE", "name": "Tarabish", "menu": "seed" }
+  "note": "STAGING ONLY (DECISIONS §39.12, demo mode). Every real Shouf shop with a priced draft menu is a demo shop on staging (supabase/test-fixtures/demo-shops.sql); the shops listed here use their full harvested menu (supabase/seed/shouf/harvest/05_harvested_menus.json) instead of the short curated draft. Never loaded on production; the cut-over checks that config demo_shops is empty there.",
+  "full_harvested_menu": [
+    { "place_id": "ChIJC0o5QwAhHxURQ2vfz100X0A", "name": "Deli Dough" },
+    { "place_id": "ChIJxwVVYgQgHxURSGfCRviM0eU", "name": "J.O'S House of Subs" }
   ]
 }

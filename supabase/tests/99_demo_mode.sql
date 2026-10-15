@@ -1,4 +1,4 @@
--- Demo mode (DECISIONS §39.12): the staging fixture turns listed seed shops into orderable demo shops with their menus
+-- Demo mode (DECISIONS §39.12): the staging fixture turns every seed shop with a priced menu into an orderable demo shop with their menus
 -- (LBP at the dated rate), the owner as their merchant; simulated customers see them only when opted in; real customers
 -- do not see the test shops while it is on; nothing goes to a shop's own number; item photos, never shop photos, are the
 -- catalogue's images, and illustrative ones go when a shop is claimed.
@@ -7,15 +7,18 @@ begin;
 select tests.ok(cardinality(app_private.demo_vendor_ids()) = 0 and not app_private.vendor_is_demo(gen_random_uuid()),
   'no demo shops by default (production)');
 
--- Two seed shops with drafts, as the Shouf load leaves them ----------------------------------------------------------------
+-- Three seed shops with drafts, as the Shouf load leaves them (the third has no price) ------------------------------------
 insert into public.vendors (slug, place_id, name_en, business_type, claim_status, listing_status, orderable, public_page, source,
   field_sources, location, delivery_enabled, pickup_enabled)
 values ('demo-test-grill-house', 'ChIJdemoTestShop00000001', 'Demo Grill House', 'restaurant', 'unclaimed', 'active', false, false,
         'seed_shouf_2026_10', '{"name_en": "seed"}', app_private.lat_lon_point(33.6775, 35.5645), true, false),
        ('demo-test-corner-shop', 'ChIJdemoTestShop00000002', 'Demo Corner Shop', 'minimarket', 'unclaimed', 'active', false, false,
-        'seed_shouf_2026_10', '{"name_en": "seed"}', app_private.lat_lon_point(33.6780, 35.5650), true, false);
+        'seed_shouf_2026_10', '{"name_en": "seed"}', app_private.lat_lon_point(33.6780, 35.5650), true, false),
+       ('demo-test-no-prices', 'ChIJdemoTestShop00000003', 'Demo No Prices', 'restaurant', 'unclaimed', 'active', false, false,
+        'seed_shouf_2026_10', '{"name_en": "seed"}', app_private.lat_lon_point(33.6785, 35.5655), true, false);
 select id as d1 from public.vendors where slug = 'demo-test-grill-house' \gset
 select id as d2 from public.vendors where slug = 'demo-test-corner-shop' \gset
+select id as d3 from public.vendors where slug = 'demo-test-no-prices' \gset
 insert into public.vendor_private (vendor_id, phone_seed, phone_seed_mobile) values (:'d1', '+96171000001', true), (:'d2', '+96171000002', true);
 insert into public.menu_drafts (vendor_id, source, status, sections, source_url) values
   (:'d1', 'seed', 'draft', '[{"name_en": "Grills", "name_ar": null, "name_fr": null, "items": [
@@ -25,17 +28,23 @@ insert into public.menu_drafts (vendor_id, source, status, sections, source_url)
      {"name_en": "Misread", "price": 100, "currency": "LBP", "confidence": 0.5},
      {"name_en": "No price", "price": null, "currency": "USD", "confidence": 0.5}]}]', 'supabase/seed/shouf/source/03_shouf_digital_menus.json'),
   (:'d2', 'seed', 'draft', '[{"name_en": "Drinks", "name_ar": null, "name_fr": null, "items": [
-     {"name_en": "Water", "price": 0.5, "currency": "USD", "confidence": 0.5}]}]', 'supabase/seed/shouf/source/03_shouf_digital_menus.json');
+     {"name_en": "Water", "price": 0.5, "currency": "USD", "confidence": 0.5}]}]', 'supabase/seed/shouf/source/03_shouf_digital_menus.json'),
+  (:'d3', 'seed', 'draft', '[{"name_en": "Menu", "name_ar": null, "name_fr": null, "items": [
+     {"name_en": "Ask for the price", "price": null, "currency": null, "confidence": 0.5}]}]', 'supabase/seed/shouf/source/03_shouf_digital_menus.json');
 
 -- The staging fixtures ---------------------------------------------------------------------------------------------------------
 select set_config('app.fixture_owner_phone', '+96170000096', false);
 \i supabase/test-fixtures/alo-test-grill.sql
-\copy (select * from (values ('ChIJdemoTestShop00000001', 'Demo Grill House', 'seed', '', ''), ('ChIJdemoTestShop00000002', 'Demo Corner Shop', 'seed', '', ''), ('ChIJnotOnThisDatabase0001', 'Elsewhere', 'seed', '', '')) t (place_id, name, menu, sections, source_url)) to '/tmp/alo-demo-test.csv' with (format csv, header true)
+-- The override list: the corner shop's full harvested menu (two drinks) instead of its one-item draft.
+\copy (select * from (values ('ChIJdemoTestShop00000002', 'Demo Corner Shop', 'harvest', '[{"name_en": "Drinks", "items": [{"name_en": "Water", "price": 0.5, "currency": "USD"}, {"name_en": "Juice", "price": 2, "currency": "USD"}]}]', 'https://example.test/menu')) t (place_id, name, menu, sections, source_url)) to '/tmp/alo-demo-test.csv' with (format csv, header true)
 \set demo_csv /tmp/alo-demo-test.csv
 \i supabase/test-fixtures/demo-shops.sql
 
 select tests.ok(app_private.demo_vendor_ids() @> array[:'d1', :'d2']::uuid[] and cardinality(app_private.demo_vendor_ids()) = 2,
-  'the fixture lists the two shops it found (a shop not on this database is skipped)');
+  'every seed shop with a priced menu is a demo shop');
+select tests.ok(not app_private.vendor_is_demo(:'d3') and (select claim_status = 'unclaimed' and not orderable from public.vendors where id = :'d3'),
+  'a shop without a priced menu keeps its "Not on Alo King yet" listing');
+select tests.ok((select count(*) from public.menu_items where vendor_id = :'d2') = 2, 'a listed shop gets its full harvested menu');
 select tests.ok((select bool_and(claim_status = 'claimed' and orderable and field_sources ? 'demo') from public.vendors where id in (:'d1', :'d2')),
   'demo shops are claimed and orderable on staging, marked demo');
 select tests.ok((select price_usd from public.menu_items where vendor_id = :'d1' and name_en = 'Kafta Plate') = round(895000 / public.usd_lbp_rate(), 2),
@@ -125,10 +134,11 @@ select tests.throws($$insert into public.menu_item_photos (item_id, vendor_id, s
   'menu_item_photos_path_source', 'a photo''s path matches its source');
 
 -- Leaving the list, and a claim, remove illustrative photos --------------------------------------------------------------------------
-\copy (select * from (values ('ChIJdemoTestShop00000002', 'Demo Corner Shop', 'seed', '', '')) t (place_id, name, menu, sections, source_url)) to '/tmp/alo-demo-test.csv' with (format csv, header true)
+update public.menu_drafts set sections = '[{"name_en": "Grills", "items": [{"name_en": "Kafta Plate", "price": null, "currency": null}]}]'
+where vendor_id = :'d1';
 \i supabase/test-fixtures/demo-shops.sql
 select tests.ok((select claim_status = 'unclaimed' and not orderable and not field_sources ? 'demo' from public.vendors where id = :'d1'),
-  'a shop that left the list is a seed listing again');
+  'a shop whose menu lost its prices is a seed listing again');
 select tests.ok(not exists (select 1 from public.menu_item_photos where vendor_id = :'d1'), 'its illustrative photos are gone');
 -- (A shop outside demo mode: the test shop, which is claimed already, is unclaimed and claimed again.)
 select id as tv_item from public.menu_items where vendor_id = :'tv' limit 1 \gset
