@@ -191,15 +191,19 @@ async function main() {
     "Data endpoints: none needed (every Flow is navigate-only; the server sends its data with the message)",
   );
 
+  // Publish only what was uploaded without an error in this run (a failed upload never publishes an older draft).
+  const published: string[] = [];
   if (publish) {
-    for (const f of flows.filter(
-      (x) => x.status === "draft" && files.some((y) => y.name === x.name),
-    )) {
+    const uploaded = new Set(rows.filter((r) => r.status !== "failed").map((r) => r.name));
+    for (const p of plan.filter((x) => x.publish && uploaded.has(x.file.name))) {
+      const f = flows.find((x) => x.name === p.file.name && x.status === "draft");
+      if (!f) continue;
       try {
         await kapso(`/platform/v1/whatsapp/flows/${f.id}/publish`, {
           method: "POST",
           body: JSON.stringify({ phone_number_id: pn }),
         });
+        published.push(f.name);
         const r = rows.find((x) => x.name === f.name);
         if (r) r.status = "published";
       } catch (e) {
@@ -207,6 +211,10 @@ async function main() {
       }
     }
   }
+  for (const p of plan.filter((x) => x.action === "keep"))
+    console.log(
+      `::notice::${p.file.name} is published and kept as it is (a published Flow cannot change; a new version needs a new name)`,
+    );
 
   const final = await listFlows(pn);
   console.log("\n| Flow | action | status on Kapso/Meta |\n|---|---|---|");
@@ -218,13 +226,16 @@ async function main() {
     );
   }
 
-  // A Flow is switched on once both its languages are published on the number (a dated config row, §12 kill-gate per Flow).
+  // Live: both languages published on the number. Switched on: only the Flows that became live through a publish in this
+  // run, and only when the whole run succeeded; a Flow an operator switched off, or one the §12 kill-gate stopped, is never
+  // switched on again by a later run (a new flows_enabled row also restarts every Flow's kill-gate window).
+  const both = (flow: string) => files.filter((f) => f.flow === flow);
   const live = [...new Set(files.map((f) => f.flow))].filter((flow) =>
-    files
-      .filter((f) => f.flow === flow)
-      .every((f) => final.find((x) => x.name === f.name)?.status === "published"),
+    both(flow).every((f) => final.find((x) => x.name === f.name)?.status === "published"),
   );
-  if (process.env.DB_URL && live.length) {
+  const switchOn = live.filter((flow) => both(flow).some((f) => published.includes(f.name)));
+  // Staging only: DB_URL comes from scripts/staging-db-url.sh, which refuses any other project (never production).
+  if (process.env.DB_URL && (switchOn.length || process.env.SEND_TESTS === "true")) {
     const url = new URL(process.env.DB_URL);
     url.searchParams.delete("sslmode");
     const db = new pg.Client({
@@ -233,10 +244,10 @@ async function main() {
     });
     await db.connect();
     try {
-      const cur =
-        (await db.query("select public.config_value('flows_enabled') as v")).rows[0]?.v ?? {};
-      const next = { ...cur, ...Object.fromEntries(live.map((f) => [f, true])) };
-      if (JSON.stringify(next) !== JSON.stringify(cur)) {
+      if (publish && switchOn.length && !failures.length) {
+        const cur =
+          (await db.query("select public.config_value('flows_enabled') as v")).rows[0]?.v ?? {};
+        const next = { ...cur, ...Object.fromEntries(switchOn.map((f) => [f, true])) };
         await db.query(
           "insert into public.app_config (key, value, effective_from, note) values ('flows_enabled', $1::jsonb, now(), $2)",
           [
@@ -244,10 +255,19 @@ async function main() {
             `Flows published on ${pn} by whatsapp-flows (DECISIONS §12, §39.8)`,
           ],
         );
-        console.log(`flows_enabled: ${live.join(", ")} switched on`);
-      } else console.log(`flows_enabled: already on for ${live.join(", ")}`);
-      if (process.env.SEND_TESTS === "true")
-        failures.push(...(await sendTests(db, pn, live as FlowName[])));
+        console.log(`flows_enabled: ${switchOn.join(", ")} switched on`);
+      }
+      if (process.env.SEND_TESTS === "true") {
+        const enabled =
+          (await db.query("select public.config_value('flows_enabled') as v")).rows[0]?.v ?? {};
+        failures.push(
+          ...(await sendTests(
+            db,
+            pn,
+            live.filter((f) => enabled === true || enabled?.[f] === true) as FlowName[],
+          )),
+        );
+      }
     } finally {
       await db.end();
     }
@@ -261,7 +281,7 @@ async function main() {
 /** One test of each live Flow to the owner, opened by the server exactly as the bot would open it (real token and data). */
 async function sendTests(db: pg.Client, pn: string, live: FlowName[]): Promise<string[]> {
   const inbound = await kapso(
-    `/platform/v1/whatsapp/messages?phone_number_id=${encodeURIComponent(pn)}&direction=inbound&per_page=100`,
+    `/platform/v1/whatsapp/messages?phone_number_id=${encodeURIComponent(pn)}&direction=inbound&limit=100`,
   );
   const owners = (await db.query("select phone_e164 from app_private.owner_phones")).rows.map((r) =>
     String(r.phone_e164),
@@ -292,7 +312,8 @@ async function sendTests(db: pg.Client, pn: string, live: FlowName[]): Promise<s
   const item = vendor
     ? (
         await db.query(
-          `select i.id from public.menu_items i where i.vendor_id = $1 and exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
+          `select i.id from public.menu_items i
+            where i.vendor_id = $1 and (select count(*) from public.menu_option_groups g where g.item_id = i.id) between 1 and 3
             order by (select count(*) from public.menu_option_groups g where g.item_id = i.id) desc, i.sort_order limit 1`,
           [vendor],
         )
@@ -300,78 +321,94 @@ async function sendTests(db: pg.Client, pn: string, live: FlowName[]): Promise<s
     : null;
   for (const flow of live) {
     for (const lang of ["ar", "en"] as const) {
-      const ctx: Record<string, unknown> = {};
-      let member: string | null = null;
-      if (flow === "address_capture") ctx.address_id = who.address_id;
-      if (flow === "item_options") ctx.item_id = item;
-      if (flow === "merchant_claim" || flow === "merchant_hours") member = who.member_id;
-      if (flow === "checkout") {
-        const open = (
-          await db.query(
-            "select 1 from public.baskets where customer_id = $1 and status = 'open'",
-            [who.customer_id],
-          )
-        ).rows.length;
-        if (!open && vendor) {
-          const plain = (
-            await db.query(
-              `select i.id from public.menu_items i where i.vendor_id = $1 and i.available
-                and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id and g.min_select > 0) order by i.sort_order limit 1`,
-              [vendor],
-            )
-          ).rows[0]?.id;
-          if (plain)
-            await db.query("select public.basket_add_item($1, $2, 1)", [who.customer_id, plain]);
-        }
-      }
-      if (flow === "menu_section") {
-        member = who.member_id;
-        // A one-section draft on the test shop; confirming it adds one test item there (staging only).
-        const d = (
-          await db.query(
-            `select public.menu_draft_create($1, 'text', $2::jsonb, '[]', null, $3) as r`,
-            [
-              vendor,
-              JSON.stringify([
-                {
-                  name_en: "Flow test",
-                  currency: "USD",
-                  items: [{ name_en: "Flow test item", price: 0.5, currency: "USD" }],
-                },
-              ]),
-              member,
-            ],
-          )
-        ).rows[0]?.r;
-        ctx.draft_id = d?.draft_id ?? d?.id ?? d;
-        ctx.index = 0;
-      }
-      const r = (
-        await db.query("select public.flow_open($1, $2, $3, $4, $5, $6::jsonb) as r", [
-          flow,
-          lang,
-          to,
-          member ? null : who.customer_id,
-          member,
-          JSON.stringify(ctx),
-        ])
-      ).rows[0]?.r;
-      if (r?.status !== "ok") {
-        out.push(
-          `test ${flow} (${lang}): flow_open answered ${r?.status ?? "nothing"}${r?.reason ? ` (${r.reason})` : ""}`,
-        );
-        continue;
-      }
+      // One test never stops the others: a refusal or a database error is reported and the loop carries on.
       try {
-        const sent = await kapso(`/meta/whatsapp/v24.0/${encodeURIComponent(pn)}/messages`, {
-          method: "POST",
-          body: JSON.stringify(
-            flowMessage(to, { flow, lang, token: r.token, screen: r.screen, data: r.data }),
-          ),
-        });
-        console.log(
-          `test sent: ${publishedFlowName(flow, lang)} (${sent?.messages?.[0]?.id ? "accepted by Meta" : "sent"})`,
-        );
+        const ctx: Record<string, unknown> = {};
+        let member: string | null = null;
+        if (
+          !vendor &&
+          ["checkout", "menu_section", "item_options", "merchant_claim", "merchant_hours"].includes(
+            flow,
+          )
+        ) {
+          out.push(
+            `test ${flow} (${lang}): the owner phone is not an owner or manager of a staging test shop`,
+          );
+          continue;
+        }
+        if (flow === "address_capture") ctx.address_id = who.address_id;
+        if (flow === "item_options") ctx.item_id = item;
+        if (flow === "merchant_claim" || flow === "merchant_hours") member = who.member_id;
+        if (flow === "checkout") {
+          const open = (
+            await db.query(
+              "select 1 from public.baskets where customer_id = $1 and status = 'open'",
+              [who.customer_id],
+            )
+          ).rows.length;
+          if (!open && vendor) {
+            const plain = (
+              await db.query(
+                `select i.id from public.menu_items i where i.vendor_id = $1 and i.available
+                and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id and g.min_select > 0) order by i.sort_order limit 1`,
+                [vendor],
+              )
+            ).rows[0]?.id;
+            if (plain)
+              await db.query("select public.basket_add_item($1, $2, 1)", [who.customer_id, plain]);
+          }
+        }
+        if (flow === "menu_section") {
+          member = who.member_id;
+          // A one-section draft on the test shop; confirming it adds one test item there (staging only).
+          const d = (
+            await db.query(
+              `select public.menu_draft_create($1, 'text', $2::jsonb, '[]', null, $3) as r`,
+              [
+                vendor,
+                JSON.stringify([
+                  {
+                    name_en: "Flow test",
+                    currency: "USD",
+                    items: [{ name_en: "Flow test item", price: 0.5, currency: "USD" }],
+                  },
+                ]),
+                member,
+              ],
+            )
+          ).rows[0]?.r;
+          ctx.draft_id = d?.draft_id ?? d?.id ?? d;
+          ctx.index = 0;
+        }
+        const r = (
+          await db.query("select public.flow_open($1, $2, $3, $4, $5, $6::jsonb) as r", [
+            flow,
+            lang,
+            to,
+            member ? null : who.customer_id,
+            member,
+            JSON.stringify(ctx),
+          ])
+        ).rows[0]?.r;
+        if (r?.status !== "ok") {
+          out.push(
+            `test ${flow} (${lang}): flow_open answered ${r?.status ?? "nothing"}${r?.reason ? ` (${r.reason})` : ""}`,
+          );
+          continue;
+        }
+        try {
+          const sent = await kapso(`/meta/whatsapp/v24.0/${encodeURIComponent(pn)}/messages`, {
+            method: "POST",
+            body: JSON.stringify(
+              flowMessage(to, { flow, lang, token: r.token, screen: r.screen, data: r.data }),
+            ),
+          });
+          console.log(
+            `test sent: ${publishedFlowName(flow, lang)} (${sent?.messages?.[0]?.id ? "accepted by Meta" : "sent"})`,
+          );
+        } catch (e) {
+          out.push(`test ${flow} (${lang}): ${String(e).slice(0, 300)}`);
+        }
       } catch (e) {
         out.push(`test ${flow} (${lang}): ${String(e).slice(0, 300)}`);
       }

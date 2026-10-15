@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { connectedCatalog, ownerBusiness, why } from "./catalog";
+import { connectedCatalog, ownedCatalog, ownerBusiness, why } from "./catalog";
 
 describe("kapso-catalog (DECISIONS §39.12)", () => {
   it("reads the connected catalogue and the owning portfolio from Meta's answers", () => {
@@ -13,6 +13,19 @@ describe("kapso-catalog (DECISIONS §39.12)", () => {
       "998877665544",
     );
     expect(ownerBusiness({})).toBeNull();
+    // An "Alo King" catalogue made by an earlier run is reused, never created twice.
+    expect(
+      ownedCatalog(
+        {
+          data: [
+            { id: "111111111111", name: "Tiles" },
+            { id: "222222222222", name: "Alo King" },
+          ],
+        },
+        "Alo King",
+      ),
+    ).toBe("222222222222");
+    expect(ownedCatalog({ data: [] }, "Alo King")).toBeNull();
   });
   it("explains a refusal with Meta's message and codes only", () => {
     expect(

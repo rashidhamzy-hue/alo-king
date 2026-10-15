@@ -60,6 +60,14 @@ export function connectedCatalog(body: any): { id: string; name: string | null }
   return c ? { id: String(c.id), name: c.name ?? null } : null;
 }
 
+/** The id of the portfolio's catalogue with this name, from GET /{business}/owned_product_catalogs. */
+export function ownedCatalog(body: any, name: string): string | null {
+  const c = (body?.data ?? []).find(
+    (x: any) => String(x?.name ?? "").trim() === name && /^[0-9]{5,30}$/.test(String(x?.id ?? "")),
+  );
+  return c ? String(c.id) : null;
+}
+
 /** The business portfolio that owns the account, from GET /{waba}?fields=owner_business_info. */
 export function ownerBusiness(body: any): string | null {
   const id = String(body?.owner_business_info?.id ?? body?.on_behalf_of_business_info?.id ?? "");
@@ -90,11 +98,13 @@ async function main() {
   const notes: string[] = [];
   const routes: Route[] = token ? ["kapso", "graph"] : ["kapso"];
 
-  const num = await fetch(`${KAPSO}/platform/v1/whatsapp/phone_numbers/${pn}`, {
+  const res = await fetch(`${KAPSO}/platform/v1/whatsapp/phone_numbers/${pn}`, {
     headers: { "X-API-Key": key },
     redirect: "error",
     signal: AbortSignal.timeout(20_000),
-  }).then((r) => r.json());
+  });
+  if (!res.ok) throw new Error(`Kapso answered ${res.status} for the number`);
+  const num = await res.json();
   const waba = String(num?.data?.business_account_id ?? "");
   if (!/^[0-9]{5,30}$/.test(waba)) throw new Error("the number has no business account in Kapso");
   notes.push(`number ${pn}, business account ${waba}`);
@@ -119,20 +129,33 @@ async function main() {
       notes,
     );
     const business = owner ? ownerBusiness(owner.answer.body) : null;
-    if (!business) blocked = "find the business portfolio that owns the WhatsApp account";
+    if (!business) blocked = "create";
     else {
-      const made = await firstOk(
-        "create catalogue",
+      // A catalogue named "Alo King" made by an earlier run (created, then refused to connect) is reused, never duplicated.
+      const owned = await firstOk(
+        "list the portfolio's catalogues",
         routes,
-        (r) =>
-          call(r, `/${business}/owned_product_catalogs`, {
-            method: "POST",
-            body: JSON.stringify({ name: "Alo King", vertical: "commerce" }),
-          }),
+        (r) => call(r, `/${business}/owned_product_catalogs?fields=id,name&limit=100`),
         notes,
       );
+      const reuse = ownedCatalog(owned?.answer.body, "Alo King");
+      const made = reuse
+        ? { answer: { body: { id: reuse } } }
+        : owned
+          ? await firstOk(
+              "create catalogue",
+              routes,
+              (r) =>
+                call(r, `/${business}/owned_product_catalogs`, {
+                  method: "POST",
+                  body: JSON.stringify({ name: "Alo King", vertical: "commerce" }),
+                }),
+              notes,
+            )
+          : null;
+      if (reuse) notes.push(`create catalogue: reused ${reuse}`);
       const id = String(made?.answer.body?.id ?? "");
-      if (!/^[0-9]{5,30}$/.test(id)) blocked = "create the catalogue in Commerce Manager";
+      if (!/^[0-9]{5,30}$/.test(id)) blocked = "create";
       else {
         catalog = { id, name: "Alo King" };
         const linked = await firstOk(
@@ -145,13 +168,14 @@ async function main() {
             }),
           notes,
         );
-        if (!linked) blocked = "connect the catalogue to the WhatsApp account in WhatsApp Manager";
+        if (!linked) blocked = `connect:${id}`;
       }
     }
   }
 
   // 3. The cart and the catalogue icon on the number (Meta: cart on by default, storefront icon off by default).
   let settings = "not changed";
+  let commerceOn = false;
   if (catalog && !blocked) {
     const set = await firstOk(
       "cart and catalogue icons",
@@ -172,6 +196,7 @@ async function main() {
     settings = set
       ? `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`
       : "refused";
+    commerceOn = s.is_cart_enabled === true && s.is_catalog_visible === true;
   }
 
   // 4. Which route can write items (the sync in dispatch uses it).
@@ -209,8 +234,9 @@ async function main() {
         await db.query("select public.whatsapp_catalog_record($1, $2, $3, $4, $5)", [
           waba,
           catalog.id,
-          transport,
-          settings.startsWith("cart true"),
+          // A catalogue that is not connected to the account is never offered to customers.
+          blocked ? null : transport,
+          commerceOn,
           blocked,
         ]);
       else console.log("public.whatsapp_catalogs does not exist yet: nothing recorded");
