@@ -7225,6 +7225,1913 @@
     }
    ],
    "warnings": []
+  },
+  {
+   "place_id": "ChIJQTmYx0IhHxURsxJZBXpBGuo",
+   "vendor_name": "BUN BROS",
+   "village": "Boqaata",
+   "source_url": "https://www.foodbooking.com/ordering/restaurant/menu?restaurant_uid=407cab1a-d6a2-4682-867f-9cbf48446ada",
+   "adapter": "foodbooking",
+   "method": "json",
+   "captured_at": "2026-10-15",
+   "sections": [
+    {
+     "name_en": "Appetizers",
+     "items": [
+      {
+       "name_en": "Mozzarella Bricks",
+       "description": "4pcs mozzarella bricks (plain or dipped) served with any dip of your choice.",
+       "price": 5,
+       "currency": null,
+       "confidence": 0.5,
+       "options": [
+        {
+         "name": "add a side",
+         "min": 1,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Honey mustard",
+           "price": 1
+          },
+          {
+           "name": "Cheddar",
+           "price": 1
+          },
+          {
+           "name": "Cocktail sauce",
+           "price": 1
+          },
+          {
+           "name": "Special sauce",
+           "price": 1
+          },
+          {
+           "name": "Honey BBq",
+           "price": 1
+          },
+          {
+           "name": "Mayo",
+           "price": 1
+          },
+          {
+           "name": "Ketchup",
+           "price": 0.5
+          },
+          {
+           "name": "BBQ",
+           "price": 1
+          },
+          {
+           "name": "Jalapenos",
+           "price": 1
+          },
+          {
+           "name": "BB Sauce",
+           "price": 1
+          },
+          {
+           "name": "Buffalu",
+           "price": 1
+          },
+          {
+           "name": "Garlic Sauce",
+           "price": 1
+          },
+          {
+           "name": "Ranch sauce",
+           "price": 1
+          },
+          {
+           "name": "Truffle sauce",
+           "price": 1
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Onion Rings",
+       "description": "6pcs onion rings , served with any dip of your choice",
+       "price": 4.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Chicken Popcorn",
+       "description": "20 pcs served with a dip of your choice",
+       "price": 9,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Haloumi bricks",
+       "description": "4 pcs haloumi bricks plain or dipped served with any sauce of your choice.",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Cheddar Jalapeno triangles",
+       "description": "5pcsCheddar Jalapeno triangles served with any dip of your choice.",
+       "price": 5,
+       "currency": null,
+       "confidence": 0.5,
+       "options": [
+        {
+         "name": "add a side",
+         "min": 1,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Honey mustard",
+           "price": 1
+          },
+          {
+           "name": "Cheddar",
+           "price": 1
+          },
+          {
+           "name": "Cocktail sauce",
+           "price": 1
+          },
+          {
+           "name": "Special sauce",
+           "price": 1
+          },
+          {
+           "name": "Honey BBq",
+           "price": 1
+          },
+          {
+           "name": "Mayo",
+           "price": 1
+          },
+          {
+           "name": "Ketchup",
+           "price": 0.5
+          },
+          {
+           "name": "BBQ",
+           "price": 1
+          },
+          {
+           "name": "Jalapenos",
+           "price": 1
+          },
+          {
+           "name": "BB Sauce",
+           "price": 1
+          },
+          {
+           "name": "Buffalu",
+           "price": 1
+          },
+          {
+           "name": "Garlic Sauce",
+           "price": 1
+          },
+          {
+           "name": "Ranch sauce",
+           "price": 1
+          },
+          {
+           "name": "Truffle sauce",
+           "price": 1
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Regular Fries",
+       "description": "served with any dip of your choice",
+       "price": 2.5,
+       "currency": null,
+       "confidence": 0.5,
+       "options": [
+        {
+         "name": "add a side",
+         "min": 1,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Honey mustard",
+           "price": 1
+          },
+          {
+           "name": "Cheddar",
+           "price": 1
+          },
+          {
+           "name": "Cocktail sauce",
+           "price": 1
+          },
+          {
+           "name": "Special sauce",
+           "price": 1
+          },
+          {
+           "name": "Honey BBq",
+           "price": 1
+          },
+          {
+           "name": "Mayo",
+           "price": 1
+          },
+          {
+           "name": "Ketchup",
+           "price": 0.5
+          },
+          {
+           "name": "BBQ",
+           "price": 1
+          },
+          {
+           "name": "Jalapenos",
+           "price": 1
+          },
+          {
+           "name": "BB Sauce",
+           "price": 1
+          },
+          {
+           "name": "Buffalu",
+           "price": 1
+          },
+          {
+           "name": "Garlic Sauce",
+           "price": 1
+          },
+          {
+           "name": "Ranch sauce",
+           "price": 1
+          },
+          {
+           "name": "Truffle sauce",
+           "price": 1
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Curly Fries",
+       "description": "served with any dip of your choice",
+       "price": 4.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Messy bros small",
+       "description": "LoadedFries served with crispy Chicken tenders, cheddar sauce, chips, BBQ sauce(optional: add jalapeños)",
+       "price": 3.5,
+       "currency": null,
+       "confidence": 0.5,
+       "options": [
+        {
+         "name": "add a side",
+         "min": 1,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Honey mustard",
+           "price": 1
+          },
+          {
+           "name": "Cheddar",
+           "price": 1
+          },
+          {
+           "name": "Cocktail sauce",
+           "price": 1
+          },
+          {
+           "name": "Special sauce",
+           "price": 1
+          },
+          {
+           "name": "Honey BBq",
+           "price": 1
+          },
+          {
+           "name": "Mayo",
+           "price": 1
+          },
+          {
+           "name": "Ketchup",
+           "price": 0.5
+          },
+          {
+           "name": "BBQ",
+           "price": 1
+          },
+          {
+           "name": "Jalapenos",
+           "price": 1
+          },
+          {
+           "name": "BB Sauce",
+           "price": 1
+          },
+          {
+           "name": "Buffalu",
+           "price": 1
+          },
+          {
+           "name": "Garlic Sauce",
+           "price": 1
+          },
+          {
+           "name": "Ranch sauce",
+           "price": 1
+          },
+          {
+           "name": "Truffle sauce",
+           "price": 1
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Messy Bros Large",
+       "description": "Loaded fries, served with crispy chicken tenders, cheddar sauce, chips, bbq sauce (optional add jalapeños",
+       "price": 6.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "The Bros box",
+       "description": "3pcs Chicken crispy, 3pcs Mozzarella bricks, 3pcs Cheddar jalapeno triangles, 5pcs chicken popcorn, 3.pcs onion rings, 3pcs haloumi bricks with 3 dips of your choice",
+       "price": 25,
+       "currency": null,
+       "confidence": 0.5,
+       "options": [
+        {
+         "name": "add a side",
+         "min": 1,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Honey mustard",
+           "price": 1
+          },
+          {
+           "name": "Cheddar",
+           "price": 1
+          },
+          {
+           "name": "Cocktail sauce",
+           "price": 1
+          },
+          {
+           "name": "Special sauce",
+           "price": 1
+          },
+          {
+           "name": "Honey BBq",
+           "price": 1
+          },
+          {
+           "name": "Mayo",
+           "price": 1
+          },
+          {
+           "name": "Ketchup",
+           "price": 0.5
+          },
+          {
+           "name": "BBQ",
+           "price": 1
+          },
+          {
+           "name": "Jalapenos",
+           "price": 1
+          },
+          {
+           "name": "BB Sauce",
+           "price": 1
+          },
+          {
+           "name": "Buffalu",
+           "price": 1
+          },
+          {
+           "name": "Garlic Sauce",
+           "price": 1
+          },
+          {
+           "name": "Ranch sauce",
+           "price": 1
+          },
+          {
+           "name": "Truffle sauce",
+           "price": 1
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "The BB waffle",
+       "description": "signature waffle topped with crispy strips and dips on top with chips sticks",
+       "price": 8,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "kinder rolls",
+       "description": "4 pcs kinder rolls",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Chicken Burgers",
+     "items": [
+      {
+       "name_en": "Classic Chicken Burger",
+       "description": "Grilled marinated chicken, signature sauce, cheddar slice, tomato, onions, dill pickles.",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Golden BB Burger",
+       "description": "Crispy chicken, grilled mozzarella, onion rings, bbq sauce, iceberg, garlic mayo sauce.",
+       "price": 7.5,
+       "currency": null,
+       "confidence": 0.5,
+       "options": [
+        {
+         "name": "add a side",
+         "min": 1,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Honey mustard",
+           "price": 1
+          },
+          {
+           "name": "Cheddar",
+           "price": 1
+          },
+          {
+           "name": "Cocktail sauce",
+           "price": 1
+          },
+          {
+           "name": "Special sauce",
+           "price": 1
+          },
+          {
+           "name": "Honey BBq",
+           "price": 1
+          },
+          {
+           "name": "Mayo",
+           "price": 1
+          },
+          {
+           "name": "Ketchup",
+           "price": 0.5
+          },
+          {
+           "name": "BBQ",
+           "price": 1
+          },
+          {
+           "name": "Jalapenos",
+           "price": 1
+          },
+          {
+           "name": "BB Sauce",
+           "price": 1
+          },
+          {
+           "name": "Buffalu",
+           "price": 1
+          },
+          {
+           "name": "Garlic Sauce",
+           "price": 1
+          },
+          {
+           "name": "Ranch sauce",
+           "price": 1
+          },
+          {
+           "name": "Truffle sauce",
+           "price": 1
+          }
+         ]
+        }
+       ],
+       "image_url": "https://www.fbgcdn.com/pictures/19e57108-40d2-4634-af07-617c1ce024b5_d3.jpg"
+      },
+      {
+       "name_en": "Honey Bros",
+       "description": "Grilled marinated chicken , iceberg, tomato slices, honey mustard, ranch sauce , dill pickles, Emmental cheese.",
+       "price": 7,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/8a562ebc-4f85-4ccb-b2be-d8e12832fd9a_d3.jpg"
+      }
+     ]
+    },
+    {
+     "name_en": "Beef Burgers",
+     "items": [
+      {
+       "name_en": "Classic Burger",
+       "description": "Grilled Beef Patty, iceberg, tomato, Onion, BB Sauce, cheddar slice.",
+       "price": 6.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/2b75e21b-f8d4-4403-95ca-90a19294dcbc_d3.jpg"
+      },
+      {
+       "name_en": "Lebanese Burger",
+       "description": "150g Grilled beef patty, coleslaw, grilled onions, ketchup, regular fries inside the bun",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "The Pitmaster Burger",
+       "description": "150g Grilled Beef Patty, caramelized onions, BBQ mayo sauce, and swiss cheese",
+       "price": 7.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/607a9fe2-b26e-452f-b175-b2edde01ade2_d3.jpg"
+      },
+      {
+       "name_en": "Myco Swiss Burger",
+       "description": "150g Grilled Beef Patty, sauted Mushrooms, swiss emmental cheese, and mayo sauce",
+       "price": 8.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Signature BB Burger",
+       "description": "150g Grilled Beef Patty, mozarella patty, cheddar slice, iceberg, ketshup, mustard, chopped onions, bbq sauce",
+       "price": 8.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/12d0686d-1914-4a83-968d-9d60a5d228ff_d3.jpg"
+      }
+     ]
+    },
+    {
+     "name_en": "Wraps",
+     "items": [
+      {
+       "name_en": "Crispy Wrap",
+       "description": "Fried Crispy Chicken, Coleslaw, Cheddar, Cocktail Sauce.",
+       "price": 5.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Boneless Wrap",
+       "description": "Boneless Chicken dipped with bbq sauce, cheddar sauce, chips, honey mustard, Jalapeno (optional)",
+       "price": 5.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Twister Chicken Wrap",
+       "description": "Fried Crispy Chicken, Iceberg, Tomato, Cheddar sauce, Mayo, Jalapenos (optional)",
+       "price": 5.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/45446c15-5c4e-4af8-8027-9710940096c0_d3.jpg"
+      },
+      {
+       "name_en": "Chicken Ceasar Wrap",
+       "description": "Grilled Chicken, iceberg, ceasar sauce, parmesan cheese.",
+       "price": 7,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/4462bca5-be1e-4e12-bfad-66782856f137_d3.jpg"
+      },
+      {
+       "name_en": "Tawouk wrap",
+       "description": "Tawouk , garlic paste, fries, pickles, and coleslaw",
+       "price": 4.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Sawda wrap",
+       "description": "sawda dipped with dibs el remen, garlic paste, caramelized onions, pickles, fries and iceberg",
+       "price": 4.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "fries wrap",
+       "description": "ketchup, fries, coleslaw , mayo",
+       "price": 3.5,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "MEALS",
+     "items": [
+      {
+       "name_en": "The Big Deal",
+       "description": "2 burgers,( 1 beef, 1 chicken) +2 wraps of your choice,8 crispy strips, coleslaw, 2 buns, 4 dips of your choice, 4 mozzarella bricks, 4 kinder rolls, large fries, Pepsi 1.25L",
+       "price": 50,
+       "currency": null,
+       "confidence": 0.5,
+       "options": [
+        {
+         "name": "add a side",
+         "min": 1,
+         "max": 1,
+         "choices": [
+          {
+           "name": "Honey mustard",
+           "price": 1
+          },
+          {
+           "name": "Cheddar",
+           "price": 1
+          },
+          {
+           "name": "Cocktail sauce",
+           "price": 1
+          },
+          {
+           "name": "Special sauce",
+           "price": 1
+          },
+          {
+           "name": "Honey BBq",
+           "price": 1
+          },
+          {
+           "name": "Mayo",
+           "price": 1
+          },
+          {
+           "name": "Ketchup",
+           "price": 0.5
+          },
+          {
+           "name": "BBQ",
+           "price": 1
+          },
+          {
+           "name": "Jalapenos",
+           "price": 1
+          },
+          {
+           "name": "BB Sauce",
+           "price": 1
+          },
+          {
+           "name": "Buffalu",
+           "price": 1
+          },
+          {
+           "name": "Garlic Sauce",
+           "price": 1
+          },
+          {
+           "name": "Ranch sauce",
+           "price": 1
+          },
+          {
+           "name": "Truffle sauce",
+           "price": 1
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name_en": "Duo Meal",
+       "description": "Two burgers (1 beef, 1 chicken) served with regular fries, 2 dips and 2 soft drink.",
+       "price": 16.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Crispy Meal",
+       "description": "5 pcs crispy strips, served with regular fries , bun, coleslaw, cheddar sauce, garlic dip, soft drink.",
+       "price": 12,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Captain Nuggy Meal (Kids Meal)",
+       "description": "Nugget sticks + regular fries+toy",
+       "price": 6,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Bun Chick Meal (kids meal)",
+       "description": "Classic Chicken burger + regular fries+toy",
+       "price": 7,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Bun Beef Meal (kids meal)",
+       "description": "Classic Beef burger + regular fries+toy",
+       "price": 7,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "Beverages",
+     "items": [
+      {
+       "name_en": "Pepsi",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/a85cdf5a-aeed-480f-aa4f-a83c9673a5dd_d3.jpg"
+      },
+      {
+       "name_en": "Pepsi diet",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/e749a80e-4d45-4183-8f8e-16044f8f6abc_d3.jpg"
+      },
+      {
+       "name_en": "Mirinda",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/2ac75000-3f8a-42e7-a4d3-26390b63156c_d3.jpg"
+      },
+      {
+       "name_en": "7-UP",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/347f1cf8-72c7-44ec-8f31-ab439fe18d17_d3.jpg"
+      },
+      {
+       "name_en": "7up diet",
+       "description": "250 ml",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/69ac0fe0-4aae-468c-b5de-8675a35b56d5_d3.jpg"
+      },
+      {
+       "name_en": "7 up zero sugar extra fizz",
+       "price": 1.5,
+       "currency": null,
+       "confidence": 0.5
+      },
+      {
+       "name_en": "Ice Tea",
+       "price": 2,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/84ee0617-f7d5-40cb-a4b5-a8592e1c8dc2_d3.jpg"
+      },
+      {
+       "name_en": "Water",
+       "price": 0.5,
+       "currency": null,
+       "confidence": 0.5,
+       "image_url": "https://www.fbgcdn.com/pictures/b2f1be4f-7b4f-4b9d-a873-226bb02bce55_d3.jpg"
+      },
+      {
+       "name_en": "Sparkling water",
+       "price": 2,
+       "currency": null,
+       "confidence": 0.5
+      }
+     ]
+    }
+   ],
+   "warnings": [
+    "price without currency for \"Mozzarella Bricks\"",
+    "price without currency for \"Onion Rings\"",
+    "price without currency for \"Chicken Popcorn\"",
+    "price without currency for \"Haloumi bricks\"",
+    "price without currency for \"Cheddar Jalapeno triangles\"",
+    "price without currency for \"Regular Fries\"",
+    "price without currency for \"Curly Fries\"",
+    "price without currency for \"Messy bros small\"",
+    "price without currency for \"Messy Bros Large\"",
+    "price without currency for \"The Bros box\"",
+    "price without currency for \"The BB waffle\"",
+    "price without currency for \"kinder rolls\"",
+    "price without currency for \"Classic Chicken Burger\"",
+    "price without currency for \"Golden BB Burger\"",
+    "price without currency for \"Honey Bros\"",
+    "price without currency for \"Classic Burger\"",
+    "price without currency for \"Lebanese Burger\"",
+    "price without currency for \"The Pitmaster Burger\"",
+    "price without currency for \"Myco Swiss Burger\"",
+    "price without currency for \"Signature BB Burger\"",
+    "price without currency for \"Crispy Wrap\"",
+    "price without currency for \"Boneless Wrap\"",
+    "price without currency for \"Twister Chicken Wrap\"",
+    "price without currency for \"Chicken Ceasar Wrap\"",
+    "price without currency for \"Tawouk wrap\"",
+    "price without currency for \"Sawda wrap\"",
+    "price without currency for \"fries wrap\"",
+    "price without currency for \"The Big Deal\"",
+    "price without currency for \"Duo Meal\"",
+    "price without currency for \"Crispy Meal\"",
+    "price without currency for \"Captain Nuggy Meal (Kids Meal)\"",
+    "price without currency for \"Bun Chick Meal (kids meal)\"",
+    "price without currency for \"Bun Beef Meal (kids meal)\"",
+    "price without currency for \"Pepsi\"",
+    "price without currency for \"Pepsi diet\"",
+    "price without currency for \"Mirinda\"",
+    "price without currency for \"7-UP\"",
+    "price without currency for \"7up diet\"",
+    "price without currency for \"7 up zero sugar extra fizz\"",
+    "price without currency for \"Ice Tea\"",
+    "price without currency for \"Water\"",
+    "price without currency for \"Sparkling water\""
+   ]
+  },
+  {
+   "place_id": "ChIJWZ-idEUhHxURPnKWXUD8diQ",
+   "vendor_name": "ROUTE 66",
+   "village": "Boqaata",
+   "source_url": "https://route66-eatery.com/",
+   "adapter": "html",
+   "method": "text",
+   "captured_at": "2026-10-15",
+   "sections": [
+    {
+     "name_en": "KIDS MEAL",
+     "items": [
+      {
+       "name_en": "ONLY",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "WINGS GIANT MEAL",
+     "items": [
+      {
+       "name_en": "ONLY",
+       "price": 19,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "CRISPY FAMILY MEAL",
+     "items": [
+      {
+       "name_en": "ONLY",
+       "price": 38,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "SMILEY",
+     "items": [
+      {
+       "name_en": "ONLY",
+       "price": 2.8,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "TRIO BONELESS MEAL",
+     "items": [
+      {
+       "name_en": "ONLY",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    },
+    {
+     "name_en": "SAY HELLO",
+     "items": [
+      {
+       "name_en": "ONLY",
+       "price": 2.5,
+       "currency": "USD",
+       "confidence": 0.5
+      }
+     ]
+    }
+   ],
+   "warnings": [
+    "price without currency for \"ROUTE\"",
+    "price without currency for \"Special Mini Crispy Wraps and a Refreshing Soft Drink. The Perfect Combo You Can't Resist!\"",
+    "price without currency for \"MIX\"",
+    "price without currency for \"Not Just a Drink. It’s Mix\""
+   ]
+  },
+  {
+   "place_id": "ChIJsb8EPHogHxURipwZHZ8aMd8",
+   "vendor_name": "Safa Chicken",
+   "village": "Boqaata",
+   "source_url": "https://oddmenu.com/ar/p/ssafa-chicken",
+   "adapter": "oddmenu",
+   "method": "oddmenu",
+   "captured_at": "2026-10-15",
+   "sections": [
+    {
+     "name_en": "Cold Beverages",
+     "items": [
+      {
+       "name_en": "Pepsi Can",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Miranda Can",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Seven Up Can",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Pepsi Plastic",
+       "price": 1.11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Miranda Plastic",
+       "price": 1.11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Seven Up Plastic",
+       "price": 1.11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Diet Pepsi Plastic",
+       "price": 1.11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Diet Seven Up Plastic",
+       "price": 1.11,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Pepsi 1.25L",
+       "price": 1.77,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Miranda 1.25L",
+       "price": 1.77,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Seven Up 1.25L",
+       "price": 1.77,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Water",
+       "price": 0.28,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Mr. Juice",
+       "price": 0.38,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "APPETIZERS / مقبلات",
+     "items": [
+      {
+       "name_ar": "متبل باذنجان",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "حمص",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "بطاطا مقلية صغير",
+       "price": 2.75,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "بطاطا مقلية كبير",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "بطاطا ودجز",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "ورق عنب بزيت",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كبة مقلية",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "رقاقات جبنة مقلية",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "ر قاقات دجاج",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "ر قاقات خضار",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كوشينيا",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "برك جبنة",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "سمبوسك لحم",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "مسخن",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كبة اليقطين",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "سمبوسك سبانخ",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كبة اليقطين بسبانخ",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كبيس",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "SALADS /سلطات",
+     "items": [
+      {
+       "name_ar": "تبولة",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "فتوش",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشكن سيزر سلاد",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كولسلو صغير",
+       "price": 2.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كولسلو كبير",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "SANDWICHES / سندويشات",
+     "items": [
+      {
+       "name_ar": "أوريجانو",
+       "description": "دجاج مشوي مع صلصة الأوريجانو ، جبنة الموزاريلا، شرائح البندورة، وورق الروكا",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "سوبريم",
+       "description": "ساندويتش إسكالوب مع خس آيسبرغ، مايونيز، شرائح حبش، وحبات الذرة, وكبيس",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "فيلادلفيا",
+       "description": "شرائح لحم طري متبل مع الفلفل الملون، البصل، الجبنة الذائبة، وصلصة الأفوكادو الكريمية داخل خبز طازج",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "دجاج",
+       "description": "ثوم، كبيس، بطاطا مقلية، صلصة السماق والزعتر",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "طاووق",
+       "description": "ثوم، كبيس، بطاطا مقلية",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "سودة",
+       "description": "ثوم، كبيس، بطاطا المقلية",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "إسكالوب",
+       "description": "شريحة دجاج مقلية مع صلصة الكوكتيل، مايونيز، خس، وبطاطا المقلية",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشيز إسكالوب",
+       "description": "شريحة دجاج مقلية مغطاة بطبقة من الجبنة، مع صلصة الكوكتيل، مايونيز، خس ، وبطاطا مقلية",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "فاهيتا",
+       "description": "دجاج مشوي متبل مع الفلفل، بصل ، وصلصة الأفوكادو ، مغطى بطبقة من جبنة الموزاريلا",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "بطاطا",
+       "description": "بطاطا مقلية تُقدم مع الكاتشب وسلطة الكولسلو",
+       "price": 3,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كفتة دجاج",
+       "description": "ثوم، كبيس، بطاطا مقلية",
+       "price": 5.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "سجق",
+       "description": "ثوم ، خس ، شرائح البندورة، الفليفلة المشوية، كبيس، وبطاطا مقلية",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "مقانق",
+       "description": "مايونيز، خس ، كبيس، وشرائح البندورة",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشكن ساب",
+       "description": "دجاج مشوي يُقدم داخل خبز مع المايونيز، صلصة الكوكتيل، خس، ذرة، بطاطا مقلية، وطبقة من جبنة الموزاريلا",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "لحمة مشوية",
+       "description": "لحمة مشوية على الفحم تُقدم مع البواز، شرائح البندورة و البصل المشوي، حمص، كبيس",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كباب",
+       "description": "كباب مشوية على الفحم تُقدم مع البواز، شرائح البندورة و البصل المشوي، حمص، كبيس",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "زينجر",
+       "description": "مايونيز, حر, ايسبيرغ, حبش مدخن وكبيس",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كرسبي",
+       "description": "مايونيز، صوص كوكتيل، ذرة، تشيبس، ايسبيرغ و بربكيو صوص",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشيز كرسبي",
+       "description": "مايونيز، صوص كوكتيل، ذرة، تشيبس، ايسبيرغ و بربكيو صوص",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "ناغتس",
+       "description": "مايونيز، صوص كوكتيل، ذرة، خس وبطاطا",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشيز ناغتس",
+       "description": "مايونيز، صوص كوكتيل، ذرة، خس وبطاطا",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشكن برست",
+       "description": "صوص, خس ايسبيرغ وبندورة مشوية",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "فرنسيسكو",
+       "description": "دجاج مشوي مع جبنة موزاريلا,المايونيز، كبيس، الخس، والذرة",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Shawarma/شاورما",
+     "items": [
+      {
+       "name_ar": "ساندويش شاورما دجاج صغير",
+       "price": 3.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "ساندويش شاورما لحمة صغير",
+       "price": 4.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "ساندويش شاورما دجاج كبير",
+       "price": 5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "ساندويش شاورما لحمة كبير",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "شاورما دجاج مقطع",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "شاورما لحمة مقطع",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو شاورما لحمة",
+       "price": 40,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو شاورما دجاج",
+       "price": 35,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن شاورما لحمة",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن شاورما دجاج",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن رز مع شاورما دجاج",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن رز مع شاورما لحمة",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن حمص مع شاورما لحمة",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "DAILY DISH / صحن يومي ‏متوفر يومياً",
+     "items": [
+      {
+       "name_ar": "كبة بلبن",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "‏تشاينيز دجاج",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "‏تشاينيز لحمة",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "‏تشكن ألفريدو",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "‏طاووق بالفخارة",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "‏كبة بالصينية",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كبة صاجية",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "مندي لحم",
+       "description": "لبن و خيار + دقوس",
+       "price": 8,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Burgers / برغرز",
+     "items": [
+      {
+       "name_en": "Mini Burger",
+       "description": "2mini burgers with potato",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "برغر لحمة",
+       "description": "برغر لحم مع الكاتشب، سلطة الكولسلو، والبطاطا",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشيز برغر لحم",
+       "description": "برغر لحم مع جبنة الشيدر، الكاتشب، سلطة الكولسلو، والبطاطا.",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشكن برغر",
+       "description": "برغر دجاج مع الكاتشب، سلطة الكولسلو، والبطاطا",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "تشيز تشكن برغر",
+       "description": "برغر دجاج مع جبنة الشيدر، الكاتشب، سلطة الكولسلو، والبطاطا.",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Safa Special Burger",
+       "description": "برغر مميز يتكون من قطعة لحم مشوي، طبقة من جبنة الموزاريلا، خس آيسبرغ الطازج، صلصة خاصة، شرائح البصل، والبندورة",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Wraps",
+     "items": [
+      {
+       "name_ar": "كريسبي راب",
+       "description": "قطع دجاج كريسبي مقرمشة مع المايونيز، صلصة الكوكتيل، خس ، ذرة ، و صلصة الباربكيو",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كريسبي راب مع شيدر",
+       "description": "قطع دجاج كريسبي مقرمشة مع جبنة الشيدر، المايونيز، صلصة الكوكتيل، خس ، ذرة، وصلصة الباربكيو",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "فرنسيسكو راب",
+       "description": "مايونيز، كبيس خيار، ذرة، خس ايسبيرغ وصويا صوص",
+       "price": 6.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Pizza & Pasta",
+     "items": [
+      {
+       "name_en": "Supreme",
+       "description": "A loaded delight with pepperoni, beef, fresh veggies, and melted mozzarella on a crispy crust",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Spicy Chicken Ranch",
+       "description": "Juicy grilled chicken, topped with cool ranch dressing, jalapeno, tomato and mushroom for a tantalizing flavor.",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "BBQ Chicken",
+       "description": "Tender grilled chicken marinated in BBQ sauce, layered with melted mozzarella and red onions",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Pepperoni",
+       "description": "Classic pepperoni slices mingled with a gooey mozzarella cheese and zesty tomato sauce.",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Margherita",
+       "description": "Creamy mozzarella cheese on a crispy crust",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Sausage",
+       "description": "Sausage on top with melted mozzarella, with rich tomato sauce",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Vegeterian",
+       "description": "Fresh bell peppers, onions, mushrooms, and olives, perfectly complemented by tangy tomato sauce and melted cheese.",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Chicken Fettuccine Alfredo",
+       "description": "Tender pieces of grilled chicken, drenched in Alfredo sauce made with Parmesan cheese, butter, and cream",
+       "price": 7.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "PLATES / صحون",
+     "items": [
+      {
+       "name_ar": "مشاوي مشكّل",
+       "description": "سيخ لحمة مشوية، سيخ طاووق، وسيخ كباب، تُقدم مع بندورة مشوية، بصل مشوي، حمص ناعم، نصف خبزة حارة، بطاطا مقلية, بواز",
+       "price": 15,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "طاووق مشوي",
+       "description": "سيخان من الطاووق المشوي على الفحم، يُقدم مع الثوم ، كبيس، البطاطا المقلية، وسلطة الكولسلو",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "لحمة مشوية",
+       "description": "سيخان من اللحمة المشوية على الفحم، يُقدمان مع بندورة مشوية، بصل مشوي، بواز، حمص، وبطاطا مقلية",
+       "price": 12,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "جوانح مشوية",
+       "description": "جوانح دجاج مشوية على الفحم تُقدم مع صلصة الثوم، كبيس، البطاطا المقلية، وسلطة الكولسلو",
+       "price": 9,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن اسكالوب",
+       "description": "قطعتان من دجاج الاسكالوب المقرمش تُقدمان مع البطاطا المقلية، سلطة الكولسلو، وصلصة الكوكتيل",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كريسبي",
+       "description": "خمسة قطع من دجاج كريسبي مع صلصة الجبنة الشيدر، تُقدم مع البطاطا المقلية، سلطة الكولسلو ، وصلصة الكوكتيل",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن بروتين",
+       "description": "300 غرام صدورة مشوية مقدمة مع بطاطا مشوية وسلطة طازجة",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كباب مشوي",
+       "description": "سيخان من الكباب المشوي على الفحم، يُقدمان مع بندورة مشوية، بصل مشوي، بطاطا مقلية، بواز، وحمص ناعم",
+       "price": 10.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن سودة",
+       "description": "200 غرام سودة مشوية مقدمة مع ثوم وكبيس",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "سجق",
+       "description": "مقدمة مع توم وكبيس",
+       "price": 9.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "مقانق",
+       "description": "يقدم مع مايونيز",
+       "price": 8.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن برغر دجاج",
+       "description": "قطعتين دجاج مشوي (دابل باتي) تقدم مع بطاطا مقلية، سلطة كولسلو وكاتشب الى جانبها",
+       "price": 9.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "صحن برغر لحم",
+       "description": "قطعتين لحم مشوي (دابل باتي) تقدم مع بطاطا مقلية، سلطة كولسلو وكاتشب الى جانبها",
+       "price": 11,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "SMOKED RICE / ارز مدخن",
+     "items": [
+      {
+       "name_ar": "كيلو رز مدخن",
+       "description": "كيلو من الرز المدخن يُقدم مع صلصة الدقوس والمكسرات المتنوعة لإضافة نكهة غنية ومميزة",
+       "price": 10,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "نصف كيلو رز مدخن",
+       "description": "نصف كيلو من الرز المدخن، يُقدم مع صلصة الدقوس والمكسرات المتنوعة لإضافة نكهة غنية ومميزة",
+       "price": 6,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو رز مدخن مع فروج",
+       "price": 19,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "نصف كيلو رز مدخن مع نصف فروج",
+       "price": 11.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "‏كيلو رز مدخن مع طاووق",
+       "price": 19.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "‏نصف كيلو رز مدخن مع طاووق",
+       "price": 10.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "KIDS MEAL / وجبة اطفال",
+     "items": [
+      {
+       "name_ar": "وجبة كريسبي",
+       "description": "3 قطع من دجاج كريسبي مقرمش، تُقدم مع البطاطا المقلية المقرمشة وصلصة",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "وجبة ناجتس",
+       "description": "6 قطع من ناجتس الدجاج المقرمشة، تُقدم مع البطاطا المقلية المقرمشة وصلصة",
+       "price": 7,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Take-Out/ Dine-In",
+     "items": [
+      {
+       "name_ar": "فروج فحم",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "نصف فروج فحم",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "فروج غاز",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "نصف فروج غاز",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "دجاج بروستد",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "نصف بروستد",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو مشاوي مشكلة",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو طاووق مشوي",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو لحم مشوي",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو فخاد مشوية",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو جوانح مشوية",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو كباب مشوي",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو اسكالوب",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو كرسبي",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_ar": "كيلو ناغتس",
+       "price": 0,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    },
+    {
+     "name_en": "Dips",
+     "items": [
+      {
+       "name_en": "Toum",
+       "price": 1.1,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Cocktail sauce",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Mayonnaise",
+       "price": 1.25,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Chilli sauce",
+       "price": 0.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Cheddar",
+       "price": 2,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Honey mustard",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      },
+      {
+       "name_en": "Special sauce",
+       "price": 1.5,
+       "currency": "USD",
+       "confidence": 0.9
+      }
+     ]
+    }
+   ],
+   "warnings": []
   }
  ]
 }
