@@ -101,6 +101,40 @@ describe("smart menu on the Merchant number", () => {
     expect(h.of("menu_draft_create")).toHaveLength(0);
   });
 
+  it("a link to the menu page is fetched safely and read by the text rules (§39.7)", async () => {
+    const h = harness({ menu_draft_create: () => summary });
+    const fetched: string[] = [];
+    h.deps.fetchLink = async (url) => {
+      fetched.push(url);
+      return {
+        bytes: new TextEncoder().encode(
+          "<html><script>x()</script><h2>Sandwiches</h2><li>Falafel 4$</li><li>Shawarma 5$</li></html>",
+        ),
+        mime: "text/html",
+      };
+    };
+    await handleMerchantMenu(h.deps, h.msg({ text: "menu" }), [OWNER]);
+    expect(
+      await handleMerchantMenu(h.deps, h.msg({ text: "our menu: https://example.com/menu" }), [
+        OWNER,
+      ]),
+    ).toBe(true);
+    expect(fetched).toEqual(["https://example.com/menu"]);
+    const args = h.of("menu_draft_create")[0].args;
+    expect(args.p_source).toBe("link");
+    expect(args.p_model).toBe("rules");
+    expect(JSON.stringify(args.p_sections)).toMatch(/Falafel[\s\S]*Shawarma/);
+  });
+
+  it("a link that cannot be opened is said, nothing is drafted", async () => {
+    const h = harness({ menu_draft_create: () => summary });
+    h.deps.fetchLink = async () => null;
+    await handleMerchantMenu(h.deps, h.msg({ text: "menu" }), [OWNER]);
+    await handleMerchantMenu(h.deps, h.msg({ text: "https://intranet/menu" }), [OWNER]);
+    expect(h.of("menu_draft_create")).toHaveLength(0);
+    expect(JSON.stringify(h.sent.at(-1))).toMatch(/couldn't open that link/);
+  });
+
   it("with the model a photo is read into a draft through the validator", async () => {
     const model = async () =>
       JSON.stringify({

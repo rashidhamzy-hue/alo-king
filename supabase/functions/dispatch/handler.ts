@@ -42,10 +42,13 @@ import { orderCardImageMessage, orderCardSvg } from "../_shared/order-card-image
 import { parseFlowReply } from "../_shared/flows.ts";
 import type { MenuModel } from "../_shared/menu-draft.ts";
 import {
+  beirutClock,
   nextBeirutTime,
   parseMerchantCommand,
   type MerchantCommand,
 } from "../_shared/merchant-commands.ts";
+import { runCopilot, writesIn } from "./merchant/copilot.ts";
+import { copilotModelCommand, type CopilotModel } from "./merchant/copilot-model.ts";
 
 export type SendResult = { ok: true; id?: string } | { ok: false; retry: boolean; error: string };
 
@@ -86,6 +89,10 @@ export type DispatchDeps = {
   orderCard?: ((phoneNumberId: string, svg: string) => Promise<string | null>) | null;
   /** The fetch used for Open Food Facts (§39.5); tests inject one. */
   offFetch?: typeof fetch | null;
+  /** The merchant copilot's model (§39.7); null while ai_merchant_text_enabled is off or there is no credit. */
+  merchantCopilot?: CopilotModel | null;
+  /** Fetches a menu link a merchant sends during an import (https only, size and time capped). */
+  fetchLink?: ((url: string) => Promise<{ bytes: Uint8Array; mime: string } | null>) | null;
   /** The customer bot's model, transcription, media and routing (session 4); null = customers are ignored. */
   customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
 };
@@ -470,6 +477,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
         menuModel: deps.menuModel ?? null,
         fetchMedia: deps.fetchMenuMedia ? (x) => deps.fetchMenuMedia!(menuSender, x) : null,
         log: deps.log,
+        fetchLink: deps.fetchLink ?? null,
       },
       { from: m.from, messageId: m.messageId, text: m.text, buttonId: m.buttonId, media: o.media },
       members,
@@ -505,11 +513,25 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
     return "done";
   }
   if (m.text !== null) {
-    const cmd = parseMerchantCommand(m.text, deps.now?.() ?? new Date());
+    let cmd = parseMerchantCommand(m.text, deps.now?.() ?? new Date());
+    // What the rules do not read goes to the copilot's model, behind ai_merchant_text_enabled (§32.4, §39.7). It
+    // answers with the same typed commands, so every change still waits for the merchant's tap.
+    if (!cmd && deps.merchantCopilot)
+      cmd = await merchantModelCommand(deps, deps.merchantCopilot, m.text).catch((e: unknown) => {
+        deps.log?.("merchant model failed", { error: String(e).slice(0, 120) });
+        return null;
+      });
     if (!cmd) {
       await reply(HELP);
       return "done";
     }
+    // Merchant memory (§39.7): the language the shop's people write in.
+    await deps
+      .rpc("merchant_fact_writes_in", {
+        p_vendor_id: members[0].vendor_id,
+        p_lang: writesIn(m.text),
+      })
+      .catch(() => null);
     await handleCommand(deps, cmd, members[0], m, reply);
     return "done";
   }
@@ -562,7 +584,7 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
 }
 
 export const HELP = [
-  "ما فهمت عليك 🙏 جرّب:",
+  "ما فهمت عليك 🙏 جرّب («help» للائحة كاملة / for everything):",
   "• «مسكّر نص ساعة» / «Mrakad 30 mins»",
   "• «فتحنا» / «open»",
   "• «خلصت الكنافة» / «knefe back»",
@@ -746,6 +768,8 @@ async function handleTap(
             ? `🔌 خبّينا ${r.hidden} صنف لحد ما ترجع الكهربا. ابعت «رجعت الكهربا» لترجّعهن. / ${r.hidden} items hidden; send “power back” to restore them.`
             : "🔌 ما في أصناف معلّمة إنها بدها كهربا. علّمها: «<الصنف> بدو كهربا». / No items are tagged as needing power; send “<item> needs power”.",
         );
+      const done = copilotDoneText(r);
+      if (done) return reply(done);
       if (r.status === "confirmed" && r.kind === "power_on")
         return reply(
           `💡 رجّعنا ${Number(r.restored ?? 0)} صنف. / ${Number(r.restored ?? 0)} items are back.`,
@@ -793,6 +817,15 @@ async function handleCommand(
         return reply(
           "⚠️ ما فينا نغيّر صاحب المحل من هون. / The owner can't be changed by message.",
         );
+      // The server's checks (§39.7): say what it refused, nothing is changed.
+      const check =
+        /check_violation|within the configured|no items|percent off|runs 1-|on this menu|no running offer|weekdays|opening and a closing|next 60 days|minimum order|delivery radius|Boost needs|removed from the menu|new item needs|an edit changes|unknown station|unknown offer/.exec(
+          msg,
+        );
+      if (check)
+        return reply(
+          `⚠️ ما فينا نعمل هالتغيير: ${msg.replace(/^.*?(?:ERROR:\s*)?/, "").slice(0, 160)} / Not possible as asked.`,
+        );
       throw e;
     }
     return reply({
@@ -813,6 +846,14 @@ async function handleCommand(
       ? best
       : null;
   };
+  // The copilot's commands (§39.7): availability, stock, items, offers, hours, minimum, radius, Boost, reports.
+  if (
+    await runCopilot(
+      { rpc: deps.rpc, member, now, reply, propose, item: (q: string) => item(q) },
+      cmd,
+    )
+  )
+    return;
   switch (cmd.kind) {
     case "pause": {
       const until = new Date(now.getTime() + cmd.minutes * 60_000);
@@ -990,4 +1031,81 @@ export function substitutionReply(cmd: { code: string; missing: string }, r: any
     default:
       return "⚠️ ما قدرنا نعرض البديل. / Couldn't offer the substitute.";
   }
+}
+
+/** The reply after a copilot proposal is confirmed (§39.7), or null for the older kinds. */
+export function copilotDoneText(r: any): string | null {
+  if (r?.status !== "confirmed") return null;
+  switch (r.kind) {
+    case "availability_off":
+      return r.until
+        ? `⏸ وقّفنا ${Number(r.hidden ?? 0)} صنف لحد ${beirutHhmm(new Date(r.until))}، وبيرجعوا لحالن. / ${Number(r.hidden ?? 0)} items off until ${beirutHhmm(new Date(r.until))}; they come back on their own.`
+        : `⏸ وقّفنا ${Number(r.hidden ?? 0)} صنف. ابعت «… رجع» لترجّعن. / ${Number(r.hidden ?? 0)} items off; send “… back” to restore them.`;
+    case "availability_on":
+      return `▶️ رجّعنا ${Number(r.restored ?? 0)} صنف. / ${Number(r.restored ?? 0)} items are back.`;
+    case "offer_create":
+      return "🏷️ العرض شغّال. الزباين بيشوفوه بالسلة والسعر النهائي. «stop offer» لتوقفه. / The offer is live; customers see it in the basket total.";
+    case "boost_start":
+      return "🚀 حفظنا ميزانية البوست. ما منسحب شي قبل ما يبلّش الإعلان المدفوع، ومنخبرك. / Boost budget saved; nothing is charged until sponsored placement starts.";
+    case "item_add":
+      return "➕ انزاد الصنف عالمنيو. / The item is on your menu.";
+    case "item_remove":
+      return "🗑️ انشال من المنيو. / Removed from the menu.";
+    default:
+      return null;
+  }
+}
+
+const beirutHhmm = (d: Date) => {
+  const c = beirutClock(d);
+  return `${String(c.hour).padStart(2, "0")}:${String(c.minute).padStart(2, "0")}`;
+};
+
+/** One copilot model call inside the AI budget, logged in ai_calls like the customer's (§6 cost model, §32.6). */
+async function merchantModelCommand(
+  deps: DispatchDeps,
+  m: CopilotModel,
+  text: string,
+): Promise<MerchantCommand | null> {
+  const q = await deps.rpc("ai_quota_take", {
+    p_customer_id: null,
+    p_purpose: "merchant",
+    p_model: m.model,
+    p_est_usd: 0.003,
+  });
+  if (!q?.ok) return null; // the daily budget is spent: the rules' help answers
+  const t0 = Date.now();
+  let usage: { input_tokens: number; output_tokens: number } | null = null;
+  let error: string | null = null;
+  let cmd: MerchantCommand | null = null;
+  try {
+    cmd = await copilotModelCommand(
+      {
+        model: m.model,
+        call: async (req) => {
+          const r = await m.call(req);
+          usage = r.usage;
+          return r;
+        },
+      },
+      text,
+      deps.now?.() ?? new Date(),
+    );
+  } catch (e) {
+    error = String(e).slice(0, 200);
+  }
+  const u = usage as { input_tokens: number; output_tokens: number } | null;
+  await deps
+    .rpc("ai_call_finish", {
+      p_call_id: q.call_id,
+      p_input_tokens: u?.input_tokens ?? null,
+      p_output_tokens: u?.output_tokens ?? null,
+      p_audio_seconds: null,
+      p_latency_ms: Date.now() - t0,
+      p_ok: !error,
+      p_error: error,
+    })
+    .catch(() => null);
+  if (error) throw new Error(error);
+  return cmd;
 }

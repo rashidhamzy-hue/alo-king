@@ -1,0 +1,50 @@
+{"id": "mer-001", "lang": "ar", "text": "القلاية مطفاية ربع ساعة", "expect": {"kind": "avail_off"}, "rules": true}
+{"id": "mer-002", "lang": "en", "text": "fryer off 15 min", "expect": {"kind": "avail_off"}, "rules": true}
+{"id": "mer-003", "lang": "fr", "text": "la friteuse en panne 30 minutes", "expect": {"kind": "avail_off"}, "rules": true}
+{"id": "mer-004", "lang": "arabizi", "text": "el fern ma3attal nos se3a", "expect": {"kind": "avail_off"}, "rules": true}
+{"id": "mer-005", "lang": "en", "text": "grill back", "expect": {"kind": "avail_on"}, "rules": true}
+{"id": "mer-006", "lang": "ar", "text": "الفراية رجعت", "expect": {"kind": "avail_on"}, "rules": true}
+{"id": "mer-007", "lang": "arabizi", "text": "el fryer 3am ya3mel mashekel, wa22fo shi rob3 se3a", "expect": {"kind": "avail_off"}, "rules": false}
+{"id": "mer-008", "lang": "fr", "text": "on a plus d'huile, coupe la friteuse jusqu'à 18h", "expect": {"kind": "avail_off"}, "rules": false}
+{"id": "mer-009", "lang": "ar", "text": "خلصت الكنافة", "expect": {"kind": "sold_out"}, "rules": true}
+{"id": "mer-010", "lang": "en", "text": "knefe back", "expect": {"kind": "back_in_stock"}, "rules": true}
+{"id": "mer-011", "lang": "en", "text": "price knefe 3.5", "expect": {"kind": "price"}, "rules": true}
+{"id": "mer-012", "lang": "ar", "text": "بدي غلّي سعر الكنافة لتصير ٣ دولار ونص", "expect": {"kind": "price"}, "rules": false}
+{"id": "mer-013", "lang": "fr", "text": "le prix du shawarma passe à 5 dollars", "expect": {"kind": "price"}, "rules": false}
+{"id": "mer-014", "lang": "en", "text": "stock rice 20", "expect": {"kind": "stock_set"}, "rules": true}
+{"id": "mer-015", "lang": "arabizi", "text": "sar 3ana 30 kilo riz bel makhzan", "expect": {"kind": "stock_set"}, "rules": false}
+{"id": "mer-016", "lang": "en", "text": "add item falafel wrap 4.5", "expect": {"kind": "item_add"}, "rules": true}
+{"id": "mer-017", "lang": "ar", "text": "زيد صنف فلافل 4 بالسندويشات", "expect": {"kind": "item_add"}, "rules": true}
+{"id": "mer-018", "lang": "fr", "text": "ajoute un nouveau plat: salade de quinoa à 7$", "expect": {"kind": "item_add"}, "rules": false}
+{"id": "mer-019", "lang": "en", "text": "rename knefe to knefe bi jebne", "expect": {"kind": "item_rename"}, "rules": true}
+{"id": "mer-020", "lang": "en", "text": "remove item knefe", "expect": {"kind": "item_remove"}, "rules": true}
+{"id": "mer-021", "lang": "arabizi", "text": "shil el mjadra men el menu, ma 3ad 3am na3mela", "expect": {"kind": "item_remove"}, "rules": false}
+{"id": "mer-022", "lang": "en", "text": "10% off", "expect": {"kind": "offer"}, "rules": true}
+{"id": "mer-023", "lang": "ar", "text": "خصم 20% على الكنافة", "expect": {"kind": "offer"}, "rules": true}
+{"id": "mer-024", "lang": "fr", "text": "on fait une promo de 15% sur les sandwichs cette semaine", "expect": {"kind": "offer"}, "rules": false}
+{"id": "mer-025", "lang": "en", "text": "happy hour 20% 3pm-6pm", "expect": {"kind": "offer"}, "rules": true}
+{"id": "mer-026", "lang": "en", "text": "first order 15%", "expect": {"kind": "offer"}, "rules": true}
+{"id": "mer-027", "lang": "en", "text": "stop offer", "expect": {"kind": "offer_stop"}, "rules": true}
+{"id": "mer-028", "lang": "en", "text": "closed tomorrow", "expect": {"kind": "closure"}, "rules": true}
+{"id": "mer-029", "lang": "ar", "text": "مسكرين بكرا", "expect": {"kind": "closure"}, "rules": true}
+{"id": "mer-030", "lang": "en", "text": "we won't open on the 20th, family wedding", "expect": {"kind": "closure"}, "rules": false}
+{"id": "mer-031", "lang": "en", "text": "hours mon-fri 9-23", "expect": {"kind": "hours"}, "rules": true}
+{"id": "mer-032", "lang": "ar", "text": "دوام كل يوم 10-22", "expect": {"kind": "hours"}, "rules": true}
+{"id": "mer-033", "lang": "fr", "text": "désormais on ouvre de 11h à minuit tous les jours", "expect": {"kind": "hours"}, "rules": false}
+{"id": "mer-034", "lang": "en", "text": "min order 10", "expect": {"kind": "min_order"}, "rules": true}
+{"id": "mer-035", "lang": "arabizi", "text": "ma bade talabet a2al men 8 dollar", "expect": {"kind": "min_order"}, "rules": false}
+{"id": "mer-036", "lang": "en", "text": "radius 3 km", "expect": {"kind": "radius"}, "rules": true}
+{"id": "mer-037", "lang": "arabizi", "text": "ma ba3ad bade wasel aktar men 2 km", "expect": {"kind": "radius"}, "rules": false}
+{"id": "mer-038", "lang": "en", "text": "boost 20 nearby", "expect": {"kind": "boost"}, "rules": true}
+{"id": "mer-039", "lang": "ar", "text": "حطلي اعلان بعشرين دولار للزباين القدام", "expect": {"kind": "boost"}, "rules": false}
+{"id": "mer-040", "lang": "en", "text": "stop boost", "expect": {"kind": "boost_stop"}, "rules": true}
+{"id": "mer-041", "lang": "en", "text": "report", "expect": {"kind": "report"}, "rules": true}
+{"id": "mer-042", "lang": "en", "text": "how did we do this week?", "expect": {"kind": "report"}, "rules": false}
+{"id": "mer-043", "lang": "ar", "text": "تقرير الاسبوع", "expect": {"kind": "report"}, "rules": true}
+{"id": "mer-044", "lang": "en", "text": "staff", "expect": {"kind": "staff_list"}, "rules": true}
+{"id": "mer-045", "lang": "ar", "text": "شو بتتذكر", "expect": {"kind": "memory"}, "rules": true}
+{"id": "mer-046", "lang": "en", "text": "help", "expect": {"kind": "help"}, "rules": true}
+{"id": "mer-047", "lang": "en", "text": "Mrakad 30 mins", "expect": {"kind": "pause"}, "rules": true}
+{"id": "mer-048", "lang": "en", "text": "open", "expect": {"kind": "open"}, "rules": true}
+{"id": "mer-049", "lang": "en", "text": "can you call my accountant", "expect": {"kind": "none"}, "rules": false}
+{"id": "mer-050", "lang": "fr", "text": "tu peux appeler mon comptable", "expect": {"kind": "none"}, "rules": false}

@@ -56,6 +56,7 @@ import {
   summaryMessage,
   trackMessage,
   tr,
+  belowMinimumMessage,
   upsellMessage,
   vendorChoices,
   where,
@@ -1090,6 +1091,8 @@ async function confirm(c: Ctx, basketId: string, version: number) {
           ["c:find", tr(lang, "otherPlace")],
         ]),
       );
+    case "below_minimum":
+      return checkout(c, {});
     case "fulfilment_unavailable":
       c.s.fulfil = null; // the shop does not take that way: ask again
       return checkout(c, {});
@@ -1734,6 +1737,8 @@ async function checkout(
       return say(c, "noRoute");
     case "beyond_radius":
       return push(c, beyondRadius(c.m.from, lang, q));
+    case "below_minimum":
+      return push(c, belowMinimumMessage(c.m.from, lang, q));
     case "ok": {
       const lines: any[] = q.basket.lines ?? [];
       const needEmpty = lines.filter((l) => l.needs_empty_answer);

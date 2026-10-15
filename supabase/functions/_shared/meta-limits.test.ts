@@ -744,6 +744,7 @@ import {
   memoryCard,
   problemLinesList,
   problemQtyList,
+  belowMinimumMessage,
   problemList,
   welcomeBack,
 } from "../dispatch/customer/render";
@@ -828,6 +829,7 @@ describe("session 5c customer agent cards (DECISIONS §38.3, §39.6)", () => {
         ),
         forWhomCard(to, lang, "Baakline, Building Saint Elias, near the church with a long name"),
         problemList(to, lang, "ABC123"),
+        belowMinimumMessage(to, lang, { status: "below_minimum", min_order_usd: 500, missing_usd: 499.5 }),
         problemLinesList(
           to,
           lang,
@@ -874,6 +876,8 @@ describe("session 5c customer agent cards (DECISIONS §38.3, §39.6)", () => {
             subtotal_usd: 10,
             delivery_fee_usd: 2,
             credit_usd: 5,
+            offer_usd: 1,
+            offer: { kind: "percent", percent: 10 },
             total_usd: 7,
             total_lbp: 626500,
             usd_lbp_rate: 89500,

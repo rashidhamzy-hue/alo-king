@@ -483,6 +483,37 @@ describe("the address on every order and who it is for (§22.1, §39.6)", () => 
     basket_substitution_needed: () => ({ needed: false }),
     basket_cash_state: () => ({ status: "ok", cash_currency: "USD", allowed: ["USD"] }),
   });
+  it("the shop's offer is a line on the summary; under the minimum order says what is missing (§39.7)", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        ...checkoutRpcs({ status: "ok", gift: false, address_id: ADDR, address }),
+        basket_quote: () => ({
+          ...quoteOk,
+          offer_usd: 0.5,
+          offer: { kind: "percent", percent: 10 },
+          total_usd: 6.5,
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, tap("c:checkout"));
+    expect(bodyOf(f.sent[0])).toMatch(/Shop offer 10%: −\$0\.50/);
+    const g = fake({
+      begin: { basket },
+      rpcs: {
+        ...checkoutRpcs({ status: "ok", gift: false, address_id: ADDR, address }),
+        basket_quote: () => ({
+          status: "below_minimum",
+          basket,
+          min_order_usd: 10,
+          missing_usd: 5,
+        }),
+      },
+    });
+    await handleCustomerTurn(g.deps, tap("c:checkout"));
+    expect(bodyOf(g.sent[0])).toMatch(/minimum order is \$10\.00 of food\. Add \$5\.00 more/);
+    expect(ids(g.sent[0])).toEqual(["c:basket"]);
+  });
   it("a saved address is confirmed every time: deliver here or somewhere else", async () => {
     const f = fake({
       begin: { basket },

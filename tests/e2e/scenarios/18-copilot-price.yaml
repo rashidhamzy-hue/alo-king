@@ -1,0 +1,33 @@
+name: copilot-price
+description: "Merchant copilot (DECISIONS §39.7, §30.2.1): a price change by message is a card; only the tap changes the menu (then the price is put back)."
+personas:
+  merchant: { role: merchant }
+steps:
+  - say: { as: merchant, text: "price Kafta Plate 11" }
+    expect:
+      - { to: merchant, buttons: ["pyes:", "pno:"], text: "11.00" }
+    db:
+      - sql: >
+          select i.price_usd from public.menu_items i join public.vendors v on v.id = i.vendor_id
+          where v.slug = 'alo-test-grill' and i.name_en = 'Kafta Plate'
+        row: { price_usd: 10 }
+  - tap: { as: merchant, id_prefix: "pyes:" }
+    expect:
+      - { to: merchant, text_any: ["✅"] }
+    db:
+      - sql: >
+          select i.price_usd from public.menu_items i join public.vendors v on v.id = i.vendor_id
+          where v.slug = 'alo-test-grill' and i.name_en = 'Kafta Plate'
+        row: { price_usd: 11 }
+  - note: put the price back for the other scenarios
+    say: { as: merchant, text: "price Kafta Plate 10" }
+    expect:
+      - { to: merchant, buttons: ["pyes:"] }
+  - tap: { as: merchant, id_prefix: "pyes:" }
+    expect:
+      - { to: merchant, text_any: ["✅"] }
+    db:
+      - sql: >
+          select i.price_usd from public.menu_items i join public.vendors v on v.id = i.vendor_id
+          where v.slug = 'alo-test-grill' and i.name_en = 'Kafta Plate'
+        row: { price_usd: 10 }

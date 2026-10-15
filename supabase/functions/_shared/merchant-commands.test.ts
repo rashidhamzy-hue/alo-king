@@ -173,3 +173,91 @@ describe("merchant WhatsApp extras (§32.5)", () => {
     expect(phoneE164("12")).toBeNull();
   });
 });
+
+describe("the copilot's commands (§39.7)", () => {
+  it.each([
+    ["fryer off 15 min", "fryer", 15],
+    ["الفراية مطفاية ربع ساعة", "fryer", 15],
+    ["la friteuse en panne 30 minutes", "fryer", 30],
+    ["grill off 1 hour", "grill", 60],
+    ["el fern ma3attal nos se3a", "oven", 30],
+    ["turn off the saj for 20 min", "saj", 20],
+    ["oven off", "oven", null],
+  ])("%s → station %s off for %s", (text, station, minutes) => {
+    expect(p(text)).toMatchObject({ kind: "avail_off", station, minutes });
+  });
+  it("a section or an item off for a while, or until a time", () => {
+    expect(p("sandwiches off 1h")).toEqual({ kind: "avail_off", target: "sandwiches", station: null, minutes: 60 });
+    // 15:00 Beirut now: "till 6" is 18:00, three hours away.
+    expect(p("knefe off till 6")).toEqual({ kind: "avail_off", target: "knefe", station: null, minutes: 180 });
+  });
+  it.each(["fryer back", "الفراية رجعت", "grill on", "le four remarche", "turn on the oven"])("%s → a station back on", (t) =>
+    expect(p(t)).toMatchObject({ kind: "avail_on" }),
+  );
+  it("older meanings win: capacity, generator, an item back in stock", () => {
+    expect(p("capacity off")).toEqual({ kind: "capacity", max: null });
+    expect(p("generator off")).toEqual({ kind: "power_off" });
+    expect(p("knefe back")).toEqual({ kind: "back_in_stock", item: "knefe" });
+    expect(p("remove Ali")).toEqual({ kind: "staff_remove", name: "ali" });
+    expect(p("closed 1 hour")).toEqual({ kind: "pause", minutes: 60 });
+  });
+  it("stock, add, rename, describe, station and remove items", () => {
+    expect(p("stock rice 20")).toEqual({ kind: "stock_set", item: "rice", quantity: 20 });
+    expect(p("مخزون الرز ٢٠")).toEqual({ kind: "stock_set", item: "رز", quantity: 20 });
+    expect(p("add item falafel wrap 4.5")).toEqual({ kind: "item_add", name: "falafel wrap", priceUsd: 4.5, section: null });
+    expect(p("زيد صنف فلافل 4 بالسندويشات")).toEqual({ kind: "item_add", name: "فلافل", priceUsd: 4, section: "سندويشات" });
+    expect(p("rename knefe to knefe bi jebne")).toEqual({ kind: "item_rename", item: "knefe", name: "knefe bi jebne" });
+    expect(p("describe Knefe: hot, with cheese")).toEqual({ kind: "item_describe", item: "knefe", description: "hot, with cheese" });
+    expect(p("fries station fryer")).toEqual({ kind: "item_station", item: "fries", station: "fryer" });
+    expect(p("remove item knefe")).toEqual({ kind: "item_remove", item: "knefe" });
+    expect(p("شيل صنف الكنافة")).toEqual({ kind: "item_remove", item: "كنافه" });
+  });
+  it("offers", () => {
+    expect(p("10% off")).toEqual({ kind: "offer", offer: { type: "percent", percent: 10, target: null, days: 7 } });
+    expect(p("offer 15% on sandwiches 3 days")).toEqual({
+      kind: "offer",
+      offer: { type: "percent", percent: 15, target: "sandwiches", days: 3 },
+    });
+    expect(p("خصم 20% على الكنافة")).toMatchObject({ kind: "offer", offer: { type: "percent", percent: 20, target: "الكنافه" } });
+    expect(p("happy hour 20% 3pm-6pm")).toEqual({
+      kind: "offer",
+      offer: { type: "happy_hour", percent: 20, from: "15:00", to: "18:00", target: null, days: 7 },
+    });
+    expect(p("10% off sandwiches 1 day")).toEqual({
+      kind: "offer",
+      offer: { type: "percent", percent: 10, target: "sandwiches", days: 1 },
+    });
+    expect(p("10% off for 3 days")).toEqual({ kind: "offer", offer: { type: "percent", percent: 10, target: null, days: 3 } });
+    expect(p("first order 15%")).toEqual({ kind: "offer", offer: { type: "first_order", percent: 15, days: 30 } });
+    expect(p("free fries with 2 shawarma")).toEqual({
+      kind: "offer",
+      offer: { type: "free_item", free: "fries", minQuantity: 2, target: "shawarma", days: 7 },
+    });
+    expect(p("stop offer")).toEqual({ kind: "offer_stop" });
+    expect(p("وقف العرض")).toEqual({ kind: "offer_stop" });
+  });
+  it("closures and hours", () => {
+    expect(p("closed tomorrow")).toEqual({ kind: "closure", day: "2026-10-12" });
+    expect(p("مسكرين بكرا")).toEqual({ kind: "closure", day: "2026-10-12" });
+    expect(p("closed 20/10")).toEqual({ kind: "closure", day: "2026-10-20" });
+    expect(p("closed friday")).toEqual({ kind: "closure", day: "2026-10-16" });
+    expect(p("closed every sunday")).toEqual({ kind: "hours", weekdays: [0], opens: null, closes: null });
+    expect(p("hours mon-fri 9-23")).toEqual({ kind: "hours", weekdays: [1, 2, 3, 4, 5], opens: "09:00", closes: "23:00" });
+    expect(p("دوام كل يوم 10-22")).toEqual({ kind: "hours", weekdays: [0, 1, 2, 3, 4, 5, 6], opens: "10:00", closes: "22:00" });
+    expect(p("hours sat sun 12-2am")).toEqual({ kind: "hours", weekdays: [0, 6], opens: "12:00", closes: "02:00" });
+  });
+  it("minimum order, radius, Boost, reports, staff, memory and help", () => {
+    expect(p("min order 10")).toEqual({ kind: "min_order", usd: 10 });
+    expect(p("الحد الادنى 8$")).toEqual({ kind: "min_order", usd: 8 });
+    expect(p("no minimum")).toEqual({ kind: "min_order", usd: null });
+    expect(p("radius 3 km")).toEqual({ kind: "radius", km: 3 });
+    expect(p("boost 20")).toEqual({ kind: "boost", budgetUsd: 20, audience: "nearby" });
+    expect(p("boost 30$ past customers")).toEqual({ kind: "boost", budgetUsd: 30, audience: "past_customers" });
+    expect(p("stop boost")).toEqual({ kind: "boost_stop" });
+    expect(p("report")).toEqual({ kind: "report", period: "day" });
+    expect(p("تقرير الاسبوع")).toEqual({ kind: "report", period: "week" });
+    expect(p("staff")).toEqual({ kind: "staff_list" });
+    expect(p("شو بتتذكر")).toEqual({ kind: "memory" });
+    expect(p("help")).toEqual({ kind: "help" });
+  });
+});

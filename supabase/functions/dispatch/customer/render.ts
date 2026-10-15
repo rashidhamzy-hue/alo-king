@@ -1022,6 +1022,12 @@ export type Quote = {
   pickup_enabled?: boolean;
   /** Customer credits taken off the total (disputes, §38.3). */
   credit_usd?: number | string;
+  /** The shop's own offer taken off the food (§20.4, §39.7). */
+  offer_usd?: number | string;
+  offer?: { kind: string; percent: number | string | null } | null;
+  /** below_minimum: the shop's minimum order and what is missing (§39.7). */
+  min_order_usd?: number | string;
+  missing_usd?: number | string;
   /** A gift order (§22.1): the recipient accepts and pays cash. */
   is_gift?: boolean;
   recipient_name?: string | null;
@@ -1072,6 +1078,11 @@ export function summaryMessage(
     ...(Number(q.deposit_usd ?? 0) > 0 ? [`${tr(lang, "deposit")}: ${usd(q.deposit_usd)}`] : []),
     ...(Number(q.stairs_fee_usd ?? 0) > 0
       ? [`${tr(lang, "stairs")}: ${usd(q.stairs_fee_usd)}`]
+      : []),
+    ...(Number(q.offer_usd ?? 0) > 0
+      ? [
+          `🏷️ ${tr(lang, "offerLine")}${q.offer?.percent ? ` ${Number(q.offer.percent)}%` : ""}: −${usd(q.offer_usd)}`,
+        ]
       : []),
     ...(Number(q.credit_usd ?? 0) > 0 ? [`${tr(lang, "creditLine")}: −${usd(q.credit_usd)}`] : []),
     `*${tr(lang, "total")}: ${moneyLine(q.total_usd, q.total_lbp, q.usd_lbp_rate, lang, false)}*`,
@@ -1575,6 +1586,18 @@ const S5C: Record<string, Record<CLang, string>> = {
     fr: "⚠️ Note pour la cuisine : allergie, {note}",
     arabizi: "⚠️ Note lal matbakh: allergy {note}",
   },
+  offerLine: {
+    ar: "عرض المحل",
+    en: "Shop offer",
+    fr: "Offre du commerce",
+    arabizi: "3ard el ma7al",
+  },
+  belowMinimum: {
+    ar: "أقل طلب بهالمحل {min} (أكل). زيد {missing} وكمّل.",
+    en: "This shop's minimum order is {min} of food. Add {missing} more to continue.",
+    fr: "La commande minimum de ce commerce est de {min}. Ajoutez {missing} pour continuer.",
+    arabizi: "A2al talab bi hal ma7al {min}. Zid {missing} w kammel.",
+  },
   creditLine: {
     ar: "رصيد من Alo King",
     en: "Alo King credit",
@@ -1952,4 +1975,13 @@ export function problemLinesList(
       })),
     },
   ]);
+}
+
+/** Under the shop's minimum order (§39.7): what is missing, and back to the basket. */
+export function belowMinimumMessage(to: string, lang: CLang, q: Quote): Msg {
+  return buttons(
+    to,
+    tr(lang, "belowMinimum", { min: usd(q.min_order_usd ?? 0), missing: usd(q.missing_usd ?? 0) }),
+    [["c:basket", tr(lang, "change")]],
+  );
 }
