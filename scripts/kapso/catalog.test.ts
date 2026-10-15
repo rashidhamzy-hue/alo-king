@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { connectedCatalog, ownedCatalog, ownerBusiness, why } from "./catalog";
+import {
+  connectedCatalog,
+  ownedCatalog,
+  ownerBusiness,
+  permissionRefused,
+  readCatalog,
+  why,
+} from "./catalog";
 
 describe("kapso-catalog (DECISIONS §39.12)", () => {
   it("reads the connected catalogue and the owning portfolio from Meta's answers", () => {
@@ -26,6 +33,34 @@ describe("kapso-catalog (DECISIONS §39.12)", () => {
       ),
     ).toBe("222222222222");
     expect(ownedCatalog({ data: [] }, "Alo King")).toBeNull();
+  });
+  it("accepts the owner's catalogue read directly only for that id in that portfolio (#181)", () => {
+    const biz = { id: "131819648080461", name: "Memo Tiles" };
+    expect(
+      readCatalog(
+        { id: "1684040949979106", name: "Alo King", business: biz },
+        "1684040949979106",
+        biz.id,
+      ),
+    ).toEqual({ id: "1684040949979106", name: "Alo King" });
+    expect(
+      readCatalog({ id: "1684040949979106", business: { id: "555" } }, "1684040949979106", biz.id),
+    ).toBeNull();
+    expect(readCatalog({ id: "1684040949979106" }, "1684040949979106", biz.id)).toBeNull();
+    expect(readCatalog({ id: "999", business: biz }, "1684040949979106", biz.id)).toBeNull();
+  });
+  it("takes that path only when Meta refused for permission, never on an outage", () => {
+    const refused = (status: number, error: any) => ({ ok: false, status, body: { error } });
+    expect(permissionRefused(refused(403, { code: 200, message: "(#200) no permission" }))).toBe(
+      true,
+    );
+    expect(permissionRefused(refused(400, { code: 100, error_subcode: 33 }))).toBe(true);
+    expect(
+      permissionRefused(refused(500, { code: 2, message: "Service temporarily unavailable" })),
+    ).toBe(false);
+    expect(permissionRefused({ ok: false, status: 0, body: { error: "TimeoutError" } })).toBe(
+      false,
+    );
   });
   it("explains a refusal with Meta's message and codes only", () => {
     expect(
