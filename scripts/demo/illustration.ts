@@ -30,22 +30,49 @@ export type Category =
 // Checked in this order: the first match wins ("chicken burger" is a burger, "pizza fries" are fries only if no pizza).
 const WORDS: [Category, RegExp][] = [
   ["icecream", /ice ?cream|gelato|sorbet|scoop|sundae|booza|بوظة|ايس كريم|آيس/i],
-  ["coffee", /coffee|espresso|cappuccino|latte|mocha|americano|nescafe|tea\b|chai|hot chocolate|قهوة|شاي|نسكافيه/i],
-  ["juice", /juice|smoothie|milkshake|shake|lemonade|cocktail|mojito|frappe|iced|عصير|ليموناضة|كوكتيل/i],
+  [
+    "coffee",
+    /coffee|espresso|cappuccino|latte|mocha|americano|nescafe|tea\b|chai|hot chocolate|قهوة|شاي|نسكافيه/i,
+  ],
+  [
+    "juice",
+    /juice|smoothie|milkshake|shake|lemonade|cocktail|mojito|frappe|iced|عصير|ليموناضة|كوكتيل/i,
+  ],
   ["water", /\bwater\b|sohat|tannourine|rim\b|mineral|مي\b|مياه|ماء/i],
-  ["soda", /pepsi|\bcola\b|coca|coke|7.?up|sprite|fanta|mirinda|soft drinks?|\bsoda\b|energy drink|red bull|\bcan\b|بيبسي|كولا|سفن/i],
+  [
+    "soda",
+    /pepsi|\bcola\b|coca|coke|7.?up|sprite|fanta|mirinda|soft drinks?|\bsoda\b|energy drink|red bull|\bcan\b|بيبسي|كولا|سفن/i,
+  ],
   ["burger", /burger|برغر|برجر/i],
   ["pizza", /pizza|margherita|pepperoni|calzone|بيتزا/i],
-  ["manousheh", /man[ao]ou?sh|mana2ish|zaatar|za'?atar|kishk|kechek|ka?shkawan|akkawi|lahm ?(b|w)?.?a?ajeen|lahme|fatayer|foron|saj|منقوش|مناقيش|زعتر|كشك|لحم بعجين|فطاير/i],
+  [
+    "manousheh",
+    /man[ao]ou?sh|mana2ish|zaatar|za'?atar|kishk|kechek|ka?shkawan|akkawi|lahm ?(b|w)?.?a?ajeen|lahme|fatayer|foron|saj|منقوش|مناقيش|زعتر|كشك|لحم بعجين|فطاير/i,
+  ],
   ["sub", /\bsubs?\b|submarine|hot ?dog|baguette|panini|toast|club|فرنجي/i],
-  ["wrap", /shawarma|wrap|tortilla|sandwich|taouk sandwich|falafel|kebbe? ?sandwich|شاورما|سندويش|فلافل|عروس/i],
+  [
+    "wrap",
+    /shawarma|wrap|tortilla|sandwich|taouk sandwich|falafel|kebbe? ?sandwich|شاورما|سندويش|فلافل|عروس/i,
+  ],
   ["fries", /fries|frites|fritas|wedges|potato|chips|بطاطا/i],
   ["salad", /salad|fattoush|tabbou?leh|caesar|greens|سلطة|فتوش|تبولة/i],
-  ["pasta", /pasta|spaghetti|penne|fettuccine|lasagn|macaroni|noodle|koushari|kushari|معكرونة|باستا|كشري/i],
+  [
+    "pasta",
+    /pasta|spaghetti|penne|fettuccine|lasagn|macaroni|noodle|koushari|kushari|معكرونة|باستا|كشري/i,
+  ],
   ["soup", /soup|shorba|lentil|شوربة/i],
-  ["chicken", /wings|nuggets|tenders|popcorn|crispy|broasted|fried chicken|drumstick|زنجر|جوانح|بروستد/i],
-  ["grill", /grill|kafta|kebab|kabab|taouk|tawook|shish|mashawi|skewer|steak|chops|meat|lamb|beef|chicken|مشاوي|كفتة|كباب|طاووق|لحمة|دجاج|فروج/i],
-  ["dessert", /cake|dessert|cookie|brownie|crepe|waffle|knafeh|kunafa|baklava|cheesecake|chocolate|sweet|maamoul|حلو|كنافة|كيك|بقلاوة/i],
+  [
+    "chicken",
+    /wings|nuggets|tenders|popcorn|crispy|broasted|fried chicken|drumstick|زنجر|جوانح|بروستد/i,
+  ],
+  [
+    "grill",
+    /grill|kafta|kebab|kabab|taouk|tawook|shish|mashawi|skewer|steak|chops|meat|lamb|beef|chicken|مشاوي|كفتة|كباب|طاووق|لحمة|دجاج|فروج/i,
+  ],
+  [
+    "dessert",
+    /cake|dessert|cookie|brownie|crepe|waffle|knafeh|kunafa|baklava|cheesecake|chocolate|sweet|maamoul|حلو|كنافة|كيك|بقلاوة/i,
+  ],
   ["dairy", /milk|labne|laban|yogh?urt|cheese|halloumi|butter|cream|ayran|لبنة|لبن|حليب|جبنة|جبن/i],
   ["bakery", /croissant|bread|bun\b|pastry|bagel|ka'?ak|خبز|كعك|كرواسان/i],
 ];
@@ -83,7 +110,11 @@ const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const chars = (s: string) => Array.from(s);
 const clip = (s: string, n: number) =>
-  chars(s).length > n ? chars(s).slice(0, n - 1).join("") + "…" : s;
+  chars(s).length > n
+    ? chars(s)
+        .slice(0, n - 1)
+        .join("") + "…"
+    : s;
 
 /** At most two lines of about `width` characters, broken at spaces. */
 export function lines(s: string, width: number): string[] {
@@ -379,7 +410,9 @@ export function illustrationSvg(item: {
 }): string {
   const main = lines(String(item.name_en || item.name_ar || "Alo King"), 22);
   const second =
-    item.name_ar && item.name_en && item.name_ar !== item.name_en ? lines(item.name_ar, 28).slice(0, 1) : [];
+    item.name_ar && item.name_en && item.name_ar !== item.name_en
+      ? lines(item.name_ar, 28).slice(0, 1)
+      : [];
   const parts = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">`,
     `<defs><radialGradient id="bg" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="${C.bg1}"/><stop offset="1" stop-color="${C.bg2}"/></radialGradient>`,

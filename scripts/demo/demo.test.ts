@@ -9,7 +9,10 @@ import { categoryOf, illustrationSvg, lines } from "./illustration.ts";
 describe("demo shops' full harvested menus", () => {
   it("are Deli Dough (350 items) and J.O'S (52 items)", () => {
     const overrides = JSON.parse(readFileSync(DEMO_SHOPS, "utf8")).full_harvested_menu;
-    const harvested = harvestedDrafts(JSON.parse(readFileSync(HARVEST_MENUS, "utf8")), HARVEST_MENUS);
+    const harvested = harvestedDrafts(
+      JSON.parse(readFileSync(HARVEST_MENUS, "utf8")),
+      HARVEST_MENUS,
+    );
     const rows = demoRows(overrides, harvested);
     const count = (r: string[]) =>
       (JSON.parse(r[3]) as { items: unknown[] }[]).reduce((n, s) => n + s.items.length, 0);
@@ -19,7 +22,9 @@ describe("demo shops' full harvested menus", () => {
     ]);
   });
   it("fail loudly when a listed shop has no harvested menu", () => {
-    expect(() => demoRows([{ place_id: "nope", name: "Nowhere" }], [])).toThrow(/no harvested menu/);
+    expect(() => demoRows([{ place_id: "nope", name: "Nowhere" }], [])).toThrow(
+      /no harvested menu/,
+    );
   });
 });
 
@@ -63,11 +68,14 @@ describe("the photo plan per item", () => {
   it("draws an item without a website image, once", () => {
     const p = plan(item)!;
     expect(p.kind).toBe("illustrative");
-    expect(plan({ ...item, photo: { source: "illustrative", origin_hash: p.hash, storage_path: "x" } })).toBeNull();
+    expect(
+      plan({ ...item, photo: { source: "illustrative", origin_hash: p.hash, storage_path: "x" } }),
+    ).toBeNull();
     expect(DRAWING_VERSION).toBe("1");
   });
   it("prefers the shop's own website image (Fred's Food), at 800 px", () => {
-    const url = "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/Fries.jpg?resize=300%2C300&ssl=1";
+    const url =
+      "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/Fries.jpg?resize=300%2C300&ssl=1";
     expect(plan({ ...item, image_url: url })!.kind).toBe("website");
     expect(sizedImageUrl(url)).toContain("resize=800%2C800");
   });

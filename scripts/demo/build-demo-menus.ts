@@ -24,7 +24,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("usage: build-demo-menus.ts <out.csv>");
     process.exit(2);
   }
-  const overrides: HarvestOverride[] = JSON.parse(readFileSync(DEMO_SHOPS, "utf8")).full_harvested_menu;
+  const overrides: HarvestOverride[] = JSON.parse(
+    readFileSync(DEMO_SHOPS, "utf8"),
+  ).full_harvested_menu;
   const harvested = harvestedDrafts(JSON.parse(readFileSync(HARVEST_MENUS, "utf8")), HARVEST_MENUS);
   const rows = demoRows(overrides, harvested);
   writeFileSync(out, toCsv(["place_id", "name", "menu", "sections", "source_url"], rows));

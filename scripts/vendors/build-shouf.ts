@@ -7,7 +7,13 @@ import { join } from "node:path";
 import { toCsv, VENDOR_COLUMNS, vendorCells } from "./normalize.ts";
 import { normalizeShouf, parseCsv, whatsappDisagreements } from "./shouf.ts";
 import { existsSync } from "node:fs";
-import { harvestedDrafts, ownerDrafts, ownerDuplicates, ownerPhones, shoufDrafts } from "./shouf-menus.ts";
+import {
+  harvestedDrafts,
+  ownerDrafts,
+  ownerDuplicates,
+  ownerPhones,
+  shoufDrafts,
+} from "./shouf-menus.ts";
 
 const [src, out] = process.argv.slice(2);
 if (!src || !out) {

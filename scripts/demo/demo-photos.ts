@@ -77,7 +77,10 @@ async function main() {
   const url = new URL(DB_URL);
   url.searchParams.delete("sslmode");
   const local = /^(localhost|127\.0\.0\.1)$/.test(url.hostname);
-  const db = new pg.Client({ connectionString: url.toString(), ssl: local ? false : { rejectUnauthorized: false } });
+  const db = new pg.Client({
+    connectionString: url.toString(),
+    ssl: local ? false : { rejectUnauthorized: false },
+  });
   await db.connect();
 
   // resvg (WebAssembly) and the bundled Noto fonts, as dispatch draws its cards.
@@ -105,8 +108,11 @@ async function main() {
   const done = { website: 0, illustrative: 0, unchanged: 0, failed: 0, deleted: 0 };
   try {
     const todo: TodoItem[] =
-      (await db.query("select public.demo_photos_todo($1) as t", [Number(process.env.PHOTO_LIMIT ?? 2000)])).rows[0]
-        .t ?? [];
+      (
+        await db.query("select public.demo_photos_todo($1) as t", [
+          Number(process.env.PHOTO_LIMIT ?? 2000),
+        ])
+      ).rows[0].t ?? [];
     await pool(todo, 6, async (item) => {
       const p = plan(item);
       if (!p) {
@@ -156,7 +162,9 @@ async function main() {
 
     // Objects whose row is gone (claimed, no longer a demo shop, or replaced with another extension).
     const kept = new Set(
-      (await db.query("select storage_path from public.menu_item_photos")).rows.map((r) => r.storage_path),
+      (await db.query("select storage_path from public.menu_item_photos")).rows.map(
+        (r) => r.storage_path,
+      ),
     );
     const list = async (prefix: string) => {
       const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${BUCKET}`, {
@@ -171,7 +179,9 @@ async function main() {
       for (const folder of await list(`${source}/`)) {
         if (folder.id) continue; // a file at the top level: not ours
         const files = (await list(`${source}/${folder.name}/`)).filter((f) => f.id);
-        const gone = files.map((f) => `${source}/${folder.name}/${f.name}`).filter((pth) => !kept.has(pth));
+        const gone = files
+          .map((f) => `${source}/${folder.name}/${f.name}`)
+          .filter((pth) => !kept.has(pth));
         if (!gone.length) continue;
         const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}`, {
           method: "DELETE",
