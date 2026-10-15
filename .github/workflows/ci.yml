@@ -517,7 +517,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Copy new seed photos, delete removed ones (each photo once; a failure is retried next deploy)
+      - name: Copy new seed photos, delete removed ones, demo item photos (each photo once; a failure is retried next deploy)
         run: |
           DB_URL="$(scripts/staging-db-url.sh)"
           echo "::add-mask::$DB_URL"
@@ -528,6 +528,10 @@ jobs:
           echo "::add-mask::$key"
           DB_URL="$DB_URL" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co" SUPABASE_SERVICE_KEY="$key" \
             node scripts/shouf/copy-photos.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+          # Demo shops (DECISIONS §39.12, staging only): every item gets a catalogue image, its shop's website photo or an
+          # illustration (never a Google place photo).
+          DB_URL="$DB_URL" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co" SUPABASE_SERVICE_KEY="$key" \
+            node --experimental-strip-types --no-warnings scripts/demo/demo-photos.ts | tee -a "$GITHUB_STEP_SUMMARY"
 
   e2e-staging:
     name: staging e2e after the deploy (DECISIONS §36)
