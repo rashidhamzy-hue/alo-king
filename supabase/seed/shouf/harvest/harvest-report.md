@@ -44,7 +44,6 @@ Harvested 2026-10-14: 5 menus from 54 links (32 skipped by rule).
 - West Diner: skipped: Instagram (login wall, terms) — https://www.instagram.com/west.diner?igsh=MTZ0a3FlZmg0Z2t5MA==
 - One Stop&Shop: skipped: a raw IP address — http://185.76.176.87/
 - أفران جبنة وزبدة Jebneh w Zebdeh bakery: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://jebnehwzebdeh.github.io/jebneh-website/#follow
-- ROUTE 66: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://route66-eatery.com/
 - Ocean Golden Bites: skipped: Instagram (login wall, terms) — https://www.instagram.com/ocean_golden_bites?igsh=MWN3bWRkNnppemV5dg==&utm_sourc
 - Boneless Bakaata: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — http://www.bonelesslb.com/
 - Tarabish: skipped: Facebook (login wall, terms) — https://m.facebook.com/tarabish.com.lb
@@ -92,8 +91,16 @@ Harvested 2026-10-14: 5 menus from 54 links (32 skipped by rule).
 ## Samqaniyeh
 
 - Sekrab: skipped: Facebook (login wall, terms) — http://www.faceboom.com/sekrab
-- Verona Resto: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://leb.directory/veronaresto.3208/
 
 ## chouf
 
 - INDINER time: **122 items, 122 priced** in 15 sections (omega, omega https://menu.omegasoftware.ca/getRestaurantMenu) — https://menu.omegasoftware.ca/indinertime
+
+## Harvested again 2026-10-15 (4 merchants)
+
+- Verona Resto: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://leb.directory/veronaresto.3208/
+- Verona Resto: not read: no menu with prices found (best 0 priced items; 1 JSON responses) — https://leb.guide/veronaresto.3208/
+- BUN BROS: **42 items, 42 priced** in 6 sections (foodbooking, json https://www.foodbooking.com/api/cart/init) — https://www.foodbooking.com/ordering/restaurant/menu?restaurant_uid=407cab1a-d6a
+- ROUTE 66: **6 items, 6 priced** in 6 sections (html, text page-2.html) — https://route66-eatery.com/
+- ROUTE 66: not read: no menu with prices found (best 0 priced items; 0 JSON responses) — https://route66-eatery.com/menu
+- Safa Chicken: not read: no menu with prices found (best 0 priced items; 7 JSON responses) — https://oddmenu.com/ar/p/ssafa-chicken
