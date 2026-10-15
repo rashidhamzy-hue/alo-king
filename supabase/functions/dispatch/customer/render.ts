@@ -1611,6 +1611,12 @@ const S5C: Record<string, Record<CLang, string>> = {
   },
   pk_other: { ar: "شي تاني", en: "Something else", fr: "Autre chose", arabizi: "Shi tene" },
   problemLines: { ar: "أي صنف؟", en: "Which item?", fr: "Quel article ?", arabizi: "Ayya sanf?" },
+  problemQty: {
+    ar: "كم {name}؟",
+    en: "How many {name}?",
+    fr: "Combien de {name} ?",
+    arabizi: "Addeh {name}?",
+  },
   disputeCredit: {
     ar: "🙏 آسفين. {amount} ({lbp} ل.ل) رصيد عطلبك الجاي (صالح {days} يوم).",
     en: "🙏 Sorry about that. {amount} ({lbp} LBP) is credited to your next order (valid {days} days).",
@@ -1909,6 +1915,29 @@ export function problemList(to: string, lang: CLang, code: string): Msg {
     { rows: PROBLEM_KINDS.map<Row>((k) => ({ id: `dpk:${k}`, title: tr(lang, `pk_${k}`) })) },
   ]);
 }
+/** "How many were missing?" for a line of more than one (the credit is per unit, §38.3). */
+export function problemQtyList(
+  to: string,
+  lang: CLang,
+  kind: "missing_item" | "wrong_item",
+  line: { order_item_id: string; name_ar?: string; name_en?: string; quantity: number },
+): Msg {
+  const n = Math.min(Math.max(line.quantity, 1), 10);
+  return list(
+    to,
+    clip(tr(lang, "problemQty", { name: name(lang, line.name_ar, line.name_en) }), 1024),
+    tr(lang, "itemsBtn"),
+    [
+      {
+        rows: Array.from({ length: n }, (_, k) => ({
+          id: `dpl:${line.order_item_id}:${kind === "missing_item" ? "m" : "w"}:${k + 1}`,
+          title: `${k + 1}`,
+        })),
+      },
+    ],
+  );
+}
+
 export function problemLinesList(
   to: string,
   lang: CLang,

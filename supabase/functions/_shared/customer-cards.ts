@@ -769,7 +769,7 @@ export type CustomerAction =
       a: "problem_kind";
       kind: "missing_item" | "wrong_item" | "cold_food" | "late" | "damaged" | "other";
     }
-  | { a: "problem_line"; itemId: string; kind: "missing_item" | "wrong_item" }
+  | { a: "problem_line"; itemId: string; kind: "missing_item" | "wrong_item"; qty?: number }
   | {
       a: "simple";
       what:
@@ -853,8 +853,13 @@ export function parseCustomerAction(id: string): CustomerAction | null {
     return { a: "for_whom", what: m[1] as any };
   if ((m = id.match(/^dpk:(missing_item|wrong_item|cold_food|late|damaged|other)$/)))
     return { a: "problem_kind", kind: m[1] as any };
-  if ((m = id.match(re(`dpl:(${UUID}):(m|w)`))))
-    return { a: "problem_line", itemId: m[1], kind: m[2] === "m" ? "missing_item" : "wrong_item" };
+  if ((m = id.match(re(`dpl:(${UUID}):(m|w)(?::([1-9]\\d?))?`))))
+    return {
+      a: "problem_line",
+      itemId: m[1],
+      kind: m[2] === "m" ? "missing_item" : "wrong_item",
+      ...(m[3] ? { qty: Number(m[3]) } : {}),
+    };
   return null;
 }
 

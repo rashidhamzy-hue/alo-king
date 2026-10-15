@@ -798,12 +798,13 @@ grant all on table public.gift_requests to service_role;
 grant select on table public.gift_requests to authenticated;
 create policy gift_requests_operator_read on public.gift_requests for select to authenticated using ((select app_private.is_operator()));
 
--- What the recipient is shown and accepts: the quoted lines, total, address, recipient and payment. gift_respond places the
+-- What the recipient is shown and accepts: the quoted lines, total and LBP rate, address, recipient and payment. gift_respond places the
 -- order only when the basket still quotes to the same fingerprint, so the sender cannot change it after asking.
 create function app_private.gift_fingerprint(p_basket_id uuid, p_quote jsonb) returns text
 language sql stable security definer set search_path = ''
 as $$
   select md5(jsonb_build_object('lines', p_quote -> 'basket' -> 'lines', 'total', p_quote -> 'total_usd',
+    'rate', p_quote -> 'usd_lbp_rate',
     'address', b.address_id, 'fulfilment', b.fulfilment, 'stairs', b.stairs_floors, 'pay', b.payment_method,
     'currency', b.cash_currency, 'gift', b.is_gift, 'recipient', b.recipient_phone, 'name', b.recipient_name)::text)
   from public.baskets b where b.id = p_basket_id;
@@ -890,6 +891,9 @@ declare
   v_b public.baskets%rowtype;
   v_q jsonb;
 begin
+  -- The basket first, then the request: the same order as gift_request_create, so a re-Confirm and an Accept at the
+  -- same moment wait for each other instead of deadlocking.
+  perform 1 from public.baskets b join public.gift_requests g on g.basket_id = b.id where g.id = p_gift_id for update of b;
   select * into v_g from public.gift_requests where id = p_gift_id for update;
   if v_g.id is null or v_g.recipient_phone <> p_phone_e164 then
     return jsonb_build_object('status', 'unknown');
@@ -923,6 +927,10 @@ begin
         v_r := public.order_place(v_g.basket_id, v_g.menu_version, 'gift:' || v_g.id);
       exception when others then
         v_r := jsonb_build_object('status', 'failed');
+        -- An unexpected error is never silent: the operators see it with the database's message.
+        perform app_private.ops_alert('gift-failed:' || v_g.id, 'customer_dispute', 'warning',
+          format('Gift %s: order_place failed on the recipient''s Accept (%s: %s)', v_g.id, sqlstate, left(sqlerrm, 200)),
+          null, null, jsonb_build_object('gift_id', v_g.id, 'sqlstate', sqlstate));
       end;
     end if;
   end if;
@@ -971,9 +979,8 @@ select cron.schedule('gift-expire', '* * * * *', $$select app_private.gift_reque
 create function app_private.basket_allergy_note(p_basket_id uuid) returns text
 language sql stable security definer set search_path = ''
 as $$
-  select coalesce(b.allergy_note,
-    case when not b.is_gift then (select p.value from public.customer_preferences p
-      where p.customer_id = b.customer_id and p.key = 'allergy' and p.consented_at is not null) end)
+  select case when not b.is_gift then coalesce(b.allergy_note, (select p.value from public.customer_preferences p
+      where p.customer_id = b.customer_id and p.key = 'allergy' and p.consented_at is not null)) end
   from public.baskets b where b.id = p_basket_id;
 $$;
 
@@ -1498,6 +1505,7 @@ begin
     where cc.used_order_id is null and cc.expired_tx is null and cc.expires_at <= now() and d.ledger_tx is not null
     for update of cc skip locked
   loop
+    begin
     v_tx := public.ledger_post('reversal', 'credit-expired:' || v_c.id,
       jsonb_build_array(
         jsonb_build_object('account_id', public.ledger_account('customer_refund_payable', 'USD'), 'amount', v_c.amount_usd,
@@ -1509,6 +1517,12 @@ begin
       v_c.order_id, v_c.usd_lbp_rate, 'customer credit expired unused', p_reverses_id => v_c.ledger_tx);
     update public.customer_credits set expired_tx = v_tx where id = v_c.id;
     v_n := v_n + 1;
+    exception when others then
+      -- One credit that cannot be reversed (e.g. its transaction was already reversed by hand) never stops the rest.
+      perform app_private.ops_alert('credit-expire:' || v_c.id, 'customer_dispute', 'warning',
+        format('Expired credit %s on order %s could not be reversed (%s: %s)', v_c.id, v_c.code, sqlstate, left(sqlerrm, 200)),
+        v_c.order_id, v_c.vendor_id, jsonb_build_object('credit_id', v_c.id));
+    end;
   end loop;
   return v_n;
 end;
@@ -1869,7 +1883,7 @@ begin
   update public.outbound_messages x set available_at = now() + v_gap
   where x.status = 'queued' and x.available_at <= now() and app_private.outbox_non_urgent(x.purpose, x.payload)
     and exists (select 1 from public.outbound_messages y where y.target = x.target and y.id <> x.id
-                and y.sent_at > now() - v_gap);
+                and (y.sent_at > now() - v_gap or (y.status = 'sending' and y.locked_until > now())));
   return query
   with claimed as (
     update public.outbound_messages m set status = 'sending', attempts = m.attempts + 1,
@@ -1952,6 +1966,9 @@ begin
     return jsonb_build_object('status', 'not_dead');
   end if;
   perform pgmq.send('webhook_inbound', jsonb_build_object('event_id', p_event_id));
+  -- The dead-letter queue keeps only events still dead.
+  perform pgmq.archive('webhook_dead', m.msg_id)
+  from pgmq.q_webhook_dead m where (m.message ->> 'event_id')::bigint = p_event_id;
   return jsonb_build_object('status', 'requeued');
 end;
 $$;

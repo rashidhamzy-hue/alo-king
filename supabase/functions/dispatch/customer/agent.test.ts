@@ -684,10 +684,33 @@ describe("problems and refunds: the server decides (§20.1, §38.3)", () => {
       p_order_id: ORDER,
       p_kind: "missing_item",
       p_order_item_id: LINE2,
+      p_quantity: 1,
     });
     expect(bodyOf(h.sent[0])).toMatch(
       /\$3\.00 \(268,500 LBP\) is credited to your next order \(valid 60 days\)/,
     );
+  });
+  it("a line of three asks how many were missing; the answer goes to the server", async () => {
+    const refs = { xd: { id: ORDER, label: "ABC123" } };
+    const three = [{ order_item_id: LINE1, name_en: "Manoushe", quantity: 3, line_total_usd: 6 }];
+    const f = fake({ begin: sess({ refs }), rpcs: { order_lines_for_customer: () => three } });
+    await handleCustomerTurn(f.deps, tap("dpk:missing_item"));
+    expect(ids(f.sent[0])).toEqual([`dpl:${LINE1}:m:1`, `dpl:${LINE1}:m:2`, `dpl:${LINE1}:m:3`]);
+    expect(bodyOf(f.sent[0])).toMatch(/How many Manoushe/);
+    expect(f.of("dispute_open")).toHaveLength(0);
+    const g = fake({
+      begin: sess({ refs }),
+      rpcs: {
+        dispute_open: () => ({
+          status: "auto_credit",
+          amount_usd: 4,
+          amount_lbp: 358000,
+          credit_days: 60,
+        }),
+      },
+    });
+    await handleCustomerTurn(g.deps, tap(`dpl:${LINE1}:m:2`));
+    expect(g.of("dispute_open")[0].args).toMatchObject({ p_order_item_id: LINE1, p_quantity: 2 });
   });
   it("a case the rules cannot settle goes to a person, with the conversation handed over", async () => {
     const f = fake({

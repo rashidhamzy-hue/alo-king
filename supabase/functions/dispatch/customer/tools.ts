@@ -285,7 +285,7 @@ export const TOOLS = [
   {
     name: "report_problem",
     description:
-      "The customer reports a problem with a delivered order (missing or wrong item, cold, late, damaged). The server decides any credit or refund from its rules; never promise one yourself.",
+      "The customer reports a problem with a delivered order (missing or wrong item, cold, late, damaged). This only shows the problem list: the customer taps what went wrong and the server decides any credit or refund from its rules; never promise one yourself. `kind` is your reading of the message (logged for the eval; the tap decides).",
     input_schema: obj({
       kind: {
         type: "string",
@@ -443,11 +443,11 @@ export const TOOL_CONTRACT: Record<
     render: "list of up to 10 items with server prices and their shop",
   },
   report_problem: {
-    rpc: ["customer_last_delivered", "order_lines_for_customer", "dispute_open"],
+    rpc: ["customer_last_delivered"],
     auth: "own delivered orders",
     states: "delivered within dispute_rules.report_days",
-    idempotency: "one dispute per order, kind and line",
-    render: "the problem list, then the server's decision (credit, review, or no credit)",
+    idempotency: "read only: the dispute opens on the customer's tap, never from the model",
+    render: "the problem list only (AI proposes, server decides)",
   },
   show_memory: {
     rpc: ["customer_memory"],

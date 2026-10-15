@@ -367,6 +367,10 @@ select tests.throws(format('select public.webhook_dead_replay(%s, null)', :'evid
 select tests.ok(public.webhook_dead_replay(:'evid', '00000000-0000-0000-0000-00000000000b') ->> 'status' = 'requeued', 'an operator replays it');
 select tests.ok((select attempts = 1 and status = 'queued' from public.webhook_events where id = :'evid'),
   'an operator replays it as a retry (attempt 2 next), so an unfinished turn runs again');
+reset role;
+select tests.ok(not exists (select 1 from pgmq.q_webhook_dead m where (m.message ->> 'event_id')::bigint = :'evid'),
+  'a replayed event leaves the dead-letter queue');
+set local role service_role;
 
 -- 11. Allergen hints (§38.3) ---------------------------------------------------------------------------------------------
 select public.menu_item_hints(array['71000000-0000-0000-0000-000000000005', '71000000-0000-0000-0000-000000000006',

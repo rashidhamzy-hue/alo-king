@@ -743,6 +743,7 @@ import {
   forWhomCard,
   memoryCard,
   problemLinesList,
+  problemQtyList,
   problemList,
   welcomeBack,
 } from "../dispatch/customer/render";
@@ -838,6 +839,12 @@ describe("session 5c customer agent cards (DECISIONS §38.3, §39.6)", () => {
             quantity: 2,
           })),
         ),
+        problemQtyList(to, lang, "wrong_item", {
+          order_item_id: UUID,
+          name_ar: longName,
+          name_en: longName,
+          quantity: 40,
+        }),
         mainMenu(to, lang, "medicine"),
         mainMenu(to, lang, "offTopic"),
         mainMenu(to, lang, "voiceOff"),

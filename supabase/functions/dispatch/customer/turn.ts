@@ -65,6 +65,7 @@ import {
   forWhomCard,
   memoryCard,
   problemLinesList,
+  problemQtyList,
   problemList,
   welcomeBack,
   type CatalogItem,
@@ -625,16 +626,41 @@ async function problemKind(c: Ctx, kind: string): Promise<void> {
         p_customer_id: c.customerId,
         p_order_id: order.id,
       })) ?? [];
-    if (lines.length === 1) return problemLine(c, lines[0].order_item_id, kind);
+    if (lines.length === 1) return problemLine(c, lines[0].order_item_id, kind, undefined, lines);
     return push(c, problemLinesList(c.m.from, c.s.lang, kind, lines));
   }
   return disputeOpen(c, kind, null);
 }
 
-const problemLine = (c: Ctx, itemId: string, kind: string): Promise<void> =>
-  disputeOpen(c, kind, itemId);
+/** A line of more than one asks how many first: the credit is per unit (§38.3). */
+async function problemLine(
+  c: Ctx,
+  itemId: string,
+  kind: "missing_item" | "wrong_item",
+  qty?: number,
+  known?: any[],
+): Promise<void> {
+  if (qty === undefined) {
+    const order = c.s.refs.xd;
+    const lines: any[] =
+      known ??
+      (order
+        ? ((await c.deps.rpc("order_lines_for_customer", {
+            p_customer_id: c.customerId,
+            p_order_id: order.id,
+          })) ?? [])
+        : []);
+    const line = lines.find((l) => l.order_item_id === itemId);
+    if (line && Number(line.quantity) > 1)
+      return push(
+        c,
+        problemQtyList(c.m.from, c.s.lang, kind, { ...line, quantity: Number(line.quantity) }),
+      );
+  }
+  return disputeOpen(c, kind, itemId, qty ?? 1);
+}
 
-async function disputeOpen(c: Ctx, kind: string, itemId: string | null): Promise<void> {
+async function disputeOpen(c: Ctx, kind: string, itemId: string | null, qty = 1): Promise<void> {
   const order = c.s.refs.xd;
   if (!order) return say(c, "disputeNone");
   const r = await c.deps.rpc("dispute_open", {
@@ -642,6 +668,7 @@ async function disputeOpen(c: Ctx, kind: string, itemId: string | null): Promise
     p_order_id: order.id,
     p_kind: kind,
     p_order_item_id: itemId,
+    p_quantity: qty,
   });
   c.tools.push(`dispute:${kind}`);
   c.summary.push(`[problem ${kind} on order ${order.label}: ${r?.status}]`);
@@ -970,7 +997,7 @@ async function tap(c: Ctx, a: CustomerAction) {
     case "problem_kind":
       return problemKind(c, a.kind);
     case "problem_line":
-      return problemLine(c, a.itemId, a.kind);
+      return problemLine(c, a.itemId, a.kind, a.qty);
     case "simple":
       switch (a.what) {
         case "remember":
