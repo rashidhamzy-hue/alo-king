@@ -138,12 +138,23 @@ export async function handleAdmin(
       );
     }
     case "reply": {
+      // The case is named: "reply <text>" only when one case is open, else "reply <short id> <text>"; the confirm card
+      // says who receives it.
       const s = await deps.rpc("ops_status", { p_actor_id: op.user_id });
-      if (!s?.latest_case) return reply("No open support case.");
+      const cases: { id: string; short: string; name: string }[] = s?.open_cases ?? [];
+      if (!cases.length) return reply("No open support case.");
+      const m = cmd.text.match(/^#?([0-9a-f]{4})\s+([\s\S]+)$/i);
+      const named = m ? cases.find((c) => c.short.toLowerCase() === m[1].toLowerCase()) : undefined;
+      const target = named ?? (cases.length === 1 ? cases[0] : undefined);
+      if (!target)
+        return reply(
+          `Several open cases; send "reply <id> <text>":\n${cases.map((c) => `• ${c.short} ${c.name}`).join("\n")}`,
+        );
+      const text = named && m ? m[2] : cmd.text;
       return propose(
         "support_reply",
-        { case_id: s.latest_case, text: cmd.text },
-        `💬 Send to the customer:\n“${cmd.text.slice(0, 600)}”`,
+        { case_id: target.id, text },
+        `💬 Send to ${target.name} (case ${target.short}):\n“${text.slice(0, 600)}”`,
       );
     }
     case "refund":

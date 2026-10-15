@@ -47,7 +47,9 @@ select tests.ok((public.customer_handoff(:'c1', 'again', null) ->> 'case_id') = 
 set local role service_role;
 select tests.ok(public.support_inbound(:'c1', 'it''s Bnayet Saad now'), 'a customer message during the handoff joins the thread');
 select tests.throws(format($$select public.support_reply(%L, %L, 'hello')$$, :'case_id', :'owner'), 'not allowed', 'a merchant is not support');
-select public.support_reply(:'case_id', :'op', 'Done, the driver has the new building') as rp \gset
+select public.support_reply(:'case_id', :'op', 'Done, the driver has the new building', 'slack', 'slack:Ev1') as rp \gset
+select tests.ok(public.support_reply(:'case_id', :'op', 'Done, the driver has the new building', 'slack', 'slack:Ev1') ->> 'status' = 'duplicate',
+  'a Slack retry of the same event is not sent twice');
 reset role;
 select tests.ok((select payload ->> 'kind' = 'support_reply' and payload ->> 'name' = 'Operator' and payload ->> 'text' like 'Done%'
                  from public.outbound_messages where dedupe_key = 'support:' || (:'rp'::jsonb ->> 'message_id')),
@@ -83,6 +85,14 @@ update public.orders set accepted_at = now() - interval '45 minutes' where id = 
 select app_private.recovery_tick();
 select tests.ok((select human_needed from public.order_exceptions where order_id = :'order1' and kind = 'late_ready' and status = 'open'),
   'past the grace and the human threshold: now a person is needed');
+update public.orders set status = 'preparing' where id = :'order1';
+select app_private.recovery_tick();
+select tests.ok((select count(*) = 1 from public.order_exceptions where order_id = :'order1' and kind = 'late_ready' and status = 'open'),
+  'preparing is still not ready: the exception stays open (verified close covers every state)');
+select tests.ok((select count(*) = 1 from public.outbound_messages where order_id = :'order1' and purpose = 'ready_check')
+  and exists (select 1 from public.outbound_messages where dedupe_key = 'ready_check:' || :'order1'),
+  'one ready-check card, the same one order_monitor would send');
+select tests.ok(not exists (select 1 from public.slack_messages where text ~ '\+961'), 'no phone number is posted to Slack');
 set local role service_role;
 
 -- 4. Operator actions ----------------------------------------------------------------------------------------------------------
@@ -93,18 +103,38 @@ insert into public.operator_slack (slack_user_id, operator_user_id) values ('U0T
 set local role service_role;
 select tests.ok(public.ops_operator(p_phone_e164 => '+96170009999') ->> 'role' = 'operator'
   and public.ops_operator(p_slack_user_id => 'U0TESTADMIN') ->> 'role' = 'admin', 'Slack users and phones map to operators');
-select tests.throws(format($$select public.ops_order(%L, 'TESTA2')$$, :'owner'), 'not allowed', 'only operators look orders up');
-select tests.ok(public.ops_order(:'op', 'testa2') ->> 'order_status' = 'accepted' and not (public.ops_order(:'op', 'testa2')::text ~ '\+961'),
-  'an order card for operators, without the customer''s phone');
-select tests.ok(public.ops_refund(:'op', 'TESTA2', 5) ->> 'status' = 'credited', 'an operator refunds $5 as a customer credit');
 reset role;
-select tests.ok((select sum(e.amount) = 0 from public.ledger_entries e join public.ledger_transactions t on t.id = e.transaction_id
-                 where t.reason = 'operator refund'), 'booked as a balanced ledger transaction');
+insert into public.whatsapp_numbers (phone_number_id, display_phone, role) values ('PNID-OPS-C', '+96170888888', 'customer');
 set local role service_role;
-select tests.throws(format($$select public.ops_refund(%L, 'TESTA2', 25)$$, :'op'), 'only the admin', 'above $20 only the admin');
-select tests.throws(format($$select public.ops_refund(%L, 'TESTA2', 99)$$, :'admin'), 'at most the order total', 'never more than the order');
-select tests.ok(public.ops_credit(:'admin', '20000000-0000-0000-0000-00000000000a', 30, 'launch compensation') ->> 'status' = 'credited',
-  'the admin credits a merchant with a reason');
+select tests.ok(public.ops_operator(p_phone_e164 => '+96170009999', p_phone_number_id => 'PNID-OPS-C') is null,
+  'on the Customer number an operator''s phone is a customer, not an admin');
+select tests.throws(format($$select public.ops_order(%L, 'TESTA2')$$, :'owner'), 'not allowed', 'only operators look orders up');
+select tests.ok(public.ops_order(:'op', 'testa2') ->> 'order_status' = 'preparing' and not (public.ops_order(:'op', 'testa2')::text ~ '\+961'),
+  'an order card for operators, without the customer''s phone');
+-- The fixture order is $12.50, under the $20 limit: the test lowers the dated limit to $5 for this transaction.
+reset role;
+insert into public.app_config (key, value, effective_from, note)
+select 'dispute_rules', public.config_value('dispute_rules') || '{"owner_over_usd": 5}', now() - interval '1 millisecond', 'test';
+set local role service_role;
+select tests.throws(format($$select public.ops_refund(%L, 'TESTA2', 6)$$, :'op'), 'over the owner limit',
+  'above dispute_rules.owner_over_usd only the admin (the same limit as every dispute)');
+select tests.throws(format($$select public.ops_refund(%L, 'TESTA2', 999)$$, :'admin'), 'exceed its total', 'never more than the order');
+select tests.throws(format($$select public.ops_refund(%L, 'TESTA2', 5, 'slack', 'driver')$$, :'op'), 'the payer', 'Alo King or the shop pays');
+select tests.ok(public.ops_refund(:'op', 'TESTA2', 5, 'slack', 'merchant') ->> 'status' = 'credited', 'an operator refunds $5 as a customer credit');
+select tests.ok(public.ops_refund(:'op', 'TESTA2', 5) ->> 'status' = 'already', 'a repeated or retried confirm books nothing twice');
+reset role;
+select tests.ok((select d.payer = 'merchant' and d.decision = 'approved' and d.ledger_tx is not null and c.dispute_id = d.id
+                 from public.order_disputes d join public.customer_credits c on c.id = d.credit_id
+                 where d.order_id = :'order1' and d.kind = 'other'),
+  'booked as a dispute (dispute_book): the shop pays, and the credit expires back through credits_expire');
+select tests.ok((select sum(e.amount) = 0 from public.ledger_entries e join public.ledger_transactions t on t.id = e.transaction_id
+                 where t.idempotency_key like 'dispute:%'), 'a balanced ledger transaction');
+set local role service_role;
+select tests.ok(public.ops_credit(:'admin', '20000000-0000-0000-0000-00000000000a', 30, 'launch compensation', 'slack', 'V0TEST') ->> 'status' = 'credited'
+  and public.ops_credit(:'admin', '20000000-0000-0000-0000-00000000000a', 30, 'launch compensation', 'slack', 'V0TEST') ->> 'status' = 'already',
+  'the admin credits a merchant with a reason, once per confirm');
+select tests.throws(format($$select public.ops_credit(%L, '20000000-0000-0000-0000-00000000000a', 600, 'too much')$$, :'admin'), 'at most',
+  'never above ops_credit_max_usd');
 select tests.throws(format($$select public.ops_place(%L, 'Baakline', false)$$, :'op'), 'only the admin', 'places are switched by the admin');
 select tests.ok(jsonb_typeof(public.ops_finance(:'op')) = 'object', 'the finance snapshot reads the ledger');
 -- WhatsApp admin commands: proposed, then confirmed by the same operator's tap.

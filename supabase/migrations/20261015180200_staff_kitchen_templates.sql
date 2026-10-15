@@ -20,7 +20,7 @@ begin
   if new.purpose <> 'reply' or new.payload ? 'kind' then
     return new;
   end if;
-  if new.dedupe_key like 'reply:staff_add:%' then
+  if starts_with(new.dedupe_key, 'reply:staff_add:') then
     -- reply:staff_add:<proposal id>:<hash>
     v_id := nullif(split_part(new.dedupe_key, ':', 3), '')::uuid;
     select * into v_p from public.merchant_proposals where id = v_id and kind = 'staff_add';
@@ -28,7 +28,7 @@ begin
       new.payload := new.payload || jsonb_build_object('kind', 'staff_welcome', 'role', v_p.payload ->> 'role',
         'shop', (select coalesce(v.name_ar, v.name_en) from public.vendors v where v.id = v_p.vendor_id));
     end if;
-  elsif new.dedupe_key like 'reply:kitchen_full:%' then
+  elsif starts_with(new.dedupe_key, 'reply:kitchen_full:') then
     -- reply:kitchen_full:<vendor id>:<epoch>:<hash>
     v_id := nullif(split_part(new.dedupe_key, ':', 3), '')::uuid;
     new.payload := new.payload || jsonb_build_object('kind', 'kitchen_full',
@@ -37,8 +37,8 @@ begin
       'max', (select o.max_active_orders::text from public.vendor_ops o where o.vendor_id = v_id));
   end if;
   return new;
-exception when invalid_text_representation then
-  return new; -- a malformed key keeps the plain reply
+exception when others then
+  return new; -- decoration only: any failure keeps the plain reply and never blocks the confirm or the pause behind it
 end;
 $$;
 revoke all on function app_private.outbox_reply_kind() from public, anon, authenticated;

@@ -4,7 +4,7 @@
 //      model calls; unrecognised text gets a short help reply until the merchant AI arrives in session 5);
 //      customer messages are left to the customer bot (session 4)
 //   2. the outbox: order cards, backups, reminders and replies, through the order_channel router
-//   3. ops alerts to the operators' Telegram group
+//   3. ops alerts and support threads to the operators' Slack (slack_claim / slack_finish, §32.1)
 // The database decides; this code only moves messages. Dependencies are injected so it is tested without
 // network or database.
 
@@ -227,6 +227,8 @@ export async function runDispatch(
         p_channel_id: r.channel_id,
         p_ts: res.ok ? res.ts : null,
         p_error: res.ok ? null : res.error,
+        // An error Slack will repeat (a bad channel, a revoked token) fails at once instead of five times.
+        p_retry: res.ok ? true : res.retry,
       });
       out.alerts++;
     }
@@ -686,12 +688,16 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
         : { p_phone_e164: m.from },
     )
     .catch((e: unknown) => deps.log?.("whatsapp_seen failed", { error: String(e).slice(0, 120) }));
-  // WhatsApp admin commands (§32.1): only from an operator's own number; anything else carries on as usual.
+  // WhatsApp admin commands (§32.1): only from an operator's own number on the Merchant side; anything else carries on.
   const adminTapped = adminTap(m.buttonId);
   const adminCmd = adminTapped ? null : parseAdminCommand(m.text);
   if (adminTapped || adminCmd) {
     const op = await deps
-      .rpc("ops_operator", { p_slack_user_id: null, p_phone_e164: m.from })
+      .rpc("ops_operator", {
+        p_slack_user_id: null,
+        p_phone_e164: m.from,
+        p_phone_number_id: ev.phone_number_id ? String(ev.phone_number_id) : null,
+      })
       .catch(() => null);
     if (op?.user_id) {
       await handleAdmin(deps, m, op, adminTapped, adminCmd);

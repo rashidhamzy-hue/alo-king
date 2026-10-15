@@ -79,29 +79,42 @@ export function confirmModal(title: string, effect: string, action: Record<strin
 }
 
 /** Runs a confirmed or direct action; returns the text for the operator. */
-export async function runAction(rpc: Rpc, actor: string, a: Record<string, any>): Promise<string> {
+export async function runAction(
+  rpc: Rpc,
+  actor: string,
+  a: Record<string, any>,
+  key?: string,
+): Promise<string> {
   try {
     switch (a.do) {
       case "refund": {
+        // One operator refund per order on the server, so a confirm Slack retries books nothing twice.
         const r = await rpc("ops_refund", {
           p_actor_id: actor,
           p_code: a.code,
           p_amount_usd: a.amount,
           p_source: "slack",
+          p_payer: a.payer === "merchant" ? "merchant" : "alo_king",
         });
-        return r?.status === "credited"
-          ? `💵 ${money(r.amount_usd)} credited to the customer of #${r.code}.`
-          : `No order #${a.code}.`;
+        if (r?.status === "credited")
+          return `💵 ${money(r.amount_usd)} credited to the customer of #${r.code}${r.payer === "merchant" ? " (charged to the shop)" : ""}.`;
+        if (r?.status === "already")
+          return `#${r.code} already has an operator refund (${money(r.amount_usd)}, ${r.decision}).`;
+        return `No order #${a.code}.`;
       }
       case "credit": {
+        // The confirm modal's view id makes a retried submit book once.
         const r = await rpc("ops_credit", {
           p_actor_id: actor,
           p_vendor_id: a.vendor_id,
           p_amount_usd: a.amount,
           p_reason: a.reason,
           p_source: "slack",
+          p_key: key ?? null,
         });
-        return `🎁 ${money(r?.amount_usd)} Alo King Credit for ${a.name}.`;
+        return r?.status === "already"
+          ? `Already done: ${money(r?.amount_usd)} Alo King Credit for ${a.name}.`
+          : `🎁 ${money(r?.amount_usd)} Alo King Credit for ${a.name}.`;
       }
       case "claim": {
         const r = await rpc("ops_claim_decide", {
@@ -253,15 +266,22 @@ async function command(
         );
       }
       case "refund": {
-        const m = arg.match(/^#?([A-Za-z0-9]{4,10})\s+\$?(\d{1,4}(?:\.\d{1,2})?)$/);
-        if (!m) return ephemeral("Usage: `/ak refund <order code> <amount>`");
+        const m = arg.match(
+          /^#?([A-Za-z0-9]{4,10})\s+\$?(\d{1,4}(?:\.\d{1,2})?)(?:\s+(shop|merchant))?$/i,
+        );
+        if (!m)
+          return ephemeral(
+            "Usage: `/ak refund <order code> <amount> [shop]` (shop: the shop caused it and pays)",
+          );
         const code = m[1].toUpperCase();
         const amount = Number(m[2]);
+        const payer = m[3] ? "merchant" : "alo_king";
         // Refunds always confirm (§32.1); the server re-checks the order, the total and the admin limit on submit.
         return confirm(
           "Refund",
-          `Credit *${money(amount)}* to the customer of order *#${code}* (used on their next order; booked in the ledger).`,
-          { do: "refund", code, amount },
+          `Credit *${money(amount)}* to the customer of order *#${code}* (used on their next order; booked in the ledger). ` +
+            `Paid by *${payer === "merchant" ? "the shop" : "Alo King"}*.`,
+          { do: "refund", code, amount, payer },
         );
       }
       case "credit": {
@@ -348,8 +368,8 @@ export async function handleOpsSlack(deps: OpsSlackDeps, req: Request): Promise<
       return new Response("bad request", { status: 400 });
     }
     if (ev?.type === "url_verification") return json({ challenge: String(ev.challenge ?? "") });
-    // Slack retries a delivery it thinks failed; the first one is the one that counts (no reply is sent twice).
-    if (req.headers.get("x-slack-retry-num")) return new Response("", { status: 200 });
+    // Slack retries a delivery it thinks failed: the event_id is stored with the reply, so a retry of one that went through
+    // is recognised and one that did not is still delivered.
     const e = ev?.event;
     if (
       ev?.type === "event_callback" &&
@@ -368,6 +388,8 @@ export async function handleOpsSlack(deps: OpsSlackDeps, req: Request): Promise<
           p_case_id: caseId,
           p_actor_id: actor,
           p_text: String(e.text),
+          p_source: "slack",
+          p_ref: ev.event_id ? `slack:${String(ev.event_id)}` : null,
         }).catch((x: unknown) => {
           deps.log?.("support reply refused", { error: refusal(x) });
           return null;
@@ -396,7 +418,7 @@ export async function handleOpsSlack(deps: OpsSlackDeps, req: Request): Promise<
       } catch {
         /* nothing to run */
       }
-      const text = await runAction(rpc, actor, action);
+      const text = await runAction(rpc, actor, action, String(p.view?.id ?? "") || undefined);
       deps.log?.("confirmed action", {
         action: String(action.do ?? ""),
         result: text.slice(0, 60),

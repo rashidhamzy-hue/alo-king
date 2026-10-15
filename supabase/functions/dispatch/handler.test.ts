@@ -436,8 +436,8 @@ describe("the Slack queue (§32.1; Telegram dropped)", () => {
       ["C0ORDERS", "1700.1"],
     ]);
     expect(db.of("slack_finish").map((c) => c.args)).toEqual([
-      { p_id: 7, p_ok: true, p_channel_id: "C0URGENT", p_ts: "ts-1", p_error: null },
-      { p_id: 8, p_ok: true, p_channel_id: "C0ORDERS", p_ts: "ts-2", p_error: null },
+      { p_id: 7, p_ok: true, p_channel_id: "C0URGENT", p_ts: "ts-1", p_error: null, p_retry: true },
+      { p_id: 8, p_ok: true, p_channel_id: "C0ORDERS", p_ts: "ts-2", p_error: null, p_retry: true },
     ]);
   });
 });

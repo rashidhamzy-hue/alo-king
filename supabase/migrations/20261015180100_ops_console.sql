@@ -22,7 +22,8 @@ insert into public.app_config (key, value, effective_from, note, created_by) val
   ('recovery_rules', '{"no_ack_s": 60, "late_ready_grace_min": 10, "late_ready_human_min": 20, "late_delivery_min": 45, "slack_keep_days": 14}',
    now(), 'Order recovery engine thresholds (DECISIONS §32.5, §38.5 row 5b: Slack alert at 60 s)', null),
   ('ops_money_confirm_usd', '20', now(), 'Money actions above this need a confirm step in Slack and an admin (DECISIONS §32.1)', null),
-  ('whatsapp_admin_refund_max_usd', '20', now(), 'Refunds by WhatsApp admin command are capped here; larger ones are done in Slack (DECISIONS §32.1)', null);
+  ('whatsapp_admin_refund_max_usd', '20', now(), 'Refunds by WhatsApp admin command are capped here; larger ones are done in Slack (DECISIONS §32.1)', null),
+  ('ops_credit_max_usd', '500', now(), 'The most one operator credit to a merchant may be (§20.3 admin credit)', null);
 
 -- 1. Channels and operators -------------------------------------------------------------------------------------------------
 create table app_private.slack_channels (
@@ -63,14 +64,18 @@ create trigger operator_phones_audit after insert or update or delete on public.
   for each row execute function app_private.audit_row();
 
 -- The operator behind a Slack user or a phone, or null: only an active operators row counts.
-create function public.ops_operator(p_slack_user_id text default null, p_phone_e164 text default null) returns jsonb
+-- By phone, only on the Merchant side (§32.1: Rasheed "on the Merchant number"): a message that arrived on the Customer
+-- number is a customer's, whoever sends it. The sandbox and the test number carry both sides.
+create function public.ops_operator(p_slack_user_id text default null, p_phone_e164 text default null,
+  p_phone_number_id text default null) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
   select jsonb_build_object('user_id', o.user_id, 'role', o.role, 'name', o.display_name)
   from public.operators o
   where o.active and o.user_id = coalesce(
     (select s.operator_user_id from public.operator_slack s where s.slack_user_id = p_slack_user_id),
-    (select p.operator_user_id from public.operator_phones p where p.phone_e164 = p_phone_e164));
+    (select p.operator_user_id from public.operator_phones p where p.phone_e164 = p_phone_e164
+       and not exists (select 1 from public.whatsapp_numbers w where w.phone_number_id = p_phone_number_id and w.role = 'customer')));
 $$;
 
 -- Every operator action from Slack or WhatsApp, proposed (waiting for a confirm), done or refused.
@@ -155,7 +160,7 @@ begin
     left join app_private.slack_threads t on t.thread_key = m.thread_key
     where m.status = 'queued' and m.attempts < 5
       and (m.thread_key is null or t.thread_key is not null
-           or not exists (select 1 from public.slack_messages e where e.thread_key = m.thread_key and e.id < m.id))
+           or not exists (select 1 from public.slack_messages e where e.thread_key = m.thread_key and e.id < m.id and e.status <> 'failed'))
     order by m.id
     limit least(greatest(p_limit, 1), 50)
     for update of m skip locked)
@@ -167,13 +172,13 @@ begin
 end;
 $$;
 
-create function public.slack_finish(p_id bigint, p_ok boolean, p_channel_id text, p_ts text, p_error text) returns void
+create function public.slack_finish(p_id bigint, p_ok boolean, p_channel_id text, p_ts text, p_error text, p_retry boolean default true) returns void
 language plpgsql security definer set search_path = ''
 as $$
 declare
   v_m public.slack_messages%rowtype;
 begin
-  update public.slack_messages set status = case when p_ok then 'sent' when attempts >= 5 then 'failed' else 'queued' end,
+  update public.slack_messages set status = case when p_ok then 'sent' when attempts >= 5 or not p_retry then 'failed' else 'queued' end,
     ts = p_ts, sent_at = case when p_ok then now() end, last_error = left(p_error, 500)
   where id = p_id returning * into v_m;
   if p_ok and v_m.thread_key is not null and p_ts is not null then
@@ -212,6 +217,8 @@ begin
       || case when v_code is not null then jsonb_build_array(jsonb_build_object('action_id', 'order_show', 'text', 'Order #' || v_code, 'value', v_code)) else '[]' end,
     'alert:' || new.id, new.id);
   return null;
+exception when others then
+  return null; -- Slack is a mirror: it never blocks the alert it mirrors (the alert row stays the record)
 end;
 $$;
 create trigger ops_alerts_to_slack after insert on public.ops_alerts
@@ -241,6 +248,8 @@ begin
                        when new.status = 'cancelled' then ' (' || coalesce(new.cancel_reason::text, '?') || ')' else '' end) end,
     '[]', 'order:' || new.id || ':' || new.status);
   return null;
+exception when others then
+  return null; -- Slack is a mirror: it never blocks an order's state change
 end;
 $$;
 create trigger orders_to_slack after insert or update of status on public.orders
@@ -266,6 +275,8 @@ create table public.support_messages (
   operator_user_id uuid references public.operators (user_id),
   -- out: queued → sent (free-form inside the window) or held (the template went; shown when the customer taps it).
   status text not null default 'queued' check (status in ('queued', 'sent', 'held', 'shown', 'received')),
+  -- The provider's id for an operator reply (Slack's event_id): a retried delivery is recognised, never sent twice.
+  ref text unique check (char_length(ref) <= 200),
   created_at timestamptz not null default now()
 );
 create index support_messages_case_idx on public.support_messages (case_id, id);
@@ -300,9 +311,10 @@ begin
   end if;
   if v_new then
     select * into v_c from public.customers where id = p_customer_id;
-    select string_agg(case when h ->> 'r' = 'u' then '› ' else '‹ ' end || left(h ->> 't', 200), E'\n')
-      into v_hist from (select h from public.bot_sessions s, jsonb_array_elements(s.history) h
-                        where s.customer_id = p_customer_id offset greatest(jsonb_array_length((select history from public.bot_sessions where customer_id = p_customer_id)) - 6, 0)) x;
+    -- The last 6 turns, in order.
+    select string_agg(case when x.h ->> 'r' = 'u' then '› ' else '‹ ' end || left(x.h ->> 't', 200), E'\n' order by x.n)
+      into v_hist from (select t.h, t.n from public.bot_sessions s, jsonb_array_elements(s.history) with ordinality t(h, n)
+                        where s.customer_id = p_customer_id order by t.n desc limit 6) x;
     select string_agg(format('#%s %s $%s', o.code, o.status, to_char(o.total_usd, 'FM999990.00')), ' · ' order by o.created_at desc)
       into v_orders from (select * from public.orders o where o.customer_id = p_customer_id order by o.created_at desc limit 3) o;
     perform app_private.slack_post('support', 'case:' || v_id,
@@ -378,7 +390,8 @@ $$;
 
 -- An operator's reply (a Slack thread reply, or "reply …" on WhatsApp): queued to the customer as "Rasheed, Alo King";
 -- the bot stays quiet while a person is talking (the handoff is extended).
-create function public.support_reply(p_case_id uuid, p_actor_id uuid, p_text text) returns jsonb
+create function public.support_reply(p_case_id uuid, p_actor_id uuid, p_text text, p_source text default 'slack',
+  p_ref text default null) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
@@ -398,15 +411,23 @@ begin
     return jsonb_build_object('status', 'empty');
   end if;
   select * into v_c from public.customers where id = v_case.customer_id;
-  insert into public.support_messages (case_id, direction, body, operator_user_id) values (p_case_id, 'out', left(trim(p_text), 2000), p_actor_id)
+  insert into public.support_messages (case_id, direction, body, operator_user_id, ref)
+  values (p_case_id, 'out', left(trim(p_text), 2000), p_actor_id, nullif(left(p_ref, 200), ''))
+  on conflict (ref) do nothing
   returning id into v_msg;
+  if v_msg is null then
+    return jsonb_build_object('status', 'duplicate');
+  end if;
   update public.bot_sessions set handoff_until = greatest(coalesce(handoff_until, now()), now() + make_interval(mins => public.config_numeric('handoff_minutes')::int))
   where customer_id = v_case.customer_id;
   perform app_private.outbox_add('support:' || v_msg, null, null, 'whatsapp', 'customer_message', v_c.phone_e164,
     jsonb_build_object('kind', 'support_reply', 'lang', coalesce(v_c.language::text, 'ar'), 'customer_id', v_c.id,
       'message_id', v_msg, 'name', v_name, 'text', left(trim(p_text), 2000)));
-  insert into public.ops_actions (operator_user_id, source, action, args, status, result, decided_at)
-  values (p_actor_id, 'slack', 'support_reply', jsonb_build_object('case_id', p_case_id, 'message_id', v_msg), 'done', '{}', now());
+  -- A WhatsApp reply is already audited by its confirmed ops_actions proposal.
+  if coalesce(p_source, 'slack') <> 'whatsapp' then
+    perform app_private.ops_log(p_actor_id, coalesce(p_source, 'slack'), 'support_reply',
+      jsonb_build_object('case_id', p_case_id, 'message_id', v_msg), '{}');
+  end if;
   return jsonb_build_object('status', 'queued', 'message_id', v_msg);
 end;
 $$;
@@ -516,88 +537,125 @@ begin
 end;
 $$;
 
--- One pass of the rules, then the verified close: an exception closes only when its condition no longer holds.
+-- One pass of the rules, then the verified close: an exception closes only when its condition no longer holds. The state
+-- sets cover every active status: not ready yet = accepted, preparing, driver_assigned, heading_to_pickup or at_pickup with
+-- no Ready tap; on the road = picked_up, near_drop, arrived. One row that fails never stops the others (ops alert instead).
 create function app_private.recovery_tick() returns integer
 language plpgsql security definer set search_path = ''
 as $$
 declare
   r jsonb := public.config_value('recovery_rules');
+  c_waiting constant public.order_status[] := array['accepted', 'preparing', 'driver_assigned', 'heading_to_pickup', 'at_pickup'];
+  c_road constant public.order_status[] := array['picked_up', 'near_drop', 'arrived'];
+  c_active constant public.order_status[] := array['accepted', 'preparing', 'ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup',
+                                                   'picked_up', 'near_drop', 'arrived'];
   o record;
   e record;
   n integer := 0;
   v_still boolean;
 begin
   perform set_config('app.actor_kind', 'system', true);
-  -- No acknowledgement after 60 s: urgent in Slack (the 75 s operator layer of §23 still runs after it).
-  for o in select x.id, x.code, v.name_en, v.name_ar, coalesce(p.owner_mobile, p.phone_seed) as phone
-           from public.orders x join public.vendors v on v.id = x.vendor_id left join public.vendor_private p on p.vendor_id = v.id
+  -- No acknowledgement after 60 s: urgent in Slack (the 75 s operator layer of §23 still runs after it). The shop's number
+  -- stays in the admin page, not in Slack.
+  for o in select x.id, x.code, v.name_en, v.name_ar
+           from public.orders x join public.vendors v on v.id = x.vendor_id
            where x.status = 'placed' and x.acknowledged_at is null
              and x.placed_at < now() - make_interval(secs => (r ->> 'no_ack_s')::int) and x.placed_at > now() - interval '1 hour' loop
-    perform app_private.order_exception_open(o.id, 'no_ack', 'escalation continues (backup, call, operator)',
-      jsonb_build_object('merchant', 'tap Accept on the order card', 'operator', 'call the shop'), true,
-      format('#%s: %s has not acknowledged after %s s. Call %s.', o.code, coalesce(o.name_en, o.name_ar), r ->> 'no_ack_s', coalesce(o.phone, 'the shop')));
-    n := n + 1;
+    begin
+      perform app_private.order_exception_open(o.id, 'no_ack', 'escalation continues (backup, call, operator)',
+        jsonb_build_object('merchant', 'tap Accept on the order card', 'operator', 'call the shop'), true,
+        format('#%s: %s has not acknowledged after %s s. Call the shop (number in the admin page).', o.code,
+               coalesce(o.name_en, o.name_ar), r ->> 'no_ack_s'));
+      n := n + 1;
+    exception when others then
+      perform app_private.recovery_failed(o.id, 'no_ack', sqlstate, sqlerrm);
+    end;
   end loop;
-  -- Not ready after the promised prep time: first the ready-check card to the shop, a person after more minutes.
+  -- Not ready after the promised prep time: the ready-check card to the shop (the same one order_monitor sends, so the shop
+  -- gets it once), a person after more minutes.
   for o in select x.id, x.code, x.vendor_id, x.accepted_at + make_interval(mins => coalesce(x.prep_minutes, 30)) as due
            from public.orders x
-           where x.status = 'accepted' and x.accepted_at + make_interval(mins => coalesce(x.prep_minutes, 30) + (r ->> 'late_ready_grace_min')::int) < now() loop
-    perform app_private.order_exception_open(o.id, 'late_ready', 'ready-check card to the shop',
-      jsonb_build_object('merchant', 'tap Ready, or set a new time'), o.due + make_interval(mins => (r ->> 'late_ready_human_min')::int) < now(),
-      format('#%s is %s min past its promised time and not ready', o.code, round(extract(epoch from now() - o.due) / 60)));
-    n := n + 1;
+           where x.status = any (c_waiting) and x.ready_marked_at is null
+             and x.accepted_at + make_interval(mins => coalesce(x.prep_minutes, 30) + (r ->> 'late_ready_grace_min')::int) < now() loop
+    begin
+      perform app_private.order_exception_open(o.id, 'late_ready', 'ready-check card to the shop',
+        jsonb_build_object('merchant', 'tap Ready, or set a new time'), o.due + make_interval(mins => (r ->> 'late_ready_human_min')::int) < now(),
+        format('#%s is %s min past its promised time and not ready', o.code, round(extract(epoch from now() - o.due) / 60)));
+      perform app_private.outbox_add('ready_check:' || o.id, o.id, o.vendor_id, 'whatsapp', 'ready_check',
+        (select c.backup_target from app_private.vendor_channels(o.vendor_id) c), jsonb_build_object('order_id', o.id, 'code', o.code));
+      n := n + 1;
+    exception when others then
+      perform app_private.recovery_failed(o.id, 'late_ready', sqlstate, sqlerrm);
+    end;
   end loop;
   -- On the road too long: a person calls the driver.
   for o in select x.id, x.code from public.orders x
-           where x.status = 'picked_up' and x.picked_up_at < now() - make_interval(mins => (r ->> 'late_delivery_min')::int) loop
-    perform app_private.order_exception_open(o.id, 'late_delivery', 'operator calls the driver',
-      jsonb_build_object('operator', 'call the driver', 'customer', 'told the order is on its way'), true,
-      format('#%s has been on the road over %s min', o.code, r ->> 'late_delivery_min'));
-    n := n + 1;
+           where x.status = any (c_road) and x.picked_up_at < now() - make_interval(mins => (r ->> 'late_delivery_min')::int) loop
+    begin
+      perform app_private.order_exception_open(o.id, 'late_delivery', 'operator calls the driver',
+        jsonb_build_object('operator', 'call the driver', 'customer', 'told the order is on its way'), true,
+        format('#%s has been on the road over %s min', o.code, r ->> 'late_delivery_min'));
+      n := n + 1;
+    exception when others then
+      perform app_private.recovery_failed(o.id, 'late_delivery', sqlstate, sqlerrm);
+    end;
   end loop;
   -- A status message to the customer failed on an active order.
   for o in select distinct x.id, x.code from public.orders x join public.outbound_messages m on m.order_id = x.id
-           where x.status in ('accepted', 'ready', 'picked_up', 'arrived') and m.purpose = 'customer_message' and m.status = 'failed'
+           where x.status = any (c_active) and m.purpose = 'customer_message' and m.status = 'failed'
              and m.created_at > now() - interval '2 hours' loop
-    perform app_private.order_exception_open(o.id, 'customer_unreached', 'a person reaches the customer',
-      jsonb_build_object('operator', 'message or call the customer'), true,
-      format('#%s: a status message did not reach the customer', o.code));
-    n := n + 1;
+    begin
+      perform app_private.order_exception_open(o.id, 'customer_unreached', 'a person reaches the customer',
+        jsonb_build_object('operator', 'message or call the customer'), true,
+        format('#%s: a status message did not reach the customer', o.code));
+      n := n + 1;
+    exception when others then
+      perform app_private.recovery_failed(o.id, 'customer_unreached', sqlstate, sqlerrm);
+    end;
   end loop;
-  -- Verified close.
-  for e in select x.*, ord.status as order_status, ord.acknowledged_at from public.order_exceptions x join public.orders ord on ord.id = x.order_id
+  -- Verified close: the same conditions, re-checked on the order.
+  for e in select x.*, ord.status as order_status, ord.acknowledged_at, ord.ready_marked_at, ord.code
+           from public.order_exceptions x join public.orders ord on ord.id = x.order_id
            where x.status = 'open' loop
-    v_still := case e.kind
-      when 'no_ack' then e.order_status = 'placed' and e.acknowledged_at is null
-      when 'late_ready' then e.order_status = 'accepted'
-      when 'late_delivery' then e.order_status = 'picked_up'
-      when 'customer_unreached' then e.order_status in ('accepted', 'ready', 'picked_up', 'arrived') end;
-    if not v_still then
-      update public.order_exceptions set status = 'closed', closed_at = now(), close_reason = 'order ' || e.order_status
-      where id = e.id;
-      if e.alert_id is not null then
-        perform app_private.slack_post('urgent', null,
-          format('✅ #%s %s cleared: order %s', (select code from public.orders where id = e.order_id), e.kind, e.order_status),
-          '[]', 'exception-closed:' || e.id);
-        update public.ops_alerts set status = 'resolved', resolved_at = now() where id = e.alert_id and status <> 'resolved';
+    begin
+      v_still := case e.kind
+        when 'no_ack' then e.order_status = 'placed' and e.acknowledged_at is null
+        when 'late_ready' then e.order_status = any (c_waiting) and e.ready_marked_at is null
+        when 'late_delivery' then e.order_status = any (c_road)
+        when 'customer_unreached' then e.order_status = any (c_active) end;
+      if not v_still then
+        update public.order_exceptions set status = 'closed', closed_at = now(), close_reason = 'order ' || e.order_status
+        where id = e.id;
+        if e.alert_id is not null then
+          -- In the alert's own thread (ops_alerts_to_slack threads an order's urgent alert as alert:<id>).
+          perform app_private.slack_post('urgent', 'alert:' || e.alert_id,
+            format('✅ #%s %s cleared: order %s', e.code, e.kind, e.order_status), '[]', 'exception-closed:' || e.id);
+          update public.ops_alerts set status = 'resolved', resolved_at = now() where id = e.alert_id and status <> 'resolved';
+        end if;
       end if;
-    end if;
-  end loop;
-  -- The ready check goes out with the late_ready recovery (once per exception, through the outbox router).
-  for e in select x.id, x.order_id, ord.vendor_id from public.order_exceptions x join public.orders ord on ord.id = x.order_id
-           where x.status = 'open' and x.kind = 'late_ready' loop
-    perform app_private.outbox_add('recovery-ready:' || e.id, e.order_id, e.vendor_id, 'whatsapp', 'ready_check',
-      (select coalesce(c.target, p.owner_mobile) from public.vendor_private p
-         left join lateral (select ch.target from public.vendor_order_channels ch where ch.vendor_id = e.vendor_id and ch.channel = 'whatsapp'
-                            and ch.enabled limit 1) c on true
-       where p.vendor_id = e.vendor_id),
-      '{}');
+    exception when others then
+      perform app_private.recovery_failed(e.order_id, 'close', sqlstate, sqlerrm);
+    end;
   end loop;
   -- Old Slack rows (posted or given up) are pruned.
   delete from public.slack_messages where status in ('sent', 'failed') and created_at < now() - make_interval(days => (r ->> 'slack_keep_days')::int);
   return n;
 end;
 $$;
+
+-- A recovery step that failed for one order: an alert (once per order and step per hour), never a stalled engine.
+create function app_private.recovery_failed(p_order_id uuid, p_step text, p_state text, p_error text) returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  perform app_private.ops_alert('recovery-failed:' || p_step || ':' || p_order_id || ':' || to_char(now(), 'YYYYMMDDHH24'),
+    'order_exception', 'warning', format('Recovery %s failed for an order (%s: %s)', p_step, p_state, left(p_error, 200)),
+    p_order_id, null);
+exception when others then
+  null; -- the alert itself must never stop the tick
+end;
+$$;
+revoke all on function app_private.recovery_failed(uuid, text, text, text) from public, anon, authenticated;
 select cron.schedule('recovery-tick', '15 seconds', $$select app_private.recovery_tick()$$);
 
 -- 5. Operator actions (Slack commands and buttons, WhatsApp admin commands) ---------------------------------------------------
@@ -715,70 +773,131 @@ begin
 end;
 $$;
 
--- /ak refund <order> <amount>: a customer credit for the next order (COD pilot: there is no card to refund to), booked in the
--- ledger exactly like a dispute credit (§20); never more than the order; above $20 only the admin (§32.1).
-create function public.ops_refund(p_actor_id uuid, p_code text, p_amount_usd numeric, p_source text default 'slack') returns jsonb
+-- dispute_decide as in 20261015120100, with one fix: it booked through public.dispute_book, which never existed (the
+-- function is app_private.dispute_book), so an operator's approval failed. Operator refunds below go through it.
+create or replace function public.dispute_decide(p_dispute_id uuid, p_approve boolean, p_actor_id uuid, p_amount_usd numeric default null)
+returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_d public.order_disputes%rowtype;
+  v_amount numeric;
+  v_role text := app_private.operator_role(p_actor_id);
+  v_max numeric;
+begin
+  if v_role is null then
+    raise exception 'not allowed: an active operator decides disputes' using errcode = 'insufficient_privilege';
+  end if;
+  select * into v_d from public.order_disputes where id = p_dispute_id for update;
+  if v_d.id is null or v_d.decision not in ('review', 'owner_review') then
+    return jsonb_build_object('status', 'not_open');
+  end if;
+  v_amount := coalesce(p_amount_usd, v_d.amount_usd);
+  select coalesce((select i.line_total_usd from public.order_items i where i.id = v_d.order_item_id), o.total_usd)
+    into v_max from public.orders o where o.id = v_d.order_id;
+  if v_amount < 0 or v_amount > v_max then
+    return jsonb_build_object('status', 'invalid', 'max_usd', v_max);
+  end if;
+  if p_approve and v_amount > (public.config_value('dispute_rules') ->> 'owner_over_usd')::numeric and v_role <> 'admin' then
+    raise exception 'not allowed: over the owner limit' using errcode = 'insufficient_privilege';
+  end if;
+  update public.order_disputes set decision = case when p_approve then 'approved' else 'rejected' end,
+    amount_usd = v_amount, payer = coalesce(payer, 'alo_king'), decided_by = p_actor_id, decided_at = now()
+  where id = v_d.id;
+  if p_approve and v_amount > 0 then
+    return app_private.dispute_book(v_d.id) || jsonb_build_object('decision', 'approved');
+  end if;
+  return jsonb_build_object('status', case when p_approve then 'approved' else 'rejected' end);
+end;
+$$;
+
+-- /ak refund <order> <amount> [shop]: a customer credit for the next order (COD pilot: there is no card to refund to). It is
+-- an operator dispute on the order, decided by dispute_decide and booked by dispute_book like every other dispute (§20):
+-- the payer is Alo King unless the operator says the shop caused it (§20.1), the credit expires back to whoever funded
+-- it, the admin limit is dispute_rules.owner_over_usd, and all credits on an order together never exceed its total.
+-- One operator refund per order (the disputes' one-per-line index), so a repeated or retried confirm books nothing twice.
+create function public.ops_refund(p_actor_id uuid, p_code text, p_amount_usd numeric, p_source text default 'slack',
+  p_payer text default 'alo_king') returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
   v_o public.orders%rowtype;
-  v_tx uuid;
-  v_credit uuid;
-  v_rules jsonb := public.config_value('dispute_rules');
+  v_d public.order_disputes%rowtype;
+  v_given numeric;
+  v_r jsonb;
 begin
-  perform app_private.ops_require(p_actor_id, p_amount_usd > public.config_numeric('ops_money_confirm_usd'));
+  perform app_private.ops_require(p_actor_id);
   if p_source = 'whatsapp' and p_amount_usd > public.config_numeric('whatsapp_admin_refund_max_usd') then
     raise exception 'refunds by WhatsApp are at most $%', public.config_numeric('whatsapp_admin_refund_max_usd') using errcode = 'check_violation';
   end if;
-  select * into v_o from public.orders where code = upper(trim(p_code));
+  if coalesce(p_payer, '') not in ('alo_king', 'merchant') then
+    raise exception 'the payer is alo_king or merchant' using errcode = 'check_violation';
+  end if;
+  select * into v_o from public.orders where code = upper(trim(p_code)) for update;
   if v_o.id is null then
     return jsonb_build_object('status', 'unknown');
   end if;
-  if p_amount_usd is null or p_amount_usd <= 0 or round(p_amount_usd, 2) <> p_amount_usd or p_amount_usd > v_o.total_usd then
-    raise exception 'the amount must be positive, in cents, and at most the order total ($%)', v_o.total_usd using errcode = 'check_violation';
+  if p_amount_usd is null or p_amount_usd <= 0 or round(p_amount_usd, 2) <> p_amount_usd then
+    raise exception 'the amount must be positive and in cents' using errcode = 'check_violation';
   end if;
-  v_tx := public.ledger_post('refund', 'ops-refund:' || v_o.id || ':' || gen_random_uuid(),
-    jsonb_build_array(
-      jsonb_build_object('account_id', public.ledger_account('expense_refunds', 'USD'), 'amount', p_amount_usd,
-        'memo', 'operator refund on order ' || v_o.code),
-      jsonb_build_object('account_id', public.ledger_account('customer_refund_payable', 'USD'), 'amount', -p_amount_usd,
-        'memo', 'customer credit, order ' || v_o.code)),
-    v_o.id, v_o.usd_lbp_rate, 'operator refund');
-  insert into public.customer_credits (customer_id, amount_usd, reason, expires_at)
-  values (v_o.customer_id, p_amount_usd, 'refund on order ' || v_o.code, now() + make_interval(days => coalesce((v_rules ->> 'credit_days')::int, 60)))
-  returning id into v_credit;
-  perform app_private.ops_log(p_actor_id, p_source, 'refund', jsonb_build_object('order_id', v_o.id, 'amount_usd', p_amount_usd),
-    jsonb_build_object('ledger_tx', v_tx, 'credit_id', v_credit));
-  return jsonb_build_object('status', 'credited', 'code', v_o.code, 'amount_usd', p_amount_usd, 'credit_id', v_credit);
+  select * into v_d from public.order_disputes
+  where order_id = v_o.id and kind = 'other' and order_item_id is null for update;
+  if v_d.id is not null and v_d.decision not in ('review', 'owner_review') then
+    return jsonb_build_object('status', 'already', 'code', v_o.code, 'amount_usd', v_d.amount_usd, 'decision', v_d.decision);
+  end if;
+  select coalesce(sum(d.amount_usd), 0) into v_given from public.order_disputes d
+  where d.order_id = v_o.id and d.decision in ('auto_credit', 'approved') and d.ledger_tx is not null;
+  if v_given + p_amount_usd > v_o.total_usd then
+    raise exception 'credits on order % would exceed its total ($% already, $% total)', v_o.code, v_given, v_o.total_usd
+      using errcode = 'check_violation';
+  end if;
+  if v_d.id is null then
+    insert into public.order_disputes (order_id, customer_id, kind, amount_usd, payer, decision, rule)
+    values (v_o.id, v_o.customer_id, 'other', p_amount_usd, p_payer, 'review', 'operator ' || coalesce(p_source, 'slack'))
+    returning * into v_d;
+  else
+    update public.order_disputes set payer = p_payer, amount_usd = p_amount_usd where id = v_d.id;
+  end if;
+  v_r := public.dispute_decide(v_d.id, true, p_actor_id, p_amount_usd);
+  perform app_private.ops_log(p_actor_id, p_source, 'refund',
+    jsonb_build_object('order_id', v_o.id, 'amount_usd', p_amount_usd, 'payer', p_payer, 'dispute_id', v_d.id), v_r);
+  return jsonb_build_object('status', case when v_r ->> 'status' = 'booked' then 'credited' else v_r ->> 'status' end,
+    'code', v_o.code, 'amount_usd', p_amount_usd, 'payer', p_payer, 'credit_id', v_r ->> 'credit_id');
 end;
 $$;
 
 -- /ak credit <merchant> <amount> <reason>: Alo King Credit for a merchant (§20.3 admin credit: promotions, compensation),
--- a ledger transaction with a reason; above $20 only the admin.
-create function public.ops_credit(p_actor_id uuid, p_vendor_id uuid, p_amount_usd numeric, p_reason text, p_source text default 'slack') returns jsonb
+-- a ledger transaction with a reason; above ops_money_confirm_usd only the admin, never above ops_credit_max_usd. The
+-- confirm modal's view id is the idempotency key, so a confirm Slack retries books once.
+create function public.ops_credit(p_actor_id uuid, p_vendor_id uuid, p_amount_usd numeric, p_reason text, p_source text default 'slack',
+  p_key text default null) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
   v_tx uuid;
+  v_new boolean;
+  v_key text := 'ops-credit:' || coalesce(nullif(left(p_key, 120), ''), gen_random_uuid()::text);
 begin
   perform app_private.ops_require(p_actor_id, p_amount_usd > public.config_numeric('ops_money_confirm_usd'));
-  if p_amount_usd is null or p_amount_usd <= 0 or round(p_amount_usd, 2) <> p_amount_usd or p_amount_usd > 500 then
-    raise exception 'the amount must be positive, in cents, and at most $500' using errcode = 'check_violation';
+  if p_amount_usd is null or p_amount_usd <= 0 or round(p_amount_usd, 2) <> p_amount_usd
+     or p_amount_usd > public.config_numeric('ops_credit_max_usd') then
+    raise exception 'the amount must be positive, in cents, and at most $%', public.config_numeric('ops_credit_max_usd') using errcode = 'check_violation';
   end if;
   if char_length(trim(coalesce(p_reason, ''))) < 3 then
     raise exception 'a credit needs a reason' using errcode = 'check_violation';
   end if;
-  v_tx := public.ledger_post('admin_adjustment', 'ops-credit:' || p_vendor_id || ':' || gen_random_uuid(),
+  v_new := not exists (select 1 from public.ledger_transactions t where t.idempotency_key = v_key);
+  v_tx := public.ledger_post('admin_adjustment', v_key,
     jsonb_build_array(
       jsonb_build_object('account_id', public.ledger_account('expense_refunds', 'USD'), 'amount', p_amount_usd, 'memo', left(trim(p_reason), 200)),
       jsonb_build_object('account_id', public.ledger_account('merchant_credit', 'USD', p_vendor_id), 'amount', -p_amount_usd,
         'memo', 'Alo King Credit: ' || left(trim(p_reason), 180))),
-    null, (select r.rate from public.exchange_rates r where r.base_currency = 'USD' and r.quote_currency = 'LBP' and r.effective_from <= now()
-           order by r.effective_from desc limit 1),
-    'operator credit: ' || left(trim(p_reason), 200));
-  perform app_private.ops_log(p_actor_id, p_source, 'merchant_credit',
-    jsonb_build_object('vendor_id', p_vendor_id, 'amount_usd', p_amount_usd, 'reason', left(trim(p_reason), 200)), jsonb_build_object('ledger_tx', v_tx));
-  return jsonb_build_object('status', 'credited', 'amount_usd', p_amount_usd);
+    null, public.usd_lbp_rate(now()), 'operator credit: ' || left(trim(p_reason), 200));
+  if v_new then
+    perform app_private.ops_log(p_actor_id, p_source, 'merchant_credit',
+      jsonb_build_object('vendor_id', p_vendor_id, 'amount_usd', p_amount_usd, 'reason', left(trim(p_reason), 200)), jsonb_build_object('ledger_tx', v_tx));
+  end if;
+  return jsonb_build_object('status', case when v_new then 'credited' else 'already' end, 'amount_usd', p_amount_usd);
 end;
 $$;
 
@@ -796,7 +915,7 @@ begin
   if v_p.id is null then
     return jsonb_build_object('status', 'unknown');
   end if;
-  perform set_config('request.jwt.claims', '{"role": "service_role"}', true);
+  -- This definer function runs as its owner, which place_set_service_status accepts; ops_actions records the operator.
   perform public.place_set_service_status(v_p.id, case when p_on then 'on' else 'paused' end::public.service_status,
     case when p_on then null else 'switched off by an operator from Slack' end);
   perform app_private.ops_log(p_actor_id, 'slack', case when p_on then 'place_on' else 'place_off' end, jsonb_build_object('place_id', v_p.id), '{}');
@@ -836,7 +955,7 @@ as $$
 begin
   perform app_private.ops_require(p_actor_id);
   return (select coalesce(jsonb_agg(jsonb_build_object('name', m.display_name, 'vendor', coalesce(v.name_en, v.name_ar),
-      'active_orders', (select coalesce(jsonb_agg(o.code), '[]') from public.orders o where o.driver_member_id = m.id and o.status in ('ready', 'picked_up', 'arrived')))), '[]')
+      'active_orders', (select coalesce(jsonb_agg(o.code), '[]') from public.orders o where o.driver_member_id = m.id and o.status in ('accepted', 'preparing', 'ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup', 'picked_up', 'near_drop', 'arrived')))), '[]')
     from public.vendor_members m join public.vendors v on v.id = m.vendor_id
     where m.role = 'driver' and m.status = 'active' and coalesce(m.display_name, '') ilike '%' || trim(p_query) || '%');
 end;
@@ -887,7 +1006,7 @@ begin
       when 'merchant_resume' then public.ops_merchant_resume(p_actor_id, (v_a.args ->> 'vendor_id')::uuid, 'whatsapp')
       when 'claim_approve' then public.ops_claim_decide(p_actor_id, (v_a.args ->> 'claim_id')::uuid, true, 'whatsapp')
       when 'claim_reject' then public.ops_claim_decide(p_actor_id, (v_a.args ->> 'claim_id')::uuid, false, 'whatsapp')
-      when 'support_reply' then public.support_reply((v_a.args ->> 'case_id')::uuid, p_actor_id, v_a.args ->> 'text')
+      when 'support_reply' then public.support_reply((v_a.args ->> 'case_id')::uuid, p_actor_id, v_a.args ->> 'text', 'whatsapp')
       when 'refund' then public.ops_refund(p_actor_id, v_a.args ->> 'code', (v_a.args ->> 'amount_usd')::numeric, 'whatsapp') end;
   exception when insufficient_privilege or check_violation then
     update public.ops_actions set status = 'refused', decided_at = now(), result = jsonb_build_object('error', left(sqlerrm, 200)) where id = v_a.id;
@@ -906,11 +1025,15 @@ begin
   perform app_private.ops_require(p_actor_id);
   return jsonb_build_object(
     'orders_today', (select count(*) from public.orders where created_at > date_trunc('day', now() at time zone 'Asia/Beirut') at time zone 'Asia/Beirut'),
-    'active', (select count(*) from public.orders where status in ('placed', 'accepted', 'ready', 'picked_up', 'arrived')),
+    'active', (select count(*) from public.orders where status in ('placed', 'accepted', 'preparing', 'ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup', 'picked_up', 'near_drop', 'arrived')),
     'exceptions_open', (select count(*) from public.order_exceptions where status = 'open'),
     'cases_open', (select count(*) from public.support_cases where status = 'open'),
     'claims_waiting', (select count(*) from public.vendor_claims where status = 'pending_review'),
-    'latest_case', (select id from public.support_cases where status = 'open' order by opened_at desc limit 1));
+    -- The open cases a WhatsApp "reply" can go to: id, a short id to type, and the first name the customer gave.
+    'open_cases', (select coalesce(jsonb_agg(jsonb_build_object('id', x.id, 'short', left(x.id::text, 4),
+                     'name', coalesce(split_part(nullif(trim(c.display_name), ''), ' ', 1), 'customer')) order by x.opened_at desc), '[]')
+                   from (select * from public.support_cases where status = 'open' order by opened_at desc limit 10) x
+                   join public.customers c on c.id = x.customer_id));
 end;
 $$;
 
@@ -929,13 +1052,13 @@ declare
   f text;
 begin
   foreach f in array array[
-    'public.slack_channel_set(text, text, text)', 'public.ops_operator(text, text)', 'public.slack_claim(integer)',
-    'public.slack_finish(bigint, boolean, text, text, text)', 'public.support_inbound(uuid, text)',
-    'public.support_reply(uuid, uuid, text)', 'public.support_message_status(bigint, text)', 'public.support_pending(uuid)',
+    'public.slack_channel_set(text, text, text)', 'public.ops_operator(text, text, text)', 'public.slack_claim(integer)',
+    'public.slack_finish(bigint, boolean, text, text, text, boolean)', 'public.support_inbound(uuid, text)',
+    'public.support_reply(uuid, uuid, text, text, text)', 'public.support_message_status(bigint, text)', 'public.support_pending(uuid)',
     'public.support_resolve(uuid, uuid)', 'public.support_case_for_thread(text)', 'public.ops_order(uuid, text)',
     'public.ops_merchant(uuid, text)', 'public.ops_merchant_pause(uuid, uuid, integer, text)', 'public.ops_merchant_resume(uuid, uuid, text)',
-    'public.ops_claims(uuid)', 'public.ops_claim_decide(uuid, uuid, boolean, text)', 'public.ops_refund(uuid, text, numeric, text)',
-    'public.ops_credit(uuid, uuid, numeric, text, text)', 'public.ops_place(uuid, text, boolean)', 'public.ops_finance(uuid)',
+    'public.ops_claims(uuid)', 'public.ops_claim_decide(uuid, uuid, boolean, text)', 'public.ops_refund(uuid, text, numeric, text, text)',
+    'public.ops_credit(uuid, uuid, numeric, text, text, text)', 'public.ops_place(uuid, text, boolean)', 'public.ops_finance(uuid)',
     'public.ops_alert_ack(uuid, bigint)', 'public.ops_driver(uuid, text)', 'public.ops_action_propose(uuid, text, jsonb)',
     'public.ops_action_decide(uuid, uuid, boolean)', 'public.ops_status(uuid)', 'public.vendor_hours_after_resume(uuid)'
   ] loop

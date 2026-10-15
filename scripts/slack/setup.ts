@@ -73,12 +73,19 @@ async function main() {
     for (const o of ops) {
       const j = await slack("users.lookupByEmail", { email: o.email });
       if (!j.ok) continue;
-      await db.query(
-        `insert into public.operator_slack (slack_user_id, operator_user_id) values ($1, $2)
-         on conflict (operator_user_id) do update set slack_user_id = excluded.slack_user_id`,
-        [j.user.id, o.user_id],
-      );
-      linked++;
+      // A Slack user already linked to another operator is left as it is (and reported); one clash never stops the run.
+      try {
+        await db.query(
+          `insert into public.operator_slack (slack_user_id, operator_user_id) values ($1, $2)
+           on conflict (operator_user_id) do update set slack_user_id = excluded.slack_user_id`,
+          [j.user.id, o.user_id],
+        );
+        linked++;
+      } catch (e) {
+        console.log(
+          `an operator's Slack user is already linked to another operator (${String((e as any)?.code ?? "error")})`,
+        );
+      }
     }
     console.log(`${linked} of ${ops.length} operators linked to Slack`);
   } finally {

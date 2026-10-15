@@ -100,12 +100,41 @@ describe("/ak commands", () => {
     const r = await handleOpsSlack(h.d, req(slash("refund AB3CD9 5")));
     expect(r.status).toBe(200);
     expect(h.modals[0].blocks[0].text.text).toMatch(/\$5.00\*.*#AB3CD9/);
+    expect(h.modals[0].blocks[0].text.text).toMatch(/Paid by \*Alo King\*/);
     expect(JSON.parse(h.modals[0].private_metadata)).toEqual({
       do: "refund",
       code: "AB3CD9",
       amount: 5,
+      payer: "alo_king",
     });
     expect(h.of("ops_refund")).toHaveLength(0);
+    // "shop": the shop caused it and pays (§20.1).
+    await handleOpsSlack(h.d, req(slash("refund AB3CD9 5 shop")));
+    expect(h.modals[1].blocks[0].text.text).toMatch(/Paid by \*the shop\*/);
+    expect(JSON.parse(h.modals[1].private_metadata).payer).toBe("merchant");
+  });
+  it("a credit confirmed twice (Slack retries a slow submit) is keyed by the modal's view id", async () => {
+    const h = deps({ ops_credit: () => ({ status: "credited", amount_usd: 30 }) });
+    const payload = {
+      type: "view_submission",
+      user: { id: "U0OPERATOR" },
+      view: {
+        id: "V0MODAL1",
+        callback_id: "ak_confirm",
+        private_metadata: JSON.stringify({
+          do: "credit",
+          vendor_id: "v1",
+          name: "Grill",
+          amount: 30,
+          reason: "launch",
+        }),
+      },
+    };
+    await handleOpsSlack(
+      h.d,
+      req(new URLSearchParams({ payload: JSON.stringify(payload) }).toString()),
+    );
+    expect(h.of("ops_credit")[0].args.p_key).toBe("V0MODAL1");
   });
   it("the modal's Confirm runs it, and a server refusal is shown in the server's words", async () => {
     const h = deps({
@@ -179,7 +208,7 @@ describe("buttons and thread replies", () => {
     expect(r.text).toMatch(/Resolved/);
     expect(h.of("support_resolve")[0].args).toEqual({ p_case_id: "c-1", p_actor_id: OP });
   });
-  it("a reply in a #support thread goes to the customer through support_reply; bots, edits and retries do not", async () => {
+  it("a reply in a #support thread goes to the customer through support_reply, keyed by Slack's event_id; bots and edits do not", async () => {
     const h = deps({
       support_case_for_thread: () => "c-1",
       support_reply: () => ({ status: "queued" }),
@@ -187,6 +216,7 @@ describe("buttons and thread replies", () => {
     const ev = (e: any) =>
       JSON.stringify({
         type: "event_callback",
+        event_id: "Ev01",
         event: {
           type: "message",
           ts: "2.0",
@@ -201,12 +231,17 @@ describe("buttons and thread replies", () => {
       p_case_id: "c-1",
       p_actor_id: OP,
       p_text: "On its way",
+      p_source: "slack",
+      p_ref: "slack:Ev01",
     });
     await handleOpsSlack(h.d, req(ev({ bot_id: "B1" }), "application/json"));
     await handleOpsSlack(h.d, req(ev({ subtype: "message_changed" }), "application/json"));
-    await handleOpsSlack(h.d, req(ev({}), "application/json", { "x-slack-retry-num": "1" }));
     await handleOpsSlack(h.d, req(ev({ user: "U0STRANGER" }), "application/json"));
     expect(h.of("support_reply")).toHaveLength(1);
+    // A retry is passed on with the same event_id: the server recognises one that went through, delivers one that did not.
+    await handleOpsSlack(h.d, req(ev({}), "application/json", { "x-slack-retry-num": "1" }));
+    expect(h.of("support_reply")).toHaveLength(2);
+    expect(h.of("support_reply")[1].args.p_ref).toBe("slack:Ev01");
   });
   it("answers Slack's URL check", async () => {
     const h = deps();

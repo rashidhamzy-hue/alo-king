@@ -84,7 +84,7 @@ import {
   TOOLS,
   type ToolName,
 } from "./tools.ts";
-import { buttons, moneyLine } from "../../_shared/customer-cards.ts";
+import { buttons, customerStatusMessages, moneyLine } from "../../_shared/customer-cards.ts";
 import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
 import { parseCartOrder } from "../../_shared/catalog.ts";
 import { joinLink } from "../../_shared/site-claim.ts";
@@ -339,8 +339,13 @@ export async function handleCustomerTurn(
     if (!begin.bot_enabled) say(c, "off");
     else if (begin.customer.blocked) {
       /* blocked numbers get no reply */
-    } else if (sess.handoff) await duringHandoff(c);
-    else await route(c, !!begin.first_contact);
+    } else {
+      // Replies a person sent while the customer was outside the window come with whatever they write next (any message
+      // reopens the window), not only with the template's button; the handoff may have ended meanwhile.
+      if (c.m.buttonId !== "c:support") await heldReplies(c);
+      if (sess.handoff) await duringHandoff(c);
+      else await route(c, !!begin.first_contact);
+    }
   } catch (e) {
     // A stalled request (#139): nothing has been sent and the session is untouched, so the event fails and the
     // queue replays the whole turn within seconds. After STALL_REPLAYS attempts the customer gets the buttons.
@@ -414,20 +419,27 @@ async function duringHandoff(c: Ctx) {
 }
 
 /** The replies a person sent while the customer was outside the 24-hour window (held behind the template). */
-async function showSupportReplies(c: Ctx) {
-  c.path = "handoff";
-  c.tools.push("support_pending");
+async function heldReplies(c: Ctx): Promise<number> {
   const replies: { name: string | null; text: string }[] =
     (await c.deps.rpc("support_pending", { p_customer_id: c.customerId }).catch(() => [])) ?? [];
-  if (!replies.length) return push(c, handoffWaitCard(c.m.from, c.s.lang));
+  if (!Array.isArray(replies) || !replies.length) return 0;
+  c.tools.push("support_pending");
   for (const r of replies)
-    push(c, {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: c.m.from.replace(/^\+/, ""),
-      type: "text",
-      text: { body: `👤 ${r.name ?? "Rasheed"}, Alo King:\n${r.text}` },
-    });
+    push(
+      c,
+      ...customerStatusMessages(
+        c.m.from,
+        { kind: "support_reply", lang: c.s.lang, name: r.name, text: r.text },
+        null,
+      ),
+    );
+  return replies.length;
+}
+
+/** "Read the reply" on the support template. */
+async function showSupportReplies(c: Ctx) {
+  c.path = "handoff";
+  if (!(await heldReplies(c))) push(c, handoffWaitCard(c.m.from, c.s.lang));
 }
 
 async function route(c: Ctx, firstContact: boolean) {
