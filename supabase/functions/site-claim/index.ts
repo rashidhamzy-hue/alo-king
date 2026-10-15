@@ -53,7 +53,10 @@ async function whatsappCode(to: string, code: string): Promise<SendResult> {
   // A simulator number is never sent to Kapso (DECISIONS §36).
   if (/^\+?999[0-9]{6,12}$/.test(to)) return { ok: false, retry: false, error: "simulator number" };
   if (!kapsoKey) return { ok: false, retry: false, error: "KAPSO_API_KEY not set" };
-  const sender = (await rpc("whatsapp_sender", { p_audience: "merchant" })) as string | null;
+  // The number where the shop's window is open, else the default; the same number decides free-form or template.
+  const sender = ((await rpc("whatsapp_sender_for", { p_audience: "merchant", p_target: to }).catch(
+    () => null,
+  )) ?? (await rpc("whatsapp_sender", { p_audience: "merchant" }))) as string | null;
   if (!sender) return { ok: false, retry: false, error: "no sending number" };
   try {
     const res = await fetch(`${KAPSO_BASE}/${encodeURIComponent(sender)}/messages`, {

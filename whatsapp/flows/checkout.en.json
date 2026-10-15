@@ -1,0 +1,161 @@
+{
+  "version": "7.3",
+  "routing_model": {
+    "CHECKOUT": []
+  },
+  "screens": [
+    {
+      "id": "CHECKOUT",
+      "title": "Checkout",
+      "terminal": true,
+      "data": {
+        "basket_id": {
+          "type": "string",
+          "__example__": "00000000-0000-0000-0000-000000000000"
+        },
+        "version": {
+          "type": "string",
+          "__example__": "12"
+        },
+        "vendor": {
+          "type": "string",
+          "__example__": "Alo Test Grill"
+        },
+        "lines": {
+          "type": "string",
+          "__example__": "2 × Shish taouk  $9.00\n1 × Fries  $2.50"
+        },
+        "total": {
+          "type": "string",
+          "__example__": "$14.00 = 1,253,000 LBP (rate 89,500, today)"
+        },
+        "fulfilment_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "delivery",
+              "title": "Delivery to Home – Baakline"
+            },
+            {
+              "id": "pickup",
+              "title": "Pickup at the shop"
+            }
+          ]
+        },
+        "fulfilment": {
+          "type": "string",
+          "__example__": "delivery"
+        },
+        "cash": {
+          "type": "string",
+          "__example__": "USD"
+        },
+        "show_sub": {
+          "type": "boolean",
+          "__example__": false
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextSubheading",
+            "text": "${data.vendor}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.lines}"
+          },
+          {
+            "type": "TextBody",
+            "markdown": false,
+            "text": "${data.total}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Prices are checked again before you confirm."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "fulfilment",
+            "label": "Delivery or pickup",
+            "required": true,
+            "init-value": "${data.fulfilment}",
+            "data-source": "${data.fulfilment_options}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "cash",
+            "label": "I will pay cash in",
+            "required": true,
+            "init-value": "${data.cash}",
+            "data-source": [
+              {
+                "id": "USD",
+                "title": "US dollars (USD)"
+              },
+              {
+                "id": "LBP",
+                "title": "Lebanese pounds (LBP)"
+              }
+            ]
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "sub_pref",
+            "label": "If an item is missing",
+            "required": false,
+            "visible": "${data.show_sub}",
+            "data-source": [
+              {
+                "id": "call",
+                "title": "Call me first"
+              },
+              {
+                "id": "replace",
+                "title": "Replace with similar"
+              },
+              {
+                "id": "remove",
+                "title": "Remove it"
+              }
+            ]
+          },
+          {
+            "type": "TextArea",
+            "name": "note",
+            "label": "Note for the shop",
+            "required": false,
+            "max-length": 200
+          },
+          {
+            "type": "Footer",
+            "label": "Review my order",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "basket_id": "${data.basket_id}",
+                "version": "${data.version}",
+                "fulfilment": "${form.fulfilment}",
+                "cash": "${form.cash}",
+                "sub_pref": "${form.sub_pref}",
+                "note": "${form.note}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

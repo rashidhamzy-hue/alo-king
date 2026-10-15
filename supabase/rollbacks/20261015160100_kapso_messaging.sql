@@ -215,7 +215,8 @@ $$;
 
 revoke all on function app_private.customer_notify(uuid, text, jsonb, text) from public;
 
-delete from public.ai_calls where purpose = 'menu';
+-- Menu-model calls keep their spend record under the closest older purpose.
+update public.ai_calls set purpose = 'merchant' where purpose = 'menu';
 alter table public.ai_calls drop constraint if exists ai_calls_purpose_check;
 alter table public.ai_calls add constraint ai_calls_purpose_check
   check (purpose in ('customer_turn', 'voice_transcribe', 'voice_normalise', 'eval', 'merchant'));

@@ -3,7 +3,13 @@
 // per Flow and language, tested with Flowso in CI); Meta knows each by name, e.g. `alo_address_capture_ar`.
 // The server re-validates everything a Flow returns (flow_submit); prices never come from a Flow.
 
-export type FlowName = "address_capture" | "item_options" | "merchant_claim" | "merchant_hours";
+export type FlowName =
+  | "address_capture"
+  | "item_options"
+  | "merchant_claim"
+  | "merchant_hours"
+  | "checkout"
+  | "menu_section";
 
 /** The published name of a Flow version on Meta/Kapso (whatsapp-flows.yml uses the same names). */
 export const publishedFlowName = (flow: FlowName, lang: "ar" | "en") => `alo_${flow}_${lang}`;
@@ -26,6 +32,18 @@ const CTA: Record<FlowName, { ar: string; en: string; bodyAr: string; bodyEn: st
     en: "Business details",
     bodyAr: "أكّد معلومات المحل، الدوام، مسافة التوصيل والعملة.",
     bodyEn: "Confirm your business details, hours, delivery distance and cash currencies.",
+  },
+  checkout: {
+    ar: "كمّل الطلب",
+    en: "Checkout",
+    bodyAr: "🧾 اختار توصيل أو استلام، والعملة اللي بتدفع فيها كاش.",
+    bodyEn: "🧾 Choose delivery or pickup and the currency you will pay cash in.",
+  },
+  menu_section: {
+    ar: "راجع القسم",
+    en: "Review section",
+    bodyAr: "📋 راجع الأصناف اللي قريناها من المنيو وشيل اللي مش إلك.",
+    bodyEn: "📋 Review the items we read from your menu and untick any that are not yours.",
   },
   merchant_hours: {
     ar: "دوام المحل",

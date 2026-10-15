@@ -4,7 +4,13 @@
 
 import { clampInteractive } from "../../_shared/meta-limits.ts";
 import { flowMessage, type FlowName } from "../../_shared/flows.ts";
-import { menuImportHelp } from "../../_shared/menu-cards.ts";
+import {
+  menuImportHelp,
+  portionQuestion,
+  sectionAddedText,
+  type SectionSummary,
+} from "../../_shared/menu-cards.ts";
+import { sectionPrompt } from "./menu.ts";
 
 type SendResult = { ok: true; id?: string } | { ok: false; retry: boolean; error: string };
 type Member = { member_id: string; vendor_id: string; role: string; vendor_name?: string | null };
@@ -17,8 +23,9 @@ export type MerchantFlowDeps = {
 
 const HOURS =
   /^\s*(hours|opening hours|change hours|دوام|الدوام|ساعات|ساعات الدوام|غيّر الدوام|horaires|dawem)\s*$/i;
+// "settings" opens the same profile form (§39.8 "merchant settings": radius up to 20 km, cash, hours, names).
 const PROFILE =
-  /^\s*(profile|my profile|business details|ملف المحل|معلومات المحل|بروفايل|profil|mon profil)\s*$/i;
+  /^\s*(profile|my profile|business details|settings|my settings|ملف المحل|معلومات المحل|بروفايل|إعدادات|اعدادات|الإعدادات|profil|mon profil|paramètres|parametres)\s*$/i;
 
 const FLOWS = ["merchant_hours", "merchant_claim"] as const;
 
@@ -114,6 +121,23 @@ export async function handleMerchantFlows(
           r.paused_until
             ? "✅ حفظنا الدوام، والمحل مسكّر مؤقتا. ابعت «فتحنا» لترجع تفتح قبل. / Hours saved and you are closed for now; send “open” to reopen earlier."
             : "✅ حفظنا الدوام. / Hours saved.",
+        ),
+      );
+    } else if (r?.flow === "menu_section" && r.status === "approved") {
+      // The section is on the menu; the next one waiting, else the portion questions (as after the chat card's Approve).
+      out.push(sectionAddedText(m.from, r.inserted ?? 0, r.needs_price ?? []));
+      const draftId = String(m.flow.payload?.draft_id ?? "");
+      const sum = draftId ? await deps.rpc("menu_draft_summary", { p_draft_id: draftId }) : null;
+      const sections: (SectionSummary & { approved: boolean })[] = sum?.sections ?? [];
+      const next = sections.find((x) => !x.approved);
+      if (next)
+        out.push(await sectionPrompt(deps, m.from, draftId, next, sections.length, r.member_id));
+      else if (sum?.vendor_id) out.push(portionQuestion(m.from, sum.vendor_id));
+    } else if (r?.flow === "menu_section") {
+      out.push(
+        txt(
+          m.from,
+          "ما قدرنا نحفظ القسم. ابعت «منيو» وكمّل من الرسائل. / Could not save the section; send “menu” and continue by message.",
         ),
       );
     } else if (r?.status === "rejected" && r.reason === "expired") {

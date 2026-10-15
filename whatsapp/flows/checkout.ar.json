@@ -1,0 +1,161 @@
+{
+  "version": "7.3",
+  "routing_model": {
+    "CHECKOUT": []
+  },
+  "screens": [
+    {
+      "id": "CHECKOUT",
+      "title": "الطلب",
+      "terminal": true,
+      "data": {
+        "basket_id": {
+          "type": "string",
+          "__example__": "00000000-0000-0000-0000-000000000000"
+        },
+        "version": {
+          "type": "string",
+          "__example__": "12"
+        },
+        "vendor": {
+          "type": "string",
+          "__example__": "Alo Test Grill"
+        },
+        "lines": {
+          "type": "string",
+          "__example__": "2 × Shish taouk  $9.00\n1 × Fries  $2.50"
+        },
+        "total": {
+          "type": "string",
+          "__example__": "$14.00 = 1,253,000 LBP (rate 89,500, today)"
+        },
+        "fulfilment_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "delivery",
+              "title": "Delivery to Home – Baakline"
+            },
+            {
+              "id": "pickup",
+              "title": "Pickup at the shop"
+            }
+          ]
+        },
+        "fulfilment": {
+          "type": "string",
+          "__example__": "delivery"
+        },
+        "cash": {
+          "type": "string",
+          "__example__": "USD"
+        },
+        "show_sub": {
+          "type": "boolean",
+          "__example__": false
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextSubheading",
+            "text": "${data.vendor}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.lines}"
+          },
+          {
+            "type": "TextBody",
+            "markdown": false,
+            "text": "${data.total}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "منرجع نتأكد من الأسعار قبل ما تأكد."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "fulfilment",
+            "label": "توصيل أو استلام",
+            "required": true,
+            "init-value": "${data.fulfilment}",
+            "data-source": "${data.fulfilment_options}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "cash",
+            "label": "بدفع كاش بـ",
+            "required": true,
+            "init-value": "${data.cash}",
+            "data-source": [
+              {
+                "id": "USD",
+                "title": "دولار (USD)"
+              },
+              {
+                "id": "LBP",
+                "title": "ليرة لبنانية (LBP)"
+              }
+            ]
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "sub_pref",
+            "label": "إذا صنف مش موجود",
+            "required": false,
+            "visible": "${data.show_sub}",
+            "data-source": [
+              {
+                "id": "call",
+                "title": "اتصلوا فيّ أول"
+              },
+              {
+                "id": "replace",
+                "title": "بدّلوه بشي متلو"
+              },
+              {
+                "id": "remove",
+                "title": "شيلوه"
+              }
+            ]
+          },
+          {
+            "type": "TextArea",
+            "name": "note",
+            "label": "ملاحظة للمحل",
+            "required": false,
+            "max-length": 200
+          },
+          {
+            "type": "Footer",
+            "label": "راجع طلبي",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "basket_id": "${data.basket_id}",
+                "version": "${data.version}",
+                "fulfilment": "${form.fulfilment}",
+                "cash": "${form.cash}",
+                "sub_pref": "${form.sub_pref}",
+                "note": "${form.note}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

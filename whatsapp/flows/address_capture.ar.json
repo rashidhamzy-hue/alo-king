@@ -16,6 +16,30 @@
         "place_name": {
           "type": "string",
           "__example__": "Baakline"
+        },
+        "landmarks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "l1",
+              "title": "Baakline municipality"
+            },
+            {
+              "id": "none",
+              "title": "Not listed"
+            }
+          ]
         }
       },
       "layout": {
@@ -27,7 +51,7 @@
           },
           {
             "type": "TextCaption",
-            "text": "منستعملها بس لنوصلك الطلب. الموقع (Location) بيبقى من الدبوس اللي بعتّو."
+            "text": "منستعملها بس لتوصيل طلبك. الموقع من الـ pin اللي بعتّو."
           },
           {
             "type": "TextInput",
@@ -46,17 +70,84 @@
             "max-chars": 20
           },
           {
+            "type": "RadioButtonsGroup",
+            "name": "has_elevator",
+            "label": "في مصعد شغّال؟",
+            "required": false,
+            "data-source": [
+              {
+                "id": "yes",
+                "title": "إيه، في مصعد"
+              },
+              {
+                "id": "no",
+                "title": "ما في مصعد"
+              }
+            ]
+          },
+          {
             "type": "TextInput",
             "name": "apartment",
-            "label": "رقم الشقة",
+            "label": "الشقة",
             "input-type": "text",
             "required": false,
             "max-chars": 20
           },
           {
+            "type": "Dropdown",
+            "name": "landmark_id",
+            "label": "أقرب معلم",
+            "required": false,
+            "data-source": "${data.landmarks}"
+          },
+          {
+            "type": "Dropdown",
+            "name": "landmark_relation",
+            "label": "بالنسبة للمعلم",
+            "required": false,
+            "data-source": [
+              {
+                "id": "at",
+                "title": "عندو"
+              },
+              {
+                "id": "next_to",
+                "title": "حدّو"
+              },
+              {
+                "id": "opposite",
+                "title": "مقابيلو"
+              },
+              {
+                "id": "behind",
+                "title": "وراه"
+              },
+              {
+                "id": "above",
+                "title": "فوقو"
+              },
+              {
+                "id": "below",
+                "title": "تحتو"
+              },
+              {
+                "id": "near",
+                "title": "قريب منو"
+              },
+              {
+                "id": "after",
+                "title": "بعدو"
+              },
+              {
+                "id": "before",
+                "title": "قبلو"
+              }
+            ]
+          },
+          {
             "type": "TextInput",
             "name": "landmark",
-            "label": "معلم قريب",
+            "label": "معلم تاني",
             "input-type": "text",
             "required": false,
             "max-chars": 120
@@ -77,14 +168,17 @@
           },
           {
             "type": "Footer",
-            "label": "حفظ العنوان",
+            "label": "احفظ العنوان",
             "on-click-action": {
               "name": "complete",
               "payload": {
                 "address_id": "${data.address_id}",
                 "building": "${form.building}",
                 "floor": "${form.floor}",
+                "has_elevator": "${form.has_elevator}",
                 "apartment": "${form.apartment}",
+                "landmark_id": "${form.landmark_id}",
+                "landmark_relation": "${form.landmark_relation}",
                 "landmark": "${form.landmark}",
                 "driver_phone": "${form.driver_phone}",
                 "notes": "${form.notes}"

@@ -16,6 +16,30 @@
         "place_name": {
           "type": "string",
           "__example__": "Baakline"
+        },
+        "landmarks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "l1",
+              "title": "Baakline municipality"
+            },
+            {
+              "id": "none",
+              "title": "Not listed"
+            }
+          ]
         }
       },
       "layout": {
@@ -46,6 +70,22 @@
             "max-chars": 20
           },
           {
+            "type": "RadioButtonsGroup",
+            "name": "has_elevator",
+            "label": "Is there a working lift?",
+            "required": false,
+            "data-source": [
+              {
+                "id": "yes",
+                "title": "Yes, there is a lift"
+              },
+              {
+                "id": "no",
+                "title": "No lift"
+              }
+            ]
+          },
+          {
             "type": "TextInput",
             "name": "apartment",
             "label": "Apartment",
@@ -54,9 +94,60 @@
             "max-chars": 20
           },
           {
+            "type": "Dropdown",
+            "name": "landmark_id",
+            "label": "Nearest landmark",
+            "required": false,
+            "data-source": "${data.landmarks}"
+          },
+          {
+            "type": "Dropdown",
+            "name": "landmark_relation",
+            "label": "Where from it",
+            "required": false,
+            "data-source": [
+              {
+                "id": "at",
+                "title": "At it"
+              },
+              {
+                "id": "next_to",
+                "title": "Next to it"
+              },
+              {
+                "id": "opposite",
+                "title": "Facing it"
+              },
+              {
+                "id": "behind",
+                "title": "Behind it"
+              },
+              {
+                "id": "above",
+                "title": "Above it"
+              },
+              {
+                "id": "below",
+                "title": "Below it"
+              },
+              {
+                "id": "near",
+                "title": "Near it"
+              },
+              {
+                "id": "after",
+                "title": "After it"
+              },
+              {
+                "id": "before",
+                "title": "Before it"
+              }
+            ]
+          },
+          {
             "type": "TextInput",
             "name": "landmark",
-            "label": "Nearby landmark",
+            "label": "Another landmark",
             "input-type": "text",
             "required": false,
             "max-chars": 120
@@ -84,7 +175,10 @@
                 "address_id": "${data.address_id}",
                 "building": "${form.building}",
                 "floor": "${form.floor}",
+                "has_elevator": "${form.has_elevator}",
                 "apartment": "${form.apartment}",
+                "landmark_id": "${form.landmark_id}",
+                "landmark_relation": "${form.landmark_relation}",
                 "landmark": "${form.landmark}",
                 "driver_phone": "${form.driver_phone}",
                 "notes": "${form.notes}"

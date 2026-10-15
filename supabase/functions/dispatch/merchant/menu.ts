@@ -14,6 +14,7 @@ import {
 } from "../../_shared/menu-draft.ts";
 import { parseMerchantCommand } from "../../_shared/merchant-commands.ts";
 import { firstLink, htmlText } from "../../_shared/safe-fetch.ts";
+import { flowMessage } from "../../_shared/flows.ts";
 import {
   draftSectionCard,
   estimateCard,
@@ -243,7 +244,10 @@ export async function handleMerchantMenu(
         );
       else {
         const sections: SectionSummary[] = r?.sections ?? [];
-        if (sections[0]) reply(draftSectionCard(m.from, r.draft_id, sections[0], sections.length));
+        if (sections[0])
+          reply(
+            await sectionPrompt(deps, m.from, r.draft_id, sections[0], sections.length, memberId),
+          );
       }
     }
   }
@@ -252,6 +256,41 @@ export async function handleMerchantMenu(
     if (!res.ok) deps.log?.("menu send failed", { error: res.error.slice(0, 120) });
   }
   return true;
+}
+
+/**
+ * A draft section to confirm: the menu_section Flow once it is published on the number (one screen, untick what is not
+ * theirs, §39.8), else the chat card with Approve / Skip. Prices are exactly as read either way.
+ */
+export async function sectionPrompt(
+  deps: Pick<MenuDeps, "rpc">,
+  to: string,
+  draftId: string,
+  section: SectionSummary,
+  total: number,
+  memberId: string | null | undefined,
+): Promise<Record<string, unknown>> {
+  if (memberId) {
+    const r = await deps
+      .rpc("flow_open", {
+        p_flow: "menu_section",
+        p_lang: "ar",
+        p_phone: to,
+        p_customer_id: null,
+        p_member_id: memberId,
+        p_context: { draft_id: draftId, index: section.index },
+      })
+      .catch(() => null);
+    if (r?.status === "ok")
+      return flowMessage(to, {
+        flow: "menu_section",
+        lang: "ar",
+        token: r.token,
+        screen: r.screen,
+        data: r.data,
+      });
+  }
+  return draftSectionCard(to, draftId, section, total);
 }
 
 async function handleTap(
@@ -290,7 +329,10 @@ async function handleTap(
       const sum = await deps.rpc("menu_draft_summary", { p_draft_id: tap.draftId });
       const sections: (SectionSummary & { approved: boolean })[] = sum?.sections ?? [];
       const next = sections.find((s) => !s.approved && s.index > tap.index);
-      if (next) return reply(draftSectionCard(m.from, tap.draftId, next, sections.length));
+      if (next)
+        return reply(
+          await sectionPrompt(deps, m.from, tap.draftId, next, sections.length, editor.member_id),
+        );
       await deps.rpc("onboarding_session_set", {
         p_phone: m.from,
         p_step: null,

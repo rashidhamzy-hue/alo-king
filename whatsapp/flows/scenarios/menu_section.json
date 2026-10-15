@@ -1,0 +1,124 @@
+{
+  "tests": [
+    {
+      "name": "keep everything as read",
+      "start": {
+        "mode": "navigate",
+        "screen": "SECTION",
+        "data": {
+          "draft_id": "d1b2c3d4-0000-0000-0000-000000000001",
+          "section_key": "s1",
+          "section_name": "Grills",
+          "items": [
+            {
+              "id": "i1",
+              "title": "Shish taouk",
+              "description": "$4.50"
+            },
+            {
+              "id": "i2",
+              "title": "Kafta",
+              "description": "$4.00"
+            },
+            {
+              "id": "i3",
+              "title": "Arayes",
+              "description": "$3.00"
+            }
+          ],
+          "all_items": [
+            "i1",
+            "i2",
+            "i3"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "expect": {
+            "screen": "SECTION",
+            "fields": {
+              "keep": {
+                "value": [
+                  "i1",
+                  "i2",
+                  "i3"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "submit": true,
+          "expect": {
+            "status": "completed",
+            "completion": {
+              "draft_id": "d1b2c3d4-0000-0000-0000-000000000001",
+              "section_key": "s1",
+              "keep": [
+                "i1",
+                "i2",
+                "i3"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "leave one item out",
+      "start": {
+        "mode": "navigate",
+        "screen": "SECTION",
+        "data": {
+          "draft_id": "d1b2c3d4-0000-0000-0000-000000000001",
+          "section_key": "s1",
+          "section_name": "Grills",
+          "items": [
+            {
+              "id": "i1",
+              "title": "Shish taouk",
+              "description": "$4.50"
+            },
+            {
+              "id": "i2",
+              "title": "Kafta",
+              "description": "$4.00"
+            },
+            {
+              "id": "i3",
+              "title": "Arayes",
+              "description": "$3.00"
+            }
+          ],
+          "all_items": [
+            "i1",
+            "i2",
+            "i3"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "fill": "keep",
+          "value": [
+            "i1",
+            "i3"
+          ]
+        },
+        {
+          "submit": true,
+          "expect": {
+            "status": "completed",
+            "completion": {
+              "keep": [
+                "i1",
+                "i3"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
