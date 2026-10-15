@@ -803,7 +803,8 @@ export type CustomerAction =
         | "cancel"
         | "remember"
         | "new_address"
-        | "support";
+        | "support"
+        | "cart_replace";
     };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -841,7 +842,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
     return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
   if (
     (m = id.match(
-      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support)$/,
+      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support|cart_replace)$/,
     ))
   )
     return { a: "simple", what: m[1] as any };

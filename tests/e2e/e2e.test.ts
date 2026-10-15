@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHmac } from "node:crypto";
 import { deliver, inboundPayload, sign } from "./lib/kapso";
-import { langOf, mismatch, render, toOut, valueMatches } from "./lib/match";
+import { kindMatches, langOf, mismatch, render, toOut, valueMatches } from "./lib/match";
 import { readdirSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { expand } from "./lib/parts";
@@ -140,7 +140,7 @@ describe("scenario files", () => {
       expect(sc.name).toMatch(/^[a-z0-9-]+$/);
       expect(Object.keys(sc.personas).length).toBeGreaterThan(0);
       for (const [i, s] of sc.steps.entries()) {
-        const actions = ["say", "tap", "pin", "voice", "sql", "wait_s"].filter(
+        const actions = ["say", "tap", "pin", "voice", "cart", "sql", "wait_s"].filter(
           (k) => (s as any)[k] !== undefined,
         );
         expect(actions.length, `step ${i + 1} needs exactly one action`).toBeLessThanOrEqual(1);
@@ -152,6 +152,7 @@ describe("scenario files", () => {
               "tap",
               "pin",
               "voice",
+              "cart",
               "sql",
               "wait_s",
               "expect",
@@ -166,6 +167,7 @@ describe("scenario files", () => {
           s.tap?.as,
           s.pin?.as,
           s.voice?.as,
+          s.cart?.as,
           ...(s.expect ?? []).map((e) => e.to ?? e.none),
         ])
           if (p) expect(sc.personas[p], `step ${i + 1}: persona ${p}`).toBeDefined();
@@ -217,5 +219,59 @@ describe("toOut: templates (session 5b, DECISIONS §39.8)", () => {
       { id: "rate:x:f5", title: "Great" },
       { id: "rcv:x:no", title: "A problem" },
     ]);
+  });
+});
+
+describe("catalogue messages and carts (session 5d, DECISIONS §39.12)", () => {
+  it("a multi-product message shows each product as an option titled with its section", () => {
+    const o = toOut({
+      id: 3,
+      to_phone: "+99996100000001",
+      kind: "interactive:product_list",
+      body: "Tap an item",
+      payload: {
+        interactive: {
+          type: "product_list",
+          header: { type: "text", text: "Alo Test Grill" },
+          action: {
+            catalog_id: "sim",
+            sections: [
+              {
+                title: "Sides",
+                product_items: [{ product_retailer_id: "p1" }, { product_retailer_id: "p2" }],
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(o.options).toEqual([
+      { id: "p1", title: "Sides" },
+      { id: "p2", title: "Sides" },
+    ]);
+    expect(kindMatches("products", o.kind)).toBe(true);
+  });
+  it("a cart is delivered as WhatsApp's order message, with the price the catalogue showed", () => {
+    const p: any = inboundPayload({
+      phone: "+99996100000001",
+      phoneNumberId: "123",
+      message: {
+        type: "order",
+        catalogId: "sim",
+        items: [
+          { id: "p1", quantity: 2, price: 1.5 },
+          { id: "p2", quantity: 1, price: null },
+        ],
+      },
+    });
+    expect(p.message.type).toBe("order");
+    expect(p.message.order).toEqual({
+      catalog_id: "sim",
+      text: "",
+      product_items: [
+        { product_retailer_id: "p1", quantity: "2", item_price: "1.5", currency: "USD" },
+        { product_retailer_id: "p2", quantity: "1" },
+      ],
+    });
   });
 });

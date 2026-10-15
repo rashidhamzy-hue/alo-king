@@ -122,6 +122,32 @@ export async function runScenario(env: Env, sc: Scenario, file: string): Promise
       const lon = Number(render(String(step.pin.lon), scope()));
       sent = { as: step.pin.as, text: `(sends a pin ${lat}, ${lon})` };
       await post(step.pin.as, { type: "location", lat, lon, name: step.pin.name }, r);
+    } else if (step.cart) {
+      const c = step.cart;
+      const last = [...seen]
+        .reverse()
+        .find((m) => m.to === phones[c.as] && /^interactive:product/.test(m.kind));
+      const catalogId = String((last?.raw as any)?.interactive?.action?.catalog_id ?? "");
+      const items = c.items.map((x) => {
+        const id = x.id ? render(x.id, scope()) : null;
+        const o = id ? last?.options.find((y) => y.id === id) : last?.options[x.index ?? 0];
+        const price = x.price === undefined ? null : Number(render(String(x.price), scope()));
+        return o
+          ? { id: o.id, quantity: x.qty, price: Number.isFinite(price) ? price : null }
+          : null;
+      });
+      if (!last || items.some((x) => !x)) {
+        r.failures.push(
+          `no product message with those items for ${c.as} (${JSON.stringify(c.items)})`,
+        );
+      } else {
+        const ok = items as { id: string; quantity: number; price: number | null }[];
+        sent = {
+          as: c.as,
+          text: `(sends a cart: ${ok.map((x) => `${x.quantity} × ${x.id.slice(0, 8)}${x.price === null ? "" : ` at $${x.price}`}`).join(", ")})`,
+        };
+        await post(c.as, { type: "order", catalogId, items: ok }, r);
+      }
     } else if (step.voice) {
       sent = { as: step.voice.as, text: `(voice note, transcript "${step.voice.transcript}")` };
       await post(step.voice.as, { type: "voice", transcript: step.voice.transcript }, r);
@@ -233,7 +259,8 @@ function findOption(
   t: { id?: string; id_prefix?: string; id_re?: string; title?: string; index?: number },
 ): { o: { id: string; title: string }; list: boolean } | null {
   for (const m of [...msgs].reverse()) {
-    if (!m.options.length) continue;
+    // Products are picked with a `cart` step, never tapped.
+    if (!m.options.length || m.kind.startsWith("interactive:product")) continue;
     const list = m.kind === "interactive:list";
     if (t.index !== undefined) {
       const o = m.options[t.index];
@@ -257,6 +284,7 @@ function stepLabel(s: Step): string {
     return `${s.tap.as} taps ${s.tap.raw_id ?? s.tap.id ?? s.tap.id_prefix ?? s.tap.id_re ?? s.tap.title ?? `#${s.tap.index}`}`;
   if (s.pin) return `${s.pin.as} sends a pin`;
   if (s.voice) return `${s.voice.as} sends a voice note`;
+  if (s.cart) return `${s.cart.as} sends a cart of ${s.cart.items.length} item(s)`;
   if (s.sql) return "database step";
   if (s.wait_s) return `wait ${s.wait_s}s`;
   return "check";

@@ -1,0 +1,43 @@
+name: native-cart-price-change
+description: "A cart sent with a stale catalogue price is re-priced by the server; the customer is told the new price before checkout, and the order is charged at the server's price (DECISIONS §39.12)."
+personas:
+  cust: { role: customer, cc: "971", name: "Sim Price Change" }
+  merchant: { role: merchant }
+steps:
+  - sql: select public.sim_catalog('{{cust.phone}}', true)
+  - db:
+      - sql: >
+          select i.id, i.price_usd from public.menu_items i join public.vendors v on v.id = i.vendor_id
+          where v.slug = 'alo-test-grill' and i.name_en = 'Chicken Taouk Plate'
+        row: { price_usd: ">1" }
+        save: { taouk: id, taouk_price: price_usd }
+  - say: { as: cust, text: "Order" }
+    expect:
+      - { to: cust }
+  - pin: { as: cust, lat: 33.6869, lon: 35.5518 }
+    expect:
+      - { to: cust, kind: products }
+  - note: the catalogue still showed $1.00 (a price changed since); the server's price wins and is shown before checkout
+    cart: { as: cust, items: [{ id: "{{vars.taouk}}", qty: 1, price: 1.00 }] }
+    expect:
+      - { to: cust, text_re: "Chicken Taouk Plate: was \\$1\\.00, now \\$\\d+\\.\\d\\d" }
+      - { to: cust, buttons: ["c:delivery", "c:pickup"] }
+  - tap: { as: cust, id: "c:delivery" }
+    expect:
+      - { to: cust, buttons: ["fw:self_save"] }
+  - tap: { as: cust, id: "fw:self_save" }
+    expect:
+      - { to: cust, buttons: ["cur:USD"] }
+  - tap: { as: cust, id: "cur:USD" }
+    expect:
+      - { to: cust, buttons: ["cfm:"] }
+  - tap: { as: cust, id_prefix: "cfm:" }
+    expect:
+      - { to: merchant, buttons: ["acc:"] }
+    db:
+      - sql: >
+          select o.status, oi.unit_price_usd = {{vars.taouk_price}} as server_priced, oi.unit_price_usd <> 1.00 as not_catalogue
+          from public.orders o join public.customers c on c.id = o.customer_id join public.order_items oi on oi.order_id = o.id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: placed, server_priced: true, not_catalogue: true }
+  - sql: select public.sim_catalog('{{cust.phone}}', false)

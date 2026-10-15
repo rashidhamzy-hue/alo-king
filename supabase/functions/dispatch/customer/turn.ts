@@ -86,7 +86,13 @@ import {
 } from "./tools.ts";
 import { buttons, customerStatusMessages, moneyLine } from "../../_shared/customer-cards.ts";
 import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
-import { parseCartOrder } from "../../_shared/catalog.ts";
+import {
+  parseCartOrder,
+  productListMessage,
+  productMessage,
+  type CartLine,
+  type CatalogProduct,
+} from "../../_shared/catalog.ts";
 import { joinLink } from "../../_shared/site-claim.ts";
 
 type Msg = Record<string, unknown>;
@@ -119,6 +125,8 @@ export type CustomerDeps = {
   rpc: (fn: string, args: Record<string, unknown>) => Promise<any>;
   /** Sends one payload from the customer number. */
   send: (payload: Msg) => Promise<SendResult>;
+  /** The business number replies go out from: the Meta catalogue is per business account (§39.12). */
+  senderNumberId?: string | null;
   /** One model call; null when no key is configured (then only deterministic paths run). */
   model: ((req: ModelRequest) => Promise<ModelResponse>) | null;
   /** Transcribes audio with a vocabulary prompt; null when no key is configured. */
@@ -175,8 +183,8 @@ export type CustomerInbound = {
   name: string | null;
   /** A WhatsApp Flow submission (§12). */
   flow?: { token: string; payload: Record<string, unknown> } | null;
-  /** A cart sent from the Meta catalogue (§30.1.2): item ids and quantities only. */
-  cart?: { lines: { itemId: string; quantity: number }[] } | null;
+  /** A cart sent from the Meta catalogue (§39.12): item ids and quantities; the catalogue's price only to report a difference. */
+  cart?: { lines: CartLine[] } | null;
 };
 
 const E164 = /^\+[1-9][0-9]{6,14}$/;
@@ -257,6 +265,10 @@ type Ctx = {
   summary: string[];
   /** Held support replies in this turn's messages, marked shown once they are sent. */
   shownReplies?: number[];
+  /** The catalogue replies may use (§39.12): undefined until asked, null when there is none. */
+  catalog?: string | null;
+  /** What to send instead when a catalogue message is refused (a product Meta does not have yet, §39.12). */
+  fallbacks?: Map<Msg, Msg | null>;
 };
 
 const MAX_MESSAGES = 3;
@@ -364,6 +376,12 @@ export async function handleCustomerTurn(
   for (const p of c.out) {
     let r = await deps.send(clampInteractive(p));
     if (!r.ok && r.retry) r = await deps.send(clampInteractive(p)); // Kapso 409 (one in flight) or 5xx: once more
+    // A catalogue message Meta refused (a product not in the catalogue yet, a catalogue not connected): the list instead.
+    const fb = c.fallbacks?.get(p);
+    if (!r.ok && fb) {
+      deps.log?.("catalogue message refused, list sent", { error: r.error.slice(0, 120) });
+      r = await deps.send(clampInteractive(fb));
+    }
     if (!r.ok) deps.log?.("customer send failed", { error: r.error.slice(0, 120) });
   }
   // Held support replies count as shown only once the turn's messages went out (a replayed turn finds them again).
@@ -550,7 +568,34 @@ async function catalogText(c: Ctx, raw: string, qtyArg: number | null) {
     c.summary.push(
       `[catalogue: ${rows.length} items for "${q}"${quantity ? `, quantity ${quantity}` : ""}]`,
     );
-    return push(c, catalogList(c.m.from, c.s.lang, q, rows, quantity));
+    const listMsg = catalogList(c.m.from, c.s.lang, q, rows, quantity);
+    // Results from one shop, all in the Meta catalogue, and no quantity typed: a product message (§39.12); else the list.
+    const shops = new Set(items.map((x) => String(x.vendor_id ?? "")));
+    if (!quantity && shops.size === 1 && !shops.has("") && (await catalogFor(c))) {
+      const ids = items.map((x) => String(x.item_id));
+      const cat = await catalogProducts(c, [...shops][0], { items: ids, limit: 30 });
+      if (cat.products.length === ids.length) {
+        c.tools.push("catalog:search");
+        const body = tr(c.s.lang, ids.length === 1 ? "catalogOne" : "catalogSearch", {
+          q: q.slice(0, 40),
+        });
+        return pushCatalog(
+          c,
+          ids.length === 1
+            ? productMessage(c.m.from, c.catalog!, ids[0], body, tr(c.s.lang, "catalogFooter"))
+            : productListMessage(
+                c.m.from,
+                c.catalog!,
+                localName(c.s.lang, items[0].vendor_ar ?? null, items[0].vendor_en ?? null),
+                body,
+                cat.products,
+                { lang: c.s.lang, footer: tr(c.s.lang, "catalogFooter") },
+              ),
+          listMsg,
+        );
+      }
+    }
+    return push(c, listMsg);
   }
   // A shop's name (on Alo King, or not yet: §39.3) is answered by the place search.
   const named: any[] =
@@ -1093,6 +1138,21 @@ async function tap(c: Ctx, a: CustomerAction) {
         case "keep":
           c.s.pending = {};
           return say(c, "done");
+        case "cart_replace": {
+          // The customer chose the catalogue cart over the open basket of another shop.
+          const p = c.s.pending;
+          c.s.pending = {};
+          if (p.kind !== "cart" || !Array.isArray(p.lines)) return say(c, "done");
+          return cartOrder(
+            c,
+            p.lines.map((l: any) => ({
+              itemId: String(l.i),
+              quantity: Number(l.q) || 1,
+              shownUsd: l.p ?? null,
+            })),
+            true,
+          );
+        }
         case "usual":
           return reorder(c);
         case "no_upsell":
@@ -1292,42 +1352,121 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
 }
 
 /**
- * A cart sent from the catalogue (§30.1.2): every line re-priced by basket_add_item, catalogue prices ignored.
- * The cart replaces the basket only when something in it is added (cart_apply); lines not added (unavailable,
- * or another branch) are counted to the customer, and lines that need choices are asked one at a time.
+ * A cart sent from the Meta catalogue (§39.12): mapped to our menu and added to the one basket the customer also builds
+ * with taps (cart_merge, keyed by this message so a replayed turn never adds twice). Every line is re-priced by the
+ * server; a line whose catalogue price differs is shown before checkout; lines that need choices are asked one at a time;
+ * then the normal checkout runs (address confirmation, the checkout Flow, payment choice). A cart from another shop than
+ * the open basket asks first.
  */
-async function cartOrder(c: Ctx, lines: { itemId: string; quantity: number }[]) {
+async function cartOrder(c: Ctx, lines: CartLine[], replace = false) {
   c.tools.push("cart");
   if (!lines.length) return say(c, "unsupported");
-  const needOptions: { itemId: string; quantity: number }[] = [];
-  const plain: { itemId: string; quantity: number }[] = [];
-  for (const l of lines) {
-    const groups: any[] = (await c.deps.rpc("menu_item_options", { p_item_id: l.itemId })) ?? [];
-    (groups.some((g) => g.min > 0) ? needOptions : plain).push(l);
+  const r = await c.deps.rpc("cart_merge", {
+    p_customer_id: c.customerId,
+    p_message_id: c.m.messageId,
+    p_lines: lines.map((l) => ({ item_id: l.itemId, quantity: l.quantity, shown_usd: l.shownUsd })),
+    p_replace: replace,
+  });
+  const lang = c.s.lang;
+  if (r?.status === "other_vendor") {
+    c.s.pending = {
+      kind: "cart",
+      lines: lines.slice(0, 30).map((l) => ({ i: l.itemId, q: l.quantity, p: l.shownUsd })),
+    };
+    return push(
+      c,
+      buttons(
+        c.m.from,
+        tr(lang, "cartOtherVendor", {
+          basket: lang === "ar" ? r.basket_vendor : (r.basket_vendor_en ?? r.basket_vendor),
+          cart: lang === "ar" ? r.cart_vendor : (r.cart_vendor_en ?? r.cart_vendor),
+        }),
+        [
+          ["c:cart_replace", tr(lang, "cartReplace")],
+          ["c:keep", tr(lang, "keep")],
+        ],
+      ),
+    );
   }
-  // The lines without required choices in one server step: it replaces the basket only if one is added.
-  let skipped = 0;
-  if (plain.length) {
-    const r = await c.deps.rpc("cart_apply", {
-      p_customer_id: c.customerId,
-      p_lines: plain.map((l) => ({ item_id: l.itemId, quantity: l.quantity })),
-    });
-    if (r?.basket) c.basket = r.basket;
-    skipped = Array.isArray(r?.skipped) ? r.skipped.length : plain.length;
-  }
+  if (r?.status !== "ok") return say(c, "cartUnknown");
+  if (r.basket) c.basket = r.basket;
+  const skipped: any[] = Array.isArray(r.skipped) ? r.skipped : [];
+  const needs: any[] = Array.isArray(r.needs_options) ? r.needs_options : [];
+  const diffs: any[] = Array.isArray(r.diffs) ? r.diffs : [];
   c.summary.push(
-    `[cart from the catalogue: ${lines.length} lines, ${skipped} not added, ${needOptions.length} need choices]`,
+    `[cart from the catalogue: ${lines.length} lines, ${Number(r.added ?? 0)} added, ${skipped.length} not added, ${needs.length} need choices, ${diffs.length} price changes]`,
   );
-  if (skipped) say(c, "cartSkipped", { n: skipped });
-  if (needOptions.length) {
+  // One message for what changed: the lines not added and the prices the server corrected (USD; the summary adds LBP).
+  const notes: string[] = [];
+  if (skipped.length) notes.push(tr(lang, "cartSkipped", { n: skipped.length }));
+  if (diffs.length)
+    notes.push(
+      tr(lang, "cartDiffs", {
+        lines: diffs
+          .slice(0, 10)
+          .map((d) =>
+            tr(lang, "cartDiffLine", {
+              item: lang === "ar" ? d.item : (d.item_en ?? d.item),
+              was: Number(d.shown_usd).toFixed(2),
+              now: Number(d.now_usd).toFixed(2),
+            }),
+          )
+          .join("\n"),
+      }),
+    );
+  if (notes.length) push(c, text(c.m.from, notes.join("\n\n")));
+  if (needs.length) {
     const flows = c.tools.length;
-    const added = await addOne(c, needOptions[0].itemId, needOptions[0].quantity, [], null, null);
-    if (needOptions.length > 1) say(c, "cartMoreOptions", { n: needOptions.length - 1 });
-    // Waiting on choices (an option list or the item_options Flow): the basket is shown after them.
+    const added = await addOne(c, needs[0].item_id, Number(needs[0].quantity ?? 1), [], null, null);
+    if (needs.length > 1) say(c, "cartMoreOptions", { n: needs.length - 1 });
+    // Waiting on choices (an option list or the item_options Flow): checkout comes after them.
     if (!added && (c.s.pending.kind === "options" || c.tools.length > flows)) return;
   }
-  if (c.basket?.lines?.length) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+  if (!c.basket?.lines?.length) return say(c, "cartNothing");
+  // The normal checkout: address confirmation, the checkout Flow or the cash question, then the summary to confirm.
+  return checkout(c, {});
 }
+
+// ---- The Meta catalogue: product messages chosen per shop (§39.12) ---------------------------------------------------
+/** The catalogue a reply may use (the sending number's business account, or the simulated one), asked once per turn. */
+async function catalogFor(c: Ctx): Promise<string | null> {
+  if (c.catalog !== undefined) return c.catalog;
+  const id = await c.deps
+    .rpc("catalog_for_number", { p_phone_number_id: c.deps.senderNumberId ?? null, p_to: c.m.from })
+    .catch(() => null);
+  c.catalog = typeof id === "string" && id ? id : null;
+  return c.catalog;
+}
+
+async function catalogProducts(
+  c: Ctx,
+  vendorId: string,
+  opts: { section?: string | null; items?: string[] | null; limit?: number } = {},
+): Promise<{ total: number; section_total: number; products: CatalogProduct[] }> {
+  const r = await c.deps
+    .rpc("catalog_products", {
+      p_vendor_id: vendorId,
+      p_catalog_id: c.catalog,
+      p_section_id: opts.section ?? null,
+      p_item_ids: opts.items ?? null,
+      p_limit: opts.limit ?? 30,
+    })
+    .catch(() => null);
+  return {
+    total: Number(r?.total ?? 0),
+    section_total: Number(r?.section_total ?? 0),
+    products: Array.isArray(r?.products) ? r.products : [],
+  };
+}
+
+/** A catalogue message, with what to send instead if Meta refuses it (null: nothing). */
+function pushCatalog(c: Ctx, msg: Msg, fallback: Msg | null) {
+  if (c.out.length >= MAX_MESSAGES) return;
+  push(c, msg);
+  (c.fallbacks ??= new Map()).set(msg, fallback);
+}
+
+const shopName = (label: string) => label.replace(/ \(.*\)$/, "");
 
 // ---- Baskets and checkout -----------------------------------------------------------------------------------------
 function refFor(c: Ctx, prefix: "v" | "i" | "l" | "s" | "a", id: string, label: string): string {
@@ -1347,7 +1486,63 @@ const resetRefs = (c: Ctx, prefix: string) => {
   for (const k of Object.keys(c.s.refs)) if (k.startsWith(prefix)) delete c.s.refs[k];
 };
 
+/**
+ * A shop's menu (§39.12 smart menu): a shop with 30 orderable items or fewer, all in the catalogue, gets one multi-product
+ * message by section; a bigger shop gets its best sellers as a product message and the section list; without a catalogue
+ * the list messages run as before. A catalogue message that Meta refuses is replaced by the list.
+ */
 async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
+  const v = c.s.refs[vendorRef];
+  if (!v) return say(c, "pickPlaceFirst");
+  const before = c.out.length;
+  await showMenuList(c, vendorRef, query);
+  if (query || !(await catalogFor(c))) return;
+  const list = c.out.splice(before);
+  const cat = await catalogProducts(c, v.id);
+  const shop = shopName(v.label);
+  if (cat.total > 0 && cat.total <= 30 && cat.products.length === cat.total) {
+    c.tools.push("catalog:menu");
+    c.summary.push(`[showed ${cat.products.length} items of ${vendorRef} as a catalogue message]`);
+    pushCatalog(
+      c,
+      productListMessage(c.m.from, c.catalog!, shop, tr(c.s.lang, "catalogBrowse"), cat.products, {
+        lang: c.s.lang,
+        footer: tr(c.s.lang, "catalogFooter"),
+      }),
+      list[0] ?? null,
+    );
+    return;
+  }
+  if (cat.total > 30) {
+    const ids: string[] =
+      (await c.deps
+        .rpc("catalog_best_sellers", { p_vendor_id: v.id, p_limit: 10 })
+        .catch(() => [])) ?? [];
+    const best = ids.length ? await catalogProducts(c, v.id, { items: ids, limit: 10 }) : null;
+    if (best && best.products.length >= 2) {
+      c.tools.push("catalog:best");
+      pushCatalog(
+        c,
+        productListMessage(
+          c.m.from,
+          c.catalog!,
+          shop,
+          tr(c.s.lang, "catalogBest"),
+          best.products.map((p) => ({
+            ...p,
+            section: tr("ar", "bestSellers"),
+            section_en: tr(c.s.lang, "bestSellers"),
+          })),
+          { lang: c.s.lang, footer: tr(c.s.lang, "catalogFooter") },
+        ),
+        null,
+      );
+    }
+  }
+  push(c, ...list);
+}
+
+async function showMenuList(c: Ctx, vendorRef: string, query: string | null) {
   const v = c.s.refs[vendorRef];
   if (!v) return say(c, "pickPlaceFirst");
   c.s.focus_vendor_id = v.id;
@@ -1388,8 +1583,41 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   c.summary.push(`[showed ${menu.length} items from ${vendorRef}]`);
 }
 
-/** One section of the focused place's menu, nine items and a "More" row at a time. */
+/** One section: a catalogue message when the whole section (30 items or fewer) is in the catalogue, else the list. */
 async function showSection(c: Ctx, sectionRef: string, offset: number) {
+  const before = c.out.length;
+  await showSectionList(c, sectionRef, offset);
+  const sec = c.s.refs[sectionRef];
+  const vendorId = c.s.focus_vendor_id;
+  if (offset > 0 || !sec || !vendorId || !(await catalogFor(c))) return;
+  const cat = await catalogProducts(c, vendorId, { section: sec.id });
+  if (!(
+    cat.section_total > 0 &&
+    cat.section_total <= 30 &&
+    cat.products.length === cat.section_total
+  ))
+    return;
+  const list = c.out.splice(before);
+  c.tools.push("catalog:section");
+  pushCatalog(
+    c,
+    productListMessage(
+      c.m.from,
+      c.catalog!,
+      sec.label,
+      tr(c.s.lang, "catalogBrowse"),
+      cat.products,
+      {
+        lang: c.s.lang,
+        footer: tr(c.s.lang, "catalogFooter"),
+      },
+    ),
+    list[0] ?? null,
+  );
+}
+
+/** One section of the focused place's menu, nine items and a "More" row at a time. */
+async function showSectionList(c: Ctx, sectionRef: string, offset: number) {
   const sec = c.s.refs[sectionRef];
   const vendorId = c.s.focus_vendor_id;
   if (!sec || !vendorId) return say(c, "pickPlaceFirst");

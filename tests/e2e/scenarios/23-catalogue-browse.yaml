@@ -1,0 +1,46 @@
+name: catalogue-browse
+description: "A customer with the catalogue sees Alo Test Grill as one multi-product message, sends a cart from it and goes through the normal checkout to a placed order (DECISIONS §39.12)."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Catalogue" }
+  merchant: { role: merchant }
+steps:
+  - note: this customer gets the simulated catalogue (staging only, +999 numbers only)
+    sql: select public.sim_catalog('{{cust.phone}}', true)
+  - db:
+      - sql: >
+          select i.id, i.price_usd from public.menu_items i join public.vendors v on v.id = i.vendor_id
+          where v.slug = 'alo-test-grill' and i.name_en = 'Hummus'
+        row: { price_usd: ">0" }
+        save: { hummus: id, hummus_price: price_usd }
+  - say: { as: cust, text: "Order" }
+    expect:
+      - { to: cust }
+  - note: the shop has 15 items, so the whole menu is one catalogue message by section, not the list
+    pin: { as: cust, lat: 33.6869, lon: 35.5518 }
+    expect:
+      - { to: cust, kind: products, text_any: ["Alo Test Grill", "ألو تست"] }
+  - note: the cart carries the price the catalogue showed; it matches the server's, so no price note
+    cart: { as: cust, items: [{ id: "{{vars.hummus}}", qty: 2, price: "{{vars.hummus_price}}" }] }
+    expect:
+      - { to: cust, buttons: ["c:delivery", "c:pickup"] }
+      - { to: cust, not_text: ["was $"] }
+  - tap: { as: cust, id: "c:delivery" }
+    expect:
+      - { to: cust, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }
+  - tap: { as: cust, id: "fw:self_save" }
+    expect:
+      - { to: cust, buttons: ["cur:USD", "cur:LBP"] }
+  - tap: { as: cust, id: "cur:USD" }
+    expect:
+      - { to: cust, buttons: ["cfm:"], text: "Hummus" }
+  - tap: { as: cust, id_prefix: "cfm:" }
+    expect:
+      - { to: merchant, buttons: ["acc:"] }
+    db:
+      - sql: >
+          select o.status, (select sum(oi.quantity) from public.order_items oi where oi.order_id = o.id) as qty,
+                 o.food_subtotal_usd = 2 * {{vars.hummus_price}} as server_priced
+          from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: placed, qty: 2, server_priced: true }
+  - sql: select public.sim_catalog('{{cust.phone}}', false)

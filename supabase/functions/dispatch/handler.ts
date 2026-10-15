@@ -8,6 +8,7 @@
 // The database decides; this code only moves messages. Dependencies are injected so it is tested without
 // network or database.
 
+import { catalogSyncStep, type CatalogApi } from "./catalog-sync.ts";
 import {
   cancelledText,
   deliveredCard,
@@ -104,6 +105,8 @@ export type DispatchDeps = {
   fetchLink?: ((url: string) => Promise<{ bytes: Uint8Array; mime: string } | null>) | null;
   /** The customer bot's model, transcription, media and routing (session 4); null = customers are ignored. */
   customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
+  /** The Meta catalogue (§39.12): items batch, product sets, product images; null leaves the sync queue waiting. */
+  catalog?: CatalogApi | null;
 };
 
 export type MenuModelCall = (
@@ -232,6 +235,13 @@ export async function runDispatch(
       });
       out.alerts++;
     }
+  }
+  // 5. The catalogue sync (§39.12): shops queued by a menu, price, availability, stock or shop change, the reconcile and
+  // the nightly full sync. Last, so it never delays a reply.
+  if (deps.catalog && left() > 3000) {
+    await catalogSyncStep(deps.rpc, deps.catalog, deps.log).catch((e: unknown) =>
+      deps.log?.("catalogue sync step failed", { error: String(e).slice(0, 160) }),
+    );
   }
   return out;
 }
@@ -901,6 +911,7 @@ async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "i
       ...deps.customer,
       rpc: deps.rpc,
       send: (p) => deps.whatsapp(from, p),
+      senderNumberId: from,
       now: deps.now,
       log: deps.log,
     },

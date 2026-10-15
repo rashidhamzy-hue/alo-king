@@ -1,0 +1,60 @@
+name: mixed-cart-and-buttons
+description: "Items tapped through the list menu and a cart sent from the catalogue build one basket, ordered together (DECISIONS §39.12)."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Mixed Basket" }
+  merchant: { role: merchant }
+steps:
+  - db:
+      - sql: >
+          select i.id from public.menu_items i join public.vendors v on v.id = i.vendor_id
+          where v.slug = 'alo-test-grill' and i.name_en = 'Pepsi'
+        rows: 1
+        save: { pepsi: id }
+  - note: first the button path (no catalogue for this customer yet)
+    say: { as: cust, text: "Order" }
+    expect:
+      - { to: cust }
+  - pin: { as: cust, lat: 33.6869, lon: 35.5518 }
+    expect:
+      - { to: cust, buttons: ["ps:"] }
+  - tap: { as: cust, title: "Sandwiches" }
+    expect:
+      - { to: cust, buttons: ["pi:"] }
+  - tap: { as: cust, title: "Falafel" }
+    expect:
+      - { to: cust, buttons: ["qt:"] }
+  - tap: { as: cust, id_re: "^qt:i\\d+:1$" }
+    expect:
+      - { to: cust, buttons: ["c:checkout"], text: "Falafel" }
+  - note: then the catalogue, for the same shop
+    sql: select public.sim_catalog('{{cust.phone}}', true)
+  - tap: { as: cust, raw_id: "c:menu", title: "Menu" }
+    expect:
+      - { to: cust, kind: products }
+  - cart: { as: cust, items: [{ id: "{{vars.pepsi}}", qty: 2 }] }
+    expect:
+      - { to: cust, buttons: ["c:delivery", "c:pickup"] }
+    db:
+      - sql: >
+          select count(*) as lines, sum(bi.quantity) as qty from public.basket_items bi join public.baskets b on b.id = bi.basket_id
+          join public.customers c on c.id = b.customer_id where c.phone_e164 = '{{cust.phone}}' and b.status = 'open'
+        row: { lines: 2, qty: 3 }
+  - tap: { as: cust, id: "c:delivery" }
+    expect:
+      - { to: cust, buttons: ["fw:self_save"] }
+  - tap: { as: cust, id: "fw:self_save" }
+    expect:
+      - { to: cust, buttons: ["cur:USD"] }
+  - tap: { as: cust, id: "cur:USD" }
+    expect:
+      - { to: cust, buttons: ["cfm:"], text: ["Falafel", "Pepsi"] }
+  - tap: { as: cust, id_prefix: "cfm:" }
+    expect:
+      - { to: merchant, buttons: ["acc:"] }
+    db:
+      - sql: >
+          select o.status, (select count(*) from public.order_items oi where oi.order_id = o.id) as lines
+          from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: placed, lines: 2 }
+  - sql: select public.sim_catalog('{{cust.phone}}', false)
