@@ -23,6 +23,7 @@ import { reportError } from "../_shared/sentry.ts";
 import { restRpc } from "../_shared/rest-rpc.ts";
 import { isSimNumber, simSinkSend } from "../_shared/sim-sink.ts";
 import { orsProvider, restRouteCache, roadRoutes } from "../_shared/routing.ts";
+import { safeFetch } from "../_shared/safe-fetch.ts";
 import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
 import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
@@ -239,6 +240,8 @@ async function botConfig() {
     "ai_low_confidence_handoff",
     "ai_free_text_enabled",
     "ai_voice_enabled",
+    "ai_merchant_text_enabled",
+    "ai_merchant_model",
   ];
   const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
   const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
@@ -452,6 +455,14 @@ Deno.serve(async (req) => {
       storeDocument,
       orderCard,
       menuModel: anthropic ? menuModel : null,
+      fetchLink: (url: string) => safeFetch(url, { maxBytes: 5_000_000 }),
+      // The copilot's model reads what the merchant rules do not, once its eval passes (§32.4, §39.7).
+      merchantCopilot: await (async () => {
+        const cfg = await botConfig();
+        return anthropic && cfg.ai_merchant_text_enabled === true
+          ? { call: callModel, model: String(cfg.ai_merchant_model ?? "claude-haiku-4-5-20251001") }
+          : null;
+      })(),
       fetchMenuMedia: (phoneNumberId: string, x: { id: string; url: string | null }) =>
         fetchMedia(x, phoneNumberId, 5_000_000),
       voiceCode: twilio ? (to, script) => placeCall(twilio, to, sayTwiml(script)) : null,

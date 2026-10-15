@@ -1,0 +1,36 @@
+name: copilot-offer
+description: "Merchant copilot (DECISIONS §39.7, §20.4): '10% off sandwiches 1 day' is a card; after the tap a customer's order carries the merchant-funded discount, and 'stop offer' ends it."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Offer" }
+  merchant: { role: merchant }
+steps:
+  - say: { as: merchant, text: "10% off sandwiches 1 day" }
+    expect:
+      - { to: merchant, buttons: ["pyes:", "pno:"], text: "10%" }
+  - tap: { as: merchant, id_prefix: "pyes:" }
+    expect:
+      - { to: merchant, text_re: "offer is live" }
+    db:
+      - sql: >
+          select count(*) as running from public.vendor_offers o join public.vendors v on v.id = o.vendor_id
+          where v.slug = 'alo-test-grill' and o.status = 'active' and o.percent = 10
+        row: { running: 1 }
+  - include: { part: order-to-placed, as: cust, lat: 33.6869, lon: 35.5518, qty: 2 }
+  - note: two falafel sandwiches at $2.50 with 10% off; the discount is the merchant's and the commission is on $4.50
+    db:
+      - sql: >
+          select o.offer_usd, o.discount_usd, o.food_subtotal_usd, o.order_fee_usd = public.order_fee_usd(o.vendor_id, 4.50) as fee_after_offer
+          from public.orders o where o.id = '{{vars.order_id}}'
+        row: { offer_usd: 0.5, discount_usd: 0.5, food_subtotal_usd: 5, fee_after_offer: true }
+  - include: { part: merchant-accepts-delivers, as: cust }
+  - say: { as: merchant, text: "stop offer" }
+    expect:
+      - { to: merchant, buttons: ["pyes:"] }
+  - tap: { as: merchant, id_prefix: "pyes:" }
+    expect:
+      - { to: merchant, text_any: ["✅"] }
+    db:
+      - sql: >
+          select count(*) as running from public.vendor_offers o join public.vendors v on v.id = o.vendor_id
+          where v.slug = 'alo-test-grill' and o.status = 'active'
+        row: { running: 0 }

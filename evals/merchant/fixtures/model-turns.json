@@ -1,0 +1,68 @@
+{
+  "note": "Recorded tool answers of the merchant copilot's model (DECISIONS §39.7), replayed by supabase/functions/dispatch/merchant/copilot.test.ts without API credit (§32.7). Each is a message the rules do not read; `expect` is the proposal the server is asked for (never applied without the merchant's tap).",
+  "cases": [
+    {
+      "id": "mfx-01",
+      "lang": "arabizi",
+      "text": "el fryer 3am ya3mel mashekel, wa22fo shi rob3 se3a",
+      "response": [{ "name": "set_availability", "input": { "target": "fryer", "on": false, "minutes": 15 } }],
+      "expect": { "kind": "availability_off", "payload": { "scope": "station", "target": "fryer" } }
+    },
+    {
+      "id": "mfx-02",
+      "lang": "ar",
+      "text": "بدي غلّي سعر الكنافة لتصير ٣ دولار ونص",
+      "response": [{ "name": "set_price", "input": { "item": "الكنافة", "price_usd": 3.5 } }],
+      "expect": { "kind": "price", "payload": { "price_usd": 3.5 } }
+    },
+    {
+      "id": "mfx-03",
+      "lang": "fr",
+      "text": "on fait une promo de 15% sur les sandwichs cette semaine",
+      "response": [{ "name": "create_offer", "input": { "type": "percent", "percent": 15, "target": "sandwichs", "from": null, "to": null, "free_item": null, "min_quantity": null, "days": 7 } }],
+      "expect": { "kind": "offer_create", "payload": { "kind": "percent", "percent": 15, "days": 7 } }
+    },
+    {
+      "id": "mfx-04",
+      "lang": "en",
+      "text": "we won't open on the 20th, family wedding",
+      "response": [{ "name": "close_day", "input": { "date": "2026-10-20" } }],
+      "expect": { "kind": "closure", "payload": { "day": "2026-10-20" } }
+    },
+    {
+      "id": "mfx-05",
+      "lang": "arabizi",
+      "text": "ma ba3ad bade wasel aktar men 2 km",
+      "response": [{ "name": "set_radius", "input": { "km": 2 } }],
+      "expect": { "kind": "radius", "payload": { "km": 2 } }
+    },
+    {
+      "id": "mfx-06",
+      "lang": "ar",
+      "text": "حطلي اعلان بعشرين دولار للزباين القدام",
+      "response": [{ "name": "boost", "input": { "budget_usd": 20, "audience": "past_customers" } }],
+      "expect": { "kind": "boost_start", "payload": { "budget_usd": 20, "audience": "past_customers" } }
+    },
+    {
+      "id": "mfx-07",
+      "lang": "en",
+      "text": "how did we do this week?",
+      "response": [{ "name": "report", "input": { "period": "week" } }],
+      "expect": { "rpc": "merchant_report", "args": { "p_period": "week" } }
+    },
+    {
+      "id": "mfx-08",
+      "lang": "en",
+      "text": "can you call my accountant",
+      "response": [{ "name": "not_understood", "input": {} }],
+      "expect": { "help": true }
+    },
+    {
+      "id": "mfx-09",
+      "lang": "ar",
+      "text": "سكّر المحل ٨٠٠٠ دقيقة",
+      "response": [{ "name": "pause_orders", "input": { "minutes": 8000 } }],
+      "expect": { "help": true, "note": "out of range: dropped by the check, nothing proposed" }
+    }
+  ]
+}

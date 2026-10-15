@@ -1,0 +1,36 @@
+name: copilot-availability
+description: "Merchant copilot (DECISIONS §39.7, §38.3 'fryer off 15 min'): 'Grills off 15 min' is a card; the tap hides the section's items and the restore job brings back exactly those."
+personas:
+  merchant: { role: merchant }
+steps:
+  - note: the merchant writes it; nothing changes before the tap
+    say: { as: merchant, text: "Grills off 15 min" }
+    expect:
+      - { to: merchant, buttons: ["pyes:", "pno:"], text: "Grills" }
+    db:
+      - sql: >
+          select count(*) filter (where i.available) as items_on from public.menu_items i
+          join public.menu_sections s on s.id = i.section_id join public.vendors v on v.id = s.vendor_id
+          where v.slug = 'alo-test-grill' and s.name_en = 'Grills'
+        row: { items_on: 4 }
+  - note: the merchant confirms; the section's items are off with an end time
+    tap: { as: merchant, id_prefix: "pyes:" }
+    expect:
+      - { to: merchant, text_re: "come back on their own" }
+    db:
+      - sql: >
+          select count(*) filter (where i.available) as items_on from public.menu_items i
+          join public.menu_sections s on s.id = i.section_id join public.vendors v on v.id = s.vendor_id
+          where v.slug = 'alo-test-grill' and s.name_en = 'Grills'
+        row: { items_on: 0 }
+  - note: fifteen minutes later (the end time is moved back), the restore job brings them back
+    sql: >
+      update public.availability_holds h set until = now() - interval '1 minute'
+      from public.vendors v where v.id = h.vendor_id and v.slug = 'alo-test-grill' and h.restored_at is null;
+      select app_private.availability_tick();
+    db:
+      - sql: >
+          select count(*) filter (where i.available) as items_on from public.menu_items i
+          join public.menu_sections s on s.id = i.section_id join public.vendors v on v.id = s.vendor_id
+          where v.slug = 'alo-test-grill' and s.name_en = 'Grills'
+        row: { items_on: 4 }

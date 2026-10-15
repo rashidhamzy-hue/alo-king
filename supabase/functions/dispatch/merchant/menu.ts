@@ -13,6 +13,7 @@ import {
   type MenuModel,
 } from "../../_shared/menu-draft.ts";
 import { parseMerchantCommand } from "../../_shared/merchant-commands.ts";
+import { firstLink, htmlText } from "../../_shared/safe-fetch.ts";
 import {
   draftSectionCard,
   estimateCard,
@@ -40,6 +41,8 @@ export type MenuDeps = {
       }) => Promise<{ bytes: Uint8Array; mime: string } | null>)
     | null;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
+  /** Fetches a menu link (https only, capped; safe-fetch.ts); null when not wired. */
+  fetchLink?: ((url: string) => Promise<{ bytes: Uint8Array; mime: string } | null>) | null;
 };
 
 export type MenuInbound = {
@@ -82,7 +85,9 @@ export async function handleMerchantMenu(
   // ("change closing time to 11" stays a command).
   const textMenu =
     !!m.text && pricedLineCount(m.text) >= 2 && !parseMerchantCommand(m.text, new Date());
-  if (!tap && !isMenuCommand(m.text) && !(inImport && (m.media || textMenu))) return false;
+  // A link to the menu (a web page or a PDF, §39.7) during an import.
+  const link = inImport && !textMenu ? firstLink(m.text) : null;
+  if (!tap && !isMenuCommand(m.text) && !(inImport && (m.media || textMenu || link))) return false;
   const out: Record<string, unknown>[] = [];
   const reply = (p: Record<string, unknown>) => out.push(p);
   const text = (body: string) => ({
@@ -125,7 +130,35 @@ export async function handleMerchantMenu(
     const memberId = session.data?.member_id ?? editor.member_id;
     let draft: Draft | null = null;
     let source = "text";
-    if (m.text) {
+    if (link) {
+      const file = deps.fetchLink ? await deps.fetchLink(link) : null;
+      if (file && file.mime === "application/pdf") {
+        source = "pdf";
+        if (deps.menuModel && file.bytes.length <= 5_000_000) {
+          try {
+            draft = await extractMenu(deps.menuModel, [
+              {
+                type: "document",
+                source: { type: "base64", media_type: "application/pdf", data: b64(file.bytes) },
+              },
+            ]);
+          } catch (e) {
+            deps.log?.("menu model failed", { error: String(e).slice(0, 120) });
+          }
+        }
+      } else if (file) {
+        source = "link";
+        // The page's text through the same rules as pasted text (no model, §32.7).
+        draft = parseMenuText(htmlText(new TextDecoder().decode(file.bytes)));
+      } else {
+        reply(
+          text(
+            "ما قدرت إفتح هالرابط. ابعت صور المنيو أو PDF أو الصق المنيو كنص. / I couldn't open that link; send photos, a PDF or paste the menu as text.",
+          ),
+        );
+        draft = { sections: [], warnings: ["quota"] };
+      }
+    } else if (m.text) {
       draft = parseMenuText(m.text);
     } else if (
       m.media &&
@@ -192,7 +225,7 @@ export async function handleMerchantMenu(
         p_source: source,
         p_sections: draft.sections,
         p_warnings: draft.warnings,
-        p_model: source === "text" ? "rules" : "menu_model",
+        p_model: source === "text" || source === "link" ? "rules" : "menu_model",
         p_member_id: memberId,
       });
       if (r?.status === "not_allowed") reply(text("مش مسموح. / Not allowed."));
