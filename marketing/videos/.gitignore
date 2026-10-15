@@ -4,3 +4,4 @@ out/*/silent.mp4
 out/*/stems/
 remotion/out/
 __pycache__/
+out/*/x264*
