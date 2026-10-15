@@ -6,17 +6,19 @@
 -- Safe to run again.
 --
 -- What it does (Rasheed, 15 October: every shop on staging with a menu, growing as menus are added):
---   * the demo shops are every real seed shop whose menu has at least one priced item (27 on 15 October, Eatout included);
---     the menu is the seed draft, or the full harvested one for the shops demo-shops.json lists (Deli Dough, J.O'S);
+--   * the demo shops are every real seed shop whose menu has at least one priced item (29 on 15 October, Eatout included);
+--     the menu is the seed draft, or the full harvested one for the shops demo-shops.json lists;
 --   * writes the dated config row demo_shops (a new row only when the list changed);
 --   * makes each one claimed, orderable and active on staging, marked field_sources.demo, so it shows in search, the
 --     smart list menu and the catalogue (and syncs to the Meta catalogue once it is connected, #181);
---   * publishes its menu once (Deli Dough 350 items, J.O'S 52 from the harvest), LBP prices converted at the dated rate exactly as a merchant's approval does
+--   * publishes its menu once (the full harvested menus: Deli Dough, J.O'S and the 8 Rasheed found on 15 October), without
+--     alcohol or tobacco (Meta's catalogue refuses them), LBP prices converted at the dated rate exactly as a merchant's approval does
 --     (menu_draft_approve_section), without touching the draft; a changed source is published again while the shop has
 --     never had an order;
 --   * makes the owner's phone (app_private.owner_phones) its owner, kitchen WhatsApp and primary order channel, so every
 --     order card goes to Rasheed; the shop's own numbers stay on record and are never used (the outbound guard of
 --     20261015220000_demo_mode.sql reroutes anything else);
+--   * takes alcohol, tobacco and $0 items off a menu published before those rules (a shop without orders);
 --   * puts a shop that is no longer a demo shop back as an unclaimed, not orderable seed listing; a shop without a priced
 --     menu keeps its "Not on Alo King yet" listing (§39.3).
 
@@ -39,9 +41,22 @@ select set_config('app.demo_fixture', :'demo', false);
 \echo 'demo shops: no menu overrides given (-v demo_csv=...)'
 \endif
 
+-- Alcohol and tobacco: Meta's commerce policy bars them from a catalogue, and every demo shop syncs to the Meta
+-- catalogue, so a demo menu leaves them out (the seed draft keeps them; the merchant decides at claim). Whole words only:
+-- كبيرة ("large") is not بيرة, عرق سوس (liquorice) is not عرق.
+create or replace function pg_temp.demo_restricted(p_text text) returns boolean
+language sql immutable
+as $$
+  select coalesce(p_text, '') ~* ('(^|[^[:alpha:]])(alcohol|alcoholic|wines?|beers?|whiske?y|vodka|arak|gin|rum|tequila|champagne|prosecco|'
+    || 'liqueur|sake|almaza|heineken|ksara|kefraya|martini|sangria|j[aä]ger(meister)?|limoncello|black label|red label|btl|'
+    || 'shisha|hookahs?|narg(h)?il(e|eh)|tobacco|cigar(ette)?s?|vape|كحول|مشروبات روحية|نبيذ|بيرة|بيره|عرق|أرجيلة|نرجيلة|تبغ|سجائر)'
+    || '([^[:alpha:]]|$)')
+    and coalesce(p_text, '') !~* 'عرق سوس';
+$$;
+
 -- One shop's menu from draft sections: the conversion of app_private.menu_draft_approve_section (USD as is, LBP at the
--- dated rate, a price that rounds to $0 or an option price without a currency hides the item), plus the shop's own item
--- image (Fred's Food), kept for the demo-photos script.
+-- dated rate, a price that rounds to $0, a price of 0 or an option price without a currency hides the item), minus
+-- alcohol and tobacco, plus the shop's own item image, kept for the demo-photos script.
 create or replace function pg_temp.demo_publish(p_vendor uuid, p_sections jsonb) returns integer
 language plpgsql
 as $$
@@ -60,6 +75,9 @@ declare
   v_total int := 0;
 begin
   for v_s in select * from jsonb_array_elements(p_sections) loop
+    if pg_temp.demo_restricted(concat_ws(' ', v_s ->> 'name_en', v_s ->> 'name_ar', v_s ->> 'name_fr')) then
+      continue;
+    end if;
     v_sort := v_sort + 10;
     v_section := null;
     v_n := 0;
@@ -69,7 +87,8 @@ begin
         when v_item ->> 'currency' = 'USD' then round((v_item ->> 'price')::numeric, 2)
         when v_item ->> 'currency' = 'LBP' then round((v_item ->> 'price')::numeric / v_rate, 2)
         else null end;
-      if v_price = 0 and (v_item ->> 'price')::numeric > 0 then
+      if v_price <= 0 or pg_temp.demo_restricted(concat_ws(' ', v_item ->> 'name_en', v_item ->> 'name_ar', v_item ->> 'name_fr',
+                                                             v_item ->> 'description')) then
         v_price := null;
       end if;
       if v_price is null or coalesce(v_item ->> 'name_ar', v_item ->> 'name_en', v_item ->> 'name_fr') is null or exists (
@@ -175,7 +194,7 @@ begin
       and (phone_e164 in (select o.phone_e164 from app_private.owner_phones o) or app_private.is_sim_phone(phone_e164));
     update public.vendor_order_channels set enabled = false where vendor_id = v.id and enabled;
     update public.vendor_private set owner_mobile = null, kitchen_whatsapp = null where vendor_id = v.id;
-    delete from public.menu_item_photos where vendor_id = v.id and source in ('illustrative', 'website');
+    delete from public.menu_item_photos where vendor_id = v.id and source in ('illustrative', 'merchant_site');
     -- The menu the demo published from seed prices goes too (a claim must start from the merchant's confirmation, §15),
     -- unless the shop has orders.
     if not exists (select 1 from public.order_items oi join public.menu_items i on i.id = oi.item_id where i.vendor_id = v.id) then
@@ -221,6 +240,23 @@ begin
       end if;
     end if;
   end loop;
+  -- 4. A menu published before a rule above existed (alcohol and tobacco, $0) loses what the rule leaves out, unless the
+  -- shop has orders; a section left empty goes too.
+  delete from public.menu_items i
+  using demo_shops_now d
+  where i.vendor_id = d.vendor_id
+    and (i.price_usd <= 0
+         or pg_temp.demo_restricted(concat_ws(' ', i.name_en, i.name_ar, i.name_fr, i.description))
+         or exists (select 1 from public.menu_sections s where s.id = i.section_id
+                    and pg_temp.demo_restricted(concat_ws(' ', s.name_en, s.name_ar, s.name_fr))))
+    and not exists (select 1 from public.order_items oi join public.menu_items x on x.id = oi.item_id where x.vendor_id = d.vendor_id);
+  get diagnostics v_n = row_count;
+  if v_n > 0 then
+    raise notice 'demo shops: % alcohol, tobacco or $0 items taken off published demo menus', v_n;
+  end if;
+  delete from public.menu_sections s
+  using demo_shops_now d
+  where s.vendor_id = d.vendor_id and not exists (select 1 from public.menu_items i where i.section_id = s.id);
   raise notice 'demo shops: % on staging', jsonb_array_length(v_list);
   if v_owner is null then
     raise notice 'demo shops: no owner phone on this database; demo orders are not sent anywhere (see alo-test-grill.sql)';

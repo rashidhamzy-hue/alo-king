@@ -26,7 +26,13 @@ insert into public.menu_drafts (vendor_id, source, status, sections, source_url)
       "image_url": "https://example.test/kafta.jpg",
       "options": [{"name": "Choice", "min": 1, "max": 1, "choices": [{"name": "Kafta 1 kg"}, {"name": "Kabab 1 kg"}]}]},
      {"name_en": "Misread", "price": 100, "currency": "LBP", "confidence": 0.5},
-     {"name_en": "No price", "price": null, "currency": "USD", "confidence": 0.5}]}]', 'supabase/seed/shouf/source/03_shouf_digital_menus.json'),
+     {"name_en": "No price", "price": null, "currency": "USD", "confidence": 0.5},
+     {"name_en": "Zero", "price": 0, "currency": "USD", "confidence": 0.5},
+     {"name_en": "Mexican Beer", "price": 4, "currency": "USD", "confidence": 0.5},
+     {"name_ar": "خشبة نية كبيرة", "price": 20, "currency": "USD", "confidence": 0.5},
+     {"name_ar": "عرق سوس", "price": 1, "currency": "USD", "confidence": 0.5}]},
+   {"name_en": "Alcohol", "name_ar": "مشروبات روحية", "name_fr": null, "items": [
+     {"name_en": "Arak Jug", "price": 15, "currency": "USD", "confidence": 0.5}]}]', 'supabase/seed/shouf/source/03_shouf_digital_menus.json'),
   (:'d2', 'seed', 'draft', '[{"name_en": "Drinks", "name_ar": null, "name_fr": null, "items": [
      {"name_en": "Water", "price": 0.5, "currency": "USD", "confidence": 0.5}]}]', 'supabase/seed/shouf/source/03_shouf_digital_menus.json'),
   (:'d3', 'seed', 'draft', '[{"name_en": "Menu", "name_ar": null, "name_fr": null, "items": [
@@ -53,6 +59,11 @@ select tests.ok((select bool_and(claim_status = 'claimed' and orderable and fiel
   'demo shops are claimed and orderable on staging, marked demo');
 select tests.ok((select price_usd from public.menu_items where vendor_id = :'d1' and name_en = 'Kafta Plate') = round(895000 / public.usd_lbp_rate(), 2),
   'an LBP price is converted at the dated rate');
+select tests.ok(not exists (select 1 from public.menu_items where vendor_id = :'d1' and name_en in ('Zero', 'Mexican Beer', 'Arak Jug'))
+  and not exists (select 1 from public.menu_sections where vendor_id = :'d1' and name_en = 'Alcohol'),
+  'a demo menu publishes no $0 item and no alcohol or tobacco (Meta''s catalogue refuses them)');
+select tests.ok((select count(*) from public.menu_items where vendor_id = :'d1' and name_ar in ('خشبة نية كبيرة', 'عرق سوس')) = 2,
+  'whole words only: كبيرة (large) is not بيرة, عرق سوس is liquorice');
 select tests.ok(not exists (select 1 from public.menu_items where vendor_id = :'d1' and name_en in ('Misread', 'No price')),
   'a price that rounds to $0 or has no price is not published');
 select tests.ok((select count(*) = 2 and bool_and(o.price_delta_usd = 0) from public.menu_options o join public.menu_option_groups g on g.id = o.group_id
@@ -156,7 +167,7 @@ select tests.ok((select bool_and(p ->> 'photo' is null) from jsonb_array_element
 select tests.ok(public.menu_item_photo_set((select i.id from public.menu_items i where i.vendor_id = :'tv' limit 1), 'illustrative',
   'illustrative/' || :'tv' || '/' || gen_random_uuid() || '.png', null) ->> 'status' = 'not_demo', 'illustrative photos are for demo shops only');
 select tests.throws($$insert into public.menu_item_photos (item_id, vendor_id, storage_path, source)
-  select i.id, i.vendor_id, 'website/' || i.vendor_id || '/' || i.id || '.png', 'illustrative' from public.menu_items i limit 1$$,
+  select i.id, i.vendor_id, 'merchant_site/' || i.vendor_id || '/' || i.id || '.png', 'illustrative' from public.menu_items i limit 1$$,
   'menu_item_photos_path_source', 'a photo''s path matches its source');
 
 -- Leaving the list, and a claim, remove illustrative photos --------------------------------------------------------------------------

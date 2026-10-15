@@ -34,30 +34,48 @@ const { vendors, exclusions, phoneIssues } = normalizeShouf(
   owner ? ownerDuplicates(owner) : new Map(),
   owner ? ownerPhones(owner) : new Map(),
 );
-const curated = [
-  ...shoufDrafts(JSON.parse(readFileSync(join(src, "03_shouf_digital_menus.json"), "utf8"))),
-  ...(owner ? ownerDrafts(owner) : []),
-];
+const fromMenuFile = shoufDrafts(
+  JSON.parse(readFileSync(join(src, "03_shouf_digital_menus.json"), "utf8")),
+);
+const curated = [...fromMenuFile, ...(owner ? ownerDrafts(owner) : [])];
 // Harvested menus (§39.4 sources 2-3, supabase/seed/shouf/harvest/, next to source/): a link's menu first, then one
-// read from the seed photos; never for a merchant that already has a curated draft (03, 04), and never for a listing
-// the owner file marks as a duplicate.
+// read from the seed photos; never for a listing the owner file marks as a duplicate. A merchant with a curated draft
+// (03, 04) keeps it, except that a full online menu replaces the short one (Rasheed, 15 October): a draft from the
+// menu file (03) gives way to a menu read from a link (05) with more priced items. The owner's own menu photos (04)
+// always win (§39.4 source 1).
 const harvestDir = join(src, "..", "harvest");
-const harvested = [
-  ["05_harvested_menus.json", "supabase/seed/shouf/harvest/05_harvested_menus.json"],
-  ["06_photo_menus.json", "supabase/seed/shouf/harvest/06_photo_menus.json"],
-].flatMap(([f, repoPath]) =>
+const fromFile = (f: string, repoPath: string) =>
   existsSync(join(harvestDir, f))
     ? harvestedDrafts(JSON.parse(readFileSync(join(harvestDir, f), "utf8")), repoPath)
-    : [],
+    : [];
+const fromLinks = fromFile(
+  "05_harvested_menus.json",
+  "supabase/seed/shouf/harvest/05_harvested_menus.json",
 );
+const harvested = [
+  ...fromLinks,
+  ...fromFile("06_photo_menus.json", "supabase/seed/shouf/harvest/06_photo_menus.json"),
+];
 const drafts = [...curated];
 const knownIds = new Set(vendors.map((v) => v.place_id));
 for (const h of harvested) {
   // A harvested menu for a place id no longer in the file is skipped with a note, never a failed load.
   if (!knownIds.has(h.place_id))
     console.error(`harvested menu for an unknown place_id skipped: ${h.vendor_name}`);
-  else if (!drafts.some((d) => d.place_id === h.place_id) && !exclusionsHave(h.place_id))
-    drafts.push(h);
+  else if (exclusionsHave(h.place_id)) continue;
+  else {
+    const k = drafts.findIndex((d) => d.place_id === h.place_id);
+    if (k < 0) drafts.push(h);
+    else if (
+      fromMenuFile.includes(drafts[k]!) &&
+      fromLinks.includes(h) &&
+      pricedCount(h) > pricedCount(drafts[k]!)
+    )
+      drafts[k] = h;
+  }
+}
+function pricedCount(d: { sections: { items: { price?: number | null }[] }[] }) {
+  return d.sections.reduce((n, s) => n + s.items.filter((i) => (i.price ?? 0) > 0).length, 0);
 }
 function exclusionsHave(placeId: string) {
   return exclusions.some((e) => e.place_id === placeId);
@@ -119,7 +137,7 @@ writeFileSync(
     `- seed phones: ${vendors.filter((v) => v.phone_seed).length}; WhatsApp candidates (mobile): ${vendors.filter((v) => v.phone_seed_mobile).length}; rows where the file's flag disagrees with the number: ${whatsappDisagreements(rows)}`,
     `- localities backfilled from the address: ${vendors.filter((v) => v.import_labels.locality_backfilled_from !== undefined).length}; no village in the file (nearest village at load): ${vendors.filter((v) => !v.village).length}`,
     `- draft menus: ${drafts.length} (${drafts.filter((d) => d.kind === "supermarket").length} supermarket catalogues), ${items.length} items, ${items.filter((i) => i.price === null).length} without a price (hidden)`,
-    `- harvested menus (§39.4 sources 2-3): ${drafts.filter((d) => d.source_url.startsWith("http") || d.source_url.includes("/harvest/")).length} loaded, ${harvested.length - drafts.filter((d) => harvested.includes(d)).length} skipped (a curated draft exists or the listing is a duplicate)`,
+    `- harvested menus (§39.4 sources 2-3): ${drafts.filter((d) => d.source_url.startsWith("http") || d.source_url.includes("/harvest/")).length} loaded, ${drafts.filter((d) => harvested.includes(d) && curated.some((c) => c.place_id === d.place_id)).length} of them replacing a shorter draft from the menu file, ${harvested.length - drafts.filter((d) => harvested.includes(d)).length} skipped (a bigger curated draft exists or the listing is a duplicate)`,
     "",
     "## Villages",
     ...count(vendors, (v) => v.village ?? "(nearest at load)").map(([k, n]) => `- ${k}: ${n}`),

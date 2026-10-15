@@ -56,7 +56,7 @@ reset role;
 select tests.ok((select daily_remaining = 20 and stock_tracked from public.menu_items where id = '58000000-0000-0000-0000-000000000004'), 'stock set to 20');
 update public.menu_items set daily_remaining = 7, daily_date = current_date - 1 where id = '58000000-0000-0000-0000-000000000004';
 select app_private.stock_carry_over();
-select tests.ok((select daily_remaining = 7 and daily_quantity = 7 and daily_date = (now() at time zone 'Asia/Beirut')::date
+select tests.ok((select daily_remaining = 7 and daily_quantity = 7 and daily_date = current_date
                  from public.menu_items where id = '58000000-0000-0000-0000-000000000004'), 'what is left carries over to the next day');
 set local role service_role;
 select tests.throws(format($$select public.merchant_proposal_create(%L, 'item_add', '{"name": "Wrap", "price_usd": 4}', 'rules', %L)$$, :'va', :'cashier_a'),

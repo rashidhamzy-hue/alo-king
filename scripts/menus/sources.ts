@@ -15,6 +15,8 @@ export type Adapter =
   | "scangow"
   | "menutigr"
   | "qr_order"
+  | "oddmenu"
+  | "foodbooking"
   | "gdrive_pdf"
   | "pdf"
   | "html";
@@ -47,6 +49,9 @@ const PLATFORMS: [RegExp, Adapter][] = [
   [/(^|\.)scangow\.[a-z]+$/, "scangow"],
   [/(^|\.)menutigr\.com$/, "menutigr"],
   [/(^|\.)qr-order\.online$/, "qr_order"],
+  [/(^|\.)oddmenu\.com$/, "oddmenu"],
+  // GloriaFood's ordering pages (foodbooking.com/ordering/restaurant/menu?restaurant_uid=…).
+  [/(^|\.)(foodbooking|gloriafood)\.com$/, "foodbooking"],
   [/^(drive|docs)\.google\.com$/, "gdrive_pdf"],
 ];
 

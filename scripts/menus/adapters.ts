@@ -11,6 +11,7 @@
 // schema.org Menu JSON-LD or a menu as text.
 import {
   parseMenuText,
+  parsePrice,
   validateDraft,
   type Draft,
 } from "../../supabase/functions/_shared/menu-draft.ts";
@@ -187,10 +188,116 @@ type RawItem = {
   name_fr?: string;
   description?: string;
   price_text: string | null;
+  image?: string;
+  options?: unknown[];
 };
 
+const IMAGE_KEYS = [
+  "image",
+  "image_url",
+  "imageUrl",
+  "imageURL",
+  "img",
+  "photo",
+  "picture_hi_res",
+  "picture",
+  "thumbnail",
+  "thumb",
+  "image_path",
+  "imagePath",
+  "photo_url",
+  "photoUrl",
+  "Image",
+  "ImageUrl",
+  "cover",
+];
+const GROUP_KEYS = [
+  "groups",
+  "modifier_groups",
+  "modifierGroups",
+  "option_groups",
+  "optionGroups",
+  "modifiers",
+  "addons",
+  "add_ons",
+  "extras",
+];
+const CHOICE_KEYS = ["options", "items", "choices", "values", "modifiers", "children"];
+const SIZE_KEYS = ["sizes", "variants", "variations"];
+
+/** An item's picture: a URL string, {url|src}, or the first of a list. */
+function imageOf(o: J, base?: string): string | undefined {
+  for (const k of IMAGE_KEYS) {
+    let v = o[k];
+    if (Array.isArray(v)) v = v[0];
+    if (isObj(v)) v = v.url ?? v.src ?? v.original ?? v.large ?? v.medium;
+    // a cross-origin import would be resolved relative to the API host
+    const u = typeof v === "string" ? httpsImage(v, base) : null;
+    if (u) return u;
+  }
+  return undefined;
+}
+
+/**
+ * Choices from a platform's JSON (GloriaFood groups/sizes and the like): groups of named choices with a price each, and
+ * sizes priced in full, which become a Size choice adding the difference to the cheapest. Returns the cheapest size
+ * when there are sizes, so the item's price is what it costs before a choice.
+ */
+function optionsOf(
+  o: J,
+  cur: "USD" | "LBP" | null,
+): { options: unknown[]; basePrice: number | null } {
+  const num = (v: unknown) => (typeof v === "number" ? v : Number(str(v)));
+  const text = (n: number) => `${Number(n.toFixed(2))}${cur ? ` ${cur}` : ""}`;
+  const options: unknown[] = [];
+  let basePrice: number | null = null;
+  const sizes = SIZE_KEYS.map((k) => o[k]).find((v) => Array.isArray(v) && v.length) as
+    unknown[] | undefined;
+  if (sizes) {
+    const rows = sizes
+      .filter(isObj)
+      .map((z) => ({ name: str(pick(z, NAME_KEYS)), price: num(pick(z, PRICE_KEYS)) }))
+      .filter((z) => z.name && Number.isFinite(z.price) && z.price >= 0);
+    if (rows.length >= 2) {
+      basePrice = Math.min(...rows.map((z) => z.price));
+      options.push({
+        name: "Size",
+        min: 1,
+        max: 1,
+        choices: rows.map((z) => ({ name: z.name, price_text: text(z.price - basePrice!) })),
+      });
+    }
+  }
+  for (const k of GROUP_KEYS) {
+    const groups = o[k];
+    if (!Array.isArray(groups)) continue;
+    for (const g of groups.filter(isObj)) {
+      const list = CHOICE_KEYS.map((c) => g[c]).find(Array.isArray) as unknown[] | undefined;
+      if (!list?.length) continue;
+      const choices = list
+        .filter(isObj)
+        .map((c) => {
+          const p = num(pick(c, PRICE_KEYS));
+          return { name: str(pick(c, NAME_KEYS)), price_text: Number.isFinite(p) ? text(p) : null };
+        })
+        .filter((c) => c.name);
+      if (!choices.length) continue;
+      const min = num(g.force_min ?? g.min ?? g.min_select ?? g.minimum ?? (g.required ? 1 : 0));
+      const max = num(g.force_max ?? g.max ?? g.max_select ?? g.maximum);
+      options.push({
+        name: str(pick(g, NAME_KEYS)) || "Options",
+        min: Number.isFinite(min) ? min : 0,
+        max: Number.isFinite(max) && max > 0 ? max : choices.length,
+        choices,
+      });
+    }
+    break;
+  }
+  return { options, basePrice };
+}
+
 /** An object reads as a menu item when it has a name and a price-ish key (even a null price). */
-function asItem(o: J, docCurrency: "USD" | "LBP" | null): RawItem | null {
+function asItem(o: J, docCurrency: "USD" | "LBP" | null, base?: string): RawItem | null {
   // {"name": {"nameEnglish": …, "nameArabic": …}} carries both languages.
   const t = NAME_KEYS.map((k) => localized(o[k])).find((x) => x.en || x.ar || x.fr) ?? {};
   const name = t.en || t.ar || t.fr ? undefined : pick(o, NAME_KEYS);
@@ -202,6 +309,9 @@ function asItem(o: J, docCurrency: "USD" | "LBP" | null): RawItem | null {
   if (!hasPriceKey) return null;
   const p = priceOf(o);
   const currency = p.currency ?? docCurrency;
+  const opt = optionsOf(o, currency);
+  if (opt.basePrice !== null && (p.text === null || !(Number(p.text) > 0)))
+    p.text = String(opt.basePrice);
   // A number with a currency stated by the page or the item becomes "9 USD" / "150000 LBP"; otherwise the number
   // alone (validateDraft keeps it and leaves the currency for the merchant).
   const price_text =
@@ -224,6 +334,9 @@ function asItem(o: J, docCurrency: "USD" | "LBP" | null): RawItem | null {
   else if (name && !item[ARABIC.test(String(name)) ? "name_ar" : "name_en"])
     item[ARABIC.test(String(name)) ? "name_ar" : "name_en"] = String(name);
   if (typeof desc === "string" && desc !== name) item.description = desc;
+  const image = imageOf(o, base);
+  if (image) item.image = image;
+  if (opt.options.length) item.options = opt.options;
   return item;
 }
 
@@ -249,16 +362,24 @@ function docCurrencyOf(root: unknown): "USD" | "LBP" | null {
  * Any JSON → sections of items. A list where at least two entries read as items is a section, named after the
  * object holding the list (its name or title), else after the list's key. Lists of sections nest naturally.
  */
-export function fromJson(root: unknown): Draft {
+export function fromJson(root: unknown, base?: string): Draft {
   const docCurrency = docCurrencyOf(root);
   const sections: { names: { name_en?: string; name_ar?: string }; items: RawItem[] }[] = [];
   const seenLists = new Set<unknown>();
-  const walk = (v: unknown, holder: J | null, key: string | null, depth: number) => {
+  // The currency stated on the object holding the menu (GloriaFood: restaurant.menu.currency) counts for the items
+  // under it, even when the document also names another one (the restaurant's country currency).
+  const walk = (
+    v: unknown,
+    holder: J | null,
+    key: string | null,
+    depth: number,
+    cur: "USD" | "LBP" | null = null,
+  ) => {
     if (depth > 14) return;
     if (Array.isArray(v)) {
       if (seenLists.has(v)) return;
       seenLists.add(v);
-      const items = v.filter(isObj).map((o) => asItem(o, docCurrency));
+      const items = v.filter(isObj).map((o) => asItem(o, cur ?? docCurrency, base));
       const found = items.filter((x): x is RawItem => !!x);
       // A list of sections whose entries also carry a price-ish key would read as items; prefer the nested lists.
       const nested = v.some(
@@ -287,9 +408,10 @@ export function fromJson(root: unknown): Draft {
         });
         return;
       }
-      v.forEach((x) => walk(x, holder, key, depth + 1));
+      v.forEach((x) => walk(x, holder, key, depth + 1, cur));
     } else if (isObj(v)) {
-      for (const [k, x] of Object.entries(v)) walk(x, v, k, depth + 1);
+      const own = currencyWord(pick(v, CURRENCY_KEYS));
+      for (const [k, x] of Object.entries(v)) walk(x, v, k, depth + 1, own ?? cur);
     }
   };
   walk(root, null, null, 0);
@@ -301,12 +423,28 @@ export function fromJson(root: unknown): Draft {
     );
     if (!uniq.has(sig)) uniq.set(sig, s);
   }
-  return validateDraft({
-    sections: [...uniq.values()].map((s) => ({
-      ...s.names,
-      items: s.items.map(({ category: _c, ...i }) => i),
-    })),
-  });
+  const kept = [...uniq.values()];
+  const draft = tidy(
+    validateDraft(
+      {
+        sections: kept.map((s) => ({
+          ...s.names,
+          items: s.items.map(({ category: _c, image: _i, ...i }) => i),
+        })),
+      },
+      600,
+    ),
+  );
+  return attachImages(
+    draft,
+    kept.flatMap((s) =>
+      s.items.map((i) => ({
+        names: [i.name, i.name_en, i.name_ar, i.name_fr].filter((n): n is string => !!n),
+        image: i.image ?? null,
+        section: s.names.name_en ?? s.names.name_ar ?? "",
+      })),
+    ),
+  );
 }
 
 /** schema.org Menu / MenuSection / MenuItem in <script type="application/ld+json"> blocks. */
@@ -614,4 +752,304 @@ export function jsonFromSite(jsonUrl: string, pageUrl: string): boolean {
   if (site(j.hostname) === site(p.hostname) || PLATFORM_HOSTS.test(j.hostname)) return true;
   const key = site(p.hostname).split(".")[0];
   return key.length >= 5 && j.hostname.split(".")[0].includes(key);
+}
+
+// ---- Pictures and item cards (Rasheed's 8 menus, 15 October) ---------------------------------------------------------
+
+const norm = (s: unknown) =>
+  String(s ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100);
+
+export const GOOGLE_HOST =
+  /(^|\.)(googleusercontent\.com|ggpht\.com|gstatic\.com|googleapis\.com|google\.[a-z.]+|goo\.gl)$/i;
+
+/** A picture an item may carry: https only, never a data URI. */
+export function httpsImage(v: unknown, base?: string): string | null {
+  const raw = typeof v === "string" ? v.trim() : "";
+  if (!raw || raw.startsWith("data:") || raw.length > 480) return null;
+  try {
+    const u = new URL(raw, base);
+    // A shop's logo, an icon folder or a placeholder is not the item's picture ("classic-icon.png", West Diner's Classic
+    // Icon burger, is); a Google-hosted picture never is (DECISIONS §38.1).
+    if (
+      /(^|\/)(logos?|icons?|favicons?|placeholders?)(\/|[-_.])|[-_](logo|favicon)[-_.]|restorants_icon|no[-_]?image|default[-_.]/i.test(
+        u.pathname,
+      ) ||
+      GOOGLE_HOST.test(u.hostname)
+    )
+      return null;
+    return u.protocol === "https:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * validateDraft keeps no pictures (the merchant import has none): each item gets back the picture its raw item had,
+ * matched by section and name. A picture shared by three or more items is a logo or a placeholder, not the item's.
+ */
+export function attachImages(
+  draft: Draft,
+  raw: { names: string[]; image: string | null; section: string }[],
+): Draft {
+  // Counted by item, not by row: the sizes of one item ("Oreo Shake s / m / l") share its picture.
+  const owners = new Map<string, Set<string>>();
+  for (const r of raw)
+    if (r.image) owners.set(r.image, (owners.get(r.image) ?? new Set()).add(norm(r.names.at(-1))));
+  const uses = new Map([...owners].map(([k, v]) => [k, v.size]));
+  const bySection = new Map<string, string>();
+  const byName = new Map<string, string>();
+  for (const r of raw) {
+    if (!r.image || (uses.get(r.image) ?? 0) > 2) continue;
+    for (const n of r.names) {
+      if (!bySection.has(`${norm(r.section)}|${norm(n)}`))
+        bySection.set(`${norm(r.section)}|${norm(n)}`, r.image);
+      if (!byName.has(norm(n))) byName.set(norm(n), r.image);
+    }
+  }
+  return {
+    ...draft,
+    sections: draft.sections.map((s) => {
+      const sec = norm(s.name_en ?? s.name_ar ?? s.name_fr ?? "");
+      return {
+        ...s,
+        items: s.items.map((i) => {
+          const names = [i.name_en, i.name_ar, i.name_fr].filter(Boolean);
+          const img =
+            names.map((n) => bySection.get(`${sec}|${norm(n)}`)).find(Boolean) ??
+            names.map((n) => byName.get(norm(n))).find(Boolean);
+          return img ? { ...i, image_url: img } : i;
+        }),
+      };
+    }),
+  };
+}
+
+// A menu page's own cart or order widget, not an item.
+const CART =
+  /^(total|sub-?total|your (order|cart|bag)|cart|bag|\d+ items?|checkout|delivery fee)\b/i;
+
+/**
+ * The last pass over a harvested draft: a price of 0 is no price (a page shows 0 for "ask us" or for an item priced
+ * by its choices), an amount in LBP under 1,000 is not a Lebanese price (a digit read from next to "L.L."), and the
+ * page's cart widget ("Total", "Your Order", "0 ITEMS") is not an item.
+ */
+export function tidy(d: Draft): Draft {
+  return {
+    ...d,
+    sections: d.sections
+      .map((s) => ({
+        ...s,
+        items: s.items
+          .filter((i) => !CART.test(String(i.name_en ?? i.name_ar ?? i.name_fr ?? "")))
+          .map((i) =>
+            i.price !== null && (i.price <= 0 || (i.currency === "LBP" && i.price < 1000))
+              ? { ...i, price: null, currency: null }
+              : i,
+          ),
+      }))
+      .filter((s) => s.items.length),
+  };
+}
+
+/** One priced block of a menu page (scripts/menus/harvest.ts extractCards). */
+export type Card = { section: string | null; text: string; price: string; image: string | null };
+
+const BADGE =
+  /^(new|signature|fan fave|fan favou?rite|best ?seller|popular|spicy|hot|chef'?s (choice|special)|must try|vegan|vegetarian|veg|limited|special|recommended|جديد|الأكثر مبيعا)!?$/i;
+const ACTION =
+  /^(view on .*|view|add|add to (cart|order|basket)|order( now)?|\+|-|أضف|اطلب.*|customi[sz]e|select|choose|details)$/i;
+const SIZE_WORD =
+  /^(.*\S)\s+(s|m|l|xl|small|medium|large|x-?large|regular|single|double|mini|family)$/i;
+
+/**
+ * Item cards read from a rendered menu page (Thrubits/Restbits, plain sites such as West Diner): the name is the first
+ * line before the price that is not a badge ("NEW", "Signature"), the rest is the description; buttons are dropped. A
+ * page whose prices mostly state a currency keeps only those blocks (a rating "5.0" is not a price). Items listed twice
+ * (a "featured" strip and the full menu) count once, in the bigger section. "Milk Shake s / m / l" priced separately
+ * becomes one item with a Size choice, each size adding its difference, as printed.
+ */
+export function fromCards(cards: Card[]): Draft {
+  const stated = (c: Card) =>
+    parsePrice(c.price).currency !== null ||
+    c.text.split(/\n/).some((l) => l.trim().length <= 6 && currencyWord(l.trim()));
+  const withCurrency = cards.filter(stated).length;
+  const strict = withCurrency >= cards.length * 0.6;
+  type Row = {
+    section: string;
+    name: string;
+    description: string;
+    price: string;
+    image: string | null;
+  };
+  const rows: Row[] = [];
+  for (let c of cards) {
+    // "3.5" with "$" in its own element next to it (oddmenu): the stated currency belongs to the price.
+    const unit = c.text
+      .split(/\n/)
+      .map((l) => l.trim())
+      .find((l) => l.length <= 6 && currencyWord(l));
+    if (parsePrice(c.price).currency === null && unit)
+      c = {
+        ...c,
+        price: `${c.price} ${currencyWord(unit)}`,
+        text: c.text.replace(c.price, `${c.price} ${currencyWord(unit)}`),
+      };
+    const p = parsePrice(c.price);
+    if (p.price === null || (strict && p.currency === null)) continue;
+    const lines = c.text
+      .split(/\n/)
+      .map((l) => l.replace(/\s+/g, " ").trim())
+      .filter((l) => l && !ACTION.test(l) && !(l.length <= 6 && currencyWord(l)));
+    if (lines.length > 8) continue;
+    const k = lines.findIndex((l) => l.includes(c.price));
+    const priceLine = k >= 0 ? lines[k]! : "";
+    const rest = priceLine.replace(c.price, "").trim();
+    let before = k >= 0 ? lines.slice(0, k) : lines.filter((l) => !l.includes(c.price));
+    const after = k >= 0 ? lines.slice(k + 1) : [];
+    if (rest) before = [...before, rest];
+    const named = before.filter((l) => !BADGE.test(l));
+    const name = (named[0] ?? before[0] ?? "").replace(/[\s:–-]+$/, "");
+    if (
+      !name ||
+      !/\p{L}/u.test(name) ||
+      name.length > 120 ||
+      PHONE.test(c.text.replace(c.price, ""))
+    )
+      continue;
+    rows.push({
+      section: (c.section ?? "").trim() || "Menu",
+      name,
+      description: [...named.slice(1), ...after].join(". ").slice(0, 500),
+      price: c.price,
+      image: httpsImage(c.image),
+    });
+  }
+  // Listed twice: the occurrence in the section with the most items wins.
+  const size = new Map<string, number>();
+  for (const r of rows) size.set(r.section, (size.get(r.section) ?? 0) + 1);
+  const best = new Map<string, Row>();
+  for (const r of rows) {
+    const key = `${norm(r.name)}|${parsePrice(r.price).price}`;
+    const b = best.get(key);
+    if (!b || (size.get(r.section) ?? 0) > (size.get(b.section) ?? 0)) best.set(key, r);
+  }
+  const kept = rows.filter((r) => best.get(`${norm(r.name)}|${parsePrice(r.price).price}`) === r);
+  const order: string[] = [];
+  const bySection = new Map<string, Row[]>();
+  for (const r of kept) {
+    if (!bySection.has(r.section)) {
+      order.push(r.section);
+      bySection.set(r.section, []);
+    }
+    bySection.get(r.section)!.push(r);
+  }
+  const fmt = (n: number, cur: string | null) => `${Number(n.toFixed(2))}${cur ? ` ${cur}` : ""}`;
+  const sections = order.map((sec) => {
+    const list = bySection.get(sec)!;
+    const items: unknown[] = [];
+    const done = new Set<Row>();
+    for (const r of list) {
+      if (done.has(r)) continue;
+      const m = r.name.match(SIZE_WORD);
+      const cur = parsePrice(r.price).currency;
+      const siblings = m
+        ? list.filter((x) => {
+            const mx = x.name.match(SIZE_WORD);
+            return (
+              mx &&
+              norm(mx[1]) === norm(m[1]) &&
+              parsePrice(x.price).currency === cur &&
+              !done.has(x)
+            );
+          })
+        : [];
+      if (m && siblings.length >= 2) {
+        const prices = siblings.map((x) => parsePrice(x.price).price as number);
+        const base = Math.min(...prices);
+        siblings.forEach((x) => done.add(x));
+        items.push({
+          name: m[1],
+          ...(r.description ? { description: r.description } : {}),
+          price_text: fmt(base, cur),
+          confidence: 0.9,
+          options: [
+            {
+              name: "Size",
+              min: 1,
+              max: 1,
+              choices: siblings.map((x, i) => ({
+                name: x.name.match(SIZE_WORD)![2],
+                price_text: fmt(prices[i]! - base, cur),
+              })),
+            },
+          ],
+        });
+        continue;
+      }
+      done.add(r);
+      items.push({
+        name: r.name,
+        ...(r.description ? { description: r.description } : {}),
+        price_text: r.price,
+        confidence: 0.9,
+      });
+    }
+    return { [ARABIC.test(sec) ? "name_ar" : "name_en"]: sec.slice(0, 80), items };
+  });
+  const draft = tidy(validateDraft({ sections }, 600));
+  return attachImages(
+    draft,
+    kept.map((r) => ({
+      names: [r.name, r.name.match(SIZE_WORD)?.[1] ?? r.name],
+      image: r.image,
+      section: r.section.slice(0, 80),
+    })),
+  );
+}
+
+/**
+ * oddmenu.com (api.oddmenu.com/place/<locale>/<slug>): the place's currency, its categories and every item, each with a
+ * name and description in info (one locale per answer), a price as a string, and a picture. Hidden items are left out.
+ */
+export function fromOddmenu(root: unknown, base?: string): Draft {
+  const r = isObj(root) ? root : {};
+  const place = isObj(r.place) ? r.place : {};
+  const cur = currencyWord(place.currency) ?? currencyWord(place.currencySymbol);
+  const info = (o: J) => {
+    const i = Array.isArray(o.info) ? o.info.find(isObj) : o.info;
+    return isObj(i) ? i : {};
+  };
+  const cats = (Array.isArray(r.menuCategories) ? r.menuCategories.filter(isObj) : [])
+    .filter((c) => c.isVisible !== false)
+    .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0));
+  const items = (Array.isArray(r.menuItems) ? r.menuItems.filter(isObj) : []).filter(
+    (i) => i.isVisible !== false,
+  );
+  const raw: { names: string[]; image: string | null; section: string }[] = [];
+  const sections = cats.map((c) => {
+    const cname = str(info(c).name) || "Menu";
+    const list = items
+      .filter((i) => i.menuCategoryId === c.id)
+      .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))
+      .map((i) => {
+        const name = str(info(i).name);
+        const price = str(i.price);
+        raw.push({ names: [name], image: httpsImage(i.image, base), section: cname.slice(0, 80) });
+        return {
+          name,
+          ...(str(info(i).description) ? { description: str(info(i).description) } : {}),
+          price_text: price ? (cur && !/[^\d.,\s]/.test(price) ? `${price} ${cur}` : price) : null,
+          confidence: 0.9,
+        };
+      });
+    return {
+      [ARABIC.test(cname) && !/[a-z]{3}/i.test(cname) ? "name_ar" : "name_en"]: cname.slice(0, 80),
+      items: list,
+    };
+  });
+  return attachImages(tidy(validateDraft({ sections }, 600)), raw);
 }

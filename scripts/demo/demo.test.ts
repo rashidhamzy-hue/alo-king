@@ -7,7 +7,7 @@ import { categoryOf, illustrationSvg, lines } from "./illustration.ts";
 
 // DECISIONS §39.12, demo mode on staging.
 describe("demo shops' full harvested menus", () => {
-  it("are Deli Dough (350 items) and J.O'S (52 items)", () => {
+  it("are Deli Dough, J.O'S and the 8 menus Rasheed found", () => {
     const overrides = JSON.parse(readFileSync(DEMO_SHOPS, "utf8")).full_harvested_menu;
     const harvested = harvestedDrafts(
       JSON.parse(readFileSync(HARVEST_MENUS, "utf8")),
@@ -19,6 +19,14 @@ describe("demo shops' full harvested menus", () => {
     expect(rows.map((r) => [r[1], r[2], count(r)])).toEqual([
       ["Deli Dough", "harvest", 350],
       ["J.O'S House of Subs", "harvest", 52],
+      ["Safa Chicken", "harvest", 140],
+      ["Tarabish", "harvest", 77],
+      ["ROUTE 66", "harvest", 72],
+      ["BUN BROS", "harvest", 42],
+      ["Un basilico", "harvest", 135],
+      ["Verona Resto", "harvest", 14],
+      ["West Diner", "harvest", 48],
+      ["Sushi Bell", "harvest", 196],
     ]);
   });
   it("fail loudly when a listed shop has no harvested menu", () => {
@@ -76,7 +84,10 @@ describe("the photo plan per item", () => {
   it("prefers the shop's own website image (Fred's Food), at 800 px", () => {
     const url =
       "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/Fries.jpg?resize=300%2C300&ssl=1";
-    expect(plan({ ...item, image_url: url })!.kind).toBe("website");
+    expect(plan({ ...item, image_url: url })!.kind).toBe("merchant_site");
     expect(sizedImageUrl(url)).toContain("resize=800%2C800");
+    expect(plan({ ...item, image_url: "https://lh3.googleusercontent.com/p/x=s800" })!.kind).toBe(
+      "illustrative",
+    );
   });
 });

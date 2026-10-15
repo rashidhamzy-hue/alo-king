@@ -31,11 +31,13 @@ select tests.ok(not exists (select 1 from public.places) or not exists (
     and not (v.town_id = any (array(select jsonb_array_elements_text(public.config_value('pilot_merchant_place_ids')))))),
   'every merchant sits in one of the 12 pilot villages (when places are loaded)');
 select tests.ok(jsonb_array_length(public.config_value('pilot_merchant_place_ids')) = 12, 'there are 12 merchant villages');
-select tests.ok((select count(*) from public.menu_drafts where source = 'seed' and status = 'draft') = 27,
-  '19 menus, 2 supermarket catalogues, the 3 owner menus (Eatout added) and 3 harvested menus (§39.4) are draft menus');
+select tests.ok((select count(*) from public.menu_drafts where source = 'seed' and status = 'draft') = 29,
+  '19 menus, 2 supermarket catalogues, the 3 owner menus (Eatout added) and 5 more harvested menus (§39.4) are draft menus');
 select tests.ok((select array_agg(v.name_en order by v.name_en) from public.menu_drafts d join public.vendors v on v.id = d.vendor_id
-    where d.source = 'seed' and d.source_url ~ '^https://') = array['Al Kooz Cafe', 'Batloun Dairy Stores', 'INDINER time'],
-  'the harvested drafts keep their page as the source; Deli Dough and J.O''s keep their curated draft');
+    where d.source = 'seed' and d.source_url ~ '^https?://') = array['Al Kooz Cafe', 'Batloun Dairy Stores', 'BUN BROS', 'Deli Dough',
+    'INDINER time', 'J.O''S House of Subs, Inc.', 'ROUTE 66', 'Safa Chicken', 'Sushi Bell', 'Tarabish', 'Un basilico', 'Verona Resto',
+    'West Diner'],
+  'the harvested drafts keep their page as the source; a full online menu replaces a shorter draft from the menu file (Rasheed, 15 October)');
 select tests.ok(not exists (select 1 from public.menu_drafts where source = 'seed' and (source_url is null or captured_at is null)),
   'every seed draft says where it came from and when');
 select tests.ok((select sum(jsonb_array_length(s -> 'items')) from public.menu_drafts d join public.vendors v on v.id = d.vendor_id,
@@ -47,8 +49,9 @@ select tests.ok((select bool_and(i ->> 'currency' = 'LBP') from public.menu_draf
   jsonb_array_elements(d.sections) s, jsonb_array_elements(s -> 'items') i where v.place_id = 'ChIJJ8-7quchHxURgn5sxhONNLI'),
   'SEVEN Burgers'' prices stay in LBP until the merchant approves a section');
 select tests.ok((select count(*) from public.menu_drafts d, jsonb_array_elements(d.sections) s, jsonb_array_elements(s -> 'items') i
-  where d.source = 'seed' and jsonb_array_length(i -> 'options') = 1 and i #>> '{options,0,min}' = '1') = 4,
-  'the four "A / B" items are one item with a required choice');
+  where d.source = 'seed' and d.source_url like '%04_owner_menu_photos%'
+    and jsonb_array_length(i -> 'options') = 1 and i #>> '{options,0,min}' = '1') = 4,
+  'the four "A / B" items of the owner''s menu photos are one item with a required choice');
 select tests.ok((select app_private.menu_draft_summary(d.id) #>> '{sections,0,preview,0}' from public.menu_drafts d
   join public.vendors v on v.id = d.vendor_id where v.place_id = 'ChIJJ8-7quchHxURgn5sxhONNLI')
   = 'Classic · 850,000 LBP → $' || round(850000 / public.usd_lbp_rate(), 2)::text,
