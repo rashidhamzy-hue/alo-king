@@ -154,9 +154,9 @@ I read this from `LICENSE.md` inside the `remotion@4.0.535` npm package (remotio
 - **Free License:** covers "a for-profit organization with up to 3 employees" (also individuals and non-profits) and
   allows use "non-commercially or commercially for the purpose of creating videos". A Company License is needed only
   above that size.
-- **Alo King qualifies for now.** It has three partners (Rasheed, Bassem, Firas; DECISIONS §7) and no employees yet, so
-  it is covered **as long as the company stays at 3 people or fewer**. Once a fourth person joins, buy a Company License
-  at remotion.pro before rendering more videos.
+- **Alo King qualifies.** It has three partners (Rasheed, Bassem, Firas; DECISIONS §7), and the owner confirmed on
+  15 October 2026 that it will never have more than three owners. If it ever *employs* more than three people, check
+  the terms again (the free tier counts employees).
 - **Remotion 5.** The file says the license "will slightly change" in 5.0. These videos pin 4.0.535.
 - **Open-source status.** Remotion is source-available, not OSI open source. It is the one exception to the
   MIT/Apache/OFL/CC0/ISC rule, accepted because the brief names Remotion.
