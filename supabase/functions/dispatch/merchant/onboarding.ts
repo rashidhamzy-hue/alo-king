@@ -423,10 +423,12 @@ async function sendCode(
   }
   // The shop's own number may never have written to us: the number to send from is chosen for it (its open window, else
   // the default), and the same number decides free-form or the approved authentication template (§39.8).
+  // As site-claim: the target's open window, else the default merchant sender, so the template still goes out.
   const sender = deps.sendFrom
-    ? await deps
+    ? ((await deps
         .rpc("whatsapp_sender_for", { p_audience: "merchant", p_target: send.to })
-        .catch(() => null)
+        .catch(() => null)) ??
+      (await deps.rpc("whatsapp_sender", { p_audience: "merchant" }).catch(() => null)))
     : null;
   if (typeof sender === "string" && sender && deps.sendFrom)
     return deps.sendFrom(sender, await claimCodePayload(deps.rpc, sender, send.to, send.code));

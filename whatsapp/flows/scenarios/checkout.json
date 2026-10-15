@@ -7,7 +7,6 @@
         "screen": "CHECKOUT",
         "data": {
           "basket_id": "b1b2c3d4-0000-0000-0000-000000000001",
-          "version": "12",
           "vendor": "Alo Test Grill",
           "lines": "2 × Shish taouk  $9.00\n1 × Fries  $2.50",
           "total": "$13.50 = 1,208,250 LBP",
@@ -23,7 +22,17 @@
           ],
           "fulfilment": "delivery",
           "cash": "USD",
-          "show_sub": false
+          "show_sub": false,
+          "cash_options": [
+            {
+              "id": "USD",
+              "title": "US dollars (USD)"
+            },
+            {
+              "id": "LBP",
+              "title": "Lebanese pounds (LBP)"
+            }
+          ]
         }
       },
       "steps": [
@@ -54,7 +63,6 @@
             "status": "completed",
             "completion": {
               "basket_id": "b1b2c3d4-0000-0000-0000-000000000001",
-              "version": "12",
               "fulfilment": "delivery",
               "cash": "LBP",
               "note": "extra garlic"
@@ -70,7 +78,6 @@
         "screen": "CHECKOUT",
         "data": {
           "basket_id": "b1b2c3d4-0000-0000-0000-000000000001",
-          "version": "12",
           "vendor": "Alo Test Grill",
           "lines": "2 × Shish taouk  $9.00\n1 × Fries  $2.50",
           "total": "$13.50 = 1,208,250 LBP",
@@ -86,7 +93,17 @@
           ],
           "fulfilment": "delivery",
           "cash": "USD",
-          "show_sub": true
+          "show_sub": true,
+          "cash_options": [
+            {
+              "id": "USD",
+              "title": "US dollars (USD)"
+            },
+            {
+              "id": "LBP",
+              "title": "Lebanese pounds (LBP)"
+            }
+          ]
         }
       },
       "steps": [

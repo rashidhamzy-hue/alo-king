@@ -99,7 +99,9 @@ export async function handleMerchantFlows(
       out.push(
         txt(
           m.from,
-          "وصلنا هالنموذج من قبل. ابعت «دوام» أو «profile» لتفتح واحد جديد. / We already have this form; send “hours” or “profile” for a new one.",
+          r.flow === "menu_section"
+            ? "وصلنا هالقسم من قبل. ابعت «منيو» لتكمّل. / We already have this section; send “menu” to continue."
+            : "وصلنا هالنموذج من قبل. ابعت «دوام» أو «profile» لتفتح واحد جديد. / We already have this form; send “hours” or “profile” for a new one.",
         ),
       );
     } else if (r?.status === "saved" && r.flow === "merchant_claim") {
@@ -132,7 +134,16 @@ export async function handleMerchantFlows(
       const next = sections.find((x) => !x.approved);
       if (next)
         out.push(await sectionPrompt(deps, m.from, draftId, next, sections.length, r.member_id));
-      else if (sum?.vendor_id) out.push(portionQuestion(m.from, sum.vendor_id));
+      else if (sum?.vendor_id) {
+        // The menu import is done: leave the onboarding step, as the chat card's last Approve does.
+        await deps.rpc("onboarding_session_set", {
+          p_phone: m.from,
+          p_step: null,
+          p_data: {},
+          p_lang: null,
+        });
+        out.push(portionQuestion(m.from, sum.vendor_id));
+      }
     } else if (r?.flow === "menu_section") {
       out.push(
         txt(

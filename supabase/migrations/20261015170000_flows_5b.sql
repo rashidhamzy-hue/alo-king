@@ -6,12 +6,9 @@
 --     screen over the server's priced basket; the Confirm tap after it still places the order (prices re-checked);
 --   - menu_section: a merchant confirms a draft menu section, unticking what is not theirs; prices are exactly as read.
 -- The merchant profile Flow (merchant_claim, also opened by "settings") is unchanged: it already offers 12, 15 and 20 km.
--- flow_open and flow_submit keep their contract: the 7 October bodies become app_private.*_base and these wrappers add
--- the new Flows and the landmark fields around them.
-
-insert into public.app_config (key, value, effective_from, note, created_by) values
-  ('flows_enabled', '{"address_capture": false, "item_options": false, "merchant_claim": false, "merchant_hours": false, "checkout": false, "menu_section": false}',
-   now(), 'Per Flow: send it once it is published on the sending number (§12, §39.8); checkout and menu_section added in 5b', null);
+-- flow_open and flow_submit keep their contract: the 11 October bodies (20261011160000) become app_private.*_base and these
+-- wrappers add the new Flows and the landmark fields around them. No new flows_enabled row: a Flow missing from it is off,
+-- and a new row would reset the switches and every Flow's kill-gate window.
 
 alter table public.flow_sends drop constraint flow_sends_flow_check;
 alter table public.flow_sends add constraint flow_sends_flow_check
@@ -24,7 +21,7 @@ alter function public.flow_submit_base(text, text, jsonb) set schema app_private
 revoke all on function app_private.flow_open_base(text, text, text, uuid, uuid, jsonb), app_private.flow_submit_base(text, text, jsonb)
   from public, anon, authenticated;
 
--- The landmarks a customer can pick for an address: the 20 nearest shared or confirmed ones within 2 km of the pin, named
+-- The landmarks a customer can pick for an address: the 20 nearest shared ones (3 distinct people, §28) within 2 km, named
 -- in the customer's language, then "not listed". Ids in the Flow are short keys (l1…), mapped back on submit.
 create function app_private.flow_landmarks(p_address_id uuid, p_lang text) returns jsonb
 language sql stable security definer set search_path = ''
@@ -34,7 +31,7 @@ as $$
            row_number() over (order by extensions.st_distance(l.point, a.pin), l.id) as k
     from public.addresses a
     join public.landmarks l on a.pin is not null and extensions.st_dwithin(l.point, a.pin, 2000)
-    where a.id = p_address_id and (l.shared or l.status = 'confirmed')
+    where a.id = p_address_id and l.shared
     order by extensions.st_distance(l.point, a.pin), l.id
     limit 20)
   select jsonb_build_object(
@@ -54,6 +51,9 @@ declare
   v_r jsonb;
   v_lm jsonb;
   v_q jsonb;
+  v_view jsonb;
+  v_rate numeric;
+  v_cash jsonb;
   v_b public.baskets%rowtype;
   v_v public.vendors%rowtype;
   v_opts jsonb := '[]';
@@ -84,11 +84,19 @@ begin
     if v_b.id is null then
       return jsonb_build_object('status', 'no_basket');
     end if;
+    -- Offered before the address step, so the quote may still lack the address or the route: the Flow shows the items
+    -- only, and the fee and the total come on the summary before the Confirm tap.
     v_q := public.basket_quote(p_customer_id);
-    if v_q ->> 'status' <> 'ok' then
+    if v_q ->> 'status' not in ('ok', 'no_address', 'no_route') then
       return jsonb_build_object('status', 'not_ready', 'reason', v_q ->> 'status');
     end if;
+    v_view := v_q -> 'basket';
+    v_rate := (v_view ->> 'usd_lbp_rate')::numeric;
     select * into v_v from public.vendors where id = v_b.vendor_id;
+    v_cash := (select jsonb_agg(jsonb_build_object('id', c, 'title', case c
+                 when 'USD' then case when v_lang = 'ar' then 'دولار (USD)' else 'US dollars (USD)' end
+                 else case when v_lang = 'ar' then 'ليرة لبنانية (LBP)' else 'Lebanese pounds (LBP)' end end) order by c desc)
+               from unnest(v_v.cash_currencies) c);
     if v_v.delivery_enabled then
       v_opts := v_opts || jsonb_build_array(jsonb_build_object('id', 'delivery', 'title', case when v_lang = 'ar' then 'توصيل' else 'Delivery' end));
     end if;
@@ -97,21 +105,26 @@ begin
     end if;
     insert into public.flow_sends (token, flow, lang, phone_e164, customer_id, vendor_id, context)
     values (v_token, p_flow, v_lang, p_phone, p_customer_id, v_v.id,
-      jsonb_build_object('basket_id', v_b.id, 'version', v_b.priced_menu_version, 'fulfilments', (select jsonb_agg(x ->> 'id') from jsonb_array_elements(v_opts) x)));
+      jsonb_build_object('basket_id', v_b.id, 'fulfilments', (select jsonb_agg(x ->> 'id') from jsonb_array_elements(v_opts) x),
+        'cash', to_jsonb(v_v.cash_currencies),
+        'show_sub', coalesce(public.config_value('substitution_business_types') ? v_v.business_type::text, false)));
     return jsonb_build_object('status', 'ok', 'token', v_token, 'flow', p_flow, 'lang', v_lang, 'screen', 'CHECKOUT', 'data', jsonb_build_object(
-      'basket_id', v_b.id, 'version', coalesce(v_b.priced_menu_version, 0)::text,
+      'basket_id', v_b.id,
       'vendor', left(coalesce(case when v_lang = 'ar' then v_v.name_ar end, v_v.name_en, v_v.name_ar), 60),
       'lines', left((select string_agg(format('%s × %s  $%s', l ->> 'quantity',
                      case when v_lang = 'ar' then l ->> 'name' else coalesce(l ->> 'name_en', l ->> 'name') end,
                      to_char((l ->> 'line_total_usd')::numeric, 'FM999990.00')), E'\n')
-                   from jsonb_array_elements(v_q -> 'basket' -> 'lines') l), 1000),
-      -- Both currencies at today's rate; the order locks the rate when it is placed (§13).
-      'total', format('$%s = %s LBP', to_char((v_q ->> 'total_usd')::numeric, 'FM999990.00'),
-                 to_char(round((v_q ->> 'total_usd')::numeric * (v_q ->> 'usd_lbp_rate')::numeric), 'FM999,999,999,990')),
+                   from jsonb_array_elements(v_view -> 'lines') l), 1000),
+      -- The items in both currencies at today's rate; the order locks the rate when it is placed (§13).
+      'total', (case when v_lang = 'ar' then 'الأصناف: ' else 'Items: ' end)
+               || '$' || to_char((v_view ->> 'subtotal_usd')::numeric, 'FM999990.00')
+               || coalesce(' = ' || to_char(round((v_view ->> 'subtotal_usd')::numeric * v_rate), 'FM999,999,999,990') || ' LBP', ''),
       'fulfilment_options', v_opts,
-      'fulfilment', coalesce(v_b.fulfilment::text, v_opts -> 0 ->> 'id'),
-      'cash', coalesce(v_b.cash_currency, 'USD'),
-      'show_sub', v_v.business_type::text in ('grocery_supermarket', 'minimarket', 'produce', 'butcher', 'poultry', 'fish_market', 'home_essentials')));
+      -- No choice is made yet when the Flow opens (baskets.fulfilment is only the column default): the first option.
+      'fulfilment', v_opts -> 0 ->> 'id',
+      'cash_options', v_cash,
+      'cash', case when v_b.cash_currency = any (v_v.cash_currencies) then v_b.cash_currency else v_v.cash_currencies[1] end,
+      'show_sub', coalesce(public.config_value('substitution_business_types') ? v_v.business_type::text, false)));
   end if;
   -- menu_section: an owner or manager of the draft's branch confirms one section.
   select * into v_member from public.vendor_members where id = p_member_id and phone_e164 = p_phone and status = 'active'
@@ -119,6 +132,9 @@ begin
   select * into v_d from public.menu_drafts where id = (p_context ->> 'draft_id')::uuid;
   if v_member.id is null or v_d.id is null or v_d.vendor_id <> v_member.vendor_id then
     return jsonb_build_object('status', 'not_allowed');
+  end if;
+  if v_d.status in ('approved', 'discarded') or coalesce((p_context ->> 'index')::int, -1) < 0 then
+    return jsonb_build_object('status', 'unknown_section');
   end if;
   v_sec := v_d.sections -> ((p_context ->> 'index')::int);
   if v_sec is null or coalesce((v_sec ->> 'approved')::boolean, false) then
@@ -156,6 +172,9 @@ declare
   v_rel text;
   v_keep int[];
   v_sec jsonb;
+  v_d public.menu_drafts%rowtype;
+  v_basket uuid;
+  v_set jsonb;
   v_n int;
 begin
   select * into v_s from public.flow_sends where token = p_token;
@@ -189,20 +208,37 @@ begin
   if v_s.sent_at < now() - make_interval(mins => coalesce(public.config_numeric('flow_token_ttl_min'), 1440)::int) then
     v_r := jsonb_build_object('status', 'rejected', 'reason', 'expired');
   elsif v_s.flow = 'checkout' then
-    if (p_payload ->> 'basket_id') is distinct from (v_s.context ->> 'basket_id') then
-      v_r := jsonb_build_object('status', 'rejected', 'reason', 'basket mismatch');
+    -- The basket the Flow was opened for must still be the customer's open one (not placed, not replaced).
+    select b.id into v_basket from public.baskets b where b.customer_id = v_s.customer_id and b.status = 'open' for update;
+    if (p_payload ->> 'basket_id') is distinct from (v_s.context ->> 'basket_id') or v_basket is null
+       or v_basket::text <> (v_s.context ->> 'basket_id') then
+      v_r := jsonb_build_object('status', 'rejected', 'reason', 'basket changed');
     elsif not coalesce((v_s.context -> 'fulfilments') ? (p_payload ->> 'fulfilment'), false)
-          or coalesce(p_payload ->> 'cash', '') not in ('USD', 'LBP') then
+          or not coalesce((v_s.context -> 'cash') ? (p_payload ->> 'cash'), false) then
       v_r := jsonb_build_object('status', 'rejected', 'reason', 'choices');
     else
       -- The same setters the chat buttons use; the summary with the Confirm button follows (re-priced, §30.1.1).
-      perform public.basket_set_checkout(v_s.customer_id, (p_payload ->> 'fulfilment')::public.fulfilment_kind, null, null,
-        left(nullif(trim(p_payload ->> 'note'), ''), 200));
-      perform public.basket_set_cash_currency(v_s.customer_id, p_payload ->> 'cash');
-      if p_payload ->> 'sub_pref' in ('call', 'replace', 'remove') then
-        perform public.basket_set_substitution(v_s.customer_id, p_payload ->> 'sub_pref');
-      end if;
-      v_r := jsonb_build_object('status', 'saved', 'fulfilment', p_payload ->> 'fulfilment');
+      -- Each must succeed, else nothing is kept: the block's exception handler undoes the setters that ran.
+      begin
+        v_set := public.basket_set_checkout(v_s.customer_id, (p_payload ->> 'fulfilment')::public.fulfilment_kind, null, null,
+          left(nullif(trim(p_payload ->> 'note'), ''), 200));
+        if v_set ->> 'status' <> 'updated' then
+          raise exception using errcode = 'P0001', message = 'checkout:' || coalesce(v_set ->> 'status', '?');
+        end if;
+        v_set := public.basket_set_cash_currency(v_s.customer_id, p_payload ->> 'cash');
+        if v_set ->> 'status' <> 'ok' then
+          raise exception using errcode = 'P0001', message = 'cash:' || coalesce(v_set ->> 'status', '?');
+        end if;
+        if coalesce((v_s.context ->> 'show_sub')::boolean, false) and p_payload ->> 'sub_pref' in ('call', 'replace', 'remove') then
+          v_set := public.basket_set_substitution(v_s.customer_id, p_payload ->> 'sub_pref');
+          if v_set ->> 'status' <> 'ok' then
+            raise exception using errcode = 'P0001', message = 'substitution:' || coalesce(v_set ->> 'status', '?');
+          end if;
+        end if;
+        v_r := jsonb_build_object('status', 'saved', 'fulfilment', p_payload ->> 'fulfilment');
+      exception when sqlstate 'P0001' then
+        v_r := jsonb_build_object('status', 'rejected', 'reason', sqlerrm);
+      end;
     end if;
   else
     -- menu_section: the kept items by their short keys; at least one; prices untouched.
@@ -212,9 +248,18 @@ begin
     if (p_payload ->> 'draft_id') is distinct from (v_s.context ->> 'draft_id') or cardinality(v_keep) = 0 then
       v_r := jsonb_build_object('status', 'rejected', 'reason', 'nothing kept');
     else
-      select d.sections -> ((v_s.context ->> 'index')::int) into v_sec from public.menu_drafts d where d.id = (v_s.context ->> 'draft_id')::uuid
-      for update;
+      -- The draft and the section must still be waiting (the chat card may have approved it meanwhile); otherwise the
+      -- draft is left exactly as read.
+      select * into v_d from public.menu_drafts d where d.id = (v_s.context ->> 'draft_id')::uuid for update;
+      v_sec := v_d.sections -> ((v_s.context ->> 'index')::int);
       v_n := jsonb_array_length(v_sec -> 'items');
+    end if;
+    if v_r is not null then
+      null;
+    elsif v_d.id is null or v_d.status in ('approved', 'discarded') or v_sec is null
+          or coalesce((v_sec ->> 'approved')::boolean, false) or v_n <> (v_s.context ->> 'count')::int then
+      v_r := jsonb_build_object('status', 'rejected', 'reason', 'section changed');
+    else
       update public.menu_drafts set sections = jsonb_set(sections, array[(v_s.context ->> 'index'), 'items'],
         (select coalesce(jsonb_agg(e order by o), '[]') from jsonb_array_elements(v_sec -> 'items') with ordinality t(e, o) where o = any (v_keep)))
       where id = (v_s.context ->> 'draft_id')::uuid;

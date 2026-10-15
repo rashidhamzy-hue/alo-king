@@ -33,8 +33,8 @@ select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 -- 1. Address with the landmark and the lift ------------------------------------------------------------------------
 select public.flow_open('address_capture', 'en', '+96170000001', '10000000-0000-0000-0000-000000000001', null,
   '{"address_id": "57000000-0000-0000-0000-000000000001"}') as fa \gset
-select tests.ok(:'fa'::jsonb #> '{data,landmarks}' = '[{"id": "l1", "title": "Flowville church"}, {"id": "l2", "title": "Old pharmacy"}, {"id": "none", "title": "Not listed"}]',
-  'the nearest shared or confirmed landmarks, nearest first, then "not listed"; a private guess and a far one are not offered');
+select tests.ok(:'fa'::jsonb #> '{data,landmarks}' = '[{"id": "l1", "title": "Flowville church"}, {"id": "none", "title": "Not listed"}]',
+  'only shared landmarks (§28), nearest first, then "not listed"; a confirmed but unshared one, a private guess and a far one are not offered');
 select public.flow_submit('+96170000001', :'fa'::jsonb ->> 'token', jsonb_build_object('address_id', '57000000-0000-0000-0000-000000000001',
   'building', 'Bnayet Saad', 'floor', '4', 'has_elevator', 'no', 'landmark_id', 'l1', 'landmark_relation', 'opposite')) as sa \gset
 reset role;
@@ -60,11 +60,24 @@ select public.basket_add_item('10000000-0000-0000-0000-000000000001', '57200000-
 select public.basket_set_checkout('10000000-0000-0000-0000-000000000001', 'pickup', null, null, null);
 select public.flow_open('checkout', 'en', '+96170000001', '10000000-0000-0000-0000-000000000001') as fc \gset
 select tests.ok(:'fc'::jsonb ->> 'screen' = 'CHECKOUT' and :'fc'::jsonb #>> '{data,lines}' like '2 × Wrap  $8.00%'
-  and :'fc'::jsonb #>> '{data,total}' ~ '^\$[0-9.]+ = [0-9,]+ LBP$'
-  and :'fc'::jsonb #> '{data,fulfilment_options}' @> '[{"id": "delivery"}, {"id": "pickup"}]' and :'fc'::jsonb #>> '{data,fulfilment}' = 'pickup',
-  'checkout shows the server''s priced lines and the total in USD and LBP, and only the ways this shop serves');
+  and :'fc'::jsonb #>> '{data,total}' ~ '^Items: \$8\.00 = [0-9,]+ LBP$'
+  and :'fc'::jsonb #> '{data,fulfilment_options}' @> '[{"id": "delivery"}, {"id": "pickup"}]'
+  and :'fc'::jsonb #> '{data,cash_options}' @> '[{"id": "USD"}, {"id": "LBP"}]',
+  'checkout shows the server''s priced lines and the items in USD and LBP, the ways and the cash this shop takes');
 select tests.ok((public.flow_submit('+96170000001', :'fc'::jsonb ->> 'token', jsonb_build_object('basket_id', :'fc'::jsonb #>> '{data,basket_id}',
   'fulfilment', 'drone', 'cash', 'USD')) ->> 'reason') = 'choices', 'a way the shop does not offer is refused');
+reset role;
+update public.vendors set cash_currencies = '{USD}' where id = '20000000-0000-0000-0000-00000000000a';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select public.flow_open('checkout', 'en', '+96170000001', '10000000-0000-0000-0000-000000000001') as fc3 \gset
+select tests.ok(:'fc3'::jsonb #> '{data,cash_options}' = '[{"id": "USD", "title": "US dollars (USD)"}]'
+  and (public.flow_submit('+96170000001', :'fc3'::jsonb ->> 'token', jsonb_build_object('basket_id', :'fc3'::jsonb #>> '{data,basket_id}',
+  'fulfilment', 'pickup', 'cash', 'LBP')) ->> 'reason') = 'choices', 'only the currencies the shop takes are offered and accepted');
+reset role;
+update public.vendors set cash_currencies = '{USD,LBP}' where id = '20000000-0000-0000-0000-00000000000a';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select count(*) as orders_before from public.orders where customer_id = '10000000-0000-0000-0000-000000000001' \gset
 select public.flow_open('checkout', 'en', '+96170000001', '10000000-0000-0000-0000-000000000001') as fc2 \gset
 select tests.ok(public.flow_submit('+96170000001', :'fc2'::jsonb ->> 'token', jsonb_build_object('basket_id', :'fc2'::jsonb #>> '{data,basket_id}',
@@ -76,6 +89,14 @@ select tests.ok((select count(*) from public.orders o where o.customer_id = '100
   'the Flow places no order: the Confirm tap does');
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+
+select public.flow_open('checkout', 'en', '+96170000001', '10000000-0000-0000-0000-000000000001') as fc4 \gset
+reset role;
+update public.baskets set status = 'abandoned' where customer_id = '10000000-0000-0000-0000-000000000001' and status = 'open';
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok((public.flow_submit('+96170000001', :'fc4'::jsonb ->> 'token', jsonb_build_object('basket_id', :'fc4'::jsonb #>> '{data,basket_id}',
+  'fulfilment', 'delivery', 'cash', 'USD')) ->> 'reason') = 'basket changed', 'a Flow for a basket that is no longer open saves nothing');
 
 -- 3. Menu section -----------------------------------------------------------------------------------------------------
 select (public.menu_draft_create('20000000-0000-0000-0000-00000000000a', 'text',
@@ -96,6 +117,17 @@ set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select public.flow_open('menu_section', 'en', '+96171000001', null, :'owner_a', jsonb_build_object('draft_id', :'did', 'index', 0)) as fm2 \gset
 select tests.ok(:'fm2'::jsonb ->> 'status' = 'unknown_section', 'an approved section cannot be opened again');
+select tests.ok(public.flow_open('menu_section', 'en', '+96171000001', null, :'owner_a', jsonb_build_object('draft_id', :'did', 'index', -1)) ->> 'status' = 'unknown_section',
+  'a negative index is refused');
+-- A section approved by the chat card while the Flow was open: the Flow changes nothing.
+select (public.menu_draft_create('20000000-0000-0000-0000-00000000000a', 'text',
+  '[{"name_en": "Sweets", "items": [{"name_en": "Knefe", "price": 3, "currency": "USD"}, {"name_en": "Maamoul", "price": 2, "currency": "USD"}]}]',
+  '[]', 'rules', :'owner_a')) ->> 'draft_id' as did2 \gset
+select public.flow_open('menu_section', 'en', '+96171000001', null, :'owner_a', jsonb_build_object('draft_id', :'did2', 'index', 0)) as fm3 \gset
+select public.menu_draft_approve_section(:'did2', 0, :'owner_a');
+select tests.ok((public.flow_submit('+96171000001', :'fm3'::jsonb ->> 'token', jsonb_build_object('draft_id', :'did2', 'keep', jsonb_build_array('i1'))) ->> 'reason') = 'section changed'
+  and (select jsonb_array_length(sections -> 0 -> 'items') from public.menu_drafts where id = :'did2') = 2,
+  'a section approved meanwhile is left exactly as read');
 
 -- 4. Grants -------------------------------------------------------------------------------------------------------------
 reset role;

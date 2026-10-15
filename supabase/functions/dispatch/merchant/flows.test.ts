@@ -216,5 +216,52 @@ describe("menu section Flow and settings (5b)", () => {
     );
     expect(h.sent.length).toBe(2);
     expect(JSON.stringify(h.sent[1])).toContain(DRAFT);
+    expect(h.of("onboarding_session_set")).toEqual([]);
+  });
+  it("the last section: the onboarding step ends, then the portion questions", async () => {
+    const h = harness({
+      flow_submit: () => ({
+        flow: "menu_section",
+        status: "approved",
+        inserted: 1,
+        needs_price: [],
+        member_id: OWNER.member_id,
+      }),
+      menu_draft_summary: () => ({ vendor_id: V, sections: [{ ...sec(0), approved: true }] }),
+    });
+    await handleMerchantFlows(
+      h.deps,
+      {
+        from: "+96171000001",
+        text: null,
+        flow: {
+          token: `menu_section:${"d".repeat(32)}`,
+          payload: { draft_id: DRAFT, keep: ["i1"] },
+        },
+      },
+      [OWNER],
+    );
+    expect(h.of("onboarding_session_set")[0].args).toMatchObject({
+      p_phone: "+96171000001",
+      p_step: null,
+    });
+    expect(h.sent.length).toBe(2);
+  });
+  it("a section sent twice points back to the menu, not to hours", async () => {
+    const h = harness({ flow_submit: () => ({ flow: "menu_section", status: "duplicate" }) });
+    await handleMerchantFlows(
+      h.deps,
+      {
+        from: "+96171000001",
+        text: null,
+        flow: {
+          token: `menu_section:${"d".repeat(32)}`,
+          payload: { draft_id: DRAFT, keep: ["i1"] },
+        },
+      },
+      [OWNER],
+    );
+    expect(JSON.stringify(h.sent[0])).toContain("menu");
+    expect(JSON.stringify(h.sent[0])).not.toContain("hours");
   });
 });

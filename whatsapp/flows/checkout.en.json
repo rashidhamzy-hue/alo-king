@@ -13,10 +13,6 @@
           "type": "string",
           "__example__": "00000000-0000-0000-0000-000000000000"
         },
-        "version": {
-          "type": "string",
-          "__example__": "12"
-        },
         "vendor": {
           "type": "string",
           "__example__": "Alo Test Grill"
@@ -27,7 +23,31 @@
         },
         "total": {
           "type": "string",
-          "__example__": "$14.00 = 1,253,000 LBP (rate 89,500, today)"
+          "__example__": "Items: $14.00 = 1,260,000 LBP"
+        },
+        "cash_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "USD",
+              "title": "US dollars (USD)"
+            },
+            {
+              "id": "LBP",
+              "title": "Lebanese pounds (LBP)"
+            }
+          ]
         },
         "fulfilment_options": {
           "type": "array",
@@ -84,7 +104,7 @@
           },
           {
             "type": "TextCaption",
-            "text": "Prices are checked again before you confirm."
+            "text": "The delivery fee and the total come on the summary, checked again before you confirm."
           },
           {
             "type": "RadioButtonsGroup",
@@ -100,16 +120,7 @@
             "label": "I will pay cash in",
             "required": true,
             "init-value": "${data.cash}",
-            "data-source": [
-              {
-                "id": "USD",
-                "title": "US dollars (USD)"
-              },
-              {
-                "id": "LBP",
-                "title": "Lebanese pounds (LBP)"
-              }
-            ]
+            "data-source": "${data.cash_options}"
           },
           {
             "type": "RadioButtonsGroup",
@@ -146,7 +157,6 @@
               "name": "complete",
               "payload": {
                 "basket_id": "${data.basket_id}",
-                "version": "${data.version}",
                 "fulfilment": "${form.fulfilment}",
                 "cash": "${form.cash}",
                 "sub_pref": "${form.sub_pref}",
