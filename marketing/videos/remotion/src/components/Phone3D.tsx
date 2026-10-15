@@ -17,7 +17,7 @@ export type Pose = {x: number; y: number; z: number; rx: number; ry: number; rz:
 export const CAMERA = {fov: 30, z: 8.3};
 const BODY = {w: 1.0, h: 2.06, depth: 0.075, bevel: 0.022, r: 0.165};
 const GLASS = {w: 0.93, h: 1.99, r: 0.135};
-export const SCREEN_PX = {w: 390, h: 834};
+export const SCREEN_PX = {w: 345, h: 738}; // CSS px, smaller than a real phone so the UI reads larger in the Reel
 
 const roundedRect = (w: number, h: number, r: number) => {
   const s = new THREE.Shape();
@@ -159,7 +159,7 @@ export const Phone3D: React.FC<{pose: Pose; tone: Tone; children: React.ReactNod
             height: SCREEN_PX.h,
             transformOrigin: '0 0',
             transform,
-            borderRadius: 52,
+            borderRadius: 46,
             overflow: 'hidden',
             backfaceVisibility: 'hidden',
           }}

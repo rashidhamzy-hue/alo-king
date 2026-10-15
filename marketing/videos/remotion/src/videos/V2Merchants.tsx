@@ -49,7 +49,7 @@ const ChatList: React.FC = () => {
       <div style={{background: C.paper, borderRadius: 40, padding: '12px 0', boxShadow: '0 40px 90px -40px rgba(23,19,26,0.45)', border: `1px solid ${C.sand}`, overflow: 'hidden', fontFamily: T.latin}}>
         {frame >= hit ? <Row key="ak" frame={frame} at={hit} name="Alo King" text="New order from a customer" badge="1" gold /> : null}
         {rows.slice(0, frame >= hit ? 4 : 5).map(([n, t, b], i) => (
-          <Row key={n} frame={frame} at={i * 4 - 10} name={n} text={t} badge={b} />
+          <Row key={n} frame={frame} at={i * 3 - 16} name={n} text={t} badge={b} />
         ))}
       </div>
     </div>
@@ -110,26 +110,26 @@ const MerchantThread: React.FC = () => {
         <div style={{borderRadius: 18, overflow: 'hidden', border: `1.5px solid ${C.ink}`}}>
           <div style={{background: C.ink, color: C.cream, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8}}>
             <BellRing size={18} color={C.gold} />
-            <span style={{fontWeight: 800, fontSize: 17}}>New order · A27</span>
+            <span style={{fontWeight: 800, fontSize: 21}}>New order · A27</span>
           </div>
-          <div style={{padding: '8px 14px', fontSize: 15}}>
-            <div style={{fontWeight: 700}}>2× Manoushe zaatar</div>
-            <div style={{fontWeight: 700}}>1× Manoushe kishk</div>
-            <div style={{fontSize: 13, opacity: 0.7}}>+ extra cheese · note: no tomatoes</div>
+          <div style={{padding: '12px 16px', fontSize: 20, lineHeight: 1.35}}>
+            <div style={{fontWeight: 800}}>2× Manoushe zaatar</div>
+            <div style={{fontWeight: 800}}>1× Manoushe kishk</div>
+            <div style={{fontSize: 16, opacity: 0.7, marginTop: 4}}>+ extra cheese · note: no tomatoes</div>
           </div>
           {!accepted ? (
             <div style={{display: 'flex', borderTop: `1px solid ${C.sand}`}}>
-              <div style={{flex: 1, textAlign: 'center', padding: '12px 0', fontWeight: 800, color: C.muteCream}}>Reject</div>
-              <div style={{flex: 1.3, textAlign: 'center', padding: '12px 0', fontWeight: 800, background: C.gold, color: C.ink}}>Accept</div>
+              <div style={{flex: 1, textAlign: 'center', padding: '18px 0', fontSize: 20, fontWeight: 800, color: C.muteCream}}>Reject</div>
+              <div style={{flex: 1.3, textAlign: 'center', padding: '18px 0', fontSize: 20, fontWeight: 800, background: C.gold, color: C.ink}}>Accept</div>
             </div>
           ) : (
             <div style={{padding: '10px 12px 12px', borderTop: `1px solid ${C.sand}`, transform: `scale(${0.96 + 0.04 * press})`}}>
-              <div style={{fontSize: 13, fontWeight: 700, color: C.muteCream, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6}}>
-                <Clock3 size={15} /> Prep time
+              <div style={{fontSize: 16, fontWeight: 700, color: C.muteCream, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6}}>
+                <Clock3 size={18} /> Prep time
               </div>
               <div style={{display: 'flex', gap: 8}}>
                 {['10 min', '20 min', '30 min'].map((m, i) => (
-                  <div key={m} style={{flex: 1, textAlign: 'center', padding: '10px 0', borderRadius: 12, fontWeight: 800, background: prep && i === 1 ? C.ink : C.cream2, color: prep && i === 1 ? C.cream : C.ink}}>
+                  <div key={m} style={{flex: 1, textAlign: 'center', padding: '14px 0', borderRadius: 12, fontSize: 18, fontWeight: 800, background: prep && i === 1 ? C.ink : C.cream2, color: prep && i === 1 ? C.cream : C.ink}}>
                     {m}
                   </div>
                 ))}
@@ -140,8 +140,8 @@ const MerchantThread: React.FC = () => {
       </Msg>
       {done ? (
         <Msg at={cue('accepted')} tone={tone}>
-          <span style={{display: 'flex', alignItems: 'center', gap: 8, color: C.okCream, fontWeight: 800}}>
-            <ChefHat size={18} /> Accepted · the customer is told
+          <span style={{display: 'flex', alignItems: 'center', gap: 8, color: C.okCream, fontWeight: 800, fontSize: 18}}>
+            <ChefHat size={20} /> Accepted · the customer is told
           </span>
         </Msg>
       ) : null}
@@ -163,7 +163,7 @@ const Ticket: React.FC = () => {
     <div style={{padding: '10px 18px', margin: '0 -18px', borderRadius: 16, background: on ? C.gold : 'transparent', transition: 'none'}}>{children}</div>
   );
   const stamp = sp(frame, cue('kitchen'), SPRING.bouncy);
-  const left = interpolate(zoom, [0, 1], [440, 260]);
+  const left = interpolate(zoom, [0, 1], [425, 260]);
   const scale = interpolate(zoom, [0, 1], [1, 1.28]);
   const perf = 'radial-gradient(circle at 14px 0, transparent 12px, #FFFDF8 13px) -14px 0 / 28px 100% repeat-x';
   return (
