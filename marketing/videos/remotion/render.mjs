@@ -8,6 +8,8 @@ const BROWSER = process.env.REMOTION_BROWSER ?? '/opt/pw-browsers/chromium_headl
 const VIDEOS = {
   V1Customers: {id: 'v1', review: [0, 45, 270, 360, 740]},
   V2Merchants: {id: 'v2', review: [0, 200, 290, 390, 740]},
+  // One review frame per chapter of the investor explainer.
+  Investor: {id: 'inv', review: [119, 384, 890, 1459, 2170, 2512, 2905, 3801, 4117, 5114, 5403, 6177, 7329, 7582, 8075, 8768]},
 };
 const mode = process.argv[2] ?? 'frames';
 const only = process.argv[3];
@@ -19,13 +21,14 @@ for (const [comp, {id, review}] of Object.entries(VIDEOS)) {
     const tmp = path.resolve('out', `frames-${id}`);
     rmSync(tmp, {recursive: true, force: true});
     remotion(['render', comp, tmp, `--frames=${review.join(',')}`, '--image-format=jpeg', '--jpeg-quality=88']);
-    const dst = path.resolve('..', 'review');
+    const dst = path.resolve('..', id === 'inv' ? 'investor/review' : 'review');
     mkdirSync(dst, {recursive: true});
     for (const f of readdirSync(tmp)) {
       const n = Number(f.match(/(\d+)/)[1]);
       renameSync(path.join(tmp, f), path.join(dst, `${id}-f${String(n).padStart(3, '0')}.jpg`));
     }
     // Contact sheet with the Reels safe zone drawn: red lines at 14% and 75% height, cyan at the 80 px side margins.
+    if (id === 'inv') continue; // 16:9: no Reels safe zone
     execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-pattern_type', 'glob', '-i', path.join(dst, `${id}-f*.jpg`), '-vf',
       'drawbox=y=269:w=iw:h=3:color=red@0.8:t=fill,drawbox=y=1440:w=iw:h=3:color=red@0.8:t=fill,drawbox=x=80:w=2:h=ih:color=cyan@0.6:t=fill,drawbox=x=998:w=2:h=ih:color=cyan@0.6:t=fill,scale=432:768,tile=5x1:padding=8:color=white',
       '-frames:v', '1', '-q:v', '3', path.join(dst, `${id}-sheet-safezone.jpg`)]);

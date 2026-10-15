@@ -91,14 +91,16 @@ def check(vid: str) -> dict:
         "lines_not_aligned_on_final_mix": unaligned,
         "final_audio_wer": round(errs / n, 3),
         "hook": {"first_word_s": tl["words"][0]["startMs"] / 1000, "picture_change_0_to_1_5s": round(change, 3)},
-        "hook_ok": tl["words"][0]["startMs"] <= 500 and change > 0.05,
+        # Reels: voice within 0.5 s. The explainer opens on a ringing call, so its first word may wait until 1.5 s.
+        "hook_ok": tl["words"][0]["startMs"] <= (1500 if vid == "inv" else 500) and change > 0.05,
         "cadence_s": {"scenes": len(cuts), "mean": round(float(np.mean(cuts)) / 30, 2), "max": round(max(cuts) / 30, 2)},
     }
 
 
 def main() -> None:
     res = {v: check(v) for v in (sys.argv[1:] or ["v1", "v2"])}
-    with open(os.path.join(ROOT, "verify.json"), "w", encoding="utf-8") as f:
+    out_dir = os.path.join(ROOT, "investor") if list(res) == ["inv"] else ROOT
+    with open(os.path.join(out_dir, "verify.json"), "w", encoding="utf-8") as f:
         json.dump(res, f, indent=2)
     rows = []
     for v, r in res.items():
@@ -109,7 +111,7 @@ def main() -> None:
             f"{r['final_audio_wer']:.1%} | first word {r['hook']['first_word_s']} s, change {r['hook']['picture_change_0_to_1_5s']} {'✅' if r['hook_ok'] else '❌'} | "
             f"{r['cadence_s']['scenes']} shots, mean {r['cadence_s']['mean']} s, longest {r['cadence_s']['max']} s |"
         )
-    with open(os.path.join(ROOT, "VERIFY.md"), "w", encoding="utf-8") as f:
+    with open(os.path.join(out_dir, "VERIFY.md"), "w", encoding="utf-8") as f:
         f.write(
             "# Stage 4 verification\n\nProduced by `audio/verify.py` on the final MP4s (raw numbers in `verify.json`).\n\n"
             "| File | Format | Loudness (target -14 LUFS, TP < -1 dBTP) | Caption sync (caption start vs. word re-aligned on the final mix; pass: p95 ≤ 100 ms) | "

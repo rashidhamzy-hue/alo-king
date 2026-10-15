@@ -22,7 +22,8 @@ SR = 48000
 FPS = 30
 RNG = np.random.default_rng(7)  # deterministic: the same file every run
 
-OUTPUTS = {"v1": "video1-customers.mp4", "v2": "video2-merchants.mp4"}
+OUTPUTS = {"v1": "video1-customers.mp4", "v2": "video2-merchants.mp4", "inv": "investor/alo-king-investor-explainer.mp4"}
+SIZE_CAP_MB = {"inv": 40}  # keeps the explainer easy to share and light in git
 
 
 # ---------- sound effects ----------
@@ -93,6 +94,19 @@ def printer(gain: float = 1.0) -> np.ndarray:
     return gain * (out + motor) * np.sin(np.linspace(0, np.pi, n)) ** 0.3
 
 
+def ring(gain: float = 1.0) -> np.ndarray:
+    """A soft phone ring: two quick marimba-like trills (not any phone maker's ringtone)."""
+    n = int(1.4 * SR)
+    out = np.zeros(n)
+    notes = [76, 79, 76, 79, 76, 79]
+    for burst in (0.0, 0.7):
+        for i, m in enumerate(notes):
+            q = pluck(m, 0.35) * 0.5
+            s0 = int((burst + i * 0.07) * SR)
+            out[s0: s0 + len(q)] += q[: max(0, n - s0)]
+    return gain * 0.5 * out
+
+
 SFX = {
     "whoosh": lambda: whoosh(gain=0.9),
     "swish": lambda: whoosh(0.26, 600, 5000, 0.7),
@@ -101,6 +115,7 @@ SFX = {
     "tick": lambda: tick(),
     "chime": lambda: chime(),
     "print": lambda: printer(),
+    "ring": lambda: ring(),
 }
 
 
@@ -144,7 +159,7 @@ def music(dur: float, night: bool) -> np.ndarray:
     # Night: D minor, warm (Dm Bb F C). Day: F major, bright (F C Dm Bb).
     prog = [[50, 57, 62, 65], [46, 53, 58, 62], [41, 48, 53, 57], [48, 55, 60, 64]] if night else [[53, 60, 65, 69], [48, 55, 60, 64], [50, 57, 62, 65], [46, 53, 58, 62]]
     n = int(dur * SR)
-    out = np.zeros(n + SR * 2)
+    out = np.zeros(n + SR * 4)
     t0 = 0.0
     i = 0
     while t0 < dur:
@@ -168,6 +183,23 @@ def music(dur: float, night: bool) -> np.ndarray:
     return out / (np.max(np.abs(out)) + 1e-9)
 
 
+def music_long(dur: float, sections: list[tuple[float, bool, float]]) -> np.ndarray:
+    """Long bed in sections: each (start_s, night, energy) gets its own key and density, crossfaded at the joins."""
+    n = int(dur * SR)
+    out = np.zeros(n)
+    bounds = [s[0] for s in sections] + [dur]
+    for (start, night, energy), end in zip(sections, bounds[1:]):
+        seg = music(end - start + 1.2, night) * energy
+        a = int(start * SR)
+        b = min(n, a + len(seg), int((end + 1.0) * SR))
+        fade = np.ones(b - a)
+        k = min(int(0.8 * SR), len(fade) // 2)
+        fade[:k] = np.linspace(0, 1, k)
+        fade[-k:] = np.linspace(1, 0, k)
+        out[a:b] += seg[: b - a] * fade
+    return out / (np.max(np.abs(out)) + 1e-9)
+
+
 # ---------- timeline ----------
 def load(vid: str) -> tuple[dict, list[dict]]:
     with open(os.path.join(ROOT, "remotion", "src", "data", f"{vid}.json"), encoding="utf-8") as f:
@@ -178,8 +210,9 @@ def load(vid: str) -> tuple[dict, list[dict]]:
 
 
 def cue_time(tl: dict, c: dict) -> float:
-    clean = lambda s: re.sub(r"[^A-Za-z']", "", s).lower()
-    w = next(x for x in tl["words"] if x["line"] == c["line"] and clean(x["text"]) == clean(c["word"]))
+    clean = lambda s: re.sub(r"[^A-Za-z0-9'\u0660-\u0669]", "", s).lower()
+    line = c["line"] if "line" in c else next(s["line"] for s in tl["scenes"] if s["id"] == c["scene"])
+    w = [x for x in tl["words"] if x["line"] == line and clean(x["text"]) == clean(c["word"])][c.get("nth", 0)]
     frame = round((w["startMs"] + c.get("offsetMs", 0)) / 1000 * FPS)  # same rounding as the picture
     return max(0.0, frame / FPS)
 
@@ -217,7 +250,16 @@ def build(vid: str) -> dict:
         if all(abs(t - x) > 0.2 for x in times):
             place(sfx, whoosh(0.32, 400, 4000, 0.45), t - 0.14)
 
-    bed = music(dur, night=vid == "v1")
+    if vid == "inv":
+        # Chapter energy: quiet open, build through the product, day key for merchants, lift for the close.
+        energy = {0: 0.55, 1: 0.7, 2: 0.75, 3: 0.95, 4: 0.85, 5: 0.9, 6: 0.95, 7: 0.9, 8: 0.8, 9: 0.85, 10: 0.95, 11: 1.0}
+        starts = {}
+        for sc in tl["scenes"]:
+            starts.setdefault(sc["chapter"], sc["from"] / FPS)
+        sections = [(starts[c], c != 6, energy[c]) for c in sorted(starts)]
+        bed = music_long(dur, sections)
+    else:
+        bed = music(dur, night=vid == "v1")
     # Duck the bed under the voice: a smoothed voice envelope pulls the music down by up to 7 dB.
     venv = np.convolve(np.abs(voice), np.ones(int(0.12 * SR)) / int(0.12 * SR), mode="same")
     duck = 1 - (1 - db(-7)) * np.clip(venv / 0.04, 0, 1)
@@ -254,6 +296,9 @@ def loudnorm_and_mux(vid: str, pre: str) -> dict:
             break
         gain += -14 - got
     final = os.path.join(ROOT, OUTPUTS[vid])
+    if vid in SIZE_CAP_MB:
+        encode_capped(vid, mixed, final, SIZE_CAP_MB[vid])
+        return measure(final)
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", os.path.join(ROOT, "out", vid, "silent.mp4"), "-i", mixed,
                     "-map", "0:v:0", "-map", "1:a:0",
                     # Re-encode to broadcast-range yuv420p (Remotion's JPEG frames come out full-range yuvj420p, which some
@@ -263,6 +308,20 @@ def loudnorm_and_mux(vid: str, pre: str) -> dict:
                     "-color_trc", "bt709", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
                     "-movflags", "+faststart", "-shortest", final], check=True)
     return measure(final)
+
+
+def encode_capped(vid: str, mixed: str, final: str, cap_mb: float) -> None:
+    """Two-pass H.264 at the bitrate that lands under the size cap (AAC 160k), broadcast-range yuv420p."""
+    silent = os.path.join(ROOT, "out", vid, "silent.mp4")
+    dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", silent], capture_output=True, text=True).stdout)
+    v_kbps = int((cap_mb * 0.95 * 8 * 1024 * 1024 / dur) / 1000) - 160
+    common = ["-vf", "scale=in_range=full:out_range=tv,format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-tune", "animation",
+              "-b:v", f"{v_kbps}k", "-maxrate", f"{int(v_kbps * 2)}k", "-bufsize", f"{int(v_kbps * 4)}k", "-profile:v", "high", "-level", "4.1",
+              "-color_range", "tv", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"]
+    log = os.path.join(ROOT, "out", vid, "x264")
+    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", silent, *common, "-pass", "1", "-passlogfile", log, "-an", "-f", "mp4", os.devnull], check=True)
+    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", silent, "-i", mixed, "-map", "0:v:0", "-map", "1:a:0", *common,
+                    "-pass", "2", "-passlogfile", log, "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2", "-movflags", "+faststart", "-shortest", final], check=True)
 
 
 def measure(path: str) -> dict:
@@ -279,4 +338,6 @@ if __name__ == "__main__":
     import sys
 
     report = {v: build(v) for v in (sys.argv[1:] or ["v1", "v2"])}
+    for v in report:
+        report[v]["size_mb"] = round(os.path.getsize(os.path.join(ROOT, OUTPUTS[v])) / 1048576, 1)
     print(json.dumps(report, indent=2))

@@ -91,9 +91,9 @@ const PhoneMesh: React.FC<{pose: Pose; tone: Tone}> = ({pose, tone}) => {
   );
 };
 
-const project = (pose: Pose, width: number, height: number) => {
+const project = (pose: Pose, width: number, height: number, camZ: number) => {
   const cam = new THREE.PerspectiveCamera(CAMERA.fov, width / height, 0.1, 100);
-  cam.position.set(0, 0, CAMERA.z);
+  cam.position.set(0, 0, camZ);
   cam.lookAt(0, 0, 0);
   cam.updateMatrixWorld();
   const m = new THREE.Matrix4().compose(
@@ -117,9 +117,9 @@ const project = (pose: Pose, width: number, height: number) => {
   return {corners, facing};
 };
 
-export const Phone3D: React.FC<{pose: Pose; tone: Tone; children: React.ReactNode; glow?: number}> = ({pose, tone, children, glow = 1}) => {
+export const Phone3D: React.FC<{pose: Pose; tone: Tone; children: React.ReactNode; glow?: number; camZ?: number}> = ({pose, tone, children, glow = 1, camZ = CAMERA.z}) => {
   const {width, height} = useVideoConfig();
-  const {corners, facing} = project(pose, width, height);
+  const {corners, facing} = project(pose, width, height, camZ);
   const transform = quadToMatrix3d(SCREEN_PX.w, SCREEN_PX.h, corners);
   const cx = (corners[0][0] + corners[2][0]) / 2;
   const cy = (corners[0][1] + corners[2][1]) / 2;
@@ -141,7 +141,7 @@ export const Phone3D: React.FC<{pose: Pose; tone: Tone; children: React.ReactNod
           pointerEvents: 'none',
         }}
       />
-      <ThreeCanvas width={width} height={height} camera={{fov: CAMERA.fov, position: [0, 0, CAMERA.z], near: 0.1, far: 100}} gl={{antialias: true}} style={{position: 'absolute', inset: 0}}>
+      <ThreeCanvas width={width} height={height} camera={{fov: CAMERA.fov, position: [0, 0, camZ], near: 0.1, far: 100}} gl={{antialias: true}} style={{position: 'absolute', inset: 0}}>
         <Environment />
         <ambientLight intensity={night ? 0.35 : 0.7} />
         <directionalLight position={[3, 4, 6]} intensity={night ? 1.2 : 1.6} />

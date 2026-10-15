@@ -1,4 +1,11 @@
-# Alo King marketing Reels (test)
+# Alo King marketing videos
+
+**New (15 October 2026): the investor and partner explainer** is in [`investor/`](investor/README.md): one 16:9 video,
+about 5 minutes, covering how Alo King works end to end. The two Reels below were the first test. Their MP4s were removed
+from the branch at the owner's request to save space; their scripts, code, review frames and check results stay here, and
+`node remotion/render.mjs video` plus `audio/mix.py v1 v2` rebuild them.
+
+## The Reels (first test)
 
 Two English Reels for Instagram and Facebook: 1080×1920, 30 fps, H.264 + AAC, 25 seconds each. They were built with free
 tools only: no paid APIs, no keys, no Higgsfield, ElevenLabs or Canva. Nothing here touches the app. Everything lives in

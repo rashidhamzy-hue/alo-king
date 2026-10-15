@@ -325,5 +325,325 @@
       "offsetMs": -60,
       "sfx": "pop"
     }
+  ],
+  "inv": [
+    {
+      "id": "ring",
+      "scene": "ring",
+      "word": "In",
+      "offsetMs": -1100,
+      "sfx": "ring"
+    },
+    {
+      "id": "aloHit",
+      "scene": "alo",
+      "word": "Alo",
+      "offsetMs": -120,
+      "sfx": "chime"
+    },
+    {
+      "id": "wordmark",
+      "scene": "promise",
+      "word": "Alo",
+      "offsetMs": -150,
+      "sfx": "whoosh"
+    },
+    {
+      "id": "strike",
+      "scene": "apps",
+      "word": "switch",
+      "sfx": "tap"
+    },
+    {
+      "id": "bite",
+      "scene": "apps",
+      "word": "percent",
+      "sfx": "pop"
+    },
+    {
+      "id": "serverNode",
+      "scene": "split",
+      "word": "server",
+      "sfx": "pop"
+    },
+    {
+      "id": "typeSend",
+      "scene": "ways",
+      "word": "voice",
+      "offsetMs": -250,
+      "sfx": "pop"
+    },
+    {
+      "id": "voiceNote",
+      "scene": "ways",
+      "word": "voice",
+      "sfx": "pop"
+    },
+    {
+      "id": "menuSheet",
+      "scene": "ways",
+      "word": "tap",
+      "offsetMs": 170,
+      "sfx": "swish"
+    },
+    {
+      "id": "menuTap",
+      "scene": "ways",
+      "word": "menu",
+      "sfx": "tap"
+    },
+    {
+      "id": "langAr",
+      "scene": "langs",
+      "word": "Arabic",
+      "sfx": "pop"
+    },
+    {
+      "id": "langEn",
+      "scene": "langs",
+      "word": "English",
+      "sfx": "pop"
+    },
+    {
+      "id": "langFr",
+      "scene": "langs",
+      "word": "French",
+      "sfx": "pop"
+    },
+    {
+      "id": "langAz",
+      "scene": "langs",
+      "word": "Arabizi",
+      "sfx": "pop"
+    },
+    {
+      "id": "searchCard",
+      "scene": "search",
+      "word": "searches",
+      "sfx": "pop"
+    },
+    {
+      "id": "basketCard",
+      "scene": "basket",
+      "word": "basket",
+      "sfx": "pop"
+    },
+    {
+      "id": "confirmTap",
+      "scene": "basket",
+      "word": "confirms",
+      "sfx": "chime"
+    },
+    {
+      "id": "payAsk",
+      "scene": "pay",
+      "word": "pay",
+      "offsetMs": -300,
+      "sfx": "pop"
+    },
+    {
+      "id": "payWhish",
+      "scene": "pay",
+      "word": "Whish",
+      "sfx": "tap"
+    },
+    {
+      "id": "accepted",
+      "scene": "track",
+      "word": "track",
+      "sfx": "pop"
+    },
+    {
+      "id": "onWay",
+      "scene": "track",
+      "word": "driver's",
+      "offsetMs": -200,
+      "sfx": "pop"
+    },
+    {
+      "id": "live",
+      "scene": "track",
+      "word": "live",
+      "sfx": "pop"
+    },
+    {
+      "id": "giftCard",
+      "scene": "gift",
+      "word": "schedule",
+      "sfx": "pop"
+    },
+    {
+      "id": "brainHit",
+      "scene": "brain",
+      "word": "brain",
+      "sfx": "chime"
+    },
+    {
+      "id": "memCard",
+      "scene": "memory",
+      "word": "remembers",
+      "offsetMs": 150,
+      "sfx": "pop"
+    },
+    {
+      "id": "memDelete",
+      "scene": "memory",
+      "word": "delete",
+      "sfx": "tap"
+    },
+    {
+      "id": "copMsg",
+      "scene": "copilot",
+      "word": "copilot",
+      "sfx": "pop"
+    },
+    {
+      "id": "copConfirm",
+      "scene": "copilot",
+      "word": "confirms",
+      "offsetMs": -150,
+      "sfx": "tap"
+    },
+    {
+      "id": "claimYes",
+      "scene": "claim",
+      "word": "claims",
+      "sfx": "tap"
+    },
+    {
+      "id": "claimOk",
+      "scene": "claim",
+      "word": "approves",
+      "sfx": "chime"
+    },
+    {
+      "id": "chWa",
+      "scene": "channels",
+      "word": "WhatsApp",
+      "sfx": "tick"
+    },
+    {
+      "id": "chTab",
+      "scene": "channels",
+      "word": "tablet",
+      "sfx": "tick"
+    },
+    {
+      "id": "chPrint",
+      "scene": "channels",
+      "word": "printer",
+      "sfx": "print"
+    },
+    {
+      "id": "chCall",
+      "scene": "channels",
+      "word": "phone",
+      "sfx": "tick"
+    },
+    {
+      "id": "chPos",
+      "scene": "channels",
+      "word": "point",
+      "sfx": "tick"
+    },
+    {
+      "id": "esc15",
+      "scene": "escalate",
+      "word": "backup",
+      "sfx": "tick"
+    },
+    {
+      "id": "esc45",
+      "scene": "escalate",
+      "word": "rings",
+      "sfx": "ring"
+    },
+    {
+      "id": "esc75",
+      "scene": "escalate",
+      "word": "person",
+      "sfx": "pop"
+    },
+    {
+      "id": "fee",
+      "scene": "fee",
+      "word": "dollar",
+      "sfx": "chime"
+    },
+    {
+      "id": "closest",
+      "scene": "dispatch",
+      "word": "closest",
+      "sfx": "pop"
+    },
+    {
+      "id": "jobCard",
+      "scene": "driverapp",
+      "word": "Drivers",
+      "sfx": "pop"
+    },
+    {
+      "id": "jobAccept",
+      "scene": "driverapp",
+      "word": "link",
+      "offsetMs": -200,
+      "sfx": "tap"
+    },
+    {
+      "id": "dbHit",
+      "scene": "db",
+      "word": "database",
+      "sfx": "chime"
+    },
+    {
+      "id": "rev1",
+      "scene": "revenue",
+      "word": "flat",
+      "sfx": "pop"
+    },
+    {
+      "id": "rev2",
+      "scene": "revenue",
+      "word": "promotions",
+      "sfx": "pop"
+    },
+    {
+      "id": "rev3",
+      "scene": "revenue",
+      "word": "sponsored",
+      "sfx": "pop"
+    },
+    {
+      "id": "rev4",
+      "scene": "revenue",
+      "word": "service",
+      "sfx": "pop"
+    },
+    {
+      "id": "sim",
+      "scene": "built",
+      "word": "simulator",
+      "sfx": "chime"
+    },
+    {
+      "id": "closeAlo",
+      "scene": "close",
+      "word": "answers",
+      "offsetMs": -400,
+      "sfx": "whoosh"
+    },
+    {
+      "id": "closeKing",
+      "scene": "close",
+      "word": "King",
+      "sfx": "chime"
+    },
+    {
+      "id": "talk",
+      "scene": "close",
+      "word": "order",
+      "offsetMs": 500,
+      "sfx": "pop"
+    }
   ]
 }

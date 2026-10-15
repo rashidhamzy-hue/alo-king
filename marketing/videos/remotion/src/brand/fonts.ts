@@ -6,5 +6,8 @@ export const fontsReady = Promise.all([
   ...(['500', '600', '700', '800'] as const).map((weight) =>
     loadFont({family: 'Plus Jakarta Sans', url: staticFile(`fonts/plus-jakarta-sans-latin-${weight}-normal.woff2`), weight}),
   ),
+  ...(['400', '500', '700'] as const).map((weight) =>
+    loadFont({family: 'Roboto', url: staticFile(`fonts/roboto-latin-${weight}-normal.woff2`), weight}),
+  ),
   loadFont({family: 'IBM Plex Sans Arabic', url: staticFile('fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2'), weight: '700'}),
 ]);

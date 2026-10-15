@@ -26,7 +26,7 @@ export const wordFrame = (tl: Timeline, line: number, word: string, offsetMs = 0
 
 /** Absolute frame of a named cue from src/data/cues.json. */
 export const cueFrame = (tl: Timeline, id: string) => {
-  const c = (cuesJson as Record<string, Cue[]>)[tl.id].find((x) => x.id === id);
+  const c = (cuesJson as unknown as Record<string, Cue[]>)[tl.id].find((x) => x.id === id);
   if (!c) throw new Error(`no cue ${id} in ${tl.id}`);
   return wordFrame(tl, c.line, c.word, c.offsetMs ?? 0);
 };
