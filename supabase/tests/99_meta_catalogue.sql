@@ -212,6 +212,35 @@ select tests.ok(not exists (select 1 from public.vendors where id = '20000000-00
   and not exists (select 1 from app_private.catalog_sync_queue where vendor_id = '20000000-0000-0000-0000-0000000000dd'),
   'deleting a shop with photos works and queues nothing');
 
+-- The fifth failure in a row raises one ops alert (one per shop per day) and the backoff stays --------------------------------
+delete from app_private.catalog_sync_queue;
+select app_private.catalog_enqueue('20000000-0000-0000-0000-00000000000a', 'test');
+do $$
+declare
+  c jsonb;
+begin
+  for i in 1..6 loop
+    update app_private.catalog_sync_queue set next_at = now(), leased_until = null;
+    c := public.catalog_sync_claim(1);
+    perform public.catalog_sync_finish('20000000-0000-0000-0000-00000000000a', (c #>> '{items,0,queued_at}')::timestamptz, 'meta 500');
+  end loop;
+end;
+$$;
+select tests.ok((select count(*) = 1 from public.ops_alerts where kind = 'catalog_sync_failed'
+                   and vendor_id = '20000000-0000-0000-0000-00000000000a' and summary like 'Catalogue sync failed 5 times%'),
+  'the fifth failure in a row raises one catalogue alert');
+select tests.ok((select attempts = 6 and last_error = 'meta 500' and next_at > now() + interval '20 minutes'
+                 from app_private.catalog_sync_queue where vendor_id = '20000000-0000-0000-0000-00000000000a'),
+  'the failures keep backing off after the alert');
+-- A hard failure keeps its backoff when the shop changes; a missing product set does not hold the shop's updates.
+select app_private.catalog_enqueue('20000000-0000-0000-0000-00000000000a', 'test');
+select tests.ok((select next_at > now() from app_private.catalog_sync_queue where vendor_id = '20000000-0000-0000-0000-00000000000a'),
+  'a change to a shop in backoff after a failure waits');
+update app_private.catalog_sync_queue set last_error = 'catalogue product set not created', next_at = now() + interval '1 hour';
+select app_private.catalog_enqueue('20000000-0000-0000-0000-00000000000a', 'test');
+select tests.ok((select next_at <= now() from app_private.catalog_sync_queue where vendor_id = '20000000-0000-0000-0000-00000000000a'),
+  'a change to a shop missing only its product set runs at once');
+
 reset role;
 set local role authenticated;
 select tests.act_as('00000000-0000-0000-0000-00000000000c');
