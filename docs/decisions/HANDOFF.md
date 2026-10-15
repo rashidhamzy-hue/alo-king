@@ -250,7 +250,7 @@
     - 5b: a utility template for copilot suggestions and the weekly summary outside the 24-hour window; key the window by business number; put the menu model's photo and PDF calls under `ai_quota_take`.
     - The CI Claude review still runs without credit; every PR of this session carries the pr-reviewer verdict for its head.
   - **CUT-OVER (session 14), added:** production gets the same config rows switched off (`ai_free_text_enabled`, `ai_voice_enabled`, `ai_merchant_text_enabled` false) and turns each on only with its eval report.
-- **Next: 5b (Kapso and operations), then 13 and 14.** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5). 5b also picks up the 5c leftovers above (templates for copilot messages, the window per business number, the menu model under the AI budget).
+- **Next: 5b (Kapso and operations), then 13 (security review), W2 (website audit and polish, §39.10) and 14 (cut-over).** The session list, with the model and effort for each, is in DECISIONS §39.10 (it replaces the rows after D in §38.5). 5b also picks up the 5c leftovers above (templates for copilot messages, the window per business number, the menu model under the AI budget).
 
 ## How to start each build session
 

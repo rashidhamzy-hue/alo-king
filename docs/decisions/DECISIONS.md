@@ -1701,7 +1701,10 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 | 5c | Agents | Opus 5.5, high | §38.3 rows for 5c, 39.6 including customer memory, 39.7 including merchant memory |
 | 5b | Kapso and operations | Sonnet 5.5, high | §38.5 row 5b plus 39.8 |
 | 13 | Security review | Opus 5.5, high | unchanged |
+| W2 | Website audit and polish | Opus 5.5, high | moved by Rasheed (15 October) to just before go-live: WhatsApp icons and "Order on WhatsApp" on every customer page and call to action; make it obvious there is no app to download (ordering is WhatsApp only); clearer, more attractive heroes; audit every public, merchant and staff page (copy in three languages, links, empty states, mobile, the website-quality checks of §37.5) and fix what it finds |
 | 14 | Pilot cut-over | Opus 5.5, high | unchanged |
+
+**Order from 15 October:** 5b → 13 → W2 → 14. W2 runs after the security review so its fixes are the last change before the cut-over, and before 14 so the cut-over ships the polished site.
 
 ### 39.11 Website: full revamp with a delivery map and a hard customer/merchant split
 - **Rasheed's direction (14 October):** the current site looks unfinished; the "where we deliver" page in village blocks is the example. Every page must look like a well-funded 2030 product, building on §37.
