@@ -1,0 +1,35 @@
+{
+  "v1": {
+    "file": "video1-customers.mp4",
+    "format": {
+      "video": "h264 High 1080x1920 30/1 yuv420p",
+      "audio": "aac 48000 Hz 2 ch",
+      "duration_s": 25.0
+    },
+    "loudness": {
+      "file": "video1-customers.mp4",
+      "integrated_lufs": -14.2,
+      "true_peak_dbtp": -5.1,
+      "lra_lu": 0.9
+    },
+    "loudness_ok": true,
+    "caption_sync_ms": {
+      "words": 57,
+      "mean": 25.1,
+      "p95": 96.0,
+      "max": 310.0
+    },
+    "caption_sync_ok": true,
+    "final_audio_wer": 0.509,
+    "hook": {
+      "first_word_s": 0.12,
+      "picture_change_0_to_1_5s": 0.065
+    },
+    "hook_ok": true,
+    "cadence_s": {
+      "scenes": 12,
+      "mean": 2.08,
+      "max": 4.27
+    }
+  }
+}

@@ -255,7 +255,12 @@ def loudnorm_and_mux(vid: str, pre: str) -> dict:
         gain += -14 - got
     final = os.path.join(ROOT, OUTPUTS[vid])
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", os.path.join(ROOT, "out", vid, "silent.mp4"), "-i", mixed,
-                    "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
+                    "-map", "0:v:0", "-map", "1:a:0",
+                    # Re-encode to broadcast-range yuv420p (Remotion's JPEG frames come out full-range yuvj420p, which some
+                    # players and Instagram's transcoder show with lifted blacks).
+                    "-vf", "scale=in_range=full:out_range=tv,format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "17",
+                    "-profile:v", "high", "-level", "4.1", "-color_range", "tv", "-colorspace", "bt709", "-color_primaries", "bt709",
+                    "-color_trc", "bt709", "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
                     "-movflags", "+faststart", "-shortest", final], check=True)
     return measure(final)
 

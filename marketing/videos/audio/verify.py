@@ -5,7 +5,7 @@
 3. Caption sync: every script line is force-aligned again on the *final mixed* audio (voice + music + effects) with
    pocketsphinx; each word's measured start is compared with the caption timestamp in the timeline.
 4. Clarity: open transcription of the final audio, line by line, word error rate against the script.
-5. Hook: first spoken word in the first 0.5 s, and the picture at 1.5 s differs strongly from frame 0.
+5. Hook: first spoken word in the first 0.5 s, and more than 5% of the pixels change between frame 0 and 1.5 s (a major element enters); see also review/v1-hook-strip.jpg.
 6. Cadence: average and longest time between picture changes (scene cuts from the timeline).
 """
 from __future__ import annotations
@@ -70,7 +70,7 @@ def check(vid: str) -> dict:
     offsets = np.array(offsets)
 
     f0, f45 = frame_rgb(path, 0.0), frame_rgb(path, 1.5)
-    change = float(np.mean(np.abs(f0 - f45)) / 255)
+    change = float(np.mean(np.max(np.abs(f0 - f45), axis=2) > 25))  # share of pixels that visibly change
     cuts = [s["to"] - s["from"] for s in tl["scenes"]]
     return {
         "file": OUTPUTS[vid],
