@@ -214,7 +214,7 @@ describe("toOut: templates (session 5b, DECISIONS §39.8)", () => {
       "[template alo_order_delivered/en] Your order #AB3CD9 from Alo Test Grill was delivered. How was the food? Pick a rating below; it helps the shop.",
     );
     expect(o.options).toEqual([
-      { id: "rate:x:f5", title: "Great ⭐⭐⭐⭐⭐" },
+      { id: "rate:x:f5", title: "Great" },
       { id: "rcv:x:no", title: "A problem" },
     ]);
   });

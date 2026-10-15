@@ -1,23 +1,24 @@
 name: whatsapp-flows
 
-# DECISIONS §12 and §32.5: uploads the Flow JSON in whatsapp/flows/ to Kapso as drafts on a WhatsApp number,
-# after Flowso validates it and replays every scenario. Publishing is a separate, explicit run (`publish`),
-# after a Meta preview of each draft (a release step). Kapso is reached only at https://api.kapso.ai.
-# Published names: alo_<flow>_<lang> (supabase/functions/_shared/flows.ts publishedFlowName). Once a Flow
-# exists, pass its Kapso id in `flow_ids` ({"alo_address_capture_ar": "<uuid>", ...}) to update it in place.
+# DECISIONS §12, §32.5 and §39.8: Flowso validates every Flow in whatsapp/flows/ and replays its scenarios, then
+# scripts/kapso/flows.ts uploads each one to Kapso on a WhatsApp number (a new draft, or a new version of an existing
+# draft, found by its name alo_<flow>_<lang>), sets up Flow encryption on the number's business account, and with
+# `publish` publishes the drafts and switches each Flow on (a dated flows_enabled row on staging). `send_tests` sends one
+# test of each live Flow to the owner phone that wrote to the number in the last 24 hours. Kapso only at
+# https://api.kapso.ai. (Run 38762070639 failed because `flowso deploy --json` printed more than JSON.)
 on:
   workflow_dispatch:
     inputs:
       phone_number_id:
         description: WhatsApp phone number id in Kapso (the sandbox until cut-over)
-        default: "597907523413541"
+        default: "1378974041965966"
         required: true
-      flow_ids:
-        description: JSON map of published name to existing Kapso Flow id (empty = create drafts)
-        default: "{}"
-        required: false
       publish:
-        description: Publish after uploading (only after a Meta preview)
+        description: Publish the drafts after uploading, and switch each published Flow on (staging)
+        type: boolean
+        default: false
+      send_tests:
+        description: Send one test of each live Flow to the owner phone that wrote to this number in the last 24 hours
         type: boolean
         default: false
 
@@ -44,29 +45,19 @@ jobs:
             pnpm exec flowso test "$f" --scenario "whatsapp/flows/scenarios/$base.json" --json >/dev/null
             echo "ok $name"
           done
-      - name: Upload drafts to Kapso
+      - name: Upload, encrypt, publish and test
         env:
           KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
-          KAPSO_API_URL: https://api.kapso.ai/platform/v1
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
           PHONE_NUMBER_ID: ${{ inputs.phone_number_id }}
-          FLOW_IDS: ${{ inputs.flow_ids }}
           PUBLISH: ${{ inputs.publish }}
+          SEND_TESTS: ${{ inputs.send_tests }}
         shell: bash
         run: |
           set -euo pipefail
           [[ "$PHONE_NUMBER_ID" =~ ^[0-9]{6,20}$ ]] || { echo "::error::bad phone number id"; exit 1; }
-          echo "$FLOW_IDS" | jq -e 'type == "object"' >/dev/null || { echo "::error::flow_ids must be a JSON object"; exit 1; }
-          for f in whatsapp/flows/*.json; do
-            name=$(basename "$f" .json); flow=${name%.*}; lang=${name##*.}
-            published="alo_${flow}_${lang}"
-            id=$(echo "$FLOW_IDS" | jq -r --arg k "$published" '.[$k] // empty')
-            args=(deploy "$f" --to kapso --phone-number-id "$PHONE_NUMBER_ID" --name "$published")
-            if [[ -n "$id" ]]; then
-              [[ "$id" =~ ^[0-9A-Za-z_-]{1,64}$ ]] || { echo "::error::bad flow id for $published"; exit 1; }
-              args+=(--flow-id "$id")
-            fi
-            if [[ "$PUBLISH" == "true" ]]; then args+=(--publish); fi
-            out=$(pnpm exec flowso "${args[@]}" --json)
-            echo "$out" | jq -c --arg n "$published" '{name: $n, ok, flow_id: (.flowId // .flow_id // .id // null)}' | tee -a "$GITHUB_STEP_SUMMARY"
-            echo "$out" | jq -e '.ok == true' >/dev/null || { echo "::error::deploy failed for $published"; exit 1; }
-          done
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          DB_URL="$DB_URL" pnpm exec tsx scripts/kapso/flows.ts | tee -a "$GITHUB_STEP_SUMMARY"
