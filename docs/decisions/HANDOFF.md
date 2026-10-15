@@ -271,7 +271,7 @@
   - **Catalogue:** it is synced from the database by `dispatch`.
     - **What syncs:** claimed, orderable, listed shops, with published items only. Retailer id = menu item id; one product set per shop.
     - **When:** on every menu, price, stock, claim or photo change (`app_private.catalog_sync_queue`, leased per shop), plus a 10-minute reconcile and a nightly full sync at 00:20 UTC. Hidden items are never deleted.
-    - **Status:** Rasheed made catalogue "Alo King" (1684040949979106) in his portfolio (131819648080461), connected it to the WhatsApp account with the catalogue icon and Add to cart on, and set `META_CATALOG_TOKEN` (#181, done). The token reads and writes the catalogue but cannot read the WhatsApp account (no `whatsapp_business_management`), so #185 checks the catalogue directly and takes the connection as his (LOG). Products synced: SYNC_RESULT.
+    - **Status:** Rasheed made catalogue "Alo King" (1684040949979106) in his portfolio (131819648080461), connected it to the WhatsApp account with the catalogue icon and Add to cart on, and set `META_CATALOG_TOKEN` (#181, done). The token reads and writes the catalogue but cannot read the WhatsApp account (no `whatsapp_business_management`), so #185 checks the catalogue directly and takes the connection as his (LOG). Products synced: Alo Test Grill 15 of 15 (18:01 UTC, after #185 brought the token), none refused; the shop's product set was refused by Meta without a logged reason (dispatch now logs it; product messages do not need sets). The 27 demo shops (973 items) sync after this PR's deploy.
   - **Demo mode (DECISIONS §39.12):** every real shop with a priced draft menu (27) is a demo shop on staging, orderable, in search, the list menu and the catalogue, with item photos (Fred's Food's website photos, an illustration for the rest). Every order goes to Rasheed's number marked "Demo", and nothing ever reaches a shop's own number.
   - **What the customer sees:**
     - a shop of 30 items or fewer opens as one multi-product message by section;
@@ -283,7 +283,7 @@
   - **Templates:** 45 versions. 42 are pending at Meta. The 3 alo_claim_code versions are blocked by the 2K messaging tier.
   - **Flows:** 12 valid drafts with encryption set up. Meta's integrity gate blocks publishing them until business verification (#182).
   - **Live check on the US number with Rasheed's phone:** greeting, list menu and handoff passed. The handoff's operator alert went out from the expired sandbox and failed; fixed in the sender PR of this session (sent from the number the person wrote to last).
-  - **e2e:** E2E_RESULT
+  - **e2e:** staging after #183's deploy: 25/25 (run 38772108783). Scenarios 26 (#186) and 27–28 (this PR) run in the e2e after each deploy.
   - **New scenarios:** 23 catalogue-browse, 24 native-cart-price-change, 25 mixed-cart-and-buttons, 26 readiness-extras (2-tap repeat, typed search, STOP/START, voice "not yet"), 27 demo-freds-catalogue-cart, 28 demo-coop-list-menu.
   - **Open for later:** one #183 round-3 nit: the webhook's dispatch kick should abort after a few seconds (the other, a wrong image hash running `catalog_desired`, is fixed here).
   - **CUT-OVER (session 14), added:**
