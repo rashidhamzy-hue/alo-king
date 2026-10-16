@@ -95,7 +95,7 @@ async function main() {
   console.log(`profile set${handle ? " with the photo" : " (photo unchanged: no handle given)"}`);
   const got = await fetch(
     `${KAPSO_META}/${pn}/whatsapp_business_profile?fields=about,address,description,vertical,websites,profile_picture_url`,
-    { headers, signal: AbortSignal.timeout(30_000) },
+    { headers, redirect: "error", signal: AbortSignal.timeout(30_000) },
   );
   const now: any = await got.json().catch(() => ({}));
   const d = now?.data?.[0] ?? now;

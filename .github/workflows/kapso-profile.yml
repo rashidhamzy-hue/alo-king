@@ -38,4 +38,6 @@ jobs:
           KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
           PHONE_NUMBER_ID: ${{ inputs.phone_number_id }}
           PROFILE_PICTURE_HANDLE: ${{ inputs.picture_handle }}
-        run: node --experimental-strip-types --no-warnings scripts/kapso/profile.ts | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          node --experimental-strip-types --no-warnings scripts/kapso/profile.ts | tee -a "$GITHUB_STEP_SUMMARY"

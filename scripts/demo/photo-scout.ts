@@ -38,7 +38,16 @@ export type Packshot = {
   quantity: string | null;
   image_url: string;
   score: number;
+  // Open Food Facts product images are CC BY-SA 3.0, credited to its contributors.
+  license: string;
+  license_url: string;
+  credit: string;
+  source_url: string;
 };
+
+/** Openverse answered 429 twice in a row: its anonymous quota is spent for this run. */
+let openverseSpent = false;
+let openverse429 = 0;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -48,7 +57,15 @@ async function getJson(url: string, headers: Record<string, string> = {}, tries 
       headers: { "user-agent": UA, ...headers },
       signal: AbortSignal.timeout(30_000),
     }).catch(() => null);
-    if (res?.ok) return res.json();
+    if (res?.ok) {
+      if (url.startsWith(OPENVERSE)) openverse429 = 0;
+      return res.json();
+    }
+    if (res?.status === 429 && url.startsWith(OPENVERSE) && ++openverse429 >= 2) {
+      openverseSpent = true;
+      console.error("  Openverse quota spent for this run; no more Openverse searches");
+      return null;
+    }
     const wait = res?.status === 429 ? 30_000 * t : 3_000 * t;
     console.error(
       `  ${res?.status ?? "no answer"} for ${url.slice(0, 120)}; waiting ${wait / 1000}s`,
@@ -146,7 +163,7 @@ async function thumb(url: string): Promise<Buffer | null> {
       headers: { "user-agent": UA },
       signal: AbortSignal.timeout(30_000),
     });
-    if (!res.ok) return null;
+    if (!res.ok || Number(res.headers.get("content-length") ?? 0) > 25 * 1024 * 1024) return null;
     const b = Buffer.from(await res.arrayBuffer());
     if (b.length > 25 * 1024 * 1024) return null;
     return await sharp(b)
@@ -200,17 +217,21 @@ async function sheet(
 async function main() {
   const out = process.env.OUT_DIR ?? "photo-scout";
   mkdirSync(join(out, "sheets"), { recursive: true });
-  const maxPer = Number(process.env.MAX_PER_KEY ?? 8);
+  const maxPer = Math.max(1, Math.min(20, Number(process.env.MAX_PER_KEY) || 8));
   const only = (process.env.ONLY_KEYS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+  // sslmode in the URL would override `ssl` (pg 8) and verify the pooler's certificate, as every other DB script avoids.
+  const dbUrl = new URL(process.env.DB_URL ?? "");
+  dbUrl.searchParams.delete("sslmode");
   const db = new pg.Client({
-    connectionString: process.env.DB_URL,
+    connectionString: dbUrl.toString(),
     ssl: { rejectUnauthorized: false },
   });
   await db.connect();
   await db.query("set statement_timeout = '20s'");
+  await db.query("set default_transaction_read_only = on"); // this script only reads staging
   // Demo items without a photo of their own (single pass over the demo shops' menus).
   const { rows: items } = await db.query(`
     select i.name_en, i.name_ar, i.description, s.name_en as section_en, s.name_ar as section_ar,
@@ -234,6 +255,10 @@ async function main() {
   keys.delete("none");
 
   const dishes: Record<string, { items: number; candidates: Candidate[] }> = {};
+  const packshots: Record<string, { items: number; candidates: Packshot[] }> = {};
+  function save() {
+    writeFileSync(join(out, "candidates.json"), JSON.stringify({ dishes, packshots }, null, 1));
+  }
   const list = [...keys]
     .filter(([k]) => !only.length || only.includes(k))
     .sort((a, b) => b[1] - a[1]);
@@ -248,11 +273,13 @@ async function main() {
         );
         found.push(...pexelsCandidates(p));
       }
-      const body = await getJson(
-        `${OPENVERSE}?q=${encodeURIComponent(q)}&license=cc0,pdm,by&category=photograph&mature=false&page_size=20`,
-      );
-      found.push(...openverseCandidates(body));
-      await sleep(4000); // Openverse's anonymous rate limit
+      if (!openverseSpent) {
+        const body = await getJson(
+          `${OPENVERSE}?q=${encodeURIComponent(q)}&license=cc0,pdm,by&category=photograph&mature=false&page_size=20`,
+        );
+        found.push(...openverseCandidates(body));
+        await sleep(4000); // Openverse's anonymous rate limit
+      }
       if (found.length >= maxPer * 2) break;
     }
     const seen = new Set<string>();
@@ -262,9 +289,9 @@ async function main() {
       .map((c, i) => ({ ...c, n: i + 1 }));
     dishes[key] = { items: n, candidates: cands };
     console.log(`${key}: ${n} items, ${cands.length} candidates`);
+    save(); // a run that stops early still pushes what it found
   }
 
-  const packshots: Record<string, { items: number; candidates: Packshot[] }> = {};
   for (const [name, n] of shelf) {
     const url = `${OFF_SEARCH}?search_terms=${encodeURIComponent(words(name).join(" "))}&search_simple=1&action=process&json=1&page_size=10&fields=code,product_name,brands,quantity,image_front_url`;
     const body = await getJson(url);
@@ -278,15 +305,19 @@ async function main() {
         quantity: p.quantity ?? null,
         image_url: fullOffImage(String(p.image_front_url)),
         score: packshotScore(name, p),
+        license: "CC BY-SA 3.0",
+        license_url: "https://creativecommons.org/licenses/by-sa/3.0/",
+        credit: "Open Food Facts contributors",
+        source_url: `https://world.openfoodfacts.org/product/${encodeURIComponent(String(p.code))}`,
       }))
       .sort((a: Packshot, b: Packshot) => b.score - a.score)
       .slice(0, 4)
       .map((p: Omit<Packshot, "n">, i: number) => ({ ...p, n: i + 1 }));
     packshots[name] = { items: n, candidates: cands };
     console.log(`packshot ${name}: ${cands.map((c: Packshot) => c.score).join(", ")}`);
+    save();
   }
-
-  writeFileSync(join(out, "candidates.json"), JSON.stringify({ dishes, packshots }, null, 1));
+  save();
 
   // Contact sheets: 6 dish keys per sheet, then 8 shelf items per sheet.
   const dishRows = Object.entries(dishes);

@@ -47,12 +47,15 @@ jobs:
           ONLY_KEYS: ${{ inputs.only_keys }}
           MAX_PER_KEY: ${{ inputs.max_per_key }}
         run: |
+          set -o pipefail
           DB_URL="$(scripts/staging-db-url.sh)"
           echo "::add-mask::$DB_URL"
           [ -n "$PEXELS_API_KEY" ] || unset PEXELS_API_KEY
-          DB_URL="$DB_URL" OUT_DIR=photo-scout node --experimental-strip-types --no-warnings scripts/demo/photo-scout.ts \
-            | tee -a "$GITHUB_STEP_SUMMARY"
+          # The process that downloads and decodes third-party images never holds the account-wide Supabase token.
+          DB_URL="$DB_URL" OUT_DIR=photo-scout env -u SUPABASE_ACCESS_TOKEN -u SUPABASE_DB_PASSWORD \
+            node --experimental-strip-types --no-warnings scripts/demo/photo-scout.ts | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Push to a data branch
+        if: always() && hashFiles('photo-scout/candidates.json') != ''
         env:
           BRANCH: data/photo-scout-${{ github.run_id }}
           GH_TOKEN: ${{ github.token }}

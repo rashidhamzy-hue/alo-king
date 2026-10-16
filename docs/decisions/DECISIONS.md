@@ -1757,7 +1757,7 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 
 ### 39.13 World-class shopping on WhatsApp for the investor demo (Rasheed, 16 October; session 5e)
 - **Verdict on the old state:** the catalogue screen in the chat header showed 1,755 products from 29 shops in one flat list with drawn placeholder pictures. Unusable.
-- **The catalogue header icon is switched off; the cart stays on.**
+- **The catalogue header icon is switched off; the cart stays on.** **Overrides** the §39.12 line "The cart and catalogue icons are turned on for the number".
   - Meta's WhatsApp Business Platform docs (catalogs overview, share products, commerce settings) offer no collections or product-set grouping in the catalogue a customer opens from the chat header. The only grouping is the sections of a multi-product message.
   - Our catalogue has had one product set per shop since #189, and the header still showed one flat list (Rasheed's screenshot, 16 October).
   - So the header is set to `is_catalog_visible = false` with `is_cart_enabled = true`. Product messages and the cart work without the icon (Meta: the icon is off by default).

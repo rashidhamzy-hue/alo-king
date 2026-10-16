@@ -129,8 +129,7 @@ async function main() {
   const configuredBusiness = ID.test(process.env.META_BUSINESS_ID ?? "")
     ? process.env.META_BUSINESS_ID!
     : "";
-  // The token cannot read the WhatsApp account: the connection and the icons are the owner's (#181), unverified.
-  let ownerConfirmed = false;
+  // The token cannot read the WhatsApp account: the connection is the owner's (#181), unverified.
   let graphListing: Answer | null = null;
 
   const res = await fetch(`${KAPSO}/platform/v1/whatsapp/phone_numbers/${pn}`, {
@@ -170,7 +169,6 @@ async function main() {
     const read = await call("graph", `/${configuredCatalog}?fields=id,name,business`);
     catalog = read.ok ? readCatalog(read.body, configuredCatalog, configuredBusiness) : null;
     if (catalog) {
-      ownerConfirmed = true;
       notes.push(
         `catalogue ${configuredCatalog} (${catalog.name ?? ""}) of portfolio ${configuredBusiness}: read with the token; its connection to the account is the owner's (#181), unverified: this token cannot read the account (no whatsapp_business_management)`,
       );
@@ -237,7 +235,7 @@ async function main() {
     }
   }
 
-  // 3. The cart on, the catalogue (storefront) icon in the chat header off (session 5e, DECISIONS §39.12): WhatsApp shows
+  // 3. The cart on, the catalogue (storefront) icon in the chat header off (session 5e, DECISIONS §39.13): WhatsApp shows
   // a Cloud API catalogue as one flat list (no collections or product-set grouping), so customers browse through the bot's
   // product messages, which work with the icon off. Meta: cart on by default, storefront icon off by default.
   let settings = "not changed";
