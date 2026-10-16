@@ -280,3 +280,36 @@ export function packShopMenu(
   }
   return { products, rest };
 }
+
+// ---- Session 5f part 7: the product carousel (DECISIONS §39.15.2) ------------------------------------------------------------
+/**
+ * An interactive product carousel: 2 to 10 swipeable product cards from one catalogue, each a product_retailer_id of ours
+ * (Meta's `interactive.type = "carousel"`, cards of `type: "product"`), with a body and no header. Used for "Popular near
+ * you" and the one "Goes well with" of an order, only while config carousel_enabled is true (it must be seen working on
+ * the US number first); the callers fall back to a single-product or multi-product message otherwise.
+ */
+export function productCarouselMessage(
+  to: string,
+  catalogId: string,
+  body: string,
+  retailerIds: string[],
+) {
+  const ids = [...new Set(retailerIds.filter((id) => String(id ?? "").trim()))].slice(0, 10);
+  return {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: to.replace(/^\+/, ""),
+    type: "interactive",
+    interactive: {
+      type: "carousel",
+      body: { text: Array.from(body).slice(0, 1024).join("") },
+      action: {
+        cards: ids.map((id, k) => ({
+          card_index: k,
+          type: "product",
+          action: { product_retailer_id: id, catalog_id: catalogId },
+        })),
+      },
+    },
+  };
+}

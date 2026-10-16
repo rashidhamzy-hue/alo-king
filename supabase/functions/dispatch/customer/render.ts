@@ -689,7 +689,8 @@ export const tr = (lang: CLang, key: string, v: V = {}): string => {
 // ---- Every error carries a way forward (DECISIONS §39.15.1) -------------------------------------------------------------
 // A reply that ends a path without a button is a bug. Each error string the bot can say lists the buttons it is sent with;
 // render.test.ts checks that every key turn.ts passes to say() is either here or in INFO_KEYS.
-type Way = "retry" | "address" | "order" | "track" | "menu" | "basket" | "help" | "person";
+type Way =
+  "retry" | "address" | "order" | "track" | "menu" | "basket" | "help" | "person" | "clear";
 const WAYS: Record<Way, [string, string]> = {
   retry: ["c:retry", "btnRetry"],
   address: ["c:new_address", "btnChangeAddress"],
@@ -699,10 +700,12 @@ const WAYS: Record<Way, [string, string]> = {
   basket: ["c:basket", "btnBasket"],
   help: ["c:human", "btnHelp"],
   person: ["c:human", "btnPerson"],
+  // Empty the basket: the basket message gave its third button to "Add a note" (session 5f part 7).
+  clear: ["c:clear", "cancelBasket"],
 };
 export const ERROR_WAYS: Record<string, Way[]> = {
   noRoute: ["retry", "address", "help"],
-  placePaused: ["address", "help"],
+  placePaused: ["address", "clear", "help"],
   noPlace: ["address", "help"],
   pickPlaceFirst: ["order", "help"],
   flowRetry: ["menu", "help"],
@@ -711,7 +714,7 @@ export const ERROR_WAYS: Record<string, Way[]> = {
   voiceLong: ["order", "help"],
   voiceFail: ["order", "help"],
   unavailable: ["menu", "basket", "help"],
-  vendorPaused: ["order", "help"],
+  vendorPaused: ["order", "clear", "help"],
   trackNone: ["order", "help"],
   tooLate: ["track", "help"],
   disputeNone: ["track", "person"],
@@ -736,7 +739,7 @@ export const ERROR_WAYS: Record<string, Way[]> = {
   basketEmpty: ["menu", "order"],
   noItem: ["menu", "basket"],
   noDietItem: ["menu", "basket"],
-  codCap: ["basket", "help"],
+  codCap: ["basket", "clear", "help"],
 };
 /**
  * Replies that are not errors: a confirmation, a prompt the customer answers by typing or with the next message's
@@ -1114,6 +1117,8 @@ type Line = {
   line_total_usd?: number | string | null;
   estimated?: boolean;
   options?: string[];
+  /** The customer's note for the kitchen (#26), never a price. */
+  note?: string | null;
 };
 export type Basket = {
   basket_id: string;
@@ -1128,22 +1133,24 @@ export type Basket = {
 const lineText = (lang: CLang, l: Line) =>
   `• ${l.quantity}× ${name(lang, l.name, l.name_en)}${l.options?.length ? ` (${l.options.join("، ")})` : ""}${
     l.line_total_usd != null ? ` — ${usd(l.line_total_usd)}${l.estimated ? "*" : ""}` : ""
-  }`;
+  }${l.note ? `\n   📝 ${l.note}` : ""}`;
 
 export function basketMessage(to: string, lang: CLang, b: Basket | null): Msg[] {
   if (!b || !b.lines?.length) return [errorCard(to, lang, "basketEmpty")];
   const vendor = name(lang, b.vendor, b.vendor_en);
   const est = b.lines.some((l) => l.estimated) ? `\n* ${tr(lang, "estimated")}` : "";
-  const body = [
-    tr(lang, "basketTitle", { vendor }),
-    ...b.lines.map((l) => lineText(lang, l)),
-    `${tr(lang, "subtotal")}: ${usd(b.subtotal_usd)}${est}`,
-  ].join("\n");
+  const body = fitBody(
+    lang,
+    [tr(lang, "basketTitle", { vendor })],
+    b.lines.map((l) => lineText(lang, l)),
+    [`${tr(lang, "subtotal")}: ${usd(b.subtotal_usd)}${est}`],
+  );
   return [
     buttons(to, body, [
       ["c:checkout", tr(lang, "checkoutBtn")],
       ["c:menu", tr(lang, "addMore")],
-      ["c:clear", tr(lang, "cancelBasket")],
+      // A note per item (#26); the summary keeps Cancel.
+      ["note:add", tr(lang, "btnNote")],
     ]),
   ];
 }
@@ -1199,6 +1206,8 @@ export function summaryMessage(
   q: Quote,
   newCustomer: boolean,
   cash: string | null = null,
+  /** The tip, the total with it and the change answer (basket_checkout_extras, session 5f part 7). */
+  extra: SummaryExtra | null = null,
 ): Msg[] {
   const b = q.basket;
   const vendor = name(lang, b.vendor, b.vendor_en);
@@ -1225,17 +1234,20 @@ export function summaryMessage(
         ]
       : []),
     ...(Number(q.credit_usd ?? 0) > 0 ? [`${tr(lang, "creditLine")}: −${usd(q.credit_usd)}`] : []),
-    `*${tr(lang, "total")}: ${moneyLine(q.total_usd, q.total_lbp, q.usd_lbp_rate, lang, false)}*`,
+    ...(Number(extra?.tip_usd ?? 0) > 0 ? [`${tr(lang, "tipLine")}: ${usd(extra?.tip_usd)}`] : []),
+    `*${tr(lang, "total")}: ${moneyLine(extra?.total_usd ?? q.total_usd, extra?.total_lbp ?? q.total_lbp, extra?.usd_lbp_rate ?? q.usd_lbp_rate, lang, false)}*`,
     ...(q.estimated ? [`* ${tr(lang, "estimated")}`] : []),
     q.address
       ? `📍 ${tr(lang, "deliverTo", { where: where(lang, q.address) })}`
       : `🛍️ ${tr(lang, "pickup")}`,
     tr(lang, "payCash") + (cash ? ` (${cash})` : ""),
+    ...(extra?.change?.status === "set" ? [changeLine(lang, extra.change)] : []),
     ...(q.allergy_note ? [tr(lang, "allergyLine", { note: q.allergy_note })] : []),
     ...(q.is_gift && q.recipient_name ? [tr(lang, "giftLine", { name: q.recipient_name })] : []),
   ];
+  const n = b.lines.length;
   return [
-    buttons(to, lines.join("\n"), [
+    buttons(to, fitBody(lang, lines.slice(0, 1), lines.slice(1, 1 + n), lines.slice(1 + n)), [
       [`cfm:${b.basket_id}:${b.menu_version ?? 0}`, tr(lang, "confirm")],
       ["c:basket", tr(lang, "change")],
       ["c:clear", tr(lang, "cancelBasket")],
@@ -1332,7 +1344,10 @@ export function askPin(to: string, lang: CLang, place?: string | null): Msg {
 
 export function beyondRadius(to: string, lang: CLang, q: Quote): Msg {
   const vendor = name(lang, q.basket.vendor, q.basket.vendor_en);
-  const bs: [string, string][] = [["c:find", tr(lang, "otherPlace")]];
+  const bs: [string, string][] = [
+    ["c:find", tr(lang, "otherPlace")],
+    ["c:clear", tr(lang, "cancelBasket")],
+  ];
   if (q.pickup_enabled) bs.unshift(["c:pickup", tr(lang, "pickupInstead")]);
   return buttons(to, tr(lang, "beyond", { vendor, km: q.limit_km ?? "" }), bs);
 }
@@ -2128,7 +2143,10 @@ export function belowMinimumMessage(to: string, lang: CLang, q: Quote): Msg {
   return buttons(
     to,
     tr(lang, "belowMinimum", { min: usd(q.min_order_usd ?? 0), missing: usd(q.missing_usd ?? 0) }),
-    [["c:basket", tr(lang, "change")]],
+    [
+      ["c:basket", tr(lang, "change")],
+      ["c:clear", tr(lang, "cancelBasket")],
+    ],
   );
 }
 
@@ -2745,6 +2763,371 @@ export function savedCartOfferCard(
   );
 }
 
+// ---- Session 5f part 7: the chat after the native cart and at checkout (CUSTOMER-EXPERIENCE #25, #26, #35, #38) ---------
+const S5F7: Record<string, Record<CLang, string>> = {
+  btnNote: {
+    ar: "📝 ملاحظة",
+    en: "📝 Add a note",
+    fr: "📝 Ajouter une note",
+    arabizi: "📝 Zid mula7aza",
+  },
+  noteWhich: {
+    ar: "📝 على أي صنف الملاحظة؟",
+    en: "📝 Which item is the note for?",
+    fr: "📝 Pour quel article est la note ?",
+    arabizi: "📝 3a ayya sanf el mula7aza?",
+  },
+  noteButton: { ar: "الأصناف", en: "Items", fr: "Articles", arabizi: "El asnaf" },
+  noteAsk: {
+    ar: "📝 شو لازم يعرف المطبخ عن «{item}»؟ اكتبلي لحدّ {max} حرف، مثلاً «بلا بصل».",
+    en: '📝 What should the kitchen know about "{item}"? Type up to {max} characters, e.g. "no onions".',
+    fr: "📝 Que doit savoir la cuisine pour « {item} » ? Écrivez jusqu'à {max} caractères, par ex. « sans oignons ».",
+    arabizi:
+      '📝 Shu lezem ya3ref el matbakh 3an "{item}"? Ktob la 7add {max} 7arf, metel "bala basal".',
+  },
+  noteAskShort: {
+    ar: "📝 شو لازم يعرف المطبخ عن «{item}»؟ اكتبلي ملاحظة قصيرة، مثلاً «بلا بصل».",
+    en: '📝 What should the kitchen know about "{item}"? Type a short note, e.g. "no onions".',
+    fr: "📝 Que doit savoir la cuisine pour « {item} » ? Écrivez une courte note, par ex. « sans oignons ».",
+    arabizi:
+      '📝 Shu lezem ya3ref el matbakh 3an "{item}"? Ktob mula7aza 2asira, metel "bala basal".',
+  },
+  noteBack: { ar: "↩️ السلّة", en: "↩️ Basket", fr: "↩️ Panier", arabizi: "↩️ El salle" },
+  noteTooLong: {
+    ar: "📝 الملاحظة {n} حرف، والحدّ {max}. ابعتلي وحدة أقصر.",
+    en: "📝 That note is {n} characters; the most is {max}. Please send a shorter one.",
+    fr: "📝 Cette note fait {n} caractères ; le maximum est {max}. Envoyez-en une plus courte.",
+    arabizi: "📝 El mula7aza {n} 7arf, w el 7add {max}. B3atle wa7de a2sar.",
+  },
+  noteGone: {
+    ar: "هالصنف ما عاد بسلّتك.",
+    en: "That item is no longer in your basket.",
+    fr: "Cet article n'est plus dans votre panier.",
+    arabizi: "Hal sanf ma 3ad b sallitak.",
+  },
+  choiceMore: {
+    ar: "اختار كمان {n} من {group} لـ «{item}»:",
+    en: 'Choose {n} more {group} for "{item}":',
+    fr: "Choisissez encore {n} {group} pour « {item} » :",
+    arabizi: 'Na22e kamen {n} men {group} la "{item}":',
+  },
+  extrasAsk: {
+    ar: "➕ بدك إضافات على «{item}»؟ لحدّ {n}.",
+    en: '➕ Add extras to "{item}"? Up to {n}.',
+    fr: "➕ Des suppléments pour « {item} » ? Jusqu'à {n}.",
+    arabizi: '➕ Badak idafet 3a "{item}"? La 7add {n}.',
+  },
+  extrasMore: {
+    ar: "✅ زدناها. شي تاني على «{item}»؟ لحدّ {n} كمان.",
+    en: '✅ Added. Anything else on "{item}"? Up to {n} more.',
+    fr: "✅ Ajouté. Autre chose pour « {item} » ? Jusqu'à {n} de plus.",
+    arabizi: '✅ Zedneha. Shi tene 3a "{item}"? La 7add {n} kamen.',
+  },
+  extrasButton: { ar: "الإضافات", en: "Extras", fr: "Suppléments", arabizi: "El idafet" },
+  noExtras: { ar: "بلا إضافات", en: "No extras", fr: "Sans supplément", arabizi: "Bala idafet" },
+  noExtrasRest: {
+    ar: "بلا إضافات للباقي",
+    en: "No extras for the rest",
+    fr: "Aucun pour le reste",
+    arabizi: "Bala idafet lal ba2i",
+  },
+  extrasDone: { ar: "✓ خلصت", en: "✓ Done", fr: "✓ Terminé", arabizi: "✓ Khalast" },
+  changeAsk: {
+    ar: "💵 المجموع {total}. بدك فراطة؟ بأي ورقة رح تدفع؟",
+    en: "💵 Your total is {total}. Do you need change? What will you pay with?",
+    fr: "💵 Votre total est de {total}. Besoin de monnaie ? Avec quel billet payerez-vous ?",
+    arabizi: "💵 El majmou3 {total}. Badak fraata? B ayya wara2a ra7 tedfa3?",
+  },
+  changeExact: { ar: "المبلغ مظبوط", en: "Exact amount", fr: "Montant exact", arabizi: "Mazbout" },
+  changeButton: { ar: "الدفع", en: "Pay with", fr: "Payer avec", arabizi: "Edfa3 b" },
+  changeLine: {
+    ar: "💵 رح تدفع {paid}: الباقي {due}",
+    en: "💵 Paying with {paid}: {due} change",
+    fr: "💵 Vous payez avec {paid} : {due} de monnaie",
+    arabizi: "💵 Ra7 tedfa3 {paid}: el ba2e {due}",
+  },
+  changeExactLine: {
+    ar: "💵 المبلغ مظبوط، بلا فراطة",
+    en: "💵 Exact cash, no change needed",
+    fr: "💵 Montant exact, pas de monnaie",
+    arabizi: "💵 El mablagh mazbout, bala fraata",
+  },
+  tipLine: { ar: "🙏 بخشيش", en: "🙏 Tip", fr: "🙏 Pourboire", arabizi: "🙏 Bakhshish" },
+  tipRowAsk: {
+    ar: "🙏 بدك تترك بخشيش للي بيوصّل؟ بيروح كلّو إلو. اختياري.",
+    en: "🙏 Add a tip for whoever delivers? 100% goes to them. Optional.",
+    fr: "🙏 Un pourboire pour la personne qui livre ? Il lui revient à 100 %. Facultatif.",
+    arabizi: "🙏 Badak tetrok bakhshish lal delivery? Byrou7 kello elo. Ekhtiyare.",
+  },
+  tipRowChange: {
+    ar: "🙏 البخشيش {tip}. بدك تغيّرو؟",
+    en: "🙏 Tip: {tip}. Change it?",
+    fr: "🙏 Pourboire : {tip}. Le modifier ?",
+    arabizi: "🙏 El bakhshish {tip}. Badak tghayro?",
+  },
+  noTip: { ar: "بلا بخشيش", en: "No tip", fr: "Sans pourboire", arabizi: "Bala bakhshish" },
+  tipButton: { ar: "البخشيش", en: "Tip", fr: "Pourboire", arabizi: "Bakhshish" },
+  tipAfterAsk: {
+    ar: "بدك تترك بخشيش للي وصّل؟ بيروح كلّو إلو.",
+    en: "Want to tip whoever delivered? 100% goes to them.",
+    fr: "Un pourboire pour la personne qui a livré ? Il lui revient à 100 %.",
+    arabizi: "Badak tetrok bakhshish lal delivery? Byrou7 kello elo.",
+  },
+  tipOther: { ar: "مبلغ تاني", en: "Other", fr: "Autre", arabizi: "Mablagh tene" },
+  tipOtherAsk: {
+    ar: "🙏 اكتبلي قديش البخشيش بالدولار، لحدّ {max}. مثلاً 1.5",
+    en: "🙏 Type the tip in dollars, up to {max}. For example 1.50",
+    fr: "🙏 Écrivez le pourboire en dollars, jusqu'à {max}. Par ex. 1.50",
+    arabizi: "🙏 Ktob ad shu el bakhshish bel dollar, la 7add {max}. Metel 1.5",
+  },
+  tipOtherBad: {
+    ar: "ما فهمت المبلغ. اكتبلي رقم بالدولار لحدّ {max}، مثلاً 1.5",
+    en: "I didn't get that amount. Type a number of dollars up to {max}, e.g. 1.50",
+    fr: "Je n'ai pas compris le montant. Écrivez un nombre de dollars jusqu'à {max}, par ex. 1.50",
+    arabizi: "Ma fhemt el mablagh. Ktob ra2m bel dollar la 7add {max}, metel 1.5",
+  },
+  tipThanks: {
+    ar: "🙏 شكراً! خبّرنا اللي وصّلك الطلب عن البخشيش ({amount}). عطيه ياه بس تشوفه، كلّو إلو.",
+    en: "🙏 Thank you! We told whoever delivered your order about the {amount} tip; hand it over when you see them. It's 100% theirs.",
+    fr: "🙏 Merci ! Nous avons prévenu la personne qui a livré du pourboire de {amount} ; remettez-le-lui quand vous la verrez. Il lui revient à 100 %.",
+    arabizi:
+      "🙏 Merci! Khabbarna li wassallak el talab 3an el bakhshish ({amount}). 3tih yeh bas tchoufo, kello elo.",
+  },
+  tipNotAllowed: {
+    ar: "ما فينا ناخد هالبخشيش. اختار من الأزرار.",
+    en: "We can't take that tip. Please pick one of the buttons.",
+    fr: "Ce pourboire n'est pas possible. Choisissez un des boutons.",
+    arabizi: "Ma fina nekhod hal bakhshish. Ekhtar men el azrar.",
+  },
+  tipTooLate: {
+    ar: "فات الوقت لتزيد بخشيش على هالطلب. شكراً كتير!",
+    en: "It's too late to add a tip to that order. Thank you all the same!",
+    fr: "Il est trop tard pour un pourboire sur cette commande. Merci quand même !",
+    arabizi: "Fet el wa2t la tzid bakhshish 3a hal talab. Merci ktir!",
+  },
+  goesWell: {
+    ar: "🍟 بيمشي مع طلبك",
+    en: "🍟 Goes well with your order",
+    fr: "🍟 Va bien avec votre commande",
+    arabizi: "🍟 Byemshe ma3 talabak",
+  },
+  goesWellMany: {
+    ar: "🍟 بيمشوا مع طلبك. اسحب لتشوفن كلّن.",
+    en: "🍟 Goes well with your order. Swipe to see them all.",
+    fr: "🍟 Va bien avec votre commande. Faites défiler pour tout voir.",
+    arabizi: "🍟 Byemsho ma3 talabak. Es7ab la tchoufon kellon.",
+  },
+  moreLines: {
+    ar: "+{n} أصناف كمان",
+    en: "+{n} more items",
+    fr: "+{n} autres articles",
+    arabizi: "+{n} asnaf kamen",
+  },
+  popularNear: {
+    ar: "🔥 الأكتر طلباً حدّك",
+    en: "🔥 Popular near you",
+    fr: "🔥 Populaire près de chez vous",
+    arabizi: "🔥 El aktar talab 7addak",
+  },
+  popularBody: {
+    ar: "🔥 الأكتر طلباً من المحلات اللي بتوصّل لعندك. كبوس على صنف لتزيدو.",
+    en: "🔥 What people order most from the shops that deliver to you. Tap one to add it.",
+    fr: "🔥 Les plus commandés chez les commerces qui vous livrent. Touchez-en un pour l'ajouter.",
+    arabizi: "🔥 El aktar talab men el ma7allet li bwasslo la 3endak. Dos 3a sanf la tzido.",
+  },
+};
+Object.assign(S, S5F7);
+// Errors of this part go out with their buttons (DECISIONS §39.15.1); the rest are prompts or confirmations.
+Object.assign(ERROR_WAYS, {
+  noteTooLong: ["basket", "help"],
+  noteGone: ["basket", "menu"],
+  tipOtherBad: ["track", "help"],
+  tipNotAllowed: ["track", "help"],
+  tipTooLate: ["order", "help"],
+} satisfies Record<string, Way[]>);
+for (const k of ["tipThanks", "tipOtherAsk"]) INFO_KEYS.add(k);
+
+/** "$20", "$1.50" and "2,000,000 LBP": an amount the server sent, in its currency. */
+export const cashAmount = (currency: string, v: unknown): string => {
+  const n = Number(v ?? 0);
+  return currency === "LBP"
+    ? `${Math.round(n).toLocaleString("en-US")} LBP`
+    : Number.isInteger(n)
+      ? `$${n}`
+      : `$${n.toFixed(2)}`;
+};
+
+/** Buttons for 1-3 choices, a list for more (DECISIONS §29.3); a list too when two button titles would be the same. */
+function choices(
+  to: string,
+  body: string,
+  button: string,
+  rows: { id: string; title: string; button?: string; description?: string }[],
+): Msg {
+  const titles = rows.map((r) => clip(r.button ?? r.title, 20));
+  if (rows.length <= 3 && new Set(titles).size === rows.length)
+    return buttons(
+      to,
+      body,
+      rows.map((r, k) => [r.id, titles[k]] as [string, string]),
+    );
+  return list(to, body, button, [
+    {
+      rows: rows.slice(0, 10).map<Row>((r) => ({
+        id: r.id,
+        title: clip(r.title, 24),
+        ...(r.description ? { description: clip(r.description, 72) } : {}),
+      })),
+    },
+  ]);
+}
+
+export type ChoiceOption = {
+  option_id: string;
+  name?: string | null;
+  name_en?: string | null;
+  price_delta_usd?: number | string | null;
+};
+export type ChoiceGroup = {
+  group_id?: string;
+  name?: string | null;
+  name_en?: string | null;
+  min?: number;
+  max?: number;
+  room?: number;
+  options: ChoiceOption[];
+};
+
+/**
+ * One required choice of an item from a cart (#25): buttons for three options or fewer, else a list; option prices are the
+ * server's (+$1.50). `more`: how many are still to choose when the group needs several.
+ */
+export function choiceAsk(
+  to: string,
+  lang: CLang,
+  item: string,
+  group: ChoiceGroup,
+  options: ChoiceOption[],
+  more = 1,
+): Msg {
+  const g = name(lang, group.name, group.name_en);
+  const body =
+    more > 1
+      ? tr(lang, "choiceMore", { n: more, group: g, item })
+      : tr(lang, "pickOption", { group: g, item });
+  return choices(
+    to,
+    body,
+    tr(lang, "choose"),
+    options.map((o) => {
+      const plus = Number(o.price_delta_usd ?? 0) > 0 ? ` +${usd(o.price_delta_usd)}` : "";
+      const n = name(lang, o.name, o.name_en);
+      return {
+        id: `opt:${o.option_id}`,
+        title: n,
+        button: `${clip(n, 20 - [...plus].length)}${plus}`,
+        ...(plus ? { description: plus.trim() } : {}),
+      };
+    }),
+  );
+}
+
+/**
+ * The add-ons of a line, offered once (#25): a list of every option that still fits (by group, with the server's prices)
+ * and "No extras" (or "Done" after one was added). At most 9 options and that row.
+ */
+export function extrasList(
+  to: string,
+  lang: CLang,
+  item: string,
+  groups: ChoiceGroup[],
+  added = false,
+  /** More items of the cart have add-ons to offer: a "No extras for the rest" row ends them all. */
+  rest = false,
+): Msg {
+  const sections: { title?: string; rows: Row[] }[] = [];
+  const most = rest ? 8 : 9;
+  let n = 0;
+  let room = 0;
+  for (const g of groups) {
+    const rows = g.options.slice(0, most - n).map<Row>((o) => ({
+      id: `ext:${o.option_id}`,
+      title: clip(name(lang, o.name, o.name_en), 24),
+      ...(Number(o.price_delta_usd ?? 0) > 0 ? { description: `+${usd(o.price_delta_usd)}` } : {}),
+    }));
+    if (!rows.length) continue;
+    n += rows.length;
+    room += Math.min(Number(g.room ?? g.max ?? 1), g.options.length);
+    sections.push({ title: clip(name(lang, g.name, g.name_en), 24), rows });
+  }
+  // Meta wants a title on every section when there are several: the closing row joins the last one.
+  const none: Row[] = [
+    { id: "ext:none", title: tr(lang, added ? "extrasDone" : "noExtras") },
+    ...(rest ? [{ id: "ext:rest", title: tr(lang, "noExtrasRest") }] : []),
+  ];
+  if (sections.length) sections[sections.length - 1].rows.push(...none);
+  else sections.push({ rows: none });
+  if (sections.length === 1) delete sections[0].title;
+  return list(
+    to,
+    tr(lang, added ? "extrasMore" : "extrasAsk", { item, n: Math.max(room, 1) }),
+    tr(lang, "extrasButton"),
+    sections,
+  );
+}
+
+/** "Which item is the note for?" (#26): one row per basket line, with its note if it has one. */
+export function noteLinesList(
+  to: string,
+  lang: CLang,
+  lines: {
+    line_id: string;
+    name: string;
+    name_en?: string;
+    quantity: number;
+    note?: string | null;
+  }[],
+): Msg {
+  return list(to, tr(lang, "noteWhich"), tr(lang, "noteButton"), [
+    {
+      rows: lines.slice(0, 10).map<Row>((l) => ({
+        id: `note:${l.line_id}`,
+        title: clip(name(lang, l.name, l.name_en), 24),
+        description: clip(`${l.quantity}×${l.note ? ` · 📝 ${l.note}` : ""}`, 72),
+      })),
+    },
+  ]);
+}
+
+/** "What should the kitchen know about …?": the next text is the note; Basket goes back without one. */
+export function notePrompt(to: string, lang: CLang, item: string, max: number | null): Msg {
+  return buttons(to, tr(lang, max ? "noteAsk" : "noteAskShort", { item, max }), [
+    ["c:basket", tr(lang, "noteBack")],
+  ]);
+}
+
+/** "Do you need change?" (#35): Exact, then the configured notes above the total, as the server sent them. */
+export function changeAsk(
+  to: string,
+  lang: CLang,
+  currency: "USD" | "LBP",
+  total: number | string,
+  options: (number | string)[],
+): Msg {
+  return choices(
+    to,
+    tr(lang, "changeAsk", { total: cashAmount(currency, total) }),
+    tr(lang, "changeButton"),
+    [
+      { id: `chg:${currency}:exact`, title: tr(lang, "changeExact") },
+      ...options.slice(0, 9).map((v) => ({
+        id: `chg:${currency}:${Math.round(Number(v))}`,
+        title: cashAmount(currency, v),
+      })),
+    ],
+  );
+}
+
 // ---- Demo testers (session 5f part 6, DECISIONS §39.15.3) ------------------------------------------------------------------
 const S5F6: Record<string, Record<CLang, string>> = {
   testerWelcome: {
@@ -2829,4 +3212,99 @@ export function demoAddressCard(to: string, lang: CLang, choices: DemoAddress[])
           ] as [string, string],
       ),
   );
+}
+
+export type ChangeAnswer = {
+  status: string;
+  currency: "USD" | "LBP";
+  change_for?: number | string | null;
+  change_due?: number | string | null;
+};
+/** The summary's change line: "Paying with $20: $5.75 change", or "Exact cash". */
+export function changeLine(lang: CLang, c: ChangeAnswer): string {
+  return c.change_for == null
+    ? tr(lang, "changeExactLine")
+    : tr(lang, "changeLine", {
+        paid: cashAmount(c.currency, c.change_for),
+        due: c.currency === "LBP" ? cashAmount("LBP", c.change_due) : usd(c.change_due),
+      });
+}
+
+/** What basket_checkout_extras adds to the summary. */
+export type SummaryExtra = {
+  tip_usd?: number | string;
+  total_usd?: number | string;
+  total_lbp?: number | string;
+  usd_lbp_rate?: number | string;
+  change?: ChangeAnswer | null;
+};
+
+/**
+ * The tip at checkout (#38): one optional row after the summary, default none; with a tip chosen, the other amounts and
+ * "No tip". Amounts come from config through the server; the tap carries cents, which the server checks again.
+ */
+export function tipRow(
+  to: string,
+  lang: CLang,
+  amounts: (number | string)[],
+  current: number,
+): Msg {
+  const rows = [
+    ...amounts
+      .map(Number)
+      .filter((v) => v > 0 && v !== current)
+      .slice(0, 9)
+      .map((v) => ({ id: `tpc:${Math.round(v * 100)}`, title: cashAmount("USD", v) })),
+    ...(current > 0 ? [{ id: "tpc:0", title: tr(lang, "noTip") }] : []),
+  ];
+  return choices(
+    to,
+    current > 0 ? tr(lang, "tipRowChange", { tip: usd(current) }) : tr(lang, "tipRowAsk"),
+    tr(lang, "tipButton"),
+    rows,
+  );
+}
+
+/** After delivery (#38): the thanks, then the configured amounts and Other. */
+export function tipAfterCard(
+  to: string,
+  lang: CLang,
+  orderId: string,
+  amounts: (number | string)[],
+  leadKey: string,
+): Msg {
+  return choices(to, `${tr(lang, leadKey)}\n${tr(lang, "tipAfterAsk")}`, tr(lang, "tipButton"), [
+    ...amounts
+      .map(Number)
+      .filter((v) => v > 0)
+      .slice(0, 9)
+      .map((v) => ({ id: `tpo:${orderId}:${Math.round(v * 100)}`, title: cashAmount("USD", v) })),
+    { id: `tpo:${orderId}:other`, title: tr(lang, "tipOther") },
+  ]);
+}
+
+/**
+ * A basket or summary body within Meta's 1024 characters: the title and the totals always whole; item lines (longer now
+ * that they carry notes) dropped from the end with "+N more items" when they do not all fit.
+ */
+function fitBody(lang: CLang, head: string[], items: string[], tail: string[]): string {
+  const len = (x: string) => [...x].length;
+  const all = [...head, ...items, ...tail].join("\n");
+  if (len(all) <= 1024) return all;
+  const fixed =
+    len([...head, ...tail].join("\n")) + 2 + len(tr(lang, "moreLines", { n: items.length }));
+  const shown: string[] = [];
+  let used = 0;
+  for (const l of items) {
+    const line = clip(l, 200);
+    if (fixed + used + len(line) + 1 > 1024) break;
+    shown.push(line);
+    used += len(line) + 1;
+  }
+  return [
+    ...head,
+    ...shown,
+    tr(lang, "moreLines", { n: items.length - shown.length }),
+    ...tail,
+  ].join("\n");
 }

@@ -399,7 +399,7 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     expect(ids(out[0])).toHaveLength(10);
     out = await turn(await p.tap(ids(out[0])[4])); // quantity 5
     expect(body(out[0])).toContain("5× Falafel Sandwich");
-    expect(ids(out[0])).toEqual(["c:checkout", "c:menu", "c:clear"]);
+    expect(ids(out[0])).toEqual(["c:checkout", "c:menu", "note:add"]);
 
     // 07:47:57 "✅ Checkout": pickup basket, cash currency first.
     out = await turn(await p.tap("c:checkout"));
@@ -548,7 +548,7 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     await p.pin(33.645385742188, 35.64342880249);
     p.st.lines.push({ item_id: FALAFEL, name_en: "Falafel Sandwich", quantity: 5, price: 2.5 });
     let out = await p.tap("c:checkout");
-    expect(ids(out[0])).toEqual(["c:pickup", "c:find"]);
+    expect(ids(out[0])).toEqual(["c:pickup", "c:find", "c:clear"]);
     expect(body(out[0])).toContain("doesn't deliver");
     out = await p.tap("c:pickup"); // "🛍️ I'll pick up" went to the failure path before
     expect(p.st.fulfilment).toBe("pickup");

@@ -23,6 +23,7 @@ import {
   rejectReasonList,
   shiftHandoverText,
   textMessage,
+  tipCard,
   type Handover,
   type Lang,
   type OrderCardData,
@@ -651,6 +652,11 @@ export function buildWhatsApp(m: Outbox, lang: Lang): Record<string, unknown>[] 
             lang,
           )
         : [];
+    case "tip":
+      // A promised tip to whoever delivered (session 5f part 7): only their "Got it" books it.
+      return m.order_id && Number(m.payload.tip_usd) > 0
+        ? [tipCard(to, m.order_id, code, m.payload.tip_usd, String(m.payload.source ?? ""), lang)]
+        : [];
     case "reply":
       return m.payload.interactive
         ? [
@@ -1105,6 +1111,21 @@ async function handleTap(
       );
       if (r.status === to || r.status === "unchanged") await nextStep(action.orderId, to);
       return;
+    }
+    case "tip_got": {
+      // "✅ Got it" on a promised tip: the server checks this number is the shop's or the order's driver, then books it.
+      const r = await safe("order_tip_confirm", {
+        p_order_id: action.orderId,
+        p_phone_e164: m.from,
+      });
+      const tip = `$${Number(r?.tip_usd ?? 0).toFixed(2)}`;
+      return reply(
+        r?.status === "collected" || r?.status === "already"
+          ? `🙏 تمام، سجّلنا البخشيش ${tip} إلك على الطلب #${r.code}. / Noted: the ${tip} tip on #${r.code} is yours.`
+          : r?.status === "not_delivered"
+            ? "⚠️ الطلب بعدو ما وصل. / The order is not delivered yet."
+            : "⚠️ ما فيك تأكّد هالبخشيش. / You can't confirm this tip.",
+      );
     }
     case "ready_in": {
       const member = await memberFor({ p_order_id: action.orderId });

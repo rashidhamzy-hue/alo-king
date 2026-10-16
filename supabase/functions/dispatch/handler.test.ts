@@ -941,3 +941,56 @@ describe("tester remove from an owner's phone (§39.15.3)", () => {
     expect(testerRemoveReply({ status: "bad_phone" })).toMatch(/country code/);
   });
 });
+
+// Session 5f part 7 (#38): a promised tip goes to whoever delivered; only their "Got it" books it.
+describe("a promised tip and whoever delivered (session 5f part 7)", () => {
+  const merchant = [{ member_id: MEMBER, vendor_id: VENDOR, role: "owner", vendor_name: "A" }];
+  it("the outbox 'tip' row is a card with Got it, from the merchant number", async () => {
+    const db = fakeDb({
+      outbox: [
+        {
+          id: 5,
+          order_id: ORDER,
+          vendor_id: VENDOR,
+          channel: "whatsapp",
+          purpose: "tip",
+          target: "+96171000005",
+          payload: { order_id: ORDER, code: "AB3CD9", tip_usd: 2, source: "after_delivery" },
+          attempts: 1,
+          card,
+        },
+      ],
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(sent[0].payload.interactive.body.text).toContain("بخشيش $2.00");
+    expect(sent[0].payload.interactive.action.buttons[0].reply.id).toBe(`tip:${ORDER}`);
+    expect(db.of("outbox_finish")[0].args.p_status).toBe("sent");
+  });
+  it("Got it asks the server to confirm for the number the tap came from, and says what happened", async () => {
+    const db = fakeDb({
+      members: merchant,
+      events: [
+        inbound({ type: "interactive", interactive: { button_reply: { id: `tip:${ORDER}` } } }),
+      ],
+      rpcs: { order_tip_confirm: () => ({ status: "collected", tip_usd: 2, code: "AB3CD9" }) },
+    });
+    const { d } = deps(db);
+    await runDispatch(d);
+    expect(db.of("order_tip_confirm")[0].args).toEqual({
+      p_order_id: ORDER,
+      p_phone_e164: "+96171000001",
+    });
+    expect(db.of("app_reply")[0].args.p_payload.text).toContain("$2.00");
+    const no = fakeDb({
+      members: merchant,
+      events: [
+        inbound({ type: "interactive", interactive: { button_reply: { id: `tip:${ORDER}` } } }),
+      ],
+      rpcs: { order_tip_confirm: () => ({ status: "not_allowed" }) },
+    });
+    const n = deps(no);
+    await runDispatch(n.d);
+    expect(no.of("app_reply")[0].args.p_payload.text).toContain("can't confirm");
+  });
+});

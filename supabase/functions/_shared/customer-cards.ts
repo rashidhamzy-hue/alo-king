@@ -455,6 +455,9 @@ export type OrderInfo = {
   total_usd?: number | string;
   total_lbp?: number | string;
   usd_lbp_rate?: number | string;
+  /** What the customer pays at the door: the total and a tip chosen at checkout (order_card_payload, #38). */
+  collect_usd?: number | string;
+  collect_lbp?: number | string;
 };
 
 /**
@@ -477,7 +480,7 @@ export function customerStatusMessages(
     ? `\n${tr(lang, card?.fulfilment === "pickup" ? "codePickup" : "code", { dcode: extra.deliveryCode })}`
     : "";
   const money = card
-    ? `\n${moneyLine(card.total_usd, card.total_lbp, card.usd_lbp_rate, lang)}`
+    ? `\n${moneyLine(card.collect_usd ?? card.total_usd, card.collect_lbp ?? card.total_lbp, card.usd_lbp_rate, lang)}`
     : "";
   const driver =
     typeof p.driver_phone === "string" && /^\+[1-9]\d{6,14}$/.test(p.driver_phone)
@@ -749,8 +752,21 @@ export function alternativesCard(to: string, body: string, alts: unknown, lang: 
   );
 }
 
+/**
+ * Taps of the chat after the native cart and at checkout (session 5f part 7): an add-on (ext:<option> / ext:none), a note
+ * (note:add / note:<line>), the change answer (chg:<currency>:exact|<amount>), the checkout tip in cents (tpc:<cents>, 0 =
+ * none) and the tip after delivery (tpo:<order>:<cents>|other). The server checks every amount against its config.
+ */
+export type AfterCartAction =
+  | { a: "extra"; optionId: string | null; rest?: boolean }
+  | { a: "note"; lineId: string | null }
+  | { a: "change"; currency: "USD" | "LBP"; amount: number | null }
+  | { a: "tip"; cents: number }
+  | { a: "tip_after"; orderId: string; cents: number | null };
+
 /** Customer button and list ids. Anything else is not ours and gets no action. */
 export type CustomerAction =
+  | AfterCartAction
   | { a: "received"; orderId: string; ok: boolean }
   | { a: "weight"; orderId: string; accept: boolean }
   | { a: "rate"; orderId: string; food?: number; deliveryOk?: boolean }
@@ -825,6 +841,21 @@ const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const re = (s: string) => new RegExp(`^${s}$`);
 export function parseCustomerAction(id: string): CustomerAction | null {
   let m: RegExpMatchArray | null;
+  // Session 5f part 7 (after the native cart and at checkout).
+  if (id === "ext:none") return { a: "extra", optionId: null };
+  if (id === "ext:rest") return { a: "extra", optionId: null, rest: true };
+  if ((m = id.match(re(`ext:(${UUID})`)))) return { a: "extra", optionId: m[1] };
+  if (id === "note:add") return { a: "note", lineId: null };
+  if ((m = id.match(re(`note:(${UUID})`)))) return { a: "note", lineId: m[1] };
+  if ((m = id.match(/^chg:(USD|LBP):(exact|[1-9]\d{0,9})$/)))
+    return {
+      a: "change",
+      currency: m[1] as "USD" | "LBP",
+      amount: m[2] === "exact" ? null : Number(m[2]),
+    };
+  if ((m = id.match(/^tpc:(0|[1-9]\d{0,5})$/))) return { a: "tip", cents: Number(m[1]) };
+  if ((m = id.match(re(`tpo:(${UUID}):(other|[1-9]\\d{0,5})`))))
+    return { a: "tip_after", orderId: m[1], cents: m[2] === "other" ? null : Number(m[2]) };
   if ((m = id.match(re(`rcv:(${UUID}):(ok|no)`))))
     return { a: "received", orderId: m[1], ok: m[2] === "ok" };
   if ((m = id.match(re(`wgt:(${UUID}):(y|n)`))))

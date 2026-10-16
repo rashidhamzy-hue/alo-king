@@ -89,6 +89,15 @@ import {
   clip,
   demoAddressCard,
   testerFullMenu,
+  changeAsk,
+  choiceAsk,
+  extrasList,
+  noteLinesList,
+  notePrompt,
+  tipAfterCard,
+  tipRow,
+  type ChoiceGroup,
+  type SummaryExtra,
 } from "./render.ts";
 import {
   ALLERGENS,
@@ -97,6 +106,7 @@ import {
   PREFERENCE_KEYS,
   SYSTEM_PROMPT,
   TOOLS,
+  type AfterCartToolName,
   type ToolName,
 } from "./tools.ts";
 import { buttons, customerStatusMessages, image, moneyLine } from "../../_shared/customer-cards.ts";
@@ -104,6 +114,7 @@ import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.
 import {
   packShopMenu,
   parseCartOrder,
+  productCarouselMessage,
   productListMessage,
   productMessage,
   type CartLine,
@@ -535,6 +546,8 @@ async function route(c: Ctx, firstContact: boolean) {
   // The website's "Add in WhatsApp" (an item page, DECISIONS §39.15.2) sends the item's code: added deterministically.
   const code = itemCodeIn(m.text);
   if (code) return itemFromSite(c, code, itemCodeTail(m.text));
+  // A note or an "Other" tip the customer was asked to type (session 5f part 7).
+  if (["note", "tip_other"].includes(c.s.pending.kind) && (await awaitedText(c, m.text))) return;
   const intent = deterministicIntent(m.text);
   if (intent) {
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
@@ -1011,7 +1024,20 @@ async function tap(c: Ctx, a: CustomerAction) {
   const { deps } = c;
   const id = c.customerId;
   c.tools.push(`tap:${a.a}`);
+  // Any tap moves on from a typed answer the bot was waiting for (a note, an "Other" tip).
+  if (["note", "tip_other"].includes(c.s.pending.kind)) c.s.pending = {};
   switch (a.a) {
+    // Session 5f part 7: after the native cart and at checkout.
+    case "extra":
+      return extraChosen(c, a.optionId, a.rest === true);
+    case "note":
+      return noteTap(c, a.lineId);
+    case "change":
+      return changeChosen(c, a.currency, a.amount);
+    case "tip":
+      return tipChosen(c, a.cents);
+    case "tip_after":
+      return tipAfterChosen(c, a.orderId, a.cents);
     case "confirm":
       return confirm(c, a.basketId, a.version);
     case "cancel": {
@@ -1041,7 +1067,7 @@ async function tap(c: Ctx, a: CustomerAction) {
         await deps
           .rpc("order_rating_prompt_now", { p_customer_id: id, p_order_id: a.orderId })
           .catch(() => null);
-        return say(c, "glad");
+        return afterDelivered(c, a.orderId, "glad");
       }
       c.path = "handoff";
       return say(c, "sorryProblem");
@@ -1067,7 +1093,7 @@ async function tap(c: Ctx, a: CustomerAction) {
         p_food_score: a.food ?? null,
         p_delivery_ok: a.deliveryOk ?? null,
       });
-      return say(c, "thanksRating");
+      return afterDelivered(c, a.orderId, "thanksRating");
     case "substitution": {
       // The customer's answer to a substitute the merchant offered (§32.5); totals come from the server.
       const r = await deps.rpc("order_substitution_decide", {
@@ -1339,6 +1365,7 @@ async function confirm(c: Ctx, basketId: string, version: number) {
         c,
         buttons(c.m.from, tr(lang, "vendorPaused", { vendor: c.basket.vendor }), [
           ["c:find", tr(lang, "otherPlace")],
+          ["c:clear", tr(lang, "cancelBasket")],
         ]),
       );
     case "below_minimum":
@@ -1820,17 +1847,15 @@ async function cartOrder(
       }),
     );
   if (notes.length) push(c, text(c.m.from, notes.join("\n\n")));
-  if (needs.length) {
-    const flows = c.tools.length;
-    const added = await addOne(c, needs[0].item_id, Number(needs[0].quantity ?? 1), [], null, null);
-    if (needs.length > 1) say(c, "cartMoreOptions", { n: needs.length - 1 });
-    // Waiting on choices (an option list or the item_options Flow): checkout comes after them.
-    if (!added && (c.s.pending.kind === "options" || c.tools.length > flows)) return;
-  }
+  // #25: the required choices one at a time and each item's add-ons once, then checkout. Never the item_options Flow here:
+  // Flows wait for Meta's business verification (#182).
+  const queued = await cartChoices(c, lines, needs, skipped);
+  if (queued === "asked") return;
   // Nothing of this cart went in (the old basket, if any, is as it was): say so, never check out the old basket.
-  if (!Number(r.added ?? 0) || !c.basket?.lines?.length) return say(c, "cartNothing");
-  // The normal checkout: address confirmation, the checkout Flow or the cash question, then the summary to confirm.
-  return checkout(c, {});
+  if (!(Number(r.added ?? 0) + queued) || !c.basket?.lines?.length) return say(c, "cartNothing");
+  // "Goes well with" (the order's one upsell), then the normal checkout: address confirmation, the checkout Flow or the
+  // cash question, then the summary to confirm.
+  return cartReady(c);
 }
 
 // ---- The Meta catalogue: product messages chosen per shop (§39.12) ---------------------------------------------------
@@ -2447,6 +2472,8 @@ async function browseHome(c: Ctx, offset = 0) {
       offset > 0 && offset < cats.length ? offset : 0,
     ),
   );
+  // "Popular near you" after the first page of the craving list (§39.15.2).
+  if (!offset) await popularNearYou(c, r.shops);
 }
 
 function listShops(c: Ctx, shops: DeliveringShop[], body: string) {
@@ -2608,6 +2635,7 @@ async function addOne(
 
 async function optionChosen(c: Ctx, optionId: string) {
   const p = c.s.pending;
+  if (p.kind === "cart_opts") return cartOptionChosen(c, optionId);
   if (p.kind !== "options") return say(c, "unsupported");
   const added = await addOne(c, p.item_id, p.qty, [], p.note, [...(p.chosen ?? []), optionId]);
   if (added) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
@@ -2636,6 +2664,8 @@ async function checkout(
     stairs?: number | null;
     /** The customer tapped Try again on "couldn't work out the road": the live call is made even if tried a moment ago. */
     retryRoute?: boolean;
+    /** A change or tip tap only re-shows the summary: no live route attempt (session 5f part 7). */
+    skipRoute?: boolean;
   },
 ) {
   const { deps } = c;
@@ -2705,7 +2735,7 @@ async function checkout(
   // The shop → pin route is not cached yet (§39.15.1): the quote came from the shop → place distance, or from nothing.
   // One live call (2 s, within the day's budget); whatever it answers, the order goes on unless neither distance exists.
   const live = q as any;
-  if (live?.origin && live?.dest) {
+  if (live?.origin && live?.dest && !args.skipRoute) {
     const r = await deps
       .route(live.origin, live.dest, { phone: c.m.from, force: args.retryRoute === true })
       .catch((e: unknown) => {
@@ -2757,8 +2787,11 @@ async function checkout(
       const cs = await deps.rpc("basket_cash_state", { p_customer_id: c.customerId });
       if (cs?.status === "ok" && !cs.cash_currency && (cs.allowed?.length ?? 0) > 1)
         return push(c, cashAsk(c.m.from, lang, cs.allowed));
+      // Then "Do you need change?", and the tip with the total it makes (session 5f part 7, #35 and #38).
+      const ex = q.over_cod_cap ? null : await checkoutExtras(c, q);
+      if (ex === "asked") return;
       const newCustomer = Number(c.profile?.delivered_orders ?? 0) === 0;
-      push(c, ...summaryMessage(c.m.from, lang, q, newCustomer, cs?.cash_currency ?? null));
+      push(c, ...summaryMessage(c.m.from, lang, q, newCustomer, cs?.cash_currency ?? null, ex));
       if (!q.over_cod_cap) {
         c.s.pending = {
           kind: "confirm",
@@ -2768,6 +2801,7 @@ async function checkout(
         c.summary.push("[showed the order summary; waiting for the customer's Confirm tap]");
         const u = await deps.rpc("basket_upsell", { p_customer_id: c.customerId });
         if (u?.item_id) push(c, upsellMessage(c.m.from, lang, u));
+        if (ex) pushTipRow(c, ex);
       }
       return;
     }
@@ -3037,6 +3071,13 @@ export function validate(name: ToolName, input: any): boolean {
     typeof v === "string" && new RegExp(`^${p}\\d{1,2}$`).test(v);
   if (!input || typeof input !== "object") return false;
   switch (name) {
+    // Session 5f part 7: after the cart and at checkout.
+    case "set_item_note":
+    case "add_item_extras":
+    case "set_cash_change":
+    case "set_tip":
+    case "tip_order":
+      return validAfterCart(name, input);
     case "search_vendors":
       return s(input.query, 120) && s(input.business_type, 40);
     case "show_menu":
@@ -3073,7 +3114,7 @@ export function validate(name: ToolName, input: any): boolean {
             Array.isArray(i.options) &&
             i.options.length <= 6 &&
             i.options.every((o: unknown) => typeof o === "string" && o.length <= 60) &&
-            s(i.note, 200),
+            s(i.note, NOTE_INPUT_MAX),
         )
       );
     case "change_basket":
@@ -3183,6 +3224,13 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
   const id = c.customerId;
   c.tools.push(name);
   switch (name) {
+    // Session 5f part 7: after the cart and at checkout.
+    case "set_item_note":
+    case "add_item_extras":
+    case "set_cash_change":
+    case "set_tip":
+    case "tip_order":
+      return aiAfterCart(c, name, input);
     case "search_vendors":
       return searchVendors(c, input.query, input.business_type);
     case "show_menu":
@@ -3436,4 +3484,608 @@ async function demoAddressPick(c: Ctx, key: string) {
   const r = await c.deps.rpc("demo_address_pick", { p_customer_id: c.customerId, p_key: key });
   if (r?.status !== "saved") return say(c, "placePaused");
   return afterPin(c, r);
+}
+
+// ---- Session 5f part 7: the chat after the native cart and at checkout --------------------------------------------------
+// #25 choices and add-ons after a native cart, #26 item notes, #35 change for cash, #38 tips, and the product carousel
+// (DECISIONS §39.15.2). Every amount is the server's; a tap carries only an id or one of the amounts the server offered,
+// which the server checks again against its config.
+
+/** One item of a cart waiting on choices: its item, quantity, options chosen so far, its basket line once added. */
+type CartQueueEntry = { i: string; q: number; c: string[]; l?: string; x?: 1 };
+
+/**
+ * The cart's items with required choices (cart_merge's needs_options) and the items added at once that have add-ons still
+ * to offer, as one queue in the session. Returns "asked" while a question is out, else how many items it added.
+ */
+async function cartChoices(
+  c: Ctx,
+  lines: CartLine[],
+  needs: any[],
+  skipped: any[],
+): Promise<"asked" | number> {
+  const queue: CartQueueEntry[] = needs.slice(0, 30).map((n) => ({
+    i: String(n.item_id),
+    q: Math.min(Math.max(Number(n.quantity ?? 1) || 1, 1), 50),
+    c: [],
+  }));
+  const held = new Set([...needs, ...skipped].map((x) => String(x.item_id)));
+  const direct = [...new Set(lines.map((l) => l.itemId).filter((id) => !held.has(id)))];
+  if (direct.length) {
+    const ex = await c.deps
+      .rpc("basket_lines_with_extras", { p_customer_id: c.customerId, p_item_ids: direct })
+      .catch(() => null);
+    for (const l of Array.isArray(ex) ? ex : [])
+      queue.push({ i: String(l.item_id), q: 0, c: [], l: String(l.line_id) });
+  }
+  if (!queue.length) return 0;
+  c.tools.push("cart:choices");
+  c.s.pending = { kind: "cart_opts", queue };
+  return cartQueueNext(c);
+}
+
+/**
+ * Works through the queue: asks the head item's next required choice (buttons for three options or fewer, else a list),
+ * adds the item once its required groups are chosen (basket_add_item, priced by the server), then offers its add-ons once
+ * (basket_line_extras marks the line). An item that cannot be ordered as it is now is named and skipped.
+ */
+async function cartQueueNext(c: Ctx): Promise<"asked" | number> {
+  const p = c.s.pending;
+  const queue: CartQueueEntry[] = p.kind === "cart_opts" && Array.isArray(p.queue) ? p.queue : [];
+  let added = 0;
+  while (queue.length) {
+    const h = queue[0];
+    if (!h.l) {
+      const it = await c.deps.rpc("item_choice_groups", { p_item_id: h.i }).catch(() => null);
+      // Not one of our items any more (or unreadable): never added without its choices.
+      if (!it) {
+        queue.shift();
+        continue;
+      }
+      const groups: ChoiceGroup[] = Array.isArray(it.groups) ? it.groups : [];
+      const label = localName(c.s.lang, it?.name, it?.name_en);
+      // Only this item's options, and never more of a group than it takes (the latest taps win).
+      const chosen = (h.c ?? []).map(String);
+      h.c = [];
+      for (const g of groups) {
+        const mine = chosen.filter((id) => g.options.some((o) => o.option_id === id));
+        h.c.push(...mine.slice(-Math.max(Number(g.max ?? 1), 1)));
+      }
+      const count = (g: ChoiceGroup) => g.options.filter((o) => h.c.includes(o.option_id)).length;
+      const missing = groups.find((g) => Number(g.min ?? 0) > count(g));
+      if (missing) {
+        const left = missing.options.filter((o) => !h.c.includes(o.option_id));
+        const need = Number(missing.min) - count(missing);
+        if (left.length >= need) {
+          c.s.pending = { kind: "cart_opts", queue };
+          c.summary.push(`[asked a required choice for a cart item: ${queue.length} in the queue]`);
+          push(c, choiceAsk(c.m.from, c.s.lang, label, missing, left, need));
+          return "asked";
+        }
+        if (label) say(c, "unavailable", { item: label });
+        queue.shift();
+        continue;
+      }
+      const r = await addItem(c, {
+        p_customer_id: c.customerId,
+        p_item_id: h.i,
+        p_quantity: h.q || 1,
+        p_option_ids: h.c,
+        p_note: null,
+        p_replace: false,
+      });
+      if (r?.status !== "added" || !r.line_id) {
+        if (r?.status === "unavailable" || label) say(c, "unavailable", { item: r?.item ?? label });
+        queue.shift();
+        continue;
+      }
+      if (r.basket) c.basket = r.basket;
+      h.l = String(r.line_id);
+      added++;
+    }
+    if (!h.x && !p.noExtras) {
+      h.x = 1;
+      const e = await c.deps
+        .rpc("basket_line_extras", { p_customer_id: c.customerId, p_line_id: h.l })
+        .catch(() => null);
+      if (e?.status === "offer" && Array.isArray(e.groups) && e.groups.length) {
+        c.s.pending = { kind: "cart_opts", queue };
+        c.summary.push("[offered a cart item's add-ons, once]");
+        push(
+          c,
+          extrasList(
+            c.m.from,
+            c.s.lang,
+            localName(c.s.lang, e.item, e.item_en),
+            e.groups,
+            false,
+            queue.length > 1,
+          ),
+        );
+        return "asked";
+      }
+    }
+    queue.shift();
+  }
+  c.s.pending = {};
+  return added;
+}
+
+/** A required choice tapped (opt:<id>) while a cart's queue is waiting. */
+async function cartOptionChosen(c: Ctx, optionId: string) {
+  const h: CartQueueEntry | undefined = c.s.pending.queue?.[0];
+  if (h && !h.l && !h.c.includes(optionId)) h.c.push(optionId);
+  return cartContinue(c);
+}
+
+/**
+ * An add-on tapped (ext:<id>), or No extras / Done (ext:none), or No extras for the rest (ext:rest: no more add-on lists
+ * for this cart). Another add-on may follow while the line takes more.
+ */
+async function extraChosen(c: Ctx, optionId: string | null, rest = false) {
+  const p = c.s.pending;
+  const h: CartQueueEntry | undefined =
+    p.kind === "cart_opts" && Array.isArray(p.queue) ? p.queue[0] : undefined;
+  // No add-on question is open any more: the basket as it is.
+  if (!h?.l) return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+  if (optionId) {
+    const r = await c.deps.rpc("basket_line_add_options", {
+      p_customer_id: c.customerId,
+      p_line_id: h.l,
+      p_option_ids: [optionId],
+    });
+    if (r?.basket) c.basket = r.basket;
+    const more: ChoiceGroup[] = Array.isArray(r?.extras) ? r.extras : [];
+    if (r?.status === "added") c.summary.push("[added an add-on at the server's price]");
+    if (r?.status === "added" && more.length) {
+      const line = (c.basket?.lines ?? []).find((l: any) => l.line_id === h.l);
+      return push(
+        c,
+        extrasList(
+          c.m.from,
+          c.s.lang,
+          localName(c.s.lang, line?.name, line?.name_en),
+          more,
+          true,
+          p.queue.length > 1,
+        ),
+      );
+    }
+  }
+  if (rest) p.noExtras = true;
+  p.queue.shift();
+  return cartContinue(c);
+}
+
+async function cartContinue(c: Ctx) {
+  if ((await cartQueueNext(c)) === "asked") return;
+  return cartReady(c);
+}
+
+/** The cart is in the basket: its one "Goes well with" (§29.3), then checkout. */
+async function cartReady(c: Ctx) {
+  if (!c.basket?.lines?.length) return say(c, "cartNothing");
+  await goesWellWith(c);
+  return checkout(c, {});
+}
+
+/**
+ * "Goes well with" after a cart arrives (§39.15.2): the shop's items bought together with the basket's, the order's one
+ * upsell, never on a reorder (basket_goes_well). A product carousel while config carousel_enabled is on, else a
+ * single-product message; the upsell buttons stand in if Meta refuses it. Without a catalogue the summary's upsell
+ * buttons stay as they are.
+ */
+async function goesWellWith(c: Ctx) {
+  if (!(await catalogFor(c))) return;
+  const g = await c.deps
+    .rpc("basket_goes_well", { p_customer_id: c.customerId, p_catalog_id: c.catalog })
+    .catch(() => null);
+  const products: any[] = g?.status === "ok" && Array.isArray(g.products) ? g.products : [];
+  if (!products.length) return;
+  const lang = c.s.lang;
+  const first = products[0];
+  const one = productMessage(
+    c.m.from,
+    c.catalog!,
+    String(first.retailer_id),
+    tr(lang, "goesWell"),
+    tr(lang, "catalogFooter"),
+  );
+  c.summary.push(`[goes well with: ${products.length} item(s)]`);
+  if (g.carousel === true && products.length >= 2) {
+    c.tools.push("catalog:carousel");
+    return pushCatalog(
+      c,
+      productCarouselMessage(
+        c.m.from,
+        c.catalog!,
+        tr(lang, "goesWellMany"),
+        products.map((x) => String(x.retailer_id)),
+      ),
+      one,
+    );
+  }
+  c.tools.push("catalog:goes_well");
+  pushCatalog(
+    c,
+    one,
+    upsellMessage(c.m.from, lang, {
+      item_id: String(first.retailer_id),
+      name: first.name,
+      name_en: first.name_en,
+      price_usd: first.price_usd,
+    }),
+  );
+}
+
+/**
+ * "Popular near you" after the craving list (§39.15.2): each delivering shop's best seller. A product carousel while
+ * config carousel_enabled is on (the product list stands in if Meta refuses it), else the product list itself.
+ */
+async function popularNearYou(c: Ctx, shops: { vendor_id: string }[]) {
+  if (!shops.length || !(await catalogFor(c))) return;
+  const r = await c.deps
+    .rpc("popular_near_you", {
+      p_vendor_ids: shops.slice(0, 40).map((s) => s.vendor_id),
+      p_catalog_id: c.catalog,
+      p_limit: 10,
+    })
+    .catch(() => null);
+  const products: CatalogProduct[] = Array.isArray(r?.products) ? r.products : [];
+  if (!products.length) return;
+  const lang = c.s.lang;
+  const listMsg = productListMessage(
+    c.m.from,
+    c.catalog!,
+    tr(lang, "popularNear"),
+    tr(lang, "popularBody"),
+    products,
+    { lang, footer: tr(lang, "catalogFooter") },
+  );
+  c.summary.push(`[popular near you: ${products.length} items]`);
+  if (r.carousel === true && products.length >= 2) {
+    c.tools.push("catalog:carousel");
+    return pushCatalog(
+      c,
+      productCarouselMessage(
+        c.m.from,
+        c.catalog!,
+        tr(lang, "popularBody"),
+        products.map((x) => String(x.retailer_id)),
+      ),
+      listMsg,
+    );
+  }
+  c.tools.push("browse:popular");
+  pushCatalog(c, listMsg, null);
+}
+
+// #26: a note per basket line ---------------------------------------------------------------------------------------------
+/** "Add a note" (note:add) or a line picked from the list (note:<line>): the next text is that line's note. */
+async function noteTap(c: Ctx, lineId: string | null) {
+  const lines: any[] = Array.isArray(c.basket?.lines) ? c.basket.lines : [];
+  if (!lines.length) return push(c, ...basketMessage(c.m.from, c.s.lang, null));
+  const line = lineId
+    ? lines.find((l) => l.line_id === lineId)
+    : lines.length === 1
+      ? lines[0]
+      : null;
+  if (lineId && !line) return say(c, "noteGone");
+  if (!line) return push(c, noteLinesList(c.m.from, c.s.lang, lines));
+  c.s.pending = { kind: "note", line_id: line.line_id };
+  c.summary.push("[asked for the item's note]");
+  const max = Number(c.basket?.note_max);
+  return push(
+    c,
+    notePrompt(
+      c.m.from,
+      c.s.lang,
+      localName(c.s.lang, line.name, line.name_en),
+      Number.isFinite(max) && max > 0 ? max : null,
+    ),
+  );
+}
+
+/**
+ * Text the bot asked for: a note (kept by the server, at most its configured length) or an "Other" tip. A message that is
+ * one of the fixed intents (menu, basket, track, STOP…) is not taken as the answer: it is handled as usual.
+ */
+async function awaitedText(c: Ctx, t: string): Promise<boolean> {
+  const p = c.s.pending;
+  const intent = deterministicIntent(t);
+  if (intent && intent.kind !== "no") {
+    c.s.pending = {};
+    return false;
+  }
+  if (p.kind === "note") {
+    c.s.pending = {};
+    if (intent?.kind === "no") {
+      push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+      return true;
+    }
+    if ((await noteSave(c, String(p.line_id), t)) === "too_long") c.s.pending = p;
+    return true;
+  }
+  if (p.kind === "tip_other") {
+    if (intent?.kind === "no") {
+      c.s.pending = {};
+      say(c, "done");
+      return true;
+    }
+    const amount = readTipAmount(t);
+    if (amount === null) {
+      say(c, "tipOtherBad", { max: moneyUsd(p.max) });
+      return true;
+    }
+    c.s.pending = {};
+    await tipAfterSet(c, String(p.order_id), amount, true);
+    return true;
+  }
+  return false;
+}
+
+/** "5", "$2.50", "2,5", "٢" or "3 dollars": a dollar amount with at most two decimals, else null. */
+export function readTipAmount(t: string): number | null {
+  const s = t.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).trim();
+  const m = s.match(
+    /^(?:\$|usd)?\s*(\d{1,4}(?:[.,]\d{1,2})?)\s*(?:\$|usd|dollars?|dollar|دولار|dolar)?$/i,
+  );
+  if (!m) return null;
+  const n = Number(m[1].replace(",", "."));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// #35 change for cash, #38 tips -------------------------------------------------------------------------------------------
+type CheckoutExtras = SummaryExtra & { status: string; tip_amounts?: (number | string)[] };
+
+/**
+ * After the cash currency (basket_checkout_extras): "Do you need change?" until it is answered, then the tip and the total
+ * with it for the summary. null when the server has nothing to add.
+ */
+async function checkoutExtras(c: Ctx, q: Quote): Promise<CheckoutExtras | "asked" | null> {
+  // The quote checkout just made: the server does not quote the basket a second time.
+  const x = await c.deps
+    .rpc("basket_checkout_extras", {
+      p_customer_id: c.customerId,
+      p_total_usd: q.total_usd ?? null,
+      p_usd_lbp_rate: q.usd_lbp_rate ?? null,
+    })
+    .catch(() => null);
+  if (x?.status !== "ok") return null;
+  if (x.change?.status === "ask" && Array.isArray(x.change.options) && x.change.options.length) {
+    c.summary.push("[asked whether the customer needs change]");
+    push(c, changeAsk(c.m.from, c.s.lang, x.change.currency, x.change.total, x.change.options));
+    return "asked";
+  }
+  return x;
+}
+
+/** The checkout's one optional tip row (default none), after the summary. */
+function pushTipRow(c: Ctx, ex: CheckoutExtras) {
+  const amounts = Array.isArray(ex.tip_amounts) ? ex.tip_amounts : [];
+  if (!amounts.length) return;
+  push(c, tipRow(c.m.from, c.s.lang, amounts, Number(ex.tip_usd ?? 0)));
+}
+
+/** "Exact" or a note amount (chg:): kept by the server when it is one of its options, then the summary. */
+async function changeChosen(c: Ctx, currency: "USD" | "LBP", amount: number | null) {
+  await c.deps.rpc("basket_set_cash_change", {
+    p_customer_id: c.customerId,
+    p_currency: currency,
+    p_amount: amount,
+  });
+  c.tools.push("cash_change");
+  // A stale answer (another currency since) or one no longer offered: checkout asks again with what fits now.
+  return checkout(c, { skipRoute: true });
+}
+
+/** A tip at checkout (tpc:<cents>, 0 = none): kept by the server when it is one of its amounts, then the summary again. */
+async function tipChosen(c: Ctx, cents: number) {
+  const r = await c.deps.rpc("basket_set_tip", {
+    p_customer_id: c.customerId,
+    p_amount: cents / 100,
+  });
+  c.tools.push("tip");
+  if (r?.status === "not_allowed") say(c, "tipNotAllowed");
+  return checkout(c, { skipRoute: true });
+}
+
+/** After delivery: the thanks, with the tip buttons when the order may still take one (asked once per order). */
+async function afterDelivered(c: Ctx, orderId: string, lead: "glad" | "thanksRating") {
+  const o = await c.deps
+    .rpc("order_tip_offer", { p_customer_id: c.customerId, p_order_id: orderId })
+    .catch(() => null);
+  const amounts = Array.isArray(o?.amounts) ? o.amounts : [];
+  if (o?.status === "offer" && amounts.length) {
+    c.tools.push("tip:offer");
+    c.summary.push("[thanked the customer and offered a tip for whoever delivered]");
+    return push(c, tipAfterCard(c.m.from, c.s.lang, orderId, amounts, lead));
+  }
+  return say(c, lead);
+}
+
+/** A tip button after delivery (tpo:<order>:<cents>), or Other: the amount is typed next, up to the server's max. */
+async function tipAfterChosen(c: Ctx, orderId: string, cents: number | null) {
+  if (cents !== null) return tipAfterSet(c, orderId, cents / 100, false);
+  const o = await c.deps.rpc("order_tip_offer", {
+    p_customer_id: c.customerId,
+    p_order_id: orderId,
+    p_mark: false,
+  });
+  if (o?.status === "tipped") return say(c, "tipThanks", { amount: moneyUsd(o.tip_usd) });
+  if (o?.status !== "offer")
+    return say(c, o?.status === "too_late" ? "tipTooLate" : "tipNotAllowed");
+  c.s.pending = { kind: "tip_other", order_id: orderId, max: Number(o.max_usd) };
+  return say(c, "tipOtherAsk", { max: moneyUsd(o.max_usd) });
+}
+
+/**
+ * Sets the tip after delivery: the server keeps it as promised and tells whoever delivered, who books it with their
+ * "Got it" once they have the cash (never on the customer's word alone).
+ */
+async function tipAfterSet(c: Ctx, orderId: string, amount: number, other: boolean) {
+  const r = await c.deps.rpc("order_tip_set", {
+    p_customer_id: c.customerId,
+    p_order_id: orderId,
+    p_amount: amount,
+    p_other: other,
+  });
+  c.tools.push("tip:after_delivery");
+  switch (r?.status) {
+    case "promised":
+    case "tipped":
+    case "already_tipped":
+      // Promised: whoever delivered is told and confirms they got the cash; only then is it booked.
+      c.summary.push(`[tip ${moneyUsd(r.tip_usd)} promised; whoever delivered was told]`);
+      return say(c, "tipThanks", { amount: moneyUsd(r.tip_usd) });
+    case "too_late":
+      return say(c, "tipTooLate");
+    case "not_allowed":
+      if (other) c.s.pending = { kind: "tip_other", order_id: orderId, max: Number(r.max_usd) };
+      return say(c, other ? "tipOtherBad" : "tipNotAllowed", { max: moneyUsd(r.max_usd) });
+    default:
+      return say(c, "tipNotAllowed");
+  }
+}
+
+/** Saves a line's note through the server (its length and cleaning rule) and shows the basket with it. */
+async function noteSave(c: Ctx, lineId: string, note: string): Promise<string> {
+  const r = await c.deps.rpc("basket_line_note", {
+    p_customer_id: c.customerId,
+    p_line_id: lineId,
+    p_note: note.slice(0, 500),
+  });
+  c.tools.push("note");
+  if (r?.status === "too_long") {
+    say(c, "noteTooLong", { n: r.length, max: r.max });
+    return "too_long";
+  }
+  if (r?.status !== "saved") {
+    say(c, "noteGone");
+    return "gone";
+  }
+  if (r.basket) c.basket = r.basket;
+  c.summary.push("[saved the item's note]");
+  push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+  return "saved";
+}
+
+// ---- Session 5f part 7: the same flows asked in words (§39.14 rule 1), through the AI's typed tools ----------------------
+/** The longest note the AI may pass (the server's item_note_max_chars decides; this only refuses a runaway input). */
+const NOTE_INPUT_MAX = 80;
+
+/** Server-side check of the after-cart tools' input (the prompt is not a security boundary). */
+export function validAfterCart(name: AfterCartToolName, input: any): boolean {
+  const lineRef = (v: unknown) => typeof v === "string" && /^l\d{1,2}$/.test(v);
+  const money = (v: unknown, max: number) =>
+    typeof v === "number" && Number.isFinite(v) && v > 0 && v <= max;
+  // Only the schema's own fields: anything else (a customer id, a price) is refused, never read.
+  const fields: Record<AfterCartToolName, string[]> = {
+    set_item_note: ["line_ref", "note"],
+    add_item_extras: ["line_ref", "options"],
+    set_cash_change: ["currency", "amount"],
+    set_tip: ["amount_usd"],
+    tip_order: ["amount_usd"],
+  };
+  if (!Object.keys(input).every((k) => fields[name]?.includes(k))) return false;
+  switch (name) {
+    case "set_item_note":
+      return (
+        lineRef(input.line_ref) &&
+        typeof input.note === "string" &&
+        input.note.length <= NOTE_INPUT_MAX
+      );
+    case "add_item_extras":
+      return (
+        lineRef(input.line_ref) &&
+        Array.isArray(input.options) &&
+        input.options.length >= 1 &&
+        input.options.length <= 6 &&
+        input.options.every((o: unknown) => typeof o === "string" && o.length > 0 && o.length <= 60)
+      );
+    case "set_cash_change":
+      return (
+        ["USD", "LBP"].includes(input.currency) &&
+        (input.amount === null || (money(input.amount, 1e10) && Number.isInteger(input.amount)))
+      );
+    case "set_tip":
+      return input.amount_usd === null || input.amount_usd === 0 || money(input.amount_usd, 1000);
+    case "tip_order":
+      return money(input.amount_usd, 1000);
+    default:
+      return false;
+  }
+}
+
+/**
+ * Runs an after-cart tool as the customer's own tap would: refs resolve only within this session, every RPC carries the
+ * session's customer id (never one from the model), and the reply is the same card the tap gets.
+ */
+async function aiAfterCart(c: Ctx, name: AfterCartToolName, input: any) {
+  switch (name) {
+    case "set_item_note": {
+      const line = c.s.refs[input.line_ref];
+      if (!line?.id) return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+      await noteSave(c, line.id, String(input.note ?? ""));
+      return;
+    }
+    case "add_item_extras": {
+      const ref = c.s.refs[input.line_ref];
+      const line = (c.basket?.lines ?? []).find((l: any) => l.line_id === ref?.id);
+      if (!ref?.id || !line) return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+      const it = await c.deps
+        .rpc("item_choice_groups", { p_item_id: line.item_id })
+        .catch(() => null);
+      const extras: ChoiceGroup[] = (Array.isArray(it?.groups) ? it.groups : []).filter(
+        (g: ChoiceGroup) => Number(g.min ?? 0) === 0,
+      );
+      const ids = [
+        ...new Set(
+          (input.options as string[]).flatMap((said) =>
+            extras.flatMap((g) =>
+              g.options
+                .filter((o) => [o.name, o.name_en].some((x) => x && fuzzyEq(String(x), said)))
+                .map((o) => o.option_id),
+            ),
+          ),
+        ),
+      ];
+      const label = localName(c.s.lang, line.name, line.name_en);
+      if (ids.length) {
+        const r = await c.deps.rpc("basket_line_add_options", {
+          p_customer_id: c.customerId,
+          p_line_id: ref.id,
+          p_option_ids: ids,
+        });
+        if (r?.status === "added") {
+          if (r.basket) c.basket = r.basket;
+          c.summary.push(`[added ${ids.length} extra(s) at the server's price]`);
+          return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+        }
+      }
+      // Nothing matched (or too many for a group): the line's extras list, as the tap path shows it.
+      if (!extras.some((g) => g.options.length))
+        return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
+      c.s.pending = {
+        kind: "cart_opts",
+        queue: [{ i: line.item_id, q: 0, c: [], l: ref.id, x: 1 }],
+      };
+      return push(c, extrasList(c.m.from, c.s.lang, label, extras));
+    }
+    case "set_cash_change":
+      return changeChosen(
+        c,
+        input.currency,
+        input.amount === null ? null : Math.round(Number(input.amount)),
+      );
+    case "set_tip":
+      return tipChosen(c, Math.round(Number(input.amount_usd ?? 0) * 100));
+    case "tip_order": {
+      const last = await c.deps
+        .rpc("customer_last_delivered", { p_customer_id: c.customerId })
+        .catch(() => null);
+      if (!last?.order_id) return say(c, "tipNotAllowed");
+      return tipAfterSet(c, String(last.order_id), Number(input.amount_usd), true);
+    }
+  }
 }
