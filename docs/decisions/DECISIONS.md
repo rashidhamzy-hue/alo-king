@@ -1727,7 +1727,7 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 | 5d | Meta catalogue and native cart | Opus 5.5, high | 39.12 on the US test number: catalogue synced from the database, single- and multi-product messages, the cart icon, the inbound `order` message re-priced into the normal checkout, catalogue or list per shop; e2e green on staging |
 | 14 | Pilot cut-over | Opus 5.5, high | unchanged |
 
-**Order from 15 October:** 5b → 5d → 13 → W2 → 14 (5d added by Rasheed on 15 October). W2 runs after the security review so its fixes are the last change before the cut-over, and before 14 so the cut-over ships the polished site.
+**Superseded on 16 October by §39.15.8 (5f → 5g → friends' test → 13 → 14; W2 joins 5g).** Earlier order from 15 October: 5b → 5d → 13 → W2 → 14 (5d added by Rasheed on 15 October). W2 runs after the security review so its fixes are the last change before the cut-over, and before 14 so the cut-over ships the polished site.
 
 ### 39.11 Website: full revamp with a delivery map and a hard customer/merchant split
 - **Rasheed's direction (14 October):** the current site looks unfinished; the "where we deliver" page in village blocks is the example. Every page must look like a well-funded 2030 product, building on §37.
@@ -1760,7 +1760,7 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 
 ### 39.13 World-class shopping on WhatsApp for the investor demo (Rasheed, 16 October; session 5e)
 - **Verdict on the old state:** the catalogue screen in the chat header showed 1,755 products from 29 shops in one flat list with drawn placeholder pictures. Unusable.
-- **The catalogue header icon is switched off; the cart stays on.** **Overrides** the §39.12 line "The cart and catalogue icons are turned on for the number".
+- ~~**The catalogue header icon is switched off; the cart stays on.**~~ **Reversed by Rasheed on 16 October, 12:06 (§39.15.2): the header catalogue icon stays ON, with the cart.** Original text kept for history: **Overrides** the §39.12 line "The cart and catalogue icons are turned on for the number".
   - Meta's WhatsApp Business Platform docs (catalogs overview, share products, commerce settings) offer no collections or product-set grouping in the catalogue a customer opens from the chat header. The only grouping is the sections of a multi-product message.
   - Our catalogue has had one product set per shop since #189, and the header still showed one flat list (Rasheed's screenshot, 16 October).
   - So the header is set to `is_catalog_visible = false` with `is_cart_enabled = true`. Product messages and the cart work without the icon (Meta: the icon is off by default).
@@ -1783,11 +1783,112 @@ Rasheed's requests after session D, and the decision on each. **This section ove
   - Meta's profile has no opening-hours field; the description says each shop delivers in its own hours, shown when it is opened.
   - The website is listed only when it publicly serves the new site. Vercel's production domain still serves the 6 October build with another business's number until the cut-over, so it is never listed.
 - **Outcome on staging (16 October, session 5e):**
-  - **Header:** `kapso-catalog` could not set the commerce setting through Kapso (the read-back is "unverified"), so owner issue #199 carries the WhatsApp Manager steps. Until it is done, the header icon still opens the flat catalogue; carts from it go through `cart_merge` as before.
+  - **Header:** `kapso-catalog` could not set the commerce setting through Kapso (the read-back is "unverified"), so owner issue #199 carried the WhatsApp Manager steps (moot since 16 October 12:06: the icon stays on, §39.15.2). Until it is done, the header icon still opens the flat catalogue; carts from it go through `cart_merge` as before.
   - **Categories:** the craving list ranks categories by how many delivering shops serve them, and shows eight plus "More categories" when more than nine have shops, so every category is two taps away.
   - **Photos:** demo items carry 67 shop photos, 10 packshots (exact brand, variant and size only) and 1,093 dish photos (72 dish keys, CC0, Public Domain Mark or CC BY, credited). 427 items have no fitting photo and stay out of the catalogue. Every one of the 29 demo shops has a cover: its own photo, else the photo of its most common main dish that has one (the reading of "its signature dish" when that dish has no photo).
   - **Profile:** set by API (photo, about, description, address, category); no website until aloking.com serves the new site.
   - **Smoke suite:** run 38870843786 passed all 5 scenarios after the session's fixes (#205 scenarios follow the bot, #206 doorstep rule, #207 a dispatch run always sends its order cards before it ends, which the 30-second ticks made necessary).
+
+### 39.14 The customer-experience spec is adopted (planning chat, 16 October, after session 5e)
+- `docs/decisions/CUSTOMER-EXPERIENCE.md` (merged as #202) is **adopted**: every line marked **NEW** there is decided, with the overrides in its §8 and the amendments of §39.15 below. Where that file and this one disagree, this file wins.
+- **Rasheed's rule 1, binding on every session:** the customer agent is never limited or weakened. The spec sets presentation, flows and the money and safety guardrails only; the agent keeps its full §39.6 scope (free text and voice in four languages, search across every shop, comparisons, memory, recommendations, support). Every button path must also be reachable by just asking once AI credit exists. Any line in any document that would narrow the agent is void.
+- **Rasheed's rule 2:** design for scale. Hundreds of Shouf shops now, thousands across Lebanon later. Nothing may depend on a short shop list or a full catalogue scan per tap.
+- **The four nits from PR #202's review, settled:**
+  1. The file's status line reads "adopted by §39.14", not "proposal".
+  2. Scenario #50: a refund to an online payment happens only where the server grants one under §20.1; the cash-order discount line follows the same eligibility.
+  3. Scenario #11: the waitlist notice is one utility message the customer asked for; it is never reused for marketing, and if Meta classes it as marketing it is not sent.
+  4. Scenario #36: the COD cap in the message is read from config (`cod_cap_usd`, new-customer cap per §29.4), never written in copy.
+- **New dated config keys:** `late_discount_usd`, `late_threshold_min`, `discount_expiry_days`, `tip_amounts_usd`, `basket_keep_hours`, plus the keys of §39.15.
+
+### 39.15 After session 5e and the 16 October live test: the decisions (planning chat, 16 October, 12:30)
+**What was reviewed:** session 5e's report and PRs #196–#210; Rasheed's screen recording (11:42–11:46 Beirut, two orders attempted, from BUN BROS, Deli Dough and INDINER time) and eight screenshots; the code (`_shared/catalog.ts`, `20261016120000_photo_sources.sql`, `browse.sql`, `cart_merge`, `_shared/routing.ts`, `dispatch/customer/turn.ts`); the website (`src/`).
+
+**Verdict.** 5e's engineering is good: browsing through the bot, real photos, the test diet and the lighter staging load all work, and taps answer fast. The experience is not yet investor-grade, for six reasons seen on the phone:
+1. **Checkout dies on a routing outage.** "I couldn't work out the road route to your address" with no button; Rasheed had to type "Order" to recover. Browse screens and four smoke runs used the free OpenRouteService quota, and a quote has no fallback.
+2. **The header catalogue is one flat list of 29 shops, and nothing in it says which shop an item belongs to,** so a cart built from it mixes shops. The server keeps the first shop's lines and drops the rest with "2 item(s) couldn't be added", then loops on "Use the new cart / Keep basket".
+3. **Counts lie and items are unreachable.** INDINER time (122 items, 102 with photos) opened with "3 items"; its "Burgers · 9 items" row opened a product message with 1 burger. The sync treats "batch accepted" as visible and never reads Meta's review status, so Meta silently drops IDs; and items without a photo cannot be reached once a section opens as a product message.
+4. **The item screen looks unfinished.** Titles mix two languages and ALL CAPS ("Sujuk & Cheese Platter · صحن سجق جبنة", "HOT DOG"); the description is a photo credit ("📷 insatiablemunch via Openverse (flickr) · CC BY 2.0"); the link is our Supabase image URL; the shop is never named.
+5. **The shop cover can be off-brand** (a fried-chicken photo for a burger place) and carries the photo credit in the caption.
+6. **The website cannot take an order:** `VITE_WHATSAPP_NUMBER` is empty, so every "Order on WhatsApp" goes to "our number is going live soon"; there is no public URL for the site (`aloking.com` is not owned, see 39.15.7).
+
+#### 39.15.1 Routing never blocks an order (amends §3, §28.2 and §28.6; the "no straight-line guess" rule stays)
+- **Precomputed shop → place road distances.** A new table `shop_place_routes` (vendor, place, road km, minutes, provider, computed_on) holds the road distance from every orderable or demo shop to the centre point of every delivered-to place (§39.2). It is filled by a `route-matrix` GitHub workflow with ORS Matrix in batches (a few requests for 315 shops × 61 places), run on dispatch, when a shop's pin changes, and when the boundary row changes. It is a new table referencing places and vendors, allowed under §31.
+- **Browse costs zero routing calls.** "What are you craving?", category shop lists, "Shops near you", shop headers, search grouping and the fee shown before checkout read `shop_place_routes` for the place the pin snaps to.
+- **Checkout makes at most one live call** per shop and customer pin (pin rounded to about 10 m), cached in `route_cache` for 30 days (roads do not move; `route_cache_ttl_hours` becomes a dated config value of 720). The live call has a 2 s timeout.
+- **Fallback, never an error:** if the live call fails, times out or the daily budget is spent, the quote uses the shop → place road distance from `shop_place_routes` for the pin's place, records `route_source = place_fallback` on the order, and the order goes through. Only when neither exists does the customer get a message, and it carries buttons (**Try again**, **Change address**, **Help**).
+- **Daily budget guard:** a `routing_usage` counter per UTC day with config `ors_daily_budget` (default 400 of the free 500 matrix requests). At 60% only checkout may call ORS; at 100% checkout uses the fallback. Crossing 60% opens or updates one `owner`-labelled issue (information only).
+- **Tests never call ORS.** Unit and SQL tests use fixtures. On staging, simulator numbers (`+999…`) get routes from a recorded fixture table (`routing_fixtures`) through config `routing_provider_sim = fixture`; only real phones reach ORS. The smoke suite therefore uses no quota.
+- **Every error message in the bot carries at least one button.** A reply that ends a path without a way forward is a bug (test: every `render.ts` error string is sent with buttons).
+
+#### 39.15.2 Native catalogue and cart: true, complete, never mixed (amends §39.12 and §39.13)
+- **The header catalogue icon stays ON (Rasheed, 16 October 12:06; reverses §39.13).** Friends and investors must see everything: the whole catalogue from the chat header, the product messages and the cart. Meta's header catalogue cannot be grouped by shop (§39.13), so it is made to work as one flat list:
+  - **Every title names its shop:** "<Item> · <Shop>" (e.g. "Chicken Popcorn · Safa Chicken"), because the title and price are all a customer sees in the list. The same title shows in product messages.
+  - **Only Meta-approved items with a real photo** are in it (below); hidden items stay reachable through the bot.
+  - **Carts from it are split by shop, never dropped** (next bullet), and a shop that does not deliver to the confirmed pin is named in the split with "doesn't deliver to <place>" and the closest shop with the same dish offered.
+  - `kapso-catalog` sets `is_catalog_visible = true` and `is_cart_enabled = true` and reads them back; issue #199 is closed as not needed. The owner-issue text in `scripts/kapso/catalog-owner-issue.sh` (step 4, "switch on the catalogue icon and Add to cart") is correct and stays.
+- **A cart from several shops is split, never dropped.** "Your cart has items from 3 shops. One order comes from one shop. Which one first?" with one row per shop (items and subtotal). The others are kept as **saved carts** for `basket_keep_hours`; after the first order is confirmed: "You also picked 2 items from Deli Dough. Order them now?" Only items truly unavailable are named, by name. This replaces the "couldn't be added" message and the replace/keep loop: when a cart from shop B meets a basket from shop A, the buttons are **Switch to B**, **Keep A**, **Do both** (A first, B saved).
+- **Meta's review status is the truth.** The sync reads each product's `review_status` and errors from the Graph API (`/{catalog}/products?fields=retailer_id,review_status,errors,visibility`) after every batch and nightly, into `catalog_item_status`. Product messages and their row counts use only items Meta has approved and that are visible. Rejected items are fixed (see 39.15.4) or left out of product messages.
+- **No item is ever unreachable, and every count equals what opens.** A section opens as a product message of its approved photo items; if the section has other items, a list "More <section> (n)" follows with the rest. A shop whose approved photo items are fewer than `browse_min_catalog_items` (config, default 6) opens with the list menu plus the **Open menu** web button (§4 of the spec) instead of a thin product message. Search uses the same rule per shop.
+- **Item content (applies the spec's §2 items 2–3 and §5):**
+  - Title: "<Item> · <Shop>"; the item part in one language, Title Case, never ALL CAPS, size once, the shop's Latin name for the item if it has one, else English. The Arabic name moves to the description.
+  - Description, in this order, each on its own line: shop · village; Arabic name; what it is (the menu text, else "Usually made with …" from the dish library); "≈ 520 kcal · 32 g protein (estimated)" where the dish library has it (§32.3); allergens only when merchant-declared, else nothing (never "safe"); "Extras chosen after you add it" when the item has options.
+  - **No photo credits in descriptions or captions.** Credits for CC BY photos live on the item's web page and a `/credits` page (a reasonable manner of attribution for CC BY). New picks prefer CC0, public domain and Pexels (Pexels needs no credit; owner item: a free Pexels API key).
+  - `link` = the item's public page `<public_site_url>/<lang>/i/<item id>` (39.15.7), never an image or Supabase URL. `image_link` stays the image route. `brand` = shop name.
+- **Shop cover** = the shop's own photo, else the photo of its most-ordered main from **its main category** (a burger place shows a burger). Captions never carry credits.
+- **Product carousel messages** (up to 10 product cards, swipeable; verified on the US number before use) are used for "Popular near you" after the craving list and for one "Goes well with" after a cart arrives (the one chat upsell per order, §29.3).
+- **INDINER time and every demo shop** are checked after the fix: approved items per shop, items per section and what opens, listed in the session's PR.
+
+#### 39.15.3 Testers anywhere in the world (Rasheed, 16 October: friends outside the Shouf must live the whole experience)
+- **Joining:** Rasheed sends friends one link, `wa.me/12036602328?text=<code>`. The code is config `demo_invite_code` (dated). The first message carrying it enrols the number as a **demo tester** for `demo_tester_days` (default 14), up to `demo_tester_max` (default 30). Rasheed can remove one with the admin command `tester remove +…`. No other step for anyone.
+- **What a tester sees first:** "You're testing Alo King. Orders are pretend: nothing is cooked, delivered or paid." Then the normal welcome. Testers see the demo shops (extends §39.12 visibility).
+- **Address:** the tester shares a pin as normal. A pin outside the boundary gets: "You're outside our delivery area. For this test, pick a demo address:" with three buttons, **Baakleen**, **Deir el Qamar**, **Beiteddine** (fixed points in `demo_addresses` config). Fees and distances are real, read from `shop_place_routes` (zero ORS calls). The tester's real pin is not stored.
+- **The shop side plays itself:** Rasheed still gets each tester order card. If no one taps within `demo_autopilot_after_s` (default 60), the **demo autopilot** accepts with a 15-minute prep, then marks ready, out for delivery and delivered at `demo_autopilot_step_s` intervals (default 60), so a tester sees every status message, the delivery code, Received, tip and rating alone. A tap by Rasheed at any point takes over. Autopilot works only for demo testers and owners, only on staging; the cut-over checklist asserts it is off.
+- **Demo data stays separate:** tester orders, ratings and ledger rows carry `is_demo = true`, are never shown publicly and never count in shop metrics.
+- Real non-tester customers outside the boundary keep the real rule: "We don't deliver to <place> yet." with **Tell me when you do** (waitlist, spec #11) and **Pick up instead** where a shop is in range.
+
+#### 39.15.4 Catalogue rules the merchant agent learns (Rasheed, 16 October)
+- **One validator** `validateCatalogItem()` used by the sync, the demo photo pipeline and the merchant copilot (§39.7) before an item or photo is saved. It checks: image at least 500×500, square crop possible, https, no text overlay, watermark, collage or placeholder; title rules (39.15.2); price above zero; description without phone numbers, URLs or promotional text; Meta's commerce policy categories (no medicine §38.3, no alcohol or tobacco products in the catalogue).
+- **Rules live in data:** table `catalog_rules` (code, plain rule in four languages, source `meta_published` or `learned`, first seen, count) and `docs/catalog/META-CATALOG-RULES.md` generated from it.
+- **Learning loop:** the nightly status read (39.15.2) records every Meta rejection reason. An unseen reason becomes a `learned` rule automatically, with its example item; the next build session reviews learned rules. Target: zero rejected among synced items.
+- **The merchant hears it before Meta does:** when a merchant adds an item or photo, the copilot runs the validator and says what Meta would reject and how to fix it, in the merchant's language ("This photo has writing on it, so WhatsApp will refuse it. Send a photo of the dish only."). Nothing is uploaded until it passes.
+
+#### 39.15.5 Website: the audit moves forward and joins the web menu (amends §39.10 W2 and §39.11)
+Session **5g** (below) builds the web menu and Explore (spec §4, handoff prompt C) and does the full W2 audit in the same design system. Rasheed's list (16 October), decided:
+- **WhatsApp everywhere:** every customer call to action uses the official WhatsApp glyph, white on WhatsApp green (#25D366) for the main "Order on WhatsApp" button (instant recognition beats palette purity on this one button); secondary links keep the brand palette. `VITE_WHATSAPP_NUMBER` points to the US test number until the cut-over, then the Lebanese customer number.
+- **Payments:** "Cash on delivery, in dollars or lira" with simple cash icons; the Whish logo shown with a "Soon" chip until online payment is live (§20.1). Never claim Whish works before it does.
+- **Every village we deliver to:** a plain, always-visible list of every boundary place (61 today) (grouped by area, in AR/EN/FR) on `/places`, plus a footer link "Where we deliver", alongside the map. The list no longer depends on places being live.
+- **No "Arabizi" anywhere a customer reads** (Lebanese people don't use the word). EN: "Arabic, English or French, the way you text, even mixed." AR: "بالعربي، بالإنكليزي أو بالفرنسي، متل ما بتكتب عالواتساب، حتى لو خلطتهم." FR: "En arabe, anglais ou français, comme vous écrivez, même mélangés." The example "2 shawarma w pepsi" stays, labelled "The way you text". Also fix "Three languages" titles that list four, and the hero points.
+- **Looks Lebanese:** Lebanese dialect first in Arabic copy; real Shouf village names; prices in $ and LBP; the Chouf contours kept; the old Lebanese cement-tile (ballat) pattern as a quiet section motif; real food photos from the Shouf shops (own photos first). No cedar clichés, no stock people.
+- **Merchant journey, reachable everywhere:** "For businesses" in the customer header and footer (overrides the "one link at the foot of the home page" choice; the customer and merchant sides stay separate, §39.11). One name everywhere: "For businesses" / "لأصحاب المحلات" / "Pour les commerces". A business contact page; claim and register end there; "Forgot password" on the dashboard sign-in; the fee headline never renders without its number; the contact page's merchant block rendered.
+- **Quality bar** unchanged (§37.5): Lighthouse mobile ≥ 90, axe clean, AR/EN/FR at 360 px and desktop, screenshots in the PR.
+- The W2 slot before go-live becomes a short final check inside session 14's checklist.
+
+#### 39.15.6 Speed (measured, not assumed)
+Each session reports p50/p95 tap-to-reply from `outbound_messages` for the demo path. Target unchanged (§4): button p50 under 700 ms, p95 under 1.5 s. Meta's own product-sheet loading (about 1 s skeleton in the recording) is outside our control.
+
+#### 39.15.7 A public address for the site (owner and build)
+- `aloking.com` is **not owned**: GoDaddy lists it as a premium resale and Vercel's registrar refuses it (checked 16 October). Decision: buy **`alo-king.com`** (standard price, about $10 a year at Cloudflare Registrar) now; `aloking.com` is reconsidered only if its resale price is under $100. Every link the system builds reads one dated config value, `public_site_url`, so switching domains is one row.
+- Until the domain is attached, session 5f makes the `rebuild/lebanon` site public: Vercel's production branch becomes `rebuild/lebanon` and the production domain `alo-king.vercel.app` (or the nearest free name), checked to answer 200 without a Vercel login. This replaces the 6 October build that still shows another business's number. Supabase production still does not exist; the site reads staging. Vercel stays on Hobby until the pilot (§2).
+- `kapso-profile` then lists that website on the WhatsApp profile.
+
+#### 39.15.8 Session plan from here (replaces the order in §39.10)
+| # | Session | Model | Effort | Content |
+|---|---|---|---|---|
+| 5f | WhatsApp ordering, investor-grade | Opus 5.5 | Extra (xhigh) | 39.14; 39.15.1–39.15.4, 39.15.6–39.15.7, 39.15.9 when the keys work; spec §§2, 3 (the 5f scenarios), 5, 6 in chat; item page `/i/<id>` |
+| 5g | Web menu, Explore and the website audit | Opus 5.5 | Extra (xhigh) | spec §4 web menu with signed basket links, Explore, item page polish, 39.15.5 in full |
+| — | Friends' test | owner | — | after 5g: Rasheed sends the invite link (39.15.3) |
+| 13 | Security review | Opus 5.5 | high | unchanged, includes 5f and 5g |
+| 14 | Pilot cut-over | Opus 5.5 | high | unchanged, plus the final website check and the autopilot/tester assertions |
+
+Max effort is not needed: the work is broad, not deep, and Extra keeps the weekly limit for 5g.
+
+#### 39.15.9 AI and voice switch on as soon as the credit lands (Rasheed, 16 October 12:06)
+- Rasheed adds Anthropic and OpenAI API credit (and the Deepgram key) so friends can type and send voice notes. The agents are built and tested with recorded answers (session 5c, #164, #166); their model paths are switched off only for lack of credit (§32.7).
+- **The session that finds the keys working** (`check-setup` proves each one) runs the text eval (four languages, §39.6) and the voice pipeline on the labelled notes (§32.4), and then:
+  - switches on free text, voice notes, photo understanding and the merchant copilot's model path for **owners and demo testers** as soon as the evals show **zero safety failures** (no invented item, price, fee or policy; no cross-shop basket; no allergy called safe). Accuracy is not the gate for testers, because every order ends in the basket and Confirm (§32.4);
+  - switches them on for **every customer** when the §32.4 accuracy targets are met (that gate stays for the pilot);
+  - updates `usage.ts` prices first, sets the cheapest passing model in config (Haiku 5.5 vs 4.5, §38.4), and keeps the per-turn caps (§4).
+- Until the keys work, free text and voice keep answering with buttons, never silence (§32.7).
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).

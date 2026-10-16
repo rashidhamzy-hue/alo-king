@@ -1,6 +1,6 @@
 # Customer experience on WhatsApp: every scenario, decided (16 October 2026)
 
-**Status:** proposal, input only until DECISIONS §39.14 adopts it (session 5f, first task: add §39.14 pointing here with the overrides listed in §8, the 5f row in §39.10, and one LOG.md line per **NEW** decision). Written by Claude for Rasheed on 16 October, walking the app as a customer. Where a line repeats an earlier decision it cites the section and changes nothing. **NEW** marks a decision proposed here. Where this file and DECISIONS.md disagree, DECISIONS.md wins.
+**Status:** adopted by DECISIONS §39.14 (16 October 2026), amended by §39.15 (see §9 below). Every line marked **NEW** is decided. Written by Claude for Rasheed on 16 October, walking the app as a customer. Where a line repeats an earlier decision it cites the section and changes nothing. Where this file and DECISIONS.md disagree, DECISIONS.md wins.
 
 **The bar:** a customer in the Shouf should feel they are using Toters, Talabat or Deliveroo, inside WhatsApp, with no app to download. Every screen looks finished, every message is short and in their language, and every tap leads somewhere.
 
@@ -133,7 +133,7 @@
 ## 5. The native catalogue, polished to its limit (NEW)
 - Titles and descriptions per §2 items 2–3; `brand` = shop name; `link` = the item's aloking.com page (noindex in demo mode), never the image URL.
 - Only items with a real photo sync; best sellers with photos first; one product set per shop.
-- The header catalogue icon stays off (§39.13); the cart stays on.
+- ~~The header catalogue icon stays off (§39.13); the cart stays on.~~ Reversed on 16 October: the icon and the cart both stay on (§39.15.2).
 
 ## 6. Investor demo path (6 minutes, Rasheed's phone)
 1. "Hi" → welcome → **Order** → pin in Baakleen.
@@ -155,3 +155,15 @@
 - **New config keys (dated):** `late_discount_usd`, `late_threshold_min`, `discount_expiry_days`, tip amounts, `basket_keep_hours`.
 - **Waitlist:** a customer-requested utility notice when a place switches on (§3.2 #11).
 - Everything else marked **NEW** is copy, layout or flow and needs only its LOG.md line.
+
+## 9. Amendments after the 16 October live test (DECISIONS §39.15)
+- **#11 outside the boundary:** demo testers get three demo addresses instead (§39.15.3); everyone else keeps the waitlist and pickup buttons. The waitlist notice is never marketing (§39.14).
+- **#28 second shop, and carts from several shops:** a cart is never partly dropped. A cart from several shops asks which shop first and keeps the rest as saved carts; a cart meeting another shop's basket offers **Switch to B**, **Keep A**, **Do both** (§39.15.2).
+- **Every error message carries a button** (Try again, Change address, Help). Routing problems never stop a checkout: the place-level road distance is the fallback (§39.15.1).
+- **The header catalogue icon stays on (Rasheed, 16 October; reverses §5's "stays off"):** one flat list from the chat header, so every title names its shop and carts from it are split by shop.
+- **Native catalogue item (§5):** title "<Item> · <Shop>", the item part in one language, Title Case; description starts with shop · village; no photo credits in descriptions or captions; `link` = the item's public page `/<lang>/i/<item id>` with its credit, nutrition (estimated), allergens (declared only), extras and "Goes well with", and an **Add in WhatsApp** button that returns to the chat with the item (§39.15.2).
+- **Counts and reach:** every count equals what opens; items Meta has not approved, or without a photo, follow as a list, so nothing is unreachable (§39.15.2).
+- **Product carousel** (10 swipeable cards) for "Popular near you" and the one "Goes well with" in chat (§39.15.2).
+- **Demo testers** anywhere in the world, with the shop side played by the demo autopilot when Rasheed doesn't tap (§39.15.3).
+- **AI and voice:** switch on for owners and demo testers as soon as the API credit works and the evals show zero safety failures; for everyone at the §32.4 targets (§39.15.9). The AI parts of #4, #5, #17 and #18 then run.
+
