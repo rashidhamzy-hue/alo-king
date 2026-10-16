@@ -87,7 +87,7 @@ update public.catalog_item_status set checked_at = now() - interval '2 hours' wh
 delete from app_private.catalog_sync_queue where vendor_id = :'tv';
 select public.catalog_status_sweep_done('1684040949970001', null) as fin \gset
 select tests.ok(:'fin'::jsonb ->> 'status' = 'finished'
-  and (select review_status = 'missing' from public.catalog_item_status where item_id = (:'items'::uuid[])[3]),
+  and (select meta_status = 'missing' from public.catalog_item_status where item_id = (:'items'::uuid[])[3]),
   'a product Meta did not list in a whole sweep is missing (not unsure: no sweep every 15 minutes for it)');
 select tests.ok((select force from app_private.catalog_sync_queue where vendor_id = :'tv'), 'and its shop is re-sent once');
 delete from app_private.catalog_sync_queue where vendor_id = :'tv';
@@ -98,7 +98,7 @@ select public.catalog_status_sweep_done('1684040949970001', null);
 select tests.ok(not exists (select 1 from app_private.catalog_sync_queue where vendor_id = :'tv'),
   'still missing at the next sweep: not re-sent again (the nightly full sync sends it)');
 -- Pacing: nothing unsure waits for the nightly read; a sync brings it forward.
-update public.catalog_item_status set review_status = 'approved', visibility = 'published', availability = 'in stock',
+update public.catalog_item_status set meta_status = 'approved', visibility = 'published', availability = 'in stock',
   checked_at = now() where vendor_id = :'tv';
 update app_private.catalog_status_sweeps set next_due_at = now() - interval '1 second';
 select public.catalog_status_sweep_next('1684040949970001');
@@ -132,7 +132,7 @@ select tests.ok(not app_private.catalog_item_shown((:'items'::uuid[])[1], '16840
 update public.catalog_item_status set catalog_id = '1684040949970001' where item_id = (:'items'::uuid[])[1];
 select tests.ok(public.catalog_status_record('1684040949970001', jsonb_build_array(jsonb_build_object('retailer_id', (:'items'::uuid[])[1],
   'review_status', 'APPROVED-NOW?', 'visibility', 'Published'))) = 1, 'a value never seen before is recorded');
-select tests.ok((select review_status = 'approved_now_' and visibility = 'published' from public.catalog_item_status
+select tests.ok((select meta_status = 'approved_now_' and visibility = 'published' from public.catalog_item_status
   where item_id = (:'items'::uuid[])[1]), 'cleaned to the table''s shape, so it never breaks a page');
 select public.catalog_status_record('1684040949970001', (select jsonb_agg(jsonb_build_object('retailer_id', x, 'review_status', 'approved',
   'visibility', 'published')) from unnest(:'items'::uuid[]) x));

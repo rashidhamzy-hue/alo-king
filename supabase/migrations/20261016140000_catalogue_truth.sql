@@ -3,7 +3,8 @@
 -- not approved (or had dropped) the rest. Items without a photo could not be reached once a section opened as a product
 -- message.
 --
--- 1. catalog_item_status: each product's review_status, visibility, availability and errors as Meta reports them
+-- 1. catalog_item_status: each product's review status (column meta_status: no public column may be named rating or
+--    review, supabase/tests/seed), visibility, availability and errors as Meta reports them
 --    (GET /{catalog}/products), read after every batch and by a sweep of the whole catalogue (every 15 minutes while
 --    anything is pending or unknown, else nightly); a product Meta does not list at all is 'missing'.
 -- 2. Product messages and their counts use only items Meta approved and shows (app_private.catalog_item_shown).
@@ -24,7 +25,7 @@ create table public.catalog_item_status (
   vendor_id uuid not null references public.vendors (id) on delete cascade,
   catalog_id text not null,
   -- approved, pending, rejected, outdated, or '' (Meta has not reviewed it yet)
-  review_status text not null default '' check (review_status ~ '^[a-z_]{0,30}$'),
+  meta_status text not null default '' check (meta_status ~ '^[a-z_]{0,30}$'),
   visibility text check (visibility ~ '^[a-z_]{1,30}$'),
   availability text check (char_length(availability) <= 40),
   -- Meta's list of problems for the product: [{error_type, priority, title, description}]
@@ -50,7 +51,7 @@ begin
     raise exception 'p_rows must be a json array' using errcode = 'invalid_parameter_value';
   end if;
   -- Meta's words are cleaned to the table's shape (a value we have never seen never breaks a page).
-  insert into public.catalog_item_status (item_id, vendor_id, catalog_id, review_status, visibility, availability, errors, checked_at)
+  insert into public.catalog_item_status (item_id, vendor_id, catalog_id, meta_status, visibility, availability, errors, checked_at)
   select distinct on (i.id) i.id, i.vendor_id, p_catalog_id,
     left(regexp_replace(lower(coalesce(r ->> 'review_status', '')), '[^a-z_]', '_', 'g'), 30),
     nullif(left(regexp_replace(lower(coalesce(r ->> 'visibility', '')), '[^a-z_]', '_', 'g'), 30), ''),
@@ -65,7 +66,7 @@ begin
   where (r ->> 'retailer_id') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   order by i.id
   on conflict (item_id) do update
-    set vendor_id = excluded.vendor_id, catalog_id = excluded.catalog_id, review_status = excluded.review_status,
+    set vendor_id = excluded.vendor_id, catalog_id = excluded.catalog_id, meta_status = excluded.meta_status,
         visibility = excluded.visibility, availability = excluded.availability, errors = excluded.errors,
         checked_at = excluded.checked_at;
   get diagnostics n = row_count;
@@ -183,16 +184,16 @@ begin
   -- not list is missing: shown nowhere, re-sent once (the next nightly full sync sends it again anyway).
   for v_vendor in
     with cand as (
-      select c.item_id, c.vendor_id, s.review_status as prev
+      select c.item_id, c.vendor_id, s.meta_status as prev
       from public.catalog_sync_items c
       left join public.catalog_item_status s on s.item_id = c.item_id
       where c.visible and c.catalog_id = p_catalog_id and c.synced_at < v_s.started_at - interval '10 minutes'
         and (s.item_id is null or s.checked_at < v_s.started_at or s.catalog_id <> p_catalog_id)
     ), up as (
-      insert into public.catalog_item_status (item_id, vendor_id, catalog_id, review_status, checked_at)
+      insert into public.catalog_item_status (item_id, vendor_id, catalog_id, meta_status, checked_at)
       select item_id, vendor_id, p_catalog_id, 'missing', now() from cand
       on conflict (item_id) do update
-        set review_status = 'missing', catalog_id = excluded.catalog_id, visibility = null, availability = null,
+        set meta_status = 'missing', catalog_id = excluded.catalog_id, visibility = null, availability = null,
             errors = '[]', checked_at = excluded.checked_at
       returning item_id
     )
@@ -207,7 +208,7 @@ begin
     select 1 from public.catalog_sync_items c
     left join public.catalog_item_status s on s.item_id = c.item_id
     where c.visible and c.catalog_id = p_catalog_id
-      and (s.item_id is null or s.catalog_id <> p_catalog_id or s.review_status in ('', 'pending', 'outdated')
+      and (s.item_id is null or s.catalog_id <> p_catalog_id or s.meta_status in ('', 'pending', 'outdated')
            or c.synced_at > v_s.started_at));
   update app_private.catalog_status_sweeps
   set after_cursor = null, failures = 0, finished_at = now(),
@@ -281,7 +282,7 @@ as $$
     select 1 from public.catalog_sync_items c
     join public.catalog_item_status s on s.item_id = c.item_id
     where c.item_id = p_item_id and c.visible and c.catalog_id = p_catalog_id and s.catalog_id = p_catalog_id
-      and s.review_status = 'approved' and coalesce(s.visibility, 'published') = 'published'
+      and s.meta_status = 'approved' and coalesce(s.visibility, 'published') = 'published'
       and coalesce(s.availability, 'in stock') = 'in stock');
 $$;
 revoke all on function app_private.catalog_item_shown(uuid, text) from public, anon, authenticated;
@@ -383,7 +384,7 @@ as $$
       'shop_shown', case when p_catalog_id = 'sim' then 999 else (
         select count(*) from public.catalog_item_status st
         join public.catalog_sync_items c on c.item_id = st.item_id and c.visible and c.catalog_id = p_catalog_id
-        where st.vendor_id = v.id and st.catalog_id = p_catalog_id and st.review_status = 'approved'
+        where st.vendor_id = v.id and st.catalog_id = p_catalog_id and st.meta_status = 'approved'
           and coalesce(st.visibility, 'published') = 'published' and coalesce(st.availability, 'in stock') = 'in stock'
           and app_private.menu_item_orderable(st.item_id, 1)) end)
     order by array_position(p_item_ids, i.id)), '[]')
@@ -443,11 +444,11 @@ as $$
     count(*) filter (where app_private.menu_item_orderable(i.id, 1)),
     count(p.item_id),
     count(c.item_id) filter (where c.visible),
-    count(*) filter (where c.visible and s.review_status = 'approved' and coalesce(s.visibility, 'published') = 'published'
+    count(*) filter (where c.visible and s.meta_status = 'approved' and coalesce(s.visibility, 'published') = 'published'
       and coalesce(s.availability, 'in stock') = 'in stock'),
-    count(*) filter (where c.visible and s.review_status in ('', 'pending', 'outdated')),
-    count(*) filter (where c.visible and s.review_status = 'rejected'),
-    count(*) filter (where c.visible and s.review_status = 'missing'),
+    count(*) filter (where c.visible and s.meta_status in ('', 'pending', 'outdated')),
+    count(*) filter (where c.visible and s.meta_status = 'rejected'),
+    count(*) filter (where c.visible and s.meta_status = 'missing'),
     count(*) filter (where c.visible and s.item_id is null),
     (select e ->> 'title' from public.catalog_item_status s2 cross join jsonb_array_elements(s2.errors) e
       where s2.vendor_id = v.id group by e ->> 'title' order by count(*) desc limit 1)
