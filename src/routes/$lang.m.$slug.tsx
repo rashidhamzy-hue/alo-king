@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Clock, MapPin, Bike } from "lucide-react";
 import { buildHead, fmt, iso, localePath, pickName, usd } from "@/lib/site";
 import {
+  getVendorDemo,
   getVendorPage,
   getVendorUnclaimed,
   type SiteVendorPage,
@@ -66,7 +67,8 @@ function vendorLd(d: SiteVendorPage, lang: "ar" | "en" | "fr", url: string) {
 }
 
 export const Route = createFileRoute("/$lang/m/$slug")({
-  // A claimed shop's page, or (DECISIONS §39.3) the noindex page of a shop that is not on Alo King yet.
+  // A claimed shop's page, a demo shop's page (§39.12: labelled Demo, noindex), or (DECISIONS §39.3) the noindex page of
+  // a shop that is not on Alo King yet. The demo and unclaimed lookups run together; a demo shop wins.
   loader: async ({
     params,
   }): Promise<
@@ -74,7 +76,11 @@ export const Route = createFileRoute("/$lang/m/$slug")({
   > => {
     const d = await getVendorPage(params.slug);
     if (d) return { claimed: d, unclaimed: null };
-    const u = await getVendorUnclaimed(params.slug);
+    const [demo, u] = await Promise.all([
+      getVendorDemo(params.slug),
+      getVendorUnclaimed(params.slug),
+    ]);
+    if (demo) return { claimed: demo, unclaimed: null };
     if (!u) throw notFound();
     return { claimed: null, unclaimed: u };
   },
@@ -115,16 +121,20 @@ export const Route = createFileRoute("/$lang/m/$slug")({
         where: place ? fmt(copy.vendor.where, { place }) : "",
       }),
       info: info ?? { origin: "", indexing: false },
-      jsonLd: [
-        vendorLd(page, lang, url),
-        crumbsLd([
-          { label: copy.common.home, url: `${base}${localePath(lang)}` },
-          ...(v.place_slug && place
-            ? [{ label: place, url: `${base}${localePath(lang, `/places/${v.place_slug}`)}` }]
-            : []),
-          { label: name, url },
-        ]),
-      ],
+      // A demo shop (§39.12) is never indexed and is not described as a real business.
+      noindex: v.demo === true,
+      jsonLd: v.demo
+        ? []
+        : [
+            vendorLd(page, lang, url),
+            crumbsLd([
+              { label: copy.common.home, url: `${base}${localePath(lang)}` },
+              ...(v.place_slug && place
+                ? [{ label: place, url: `${base}${localePath(lang, `/places/${v.place_slug}`)}` }]
+                : []),
+              { label: name, url },
+            ]),
+          ],
     });
   },
   component: VendorRoute,
@@ -170,6 +180,7 @@ function VendorPage({ d }: { d: SiteVendorPage }) {
         ) : (
           <p className="ak-lead !mt-0">{t.vendor.paused}</p>
         )}
+        {v.demo && <span className="ak-chip">{t.common.demo}</span>}
         {!v.paused && (
           <span className={`ak-chip ${v.open_now ? "ak-chip-gold" : ""}`}>
             {v.open_now ? t.common.openNow : t.common.closed}

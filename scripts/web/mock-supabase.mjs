@@ -1,9 +1,18 @@
 #!/usr/bin/env node
 // A tiny Supabase stand-in for the website checks (scripts/web): answers POST /rest/v1/rpc/<fn> and the public table
-// business_type_labels from fixtures.mjs, and the `site-claim` edge function (claim, registration, driver forms).
+// business_type_labels from fixtures.mjs, the `site-claim` edge function (claim, registration, driver forms), and the
+// catalogue image route of `dispatch` (item photos).
 //   node scripts/web/mock-supabase.mjs <port> [live|prelaunch]
 import { createServer } from "node:http";
-import { BUSINESS_TYPES, PERSONAS, respond, restRpc, restTable, siteClaim } from "./fixtures.mjs";
+import {
+  BUSINESS_TYPES,
+  PERSONAS,
+  itemPhotoSvg,
+  respond,
+  restRpc,
+  restTable,
+  siteClaim,
+} from "./fixtures.mjs";
 
 const port = Number(process.argv[2] ?? 4020);
 const mode = process.argv[3] ?? "live";
@@ -20,6 +29,28 @@ createServer((req, res) => {
   const url = req.url ?? "";
   if (req.method === "GET" && url.startsWith("/rest/v1/business_type_labels"))
     return json(res, BUSINESS_TYPES);
+  // The catalogue image route (item pages, §39.15.7): like `dispatch`, a redirect to a signed URL, here a drawn plate.
+  if (req.method === "GET" && url.startsWith("/functions/v1/dispatch?")) {
+    const q = new URL(url, "http://mock").searchParams;
+    const id = q.get("i") ?? "";
+    if (q.get("route") !== "catalog-image" || !/^[0-9a-f-]{36}$/.test(id))
+      return res.writeHead(404, cors).end();
+    return res
+      .writeHead(302, {
+        ...cors,
+        location: `/storage/v1/object/sign/menu-item-photos/${id}.svg?token=fixture`,
+      })
+      .end();
+  }
+  const photo = /^\/storage\/v1\/object\/sign\/menu-item-photos\/([0-9a-f-]{36})\.svg/.exec(url);
+  if (req.method === "GET" && photo)
+    return res
+      .writeHead(200, {
+        ...cors,
+        "content-type": "image/svg+xml",
+        "cache-control": "public, max-age=3600",
+      })
+      .end(itemPhotoSvg(photo[1]));
   // The staff pages (session 6b): a signed-in person is told apart by the `sub` of the planted token.
   const table = /^\/rest\/v1\/([a-z_]+)(\?|$)/.exec(url)?.[1];
   if (table && req.method === "GET") {

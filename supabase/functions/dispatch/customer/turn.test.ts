@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkInteractive } from "../../_shared/meta-limits";
 import {
   handleCustomerTurn,
+  itemCodeIn,
   readCustomerInbound,
   validate,
   vocabularyPrompt,
@@ -2233,5 +2234,47 @@ describe("browsing through the bot (session 5e)", () => {
     await handleCustomerTurn(g.deps, msg({ buttonId: "c:near", type: "interactive" }));
     expect(g.sent[0].interactive.action.sections[0].rows).toHaveLength(5);
     expect(bodyOf(g.sent[0])).toMatch(/deliver to Baakline, nearest first/);
+  });
+});
+
+describe("Add in WhatsApp from an item page (DECISIONS §39.15.2)", () => {
+  it("reads the item code in any of the three languages' texts, and nothing that only looks like one", () => {
+    expect(itemCodeIn(`Hi Alo King, please add Falafel Sandwich from Tarabish (i-${ITEM})`)).toBe(
+      ITEM,
+    );
+    expect(itemCodeIn(`مرحبا ألو كينغ، أضف فلافل من طرابيش (i-${ITEM.toUpperCase()})`)).toBe(ITEM);
+    expect(itemCodeIn(`Bonjour, ajoutez Falafel (i-${ITEM})`)).toBe(ITEM);
+    expect(itemCodeIn(`hi-${ITEM}`)).toBeNull();
+    expect(itemCodeIn(`i-${ITEM}-x`)).toBeNull();
+    expect(itemCodeIn("i want a falafel")).toBeNull();
+  });
+
+  it("adds the item at once, never through a model or a search, and shows the basket", async () => {
+    const f = fake({
+      model: () => tool("reply", { text: "should not be asked", confidence: "high" }),
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "added", basket }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ text: `Hi Alo King, please add Shawarma from A (i-${ITEM})` }),
+    );
+    expect(f.of("basket_add_item").map((c) => c.args.p_item_id)).toEqual([ITEM]);
+    expect(f.of("basket_add_item")[0].args.p_quantity).toBe(1);
+    expect(f.modelReqs).toEqual([]);
+    expect(f.sent.length).toBeGreaterThan(0);
+  });
+
+  it("an item that cannot be ordered now is named, never silently dropped", async () => {
+    const f = fake({
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "unavailable", item: "Shawarma" }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: `please add (i-${ITEM})` }));
+    expect(bodyOf(f.sent[0])).toContain("Shawarma");
   });
 });

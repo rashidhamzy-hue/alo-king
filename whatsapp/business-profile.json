@@ -6,6 +6,8 @@
   "vertical": "RESTAURANT",
   "profile_picture": "public/brand/whatsapp-profile.png",
   "website_candidates": [
+    "https://alo-king.vercel.app/en",
+    "https://alo-king-lb.vercel.app/en",
     "https://alo-king-git-rebuild-lebanon-rashidhamzy-hues-projects.vercel.app/en"
   ]
 }

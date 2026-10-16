@@ -524,6 +524,9 @@ async function route(c: Ctx, firstContact: boolean) {
     return voice(c);
   }
   if (m.text === null || !m.text.trim()) return say(c, "unsupported");
+  // The website's "Add in WhatsApp" (an item page, DECISIONS §39.15.2) sends the item's code: added deterministically.
+  const code = itemCodeIn(m.text);
+  if (code) return itemFromSite(c, code);
   const intent = deterministicIntent(m.text);
   if (intent) {
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
@@ -539,6 +542,22 @@ async function route(c: Ctx, firstContact: boolean) {
   if (mentionsSomeoneElse(m.text)) c.s.refs.xe = { id: "someone_else", label: "someone_else" };
   if (firstContact && m.text.trim().length < 4) return push(c, mainMenu(m.from, c.s.lang));
   return freeText(c, m.text);
+}
+
+/** The item code an item page puts in its WhatsApp text: i-<item id>. */
+export function itemCodeIn(t: string): string | null {
+  const m =
+    /(?:^|[^0-9a-z-])i-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?![0-9a-z-])/i.exec(
+      t,
+    );
+  return m ? m[1].toLowerCase() : null;
+}
+
+/** "Add in WhatsApp" from the item's web page: one of it into the basket, its choices asked as for any item. */
+async function itemFromSite(c: Ctx, itemId: string) {
+  c.tools.push("site_item");
+  const added = await addOne(c, itemId, 1, [], null, null);
+  if (added) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
 }
 
 /** Typed text: the model when free text is on and a model exists; otherwise the catalogue search (§32.4, §39.6). */

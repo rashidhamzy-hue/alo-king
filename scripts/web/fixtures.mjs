@@ -283,6 +283,230 @@ const unclaimedList = (vendors, page = 1) => ({
   vendors: page === 1 ? vendors : [],
 });
 
+// ---- Item pages, photo credits and a demo shop (DECISIONS §39.15.7, migration 20261016160000) ------------------------------
+// Shapes of site_item, site_credits and site_vendor_demo. The photos are the mock's drawn placeholders (itemPhotoSvg) and
+// the credits name no real person or site (.example addresses).
+export const ITEM_IDS = {
+  shawarma: "80000000-0000-0000-0000-000000000001",
+  ayran: "80000000-0000-0000-0000-000000000002",
+  demo: "80000000-0000-0000-0000-0000000000d1",
+};
+const DEMO_VENDOR = card(
+  "demo-mashawi-el-dayaa",
+  "Mashawi el Dayaa",
+  "مشاوي الضيعة",
+  "restaurant",
+  ["lebanese"],
+  PLACES[2],
+);
+export const DEMO_SLUG = DEMO_VENDOR.slug;
+const DEMO_PAGE = {
+  vendor: {
+    ...DEMO_VENDOR,
+    delivery_radius_km: 8,
+    paused_until: null,
+    cash_currencies: ["USD"],
+    updated_at: "2026-10-16T09:00:00Z",
+    cuisines: [{ tag: "lebanese", ...names("Lebanese", "لبناني", "Libanais") }],
+    demo: true,
+  },
+  hours: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ weekday: d, opens: "12:00", closes: "23:00" })),
+  sections: [
+    {
+      ...names("Grills", "مشاوي", "Grillades"),
+      items: [
+        item("Lamb kafta by the kilo", "كفتة غنم بالكيلو", "Kefta d'agneau au kilo", 18, {
+          per_kg: true,
+          description: "Minced lamb with parsley and onion, ready to grill.",
+        }),
+        item("Shish taouk plate", "صحن شيش طاووق", "Assiette de chich taouk", 8.5, {
+          description: "Grilled chicken, garlic sauce, fries and pickles.",
+          allergens: ["gluten"],
+        }),
+      ],
+    },
+  ],
+  fees: { min_usd: 2, max_usd: 5, max_km: 8 },
+  rate: RATE,
+};
+const itemVendor = (v, demo) => ({
+  slug: v.slug,
+  name_ar: v.name_ar,
+  name_en: v.name_en,
+  name_fr: v.name_fr,
+  place_slug: v.place_slug,
+  place_ar: v.place_ar,
+  place_en: v.place_en,
+  place_fr: v.place_fr,
+  orderable: v.orderable,
+  paused: v.paused,
+  open_now: v.open_now,
+  demo,
+  public_page: !demo,
+});
+const pageItem = (id, en, ar, fr, price, extra = {}) => ({
+  id,
+  ...names(en, ar, fr),
+  description: null,
+  price_usd: price,
+  per_kg: false,
+  est_weight_kg: null,
+  available: true,
+  vegetarian: false,
+  vegan: false,
+  spicy: 0,
+  pork: false,
+  alcohol: false,
+  photo: true,
+  photo_source: "merchant",
+  credit: null,
+  ...extra,
+});
+const opt = (en, ar, fr, price) => ({ ...names(en, ar, fr), price_usd: price });
+const CREDIT = {
+  shop: {
+    credit: "Abou Ali Shawarma website",
+    license: "Used with permission",
+    source_url: "https://abou-ali-shawarma.example/menu",
+  },
+  packshot: {
+    credit: "Example Packshots",
+    license: "CC BY 4.0",
+    source_url: "https://packshots.example/ayran",
+  },
+  demo: { credit: "Drawn for the Alo King demo", license: "CC0 1.0", source_url: null },
+};
+const ITEMS = {
+  [ITEM_IDS.shawarma]: {
+    item: pageItem(ITEM_IDS.shawarma, "Chicken shawarma", "شاورما دجاج", "Shawarma poulet", 3.5, {
+      description: "Garlic sauce, pickles, fries inside.",
+      photo_source: "merchant_site",
+      credit: CREDIT.shop,
+    }),
+    vendor: itemVendor(VENDORS[0], false),
+    nutrition: { kcal: 520, protein_g: 31.5, carbs_g: 48, fat_g: 21.5, status: "estimated" },
+    allergens: ["gluten", "sesame"],
+    options: [
+      {
+        ...names("Size", "الحجم", "Taille"),
+        min: 1,
+        max: 1,
+        options: [opt("Regular", "عادي", "Normal", 0), opt("Large", "كبير", "Grand", 1.5)],
+      },
+      {
+        ...names("Extras", "إضافات", "Suppléments"),
+        min: 0,
+        max: 3,
+        options: [
+          opt("Extra garlic sauce", "زيادة توم", "Sauce à l'ail en plus", 0.25),
+          opt("Cheese", "جبنة", "Fromage", 0.5),
+          opt("No pickles", "بلا كبيس", "Sans cornichons", 0),
+        ],
+      },
+    ],
+    goes_well: {
+      id: ITEM_IDS.ayran,
+      ...names("Ayran", "عيران", "Ayran"),
+      price_usd: 1.25,
+      per_kg: false,
+      photo: true,
+    },
+    rate: RATE,
+  },
+  [ITEM_IDS.ayran]: {
+    item: pageItem(ITEM_IDS.ayran, "Ayran", "عيران", "Ayran", 1.25, {
+      vegetarian: true,
+      photo_source: "packshot",
+      credit: CREDIT.packshot,
+    }),
+    vendor: itemVendor(VENDORS[0], false),
+    nutrition: null,
+    allergens: ["dairy"],
+    options: [],
+    goes_well: null,
+    rate: RATE,
+  },
+  // The demo item: sold by weight, an illustration, allergens not declared, nutrition from the shop.
+  [ITEM_IDS.demo]: {
+    item: pageItem(
+      ITEM_IDS.demo,
+      "Lamb kafta by the kilo",
+      "كفتة غنم بالكيلو",
+      "Kefta d'agneau au kilo",
+      18,
+      {
+        description: "Minced lamb with parsley and onion, ready to grill.",
+        per_kg: true,
+        est_weight_kg: 0.5,
+        photo_source: "illustrative",
+        credit: CREDIT.demo,
+      },
+    ),
+    vendor: itemVendor(DEMO_VENDOR, true),
+    nutrition: { kcal: 1250, protein_g: 85, carbs_g: 4, fat_g: 98, status: "merchant_verified" },
+    allergens: null,
+    options: [
+      {
+        ...names("Ready as", "التحضير", "Préparation"),
+        min: 0,
+        max: 1,
+        options: [opt("Skewers", "أسياخ", "Brochettes", 0), opt("Patties", "أقراص", "Galettes", 0)],
+      },
+    ],
+    goes_well: null,
+    rate: RATE,
+  },
+};
+const creditRow = (kind, id, v, it, source, c) => ({
+  kind,
+  item_id: id,
+  vendor_slug: v.slug,
+  vendor_ar: v.name_ar,
+  vendor_en: v.name_en,
+  vendor_fr: v.name_fr,
+  item_ar: it?.name_ar ?? null,
+  item_en: it?.name_en ?? null,
+  item_fr: it?.name_fr ?? null,
+  source,
+  ...c,
+});
+const CREDITS = [
+  creditRow("cover", null, VENDORS[0], null, "merchant_site", {
+    ...CREDIT.shop,
+    source_url: "https://abou-ali-shawarma.example/",
+  }),
+  creditRow(
+    "item",
+    ITEM_IDS.ayran,
+    VENDORS[0],
+    ITEMS[ITEM_IDS.ayran].item,
+    "packshot",
+    CREDIT.packshot,
+  ),
+  creditRow(
+    "item",
+    ITEM_IDS.shawarma,
+    VENDORS[0],
+    ITEMS[ITEM_IDS.shawarma].item,
+    "merchant_site",
+    CREDIT.shop,
+  ),
+  creditRow(
+    "item",
+    ITEM_IDS.demo,
+    DEMO_VENDOR,
+    ITEMS[ITEM_IDS.demo].item,
+    "illustrative",
+    CREDIT.demo,
+  ),
+];
+
+/** The catalogue image route's stand-in: a drawn plate, its colour taken from the item id. */
+export function itemPhotoSvg(id) {
+  const hue = (parseInt(id.slice(-2), 16) * 47) % 360;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800"><rect width="800" height="800" fill="hsl(${hue} 35% 22%)"/><circle cx="400" cy="420" r="270" fill="#fff9f0"/><circle cx="400" cy="420" r="205" fill="hsl(${hue} 65% 52%)"/><circle cx="330" cy="370" r="46" fill="hsl(${hue} 70% 70%)"/></svg>`;
+}
+
 const TRACK = (over) => ({
   code: "K7M4PQ",
   status: "picked_up",
@@ -412,6 +636,19 @@ export function respond(fn, args, mode = "live") {
     }
     case "site_vendor_unclaimed":
       return live && args.p_slug === UNCLAIMED_PAGE.vendor.slug ? UNCLAIMED_PAGE : null;
+    case "site_item":
+      return live ? (ITEMS[args.p_item_id] ?? null) : null;
+    case "site_vendor_demo":
+      return live && args.p_slug === DEMO_SLUG ? DEMO_PAGE : null;
+    case "site_credits": {
+      const page = Math.max(1, Number(args.p_page) || 1);
+      return {
+        total: live ? CREDITS.length : 0,
+        page,
+        page_size: 100,
+        photos: live && page === 1 ? CREDITS : [],
+      };
+    }
     case "order_track_public":
       return TRACKS[args.p_token] ?? null;
     default:
