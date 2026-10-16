@@ -1,0 +1,50 @@
+name: search-to-cart
+smoke: true
+description: "Smoke: typed search to cart (session 5e). A customer types 'burger'; the results from every shop that delivers come back as one catalogue message grouped by shop; a cart from it goes through the normal checkout to a placed order."
+personas:
+  cust: { role: customer, cc: "961", name: "Sim Searcher" }
+  merchant: { role: merchant }
+steps:
+  - sql: select public.sim_demo('{{cust.phone}}', '{{merchant.phone}}', true), public.sim_catalog('{{cust.phone}}', true)
+  - db:
+      - sql: >
+          select extensions.st_y(v.location::extensions.geometry) as lat, extensions.st_x(v.location::extensions.geometry) as lon
+          from public.vendors v join app_private.vendor_browse_categories b on b.vendor_id = v.id and b.category = 'burgers'
+          where app_private.vendor_is_demo(v.id) and v.orderable order by v.name_en limit 1
+        row: { lat: ">0" }
+        save: { lat: lat, lon: lon }
+  - say: { as: cust, text: "Order" }
+    expect:
+      - { to: cust }
+  - pin: { as: cust, lat: "{{vars.lat}}", lon: "{{vars.lon}}" }
+    expect:
+      - { to: cust, kind: list }
+  - note: typed text is searched without a model; the results are one catalogue message, a section per shop
+    say: { as: cust, text: "burger" }
+    expect:
+      - { to: cust, kind: products, text_any: ["burger", "برغر"] }
+    db:
+      - sql: >
+          select (r -> 'items' -> 0 ->> 'item_id') as item, (r -> 'items' -> 0 ->> 'price_usd') as price,
+                 (r -> 'items' -> 0 ->> 'vendor_id') as shop
+          from public.customers c, public.catalog_search(c.id, 'burger', 10) r where c.phone_e164 = '{{cust.phone}}'
+        row: { item: "~^[0-9a-f-]{36}$" }
+        save: { item: item, price: price, shop: shop }
+  - cart: { as: cust, items: [{ id: "{{vars.item}}", qty: 1, price: "{{vars.price}}" }] }
+    expect:
+      - { to: cust, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }
+  - tap: { as: cust, id: "fw:self_once" }
+    expect:
+      - { to: cust, buttons: ["cur:USD", "cur:LBP"] }
+  - tap: { as: cust, id: "cur:USD" }
+    expect:
+      - { to: cust, buttons: ["cfm:"] }
+  - tap: { as: cust, id_prefix: "cfm:" }
+    expect:
+      - { to: merchant, buttons: ["acc:"] }
+    db:
+      - sql: >
+          select o.status, o.vendor_id = '{{vars.shop}}' as same_shop from public.orders o
+          join public.customers c on c.id = o.customer_id where c.phone_e164 = '{{cust.phone}}' order by o.created_at desc limit 1
+        row: { status: placed, same_shop: true }
+  - sql: select public.sim_demo('{{cust.phone}}', '{{merchant.phone}}', false), public.sim_catalog('{{cust.phone}}', false)

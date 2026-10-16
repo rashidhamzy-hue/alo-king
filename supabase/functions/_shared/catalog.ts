@@ -219,3 +219,44 @@ export function parseCartOrder(
     lines: [...lines.values()].slice(0, 30),
   };
 }
+
+// ---- Session 5e: a shop's menu as product messages, grouped by its sections, the best sections first ------------------
+export type ShopMenuSection = {
+  section_id: string | null;
+  name_ar: string;
+  name_en: string;
+  total: number;
+  products: CatalogProduct[];
+};
+
+/**
+ * The first product message of a shop: sections in the order given (best first), at most `perSection` items of each,
+ * at most 30 items and 10 sections (Meta's limits). `rest` is every section not shown in full, in the same order, for the
+ * list that opens them.
+ */
+export function packShopMenu(
+  sections: ShopMenuSection[],
+  opts: { perSection: number; maxItems?: number; maxSections?: number },
+): { products: CatalogProduct[]; rest: ShopMenuSection[] } {
+  const maxItems = Math.min(opts.maxItems ?? 30, 30);
+  const maxSections = Math.min(opts.maxSections ?? 10, 10);
+  const products: CatalogProduct[] = [];
+  const rest: ShopMenuSection[] = [];
+  let shown = 0;
+  for (const s of sections) {
+    const room = maxItems - products.length;
+    // A shop with few sections shows more of each (a 2-section shop is not cut at 6).
+    const per = Math.max(
+      opts.perSection,
+      Math.floor(maxItems / Math.min(sections.length, maxSections)),
+    );
+    const take = shown < maxSections && room > 0 ? Math.min(per, room, s.products.length) : 0;
+    if (take > 0) {
+      shown++;
+      for (const p of s.products.slice(0, take))
+        products.push({ ...p, section: s.name_ar, section_en: s.name_en });
+    }
+    if (take < s.total) rest.push(s);
+  }
+  return { products, rest };
+}

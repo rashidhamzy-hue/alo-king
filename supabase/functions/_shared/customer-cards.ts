@@ -237,7 +237,8 @@ export const T: Record<CLang, S> = {
     subYes: "✅ J'accepte",
     subNo: "❌ Sans remplacement",
     weightNo: "❌ Annuler",
-    supportClosed: "Rasheed a clôturé la conversation. L’assistant est de retour ; envoyez « menu » à tout moment.",
+    supportClosed:
+      "Rasheed a clôturé la conversation. L’assistant est de retour ; envoyez « menu » à tout moment.",
     cancelRefused:
       "Le commerçant n'a pas pu annuler la commande #{code} : elle est en préparation. Elle continue.",
     rating: "Comment était votre commande chez {vendor} ?",
@@ -757,6 +758,8 @@ export type CustomerAction =
   | { a: "cancel"; orderId: string }
   | { a: "empty"; lineId: string; hasEmpty: boolean }
   | { a: "pick_vendor"; ref: string }
+  | { a: "category"; key: string }
+  | { a: "sections_page"; offset: number }
   | { a: "pick_item"; ref: string }
   | { a: "add_upsell"; itemId: string }
   | { a: "replace_basket"; itemId: string; qty: number }
@@ -804,7 +807,8 @@ export type CustomerAction =
         | "remember"
         | "new_address"
         | "support"
-        | "cart_replace";
+        | "cart_replace"
+        | "near";
     };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -826,6 +830,8 @@ export function parseCustomerAction(id: string): CustomerAction | null {
     return { a: "empty", lineId: m[1], hasEmpty: m[2] === "y" };
   if ((m = id.match(re(`pv:(v\\d{1,2})`)))) return { a: "pick_vendor", ref: m[1] };
   if ((m = id.match(re(`pi:(i\\d{1,3})`)))) return { a: "pick_item", ref: m[1] };
+  if ((m = id.match(/^cat:([a-z][a-z_]{1,30})$/))) return { a: "category", key: m[1] };
+  if ((m = id.match(/^sp:(\d{1,3})$/))) return { a: "sections_page", offset: Number(m[1]) };
   if ((m = id.match(re(`ups:(${UUID})`)))) return { a: "add_upsell", itemId: m[1] };
   if ((m = id.match(re(`rpl:(${UUID}):(\\d{1,2})`))))
     return { a: "replace_basket", itemId: m[1], qty: Number(m[2]) };
@@ -842,7 +848,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
     return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
   if (
     (m = id.match(
-      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support|cart_replace)$/,
+      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support|cart_replace|near)$/,
     ))
   )
     return { a: "simple", what: m[1] as any };
@@ -896,3 +902,10 @@ export function afterSunset(now: Date): boolean {
   const mins = now.getUTCHours() * 60 + now.getUTCMinutes();
   return mins >= h * 60 + m || mins < 3 * 60; // until about 05:00 Beirut
 }
+
+/** An image with a caption (a shop's cover, session 5e). The caption is at most 1024 characters. */
+export const image = (to: string, link: string, caption: string) => ({
+  ...env(to),
+  type: "image",
+  image: { link, caption: Array.from(caption).slice(0, 1024).join("") },
+});

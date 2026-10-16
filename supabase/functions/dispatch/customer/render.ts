@@ -2064,3 +2064,231 @@ const S5D: Record<string, Record<CLang, string>> = {
   },
 };
 Object.assign(S, S5D);
+
+// ---- Session 5e: browsing through the bot (categories, shops near you, a shop's cover) --------------------------------
+const S5E: Record<string, Record<CLang, string>> = {
+  craving: {
+    ar: "شو نفسك تاكل؟ 😋 اختار صنف، أو شوف كل المحلات اللي بتوصّل لـ {place}.\nأو اكتبلي شو بدك، مثلاً «٢ شاورما».",
+    en: 'What are you craving? 😋 Pick a category, or see every shop that delivers to {place}.\nOr just type what you want, e.g. "2 shawarma".',
+    fr: "Qu'est-ce qui vous ferait plaisir ? 😋 Choisissez une catégorie, ou voyez les commerces qui livrent à {place}.\nOu écrivez ce que vous voulez, par ex. « 2 chawarmas ».",
+    arabizi:
+      'Shu nafsak takol? 😋 Ekhtar sanf, aw chouf kel el ma7allet li bwasslo 3a {place}.\nAw ekteb shu badak, metel "2 shawarma".',
+  },
+  cravingButton: { ar: "تصفّح", en: "Browse", fr: "Parcourir", arabizi: "Tsafa7" },
+  categories: { ar: "الأصناف", en: "Categories", fr: "Catégories", arabizi: "El asnaf" },
+  shopsSection: { ar: "المحلات", en: "Shops", fr: "Commerces", arabizi: "El ma7allet" },
+  nearRow: {
+    ar: "🛵 محلات قريبة منك",
+    en: "🛵 Shops near you",
+    fr: "🛵 Commerces proches",
+    arabizi: "🛵 Ma7allet 2arib",
+  },
+  nearRowDesc: {
+    ar: "{n} محل بيوصّلوا لعندك",
+    en: "{n} shops deliver to you",
+    fr: "{n} commerces livrent chez vous",
+    arabizi: "{n} ma7al bwasslo la 3endak",
+  },
+  shopsCount: { ar: "{n} محل", en: "{n} shops", fr: "{n} commerces", arabizi: "{n} ma7al" },
+  shopCount1: { ar: "محل واحد", en: "1 shop", fr: "1 commerce", arabizi: "Ma7al wa7ad" },
+  categoryShops: {
+    ar: "{emoji} {name}: اختار محل.",
+    en: "{emoji} {name}: pick a shop.",
+    fr: "{emoji} {name} : choisissez un commerce.",
+    arabizi: "{emoji} {name}: ekhtar ma7al.",
+  },
+  nearShops: {
+    ar: "🛵 المحلات اللي بتوصّل لـ {place}، الأقرب أول:",
+    en: "🛵 Shops that deliver to {place}, nearest first:",
+    fr: "🛵 Commerces qui livrent à {place}, les plus proches d'abord :",
+    arabizi: "🛵 El ma7allet li bwasslo 3a {place}, el a2rab awwal:",
+  },
+  shopsButton: { ar: "المحلات", en: "Shops", fr: "Commerces", arabizi: "El ma7allet" },
+  yourPlace: { ar: "عندك", en: "you", fr: "chez vous", arabizi: "3endak" },
+  closedShort: { ar: "مسكّر", en: "closed", fr: "fermé", arabizi: "msakkar" },
+  browseFee: {
+    ar: "توصيل {fee}",
+    en: "{fee} delivery",
+    fr: "livraison {fee}",
+    arabizi: "tawsil {fee}",
+  },
+  openToday: { ar: "اليوم {h}", en: "today {h}", fr: "aujourd'hui {h}", arabizi: "lyom {h}" },
+  openNow: { ar: "فاتح", en: "open now", fr: "ouvert", arabizi: "fete7" },
+  closedNow: { ar: "مسكّر هلق", en: "closed now", fr: "fermé", arabizi: "msakkar hala2" },
+  moreSections: {
+    ar: "باقي منيو {shop}: اختار قسم.",
+    en: "More from {shop}: pick a section.",
+    fr: "Plus de {shop} : choisissez une section.",
+    arabizi: "Ba2e menu {shop}: ekhtar se2em.",
+  },
+  moreSectionsRow: {
+    ar: "أقسام تانية ›",
+    en: "More sections ›",
+    fr: "Autres sections ›",
+    arabizi: "A2sem tenye ›",
+  },
+  sectionNext: {
+    ar: "باقي «{section}» ({from}–{to} من {n}):",
+    en: '"{section}" continues ({from}–{to} of {n}):',
+    fr: "« {section} » continue ({from}–{to} sur {n}) :",
+    arabizi: '"{section}" bikammel ({from}–{to} men {n}):',
+  },
+  nextItems: {
+    ar: "الأصناف التالية ›",
+    en: "Next items ›",
+    fr: "Articles suivants ›",
+    arabizi: "El asnaf el jeye ›",
+  },
+  searchHeader: {
+    ar: "نتائج «{q}»",
+    en: 'Results for "{q}"',
+    fr: "Résultats pour « {q} »",
+    arabizi: 'Nata2ej "{q}"',
+  },
+  searchShops: {
+    ar: "هيدا اللي لقيناه لـ «{q}» بالمحلات اللي بتوصّل لعندك. كل طلب من محل واحد: زيد عالسلّة 🛒 من محل وابعتها.",
+    en: 'Here is what we found for "{q}" at shops that deliver to you. One order is from one shop: add from one shop to the cart 🛒 and send it.',
+    fr: "Voici ce que nous avons trouvé pour « {q} » chez les commerces qui vous livrent. Une commande = un commerce : ajoutez au panier 🛒 depuis un seul commerce, puis envoyez-le.",
+    arabizi:
+      'Hayda li le2ayne la "{q}" bel ma7allet li bwasslo la 3endak. Kel talab men ma7al wa7ad: zid 3al salle 🛒 men ma7al w eb3ata.',
+  },
+};
+Object.assign(S, S5E);
+
+export type BrowseCategory = { key: string; emoji: string; name: string; shops: number };
+
+/** "What are you craving?": the categories that have shops delivering here, then "Shops near you" (10 rows at most). */
+export function cravingList(
+  to: string,
+  lang: CLang,
+  cats: BrowseCategory[],
+  shops: number,
+  place: string | null,
+): Msg {
+  const rows = cats.slice(0, 9).map<Row>((c) => ({
+    id: `cat:${c.key}`,
+    title: clip(`${c.emoji} ${c.name}`, 24),
+    description: c.shops === 1 ? tr(lang, "shopCount1") : tr(lang, "shopsCount", { n: c.shops }),
+  }));
+  return list(
+    to,
+    tr(lang, "craving", { place: place || tr(lang, "yourPlace") }),
+    tr(lang, "cravingButton"),
+    [
+      ...(rows.length ? [{ title: tr(lang, "categories"), rows }] : []),
+      {
+        title: tr(lang, "shopsSection"),
+        rows: [
+          {
+            id: "c:near",
+            title: tr(lang, "nearRow"),
+            description: tr(lang, "nearRowDesc", { n: shops }),
+          },
+        ],
+      },
+    ],
+  );
+}
+
+export type BrowseShop = {
+  ref: string;
+  name_ar?: string | null;
+  name_en?: string | null;
+  is_open: boolean;
+  km?: number | null;
+  fee_usd?: number | null;
+  village_ar?: string | null;
+  village_en?: string | null;
+};
+
+/** One row per shop: name, then delivery fee, distance and village (closed shops say so). */
+export function shopRows(lang: CLang, shops: BrowseShop[]): Row[] {
+  return shops.slice(0, 10).map((s) => {
+    const bits = [
+      s.is_open ? null : tr(lang, "closedShort"),
+      s.fee_usd != null ? `🛵 ${usd(s.fee_usd)}` : null,
+      s.km != null ? `${Number(s.km).toFixed(1)} km` : null,
+      name(lang, s.village_ar, s.village_en),
+    ].filter(Boolean);
+    return {
+      id: `pv:${s.ref}`,
+      title: clip(`${s.is_open ? "" : "⏸ "}${name(lang, s.name_ar, s.name_en)}`, 24),
+      ...(bits.length ? { description: clip(bits.join(" · "), 72) } : {}),
+    };
+  });
+}
+
+export function shopList(to: string, lang: CLang, body: string, shops: BrowseShop[]): Msg {
+  return list(to, body, tr(lang, "shopsButton"), [{ rows: shopRows(lang, shops) }]);
+}
+
+export type ShopCard = {
+  name_ar?: string | null;
+  name_en?: string | null;
+  village_ar?: string | null;
+  village_en?: string | null;
+  cuisine_ar?: string | null;
+  cuisine_en?: string | null;
+  cuisine_fr?: string | null;
+  open_now?: boolean;
+  hours_today?: string | null;
+};
+
+/** The one line under a shop's cover: cuisine · village · delivery fee · hours today. */
+export function shopLine(lang: CLang, c: ShopCard, feeUsd: number | null): string {
+  const cuisine =
+    lang === "fr"
+      ? (c.cuisine_fr ?? c.cuisine_en)
+      : lang === "ar"
+        ? (c.cuisine_ar ?? c.cuisine_en)
+        : c.cuisine_en;
+  const hours =
+    c.open_now === false
+      ? tr(lang, "closedNow")
+      : c.hours_today
+        ? tr(lang, "openToday", { h: c.hours_today })
+        : null;
+  return [
+    cuisine,
+    name(lang, c.village_ar, c.village_en),
+    feeUsd != null ? `🛵 ${tr(lang, "browseFee", { fee: usd(feeUsd) })}` : null,
+    hours ? `🕒 ${hours}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** The sections of a shop not shown in full in its first product message, 9 at a time with "More sections". */
+export function moreSectionsList(
+  to: string,
+  lang: CLang,
+  shop: string,
+  rows: { ref: string; name_ar?: string | null; name_en?: string | null; items: number }[],
+  nextOffset: number | null,
+): Msg {
+  const shown = rows.slice(0, nextOffset != null ? 9 : 10).map<Row>((r) => ({
+    id: `ps:${r.ref}`,
+    title: clip(name(lang, r.name_ar, r.name_en), 24),
+    description: tr(lang, "itemsCount", { n: r.items }),
+  }));
+  if (nextOffset != null)
+    shown.push({ id: `sp:${nextOffset}`, title: tr(lang, "moreSectionsRow") });
+  return list(to, tr(lang, "moreSections", { shop }), tr(lang, "menuButton"), [{ rows: shown }]);
+}
+
+/** After a section's product message when the section has more than 30 items: the next 30. */
+export function sectionNextButton(
+  to: string,
+  lang: CLang,
+  section: string,
+  ref: string,
+  offset: number,
+  shown: number,
+  total: number,
+): Msg {
+  return buttons(
+    to,
+    tr(lang, "sectionNext", { section, from: offset + 1, to: offset + shown, n: total }),
+    [[`mo:${ref}:${offset + shown}`, tr(lang, "nextItems")]],
+  );
+}

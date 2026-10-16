@@ -1450,13 +1450,28 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     unsectioned: 0,
   };
 
-  it("a shop of 30 items or fewer, all in the catalogue, gets one multi-product message by section", async () => {
+  const menu = (n: number, per: number) => ({
+    total: n * per,
+    sections: Array.from({ length: n }, (_, k) => ({
+      section_id: `s-${k + 1}`,
+      name_ar: `قسم ${k + 1}`,
+      name_en: `Section ${k + 1}`,
+      total: per,
+      products: Array.from({ length: per }, (_, j) => ({
+        retailer_id: `51000000-0000-0000-${String(k).padStart(4, "0")}-${String(j).padStart(12, "0")}`,
+        name_en: `Dish ${k}.${j}`,
+        price_usd: 3,
+      })),
+    })),
+  });
+
+  it("a shop opens as one multi-product message of its sections, best first, when they all fit", async () => {
     const f = fake({
       begin: sess({ refs: { v1: { id: VENDOR, label: "Alo Test Grill" } } }),
       rpcs: {
         vendor_sections: () => sections,
         catalog_for_number: () => "1234567890",
-        catalog_products: () => ({ total: 10, section_total: 0, products: products(10) }),
+        catalog_shop_menu: () => menu(2, 5),
       },
     });
     await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
@@ -1466,10 +1481,54 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(m.interactive.action.catalog_id).toBe("1234567890");
     expect(m.interactive.header.text).toBe("Alo Test Grill");
     expect(m.interactive.action.sections.map((s: any) => s.title)).toEqual([
-      "Sandwiches",
-      "Grills",
+      "Section 1",
+      "Section 2",
     ]);
     expect(checkInteractive(m)).toEqual([]);
+  });
+
+  it("a big shop: its cover and one line, its best sections (a few items each, 30 at most), then a list of the rest", async () => {
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => menu(12, 8),
+        shop_card: () => ({
+          name_en: "Big Market",
+          cuisine_en: "Burgers",
+          village_en: "Baakline",
+          open_now: true,
+          hours_today: "12 PM to 12 AM",
+          cover: { path: `cover/${VENDOR}.jpg` },
+        }),
+        customer_delivery_check: () => ({
+          status: "ok",
+          vendors: [{ vendor_id: VENDOR, status: "ok", road_km: 2.1, fee_usd: 2 }],
+        }),
+      },
+    });
+    f.deps.photoUrl = async (path) => `https://example.supabase.co/sign/${path}?token=t`;
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(f.sent.map((p) => (p.type === "image" ? "image" : p.interactive.type))).toEqual([
+      "image",
+      "product_list",
+      "list",
+    ]);
+    expect(f.sent[0].image.link).toContain(`cover/${VENDOR}.jpg`);
+    expect(f.sent[0].image.caption).toBe(
+      "*Big Market*\nBurgers · Baakline · 🛵 $2.00 delivery · 🕒 today 12 PM to 12 AM",
+    );
+    const pl = f.sent[1].interactive.action.sections;
+    expect(pl).toHaveLength(5);
+    expect(pl.map((s: any) => s.product_items.length)).toEqual([6, 6, 6, 6, 6]);
+    expect(pl[0].title).toBe("Section 1");
+    // The rest: sections 1-5 (shown in part) and 6-12, nine rows and "More sections".
+    const rows = f.sent[2].interactive.action.sections[0].rows;
+    expect(rows).toHaveLength(10);
+    expect(rows[0].title).toBe("Section 1");
+    expect(rows[9].id).toBe("sp:9");
+    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
   });
 
   it("without a catalogue, or when a shop is not fully synced, the list menu runs as before", async () => {
@@ -1489,32 +1548,13 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     }
   });
 
-  it("a shop with more than 30 items gets its best sellers as products and the section list", async () => {
-    const f = fake({
-      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
-      rpcs: {
-        vendor_sections: () => sections,
-        catalog_for_number: () => "1234567890",
-        catalog_best_sellers: () => products(4).map((p) => p.retailer_id),
-        catalog_products: (a) =>
-          a.p_item_ids
-            ? { total: 80, section_total: 0, products: products(4) }
-            : { total: 80, section_total: 0, products: products(30) },
-      },
-    });
-    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
-    expect(f.sent.map((p) => p.interactive.type)).toEqual(["product_list", "list"]);
-    expect(f.sent[0].interactive.action.sections[0].title).toBe("Best sellers");
-    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
-  });
-
   it("a catalogue message Meta refuses is replaced by the list", async () => {
     const f = fake({
       begin: sess({ refs: { v1: { id: VENDOR, label: "Alo Test Grill" } } }),
       rpcs: {
         vendor_sections: () => sections,
         catalog_for_number: () => "1234567890",
-        catalog_products: () => ({ total: 2, section_total: 0, products: products(2) }),
+        catalog_shop_menu: () => menu(1, 2),
       },
     });
     const tried: string[] = [];
@@ -1542,7 +1582,9 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
       rpcs: {
         catalog_search: () => ({ status: "ok", items: [one] }),
         catalog_for_number: () => "1234567890",
-        catalog_products: () => ({ total: 9, section_total: 0, products: [{ retailer_id: ITEM }] }),
+        catalog_products_for: () => [
+          { retailer_id: ITEM, vendor_id: VENDOR, section: "مطعم أ", section_en: "Vendor A" },
+        ],
       },
     });
     f.deps.config.freeText = false;
@@ -1552,5 +1594,187 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(m.interactive.action).toEqual({ catalog_id: "1234567890", product_retailer_id: ITEM });
     expect(checkInteractive(m)).toEqual([]);
     expect(f.of("catalog_for_number")[0].args.p_to).toBe("+96176000001");
+  });
+
+  it("a search across shops answers with one multi-product message grouped by shop", async () => {
+    const OTHER = "20000000-0000-0000-0000-00000000000b";
+    const ITEM2 = "51000000-0000-0000-0000-000000000002";
+    const f = fake({
+      model: null,
+      rpcs: {
+        catalog_search: () => ({
+          status: "ok",
+          items: [
+            {
+              item_id: ITEM,
+              vendor_id: VENDOR,
+              name_en: "Shawarma",
+              price_usd: 5,
+              vendor_en: "Vendor A",
+            },
+            {
+              item_id: ITEM2,
+              vendor_id: OTHER,
+              name_en: "Shawarma plate",
+              price_usd: 9,
+              vendor_en: "Vendor B",
+            },
+          ],
+        }),
+        catalog_for_number: () => "1234567890",
+        catalog_products_for: (a) => {
+          expect(a.p_item_ids).toEqual([ITEM, ITEM2]);
+          return [
+            { retailer_id: ITEM, vendor_id: VENDOR, section: "مطعم أ", section_en: "Vendor A" },
+            { retailer_id: ITEM2, vendor_id: OTHER, section: "مطعم ب", section_en: "Vendor B" },
+          ];
+        },
+      },
+    });
+    f.deps.config.freeText = false;
+    await handleCustomerTurn(f.deps, msg({ text: "shawarma" }));
+    const m = f.sent[0];
+    expect(m.interactive.type).toBe("product_list");
+    expect(m.interactive.header.text).toBe('Results for "shawarma"');
+    expect(m.interactive.action.sections.map((s: any) => s.title)).toEqual([
+      "Vendor A",
+      "Vendor B",
+    ]);
+    expect(bodyOf(m)).toMatch(/One order is from one shop/);
+    expect(checkInteractive(m)).toEqual([]);
+  });
+
+  it("a section of more than 30 items: 30 as products, then a Next items button that pages", async () => {
+    const big = menu(1, 45);
+    const f = fake({
+      begin: sess({
+        focus_vendor_id: VENDOR,
+        refs: { v1: { id: VENDOR, label: "Deli" }, s1: { id: "s-1", label: "Charcuterie" } },
+      }),
+      rpcs: { catalog_for_number: () => "1234567890", catalog_shop_menu: () => big },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "ps:s1", type: "interactive" }));
+    expect(f.sent[0].interactive.type).toBe("product_list");
+    expect(f.sent[0].interactive.action.sections[0].product_items).toHaveLength(30);
+    expect(f.sent[1].interactive.action.buttons[0].reply.id).toBe("mo:s1:30");
+    const g = fake({
+      begin: sess({
+        focus_vendor_id: VENDOR,
+        refs: { v1: { id: VENDOR, label: "Deli" }, s1: { id: "s-1", label: "Charcuterie" } },
+      }),
+      rpcs: { catalog_for_number: () => "1234567890", catalog_shop_menu: () => big },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "mo:s1:30", type: "interactive" }));
+    expect(g.sent[0].interactive.action.sections[0].product_items).toHaveLength(15);
+    expect(g.sent).toHaveLength(1);
+  });
+});
+
+describe("browsing through the bot (session 5e)", () => {
+  const POINT = { lat: 33.6775, lon: 35.5645, address_id: "a1" };
+  const shopsOf = (n: number) =>
+    Array.from({ length: n }, (_, k) => ({
+      vendor_id: `20000000-0000-0000-0000-0000000000${String(k).padStart(2, "0")}`,
+      name_en: `Shop ${k}`,
+      is_open: true,
+      km: 1 + k,
+      village_en: "Baakline",
+      categories: k % 2 ? ["burgers", "chicken"] : ["pizza"],
+    }));
+  const browse = (n: number) => ({
+    place: { name_ar: "بعقلين", name_en: "Baakline" },
+    categories: [
+      { key: "burgers", emoji: "🍔", name_ar: "برغر", name_en: "Burgers", name_fr: "Burgers" },
+      { key: "pizza", emoji: "🍕", name_ar: "بيتزا", name_en: "Pizza", name_fr: "Pizza" },
+      { key: "sushi", emoji: "🍣", name_ar: "سوشي", name_en: "Sushi", name_fr: "Sushi" },
+      {
+        key: "chicken",
+        emoji: "🍗",
+        name_ar: "دجاج",
+        name_en: "Fried chicken",
+        name_fr: "Poulet frit",
+      },
+    ],
+    shops: shopsOf(n),
+  });
+  const check = (a: any) => ({
+    status: "ok",
+    vendors: a.p_vendor_ids.map((id: string, k: number) => ({
+      vendor_id: id,
+      status: k === 4 ? "beyond_radius" : "ok",
+      road_km: 1.5 + k,
+      fee_usd: k < 2 ? 2 : 3,
+    })),
+  });
+
+  it("Order: what are you craving? Categories with shops that deliver here, then shops near you", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => POINT,
+        browse_shops: () => browse(6),
+        customer_delivery_check: check,
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    const m = f.sent[0];
+    expect(m.interactive.type).toBe("list");
+    expect(bodyOf(m)).toMatch(/What are you craving\?.*Baakline/s);
+    const [cats, near] = m.interactive.action.sections;
+    expect(cats.rows.map((r: any) => [r.id, r.title, r.description])).toEqual([
+      ["cat:burgers", "🍔 Burgers", "3 shops"],
+      ["cat:pizza", "🍕 Pizza", "2 shops"],
+      ["cat:chicken", "🍗 Fried chicken", "3 shops"],
+    ]);
+    // One of the six is beyond its radius by road: five deliver.
+    expect(near.rows).toEqual([
+      { id: "c:near", title: "🛵 Shops near you", description: "5 shops deliver to you" },
+    ]);
+    expect(checkInteractive(m)).toEqual([]);
+  });
+
+  it("a few shops are listed directly, as before", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => POINT,
+        browse_shops: () => browse(3),
+        customer_delivery_check: check,
+        vendor_search: () => [],
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(f.of("vendor_search")).toHaveLength(1);
+  });
+
+  it("a category lists its shops with delivery fee, road distance and village; Shops near you lists them all", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => POINT,
+        browse_shops: () => browse(6),
+        customer_delivery_check: check,
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "cat:burgers", type: "interactive" }));
+    const rows = f.sent[0].interactive.action.sections[0].rows;
+    expect(bodyOf(f.sent[0])).toBe("🍔 Burgers: pick a shop.");
+    expect(rows.map((r: any) => [r.id, r.title, r.description])).toEqual([
+      ["pv:v1", "Shop 1", "🛵 $2.00 · 2.5 km · Baakline"],
+      ["pv:v2", "Shop 3", "🛵 $3.00 · 4.5 km · Baakline"],
+      ["pv:v3", "Shop 5", "🛵 $3.00 · 6.5 km · Baakline"],
+    ]);
+    expect(checkInteractive(f.sent[0])).toEqual([]);
+    const g = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => POINT,
+        browse_shops: () => browse(6),
+        customer_delivery_check: check,
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "c:near", type: "interactive" }));
+    expect(g.sent[0].interactive.action.sections[0].rows).toHaveLength(5);
+    expect(bodyOf(g.sent[0])).toMatch(/deliver to Baakline, nearest first/);
   });
 });

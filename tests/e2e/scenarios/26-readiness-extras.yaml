@@ -1,5 +1,4 @@
 name: readiness-extras
-smoke: true
 description: "The readiness items no other scenario covers (session 5d): a returning customer's greeting with the 2-tap repeat, a typed dish search without a model, STOP and START for promotions, and a voice note answered with the 'not yet' reply while voice is off (DECISIONS §38.3, §39.6, §18.3)."
 personas:
   cust: { role: customer, cc: "961", name: "Sim Readiness" }
