@@ -4729,6 +4729,43 @@ describe("first contact (session 5f part 8a)", () => {
       );
       expect(ids(f.sent[0])).toEqual([`rmd:${V2}`, "c:near"]);
     });
+    it("Order when every shop is closed names the first to open among every shop near (shops_closed_near, no cap)", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          customer_search_point: pinPoint,
+          browse_shops: () => ({
+            shops: [{ vendor_id: VENDOR, name_en: "Eatout", is_open: false, km: 1 }],
+            categories: [],
+          }),
+          customer_delivery_check: () => ({ status: "ok", vendors: [] }),
+          shops_closed_near: () => ({
+            status: "all_closed",
+            shops: 50,
+            first: {
+              vendor_id: V2,
+              name_en: "Far Grill",
+              opens: { opens_at: "2026-10-12T04:00:00Z", hm: "07:00", in_days: 1, dow: 1 },
+            },
+          }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:order" }));
+      expect(bodyOf(f.sent[0])).toBe(
+        "🌙 Shops near you are closed now. Far Grill opens tomorrow at 07:00.",
+      );
+      expect(ids(f.sent[0])).toEqual([`rmd:${V2}`, "c:near"]);
+      expect(f.of("vendor_opening")).toHaveLength(0);
+    });
+    it('Remind me with no shop near at all: the shop list (or why none delivers), never "this shop"', async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: { shop_reminder_set: () => ({ status: "none" }), customer_search_point: () => null },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `rmd:${VENDOR}` }));
+      expect(f.sent.some((p) => /this shop|We don't know yet/.test(bodyOf(p)))).toBe(false);
+      expect(f.of("customer_search_point").length).toBeGreaterThan(0);
+    });
     it("Remind me: the server sets it (customer from the session, the shop from the tap) and says when", async () => {
       const f = fake({
         ...noModel,

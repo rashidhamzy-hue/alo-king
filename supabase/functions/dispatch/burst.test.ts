@@ -47,6 +47,9 @@ describe("inboundBurst", () => {
       ["customer_burst", { p_event_id: 8, p_alone: true }],
       ["customer_burst", { p_event_id: 8, p_alone: true }],
     ]);
+    // Already folded by a leader: that burst answers it, never twice.
+    const folded = async () => ({ status: "folded", into: 3 });
+    expect(await inboundBurst(folded, 8, text("STOP"))).toEqual({ kind: "folded" });
   });
   it("reads each answer; anything odd answers the message alone", async () => {
     const r = (x: any) => async () => x;

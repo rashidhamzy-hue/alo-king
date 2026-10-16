@@ -2489,7 +2489,9 @@ async function deliveringShops(c: Ctx): Promise<{
     return { shops: [], categories, paused: true, point: pt, place };
   const by = new Map<string, any>((chk?.vendors ?? []).map((v: any) => [v.vendor_id, v]));
   const shops = raw
-    .filter((x) => by.get(x.vendor_id)?.status !== "beyond_radius")
+    // A shop the delivery check says cannot come here (beyond its radius, or the place paused while the test shop takes the
+    // pin) is not listed: it would fail at checkout.
+    .filter((x) => !["beyond_radius", "place_paused"].includes(by.get(x.vendor_id)?.status))
     .map((x) => {
       const q = by.get(x.vendor_id);
       return {
@@ -4568,6 +4570,7 @@ async function joinWaitlist(c: Ctx) {
       c.summary.push(`[on the waitlist for ${r.place_en}]`);
       return say(c, "waitlistJoined", { place: placeName(c.s.lang, r) });
     case "delivered":
+    case "test_shop":
       return startOrder(c);
     case "demo_outside":
       return demoOutside(c, r);

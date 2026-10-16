@@ -476,7 +476,8 @@ begin
     return jsonb_build_object('status', 'demo_outside', 'choices', app_private.demo_address_choices());
   end if;
   -- The test shop takes any pin (DECISIONS §35): while one this customer can see is orderable, nothing is "outside".
-  if exists (select 1 from public.vendors v where v.is_test and v.orderable
+  if exists (select 1 from public.vendors v where v.is_test and v.orderable and v.listing_status = 'active'
+             and v.claim_status = 'claimed' and v.delivery_enabled
              and not (v.id = any (app_private.customer_hidden_vendors(p_customer_id)))) then
     return jsonb_build_object('status', 'test_shop', 'place_id', v_a.place_id);
   end if;

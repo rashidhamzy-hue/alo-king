@@ -31,7 +31,9 @@ export async function inboundBurst(
   const urgent = deterministicIntent(m.text)?.kind;
   if (urgent === "stop" || urgent === "delete_data" || urgent === "forget_history") {
     // Marked as answered alone, so a burst led at the same moment never folds it and answers it twice.
-    await rpc("customer_burst", { p_event_id: id, p_alone: true }).catch(() => null);
+    const r = await rpc("customer_burst", { p_event_id: id, p_alone: true }).catch(() => null);
+    // A leader already folded it: that burst answers the STOP (never confirmed twice).
+    if (r?.status === "folded") return { kind: "folded" };
     return { kind: "single" };
   }
   const r = await rpc("customer_burst", { p_event_id: id }).catch((e: unknown) => {

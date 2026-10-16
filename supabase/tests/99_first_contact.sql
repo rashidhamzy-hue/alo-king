@@ -266,6 +266,8 @@ insert into public.vendors (id, slug, name_ar, name_en, business_type, claim_sta
   ('20000000-0000-0000-0000-0000000000f9', 'vendor-fc-test', 'محل تجربة', 'Test Grill FC', 'restaurant', 'claimed', true,
    'merchant', 'gpFCT', 'SRID=4326;POINT(35.585 33.682)', 5, 'LB-CHF-FCTOWN', 'active', true);
 select tests.ok(public.waitlist_state(:'x2') ->> 'status' = 'test_shop', 'a visible test shop: the pin goes on as usual');
+update public.vendors set pickup_enabled = true, delivery_enabled = false where id = '20000000-0000-0000-0000-0000000000f9';
+select tests.ok(public.waitlist_state(:'x2') ->> 'status' = 'outside', 'a pickup-only test shop does not take the pin');
 delete from public.vendors where id = '20000000-0000-0000-0000-0000000000f9';
 select tests.ok(public.waitlist_state(:'x2') ->> 'status' = 'outside', 'without one: the waitlist');
 
