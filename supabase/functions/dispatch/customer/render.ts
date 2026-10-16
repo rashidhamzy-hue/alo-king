@@ -2744,3 +2744,89 @@ export function savedCartOfferCard(
     ],
   );
 }
+
+// ---- Demo testers (session 5f part 6, DECISIONS §39.15.3) ------------------------------------------------------------------
+const S5F6: Record<string, Record<CLang, string>> = {
+  testerWelcome: {
+    ar: "🧪 إنت عم تجرّب Alo King. الطلبات تجريبية: ما في شي بينطبخ أو بيتوصّل أو بينْدفع.",
+    en: "🧪 You're testing Alo King. Orders are pretend: nothing is cooked, delivered or paid.",
+    fr: "🧪 Vous testez Alo King. Les commandes sont fictives : rien n'est cuisiné, livré ni payé.",
+    arabizi:
+      "🧪 Enta 3am tjarreb Alo King. El talabet tajribiye: ma fi shi byentbakh, byetwassal aw byendafa3.",
+  },
+  testerFull: {
+    ar: "🙏 شكراً! التجربة مليانة هلق، فما فينا نزيدك عليها. فيك تتفرّج من هون:",
+    en: "🙏 Thank you! The test is full for now, so we can't add you to it. You can still look around:",
+    fr: "🙏 Merci ! Le test est complet pour l'instant, nous ne pouvons pas vous y ajouter. Vous pouvez quand même découvrir :",
+    arabizi: "🙏 Merci! El tajrebe mlyene hala2, fa ma fina nzidak 3leha. Fik tetfarraj men hon:",
+  },
+  demoOnly: {
+    ar: "🧪 لهالتجربة، اطلب من المحلات التجريبية بس: هالمحل مش منها. دوس «اطلب» لتشوفها.",
+    en: "🧪 For this test, order from the demo shops: this shop isn't one of them. Tap Order to see them.",
+    fr: "🧪 Pour ce test, commandez dans les commerces de démonstration : celui-ci n'en fait pas partie. Touchez Commander pour les voir.",
+    arabizi:
+      "🧪 La hal tajrebe, otlob men el mahallet el tajribiye bas: hal mahal mesh menon. Dos Otlob la tshoufon.",
+  },
+  demoRecipient: {
+    ar: "🧪 لهالتجربة، ابعت الطلب لإلك أو لحدا تاني عم يجرّب: ما منبعت لحدا برّا التجربة.",
+    en: "🧪 For this test, send it to yourself or to another tester: we never message anyone outside the test.",
+    fr: "🧪 Pour ce test, envoyez-la à vous-même ou à un autre testeur : nous n'écrivons à personne en dehors du test.",
+    arabizi:
+      "🧪 La hal tajrebe, b3at el talab la elak aw la 7ada tene 3am yjarreb: ma mnb3at la 7ada barra el tajrebe.",
+  },
+  demoAddressGone: {
+    ar: "📍 العنوان التجريبي كان للتجربة بس. ابعتلي موقعك (Location) لنوصّل لعندك.",
+    en: "📍 That demo address was only for the test. Send your location pin so we can deliver to you.",
+    fr: "📍 Cette adresse de démonstration servait seulement au test. Envoyez votre position pour la livraison.",
+    arabizi: "📍 El 3enwen el tajribe kan lal tajrebe bas. B3atle location la nwassel la 3endak.",
+  },
+  demoOutside: {
+    ar: "📍 إنت برّا منطقة التوصيل. لهالتجربة، اختار عنوان تجريبي:",
+    en: "📍 You're outside our delivery area. For this test, pick a demo address:",
+    fr: "📍 Vous êtes hors de notre zone de livraison. Pour ce test, choisissez une adresse de démonstration :",
+    arabizi: "📍 Enta barra mante2et el tawsil. La hal tajrebe, na22e 3enwen tajribe:",
+  },
+};
+Object.assign(S, S5F6);
+// A lead-in: the main menu follows in the same turn.
+INFO_KEYS.add("testerWelcome");
+// Errors with their way forward (§39.15.1): the demo shops (Order), or a new pin.
+ERROR_WAYS.demoOnly = ["order", "help"];
+ERROR_WAYS.demoAddressGone = ["address", "help"];
+ERROR_WAYS.demoRecipient = ["address", "help"];
+
+/** The test is full: said kindly, with the main menu's buttons (the customer is not a tester). */
+export function testerFullMenu(to: string, lang: CLang): Msg {
+  return buttons(to, tr(lang, "testerFull"), [
+    ["c:order", tr(lang, "btnOrder")],
+    ["c:track", tr(lang, "btnTrack")],
+    ["c:human", tr(lang, "btnPerson")],
+  ]);
+}
+
+export type DemoAddress = { key: string; name_en?: string; name_ar?: string; name_fr?: string };
+
+/** A tester's pin outside the delivery area: the fixed demo addresses (config demo_addresses), one button each. */
+export function demoAddressCard(to: string, lang: CLang, choices: DemoAddress[]): Msg {
+  return buttons(
+    to,
+    tr(lang, "demoOutside"),
+    choices
+      .filter(
+        (d, k) =>
+          /^[a-z][a-z_]{1,20}$/.test(String(d.key)) &&
+          choices.findIndex((x) => x.key === d.key) === k,
+      )
+      .slice(0, 3)
+      .map(
+        (d) =>
+          [
+            `da:${d.key}`,
+            clip(
+              `📍 ${lang === "ar" ? (d.name_ar ?? d.name_en) : lang === "fr" ? (d.name_fr ?? d.name_en) : (d.name_en ?? d.name_ar)}`,
+              20,
+            ),
+          ] as [string, string],
+      ),
+  );
+}

@@ -138,6 +138,17 @@ set local role anon;
 select tests.ok(public.site_item(:'falafel') -> 'goes_well' ->> 'id' = :'other',
   'two delivered orders that bought them together: "Goes well with" names the other item');
 reset role;
+-- A demo order (§39.15.3) is a pretend order: it never counts on the public page.
+set local session_replication_role = replica;
+update public.orders set is_demo = true where id = '5f400000-0000-0000-0000-000000000002';
+set local session_replication_role = origin;
+set local role anon;
+select tests.ok(public.site_item(:'falafel') -> 'goes_well' = 'null'::jsonb,
+  'a demo order does not count: one real order is not enough for "Goes well with"');
+reset role;
+set local session_replication_role = replica;
+update public.orders set is_demo = false where id = '5f400000-0000-0000-0000-000000000002';
+set local session_replication_role = origin;
 
 -- A removed item is never shown: no page, no credit, and the catalogue leaves it out (the sync hides it at Meta).
 update public.menu_items set removed_at = now() where id = :'falafel';

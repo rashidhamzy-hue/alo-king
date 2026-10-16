@@ -858,3 +858,86 @@ describe("a held message is waited for inside the run (session 5e, 30-second tic
     expect(waits).toEqual([]);
   });
 });
+
+// Demo testers (session 5f part 6, DECISIONS §39.15.3): the owner removes one from WhatsApp.
+import { testerRemoveReply } from "./handler";
+import { maskPhone, parseTesterRemove, testerPhone } from "../_shared/demo-testers";
+describe("tester remove from an owner's phone (§39.15.3)", () => {
+  const text = (body: string, phone = "+96170000181") =>
+    inbound({ type: "text", text: { body } }, phone);
+
+  it("reads the number however it is typed, and only the command", () => {
+    expect(parseTesterRemove("tester remove +44 7700 900001")).toEqual({ phone: "+447700900001" });
+    expect(parseTesterRemove("  Tester Remove 0033-6-12-34-56-78 ")).toEqual({
+      phone: "+33612345678",
+    });
+    expect(parseTesterRemove("tester remove someone")).toEqual({ phone: null });
+    expect(parseTesterRemove("remove tester +961")).toBeNull();
+    expect(parseTesterRemove(null)).toBeNull();
+    expect(testerPhone("+1 (415) 555-0100")).toBe("+14155550100");
+    expect(testerPhone("+12")).toBeNull();
+    expect(maskPhone("+447700900001")).toBe("+447••••••001");
+  });
+
+  it("from the owner's phone: the server removes the tester and the owner is told", async () => {
+    const db = fakeDb({
+      events: [text("tester remove +44 7700 900001")],
+      rpcs: {
+        demo_tester_remove_by_owner: () => ({ status: "removed", phone: "+447700900001" }),
+        test_side_get: () => "customer",
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(db.of("demo_tester_remove_by_owner")[0].args).toEqual({
+      p_owner_phone: "+96170000181",
+      p_phone_e164: "+447700900001",
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].payload.text.body).toBe("🧪 +447700900001 is no longer a demo tester.");
+    // Nothing else ran: not the customer bot, not the merchant paths.
+    expect(db.of("merchant_members_by_phone")).toHaveLength(0);
+    expect(db.of("webhook_finish")[0].args.p_status).toBe("done");
+  });
+
+  it("a number that cannot be read: the owner is told how to write it", async () => {
+    const db = fakeDb({
+      events: [text("tester remove my friend")],
+      rpcs: { demo_tester_remove_by_owner: () => ({ status: "bad_phone", phone: "" }) },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(db.of("demo_tester_remove_by_owner")[0].args.p_phone_e164).toBe("");
+    expect(sent[0].payload.text.body).toMatch(/country code: tester remove \+961/);
+  });
+
+  it("from anyone else the message carries on as a normal one", async () => {
+    const db = fakeDb({
+      members: [{ member_id: MEMBER, vendor_id: VENDOR, role: "owner", vendor_name: "Shop" }],
+      events: [text("tester remove +447700900001", "+96171000001")],
+      rpcs: {
+        demo_tester_remove_by_owner: () => ({ status: "not_owner" }),
+        test_side_get: () => null,
+      },
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(db.of("demo_tester_remove_by_owner")).toHaveLength(1);
+    expect(db.of("merchant_members_by_phone")).toHaveLength(1);
+    expect(sent[0].payload.text.body).not.toMatch(/demo tester/);
+  });
+
+  it("other messages never ask", async () => {
+    const db = fakeDb({ events: [text("tester")], rpcs: { test_side_get: () => null } });
+    const { d } = deps(db);
+    await runDispatch(d);
+    expect(db.of("demo_tester_remove_by_owner")).toHaveLength(0);
+  });
+
+  it("the replies", () => {
+    expect(testerRemoveReply({ status: "not_found", phone: "+33600000000" })).toMatch(
+      /No demo tester has the number \+33600000000/,
+    );
+    expect(testerRemoveReply({ status: "bad_phone" })).toMatch(/country code/);
+  });
+});

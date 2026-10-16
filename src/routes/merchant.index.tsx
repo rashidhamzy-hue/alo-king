@@ -167,6 +167,8 @@ function MerchantHome() {
         .from("orders")
         .select("total_usd,status")
         .eq("vendor_id", vendorId)
+        // Demo orders (a demo shop's, a tester's) never count in a shop's figures (DECISIONS §39.15.3).
+        .eq("is_demo", false)
         .gte("created_at", startOfToday());
       if (error) throw error;
       const ok = (data ?? []).filter(

@@ -257,3 +257,73 @@ describe("buttons and thread replies", () => {
     expect(await runAction(async () => null, OP, { do: "drop_tables" })).toBe("Unknown action.");
   });
 });
+
+describe("/ak testers and /ak tester remove (demo testers, DECISIONS §39.15.3)", () => {
+  it("lists the active testers as the server masks them, with the cap and the switches", async () => {
+    const h = deps({
+      ops_demo_testers: () => ({
+        demo_on: true,
+        autopilot: true,
+        max: 30,
+        days: 14,
+        testers: [
+          {
+            phone: "+447••••••001",
+            name: "UK",
+            enrolled_at: "2026-10-16T11:00:00Z",
+            expires_at: "2026-10-30T11:00:00Z",
+            orders: 2,
+          },
+        ],
+      }),
+    });
+    const r = await (await handleOpsSlack(h.d, req(slash("testers")))).json();
+    expect(h.of("ops_demo_testers")[0].args).toEqual({ p_actor_id: OP });
+    expect(r.text).toContain("*Demo testers* 1/30 (14 days) · demo mode on · autopilot on");
+    expect(r.text).toContain("• +447••••••001 (UK): until 2026-10-30, 2 orders");
+    expect(r.text).not.toMatch(/\+447700900001/);
+  });
+  it("says when there is nobody", async () => {
+    const h = deps({
+      ops_demo_testers: () => ({
+        demo_on: false,
+        autopilot: false,
+        max: 30,
+        days: 14,
+        testers: [],
+      }),
+    });
+    const r = await (await handleOpsSlack(h.d, req(slash("testers")))).json();
+    expect(r.text).toMatch(/demo mode off · autopilot off\nNo active tester\./);
+  });
+  it("removes one by number, through the server with the operator's id, and echoes it masked", async () => {
+    const h = deps({ ops_demo_tester_remove: () => ({ status: "removed" }) });
+    const r = await (await handleOpsSlack(h.d, req(slash("tester remove +44 7700 900001")))).json();
+    expect(h.of("ops_demo_tester_remove")[0].args).toEqual({
+      p_actor_id: OP,
+      p_phone_e164: "+447700900001",
+    });
+    expect(r.text).toBe("🧪 +447••••••001 is no longer a demo tester.");
+  });
+  it("an unknown number, or none, is said so and nothing else runs", async () => {
+    const h = deps({ ops_demo_tester_remove: () => ({ status: "not_found" }) });
+    expect(
+      (await (await handleOpsSlack(h.d, req(slash("tester remove +33600000000")))).json()).text,
+    ).toBe("No demo tester has +336•••••000.");
+    expect((await (await handleOpsSlack(h.d, req(slash("tester remove")))).json()).text).toMatch(
+      /Usage: `\/ak tester remove/,
+    );
+    expect(h.of("ops_demo_tester_remove")).toHaveLength(1);
+  });
+  it("a Slack user who is not an operator gets nothing", async () => {
+    const h = deps({ ops_demo_testers: () => ({}) });
+    const r = await (await handleOpsSlack(h.d, req(slash("testers", "U0STRANGER")))).json();
+    expect(r.text).toMatch(/not an Alo King operator/);
+    expect(h.of("ops_demo_testers")).toHaveLength(0);
+  });
+  it("the help lists them", async () => {
+    const h = deps();
+    const r = await (await handleOpsSlack(h.d, req(slash("help")))).json();
+    expect(r.text).toContain("`testers` · `tester remove +<number>`");
+  });
+});
