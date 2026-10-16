@@ -1198,6 +1198,7 @@ describe("session 5e browsing cards", () => {
       }));
       const built: any[] = [
         cravingList(to, lang, cats, 29, "Maasser Beit ed Dine with a long village name"),
+        cravingList(to, lang, cats, 29, null, 8),
         cravingList(to, lang, [], 1, null),
         shopList(to, lang, "🍔 Burgers: pick a shop.", shops),
         moreSectionsList(to, lang, longName, secs, 9),
