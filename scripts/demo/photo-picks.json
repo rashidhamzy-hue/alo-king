@@ -1,0 +1,516 @@
+{
+  "_comment": "Photos picked by a build session from photo-scout run 38848787132's contact sheets (DECISIONS §39.13): one real photo per dish key of scripts/demo/dishes.ts (CC0, Public Domain Mark or CC BY from Openverse; no brand logos, no photo of another dish) and Open Food Facts packshots (CC BY-SA 3.0) for shelf items by their English name, only when the pack is the same brand, variant and size. Each pick keeps its license, credit and source page; demo-photos.ts applies them (pickOk re-checks every one).",
+  "dishes": {
+    "bread": {
+      "url": "https://live.staticflickr.com/65535/51915082284_15c7499eff_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "Ruth and Dave via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/95142644@N00/51915082284"
+    },
+    "brownie": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvd2s2NDQ4MDYxMy1pbWFnZS1rcDZjb2I1Ny5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/3338459/free-photo-image-chocolate-cake-animal"
+    },
+    "burger": {
+      "url": "https://live.staticflickr.com/65535/52258871748_b5f2c58cde_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/52258871748"
+    },
+    "caesar_salad": {
+      "url": "https://live.staticflickr.com/65535/54652075460_8a9a50b287_b.jpg",
+      "license": "CC0 1.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/54652075460"
+    },
+    "cake": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTA0L3drOTM0NzczODgtaW1hZ2Uta3A2YmE5NDUuanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/3337736/free-photo-image-dessert-chocolate-biscuit"
+    },
+    "cappuccino": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/UXO5P8KFS5.jpg",
+      "license": "CC0 1.0",
+      "credit": "Hello Goodbye via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/coffee-cappuccino-UXO5P8KFS5"
+    },
+    "cereal": {
+      "url": "https://live.staticflickr.com/65535/51429943717_807273112b_b.jpg",
+      "license": "Public Domain Mark 1.0",
+      "credit": "USDAgov via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/41284017@N08/51429943717"
+    },
+    "cheese": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/IDWG2ABOTY.jpg",
+      "license": "CC0 1.0",
+      "credit": "Foodie Girl via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/cheese-board-IDWG2ABOTY"
+    },
+    "cheeseburger": {
+      "url": "https://live.staticflickr.com/65535/53816726211_487910ae5f_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "marsupilami92 via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/41538865@N06/53816726211"
+    },
+    "cheesecake": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvaXMxNTQyNC1pbWFnZS1rd3lzZDVwbi5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5969685/cheesecake-slice"
+    },
+    "chicken_burger": {
+      "url": "https://live.staticflickr.com/65535/54440458800_6579447fbc_b.jpg",
+      "license": "CC0 1.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/54440458800"
+    },
+    "chips": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZnJzbmFja19zbmFja2luZ19wb3RhdG9fZm9vZF8wLWltYWdlLWt5Y2ZneGV4LmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/6050213/free-public-domain-cc0-photo"
+    },
+    "coffee": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/CQQMILRZPU.jpg",
+      "license": "CC0 1.0",
+      "credit": "phatonlaphat thongsriphong via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/coffee-cup-CQQMILRZPU"
+    },
+    "coleslaw": {
+      "url": "https://live.staticflickr.com/65535/54995671731_1f5253ebda_b.jpg",
+      "license": "Public Domain Mark 1.0",
+      "credit": "Red Lobster Lover Joe twitter:RLLoverJoe via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/164188154@N05/54995671731"
+    },
+    "cookies": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvc3YyMjI4NjEtaW1hZ2Uta3d2dWJ0Ym0uanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5901265/photo-image-public-domain-nature-bird"
+    },
+    "crepe": {
+      "url": "https://live.staticflickr.com/65535/51609347615_2c8d228cc3_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "Ruth and Dave via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/95142644@N00/51609347615"
+    },
+    "croissant": {
+      "url": "https://live.staticflickr.com/65535/52332513223_4c7138d5d4_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "chooyutshing via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/25802865@N08/52332513223"
+    },
+    "curly_fries": {
+      "url": "https://live.staticflickr.com/65535/54079073796_de2eb19138_b.jpg",
+      "license": "CC0 1.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/54079073796"
+    },
+    "dessert": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9zdGF0aWMvaW1hZ2Uvd2Vic2l0ZS8yMDIyLTA0L2xyL3B4NzEwNTQwLWltYWdlLWt3dnY3YzMyLmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5906755/photo-image-public-domain-food-chocolate"
+    },
+    "dry_pasta": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9zdGF0aWMvaW1hZ2Uvd2Vic2l0ZS8yMDIyLTA0L2xyL3B4NTIwMDk3LWltYWdlLWt3dnZlMXJqLmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5907896/image-public-domain-food-free"
+    },
+    "edamame": {
+      "url": "https://live.staticflickr.com/65535/52404115503_28f9ff32c3_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "loustejskal.com via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/63311602@N08/52404115503"
+    },
+    "eggs": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvcHg4NDg1ODQtaW1hZ2Uta3d2eGRla2suanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5920771/photo-image-background-public-domain-food"
+    },
+    "espresso": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZmY1MDI3LWltYWdlLWt3dnlqbnZzLmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5927734/photo-image-public-domain-wooden-coffee"
+    },
+    "falafel": {
+      "url": "https://live.staticflickr.com/65535/52851190430_44bd5c847b_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/52851190430"
+    },
+    "fried_chicken": {
+      "url": "https://live.staticflickr.com/353/19235804275_6703eeb661_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "insatiablemunch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/48041244@N05/19235804275"
+    },
+    "fries": {
+      "url": "https://live.staticflickr.com/65535/51964401242_063e041d13_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/51964401242"
+    },
+    "frozen_yogurt": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIzLTAzL2ZsNTE0MzA5Mzg5MTMtaW1hZ2UuanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "U.S. Department of Agriculture via Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/8733851/photo-image-public-domain-food-fruit"
+    },
+    "greek_salad": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvaXM5NTg5LWltYWdlLWt3eXM1Z2lpLmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5968295/photo-image-public-domain-plant-red"
+    },
+    "grill": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvcHgxMDY5NjU3LWltYWdlLWt3dnkzeXNsLmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5924965/photo-image-public-domain-green-food"
+    },
+    "grilled_chicken": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvc3YxOTQyNDktaW1hZ2Uta3d5bmQ4bTAuanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5937058/free-public-domain-cc0-photo"
+    },
+    "hot_chocolate": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/NOXXUWUBGJ.jpg",
+      "license": "CC0 1.0",
+      "credit": "Tim Sullivan via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/hot-chocolate-NOXXUWUBGJ"
+    },
+    "household": {
+      "url": "https://live.staticflickr.com/65535/52282708186_870cac3fd3_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "therapicraft via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/196175473@N08/52282708186"
+    },
+    "ice_cream": {
+      "url": "https://live.staticflickr.com/65535/52699796010_d3815e1d9f_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "aparlette via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/9297241@N02/52699796010"
+    },
+    "iced_latte": {
+      "url": "https://live.staticflickr.com/65535/51620988595_2147e4ee74_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/51620988595"
+    },
+    "iced_tea": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvc3YyMDc2NDItaW1hZ2Uta3d5bjQ5NTIuanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5935422/free-public-domain-cc0-photo"
+    },
+    "juice": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/VWZSB0VCZ8.jpg",
+      "license": "CC0 1.0",
+      "credit": "WDnet Studio via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/lemon-juice-VWZSB0VCZ8"
+    },
+    "kebab": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvcHgxMTM2NDgyLWltYWdlLWt3dndiNDdlLmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5913679/image-light-public-domain-blue"
+    },
+    "kibbeh": {
+      "url": "https://live.staticflickr.com/7622/16768445977_737c07d20d_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "fugzu via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/70253321@N00/16768445977"
+    },
+    "loaded_fries": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvdXB3azYxNjYzMTY3LXdpa2ltZWRpYS1pbWFnZS1rb3diMTJlZy5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/3282874/free-photo-image-bacon-bean-bowl"
+    },
+    "milk": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvd2s2NzQ3NjA0Mi1pbWFnZS1rcDZidDB0bC5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/3338178/free-photo-image-milk-dairy-appliance"
+    },
+    "milkshake": {
+      "url": "https://live.staticflickr.com/8699/16353109043_d5f3180eb8_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "Helena Jacoba via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/69302634@N02/16353109043"
+    },
+    "mozzarella_sticks": {
+      "url": "https://live.staticflickr.com/65535/54076133872_c9d059e10a_b.jpg",
+      "license": "CC0 1.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/54076133872"
+    },
+    "muffin": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/XJAH1AQV5I.jpg",
+      "license": "CC0 1.0",
+      "credit": "Paulina Lohunko via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/muffin-baking-XJAH1AQV5I"
+    },
+    "nigiri": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/EZWO30D5TV.jpg",
+      "license": "CC0 1.0",
+      "credit": "Jamie Hamel-Smith via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/sushi-sake-EZWO30D5TV"
+    },
+    "noodles": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9zdGF0aWMvaW1hZ2Uvd2Vic2l0ZS8yMDIyLTA0L2xyL3B4Njk4MjQyLWltYWdlLWt3dnY2YzM4LmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5906714/photo-image-public-domain-black-food"
+    },
+    "oatmeal": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvdXB3azYxNzE0Nzk1LXdpa2ltZWRpYS1pbWFnZS1rb3diYjl1aS5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/3283291/free-photo-image-coffee-breakfast-granola-bowl"
+    },
+    "olive_oil": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvd2s2OTU3NjYzOC1pbWFnZS1rcDZjN2gwdy5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/3337957/free-photo-image-bottle-alcoholic-beverage-alcohol"
+    },
+    "onion_rings": {
+      "url": "https://live.staticflickr.com/1563/25739824580_c14ae7fcec_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "Infrogmation via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/29350288@N06/25739824580"
+    },
+    "orange_juice": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/HKVEPULXQZ.jpg",
+      "license": "CC0 1.0",
+      "credit": "WDnet Studio via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/lemon-juice-HKVEPULXQZ"
+    },
+    "pasta": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/J7I8CZIT2K.jpg",
+      "license": "CC0 1.0",
+      "credit": "Peter Belch via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/spaghetti-pasta-J7I8CZIT2K"
+    },
+    "pasta_alfredo": {
+      "url": "https://live.staticflickr.com/65535/55009089138_6b66681dba_b.jpg",
+      "license": "CC0 1.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/55009089138"
+    },
+    "pickles": {
+      "url": "https://live.staticflickr.com/65535/51386016750_ed017977fd_b.jpg",
+      "license": "CC0 1.0",
+      "credit": "Nutrition, Food Safety & Health via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/93936679@N05/51386016750"
+    },
+    "pizza": {
+      "url": "https://live.staticflickr.com/7654/27566605040_c618b7fdb4_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "bshamblen via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/23972840@N04/27566605040"
+    },
+    "pizza_margherita": {
+      "url": "https://live.staticflickr.com/65535/52254867033_01af739597_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/52254867033"
+    },
+    "pizza_pepperoni": {
+      "url": "https://pd.w.org/2022/11/914636e748ebbe383.65161671-2048x1536.jpg",
+      "license": "CC0 1.0",
+      "credit": "ChrisEdwardsCE via Openverse (wordpress)",
+      "source_url": "https://wordpress.org/photos/photo/914636e748/"
+    },
+    "rice_bag": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9zdGF0aWMvaW1hZ2Uvd2Vic2l0ZS8yMDIyLTA0L2xyL3B4MTYwMzUyNy1pbWFnZS1rd3Z4cWI0ay5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5922922/photo-image-public-domain-food-free"
+    },
+    "salad": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/LPN1B8AHLA.jpg",
+      "license": "CC0 1.0",
+      "credit": "Freestocks.org via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/vegetable-salad-LPN1B8AHLA"
+    },
+    "sashimi": {
+      "url": "https://live.staticflickr.com/65535/52131446475_44ff7c4e71_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "midnightbreakfastcafe via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/193353181@N06/52131446475"
+    },
+    "shawarma": {
+      "url": "https://live.staticflickr.com/65535/51918340759_1d5a52f67a_b.jpg",
+      "license": "Public Domain Mark 1.0",
+      "credit": "USDAgov via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/41284017@N08/51918340759"
+    },
+    "shish_taouk": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZnJtZWF0X3NoaXNoX2tlYmFiX3NrZXdlcnMtaW1hZ2Uta3ljZ2NwbGouanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/6057152/free-public-domain-cc0-photo"
+    },
+    "shrimp": {
+      "url": "https://live.staticflickr.com/65535/54657906623_13241efe35_b.jpg",
+      "license": "Public Domain Mark 1.0",
+      "credit": "Red Lobster Lover Joe twitter:RLLoverJoe via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/164188154@N05/54657906623"
+    },
+    "smoothie": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/HWFUPZEHMO.jpg",
+      "license": "CC0 1.0",
+      "credit": "Patryk Dziejma via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/fruit-smoothie-HWFUPZEHMO"
+    },
+    "sparkling_water": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvdXB3azYyMDYwMDc0LXdpa2ltZWRpYS1pbWFnZS1rb3dvNXl1ay5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/3298355/free-photo-image-cocktail-juice-alcohol"
+    },
+    "steak": {
+      "url": "https://live.staticflickr.com/65535/52269689196_f8b2cdfc7d_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/52269689196"
+    },
+    "sushi": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9zdGF0aWMvaW1hZ2Uvd2Vic2l0ZS8yMDIyLTA0L2xyL3B4ODYzOTM4LWltYWdlLWt3dnV3OGNjLmpwZw.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/5904640/photo-image-public-domain-food-free"
+    },
+    "tabbouleh": {
+      "url": "https://live.staticflickr.com/65535/53911532373_f457ac5c2f_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "Wheeler Cowperthwaite via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/60756254@N07/53911532373"
+    },
+    "turkish_coffee": {
+      "url": "https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZmwyMjMyMjg3MjgwMi1pbWFnZS1reWJla25vNC5qcGc.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/6043177/photo-image-public-domain-coffee-free"
+    },
+    "waffle": {
+      "url": "https://cdn.stocksnap.io/img-thumbs/960w/P3NGIKBIFL.jpg",
+      "license": "CC0 1.0",
+      "credit": "Humphrey Muleba via Openverse (stocksnap)",
+      "source_url": "https://stocksnap.io/photo/waffles-breakfast-P3NGIKBIFL"
+    },
+    "water": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTA2L3Vwd2s2MjIxNTkyMC13aWtpbWVkaWEtaW1hZ2Uta293bjFlM2QuanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/3296237/free-photo-image-beer-aircraft-airplane"
+    },
+    "wings": {
+      "url": "https://live.staticflickr.com/65535/52687458102_7ba0e5a2a2_b.jpg",
+      "license": "CC BY 2.0",
+      "credit": "sarahstierch via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/7633518@N08/52687458102"
+    },
+    "wrap": {
+      "url": "https://live.staticflickr.com/65535/51918340759_1d5a52f67a_b.jpg",
+      "license": "Public Domain Mark 1.0",
+      "credit": "USDAgov via Openverse (flickr)",
+      "source_url": "https://www.flickr.com/photos/41284017@N08/51918340759"
+    },
+    "yogurt": {
+      "url": "https://images.rawpixel.com/editor_1024/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTExL2ZsNTE0MzA5Mzg5ODgtaW1hZ2UuanBn.jpg",
+      "license": "CC0 1.0",
+      "credit": "U.S. Department of Agriculture via Openverse (rawpixel)",
+      "source_url": "https://www.rawpixel.com/image/8733740/photo-image-public-domain-food"
+    }
+  },
+  "packshots": {
+    "7Up Can (330ml)": {
+      "url": "https://images.openfoodfacts.org/images/products/480/392/503/3124/front_en.6.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/4803925033124",
+      "brand": "7up"
+    },
+    "BENINA SWEET CHILI SAUCE 280G": {
+      "url": "https://images.openfoodfacts.org/images/products/528/500/103/2082/front_en.3.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/5285001032082",
+      "brand": "benina"
+    },
+    "BOURSIN AIL 150G": {
+      "url": "https://images.openfoodfacts.org/images/products/307/378/118/0848/front_fr.191.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/3073781180848",
+      "brand": "Boursin"
+    },
+    "BOURSIN TRUFFLE 150G": {
+      "url": "https://images.openfoodfacts.org/images/products/307/378/120/0812/front_nl.3.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/3073781200812",
+      "brand": "Boursin"
+    },
+    "LA TOURANGELLE HUILE D'AMANDE 250ML": {
+      "url": "https://images.openfoodfacts.org/images/products/324/527/000/0559/front_fr.10.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/3245270000559",
+      "brand": "La tourangelle"
+    },
+    "LA TOURANGELLE HUILE D'AVOCAT 250ML": {
+      "url": "https://images.openfoodfacts.org/images/products/324/527/000/0726/front_fr.13.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/3245270000726",
+      "brand": "La Tourangelle"
+    },
+    "LA TOURANGELLE HUILE DE NOISETTE 250ML": {
+      "url": "https://images.openfoodfacts.org/images/products/324/527/000/0504/front_fr.44.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/3245270000504",
+      "brand": "La Tourangelle"
+    },
+    "LA TOURANGELLE HUILE DE SESAME 250ml": {
+      "url": "https://images.openfoodfacts.org/images/products/324/527/000/0665/front_fr.27.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/3245270000665",
+      "brand": "La Tourangelle"
+    },
+    "MAPLE JOE SYRUP 312G": {
+      "url": "https://images.openfoodfacts.org/images/products/842/891/960/0418/front_en.15.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/8428919600418",
+      "brand": "Maple Joe"
+    },
+    "TUC CHEESE 100G": {
+      "url": "https://images.openfoodfacts.org/images/products/762/230/057/1351/front_en.156.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/7622300571351",
+      "brand": "Tuc"
+    },
+    "Pepsi Can (330ml)": {
+      "url": "https://images.openfoodfacts.org/images/products/406/213/901/7416/front_en.12.full.jpg",
+      "license": "CC BY-SA 3.0",
+      "credit": "Open Food Facts contributors",
+      "source_url": "https://world.openfoodfacts.org/product/4062139017416",
+      "brand": "Pepsi"
+    }
+  }
+}

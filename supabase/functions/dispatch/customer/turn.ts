@@ -1603,7 +1603,7 @@ async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | 
   const cv = card.cover!;
   const credit =
     cv.source === "illustrative" && cv.credit && !/^(cc0|pdm|public domain)/i.test(cv.license ?? "")
-      ? `\n📷 ${[cv.credit.replace(/\s+/g, " ").trim().slice(0, 80), cv.license].filter(Boolean).join(" · ")}`
+      ? `\n📷 ${[Array.from(cv.credit.replace(/\s+/g, " ").trim()).slice(0, 80).join(""), cv.license].filter(Boolean).join(" · ")}`
       : "";
   return image(c.m.from, link, `*${shop}*\n${shopLine(c.s.lang, card, fee)}${credit}`);
 }

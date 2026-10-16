@@ -194,7 +194,8 @@ begin
       and (phone_e164 in (select o.phone_e164 from app_private.owner_phones o) or app_private.is_sim_phone(phone_e164));
     update public.vendor_order_channels set enabled = false where vendor_id = v.id and enabled;
     update public.vendor_private set owner_mobile = null, kitchen_whatsapp = null where vendor_id = v.id;
-    delete from public.menu_item_photos where vendor_id = v.id and source in ('illustrative', 'merchant_site');
+    delete from public.menu_item_photos where vendor_id = v.id and source in ('illustrative', 'merchant_site', 'packshot');
+    delete from public.vendor_covers where vendor_id = v.id and source <> 'merchant';
     -- The menu the demo published from seed prices goes too (a claim must start from the merchant's confirmation, §15),
     -- unless the shop has orders.
     if not exists (select 1 from public.order_items oi join public.menu_items i on i.id = oi.item_id where i.vendor_id = v.id) then
