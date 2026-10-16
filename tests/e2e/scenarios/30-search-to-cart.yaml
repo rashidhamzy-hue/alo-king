@@ -10,7 +10,7 @@ steps:
       - sql: >
           select extensions.st_y(v.location::extensions.geometry) as lat, extensions.st_x(v.location::extensions.geometry) as lon
           from public.vendors v join app_private.vendor_browse_categories b on b.vendor_id = v.id and b.category = 'burgers'
-          where app_private.vendor_is_demo(v.id) and v.orderable order by v.name_en limit 1
+          where v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s' and app_private.vendor_is_demo(v.id) and v.orderable
         row: { lat: ">0" }
         save: { lat: lat, lon: lon }
   - say: { as: cust, text: "Order" }
@@ -19,7 +19,7 @@ steps:
   - pin: { as: cust, lat: "{{vars.lat}}", lon: "{{vars.lon}}" }
     expect:
       - { to: cust, kind: list }
-  - note: typed text is searched without a model; the results are one catalogue message, a section per shop; the cart takes the first plain result (no options, priced each, from a delivery-only shop)
+  - note: typed text is searched without a model; the results are one catalogue message, a section per shop; the cart takes Fred's Food's first plain result (no options, priced each; its pin routes, unlike a shop whose pin is off the road)
     say: { as: cust, text: "burger" }
     expect:
       - { to: cust, kind: products, text_any: ["burger", "برغر"] }
@@ -31,6 +31,7 @@ steps:
           join public.menu_items i on i.id = (x ->> 'item_id')::uuid
           join public.vendors v on v.id = i.vendor_id
           where c.phone_e164 = '{{cust.phone}}' and i.pricing_unit = 'each' and not v.pickup_enabled
+            and v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s'
             and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
           order by n limit 1
         row: { item: "~^[0-9a-f-]{36}$" }
