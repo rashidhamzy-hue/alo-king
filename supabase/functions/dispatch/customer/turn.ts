@@ -1551,15 +1551,15 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
     .rpc("catalog_shop_menu", { p_vendor_id: v.id, p_catalog_id: c.catalog })
     .catch(() => null);
   const sections: ShopMenuSection[] = Array.isArray(menu?.sections) ? menu.sections : [];
-  if (!sections.length) {
+  // Items outside any section have no row to open them by, so such a shop keeps the list menu (its flat list).
+  if (!sections.length || sections.some((x) => !x.section_id)) {
     if (cover && room(list.length)) push(c, cover);
     push(c, ...list);
     return;
   }
-  const { products, rest } = packShopMenu(
-    sections.filter((x) => x.section_id),
-    { perSection: c.deps.config.firstSectionItems ?? 6 },
-  );
+  const { products, rest } = packShopMenu(sections, {
+    perSection: c.deps.config.firstSectionItems ?? 6,
+  });
   if (cover && room(rest.length ? 2 : 1)) push(c, cover);
   c.tools.push("catalog:menu");
   c.summary.push(
@@ -1603,7 +1603,7 @@ async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | 
   const cv = card.cover!;
   const credit =
     cv.source === "illustrative" && cv.credit && !/^(cc0|pdm|public domain)/i.test(cv.license ?? "")
-      ? `\n📷 ${[cv.credit, cv.license].filter(Boolean).join(" · ")}`
+      ? `\n📷 ${[cv.credit.replace(/\s+/g, " ").trim().slice(0, 80), cv.license].filter(Boolean).join(" · ")}`
       : "";
   return image(c.m.from, link, `*${shop}*\n${shopLine(c.s.lang, card, fee)}${credit}`);
 }

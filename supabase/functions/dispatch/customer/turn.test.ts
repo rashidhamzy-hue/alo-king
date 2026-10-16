@@ -1550,18 +1550,30 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     );
   });
 
-  it("a big shop whose product message Meta refuses: no stale section list stands in, the rest still opens", async () => {
+  it("a shop with items outside any section keeps the list menu", async () => {
     const f = fake({
       begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
       rpcs: {
         vendor_sections: () => sections,
         catalog_for_number: () => "1234567890",
         catalog_shop_menu: () => {
-          const m = menu(12, 8);
-          // Items with no section never become a row with an empty id.
+          const m = menu(3, 4);
           m.sections.push({ ...m.sections[0], section_id: null as any, name_en: "Menu" });
           return m;
         },
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(f.sent.map((p) => p.interactive.type)).toEqual(["list"]);
+  });
+
+  it("a big shop whose product message Meta refuses: no stale section list stands in, the rest still opens", async () => {
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => menu(12, 8),
       },
     });
     const tried: string[] = [];
@@ -1577,7 +1589,6 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(tried).toEqual(["product_list", "list"]);
     const rows = last.interactive.action.sections[0].rows;
     expect(rows.every((r: any) => /^(ps:s\d+|sp:\d+)$/.test(r.id))).toBe(true);
-    expect(rows.map((r: any) => r.title)).not.toContain("Menu");
   });
 
   it("without a catalogue, or when a shop is not fully synced, the list menu runs as before", async () => {
