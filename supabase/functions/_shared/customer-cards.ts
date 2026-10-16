@@ -769,6 +769,7 @@ export type CustomerAction =
   | { a: "sub_pref"; pref: "call" | "replace" | "remove" }
   | { a: "section"; ref: string }
   | { a: "more"; ref: string; offset: number }
+  | { a: "more_rest"; ref: string; offset: number }
   | { a: "qty"; ref: string; qty: number }
   | { a: "cash"; currency: "USD" | "LBP" }
   | { a: "gift"; giftId: string; accept: boolean }
@@ -844,6 +845,8 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(re(`ps:(s\\d{1,2})`)))) return { a: "section", ref: m[1] };
   if ((m = id.match(re(`mo:(s\\d{1,2}):(\\d{1,3})`))))
     return { a: "more", ref: m[1], offset: Number(m[2]) };
+  if ((m = id.match(re(`mr:(s\\d{1,2}):(\\d{1,3})`))))
+    return { a: "more_rest", ref: m[1], offset: Number(m[2]) };
   if ((m = id.match(re(`qt:(i\\d{1,3}):(\\d{1,2})`))))
     return { a: "qty", ref: m[1], qty: Number(m[2]) };
   if ((m = id.match(re(`cur:(USD|LBP)`)))) return { a: "cash", currency: m[1] as "USD" | "LBP" };

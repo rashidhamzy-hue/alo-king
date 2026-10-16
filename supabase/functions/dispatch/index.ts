@@ -339,6 +339,7 @@ async function botConfig() {
     "browse_first_section_items",
     "route_live_timeout_ms",
     "routing_provider_sim",
+    "browse_min_catalog_items",
   ];
   const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
   const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
@@ -463,6 +464,28 @@ async function catalogPost(
   });
   return { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) };
 }
+/** GET through the same route as catalogPost (Graph with META_CATALOG_TOKEN, or Kapso's Meta proxy). */
+async function catalogGet(
+  transport: CatalogTransport,
+  path: string,
+): Promise<{ ok: boolean; status: number; body: any }> {
+  const url = transport === "graph" ? `${GRAPH}${path}` : `${KAPSO_BASE}${path}`;
+  const headers: Record<string, string> =
+    transport === "graph"
+      ? { authorization: `Bearer ${metaCatalogToken ?? ""}` }
+      : { "X-API-Key": kapsoKey ?? "" };
+  if (transport === "graph" ? !metaCatalogToken : !kapsoKey)
+    return { ok: false, status: 0, body: { error: `no credentials for the ${transport} route` } };
+  const res = await fetch(url, {
+    headers,
+    redirect: "error",
+    signal: AbortSignal.timeout(20_000),
+  });
+  return { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) };
+}
+// What Meta says about each product (§39.15.2). `errors` is asked for; if Meta refuses the field, the call is made once
+// without it so the review status still arrives.
+const STATUS_FIELDS = ["retailer_id", "review_status", "visibility", "availability", "errors"];
 const catalogApi: CatalogApi = {
   batch: async (catalogId, transport, requests) => {
     const r = await catalogPost(transport, `/${encodeURIComponent(catalogId)}/items_batch`, {
@@ -499,6 +522,31 @@ const catalogApi: CatalogApi = {
       code: String(e?.code ?? ""),
     });
     return null;
+  },
+  status: async (catalogId, transport, q) => {
+    const read = async (fields: string[]) => {
+      const params = new URLSearchParams({
+        fields: fields.join(","),
+        limit: String(Math.min(Math.max(q.limit ?? 100, 1), 500)),
+      });
+      if (q.after) params.set("after", q.after);
+      if (q.ids?.length) params.set("filter", JSON.stringify({ retailer_id: { is_any: q.ids } }));
+      return catalogGet(transport, `/${encodeURIComponent(catalogId)}/products?${params}`);
+    };
+    let r = await read(STATUS_FIELDS);
+    if (!r.ok && /errors/.test(JSON.stringify(r.body?.error ?? "")))
+      r = await read(STATUS_FIELDS.filter((f) => f !== "errors"));
+    if (!r.ok)
+      return {
+        ok: false,
+        error: `meta ${r.status} ${JSON.stringify(r.body?.error ?? r.body).slice(0, 300)}`,
+      };
+    const rows = (Array.isArray(r.body?.data) ? r.body.data : []).filter(
+      (x: any) => typeof x?.retailer_id === "string",
+    );
+    // A next page exists only when Meta gives a `next` link; the cursor alone is also present on the last page.
+    const next = r.body?.paging?.next ? (r.body?.paging?.cursors?.after ?? null) : null;
+    return { ok: true, rows, next };
   },
   imageUrl: (itemId, hash) =>
     `${supabaseUrl}/functions/v1/dispatch?route=catalog-image&i=${encodeURIComponent(itemId)}&v=${encodeURIComponent(hash)}`,
@@ -725,6 +773,7 @@ Deno.serve(async (req) => {
             voice: cfg.ai_voice_enabled === true,
             browseMinShops: Number(cfg.browse_categories_min_shops ?? 4),
             firstSectionItems: Number(cfg.browse_first_section_items ?? 6),
+            browseMinCatalogItems: Number(cfg.browse_min_catalog_items ?? 6),
             joinFunctionUrl: supabaseUrl
               ? `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/site-claim`
               : null,

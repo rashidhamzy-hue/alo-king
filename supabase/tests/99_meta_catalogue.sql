@@ -131,6 +131,9 @@ select tests.ok(public.catalog_for_number('597907523413541', '+99996170000001') 
 select tests.ok(public.sim_catalog('+96170000001', true) ->> 'status' = 'not_a_sim_phone', 'a real number can never be given the simulated catalogue');
 
 -- What a product message may show --------------------------------------------------------------------------------------------
+-- Meta approved what was synced (§39.15.2: product messages show only approved items).
+select public.catalog_status_record('987654321012', (select jsonb_agg(jsonb_build_object('retailer_id', c.item_id,
+  'review_status', 'approved', 'visibility', 'published')) from public.catalog_sync_items c where c.catalog_id = '987654321012'));
 select tests.ok((select (r ->> 'total')::int = 2 and jsonb_array_length(r -> 'products') = 2
                  from public.catalog_products('20000000-0000-0000-0000-00000000000a', '987654321012') r),
   'orderable items that are visible in that catalogue, with the shop''s orderable total');

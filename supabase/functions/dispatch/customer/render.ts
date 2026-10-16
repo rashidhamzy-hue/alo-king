@@ -963,7 +963,12 @@ export function menuList(
   rows: MenuRow[],
   query: string | null,
   samePrice = false,
-  extra: { title?: string; more?: { ref: string; offset: number } | null } = {},
+  extra: {
+    title?: string;
+    more?: { ref: string; offset: number } | null;
+    /** The "More" row's tap when it pages something other than the section list (the section's other items: mr:). */
+    moreId?: string;
+  } = {},
 ): Msg[] {
   if (!rows.length) return [errorCard(to, lang, "noItem", { q: query ?? "", vendor })];
   const items = rows.slice(0, extra.more ? 9 : 10);
@@ -996,7 +1001,12 @@ export function menuList(
               description: clip(desc(r), 72),
             })),
             ...(extra.more
-              ? [{ id: `mo:${extra.more.ref}:${extra.more.offset}`, title: tr(lang, "moreBtn") }]
+              ? [
+                  {
+                    id: extra.moreId ?? `mo:${extra.more.ref}:${extra.more.offset}`,
+                    title: tr(lang, "moreBtn"),
+                  },
+                ]
               : []),
           ],
         },
@@ -1968,6 +1978,7 @@ export function welcomeBack(
 
 export type CatalogItem = {
   ref: string;
+  item_id?: string;
   name_ar?: string | null;
   name_en?: string | null;
   price_usd: number | string;
@@ -1983,10 +1994,15 @@ export function catalogList(
   q: string,
   rows: CatalogItem[],
   qty: number | null,
+  /** The results a product message did not hold (DECISIONS §39.15.2): "More results (n)" instead of "found". */
+  rest = false,
 ): Msg {
   return list(
     to,
-    tr(lang, "catalogFound", { q: clip(q, 40) }) + (qty ? tr(lang, "catalogQty", { n: qty }) : ""),
+    (rest
+      ? tr(lang, "moreResults", { q: clip(q, 40), n: rows.length })
+      : tr(lang, "catalogFound", { q: clip(q, 40) })) +
+      (qty ? tr(lang, "catalogQty", { n: qty }) : ""),
     tr(lang, "itemsBtn"),
     [
       {
@@ -2120,6 +2136,18 @@ const S5D: Record<string, Record<CLang, string>> = {
     fr: "Touchez un article pour le voir, ajoutez ce que vous voulez au panier 🛒, puis envoyez le panier. Le prix est confirmé avant la commande.",
     arabizi:
       "Dous 3a ay sanf la tchoufo, zid li badak ye 3al salle 🛒, w ba3den eb3at el salle. Mn2akkedlak el se3r abel ma totlob.",
+  },
+  moreOfSection: {
+    ar: "باقي {section} ({n})",
+    en: "More {section} ({n})",
+    fr: "Autres {section} ({n})",
+    arabizi: "Ba2e {section} ({n})",
+  },
+  moreResults: {
+    ar: "كمان نتائج لـ «{q}» ({n}):",
+    en: 'More results for "{q}" ({n}):',
+    fr: "Autres résultats pour « {q} » ({n}) :",
+    arabizi: 'Kamen natije2 la "{q}" ({n}):',
   },
   catalogFooter: {
     ar: "الأسعار من المحل، والمجموع بيتأكّد بالآخر",
