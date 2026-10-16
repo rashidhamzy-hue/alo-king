@@ -1,0 +1,43 @@
+name: kapso-profile
+
+# The WhatsApp business profile of a number (session 5e): about, description, address, category, website and the profile
+# photo (whatsapp/business-profile.json, public/brand/whatsapp-profile.png), set by scripts/kapso/profile.ts through
+# Kapso's Meta proxy (https://api.kapso.ai only). The photo goes as the handle of a Meta resumable upload (Kapso's media
+# upload, meta_resumable_asset); without one the photo is left as it is. Meta's profile has no opening-hours field.
+on:
+  workflow_dispatch:
+    inputs:
+      phone_number_id:
+        description: WhatsApp phone number id in Kapso
+        default: "1378974041965966"
+        required: true
+      picture_handle:
+        description: Handle of the profile photo from a Meta resumable upload (4::…); empty leaves the photo
+        default: ""
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Set the profile
+        env:
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          PHONE_NUMBER_ID: ${{ inputs.phone_number_id }}
+          PROFILE_PICTURE_HANDLE: ${{ inputs.picture_handle }}
+        run: |
+          set -o pipefail
+          node --experimental-strip-types --no-warnings scripts/kapso/profile.ts | tee -a "$GITHUB_STEP_SUMMARY"

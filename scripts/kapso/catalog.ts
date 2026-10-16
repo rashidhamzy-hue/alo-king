@@ -1,5 +1,5 @@
 // The kapso-catalog workflow (DECISIONS §39.12): one Meta catalogue for the WhatsApp business account of a number, connected
-// to that account, with the cart and the catalogue (storefront) icons on for the number. It finds a connected catalogue, or
+// to that account, with the cart on and the catalogue (storefront) icon off for the number (session 5e). It finds a connected catalogue, or
 // creates one ("Alo King") in the business portfolio that owns the account and connects it, by API: first through Kapso's
 // Meta proxy (https://api.kapso.ai only, CLAUDE.md), then with META_CATALOG_TOKEN on the Graph API when that secret exists.
 // It also probes which route can write catalogue items, records the result on staging (public.whatsapp_catalogs once that
@@ -12,7 +12,8 @@
 // catalog_management and business_management but not whatsapp_business_management cannot read the WhatsApp account
 // (Meta: "(#200) You do not have permission", "Object ... cannot be loaded due to missing permissions"); then the
 // configured catalogue is checked directly and its connection to the account is the owner's (#181), and the cart and
-// catalogue icons are the ones the owner switched on. Writes `catalog_id`, `transport` and `blocked` to GITHUB_OUTPUT.
+// catalogue icons are the owner's to set. Writes `catalog_id`, `transport`, `blocked` and `header` (the catalogue icon: hidden,
+// shown or unverified) to GITHUB_OUTPUT.
 import { appendFileSync } from "node:fs";
 import pg from "pg";
 
@@ -128,8 +129,7 @@ async function main() {
   const configuredBusiness = ID.test(process.env.META_BUSINESS_ID ?? "")
     ? process.env.META_BUSINESS_ID!
     : "";
-  // The token cannot read the WhatsApp account: the connection and the icons are the owner's (#181), unverified.
-  let ownerConfirmed = false;
+  // The token cannot read the WhatsApp account: the connection is the owner's (#181), unverified.
   let graphListing: Answer | null = null;
 
   const res = await fetch(`${KAPSO}/platform/v1/whatsapp/phone_numbers/${pn}`, {
@@ -169,7 +169,6 @@ async function main() {
     const read = await call("graph", `/${configuredCatalog}?fields=id,name,business`);
     catalog = read.ok ? readCatalog(read.body, configuredCatalog, configuredBusiness) : null;
     if (catalog) {
-      ownerConfirmed = true;
       notes.push(
         `catalogue ${configuredCatalog} (${catalog.name ?? ""}) of portfolio ${configuredBusiness}: read with the token; its connection to the account is the owner's (#181), unverified: this token cannot read the account (no whatsapp_business_management)`,
       );
@@ -236,15 +235,18 @@ async function main() {
     }
   }
 
-  // 3. The cart and the catalogue icon on the number (Meta: cart on by default, storefront icon off by default).
+  // 3. The cart on, the catalogue (storefront) icon in the chat header off (session 5e, DECISIONS §39.13): WhatsApp shows
+  // a Cloud API catalogue as one flat list (no collections or product-set grouping), so customers browse through the bot's
+  // product messages, which work with the icon off. Meta: cart on by default, storefront icon off by default.
   let settings = "not changed";
   let commerceOn = false;
+  let header: "hidden" | "shown" | "unverified" = "unverified";
   if (catalog && !blocked) {
     const set = await firstOk(
-      "cart and catalogue icons",
+      "cart on, catalogue icon off",
       routes,
       (r) =>
-        call(r, `/${pn}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=true`, {
+        call(r, `/${pn}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=false`, {
           method: "POST",
         }),
       notes,
@@ -256,14 +258,24 @@ async function main() {
       notes,
     );
     const s = got?.answer.body?.data?.[0] ?? {};
-    if (!set && !got && ownerConfirmed) {
-      // The owner switched both on in WhatsApp Manager (#181); this token cannot read them, so they are not recorded as on.
-      settings = "unverified (switched on by the owner, #181; not readable with this token)";
+    if (!set && !got) {
+      // Neither route may write the number's settings (Kapso's proxy has no commerce endpoint; the token lacks
+      // whatsapp_business_management): the owner hides the icon in WhatsApp Manager (an owner issue carries the steps).
+      settings =
+        "unverified (not readable or writable with this token; the owner hides the catalogue icon)";
     } else {
-      settings = set
+      // Meta answered the POST: the icon is off even when the settings cannot be read back.
+      header =
+        s.is_catalog_visible === false || (set && !got)
+          ? "hidden"
+          : s.is_catalog_visible === true
+            ? "shown"
+            : "unverified";
+      settings = got
         ? `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`
-        : "refused";
-      commerceOn = s.is_cart_enabled === true && s.is_catalog_visible === true;
+        : "set (cart on, catalogue icon off); not readable back";
+      commerceOn =
+        (s.is_cart_enabled === true && s.is_catalog_visible === false) || (!!set && !got);
     }
   }
 
@@ -317,7 +329,7 @@ async function main() {
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(
       process.env.GITHUB_OUTPUT,
-      `catalog_id=${catalog?.id ?? ""}\ntransport=${transport ?? ""}\nblocked=${blocked ?? ""}\n`,
+      `catalog_id=${catalog?.id ?? ""}\ntransport=${transport ?? ""}\nblocked=${blocked ?? ""}\nheader=${header}\n`,
     );
 }
 
