@@ -3725,11 +3725,15 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
             tip_usd: 0,
             tip_amounts: [1, 2, 3],
             total_usd: 12.25,
+            total_lbp: 1096375,
+            usd_lbp_rate: 89500,
             change: { status: "ask", currency: "USD", total: 12.25, options: [20, 50, 100] },
           }),
         },
       });
       await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "cur:USD" }));
+      // The total in both currencies (customer totals show USD and LBP); the notes in the currency paid.
+      expect(bodyOf(f.sent[0])).toContain("$12.25 = 1,096,375 LBP");
       expect(f.sent).toHaveLength(1);
       expect(f.sent[0].interactive.type).toBe("list");
       expect(tapIds(f.sent[0])).toEqual([
@@ -3923,7 +3927,8 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
       expect(g.of("order_tip_offer")[0].args.p_mark).toBe(false);
       expect(bodyOf(g.sent[0])).toContain("up to $10.00");
       const pending = pendingOf(g);
-      expect(pending).toEqual({ kind: "tip_other", order_id: ORDER, max: 10 });
+      expect(pending).toMatchObject({ kind: "tip_other", order_id: ORDER, max: 10 });
+      expect(typeof pending.at).toBe("string");
 
       const h = fake({
         begin: at(pending),
@@ -3934,12 +3939,24 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
       expect(bodyOf(h.sent[0])).toContain("$4.50");
       expect(h.of("catalog_search")).toHaveLength(0);
 
-      // Not a number: the error with buttons, and the next text is still the amount.
+      // A bad amount: the error with buttons, and the next text is still the amount.
       const k = fake({ begin: at(pending) });
-      await handleCustomerTurn(k.deps, msg({ text: "a lot" }));
+      await handleCustomerTurn(k.deps, msg({ text: "0" }));
       expect(k.of("order_tip_set")).toHaveLength(0);
       expect(tapIds(k.sent[0]).length).toBeGreaterThan(0);
       expect(pendingOf(k)).toEqual(pending);
+
+      // Not an amount at all ("2 shawarma w pepsi"), or ten minutes later: no tip, the message goes its usual way.
+      for (const [begin, text] of [
+        [at(pending), "2 shawarma w pepsi"],
+        [at({ ...pending, at: "2020-01-01T00:00:00.000Z" }), "5"],
+      ] as const) {
+        const x = fake({ begin });
+        await handleCustomerTurn(x.deps, msg({ text }));
+        expect(x.of("order_tip_set")).toHaveLength(0);
+        expect(pendingOf(x).kind).not.toBe("tip_other");
+        expect(x.sent.some((p) => /up to \$10\.00/.test(bodyOf(p)))).toBe(false);
+      }
 
       // Above the max: the server refuses and the amount is asked again.
       const m = fake({

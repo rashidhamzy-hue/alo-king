@@ -3659,7 +3659,11 @@ async function extraChosen(c: Ctx, optionId: string | null, rest = false) {
 }
 
 async function cartContinue(c: Ctx) {
+  // The add-ons list the agent opened for a line already in the basket ends at the basket: no checkout, and the order's
+  // one "Goes well with" is kept for a cart.
+  const fromAgent = c.s.pending.kind === "cart_opts" && c.s.pending.agent === true;
   if ((await cartQueueNext(c)) === "asked") return;
+  if (fromAgent) return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
   return cartReady(c);
 }
 
@@ -3776,7 +3780,7 @@ async function noteTap(c: Ctx, lineId: string | null) {
   c.s.pending = {
     kind: "note",
     line_id: line.line_id,
-    at: (c.deps.now?.() ?? new Date()).toISOString(),
+    at: nowIso(c),
   };
   c.summary.push("[asked for the item's note]");
   const max = Number(c.basket?.note_max);
@@ -3802,12 +3806,11 @@ async function awaitedText(c: Ctx, t: string): Promise<boolean> {
     c.s.pending = {};
     return false;
   }
+  c.s.pending = {};
+  // Only text soon after the question is its answer; hours later it is a new message (never "2 shawarma" as a note).
+  const at = Date.parse(String(p.at ?? ""));
+  if (!Number.isFinite(at) || (c.deps.now?.() ?? new Date()).getTime() - at > TEXT_WAIT_MS) return false;
   if (p.kind === "note") {
-    c.s.pending = {};
-    // Only text soon after "Add a note" is the note; hours later it is a new message (never "2 shawarma" as a note).
-    const at = Date.parse(String(p.at ?? ""));
-    if (!Number.isFinite(at) || (c.deps.now?.() ?? new Date()).getTime() - at > NOTE_WAIT_MS)
-      return false;
     if (intent?.kind === "no") {
       push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
       return true;
@@ -3817,23 +3820,35 @@ async function awaitedText(c: Ctx, t: string): Promise<boolean> {
   }
   if (p.kind === "tip_other") {
     if (intent?.kind === "no") {
-      c.s.pending = {};
       say(c, "done");
       return true;
     }
     const amount = readTipAmount(t);
     if (amount === null) {
+      // "2 shawarma w pepsi" is an order, not the tip: only a bad amount ("0", "2.555", "$50") is asked again.
+      if (!looksLikeAmount(t)) return false;
+      c.s.pending = p;
       say(c, "tipOtherBad", { max: moneyUsd(p.max) });
       return true;
     }
-    c.s.pending = {};
     await tipAfterSet(c, String(p.order_id), amount, true);
     return true;
   }
   return false;
 }
 
-const NOTE_WAIT_MS = 10 * 60 * 1000;
+/** How long a typed answer (a note, an "Other" tip) is waited for. */
+const TEXT_WAIT_MS = 10 * 60 * 1000;
+const nowIso = (c: Ctx) => (c.deps.now?.() ?? new Date()).toISOString();
+
+/** Text that is only a number, with or without a currency ("0", "-5", "2.555", "$50"): an answer to "how much?". */
+function looksLikeAmount(t: string): boolean {
+  const s = t
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/\$|usd|dollars?|دولار|dolar/gi, "")
+    .replace(/\s+/g, "");
+  return /^[-+]?[\d.,]+$/.test(s);
+}
 
 /** "5", "$2.50", "2,5", "٢" or "3 dollars": a dollar amount with at most two decimals, else null. */
 export function readTipAmount(t: string): number | null {
@@ -3865,7 +3880,7 @@ async function checkoutExtras(c: Ctx, q: Quote): Promise<CheckoutExtras | "asked
   if (x?.status !== "ok") return null;
   if (x.change?.status === "ask" && Array.isArray(x.change.options) && x.change.options.length) {
     c.summary.push("[asked whether the customer needs change]");
-    push(c, changeAsk(c.m.from, c.s.lang, x.change.currency, x.change.total, x.change.options));
+    push(c, changeAsk(c.m.from, c.s.lang, x.change.currency, x.change.total, x.change.options, x));
     return "asked";
   }
   return x;
@@ -3926,7 +3941,7 @@ async function tipAfterChosen(c: Ctx, orderId: string, cents: number | null, oth
   if (o?.status === "tipped") return say(c, "tipThanks", { amount: moneyUsd(o.tip_usd) });
   if (o?.status !== "offer")
     return say(c, o?.status === "too_late" ? "tipTooLate" : "tipNotAllowed");
-  c.s.pending = { kind: "tip_other", order_id: orderId, max: Number(o.max_usd) };
+  c.s.pending = { kind: "tip_other", order_id: orderId, max: Number(o.max_usd), at: nowIso(c) };
   return say(c, "tipOtherAsk", { max: moneyUsd(o.max_usd) });
 }
 
@@ -3957,7 +3972,8 @@ async function tipAfterSet(c: Ctx, orderId: string, amount: number, other: boole
     case "too_late":
       return say(c, "tipTooLate");
     case "not_allowed":
-      if (other) c.s.pending = { kind: "tip_other", order_id: orderId, max: Number(r.max_usd) };
+      if (other)
+        c.s.pending = { kind: "tip_other", order_id: orderId, max: Number(r.max_usd), at: nowIso(c) };
       return say(c, other ? "tipOtherBad" : "tipNotAllowed", { max: moneyUsd(r.max_usd) });
     default:
       return say(c, "tipNotAllowed");
@@ -4087,6 +4103,7 @@ async function aiAfterCart(c: Ctx, name: AfterCartToolName, input: any) {
       c.s.pending = {
         kind: "cart_opts",
         queue: [{ i: line.item_id, q: 0, c: [], l: ref.id, x: 1 }],
+        agent: true,
       };
       return push(c, extrasList(c.m.from, c.s.lang, label, extras));
     }

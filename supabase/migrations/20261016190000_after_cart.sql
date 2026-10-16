@@ -820,18 +820,20 @@ begin
     into v_products
   from (
     -- Bought together in at least two delivered orders (orders, not lines) of the shop's recent orders
-    -- (catalog_best_sellers_days), never pretend ones; ranked first, then only the top 20 are checked for being orderable
-    -- now and shown by the catalogue, so the cost does not grow with the shop's history (§39.14 rule 2).
+    -- (catalog_best_sellers_days), never pretend ones. The read starts from the shop's orders inside that window
+    -- (orders_vendor_created_idx) and reaches their lines by order (order_items_order_idx), so its cost follows the
+    -- window, not the shop's whole history; ranked first, then only the top 20 are checked for being orderable now and
+    -- shown by the catalogue (§39.14 rule 2).
     select c.item_id, c.n from (
       select oi2.item_id, count(distinct o.id) as n
-      from public.basket_items bi
-      join public.order_items oi on oi.item_id = bi.item_id
-      join public.orders o on o.id = oi.order_id and o.status = 'delivered' and o.vendor_id = v_basket.vendor_id
-        and not o.is_demo
+      from public.orders o
+      join public.order_items oi2 on oi2.order_id = o.id and oi2.item_id is not null
+      where o.vendor_id = v_basket.vendor_id and o.status = 'delivered' and not o.is_demo
         and o.created_at > now() - make_interval(days => public.config_numeric('catalog_best_sellers_days')::int)
-      join public.order_items oi2 on oi2.order_id = o.id and oi2.item_id <> bi.item_id
-      where bi.basket_id = v_basket.id
-        and oi2.item_id not in (select item_id from public.basket_items where basket_id = v_basket.id)
+        and exists (select 1 from public.order_items oi
+                    join public.basket_items bi on bi.item_id = oi.item_id and bi.basket_id = v_basket.id
+                    where oi.order_id = o.id)
+        and not exists (select 1 from public.basket_items b2 where b2.basket_id = v_basket.id and b2.item_id = oi2.item_id)
       group by oi2.item_id
       having count(distinct o.id) >= 2
       order by count(distinct o.id) desc, oi2.item_id

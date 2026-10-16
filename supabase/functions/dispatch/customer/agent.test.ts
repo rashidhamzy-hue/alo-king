@@ -1016,6 +1016,18 @@ describe("the after-cart flows through the AI's typed tools (session 5f part 7)"
     );
     expect(g.of("basket_line_add_options")).toHaveLength(0);
     expect(ids(g.sent[0])).toEqual([`ext:${CHEESE}`, "ext:none"]);
+    // Its "No extras" ends at the basket: no checkout, and the order's one "Goes well with" is kept for a cart.
+    const s = endSession(g);
+    expect(s.pending).toMatchObject({ kind: "cart_opts", agent: true });
+    const h = fake({
+      begin: { basket, ...sess({ pending: s.pending, refs: s.refs }) },
+      rpcs: { basket_quote: () => quoteOk },
+    });
+    await handleCustomerTurn(h.deps, tap("ext:none"));
+    expect(h.of("basket_goes_well")).toHaveLength(0);
+    expect(h.of("basket_quote")).toHaveLength(0);
+    expect(ids(h.sent[0])).toContain("c:checkout");
+    expect(endSession(h).pending).toEqual({});
   });
 
   it("set_cash_change and set_tip reach the server with the session's customer; the server checks the amounts", async () => {
