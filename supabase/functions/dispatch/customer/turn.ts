@@ -1019,6 +1019,8 @@ async function tap(c: Ctx, a: CustomerAction) {
     }
     case "category":
       return browseCategory(c, a.key);
+    case "categories_page":
+      return browseHome(c, a.offset);
     case "sections_page":
       return showSectionsPage(c, a.offset);
     case "pick_item": {
@@ -2008,7 +2010,7 @@ async function deliveringShops(c: Ctx): Promise<{
  * "What are you craving?" (session 5e): the categories with shops that deliver here and "Shops near you". A few shops
  * (fewer than browse_categories_min_shops) are listed directly, one open shop opens at once, none offers pickup.
  */
-async function browseHome(c: Ctx) {
+async function browseHome(c: Ctx, offset = 0) {
   const r = await deliveringShops(c);
   if (r.paused) return say(c, "placePaused");
   // No pin, nothing that delivers, or only a few shops: the shop list as before (it also offers pickup when none deliver).
@@ -2021,12 +2023,25 @@ async function browseHome(c: Ctx) {
       name: c.s.lang === "fr" ? k.name_fr : localName(c.s.lang, k.name_ar, k.name_en),
       shops: r.shops.filter((x) => x.categories.includes(k.key)).length,
     }))
-    .filter((k) => k.shops > 0);
+    .filter((k) => k.shops > 0)
+    // The categories most shops here serve come first (the table's order breaks ties).
+    .sort((a, b) => b.shops - a.shops);
   c.tools.push("browse:home");
   c.summary.push(
     `[asked what they are craving: ${cats.length} categories, ${r.shops.length} shops deliver]`,
   );
-  push(c, cravingList(c.m.from, c.s.lang, cats, r.shops.length, r.place));
+  push(
+    c,
+    cravingList(
+      c.m.from,
+      c.s.lang,
+      cats,
+      r.shops.length,
+      r.place,
+      // An old "More categories" tap past the end (fewer categories deliver now) starts again from the first page.
+      offset > 0 && offset < cats.length ? offset : 0,
+    ),
+  );
 }
 
 function listShops(c: Ctx, shops: DeliveringShop[], body: string) {

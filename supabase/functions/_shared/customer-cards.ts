@@ -759,6 +759,7 @@ export type CustomerAction =
   | { a: "empty"; lineId: string; hasEmpty: boolean }
   | { a: "pick_vendor"; ref: string }
   | { a: "category"; key: string }
+  | { a: "categories_page"; offset: number }
   | { a: "sections_page"; offset: number }
   | { a: "pick_item"; ref: string }
   | { a: "add_upsell"; itemId: string }
@@ -831,6 +832,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(re(`pv:(v\\d{1,2})`)))) return { a: "pick_vendor", ref: m[1] };
   if ((m = id.match(re(`pi:(i\\d{1,3})`)))) return { a: "pick_item", ref: m[1] };
   if ((m = id.match(/^cat:([a-z][a-z_]{1,30})$/))) return { a: "category", key: m[1] };
+  if ((m = id.match(/^cm:(\d{1,2})$/))) return { a: "categories_page", offset: Number(m[1]) };
   if ((m = id.match(/^sp:(\d{1,3})$/))) return { a: "sections_page", offset: Number(m[1]) };
   if ((m = id.match(re(`ups:(${UUID})`)))) return { a: "add_upsell", itemId: m[1] };
   if ((m = id.match(re(`rpl:(${UUID}):(\\d{1,2})`))))

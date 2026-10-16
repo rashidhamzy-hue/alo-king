@@ -1818,14 +1818,53 @@ describe("browsing through the bot (session 5e)", () => {
     const [cats, near] = m.interactive.action.sections;
     expect(cats.rows.map((r: any) => [r.id, r.title, r.description])).toEqual([
       ["cat:burgers", "🍔 Burgers", "3 shops"],
-      ["cat:pizza", "🍕 Pizza", "2 shops"],
       ["cat:chicken", "🍗 Fried chicken", "3 shops"],
+      ["cat:pizza", "🍕 Pizza", "2 shops"],
     ]);
     // One of the six is beyond its radius by road: five deliver.
     expect(near.rows).toEqual([
       { id: "c:near", title: "🛵 Shops near you", description: "5 shops deliver to you" },
     ]);
     expect(checkInteractive(m)).toEqual([]);
+  });
+
+  it("more than nine categories: the eight most served, then More categories pages on", async () => {
+    const many = Array.from({ length: 11 }, (_, k) => ({
+      key: `k${String.fromCharCode(97 + k)}`,
+      emoji: "🍽️",
+      name_ar: `صنف ${k}`,
+      name_en: `Cat ${k}`,
+      name_fr: `Cat ${k}`,
+    }));
+    const rpcs = {
+      customer_search_point: () => POINT,
+      browse_shops: () => ({
+        ...browse(6),
+        categories: many,
+        shops: shopsOf(6).map((x, i) => ({
+          ...x,
+          categories: many.slice(0, 6 + i).map((m) => m.key),
+        })),
+      }),
+      customer_delivery_check: check,
+    };
+    const f = fake({ model: null, rpcs });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    const rows = f.sent[0].interactive.action.sections[0].rows;
+    expect(rows).toHaveLength(9);
+    expect(rows[8]).toEqual({ id: "cm:8", title: "➕ More categories", description: "3 more" });
+    expect(checkInteractive(f.sent[0])).toEqual([]);
+    const g = fake({ model: null, rpcs });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "cm:8", type: "interactive" }));
+    expect(g.sent[0].interactive.action.sections[0].rows.map((r: any) => r.id)).toEqual([
+      "cat:ki",
+      "cat:kj",
+      "cat:kk",
+    ]);
+    // An old tap past the end starts again from the first page.
+    const h = fake({ model: null, rpcs });
+    await handleCustomerTurn(h.deps, msg({ buttonId: "cm:40", type: "interactive" }));
+    expect(h.sent[0].interactive.action.sections[0].rows).toHaveLength(9);
   });
 
   it("a few shops are listed directly, as before", async () => {

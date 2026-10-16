@@ -2139,6 +2139,18 @@ const S5E: Record<string, Record<CLang, string>> = {
     fr: "Plus de {shop} : choisissez une section.",
     arabizi: "Ba2e menu {shop}: ekhtar se2em.",
   },
+  moreCategoriesRow: {
+    ar: "➕ أصناف تانية",
+    en: "➕ More categories",
+    fr: "➕ Autres catégories",
+    arabizi: "➕ Asnaf tenye",
+  },
+  moreCategoriesDesc: {
+    ar: "{n} كمان",
+    en: "{n} more",
+    fr: "{n} de plus",
+    arabizi: "{n} kamen",
+  },
   moreSectionsRow: {
     ar: "أقسام تانية ›",
     en: "More sections ›",
@@ -2182,12 +2194,22 @@ export function cravingList(
   cats: BrowseCategory[],
   shops: number,
   place: string | null,
+  offset = 0,
 ): Msg {
-  const rows = cats.slice(0, 9).map<Row>((c) => ({
+  // Nine rows fit beside "Shops near you"; with more categories, eight and a "More categories" row that pages on.
+  const left = cats.slice(offset);
+  const page = left.length > 9 ? left.slice(0, 8) : left;
+  const rows = page.map<Row>((c) => ({
     id: `cat:${c.key}`,
     title: clip(`${c.emoji} ${c.name}`, 24),
     description: c.shops === 1 ? tr(lang, "shopCount1") : tr(lang, "shopsCount", { n: c.shops }),
   }));
+  if (left.length > 9)
+    rows.push({
+      id: `cm:${offset + 8}`,
+      title: tr(lang, "moreCategoriesRow"),
+      description: tr(lang, "moreCategoriesDesc", { n: left.length - 8 }),
+    });
   return list(
     to,
     tr(lang, "craving", { place: place || tr(lang, "yourPlace") }),
