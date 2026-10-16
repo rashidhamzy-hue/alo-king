@@ -1417,7 +1417,14 @@ describe("session 5f part 7 cards pass the checker", () => {
         choiceAsk(to, lang, "x", group, [opts(1)[0], { ...opts(1)[0], option_id: U(99) }], 1),
         extrasList(to, lang, longEn, [group, { ...group, name_en: "Sauces", options: opts(6) }]),
         extrasList(to, lang, longEn, [{ ...group, options: opts(2) }], true),
-        extrasList(to, lang, longEn, [group, { ...group, name_en: "Sauces", options: opts(6) }], false, true),
+        extrasList(
+          to,
+          lang,
+          longEn,
+          [group, { ...group, name_en: "Sauces", options: opts(6) }],
+          false,
+          true,
+        ),
         extrasList(to, lang, longEn, [{ ...group, options: opts(1) }], true, true),
         noteLinesList(to, lang, lines),
         notePrompt(to, lang, longEn.repeat(4), 80),
@@ -1458,7 +1465,8 @@ describe("session 5f part 7 cards pass the checker", () => {
           },
         ),
       ];
-      for (const m of built) expect(checkInteractive(m), JSON.stringify(m).slice(0, 160)).toEqual([]);
+      for (const m of built)
+        expect(checkInteractive(m), JSON.stringify(m).slice(0, 160)).toEqual([]);
       // A long basket keeps its totals whole: the item lines give way ("+N more items"), never the total.
       const sum = built[built.length - 1].interactive.body.text;
       expect(sum).toContain("$1007.49");
@@ -1468,7 +1476,9 @@ describe("session 5f part 7 cards pass the checker", () => {
       for (const m of built)
         for (const id of [
           ...(m.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id),
-          ...(m.interactive?.action?.sections ?? []).flatMap((s: any) => s.rows.map((r: any) => r.id)),
+          ...(m.interactive?.action?.sections ?? []).flatMap((s: any) =>
+            s.rows.map((r: any) => r.id),
+          ),
         ])
           if (!/^(cfm|c):/.test(id)) expect(parseP7(id), id).not.toBeNull();
     });
@@ -1485,7 +1495,9 @@ describe("session 5f part 7 cards pass the checker", () => {
       action: { product_retailer_id: ids[9], catalog_id: "1234567890" },
     });
     // The builder keeps 10 distinct ids; the checker catches what a hand-made payload gets wrong.
-    expect(productCarouselMessage(to, "1", "b", [...ids, ids[0]]).interactive.action.cards).toHaveLength(10);
+    expect(
+      productCarouselMessage(to, "1", "b", [...ids, ids[0]]).interactive.action.cards,
+    ).toHaveLength(10);
     const one = productCarouselMessage(to, "1", "b", ids.slice(0, 1));
     expect(checkInteractive(one).join()).toMatch(/1 cards < 2/);
     const eleven: any = productCarouselMessage(to, "1", "b", ids.slice(0, 2));
@@ -1501,7 +1513,9 @@ describe("session 5f part 7 cards pass the checker", () => {
     const headed: any = productCarouselMessage(to, "1", "b", ids.slice(0, 2));
     headed.interactive.header = { type: "text", text: "x" };
     headed.interactive.action.cards[1].card_index = 5;
-    expect(checkInteractive(headed).join()).toMatch(/no header.*card 1 has card_index 5|card 1 has card_index 5.*no header|no header/);
+    expect(checkInteractive(headed).join()).toMatch(
+      /no header.*card 1 has card_index 5|card 1 has card_index 5.*no header|no header/,
+    );
     expect(META.carouselMaxCards).toBe(10);
   });
 
@@ -1514,7 +1528,9 @@ describe("session 5f part 7 cards pass the checker", () => {
       total_usd: 12.25,
       total_lbp: 1096375,
       usd_lbp_rate: 89500,
-      items: [{ name: "برغر", name_en: "Burger", quantity: 1, options: ["كبير"], note: "no onions" }],
+      items: [
+        { name: "برغر", name_en: "Burger", quantity: 1, options: ["كبير"], note: "no onions" },
+      ],
       tip_usd: 2,
       collect_usd: 14.25,
       collect_lbp: 1275375,
@@ -1523,15 +1539,30 @@ describe("session 5f part 7 cards pass the checker", () => {
       change_due: 5.75,
     };
     const en: any = cards.orderCard("+96171000001", d, "en");
-    expect(en.interactive.body.text).toContain("🙏 Tip $2.00 for whoever delivers · collect $14.25 = 1,275,375 LBP");
+    expect(en.interactive.body.text).toContain(
+      "🙏 Tip $2.00 for whoever delivers · collect $14.25 = 1,275,375 LBP",
+    );
     expect(en.interactive.body.text).toContain("💵 Pays with $20.00: bring $5.75 change");
     expect(en.interactive.body.text).toContain("1× Burger (كبير) · no onions");
-    const [job]: any[] = cards.driverJobCard("+96171000009", d, "+96170000001", "Ali", "Shop", "en");
+    const [job]: any[] = cards.driverJobCard(
+      "+96171000009",
+      d,
+      "+96170000001",
+      "Ali",
+      "Shop",
+      "en",
+    );
     expect(job.interactive.body.text).toContain("collect $14.25");
     expect(job.interactive.body.text).toContain("bring $5.75 change");
     const lbpCard: any = cards.orderCard(
       "+96171000001",
-      { ...d, tip_usd: 0, cash_change_for: 2000000, cash_change_currency: "LBP", change_due: 903625 },
+      {
+        ...d,
+        tip_usd: 0,
+        cash_change_for: 2000000,
+        cash_change_currency: "LBP",
+        change_due: 903625,
+      },
       "ar",
     );
     expect(lbpCard.interactive.body.text).toContain("2,000,000 LBP");
@@ -1548,20 +1579,27 @@ describe("session 5f part 7 cards pass the checker", () => {
       "🙏 The customer added a $2.00 tip on order #AB3CD9. It's 100% yours; tap when you have it.",
     );
     expect(tips[3].interactive.body.text).toContain("came with a $4.50 tip in the cash");
-    expect(tips[2].interactive.action.buttons[0].reply).toEqual({ id: `tip:${U(1)}`, title: "✅ Got it" });
+    expect(tips[2].interactive.action.buttons[0].reply).toEqual({
+      id: `tip:${U(1)}`,
+      title: "✅ Got it",
+    });
     expect(cards.parseMerchantAction(`tip:${U(1)}`)).toEqual({ a: "tip_got", orderId: U(1) });
     expect(cards.parseMerchantAction(`tip:${U(1)}:5`)).toBeNull();
     for (const p of [en, job, lbpCard, exact, ...tips]) expect(checkInteractive(p)).toEqual([]);
     // What the customer is told on acceptance includes the tip they chose.
-    const acc: any = customerStatusMessages("+96170000001", { kind: "accepted", lang: "en" }, {
-      order_id: U(1),
-      code: "AB3CD9",
-      total_usd: 12.25,
-      total_lbp: 1096375,
-      usd_lbp_rate: 89500,
-      collect_usd: 14.25,
-      collect_lbp: 1275375,
-    })[0];
+    const acc: any = customerStatusMessages(
+      "+96170000001",
+      { kind: "accepted", lang: "en" },
+      {
+        order_id: U(1),
+        code: "AB3CD9",
+        total_usd: 12.25,
+        total_lbp: 1096375,
+        usd_lbp_rate: 89500,
+        collect_usd: 14.25,
+        collect_lbp: 1275375,
+      },
+    )[0];
     expect(acc.text.body).toContain("$14.25 = 1,275,375 LBP");
   });
 
@@ -1577,9 +1615,24 @@ describe("session 5f part 7 cards pass the checker", () => {
     expect(parseP7("tpc:0")).toEqual({ a: "tip", cents: 0 });
     expect(parseP7(`tpo:${U(3)}:other`)).toEqual({ a: "tip_after", orderId: U(3), cents: null });
     expect(parseP7(`tpo:${U(3)}:100`)).toEqual({ a: "tip_after", orderId: U(3), cents: 100 });
-    expect(parseP7(`tpo:${U(3)}:300:o`)).toEqual({ a: "tip_after", orderId: U(3), cents: 300, other: true });
+    expect(parseP7(`tpo:${U(3)}:300:o`)).toEqual({
+      a: "tip_after",
+      orderId: U(3),
+      cents: 300,
+      other: true,
+    });
     expect(parseP7(`tpo:${U(3)}:other:o`)).toEqual({ a: "tip_after", orderId: U(3), cents: null });
-    for (const bad of ["ext:x", "note:", "chg:EUR:20", "chg:USD:-5", "chg:USD:0", "tpc:-1", "tpc:1.5", `tpo:${U(3)}:0`, "tpo:x:100"])
+    for (const bad of [
+      "ext:x",
+      "note:",
+      "chg:EUR:20",
+      "chg:USD:-5",
+      "chg:USD:0",
+      "tpc:-1",
+      "tpc:1.5",
+      `tpo:${U(3)}:0`,
+      "tpo:x:100",
+    ])
       expect(parseP7(bad), bad).toBeNull();
   });
 });

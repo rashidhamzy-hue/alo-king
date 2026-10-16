@@ -3809,7 +3809,8 @@ async function awaitedText(c: Ctx, t: string): Promise<boolean> {
   c.s.pending = {};
   // Only text soon after the question is its answer; hours later it is a new message (never "2 shawarma" as a note).
   const at = Date.parse(String(p.at ?? ""));
-  if (!Number.isFinite(at) || (c.deps.now?.() ?? new Date()).getTime() - at > TEXT_WAIT_MS) return false;
+  if (!Number.isFinite(at) || (c.deps.now?.() ?? new Date()).getTime() - at > TEXT_WAIT_MS)
+    return false;
   if (p.kind === "note") {
     if (intent?.kind === "no") {
       push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
@@ -3973,7 +3974,12 @@ async function tipAfterSet(c: Ctx, orderId: string, amount: number, other: boole
       return say(c, "tipTooLate");
     case "not_allowed":
       if (other)
-        c.s.pending = { kind: "tip_other", order_id: orderId, max: Number(r.max_usd), at: nowIso(c) };
+        c.s.pending = {
+          kind: "tip_other",
+          order_id: orderId,
+          max: Number(r.max_usd),
+          at: nowIso(c),
+        };
       return say(c, other ? "tipOtherBad" : "tipNotAllowed", { max: moneyUsd(r.max_usd) });
     default:
       return say(c, "tipNotAllowed");

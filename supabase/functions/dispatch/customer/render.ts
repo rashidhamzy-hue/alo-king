@@ -3141,18 +3141,13 @@ export function changeAsk(
     both && both.total_usd != null && both.total_lbp != null && both.usd_lbp_rate != null
       ? moneyLine(both.total_usd, both.total_lbp, both.usd_lbp_rate, lang, false)
       : cashAmount(currency, total);
-  return choices(
-    to,
-    tr(lang, "changeAsk", { total: shown }),
-    tr(lang, "changeButton"),
-    [
-      { id: `chg:${currency}:exact`, title: tr(lang, "changeExact") },
-      ...options.slice(0, 9).map((v) => ({
-        id: `chg:${currency}:${Math.round(Number(v))}`,
-        title: cashAmount(currency, v),
-      })),
-    ],
-  );
+  return choices(to, tr(lang, "changeAsk", { total: shown }), tr(lang, "changeButton"), [
+    { id: `chg:${currency}:exact`, title: tr(lang, "changeExact") },
+    ...options.slice(0, 9).map((v) => ({
+      id: `chg:${currency}:${Math.round(Number(v))}`,
+      title: cashAmount(currency, v),
+    })),
+  ]);
 }
 
 // ---- Demo testers (session 5f part 6, DECISIONS §39.15.3) ------------------------------------------------------------------
