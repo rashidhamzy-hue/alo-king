@@ -1,4 +1,4 @@
-# Handoff — 16 October 2026 (after session 5e)
+# Handoff — 15 October 2026 (after session 5d)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
@@ -303,20 +303,6 @@
     - run kapso-catalog against the production number;
     - no `app_private.sim_catalog_customers` rows on production;
     - submit the templates on the company WABA once it reaches the 2K tier (claim code).
-- **Session 5e (world-class shopping on WhatsApp for the investor demo, §39.13; test diet, §36): done (16 October).** PRs #196 (staging diet), #198 (photo scout, business profile, catalogue icon off), #200 (browsing through the bot), #201 (real photos only), #203 (cover fallback), #204 (every category reachable), #205 (smoke scenarios follow the bot) and this PR (docs, with the #205 review follow-up); see LOG.md "session 5e" lines. Each code PR carries the pr-reviewer verdict for its head (§32.7); #200 and #201 took three rounds.
-  - **Test diet (§36, Rasheed 16 October):** every PR runs lint, typecheck, unit tests and the SQL tests on CI's throwaway database only. `staging-e2e` is dispatch-only: `suite=smoke` (default) runs 5 scenarios (01 delivery order with the merchant accepting, 06 cancel, 27 catalogue cart and merchant accept, 29 category → shop → section → cart, 30 search → cart) once at the end of a session; `suite=full` runs once before the cut-over, on the production project.
-  - **Staging load:** the 9 frequent jobs are two ticks (`tick-30s`, `tick-minute`), each step isolated and alerting to Slack on failure; the catalogue reconcile (every 10 min) queues only shops whose menu changed; `dispatch` waits for a due message inside its run instead of a 5 s cron; job history kept 2 days. Staging stays on the free plan; #194 stays open as optional.
-  - **What the customer sees (exact layouts in the session 5e reply):** Order → pin → "What are you craving?" (categories ranked by shops serving them, 8 + "More categories" when more, then "Shops near you") → a category's shops with fee and distance → the shop's cover image with one line (cuisine · village · fee · hours today) → one multi-product message of its best sections (≤ 30 items, ≤ 10 sections) → "More sections" list → a section, 30 at a time with "Next items" → the same basket and checkout. Typed search answers with product messages grouped by shop when every result is in the catalogue, else the list.
-  - **Photos (§39.13):** no drawn tiles. Demo items: 67 the shop's own, 10 packshots, 1,093 dish photos (72 of 119 dish keys picked from photo-scout run 38848787132, each with licence and credit), 427 without a photo (not food, or no fitting photo: manakish, labneh, dips, subs and others), which stay out of the catalogue and run on the list menu. Every demo shop has a cover (2 own, 27 dish). Meta shows 1,229 products with real photos; 526 are hidden.
-  - **WhatsApp profile of the US number (kapso-profile):** crown logo, about, description, address Baakline, category Restaurant. No website (the preview needs a Vercel login; production serves the old site) and no hours field on the Cloud API.
-  - **Catalogue icon in the chat header:** to be switched off (§39.13). Kapso's proxy refused the commerce setting, so it is owner issue #199 (2 minutes in WhatsApp Manager). Until then the header still opens the flat catalogue; a cart mixing shops keeps the first shop's lines and says the rest could not be added (seen in Rasheed's 05:30 order).
-  - **Smoke suite:** SMOKE_RESULT
-  - **Live test with Rasheed:** RASHEED_RESULT
-  - **Open for later:** manakish, labneh, subs and sandwiches, dips, generic soda and tea have no photo (Openverse had none fit to use); a second scout with other queries, or the merchants' own photos when they claim, fills them. `docs/decisions/CUSTOMER-EXPERIENCE.md` (#202, another session) proposes §39.14 for session 5f (web menu, writing rules, every scenario).
-  - **CUT-OVER (session 14), added:**
-    - production restores the 5 s and 15 s cadence (LOG, session 5e PR 1); `staging-e2e suite=full` runs once there before go-live;
-    - no `packshot` or `illustrative` photos and no non-merchant `vendor_covers` on production; demo-photos refuses any project but staging;
-    - kapso-profile against the production number with the production website once aloking.com serves the new site; the catalogue icon off on the production number.
 - **Next: 13 (security review), then W2 (website audit and polish, §39.10: WhatsApp icons and "Order on WhatsApp" throughout, no app to download, clearer heroes, every page audited) and 14 (cut-over).** The session list, with the model and effort for each, is in DECISIONS §39.10.
 
 ## How to start each build session
@@ -332,7 +318,6 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 ## Owner to-do (Rasheed)
 
 0. **Optional (2 minutes):** give the system user `alo-king-catalog` the WhatsApp account and the `whatsapp_business_management` permission, so kapso-catalog can verify the catalogue's connection and the cart icons itself (Business settings → Users → System users → alo-king-catalog → Assign assets → WhatsApp accounts → the US account, Full control; then generate a new token with `whatsapp_business_management` added and replace `META_CATALOG_TOKEN`).
-0. **Hide the catalogue icon in the chat header (#199, 2 minutes):** WhatsApp Manager steps in the issue; the bot closes it once the icon reads hidden.
 0. **Demo for investors:** they message +1 203-660-2328 from their own phones; every order card comes to your phone marked "Demo" (accept or reject it there).
 0. **Verify the "Memo Tiles" business in Meta (#182):** until then Meta blocks Flows (address and checkout forms) and the claim-code template.
 0. **Test on the US number +1 203-660-2328:** the checklist in the session 5d reply (#181 is done, so the catalogue, the product messages and the cart icon are testable).
