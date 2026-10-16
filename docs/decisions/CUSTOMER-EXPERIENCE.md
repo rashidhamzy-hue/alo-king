@@ -1,6 +1,6 @@
 # Customer experience on WhatsApp: every scenario, decided (16 October 2026)
 
-**Status:** binding, as an extension of DECISIONS.md (§39.14 points here). Written by Claude for Rasheed on 16 October, walking the app as a customer. Where a line repeats an earlier decision it cites the section and changes nothing. **NEW** marks a decision made here. Where this file and DECISIONS.md disagree, DECISIONS.md wins and the conflict is logged in LOG.md.
+**Status:** proposal, input only until DECISIONS §39.14 adopts it (session 5f, first task: add §39.14 pointing here with the overrides listed in §8, the 5f row in §39.10, and one LOG.md line per **NEW** decision). Written by Claude for Rasheed on 16 October, walking the app as a customer. Where a line repeats an earlier decision it cites the section and changes nothing. **NEW** marks a decision proposed here. Where this file and DECISIONS.md disagree, DECISIONS.md wins.
 
 **The bar:** a customer in the Shouf should feel they are using Toters, Talabat or Deliveroo, inside WhatsApp, with no app to download. Every screen looks finished, every message is short and in their language, and every tap leads somewhere.
 
@@ -18,10 +18,10 @@
 
 ## 2. Writing and visual rules (every message, every item)
 
-1. **Language:** reply in the language of the customer's last message (Arabic, English, French, Arabizi → reply in Arabic script unless they write Arabizi only, then English letters are fine). Buttons in the same language. Never mix two languages in one line. **NEW**
+1. **Language:** reply in the language of the customer's last message: Arabic or Arabizi → Arabic script; English → English; French → French. Buttons in the same language. Never mix two languages in one line. **NEW**
 2. **Item titles** in one language: the shop's own name if it is Latin, else English; Title Case, never ALL CAPS; sizes once ("Soft Drink 1.5 L"). The Arabic name goes in the description (catalogue) or under the title (web menu). **NEW**
-3. **Item description**, never empty, never "Menu": shop · village; Arabic name; what is in it (the menu's text, else the dish library marked "usually"); allergens and estimated calories when known, marked "estimated" (§32.3, §39.5); "Extras chosen after you add it" when the item has options. **NEW**
-4. **Prices** always as `$6.50 · 581,750 LBP` on totals (dual currency at the rate locked on the order, product rules); item prices in USD only. Western digits in every language. **NEW**
+3. **Item description**, never empty, never "Menu": shop · village; Arabic name; what is in it (the menu's text, else the dish library marked "usually"); allergens only when the merchant declared them (`merchant_verified`), or for grocery items from Open Food Facts labelled "estimated" (§39.5), never from the dish library; calories and macros may be shown as "estimated" (§32.3); "Extras chosen after you add it" when the item has options. **NEW**
+4. **Prices** always as `$6.50 · <LBP at the locked rate>` on totals (dual currency at the rate locked on the order, product rules); item prices in USD only. Western digits in every language. **NEW**
 5. **Messages:** at most 3 short lines before the buttons; at most one emoji; no walls of text; no internal words ("vendor", "basket id", "draft"). **NEW**
 6. **Photos:** real only (§39.13); square 800×800, same treatment; an item without a photo stays out of the catalogue and shows a clean text row in the web menu.
 7. **Links shown to customers** are aloking.com links only, never a Supabase or Kapso URL. **NEW**
@@ -46,7 +46,7 @@
 | 8 | First order | Ask for the location pin; typed village or landmark also works (§28). Then one question for the building or landmark ("Near the church, 2nd floor"). |
 | 9 | Has saved addresses | Confirm on every order: "Home in Baakleen, or somewhere else today?" (§39.6) |
 | 10 | At a relative's house tonight | New pin; "Save it as 'Teta's house'?" only with a yes (§39.6) |
-| 11 | Outside the boundary (Damour, Chehim) | "We don't deliver to Damour yet." Buttons: **Tell me when you do** (dated waitlist, opt-in), **Pick up instead** (if a shop is within `pickup_search_km`). **NEW** waitlist |
+| 11 | Outside the boundary (Damour, Chehim) | "We don't deliver to Damour yet." Buttons: **Tell me when you do**, **Pick up instead** (if a shop is within `pickup_search_km`). **NEW** waitlist: the tap stores a dated opt-in for that place; when the place switches on, one approved utility template the customer requested goes out, STOP honoured, and it is never reused for marketing |
 | 12 | Abroad, ordering for family (Send Home) | §22 in full; the agent asks "for you or someone else?" only on §22.1 conditions |
 | 13 | Expat visiting with a foreign number | A normal local order to the confirmed address; never infer from the country code (§39.6) |
 | 14 | Pin far from the typed place | One check question (§27.8 #10) |
@@ -67,7 +67,7 @@
 ### 3.4 Choosing an item
 | # | Situation | We do |
 |---|---|---|
-| 24 | Opens an item in the web menu | Large photo, title, Arabic name, description, price, required choices (size), optional add-ons with limits and prices, "Goes well with" (2–3 items from the same shop, rule-based), allergens and estimated calories, quantity, **Add · $7.50**. **NEW** |
+| 24 | Opens an item in the web menu | Large photo, title, Arabic name, description, price, required choices (size), optional add-ons with limits and prices, one "Goes well with" item from the shop's bought-together data (server-priced, never on a reorder), allergens per §2 item 3, quantity, **Add · <price>**. **NEW** (overrides §29.3's one suggestion per order, see §8) |
 | 25 | Adds from the native catalogue an item that has options | After the cart arrives, the bot asks the required choices one at a time (list or buttons), then offers its add-ons once. **NEW** (replaces the `item_options` Flow until #182) |
 | 26 | Wants "no onions", "extra spicy" | **Add a note** per item, up to 80 characters, shown on the merchant's card; never changes the price. **NEW** |
 | 27 | Asks "does it have nuts?" | Merchant-declared only; otherwise "not confirmed by the shop" + offer to ask the shop on this order (§32.3) |
@@ -76,10 +76,10 @@
 | # | Situation | We do |
 |---|---|---|
 | 28 | Adds an item from a second shop | "Your basket is from Eatout. Start a new one from SEVEN?" **Start new** / **Keep Eatout**. One shop per order (§30.4). **NEW** wording |
-| 29 | Below the shop's minimum order | "Add $2.50 more to order from Eatout" + 3 suggested items from that shop. **NEW** |
+| 29 | Below the shop's minimum order | "Add $2.50 more to order from Eatout" + up to 3 of that shop's items that close the gap, server-priced. **NEW** (overrides §29.3, see §8) |
 | 30 | Changes quantity or removes an item | From the basket message (buttons) or the web menu; one basket for every path (§39.12) |
 | 31 | Price changed since the catalogue | Server price wins, difference shown before confirming (§39.12, §30.1.1) |
-| 32 | Leaves and comes back hours later | Basket kept 24 h; one reminder at 30 min, never at night (§29.3) |
+| 32 | Leaves and comes back hours later | Basket kept for `basket_keep_hours` (config); one reminder at 30 min, never at night (§29.3) |
 | 33 | One upsell | At most one, from the shop's own bought-together items, never on reorders (§29.3) |
 
 ### 3.6 Checkout
@@ -87,9 +87,9 @@
 |---|---|---|
 | 34 | Ready to order | One summary: items with choices and notes, subtotal, delivery fee, total in USD and LBP, ETA range, address, payment. Buttons: **Confirm**, **Change**. Only Confirm places the order. |
 | 35 | Pays cash | Currency USD or LBP (built), then **NEW**: "Do you need change?" **Exact**, **$20**, **$50**, **$100**, or LBP; the answer goes on the driver's card (§27.8 #17 float) |
-| 36 | Over the COD cap ($150, or $50 before a first delivered order, §29.4) | Offer the Whish link once online payment is live (§20.1); until then "orders above $50/$150 are paid online, coming soon" and split suggestion. |
+| 36 | Over the COD cap ($150, or $50 before a first delivered order, §29.4) | Offer the Whish link once online payment is live (§20.1); until then the message shows the cap from config and says online payment is coming soon. Never suggest splitting the order (the cap is a cash-custody control, §21.4). |
 | 37 | Promo or referral | §30.3.7 discount line shown in the summary |
-| 38 | Tip | After delivery, buttons $1 / $2 / Other; 100% to whoever delivered (§27.8 #18). Not at checkout in the pilot. **NEW** (keeps checkout short) |
+| 38 | Tip | At checkout (one optional row, default none) or after delivery (buttons with amounts from config, Other), 100% to whoever delivered (§27.8 #18). A tip is a ledger entry through the order's payment path: cash entered by the driver at the door, or the Whish/Tap link when online payment is live. |
 | 39 | Pickup instead of delivery | Pickup code, shop address and opening time (built) |
 
 ### 3.7 After ordering
@@ -97,7 +97,7 @@
 |---|---|---|
 | 40 | Waiting for the shop | "Sent to Eatout. They usually confirm in under a minute." Accepted → ETA range (built) |
 | 41 | Shop rejects or doesn't answer | Apology, reason in plain words, and the 3 closest shops with the same dish as buttons, basket rebuilt on one tap where items match. **NEW** for the rebuild |
-| 42 | "Where is my order?" any time | Status + ETA + driver's WhatsApp when on the way (built, §27.9) |
+| 42 | "Where is my order?" any time | Status + ETA + driver's WhatsApp when on the way (built, §27.3, §27.8) |
 | 43 | Running late | Told once the slip passes 10 min (§27.8 #2), with the new range |
 | 44 | Wants to cancel | Free until accepted and 60 s after; later a request to the shop (§30.3.6) |
 | 45 | Wants to tell the shop something | During an active order, a typed message is passed to the shop as an order note; the shop's own number is never shared. **NEW** |
@@ -108,8 +108,8 @@
 | # | Situation | We do |
 |---|---|---|
 | 48 | Food arrives | Delivery code when required (§27.6); then "Enjoy!" + **Received** / **Problem**; rating 30 min later (built) |
-| 49 | Missing or wrong item | **Problem** → which item (list) → optional photo → the server decides by §20.1: the shop resends it, or a refund to the original online payment; for cash orders a discount line on the next order (expires in 60 days, like §30.3.7, not stored money). **NEW** for cash orders |
-| 50 | Cold, spilled, very late (more than 30 min past the ETA range) | Apology; a config `late_credit_usd` discount line on the next order, once per order; charged per §20.1. **NEW** |
+| 49 | Missing or wrong item | **Problem** → which item (list) → optional photo → the server decides by §20.1: the shop resends it, or a refund to the original online payment; **NEW** for cash orders: a discount line on the next order, recorded in the ledger, no cash value, not stored money, expiring after a configured number of days, charged to the merchant only when the merchant caused it, otherwise funded by Alo King (§20.1) |
+| 50 | Cold, spilled, or very late (past the ETA range by the configured threshold) | Handover photo decides (§27.8 #14). Online orders: refund to the original payment per §20.1. **NEW** for cash orders: a `late_discount_usd` discount line on the next order (amount and the lateness threshold in dated config), once per order, same ledger rules as #49. |
 | 51 | Wants a human | Handoff with Rasheed as the named human (§30.6) |
 | 52 | Reorders | "The usual?" button with last order and its current server price (§30.1.5) |
 
@@ -139,7 +139,7 @@
 1. "Hi" → welcome → **Order** → pin in Baakleen.
 2. "What are you craving?" → Burgers → SEVEN Burgers → cover → **Open menu**.
 3. In the web menu: a burger with a size and two add-ons, a note "no onions", fries from "Goes well with" → **Continue in WhatsApp**.
-4. Summary in USD and LBP → cash in USD → change for $50 → **Confirm**.
+4. Summary in USD and LBP → cash in USD → change for a $50 note → **Confirm**.
 5. On the merchant side (same phone, `#merchant`): accept → ready → out for delivery → delivered with the code.
 6. Customer: **Received** → tip $1 → rating → "The usual?" on the next "hi".
 7. Bonus: type "shawarma" → results from three shops in one message; ask for an unclaimed shop → "Ask them to join".
@@ -148,3 +148,10 @@
 - Session **5f**: §§2, 3.1 #1–7, 3.3 #16 and #21, 3.4, 3.5 #28–29, 3.6 #35 and #38, 3.7 #41 and #45, 3.8 #49–50, §§4–6. Each NEW line gets a test (unit, SQL or a simulator scenario); the 5-scenario smoke suite runs once at the end (§36 test diet).
 - After API credit (5c items): AI parts of #4, #5, #17, #18.
 - After Meta verification (#182): Flows on the same data.
+
+## 8. Overrides and new money rules for §39.14 to adopt
+- **§29.3 upsell:** the web menu shows one bought-together "Goes well with" item per item sheet (§3.4 #24), and a below-minimum basket shows up to 3 items that close the gap (§3.5 #29); the chat still sends at most one upsell per order and none on reorders.
+- **§27.8 #14 and §20.1, cash orders only:** missing, wrong, damaged or late cash orders get a ledger-recorded next-order discount line (§3.8 #49–50); online orders keep refunds to the original payment.
+- **New config keys (dated):** `late_discount_usd`, `late_threshold_min`, `discount_expiry_days`, tip amounts, `basket_keep_hours`.
+- **Waitlist:** a customer-requested utility notice when a place switches on (§3.2 #11).
+- Everything else marked **NEW** is copy, layout or flow and needs only its LOG.md line.
