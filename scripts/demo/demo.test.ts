@@ -173,6 +173,7 @@ describe("the photo plan per item", () => {
       dishes: ["burger", "burger", "fries", "soda", "manousheh"],
       own: [
         { url: "https://x/own-fries.jpg", original: "https://x/own-fries.jpg", dish: "fries" },
+        { url: "https://x/own-pizza.jpg", original: "https://x/own-pizza.jpg", dish: "pizza" },
         { url: "https://x/own-burger.jpg", original: "https://x/own-burger.jpg", dish: "burger" },
       ],
     };
@@ -186,7 +187,7 @@ describe("the photo plan per item", () => {
     };
     expect(coverCandidates(shop, p).map((c) => c.url)).toEqual([
       "https://x/own-burger.jpg",
-      "https://x/own-fries.jpg",
+      "https://x/own-pizza.jpg",
       "https://x/burger.jpg",
     ]);
     // No pick for its most common dish: the next dish that has one; a side (fries) never makes a cover.

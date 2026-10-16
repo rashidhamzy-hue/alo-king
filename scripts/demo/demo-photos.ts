@@ -7,7 +7,8 @@
 //      matched through scripts/demo/dishes.ts, falling back to the broader dish).
 // A pick is used only when its license allows commercial use and it is credited, and never from a Google host (pickOk);
 // a source picture smaller than 500 px on a side is refused. Every image is 800 × 800, cropped square with the same treatment (packshots are fitted on white, so no label is cut);
-// each shop gets a 1200 × 800 cover (its own photo of a main dish, else the photo of its signature dish). Stored in the
+// each shop gets a 1200 × 800 cover (the first of its own photos of a main dish, signature dish first, then the picked
+// photos of its main dishes from the most common down, that makes a cover; coverCandidates). Stored in the
 // private bucket menu-item-photos through public.menu_item_photo_set (with license, credit and source) and
 // public.vendor_covers. An unchanged photo is never processed again; objects without a row are deleted.
 // Env: DB_URL, SUPABASE_URL (https://<ref>.supabase.co), SUPABASE_SERVICE_KEY. Optional PHOTO_LIMIT (default 2000).
@@ -229,7 +230,9 @@ export function coverCandidates(
   picks: Picks,
 ): CoverCandidate[] {
   const sig = signatureDish(shop.dishes);
-  const own = [...shop.own].sort((a, b) => Number(b.dish === sig) - Number(a.dish === sig));
+  const own = shop.own
+    .filter((o) => !NOT_COVER.test(o.dish))
+    .sort((a, b) => Number(b.dish === sig) - Number(a.dish === sig));
   const out: CoverCandidate[] = own.map((o) => ({
     source: "merchant_site",
     url: o.url,
@@ -431,12 +434,22 @@ async function main() {
       }
       const hashOf = (c: CoverCandidate) =>
         sha256(JSON.stringify([PROCESS_VERSION, "cover", c.url]));
-      // The current cover stays while it is still a candidate (an unchanged run makes no new cover).
-      if (cur && candidates.some((c) => hashOf(c) === cur.origin_hash)) continue;
+      // A merchant's own cover is never touched. The current cover stays unless a better-ranked candidate now makes one
+      // (an unchanged run makes no new cover; a fallback is upgraded once the better photo works again).
+      if (cur?.source === "merchant") continue;
+      const at = cur ? candidates.findIndex((c) => hashOf(c) === cur.origin_hash) : -1;
+      if (at === 0) continue;
       let made = false;
-      for (const chosen of candidates) {
+      for (const chosen of at > 0 ? candidates.slice(0, at) : candidates) {
+        let body: Buffer;
         try {
-          const body = await coverImage(await download(chosen.url));
+          body = await coverImage(await download(chosen.url));
+        } catch (e) {
+          // Only a picture that cannot be downloaded or made into a cover moves on to the next candidate.
+          console.error(`cover candidate failed for shop ${vendorId}: ${String(e).slice(0, 160)}`);
+          continue;
+        }
+        try {
           const path = `cover/${vendorId}.jpg`;
           await upload(path, body);
           const r = (
@@ -453,12 +466,13 @@ async function main() {
           if (r?.status !== "ok") throw new Error(`record ${r?.status}`);
           done.covers++;
           made = true;
-          break;
         } catch (e) {
-          console.error(`cover candidate failed for shop ${vendorId}: ${String(e).slice(0, 160)}`);
+          // An upload or record failure is not about the picture: stop, so the object and its row never disagree.
+          console.error(`cover failed for shop ${vendorId}: ${String(e).slice(0, 160)}`);
         }
+        break;
       }
-      if (!made) console.error(`no cover for shop ${vendorId}`);
+      if (!made && at < 0) console.error(`no cover for shop ${vendorId}`);
     }
 
     // Objects whose row is gone (claimed, no longer a demo shop, or the older drawn tiles and PNGs).
