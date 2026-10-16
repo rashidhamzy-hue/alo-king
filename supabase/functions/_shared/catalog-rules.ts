@@ -390,7 +390,7 @@ function policyIssues(item: CatalogItemCheck): CatalogIssue[] {
   const med = MEDICINE_BUSINESS.test(String(item.business_type ?? ""))
     ? String(item.business_type)
     : [...names, ...sections]
-        .map((h) => findMedicine(stripFoodAntibioticClaims(norm(markClauses(h)))))
+        .map((h) => findMedicine(stripFoodAntibioticClaims(norm(markClauses(h)), true)))
         .find(Boolean);
   if (med) out.push(issue("policy_medicine", { found: med }));
   const alcohol =

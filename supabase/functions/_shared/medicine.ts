@@ -2,7 +2,9 @@
 // One word list for the customer's refusal (dispatch/customer/intents.ts) and the catalogue's medicine rule
 // (catalog-rules.ts), so a word one of them knows the other knows too. "Antibiotic-free chicken" says what a food is
 // without (§39.15.4 review): such a claim is set aside before the check, but only when a food word sits in the same
-// clause within three words of it, so "I have no antibiotics left, can you bring some" stays a medicine request.
+// clause within three words of it, so "I have no antibiotics left, can you bring some" stays a medicine request. A
+// catalogue title may also put the food just before the punctuation that opens the claim ("Chicken breast, antibiotic
+// free"); a customer's message may not, since "Chicken. No antibiotics at home, can you bring some?" is a request.
 // The text is expected normalized by the caller (lower case, no accents, œ as oe, ة as ه, ا for أ إ آ).
 
 /** Latin and Arabizi words, matched whole. */
@@ -92,7 +94,7 @@ export function findMedicine(t: string): string | null {
  * "sans antibiotiques", "بدون مضادات حيوية".
  */
 const CLAIM =
-  /\bantibiotics?[ -]?free\b|\bfree (?:from|of) antibiotics?\b|\b(?:no|without|w o) antibiotics?\b|\bsans antibiotiques?\b|(?:بدون|بلا|خالي من|خاليه من) (?:ال)?مضاد(?:ات)? (?:ال)?حيوي(?:ه)?/g;
+  /\bantibiotics?[ -]?free\b|\bfree (?:from|of) antibiotics?\b|\b(?:no|without|w o) antibiotics?\b|\bsans antibiotiques?\b|(?:بدون|بلا|خال من|خالي من|خاليه من) (?:اي |استخدام )?(?:ال)?مضاد(?:ات)? (?:ال)?حيوي(?:ه)?/g;
 
 /** The foods such a claim is made about (poultry, meat, fish, eggs, milk and their cuts). */
 const FOOD =
@@ -104,7 +106,8 @@ const MARK = "clausemark";
  * Clause punctuation as a word: call before normalizing, which turns punctuation into spaces, so "no antibiotics,
  * 2 chicken" keeps its two clauses.
  */
-export const markClauses = (raw: string): string => raw.replace(/[,.;:!?؟،؛\n]+/g, ` ${MARK} `);
+export const markClauses = (raw: string): string =>
+  raw.replace(/[,.;:!?؟،؛\n…]+|\s[-–—]+\s/g, ` ${MARK} `);
 
 const AT_MARK = new RegExp(`(?:^|\\s)${MARK}(?=\\s|$)`);
 /** A spoken "and" in four languages, as a word of its own: it ends a clause. */
@@ -115,14 +118,14 @@ const words = (t: string) => t.trim().split(/\s+/).filter(Boolean);
 const last = <T>(xs: T[]) => xs[xs.length - 1];
 
 /**
- * The words before a claim, in its own clause. A claim that opens a clause after punctuation ("Chicken breast, antibiotic
- * free") reads the end of the clause before it; after a spoken "and" it does not.
+ * The words before a claim, in its own clause. With `title`, a claim that opens a clause after punctuation ("Chicken
+ * breast, antibiotic free") reads the end of the clause before it; after a spoken "and" it does not.
  */
-const wordsBefore = (side: string): string => {
+const wordsBefore = (side: string, title: boolean): string => {
   const marked = side.split(AT_MARK);
   const own = last(marked).split(SPOKEN_AND);
   let near = words(last(own));
-  if (!near.length && own.length === 1 && marked.length > 1)
+  if (title && !near.length && own.length === 1 && marked.length > 1)
     near = words(last(marked[marked.length - 2].split(SPOKEN_AND)));
   return near.slice(-WORDS).join(" ");
 };
@@ -131,10 +134,14 @@ const wordsBefore = (side: string): string => {
 const wordsAfter = (side: string): string =>
   words(side.split(AT_MARK)[0].split(SPOKEN_AND)[0]).slice(0, WORDS).join(" ");
 
-/** The text without its food antibiotic claims ("antibiotic-free chicken"); any other mention of antibiotics stays. */
-export function stripFoodAntibioticClaims(t: string): string {
+/**
+ * The text without its food antibiotic claims ("antibiotic-free chicken"); any other mention of antibiotics stays.
+ * `title`: the text is a catalogue item's name or section (never a request), which may name the food before the
+ * claim's punctuation.
+ */
+export function stripFoodAntibioticClaims(t: string, title = false): string {
   return t.replace(CLAIM, (m: string, offset: number, s: string) => {
-    const around = `${wordsBefore(s.slice(0, offset))} ${wordsAfter(s.slice(offset + m.length))}`;
+    const around = `${wordsBefore(s.slice(0, offset), title)} ${wordsAfter(s.slice(offset + m.length))}`;
     return FOOD.test(around) ? " " : m;
   });
 }

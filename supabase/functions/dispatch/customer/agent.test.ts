@@ -223,6 +223,14 @@ describe("intents for the agent (§38.3)", () => {
       "بدي المضادات الحيوية",
       "بدي المضاد الحيوي",
       "بدي بنادول",
+      // A food on the line before is not what the claim is about (only a catalogue title reads back).
+      "1 chicken tawouk sandwich\nNo antibiotics at home, can you bring some?",
+      "2 chicken shawarma. No antibiotics at home, can you bring some",
+      "Djej. No antibiotics left, jibli",
+      "بدي فروج، بدون مضادات حيوية بالبيت جيبولي",
+      "Chicken. No antibiotics. Can you get some?",
+      "2 chicken shawarma - no antibiotics at home, can you bring some",
+      "2 chicken, antibiotic free please",
     ])
       expect(isMedicineRequest(t), t).toBe(true);
     for (const t of [
@@ -244,9 +252,8 @@ describe("intents for the agent (§38.3)", () => {
       "بدي بطاطا يدوية",
       "قهوة بدوية",
       "بدوا شاورما",
-      // The food before the punctuation is what the claim is about.
-      "2 chicken, antibiotic free please",
-      "دجاج طازج، بدون مضادات حيوية",
+      "دجاج طازج بدون مضادات حيوية",
+      "بدي دجاج خالٍ من المضادات الحيوية",
     ])
       expect(isMedicineRequest(t), t).toBe(false);
   });

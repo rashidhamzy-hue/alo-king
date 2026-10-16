@@ -624,6 +624,9 @@ describe("commerce policy: no medicine (§38.3), alcohol or tobacco in the catal
       "Salmon fillet; no antibiotics",
       "Poulet fermier, sans antibiotiques",
       "دجاج طازج، بدون مضادات حيوية",
+      "دجاج خالٍ من المضادات الحيوية",
+      "دجاج بدون استخدام المضادات الحيوية",
+      "Chicken breast - antibiotic free",
     ])
       expect(codes(validateCatalogItem({ title: ok })), ok).toEqual([]);
   });
