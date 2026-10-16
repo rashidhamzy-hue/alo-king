@@ -155,6 +155,13 @@ export type CustomerDeps = {
     origin: { lat: number; lon: number },
     dest: { lat: number; lon: number },
   ) => Promise<unknown | null>;
+  /** Many shops → one pin in one routing request (roadRoutesFrom); without it, one `route` call per shop. */
+  routesTo?:
+    | ((
+        origins: { lat: number; lon: number }[],
+        dest: { lat: number; lon: number },
+      ) => Promise<unknown[]>)
+    | null;
   config: {
     customerModel: string;
     escalationModel: string;
@@ -1915,11 +1922,7 @@ async function deliveringPlaces(
     });
     const unknown = (chk?.vendors ?? []).filter((v: any) => v.status === "no_route" && v.origin);
     if (unknown.length) {
-      for (const v of unknown.slice(0, 5))
-        await c.deps.route(v.origin, v.dest).catch((e: unknown) => {
-          c.deps.log?.("route fetch failed", { error: String(e).slice(0, 120) });
-          return null;
-        });
+      await fetchRoutes(c, unknown.slice(0, 10));
       chk = await c.deps.rpc("customer_delivery_check", {
         p_customer_id: c.customerId,
         p_vendor_ids: ids,
@@ -1935,6 +1938,39 @@ async function deliveringPlaces(
     rows = rows.filter((r) => !beyond.has(r.vendor_id));
   }
   return { rows, found, paused: false };
+}
+
+/**
+ * Fetches the road routes customer_delivery_check could not find (shop → the customer's pin) into the route cache: one
+ * routing request per pin through routesTo, so a screen of shops costs one request of the free daily quota, not one
+ * per shop (session 5e, 16 October). A failure is logged; the shop stays "no route" and the checkout asks again.
+ */
+async function fetchRoutes(
+  c: Ctx,
+  pairs: { origin: { lat: number; lon: number }; dest: { lat: number; lon: number } }[],
+): Promise<void> {
+  const failed = (e: unknown) => {
+    c.deps.log?.("route fetch failed", { error: String(e).slice(0, 120) });
+    return null;
+  };
+  const routesTo = c.deps.routesTo;
+  if (!routesTo) {
+    await Promise.all(pairs.map((v) => c.deps.route(v.origin, v.dest).catch(failed)));
+    return;
+  }
+  const byDest = new Map<string, typeof pairs>();
+  for (const v of pairs) {
+    const k = `${v.dest.lat},${v.dest.lon}`;
+    byDest.set(k, [...(byDest.get(k) ?? []), v]);
+  }
+  await Promise.all(
+    [...byDest.values()].map((g) =>
+      routesTo(
+        g.map((v) => v.origin),
+        g[0].dest,
+      ).catch(failed),
+    ),
+  );
 }
 
 // ---- Browsing through the bot (session 5e) ----------------------------------------------------------------------------
@@ -1972,14 +2008,7 @@ async function deliveringShops(c: Ctx): Promise<{
   });
   const unknown = (chk?.vendors ?? []).filter((v: any) => v.status === "no_route" && v.origin);
   if (unknown.length) {
-    await Promise.all(
-      unknown.slice(0, 8).map((v: any) =>
-        c.deps.route(v.origin, v.dest).catch((e: unknown) => {
-          c.deps.log?.("route fetch failed", { error: String(e).slice(0, 120) });
-          return null;
-        }),
-      ),
-    );
+    await fetchRoutes(c, unknown.slice(0, 40));
     chk = await c.deps.rpc("customer_delivery_check", {
       p_customer_id: c.customerId,
       p_vendor_ids: ids,

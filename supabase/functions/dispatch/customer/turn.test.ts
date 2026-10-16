@@ -1828,6 +1828,46 @@ describe("browsing through the bot (session 5e)", () => {
     expect(checkInteractive(m)).toEqual([]);
   });
 
+  it("routes the shops are missing are fetched in one request for the pin, never one per shop (ORS quota)", async () => {
+    let first = true;
+    const f = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => POINT,
+        browse_shops: () => browse(6),
+        customer_delivery_check: (a: any) => {
+          if (!first) return check(a);
+          first = false;
+          return {
+            status: "ok",
+            vendors: a.p_vendor_ids.map((id: string, k: number) => ({
+              vendor_id: id,
+              status: "no_route",
+              origin: { lat: 33.6 + k / 100, lon: 35.5 },
+              dest: { lat: POINT.lat, lon: POINT.lon },
+            })),
+          };
+        },
+      },
+    });
+    const single: unknown[] = [];
+    const batches: { origins: unknown[]; dest: unknown }[] = [];
+    f.deps.route = async (o) => {
+      single.push(o);
+      return null;
+    };
+    f.deps.routesTo = async (origins, dest) => {
+      batches.push({ origins, dest });
+      return origins.map(() => null);
+    };
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(single).toEqual([]);
+    expect(batches).toHaveLength(1);
+    expect(batches[0].origins).toHaveLength(6);
+    expect(batches[0].dest).toEqual({ lat: POINT.lat, lon: POINT.lon });
+    expect(f.of("customer_delivery_check")).toHaveLength(2);
+  });
+
   it("more than nine categories: the eight most served, then More categories pages on", async () => {
     const many = Array.from({ length: 11 }, (_, k) => ({
       key: `k${String.fromCharCode(97 + k)}`,

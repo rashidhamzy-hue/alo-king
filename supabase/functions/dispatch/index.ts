@@ -30,7 +30,7 @@ import { reportError } from "../_shared/sentry.ts";
 import { slackPoster } from "../_shared/ops-notifier.ts";
 import { restRpc } from "../_shared/rest-rpc.ts";
 import { isSimNumber, simSinkSend } from "../_shared/sim-sink.ts";
-import { orsProvider, restRouteCache, roadRoutes } from "../_shared/routing.ts";
+import { orsProvider, restRouteCache, roadRoutes, roadRoutesFrom } from "../_shared/routing.ts";
 import { safeFetch } from "../_shared/safe-fetch.ts";
 import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
@@ -666,6 +666,12 @@ Deno.serve(async (req) => {
                 log: (msg, f) => log(msg, f as Record<string, string>),
               })
             )[0],
+          routesTo: (os: { lat: number; lon: number }[], d: { lat: number; lon: number }) =>
+            roadRoutesFrom(os, d, {
+              cache: routeCache,
+              provider: routeProvider,
+              log: (msg, f) => log(msg, f as Record<string, string>),
+            }),
           config: {
             customerModel: String(cfg.ai_customer_model ?? "claude-haiku-4-5-20251001"),
             escalationModel: String(cfg.ai_escalation_model ?? "claude-sonnet-5-5"),

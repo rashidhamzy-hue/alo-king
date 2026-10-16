@@ -13,6 +13,8 @@ export interface RouteProvider {
   readonly name: string;
   /** One origin to many destinations, in order; null where the provider found no route. */
   matrix(origin: LatLon, dests: LatLon[]): Promise<(Route | null)[]>;
+  /** Many origins to one destination in one request, in order (shops → a customer's pin). */
+  matrixFrom?(origins: LatLon[], dest: LatLon): Promise<(Route | null)[]>;
 }
 
 export interface RouteCache {
@@ -66,48 +68,62 @@ export function orsProvider(opts: {
   const baseUrl = opts.baseUrl ?? "https://api.openrouteservice.org";
   const profile = opts.profile ?? "driving-car";
   const timeoutMs = opts.timeoutMs ?? 4000;
+  const cell = (d: number | null | undefined, t: number | null | undefined): Route | null =>
+    typeof d === "number" && typeof t === "number" && d >= 0 && t >= 0
+      ? { distanceM: Math.round(d), durationS: Math.round(t), provider: "ors" }
+      : null;
+  // One /v2/matrix request; ORS takes [longitude, latitude]. Every request counts against the daily quota.
+  const request = async (locations: LatLon[], sources: number[], destinations: number[]) => {
+    const res = await doFetch(`${baseUrl}/v2/matrix/${profile}`, {
+      method: "POST",
+      headers: {
+        authorization: opts.apiKey,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({
+        locations: locations.map((p) => [p.lon, p.lat]),
+        sources,
+        destinations,
+        metrics: ["distance", "duration"],
+        units: "m",
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) {
+      await res.body?.cancel();
+      throw new Error(`ors matrix returned ${res.status}`);
+    }
+    return (await res.json()) as {
+      distances?: (number | null)[][];
+      durations?: (number | null)[][];
+    };
+  };
   return {
     name: "ors",
     async matrix(origin, dests) {
       const out: (Route | null)[] = [];
       for (let i = 0; i < dests.length; i += ORS_MAX_DESTS) {
         const chunk = dests.slice(i, i + ORS_MAX_DESTS);
-        const res = await doFetch(`${baseUrl}/v2/matrix/${profile}`, {
-          method: "POST",
-          headers: {
-            authorization: opts.apiKey,
-            "content-type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify({
-            // ORS takes [longitude, latitude].
-            locations: [origin, ...chunk].map((p) => [p.lon, p.lat]),
-            sources: [0],
-            destinations: chunk.map((_, j) => j + 1),
-            metrics: ["distance", "duration"],
-            units: "m",
-          }),
-          signal: AbortSignal.timeout(timeoutMs),
-        });
-        if (!res.ok) {
-          await res.body?.cancel();
-          throw new Error(`ors matrix returned ${res.status}`);
-        }
-        const body = (await res.json()) as {
-          distances?: (number | null)[][];
-          durations?: (number | null)[][];
-        };
-        const distances = body.distances?.[0] ?? [];
-        const durations = body.durations?.[0] ?? [];
-        chunk.forEach((_, j) => {
-          const d = distances[j];
-          const t = durations[j];
-          out.push(
-            typeof d === "number" && typeof t === "number" && d >= 0 && t >= 0
-              ? { distanceM: Math.round(d), durationS: Math.round(t), provider: "ors" }
-              : null,
-          );
-        });
+        const body = await request(
+          [origin, ...chunk],
+          [0],
+          chunk.map((_, j) => j + 1),
+        );
+        chunk.forEach((_, j) => out.push(cell(body.distances?.[0]?.[j], body.durations?.[0]?.[j])));
+      }
+      return out;
+    },
+    async matrixFrom(origins, dest) {
+      const out: (Route | null)[] = [];
+      for (let i = 0; i < origins.length; i += ORS_MAX_DESTS) {
+        const chunk = origins.slice(i, i + ORS_MAX_DESTS);
+        const body = await request(
+          [...chunk, dest],
+          chunk.map((_, j) => j),
+          [chunk.length],
+        );
+        chunk.forEach((_, j) => out.push(cell(body.distances?.[j]?.[0], body.durations?.[j]?.[0])));
       }
       return out;
     },
@@ -264,6 +280,78 @@ export async function roadRoutes(
   } catch (e) {
     log("routing_cache_store_failed", { error: String(e) });
   }
+  return result;
+}
+
+/**
+ * Road routes from many origins to one destination (the shops a customer browses → the customer's pin), with the same
+ * cache, doorstep and no-guess rules as roadRoutes, but the misses go to the provider in ONE request: the free ORS plan
+ * counts requests (500 matrix requests a day), and a browse screen asking once per shop used the day up in a morning of
+ * tests (session 5e, 16 October). A provider without matrixFrom falls back to one roadRoutes call per origin.
+ */
+export async function roadRoutesFrom(
+  origins: LatLon[],
+  dest: LatLon,
+  deps: { cache: RouteCache; provider?: RouteProvider | null; log?: Log },
+): Promise<(Route | null)[]> {
+  const log = deps.log ?? (() => {});
+  if (origins.length === 0) return [];
+  if (!deps.provider?.matrixFrom)
+    return Promise.all(origins.map(async (o) => (await roadRoutes(o, [dest], deps))[0] ?? null));
+  if (!inLebanon(dest)) {
+    log("routing_dest_outside_lebanon");
+    return origins.map(() => null);
+  }
+  const valid = origins.map(inLebanon);
+  const store = async (o: LatLon, r: Route | null) => {
+    if (!r) return;
+    try {
+      await deps.cache.store(o, [dest], [r]);
+    } catch (e) {
+      log("routing_cache_store_failed", { error: String(e) });
+    }
+  };
+  const result: (Route | null)[] = await Promise.all(
+    origins.map(async (o, i) => {
+      if (!valid[i]) return null;
+      try {
+        return (await deps.cache.lookup(o, [dest]))[0] ?? null;
+      } catch (e) {
+        log("routing_cache_lookup_failed", { error: String(e) });
+        return null;
+      }
+    }),
+  );
+  const door = origins
+    .map((_, i) => i)
+    .filter((i) => valid[i] && result[i] == null && metresBetween(origins[i], dest) <= DOORSTEP_M);
+  for (const i of door)
+    result[i] = {
+      distanceM: Math.round(metresBetween(origins[i], dest)),
+      durationS: 60,
+      provider: "doorstep",
+    };
+  await Promise.all(door.map((i) => store(origins[i], result[i])));
+  const missIdx = origins.map((_, i) => i).filter((i) => valid[i] && result[i] == null);
+  if (missIdx.length === 0) return result;
+  let fresh: (Route | null)[];
+  try {
+    fresh = await deps.provider.matrixFrom(
+      missIdx.map((i) => origins[i]),
+      dest,
+    );
+  } catch (e) {
+    log("routing_unavailable", {
+      reason: "provider_error",
+      error: String(e),
+      misses: missIdx.length,
+    });
+    return result;
+  }
+  missIdx.forEach((i, j) => {
+    result[i] = fresh[j] ?? null;
+  });
+  await Promise.all(missIdx.map((i) => store(origins[i], result[i])));
   return result;
 }
 

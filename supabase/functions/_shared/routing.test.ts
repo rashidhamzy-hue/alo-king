@@ -8,6 +8,7 @@ import {
   restRouteCache,
   roadKm,
   roadRoutes,
+  roadRoutesFrom,
   type LatLon,
   type Route,
   type RouteCache,
@@ -91,6 +92,32 @@ describe("orsProvider", () => {
       JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string).destinations,
     ).toHaveLength(ORS_MAX_DESTS);
     expect(routes).toHaveLength(60);
+  });
+
+  it("matrixFrom: many origins to one destination in one request, reading the destination column", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ distances: [[2104.4], [null]], durations: [[301.2], [null]] }),
+          { status: 200 },
+        ),
+    );
+    const ors = orsProvider({ apiKey: "k", fetch: fetchMock as unknown as typeof fetch });
+    expect(await ors.matrixFrom!([beiteddine, bakaata], baakline)).toEqual([
+      { distanceM: 2104, durationS: 301, provider: "ors" },
+      null,
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+    );
+    expect(body.locations).toEqual([
+      [35.58, 33.695],
+      [35.6175, 33.6738],
+      [35.5861, 33.6821],
+    ]);
+    expect(body.sources).toEqual([0, 1]);
+    expect(body.destinations).toEqual([2]);
   });
 
   it("throws on an HTTP error", async () => {
@@ -203,6 +230,70 @@ describe("roadRoutes", () => {
     expect(await roadRoutes(baakline, [beiteddine], { cache, provider, log })).toHaveLength(1);
     expect(log).toHaveBeenCalledWith("routing_cache_lookup_failed", expect.anything());
     expect(log).toHaveBeenCalledWith("routing_cache_store_failed", expect.anything());
+  });
+});
+
+describe("roadRoutesFrom (shops → one pin)", () => {
+  const near = { lat: 33.68212, lon: 35.58612 }; // a few metres from baakline: the doorstep
+  it("serves cache hits and the doorstep, sends every miss in ONE request, and caches each answer", async () => {
+    const seed = new Map([
+      ["33.6950,35.5800>33.6821,35.5861", { distanceM: 2100, durationS: 300, provider: "ors" }],
+    ]);
+    const cache = memoryCache(seed);
+    const far1 = { lat: 33.6738, lon: 35.6175 };
+    const far2 = { lat: 33.66, lon: 35.6 };
+    const matrixFrom = vi.fn(async (os: LatLon[]) =>
+      os.map((_, i) => (i === 0 ? { distanceM: 4800, durationS: 540, provider: "ors" } : null)),
+    );
+    const provider = { name: "ors", matrix: vi.fn(), matrixFrom };
+    const out = await roadRoutesFrom([beiteddine, near, far1, far2, paris], baakline, {
+      cache,
+      provider,
+    });
+    expect(out[0]).toEqual({ distanceM: 2100, durationS: 300, provider: "ors" });
+    expect(out[1]?.provider).toBe("doorstep");
+    expect(out[2]).toEqual({ distanceM: 4800, durationS: 540, provider: "ors" });
+    expect(out[3]).toBeNull();
+    expect(out[4]).toBeNull();
+    expect(matrixFrom).toHaveBeenCalledTimes(1);
+    expect(matrixFrom).toHaveBeenCalledWith([far1, far2], baakline);
+    expect(provider.matrix).not.toHaveBeenCalled();
+    // The doorstep and the found route are cached; the unroutable one is not.
+    expect(cache.store.mock.calls.map((c) => c[2][0]?.provider).sort()).toEqual([
+      "doorstep",
+      "ors",
+    ]);
+  });
+
+  it("never guesses when the provider fails, and falls back to one request per origin without matrixFrom", async () => {
+    const log = vi.fn();
+    const failing = {
+      name: "ors",
+      matrix: vi.fn(),
+      matrixFrom: vi.fn(async () => Promise.reject(new Error("ors matrix returned 403"))),
+    };
+    expect(
+      await roadRoutesFrom([beiteddine], baakline, {
+        cache: memoryCache(),
+        provider: failing,
+        log,
+      }),
+    ).toEqual([null]);
+    expect(log).toHaveBeenCalledWith(
+      "routing_unavailable",
+      expect.objectContaining({ reason: "provider_error" }),
+    );
+    const old = {
+      name: "ors",
+      matrix: vi.fn(async () => [{ distanceM: 1, durationS: 1, provider: "ors" }]),
+    };
+    expect(
+      await roadRoutesFrom([beiteddine, bakaata], baakline, {
+        cache: memoryCache(),
+        provider: old,
+      }),
+    ).toHaveLength(2);
+    expect(old.matrix).toHaveBeenCalledTimes(2);
   });
 });
 
