@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  DOORSTEP_M,
   inLebanon,
+  metresBetween,
   ORS_MAX_DESTS,
   orsProvider,
   restRouteCache,
@@ -145,6 +147,32 @@ describe("roadRoutes", () => {
     expect(
       await roadRoutes(baakline, [beiteddine], { cache: memoryCache(), provider: failing, log }),
     ).toEqual([null]);
+  });
+
+  it("answers a pin at the origin's door itself (ORS gives no route between the same spot) and caches it", async () => {
+    const origin = { lat: 33.6840346, lon: 35.5752423 };
+    const near = { lat: 33.6841, lon: 35.5753 }; // about 9 m away
+    const far = { lat: 33.69, lon: 35.58 };
+    const stored: any[] = [];
+    const matrix = vi.fn(async (_o: any, ds: any[]) =>
+      ds.map(() => ({ distanceM: 1500, durationS: 240, provider: "ors" })),
+    );
+    const out = await roadRoutes(origin, [origin, near, far], {
+      cache: {
+        lookup: async (_o, ds) => ds.map(() => null),
+        store: async (_o, ds, rs) => void stored.push([ds, rs]),
+      },
+      provider: { name: "ors", matrix },
+    });
+    expect(out[0]).toEqual({ distanceM: 0, durationS: 60, provider: "doorstep" });
+    expect(out[1]?.provider).toBe("doorstep");
+    expect(out[1]!.distanceM).toBeLessThanOrEqual(DOORSTEP_M);
+    expect(out[2]?.provider).toBe("ors");
+    // Only the far pin goes to the provider.
+    expect(matrix).toHaveBeenCalledTimes(1);
+    expect(matrix.mock.calls[0][1]).toEqual([far]);
+    expect(stored[0][1].map((r: any) => r.provider)).toEqual(["doorstep", "doorstep"]);
+    expect(metresBetween(origin, { lat: 33.6849346, lon: 35.5752423 })).toBeCloseTo(100, -1);
   });
 
   it("refuses points outside Lebanon without calling anyone", async () => {

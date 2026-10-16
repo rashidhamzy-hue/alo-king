@@ -2,7 +2,9 @@
 // cached in Postgres for 1-24 h (route_cache_lookup / route_cache_store). Fee bands and the delivery
 // limit use these road kilometres through the delivery_quote RPC; there is never a straight-line
 // fallback. A destination with no route (provider down, no key, unroutable) comes back as null, and the
-// caller treats it as "cannot quote".
+// caller treats it as "cannot quote". The one exception is the doorstep: a pin within DOORSTEP_M of the
+// origin (a customer at the shop's own door) is that short distance, because OpenRouteService gives no
+// route between two points that snap to the same spot.
 
 export type LatLon = { lat: number; lon: number };
 export type Route = { distanceM: number; durationS: number; provider: string };
@@ -33,6 +35,21 @@ export function inLebanon(p: LatLon): boolean {
     p.lon >= BOUNDS.minLon &&
     p.lon <= BOUNDS.maxLon
   );
+}
+
+// A pin this close to the origin is at its door: no road trip to ask anyone about.
+export const DOORSTEP_M = 50;
+
+/** Metres between two points on the sphere (haversine). */
+export function metresBetween(a: LatLon, b: LatLon): number {
+  const r = 6_371_000;
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLon = (b.lon - a.lon) * rad;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * r * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
 // ORS matrix: at most 50 locations per request on the standard plan, so 49 destinations per call.
@@ -190,8 +207,29 @@ export async function roadRoutes(
     log("routing_cache_lookup_failed", { error: String(e) });
   }
 
-  const missIdx = dests.map((_, i) => i).filter((i) => valid[i] && cached[i] == null);
   const result = dests.map((_, i) => (valid[i] ? cached[i] : null));
+  // Doorstep pins are answered here and cached like any route.
+  const door = dests
+    .map((_, i) => i)
+    .filter((i) => valid[i] && result[i] == null && metresBetween(origin, dests[i]) <= DOORSTEP_M);
+  if (door.length) {
+    for (const i of door)
+      result[i] = {
+        distanceM: Math.round(metresBetween(origin, dests[i])),
+        durationS: 60,
+        provider: "doorstep",
+      };
+    try {
+      await deps.cache.store(
+        origin,
+        door.map((i) => dests[i]),
+        door.map((i) => result[i]),
+      );
+    } catch (e) {
+      log("routing_cache_store_failed", { error: String(e) });
+    }
+  }
+  const missIdx = dests.map((_, i) => i).filter((i) => valid[i] && result[i] == null);
   if (missIdx.length === 0) return result;
 
   if (!deps.provider) {
