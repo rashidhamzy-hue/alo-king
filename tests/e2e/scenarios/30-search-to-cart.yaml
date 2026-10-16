@@ -19,15 +19,20 @@ steps:
   - pin: { as: cust, lat: "{{vars.lat}}", lon: "{{vars.lon}}" }
     expect:
       - { to: cust, kind: list }
-  - note: typed text is searched without a model; the results are one catalogue message, a section per shop
+  - note: typed text is searched without a model; the results are one catalogue message, a section per shop; the cart takes the first plain result (no options, priced each, from a delivery-only shop)
     say: { as: cust, text: "burger" }
     expect:
       - { to: cust, kind: products, text_any: ["burger", "برغر"] }
     db:
       - sql: >
-          select (r -> 'items' -> 0 ->> 'item_id') as item, (r -> 'items' -> 0 ->> 'price_usd') as price,
-                 (r -> 'items' -> 0 ->> 'vendor_id') as shop
-          from public.customers c, public.catalog_search(c.id, 'burger', 10) r where c.phone_e164 = '{{cust.phone}}'
+          select x ->> 'item_id' as item, x ->> 'price_usd' as price, x ->> 'vendor_id' as shop
+          from public.customers c, public.catalog_search(c.id, 'burger', 10) r,
+               jsonb_array_elements(r -> 'items') with ordinality t(x, n)
+          join public.menu_items i on i.id = (x ->> 'item_id')::uuid
+          join public.vendors v on v.id = i.vendor_id
+          where c.phone_e164 = '{{cust.phone}}' and i.pricing_unit = 'each' and not v.pickup_enabled
+            and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
+          order by n limit 1
         row: { item: "~^[0-9a-f-]{36}$" }
         save: { item: item, price: price, shop: shop }
   - cart: { as: cust, items: [{ id: "{{vars.item}}", qty: 1, price: "{{vars.price}}" }] }

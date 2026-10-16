@@ -2104,6 +2104,12 @@ const S5E: Record<string, Record<CLang, string>> = {
     arabizi: "🛵 El ma7allet li bwasslo 3a {place}, el a2rab awwal:",
   },
   shopsButton: { ar: "المحلات", en: "Shops", fr: "Commerces", arabizi: "El ma7allet" },
+  nearest10: {
+    ar: "الأقرب 10 من {n}. اكتب اسم محل لتلاقي غيرو.",
+    en: "The nearest 10 of {n}. Type a shop's name to find another.",
+    fr: "Les 10 plus proches sur {n}. Écrivez le nom d'un commerce pour en trouver un autre.",
+    arabizi: "El a2rab 10 men {n}. Ktob esm ma7al la tla2i ghayro.",
+  },
   yourPlace: { ar: "عندك", en: "you", fr: "chez vous", arabizi: "3endak" },
   closedShort: { ar: "مسكّر", en: "closed", fr: "fermé", arabizi: "msakkar" },
   browseFee: {
@@ -2114,6 +2120,18 @@ const S5E: Record<string, Record<CLang, string>> = {
   },
   openToday: { ar: "اليوم {h}", en: "today {h}", fr: "aujourd'hui {h}", arabizi: "lyom {h}" },
   openNow: { ar: "فاتح", en: "open now", fr: "ouvert", arabizi: "fete7" },
+  open24: {
+    ar: "فاتح 24 ساعة",
+    en: "open 24 hours",
+    fr: "ouvert 24 h/24",
+    arabizi: "fete7 24 se3a",
+  },
+  closedToday: {
+    ar: "مسكّر اليوم",
+    en: "closed today",
+    fr: "fermé aujourd'hui",
+    arabizi: "msakkar lyom",
+  },
   closedNow: { ar: "مسكّر هلق", en: "closed now", fr: "fermé", arabizi: "msakkar hala2" },
   moreSections: {
     ar: "باقي منيو {shop}: اختار قسم.",
@@ -2242,12 +2260,17 @@ export function shopLine(lang: CLang, c: ShopCard, feeUsd: number | null): strin
       : lang === "ar"
         ? (c.cuisine_ar ?? c.cuisine_en)
         : c.cuisine_en;
-  const hours =
-    c.open_now === false
+  // The seed listing writes "Closed" and "Open 24 hours" in English; every other value is a time range.
+  const today = (c.hours_today ?? "").trim();
+  const hours = /^closed$/i.test(today)
+    ? tr(lang, "closedToday")
+    : c.open_now === false
       ? tr(lang, "closedNow")
-      : c.hours_today
-        ? tr(lang, "openToday", { h: c.hours_today })
-        : null;
+      : /^open 24 hours$/i.test(today)
+        ? tr(lang, "open24")
+        : today
+          ? tr(lang, "openToday", { h: today })
+          : null;
   return [
     cuisine,
     name(lang, c.village_ar, c.village_en),

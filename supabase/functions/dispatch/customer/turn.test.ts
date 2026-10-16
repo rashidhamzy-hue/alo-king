@@ -9,6 +9,7 @@ import {
   type CustomerInbound,
   type ModelResponse,
 } from "./turn";
+import { shopLine } from "./render";
 import { TOOLS, TOOL_CONTRACT, SYSTEM_PROMPT } from "./tools";
 
 const CUST = "10000000-0000-0000-0000-000000000001";
@@ -1499,8 +1500,13 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
           cuisine_en: "Burgers",
           village_en: "Baakline",
           open_now: true,
-          hours_today: "12 PM to 12 AM",
-          cover: { path: `cover/${VENDOR}.jpg` },
+          hours_today: "9:30 AM to 11:30 PM",
+          cover: {
+            path: `cover/${VENDOR}.jpg`,
+            source: "illustrative",
+            credit: "Jane Doe via Openverse",
+            license: "CC BY 2.0",
+          },
         }),
         customer_delivery_check: () => ({
           status: "ok",
@@ -1517,7 +1523,7 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     ]);
     expect(f.sent[0].image.link).toContain(`cover/${VENDOR}.jpg`);
     expect(f.sent[0].image.caption).toBe(
-      "*Big Market*\nBurgers · Baakline · 🛵 $2.00 delivery · 🕒 today 12 PM to 12 AM",
+      "*Big Market*\nBurgers · Baakline · 🛵 $2.00 delivery · 🕒 today 9:30 AM to 11:30 PM\n📷 Jane Doe via Openverse · CC BY 2.0",
     );
     const pl = f.sent[1].interactive.action.sections;
     expect(pl).toHaveLength(5);
@@ -1529,6 +1535,49 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(rows[0].title).toBe("Section 1");
     expect(rows[9].id).toBe("sp:9");
     for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+  });
+
+  it("the shop line reads the seed listing's Closed and Open 24 hours, and a closed shop says so", () => {
+    const card = { cuisine_en: "Grill", village_en: "Baakline", open_now: true };
+    expect(shopLine("en", { ...card, hours_today: "Closed" }, null)).toBe(
+      "Grill · Baakline · 🕒 closed today",
+    );
+    expect(shopLine("ar", { ...card, hours_today: "Open 24 hours" }, null)).toContain(
+      "فاتح 24 ساعة",
+    );
+    expect(shopLine("en", { ...card, open_now: false, hours_today: "9 AM to 5 PM" }, 1.5)).toBe(
+      "Grill · Baakline · 🛵 $1.50 delivery · 🕒 closed now",
+    );
+  });
+
+  it("a big shop whose product message Meta refuses: no stale section list stands in, the rest still opens", async () => {
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => {
+          const m = menu(12, 8);
+          // Items with no section never become a row with an empty id.
+          m.sections.push({ ...m.sections[0], section_id: null as any, name_en: "Menu" });
+          return m;
+        },
+      },
+    });
+    const tried: string[] = [];
+    let last: any = null;
+    f.deps.send = async (p: any) => {
+      tried.push(p.interactive?.type);
+      last = p;
+      return p.interactive?.type === "product_list"
+        ? { ok: false, retry: false, error: "kapso 400 product not found" }
+        : { ok: true, id: "w" };
+    };
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(tried).toEqual(["product_list", "list"]);
+    const rows = last.interactive.action.sections[0].rows;
+    expect(rows.every((r: any) => /^(ps:s\d+|sp:\d+)$/.test(r.id))).toBe(true);
+    expect(rows.map((r: any) => r.title)).not.toContain("Menu");
   });
 
   it("without a catalogue, or when a shop is not fully synced, the list menu runs as before", async () => {
@@ -1594,6 +1643,41 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(m.interactive.action).toEqual({ catalog_id: "1234567890", product_retailer_id: ITEM });
     expect(checkInteractive(m)).toEqual([]);
     expect(f.of("catalog_for_number")[0].args.p_to).toBe("+96176000001");
+  });
+
+  it("a search whose results are not all in the catalogue answers with the list of them all", async () => {
+    const ITEM2 = "51000000-0000-0000-0000-000000000002";
+    const f = fake({
+      model: null,
+      rpcs: {
+        catalog_search: () => ({
+          status: "ok",
+          items: [
+            {
+              item_id: ITEM,
+              vendor_id: VENDOR,
+              name_en: "Shawarma",
+              price_usd: 5,
+              vendor_en: "Vendor A",
+            },
+            {
+              item_id: ITEM2,
+              vendor_id: VENDOR,
+              name_en: "Shawarma plate",
+              price_usd: 9,
+              vendor_en: "Vendor A",
+            },
+          ],
+        }),
+        catalog_for_number: () => "1234567890",
+        catalog_products_for: () => [
+          { retailer_id: ITEM, vendor_id: VENDOR, section: "مطعم أ", section_en: "Vendor A" },
+        ],
+      },
+    });
+    f.deps.config.freeText = false;
+    await handleCustomerTurn(f.deps, msg({ text: "shawarma" }));
+    expect(f.sent[0].interactive.type).toBe("list");
   });
 
   it("a search across shops answers with one multi-product message grouped by shop", async () => {

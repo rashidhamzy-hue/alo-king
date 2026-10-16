@@ -593,7 +593,8 @@ async function catalogText(c: Ctx, raw: string, qtyArg: number | null) {
         .rpc("catalog_products_for", { p_item_ids: ids, p_catalog_id: c.catalog })
         .catch(() => null);
       const products: (CatalogProduct & { vendor_id?: string })[] = Array.isArray(got) ? got : [];
-      if (products.length) {
+      // Only when every result is in the catalogue (items without a photo are not, §39.13); else the list shows them all.
+      if (products.length && products.length === ids.length) {
         c.tools.push("catalog:search");
         const oneShop = new Set(products.map((x) => x.vendor_id)).size === 1;
         const body = tr(
@@ -1538,9 +1539,11 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   if (query) return;
   const list = c.out.splice(before);
   const shop = shopName(v.label);
+  // The cover goes first only when it pushes nothing else out of this turn's messages (MAX_MESSAGES).
+  const room = (n: number) => c.out.length + 1 + n <= MAX_MESSAGES;
   const cover = await shopCover(c, v.id, shop);
   if (!(await catalogFor(c))) {
-    if (cover) push(c, cover);
+    if (cover && room(list.length)) push(c, cover);
     push(c, ...list);
     return;
   }
@@ -1549,14 +1552,15 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
     .catch(() => null);
   const sections: ShopMenuSection[] = Array.isArray(menu?.sections) ? menu.sections : [];
   if (!sections.length) {
-    if (cover) push(c, cover);
+    if (cover && room(list.length)) push(c, cover);
     push(c, ...list);
     return;
   }
-  const { products, rest } = packShopMenu(sections, {
-    perSection: c.deps.config.firstSectionItems ?? 6,
-  });
-  if (cover) push(c, cover);
+  const { products, rest } = packShopMenu(
+    sections.filter((x) => x.section_id),
+    { perSection: c.deps.config.firstSectionItems ?? 6 },
+  );
+  if (cover && room(rest.length ? 2 : 1)) push(c, cover);
   c.tools.push("catalog:menu");
   c.summary.push(
     `[showed ${products.length} items of ${vendorRef} as a catalogue message, ${rest.length} more sections as a list]`,
@@ -1567,7 +1571,8 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
       lang: c.s.lang,
       footer: tr(c.s.lang, "catalogFooter"),
     }),
-    list[0] ?? null,
+    // The section list's refs are reused by "More sections" below, so it stands in only when there is no such list.
+    rest.length ? null : (list[0] ?? null),
   );
   if (rest.length) pushSectionsPage(c, shop, rest, 0);
 }
@@ -1575,9 +1580,16 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
 /** A shop's cover with its one line (session 5e); null when the shop has no cover or no link can be made. */
 async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | null> {
   if (!c.deps.photoUrl) return null;
-  const card: (ShopCard & { cover?: { path?: string } | null }) | null = await c.deps
-    .rpc("shop_card", { p_vendor_id: vendorId })
-    .catch(() => null);
+  const card:
+    | (ShopCard & {
+        cover?: {
+          path?: string;
+          source?: string;
+          credit?: string | null;
+          license?: string | null;
+        } | null;
+      })
+    | null = await c.deps.rpc("shop_card", { p_vendor_id: vendorId }).catch(() => null);
   const path = card?.cover?.path;
   if (!card || !path) return null;
   const link = await c.deps.photoUrl(path).catch(() => null);
@@ -1587,7 +1599,13 @@ async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | 
     .catch(() => null);
   const q = (chk?.vendors ?? []).find((x: any) => x.vendor_id === vendorId);
   const fee = q?.status === "ok" && q.fee_usd != null ? Number(q.fee_usd) : null;
-  return image(c.m.from, link, `*${shop}*\n${shopLine(c.s.lang, card, fee)}`);
+  // An illustrative photo under CC BY or CC BY-SA carries its credit (§39.13); CC0 and public domain need none.
+  const cv = card.cover!;
+  const credit =
+    cv.source === "illustrative" && cv.credit && !/^(cc0|pdm|public domain)/i.test(cv.license ?? "")
+      ? `\n📷 ${[cv.credit, cv.license].filter(Boolean).join(" · ")}`
+      : "";
+  return image(c.m.from, link, `*${shop}*\n${shopLine(c.s.lang, card, fee)}${credit}`);
 }
 
 /** The rest of a shop's sections as a list, 9 at a time ("More sections" pages through them). */
@@ -1611,7 +1629,10 @@ async function showSectionsPage(c: Ctx, offset: number) {
     .rpc("catalog_shop_menu", { p_vendor_id: vendorId, p_catalog_id: c.catalog })
     .catch(() => null);
   const sections: ShopMenuSection[] = Array.isArray(menu?.sections) ? menu.sections : [];
-  const { rest } = packShopMenu(sections, { perSection: c.deps.config.firstSectionItems ?? 6 });
+  const { rest } = packShopMenu(
+    sections.filter((x) => x.section_id),
+    { perSection: c.deps.config.firstSectionItems ?? 6 },
+  );
   const vref = Object.entries(c.s.refs).find(
     ([k, v]) => k.startsWith("v") && v.id === vendorId,
   )?.[0];
@@ -1678,7 +1699,7 @@ async function showSection(c: Ctx, sectionRef: string, offset: number) {
     const page = s ? s.products.slice(offset, offset + 30) : [];
     if (s && page.length) {
       const before = c.out.length;
-      await showSectionList(c, sectionRef, 0);
+      await showSectionList(c, sectionRef, offset);
       const list = c.out.splice(before);
       c.tools.push("catalog:section");
       c.summary.push(
@@ -2015,7 +2036,8 @@ function listShops(c: Ctx, shops: DeliveringShop[], body: string) {
     ref: refFor(c, "v", x.vendor_id, `${x.name_en ?? x.name_ar}${x.is_open ? "" : " (closed)"}`),
   }));
   if (rows.length === 1 && rows[0].is_open) return showMenu(c, rows[0].ref, null);
-  push(c, shopList(c.m.from, c.s.lang, body, rows));
+  const more = shops.length > 10 ? `\n${tr(c.s.lang, "nearest10", { n: shops.length })}` : "";
+  push(c, shopList(c.m.from, c.s.lang, `${body}${more}`, rows));
 }
 
 /** A category: the shops that serve it and deliver here, nearest first, with fee and distance. */

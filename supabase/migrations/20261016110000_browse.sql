@@ -39,14 +39,14 @@ insert into public.browse_categories (key, emoji, name_ar, name_en, name_fr, ite
   ('pizza', '🍕', 'بيتزا', 'Pizza', 'Pizza', 'pizza|بيتزا|margh?erita|pep+eroni', 2, '{pizza,italian}', '{}', 30),
   ('manakish', '🫓', 'مناقيش', 'Manakish', 'Manakich', 'zaatar|za''atar|manoush|manakish|kish[e]?k|kechek|lahm b|akkawi|kashkawan|fatayer|زعتر|منقوش|مناقيش|كشك|فطاير|لحم بعجين', 2, '{manakish,saj}', '{bakery_manakish}', 40),
   ('grills', '🍢', 'مشاوي', 'Grills', 'Grillades', 'grill|kafta|kofta|kebab|kabab|taouk|tawo+k|tawouk|shish|mashawi|chops|مشاوي|كفتة|كباب|طاووق|ريش', 2, '{grills_mashawi}', '{butcher}', 50),
-  ('sandwiches', '🥪', 'سندويشات', 'Sandwiches', 'Sandwichs', 'sandwich|\msubs?\M|wrap|panini|baguette|سندويش|ساندويش|راب', 3, '{sandwiches}', '{}', 60),
+  ('sandwiches', '🥪', 'سندويشات', 'Sandwiches', 'Sandwichs', 'sandwich|\msubs?\M|wrap|panini|baguette|سندويش|ساندويش|(^|\s)راب(\s|$)', 3, '{sandwiches}', '{}', 60),
   ('chicken', '🍗', 'دجاج مقلي', 'Fried chicken', 'Poulet frit', 'broast|crisp|wings|nugget|tender|strips|زنجر|بروستد|كريسبي|ناجتس|جوانح', 2, '{broasted_chicken}', '{poultry}', 70),
   ('sushi', '🍣', 'سوشي', 'Sushi', 'Sushi', 'sushi|maki|sashimi|nigiri|سوشي', 2, '{sushi_japanese}', '{}', 80),
   ('mezze', '🥙', 'مازة لبنانية', 'Lebanese mezze', 'Mezzés libanais', 'hom+[ou]s|hum+[ou]s|tab+ou?leh|fat+oush|m[ou]?t[a]?b+al|labn[e]?h|keb+[e]?h|kib+[e]?h|vine|حمص|تبولة|فتوش|متبل|لبنة|كبة', 3, '{mezze}', '{}', 90),
-  ('desserts', '🍰', 'حلويات', 'Desserts', 'Desserts', 'cake|cookie|brownie|crep|waffle|dessert|muffin|ice ?cream|gelato|كيك|بوظة|كريب|وافل|حلو', 2, '{lebanese_sweets,booza_ice_cream,cakes,crepes_waffles}', '{sweets_pastry,ice_cream}', 100),
+  ('desserts', '🍰', 'حلويات', 'Desserts', 'Desserts', 'cake|cookie|brownie|crep|waffle|dessert|muffin|ice ?cream|gelato|كيك|بوظة|كريب|وافل|حلويات', 2, '{lebanese_sweets,booza_ice_cream,cakes,crepes_waffles}', '{sweets_pastry,ice_cream}', 100),
   ('coffee', '☕', 'قهوة', 'Coffee', 'Café', 'coffee|espresso|cappuccino|\mlatte\M|americano|mocha|frapp|قهوة|نسكافيه', 2, '{specialty_coffee}', '{cafe}', 110),
   ('juices', '🥤', 'عصير وشيك', 'Juices & shakes', 'Jus et milkshakes', 'juice|shake|smoothie|cocktail|frisco|عصير|كوكتيل', 3, '{fresh_juices}', '{}', 120),
-  ('bakery', '🥐', 'مخبوزات', 'Bakery', 'Boulangerie', 'croissant|baguette|bread|ciabat|خبز|كرواسان', 2, '{}', '{}', 130),
+  ('bakery', '🥐', 'مخبوزات', 'Bakery', 'Boulangerie', 'croissant|baguette|\mbread\M|ciabat|خبز|كرواسان', 2, '{}', '{}', 130),
   ('grocery', '🛒', 'سمانة', 'Grocery', 'Épicerie', null, 1, '{}', '{grocery_supermarket,minimarket,home_essentials}', 140);
 
 -- Which categories each shop serves, with how many of its items match (refreshed on every menu change).
@@ -75,7 +75,7 @@ begin
     where c.item_pattern is not null and i.vendor_id = v.id and i.available
       and (coalesce(i.name_en, '') || ' ' || coalesce(i.name_ar, '')) ~* c.item_pattern
   ) m on true
-  where v.id = p_vendor_id and c.active
+  where v.id = p_vendor_id and c.active and (v.claim_status = 'claimed' or v.orderable)
     and (v.business_type::text = any (c.business_types) or v.cuisine_tags && c.cuisine_tags or coalesce(m.n, 0) >= c.min_items);
   get diagnostics n = row_count;
   return n;
@@ -83,16 +83,24 @@ end;
 $$;
 revoke all on function app_private.vendor_browse_refresh(uuid) from public;
 
+-- Deferred to the end of the transaction and run once per shop in it: a menu import bumps menu_version once per item row,
+-- and the refresh reads the whole menu. Shops that are neither claimed nor orderable are only cleared (they are never listed).
 create function app_private.vendors_browse_refresh() returns trigger
 language plpgsql security definer set search_path = ''
 as $$
+declare
+  k text := 'alo.browse_' || replace(new.id::text, '-', '');
 begin
-  perform app_private.vendor_browse_refresh(new.id);
-  return new;
+  if current_setting(k, true) is distinct from txid_current()::text then
+    perform set_config(k, txid_current()::text, true);
+    perform app_private.vendor_browse_refresh(new.id);
+  end if;
+  return null;
 end;
 $$;
-create trigger vendors_browse_refresh after insert or update of menu_version, cuisine_tags, business_type on public.vendors
-  for each row execute function app_private.vendors_browse_refresh();
+create constraint trigger vendors_browse_refresh
+  after insert or update of menu_version, cuisine_tags, business_type, claim_status, orderable on public.vendors
+  deferrable initially deferred for each row execute function app_private.vendors_browse_refresh();
 
 do $$
 declare
@@ -191,7 +199,7 @@ as $$
     'hours_today', coalesce(
       (select to_char(h.opens, 'HH24:MI') || '–' || to_char(h.closes, 'HH24:MI') from public.vendor_hours h, t
        where h.vendor_id = v.id and h.weekday = extract(dow from t.l)),
-      (select nullif(trim(split_part(d, ':', 2) || coalesce(':' || nullif(split_part(d, ':', 3), ''), '')), '')
+      (select nullif(trim(substr(d, strpos(d, ':') + 1)), '')
        from t, unnest(string_to_array(vp.import_labels ->> 'hours_seed', ' | ')) d
        where d ilike trim(to_char(t.l, 'Day')) || ':%' limit 1)),
     'cover', (select jsonb_build_object('path', c.storage_path, 'source', c.source, 'credit', c.credit, 'license', c.license)
@@ -235,7 +243,7 @@ as $$
     select s.id, coalesce(s.name_ar, s.name_en, 'المنيو') as name_ar, coalesce(s.name_en, s.name_ar, 'Menu') as name_en,
       coalesce(s.sort_order, 1000) as sort_order,
       case
-        when coalesce(s.name_en, '') || ' ' || coalesce(s.name_ar, '') ~* '(drink|beverage|soft|water|juice|dip|sauce|add.?on|extra|side cup|combo|make it|مشروب|صلص)' then 3
+        when coalesce(s.name_en, '') || ' ' || coalesce(s.name_ar, '') ~* '(drink|beverage|soft|water|juice|dip|sauce|add.?on|extra|side cup|make it|مشروب|صلص)' then 3
         when coalesce(s.name_en, '') || ' ' || coalesce(s.name_ar, '') ~* '(dessert|sweet|side|appeti|starter|salad|kids|shake|ice cream|حلو|مقبلات|سلط)' then 2
         else 1 end as tier
     from public.menu_sections s where s.vendor_id = p_vendor_id

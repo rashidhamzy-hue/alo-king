@@ -11,7 +11,7 @@ values ('5e000000-0000-0000-0000-0000000000b1', 'browse-burger', 'Browse Burger'
         'merchant', 'gp5eB2', 'SRID=4326;POINT(35.90 33.90)', 3, null);
 insert into public.vendor_private (vendor_id, import_labels) values
   ('5e000000-0000-0000-0000-0000000000b1', jsonb_build_object('hours_seed',
-    'Monday: 12 PM to 12 AM | Tuesday: 12 PM to 12 AM | Wednesday: 12 PM to 12 AM | Thursday: 12 PM to 12 AM | Friday: 12 PM to 12 AM | Saturday: 12 PM to 12 AM | Sunday: 12 PM to 12 AM'))
+    'Monday: 9:30 AM to 11:30 PM | Tuesday: 9:30 AM to 11:30 PM | Wednesday: 9:30 AM to 11:30 PM | Thursday: 9:30 AM to 11:30 PM | Friday: 9:30 AM to 11:30 PM | Saturday: 9:30 AM to 11:30 PM | Sunday: 9:30 AM to 11:30 PM'))
   on conflict (vendor_id) do update set import_labels = excluded.import_labels;
 insert into public.menu_sections (id, vendor_id, name_en, sort_order) values
   ('5e000000-0000-0000-0000-0000000000c1', '5e000000-0000-0000-0000-0000000000b1', 'Drinks', 1),
@@ -23,7 +23,8 @@ insert into public.menu_items (id, vendor_id, section_id, name_en, price_usd, so
   ('5e000000-0000-0000-0000-0000000000d3', '5e000000-0000-0000-0000-0000000000b1', '5e000000-0000-0000-0000-0000000000c2', 'Cheese Burger', 9, 2),
   ('5e000000-0000-0000-0000-0000000000d4', '5e000000-0000-0000-0000-0000000000b1', '5e000000-0000-0000-0000-0000000000c3', 'Fries', 3, 1);
 
--- Categories follow the menu (the menu_version bump refreshes them).
+-- Categories follow the menu (the menu_version bump refreshes them once, when the transaction ends).
+set constraints all immediate;
 select tests.ok(exists (select 1 from app_private.vendor_browse_categories
   where vendor_id = '5e000000-0000-0000-0000-0000000000b1' and category = 'burgers' and items = 2),
   'two burgers on the menu put the shop under Burgers');
@@ -32,6 +33,19 @@ select tests.ok(exists (select 1 from app_private.vendor_browse_categories
   'a cuisine tag puts a shop under its category without a menu');
 select tests.ok(not exists (select 1 from app_private.vendor_browse_categories
   where vendor_id = '5e000000-0000-0000-0000-0000000000b1' and category = 'pizza'), 'no pizza, no Pizza');
+select tests.ok(not exists (select 1 from public.browse_categories where 'منقوشة حلوم' ~* item_pattern and key = 'desserts')
+  and 'Crispy breaded fish' !~* (select item_pattern from public.browse_categories where key = 'bakery')
+  and 'شراب التوت' !~* (select item_pattern from public.browse_categories where key = 'sandwiches')
+  and 'راب دجاج' ~* (select item_pattern from public.browse_categories where key = 'sandwiches'),
+  'halloumi is no dessert, breaded is no bread, a syrup is no wrap, a chicken wrap is');
+
+-- An unclaimed shop that cannot take orders is never listed, so it gets no categories.
+insert into public.vendors (id, slug, name_en, business_type, cuisine_tags, claim_status, public_page, orderable, source, place_id)
+values ('5e000000-0000-0000-0000-0000000000b3', 'browse-seed', 'Browse Seed', 'restaurant', '{sushi_japanese}', 'unclaimed', false,
+        false, 'seed_2026_10', 'gp5eB3');
+set constraints all immediate;
+select tests.ok(not exists (select 1 from app_private.vendor_browse_categories
+  where vendor_id = '5e000000-0000-0000-0000-0000000000b3'), 'an unclaimed shop that takes no orders gets no categories');
 
 -- Shops that may deliver to a pin next to the burger shop: the far shop is beyond its 3 km.
 select tests.ok((select exists (select 1 from jsonb_array_elements(r -> 'shops') x
@@ -42,8 +56,8 @@ select tests.ok((select exists (select 1 from jsonb_array_elements(r -> 'shops')
   from public.browse_shops(null, 33.681, 35.581, 40) r),
   'browse_shops: the shop in reach with its categories and cuisine, never the one beyond its radius, and the category names');
 
--- The card: today's hours from the seed listing when the shop set none.
-select tests.ok((public.shop_card('5e000000-0000-0000-0000-0000000000b1') ->> 'hours_today') = '12 PM to 12 AM',
+-- The card: today's hours from the seed listing when the shop set none, minutes included.
+select tests.ok((public.shop_card('5e000000-0000-0000-0000-0000000000b1') ->> 'hours_today') = '9:30 AM to 11:30 PM',
   'shop_card reads today''s hours from the seed listing');
 select tests.ok(public.shop_card('5e000000-0000-0000-0000-0000000000b1') -> 'cover' = 'null'::jsonb,
   'no cover yet');
@@ -64,6 +78,8 @@ select tests.ok((select (r -> 0 ->> 'section_en') = 'Browse Burger' and jsonb_ar
 set local role anon;
 select tests.ok(not has_function_privilege('anon', 'public.browse_shops(uuid, double precision, double precision, integer)', 'execute')
   and not has_function_privilege('anon', 'public.catalog_shop_menu(uuid, text)', 'execute')
+  and not has_function_privilege('anon', 'public.shop_card(uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.catalog_products_for(uuid[], text)', 'execute')
   and not has_table_privilege('anon', 'public.vendor_covers', 'select'), 'anonymous callers cannot browse through these');
 reset role;
 
