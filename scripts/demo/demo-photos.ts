@@ -208,6 +208,47 @@ export function signatureDish(dishes: string[]): string | null {
   return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
 }
 
+export type CoverCandidate = {
+  source: "merchant_site" | "illustrative";
+  url: string;
+  license: string;
+  credit: string;
+  source_url: string | null;
+};
+
+/**
+ * A shop's cover candidates, best first: its own photos (the one of its signature dish first), then the picked photos of
+ * its main dishes from the most common down. The run takes the first that downloads at 500 px or more.
+ */
+export function coverCandidates(
+  shop: {
+    vendor: string;
+    dishes: string[];
+    own: { url: string; original: string; dish: string }[];
+  },
+  picks: Picks,
+): CoverCandidate[] {
+  const sig = signatureDish(shop.dishes);
+  const own = [...shop.own].sort((a, b) => Number(b.dish === sig) - Number(a.dish === sig));
+  const out: CoverCandidate[] = own.map((o) => ({
+    source: "merchant_site",
+    url: o.url,
+    license: "the shop's own",
+    credit: shop.vendor || "the shop",
+    source_url: o.original,
+  }));
+  const n = new Map<string, number>();
+  for (const d of shop.dishes) if (!NOT_COVER.test(d)) n.set(d, (n.get(d) ?? 0) + 1);
+  const seen = new Set(out.map((c) => c.url));
+  for (const [d] of [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) {
+    const key = photoChain(d).find((k) => pickOk("illustrative", picks.dishes[k]));
+    if (!key || seen.has(picks.dishes[key].url)) continue;
+    seen.add(picks.dishes[key].url);
+    out.push({ source: "illustrative", ...picks.dishes[key] });
+  }
+  return out;
+}
+
 async function pool<T>(items: T[], n: number, fn: (x: T) => Promise<void>) {
   let i = 0;
   await Promise.all(
@@ -371,31 +412,16 @@ async function main() {
       }
     });
 
-    // Covers: the shop's own photo of a main dish, else the photo of its signature dish.
+    // Covers: the first candidate that makes a cover (its own photo of a main dish, else a picked photo of its dishes).
     for (const [vendorId, shop] of byShop) {
-      const sig = signatureDish(shop.dishes);
-      const own = shop.own.find((o) => o.dish === sig) ?? shop.own[0];
-      const dishKey = sig
-        ? photoChain(sig).find((k) => pickOk("illustrative", picks.dishes[k]))
-        : null;
-      const chosen = own
-        ? {
-            source: "merchant_site",
-            url: own.url,
-            license: "the shop's own",
-            credit: shop.vendor || "the shop",
-            source_url: own.original,
-          }
-        : dishKey
-          ? { source: "illustrative", ...picks.dishes[dishKey] }
-          : null;
+      const candidates = coverCandidates(shop, picks);
       const cur = (
         await db.query(
           "select origin_hash, source from public.vendor_covers where vendor_id = $1",
           [vendorId],
         )
       ).rows[0];
-      if (!chosen) {
+      if (!candidates.length) {
         // No cover any more (its pick is gone): the old one goes; its object is deleted below.
         if (cur && cur.source !== "merchant")
           await db.query("select public.vendor_cover_set($1, null, null, null, null, null, null)", [
@@ -403,28 +429,36 @@ async function main() {
           ]);
         continue;
       }
-      const hash = sha256(JSON.stringify([PROCESS_VERSION, "cover", chosen.url]));
-      if (cur?.origin_hash === hash) continue;
-      try {
-        const body = await coverImage(await download(chosen.url));
-        const path = `cover/${vendorId}.jpg`;
-        await upload(path, body);
-        const r = (
-          await db.query("select public.vendor_cover_set($1, $2, $3, $4, $5, $6, $7) as r", [
-            vendorId,
-            chosen.source,
-            path,
-            hash,
-            chosen.license,
-            String(chosen.credit ?? "").slice(0, 200),
-            chosen.source_url,
-          ])
-        ).rows[0].r;
-        if (r?.status !== "ok") throw new Error(`record ${r?.status}`);
-        done.covers++;
-      } catch (e) {
-        console.error(`cover failed for shop ${vendorId}: ${String(e).slice(0, 160)}`);
+      const hashOf = (c: CoverCandidate) =>
+        sha256(JSON.stringify([PROCESS_VERSION, "cover", c.url]));
+      // The current cover stays while it is still a candidate (an unchanged run makes no new cover).
+      if (cur && candidates.some((c) => hashOf(c) === cur.origin_hash)) continue;
+      let made = false;
+      for (const chosen of candidates) {
+        try {
+          const body = await coverImage(await download(chosen.url));
+          const path = `cover/${vendorId}.jpg`;
+          await upload(path, body);
+          const r = (
+            await db.query("select public.vendor_cover_set($1, $2, $3, $4, $5, $6, $7) as r", [
+              vendorId,
+              chosen.source,
+              path,
+              hashOf(chosen),
+              chosen.license,
+              String(chosen.credit ?? "").slice(0, 200),
+              chosen.source_url,
+            ])
+          ).rows[0].r;
+          if (r?.status !== "ok") throw new Error(`record ${r?.status}`);
+          done.covers++;
+          made = true;
+          break;
+        } catch (e) {
+          console.error(`cover candidate failed for shop ${vendorId}: ${String(e).slice(0, 160)}`);
+        }
       }
+      if (!made) console.error(`no cover for shop ${vendorId}`);
     }
 
     // Objects whose row is gone (claimed, no longer a demo shop, or the older drawn tiles and PNGs).

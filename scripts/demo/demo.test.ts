@@ -8,6 +8,7 @@ import {
   PROCESS_VERSION,
   plan,
   pickOk,
+  coverCandidates,
   MIN_SIDE,
   productImage,
   signatureDish,
@@ -165,6 +166,32 @@ describe("the photo plan per item", () => {
     }
     const c = await sharp(await coverImage(wide)).metadata();
     expect([c.width, c.height]).toEqual([1200, 800]);
+  });
+  it("lists a shop's cover candidates: its own photos (signature dish first), then picked photos of its dishes", () => {
+    const shop = {
+      vendor: "Shop",
+      dishes: ["burger", "burger", "fries", "soda", "manousheh"],
+      own: [
+        { url: "https://x/own-fries.jpg", original: "https://x/own-fries.jpg", dish: "fries" },
+        { url: "https://x/own-burger.jpg", original: "https://x/own-burger.jpg", dish: "burger" },
+      ],
+    };
+    const p: Picks = {
+      dishes: {
+        burger: pick("https://x/burger.jpg"),
+        fries: pick("https://x/fries.jpg"),
+        pizza: pick("https://x/pizza.jpg"),
+      },
+      packshots: {},
+    };
+    expect(coverCandidates(shop, p).map((c) => c.url)).toEqual([
+      "https://x/own-burger.jpg",
+      "https://x/own-fries.jpg",
+      "https://x/burger.jpg",
+    ]);
+    // No pick for its most common dish: the next dish that has one; a side (fries) never makes a cover.
+    const m = { vendor: "M", dishes: ["manousheh", "manousheh", "fries", "pizza"], own: [] };
+    expect(coverCandidates(m, p).map((c) => c.url)).toEqual(["https://x/pizza.jpg"]);
   });
   it("covers a shop with its signature dish, never a drink or a dip", () => {
     expect(signatureDish(["soda", "soda", "soda", "burger", "burger", "fries", "dip"])).toBe(
