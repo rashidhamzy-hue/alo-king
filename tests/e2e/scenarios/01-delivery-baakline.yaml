@@ -1,4 +1,5 @@
 name: delivery-baakline
+smoke: true
 description: "Full delivery order from a Baakline pin, accepted by the merchant, delivered with the code, rated (DECISIONS §36 scenario 1)."
 personas:
   cust: { role: customer, cc: "961", name: "Sim Baakline" }

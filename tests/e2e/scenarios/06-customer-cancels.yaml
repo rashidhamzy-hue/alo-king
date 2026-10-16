@@ -1,4 +1,5 @@
 name: customer-cancels
+smoke: true
 description: "Cancel inside 60 s of acceptance is free; after 60 s it becomes a request to the merchant (DECISIONS §30.3.6, §36 scenario 6)."
 personas:
   early: { role: customer, cc: "961", name: "Sim Early Cancel" }

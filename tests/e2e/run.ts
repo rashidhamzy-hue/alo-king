@@ -1,6 +1,7 @@
 // Staging conversation simulator (DECISIONS §36). Posts signed Kapso-shaped events to the deployed
 // whatsapp-webhook, reads what the bot "sent" from sim_outbox, asserts replies and database state.
-// Env: DB_URL, WEBHOOK_URL, E2E_WEBHOOK_SECRET; optional OUT_DIR (default e2e-out), ONLY (comma list of scenario names).
+// Env: DB_URL, WEBHOOK_URL, E2E_WEBHOOK_SECRET; optional OUT_DIR (default e2e-out), SUITE (smoke | full, default full),
+// ONLY (comma list of scenario names; overrides SUITE).
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,8 +36,10 @@ async function main() {
       f,
       sc: expand(parse(readFileSync(join(dir, f), "utf8")) as Scenario, join(dir, "_parts")),
     }))
-    .filter(
-      ({ f, sc }) => !only.length || only.includes(sc.name) || only.includes(basename(f, ".yaml")),
+    .filter(({ f, sc }) =>
+      only.length
+        ? only.includes(sc.name) || only.includes(basename(f, ".yaml"))
+        : process.env.SUITE !== "smoke" || sc.smoke === true,
     );
   if (!scenarios.length) throw new Error("no scenario matched");
 

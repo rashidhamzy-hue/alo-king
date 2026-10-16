@@ -95,6 +95,8 @@ export type Step = {
 export type Scenario = {
   name: string;
   description?: string;
+  /** One of the 5 smoke scenarios a session dispatches at its end (DECISIONS §36, test diet). */
+  smoke?: boolean;
   personas: Record<string, Persona>;
   /** Starting values for {{vars.x}}. */
   vars?: Record<string, string>;

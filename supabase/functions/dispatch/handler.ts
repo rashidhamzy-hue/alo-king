@@ -70,6 +70,8 @@ export type DispatchDeps = {
   budgetMs?: number;
   /** When this worker is certainly gone (its start + 152 s): a customer turn's lease never outlives it. */
   workerDeadline?: Date;
+  /** Waits inside a run (tests inject an instant one). */
+  sleep?: (ms: number) => Promise<void>;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
   /**
    * The smart-menu model (§18.3); null without a key or API credit (§32.7). Every call is reserved against the daily AI
@@ -136,6 +138,7 @@ type Outbox = {
 };
 
 const MAX_ATTEMPTS = 3;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const ORDER_CARD_MS = 6000;
 const E164 = /^\+[1-9][0-9]{6,14}$/;
 
@@ -159,7 +162,15 @@ export async function runDispatch(
       // Invisible for longer than an edge function can live (150 s), so a worker that dies is never overlapped by a
       // retry; a failed event comes back in seconds through webhook_finish instead (#139).
       (await deps.rpc("webhook_claim", { p_limit: 10, p_visibility_s: 160 })) ?? [];
-    if (!events.length) break;
+    if (!events.length) {
+      // A message held back as `busy` (its customer's previous turn was still running) or retried after a failure comes
+      // back a few seconds later; wait for it here instead of for the next 30-second tick (staging load, session 5e).
+      const due = await deps.rpc("webhook_next_due", {}).catch(() => null);
+      const waitMs = typeof due === "number" || typeof due === "string" ? Number(due) * 1000 : NaN;
+      if (!Number.isFinite(waitMs) || waitMs > left() - 2500) break;
+      await (deps.sleep ?? sleep)(Math.max(250, waitMs + 100));
+      continue;
+    }
     for (const ev of events) {
       let status: "done" | "ignored" | "failed" = "done";
       let error: string | undefined;

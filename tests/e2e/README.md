@@ -5,8 +5,9 @@
 messages in `sim_outbox` instead of sending them (config `sim_sink_enabled`, on in staging only). Each scenario
 in `scenarios/*.yaml` sends messages and asserts the replies and the database.
 
-Runs after every staging deploy (a job in `ci.yml`) and on demand: Actions → staging-e2e → Run workflow (optional
-`only` = scenario names). Output: the job summary, the `e2e-transcripts` artifact, and an issue labelled `e2e`
+Test diet (DECISIONS §36, 16 October): it no longer runs after every deploy. A build session dispatches it once at the end
+of the session: Actions → staging-e2e → Run workflow, suite `smoke` (the 5 scenarios marked `smoke: true`) or `full`
+(every scenario, once before the cut-over); `only` = scenario names overrides the suite. Output: the job summary, the `e2e-transcripts` artifact, and an issue labelled `e2e`
 (opened or updated on failure, closed when everything passes).
 
 ## Writing a scenario
@@ -39,7 +40,7 @@ steps:
 
 ## Running locally before a merge
 
-Staging runs the scenarios after every deploy; a session can run them first on its own machine. Start
+A session can run the scenarios on its own machine before a merge. Start
 `supabase/postgres:17.6.1.011` (host network), apply every migration, `scripts/load-seed.sh` and
 `supabase/test-fixtures/alo-test-grill.sql`, write `functions_base_url` into `app_private.runtime_settings`, start
 PostgREST as `authenticator`, serve `whatsapp-webhook` and `dispatch` with Deno (`SUPABASE_URL` pointing at a proxy that
