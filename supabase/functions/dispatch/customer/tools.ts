@@ -21,6 +21,7 @@ export type ToolName =
   | "note_location"
   | "set_preference"
   | "reorder"
+  | "saved_cart"
   | "request_human"
   | "search_items"
   | "report_problem"
@@ -265,6 +266,15 @@ export const TOOLS = [
     input_schema: obj({ which: { type: "string", enum: ["last", "usual"] } }),
   },
   {
+    name: "saved_cart",
+    description:
+      "The customer answers a cart that came from several shops, or a cart that met a basket from another shop (pending_question cart). take: order that shop's saved cart now (cart_ref c1...). drop: not that one (cart_ref). switch: replace the open basket with the cart's shop; keep: keep the basket and leave the cart; both: the basket first, the cart kept and offered after the order (cart_ref null for these three). The system re-prices everything.",
+    input_schema: obj({
+      action: { type: "string", enum: ["take", "drop", "switch", "keep", "both"] },
+      cart_ref: nstr("A saved cart ref from the context (c1...) for take or drop, else null"),
+    }),
+  },
+  {
     name: "request_human",
     description:
       "Hand the conversation to a person (complaint, refund, anything you cannot do, or the customer asks).",
@@ -449,6 +459,15 @@ export const TOOL_CONTRACT: Record<
     idempotency: "read only: the dispute opens on the customer's tap, never from the model",
     render: "the problem list only (AI proposes, server decides)",
   },
+  saved_cart: {
+    rpc: ["saved_cart_take", "saved_cart_drop", "saved_cart_next", "saved_cart_save", "cart_merge"],
+    auth: "the customer's own saved carts (the customer id comes from the session, never from the model)",
+    states:
+      "take/drop: a saved cart shown in this session; switch/keep/both: a cart waiting on the open basket",
+    idempotency:
+      "take is keyed by the message (a replay gets the same lines); the merge is keyed per line",
+    render: "the same messages as the taps (the basket, the next offer, or the kept cart)",
+  },
   show_memory: {
     rpc: ["customer_memory"],
     auth: "self",
@@ -490,6 +509,7 @@ How you work:
 - A dish or product by name, a brand, or a description ("manoushe kishk", "Pepsi diet 2", "something spicy and cheap"): search_items, with the quantity when the customer gave one.
 - A problem with a delivered order (missing, wrong, cold, late, damaged, refund, return): report_problem. The system decides any credit or refund; never promise one.
 - "What do you remember about me?", or deleting what is remembered: show_memory.
+- A cart from several shops ("Deli Dough first", "not the sushi"), or a cart that met another shop's basket ("switch", "keep mine", "do both"): saved_cart, with the c ref of the shop when there is one.
 - What the customer says about themselves (vegetarian, gluten-free, an allergy): set_preference. Never ask about health; the system asks before keeping health information.
 - If the customer wants a person, or you can't help: request_human.
 - If unsure what they want, reply with ONE short question and confidence "low".

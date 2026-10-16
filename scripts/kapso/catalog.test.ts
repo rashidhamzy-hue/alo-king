@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  commerceState,
   connectedCatalog,
   ownedCatalog,
   ownerBusiness,
@@ -73,5 +74,22 @@ describe("kapso-catalog (DECISIONS §39.12)", () => {
     expect(why({ ok: false, status: 0, body: { error: "META_CATALOG_TOKEN is not set" } })).toBe(
       "0 META_CATALOG_TOKEN is not set",
     );
+  });
+
+  it("the catalogue icon stays on (§39.15.2): what the settings say after the POST and the read-back", () => {
+    expect(commerceState(true, { is_cart_enabled: true, is_catalog_visible: true })).toMatchObject({
+      header: "shown",
+      commerceOn: true,
+    });
+    expect(commerceState(true, null)).toMatchObject({ header: "shown", commerceOn: true });
+    expect(
+      commerceState(false, { is_cart_enabled: true, is_catalog_visible: false }),
+    ).toMatchObject({
+      header: "hidden",
+      commerceOn: false,
+    });
+    expect(commerceState(true, {})).toMatchObject({ header: "unverified", commerceOn: false });
+    // Today: neither route may read or write the settings; the owner's setting stands and no issue opens.
+    expect(commerceState(false, null)).toMatchObject({ header: "unverified", commerceOn: false });
   });
 });

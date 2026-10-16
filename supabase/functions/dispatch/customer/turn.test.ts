@@ -827,7 +827,8 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
         { itemId: ITEM, quantity: 2 },
       ]),
     );
-    expect(JSON.stringify(f.sent)).toMatch(/1 item\(s\) from your cart/);
+    // Only items truly unavailable are named, by name (§39.15.2).
+    expect(JSON.stringify(f.sent)).toMatch(/Not available right now: Knefe/);
     // The line with required choices gets its option list; checkout waits for the choice.
     expect(f.sent.some((p) => p.interactive?.type === "list")).toBe(true);
   });
@@ -846,7 +847,7 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
       },
     });
     await handleCustomerTurn(f.deps, cartMsg([{ itemId: LINE, quantity: 1 }]));
-    expect(JSON.stringify(f.sent)).toMatch(/couldn't be added/);
+    expect(JSON.stringify(f.sent)).not.toMatch(/couldn't be added/);
     expect(JSON.stringify(f.sent)).toMatch(/None of the items in that cart/);
     expect(f.of("basket_clear")).toHaveLength(0);
   });
@@ -865,14 +866,26 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
     });
     await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 2, shownUsd: 5 }]));
     const card = f.sent[0];
+    // Switch to B, Keep A, Do both (§39.15.2).
     expect(card.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual([
       "c:cart_replace",
       "c:keep",
+      "c:cart_both",
+    ]);
+    expect(card.interactive.action.buttons.map((b: any) => b.reply.title)).toEqual([
+      "Switch to Vendor B",
+      "Keep Vendor A",
+      "Do both",
     ]);
     expect(card.interactive.body.text).toMatch(/Vendor A.*Vendor B/);
     expect(checkInteractive(card)).toEqual([]);
     const pending = f.of("customer_turn_end")[0].args.p_session.pending;
-    expect(pending).toEqual({ kind: "cart", lines: [{ i: ITEM, q: 2, p: 5 }] });
+    expect(pending).toEqual({
+      kind: "cart",
+      lines: [{ i: ITEM, q: 2, p: 5 }],
+      basket: "Vendor A",
+      cart: "Vendor B",
+    });
 
     const g = fake({
       begin: {
@@ -2357,5 +2370,348 @@ describe("Add in WhatsApp from an item page (DECISIONS §39.15.2)", () => {
     );
     const list = f.sent.find((p) => p.interactive?.type === "list");
     expect(bodyOf(list)).toBe('Choose Size for "Chicken Shawarma":');
+  });
+});
+
+describe("carts from several shops are split, never dropped (DECISIONS §39.15.2)", () => {
+  const cartMsg = (lines: { itemId: string; quantity: number; shownUsd?: number | null }[]) =>
+    msg({
+      type: "order",
+      cart: { lines: lines.map((l) => ({ shownUsd: null, ...l })) },
+    });
+  const SC1 = "5c000000-0000-0000-0000-000000000001";
+  const SC2 = "5c000000-0000-0000-0000-000000000002";
+  const ALT = "5c000000-0000-0000-0000-0000000000a1";
+  const split = {
+    status: "split",
+    place: "بعقلين",
+    place_en: "Baakline",
+    shops: [
+      {
+        saved_cart_id: SC1,
+        vendor: "ديلي دو",
+        vendor_en: "Deli Dough",
+        items: 2,
+        subtotal_usd: 12.5,
+        delivers: true,
+      },
+      {
+        saved_cart_id: SC2,
+        vendor: "سوشي بيل",
+        vendor_en: "Sushi Bell",
+        items: 1,
+        subtotal_usd: 9,
+        delivers: false,
+        alternative: {
+          item_id: ALT,
+          vendor: "تارابيش",
+          vendor_en: "Tarabish",
+          item: "سلمون",
+          item_en: "Salmon Roll",
+          price_usd: 8.5,
+        },
+      },
+    ],
+  };
+
+  it("asks which shop first, one row per shop; a shop that doesn't deliver is named with the closest same dish", async () => {
+    const f = fake({ rpcs: { cart_split: () => split } });
+    await handleCustomerTurn(
+      f.deps,
+      cartMsg([
+        { itemId: ITEM, quantity: 2 },
+        { itemId: LINE, quantity: 1 },
+      ]),
+    );
+    expect(f.of("cart_merge")).toHaveLength(0);
+    const card = f.sent[0];
+    expect(card.interactive.body.text).toMatch(/items from 2 shops.*Which one first/);
+    const rows = card.interactive.action.sections[0].rows;
+    expect(rows.map((r: any) => r.id)).toEqual([`sc:${SC1}`, `sc:${SC2}`, `alt:${SC2}:${ALT}:1`]);
+    expect(rows[0].description).toBe("2 item(s) · $12.50");
+    expect(rows[1].description).toBe("Doesn't deliver to Baakline");
+    expect(rows[2].description).toBe("Instead, from Tarabish · $8.50");
+    expect(checkInteractive(card)).toEqual([]);
+  });
+
+  it("never sends a list Meta would refuse: one alternative offered once, at most 10 rows, the rest named as kept", async () => {
+    const shops = Array.from({ length: 12 }, (_, k) => ({
+      saved_cart_id: `5c000000-0000-0000-0000-0000000001${String(k).padStart(2, "0")}`,
+      vendor: `محل ${k}`,
+      vendor_en: `Shop ${k}`,
+      items: 1,
+      subtotal_usd: 5,
+      delivers: false,
+      alternative: { ...split.shops[1].alternative!, quantity: 3 },
+    }));
+    const f = fake({
+      rpcs: {
+        cart_split: () => ({
+          ...split,
+          shops,
+          unavailable: ["كبة"],
+          unavailable_en: ["Kibbeh"],
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
+    expect(bodyOf(f.sent[0])).toMatch(/Not available right now: Kibbeh/);
+    const card = f.sent[1];
+    const rows = card.interactive.action.sections[0].rows;
+    expect(rows).toHaveLength(10);
+    expect(new Set(rows.map((r: any) => r.id)).size).toBe(10);
+    expect(rows.filter((r: any) => r.id.startsWith("alt:"))).toHaveLength(1);
+    expect(rows[1].id).toBe(`alt:${shops[0].saved_cart_id}:${ALT}:3`);
+    // Every shop here misses the pin, so none is promised for later.
+    expect(card.interactive.body.text).not.toMatch(/more shop/);
+    expect(checkInteractive(card)).toEqual([]);
+  });
+
+  it("a cart with one orderable shop goes on with that shop's lines only; the others are named", async () => {
+    const f = fake({
+      rpcs: {
+        cart_split: () => ({
+          status: "single",
+          lines: [{ item_id: ITEM, quantity: 2, shown_usd: 5 }],
+          unavailable: ["كبة"],
+          unavailable_en: ["Kibbeh"],
+        }),
+        cart_merge: () => ({
+          status: "ok",
+          added: 1,
+          skipped: [
+            { item_id: LINE, status: "other_branch", item: "x", item_en: "Other shop's dish" },
+          ],
+          needs_options: [],
+          diffs: [],
+          basket,
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      cartMsg([
+        { itemId: ITEM, quantity: 2, shownUsd: 5 },
+        { itemId: LINE, quantity: 1 },
+      ]),
+    );
+    expect(f.of("cart_merge")[0].args.p_lines).toEqual([
+      { item_id: ITEM, quantity: 2, shown_usd: 5 },
+    ]);
+    const said = f.sent.map(bodyOf).join("\n");
+    expect(said).toMatch(/Not available right now: Kibbeh/);
+    expect(said).not.toMatch(/Other shop's dish/);
+  });
+
+  it("a cart whose every shop stopped taking orders names the items, with a way on", async () => {
+    const f = fake({
+      rpcs: {
+        cart_split: () => ({
+          status: "unavailable",
+          lines: [],
+          unavailable: ["كبة"],
+          unavailable_en: ["Kibbeh"],
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
+    expect(f.of("cart_merge")).toHaveLength(0);
+    expect(bodyOf(f.sent[0])).toMatch(/Not available right now: Kibbeh/);
+    expect(f.sent[1].type).toBe("interactive");
+    expect(bodyOf(f.sent[1])).toMatch(/None of the items/);
+  });
+
+  it("picking a shop takes its saved cart once per message and orders it, without splitting it again", async () => {
+    const f = fake({
+      rpcs: {
+        saved_cart_take: () => ({
+          status: "ok",
+          lines: [{ item_id: ITEM, quantity: 2, shown_usd: 5 }],
+        }),
+        cart_merge: () => ({
+          status: "ok",
+          added: 1,
+          skipped: [],
+          needs_options: [],
+          diffs: [],
+          basket,
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ buttonId: `sc:${SC1}`, type: "interactive", messageId: "wamid.pick" }),
+    );
+    expect(f.of("saved_cart_take")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_saved_cart_id: SC1,
+      p_message_id: "wamid.pick",
+    });
+    expect(f.of("cart_split")).toHaveLength(0);
+    expect(f.of("cart_merge")[0].args).toMatchObject({
+      p_message_id: `sc:${SC1}`,
+      p_lines: [{ item_id: ITEM, quantity: 2, shown_usd: 5 }],
+      p_replace: false,
+    });
+  });
+
+  it("a saved cart that is gone says so, with a way on; No thanks drops it and offers the next one", async () => {
+    const f = fake({ rpcs: { saved_cart_take: () => null } });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `sc:${SC2}`, type: "interactive" }));
+    expect(bodyOf(f.sent[0])).toMatch(/no longer kept/);
+    expect(f.sent[0].type).toBe("interactive");
+    const g = fake({ rpcs: { saved_cart_drop: () => true, saved_cart_next: () => null } });
+    await handleCustomerTurn(g.deps, msg({ buttonId: `scl:${SC2}`, type: "interactive" }));
+    expect(g.of("saved_cart_drop")[0].args.p_saved_cart_id).toBe(SC2);
+    expect(bodyOf(g.sent[0])).toMatch(/won't order it/);
+    const h = fake({
+      rpcs: {
+        saved_cart_drop: () => true,
+        saved_cart_next: () => ({
+          saved_cart_id: SC1,
+          vendor: "د",
+          vendor_en: "Deli Dough",
+          items: 2,
+        }),
+      },
+    });
+    await handleCustomerTurn(h.deps, msg({ buttonId: `scl:${SC2}`, type: "interactive" }));
+    expect(bodyOf(h.sent[0])).toMatch(/also picked 2 item\(s\) from Deli Dough/);
+    expect(h.sent[0].interactive.action.buttons.map((b: any) => b.reply.id)).toEqual([
+      `sc:${SC1}`,
+      `scl:${SC1}`,
+    ]);
+  });
+
+  it("after the order, the next shop's saved cart is offered (never the shop just ordered from), and counted", async () => {
+    const next = { saved_cart_id: SC2, vendor: "س", vendor_en: "Sushi Bell", items: 1 };
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        order_place: () => ({ status: "placed", code: "AB3CD9", order_id: "o-1" }),
+        saved_cart_next: () => next,
+        order_messages_add: () => null,
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `cfm:${BASKET}:7`, type: "interactive" }));
+    expect(f.of("saved_cart_next")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_exclude_vendor_id: VENDOR,
+      p_pickup: false,
+    });
+    expect(f.of("order_messages_add")[0].args).toEqual({ p_order_id: "o-1", p_n: 3 });
+    expect(bodyOf(f.sent[0])).toContain("AB3CD9");
+    expect(bodyOf(f.sent[1])).toMatch(/also picked 1 item\(s\) from Sushi Bell/);
+    expect(checkInteractive(f.sent[1])).toEqual([]);
+    const g = fake({
+      begin: { basket },
+      rpcs: {
+        order_place: () => ({ status: "placed", code: "AB3CD9", order_id: "o-1" }),
+        saved_cart_next: () => null,
+        order_messages_add: () => null,
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: `cfm:${BASKET}:7`, type: "interactive" }));
+    expect(g.of("order_messages_add")[0].args.p_n).toBe(2);
+    expect(g.sent).toHaveLength(1);
+  });
+
+  it("Do both keeps the cart for after the open basket's order", async () => {
+    const f = fake({
+      begin: {
+        session: {
+          lang: "en",
+          pending: {
+            kind: "cart",
+            lines: [{ i: ITEM, q: 2, p: 5 }],
+            basket: "Vendor A",
+            cart: "Vendor B",
+          },
+          refs: {},
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: {
+        saved_cart_save: () => ({
+          status: "saved",
+          saved_cart_id: SC2,
+          vendor: "ب",
+          vendor_en: "Vendor B",
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ buttonId: "c:cart_both", type: "interactive", messageId: "wamid.both" }),
+    );
+    expect(f.of("saved_cart_save")[0].args).toMatchObject({
+      p_message_id: "both:wamid.both",
+      p_lines: [{ item_id: ITEM, quantity: 2, shown_usd: 5 }],
+    });
+    expect(bodyOf(f.sent[0])).toMatch(/kept your Vendor B cart.*Vendor A order first/);
+  });
+
+  it("the closest shop's dish is added from its row, with its quantity; the other shop's other items stay, named", async () => {
+    const f = fake({
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "added", basket }),
+        saved_cart_swap: () => ({
+          status: "kept",
+          vendor: "س",
+          vendor_en: "Sushi Bell",
+          names: ["بطاطا"],
+          names_en: ["Fries"],
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `alt:${SC2}:${ALT}:2`, type: "interactive" }));
+    expect(f.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ALT, p_quantity: 2 });
+    expect(f.of("saved_cart_swap")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_saved_cart_id: SC2,
+      p_item_id: ALT,
+    });
+    expect(f.of("saved_cart_drop")).toHaveLength(0);
+    expect(f.sent.map(bodyOf).join("\n")).toMatch(
+      /Sushi Bell doesn't deliver to you\. We still keep Fries/,
+    );
+    // The dish could not go in: the shop's saved cart is left exactly as it was.
+    const g = fake({
+      rpcs: { menu_item_options: () => [], basket_add_item: () => ({ status: "unavailable" }) },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: `alt:${SC2}:${ALT}:1`, type: "interactive" }));
+    expect(g.of("saved_cart_swap")).toHaveLength(0);
+  });
+
+  it("Do both names the cart's items when its shop stopped taking orders meanwhile", async () => {
+    const f = fake({
+      begin: {
+        session: {
+          lang: "en",
+          pending: {
+            kind: "cart",
+            lines: [{ i: ITEM, q: 1, p: null }],
+            basket: "Vendor A",
+            cart: "Vendor B",
+          },
+          refs: {},
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: {
+        saved_cart_save: () => ({
+          status: "unavailable",
+          unavailable: ["ك"],
+          unavailable_en: ["Kibbeh"],
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:cart_both", type: "interactive" }));
+    expect(bodyOf(f.sent[0])).toMatch(/Not available right now: Kibbeh/);
   });
 });
