@@ -310,8 +310,8 @@
   - **Photos (§39.13):** no drawn tiles. Demo items: 67 the shop's own, 10 packshots, 1,093 dish photos (72 of 119 dish keys picked from photo-scout run 38848787132, each with licence and credit), 427 without a photo (not food, or no fitting photo: manakish, labneh, dips, subs and others), which stay out of the catalogue and run on the list menu. Every demo shop has a cover (2 own, 27 dish). Meta shows 1,229 products with real photos; 526 are hidden.
   - **WhatsApp profile of the US number (kapso-profile):** crown logo, about, description, address Baakline, category Restaurant. No website (the preview needs a Vercel login; production serves the old site) and no hours field on the Cloud API.
   - **Catalogue icon in the chat header:** to be switched off (§39.13). Kapso's proxy refused the commerce setting, so it is owner issue #199 (2 minutes in WhatsApp Manager). Until then the header still opens the flat catalogue; a cart mixing shops keeps the first shop's lines and says the rest could not be added (seen in Rasheed's 05:30 order).
-  - **Smoke suite:** SMOKE_RESULT
-  - **Live test with Rasheed:** RASHEED_RESULT
+  - **Smoke suite:** run 38865241232 passed 2/5 and run 38866914962 2/5 (scenarios picking items not on screen, a pin no road reaches, no route at the shop's door; fixed by #205 and #206); run 38868719643 passed 4/5 (01's order card waited for a tick past a spent run budget; fixed by this PR). The run after this PR deploys: RUN4_RESULT
+  - **Live test with Rasheed:** RASHEED_RESULT (sent after the last smoke run)
   - **Open for later:** manakish, labneh, subs and sandwiches, dips, generic soda and tea have no photo (Openverse had none fit to use); a second scout with other queries, or the merchants' own photos when they claim, fills them. `docs/decisions/CUSTOMER-EXPERIENCE.md` (#202, another session) proposes §39.14 for session 5f (web menu, writing rules, every scenario).
   - **CUT-OVER (session 14), added:**
     - production restores the 5 s and 15 s cadence (LOG, session 5e PR 1); `staging-e2e suite=full` runs once there before go-live;
