@@ -26,6 +26,7 @@ export function VendorCardItem({ v }: { v: VendorCard }) {
         {place ? ` · ${place}` : ""}
       </p>
       <p className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+        {v.demo && <span className="ak-chip">{t.common.demo}</span>}
         {v.paused ? (
           <span className="ak-chip">{t.common.paused}</span>
         ) : (

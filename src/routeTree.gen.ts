@@ -23,6 +23,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as LangIndexRouteImport } from './routes/$lang.index'
 import { Route as LangClaimRouteImport } from './routes/$lang.claim'
 import { Route as LangContactRouteImport } from './routes/$lang.contact'
+import { Route as LangCreditsRouteImport } from './routes/$lang.credits'
 import { Route as LangDriversRouteImport } from './routes/$lang.drivers'
 import { Route as LangForMerchantsRouteImport } from './routes/$lang.for-merchants'
 import { Route as LangHelpRouteImport } from './routes/$lang.help'
@@ -44,6 +45,7 @@ import { Route as LangBusinessHelpRouteImport } from './routes/$lang.business.he
 import { Route as LangBusinessRegisterRouteImport } from './routes/$lang.business.register'
 import { Route as LangCuisineIndexRouteImport } from './routes/$lang.cuisine.index'
 import { Route as LangCuisineTagRouteImport } from './routes/$lang.cuisine.$tag'
+import { Route as LangIIdRouteImport } from './routes/$lang.i.$id'
 import { Route as LangLegalDocRouteImport } from './routes/$lang.legal.$doc'
 import { Route as LangMSlugRouteImport } from './routes/$lang.m.$slug'
 import { Route as LangPlacesIndexRouteImport } from './routes/$lang.places.index'
@@ -121,6 +123,11 @@ const LangClaimRoute = LangClaimRouteImport.update({
 const LangContactRoute = LangContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangCreditsRoute = LangCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
   getParentRoute: () => LangRoute,
 } as any)
 const LangDriversRoute = LangDriversRouteImport.update({
@@ -229,6 +236,11 @@ const LangCuisineTagRoute = LangCuisineTagRouteImport.update({
   path: '/cuisine/$tag',
   getParentRoute: () => LangRoute,
 } as any)
+const LangIIdRoute = LangIIdRouteImport.update({
+  id: '/i/$id',
+  path: '/i/$id',
+  getParentRoute: () => LangRoute,
+} as any)
 const LangLegalDocRoute = LangLegalDocRouteImport.update({
   id: '/legal/$doc',
   path: '/legal/$doc',
@@ -284,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$lang/claim': typeof LangClaimRoute
   '/$lang/contact': typeof LangContactRoute
+  '/$lang/credits': typeof LangCreditsRoute
   '/$lang/drivers': typeof LangDriversRoute
   '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
@@ -304,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/$lang/business/help': typeof LangBusinessHelpRoute
   '/$lang/business/register': typeof LangBusinessRegisterRoute
   '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
+  '/$lang/i/$id': typeof LangIIdRoute
   '/$lang/legal/$doc': typeof LangLegalDocRoute
   '/$lang/m/$slug': typeof LangMSlugRoute
   '/$lang/places/$slug': typeof LangPlacesSlugRoute
@@ -327,6 +341,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$lang/claim': typeof LangClaimRoute
   '/$lang/contact': typeof LangContactRoute
+  '/$lang/credits': typeof LangCreditsRoute
   '/$lang/drivers': typeof LangDriversRoute
   '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
@@ -347,6 +362,7 @@ export interface FileRoutesByTo {
   '/$lang/business/help': typeof LangBusinessHelpRoute
   '/$lang/business/register': typeof LangBusinessRegisterRoute
   '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
+  '/$lang/i/$id': typeof LangIIdRoute
   '/$lang/legal/$doc': typeof LangLegalDocRoute
   '/$lang/m/$slug': typeof LangMSlugRoute
   '/$lang/places/$slug': typeof LangPlacesSlugRoute
@@ -373,6 +389,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$lang/claim': typeof LangClaimRoute
   '/$lang/contact': typeof LangContactRoute
+  '/$lang/credits': typeof LangCreditsRoute
   '/$lang/drivers': typeof LangDriversRoute
   '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
@@ -393,6 +410,7 @@ export interface FileRoutesById {
   '/$lang/business/help': typeof LangBusinessHelpRoute
   '/$lang/business/register': typeof LangBusinessRegisterRoute
   '/$lang/cuisine/$tag': typeof LangCuisineTagRoute
+  '/$lang/i/$id': typeof LangIIdRoute
   '/$lang/legal/$doc': typeof LangLegalDocRoute
   '/$lang/m/$slug': typeof LangMSlugRoute
   '/$lang/places/$slug': typeof LangPlacesSlugRoute
@@ -420,6 +438,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/$lang/claim'
     | '/$lang/contact'
+    | '/$lang/credits'
     | '/$lang/drivers'
     | '/$lang/for-merchants'
     | '/$lang/help'
@@ -440,6 +459,7 @@ export interface FileRouteTypes {
     | '/$lang/business/help'
     | '/$lang/business/register'
     | '/$lang/cuisine/$tag'
+    | '/$lang/i/$id'
     | '/$lang/legal/$doc'
     | '/$lang/m/$slug'
     | '/$lang/places/$slug'
@@ -463,6 +483,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/$lang/claim'
     | '/$lang/contact'
+    | '/$lang/credits'
     | '/$lang/drivers'
     | '/$lang/for-merchants'
     | '/$lang/help'
@@ -483,6 +504,7 @@ export interface FileRouteTypes {
     | '/$lang/business/help'
     | '/$lang/business/register'
     | '/$lang/cuisine/$tag'
+    | '/$lang/i/$id'
     | '/$lang/legal/$doc'
     | '/$lang/m/$slug'
     | '/$lang/places/$slug'
@@ -508,6 +530,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/$lang/claim'
     | '/$lang/contact'
+    | '/$lang/credits'
     | '/$lang/drivers'
     | '/$lang/for-merchants'
     | '/$lang/help'
@@ -528,6 +551,7 @@ export interface FileRouteTypes {
     | '/$lang/business/help'
     | '/$lang/business/register'
     | '/$lang/cuisine/$tag'
+    | '/$lang/i/$id'
     | '/$lang/legal/$doc'
     | '/$lang/m/$slug'
     | '/$lang/places/$slug'
@@ -656,6 +680,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/$lang/contact'
       preLoaderRoute: typeof LangContactRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/credits': {
+      id: '/$lang/credits'
+      path: '/credits'
+      fullPath: '/$lang/credits'
+      preLoaderRoute: typeof LangCreditsRouteImport
       parentRoute: typeof LangRoute
     }
     '/$lang/drivers': {
@@ -805,6 +836,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangCuisineTagRouteImport
       parentRoute: typeof LangRoute
     }
+    '/$lang/i/$id': {
+      id: '/$lang/i/$id'
+      path: '/i/$id'
+      fullPath: '/$lang/i/$id'
+      preLoaderRoute: typeof LangIIdRouteImport
+      parentRoute: typeof LangRoute
+    }
     '/$lang/legal/$doc': {
       id: '/$lang/legal/$doc'
       path: '/legal/$doc'
@@ -867,6 +905,7 @@ declare module '@tanstack/react-router' {
 interface LangRouteChildren {
   LangClaimRoute: typeof LangClaimRoute
   LangContactRoute: typeof LangContactRoute
+  LangCreditsRoute: typeof LangCreditsRoute
   LangDriversRoute: typeof LangDriversRoute
   LangForMerchantsRoute: typeof LangForMerchantsRoute
   LangHelpRoute: typeof LangHelpRoute
@@ -878,6 +917,7 @@ interface LangRouteChildren {
   LangBusinessHelpRoute: typeof LangBusinessHelpRoute
   LangBusinessRegisterRoute: typeof LangBusinessRegisterRoute
   LangCuisineTagRoute: typeof LangCuisineTagRoute
+  LangIIdRoute: typeof LangIIdRoute
   LangLegalDocRoute: typeof LangLegalDocRoute
   LangMSlugRoute: typeof LangMSlugRoute
   LangPlacesSlugRoute: typeof LangPlacesSlugRoute
@@ -891,6 +931,7 @@ interface LangRouteChildren {
 const LangRouteChildren: LangRouteChildren = {
   LangClaimRoute: LangClaimRoute,
   LangContactRoute: LangContactRoute,
+  LangCreditsRoute: LangCreditsRoute,
   LangDriversRoute: LangDriversRoute,
   LangForMerchantsRoute: LangForMerchantsRoute,
   LangHelpRoute: LangHelpRoute,
@@ -902,6 +943,7 @@ const LangRouteChildren: LangRouteChildren = {
   LangBusinessHelpRoute: LangBusinessHelpRoute,
   LangBusinessRegisterRoute: LangBusinessRegisterRoute,
   LangCuisineTagRoute: LangCuisineTagRoute,
+  LangIIdRoute: LangIIdRoute,
   LangLegalDocRoute: LangLegalDocRoute,
   LangMSlugRoute: LangMSlugRoute,
   LangPlacesSlugRoute: LangPlacesSlugRoute,

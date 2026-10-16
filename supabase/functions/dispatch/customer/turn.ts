@@ -524,6 +524,9 @@ async function route(c: Ctx, firstContact: boolean) {
     return voice(c);
   }
   if (m.text === null || !m.text.trim()) return say(c, "unsupported");
+  // The website's "Add in WhatsApp" (an item page, DECISIONS §39.15.2) sends the item's code: added deterministically.
+  const code = itemCodeIn(m.text);
+  if (code) return itemFromSite(c, code, itemCodeTail(m.text));
   const intent = deterministicIntent(m.text);
   if (intent) {
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
@@ -539,6 +542,40 @@ async function route(c: Ctx, firstContact: boolean) {
   if (mentionsSomeoneElse(m.text)) c.s.refs.xe = { id: "someone_else", label: "someone_else" };
   if (firstContact && m.text.trim().length < 4) return push(c, mainMenu(m.from, c.s.lang));
   return freeText(c, m.text);
+}
+
+/** The item code an item page puts in its WhatsApp text: i-<item id>. */
+export function itemCodeIn(t: string): string | null {
+  const m = ITEM_CODE_RE.exec(t);
+  return m ? m[1].toLowerCase() : null;
+}
+const ITEM_CODE_RE =
+  /(?:^|[^0-9a-z-])i-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?![0-9a-z-])/i;
+
+/**
+ * What the customer typed after the code in the pre-filled text ("… (i-…) x2, no garlic"): a quantity, only when the
+ * first word after the code is one ("x2", "2", "deux"), and the rest, unchanged, as the note the shop reads ("cut in 4"
+ * stays a note, never 4 items). The pre-filled words before the code (a name with digits, "un", "deux") are never read.
+ */
+export function itemCodeTail(t: string): { qty: number; note: string | null } {
+  const m = ITEM_CODE_RE.exec(t);
+  const tail = (m ? t.slice(m.index + m[0].length) : "")
+    .replace(/^\s*\)/, "")
+    .replace(/^[\s,.;:،-]+/, "");
+  const first = /^\S+/.exec(tail)?.[0] ?? "";
+  const word = first.toLowerCase().replace(/[.,!?؟،]+$/g, "");
+  const qty = first && !["un", "une"].includes(word) ? readQuantity(first).qty : null;
+  const note = (qty !== null ? tail.slice(first.length) : tail)
+    .replace(/^[\s,.;:،-]+|[\s,.;:،-]+$/g, "")
+    .trim();
+  return { qty: qty ?? 1, note: note ? Array.from(note).slice(0, 80).join("") : null };
+}
+
+/** "Add in WhatsApp" from the item's web page: the item into the basket, its choices asked as for any item. */
+async function itemFromSite(c: Ctx, itemId: string, extra: { qty: number; note: string | null }) {
+  c.tools.push("site_item");
+  const added = await addOne(c, itemId, extra.qty, [], extra.note, null);
+  if (added) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
 }
 
 /** Typed text: the model when free text is on and a model exists; otherwise the catalogue search (§32.4, §39.6). */
@@ -2228,11 +2265,13 @@ async function addOne(
     return false;
   if (missing) {
     c.s.pending = { kind: "options", item_id: itemId, qty, note, chosen: [...picked] };
+    // The item's name as the list the customer tapped showed it; an item that came another way (its code from the
+    // website, a catalogue cart) is named by the group itself (menu_item_options' item / item_en).
     const label =
       c.s.refs[Object.keys(c.s.refs).find((k) => c.s.refs[k].id === itemId) ?? ""]?.label?.replace(
         / \$.*$/,
         "",
-      ) ?? "";
+      ) || localName(c.s.lang, missing.item ?? null, missing.item_en ?? null);
     push(c, optionList(c.m.from, c.s.lang, label, missing));
     return false;
   }

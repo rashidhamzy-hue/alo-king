@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { chromium } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { CLAIM_VENDOR_ID, TRACK_TOKENS } from "./fixtures.mjs";
+import { CLAIM_VENDOR_ID, DEMO_SLUG, ITEM_IDS, TRACK_TOKENS } from "./fixtures.mjs";
 
 const arg = (k, d) => {
   const i = process.argv.indexOf(`--${k}`);
@@ -31,6 +31,13 @@ const PAGES = [
   { id: "vendor", path: "/m/abou-ali-shawarma" },
   // DECISIONS §39.3: the noindex page of a shop that is not on Alo King yet.
   { id: "vendor-unclaimed", path: "/m/shawarma-el-midan" },
+  // Session 5f (§39.15.7): a demo shop (labelled, noindex), item pages (the catalogue's links) and the photo credits.
+  { id: "vendor-demo", path: `/m/${DEMO_SLUG}` },
+  { id: "item", path: `/i/${ITEM_IDS.shawarma}` },
+  { id: "item-demo", path: `/i/${ITEM_IDS.demo}` },
+  // No photo and a very long name, at a shop without a page of its own (named, not linked; noindex).
+  { id: "item-long", path: `/i/${ITEM_IDS.long}` },
+  { id: "credits", path: "/credits" },
   { id: "send-home", path: "/send-home" },
   { id: "help", path: "/help" },
   { id: "contact", path: "/contact" },
@@ -172,6 +179,61 @@ for (const lang of langs) {
         if (!href?.includes("wa.me") || !/1%C3%97|1×/.test(decodeURIComponent(href) ? href : ""))
           errors.push(`WhatsApp link did not carry the basket: ${href}`);
       }
+      // A demo shop's pages (§39.12): labelled Demo, never indexed, no structured data.
+      const demoChecks = async (what) => {
+        const robots = await page.getAttribute('meta[name="robots"]', "content");
+        if (!/noindex/.test(robots ?? "")) errors.push(`${what} is indexable: ${robots}`);
+        const chips = await page
+          .locator("main .ak-chip")
+          .evaluateAll((els) => els.map((e) => (e.textContent ?? "").trim()));
+        if (!chips.some((c) => /^(Demo|Démo|تجريبي)$/.test(c)))
+          errors.push(`${what} has no Demo chip: ${chips.join(" | ")}`);
+        const ld = await page.locator('script[type="application/ld+json"]').count();
+        if (ld) errors.push(`${what} carries ${ld} JSON-LD block(s)`);
+      };
+      if (pg.id.startsWith("item")) {
+        // Add in WhatsApp carries the item's code verbatim; the bot adds the item from it (§39.15.2).
+        const id = {
+          item: ITEM_IDS.shawarma,
+          "item-demo": ITEM_IDS.demo,
+          "item-long": ITEM_IDS.long,
+        }[pg.id];
+        const hrefs = await page
+          .locator('main a[data-wa="order"]')
+          .evaluateAll((as) => as.map((a) => decodeURIComponent(a.getAttribute("href") ?? "")));
+        if (!hrefs.some((h) => h.includes("wa.me") && h.includes(`i-${id}`)))
+          errors.push(`Add in WhatsApp does not carry i-${id}: ${hrefs.join(" ")}`);
+        // Only an item of a shop with a public page is indexed (a demo shop's, or one without a page, is not).
+        const robots = await page.getAttribute('meta[name="robots"]', "content");
+        if ((pg.id !== "item") !== /noindex/.test(robots ?? ""))
+          errors.push(`robots on ${pg.id}: ${robots}`);
+        if (pg.id === "item-demo") await demoChecks("the demo shop's item page");
+        const img = await page.evaluate(() => {
+          const el = document.querySelector("main figure img");
+          return el instanceof HTMLImageElement && el.complete && el.naturalWidth > 0;
+        });
+        if (pg.id === "item-long") {
+          if (await page.locator("main figure img").count())
+            errors.push("an item without a photo shows an image");
+          // The shop has no page of its own: named, never linked (no 404 link).
+          const shopLinks = await page.locator('main a[href*="/m/"]').count();
+          if (shopLinks) errors.push(`a shop without a page is linked ${shopLinks} time(s)`);
+        } else if (!img) errors.push("the item photo did not load");
+        // The visible breadcrumbs and the BreadcrumbList are one trail (Home › village › shop › item).
+        if (pg.id === "item") {
+          const seen = await page
+            .locator('nav[aria-label="Breadcrumb"] li')
+            .evaluateAll((els) => els.map((e) => (e.textContent ?? "").trim()));
+          const ld = await page
+            .locator('script[type="application/ld+json"]')
+            .evaluateAll((els) => els.map((e) => JSON.parse(e.textContent ?? "{}")));
+          const list = ld.find((o) => o["@type"] === "BreadcrumbList");
+          const names = (list?.itemListElement ?? []).map((x) => x.name);
+          if (seen.length !== 4 || JSON.stringify(seen) !== JSON.stringify(names))
+            errors.push(`breadcrumbs ${seen.join(" > ")} differ from JSON-LD ${names.join(" > ")}`);
+        }
+      }
+      if (pg.id === "vendor-demo") await demoChecks("the demo shop's page");
       // Session 6b: the forms are walked through, and each state is looked at like a page (screenshot, axe, console).
       const state = async (name) => {
         await page.evaluate(() => window.scrollTo(0, 0));

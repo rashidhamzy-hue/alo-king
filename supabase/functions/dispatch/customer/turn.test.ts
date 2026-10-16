@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { checkInteractive } from "../../_shared/meta-limits";
 import {
   handleCustomerTurn,
+  itemCodeIn,
+  itemCodeTail,
   readCustomerInbound,
   validate,
   vocabularyPrompt,
@@ -2233,5 +2235,127 @@ describe("browsing through the bot (session 5e)", () => {
     await handleCustomerTurn(g.deps, msg({ buttonId: "c:near", type: "interactive" }));
     expect(g.sent[0].interactive.action.sections[0].rows).toHaveLength(5);
     expect(bodyOf(g.sent[0])).toMatch(/deliver to Baakline, nearest first/);
+  });
+});
+
+describe("Add in WhatsApp from an item page (DECISIONS §39.15.2)", () => {
+  it("reads the item code in any of the three languages' texts, and nothing that only looks like one", () => {
+    expect(itemCodeIn(`Hi Alo King, please add Falafel Sandwich from Tarabish (i-${ITEM})`)).toBe(
+      ITEM,
+    );
+    expect(itemCodeIn(`مرحبا ألو كينغ، أضف فلافل من طرابيش (i-${ITEM.toUpperCase()})`)).toBe(ITEM);
+    expect(itemCodeIn(`Bonjour, ajoutez Falafel (i-${ITEM})`)).toBe(ITEM);
+    expect(itemCodeIn(`hi-${ITEM}`)).toBeNull();
+    expect(itemCodeIn(`i-${ITEM}-x`)).toBeNull();
+    expect(itemCodeIn("i want a falafel")).toBeNull();
+  });
+
+  it("adds the item at once, never through a model or a search, and shows the basket", async () => {
+    const f = fake({
+      model: () => tool("reply", { text: "should not be asked", confidence: "high" }),
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "added", basket }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ text: `Hi Alo King, please add Shawarma from A (i-${ITEM})` }),
+    );
+    expect(f.of("basket_add_item").map((c) => c.args.p_item_id)).toEqual([ITEM]);
+    expect(f.of("basket_add_item")[0].args.p_quantity).toBe(1);
+    expect(f.modelReqs).toEqual([]);
+    expect(f.sent.length).toBeGreaterThan(0);
+  });
+
+  it("reads a quantity and a note the customer typed after the code, never from the pre-filled words", async () => {
+    const pre = `Bonjour Alo King, ajoutez Pepsi 330 ml de chez Deux Frères, s'il vous plaît (i-${ITEM})`;
+    expect(itemCodeTail(pre)).toEqual({ qty: 1, note: null });
+    expect(itemCodeTail(`${pre} x2, no garlic`)).toEqual({ qty: 2, note: "no garlic" });
+    expect(itemCodeTail(`${pre} ٣ بلا ثوم`)).toEqual({ qty: 3, note: "بلا ثوم" });
+    // A number later in the words is part of the note, never the quantity (the shop reads the note as written).
+    expect(itemCodeTail(`${pre} no onions, cut in 4`)).toEqual({
+      qty: 1,
+      note: "no onions, cut in 4",
+    });
+    expect(itemCodeTail(`${pre} for two people`)).toEqual({ qty: 1, note: "for two people" });
+    expect(itemCodeTail(`${pre} un peu épicé`)).toEqual({ qty: 1, note: "un peu épicé" });
+    // The note is cut between whole characters.
+    expect(itemCodeTail(`${pre} ${"😀".repeat(90)}`).note).toBe("😀".repeat(80));
+    const f = fake({
+      rpcs: { menu_item_options: () => [], basket_add_item: () => ({ status: "added", basket }) },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ text: `Hi Alo King, please add Shawarma (i-${ITEM}) 2 extra spicy` }),
+    );
+    expect(f.of("basket_add_item")[0].args).toMatchObject({ p_quantity: 2, p_note: "extra spicy" });
+  });
+
+  it("an item that cannot be ordered now is named, never silently dropped", async () => {
+    const f = fake({
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "unavailable", item: "Shawarma" }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: `please add (i-${ITEM})` }));
+    expect(bodyOf(f.sent[0])).toContain("Shawarma");
+  });
+
+  // A required choice, as menu_item_options returns it: the group names its item (migration 20261016160000).
+  const SIZE = {
+    group_id: "g-size",
+    name: "الحجم",
+    name_en: "Size",
+    min: 1,
+    max: 1,
+    item: "شاورما دجاج",
+    item_en: "Chicken Shawarma",
+    options: [
+      { option_id: "80000000-0000-0000-0000-0000000000a1", name: "عادي", name_en: "Regular" },
+      { option_id: "80000000-0000-0000-0000-0000000000a2", name: "كبير", name_en: "Large" },
+    ],
+  };
+
+  it("asks the item's required choice with the item's name, though no list showed the item", async () => {
+    const f = fake({ rpcs: { menu_item_options: () => [SIZE] } });
+    await handleCustomerTurn(f.deps, msg({ text: `Hi Alo King, please add (i-${ITEM})` }));
+    expect(f.of("basket_add_item")).toHaveLength(0);
+    expect(bodyOf(f.sent[0])).toBe('Choose Size for "Chicken Shawarma":');
+    expect(f.of("customer_turn_end")[0].args.p_session.pending).toMatchObject({
+      kind: "options",
+      item_id: ITEM,
+    });
+    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+
+    const ar = fake({
+      begin: { session: { lang: "ar", pending: {}, refs: {}, history: [], low_confidence: 0 } },
+      rpcs: { menu_item_options: () => [SIZE] },
+    });
+    await handleCustomerTurn(ar.deps, msg({ text: `مرحبا، أضف (i-${ITEM})` }));
+    expect(bodyOf(ar.sent[0])).toContain("«شاورما دجاج»");
+  });
+
+  it("a catalogue cart line with a required choice is asked with the item's name too", async () => {
+    const f = fake({
+      rpcs: {
+        cart_merge: () => ({
+          status: "ok",
+          added: 0,
+          skipped: [],
+          diffs: [],
+          needs_options: [{ item_id: ITEM, quantity: 1 }],
+          basket: null,
+        }),
+        menu_item_options: () => [SIZE],
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "order", cart: { lines: [{ itemId: ITEM, quantity: 1, shownUsd: null }] } }),
+    );
+    const list = f.sent.find((p) => p.interactive?.type === "list");
+    expect(bodyOf(list)).toBe('Choose Size for "Chicken Shawarma":');
   });
 });

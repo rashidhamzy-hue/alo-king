@@ -58,6 +58,13 @@ export function unclaimedPage(v: unknown): number | undefined {
   return Number.isInteger(n) && n >= 2 && n <= 100 ? n : undefined;
 }
 
+/** The `?page=` of a long list (the photo credits): 2-9999, anything else is the first page. */
+export function listPage(v: unknown): number | undefined {
+  const n =
+    typeof v === "number" ? v : typeof v === "string" && /^\d{1,4}$/.test(v) ? Number(v) : NaN;
+  return Number.isInteger(n) && n >= 2 && n <= 9999 ? n : undefined;
+}
+
 /** Fills {name} placeholders. A missing value leaves nothing behind. */
 export const fmt = (s: string, v: Record<string, string | number | null | undefined> = {}) =>
   s.replace(/\{(\w+)\}/g, (_, k: string) => String(v[k] ?? ""));

@@ -93,6 +93,9 @@ export const Route = createRootRouteWithContext<{ info?: RequestInfo }>()({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#17131a" },
+      // Only the rebuilt site serves this: scripts/kapso/profile.ts lists a website on the WhatsApp profile only when it
+      // answers with this exact tag (an older deployment on the same address does not).
+      { name: "alo-king-build", content: "rebuild" },
       { title: "Alo King" },
     ],
     links: [

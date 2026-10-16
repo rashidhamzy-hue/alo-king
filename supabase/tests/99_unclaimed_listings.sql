@@ -180,9 +180,10 @@ reset role;
 select tests.ok((select count(*) from public.vendor_join_requests where vendor_id = '20000000-0000-0000-0000-0000000000d2') = 200,
   'the 200 cap holds');
 
--- Once the site's address is a dated config row, the function gets it for the claim link and the shop's page.
+-- Once the site's address is a dated config row (public_site_url, the one address of §39.15.7), the function gets it
+-- for the claim link and the shop's page.
 insert into public.app_config (key, value, effective_from, note) values
-  ('site_url', '"https://aloking.test/"', now() - interval '1 second', 'test');
+  ('public_site_url', '"https://aloking.test/"', now() - interval '1 second', 'test');
 set local role service_role;
 select tests.ok(public.vendor_join_request('vendor-d', 'web', repeat('f', 64)) ->> 'site_url' = 'https://aloking.test'
   and public.vendor_join_request('vendor-a', 'web', repeat('f', 64)) ->> 'site_url' = 'https://aloking.test',

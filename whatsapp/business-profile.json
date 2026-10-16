@@ -1,11 +1,12 @@
 {
-  "_comment": "The WhatsApp business profile of Alo King's numbers (session 5e), set by scripts/kapso/profile.ts through Kapso's Meta proxy. Meta's limits: about 1-139 characters, description 512, address 256, at most 2 websites. Meta's profile has no opening-hours field; the description says how hours work. Websites: the first candidate that answers publicly with the new site (Vercel's production domain still serves the 6 October build until the cut-over, #74, so it is not listed); none if none does.",
-  "about": "Order food and essentials in the Chouf on WhatsApp 👑 Arabic, English, French or Arabizi.",
+  "_comment": "The WhatsApp business profile of Alo King's numbers (session 5e), set by scripts/kapso/profile.ts through Kapso's Meta proxy. Meta's limits: about 1-139 characters, description 512, address 256, at most 2 websites. Meta's profile has no opening-hours field; the description says how hours work. Websites: every candidate (2 at most) that answers 200 without a login wall and carries the rebuilt site's <meta name=\"alo-king-build\" content=\"rebuild\"> tag, so Vercel's production domain is listed only once it serves the rebuild (it serves the 6 October build until the cut-over, #74); none if none does.",
+  "about": "Order food and essentials in the Chouf on WhatsApp 👑 Arabic, English or French, the way you text.",
   "description": "Alo King is how the Chouf orders on WhatsApp. Say \"Order\", pick what you are craving or type it (\"2 shawarma\", \"manoushe kishk\"), and the bot builds your basket from the shop's real menu and prices. Pay cash in USD or LBP. Every order shows the total in both. Orders from abroad for family at home work too (Send Home). Each shop delivers during its own opening hours, shown when you open it.",
   "address": "Baakline, Chouf, Lebanon",
   "vertical": "RESTAURANT",
   "profile_picture": "public/brand/whatsapp-profile.png",
   "website_candidates": [
+    "https://alo-king.vercel.app/en",
     "https://alo-king-git-rebuild-lebanon-rashidhamzy-hues-projects.vercel.app/en"
   ]
 }

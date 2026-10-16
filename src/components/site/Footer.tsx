@@ -96,6 +96,12 @@ export function Footer() {
                 </Link>
               </li>
             ))}
+            {/* DECISIONS §38.1: who took the photos the shops did not take themselves. */}
+            <li>
+              <Link to="/$lang/credits" params={{ lang }}>
+                {t.footer.credits}
+              </Link>
+            </li>
           </Col>
         </div>
         <div className="ak-foot-base">
