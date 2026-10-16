@@ -45,7 +45,7 @@ import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
 import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
 import type { CatalogApi, CatalogTransport } from "./catalog-sync.ts";
-import { productHash, type DesiredProduct } from "../_shared/catalog.ts";
+import { productHash, withContent, type DesiredProduct } from "../_shared/catalog.ts";
 import { desiredCache } from "./desired-cache.ts";
 
 // Kapso is reached only here (CLAUDE.md); never from configuration or message content.
@@ -340,6 +340,7 @@ async function botConfig() {
     "route_live_timeout_ms",
     "routing_provider_sim",
     "browse_min_catalog_items",
+    "public_site_url",
   ];
   const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
   const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
@@ -556,7 +557,9 @@ const catalogApi: CatalogApi = {
 // shop's whole desired catalogue and starved staging (LOG 2026-10-15). One computation per shop serves them all.
 const desired = desiredCache<DesiredProduct>(
   async (vendorId) =>
-    ((await rpc("catalog_desired", { p_vendor_id: vendorId })) as DesiredProduct[] | null) ?? [],
+    (
+      ((await rpc("catalog_desired", { p_vendor_id: vendorId })) as DesiredProduct[] | null) ?? []
+    ).map(withContent),
   productHash,
   {
     onError: (vendor, e) =>
@@ -774,6 +777,12 @@ Deno.serve(async (req) => {
             browseMinShops: Number(cfg.browse_categories_min_shops ?? 4),
             firstSectionItems: Number(cfg.browse_first_section_items ?? 6),
             browseMinCatalogItems: Number(cfg.browse_min_catalog_items ?? 6),
+            // The public site (config public_site_url, §39.15.7); null until it has an address.
+            siteUrl:
+              typeof cfg.public_site_url === "string" &&
+              /^https:\/\/[a-z0-9.-]+(:\d+)?\/?$/.test(cfg.public_site_url)
+                ? cfg.public_site_url.replace(/\/+$/, "")
+                : null,
             joinFunctionUrl: supabaseUrl
               ? `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/site-claim`
               : null,

@@ -8,7 +8,9 @@
 //   - order: the customer's "send cart" arrives as an `order` message; only retailer ids and quantities are used. The
 //     catalogue's price is kept only to tell the customer when the server's price differs; it is never charged.
 
-export type DesiredProduct = {
+import { catalogDescription, catalogTitle, fit, type ItemText } from "./item-text.ts";
+
+export type DesiredProduct = ItemText & {
   retailer_id: string;
   name: string;
   name_en?: string | null;
@@ -25,7 +27,18 @@ export type DesiredProduct = {
   photo?: string | null;
   /** Changes when the photo is made again under the same path (a new pick or new processing). */
   photo_hash?: string | null;
+  /** The item's public page (<public_site_url>/en/i/<id>, DECISIONS §39.15.2); never an image or storage URL. */
+  link?: string | null;
 };
+
+/**
+ * The words Meta shows (DECISIONS §39.15.2): "<Item> · <Shop>" and the decided description lines, built from the parts
+ * catalog_desired hands over. A product without the parts (an older database) keeps its name and description.
+ */
+export function withContent(p: DesiredProduct): DesiredProduct {
+  if (!p.shop_en && !p.shop_ar) return p;
+  return { ...p, name: catalogTitle(p), description: catalogDescription(p) };
+}
 
 /** A stable hash of what Meta shows for a product, so unchanged items are not re-sent. */
 export function productHash(p: DesiredProduct): string {
@@ -38,6 +51,8 @@ export function productHash(p: DesiredProduct): string {
     p.product_set,
     p.brand ?? "",
     p.photo ?? "",
+    // Only when set, so products without a page keep their hash.
+    ...(p.link ? [p.link] : []),
     // Only when set, so products without one keep their hash (no needless resend).
     ...(p.photo_hash ? [p.photo_hash] : []),
   ]);
@@ -77,14 +92,15 @@ export function catalogSyncPlan(
       method: "UPDATE",
       data: {
         id: p.retailer_id,
-        title: p.name.slice(0, 150),
-        description: (p.description || p.name_en || p.name).slice(0, 500),
+        title: fit(p.name, 150),
+        description: fit(p.description || p.name_en || p.name, 500),
         availability: p.availability,
         condition: "new",
         price: price(p.price_minor),
-        link: img,
+        // The item's page; the image route only when no site address exists (never shown to customers as a link then).
+        link: p.link || img,
         image_link: img,
-        brand: (p.brand || "Alo King").slice(0, 100),
+        brand: fit(p.brand || "Alo King", 100),
         custom_label_0: p.product_set,
         visibility: "published",
       },

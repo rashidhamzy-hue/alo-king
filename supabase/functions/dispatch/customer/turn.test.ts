@@ -1587,6 +1587,7 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
       "list",
     ]);
     expect(f.sent[0].image.link).toContain(`cover/${VENDOR}.jpg`);
+    // No site address yet: the CC BY cover keeps its credit in the caption (§39.13); once /credits exists it goes.
     expect(f.sent[0].image.caption).toBe(
       "*Big Market*\nBurgers · Baakline · 🛵 $2.00 delivery · 🕒 today 9:30 AM to 11:30 PM\n📷 Jane Doe via Openverse · CC BY 2.0",
     );
@@ -1600,6 +1601,13 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(rows[0].title).toBe("Section 1");
     expect(rows[9].id).toBe("sp:9");
     for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+    // With a site address, /credits credits the photo: no credit in the caption (§39.15.2).
+    f.sent.length = 0;
+    f.deps.config.siteUrl = "https://alo-king.vercel.app";
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(f.sent[0].image.caption).toBe(
+      "*Big Market*\nBurgers · Baakline · 🛵 $2.00 delivery · 🕒 today 9:30 AM to 11:30 PM",
+    );
   });
 
   it("the shop line reads the seed listing's Closed and Open 24 hours, and a closed shop says so", () => {

@@ -187,6 +187,8 @@ export type CustomerDeps = {
      * browse_min_catalog_items, DECISIONS §39.15.2).
      */
     browseMinCatalogItems?: number;
+    /** The public site's address (config public_site_url); null until it answers (§39.15.7). */
+    siteUrl?: string | null;
   };
   now?: () => Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
@@ -1642,10 +1644,14 @@ async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | 
     .catch(() => null);
   const q = (chk?.vendors ?? []).find((x: any) => x.vendor_id === vendorId);
   const fee = q?.status === "ok" && q.fee_usd != null ? Number(q.fee_usd) : null;
-  // An illustrative photo under CC BY or CC BY-SA carries its credit (§39.13); CC0 and public domain need none.
+  // No photo credit in a caption once the site credits every photo on /credits (§39.15.2); until the site has an
+  // address, an illustrative cover under CC BY or CC BY-SA carries its credit here (§39.13). CC0 and public domain need none.
   const cv = card.cover!;
   const credit =
-    cv.source === "illustrative" && cv.credit && !/^(cc0|pdm|public domain)/i.test(cv.license ?? "")
+    !c.deps.config.siteUrl &&
+    cv.source === "illustrative" &&
+    cv.credit &&
+    !/^(cc0|pdm|public domain)/i.test(cv.license ?? "")
       ? `\n📷 ${[Array.from(cv.credit.replace(/\s+/g, " ").trim()).slice(0, 80).join(""), cv.license].filter(Boolean).join(" · ")}`
       : "";
   return image(c.m.from, link, `*${shop}*\n${shopLine(c.s.lang, card, fee)}${credit}`);

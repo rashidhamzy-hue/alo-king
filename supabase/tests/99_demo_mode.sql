@@ -171,16 +171,18 @@ select tests.ok(public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrati
   'a dish photo is recorded');
 select tests.ok((select license = 'CC BY 2.0' and credit like 'Jane Doe%' and source_url like 'https://stocksnap.io/%'
   from public.menu_item_photos where item_id = :'kafta'), 'with its license, credit and source');
-select tests.ok((select p ->> 'description' like '%صورة توضيحية · Photo for illustration · 📷 Jane Doe via Openverse (stocksnap) · CC BY 2.0'
-    and char_length(p ->> 'description') <= 500 and p ->> 'photo_hash' = repeat('c', 64)
+select tests.ok((select (p ->> 'illustrative')::boolean and p ->> 'description' !~ '(📷|CC BY|Openverse)'
+    and p ->> 'photo_hash' = repeat('c', 64)
   from jsonb_array_elements(public.catalog_desired(:'d1')) p
-  where (p ->> 'retailer_id')::uuid = :'kafta'), 'the catalogue says an illustrative photo is for illustration and credits a CC BY one, within 500 characters');
+  where (p ->> 'retailer_id')::uuid = :'kafta'),
+  'an illustrative photo is flagged for its "Photo for illustration" line, and no credit reaches the catalogue (§39.15.2: credits live on the item page)');
 select tests.ok(public.menu_item_photo_set(:'kafta', 'packshot', 'packshot/' || :'d1' || '/' || :'kafta' || '.jpg', repeat('d', 64),
     'CC BY-SA 3.0', 'Open Food Facts contributors', 'https://world.openfoodfacts.org/product/5449000000996') ->> 'status' = 'ok',
   'a packshot is a photo source');
-select tests.ok((select not (p ->> 'description' like '%illustration%') and p ->> 'description' like '%📷 Open Food Facts contributors · CC BY-SA 3.0'
+select tests.ok((select not (p ->> 'illustrative')::boolean and p ->> 'description' !~ '(📷|CC BY|Open Food Facts)'
   from jsonb_array_elements(public.catalog_desired(:'d1')) p
-  where (p ->> 'retailer_id')::uuid = :'kafta'), 'a packshot is the product itself: no illustration note, credited');
+  where (p ->> 'retailer_id')::uuid = :'kafta'),
+  'a packshot is the product itself: no illustration note; its credit lives on the item page and /credits (§39.15.2)');
 select tests.ok(public.menu_item_photo_clear(:'kafta') ->> 'status' = 'ok', 'a photo whose pick is gone is removed');
 select tests.ok(not exists (select 1 from public.menu_item_photos where item_id = :'kafta'), 'and its row is gone');
 select public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.jpg', repeat('a', 64),

@@ -32,7 +32,8 @@ select tests.ok((select count(*) = 2 and bool_and(x ->> 'product_set' = '2000000
                    and bool_and(x ->> 'currency' = 'USD') and not bool_or(x ->> 'name' like '%Draft%')
                  from jsonb_array_elements(public.catalog_desired('20000000-0000-0000-0000-00000000000a')) x),
   'the desired catalogue is the published menu with photos (no draft item, no item without a photo), one set per shop, prices in USD');
-select tests.ok((select (x ->> 'price_minor')::int = 500 and x ->> 'name' = 'شاورما · Shawarma' and x ->> 'brand' = 'Vendor A'
+select tests.ok((select (x ->> 'price_minor')::int = 500 and x ->> 'name_ar' = 'شاورما' and x ->> 'name_en' = 'Shawarma'
+                   and x ->> 'brand' = 'Vendor A' and x ->> 'shop_en' = 'Vendor A'
                  from jsonb_array_elements(public.catalog_desired('20000000-0000-0000-0000-00000000000a')) x
                  where x ->> 'retailer_id' = '55000000-0000-0000-0000-000000000001'),
   'a product carries the server price, both names and the shop as brand');
