@@ -203,7 +203,14 @@ select tests.ok(public.flow_open('merchant_claim', 'en', '+96171000001', null, :
   'each Flow has its own switch, and one under its kill-gate floor stops being sent');
 
 -- Catalogue ------------------------------------------------------------------------------------------------
-select tests.ok((select bool_and((x ->> 'retailer_id')::uuid is not null and (x ->> 'currency') = 'USD' and (x ->> 'product_set') = '20000000-0000-0000-0000-00000000000a')
+-- Session 5e: only items with a photo of their own are in the catalogue.
+reset role;
+insert into public.menu_item_photos (item_id, vendor_id, storage_path, source)
+select i.id, i.vendor_id, 'merchant/' || i.vendor_id || '/' || i.id || '.jpg', 'merchant' from public.menu_items i
+where i.vendor_id = '20000000-0000-0000-0000-00000000000a' on conflict (item_id) do nothing;
+set local role service_role;
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select tests.ok((select count(*) > 0 and bool_and((x ->> 'retailer_id')::uuid is not null and (x ->> 'currency') = 'USD' and (x ->> 'product_set') = '20000000-0000-0000-0000-00000000000a')
   from jsonb_array_elements(public.catalog_desired('20000000-0000-0000-0000-00000000000a')) x), 'the desired catalogue uses our item ids and one set per branch');
 select tests.ok(jsonb_array_length(public.catalog_desired('20000000-0000-0000-0000-00000000000c')) = 0, 'an unclaimed vendor has no catalogue');
 select public.catalog_sync_record('20000000-0000-0000-0000-00000000000a', '[{"retailer_id": "53000000-0000-0000-0000-000000000001", "hash": "h1"}, {"retailer_id": "51000000-0000-0000-0000-000000000009", "hash": "foreign"}]');

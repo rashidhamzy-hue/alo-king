@@ -2,8 +2,17 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { harvestedDrafts, HARVEST_MENUS } from "../vendors/shouf-menus.ts";
 import { demoRows, DEMO_SHOPS } from "./build-demo-menus.ts";
-import { DRAWING_VERSION, plan, sizedImageUrl, type TodoItem } from "./demo-photos.ts";
-import { categoryOf, illustrationSvg, lines } from "./illustration.ts";
+import sharp from "sharp";
+import {
+  coverImage,
+  PROCESS_VERSION,
+  plan,
+  productImage,
+  signatureDish,
+  sizedImageUrl,
+  type Picks,
+  type TodoItem,
+} from "./demo-photos.ts";
 
 // DECISIONS §39.12, demo mode on staging.
 describe("demo shops' full harvested menus", () => {
@@ -36,30 +45,6 @@ describe("demo shops' full harvested menus", () => {
   });
 });
 
-describe("illustrative item photos", () => {
-  it("pick the picture from the item's name, then its section, then the shop's type", () => {
-    expect(categoryOf({ name_en: "Chicken Burger" })).toBe("burger");
-    expect(categoryOf({ name_en: "Chocolate Cake" })).toBe("dessert");
-    expect(categoryOf({ name_en: "Pepsi Can (330ml)" })).toBe("soda");
-    expect(categoryOf({ name_ar: "شاورما دجاج" })).toBe("wrap");
-    expect(categoryOf({ name_en: "ZAATAR" })).toBe("manousheh");
-    expect(categoryOf({ name_en: "House Special", section_en: "Pizzas" })).toBe("pizza");
-    expect(categoryOf({ name_en: "HELLO MI", business_type: "bakery_manakish" })).toBe("manousheh");
-    expect(categoryOf({ name_en: "Mystery", business_type: "restaurant" })).toBe("dish");
-  });
-  it("are labelled as an illustration and show the item's name, escaped", () => {
-    const svg = illustrationSvg({ name_en: "Fish & <Chips>", vendor: "Fred's", category: "fries" });
-    expect(svg).toContain("Illustration");
-    expect(svg).toContain("صورة توضيحية");
-    expect(svg).toContain("Fish &amp; &lt;Chips&gt;");
-    expect(svg).not.toContain("<Chips>");
-  });
-  it("wrap a long name on two lines at most", () => {
-    expect(lines("Tannourine Natural Mineral Water (1.5L x 6 Pack)", 22)).toHaveLength(2);
-    expect(lines("Water", 22)).toEqual(["Water"]);
-  });
-});
-
 describe("the photo plan per item", () => {
   const item: TodoItem = {
     item_id: "11111111-1111-1111-1111-111111111111",
@@ -73,21 +58,87 @@ describe("the photo plan per item", () => {
     image_url: null,
     photo: null,
   };
-  it("draws an item without a website image, once", () => {
-    const p = plan(item)!;
-    expect(p.kind).toBe("illustrative");
-    expect(
-      plan({ ...item, photo: { source: "illustrative", origin_hash: p.hash, storage_path: "x" } }),
-    ).toBeNull();
-    expect(DRAWING_VERSION).toBe("1");
+  const pick = (u: string) => ({
+    url: u,
+    license: "CC0",
+    credit: "someone",
+    source_url: `${u}#page`,
   });
-  it("prefers the shop's own website image (Fred's Food), at 800 px", () => {
+  const picks: Picks = {
+    dishes: {
+      curly_fries: pick("https://x/curly.jpg"),
+      fries: pick("https://x/fries.jpg"),
+      cold_cuts: pick("https://x/cuts.jpg"),
+    },
+    packshots: {
+      "Pepsi Can (330ml)": {
+        ...pick("https://images.openfoodfacts.org/p.full.jpg"),
+        license: "CC BY-SA 3.0",
+      },
+    },
+  };
+  it("gives an item without its own picture the real photo of its dish, once", () => {
+    const p = plan(item, picks) as any;
+    expect([p.kind, p.url, p.license, p.dish]).toEqual([
+      "illustrative",
+      "https://x/curly.jpg",
+      "CC0",
+      "curly_fries",
+    ]);
+    expect(
+      plan(
+        { ...item, photo: { source: "illustrative", origin_hash: p.hash, storage_path: "x" } },
+        picks,
+      ),
+    ).toBeNull();
+    expect(PROCESS_VERSION).toBe("5e-1");
+  });
+  it("falls back to the broader dish, and gives nothing to shisha or when no photo was picked", () => {
+    expect(
+      (plan(item, { ...picks, dishes: { fries: pick("https://x/fries.jpg") } }) as any).url,
+    ).toBe("https://x/fries.jpg");
+    expect(plan({ ...item, name_en: "Extra Bowl", section_en: "Argile" }, picks)).toBe("none");
+    expect(plan(item, { dishes: {}, packshots: {} })).toBe("none");
+  });
+  it("gives a shelf item its packshot when one was picked, else its shelf dish", () => {
+    const shelf = {
+      ...item,
+      name_en: "Pepsi Can (330ml)",
+      section_en: "Water & Beverages",
+      business_type: "grocery_supermarket",
+    };
+    expect((plan(shelf, picks) as any).kind).toBe("packshot");
+    expect(
+      (plan({ ...shelf, name_en: "Volys Turkey", section_en: "CHARCUTERIE" }, picks) as any).url,
+    ).toBe("https://x/cuts.jpg");
+  });
+  it("prefers the shop's own website image (Fred's Food), at 800 px; never a Google photo", () => {
     const url =
       "https://i0.wp.com/freds-food.com/wp-content/uploads/2022/06/Fries.jpg?resize=300%2C300&ssl=1";
-    expect(plan({ ...item, image_url: url })!.kind).toBe("merchant_site");
+    expect((plan({ ...item, image_url: url }, picks) as any).kind).toBe("merchant_site");
     expect(sizedImageUrl(url)).toContain("resize=800%2C800");
-    expect(plan({ ...item, image_url: "https://lh3.googleusercontent.com/p/x=s800" })!.kind).toBe(
-      "illustrative",
+    expect(
+      (plan({ ...item, image_url: "https://lh3.googleusercontent.com/p/x=s800" }, picks) as any)
+        .kind,
+    ).toBe("illustrative");
+  });
+  it("makes every product 800 × 800 and every cover 1200 × 800, JPEG", async () => {
+    const wide = await sharp({
+      create: { width: 1600, height: 900, channels: 3, background: "#c33" },
+    })
+      .png()
+      .toBuffer();
+    for (const kind of ["illustrative", "packshot"] as const) {
+      const m = await sharp(await productImage(wide, kind)).metadata();
+      expect([m.width, m.height, m.format]).toEqual([800, 800, "jpeg"]);
+    }
+    const c = await sharp(await coverImage(wide)).metadata();
+    expect([c.width, c.height]).toEqual([1200, 800]);
+  });
+  it("covers a shop with its signature dish, never a drink or a dip", () => {
+    expect(signatureDish(["soda", "soda", "soda", "burger", "burger", "fries", "dip"])).toBe(
+      "burger",
     );
+    expect(signatureDish(["soda", "water"])).toBeNull();
   });
 });

@@ -16,6 +16,10 @@ insert into public.menu_options (id, group_id, name_en, price_delta_usd, sort_or
 -- A draft section on the same shop: never part of the catalogue.
 insert into public.menu_drafts (vendor_id, source, sections) values
   ('20000000-0000-0000-0000-00000000000a', 'text', '[{"name_en": "Draft", "items": [{"name_en": "Draft dish", "price": 9, "currency": "USD"}], "approved": false}]');
+-- Session 5e: only items with a photo of their own are in the catalogue (no drawn tile); Knefe has none.
+insert into public.menu_item_photos (item_id, vendor_id, storage_path, source)
+select i.id, i.vendor_id, 'merchant/' || i.vendor_id || '/' || i.id || '.jpg', 'merchant' from public.menu_items i
+where i.id in ('55000000-0000-0000-0000-000000000001', '55000000-0000-0000-0000-000000000003', '55000000-0000-0000-0000-000000000004');
 insert into public.whatsapp_numbers (phone_number_id, role, waba_id, active) values ('1378974041965966', 'test', '1086076707594153', true)
   on conflict (phone_number_id) do update set waba_id = excluded.waba_id, active = true;
 
@@ -24,10 +28,10 @@ select tests.act_as(null);
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 
 -- The desired catalogue: published items only, our ids, USD, one set per shop -----------------------------------------
-select tests.ok((select count(*) = 3 and bool_and(x ->> 'product_set' = '20000000-0000-0000-0000-00000000000a')
+select tests.ok((select count(*) = 2 and bool_and(x ->> 'product_set' = '20000000-0000-0000-0000-00000000000a')
                    and bool_and(x ->> 'currency' = 'USD') and not bool_or(x ->> 'name' like '%Draft%')
                  from jsonb_array_elements(public.catalog_desired('20000000-0000-0000-0000-00000000000a')) x),
-  'the desired catalogue is the published menu (no draft item), one set per shop, prices in USD');
+  'the desired catalogue is the published menu with photos (no draft item, no item without a photo), one set per shop, prices in USD');
 select tests.ok((select (x ->> 'price_minor')::int = 500 and x ->> 'name' = 'شاورما · Shawarma' and x ->> 'brand' = 'Vendor A'
                  from jsonb_array_elements(public.catalog_desired('20000000-0000-0000-0000-00000000000a')) x
                  where x ->> 'retailer_id' = '55000000-0000-0000-0000-000000000001'),

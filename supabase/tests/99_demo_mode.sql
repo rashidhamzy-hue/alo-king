@@ -160,10 +160,24 @@ select tests.ok(exists (select 1 from jsonb_array_elements(public.demo_photos_to
   and x #>> '{photo,source}' = 'illustrative' and x ->> 'image_url' = 'https://example.test/kafta.jpg'), 'the to-do list shows it, with the shop''s image');
 select tests.ok((select p ->> 'photo' from jsonb_array_elements(public.catalog_desired(:'d1')) p where (p ->> 'retailer_id')::uuid = :'kafta')
   = 'illustrative/' || :'d1' || '/' || :'kafta' || '.png', 'the catalogue shows the item''s own photo');
+-- Session 5e: a real photo of the dish, with its license; the catalogue says it is for illustration; packshots too.
+select tests.ok(public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.jpg', repeat('c', 64),
+    'CC0', 'Jane Doe via Openverse (stocksnap)', 'https://stocksnap.io/photo/kafta') ->> 'status' = 'ok',
+  'a dish photo is recorded');
+select tests.ok((select license = 'CC0' and credit like 'Jane Doe%' and source_url like 'https://stocksnap.io/%'
+  from public.menu_item_photos where item_id = :'kafta'), 'with its license, credit and source');
+select tests.ok((select p ->> 'description' like '%Photo for illustration' from jsonb_array_elements(public.catalog_desired(:'d1')) p
+  where (p ->> 'retailer_id')::uuid = :'kafta'), 'the catalogue says an illustrative photo is for illustration');
+select tests.ok(public.menu_item_photo_set(:'kafta', 'packshot', 'packshot/' || :'d1' || '/' || :'kafta' || '.jpg', repeat('d', 64),
+    'CC BY-SA 3.0', 'Open Food Facts contributors', 'https://world.openfoodfacts.org/product/5449000000996') ->> 'status' = 'ok',
+  'a packshot is a photo source');
+select tests.ok((select not (p ->> 'description' like '%illustration%') from jsonb_array_elements(public.catalog_desired(:'d1')) p
+  where (p ->> 'retailer_id')::uuid = :'kafta'), 'a packshot is the product itself: no illustration note');
+select public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.png', repeat('a', 64));
 insert into public.vendor_photos (vendor_id, storage_path, source, status, origin_hash)
 values (:'d2', 'seed/' || :'d2' || '/' || repeat('b', 32) || '.jpg', 'seed', 'confirmed', repeat('b', 64));
-select tests.ok((select bool_and(p ->> 'photo' is null) from jsonb_array_elements(public.catalog_desired(:'d2')) p),
-  'a shop photo (here a confirmed Google one) is never an item''s photo');
+select tests.ok(jsonb_array_length(public.catalog_desired(:'d2')) = 0,
+  'a shop photo (here a confirmed Google one) is never an item''s photo: an item without its own photo is not in the catalogue');
 select tests.ok(public.menu_item_photo_set((select i.id from public.menu_items i where i.vendor_id = :'tv' limit 1), 'illustrative',
   'illustrative/' || :'tv' || '/' || gen_random_uuid() || '.png', null) ->> 'status' = 'not_demo', 'illustrative photos are for demo shops only');
 select tests.throws($$insert into public.menu_item_photos (item_id, vendor_id, storage_path, source)

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { catalogSyncStep, type CatalogApi } from "./catalog-sync";
-import { catalogTileSvg, wrap } from "../_shared/catalog-image";
 
 const V = "20000000-0000-0000-0000-00000000000a";
 const item = (k: number, extra: any = {}) => ({
@@ -173,22 +172,5 @@ describe("catalogue sync step: leases, budget and refused products (§39.12)", (
       visible: false,
     });
     expect(rec.find((r: any) => r.retailer_id === item(1).retailer_id).visible).toBe(true);
-  });
-});
-
-describe("the product tile for an item without a photo (§39.12)", () => {
-  it("names the item in Arabic and English and the shop, escaped, within two lines", () => {
-    const svg = catalogTileSvg({
-      name_ar: "شاورما دجاج",
-      name_en: "Chicken <Shawarma>",
-      vendor: "Alo Test Grill",
-    });
-    expect(svg).toContain("شاورما دجاج");
-    expect(svg).toContain("Chicken &lt;Shawarma&gt;");
-    expect(svg).toContain("Alo Test Grill");
-    expect(svg).toMatch(/width="600" height="600"/);
-    expect(
-      wrap("a very long dish name that keeps going and going and going", 16).length,
-    ).toBeLessThanOrEqual(2);
   });
 });

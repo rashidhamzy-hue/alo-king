@@ -21,7 +21,7 @@ export type DesiredProduct = {
   has_options?: boolean;
   section?: string;
   section_en?: string;
-  /** The shop's confirmed photo (Storage path) or null: then a generated tile is the image. */
+  /** The item's own photo (Storage path); the catalogue holds only items that have one (session 5e). */
   photo?: string | null;
 };
 

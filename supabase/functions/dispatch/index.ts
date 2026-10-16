@@ -36,7 +36,6 @@ import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
 import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
 import type { CatalogApi, CatalogTransport } from "./catalog-sync.ts";
-import { catalogTileSvg } from "../_shared/catalog-image.ts";
 import { productHash, type DesiredProduct } from "../_shared/catalog.ts";
 import { desiredCache } from "./desired-cache.ts";
 
@@ -494,8 +493,8 @@ async function photoUrl(path: string): Promise<string | null> {
 }
 
 /**
- * GET ?route=catalog-image&i=<item>: the product image Meta fetches. Only items in the catalogue are drawn (catalog_image
- * answers nothing for any other id). The shop's confirmed photo is a short-lived signed redirect; otherwise a tile.
+ * GET ?route=catalog-image&i=<item>: the product image Meta fetches, a short-lived signed redirect to the item's own photo.
+ * Only items in the catalogue are served (catalog_image answers nothing for any other id).
  */
 async function catalogImage(url: URL): Promise<Response> {
   const id = url.searchParams.get("i") ?? "";
@@ -511,20 +510,10 @@ async function catalogImage(url: URL): Promise<Response> {
     if (!(await desired.has(String(d.vendor_id), id, v)))
       return new Response("not found", { status: 404 });
   }
-  if (typeof d.photo === "string" && d.photo) {
-    // The item's own photo (menu_item_photos, DECISIONS §39.12): never a shop or Google place photo.
-    const signed = await photoUrl(d.photo);
-    if (signed) return Response.redirect(signed, 302);
-  }
-  const fontBuffers = await cardFonts();
-  const png = new Resvg(catalogTileSvg(d), {
-    font: { fontBuffers, loadSystemFonts: false, defaultFontFamily: "Noto Sans" },
-  })
-    .render()
-    .asPng();
-  return new Response(new Uint8Array(png), {
-    headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" },
-  });
+  // The item's own photo (menu_item_photos, DECISIONS §39.12, §39.13): never a shop or Google place photo, and nothing
+  // drawn any more; the catalogue holds only items that have one.
+  const signed = typeof d.photo === "string" && d.photo ? await photoUrl(d.photo) : null;
+  return signed ? Response.redirect(signed, 302) : new Response("not found", { status: 404 });
 }
 
 // Ops alerts and the console go to Slack (§32.1): SLACK_BOT_TOKEN, synced by the deploy job once the owner installs the app.
