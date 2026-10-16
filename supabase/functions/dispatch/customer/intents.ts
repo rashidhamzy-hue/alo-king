@@ -179,9 +179,10 @@ export const PRICE_RE =
  * through delivery apps is illegal, so the bot refuses in all four languages and points to a pharmacy. Checked before any
  * search or model call.
  */
-export function isMedicineRequest(raw: string): boolean {
+export function isMedicineRequest(raw: string, title = false): boolean {
   // "Antibiotic-free chicken" says what the food is without (§39.15.4 review); "no antibiotics left" stays a request.
-  return findMedicine(stripFoodAntibioticClaims(norm(markClauses(raw)))) !== null;
+  // `title`: an item's name (the merchant copilot), judged as the catalogue judges it, never as a request.
+  return findMedicine(stripFoodAntibioticClaims(norm(markClauses(raw)), title)) !== null;
 }
 
 /** "What do you remember about me?" in four languages (§39.6): shows the memory card, never the model's version of it. */

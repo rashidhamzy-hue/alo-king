@@ -93,7 +93,7 @@ const nameParts = (name: string): CatalogItemCheck => {
  * medicine rule, whichever sees it ("Cough syrup", "Painkillers", "دواء سعال"). Nothing is proposed for such an item.
  */
 const isMedicineItem = (name: string): boolean =>
-  isMedicineRequest(name) ||
+  isMedicineRequest(name, true) ||
   validateCatalogItem(nameParts(name)).some((i) => i.code === "policy_medicine");
 
 const hhmm = (d: Date) => {

@@ -911,6 +911,20 @@ describe("catalogue rules: a bad photo or a bad name is explained, with the fix"
     await t.text("زيد صنف علبة دخان 5");
     expect(t.body(0)).toContain("هيدا بيبيّن دخان أو منتج تبغ");
   });
+  it("an item name with its antibiotic-free claim after punctuation is judged as a title, as the catalogue does", async () => {
+    for (const msg of [
+      "add item Chicken breast, antibiotic free 6",
+      "زيد صنف دجاج طازج، بدون مضادات حيوية 6",
+    ]) {
+      const h = harness();
+      await h.text(msg);
+      expect(h.body(), msg).not.toMatch(/Medicines can't be sold/);
+      expect(h.proposal(), msg).toMatchObject({ p_kind: "item_add", p_payload: { price_usd: 6 } });
+    }
+    // Called with an item's name as written, the title rule reads the food before the punctuation.
+    expect(isMedicineRequest("Chicken breast, antibiotic free", true)).toBe(false);
+    expect(isMedicineRequest("Chicken breast, antibiotic free")).toBe(true);
+  });
   it("antibiotic-free chicken is food, not medicine: added with no refusal (review)", async () => {
     expect(isMedicineRequest("antibiotic-free chicken breast")).toBe(false);
     expect(isMedicineRequest("Poulet sans antibiotiques")).toBe(false);
