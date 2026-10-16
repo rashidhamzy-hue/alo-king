@@ -28,6 +28,9 @@ export type ToolName =
   | "report_problem"
   | "show_memory"
   | "decline_off_topic"
+  | "remind_when_open"
+  | "join_waitlist"
+  | "pickup_places"
   | "reply";
 
 const str = (description: string) => ({ type: "string", description });
@@ -421,6 +424,29 @@ export const TOOLS = [
       "The message is not about food, groceries, delivery, an order or support (weather, news, homework, general chat). Shows one polite fixed line.",
     input_schema: obj({}),
   },
+  // Session 5f part 8a: the new buttons of first contact, reachable by asking (DECISIONS §39.14 rule 1).
+  {
+    name: "remind_when_open",
+    description:
+      "The shop the customer wants is closed (or every shop near them is) and they want to hear when it opens. Sets one reminder; the system reads the opening time and sends one message then, only while WhatsApp allows it. Never state the opening time yourself.",
+    input_schema: obj({
+      vendor_ref: nstr(
+        "A vendor ref from the context (v1...), or null for the first shop near the customer to open",
+      ),
+    }),
+  },
+  {
+    name: "join_waitlist",
+    description:
+      "The customer's address is outside the delivery area and they want to be told when Alo King delivers there. The system keeps their request for that place and sends one message when it starts; it is never used for promotions.",
+    input_schema: obj({}),
+  },
+  {
+    name: "pickup_places",
+    description:
+      "The customer would rather collect the order themselves (pickup), for example when Alo King does not deliver to them: lists the shops near their address that take pickup.",
+    input_schema: obj({}),
+  },
   {
     name: "reply",
     description:
@@ -589,6 +615,28 @@ export const TOOL_CONTRACT: Record<
     idempotency: "none",
     render: "fixed line and the main buttons",
   },
+  remind_when_open: {
+    rpc: ["shop_reminder_set", "vendor_opening"],
+    auth: "self (customer from the session); vendor ref from this session, orderable and visible to the customer",
+    states: "the shop, or every shop near the saved pin, is closed",
+    idempotency: "one waiting reminder per customer and shop: a repeat moves its time",
+    render:
+      "confirmation with the opening time from the server, or the shop's menu when it is open",
+  },
+  join_waitlist: {
+    rpc: ["waitlist_join"],
+    auth: "self; the place of the customer's own address, never one the model names",
+    states: "the address is outside the delivery area",
+    idempotency: "one opt-in per customer and place",
+    render: "confirmation naming the place",
+  },
+  pickup_places: {
+    rpc: ["customer_search_point", "vendor_search_pickup", "vendor_opening"],
+    auth: "self",
+    states: "any",
+    idempotency: "read only",
+    render: "buttons for 1-3, list for 4-10, closed ones saying when they open",
+  },
   reply: {
     rpc: [],
     auth: "none",
@@ -620,6 +668,8 @@ How you work:
 - What the customer says about themselves (vegetarian, gluten-free, an allergy): set_preference. Never ask about health; the system asks before keeping health information.
 - A note for one basket item ("no onions on the burger"): set_item_note with its line ref. Extras on a basket item ("add cheese"): add_item_extras with the line ref and the extras as said.
 - At checkout, the note they will pay with ("I'll pay with a 50", "exact cash"): set_cash_change. A tip at checkout: set_tip (null removes it). A tip after delivery: tip_order. The system accepts only its own amounts; never promise one.
+- A closed shop the customer wants to hear about when it opens ("remind me", "tell me when they open"): remind_when_open. Never say when it opens; the system does.
+- The customer's address is outside the delivery area and they want to know when Alo King comes there: join_waitlist. To collect from a shop instead: pickup_places.
 - If the customer wants a person, or you can't help: request_human.
 - If unsure what they want, reply with ONE short question and confidence "low".
 - Reply text: the customer's language (given in <context>), at most 2 short sentences, warm and plain. No markdown.

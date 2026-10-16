@@ -110,6 +110,15 @@ export function templateFill(
     case "support_reply":
       // The reply itself is held and shown when they tap "Read the reply" (support_pending).
       return { values: { name: String(p.name ?? "").trim() }, payloads: ["c:support"] };
+    case "waitlist_open": {
+      // The place the customer asked about (§3.2 #11), in the template's language; Order starts the order.
+      const place = String(
+        (lang === "ar" ? p.place : lang === "fr" ? (p.place_fr ?? p.place_en) : p.place_en) ??
+          p.place ??
+          "",
+      ).trim();
+      return place ? { values: { place }, payloads: ["c:order"] } : null;
+    }
     case "new_order":
       return c.code && UUID.test(oid)
         ? {

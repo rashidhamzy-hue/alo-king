@@ -35,6 +35,7 @@ import {
   parseCustomerAction,
 } from "../_shared/customer-cards.ts";
 import { handleCustomerTurn, readCustomerInbound, type CustomerDeps } from "./customer/turn.ts";
+import { inboundBurst, withBurst } from "./customer/burst.ts";
 import { handleOnboarding, readOnboardingInbound } from "./merchant/onboarding.ts";
 import { parseOnboardingTap } from "../_shared/onboarding-cards.ts";
 import { handleMerchantMenu } from "./merchant/menu.ts";
@@ -210,7 +211,7 @@ export async function runDispatch(
       continue;
     }
     for (const ev of events) {
-      let status: "done" | "ignored" | "failed" = "done";
+      let status: "done" | "ignored" | "failed" | "deferred" = "done";
       let error: string | undefined;
       try {
         status = await handleInbound(deps, ev);
@@ -219,6 +220,8 @@ export async function runDispatch(
         error = e instanceof Error ? e.message : String(e);
         deps.log?.("inbound failed", { event_id: ev.event_id, error: error.slice(0, 200) });
       }
+      // A typed message held back for the rest of its customer's burst is already back on the queue (webhook_defer).
+      if (status === "deferred") continue;
       await deps.rpc("webhook_finish", {
         p_msg_id: ev.msg_id,
         p_event_id: ev.event_id,
@@ -700,7 +703,10 @@ export function readInbound(payload: any): Inbound | null {
   return { from, messageId: String(msg.id ?? ""), buttonId, text };
 }
 
-async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ignored"> {
+async function handleInbound(
+  deps: DispatchDeps,
+  ev: any,
+): Promise<"done" | "ignored" | "deferred"> {
   // A contact stopped marketing inside WhatsApp itself (Meta's opt-out, §18.3): the same as typing STOP.
   if (/marketing_preference_changed$/.test(String(ev.event_type))) {
     const wa = String(ev.payload?.contact?.wa_id ?? "").replace(/^\+/, "");
@@ -965,10 +971,29 @@ async function switchTestSide(
 }
 
 /** Everyone who is not an active merchant member is a customer (the sandbox serves both until cut-over, §3). */
-async function customerInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ignored"> {
+async function customerInbound(
+  deps: DispatchDeps,
+  ev: any,
+): Promise<"done" | "ignored" | "deferred"> {
   if (!deps.customer) return "ignored";
-  const m = readCustomerInbound(ev.payload);
-  if (!m || !m.messageId) return "ignored";
+  const read = readCustomerInbound(ev.payload);
+  if (!read || !read.messageId) return "ignored";
+  // Five messages in a row get one reply (CUSTOMER-EXPERIENCE §3.1 #6): a typed message waits for the rest of its burst.
+  const b = await inboundBurst(deps.rpc, ev.event_id, read, deps.log);
+  if (b.kind === "folded") return "done";
+  if (b.kind === "wait") {
+    const deferred = await deps
+      .rpc("webhook_defer", {
+        p_msg_id: ev.msg_id,
+        p_event_id: ev.event_id,
+        p_attempt: ev.attempts ?? null,
+        p_delay_s: b.seconds,
+      })
+      .catch(() => false);
+    if (deferred === true) return "deferred";
+    // Could not put it back (another attempt holds it): answered now rather than never.
+  }
+  const m = b.kind === "burst" ? withBurst(read, b.texts) : read;
   const from = (await replySender(deps, ev, "customer")) ?? null;
   if (!from) return "ignored";
   await handleCustomerTurn(

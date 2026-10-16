@@ -901,6 +901,8 @@ export type VendorRow = {
   name_en?: string | null;
   is_open: boolean;
   straight_km?: number | null;
+  /** A closed shop's next opening, short ("12:00", "tomorrow 12:00"): the row says "Closed · opens 12:00" (§3.3 #21). */
+  opens?: string | null;
 };
 
 export function vendorChoices(
@@ -931,7 +933,11 @@ export function vendorChoices(
             ? r.straight_km != null
               ? { description: `~${Number(r.straight_km).toFixed(1)} km` }
               : {}
-            : { description: tr(lang, "closedUntil") }),
+            : {
+                description: r.opens
+                  ? tr(lang, "closedOpens", { when: r.opens })
+                  : tr(lang, "closedUntil"),
+              }),
         })),
       },
     ]),
@@ -2409,13 +2415,19 @@ export type BrowseShop = {
   fee_usd?: number | null;
   village_ar?: string | null;
   village_en?: string | null;
+  /** A closed shop's next opening, short ("12:00", "tomorrow 12:00"): the row says "Closed · opens 12:00" (§3.3 #21). */
+  opens?: string | null;
 };
 
 /** One row per shop: name, then delivery fee, distance and village (closed shops say so). */
 export function shopRows(lang: CLang, shops: BrowseShop[]): Row[] {
   return shops.slice(0, 10).map((s) => {
     const bits = [
-      s.is_open ? null : tr(lang, "closedShort"),
+      s.is_open
+        ? null
+        : s.opens
+          ? tr(lang, "closedOpens", { when: s.opens })
+          : tr(lang, "closedShort"),
       s.fee_usd != null ? `🛵 ${usd(s.fee_usd)}` : null,
       s.km != null ? `${Number(s.km).toFixed(1)} km` : null,
       name(lang, s.village_ar, s.village_en),
@@ -3338,4 +3350,236 @@ function fitBody(lang: CLang, head: string[], items: string[], tail: string[]): 
     tr(lang, "moreLines", { n: items.length - shown.length }),
     ...tail,
   ].join("\n");
+}
+
+// ---- Session 5f part 8a: first contact (CUSTOMER-EXPERIENCE §3.1 #1-7, §3.2 #11, §3.3 #21) ----------------------------------
+// New strings answer Arabizi in Arabic script (CUSTOMER-EXPERIENCE §2 rule 1: "Arabic or Arabizi → Arabic script"); at most
+// one emoji per message and none in the buttons (§2 rule 5).
+const ar5F8A = (s: string) => ({ ar: s, arabizi: s });
+const S5F8A: Record<string, Record<CLang, string>> = {
+  welcome: {
+    ...ar5F8A("👑 اطلب أكل وأغراض بالشوف، من هون عالواتساب. ما في داعي لأي تطبيق."),
+    en: "👑 Order food and groceries in the Shouf, right here on WhatsApp. No app needed.",
+    fr: "👑 Commandez repas et courses dans le Chouf, ici même sur WhatsApp. Pas besoin d'application.",
+  },
+  btnWelcomeOrder: { ...ar5F8A("اطلب"), en: "Order", fr: "Commander" },
+  btnMyOrders: { ...ar5F8A("طلباتي"), en: "My orders", fr: "Mes commandes" },
+  btnHelpPlain: { ...ar5F8A("مساعدة"), en: "Help", fr: "Aide" },
+  voiceOff: {
+    ...ar5F8A("ما فيني إسمع الرسايل الصوتية بعد. دوس «اطلب» أو اكتب اسم الأكلة."),
+    en: "I can't listen to voice notes yet. Tap Order or type the dish.",
+    fr: "Je ne peux pas encore écouter les vocaux. Touchez Commander ou écrivez le plat.",
+  },
+  photoNoAi: {
+    ...ar5F8A("حلو! قلّي شو الأكلة أو اسم المحل، أو دوس «اطلب»."),
+    en: "Nice! Tell me the dish or the shop, or tap Order.",
+    fr: "Joli ! Dites-moi le plat ou le commerce, ou touchez Commander.",
+  },
+  // Openings, in Beirut time.
+  whenToday: { ...ar5F8A("الساعة {hm}"), en: "at {hm}", fr: "à {hm}" },
+  whenTomorrow: { ...ar5F8A("بكرا الساعة {hm}"), en: "tomorrow at {hm}", fr: "demain à {hm}" },
+  whenDay: { ...ar5F8A("{day} الساعة {hm}"), en: "on {day} at {hm}", fr: "{day} à {hm}" },
+  whenShortTomorrow: { ...ar5F8A("بكرا {hm}"), en: "tomorrow {hm}", fr: "demain {hm}" },
+  whenShortDay: { ...ar5F8A("{day} {hm}"), en: "{day} {hm}", fr: "{day} {hm}" },
+  closedOpens: {
+    ...ar5F8A("مسكّر · بيفتح {when}"),
+    en: "Closed · opens {when}",
+    fr: "Fermé · ouvre {when}",
+  },
+  closedNear: {
+    ...ar5F8A("🌙 المحلات القريبة منك مسكّرة هلق. {vendor} بيفتح {when}."),
+    en: "🌙 Shops near you are closed now. {vendor} opens {when}.",
+    fr: "🌙 Les commerces près de chez vous sont fermés. {vendor} ouvre {when}.",
+  },
+  closedNearNoTime: {
+    ...ar5F8A("🌙 المحلات القريبة منك مسكّرة هلق."),
+    en: "🌙 Shops near you are closed now.",
+    fr: "🌙 Les commerces près de chez vous sont fermés.",
+  },
+  shopClosed: {
+    ...ar5F8A("{vendor} مسكّر هلق. بيفتح {when}."),
+    en: "{vendor} is closed now. It opens {when}.",
+    fr: "{vendor} est fermé. Il ouvre {when}.",
+  },
+  shopClosedNoTime: {
+    ...ar5F8A("{vendor} مسكّر هلق."),
+    en: "{vendor} is closed now.",
+    fr: "{vendor} est fermé.",
+  },
+  btnRemind: { ...ar5F8A("ذكّرني"), en: "Remind me", fr: "Me le rappeler" },
+  btnSeeMenus: { ...ar5F8A("شوف المنيوهات"), en: "See menus", fr: "Voir les menus" },
+  btnSeeMenu: { ...ar5F8A("شوف المنيو"), en: "See the menu", fr: "Voir le menu" },
+  btnOtherShops: { ...ar5F8A("محلات تانية"), en: "Other shops", fr: "Autres commerces" },
+  remindSet: {
+    ...ar5F8A("✅ تمام. ببعتلك لما يفتح {vendor} {when}."),
+    en: "✅ Done. I'll message you when {vendor} opens {when}.",
+    fr: "✅ C'est noté. Je vous écris quand {vendor} ouvre {when}.",
+  },
+  remindSetAny: {
+    ...ar5F8A("✅ تمام. ببعتلك لما يفتح أول محل قريب منك، {when}."),
+    en: "✅ Done. I'll message you when the first shop near you opens, {when}.",
+    fr: "✅ C'est noté. Je vous écris quand le premier commerce près de chez vous ouvre, {when}.",
+  },
+  remindTooFar: {
+    ...ar5F8A(
+      "{vendor} بيفتح {when}. واتساب ما بيخلّينا نبعتلك بعد ٢٤ ساعة من آخر رسالة منك، فما فينا نذكّرك وقتها. ابعتلنا لما يفتح.",
+    ),
+    en: "{vendor} opens {when}. WhatsApp lets us write to you only within 24 hours of your last message, so we can't remind you then. Write to us when it opens.",
+    fr: "{vendor} ouvre {when}. WhatsApp ne nous laisse vous écrire que 24 h après votre dernier message, nous ne pourrons donc pas vous le rappeler. Écrivez-nous à l'ouverture.",
+  },
+  thisShop: { ...ar5F8A("هالمحل"), en: "this shop", fr: "ce commerce" },
+  remindNoTime: {
+    ...ar5F8A("ما منعرف بعد إيمتى بيفتح {vendor}. بتحب تختار محل تاني؟"),
+    en: "We don't know yet when {vendor} opens. Pick another shop?",
+    fr: "Nous ne savons pas encore quand {vendor} ouvre. Choisir un autre commerce ?",
+  },
+  outsideArea: {
+    ...ar5F8A("ما منوصّل لـ {place} بعد."),
+    en: "We don't deliver to {place} yet.",
+    fr: "Nous ne livrons pas encore à {place}.",
+  },
+  outsideAreaHere: {
+    ...ar5F8A("ما منوصّل لعنوانك بعد."),
+    en: "We don't deliver to your address yet.",
+    fr: "Nous ne livrons pas encore à votre adresse.",
+  },
+  btnWaitlist: { ...ar5F8A("خبّرني لما توصّلوا"), en: "Tell me when you do", fr: "Prévenez-moi" },
+  btnPickupInstead: {
+    ...ar5F8A("باستلم من المحل"),
+    en: "Pick up instead",
+    fr: "Retrait sur place",
+  },
+  waitlistJoined: {
+    ...ar5F8A("✅ تمام. منبعتلك رسالة وحدة لما نبلّش نوصّل لـ {place}."),
+    en: "✅ Done. We'll send you one message when we start delivering to {place}.",
+    fr: "✅ C'est noté. Nous vous enverrons un seul message quand nous livrerons à {place}.",
+  },
+  shopLinkPin: {
+    ...ar5F8A("📍 ابعتلي موقعك (Location) وبفتحلك منيو {vendor}."),
+    en: "📍 Send your location and I'll open {vendor}'s menu.",
+    fr: "📍 Envoyez votre position et j'ouvre le menu de {vendor}.",
+  },
+};
+Object.assign(S, S5F8A);
+// Errors with their way forward (§39.15.1), and replies that confirm what the customer asked for.
+Object.assign(ERROR_WAYS, {
+  remindTooFar: ["order", "help"],
+  remindNoTime: ["order", "help"],
+} satisfies Record<string, Way[]>);
+for (const k of ["remindSet", "remindSetAny", "waitlistJoined"]) INFO_KEYS.add(k);
+
+const DAYS: Record<"ar" | "en" | "fr", string[]> = {
+  ar: ["الأحد", "التنين", "التلاتا", "الأربعا", "الخميس", "الجمعة", "السبت"],
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  fr: ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"],
+};
+const DAYS_SHORT: Record<"ar" | "en" | "fr", string[]> = {
+  ar: DAYS.ar,
+  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  fr: ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."],
+};
+/** An opening as the server words it (app_private.opening_json): Beirut time, days from today, weekday. */
+export type Opening =
+  { opens_at?: string; hm: string; in_days: number; dow: number } | null | undefined;
+const dayLang = (lang: CLang) => (lang === "en" || lang === "fr" ? lang : "ar");
+
+/** "at 12:00", "tomorrow at 12:00", "on Monday at 12:00"; null without an opening. */
+export function whenText(lang: CLang, o: Opening): string | null {
+  if (!o || !/^\d{2}:\d{2}$/.test(String(o.hm))) return null;
+  if (Number(o.in_days) <= 0) return tr(lang, "whenToday", { hm: o.hm });
+  if (Number(o.in_days) === 1) return tr(lang, "whenTomorrow", { hm: o.hm });
+  return tr(lang, "whenDay", { hm: o.hm, day: DAYS[dayLang(lang)][Number(o.dow) % 7] ?? "" });
+}
+
+/** The short form for a list row: "12:00", "tomorrow 12:00", "Mon 12:00". */
+export function whenShort(lang: CLang, o: Opening): string | null {
+  if (!o || !/^\d{2}:\d{2}$/.test(String(o.hm))) return null;
+  if (Number(o.in_days) <= 0) return o.hm;
+  if (Number(o.in_days) === 1) return tr(lang, "whenShortTomorrow", { hm: o.hm });
+  return tr(lang, "whenShortDay", {
+    hm: o.hm,
+    day: DAYS_SHORT[dayLang(lang)][Number(o.dow) % 7] ?? "",
+  });
+}
+
+/** §3.1 #1: the one welcome, with Order, My orders and Help. */
+export function welcomeMenu(to: string, lang: CLang): Msg {
+  return buttons(to, tr(lang, "welcome"), [
+    ["c:order", tr(lang, "btnWelcomeOrder")],
+    ["c:track", tr(lang, "btnMyOrders")],
+    ["c:human", tr(lang, "btnHelpPlain")],
+  ]);
+}
+
+/** §3.1 #4: a voice note while voice is off (no AI credit): the Order button. */
+export function voiceOffCard(to: string, lang: CLang): Msg {
+  return buttons(to, tr(lang, "voiceOff"), [["c:order", tr(lang, "btnWelcomeOrder")]]);
+}
+
+/** §3.1 #5: a photo while photo understanding is off: the Order button. */
+export function photoCard(to: string, lang: CLang): Msg {
+  return buttons(to, tr(lang, "photoNoAi"), [["c:order", tr(lang, "btnWelcomeOrder")]]);
+}
+
+/** §3.1 #7: every shop near the customer is closed. Remind me (the first to open), See menus. */
+export function closedNearCard(
+  to: string,
+  lang: CLang,
+  first: { vendor_id?: string | null; name: string } | null,
+  when: string | null,
+): Msg {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  const bs: [string, string][] = [];
+  if (first && when && uuid.test(String(first.vendor_id ?? "")))
+    bs.push([`rmd:${first.vendor_id}`, tr(lang, "btnRemind")]);
+  bs.push(["c:near", tr(lang, "btnSeeMenus")]);
+  return buttons(
+    to,
+    first && when
+      ? tr(lang, "closedNear", { vendor: clip(first.name, 60), when })
+      : tr(lang, "closedNearNoTime"),
+    bs,
+  );
+}
+
+/** §3.3 #21: a closed shop opened from a list or a link. Remind me, its menu anyway, other shops; never an order for later. */
+export function shopClosedCard(
+  to: string,
+  lang: CLang,
+  shop: { vendorId: string; ref: string; name: string },
+  when: string | null,
+): Msg {
+  const bs: [string, string][] = [];
+  if (when && /^[0-9a-f-]{36}$/.test(shop.vendorId))
+    bs.push([`rmd:${shop.vendorId}`, tr(lang, "btnRemind")]);
+  if (/^v\d{1,2}$/.test(shop.ref)) bs.push([`vm:${shop.ref}`, tr(lang, "btnSeeMenu")]);
+  bs.push(["c:near", tr(lang, "btnOtherShops")]);
+  const vendor = clip(shop.name, 60);
+  return buttons(
+    to,
+    when ? tr(lang, "shopClosed", { vendor, when }) : tr(lang, "shopClosedNoTime", { vendor }),
+    bs,
+  );
+}
+
+/** §3.2 #11: outside the delivery area. Tell me when you do; Pick up instead when a shop is in range; Change address. */
+export function outsideAreaCard(
+  to: string,
+  lang: CLang,
+  place: string | null,
+  pickup: boolean,
+): Msg {
+  const bs: [string, string][] = [["wl:join", tr(lang, "btnWaitlist")]];
+  if (pickup) bs.push(["c:pickup_list", tr(lang, "btnPickupInstead")]);
+  bs.push(["c:new_address", tr(lang, "btnChangeAddress")]);
+  return buttons(
+    to,
+    place ? tr(lang, "outsideArea", { place: clip(place, 60) }) : tr(lang, "outsideAreaHere"),
+    bs,
+  );
+}
+
+/** §3.1 #2: a shop link before any pin: the location request that opens that shop next. */
+export function shopLinkPin(to: string, lang: CLang, vendor: string): Msg {
+  return locationRequest(to, tr(lang, "shopLinkPin", { vendor: clip(vendor, 60) }));
 }

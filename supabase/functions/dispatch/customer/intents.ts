@@ -97,8 +97,8 @@ export function deterministicIntent(raw: string): Intent | null {
       /\b(talk|speak) to (a )?(person|human|someone|agent|rasheed|rashid)\b/,
       /\b(human|agent|real person|customer service)\b/,
       /\b(parler a|un humain|une personne|conseiller)\b/,
-      /(بدي|بدنا|خليني) (احكي|حاكي) (حدا|شخص|انسان|موظف|رشيد)/,
-      /\b(baddi|badde|bade) (e7ke|ehke|i7ki|ehki) (7ada|hada|shakhs|rasheed)\b/,
+      /(بدي|بدنا|خليني) (احكي|حاكي)( مع)? (حدا|شخص|انسان|موظف|رشيد)/,
+      /\b(baddi|badde|bade) (e7ke|ehke|i7ki|ehki)( ma3)? (7ada|hada|shakhs|rasheed)\b/,
       /^(rasheed|rashid|رشيد)$/,
       // The label of the "A person" button, typed back (found by the staging e2e simulator, 12 October).
       /^(a |the )?(person|someone|somebody|human being)$/,
@@ -229,3 +229,76 @@ export function mentionsSomeoneElse(raw: string): boolean {
  */
 export const FACT_RE =
   /([\d٠-٩]+\s?(min|mins|minute|minutes|دقيقه|دقايق|دقيقة|hour|hours|heure|heures|ساعه|ساعة|km|كم|كلم|%)|free delivery|livraison gratuite|توصيل مجاني|delivery is free|refund|rembours|استرجاع|مرتجع)/i;
+
+// ---- Session 5f part 8a: first contact (CUSTOMER-EXPERIENCE §3.1) -------------------------------------------------------------
+
+/**
+ * A shop link (§3.1 #2): the website's "Order on WhatsApp" on a shop page, or a QR on the shop, pre-fills a text that carries
+ * the shop's slug as "(shop:eatout-baakline)" (src/lib/site.ts shopRef). The slug is the shop's unique key, so the bot opens
+ * exactly that shop, never a fuzzy match on its name.
+ */
+/** The website's shop key, only in the bracketed form it emits ("(shop:eatout)"): a bare "shop:x" in a message is text. */
+export const SHOP_TOKEN_RE = /[(\[]\s*shop:([a-z0-9]+(?:-[a-z0-9]+){0,15})\s*[)\]]/i;
+export function shopToken(raw: string): string | null {
+  const m = SHOP_TOKEN_RE.exec(raw);
+  return m ? m[1].toLowerCase() : null;
+}
+/** The text without its shop token (and the brackets around it). */
+export const withoutShopToken = (raw: string) =>
+  raw
+    .replace(new RegExp(SHOP_TOKEN_RE.source, "gi"), " ")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+
+/** Nothing to read: "?", "!!", "...", emoji only (§3.1 #1 answers it with the welcome). */
+export const isEmptyish = (raw: string) => !/[\p{L}\p{N}]/u.test(raw);
+
+/** What a text the website pre-filled asks for (src/content/{ar,en,fr}.ts `wa`), once the greeting before it is read. */
+export type SiteText =
+  | { kind: "greeting" }
+  | { kind: "order" }
+  | { kind: "shop"; name: string }
+  | { kind: "text"; text: string };
+
+const SITE_HELLO = [
+  /^\s*(hi|hello|hey)[\s,]+alo\s*king\b[\s,.!:;-]*/i,
+  /^\s*(bonjour|bonsoir|salut)[\s,]+alo\s*king\b[\s,.!:;-]*/i,
+  /^\s*(مرحبا|مرحبتين|اهلا|أهلا)[\s،,]+(ألو|الو|آلو)\s*كينغ[\s،,.!:؛-]*/,
+];
+const SITE_ORDER = [
+  /^i['’]?d like to order(?:\s+in\s+.+|\s+for my family in lebanon)?[\s.!]*$/i,
+  /^je voudrais commander(?:\s+à\s+.+|\s+pour ma famille au liban)?[\s.!]*$/i,
+  /^بدي\s+اطلب(?:\s*بـ.+|\s+لأهلي\s+بلبنان)?[\s.!]*$/,
+];
+const SITE_SHOP = [
+  /^i['’]?d like to order from\s+(.+?)(?:\s*:.*)?[\s.!]*$/i,
+  /^je voudrais commander chez\s+(.+?)(?:\s*:.*)?[\s.!]*$/i,
+  /^بدي\s+اطلب\s+من\s+(.+?)(?:\s*:.*)?[\s.!]*$/,
+];
+const SITE_LIKE = [/^i['’]?d like\s+(.+)$/i, /^je voudrais\s+(.+)$/i, /^بدي\s+(.+)$/];
+
+/**
+ * The website's pre-filled texts begin "Hi Alo King, …" ("Bonjour Alo King, …", "مرحبا ألو كينغ، …"). Read deterministically:
+ * the greeting alone is a greeting; "I'd like to order" (in a village, or for the family) starts an order; "… from <shop>" names
+ * a shop; "I'd like <cuisine>" is a search; anything else ("I need to talk to a person", "where is my order?") is read as typed.
+ * Null for a text that does not start with the site's greeting.
+ */
+export function siteText(raw: string): SiteText | null {
+  const t = raw.trim();
+  const hello = SITE_HELLO.map((r) => r.exec(t)).find(Boolean);
+  if (!hello) return null;
+  const rest = t.slice(hello[0].length).trim();
+  if (!rest || isEmptyish(rest)) return { kind: "greeting" };
+  for (const r of SITE_SHOP) {
+    const m = r.exec(rest);
+    if (m && m[1].trim()) return { kind: "shop", name: m[1].trim().slice(0, 80) };
+  }
+  if (SITE_ORDER.some((r) => r.test(rest))) return { kind: "order" };
+  // "I need to talk to a person", "where is my order?": read whole, so the words that decide stay.
+  if (deterministicIntent(rest)) return { kind: "text", text: rest };
+  for (const r of SITE_LIKE) {
+    const m = r.exec(rest);
+    if (m && m[1].trim()) return { kind: "text", text: m[1].trim().replace(/[.!]+$/, "") };
+  }
+  return { kind: "text", text: rest };
+}

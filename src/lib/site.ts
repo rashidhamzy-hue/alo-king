@@ -98,6 +98,17 @@ export function waLink(text: string, number: string = WHATSAPP_NUMBER): string |
   return `https://wa.me/${n}?text=${encodeURIComponent(text.slice(0, 900))}`;
 }
 
+/**
+ * The shop a pre-filled WhatsApp text is about, as the bot reads it (CUSTOMER-EXPERIENCE §3.1 #2): "(shop:<slug>)" after the
+ * shop's name, so a shop page's "Order on WhatsApp" (or a QR printed from it) opens exactly that shop after the location step,
+ * never a guess from its name. Nothing for a slug that is not one.
+ */
+export const shopRef = (slug: string | null | undefined): string =>
+  typeof slug === "string" && /^[a-z0-9]+(-[a-z0-9]+){0,15}$/.test(slug) ? `(shop:${slug})` : "";
+/** "Eatout (shop:eatout-baakline)": the name a vendor's wa text shows, with the bot's key right after it. */
+export const withShop = (name: string, slug: string | null | undefined): string =>
+  [name, shopRef(slug)].filter(Boolean).join(" ");
+
 // ---- Head ----------------------------------------------------------------------------------------------------------
 export type RequestInfo = { origin: string; indexing: boolean };
 

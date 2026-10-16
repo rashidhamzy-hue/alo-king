@@ -109,3 +109,92 @@ describe("customer eval set: deterministic cases", () => {
       expect(deterministicIntent(c.text), c.text).toBeNull();
   });
 });
+
+// Session 5f part 8a (CUSTOMER-EXPERIENCE §3.1): shop links, empty messages and the website's pre-filled texts.
+import { isEmptyish, shopToken, siteText, withoutShopToken } from "./intents";
+import { ar as siteAr } from "../../../../src/content/ar";
+import { en as siteEn } from "../../../../src/content/en";
+import { fr as siteFr } from "../../../../src/content/fr";
+import { fmt, withShop } from "../../../../src/lib/site";
+
+describe("first contact: shop links (§3.1 #2)", () => {
+  it("reads the slug the website puts after the shop's name, in any language and case", () => {
+    expect(shopToken("Hi Alo King, I'd like to order from Eatout (shop:eatout-baakline)")).toBe(
+      "eatout-baakline",
+    );
+    expect(shopToken("مرحبا ألو كينغ، بدي اطلب من إيت آوت (SHOP:Eatout)")).toBe("eatout");
+    expect(shopToken("Bonjour, je voudrais commander chez Eatout")).toBeNull();
+    expect(shopToken("shop: eatout")).toBeNull();
+  });
+  it("leaves the rest of the text for the language and a fallback", () => {
+    expect(
+      withoutShopToken("Hi Alo King, I'd like to order from Eatout (shop:eatout): 2× Wrap"),
+    ).toBe("Hi Alo King, I'd like to order from Eatout : 2× Wrap");
+    expect(withoutShopToken("(shop:eatout)")).toBe("");
+    // A bare "shop:x" in a message is text, not a link (only the website's bracketed form is).
+    expect(shopToken("my shop:eatout order")).toBeNull();
+    expect(withoutShopToken("my shop:eatout order")).toBe("my shop:eatout order");
+  });
+});
+
+describe("first contact: nothing to read (§3.1 #1)", () => {
+  it('"?", "!!", "..." and emoji are a hello; words and digits are not', () => {
+    for (const t of ["?", "??", "!!", "...", "👋", "🙂🙂", " ؟ "])
+      expect(isEmptyish(t), t).toBe(true);
+    for (const t of ["hi", "2", "مرحبا", "a?"]) expect(isEmptyish(t), t).toBe(false);
+  });
+});
+
+describe("first contact: the website's pre-filled texts", () => {
+  const all = [siteEn, siteAr, siteFr];
+  it("the greeting alone, an order (in a village, for the family) and a shop, in the three languages of the site", () => {
+    for (const t of all) {
+      expect(siteText(t.wa.generic), t.wa.generic).toEqual({ kind: "order" });
+      expect(siteText(fmt(t.wa.place, { place: "Baakline" })), t.wa.place).toEqual({
+        kind: "order",
+      });
+      expect(siteText(t.wa.sendHome), t.wa.sendHome).toEqual({ kind: "order" });
+      expect(siteText(fmt(t.wa.vendor, { vendor: "Eatout" })), t.wa.vendor).toEqual({
+        kind: "shop",
+        name: "Eatout",
+      });
+      expect(siteText(fmt(t.wa.vendorItems, { vendor: "Eatout", items: "2× Wrap" }))).toEqual({
+        kind: "shop",
+        name: "Eatout",
+      });
+    }
+    expect(siteText("Hi Alo King!")).toEqual({ kind: "greeting" });
+    expect(siteText("مرحبا ألو كينغ")).toEqual({ kind: "greeting" });
+  });
+  it("a cuisine is a search; a person or tracking is read as typed", () => {
+    expect(siteText(fmt(siteEn.wa.cuisine, { cuisine: "shawarma" }))).toEqual({
+      kind: "text",
+      text: "shawarma",
+    });
+    expect(siteText(fmt(siteFr.wa.cuisine, { cuisine: "pizza" }))).toEqual({
+      kind: "text",
+      text: "pizza",
+    });
+    expect(siteText(siteEn.wa.person)).toEqual({
+      kind: "text",
+      text: "I need to talk to a person",
+    });
+    const track = siteText(siteEn.wa.track);
+    expect(track?.kind === "text" && deterministicIntent(track.text)?.kind).toBe("track");
+    const person = siteText(siteAr.wa.person);
+    expect(person?.kind === "text" && deterministicIntent(person.text)?.kind).toBe("human");
+    expect(deterministicIntent("بدي احكي مع حدا")?.kind).toBe("human");
+    expect(deterministicIntent("baddi e7ke ma3 7ada")?.kind).toBe("human");
+  });
+  it("a typed message that does not start with the site's greeting is not a site text", () => {
+    expect(siteText("hi")).toBeNull();
+    expect(siteText("2 shawarma")).toBeNull();
+    expect(siteText("مرحبا ألو كينغ، بدي اطلب برغر")).toEqual({ kind: "text", text: "اطلب برغر" });
+  });
+  it("the shop page's text carries the key the bot opens the shop with", () => {
+    for (const t of all) {
+      const text = fmt(t.wa.vendor, { vendor: withShop("Eatout", "eatout-baakline") });
+      expect(shopToken(text), text).toBe("eatout-baakline");
+    }
+  });
+});

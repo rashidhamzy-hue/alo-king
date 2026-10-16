@@ -659,6 +659,9 @@ export function customerStatusMessages(
           [["c:basket", tr(lang, "continue")]],
         ),
       ];
+    case "shop_open":
+    case "waitlist_open":
+      return firstContactMessages(to, lang, p);
     case "basket_reminder": {
       const b = p.basket;
       if (!b?.lines?.length) return [];
@@ -808,6 +811,14 @@ export type CustomerAction =
   | { a: "problem_line"; itemId: string; kind: "missing_item" | "wrong_item"; qty?: number }
   /** A demo tester outside the delivery area picks one of the fixed demo addresses (§39.15.3). */
   | { a: "demo_address"; key: string }
+  /** "Remind me when it opens" (CUSTOMER-EXPERIENCE §3.1 #7, §3.3 #21): a shop, or null for the first shop near me. */
+  | { a: "remind"; vendorId: string | null }
+  /** A shop by id (the reminder's "See the menu"), opened like a shop link (§3.1 #2). */
+  | { a: "open_shop"; vendorId: string }
+  /** "See the menu" on a closed shop's card: its menu anyway (no scheduled orders, §3.3 #21). */
+  | { a: "view_menu"; ref: string }
+  /** "Tell me when you do": the waitlist for the customer's place (§3.2 #11). */
+  | { a: "waitlist" }
   | {
       a: "simple";
       what:
@@ -935,6 +946,12 @@ export function parseCustomerAction(id: string): CustomerAction | null {
       kind: m[2] === "m" ? "missing_item" : "wrong_item",
       ...(m[3] ? { qty: Number(m[3]) } : {}),
     };
+  // Session 5f part 8a (CUSTOMER-EXPERIENCE §3.1 #7, §3.2 #11, §3.3 #21).
+  if ((m = id.match(re(`rmd:(${UUID})`)))) return { a: "remind", vendorId: m[1] };
+  if (id === "rmd:any") return { a: "remind", vendorId: null };
+  if ((m = id.match(re(`shp:(${UUID})`)))) return { a: "open_shop", vendorId: m[1] };
+  if ((m = id.match(/^vm:(v\d{1,2})$/))) return { a: "view_menu", ref: m[1] };
+  if (id === "wl:join") return { a: "waitlist" };
   return null;
 }
 
@@ -965,3 +982,63 @@ export const image = (to: string, link: string, caption: string) => ({
   type: "image",
   image: { link, caption: Array.from(caption).slice(0, 1024).join("") },
 });
+
+// ---- Session 5f part 8a: messages the customer asked for (CUSTOMER-EXPERIENCE §3.1 #7, §3.2 #11) ------------------------------
+// New strings answer Arabizi in Arabic script (CUSTOMER-EXPERIENCE §2 rule 1); at most one emoji, buttons without.
+const T5F8A_AR: S = {
+  shopOpenNow: "🔔 {vendor} فتح هلق. طلبت منّا نخبّرك.",
+  shopsOpenNow: "🔔 المحلات القريبة منك فتحت هلق. طلبت منّا نخبّرك.",
+  waitlistOpen: "🎉 صار ألو كينغ يوصّل لـ {place}، متل ما طلبت نخبّرك. دوس «اطلب» لتبلّش.",
+  btnSeeTheMenu: "شوف المنيو",
+  btnOrderPlain: "اطلب",
+};
+const T5F8A: Record<CLang, S> = {
+  ar: T5F8A_AR,
+  arabizi: T5F8A_AR,
+  en: {
+    shopOpenNow: "🔔 {vendor} is open now. You asked us to tell you.",
+    shopsOpenNow: "🔔 Shops near you are open now. You asked us to tell you.",
+    waitlistOpen: "🎉 Alo King now delivers to {place}, as you asked us to tell you. Tap Order to start.",
+    btnSeeTheMenu: "See the menu",
+    btnOrderPlain: "Order",
+  },
+  fr: {
+    shopOpenNow: "🔔 {vendor} est ouvert. Vous nous avez demandé de vous prévenir.",
+    shopsOpenNow: "🔔 Les commerces près de chez vous sont ouverts. Vous nous avez demandé de vous prévenir.",
+    waitlistOpen:
+      "🎉 Alo King livre maintenant à {place}, comme vous nous avez demandé de vous prévenir. Touchez Commander pour commencer.",
+    btnSeeTheMenu: "Voir le menu",
+    btnOrderPlain: "Commander",
+  },
+};
+for (const l of LANGS) Object.assign(T[l], T5F8A[l]);
+
+/**
+ * "Remind me when it opens" when the shop opened (outbox kind shop_open: one service message inside the 24-hour window), and
+ * the waitlist notice inside the window (kind waitlist_open; outside it the approved alo_waitlist_open template carries it).
+ */
+function firstContactMessages(
+  to: string,
+  lang: CLang,
+  p: Record<string, any>,
+): Record<string, unknown>[] {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  if (p.kind === "shop_open") {
+    const vendor = String((lang === "ar" || lang === "arabizi" ? p.vendor : p.vendor_en) ?? p.vendor ?? "");
+    return uuid.test(String(p.vendor_id ?? ""))
+      ? [
+          buttons(to, tr(lang, "shopOpenNow", { vendor }), [
+            [`shp:${p.vendor_id}`, tr(lang, "btnSeeTheMenu")],
+          ]),
+        ]
+      : [buttons(to, tr(lang, "shopsOpenNow"), [["c:order", tr(lang, "btnOrderPlain")]])];
+  }
+  const place = String(
+    (lang === "ar" || lang === "arabizi" ? p.place : lang === "fr" ? p.place_fr : p.place_en) ??
+      p.place_en ??
+      p.place ??
+      "",
+  );
+  if (!place) return [];
+  return [buttons(to, tr(lang, "waitlistOpen", { place }), [["c:order", tr(lang, "btnOrderPlain")]])];
+}
