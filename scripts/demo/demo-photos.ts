@@ -316,9 +316,15 @@ async function main() {
         done.none++;
         // A photo made from a pick that is gone (or an old drawn tile) goes; its object is deleted below.
         if (item.photo && item.photo.source !== "merchant") {
-          const r = (await db.query("select public.menu_item_photo_clear($1) as r", [item.item_id]))
-            .rows[0].r;
-          if (r?.status === "ok") done.cleared++;
+          try {
+            const r = (
+              await db.query("select public.menu_item_photo_clear($1) as r", [item.item_id])
+            ).rows[0].r;
+            if (r?.status === "ok") done.cleared++;
+          } catch (e) {
+            done.failed++;
+            console.error(`clearing item ${item.item_id} failed: ${String(e).slice(0, 160)}`);
+          }
         }
         return;
       }

@@ -113,7 +113,7 @@ begin
     delete from public.vendor_covers where vendor_id = p_vendor_id and source <> 'merchant';
     return jsonb_build_object('status', 'ok');
   end if;
-  if p_source not in ('merchant_site', 'illustrative') then
+  if p_source is null or p_source not in ('merchant_site', 'illustrative') then
     return jsonb_build_object('status', 'bad_source');
   end if;
   if p_storage_path !~ ('^cover/' || p_vendor_id || '\.(jpg|png)$') then
@@ -155,7 +155,8 @@ revoke all on function app_private.vendors_drop_demo_photos() from public;
 
 -- The catalogue: only items with a photo (nothing is drawn any more). An illustrative photo says so in Arabic and English;
 -- a CC BY or CC BY-SA photo carries its credit and license. The description stays within Meta's 500 characters, the
--- notes kept whole. photo_hash changes when a photo is made again under the same path, so Meta gets the new image.
+-- notes kept whole (498 characters, so the two-unit 📷 never pushes the end past 500 UTF-16 units). photo_hash
+-- changes when a photo is made again under the same path, so Meta gets the new image.
 create or replace function public.catalog_desired(p_vendor_id uuid) returns jsonb
 language sql stable security definer set search_path = ''
 as $$
@@ -165,7 +166,7 @@ as $$
                         then i.name_ar || ' · ' || i.name_en else coalesce(i.name_ar, i.name_en, i.name_fr) end, 150),
       'name_en', i.name_en,
       'description', left(coalesce(nullif(i.description, ''), s.name_en, s.name_ar, coalesce(v.name_en, v.name_ar)),
-                          greatest(60, 500 - char_length(n.note))) || n.note,
+                          greatest(60, 498 - char_length(n.note))) || n.note,
       'price_minor', round(case when i.pricing_unit = 'kg' then i.price_usd * i.est_weight_kg else i.price_usd end * 100)::int,
       'currency', 'USD',
       'availability', case when app_private.menu_item_orderable(i.id, 1) then 'in stock' else 'out of stock' end,
