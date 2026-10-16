@@ -2038,7 +2038,8 @@ async function browseHome(c: Ctx, offset = 0) {
       cats,
       r.shops.length,
       r.place,
-      Math.min(Math.max(offset, 0), Math.max(cats.length - 1, 0)),
+      // An old "More categories" tap past the end (fewer categories deliver now) starts again from the first page.
+      offset > 0 && offset < cats.length ? offset : 0,
     ),
   );
 }

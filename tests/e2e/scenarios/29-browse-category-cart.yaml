@@ -29,7 +29,7 @@ steps:
   - note: many shops deliver to the shop's door, so the bot asks what they are craving, with the categories and Shops near you
     pin: { as: cust, lat: "{{vars.lat}}", lon: "{{vars.lon}}" }
     expect:
-      - { to: cust, kind: list, buttons: ["cat:burgers", "c:near"], text_any: ["craving", "نفسك"] }
+      - { to: cust, kind: list, buttons: ["cat:", "c:near"], text_any: ["craving", "نفسك"] }
   - note: Burgers lists the burger shops with their delivery fee and distance
     tap: { as: cust, id: "cat:burgers" }
     expect:

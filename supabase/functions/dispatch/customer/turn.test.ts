@@ -1861,6 +1861,10 @@ describe("browsing through the bot (session 5e)", () => {
       "cat:kj",
       "cat:kk",
     ]);
+    // An old tap past the end starts again from the first page.
+    const h = fake({ model: null, rpcs });
+    await handleCustomerTurn(h.deps, msg({ buttonId: "cm:40", type: "interactive" }));
+    expect(h.sent[0].interactive.action.sections[0].rows).toHaveLength(9);
   });
 
   it("a few shops are listed directly, as before", async () => {
