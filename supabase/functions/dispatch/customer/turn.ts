@@ -3816,7 +3816,9 @@ async function awaitedText(c: Ctx, t: string): Promise<boolean> {
       push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
       return true;
     }
-    if ((await noteSave(c, String(p.line_id), t)) === "too_long") c.s.pending = p;
+    // Asked again: the wait starts from this question.
+    if ((await noteSave(c, String(p.line_id), t)) === "too_long")
+      c.s.pending = { ...p, at: nowIso(c) };
     return true;
   }
   if (p.kind === "tip_other") {
@@ -3828,7 +3830,7 @@ async function awaitedText(c: Ctx, t: string): Promise<boolean> {
     if (amount === null) {
       // "2 shawarma w pepsi" is an order, not the tip: only a bad amount ("0", "2.555", "$50") is asked again.
       if (!looksLikeAmount(t)) return false;
-      c.s.pending = p;
+      c.s.pending = { ...p, at: nowIso(c) };
       say(c, "tipOtherBad", { max: moneyUsd(p.max) });
       return true;
     }
@@ -3846,6 +3848,7 @@ const nowIso = (c: Ctx) => (c.deps.now?.() ?? new Date()).toISOString();
 function looksLikeAmount(t: string): boolean {
   const s = t
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
     .replace(/\$|usd|dollars?|دولار|dolar/gi, "")
     .replace(/\s+/g, "");
   return /^[-+]?[\d.,]+$/.test(s);
@@ -3853,7 +3856,10 @@ function looksLikeAmount(t: string): boolean {
 
 /** "5", "$2.50", "2,5", "٢" or "3 dollars": a dollar amount with at most two decimals, else null. */
 export function readTipAmount(t: string): number | null {
-  const s = t.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).trim();
+  const s = t
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .trim();
   const m = s.match(
     /^(?:\$|usd)?\s*(\d{1,4}(?:[.,]\d{1,2})?)\s*(?:\$|usd|dollars?|dollar|دولار|dolar)?$/i,
   );

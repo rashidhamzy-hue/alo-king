@@ -1432,6 +1432,12 @@ describe("session 5f part 7 cards pass the checker", () => {
         changeAsk(to, lang, "USD", 12.25, [20, 50, 100]),
         changeAsk(to, lang, "USD", 12.25, [50, 100]),
         changeAsk(to, lang, "LBP", 13290750, [20000000, 50000000, 100000000, 5000000000]),
+        // The total in both currencies (the longer body).
+        changeAsk(to, lang, "LBP", 90170355, [100000000, 5000000000], {
+          total_usd: 1007.49,
+          total_lbp: 90170355,
+          usd_lbp_rate: 89500,
+        }),
         tipRow(to, lang, [1, 2, 3], 0),
         tipRow(to, lang, [1, 2, 3], 2),
         tipRow(to, lang, [0.5, 1, 1.5, 2, 3, 5, 7.5, 10, 15, 20, 25, 30], 2),

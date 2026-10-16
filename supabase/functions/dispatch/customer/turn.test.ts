@@ -3685,7 +3685,8 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
     await handleCustomerTurn(k.deps, msg({ text: "x".repeat(95) }));
     expect(bodyOf(k.sent[0])).toContain("95 characters; the most is 80");
     expect(tapIds(k.sent[0]).length).toBeGreaterThan(0);
-    expect(pendingOf(k)).toEqual(pending);
+    expect(pendingOf(k)).toMatchObject({ kind: "note", line_id: pending.line_id });
+    expect(pendingOf(k).at).toBe(k.deps.now!().toISOString());
 
     // A fixed intent ("basket") is not taken as the note.
     const m = fake({ begin: at(pending, { basket: two }) });
@@ -3944,7 +3945,7 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
       await handleCustomerTurn(k.deps, msg({ text: "0" }));
       expect(k.of("order_tip_set")).toHaveLength(0);
       expect(tapIds(k.sent[0]).length).toBeGreaterThan(0);
-      expect(pendingOf(k)).toEqual(pending);
+      expect(pendingOf(k)).toMatchObject({ kind: "tip_other", order_id: ORDER, max: 10 });
 
       // Not an amount at all ("2 shawarma w pepsi"), or ten minutes later: no tip, the message goes its usual way.
       for (const [begin, text] of [
@@ -3979,6 +3980,7 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
       expect(readTipAmount("$2.50")).toBe(2.5);
       expect(readTipAmount("2,5")).toBe(2.5);
       expect(readTipAmount("٢")).toBe(2);
+      expect(readTipAmount("۵")).toBe(5);
       expect(readTipAmount("3 dollars")).toBe(3);
       expect(readTipAmount("abc")).toBeNull();
       expect(readTipAmount("0")).toBeNull();
