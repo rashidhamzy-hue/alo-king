@@ -394,12 +394,23 @@ begin
   -- Asked before the dish goes into the basket: a second tap or another dish never adds it, and neither does a basket
   -- open at another shop (the dish would wait on a Replace tap that never records the swap).
   if coalesce(p_check_only, false) then
+    -- A dish with a required choice would go in through the options step, which never records the swap; so would a dish
+    -- of the cart's own shop (that is no alternative).
+    if exists (select 1 from public.menu_option_groups g where g.item_id = p_item_id and g.min_select > 0)
+       or (select i.vendor_id from public.menu_items i where i.id = p_item_id) is not distinct from v_sc.vendor_id then
+      return jsonb_build_object('ok', false);
+    end if;
+    -- An empty basket open at another shop holds nothing: it is closed, so the dish goes straight in (basket_add_item
+    -- treats any open basket at another shop as a conflict).
+    update public.baskets b set status = 'abandoned'
+    where b.customer_id = p_customer_id and b.status = 'open'
+      and b.vendor_id <> (select i.vendor_id from public.menu_items i where i.id = p_item_id)
+      and not exists (select 1 from public.basket_items bi where bi.basket_id = b.id);
     return (select case when b.id is not null then jsonb_build_object('ok', false, 'other_basket', true,
                           'basket', coalesce(bv.name_ar, bv.name_en), 'basket_en', coalesce(bv.name_en, bv.name_ar))
                         else jsonb_build_object('ok', true) end
             from public.menu_items i
             left join public.baskets b on b.customer_id = p_customer_id and b.status = 'open' and b.vendor_id <> i.vendor_id
-              and exists (select 1 from public.basket_items bi where bi.basket_id = b.id)
             left join public.vendors bv on bv.id = b.vendor_id
             where i.id = p_item_id
             limit 1);

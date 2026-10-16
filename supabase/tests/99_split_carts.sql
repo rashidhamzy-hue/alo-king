@@ -184,6 +184,22 @@ select public.basket_add_item(:'cid', '5f000000-0000-0000-0000-0000000000d3', 1,
 select tests.ok((public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw', true)
   ->> 'other_basket')::boolean, 'a basket open at another shop: asked first, the alternative waits');
 select public.basket_clear(:'cid');
+-- An empty basket left open at another shop (its last line set to 0) is closed, so the dish goes straight in.
+select public.basket_add_item(:'cid', '5f000000-0000-0000-0000-0000000000d3', 1, '{}', null, true, 'wamid.sc.basket2');
+select public.basket_set_quantity(:'cid', (select bi.id from public.basket_items bi join public.baskets b on b.id = bi.basket_id
+  where b.customer_id = :'cid'::uuid and b.status = 'open' limit 1), 0);
+select tests.ok((public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw', true) ->> 'ok')::boolean,
+  'an empty basket at another shop does not hold the alternative back');
+select tests.ok(not exists (select 1 from public.baskets where customer_id = :'cid'::uuid and status = 'open'),
+  'and it is closed, so the add that follows goes straight in');
+-- A dish of the cart's own shop, or one with a required choice, is never taken as the alternative.
+select tests.ok((public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d6', 'wamid.sw', true) ->> 'ok') = 'false',
+  'the cart''s own shop''s dish is no alternative');
+insert into public.menu_option_groups (id, item_id, name_en, min_select, max_select)
+values ('5f000000-0000-0000-0000-0000000000f2', '5f000000-0000-0000-0000-0000000000d4', 'Doneness', 1, 1);
+select tests.ok((public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw', true) ->> 'ok') = 'false',
+  'a dish that gained a required choice after it was offered is refused when tapped');
+delete from public.menu_option_groups where id = '5f000000-0000-0000-0000-0000000000f2';
 select public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw') as sw \gset
 select tests.ok(:'sw'::jsonb ->> 'status' = 'kept' and :'sw'::jsonb -> 'names_en' = '["Double Burger", "Fries"]'::jsonb
   and :'sw'::jsonb ->> 'vendor_en' = 'Split Burger' and :'sw'::jsonb -> 'join_saved_cart_id' = 'null'::jsonb

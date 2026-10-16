@@ -1571,7 +1571,11 @@ async function cartAlternative(c: Ctx, savedCartId: string, itemId: string, qty:
       // Keyed by this message: a replayed turn gets the same answer (and the same cart to join), never a second swap.
       p_message_id: c.m.messageId,
     })
-    .catch(() => null);
+    .catch((e) => {
+      // A stalled swap replays the turn: the check, the add and the swap all answer the same for this message.
+      if (e instanceof RpcStalled) throw e;
+      return null;
+    });
   const lang = c.s.lang;
   const rest = (lang === "ar" ? sw?.names : (sw?.names_en ?? sw?.names)) ?? [];
   if (Array.isArray(rest) && rest.length)
