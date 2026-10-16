@@ -38,6 +38,14 @@ export type OrderCardData = {
     has_empty?: boolean | null;
     note?: string | null;
   }[];
+  /** Session 5f part 7 (#35, #38): the tip for whoever delivers, what to collect (total + tip), the change to bring. */
+  tip_usd?: number | string | null;
+  collect_usd?: number | string | null;
+  collect_lbp?: number | string | null;
+  cash_change_for?: number | string | null;
+  cash_change_currency?: "USD" | "LBP" | null;
+  change_due?: number | string | null;
+  change_short?: boolean | null;
 };
 
 const envelope = (to: string) => ({
@@ -97,6 +105,13 @@ const T = {
     shareLive: "📍 شارك موقعي",
     pickedUp: "📦 استلمت",
     delivered: "✅ تم التسليم",
+    tip: "🙏 بخشيش {tip} للي بيوصّل · المطلوب {collect}",
+    changeFor: "💵 بيدفع {paid}: جيب معك {due} فراطة",
+    changeShort: "💵 قال بيدفع {paid}، بس المجموع صار أكتر: اقبض المجموع",
+    exactCash: "💵 المبلغ مظبوط، بلا فراطة",
+    tipAdded: "🙏 الزبون زاد بخشيش {tip} على الطلب #{code}. كلّو إلك؛ بس يوصلك كبوس «وصلني».",
+    tipCollect: "🙏 الطلب #{code} كان معو بخشيش {tip} مع الكاش. كلّو إلك؛ إذا قبضتو كبوس «وصلني».",
+    tipGot: "✅ وصلني",
   },
   en: {
     newOrder: "🔔 New order",
@@ -147,6 +162,15 @@ const T = {
     shareLive: "📍 Share location",
     pickedUp: "📦 Picked up",
     delivered: "✅ Delivered",
+    tip: "🙏 Tip {tip} for whoever delivers · collect {collect}",
+    changeFor: "💵 Pays with {paid}: bring {due} change",
+    changeShort: "💵 Said they'd pay with {paid}, but the total is now higher: collect the total",
+    exactCash: "💵 Exact cash, no change",
+    tipAdded:
+      "🙏 The customer added a {tip} tip on order #{code}. It's 100% yours; tap when you have it.",
+    tipCollect:
+      "🙏 Order #{code} came with a {tip} tip in the cash. It's 100% yours; tap when you have it.",
+    tipGot: "✅ Got it",
   },
 } as const;
 
@@ -167,6 +191,35 @@ export function moneyLine(
   const t = T[lang];
   const how = d.payment_method === "cod" ? t.cash : t.online;
   return `${how}: ${usd(d.total_usd)} = ${lbp(d.total_lbp)} LBP (${t.rate} ${lbp(d.usd_lbp_rate)}, ${t.locked})`;
+}
+
+/**
+ * The tip and the change on the merchant's and the driver's card (session 5f part 7): every amount is the server's
+ * (order_card_payload); nothing is computed here.
+ */
+export function cashLines(d: OrderCardData, lang: Lang): string[] {
+  const t = T[lang];
+  const out: string[] = [];
+  if (Number(d.tip_usd ?? 0) > 0)
+    out.push(
+      t.tip
+        .replace("{tip}", usd(d.tip_usd ?? 0))
+        .replace("{collect}", `${usd(d.collect_usd ?? 0)} = ${lbp(d.collect_lbp ?? 0)} LBP`),
+    );
+  if (d.payment_method === "cod" && d.cash_change_currency) {
+    const amount = (v: number | string | null | undefined) =>
+      d.cash_change_currency === "LBP" ? `${lbp(v ?? 0)} LBP` : usd(v ?? 0);
+    out.push(
+      d.cash_change_for == null
+        ? t.exactCash
+        : d.change_short
+          ? t.changeShort.replace("{paid}", amount(d.cash_change_for))
+          : t.changeFor
+              .replace("{paid}", amount(d.cash_change_for))
+              .replace("{due}", amount(d.change_due)),
+    );
+  }
+  return out;
 }
 
 export function orderCard(to: string, d: OrderCardData, lang: Lang = "ar") {
@@ -194,6 +247,7 @@ export function orderCard(to: string, d: OrderCardData, lang: Lang = "ar") {
       : "",
     d.customer_note ? `${t.note}: ${clip(d.customer_note, 200)}` : "",
     moneyLine(d, lang),
+    ...cashLines(d, lang),
     d.estimated ? t.estimated : "",
     d.is_new_customer ? t.newCustomer : "",
   ]
@@ -343,7 +397,13 @@ export function driverJobCard(
       type: "cta_url",
       header: { type: "text", text: `${t.jobTitle} #${d.code}` },
       body: {
-        text: [area ? `${t.area}: ${area}` : "", moneyLine(d, lang), "", t.jobSteps]
+        text: [
+          area ? `${t.area}: ${area}` : "",
+          moneyLine(d, lang),
+          ...cashLines(d, lang),
+          "",
+          t.jobSteps,
+        ]
           .filter(Boolean)
           .join("\n"),
       },
@@ -375,6 +435,25 @@ function buttons(to: string, body: string, list: [string, string][]) {
   };
 }
 
+/**
+ * A promised tip to whoever delivered (session 5f part 7, #38): "Customer added a $2.00 tip on #CODE" (after delivery) or
+ * "#CODE came with a $2.00 tip" (chosen at checkout), with "✅ Got it". Only that tap books a cash tip in the ledger.
+ */
+export function tipCard(
+  to: string,
+  orderId: string,
+  code: string,
+  tipUsd: number | string,
+  source: "checkout" | "after_delivery" | string,
+  lang: Lang = "ar",
+) {
+  const t = T[lang];
+  const body = (source === "checkout" ? t.tipCollect : t.tipAdded)
+    .replace("{tip}", usd(tipUsd))
+    .replace("{code}", code);
+  return buttons(to, body, [[`tip:${orderId}`, t.tipGot]]);
+}
+
 /** Parses a button or list id from these cards. Unknown ids return null. */
 export type MerchantAction =
   | { a: "accept"; orderId: string; prep: number }
@@ -389,7 +468,8 @@ export type MerchantAction =
   | { a: "reactivate"; vendorId: string }
   | { a: "proposal"; proposalId: string; confirm: boolean }
   | { a: "picked_up"; orderId: string }
-  | { a: "delivered"; orderId: string };
+  | { a: "delivered"; orderId: string }
+  | { a: "tip_got"; orderId: string };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -429,6 +509,8 @@ export function parseMerchantAction(id: string): MerchantAction | null {
       return { a: "picked_up", orderId: ref };
     case "dlv":
       return { a: "delivered", orderId: ref };
+    case "tip":
+      return arg === undefined ? { a: "tip_got", orderId: ref } : null;
     default:
       return null;
   }

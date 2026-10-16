@@ -17,6 +17,8 @@ export const META = {
   flowCta: 30, // Flow button label
   productListItems: 30, // multi-product message: items across all sections
   productListSections: 10,
+  carouselMinCards: 2, // product carousel (DECISIONS §39.15.2): 2 to 10 product cards, one catalogue
+  carouselMaxCards: 10,
 } as const;
 
 /** Every way an interactive payload breaks Meta's limits (empty array = fine). Template and plain-text payloads are not interactive and are ignored. */
@@ -88,6 +90,26 @@ export function checkInteractive(payload: any): string[] {
     if (!String(i.action?.product_retailer_id ?? "").trim()) v.push("product needs a product_retailer_id");
     if (i.header) v.push("a single-product message takes no header");
     if (len(i.body?.text) > META.body) v.push(`body ${len(i.body?.text)} > ${META.body}`);
+  } else if (i.type === "carousel") {
+    // Product carousel: swipeable product cards of one catalogue, a body, no header (Meta draws each card).
+    const cards = i.action?.cards ?? [];
+    if (cards.length < META.carouselMinCards) v.push(`${cards.length} cards < ${META.carouselMinCards}`);
+    if (cards.length > META.carouselMaxCards) v.push(`${cards.length} cards > ${META.carouselMaxCards}`);
+    if (!String(i.body?.text ?? "").trim()) v.push("carousel needs a body");
+    if (i.header) v.push("a product carousel takes no header");
+    const ids = new Set<string>();
+    const catalogs = new Set<string>();
+    cards.forEach((c: any, k: number) => {
+      if (c?.card_index !== k) v.push(`card ${k} has card_index ${c?.card_index}`);
+      if (c?.type !== "product") v.push(`card ${k} is not a product card`);
+      const id = String(c?.action?.product_retailer_id ?? "");
+      if (!id.trim()) v.push(`card ${k} needs a product_retailer_id`);
+      if (ids.has(id)) v.push(`duplicate product "${id}"`);
+      ids.add(id);
+      if (!String(c?.action?.catalog_id ?? "").trim()) v.push(`card ${k} needs a catalog_id`);
+      catalogs.add(String(c?.action?.catalog_id ?? ""));
+    });
+    if (catalogs.size > 1) v.push("every card must come from the same catalogue");
   } else if (i.type === "cta_url") {
     const p = i.action?.parameters ?? {};
     if (len(p.display_text) > META.buttonTitle) v.push(`cta label "${p.display_text}" > ${META.buttonTitle}`);
@@ -125,7 +147,9 @@ export function clampInteractive<T>(payload: T): T {
   } else if (i.type === "location_request_message" && i.body?.text !== undefined) i.body.text = clipTo(i.body.text, META.body);
   else if (i.type === "cta_url" && i.action?.parameters) i.action.parameters = { ...i.action.parameters, display_text: clipTo(i.action.parameters.display_text, META.buttonTitle) };
   else if (i.type === "flow" && i.action?.parameters) i.action.parameters = { ...i.action.parameters, flow_cta: clipTo(i.action.parameters.flow_cta, META.flowCta) };
-  else if (i.type === "product_list" && i.action) {
+  else if (i.type === "carousel" && i.action?.cards) {
+    i.action.cards = i.action.cards.slice(0, META.carouselMaxCards).map((c: any, k: number) => ({ ...c, card_index: k }));
+  } else if (i.type === "product_list" && i.action) {
     let left: number = META.productListItems;
     i.action.sections = (i.action.sections ?? []).slice(0, META.productListSections).map((s: any) => {
       const items = (s.product_items ?? []).slice(0, left); left -= items.length;

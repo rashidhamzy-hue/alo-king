@@ -7,6 +7,7 @@
 // TOOL_CONTRACT below and checked by tools.test.ts against TOOLS.
 
 export type ToolName =
+  | AfterCartToolName
   | "search_vendors"
   | "show_menu"
   | "dietary_menu"
@@ -109,7 +110,108 @@ export const PREFERENCE_KEYS = [
   "note",
 ] as const;
 
+// ---- Session 5f part 7: after the cart and at checkout (§39.14 rule 1: every button path can be asked for) ---------------
+// The model passes refs and words only; the server resolves them and accepts only its own amounts (configured change
+// notes and tips, "Other" up to the max), exactly as for the taps.
+export type AfterCartToolName =
+  "set_item_note" | "add_item_extras" | "set_cash_change" | "set_tip" | "tip_order";
+const AFTER_CART_TOOLS = [
+  {
+    name: "set_item_note",
+    description:
+      "A note for the kitchen on one basket item ('no onions on the burger', 'extra spicy'). line_ref from the context (l1...). Never changes a price.",
+    input_schema: obj({
+      line_ref: str("Basket line ref, e.g. l1"),
+      note: str("The note as said, short; an empty string removes it"),
+    }),
+  },
+  {
+    name: "add_item_extras",
+    description:
+      "Add extras (add-ons) to one basket item ('add cheese to the burger'). line_ref from the context (l1...); the system checks the extras exist and prices them.",
+    input_schema: obj({
+      line_ref: str("Basket line ref, e.g. l1"),
+      options: {
+        type: "array",
+        items: { type: "string" },
+        description: "The extras as said (e.g. 'cheese'), at most 6",
+      },
+    }),
+  },
+  {
+    name: "set_cash_change",
+    description:
+      "At checkout, the note the customer will pay cash with ('I'll pay with a 50', 'I have exact cash'), so the driver brings change. The system accepts only its own note amounts.",
+    input_schema: obj({
+      currency: { type: "string", enum: ["USD", "LBP"] },
+      amount: nullable(
+        { type: "number" },
+        "The note's amount as said, or null for the exact amount",
+      ),
+    }),
+  },
+  {
+    name: "set_tip",
+    description:
+      "At checkout, a tip for whoever delivers ('add a 2 dollar tip'); null removes it. The system accepts only its own tip amounts.",
+    input_schema: obj({
+      amount_usd: nullable({ type: "number" }, "Tip in dollars as said, or null for no tip"),
+    }),
+  },
+  {
+    name: "tip_order",
+    description:
+      "After delivery, a tip for whoever delivered the customer's last order ('tip the driver 3 dollars'). The system checks the amount and tells whoever delivered.",
+    input_schema: obj({ amount_usd: { type: "number", description: "Tip in dollars as said" } }),
+  },
+];
+type Contract = {
+  rpc: string[];
+  auth: string;
+  states: string;
+  idempotency: string;
+  render: string;
+};
+const AFTER_CART_CONTRACT: Record<AfterCartToolName, Contract> = {
+  set_item_note: {
+    rpc: ["basket_line_note"],
+    auth: "own basket line (line ref from this session)",
+    states: "basket open",
+    idempotency: "overwrites the line's note; at most item_note_max_chars",
+    render: "basket summary with the note",
+  },
+  add_item_extras: {
+    rpc: ["item_choice_groups", "basket_line_add_options"],
+    auth: "own basket line (line ref from this session)",
+    states: "basket open; the item's optional groups with room",
+    idempotency: "an extra already on the line changes nothing",
+    render: "basket summary, or the line's extras list when nothing matched",
+  },
+  set_cash_change: {
+    rpc: ["basket_set_cash_change", "basket_quote", "basket_checkout_extras"],
+    auth: "own basket",
+    states: "a cash delivery with its currency chosen",
+    idempotency: "overwrites the answer; only configured note amounts",
+    render: "the summary again",
+  },
+  set_tip: {
+    rpc: ["basket_set_tip", "basket_quote", "basket_checkout_extras"],
+    auth: "own basket",
+    states: "a cash delivery that is not a gift",
+    idempotency: "overwrites the tip; only configured amounts",
+    render: "the summary again with the tip row",
+  },
+  tip_order: {
+    rpc: ["customer_last_delivered", "order_tip_offer"],
+    auth: "own last delivered order",
+    states: "delivered, paid cash, within tip_after_delivery_minutes, no tip yet",
+    idempotency: "one tip per order; promised until whoever delivered confirms it",
+    render: "a confirm card (the customer's tap sets the tip through order_tip_set), or why not",
+  },
+};
+
 export const TOOLS = [
+  ...AFTER_CART_TOOLS,
   {
     name: "search_vendors",
     description:
@@ -344,6 +446,7 @@ export const TOOL_CONTRACT: Record<
     render: string;
   }
 > = {
+  ...AFTER_CART_CONTRACT,
   search_vendors: {
     rpc: ["vendor_search", "customer_delivery_check", "vendor_search_unclaimed"],
     auth: "any customer; orderable claimed vendors, and a named shop not on Alo King yet (§39.3)",
@@ -515,6 +618,8 @@ How you work:
 - "What do you remember about me?", or deleting what is remembered: show_memory.
 - A cart from several shops ("Deli Dough first", "not the sushi"), or a cart that met another shop's basket ("switch", "keep mine", "do both"): saved_cart, with the c ref of the shop when there is one.
 - What the customer says about themselves (vegetarian, gluten-free, an allergy): set_preference. Never ask about health; the system asks before keeping health information.
+- A note for one basket item ("no onions on the burger"): set_item_note with its line ref. Extras on a basket item ("add cheese"): add_item_extras with the line ref and the extras as said.
+- At checkout, the note they will pay with ("I'll pay with a 50", "exact cash"): set_cash_change. A tip at checkout: set_tip (null removes it). A tip after delivery: tip_order. The system accepts only its own amounts; never promise one.
 - If the customer wants a person, or you can't help: request_human.
 - If unsure what they want, reply with ONE short question and confidence "low".
 - Reply text: the customer's language (given in <context>), at most 2 short sentences, warm and plain. No markdown.

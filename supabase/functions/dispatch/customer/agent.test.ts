@@ -512,7 +512,7 @@ describe("the address on every order and who it is for (§22.1, §39.6)", () => 
     });
     await handleCustomerTurn(g.deps, tap("c:checkout"));
     expect(bodyOf(g.sent[0])).toMatch(/minimum order is \$10\.00 of food\. Add \$5\.00 more/);
-    expect(ids(g.sent[0])).toEqual(["c:basket"]);
+    expect(ids(g.sent[0])).toEqual(["c:basket", "c:clear"]);
   });
   it("a saved address is confirmed every time: deliver here or somewhere else", async () => {
     const f = fake({
@@ -916,4 +916,224 @@ describe("recorded model answers, replayed (evals/customer/fixtures/model-turns.
       }
     });
   }
+});
+
+// Session 5f part 7, §39.14 rule 1: every after-cart button path can also be asked for in words, through typed tools whose
+// RPCs carry the session's customer id (never one from the model) and whose refs resolve only within the session.
+import { validate } from "./turn";
+describe("the after-cart flows through the AI's typed tools (session 5f part 7)", () => {
+  const LINE = basket.lines[0].line_id;
+  const CHEESE = "82000000-0000-0000-0000-000000000001";
+  const toolTurn = async (name: string, input: any, rpcs: Record<string, (a: any) => any> = {}) => {
+    const f = fake({
+      model: () => ({
+        content: [{ type: "tool_use", id: "t1", name, input }],
+        usage: { input_tokens: 100, output_tokens: 20 },
+        stop_reason: "tool_use",
+      }),
+      freeText: true,
+      begin: { basket: { ...basket, note_max: 80 } },
+      rpcs: { basket_quote: () => quoteOk, ...rpcs },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "please" }));
+    return f;
+  };
+
+  it("set_item_note: the line ref from the context, the session's customer, the server's note rule", async () => {
+    const f = await toolTurn(
+      "set_item_note",
+      { line_ref: "l1", note: "no onions" },
+      { basket_line_note: () => ({ status: "saved", note: "no onions", basket }) },
+    );
+    expect(f.of("basket_line_note")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_line_id: LINE,
+      p_note: "no onions",
+    });
+    expect(ids(f.sent[0])).toContain("note:add");
+  });
+
+  it("a bad or unknown line ref is refused: no note is written", async () => {
+    for (const ref of ["l9", "x1", "l1; drop"]) {
+      const f = await toolTurn("set_item_note", { line_ref: ref, note: "no onions" });
+      expect(f.of("basket_line_note"), ref).toHaveLength(0);
+    }
+    // A runaway note is refused before the server; a long one goes to the server, which says it is too long.
+    const runaway = await toolTurn("set_item_note", { line_ref: "l1", note: "x".repeat(201) });
+    expect(runaway.of("basket_line_note")).toHaveLength(0);
+    const long = await toolTurn(
+      "set_item_note",
+      { line_ref: "l1", note: "x".repeat(81) },
+      { basket_line_note: () => ({ status: "too_long", length: 81, max: 80 }) },
+    );
+    expect(long.of("basket_line_note")).toHaveLength(1);
+  });
+
+  it("add_item_extras: the extras said are matched on the server's options and added at its price", async () => {
+    const f = await toolTurn(
+      "add_item_extras",
+      { line_ref: "l1", options: ["cheese"] },
+      {
+        item_choice_groups: () => ({
+          item_id: ITEM,
+          groups: [
+            {
+              name_en: "Extras",
+              min: 0,
+              max: 2,
+              options: [
+                { option_id: CHEESE, name: "جبنة", name_en: "Cheese", price_delta_usd: 0.75 },
+              ],
+            },
+          ],
+        }),
+        basket_line_add_options: () => ({ status: "added", basket, extras: [] }),
+      },
+    );
+    expect(f.of("item_choice_groups")[0].args).toEqual({ p_item_id: ITEM });
+    expect(f.of("basket_line_add_options")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_line_id: LINE,
+      p_option_ids: [CHEESE],
+    });
+    // Nothing matches: the line's extras list, as the tap path shows it; nothing is added.
+    const g = await toolTurn(
+      "add_item_extras",
+      { line_ref: "l1", options: ["truffle"] },
+      {
+        item_choice_groups: () => ({
+          item_id: ITEM,
+          groups: [
+            {
+              name_en: "Extras",
+              min: 0,
+              max: 2,
+              options: [{ option_id: CHEESE, name_en: "Cheese" }],
+            },
+          ],
+        }),
+      },
+    );
+    expect(g.of("basket_line_add_options")).toHaveLength(0);
+    expect(ids(g.sent[0])).toEqual([`ext:${CHEESE}`, "ext:none"]);
+    // Its "No extras" ends at the basket: no checkout, and the order's one "Goes well with" is kept for a cart.
+    const s = endSession(g);
+    expect(s.pending).toMatchObject({ kind: "cart_opts", agent: true });
+    const h = fake({
+      begin: { basket, ...sess({ pending: s.pending, refs: s.refs }) },
+      rpcs: { basket_quote: () => quoteOk },
+    });
+    await handleCustomerTurn(h.deps, tap("ext:none"));
+    expect(h.of("basket_goes_well")).toHaveLength(0);
+    expect(h.of("basket_quote")).toHaveLength(0);
+    expect(ids(h.sent[0])).toContain("c:checkout");
+    expect(endSession(h).pending).toEqual({});
+  });
+
+  it("set_cash_change and set_tip reach the server with the session's customer; the server checks the amounts", async () => {
+    const f = await toolTurn(
+      "set_cash_change",
+      { currency: "USD", amount: 50, customer_id: "someone-else" },
+      { basket_set_cash_change: () => ({ status: "ok" }) },
+    );
+    // A field the schema does not have (a customer id) fails validation: nothing is called with it.
+    expect(f.of("basket_set_cash_change")).toHaveLength(0);
+    const g = await toolTurn(
+      "set_cash_change",
+      { currency: "USD", amount: 50 },
+      { basket_set_cash_change: () => ({ status: "ok" }) },
+    );
+    expect(g.of("basket_set_cash_change")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_currency: "USD",
+      p_amount: 50,
+    });
+    const exact = await toolTurn("set_cash_change", { currency: "LBP", amount: null });
+    expect(exact.of("basket_set_cash_change")[0].args.p_amount).toBeNull();
+    const h = await toolTurn(
+      "set_tip",
+      { amount_usd: 2 },
+      { basket_set_tip: () => ({ status: "ok" }) },
+    );
+    expect(h.of("basket_set_tip")[0].args).toEqual({ p_customer_id: CUST, p_amount: 2 });
+    const none = await toolTurn("set_tip", { amount_usd: null });
+    expect(none.of("basket_set_tip")[0].args.p_amount).toBe(0);
+  });
+
+  it("tip_order: the model only proposes; the customer's tap on the confirm card sets the tip (promised, never booked here)", async () => {
+    const f = await toolTurn(
+      "tip_order",
+      { amount_usd: 3 },
+      {
+        customer_last_delivered: () => ({ order_id: ORDER, code: "ABC123" }),
+        order_tip_offer: () => ({ status: "offer", amounts: [1, 2, 3], max_usd: 10 }),
+        order_tip_set: () => ({ status: "promised", tip_usd: 3 }),
+      },
+    );
+    expect(f.of("customer_last_delivered")[0].args).toEqual({ p_customer_id: CUST });
+    expect(f.of("order_tip_offer")[0].args).toMatchObject({
+      p_customer_id: CUST,
+      p_order_id: ORDER,
+      p_mark: false,
+    });
+    expect(f.of("order_tip_set")).toHaveLength(0);
+    expect(ids(f.sent[0])).toEqual([`tpo:${ORDER}:300:o`, "c:no_upsell"]);
+    expect(bodyOf(f.sent[0])).toMatch(/Tip \$3\.00 to whoever delivered/);
+    // Over the server's maximum: no card, the reason with its buttons.
+    const big = await toolTurn(
+      "tip_order",
+      { amount_usd: 50 },
+      {
+        customer_last_delivered: () => ({ order_id: ORDER, code: "ABC123" }),
+        order_tip_offer: () => ({ status: "offer", amounts: [1, 2, 3], max_usd: 10 }),
+      },
+    );
+    expect(ids(big.sent[0])).not.toContain(`tpo:${ORDER}:5000:o`);
+    // The customer's tap: the named amount, checked by the server against tip_max_usd.
+    const g = fake({
+      rpcs: { order_tip_set: () => ({ status: "promised", tip_usd: 3, told: true }) },
+    });
+    await handleCustomerTurn(g.deps, tap(`tpo:${ORDER}:300:o`));
+    expect(g.of("order_tip_set")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_order_id: ORDER,
+      p_amount: 3,
+      p_other: true,
+    });
+    expect(bodyOf(g.sent[0])).toContain("We told whoever delivered");
+    // No channel reached whoever delivered: the thanks never claims we told them.
+    const q = fake({
+      rpcs: { order_tip_set: () => ({ status: "promised", tip_usd: 3, told: false }) },
+    });
+    await handleCustomerTurn(q.deps, tap(`tpo:${ORDER}:300:o`));
+    expect(bodyOf(q.sent[0])).not.toContain("We told");
+    const none = await toolTurn(
+      "tip_order",
+      { amount_usd: 3 },
+      { customer_last_delivered: () => null },
+    );
+    expect(none.of("order_tip_set")).toHaveLength(0);
+    expect(ids(none.sent[0]).length).toBeGreaterThan(0);
+  });
+
+  it("validate() refuses what the server would never accept", () => {
+    expect(validate("set_tip", { amount_usd: -1 })).toBe(false);
+    expect(validate("set_tip", { amount_usd: 5000 })).toBe(false);
+    expect(validate("tip_order", { amount_usd: 0 })).toBe(false);
+    expect(validate("set_cash_change", { currency: "EUR", amount: 20 })).toBe(false);
+    expect(validate("set_cash_change", { currency: "USD", amount: 20.5 })).toBe(false);
+    expect(validate("add_item_extras", { line_ref: "l1", options: [] })).toBe(false);
+    expect(validate("add_item_extras", { line_ref: "i1", options: ["x"] })).toBe(false);
+    expect(validate("set_item_note", { line_ref: "l1", note: "x".repeat(201) })).toBe(false);
+    expect(validate("set_item_note", { line_ref: "l1", note: "x".repeat(81) })).toBe(true);
+    // An AI note on a new line is cut by the server (basket_add_item), never refused; only an absurd one is.
+    const addWithNote = (note: string) =>
+      validate("add_items", {
+        vendor_ref: null,
+        items: [{ item_ref: "i1", name: null, quantity: 1, options: [], note }],
+      });
+    expect(addWithNote("x".repeat(201))).toBe(false);
+    expect(addWithNote("x".repeat(81))).toBe(true);
+    expect(validate("set_item_note", { line_ref: "l1", note: "no onions" })).toBe(true);
+  });
 });

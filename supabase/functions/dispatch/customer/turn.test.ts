@@ -712,7 +712,7 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
       cart: { lines: lines.map((l) => ({ shownUsd: null, ...l })) },
     });
 
-  it("a cart line with two option groups opens the item_options Flow when Flows are on", async () => {
+  it("a cart line with two option groups never opens the item_options Flow (#182): its required choice comes as buttons", async () => {
     const g = fake({
       rpcs: {
         cart_merge: () => ({
@@ -723,22 +723,26 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
           needs_options: [{ item_id: ITEM, quantity: 1 }],
           basket: null,
         }),
+        item_choice_groups: () => ({ item_id: ITEM, name_en: "Burger", groups: OPT_GROUPS }),
         menu_item_options: () => OPT_GROUPS,
         flow_open: () => opened,
       },
     });
     await handleCustomerTurn(g.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
-    expect(g.of("flow_open")[0].args).toMatchObject({
-      p_flow: "item_options",
-      p_context: { item_id: ITEM },
-    });
-    const flowMsg = g.sent.find((p) => p.interactive?.type === "flow");
-    expect(flowMsg.interactive.action.parameters.flow_token).toBe(opened.token);
+    expect(g.of("flow_open")).toHaveLength(0);
+    expect(g.sent.some((p) => p.interactive?.type === "flow")).toBe(false);
+    expect(tapIds(g.sent[0])).toEqual(["opt:o1", "opt:o2"]);
     expect(g.of("basket_add_item")).toHaveLength(0);
     for (const p of g.sent) expect(checkInteractive(p)).toEqual([]);
   });
 
-  it("with Flows off the same line falls back to the option list", async () => {
+  it("a required choice of more than three options comes as a list", async () => {
+    const big = [
+      {
+        ...OPT_GROUPS[0],
+        options: ["o1", "o2", "o3", "o4"].map((o) => ({ option_id: o, name: o.toUpperCase() })),
+      },
+    ];
     const f = fake({
       rpcs: {
         cart_merge: () => ({
@@ -749,12 +753,13 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
           needs_options: [{ item_id: ITEM, quantity: 1 }],
           basket: null,
         }),
-        menu_item_options: () => OPT_GROUPS,
+        item_choice_groups: () => ({ item_id: ITEM, name_en: "Burger", groups: big }),
         flow_open: () => ({ status: "off" }),
       },
     });
     await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
     expect(f.sent.some((p) => p.interactive?.type === "list")).toBe(true);
+    expect(f.of("flow_open")).toHaveLength(0);
   });
 
   it("a cart is merged into the one basket by the server, keyed by the message, and price changes are shown before checkout", async () => {
@@ -808,6 +813,11 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
     const f = fake({
       rpcs: {
         menu_item_options: (a) => (a.p_item_id === OPT_ITEM ? OPT_GROUPS : []),
+        item_choice_groups: (a) => ({
+          item_id: a.p_item_id,
+          name_en: "Burger",
+          groups: a.p_item_id === OPT_ITEM ? OPT_GROUPS : [],
+        }),
         flow_open: () => ({ status: "off" }),
         cart_merge: () => ({
           status: "ok",
@@ -829,8 +839,9 @@ describe("Flows and catalogue carts (§12, §30.1.2)", () => {
     );
     // Only items truly unavailable are named, by name (§39.15.2).
     expect(JSON.stringify(f.sent)).toMatch(/Not available right now: Knefe/);
-    // The line with required choices gets its option list; checkout waits for the choice.
-    expect(f.sent.some((p) => p.interactive?.type === "list")).toBe(true);
+    // The line with required choices gets its choice (two options: buttons); checkout waits for the choice.
+    expect(f.sent.some((p) => tapIds(p).join() === "opt:o1,opt:o2")).toBe(true);
+    expect(f.of("basket_quote")).toHaveLength(0);
   });
 
   it("a cart where nothing can be added says so and leaves the basket alone", async () => {
@@ -1217,7 +1228,7 @@ describe("the button-driven ordering path (session T, §34)", () => {
     });
     await handleCustomerTurn(g.deps, msg({ buttonId: "qt:i1:3", type: "interactive" }));
     expect(g.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ITEM, p_quantity: 3 });
-    expect(ids(g.sent[0])).toEqual(["c:checkout", "c:menu", "c:clear"]);
+    expect(ids(g.sent[0])).toEqual(["c:checkout", "c:menu", "note:add"]);
   });
 
   it("an item with a required option asks the option, then adds with the quantity chosen", async () => {
@@ -1257,7 +1268,7 @@ describe("the button-driven ordering path (session T, §34)", () => {
     });
     await handleCustomerTurn(g.deps, msg({ buttonId: `opt:${OPT}`, type: "interactive" }));
     expect(g.of("basket_add_item")[0].args).toMatchObject({ p_quantity: 2, p_option_ids: [OPT] });
-    expect(ids(g.sent[0])).toEqual(["c:checkout", "c:menu", "c:clear"]);
+    expect(ids(g.sent[0])).toEqual(["c:checkout", "c:menu", "note:add"]);
   });
 
   describe("checkout: cash currency, summary, confirm", () => {
@@ -2362,14 +2373,16 @@ describe("Add in WhatsApp from an item page (DECISIONS §39.15.2)", () => {
           basket: null,
         }),
         menu_item_options: () => [SIZE],
+        // A cart's choices are asked one at a time (session 5f part 7), from the item's own groups.
+        item_choice_groups: () => ({ name: SIZE.item, name_en: SIZE.item_en, groups: [SIZE] }),
       },
     });
     await handleCustomerTurn(
       f.deps,
       msg({ type: "order", cart: { lines: [{ itemId: ITEM, quantity: 1, shownUsd: null }] } }),
     );
-    const list = f.sent.find((p) => p.interactive?.type === "list");
-    expect(bodyOf(list)).toBe('Choose Size for "Chicken Shawarma":');
+    const ask = f.sent.find((p) => p.interactive);
+    expect(bodyOf(ask)).toContain("Chicken Shawarma");
   });
 });
 
@@ -3215,7 +3228,7 @@ describe("demo testers anywhere in the world (session 5f part 6, DECISIONS §39.
     const f = fake({ rpcs: { demo_address_pick: () => ({ status: "not_allowed" }) } });
     await handleCustomerTurn(f.deps, msg({ buttonId: "da:baakleen", type: "interactive" }));
     expect(f.sent).toHaveLength(1);
-    expect(btnIds(f.sent[0])).toEqual(["c:new_address", "c:human"]);
+    expect(btnIds(f.sent[0])).toEqual(["c:new_address", "c:clear", "c:human"]);
   });
 
   it("a tester's tap on an item of a shop that is not a demo shop: the way to the demo shops", async () => {
@@ -3384,6 +3397,822 @@ describe("demo testers anywhere in the world (session 5f part 6, DECISIONS §39.
       msg({ type: "location", location: { lat: 33.89, lon: 35.48 } }),
     );
     expect(bodyOf(f.sent[0])).toMatch(/We don't deliver to that area right now/);
-    expect(btnIds(f.sent[0])).toEqual(["c:new_address", "c:human"]);
+    expect(btnIds(f.sent[0])).toEqual(["c:new_address", "c:clear", "c:human"]);
+  });
+});
+
+// ---- Session 5f part 7: the chat after the native cart and at checkout (#25, #26, #35, #38, §39.15.2) ---------------------
+function tapIds(p: any): string[] {
+  return [
+    ...(p?.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id),
+    ...(p?.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => r.id)),
+  ];
+}
+import { readTipAmount } from "./turn";
+import { parseCustomerAction } from "../../_shared/customer-cards";
+
+describe("after the native cart and at checkout (session 5f part 7)", () => {
+  const ITEM_A = "57000000-0000-0000-0000-00000000000a";
+  const ITEM_B = "57000000-0000-0000-0000-00000000000b";
+  const LINE_A = "57100000-0000-0000-0000-00000000000a";
+  const LINE_B = "57100000-0000-0000-0000-00000000000b";
+  const opt = (k: number) => `57200000-0000-0000-0000-${String(k).padStart(12, "0")}`;
+  const ORDER = "57300000-0000-0000-0000-000000000001";
+  const FRIES = "57000000-0000-0000-0000-0000000000f1";
+  const COLA = "57000000-0000-0000-0000-0000000000f2";
+  const SIZE = {
+    group_id: "g-size",
+    name_en: "Size",
+    min: 1,
+    max: 1,
+    options: [
+      { option_id: opt(1), name_en: "Regular", price_delta_usd: 0 },
+      { option_id: opt(2), name_en: "Large", price_delta_usd: 1.5 },
+    ],
+  };
+  const EXTRAS = {
+    group_id: "g-extras",
+    name_en: "Extras",
+    min: 0,
+    max: 2,
+    room: 2,
+    options: [
+      { option_id: opt(3), name_en: "Cheese", price_delta_usd: 0.75 },
+      { option_id: opt(4), name_en: "Bacon", price_delta_usd: 1 },
+    ],
+  };
+  const SAUCE = {
+    group_id: "g-sauce",
+    name_en: "Sauce",
+    min: 1,
+    max: 1,
+    options: [5, 6, 7, 8].map((k) => ({ option_id: opt(k), name_en: `Sauce ${k}` })),
+  };
+  const groupsOf: Record<string, any> = {
+    [ITEM_A]: { item_id: ITEM_A, name: "برغر", name_en: "Burger", groups: [SIZE, EXTRAS] },
+    [ITEM_B]: { item_id: ITEM_B, name: "دجاج", name_en: "Chicken", groups: [SAUCE] },
+  };
+  const cartMsg = (lines: { itemId: string; quantity: number }[], id = "wamid.cart.1") =>
+    msg({
+      type: "order",
+      messageId: id,
+      cart: { lines: lines.map((l) => ({ shownUsd: null, ...l })) },
+    });
+  const at = (pending: any, extra: any = {}) => ({
+    session: { lang: "en", pending, refs: {}, history: [], low_confidence: 0, handoff: false },
+    ...extra,
+  });
+  const pendingOf = (f: ReturnType<typeof fake>) =>
+    f.of("customer_turn_end")[0].args.p_session.pending;
+  // The queue's RPCs: choices, adds that return the line, the add-ons of each line once.
+  const queueRpcs = (extrasSeen: string[] = []) => ({
+    item_choice_groups: (a: any) => groupsOf[a.p_item_id] ?? null,
+    basket_add_item: (a: any) => ({
+      status: "added",
+      line_id: a.p_item_id === ITEM_A ? LINE_A : LINE_B,
+      basket,
+    }),
+    basket_line_extras: (a: any) => {
+      extrasSeen.push(a.p_line_id);
+      return a.p_line_id === LINE_A
+        ? { status: "offer", line_id: LINE_A, item: "برغر", item_en: "Burger", groups: [EXTRAS] }
+        : { status: "none" };
+    },
+    basket_lines_with_extras: () => [],
+  });
+
+  it("#25: the required choices of two items one at a time, each added once chosen, add-ons offered once, then checkout", async () => {
+    const seen: string[] = [];
+    // 1. The cart: two items need a choice; the first one's size comes as buttons (2 options), with the server's price.
+    const f = fake({
+      rpcs: {
+        ...queueRpcs(seen),
+        cart_merge: () => ({
+          status: "ok",
+          added: 0,
+          skipped: [],
+          diffs: [],
+          needs_options: [
+            { item_id: ITEM_A, quantity: 2 },
+            { item_id: ITEM_B, quantity: 1 },
+          ],
+          basket: null,
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      cartMsg([
+        { itemId: ITEM_A, quantity: 2 },
+        { itemId: ITEM_B, quantity: 1 },
+      ]),
+    );
+    expect(f.sent).toHaveLength(1);
+    expect(f.sent[0].interactive.type).toBe("button");
+    expect(tapIds(f.sent[0])).toEqual([`opt:${opt(1)}`, `opt:${opt(2)}`]);
+    expect(f.sent[0].interactive.action.buttons[1].reply.title).toBe("Large +$1.50");
+    expect(bodyOf(f.sent[0])).toContain('"Burger"');
+    expect(f.of("flow_open")).toHaveLength(0);
+    expect(f.of("basket_add_item")).toHaveLength(0);
+    let pending = pendingOf(f);
+    expect(pending.kind).toBe("cart_opts");
+    expect(pending.queue.map((q: any) => q.i)).toEqual([ITEM_A, ITEM_B]);
+
+    // 2. Large: the burger goes in with its quantity and choice; its add-ons are offered (list, No extras last).
+    const g = fake({ begin: at(pending), rpcs: queueRpcs(seen) });
+    await handleCustomerTurn(
+      g.deps,
+      msg({ type: "interactive", buttonId: `opt:${opt(2)}`, messageId: "wamid.t2" }),
+    );
+    expect(g.of("basket_add_item")[0].args).toMatchObject({
+      p_item_id: ITEM_A,
+      p_quantity: 2,
+      p_option_ids: [opt(2)],
+    });
+    expect(g.sent[0].interactive.type).toBe("list");
+    // The chicken is still to come: "No extras for the rest" ends every later add-on list at once.
+    expect(tapIds(g.sent[0])).toEqual([`ext:${opt(3)}`, `ext:${opt(4)}`, "ext:none", "ext:rest"]);
+    expect(bodyOf(g.sent[0])).toContain("Up to 2");
+    pending = pendingOf(g);
+    expect(pending.queue[0]).toMatchObject({ i: ITEM_A, l: LINE_A, x: 1 });
+
+    // 3. Cheese: added to the line by the server; the line takes one more, so the same offer goes on with Done.
+    const h = fake({
+      begin: at(pending),
+      rpcs: {
+        ...queueRpcs(seen),
+        basket_line_add_options: () => ({
+          status: "added",
+          basket,
+          extras: [{ ...EXTRAS, room: 1 }],
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      h.deps,
+      msg({ type: "interactive", buttonId: `ext:${opt(3)}`, messageId: "wamid.t3" }),
+    );
+    expect(h.of("basket_line_add_options")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_line_id: LINE_A,
+      p_option_ids: [opt(3)],
+    });
+    expect(tapIds(h.sent[0])).toContain("ext:none");
+    expect(JSON.stringify(h.sent[0])).toContain("Done");
+    pending = pendingOf(h);
+
+    // 4. Done: the second item's sauce (4 options: a list); the burger's add-ons are never offered again.
+    const k = fake({ begin: at(pending), rpcs: queueRpcs(seen) });
+    await handleCustomerTurn(
+      k.deps,
+      msg({ type: "interactive", buttonId: "ext:none", messageId: "wamid.t4" }),
+    );
+    expect(k.sent[0].interactive.type).toBe("list");
+    expect(tapIds(k.sent[0])).toEqual([5, 6, 7, 8].map((n) => `opt:${opt(n)}`));
+    expect(bodyOf(k.sent[0])).toContain('"Chicken"');
+    pending = pendingOf(k);
+    expect(pending.queue).toHaveLength(1);
+
+    // 5. A sauce: the chicken goes in; it has no add-ons; the queue is done and checkout runs.
+    const m = fake({
+      begin: at(pending, { basket }),
+      rpcs: { ...queueRpcs(seen), basket_quote: () => ({ status: "no_address", basket }) },
+    });
+    await handleCustomerTurn(
+      m.deps,
+      msg({ type: "interactive", buttonId: `opt:${opt(6)}`, messageId: "wamid.t5" }),
+    );
+    expect(m.of("basket_add_item")[0].args).toMatchObject({
+      p_item_id: ITEM_B,
+      p_option_ids: [opt(6)],
+    });
+    expect(m.of("basket_quote")).toHaveLength(1);
+    expect(pendingOf(m).kind).not.toBe("cart_opts");
+    // Each line's add-ons were looked at once.
+    expect(seen).toEqual([LINE_A, LINE_B]);
+    for (const x of [f, g, h, k, m])
+      for (const p of x.sent) expect(checkInteractive(p)).toEqual([]);
+  });
+
+  it("#25: add-ons already offered for a line are not offered again; items added at once get theirs once", async () => {
+    const f = fake({
+      rpcs: {
+        cart_merge: () => ({
+          status: "ok",
+          added: 1,
+          skipped: [],
+          diffs: [],
+          needs_options: [],
+          basket,
+        }),
+        basket_lines_with_extras: () => [{ line_id: LINE_A, item_id: ITEM_A }],
+        basket_line_extras: () => ({ status: "offered" }),
+        basket_quote: () => ({ status: "no_address", basket }),
+      },
+    });
+    await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM_A, quantity: 1 }]));
+    expect(f.of("basket_lines_with_extras")[0].args.p_item_ids).toEqual([ITEM_A]);
+    expect(f.of("basket_line_extras")).toHaveLength(1);
+    expect(f.sent.some((p) => tapIds(p).some((id) => id.startsWith("ext:")))).toBe(false);
+    expect(f.of("basket_quote")).toHaveLength(1);
+    // A stale add-on tap with nothing open shows the basket, never an error.
+    const g = fake({ begin: { basket } });
+    await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: `ext:${opt(3)}` }));
+    expect(g.of("basket_line_add_options")).toHaveLength(0);
+    expect(tapIds(g.sent[0])).toEqual(["c:checkout", "c:menu", "note:add"]);
+  });
+
+  it("#26: Add a note picks the line, the next text is its note (server-checked, never a price), shown on the basket", async () => {
+    const two = {
+      ...basket,
+      note_max: 80,
+      lines: [
+        ...basket.lines,
+        {
+          line_id: LINE_B,
+          item_id: ITEM_B,
+          name: "دجاج",
+          name_en: "Chicken",
+          quantity: 1,
+          line_total_usd: 6,
+        },
+      ],
+    };
+    const f = fake({ begin: { basket: two } });
+    await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "note:add" }));
+    expect(f.sent[0].interactive.type).toBe("list");
+    expect(tapIds(f.sent[0])).toEqual([`note:${LINE}`, `note:${LINE_B}`]);
+
+    const g = fake({ begin: { basket: two } });
+    await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: `note:${LINE_B}` }));
+    expect(bodyOf(g.sent[0])).toContain('"Chicken"');
+    expect(bodyOf(g.sent[0])).toContain("80 characters");
+    expect(tapIds(g.sent[0])).toEqual(["c:basket"]);
+    const pending = pendingOf(g);
+    expect(pending).toMatchObject({ kind: "note", line_id: LINE_B });
+    // Hours later, a text is a new message, never this line's note.
+    const late = fake({
+      begin: at({ ...pending, at: "2020-01-01T00:00:00.000Z" }, { basket: two }),
+      rpcs: { basket_line_note: () => ({ status: "saved", note: "x", basket: two }) },
+    });
+    await handleCustomerTurn(late.deps, msg({ text: "2 shawarma please" }));
+    expect(late.of("basket_line_note")).toHaveLength(0);
+
+    const noted = {
+      ...two,
+      lines: [two.lines[0], { ...two.lines[1], note: "no onions" }],
+    };
+    const h = fake({
+      begin: at(pending, { basket: two }),
+      rpcs: { basket_line_note: () => ({ status: "saved", note: "no onions", basket: noted }) },
+    });
+    await handleCustomerTurn(h.deps, msg({ text: "no onions" }));
+    expect(h.of("basket_line_note")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_line_id: LINE_B,
+      p_note: "no onions",
+    });
+    expect(bodyOf(h.sent[0])).toContain("📝 no onions");
+    expect(bodyOf(h.sent[0])).toContain("$6.00");
+    expect(h.of("catalog_search")).toHaveLength(0);
+    expect(pendingOf(h)).toEqual({});
+
+    // Too long: the server says so with its limit, the error has buttons, and the next text is still the note.
+    const k = fake({
+      begin: at(pending, { basket: two }),
+      rpcs: { basket_line_note: () => ({ status: "too_long", max: 80, length: 95 }) },
+    });
+    await handleCustomerTurn(k.deps, msg({ text: "x".repeat(95) }));
+    expect(bodyOf(k.sent[0])).toContain("95 characters; the most is 80");
+    expect(tapIds(k.sent[0]).length).toBeGreaterThan(0);
+    expect(pendingOf(k)).toMatchObject({ kind: "note", line_id: pending.line_id });
+    expect(pendingOf(k).at).toBe(k.deps.now!().toISOString());
+
+    // A fixed intent ("basket") is not taken as the note.
+    const m = fake({ begin: at(pending, { basket: two }) });
+    await handleCustomerTurn(m.deps, msg({ text: "basket" }));
+    expect(m.of("basket_line_note")).toHaveLength(0);
+
+    // One line: Add a note asks straight away.
+    const n = fake({ begin: { basket } });
+    await handleCustomerTurn(n.deps, msg({ type: "interactive", buttonId: "note:add" }));
+    expect(pendingOf(n)).toMatchObject({ kind: "note", line_id: LINE });
+    for (const x of [f, g, h, k, n])
+      for (const p of x.sent) expect(checkInteractive(p)).toEqual([]);
+  });
+
+  describe("#35 change for cash and #38 the tip at checkout", () => {
+    const quote = {
+      status: "ok",
+      basket,
+      subtotal_usd: 10.25,
+      delivery_fee_usd: 2,
+      total_usd: 12.25,
+      total_lbp: 1096375,
+      usd_lbp_rate: 89500,
+      address: { place: "بعقلين", place_en: "Baakline" },
+    };
+    const cash = () => ({ status: "ok", cash_currency: "USD", allowed: ["USD", "LBP"] });
+
+    it("after the currency: Do you need change? Exact and the configured notes above the total", async () => {
+      const f = fake({
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_set_cash_currency: () => ({ status: "ok", cash_currency: "USD" }),
+          basket_cash_state: cash,
+          basket_checkout_extras: () => ({
+            status: "ok",
+            tip_usd: 0,
+            tip_amounts: [1, 2, 3],
+            total_usd: 12.25,
+            total_lbp: 1096375,
+            usd_lbp_rate: 89500,
+            change: { status: "ask", currency: "USD", total: 12.25, options: [20, 50, 100] },
+          }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "cur:USD" }));
+      // The total in both currencies (customer totals show USD and LBP); the notes in the currency paid.
+      expect(bodyOf(f.sent[0])).toContain("$12.25 = 1,096,375 LBP");
+      expect(f.sent).toHaveLength(1);
+      expect(f.sent[0].interactive.type).toBe("list");
+      expect(tapIds(f.sent[0])).toEqual([
+        "chg:USD:exact",
+        "chg:USD:20",
+        "chg:USD:50",
+        "chg:USD:100",
+      ]);
+      expect(bodyOf(f.sent[0])).toContain("$12.25");
+      expect(f.sent.some((p) => tapIds(p).some((id) => id.startsWith("cfm:")))).toBe(false);
+      for (const id of tapIds(f.sent[0])) expect(parseCustomerAction(id)?.a).toBe("change");
+      // In lira: the server's LBP amounts, as buttons when they fit.
+      const g = fake({
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_cash_state: () => ({
+            status: "ok",
+            cash_currency: "LBP",
+            allowed: ["USD", "LBP"],
+          }),
+          basket_checkout_extras: () => ({
+            status: "ok",
+            change: { status: "ask", currency: "LBP", total: 1096375, options: [2000000, 5000000] },
+          }),
+        },
+      });
+      await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "c:checkout" }));
+      expect(tapIds(g.sent[0])).toEqual(["chg:LBP:exact", "chg:LBP:2000000", "chg:LBP:5000000"]);
+      expect(g.sent[0].interactive.action.buttons[1].reply.title).toBe("2,000,000 LBP");
+      for (const x of [f, g]) for (const p of x.sent) expect(checkInteractive(p)).toEqual([]);
+    });
+
+    it("the answer is kept by the server; the summary shows the change, the tip line and both totals with the tip; then the tip row", async () => {
+      const f = fake({
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_cash_state: cash,
+          basket_set_cash_change: () => ({ status: "ok" }),
+          basket_checkout_extras: () => ({
+            status: "ok",
+            tip_usd: 2,
+            tip_amounts: [1, 2, 3],
+            total_usd: 14.25,
+            total_lbp: 1275375,
+            usd_lbp_rate: 89500,
+            change: {
+              status: "set",
+              currency: "USD",
+              total: 14.25,
+              change_for: 20,
+              change_due: 5.75,
+            },
+          }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "chg:USD:20" }));
+      expect(f.of("basket_set_cash_change")[0].args).toEqual({
+        p_customer_id: CUST,
+        p_currency: "USD",
+        p_amount: 20,
+      });
+      const summary = bodyOf(f.sent[0]);
+      expect(summary).toContain("💵 Paying with $20: $5.75 change");
+      expect(summary).toContain("🙏 Tip: $2.00");
+      expect(summary).toContain("$14.25 = 1,275,375 LBP");
+      expect(tapIds(f.sent[0])[0]).toBe(`cfm:${BASKET}:7`);
+      // The tip row: the other amounts and No tip.
+      const row = f.sent[f.sent.length - 1];
+      expect(tapIds(row)).toEqual(["tpc:100", "tpc:300", "tpc:0"]);
+      for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+
+      // Exact cash.
+      const g = fake({
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_cash_state: cash,
+          basket_checkout_extras: () => ({
+            status: "ok",
+            tip_usd: 0,
+            tip_amounts: [1, 2, 3],
+            total_usd: 12.25,
+            total_lbp: 1096375,
+            usd_lbp_rate: 89500,
+            change: {
+              status: "set",
+              currency: "USD",
+              total: 12.25,
+              change_for: null,
+              change_due: null,
+            },
+          }),
+        },
+      });
+      await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "chg:USD:exact" }));
+      expect(g.of("basket_set_cash_change")[0].args.p_amount).toBeNull();
+      expect(bodyOf(g.sent[0])).toContain("Exact cash");
+      expect(bodyOf(g.sent[0])).not.toContain("Tip:");
+      // Default none: the row offers every amount.
+      expect(tapIds(g.sent[g.sent.length - 1])).toEqual(["tpc:100", "tpc:200", "tpc:300"]);
+    });
+
+    it("a tip tap is checked by the server, then the summary again; nothing to ask when the server has nothing", async () => {
+      const f = fake({
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_cash_state: cash,
+          basket_set_tip: () => ({ status: "ok", tip_usd: 2 }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "tpc:200" }));
+      expect(f.of("basket_set_tip")[0].args).toEqual({ p_customer_id: CUST, p_amount: 2 });
+      expect(f.of("basket_quote")).toHaveLength(1);
+      // No extras from the server (a pickup, a gift, an older database): the summary as before, no tip row.
+      expect(f.sent).toHaveLength(1);
+      expect(tapIds(f.sent[0])[0]).toBe(`cfm:${BASKET}:7`);
+
+      const g = fake({
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_cash_state: cash,
+          basket_set_tip: () => ({ status: "not_allowed" }),
+        },
+      });
+      await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "tpc:700" }));
+      expect(bodyOf(g.sent[0])).toContain("We can't take that tip");
+      expect(tapIds(g.sent[0]).length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("#38 the tip after delivery", () => {
+    const offer = (amounts: number[]) => () => ({
+      status: "offer",
+      order_id: ORDER,
+      amounts,
+      max_usd: 10,
+    });
+
+    it("the rating thanks comes with the configured amounts and Other, once per order", async () => {
+      const f = fake({ rpcs: { order_tip_offer: offer([1, 2, 3]) } });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `rate:${ORDER}:f5` }));
+      expect(f.of("order_rate")).toHaveLength(1);
+      expect(f.of("order_tip_offer")[0].args).toEqual({ p_customer_id: CUST, p_order_id: ORDER });
+      expect(bodyOf(f.sent[0])).toContain("Thanks for rating");
+      expect(bodyOf(f.sent[0])).toContain("100% goes to them");
+      expect(tapIds(f.sent[0])).toEqual([
+        `tpo:${ORDER}:100`,
+        `tpo:${ORDER}:200`,
+        `tpo:${ORDER}:300`,
+        `tpo:${ORDER}:other`,
+      ]);
+      for (const id of tapIds(f.sent[0])) expect(parseCustomerAction(id)?.a).toBe("tip_after");
+      // Two amounts and Other fit as buttons.
+      const g = fake({ rpcs: { order_tip_offer: offer([1, 2]) } });
+      await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: `rcv:${ORDER}:ok` }));
+      expect(g.sent[0].interactive.type).toBe("button");
+      expect(bodyOf(g.sent[0])).toMatch(/Glad/);
+      // Already asked (or tipped): the thanks alone.
+      const h = fake({ rpcs: { order_tip_offer: () => ({ status: "offered" }) } });
+      await handleCustomerTurn(h.deps, msg({ type: "interactive", buttonId: `rate:${ORDER}:f4` }));
+      expect(h.sent[0].type).toBe("text");
+      for (const x of [f, g]) for (const p of x.sent) expect(checkInteractive(p)).toEqual([]);
+    });
+
+    it("a tip button sets it through the server (booked for whoever delivered); Other asks for the amount up to the max", async () => {
+      const f = fake({
+        rpcs: { order_tip_set: () => ({ status: "promised", tip_usd: 2, told: true }) },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `tpo:${ORDER}:200` }));
+      expect(f.of("order_tip_set")[0].args).toEqual({
+        p_customer_id: CUST,
+        p_order_id: ORDER,
+        p_amount: 2,
+        p_other: false,
+      });
+      // Promised, never booked on the customer's word: whoever delivered is told and confirms it themselves.
+      expect(bodyOf(f.sent[0])).toContain(
+        "We told whoever delivered your order about the $2.00 tip",
+      );
+      expect(bodyOf(f.sent[0])).toContain("hand it over when you see them");
+
+      const g = fake({ rpcs: { order_tip_offer: offer([1, 2, 3]) } });
+      await handleCustomerTurn(
+        g.deps,
+        msg({ type: "interactive", buttonId: `tpo:${ORDER}:other` }),
+      );
+      expect(g.of("order_tip_offer")[0].args.p_mark).toBe(false);
+      expect(bodyOf(g.sent[0])).toContain("up to $10.00");
+      const pending = pendingOf(g);
+      expect(pending).toMatchObject({ kind: "tip_other", order_id: ORDER, max: 10 });
+      expect(typeof pending.at).toBe("string");
+
+      const h = fake({
+        begin: at(pending),
+        rpcs: { order_tip_set: () => ({ status: "promised", tip_usd: 4.5 }) },
+      });
+      await handleCustomerTurn(h.deps, msg({ text: "4.5" }));
+      expect(h.of("order_tip_set")[0].args).toMatchObject({ p_amount: 4.5, p_other: true });
+      expect(bodyOf(h.sent[0])).toContain("$4.50");
+      expect(h.of("catalog_search")).toHaveLength(0);
+
+      // A bad amount: the error with buttons, and the next text is still the amount.
+      const k = fake({ begin: at(pending) });
+      await handleCustomerTurn(k.deps, msg({ text: "0" }));
+      expect(k.of("order_tip_set")).toHaveLength(0);
+      expect(tapIds(k.sent[0]).length).toBeGreaterThan(0);
+      expect(pendingOf(k)).toMatchObject({ kind: "tip_other", order_id: ORDER, max: 10 });
+
+      // Not an amount at all ("2 shawarma w pepsi"), or ten minutes later: no tip, the message goes its usual way.
+      for (const [begin, text] of [
+        [at(pending), "2 shawarma w pepsi"],
+        [at({ ...pending, at: "2020-01-01T00:00:00.000Z" }), "5"],
+      ] as const) {
+        const x = fake({ begin });
+        await handleCustomerTurn(x.deps, msg({ text }));
+        expect(x.of("order_tip_set")).toHaveLength(0);
+        expect(pendingOf(x).kind).not.toBe("tip_other");
+        expect(x.sent.some((p) => /up to \$10\.00/.test(bodyOf(p)))).toBe(false);
+      }
+
+      // Above the max: the server refuses and the amount is asked again.
+      const m = fake({
+        begin: at(pending),
+        rpcs: { order_tip_set: () => ({ status: "not_allowed", max_usd: 10 }) },
+      });
+      await handleCustomerTurn(m.deps, msg({ text: "50" }));
+      expect(bodyOf(m.sent[0])).toContain("up to $10.00");
+      expect(pendingOf(m).kind).toBe("tip_other");
+
+      // Too late.
+      const n = fake({ rpcs: { order_tip_set: () => ({ status: "too_late" }) } });
+      await handleCustomerTurn(n.deps, msg({ type: "interactive", buttonId: `tpo:${ORDER}:100` }));
+      expect(bodyOf(n.sent[0])).toContain("too late");
+      expect(tapIds(n.sent[0]).length).toBeGreaterThan(0);
+    });
+
+    it("reads a typed amount in any of the ways people write it", () => {
+      expect(readTipAmount("5")).toBe(5);
+      expect(readTipAmount("$2.50")).toBe(2.5);
+      expect(readTipAmount("2,5")).toBe(2.5);
+      expect(readTipAmount("٢")).toBe(2);
+      expect(readTipAmount("۵")).toBe(5);
+      expect(readTipAmount("3 dollars")).toBe(3);
+      expect(readTipAmount("abc")).toBeNull();
+      expect(readTipAmount("0")).toBeNull();
+      expect(readTipAmount("1.005")).toBeNull();
+    });
+  });
+
+  describe("the product carousel (§39.15.2), off until verified", () => {
+    const goes = (carousel: boolean, n: number) => () => ({
+      status: "ok",
+      carousel,
+      products: [FRIES, COLA].slice(0, n).map((id, k) => ({
+        retailer_id: id,
+        name: k ? "كولا" : "بطاطا",
+        name_en: k ? "Cola" : "Fries",
+        price_usd: k ? 1 : 3,
+      })),
+    });
+    const merged = () => ({
+      status: "ok",
+      added: 1,
+      skipped: [],
+      diffs: [],
+      needs_options: [],
+      basket,
+    });
+
+    it("carousel off: Goes well with is one single-product message after the cart; the upsell buttons stand in if Meta refuses it", async () => {
+      const f = fake({
+        rpcs: {
+          cart_merge: merged,
+          catalog_for_number: () => "CAT1",
+          basket_goes_well: goes(false, 2),
+          basket_quote: () => ({ status: "no_address", basket }),
+        },
+      });
+      await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
+      expect(f.of("basket_goes_well")[0].args).toEqual({
+        p_customer_id: CUST,
+        p_catalog_id: "CAT1",
+      });
+      const product = f.sent.find((p) => p.interactive?.type === "product");
+      expect(product.interactive.action).toEqual({
+        catalog_id: "CAT1",
+        product_retailer_id: FRIES,
+      });
+      expect(bodyOf(product)).toContain("Goes well with");
+      expect(f.sent.some((p) => p.interactive?.type === "carousel")).toBe(false);
+      for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+
+      // Meta refuses the product: the upsell buttons instead.
+      const g = fake({
+        rpcs: {
+          cart_merge: merged,
+          catalog_for_number: () => "CAT1",
+          basket_goes_well: goes(false, 1),
+          basket_quote: () => ({ status: "no_address", basket }),
+        },
+      });
+      const send = g.deps.send;
+      g.deps.send = async (p: any) =>
+        p.interactive?.type === "product" ? { ok: false, retry: false, error: "131009" } : send(p);
+      await handleCustomerTurn(g.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
+      expect(g.sent.some((p) => tapIds(p).includes(`ups:${FRIES}`))).toBe(true);
+    });
+
+    it("carousel on: the bought-together items as one carousel, the single product standing in", async () => {
+      const f = fake({
+        rpcs: {
+          cart_merge: merged,
+          catalog_for_number: () => "CAT1",
+          basket_goes_well: goes(true, 2),
+          basket_quote: () => ({ status: "no_address", basket }),
+        },
+      });
+      await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
+      const car = f.sent.find((p) => p.interactive?.type === "carousel");
+      expect(car.interactive.action.cards.map((c: any) => c.action.product_retailer_id)).toEqual([
+        FRIES,
+        COLA,
+      ]);
+      expect(checkInteractive(car)).toEqual([]);
+    });
+
+    it("no catalogue (simulator, sandbox): no Goes well with message; the summary's upsell stays as it was", async () => {
+      const f = fake({
+        rpcs: { cart_merge: merged, basket_quote: () => ({ status: "no_address", basket }) },
+      });
+      await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
+      expect(f.of("basket_goes_well")).toHaveLength(0);
+    });
+
+    it("Popular near you after the craving list: the product list while the carousel is off, the carousel when it is on", async () => {
+      const POINT = { lat: 33.6775, lon: 35.5645, address_id: "a1" };
+      const shops = Array.from({ length: 5 }, (_, k) => ({
+        vendor_id: `20000000-0000-0000-0000-0000000000${String(k).padStart(2, "0")}`,
+        name_en: `Shop ${k}`,
+        is_open: true,
+        km: 1 + k,
+        categories: ["burgers"],
+      }));
+      const rpcs = (carousel: boolean) => ({
+        customer_search_point: () => POINT,
+        browse_shops: () => ({
+          place: { name_en: "Baakline" },
+          categories: [
+            {
+              key: "burgers",
+              emoji: "🍔",
+              name_ar: "برغر",
+              name_en: "Burgers",
+              name_fr: "Burgers",
+            },
+          ],
+          shops,
+        }),
+        customer_delivery_check: (a: any) => ({
+          status: "ok",
+          vendors: a.p_vendor_ids.map((id: string) => ({
+            vendor_id: id,
+            status: "ok",
+            fee_usd: 2,
+          })),
+        }),
+        catalog_for_number: () => "CAT1",
+        popular_near_you: () => ({
+          carousel,
+          products: [
+            { retailer_id: FRIES, name_en: "Fries", section: "Shop 0", section_en: "Shop 0" },
+            { retailer_id: COLA, name_en: "Cola", section: "Shop 1", section_en: "Shop 1" },
+          ],
+        }),
+      });
+      const f = fake({ model: null, rpcs: rpcs(false) });
+      await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+      expect(f.sent[0].interactive.type).toBe("list");
+      expect(f.of("popular_near_you")[0].args.p_vendor_ids).toHaveLength(5);
+      expect(f.sent[1].interactive.type).toBe("product_list");
+      expect(f.sent[1].interactive.header.text).toBe("🔥 Popular near you");
+      const g = fake({ model: null, rpcs: rpcs(true) });
+      await handleCustomerTurn(g.deps, msg({ buttonId: "c:order", type: "interactive" }));
+      expect(g.sent[1].interactive.type).toBe("carousel");
+      for (const x of [f, g]) for (const p of x.sent) expect(checkInteractive(p)).toEqual([]);
+    });
+  });
+
+  it("#25: No extras for the rest ends the later add-on lists of the same cart", async () => {
+    const pending = {
+      kind: "cart_opts",
+      queue: [
+        { i: ITEM_A, q: 1, c: [], l: LINE_A, x: 1 },
+        { i: ITEM_B, q: 1, c: [], l: LINE_B },
+      ],
+    };
+    const seen: string[] = [];
+    const f = fake({
+      begin: at(pending, { basket }),
+      rpcs: { ...queueRpcs(seen), basket_quote: () => ({ status: "no_address", basket }) },
+    });
+    await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "ext:rest" }));
+    expect(seen).toEqual([]);
+    expect(f.of("basket_quote")).toHaveLength(1);
+    expect(pendingOf(f).kind).not.toBe("cart_opts");
+  });
+
+  it("the cash-cap card can empty the basket at once (the basket message's third button is Add a note now)", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        basket_quote: () => ({
+          status: "ok",
+          basket,
+          total_usd: 80,
+          total_lbp: 7160000,
+          usd_lbp_rate: 89500,
+          cod_cap_usd: 50,
+          over_cod_cap: true,
+        }),
+        basket_cash_state: () => ({ status: "ok", cash_currency: "USD", allowed: ["USD"] }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:checkout" }));
+    expect(tapIds(f.sent[0])).toEqual(["c:basket", "c:clear", "c:human"]);
+    expect(f.of("basket_checkout_extras")).toHaveLength(0);
+    const g = fake({ begin: { basket } });
+    await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "c:clear" }));
+    expect(g.of("basket_clear")).toHaveLength(1);
+  });
+
+  it("a change or tip tap re-shows the summary with no live route attempt, and the extras reuse checkout's quote", async () => {
+    const quote = {
+      status: "ok",
+      basket,
+      total_usd: 12.25,
+      total_lbp: 1096375,
+      usd_lbp_rate: 89500,
+      origin: { lat: 33.68, lon: 35.58 },
+      dest: { lat: 33.69, lon: 35.59 },
+      address: { place: "بعقلين", place_en: "Baakline" },
+    };
+    for (const id of ["chg:USD:20", "tpc:200"]) {
+      const f = fake({
+        begin: { basket },
+        rpcs: {
+          basket_quote: () => quote,
+          basket_cash_state: () => ({ status: "ok", cash_currency: "USD", allowed: ["USD"] }),
+          basket_set_cash_change: () => ({ status: "ok" }),
+          basket_set_tip: () => ({ status: "ok" }),
+        },
+      });
+      let routes = 0;
+      f.deps.route = async () => {
+        routes++;
+        return null;
+      };
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: id }));
+      expect(routes, id).toBe(0);
+      expect(f.of("basket_quote"), id).toHaveLength(1);
+      expect(f.of("basket_checkout_extras")[0].args, id).toEqual({
+        p_customer_id: CUST,
+        p_total_usd: 12.25,
+        p_usd_lbp_rate: 89500,
+      });
+    }
+    // Checkout itself still makes its one live call.
+    const g = fake({ begin: { basket }, rpcs: { basket_quote: () => quote } });
+    let routes = 0;
+    g.deps.route = async () => {
+      routes++;
+      return null;
+    };
+    await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "c:checkout" }));
+    expect(routes).toBe(1);
   });
 });
