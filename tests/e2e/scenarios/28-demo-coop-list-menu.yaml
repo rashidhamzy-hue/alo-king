@@ -21,9 +21,13 @@ steps:
   - say: { as: cust, text: "Order" }
     expect:
       - { to: cust }
-  - pin: { as: cust, lat: "{{vars.lat}}", lon: "{{vars.lon}}" }
+  - note: many demo shops deliver here, so the bot asks what they are craving (session 5e); Shops near you lists them
+    pin: { as: cust, lat: "{{vars.lat}}", lon: "{{vars.lon}}" }
     expect:
-      - { to: cust, buttons: ["Baakleen Coop"] }
+      - { to: cust, kind: list, buttons: ["c:near"] }
+  - tap: { as: cust, id: "c:near" }
+    expect:
+      - { to: cust, kind: list, buttons: ["Baakleen Coop"] }
   - note: 45 essentials in 7 sections; without the catalogue the shop opens as the list of its sections
     tap: { as: cust, title: "Baakleen Coop" }
     expect:

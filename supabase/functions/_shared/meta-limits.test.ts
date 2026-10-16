@@ -158,9 +158,13 @@ describe("merchant-cards: every builder passes the checker", () => {
   it("a demo shop's order card says Demo first, in both languages (DECISIONS §39.12)", () => {
     const en: any = cards.orderCard("+96171000001", { ...order, demo: true }, "en");
     const ar: any = cards.orderCard("+96171000001", { ...order, demo: true }, "ar");
-    expect(en.interactive.body.text.split("\n")[0]).toBe("🧪 Demo order: the real shop is never told");
+    expect(en.interactive.body.text.split("\n")[0]).toBe(
+      "🧪 Demo order: the real shop is never told",
+    );
     expect(ar.interactive.body.text.split("\n")[0]).toContain("Demo");
-    expect((cards.orderCard("+96171000001", order, "en") as any).interactive.body.text).not.toContain("Demo");
+    expect(
+      (cards.orderCard("+96171000001", order, "en") as any).interactive.body.text,
+    ).not.toContain("Demo");
   });
   it("button ids round-trip through parseMerchantAction", () => {
     const p: any = cards.orderCard("+96171000001", order, "ar");
@@ -839,7 +843,11 @@ describe("session 5c customer agent cards (DECISIONS §38.3, §39.6)", () => {
         ),
         forWhomCard(to, lang, "Baakline, Building Saint Elias, near the church with a long name"),
         problemList(to, lang, "ABC123"),
-        belowMinimumMessage(to, lang, { status: "below_minimum", min_order_usd: 500, missing_usd: 499.5 }),
+        belowMinimumMessage(to, lang, {
+          status: "below_minimum",
+          min_order_usd: 500,
+          missing_usd: 499.5,
+        }),
         problemLinesList(
           to,
           lang,
@@ -972,7 +980,13 @@ describe("WhatsApp templates (DECISIONS §39.8)", () => {
       expect(checkTemplate(t)).toEqual([]);
       for (const lang of TEMPLATE_LANGS) {
         const n = t.category === "AUTHENTICATION" ? 0 : (t.buttons?.[lang]?.length ?? 0);
-        const msg: any = templateMessage("+96170000001", t, lang, t.example, Array.from({ length: n }, (_, i) => `p${i}`));
+        const msg: any = templateMessage(
+          "+96170000001",
+          t,
+          lang,
+          t.example,
+          Array.from({ length: n }, (_, i) => `p${i}`),
+        );
         expect(msg.type).toBe("template");
         expect(checkInteractive(msg)).toEqual([]);
         for (const b of msg.template.components.filter((c: any) => c.sub_type === "quick_reply"))
@@ -981,20 +995,59 @@ describe("WhatsApp templates (DECISIONS §39.8)", () => {
     });
   it("the dispatch filler builds a sendable template for every message it covers", () => {
     const UUID = "11111111-2222-3333-4444-555555555555";
-    const card = { order_id: UUID, code: "ABC123", vendor_name: "V", total_usd: 1, total_lbp: 89500, items: [{ name: "Wrap", quantity: 1 }] };
+    const card = {
+      order_id: UUID,
+      code: "ABC123",
+      vendor_name: "V",
+      total_usd: 1,
+      total_lbp: 89500,
+      items: [{ name: "Wrap", quantity: 1 }],
+    };
     for (const [key, purpose, payload] of [
       ["accepted", "customer_message", { kind: "accepted", eta: { min: 20, max: 30 } }],
       ["on_the_way", "customer_message", { kind: "on_the_way", eta: { min: 5 } }],
       ["delivered", "customer_message", { kind: "delivered" }],
-      ["gift_accepted", "customer_message", { kind: "gift_accepted", code: "ABC123", recipient_name: "M" }],
-      ["gift_request", "customer_message", { kind: "gift_request", gift_id: UUID, sender: "R", vendor: "V", total_usd: 1, total_lbp: 1 }],
+      [
+        "gift_accepted",
+        "customer_message",
+        { kind: "gift_accepted", code: "ABC123", recipient_name: "M" },
+      ],
+      [
+        "gift_request",
+        "customer_message",
+        {
+          kind: "gift_request",
+          gift_id: UUID,
+          sender: "R",
+          vendor: "V",
+          total_usd: 1,
+          total_lbp: 1,
+        },
+      ],
       ["new_order", "new_order", {}],
       ["proposal", "proposal", { proposal_id: UUID, summary: "s", vendor_name: "V" }],
-      ["merchant_weekly", "reply", { kind: "merchant_weekly", shop: "V", orders: "1", delivered: "1", sales: "$1.00", rating: "5" }],
+      [
+        "merchant_weekly",
+        "reply",
+        {
+          kind: "merchant_weekly",
+          shop: "V",
+          orders: "1",
+          delivered: "1",
+          sales: "$1.00",
+          rating: "5",
+        },
+      ],
     ] as const) {
       const t = TEMPLATES.find((x) => x.key === key)!;
       for (const lang of TEMPLATE_LANGS) {
-        const msg = templatePayload({ name: t.name, lang }, key, { order_id: UUID, target: "+96170000001", purpose, payload, card });
+        const msg = templatePayload({ name: t.name, lang }, key, {
+          order_id: UUID,
+          target: "+96170000001",
+          purpose,
+          payload,
+          card,
+        });
         expect(msg, `${key}/${lang}`).not.toBeNull();
       }
     }
@@ -1008,19 +1061,36 @@ describe("admin and support messages (5b)", () => {
   it("the admin confirm card stays inside the button limits, with a long question", async () => {
     const sent: any[] = [];
     await handleAdmin(
-      { rpc: async (fn: string, a: any) => (fn === "ops_action_propose" ? "6a000000-0000-0000-0000-000000000001" : fn === "app_reply" ? sent.push(a) : null) },
+      {
+        rpc: async (fn: string, a: any) =>
+          fn === "ops_action_propose"
+            ? "6a000000-0000-0000-0000-000000000001"
+            : fn === "app_reply"
+              ? sent.push(a)
+              : null,
+      },
       { from: "+96170009999", messageId: "m" },
       { user_id: "u", role: "admin", name: "R" },
       null,
       { kind: "reply", text: "x".repeat(1500) },
     );
-    expect(checkInteractive({ type: "interactive", interactive: sent[0].p_payload.interactive })).toEqual([]);
+    expect(
+      checkInteractive({ type: "interactive", interactive: sent[0].p_payload.interactive }),
+    ).toEqual([]);
   });
   it("support replies and the closing note are plain text", () => {
     for (const lang of ["ar", "en", "fr", "arabizi"]) {
-      const [r]: any = customerStatusMessages("+96170000001", { kind: "support_reply", lang, name: "Rasheed", text: "On its way" }, null);
+      const [r]: any = customerStatusMessages(
+        "+96170000001",
+        { kind: "support_reply", lang, name: "Rasheed", text: "On its way" },
+        null,
+      );
       expect(r.text.body).toBe("👤 Rasheed, Alo King:\nOn its way");
-      const [c]: any = customerStatusMessages("+96170000001", { kind: "support_closed", lang }, null);
+      const [c]: any = customerStatusMessages(
+        "+96170000001",
+        { kind: "support_closed", lang },
+        null,
+      );
       expect(c.text.body.length).toBeGreaterThan(10);
     }
   });
@@ -1039,16 +1109,37 @@ describe("catalogue and cart builders (session 5d, §39.12)", () => {
   }));
   it("a multi-product message of a big shop, in every language, stays within 30 items, 10 sections and the title limits", () => {
     for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
-      const m = productListMessage("+96170000001", "1234567890", "مطعم باسم طويل جداً يتجاوز الستين حرفاً في العنوان مرة واحدة", "x".repeat(1100), products, {
-        lang,
-        footer: "y".repeat(80),
-      });
+      const m = productListMessage(
+        "+96170000001",
+        "1234567890",
+        "مطعم باسم طويل جداً يتجاوز الستين حرفاً في العنوان مرة واحدة",
+        "x".repeat(1100),
+        products,
+        {
+          lang,
+          footer: "y".repeat(80),
+        },
+      );
       expect(checkInteractive(m), lang).toEqual([]);
     }
   });
   it("a single-product message passes, with and without a footer", () => {
-    expect(checkInteractive(productMessage("+96170000001", "1234567890", products[0].retailer_id, "b".repeat(1100), "f".repeat(80)))).toEqual([]);
-    expect(checkInteractive(productMessage("+96170000001", "1234567890", products[0].retailer_id, "Found it"))).toEqual([]);
+    expect(
+      checkInteractive(
+        productMessage(
+          "+96170000001",
+          "1234567890",
+          products[0].retailer_id,
+          "b".repeat(1100),
+          "f".repeat(80),
+        ),
+      ),
+    ).toEqual([]);
+    expect(
+      checkInteractive(
+        productMessage("+96170000001", "1234567890", products[0].retailer_id, "Found it"),
+      ),
+    ).toEqual([]);
   });
   it("the cart from another shop card (Use the new cart / Keep basket) passes in every language", () => {
     const titles: Record<string, [string, string]> = {
@@ -1067,5 +1158,80 @@ describe("catalogue and cart builders (session 5d, §39.12)", () => {
         ),
         lang,
       ).toEqual([]);
+  });
+});
+
+import {
+  cravingList,
+  moreSectionsList,
+  sectionNextButton,
+  shopList,
+} from "../dispatch/customer/render";
+import { image } from "./customer-cards";
+import { packShopMenu } from "./catalog";
+describe("session 5e browsing cards", () => {
+  const to = "+96171000001";
+  const longName = "مطعم ومشاوي وحلويات بإسم طويل جداً جداً جداً جداً لتجربة الحدود القصوى";
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`every browsing card passes the checker in ${lang}`, () => {
+      const cats = Array.from({ length: 14 }, (_, k) => ({
+        key: `cat_${k}`,
+        emoji: "🍔",
+        name: `Category with a very long name ${k}`,
+        shops: k + 1,
+      }));
+      const shops = Array.from({ length: 14 }, (_, k) => ({
+        ref: `v${k + 1}`,
+        name_ar: longName,
+        name_en: "A shop with a really long name for testing the row limit",
+        is_open: k % 3 !== 0,
+        km: 12.345 + k,
+        fee_usd: 4.5,
+        village_ar: "معاصر بيت الدين",
+        village_en: "Maasser Beit ed Dine with a long village name",
+      }));
+      const secs = Array.from({ length: 14 }, (_, k) => ({
+        ref: `s${(k % 10) + 1}`,
+        name_ar: longName,
+        name_en: "A section with a very long name indeed",
+        items: 120,
+      }));
+      const built: any[] = [
+        cravingList(to, lang, cats, 29, "Maasser Beit ed Dine with a long village name"),
+        cravingList(to, lang, [], 1, null),
+        shopList(to, lang, "🍔 Burgers: pick a shop.", shops),
+        moreSectionsList(to, lang, longName, secs, 9),
+        moreSectionsList(to, lang, longName, secs.slice(0, 3), null),
+        sectionNextButton(to, lang, longName, "s1", 30, 30, 75),
+      ];
+      for (const m of built)
+        expect(checkInteractive(m), JSON.stringify(m).slice(0, 200)).toEqual([]);
+      expect(image(to, "https://x/y.jpg", "c".repeat(2000)).image.caption).toHaveLength(1024);
+    });
+  }
+
+  it("a shop's first product message stays within 30 items and 10 sections", () => {
+    const sections = Array.from({ length: 27 }, (_, k) => ({
+      section_id: `s${k}`,
+      name_ar: `قسم ${k}`,
+      name_en: `Section ${k}`,
+      total: 40,
+      products: Array.from({ length: 40 }, (_, j) => ({ retailer_id: `${k}-${j}` })),
+    }));
+    const { products, rest } = packShopMenu(sections, { perSection: 6 });
+    expect(products).toHaveLength(30);
+    expect(new Set(products.map((p) => p.section_en)).size).toBe(5);
+    expect(rest).toHaveLength(27);
+    const msg = productListMessage(to, "1234567890", "Deli", "Tap", products);
+    expect(checkInteractive(msg)).toEqual([]);
+    // Two small sections are shown in full, with nothing left for the list.
+    const two = packShopMenu(
+      sections.slice(0, 2).map((s) => ({ ...s, total: 8, products: s.products.slice(0, 8) })),
+      {
+        perSection: 6,
+      },
+    );
+    expect(two.products).toHaveLength(16);
+    expect(two.rest).toHaveLength(0);
   });
 });

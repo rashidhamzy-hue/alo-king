@@ -296,6 +296,8 @@ async function botConfig() {
     "ai_voice_enabled",
     "ai_merchant_text_enabled",
     "ai_merchant_model",
+    "browse_categories_min_shops",
+    "browse_first_section_items",
   ];
   const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
   const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
@@ -473,6 +475,24 @@ const desired = desiredCache<DesiredProduct>(
   },
 );
 
+/** A one-hour link to a photo in the private bucket menu-item-photos (an item's photo, a shop's cover); null on failure. */
+async function photoUrl(path: string): Promise<string | null> {
+  const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/menu-item-photos/${path}`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ expiresIn: 3600 }),
+    signal: AbortSignal.timeout(8000),
+  }).catch(() => null);
+  const signed = res?.ok ? (await res.json().catch(() => ({})))?.signedURL : null;
+  return typeof signed === "string"
+    ? `${supabaseUrl}/storage/v1${signed.startsWith("/") ? "" : "/"}${signed}`
+    : null;
+}
+
 /**
  * GET ?route=catalog-image&i=<item>: the product image Meta fetches. Only items in the catalogue are drawn (catalog_image
  * answers nothing for any other id). The shop's confirmed photo is a short-lived signed redirect; otherwise a tile.
@@ -493,22 +513,8 @@ async function catalogImage(url: URL): Promise<Response> {
   }
   if (typeof d.photo === "string" && d.photo) {
     // The item's own photo (menu_item_photos, DECISIONS §39.12): never a shop or Google place photo.
-    const res = await fetch(`${supabaseUrl}/storage/v1/object/sign/menu-item-photos/${d.photo}`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${serviceKey}`,
-        apikey: serviceKey,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ expiresIn: 3600 }),
-      signal: AbortSignal.timeout(8000),
-    }).catch(() => null);
-    const signed = res?.ok ? (await res.json().catch(() => ({})))?.signedURL : null;
-    if (typeof signed === "string")
-      return Response.redirect(
-        `${supabaseUrl}/storage/v1${signed.startsWith("/") ? "" : "/"}${signed}`,
-        302,
-      );
+    const signed = await photoUrl(d.photo);
+    if (signed) return Response.redirect(signed, 302);
   }
   const fontBuffers = await cardFonts();
   const png = new Resvg(catalogTileSvg(d), {
@@ -662,6 +668,7 @@ Deno.serve(async (req) => {
           transcribe: openaiKey ? transcribe : null,
           fetchMedia: (m: { url?: string | null; id?: string | null }) =>
             fetchMedia(m, sender, 5_000_000),
+          photoUrl,
           route: async (o: { lat: number; lon: number }, d: { lat: number; lon: number }) =>
             (
               await roadRoutes(o, [d], {
@@ -681,6 +688,8 @@ Deno.serve(async (req) => {
             // Off until the evals pass (DECISIONS §32.4); a missing row counts as off.
             freeText: cfg.ai_free_text_enabled === true,
             voice: cfg.ai_voice_enabled === true,
+            browseMinShops: Number(cfg.browse_categories_min_shops ?? 4),
+            firstSectionItems: Number(cfg.browse_first_section_items ?? 6),
             joinFunctionUrl: supabaseUrl
               ? `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/site-claim`
               : null,

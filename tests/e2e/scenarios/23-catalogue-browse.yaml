@@ -1,5 +1,4 @@
 name: catalogue-browse
-smoke: true
 description: "A customer with the catalogue sees Alo Test Grill as one multi-product message, sends a cart from it and goes through the normal checkout to a placed order (DECISIONS §39.12)."
 personas:
   cust: { role: customer, cc: "961", name: "Sim Catalogue" }

@@ -69,6 +69,14 @@ import {
   problemQtyList,
   problemList,
   welcomeBack,
+  cravingList,
+  shopList,
+  shopLine,
+  moreSectionsList,
+  sectionNextButton,
+  type BrowseCategory,
+  type BrowseShop,
+  type ShopCard,
   type CatalogItem,
   type Basket,
   type MenuRow,
@@ -84,14 +92,16 @@ import {
   TOOLS,
   type ToolName,
 } from "./tools.ts";
-import { buttons, customerStatusMessages, moneyLine } from "../../_shared/customer-cards.ts";
+import { buttons, customerStatusMessages, image, moneyLine } from "../../_shared/customer-cards.ts";
 import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
 import {
+  packShopMenu,
   parseCartOrder,
   productListMessage,
   productMessage,
   type CartLine,
   type CatalogProduct,
+  type ShopMenuSection,
 } from "../../_shared/catalog.ts";
 import { joinLink } from "../../_shared/site-claim.ts";
 
@@ -138,6 +148,8 @@ export type CustomerDeps = {
     url?: string | null;
     id?: string | null;
   }) => Promise<{ bytes: Uint8Array; mime: string } | null>;
+  /** A short-lived link to a private photo (bucket menu-item-photos), for a shop's cover; null without storage. */
+  photoUrl?: ((path: string) => Promise<string | null>) | null;
   /** Road route vendor → customer through the route cache and OpenRouteService; null when unknown. */
   route: (
     origin: { lat: number; lon: number },
@@ -160,6 +172,10 @@ export type CustomerDeps = {
      */
     freeText?: boolean;
     voice?: boolean;
+    /** "What are you craving?" shows when at least this many shops deliver (config browse_categories_min_shops). */
+    browseMinShops?: number;
+    /** Items per section in a shop's first product message (config browse_first_section_items). */
+    firstSectionItems?: number;
   };
   now?: () => Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
@@ -569,26 +585,41 @@ async function catalogText(c: Ctx, raw: string, qtyArg: number | null) {
       `[catalogue: ${rows.length} items for "${q}"${quantity ? `, quantity ${quantity}` : ""}]`,
     );
     const listMsg = catalogList(c.m.from, c.s.lang, q, rows, quantity);
-    // Results from one shop, all in the Meta catalogue, and no quantity typed: a product message (§39.12); else the list.
-    const shops = new Set(items.map((x) => String(x.vendor_id ?? "")));
-    if (!quantity && shops.size === 1 && !shops.has("") && (await catalogFor(c))) {
+    // No quantity typed and the catalogue on: the results as product messages (§39.12, session 5e), one item as a
+    // single-product message, several as one multi-product message grouped by shop; the list stands in if Meta refuses.
+    if (!quantity && (await catalogFor(c))) {
       const ids = items.map((x) => String(x.item_id));
-      const cat = await catalogProducts(c, [...shops][0], { items: ids, limit: 30 });
-      if (cat.products.length === ids.length) {
+      const got = await c.deps
+        .rpc("catalog_products_for", { p_item_ids: ids, p_catalog_id: c.catalog })
+        .catch(() => null);
+      const products: (CatalogProduct & { vendor_id?: string })[] = Array.isArray(got) ? got : [];
+      // Only when every result is in the catalogue (items without a photo are not, §39.13); else the list shows them all.
+      if (products.length && products.length === ids.length) {
         c.tools.push("catalog:search");
-        const body = tr(c.s.lang, ids.length === 1 ? "catalogOne" : "catalogSearch", {
-          q: q.slice(0, 40),
-        });
+        const oneShop = new Set(products.map((x) => x.vendor_id)).size === 1;
+        const body = tr(
+          c.s.lang,
+          products.length === 1 ? "catalogOne" : oneShop ? "catalogSearch" : "searchShops",
+          { q: q.slice(0, 40) },
+        );
         return pushCatalog(
           c,
-          ids.length === 1
-            ? productMessage(c.m.from, c.catalog!, ids[0], body, tr(c.s.lang, "catalogFooter"))
+          products.length === 1
+            ? productMessage(
+                c.m.from,
+                c.catalog!,
+                products[0].retailer_id,
+                body,
+                tr(c.s.lang, "catalogFooter"),
+              )
             : productListMessage(
                 c.m.from,
                 c.catalog!,
-                localName(c.s.lang, items[0].vendor_ar ?? null, items[0].vendor_en ?? null),
+                oneShop
+                  ? localName(c.s.lang, products[0].section ?? null, products[0].section_en ?? null)
+                  : tr(c.s.lang, "searchHeader", { q: q.slice(0, 40) }),
                 body,
-                cat.products,
+                products,
                 { lang: c.s.lang, footer: tr(c.s.lang, "catalogFooter") },
               ),
           listMsg,
@@ -986,6 +1017,10 @@ async function tap(c: Ctx, a: CustomerAction) {
       if (!v) return say(c, "pickPlaceFirst");
       return showMenu(c, a.ref, null);
     }
+    case "category":
+      return browseCategory(c, a.key);
+    case "sections_page":
+      return showSectionsPage(c, a.offset);
     case "pick_item": {
       // How many? (§34 step 5); the quantity tap adds it. A quantity the customer already typed adds it at once.
       const it = c.s.refs[a.ref];
@@ -1162,6 +1197,8 @@ async function tap(c: Ctx, a: CustomerAction) {
           return push(c, askPin(c.m.from, c.s.lang));
         case "order":
           return startOrder(c);
+        case "near":
+          return browseNear(c);
         case "track":
           return track(c);
         case "cancel":
@@ -1275,7 +1312,7 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
   const wantsPickup = c.s.pending.then === "pickup";
   c.s.pending = {};
   if (wantsPickup) return pickupPlaces(c);
-  if (browse || !focusRef) return searchVendors(c, null, null);
+  if (browse || !focusRef) return browseHome(c);
   return showMenu(c, focusRef, null);
 }
 
@@ -1287,7 +1324,7 @@ async function startOrder(c: Ctx) {
     c.s.pending = { kind: "await_pin", then: "browse" };
     return push(c, askPin(c.m.from, c.s.lang));
   }
-  return searchVendors(c, null, null);
+  return browseHome(c);
 }
 
 // ---- WhatsApp Flows and catalogue carts --------------------------------------------------------------------------
@@ -1489,59 +1526,119 @@ const resetRefs = (c: Ctx, prefix: string) => {
 };
 
 /**
- * A shop's menu (§39.12 smart menu): a shop with 30 orderable items or fewer, all in the catalogue, gets one multi-product
- * message by section; a bigger shop gets its best sellers as a product message and the section list; without a catalogue
- * the list messages run as before. A catalogue message that Meta refuses is replaced by the list.
+ * A shop's menu (§39.12 smart menu, session 5e): with the catalogue, the shop's cover and one line (cuisine, village,
+ * delivery fee, hours), then one multi-product message of its best sections (a few items of each, best sellers first),
+ * then a list that opens the rest of its sections. Without the catalogue the list messages run as before (with the cover
+ * when the shop has one). A catalogue message that Meta refuses is replaced by the section list.
  */
 async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   const v = c.s.refs[vendorRef];
   if (!v) return say(c, "pickPlaceFirst");
   const before = c.out.length;
   await showMenuList(c, vendorRef, query);
-  if (query || !(await catalogFor(c))) return;
+  if (query) return;
   const list = c.out.splice(before);
-  const cat = await catalogProducts(c, v.id);
   const shop = shopName(v.label);
-  if (cat.total > 0 && cat.total <= 30 && cat.products.length === cat.total) {
-    c.tools.push("catalog:menu");
-    c.summary.push(`[showed ${cat.products.length} items of ${vendorRef} as a catalogue message]`);
-    pushCatalog(
-      c,
-      productListMessage(c.m.from, c.catalog!, shop, tr(c.s.lang, "catalogBrowse"), cat.products, {
-        lang: c.s.lang,
-        footer: tr(c.s.lang, "catalogFooter"),
-      }),
-      list[0] ?? null,
-    );
+  // The cover goes first only when it pushes nothing else out of this turn's messages (MAX_MESSAGES).
+  const room = (n: number) => c.out.length + 1 + n <= MAX_MESSAGES;
+  const cover = await shopCover(c, v.id, shop);
+  if (!(await catalogFor(c))) {
+    if (cover && room(list.length)) push(c, cover);
+    push(c, ...list);
     return;
   }
-  if (cat.total > 30) {
-    const ids: string[] =
-      (await c.deps
-        .rpc("catalog_best_sellers", { p_vendor_id: v.id, p_limit: 10 })
-        .catch(() => [])) ?? [];
-    const best = ids.length ? await catalogProducts(c, v.id, { items: ids, limit: 10 }) : null;
-    if (best && best.products.length >= 2) {
-      c.tools.push("catalog:best");
-      pushCatalog(
-        c,
-        productListMessage(
-          c.m.from,
-          c.catalog!,
-          shop,
-          tr(c.s.lang, "catalogBest"),
-          best.products.map((p) => ({
-            ...p,
-            section: tr("ar", "bestSellers"),
-            section_en: tr(c.s.lang, "bestSellers"),
-          })),
-          { lang: c.s.lang, footer: tr(c.s.lang, "catalogFooter") },
-        ),
-        null,
-      );
-    }
+  const menu = await c.deps
+    .rpc("catalog_shop_menu", { p_vendor_id: v.id, p_catalog_id: c.catalog })
+    .catch(() => null);
+  const sections: ShopMenuSection[] = Array.isArray(menu?.sections) ? menu.sections : [];
+  // Items outside any section have no row to open them by, so such a shop keeps the list menu (its flat list).
+  if (!sections.length || sections.some((x) => !x.section_id)) {
+    if (cover && room(list.length)) push(c, cover);
+    push(c, ...list);
+    return;
   }
-  push(c, ...list);
+  const { products, rest } = packShopMenu(sections, {
+    perSection: c.deps.config.firstSectionItems ?? 6,
+  });
+  if (cover && room(rest.length ? 2 : 1)) push(c, cover);
+  c.tools.push("catalog:menu");
+  c.summary.push(
+    `[showed ${products.length} items of ${vendorRef} as a catalogue message, ${rest.length} more sections as a list]`,
+  );
+  pushCatalog(
+    c,
+    productListMessage(c.m.from, c.catalog!, shop, tr(c.s.lang, "catalogBrowse"), products, {
+      lang: c.s.lang,
+      footer: tr(c.s.lang, "catalogFooter"),
+    }),
+    // The section list's refs are reused by "More sections" below, so it stands in only when there is no such list.
+    rest.length ? null : (list[0] ?? null),
+  );
+  if (rest.length) pushSectionsPage(c, shop, rest, 0);
+}
+
+/** A shop's cover with its one line (session 5e); null when the shop has no cover or no link can be made. */
+async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | null> {
+  if (!c.deps.photoUrl) return null;
+  const card:
+    | (ShopCard & {
+        cover?: {
+          path?: string;
+          source?: string;
+          credit?: string | null;
+          license?: string | null;
+        } | null;
+      })
+    | null = await c.deps.rpc("shop_card", { p_vendor_id: vendorId }).catch(() => null);
+  const path = card?.cover?.path;
+  if (!card || !path) return null;
+  const link = await c.deps.photoUrl(path).catch(() => null);
+  if (!link) return null;
+  const chk = await c.deps
+    .rpc("customer_delivery_check", { p_customer_id: c.customerId, p_vendor_ids: [vendorId] })
+    .catch(() => null);
+  const q = (chk?.vendors ?? []).find((x: any) => x.vendor_id === vendorId);
+  const fee = q?.status === "ok" && q.fee_usd != null ? Number(q.fee_usd) : null;
+  // An illustrative photo under CC BY or CC BY-SA carries its credit (§39.13); CC0 and public domain need none.
+  const cv = card.cover!;
+  const credit =
+    cv.source === "illustrative" && cv.credit && !/^(cc0|pdm|public domain)/i.test(cv.license ?? "")
+      ? `\n📷 ${[cv.credit.replace(/\s+/g, " ").trim().slice(0, 80), cv.license].filter(Boolean).join(" · ")}`
+      : "";
+  return image(c.m.from, link, `*${shop}*\n${shopLine(c.s.lang, card, fee)}${credit}`);
+}
+
+/** The rest of a shop's sections as a list, 9 at a time ("More sections" pages through them). */
+function pushSectionsPage(c: Ctx, shop: string, rest: ShopMenuSection[], offset: number) {
+  resetRefs(c, "s");
+  const page = rest.slice(offset, offset + 10);
+  const more = rest.length > offset + 10;
+  const rows = page.slice(0, more ? 9 : 10).map((r) => ({
+    ref: refFor(c, "s", r.section_id ?? "", localName(c.s.lang, r.name_ar, r.name_en)),
+    name_ar: r.name_ar,
+    name_en: r.name_en,
+    items: Number(r.total ?? 0),
+  }));
+  push(c, moreSectionsList(c.m.from, c.s.lang, shop, rows, more ? offset + 9 : null));
+}
+
+async function showSectionsPage(c: Ctx, offset: number) {
+  const vendorId = c.s.focus_vendor_id;
+  if (!vendorId || !(await catalogFor(c))) return say(c, "pickPlaceFirst");
+  const menu = await c.deps
+    .rpc("catalog_shop_menu", { p_vendor_id: vendorId, p_catalog_id: c.catalog })
+    .catch(() => null);
+  const sections: ShopMenuSection[] = Array.isArray(menu?.sections) ? menu.sections : [];
+  const { rest } = packShopMenu(
+    sections.filter((x) => x.section_id),
+    { perSection: c.deps.config.firstSectionItems ?? 6 },
+  );
+  const vref = Object.entries(c.s.refs).find(
+    ([k, v]) => k.startsWith("v") && v.id === vendorId,
+  )?.[0];
+  const shop = shopName(vref ? c.s.refs[vref].label : (c.basket?.vendor_en ?? ""));
+  if (!rest.length) return say(c, "pickPlaceFirst");
+  pushSectionsPage(c, shop, rest, Math.min(Math.max(offset, 0), Math.max(rest.length - 1, 0)));
 }
 
 async function showMenuList(c: Ctx, vendorRef: string, query: string | null) {
@@ -1585,37 +1682,58 @@ async function showMenuList(c: Ctx, vendorRef: string, query: string | null) {
   c.summary.push(`[showed ${menu.length} items from ${vendorRef}]`);
 }
 
-/** One section: a catalogue message when the whole section (30 items or fewer) is in the catalogue, else the list. */
+/**
+ * One section: with the catalogue, a multi-product message of 30 of its items at a time (best sellers first) and a
+ * "Next items" button when there are more; else the list, nine items and "More" at a time.
+ */
 async function showSection(c: Ctx, sectionRef: string, offset: number) {
-  const before = c.out.length;
-  await showSectionList(c, sectionRef, offset);
   const sec = c.s.refs[sectionRef];
   const vendorId = c.s.focus_vendor_id;
-  if (offset > 0 || !sec || !vendorId || !(await catalogFor(c))) return;
-  const cat = await catalogProducts(c, vendorId, { section: sec.id });
-  if (!(
-    cat.section_total > 0 &&
-    cat.section_total <= 30 &&
-    cat.products.length === cat.section_total
-  ))
-    return;
-  const list = c.out.splice(before);
-  c.tools.push("catalog:section");
-  pushCatalog(
-    c,
-    productListMessage(
-      c.m.from,
-      c.catalog!,
-      sec.label,
-      tr(c.s.lang, "catalogBrowse"),
-      cat.products,
-      {
-        lang: c.s.lang,
-        footer: tr(c.s.lang, "catalogFooter"),
-      },
-    ),
-    list[0] ?? null,
-  );
+  if (sec && vendorId && (await catalogFor(c))) {
+    const menu = await c.deps
+      .rpc("catalog_shop_menu", { p_vendor_id: vendorId, p_catalog_id: c.catalog })
+      .catch(() => null);
+    const s = ((Array.isArray(menu?.sections) ? menu.sections : []) as ShopMenuSection[]).find(
+      (x) => (x.section_id ?? "") === sec.id,
+    );
+    const page = s ? s.products.slice(offset, offset + 30) : [];
+    if (s && page.length) {
+      const before = c.out.length;
+      await showSectionList(c, sectionRef, offset);
+      const list = c.out.splice(before);
+      c.tools.push("catalog:section");
+      c.summary.push(
+        `[showed items ${offset + 1}-${offset + page.length} of section ${sectionRef} as a catalogue message]`,
+      );
+      pushCatalog(
+        c,
+        productListMessage(
+          c.m.from,
+          c.catalog!,
+          sec.label,
+          tr(c.s.lang, "catalogBrowse"),
+          page.map((p) => ({ ...p, section: s.name_ar, section_en: s.name_en })),
+          { lang: c.s.lang, footer: tr(c.s.lang, "catalogFooter") },
+        ),
+        list[0] ?? null,
+      );
+      if (s.products.length > offset + page.length)
+        push(
+          c,
+          sectionNextButton(
+            c.m.from,
+            c.s.lang,
+            sec.label,
+            sectionRef,
+            offset,
+            page.length,
+            s.products.length,
+          ),
+        );
+      return;
+    }
+  }
+  return showSectionList(c, sectionRef, offset);
 }
 
 /** One section of the focused place's menu, nine items and a "More" row at a time. */
@@ -1815,6 +1933,140 @@ async function deliveringPlaces(
     rows = rows.filter((r) => !beyond.has(r.vendor_id));
   }
   return { rows, found, paused: false };
+}
+
+// ---- Browsing through the bot (session 5e) ----------------------------------------------------------------------------
+type DeliveringShop = BrowseShop & { vendor_id: string; categories: string[] };
+
+/**
+ * Every orderable shop that delivers to the customer's saved pin: the straight-line candidates (browse_shops), then the
+ * road check with the delivery fee (customer_delivery_check; routes not cached yet are fetched, a few per turn, and a
+ * shop whose route cannot be fetched is kept, the checkout checks it again). Nearest open shops first.
+ */
+async function deliveringShops(c: Ctx): Promise<{
+  shops: DeliveringShop[];
+  categories: { key: string; emoji: string; name_ar: string; name_en: string; name_fr: string }[];
+  paused: boolean;
+  point: any;
+  place: string | null;
+}> {
+  const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
+  if (!pt?.address_id)
+    return { shops: [], categories: [], paused: false, point: null, place: null };
+  const r = await c.deps.rpc("browse_shops", {
+    p_customer_id: c.customerId,
+    p_lat: pt.lat,
+    p_lon: pt.lon,
+    p_limit: 40,
+  });
+  const raw: any[] = Array.isArray(r?.shops) ? r.shops : [];
+  const categories = Array.isArray(r?.categories) ? r.categories : [];
+  const place = localName(c.s.lang, r?.place?.name_ar ?? null, r?.place?.name_en ?? null) || null;
+  if (!raw.length) return { shops: [], categories, paused: false, point: pt, place };
+  const ids = raw.map((x) => x.vendor_id);
+  let chk = await c.deps.rpc("customer_delivery_check", {
+    p_customer_id: c.customerId,
+    p_vendor_ids: ids,
+  });
+  const unknown = (chk?.vendors ?? []).filter((v: any) => v.status === "no_route" && v.origin);
+  if (unknown.length) {
+    await Promise.all(
+      unknown.slice(0, 8).map((v: any) =>
+        c.deps.route(v.origin, v.dest).catch((e: unknown) => {
+          c.deps.log?.("route fetch failed", { error: String(e).slice(0, 120) });
+          return null;
+        }),
+      ),
+    );
+    chk = await c.deps.rpc("customer_delivery_check", {
+      p_customer_id: c.customerId,
+      p_vendor_ids: ids,
+    });
+  }
+  if (chk?.status === "place_paused")
+    return { shops: [], categories, paused: true, point: pt, place };
+  const by = new Map<string, any>((chk?.vendors ?? []).map((v: any) => [v.vendor_id, v]));
+  const shops = raw
+    .filter((x) => by.get(x.vendor_id)?.status !== "beyond_radius")
+    .map((x) => {
+      const q = by.get(x.vendor_id);
+      return {
+        ...x,
+        ref: "",
+        km: q?.road_km != null ? Number(q.road_km) : Number(x.km),
+        fee_usd: q?.status === "ok" && q.fee_usd != null ? Number(q.fee_usd) : null,
+        categories: Array.isArray(x.categories) ? x.categories : [],
+      } as DeliveringShop;
+    })
+    .sort(
+      (a, b) => Number(b.is_open) - Number(a.is_open) || Number(a.km ?? 99) - Number(b.km ?? 99),
+    );
+  return { shops, categories, paused: false, point: pt, place };
+}
+
+/**
+ * "What are you craving?" (session 5e): the categories with shops that deliver here and "Shops near you". A few shops
+ * (fewer than browse_categories_min_shops) are listed directly, one open shop opens at once, none offers pickup.
+ */
+async function browseHome(c: Ctx) {
+  const r = await deliveringShops(c);
+  if (r.paused) return say(c, "placePaused");
+  // No pin, nothing that delivers, or only a few shops: the shop list as before (it also offers pickup when none deliver).
+  if (!r.point || r.shops.length < (c.deps.config.browseMinShops ?? 4))
+    return searchVendors(c, null, null);
+  const cats: BrowseCategory[] = r.categories
+    .map((k) => ({
+      key: k.key,
+      emoji: k.emoji,
+      name: c.s.lang === "fr" ? k.name_fr : localName(c.s.lang, k.name_ar, k.name_en),
+      shops: r.shops.filter((x) => x.categories.includes(k.key)).length,
+    }))
+    .filter((k) => k.shops > 0);
+  c.tools.push("browse:home");
+  c.summary.push(
+    `[asked what they are craving: ${cats.length} categories, ${r.shops.length} shops deliver]`,
+  );
+  push(c, cravingList(c.m.from, c.s.lang, cats, r.shops.length, r.place));
+}
+
+function listShops(c: Ctx, shops: DeliveringShop[], body: string) {
+  resetRefs(c, "v");
+  const rows = shops.slice(0, 10).map((x) => ({
+    ...x,
+    ref: refFor(c, "v", x.vendor_id, `${x.name_en ?? x.name_ar}${x.is_open ? "" : " (closed)"}`),
+  }));
+  if (rows.length === 1 && rows[0].is_open) return showMenu(c, rows[0].ref, null);
+  const more = shops.length > 10 ? `\n${tr(c.s.lang, "nearest10", { n: shops.length })}` : "";
+  push(c, shopList(c.m.from, c.s.lang, `${body}${more}`, rows));
+}
+
+/** A category: the shops that serve it and deliver here, nearest first, with fee and distance. */
+async function browseCategory(c: Ctx, key: string) {
+  const r = await deliveringShops(c);
+  if (r.paused) return say(c, "placePaused");
+  if (!r.point) return startOrder(c);
+  const cat = r.categories.find((k) => k.key === key);
+  const shops = r.shops.filter((x) => x.categories.includes(key));
+  if (!cat || !shops.length) return browseHome(c);
+  c.tools.push(`browse:category:${key}`);
+  c.summary.push(`[category ${key}: ${shops.length} shops]`);
+  const nameOf = c.s.lang === "fr" ? cat.name_fr : localName(c.s.lang, cat.name_ar, cat.name_en);
+  return listShops(c, shops, tr(c.s.lang, "categoryShops", { emoji: cat.emoji, name: nameOf }));
+}
+
+/** "Shops near you": every shop that delivers here, nearest first. */
+async function browseNear(c: Ctx) {
+  const r = await deliveringShops(c);
+  if (r.paused) return say(c, "placePaused");
+  if (!r.point) return startOrder(c);
+  if (!r.shops.length) return push(c, noDeliveryCard(c.m.from, c.s.lang));
+  c.tools.push("browse:near");
+  c.summary.push(`[shops near you: ${r.shops.length}]`);
+  return listShops(
+    c,
+    r.shops,
+    tr(c.s.lang, "nearShops", { place: r.place || tr(c.s.lang, "yourPlace") }),
+  );
 }
 
 /** The pickup choice (T2): open places near the pin that take pickup, when nothing delivers or the customer prefers it. */
