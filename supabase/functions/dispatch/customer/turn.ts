@@ -526,7 +526,7 @@ async function route(c: Ctx, firstContact: boolean) {
   if (m.text === null || !m.text.trim()) return say(c, "unsupported");
   // The website's "Add in WhatsApp" (an item page, DECISIONS §39.15.2) sends the item's code: added deterministically.
   const code = itemCodeIn(m.text);
-  if (code) return itemFromSite(c, code);
+  if (code) return itemFromSite(c, code, itemCodeTail(m.text, code));
   const intent = deterministicIntent(m.text);
   if (intent) {
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
@@ -553,10 +553,22 @@ export function itemCodeIn(t: string): string | null {
   return m ? m[1].toLowerCase() : null;
 }
 
-/** "Add in WhatsApp" from the item's web page: one of it into the basket, its choices asked as for any item. */
-async function itemFromSite(c: Ctx, itemId: string) {
+/**
+ * What the customer typed after the code in the pre-filled text ("… (i-…) x2, no garlic"): a quantity and a note. Only the
+ * words after the code count, so the pre-filled words (a shop or item name with digits, "un", "deux") are never read.
+ */
+export function itemCodeTail(t: string, code: string): { qty: number; note: string | null } {
+  const at = t.toLowerCase().lastIndexOf(code);
+  const tail = (at >= 0 ? t.slice(at + code.length) : "").replace(/^\s*\)/, "");
+  const { qty, rest } = readQuantity(tail.replace(/^[\s,.;:،-]+/, ""));
+  const note = rest.replace(/^[\s,.;:،-]+|[\s,.;:،-]+$/g, "").trim();
+  return { qty: qty ?? 1, note: note ? note.slice(0, 80) : null };
+}
+
+/** "Add in WhatsApp" from the item's web page: the item into the basket, its choices asked as for any item. */
+async function itemFromSite(c: Ctx, itemId: string, extra: { qty: number; note: string | null }) {
   c.tools.push("site_item");
-  const added = await addOne(c, itemId, 1, [], null, null);
+  const added = await addOne(c, itemId, extra.qty, [], extra.note, null);
   if (added) push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
 }
 

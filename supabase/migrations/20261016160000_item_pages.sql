@@ -156,7 +156,7 @@ as $$
                      then jsonb_build_object('credit', p.credit, 'license', p.license, 'source_url', p.source_url) end),
     'vendor', jsonb_build_object(
       'slug', v.slug, 'name_ar', v.name_ar, 'name_en', v.name_en, 'name_fr', v.name_fr,
-      'place_slug', app_private.place_slug(v.town_id), 'place_ar', pl.name_ar, 'place_en', pl.name_en, 'place_fr', pl.name_fr,
+      'place_slug', case when pl.service_status = 'on' then app_private.place_slug(v.town_id) end, 'place_ar', pl.name_ar, 'place_en', pl.name_en, 'place_fr', pl.name_fr,
       'orderable', v.orderable, 'paused', public.vendor_is_paused(v.id),
       'open_now', app_private.vendor_open_at(v.id) and not public.vendor_is_paused(v.id),
       'demo', app_private.vendor_is_demo(v.id), 'public_page', v.public_page,
@@ -180,15 +180,20 @@ as $$
         'price_usd', w.price_usd, 'per_kg', w.pricing_unit = 'kg',
         'photo', exists (select 1 from public.menu_item_photos wp where wp.item_id = w.id))
       from (
-        -- Orders, not lines: an order holding the item on two lines (two sizes) counts once.
-        select oi2.item_id, count(distinct o.id) as n
-        from public.order_items oi
-        join public.orders o on o.id = oi.order_id and o.status = 'delivered' and o.vendor_id = v.id
-        join public.order_items oi2 on oi2.order_id = o.id and oi2.item_id <> oi.item_id
-        where oi.item_id = i.id and app_private.menu_item_orderable(oi2.item_id, 1)
-        group by oi2.item_id
-        having count(distinct o.id) >= 2
-        order by count(distinct o.id) desc, oi2.item_id
+        -- Orders, not lines: an order holding the item on two lines (two sizes) counts once. Ranked first, then only the
+        -- top few are checked for being orderable now (the check runs per candidate, never per order line).
+        select c.item_id from (
+          select oi2.item_id, count(distinct o.id) as n
+          from public.order_items oi
+          join public.orders o on o.id = oi.order_id and o.status = 'delivered' and o.vendor_id = v.id
+          join public.order_items oi2 on oi2.order_id = o.id and oi2.item_id <> oi.item_id
+          where oi.item_id = i.id
+          group by oi2.item_id
+          having count(distinct o.id) >= 2
+          order by count(distinct o.id) desc, oi2.item_id
+          limit 5) c
+        where app_private.menu_item_orderable(c.item_id, 1)
+        order by c.n desc, c.item_id
         limit 1
       ) b join public.menu_items w on w.id = b.item_id),
     'rate', public.usd_lbp_rate())
@@ -197,7 +202,7 @@ as $$
   left join public.places pl on pl.id = v.town_id
   left join public.menu_item_photos p on p.item_id = i.id
   left join public.menu_item_nutrition nu on nu.item_id = i.id
-  where i.id = p_item_id and app_private.item_page_visible(v.id);
+  where i.id = p_item_id and i.removed_at is null and app_private.item_page_visible(v.id);
 $$;
 revoke all on function app_private.site_item(uuid) from public;
 grant execute on function app_private.site_item(uuid) to anon, authenticated, service_role;
@@ -209,21 +214,29 @@ stable
 security definer
 set search_path = ''
 as $$
-  with shown as (
+  -- app_private.item_page_visible as one set-based join (the demo shops read once), so a page costs one pass over the
+  -- credited photos, never a function call per photo (§39.14 rule 2).
+  with ids as (select coalesce(app_private.demo_vendor_ids(), '{}') as d),
+  vis as (
+    select v.id, v.slug, v.name_ar, v.name_en, v.name_fr, v.public_page or v.id = any (ids.d) as has_page
+    from public.vendors v, ids
+    where v.claim_status = 'claimed' and v.listing_status = 'active' and (v.orderable or v.id = any (ids.d))
+      and not (v.is_test and cardinality(ids.d) > 0)
+  ), shown as (
     -- has_page: the shop has its own page to link to (otherwise the credits page names it without a link).
     select 'item' as kind, p.item_id, v.slug as vendor_slug, v.name_ar as vendor_ar, v.name_en as vendor_en,
       v.name_fr as vendor_fr, i.name_ar as item_ar, i.name_en as item_en, i.name_fr as item_fr,
-      p.source, p.credit, p.license, p.source_url, v.public_page or app_private.vendor_is_demo(v.id) as has_page
+      p.source, p.credit, p.license, p.source_url, v.has_page
     from public.menu_item_photos p
-    join public.menu_items i on i.id = p.item_id
-    join public.vendors v on v.id = p.vendor_id
-    where p.source <> 'merchant' and app_private.item_page_visible(v.id)
+    join public.menu_items i on i.id = p.item_id and i.removed_at is null
+    join vis v on v.id = p.vendor_id
+    where p.source <> 'merchant'
     union all
     select 'cover', null, v.slug, v.name_ar, v.name_en, v.name_fr, null, null, null,
-      c.source, c.credit, c.license, c.source_url, v.public_page or app_private.vendor_is_demo(v.id)
+      c.source, c.credit, c.license, c.source_url, v.has_page
     from public.vendor_covers c
-    join public.vendors v on v.id = c.vendor_id
-    where c.source <> 'merchant' and app_private.item_page_visible(v.id)
+    join vis v on v.id = c.vendor_id
+    where c.source <> 'merchant'
   ), pg as (select greatest(coalesce(p_page, 1), 1) as n)
   select jsonb_build_object(
     'total', (select count(*) from shown),
@@ -446,7 +459,9 @@ as $$
   left join public.menu_sections s on s.id = i.section_id
   left join public.places pl on pl.id = v.town_id
   left join public.menu_item_nutrition nu on nu.item_id = i.id
-  where i.vendor_id = p_vendor_id and v.claim_status = 'claimed' and v.orderable and v.listing_status = 'active';
+  -- A removed item is never shown (menu_items.removed_at): it leaves the desired set, so the sync hides it at Meta.
+  where i.vendor_id = p_vendor_id and i.removed_at is null and v.claim_status = 'claimed' and v.orderable
+    and v.listing_status = 'active';
 $$;
 
 -- 6. Each choice group names its item ('item' as the bot names things, Arabic first; 'item_en'), so the bot asks

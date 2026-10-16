@@ -90,6 +90,17 @@ select tests.ok(public.site_item(:'other') -> 'item' -> 'credit' = 'null'::jsonb
   and (public.site_item(:'other') -> 'item' ->> 'photo')::boolean, 'the shop''s own photo needs no credit');
 select tests.ok(public.site_item('00000000-0000-0000-0000-000000000000') is null, 'an unknown id has no page');
 
+-- The village is linked only when its page answers (a place we deliver to; the fixture switched Baakline on).
+select tests.ok(public.site_item(:'falafel') -> 'vendor' ->> 'place_slug' = 'chf-baakline', 'a live village is linked');
+reset role;
+update public.places set service_status = 'off' where id = 'LB-CHF-BAAKLINE';
+set local role anon;
+select tests.ok(public.site_item(:'falafel') -> 'vendor' -> 'place_slug' = 'null'::jsonb,
+  'a village that is not live has no link (its page would not answer)');
+reset role;
+update public.places set service_status = 'on' where id = 'LB-CHF-BAAKLINE';
+set local role anon;
+
 -- Credits: every photo that is not the shop's own, with its author and license.
 select public.site_credits() as cr \gset
 reset role;
@@ -127,6 +138,17 @@ set local role anon;
 select tests.ok(public.site_item(:'falafel') -> 'goes_well' ->> 'id' = :'other',
   'two delivered orders that bought them together: "Goes well with" names the other item');
 reset role;
+
+-- A removed item is never shown: no page, no credit, and the catalogue leaves it out (the sync hides it at Meta).
+update public.menu_items set removed_at = now() where id = :'falafel';
+set local role anon;
+select tests.ok(public.site_item(:'falafel') is null
+  and not exists (select 1 from jsonb_array_elements(public.site_credits() -> 'photos') x where x ->> 'item_id' = :'falafel'),
+  'a removed item has no page and no credit');
+reset role;
+select tests.ok(not exists (select 1 from jsonb_array_elements(public.catalog_desired(:'tv')) x
+  where x ->> 'retailer_id' = :'falafel'), 'and leaves the catalogue');
+update public.menu_items set removed_at = null where id = :'falafel';
 
 -- A shop that takes no orders and is not a demo shop: no item pages, no credits.
 update public.vendors set orderable = false where id = :'tv';

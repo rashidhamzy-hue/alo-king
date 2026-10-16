@@ -3,6 +3,7 @@ import { checkInteractive } from "../../_shared/meta-limits";
 import {
   handleCustomerTurn,
   itemCodeIn,
+  itemCodeTail,
   readCustomerInbound,
   validate,
   vocabularyPrompt,
@@ -2265,6 +2266,21 @@ describe("Add in WhatsApp from an item page (DECISIONS §39.15.2)", () => {
     expect(f.of("basket_add_item")[0].args.p_quantity).toBe(1);
     expect(f.modelReqs).toEqual([]);
     expect(f.sent.length).toBeGreaterThan(0);
+  });
+
+  it("reads a quantity and a note the customer typed after the code, never from the pre-filled words", async () => {
+    const pre = `Bonjour Alo King, ajoutez Pepsi 330 ml de chez Deux Frères, s'il vous plaît (i-${ITEM})`;
+    expect(itemCodeTail(pre, ITEM)).toEqual({ qty: 1, note: null });
+    expect(itemCodeTail(`${pre} x2, no garlic`, ITEM)).toEqual({ qty: 2, note: "no garlic" });
+    expect(itemCodeTail(`${pre} ٣ بلا ثوم`, ITEM)).toEqual({ qty: 3, note: "بلا ثوم" });
+    const f = fake({
+      rpcs: { menu_item_options: () => [], basket_add_item: () => ({ status: "added", basket }) },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ text: `Hi Alo King, please add Shawarma (i-${ITEM}) 2 extra spicy` }),
+    );
+    expect(f.of("basket_add_item")[0].args).toMatchObject({ p_quantity: 2, p_note: "extra spicy" });
   });
 
   it("an item that cannot be ordered now is named, never silently dropped", async () => {
