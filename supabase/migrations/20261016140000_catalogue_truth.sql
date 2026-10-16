@@ -78,8 +78,8 @@ grant execute on function public.catalog_status_record(text, jsonb) to service_r
 -- The whole-catalogue sweep: one page per call, the cursor kept between dispatch runs. next_due_at says when the next
 -- page is wanted, so deciding costs one row read (DECISIONS §39.14 rule 2: no catalogue scan per tap): 15 s between pages,
 -- then catalog_status_sweep_minutes when something stayed unsure, else catalog_status_full_hours; a sync of new or changed
--- products brings it forward to catalog_status_sweep_minutes. A failing page backs off 2, 4, 8 minutes; after three
--- failures the sweep restarts from the first page in 30 minutes and an operator alert says so.
+-- products brings it forward to catalog_status_sweep_minutes. A failing page is retried after 2, then 4 minutes; the third
+-- failure restarts the sweep from the first page in 30 minutes and an operator alert says so.
 create table app_private.catalog_status_sweeps (
   catalog_id text primary key,
   after_cursor text,
@@ -94,6 +94,20 @@ revoke all on app_private.catalog_status_sweeps from public, anon, authenticated
 
 -- Is a page of the sweep due now, and from which cursor? The catalogue is the one the sync writes to (the newest with a
 -- transport) unless one is named. A due page is claimed for a minute, so two dispatch runs never ask for it together.
+-- The catalogue the sweep reads when none is named: the one the sync writes to (the newest with a transport), only while
+-- the catalogue is on. dispatch_kick asks the same question, so it never wakes dispatch for a sweep nothing would serve.
+create function app_private.catalog_sweep_target() returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select c.catalog_id from public.whatsapp_catalogs c
+  where c.transport is not null and coalesce((public.config_value('catalog_enabled') #>> '{}')::boolean, false)
+  order by c.checked_at desc limit 1;
+$$;
+revoke all on function app_private.catalog_sweep_target() from public, anon, authenticated;
+
 create function public.catalog_status_sweep_next(p_catalog_id text default null) returns jsonb
 language plpgsql
 security definer
@@ -104,8 +118,7 @@ declare
   v_s app_private.catalog_status_sweeps%rowtype;
 begin
   select * into v_cat from public.whatsapp_catalogs c
-  where c.transport is not null and (p_catalog_id is null or c.catalog_id = p_catalog_id)
-  order by c.checked_at desc limit 1;
+  where c.catalog_id = coalesce(p_catalog_id, app_private.catalog_sweep_target()) and c.transport is not null;
   if v_cat.catalog_id is null then
     return jsonb_build_object('due', false);
   end if;
@@ -244,8 +257,7 @@ begin
      and not exists (select 1 from app_private.catalog_sync_queue where next_at <= now()
                      and coalesce(leased_until, '-infinity') < now())
      and not exists (select 1 from app_private.catalog_status_sweeps s where s.next_due_at <= now()
-                     and exists (select 1 from public.whatsapp_catalogs c where c.catalog_id = s.catalog_id
-                                 and c.transport is not null)) then
+                     and s.catalog_id = app_private.catalog_sweep_target()) then
     return null;
   end if;
   return net.http_post(
@@ -372,7 +384,8 @@ as $$
         select count(*) from public.catalog_item_status st
         join public.catalog_sync_items c on c.item_id = st.item_id and c.visible and c.catalog_id = p_catalog_id
         where st.vendor_id = v.id and st.catalog_id = p_catalog_id and st.review_status = 'approved'
-          and coalesce(st.visibility, 'published') = 'published' and coalesce(st.availability, 'in stock') = 'in stock') end)
+          and coalesce(st.visibility, 'published') = 'published' and coalesce(st.availability, 'in stock') = 'in stock'
+          and app_private.menu_item_orderable(st.item_id, 1)) end)
     order by array_position(p_item_ids, i.id)), '[]')
   from public.menu_items i
   join public.vendors v on v.id = i.vendor_id

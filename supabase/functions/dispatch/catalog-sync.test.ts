@@ -272,4 +272,32 @@ describe("Meta's review status (session 5f)", () => {
     expect(calls.find((c) => c.fn === "catalog_status_sweep_done").args.p_failed).toBe(true);
     expect(calls.some((c) => c.fn === "catalog_status_record")).toBe(false);
   });
+
+  it("a thrown read or record counts as a failed page (backoff, never a retry every minute)", async () => {
+    for (const where of ["status", "record"] as const) {
+      const calls: any[] = [];
+      const rpc = async (fn: string, args: any) => {
+        calls.push({ fn, args });
+        if (fn === "catalog_status_record" && where === "record")
+          throw new Error("statement timeout");
+        return fn === "catalog_status_sweep_next"
+          ? { due: true, after: null, catalog_id: "987654321012", transport: "graph" }
+          : 1;
+      };
+      const api = {
+        status: async () => {
+          if (where === "status") throw new Error("fetch timed out");
+          return {
+            ok: true as const,
+            rows: [{ retailer_id: "a", review_status: "approved" }],
+            next: null,
+          };
+        },
+      } as any;
+      expect(await catalogStatusStep(rpc, api)).toBe(0);
+      const done = calls.filter((c) => c.fn === "catalog_status_sweep_done");
+      expect(done).toHaveLength(1);
+      expect(done[0].args.p_failed).toBe(true);
+    }
+  });
 });

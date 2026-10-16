@@ -98,22 +98,31 @@ export async function catalogStatusStep(
   if (!api.status) return -1;
   const due = await rpc("catalog_status_sweep_next", { p_catalog_id: null });
   if (!due?.due || !due.catalog_id || !due.transport) return -1;
-  const r = await api.status(due.catalog_id, due.transport, {
-    after: due.after ?? null,
-    limit: STATUS_PAGE,
-  });
-  if (!r.ok) {
-    log?.("catalogue status sweep failed", { error: r.error.slice(0, 160) });
+  const failed = async (error: string) => {
+    log?.("catalogue status sweep failed", { error: error.slice(0, 160) });
     await rpc("catalog_status_sweep_done", {
       p_catalog_id: due.catalog_id,
       p_next: null,
       p_failed: true,
     });
     return 0;
+  };
+  // A thrown read or record (a timeout, a network error, a database error) counts as a failed page like a refused one,
+  // so it backs off and, the third time, restarts the sweep with an alert instead of retrying every minute.
+  let r: Awaited<ReturnType<NonNullable<CatalogApi["status"]>>>;
+  let n: number;
+  try {
+    r = await api.status(due.catalog_id, due.transport, {
+      after: due.after ?? null,
+      limit: STATUS_PAGE,
+    });
+    if (!r.ok) return await failed(r.error);
+    n = Number(
+      (await rpc("catalog_status_record", { p_catalog_id: due.catalog_id, p_rows: r.rows })) ?? 0,
+    );
+  } catch (e) {
+    return await failed(e instanceof Error ? e.message : String(e));
   }
-  const n = Number(
-    (await rpc("catalog_status_record", { p_catalog_id: due.catalog_id, p_rows: r.rows })) ?? 0,
-  );
   await rpc("catalog_status_sweep_done", {
     p_catalog_id: due.catalog_id,
     p_next: r.next,

@@ -109,6 +109,22 @@ update public.catalog_sync_items set content_hash = 'h2' where item_id = (:'item
 select tests.ok((select next_due_at <= now() + interval '15 minutes' from app_private.catalog_status_sweeps),
   'a product sent again brings the next sweep within 15 minutes');
 select tests.ok((select next_due_at > now() from app_private.catalog_status_sweeps), 'a sweep not due costs one row read');
+-- dispatch_kick and the sweep agree on the catalogue: an older catalogue's due row never wakes dispatch, nor does any
+-- sweep while the catalogue is off.
+insert into public.whatsapp_catalogs (waba_id, catalog_id, transport, commerce_on, checked_at)
+values ('1086076707590003', '1684040949970003', 'graph', true, now() - interval '1 day');
+insert into app_private.catalog_status_sweeps (catalog_id, next_due_at) values ('1684040949970003', now() - interval '1 hour');
+select tests.ok(app_private.catalog_sweep_target() = '1684040949970001', 'the sweep reads the newest catalogue with a transport');
+select tests.ok(not (public.catalog_status_sweep_next() ->> 'due')::boolean, 'the newest catalogue is not due yet');
+select tests.ok((select next_due_at < now() from app_private.catalog_status_sweeps where catalog_id = '1684040949970003'),
+  'an older catalogue''s due row is not served (and so does not wake dispatch)');
+savepoint catalogue_off;
+insert into public.app_config (key, value, effective_from, note) values ('catalog_enabled', 'false', now(), 'test');
+select tests.ok(app_private.catalog_sweep_target() is null, 'catalogue off: nothing to sweep');
+select tests.ok(not (public.catalog_status_sweep_next() ->> 'due')::boolean, 'catalogue off: no page is due');
+rollback to savepoint catalogue_off;
+delete from app_private.catalog_status_sweeps where catalog_id = '1684040949970003';
+delete from public.whatsapp_catalogs where catalog_id = '1684040949970003';
 -- A status read from another catalogue does not count here.
 update public.catalog_item_status set catalog_id = '1684040949970002' where item_id = (:'items'::uuid[])[1];
 select tests.ok(not app_private.catalog_item_shown((:'items'::uuid[])[1], '1684040949970001'),
@@ -120,6 +136,13 @@ select tests.ok((select review_status = 'approved_now_' and visibility = 'publis
   where item_id = (:'items'::uuid[])[1]), 'cleaned to the table''s shape, so it never breaks a page');
 select public.catalog_status_record('1684040949970001', (select jsonb_agg(jsonb_build_object('retailer_id', x, 'review_status', 'approved',
   'visibility', 'published')) from unnest(:'items'::uuid[]) x));
+
+-- Search's shop count is the menu's: an approved item the shop can't make today does not count towards a full shop.
+select (public.catalog_products_for(:'items'::uuid[], '1684040949970001') -> 0 ->> 'shop_shown')::int as ss0 \gset
+update public.menu_items set available = false where id = (:'items'::uuid[])[2];
+select tests.ok((public.catalog_products_for(:'items'::uuid[], '1684040949970001') -> 0 ->> 'shop_shown')::int = :ss0 - 1,
+  'search''s shop count leaves out an item that cannot be ordered, as the menu''s does');
+update public.menu_items set available = true where id = (:'items'::uuid[])[2];
 
 update public.vendors set is_test = false where id = :'tv';
 -- The report -------------------------------------------------------------------------------------------------------------
