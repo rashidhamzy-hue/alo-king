@@ -2790,7 +2790,68 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
       },
     });
     await handleCustomerTurn(f.deps, msg({ buttonId: "c:cart_both", type: "interactive" }));
-    expect(bodyOf(f.sent[0])).toMatch(/doesn't deliver to you, so it's there if you collect it/);
+    expect(bodyOf(f.sent[0])).toMatch(
+      /can't be delivered to you right now, so it's there if you collect it/,
+    );
+  });
+
+  it("the alternative waits while another shop's basket is open, never adding it twice later", async () => {
+    const f = fake({
+      rpcs: {
+        saved_cart_swap: () => ({
+          ok: false,
+          other_basket: true,
+          basket: "أ",
+          basket_en: "Vendor A",
+        }),
+        basket_add_item: () => ({ status: "added", basket }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `alt:${SC2}:${ALT}:1`, type: "interactive" }));
+    expect(f.of("basket_add_item")).toHaveLength(0);
+    expect(bodyOf(f.sent[0])).toMatch(/finish or empty your Vendor A basket first/);
+    expect(f.sent[0].type).toBe("interactive");
+  });
+
+  it("Do both while deliveries to the place are paused: kept for when they resume, or for pickup", async () => {
+    const both = (extra: object) =>
+      fake({
+        begin: {
+          session: {
+            lang: "en",
+            pending: {
+              kind: "cart",
+              lines: [{ i: ITEM, q: 1, p: null }],
+              basket: "Vendor A",
+              cart: "Vendor B",
+            },
+            refs: {},
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+        },
+        rpcs: {
+          saved_cart_save: () => ({
+            status: "saved",
+            saved_cart_id: SC2,
+            vendor: "ب",
+            vendor_en: "Vendor B",
+            delivers: null,
+            place_paused: true,
+            ...extra,
+          }),
+        },
+      });
+    const f = both({ pickup_enabled: false });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:cart_both", type: "interactive" }));
+    expect(bodyOf(f.sent[0])).toMatch(/for when we deliver to your area again/);
+    expect(f.of("saved_cart_drop")).toHaveLength(0);
+    const g = both({ pickup_enabled: true });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "c:cart_both", type: "interactive" }));
+    expect(bodyOf(g.sent[0])).toMatch(
+      /can't be delivered to you right now, so it's there if you collect it/,
+    );
   });
 
   it("Do both with a shop that neither delivers here nor takes pickup keeps nothing it cannot order", async () => {

@@ -118,6 +118,8 @@ begin
     join lateral (
       select i.* from public.menu_items i join public.menu_item_nutrition nu on nu.item_id = i.id
       where i.vendor_id = v.id and nu.dish_id = v_dish and app_private.menu_item_orderable(i.id, 1)
+        -- one tap adds it: no required choice to ask first (the swap always follows the add)
+        and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id and g.min_select > 0)
       order by i.sort_order, i.id limit 1) i on true
     where d ->> 'status' = 'ok'
     order by (d ->> 'road_km')::numeric nulls last
@@ -278,6 +280,7 @@ set search_path = ''
 as $$
   update public.saved_carts set status = 'used', taken_message_id = p_message_id
   where id = p_saved_cart_id and customer_id = p_customer_id and p_message_id is not null
+    and not (vendor_id = any (coalesce(app_private.customer_hidden_vendors(p_customer_id), '{}')))
     and ((status = 'saved' and expires_at > now()) or (status = 'used' and taken_message_id = p_message_id))
   returning jsonb_build_object('status', 'ok', 'lines', lines, 'vendor_id', vendor_id);
 $$;
@@ -388,9 +391,18 @@ begin
   if v_first_dish is distinct from v_dish then
     return case when coalesce(p_check_only, false) then jsonb_build_object('ok', false) end;
   end if;
-  -- Asked before the dish goes into the basket: a second tap or another dish never adds it.
+  -- Asked before the dish goes into the basket: a second tap or another dish never adds it, and neither does a basket
+  -- open at another shop (the dish would wait on a Replace tap that never records the swap).
   if coalesce(p_check_only, false) then
-    return jsonb_build_object('ok', true);
+    return (select case when b.id is not null then jsonb_build_object('ok', false, 'other_basket', true,
+                          'basket', coalesce(bv.name_ar, bv.name_en), 'basket_en', coalesce(bv.name_en, bv.name_ar))
+                        else jsonb_build_object('ok', true) end
+            from public.menu_items i
+            left join public.baskets b on b.customer_id = p_customer_id and b.status = 'open' and b.vendor_id <> i.vendor_id
+              and exists (select 1 from public.basket_items bi where bi.basket_id = b.id)
+            left join public.vendors bv on bv.id = b.vendor_id
+            where i.id = p_item_id
+            limit 1);
   end if;
   select coalesce(jsonb_agg(l order by n), '[]') into v_left
   from jsonb_array_elements(v_sc.lines) with ordinality t(l, n)

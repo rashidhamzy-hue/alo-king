@@ -721,6 +721,7 @@ export const ERROR_WAYS: Record<string, Way[]> = {
   cartUnknown: ["menu", "help"],
   cartNothing: ["menu", "basket"],
   savedCartGone: ["menu", "basket"],
+  cartAltOtherBasket: ["basket", "menu"],
   giftUnreachable: ["basket", "help"],
   giftTooMany: ["order", "help"],
   giftBlocked: ["order", "help"],
@@ -745,6 +746,7 @@ export const INFO_KEYS = new Set([
   "savedCartDropped",
   "cartBothSaved",
   "cartBothSavedPickup",
+  "cartBothSavedPaused",
   "cartBothNoWay",
   // lead-ins: the split list, the basket or checkout follows in the same turn
   "cartUnavailable",
@@ -2577,11 +2579,25 @@ const S5F: Record<string, Record<CLang, string>> = {
     arabizi: "{qty} × ${price}",
   },
   cartBothSavedPickup: {
-    ar: "✅ حفظنالك سلّة {vendor}. ما بيوصّل لعندك، فهيّي محفوظة إذا بدّك تستلمها من المحل. منكمّل هلق طلب {basket}.",
-    en: "✅ We kept your {vendor} cart. It doesn't deliver to you, so it's there if you collect it. Let's finish your {basket} order first.",
-    fr: "✅ Nous gardons votre panier {vendor}. Il ne livre pas chez vous : il vous attend si vous le retirez. Terminons d'abord la commande {basket}.",
+    ar: "✅ حفظنالك سلّة {vendor}. ما في توصيل منه لعندك هلق، فهيّي محفوظة إذا بدّك تستلمها من المحل. منكمّل هلق طلب {basket}.",
+    en: "✅ We kept your {vendor} cart. It can't be delivered to you right now, so it's there if you collect it. Let's finish your {basket} order first.",
+    fr: "✅ Nous gardons votre panier {vendor}. Il ne peut pas être livré chez vous pour l'instant : il vous attend si vous le retirez. Terminons d'abord la commande {basket}.",
     arabizi:
-      "✅ 7afazna-lak sallet {vendor}. Ma bywassel la 3endak, fa hiye ma7fouza iza baddak testalema men el ma7al. Mnkammel hala2 talab {basket}.",
+      "✅ 7afazna-lak sallet {vendor}. Ma fi tawsil mno la 3endak hala2, fa hiye ma7fouza iza baddak testalema men el ma7al. Mnkammel hala2 talab {basket}.",
+  },
+  cartBothSavedPaused: {
+    ar: "✅ حفظنالك سلّة {vendor} لوقت ما نرجع نوصّل لمنطقتك. منكمّل هلق طلب {basket}.",
+    en: "✅ We kept your {vendor} cart for when we deliver to your area again. Let's finish your {basket} order first.",
+    fr: "✅ Nous gardons votre panier {vendor} pour quand nous livrerons à nouveau votre zone. Terminons d'abord la commande {basket}.",
+    arabizi:
+      "✅ 7afazna-lak sallet {vendor} la wa2t ma nerja3 nwassel la mante2tak. Mnkammel hala2 talab {basket}.",
+  },
+  cartAltOtherBasket: {
+    ar: "الطلب الواحد من محل واحد: كمّل طلب {basket} أو فضّي السلّة، وبعدين نقّي البديل من جديد.",
+    en: "One order comes from one shop: finish or empty your {basket} basket first, then pick the other shop's dish again.",
+    fr: "Une commande vient d'un seul commerce : terminez ou videz votre panier {basket}, puis choisissez à nouveau le plat de l'autre commerce.",
+    arabizi:
+      "El talab men ma7al wa7ad: kammel talab {basket} aw fadde el salle, w ba3den na22i el badil men jdid.",
   },
   cartBothNoWay: {
     ar: "😔 {vendor} ما بيوصّل لعندك وما فيك تستلم منه، فما فيك تطلب هالسلّة. منكمّل طلب {basket}.",

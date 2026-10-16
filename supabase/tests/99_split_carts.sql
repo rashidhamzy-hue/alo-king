@@ -162,6 +162,13 @@ select tests.ok(:'p'::jsonb -> 'shops' -> 0 -> 'alternative' ->> 'item_id' = '5f
   and (:'p'::jsonb -> 'shops' -> 0 -> 'alternative' ->> 'price_usd')::numeric = 7,
   'the closest open shop that delivers the same dish, with the quantity and its own price (never the far one)');
 select tests.ok(:'p'::jsonb -> 'shops' -> 1 -> 'alternative' = 'null'::jsonb, 'a shop that delivers gets no alternative');
+-- An alternative is only a dish added in one tap: one with a required choice is never offered.
+insert into public.menu_option_groups (id, item_id, name_en, min_select, max_select)
+values ('5f000000-0000-0000-0000-0000000000f1', '5f000000-0000-0000-0000-0000000000d4', 'Doneness', 1, 1);
+select tests.ok(app_private.cart_alternative(:'cid', '5f000000-0000-0000-0000-0000000000b1',
+  '[{"item_id": "5f000000-0000-0000-0000-0000000000d1", "quantity": 1}]', '{}') is null,
+  'a dish with a required choice is not offered as the alternative');
+delete from public.menu_option_groups where id = '5f000000-0000-0000-0000-0000000000f1';
 -- The customer takes the alternative: the burger leaves the far shop's saved cart, its fries stay kept and are named.
 select (:'p'::jsonb -> 'shops' -> 0 ->> 'saved_cart_id') as bsc \gset
 select tests.ok(public.saved_cart_swap('5f000000-0000-0000-0000-0000000000e2', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw') is null,
@@ -172,6 +179,11 @@ select tests.ok((public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000
   and (public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d3', 'wamid.sw', true) ->> 'ok') = 'false'
   and (select jsonb_array_length(lines) = 3 and swap_message_id is null from public.saved_carts where id = :'bsc'::uuid),
   'asked first (before the dish goes into the basket): yes for the offered dish, no for another, and nothing changes');
+-- A basket open at another shop: the dish would wait on a Replace tap, so the alternative is refused until then.
+select public.basket_add_item(:'cid', '5f000000-0000-0000-0000-0000000000d3', 1, '{}', null, true, 'wamid.sc.basket');
+select tests.ok((public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw', true)
+  ->> 'other_basket')::boolean, 'a basket open at another shop: asked first, the alternative waits');
+select public.basket_clear(:'cid');
 select public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw') as sw \gset
 select tests.ok(:'sw'::jsonb ->> 'status' = 'kept' and :'sw'::jsonb -> 'names_en' = '["Double Burger", "Fries"]'::jsonb
   and :'sw'::jsonb ->> 'vendor_en' = 'Split Burger' and :'sw'::jsonb -> 'join_saved_cart_id' = 'null'::jsonb
@@ -282,6 +294,12 @@ select tests.ok(:'hd'::jsonb ->> 'status' = 'single' and :'hd'::jsonb -> 'unavai
 select tests.ok(public.saved_cart_save('5f000000-0000-0000-0000-0000000000e1', 'both:wamid.hidden',
   '[{"item_id": "5f000000-0000-0000-0000-0000000000d3", "quantity": 1}]') ->> 'status' = 'unavailable',
   'nor kept by Do both');
+update public.saved_carts set status = 'saved', expires_at = now() + interval '1 hour'
+where id = (:'s'::jsonb -> 'shops' -> 1 ->> 'saved_cart_id')::uuid;
+select tests.ok(public.saved_cart_next('5f000000-0000-0000-0000-0000000000e1') is null
+  and public.saved_cart_take('5f000000-0000-0000-0000-0000000000e1', (:'s'::jsonb -> 'shops' -> 1 ->> 'saved_cart_id')::uuid,
+    'wamid.hidden.take') is null,
+  'nor offered or taken once its shop is hidden (a ref from an older list)');
 
 -- Access: service role only.
 set local role authenticated;

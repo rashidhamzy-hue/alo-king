@@ -1551,7 +1551,15 @@ async function cartAlternative(c: Ctx, savedCartId: string, itemId: string, qty:
       p_message_id: c.m.messageId,
       p_check_only: true,
     })
-    .catch(() => null);
+    .catch((e) => {
+      // A stalled call replays the turn (§39.13); only a real refusal reads as "no longer kept".
+      if (e instanceof RpcStalled) throw e;
+      return null;
+    });
+  if (ok?.other_basket)
+    return say(c, "cartAltOtherBasket", {
+      basket: c.s.lang === "ar" ? ok.basket : (ok.basket_en ?? ok.basket),
+    });
   if (ok?.ok !== true) return say(c, "savedCartGone");
   const added = await addOne(c, itemId, Math.min(Math.max(qty, 1), 50), [], null, null);
   if (!added) return;
@@ -1596,7 +1604,12 @@ async function cartBoth(c: Ctx) {
   if (sv?.status === "saved")
     // A shop that does not deliver to the pin is kept for pickup, never promised as a delivery after this order.
     // A paused place is temporary: the cart stays kept and is offered once deliveries there resume.
-    if (sv.delivers !== false && (!sv.place_paused || !sv.pickup_enabled))
+    if (sv.place_paused && !sv.pickup_enabled)
+      say(c, "cartBothSavedPaused", {
+        vendor: lang === "ar" ? sv.vendor : (sv.vendor_en ?? sv.vendor),
+        basket: String(p.basket ?? ""),
+      });
+    else if (sv.delivers !== false && !sv.place_paused)
       say(c, "cartBothSaved", {
         vendor: lang === "ar" ? sv.vendor : (sv.vendor_en ?? sv.vendor),
         basket: String(p.basket ?? ""),
