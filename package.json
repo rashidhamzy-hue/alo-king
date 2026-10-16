@@ -102,6 +102,7 @@
     "nitro": "3.0.260603-beta",
     "pg": "^8.23.1",
     "prettier": "^3.7.3",
+    "sharp": "0.34.4",
     "tsx": "^4.23.15",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

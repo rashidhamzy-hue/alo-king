@@ -1,0 +1,68 @@
+name: photo-scout
+
+# Photo candidates for the staging demo shops' items (DECISIONS §39.12, session 5e): one real food photo per dish from a
+# free library that allows commercial use (Openverse CC0 / public domain / CC BY; Pexels when PEXELS_API_KEY is set),
+# and Open Food Facts packshots for shelf items. Reads the demo items from staging (one query), writes candidates.json
+# and contact sheets, and pushes them to a data/photo-scout-<run id> branch. A build session looks at the sheets and
+# writes its picks to scripts/demo/photo-picks.json; nothing here changes staging.
+on:
+  workflow_dispatch:
+    inputs:
+      only_keys:
+        description: Comma-separated dish keys (default every dish the demo items need)
+        required: false
+        default: ""
+      max_per_key:
+        description: Candidates per dish
+        required: false
+        default: "8"
+
+permissions:
+  contents: write
+
+env:
+  SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Refuse anything but the staging project
+        run: '[ "$SUPABASE_PROJECT_REF" = "tzugbbatfbvrfzxuacqx" ] || { echo "::error::only alo-king-staging"; exit 1; }'
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Find candidates and draw the contact sheets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          ONLY_KEYS: ${{ inputs.only_keys }}
+          MAX_PER_KEY: ${{ inputs.max_per_key }}
+        run: |
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          [ -n "$PEXELS_API_KEY" ] || unset PEXELS_API_KEY
+          DB_URL="$DB_URL" OUT_DIR=photo-scout node --experimental-strip-types --no-warnings scripts/demo/photo-scout.ts \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Push to a data branch
+        env:
+          BRANCH: data/photo-scout-${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -f photo-scout
+          git commit -m "Photo candidates from photo-scout run ${{ github.run_id }}" -m "DECISIONS §39.12: picked by a build session into scripts/demo/photo-picks.json."
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" push origin "$BRANCH"
+          echo "pushed $BRANCH" | tee -a "$GITHUB_STEP_SUMMARY"

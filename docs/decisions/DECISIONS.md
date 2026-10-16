@@ -1755,6 +1755,31 @@ Rasheed's requests after session D, and the decision on each. **This section ove
     - the test catalogue is cleared;
     - the production catalogue syncs only claimed shops whose merchant confirmed the menu.
 
+### 39.13 World-class shopping on WhatsApp for the investor demo (Rasheed, 16 October; session 5e)
+- **Verdict on the old state:** the catalogue screen in the chat header showed 1,755 products from 29 shops in one flat list with drawn placeholder pictures. Unusable.
+- **The catalogue header icon is switched off; the cart stays on.**
+  - Meta's WhatsApp Business Platform docs (catalogs overview, share products, commerce settings) offer no collections or product-set grouping in the catalogue a customer opens from the chat header. The only grouping is the sections of a multi-product message.
+  - Our catalogue has had one product set per shop since #189, and the header still showed one flat list (Rasheed's screenshot, 16 October).
+  - So the header is set to `is_catalog_visible = false` with `is_cart_enabled = true`. Product messages and the cart work without the icon (Meta: the icon is off by default).
+  - `kapso-catalog` sets it. Kapso's proxy has no commerce endpoint and `META_CATALOG_TOKEN` lacks `whatsapp_business_management`, so until the owner grants that permission, an `owner` issue carries the 2-minute WhatsApp Manager steps.
+- **Browsing is through the bot only** (zero model calls):
+  - Order → pin → "What are you craving?": the categories that have shops delivering here (from cuisine tags, business types and the dish words of the menus: burgers, shawarma, pizza, manakish, grills, sandwiches, fried chicken, sushi, mezze, desserts, coffee, juices, bakery, grocery), then "Shops near you" with road distance and delivery fee. With fewer than 4 shops delivering (config), the shops are listed directly as before.
+  - A category lists its shops with fee, distance and village.
+  - A shop opens with its cover image and one line (cuisine · village · delivery fee · hours today), then its menu as one multi-product message grouped by its sections. That message holds at most 30 items in 10 sections, the best sections first (mains, then sides and sweets, drinks and dips last; best sellers first), then a list opens the rest of the sections.
+  - A section opens as its own product message, 30 items at a time with "Next items".
+  - Search results come back as one product message grouped by shop.
+  - Every path ends in the same basket and checkout. Without a catalogue (sandbox, simulator), the list menus run as before.
+- **Photos:** no drawn text tiles any more. In order of preference:
+  1. The shop's own photos (`merchant_site`).
+  2. Open Food Facts packshots for shelf items (by barcode, or by brand and name with a confidence check; CC BY-SA, credited).
+  3. One real food photo per dish from a free library that allows commercial use (Pexels or Unsplash when their API key exists; until then Openverse restricted to CC0, the public domain mark and CC BY), matched through the dish keys of `scripts/demo/dishes.ts`, stored as `source = illustrative` with its license, credit and source, and replaced when the merchant claims the shop.
+  - Every product image is at least 500×500, cropped square at 800×800, with the same treatment.
+  - Each shop has a cover: its own photo, or its signature dish.
+  - An item without any photo is left out of the catalogue (it stays in the list menu).
+- **WhatsApp business profile of the US number**, set by API through Kapso's proxy (`kapso-profile`): the Alo King crown as profile photo, about, description, address, category and website.
+  - Meta's profile has no opening-hours field; the description says each shop delivers in its own hours, shown when it is opened.
+  - The website is listed only when it publicly serves the new site. Vercel's production domain still serves the 6 October build with another business's number until the cut-over, so it is never listed.
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
