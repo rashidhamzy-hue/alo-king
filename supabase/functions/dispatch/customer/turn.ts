@@ -4324,7 +4324,8 @@ async function shopLink(c: Ctx, slug: string, rest: string, firstContact: boolea
   const r = await c.deps
     .rpc("shop_for_link", { p_customer_id: c.customerId, p_slug: slug, p_vendor_id: null })
     .catch(() => null);
-  if (r?.status === "orderable" || r?.status === "unclaimed") return arriveAtShop(c, r, sitePicks(rest));
+  if (r?.status === "orderable" || r?.status === "unclaimed")
+    return arriveAtShop(c, r, sitePicks(rest));
   // An old or mistyped link: the rest of the text as typed ("Hi Alo King, I'd like to order from Eatout").
   c.summary.push(`[shop link ${slug}: no such shop]`);
   return rest && !isEmptyish(rest)

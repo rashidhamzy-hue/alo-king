@@ -238,7 +238,7 @@ export const FACT_RE =
  * exactly that shop, never a fuzzy match on its name.
  */
 /** The website's shop key, only in the bracketed form it emits ("(shop:eatout)"): a bare "shop:x" in a message is text. */
-export const SHOP_TOKEN_RE = /[(\[]\s*shop:([a-z0-9]+(?:-[a-z0-9]+){0,15})\s*[)\]]/i;
+export const SHOP_TOKEN_RE = /[([]\s*shop:([a-z0-9]+(?:-[a-z0-9]+){0,15})\s*[)\]]/i;
 export function shopToken(raw: string): string | null {
   const m = SHOP_TOKEN_RE.exec(raw);
   return m ? m[1].toLowerCase() : null;

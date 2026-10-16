@@ -4358,7 +4358,8 @@ describe("first contact (session 5f part 8a)", () => {
       expect(ids(g.sent[g.sent.length - 1])).toEqual(["ps:s1", "ps:s2"]);
     });
     it("the website's picks are never dropped: carried over the pin, then read as typed once the shop opens", async () => {
-      const text = "Hi Alo King, I'd like to order from Eatout (shop:eatout-baakline): 2× Burger, 1× Fries";
+      const text =
+        "Hi Alo King, I'd like to order from Eatout (shop:eatout-baakline): 2× Burger, 1× Fries";
       const f = fake({
         ...noModel,
         rpcs: { shop_for_link: () => shop(), customer_search_point: () => null },
@@ -4379,7 +4380,10 @@ describe("first contact (session 5f part 8a)", () => {
           vendor_menu: () => [],
         },
       });
-      await handleCustomerTurn(g.deps, msg({ type: "location", location: { lat: 33.68, lon: 35.56 } }));
+      await handleCustomerTurn(
+        g.deps,
+        msg({ type: "location", location: { lat: 33.68, lon: 35.56 } }),
+      );
       expect(g.of("vendor_sections")[0].args.p_vendor_id).toBe(VENDOR);
       expect(g.of("catalog_search")[0]?.args.p_query).toMatch(/Burger/);
       expect(sessionOf(g).pending.picks).toBeUndefined();
@@ -4560,10 +4564,20 @@ describe("first contact (session 5f part 8a)", () => {
       expect(f.of("catalog_search")[0].args.p_query).toBe("i want shawarma");
       expect(f.of("customer_turn_end")[0].args.p_tools).toContain("burst:3");
     });
-    it("an emoji or \"?\" with an active order goes its usual way, never back to the welcome", async () => {
+    it('an emoji or "?" with an active order goes its usual way, never back to the welcome', async () => {
       const f = fake({
         ...noModel,
-        begin: { orders: [{ id: "57300000-0000-0000-0000-0000000000a1", code: "AB3CD9", status: "accepted", vendor: "x", vendor_en: "x" }] },
+        begin: {
+          orders: [
+            {
+              id: "57300000-0000-0000-0000-0000000000a1",
+              code: "AB3CD9",
+              status: "accepted",
+              vendor: "x",
+              vendor_en: "x",
+            },
+          ],
+        },
       });
       await handleCustomerTurn(f.deps, msg({ text: "👍" }));
       expect(f.of("customer_turn_end")[0].args.p_tools).not.toContain("intent:greeting");
