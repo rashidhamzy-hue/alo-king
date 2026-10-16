@@ -1786,6 +1786,7 @@ Rasheed's requests after session D, and the decision on each. **This section ove
   - **Categories:** the craving list ranks categories by how many delivering shops serve them, and shows eight plus "More categories" when more than nine have shops, so every category is two taps away.
   - **Photos:** demo items carry 67 shop photos, 10 packshots (exact brand, variant and size only) and 1,093 dish photos (72 dish keys, CC0, Public Domain Mark or CC BY, credited). 427 items have no fitting photo and stay out of the catalogue. Every one of the 29 demo shops has a cover: its own photo, else the photo of its most common main dish that has one (the reading of "its signature dish" when that dish has no photo).
   - **Profile:** set by API (photo, about, description, address, category); no website until aloking.com serves the new site.
+  - **Smoke suite:** run 38870843786 passed all 5 scenarios after the session's fixes (#205 scenarios follow the bot, #206 doorstep rule, #207 a dispatch run always sends its order cards before it ends, which the 30-second ticks made necessary).
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
