@@ -1236,3 +1236,23 @@ describe("session 5e browsing cards", () => {
     expect(two.rest).toHaveLength(0);
   });
 });
+
+// Every error carries a way forward (session 5f, DECISIONS §39.15.1): each error string with its buttons, four languages.
+import { ERROR_WAYS, errorCard } from "../dispatch/customer/render";
+
+describe("error cards (session 5f)", () => {
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`every error card is a valid button message in ${lang}`, () => {
+      for (const key of Object.keys(ERROR_WAYS)) {
+        const m = errorCard("+96171000001", lang, key, {
+          vendor: "A restaurant with a rather long name",
+          item: "A very long item name number 9",
+          name: "Teta",
+          code: "AB3CD9",
+          days: 3,
+        });
+        expect(checkInteractive(m), `${key} in ${lang}`).toEqual([]);
+      }
+    });
+  }
+});

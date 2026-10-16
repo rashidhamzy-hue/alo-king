@@ -8,7 +8,10 @@ import {
   restRouteCache,
   roadKm,
   roadRoutes,
-  roadRoutesFrom,
+  fixtureProvider,
+  guardedProvider,
+  restFixtureLookup,
+  ORS_MANY_SIDE,
   type LatLon,
   type Route,
   type RouteCache,
@@ -94,30 +97,30 @@ describe("orsProvider", () => {
     expect(routes).toHaveLength(60);
   });
 
-  it("matrixFrom: many origins to one destination in one request, reading the destination column", async () => {
-    const fetchMock = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({ distances: [[2104.4], [null]], durations: [[301.2], [null]] }),
-          { status: 200 },
-        ),
-    );
+  it("matrixMany: shops × places in blocks of 25 × 25 locations, reading every cell", async () => {
+    const calls: { sources: number[]; destinations: number[] }[] = [];
+    const fetchMock = vi.fn(async (_u: string, init: RequestInit) => {
+      const b = JSON.parse(init.body as string);
+      calls.push({ sources: b.sources, destinations: b.destinations });
+      const dist = b.sources.map((s: number) =>
+        b.destinations.map((d: number) => (s + 1) * 1000 + d),
+      );
+      return new Response(JSON.stringify({ distances: dist, durations: dist }), { status: 200 });
+    });
     const ors = orsProvider({ apiKey: "k", fetch: fetchMock as unknown as typeof fetch });
-    expect(await ors.matrixFrom!([beiteddine, bakaata], baakline)).toEqual([
-      { distanceM: 2104, durationS: 301, provider: "ors" },
-      null,
-    ]);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const body = JSON.parse(
-      (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+    const shops = Array.from({ length: 30 }, (_, i) => ({ lat: 33.6 + i / 1000, lon: 35.5 }));
+    const places = Array.from({ length: 3 }, (_, i) => ({ lat: 33.7, lon: 35.6 + i / 1000 }));
+    const out = await ors.matrixMany!(shops, places);
+    // 30 shops in two blocks (25 + 5), 3 places in one: two requests, every location count ≤ 50.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(calls.every((c) => c.sources.length + c.destinations.length <= 2 * ORS_MANY_SIDE)).toBe(
+      true,
     );
-    expect(body.locations).toEqual([
-      [35.58, 33.695],
-      [35.6175, 33.6738],
-      [35.5861, 33.6821],
-    ]);
-    expect(body.sources).toEqual([0, 1]);
-    expect(body.destinations).toEqual([2]);
+    expect(out).toHaveLength(30);
+    expect(out[0]).toHaveLength(3);
+    // Block 2's first shop is source 0 of its request; its first place is destination 5 there.
+    expect(out[25][0]?.distanceM).toBe(1005);
+    expect(out[24][2]?.distanceM).toBe(25 * 1000 + 27);
   });
 
   it("throws on an HTTP error", async () => {
@@ -233,87 +236,69 @@ describe("roadRoutes", () => {
   });
 });
 
-describe("roadRoutesFrom (shops → one pin)", () => {
-  const near = { lat: 33.68212, lon: 35.58612 }; // a few metres from baakline: the doorstep
-  it("serves cache hits and the doorstep, sends every miss in ONE request, and caches each answer", async () => {
-    const seed = new Map([
-      ["33.6950,35.5800>33.6821,35.5861", { distanceM: 2100, durationS: 300, provider: "ors" }],
-    ]);
-    const cache = memoryCache(seed);
-    const far1 = { lat: 33.6738, lon: 35.6175 };
-    const far2 = { lat: 33.66, lon: 35.6 };
-    const matrixFrom = vi.fn(async (os: LatLon[]) =>
-      os.map((_, i) => (i === 0 ? { distanceM: 4800, durationS: 540, provider: "ors" } : null)),
-    );
-    const provider = { name: "ors", matrix: vi.fn(), matrixFrom };
-    const out = await roadRoutesFrom([beiteddine, near, far1, far2, paris], baakline, {
-      cache,
-      provider,
-    });
-    expect(out[0]).toEqual({ distanceM: 2100, durationS: 300, provider: "ors" });
-    expect(out[1]?.provider).toBe("doorstep");
-    expect(out[2]).toEqual({ distanceM: 4800, durationS: 540, provider: "ors" });
-    expect(out[3]).toBeNull();
-    expect(out[4]).toBeNull();
-    expect(matrixFrom).toHaveBeenCalledTimes(1);
-    expect(matrixFrom).toHaveBeenCalledWith([far1, far2], baakline);
-    expect(provider.matrix).not.toHaveBeenCalled();
-    // The doorstep and the found route are cached; the unroutable one is not.
-    expect(cache.store.mock.calls.map((c) => c[2][0]?.provider).sort()).toEqual([
-      "doorstep",
-      "ors",
-    ]);
-  });
-
-  it("knownMisses skips the cache lookups (the caller just read the cache) but still stores what it finds", async () => {
-    const cache = memoryCache();
-    const lookup = vi.spyOn(cache, "lookup");
-    const provider = {
+describe("guardedProvider (the daily ORS budget, DECISIONS §39.15.1)", () => {
+  it("asks the server before each request and never calls ORS when refused", async () => {
+    const inner = {
       name: "ors",
-      matrix: vi.fn(),
-      matrixFrom: vi.fn(async (os: LatLon[]) =>
-        os.map(() => ({ distanceM: 900, durationS: 120, provider: "ors" })),
-      ),
+      matrix: vi.fn(async () => [{ distanceM: 1, durationS: 1, provider: "ors" }]),
     };
-    const out = await roadRoutesFrom([beiteddine, bakaata], baakline, {
-      cache,
-      provider,
-      knownMisses: true,
-    });
-    expect(out.map((r) => r?.distanceM)).toEqual([900, 900]);
-    expect(lookup).not.toHaveBeenCalled();
-    expect(cache.store).toHaveBeenCalledTimes(2);
+    const refused = guardedProvider(inner, async () => false);
+    await expect(refused.matrix(baakline, [beiteddine])).rejects.toThrow("refused");
+    expect(inner.matrix).not.toHaveBeenCalled();
+    const take = vi.fn(async () => true);
+    const allowed = guardedProvider(inner, take);
+    expect(await allowed.matrix(baakline, [beiteddine])).toHaveLength(1);
+    expect(take).toHaveBeenCalledWith(baakline, beiteddine);
   });
 
-  it("never guesses when the provider fails, and falls back to one request per origin without matrixFrom", async () => {
+  it("a refusal leaves the route unknown in roadRoutes: never a guess, the quote keeps the place distance", async () => {
     const log = vi.fn();
-    const failing = {
-      name: "ors",
-      matrix: vi.fn(),
-      matrixFrom: vi.fn(async () => Promise.reject(new Error("ors matrix returned 403"))),
-    };
-    expect(
-      await roadRoutesFrom([beiteddine], baakline, {
-        cache: memoryCache(),
-        provider: failing,
-        log,
-      }),
-    ).toEqual([null]);
+    const inner = { name: "ors", matrix: vi.fn() };
+    const out = await roadRoutes(baakline, [bakaata], {
+      cache: memoryCache(),
+      provider: guardedProvider(inner, async () => false),
+      log,
+    });
+    expect(out).toEqual([null]);
+    expect(inner.matrix).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith(
       "routing_unavailable",
       expect.objectContaining({ reason: "provider_error" }),
     );
-    const old = {
-      name: "ors",
-      matrix: vi.fn(async () => [{ distanceM: 1, durationS: 1, provider: "ors" }]),
-    };
-    expect(
-      await roadRoutesFrom([beiteddine, bakaata], baakline, {
-        cache: memoryCache(),
-        provider: old,
+  });
+});
+
+describe("fixtureProvider (simulator numbers never reach ORS)", () => {
+  it("reads routing_fixture_lookup and maps 1-based rows; a pair never recorded is unknown", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify([
+            { idx: 1, distance_m: 2100, duration_s: 300 },
+            { idx: 2, distance_m: null, duration_s: null },
+          ]),
+          { status: 200 },
+        ),
+    );
+    const p = fixtureProvider(
+      restFixtureLookup({
+        supabaseUrl: "https://x.supabase.co",
+        serviceKey: "s",
+        fetch: fetchMock as unknown as typeof fetch,
       }),
-    ).toHaveLength(2);
-    expect(old.matrix).toHaveBeenCalledTimes(2);
+    );
+    expect(await p.matrix(baakline, [beiteddine, bakaata])).toEqual([
+      { distanceM: 2100, durationS: 300, provider: "fixture" },
+      null,
+    ]);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://x.supabase.co/rest/v1/rpc/routing_fixture_lookup");
+    expect(JSON.parse(init.body as string)).toEqual({
+      p_origin_lat: baakline.lat,
+      p_origin_lon: baakline.lon,
+      p_dest_lats: [beiteddine.lat, bakaata.lat],
+      p_dest_lons: [beiteddine.lon, bakaata.lon],
+    });
   });
 });
 

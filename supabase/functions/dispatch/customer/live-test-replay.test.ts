@@ -62,6 +62,8 @@ function phone(opts: {
   staleHandoff: boolean;
   failQuote?: boolean;
   routeDown?: boolean;
+  /** The server holds no distance at all for the shop and the pin's place (DECISIONS §39.15.1 fallback missing). */
+  noDistance?: boolean;
   withModel?: boolean;
   /** Session T3: Alo Test Grill as the staging database now serves it (any pin, no route, the 0-3 km fee). */
   testMerchant?: boolean;
@@ -170,18 +172,9 @@ function phone(opts: {
             status: "ok",
             vendors: [{ vendor_id: VENDOR, status: "ok", road_km: 0, limit_km: null, fee_usd: 2 }],
           };
-        if (!st.routeKnown)
-          return {
-            status: "ok",
-            vendors: [
-              {
-                vendor_id: VENDOR,
-                status: "no_route",
-                origin: { lat: 33.677, lon: 35.564 },
-                dest: { lat: 33.645, lon: 35.643 },
-              },
-            ],
-          };
+        // Browse reads the shop → place distance on the server (§39.15.1); only with none at all is it no_route.
+        if (opts.noDistance)
+          return { status: "ok", vendors: [{ vendor_id: VENDOR, status: "no_route" }] };
         return {
           status: "ok",
           vendors: [
@@ -393,7 +386,7 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     expect(body(card)).toContain("No open place delivers to this pin");
     expect(out.some((m) => ids(m).some((i) => i.startsWith("ps:")))).toBe(false);
     expect(p.st.rpcs.some((r) => r.fn === "basket_add_item")).toBe(false);
-    expect(p.st.routeKnown).toBe(true); // the missing road route was fetched, not guessed
+    expect(p.st.routeKnown).toBe(false); // browse made no routing call: the shop → place distance answered (§39.15.1)
 
     // "🛍️ Pick up": the places that take pickup near the pin; one place opens its sections.
     out = await turn(await p.tap("c:pickup_list"));
@@ -565,11 +558,12 @@ describe("the live test of 12 October 07:45-07:50, replayed (session T2)", () =>
     for (const m of out) expect(body(m)).not.toMatch(SLOW);
   });
 
-  it("if the road route cannot be fetched the place is kept (not a guess), and Checkout checks it again", async () => {
-    const p = phone({ radiusKm: 10, staleHandoff: false, routeDown: true });
+  it("a shop with no distance at all yet is kept (not a guess, no routing call), and Checkout checks it again", async () => {
+    const p = phone({ radiusKm: 10, staleHandoff: false, routeDown: true, noDistance: true });
     const out = await p.pin(33.645385742188, 35.64342880249);
     expect(ids(out[out.length - 1])).toEqual(["ps:s1", "ps:s2"]);
-    expect(p.st.rpcs.filter((r) => r.fn === "customer_delivery_check")).toHaveLength(2);
+    expect(p.st.rpcs.filter((r) => r.fn === "customer_delivery_check")).toHaveLength(1);
+    expect(p.st.routeKnown).toBe(false);
   });
 
   it("a failure on our side during a tap shows the buttons, never 'slow'", async () => {

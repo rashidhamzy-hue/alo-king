@@ -440,11 +440,26 @@ const S: Record<string, Record<CLang, string>> = {
     arabizi: "🔎 Mahal tene",
   },
   noRoute: {
-    ar: "ما قدرت احسب الطريق لعنوانك هلق. جرّب بعد شوي.",
-    en: "I couldn't work out the road route to your address right now. Please try again shortly.",
-    fr: "Je n'ai pas pu calculer l'itinéraire. Réessayez dans un instant.",
-    arabizi: "Ma 2dert e7seb el tari2 la 3enwenak hala2. Jarreb ba3d shway.",
+    ar: "ما قدرت احسب الطريق لعنوانك هلق 🙏 جرّب كمان مرة، أو غيّر العنوان.",
+    en: "I couldn't work out the road to your address just now 🙏 Try again, or change the address.",
+    fr: "Je n'ai pas pu calculer la route jusqu'à votre adresse 🙏 Réessayez, ou changez d'adresse.",
+    arabizi:
+      "Ma 2dert e7seb el tari2 la 3enwenak hala2 🙏 Jarreb kamen marra, aw ghayyer el 3enwen.",
   },
+  btnRetry: {
+    ar: "🔄 جرّب كمان مرة",
+    en: "🔄 Try again",
+    fr: "🔄 Réessayer",
+    arabizi: "🔄 Jarreb kamen",
+  },
+  btnChangeAddress: {
+    ar: "📍 غيّر العنوان",
+    en: "📍 Change address",
+    fr: "📍 Changer d'adresse",
+    arabizi: "📍 Ghayyer el 3enwen",
+  },
+  btnHelp: { ar: "🙋 مساعدة", en: "🙋 Help", fr: "🙋 Aide", arabizi: "🙋 Mosa3ade" },
+  btnBasket: { ar: "🧺 السلة", en: "🧺 Basket", fr: "🧺 Panier", arabizi: "🧺 El salle" },
   emptyQ: {
     ar: "🔄 «{item}»: عندك قنينة فاضية ترجّعها؟",
     en: '🔄 "{item}": do you have an empty to return?',
@@ -676,6 +691,103 @@ export const tr = (lang: CLang, key: string, v: V = {}): string => {
   const s = S[key]?.[lang] ?? S[key]?.en;
   return s ? s.replace(/\{(\w+)\}/g, (_, k) => String(v[k] ?? "")) : baseTr(lang, key, v);
 };
+
+// ---- Every error carries a way forward (DECISIONS §39.15.1) -------------------------------------------------------------
+// A reply that ends a path without a button is a bug. Each error string the bot can say lists the buttons it is sent with;
+// render.test.ts checks that every key turn.ts passes to say() is either here or in INFO_KEYS.
+type Way = "retry" | "address" | "order" | "track" | "menu" | "basket" | "help" | "person";
+const WAYS: Record<Way, [string, string]> = {
+  retry: ["c:retry", "btnRetry"],
+  address: ["c:new_address", "btnChangeAddress"],
+  order: ["c:order", "btnOrder"],
+  track: ["c:track", "btnTrack"],
+  menu: ["c:menu", "btnMenu"],
+  basket: ["c:basket", "btnBasket"],
+  help: ["c:human", "btnHelp"],
+  person: ["c:human", "btnPerson"],
+};
+export const ERROR_WAYS: Record<string, Way[]> = {
+  noRoute: ["retry", "address", "help"],
+  placePaused: ["address", "help"],
+  noPlace: ["address", "help"],
+  pickPlaceFirst: ["order", "help"],
+  flowRetry: ["menu", "help"],
+  unsupported: ["order", "track", "help"],
+  busy: ["order", "track", "help"],
+  voiceLong: ["order", "help"],
+  voiceFail: ["order", "help"],
+  unavailable: ["menu", "basket", "help"],
+  vendorPaused: ["order", "help"],
+  trackNone: ["order", "help"],
+  tooLate: ["track", "help"],
+  disputeNone: ["track", "person"],
+  disputeTooLate: ["person"],
+  disputeRejected: ["person"],
+  disputeAlready: ["track", "person"],
+  cartUnknown: ["menu", "help"],
+  cartNothing: ["menu", "basket"],
+  giftUnreachable: ["basket", "help"],
+  giftTooMany: ["order", "help"],
+  giftBlocked: ["order", "help"],
+  giftGone: ["order", "help"],
+  recipientBad: ["help"],
+  subGone: ["track", "help"],
+  subCap: ["track", "help"],
+  staleConfirm: ["basket", "help"],
+  otherVendor: ["basket", "help"],
+  confirmDelete: ["order", "help"],
+};
+/**
+ * Replies that are not errors: a confirmation, a prompt the customer answers by typing or with the next message's
+ * buttons, or a lead-in followed in the same turn by a message with buttons. Never an error: an error goes in ERROR_WAYS.
+ */
+export const INFO_KEYS = new Set([
+  "done",
+  "glad",
+  "placed",
+  "cancelled",
+  "cancelRequested",
+  "addressSaved",
+  "savedPin",
+  "recipientAsk",
+  "recipientSaved",
+  "recipientOwn",
+  "consentSaved",
+  "consentDeclined",
+  "memDeleted",
+  "forgotHistory",
+  "deletedData",
+  "stopped",
+  "started",
+  "thanksRating",
+  "subAccepted",
+  "subDeclined",
+  "subLast",
+  "giftAsked",
+  "giftThanks",
+  "giftNoThanks",
+  "disputeCredit",
+  "sorryProblem",
+  "repriced",
+  "cartMoreOptions",
+  // The kill switch: the bot is off, so no button would answer either.
+  "off",
+]);
+
+/** One error string with its buttons (at most 3, Meta's limit). */
+export function errorCard(to: string, lang: CLang, key: string, v: V = {}): Msg {
+  const ways = ERROR_WAYS[key] ?? ["help"];
+  return buttons(
+    to,
+    tr(lang, key, v),
+    ways.slice(0, 3).map((w) => [WAYS[w][0], tr(lang, WAYS[w][1])] as [string, string]),
+  );
+}
+
+/** What say() sends: an error with its buttons, anything else as plain text. */
+export function sayMessage(to: string, lang: CLang, key: string, v: V = {}): Msg {
+  return ERROR_WAYS[key] ? errorCard(to, lang, key, v) : text(to, tr(lang, key, v));
+}
 
 export const STATUS: Record<string, Record<CLang, string>> = {
   awaiting_payment: {
@@ -1246,7 +1358,7 @@ export type Track = {
 };
 
 export function trackMessage(to: string, lang: CLang, t: Track | null): Msg[] {
-  if (!t) return [text(to, tr(lang, "trackNone"))];
+  if (!t) return [errorCard(to, lang, "trackNone")];
   const eta = t.eta?.min
     ? tr(lang, "etaLine", {
         eta: t.eta.max && t.eta.max !== t.eta.min ? `${t.eta.min}-${t.eta.max}` : t.eta.min,

@@ -67,8 +67,9 @@ select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '
   'the test merchant is ok with no road route, at the 0-3 km fee');
 update public.vendors set is_test = false where id = :'tv';
 select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'no_route',
-  'a real merchant''s unknown road route asks the caller to fetch it');
-select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,origin,lat}' is not null, 'with both points');
+  'a real merchant with neither a cached route nor a shop → place distance is no_route');
+select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,origin}' is null,
+  'browse never asks the caller to fetch a route (DECISIONS §39.15.1: zero routing calls)');
 select public.route_cache_store(33.6770, 35.5640, array[33.6775], array[35.5645], array[12640], array[1500], 'ors');
 select tests.ok(public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,status}' = 'beyond_radius'
   and (public.customer_delivery_check(:'cid', array[:'tv'::uuid]) #>> '{vendors,0,limit_km}')::numeric = 10,

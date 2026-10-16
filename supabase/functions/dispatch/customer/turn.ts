@@ -82,6 +82,7 @@ import {
   type MenuRow,
   type Quote,
   type Track,
+  sayMessage,
 } from "./render.ts";
 import {
   ALLERGENS,
@@ -150,18 +151,16 @@ export type CustomerDeps = {
   }) => Promise<{ bytes: Uint8Array; mime: string } | null>;
   /** A short-lived link to a private photo (bucket menu-item-photos), for a shop's cover; null without storage. */
   photoUrl?: ((path: string) => Promise<string | null>) | null;
-  /** Road route vendor → customer through the route cache and OpenRouteService; null when unknown. */
+  /**
+   * The one live road route at checkout, shop → customer pin (DECISIONS §39.15.1): the route cache, then OpenRouteService
+   * within the server's daily budget (a simulator number reads recorded routes); null when unknown. `force`: the customer
+   * tapped Try again. Browse never calls it: it reads the shop → place distances.
+   */
   route: (
     origin: { lat: number; lon: number },
     dest: { lat: number; lon: number },
+    opts?: { phone?: string; force?: boolean },
   ) => Promise<unknown | null>;
-  /** Many shops → one pin in one routing request (roadRoutesFrom); without it, one `route` call per shop. */
-  routesTo?:
-    | ((
-        origins: { lat: number; lon: number }[],
-        dest: { lat: number; lon: number },
-      ) => Promise<unknown[]>)
-    | null;
   config: {
     customerModel: string;
     escalationModel: string;
@@ -300,8 +299,9 @@ const STALL_REPLAYS = 3;
 const push = (c: Ctx, ...ms: Msg[]) => {
   for (const x of ms) if (c.out.length < MAX_MESSAGES) c.out.push(x);
 };
+/** An error reply always carries buttons (render.ts ERROR_WAYS, DECISIONS §39.15.1); anything else is plain text. */
 const say = (c: Ctx, key: string, v: Record<string, unknown> = {}) =>
-  push(c, text(c.m.from, tr(c.s.lang, key, v)));
+  push(c, sayMessage(c.m.from, c.s.lang, key, v));
 /**
  * Something failed on our side (T2): the customer sees the buttons, never "I'm a bit slow" (that wording is for a
  * model that answered nothing usable). The failure itself is logged by the caller.
@@ -1151,6 +1151,8 @@ async function tap(c: Ctx, a: CustomerAction) {
           return push(c, askPin(c.m.from, c.s.lang));
         case "checkout":
           return checkout(c, {});
+        case "retry":
+          return checkout(c, { retryRoute: true });
         case "clear":
           await deps.rpc("basket_clear", { p_customer_id: id });
           c.basket = null;
@@ -1916,20 +1918,13 @@ async function deliveringPlaces(
   const found = rows.length;
   if (pt?.address_id && found) {
     const ids = rows.map((r) => r.vendor_id);
-    let chk = await c.deps.rpc("customer_delivery_check", {
+    // Zero routing calls (§39.15.1): the exact cached route, else the shop → place distance.
+    const chk = await c.deps.rpc("customer_delivery_check", {
       p_customer_id: c.customerId,
       p_vendor_ids: ids,
     });
-    const unknown = (chk?.vendors ?? []).filter((v: any) => v.status === "no_route" && v.origin);
-    if (unknown.length) {
-      await fetchRoutes(c, unknown.slice(0, 10));
-      chk = await c.deps.rpc("customer_delivery_check", {
-        p_customer_id: c.customerId,
-        p_vendor_ids: ids,
-      });
-    }
     if (chk?.status === "place_paused") return { rows: [], found, paused: true };
-    // A route that still cannot be fetched (routing service down) is not a "no": the checkout checks it again.
+    // A shop with no distance at all yet is not a "no": the checkout checks it again with one live call.
     const beyond = new Set(
       (chk?.vendors ?? [])
         .filter((v: any) => v.status === "beyond_radius")
@@ -1940,46 +1935,13 @@ async function deliveringPlaces(
   return { rows, found, paused: false };
 }
 
-/**
- * Fetches the road routes customer_delivery_check could not find (shop → the customer's pin) into the route cache: one
- * routing request per pin through routesTo, so a screen of shops costs one request of the free daily quota, not one
- * per shop (session 5e, 16 October). A failure is logged; the shop stays "no route" and the checkout asks again.
- */
-async function fetchRoutes(
-  c: Ctx,
-  pairs: { origin: { lat: number; lon: number }; dest: { lat: number; lon: number } }[],
-): Promise<void> {
-  const failed = (e: unknown) => {
-    c.deps.log?.("route fetch failed", { error: String(e).slice(0, 120) });
-    return null;
-  };
-  const routesTo = c.deps.routesTo;
-  if (!routesTo) {
-    await Promise.all(pairs.map((v) => c.deps.route(v.origin, v.dest).catch(failed)));
-    return;
-  }
-  const byDest = new Map<string, typeof pairs>();
-  for (const v of pairs) {
-    const k = `${v.dest.lat},${v.dest.lon}`;
-    byDest.set(k, [...(byDest.get(k) ?? []), v]);
-  }
-  await Promise.all(
-    [...byDest.values()].map((g) =>
-      routesTo(
-        g.map((v) => v.origin),
-        g[0].dest,
-      ).catch(failed),
-    ),
-  );
-}
-
 // ---- Browsing through the bot (session 5e) ----------------------------------------------------------------------------
 type DeliveringShop = BrowseShop & { vendor_id: string; categories: string[] };
 
 /**
  * Every orderable shop that delivers to the customer's saved pin: the straight-line candidates (browse_shops), then the
- * road check with the delivery fee (customer_delivery_check; routes not cached yet are fetched, a few per turn, and a
- * shop whose route cannot be fetched is kept, the checkout checks it again). Nearest open shops first.
+ * road check with the delivery fee (customer_delivery_check: the exact cached route, else the shop → place distance; no
+ * routing call). A shop with no distance at all is kept, the checkout checks it again. Nearest open shops first.
  */
 async function deliveringShops(c: Ctx): Promise<{
   shops: DeliveringShop[];
@@ -2002,18 +1964,11 @@ async function deliveringShops(c: Ctx): Promise<{
   const place = localName(c.s.lang, r?.place?.name_ar ?? null, r?.place?.name_en ?? null) || null;
   if (!raw.length) return { shops: [], categories, paused: false, point: pt, place };
   const ids = raw.map((x) => x.vendor_id);
-  let chk = await c.deps.rpc("customer_delivery_check", {
+  // Zero routing calls (§39.15.1): customer_delivery_check reads the shop → place distances.
+  const chk = await c.deps.rpc("customer_delivery_check", {
     p_customer_id: c.customerId,
     p_vendor_ids: ids,
   });
-  const unknown = (chk?.vendors ?? []).filter((v: any) => v.status === "no_route" && v.origin);
-  if (unknown.length) {
-    await fetchRoutes(c, unknown.slice(0, 40));
-    chk = await c.deps.rpc("customer_delivery_check", {
-      p_customer_id: c.customerId,
-      p_vendor_ids: ids,
-    });
-  }
   if (chk?.status === "place_paused")
     return { shops: [], categories, paused: true, point: pt, place };
   const by = new Map<string, any>((chk?.vendors ?? []).map((v: any) => [v.vendor_id, v]));
@@ -2248,7 +2203,13 @@ const fuzzyEq = (a: string, b: string) => {
 
 async function checkout(
   c: Ctx,
-  args: { fulfilment?: string | null; note?: string | null; stairs?: number | null },
+  args: {
+    fulfilment?: string | null;
+    note?: string | null;
+    stairs?: number | null;
+    /** The customer tapped Try again on "couldn't work out the road": the live call is made even if tried a moment ago. */
+    retryRoute?: boolean;
+  },
 ) {
   const { deps } = c;
   if (args.fulfilment) c.s.fulfil = args.fulfilment === "pickup" ? "pickup" : "delivery";
@@ -2314,9 +2275,17 @@ async function checkout(
   // A consented allergy note reaches the kitchen on every own order: basket_quote and the order copy it from memory on
   // the server (never on a gift for someone else, §39.6).
   let q: Quote = await deps.rpc("basket_quote", { p_customer_id: c.customerId });
-  if (q?.status === "no_route" && (q as any).origin && (q as any).dest) {
-    await deps.route((q as any).origin, (q as any).dest);
-    q = await deps.rpc("basket_quote", { p_customer_id: c.customerId });
+  // The shop → pin route is not cached yet (§39.15.1): the quote came from the shop → place distance, or from nothing.
+  // One live call (2 s, within the day's budget); whatever it answers, the order goes on unless neither distance exists.
+  const live = q as any;
+  if (live?.origin && live?.dest) {
+    const r = await deps
+      .route(live.origin, live.dest, { phone: c.m.from, force: args.retryRoute === true })
+      .catch((e: unknown) => {
+        deps.log?.("route failed", { error: String(e).slice(0, 120) });
+        return null;
+      });
+    if (r) q = await deps.rpc("basket_quote", { p_customer_id: c.customerId });
   }
   const lang = c.s.lang;
   if (q?.basket) c.basket = q.basket;

@@ -472,6 +472,13 @@ jobs:
           psql "$DB_URL" -X -q -1 -v ON_ERROR_STOP=1 -v demo=on -v demo_csv="$list" -f supabase/test-fixtures/demo-shops.sql 2>&1 \
             | grep -E 'NOTICE|ERROR' | sed 's/^.*NOTICE: *//' | tee -a "$GITHUB_STEP_SUMMARY"
           exit "${PIPESTATUS[0]}"
+      - name: Recorded routes for simulator numbers (DECISIONS §39.15.1; staging only, so tests never spend the ORS quota)
+        run: |
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          psql "$DB_URL" -X -q -1 -v ON_ERROR_STOP=1 -f supabase/test-fixtures/routing-fixtures.sql 2>&1 \
+            | grep -E 'NOTICE|ERROR' | sed 's/^.*NOTICE: *//' | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
       - name: Record where the edge functions live (the dispatch kick reads it)
         run: |
           DB_URL="$(scripts/staging-db-url.sh)"

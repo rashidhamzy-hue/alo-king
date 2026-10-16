@@ -1,10 +1,13 @@
-// Road routing (DECISIONS §3, §28.6): road distance and duration from OpenRouteService, pin to pin,
-// cached in Postgres for 1-24 h (route_cache_lookup / route_cache_store). Fee bands and the delivery
-// limit use these road kilometres through the delivery_quote RPC; there is never a straight-line
-// fallback. A destination with no route (provider down, no key, unroutable) comes back as null, and the
-// caller treats it as "cannot quote". The one exception is the doorstep: a pin within DOORSTEP_M of the
-// origin (a customer at the shop's own door) is that short distance, because OpenRouteService gives no
-// route between two points that snap to the same spot.
+// Road routing (DECISIONS §3, §28.6, §39.15.1): road distance and duration from OpenRouteService, pin to pin, cached in
+// Postgres for 30 days (route_cache_lookup / route_cache_store; roads do not move). Fee bands and the delivery limit use
+// road kilometres through the delivery_quote RPC; there is never a straight-line guess. A destination with no route
+// (provider down, no key, unroutable, budget spent) comes back as null and the server quotes from the shop → place
+// distance (shop_place_routes, filled by the route-matrix workflow). The one exception is the doorstep: a pin within
+// DOORSTEP_M of the origin (a customer at the shop's own door) is that short distance, because OpenRouteService gives
+// no route between two points that snap to the same spot.
+//
+// Every live call goes through guardedProvider: the daily ORS budget and the "same shop and pin not twice in a row" rule
+// are the server's (routing_take). Simulator numbers (+999) use fixtureProvider, recorded routes, never ORS.
 
 export type LatLon = { lat: number; lon: number };
 export type Route = { distanceM: number; durationS: number; provider: string };
@@ -13,8 +16,8 @@ export interface RouteProvider {
   readonly name: string;
   /** One origin to many destinations, in order; null where the provider found no route. */
   matrix(origin: LatLon, dests: LatLon[]): Promise<(Route | null)[]>;
-  /** Many origins to one destination in one request, in order (shops → a customer's pin). */
-  matrixFrom?(origins: LatLon[], dest: LatLon): Promise<(Route | null)[]>;
+  /** Many origins × many destinations in as few requests as the provider allows (the route-matrix workflow). */
+  matrixMany?(origins: LatLon[], dests: LatLon[]): Promise<(Route | null)[][]>;
 }
 
 export interface RouteCache {
@@ -54,8 +57,9 @@ export function metresBetween(a: LatLon, b: LatLon): number {
   return 2 * r * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-// ORS matrix: at most 50 locations per request on the standard plan, so 49 destinations per call.
+// ORS matrix: at most 50 locations per request on the standard plan, so 49 destinations per call, or 25 × 25.
 export const ORS_MAX_DESTS = 49;
+export const ORS_MANY_SIDE = 25;
 
 export function orsProvider(opts: {
   apiKey: string;
@@ -114,16 +118,23 @@ export function orsProvider(opts: {
       }
       return out;
     },
-    async matrixFrom(origins, dest) {
-      const out: (Route | null)[] = [];
-      for (let i = 0; i < origins.length; i += ORS_MAX_DESTS) {
-        const chunk = origins.slice(i, i + ORS_MAX_DESTS);
-        const body = await request(
-          [...chunk, dest],
-          chunk.map((_, j) => j),
-          [chunk.length],
-        );
-        chunk.forEach((_, j) => out.push(cell(body.distances?.[j]?.[0], body.durations?.[j]?.[0])));
+    async matrixMany(origins, dests) {
+      const out: (Route | null)[][] = origins.map(() => dests.map(() => null));
+      for (let i = 0; i < origins.length; i += ORS_MANY_SIDE) {
+        const os = origins.slice(i, i + ORS_MANY_SIDE);
+        for (let j = 0; j < dests.length; j += ORS_MANY_SIDE) {
+          const ds = dests.slice(j, j + ORS_MANY_SIDE);
+          const body = await request(
+            [...os, ...ds],
+            os.map((_, k) => k),
+            ds.map((_, k) => os.length + k),
+          );
+          os.forEach((_, a) =>
+            ds.forEach((_, b) => {
+              out[i + a][j + b] = cell(body.distances?.[a]?.[b], body.durations?.[a]?.[b]);
+            }),
+          );
+        }
       }
       return out;
     },
@@ -284,77 +295,69 @@ export async function roadRoutes(
 }
 
 /**
- * Road routes from many origins to one destination (the shops a customer browses → the customer's pin), with the same
- * cache, doorstep and no-guess rules as roadRoutes, but the misses go to the provider in ONE request: the free ORS plan
- * counts requests (500 matrix requests a day), and a browse screen asking once per shop used the day up in a morning of
- * tests (session 5e, 16 October). A provider without matrixFrom falls back to one roadRoutes call per origin.
- * `knownMisses`: the caller has just read the cache (customer_delivery_check), so the per-origin lookups are skipped.
+ * The one way dispatch reaches ORS (DECISIONS §39.15.1): each request first asks the server (routing_take) whether the
+ * day's budget allows it for this purpose and whether the same shop → pin was tried a moment ago. A refusal is an
+ * error, so roadRoutes leaves the route unknown and the quote keeps the shop → place distance.
  */
-export async function roadRoutesFrom(
-  origins: LatLon[],
-  dest: LatLon,
-  deps: { cache: RouteCache; provider?: RouteProvider | null; log?: Log; knownMisses?: boolean },
-): Promise<(Route | null)[]> {
-  const log = deps.log ?? (() => {});
-  if (origins.length === 0) return [];
-  if (!deps.provider?.matrixFrom)
-    return Promise.all(origins.map(async (o) => (await roadRoutes(o, [dest], deps))[0] ?? null));
-  if (!inLebanon(dest)) {
-    log("routing_dest_outside_lebanon");
-    return origins.map(() => null);
-  }
-  const valid = origins.map(inLebanon);
-  if (valid.some((v) => !v)) log("routing_origin_outside_lebanon");
-  const store = async (o: LatLon, r: Route | null) => {
-    if (!r) return;
-    try {
-      await deps.cache.store(o, [dest], [r]);
-    } catch (e) {
-      log("routing_cache_store_failed", { error: String(e) });
-    }
+export function guardedProvider(
+  inner: RouteProvider,
+  take: (origin: LatLon, dest: LatLon) => Promise<boolean>,
+): RouteProvider {
+  return {
+    name: inner.name,
+    async matrix(origin, dests) {
+      // One request per call: dispatch asks for one shop → pin at a time.
+      if (!(await take(origin, dests[0] ?? origin)))
+        throw new Error("routing refused (budget or a recent attempt)");
+      return inner.matrix(origin, dests);
+    },
   };
-  const result: (Route | null)[] = await Promise.all(
-    origins.map(async (o, i) => {
-      if (!valid[i] || deps.knownMisses) return null;
-      try {
-        return (await deps.cache.lookup(o, [dest]))[0] ?? null;
-      } catch (e) {
-        log("routing_cache_lookup_failed", { error: String(e) });
-        return null;
-      }
-    }),
-  );
-  const door = origins
-    .map((_, i) => i)
-    .filter((i) => valid[i] && result[i] == null && metresBetween(origins[i], dest) <= DOORSTEP_M);
-  for (const i of door)
-    result[i] = {
-      distanceM: Math.round(metresBetween(origins[i], dest)),
-      durationS: 60,
-      provider: "doorstep",
-    };
-  await Promise.all(door.map((i) => store(origins[i], result[i])));
-  const missIdx = origins.map((_, i) => i).filter((i) => valid[i] && result[i] == null);
-  if (missIdx.length === 0) return result;
-  let fresh: (Route | null)[];
-  try {
-    fresh = await deps.provider.matrixFrom(
-      missIdx.map((i) => origins[i]),
-      dest,
-    );
-  } catch (e) {
-    log("routing_unavailable", {
-      reason: "provider_error",
-      error: String(e),
-      misses: missIdx.length,
+}
+
+/** Recorded routes for simulator numbers (routing_fixtures): a test never spends the ORS quota. */
+export function fixtureProvider(
+  lookup: (origin: LatLon, dests: LatLon[]) => Promise<(Route | null)[]>,
+): RouteProvider {
+  return { name: "fixture", matrix: (origin, dests) => lookup(origin, dests) };
+}
+
+/** routing_fixture_lookup through PostgREST (service role only). */
+export function restFixtureLookup(opts: {
+  supabaseUrl: string;
+  serviceKey: string;
+  fetch?: Fetch;
+}): (origin: LatLon, dests: LatLon[]) => Promise<(Route | null)[]> {
+  const doFetch = opts.fetch ?? fetch;
+  return async (origin, dests) => {
+    const res = await doFetch(`${opts.supabaseUrl}/rest/v1/rpc/routing_fixture_lookup`, {
+      method: "POST",
+      headers: {
+        apikey: opts.serviceKey,
+        authorization: `Bearer ${opts.serviceKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        p_origin_lat: origin.lat,
+        p_origin_lon: origin.lon,
+        p_dest_lats: dests.map((d) => d.lat),
+        p_dest_lons: dests.map((d) => d.lon),
+      }),
     });
-    return result;
-  }
-  missIdx.forEach((i, j) => {
-    result[i] = fresh[j] ?? null;
-  });
-  await Promise.all(missIdx.map((i) => store(origins[i], result[i])));
-  return result;
+    if (!res.ok) {
+      await res.body?.cancel();
+      throw new Error(`routing_fixture_lookup returned ${res.status}`);
+    }
+    const rows = (await res.json()) as {
+      idx: number;
+      distance_m: number | null;
+      duration_s: number | null;
+    }[];
+    const out: (Route | null)[] = dests.map(() => null);
+    for (const r of rows)
+      if (r.distance_m != null && r.duration_s != null && r.idx >= 1 && r.idx <= dests.length)
+        out[r.idx - 1] = { distanceM: r.distance_m, durationS: r.duration_s, provider: "fixture" };
+    return out;
+  };
 }
 
 /** Road kilometres for the delivery_quote RPC (3 decimals), or null when there is no route. */
