@@ -11,7 +11,7 @@
 // checkedHere false, Meta's own review decides them, and the learning loop records Meta's refusals.
 
 import { alcNorm, isAlcohol } from "./alcohol.ts";
-import { findMedicine, stripFoodAntibioticClaims } from "./medicine.ts";
+import { findMedicine, markClauses, stripFoodAntibioticClaims } from "./medicine.ts";
 import { titleCase } from "./item-text.ts";
 // The rules' words, from catalog-rules.json through its generated TypeScript copy (no JSON module in the edge runtime).
 import RULES_DATA from "./catalog-rules.data.ts";
@@ -389,7 +389,9 @@ function policyIssues(item: CatalogItemCheck): CatalogIssue[] {
   const hay = [...names, ...sections].map(norm);
   const med = MEDICINE_BUSINESS.test(String(item.business_type ?? ""))
     ? String(item.business_type)
-    : hay.map((h) => findMedicine(stripFoodAntibioticClaims(h))).find(Boolean);
+    : [...names, ...sections]
+        .map((h) => findMedicine(stripFoodAntibioticClaims(norm(markClauses(h)))))
+        .find(Boolean);
   if (med) out.push(issue("policy_medicine", { found: med }));
   const alcohol =
     item.contains_alcohol === true

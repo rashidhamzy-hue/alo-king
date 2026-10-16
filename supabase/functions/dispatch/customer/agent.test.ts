@@ -216,6 +216,10 @@ describe("intents for the agent (§38.3)", () => {
       "no antibiotics at home, and 2 chicken shawarma",
       "antibiotics free delivery with my chicken order",
       "sirop contre la toux",
+      "no antibiotics, 2 chicken",
+      "بدي الدوا",
+      "جيبلي الدواء",
+      "بدي مضادات حيوية",
     ])
       expect(isMedicineRequest(t), t).toBe(true);
     for (const t of [
@@ -232,6 +236,11 @@ describe("intents for the agent (§38.3)", () => {
       "Antibiotic free salmon",
       "œufs sans antibiotiques",
       "eggs from hens raised without antibiotics",
+      "chicken w/o antibiotics",
+      // Handmade, Bedouin and "they want" are not medicine.
+      "بدي بطاطا يدوية",
+      "قهوة بدوية",
+      "بدوا شاورما",
     ])
       expect(isMedicineRequest(t), t).toBe(false);
   });

@@ -4,7 +4,7 @@
 // Arabizi, including mixed messages.
 
 import type { CLang } from "../../_shared/customer-cards.ts";
-import { findMedicine, stripFoodAntibioticClaims } from "../../_shared/medicine.ts";
+import { findMedicine, markClauses, stripFoodAntibioticClaims } from "../../_shared/medicine.ts";
 
 const ARABIC = /[؀-ۿ]/;
 const ARABIC_ALL = /[؀-ۿ]/g;
@@ -181,7 +181,7 @@ export const PRICE_RE =
  */
 export function isMedicineRequest(raw: string): boolean {
   // "Antibiotic-free chicken" says what the food is without (§39.15.4 review); "no antibiotics left" stays a request.
-  return findMedicine(stripFoodAntibioticClaims(norm(raw))) !== null;
+  return findMedicine(stripFoodAntibioticClaims(norm(markClauses(raw)))) !== null;
 }
 
 /** "What do you remember about me?" in four languages (§39.6): shows the memory card, never the model's version of it. */

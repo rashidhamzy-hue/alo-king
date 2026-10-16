@@ -407,7 +407,7 @@ begin
   -- (the same photo sent again and confirmed lands at a new path).
   if (new.storage_path, new.origin_hash) is distinct from (old.storage_path, old.origin_hash)
      and (new.width, new.height, new.bytes) is not distinct from (old.width, old.height, old.bytes)
-     and not (new.source = 'merchant' and old.source = 'merchant' and new.origin_hash = old.origin_hash) then
+     and not (new.source = 'merchant' and old.source = 'merchant' and coalesce(new.origin_hash = old.origin_hash, false)) then
     new.width := null;
     new.height := null;
     new.bytes := null;

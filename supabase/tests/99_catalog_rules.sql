@@ -334,5 +334,8 @@ update public.menu_item_photos set source = 'merchant', origin_hash = repeat('c'
 update public.menu_item_photos set storage_path = 'merchant/' || vendor_id || '/' || gen_random_uuid() || '.jpg' where item_id = :'kn';
 select tests.ok((select width = 900 and height = 900 and bytes = 80000 from public.menu_item_photos where item_id = :'kn'),
   'the same merchant file (same hash) at a new path keeps its size');
+update public.menu_item_photos set origin_hash = repeat('d', 64) where item_id = :'kn';
+select tests.ok((select width is null from public.menu_item_photos where item_id = :'kn'),
+  'another merchant file (another hash) without its size is unmeasured');
 
 rollback;
