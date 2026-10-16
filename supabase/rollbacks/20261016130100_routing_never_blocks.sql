@@ -438,6 +438,42 @@ end;
 $function$;
 
 
+CREATE OR REPLACE FUNCTION app_private.ops_alerts_to_slack()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_channel text := case
+    when new.kind in ('merchant_not_answering', 'order_given_up', 'sos', 'arrived_not_delivered', 'order_exception',
+                      'food_age', 'not_ready', 'acknowledged_not_accepted', 'merchant_auto_paused', 'channel_down', 'dead_letter') then 'urgent'
+    when new.kind in ('money_incident', 'cash_over_limit', 'customer_dispute', 'broadcast', 'ai_budget', 'message_budget') then 'money'
+    when new.kind in ('claim_review', 'listing_report', 'menu_help', 'driver_application') then 'claims'
+    when new.kind in ('customer_handoff', 'customer_problem', 'support_case') then 'support'
+    when new.kind in ('partner_late', 'driver_requested') then 'drivers'
+    else 'urgent' end;
+  v_code text := (select o.code from public.orders o where o.id = new.order_id);
+  v_icon text := case new.severity when 'urgent' then '🚨' when 'warning' then '⚠️' else 'ℹ️' end;
+begin
+  -- A handoff has its own case thread (support_case_open); its alert row stays the record only.
+  if new.kind = 'customer_handoff' then
+    return null;
+  end if;
+  perform app_private.slack_post(v_channel, case when new.order_id is not null and v_channel = 'urgent' then 'alert:' || new.id end,
+    v_icon || ' ' || new.summary || coalesce(' · #' || v_code, ''),
+    jsonb_build_array(jsonb_build_object('action_id', 'ack_alert', 'text', 'Acknowledge', 'value', new.id::text))
+      || case when v_code is not null then jsonb_build_array(jsonb_build_object('action_id', 'order_show', 'text', 'Order #' || v_code, 'value', v_code)) else '[]' end,
+    'alert:' || new.id, new.id);
+  return null;
+exception when others then
+  raise warning 'ops_alerts_to_slack: % %', sqlstate, left(sqlerrm, 200);
+  return null; -- Slack is a mirror: it never blocks the alert it mirrors (the alert row stays the record)
+end;
+$function$;
+
+-- Routes cached for 30 days go back to the old ceiling of 24 h before the forget trigger goes.
+update public.route_cache set expires_at = least(expires_at, now() + interval '24 hours');
 drop trigger addresses_forget_routes on public.addresses;
 drop function app_private.addresses_forget_routes();
 drop index public.route_cache_dest_key_idx;
@@ -450,6 +486,7 @@ drop function app_private.routing_usage_count(date, text, integer);
 drop table app_private.route_live_attempts;
 drop table public.routing_usage;
 alter table public.orders drop column route_source;
+alter table public.baskets drop column quoted_delivery_fee_usd;
 drop function app_private.route_pair(uuid, uuid);
 drop function app_private.shop_road_km(uuid, uuid);
 drop function public.shop_place_routes_save(jsonb, text);

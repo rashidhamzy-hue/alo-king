@@ -8,6 +8,7 @@ import {
   restRouteCache,
   roadKm,
   roadRoutes,
+  chooseLiveProvider,
   fixtureProvider,
   guardedProvider,
   restFixtureLookup,
@@ -265,6 +266,50 @@ describe("guardedProvider (the daily ORS budget, DECISIONS §39.15.1)", () => {
       "routing_unavailable",
       expect.objectContaining({ reason: "provider_error" }),
     );
+  });
+});
+
+describe("chooseLiveProvider (DECISIONS §39.15.1: tests never call ORS)", () => {
+  const ors = {
+    name: "ors",
+    matrix: vi.fn(async () => [{ distanceM: 9, durationS: 9, provider: "ors" }]),
+  };
+  const fixtures = { name: "fixture", matrix: vi.fn(async () => [null]) };
+  it("a simulator number reads the recorded routes: never ORS, never the budget", async () => {
+    const take = vi.fn(async () => true);
+    const p = chooseLiveProvider({ isSim: true, simMode: "fixture", ors, fixtures, take });
+    expect(p).toBe(fixtures);
+    await p!.matrix(baakline, [beiteddine]);
+    expect(take).not.toHaveBeenCalled();
+    expect(ors.matrix).not.toHaveBeenCalled();
+  });
+  it("a real phone reaches ORS only through the budget guard", async () => {
+    const take = vi.fn(async () => false);
+    const p = chooseLiveProvider({ isSim: false, simMode: "fixture", ors, fixtures, take });
+    await expect(p!.matrix(baakline, [beiteddine])).rejects.toThrow("refused");
+    expect(take).toHaveBeenCalledTimes(1);
+    expect(ors.matrix).not.toHaveBeenCalled();
+  });
+  it("without an ORS key there is no live call at all (the place distance stands)", () => {
+    expect(
+      chooseLiveProvider({
+        isSim: false,
+        simMode: "fixture",
+        ors: null,
+        fixtures,
+        take: async () => true,
+      }),
+    ).toBeNull();
+  });
+  it("with the simulator mode switched off, a simulator number is treated like any phone", () => {
+    const p = chooseLiveProvider({
+      isSim: true,
+      simMode: "ors",
+      ors,
+      fixtures,
+      take: async () => true,
+    });
+    expect(p).not.toBe(fixtures);
   });
 });
 

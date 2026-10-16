@@ -736,6 +736,11 @@ export const ERROR_WAYS: Record<string, Way[]> = {
   staleConfirm: ["basket", "help"],
   otherVendor: ["basket", "help"],
   confirmDelete: ["order", "help"],
+  noPickup: ["address", "help"],
+  basketEmpty: ["menu", "order"],
+  noItem: ["menu", "basket"],
+  noDietItem: ["menu", "basket"],
+  codCap: ["basket", "help"],
 };
 /**
  * Replies that are not errors: a confirmation, a prompt the customer answers by typing or with the next message's
@@ -770,6 +775,18 @@ export const INFO_KEYS = new Set([
   "sorryProblem",
   "repriced",
   "cartMoreOptions",
+  "memNothing",
+  "listening",
+  // Lines added under a message that carries the buttons, or a note after a list.
+  "allergenNote",
+  "estimatedNote",
+  "moreItems",
+  "notOnAloKingNoLink",
+  // A person takes it from here: the handoff replies (the next message is theirs).
+  "handoff",
+  "handoffLate",
+  "disputeDamaged",
+  "disputeReview",
   // The kill switch: the bot is off, so no button would answer either.
   "off",
 ]);
@@ -948,7 +965,7 @@ export function menuList(
   samePrice = false,
   extra: { title?: string; more?: { ref: string; offset: number } | null } = {},
 ): Msg[] {
-  if (!rows.length) return [text(to, tr(lang, "noItem", { q: query ?? "", vendor }))];
+  if (!rows.length) return [errorCard(to, lang, "noItem", { q: query ?? "", vendor })];
   const items = rows.slice(0, extra.more ? 9 : 10);
   const desc = (r: MenuRow) =>
     [
@@ -1009,7 +1026,7 @@ export function dietaryList(
   })[],
   opts: { allergens: boolean },
 ): Msg[] {
-  if (!rows.length) return [text(to, tr(lang, "noDietItem", { vendor }))];
+  if (!rows.length) return [errorCard(to, lang, "noDietItem", { vendor })];
   const est = (r: (typeof rows)[number]) =>
     r.kcal === null || r.kcal === undefined
       ? ""
@@ -1100,7 +1117,7 @@ const lineText = (lang: CLang, l: Line) =>
   }`;
 
 export function basketMessage(to: string, lang: CLang, b: Basket | null): Msg[] {
-  if (!b || !b.lines?.length) return [text(to, tr(lang, "basketEmpty"))];
+  if (!b || !b.lines?.length) return [errorCard(to, lang, "basketEmpty")];
   const vendor = name(lang, b.vendor, b.vendor_en);
   const est = b.lines.some((l) => l.estimated) ? `\n* ${tr(lang, "estimated")}` : "";
   const body = [
@@ -1173,13 +1190,10 @@ export function summaryMessage(
   const vendor = name(lang, b.vendor, b.vendor_en);
   if (q.over_cod_cap)
     return [
-      text(
-        to,
-        tr(lang, "codCap", {
-          cap: usd(q.cod_cap_usd),
-          first: tr(lang, newCustomer ? "firstOrder" : "perOrder"),
-        }),
-      ),
+      errorCard(to, lang, "codCap", {
+        cap: usd(q.cod_cap_usd),
+        first: tr(lang, newCustomer ? "firstOrder" : "perOrder"),
+      }),
     ];
   const fee = Number(q.delivery_fee_usd ?? 0);
   const lines = [

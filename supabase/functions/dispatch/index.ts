@@ -31,8 +31,8 @@ import { slackPoster } from "../_shared/ops-notifier.ts";
 import { restRpc } from "../_shared/rest-rpc.ts";
 import { isSimNumber, simSinkSend } from "../_shared/sim-sink.ts";
 import {
+  chooseLiveProvider,
   fixtureProvider,
-  guardedProvider,
   orsProvider,
   restFixtureLookup,
   restRouteCache,
@@ -299,20 +299,25 @@ async function liveRouteProvider(
   force: boolean,
 ): Promise<RouteProvider | null> {
   const cfg = await botConfig();
-  if (isSimNumber(phone) && cfg.routing_provider_sim === "fixture") return routeFixtures;
-  if (!orsKey) return null;
-  const ors = orsProvider({ apiKey: orsKey, timeoutMs: Number(cfg.route_live_timeout_ms ?? 2000) });
-  return guardedProvider(ors, async (o: LatLon, d: LatLon) => {
-    const t = await rpc("routing_take", {
-      p_purpose: "checkout",
-      p_origin_lat: o.lat,
-      p_origin_lon: o.lon,
-      p_dest_lat: d.lat,
-      p_dest_lon: d.lon,
-      p_force: force,
-    }).catch(() => null);
-    if (!t?.ok) log("routing not called", { reason: String(t?.reason ?? "rpc failed") });
-    return t?.ok === true;
+  return chooseLiveProvider({
+    isSim: isSimNumber(phone),
+    simMode: cfg.routing_provider_sim,
+    ors: orsKey
+      ? orsProvider({ apiKey: orsKey, timeoutMs: Number(cfg.route_live_timeout_ms ?? 2000) })
+      : null,
+    fixtures: routeFixtures,
+    take: async (o: LatLon, d: LatLon) => {
+      const t = await rpc("routing_take", {
+        p_purpose: "checkout",
+        p_origin_lat: o.lat,
+        p_origin_lon: o.lon,
+        p_dest_lat: d.lat,
+        p_dest_lon: d.lon,
+        p_force: force,
+      }).catch(() => null);
+      if (!t?.ok) log("routing not called", { reason: String(t?.reason ?? "rpc failed") });
+      return t?.ok === true;
+    },
   });
 }
 

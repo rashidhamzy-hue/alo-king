@@ -2082,7 +2082,7 @@ async function pickupPlaces(c: Ctx) {
       p_limit: 10,
       p_customer_id: c.customerId,
     })) ?? [];
-  if (!rows.length) return push(c, text(c.m.from, tr(c.s.lang, "noPickup")));
+  if (!rows.length) return say(c, "noPickup");
   c.s.fulfil = "pickup";
   resetRefs(c, "v");
   const vs = rows.map((r) => ({

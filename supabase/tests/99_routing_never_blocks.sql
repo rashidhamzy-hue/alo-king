@@ -58,12 +58,20 @@ select tests.ok(:'o1'::jsonb ->> 'status' = 'placed', 'the order goes through on
 select tests.ok((select route_source = 'place_fallback' and road_km = 4.20 and delivery_fee_usd = 3.00 from public.orders
   where id = (:'o1'::jsonb ->> 'order_id')::uuid), 'and records route_source = place_fallback');
 
--- The exact route wins once cached ---------------------------------------------------------------------------------------
+-- The exact route wins once cached, and never changes a fee behind the customer's back -----------------------------------
 select tests.ok(public.basket_add_item(:'cid', :'falafel', 1, '{}', null, true) ->> 'status' = 'added', 'a second basket');
+select tests.ok((public.basket_quote(:'cid') ->> 'delivery_fee_usd')::numeric = 3.00, 'its summary shows the place distance''s $3');
 select public.route_cache_store(33.6770, 35.5640, array[33.6775], array[35.5645], array[2100], array[300], 'ors');
+select b.id as bid2, b.priced_menu_version as ver2 from public.baskets b where b.customer_id = :'cid' and b.status = 'open' \gset
+select public.order_place(:'bid2', :'ver2', 'test:rnb:2') as o2 \gset
+select tests.ok(:'o2'::jsonb ->> 'status' = 'repriced' and (:'o2'::jsonb ->> 'delivery_fee_usd')::numeric = 2.00,
+  'the exact route arrived after the summary: Confirm does not place it at a fee the customer never saw');
 select public.basket_quote(:'cid') as q2 \gset
 select tests.ok(:'q2'::jsonb ->> 'route_source' = 'ors' and (:'q2'::jsonb ->> 'delivery_fee_usd')::numeric = 2.00
   and :'q2'::jsonb -> 'origin' is null, 'with the exact route cached: its distance, and no live call asked for');
+select tests.ok(public.order_place(:'bid2', :'ver2', 'test:rnb:2b') ->> 'status' = 'placed', 'after the new summary, Confirm places it');
+select tests.ok((select route_source = 'ors' and delivery_fee_usd = 2.00 from public.orders where idempotency_key = 'test:rnb:2b'),
+  'on the exact route, at the fee shown');
 select tests.ok((select expires_at between now() + interval '719 hours' and now() + interval '721 hours' from public.route_cache
   where provider = 'ors' limit 1), 'a stored route lives 30 days (route_cache_ttl_hours 720)');
 
@@ -95,7 +103,11 @@ select tests.ok(public.routing_take('browse', 33.67, 35.56, 33.69, 35.57) ->> 'r
 select tests.ok((public.routing_take('checkout', 33.67, 35.56, 33.69, 35.57) ->> 'ok')::boolean, 'checkout still may');
 select tests.ok(public.routing_take('checkout', 33.67, 35.56, 33.69, 35.57) ->> 'reason' = 'recent_attempt',
   'the same shop and pin are not asked twice in a row');
-select tests.ok((public.routing_take('checkout', 33.67, 35.56, 33.69, 35.57, true) ->> 'ok')::boolean, 'unless the customer tapped Try again');
+select tests.ok(public.routing_take('checkout', 33.67, 35.56, 33.69, 35.57, true) ->> 'reason' = 'recent_attempt',
+  'Try again within 30 s of the last call does not call again');
+update app_private.route_live_attempts set tried_at = now() - interval '1 minute';
+select tests.ok((public.routing_take('checkout', 33.67, 35.56, 33.69, 35.57, true) ->> 'ok')::boolean,
+  'after that, Try again calls even within the 10 minutes');
 select tests.ok(public.routing_matrix_take(10) = 0, 'the matrix workflow never eats into checkout''s share');
 update public.routing_usage set requests = 400 where day = (now() at time zone 'utc')::date;
 select tests.ok(public.routing_take('checkout', 33.67, 35.56, 33.70, 35.57) ->> 'reason' = 'budget', 'at the budget nobody calls');
@@ -108,12 +120,22 @@ select tests.throws($$select public.routing_take('matrix', 33.67, 35.56, 33.70, 
   'the matrix share is taken only through routing_matrix_take');
 
 -- Recorded routes for simulator numbers ---------------------------------------------------------------------------------
-select public.route_cache_store(33.6770, 35.5640, array[33.6775], array[35.5645], array[2100], array[300], 'ors');
-select tests.ok(app_private.routing_fixtures_record() >= 1, 'the staging fixture records every route ORS gave us');
-select tests.ok((select distance_m from public.routing_fixture_lookup(33.6770, 35.5640, array[33.6775], array[35.5645])) = 2100,
+select public.customer_turn_begin('+96170000153', 'wamid.rnb.3', 'text', 'Real neighbour') as t3 \gset
+select public.address_save_pin((:'t3'::jsonb #>> '{customer,id}')::uuid, 33.6781, 35.5651, 'Home');
+select public.customer_turn_begin('+99996100153', 'wamid.rnb.4', 'text', 'Sim customer') as t4 \gset
+select public.address_save_pin((:'t4'::jsonb #>> '{customer,id}')::uuid, 33.6790, 35.5660, 'Home') as simpin \gset
+select public.route_cache_store(33.6770, 35.5640, array[33.6781, 33.6790], array[35.5651, 35.5660], array[2300, 2600], array[300, 330], 'ors');
+select tests.ok(app_private.routing_fixtures_record() = 1, 'the staging fixture records ORS routes to simulator pins only');
+select tests.ok((select distance_m from public.routing_fixture_lookup(33.6770, 35.5640, array[33.6790], array[35.5660])) = 2600,
   'a simulator route comes from the fixture');
+select tests.ok((select distance_m from public.routing_fixture_lookup(33.6770, 35.5640, array[33.6781], array[35.5651])) is null,
+  'a real customer''s pin is never copied into the fixtures (personal data, §28.3)');
 select tests.ok((select distance_m from public.routing_fixture_lookup(33.6770, 35.5640, array[33.9], array[35.9])) is null,
   'and a pair never recorded is unknown (the place distance then applies)');
+
+delete from public.addresses where id = (:'simpin'::jsonb #>> '{address,address_id}')::uuid;
+select tests.ok(not exists (select 1 from public.routing_fixtures where dest_key = '33.6790,35.5660'),
+  'deleting the simulator address deletes its fixture too');
 
 -- Access -------------------------------------------------------------------------------------------------------------------
 set local role authenticated;

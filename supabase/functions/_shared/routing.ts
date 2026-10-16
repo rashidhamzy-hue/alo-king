@@ -314,6 +314,22 @@ export function guardedProvider(
   };
 }
 
+/**
+ * Which provider one checkout's live call uses (DECISIONS §39.15.1): a simulator number reads recorded routes when the
+ * simulator mode is "fixture" (never ORS, never the budget); a real phone reaches ORS only through the budget guard;
+ * without an ORS key there is none and the quote keeps the shop → place distance.
+ */
+export function chooseLiveProvider(opts: {
+  isSim: boolean;
+  simMode: unknown;
+  ors: RouteProvider | null;
+  fixtures: RouteProvider;
+  take: (origin: LatLon, dest: LatLon) => Promise<boolean>;
+}): RouteProvider | null {
+  if (opts.isSim && opts.simMode === "fixture") return opts.fixtures;
+  return opts.ors ? guardedProvider(opts.ors, opts.take) : null;
+}
+
 /** Recorded routes for simulator numbers (routing_fixtures): a test never spends the ORS quota. */
 export function fixtureProvider(
   lookup: (origin: LatLon, dests: LatLon[]) => Promise<(Route | null)[]>,

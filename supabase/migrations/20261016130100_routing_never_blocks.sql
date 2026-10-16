@@ -58,7 +58,7 @@ as $$
   from public.vendors v
   where not v.is_test and v.location is not null
     and (v.orderable
-      or v.id::text in (select jsonb_array_elements_text(coalesce(public.config_value('demo_shops'), '[]'::jsonb)))
+      or v.id = any (app_private.demo_vendor_ids())
       or (p_scope = 'all' and v.town_id in (
         select jsonb_array_elements_text(coalesce(public.config_value('pilot_merchant_place_ids'), '[]'::jsonb)))))
   order by v.id;
@@ -178,6 +178,8 @@ $$;
 revoke all on function app_private.route_pair(uuid, uuid) from public, anon, authenticated;
 
 alter table public.orders add column route_source text check (route_source ~ '^[a-z][a-z0-9_]*$');
+-- The delivery fee of the last summary shown (basket_quote); order_place refuses a different one with 'repriced'.
+alter table public.baskets add column quoted_delivery_fee_usd numeric(10, 2);
 comment on column public.orders.route_source is
   'Where the road km came from (DECISIONS §39.15.1): ors, doorstep, fixture (simulator), place_fallback, test';
 
@@ -233,6 +235,7 @@ as $$
 begin
   if old.pin is not null and (tg_op = 'DELETE' or new.pin is distinct from old.pin) then
     delete from public.route_cache c where c.dest_key = app_private.route_point_key(old.pin);
+    delete from public.routing_fixtures f where f.dest_key = app_private.route_point_key(old.pin);
   end if;
   return null;
 end;
@@ -323,10 +326,12 @@ begin
   if p_purpose is null or p_purpose !~ '^[a-z][a-z_]{1,30}$' or p_purpose = 'matrix' then
     raise exception 'unknown routing purpose %', p_purpose using errcode = 'invalid_parameter_value';
   end if;
-  if not coalesce(p_force, false) and exists (
+  -- Try again forces a new call, but never within 30 s of the last one (an old Try again tapped twice).
+  if exists (
     select 1 from app_private.route_live_attempts a
     where a.origin_key = v_ok_key and a.dest_key = v_dk_key
-      and a.tried_at > now() - make_interval(mins => public.config_numeric('route_live_retry_minutes')::integer)
+      and a.tried_at > now() - case when coalesce(p_force, false) then interval '30 seconds'
+        else make_interval(mins => public.config_numeric('route_live_retry_minutes')::integer) end
   ) then
     return jsonb_build_object('ok', false, 'reason', 'recent_attempt');
   end if;
@@ -416,7 +421,9 @@ revoke all on function public.routing_fixture_lookup(double precision, double pr
 grant execute on function public.routing_fixture_lookup(double precision, double precision, double precision[], double precision[])
   to service_role;
 
--- Staging fixture (supabase/test-fixtures/routing-fixtures.sql): every route OpenRouteService gave us, kept as a fixture.
+-- Staging fixture (supabase/test-fixtures/routing-fixtures.sql): the routes OpenRouteService gave us to a simulator
+-- customer's pin, kept as fixtures. A real customer's pin is never copied (it is personal data, §28.3): it leaves the
+-- 30-day cache with the address, and a fixture to a simulator address goes with that address too.
 create function app_private.routing_fixtures_record() returns integer
 language plpgsql
 security definer
@@ -429,6 +436,14 @@ begin
   select c.origin_key, c.dest_key, c.distance_m, c.duration_s, 'recorded'
   from public.route_cache c
   where c.provider = 'ors' and c.profile = 'driving-car'
+    and exists (
+      select 1 from public.addresses a join public.customers cu on cu.id = a.customer_id
+      where app_private.is_sim_phone(cu.phone_e164) and a.pin is not null
+        and app_private.route_point_key(a.pin) = c.dest_key)
+    and not exists (
+      select 1 from public.addresses a join public.customers cu on cu.id = a.customer_id
+      where not app_private.is_sim_phone(cu.phone_e164) and a.pin is not null
+        and app_private.route_point_key(a.pin) = c.dest_key)
   on conflict (origin_key, dest_key) do nothing;
   get diagnostics n = row_count;
   return n;
@@ -578,6 +593,9 @@ begin
     end if;
     v_stairs := app_private.stairs_fee_usd(v_basket.id);
   end if;
+  -- The fee this summary shows: Confirm places the order only at this fee (a route found or refreshed in between is a
+  -- new price, shown again first).
+  update public.baskets set quoted_delivery_fee_usd = v_fee where id = v_basket.id;
   select coalesce(sum(c.amount_usd), 0) into v_credit from app_private.credits_for(p_customer_id, v_subtotal - v_offer_usd) c;
   v_total := v_subtotal - v_offer_usd + v_fee + v_deposit + v_stairs - v_credit;
   v_new := not exists (select 1 from public.orders o where o.customer_id = p_customer_id and o.status = 'delivered');
@@ -742,6 +760,11 @@ begin
     -- §38.3 rule from config; the merchant's per-floor field only says that it carries upstairs.
     v_stairs := app_private.stairs_fee_usd(v_basket.id);
   end if;
+  -- The customer confirmed the fee of the summary they saw (§30.1.1): the place distance and the exact route can differ,
+  -- so a different fee now is a new price, never a surprise (as with offers above).
+  if v_basket.quoted_delivery_fee_usd is not null and v_basket.quoted_delivery_fee_usd <> v_delivery_fee then
+    return jsonb_build_object('status', 'repriced', 'delivery_fee_usd', v_delivery_fee);
+  end if;
 
   -- Customer credits (disputes, §38.3): a discount on this order, each credit used whole.
   select coalesce(sum(c.amount_usd), 0), coalesce(array_agg(c.credit_id), '{}') into v_credit, v_credit_ids
@@ -835,5 +858,41 @@ begin
   return jsonb_build_object('status', 'placed', 'order_id', v_order.id, 'code', v_order.code,
     'total_usd', v_order.total_usd, 'total_lbp', v_order.total_lbp, 'usd_lbp_rate', v_order.usd_lbp_rate,
     'estimated', v_weighted, 'new_customer', v_new_customer, 'low_stock', v_low, 'credit_usd', v_credit);
+end;
+$function$;
+
+-- The routing budget alert is information (§39.15.1): #money with the other budgets, not #ops-urgent (as in
+-- 20261015180100_ops_console.sql, with the kind added).
+CREATE OR REPLACE FUNCTION app_private.ops_alerts_to_slack()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_channel text := case
+    when new.kind in ('merchant_not_answering', 'order_given_up', 'sos', 'arrived_not_delivered', 'order_exception',
+                      'food_age', 'not_ready', 'acknowledged_not_accepted', 'merchant_auto_paused', 'channel_down', 'dead_letter') then 'urgent'
+    when new.kind in ('money_incident', 'cash_over_limit', 'customer_dispute', 'broadcast', 'ai_budget', 'message_budget', 'routing_budget') then 'money'
+    when new.kind in ('claim_review', 'listing_report', 'menu_help', 'driver_application') then 'claims'
+    when new.kind in ('customer_handoff', 'customer_problem', 'support_case') then 'support'
+    when new.kind in ('partner_late', 'driver_requested') then 'drivers'
+    else 'urgent' end;
+  v_code text := (select o.code from public.orders o where o.id = new.order_id);
+  v_icon text := case new.severity when 'urgent' then '🚨' when 'warning' then '⚠️' else 'ℹ️' end;
+begin
+  -- A handoff has its own case thread (support_case_open); its alert row stays the record only.
+  if new.kind = 'customer_handoff' then
+    return null;
+  end if;
+  perform app_private.slack_post(v_channel, case when new.order_id is not null and v_channel = 'urgent' then 'alert:' || new.id end,
+    v_icon || ' ' || new.summary || coalesce(' · #' || v_code, ''),
+    jsonb_build_array(jsonb_build_object('action_id', 'ack_alert', 'text', 'Acknowledge', 'value', new.id::text))
+      || case when v_code is not null then jsonb_build_array(jsonb_build_object('action_id', 'order_show', 'text', 'Order #' || v_code, 'value', v_code)) else '[]' end,
+    'alert:' || new.id, new.id);
+  return null;
+exception when others then
+  raise warning 'ops_alerts_to_slack: % %', sqlstate, left(sqlerrm, 200);
+  return null; -- Slack is a mirror: it never blocks the alert it mirrors (the alert row stays the record)
 end;
 $function$;
