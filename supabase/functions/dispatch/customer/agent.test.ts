@@ -763,6 +763,115 @@ describe("problems and refunds: the server decides (§20.1, §38.3)", () => {
   });
 });
 
+describe("the agent reaches a split cart's choices (§39.14 rule 1, §39.15.2)", () => {
+  const SC = "5c000000-0000-0000-0000-000000000001";
+  const said = (name: string, input: any) => () => ({
+    content: [{ type: "tool_use" as const, id: "t", name, input }],
+    usage: { input_tokens: 1, output_tokens: 1 },
+    stop_reason: "tool_use" as const,
+  });
+  it('"Deli Dough first" takes that shop\'s saved cart, by its ref from the session', async () => {
+    const f = fake({
+      model: said("saved_cart", { action: "take", cart_ref: "c1", item_ref: null, quantity: null }),
+      freeText: true,
+      begin: sess({ refs: { c1: { id: SC, label: "Deli Dough" } } }),
+      rpcs: {
+        saved_cart_take: () => ({ status: "ok", lines: [{ item_id: ITEM, quantity: 1 }] }),
+        cart_merge: () => ({
+          status: "ok",
+          added: 1,
+          skipped: [],
+          needs_options: [],
+          diffs: [],
+          basket: null,
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "Deli Dough first", messageId: "wamid.dd" }));
+    expect(f.of("saved_cart_take")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_saved_cart_id: SC,
+      p_message_id: "wamid.dd",
+    });
+  });
+  it("a ref that is not a saved cart, or a choice without its waiting cart, does nothing", async () => {
+    const f = fake({
+      model: said("saved_cart", { action: "take", cart_ref: "v1", item_ref: null, quantity: null }),
+      freeText: true,
+      begin: sess({ refs: { v1: { id: SC, label: "Deli Dough" } } }),
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "that one" }));
+    expect(f.of("saved_cart_take")).toHaveLength(0);
+    const g = fake({
+      model: said("saved_cart", { action: "both", cart_ref: null, item_ref: null, quantity: null }),
+      freeText: true,
+    });
+    await handleCustomerTurn(g.deps, msg({ text: "do both" }));
+    expect(g.of("saved_cart_save")).toHaveLength(0);
+  });
+  it("the alternative offered for a shop that doesn't deliver, by its refs and quantity", async () => {
+    const ALT = "5c000000-0000-0000-0000-0000000000a1";
+    const f = fake({
+      model: said("saved_cart", {
+        action: "alternative",
+        cart_ref: "c1",
+        item_ref: "i1",
+        quantity: 2,
+      }),
+      freeText: true,
+      begin: sess({
+        refs: {
+          c1: { id: SC, label: "Split Burger (doesn't deliver to the customer)" },
+          i1: { id: ALT, label: "Beef Burger x2 from Near Burger" },
+        },
+      }),
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "added", basket: null }),
+        saved_cart_swap: (a: any) => (a.p_check_only ? { ok: true } : null),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "ok the closer one" }));
+    expect(f.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ALT, p_quantity: 2 });
+    expect(f.of("saved_cart_swap")[1].args).toMatchObject({
+      p_customer_id: CUST,
+      p_saved_cart_id: SC,
+      p_item_id: ALT,
+    });
+  });
+  it("keep answers only a waiting cart; another pending question stays", async () => {
+    const f = fake({
+      model: said("saved_cart", { action: "keep", cart_ref: null, item_ref: null, quantity: null }),
+      freeText: true,
+      begin: sess({ pending: { kind: "confirm", basket_id: "b", version: 1 } }),
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "keep it" }));
+    expect(endSession(f).pending).toEqual({ kind: "confirm", basket_id: "b", version: 1 });
+  });
+  it('"do both" keeps the waiting cart for after the basket\'s order', async () => {
+    const f = fake({
+      model: said("saved_cart", { action: "both", cart_ref: null, item_ref: null, quantity: null }),
+      freeText: true,
+      begin: sess({
+        pending: { kind: "cart", lines: [{ i: ITEM, q: 2, p: null }], basket: "A", cart: "B" },
+      }),
+      rpcs: {
+        saved_cart_save: () => ({
+          status: "saved",
+          saved_cart_id: SC,
+          vendor: "B",
+          vendor_en: "B",
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "do both", messageId: "wamid.both2" }));
+    expect(f.of("saved_cart_save")[0].args).toMatchObject({
+      p_customer_id: CUST,
+      p_message_id: "both:wamid.both2",
+    });
+  });
+});
+
 describe("recorded model answers, replayed (evals/customer/fixtures/model-turns.json)", () => {
   const fx = JSON.parse(readFileSync("evals/customer/fixtures/model-turns.json", "utf8"));
   for (const c of fx.cases) {

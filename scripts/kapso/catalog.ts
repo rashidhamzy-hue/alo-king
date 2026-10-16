@@ -1,5 +1,6 @@
 // The kapso-catalog workflow (DECISIONS §39.12): one Meta catalogue for the WhatsApp business account of a number, connected
-// to that account, with the cart on and the catalogue (storefront) icon off for the number (session 5e). It finds a connected catalogue, or
+// to that account, with the cart and the catalogue (storefront) icon on for the number (§39.15.2, Rasheed 16 October:
+// the header catalogue stays on; every title names its shop and its carts are split by shop). It finds a connected catalogue, or
 // creates one ("Alo King") in the business portfolio that owns the account and connects it, by API: first through Kapso's
 // Meta proxy (https://api.kapso.ai only, CLAUDE.md), then with META_CATALOG_TOKEN on the Graph API when that secret exists.
 // It also probes which route can write catalogue items, records the result on staging (public.whatsapp_catalogs once that
@@ -45,6 +46,39 @@ async function call(route: Route, path: string, init: RequestInit = {}): Promise
   } catch (e) {
     return { ok: false, status: 0, body: { error: String(e).slice(0, 200) } };
   }
+}
+
+/**
+ * What the number's commerce settings say after the POST (setOk) and the read-back (s; null when no route could read
+ * them). The icon counts as shown when Meta reads it back on, or when the POST succeeded and nothing could be read.
+ * Neither working leaves the owner's setting standing (unverified; it has been on since 15 October, #181).
+ */
+export function commerceState(
+  setOk: boolean,
+  s: { is_cart_enabled?: boolean; is_catalog_visible?: boolean } | null,
+): { header: "hidden" | "shown" | "unverified"; commerceOn: boolean; settings: string } {
+  if (!setOk && !s)
+    return {
+      header: "unverified",
+      commerceOn: false,
+      settings: "unverified (not readable or writable with this token; the owner's setting stands)",
+    };
+  if (!s)
+    return {
+      header: "shown",
+      commerceOn: true,
+      settings: "set (cart on, catalogue icon on); not readable back",
+    };
+  return {
+    header:
+      s.is_catalog_visible === true
+        ? "shown"
+        : s.is_catalog_visible === false
+          ? "hidden"
+          : "unverified",
+    commerceOn: s.is_cart_enabled === true && s.is_catalog_visible === true,
+    settings: `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`,
+  };
 }
 
 /** A short, safe description of a failed answer (Meta's message and codes, never headers or tokens). */
@@ -235,18 +269,18 @@ async function main() {
     }
   }
 
-  // 3. The cart on, the catalogue (storefront) icon in the chat header off (session 5e, DECISIONS §39.13): WhatsApp shows
-  // a Cloud API catalogue as one flat list (no collections or product-set grouping), so customers browse through the bot's
-  // product messages, which work with the icon off. Meta: cart on by default, storefront icon off by default.
+  // 3. The cart and the catalogue (storefront) icon in the chat header on (DECISIONS §39.15.2, reversing session 5e's
+  // "icon off"): WhatsApp shows a Cloud API catalogue as one flat list of every shop, so every title names its shop
+  // ("<Item> · <Shop>") and a cart from it is split by shop. Both are set and read back.
   let settings = "not changed";
   let commerceOn = false;
   let header: "hidden" | "shown" | "unverified" = "unverified";
   if (catalog && !blocked) {
     const set = await firstOk(
-      "cart on, catalogue icon off",
+      "cart on, catalogue icon on",
       routes,
       (r) =>
-        call(r, `/${pn}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=false`, {
+        call(r, `/${pn}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=true`, {
           method: "POST",
         }),
       notes,
@@ -257,26 +291,10 @@ async function main() {
       (r) => call(r, `/${pn}/whatsapp_commerce_settings`),
       notes,
     );
-    const s = got?.answer.body?.data?.[0] ?? {};
-    if (!set && !got) {
-      // Neither route may write the number's settings (Kapso's proxy has no commerce endpoint; the token lacks
-      // whatsapp_business_management): the owner hides the icon in WhatsApp Manager (an owner issue carries the steps).
-      settings =
-        "unverified (not readable or writable with this token; the owner hides the catalogue icon)";
-    } else {
-      // Meta answered the POST: the icon is off even when the settings cannot be read back.
-      header =
-        s.is_catalog_visible === false || (set && !got)
-          ? "hidden"
-          : s.is_catalog_visible === true
-            ? "shown"
-            : "unverified";
-      settings = got
-        ? `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`
-        : "set (cart on, catalogue icon off); not readable back";
-      commerceOn =
-        (s.is_cart_enabled === true && s.is_catalog_visible === false) || (!!set && !got);
-    }
+    ({ header, commerceOn, settings } = commerceState(
+      !!set,
+      got ? (got.answer.body?.data?.[0] ?? {}) : null,
+    ));
   }
 
   // 4. Which route can write items (the sync in dispatch uses it).

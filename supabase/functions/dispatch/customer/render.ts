@@ -234,12 +234,6 @@ const S: Record<string, Record<CLang, string>> = {
     fr: "🏷️ Même prix qu'en magasin",
     arabizi: "🏷️ Nafs se3r el ma7al",
   },
-  cartSkipped: {
-    ar: "😔 {n} من أصناف السلّة مش متوفرة هلق، وما زدناها.",
-    en: "😔 {n} item(s) from your cart couldn't be added (not available, or from another place).",
-    fr: "😔 {n} article(s) de votre panier ne sont pas disponibles et n'ont pas été ajoutés.",
-    arabizi: "😔 {n} men asnaf el salle msh metwaffra hala2, ma zedneha.",
-  },
   cartMoreOptions: {
     ar: "ولـ {n} صنف تاني بدنا خيارات: اختار هيدا الأول، وبعدها زيدهن من المنيو.",
     en: "{n} more item(s) need choices: pick this one first, then add them from the menu.",
@@ -726,6 +720,8 @@ export const ERROR_WAYS: Record<string, Way[]> = {
   disputeAlready: ["track", "person"],
   cartUnknown: ["menu", "help"],
   cartNothing: ["menu", "basket"],
+  savedCartGone: ["menu", "basket"],
+  cartAltOtherBasket: ["basket", "menu"],
   giftUnreachable: ["basket", "help"],
   giftTooMany: ["order", "help"],
   giftBlocked: ["order", "help"],
@@ -747,6 +743,14 @@ export const ERROR_WAYS: Record<string, Way[]> = {
  * buttons, or a lead-in followed in the same turn by a message with buttons. Never an error: an error goes in ERROR_WAYS.
  */
 export const INFO_KEYS = new Set([
+  "savedCartDropped",
+  "cartBothSaved",
+  "cartBothSavedPickup",
+  "cartBothSavedPaused",
+  "cartBothNoWay",
+  // lead-ins: the split list, the basket or checkout follows in the same turn
+  "cartUnavailable",
+  "cartAltRest",
   "done",
   "glad",
   "placed",
@@ -857,7 +861,7 @@ export const STATUS: Record<string, Record<CLang, string>> = {
 const name = (lang: CLang, ar?: unknown, en?: unknown) =>
   String((lang === "ar" ? (ar ?? en) : (en ?? ar)) ?? "");
 export { name as localName };
-const clip = (s: string, n: number) =>
+export const clip = (s: string, n: number) =>
   [...s].length > n ? [...s].slice(0, n - 1).join("") + "…" : s;
 
 // ---- Vendors ---------------------------------------------------------------------------------------------
@@ -2186,12 +2190,6 @@ const S5D: Record<string, Record<CLang, string>> = {
     arabizi:
       "Sallet-ak fiya aghrad men {basket}, w el salle li ba3atta men {cart}. Talab wa7ad men ma7al wa7ad. Chou bt7eb?",
   },
-  cartReplace: {
-    ar: "خود السلّة الجديدة",
-    en: "Use the new cart",
-    fr: "Prendre le nouveau",
-    arabizi: "Esta3mel el jdide",
-  },
   cartUnknown: {
     ar: "😔 ما عرفنا الأصناف بهالسلّة. جرّب المنيو من جديد.",
     en: "😔 We couldn't match the items in that cart. Please open the menu again.",
@@ -2489,5 +2487,260 @@ export function sectionNextButton(
     to,
     tr(lang, "sectionNext", { section, from: offset + 1, to: offset + shown, n: total }),
     [[`mo:${ref}:${offset + shown}`, tr(lang, "nextItems")]],
+  );
+}
+
+// ---- Session 5f: carts from several shops are split, never dropped (DECISIONS §39.15.2) ----------------------------
+const S5F: Record<string, Record<CLang, string>> = {
+  cartSplit: {
+    ar: "🛒 سلّتك فيها أغراض من {n} محلات. الطلب الواحد من محل واحد. من وين بتبلّش؟ الباقي منحفظلك ياه.",
+    en: "🛒 Your cart has items from {n} shops. One order comes from one shop. Which one first? We keep the rest for you.",
+    fr: "🛒 Votre panier contient des articles de {n} commerces. Une commande vient d'un seul commerce. Lequel d'abord ? Nous gardons le reste.",
+    arabizi:
+      "🛒 Sallet-ak fiya aghrad men {n} ma7alat. El talab men ma7al wa7ad. Men wen bet balle4? El ba2i mn7efzo-lak.",
+  },
+  cartSplitButton: {
+    ar: "اختار المحل",
+    en: "Pick a shop",
+    fr: "Choisir",
+    arabizi: "E5tar el ma7al",
+  },
+  cartSplitRow: {
+    ar: "{items} صنف · ${subtotal}",
+    en: "{items} item(s) · ${subtotal}",
+    fr: "{items} article(s) · {subtotal} $",
+    arabizi: "{items} sanf · ${subtotal}",
+  },
+  cartNoDelivery: {
+    ar: "ما بيوصّل لـ {place}",
+    en: "Doesn't deliver to {place}",
+    fr: "Ne livre pas à {place}",
+    arabizi: "Ma bywassel la {place}",
+  },
+  cartNoDeliveryHere: {
+    ar: "ما بيوصّل لعنوانك",
+    en: "Doesn't deliver to your address",
+    fr: "Ne livre pas à votre adresse",
+    arabizi: "Ma bywassel la 3enwenak",
+  },
+  cartAlternativeRow: {
+    ar: "بدالها من {vendor} · {price}",
+    en: "Instead, from {vendor} · {price}",
+    fr: "À la place, chez {vendor} · {price}",
+    arabizi: "Badala men {vendor} · {price}",
+  },
+  cartUnavailable: {
+    ar: "😔 مش متوفّر هلق: {items}",
+    en: "😔 Not available right now: {items}",
+    fr: "😔 Pas disponible pour le moment : {items}",
+    arabizi: "😔 Msh metwaffar hala2: {items}",
+  },
+  cartSwitch: {
+    ar: "بدّل لـ {shop}",
+    en: "Switch to {shop}",
+    fr: "Passer à {shop}",
+    arabizi: "Baddel la {shop}",
+  },
+  cartKeep: { ar: "خلّي {shop}", en: "Keep {shop}", fr: "Garder {shop}", arabizi: "5alli {shop}" },
+  cartBoth: { ar: "الاتنين", en: "Do both", fr: "Les deux", arabizi: "El tnen" },
+  cartBothSaved: {
+    ar: "✅ حفظنالك سلّة {vendor}. منكمّل هلق طلب {basket}، وبعدها منعرض عليك {vendor}.",
+    en: "✅ We kept your {vendor} cart. Let's finish your {basket} order first; then we'll offer {vendor}.",
+    fr: "✅ Nous gardons votre panier {vendor}. Terminons d'abord la commande {basket} ; ensuite nous vous proposerons {vendor}.",
+    arabizi:
+      "✅ 7afazna-lak sallet {vendor}. Mnkammel hala2 talab {basket}, w ba3den mn3red 3leik {vendor}.",
+  },
+  savedCartOffer: {
+    ar: "🛒 كمان نقّيت {items} صنف من {vendor}. بدّك تطلبن هلق؟",
+    en: "🛒 You also picked {items} item(s) from {vendor}. Order them now?",
+    fr: "🛒 Vous avez aussi choisi {items} article(s) chez {vendor}. Les commander maintenant ?",
+    arabizi: "🛒 Kamen na22ayt {items} sanf men {vendor}. Baddak tetlbon hala2?",
+  },
+  savedCartNow: { ar: "اطلب هلق", en: "Order now", fr: "Commander", arabizi: "Otlob hala2" },
+  savedCartLater: { ar: "لا شكراً", en: "No thanks", fr: "Non merci", arabizi: "La2 merci" },
+  cartSplitMore: {
+    ar: "منحفظلك كمان {n} محلات ومنعرضن عليك بعد هالطلب.",
+    en: "We also keep {n} more shop(s) for you and offer them after this order.",
+    fr: "Nous gardons aussi {n} autre(s) commerce(s) et vous les proposons après cette commande.",
+    arabizi: "Mn7efzlak kamen {n} ma7alat w mn3red-on 3leik ba3d hal talab.",
+  },
+  cartAltRest: {
+    ar: "{vendor} ما بيوصّل لعندك. خلّينالك منه: {items}، إذا بدّك تستلمن من المحل.",
+    en: "{vendor} doesn't deliver to you. We still keep {items} from it, in case you collect them.",
+    fr: "{vendor} ne livre pas chez vous. Nous gardons {items}, si vous voulez les retirer sur place.",
+    arabizi:
+      "{vendor} ma bywassel la 3endak. 5allayna-lak mno: {items}, iza baddak testalmon men el ma7al.",
+  },
+  cartAltPrice: { ar: "${price}", en: "${price}", fr: "{price} $", arabizi: "${price}" },
+  cartAltQty: {
+    ar: "{qty} × ${price}",
+    en: "{qty} × ${price}",
+    fr: "{qty} × {price} $",
+    arabizi: "{qty} × ${price}",
+  },
+  cartBothSavedPickup: {
+    ar: "✅ حفظنالك سلّة {vendor}. ما في توصيل منه لعندك هلق، فهيّي محفوظة إذا بدّك تستلمها من المحل. منكمّل هلق طلب {basket}.",
+    en: "✅ We kept your {vendor} cart. It can't be delivered to you right now, so it's there if you collect it. Let's finish your {basket} order first.",
+    fr: "✅ Nous gardons votre panier {vendor}. Il ne peut pas être livré chez vous pour l'instant : il vous attend si vous le retirez. Terminons d'abord la commande {basket}.",
+    arabizi:
+      "✅ 7afazna-lak sallet {vendor}. Ma fi tawsil mno la 3endak hala2, fa hiye ma7fouza iza baddak testalema men el ma7al. Mnkammel hala2 talab {basket}.",
+  },
+  cartBothSavedPaused: {
+    ar: "✅ حفظنالك سلّة {vendor} لوقت ما نرجع نوصّل لمنطقتك. منكمّل هلق طلب {basket}.",
+    en: "✅ We kept your {vendor} cart for when we deliver to your area again. Let's finish your {basket} order first.",
+    fr: "✅ Nous gardons votre panier {vendor} pour quand nous livrerons à nouveau votre zone. Terminons d'abord la commande {basket}.",
+    arabizi:
+      "✅ 7afazna-lak sallet {vendor} la wa2t ma nerja3 nwassel la mante2tak. Mnkammel hala2 talab {basket}.",
+  },
+  cartAltOtherBasket: {
+    ar: "الطلب الواحد من محل واحد: كمّل طلب {basket} أو فضّي السلّة، وبعدين نقّي البديل من جديد.",
+    en: "One order comes from one shop: finish or empty your {basket} basket first, then pick the other shop's dish again.",
+    fr: "Une commande vient d'un seul commerce : terminez ou videz votre panier {basket}, puis choisissez à nouveau le plat de l'autre commerce.",
+    arabizi:
+      "El talab men ma7al wa7ad: kammel talab {basket} aw fadde el salle, w ba3den na22i el badil men jdid.",
+  },
+  cartBothNoWay: {
+    ar: "😔 {vendor} ما بيوصّل لعندك وما فيك تستلم منه، فما فيك تطلب هالسلّة. منكمّل طلب {basket}.",
+    en: "😔 {vendor} doesn't deliver to you and doesn't do pickup, so that cart can't be ordered. Let's finish your {basket} order.",
+    fr: "😔 {vendor} ne livre pas chez vous et ne fait pas de retrait : ce panier ne peut pas être commandé. Terminons la commande {basket}.",
+    arabizi:
+      "😔 {vendor} ma bywassel la 3endak w ma fik testalem mno, fa ma mne2dar n7efez hal salle. Mnkammel talab {basket}.",
+  },
+  cartSplitPaused: {
+    ar: "😔 ما منوصّل لمنطقتك هلق. فيك تختار محل وتستلم منه.",
+    en: "😔 We don't deliver to your area right now. You can still pick a shop and collect from it.",
+    fr: "😔 Nous ne livrons pas votre zone pour l'instant. Vous pouvez choisir un commerce et retirer sur place.",
+    arabizi: "😔 Ma mnwassel la mante2tak hala2. Fik t5tar ma7al w testalem mno.",
+  },
+  savedCartGone: {
+    ar: "هالسلّة ما عادت محفوظة. فيك تبعتها من جديد من الكتالوج.",
+    en: "That cart is no longer kept. You can send it again from the catalogue.",
+    fr: "Ce panier n'est plus gardé. Vous pouvez le renvoyer depuis le catalogue.",
+    arabizi: "Hal salle ma 3adet ma7fouza. Fik teb3ata men jdid men el catalogue.",
+  },
+  savedCartDropped: {
+    ar: "تمام، ما منطلبها. فيك تبعتها من جديد من الكتالوج وقت ما بدّك.",
+    en: "Okay, we won't order it. You can send it again from the catalogue any time.",
+    fr: "D'accord, nous ne la commandons pas. Vous pouvez la renvoyer depuis le catalogue à tout moment.",
+    arabizi: "Tamem, ma mnotlboba. Fik teb3ata men jdid men el catalogue wa2t ma baddak.",
+  },
+};
+Object.assign(S, S5F);
+
+export type SplitShop = {
+  saved_cart_id: string;
+  vendor: string;
+  vendor_en?: string | null;
+  items: number;
+  subtotal_usd: number | string | null;
+  delivers: boolean | null;
+  pickup_enabled?: boolean | null;
+  alternative?: {
+    item_id: string;
+    vendor: string;
+    vendor_en?: string | null;
+    item: string;
+    item_en?: string | null;
+    quantity?: number | null;
+    price_usd: number | string;
+  } | null;
+};
+
+/**
+ * "Your cart has items from 3 shops. Which one first?" (§39.15.2): one row per shop with its items and subtotal; a shop
+ * that does not deliver to the customer's pin says so, and the closest shop's same dish follows it as its own row. Row
+ * ids are unique (an alternative names the saved cart it stands in for), the same alternative is offered once, and the
+ * shops past the list's 10 rows are named as kept for after this order: Meta refuses a list with a repeated id or more
+ * than 10 rows, and a refused list would leave the cart without any reply.
+ */
+export function splitCartList(
+  to: string,
+  lang: CLang,
+  shops: SplitShop[],
+  place: string | null,
+  placePaused = false,
+): Msg {
+  const rows: Row[] = [];
+  const offered = new Set<string>();
+  let shown = 0;
+  for (const s of shops) {
+    if (rows.length >= 10) break;
+    const vendor = name(lang, s.vendor, s.vendor_en ?? null);
+    rows.push({
+      id: `sc:${s.saved_cart_id}`,
+      title: clip(vendor, 24),
+      description: clip(
+        s.delivers === false
+          ? place
+            ? tr(lang, "cartNoDelivery", { place })
+            : tr(lang, "cartNoDeliveryHere")
+          : tr(lang, "cartSplitRow", {
+              items: s.items,
+              subtotal: Number(s.subtotal_usd ?? 0).toFixed(2),
+            }),
+        72,
+      ),
+    });
+    shown++;
+    const alt = s.delivers === false ? s.alternative : null;
+    if (alt && !offered.has(alt.item_id) && rows.length < 10) {
+      offered.add(alt.item_id);
+      const qty = Math.min(Math.max(Math.trunc(Number(alt.quantity) || 1), 1), 50);
+      rows.push({
+        id: `alt:${s.saved_cart_id}:${alt.item_id}:${qty}`,
+        title: clip(`🔁 ${name(lang, alt.item, alt.item_en ?? null)}`, 24),
+        description: clip(
+          tr(lang, "cartAlternativeRow", {
+            vendor: name(lang, alt.vendor, alt.vendor_en ?? null),
+            price: tr(lang, qty > 1 ? "cartAltQty" : "cartAltPrice", {
+              qty,
+              price: Number(alt.price_usd).toFixed(2),
+            }),
+          }),
+          72,
+        ),
+      });
+    }
+  }
+  // Only shops that can still come after this order are promised: one that does not deliver here is never offered for
+  // delivery, and while deliveries to the place are paused only a shop the customer can collect from is.
+  const later = shops
+    .slice(shown)
+    .filter((s) => (placePaused ? s.pickup_enabled === true : s.delivers !== false)).length;
+  const body = [
+    placePaused ? tr(lang, "cartSplitPaused") : null,
+    tr(lang, "cartSplit", { n: shops.length }),
+    later ? tr(lang, "cartSplitMore", { n: later }) : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  return list(to, body, tr(lang, "cartSplitButton"), [{ rows }]);
+}
+
+/** A cart from shop B met an open basket from shop A: Switch to B, Keep A, or Do both (A first, B saved) (§39.15.2). */
+export function otherVendorCard(to: string, lang: CLang, basket: string, cart: string): Msg {
+  return buttons(to, tr(lang, "cartOtherVendor", { basket, cart }), [
+    ["c:cart_replace", clip(tr(lang, "cartSwitch", { shop: clip(cart, 10) }), 20)],
+    ["c:keep", clip(tr(lang, "cartKeep", { shop: clip(basket, 14) }), 20)],
+    ["c:cart_both", tr(lang, "cartBoth")],
+  ]);
+}
+
+/** After an order: the next saved cart of a split cart, one at a time (§39.15.2). */
+export function savedCartOfferCard(
+  to: string,
+  lang: CLang,
+  next: { saved_cart_id: string; items?: number | null; vendor: string; vendor_en?: string | null },
+): Msg {
+  return buttons(
+    to,
+    tr(lang, "savedCartOffer", {
+      items: next.items ?? 1,
+      vendor: name(lang, next.vendor, next.vendor_en ?? null),
+    }),
+    [
+      [`sc:${next.saved_cart_id}`, tr(lang, "savedCartNow")],
+      [`scl:${next.saved_cart_id}`, tr(lang, "savedCartLater")],
+    ],
   );
 }

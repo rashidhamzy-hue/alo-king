@@ -1256,3 +1256,66 @@ describe("error cards (session 5f)", () => {
     });
   }
 });
+
+// Carts from several shops (session 5f, §39.15.2): the split list and its buttons.
+import { splitCartList, otherVendorCard, savedCartOfferCard } from "../dispatch/customer/render";
+describe("splitCartList passes the checker", () => {
+  it("in all languages, with long names, shops that do not deliver and their alternatives, capped at 10 rows", () => {
+    for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+      const shops = Array.from({ length: 8 }, (_, k) => ({
+        saved_cart_id: `5c000000-0000-0000-0000-00000000000${k}`,
+        vendor: "مطعم الضيعة والمشاوي اللبنانية الأصيلة ".repeat(2),
+        vendor_en: "The Village Grill and Authentic Lebanese Mezze House ".repeat(2),
+        items: 12,
+        subtotal_usd: 123.456,
+        delivers: k % 2 === 0 ? false : true,
+        alternative:
+          k % 2 === 0
+            ? {
+                item_id: `5c000000-0000-0000-0000-0000000000a${k}`,
+                vendor: "محل بعيد شوي بس بيوصّل ".repeat(2),
+                vendor_en: "A shop a little further that delivers ".repeat(2),
+                item: "سندويش فلافل مع طحينة وخضرة ".repeat(2),
+                item_en: "Falafel sandwich with tahini and greens ".repeat(2),
+                price_usd: 4.5,
+              }
+            : null,
+      }));
+      const p = splitCartList(
+        "+96170000001",
+        lang,
+        shops,
+        "Maasser Beit ed Dine with a long village name",
+      );
+      expect(checkInteractive(p)).toEqual([]);
+      expect(p.interactive.action.sections[0].rows.length).toBeLessThanOrEqual(10);
+      // Fifteen shops that all miss the pin and share one alternative: still unique ids, still 10 rows, paused note too.
+      const same = Array.from({ length: 15 }, (_, k) => ({
+        ...shops[0],
+        saved_cart_id: `5c000000-0000-0000-0000-0000000002${String(k).padStart(2, "0")}`,
+        alternative: { ...shops[0].alternative!, quantity: 50 },
+      }));
+      const q = splitCartList("+96170000001", lang, same, null, true);
+      expect(checkInteractive(q)).toEqual([]);
+      const ids = q.interactive.action.sections[0].rows.map((r: any) => r.id);
+      expect(ids).toHaveLength(10);
+      expect(new Set(ids).size).toBe(10);
+    }
+  });
+  it("the Switch / Keep / Do both card and the next saved cart's offer, in all languages, with long names", () => {
+    const long = "The Village Grill and Authentic Lebanese Mezze House مطعم الضيعة ".repeat(3);
+    for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+      expect(checkInteractive(otherVendorCard("+96170000001", lang, long, long))).toEqual([]);
+      expect(
+        checkInteractive(
+          savedCartOfferCard("+96170000001", lang, {
+            saved_cart_id: "5c000000-0000-0000-0000-000000000001",
+            vendor: long,
+            vendor_en: long,
+            items: 30,
+          }),
+        ),
+      ).toEqual([]);
+    }
+  });
+});

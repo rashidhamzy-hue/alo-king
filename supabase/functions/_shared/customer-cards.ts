@@ -763,6 +763,10 @@ export type CustomerAction =
   | { a: "sections_page"; offset: number }
   | { a: "pick_item"; ref: string }
   | { a: "add_upsell"; itemId: string }
+  /** A saved cart (a split cart's other shop, §39.15.2): order it now, or later (dropped). */
+  | { a: "saved_cart"; savedCartId: string; take: boolean }
+  /** The closest shop's same dish, offered in place of a saved cart whose shop does not deliver to the pin. */
+  | { a: "alternative"; savedCartId: string; itemId: string; qty: number }
   | { a: "replace_basket"; itemId: string; qty: number }
   | { a: "option"; optionId: string }
   | { a: "substitution"; substitutionId: string; accept: boolean }
@@ -810,6 +814,7 @@ export type CustomerAction =
         | "new_address"
         | "support"
         | "cart_replace"
+        | "cart_both"
         | "near"
         | "retry";
     };
@@ -837,6 +842,11 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(/^cm:(\d{1,2})$/))) return { a: "categories_page", offset: Number(m[1]) };
   if ((m = id.match(/^sp:(\d{1,3})$/))) return { a: "sections_page", offset: Number(m[1]) };
   if ((m = id.match(re(`ups:(${UUID})`)))) return { a: "add_upsell", itemId: m[1] };
+  if ((m = id.match(re(`sc:(${UUID})`)))) return { a: "saved_cart", savedCartId: m[1], take: true };
+  if ((m = id.match(re(`scl:(${UUID})`))))
+    return { a: "saved_cart", savedCartId: m[1], take: false };
+  if ((m = id.match(re(`alt:(${UUID}):(${UUID}):(\\d{1,2})`))))
+    return { a: "alternative", savedCartId: m[1], itemId: m[2], qty: Number(m[3]) };
   if ((m = id.match(re(`rpl:(${UUID}):(\\d{1,2})`))))
     return { a: "replace_basket", itemId: m[1], qty: Number(m[2]) };
   if ((m = id.match(re(`opt:(${UUID})`)))) return { a: "option", optionId: m[1] };
@@ -854,7 +864,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
     return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
   if (
     (m = id.match(
-      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support|cart_replace|near|retry)$/,
+      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support|cart_replace|cart_both|near|retry)$/,
     ))
   )
     return { a: "simple", what: m[1] as any };
