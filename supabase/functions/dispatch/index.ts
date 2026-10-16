@@ -45,6 +45,7 @@ import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
 import { initWasm, Resvg } from "npm:@resvg/resvg-wasm@2.6.2";
 import type { CatalogApi, CatalogTransport } from "./catalog-sync.ts";
+import type { ItemPhotoStore } from "./merchant/photo.ts";
 import { productHash, withContent, type DesiredProduct } from "../_shared/catalog.ts";
 import { desiredCache } from "./desired-cache.ts";
 
@@ -286,6 +287,43 @@ async function storeDocument(
   });
   return res.ok ? `storage:claim-documents/${path}` : null;
 }
+
+/**
+ * A merchant's own item photo (§39.15.4), sent on WhatsApp and passed by the catalogue validator: stored in the private
+ * bucket menu-item-photos under the path the server chose (merchant_item_photo_path), replaced in place; an earlier
+ * file of the item under another name is deleted after the new one is recorded.
+ */
+const itemPhotos: ItemPhotoStore = {
+  put: async (path, bytes, mime) => {
+    if (!/^merchant\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/.test(path)) return false;
+    const res = await fetch(`${supabaseUrl}/storage/v1/object/menu-item-photos/${path}`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+        "content-type": mime,
+        "x-upsert": "true",
+        "cache-control": "86400",
+      },
+      body: new Uint8Array(bytes),
+      signal: AbortSignal.timeout(15_000),
+    }).catch(() => null);
+    return !!res?.ok;
+  },
+  remove: async (path) => {
+    if (!/^merchant\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/.test(path)) return;
+    await fetch(`${supabaseUrl}/storage/v1/object/menu-item-photos`, {
+      method: "DELETE",
+      headers: {
+        authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ prefixes: [path] }),
+      signal: AbortSignal.timeout(10_000),
+    });
+  },
+};
 
 const routeCache = restRouteCache({ supabaseUrl, serviceKey });
 const routeFixtures = fixtureProvider(restFixtureLookup({ supabaseUrl, serviceKey }));
@@ -712,6 +750,7 @@ Deno.serve(async (req) => {
         : null,
       // Claim codes to landlines (§18.1 B): the same voice provider, saying the code twice.
       storeDocument,
+      itemPhotos,
       orderCard,
       menuModelCall: anthropic ? menuModelCall : null,
       kapsoBroadcast,

@@ -5,8 +5,11 @@
 //      picked by a build session from photo-scout's candidates: by barcode, or brand and name with a confidence check);
 //   3. illustrative: one real photo per dish from a free library that allows commercial use (photo-picks.json "dishes",
 //      matched through scripts/demo/dishes.ts, falling back to the broader dish).
-// A pick is used only when its license allows commercial use and it is credited, and never from a Google host (pickOk);
-// a source picture smaller than 500 px on a side is refused. Every image is 800 × 800, cropped square with the same treatment (packshots are fitted on white, so no label is cut);
+// A pick is used only when its license allows commercial use and it is credited, and never from a Google host (pickOk).
+// The catalogue validator (DECISIONS §39.15.4, supabase/functions/_shared/catalog-rules.ts) runs before a photo is saved:
+// on the source picture (at least 500 px on a side, an https address, not a placeholder) and on the processed file Meta
+// fetches (every image rule); a refused shop's own picture falls back to the dish photo, as a failed download does.
+// Every image is 800 × 800, cropped square with the same treatment (packshots are fitted on white, so no label is cut);
 // each shop gets a 1200 × 800 cover (the first of its own photos of a main dish, signature dish first, then the picked
 // photos of its main dishes from the most common down, that makes a cover; coverCandidates). Stored in the
 // private bucket menu-item-photos through public.menu_item_photo_set (with license, credit and source) and
@@ -18,6 +21,12 @@ import { readFileSync } from "node:fs";
 import pg from "pg";
 import sharp from "sharp";
 import { dishOf, isShelf, photoChain } from "./dishes.ts";
+import {
+  imageHeader,
+  MIN_IMAGE_SIDE,
+  validateCatalogItem,
+  type CatalogIssue,
+} from "../../supabase/functions/_shared/catalog-rules.ts";
 
 const BUCKET = "menu-item-photos";
 const MAX_BYTES = 2 * 1024 * 1024; // the bucket's file_size_limit
@@ -74,8 +83,63 @@ const ownPicture = (url: string | null) => {
 /** The shelf item's key in photo-picks.json "packshots": its English name, trimmed. */
 export const packKey = (item: { name_en?: string | null }) => String(item.name_en ?? "").trim();
 
-// Smallest side of a source picture (DECISIONS §39.13: every product image at least 500 × 500).
-export const MIN_SIDE = 500;
+// Smallest side of a source picture (DECISIONS §39.13: every product image at least 500 × 500): the validator's.
+export const MIN_SIDE = MIN_IMAGE_SIDE;
+
+export type SourcePicture = {
+  url: string;
+  bytes: Uint8Array;
+  /** As a decoder measured it (any format sharp reads); the header is read first when it is JPEG, PNG or WebP. */
+  width: number | null;
+  height: number | null;
+};
+
+const uniq = (issues: CatalogIssue[]) =>
+  issues.filter((x, k) => issues.findIndex((y) => y.code === x.code) === k);
+
+/**
+ * The catalogue validator on a source picture (§39.15.4): big enough on its own (a picture enlarged to 800 px stays
+ * blurred), an https address, not a placeholder. Its shape does not count: every photo is cropped (or fitted on white)
+ * to a square.
+ */
+export function sourceIssues(src: SourcePicture): CatalogIssue[] {
+  return validateCatalogItem(
+    {},
+    { url: src.url, name: src.url, bytes: src.bytes, width: src.width, height: src.height },
+  ).filter((i) => i.code !== "image_not_square");
+}
+
+/** What would stop a photo from being saved: the source's issues, then the processed file's (what Meta fetches). */
+export function photoIssues(src: SourcePicture, body: Uint8Array): CatalogIssue[] {
+  return uniq([...sourceIssues(src), ...validateCatalogItem({}, { bytes: body })]);
+}
+
+/** The size the sync's validator checks, read from a stored file's header; null when it cannot be read. */
+export function measureOf(
+  bytes: Uint8Array,
+): { width: number; height: number; bytes: number } | null {
+  const head = imageHeader(bytes);
+  return head ? { width: head.width, height: head.height, bytes: bytes.byteLength } : null;
+}
+
+/** Thrown when the validator refuses a photo; its codes go in the run's log. */
+export class RefusedPhoto extends Error {
+  constructor(readonly issues: CatalogIssue[]) {
+    super(`refused by the catalogue rules: ${issues.map((i) => i.code).join(", ")}`);
+  }
+}
+
+/**
+ * Items Meta's catalogue would hold for its commerce policy (alcohol, tobacco, medicine), counted in the run's summary:
+ * their photo is still saved (the chat and the web menu show it), the sync keeps them out of the catalogue.
+ */
+export const policyHeld = (item: TodoItem) =>
+  validateCatalogItem({
+    name_en: item.name_en,
+    name_ar: item.name_ar,
+    section_en: item.section_en,
+    business_type: item.business_type,
+  }).filter((i) => i.field === "policy");
 
 const fold = (x: string | null | undefined) =>
   String(x ?? "")
@@ -337,8 +401,9 @@ async function main() {
     });
     if (!res.ok) throw new Error(`upload ${res.status}`);
   };
-  // Each source picture is downloaded once per run (a dish photo serves many items).
-  const fetched = new Map<string, Promise<Uint8Array>>();
+  // Each source picture is downloaded once per run (a dish photo serves many items), and checked by the catalogue
+  // validator (§39.15.4: at least 500 px on a side, https, not a placeholder) before it is used.
+  const fetched = new Map<string, Promise<SourcePicture>>();
   const download = (u: string) => {
     if (!fetched.has(u))
       fetched.set(
@@ -355,12 +420,21 @@ async function main() {
           const b = new Uint8Array(await res.arrayBuffer());
           if (b.byteLength > 25 * 1024 * 1024) throw new Error("image too large");
           const m = await sharp(b, { failOn: "none" }).metadata();
-          if (Math.min(m.width ?? 0, m.height ?? 0) < MIN_SIDE)
-            throw new Error(`image too small ${m.width}x${m.height}`);
-          return b;
+          const src = { url: u, bytes: b, width: m.width ?? null, height: m.height ?? null };
+          const issues = sourceIssues(src);
+          if (issues.length) throw new RefusedPhoto(issues);
+          return src;
         })(),
       );
     return fetched.get(u)!;
+  };
+  // The processed photo, refused when Meta would refuse what it fetches.
+  const make = async (pl: Planned) => {
+    const src = await download(pl.url);
+    const body = await productImage(src.bytes, pl.kind);
+    const issues = photoIssues(src, body);
+    if (issues.length) throw new RefusedPhoto(issues);
+    return body;
   };
 
   const done = {
@@ -370,6 +444,9 @@ async function main() {
     unchanged: 0,
     none: 0,
     failed: 0,
+    refused: 0,
+    held: 0,
+    measured: 0,
     covers: 0,
     cleared: 0,
     deleted: 0,
@@ -395,6 +472,7 @@ async function main() {
       byShop.set(item.vendor_id, shop);
       const dish = dishOf(item);
       shop.dishes.push(dish);
+      if (policyHeld(item).length) done.held++;
       const own = ownPicture(item.image_url);
       if (own && !NOT_COVER.test(dish))
         shop.own.push({ url: sizedImageUrl(own), original: own, dish });
@@ -417,11 +495,11 @@ async function main() {
         return;
       }
       try {
-        let bytes: Uint8Array;
+        let body: Buffer;
         try {
-          bytes = await download(p.url);
+          body = await make(p);
         } catch (e) {
-          // The shop's own picture is gone or too small: the photo of its dish instead.
+          // The shop's own picture is gone, or the catalogue rules refuse it: the photo of its dish instead.
           if (p.kind === "illustrative") throw e;
           const key = photoChain(dish).find((k) => pickOk("illustrative", picks.dishes[k]));
           if (!key) throw e;
@@ -434,9 +512,8 @@ async function main() {
             source_url: k.source_url,
           });
           p.hash = sha256(JSON.stringify([PROCESS_VERSION, p.kind, p.url]));
-          bytes = await download(p.url);
+          body = await make(p);
         }
-        const body = await productImage(bytes, p.kind);
         if (body.byteLength > MAX_BYTES) throw new Error("image too large after processing");
         const path = `${p.kind}/${item.vendor_id}/${item.item_id}.jpg`;
         await upload(path, body);
@@ -452,10 +529,55 @@ async function main() {
           ])
         ).rows[0].r;
         if (r?.status !== "ok") throw new Error(`record ${r?.status}`);
+        // Its size, for the validator in the catalogue sync (the processed file is what Meta fetches).
+        const size = measureOf(body);
+        if (size)
+          await db.query("select public.menu_item_photo_measure($1, $2, $3, $4, $5)", [
+            item.item_id,
+            path,
+            size.width,
+            size.height,
+            size.bytes,
+          ]);
         done[p.kind]++;
       } catch (e) {
-        done.failed++;
+        if (e instanceof RefusedPhoto) done.refused++;
+        else done.failed++;
         console.error(`photo failed for item ${item.item_id}: ${String(e).slice(0, 160)}`);
+      }
+    });
+
+    // Photos made before their size was recorded (session 5f part 9) are measured from the stored file, without making
+    // or uploading them again, so the sync's size checks apply to every photo.
+    const unmeasured = (
+      await db.query(
+        `select item_id, storage_path from public.menu_item_photos
+         where item_id = any ($1::uuid[]) and width is null and source <> 'merchant'`,
+        [todo.map((t) => t.item_id)],
+      )
+    ).rows as { item_id: string; storage_path: string }[];
+    await pool(unmeasured, 6, async (ph) => {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${ph.storage_path}`, {
+          headers,
+          signal: AbortSignal.timeout(20_000),
+        });
+        if (!res.ok) throw new Error(`stored photo ${res.status}`);
+        const size = measureOf(new Uint8Array(await res.arrayBuffer()));
+        if (!size) throw new Error("stored photo unreadable");
+        await db.query("select public.menu_item_photo_measure($1, $2, $3, $4, $5)", [
+          ph.item_id,
+          ph.storage_path,
+          size.width,
+          size.height,
+          size.bytes,
+        ]);
+        done.measured++;
+      } catch (e) {
+        done.failed++;
+        console.error(
+          `measuring the photo of item ${ph.item_id} failed: ${String(e).slice(0, 160)}`,
+        );
       }
     });
 
@@ -521,7 +643,7 @@ async function main() {
       for (const chosen of at > 0 ? candidates.slice(0, at) : candidates) {
         let body: Buffer;
         try {
-          body = await coverImage(await download(chosen.url));
+          body = await coverImage((await download(chosen.url)).bytes);
         } catch (e) {
           // Only a picture that cannot be downloaded or made into a cover moves on to the next candidate.
           console.error(`cover candidate failed for shop ${vendorId}: ${String(e).slice(0, 160)}`);
@@ -600,7 +722,7 @@ async function main() {
     await db.end();
   }
   console.log(
-    `demo item photos: ${done.merchant_site} the shop's own, ${done.packshot} packshots, ${done.illustrative} dish photos, ${done.unchanged} unchanged, ${done.none} without a photo (not food, or no pick), ${done.failed} failed, ${done.cleared} photos without a pick removed; ${done.covers} covers; ${done.deleted} old objects deleted`,
+    `demo item photos: ${done.merchant_site} the shop's own, ${done.packshot} packshots, ${done.illustrative} dish photos, ${done.unchanged} unchanged, ${done.none} without a photo (not food, or no pick), ${done.refused} refused by the catalogue rules, ${done.measured} older photos measured, ${done.failed} failed, ${done.cleared} photos without a pick removed; ${done.held} items the catalogue holds for its commerce policy; ${done.covers} covers; ${done.deleted} old objects deleted`,
   );
 }
 

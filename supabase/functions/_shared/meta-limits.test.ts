@@ -1642,3 +1642,21 @@ describe("session 5f part 7 cards pass the checker", () => {
       expect(parseP7(bad), bad).toBeNull();
   });
 });
+
+// The merchant's item photo confirm card (session 5f part 9 review, §39.15.4).
+import { itemPhotoCard, parseItemPhotoTap } from "../dispatch/merchant/photo";
+
+describe("item photo confirm card: passes the checker in all four languages", () => {
+  const U = "11111111-2222-3333-4444-555555555555";
+  it("one button, a long item name, every language", () => {
+    const long = "منقوشة كشك مع جبنة وبندورة ونعنع وزيتون وبصل ".repeat(8);
+    for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+      const p: any = itemPhotoCard("+96171000001", U, long, lang);
+      expect(checkInteractive(p), lang).toEqual([]);
+      expect(p.interactive.action.buttons).toHaveLength(1);
+      expect(parseItemPhotoTap(p.interactive.action.buttons[0].reply.id)).toBe(U);
+    }
+    expect(parseItemPhotoTap("IPH|nope")).toBeNull();
+    expect(parseItemPhotoTap(`acc:${U}:15`)).toBeNull();
+  });
+});

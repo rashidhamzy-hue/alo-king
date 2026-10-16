@@ -34,6 +34,11 @@ describe("isAlcohol: brand and keyword list", () => {
     expect(isAlcohol({ item_id: "a", item_name_ar: "عرق سوس", section: "عصائر" })).toBe(false);
     expect(isAlcohol({ item_id: "b", item_name_ar: "جلاب", section: "مشروبات" })).toBe(false);
   });
+  it("does not flag vine leaves written as wine leaves, or licorice juice in Latin letters (§39.15.4 review)", () => {
+    for (const n of ["Wine Leaves", "Stuffed Wine Leaves", "Vine leaves", "Arak Soos", "Arak sous", "Erk Soos", "3erk soos"]) expect(isAlcohol(item(n)), n).toBe(false);
+    // Penne vodka has vodka in its sauce: it stays alcohol (docs/decisions/DATA-ISSUES.md).
+    expect(isAlcohol(item("Penne Vodka"))).toBe(true);
+  });
   it("a bare ambiguous word counts only as the whole name or next to a drink word", () => {
     expect(isAlcohol(item("Gin"))).toBe(true);
     expect(isAlcohol(item("Gin and Tonic bottle"))).toBe(true);

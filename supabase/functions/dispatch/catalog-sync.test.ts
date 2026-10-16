@@ -21,6 +21,7 @@ function fake(o: {
   refused?: string[];
   setRefused?: boolean;
   setThrows?: boolean;
+  desired?: any[];
 }) {
   const calls: { fn: string; args: any }[] = [];
   let claims = 0;
@@ -39,7 +40,7 @@ function fake(o: {
           catalog: { catalog_id: "987654321012", transport: "kapso" },
         };
       case "catalog_desired":
-        return [item(1), item(2)];
+        return o.desired ?? [item(1), item(2)];
       case "catalog_sync_state":
         return o.state ?? {};
       case "catalog_product_set":
@@ -299,5 +300,104 @@ describe("Meta's review status (session 5f)", () => {
       expect(done).toHaveLength(1);
       expect(done[0].args.p_failed).toBe(true);
     }
+  });
+});
+
+// DECISIONS §39.15.4: nothing Meta would refuse is sent; a held item stays orderable in chat and on the web.
+describe("catalogue rules in the sync (session 5f part 9)", () => {
+  const SHOP = { shop_en: "Bun Bros", shop_ar: "بن بروز", village_en: "Baakleen" };
+  it("a product Meta would refuse is held back with its reasons, hidden if it was shown; the rest is sent", async () => {
+    const { productHash } = await import("../_shared/catalog");
+    const zero = item(2, { price_minor: 0 });
+    const f = fake({
+      set: "444444444444",
+      desired: [
+        item(1),
+        zero,
+        item(3, { name: "Almaza Beer 330 ml", name_en: "Almaza Beer 330 ml" }),
+        item(4, {
+          photo: "merchant/x/y.jpg",
+          photo_width: 320,
+          photo_height: 320,
+          photo_bytes: 40_000,
+        }),
+        item(5, { contains_alcohol: true }),
+      ],
+      // The free item was in the catalogue before its price went to 0.
+      state: { [zero.retailer_id]: { hash: productHash(item(2)), visible: true } },
+    });
+    expect(await catalogSyncStep(f.rpc, f.api)).toBe(1);
+    expect(f.of("catalog_hold_record")[0].args).toEqual({
+      p_vendor_id: V,
+      p_holds: [
+        { item_id: item(2).retailer_id, codes: ["price_not_positive"] },
+        { item_id: item(3).retailer_id, codes: ["policy_alcohol"] },
+        { item_id: item(4).retailer_id, codes: ["image_too_small"] },
+        { item_id: item(5).retailer_id, codes: ["policy_alcohol"] },
+      ],
+    });
+    const sent = f.batches[0].r;
+    expect(sent.map((r: any) => r.data.id)).toEqual([item(1).retailer_id, item(2).retailer_id]);
+    // The one shown before is hidden, never deleted; nothing held is sent as published.
+    expect(sent[1].data).toEqual({
+      id: item(2).retailer_id,
+      availability: "out of stock",
+      visibility: "staging",
+    });
+    const rec = f.of("catalog_sync_record")[0].args.p_items;
+    expect(rec.find((r: any) => r.retailer_id === item(2).retailer_id).visible).toBe(false);
+    expect(rec.filter((r: any) => r.visible).map((r: any) => r.retailer_id)).toEqual([
+      item(1).retailer_id,
+    ]);
+    // The holds are recorded before anything is sent.
+    const order = f.calls.map((c) => c.fn);
+    expect(order.indexOf("catalog_hold_record")).toBeLessThan(order.indexOf("catalog_sync_record"));
+  });
+  it("titles are judged as Meta gets them: Title Case fixes capitals, a name in two scripts is held", async () => {
+    const f = fake({
+      set: "444444444444",
+      desired: [
+        item(1, { ...SHOP, name: "HOT DOG", name_en: "HOT DOG" }),
+        item(2, { ...SHOP, name: "x", name_en: "Sujuk Platter صحن سجق" }),
+        item(3, {
+          ...SHOP,
+          name: "x",
+          name_en: "Burger",
+          menu_text: "Call 03 123 456 or orders@bunbros.com",
+        }),
+      ],
+    });
+    await catalogSyncStep(f.rpc, f.api);
+    expect(f.of("catalog_hold_record")[0].args.p_holds).toEqual([
+      { item_id: item(2).retailer_id, codes: ["title_mixed_language"] },
+      // item-text drops the phone number; the email is still there, so the item waits.
+      { item_id: item(3).retailer_id, codes: ["description_contact"] },
+    ]);
+    expect(f.batches[0].r.map((r: any) => [r.data.id, r.data.title])).toEqual([
+      [item(1).retailer_id, "Hot Dog · Bun Bros"],
+    ]);
+  });
+  it("a shop whose items all pass records an empty list, which clears its holds", async () => {
+    const f = fake({ set: "444444444444" });
+    await catalogSyncStep(f.rpc, f.api);
+    expect(f.of("catalog_hold_record")[0].args).toEqual({ p_vendor_id: V, p_holds: [] });
+  });
+  it("a shop with every item held sends nothing and asks for no product set (Meta refuses an empty one)", async () => {
+    const f = fake({ desired: [item(1, { price_minor: 0 }), item(2, { contains_alcohol: true })] });
+    expect(await catalogSyncStep(f.rpc, f.api)).toBe(1);
+    expect(f.batches).toHaveLength(0);
+    expect(f.sets).toHaveLength(0);
+    expect(f.of("catalog_hold_record")[0].args.p_holds).toHaveLength(2);
+    expect(f.of("catalog_sync_finish")[0].args.p_error).toBeNull();
+  });
+  it("an image route that is not https holds every product (Meta could not fetch the images)", async () => {
+    const f = fake({ set: "444444444444" });
+    f.api.imageUrl = (id, h) => `http://x.test/dispatch?route=catalog-image&i=${id}&v=${h}`;
+    await catalogSyncStep(f.rpc, f.api);
+    expect(f.of("catalog_hold_record")[0].args.p_holds.map((h: any) => h.codes)).toEqual([
+      ["image_not_https"],
+      ["image_not_https"],
+    ]);
+    expect(f.batches).toHaveLength(0);
   });
 });

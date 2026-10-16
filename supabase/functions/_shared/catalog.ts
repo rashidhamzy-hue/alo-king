@@ -7,8 +7,11 @@
 //   - browse: a single-product message, or a multi-product message by section (at most 30 items in 10 sections)
 //   - order: the customer's "send cart" arrives as an `order` message; only retailer ids and quantities are used. The
 //     catalogue's price is kept only to tell the customer when the server's price differs; it is never charged.
+//   - rules (DECISIONS §39.15.4): a product Meta would refuse (catalog-rules.ts) is held back, never sent; it stays
+//     orderable through the chat lists and the web menu, and its reasons are recorded for catalog_status_report.
 
-import { catalogDescription, catalogTitle, fit, type ItemText } from "./item-text.ts";
+import { validateCatalogItem, type CatalogIssue } from "./catalog-rules.ts";
+import { catalogDescription, catalogTitle, fit, itemName, type ItemText } from "./item-text.ts";
 
 export type DesiredProduct = ItemText & {
   retailer_id: string;
@@ -29,6 +32,13 @@ export type DesiredProduct = ItemText & {
   photo_hash?: string | null;
   /** The item's public page (<public_site_url>/en/i/<id>, DECISIONS §39.15.2); never an image or storage URL. */
   link?: string | null;
+  /** The merchant's alcohol flag and the shop's business type, for Meta's commerce policy (§39.15.4). */
+  contains_alcohol?: boolean | null;
+  business_type?: string | null;
+  /** The stored photo's size when it was measured (menu_item_photos.width, height, bytes); null when not known. */
+  photo_width?: number | null;
+  photo_height?: number | null;
+  photo_bytes?: number | null;
 };
 
 /**
@@ -38,6 +48,57 @@ export type DesiredProduct = ItemText & {
 export function withContent(p: DesiredProduct): DesiredProduct {
   if (!p.shop_en && !p.shop_ar) return p;
   return { ...p, name: catalogTitle(p), description: catalogDescription(p) };
+}
+
+/**
+ * What Meta would refuse about a product as the sync sends it (DECISIONS §39.15.4): the built title (its item part for the
+ * one-language and capitals rules), the built description, the price, the commerce policy and the photo (the image route
+ * Meta fetches, and the stored size when it was measured). Empty when it may be sent.
+ */
+export function catalogIssues(p: DesiredProduct, imageUrl: string): CatalogIssue[] {
+  return validateCatalogItem(
+    {
+      title: p.name,
+      item_name: p.shop_en || p.shop_ar ? itemName(p) : p.name,
+      name_en: p.name_en,
+      name_ar: p.name_ar,
+      name_fr: p.name_fr,
+      section: p.section,
+      section_en: p.section_en,
+      description: p.description ?? null,
+      price_minor: p.price_minor,
+      contains_alcohol: p.contains_alcohol ?? null,
+      business_type: p.business_type ?? null,
+    },
+    {
+      url: imageUrl,
+      width: p.photo_width ?? null,
+      height: p.photo_height ?? null,
+      size: p.photo_bytes ?? null,
+      name: p.photo ?? null,
+    },
+  );
+}
+
+export type HeldProduct = { item_id: string; codes: string[] };
+
+/**
+ * The products that may go to Meta, and the ones held back with the codes of the rules they break. A held product is
+ * left out of the catalogue (hidden there if it was shown), and stays orderable in the chat lists and the web menu.
+ */
+export function holdBack(
+  desired: DesiredProduct[],
+  imageUrl: (p: DesiredProduct) => string,
+): { send: DesiredProduct[]; held: HeldProduct[] } {
+  const send: DesiredProduct[] = [];
+  const held: HeldProduct[] = [];
+  for (const p of desired) {
+    const issues = catalogIssues(p, imageUrl(p));
+    if (issues.length)
+      held.push({ item_id: p.retailer_id, codes: [...new Set(issues.map((i) => i.code))] });
+    else send.push(p);
+  }
+  return { send, held };
 }
 
 /** A stable hash of what Meta shows for a product, so unchanged items are not re-sent. */

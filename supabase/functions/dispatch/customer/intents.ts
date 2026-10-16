@@ -177,7 +177,11 @@ export const PRICE_RE =
  * search or model call.
  */
 export function isMedicineRequest(raw: string): boolean {
-  const t = norm(raw);
+  // "Antibiotic-free chicken" says what the food is without (§39.15.4 review): never a medicine request.
+  const t = norm(raw).replace(
+    /\bantibiotics? ?free\b|\bfree (?:from|of) antibiotics?\b|\bsans antibiotiques?\b|\bno antibiotics?\b|(?:بدون|بلا|خالي من|خاليه من) (?:ال)?مضاد(?:ات)? (?:ال)?حيوي(?:ه)?/g,
+    " ",
+  );
   return /\b(medicine|medicines|medication|meds|pharmacy|pharmacie|prescription|ordonnance|medicament|medicaments|antibiotic|antibiotics|antibiotique|painkiller|panadol|paracetamol|doliprane|aspirin|aspirine|ibuprofen|advil|brufen|augmentin|insulin|insuline|dawa|dewe|adwye|saydaliye|saydaleyye|saydalieh)\b|((^|\s)دوا($|\s)|ادويه|ادويه|دويه|صيدليه|صيدليه|وصفه طبيه|روشته|حبوب وجع|بانادول|مضاد حيوي|انسولين)/.test(
     t,
   );

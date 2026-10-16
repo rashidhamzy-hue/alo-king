@@ -38,6 +38,7 @@ import { handleCustomerTurn, readCustomerInbound, type CustomerDeps } from "./cu
 import { handleOnboarding, readOnboardingInbound } from "./merchant/onboarding.ts";
 import { parseOnboardingTap } from "../_shared/onboarding-cards.ts";
 import { handleMerchantMenu } from "./merchant/menu.ts";
+import type { ItemPhotoStore } from "./merchant/photo.ts";
 import { lookupProduct, normalizeGtin, productCardText } from "../_shared/open-food-facts.ts";
 import { handleMerchantFlows } from "./merchant/flows.ts";
 import { orderCardImageMessage, orderCardSvg } from "../_shared/order-card-image.ts";
@@ -111,6 +112,8 @@ export type DispatchDeps = {
   customer?: Omit<CustomerDeps, "rpc" | "send" | "now" | "log"> | null;
   /** The Meta catalogue (§39.12): items batch, product sets, product images; null leaves the sync queue waiting. */
   catalog?: CatalogApi | null;
+  /** Stores a merchant's own item photo once the catalogue validator passed it (§39.15.4); null: not wired. */
+  itemPhotos?: ItemPhotoStore | null;
 };
 
 export type MenuModelCall = (
@@ -877,6 +880,7 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
         fetchMedia: deps.fetchMenuMedia ? (x) => deps.fetchMenuMedia!(menuSender, x) : null,
         log: deps.log,
         fetchLink: deps.fetchLink ?? null,
+        itemPhotos: deps.itemPhotos ?? null,
       },
       { from: m.from, messageId: m.messageId, text: m.text, buttonId: m.buttonId, media: o.media },
       members,

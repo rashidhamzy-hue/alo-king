@@ -11,7 +11,12 @@ import {
   coverCandidates,
   mainCategoryDishes,
   MIN_SIDE,
+  measureOf,
+  photoIssues,
+  policyHeld,
   productImage,
+  RefusedPhoto,
+  sourceIssues,
   signatureDish,
   sizedImageUrl,
   type Picks,
@@ -258,5 +263,80 @@ describe("the photo plan per item", () => {
       "burger",
     );
     expect(signatureDish(["soda", "water"])).toBeNull();
+  });
+});
+
+// DECISIONS §39.15.4: the catalogue validator runs before a demo photo is saved.
+describe("catalogue rules before a demo photo is saved", () => {
+  const img = (w: number, h: number, flat = false) =>
+    sharp({
+      create: {
+        width: w,
+        height: h,
+        channels: 3,
+        background: flat ? "#ffffff" : "#884422",
+        ...(flat ? {} : { noise: { type: "gaussian" as const, mean: 128, sigma: 30 } }),
+      },
+    })
+      .jpeg({ quality: 85 })
+      .toBuffer()
+      .then((b) => new Uint8Array(b));
+  const src = async (w: number, h: number, url = "https://x.test/dish.jpg", flat = false) => ({
+    url,
+    bytes: await img(w, h, flat),
+    width: w,
+    height: h,
+  });
+  const codes = (x: { code: string }[]) => x.map((i) => i.code);
+  it("a source below 500 px, off https, or a placeholder is refused; its shape is not (it is cropped square)", async () => {
+    expect(codes(sourceIssues(await src(480, 640)))).toEqual(["image_too_small"]);
+    expect(codes(sourceIssues(await src(900, 900, "http://x.test/dish.jpg")))).toEqual([
+      "image_not_https",
+    ]);
+    expect(
+      codes(sourceIssues(await src(900, 900, "https://shop.test/wp/woocommerce-placeholder.jpg"))),
+    ).toEqual(["image_placeholder"]);
+    expect(codes(sourceIssues(await src(3000, 1000)))).toEqual([]);
+    expect(MIN_SIDE).toBe(500);
+  });
+  it("the processed file Meta fetches is checked too: a flat picture is a placeholder even at 800 × 800", async () => {
+    const good = await src(1600, 900);
+    expect(photoIssues(good, await productImage(good.bytes, "illustrative"))).toEqual([]);
+    const flat = await src(1600, 900, "https://x.test/white.jpg", true);
+    expect(codes(photoIssues(flat, await productImage(flat.bytes, "illustrative")))).toEqual([
+      "image_placeholder",
+    ]);
+    // A small source stays refused although the processed file is 800 × 800.
+    const small = await src(300, 300);
+    expect(codes(photoIssues(small, await productImage(small.bytes, "illustrative")))).toEqual([
+      "image_too_small",
+    ]);
+    expect(
+      new RefusedPhoto(photoIssues(small, await productImage(small.bytes, "illustrative"))).message,
+    ).toBe("refused by the catalogue rules: image_too_small");
+  });
+  it("measures a stored photo from its file (older photos get their size without being made again)", async () => {
+    const stored = await productImage((await src(1600, 900)).bytes, "illustrative");
+    expect(measureOf(stored)).toEqual({ width: 800, height: 800, bytes: stored.byteLength });
+    expect(measureOf(new Uint8Array(100))).toBeNull();
+  });
+  it("counts the items the catalogue holds for its commerce policy (their photo is still saved)", () => {
+    const base = {
+      item_id: "11111111-1111-1111-1111-111111111111",
+      vendor_id: "22222222-2222-2222-2222-222222222222",
+      description: null,
+      section_en: null,
+      business_type: "minimarket",
+      vendor: "Shop",
+      image_url: null,
+      photo: null,
+    };
+    expect(codes(policyHeld({ ...base, name_en: "Almaza Beer 330ml", name_ar: null }))).toEqual([
+      "policy_alcohol",
+    ]);
+    expect(codes(policyHeld({ ...base, name_en: "Marlboro Gold", name_ar: null }))).toEqual([
+      "policy_tobacco",
+    ]);
+    expect(codes(policyHeld({ ...base, name_en: "Curly Fries", name_ar: "بطاطا" }))).toEqual([]);
   });
 });
