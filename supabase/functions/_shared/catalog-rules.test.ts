@@ -602,9 +602,29 @@ describe("commerce policy: no medicine (§38.3), alcohol or tobacco in the catal
     ])
       expect(codes(validateCatalogItem({ title: ok })), ok).toEqual([]);
     // One word list with the customer's refusal (_shared/medicine.ts): what one knows, the other knows.
-    for (const bad of ["Sirop contre la toux", "Meds kit", "حبوب وجع", "الدواء", "مضادات حيوية"])
+    for (const bad of [
+      "Sirop contre la toux",
+      "Meds kit",
+      "حبوب وجع",
+      "الدواء",
+      "مضادات حيوية",
+      "المضادات الحيوية",
+    ])
       expect(codes(validateCatalogItem({ title: bad })), bad).toEqual(["policy_medicine"]);
-    for (const ok of ["بطاطا يدوية", "كبة يدوية", "معجنات يدوية الصنع", "قهوة بدوية"])
+    for (const ok of [
+      "بطاطا يدوية",
+      "كبة يدوية",
+      "معجنات يدوية الصنع",
+      "قهوة بدوية",
+      // A claim after punctuation is about the food before it.
+      "Chicken breast, antibiotic free",
+      "Organic chicken, antibiotic-free",
+      "Whole chicken. Antibiotic free",
+      "Chicken breast: antibiotic free",
+      "Salmon fillet; no antibiotics",
+      "Poulet fermier, sans antibiotiques",
+      "دجاج طازج، بدون مضادات حيوية",
+    ])
       expect(codes(validateCatalogItem({ title: ok })), ok).toEqual([]);
   });
   it("a pastry called cigars is judged with its section; tobacco brands stay tobacco whatever the section (review)", () => {

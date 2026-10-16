@@ -220,6 +220,9 @@ describe("intents for the agent (§38.3)", () => {
       "بدي الدوا",
       "جيبلي الدواء",
       "بدي مضادات حيوية",
+      "بدي المضادات الحيوية",
+      "بدي المضاد الحيوي",
+      "بدي بنادول",
     ])
       expect(isMedicineRequest(t), t).toBe(true);
     for (const t of [
@@ -241,6 +244,9 @@ describe("intents for the agent (§38.3)", () => {
       "بدي بطاطا يدوية",
       "قهوة بدوية",
       "بدوا شاورما",
+      // The food before the punctuation is what the claim is about.
+      "2 chicken, antibiotic free please",
+      "دجاج طازج، بدون مضادات حيوية",
     ])
       expect(isMedicineRequest(t), t).toBe(false);
   });
