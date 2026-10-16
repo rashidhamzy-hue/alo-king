@@ -286,4 +286,5 @@ grant execute on function public.catalog_products_for(uuid[], text) to service_r
 -- (fewer are listed as shops directly); a shop's first product message shows at most this many items per section.
 insert into public.app_config (key, value, effective_from, note) values
   ('browse_categories_min_shops', '4', '2026-10-16 00:00+03', 'Session 5e: "What are you craving?" when 4 or more shops deliver'),
-  ('browse_first_section_items', '6', '2026-10-16 00:00+03', 'Session 5e: items per section in a shop''s first product message');
+  ('browse_first_section_items', '6', '2026-10-16 00:00+03', 'Session 5e: items per section in a shop''s first product message')
+on conflict do nothing;
