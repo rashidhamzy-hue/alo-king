@@ -1760,7 +1760,7 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 
 ### 39.13 World-class shopping on WhatsApp for the investor demo (Rasheed, 16 October; session 5e)
 - **Verdict on the old state:** the catalogue screen in the chat header showed 1,755 products from 29 shops in one flat list with drawn placeholder pictures. Unusable.
-- **The catalogue header icon is switched off; the cart stays on.** **Overrides** the §39.12 line "The cart and catalogue icons are turned on for the number".
+- ~~**The catalogue header icon is switched off; the cart stays on.**~~ **Reversed by Rasheed on 16 October, 12:06 (§39.15.2): the header catalogue icon stays ON, with the cart.** Original text kept for history: **Overrides** the §39.12 line "The cart and catalogue icons are turned on for the number".
   - Meta's WhatsApp Business Platform docs (catalogs overview, share products, commerce settings) offer no collections or product-set grouping in the catalogue a customer opens from the chat header. The only grouping is the sections of a multi-product message.
   - Our catalogue has had one product set per shop since #189, and the header still showed one flat list (Rasheed's screenshot, 16 October).
   - So the header is set to `is_catalog_visible = false` with `is_cart_enabled = true`. Product messages and the cart work without the icon (Meta: the icon is off by default).
@@ -1783,7 +1783,7 @@ Rasheed's requests after session D, and the decision on each. **This section ove
   - Meta's profile has no opening-hours field; the description says each shop delivers in its own hours, shown when it is opened.
   - The website is listed only when it publicly serves the new site. Vercel's production domain still serves the 6 October build with another business's number until the cut-over, so it is never listed.
 - **Outcome on staging (16 October, session 5e):**
-  - **Header:** `kapso-catalog` could not set the commerce setting through Kapso (the read-back is "unverified"), so owner issue #199 carries the WhatsApp Manager steps. Until it is done, the header icon still opens the flat catalogue; carts from it go through `cart_merge` as before.
+  - **Header:** `kapso-catalog` could not set the commerce setting through Kapso (the read-back is "unverified"), so owner issue #199 carried the WhatsApp Manager steps (moot since 16 October 12:06: the icon stays on, §39.15.2). Until it is done, the header icon still opens the flat catalogue; carts from it go through `cart_merge` as before.
   - **Categories:** the craving list ranks categories by how many delivering shops serve them, and shows eight plus "More categories" when more than nine have shops, so every category is two taps away.
   - **Photos:** demo items carry 67 shop photos, 10 packshots (exact brand, variant and size only) and 1,093 dish photos (72 dish keys, CC0, Public Domain Mark or CC BY, credited). 427 items have no fitting photo and stay out of the catalogue. Every one of the 29 demo shops has a cover: its own photo, else the photo of its most common main dish that has one (the reading of "its signature dish" when that dish has no photo).
   - **Profile:** set by API (photo, about, description, address, category); no website until aloking.com serves the new site.
@@ -1805,7 +1805,7 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 
 **Verdict.** 5e's engineering is good: browsing through the bot, real photos, the test diet and the lighter staging load all work, and taps answer fast. The experience is not yet investor-grade, for six reasons seen on the phone:
 1. **Checkout dies on a routing outage.** "I couldn't work out the road route to your address" with no button; Rasheed had to type "Order" to recover. Browse screens and four smoke runs used the free OpenRouteService quota, and a quote has no fallback.
-2. **The header catalogue is still on** (#199 not done), so one flat list mixes 29 shops, and a cart built from it mixes shops. The server keeps the first shop's lines and drops the rest with "2 item(s) couldn't be added", then loops on "Use the new cart / Keep basket".
+2. **The header catalogue is one flat list of 29 shops, and nothing in it says which shop an item belongs to,** so a cart built from it mixes shops. The server keeps the first shop's lines and drops the rest with "2 item(s) couldn't be added", then loops on "Use the new cart / Keep basket".
 3. **Counts lie and items are unreachable.** INDINER time (122 items, 102 with photos) opened with "3 items"; its "Burgers · 9 items" row opened a product message with 1 burger. The sync treats "batch accepted" as visible and never reads Meta's review status, so Meta silently drops IDs; and items without a photo cannot be reached once a section opens as a product message.
 4. **The item screen looks unfinished.** Titles mix two languages and ALL CAPS ("Sujuk & Cheese Platter · صحن سجق جبنة", "HOT DOG"); the description is a photo credit ("📷 insatiablemunch via Openverse (flickr) · CC BY 2.0"); the link is our Supabase image URL; the shop is never named.
 5. **The shop cover can be off-brand** (a fried-chicken photo for a burger place) and carries the photo credit in the caption.
@@ -1821,12 +1821,16 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 - **Every error message in the bot carries at least one button.** A reply that ends a path without a way forward is a bug (test: every `render.ts` error string is sent with buttons).
 
 #### 39.15.2 Native catalogue and cart: true, complete, never mixed (amends §39.12 and §39.13)
-- **#199 first (owner, 2 minutes).** The header catalogue icon goes off. The owner-issue text in `scripts/kapso/catalog-owner-issue.sh` step 4 still says "switch on Show catalogue icon": it must say **switch off "Show catalogue icon in chat header", keep "Add to cart" on**.
+- **The header catalogue icon stays ON (Rasheed, 16 October 12:06; reverses §39.13).** Friends and investors must see everything: the whole catalogue from the chat header, the product messages and the cart. Meta's header catalogue cannot be grouped by shop (§39.13), so it is made to work as one flat list:
+  - **Every title names its shop:** "<Item> · <Shop>" (e.g. "Chicken Popcorn · Safa Chicken"), because the title and price are all a customer sees in the list. The same title shows in product messages.
+  - **Only Meta-approved items with a real photo** are in it (below); hidden items stay reachable through the bot.
+  - **Carts from it are split by shop, never dropped** (next bullet), and a shop that does not deliver to the confirmed pin is named in the split with "doesn't deliver to <place>" and the closest shop with the same dish offered.
+  - `kapso-catalog` sets `is_catalog_visible = true` and `is_cart_enabled = true` and reads them back; issue #199 is closed as not needed. The owner-issue text in `scripts/kapso/catalog-owner-issue.sh` (step 4, "switch on the catalogue icon and Add to cart") is correct and stays.
 - **A cart from several shops is split, never dropped.** "Your cart has items from 3 shops. One order comes from one shop. Which one first?" with one row per shop (items and subtotal). The others are kept as **saved carts** for `basket_keep_hours`; after the first order is confirmed: "You also picked 2 items from Deli Dough. Order them now?" Only items truly unavailable are named, by name. This replaces the "couldn't be added" message and the replace/keep loop: when a cart from shop B meets a basket from shop A, the buttons are **Switch to B**, **Keep A**, **Do both** (A first, B saved).
 - **Meta's review status is the truth.** The sync reads each product's `review_status` and errors from the Graph API (`/{catalog}/products?fields=retailer_id,review_status,errors,visibility`) after every batch and nightly, into `catalog_item_status`. Product messages and their row counts use only items Meta has approved and that are visible. Rejected items are fixed (see 39.15.4) or left out of product messages.
 - **No item is ever unreachable, and every count equals what opens.** A section opens as a product message of its approved photo items; if the section has other items, a list "More <section> (n)" follows with the rest. A shop whose approved photo items are fewer than `browse_min_catalog_items` (config, default 6) opens with the list menu plus the **Open menu** web button (§4 of the spec) instead of a thin product message. Search uses the same rule per shop.
 - **Item content (applies the spec's §2 items 2–3 and §5):**
-  - Title: one language, Title Case, never ALL CAPS, size once; the shop's Latin name if it has one, else English. The Arabic name moves to the description.
+  - Title: "<Item> · <Shop>"; the item part in one language, Title Case, never ALL CAPS, size once, the shop's Latin name for the item if it has one, else English. The Arabic name moves to the description.
   - Description, in this order, each on its own line: shop · village; Arabic name; what it is (the menu text, else "Usually made with …" from the dish library); "≈ 520 kcal · 32 g protein (estimated)" where the dish library has it (§32.3); allergens only when merchant-declared, else nothing (never "safe"); "Extras chosen after you add it" when the item has options.
   - **No photo credits in descriptions or captions.** Credits for CC BY photos live on the item's web page and a `/credits` page (a reasonable manner of attribution for CC BY). New picks prefer CC0, public domain and Pexels (Pexels needs no credit; owner item: a free Pexels API key).
   - `link` = the item's public page `<public_site_url>/<lang>/i/<item id>` (39.15.7), never an image or Supabase URL. `image_link` stays the image route. `brand` = shop name.
@@ -1870,13 +1874,21 @@ Each session reports p50/p95 tap-to-reply from `outbound_messages` for the demo 
 #### 39.15.8 Session plan from here (replaces the order in §39.10)
 | # | Session | Model | Effort | Content |
 |---|---|---|---|---|
-| 5f | WhatsApp ordering, investor-grade | Opus 5.5 | Extra (xhigh) | 39.14; 39.15.1–39.15.4, 39.15.6–39.15.7; spec §§2, 3 (the 5f scenarios), 5, 6 in chat; item page `/i/<id>` |
+| 5f | WhatsApp ordering, investor-grade | Opus 5.5 | Extra (xhigh) | 39.14; 39.15.1–39.15.4, 39.15.6–39.15.7, 39.15.9 when the keys work; spec §§2, 3 (the 5f scenarios), 5, 6 in chat; item page `/i/<id>` |
 | 5g | Web menu, Explore and the website audit | Opus 5.5 | Extra (xhigh) | spec §4 web menu with signed basket links, Explore, item page polish, 39.15.5 in full |
 | — | Friends' test | owner | — | after 5g: Rasheed sends the invite link (39.15.3) |
 | 13 | Security review | Opus 5.5 | high | unchanged, includes 5f and 5g |
 | 14 | Pilot cut-over | Opus 5.5 | high | unchanged, plus the final website check and the autopilot/tester assertions |
 
 Max effort is not needed: the work is broad, not deep, and Extra keeps the weekly limit for 5g.
+
+#### 39.15.9 AI and voice switch on as soon as the credit lands (Rasheed, 16 October 12:06)
+- Rasheed adds Anthropic and OpenAI API credit (and the Deepgram key) so friends can type and send voice notes. The agents are built and tested with recorded answers (session 5c, #164, #166); their model paths are switched off only for lack of credit (§32.7).
+- **The session that finds the keys working** (`check-setup` proves each one) runs the text eval (four languages, §39.6) and the voice pipeline on the labelled notes (§32.4), and then:
+  - switches on free text, voice notes, photo understanding and the merchant copilot's model path for **owners and demo testers** as soon as the evals show **zero safety failures** (no invented item, price, fee or policy; no cross-shop basket; no allergy called safe). Accuracy is not the gate for testers, because every order ends in the basket and Confirm (§32.4);
+  - switches them on for **every customer** when the §32.4 accuracy targets are met (that gate stays for the pilot);
+  - updates `usage.ts` prices first, sets the cheapest passing model in config (Haiku 5.5 vs 4.5, §38.4), and keeps the per-turn caps (§4).
+- Until the keys work, free text and voice keep answering with buttons, never silence (§32.7).
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
