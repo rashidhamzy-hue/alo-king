@@ -595,6 +595,15 @@ describe("commerce policy: no medicine (§38.3), alcohol or tobacco in the catal
     ])
       expect(codes(validateCatalogItem({ title: ok })), ok).toEqual([]);
     expect(codes(validateCatalogItem({ title: "Antibiotic cream" }))).toEqual(["policy_medicine"]);
+    for (const ok of [
+      "Antibiotic-free poultry",
+      "Antibiotic free salmon",
+      "Œufs sans antibiotiques",
+    ])
+      expect(codes(validateCatalogItem({ title: ok })), ok).toEqual([]);
+    // One word list with the customer's refusal (_shared/medicine.ts): what one knows, the other knows.
+    for (const bad of ["Sirop contre la toux", "Meds kit", "حبوب وجع"])
+      expect(codes(validateCatalogItem({ title: bad })), bad).toEqual(["policy_medicine"]);
   });
   it("a pastry called cigars is judged with its section; tobacco brands stay tobacco whatever the section (review)", () => {
     expect(codes(validateCatalogItem({ title: "Cigars", section_en: "Pastries" }))).toEqual([]);

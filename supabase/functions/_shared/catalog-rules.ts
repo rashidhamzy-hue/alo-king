@@ -11,7 +11,7 @@
 // checkedHere false, Meta's own review decides them, and the learning loop records Meta's refusals.
 
 import { alcNorm, isAlcohol } from "./alcohol.ts";
-import { stripFoodAntibioticClaims } from "./medicine.ts";
+import { findMedicine, stripFoodAntibioticClaims } from "./medicine.ts";
 import { titleCase } from "./item-text.ts";
 // The rules' words, from catalog-rules.json through its generated TypeScript copy (no JSON module in the edge runtime).
 import RULES_DATA from "./catalog-rules.data.ts";
@@ -117,49 +117,6 @@ const PRICE_IN_TITLE = /\$\s?\d|\d\s?(?:\$|usd\b|lbp\b|l\.l\.?|ل\.ل)|ليرة|
 
 // ---- Commerce policy: medicine (§38.3), alcohol (alcohol.ts) and tobacco ---------------------------------------------
 const norm = (s: unknown) => alcNorm(s);
-const MEDICINE_RAW = [
-  "medicine",
-  "medicines",
-  "medication",
-  "medications",
-  "pharmacy",
-  "prescription",
-  "antibiotic",
-  "antibiotics",
-  "painkiller",
-  "painkillers",
-  "panadol",
-  "paracetamol",
-  "aspirin",
-  "ibuprofen",
-  "advil",
-  "brufen",
-  "augmentin",
-  "insulin",
-  "cough syrup",
-  "medicament",
-  "medicaments",
-  "ordonnance",
-  "pharmacie",
-  "antibiotique",
-  "antibiotiques",
-  "doliprane",
-  "aspirine",
-  "دواء",
-  "دوا",
-  "ادويه",
-  "صيدليه",
-  "مضاد حيوي",
-  "بانادول",
-  "انسولين",
-  "روشته",
-  "dawa",
-  "dawe",
-  "adwye",
-  "adwiye",
-  "saydaliye",
-  "saydaleyye",
-];
 const TOBACCO_RAW = [
   "tobacco",
   "cigarette",
@@ -233,7 +190,6 @@ const TOBACCO_FOOD =
 /** Shops whose whole business is outside the catalogue (none is a business type today; a pharmacy never will be, §29.2). */
 const MEDICINE_BUSINESS = /^(pharmacy|pharmacie|drugstore|parapharmacy)$/i;
 
-const MEDICINE = MEDICINE_RAW.map(norm);
 const TOBACCO = TOBACCO_RAW.map(norm);
 const PROMO = Object.fromEntries(
   Object.entries(PROMO_WORDS).map(([k, v]) => [k, v.map(norm)]),
@@ -433,7 +389,7 @@ function policyIssues(item: CatalogItemCheck): CatalogIssue[] {
   const hay = [...names, ...sections].map(norm);
   const med = MEDICINE_BUSINESS.test(String(item.business_type ?? ""))
     ? String(item.business_type)
-    : hay.map((h) => anyPhrase(stripFoodAntibioticClaims(h), MEDICINE)).find(Boolean);
+    : hay.map((h) => findMedicine(stripFoodAntibioticClaims(h))).find(Boolean);
   if (med) out.push(issue("policy_medicine", { found: med }));
   const alcohol =
     item.contains_alcohol === true

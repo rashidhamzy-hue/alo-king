@@ -212,6 +212,10 @@ describe("intents for the agent (§38.3)", () => {
       "painkillers",
       "medications pack",
       "بدي دواء سعال",
+      // A food in another clause does not make the claim about it.
+      "no antibiotics at home, and 2 chicken shawarma",
+      "antibiotics free delivery with my chicken order",
+      "sirop contre la toux",
     ])
       expect(isMedicineRequest(t), t).toBe(true);
     for (const t of [
@@ -223,6 +227,11 @@ describe("intents for the agent (§38.3)", () => {
       "2 kg djej no antibiotics",
       "دجاج بدون مضادات حيوية",
       "date syrup",
+      "chicken with no antibiotics",
+      "Antibiotic-free poultry",
+      "Antibiotic free salmon",
+      "œufs sans antibiotiques",
+      "eggs from hens raised without antibiotics",
     ])
       expect(isMedicineRequest(t), t).toBe(false);
   });

@@ -269,7 +269,9 @@ reset role;
 select tests.ok((select storage_path = :'path3' from public.menu_item_photos where item_id = :'kn')
   and not exists (select 1 from app_private.merchant_item_photo_pending where id = :'pend4'), 'the item keeps its photo');
 set local role service_role;
-select public.merchant_item_photo_path(:'owner_a', :'kn', 'webp') as w5 \gset
+select tests.ok(public.merchant_item_photo_path(:'owner_a', :'kn', 'webp') ->> 'status' = 'bad_format',
+  'no WebP: Meta''s catalogue takes JPEG or PNG');
+select public.merchant_item_photo_path(:'owner_a', :'kn', 'png') as w5 \gset
 select (:'w5'::jsonb ->> 'pending_id') as pend5, (:'w5'::jsonb ->> 'path') as path5 \gset
 select public.merchant_item_photo_pending(:'owner_a', :'pend5', :'kn', :'path5', repeat('e', 64), 800, 800, 70000, 'en');
 reset role;
@@ -327,5 +329,10 @@ update public.menu_item_photos set storage_path = 'merchant/' || vendor_id || '/
   bytes = 70000 where item_id = :'kn';
 select tests.ok((select width = 800 and height = 600 and bytes = 70000 from public.menu_item_photos where item_id = :'kn'),
   'a photo replaced with its size keeps the new size');
+update public.menu_item_photos set source = 'merchant', origin_hash = repeat('c', 64), width = 900, height = 900, bytes = 80000
+  where item_id = :'kn';
+update public.menu_item_photos set storage_path = 'merchant/' || vendor_id || '/' || gen_random_uuid() || '.jpg' where item_id = :'kn';
+select tests.ok((select width = 900 and height = 900 and bytes = 80000 from public.menu_item_photos where item_id = :'kn'),
+  'the same merchant file (same hash) at a new path keeps its size');
 
 rollback;

@@ -403,8 +403,11 @@ create function app_private.menu_item_photos_size_reset() returns trigger
 language plpgsql set search_path = ''
 as $$
 begin
+  -- A merchant's photo carries the SHA-256 of its stored bytes: the same hash is the same file, whose size still holds
+  -- (the same photo sent again and confirmed lands at a new path).
   if (new.storage_path, new.origin_hash) is distinct from (old.storage_path, old.origin_hash)
-     and (new.width, new.height, new.bytes) is not distinct from (old.width, old.height, old.bytes) then
+     and (new.width, new.height, new.bytes) is not distinct from (old.width, old.height, old.bytes)
+     and not (new.source = 'merchant' and old.source = 'merchant' and new.origin_hash = old.origin_hash) then
     new.width := null;
     new.height := null;
     new.bytes := null;
@@ -516,7 +519,8 @@ create table app_private.merchant_item_photo_pending (
   member_id uuid not null references public.vendor_members (id) on delete cascade,
   vendor_id uuid not null references public.vendors (id) on delete cascade,
   item_id uuid not null references public.menu_items (id) on delete cascade,
-  storage_path text not null unique check (storage_path ~ '^merchant/[0-9a-f-]{36}/[0-9a-f-]{36}\.(png|jpg|webp)$'),
+  -- JPEG or PNG only: Meta's catalogue takes no WebP (dispatch/merchant/photo.ts refuses one before any upload).
+  storage_path text not null unique check (storage_path ~ '^merchant/[0-9a-f-]{36}/[0-9a-f-]{36}\.(png|jpg)$'),
   origin_hash text not null check (origin_hash ~ '^[0-9a-f]{64}$'),
   width integer not null check (width between 1 and 20000),
   height integer not null check (height between 1 and 20000),
@@ -577,7 +581,7 @@ begin
   if v ->> 'status' <> 'ok' then
     return v;
   end if;
-  if coalesce(p_ext, '') not in ('jpg', 'png', 'webp') then
+  if coalesce(p_ext, '') not in ('jpg', 'png') then
     return jsonb_build_object('status', 'bad_format');
   end if;
   return v || jsonb_build_object('pending_id', v_id, 'path', 'merchant/' || (v ->> 'vendor_id') || '/' || v_id || '.' || p_ext);
@@ -604,7 +608,7 @@ begin
     return v;
   end if;
   if p_pending_id is null or p_storage_path is null
-     or p_storage_path !~ ('^merchant/' || (v ->> 'vendor_id') || '/' || p_pending_id || '\.(png|jpg|webp)$') then
+     or p_storage_path !~ ('^merchant/' || (v ->> 'vendor_id') || '/' || p_pending_id || '\.(png|jpg)$') then
     return jsonb_build_object('status', 'bad_path');
   end if;
   if p_origin_hash is null or p_origin_hash !~ '^[0-9a-f]{64}$' then

@@ -7,6 +7,7 @@ const AR_DIACRITICS = /[ً-ٰٟـ]/g;
 /** Lower-case, Latin accents and Arabic diacritics stripped, alef/ya/ta-marbuta unified, punctuation to spaces. */
 export const alcNorm = (s: unknown): string =>
   String(s ?? "").normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(AR_DIACRITICS, "").toLowerCase()
+    .replace(/œ/g, "oe").replace(/æ/g, "ae")
     .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
     .replace(/[^a-z0-9؀-ۿ]+/g, " ").replace(/\s+/g, " ").trim();
 

@@ -4,7 +4,7 @@
 // Arabizi, including mixed messages.
 
 import type { CLang } from "../../_shared/customer-cards.ts";
-import { stripFoodAntibioticClaims } from "../../_shared/medicine.ts";
+import { findMedicine, stripFoodAntibioticClaims } from "../../_shared/medicine.ts";
 
 const ARABIC = /[؀-ۿ]/;
 const ARABIC_ALL = /[؀-ۿ]/g;
@@ -33,6 +33,8 @@ export function detectLang(text: string, fallback: CLang = "ar"): CLang {
 const norm = (s: string) =>
   s
     .toLowerCase()
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae")
     .normalize("NFKD")
     .replace(/[ً-ٰٟ]/g, "") // Arabic diacritics
     .replace(/[أإآ]/g, "ا")
@@ -179,10 +181,7 @@ export const PRICE_RE =
  */
 export function isMedicineRequest(raw: string): boolean {
   // "Antibiotic-free chicken" says what the food is without (§39.15.4 review); "no antibiotics left" stays a request.
-  const t = stripFoodAntibioticClaims(norm(raw));
-  return /\b(medicine|medicines|medication|medications|meds|pharmacy|pharmacie|prescription|ordonnance|medicament|medicaments|antibiotic|antibiotics|antibiotique|antibiotiques|painkiller|painkillers|cough syrup|sirop (?:pour|contre) la toux|panadol|paracetamol|doliprane|aspirin|aspirine|ibuprofen|advil|brufen|augmentin|insulin|insuline|dawa|dewe|adwye|saydaliye|saydaleyye|saydalieh)\b|((^|\s)دواء?($|\s)|ادويه|ادويه|دويه|صيدليه|صيدليه|وصفه طبيه|روشته|حبوب وجع|بانادول|مضاد حيوي|انسولين)/.test(
-    t,
-  );
+  return findMedicine(stripFoodAntibioticClaims(norm(raw))) !== null;
 }
 
 /** "What do you remember about me?" in four languages (§39.6): shows the memory card, never the model's version of it. */
