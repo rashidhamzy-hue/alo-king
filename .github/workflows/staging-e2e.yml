@@ -112,7 +112,14 @@ jobs:
           gh label create e2e --color B60205 --description "Staging e2e scenario failure (DECISIONS §36)" 2>/dev/null || true
           open=$(gh issue list --label e2e --state open --json number --jq '.[0].number // empty')
           if [ "$OUTCOME" = "success" ]; then
-            [ -n "$open" ] && gh issue close "$open" --comment "All scenarios pass again: $RUN_URL" || true
+            # Only a full run proves every scenario passes; a smoke or partial run leaves an open issue open.
+            if [ -n "$open" ]; then
+              if [ "$SUITE" = "full" ] && [ -z "$ONLY" ]; then
+                gh issue close "$open" --comment "All scenarios pass again: $RUN_URL" || true
+              else
+                gh issue comment "$open" --body "The ${SUITE} run passed (${ONLY:-its scenarios}); the issue stays open until a full run passes: $RUN_URL" || true
+              fi
+            fi
             exit 0
           fi
           {

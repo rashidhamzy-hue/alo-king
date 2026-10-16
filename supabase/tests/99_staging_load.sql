@@ -14,14 +14,18 @@ select tests.ok(not exists (select 1 from cron.job where jobname in ('dispatch-k
   'the jobs they replace are gone');
 select tests.ok((select schedule from cron.job where jobname = 'catalog-reconcile') = '*/10 * * * *',
   'the catalogue reconcile runs every 10 minutes, not every minute');
-select tests.ok((select command from cron.job where jobname = 'catalog-nightly') like '%(false,%'
-  and (select command from cron.job where jobname = 'catalog-weekly-full') like '%(true,%',
-  'the nightly catalogue run is a diff; the forced full re-send is weekly');
+select tests.ok((select command from cron.job where jobname = 'catalog-nightly') like '%(true,%',
+  'the nightly catalogue run is still a full sync (DECISIONS §39.12)');
 select tests.ok(exists (select 1 from cron.job where jobname = 'cron-history-prune'), 'pg_cron history is pruned');
 
 -- Each tick runs every step, even when one fails.
 select tests.ok((app_private.tick_30s() ->> 'ok')::boolean and (app_private.tick_minute() ->> 'ok')::boolean,
-  'the ticks run');
+  'every step of both ticks runs without an error');
+create function app_private.tick_test_boom() returns integer language sql as $$ select 1 / 0 $$;
+select tests.ok((select (r ->> 'ok')::boolean = false and r -> 'failed' = '["tick_test_boom"]' and r -> 'steps' ? 'hours_tick'
+  from app_private.tick_steps('tick-test', array['tick_test_boom', 'hours_tick']) r),
+  'a failing step is reported and the next step still runs');
+select tests.ok(exists (select 1 from public.ops_alerts where kind = 'tick_failed'), 'and it raises an operator alert');
 
 -- The reconcile: a catalogue that can be written, two claimed shops, one synced at its current version.
 insert into public.whatsapp_catalogs (waba_id, catalog_id, transport)

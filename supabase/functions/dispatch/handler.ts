@@ -156,6 +156,30 @@ export async function runDispatch(
       : (senders[audience] = (await deps.rpc("whatsapp_sender", { p_audience: audience })) ?? null);
   const sender = () => senderFor("merchant");
 
+  // 2. Outbox (also drained before the inbound step waits for a held message, so an order card is never held back).
+  const drainOutbox = async () => {
+    while (left() > 1500) {
+      const batch: Outbox[] = (await deps.rpc("outbox_claim", { p_limit: 20, p_lock_s: 30 })) ?? [];
+      if (!batch.length) break;
+      for (const m of batch) {
+        const r =
+          m.purpose === "customer_message"
+            ? await deliverCustomer(deps, m, () => senderFor("customer"))
+            : await deliver(deps, m, sender);
+        const status =
+          r.status === "retry" ? (m.attempts >= MAX_ATTEMPTS ? "failed" : "queued") : r.status;
+        await deps.rpc("outbox_finish", {
+          p_id: m.id,
+          p_status: status,
+          p_provider_ref: r.ref ?? null,
+          p_error: r.error ?? null,
+          p_retry_in_s: 10 * m.attempts,
+        });
+        out.outbox++;
+      }
+    }
+  };
+
   // 1. Inbound.
   while (left() > 2000) {
     const events: any[] =
@@ -168,7 +192,11 @@ export async function runDispatch(
       const due = await deps.rpc("webhook_next_due", {}).catch(() => null);
       const waitMs = typeof due === "number" || typeof due === "string" ? Number(due) * 1000 : NaN;
       if (!Number.isFinite(waitMs) || waitMs > left() - 2500) break;
-      await (deps.sleep ?? sleep)(Math.max(250, waitMs + 100));
+      const dueAt = Date.now() + waitMs;
+      await drainOutbox();
+      const rest = dueAt - Date.now();
+      if (rest > left() - 2500) break;
+      await (deps.sleep ?? sleep)(Math.max(250, rest + 100));
       continue;
     }
     for (const ev of events) {
@@ -192,27 +220,7 @@ export async function runDispatch(
     }
   }
 
-  // 2. Outbox.
-  while (left() > 1500) {
-    const batch: Outbox[] = (await deps.rpc("outbox_claim", { p_limit: 20, p_lock_s: 30 })) ?? [];
-    if (!batch.length) break;
-    for (const m of batch) {
-      const r =
-        m.purpose === "customer_message"
-          ? await deliverCustomer(deps, m, () => senderFor("customer"))
-          : await deliver(deps, m, sender);
-      const status =
-        r.status === "retry" ? (m.attempts >= MAX_ATTEMPTS ? "failed" : "queued") : r.status;
-      await deps.rpc("outbox_finish", {
-        p_id: m.id,
-        p_status: status,
-        p_provider_ref: r.ref ?? null,
-        p_error: r.error ?? null,
-        p_retry_in_s: 10 * m.attempts,
-      });
-      out.outbox++;
-    }
-  }
+  await drainOutbox();
 
   // 3. Broadcasts (§39.8): one approved broadcast per run while config broadcasts_enabled is on; the database fixes the
   // audience (opted in at this second) and the daily cap, Kapso paces the sends.

@@ -825,9 +825,18 @@ describe("a held message is waited for inside the run (session 5e, 30-second tic
       },
     });
     const waits: number[] = [];
-    const { d } = deps(db, { sleep: async (ms) => void waits.push(ms) });
+    let outboxBeforeWait = false;
+    const { d } = deps(db, {
+      sleep: async (ms) => {
+        outboxBeforeWait = db.of("outbox_claim").length > 0;
+        waits.push(ms);
+      },
+    });
     const out = await runDispatch(d);
-    expect(waits).toEqual([4100]);
+    expect(outboxBeforeWait, "the outbox (an order card) goes out before the wait").toBe(true);
+    expect(waits).toHaveLength(1);
+    expect(waits[0]).toBeGreaterThan(4000);
+    expect(waits[0]).toBeLessThanOrEqual(4100);
     expect(out.inbound).toBe(1);
     expect(db.of("order_accept")).toHaveLength(1);
   });

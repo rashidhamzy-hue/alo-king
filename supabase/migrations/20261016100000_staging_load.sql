@@ -3,54 +3,63 @@
 -- 1. No background job runs more often than every 30 seconds. The five jobs that ran every 5 or 15 seconds
 --    (dispatch-kick, order-escalation, order-monitor, recovery-tick, customer-bot-tick) become one job, `tick-30s`, and
 --    the four one-minute jobs (claims-tick, hours-tick, availability-restore, gift-expire) become `tick-minute`. Each
---    step runs in its own sub-transaction, so one failing step never stops the others. The escalation layers keep their
+--    step runs in its own sub-transaction, so one failing step never stops the others; a failure raises an operator alert.
+--    Staging only in intent (DECISIONS §36): the cut-over (session 14) restores the 5 s / 15 s cadence on production,
+--    where §23 (backup at 15 s, call at 45 s) and §27.5 (orders checked every 15 s) need it. The escalation layers keep their
 --    configured delays; on a 30-second tick each layer fires up to 30 s after its time. Replies are not slower: every
 --    inbound message still kicks `dispatch` from the webhook, and a message held back as `busy` is now waited for inside
 --    the same dispatch run (webhook_next_due) instead of by the next kick.
 -- 2. The catalogue reconcile works only on shops that changed: a shop is queued when its menu_version differs from the
 --    version its last successful sync saw (or it never synced), every 10 minutes, instead of computing every shop's
 --    whole catalogue every 10 minutes. Item availability that changes with time already bumps menu_version
---    (availability restores, stock reaching zero); the daily stock reset is caught by the nightly run, which is now a
---    diff (only changed products go to Meta); the forced full re-send runs weekly (Monday 03:25 Beirut).
+--    (availability restores, stock reaching zero); the daily stock reset and any drift on Meta's side are caught by the
+--    nightly full sync, which stays as DECISIONS §39.12 sets it (03:20 Beirut, outside demo hours).
 -- 3. pg_cron's run history (cron.job_run_details, no index, a row per run) is pruned nightly to two days.
 
 -- 1. Ticks -----------------------------------------------------------------------------------------------------------------
-create function app_private.tick_30s() returns jsonb
+-- Runs each step in its own sub-transaction; a failing step is reported (the result, a warning, and one operator alert
+-- per step per hour) and never stops the others.
+create function app_private.tick_steps(p_tick text, p_steps text[]) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
   r jsonb := '{}';
+  v_failed text[] := '{}';
   v_step text;
+  v_out jsonb;
 begin
-  foreach v_step in array array['order_escalation_tick', 'order_monitor_tick', 'recovery_tick', 'customer_bot_tick',
-                                'dispatch_kick'] loop
+  foreach v_step in array p_steps loop
     begin
-      execute format('select to_jsonb(app_private.%I())', v_step) into strict r;
+      execute format('select to_jsonb(app_private.%I())', v_step) into strict v_out;
+      r := r || jsonb_build_object(v_step, v_out);
     exception when others then
-      raise warning 'tick-30s: % failed: %', v_step, sqlerrm;
+      v_failed := v_failed || v_step;
+      raise warning '%: % failed: %', p_tick, v_step, sqlerrm;
+      begin
+        perform app_private.ops_alert(p_tick || ':' || v_step || ':' || to_char(now(), 'YYYYMMDDHH24'), 'tick_failed',
+          'warning', left(format('Background job %s, step %s failed: %s', p_tick, v_step, sqlerrm), 300), null, null);
+      exception when others then
+        raise warning '%: could not raise the alert for %: %', p_tick, v_step, sqlerrm;
+      end;
     end;
   end loop;
-  return jsonb_build_object('ok', true);
+  return jsonb_build_object('ok', cardinality(v_failed) = 0, 'failed', to_jsonb(v_failed), 'steps', r);
 end;
+$$;
+revoke all on function app_private.tick_steps(text, text[]) from public;
+
+create function app_private.tick_30s() returns jsonb
+language sql security definer set search_path = ''
+as $$
+  select app_private.tick_steps('tick-30s', array['order_escalation_tick', 'order_monitor_tick', 'recovery_tick',
+    'customer_bot_tick', 'dispatch_kick']);
 $$;
 revoke all on function app_private.tick_30s() from public;
 
 create function app_private.tick_minute() returns jsonb
-language plpgsql security definer set search_path = ''
+language sql security definer set search_path = ''
 as $$
-declare
-  r jsonb;
-  v_step text;
-begin
-  foreach v_step in array array['claims_tick', 'hours_tick', 'availability_tick', 'gift_requests_expire'] loop
-    begin
-      execute format('select to_jsonb(app_private.%I())', v_step) into strict r;
-    exception when others then
-      raise warning 'tick-minute: % failed: %', v_step, sqlerrm;
-    end;
-  end loop;
-  return jsonb_build_object('ok', true);
-end;
+  select app_private.tick_steps('tick-minute', array['claims_tick', 'hours_tick', 'availability_tick', 'gift_requests_expire']);
 $$;
 revoke all on function app_private.tick_minute() from public;
 
@@ -137,8 +146,6 @@ $$;
 revoke all on function app_private.catalog_reconcile() from public;
 
 select cron.schedule('catalog-reconcile', '*/10 * * * *', 'select app_private.catalog_reconcile()');
-select cron.schedule('catalog-nightly', '20 0 * * *', $c$select app_private.catalog_enqueue_all(false, 'nightly diff')$c$);
-select cron.schedule('catalog-weekly-full', '25 0 * * 1', $c$select app_private.catalog_enqueue_all(true, 'weekly full sync')$c$);
 
 -- 3. Run history -------------------------------------------------------------------------------------------------------------
 select cron.schedule('cron-history-prune', '41 2 * * *',
