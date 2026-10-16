@@ -745,6 +745,7 @@ export const INFO_KEYS = new Set([
   "savedCartDropped",
   "cartBothSaved",
   "cartBothSavedPickup",
+  "cartBothNoWay",
   // lead-ins: the split list, the basket or checkout follows in the same turn
   "cartUnavailable",
   "cartAltRest",
@@ -2581,6 +2582,13 @@ const S5F: Record<string, Record<CLang, string>> = {
     fr: "✅ Nous gardons votre panier {vendor}. Il ne livre pas chez vous : il vous attend si vous le retirez. Terminons d'abord la commande {basket}.",
     arabizi:
       "✅ 7afazna-lak sallet {vendor}. Ma bywassel la 3endak, fa hiye ma7fouza iza baddak testalema men el ma7al. Mnkammel hala2 talab {basket}.",
+  },
+  cartBothNoWay: {
+    ar: "😔 {vendor} ما بيوصّل لعندك وما فيك تستلم منه، فما منقدر نحفظ هالسلّة. منكمّل طلب {basket}.",
+    en: "😔 {vendor} doesn't deliver to you and doesn't do pickup, so that cart can't be ordered. Let's finish your {basket} order.",
+    fr: "😔 {vendor} ne livre pas chez vous et ne fait pas de retrait : ce panier ne peut pas être commandé. Terminons la commande {basket}.",
+    arabizi:
+      "😔 {vendor} ma bywassel la 3endak w ma fik testalem mno, fa ma mne2dar n7efez hal salle. Mnkammel talab {basket}.",
   },
   cartSplitPaused: {
     ar: "😔 ما منوصّل لمنطقتك هلق. فيك تختار محل وتستلم منه.",

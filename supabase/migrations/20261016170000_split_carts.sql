@@ -24,6 +24,10 @@ create table public.saved_carts (
   status text not null default 'saved' check (status in ('saved', 'used', 'dropped')),
   -- The message that took it: a replayed turn (§39.13, stall replay) gets the same lines back.
   taken_message_id text check (char_length(taken_message_id) <= 200),
+  -- The message that took the closest shop's dish in its place, and what that answered: a replayed turn gets the same
+  -- answer, and the alternative is taken once.
+  swap_message_id text check (char_length(swap_message_id) <= 200),
+  swap_result jsonb,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null,
   unique (customer_id, source_message_id, vendor_id)
@@ -226,6 +230,7 @@ as $$
 declare
   v_id uuid;
   v_vendor uuid;
+  v_check jsonb;
 begin
   if p_message_id is null or char_length(p_message_id) > 200 then
     raise exception 'saved_cart_save needs the message id' using errcode = 'invalid_parameter_value';
@@ -238,15 +243,19 @@ begin
     on conflict (customer_id, source_message_id, vendor_id) do update set status = saved_carts.status
     returning id, vendor_id, position)
   select id, vendor_id into v_id, v_vendor from ins order by position limit 1;
+  if v_vendor is not null then
+    v_check := public.customer_delivery_check(p_customer_id, array[v_vendor]);
+  end if;
   return case when v_id is null then jsonb_build_object('status', 'unavailable',
       'unavailable', (select coalesce(jsonb_agg(n), '[]') from app_private.cart_groups(p_lines) g, jsonb_array_elements(g.names) n
                       where not g.orderable),
       'unavailable_en', (select coalesce(jsonb_agg(n), '[]') from app_private.cart_groups(p_lines) g,
                          jsonb_array_elements(g.names_en) n where not g.orderable))
     else jsonb_build_object('status', 'saved', 'saved_cart_id', v_id,
-      'delivers', (select app_private.cart_delivers(x ->> 'status')
-                   from jsonb_array_elements(coalesce(public.customer_delivery_check(p_customer_id, array[v_vendor]) -> 'vendors',
-                                                      '[]')) x limit 1),
+      'delivers', (select app_private.cart_delivers(x ->> 'status') from jsonb_array_elements(coalesce(v_check -> 'vendors', '[]')) x
+                   limit 1),
+      'place_paused', coalesce(v_check ->> 'status', '') = 'place_paused',
+      'pickup_enabled', (select v.pickup_enabled from public.vendors v where v.id = v_vendor),
       'vendor', (select coalesce(v.name_ar, v.name_en) from public.vendors v where v.id = v_vendor),
       'vendor_en', (select coalesce(v.name_en, v.name_ar) from public.vendors v where v.id = v_vendor)) end;
 end;
@@ -332,7 +341,8 @@ grant execute on function public.saved_cart_drop(uuid, uuid) to service_role;
 -- saved cart; the shop's other items stay kept (the customer may collect them) and come back by name. A saved cart left
 -- with nothing is dropped. When the alternative's shop has its own saved cart from the same send, its id comes back
 -- (join_saved_cart_id) so the customer's own picks from that shop join the same basket.
-create function public.saved_cart_swap(p_customer_id uuid, p_saved_cart_id uuid, p_item_id uuid) returns jsonb
+create function public.saved_cart_swap(p_customer_id uuid, p_saved_cart_id uuid, p_item_id uuid, p_message_id text)
+returns jsonb
 language plpgsql
 volatile
 security definer
@@ -343,39 +353,57 @@ declare
   v_sc public.saved_carts%rowtype;
   v_left jsonb;
   v_first bigint;
+  v_first_dish text;
   v_join uuid;
+  v_out jsonb;
 begin
-  select * into v_sc from public.saved_carts
-  where id = p_saved_cart_id and customer_id = p_customer_id and status = 'saved' for update;
-  if v_sc.id is null or v_dish is null then
+  if p_message_id is null or char_length(p_message_id) > 200 then
     return null;
   end if;
-  select min(t.n) into v_first
+  select * into v_sc from public.saved_carts where id = p_saved_cart_id and customer_id = p_customer_id for update;
+  if v_sc.id is null then
+    return null;
+  end if;
+  -- The same message again (a replayed turn) gets the same answer; once the alternative was taken, nothing changes.
+  if v_sc.swap_message_id is not null then
+    return case when v_sc.swap_message_id = p_message_id then v_sc.swap_result end;
+  end if;
+  if v_sc.status <> 'saved' or v_sc.expires_at <= now() or v_dish is null then
+    return null;
+  end if;
+  -- Only the alternative offered for this cart: the dish of its first line with a known dish (cart_alternative's line).
+  select t.n, nu.dish_id into v_first, v_first_dish
   from jsonb_array_elements(v_sc.lines) with ordinality t(l, n)
-  join public.menu_item_nutrition nu on nu.item_id = (t.l ->> 'item_id')::uuid and nu.dish_id = v_dish;
+  join public.menu_item_nutrition nu on nu.item_id = (t.l ->> 'item_id')::uuid and nu.dish_id is not null
+  order by t.n limit 1;
+  if v_first_dish is distinct from v_dish then
+    return null;
+  end if;
   select coalesce(jsonb_agg(l order by n), '[]') into v_left
   from jsonb_array_elements(v_sc.lines) with ordinality t(l, n)
-  where v_first is null or t.n <> v_first;
+  where t.n <> v_first;
   select sc.id into v_join from public.saved_carts sc join public.menu_items i on i.id = p_item_id
   where sc.customer_id = p_customer_id and sc.source_message_id = v_sc.source_message_id and sc.vendor_id = i.vendor_id
     and sc.id <> v_sc.id and sc.status = 'saved' and sc.expires_at > now();
   if jsonb_array_length(v_left) = 0 then
-    update public.saved_carts set status = 'dropped' where id = v_sc.id;
-    return jsonb_build_object('status', 'dropped', 'names', '[]'::jsonb, 'names_en', '[]'::jsonb, 'join_saved_cart_id', v_join);
+    v_out := jsonb_build_object('status', 'dropped', 'names', '[]'::jsonb, 'names_en', '[]'::jsonb, 'join_saved_cart_id', v_join);
+    update public.saved_carts set status = 'dropped', swap_message_id = p_message_id, swap_result = v_out where id = v_sc.id;
+    return v_out;
   end if;
-  update public.saved_carts set lines = v_left where id = v_sc.id;
-  return (
-    select jsonb_build_object('status', 'kept', 'join_saved_cart_id', v_join,
+  select jsonb_build_object('status', 'kept', 'join_saved_cart_id', v_join,
       'vendor', coalesce(v.name_ar, v.name_en), 'vendor_en', coalesce(v.name_en, v.name_ar),
       'names', jsonb_agg(coalesce(i.name_ar, i.name_en) order by t.n), 'names_en', jsonb_agg(coalesce(i.name_en, i.name_ar) order by t.n))
-    from jsonb_array_elements(v_left) with ordinality t(l, n)
-    join public.menu_items i on i.id = (t.l ->> 'item_id')::uuid
-    join public.vendors v on v.id = v_sc.vendor_id
-    group by v.id);
+    into v_out
+  from jsonb_array_elements(v_left) with ordinality t(l, n)
+  join public.menu_items i on i.id = (t.l ->> 'item_id')::uuid
+  join public.vendors v on v.id = v_sc.vendor_id
+  group by v.id;
+  update public.saved_carts set lines = v_left, swap_message_id = p_message_id, swap_result = v_out where id = v_sc.id;
+  return v_out;
 end;
 $$;
-revoke all on function public.saved_cart_swap(uuid, uuid, uuid) from public, anon, authenticated;
-grant execute on function public.saved_cart_swap(uuid, uuid, uuid) to service_role;
+revoke all on function public.saved_cart_swap(uuid, uuid, uuid, text) from public, anon, authenticated;
+grant execute on function public.saved_cart_swap(uuid, uuid, uuid, text) to service_role;
 
 -- Used and dropped carts go after a week, expired ones too: nothing is kept that will never be offered.
 create function app_private.saved_carts_prune() returns integer

@@ -164,16 +164,23 @@ select tests.ok(:'p'::jsonb -> 'shops' -> 0 -> 'alternative' ->> 'item_id' = '5f
 select tests.ok(:'p'::jsonb -> 'shops' -> 1 -> 'alternative' = 'null'::jsonb, 'a shop that delivers gets no alternative');
 -- The customer takes the alternative: the burger leaves the far shop's saved cart, its fries stay kept and are named.
 select (:'p'::jsonb -> 'shops' -> 0 ->> 'saved_cart_id') as bsc \gset
-select tests.ok(public.saved_cart_swap('5f000000-0000-0000-0000-0000000000e2', :'bsc', '5f000000-0000-0000-0000-0000000000d4') is null,
+select tests.ok(public.saved_cart_swap('5f000000-0000-0000-0000-0000000000e2', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw') is null,
   'another customer cannot touch it');
-select public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4') as sw \gset
+select tests.ok(public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d3', 'wamid.sw') is null,
+  'a dish that is not the one offered for this cart changes nothing');
+select public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw') as sw \gset
 select tests.ok(:'sw'::jsonb ->> 'status' = 'kept' and :'sw'::jsonb -> 'names_en' = '["Double Burger", "Fries"]'::jsonb
   and :'sw'::jsonb ->> 'vendor_en' = 'Split Burger' and :'sw'::jsonb -> 'join_saved_cart_id' = 'null'::jsonb
   and (select status = 'saved' and jsonb_array_length(lines) = 2 from public.saved_carts where id = :'bsc'::uuid),
   'taking the alternative removes only the line it stands in for (not the other burger); the rest stay kept, by name');
+select tests.ok(public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw') = :'sw'::jsonb
+  and (select jsonb_array_length(lines) = 2 from public.saved_carts where id = :'bsc'::uuid),
+  'a replayed turn gets the same answer and removes nothing more (the second burger stays)');
+select tests.ok(public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw.again') is null,
+  'another tap on the same alternative changes nothing');
 select (public.saved_cart_save(:'cid', 'both:wamid.sw', '[{"item_id": "5f000000-0000-0000-0000-0000000000d1", "quantity": 1}]')
   ->> 'saved_cart_id') as only_burger \gset
-select public.saved_cart_swap(:'cid', :'only_burger', '5f000000-0000-0000-0000-0000000000d4') ->> 'status' as swapped \gset
+select public.saved_cart_swap(:'cid', :'only_burger', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw2') ->> 'status' as swapped \gset
 select tests.ok(:'swapped' = 'dropped' and (select status = 'dropped' from public.saved_carts where id = :'only_burger'::uuid),
   'a saved cart left empty is dropped');
 -- The alternative shop closed today, or hidden from this customer: no alternative, never a shop that cannot take it.
@@ -219,14 +226,14 @@ select public.cart_split(:'cid', 'wamid.join', jsonb_build_array(
 select tests.ok(:'j'::jsonb -> 'shops' -> 0 -> 'alternative' ->> 'item_id' = '5f000000-0000-0000-0000-0000000000d4',
   'the far shop''s alternative is the near shop of the same cart');
 select public.saved_cart_swap(:'cid', (:'j'::jsonb -> 'shops' -> 0 ->> 'saved_cart_id')::uuid,
-  '5f000000-0000-0000-0000-0000000000d4') as js \gset
+  '5f000000-0000-0000-0000-0000000000d4', 'wamid.js') as js \gset
 select tests.ok(:'js'::jsonb ->> 'status' = 'dropped'
   and :'js'::jsonb ->> 'join_saved_cart_id' = :'j'::jsonb -> 'shops' -> 1 ->> 'saved_cart_id',
   'the near shop''s own saved cart from the same send comes back, so the customer''s picks from it join the basket');
 -- Do both with a shop beyond its radius: kept, and said to be for pickup (never promised as a delivery).
-select tests.ok(public.saved_cart_save(:'cid', 'both:wamid.far',
-  '[{"item_id": "5f000000-0000-0000-0000-0000000000d1", "quantity": 1}]') -> 'delivers' = 'false'::jsonb,
-  'Do both says a kept cart''s shop does not deliver to the pin');
+select public.saved_cart_save(:'cid', 'both:wamid.far', '[{"item_id": "5f000000-0000-0000-0000-0000000000d1", "quantity": 1}]') as far \gset
+select tests.ok(:'far'::jsonb -> 'delivers' = 'false'::jsonb and not (:'far'::jsonb ->> 'place_paused')::boolean
+  and (:'far'::jsonb ->> 'pickup_enabled')::boolean, 'Do both says a kept cart''s shop does not deliver to the pin, and takes pickup');
 
 -- "Delete my data" forgets saved carts; the nightly prune clears used, dropped and expired ones.
 select public.customer_forget(:'cid', 'all');

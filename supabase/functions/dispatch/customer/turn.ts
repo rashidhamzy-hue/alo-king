@@ -1315,6 +1315,7 @@ async function confirm(c: Ctx, basketId: string, version: number) {
       });
       if (nx?.saved_cart_id)
         offerSavedCart(c, nx, { vendorId: c.basket.vendor_id ?? null, pickup });
+      else delete c.s.refs[AFTER];
       return;
     }
     case "repriced":
@@ -1477,6 +1478,8 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
 }
 
 // ---- Saved carts (§39.15.2): the same steps for a tap and for the agent's saved_cart tool --------------------------
+/** The order a saved-cart offer follows (shop just ordered from, pickup or delivery): the server's, never a model ref. */
+const AFTER = "_after";
 /**
  * Offers the next saved cart (a split cart's other shop), as a ref the agent can name too. After an order the offer keeps
  * that order's context (the shop just ordered from, pickup or delivery) in the session, so "No thanks" offers the next
@@ -1484,7 +1487,7 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
  */
 function offerSavedCart(c: Ctx, nx: any, after?: { vendorId: string | null; pickup: boolean }) {
   if (after)
-    c.s.refs.sx = { id: after.vendorId ?? "", label: after.pickup ? "pickup" : "delivery" };
+    c.s.refs[AFTER] = { id: after.vendorId ?? "", label: after.pickup ? "pickup" : "delivery" };
   const label = String(nx.vendor_en ?? nx.vendor ?? "");
   const ref = refFor(c, "c", String(nx.saved_cart_id), label);
   c.summary.push(
@@ -1520,7 +1523,7 @@ async function savedCartDrop(c: Ctx, savedCartId: string) {
     p_customer_id: c.customerId,
     p_saved_cart_id: savedCartId,
   });
-  const after = c.s.refs.sx;
+  const after = c.s.refs[AFTER];
   const nx = await c.deps
     .rpc("saved_cart_next", {
       p_customer_id: c.customerId,
@@ -1545,6 +1548,8 @@ async function cartAlternative(c: Ctx, savedCartId: string, itemId: string, qty:
       p_customer_id: c.customerId,
       p_saved_cart_id: savedCartId,
       p_item_id: itemId,
+      // Keyed by this message: a replayed turn gets the same answer (and the same cart to join), never a second swap.
+      p_message_id: c.m.messageId,
     })
     .catch(() => null);
   const lang = c.s.lang;
@@ -1578,10 +1583,26 @@ async function cartBoth(c: Ctx) {
   });
   if (sv?.status === "saved")
     // A shop that does not deliver to the pin is kept for pickup, never promised as a delivery after this order.
-    say(c, sv.delivers === false ? "cartBothSavedPickup" : "cartBothSaved", {
-      vendor: lang === "ar" ? sv.vendor : (sv.vendor_en ?? sv.vendor),
-      basket: String(p.basket ?? ""),
-    });
+    if (sv.delivers !== false && !sv.place_paused)
+      say(c, "cartBothSaved", {
+        vendor: lang === "ar" ? sv.vendor : (sv.vendor_en ?? sv.vendor),
+        basket: String(p.basket ?? ""),
+      });
+    else if (sv.pickup_enabled)
+      say(c, "cartBothSavedPickup", {
+        vendor: lang === "ar" ? sv.vendor : (sv.vendor_en ?? sv.vendor),
+        basket: String(p.basket ?? ""),
+      });
+    else {
+      // It neither delivers here nor takes pickup: keeping it would promise an order that cannot happen.
+      await c.deps
+        .rpc("saved_cart_drop", { p_customer_id: c.customerId, p_saved_cart_id: sv.saved_cart_id })
+        .catch(() => null);
+      say(c, "cartBothNoWay", {
+        vendor: lang === "ar" ? sv.vendor : (sv.vendor_en ?? sv.vendor),
+        basket: String(p.basket ?? ""),
+      });
+    }
   else {
     // The cart's shop stopped taking orders meanwhile: its items are named, never dropped silently.
     const gone = (lang === "ar" ? sv?.unavailable : (sv?.unavailable_en ?? sv?.unavailable)) ?? [];
@@ -1646,6 +1667,7 @@ async function cartOrder(
     if (sp?.status === "split" && Array.isArray(sp.shops) && sp.shops.length > 1) {
       // Each shop is a ref, so a typed "Deli Dough first" reaches the same saved cart as the tap (§39.14 rule 1).
       resetRefs(c, "c");
+      delete c.s.refs[AFTER];
       const named = (sp.shops as any[]).slice(0, 10).map((x) => {
         const shop = String(x.vendor_en ?? x.vendor);
         const verdict = x.delivers === false ? " (doesn't deliver to the customer)" : "";
@@ -2790,7 +2812,12 @@ export function vocabularyPrompt(terms: string[]): string {
 
 // ---- The model turn -----------------------------------------------------------------------------------------------
 function contextBlock(c: Ctx): string {
-  const refs = Object.fromEntries(Object.entries(c.s.refs).map(([k, v]) => [k, v.label]));
+  // Keys starting with "_" are the server's own bookkeeping, never shown to the model.
+  const refs = Object.fromEntries(
+    Object.entries(c.s.refs)
+      .filter(([k]) => !k.startsWith("_"))
+      .map(([k, v]) => [k, v.label]),
+  );
   const basket = c.basket?.lines?.length
     ? {
         vendor: c.basket.vendor_en ?? c.basket.vendor,

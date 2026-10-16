@@ -2669,11 +2669,12 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
     });
     await handleCustomerTurn(f.deps, msg({ buttonId: `alt:${SC2}:${ALT}:2`, type: "interactive" }));
     expect(f.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ALT, p_quantity: 2 });
-    expect(f.of("saved_cart_swap")[0].args).toEqual({
+    expect(f.of("saved_cart_swap")[0].args).toMatchObject({
       p_customer_id: CUST,
       p_saved_cart_id: SC2,
       p_item_id: ALT,
     });
+    expect(f.of("saved_cart_swap")[0].args.p_message_id).toBeTruthy();
     expect(f.of("saved_cart_drop")).toHaveLength(0);
     expect(f.sent.map(bodyOf).join("\n")).toMatch(
       /Sushi Bell doesn't deliver to you\. We still keep Fries/,
@@ -2719,7 +2720,7 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
         session: {
           lang: "en",
           pending: {},
-          refs: { sx: { id: VENDOR, label: "pickup" } },
+          refs: { _after: { id: VENDOR, label: "pickup" } },
           history: [],
           low_confidence: 0,
           handoff: false,
@@ -2759,11 +2760,65 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
           vendor: "ب",
           vendor_en: "Vendor B",
           delivers: false,
+          pickup_enabled: true,
         }),
       },
     });
     await handleCustomerTurn(f.deps, msg({ buttonId: "c:cart_both", type: "interactive" }));
     expect(bodyOf(f.sent[0])).toMatch(/doesn't deliver to you, so it's there if you collect it/);
+  });
+
+  it("Do both with a shop that neither delivers here nor takes pickup keeps nothing it cannot order", async () => {
+    const f = fake({
+      begin: {
+        session: {
+          lang: "en",
+          pending: {
+            kind: "cart",
+            lines: [{ i: ITEM, q: 1, p: null }],
+            basket: "Vendor A",
+            cart: "Vendor B",
+          },
+          refs: {},
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: {
+        saved_cart_save: () => ({
+          status: "saved",
+          saved_cart_id: SC2,
+          vendor: "ب",
+          vendor_en: "Vendor B",
+          delivers: null,
+          place_paused: true,
+          pickup_enabled: false,
+        }),
+        saved_cart_drop: () => true,
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:cart_both", type: "interactive" }));
+    expect(f.of("saved_cart_drop")[0].args.p_saved_cart_id).toBe(SC2);
+    expect(bodyOf(f.sent[0])).toMatch(/doesn't do pickup, so that cart can't be ordered/);
+  });
+
+  it("the order context for the next offer is the server's own, never shown to the model, and cleared by a new split", async () => {
+    const f = fake({
+      begin: {
+        session: {
+          lang: "en",
+          pending: {},
+          refs: { _after: { id: VENDOR, label: "pickup" } },
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: { cart_split: () => split },
+    });
+    await handleCustomerTurn(f.deps, cartMsg([{ itemId: ITEM, quantity: 1 }]));
+    expect(f.of("customer_turn_end")[0].args.p_session.refs._after).toBeUndefined();
   });
 
   it("while deliveries to the place are paused, only shops the customer can collect from are promised for later", () => {
