@@ -11,7 +11,7 @@ import {
   type CustomerInbound,
   type ModelResponse,
 } from "./turn";
-import { shopLine } from "./render";
+import { shopLine, splitCartList } from "./render";
 import { TOOLS, TOOL_CONTRACT, SYSTEM_PROMPT } from "./tools";
 
 const CUST = "10000000-0000-0000-0000-000000000001";
@@ -2684,6 +2684,101 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
     });
     await handleCustomerTurn(g.deps, msg({ buttonId: `alt:${SC2}:${ALT}:1`, type: "interactive" }));
     expect(g.of("saved_cart_swap")).toHaveLength(0);
+  });
+
+  it("the alternative from a shop of the same cart brings that shop's own saved cart into the basket", async () => {
+    const f = fake({
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "added", basket }),
+        saved_cart_swap: () => ({
+          status: "dropped",
+          names: [],
+          names_en: [],
+          join_saved_cart_id: SC1,
+        }),
+        saved_cart_take: () => ({ status: "ok", lines: [{ item_id: ITEM, quantity: 1 }] }),
+        cart_merge: () => ({
+          status: "ok",
+          added: 1,
+          skipped: [],
+          needs_options: [],
+          diffs: [],
+          basket,
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `alt:${SC2}:${ALT}:1`, type: "interactive" }));
+    expect(f.of("saved_cart_take")[0].args.p_saved_cart_id).toBe(SC1);
+    expect(f.of("cart_merge")[0].args.p_message_id).toBe(`sc:${SC1}`);
+  });
+
+  it("No thanks keeps the order's context: never the shop just ordered from, and pickup when it was pickup", async () => {
+    const f = fake({
+      begin: {
+        session: {
+          lang: "en",
+          pending: {},
+          refs: { sx: { id: VENDOR, label: "pickup" } },
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: { saved_cart_drop: () => true, saved_cart_next: () => null },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `scl:${SC2}`, type: "interactive" }));
+    expect(f.of("saved_cart_next")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_exclude_vendor_id: VENDOR,
+      p_pickup: true,
+    });
+  });
+
+  it("Do both with a shop that doesn't deliver here keeps it for pickup, never promised as a delivery", async () => {
+    const f = fake({
+      begin: {
+        session: {
+          lang: "en",
+          pending: {
+            kind: "cart",
+            lines: [{ i: ITEM, q: 1, p: null }],
+            basket: "Vendor A",
+            cart: "Vendor B",
+          },
+          refs: {},
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: {
+        saved_cart_save: () => ({
+          status: "saved",
+          saved_cart_id: SC2,
+          vendor: "ب",
+          vendor_en: "Vendor B",
+          delivers: false,
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:cart_both", type: "interactive" }));
+    expect(bodyOf(f.sent[0])).toMatch(/doesn't deliver to you, so it's there if you collect it/);
+  });
+
+  it("while deliveries to the place are paused, only shops the customer can collect from are promised for later", () => {
+    const shops = Array.from({ length: 12 }, (_, k) => ({
+      saved_cart_id: `5c000000-0000-0000-0000-0000000003${String(k).padStart(2, "0")}`,
+      vendor: `محل ${k}`,
+      vendor_en: `Shop ${k}`,
+      items: 1,
+      subtotal_usd: 5,
+      delivers: null,
+      pickup_enabled: k === 11,
+    }));
+    const card = splitCartList("+96170000001", "en", shops, "Baakline", true);
+    expect(card.interactive.body.text).toMatch(/collect from it/);
+    expect(card.interactive.body.text).toMatch(/keep 1 more shop\(s\)/);
   });
 
   it("Do both names the cart's items when its shop stopped taking orders meanwhile", async () => {

@@ -120,7 +120,8 @@ values ('5f000000-0000-0000-0000-0000000000b3', 'near-burger', 'Near Burger', nu
         'merchant', 'gp5fB4', 'SRID=4326;POINT(35.70 33.80)', 10);
 insert into public.menu_items (id, vendor_id, name_en, name_ar, price_usd, sort_order) values
   ('5f000000-0000-0000-0000-0000000000d4', '5f000000-0000-0000-0000-0000000000b3', 'Beef Burger', null, 7, 1),
-  ('5f000000-0000-0000-0000-0000000000d5', '5f000000-0000-0000-0000-0000000000b4', 'Burger', null, 6, 1);
+  ('5f000000-0000-0000-0000-0000000000d5', '5f000000-0000-0000-0000-0000000000b4', 'Burger', null, 6, 1),
+  ('5f000000-0000-0000-0000-0000000000d6', '5f000000-0000-0000-0000-0000000000b1', 'Double Burger', null, 11, 3);
 insert into public.dish_library (id, name_ar, name_en, name_fr, category, unit, portion_g, recipe)
 values ('sc_burger', 'برغر', 'Burger', 'Burger', 'sandwich', 'piece', '{"default": 250}', '{"beef_patty": 150}')
 on conflict (id) do nothing;
@@ -129,7 +130,8 @@ insert into public.menu_item_nutrition (item_id, vendor_id, dish_id, kcal, prote
 select x.i, x.v, 'sc_burger', 500, 25, 40, 25, '{}', 'estimated', '{}', '{}'
 from (values ('5f000000-0000-0000-0000-0000000000d1'::uuid, '5f000000-0000-0000-0000-0000000000b1'::uuid),
              ('5f000000-0000-0000-0000-0000000000d4', '5f000000-0000-0000-0000-0000000000b3'),
-             ('5f000000-0000-0000-0000-0000000000d5', '5f000000-0000-0000-0000-0000000000b4')) x(i, v);
+             ('5f000000-0000-0000-0000-0000000000d5', '5f000000-0000-0000-0000-0000000000b4'),
+             ('5f000000-0000-0000-0000-0000000000d6', '5f000000-0000-0000-0000-0000000000b1')) x(i, v);
 select public.customer_turn_begin('+96170000183', 'wamid.sc.pin', 'text', 'Split tester') as t3 \gset
 select (:'t3'::jsonb #>> '{customer,id}') as cid \gset
 select public.address_save_pin(:'cid', 33.6775, 35.5645, 'Home') as pin \gset
@@ -147,6 +149,7 @@ select public.shop_place_routes_save(jsonb_build_array(
 select public.cart_split(:'cid', 'wamid.pin', jsonb_build_array(
   jsonb_build_object('item_id', '5f000000-0000-0000-0000-0000000000d1', 'quantity', 2),
   jsonb_build_object('item_id', '5f000000-0000-0000-0000-0000000000d3', 'quantity', 1),
+  jsonb_build_object('item_id', '5f000000-0000-0000-0000-0000000000d6', 'quantity', 2),
   jsonb_build_object('item_id', '5f000000-0000-0000-0000-0000000000d2', 'quantity', 1))) as p \gset
 select tests.ok(:'p'::jsonb ->> 'place_en' = 'Baakline' and not (:'p'::jsonb ->> 'place_paused')::boolean,
   'the customer''s village is named');
@@ -164,10 +167,10 @@ select (:'p'::jsonb -> 'shops' -> 0 ->> 'saved_cart_id') as bsc \gset
 select tests.ok(public.saved_cart_swap('5f000000-0000-0000-0000-0000000000e2', :'bsc', '5f000000-0000-0000-0000-0000000000d4') is null,
   'another customer cannot touch it');
 select public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4') as sw \gset
-select tests.ok(:'sw'::jsonb ->> 'status' = 'kept' and :'sw'::jsonb -> 'names_en' = '["Fries"]'::jsonb
-  and :'sw'::jsonb ->> 'vendor_en' = 'Split Burger'
-  and (select status = 'saved' and jsonb_array_length(lines) = 1 from public.saved_carts where id = :'bsc'::uuid),
-  'taking the alternative removes only that dish; the shop''s other items stay kept, by name');
+select tests.ok(:'sw'::jsonb ->> 'status' = 'kept' and :'sw'::jsonb -> 'names_en' = '["Double Burger", "Fries"]'::jsonb
+  and :'sw'::jsonb ->> 'vendor_en' = 'Split Burger' and :'sw'::jsonb -> 'join_saved_cart_id' = 'null'::jsonb
+  and (select status = 'saved' and jsonb_array_length(lines) = 2 from public.saved_carts where id = :'bsc'::uuid),
+  'taking the alternative removes only the line it stands in for (not the other burger); the rest stay kept, by name');
 select (public.saved_cart_save(:'cid', 'both:wamid.sw', '[{"item_id": "5f000000-0000-0000-0000-0000000000d1", "quantity": 1}]')
   ->> 'saved_cart_id') as only_burger \gset
 select public.saved_cart_swap(:'cid', :'only_burger', '5f000000-0000-0000-0000-0000000000d4') ->> 'status' as swapped \gset
@@ -208,6 +211,22 @@ select tests.ok((public.cart_split(:'cid', 'wamid.pin3', jsonb_build_array(
 select tests.ok(public.saved_cart_next(:'cid', null, true) ->> 'vendor_en' = 'Split Burger',
   'but after a pickup order the customer can still collect the rest');
 update public.places set service_status = 'on' where id = 'LB-CHF-SCTEST';
+
+-- The alternative comes from a shop that is in the same cart: its own saved cart comes back to join the basket.
+select public.cart_split(:'cid', 'wamid.join', jsonb_build_array(
+  jsonb_build_object('item_id', '5f000000-0000-0000-0000-0000000000d1', 'quantity', 1),
+  jsonb_build_object('item_id', '5f000000-0000-0000-0000-0000000000d4', 'quantity', 1))) as j \gset
+select tests.ok(:'j'::jsonb -> 'shops' -> 0 -> 'alternative' ->> 'item_id' = '5f000000-0000-0000-0000-0000000000d4',
+  'the far shop''s alternative is the near shop of the same cart');
+select public.saved_cart_swap(:'cid', (:'j'::jsonb -> 'shops' -> 0 ->> 'saved_cart_id')::uuid,
+  '5f000000-0000-0000-0000-0000000000d4') as js \gset
+select tests.ok(:'js'::jsonb ->> 'status' = 'dropped'
+  and :'js'::jsonb ->> 'join_saved_cart_id' = :'j'::jsonb -> 'shops' -> 1 ->> 'saved_cart_id',
+  'the near shop''s own saved cart from the same send comes back, so the customer''s picks from it join the basket');
+-- Do both with a shop beyond its radius: kept, and said to be for pickup (never promised as a delivery).
+select tests.ok(public.saved_cart_save(:'cid', 'both:wamid.far',
+  '[{"item_id": "5f000000-0000-0000-0000-0000000000d1", "quantity": 1}]') -> 'delivers' = 'false'::jsonb,
+  'Do both says a kept cart''s shop does not deliver to the pin');
 
 -- "Delete my data" forgets saved carts; the nightly prune clears used, dropped and expired ones.
 select public.customer_forget(:'cid', 'all');

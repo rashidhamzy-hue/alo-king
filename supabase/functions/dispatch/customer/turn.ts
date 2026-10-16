@@ -1313,7 +1313,8 @@ async function confirm(c: Ctx, basketId: string, version: number) {
         code: r.code,
         vendor: lang === "ar" ? c.basket.vendor : (c.basket.vendor_en ?? c.basket.vendor),
       });
-      if (nx?.saved_cart_id) offerSavedCart(c, nx);
+      if (nx?.saved_cart_id)
+        offerSavedCart(c, nx, { vendorId: c.basket.vendor_id ?? null, pickup });
       return;
     }
     case "repriced":
@@ -1476,8 +1477,14 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
 }
 
 // ---- Saved carts (§39.15.2): the same steps for a tap and for the agent's saved_cart tool --------------------------
-/** Offers the next saved cart (a split cart's other shop), as a ref the agent can name too. */
-function offerSavedCart(c: Ctx, nx: any) {
+/**
+ * Offers the next saved cart (a split cart's other shop), as a ref the agent can name too. After an order the offer keeps
+ * that order's context (the shop just ordered from, pickup or delivery) in the session, so "No thanks" offers the next
+ * one by the same rules.
+ */
+function offerSavedCart(c: Ctx, nx: any, after?: { vendorId: string | null; pickup: boolean }) {
+  if (after)
+    c.s.refs.sx = { id: after.vendorId ?? "", label: after.pickup ? "pickup" : "delivery" };
   const label = String(nx.vendor_en ?? nx.vendor ?? "");
   const ref = refFor(c, "c", String(nx.saved_cart_id), label);
   c.summary.push(
@@ -1513,7 +1520,14 @@ async function savedCartDrop(c: Ctx, savedCartId: string) {
     p_customer_id: c.customerId,
     p_saved_cart_id: savedCartId,
   });
-  const nx = await c.deps.rpc("saved_cart_next", { p_customer_id: c.customerId }).catch(() => null);
+  const after = c.s.refs.sx;
+  const nx = await c.deps
+    .rpc("saved_cart_next", {
+      p_customer_id: c.customerId,
+      p_exclude_vendor_id: after?.id || null,
+      p_pickup: after?.label === "pickup",
+    })
+    .catch(() => null);
   if (nx?.saved_cart_id) return offerSavedCart(c, nx);
   return say(c, "savedCartDropped");
 }
@@ -1546,6 +1560,8 @@ async function cartAlternative(c: Ctx, savedCartId: string, itemId: string, qty:
         }),
       ),
     );
+  // The alternative's shop was in the cart too: the customer's own picks from it join the same basket.
+  if (sw?.join_saved_cart_id) return savedCartTake(c, String(sw.join_saved_cart_id));
   push(c, ...basketMessage(c.m.from, lang, c.basket));
 }
 
@@ -1561,7 +1577,8 @@ async function cartBoth(c: Ctx) {
     p_lines: p.lines.map((l: any) => ({ item_id: l.i, quantity: l.q, shown_usd: l.p ?? null })),
   });
   if (sv?.status === "saved")
-    say(c, "cartBothSaved", {
+    // A shop that does not deliver to the pin is kept for pickup, never promised as a delivery after this order.
+    say(c, sv.delivers === false ? "cartBothSavedPickup" : "cartBothSaved", {
       vendor: lang === "ar" ? sv.vendor : (sv.vendor_en ?? sv.vendor),
       basket: String(p.basket ?? ""),
     });
@@ -1629,12 +1646,15 @@ async function cartOrder(
     if (sp?.status === "split" && Array.isArray(sp.shops) && sp.shops.length > 1) {
       // Each shop is a ref, so a typed "Deli Dough first" reaches the same saved cart as the tap (§39.14 rule 1).
       resetRefs(c, "c");
-      const named = (sp.shops as any[])
-        .slice(0, 10)
-        .map(
-          (x) =>
-            `${refFor(c, "c", String(x.saved_cart_id), String(x.vendor_en ?? x.vendor))} ${x.vendor_en ?? x.vendor}`,
-        );
+      const named = (sp.shops as any[]).slice(0, 10).map((x) => {
+        const shop = String(x.vendor_en ?? x.vendor);
+        const verdict = x.delivers === false ? " (doesn't deliver to the customer)" : "";
+        const cref = refFor(c, "c", String(x.saved_cart_id), `${shop}${verdict}`);
+        const alt = x.delivers === false ? x.alternative : null;
+        if (!alt) return `${cref} ${shop}${verdict}`;
+        const label = `${alt.item_en ?? alt.item} x${alt.quantity ?? 1} from ${alt.vendor_en ?? alt.vendor}`;
+        return `${cref} ${shop}${verdict}, instead ${refFor(c, "i", String(alt.item_id), label)} ${label}`;
+      });
       c.summary.push(
         `[cart from ${sp.shops.length} shops (${named.join(", ")}): the customer picks which one first; the others are kept as saved carts]`,
       );
@@ -3021,13 +3041,21 @@ export function validate(name: ToolName, input: any): boolean {
       );
     case "reorder":
       return ["last", "usual"].includes(input.which);
-    case "saved_cart":
+    case "saved_cart": {
+      const none = (v: unknown) => v === null || v === undefined;
+      const qtyOk =
+        none(input.quantity) ||
+        (Number.isInteger(input.quantity) && input.quantity >= 1 && input.quantity <= 50);
+      if (input.action === "alternative")
+        return ref(input.cart_ref, "c") && ref(input.item_ref, "i") && qtyOk;
+      if (input.action === "take" || input.action === "drop")
+        return ref(input.cart_ref, "c") && none(input.item_ref);
       return (
-        ["take", "drop", "switch", "keep", "both"].includes(input.action) &&
-        (["take", "drop"].includes(input.action)
-          ? ref(input.cart_ref, "c")
-          : input.cart_ref === null || input.cart_ref === undefined)
+        ["switch", "keep", "both"].includes(input.action) &&
+        none(input.cart_ref) &&
+        none(input.item_ref)
       );
+    }
     case "request_human":
       return typeof input.reason === "string" && input.reason.length <= 300;
     case "reply":
@@ -3208,8 +3236,15 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
         if (!sc) return say(c, "savedCartGone");
         return input.action === "take" ? savedCartTake(c, sc.id) : savedCartDrop(c, sc.id);
       }
+      if (input.action === "alternative") {
+        const sc = c.s.refs[input.cart_ref];
+        const it = c.s.refs[input.item_ref];
+        if (!sc || !it) return say(c, "savedCartGone");
+        return cartAlternative(c, sc.id, it.id, input.quantity ?? 1);
+      }
       if (input.action === "keep") {
-        c.s.pending = {};
+        // Only a cart's question is answered here; any other pending step stays as it was.
+        if (c.s.pending.kind === "cart") c.s.pending = {};
         return say(c, "done");
       }
       return input.action === "both" ? cartBoth(c) : cartReplace(c);

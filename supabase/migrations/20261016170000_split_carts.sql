@@ -198,6 +198,7 @@ begin
               * case when i.pricing_unit = 'kg' then i.price_usd * i.est_weight_kg else i.price_usd end), 2)
             from jsonb_array_elements(g.g -> 'lines') l join public.menu_items i on i.id = (l ->> 'item_id')::uuid),
           'delivers', case when v_check ->> 'status' = 'ok' then app_private.cart_delivers(d.status) end,
+          'pickup_enabled', v.pickup_enabled,
           'delivery_status', coalesce(d.status, v_check ->> 'status'),
           -- Only a definite no gets an alternative, and only for the 10 rows the list can show.
           'alternative', case when v_check ->> 'status' = 'ok' and d.status = 'beyond_radius' and g.n <= 10
@@ -243,6 +244,9 @@ begin
       'unavailable_en', (select coalesce(jsonb_agg(n), '[]') from app_private.cart_groups(p_lines) g,
                          jsonb_array_elements(g.names_en) n where not g.orderable))
     else jsonb_build_object('status', 'saved', 'saved_cart_id', v_id,
+      'delivers', (select app_private.cart_delivers(x ->> 'status')
+                   from jsonb_array_elements(coalesce(public.customer_delivery_check(p_customer_id, array[v_vendor]) -> 'vendors',
+                                                      '[]')) x limit 1),
       'vendor', (select coalesce(v.name_ar, v.name_en) from public.vendors v where v.id = v_vendor),
       'vendor_en', (select coalesce(v.name_en, v.name_ar) from public.vendors v where v.id = v_vendor)) end;
 end;
@@ -323,9 +327,11 @@ $$;
 revoke all on function public.saved_cart_drop(uuid, uuid) from public, anon, authenticated;
 grant execute on function public.saved_cart_drop(uuid, uuid) to service_role;
 
--- The closest shop's same dish went into the basket in place of a shop that does not deliver: that dish leaves the
--- shop's saved cart; the shop's other items stay kept (the customer may collect them) and come back by name. A saved cart
--- left with nothing is dropped.
+-- The closest shop's same dish went into the basket in place of a shop that does not deliver: the one line it stands in
+-- for (the cart's first line of that dish, the line cart_alternative took the dish and quantity from) leaves the shop's
+-- saved cart; the shop's other items stay kept (the customer may collect them) and come back by name. A saved cart left
+-- with nothing is dropped. When the alternative's shop has its own saved cart from the same send, its id comes back
+-- (join_saved_cart_id) so the customer's own picks from that shop join the same basket.
 create function public.saved_cart_swap(p_customer_id uuid, p_saved_cart_id uuid, p_item_id uuid) returns jsonb
 language plpgsql
 volatile
@@ -336,23 +342,31 @@ declare
   v_dish text := (select nu.dish_id from public.menu_item_nutrition nu where nu.item_id = p_item_id);
   v_sc public.saved_carts%rowtype;
   v_left jsonb;
+  v_first bigint;
+  v_join uuid;
 begin
   select * into v_sc from public.saved_carts
   where id = p_saved_cart_id and customer_id = p_customer_id and status = 'saved' for update;
   if v_sc.id is null or v_dish is null then
     return null;
   end if;
+  select min(t.n) into v_first
+  from jsonb_array_elements(v_sc.lines) with ordinality t(l, n)
+  join public.menu_item_nutrition nu on nu.item_id = (t.l ->> 'item_id')::uuid and nu.dish_id = v_dish;
   select coalesce(jsonb_agg(l order by n), '[]') into v_left
   from jsonb_array_elements(v_sc.lines) with ordinality t(l, n)
-  where not exists (select 1 from public.menu_item_nutrition nu
-                    where nu.item_id = (t.l ->> 'item_id')::uuid and nu.dish_id = v_dish);
+  where v_first is null or t.n <> v_first;
+  select sc.id into v_join from public.saved_carts sc join public.menu_items i on i.id = p_item_id
+  where sc.customer_id = p_customer_id and sc.source_message_id = v_sc.source_message_id and sc.vendor_id = i.vendor_id
+    and sc.id <> v_sc.id and sc.status = 'saved' and sc.expires_at > now();
   if jsonb_array_length(v_left) = 0 then
     update public.saved_carts set status = 'dropped' where id = v_sc.id;
-    return jsonb_build_object('status', 'dropped', 'names', '[]'::jsonb, 'names_en', '[]'::jsonb);
+    return jsonb_build_object('status', 'dropped', 'names', '[]'::jsonb, 'names_en', '[]'::jsonb, 'join_saved_cart_id', v_join);
   end if;
   update public.saved_carts set lines = v_left where id = v_sc.id;
   return (
-    select jsonb_build_object('status', 'kept', 'vendor', coalesce(v.name_ar, v.name_en), 'vendor_en', coalesce(v.name_en, v.name_ar),
+    select jsonb_build_object('status', 'kept', 'join_saved_cart_id', v_join,
+      'vendor', coalesce(v.name_ar, v.name_en), 'vendor_en', coalesce(v.name_en, v.name_ar),
       'names', jsonb_agg(coalesce(i.name_ar, i.name_en) order by t.n), 'names_en', jsonb_agg(coalesce(i.name_en, i.name_ar) order by t.n))
     from jsonb_array_elements(v_left) with ordinality t(l, n)
     join public.menu_items i on i.id = (t.l ->> 'item_id')::uuid

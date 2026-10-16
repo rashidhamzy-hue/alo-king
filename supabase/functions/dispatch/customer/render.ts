@@ -744,6 +744,7 @@ export const ERROR_WAYS: Record<string, Way[]> = {
 export const INFO_KEYS = new Set([
   "savedCartDropped",
   "cartBothSaved",
+  "cartBothSavedPickup",
   // lead-ins: the split list, the basket or checkout follows in the same turn
   "cartUnavailable",
   "cartAltRest",
@@ -2574,6 +2575,13 @@ const S5F: Record<string, Record<CLang, string>> = {
     fr: "{qty} × {price} $",
     arabizi: "{qty} × ${price}",
   },
+  cartBothSavedPickup: {
+    ar: "✅ حفظنالك سلّة {vendor}. ما بيوصّل لعندك، فهيّي محفوظة إذا بدّك تستلمها من المحل. منكمّل هلق طلب {basket}.",
+    en: "✅ We kept your {vendor} cart. It doesn't deliver to you, so it's there if you collect it. Let's finish your {basket} order first.",
+    fr: "✅ Nous gardons votre panier {vendor}. Il ne livre pas chez vous : il vous attend si vous le retirez. Terminons d'abord la commande {basket}.",
+    arabizi:
+      "✅ 7afazna-lak sallet {vendor}. Ma bywassel la 3endak, fa hiye ma7fouza iza baddak testalema men el ma7al. Mnkammel hala2 talab {basket}.",
+  },
   cartSplitPaused: {
     ar: "😔 ما منوصّل لمنطقتك هلق. فيك تختار محل وتستلم منه.",
     en: "😔 We don't deliver to your area right now. You can still pick a shop and collect from it.",
@@ -2602,6 +2610,7 @@ export type SplitShop = {
   items: number;
   subtotal_usd: number | string | null;
   delivers: boolean | null;
+  pickup_enabled?: boolean | null;
   alternative?: {
     item_id: string;
     vendor: string;
@@ -2669,8 +2678,11 @@ export function splitCartList(
       });
     }
   }
-  // Only shops that can still come after this order are promised (one that does not deliver here is never offered).
-  const later = shops.slice(shown).filter((s) => s.delivers !== false).length;
+  // Only shops that can still come after this order are promised: one that does not deliver here is never offered for
+  // delivery, and while deliveries to the place are paused only a shop the customer can collect from is.
+  const later = shops
+    .slice(shown)
+    .filter((s) => (placePaused ? s.pickup_enabled === true : s.delivers !== false)).length;
   const body = [
     placePaused ? tr(lang, "cartSplitPaused") : null,
     tr(lang, "cartSplit", { n: shops.length }),

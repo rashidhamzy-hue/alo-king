@@ -268,10 +268,14 @@ export const TOOLS = [
   {
     name: "saved_cart",
     description:
-      "The customer answers a cart that came from several shops, or a cart that met a basket from another shop (pending_question cart). take: order that shop's saved cart now (cart_ref c1...). drop: not that one (cart_ref). switch: replace the open basket with the cart's shop; keep: keep the basket and leave the cart; both: the basket first, the cart kept and offered after the order (cart_ref null for these three). The system re-prices everything.",
+      "The customer answers a cart that came from several shops, or a cart that met a basket from another shop (pending_question cart). take: order that shop's saved cart now (cart_ref c1...). drop: not that one (cart_ref). alternative: for a shop that doesn't deliver to the customer, take the closer shop's same dish offered instead (cart_ref of that shop, item_ref of the offered dish, quantity as offered). switch: replace the open basket with the cart's shop; keep: keep the basket and leave the cart; both: the basket first, the cart kept and offered after the order (cart_ref and item_ref null for these three). The system re-prices everything.",
     input_schema: obj({
-      action: { type: "string", enum: ["take", "drop", "switch", "keep", "both"] },
-      cart_ref: nstr("A saved cart ref from the context (c1...) for take or drop, else null"),
+      action: { type: "string", enum: ["take", "drop", "alternative", "switch", "keep", "both"] },
+      cart_ref: nstr(
+        "A saved cart ref from the context (c1...) for take, drop or alternative, else null",
+      ),
+      item_ref: nstr("For alternative: the offered dish's item ref (i1...), else null"),
+      quantity: nullable({ type: "integer" }, "For alternative: the quantity offered, else null"),
     }),
   },
   {
