@@ -2584,7 +2584,7 @@ const S5F: Record<string, Record<CLang, string>> = {
       "✅ 7afazna-lak sallet {vendor}. Ma bywassel la 3endak, fa hiye ma7fouza iza baddak testalema men el ma7al. Mnkammel hala2 talab {basket}.",
   },
   cartBothNoWay: {
-    ar: "😔 {vendor} ما بيوصّل لعندك وما فيك تستلم منه، فما منقدر نحفظ هالسلّة. منكمّل طلب {basket}.",
+    ar: "😔 {vendor} ما بيوصّل لعندك وما فيك تستلم منه، فما فيك تطلب هالسلّة. منكمّل طلب {basket}.",
     en: "😔 {vendor} doesn't deliver to you and doesn't do pickup, so that cart can't be ordered. Let's finish your {basket} order.",
     fr: "😔 {vendor} ne livre pas chez vous et ne fait pas de retrait : ce panier ne peut pas être commandé. Terminons la commande {basket}.",
     arabizi:

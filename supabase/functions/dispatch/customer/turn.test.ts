@@ -2658,33 +2658,55 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
       rpcs: {
         menu_item_options: () => [],
         basket_add_item: () => ({ status: "added", basket }),
-        saved_cart_swap: () => ({
-          status: "kept",
-          vendor: "س",
-          vendor_en: "Sushi Bell",
-          names: ["بطاطا"],
-          names_en: ["Fries"],
-        }),
+        saved_cart_swap: (a: any) =>
+          a.p_check_only
+            ? { ok: true }
+            : {
+                status: "kept",
+                vendor: "س",
+                vendor_en: "Sushi Bell",
+                names: ["بطاطا"],
+                names_en: ["Fries"],
+              },
       },
     });
     await handleCustomerTurn(f.deps, msg({ buttonId: `alt:${SC2}:${ALT}:2`, type: "interactive" }));
     expect(f.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ALT, p_quantity: 2 });
-    expect(f.of("saved_cart_swap")[0].args).toMatchObject({
+    // Asked first (nothing is added for a stale row), then the swap itself, both keyed by the tapping message.
+    expect(f.of("saved_cart_swap").map((x) => x.args.p_check_only ?? false)).toEqual([true, false]);
+    expect(f.of("saved_cart_swap")[1].args).toMatchObject({
       p_customer_id: CUST,
       p_saved_cart_id: SC2,
       p_item_id: ALT,
     });
-    expect(f.of("saved_cart_swap")[0].args.p_message_id).toBeTruthy();
+    expect(f.of("saved_cart_swap")[1].args.p_message_id).toBeTruthy();
     expect(f.of("saved_cart_drop")).toHaveLength(0);
     expect(f.sent.map(bodyOf).join("\n")).toMatch(
       /Sushi Bell doesn't deliver to you\. We still keep Fries/,
     );
     // The dish could not go in: the shop's saved cart is left exactly as it was.
     const g = fake({
-      rpcs: { menu_item_options: () => [], basket_add_item: () => ({ status: "unavailable" }) },
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "unavailable" }),
+        saved_cart_swap: () => ({ ok: true }),
+      },
     });
     await handleCustomerTurn(g.deps, msg({ buttonId: `alt:${SC2}:${ALT}:1`, type: "interactive" }));
-    expect(g.of("saved_cart_swap")).toHaveLength(0);
+    expect(g.of("saved_cart_swap").map((x) => x.args.p_check_only)).toEqual([true]);
+    // A second tap on the same row (a new message, the alternative already taken) adds nothing at all.
+    const h = fake({
+      rpcs: {
+        saved_cart_swap: () => ({ ok: false }),
+        basket_add_item: () => ({ status: "added", basket }),
+      },
+    });
+    await handleCustomerTurn(
+      h.deps,
+      msg({ buttonId: `alt:${SC2}:${ALT}:2`, type: "interactive", messageId: "wamid.tap2" }),
+    );
+    expect(h.of("basket_add_item")).toHaveLength(0);
+    expect(bodyOf(h.sent[0])).toMatch(/no longer kept/);
   });
 
   it("the alternative from a shop of the same cart brings that shop's own saved cart into the basket", async () => {
@@ -2692,12 +2714,15 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
       rpcs: {
         menu_item_options: () => [],
         basket_add_item: () => ({ status: "added", basket }),
-        saved_cart_swap: () => ({
-          status: "dropped",
-          names: [],
-          names_en: [],
-          join_saved_cart_id: SC1,
-        }),
+        saved_cart_swap: (a: any) =>
+          a.p_check_only
+            ? { ok: true }
+            : {
+                status: "dropped",
+                names: [],
+                names_en: [],
+                join_saved_cart_id: SC1,
+              },
         saved_cart_take: () => ({ status: "ok", lines: [{ item_id: ITEM, quantity: 1 }] }),
         cart_merge: () => ({
           status: "ok",
@@ -2791,8 +2816,8 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
           saved_cart_id: SC2,
           vendor: "ب",
           vendor_en: "Vendor B",
-          delivers: null,
-          place_paused: true,
+          delivers: false,
+          place_paused: false,
           pickup_enabled: false,
         }),
         saved_cart_drop: () => true,

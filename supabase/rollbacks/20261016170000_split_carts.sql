@@ -8,7 +8,7 @@ select set_config('app.audit_reason', 'rollback: split carts (session 5f)', true
 
 select cron.unschedule('saved-carts-prune') where exists (select 1 from cron.job where jobname = 'saved-carts-prune');
 drop function if exists app_private.saved_carts_prune();
-drop function if exists public.saved_cart_swap(uuid, uuid, uuid, text);
+drop function if exists public.saved_cart_swap(uuid, uuid, uuid, text, boolean);
 drop function if exists public.saved_cart_drop(uuid, uuid);
 drop function if exists public.saved_cart_next(uuid, uuid, boolean);
 drop function if exists public.saved_cart_take(uuid, uuid, text);

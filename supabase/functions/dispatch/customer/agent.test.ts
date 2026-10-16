@@ -828,12 +828,12 @@ describe("the agent reaches a split cart's choices (§39.14 rule 1, §39.15.2)",
       rpcs: {
         menu_item_options: () => [],
         basket_add_item: () => ({ status: "added", basket: null }),
-        saved_cart_swap: () => null,
+        saved_cart_swap: (a: any) => (a.p_check_only ? { ok: true } : null),
       },
     });
     await handleCustomerTurn(f.deps, msg({ text: "ok the closer one" }));
     expect(f.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ALT, p_quantity: 2 });
-    expect(f.of("saved_cart_swap")[0].args).toMatchObject({
+    expect(f.of("saved_cart_swap")[1].args).toMatchObject({
       p_customer_id: CUST,
       p_saved_cart_id: SC,
       p_item_id: ALT,

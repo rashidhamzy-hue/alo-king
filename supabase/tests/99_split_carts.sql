@@ -168,6 +168,10 @@ select tests.ok(public.saved_cart_swap('5f000000-0000-0000-0000-0000000000e2', :
   'another customer cannot touch it');
 select tests.ok(public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d3', 'wamid.sw') is null,
   'a dish that is not the one offered for this cart changes nothing');
+select tests.ok((public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw', true) ->> 'ok')::boolean
+  and (public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d3', 'wamid.sw', true) ->> 'ok') = 'false'
+  and (select jsonb_array_length(lines) = 3 and swap_message_id is null from public.saved_carts where id = :'bsc'::uuid),
+  'asked first (before the dish goes into the basket): yes for the offered dish, no for another, and nothing changes');
 select public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw') as sw \gset
 select tests.ok(:'sw'::jsonb ->> 'status' = 'kept' and :'sw'::jsonb -> 'names_en' = '["Double Burger", "Fries"]'::jsonb
   and :'sw'::jsonb ->> 'vendor_en' = 'Split Burger' and :'sw'::jsonb -> 'join_saved_cart_id' = 'null'::jsonb
@@ -178,6 +182,9 @@ select tests.ok(public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-
   'a replayed turn gets the same answer and removes nothing more (the second burger stays)');
 select tests.ok(public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw.again') is null,
   'another tap on the same alternative changes nothing');
+select tests.ok((public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw', true) ->> 'ok')::boolean
+  and (public.saved_cart_swap(:'cid', :'bsc', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw.again', true) ->> 'ok') = 'false',
+  'and asked first, the same message may go on (a replay) while another tap adds nothing to the basket');
 select (public.saved_cart_save(:'cid', 'both:wamid.sw', '[{"item_id": "5f000000-0000-0000-0000-0000000000d1", "quantity": 1}]')
   ->> 'saved_cart_id') as only_burger \gset
 select public.saved_cart_swap(:'cid', :'only_burger', '5f000000-0000-0000-0000-0000000000d4', 'wamid.sw2') ->> 'status' as swapped \gset
@@ -260,6 +267,21 @@ select public.saved_cart_save('5f000000-0000-0000-0000-0000000000e2', 'both:wami
   '[{"item_id": "5f000000-0000-0000-0000-0000000000d5", "quantity": 1}]') as un \gset
 select tests.ok(:'un'::jsonb ->> 'status' = 'unavailable' and :'un'::jsonb -> 'unavailable_en' = '["Burger"]'::jsonb,
   'Do both with a shop that stopped taking orders names its items');
+
+-- A shop this customer is not shown (a test shop while demo mode is on, §39.12) is never saved or offered: its items
+-- are named as unavailable.
+update public.vendors set is_test = true where id = '5f000000-0000-0000-0000-0000000000b2';
+insert into public.app_config (key, value, effective_from, note)
+values ('demo_shops', '[{"id": "00000000-0000-0000-0000-0000000000de"}]', now() - interval '1 minute', 'test');
+select public.cart_split('5f000000-0000-0000-0000-0000000000e1', 'wamid.hidden', jsonb_build_array(
+  jsonb_build_object('item_id', '5f000000-0000-0000-0000-0000000000d1', 'quantity', 1),
+  jsonb_build_object('item_id', '5f000000-0000-0000-0000-0000000000d3', 'quantity', 1))) as hd \gset
+select tests.ok(:'hd'::jsonb ->> 'status' = 'single' and :'hd'::jsonb -> 'unavailable_en' = '["Salmon Roll"]'::jsonb
+  and not exists (select 1 from public.saved_carts where source_message_id = 'wamid.hidden'),
+  'a hidden shop is never saved: its items are named as unavailable');
+select tests.ok(public.saved_cart_save('5f000000-0000-0000-0000-0000000000e1', 'both:wamid.hidden',
+  '[{"item_id": "5f000000-0000-0000-0000-0000000000d3", "quantity": 1}]') ->> 'status' = 'unavailable',
+  'nor kept by Do both');
 
 -- Access: service role only.
 set local role authenticated;

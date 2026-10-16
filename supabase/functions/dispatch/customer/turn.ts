@@ -1532,6 +1532,7 @@ async function savedCartDrop(c: Ctx, savedCartId: string) {
     })
     .catch(() => null);
   if (nx?.saved_cart_id) return offerSavedCart(c, nx);
+  delete c.s.refs[AFTER];
   return say(c, "savedCartDropped");
 }
 
@@ -1541,6 +1542,17 @@ async function savedCartDrop(c: Ctx, savedCartId: string) {
  * still possible) and are named, never lost silently.
  */
 async function cartAlternative(c: Ctx, savedCartId: string, itemId: string, qty: number) {
+  // Asked first: a second tap on the same row, or a dish that is not the one offered for that cart, adds nothing.
+  const ok = await c.deps
+    .rpc("saved_cart_swap", {
+      p_customer_id: c.customerId,
+      p_saved_cart_id: savedCartId,
+      p_item_id: itemId,
+      p_message_id: c.m.messageId,
+      p_check_only: true,
+    })
+    .catch(() => null);
+  if (ok?.ok !== true) return say(c, "savedCartGone");
   const added = await addOne(c, itemId, Math.min(Math.max(qty, 1), 50), [], null, null);
   if (!added) return;
   const sw = await c.deps
@@ -1583,7 +1595,8 @@ async function cartBoth(c: Ctx) {
   });
   if (sv?.status === "saved")
     // A shop that does not deliver to the pin is kept for pickup, never promised as a delivery after this order.
-    if (sv.delivers !== false && !sv.place_paused)
+    // A paused place is temporary: the cart stays kept and is offered once deliveries there resume.
+    if (sv.delivers !== false && (!sv.place_paused || !sv.pickup_enabled))
       say(c, "cartBothSaved", {
         vendor: lang === "ar" ? sv.vendor : (sv.vendor_en ?? sv.vendor),
         basket: String(p.basket ?? ""),

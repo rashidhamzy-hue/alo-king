@@ -159,16 +159,19 @@ begin
     raise exception 'cart_split needs the message id' using errcode = 'invalid_parameter_value';
   end if;
   select coalesce(jsonb_agg(to_jsonb(g) order by g.first_at), '[]') into v_groups from app_private.cart_groups(p_lines) g;
+  -- A shop this customer is not shown (a test shop while demo mode is on, §39.12) is never saved: named as unavailable.
+  v_hidden := coalesce(app_private.customer_hidden_vendors(p_customer_id), '{}');
   if jsonb_array_length(v_groups) = 0 then
     return jsonb_build_object('status', 'unknown_items');
   end if;
   select coalesce(jsonb_agg(g order by (g ->> 'first_at')::bigint), '[]') into v_live
-  from jsonb_array_elements(v_groups) g where (g ->> 'orderable')::boolean;
+  from jsonb_array_elements(v_groups) g
+  where (g ->> 'orderable')::boolean and not ((g ->> 'vendor_id')::uuid = any (v_hidden));
   select coalesce(jsonb_agg(n), '[]'), coalesce(jsonb_agg(ne), '[]') into v_unavailable, v_unavailable_en
   from jsonb_array_elements(v_groups) g
   cross join lateral jsonb_array_elements(g -> 'names') with ordinality a(n, k)
   join lateral (select e from jsonb_array_elements(g -> 'names_en') with ordinality b(e, j) where j = k) b2(ne) on true
-  where not (g ->> 'orderable')::boolean;
+  where not (g ->> 'orderable')::boolean or (g ->> 'vendor_id')::uuid = any (v_hidden);
   -- A shop sent again replaces that shop's saved cart from an earlier send (the newer items are what the customer wants
   -- from it); other shops' saved carts stay, and a "Do both" cart is never touched (the customer chose to keep it).
   update public.saved_carts set status = 'dropped'
@@ -186,7 +189,6 @@ begin
   on conflict (customer_id, source_message_id, vendor_id) do nothing;
   v_check := public.customer_delivery_check(p_customer_id,
     (select array_agg((g ->> 'vendor_id')::uuid) from jsonb_array_elements(v_live) g));
-  v_hidden := app_private.customer_hidden_vendors(p_customer_id);
   select jsonb_build_object('place', p.name_ar, 'place_en', coalesce(p.name_en, p.name_ar)) into v_place
   from public.addresses a join public.places p on p.id = a.place_id
   where a.id = (public.customer_search_point(p_customer_id) ->> 'address_id')::uuid;
@@ -239,7 +241,8 @@ begin
     insert into public.saved_carts (customer_id, vendor_id, lines, source_message_id, position, expires_at)
     select p_customer_id, g.vendor_id, g.lines, p_message_id, g.first_at::int,
       now() + make_interval(hours => coalesce(public.config_numeric('basket_keep_hours'), 24)::int)
-    from app_private.cart_groups(p_lines) g where g.orderable
+    from app_private.cart_groups(p_lines) g
+    where g.orderable and not (g.vendor_id = any (coalesce(app_private.customer_hidden_vendors(p_customer_id), '{}')))
     on conflict (customer_id, source_message_id, vendor_id) do update set status = saved_carts.status
     returning id, vendor_id, position)
   select id, vendor_id into v_id, v_vendor from ins order by position limit 1;
@@ -248,9 +251,10 @@ begin
   end if;
   return case when v_id is null then jsonb_build_object('status', 'unavailable',
       'unavailable', (select coalesce(jsonb_agg(n), '[]') from app_private.cart_groups(p_lines) g, jsonb_array_elements(g.names) n
-                      where not g.orderable),
+                      where not g.orderable or g.vendor_id = any (coalesce(app_private.customer_hidden_vendors(p_customer_id), '{}'))),
       'unavailable_en', (select coalesce(jsonb_agg(n), '[]') from app_private.cart_groups(p_lines) g,
-                         jsonb_array_elements(g.names_en) n where not g.orderable))
+                         jsonb_array_elements(g.names_en) n
+                         where not g.orderable or g.vendor_id = any (coalesce(app_private.customer_hidden_vendors(p_customer_id), '{}'))))
     else jsonb_build_object('status', 'saved', 'saved_cart_id', v_id,
       'delivers', (select app_private.cart_delivers(x ->> 'status') from jsonb_array_elements(coalesce(v_check -> 'vendors', '[]')) x
                    limit 1),
@@ -309,6 +313,7 @@ begin
     where sc.customer_id = p_customer_id and sc.status = 'saved' and sc.expires_at > now()
       and sc.vendor_id is distinct from p_exclude_vendor_id
       and v.claim_status = 'claimed' and v.orderable and v.listing_status = 'active'
+      and not (v.id = any (coalesce(app_private.customer_hidden_vendors(p_customer_id), '{}')))
       and case when coalesce(p_pickup, false) then v.pickup_enabled
           else coalesce(v_check ->> 'status', '') <> 'place_paused'
             and not exists (select 1 from jsonb_array_elements(coalesce(v_check -> 'vendors', '[]')) x
@@ -341,7 +346,8 @@ grant execute on function public.saved_cart_drop(uuid, uuid) to service_role;
 -- saved cart; the shop's other items stay kept (the customer may collect them) and come back by name. A saved cart left
 -- with nothing is dropped. When the alternative's shop has its own saved cart from the same send, its id comes back
 -- (join_saved_cart_id) so the customer's own picks from that shop join the same basket.
-create function public.saved_cart_swap(p_customer_id uuid, p_saved_cart_id uuid, p_item_id uuid, p_message_id text)
+create function public.saved_cart_swap(p_customer_id uuid, p_saved_cart_id uuid, p_item_id uuid, p_message_id text,
+  p_check_only boolean default false)
 returns jsonb
 language plpgsql
 volatile
@@ -366,10 +372,13 @@ begin
   end if;
   -- The same message again (a replayed turn) gets the same answer; once the alternative was taken, nothing changes.
   if v_sc.swap_message_id is not null then
+    if coalesce(p_check_only, false) then
+      return jsonb_build_object('ok', v_sc.swap_message_id = p_message_id);
+    end if;
     return case when v_sc.swap_message_id = p_message_id then v_sc.swap_result end;
   end if;
   if v_sc.status <> 'saved' or v_sc.expires_at <= now() or v_dish is null then
-    return null;
+    return case when coalesce(p_check_only, false) then jsonb_build_object('ok', false) end;
   end if;
   -- Only the alternative offered for this cart: the dish of its first line with a known dish (cart_alternative's line).
   select t.n, nu.dish_id into v_first, v_first_dish
@@ -377,7 +386,11 @@ begin
   join public.menu_item_nutrition nu on nu.item_id = (t.l ->> 'item_id')::uuid and nu.dish_id is not null
   order by t.n limit 1;
   if v_first_dish is distinct from v_dish then
-    return null;
+    return case when coalesce(p_check_only, false) then jsonb_build_object('ok', false) end;
+  end if;
+  -- Asked before the dish goes into the basket: a second tap or another dish never adds it.
+  if coalesce(p_check_only, false) then
+    return jsonb_build_object('ok', true);
   end if;
   select coalesce(jsonb_agg(l order by n), '[]') into v_left
   from jsonb_array_elements(v_sc.lines) with ordinality t(l, n)
@@ -402,8 +415,8 @@ begin
   return v_out;
 end;
 $$;
-revoke all on function public.saved_cart_swap(uuid, uuid, uuid, text) from public, anon, authenticated;
-grant execute on function public.saved_cart_swap(uuid, uuid, uuid, text) to service_role;
+revoke all on function public.saved_cart_swap(uuid, uuid, uuid, text, boolean) from public, anon, authenticated;
+grant execute on function public.saved_cart_swap(uuid, uuid, uuid, text, boolean) to service_role;
 
 -- Used and dropped carts go after a week, expired ones too: nothing is kept that will never be offered.
 create function app_private.saved_carts_prune() returns integer
