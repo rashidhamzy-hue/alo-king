@@ -2951,3 +2951,439 @@ describe("carts from several shops are split, never dropped (DECISIONS §39.15.2
     expect(bodyOf(f.sent[0])).toMatch(/Not available right now: Kibbeh/);
   });
 });
+
+describe("demo testers anywhere in the world (session 5f part 6, DECISIONS §39.15.3)", () => {
+  const CODE = "ALO7F3A9C21";
+  const btnIds = (p: any) => (p?.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id);
+  const firstArabic = {
+    first_contact: true,
+    customer: { id: CUST, language: "ar", blocked: false },
+    session: { lang: "ar", pending: {}, refs: {}, history: [], low_confidence: 0, handoff: false },
+  };
+  const choices = [
+    { key: "baakleen", name_en: "Baakleen", name_ar: "بعقلين", name_fr: "Baakline" },
+    {
+      key: "deir_el_qamar",
+      name_en: "Deir el Qamar",
+      name_ar: "دير القمر",
+      name_fr: "Deir el Qamar",
+    },
+    { key: "beiteddine", name_en: "Beiteddine", name_ar: "بيت الدين", name_fr: "Beiteddine" },
+  ];
+
+  it("the link's code enrols the tester: first that orders are pretend, then the normal welcome", async () => {
+    const f = fake({
+      model: null,
+      begin: firstArabic,
+      rpcs: {
+        demo_tester_enrol: () => ({ status: "enrolled", expires_at: "2026-10-30T11:00:00Z" }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: CODE }));
+    expect(f.of("demo_tester_enrol")[0].args).toEqual({ p_customer_id: CUST, p_text: CODE });
+    expect(f.sent).toHaveLength(2);
+    // A bare code on first contact starts in English (a tester writes from anywhere), never Arabizi from its digits.
+    expect(f.sent[0].text.body).toBe(
+      "🧪 You're testing Alo King. Orders are pretend: nothing is cooked, delivered or paid.",
+    );
+    expect(btnIds(f.sent[1])).toEqual(["c:order", "c:track", "c:human"]);
+    expect(f.of("customer_turn_end")[0].args.p_session.lang).toBe("en");
+    expect(f.of("catalog_search")).toHaveLength(0);
+  });
+
+  it("a code inside a sentence keeps the sentence's language; the bare code again says the same", async () => {
+    const f = fake({
+      model: null,
+      rpcs: { demo_tester_enrol: () => ({ status: "enrolled" }) },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: `Bonjour ${CODE.toLowerCase()}` }));
+    expect(f.sent[0].text.body).toMatch(/^🧪 Vous testez Alo King\. Les commandes sont fictives/);
+    expect(btnIds(f.sent[1])).toEqual(["c:order", "c:track", "c:human"]);
+    const g = fake({ model: null, rpcs: { demo_tester_enrol: () => ({ status: "already" }) } });
+    await handleCustomerTurn(g.deps, msg({ text: CODE }));
+    expect(g.sent[0].text.body).toMatch(/^🧪 You're testing Alo King/);
+    expect(btnIds(g.sent[1])).toEqual(["c:order", "c:track", "c:human"]);
+  });
+
+  it("the test is full: said kindly, with the main menu", async () => {
+    const f = fake({ model: null, rpcs: { demo_tester_enrol: () => ({ status: "full" }) } });
+    await handleCustomerTurn(f.deps, msg({ text: CODE }));
+    expect(f.sent).toHaveLength(1);
+    expect(bodyOf(f.sent[0])).toMatch(/The test is full for now/);
+    expect(btnIds(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+    expect(checkInteractive(f.sent[0])).toEqual([]);
+  });
+
+  it("an old link (demo mode off, or a removed tester): the plain welcome, never a search for the code", async () => {
+    for (const status of ["off", "removed"]) {
+      const f = fake({ model: null, rpcs: { demo_tester_enrol: () => ({ status }) } });
+      await handleCustomerTurn(f.deps, msg({ text: CODE }));
+      expect(f.sent).toHaveLength(1);
+      expect(btnIds(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+      expect(bodyOf(f.sent[0])).not.toMatch(/testing/);
+      expect(f.of("catalog_search")).toHaveLength(0);
+    }
+  });
+
+  it("ordinary words never ask the server (aloking, alongside, alooo, alo2ahwe)", async () => {
+    for (const t of [
+      "aloking burger",
+      "fries alongside",
+      "alooooo",
+      "alo2ahwe",
+      "Alo King burger",
+    ]) {
+      const f = fake({
+        model: null,
+        rpcs: { catalog_search: () => ({ status: "none", items: [] }) },
+      });
+      await handleCustomerTurn(f.deps, msg({ text: t }));
+      expect(f.of("demo_tester_enrol"), t).toHaveLength(0);
+      expect(f.of("catalog_search"), t).toHaveLength(1);
+    }
+  });
+
+  it("where demo mode is off (production), a message with more than a code is answered as usual", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        demo_tester_enrol: () => ({ status: "off" }),
+        catalog_search: () => ({ status: "none", items: [], expand: {} }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: `${CODE} 2 shawarma` }));
+    expect(f.of("demo_tester_enrol")).toHaveLength(1);
+    expect(f.of("catalog_search")).toHaveLength(1);
+    // A pending step still gets its answer.
+    const g = fake({
+      model: null,
+      begin: {
+        session: {
+          lang: "en",
+          pending: { kind: "recipient", address_id: "90000000-0000-0000-0000-000000000001" },
+          refs: {},
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: {
+        demo_tester_enrol: () => ({ status: "off" }),
+        address_set_recipient: () => ({ status: "saved", name: "Teta" }),
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ text: `Teta +96170123456 ${CODE}` }));
+    expect(g.of("address_set_recipient")).toHaveLength(1);
+    // A removed tester who writes more than the code: the same.
+    const h = fake({
+      model: null,
+      rpcs: {
+        demo_tester_enrol: () => ({ status: "removed" }),
+        catalog_search: () => ({ status: "none", items: [], expand: {} }),
+      },
+    });
+    await handleCustomerTurn(h.deps, msg({ text: `${CODE} burger` }));
+    expect(h.of("catalog_search")).toHaveLength(1);
+  });
+
+  it("a tester who writes more than the code gets the request answered (the welcome only once)", async () => {
+    const none = () => ({ status: "none", items: [], expand: {} });
+    const f = fake({
+      model: null,
+      rpcs: { demo_tester_enrol: () => ({ status: "already" }), catalog_search: none },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: `${CODE} burger` }));
+    expect(f.of("catalog_search")[0].args.p_query).toBe("burger");
+    expect(f.sent.map(bodyOf).join("\n")).not.toMatch(/You're testing/);
+    const g = fake({
+      model: null,
+      rpcs: { demo_tester_enrol: () => ({ status: "enrolled" }), catalog_search: none },
+    });
+    await handleCustomerTurn(g.deps, msg({ text: `burger please ${CODE}` }));
+    expect(g.sent[0].text.body).toMatch(/^🧪 You're testing Alo King/);
+    expect(g.of("catalog_search")[0].args.p_query).toBe("burger please");
+    expect(g.sent.length).toBeGreaterThan(1);
+  });
+
+  it("a text that is not the code carries on as any text", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        demo_tester_enrol: () => ({ status: "no_code" }),
+        catalog_search: () => ({ status: "none", items: [], expand: {} }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "ALO00000000 burger" }));
+    expect(f.of("demo_tester_enrol")).toHaveLength(1);
+    expect(f.of("catalog_search")).toHaveLength(1);
+  });
+
+  it("a tester's pin outside the delivery area: the three demo addresses, and the pending step is kept", async () => {
+    const pending = { kind: "await_pin", then: "browse" };
+    const f = fake({
+      begin: {
+        session: { lang: "en", pending, refs: {}, history: [], low_confidence: 0, handoff: false },
+      },
+      rpcs: { address_save_pin: () => ({ status: "demo_outside", choices, place: null }) },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "location", location: { lat: 48.8584, lon: 2.2945 } }),
+    );
+    expect(f.sent).toHaveLength(1);
+    expect(bodyOf(f.sent[0])).toBe(
+      "📍 You're outside our delivery area. For this test, pick a demo address:",
+    );
+    expect(btnIds(f.sent[0])).toEqual(["da:baakleen", "da:deir_el_qamar", "da:beiteddine"]);
+    expect(f.sent[0].interactive.action.buttons.map((b: any) => b.reply.title)).toEqual([
+      "📍 Baakleen",
+      "📍 Deir el Qamar",
+      "📍 Beiteddine",
+    ]);
+    expect(checkInteractive(f.sent[0])).toEqual([]);
+    expect(f.of("customer_turn_end")[0].args.p_session.pending).toEqual(pending);
+  });
+
+  it("picking a demo address goes on exactly as a pin would: with a basket, the summary", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        demo_address_pick: () => ({
+          status: "saved",
+          new: true,
+          demo: true,
+          address: {
+            place: "دير القمر",
+            place_en: "Deir Al Qamar",
+            place_status: "on",
+            building: "x",
+          },
+        }),
+        basket_quote: () => ({
+          status: "ok",
+          basket,
+          subtotal_usd: 10,
+          delivery_fee_usd: 2,
+          total_usd: 12,
+          total_lbp: 1074000,
+          usd_lbp_rate: 89500,
+          cod_cap_usd: 50,
+          over_cod_cap: false,
+          route_source: "place_fallback",
+          address: { place: "دير القمر", place_en: "Deir Al Qamar" },
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "da:deir_el_qamar", type: "interactive" }));
+    expect(f.of("demo_address_pick")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_key: "deir_el_qamar",
+    });
+    expect(f.of("address_save_pin")).toHaveLength(0);
+    expect(bodyOf(f.sent[0])).toBe("✅ Address saved: Deir Al Qamar, x");
+    const summary = f.sent.find((p) => btnIds(p)[0]?.startsWith("cfm:"));
+    expect(bodyOf(summary)).toContain("Deir Al Qamar");
+  });
+
+  it("in Arabic the buttons carry the Arabic names", async () => {
+    const f = fake({
+      begin: {
+        session: {
+          lang: "ar",
+          pending: {},
+          refs: {},
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: { address_save_pin: () => ({ status: "demo_outside", choices }) },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "location", location: { lat: 33.89, lon: 35.48 } }),
+    );
+    expect(f.sent[0].interactive.action.buttons.map((b: any) => b.reply.title)).toEqual([
+      "📍 بعقلين",
+      "📍 دير القمر",
+      "📍 بيت الدين",
+    ]);
+    expect(bodyOf(f.sent[0])).toMatch(/برّا منطقة التوصيل/);
+  });
+
+  it("a demo address the server refuses (no longer a tester) is an error with its buttons", async () => {
+    const f = fake({ rpcs: { demo_address_pick: () => ({ status: "not_allowed" }) } });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "da:baakleen", type: "interactive" }));
+    expect(f.sent).toHaveLength(1);
+    expect(btnIds(f.sent[0])).toEqual(["c:new_address", "c:human"]);
+  });
+
+  it("a tester's tap on an item of a shop that is not a demo shop: the way to the demo shops", async () => {
+    const f = fake({
+      begin: {
+        session: {
+          lang: "fr",
+          pending: {},
+          refs: { i1: { id: ITEM, label: "Wrap $3.00" } },
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: { menu_item_options: () => [], basket_add_item: () => ({ status: "demo_only" }) },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "qt:i1:2", type: "interactive" }));
+    expect(f.sent).toHaveLength(1);
+    expect(bodyOf(f.sent[0])).toMatch(
+      /^🧪 Pour ce test, commandez dans les commerces de démonstration/,
+    );
+    expect(btnIds(f.sent[0])).toEqual(["c:order", "c:human"]);
+  });
+
+  it("a tester's cart from a shop that is not a demo shop: the way to the demo shops instead", async () => {
+    const g = fake({
+      begin: { refs: {} },
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "demo_only" }),
+        cart_split: () => ({ status: "single" }),
+        cart_merge: () => ({
+          status: "ok",
+          added: 0,
+          skipped: [{ item_id: ITEM, status: "demo_only", item: "x", item_en: "Wrap" }],
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      g.deps,
+      msg({ type: "order", cart: { lines: [{ itemId: ITEM, quantity: 1, shownUsd: 3 }] } }),
+    );
+    expect(g.sent).toHaveLength(1);
+    expect(bodyOf(g.sent[0])).toMatch(/For this test, order from the demo shops/);
+    expect(btnIds(g.sent[0])).toEqual(["c:order", "c:human"]);
+  });
+
+  it("an order the server refuses for a tester (demo_only, demo_address) is answered with its buttons", async () => {
+    const quote = {
+      status: "ok",
+      basket,
+      subtotal_usd: 10,
+      delivery_fee_usd: 2,
+      total_usd: 12,
+      total_lbp: 1074000,
+      usd_lbp_rate: 89500,
+      cod_cap_usd: 50,
+      over_cod_cap: false,
+      address: { place: "بعقلين", place_en: "Baakline" },
+    };
+    for (const [err, text, ids] of [
+      [
+        "demo_only: a demo tester orders only from the demo shops",
+        /order from the demo shops/,
+        ["c:order", "c:human"],
+      ],
+      [
+        "demo_address: a demo address serves only during the test",
+        /only for the test\. Send your location pin/,
+        ["c:new_address", "c:human"],
+      ],
+    ] as const) {
+      const f = fake({
+        begin: {
+          basket,
+          session: {
+            lang: "en",
+            pending: { kind: "confirm", basket_id: BASKET, version: 7 },
+            refs: {},
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+        },
+        rpcs: {
+          order_place: () => {
+            throw new Error(err);
+          },
+          basket_quote: () => quote,
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ buttonId: `cfm:${BASKET}:7`, type: "interactive" }));
+      expect(f.sent).toHaveLength(1);
+      expect(bodyOf(f.sent[0])).toMatch(text);
+      expect(btnIds(f.sent[0])).toEqual(ids);
+    }
+    // Any other failure is still a failure (the buttons, never a demo message).
+    const g = fake({
+      begin: { basket },
+      rpcs: {
+        order_place: () => {
+          throw new Error("boom");
+        },
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: `cfm:${BASKET}:7`, type: "interactive" }));
+    expect(bodyOf(g.sent[0])).not.toMatch(/demo/);
+  });
+
+  it("a tester's Send Home to someone outside the test: the server refuses it, the reply has its buttons", async () => {
+    const f = fake({
+      begin: {
+        basket,
+        session: {
+          lang: "en",
+          pending: { kind: "confirm", basket_id: BASKET, version: 7 },
+          refs: {},
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: {
+        order_place: () => ({ status: "gift_needs_recipient" }),
+        gift_request_create: () => ({ status: "demo_recipient", recipient_name: "Mum" }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: `cfm:${BASKET}:7`, type: "interactive" }));
+    expect(f.of("gift_request_create")).toHaveLength(1);
+    expect(f.sent).toHaveLength(1);
+    expect(bodyOf(f.sent[0])).toMatch(/send it to yourself or to another tester/);
+    expect(btnIds(f.sent[0])).toEqual(["c:new_address", "c:human"]);
+  });
+
+  it('a tester\'s "Same again" at a shop that is not a demo shop: the way to the demo shops', async () => {
+    const f = fake({
+      begin: {
+        profile: {
+          delivered_orders: 1,
+          last_order_id: "30000000-0000-0000-0000-000000000009",
+          usual_vendors: [],
+          usual_items: [],
+          addresses: [],
+          preferences: {},
+        },
+      },
+      rpcs: { basket_reorder: () => ({ status: "demo_only" }) },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:usual", type: "interactive" }));
+    expect(f.of("basket_reorder")).toHaveLength(1);
+    expect(bodyOf(f.sent[0])).toMatch(/order from the demo shops/);
+    expect(btnIds(f.sent[0])).toEqual(["c:order", "c:human"]);
+  });
+
+  it("a real customer outside the area keeps today's answer", async () => {
+    const f = fake({
+      rpcs: {
+        address_save_pin: () => ({
+          status: "saved",
+          address: { place: "الحمرا", place_en: "Hamra", place_status: "paused" },
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "location", location: { lat: 33.89, lon: 35.48 } }),
+    );
+    expect(bodyOf(f.sent[0])).toMatch(/We don't deliver to that area right now/);
+    expect(btnIds(f.sent[0])).toEqual(["c:new_address", "c:human"]);
+  });
+});

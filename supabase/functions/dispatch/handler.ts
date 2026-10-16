@@ -55,6 +55,7 @@ import { templateByName, templateLang, templateMessage } from "../_shared/whatsa
 import { isSimNumber } from "../_shared/sim-sink.ts";
 import type { SlackPost } from "../_shared/ops-notifier.ts";
 import { adminTap, handleAdmin, parseAdminCommand } from "./admin.ts";
+import { parseTesterRemove } from "../_shared/demo-testers.ts";
 
 export type SendResult = { ok: true; id?: string } | { ok: false; retry: boolean; error: string };
 
@@ -743,6 +744,28 @@ async function handleInbound(deps: DispatchDeps, ev: any): Promise<"done" | "ign
       .catch(() => null);
     if (op?.user_id) {
       await handleAdmin(deps, m, op, adminTapped, adminCmd);
+      return "done";
+    }
+  }
+  // Demo testers (§39.15.3): `tester remove +…` from an owner's phone, on either side of the test switch. The server checks
+  // the owner; from anyone else the message carries on as a normal one.
+  const testerCmd = parseTesterRemove(m.text);
+  if (testerCmd) {
+    const r = await deps
+      .rpc("demo_tester_remove_by_owner", {
+        p_owner_phone: m.from,
+        p_phone_e164: testerCmd.phone ?? "",
+      })
+      .catch((e: unknown) => {
+        deps.log?.("tester remove failed", { error: String(e).slice(0, 120) });
+        return null;
+      });
+    if (r?.status && r.status !== "not_owner") {
+      await deps.rpc("app_reply", {
+        p_to: m.from,
+        p_payload: { text: testerRemoveReply(r) },
+        p_ref: m.messageId,
+      });
       return "done";
     }
   }
@@ -1497,4 +1520,16 @@ async function merchantModelCommand(
     .catch(() => null);
   if (error) throw new Error(error);
   return cmd;
+}
+
+/** The owner's answer to `tester remove +…` (§39.15.3). */
+export function testerRemoveReply(r: { status?: string; phone?: string }): string {
+  switch (r.status) {
+    case "removed":
+      return `🧪 ${r.phone} is no longer a demo tester.`;
+    case "not_found":
+      return `No demo tester has the number ${r.phone}. Send /ak testers in Slack for the list.`;
+    default:
+      return "Send the number with its country code: tester remove +961…";
+  }
 }

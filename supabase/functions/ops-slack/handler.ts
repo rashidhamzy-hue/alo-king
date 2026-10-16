@@ -5,6 +5,8 @@
 // over $20, claim decisions and refunds open a confirm modal showing the exact effect. Nothing here can bypass a server
 // rule: a refused call is answered with the server's reason. Dependencies are injected so it is tested without Slack.
 
+import { maskPhone, testerPhone } from "../_shared/demo-testers.ts";
+
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<any>;
 export type OpsSlackDeps = {
   rpc: Rpc;
@@ -63,6 +65,7 @@ export const HELP = [
   "• `credit <merchant> <amount> <reason>` (confirm over $20)",
   "• `place on|off <place>` (admin)",
   "• `finance` · `broadcast pause`",
+  "• `testers` · `tester remove +<number>` (demo testers, staging)",
 ].join("\n");
 
 /** A confirm modal: the exact effect, Confirm / Cancel; the action travels in private_metadata and is re-checked on submit. */
@@ -326,6 +329,33 @@ async function command(
         const r = (await rpc("ops_finance", { p_actor_id: actor })) ?? {};
         const lines = Object.entries(r).map(([k, v]) => `• ${k}: ${money(v)}`);
         return ephemeral(`*Ledger balances (USD)*\n${lines.join("\n") || "no entries yet"}`);
+      }
+      // Demo testers (§39.15.3): the list (numbers masked: Slack is not the record) and removing one.
+      case "testers": {
+        const r = (await rpc("ops_demo_testers", { p_actor_id: actor })) ?? {};
+        const list: any[] = Array.isArray(r.testers) ? r.testers : [];
+        const head = `*Demo testers* ${list.length}/${r.max ?? "?"} (${r.days ?? "?"} days) · demo mode ${r.demo_on ? "on" : "off"} · autopilot ${r.autopilot ? "on" : "off"}`;
+        return ephemeral(
+          list.length
+            ? `${head}\n${list
+                .map(
+                  (t) =>
+                    `• ${t.phone}${t.name ? ` (${t.name})` : ""}: until ${String(t.expires_at).slice(0, 10)}, ${Number(t.orders ?? 0)} orders`,
+                )
+                .join("\n")}`
+            : `${head}\nNo active tester.`,
+        );
+      }
+      case "tester": {
+        const m = arg.match(/^remove\s+(.+)$/i);
+        const phone = m ? testerPhone(m[1]) : null;
+        if (!phone) return ephemeral("Usage: `/ak tester remove +<country code><number>`");
+        const r = await rpc("ops_demo_tester_remove", { p_actor_id: actor, p_phone_e164: phone });
+        return ephemeral(
+          r?.status === "removed"
+            ? `🧪 ${maskPhone(phone)} is no longer a demo tester.`
+            : `No demo tester has ${maskPhone(phone)}.`,
+        );
       }
       case "broadcast":
         if (rest[0]?.toLowerCase() !== "pause") return ephemeral("Usage: `/ak broadcast pause`");

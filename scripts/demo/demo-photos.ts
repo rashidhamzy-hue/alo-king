@@ -474,10 +474,11 @@ async function main() {
     const ordered = new Map<string, number>(
       (
         await db.query(
-          // Delivered orders of real customers only: simulator numbers (+999) never count in a shop's metrics (§39.15.3).
+          // Delivered real orders only: simulator numbers (+999) and demo orders (is_demo: a demo shop's or a tester's) never
+          // count in a shop's figures (§39.15.3).
           `select oi.item_id, sum(oi.quantity)::int as n from public.order_items oi join public.orders o on o.id = oi.order_id
            join public.customers cu on cu.id = o.customer_id
-           where o.vendor_id = any ($1::uuid[]) and o.status = 'delivered' and cu.phone_e164 !~ '^\\+999'
+           where o.vendor_id = any ($1::uuid[]) and o.status = 'delivered' and not o.is_demo and cu.phone_e164 !~ '^\\+999'
            group by oi.item_id`,
           [ids],
         )

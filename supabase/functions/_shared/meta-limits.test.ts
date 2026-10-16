@@ -1319,3 +1319,47 @@ describe("splitCartList passes the checker", () => {
     }
   });
 });
+
+// Demo testers (session 5f part 6, DECISIONS §39.15.3): the demo addresses card and the "test is full" menu.
+import { demoAddressCard, testerFullMenu } from "../dispatch/customer/render";
+import { parseCustomerAction as parseTap } from "./customer-cards";
+describe("demo tester cards pass the checker", () => {
+  const long = {
+    key: "a_very_long_place_key",
+    name_en: "Maasser Beit ed Dine with a very long name",
+    name_ar: "معاصر بيت الدين مع اسم طويل جداً جداً",
+    name_fr: "Maasser Beit ed Dine avec un nom très long",
+  };
+  const choices = [
+    { key: "baakleen", name_en: "Baakleen", name_ar: "بعقلين", name_fr: "Baakline" },
+    {
+      key: "deir_el_qamar",
+      name_en: "Deir el Qamar",
+      name_ar: "دير القمر",
+      name_fr: "Deir el Qamar",
+    },
+    { key: "beiteddine", name_en: "Beiteddine", name_ar: "بيت الدين", name_fr: "Beiteddine" },
+    long,
+  ];
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`in ${lang}, with long names and more than three choices`, () => {
+      const card: any = demoAddressCard("+447700900001", lang, choices);
+      expect(checkInteractive(card)).toEqual([]);
+      expect(card.interactive.action.buttons).toHaveLength(3);
+      for (const b of card.interactive.action.buttons)
+        expect(parseTap(b.reply.id)?.a, b.reply.id).toBe("demo_address");
+      const twice: any = demoAddressCard("+447700900001", lang, [long, long]);
+      expect(checkInteractive(twice)).toEqual([]);
+      expect(twice.interactive.action.buttons).toHaveLength(1);
+      expect(checkInteractive(testerFullMenu("+447700900001", lang))).toEqual([]);
+    });
+  }
+  it("a key that is not one is left out", () => {
+    const card: any = demoAddressCard("+447700900001", "en", [
+      { key: "Bad Key!", name_en: "X" },
+      choices[0],
+    ]);
+    expect(card.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual(["da:baakleen"]);
+    expect(parseTap("da:Bad")).toBeNull();
+  });
+});

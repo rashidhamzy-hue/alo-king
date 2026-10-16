@@ -86,6 +86,9 @@ import {
   splitCartList,
   otherVendorCard,
   savedCartOfferCard,
+  clip,
+  demoAddressCard,
+  testerFullMenu,
 } from "./render.ts";
 import {
   ALLERGENS,
@@ -380,7 +383,7 @@ export async function handleCustomerTurn(
     path: "deterministic",
     summary: [],
   };
-  if (m.text) c.s.lang = detectLang(m.text, c.s.lang);
+  if (m.text) c.s.lang = textLang(m.text, c.s.lang, !!begin.first_contact);
 
   try {
     if (!begin.bot_enabled) say(c, "off");
@@ -505,6 +508,8 @@ async function showSupportReplies(c: Ctx) {
 
 async function route(c: Ctx, firstContact: boolean) {
   const m = c.m;
+  // A tester's invite code (§39.15.3) comes before anything else; a text that is not the code carries on below.
+  if (m.text && INVITE_RE.test(m.text) && (await demoInvite(c, firstContact))) return;
   // A marketing template's "Stop promotions" button is STOP (§18.3, §39.8): honoured at once, like the typed word.
   if (m.buttonId === "mkt:stop") return textIntent(c, "stop");
   if (m.buttonId) {
@@ -993,6 +998,8 @@ async function reorder(c: Ctx) {
   const id = c.profile?.last_order_id;
   if (!id) return say(c, "trackNone");
   const r = await c.deps.rpc("basket_reorder", { p_customer_id: c.customerId, p_order_id: id });
+  // A demo tester's order from before the test, at a shop that is not a demo shop (§39.15.3).
+  if (r?.status === "demo_only") return say(c, "demoOnly");
   if (r?.status !== "ok") return say(c, "vendorPaused", { vendor: "" });
   c.basket = r.basket;
   push(c, ...basketMessage(c.m.from, c.s.lang, r.basket));
@@ -1212,6 +1219,8 @@ async function tap(c: Ctx, a: CustomerAction) {
       return problemKind(c, a.kind);
     case "problem_line":
       return problemLine(c, a.itemId, a.kind, a.qty);
+    case "demo_address":
+      return demoAddressPick(c, a.key);
     case "simple":
       switch (a.what) {
         case "support":
@@ -1284,11 +1293,13 @@ async function confirm(c: Ctx, basketId: string, version: number) {
   const { deps } = c;
   c.s.pending = {};
   if (!c.basket || c.basket.basket_id !== basketId) return say(c, "staleConfirm");
-  const r = await deps.rpc("order_place", {
-    p_basket_id: basketId,
-    p_expected_menu_version: version,
-    p_idempotency_key: `wa:${basketId}:${version}`,
-  });
+  const r = await deps
+    .rpc("order_place", {
+      p_basket_id: basketId,
+      p_expected_menu_version: version,
+      p_idempotency_key: `wa:${basketId}:${version}`,
+    })
+    .catch(demoRefusal);
   const lang = c.s.lang;
   switch (r?.status) {
     case "placed": {
@@ -1349,10 +1360,18 @@ async function confirm(c: Ctx, basketId: string, version: number) {
       if (g?.status === "blocked")
         return say(c, "giftBlocked", { name: c.basket?.recipient_name ?? "" });
       if (g?.status === "too_many") return say(c, "giftTooMany", { name: g.recipient_name });
+      // A pretend order goes only to someone in the test (§39.15.3).
+      if (g?.status === "demo_recipient") return say(c, "demoRecipient");
       return checkout(c, {});
     }
     case "address_unconfirmed":
       return checkout(c, {});
+    // Demo testers (§39.15.3): a pretend order goes only to a demo shop; a demo address only serves during the test.
+    case "demo_only":
+      return say(c, "demoOnly");
+    case "demo_address":
+      c.s.pending = { kind: "await_pin" };
+      return say(c, "demoAddressGone");
     case "needs_empty_answer":
     case "no_address":
     case "cod_cap":
@@ -1379,6 +1398,12 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
     p_note: null,
   });
   if (r?.status === "outside_lebanon" || r?.status === "no_place") return say(c, "noPlace");
+  if (r?.status === "demo_outside") return demoOutside(c, r);
+  return afterPin(c, r);
+}
+
+/** After a pin is saved, or a demo address picked (§39.15.3): the address is read back and the order goes on. */
+async function afterPin(c: Ctx, r: any) {
   if (r?.address?.place_status === "paused") return say(c, "placePaused");
   say(c, "savedPin", { where: where(c.s.lang, r.address) });
   c.summary.push("[address saved from the pin]");
@@ -1758,6 +1783,9 @@ async function cartOrder(
   if (r?.status !== "ok") return say(c, "cartUnknown");
   if (r.basket) c.basket = r.basket;
   const skipped: any[] = Array.isArray(r.skipped) ? r.skipped : [];
+  // A demo tester's cart from a shop that is not a demo shop (§39.15.3): the way to the demo shops instead.
+  if (!Number(r.added ?? 0) && skipped.some((x) => x?.status === "demo_only"))
+    return say(c, "demoOnly");
   const needs: any[] = Array.isArray(r.needs_options) ? r.needs_options : [];
   const diffs: any[] = Array.isArray(r.diffs) ? r.diffs : [];
   c.summary.push(
@@ -2565,6 +2593,10 @@ async function addOne(
     say(c, "unavailable", { item: r.item });
     return false;
   }
+  if (r?.status === "demo_only") {
+    say(c, "demoOnly");
+    return false;
+  }
   if (r?.status !== "added") {
     say(c, "pickPlaceFirst");
     return false;
@@ -3311,4 +3343,97 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
     case "reply":
       return replyText(c, input.text, input.confidence);
   }
+}
+
+// ---- Demo testers (session 5f part 6, DECISIONS §39.15.3) ------------------------------------------------------------------
+/** The invite code's shape ("ALO" and 8 hex digits, as demo_config_ensure makes it); only the server knows the code. */
+const INVITE_RE = /\bALO[0-9A-F]{8}\b/i;
+/** A message that is nothing but a code (the tester link's text). */
+const ONLY_CODE_RE = /^\s*ALO[0-9A-F]{8}\s*$/i;
+
+/** order_place refused a demo tester's order (the orders trigger): the status the bot answers with buttons. */
+function demoRefusal(e: unknown): { status: string } {
+  const msg = String(e instanceof Error ? e.message : e);
+  if (/\bdemo_only\b/.test(msg)) return { status: "demo_only" };
+  if (/\bdemo_address\b/.test(msg)) return { status: "demo_address" };
+  throw e;
+}
+
+/**
+ * The language of a typed message. An invite code says nothing about it: a tester's first message is the link's bare code,
+ * so a first contact that is only a code starts in English (testers write from anywhere); later, the language is kept.
+ */
+function textLang(t: string, current: CLang, firstContact: boolean): CLang {
+  if (!INVITE_RE.test(t)) return detectLang(t, current);
+  const rest = t.replace(new RegExp(INVITE_RE.source, "gi"), " ").trim();
+  if (rest) return detectLang(rest, current);
+  return firstContact ? "en" : current;
+}
+
+/**
+ * A message carrying something like the invite code: the server enrols the number (demo_tester_enrol). A tester first hears
+ * that orders are pretend, then the normal welcome; a full test says so with the main menu. False: not the code, so the
+ * message is handled as any other.
+ */
+async function demoInvite(c: Ctx, firstContact: boolean): Promise<boolean> {
+  const r = await c.deps
+    .rpc("demo_tester_enrol", { p_customer_id: c.customerId, p_text: c.m.text })
+    .catch((e: unknown) => {
+      c.deps.log?.("demo_tester_enrol failed", { error: String(e).slice(0, 120) });
+      return null;
+    });
+  const status = String(r?.status ?? "");
+  c.tools.push(`demo_tester:${status || "failed"}`);
+  // What the customer wrote besides the code: a request, answered as usual after the code is handled.
+  const rest = (c.m.text ?? "")
+    .replace(new RegExp(INVITE_RE.source, "gi"), " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  switch (status) {
+    case "enrolled":
+    case "already":
+      // An active tester who writes more than the code ("ALO… burger") gets the request answered; a new one first hears
+      // that orders are pretend.
+      if (status === "already" && rest) {
+        c.m.text = rest;
+        return false;
+      }
+      c.summary.push("[a demo tester: told that orders are pretend]");
+      say(c, "testerWelcome");
+      if (rest) {
+        c.m.text = rest;
+        return false;
+      }
+      await greet(c, firstContact);
+      return true;
+    case "full":
+      push(c, testerFullMenu(c.m.from, c.s.lang));
+      return true;
+    case "off":
+    case "removed":
+      // An old link (the message is only the code): the plain welcome, never a search for the code. Anything more than the
+      // code is the customer's message, answered as usual (§39.14: every message gets its answer).
+      if (!ONLY_CODE_RE.test(c.m.text ?? "")) return false;
+      await greet(c, firstContact);
+      return true;
+    default:
+      return false;
+  }
+}
+
+/** A tester's (or an owner's) pin outside the delivery area, not stored by the server: the demo addresses instead. */
+function demoOutside(c: Ctx, r: any) {
+  const choices = Array.isArray(r?.choices) ? r.choices : [];
+  if (!choices.length) return say(c, "placePaused");
+  c.summary.push("[outside the delivery area: offered the demo addresses]");
+  // The pending step (browse, pickup or the basket's checkout) stays: the pick continues it as a pin would.
+  push(c, demoAddressCard(c.m.from, c.s.lang, choices));
+}
+
+/** A demo address tapped: the tester's address at that fixed point, then everything as after a pin. */
+async function demoAddressPick(c: Ctx, key: string) {
+  c.tools.push("demo_address_pick");
+  const r = await c.deps.rpc("demo_address_pick", { p_customer_id: c.customerId, p_key: key });
+  if (r?.status !== "saved") return say(c, "placePaused");
+  return afterPin(c, r);
 }

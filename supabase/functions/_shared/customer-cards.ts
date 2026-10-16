@@ -790,6 +790,8 @@ export type CustomerAction =
       kind: "missing_item" | "wrong_item" | "cold_food" | "late" | "damaged" | "other";
     }
   | { a: "problem_line"; itemId: string; kind: "missing_item" | "wrong_item"; qty?: number }
+  /** A demo tester outside the delivery area picks one of the fixed demo addresses (§39.15.3). */
+  | { a: "demo_address"; key: string }
   | {
       a: "simple";
       what:
@@ -888,6 +890,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
     return { a: "for_whom", what: m[1] as any };
   if ((m = id.match(/^dpk:(missing_item|wrong_item|cold_food|late|damaged|other)$/)))
     return { a: "problem_kind", kind: m[1] as any };
+  if ((m = id.match(/^da:([a-z][a-z_]{1,20})$/))) return { a: "demo_address", key: m[1] };
   if ((m = id.match(re(`dpl:(${UUID}):(m|w)(?::([1-9]\\d?))?`))))
     return {
       a: "problem_line",

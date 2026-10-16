@@ -20,7 +20,8 @@
 --     20261015220000_demo_mode.sql reroutes anything else);
 --   * takes alcohol, tobacco and $0 items off a menu published before those rules (a shop without orders);
 --   * puts a shop that is no longer a demo shop back as an unclaimed, not orderable seed listing; a shop without a priced
---     menu keeps its "Not on Alo King yet" listing (§39.3).
+--     menu keeps its "Not on Alo King yet" listing (§39.3);
+--   * makes the testers' invite code and switches the demo autopilot on, once (§39.15.3; app_private.demo_config_ensure).
 
 \set ON_ERROR_STOP on
 select set_config('app.actor_kind', 'system', false);
@@ -259,6 +260,10 @@ begin
   using demo_shops_now d
   where s.vendor_id = d.vendor_id and not exists (select 1 from public.menu_items i where i.section_id = s.id);
   raise notice 'demo shops: % on staging', jsonb_array_length(v_list);
+  -- Testers (§39.15.3): the invite code (made in the database, never in the repo) and the autopilot switch, once.
+  if jsonb_array_length(v_list) > 0 then
+    raise notice 'demo testers: %', app_private.demo_config_ensure();
+  end if;
   if v_owner is null then
     raise notice 'demo shops: no owner phone on this database; demo orders are not sent anywhere (see alo-test-grill.sql)';
   end if;
