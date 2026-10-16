@@ -14,7 +14,7 @@ steps:
           from public.vendors v,
                jsonb_array_elements(public.catalog_shop_menu(v.id, 'sim') -> 'sections' -> 0 -> 'products') with ordinality t(p, n)
           join public.menu_items i on i.id = (p ->> 'retailer_id')::uuid
-          where v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s' and app_private.vendor_is_demo(v.id) and v.orderable and t.n <= 6
+          where v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s' and app_private.vendor_is_demo(v.id) and v.orderable and t.n = 1
             and i.pricing_unit = 'each'
             and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
           order by t.n limit 1
