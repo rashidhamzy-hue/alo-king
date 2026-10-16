@@ -135,4 +135,6 @@ $$;
 
 drop table public.catalog_item_holds;
 drop table public.catalog_rules;
+drop trigger menu_item_photos_size_reset on public.menu_item_photos;
+drop function app_private.menu_item_photos_size_reset();
 alter table public.menu_item_photos drop column width, drop column height, drop column bytes;

@@ -4,8 +4,9 @@
 
 What WhatsApp's product catalogue (Meta) accepts, in plain words, as Alo King applies it (DECISIONS §39.15.4).
 
-- **Where the rules live.** One file, `supabase/functions/_shared/catalog-rules.json`: the validator reads it, this
-  page is generated from it, and `public.catalog_rules` is seeded from it. To add or reword a rule, edit the JSON, add
+- **Where the rules live.** One file, `supabase/functions/_shared/catalog-rules.json`: the validator reads it (through
+  the generated `catalog-rules.data.ts`), this page is generated from it, and `public.catalog_rules` is seeded from
+  it. To add or reword a rule, edit the JSON, add
   a new migration with the statement `node --experimental-strip-types scripts/catalog/rules-doc.ts --seed` prints
   (`insert into public.catalog_rules … on conflict (code) do update`; never edit an applied migration), and run the
   script without arguments to rewrite this page. `scripts/catalog/rules-doc.test.ts` checks that every catalog_rules

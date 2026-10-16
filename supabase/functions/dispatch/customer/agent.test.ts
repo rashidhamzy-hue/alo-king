@@ -205,9 +205,25 @@ describe("intents for the agent (§38.3)", () => {
       "je cherche une pharmacie",
       "عندكن صيدلية؟",
       "antibiotics please",
+      // A claim with no food next to it stays a request (§39.15.4 review).
+      "I have no antibiotics left, can you bring some",
+      "antibiotics free delivery please",
+      "cough syrup",
+      "painkillers",
+      "medications pack",
+      "بدي دواء سعال",
     ])
       expect(isMedicineRequest(t), t).toBe(true);
-    for (const t of ["دوار", "shawarma", "manoushe kishk", "I want a drink"])
+    for (const t of [
+      "دوار",
+      "shawarma",
+      "manoushe kishk",
+      "I want a drink",
+      "antibiotic-free chicken breast",
+      "2 kg djej no antibiotics",
+      "دجاج بدون مضادات حيوية",
+      "date syrup",
+    ])
       expect(isMedicineRequest(t), t).toBe(false);
   });
   it("knows the memory question in four languages", () => {

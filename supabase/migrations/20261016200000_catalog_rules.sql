@@ -397,6 +397,25 @@ alter table public.menu_item_photos
 comment on column public.menu_item_photos.width is
   'The stored image''s width in pixels when it was measured (the demo pipeline, a merchant''s WhatsApp photo); null: not measured. The catalogue validator (§39.15.4) checks it.';
 
+-- A photo whose file changes without a new size (menu_item_photo_set, the demo upsert, any later writer) loses the old
+-- size, so the validator never judges a new file by the old one's measure; the demo pipeline measures it again.
+create function app_private.menu_item_photos_size_reset() returns trigger
+language plpgsql set search_path = ''
+as $$
+begin
+  if (new.storage_path, new.origin_hash) is distinct from (old.storage_path, old.origin_hash)
+     and (new.width, new.height, new.bytes) is not distinct from (old.width, old.height, old.bytes) then
+    new.width := null;
+    new.height := null;
+    new.bytes := null;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function app_private.menu_item_photos_size_reset() from public;
+create trigger menu_item_photos_size_reset before update on public.menu_item_photos
+  for each row execute function app_private.menu_item_photos_size_reset();
+
 -- As in 20261016160000_item_pages.sql, with the merchant's alcohol flag, the shop's business type and the photo's
 -- measured size for the validator (catalog-rules.ts); none of them changes what Meta is sent.
 create or replace function public.catalog_desired(p_vendor_id uuid)

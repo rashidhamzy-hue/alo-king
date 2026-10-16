@@ -110,6 +110,12 @@ const SAY = {
     "📷 Ce fichier est trop lourd (plus de 2 Mo). Envoyez-le comme une photo normale, pas comme un document.",
     "📷 Hal file kbir ktir (aktar men 2 MB). B3ata ka soura 3adiye, mish ka file.",
   ),
+  format: W(
+    "📷 WhatsApp's catalogue takes JPEG or PNG photos. Send it as a normal photo, not a sticker or a WebP file.",
+    "📷 كاتالوج واتساب بياخد صور JPEG أو PNG بس. ابعتها كصورة عادية، مش ملصق أو ملف WebP.",
+    "📷 Le catalogue WhatsApp accepte les photos JPEG ou PNG. Envoyez-la comme une photo normale, pas un autocollant ni un fichier WebP.",
+    "📷 El catalogue tab3 WhatsApp byekhod sowar JPEG aw PNG bas. B3ata ka soura 3adiye, mish sticker aw file WebP.",
+  ),
   demo: W(
     "📷 This is a demo shop: its photos come from the demo photos, not from the chat.",
     "📷 هيدا محل تجريبي: صورو بتجي من صور العرض، مش من المحادثة.",
@@ -279,8 +285,11 @@ export async function handleItemPhoto(
       textMsg(m.from, say("refused", lang, { name: item.name, lines: issuesText(issues, lang) })),
     ];
   if (file.bytes.length > MAX_PHOTO_BYTES) return [textMsg(m.from, say("tooBig", lang))];
-  // The validator read the header, so the format and the size are known.
+  // The validator read the header, so the format and the size are known. Meta's catalogue takes JPEG or PNG only: a WebP
+  // (read for the checks) is never stored for it.
   const head = imageHeader(file.bytes)!;
+  if (head.format !== "jpeg" && head.format !== "png")
+    return [textMsg(m.from, say("format", lang))];
   const ext = head.format === "jpeg" ? "jpg" : head.format;
   await sweepExpired(deps);
   const where = await deps.rpc("merchant_item_photo_path", {
@@ -306,17 +315,20 @@ export async function handleItemPhoto(
     .put(where.path, file.bytes, `image/${head.format}`)
     .catch(() => false);
   if (!stored) return [textMsg(m.from, say("failed", lang))];
-  const rec = await deps.rpc("merchant_item_photo_pending", {
-    p_member_id: editor.member_id,
-    p_pending_id: where.pending_id,
-    p_item_id: item.item_id,
-    p_storage_path: where.path,
-    p_origin_hash: sha,
-    p_width: head.width,
-    p_height: head.height,
-    p_bytes: file.bytes.length,
-    p_lang: lang,
-  });
+  // A failed call leaves no row for the expiry sweep to find: its file goes now.
+  const rec = await deps
+    .rpc("merchant_item_photo_pending", {
+      p_member_id: editor.member_id,
+      p_pending_id: where.pending_id,
+      p_item_id: item.item_id,
+      p_storage_path: where.path,
+      p_origin_hash: sha,
+      p_width: head.width,
+      p_height: head.height,
+      p_bytes: file.bytes.length,
+      p_lang: lang,
+    })
+    .catch(() => null);
   if (rec?.status !== "ok") {
     await removeQuietly(deps, where.path);
     return [textMsg(m.from, say(refusal(String(rec?.status ?? "")), lang))];

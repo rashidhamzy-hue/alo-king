@@ -318,4 +318,14 @@ set local role service_role;
 select tests.ok((select count(*) from public.catalog_rules) >= 19, 'the service role (dispatch, the review session) reads them');
 reset role;
 
+-- A new file without its size loses the old size (review): never judged by the previous file's measure.
+update public.menu_item_photos set width = 1000, height = 1000, bytes = 90000 where item_id = :'kn';
+update public.menu_item_photos set storage_path = 'merchant/' || vendor_id || '/' || gen_random_uuid() || '.jpg', origin_hash = repeat('a', 64) where item_id = :'kn';
+select tests.ok((select width is null and height is null and bytes is null from public.menu_item_photos where item_id = :'kn'),
+  'a photo replaced without a size is unmeasured, not stale');
+update public.menu_item_photos set storage_path = 'merchant/' || vendor_id || '/' || gen_random_uuid() || '.jpg', origin_hash = repeat('b', 64), width = 800, height = 600,
+  bytes = 70000 where item_id = :'kn';
+select tests.ok((select width = 800 and height = 600 and bytes = 70000 from public.menu_item_photos where item_id = :'kn'),
+  'a photo replaced with its size keeps the new size');
+
 rollback;

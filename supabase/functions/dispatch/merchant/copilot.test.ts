@@ -501,6 +501,20 @@ describe("review fixes (§39.7)", () => {
     expect(h.of("merchant_proposal_create")).toHaveLength(0);
     expect(h.body()).toMatch(/Medicines can't be sold/);
   });
+  it("nothing the catalogue's medicine rule sees is proposed either: no card, the refusal (§38.3, review)", async () => {
+    for (const msg of [
+      "add item Cough syrup 5",
+      "add item Painkillers 4",
+      "add item Medications pack 9",
+      "زيد صنف دواء سعال 5",
+      "rename knefe to Painkillers",
+    ]) {
+      const h = harness();
+      await h.text(msg);
+      expect(h.of("merchant_proposal_create"), msg).toHaveLength(0);
+      expect(h.body(), msg).toMatch(/Medicines can't be sold/);
+    }
+  });
   it("the model's call is taken from the AI budget and logged; a spent budget means the help", async () => {
     const call = async () => ({
       content: [{ type: "tool_use" as const, id: "t0", name: "set_radius", input: { km: 2 } }],
@@ -755,6 +769,36 @@ describe("catalogue rules: a bad photo or a bad name is explained, with the fix"
     await t.h.photo("صورة الكنافة");
     expect(t.removed).toEqual([`merchant/${VENDOR}/earlier.jpg`]);
     expect(t.h.sent[0].interactive.action.buttons[0].reply.title).toBe("✅ استعملها");
+  });
+  it("a record that fails outright also deletes the file it just uploaded (no row for the sweep to find)", async () => {
+    const t = photoHarness(await photoOf(900, 900), {
+      merchant_item_photo_pending: () => {
+        throw new Error("down");
+      },
+    });
+    await t.h.photo("photo knefe");
+    expect(t.removed).toEqual([`merchant/${VENDOR}/${PENDING}.jpg`]);
+    expect(t.h.body()).toMatch(/Saving the photo failed/);
+  });
+  it("a WebP is read for the checks but never stored for WhatsApp's catalogue (JPEG or PNG only)", async () => {
+    const webp = new Uint8Array(
+      await sharp({
+        create: {
+          width: 900,
+          height: 900,
+          channels: 3,
+          background: "#884422",
+          noise: { type: "gaussian" as const, mean: 128, sigma: 30 },
+        },
+      })
+        .webp({ quality: 82 })
+        .toBuffer(),
+    );
+    const t = photoHarness(webp);
+    await t.h.photo("photo knefe");
+    expect(t.h.body()).toMatch(/takes JPEG or PNG photos/);
+    expect(t.puts).toEqual([]);
+    expect(t.h.of("merchant_item_photo_path")).toHaveLength(0);
   });
   it("a refused record deletes the file it just uploaded", async () => {
     const t = photoHarness(await photoOf(900, 900), {

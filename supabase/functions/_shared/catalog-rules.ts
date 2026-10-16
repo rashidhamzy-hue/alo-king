@@ -11,8 +11,10 @@
 // checkedHere false, Meta's own review decides them, and the learning loop records Meta's refusals.
 
 import { alcNorm, isAlcohol } from "./alcohol.ts";
+import { stripFoodAntibioticClaims } from "./medicine.ts";
 import { titleCase } from "./item-text.ts";
-import RULES_JSON from "./catalog-rules.json" with { type: "json" };
+// The rules' words, from catalog-rules.json through its generated TypeScript copy (no JSON module in the edge runtime).
+import RULES_DATA from "./catalog-rules.data.ts";
 
 export type CatalogLang = "ar" | "en" | "fr" | "arabizi";
 export type Words = Record<CatalogLang, string>;
@@ -214,9 +216,6 @@ const TOBACCO_RAW = [
   "2argileh",
   "m3assal",
 ];
-/** "Antibiotic-free chicken" says what the food is without: never a medicine (stripped before the medicine check). */
-export const NO_ANTIBIOTICS =
-  /\bantibiotics? free\b|\bfree (?:from|of) antibiotics?\b|\bsans antibiotiques?\b|\bno antibiotics?\b|(?:بدون|بلا|خالي من|خاليه من) (?:ال)?مضاد(?:ات)? (?:ال)?حيوي(?:ه)?/g;
 /** The words a pastry is also called (cheese cigars, cigarettes russes, سيكار جبنة); others are tobacco whatever the menu. */
 const PASTRY_NAMES = new Set([
   "cigar",
@@ -244,7 +243,7 @@ const hasPhrase = (hay: string, phrase: string) => ` ${hay} `.includes(` ${phras
 const anyPhrase = (hay: string, list: string[]) => list.find((w) => w && hasPhrase(hay, w)) ?? null;
 
 // ---- The rules (catalog-rules.json) ------------------------------------------------------------------------------
-export const CATALOG_RULES: CatalogRule[] = (RULES_JSON as { rules: CatalogRule[] }).rules;
+export const CATALOG_RULES: CatalogRule[] = (RULES_DATA as { rules: CatalogRule[] }).rules;
 
 const RULE = new Map(CATALOG_RULES.map((r) => [r.code, r]));
 
@@ -434,7 +433,7 @@ function policyIssues(item: CatalogItemCheck): CatalogIssue[] {
   const hay = [...names, ...sections].map(norm);
   const med = MEDICINE_BUSINESS.test(String(item.business_type ?? ""))
     ? String(item.business_type)
-    : hay.map((h) => anyPhrase(h.replace(NO_ANTIBIOTICS, " "), MEDICINE)).find(Boolean);
+    : hay.map((h) => anyPhrase(stripFoodAntibioticClaims(h), MEDICINE)).find(Boolean);
   if (med) out.push(issue("policy_medicine", { found: med }));
   const alcohol =
     item.contains_alcohol === true

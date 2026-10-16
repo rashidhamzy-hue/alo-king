@@ -5,11 +5,14 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CATALOG_RULES } from "../../supabase/functions/_shared/catalog-rules.ts";
 import {
+  DATA_FILE,
   DOC_FILE,
   parseSeed,
   readMigrations,
   readRules,
+  renderData,
   renderDoc,
+  RULES_FILE,
   rowOf,
   seededRules,
   seedSql,
@@ -40,6 +43,9 @@ describe("the catalogue rules: one JSON, the validator, the migrations and the d
   });
   it("the committed doc is exactly what the generator writes from the JSON", () => {
     expect(readFileSync(DOC_FILE, "utf8")).toBe(renderDoc(rules.map(rowOf)));
+  });
+  it("the validator's TypeScript copy is exactly what the generator writes from the JSON (no JSON module at deploy)", () => {
+    expect(readFileSync(DATA_FILE, "utf8")).toBe(renderData(readFileSync(RULES_FILE, "utf8")));
   });
   it("lists every rule once, with who checks it, and each language; the header says how to add a rule", () => {
     const doc = renderDoc(rules.map(rowOf));

@@ -88,6 +88,14 @@ const nameParts = (name: string): CatalogItemCheck => {
   return { ...parts, title: name, item_name: itemName(parts) };
 };
 
+/**
+ * Never medicines (§38.3, the ban of 2 June 2026), whatever the shop: the customer's refusal words or the catalogue's
+ * medicine rule, whichever sees it ("Cough syrup", "Painkillers", "دواء سعال"). Nothing is proposed for such an item.
+ */
+const isMedicineItem = (name: string): boolean =>
+  isMedicineRequest(name) ||
+  validateCatalogItem(nameParts(name)).some((i) => i.code === "policy_medicine");
+
 const hhmm = (d: Date) => {
   const c = beirutClock(d);
   return `${String(c.hour).padStart(2, "0")}:${String(c.minute).padStart(2, "0")}`;
@@ -261,7 +269,7 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
     }
     case "item_add":
       // Never medicines (§38.3, the ban of 2 June 2026), whatever the shop.
-      if (isMedicineRequest(c.name)) {
+      if (isMedicineItem(c.name)) {
         await ctx.reply("💊 ما منبيع أدوية على Alo King. / Medicines can't be sold on Alo King.");
         return true;
       }
@@ -282,7 +290,7 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
     case "item_describe":
     case "item_station":
     case "item_remove": {
-      if (c.kind === "item_rename" && isMedicineRequest(c.name)) {
+      if (c.kind === "item_rename" && isMedicineItem(c.name)) {
         await ctx.reply("💊 ما منبيع أدوية على Alo King. / Medicines can't be sold on Alo King.");
         return true;
       }
