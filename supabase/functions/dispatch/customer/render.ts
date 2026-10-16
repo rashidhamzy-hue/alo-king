@@ -2886,6 +2886,26 @@ const S5F7: Record<string, Record<CLang, string>> = {
     fr: "Je n'ai pas compris le montant. Écrivez un nombre de dollars jusqu'à {max}, par ex. 1.50",
     arabizi: "Ma fhemt el mablagh. Ktob ra2m bel dollar la 7add {max}, metel 1.5",
   },
+  tipThanksQuiet: {
+    ar: "🙏 شكراً! البخشيش ({amount}) للي وصّلك الطلب: عطيه ياه بس تشوفه، كلّو إلو.",
+    en: "🙏 Thank you! The {amount} tip is for whoever delivered your order: hand it over when you see them. It's 100% theirs.",
+    fr: "🙏 Merci ! Le pourboire de {amount} est pour la personne qui a livré : remettez-le-lui quand vous la verrez. Il lui revient à 100 %.",
+    arabizi:
+      "🙏 Merci! El bakhshish ({amount}) la li wassallak el talab: 3tih yeh bas tchoufo, kello elo.",
+  },
+  tipConfirm: {
+    ar: "بدّك تعطي بخشيش {amount} للي وصّلك الطلب؟",
+    en: "Tip {amount} to whoever delivered your order?",
+    fr: "Donner un pourboire de {amount} à la personne qui a livré ?",
+    arabizi: "Baddak ta3te bakhshish {amount} la li wassallak el talab?",
+  },
+  tipConfirmYes: {
+    ar: "إيه، {amount}",
+    en: "Yes, {amount}",
+    fr: "Oui, {amount}",
+    arabizi: "Eh, {amount}",
+  },
+  tipConfirmNo: { ar: "لأ، شكراً", en: "No, thanks", fr: "Non merci", arabizi: "La2, merci" },
   tipThanks: {
     ar: "🙏 شكراً! خبّرنا اللي وصّلك الطلب عن البخشيش ({amount}). عطيه ياه بس تشوفه، كلّو إلو.",
     en: "🙏 Thank you! We told whoever delivered your order about the {amount} tip; hand it over when you see them. It's 100% theirs.",
@@ -2945,7 +2965,7 @@ Object.assign(ERROR_WAYS, {
   tipNotAllowed: ["track", "help"],
   tipTooLate: ["order", "help"],
 } satisfies Record<string, Way[]>);
-for (const k of ["tipThanks", "tipOtherAsk"]) INFO_KEYS.add(k);
+for (const k of ["tipThanks", "tipThanksQuiet", "tipOtherAsk"]) INFO_KEYS.add(k);
 
 /** "$20", "$1.50" and "2,000,000 LBP": an amount the server sent, in its currency. */
 export const cashAmount = (currency: string, v: unknown): string => {
@@ -3220,6 +3240,15 @@ export type ChangeAnswer = {
   change_for?: number | string | null;
   change_due?: number | string | null;
 };
+/** The agent proposed a tip: the customer confirms it with one tap (tpo:<order>:<cents>:o), or says no. */
+export function tipConfirmCard(to: string, lang: CLang, orderId: string, cents: number): Msg {
+  const amount = usd(cents / 100);
+  return buttons(to, tr(lang, "tipConfirm", { amount }), [
+    [`tpo:${orderId}:${cents}:o`, clip(tr(lang, "tipConfirmYes", { amount }), 20)],
+    ["c:no_upsell", tr(lang, "tipConfirmNo")],
+  ]);
+}
+
 /** The summary's change line: "Paying with $20: $5.75 change", or "Exact cash". */
 export function changeLine(lang: CLang, c: ChangeAnswer): string {
   return c.change_for == null

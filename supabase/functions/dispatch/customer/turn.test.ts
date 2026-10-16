@@ -3649,7 +3649,14 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
     expect(bodyOf(g.sent[0])).toContain("80 characters");
     expect(tapIds(g.sent[0])).toEqual(["c:basket"]);
     const pending = pendingOf(g);
-    expect(pending).toEqual({ kind: "note", line_id: LINE_B });
+    expect(pending).toMatchObject({ kind: "note", line_id: LINE_B });
+    // Hours later, a text is a new message, never this line's note.
+    const late = fake({
+      begin: at({ ...pending, at: "2020-01-01T00:00:00.000Z" }, { basket: two }),
+      rpcs: { basket_line_note: () => ({ status: "saved", note: "x", basket: two }) },
+    });
+    await handleCustomerTurn(late.deps, msg({ text: "2 shawarma please" }));
+    expect(late.of("basket_line_note")).toHaveLength(0);
 
     const noted = {
       ...two,
@@ -3688,7 +3695,7 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
     // One line: Add a note asks straight away.
     const n = fake({ begin: { basket } });
     await handleCustomerTurn(n.deps, msg({ type: "interactive", buttonId: "note:add" }));
-    expect(pendingOf(n)).toEqual({ kind: "note", line_id: LINE });
+    expect(pendingOf(n)).toMatchObject({ kind: "note", line_id: LINE });
     for (const x of [f, g, h, k, n])
       for (const p of x.sent) expect(checkInteractive(p)).toEqual([]);
   });

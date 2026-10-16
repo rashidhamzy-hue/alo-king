@@ -744,8 +744,12 @@ as $$
     'cash_currency', o.cash_currency,
     'cash_change_for', o.cash_change_for,
     'cash_change_currency', o.cash_change_currency,
-    'change_due', case when o.cash_change_for is not null then o.cash_change_for - case o.cash_change_currency
-        when 'USD' then o.total_usd + o.tip_usd else round((o.total_usd + o.tip_usd) * o.usd_lbp_rate, 0) end end)
+    -- The change to bring; when the total rose above the note (weight, a substitution) there is none to bring, and the
+    -- card says the note no longer covers it (change_short) instead of a negative amount.
+    'change_due', case when o.cash_change_for is not null then greatest(o.cash_change_for - case o.cash_change_currency
+        when 'USD' then o.total_usd + o.tip_usd else round((o.total_usd + o.tip_usd) * o.usd_lbp_rate, 0) end, 0) end,
+    'change_short', o.cash_change_for is not null and o.cash_change_for < case o.cash_change_currency
+        when 'USD' then o.total_usd + o.tip_usd else round((o.total_usd + o.tip_usd) * o.usd_lbp_rate, 0) end)
   from public.orders o
   join public.vendors v on v.id = o.vendor_id
   left join public.places p on p.id = o.delivery_place_id
@@ -765,14 +769,20 @@ as $$
     join public.orders o on o.id = oi.order_id
     where o.vendor_id = any (p_vendor_ids[1:40]) and o.status not in ('cancelled', 'rejected', 'failed')
       and o.created_at > now() - make_interval(days => public.config_numeric('catalog_best_sellers_days')::int)
+      and not o.is_demo  -- pretend orders never count in a shop's figures (§39.15.3)
       and oi.item_id is not null
     group by oi.item_id, o.vendor_id
   ),
+  -- Each shop's top five sellers only are checked (orderable now, shown by the catalogue): the cost stays the same however
+  -- long a shop's history (§39.14 rule 2).
+  ranked as (
+    select s.*, row_number() over (partition by s.vendor_id order by s.n desc, s.item_id) as rk from sold s
+  ),
   best as (
     select distinct on (s.vendor_id) s.vendor_id, s.item_id, s.n
-    from sold s
+    from ranked s
     join public.vendors v on v.id = s.vendor_id
-    where v.claim_status = 'claimed' and v.orderable and v.listing_status = 'active'
+    where s.rk <= 5 and v.claim_status = 'claimed' and v.orderable and v.listing_status = 'active'
       and app_private.menu_item_orderable(s.item_id, 1) and app_private.catalog_item_shown(s.item_id, p_catalog_id)
     order by s.vendor_id, s.n desc, s.item_id
   ),
@@ -809,18 +819,25 @@ begin
       order by p.n desc, p.item_id), '[]')
     into v_products
   from (
-    select oi2.item_id, count(*) as n
-    from public.basket_items bi
-    join public.order_items oi on oi.item_id = bi.item_id
-    join public.orders o on o.id = oi.order_id and o.status = 'delivered' and o.vendor_id = v_basket.vendor_id
-    join public.order_items oi2 on oi2.order_id = o.id and oi2.item_id <> bi.item_id
-    where bi.basket_id = v_basket.id
-      and oi2.item_id not in (select item_id from public.basket_items where basket_id = v_basket.id)
-      and app_private.menu_item_orderable(oi2.item_id, 1)
-      and app_private.catalog_item_shown(oi2.item_id, p_catalog_id)
-    group by oi2.item_id
-    having count(*) >= 2
-    order by count(*) desc, oi2.item_id
+    -- Bought together in at least two delivered orders (orders, not lines) of the shop's recent orders
+    -- (catalog_best_sellers_days), never pretend ones; ranked first, then only the top 20 are checked for being orderable
+    -- now and shown by the catalogue, so the cost does not grow with the shop's history (§39.14 rule 2).
+    select c.item_id, c.n from (
+      select oi2.item_id, count(distinct o.id) as n
+      from public.basket_items bi
+      join public.order_items oi on oi.item_id = bi.item_id
+      join public.orders o on o.id = oi.order_id and o.status = 'delivered' and o.vendor_id = v_basket.vendor_id
+        and not o.is_demo
+        and o.created_at > now() - make_interval(days => public.config_numeric('catalog_best_sellers_days')::int)
+      join public.order_items oi2 on oi2.order_id = o.id and oi2.item_id <> bi.item_id
+      where bi.basket_id = v_basket.id
+        and oi2.item_id not in (select item_id from public.basket_items where basket_id = v_basket.id)
+      group by oi2.item_id
+      having count(distinct o.id) >= 2
+      order by count(distinct o.id) desc, oi2.item_id
+      limit 20) c
+    where app_private.menu_item_orderable(c.item_id, 1) and app_private.catalog_item_shown(c.item_id, p_catalog_id)
+    order by c.n desc, c.item_id
     limit greatest(public.config_numeric('goes_well_max_items')::int, 1)
   ) p
   join public.menu_items i on i.id = p.item_id;

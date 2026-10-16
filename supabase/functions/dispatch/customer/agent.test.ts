@@ -958,8 +958,15 @@ describe("the after-cart flows through the AI's typed tools (session 5f part 7)"
       const f = await toolTurn("set_item_note", { line_ref: ref, note: "no onions" });
       expect(f.of("basket_line_note"), ref).toHaveLength(0);
     }
-    const long = await toolTurn("set_item_note", { line_ref: "l1", note: "x".repeat(81) });
-    expect(long.of("basket_line_note")).toHaveLength(0);
+    // A runaway note is refused before the server; a long one goes to the server, which says it is too long.
+    const runaway = await toolTurn("set_item_note", { line_ref: "l1", note: "x".repeat(201) });
+    expect(runaway.of("basket_line_note")).toHaveLength(0);
+    const long = await toolTurn(
+      "set_item_note",
+      { line_ref: "l1", note: "x".repeat(81) },
+      { basket_line_note: () => ({ status: "too_long", length: 81, max: 80 }) },
+    );
+    expect(long.of("basket_line_note")).toHaveLength(1);
   });
 
   it("add_item_extras: the extras said are matched on the server's options and added at its price", async () => {
@@ -1041,23 +1048,53 @@ describe("the after-cart flows through the AI's typed tools (session 5f part 7)"
     expect(none.of("basket_set_tip")[0].args.p_amount).toBe(0);
   });
 
-  it("tip_order: the customer's own last delivered order, as an Other amount the server checks; promised, never booked here", async () => {
+  it("tip_order: the model only proposes; the customer's tap on the confirm card sets the tip (promised, never booked here)", async () => {
     const f = await toolTurn(
       "tip_order",
       { amount_usd: 3 },
       {
         customer_last_delivered: () => ({ order_id: ORDER, code: "ABC123" }),
+        order_tip_offer: () => ({ status: "offer", amounts: [1, 2, 3], max_usd: 10 }),
         order_tip_set: () => ({ status: "promised", tip_usd: 3 }),
       },
     );
     expect(f.of("customer_last_delivered")[0].args).toEqual({ p_customer_id: CUST });
-    expect(f.of("order_tip_set")[0].args).toEqual({
+    expect(f.of("order_tip_offer")[0].args).toMatchObject({
+      p_customer_id: CUST,
+      p_order_id: ORDER,
+      p_mark: false,
+    });
+    expect(f.of("order_tip_set")).toHaveLength(0);
+    expect(ids(f.sent[0])).toEqual([`tpo:${ORDER}:300:o`, "c:no_upsell"]);
+    expect(bodyOf(f.sent[0])).toMatch(/Tip \$3\.00 to whoever delivered/);
+    // Over the server's maximum: no card, the reason with its buttons.
+    const big = await toolTurn(
+      "tip_order",
+      { amount_usd: 50 },
+      {
+        customer_last_delivered: () => ({ order_id: ORDER, code: "ABC123" }),
+        order_tip_offer: () => ({ status: "offer", amounts: [1, 2, 3], max_usd: 10 }),
+      },
+    );
+    expect(ids(big.sent[0])).not.toContain(`tpo:${ORDER}:5000:o`);
+    // The customer's tap: the named amount, checked by the server against tip_max_usd.
+    const g = fake({
+      rpcs: { order_tip_set: () => ({ status: "promised", tip_usd: 3, told: true }) },
+    });
+    await handleCustomerTurn(g.deps, tap(`tpo:${ORDER}:300:o`));
+    expect(g.of("order_tip_set")[0].args).toEqual({
       p_customer_id: CUST,
       p_order_id: ORDER,
       p_amount: 3,
       p_other: true,
     });
-    expect(bodyOf(f.sent[0])).toContain("We told whoever delivered");
+    expect(bodyOf(g.sent[0])).toContain("We told whoever delivered");
+    // No channel reached whoever delivered: the thanks never claims we told them.
+    const q = fake({
+      rpcs: { order_tip_set: () => ({ status: "promised", tip_usd: 3, told: false }) },
+    });
+    await handleCustomerTurn(q.deps, tap(`tpo:${ORDER}:300:o`));
+    expect(bodyOf(q.sent[0])).not.toContain("We told");
     const none = await toolTurn(
       "tip_order",
       { amount_usd: 3 },
@@ -1075,13 +1112,16 @@ describe("the after-cart flows through the AI's typed tools (session 5f part 7)"
     expect(validate("set_cash_change", { currency: "USD", amount: 20.5 })).toBe(false);
     expect(validate("add_item_extras", { line_ref: "l1", options: [] })).toBe(false);
     expect(validate("add_item_extras", { line_ref: "i1", options: ["x"] })).toBe(false);
-    expect(validate("set_item_note", { line_ref: "l1", note: "x".repeat(81) })).toBe(false);
-    expect(
+    expect(validate("set_item_note", { line_ref: "l1", note: "x".repeat(201) })).toBe(false);
+    expect(validate("set_item_note", { line_ref: "l1", note: "x".repeat(81) })).toBe(true);
+    // An AI note on a new line is cut by the server (basket_add_item), never refused; only an absurd one is.
+    const addWithNote = (note: string) =>
       validate("add_items", {
         vendor_ref: null,
-        items: [{ item_ref: "i1", name: null, quantity: 1, options: [], note: "x".repeat(81) }],
-      }),
-    ).toBe(false);
+        items: [{ item_ref: "i1", name: null, quantity: 1, options: [], note }],
+      });
+    expect(addWithNote("x".repeat(201))).toBe(false);
+    expect(addWithNote("x".repeat(81))).toBe(true);
     expect(validate("set_item_note", { line_ref: "l1", note: "no onions" })).toBe(true);
   });
 });

@@ -45,6 +45,7 @@ export type OrderCardData = {
   cash_change_for?: number | string | null;
   cash_change_currency?: "USD" | "LBP" | null;
   change_due?: number | string | null;
+  change_short?: boolean | null;
 };
 
 const envelope = (to: string) => ({
@@ -106,6 +107,7 @@ const T = {
     delivered: "✅ تم التسليم",
     tip: "🙏 بخشيش {tip} للي بيوصّل · المطلوب {collect}",
     changeFor: "💵 بيدفع {paid}: جيب معك {due} فراطة",
+    changeShort: "💵 قال بيدفع {paid}، بس المجموع صار أكتر: اقبض المجموع",
     exactCash: "💵 المبلغ مظبوط، بلا فراطة",
     tipAdded: "🙏 الزبون زاد بخشيش {tip} على الطلب #{code}. كلّو إلك؛ بس يوصلك كبوس «وصلني».",
     tipCollect: "🙏 الطلب #{code} كان معو بخشيش {tip} مع الكاش. كلّو إلك؛ إذا قبضتو كبوس «وصلني».",
@@ -162,9 +164,12 @@ const T = {
     delivered: "✅ Delivered",
     tip: "🙏 Tip {tip} for whoever delivers · collect {collect}",
     changeFor: "💵 Pays with {paid}: bring {due} change",
+    changeShort: "💵 Said they'd pay with {paid}, but the total is now higher: collect the total",
     exactCash: "💵 Exact cash, no change",
-    tipAdded: "🙏 The customer added a {tip} tip on order #{code}. It's 100% yours; tap when you have it.",
-    tipCollect: "🙏 Order #{code} came with a {tip} tip in the cash. It's 100% yours; tap when you have it.",
+    tipAdded:
+      "🙏 The customer added a {tip} tip on order #{code}. It's 100% yours; tap when you have it.",
+    tipCollect:
+      "🙏 Order #{code} came with a {tip} tip in the cash. It's 100% yours; tap when you have it.",
     tipGot: "✅ Got it",
   },
 } as const;
@@ -207,9 +212,11 @@ export function cashLines(d: OrderCardData, lang: Lang): string[] {
     out.push(
       d.cash_change_for == null
         ? t.exactCash
-        : t.changeFor
-            .replace("{paid}", amount(d.cash_change_for))
-            .replace("{due}", amount(d.change_due)),
+        : d.change_short
+          ? t.changeShort.replace("{paid}", amount(d.cash_change_for))
+          : t.changeFor
+              .replace("{paid}", amount(d.cash_change_for))
+              .replace("{due}", amount(d.change_due)),
     );
   }
   return out;

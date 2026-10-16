@@ -95,6 +95,7 @@ import {
   noteLinesList,
   notePrompt,
   tipAfterCard,
+  tipConfirmCard,
   tipRow,
   type ChoiceGroup,
   type SummaryExtra,
@@ -1037,7 +1038,7 @@ async function tap(c: Ctx, a: CustomerAction) {
     case "tip":
       return tipChosen(c, a.cents);
     case "tip_after":
-      return tipAfterChosen(c, a.orderId, a.cents);
+      return tipAfterChosen(c, a.orderId, a.cents, a.other === true);
     case "confirm":
       return confirm(c, a.basketId, a.version);
     case "cancel": {
@@ -3772,7 +3773,11 @@ async function noteTap(c: Ctx, lineId: string | null) {
       : null;
   if (lineId && !line) return say(c, "noteGone");
   if (!line) return push(c, noteLinesList(c.m.from, c.s.lang, lines));
-  c.s.pending = { kind: "note", line_id: line.line_id };
+  c.s.pending = {
+    kind: "note",
+    line_id: line.line_id,
+    at: (c.deps.now?.() ?? new Date()).toISOString(),
+  };
   c.summary.push("[asked for the item's note]");
   const max = Number(c.basket?.note_max);
   return push(
@@ -3799,6 +3804,10 @@ async function awaitedText(c: Ctx, t: string): Promise<boolean> {
   }
   if (p.kind === "note") {
     c.s.pending = {};
+    // Only text soon after "Add a note" is the note; hours later it is a new message (never "2 shawarma" as a note).
+    const at = Date.parse(String(p.at ?? ""));
+    if (!Number.isFinite(at) || (c.deps.now?.() ?? new Date()).getTime() - at > NOTE_WAIT_MS)
+      return false;
     if (intent?.kind === "no") {
       push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
       return true;
@@ -3823,6 +3832,8 @@ async function awaitedText(c: Ctx, t: string): Promise<boolean> {
   }
   return false;
 }
+
+const NOTE_WAIT_MS = 10 * 60 * 1000;
 
 /** "5", "$2.50", "2,5", "٢" or "3 dollars": a dollar amount with at most two decimals, else null. */
 export function readTipAmount(t: string): number | null {
@@ -3905,8 +3916,8 @@ async function afterDelivered(c: Ctx, orderId: string, lead: "glad" | "thanksRat
 }
 
 /** A tip button after delivery (tpo:<order>:<cents>), or Other: the amount is typed next, up to the server's max. */
-async function tipAfterChosen(c: Ctx, orderId: string, cents: number | null) {
-  if (cents !== null) return tipAfterSet(c, orderId, cents / 100, false);
+async function tipAfterChosen(c: Ctx, orderId: string, cents: number | null, other = false) {
+  if (cents !== null) return tipAfterSet(c, orderId, cents / 100, other);
   const o = await c.deps.rpc("order_tip_offer", {
     p_customer_id: c.customerId,
     p_order_id: orderId,
@@ -3936,8 +3947,13 @@ async function tipAfterSet(c: Ctx, orderId: string, amount: number, other: boole
     case "tipped":
     case "already_tipped":
       // Promised: whoever delivered is told and confirms they got the cash; only then is it booked.
-      c.summary.push(`[tip ${moneyUsd(r.tip_usd)} promised; whoever delivered was told]`);
-      return say(c, "tipThanks", { amount: moneyUsd(r.tip_usd) });
+      c.summary.push(
+        `[tip ${moneyUsd(r.tip_usd)} promised${r.told === false ? "" : "; whoever delivered was told"}]`,
+      );
+      // Never claim we told them when no channel reached whoever delivered.
+      return say(c, r.told === false ? "tipThanksQuiet" : "tipThanks", {
+        amount: moneyUsd(r.tip_usd),
+      });
     case "too_late":
       return say(c, "tipTooLate");
     case "not_allowed":
@@ -3972,7 +3988,9 @@ async function noteSave(c: Ctx, lineId: string, note: string): Promise<string> {
 
 // ---- Session 5f part 7: the same flows asked in words (§39.14 rule 1), through the AI's typed tools ----------------------
 /** The longest note the AI may pass (the server's item_note_max_chars decides; this only refuses a runaway input). */
-const NOTE_INPUT_MAX = 80;
+// A runaway guard only (the column's ceiling): the server cuts an AI note to item_note_max_chars and keeps the item, and
+// answers too_long for a note the customer typed, so the agent is never refused a whole item over a long note.
+const NOTE_INPUT_MAX = 200;
 
 /** Server-side check of the after-cart tools' input (the prompt is not a security boundary). */
 export function validAfterCart(name: AfterCartToolName, input: any): boolean {
@@ -4081,11 +4099,23 @@ async function aiAfterCart(c: Ctx, name: AfterCartToolName, input: any) {
     case "set_tip":
       return tipChosen(c, Math.round(Number(input.amount_usd ?? 0) * 100));
     case "tip_order": {
+      // The model proposes; the customer's tap decides (a misread "5 stars" never becomes a promised $5).
       const last = await c.deps
         .rpc("customer_last_delivered", { p_customer_id: c.customerId })
         .catch(() => null);
       if (!last?.order_id) return say(c, "tipNotAllowed");
-      return tipAfterSet(c, String(last.order_id), Number(input.amount_usd), true);
+      const orderId = String(last.order_id);
+      const o = await c.deps
+        .rpc("order_tip_offer", { p_customer_id: c.customerId, p_order_id: orderId, p_mark: false })
+        .catch(() => null);
+      if (o?.status === "tipped") return say(c, "tipThanks", { amount: moneyUsd(o.tip_usd) });
+      if (o?.status !== "offer")
+        return say(c, o?.status === "too_late" ? "tipTooLate" : "tipNotAllowed");
+      const cents = Math.round(Number(input.amount_usd) * 100);
+      if (!(cents > 0) || cents > Math.round(Number(o.max_usd) * 100))
+        return say(c, "tipOtherBad", { max: moneyUsd(o.max_usd) });
+      c.summary.push(`[asked the customer to confirm a ${moneyUsd(cents / 100)} tip]`);
+      return push(c, tipConfirmCard(c.m.from, c.s.lang, orderId, cents));
     }
   }
 }

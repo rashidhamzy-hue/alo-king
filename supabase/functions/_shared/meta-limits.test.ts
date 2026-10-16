@@ -1374,6 +1374,7 @@ import {
   notePrompt,
   summaryMessage as summaryWithExtras,
   tipAfterCard,
+  tipConfirmCard,
   tipRow,
 } from "../dispatch/customer/render";
 import { productCarouselMessage } from "./catalog";
@@ -1429,6 +1430,9 @@ describe("session 5f part 7 cards pass the checker", () => {
         tipRow(to, lang, [0.5, 1, 1.5, 2, 3, 5, 7.5, 10, 15, 20, 25, 30], 2),
         tipAfterCard(to, lang, U(300), [1, 2], "thanksRating"),
         tipAfterCard(to, lang, U(300), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], "glad"),
+        // The AI's tip_order: the customer confirms with a tap (amounts up to the 6-digit cents the tap id carries).
+        tipConfirmCard(to, lang, U(300), 50),
+        tipConfirmCard(to, lang, U(300), 999999),
         ...basketMessage(to, lang, basket),
         ...summaryWithExtras(
           to,
@@ -1573,6 +1577,8 @@ describe("session 5f part 7 cards pass the checker", () => {
     expect(parseP7("tpc:0")).toEqual({ a: "tip", cents: 0 });
     expect(parseP7(`tpo:${U(3)}:other`)).toEqual({ a: "tip_after", orderId: U(3), cents: null });
     expect(parseP7(`tpo:${U(3)}:100`)).toEqual({ a: "tip_after", orderId: U(3), cents: 100 });
+    expect(parseP7(`tpo:${U(3)}:300:o`)).toEqual({ a: "tip_after", orderId: U(3), cents: 300, other: true });
+    expect(parseP7(`tpo:${U(3)}:other:o`)).toEqual({ a: "tip_after", orderId: U(3), cents: null });
     for (const bad of ["ext:x", "note:", "chg:EUR:20", "chg:USD:-5", "chg:USD:0", "tpc:-1", "tpc:1.5", `tpo:${U(3)}:0`, "tpo:x:100"])
       expect(parseP7(bad), bad).toBeNull();
   });

@@ -171,6 +171,13 @@ select tests.ok(not exists (select 1 from public.ledger_transactions where idemp
   and (select tip_status = 'promised' from public.orders where id = :'oid1'),
   'a checkout tip is promised; nothing is booked before the order is delivered');
 reset role;
+-- The total grew past the note the customer said they would pay with: the card says so, never a negative change.
+update public.orders set cash_change_for = 10 where id = :'oid1';
+select public.order_call_card(:'oid1') as card_short \gset
+select tests.ok(not (:'card'::jsonb ->> 'change_short')::boolean and (:'card_short'::jsonb ->> 'change_short')::boolean
+  and (:'card_short'::jsonb ->> 'change_due')::numeric = 0,
+  'paying with $10 for $14.25: the card flags it short (collect the total), the change to bring is zero');
+update public.orders set cash_change_for = 20 where id = :'oid1';
 update public.orders set status = 'accepted' where id = :'oid1';
 update public.orders set status = 'ready' where id = :'oid1';
 update public.orders set status = 'picked_up' where id = :'oid1';
@@ -292,6 +299,22 @@ update public.orders set delivery_code_confirmed_at = now() where id = :'oid3';
 update public.orders set status = 'delivered' where id = :'oid3';
 set local role service_role;
 select public.basket_add_item(:'maya', :'burger', 1, array[:'large']::uuid[]);
+-- A pretend order never counts (§39.15.3), nor one older than the shop's recent window (catalog_best_sellers_days).
+reset role;
+alter table public.orders disable trigger orders_is_demo;
+update public.orders set is_demo = true where id = :'oid3';
+set local role service_role;
+select tests.ok(public.basket_goes_well(:'maya', 'sim') ->> 'status' = 'none',
+  'with order 3 a demo order, fries were bought with the burger in one real order only: nothing is offered');
+reset role;
+update public.orders set is_demo = false where id = :'oid3';
+update public.orders set created_at = now() - make_interval(days => public.config_numeric('catalog_best_sellers_days')::int + 1)
+  where id = :'oid3';
+set local role service_role;
+select tests.ok(public.basket_goes_well(:'maya', 'sim') ->> 'status' = 'none', 'an order outside the recent window does not count');
+reset role;
+update public.orders set created_at = now() where id = :'oid3';
+set local role service_role;
 select public.basket_goes_well(:'maya', 'sim') as gw \gset
 select tests.ok(:'gw'::jsonb ->> 'status' = 'ok' and :'gw'::jsonb #>> '{products,0,retailer_id}' = '7f000000-0000-0000-0000-000000000002'
   and (:'gw'::jsonb #>> '{products,0,price_usd}')::numeric = 3.00 and :'gw'::jsonb -> 'carousel' = 'false'::jsonb,
@@ -308,6 +331,15 @@ select tests.ok(jsonb_array_length(:'pop'::jsonb -> 'products') = 1 and :'pop'::
   and :'pop'::jsonb -> 'carousel' = 'false'::jsonb, 'Popular near you: each delivering shop''s best seller, named with its shop');
 select tests.ok(public.popular_near_you(array['20000000-0000-0000-0000-00000000000a']::uuid[], 'no-such-catalogue') -> 'products' = '[]'::jsonb,
   'nothing the catalogue does not show');
+reset role;
+update public.orders set is_demo = true where vendor_id = '20000000-0000-0000-0000-00000000000a';
+set local role service_role;
+select tests.ok(public.popular_near_you(array['20000000-0000-0000-0000-00000000000a']::uuid[], 'sim') -> 'products' = '[]'::jsonb,
+  'a shop whose orders are all pretend ones has no best seller');
+reset role;
+update public.orders set is_demo = false where vendor_id = '20000000-0000-0000-0000-00000000000a';
+alter table public.orders enable trigger orders_is_demo;
+set local role service_role;
 
 -- 9. Access: the dispatch function only ---------------------------------------------------------------------------------------
 reset role;

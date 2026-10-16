@@ -762,7 +762,7 @@ export type AfterCartAction =
   | { a: "note"; lineId: string | null }
   | { a: "change"; currency: "USD" | "LBP"; amount: number | null }
   | { a: "tip"; cents: number }
-  | { a: "tip_after"; orderId: string; cents: number | null };
+  | { a: "tip_after"; orderId: string; cents: number | null; other?: boolean };
 
 /** Customer button and list ids. Anything else is not ours and gets no action. */
 export type CustomerAction =
@@ -854,8 +854,14 @@ export function parseCustomerAction(id: string): CustomerAction | null {
       amount: m[2] === "exact" ? null : Number(m[2]),
     };
   if ((m = id.match(/^tpc:(0|[1-9]\d{0,5})$/))) return { a: "tip", cents: Number(m[1]) };
-  if ((m = id.match(re(`tpo:(${UUID}):(other|[1-9]\\d{0,5})`))))
-    return { a: "tip_after", orderId: m[1], cents: m[2] === "other" ? null : Number(m[2]) };
+  if ((m = id.match(re(`tpo:(${UUID}):(other|[1-9]\\d{0,5})(:o)?`))))
+    return {
+      a: "tip_after",
+      orderId: m[1],
+      cents: m[2] === "other" ? null : Number(m[2]),
+      // ":o": an amount the customer named (confirmed on a card), checked against tip_max_usd, not the fixed amounts
+      ...(m[3] && m[2] !== "other" ? { other: true } : {}),
+    };
   if ((m = id.match(re(`rcv:(${UUID}):(ok|no)`))))
     return { a: "received", orderId: m[1], ok: m[2] === "ok" };
   if ((m = id.match(re(`wgt:(${UUID}):(y|n)`))))

@@ -202,11 +202,11 @@ const AFTER_CART_CONTRACT: Record<AfterCartToolName, Contract> = {
     render: "the summary again with the tip row",
   },
   tip_order: {
-    rpc: ["customer_last_delivered", "order_tip_set"],
+    rpc: ["customer_last_delivered", "order_tip_offer"],
     auth: "own last delivered order",
     states: "delivered, paid cash, within tip_after_delivery_minutes, no tip yet",
     idempotency: "one tip per order; promised until whoever delivered confirms it",
-    render: "thanks (whoever delivered is told), or why not",
+    render: "a confirm card (the customer's tap sets the tip through order_tip_set), or why not",
   },
 };
 
