@@ -264,14 +264,18 @@ async function main() {
       settings =
         "unverified (not readable or writable with this token; the owner hides the catalogue icon)";
     } else {
+      // Meta answered the POST: the icon is off even when the settings cannot be read back.
       header =
-        s.is_catalog_visible === false
+        s.is_catalog_visible === false || (set && !got)
           ? "hidden"
           : s.is_catalog_visible === true
             ? "shown"
             : "unverified";
-      settings = `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`;
-      commerceOn = s.is_cart_enabled === true && s.is_catalog_visible === false;
+      settings = got
+        ? `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`
+        : "set (cart on, catalogue icon off); not readable back";
+      commerceOn =
+        (s.is_cart_enabled === true && s.is_catalog_visible === false) || (!!set && !got);
     }
   }
 
