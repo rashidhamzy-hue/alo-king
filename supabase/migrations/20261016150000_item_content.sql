@@ -88,7 +88,8 @@ as $$
       'photo_hash', p.origin_hash)
     order by s.sort_order nulls last, i.sort_order, i.id), '[]')
   from public.menu_items i
-  cross join (select app_private.public_site_url() as site) cfg
+  -- offset 0 keeps the subquery from being flattened: the address is read once per call, not twice per product.
+  cross join (select app_private.public_site_url() as site offset 0) cfg
   join public.vendors v on v.id = i.vendor_id
   join public.menu_item_photos p on p.item_id = i.id
   left join public.menu_sections s on s.id = i.section_id

@@ -52,8 +52,8 @@ select tests.ok(:'d'::jsonb -> 'allergens_declared' = 'null'::jsonb, 'allergens 
 update public.menu_items set allergens_confirmed_at = now() where id = :'falafel';
 select tests.ok((select x -> 'allergens_declared' from jsonb_array_elements(public.catalog_desired(:'tv')) x
   where x ->> 'retailer_id' = :'falafel') ?& array['sesame', 'gluten'], 'declared allergens are given');
-select tests.ok((:'d'::jsonb ->> 'illustrative')::boolean, 'an illustrative photo is flagged (labelled, never credited, in the text)');
-select tests.ok(:'d'::jsonb ->> 'description' !~ '(📷|CC BY|Openverse)', 'no photo credit in what Meta gets');
+select tests.ok((:'d'::jsonb ->> 'illustrative')::boolean, 'an illustrative photo is flagged for its "Photo for illustration" line');
+select tests.ok(:'d'::jsonb ->> 'description' !~ '(📷|CC BY|Openverse)', 'the old description field carries no credit (the sync builds the text; a CC BY credit only until the item has a page)');
 
 -- Without a site address there is no link (the image route stands in, never shown as the item's page).
 insert into public.app_config (key, value, effective_from, note) values ('public_site_url', '"not a url"', now(), 'test');

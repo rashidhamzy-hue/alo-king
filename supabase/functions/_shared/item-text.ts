@@ -3,8 +3,8 @@
 //     never ALL CAPS; a size once. The shop names it because the header catalogue is one flat list of every shop.
 //   - Description, one line each, in this order: shop · village; the Arabic name; what it is (the menu's text, else
 //     "Usually made with …" from the dish library); estimated energy and protein; allergens only when the merchant declared
-//     them; "Extras chosen after you add it" when it has options. Never a photo credit (credits live on the web page and
-//     /credits), never "safe".
+//     them; "Extras chosen after you add it" when it has options. A CC BY photo's credit only until the item has its web
+//     page (then the page and /credits carry it); never "safe".
 // Pure functions: the catalogue sync, the image route and the website all build the same words.
 
 const SMALL = new Set([
@@ -105,11 +105,14 @@ export function titleCase(s: string): string {
     .map((w, i) => {
       const letters = w.replace(/[^\p{L}]/gu, "");
       if (!letters || !/[A-Za-zÀ-ÿ]/.test(letters)) return w;
-      if (i > 0 && /^\d/.test(words[i - 1]) && UNIT.test(w)) return w;
+      // A unit after a number ("330 ml", "(250 ml)") stays as sizeOnce wrote it; "7UP" or "23CM" stays as written.
+      if (i > 0 && /\d$/.test(words[i - 1]) && UNIT.test(letters)) return w;
+      if (/^\d/.test(w)) return w;
       const upper = letters === letters.toUpperCase();
       const lower = letters === letters.toLowerCase();
       if (upper && ACRONYMS.has(letters)) return w;
-      if (i > 0 && SMALL.has(letters.toLowerCase())) return w.toLowerCase();
+      // A small word is lower case inside the name, never as its last word ("Combo A").
+      if (i > 0 && i < words.length - 1 && SMALL.has(letters.toLowerCase())) return w.toLowerCase();
       // The merchant's own mixed case (McFlurry, iPhone) stays; ALL CAPS and all lower case get a capital first.
       if (!upper && !lower) return w;
       return capWord(w);
@@ -118,16 +121,17 @@ export function titleCase(s: string): string {
 }
 
 /**
- * At most `max` UTF-16 units (how Meta and JavaScript count), cut between whole characters, never inside an emoji;
- * `ellipsis` ends a shortened text with "…".
+ * At most `max` UTF-16 units (how Meta and JavaScript count), cut between whole characters (graphemes), never inside an
+ * emoji; `ellipsis` ends a shortened text with "…".
  */
 export function fit(s: string, max: number, ellipsis = false): string {
   if (s.length <= max) return s;
   const room = ellipsis ? max - 1 : max;
   let out = "";
-  for (const ch of s) {
-    if (out.length + ch.length > room) break;
-    out += ch;
+  // Whole characters as people see them: an emoji family or a flag is never split.
+  for (const { segment } of new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)) {
+    if (out.length + segment.length > room) break;
+    out += segment;
   }
   return ellipsis ? out.trimEnd() + "…" : out;
 }
@@ -206,7 +210,11 @@ export function catalogTitle(t: ItemText, max = 150): string {
 /** The description lines, in the decided order; at most `max` characters (Meta: 5,000; we keep 500). */
 export function catalogDescription(t: ItemText, max = 500): string {
   const shop = clean(t.shop_en) || clean(t.shop_ar);
-  const village = clean(t.village_en) || clean(t.village_ar);
+  // The village in the shop's script, so the first line is one language.
+  const arabicShop = !/[A-Za-zÀ-ÿ]/.test(shop) && /\p{Script=Arabic}/u.test(shop);
+  const village = arabicShop
+    ? clean(t.village_ar) || clean(t.village_en)
+    : clean(t.village_en) || clean(t.village_ar);
   const lines: string[] = [];
   if (shop) lines.push(village ? `${shop} · ${village}` : shop);
   const ar = clean(t.name_ar);
@@ -237,6 +245,19 @@ export function catalogDescription(t: ItemText, max = 500): string {
     // Until the item has its page (which credits the photo), a CC BY photo's credit stays here (§38.1, §39.13).
     !t.link && clean(t.photo_credit) ? `📷 ${fit(clean(t.photo_credit), 120, true)}` : "",
   ].filter(Boolean);
+  // Should the fixed lines alone pass the limit, the optional ones go first, in this order; the allergens, the
+  // illustration label and the credit stay.
+  for (const drop of [
+    energy,
+    "Extras chosen after you add it",
+    tail.find((l) => l.endsWith("by weight")),
+    clean(t.name_ar),
+  ]) {
+    if ([...lines, ...tail].join("\n").length <= max) break;
+    const at = tail.indexOf(drop ?? "\u0000");
+    if (at >= 0) tail.splice(at, 1);
+    else if (drop && lines.indexOf(drop) > 0) lines.splice(lines.indexOf(drop), 1);
+  }
   // What it is gets whatever room the other lines leave (all in UTF-16 units); the other lines are never cut.
   const fixed = [...lines, ...tail].join("\n").length + (whatLine ? 1 : 0);
   const room = max - fixed;

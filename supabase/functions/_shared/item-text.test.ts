@@ -24,6 +24,14 @@ describe("item titles (DECISIONS §39.15.2, spec §2 item 2)", () => {
     expect(titleCase("FROZEN YOGURT(with 2 toppings)")).toBe("Frozen Yogurt (with 2 Toppings)");
   });
 
+  it("round 2: a unit after a size in brackets, words starting with a digit, a small last word", () => {
+    expect(titleCase("ksara Red Wine (250ml)")).toBe("Ksara Red Wine (250 ml)");
+    expect(titleCase("Pepsi 1.25L (1250 ml)")).toBe("Pepsi 1.25 L (1250 ml)");
+    expect(titleCase("DIET 7UP")).toBe("Diet 7UP");
+    expect(titleCase("PIZZA 23CM")).toBe("Pizza 23CM");
+    expect(titleCase("COMBO A")).toBe("Combo A");
+  });
+
   it("a size once, written one way", () => {
     expect(sizeOnce("Pepsi 330ML (330 ml)")).toBe("Pepsi 330 ml");
     expect(titleCase("SOFT DRINK 1.5L")).toBe("Soft Drink 1.5 L");
@@ -146,5 +154,50 @@ describe("lengths are counted as Meta counts them (UTF-16), never cutting a line
     expect(catalogDescription({ ...t, link: "https://alo-king.vercel.app/en/i/x" })).not.toContain(
       "📷",
     );
+  });
+
+  it("round 2: graphemes stay whole; an Arabic shop takes the Arabic village; too many fixed lines drop the optional ones", () => {
+    expect(fit("ab👨‍👩‍👧cd", 5)).toBe("ab");
+    expect(fit("🇱🇧🇱🇧", 5)).toBe("🇱🇧"); // a flag is two code points and never split
+    expect(
+      catalogDescription({
+        name_ar: "كبة",
+        shop_ar: "مطعم الضيعة",
+        village_en: "Baakline",
+        village_ar: "بعقلين",
+      }).split("\n")[0],
+    ).toBe("مطعم الضيعة · بعقلين");
+    const d = catalogDescription({
+      name_en: "Platter",
+      name_ar: "ص".repeat(150),
+      shop_en: "S".repeat(140),
+      village_en: "Baakline",
+      kcal: 900,
+      protein_g: 40,
+      has_options: true,
+      allergens_declared: [
+        "gluten",
+        "nuts",
+        "dairy",
+        "eggs",
+        "sesame",
+        "fish",
+        "shellfish",
+        "soy",
+        "peanuts",
+        "mustard",
+        "celery",
+        "sulphites",
+        "lupin",
+        "molluscs",
+      ],
+      illustrative: true,
+      photo_credit: "Jane Doe via Openverse · CC BY 2.0",
+    });
+    expect(d.length).toBeLessThanOrEqual(500);
+    expect(d).toContain("(declared by the shop)");
+    expect(d).toContain("Photo for illustration");
+    expect(d.endsWith("📷 Jane Doe via Openverse · CC BY 2.0")).toBe(true);
+    expect(d).not.toContain("kcal");
   });
 });
