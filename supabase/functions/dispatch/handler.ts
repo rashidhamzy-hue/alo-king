@@ -157,9 +157,14 @@ export async function runDispatch(
   const sender = () => senderFor("merchant");
 
   // 2. Outbox (also drained before the inbound step waits for a held message, so an order card is never held back).
-  const drainOutbox = async () => {
-    while (left() > 1500) {
-      const batch: Outbox[] = (await deps.rpc("outbox_claim", { p_limit: 20, p_lock_s: 30 })) ?? [];
+  // `once` takes one small batch even when the budget is spent: a turn that ends past the budget (a confirm handled at the
+  // end of a long run) must not leave its order card for the next 30-second tick (smoke run 3, session 5e).
+  const drainOutbox = async (once = false) => {
+    while (once || left() > 1500) {
+      const limit = once && left() <= 1500 ? 5 : 20;
+      once = false;
+      const batch: Outbox[] =
+        (await deps.rpc("outbox_claim", { p_limit: limit, p_lock_s: 30 })) ?? [];
       if (!batch.length) break;
       for (const m of batch) {
         const r =
@@ -220,7 +225,7 @@ export async function runDispatch(
     }
   }
 
-  await drainOutbox();
+  await drainOutbox(true);
 
   // 3. Broadcasts (§39.8): one approved broadcast per run while config broadcasts_enabled is on; the database fixes the
   // audience (opted in at this second) and the daily cap, Kapso paces the sends.

@@ -235,6 +235,15 @@ describe("outbox through the order_channel router", () => {
     });
   });
 
+  it("a run whose budget is spent still sends one small batch, so an order card never waits for the next tick", async () => {
+    const db = fakeDb({ outbox: [row({})] });
+    const { d, sent } = deps(db, { budgetMs: 0 });
+    await runDispatch(d);
+    expect(db.of("webhook_claim")).toHaveLength(0);
+    expect(db.of("outbox_claim").map((c) => c.args.p_limit)).toEqual([5]);
+    expect(sent[0].payload.interactive.header.text).toContain("AB3CD9");
+  });
+
   it("no merchant number yet (#67): skipped, which fires the backup in the database", async () => {
     const db = fakeDb({ outbox: [row({})], sender: null });
     const { d } = deps(db);

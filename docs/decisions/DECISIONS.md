@@ -915,6 +915,8 @@ Evidence rules: a confirmation by someone at the place (driver at the geofence, 
 ### 28.6 Why OpenRouteService (answer to Rasheed, 7 October)
 ORS is the road-routing service for the whole system: road distance for the $2 / $3 / $4.50 fee bands and the 10 km limit (never straight line), the "can this merchant deliver here" check, ETAs, and dispatch (which driver is closest by road). It is OpenStreetMap-based, so it works for Lebanese villages and costs nothing on the free plan. The basic free key is correct. Results are cached 1-24 h (§3), so free limits are far above pilot volume; if a day ever comes close to the limit, the build logs it and opens an `owner` issue.
 
+- **Doorstep (16 October, session 5e):** a pin within 50 m of the shop is that straight distance (`DOORSTEP_M` in `supabase/functions/_shared/routing.ts`), because ORS gives no route between two points that snap to the same spot and a customer at the shop's door could not check out. It is the only straight-line answer: 50 m is far inside the first fee band, and every other pin still needs an ORS route.
+
 ## 29. Five external audits (Gemini ×3, ChatGPT, Perplexity), 9 October: verdicts (DECIDED, 9 October 10:30)
 Input only (CLAUDE.md "Authority"). Each recommendation is adopted, adapted or rejected below, with the reason. **The audits' proposed migration `20261009110000_consolidated_platform_hardening.sql` is rejected as a file and must never be applied.** It targets tables our schema does not have (`menu_items`, `order_items`, `orders`, `profiles`), hard-codes 89,500 LBP as a default rate (forbidden: §2, CLAUDE.md), duplicates tables that already exist (`road_incidents`, the dated price list, `ledger_entries` already carries USD and LBP), and adds categories rejected below. Adopted ideas are built inside the normal sessions, in the schema those sessions design.
 
@@ -1779,6 +1781,11 @@ Rasheed's requests after session D, and the decision on each. **This section ove
 - **WhatsApp business profile of the US number**, set by API through Kapso's proxy (`kapso-profile`): the Alo King crown as profile photo, about, description, address, category and website.
   - Meta's profile has no opening-hours field; the description says each shop delivers in its own hours, shown when it is opened.
   - The website is listed only when it publicly serves the new site. Vercel's production domain still serves the 6 October build with another business's number until the cut-over, so it is never listed.
+- **Outcome on staging (16 October, session 5e):**
+  - **Header:** `kapso-catalog` could not set the commerce setting through Kapso (the read-back is "unverified"), so owner issue #199 carries the WhatsApp Manager steps. Until it is done, the header icon still opens the flat catalogue; carts from it go through `cart_merge` as before.
+  - **Categories:** the craving list ranks categories by how many delivering shops serve them, and shows eight plus "More categories" when more than nine have shops, so every category is two taps away.
+  - **Photos:** demo items carry 67 shop photos, 10 packshots (exact brand, variant and size only) and 1,093 dish photos (72 dish keys, CC0, Public Domain Mark or CC BY, credited). 427 items have no fitting photo and stay out of the catalogue. Every one of the 29 demo shops has a cover: its own photo, else the photo of its most common main dish that has one (the reading of "its signature dish" when that dish has no photo).
+  - **Profile:** set by API (photo, about, description, address, category); no website until aloking.com serves the new site.
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
