@@ -16,11 +16,20 @@ export type Profile = {
   websites: string[];
 };
 
-/** A website goes on the profile only when anyone can open it and it is the Alo King site (not a login wall). */
+/** Meta takes at most two websites on a business profile. */
+export const MAX_WEBSITES = 2;
+
+/**
+ * The tag only the rebuilt site serves (src/routes/__root.tsx). The brand name alone is not enough: the 6 October build
+ * still answers on Vercel's production domain until the cut-over (#74), and it says "Alo King" too.
+ */
+export const BUILD_MARKER = /<meta\s+name="alo-king-build"\s+content="rebuild"\s*\/?>/;
+
+/** A website goes on the profile only when anyone can open it and it is the rebuilt site (not a login wall). */
 export function isPublicSite(status: number, html: string): boolean {
   return (
     status === 200 &&
-    /Alo King|ألو كينغ/.test(html) &&
+    BUILD_MARKER.test(html) &&
     !/Authentication Required|vercel\.com\/login|sso-api/i.test(html)
   );
 }
@@ -36,7 +45,7 @@ async function publicWebsites(candidates: string[]): Promise<string[]> {
     console.log(`website ${url}: ${res?.status ?? "no answer"}${ok ? " (public)" : " (left out)"}`);
     if (ok) out.push(url);
   }
-  return out.slice(0, 2);
+  return out.slice(0, MAX_WEBSITES);
 }
 
 /** Meta's limits for a business profile; an empty list means the profile can be sent. */
@@ -48,7 +57,8 @@ export function profileProblems(p: Profile): string[] {
   if (len(p.description) > 512)
     out.push(`description is ${len(p.description)} characters (512 at most)`);
   if (len(p.address) > 256) out.push(`address is ${len(p.address)} characters (256 at most)`);
-  if (p.websites.length > 2) out.push(`${p.websites.length} websites (2 at most)`);
+  if (p.websites.length > MAX_WEBSITES)
+    out.push(`${p.websites.length} websites (${MAX_WEBSITES} at most)`);
   for (const w of p.websites)
     if (!/^https?:\/\/[^\s]+$/.test(w) || w.length > 256) out.push(`bad website ${w}`);
   if (/https?:\/\//.test(p.about)) out.push("about must not hold a link");

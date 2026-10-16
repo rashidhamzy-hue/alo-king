@@ -2247,11 +2247,13 @@ async function addOne(
     return false;
   if (missing) {
     c.s.pending = { kind: "options", item_id: itemId, qty, note, chosen: [...picked] };
+    // The item's name as the list the customer tapped showed it; an item that came another way (its code from the
+    // website, a catalogue cart) is named by the group itself (menu_item_options' item / item_en).
     const label =
       c.s.refs[Object.keys(c.s.refs).find((k) => c.s.refs[k].id === itemId) ?? ""]?.label?.replace(
         / \$.*$/,
         "",
-      ) ?? "";
+      ) || localName(c.s.lang, missing.item ?? null, missing.item_en ?? null);
     push(c, optionList(c.m.from, c.s.lang, label, missing));
     return false;
   }

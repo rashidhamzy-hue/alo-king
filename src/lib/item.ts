@@ -48,6 +48,42 @@ export function declaredAllergens(d: Pick<SiteItemPage, "allergens">, t: Copy): 
 export const creditText = (c: { credit: string | null; license: string | null } | null) =>
   c ? [c.credit, c.license].filter(Boolean).join(" · ") : "";
 
+export type TrailStep = {
+  kind: "home" | "place" | "shop" | "item";
+  label: string;
+  /** The language-free path (`localePath` adds the language). */
+  path: string;
+  /** The place's or the shop's slug, for the link. */
+  slug?: string;
+};
+
+/**
+ * The item page's trail, one list for the visible breadcrumbs and the BreadcrumbList: Home › village › shop › item. The
+ * village only when it has a page, the shop only when it has its own page (`has_page`: an item of a shop without one
+ * names the shop but links nowhere).
+ */
+export function itemTrail(d: SiteItemPage, lang: SiteLang, home: string): TrailStep[] {
+  const v = d.vendor;
+  const place = pickName(v, "place", lang);
+  const steps: TrailStep[] = [{ kind: "home", label: home, path: "/" }];
+  if (v.place_slug && place)
+    steps.push({
+      kind: "place",
+      label: place,
+      path: `/places/${v.place_slug}`,
+      slug: v.place_slug,
+    });
+  if (v.has_page)
+    steps.push({
+      kind: "shop",
+      label: pickName(v, "name", lang),
+      path: `/m/${v.slug}`,
+      slug: v.slug,
+    });
+  steps.push({ kind: "item", label: pickName(d.item, "name", lang), path: `/i/${d.item.id}` });
+  return steps;
+}
+
 const DIET = {
   vegan: "https://schema.org/VeganDiet",
   vegetarian: "https://schema.org/VegetarianDiet",

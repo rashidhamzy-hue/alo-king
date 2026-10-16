@@ -290,6 +290,8 @@ export const ITEM_IDS = {
   shawarma: "80000000-0000-0000-0000-000000000001",
   ayran: "80000000-0000-0000-0000-000000000002",
   demo: "80000000-0000-0000-0000-0000000000d1",
+  // No photo and a very long name, at a shop that takes orders but has no page of its own (named, not linked).
+  long: "80000000-0000-0000-0000-0000000000e1",
 };
 const DEMO_VENDOR = card(
   "demo-mashawi-el-dayaa",
@@ -298,8 +300,19 @@ const DEMO_VENDOR = card(
   "restaurant",
   ["lebanese"],
   PLACES[2],
+  true,
+  { demo: true },
 );
 export const DEMO_SLUG = DEMO_VENDOR.slug;
+// Takes orders, no page of its own: its items have pages (the catalogue links them), the shop is not linked.
+const NO_PAGE_VENDOR = card(
+  "furn-el-ain",
+  "Furn el Ain",
+  "فرن العين",
+  "bakery_manakish",
+  ["manakish"],
+  PLACES[1],
+);
 const DEMO_PAGE = {
   vendor: {
     ...DEMO_VENDOR,
@@ -329,7 +342,8 @@ const DEMO_PAGE = {
   fees: { min_usd: 2, max_usd: 5, max_km: 8 },
   rate: RATE,
 };
-const itemVendor = (v, demo) => ({
+// ownPage: the shop has a public page; a demo shop has its demo page. has_page = either (site_item's vendor.has_page).
+const itemVendor = (v, demo, ownPage = !demo) => ({
   slug: v.slug,
   name_ar: v.name_ar,
   name_en: v.name_en,
@@ -342,7 +356,8 @@ const itemVendor = (v, demo) => ({
   paused: v.paused,
   open_now: v.open_now,
   demo,
-  public_page: !demo,
+  public_page: !demo && ownPage,
+  has_page: demo || ownPage,
 });
 const pageItem = (id, en, ar, fr, price, extra = {}) => ({
   id,
@@ -456,8 +471,33 @@ const ITEMS = {
     goes_well: null,
     rate: RATE,
   },
+  // No photo, a very long name in every language, a required choice, at a shop without a page of its own: the layout
+  // without the photo column, long names wrapping in the title and the breadcrumbs, the shop named but not linked.
+  [ITEM_IDS.long]: {
+    item: pageItem(
+      ITEM_IDS.long,
+      "Family feast of mixed grills: shish taouk, lamb kafta, beef kebab, grilled halloumi, batata harra, hummus, mutabbal, fattoush and warm saj bread for six to eight people",
+      "وليمة العائلة من المشاوي المشكلة: شيش طاووق وكفتة غنم وكباب لحم وحلوم مشوي وبطاطا حرة وحمص ومتبل وفتوش وخبز صاج سخن لستة إلى ثمانية أشخاص",
+      "Festin familial de grillades mixtes : chich taouk, kefta d'agneau, kebab de bœuf, halloumi grillé, batata harra, houmous, moutabal, fattouch et pain saj chaud pour six à huit personnes",
+      42,
+      { photo: false, photo_source: null, credit: null, description: null },
+    ),
+    vendor: itemVendor(NO_PAGE_VENDOR, false, false),
+    nutrition: null,
+    allergens: ["gluten", "sesame", "dairy"],
+    options: [
+      {
+        ...names("Bread", "الخبز", "Pain"),
+        min: 1,
+        max: 1,
+        options: [opt("Saj", "صاج", "Saj", 0), opt("Markouk", "مرقوق", "Markouk", 1)],
+      },
+    ],
+    goes_well: null,
+    rate: RATE,
+  },
 };
-const creditRow = (kind, id, v, it, source, c) => ({
+const creditRow = (kind, id, v, it, source, c, hasPage = true) => ({
   kind,
   item_id: id,
   vendor_slug: v.slug,
@@ -468,6 +508,7 @@ const creditRow = (kind, id, v, it, source, c) => ({
   item_en: it?.name_en ?? null,
   item_fr: it?.name_fr ?? null,
   source,
+  has_page: hasPage,
   ...c,
 });
 const CREDITS = [
@@ -498,6 +539,16 @@ const CREDITS = [
     ITEMS[ITEM_IDS.demo].item,
     "illustrative",
     CREDIT.demo,
+  ),
+  // A shop without a page of its own: named on /credits, not linked.
+  creditRow(
+    "cover",
+    null,
+    NO_PAGE_VENDOR,
+    null,
+    "illustrative",
+    { credit: "Drawn for the Alo King checks", license: "CC0 1.0", source_url: null },
+    false,
   ),
 ];
 

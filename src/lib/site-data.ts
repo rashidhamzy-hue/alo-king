@@ -46,6 +46,8 @@ export type VendorCard = {
   place_ar: string | null;
   place_en: string | null;
   place_fr: string | null;
+  /** A demo shop (§39.12, site_vendor_card): labelled Demo wherever its card shows. */
+  demo?: boolean;
 };
 
 export type SitePlacePage = {
@@ -351,6 +353,8 @@ export type SiteItemPage = {
     open_now: boolean;
     demo: boolean;
     public_page: boolean;
+    /** The shop has its own page to link to (public_page, or a demo shop's page); otherwise it is named, not linked. */
+    has_page: boolean;
   };
   nutrition: ItemNutrition | null;
   /** Only what the shop declared; null = not declared, which is never shown as "none" or "safe" (§32.3, §38.3). */
@@ -421,6 +425,7 @@ export function toItemPage(raw: unknown): SiteItemPage | null {
       open_now: v.open_now === true,
       demo: v.demo === true,
       public_page: v.public_page === true,
+      has_page: v.has_page === true,
     },
     nutrition:
       nu && kcal !== null && (nu.status === "estimated" || nu.status === "merchant_verified")
@@ -478,6 +483,8 @@ export type CreditPhoto = {
   item_en: string | null;
   item_fr: string | null;
   source: string | null;
+  /** The shop has its own page to link to; otherwise the credits page names it without a link. */
+  has_page: boolean;
 } & PhotoCredit;
 export type SiteCredits = { total: number; page: number; page_size: number; photos: CreditPhoto[] };
 export const EMPTY_CREDITS: SiteCredits = { total: 0, page: 1, page_size: 100, photos: [] };
@@ -502,6 +509,7 @@ export function toCredits(raw: unknown): SiteCredits {
       item_en: str(p.item_en),
       item_fr: str(p.item_fr),
       source: str(p.source),
+      has_page: p.has_page === true,
       ...toCredit(p)!,
     }));
   const size = (num(r.page_size) ?? 0) > 0 ? (num(r.page_size) as number) : EMPTY_CREDITS.page_size;

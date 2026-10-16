@@ -83,13 +83,18 @@ function CreditsPage() {
                 aria-labelledby={`shop-${s.vendor_slug}`}
               >
                 <h2 id={`shop-${s.vendor_slug}`} className="ak-h3">
-                  <Link
-                    to="/$lang/m/$slug"
-                    params={{ lang, slug: s.vendor_slug }}
-                    className="underline underline-offset-4"
-                  >
-                    {shop}
-                  </Link>
+                  {/* A shop without its own page is named, not linked (its items still have pages). */}
+                  {s.has_page ? (
+                    <Link
+                      to="/$lang/m/$slug"
+                      params={{ lang, slug: s.vendor_slug }}
+                      className="underline underline-offset-4"
+                    >
+                      {shop}
+                    </Link>
+                  ) : (
+                    shop
+                  )}
                 </h2>
                 <ul className="mt-4 space-y-3">
                   {rows.map((p, k) => {

@@ -8,6 +8,7 @@ import {
   itemCode,
   itemHead,
   itemImageUrl,
+  itemTrail,
   itemWaText,
   optionRule,
 } from "./item";
@@ -48,6 +49,7 @@ const page = (over: Partial<SiteItemPage> = {}): SiteItemPage => ({
     open_now: true,
     demo: false,
     public_page: true,
+    has_page: true,
   },
   nutrition: null,
   allergens: null,
@@ -157,5 +159,33 @@ describe("item page head", () => {
       expect(robots(h)).toBe("noindex,nofollow");
       expect(h.scripts).toEqual([]);
     }
+  });
+});
+
+describe("item page trail (the visible breadcrumbs and the BreadcrumbList are one list)", () => {
+  it("is Home › village › shop › item, with language-free paths", () => {
+    expect(itemTrail(page(), "en", "Home")).toEqual([
+      { kind: "home", label: "Home", path: "/" },
+      { kind: "place", label: "Baakline", path: "/places/chf-baakline", slug: "chf-baakline" },
+      {
+        kind: "shop",
+        label: "Abou Ali Shawarma",
+        path: "/m/abou-ali-shawarma",
+        slug: "abou-ali-shawarma",
+      },
+      { kind: "item", label: "Chicken shawarma", path: `/i/${ID}` },
+    ]);
+    expect(itemTrail(page(), "ar", "الرئيسية").map((s) => s.label)).toEqual([
+      "الرئيسية",
+      "بعقلين",
+      "شاورما أبو علي",
+      "شاورما دجاج",
+    ]);
+  });
+  it("leaves out the shop when it has no page of its own, and the village when it has none", () => {
+    const noPage = page({ vendor: { ...page().vendor, public_page: false, has_page: false } });
+    expect(itemTrail(noPage, "en", "Home").map((s) => s.kind)).toEqual(["home", "place", "item"]);
+    const noPlace = page({ vendor: { ...page().vendor, place_slug: null } });
+    expect(itemTrail(noPlace, "en", "Home").map((s) => s.kind)).toEqual(["home", "shop", "item"]);
   });
 });

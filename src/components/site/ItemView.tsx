@@ -7,11 +7,12 @@ import {
   declaredAllergens,
   itemCanOrder,
   itemImageUrl,
+  itemTrail,
   itemWaText,
   optionRule,
 } from "@/lib/item";
 import type { ItemOptionGroup, SiteItemPage } from "@/lib/site-data";
-import { Breadcrumbs } from "./Breadcrumbs";
+import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
 import { useSite } from "./context";
 import { OrderButton } from "./OrderButton";
 
@@ -171,6 +172,13 @@ export function ItemView({ d }: { d: SiteItemPage }) {
   const illustrative = i.photo_source === "illustrative";
   const w = d.goes_well;
   const hasMain = d.options.length > 0 || w !== null;
+  // The same trail as the page's BreadcrumbList (itemHead): Home › village › shop › item; the shop only with its own page.
+  const crumbs = itemTrail(d, lang, "").map((s): Crumb => {
+    if (s.kind === "home") return { label: "", to: "/$lang" };
+    if (s.kind === "place") return { label: s.label, to: "/$lang/places/$slug", slug: s.slug! };
+    if (s.kind === "shop") return { label: s.label, to: "/$lang/m/$slug", slug: s.slug! };
+    return { label: s.label };
+  });
   return (
     <>
       <section className="tone-night ak-contours ak-glow ak-section !pb-12 !pt-8 sm:!pt-12">
@@ -179,21 +187,19 @@ export function ItemView({ d }: { d: SiteItemPage }) {
           className={`ak-container ${i.photo ? "grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12" : ""}`}
         >
           <div className="min-w-0">
-            <Breadcrumbs
-              items={[
-                { label: "", to: "/$lang" },
-                { label: t.common.places, to: "/$lang/places" },
-                { label: name },
-              ]}
-            />
+            <Breadcrumbs items={crumbs} />
             <p className="ak-eyebrow mt-6 flex-wrap text-gold">
-              <Link
-                to="/$lang/m/$slug"
-                params={{ lang, slug: v.slug }}
-                className="underline underline-offset-4"
-              >
-                {shop}
-              </Link>
+              {v.has_page ? (
+                <Link
+                  to="/$lang/m/$slug"
+                  params={{ lang, slug: v.slug }}
+                  className="underline underline-offset-4"
+                >
+                  {shop}
+                </Link>
+              ) : (
+                <span>{shop}</span>
+              )}
               {place && (
                 <>
                   <span aria-hidden="true">·</span>
@@ -335,14 +341,17 @@ export function ItemView({ d }: { d: SiteItemPage }) {
           )}
           <div className="min-w-0 space-y-6 lg:sticky lg:top-24">
             <ItemFacts d={d} />
-            <Link
-              to="/$lang/m/$slug"
-              params={{ lang, slug: v.slug }}
-              className="ak-btn ak-btn-line ak-btn-sm !whitespace-normal"
-            >
-              <Store className="size-4 shrink-0" aria-hidden="true" />
-              {fmt(t.item.menu, { vendor: shop })}
-            </Link>
+            {/* Only a shop with its own page has a menu to link to (public_page, or a demo shop). */}
+            {v.has_page && (
+              <Link
+                to="/$lang/m/$slug"
+                params={{ lang, slug: v.slug }}
+                className="ak-btn ak-btn-line ak-btn-sm !whitespace-normal"
+              >
+                <Store className="size-4 shrink-0" aria-hidden="true" />
+                {fmt(t.item.menu, { vendor: shop })}
+              </Link>
+            )}
           </div>
         </div>
       </section>

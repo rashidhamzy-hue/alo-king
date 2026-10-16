@@ -159,6 +159,7 @@ const rawItem = {
     open_now: true,
     demo: false,
     public_page: true,
+    has_page: true,
   },
   nutrition: { kcal: 520, protein_g: 31.5, carbs_g: null, fat_g: 21.5, status: "estimated" },
   allergens: null,
@@ -223,6 +224,17 @@ describe("item page data (site_item)", () => {
     expect(toItemPage({ ...rawItem, item: { ...rawItem.item, id: "x" } })).toBeNull();
     expect(toItemPage(null)).toBeNull();
   });
+  it("links the shop only when it has its own page (has_page, never assumed)", () => {
+    expect(toItemPage(rawItem)!.vendor.has_page).toBe(true);
+    const noPage = {
+      ...rawItem,
+      vendor: { ...rawItem.vendor, public_page: false, has_page: false },
+    };
+    expect(toItemPage(noPage)!.vendor.has_page).toBe(false);
+    const older: Record<string, unknown> = { ...rawItem.vendor };
+    delete older.has_page;
+    expect(toItemPage({ ...rawItem, vendor: older })!.vendor.has_page).toBe(false);
+  });
 });
 
 describe("photo credits (site_credits)", () => {
@@ -237,16 +249,23 @@ describe("photo credits (site_credits)", () => {
       credit: "Example Packshots",
       license: "CC BY 4.0",
       source_url: "https://packshots.example/x",
+      has_page: true,
     };
     const c = toCredits({
       total: 3,
       page: 1,
       page_size: 100,
-      photos: [row, { ...row, item_id: null }, { ...row, kind: "cover", item_id: null }],
+      photos: [
+        row,
+        { ...row, item_id: null },
+        { ...row, kind: "cover", item_id: null, has_page: "yes" },
+      ],
     });
     expect(c.total).toBe(3);
     expect(c.photos.map((p) => p.kind)).toEqual(["item", "cover"]);
     expect(c.photos[0]!.source_url).toBe("https://packshots.example/x");
+    // The shop is linked only when the server says it has a page.
+    expect(c.photos.map((p) => p.has_page)).toEqual([true, false]);
     expect(toCredits(null)).toEqual({ total: 0, page: 1, page_size: 100, photos: [] });
   });
 });

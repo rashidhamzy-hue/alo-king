@@ -2277,4 +2277,60 @@ describe("Add in WhatsApp from an item page (DECISIONS §39.15.2)", () => {
     await handleCustomerTurn(f.deps, msg({ text: `please add (i-${ITEM})` }));
     expect(bodyOf(f.sent[0])).toContain("Shawarma");
   });
+
+  // A required choice, as menu_item_options returns it: the group names its item (migration 20261016160000).
+  const SIZE = {
+    group_id: "g-size",
+    name: "الحجم",
+    name_en: "Size",
+    min: 1,
+    max: 1,
+    item: "شاورما دجاج",
+    item_en: "Chicken Shawarma",
+    options: [
+      { option_id: "80000000-0000-0000-0000-0000000000a1", name: "عادي", name_en: "Regular" },
+      { option_id: "80000000-0000-0000-0000-0000000000a2", name: "كبير", name_en: "Large" },
+    ],
+  };
+
+  it("asks the item's required choice with the item's name, though no list showed the item", async () => {
+    const f = fake({ rpcs: { menu_item_options: () => [SIZE] } });
+    await handleCustomerTurn(f.deps, msg({ text: `Hi Alo King, please add (i-${ITEM})` }));
+    expect(f.of("basket_add_item")).toHaveLength(0);
+    expect(bodyOf(f.sent[0])).toBe('Choose Size for "Chicken Shawarma":');
+    expect(f.of("customer_turn_end")[0].args.p_session.pending).toMatchObject({
+      kind: "options",
+      item_id: ITEM,
+    });
+    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+
+    const ar = fake({
+      begin: { session: { lang: "ar", pending: {}, refs: {}, history: [], low_confidence: 0 } },
+      rpcs: { menu_item_options: () => [SIZE] },
+    });
+    await handleCustomerTurn(ar.deps, msg({ text: `مرحبا، أضف (i-${ITEM})` }));
+    expect(bodyOf(ar.sent[0])).toContain("«شاورما دجاج»");
+  });
+
+  it("a catalogue cart line with a required choice is asked with the item's name too", async () => {
+    const f = fake({
+      rpcs: {
+        cart_merge: () => ({
+          status: "ok",
+          added: 0,
+          skipped: [],
+          diffs: [],
+          needs_options: [{ item_id: ITEM, quantity: 1 }],
+          basket: null,
+        }),
+        menu_item_options: () => [SIZE],
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "order", cart: { lines: [{ itemId: ITEM, quantity: 1, shownUsd: null }] } }),
+    );
+    const list = f.sent.find((p) => p.interactive?.type === "list");
+    expect(bodyOf(list)).toBe('Choose Size for "Chicken Shawarma":');
+  });
 });

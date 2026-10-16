@@ -2,10 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "claude/*": false,
-      "wip/*": false,
-      "docs/*": false,
-      "data/*": false
+      "claude/**": false,
+      "wip/**": false,
+      "docs/**": false,
+      "data/**": false
     }
   }
 }
