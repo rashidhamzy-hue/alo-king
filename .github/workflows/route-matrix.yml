@@ -3,7 +3,9 @@ name: route-matrix
 # Shop → place road distances (DECISIONS §39.15.1): the browse screens and the checkout fallback read
 # public.shop_place_routes, so routing never blocks an order. Fills the pairs shop_place_routes_needed() returns (new
 # orderable or demo shops, new delivered-to places, a shop whose pin moved) with OpenRouteService Matrix, 25 × 25 per
-# request, within what the day's budget leaves below the checkout reserve. A run with nothing to do sends no request.
+# request, within what the day's budget leaves below the checkout reserve. When OpenRouteService refuses (quota spent)
+# or the budget is short, the rest comes from the public OSRM table service (provider 'osrm'), as area-data does.
+# A run with nothing to do sends no request.
 # The budget job opens or updates one `owner` issue (information only) when a day passes the checkout reserve.
 on:
   workflow_dispatch:
