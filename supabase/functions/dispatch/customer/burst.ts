@@ -29,8 +29,11 @@ export async function inboundBurst(
   // STOP and deletion never wait for the rest of a burst: they are answered at once (the texts still waiting lead their
   // own burst).
   const urgent = deterministicIntent(m.text)?.kind;
-  if (urgent === "stop" || urgent === "delete_data" || urgent === "forget_history")
+  if (urgent === "stop" || urgent === "delete_data" || urgent === "forget_history") {
+    // Marked as answered alone, so a burst led at the same moment never folds it and answers it twice.
+    await rpc("customer_burst", { p_event_id: id, p_alone: true }).catch(() => null);
     return { kind: "single" };
+  }
   const r = await rpc("customer_burst", { p_event_id: id }).catch((e: unknown) => {
     log?.("customer_burst failed", { error: String(e).slice(0, 120) });
     return null;

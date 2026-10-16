@@ -40,10 +40,13 @@ describe("inboundBurst", () => {
     expect(calls).toHaveLength(0);
     expect(await inboundBurst(rpc, 7, text("hi"))).toEqual({ kind: "wait", seconds: 1.2 });
     expect(calls).toEqual([["customer_burst", { p_event_id: 7 }]]);
-    // STOP and deletion never wait for the rest of a burst.
+    // STOP and deletion never wait for the rest of a burst; the server marks them answered alone (never folded later).
     for (const urgent of ["STOP", "delete my data"])
       expect(await inboundBurst(rpc, 8, text(urgent)), urgent).toEqual({ kind: "single" });
-    expect(calls).toHaveLength(1);
+    expect(calls.slice(1)).toEqual([
+      ["customer_burst", { p_event_id: 8, p_alone: true }],
+      ["customer_burst", { p_event_id: 8, p_alone: true }],
+    ]);
   });
   it("reads each answer; anything odd answers the message alone", async () => {
     const r = (x: any) => async () => x;

@@ -1482,10 +1482,15 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
 
 /** After a pin is saved, or a demo address picked (§39.15.3): the address is read back and the order goes on. */
 async function afterPin(c: Ctx, r: any) {
-  // §3.2 #11: a place we do not deliver to (yet): the waitlist and pickup, never "address saved".
+  // §3.2 #11: a place we do not deliver to (yet): the waitlist and pickup, never "address saved". The test shop takes any
+  // pin (DECISIONS §35): while one this customer can see is orderable, the pin goes on as usual (waitlist_state: test_shop).
   const placeStatus = r?.address?.place_status;
-  if (placeStatus === "paused" || placeStatus === "off")
-    return outsideArea(c, typeof r.address.address_id === "string" ? r.address.address_id : null);
+  if (placeStatus === "paused" || placeStatus === "off") {
+    const addressId = typeof r.address.address_id === "string" ? r.address.address_id : null;
+    const st = await waitlistState(c, addressId);
+    if (st?.status !== "test_shop" && st?.status !== "delivered")
+      return outsideArea(c, addressId, st);
+  }
   say(c, "savedPin", { where: where(c.s.lang, r.address) });
   c.summary.push("[address saved from the pin]");
   c.s.fulfil = null; // a new pin starts a delivery again; checkout asks again when the shop takes both
@@ -4462,13 +4467,21 @@ async function closedNear(c: Ctx): Promise<boolean> {
 
 /** Browsing found only closed shops: the one that opens first, with Remind me and See menus. */
 async function closedFromShops(c: Ctx, shops: DeliveringShop[]) {
-  const o = await c.deps
-    .rpc("vendor_opening", { p_vendor_ids: shops.slice(0, 20).map((x) => x.vendor_id) })
+  // The shop that opens first among every shop near the pin (shops_closed_near, no cap); the shops listed here otherwise.
+  const near = await c.deps
+    .rpc("shops_closed_near", { p_customer_id: c.customerId })
     .catch(() => null);
-  const first = (Array.isArray(o) ? o : [])
-    .filter((x: any) => x?.opens?.opens_at)
-    .sort((a: any, b: any) => Date.parse(a.opens.opens_at) - Date.parse(b.opens.opens_at))[0];
-  const shop = first ? shops.find((x) => x.vendor_id === first.vendor_id) : null;
+  let first: any = near?.status === "all_closed" && near.first?.opens?.opens_at ? near.first : null;
+  let shop: { vendor_id: string; name_ar?: string | null; name_en?: string | null } | null = first;
+  if (!first) {
+    const o = await c.deps
+      .rpc("vendor_opening", { p_vendor_ids: shops.slice(0, 20).map((x) => x.vendor_id) })
+      .catch(() => null);
+    first = (Array.isArray(o) ? o : [])
+      .filter((x: any) => x?.opens?.opens_at)
+      .sort((a: any, b: any) => Date.parse(a.opens.opens_at) - Date.parse(b.opens.opens_at))[0];
+    shop = first ? (shops.find((x) => x.vendor_id === first.vendor_id) ?? null) : null;
+  }
   c.tools.push("closed_near");
   c.summary.push(`[all ${shops.length} shops that deliver here are closed: offered a reminder]`);
   return push(
@@ -4509,6 +4522,9 @@ async function remindMe(c: Ctx, vendorId: string | null) {
     case "no_point":
       c.s.pending = { kind: "await_pin", then: "browse" };
       return push(c, askPin(c.m.from, lang));
+    case "none":
+      // No shop near the customer at all: the shops that deliver here (or why none does), never "this shop".
+      return browseHome(c);
     default:
       // No name when the shop is unknown or gone: "this shop", never a blank.
       return say(c, "remindNoTime", { vendor: vendor || tr(lang, "thisShop") });
@@ -4517,14 +4533,18 @@ async function remindMe(c: Ctx, vendorId: string | null) {
 
 // -- Outside the delivery area (§3.2 #11) ----------------------------------------------------------------------------------------------
 /** "We don't deliver to <place> yet": the waitlist, pickup when a shop is in range, another address. Testers get the demo addresses. */
-async function outsideArea(c: Ctx, addressId: string | null = null) {
-  const st = await c.deps
+function waitlistState(c: Ctx, addressId: string | null) {
+  return c.deps
     .rpc("waitlist_state", {
       p_customer_id: c.customerId,
       p_place_id: null,
       p_address_id: addressId,
     })
     .catch(() => null);
+}
+
+async function outsideArea(c: Ctx, addressId: string | null = null, known: any = undefined) {
+  const st = known === undefined ? await waitlistState(c, addressId) : known;
   if (st?.status === "demo_outside") return demoOutside(c, st);
   if (st?.status !== "outside") return say(c, "placePaused");
   c.s.refs.xw = { id: String(st.place_id), label: String(st.place_en ?? "").slice(0, 60) };

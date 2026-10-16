@@ -3383,6 +3383,24 @@ describe("demo testers anywhere in the world (session 5f part 6, DECISIONS §39.
     expect(btnIds(f.sent[0])).toEqual(["c:order", "c:human"]);
   });
 
+  it("the test shop takes any pin (§35): an 'off' place with a visible test shop goes on as usual, never the waitlist", async () => {
+    const f = fake({
+      rpcs: {
+        address_save_pin: () => ({
+          status: "saved",
+          address: { place: "بيروت", place_en: "Beirut", place_status: "off", building: "x" },
+        }),
+        waitlist_state: () => ({ status: "test_shop", place_id: "LB-BEY-BEIRUT" }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "location", location: { lat: 33.89, lon: 35.5 } }),
+    );
+    expect(f.of("waitlist_state")).toHaveLength(1);
+    expect(f.sent.some((p) => btnIds(p).includes("wl:join"))).toBe(false);
+    expect(f.of("customer_turn_end")[0].args.p_tools).not.toContain("outside_area");
+  });
   it("a real customer outside the area gets the waitlist (part 8a), and the old answer when the server has none", async () => {
     const pin = {
       address_save_pin: () => ({

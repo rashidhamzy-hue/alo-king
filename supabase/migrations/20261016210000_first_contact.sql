@@ -10,7 +10,7 @@
 -- 3. Opening times (#7, #21): `vendor_opens_at` (the next opening from the pause, vendor_hours and vendor_closures),
 --    `vendor_opening` for the shops a list shows, `shops_closed_near` for "every shop near you is closed".
 -- 4. "Remind me when it opens" (#7, #21): one reminder per customer and shop (or "any shop near me"), due at the shop's
---    next opening, sent by its own cron job as one service message only while the customer's 24-hour window is open;
+--    next opening, sent by a step of the minute tick as one service message only while the customer's 24-hour window is open;
 --    otherwise dropped silently. Never a template, never marketing.
 -- 5. A shop link from the website or a QR on a shop (#2): `shop_for_link` resolves the slug the link carries.
 -- 6. Outside the delivery area (#11): the waitlist. A tap stores a dated opt-in for the place; when the place switches on
@@ -32,7 +32,7 @@ select 'whatsapp_template_map',
   now(), 'Adds the waitlist notice (CUSTOMER-EXPERIENCE §3.2 #11, DECISIONS §39.14 nit 3); names and texts in _shared/whatsapp-templates.ts';
 
 -- 2. One reply to a burst of messages ------------------------------------------------------------------------------------------
-alter table public.webhook_events add column folded_into bigint references public.webhook_events (id);
+alter table public.webhook_events add column folded_into bigint references public.webhook_events (id) on delete set null;
 comment on column public.webhook_events.folded_into is
   'CUSTOMER-EXPERIENCE §3.1 #6: this typed message was answered with the burst led by that event (one reply to all of them)';
 
@@ -77,7 +77,7 @@ revoke all on function app_private.burst_candidate(public.webhook_events) from p
 --   {status: 'wait', wait_s}                   the customer typed within inbound_debounce_ms: put it back for wait_s
 --   {status: 'folded', into}                   another message of the burst answers it: nothing to do
 --   {status: 'burst' | 'single', texts, count} it leads: its own text and the texts it folded, oldest first
-create function public.customer_burst(p_event_id bigint) returns jsonb
+create function public.customer_burst(p_event_id bigint, p_alone boolean default false) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
@@ -105,10 +105,16 @@ begin
   if v_e.folded_into is not null then
     return jsonb_build_object('status', 'folded', 'into', v_e.folded_into);
   end if;
+  -- STOP and deletion are answered alone (dispatch): marked as leading, so no burst led at the same moment folds them.
+  if p_alone then
+    update public.webhook_events set burst_led_at = clock_timestamp() where id = p_event_id;
+    return jsonb_build_object('status', 'single');
+  end if;
   if v_quiet > interval '0' and app_private.burst_candidate(v_e) then
     select max(w.received_at), min(w.received_at) into v_latest, v_first
     from public.webhook_events w
     where app_private.inbound_phone(w.payload) = v_phone and w.status in ('queued', 'processing', 'failed')
+      and w.phone_number_id is not distinct from v_e.phone_number_id
       and (w.payload -> 'message' ->> 'type') = 'text' and app_private.burst_candidate(w);
     v_first := least(v_first, v_e.received_at,
                      (select min(w.received_at) from public.webhook_events w where w.folded_into = p_event_id));
@@ -122,6 +128,7 @@ begin
     with f as (
       update public.webhook_events w set folded_into = p_event_id, status = 'done', processed_at = now()
       where app_private.inbound_phone(w.payload) = v_phone and w.status in ('queued', 'processing', 'failed')
+        and w.phone_number_id is not distinct from v_e.phone_number_id
         and (w.payload -> 'message' ->> 'type') = 'text' and w.id <> p_event_id and app_private.burst_candidate(w)
       returning w.id
     )
@@ -134,8 +141,8 @@ begin
   return jsonb_build_object('status', case when v_n > 1 then 'burst' else 'single' end, 'texts', v_texts, 'count', v_n);
 end;
 $$;
-revoke all on function public.customer_burst(bigint) from public, anon, authenticated;
-grant execute on function public.customer_burst(bigint) to service_role;
+revoke all on function public.customer_burst(bigint, boolean) from public, anon, authenticated;
+grant execute on function public.customer_burst(bigint, boolean) to service_role;
 
 -- Puts a claimed event back on the queue for p_delay_s seconds (at most 30), as if it had not been claimed: the claim's
 -- attempt is given back, so waiting never pushes a message towards the dead-letter queue. Only the attempt that claimed it
@@ -467,6 +474,11 @@ begin
   end if;
   if app_private.demo_addresses_for(p_customer_id) then
     return jsonb_build_object('status', 'demo_outside', 'choices', app_private.demo_address_choices());
+  end if;
+  -- The test shop takes any pin (DECISIONS §35): while one this customer can see is orderable, nothing is "outside".
+  if exists (select 1 from public.vendors v where v.is_test and v.orderable
+             and not (v.id = any (app_private.customer_hidden_vendors(p_customer_id)))) then
+    return jsonb_build_object('status', 'test_shop', 'place_id', v_a.place_id);
   end if;
   return jsonb_build_object('status', 'outside', 'place_id', v_a.place_id, 'place', coalesce(v_a.name_ar, v_a.name_en),
     'place_en', coalesce(v_a.name_en, v_a.name_ar), 'place_fr', coalesce(v_a.name_fr, v_a.name_en, v_a.name_ar),

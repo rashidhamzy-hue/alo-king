@@ -107,6 +107,30 @@ select tests.ok((:'lead2'::jsonb) -> 'texts' = '["and a pepsi"]'::jsonb
   and (select folded_into is null from public.webhook_events where id = (select id from ev where k = 'lead1')),
   'a newer message never folds a leader being answered: "add 2 shawarma" is never processed twice');
 
+-- STOP answered alone is marked, so a burst led at the same moment never folds it (no second confirmation).
+insert into ev values ('stop1', pg_temp.inbound('stop1', '+96170000310', 'text', 'STOP'));
+update public.webhook_events set status = 'processing', attempts = 1, received_at = clock_timestamp() - interval '9 seconds'
+where id = (select id from ev where k = 'stop1');
+select public.customer_burst((select id from ev where k = 'stop1'), true) as st1 \gset
+insert into ev values ('stop2', pg_temp.inbound('stop2', '+96170000310', 'text', 'and hi'));
+update public.webhook_events set status = 'processing', attempts = 1, received_at = clock_timestamp() - interval '9 seconds'
+where id = (select id from ev where k = 'stop2');
+select public.customer_burst((select id from ev where k = 'stop2')) as st2 \gset
+select tests.ok((:'st1'::jsonb) ->> 'status' = 'single' and (:'st2'::jsonb) -> 'texts' = '["and hi"]'::jsonb
+  and (select folded_into is null from public.webhook_events where id = (select id from ev where k = 'stop1')),
+  'STOP answered alone is never folded into a burst led at the same moment');
+
+-- One burst per number we answer from: texts to two of our numbers never fold together.
+insert into ev values ('n1', pg_temp.inbound('n1', '+96170000316', 'text', 'to the sandbox'));
+insert into ev values ('n2', pg_temp.inbound('n2', '+96170000316', 'text', 'to the US number'));
+update public.webhook_events set status = 'processing', attempts = 1, received_at = clock_timestamp() - interval '9 seconds'
+where id in (select id from ev where k in ('n1', 'n2'));
+update public.webhook_events set phone_number_id = '15550009999' where id = (select id from ev where k = 'n2');
+select public.customer_burst((select id from ev where k = 'n1')) as nb1 \gset
+select tests.ok((:'nb1'::jsonb) -> 'texts' = '["to the sandbox"]'::jsonb
+  and (select folded_into is null from public.webhook_events where id = (select id from ev where k = 'n2')),
+  'texts to two of our numbers are two conversations, never one burst');
+
 -- A message whose bot turn has begun is replayed as it was: never folded into a newer burst, never waits.
 insert into ev values
   ('e1', pg_temp.inbound('e1', '+96170000305', 'text', 'begun')),
@@ -236,6 +260,14 @@ delete from public.vendors where slug like 'vendor-fc-many-%';
 update public.vendors set location = 'SRID=4326;POINT(35.585 33.682)' where id = :'vd';
 select tests.ok(public.shops_closed_near(:'x1') ->> 'status' = 'open', 'one open shop: nothing to say');
 select tests.ok(public.shops_closed_near(:'x2') ->> 'status' = 'outside', 'a pin outside the delivery area: the waitlist answers it');
+-- The test shop takes any pin (DECISIONS §35): while one this customer can see is orderable, nothing is "outside".
+insert into public.vendors (id, slug, name_ar, name_en, business_type, claim_status, orderable, source, place_id, location,
+  delivery_radius_km, town_id, listing_status, is_test) values
+  ('20000000-0000-0000-0000-0000000000f9', 'vendor-fc-test', 'محل تجربة', 'Test Grill FC', 'restaurant', 'claimed', true,
+   'merchant', 'gpFCT', 'SRID=4326;POINT(35.585 33.682)', 5, 'LB-CHF-FCTOWN', 'active', true);
+select tests.ok(public.waitlist_state(:'x2') ->> 'status' = 'test_shop', 'a visible test shop: the pin goes on as usual');
+delete from public.vendors where id = '20000000-0000-0000-0000-0000000000f9';
+select tests.ok(public.waitlist_state(:'x2') ->> 'status' = 'outside', 'without one: the waitlist');
 
 -- 4. "Remind me when it opens" --------------------------------------------------------------------------------------------
 select public.whatsapp_seen('+96170000311', '597907523413541');

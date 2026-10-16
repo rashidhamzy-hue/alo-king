@@ -3425,7 +3425,7 @@ const S5F8A: Record<string, Record<CLang, string>> = {
       "{vendor} بيفتح {when}. واتساب ما بيخلّينا نبعتلك بعد ٢٤ ساعة من آخر رسالة منك، فما فينا نذكّرك وقتها. ابعتلنا لما يفتح.",
     ),
     en: "{vendor} opens {when}. WhatsApp lets us write to you only within 24 hours of your last message, so we can't remind you then. Write to us when it opens.",
-    fr: "{vendor} ouvre {when}. WhatsApp ne nous laisse vous écrire que 24 h après votre dernier message, nous ne pourrons donc pas vous le rappeler. Écrivez-nous à l'ouverture.",
+    fr: "{vendor} ouvre {when}. WhatsApp ne nous permet de vous écrire que dans les 24 h qui suivent votre dernier message, nous ne pourrons donc pas vous le rappeler. Écrivez-nous à l'ouverture.",
   },
   thisShop: { ...ar5F8A("هالمحل"), en: "this shop", fr: "ce commerce" },
   remindNoTime: {

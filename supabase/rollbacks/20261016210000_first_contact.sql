@@ -60,7 +60,7 @@ drop function app_private.opening_json(timestamptz);
 drop function app_private.vendor_open_now(uuid);
 drop function app_private.vendor_opens_at(uuid, timestamptz);
 drop function public.webhook_defer(bigint, bigint, integer, numeric);
-drop function public.customer_burst(bigint);
+drop function public.customer_burst(bigint, boolean);
 drop function app_private.burst_candidate(public.webhook_events);
 drop index public.webhook_events_pending_text_idx;
 drop index public.webhook_events_folded_idx;
