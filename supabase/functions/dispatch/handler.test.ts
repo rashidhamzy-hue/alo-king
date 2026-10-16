@@ -795,3 +795,57 @@ describe("the catalogue sync step runs inside a normal dispatch run (§39.12)", 
     expect(db.of("catalog_sync_claim")).toHaveLength(0);
   });
 });
+
+describe("a held message is waited for inside the run (session 5e, 30-second ticks)", () => {
+  it("claims again once webhook_next_due says a message comes back within the budget", async () => {
+    let due: number | null = 4;
+    let later: any[] = [];
+    const db = fakeDb({
+      members: [{ member_id: MEMBER, vendor_id: VENDOR, role: "owner", vendor_name: "A" }],
+      rpcs: {
+        webhook_claim: () => {
+          const e = later;
+          later = [];
+          return e;
+        },
+        webhook_next_due: () => {
+          const d = due;
+          if (d != null) {
+            later = [
+              inbound({
+                type: "interactive",
+                interactive: { button_reply: { id: `acc:${ORDER}:15` } },
+              }),
+            ];
+            due = null;
+          }
+          return d;
+        },
+        order_accept: () => ({ status: "accepted" }),
+      },
+    });
+    const waits: number[] = [];
+    let outboxBeforeWait = false;
+    const { d } = deps(db, {
+      sleep: async (ms) => {
+        outboxBeforeWait = db.of("outbox_claim").length > 0;
+        waits.push(ms);
+      },
+    });
+    const out = await runDispatch(d);
+    expect(outboxBeforeWait, "the outbox (an order card) goes out before the wait").toBe(true);
+    expect(waits).toHaveLength(1);
+    expect(waits[0]).toBeGreaterThan(4000);
+    expect(waits[0]).toBeLessThanOrEqual(4100);
+    expect(out.inbound).toBe(1);
+    expect(db.of("order_accept")).toHaveLength(1);
+  });
+
+  it("does not wait for a message due after the run's budget", async () => {
+    const db = fakeDb({ rpcs: { webhook_next_due: () => 59 } });
+    const waits: number[] = [];
+    const { d } = deps(db, { sleep: async (ms) => void waits.push(ms) });
+    await runDispatch(d);
+    expect(waits).toEqual([]);
+  });
+});

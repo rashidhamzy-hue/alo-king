@@ -1437,9 +1437,14 @@ The post-pilot sessions are unchanged (§33).
   7. Free text with no AI credit gets buttons, never silence. Handoff ends on "menu".
   8. Arabic, English and French customers get replies in their language.
   9. Your 12 October chat replayed (T2).
-- **Runs after every staging deploy and on demand.** The workflow writes a readable transcript per scenario (who said what, pass/fail per step) as a job summary and an artifact.
+- ~~**Runs after every staging deploy and on demand.**~~ **Test diet (Rasheed's decision, 16 October; replaces the run after every deploy):**
+  - **Every PR** runs lint, typecheck, unit tests and the SQL tests on CI's throwaway database only. A pull request never touches staging (the migration dry-run against staging is gone; the deploy applies migrations after the merge).
+  - **Staging e2e = a 5-scenario smoke suite** (scenarios marked `smoke: true`: delivery order, catalogue/product-message cart, search to cart, merchant accept, cancel), dispatched by the build session **once at the end of the session** (`staging-e2e`, suite `smoke`). It no longer runs after every merge.
+  - **The full suite** runs once before the cut-over, on the production project (session 14).
+  - **Staging stays on the free plan** (no upgrade for now; #194 stays open as optional). Background jobs on staging run no more often than every 30 seconds unless a test needs it (session 5e).
+- The workflow writes a readable transcript per scenario (who said what, pass/fail per step) as a job summary and an artifact.
   - A failure opens or updates one GitHub issue labelled `e2e`, with the transcript.
-  - Build sessions must run it after their merge and fix what breaks before finishing.
+  - Build sessions fix what the end-of-session smoke run breaks before finishing.
 - **Live phones stay a final check only:** Rasheed or testers tap through once before cut-over (§34 test steps). They are not needed for development.
 - **Kill-gate:** if a scenario fails on two consecutive runs with no code change (flaky), it is quarantined with a reason in LOG.md, and the session fixes the flakiness before adding scenarios.
 

@@ -134,6 +134,13 @@ describe("scenario files", () => {
     expect(files.length).toBeGreaterThanOrEqual(9);
   });
 
+  it("marks exactly five smoke scenarios (DECISIONS §36, test diet of 16 October)", () => {
+    const smoke = files.filter(
+      (f) => (parse(readFileSync(dir + f, "utf8")) as Scenario).smoke === true,
+    );
+    expect(smoke).toHaveLength(5);
+  });
+
   for (const f of files) {
     it(`${f} is well formed`, () => {
       const sc = expand(parse(readFileSync(dir + f, "utf8")) as Scenario, `${dir}_parts`);

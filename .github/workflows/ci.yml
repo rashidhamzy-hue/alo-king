@@ -161,31 +161,18 @@ jobs:
         run: scripts/data-freeze.sh "${{ github.event.pull_request.base.sha }}"
 
   migrations:
+    # The job keeps its name: it is a required status check in .github/rulesets/rebuild-lebanon.json. Test diet (DECISIONS
+    # §36, 16 October): pull requests never touch staging, so the dry-run against staging is gone; the throwaway database
+    # in db-tests applies every migration, and the deploy applies them to staging after the merge.
     name: migration guard and dry-run against staging
-    # Secrets never reach a fork's pull request (§39.1, public repository).
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Drops and truncates need a rollback file
         run: scripts/check-migrations.sh "${{ github.event.pull_request.base.sha }}"
-      # Pinned (DECISIONS §39.1): "latest" asked the GitHub API for the newest release on every run and hit its rate limit.
-      - uses: supabase/setup-cli@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          version: 2.120.0
-      - name: Dry-run pending migrations on alo-king-staging
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: |
-          DB_URL="$(scripts/staging-db-url.sh)"
-          echo "::add-mask::$DB_URL"
-          supabase db push --dry-run --db-url "$DB_URL"
 
   db-tests:
     name: migrations and RLS tests on a throwaway Supabase Postgres
@@ -532,13 +519,3 @@ jobs:
           # illustration (never a Google place photo).
           DB_URL="$DB_URL" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co" SUPABASE_SERVICE_KEY="$key" \
             node --experimental-strip-types --no-warnings scripts/demo/demo-photos.ts | tee -a "$GITHUB_STEP_SUMMARY"
-
-  e2e-staging:
-    name: staging e2e after the deploy (DECISIONS §36)
-    needs: deploy-staging
-    if: always() && !cancelled() && needs.deploy-staging.result == 'success'
-    permissions:
-      contents: read
-      issues: write
-    uses: ./.github/workflows/staging-e2e.yml
-    secrets: inherit

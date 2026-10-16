@@ -70,6 +70,8 @@ export type DispatchDeps = {
   budgetMs?: number;
   /** When this worker is certainly gone (its start + 152 s): a customer turn's lease never outlives it. */
   workerDeadline?: Date;
+  /** Waits inside a run (tests inject an instant one). */
+  sleep?: (ms: number) => Promise<void>;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
   /**
    * The smart-menu model (§18.3); null without a key or API credit (§32.7). Every call is reserved against the daily AI
@@ -136,6 +138,7 @@ type Outbox = {
 };
 
 const MAX_ATTEMPTS = 3;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const ORDER_CARD_MS = 6000;
 const E164 = /^\+[1-9][0-9]{6,14}$/;
 
@@ -153,13 +156,49 @@ export async function runDispatch(
       : (senders[audience] = (await deps.rpc("whatsapp_sender", { p_audience: audience })) ?? null);
   const sender = () => senderFor("merchant");
 
+  // 2. Outbox (also drained before the inbound step waits for a held message, so an order card is never held back).
+  const drainOutbox = async () => {
+    while (left() > 1500) {
+      const batch: Outbox[] = (await deps.rpc("outbox_claim", { p_limit: 20, p_lock_s: 30 })) ?? [];
+      if (!batch.length) break;
+      for (const m of batch) {
+        const r =
+          m.purpose === "customer_message"
+            ? await deliverCustomer(deps, m, () => senderFor("customer"))
+            : await deliver(deps, m, sender);
+        const status =
+          r.status === "retry" ? (m.attempts >= MAX_ATTEMPTS ? "failed" : "queued") : r.status;
+        await deps.rpc("outbox_finish", {
+          p_id: m.id,
+          p_status: status,
+          p_provider_ref: r.ref ?? null,
+          p_error: r.error ?? null,
+          p_retry_in_s: 10 * m.attempts,
+        });
+        out.outbox++;
+      }
+    }
+  };
+
   // 1. Inbound.
   while (left() > 2000) {
     const events: any[] =
       // Invisible for longer than an edge function can live (150 s), so a worker that dies is never overlapped by a
       // retry; a failed event comes back in seconds through webhook_finish instead (#139).
       (await deps.rpc("webhook_claim", { p_limit: 10, p_visibility_s: 160 })) ?? [];
-    if (!events.length) break;
+    if (!events.length) {
+      // A message held back as `busy` (its customer's previous turn was still running) or retried after a failure comes
+      // back a few seconds later; wait for it here instead of for the next 30-second tick (staging load, session 5e).
+      const due = await deps.rpc("webhook_next_due", {}).catch(() => null);
+      const waitMs = typeof due === "number" || typeof due === "string" ? Number(due) * 1000 : NaN;
+      if (!Number.isFinite(waitMs) || waitMs > left() - 2500) break;
+      const dueAt = Date.now() + waitMs;
+      await drainOutbox();
+      const rest = dueAt - Date.now();
+      if (rest > left() - 2500) break;
+      await (deps.sleep ?? sleep)(Math.max(250, rest + 100));
+      continue;
+    }
     for (const ev of events) {
       let status: "done" | "ignored" | "failed" = "done";
       let error: string | undefined;
@@ -181,27 +220,7 @@ export async function runDispatch(
     }
   }
 
-  // 2. Outbox.
-  while (left() > 1500) {
-    const batch: Outbox[] = (await deps.rpc("outbox_claim", { p_limit: 20, p_lock_s: 30 })) ?? [];
-    if (!batch.length) break;
-    for (const m of batch) {
-      const r =
-        m.purpose === "customer_message"
-          ? await deliverCustomer(deps, m, () => senderFor("customer"))
-          : await deliver(deps, m, sender);
-      const status =
-        r.status === "retry" ? (m.attempts >= MAX_ATTEMPTS ? "failed" : "queued") : r.status;
-      await deps.rpc("outbox_finish", {
-        p_id: m.id,
-        p_status: status,
-        p_provider_ref: r.ref ?? null,
-        p_error: r.error ?? null,
-        p_retry_in_s: 10 * m.attempts,
-      });
-      out.outbox++;
-    }
-  }
+  await drainOutbox();
 
   // 3. Broadcasts (§39.8): one approved broadcast per run while config broadcasts_enabled is on; the database fixes the
   // audience (opted in at this second) and the daily cap, Kapso paces the sends.
