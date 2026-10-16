@@ -182,6 +182,11 @@ export type CustomerDeps = {
     browseMinShops?: number;
     /** Items per section in a shop's first product message (config browse_first_section_items). */
     firstSectionItems?: number;
+    /**
+     * A shop with fewer Meta-approved photo items than this opens with the list menu, not a thin product message (config
+     * browse_min_catalog_items, DECISIONS §39.15.2).
+     */
+    browseMinCatalogItems?: number;
   };
   now?: () => Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
@@ -599,9 +604,15 @@ async function catalogText(c: Ctx, raw: string, qtyArg: number | null) {
       const got = await c.deps
         .rpc("catalog_products_for", { p_item_ids: ids, p_catalog_id: c.catalog })
         .catch(() => null);
-      const products: (CatalogProduct & { vendor_id?: string })[] = Array.isArray(got) ? got : [];
-      // Only when every result is in the catalogue (items without a photo are not, §39.13); else the list shows them all.
-      if (products.length && products.length === ids.length) {
+      // A thin shop's results go in the list, as its menu does (§39.15.2: search uses the same rule per shop).
+      const products: (CatalogProduct & { vendor_id?: string; shop_shown?: number })[] = (
+        Array.isArray(got) ? got : []
+      ).filter(
+        (p: { shop_shown?: number }) =>
+          Number(p.shop_shown ?? 999) >= (c.deps.config.browseMinCatalogItems ?? 6),
+      );
+      // The results Meta shows go in the product message; the others follow as a list (§39.15.2), so none is lost.
+      if (products.length) {
         c.tools.push("catalog:search");
         const oneShop = new Set(products.map((x) => x.vendor_id)).size === 1;
         const body = tr(
@@ -609,7 +620,10 @@ async function catalogText(c: Ctx, raw: string, qtyArg: number | null) {
           products.length === 1 ? "catalogOne" : oneShop ? "catalogSearch" : "searchShops",
           { q: q.slice(0, 40) },
         );
-        return pushCatalog(
+        const inMessage = new Set(products.map((p) => String(p.retailer_id)));
+        const others = rows.filter((r) => !inMessage.has(String(r.item_id)));
+        // If Meta refuses the product message, a list of the same items stands in; the others follow either way.
+        pushCatalog(
           c,
           products.length === 1
             ? productMessage(
@@ -629,8 +643,18 @@ async function catalogText(c: Ctx, raw: string, qtyArg: number | null) {
                 products,
                 { lang: c.s.lang, footer: tr(c.s.lang, "catalogFooter") },
               ),
-          listMsg,
+          others.length
+            ? catalogList(
+                c.m.from,
+                c.s.lang,
+                q,
+                rows.filter((r) => inMessage.has(String(r.item_id))),
+                quantity,
+              )
+            : listMsg,
         );
+        if (others.length) push(c, catalogList(c.m.from, c.s.lang, q, others, quantity, true));
+        return;
       }
     }
     return push(c, listMsg);
@@ -1055,6 +1079,8 @@ async function tap(c: Ctx, a: CustomerAction) {
       return showSection(c, a.ref, 0);
     case "more":
       return showSection(c, a.ref, a.offset);
+    case "more_rest":
+      return showSectionRest(c, a.ref, a.offset);
     case "cash": {
       await deps.rpc("basket_set_cash_currency", { p_customer_id: id, p_currency: a.currency });
       return checkout(c, {});
@@ -1562,8 +1588,14 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
     .rpc("catalog_shop_menu", { p_vendor_id: v.id, p_catalog_id: c.catalog })
     .catch(() => null);
   const sections: ShopMenuSection[] = Array.isArray(menu?.sections) ? menu.sections : [];
-  // Items outside any section have no row to open them by, so such a shop keeps the list menu (its flat list).
-  if (!sections.length || sections.some((x) => !x.section_id)) {
+  // Items outside any section have no row to open them by, so such a shop keeps the list menu (its flat list). So does a
+  // shop with only a few items Meta approved (§39.15.2): a thin product message would hide the rest of its menu.
+  const shown = Number(menu?.shown ?? sections.reduce((n, x) => n + (x.products?.length ?? 0), 0));
+  if (
+    !sections.length ||
+    sections.some((x) => !x.section_id) ||
+    shown < (c.deps.config.browseMinCatalogItems ?? 6)
+  ) {
     if (cover && room(list.length)) push(c, cover);
     push(c, ...list);
     return;
@@ -1741,10 +1773,60 @@ async function showSection(c: Ctx, sectionRef: string, offset: number) {
             s.products.length,
           ),
         );
+      // The section's other items (no approved photo yet) follow as a list: the count on its row is what opens (§39.15.2).
+      else if (Number(s.total ?? 0) > s.products.length)
+        await showSectionRest(c, sectionRef, 0, true);
       return;
     }
   }
   return showSectionList(c, sectionRef, offset);
+}
+
+/**
+ * The items of a section that are not in WhatsApp's catalogue (not approved by Meta, or no photo), as a list after the
+ * section's product message: "More Burgers (8)", nine at a time (DECISIONS §39.15.2: no item is ever unreachable).
+ */
+async function showSectionRest(c: Ctx, sectionRef: string, offset: number, keepRefs = false) {
+  const sec = c.s.refs[sectionRef];
+  const vendorId = c.s.focus_vendor_id;
+  if (!sec || !vendorId) return say(c, "pickPlaceFirst");
+  if (!(await catalogFor(c))) return showSectionList(c, sectionRef, 0);
+  const rows: any[] =
+    (await c.deps
+      .rpc("catalog_section_rest", {
+        p_vendor_id: vendorId,
+        p_catalog_id: c.catalog,
+        p_section_id: sec.id,
+        p_limit: 10,
+        p_offset: Math.max(0, offset),
+      })
+      .catch(() => null)) ?? [];
+  if (!rows.length) return showSectionList(c, sectionRef, 0);
+  // After a section's product message, the stand-in list built for it keeps its rows' refs (refFor reuses a ref for the
+  // same item, and 10 + 9 fit its 40).
+  if (!keepRefs) resetRefs(c, "i");
+  const total = Number(rows[0]?.total_count ?? rows.length);
+  const more = rows.length === 10 && total > offset + 10;
+  const page = rows.slice(0, more ? 9 : 10);
+  const hints = await itemHints(c, page);
+  const menu: MenuRow[] = page.map((r) => ({
+    ...r,
+    ref: refFor(c, "i", r.item_id, `${r.name_en ?? r.name_ar} $${Number(r.price_usd).toFixed(2)}`),
+    hint: hints[r.item_id] ?? [],
+  }));
+  const vref = Object.entries(c.s.refs).find(
+    ([k, v]) => k.startsWith("v") && v.id === vendorId,
+  )?.[0];
+  const vendor = shopName(vref ? c.s.refs[vref].label : (c.basket?.vendor_en ?? ""));
+  push(
+    c,
+    ...menuList(c.m.from, c.s.lang, vendor, menu, null, false, {
+      title: tr(c.s.lang, "moreOfSection", { section: sec.label, n: total }),
+      more: more ? { ref: sectionRef, offset: offset + 9 } : null,
+      moreId: more ? `mr:${sectionRef}:${offset + 9}` : undefined,
+    }),
+  );
+  c.summary.push(`[showed ${menu.length} more items of section ${sectionRef} as a list]`);
 }
 
 /** One section of the focused place's menu, nine items and a "More" row at a time. */

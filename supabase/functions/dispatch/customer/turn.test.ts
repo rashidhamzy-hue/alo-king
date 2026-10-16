@@ -1679,7 +1679,7 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
       rpcs: {
         vendor_sections: () => sections,
         catalog_for_number: () => "1234567890",
-        catalog_shop_menu: () => menu(1, 2),
+        catalog_shop_menu: () => menu(1, 8),
       },
     });
     const tried: string[] = [];
@@ -1721,7 +1721,7 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(f.of("catalog_for_number")[0].args.p_to).toBe("+96176000001");
   });
 
-  it("a search whose results are not all in the catalogue answers with the list of them all", async () => {
+  it("a search whose results are not all in the catalogue: the shown ones as a product message, the rest as a list (§39.15.2)", async () => {
     const ITEM2 = "51000000-0000-0000-0000-000000000002";
     const f = fake({
       model: null,
@@ -1753,7 +1753,96 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     });
     f.deps.config.freeText = false;
     await handleCustomerTurn(f.deps, msg({ text: "shawarma" }));
-    expect(f.sent[0].interactive.type).toBe("list");
+    expect(f.sent.map((m) => m.interactive.type)).toEqual(["product", "list"]);
+    expect(bodyOf(f.sent[1])).toBe('More results for "shawarma" (1):');
+    const rows = f.sent[1].interactive.action.sections[0].rows;
+    expect(rows.map((r: any) => r.title)).toEqual(["Shawarma plate"]);
+    for (const m of f.sent) expect(checkInteractive(m)).toEqual([]);
+  });
+
+  it("search uses the thin-shop rule per shop: a shop with few approved items is answered in the list", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        catalog_search: () => ({
+          status: "ok",
+          items: [
+            {
+              item_id: ITEM,
+              vendor_id: VENDOR,
+              name_en: "Shawarma",
+              price_usd: 5,
+              vendor_en: "Vendor A",
+            },
+          ],
+        }),
+        catalog_for_number: () => "1234567890",
+        catalog_products_for: () => [
+          {
+            retailer_id: ITEM,
+            vendor_id: VENDOR,
+            section: "مطعم أ",
+            section_en: "Vendor A",
+            shop_shown: 3,
+          },
+        ],
+      },
+    });
+    f.deps.config.freeText = false;
+    await handleCustomerTurn(f.deps, msg({ text: "shawarma" }));
+    expect(f.sent.map((m) => m.interactive.type)).toEqual(["list"]);
+  });
+
+  it("a search with no result Meta shows answers with the list of them all", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        catalog_search: () => ({
+          status: "ok",
+          items: [
+            {
+              item_id: ITEM,
+              vendor_id: VENDOR,
+              name_en: "Shawarma",
+              price_usd: 5,
+              vendor_en: "Vendor A",
+            },
+          ],
+        }),
+        catalog_for_number: () => "1234567890",
+        catalog_products_for: () => [],
+      },
+    });
+    f.deps.config.freeText = false;
+    await handleCustomerTurn(f.deps, msg({ text: "shawarma" }));
+    expect(f.sent.map((m) => m.interactive.type)).toEqual(["list"]);
+  });
+
+  it("a thin shop (fewer than browse_min_catalog_items approved items) opens with the list menu (§39.15.2)", async () => {
+    const thin = menu(2, 8);
+    thin.sections[0].products = thin.sections[0].products.slice(0, 3);
+    thin.sections[1].products = thin.sections[1].products.slice(0, 2);
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "INDINER time" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => ({ ...thin, shown: 5 }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(f.sent.map((p) => p.interactive.type)).toEqual(["list"]);
+    const g = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "INDINER time" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => ({ ...thin, shown: 5 }),
+      },
+    });
+    g.deps.config.browseMinCatalogItems = 4;
+    await handleCustomerTurn(g.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(g.sent[0].interactive.type).toBe("product_list");
   });
 
   it("a search across shops answers with one multi-product message grouped by shop", async () => {
@@ -1827,6 +1916,144 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     await handleCustomerTurn(g.deps, msg({ buttonId: "mo:s1:30", type: "interactive" }));
     expect(g.sent[0].interactive.action.sections[0].product_items).toHaveLength(15);
     expect(g.sent).toHaveLength(1);
+  });
+
+  it('"Burgers · 9 items" opens all 9: the approved one as a product message, then "More Burgers (8)" (§39.15.2)', async () => {
+    const m = menu(1, 9);
+    m.sections[0].products = m.sections[0].products.slice(0, 1);
+    const restRow = (j: number) => ({
+      item_id: `52000000-0000-0000-0000-${String(j).padStart(12, "0")}`,
+      section_id: "s-1",
+      name_en: `Burger ${j}`,
+      price_usd: 7,
+      orderable: true,
+      total_count: 8,
+    });
+    const f = fake({
+      begin: sess({
+        focus_vendor_id: VENDOR,
+        refs: { v1: { id: VENDOR, label: "INDINER time" }, s1: { id: "s-1", label: "Burgers" } },
+      }),
+      rpcs: {
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => m,
+        catalog_section_rest: (a: any) =>
+          Array.from({ length: Math.min(10, 8 - a.p_offset) }, (_, j) => restRow(a.p_offset + j)),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "ps:s1", type: "interactive" }));
+    expect(f.sent.map((p) => p.interactive.type)).toEqual(["product_list", "list"]);
+    expect(f.sent[0].interactive.action.sections[0].product_items).toHaveLength(1);
+    expect(bodyOf(f.sent[1])).toBe("INDINER time · More Burgers (8)");
+    expect(f.sent[1].interactive.action.sections[0].rows).toHaveLength(8);
+    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+  });
+
+  it("when Meta refuses the section's product message, the stand-in list's rows still add the items they name", async () => {
+    const m = menu(1, 3);
+    m.sections[0].products = m.sections[0].products.slice(0, 1);
+    const shownId = m.sections[0].products[0].retailer_id;
+    const restId = "52000000-0000-0000-0000-000000000001";
+    const f = fake({
+      begin: sess({
+        focus_vendor_id: VENDOR,
+        refs: { v1: { id: VENDOR, label: "INDINER time" }, s1: { id: "s-1", label: "Burgers" } },
+      }),
+      rpcs: {
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => m,
+        vendor_menu: () => [
+          {
+            item_id: shownId,
+            name_en: "Shown Burger",
+            price_usd: 7,
+            orderable: true,
+            total_count: 2,
+          },
+          {
+            item_id: restId,
+            name_en: "Rest Burger 1",
+            price_usd: 7,
+            orderable: true,
+            total_count: 2,
+          },
+        ],
+        catalog_section_rest: () => [
+          {
+            item_id: restId,
+            name_en: "Rest Burger 1",
+            price_usd: 7,
+            orderable: true,
+            total_count: 1,
+          },
+        ],
+      },
+    });
+    const sent: any[] = [];
+    f.deps.send = async (p: any) => {
+      if (p.interactive?.type === "product_list")
+        return { ok: false, retry: false, error: "kapso 400 product not found" };
+      sent.push(p);
+      return { ok: true, id: "w" };
+    };
+    await handleCustomerTurn(f.deps, msg({ buttonId: "ps:s1", type: "interactive" }));
+    const refs = f.of("customer_turn_end")[0].args.p_session.refs;
+    // Every row of every list sent resolves to the item it names.
+    for (const p of sent)
+      for (const r of p.interactive.action.sections[0].rows) {
+        if (!r.id.startsWith("pi:")) continue;
+        const ref = r.id.slice(3);
+        const want = r.title === "Shown Burger" ? shownId : restId;
+        expect(refs[ref].id, `${r.title} → ${ref}`).toBe(want);
+      }
+    expect(sent.length).toBe(2);
+  });
+
+  it("a long rest list pages with mr: rows, never the section's product pages", async () => {
+    const m = menu(1, 25);
+    m.sections[0].products = m.sections[0].products.slice(0, 2);
+    const f = fake({
+      begin: sess({
+        focus_vendor_id: VENDOR,
+        refs: { v1: { id: VENDOR, label: "Deli" }, s1: { id: "s-1", label: "Subs" } },
+      }),
+      rpcs: {
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => m,
+        catalog_section_rest: (a: any) =>
+          Array.from({ length: Math.min(10, 23 - a.p_offset) }, (_, j) => ({
+            item_id: `52000000-0000-0000-0000-${String(a.p_offset + j).padStart(12, "0")}`,
+            name_en: `Sub ${a.p_offset + j}`,
+            price_usd: 5,
+            orderable: true,
+            total_count: 23,
+          })),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "ps:s1", type: "interactive" }));
+    const rows = f.sent[1].interactive.action.sections[0].rows;
+    expect(rows).toHaveLength(10);
+    expect(rows[9].id).toBe("mr:s1:9");
+    const g = fake({
+      begin: sess({
+        focus_vendor_id: VENDOR,
+        refs: { v1: { id: VENDOR, label: "Deli" }, s1: { id: "s-1", label: "Subs" } },
+      }),
+      rpcs: {
+        catalog_for_number: () => "1234567890",
+        catalog_section_rest: (a: any) =>
+          Array.from({ length: Math.min(10, 23 - a.p_offset) }, (_, j) => ({
+            item_id: `52000000-0000-0000-0000-${String(a.p_offset + j).padStart(12, "0")}`,
+            name_en: `Sub ${a.p_offset + j}`,
+            price_usd: 5,
+            orderable: true,
+            total_count: 23,
+          })),
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "mr:s1:9", type: "interactive" }));
+    expect(g.of("catalog_section_rest")[0].args.p_offset).toBe(9);
+    expect(g.sent[0].interactive.action.sections[0].rows[0].title).toBe("Sub 9");
   });
 });
 

@@ -174,3 +174,102 @@ describe("catalogue sync step: leases, budget and refused products (§39.12)", (
     expect(rec.find((r: any) => r.retailer_id === item(1).retailer_id).visible).toBe(true);
   });
 });
+
+// DECISIONS §39.15.2: Meta's review status is the truth, read after every batch and in a paced sweep.
+import { catalogStatusStep, recordStatusOf, STATUS_IDS_PER_READ } from "./catalog-sync";
+
+describe("Meta's review status (session 5f)", () => {
+  const statusApi = (pages: Record<string, { rows: any[]; next: string | null }>, fail = false) => {
+    const asked: any[] = [];
+    const api: CatalogApi = {
+      batch: async () => ({ ok: true }),
+      productSet: async () => "1",
+      imageUrl: () => "https://x",
+      status: async (c, t, q) => {
+        asked.push({ c, t, q });
+        if (fail) return { ok: false, error: "meta 400 (#100) bad" };
+        if (q.ids)
+          return {
+            ok: true,
+            rows: q.ids.map((id) => ({ retailer_id: id, review_status: "pending" })),
+            next: null,
+          };
+        return { ok: true, ...(pages[q.after ?? ""] ?? { rows: [], next: null }) };
+      },
+    };
+    return { api, asked };
+  };
+
+  it("after a batch, the status of what was sent is read (filtered by id, 50 at a time) and recorded", async () => {
+    const calls: any[] = [];
+    const rpc = async (fn: string, args: any) => {
+      calls.push({ fn, args });
+      return fn === "catalog_status_record" ? args.p_rows.length : null;
+    };
+    const { api, asked } = statusApi({});
+    const ids = Array.from(
+      { length: 120 },
+      (_, k) => `53000000-0000-0000-0000-${String(k).padStart(12, "0")}`,
+    );
+    expect(await recordStatusOf(rpc, api, "987654321012", "graph", ids)).toBe(120);
+    expect(asked.map((a) => a.q.ids.length)).toEqual([
+      STATUS_IDS_PER_READ,
+      STATUS_IDS_PER_READ,
+      20,
+    ]);
+    expect(calls.filter((c) => c.fn === "catalog_status_record")).toHaveLength(3);
+  });
+
+  it("the sync step reads the status of the products it just sent", async () => {
+    const f = fake({});
+    const read: string[][] = [];
+    f.api.status = async (_c, _t, q) => {
+      read.push(q.ids ?? []);
+      return { ok: true, rows: [], next: null };
+    };
+    await catalogSyncStep(f.rpc, f.api);
+    expect(read.flat().sort()).toEqual([item(1).retailer_id, item(2).retailer_id].sort());
+  });
+
+  it("a due sweep reads one page, records it and keeps the cursor; nothing due: no call", async () => {
+    const calls: any[] = [];
+    let due: any = { due: true, after: null, catalog_id: "987654321012", transport: "graph" };
+    const rpc = async (fn: string, args: any) => {
+      calls.push({ fn, args });
+      if (fn === "catalog_status_sweep_next") return due;
+      if (fn === "catalog_status_record") return args.p_rows.length;
+      return null;
+    };
+    const { api, asked } = statusApi({
+      "": { rows: [{ retailer_id: "a", review_status: "approved" }], next: "c2" },
+      c2: { rows: [{ retailer_id: "b", review_status: "rejected" }], next: null },
+    });
+    expect(await catalogStatusStep(rpc, api)).toBe(1);
+    expect(asked[0].q).toEqual({ after: null, limit: 500 });
+    expect(calls.find((c) => c.fn === "catalog_status_sweep_done").args).toEqual({
+      p_catalog_id: "987654321012",
+      p_next: "c2",
+      p_failed: false,
+    });
+    due = { due: true, after: "c2", catalog_id: "987654321012", transport: "graph" };
+    await catalogStatusStep(rpc, api);
+    expect(calls.filter((c) => c.fn === "catalog_status_sweep_done")[1].args.p_next).toBeNull();
+    due = { due: false };
+    expect(await catalogStatusStep(rpc, api)).toBe(-1);
+    expect(asked).toHaveLength(2);
+  });
+
+  it("a failed page keeps the cursor for a retry and records nothing", async () => {
+    const calls: any[] = [];
+    const rpc = async (fn: string, args: any) => {
+      calls.push({ fn, args });
+      return fn === "catalog_status_sweep_next"
+        ? { due: true, after: "c9", catalog_id: "987654321012", transport: "graph" }
+        : null;
+    };
+    const { api } = statusApi({}, true);
+    expect(await catalogStatusStep(rpc, api)).toBe(0);
+    expect(calls.find((c) => c.fn === "catalog_status_sweep_done").args.p_failed).toBe(true);
+    expect(calls.some((c) => c.fn === "catalog_status_record")).toBe(false);
+  });
+});

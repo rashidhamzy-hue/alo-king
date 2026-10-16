@@ -8,7 +8,7 @@
 // The database decides; this code only moves messages. Dependencies are injected so it is tested without
 // network or database.
 
-import { catalogSyncStep, type CatalogApi } from "./catalog-sync.ts";
+import { catalogStatusStep, catalogSyncStep, type CatalogApi } from "./catalog-sync.ts";
 import {
   cancelledText,
   deliveredCard,
@@ -269,6 +269,11 @@ export async function runDispatch(
     await catalogSyncStep(deps.rpc, deps.catalog, deps.log, wallLeft).catch((e: unknown) =>
       deps.log?.("catalogue sync step failed", { error: String(e).slice(0, 160) }),
     );
+    // Meta's review status (§39.15.2): one page of the paced sweep when one is due and the worker has time for it.
+    if (wallLeft() > 25_000)
+      await catalogStatusStep(deps.rpc, deps.catalog, deps.log).catch((e: unknown) =>
+        deps.log?.("catalogue status step failed", { error: String(e).slice(0, 160) }),
+      );
   }
   return out;
 }

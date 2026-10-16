@@ -66,8 +66,9 @@ select tests.ok(public.shop_card('5e000000-0000-0000-0000-0000000000b1') -> 'cov
 select tests.ok((select array_agg(s ->> 'name_en' order by o) = array['Beef Burgers', 'Sides', 'Drinks']
   from jsonb_array_elements(public.catalog_shop_menu('5e000000-0000-0000-0000-0000000000b1', 'sim') -> 'sections') with ordinality t(s, o)),
   'catalog_shop_menu ranks the sections: mains, then sides, then drinks');
-select tests.ok((public.catalog_shop_menu('5e000000-0000-0000-0000-0000000000b1', '1234567890') ->> 'total')::int = 0,
-  'only items visible in that catalogue (none synced here)');
+select tests.ok((public.catalog_shop_menu('5e000000-0000-0000-0000-0000000000b1', '1234567890') ->> 'shown')::int = 0
+  and (public.catalog_shop_menu('5e000000-0000-0000-0000-0000000000b1', '1234567890') ->> 'total')::int > 0,
+  'only items Meta shows in that catalogue go in product messages (none synced here); the count is still every item (§39.15.2)');
 
 -- Search results as products with their shop's name as the section.
 select tests.ok((select (r -> 0 ->> 'section_en') = 'Browse Burger' and jsonb_array_length(r) = 2

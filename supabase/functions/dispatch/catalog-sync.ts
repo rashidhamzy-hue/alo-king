@@ -2,6 +2,9 @@
 // or photo change (and by the 10-minute reconcile and the nightly full sync), diffs each shop's desired catalogue against
 // what Meta last got, and sends the difference through the Catalog Batch API. One product set per shop is created once.
 // Draft menus never reach menu_items, so they never sync; an item that leaves the menu is hidden, never deleted.
+// Meta's review status is the truth (DECISIONS §39.15.2): after every batch, and in a paced sweep of the whole catalogue,
+// each product's review_status, visibility and errors go to catalog_item_status; product messages show only approved
+// items.
 import {
   catalogSyncPlan,
   productSetBody,
@@ -26,7 +29,99 @@ export type CatalogApi = {
   ) => Promise<string | null>;
   /** The public URL of an item's image (dispatch draws it); the hash makes Meta fetch it again after a change. */
   imageUrl: (itemId: string, hash: string) => string;
+  /**
+   * GET /{catalog_id}/products with retailer_id, review_status, visibility, availability and errors: the products named in
+   * `ids` (a filter), or one page of the whole catalogue from cursor `after`. `next` is the following page's cursor.
+   */
+  status?: (
+    catalogId: string,
+    transport: CatalogTransport,
+    q: { ids?: string[]; after?: string | null; limit?: number },
+  ) => Promise<
+    { ok: true; rows: ProductStatus[]; next: string | null } | { ok: false; error: string }
+  >;
 };
+
+export type ProductStatus = {
+  retailer_id: string;
+  review_status?: string | null;
+  visibility?: string | null;
+  availability?: string | null;
+  errors?: unknown;
+};
+
+/** Products per filtered status read: their ids go in the request's filter, so a batch is read in a few calls. */
+export const STATUS_IDS_PER_READ = 50;
+/** Time a status read needs before it starts (its timeout and a margin). */
+export const STATUS_READ_MIN_MS = 25_000;
+/** Products per page of the whole-catalogue sweep. */
+export const STATUS_PAGE = 500;
+
+/** Reads and records the status of these products (after a batch); a failure is logged and the sweep catches up. */
+export async function recordStatusOf(
+  rpc: (fn: string, args: Record<string, unknown>) => Promise<any>,
+  api: CatalogApi,
+  catalogId: string,
+  transport: CatalogTransport,
+  ids: string[],
+  log?: (msg: string, fields?: Record<string, string | number | boolean>) => void,
+  left: () => number = () => Infinity,
+): Promise<number> {
+  if (!api.status || !ids.length) return 0;
+  let n = 0;
+  for (let i = 0; i < ids.length; i += STATUS_IDS_PER_READ) {
+    // A read may take up to 20 s: below that much time left the sweep catches up instead.
+    if (left() < STATUS_READ_MIN_MS) break;
+    const r = await api.status(catalogId, transport, {
+      ids: ids.slice(i, i + STATUS_IDS_PER_READ),
+    });
+    if (!r.ok) {
+      log?.("catalogue status read failed", { error: r.error.slice(0, 160) });
+      return n;
+    }
+    n += Number(
+      (await rpc("catalog_status_record", { p_catalog_id: catalogId, p_rows: r.rows })) ?? 0,
+    );
+  }
+  return n;
+}
+
+/**
+ * One page of the whole-catalogue status sweep when one is due (catalog_status_sweep_next paces it: every 15 minutes while
+ * anything is pending or unknown, else nightly). Returns the rows recorded, or -1 when nothing was due.
+ */
+export async function catalogStatusStep(
+  rpc: (fn: string, args: Record<string, unknown>) => Promise<any>,
+  api: CatalogApi,
+  log?: (msg: string, fields?: Record<string, string | number | boolean>) => void,
+): Promise<number> {
+  if (!api.status) return -1;
+  const due = await rpc("catalog_status_sweep_next", { p_catalog_id: null });
+  if (!due?.due || !due.catalog_id || !due.transport) return -1;
+  const r = await api.status(due.catalog_id, due.transport, {
+    after: due.after ?? null,
+    limit: STATUS_PAGE,
+  });
+  if (!r.ok) {
+    log?.("catalogue status sweep failed", { error: r.error.slice(0, 160) });
+    await rpc("catalog_status_sweep_done", {
+      p_catalog_id: due.catalog_id,
+      p_next: null,
+      p_failed: true,
+    });
+    return 0;
+  }
+  const n = Number(
+    (await rpc("catalog_status_record", { p_catalog_id: due.catalog_id, p_rows: r.rows })) ?? 0,
+  );
+  await rpc("catalog_status_sweep_done", {
+    p_catalog_id: due.catalog_id,
+    p_next: r.next,
+    p_failed: false,
+  });
+  log?.("catalogue status page", { rows: r.rows.length, recorded: n, more: r.next != null });
+  return n;
+}
 
 const BATCH = 1000; // Meta takes up to 5,000 requests per call; smaller calls fail smaller.
 // A refused product set keeps the job in backoff this many times (the fifth failure raises the ops alert).
@@ -93,6 +188,11 @@ export async function catalogSyncStep(
           : x,
       );
       await rpc("catalog_sync_record", { p_vendor_id: j.vendor_id, p_items: record });
+      // What Meta says about what we just sent (often "pending" at first; the sweep reads it again).
+      const sentIds = plan.requests.map((q) => String(q.data.id)).filter((id) => !refused.has(id));
+      await recordStatusOf(rpc, api, cat.catalog_id, cat.transport, sentIds, log, left).catch(
+        (e: unknown) => log?.("catalogue status read failed", { error: String(e).slice(0, 160) }),
+      );
       // The shop's product set, asked for once its products are sent. Meta refuses an empty set and ingests products a
       // little later, so a refusal finishes the job with an error and its retry (60 s, then doubling) creates the set.
       // After the fifth failure (the ops alert) the job finishes clean, so the shop's updates are not held in backoff;
