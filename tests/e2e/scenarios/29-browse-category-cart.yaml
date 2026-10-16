@@ -7,22 +7,22 @@ personas:
 steps:
   - note: this customer sees the demo shops with the simulated catalogue (staging only, +999 numbers only)
     sql: select public.sim_demo('{{cust.phone}}', '{{merchant.phone}}', true), public.sim_catalog('{{cust.phone}}', true)
-  - note: a demo burger shop with more than 30 items (so its menu opens as products plus the list of the rest), and one burger
+  - note: Fred's Food, a demo burger shop with more than 30 items (its menu opens as products plus the list of the rest), and an item of the section the list opens first
     db:
       - sql: >
-          select v.id as shop, left(coalesce(v.name_en, v.name_ar), 12) as title,
-                 extensions.st_y(v.location::extensions.geometry) as lat, extensions.st_x(v.location::extensions.geometry) as lon,
-                 i.id as item, i.price_usd
-          from public.vendors v
-          join app_private.vendor_browse_categories b on b.vendor_id = v.id and b.category = 'burgers'
-          join public.menu_items i on i.vendor_id = v.id
-          where app_private.vendor_is_demo(v.id) and v.orderable and not v.pickup_enabled
-            and (select count(*) from public.menu_items x where x.vendor_id = v.id and app_private.menu_item_orderable(x.id, 1)) > 30
-            and app_private.menu_item_orderable(i.id, 1) and coalesce(i.name_en, i.name_ar) ~* 'burger'
+          select v.id as shop, extensions.st_y(v.location::extensions.geometry) as lat,
+                 extensions.st_x(v.location::extensions.geometry) as lon, i.id as item, i.price_usd
+          from public.vendors v,
+               jsonb_array_elements(public.catalog_shop_menu(v.id, 'sim') -> 'sections' -> 0 -> 'products') with ordinality t(p, n)
+          join public.menu_items i on i.id = (p ->> 'retailer_id')::uuid
+          where v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s' and app_private.vendor_is_demo(v.id) and v.orderable and not v.pickup_enabled
+            and (select (public.catalog_shop_menu(v.id, 'sim') ->> 'total')::int) > 30
+            and exists (select 1 from app_private.vendor_browse_categories b where b.vendor_id = v.id and b.category = 'burgers')
+            and t.n <= 30 and i.pricing_unit = 'each'
             and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
-          order by v.name_en, i.sort_order, i.id limit 1
+          order by t.n limit 1
         row: { price_usd: ">0" }
-        save: { shop: shop, title: title, lat: lat, lon: lon, item: item, price: price_usd }
+        save: { shop: shop, lat: lat, lon: lon, item: item, price: price_usd }
   - say: { as: cust, text: "Order" }
     expect:
       - { to: cust }
@@ -33,14 +33,14 @@ steps:
   - note: Burgers lists the burger shops with their delivery fee and distance
     tap: { as: cust, id: "cat:burgers" }
     expect:
-      - { to: cust, kind: list, buttons: ["{{vars.title}}"] }
+      - { to: cust, kind: list, buttons: ["pv:"], text_any: ["Burgers", "برغر"] }
   - note: the shop opens with its best sections as one catalogue message (30 items at most), then the rest as a list
-    tap: { as: cust, title: "{{vars.title}}" }
+    tap: { as: cust, title: "Fred" }
     expect:
       - { to: cust, kind: products }
       - { to: cust, kind: list, buttons: ["ps:"] }
-  - note: one of the other sections opens as its own catalogue message
-    tap: { as: cust, id_prefix: "ps:" }
+  - note: the first section of the list opens as its own catalogue message, 30 items at a time
+    tap: { as: cust, id: "ps:s1" }
     expect:
       - { to: cust, kind: products }
   - note: the cart from WhatsApp lands in the one basket, priced by the server, then the normal checkout

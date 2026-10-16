@@ -11,11 +11,13 @@ steps:
       - sql: >
           select v.id as shop, extensions.st_y(v.location::extensions.geometry) as lat,
                  extensions.st_x(v.location::extensions.geometry) as lon, i.id as item, i.price_usd
-          from public.vendors v join public.menu_items i on i.vendor_id = v.id
-          where v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s' and app_private.vendor_is_demo(v.id) and v.orderable
-            and app_private.menu_item_orderable(i.id, 1)
+          from public.vendors v,
+               jsonb_array_elements(public.catalog_shop_menu(v.id, 'sim') -> 'sections' -> 0 -> 'products') with ordinality t(p, n)
+          join public.menu_items i on i.id = (p ->> 'retailer_id')::uuid
+          where v.place_id = 'ChIJE9BeY7MhHxURyekGJ41v65s' and app_private.vendor_is_demo(v.id) and v.orderable and t.n <= 6
+            and i.pricing_unit = 'each'
             and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
-          order by i.price_usd desc, i.id limit 1
+          order by t.n limit 1
         row: { price_usd: ">0" }
         save: { shop: shop, lat: lat, lon: lon, item: item, price: price_usd }
   - say: { as: cust, text: "Order" }
@@ -33,7 +35,7 @@ steps:
     tap: { as: cust, title: "Fred" }
     expect:
       - { to: cust, kind: products }
-  - note: the cart carries the price the catalogue showed; the server prices it again
+  - note: the cart (an item of the first catalogue message, its best section) carries the price the catalogue showed; the server prices it again
     cart: { as: cust, items: [{ id: "{{vars.item}}", qty: 2, price: "{{vars.price}}" }] }
     expect:
       - { to: cust, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }
