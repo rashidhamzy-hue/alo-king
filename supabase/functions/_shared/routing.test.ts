@@ -265,6 +265,26 @@ describe("roadRoutesFrom (shops → one pin)", () => {
     ]);
   });
 
+  it("knownMisses skips the cache lookups (the caller just read the cache) but still stores what it finds", async () => {
+    const cache = memoryCache();
+    const lookup = vi.spyOn(cache, "lookup");
+    const provider = {
+      name: "ors",
+      matrix: vi.fn(),
+      matrixFrom: vi.fn(async (os: LatLon[]) =>
+        os.map(() => ({ distanceM: 900, durationS: 120, provider: "ors" })),
+      ),
+    };
+    const out = await roadRoutesFrom([beiteddine, bakaata], baakline, {
+      cache,
+      provider,
+      knownMisses: true,
+    });
+    expect(out.map((r) => r?.distanceM)).toEqual([900, 900]);
+    expect(lookup).not.toHaveBeenCalled();
+    expect(cache.store).toHaveBeenCalledTimes(2);
+  });
+
   it("never guesses when the provider fails, and falls back to one request per origin without matrixFrom", async () => {
     const log = vi.fn();
     const failing = {

@@ -288,11 +288,12 @@ export async function roadRoutes(
  * cache, doorstep and no-guess rules as roadRoutes, but the misses go to the provider in ONE request: the free ORS plan
  * counts requests (500 matrix requests a day), and a browse screen asking once per shop used the day up in a morning of
  * tests (session 5e, 16 October). A provider without matrixFrom falls back to one roadRoutes call per origin.
+ * `knownMisses`: the caller has just read the cache (customer_delivery_check), so the per-origin lookups are skipped.
  */
 export async function roadRoutesFrom(
   origins: LatLon[],
   dest: LatLon,
-  deps: { cache: RouteCache; provider?: RouteProvider | null; log?: Log },
+  deps: { cache: RouteCache; provider?: RouteProvider | null; log?: Log; knownMisses?: boolean },
 ): Promise<(Route | null)[]> {
   const log = deps.log ?? (() => {});
   if (origins.length === 0) return [];
@@ -303,6 +304,7 @@ export async function roadRoutesFrom(
     return origins.map(() => null);
   }
   const valid = origins.map(inLebanon);
+  if (valid.some((v) => !v)) log("routing_origin_outside_lebanon");
   const store = async (o: LatLon, r: Route | null) => {
     if (!r) return;
     try {
@@ -313,7 +315,7 @@ export async function roadRoutesFrom(
   };
   const result: (Route | null)[] = await Promise.all(
     origins.map(async (o, i) => {
-      if (!valid[i]) return null;
+      if (!valid[i] || deps.knownMisses) return null;
       try {
         return (await deps.cache.lookup(o, [dest]))[0] ?? null;
       } catch (e) {

@@ -670,6 +670,7 @@ Deno.serve(async (req) => {
             roadRoutesFrom(os, d, {
               cache: routeCache,
               provider: routeProvider,
+              knownMisses: true,
               log: (msg, f) => log(msg, f as Record<string, string>),
             }),
           config: {
