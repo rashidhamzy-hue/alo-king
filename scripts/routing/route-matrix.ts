@@ -68,8 +68,9 @@ export function planBlocks(needed: Needed[], side = ORS_MANY_SIDE): Block[] {
 type Fetch = typeof fetch;
 
 /**
- * The public OSRM table service for one block: shops are sources, places destinations, one GET per block (50
- * coordinates; the public server takes up to 100). Never used by the edge functions: scripts only, as area-data.
+ * The public OSRM table service for one block: shops are sources, places destinations, one GET per block (at most 50
+ * coordinates). The FOSSGIS demo server is for reasonable, non-commercial use with no uptime guarantee: a fallback for
+ * the shop → place distances only, never the edge functions; production gets a second ORS key or ORS's paid plan.
  */
 export function osrmProvider(
   opts: { fetch?: Fetch; baseUrl?: string; timeoutMs?: number } = {},
@@ -96,19 +97,25 @@ export function osrmProvider(
         signal: AbortSignal.timeout(timeoutMs),
       },
     );
-    const j = res.ok
-      ? ((await res.json()) as {
-          code?: string;
-          distances?: (number | null)[][];
-          durations?: (number | null)[][];
-        })
-      : null;
-    if (!res.ok) await res.body?.cancel();
-    if (j?.code !== "Ok")
-      throw new Error(`osrm table returned ${res.status} ${j?.code ?? ""}`.trim());
-    return origins.map((_, a) =>
-      dests.map((_, b) => cell(j.distances?.[a]?.[b], j.durations?.[a]?.[b])),
-    );
+    // OSRM answers its errors in JSON too ({code: "TooBig" | "NoSegment" | …, message}): keep the code for the log.
+    const j = (await res.json().catch(() => null)) as {
+      code?: string;
+      message?: string;
+      distances?: (number | null)[][];
+      durations?: (number | null)[][];
+    } | null;
+    if (!res.ok || j?.code !== "Ok")
+      throw new Error(
+        `osrm table returned ${res.status} ${j?.code ?? ""} ${String(j?.message ?? "").slice(0, 80)}`.trim(),
+      );
+    // A malformed answer is a failed request, never rows of "no road" (those are not asked again for a week).
+    const shaped = (m: unknown) =>
+      Array.isArray(m) &&
+      m.length === origins.length &&
+      m.every((r) => Array.isArray(r) && r.length === dests.length);
+    if (!shaped(j.distances) || !shaped(j.durations))
+      throw new Error("osrm table returned a malformed matrix");
+    return origins.map((_, a) => dests.map((_, b) => cell(j.distances![a][b], j.durations![a][b])));
   };
   return {
     name: "osrm",
@@ -121,9 +128,13 @@ export function osrmProvider(
   };
 }
 
-/** OpenRouteService said no for the day (quota spent, key refused, rate limited): stop asking it in this run. */
-export function orsRefused(e: unknown): boolean {
-  return /ors matrix returned (401|403|429)\b/.test(String(e));
+/**
+ * OpenRouteService said no: 403 (the day's quota is spent), 429 (its per-minute limit) or 401 (the key is refused).
+ * Returns the status, so a refused key can still fail the run; null for anything else (a timeout, a 5xx).
+ */
+export function orsRefused(e: unknown): number | null {
+  const m = /ors matrix returned (401|403|429)\b/.exec(String(e));
+  return m ? Number(m[1]) : null;
 }
 
 /**
@@ -161,6 +172,82 @@ export async function runBlock(
     }),
   );
   return out;
+}
+
+/** How a run went: rows saved per provider, failures, blocks left unsent, and ORS's refusal status if it refused. */
+export type FillResult = {
+  saved: { ors: number; osrm: number };
+  noRoad: number;
+  failed: number;
+  notSent: number;
+  orsRefusal: number | null;
+};
+
+/**
+ * Asks for each block in turn: ORS while it has budget and has not refused, the public OSRM server for the rest. A
+ * refused block is asked again from OSRM. OSRM refusing (429) or failing three times in a row stops the run: the rest
+ * waits for the next one. `sleep` paces the requests (ORS: 40 a minute; OSRM: one a second).
+ */
+export async function fillBlocks(o: {
+  blocks: Block[];
+  wanted: Set<string>;
+  granted: number;
+  providers: Record<"ors" | "osrm", RouteProvider>;
+  save: (rows: SavedRow[], provider: "ors" | "osrm") => Promise<number>;
+  log: (line: string) => void;
+  sleep?: (ms: number) => Promise<void>;
+}): Promise<FillResult> {
+  const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const res: FillResult = {
+    saved: { ors: 0, osrm: 0 },
+    noRoad: 0,
+    failed: 0,
+    notSent: 0,
+    orsRefusal: null,
+  };
+  let orsOk = o.granted > 0;
+  let osrmFailsInARow = 0;
+  for (const [k, block] of o.blocks.entries()) {
+    let name = providerFor(k, o.granted, orsOk);
+    try {
+      let out: SavedRow[];
+      try {
+        out = await runBlock(o.providers[name], block, o.wanted);
+      } catch (e) {
+        const status = orsRefused(e);
+        if (name !== "ors" || status === null) throw e;
+        res.orsRefusal = status;
+        orsOk = false;
+        o.log(
+          status === 401
+            ? "::error::OpenRouteService refused the key (401, owner issue #76): the public OSRM server for the rest"
+            : `::warning::OpenRouteService refused request ${k + 1} (${status === 429 ? "429, its per-minute limit" : "403, the day's quota"}): the public OSRM server for the rest`,
+        );
+        const unused = Math.max(o.granted - k - 1, 0);
+        if (unused > 0)
+          o.log(`- ${unused} granted OpenRouteService request(s) not used after the refusal`);
+        name = "osrm";
+        await sleep(1100);
+        out = await runBlock(o.providers.osrm, block, o.wanted);
+      }
+      res.noRoad += out.filter((r) => r.road_km == null).length;
+      res.saved[name] += await o.save(out, name);
+      if (name === "osrm") osrmFailsInARow = 0;
+    } catch (e) {
+      res.failed++;
+      o.log(`- request ${k + 1} (${name}) failed: ${String(e).slice(0, 160)}`);
+      if (name === "osrm") {
+        osrmFailsInARow++;
+        if (/osrm table returned 429/.test(String(e)) || osrmFailsInARow >= 3) {
+          res.notSent = o.blocks.length - k - 1;
+          o.log("- the public OSRM server is refusing or down: the rest waits for the next run");
+          break;
+        }
+      }
+    }
+    if (k + 1 < o.blocks.length) await sleep(name === "ors" ? 1600 : 1100);
+  }
+  return res;
 }
 
 async function main() {
@@ -210,49 +297,30 @@ async function main() {
       }),
       osrm: osrmProvider({ baseUrl: process.env.OSRM_BASE_URL || undefined }),
     };
-    let orsOk = granted > 0;
-    const saved = { ors: 0, osrm: 0 };
-    let noRoad = 0;
-    let failed = 0;
-    for (const [k, block] of blocks.slice(0, ask).entries()) {
-      let name = providerFor(k, granted, orsOk);
-      try {
-        let out: SavedRow[];
-        try {
-          out = await runBlock(providers[name], block, wanted);
-        } catch (e) {
-          if (name !== "ors" || !orsRefused(e)) throw e;
-          // The quota is spent for the day: every later block, and this one, from OSRM.
-          console.log(
-            `- OpenRouteService refused request ${k + 1} (${String(e).slice(0, 80)}): the public OSRM server for the rest`,
-          );
-          orsOk = false;
-          name = "osrm";
-          await new Promise((r) => setTimeout(r, 1100));
-          out = await runBlock(providers.osrm, block, wanted);
-        }
-        noRoad += out.filter((r) => r.road_km == null).length;
-        const res = await db.query<{ n: number }>(
-          "select public.shop_place_routes_save($1::jsonb, $2) as n",
-          [JSON.stringify(out), name],
-        );
-        saved[name] += Number(res.rows[0]?.n ?? 0);
-      } catch (e) {
-        failed++;
-        console.log(`- request ${k + 1} (${name}) failed: ${String(e).slice(0, 160)}`);
-      }
-      // ORS free plan: 40 matrix requests a minute; the public OSRM server: one request a second.
-      if (k + 1 < ask) await new Promise((r) => setTimeout(r, name === "ors" ? 1600 : 1100));
-    }
+    const r = await fillBlocks({
+      blocks: blocks.slice(0, ask),
+      wanted,
+      granted,
+      providers,
+      save: async (rows, provider) =>
+        Number(
+          (
+            await db.query<{ n: number }>(
+              "select public.shop_place_routes_save($1::jsonb, $2) as n",
+              [JSON.stringify(rows), provider],
+            )
+          ).rows[0]?.n ?? 0,
+        ),
+      log: (line) => console.log(line),
+    });
     console.log(
-      `- pairs saved: ${saved.ors + saved.osrm} (OpenRouteService ${saved.ors}, OSRM ${saved.osrm}; no road found: ${noRoad})`,
+      `- pairs saved: ${r.saved.ors + r.saved.osrm} (OpenRouteService ${r.saved.ors}, OSRM ${r.saved.osrm}; no road found: ${r.noRoad})`,
     );
-    if (ask < blocks.length)
-      console.log(`- left for the next run: ${blocks.length - ask} request(s)`);
-    if (failed > 0) {
-      console.log(`- failed requests: ${failed}`);
-      process.exitCode = 1;
-    }
+    const left = blocks.length - ask + r.notSent;
+    if (left > 0) console.log(`- left for the next run: ${left} request(s)`);
+    if (r.failed > 0) console.log(`- failed requests: ${r.failed}`);
+    // A refused key is the one visible signal that checkout's live calls fail too: the run goes red for it.
+    if (r.failed > 0 || r.orsRefusal === 401) process.exitCode = 1;
   } finally {
     await db.end();
   }
