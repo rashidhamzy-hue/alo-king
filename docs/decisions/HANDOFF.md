@@ -317,7 +317,8 @@
     - production restores the 5 s and 15 s cadence (LOG, session 5e PR 1); `staging-e2e suite=full` runs once there before go-live;
     - no `packshot` or `illustrative` photos and no non-merchant `vendor_covers` on production; demo-photos refuses any project but staging;
     - kapso-profile against the production number with the production website once aloking.com serves the new site; the catalogue icon off on the production number.
-- **Next: 13 (security review), then W2 (website audit and polish, §39.10: WhatsApp icons and "Order on WhatsApp" throughout, no app to download, clearer heroes, every page audited) and 14 (cut-over).** The session list, with the model and effort for each, is in DECISIONS §39.10.
+- **Planning review of 5e and the live test (16 October, 12:30): DECISIONS §39.14 (customer-experience spec adopted) and §39.15 (routing never blocks an order, catalogue truth and split carts, testers anywhere with the demo autopilot, catalogue rules the merchant agent learns, website audit joined to the web menu, a public site address).** Rasheed's recording showed: checkout stopped on the ORS outage with no button; the header catalogue (still on, #199) mixed shops and the server dropped two items; INDINER time opened with 3 of its 102 photo items and "Burgers · 9 items" opened 1 (Meta review status never read); titles in two languages and ALL CAPS, photo credits as descriptions, the Supabase image URL as the item link; the website's Order buttons go nowhere (`VITE_WHATSAPP_NUMBER` empty, no public URL).
+- **Next: 5f (Opus 5.5, Extra), then 5g (Opus 5.5, Extra), then the friends' test, 13 and 14 (§39.15.8).** The prompts are in the planning chat's handoff (`claude/HANDOFF-2026-10-07.md` in the Project).
 
 ## How to start each build session
 
@@ -332,7 +333,9 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 ## Owner to-do (Rasheed)
 
 0. **Optional (2 minutes):** give the system user `alo-king-catalog` the WhatsApp account and the `whatsapp_business_management` permission, so kapso-catalog can verify the catalogue's connection and the cart icons itself (Business settings → Users → System users → alo-king-catalog → Assign assets → WhatsApp accounts → the US account, Full control; then generate a new token with `whatsapp_business_management` added and replace `META_CATALOG_TOKEN`).
-0. **Hide the catalogue icon in the chat header (#199, 2 minutes):** WhatsApp Manager steps in the issue; the bot closes it once the icon reads hidden.
+0. **Hide the catalogue icon in the chat header (#199, 2 minutes), before 5f:** WhatsApp Manager → Account tools → Catalogue → switch **off** "Show catalogue icon in chat header", keep "Add to cart" **on** (the issue's step 4 wrongly says "switch on"; 5f fixes the text). The bot closes it once the icon reads hidden.
+0. **Buy `alo-king.com` (§39.15.7, about $10 a year, Cloudflare Registrar):** then tell the planning chat; a session attaches it to Vercel and sets `public_site_url`.
+0. **Optional: a free Pexels API key** (pexels.com/api) as the GitHub secret `PEXELS_API_KEY`, for credit-free dish photos.
 0. **Demo for investors:** they message +1 203-660-2328 from their own phones; every order card comes to your phone marked "Demo" (accept or reject it there).
 0. **Verify the "Memo Tiles" business in Meta (#182):** until then Meta blocks Flows (address and checkout forms) and the claim-code template.
 0. **Test on the US number +1 203-660-2328:** the checklist in the session 5d reply (#181 is done, so the catalogue, the product messages and the cart icon are testable).
