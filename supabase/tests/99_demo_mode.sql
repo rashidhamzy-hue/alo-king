@@ -154,7 +154,12 @@ select tests.ok((select status = 'skipped' and target = '+96171000001' from publ
 
 -- Item photos -----------------------------------------------------------------------------------------------------------------------
 select id as kafta from public.menu_items where vendor_id = :'d1' and name_en = 'Kafta Plate' \gset
-select tests.ok(public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.png', repeat('a', 64)) ->> 'status' = 'ok',
+select tests.ok(public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.png', repeat('a', 64)) ->> 'status' = 'no_license',
+  'a photo without its license and credit is refused (no more drawn tiles, §39.13)');
+select tests.ok(public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || gen_random_uuid() || '.jpg', repeat('a', 64),
+    'CC0 1.0', 'someone', null) ->> 'status' = 'bad_path', 'a photo is stored under its own item''s path only');
+select tests.ok(public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.png', repeat('a', 64),
+    'CC0 1.0', 'someone', null) ->> 'status' = 'ok',
   'an illustrative photo is recorded for a demo item');
 select tests.ok(exists (select 1 from jsonb_array_elements(public.demo_photos_todo(50)) x where (x ->> 'item_id')::uuid = :'kafta'
   and x #>> '{photo,source}' = 'illustrative' and x ->> 'image_url' = 'https://example.test/kafta.jpg'), 'the to-do list shows it, with the shop''s image');
@@ -162,26 +167,38 @@ select tests.ok((select p ->> 'photo' from jsonb_array_elements(public.catalog_d
   = 'illustrative/' || :'d1' || '/' || :'kafta' || '.png', 'the catalogue shows the item''s own photo');
 -- Session 5e: a real photo of the dish, with its license; the catalogue says it is for illustration; packshots too.
 select tests.ok(public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.jpg', repeat('c', 64),
-    'CC0', 'Jane Doe via Openverse (stocksnap)', 'https://stocksnap.io/photo/kafta') ->> 'status' = 'ok',
+    'CC BY 2.0', 'Jane Doe via Openverse (stocksnap)', 'https://stocksnap.io/photo/kafta') ->> 'status' = 'ok',
   'a dish photo is recorded');
-select tests.ok((select license = 'CC0' and credit like 'Jane Doe%' and source_url like 'https://stocksnap.io/%'
+select tests.ok((select license = 'CC BY 2.0' and credit like 'Jane Doe%' and source_url like 'https://stocksnap.io/%'
   from public.menu_item_photos where item_id = :'kafta'), 'with its license, credit and source');
-select tests.ok((select p ->> 'description' like '%Photo for illustration' from jsonb_array_elements(public.catalog_desired(:'d1')) p
-  where (p ->> 'retailer_id')::uuid = :'kafta'), 'the catalogue says an illustrative photo is for illustration');
+select tests.ok((select p ->> 'description' like '%صورة توضيحية · Photo for illustration · 📷 Jane Doe via Openverse (stocksnap) · CC BY 2.0'
+    and char_length(p ->> 'description') <= 500 and p ->> 'photo_hash' = repeat('c', 64)
+  from jsonb_array_elements(public.catalog_desired(:'d1')) p
+  where (p ->> 'retailer_id')::uuid = :'kafta'), 'the catalogue says an illustrative photo is for illustration and credits a CC BY one, within 500 characters');
 select tests.ok(public.menu_item_photo_set(:'kafta', 'packshot', 'packshot/' || :'d1' || '/' || :'kafta' || '.jpg', repeat('d', 64),
     'CC BY-SA 3.0', 'Open Food Facts contributors', 'https://world.openfoodfacts.org/product/5449000000996') ->> 'status' = 'ok',
   'a packshot is a photo source');
-select tests.ok((select not (p ->> 'description' like '%illustration%') from jsonb_array_elements(public.catalog_desired(:'d1')) p
-  where (p ->> 'retailer_id')::uuid = :'kafta'), 'a packshot is the product itself: no illustration note');
-select public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.png', repeat('a', 64));
+select tests.ok((select not (p ->> 'description' like '%illustration%') and p ->> 'description' like '%📷 Open Food Facts contributors · CC BY-SA 3.0'
+  from jsonb_array_elements(public.catalog_desired(:'d1')) p
+  where (p ->> 'retailer_id')::uuid = :'kafta'), 'a packshot is the product itself: no illustration note, credited');
+select tests.ok(public.menu_item_photo_clear(:'kafta') ->> 'status' = 'ok', 'a photo whose pick is gone is removed');
+select tests.ok(not exists (select 1 from public.menu_item_photos where item_id = :'kafta'), 'and its row is gone');
+select public.menu_item_photo_set(:'kafta', 'illustrative', 'illustrative/' || :'d1' || '/' || :'kafta' || '.jpg', repeat('a', 64),
+  'CC0 1.0', 'someone', null);
+select tests.ok(public.vendor_cover_set(:'d1', 'illustrative', 'cover/' || :'d1' || '.jpg', repeat('e', 64), null, 'someone', null) ->> 'status' = 'no_license'
+  and public.vendor_cover_set(:'d1', 'illustrative', 'cover/' || :'d2' || '.jpg', repeat('e', 64), 'CC0 1.0', 'someone', null) ->> 'status' = 'bad_path'
+  and public.vendor_cover_set(:'d1', 'illustrative', 'cover/' || :'d1' || '.jpg', repeat('e', 64), 'CC0 1.0', 'someone', null) ->> 'status' = 'ok'
+  and public.vendor_cover_set(:'tv', 'illustrative', 'cover/' || :'tv' || '.jpg', repeat('e', 64), 'CC0 1.0', 'someone', null) ->> 'status' = 'not_demo',
+  'a cover is licensed, under its own shop''s path, and for demo shops only');
 insert into public.vendor_photos (vendor_id, storage_path, source, status, origin_hash)
 values (:'d2', 'seed/' || :'d2' || '/' || repeat('b', 32) || '.jpg', 'seed', 'confirmed', repeat('b', 64));
 select tests.ok(jsonb_array_length(public.catalog_desired(:'d2')) = 0,
   'a shop photo (here a confirmed Google one) is never an item''s photo: an item without its own photo is not in the catalogue');
 select tests.ok(public.menu_item_photo_set((select i.id from public.menu_items i where i.vendor_id = :'tv' limit 1), 'illustrative',
   'illustrative/' || :'tv' || '/' || gen_random_uuid() || '.png', null) ->> 'status' = 'not_demo', 'illustrative photos are for demo shops only');
-select tests.throws($$insert into public.menu_item_photos (item_id, vendor_id, storage_path, source)
-  select i.id, i.vendor_id, 'merchant_site/' || i.vendor_id || '/' || i.id || '.png', 'illustrative' from public.menu_items i limit 1$$,
+select tests.throws($$insert into public.menu_item_photos (item_id, vendor_id, storage_path, source, license, credit)
+  select i.id, i.vendor_id, 'merchant_site/' || i.vendor_id || '/' || i.id || '.png', 'illustrative', 'CC0 1.0', 'someone'
+  from public.menu_items i limit 1$$,
   'menu_item_photos_path_source', 'a photo''s path matches its source');
 
 -- Leaving the list, and a claim, remove illustrative photos --------------------------------------------------------------------------
@@ -190,20 +207,36 @@ where vendor_id = :'d1';
 \i supabase/test-fixtures/demo-shops.sql
 select tests.ok((select claim_status = 'unclaimed' and not orderable and not field_sources ? 'demo' from public.vendors where id = :'d1'),
   'a shop whose menu lost its prices is a seed listing again');
-select tests.ok(not exists (select 1 from public.menu_item_photos where vendor_id = :'d1'), 'its illustrative photos are gone');
+select tests.ok(not exists (select 1 from public.menu_item_photos where vendor_id = :'d1')
+  and not exists (select 1 from public.vendor_covers where vendor_id = :'d1'), 'its illustrative photos and its cover are gone');
 -- (A shop outside demo mode: the test shop, which is claimed already, is unclaimed and claimed again.)
 select id as tv_item from public.menu_items where vendor_id = :'tv' limit 1 \gset
-insert into public.menu_item_photos (item_id, vendor_id, storage_path, source)
-values (:'tv_item', :'tv', 'illustrative/' || :'tv' || '/' || :'tv_item' || '.png', 'illustrative');
+select id as tv_item2 from public.menu_items where vendor_id = :'tv' and id <> :'tv_item' limit 1 \gset
+insert into public.menu_item_photos (item_id, vendor_id, storage_path, source, license, credit) values
+  (:'tv_item', :'tv', 'illustrative/' || :'tv' || '/' || :'tv_item' || '.jpg', 'illustrative', 'CC0 1.0', 'someone'),
+  (:'tv_item2', :'tv', 'packshot/' || :'tv' || '/' || :'tv_item2' || '.jpg', 'packshot', 'CC BY-SA 3.0', 'Open Food Facts contributors');
+insert into public.vendor_covers (vendor_id, storage_path, source, license, credit)
+values (:'tv', 'cover/' || :'tv' || '.jpg', 'illustrative', 'CC0 1.0', 'someone');
+select tests.throws($$insert into public.menu_item_photos (item_id, vendor_id, storage_path, source)
+  select i.id, i.vendor_id, 'illustrative/' || i.vendor_id || '/' || i.id || '.png', 'illustrative' from public.menu_items i
+  where not exists (select 1 from public.menu_item_photos p where p.item_id = i.id) limit 1$$,
+  'menu_item_photos_licensed', 'a photo that is not the merchant''s own always carries a license and a credit');
 update public.vendors set orderable = false, claim_status = 'unclaimed' where id = :'tv';
 update public.vendors set claim_status = 'claimed' where id = :'tv';
-select tests.ok(not exists (select 1 from public.menu_item_photos where vendor_id = :'tv'), 'a real claim removes illustrative photos');
+select tests.ok(not exists (select 1 from public.menu_item_photos where vendor_id = :'tv')
+  and not exists (select 1 from public.vendor_covers where vendor_id = :'tv'), 'a real claim removes illustrative photos, packshots and the cover');
+insert into public.vendor_covers (vendor_id, storage_path, source) values (:'tv', 'cover/' || :'tv' || '.jpg', 'merchant');
+update public.vendors set claim_status = 'unclaimed' where id = :'tv';
+update public.vendors set claim_status = 'claimed' where id = :'tv';
+select tests.ok(exists (select 1 from public.vendor_covers where vendor_id = :'tv' and source = 'merchant'), 'the merchant''s own cover stays');
 
 -- Permissions -----------------------------------------------------------------------------------------------------------------------
 set local role anon;
 select tests.throws($$select public.sim_demo('+99996100000071', '+99996100000072', true)$$, 'permission denied', 'clients cannot opt in');
 select tests.throws($$select public.demo_photos_todo(1)$$, 'permission denied', 'or list demo items');
 select tests.throws($$select * from public.menu_item_photos$$, 'permission denied', 'or read item photos');
+select tests.throws($$select public.vendor_cover_set(gen_random_uuid(), 'illustrative', null, null, null, null, null)$$, 'permission denied', 'or set covers');
+select tests.throws($$select public.menu_item_photo_clear(gen_random_uuid())$$, 'permission denied', 'or clear photos');
 reset role;
 
 rollback;

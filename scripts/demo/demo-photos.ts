@@ -5,7 +5,8 @@
 //      picked by a build session from photo-scout's candidates: by barcode, or brand and name with a confidence check);
 //   3. illustrative: one real photo per dish from a free library that allows commercial use (photo-picks.json "dishes",
 //      matched through scripts/demo/dishes.ts, falling back to the broader dish).
-// Every image is 800 × 800, cropped square with the same treatment (packshots are fitted on white, so no label is cut);
+// A pick is used only when its license allows commercial use and it is credited, and never from a Google host (pickOk);
+// a source picture smaller than 500 px on a side is refused. Every image is 800 × 800, cropped square with the same treatment (packshots are fitted on white, so no label is cut);
 // each shop gets a 1200 × 800 cover (its own photo of a main dish, else the photo of its signature dish). Stored in the
 // private bucket menu-item-photos through public.menu_item_photo_set (with license, credit and source) and
 // public.vendor_covers. An unchanged photo is never processed again; objects without a row are deleted.
@@ -41,6 +42,8 @@ export type Pick = {
   license: string;
   credit: string;
   source_url: string | null;
+  /** Packshots: the brand on the pack; the pick serves only items whose name carries it (the confidence check). */
+  brand?: string;
 };
 export type Picks = { dishes: Record<string, Pick>; packshots: Record<string, Pick> };
 
@@ -70,6 +73,44 @@ const ownPicture = (url: string | null) => {
 /** The shelf item's key in photo-picks.json "packshots": its English name, trimmed. */
 export const packKey = (item: { name_en?: string | null }) => String(item.name_en ?? "").trim();
 
+// Smallest side of a source picture (DECISIONS §39.13: every product image at least 500 × 500).
+export const MIN_SIDE = 500;
+
+const fold = (x: string | null | undefined) =>
+  String(x ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+/**
+ * Whether a pick may be used: a URL off Google's hosts (§38.1), a credit, and a license the source allows for commercial
+ * use (§39.13): dish photos CC0, public domain, CC BY, Pexels or Unsplash; packshots CC BY-SA from Open Food Facts,
+ * with a brand that the item's name carries.
+ */
+export function pickOk(
+  kind: "packshot" | "illustrative",
+  k: Pick | undefined,
+  item?: TodoItem,
+): k is Pick {
+  if (!k || !ownPicture(k.url) || (k.source_url && !ownPicture(k.source_url))) return false;
+  if (!k.credit?.trim()) return false;
+  if (kind === "illustrative")
+    return /^(CC0\b|Public Domain Mark\b|PDM\b|CC BY \d|Pexels License$|Unsplash License$)/i.test(
+      k.license ?? "",
+    );
+  const host = (() => {
+    try {
+      return new URL(k.url).hostname;
+    } catch {
+      return "";
+    }
+  })();
+  if (!/^CC BY-SA \d/i.test(k.license ?? "") || !/(^|\.)openfoodfacts\.org$/.test(host))
+    return false;
+  const brand = fold(k.brand).trim();
+  return !!brand && (fold(item?.name_en).includes(brand) || fold(item?.name_ar).includes(brand));
+}
+
 export type Planned = {
   kind: "merchant_site" | "packshot" | "illustrative";
   url: string;
@@ -94,7 +135,7 @@ export function plan(item: TodoItem, picks: Picks): Planned | null | "none" {
       source_url: own,
       dish,
     };
-  else if (isShelf(item) && picks.packshots[packKey(item)]) {
+  else if (isShelf(item) && pickOk("packshot", picks.packshots[packKey(item)], item)) {
     const k = picks.packshots[packKey(item)];
     p = {
       kind: "packshot",
@@ -105,7 +146,7 @@ export function plan(item: TodoItem, picks: Picks): Planned | null | "none" {
       dish,
     };
   } else if (dish !== "none") {
-    const key = photoChain(dish).find((k) => picks.dishes[k]);
+    const key = photoChain(dish).find((k) => pickOk("illustrative", picks.dishes[k]));
     if (key) {
       const k = picks.dishes[key];
       p = {
@@ -180,6 +221,13 @@ async function main() {
   const { DB_URL, SUPABASE_URL, SUPABASE_SERVICE_KEY } = process.env;
   if (!DB_URL || !SUPABASE_URL || !SUPABASE_SERVICE_KEY)
     throw new Error("set DB_URL, SUPABASE_URL and SUPABASE_SERVICE_KEY");
+  // Demo photos and the Storage clean-up are for alo-king-staging (or a local database) only.
+  if (
+    !/^https:\/\/tzugbbatfbvrfzxuacqx\.supabase\.co\/?$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(
+      SUPABASE_URL,
+    )
+  )
+    throw new Error("demo photos run on alo-king-staging only");
   const picks: Picks = JSON.parse(readFileSync(PICKS_FILE, "utf8"));
   const headers = { authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, apikey: SUPABASE_SERVICE_KEY };
   const url = new URL(DB_URL);
@@ -224,7 +272,7 @@ async function main() {
           const b = new Uint8Array(await res.arrayBuffer());
           if (b.byteLength > 25 * 1024 * 1024) throw new Error("image too large");
           const m = await sharp(b, { failOn: "none" }).metadata();
-          if (Math.min(m.width ?? 0, m.height ?? 0) < 300)
+          if (Math.min(m.width ?? 0, m.height ?? 0) < MIN_SIDE)
             throw new Error(`image too small ${m.width}x${m.height}`);
           return b;
         })(),
@@ -240,11 +288,12 @@ async function main() {
     none: 0,
     failed: 0,
     covers: 0,
+    cleared: 0,
     deleted: 0,
   };
   const byShop = new Map<
     string,
-    { vendor: string; dishes: string[]; own: { url: string; dish: string }[] }
+    { vendor: string; dishes: string[]; own: { url: string; original: string; dish: string }[] }
   >();
   try {
     const todo: TodoItem[] =
@@ -259,10 +308,20 @@ async function main() {
       const dish = dishOf(item);
       shop.dishes.push(dish);
       const own = ownPicture(item.image_url);
-      if (own && !NOT_COVER.test(dish)) shop.own.push({ url: sizedImageUrl(own), dish });
+      if (own && !NOT_COVER.test(dish))
+        shop.own.push({ url: sizedImageUrl(own), original: own, dish });
       const p = plan(item, picks);
       if (p === null) return void done.unchanged++;
-      if (p === "none") return void done.none++;
+      if (p === "none") {
+        done.none++;
+        // A photo made from a pick that is gone (or an old drawn tile) goes; its object is deleted below.
+        if (item.photo && item.photo.source !== "merchant") {
+          const r = (await db.query("select public.menu_item_photo_clear($1) as r", [item.item_id]))
+            .rows[0].r;
+          if (r?.status === "ok") done.cleared++;
+        }
+        return;
+      }
       try {
         let bytes: Uint8Array;
         try {
@@ -270,7 +329,7 @@ async function main() {
         } catch (e) {
           // The shop's own picture is gone or too small: the photo of its dish instead.
           if (p.kind === "illustrative") throw e;
-          const key = photoChain(dish).find((k) => picks.dishes[k]);
+          const key = photoChain(dish).find((k) => pickOk("illustrative", picks.dishes[k]));
           if (!key) throw e;
           const k = picks.dishes[key];
           Object.assign(p, {
@@ -310,47 +369,52 @@ async function main() {
     for (const [vendorId, shop] of byShop) {
       const sig = signatureDish(shop.dishes);
       const own = shop.own.find((o) => o.dish === sig) ?? shop.own[0];
-      const dishKey = sig ? photoChain(sig).find((k) => picks.dishes[k]) : null;
+      const dishKey = sig
+        ? photoChain(sig).find((k) => pickOk("illustrative", picks.dishes[k]))
+        : null;
       const chosen = own
         ? {
             source: "merchant_site",
             url: own.url,
             license: "the shop's own",
-            credit: shop.vendor,
-            source_url: own.url,
+            credit: shop.vendor || "the shop",
+            source_url: own.original,
           }
         : dishKey
           ? { source: "illustrative", ...picks.dishes[dishKey] }
           : null;
-      if (!chosen) continue;
-      const hash = sha256(JSON.stringify([PROCESS_VERSION, "cover", chosen.url]));
       const cur = (
-        await db.query("select origin_hash from public.vendor_covers where vendor_id = $1", [
-          vendorId,
-        ])
+        await db.query(
+          "select origin_hash, source from public.vendor_covers where vendor_id = $1",
+          [vendorId],
+        )
       ).rows[0];
+      if (!chosen) {
+        // No cover any more (its pick is gone): the old one goes; its object is deleted below.
+        if (cur && cur.source !== "merchant")
+          await db.query("select public.vendor_cover_set($1, null, null, null, null, null, null)", [
+            vendorId,
+          ]);
+        continue;
+      }
+      const hash = sha256(JSON.stringify([PROCESS_VERSION, "cover", chosen.url]));
       if (cur?.origin_hash === hash) continue;
       try {
         const body = await coverImage(await download(chosen.url));
         const path = `cover/${vendorId}.jpg`;
         await upload(path, body);
-        await db.query(
-          `insert into public.vendor_covers (vendor_id, storage_path, source, license, credit, source_url, origin_hash)
-           values ($1, $2, $3, $4, $5, $6, $7)
-           on conflict (vendor_id) do update set storage_path = excluded.storage_path, source = excluded.source,
-             license = excluded.license, credit = excluded.credit, source_url = excluded.source_url,
-             origin_hash = excluded.origin_hash, updated_at = now()
-           where public.vendor_covers.source <> 'merchant'`,
-          [
+        const r = (
+          await db.query("select public.vendor_cover_set($1, $2, $3, $4, $5, $6, $7) as r", [
             vendorId,
-            path,
             chosen.source,
+            path,
+            hash,
             chosen.license,
             String(chosen.credit ?? "").slice(0, 200),
             chosen.source_url,
-            hash,
-          ],
-        );
+          ])
+        ).rows[0].r;
+        if (r?.status !== "ok") throw new Error(`record ${r?.status}`);
         done.covers++;
       } catch (e) {
         console.error(`cover failed for shop ${vendorId}: ${String(e).slice(0, 160)}`);
@@ -404,7 +468,7 @@ async function main() {
     await db.end();
   }
   console.log(
-    `demo item photos: ${done.merchant_site} the shop's own, ${done.packshot} packshots, ${done.illustrative} dish photos, ${done.unchanged} unchanged, ${done.none} without a photo (not food, or no pick), ${done.failed} failed; ${done.covers} covers; ${done.deleted} old objects deleted`,
+    `demo item photos: ${done.merchant_site} the shop's own, ${done.packshot} packshots, ${done.illustrative} dish photos, ${done.unchanged} unchanged, ${done.none} without a photo (not food, or no pick), ${done.failed} failed, ${done.cleared} photos without a pick removed; ${done.covers} covers; ${done.deleted} old objects deleted`,
   );
 }
 

@@ -23,6 +23,8 @@ export type DesiredProduct = {
   section_en?: string;
   /** The item's own photo (Storage path); the catalogue holds only items that have one (session 5e). */
   photo?: string | null;
+  /** Changes when the photo is made again under the same path (a new pick or new processing). */
+  photo_hash?: string | null;
 };
 
 /** A stable hash of what Meta shows for a product, so unchanged items are not re-sent. */
@@ -36,6 +38,8 @@ export function productHash(p: DesiredProduct): string {
     p.product_set,
     p.brand ?? "",
     p.photo ?? "",
+    // Only when set, so products without one keep their hash (no needless resend).
+    ...(p.photo_hash ? [p.photo_hash] : []),
   ]);
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);

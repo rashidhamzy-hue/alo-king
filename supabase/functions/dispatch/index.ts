@@ -10,7 +10,7 @@
 // Customer bot (session 4): ANTHROPIC_API_KEY (turns), OPENAI_API_KEY (voice transcription only, §3),
 // ORS_API_KEY (road routes for the delivery quote). Without a key that part is off, never faked.
 // Meta catalogue (§39.12): optional META_CATALOG_TOKEN when Kapso's proxy cannot write catalogue items. GET
-// ?route=catalog-image is public (Meta fetches product images) and draws only items that are in the catalogue.
+// ?route=catalog-image is public (Meta fetches product images) and redirects to the photo of an item that is in the catalogue (404 otherwise).
 
 import {
   runDispatch,
@@ -500,7 +500,7 @@ async function catalogImage(url: URL): Promise<Response> {
   const id = url.searchParams.get("i") ?? "";
   if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response("not found", { status: 404 });
   const d = await rpc("catalog_image", { p_item_id: id }).catch(() => null);
-  // Only the version Meta was given is drawn (no re-render for any other cache-buster): the hash recorded for the item, or
+  // Only the version Meta was given is served (no other cache-buster): the hash recorded for the item, or
   // the one being sent right now (Meta may fetch the image before the sync records its new hash).
   if (!d) return new Response("not found", { status: 404 });
   const v = url.searchParams.get("v") ?? "";

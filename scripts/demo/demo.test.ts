@@ -7,6 +7,8 @@ import {
   coverImage,
   PROCESS_VERSION,
   plan,
+  pickOk,
+  MIN_SIDE,
   productImage,
   signatureDish,
   sizedImageUrl,
@@ -60,7 +62,7 @@ describe("the photo plan per item", () => {
   };
   const pick = (u: string) => ({
     url: u,
-    license: "CC0",
+    license: "CC0 1.0",
     credit: "someone",
     source_url: `${u}#page`,
   });
@@ -74,6 +76,7 @@ describe("the photo plan per item", () => {
       "Pepsi Can (330ml)": {
         ...pick("https://images.openfoodfacts.org/p.full.jpg"),
         license: "CC BY-SA 3.0",
+        brand: "Pepsi",
       },
     },
   };
@@ -82,7 +85,7 @@ describe("the photo plan per item", () => {
     expect([p.kind, p.url, p.license, p.dish]).toEqual([
       "illustrative",
       "https://x/curly.jpg",
-      "CC0",
+      "CC0 1.0",
       "curly_fries",
     ]);
     expect(
@@ -111,6 +114,34 @@ describe("the photo plan per item", () => {
     expect(
       (plan({ ...shelf, name_en: "Volys Turkey", section_en: "CHARCUTERIE" }, picks) as any).url,
     ).toBe("https://x/cuts.jpg");
+  });
+  it("uses a pick only when licensed for commercial use, credited and off Google; a packshot only for its brand", () => {
+    expect(pickOk("illustrative", pick("https://x/a.jpg"))).toBe(true);
+    for (const license of ["CC BY 4.0", "Public Domain Mark 1.0", "Pexels License"])
+      expect(pickOk("illustrative", { ...pick("https://x/a.jpg"), license })).toBe(true);
+    for (const license of ["CC BY-NC 4.0", "CC BY-ND 2.0", "All rights reserved", ""])
+      expect(pickOk("illustrative", { ...pick("https://x/a.jpg"), license })).toBe(false);
+    expect(pickOk("illustrative", { ...pick("https://x/a.jpg"), credit: " " })).toBe(false);
+    expect(pickOk("illustrative", pick("https://lh3.googleusercontent.com/p/x"))).toBe(false);
+    expect(
+      pickOk("illustrative", {
+        ...pick("https://x/a.jpg"),
+        source_url: "https://maps.google.com/x",
+      }),
+    ).toBe(false);
+    const pack = picks.packshots["Pepsi Can (330ml)"];
+    expect(pickOk("packshot", pack, { ...item, name_en: "Pepsi Can (330ml)" })).toBe(true);
+    expect(pickOk("packshot", pack, { ...item, name_en: "Cola Can (330ml)" })).toBe(false);
+    expect(pickOk("packshot", { ...pack, brand: undefined }, { ...item, name_en: "Pepsi" })).toBe(
+      false,
+    );
+    expect(pickOk("packshot", { ...pack, license: "CC0 1.0" }, { ...item, name_en: "Pepsi" })).toBe(
+      false,
+    );
+    expect(
+      pickOk("packshot", { ...pack, url: "https://x/p.jpg" }, { ...item, name_en: "Pepsi" }),
+    ).toBe(false);
+    expect(MIN_SIDE).toBe(500);
   });
   it("prefers the shop's own website image (Fred's Food), at 800 px; never a Google photo", () => {
     const url =

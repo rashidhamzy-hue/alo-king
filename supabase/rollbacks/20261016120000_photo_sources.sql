@@ -1,10 +1,32 @@
 -- Rollback of 20261016120000_photo_sources.sql: back to merchant / merchant_site / illustrative, no license columns, and the
 -- catalogue showing every item (the image route then has no tile to draw for an item without a photo: run the previous
--- demo-photos script, which draws them). Packshot rows are deleted (the previous script makes illustrations instead).
+-- demo-photos script, which draws them). Packshot rows are deleted (the previous script makes illustrations instead). The
+-- drawn tiles the migration deleted are not restored (the previous script draws them again).
 select set_config('app.actor_kind', 'system', true);
 select set_config('app.audit_reason', 'rollback: item photo sources packshot, license and credit', true);
 
 delete from public.menu_item_photos where source = 'packshot';
+
+drop function public.menu_item_photo_clear(uuid);
+drop function public.vendor_cover_set(uuid, text, text, text, text, text, text);
+alter table public.vendor_covers drop constraint vendor_covers_licensed;
+alter table public.menu_item_photos drop constraint menu_item_photos_licensed;
+drop trigger menu_item_photos_catalog_sync on public.menu_item_photos;
+create trigger menu_item_photos_catalog_sync after insert or update of storage_path or delete on public.menu_item_photos
+  for each row execute function app_private.catalog_photo_changed();
+
+-- The claim trigger as 20261016000000 left it (covers are kept on claim then).
+create or replace function app_private.vendors_drop_demo_photos() returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if new.claim_status = 'claimed' and old.claim_status is distinct from 'claimed' and not app_private.vendor_is_demo(new.id) then
+    delete from public.menu_item_photos where vendor_id = new.id and source in ('illustrative', 'merchant_site');
+  end if;
+  return new;
+end;
+$$;
+revoke all on function app_private.vendors_drop_demo_photos() from public;
 
 alter table public.menu_item_photos
   drop constraint menu_item_photos_path_source,
