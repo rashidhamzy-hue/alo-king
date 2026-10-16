@@ -526,7 +526,7 @@ async function route(c: Ctx, firstContact: boolean) {
   if (m.text === null || !m.text.trim()) return say(c, "unsupported");
   // The website's "Add in WhatsApp" (an item page, DECISIONS §39.15.2) sends the item's code: added deterministically.
   const code = itemCodeIn(m.text);
-  if (code) return itemFromSite(c, code, itemCodeTail(m.text, code));
+  if (code) return itemFromSite(c, code, itemCodeTail(m.text));
   const intent = deterministicIntent(m.text);
   if (intent) {
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
@@ -546,23 +546,29 @@ async function route(c: Ctx, firstContact: boolean) {
 
 /** The item code an item page puts in its WhatsApp text: i-<item id>. */
 export function itemCodeIn(t: string): string | null {
-  const m =
-    /(?:^|[^0-9a-z-])i-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?![0-9a-z-])/i.exec(
-      t,
-    );
+  const m = ITEM_CODE_RE.exec(t);
   return m ? m[1].toLowerCase() : null;
 }
+const ITEM_CODE_RE =
+  /(?:^|[^0-9a-z-])i-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?![0-9a-z-])/i;
 
 /**
- * What the customer typed after the code in the pre-filled text ("… (i-…) x2, no garlic"): a quantity and a note. Only the
- * words after the code count, so the pre-filled words (a shop or item name with digits, "un", "deux") are never read.
+ * What the customer typed after the code in the pre-filled text ("… (i-…) x2, no garlic"): a quantity, only when the
+ * first word after the code is one ("x2", "2", "deux"), and the rest, unchanged, as the note the shop reads ("cut in 4"
+ * stays a note, never 4 items). The pre-filled words before the code (a name with digits, "un", "deux") are never read.
  */
-export function itemCodeTail(t: string, code: string): { qty: number; note: string | null } {
-  const at = t.toLowerCase().lastIndexOf(code);
-  const tail = (at >= 0 ? t.slice(at + code.length) : "").replace(/^\s*\)/, "");
-  const { qty, rest } = readQuantity(tail.replace(/^[\s,.;:،-]+/, ""));
-  const note = rest.replace(/^[\s,.;:،-]+|[\s,.;:،-]+$/g, "").trim();
-  return { qty: qty ?? 1, note: note ? note.slice(0, 80) : null };
+export function itemCodeTail(t: string): { qty: number; note: string | null } {
+  const m = ITEM_CODE_RE.exec(t);
+  const tail = (m ? t.slice(m.index + m[0].length) : "")
+    .replace(/^\s*\)/, "")
+    .replace(/^[\s,.;:،-]+/, "");
+  const first = /^\S+/.exec(tail)?.[0] ?? "";
+  const word = first.toLowerCase().replace(/[.,!?؟،]+$/g, "");
+  const qty = first && !["un", "une"].includes(word) ? readQuantity(first).qty : null;
+  const note = (qty !== null ? tail.slice(first.length) : tail)
+    .replace(/^[\s,.;:،-]+|[\s,.;:،-]+$/g, "")
+    .trim();
+  return { qty: qty ?? 1, note: note ? Array.from(note).slice(0, 80).join("") : null };
 }
 
 /** "Add in WhatsApp" from the item's web page: the item into the basket, its choices asked as for any item. */

@@ -195,7 +195,7 @@ as $$
         where app_private.menu_item_orderable(c.item_id, 1)
         order by c.n desc, c.item_id
         limit 1
-      ) b join public.menu_items w on w.id = b.item_id),
+      ) b join public.menu_items w on w.id = b.item_id and w.removed_at is null),
     'rate', public.usd_lbp_rate())
   from public.menu_items i
   join public.vendors v on v.id = i.vendor_id

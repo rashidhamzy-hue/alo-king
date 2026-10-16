@@ -2270,9 +2270,18 @@ describe("Add in WhatsApp from an item page (DECISIONS §39.15.2)", () => {
 
   it("reads a quantity and a note the customer typed after the code, never from the pre-filled words", async () => {
     const pre = `Bonjour Alo King, ajoutez Pepsi 330 ml de chez Deux Frères, s'il vous plaît (i-${ITEM})`;
-    expect(itemCodeTail(pre, ITEM)).toEqual({ qty: 1, note: null });
-    expect(itemCodeTail(`${pre} x2, no garlic`, ITEM)).toEqual({ qty: 2, note: "no garlic" });
-    expect(itemCodeTail(`${pre} ٣ بلا ثوم`, ITEM)).toEqual({ qty: 3, note: "بلا ثوم" });
+    expect(itemCodeTail(pre)).toEqual({ qty: 1, note: null });
+    expect(itemCodeTail(`${pre} x2, no garlic`)).toEqual({ qty: 2, note: "no garlic" });
+    expect(itemCodeTail(`${pre} ٣ بلا ثوم`)).toEqual({ qty: 3, note: "بلا ثوم" });
+    // A number later in the words is part of the note, never the quantity (the shop reads the note as written).
+    expect(itemCodeTail(`${pre} no onions, cut in 4`)).toEqual({
+      qty: 1,
+      note: "no onions, cut in 4",
+    });
+    expect(itemCodeTail(`${pre} for two people`)).toEqual({ qty: 1, note: "for two people" });
+    expect(itemCodeTail(`${pre} un peu épicé`)).toEqual({ qty: 1, note: "un peu épicé" });
+    // The note is cut between whole characters.
+    expect(itemCodeTail(`${pre} ${"😀".repeat(90)}`).note).toBe("😀".repeat(80));
     const f = fake({
       rpcs: { menu_item_options: () => [], basket_add_item: () => ({ status: "added", basket }) },
     });
