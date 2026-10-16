@@ -176,3 +176,46 @@ describe("single-product message (§39.12)", () => {
     ).toMatch(/product_retailer_id/);
   });
 });
+
+// DECISIONS §39.15.2: the words Meta shows, and the item's page as its link.
+import { withContent } from "./catalog";
+
+describe("item content in the catalogue (session 5f)", () => {
+  const raw = {
+    retailer_id: "53000000-0000-0000-0000-000000000001",
+    name: "HOT DOG",
+    description: "📷 insatiablemunch via Openverse (flickr) · CC BY 2.0",
+    name_en: "HOT DOG",
+    name_ar: "هوت دوغ",
+    shop_en: "West Diner",
+    village_en: "Baakline",
+    usually: ["sausage", "bun", "mustard"],
+    has_options: true,
+    price_minor: 450,
+    currency: "USD" as const,
+    availability: "in stock" as const,
+    product_set: "v",
+    brand: "West Diner",
+    link: "https://alo-king.vercel.app/en/i/53000000-0000-0000-0000-000000000001",
+  };
+  it('titles "<Item> · <Shop>" in Title Case, describes without any credit, links to the item page', () => {
+    const p = withContent(raw);
+    expect(p.name).toBe("Hot Dog · West Diner");
+    expect(p.description).toBe(
+      "West Diner · Baakline\nهوت دوغ\nUsually made with sausage, bun and mustard.\nExtras chosen after you add it",
+    );
+    const plan = catalogSyncPlan([p], {}, () => "https://img.example/x");
+    expect(plan.requests[0].data).toMatchObject({
+      title: "Hot Dog · West Diner",
+      link: raw.link,
+      image_link: "https://img.example/x",
+      brand: "West Diner",
+    });
+    expect(String(plan.requests[0].data.description)).not.toMatch(/📷|CC BY|Openverse/);
+  });
+  it("a new link changes the hash, so every product is sent again once", () => {
+    expect(productHash(withContent(raw))).not.toBe(
+      productHash(withContent({ ...raw, link: null })),
+    );
+  });
+});

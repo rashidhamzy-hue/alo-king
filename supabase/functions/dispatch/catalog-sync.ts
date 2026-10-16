@@ -7,6 +7,7 @@
 // items.
 import {
   catalogSyncPlan,
+  withContent,
   productSetBody,
   type BatchRequest,
   type DesiredProduct,
@@ -169,8 +170,9 @@ export async function catalogSyncStep(
         await finish("no catalogue that can be written");
         continue;
       }
-      const desired: DesiredProduct[] =
-        (await rpc("catalog_desired", { p_vendor_id: j.vendor_id })) ?? [];
+      const desired: DesiredProduct[] = (
+        ((await rpc("catalog_desired", { p_vendor_id: j.vendor_id })) ?? []) as DesiredProduct[]
+      ).map(withContent);
       const state: SyncState =
         (await rpc("catalog_sync_state", { p_vendor_id: j.vendor_id })) ?? {};
       const plan = catalogSyncPlan(

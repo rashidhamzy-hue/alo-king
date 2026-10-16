@@ -9,6 +9,7 @@ import {
   plan,
   pickOk,
   coverCandidates,
+  mainCategoryDishes,
   MIN_SIDE,
   productImage,
   signatureDish,
@@ -16,6 +17,7 @@ import {
   type Picks,
   type TodoItem,
 } from "./demo-photos.ts";
+import { dishOf } from "./dishes.ts";
 
 // DECISIONS §39.12, demo mode on staging.
 describe("demo shops' full harvested menus", () => {
@@ -193,6 +195,63 @@ describe("the photo plan per item", () => {
     // No pick for its most common dish: the next dish that has one; a side (fries) never makes a cover.
     const m = { vendor: "M", dishes: ["manousheh", "manousheh", "fries", "pizza"], own: [] };
     expect(coverCandidates(m, p).map((c) => c.url)).toEqual(["https://x/pizza.jpg"]);
+  });
+  it("a burger place shows a burger: its main category's dishes come first, even when another dish is more common (§39.15.2)", () => {
+    const p: Picks = {
+      dishes: {
+        burger: pick("https://x/burger.jpg"),
+        broasted_chicken: pick("https://x/chicken.jpg"),
+      },
+      packshots: {},
+    };
+    const shop = {
+      vendor: "BUN BROS",
+      dishes: ["broasted_chicken", "broasted_chicken", "broasted_chicken", "burger", "burger"],
+      own: [],
+      mainDishes: ["burger"],
+    };
+    expect(coverCandidates(shop, p).map((c) => c.url)).toEqual([
+      "https://x/burger.jpg",
+      "https://x/chicken.jpg",
+    ]);
+    // Its own photos too: the main category's dish first.
+    const own = {
+      ...shop,
+      own: [
+        {
+          url: "https://x/own-chicken.jpg",
+          original: "https://x/own-chicken.jpg",
+          dish: "broasted_chicken",
+        },
+        { url: "https://x/own-burger.jpg", original: "https://x/own-burger.jpg", dish: "burger" },
+      ],
+    };
+    expect(coverCandidates(own, p)[0].url).toBe("https://x/own-burger.jpg");
+  });
+  it("finds the main category's dishes by the category's pattern, ranked by what is ordered", () => {
+    const item = (id: string, name_en: string) =>
+      ({
+        item_id: id,
+        vendor_id: "v",
+        name_en,
+        name_ar: null,
+        description: null,
+        section_en: null,
+        business_type: null,
+        vendor: "v",
+        image_url: null,
+        photo: null,
+      }) as any;
+    const items = [
+      item("1", "Classic Burger"),
+      item("2", "Chicken Burger"),
+      item("3", "Crispy Strips"),
+      item("4", "Smash burger"),
+    ];
+    const ranked = mainCategoryDishes(items, "burger|\\mbrgr\\M", new Map([["2", 9]]));
+    expect(ranked.length).toBeGreaterThan(0);
+    expect(ranked).not.toContain(dishOf(items[2]));
+    expect(ranked[0]).toBe(dishOf(items[1]));
   });
   it("covers a shop with its signature dish, never a drink or a dip", () => {
     expect(signatureDish(["soda", "soda", "soda", "burger", "burger", "fries", "dip"])).toBe(

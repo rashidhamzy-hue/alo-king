@@ -218,21 +218,28 @@ export type CoverCandidate = {
 };
 
 /**
- * A shop's cover candidates, best first: its own photos (the one of its signature dish first), then the picked photos of
- * its main dishes from the most common down. The run takes the first that downloads at 500 px or more.
+ * A shop's cover candidates, best first (DECISIONS §39.15.2: a burger place shows a burger): its own photos, those of its
+ * main category's dishes first (the category most of its items fall in, `mainDishes` ranked by what is ordered, then by
+ * how common), then its signature dish; then the picked photos of its main category's dishes, then of its other main
+ * dishes from the most common down. The run takes the first that downloads at 500 px or more.
  */
 export function coverCandidates(
   shop: {
     vendor: string;
     dishes: string[];
     own: { url: string; original: string; dish: string }[];
+    /** Dishes of the shop's main category, best first; empty when the shop has none. */
+    mainDishes?: string[];
   },
   picks: Picks,
 ): CoverCandidate[] {
   const sig = signatureDish(shop.dishes);
+  const main = (shop.mainDishes ?? []).filter((d) => !NOT_COVER.test(d));
+  const rank = (d: string) =>
+    main.includes(d) ? main.indexOf(d) : main.length + (d === sig ? 0 : 1);
   const own = shop.own
     .filter((o) => !NOT_COVER.test(o.dish))
-    .sort((a, b) => Number(b.dish === sig) - Number(a.dish === sig));
+    .sort((a, b) => rank(a.dish) - rank(b.dish));
   const out: CoverCandidate[] = own.map((o) => ({
     source: "merchant_site",
     url: o.url,
@@ -243,13 +250,45 @@ export function coverCandidates(
   const n = new Map<string, number>();
   for (const d of shop.dishes) if (!NOT_COVER.test(d)) n.set(d, (n.get(d) ?? 0) + 1);
   const seen = new Set(out.map((c) => c.url));
-  for (const [d] of [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) {
+  const others = [...n]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([d]) => d)
+    .filter((d) => !main.includes(d));
+  for (const d of [...main, ...others]) {
     const key = photoChain(d).find((k) => pickOk("illustrative", picks.dishes[k]));
     if (!key || seen.has(picks.dishes[key].url)) continue;
     seen.add(picks.dishes[key].url);
     out.push({ source: "illustrative", ...picks.dishes[key] });
   }
   return out;
+}
+
+/**
+ * The dishes of a shop's items in its main category (the category's item pattern, a Postgres regex: \m and \M are word
+ * boundaries), ranked by units ordered, then by how many items share the dish.
+ */
+export function mainCategoryDishes(
+  items: TodoItem[],
+  pattern: string,
+  ordered: Map<string, number> = new Map(),
+): string[] {
+  let re: RegExp;
+  try {
+    re = new RegExp(pattern.replace(/\\[mM]/g, "\\b"), "i");
+  } catch {
+    return [];
+  }
+  const score = new Map<string, [number, number]>();
+  for (const it of items) {
+    if (!re.test(`${it.name_en ?? ""} ${it.name_ar ?? ""}`)) continue;
+    const d = dishOf(it);
+    if (NOT_COVER.test(d)) continue;
+    const [o, c] = score.get(d) ?? [0, 0];
+    score.set(d, [o + (ordered.get(it.item_id) ?? 0), c + 1]);
+  }
+  return [...score]
+    .sort((a, b) => b[1][0] - a[1][0] || b[1][1] - a[1][1] || a[0].localeCompare(b[0]))
+    .map(([d]) => d);
 }
 
 async function pool<T>(items: T[], n: number, fn: (x: T) => Promise<void>) {
@@ -337,7 +376,12 @@ async function main() {
   };
   const byShop = new Map<
     string,
-    { vendor: string; dishes: string[]; own: { url: string; original: string; dish: string }[] }
+    {
+      vendor: string;
+      dishes: string[];
+      own: { url: string; original: string; dish: string }[];
+      mainDishes?: string[];
+    }
   >();
   try {
     const todo: TodoItem[] =
@@ -415,6 +459,39 @@ async function main() {
       }
     });
 
+    // Each shop's main category (the browse category most of its items fall in) and the dishes of its items in it,
+    // ranked by what is ordered, then by how common (DECISIONS §39.15.2: the cover shows what the shop is known for).
+    const ids = [...byShop.keys()];
+    const mains = (
+      await db.query(
+        `select m.vendor_id, c.item_pattern from (
+           select distinct on (vendor_id) vendor_id, category from app_private.vendor_browse_categories
+           where vendor_id = any ($1::uuid[]) order by vendor_id, items desc, category) m
+         join public.browse_categories c on c.key = m.category where c.item_pattern is not null`,
+        [ids],
+      )
+    ).rows as { vendor_id: string; item_pattern: string }[];
+    const ordered = new Map<string, number>(
+      (
+        await db.query(
+          // Delivered orders of real customers only: simulator numbers (+999) never count in a shop's metrics (§39.15.3).
+          `select oi.item_id, sum(oi.quantity)::int as n from public.order_items oi join public.orders o on o.id = oi.order_id
+           join public.customers cu on cu.id = o.customer_id
+           where o.vendor_id = any ($1::uuid[]) and o.status = 'delivered' and cu.phone_e164 !~ '^\\+999'
+           group by oi.item_id`,
+          [ids],
+        )
+      ).rows.map((r: { item_id: string; n: number }) => [r.item_id, r.n]),
+    );
+    for (const m of mains) {
+      const shop = byShop.get(m.vendor_id);
+      if (!shop) continue;
+      shop.mainDishes = mainCategoryDishes(
+        todo.filter((t) => t.vendor_id === m.vendor_id),
+        m.item_pattern,
+        ordered,
+      );
+    }
     // Covers: the first candidate that makes a cover (its own photo of a main dish, else a picked photo of its dishes).
     for (const [vendorId, shop] of byShop) {
       const candidates = coverCandidates(shop, picks);
