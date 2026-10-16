@@ -30,7 +30,16 @@ import { reportError } from "../_shared/sentry.ts";
 import { slackPoster } from "../_shared/ops-notifier.ts";
 import { restRpc } from "../_shared/rest-rpc.ts";
 import { isSimNumber, simSinkSend } from "../_shared/sim-sink.ts";
-import { orsProvider, restRouteCache, roadRoutes, roadRoutesFrom } from "../_shared/routing.ts";
+import {
+  chooseLiveProvider,
+  fixtureProvider,
+  orsProvider,
+  restFixtureLookup,
+  restRouteCache,
+  roadRoutes,
+  type LatLon,
+  type RouteProvider,
+} from "../_shared/routing.ts";
 import { safeFetch } from "../_shared/safe-fetch.ts";
 import type { ModelRequest, ModelResponse, Transcript } from "./customer/turn.ts";
 import Anthropic from "npm:@anthropic-ai/sdk@0.128.0";
@@ -279,7 +288,38 @@ async function storeDocument(
 }
 
 const routeCache = restRouteCache({ supabaseUrl, serviceKey });
-const routeProvider = orsKey ? orsProvider({ apiKey: orsKey }) : null;
+const routeFixtures = fixtureProvider(restFixtureLookup({ supabaseUrl, serviceKey }));
+/**
+ * The provider for one checkout's live call (DECISIONS §39.15.1): a simulator number (+999) reads recorded routes
+ * (config routing_provider_sim = fixture), a real phone reaches OpenRouteService with a short timeout and only when the
+ * server's daily budget allows (routing_take). Without an ORS key: none, the quote keeps the shop → place distance.
+ */
+async function liveRouteProvider(
+  phone: string | undefined,
+  force: boolean,
+): Promise<RouteProvider | null> {
+  const cfg = await botConfig();
+  return chooseLiveProvider({
+    isSim: isSimNumber(phone),
+    simMode: cfg.routing_provider_sim,
+    ors: orsKey
+      ? orsProvider({ apiKey: orsKey, timeoutMs: Number(cfg.route_live_timeout_ms ?? 2000) })
+      : null,
+    fixtures: routeFixtures,
+    take: async (o: LatLon, d: LatLon) => {
+      const t = await rpc("routing_take", {
+        p_purpose: "checkout",
+        p_origin_lat: o.lat,
+        p_origin_lon: o.lon,
+        p_dest_lat: d.lat,
+        p_dest_lon: d.lon,
+        p_force: force,
+      }).catch(() => null);
+      if (!t?.ok) log("routing not called", { reason: String(t?.reason ?? "rpc failed") });
+      return t?.ok === true;
+    },
+  });
+}
 
 let configCache: { at: number; v: Record<string, unknown> } | null = null;
 async function botConfig() {
@@ -297,6 +337,8 @@ async function botConfig() {
     "ai_merchant_model",
     "browse_categories_min_shops",
     "browse_first_section_items",
+    "route_live_timeout_ms",
+    "routing_provider_sim",
   ];
   const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
   const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
@@ -658,21 +700,18 @@ Deno.serve(async (req) => {
           fetchMedia: (m: { url?: string | null; id?: string | null }) =>
             fetchMedia(m, sender, 5_000_000),
           photoUrl,
-          route: async (o: { lat: number; lon: number }, d: { lat: number; lon: number }) =>
+          route: async (
+            o: { lat: number; lon: number },
+            d: { lat: number; lon: number },
+            opts?: { phone?: string; force?: boolean },
+          ) =>
             (
               await roadRoutes(o, [d], {
                 cache: routeCache,
-                provider: routeProvider,
+                provider: await liveRouteProvider(opts?.phone, opts?.force === true),
                 log: (msg, f) => log(msg, f as Record<string, string>),
               })
             )[0],
-          routesTo: (os: { lat: number; lon: number }[], d: { lat: number; lon: number }) =>
-            roadRoutesFrom(os, d, {
-              cache: routeCache,
-              provider: routeProvider,
-              knownMisses: true,
-              log: (msg, f) => log(msg, f as Record<string, string>),
-            }),
           config: {
             customerModel: String(cfg.ai_customer_model ?? "claude-haiku-4-5-20251001"),
             escalationModel: String(cfg.ai_escalation_model ?? "claude-sonnet-5-5"),

@@ -18,8 +18,8 @@ select tests.ok(public.route_cache_store(33.6821, 35.5861, array[33.6950, 33.673
 select tests.ok((select array_agg(distance_m order by idx) from public.route_cache_lookup(33.68211, 35.58612,
   array[33.6738, 33.70, 33.6950], array[35.6175, 35.70, 35.5800])) = array[4800, null, 2100],
   'lookup returns cached routes in order, null for a miss, for pins within ~11 m');
-select tests.ok((select expires_at between now() + interval '11 hours 59 minutes' and now() + interval '12 hours 1 minute'
-  from public.route_cache limit 1), 'routes expire after the configured 12 hours');
+select tests.ok((select expires_at between now() + interval '719 hours 59 minutes' and now() + interval '720 hours 1 minute'
+  from public.route_cache limit 1), 'routes expire after the configured 30 days (DECISIONS §39.15.1)');
 select tests.ok(public.route_cache_store(33.6821, 35.5861, array[33.6950], array[35.5800], array[2200], array[310], 'ors') = 1
   and (select count(*) from public.route_cache) = 2, 'storing again refreshes, not duplicates');
 update public.route_cache set expires_at = now() - interval '1 minute' where distance_m = 4800;

@@ -221,30 +221,95 @@ describe("customer turn: deterministic paths (zero model calls, §4)", () => {
     expect(bodyOf(summary)).toContain("$12.00 = 1,074,000 LBP");
     expect(bodyOf(summary)).toContain("today's rate");
   });
-  it("a missing road route is fetched from ORS once, never guessed", async () => {
+  const okQuote = (extra: Record<string, unknown> = {}) => ({
+    status: "ok",
+    basket,
+    subtotal_usd: 10,
+    delivery_fee_usd: 3,
+    total_usd: 13,
+    total_lbp: 1163500,
+    usd_lbp_rate: 89500,
+    cod_cap_usd: 50,
+    over_cod_cap: false,
+    address: { place: "بعقلين", place_en: "Baakline" },
+    ...extra,
+  });
+  const PINS = { origin: { lat: 1, lon: 2 }, dest: { lat: 3, lon: 4 } };
+
+  it("routing never blocks an order: a quote from the shop → place distance goes on to the summary when the live call fails (§39.15.1)", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: { basket_quote: () => okQuote({ route_source: "place_fallback", ...PINS }) },
+    });
+    const routes: any[] = [];
+    f.deps.route = async (o, d, opts) => {
+      routes.push([o, d, opts]);
+      return null;
+    };
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+    // One live call with the customer's number (a simulator number reads fixtures), not forced.
+    expect(routes).toEqual([[PINS.origin, PINS.dest, { phone: "+96176000001", force: false }]]);
+    expect(f.of("basket_quote")).toHaveLength(1);
+    const summary = f.sent.find((p) =>
+      p.interactive?.action?.buttons?.[0]?.reply?.id?.startsWith("cfm:"),
+    );
+    expect(bodyOf(summary)).toContain("$13.00");
+  });
+
+  it("a live route found at checkout is quoted again with it", async () => {
     let n = 0;
     const f = fake({
       begin: { basket },
       rpcs: {
         basket_quote: () =>
           n++ === 0
-            ? { status: "no_route", basket, origin: { lat: 1, lon: 2 }, dest: { lat: 3, lon: 4 } }
-            : { status: "no_route", basket },
+            ? okQuote({ route_source: "place_fallback", ...PINS })
+            : okQuote({ route_source: "ors", total_usd: 12, delivery_fee_usd: 2 }),
       },
     });
-    const routes: any[] = [];
-    f.deps.route = async (o, d) => {
-      routes.push([o, d]);
+    f.deps.route = async () => ({ distanceM: 2100, durationS: 300, provider: "ors" });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+    expect(f.of("basket_quote")).toHaveLength(2);
+  });
+
+  it("an exact route already cached: no live call at all", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: { basket_quote: () => okQuote({ route_source: "ors" }) },
+    });
+    let called = false;
+    f.deps.route = async () => {
+      called = true;
       return null;
     };
     await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
-    expect(routes).toEqual([
-      [
-        { lat: 1, lon: 2 },
-        { lat: 3, lon: 4 },
-      ],
+    expect(called).toBe(false);
+  });
+
+  it("only with neither distance: the message carries Try again, Change address and Help; Try again forces the live call", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: { basket_quote: () => ({ status: "no_route", basket, ...PINS }) },
+    });
+    const forced: unknown[] = [];
+    f.deps.route = async (_o, _d, opts) => {
+      forced.push(opts?.force);
+      return null;
+    };
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+    const m = f.sent[0];
+    expect(bodyOf(m)).toMatch(/couldn't work out the road/);
+    expect(m.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual([
+      "c:retry",
+      "c:new_address",
+      "c:human",
     ]);
-    expect(bodyOf(f.sent[0])).toMatch(/road route/);
+    expect(checkInteractive(m)).toEqual([]);
+    await handleCustomerTurn(
+      f.deps,
+      msg({ messageId: "wamid.in.2", buttonId: "c:retry", type: "interactive" }),
+    );
+    expect(forced).toEqual([false, true]);
   });
 });
 
@@ -1828,44 +1893,27 @@ describe("browsing through the bot (session 5e)", () => {
     expect(checkInteractive(m)).toEqual([]);
   });
 
-  it("routes the shops are missing are fetched in one request for the pin, never one per shop (ORS quota)", async () => {
-    let first = true;
+  it("browse makes zero routing calls: shops without any distance stay listed, the checkout checks them (§39.15.1)", async () => {
     const f = fake({
       model: null,
       rpcs: {
         customer_search_point: () => POINT,
         browse_shops: () => browse(6),
-        customer_delivery_check: (a: any) => {
-          if (!first) return check(a);
-          first = false;
-          return {
-            status: "ok",
-            vendors: a.p_vendor_ids.map((id: string, k: number) => ({
-              vendor_id: id,
-              status: "no_route",
-              origin: { lat: 33.6 + k / 100, lon: 35.5 },
-              dest: { lat: POINT.lat, lon: POINT.lon },
-            })),
-          };
-        },
+        customer_delivery_check: (a: any) => ({
+          status: "ok",
+          vendors: a.p_vendor_ids.map((id: string) => ({ vendor_id: id, status: "no_route" })),
+        }),
       },
     });
-    const single: unknown[] = [];
-    const batches: { origins: unknown[]; dest: unknown }[] = [];
-    f.deps.route = async (o) => {
-      single.push(o);
+    let routed = 0;
+    f.deps.route = async () => {
+      routed++;
       return null;
     };
-    f.deps.routesTo = async (origins, dest) => {
-      batches.push({ origins, dest });
-      return origins.map(() => null);
-    };
     await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
-    expect(single).toEqual([]);
-    expect(batches).toHaveLength(1);
-    expect(batches[0].origins).toHaveLength(6);
-    expect(batches[0].dest).toEqual({ lat: POINT.lat, lon: POINT.lon });
-    expect(f.of("customer_delivery_check")).toHaveLength(2);
+    expect(routed).toBe(0);
+    expect(f.of("customer_delivery_check")).toHaveLength(1);
+    expect(f.sent[0].interactive.type).toBe("list");
   });
 
   it("more than nine categories: the eight most served, then More categories pages on", async () => {
