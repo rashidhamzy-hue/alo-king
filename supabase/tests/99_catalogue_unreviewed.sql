@@ -37,10 +37,34 @@ select tests.ok(app_private.catalog_item_shown((:'items'::uuid[])[1], '168404094
   'product messages show the published product, never the refused or pending one');
 select tests.ok((public.catalog_shop_menu(:'tv', '1684040949970004') ->> 'shown')::int = 1, 'the shop shows its one approved item');
 
+-- Failing safe: what we cannot read as a review stays unsure, so the product waits in the list.
+select public.catalog_status_record('1684040949970004', jsonb_build_array(
+  jsonb_build_object('retailer_id', (:'items'::uuid[])[5], 'review_status', '', 'visibility', 'published',
+    'availability', 'in stock', 'errors', jsonb_build_array(jsonb_build_object('title', 'Image couldn''t be downloaded',
+      'priority', 'HIGH'))),
+  jsonb_build_object('retailer_id', (:'items'::uuid[])[6], 'review_status', '', 'visibility', 'published',
+    'availability', 'out of stock', 'errors', '[]'::jsonb),
+  jsonb_build_object('retailer_id', (:'items'::uuid[])[7], 'review_status', '', 'visibility', 'published',
+    'availability', 'in stock'),
+  jsonb_build_object('retailer_id', (:'items'::uuid[])[8], 'review_status', '', 'visibility', 'published',
+    'errors', jsonb_build_array(jsonb_build_object('title', 'Article refusé'))),
+  jsonb_build_object('retailer_id', (:'items'::uuid[])[9], 'review_status', '', 'visibility', 'published',
+    'errors', jsonb_build_array(jsonb_build_object('title', 'Check this item', 'error_type', 'PRODUCT_NOT_APPROVED')))));
+select tests.ok((select meta_status = '' from public.catalog_item_status where item_id = (:'items'::uuid[])[5]),
+  'an error we do not know leaves the product unsure, never approved');
+select tests.ok((select meta_status = 'approved' from public.catalog_item_status where item_id = (:'items'::uuid[])[6])
+  and not app_private.catalog_item_shown((:'items'::uuid[])[6], '1684040949970004'),
+  'stock is not review: approved, and still not shown while out of stock');
+select tests.ok((select meta_status = '' and errors = '[]'::jsonb from public.catalog_item_status where item_id = (:'items'::uuid[])[7]),
+  'a read without the errors field is no evidence: unsure');
+select tests.ok((select bool_and(meta_status = 'rejected') from public.catalog_item_status
+  where item_id in ((:'items'::uuid[])[8], (:'items'::uuid[])[9])),
+  'a refusal in French, or only in error_type, is a rejection');
+
 -- Rows recorded before this fix are read the same way.
 update public.catalog_item_status set meta_status = '' where item_id = (:'items'::uuid[])[1];
 update public.catalog_item_status
-set meta_status = app_private.catalog_meta_status(meta_status, visibility, availability, errors)
+set meta_status = app_private.catalog_meta_status(meta_status, visibility, errors)
 where meta_status = '';
 select tests.ok((select meta_status = 'approved' from public.catalog_item_status where item_id = (:'items'::uuid[])[1]),
   'an empty status already stored is read as approved too');

@@ -103,7 +103,8 @@ update public.catalog_item_status set meta_status = 'approved', visibility = 'pu
 update app_private.catalog_status_sweeps set next_due_at = now() - interval '1 second';
 select public.catalog_status_sweep_next('1684040949970001');
 select public.catalog_status_sweep_done('1684040949970001', null);
-select tests.ok((select next_due_at > now() + interval '19 hours' from app_private.catalog_status_sweeps),
+select tests.ok((select next_due_at > now() + make_interval(hours => public.config_numeric('catalog_status_full_hours')::int)
+    - interval '1 minute' from app_private.catalog_status_sweeps),
   'everything reviewed: the next sweep is the nightly one');
 update public.catalog_sync_items set content_hash = 'h2' where item_id = (:'items'::uuid[])[1];
 select tests.ok((select next_due_at <= now() + interval '15 minutes' from app_private.catalog_status_sweeps),
