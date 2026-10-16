@@ -4,9 +4,12 @@
 // Draft menus never reach menu_items, so they never sync; an item that leaves the menu is hidden, never deleted.
 // Meta's review status is the truth (DECISIONS §39.15.2): after every batch, and in a paced sweep of the whole catalogue,
 // each product's review_status, visibility and errors go to catalog_item_status; product messages show only approved
-// items.
+// items. Catalogue rules (§39.15.4): a product Meta would refuse is held back before the batch (catalog-rules.ts); it
+// stays orderable in chat and on the web, and its reasons go to catalog_item_holds ("held" in catalog_status_report).
 import {
   catalogSyncPlan,
+  holdBack,
+  productHash,
   withContent,
   productSetBody,
   type BatchRequest,
@@ -170,9 +173,15 @@ export async function catalogSyncStep(
         await finish("no catalogue that can be written");
         continue;
       }
-      const desired: DesiredProduct[] = (
+      const all: DesiredProduct[] = (
         ((await rpc("catalog_desired", { p_vendor_id: j.vendor_id })) ?? []) as DesiredProduct[]
       ).map(withContent);
+      // Nothing Meta would refuse is sent (§39.15.4): a held product is left out, so a shown one is hidden, and the
+      // reasons are recorded every time (an empty list clears the shop's holds once its items pass).
+      const { send: desired, held } = holdBack(all, (p) =>
+        api.imageUrl(p.retailer_id, productHash(p)),
+      );
+      await rpc("catalog_hold_record", { p_vendor_id: j.vendor_id, p_holds: held });
       const state: SyncState =
         (await rpc("catalog_sync_state", { p_vendor_id: j.vendor_id })) ?? {};
       const plan = catalogSyncPlan(
@@ -237,6 +246,7 @@ export async function catalogSyncStep(
         vendor: j.vendor_id,
         sent: plan.requests.length,
         items: desired.length,
+        held: held.length,
         refused: refused.size,
         set_missing: setMissing,
       });

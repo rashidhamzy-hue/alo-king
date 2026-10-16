@@ -205,9 +205,56 @@ describe("intents for the agent (§38.3)", () => {
       "je cherche une pharmacie",
       "عندكن صيدلية؟",
       "antibiotics please",
+      // A claim with no food next to it stays a request (§39.15.4 review).
+      "I have no antibiotics left, can you bring some",
+      "antibiotics free delivery please",
+      "cough syrup",
+      "painkillers",
+      "medications pack",
+      "بدي دواء سعال",
+      // A food in another clause does not make the claim about it.
+      "no antibiotics at home, and 2 chicken shawarma",
+      "antibiotics free delivery with my chicken order",
+      "sirop contre la toux",
+      "no antibiotics, 2 chicken",
+      "بدي الدوا",
+      "جيبلي الدواء",
+      "بدي مضادات حيوية",
+      "بدي المضادات الحيوية",
+      "بدي المضاد الحيوي",
+      "بدي بنادول",
+      // A food on the line before is not what the claim is about (only a catalogue title reads back).
+      "1 chicken tawouk sandwich\nNo antibiotics at home, can you bring some?",
+      "2 chicken shawarma. No antibiotics at home, can you bring some",
+      "Djej. No antibiotics left, jibli",
+      "بدي فروج، بدون مضادات حيوية بالبيت جيبولي",
+      "Chicken. No antibiotics. Can you get some?",
+      "2 chicken shawarma - no antibiotics at home, can you bring some",
+      "2 chicken, antibiotic free please",
     ])
       expect(isMedicineRequest(t), t).toBe(true);
-    for (const t of ["دوار", "shawarma", "manoushe kishk", "I want a drink"])
+    for (const t of [
+      "دوار",
+      "shawarma",
+      "manoushe kishk",
+      "I want a drink",
+      "antibiotic-free chicken breast",
+      "2 kg djej no antibiotics",
+      "دجاج بدون مضادات حيوية",
+      "date syrup",
+      "chicken with no antibiotics",
+      "Antibiotic-free poultry",
+      "Antibiotic free salmon",
+      "œufs sans antibiotiques",
+      "eggs from hens raised without antibiotics",
+      "chicken w/o antibiotics",
+      // Handmade, Bedouin and "they want" are not medicine.
+      "بدي بطاطا يدوية",
+      "قهوة بدوية",
+      "بدوا شاورما",
+      "دجاج طازج بدون مضادات حيوية",
+      "بدي دجاج خالٍ من المضادات الحيوية",
+    ])
       expect(isMedicineRequest(t), t).toBe(false);
   });
   it("knows the memory question in four languages", () => {

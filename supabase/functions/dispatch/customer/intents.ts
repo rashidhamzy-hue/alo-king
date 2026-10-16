@@ -4,6 +4,7 @@
 // Arabizi, including mixed messages.
 
 import type { CLang } from "../../_shared/customer-cards.ts";
+import { findMedicine, markClauses, stripFoodAntibioticClaims } from "../../_shared/medicine.ts";
 
 const ARABIC = /[؀-ۿ]/;
 const ARABIC_ALL = /[؀-ۿ]/g;
@@ -32,6 +33,8 @@ export function detectLang(text: string, fallback: CLang = "ar"): CLang {
 const norm = (s: string) =>
   s
     .toLowerCase()
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae")
     .normalize("NFKD")
     .replace(/[ً-ٰٟ]/g, "") // Arabic diacritics
     .replace(/[أإآ]/g, "ا")
@@ -176,11 +179,10 @@ export const PRICE_RE =
  * through delivery apps is illegal, so the bot refuses in all four languages and points to a pharmacy. Checked before any
  * search or model call.
  */
-export function isMedicineRequest(raw: string): boolean {
-  const t = norm(raw);
-  return /\b(medicine|medicines|medication|meds|pharmacy|pharmacie|prescription|ordonnance|medicament|medicaments|antibiotic|antibiotics|antibiotique|painkiller|panadol|paracetamol|doliprane|aspirin|aspirine|ibuprofen|advil|brufen|augmentin|insulin|insuline|dawa|dewe|adwye|saydaliye|saydaleyye|saydalieh)\b|((^|\s)دوا($|\s)|ادويه|ادويه|دويه|صيدليه|صيدليه|وصفه طبيه|روشته|حبوب وجع|بانادول|مضاد حيوي|انسولين)/.test(
-    t,
-  );
+export function isMedicineRequest(raw: string, title = false): boolean {
+  // "Antibiotic-free chicken" says what the food is without (§39.15.4 review); "no antibiotics left" stays a request.
+  // `title`: an item's name (the merchant copilot), judged as the catalogue judges it, never as a request.
+  return findMedicine(stripFoodAntibioticClaims(norm(markClauses(raw)), title)) !== null;
 }
 
 /** "What do you remember about me?" in four languages (§39.6): shows the memory card, never the model's version of it. */

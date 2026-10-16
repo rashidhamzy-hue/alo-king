@@ -3,6 +3,10 @@
 // and the shop's memory. The rules read the merchant's words (merchant-commands.ts); with ai_merchant_text_enabled the
 // model reads what the rules do not, through the same typed commands. Every change to price, availability or money is
 // a proposal card the merchant confirms with a tap; reports, staff and memory only read.
+// Catalogue rules (§39.15.4): when a merchant adds an item, renames it or describes it, the catalogue validator runs on
+// it as WhatsApp's catalogue would get it, and the merchant hears what Meta would refuse and how to fix it, in their
+// language, before the card. The card and the tap are unchanged: the item is saved for the chat and web menu, and the
+// sync sends it to Meta only once it passes. Item photos: photo.ts.
 
 import {
   beirutClock,
@@ -13,6 +17,13 @@ import {
   type Station,
 } from "../../_shared/merchant-commands.ts";
 import { isMedicineRequest } from "../customer/intents.ts";
+import {
+  issuesText,
+  validateCatalogItem,
+  type CatalogItemCheck,
+  type CatalogLang,
+} from "../../_shared/catalog-rules.ts";
+import { itemName } from "../../_shared/item-text.ts";
 
 export type CopilotCtx = {
   rpc: (fn: string, args: Record<string, unknown>) => Promise<any>;
@@ -49,7 +60,41 @@ export const COPILOT_HELP = [
   "• «min order 10» · «radius 3 km» · «boost 20 nearby» · «stop boost»",
   "• «تقرير» / «report» · «week» · «staff» · «شو بتتذكر» / «what do you remember»",
   "• «menu» then photos, a PDF, a link or pasted text",
+  "• a photo with «صورة الكنافة» / «photo knefe» as its caption: the item's own photo",
 ].join("\n");
+
+const NOTE = {
+  ar: "⚠️ كاتالوج واتساب رح يرفض هيدا:\n{lines}\nبعد ما تأكّد بينحفظ لمنيو المحادثة والموقع، وما بيروح على كاتالوج واتساب لحتى يتصلّح.",
+  en: "⚠️ WhatsApp's catalogue would refuse this:\n{lines}\nOnce you confirm, it is saved for your chat and web menu; it goes to WhatsApp's catalogue only once this is fixed.",
+  fr: "⚠️ Le catalogue WhatsApp refuserait ceci :\n{lines}\nUne fois confirmé, c'est enregistré pour votre menu de discussion et le site ; cela n'ira dans le catalogue WhatsApp qu'une fois corrigé.",
+  arabizi:
+    "⚠️ El catalogue tab3 WhatsApp ra7 yerfod hayda:\n{lines}\nBa3d ma t2akked byen7afaz la menu el chat wel website, w ma byrou7 3a catalogue WhatsApp la7atta yetsalla7.",
+};
+
+/**
+ * What WhatsApp's catalogue would refuse about an item as the copilot is about to save it, in the merchant's language;
+ * null when nothing. The name is judged as the catalogue will carry it (Title Case for Latin names, as item-text.ts
+ * builds titles), so only what our own fixes cannot fix is said.
+ */
+export function catalogNote(item: CatalogItemCheck, lang: CatalogLang): string | null {
+  const issues = validateCatalogItem(item);
+  return issues.length ? NOTE[lang].replace("{lines}", issuesText(issues, lang)) : null;
+}
+
+/** A merchant's name for an item, split as merchant_proposal_confirm stores it (Arabic letters: name_ar, else name_en). */
+const nameParts = (name: string): CatalogItemCheck => {
+  const arabic = /[؀-ۿ]/.test(name);
+  const parts = arabic ? { name_ar: name } : { name_en: name };
+  return { ...parts, title: name, item_name: itemName(parts) };
+};
+
+/**
+ * Never medicines (§38.3, the ban of 2 June 2026), whatever the shop: the customer's refusal words or the catalogue's
+ * medicine rule, whichever sees it ("Cough syrup", "Painkillers", "دواء سعال"). Nothing is proposed for such an item.
+ */
+const isMedicineItem = (name: string): boolean =>
+  isMedicineRequest(name, true) ||
+  validateCatalogItem(nameParts(name)).some((i) => i.code === "policy_medicine");
 
 const hhmm = (d: Date) => {
   const c = beirutClock(d);
@@ -224,9 +269,16 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
     }
     case "item_add":
       // Never medicines (§38.3, the ban of 2 June 2026), whatever the shop.
-      if (isMedicineRequest(c.name)) {
+      if (isMedicineItem(c.name)) {
         await ctx.reply("💊 ما منبيع أدوية على Alo King. / Medicines can't be sold on Alo King.");
         return true;
+      }
+      {
+        const note = catalogNote(
+          { ...nameParts(c.name), price_usd: c.priceUsd, section: c.section },
+          writesIn(c.name),
+        );
+        if (note) await ctx.reply(note);
       }
       await ctx.propose(
         "item_add",
@@ -238,7 +290,7 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
     case "item_describe":
     case "item_station":
     case "item_remove": {
-      if (c.kind === "item_rename" && isMedicineRequest(c.name)) {
+      if (c.kind === "item_rename" && isMedicineItem(c.name)) {
         await ctx.reply("💊 ما منبيع أدوية على Alo King. / Medicines can't be sold on Alo King.");
         return true;
       }
@@ -247,6 +299,14 @@ export async function runCopilot(ctx: CopilotCtx, cmd: MerchantCommand): Promise
         await notFound(ctx, c.item);
         return true;
       }
+      // A new name or description is judged as WhatsApp's catalogue would get it (§39.15.4), before the card.
+      const note =
+        c.kind === "item_rename"
+          ? catalogNote(nameParts(c.name), writesIn(c.name))
+          : c.kind === "item_describe"
+            ? catalogNote({ description: c.description }, writesIn(c.description))
+            : null;
+      if (note) await ctx.reply(note);
       if (c.kind === "item_remove")
         await ctx.propose(
           "item_remove",

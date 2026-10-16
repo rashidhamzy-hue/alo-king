@@ -2,10 +2,12 @@
 // merchant confirms with a tap; reports, staff and memory only read. The database is a fake RPC layer.
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import sharp from "sharp";
 import { runDispatch, copilotDoneText, type DispatchDeps, type SendResult } from "../handler";
 import { checkInteractive } from "../../_shared/meta-limits";
 import { memoryText, reportText, writesIn } from "./copilot";
 import { toolToCommand } from "./copilot-model";
+import { isMedicineRequest } from "../customer/intents";
 import { parseMerchantCommand } from "../../_shared/merchant-commands";
 import {
   firstLink,
@@ -108,6 +110,11 @@ function harness(rpcs: Record<string, (a: any) => any> = {}, extra: Partial<Disp
       say({
         type: "interactive",
         interactive: { type: "button_reply", button_reply: { id, title: "x" } },
+      }),
+    photo: (caption: string | null, mime = "image/jpeg") =>
+      say({
+        type: "image",
+        image: { id: "MEDIA-P1", mime_type: mime, ...(caption === null ? {} : { caption }) },
       }),
     sent,
     of: (fn: string) => calls.filter((c) => c.fn === fn),
@@ -494,6 +501,20 @@ describe("review fixes (§39.7)", () => {
     expect(h.of("merchant_proposal_create")).toHaveLength(0);
     expect(h.body()).toMatch(/Medicines can't be sold/);
   });
+  it("nothing the catalogue's medicine rule sees is proposed either: no card, the refusal (§38.3, review)", async () => {
+    for (const msg of [
+      "add item Cough syrup 5",
+      "add item Painkillers 4",
+      "add item Medications pack 9",
+      "زيد صنف دواء سعال 5",
+      "rename knefe to Painkillers",
+    ]) {
+      const h = harness();
+      await h.text(msg);
+      expect(h.of("merchant_proposal_create"), msg).toHaveLength(0);
+      expect(h.body(), msg).toMatch(/Medicines can't be sold/);
+    }
+  });
   it("the model's call is taken from the AI budget and logged; a spent budget means the help", async () => {
     const call = async () => ({
       content: [{ type: "tool_use" as const, id: "t0", name: "set_radius", input: { km: 2 } }],
@@ -585,5 +606,343 @@ describe("review fixes (§39.7)", () => {
     const t0 = Date.now();
     expect(htmlText("<script>" + "x".repeat(2_000_000)).length).toBeLessThanOrEqual(50_000);
     expect(Date.now() - t0).toBeLessThan(2000);
+  });
+});
+
+// DECISIONS §39.15.4: the merchant hears what Meta would refuse, in their language, before anything reaches Meta.
+describe("catalogue rules: a bad photo or a bad name is explained, with the fix", () => {
+  const PENDING = "66666666-2222-3333-4444-555555555555";
+  const photoOf = async (w: number, h: number, flat = false) =>
+    new Uint8Array(
+      await sharp({
+        create: {
+          width: w,
+          height: h,
+          channels: 3,
+          background: flat ? "#ffffff" : "#884422",
+          ...(flat ? {} : { noise: { type: "gaussian" as const, mean: 128, sigma: 30 } }),
+        },
+      })
+        .jpeg({ quality: 82 })
+        .toBuffer(),
+    );
+  function photoHarness(bytes: Uint8Array | null, rpcs: Record<string, (a: any) => any> = {}) {
+    const puts: { path: string; size: number; mime: string }[] = [];
+    const removed: string[] = [];
+    const fetched: any[] = [];
+    let putOk = true;
+    const h = harness(
+      {
+        merchant_item_photo_path: (a) => ({
+          status: "ok",
+          vendor_id: VENDOR,
+          item_name: "كنافة",
+          pending_id: PENDING,
+          path: `merchant/${VENDOR}/${PENDING}.${a.p_ext}`,
+        }),
+        merchant_item_photo_pending: () => ({ status: "ok", replaced: null }),
+        merchant_item_photo_pending_expired: () => [],
+        ...rpcs,
+      },
+      {
+        fetchMenuMedia: async (_pnid, m) => {
+          fetched.push(m);
+          return bytes ? { bytes, mime: "image/jpeg" } : null;
+        },
+        itemPhotos: {
+          put: async (path, b, mime) => {
+            puts.push({ path, size: b.length, mime });
+            return putOk;
+          },
+          remove: async (path) => {
+            removed.push(path);
+          },
+        },
+      },
+    );
+    return { h, puts, removed, fetched, failPut: () => (putOk = false) };
+  }
+
+  it("a photo too small: the fix in Arabic, and nothing is uploaded or recorded", async () => {
+    const t = photoHarness(await photoOf(320, 240));
+    await t.h.photo("صورة الكنافة");
+    expect(t.h.sent).toHaveLength(1);
+    const body = t.h.body();
+    expect(body).toContain("كاتالوج واتساب رح يرفض هالصورة لـ «كنافة»");
+    expect(body).toContain("هالصورة زغيرة كتير (320 × 240)، فواتساب رح يرفضها.");
+    expect(body).toContain("ابعت صورة أكبر، 500 × 500 عالأقل");
+    expect(body).toContain("ما حفظنا شي.");
+    expect(t.puts).toEqual([]);
+    expect(t.h.of("merchant_item_photo_path")).toHaveLength(0);
+    expect(t.h.of("merchant_item_photo_pending")).toHaveLength(0);
+    expect(t.fetched[0]).toMatchObject({ id: "MEDIA-P1" });
+  });
+  it("in English, French and Arabizi as the merchant wrote the caption", async () => {
+    const en = photoHarness(await photoOf(800, 800, true));
+    await en.h.photo("photo knefe");
+    expect(en.h.body()).toBe(
+      "📷 WhatsApp's catalogue would refuse this photo of “كنافة”:\n• This looks like a placeholder or an empty image, not a photo of the item. Send a real photo of the item.\nNothing was saved.",
+    );
+    const fr = photoHarness(await photoOf(1600, 600));
+    await fr.h.photo("photo de la knefe");
+    expect(fr.h.body()).toContain("Cette photo est trop longue et étroite (1600 × 600)");
+    expect(fr.h.body()).toContain("Rien n'a été enregistré.");
+    const az = photoHarness(await photoOf(400, 400));
+    await az.h.photo("sora knefe");
+    expect(az.h.body()).toContain("Hal soura zghire ktir (400 × 400)");
+    for (const x of [en, fr, az]) expect(x.puts).toEqual([]);
+  });
+  it("a photo that passes waits at a fresh path for a one-tap card naming the item; nothing is recorded yet", async () => {
+    const bytes = await photoOf(900, 900);
+    const t = photoHarness(bytes);
+    await t.h.photo("photo knefe");
+    expect(t.h.of("merchant_item_photo_path")[0].args).toEqual({
+      p_member_id: MEMBER,
+      p_item_id: "it-knefe",
+      p_ext: "jpg",
+    });
+    expect(t.puts).toEqual([
+      { path: `merchant/${VENDOR}/${PENDING}.jpg`, size: bytes.length, mime: "image/jpeg" },
+    ]);
+    const rec = t.h.of("merchant_item_photo_pending")[0].args;
+    expect(rec).toMatchObject({
+      p_member_id: MEMBER,
+      p_pending_id: PENDING,
+      p_item_id: "it-knefe",
+      p_storage_path: `merchant/${VENDOR}/${PENDING}.jpg`,
+      p_width: 900,
+      p_height: 900,
+      p_bytes: bytes.length,
+      p_lang: "en",
+    });
+    expect(rec.p_origin_hash).toMatch(/^[0-9a-f]{64}$/);
+    // The card: the item named, one button, nothing confirmed.
+    expect(t.h.sent).toHaveLength(1);
+    expect(t.h.body()).toMatch(/^📷 Use this photo for “كنافة”\?/);
+    expect(t.h.sent[0].interactive.action.buttons).toEqual([
+      { type: "reply", reply: { id: `IPH|${PENDING}`, title: "✅ Use this photo" } },
+    ]);
+    expect(checkInteractive(t.h.sent[0])).toEqual([]);
+    expect(t.h.of("merchant_item_photo_confirm")).toHaveLength(0);
+    // Expired pending photos are swept before a new one is stored.
+    expect(t.h.of("merchant_item_photo_pending_expired")[0].args).toEqual({ p_limit: 20 });
+  });
+  it("the tap records it, in the caption's language, and deletes the photo it replaced", async () => {
+    const t = photoHarness(null, {
+      merchant_item_photo_confirm: () => ({
+        status: "ok",
+        item_name: "كنافة",
+        lang: "ar",
+        previous: `merchant/${VENDOR}/old.png`,
+      }),
+      merchant_item_photo_pending_expired: () => [`merchant/${VENDOR}/stale.jpg`],
+    });
+    await t.h.tap(`IPH|${PENDING}`);
+    expect(t.h.of("merchant_item_photo_confirm")[0].args).toEqual({
+      p_pending_id: PENDING,
+      p_member_ids: [MEMBER],
+    });
+    expect(t.h.body()).toBe("📷 حفظناها صورة «كنافة». كاتالوج واتساب بياخدها بأوّل تحديث.");
+    expect(t.removed).toEqual([`merchant/${VENDOR}/stale.jpg`, `merchant/${VENDOR}/old.png`]);
+    // The tap is the photo's, never a merchant order action.
+    expect(t.h.of("merchant_proposal_decide")).toHaveLength(0);
+  });
+  it("a tap that came too late deletes the waiting photo and asks for it again", async () => {
+    const t = photoHarness(null, {
+      merchant_item_photo_confirm: () => ({
+        status: "expired",
+        lang: "en",
+        path: `merchant/${VENDOR}/${PENDING}.jpg`,
+      }),
+    });
+    await t.h.tap(`IPH|${PENDING}`);
+    expect(t.removed).toEqual([`merchant/${VENDOR}/${PENDING}.jpg`]);
+    expect(t.h.body()).toMatch(/waited too long and was not saved/);
+  });
+  it("a second photo of the same item replaces the one still waiting, whose file goes", async () => {
+    const t = photoHarness(await photoOf(900, 900), {
+      merchant_item_photo_pending: () => ({
+        status: "ok",
+        replaced: `merchant/${VENDOR}/earlier.jpg`,
+      }),
+    });
+    await t.h.photo("صورة الكنافة");
+    expect(t.removed).toEqual([`merchant/${VENDOR}/earlier.jpg`]);
+    expect(t.h.sent[0].interactive.action.buttons[0].reply.title).toBe("✅ استعملها");
+  });
+  it("a record that fails outright also deletes the file it just uploaded (no row for the sweep to find)", async () => {
+    const t = photoHarness(await photoOf(900, 900), {
+      merchant_item_photo_pending: () => {
+        throw new Error("down");
+      },
+    });
+    await t.h.photo("photo knefe");
+    expect(t.removed).toEqual([`merchant/${VENDOR}/${PENDING}.jpg`]);
+    expect(t.h.body()).toMatch(/Saving the photo failed/);
+  });
+  it("a WebP is read for the checks but never stored for WhatsApp's catalogue (JPEG or PNG only)", async () => {
+    const webp = new Uint8Array(
+      await sharp({
+        create: {
+          width: 900,
+          height: 900,
+          channels: 3,
+          background: "#884422",
+          noise: { type: "gaussian" as const, mean: 128, sigma: 30 },
+        },
+      })
+        .webp({ quality: 82 })
+        .toBuffer(),
+    );
+    const t = photoHarness(webp);
+    await t.h.photo("photo knefe");
+    expect(t.h.body()).toMatch(/takes JPEG or PNG photos/);
+    expect(t.puts).toEqual([]);
+    expect(t.h.of("merchant_item_photo_path")).toHaveLength(0);
+  });
+  it("a refused record deletes the file it just uploaded", async () => {
+    const t = photoHarness(await photoOf(900, 900), {
+      merchant_item_photo_pending: () => ({ status: "demo_shop" }),
+    });
+    await t.h.photo("photo knefe");
+    expect(t.removed).toEqual([`merchant/${VENDOR}/${PENDING}.jpg`]);
+    expect(t.h.body()).toMatch(/This is a demo shop/);
+  });
+  it("only an owner or a manager changes photos; a demo shop is refused", async () => {
+    const c = photoHarness(await photoOf(900, 900), {
+      merchant_members_by_phone: () => [{ member_id: MEMBER, vendor_id: VENDOR, role: "cashier" }],
+    });
+    await c.h.photo("photo knefe");
+    expect(c.h.body()).toBe("📷 Only the owner or a manager can change the menu's photos.");
+    expect(c.fetched).toEqual([]);
+    const d = photoHarness(await photoOf(900, 900), {
+      merchant_item_photo_path: () => ({ status: "demo_shop" }),
+    });
+    await d.h.photo("photo knefe");
+    expect(d.h.body()).toMatch(/This is a demo shop/);
+    expect(d.puts).toEqual([]);
+  });
+  it("not an item photo, so the message carries on: no clear item, a plain caption, a menu command, no caption, no image type", async () => {
+    for (const [caption, mime] of [
+      ["photo shawarma", "image/jpeg"],
+      ["knefe", "image/jpeg"],
+      ["photo menu", "image/jpeg"],
+      ["menu", "image/jpeg"],
+      [null, "image/jpeg"],
+      ["photo knefe", ""],
+    ] as const) {
+      const t = photoHarness(await photoOf(900, 900));
+      await t.h.photo(caption, mime);
+      expect(t.fetched, String(caption)).toEqual([]);
+      expect(t.h.of("merchant_item_photo_path")).toHaveLength(0);
+      // The commands' answer, as before this session.
+      expect(t.h.body()).toMatch(/^ما فهمت عليك/);
+    }
+  });
+  it("a file over the bucket's 2 MB, or a store that fails, saves nothing and says so", async () => {
+    const head = await photoOf(1600, 1200);
+    const huge = new Uint8Array(2_200_000);
+    huge.set(head.subarray(0, 600));
+    huge.fill(0x55, 600);
+    const b = photoHarness(huge);
+    await b.h.photo("photo knefe");
+    expect(b.h.body()).toMatch(/too big \(over 2 MB\)/);
+    expect(b.puts).toEqual([]);
+    const f = photoHarness(await photoOf(900, 900));
+    f.failPut();
+    await f.h.photo("photo knefe");
+    expect(f.h.body()).toMatch(/Saving the photo failed/);
+    expect(f.h.of("merchant_item_photo_pending")).toHaveLength(0);
+  });
+  it("during a menu import: an uncaptioned photo is a menu page; a captioned one is looked up in the imported shop only", async () => {
+    const OTHER = "20000000-0000-0000-0000-00000000000b";
+    const importing = {
+      onboarding_session_get: () => ({
+        step: "menu_import",
+        data: { vendor_id: OTHER, member_id: "m-other" },
+      }),
+      merchant_members_by_phone: () => [
+        { member_id: MEMBER, vendor_id: VENDOR, role: "owner" },
+        { member_id: "m-other", vendor_id: OTHER, role: "owner" },
+      ],
+    };
+    const m = photoHarness(await photoOf(900, 900), importing);
+    await m.h.photo(null);
+    expect(m.h.of("merchant_item_photo_path")).toHaveLength(0);
+    expect(m.h.of("merchant_menu_help")[0].args.p_media_ref).toBe("wa-media:MEDIA-P1");
+    const p = photoHarness(await photoOf(900, 900), importing);
+    await p.h.photo("photo knefe");
+    expect(p.h.of("menu_item_match").map((c) => c.args.p_vendor_id)).toEqual([OTHER]);
+  });
+
+  it("an item whose name mixes two languages: the fix in the merchant's language, then the same card", async () => {
+    const h = harness();
+    await h.text("add item sujuk platter صحن سجق 5");
+    expect(h.body(0)).toContain("⚠️ كاتالوج واتساب رح يرفض هيدا:");
+    expect(h.body(0)).toContain("هالاسم خالط عربي وأحرف لاتينية (sujuk platter)");
+    expect(h.body(0)).toContain("اكتب الاسم بلغة وحدة");
+    expect(h.body(0)).toContain("بينحفظ لمنيو المحادثة والموقع");
+    // The confirmation is unchanged: the card with its tap, nothing applied.
+    expect(h.proposal()).toMatchObject({
+      p_kind: "item_add",
+      p_payload: { name: "sujuk platter صحن سجق", price_usd: 5 },
+    });
+    expect(h.sent[1].interactive.action.buttons[0].reply.id).toBe(`pyes:${PROP}`);
+    expect(h.of("merchant_proposal_decide")).toHaveLength(0);
+  });
+  it("alcohol, a phone number in a name, promotional text in a description: each explained before the card", async () => {
+    const a = harness();
+    await a.text("add item almaza beer 4");
+    expect(a.body(0)).toContain("This looks like alcohol (Almaza Beer)");
+    expect(a.proposal().p_kind).toBe("item_add");
+    const r = harness();
+    await r.text("rename knefe to knefe 03123456");
+    expect(r.body(0)).toContain("This name has a price, an offer or contact details (03123456)");
+    expect(r.proposal()).toMatchObject({
+      p_kind: "item_edit",
+      p_payload: { name: "knefe 03123456" },
+    });
+    const d = harness();
+    await d.text("describe knefe: Best price in town!!!");
+    expect(d.body(0)).toContain("The description has promotional text (!!!)");
+    expect(d.body(0)).toContain("Describe the item itself");
+    expect(d.proposal().p_kind).toBe("item_edit");
+    const t = harness();
+    await t.text("زيد صنف علبة دخان 5");
+    expect(t.body(0)).toContain("هيدا بيبيّن دخان أو منتج تبغ");
+  });
+  it("an item name with its antibiotic-free claim after punctuation is judged as a title, as the catalogue does", async () => {
+    for (const msg of [
+      "add item Chicken breast, antibiotic free 6",
+      "زيد صنف دجاج طازج، بدون مضادات حيوية 6",
+    ]) {
+      const h = harness();
+      await h.text(msg);
+      expect(h.body(), msg).not.toMatch(/Medicines can't be sold/);
+      expect(h.proposal(), msg).toMatchObject({ p_kind: "item_add", p_payload: { price_usd: 6 } });
+    }
+    // Called with an item's name as written, the title rule reads the food before the punctuation.
+    expect(isMedicineRequest("Chicken breast, antibiotic free", true)).toBe(false);
+    expect(isMedicineRequest("Chicken breast, antibiotic free")).toBe(true);
+  });
+  it("antibiotic-free chicken is food, not medicine: added with no refusal (review)", async () => {
+    expect(isMedicineRequest("antibiotic-free chicken breast")).toBe(false);
+    expect(isMedicineRequest("Poulet sans antibiotiques")).toBe(false);
+    expect(isMedicineRequest("بدي مضاد حيوي")).toBe(true);
+    const h = harness();
+    await h.text("add item antibiotic-free chicken breast 6");
+    expect(h.sent).toHaveLength(1);
+    expect(h.proposal()).toMatchObject({
+      p_kind: "item_add",
+      p_payload: { name: "antibiotic-free chicken breast", price_usd: 6 },
+    });
+  });
+  it("a name our own titles fix (capitals) or a clean one: no note, the card comes first as before", async () => {
+    for (const msg of ["add item falafel wrap 4.5", "add item HOT DOG 5", "زيد صنف فلافل 4"]) {
+      const h = harness();
+      await h.text(msg);
+      expect(h.sent).toHaveLength(1);
+      expect(h.sent[0].interactive.action.buttons[0].reply.id).toBe(`pyes:${PROP}`);
+    }
   });
 });

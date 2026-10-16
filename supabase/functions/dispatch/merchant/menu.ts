@@ -15,6 +15,7 @@ import {
 import { parseMerchantCommand } from "../../_shared/merchant-commands.ts";
 import { firstLink, htmlText } from "../../_shared/safe-fetch.ts";
 import { flowMessage } from "../../_shared/flows.ts";
+import { handleItemPhoto, type ItemPhotoStore } from "./photo.ts";
 import {
   draftSectionCard,
   estimateCard,
@@ -44,6 +45,8 @@ export type MenuDeps = {
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
   /** Fetches a menu link (https only, capped; safe-fetch.ts); null when not wired. */
   fetchLink?: ((url: string) => Promise<{ bytes: Uint8Array; mime: string } | null>) | null;
+  /** Stores a merchant's own item photo once the catalogue validator passed it (§39.15.4); null: not wired. */
+  itemPhotos?: ItemPhotoStore | null;
 };
 
 export type MenuInbound = {
@@ -51,7 +54,8 @@ export type MenuInbound = {
   messageId: string;
   text: string | null;
   buttonId: string | null;
-  media: { id: string; url: string | null; mime: string } | null;
+  /** caption: what the merchant wrote under a photo (an item photo names its item there, §39.15.4). */
+  media: { id: string; url: string | null; mime: string; caption?: string | null } | null;
 };
 
 type Member = { member_id: string; vendor_id: string; role: string };
@@ -88,6 +92,27 @@ export async function handleMerchantMenu(
     !!m.text && pricedLineCount(m.text) >= 2 && !parseMerchantCommand(m.text, new Date());
   // A link to the menu (a web page or a PDF, §39.7) during an import.
   const link = inImport && !textMenu ? firstLink(m.text) : null;
+  // An item's own photo (§39.15.4): a photo captioned "photo <item>" is checked by the catalogue validator before
+  // anything is uploaded, then waits for the merchant's tap on a card naming the item; the tap records it. Null leaves
+  // everything else (a menu page during an import, any other caption) to the import and the commands below.
+  const photo = await handleItemPhoto(
+    {
+      rpc: deps.rpc,
+      fetchMedia: deps.fetchMedia,
+      itemPhotos: deps.itemPhotos ?? null,
+      log: deps.log,
+    },
+    { from: m.from, buttonId: m.buttonId, media: m.media },
+    members,
+    inImport ? { vendorId: session?.data?.vendor_id ?? null } : null,
+  );
+  if (photo) {
+    for (const p of photo) {
+      const res = await deps.send(clampInteractive(p));
+      if (!res.ok) deps.log?.("item photo reply failed", { error: res.error.slice(0, 120) });
+    }
+    return true;
+  }
   if (!tap && !isMenuCommand(m.text) && !(inImport && (m.media || textMenu || link))) return false;
   const out: Record<string, unknown>[] = [];
   const reply = (p: Record<string, unknown>) => out.push(p);

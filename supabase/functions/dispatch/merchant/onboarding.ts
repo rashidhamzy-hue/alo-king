@@ -53,7 +53,14 @@ export type OnboardingInbound = {
   text: string | null;
   buttonId: string | null;
   location: { lat: number; lon: number } | null;
-  media: { id: string; url: string | null; ref: string; mime: string } | null;
+  /** caption: what the sender wrote under a photo (an item photo names its item there, §39.15.4). */
+  media: {
+    id: string;
+    url: string | null;
+    ref: string;
+    mime: string;
+    caption?: string | null;
+  } | null;
   name: string | null;
 };
 
@@ -90,6 +97,7 @@ export function readOnboardingInbound(payload: any): OnboardingInbound | null {
           url: msg.kapso?.media_url ?? msg.kapso?.media_data?.url ?? null,
           ref: `wa-media:${mediaId}`.slice(0, 300),
           mime: String(mediaObj?.mime_type ?? msg.kapso?.media_data?.content_type ?? ""),
+          caption: typeof mediaObj?.caption === "string" ? mediaObj.caption.slice(0, 300) : null,
         }
       : null,
     name: payload?.conversation?.contact_name ?? msg.kapso?.contact_name ?? null,
