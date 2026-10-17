@@ -1,6 +1,8 @@
 -- Rollback of 20261017110000_web_menu.sql (session 5g part A). The migration deletes nothing at load: its `delete`
 -- statements run inside functions (a customer's links that ended a week ago; a shop's basket lines when the web menu
 -- saves the whole basket again). Rolling back removes what it added; the links table holds only short-lived tokens.
+-- public.customer_turn_begin keeps the migration's version (section 7): it differs from 20261014180000 only in leaving
+-- last_inbound_at alone for a turn of kind 'web', which nothing sends once the web functions are gone, so it is not restored.
 drop function if exists public.web_menu(text, text);
 drop function if exists public.web_basket_save(text, text, jsonb, boolean);
 drop function if exists public.site_photo(uuid, uuid);

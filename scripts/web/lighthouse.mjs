@@ -40,6 +40,8 @@ const PAGES = [
   // Session 5g: the web shop menu is private to its link (noindex): performance and accessibility only.
   ["webmenu-ar", `/ar/m/${WEB_SLUG}?t=${WEB_TOKEN}`, { private: true }],
   ["webmenu-en", `/en/m/${WEB_SLUG}?t=${WEB_TOKEN}`, { private: true }],
+  ["explore-ar", `/ar/e?t=${WEB_TOKEN}`, { private: true }],
+  ["explore-en", `/en/e?t=${WEB_TOKEN}`, { private: true }],
 ];
 const RUNS = Math.max(1, Number(arg("runs", "3")) || 3);
 const MIN = 0.9,

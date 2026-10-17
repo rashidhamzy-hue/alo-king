@@ -49,6 +49,9 @@ const PAGES = [
   // Session 5g: the web shop menu behind its signed link, an expired link.
   { id: "webmenu", path: `/m/${WEB_SLUG}?t=${WEB_TOKEN}` },
   { id: "webmenu-expired", path: `/m/${WEB_SLUG}?t=${WEB_TOKEN_EXPIRED}` },
+  { id: "explore", path: `/e?t=${WEB_TOKEN}` },
+  { id: "explore-search", path: `/e?t=${WEB_TOKEN}&q=seven` },
+  { id: "explore-expired", path: `/e?t=${WEB_TOKEN_EXPIRED}` },
   { id: "send-home", path: "/send-home" },
   { id: "help", path: "/help" },
   { id: "contact", path: "/contact" },

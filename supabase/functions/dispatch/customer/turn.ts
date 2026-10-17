@@ -77,6 +77,7 @@ import {
   shopList,
   shopLine,
   shopMenuCard,
+  exploreCard,
   moreSectionsList,
   sectionNextButton,
   type BrowseCategory,
@@ -1055,6 +1056,8 @@ async function textIntent(c: Ctx, kind: string) {
       return startOrder(c);
     case "address":
       return tap(c, { a: "simple", what: "new_address" });
+    case "explore":
+      return exploreShops(c);
     case "yes":
       // A typed yes or no answers the Start new question only while it is fresh: an ignored card never empties a basket.
       if (c.s.pending.kind === "replace_basket" && !pendingFresh(c)) c.s.pending = {};
@@ -2669,8 +2672,30 @@ async function browseHome(c: Ctx, offset = 0) {
       offset > 0 && offset < cats.length ? offset : 0,
     ),
   );
-  // "Popular near you" after the first page of the craving list (§39.15.2).
-  if (!offset) await popularNearYou(c, r.shops);
+  // "Popular near you" after the first page of the craving list (§39.15.2), then Explore on the web (session 5g part B).
+  if (!offset) {
+    // The link is made while Popular near you is read (§39.15.6); it is still sent after it.
+    const linkAsk = webLink(c, "explore");
+    await popularNearYou(c, r.shops);
+    const url = await linkAsk;
+    if (url) {
+      c.tools.push("web:explore_link");
+      push(c, exploreCard(c.m.from, c.s.lang, url));
+    }
+  }
+}
+
+/** "Explore" typed or tapped (session 5g part B): the Explore link, or the craving list while the site has no address. */
+async function exploreShops(c: Ctx) {
+  const r = await deliveringShops(c);
+  if (!r.point?.address_id) return startOrder(c);
+  // A place we do not deliver to (yet), or no shop delivering there: the chat's own answer (the waitlist, pickup), never a
+  // list of shops as if they delivered.
+  if (r.paused || !r.shops.length) return browseHome(c);
+  const url = await webLink(c, "explore");
+  if (!url) return browseHome(c);
+  c.tools.push("web:explore_link");
+  push(c, exploreCard(c.m.from, c.s.lang, url));
 }
 
 async function listShops(c: Ctx, shops: DeliveringShop[], body: string) {

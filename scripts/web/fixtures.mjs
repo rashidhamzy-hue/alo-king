@@ -697,6 +697,81 @@ export const WEB_MENU = {
   expires_at: "2026-10-18T09:00:00Z",
 };
 
+// ---- Explore (session 5g part B, migration 20261017130000) ---------------------------------------------------------------
+const exShop = (n, slug, en, ar, cuisine, village, km, fee, open = true, extra = {}) => ({
+  vendor_id: `10000000-0000-0000-0000-0000000001${String(n).padStart(2, "0")}`,
+  slug,
+  ...names(en, ar, en),
+  cuisine_ar: cuisine[1],
+  cuisine_en: cuisine[0],
+  cuisine_fr: cuisine[0],
+  village_ar: village[1],
+  village_en: village[0],
+  village_fr: village[0],
+  cover: true,
+  demo: false,
+  open_now: open,
+  fee_usd: fee,
+  road_km: km,
+  eta_min: 20 + Math.round(km * 2),
+  eta_max: 30 + Math.round(km * 2),
+  ...extra,
+});
+const BAAK = ["Baakline", "بعقلين"];
+const DEIR = ["Deir el Qamar", "دير القمر"];
+const EX_SHOPS = [
+  exShop(
+    1,
+    WEB_SLUG,
+    "Abou Ali Shawarma",
+    "شاورما أبو علي",
+    ["Shawarma", "شاورما"],
+    BAAK,
+    0.8,
+    1.5,
+  ),
+  exShop(2, "seven-burgers", "SEVEN Burgers", "سفن برغر", ["Burgers", "برغر"], BAAK, 1.6, 1.5),
+  exShop(3, "furn-el-ain", "Furn el Ain", "فرن العين", ["Manakish", "مناقيش"], BAAK, 2.2, 2, true, {
+    cover: false,
+  }),
+  exShop(4, "un-basilico", "Un Basilico", "أون بازيليكو", ["Pizza", "بيتزا"], DEIR, 6.4, 3),
+  exShop(5, "sushi-bell", "Sushi Bell", "سوشي بل", ["Sushi", "سوشي"], DEIR, 7.1, 3.5, false),
+];
+export const EXPLORE = {
+  status: "ok",
+  lang: "en",
+  place: names("Baakline", "بعقلين", "Baakline"),
+  shops: EX_SHOPS,
+  next_offset: null,
+  rate: 89500,
+  categories: [
+    ["burgers", "🍔", "Burgers", "برغر", 2],
+    ["shawarma", "🌯", "Shawarma", "شاورما", 2],
+    ["manakish", "🫓", "Manakish", "مناقيش", 1],
+    ["pizza", "🍕", "Pizza", "بيتزا", 1],
+    ["sushi", "🍣", "Sushi", "سوشي", 1],
+  ].map(([key, emoji, en, ar, shops]) => ({ key, emoji, ...names(en, ar, en), shops })),
+  new: [EX_SHOPS[3], EX_SHOPS[1]],
+  popular: {
+    by_sales: false,
+    items: [
+      [1, "Chicken Shawarma", "شاورما دجاج", 4.5, 0],
+      [4, "Mixed Grill Plate", "صحن مشاوي مشكل", 14, 0],
+      [6, "French Fries", "بطاطا مقلية", 2.5, 0],
+      [8, "Ayran", "عيران", 1, 0],
+    ].map(([n, en, ar, price]) => ({
+      id: `90000000-0000-0000-0000-${String(n).padStart(12, "0")}`,
+      ...names(en, ar, en),
+      price_usd: price,
+      slug: WEB_SLUG,
+      vendor_ar: "شاورما أبو علي",
+      vendor_en: "Abou Ali Shawarma",
+      vendor_fr: "Abou Ali Shawarma",
+    })),
+  },
+  unclaimed: [],
+};
+
 /** The catalogue image route's stand-in: a drawn plate, its colour taken from the item id. */
 export function itemPhotoSvg(id) {
   const hue = (parseInt(id.slice(-2), 16) * 47) % 360;
@@ -838,6 +913,24 @@ export function respond(fn, args, mode = "live") {
       if (args.p_token === WEB_TOKEN_EXPIRED) return { status: "expired" };
       if (args.p_token !== WEB_TOKEN) return { status: "expired" };
       return args.p_slug === WEB_SLUG ? WEB_MENU : { status: "unavailable", lang: "en" };
+    case "web_explore": {
+      if (args.p_token !== WEB_TOKEN) return { status: "expired" };
+      const q = (args.p_q ?? "").toLowerCase();
+      if (q || args.p_category)
+        return {
+          ...EXPLORE,
+          shops: EX_SHOPS.filter(
+            (s) =>
+              (!q || s.name_en.toLowerCase().includes(q)) &&
+              (!args.p_category ||
+                s.cuisine_en.toLowerCase().startsWith(args.p_category.slice(0, 4))),
+          ),
+          categories: undefined,
+          new: undefined,
+          popular: undefined,
+        };
+      return { ...EXPLORE, unclaimed: UNCLAIMED.slice(0, 4) };
+    }
     case "web_basket_save":
       return args.p_token === WEB_TOKEN
         ? {

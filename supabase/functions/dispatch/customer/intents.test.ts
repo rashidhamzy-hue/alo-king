@@ -70,6 +70,10 @@ describe("deterministicIntent", () => {
       expect(deterministicIntent(t)).toEqual({ kind: "address" });
     expect(deterministicIntent("change address to Baakline please")).toBeNull();
   });
+  it("reads Explore in four languages (session 5g part B)", () => {
+    for (const t of ["Explore", "explorer", "استكشف", "Shops near me"])
+      expect(deterministicIntent(t)).toEqual({ kind: "explore" });
+  });
   it("leaves ordinary orders to the model", () => {
     for (const t of [
       "2 shawarma",
