@@ -5,6 +5,7 @@ import { demoRows, DEMO_SHOPS } from "./build-demo-menus.ts";
 import sharp from "sharp";
 import {
   coverImage,
+  dishFallback,
   PROCESS_VERSION,
   plan,
   pickOk,
@@ -22,7 +23,8 @@ import {
   type Picks,
   type TodoItem,
 } from "./demo-photos.ts";
-import { dishOf } from "./dishes.ts";
+import { execFileSync } from "node:child_process";
+import { DISHES, dishOf, photoChain, photoDish, type ItemText } from "./dishes.ts";
 
 // DECISIONS §39.12, demo mode on staging.
 describe("demo shops' full harvested menus", () => {
@@ -104,14 +106,21 @@ describe("the photo plan per item", () => {
     ).toBeNull();
     expect(PROCESS_VERSION).toBe("5e-1");
   });
-  it("falls back to the broader dish, and gives nothing to shisha or when no photo was picked", () => {
+  it("falls back to the broader dish where it shows the same dish, and gives nothing to shisha or when no photo was picked", () => {
     expect(
-      (plan(item, { ...picks, dishes: { fries: pick("https://x/fries.jpg") } }) as any).url,
-    ).toBe("https://x/fries.jpg");
+      (
+        plan(
+          { ...item, name_en: "Chicken Nuggets" },
+          { ...picks, dishes: { fried_chicken: pick("https://x/chicken.jpg") } },
+        ) as any
+      ).url,
+    ).toBe("https://x/chicken.jpg");
+    // Curly fries are not the plain fries of the fries photo (session 5g).
+    expect(plan(item, { ...picks, dishes: { fries: pick("https://x/fries.jpg") } })).toBe("none");
     expect(plan({ ...item, name_en: "Extra Bowl", section_en: "Argile" }, picks)).toBe("none");
     expect(plan(item, { dishes: {}, packshots: {} })).toBe("none");
   });
-  it("gives a shelf item its packshot when one was picked, else its shelf dish", () => {
+  it("gives a shelf item its packshot when one was picked, else nothing (a generic photo is not the product)", () => {
     const shelf = {
       ...item,
       name_en: "Pepsi Can (330ml)",
@@ -119,9 +128,9 @@ describe("the photo plan per item", () => {
       business_type: "grocery_supermarket",
     };
     expect((plan(shelf, picks) as any).kind).toBe("packshot");
-    expect(
-      (plan({ ...shelf, name_en: "Volys Turkey", section_en: "CHARCUTERIE" }, picks) as any).url,
-    ).toBe("https://x/cuts.jpg");
+    expect(plan({ ...shelf, name_en: "Volys Turkey", section_en: "CHARCUTERIE" }, picks)).toBe(
+      "none",
+    );
   });
   it("uses a pick only when licensed for commercial use, credited and off Google; a packshot only for its brand", () => {
     expect(pickOk("illustrative", pick("https://x/a.jpg"))).toBe(true);
@@ -338,5 +347,250 @@ describe("catalogue rules before a demo photo is saved", () => {
       "policy_tobacco",
     ]);
     expect(codes(policyHeld({ ...base, name_en: "Curly Fries", name_ar: "بطاطا" }))).toEqual([]);
+  });
+});
+
+// Session 5g (Rasheed, 17 October): "Markouk Saj Bread" showed a loaf. Better nothing than a wrong photo; an item without
+// one stays reachable as a list after its section's product message (§39.15.2). The names are the staging demo menus'.
+describe("a dish photo only where it shows the item (session 5g)", () => {
+  const shelf = (name_en: string, section_en: string): ItemText => ({
+    name_en,
+    section_en,
+    business_type: "grocery_supermarket",
+  });
+  const dish = (name_en: string, section_en = "Menu", name_ar: string | null = null): ItemText => ({
+    name_en,
+    name_ar,
+    section_en,
+    business_type: "restaurant",
+  });
+  const todo = (it: ItemText, photo: TodoItem["photo"] = null): TodoItem => ({
+    item_id: "11111111-1111-1111-1111-111111111111",
+    vendor_id: "22222222-2222-2222-2222-222222222222",
+    name_en: it.name_en ?? null,
+    name_ar: it.name_ar ?? null,
+    description: it.description ?? null,
+    section_en: it.section_en ?? null,
+    business_type: it.business_type ?? null,
+    vendor: "Shop",
+    image_url: null,
+    photo,
+  });
+  // Every dish key has a photo here, so only the rules can leave an item without one.
+  const all: Picks = {
+    dishes: Object.fromEntries(
+      DISHES.filter((d) => d.key !== "none").map((d) => [
+        d.key,
+        { url: `https://x/${d.key}.jpg`, license: "CC0 1.0", credit: "c", source_url: null },
+      ]),
+    ),
+    packshots: {},
+  };
+  const photo = (it: ItemText) => {
+    const p = plan(todo(it), all);
+    return p === "none" || p === null ? "none" : p.dish;
+  };
+
+  it("a specific bread maps only to its own bread, never to the loaf", () => {
+    expect(dishOf(shelf("Fresh Shouf Markouk Saj Bread (Large Pack)", "Bakery & Bread"))).toBe(
+      "saj_bread",
+    );
+    expect(dishOf(dish("Markouk Saj Bread", "Bakery"))).toBe("saj_bread");
+    expect(photo(dish("Markouk Saj Bread", "Bakery"))).toBe("saj_bread");
+    // With only the loaf picked (as on staging), markouk, pita, buns, kaak, a piston or a ciabatta get nothing.
+    const loaf: Picks = { dishes: { bread: all.dishes.bread }, packshots: {} };
+    for (const name of [
+      "Markouk Saj Bread",
+      "Lebanese White Pita Bread",
+      "Burger Buns with Sesame",
+      "Bun",
+      "Kaak Sesame",
+      "Ka3ke",
+      "PISTON WHITE 23CM",
+      "CIABATA OLIVE",
+      "CIA WHITE",
+      "Toast Bread",
+      "Garlic Bread",
+    ])
+      expect(plan(todo(dish(name, "BAGUETTES")), loaf), name).toBe("none");
+    for (const name of ["PLAIN SOUR DOUGH", "PAIN RUGBY BLANC", "Bread"])
+      expect((plan(todo(dish(name, "BAGUETTES")), loaf) as any).dish, name).toBe("bread");
+    // "Breaded" is not bread.
+    expect(dishOf(dish("Breaded Shrimps", "Appetizers"))).toBe("shrimp");
+  });
+
+  it("a generic photo never stands in for a named specific dish", () => {
+    expect(photo(dish("Chicken Caesar Wrap", "Wraps"))).toBe("wrap");
+    expect(photo(dish("Chicken Ceasar Wrap", "Wraps"))).toBe("wrap");
+    expect(photo(dish("Zinger wrap"))).toBe("wrap");
+    expect(photo(dish("Tawouk wrap", "Wraps"))).toBe("wrap");
+    // A sandwich is not its filling's skewer or plate; the shawarma photo is the sandwich itself.
+    expect(dishOf(dish("Shish Taouk Sandwich"))).toBe("sandwich");
+    expect(dishOf(dish("Kebab Sandwich", "Sandwiches", "ساندويش كباب"))).toBe("sandwich");
+    expect(dishOf(dish("Falafel Sandwich"))).toBe("sandwich");
+    expect(dishOf(dish("GRILLED STEAK", "DELI SANDWICHES"))).toBe("sandwich");
+    expect(dishOf(dish("Grilled Chicken Sandwich", "Sandwiches & Wraps"))).toBe("sandwich");
+    expect(dishOf(dish("Shawarma Sub", "Subs"))).toBe("sub");
+    expect(dishOf(dish("Chicken Shawarma Sandwich"))).toBe("shawarma");
+    // Named dishes with their own key and no photo of theirs: nothing, not the broader dish's photo.
+    const staging = JSON.parse(readFileSync("scripts/demo/photo-picks.json", "utf8")) as Picks;
+    for (const [name, section] of [
+      ["Makanek (Lebanese Spiced Sausages)", "Menu"],
+      ["Sujuk & Cheese Platter", "Grill Platters"],
+      ["Chicken Liver", "Lebanese Mezza"],
+      ["Lamb Chops Platter", "Grill Platters"],
+      ["Kebbeh Nayyeh (Raw Minced Meat)", "Menu"],
+      ["Shish Barak (40)", "Hot Appetizers"],
+      ["Custard", "Desserts"],
+      ["Mochi (4 pcs)", "Desserts"],
+      ["Kashta 1 kg", "Special Cups"],
+      ["Spicy Potatoes", "Hot Appetizers"],
+      ["Lamb Testicles Plate", "Hot Appetizers"],
+      ["Gnocchi Truffle", "Pasta"],
+      ["Calzone", "Pizza"],
+      ["Cheddar Jalapeno triangles", "Appetizers"],
+      ["Makdous", "Lebanese Mezza"],
+    ])
+      expect(plan(todo(dish(name, section)), staging), name).toBe("none");
+    // Toppings and add-ons are not burgers; a side served as an add-on keeps its own photo.
+    expect(dishOf(dish("Fresh Tomatoes", "Burger Bun"))).toBe("none");
+    expect(dishOf(dish("Beef Patty", "Add-ons"))).toBe("none");
+    expect(dishOf(dish("Cheddar Slice", "Add-Ons"))).toBe("none");
+    expect(dishOf(dish("Fries add-on", "Burger Bun"))).toBe("fries");
+    expect(dishOf(dish("Crispy Tender Piece", "Extras"))).toBe("fried_chicken");
+  });
+
+  it("a plate or platter is not the hand-held dish; a single dish's photo serves its platter", () => {
+    expect(dishOf(dish("Beef Shawarma Platter"))).toBe("shawarma_plate");
+    expect(dishOf(dish("Shawarma Arabic Box"))).toBe("shawarma_plate");
+    expect(dishOf(dish("", "Shawarma", "صحن رز مع شاورما دجاج"))).toBe("smoked_rice");
+    expect(dishOf(dish("", "PLATES / صحون", "صحن برغر لحم"))).toBe("burger_plate");
+    expect(photo(dish("Tawook Platter", "Grill Platters", "صحن طاووق"))).toBe("shish_taouk");
+    expect(photo(dish("Falafel Plate (10 Pcs)"))).toBe("falafel");
+    expect(photo(dish("Chicken Wings Platter", "Grill Platters", "صحن جوانح مشوية"))).toBe("wings");
+  });
+
+  it("a sized or branded pack never gets a generic glass or plate; shelves show only their packshot", () => {
+    for (const name of [
+      "Pepsi 1.25 L",
+      "Pepsi Can (330ml)",
+      "Coca Cola 6-pack",
+      "Sparkling Water Can 330ML",
+      "Iced Tea Peach 335ML",
+      "Mr. Juicy Apple 180ML",
+      "Perrier",
+      "Lipton ice tea peach",
+      "Bottle Orange Juice",
+    ])
+      expect(photo(dish(name, "Soft Drinks")), name).toBe("none");
+    for (const [name, section] of [
+      ["Sohat Natural Spring Water (1.5L x 6 Pack)", "Water & Beverages"],
+      ["Picon Cheese Triangles (8 Portions)", "Dairy & Eggs"],
+      ["Barilla Italian Penne Rigate (500g)", "Pantry & Staples"],
+      ["Café Najjar Turkish Coffee with Cardamom (200g)", "Coffee & Tea"],
+      ["Afia Pure Corn Oil (1.5 Liters)", "Pantry & Staples"],
+    ])
+      expect(photo(shelf(name, section)), name).toBe("none");
+    // A served drink keeps its photo; eggs are shown as they are sold.
+    expect(photo(dish("Water", "Beverages"))).toBe("water");
+    expect(photo(dish("Ice Tea", "Beverages"))).toBe("iced_tea");
+    expect(photo(dish("Fresh Orange Juice / Lemonade", "Drinks"))).toBe("orange_juice");
+    expect(photo(shelf("Fresh Farm Table Eggs (Carton of 30)", "Dairy & Eggs"))).toBe("eggs");
+  });
+
+  it("the description never decides and the shop's type is no guess", () => {
+    expect(
+      dishOf({
+        ...dish("SALMON CREAM CHEESE SAND.", "DELI SANDWICHES"),
+        description: "lemon juice",
+      }),
+    ).toBe("sandwich");
+    expect(
+      dishOf({ ...dish("Honey Smoked", "Burgers"), description: "served on toasted bun" }),
+    ).toBe("burger");
+    expect(dishOf(dish("Chicken B.B.Q", "Burgers"))).toBe("chicken_burger");
+    expect(dishOf(dish("Golden BB Burger", "Chicken Burgers"))).toBe("chicken_burger");
+    expect(dishOf({ name_en: "Mix", section_en: "Menu", business_type: "fast_food" })).not.toBe(
+      "burger",
+    );
+    expect(photo(dish("Combo large.", "Antipasti"))).toBe("none");
+  });
+
+  it("a section that names a family decides inside it", () => {
+    expect(dishOf(dish("- Crispy Salmon", "Uramaki Crispy (4 Pieces)"))).toBe("sushi");
+    expect(dishOf(dish("- Red Belt", "Uramaki Special Wraps (4 Pieces)"))).toBe("sushi");
+    expect(dishOf(dish("- Salmon", "Sachimi (3 Pieces)"))).toBe("sashimi");
+    expect(dishOf(dish("- Shrimp", "Nigiri (2 Pieces)"))).toBe("nigiri");
+    expect(dishOf(dish("- Orange Tobiko", "Gunkan (1 Piece)"))).toBe("nigiri");
+    expect(dishOf(dish("Crispy Crazy Salmon Roll (8 Pcs)"))).toBe("sushi");
+    expect(dishOf(dish("KAFTA", "FORON"))).toBe("manousheh");
+    expect(dishOf(dish("Fresh Juice", "Saj & Breakfast"))).toBe("juice");
+    expect(dishOf(dish("Rocca formaggi", "Pizza"))).toBe("pizza");
+    expect(dishOf(dish("Chicken Fettuccine Alfredo", "Pizza & Pasta"))).toBe("pasta_alfredo");
+    expect(dishOf(dish("Truffle", "Dips"))).toBe("dip");
+    expect(dishOf(dish("Crispy Duo", "Crispy Burgers"))).toBe("chicken_burger");
+  });
+
+  it("a broader dish's photo stands in only where it shows the same dish", () => {
+    const fallbacks = DISHES.filter((d) => d.parent)
+      .map((d) => `${d.key}>${d.parent}`)
+      .sort();
+    expect(fallbacks).toEqual([
+      "brownie>dessert",
+      "cheeseburger>burger",
+      "frappe>iced_latte",
+      "kafta>grill",
+      "lemonade>juice",
+      "mixed_grill>grill",
+      "nigiri>sushi",
+      "nuggets>fried_chicken",
+      "orange_juice>juice",
+      "pasta_alfredo>pasta",
+      "pizza_margherita>pizza",
+      "pizza_pepperoni>pizza",
+    ]);
+    expect(photoChain("makanek")).toEqual(["makanek"]);
+    expect(photoChain("shawarma_plate")).toEqual(["shawarma_plate"]);
+  });
+
+  it("a shop's own picture that cannot be used falls back only to a dish photo that fits, and an older one goes", () => {
+    const staging = JSON.parse(readFileSync("scripts/demo/photo-picks.json", "utf8")) as Picks;
+    const old = { source: "illustrative", origin_hash: "old", storage_path: "x" };
+    expect(dishFallback(todo(dish("- Grilled Salmon", "Main Course"), old), staging)).toBe("none");
+    const fb = dishFallback(todo(dish("- Salmon", "Sachimi (3 Pieces)"), old), staging) as any;
+    expect(fb.dish).toBe("sashimi");
+    expect(
+      dishFallback(
+        todo(dish("- Salmon", "Sachimi (3 Pieces)"), { ...old, origin_hash: fb.hash }),
+        staging,
+      ),
+    ).toBeNull();
+  });
+
+  it("a dropped photo never stays as a shop's cover", () => {
+    const items = [
+      shelf("Fresh Shouf Markouk Saj Bread (Large Pack)", "Bakery & Bread"),
+      shelf("Lebanese White Pita Bread (Large Bag)", "Bakery & Bread"),
+      shelf("Chtaura Dairy Halloumi Cheese (250g)", "Dairy & Eggs"),
+    ];
+    const staging = JSON.parse(readFileSync("scripts/demo/photo-picks.json", "utf8")) as Picks;
+    expect(
+      coverCandidates({ vendor: "Coop", dishes: items.map(photoDish), own: [] }, staging),
+    ).toEqual([]);
+  });
+
+  it("the pipeline loads under node's type stripping, as CI runs it (no parameter properties)", () => {
+    const out = execFileSync(
+      process.execPath,
+      [
+        "--experimental-strip-types",
+        "--no-warnings",
+        "--input-type=module",
+        "-e",
+        "const m = await import('./scripts/demo/demo-photos.ts'); console.log(typeof m.plan);",
+      ],
+      { encoding: "utf8" },
+    );
+    expect(out.trim()).toBe("function");
   });
 });
