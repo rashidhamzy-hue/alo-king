@@ -89,7 +89,8 @@ export type WebMenu =
     };
 
 export type SaveResult =
-  | { status: "saved"; items: number; subtotal_usd: number }
+  /** chat_closed: WhatsApp's 24-hour window is closed, so no summary was sent; the customer writes first. */
+  | { status: "saved"; items: number; subtotal_usd: number; chat_closed?: boolean }
   | { status: "other_vendor"; vendor_ar: string | null; vendor_en: string | null }
   | { status: "expired" | "too_many" | "invalid" | "unavailable" | "choices"; item_id?: string }
   | { status: "network" };

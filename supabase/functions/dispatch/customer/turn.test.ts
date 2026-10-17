@@ -1691,6 +1691,25 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(f.of("basket_fulfilment_options")).toHaveLength(1);
   });
 
+  it("the web menu's queued tap is a turn of kind web, never the customer writing; a real c:web tap stays a tap", async () => {
+    const base = { conversation: { phone_number: "96176000001" } };
+    const tap = (id: string, synthetic?: string) =>
+      readCustomerInbound({
+        ...base,
+        ...(synthetic ? { alo_synthetic: synthetic } : {}),
+        message: { id, type: "interactive", interactive: { button_reply: { id: "c:web" } } },
+      });
+    expect(tap("web.1", "web")?.synthetic).toBe(true);
+    expect(tap("wamid.1", "web")?.synthetic).toBe(false);
+    expect(tap("web.1")?.synthetic).toBe(false);
+    const f = fake({ begin: sess({}) });
+    await handleCustomerTurn(f.deps, tap("web.1", "web")!);
+    expect(f.of("customer_turn_begin")[0].args).toMatchObject({ p_kind: "web" });
+    const g = fake({ begin: sess({}) });
+    await handleCustomerTurn(g.deps, tap("wamid.2")!);
+    expect(g.of("customer_turn_begin")[0].args).toMatchObject({ p_kind: "tap" });
+  });
+
   it("the shop line reads the seed listing's Closed and Open 24 hours, and a closed shop says so", () => {
     const card = { cuisine_en: "Grill", village_en: "Baakline", open_now: true };
     expect(shopLine("en", { ...card, hours_today: "Closed" }, null)).toBe(
@@ -2233,6 +2252,22 @@ describe("browsing through the bot (session 5e)", () => {
     f.deps.config.siteUrl = null;
     await handleCustomerTurn(f.deps, msg({ text: "explore", messageId: "wamid.in.3" }));
     expect(f.sent.map((m) => m.interactive.type)).toEqual(["list"]);
+  });
+
+  it("a place we do not deliver to never gets the Explore link, only the chat's own answer", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => POINT,
+        browse_shops: () => browse(6),
+        customer_delivery_check: () => ({ status: "place_paused", vendors: [] }),
+        web_link_create: () => "https://alo-king.vercel.app/en/e?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_",
+      },
+    });
+    f.deps.config.siteUrl = "https://alo-king.vercel.app";
+    await handleCustomerTurn(f.deps, msg({ text: "Explore" }));
+    expect(f.of("web_link_create")).toHaveLength(0);
+    expect(f.sent.some((m) => m.interactive?.type === "cta_url")).toBe(false);
   });
 
   it("browse makes zero routing calls: shops without any distance stay listed, the checkout checks them (§39.15.1)", async () => {

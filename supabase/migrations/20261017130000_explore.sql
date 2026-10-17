@@ -103,7 +103,7 @@ begin
       row_number() over (partition by o.vendor_id order by sum(oi.quantity) desc, oi.item_id) as rk
     from public.order_items oi join public.orders o on o.id = oi.order_id
     where o.vendor_id in (select vendor_id from near) and not o.is_demo and oi.item_id is not null
-      and o.status not in ('cancelled', 'rejected', 'failed')
+      and o.status not in ('cancelled', 'rejected', 'failed', 'awaiting_payment')
       and o.created_at > now() - make_interval(days => public.config_numeric('catalog_best_sellers_days')::int)
     group by oi.item_id, o.vendor_id
   ),
@@ -179,6 +179,14 @@ begin
   end if;
   select p.id, p.name_ar, p.name_en, p.name_fr into v_place
   from public.addresses a join public.places p on p.id = a.place_id where a.id = (v_pt ->> 'address_id')::uuid;
+  -- A place we do not deliver to (yet): no shop list as if it delivered; the page says so and offers the chat's way on
+  -- (the waitlist and pickup, §3.2 #11). A demo tester's point is a demo address, which always is delivered to.
+  if v_place.id is null or not app_private.place_delivered_to(v_place.id) then
+    return jsonb_build_object('status', 'outside', 'lang', w.lang,
+      'place', case when v_place.id is not null then jsonb_build_object('name_ar', v_place.name_ar,
+        'name_en', coalesce(v_place.name_en, v_place.name_ar),
+        'name_fr', coalesce(v_place.name_fr, v_place.name_en, v_place.name_ar)) end);
+  end if;
   v_first := v_off = 0;
   -- The page of shops: the filter, then open first and nearest first; one more than a page tells whether more follow.
   select array_agg(x.vendor_id order by x.rk) into v_ids from (
@@ -189,7 +197,8 @@ begin
       and (v_q is null
            or concat_ws(' ', s.name_ar, s.name_en, s.name_fr, s.cuisine_ar, s.cuisine_en, s.cuisine_fr) ilike '%' || v_q || '%'
            or exists (select 1 from public.menu_items i where i.vendor_id = s.vendor_id and i.removed_at is null
-                        and i.available and concat_ws(' ', i.name_ar, i.name_en, i.name_fr) ilike '%' || v_q || '%'))
+                        and i.available and concat_ws(' ', i.name_ar, i.name_en, i.name_fr) ilike '%' || v_q || '%'
+                        and app_private.web_item_shown(i.id)))
     order by s.is_open desc, s.road_km, s.vendor_id
     offset v_off limit v_size + 1
   ) x;
@@ -199,6 +208,8 @@ begin
   end if;
   v_out := jsonb_build_object(
     'status', 'ok', 'lang', w.lang,
+    -- Prices show in $ and LBP (§39.15.5) at today's dated rate; the order's own rate is locked at checkout.
+    'rate', public.usd_lbp_rate(),
     'place', jsonb_build_object('name_ar', v_place.name_ar, 'name_en', coalesce(v_place.name_en, v_place.name_ar),
       'name_fr', coalesce(v_place.name_fr, v_place.name_en, v_place.name_ar)),
     'shops', app_private.explore_cards(w.customer_id, v_place.id, coalesce(v_ids, '{}')),
