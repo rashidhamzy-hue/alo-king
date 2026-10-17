@@ -317,7 +317,8 @@ create policy order_customer_notes_read on public.order_customer_notes for selec
 comment on table public.order_customer_notes is
   'Messages a customer passed to the shop during an active order (spec §3.7 #45); at most order_note_max_per_order per order.';
 
-create function public.order_note_send(p_customer_id uuid, p_text text, p_message_id text) returns jsonb
+create function public.order_note_send(p_customer_id uuid, p_text text, p_message_id text, p_order_id uuid default null)
+returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
@@ -335,8 +336,10 @@ begin
   if v_text = '' or p_message_id is null or char_length(p_message_id) not between 1 and 200 then
     return jsonb_build_object('status', 'invalid');
   end if;
+  -- The order the customer was asked about, when given (re-checked: theirs and still active), else their latest active one.
   select * into v_o from public.orders o
   where o.customer_id = p_customer_id
+    and (p_order_id is null or o.id = p_order_id)
     and o.status in ('placed', 'accepted', 'preparing', 'ready', 'driver_assigned', 'heading_to_pickup', 'at_pickup',
                      'picked_up', 'near_drop', 'arrived')
   order by o.created_at desc
@@ -369,11 +372,14 @@ begin
   insert into public.order_customer_notes (order_id, customer_id, body, source_message_id)
   values (v_o.id, p_customer_id, v_text, p_message_id)
   returning * into v_note;
-  if v_target is null then
-    -- No WhatsApp number for the shop: kept on the order, and a person passes it on (the customer is told exactly that).
+  -- A note is a free-form message (no template): it reaches the shop only inside its 24-hour window, typically closed
+  -- while the order card went as a template. Otherwise it is kept on the order and a person passes it on (the customer is
+  -- told exactly that, never "passed" when it was not).
+  if v_target is null or not app_private.whatsapp_reachable(v_target, 'merchant', 'customer_note', 'ar') then
     perform app_private.ops_alert('note:' || v_note.id, 'customer_problem', 'warning',
-      'A customer''s message for order ' || v_o.code || ' has no WhatsApp channel to reach the shop', v_o.id, v_o.vendor_id,
-      jsonb_build_object('text', v_text));
+      'A customer''s message for order ' || v_o.code || case when v_target is null then ' has no WhatsApp channel to reach the shop'
+                                                              else ' cannot reach the shop on WhatsApp now (its window is closed)' end,
+      v_o.id, v_o.vendor_id, jsonb_build_object('text', v_text));
     return jsonb_build_object('status', 'no_channel', 'code', v_o.code, 'note_id', v_note.id,
       'vendor', coalesce(v_v.name_ar, v_v.name_en), 'vendor_en', coalesce(v_v.name_en, v_v.name_ar));
   end if;
@@ -415,6 +421,45 @@ $$;
 create trigger orders_eta_promise after update of status on public.orders
   for each row execute function app_private.orders_eta_promise();
 
+-- As in 20261011090100_menu_baskets_orders.sql, with one change: the prep time the merchant chose and the ready time are
+-- written before the status changes, so the promise above and the customer's "accepted" message use the merchant's own
+-- prep time, never the shop's default.
+create or replace function app_private.order_accept(
+  p_order_id uuid,
+  p_prep_minutes integer default null,
+  p_member_id uuid default null,
+  p_channel text default 'portal'
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_order public.orders%rowtype;
+  v_member uuid;
+  v_prep integer;
+begin
+  select * into v_order from public.orders where id = p_order_id for update;
+  if v_order.id is null then
+    raise exception 'unknown order %', p_order_id using errcode = 'no_data_found';
+  end if;
+  v_member := app_private.order_actor(v_order.vendor_id, array['owner', 'manager', 'cashier', 'kitchen']::public.member_role[], p_member_id);
+  if v_order.status <> 'placed' and v_order.accepted_at is not null and v_order.status not in ('cancelled', 'rejected') then
+    return jsonb_build_object('status', 'already_accepted', 'order_status', v_order.status);
+  end if;
+  v_prep := coalesce(p_prep_minutes, (select v.default_prep_minutes from public.vendors v where v.id = v_order.vendor_id));
+  if v_prep not between 1 and 240 then
+    raise exception 'prep time must be 1-240 minutes' using errcode = 'check_violation';
+  end if;
+  update public.orders set prep_minutes = v_prep, ready_at = now() + make_interval(mins => v_prep),
+    acknowledged_at = coalesce(acknowledged_at, now()), acknowledged_via = coalesce(acknowledged_via, p_channel)
+  where id = p_order_id;
+  v_order := app_private.order_set_status(p_order_id, 'accepted', array['placed']::public.order_status[], 'accepted',
+    p_channel, jsonb_build_object('prep_minutes', v_prep, 'member_id', v_member));
+  return jsonb_build_object('status', 'accepted', 'ready_at', now() + make_interval(mins => v_prep));
+end;
+$$;
+
 -- As in 20261015120100_customer_agent.sql, with one change: the discount expires after discount_expiry_days (dated config,
 -- DECISIONS §39.14), else dispute_rules.credit_days as before.
 create or replace function app_private.dispute_book(p_dispute_id uuid) returns jsonb
@@ -435,6 +480,10 @@ begin
   -- An online order is refunded to its original payment (§20.1), never with a discount line or stored money: no online
   -- payment is live yet, so nothing is booked here and the approval stays with a person for the refund.
   if v_o.payment_method is distinct from 'cod' then
+    perform app_private.ops_alert('refund_pending:' || v_d.id, 'customer_dispute', 'warning',
+      format('Order %s: %s approved ($%s); refund it to the original payment (%s)', v_o.code, replace(v_d.kind, '_', ' '),
+             v_d.amount_usd, v_o.payment_method),
+      v_o.id, v_o.vendor_id, jsonb_build_object('dispute_id', v_d.id, 'amount_usd', v_d.amount_usd));
     return jsonb_build_object('status', 'refund_pending', 'amount_usd', v_d.amount_usd);
   end if;
   v_tx := public.ledger_post('refund', 'dispute:' || v_d.id,
@@ -457,11 +506,14 @@ end;
 $$;
 
 -- Cold, spilled or very late (spec #50), one discount line per order whichever is reported first. The server decides:
---   very late  = delivered more than late_threshold_min after the top of the ETA range given at acceptance (eta_max_at;
---                for an order accepted before that column existed: the shop's prep time, the road at 25 km/h and the
---                range's width);
---   cold       = the delivery leg took more than cold_factor x the expected road time (as dispute_open), or very late;
+--   very late  = done more than late_threshold_min after the top of the ETA range given at acceptance (eta_max_at). Done
+--                is when the driver reached the door (the first 'arrived', else delivered_at), so time spent waiting for
+--                a customer who does not answer never counts; on a pickup it is when the shop marked the order ready,
+--                never when the customer came to collect it (the base dispute_open measured pickups the same way);
+--   cold       = the delivery leg (pickup to the door) took more than cold_factor x the expected road time (as
+--                dispute_open), or very late;
 --   spilled    = a person decides from the photo (photo classification waits for AI credit), as before.
+-- When lateness cannot be judged (no promise on the order, a pickup never marked ready), a person decides; never automatic.
 -- A cash order gets late_discount_usd off its next order (never more than the food), automatically within dispute_rules;
 -- an online order goes to a person for a refund to the original payment (§20.1). The merchant pays when it caused it (its
 -- own driver delivered, a pickup, or it was ready more than late_prep_min after its own promise); otherwise Alo King.
@@ -487,6 +539,8 @@ declare
   v_leg_min numeric;
   v_expected_min numeric;
   v_promise timestamptz;
+  v_done timestamptz;
+  v_unknown boolean := false;
   v_merchant_late boolean;
   v_id uuid;
 begin
@@ -523,22 +577,28 @@ begin
                               + make_interval(mins => (v_r ->> 'late_prep_min')::int);
   v_payer := case when v_o.fulfilment = 'pickup' or v_o.delivery_mode = 'merchant' or v_merchant_late then 'merchant'
                   else 'alo_king' end;
-  v_promise := coalesce(v_o.eta_max_at,
-    v_o.accepted_at + make_interval(mins => ceil(coalesce(v_o.prep_minutes, (select v.default_prep_minutes from public.vendors v where v.id = v_o.vendor_id)) + coalesce(v_o.road_km, 0) / 25.0 * 60
-                                                 + coalesce(public.config_numeric('eta_range_extra_min'), 10))::int));
-  v_very_late := v_o.delivered_at is not null and v_promise is not null
-    and v_o.delivered_at > v_promise + make_interval(mins => v_threshold::int);
+  -- No promise, no threshold: nothing is very late by itself (never a number written here); a person decides instead.
+  v_promise := v_o.eta_max_at;
+  v_done := case when v_o.fulfilment = 'pickup' then v_o.ready_marked_at
+                 else coalesce((select min(e.at) from public.order_events e where e.order_id = v_o.id and e.to_status = 'arrived'),
+                               v_o.delivered_at) end;
+  v_unknown := v_promise is null or v_threshold is null or v_done is null;
+  v_very_late := not v_unknown and v_done > v_promise + make_interval(mins => v_threshold::int);
 
   case p_kind
     when 'late' then
       v_eligible := v_very_late;
-      v_rule := case when v_promise is null then 'late: no promised time to check'
-                     when v_very_late then format('late: delivered %s min after the top of the ETA range',
-                                                  round(extract(epoch from (v_o.delivered_at - v_promise)) / 60.0))
-                     else format('late: delivered within %s min of the top of the ETA range', v_threshold) end;
+      v_rule := case when v_o.fulfilment = 'pickup' and v_o.ready_marked_at is null then 'late: the pickup was never marked ready'
+                     when v_unknown then 'late: no promised time to check'
+                     when v_very_late then format('late: %s %s min after the top of the ETA range',
+                                                  case when v_o.fulfilment = 'pickup' then 'ready' else 'at the door' end,
+                                                  round(extract(epoch from (v_done - v_promise)) / 60.0))
+                     else format('late: %s within %s min of the top of the ETA range',
+                                 case when v_o.fulfilment = 'pickup' then 'ready' else 'at the door' end, v_threshold) end;
     when 'cold_food' then
-      if v_o.picked_up_at is not null and v_o.delivered_at is not null and v_o.road_km is not null and v_o.delivery_pin is not null then
-        v_leg_min := extract(epoch from (v_o.delivered_at - v_o.picked_up_at)) / 60.0;
+      if v_o.fulfilment = 'delivery' and v_o.picked_up_at is not null and v_done is not null and v_o.road_km is not null
+         and v_o.delivery_pin is not null then
+        v_leg_min := extract(epoch from (v_done - v_o.picked_up_at)) / 60.0;
         select r.duration_s / 60.0 into v_expected_min
         from public.vendors v, public.route_cache_lookup(extensions.st_y(v.location::extensions.geometry), extensions.st_x(v.location::extensions.geometry),
           array[extensions.st_y(v_o.delivery_pin::extensions.geometry)], array[extensions.st_x(v_o.delivery_pin::extensions.geometry)]) r
@@ -556,10 +616,12 @@ begin
       v_rule := 'damaged: the photo decides, a person looks (remake or discount)';
   end case;
 
-  if p_kind = 'damaged' or v_eligible then
+  -- Lateness that cannot be judged goes to a person, with the usual amount proposed.
+  v_unknown := v_unknown and not v_eligible and p_kind in ('late', 'cold_food');
+  if p_kind = 'damaged' or v_eligible or v_unknown then
     v_amount := least(coalesce(v_late_usd, 0), v_o.food_subtotal_usd);
   end if;
-  if p_kind = 'damaged' then
+  if p_kind = 'damaged' or (v_unknown and v_amount > 0) then
     v_decision := 'review';
   elsif not v_eligible or v_amount <= 0 then
     v_decision := 'rejected';
@@ -667,10 +729,10 @@ revoke all on function app_private.order_same_dish_shops(uuid, integer, uuid), a
   app_private.dispute_late(uuid, uuid, text, text, text)
   from public, anon, authenticated;
 revoke all on function public.basket_switch_names(uuid, uuid), public.basket_gap_items(uuid, integer),
-  public.order_rebuild_at(uuid, uuid, uuid), public.order_note_send(uuid, text, text),
+  public.order_rebuild_at(uuid, uuid, uuid), public.order_note_send(uuid, text, text, uuid),
   public.dispute_report(uuid, uuid, text, uuid, integer, text, text), public.dispute_photo_add(uuid, text)
   from public, anon, authenticated;
 grant execute on function public.basket_switch_names(uuid, uuid), public.basket_gap_items(uuid, integer),
-  public.order_rebuild_at(uuid, uuid, uuid), public.order_note_send(uuid, text, text),
+  public.order_rebuild_at(uuid, uuid, uuid), public.order_note_send(uuid, text, text, uuid),
   public.dispute_report(uuid, uuid, text, uuid, integer, text, text), public.dispute_photo_add(uuid, text)
   to service_role;

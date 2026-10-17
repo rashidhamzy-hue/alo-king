@@ -3623,6 +3623,12 @@ const S5F8B: Record<string, Record<CLang, string>> = {
     arabizi:
       "✉️ Sajjalna kalemak la {vendor} ma3 el talab #{code}, w fari2na bywasslo. Mula7aza bas: el talab w se3ro ma byetghayaro.",
   },
+  noteNotSent: {
+    ar: "تمام، ما بعتناها للمحل.",
+    en: "OK, I didn't send it to the shop.",
+    fr: "D'accord, je ne l'ai pas envoyé au commerce.",
+    arabizi: "Tamam, ma ba3atneha lal ma7al.",
+  },
   noteSent: {
     ar: "✉️ وصّلنا كلامك لـ {vendor} مع الطلب #{code}. ملاحظة بس: الطلب وسعره ما بيتغيّروا.",
     en: "✉️ Passed to {vendor} with order #{code}. A note only: your order and its price stay as they are.",
@@ -3720,7 +3726,8 @@ const S5F8B: Record<string, Record<CLang, string>> = {
 };
 Object.assign(S, S5F8B);
 // A confirmation, a lead-in line before a message that carries the buttons, or a thanks while a person has the conversation.
-for (const k of ["noteSent", "noteKept", "rebuildMissing", "photoAttached"]) INFO_KEYS.add(k);
+for (const k of ["noteSent", "noteKept", "noteNotSent", "rebuildMissing", "photoAttached"])
+  INFO_KEYS.add(k);
 Object.assign(ERROR_WAYS, {
   noteLimit: ["track", "person"],
   rebuildNothing: ["order", "help"],

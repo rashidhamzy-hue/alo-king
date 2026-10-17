@@ -80,7 +80,7 @@ select public.address_save_pin(:'cid', 33.6801, 35.5701, 'Home') as pin \gset
 select (:'pin'::jsonb #>> '{address,address_id}') as aid \gset
 select public.address_set_for_whom(:'cid', :'aid', 'self', true);
 
-create function tests.cx_place(p_customer uuid, p_items uuid[], p_key text) returns uuid
+create function tests.cx_place(p_customer uuid, p_items uuid[], p_key text, p_pickup boolean default false) returns uuid
 language plpgsql as $$
 declare
   v_item uuid;
@@ -91,6 +91,9 @@ begin
   foreach v_item in array p_items loop
     perform public.basket_add_item(p_customer, v_item, 1, '{}', null, true);
   end loop;
+  if p_pickup then
+    perform public.basket_set_checkout(p_customer, 'pickup'::public.fulfilment_kind);
+  end if;
   v_q := public.basket_quote(p_customer);
   if v_q ->> 'status' <> 'ok' then
     raise exception 'quote: %', v_q ->> 'status';
@@ -149,17 +152,29 @@ select tests.ok(public.order_note_send(:'cid', 'no onions please', 'wamid.n0') -
   '#45: without an active order nothing is passed to anyone');
 select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a002'::uuid, '8b000000-0000-0000-0000-00000000a003'::uuid],
   'test:cx:o1') as o1 \gset
-select public.order_note_send(:'cid', '  no onions   please ', 'wamid.n1') as n1 \gset
-select tests.ok(:'n1'::jsonb ->> 'status' = 'sent' and :'n1'::jsonb ->> 'vendor_en' = 'Cx Eatout' and (:'n1'::jsonb ->> 'left')::int = 4,
-  '#45: the note goes with the active order; 4 more allowed (order_note_max_per_order 5)');
+-- The shop's 24-hour window is closed (its order card went as a template): a free-form note cannot reach it.
+select public.order_note_send(:'cid', 'ring twice', 'wamid.n0b') as n0b \gset
+select tests.ok(:'n0b'::jsonb ->> 'status' = 'no_channel'
+  and exists (select 1 from public.ops_alerts where dedupe_key = 'note:' || (:'n0b'::jsonb ->> 'note_id') and summary ~ 'window is closed')
+  and not exists (select 1 from public.outbound_messages where dedupe_key = 'note:' || (:'n0b'::jsonb ->> 'note_id')),
+  '#45: outside the shop''s window the note is kept and a person passes it on; never "passed" when it was not');
+insert into app_private.whatsapp_windows (phone_e164, phone_number_id, last_inbound_at)
+select '+96170000399', w.phone_number_id, now() from public.whatsapp_numbers w where w.active
+on conflict (phone_e164, phone_number_id) do update set last_inbound_at = excluded.last_inbound_at;
+select tests.ok(public.order_note_send(:'cid', 'ring twice', 'wamid.n0c', '8b000000-0000-0000-0000-0000000000ff') ->> 'status' = 'no_order',
+  '#45: the order the card named must be the customer''s own active order');
+select public.order_note_send(:'cid', '  no onions   please ', 'wamid.n1', :'o1') as n1 \gset
+select tests.ok(:'n1'::jsonb ->> 'status' = 'sent' and :'n1'::jsonb ->> 'vendor_en' = 'Cx Eatout' and (:'n1'::jsonb ->> 'left')::int = 3,
+  '#45: the note goes with the active order the card named; 3 more allowed (order_note_max_per_order 5)');
 select tests.ok((select m.target = '+96170000399' and m.purpose = 'customer_note' and m.payload ->> 'text' = 'no onions please'
   and m.payload ->> 'code' = (select code from public.orders where id = :'o1')
   and m.payload::text !~ '96170000801' from public.outbound_messages m where m.dedupe_key = 'note:' || (:'n1'::jsonb ->> 'note_id')),
   '#45: to the shop''s WhatsApp order number, with the order code, never the customer''s number');
 select tests.ok(not (:'n1'::jsonb)::text ~ '96170000399', '#45: the customer never gets the shop''s number');
 select tests.ok(public.order_note_send(:'cid', 'no onions please', 'wamid.n1') ->> 'repeat' = 'true'
-  and (select count(*) from public.order_customer_notes where order_id = :'o1') = 1, '#45: a replayed message is passed once');
-select public.order_note_send(:'cid', 'note ' || n, 'wamid.n' || (n + 1)) from generate_series(1, 4) n;
+  and (select count(*) from public.order_customer_notes where order_id = :'o1' and source_message_id = 'wamid.n1') = 1,
+  '#45: a replayed message is passed once');
+select public.order_note_send(:'cid', 'note ' || n, 'wamid.n' || (n + 1)) from generate_series(1, 3) n;
 select tests.ok(public.order_note_send(:'cid', 'one too many', 'wamid.n9') ->> 'status' = 'limit'
   and (select count(*) from public.order_customer_notes where order_id = :'o1') = 5, '#45: rate-limited per order (config)');
 select tests.ok(public.order_note_send(:'cid', '   ', 'wamid.n10') ->> 'status' = 'invalid', '#45: an empty note is not sent');
@@ -262,7 +277,7 @@ select tests.ok((select bool_or(a.kind = 'merchant_payable' and a.vendor_id = '8
   where t.idempotency_key = 'dispute:' || (:'d2'::jsonb ->> 'dispute_id')), '#49: charged to the merchant who caused it');
 
 -- O3: delivered within the ETA range: no late discount; spilled with a photo goes to a person with late_discount_usd proposed.
-update public.orders set eta_max_at = now() + interval '5 minutes' where id = :'o3';
+update public.orders set eta_max_at = now() + interval '5 minutes', delivered_at = now() - interval '2 minutes' where id = :'o3';
 select public.dispute_report(:'cid', :'o3', 'late') as d3 \gset
 select tests.ok(:'d3'::jsonb ->> 'status' = 'rejected' and (:'d3'::jsonb ->> 'amount_usd')::numeric = 0
   and not exists (select 1 from public.ledger_transactions where idempotency_key = 'dispute:' || (:'d3'::jsonb ->> 'dispute_id')),
@@ -286,6 +301,13 @@ select tests.ok(:'ph'::jsonb ->> 'status' = 'attached' and :'ph'::jsonb ->> 'dis
   '#49: a photo sent later joins the latest report a person is deciding');
 select tests.ok(public.dispute_photo_add(:'cid', 'wa-media:another') ->> 'status' = 'attached'
   and public.dispute_photo_add(:'cid', 'https://evil.example/x.jpg') ->> 'status' = 'invalid', '#49: only media references are kept');
+-- Approved: nothing booked, and the refund still owed is an operator alert, so it is never lost.
+select public.dispute_decide((:'d5'::jsonb ->> 'dispute_id')::uuid, true, '00000000-0000-0000-0000-00000000000a') as dd5 \gset
+select tests.ok(:'dd5'::jsonb ->> 'status' = 'refund_pending'
+  and (select ledger_tx is null from public.order_disputes where id = (:'d5'::jsonb ->> 'dispute_id')::uuid)
+  and not exists (select 1 from public.customer_credits where dispute_id = (:'d5'::jsonb ->> 'dispute_id')::uuid)
+  and exists (select 1 from public.ops_alerts where dedupe_key = 'refund_pending:' || (:'d5'::jsonb ->> 'dispute_id')),
+  '#50: an approved online refund books nothing and tells the operators the refund is owed (§20.1)');
 
 -- The discount lines on the next order: off the total at the summary, recorded for the merchant on delivery ------------
 select public.ledger_account('customer_refund_payable', 'USD') as crp \gset
@@ -325,6 +347,46 @@ select tests.throws($$update public.ledger_entries set amount = amount + 1 where
   'append-only|not allowed|cannot', 'a ledger entry is never edited');
 select tests.throws($$delete from public.ledger_transactions where idempotency_key like 'dispute:%'$$,
   'append-only|not allowed|cannot', 'or deleted');
+
+-- Lateness is the shop's or the driver's, never the customer's own -------------------------------------------------------------
+-- The merchant's own prep time sets the promise: accepted at 45 minutes where the shop's default is shorter.
+update public.vendors set pickup_enabled = true where id = '8b000000-0000-0000-0000-0000000000a1';
+select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a005'::uuid], 'test:cx:o6', true) as o6 \gset
+select app_private.order_accept(:'o6', 45, null, 'whatsapp');
+select tests.ok((select prep_minutes = 45 and eta_max_at >= now() + interval '45 minutes' from public.orders where id = :'o6'),
+  '#50: the promise uses the prep time the merchant chose, never the shop''s default');
+-- A pickup the shop had ready on time, collected 40 minutes late: not late, nothing charged to the merchant.
+update public.orders set status = 'ready' where id = :'o6';
+update public.orders set status = 'delivered' where id = :'o6';
+update public.orders set ready_marked_at = now() - interval '60 minutes', eta_max_at = now() - interval '55 minutes',
+  delivered_at = now() - interval '15 minutes' where id = :'o6';
+select public.dispute_report(:'cid', :'o6', 'late') as d6 \gset
+select tests.ok(:'d6'::jsonb ->> 'status' = 'rejected'
+  and not exists (select 1 from public.ledger_transactions where idempotency_key = 'dispute:' || (:'d6'::jsonb ->> 'dispute_id')),
+  '#50: a pickup is measured on when the shop had it ready, never when the customer came: no discount, no ledger row');
+select tests.ok(public.dispute_report(:'cid', :'o6', 'cold_food') ->> 'status' = 'rejected',
+  '#50: and its food is not cold by the collection time either');
+-- A pickup never marked ready: a person decides, never automatic.
+select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a005'::uuid], 'test:cx:o7', true) as o7 \gset
+update public.orders set status = 'accepted' where id = :'o7';
+update public.orders set status = 'ready' where id = :'o7';
+update public.orders set status = 'delivered' where id = :'o7';
+update public.orders set ready_marked_at = null, eta_max_at = now() - interval '55 minutes', delivered_at = now() - interval '5 minutes'
+where id = :'o7';
+select public.dispute_report(:'cid', :'o7', 'late') as d7 \gset
+select tests.ok(:'d7'::jsonb ->> 'status' = 'review'
+  and not exists (select 1 from public.ledger_transactions where idempotency_key = 'dispute:' || (:'d7'::jsonb ->> 'dispute_id')),
+  '#50: a pickup never marked ready cannot be judged: a person decides');
+-- A delivery: the driver reached the door on time and waited for the customer; delivered 40 minutes after the promise.
+select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a005'::uuid], 'test:cx:o8') as o8 \gset
+select tests.cx_deliver(:'o8');
+update public.orders set delivery_mode = 'merchant', eta_max_at = now() - interval '45 minutes', delivered_at = now() - interval '5 minutes'
+where id = :'o8';
+insert into public.order_events (order_id, at, from_status, to_status, event, actor_kind)
+values (:'o8', now() - interval '50 minutes', 'picked_up', 'arrived', 'arrived', 'system');
+select public.dispute_report(:'cid', :'o8', 'late') as d8 \gset
+select tests.ok(:'d8'::jsonb ->> 'status' = 'rejected' and :'d8'::jsonb ->> 'rule' ~ 'at the door within',
+  '#50: lateness is measured at the door: time waiting for a customer who does not answer never earns a discount');
 
 -- Access: the service role only ----------------------------------------------------------------------------------------------
 set local role authenticated;

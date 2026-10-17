@@ -5140,7 +5140,12 @@ describe("session 5f part 8b: second shop, minimum order, a shop that can't take
     expect(btnIds(f.sent[0])).toEqual([`rpl:${ITEM_B}:2`, "c:keep"]);
     expect(btnTitles(f.sent[0])).toEqual(["✅ Start new", "Keep Eatout"]);
     expect(checkInteractive(f.sent[0])).toEqual([]);
-    expect(endSess(f).pending).toEqual({ kind: "replace_basket", item_id: ITEM_B, qty: 2 });
+    expect(endSess(f).pending).toEqual({
+      kind: "replace_basket",
+      item_id: ITEM_B,
+      qty: 2,
+      at: "2026-10-11T12:00:00.000Z",
+    });
   });
 
   it("#28 in Arabic the names are Arabic; a typed yes starts the new basket, a no keeps it", async () => {
@@ -5171,6 +5176,14 @@ describe("session 5f part 8b: second shop, minimum order, a shop that can't take
     await handleCustomerTurn(no.deps, msg({ text: "no" }));
     expect(no.of("basket_add_item")).toHaveLength(0);
     expect(endSess(no).pending).toEqual({});
+    // A yes typed long after the card was ignored never empties the basket.
+    const late = fake({
+      begin: { basket, ...session({ pending: { ...pending, at: "2026-10-11T11:49:00.000Z" } }) },
+      rpcs: { basket_add_item: () => ({ status: "added", basket }) },
+    });
+    await handleCustomerTurn(late.deps, msg({ text: "yes" }));
+    expect(late.of("basket_add_item").every((x) => x.args.p_replace !== true)).toBe(true);
+    expect(endSess(late).pending.kind).not.toBe("replace_basket");
   });
 
   it("#28 the agent starts the new basket the same way (add_items with start_new_basket), only once the question was asked", async () => {
@@ -5198,7 +5211,12 @@ describe("session 5f part 8b: second shop, minimum order, a shop that can't take
       begin: {
         basket,
         ...session({
-          pending: { kind: "replace_basket", item_id: ITEM_B, qty: 1 },
+          pending: {
+            kind: "replace_basket",
+            item_id: ITEM_B,
+            qty: 1,
+            at: "2026-10-11T11:58:00.000Z",
+          },
           refs: { i1: { id: ITEM_B, label: "Fries $3.00" } },
         }),
       },
@@ -5438,7 +5456,11 @@ describe("session 5f part 8b: second shop, minimum order, a shop that can't take
     expect(btnIds(f.sent[0])).toEqual(["msn:send", "msn:search"]);
     expect(checkInteractive(f.sent[0])).toEqual([]);
     const pending = endSess(f).pending;
-    expect(pending).toMatchObject({ kind: "shop_note", text: "please no onions on the shawarma" });
+    expect(pending).toMatchObject({
+      kind: "shop_note",
+      text: "please no onions on the shawarma",
+      order_id: ORDER,
+    });
 
     const g = fake({
       model: null,
@@ -5461,6 +5483,7 @@ describe("session 5f part 8b: second shop, minimum order, a shop that can't take
       p_customer_id: CUST,
       p_text: "please no onions on the shawarma",
       p_message_id: "wamid.note1",
+      p_order_id: ORDER,
     });
     expect(bodyOf(g.sent[0])).toBe(
       "✉️ Passed to Eatout with order #AB3CD9. A note only: your order and its price stay as they are.",
@@ -5472,6 +5495,14 @@ describe("session 5f part 8b: second shop, minimum order, a shop that can't take
     await handleCustomerTurn(h.deps, msg({ type: "interactive", buttonId: "msn:search" }));
     expect(h.of("order_note_send")).toHaveLength(0);
     expect(h.of("catalog_search")[0].args.p_query).toBe("please no onions on the shawarma");
+
+    // A typed no only drops the question: nothing to the shop, no search.
+    const n = fake({ model: null, begin: { ...active, ...session({ pending }) } });
+    await handleCustomerTurn(n.deps, msg({ text: "no" }));
+    expect(n.of("order_note_send")).toHaveLength(0);
+    expect(n.of("catalog_search")).toHaveLength(0);
+    expect(bodyOf(n.sent[0])).toBe("OK, I didn't send it to the shop.");
+    expect(endSess(n).pending).toEqual({});
   });
 
   it("#45 the limit per order is said with a person's button; tracking words still track", async () => {

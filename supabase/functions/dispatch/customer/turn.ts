@@ -1047,9 +1047,11 @@ async function textIntent(c: Ctx, kind: string) {
     case "menu":
       return startOrder(c);
     case "yes":
+      // A typed yes or no answers the Start new question only while it is fresh: an ignored card never empties a basket.
+      if (c.s.pending.kind === "replace_basket" && !pendingFresh(c)) c.s.pending = {};
       if (c.s.pending.kind === "confirm")
         return confirm(c, c.s.pending.basket_id, c.s.pending.version);
-      if (c.s.pending.kind === "shop_note") return shopNoteAnswer(c, true);
+      if (c.s.pending.kind === "shop_note") return shopNoteAnswer(c, "send");
       // "Start a new one from SEVEN?" answered by typing (spec #28): the same as the Start new tap.
       if (c.s.pending.kind === "replace_basket" && c.s.pending.item_id)
         return tap(c, {
@@ -1060,8 +1062,9 @@ async function textIntent(c: Ctx, kind: string) {
       if (c.s.pending.kind === "delete") return tap(c, { a: "simple", what: "delete_ok" });
       return modelTurn(c, c.m.text ?? "", false);
     case "no":
+      if (c.s.pending.kind === "replace_basket" && !pendingFresh(c)) c.s.pending = {};
       if (c.s.pending.kind === "replace_basket") return tap(c, { a: "simple", what: "keep" });
-      if (c.s.pending.kind === "shop_note") return shopNoteAnswer(c, false);
+      if (c.s.pending.kind === "shop_note") return shopNoteAnswer(c, "no");
       if (c.s.pending.kind === "confirm" || c.s.pending.kind === "delete") {
         c.s.pending = {};
         return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
@@ -1283,7 +1286,7 @@ async function tap(c: Ctx, a: CustomerAction) {
     case "photo_skip":
       return problemPhotoAnswer(c, null, null);
     case "shop_note":
-      return shopNoteAnswer(c, a.send);
+      return shopNoteAnswer(c, a.send ? "send" : "search");
     case "replace_basket": {
       if (c.s.pending.kind === "replace_basket") c.s.pending = {};
       const r = await addItem(c, {
@@ -3436,6 +3439,7 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
           input.start_new_basket === true &&
           !added &&
           c.s.pending.kind === "replace_basket" &&
+          pendingFresh(c) &&
           !(it.options ?? []).length
         ) {
           const opts = await deps.rpc("menu_item_options", { p_item_id: itemId });
@@ -4724,7 +4728,12 @@ async function otherShop(c: Ctx, itemId: string, qty: number, basketVendor: stri
     basketVendor ??
     "";
   const shop = (lang === "ar" ? n?.item_vendor : (n?.item_vendor_en ?? n?.item_vendor)) ?? "";
-  c.s.pending = { kind: "replace_basket", item_id: itemId, qty: Math.min(Math.max(qty, 1), 50) };
+  c.s.pending = {
+    kind: "replace_basket",
+    item_id: itemId,
+    qty: Math.min(Math.max(qty, 1), 50),
+    at: nowIso(c),
+  };
   c.summary.push(
     `[the item is from ${shop || "another shop"}: asked to start a new basket or keep ${basket}]`,
   );
@@ -4831,7 +4840,13 @@ async function orderNoteRelay(c: Ctx, t: string): Promise<boolean> {
   const active = c.orders.find((o) => ACTIVE_ORDER.has(String(o?.status)));
   if (!active) return false;
   // Asked first (never a dish search or a "thanks" sent to the shop unasked): Send, or Search the menu with the words.
-  c.s.pending = { kind: "shop_note", text: t.slice(0, 300), at: nowIso(c) };
+  // The order the card names is the one the note goes with (the server re-checks it is the customer's and still active).
+  c.s.pending = {
+    kind: "shop_note",
+    text: t.slice(0, 300),
+    at: nowIso(c),
+    order_id: active.id ?? null,
+  };
   c.summary.push(`[asked whether to pass the text to the shop on order ${active.code}]`);
   const vendor = String(
     (c.s.lang === "ar" ? active.vendor : (active.vendor_en ?? active.vendor)) ?? "",
@@ -4840,25 +4855,38 @@ async function orderNoteRelay(c: Ctx, t: string): Promise<boolean> {
   return true;
 }
 
-/** The answer to "Send this to the shop?": the note (order_note_send), or the menu search with the same words. */
-async function shopNoteAnswer(c: Ctx, send: boolean) {
-  const p = c.s.pending;
-  c.s.pending = {};
-  const at = Date.parse(String(p.at ?? ""));
-  const fresh =
-    Number.isFinite(at) && (c.deps.now?.() ?? new Date()).getTime() - at <= TEXT_WAIT_MS;
-  if (p.kind !== "shop_note" || typeof p.text !== "string" || !fresh)
-    return push(c, mainMenu(c.m.from, c.s.lang));
-  if (!send) return catalogText(c, p.text, null);
-  if (!(await messageShop(c, p.text))) return say(c, "trackNone");
+/** A question a card asked, answered by typing: only within TEXT_WAIT_MS of asking. */
+function pendingFresh(c: Ctx): boolean {
+  const at = Date.parse(String(c.s.pending.at ?? ""));
+  return Number.isFinite(at) && (c.deps.now?.() ?? new Date()).getTime() - at <= TEXT_WAIT_MS;
 }
 
-/** The note itself (order_note_send: the customer's latest active order, rate-limited per order). False: nothing to pass. */
-async function messageShop(c: Ctx, t: string): Promise<boolean> {
+/**
+ * The answer to "Send this to the shop?": Send passes the note (order_note_send), the Search the menu button searches with
+ * the same words, and a typed no only drops the question.
+ */
+async function shopNoteAnswer(c: Ctx, answer: "send" | "search" | "no") {
+  const fresh = pendingFresh(c);
+  const p = c.s.pending;
+  c.s.pending = {};
+  if (p.kind !== "shop_note" || typeof p.text !== "string" || !fresh)
+    return push(c, mainMenu(c.m.from, c.s.lang));
+  if (answer === "no") return say(c, "noteNotSent");
+  if (answer === "search") return catalogText(c, p.text, null);
+  if (!(await messageShop(c, p.text, typeof p.order_id === "string" ? p.order_id : null)))
+    return say(c, "trackNone");
+}
+
+/**
+ * The note itself (order_note_send: the order the card named, else the customer's latest active order, rate-limited per
+ * order). False: nothing to pass.
+ */
+async function messageShop(c: Ctx, t: string, orderId: string | null = null): Promise<boolean> {
   const r = await c.deps.rpc("order_note_send", {
     p_customer_id: c.customerId,
     p_text: t,
     p_message_id: c.m.messageId,
+    p_order_id: orderId,
   });
   c.tools.push("order_note");
   const vendor = String((c.s.lang === "ar" ? r?.vendor : (r?.vendor_en ?? r?.vendor)) ?? "");
