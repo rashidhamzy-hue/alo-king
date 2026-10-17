@@ -2986,12 +2986,16 @@ async function checkout(
     });
   // The address state, quote, substitution question and cash state in one call (basket_checkout_view, §39.15.6), each
   // asked on its own only when the view did not answer it.
-  const view = await deps
-    .rpc("basket_checkout_view", { p_customer_id: c.customerId })
-    .catch((e: unknown) => {
-      if (e instanceof RpcStalled) throw e;
-      return null;
-    });
+  // Not while "For my mom" waits to be asked (refs.xe): the view would quote first, and a quote moves the offer the
+  // order's repriced check compares with (order_place); the steps are then asked one by one, as before.
+  const view = c.s.refs.xe
+    ? null
+    : await deps
+        .rpc("basket_checkout_view", { p_customer_id: c.customerId })
+        .catch((e: unknown) => {
+          if (e instanceof RpcStalled) throw e;
+          return null;
+        });
   // The delivery address is confirmed on every order, and a new one asks who the order is for (§22.1, §39.6).
   const st =
     view?.address ?? (await deps.rpc("basket_address_state", { p_customer_id: c.customerId }));

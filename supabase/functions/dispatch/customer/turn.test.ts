@@ -262,6 +262,31 @@ describe("customer turn: deterministic paths (zero model calls, §4)", () => {
     );
     expect(bodyOf(summary)).toContain("$12.00 = 1,074,000 LBP");
 
+    // "For my mom" said earlier (refs.xe): no view, so no quote moves the offer before that question is asked.
+    const h = fake({
+      begin: {
+        basket,
+        session: {
+          lang: "en",
+          pending: {},
+          refs: { xe: { id: "someone_else", label: "someone_else" } },
+          history: [],
+          low_confidence: 0,
+          handoff: false,
+        },
+      },
+      rpcs: {
+        basket_checkout_view: () => {
+          throw new Error("the view must not run while For my mom waits");
+        },
+        basket_address_state: () => ({ status: "ok", address_id: "a1", gift: false, address: {} }),
+      },
+    });
+    await handleCustomerTurn(h.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+    expect(h.of("basket_checkout_view")).toHaveLength(0);
+    expect(h.of("basket_quote")).toHaveLength(0);
+    expect(h.of("customer_turn_end")[0].args.p_session.pending).toMatchObject({ kind: "for_whom" });
+
     // A view that stopped at the address asks it there, and nothing after it is read.
     const g = fake({
       begin: { basket },
