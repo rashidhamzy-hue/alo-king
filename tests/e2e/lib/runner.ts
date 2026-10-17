@@ -82,7 +82,7 @@ export async function runScenario(env: Env, sc: Scenario, file: string): Promise
     if (r.failures.length) r.ok = false;
     if (!r.ok) {
       ok = false;
-      error = `step ${r.index} (${label}): ${r.failures[0]}`;
+      error = redact(`step ${r.index} (${label}): ${r.failures[0]}`);
       break; // later steps depend on this one
     }
   }

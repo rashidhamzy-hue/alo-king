@@ -1,7 +1,7 @@
 # The path a friend abroad takes (session 5g part E, DECISIONS §39.15.3): an ice breaker, a pin from $WHERE, the demo
 # address, the craving list with Explore, a shop from the website, Open menu, the web menu, Continue in WhatsApp, the
-# checkout, and the demo autopilot playing the shop to delivered. Needs vars.slug and vars.item (a delivery-only demo shop
-# that delivers to Baakleen, one item with no choices).
+# checkout and the order placed (friend-after.yaml waits for delivered). Needs vars.slug and vars.item (a delivery-only
+# demo shop that delivers to Baakleen, one item with no choices).
 steps:
   - note: $AS taps the ice breaker "Order food" (§39.15.11) on first contact; the bot asks for the location pin
     say: { as: $AS, text: "Order food" }
@@ -82,23 +82,3 @@ steps:
     expect:
       - { to: $AS }
       - { to: merchant, buttons: ["acc:"], text: "Demo" }
-  - note: >
-      nobody taps: the demo autopilot (tick-30s) accepts after demo_autopilot_after_s, then marks it ready, on the way and
-      delivered every demo_autopilot_step_s; $AS gets every normal message up to delivered
-    timeout_s: 480
-    quiet_s: 1
-    expect:
-      - { to: $AS, text_any: ["delivered", "livrée", "وصل"] }
-    db:
-      - sql: >
-          select o.status, o.is_demo from public.orders o join public.customers c on c.id = o.customer_id
-          where c.phone_e164 = '{{$AS.phone}}' order by o.created_at desc limit 1
-        row: { status: delivered, is_demo: true }
-        within_s: 30
-  - note: Explore typed later sends the link alone
-    say: { as: $AS, text: "Explore" }
-    expect:
-      - { to: $AS, kind: "interactive:cta_url", text: "/e?t=" }
-  - sql: >
-      select public.sim_tester('{{$AS.phone}}', false), public.sim_demo('{{$AS.phone}}', '{{merchant.phone}}', false),
-             public.sim_catalog('{{$AS.phone}}', false)

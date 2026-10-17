@@ -32,3 +32,6 @@ steps:
   - include: { part: friend-path, as: dubai, where: Dubai, lat: 25.2048, lon: 55.2708 }
   - include: { part: friend-path, as: riyadh, where: Riyadh, lat: 24.7136, lon: 46.6753 }
   - include: { part: friend-path, as: beirut, where: Beirut, lat: 33.8938, lon: 35.5018 }
+  - include: { part: friend-after, as: dubai }
+  - include: { part: friend-after, as: riyadh }
+  - include: { part: friend-after, as: beirut }
