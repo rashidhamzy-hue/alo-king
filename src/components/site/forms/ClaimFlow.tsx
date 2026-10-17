@@ -413,7 +413,7 @@ export function ClaimFlow({ business }: { business: ClaimBusiness }) {
                   ? c.waitlistText
                   : c.reviewText}
             </p>
-            <Link to="/$lang/contact" params={{ lang }} className="ak-btn ak-btn-ink mt-3">
+            <Link to="/$lang/business/contact" params={{ lang }} className="ak-btn ak-btn-ink mt-3">
               {c.contact}
             </Link>
           </div>
@@ -438,7 +438,7 @@ export function ClaimFlow({ business }: { business: ClaimBusiness }) {
                   {t.form.back}
                 </button>
               )}
-              <Link to="/$lang/contact" params={{ lang }} className="ak-btn ak-btn-line">
+              <Link to="/$lang/business/contact" params={{ lang }} className="ak-btn ak-btn-line">
                 {c.contact}
               </Link>
             </div>

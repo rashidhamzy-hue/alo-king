@@ -27,7 +27,7 @@ export const Route = createFileRoute("/$lang/business/help")({
 });
 
 function BusinessHelp() {
-  const { t, overview } = useSite();
+  const { t, lang, overview } = useSite();
   const h = t.biz.help;
   return (
     <>
@@ -47,9 +47,17 @@ function BusinessHelp() {
                 className="mt-5"
                 size="md"
                 variant="ink"
-                text={t.wa.person}
+                text={t.wa.business}
                 label={h.contactCta}
+                business
               />
+              <Link
+                to="/$lang/business/contact"
+                params={{ lang }}
+                className="mt-4 block font-bold underline underline-offset-4"
+              >
+                {t.contact.bizContact}
+              </Link>
             </div>
             <div className="ak-card p-6">
               <h2 className="ak-h3">{h.dashboardTitle}</h2>

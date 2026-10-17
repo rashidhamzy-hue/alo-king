@@ -40,6 +40,7 @@ import { Route as SitemapChar123kindChar125DotxmlRouteImport } from './routes/si
 import { Route as TrackOrderIdRouteImport } from './routes/track.$orderId'
 import { Route as LangBusinessIndexRouteImport } from './routes/$lang.business.index'
 import { Route as LangBusinessClaimRouteImport } from './routes/$lang.business.claim'
+import { Route as LangBusinessContactRouteImport } from './routes/$lang.business.contact'
 import { Route as LangBusinessDriversRouteImport } from './routes/$lang.business.drivers'
 import { Route as LangBusinessHelpRouteImport } from './routes/$lang.business.help'
 import { Route as LangBusinessRegisterRouteImport } from './routes/$lang.business.register'
@@ -211,6 +212,11 @@ const LangBusinessClaimRoute = LangBusinessClaimRouteImport.update({
   path: '/business/claim',
   getParentRoute: () => LangRoute,
 } as any)
+const LangBusinessContactRoute = LangBusinessContactRouteImport.update({
+  id: '/business/contact',
+  path: '/business/contact',
+  getParentRoute: () => LangRoute,
+} as any)
 const LangBusinessDriversRoute = LangBusinessDriversRouteImport.update({
   id: '/business/drivers',
   path: '/business/drivers',
@@ -313,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/$lang/': typeof LangIndexRoute
   '/merchant/': typeof MerchantIndexRoute
   '/$lang/business/claim': typeof LangBusinessClaimRoute
+  '/$lang/business/contact': typeof LangBusinessContactRoute
   '/$lang/business/drivers': typeof LangBusinessDriversRoute
   '/$lang/business/help': typeof LangBusinessHelpRoute
   '/$lang/business/register': typeof LangBusinessRegisterRoute
@@ -358,6 +365,7 @@ export interface FileRoutesByTo {
   '/$lang': typeof LangIndexRoute
   '/merchant': typeof MerchantIndexRoute
   '/$lang/business/claim': typeof LangBusinessClaimRoute
+  '/$lang/business/contact': typeof LangBusinessContactRoute
   '/$lang/business/drivers': typeof LangBusinessDriversRoute
   '/$lang/business/help': typeof LangBusinessHelpRoute
   '/$lang/business/register': typeof LangBusinessRegisterRoute
@@ -406,6 +414,7 @@ export interface FileRoutesById {
   '/$lang/': typeof LangIndexRoute
   '/merchant/': typeof MerchantIndexRoute
   '/$lang/business/claim': typeof LangBusinessClaimRoute
+  '/$lang/business/contact': typeof LangBusinessContactRoute
   '/$lang/business/drivers': typeof LangBusinessDriversRoute
   '/$lang/business/help': typeof LangBusinessHelpRoute
   '/$lang/business/register': typeof LangBusinessRegisterRoute
@@ -455,6 +464,7 @@ export interface FileRouteTypes {
     | '/$lang/'
     | '/merchant/'
     | '/$lang/business/claim'
+    | '/$lang/business/contact'
     | '/$lang/business/drivers'
     | '/$lang/business/help'
     | '/$lang/business/register'
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/$lang'
     | '/merchant'
     | '/$lang/business/claim'
+    | '/$lang/business/contact'
     | '/$lang/business/drivers'
     | '/$lang/business/help'
     | '/$lang/business/register'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/$lang/'
     | '/merchant/'
     | '/$lang/business/claim'
+    | '/$lang/business/contact'
     | '/$lang/business/drivers'
     | '/$lang/business/help'
     | '/$lang/business/register'
@@ -801,6 +813,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LangBusinessClaimRouteImport
       parentRoute: typeof LangRoute
     }
+    '/$lang/business/contact': {
+      id: '/$lang/business/contact'
+      path: '/business/contact'
+      fullPath: '/$lang/business/contact'
+      preLoaderRoute: typeof LangBusinessContactRouteImport
+      parentRoute: typeof LangRoute
+    }
     '/$lang/business/drivers': {
       id: '/$lang/business/drivers'
       path: '/business/drivers'
@@ -913,6 +932,7 @@ interface LangRouteChildren {
   LangSendHomeRoute: typeof LangSendHomeRoute
   LangIndexRoute: typeof LangIndexRoute
   LangBusinessClaimRoute: typeof LangBusinessClaimRoute
+  LangBusinessContactRoute: typeof LangBusinessContactRoute
   LangBusinessDriversRoute: typeof LangBusinessDriversRoute
   LangBusinessHelpRoute: typeof LangBusinessHelpRoute
   LangBusinessRegisterRoute: typeof LangBusinessRegisterRoute
@@ -939,6 +959,7 @@ const LangRouteChildren: LangRouteChildren = {
   LangSendHomeRoute: LangSendHomeRoute,
   LangIndexRoute: LangIndexRoute,
   LangBusinessClaimRoute: LangBusinessClaimRoute,
+  LangBusinessContactRoute: LangBusinessContactRoute,
   LangBusinessDriversRoute: LangBusinessDriversRoute,
   LangBusinessHelpRoute: LangBusinessHelpRoute,
   LangBusinessRegisterRoute: LangBusinessRegisterRoute,
