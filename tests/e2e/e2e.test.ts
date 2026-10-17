@@ -148,7 +148,7 @@ describe("scenario files", () => {
       expect(sc.name).toMatch(/^[a-z0-9-]+$/);
       expect(Object.keys(sc.personas).length).toBeGreaterThan(0);
       for (const [i, s] of sc.steps.entries()) {
-        const actions = ["say", "tap", "pin", "voice", "cart", "sql", "wait_s"].filter(
+        const actions = ["say", "tap", "pin", "voice", "cart", "flow", "sql", "wait_s"].filter(
           (k) => (s as any)[k] !== undefined,
         );
         expect(actions.length, `step ${i + 1} needs exactly one action`).toBeLessThanOrEqual(1);
@@ -161,6 +161,7 @@ describe("scenario files", () => {
               "pin",
               "voice",
               "cart",
+              "flow",
               "sql",
               "wait_s",
               "expect",
@@ -176,6 +177,7 @@ describe("scenario files", () => {
           s.pin?.as,
           s.voice?.as,
           s.cart?.as,
+          s.flow?.as,
           ...(s.expect ?? []).map((e) => e.to ?? e.none),
         ])
           if (p) expect(sc.personas[p], `step ${i + 1}: persona ${p}`).toBeDefined();

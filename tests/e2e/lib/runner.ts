@@ -1,5 +1,5 @@
 // Executes one scenario against staging: signed webhook in, sim_outbox + database assertions out.
-import { randomInt } from "node:crypto";
+import { createHmac, randomInt } from "node:crypto";
 import { deliver, inboundPayload, type Inbound } from "./kapso";
 import { mismatch, optionMatches, render, toOut, valueMatches } from "./match";
 import type { DbCheck, Expect, Out, Scenario, ScenarioResult, Step, StepResult } from "./types";
@@ -13,7 +13,18 @@ export type Env = {
   phoneNumberId: string;
   merchantPhone: string;
   fetchImpl?: typeof fetch;
+  /** The Flow app's endpoint (flow-app); defaults to the webhook URL with the function name changed. */
+  flowUrl?: string;
 };
+
+/** A JSON pointer (/a/0/b) into a value. */
+export function pointer(v: unknown, p: string): unknown {
+  return p
+    .split("/")
+    .slice(1)
+    .map((k) => k.replace(/~1/g, "/").replace(/~0/g, "~"))
+    .reduce<any>((o, k) => (o == null ? undefined : o[k]), v);
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Transcripts are artifacts: a signed link's token (a web link's ?t=, a tracking page's /track/) is never written in one.
@@ -173,6 +184,8 @@ export async function runScenario(env: Env, sc: Scenario, file: string): Promise
         };
         await post(c.as, { type: "order", catalogId, items: ok }, r);
       }
+    } else if (step.flow) {
+      await flowStep(step.flow, r);
     } else if (step.voice) {
       sent = { as: step.voice.as, text: `(voice note, transcript "${step.voice.transcript}")` };
       await post(step.voice.as, { type: "voice", transcript: step.voice.transcript }, r);
@@ -233,6 +246,88 @@ export async function runScenario(env: Env, sc: Scenario, file: string): Promise
 
   function satisfied(e: Expect, window: Out[]): boolean {
     return window.some((m) => (!e.to || m.to === phones[e.to]) && !mismatch(e, m));
+  }
+
+  // The Flow app (§39.15.13): one session per persona; the request is what Kapso's function forwards to flow-app.
+  async function flowStep(f: NonNullable<Step["flow"]>, r: StepResult) {
+    const phone = phones[f.as];
+    if (!phone) throw new Error(`unknown persona "${f.as}"`);
+    const tokenVar = `flow_token_${f.as}`;
+    if (f.action === "INIT" || !vars[tokenVar]) {
+      const t = (
+        await env.db.query(
+          "select public.flow_app_open(c.id, 'en', true) as t from public.customers c where c.phone_e164 = $1",
+          [phone],
+        )
+      ).rows[0]?.t;
+      if (!t) return void r.failures.push(`no Flow app token for ${f.as} (no delivery point yet?)`);
+      vars[tokenVar] = String(t);
+    }
+    const key = String(
+      (await env.db.query("select public.flow_app_proxy_key() as k")).rows[0]?.k ?? "",
+    );
+    const data = Object.fromEntries(
+      Object.entries(f.data ?? {}).map(([k, v]) => [
+        k,
+        typeof v === "string" ? render(v, scope()) : v,
+      ]),
+    );
+    const body = JSON.stringify({
+      source: "whatsapp_flow",
+      flow: { id: "e2e", meta_flow_id: "e2e" },
+      data_exchange: {
+        version: "3.0",
+        action: f.action ?? "data_exchange",
+        screen: "",
+        data,
+        flow_token: vars[tokenVar],
+      },
+      signature_valid: true,
+      received_at: new Date().toISOString(),
+    });
+    const ts = String(Math.floor(Date.now() / 1000));
+    const sig = createHmac("sha256", Buffer.from(key, "hex")).update(`${ts}.${body}`).digest("hex");
+    const url = env.flowUrl ?? env.webhookUrl.replace("/whatsapp-webhook", "/flow-app");
+    const started = Date.now();
+    const res = await (env.fetchImpl ?? fetch)(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-alo-timestamp": ts,
+        "x-alo-signature": sig,
+      },
+      body,
+      signal: AbortSignal.timeout(15_000),
+    });
+    const out: any = await res.json().catch(() => null);
+    const ms = Date.now() - started;
+    r.lines.push(
+      `${names[f.as]} → Flow app ${f.action ?? "data_exchange"} ${short(JSON.stringify(data), 120)} ← ${res.status} ${out?.screen ?? "?"} (${ms} ms, ${Math.round(JSON.stringify(out ?? {}).length / 1024)} KB)`,
+    );
+    if (!res.ok || out?.version !== "3.0")
+      return void r.failures.push(
+        `flow-app answered ${res.status}: ${short(JSON.stringify(out), 200)}`,
+      );
+    if (out.screen !== f.screen)
+      r.failures.push(`flow-app answered screen ${out.screen}, wanted ${f.screen}`);
+    for (const [p, want] of Object.entries(f.has ?? {})) {
+      const got = pointer(out.data, p);
+      const w = typeof want === "string" ? render(want, scope()) : want;
+      if (!valueMatches(got, w))
+        r.failures.push(
+          `flow data ${p} = ${short(JSON.stringify(got), 120)}, wanted ${JSON.stringify(w)}`,
+        );
+    }
+    for (const [name, p] of Object.entries(f.save ?? {})) {
+      const got = pointer(out.data, p);
+      if (got === undefined) r.failures.push(`flow save ${name}: nothing at ${p}`);
+      else vars[name] = String(got);
+    }
+    const params = out.data?.extension_message_response?.params;
+    if (f.reply && out.screen === "SUCCESS" && params) {
+      await post(f.as, { type: "flow_reply", response: params }, r);
+      r.lines.push(`${names[f.as]} → (the Flow closes; WhatsApp sends its reply to the chat)`);
+    }
   }
 
   async function post(as: string, message: Inbound, r: StepResult) {
@@ -310,6 +405,7 @@ function stepLabel(s: Step): string {
   if (s.pin) return `${s.pin.as} sends a pin`;
   if (s.voice) return `${s.voice.as} sends a voice note`;
   if (s.cart) return `${s.cart.as} sends a cart of ${s.cart.items.length} item(s)`;
+  if (s.flow) return `${s.flow.as} in the Flow app → ${s.flow.screen}`;
   if (s.sql) return "database step";
   if (s.wait_s) return `wait ${s.wait_s}s`;
   return "check";

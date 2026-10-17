@@ -8,6 +8,7 @@
 // recipient is read from the number's inbound log (the one Lebanese number that wrote to it in the last 24 hours and is an
 // owner phone on staging), never configured: a Flow is free-form, so it only reaches someone inside their 24-hour window.
 import { readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import pg from "pg";
 import {
   flowMessage,
@@ -55,8 +56,9 @@ export function flowFiles(dir = DIR): FlowFile[] {
 }
 
 /**
- * A Flow needs a data endpoint only when it exchanges data with a server while open (`data_api_version` or a
- * `data_exchange` action). Ours are navigate-only: the server builds their data when it sends them, so none needs one.
+ * A Flow needs a data endpoint when it exchanges data with a server while open (`data_api_version` or a `data_exchange`
+ * action). The §12 Flows are navigate-only (the server sends their data with the message); the Alo King app
+ * (DECISIONS §39.15.13) is the one dynamic Flow, served by flow-app through Kapso's data-endpoint function.
  */
 export function needsDataEndpoint(json: any): boolean {
   return !!json?.data_api_version || JSON.stringify(json ?? {}).includes('"data_exchange"');
@@ -125,9 +127,9 @@ async function main() {
   const files = flowFiles();
   const failures: string[] = [];
   for (const f of files)
-    if (needsDataEndpoint(f.json))
+    if (needsDataEndpoint(f.json) && f.flow !== "app")
       failures.push(
-        `${f.name} exchanges data while open and needs a data endpoint, which is not built`,
+        `${f.name} exchanges data while open and needs a data endpoint, which only the app has`,
       );
   if (failures.length) throw new Error(failures.join("; "));
 
@@ -189,9 +191,24 @@ async function main() {
       failures.push(`encryption: ${String(e).slice(0, 300)}`);
     }
   }
-  console.log(
-    "Data endpoints: none needed (every Flow is navigate-only; the server sends its data with the message)",
-  );
+  // The app's data endpoint (§39.15.13): Kapso's function forwards each decrypted request to flow-app, signed with the
+  // proxy key read from staging. Drafts only: a published Flow keeps the endpoint it was published with.
+  for (const p of plan.filter((x) => needsDataEndpoint(x.file.json))) {
+    const f = flows.find((x) => x.name === p.file.name && x.status === "draft");
+    if (!f) continue;
+    if (encryptionFailed) {
+      failures.push(`${f.name}: no data endpoint without Flow encryption`);
+      continue;
+    }
+    try {
+      await attachEndpoint(f.id, pn, p.file.json);
+      console.log(`Data endpoint: ${f.name} → flow-app (eu-central-1), registered`);
+    } catch (e) {
+      failures.push(`data endpoint ${f.name}: ${String(e).slice(0, 400)}`);
+      const r = rows.find((x) => x.name === f.name);
+      if (r) r.status = "failed";
+    }
+  }
 
   // Publish only what was uploaded without an error in this run (a failed upload never publishes an older draft).
   const published: string[] = [];
@@ -236,9 +253,13 @@ async function main() {
   const live = [...new Set(files.map((f) => f.flow))].filter((flow) =>
     both(flow).every((f) => final.find((x) => x.name === f.name)?.status === "published"),
   );
-  const switchOn = live.filter((flow) => both(flow).some((f) => published.includes(f.name)));
+  // The app is switched on by its own dated row (flow_app_live), not flows_enabled.
+  const appOn = live.includes("app") && both("app").some((f) => published.includes(f.name));
+  const switchOn = live.filter(
+    (flow) => flow !== "app" && both(flow).some((f) => published.includes(f.name)),
+  );
   // Staging only: DB_URL comes from scripts/staging-db-url.sh, which refuses any other project (never production).
-  if (process.env.DB_URL && (switchOn.length || process.env.SEND_TESTS === "true")) {
+  if (process.env.DB_URL && (switchOn.length || appOn || process.env.SEND_TESTS === "true")) {
     const url = new URL(process.env.DB_URL);
     url.searchParams.delete("sslmode");
     const db = new pg.Client({
@@ -260,6 +281,15 @@ async function main() {
         );
         console.log(`flows_enabled: ${switchOn.join(", ")} switched on`);
       }
+      if (publish && appOn && !encryptionFailed) {
+        await db.query(
+          "insert into public.app_config (key, value, effective_from, note) values ('flow_app_live', 'true'::jsonb, now(), $1)",
+          [`Alo King app published on ${pn} by whatsapp-flows (DECISIONS §39.15.13)`],
+        );
+        console.log(
+          "flow_app_live: on (the bot opens the app from Order, Explore and the ice breakers)",
+        );
+      }
       if (process.env.SEND_TESTS === "true") {
         const enabled =
           (await db.query("select public.config_value('flows_enabled') as v")).rows[0]?.v ?? {};
@@ -267,7 +297,9 @@ async function main() {
           ...(await sendTests(
             db,
             pn,
-            live.filter((f) => enabled === true || enabled?.[f] === true) as FlowName[],
+            live.filter(
+              (f) => f !== "app" && (enabled === true || enabled?.[f] === true),
+            ) as FlowName[],
           )),
         );
       }
@@ -279,6 +311,68 @@ async function main() {
     for (const f of failures) console.log(`::error::${f}`);
     throw new Error(`${failures.length} Flow step(s) failed`);
   }
+}
+
+/** The proxy function's code (whatsapp/flows/endpoint/flow-app-proxy.js), its secrets, registration, then a compile. */
+async function attachEndpoint(flowId: string, pn: string, json: any) {
+  const ref = process.env.SUPABASE_PROJECT_REF ?? "";
+  if (!/^[a-z]{20}$/.test(ref)) throw new Error("SUPABASE_PROJECT_REF is not a project ref");
+  if (!process.env.DB_URL)
+    throw new Error("DB_URL is not set (the proxy key is read from staging)");
+  const url = new URL(process.env.DB_URL);
+  url.searchParams.delete("sslmode");
+  const db = new pg.Client({
+    connectionString: url.toString(),
+    ssl: { rejectUnauthorized: false },
+  });
+  await db.connect();
+  let key: string;
+  try {
+    key = String((await db.query("select public.flow_app_proxy_key() as k")).rows[0]?.k ?? "");
+  } finally {
+    await db.end();
+  }
+  if (!/^[0-9a-f]{64}$/.test(key))
+    throw new Error("no proxy key on staging (migration 20261017180000 not applied?)");
+  // Never printed, even in an error body Kapso might echo.
+  if (process.env.GITHUB_ACTIONS) console.log(`::add-mask::${key}`);
+  const code = readFileSync(`${DIR}/endpoint/flow-app-proxy.js`, "utf8");
+  const path = `/platform/v1/whatsapp/flows/${flowId}`;
+  await kapso(`${path}/data_endpoint`, { method: "POST", body: JSON.stringify({ code }) });
+  const dep = await kapso(`${path}/data_endpoint/deploy`, { method: "POST", body: "{}" });
+  const depStatus = dep?.data?.status ?? dep?.status;
+  if (depStatus && depStatus !== "deployed")
+    throw new Error(`function not deployed (${depStatus})`);
+  const ep = await kapso(`${path}/data_endpoint`);
+  const fid = String(ep?.data?.function_id ?? ep?.function_id ?? "");
+  if (!fid) throw new Error("Kapso returned no function id for the data endpoint");
+  for (const [name, value] of [
+    [
+      "FLOW_APP_URL",
+      `https://${ref}.supabase.co/functions/v1/flow-app?forceFunctionRegion=eu-central-1`,
+    ],
+    ["FLOW_APP_PROXY_KEY", key],
+  ])
+    await kapso(`/platform/v1/functions/${encodeURIComponent(fid)}/secrets`, {
+      method: "POST",
+      body: JSON.stringify({ secret: { name, value } }),
+    });
+  console.log(
+    `Data endpoint function ${fid}: code ${createHash("sha256").update(code).digest("hex").slice(0, 12)}, 2 secrets set`,
+  );
+  const reg = await kapso(`${path}/data_endpoint/register`, {
+    method: "POST",
+    body: JSON.stringify({ phone_number_id: pn }),
+  });
+  if ((reg?.data ?? reg)?.flow_has_encryption === false)
+    throw new Error("Kapso reports no Flow encryption");
+  const compiled = await kapso(`${path}/versions`, {
+    method: "POST",
+    body: JSON.stringify({ flow_json: json, phone_number_id: pn }),
+  });
+  const errs = validationErrors(compiled);
+  if (errs.length)
+    throw new Error(`Meta validation after registering the endpoint: ${errs.join(" | ")}`);
 }
 
 /** One test of each live Flow to the owner, opened by the server exactly as the bot would open it (real token and data). */

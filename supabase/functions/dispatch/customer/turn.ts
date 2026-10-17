@@ -133,7 +133,7 @@ import {
   type ToolName,
 } from "./tools.ts";
 import { buttons, customerStatusMessages, image, moneyLine } from "../../_shared/customer-cards.ts";
-import { flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
+import { appFlowMessage, flowMessage, parseFlowReply, type FlowName } from "../../_shared/flows.ts";
 import {
   packShopMenu,
   parseCartOrder,
@@ -229,6 +229,8 @@ export type CustomerDeps = {
     browseMinCatalogItems?: number;
     /** The public site's address (config public_site_url); null until it answers (§39.15.7). */
     siteUrl?: string | null;
+    /** The Alo King Flow app is published (config flow_app_live, §39.15.13): Order and Explore open it. */
+    flowApp?: boolean;
   };
   now?: () => Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
@@ -1717,6 +1719,7 @@ async function openFlow(
 
 /** A Flow submission: applied by the server (flow_submit), then the next step in the chat. */
 async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unknown> }) {
+  if (f.payload.app === "alo_app") return appFlowDone(c, f.token, f.payload.closed === "1");
   c.tools.push("flow_submit");
   const r = await c.deps.rpc("flow_submit", {
     p_phone: c.m.from,
@@ -1755,6 +1758,40 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
     return say(c, "addressSaved");
   }
   return say(c, "flowRetry");
+}
+
+/**
+ * The Alo King Flow app (DECISIONS §39.15.13), when it is published: one message that opens it on HOME, for the
+ * customer's point. False when it is not live, stopped by its kill-gate, or the customer has no point yet; the caller
+ * then answers in the chat (the native path, also the app's fallback).
+ */
+async function openAppFlow(c: Ctx): Promise<boolean> {
+  if (!c.deps.config.flowApp) return false;
+  const lang = c.s.lang === "en" || c.s.lang === "fr" ? "en" : "ar";
+  const token = await c.deps
+    .rpc("flow_app_open", { p_customer_id: c.customerId, p_lang: lang, p_force: false })
+    .catch(() => null);
+  if (typeof token !== "string" || !token) return false;
+  flushSaved(c);
+  c.tools.push("flow:app");
+  c.summary.push("[opened the Alo King app]");
+  push(c, appFlowMessage(c.m.from, lang, token));
+  return true;
+}
+
+/**
+ * Confirm in the app: the basket the app filled (priced by the server) goes to the §3.6 summary here, where only Confirm
+ * places the order. The token must be this customer's own.
+ */
+async function appFlowDone(c: Ctx, token: string, closed: boolean) {
+  c.tools.push("flow:app_done");
+  const sess = await c.deps.rpc("flow_app_session", { p_flow_token: token }).catch(() => null);
+  // This customer's own token, or one that ran out meanwhile (the checkout reads only the sender's own basket).
+  const own = sess?.status === "ok" && sess.customer_id === c.customerId;
+  if (!own && sess?.status !== "expired") return say(c, "flowRetry");
+  if (closed) return startOrder(c);
+  c.summary.push("[basket filled in the Alo King app]");
+  return checkout(c, {});
 }
 
 // ---- Saved carts (§39.15.2): the same steps for a tap and for the agent's saved_cart tool --------------------------
@@ -2765,6 +2802,8 @@ async function deliveringShops(c: Ctx): Promise<{
 async function browseHome(c: Ctx, offset = 0) {
   const r = await deliveringShops(c);
   if (r.paused) return outsideArea(c);
+  // The app, once Meta has published it (§39.15.13), where shops deliver; the chat's lists stay its fallback.
+  if (!offset && r.point && r.shops.length && (await openAppFlow(c))) return;
   // §3.1 #7: every shop that delivers here is closed: say when the first opens, with Remind me and See menus.
   if (r.point && r.shops.length && r.shops.every((x) => !x.is_open))
     return closedFromShops(c, r.shops);
@@ -2816,6 +2855,7 @@ async function exploreShops(c: Ctx) {
   // A place we do not deliver to (yet), or no shop delivering there: the chat's own answer (the waitlist, pickup, the
   // demo addresses), never a list of shops as if they delivered.
   if (r.paused || !r.shops.length) return browseHome(c);
+  if (await openAppFlow(c)) return;
   c.tools.push("browse:explore");
   c.summary.push(`[explore: ${r.shops.length} shops deliver]`);
   await listShops(

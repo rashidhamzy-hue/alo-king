@@ -1,0 +1,109 @@
+name: flow-app
+description: >
+  Session 5h part 2 (DECISIONS §39.15.13): the Alo King app as a dynamic WhatsApp Flow, driven through its real endpoint
+  (flow-app, eu-central-1) as Kapso's data-endpoint function forwards Meta's requests. A friend from Dubai on the demo
+  address opens the app, browses home, shops, a shop page and an item, adds 2 of it, sees the server's basket and fee,
+  confirms, and the chat sends the checkout summary. The endpoint makes zero routing calls and never takes a price from
+  the Flow. Runs before Meta publishes the app (the token is made with p_force).
+personas:
+  dubai: { role: customer, cc: "971", name: "Sim Flow Friend" }
+  merchant: { role: merchant }
+steps:
+  - note: a delivery-only demo shop open now that delivers to the Baakleen demo address, and one of its items with no choices
+    db:
+      - sql: >
+          select v.slug, i.id as item, i.price_usd
+          from public.shop_place_routes r join public.vendors v on v.id = r.vendor_id
+          left join public.vendor_ops op on op.vendor_id = v.id
+          join lateral (select i.id, i.price_usd from public.menu_items i where i.vendor_id = v.id and app_private.web_item_shown(i.id)
+                          and i.pricing_unit = 'each' and i.price_usd > 0
+                          and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
+                        order by i.sort_order, i.id limit 1) i on true
+          where r.place_id = 'LB-CHF-BAAKLINE' and app_private.vendor_is_demo(v.id) and v.orderable and v.delivery_enabled
+            and not v.pickup_enabled and app_private.vendor_open_at(v.id)
+            and app_private.vendor_open_at(v.id, now() + interval '20 minutes') and not public.vendor_is_paused(v.id)
+            and r.road_km <= coalesce(v.delivery_radius_km, public.max_delivery_km())
+            and coalesce(op.min_order_usd, 0) <= 2 * i.price_usd
+          order by r.road_km limit 1
+        row: { slug: "~." }
+        save: { slug: slug, item: item, price: price_usd }
+  - say: { as: dubai, text: "Order food" }
+    expect:
+      - { to: dubai }
+  - sql: >
+      select public.sim_tester('{{dubai.phone}}', true), public.sim_demo('{{dubai.phone}}', '{{merchant.phone}}', true),
+             public.sim_catalog('{{dubai.phone}}', true)
+  - pin: { as: dubai, lat: 25.2048, lon: 55.2708 }
+    expect:
+      - { to: dubai, buttons: ["da:baakleen"] }
+  - tap: { as: dubai, id: "da:baakleen" }
+    expect:
+      - { to: dubai, kind: list }
+  - note: the app opens on HOME for the demo address; routing calls are counted from here
+    db:
+      - sql: select coalesce((select u.requests from public.routing_usage u where u.day = (now() at time zone 'utc')::date), 0) as n
+        save: { ors_before: n }
+  - flow:
+      as: dubai
+      action: INIT
+      screen: HOME
+      has: { /cats_label: "~.", /cats/0/id: "~^(basket|search)$", /pop/0/id: "~." }
+  - note: shops that deliver to Baakleen, each with its fee and time
+    flow:
+      as: dubai
+      data: { go: shops, cat: "", q: "", offset: "0" }
+      screen: SHOPS
+      has: { /shops/0/main-content/metadata: "~\\$" }
+  - flow:
+      as: dubai
+      data: { go: shop, slug: "{{vars.slug}}" }
+      screen: SHOP
+      has: { /secs_label: "~.", /items/0/id: "~^i_" }
+  - flow:
+      as: dubai
+      data: { go: item, slug: "{{vars.slug}}", item: "{{vars.item}}" }
+      screen: ITEM
+      has: { /item_id: "{{vars.item}}", /r1_visible: false }
+  - note: adds 2; the Flow sends ids and a quantity only, the server prices the line from the menu
+    flow:
+      as: dubai
+      data:
+        {
+          go: add,
+          slug: "{{vars.slug}}",
+          item: "{{vars.item}}",
+          qty: "2",
+          note: "",
+          r1: "",
+          c1: [],
+          gw: [],
+          sw: [],
+        }
+      screen: BASKET
+      has: { /has_lines: true, /totals_text: "~Total" }
+    db:
+      - sql: >
+          select sum(bi.quantity)::int as qty, bool_and(bi.unit_price_usd = i.price_usd) as server_priced
+          from public.baskets b join public.customers c on c.id = b.customer_id
+          join public.basket_items bi on bi.basket_id = b.id join public.menu_items i on i.id = bi.item_id
+          where c.phone_e164 = '{{dubai.phone}}' and b.status = 'open'
+        row: { qty: 2, server_priced: true }
+  - note: Confirm closes the app; its reply reaches the chat, which asks how the order comes, as the checkout does
+    flow:
+      as: dubai
+      data: { go: confirm, remove: [] }
+      screen: SUCCESS
+      has: { /extension_message_response/params/app: alo_app }
+      reply: true
+    expect:
+      - { to: dubai, buttons: ["fw:self_save"] }
+    db:
+      - sql: >
+          select count(*) filter (where w.completed_at is not null)::int as completed from app_private.web_links w
+          join public.customers c on c.id = w.customer_id where c.phone_e164 = '{{dubai.phone}}' and w.kind = 'flow'
+        row: { completed: 1 }
+      - sql: select coalesce((select u.requests from public.routing_usage u where u.day = (now() at time zone 'utc')::date), 0) as n
+        row: { n: "{{vars.ors_before}}" }
+  - sql: >
+      select public.sim_tester('{{dubai.phone}}', false), public.sim_demo('{{dubai.phone}}', '{{merchant.phone}}', false),
+             public.sim_catalog('{{dubai.phone}}', false)

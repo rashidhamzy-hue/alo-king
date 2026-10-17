@@ -6078,3 +6078,102 @@ describe("session 5f part 8b: second shop, minimum order, a shop that can't take
     }
   });
 });
+
+describe("the Alo King Flow app (DECISIONS §39.15.13)", () => {
+  const TOKEN = `${"A".repeat(24)}.${"b".repeat(43)}`;
+  const POINT = { lat: 33.6775, lon: 35.5645, address_id: "a1" };
+  const shops = Array.from({ length: 5 }, (_, k) => ({
+    vendor_id: `20000000-0000-0000-0000-0000000000${String(k).padStart(2, "0")}`,
+    name_en: `Shop ${k}`,
+    is_open: true,
+    km: 1 + k,
+    categories: ["burgers"],
+  }));
+  const rpcs = (extra: Record<string, (a: any) => any> = {}) => ({
+    customer_search_point: () => POINT,
+    browse_shops: () => ({
+      place: { name_en: "Baakline" },
+      categories: [
+        { key: "burgers", emoji: "🍔", name_ar: "برغر", name_en: "Burgers", name_fr: "Burgers" },
+      ],
+      shops,
+    }),
+    customer_delivery_check: (a: any) => ({
+      status: "ok",
+      vendors: a.p_vendor_ids.map((id: string) => ({ vendor_id: id, status: "ok", fee_usd: 2 })),
+    }),
+    flow_app_open: () => TOKEN,
+    ...extra,
+  });
+
+  it("not published: Order and Explore stay in the chat's lists; no token is made", async () => {
+    const f = fake({ model: null, rpcs: rpcs() });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(f.sent[0].interactive.type).toBe("list");
+    expect(f.of("flow_app_open")).toHaveLength(0);
+  });
+
+  it("published: Order, Explore and /explore open the app on its home screen with a signed token", async () => {
+    for (const m of [
+      msg({ buttonId: "c:order", type: "interactive" }),
+      msg({ text: "/explore", messageId: "wamid.in.x" }),
+    ]) {
+      const f = fake({ model: null, rpcs: rpcs() });
+      f.deps.config.flowApp = true;
+      await handleCustomerTurn(f.deps, m);
+      expect(f.sent).toHaveLength(1);
+      const p = f.sent[0];
+      expect(p.interactive.type).toBe("flow");
+      expect(p.interactive.action.parameters).toMatchObject({
+        flow_name: "alo_app_en",
+        flow_token: TOKEN,
+        flow_action: "data_exchange",
+        flow_cta: "Open Alo King",
+      });
+      expect(checkInteractive(p)).toEqual([]);
+      expect(f.of("flow_app_open")[0].args).toMatchObject({ p_lang: "en", p_force: false });
+    }
+  });
+
+  it("published but stopped (kill-gate) or no shop delivers: the chat's own path", async () => {
+    const f = fake({ model: null, rpcs: rpcs({ flow_app_open: () => null }) });
+    f.deps.config.flowApp = true;
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(f.sent[0].interactive.type).toBe("list");
+    const g = fake({
+      model: null,
+      rpcs: rpcs({ customer_delivery_check: () => ({ status: "place_paused", vendors: [] }) }),
+    });
+    g.deps.config.flowApp = true;
+    await handleCustomerTurn(g.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(g.of("flow_app_open")).toHaveLength(0);
+  });
+
+  it("Confirm in the app: the chat's checkout summary follows, for the customer's own token only", async () => {
+    const reply = (body: string) =>
+      readCustomerInbound({
+        message: {
+          id: "wamid.fa",
+          from: "96176000001",
+          type: "interactive",
+          interactive: { type: "nfm_reply", nfm_reply: { response_json: body } },
+        },
+      })!;
+    const done = reply(`{"flow_token":"${TOKEN}","app":"alo_app","basket_id":"b1"}`);
+    expect(done.flow).toEqual({ token: TOKEN, payload: { app: "alo_app", basket_id: "b1" } });
+    const f = fake({
+      model: null,
+      rpcs: { flow_app_session: () => ({ status: "ok", customer_id: CUST }) },
+    });
+    await handleCustomerTurn(f.deps, done);
+    expect(f.of("basket_fulfilment_options")).toHaveLength(1);
+    expect(f.of("flow_submit")).toHaveLength(0);
+    // Someone else's token: nothing of theirs is checked out here.
+    const g = fake({
+      model: null,
+      rpcs: { flow_app_session: () => ({ status: "ok", customer_id: "someone-else" }) },
+    });
+    await handleCustomerTurn(g.deps, done);
+    expect(g.of("basket_fulfilment_options")).toHaveLength(0);
+  });
+});

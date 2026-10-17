@@ -81,6 +81,27 @@ export type Step = {
     as: string;
     items: { index?: number; id?: string; qty: number; price?: number | string }[];
   };
+  /**
+   * Drives the Alo King Flow app's endpoint (flow-app, DECISIONS §39.15.13) as Kapso's data-endpoint function would:
+   * the decrypted request, signed with the proxy key. `action: INIT` first opens a session for the persona (a token made
+   * with flow_app_open, as the bot makes one); `data` is the payload a row or a footer sends ({{vars.x}} allowed).
+   */
+  flow?: {
+    as: string;
+    action?: "INIT" | "data_exchange";
+    data?: Record<string, unknown>;
+    /** The screen the endpoint must answer (SUCCESS for Confirm). */
+    screen: string;
+    /** JSON pointer into the answer's data -> expected value (as db rows: ~regex, >=, ...). */
+    has?: Record<string, unknown>;
+    /** Name -> JSON pointer into the answer's data, stored in vars. */
+    save?: Record<string, string>;
+    /**
+     * When the answer is SUCCESS: deliver the Flow's completion to the bot as WhatsApp does (an nfm_reply carrying the
+     * endpoint's params), so the step's `expect` sees the chat's answer.
+     */
+    reply?: boolean;
+  };
   /** SQL run before the next step (time travel, setup). */
   sql?: string;
   wait_s?: number;

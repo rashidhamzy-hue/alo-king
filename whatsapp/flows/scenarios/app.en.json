@@ -1,0 +1,112 @@
+{
+  "tests": [
+    {
+      "name": "home, a category, a shop, an item with a required size and an add-on, the basket, Confirm",
+      "start": { "mode": "data_exchange" },
+      "steps": [
+        { "expect": { "screen": "HOME", "status": "ready" } },
+        { "click": "children[0]", "item": "c_shawarma", "expect": { "screen": "SHOPS" } },
+        {
+          "click": "children[0]",
+          "item": "s_10000000-0000-0000-0000-000000000001",
+          "expect": { "screen": "SHOP" }
+        },
+        {
+          "click": "children[1]",
+          "item": "i_51000000-0000-0000-0000-000000000001",
+          "expect": { "screen": "ITEM" }
+        },
+        { "fill": "r1", "value": "52000000-0000-0000-0000-000000000002" },
+        { "fill": "c1", "value": ["52000000-0000-0000-0000-000000000003"] },
+        { "fill": "qty", "value": "2" },
+        { "fill": "note", "value": "no pickles" },
+        { "submit": true, "expect": { "screen": "BASKET", "data": { "has_lines": true } } },
+        {
+          "expect": {
+            "data": {
+              "lines_text": "2× Chicken Shawarma (Large, Cheese) · **$14.00**\n_no pickles_",
+              "totals_text": "Subtotal: $14.00\nDelivery: $2.00\n**Total: $16.00 · 1,432,000 LBP**"
+            }
+          }
+        },
+        {
+          "submit": true,
+          "expect": { "status": "completed", "completion": { "app": "alo_app", "basket_id": "b1" } }
+        }
+      ]
+    },
+    {
+      "name": "a required size left out stays on the item page with the reason",
+      "start": { "mode": "data_exchange" },
+      "steps": [
+        {
+          "click": "children[1]",
+          "item": "p_51000000-0000-0000-0000-000000000001",
+          "expect": { "screen": "ITEM" }
+        },
+        {
+          "submit": true,
+          "expect": { "screen": "ITEM", "fieldErrors": { "r1": "This field is required" } }
+        }
+      ]
+    },
+    {
+      "name": "search, a section's items, an item without a photo, Goes well with, remove a line",
+      "start": { "mode": "data_exchange" },
+      "steps": [
+        { "click": "children[0]", "item": "search", "expect": { "screen": "SEARCH" } },
+        { "fill": "q", "value": "shawarma" },
+        { "submit": true, "expect": { "screen": "SHOPS" } },
+        {
+          "click": "children[0]",
+          "item": "s_10000000-0000-0000-0000-000000000001",
+          "expect": { "screen": "SHOP" }
+        },
+        { "click": "children[0]", "item": "x_1", "expect": { "screen": "LIST" } },
+        {
+          "click": "children[0]",
+          "item": "i_51000000-0000-0000-0000-000000000004",
+          "expect": { "screen": "ITEM", "data": { "has_photo": false } }
+        },
+        { "submit": true, "expect": { "screen": "BASKET" } },
+        { "fill": "remove", "value": ["53000000-0000-0000-0000-000000000001"] },
+        { "submit": true, "expect": { "screen": "BASKET", "data": { "has_lines": false } } }
+      ]
+    },
+    {
+      "name": "an item from another shop asks before starting a new basket",
+      "start": { "mode": "data_exchange" },
+      "steps": [
+        {
+          "click": "children[1]",
+          "item": "p_51000000-0000-0000-0000-000000000005",
+          "expect": { "screen": "ITEM" }
+        },
+        { "submit": true, "expect": { "screen": "BASKET" } },
+        { "back": true },
+        { "back": true },
+        {
+          "click": "children[1]",
+          "item": "p_51000000-0000-0000-0000-000000000001",
+          "expect": { "screen": "ITEM", "data": { "sw_visible": true } }
+        },
+        { "fill": "r1", "value": "52000000-0000-0000-0000-000000000001" },
+        {
+          "submit": true,
+          "expect": {
+            "screen": "ITEM",
+            "errorMessage": "Your basket is from Pizza Place. Tick “Start a new one” to switch."
+          }
+        },
+        {
+          "fill": "sw",
+          "value": ["replace"],
+          "expect": {
+            "errorMessage": "Your basket is from Pizza Place. Tick “Start a new one” to switch."
+          }
+        },
+        { "submit": true, "expect": { "screen": "BASKET" } }
+      ]
+    }
+  ]
+}

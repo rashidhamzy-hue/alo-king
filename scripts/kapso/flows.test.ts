@@ -4,13 +4,13 @@ import { flowFiles, flowPlan, needsDataEndpoint, testRecipient, validationErrors
 describe("whatsapp-flows uploader (DECISIONS §12, §39.8)", () => {
   const files = flowFiles();
   it("finds every Flow in Arabic and English, named alo_<flow>_<lang>", () => {
-    expect(files).toHaveLength(12);
+    expect(files).toHaveLength(14);
     expect(files.map((f) => f.name)).toContain("alo_address_capture_ar");
     expect(files.map((f) => f.name)).toContain("alo_checkout_en");
-    expect(new Set(files.map((f) => f.flow)).size).toBe(6);
+    expect(new Set(files.map((f) => f.flow)).size).toBe(7);
   });
-  it("no Flow needs a data endpoint: each is navigate-only, its data comes with the message", () => {
-    for (const f of files) expect(needsDataEndpoint(f.json), f.name).toBe(false);
+  it("only the Alo King app needs a data endpoint (§39.15.13); the §12 Flows are navigate-only", () => {
+    for (const f of files) expect(needsDataEndpoint(f.json), f.name).toBe(f.flow === "app");
     expect(needsDataEndpoint({ data_api_version: "3.0", screens: [] })).toBe(true);
     expect(
       needsDataEndpoint({
