@@ -166,4 +166,4 @@
 - **Product carousel** (10 swipeable cards) for "Popular near you" and the one "Goes well with" in chat (§39.15.2).
 - **Demo testers** anywhere in the world, with the shop side played by the demo autopilot when Rasheed doesn't tap (§39.15.3).
 - **AI and voice:** switch on for owners and demo testers as soon as the API credit works and the evals show zero safety failures; for everyone at the §32.4 targets (§39.15.9). The AI parts of #4, #5, #17 and #18 then run.
-
+- **17 October 18:24 (DECISIONS §39.15.13): the customer app lives inside WhatsApp.** No website for customers: the native chat path (product messages, native cart) is primary now; the full app (home, shops, shop page, item page with options, basket) is a dynamic WhatsApp Flow that goes live when Meta verifies the business (#182). The header catalogue icon stays on. §4's web menu is a last-resort "Full menu" row only, until the Flow app is live.

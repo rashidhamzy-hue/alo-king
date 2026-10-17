@@ -1925,6 +1925,25 @@ Max effort is not needed: the work is broad, not deep, and Extra keeps the weekl
 - **Public site (39.15.7):** live at `https://alo-king.vercel.app` (`public_site_url` set, the catalogue re-synced with item links and no photo credits, #214 closed). **Vercel's production does not follow `rebuild/lebanon`:** each merge makes a preview, and the session promotes the newest `rebuild/lebanon` build to production by hand (owner issue #233 has the setting). This corrects the 5f note that production tracks the branch.
 - **AI and voice (39.15.9):** still off. The Anthropic key cannot run models (credit balance too low), the OpenAI key is refused (#77) and no Deepgram key is set.
 
+#### 39.15.13 The Alo King app lives inside WhatsApp: native screens, no website for customers (Rasheed, 17 October 18:24)
+- **Rasheed's verdict:** customers must not be sent to a website. He wants a catalogue that feels like an application, inside WhatsApp. **This reverses the header-icon part of §39.15.11 and demotes the web menu and Explore of §39.15.5 / session 5g for customers.**
+- **What WhatsApp can and cannot do (checked 17 October):**
+  - The header catalogue (chat-header icon) is one flat list of the whole catalogue; Meta offers no grouping by shop or category in it for our catalogue.
+  - Product messages are native WhatsApp screens: a shop's items with photos in up to 10 sections, Add to cart, the native cart. Product carousels: up to 10 swipeable product cards.
+  - **WhatsApp Flows are native full-screen pages inside WhatsApp, not a browser.** Since Flow JSON 6.2 (December 2024) a NavigationList item shows text, an image and tags; radio, checkbox and dropdown options can show images (Flow JSON 5.0); a data endpoint serves live data per screen (payloads up to 10 MB, list images up to 100 KB). This is the "app inside WhatsApp".
+- **Decision: the Alo King app is a dynamic WhatsApp Flow**, served live from our database through a data endpoint (an edge function in Frankfurt; amends §12's "static Flows only"):
+  1. **Home:** search, "What are you craving?" categories with images, Popular near you, open-now shops near the confirmed pin.
+  2. **Shops:** cover image, cuisine · village, fee, time, open until; only shops delivering to the pin (testers: their demo address, §39.15.3).
+  3. **Shop page:** its sections, then items with photo, name, price; items without a photo as clean rows.
+  4. **Item page:** photo, description, Arabic name, required choices, add-ons with prices, a note, quantity, Goes well with, estimated nutrition, declared allergens only.
+  5. **Basket:** lines, notes, subtotal and fee; Confirm closes the Flow and the chat sends the §3.6 summary with Confirm / Change. The server prices everything (product rules); a Flow never carries a price the server didn't compute.
+  - Every screen is fetched for the customer's place, so it works for 10 shops or 10,000. Opened from the chat's **Order** / **Explore** buttons, the ice breakers and `/order`, `/explore`.
+- **Blocker: Meta business verification (#182).** Meta refuses to publish Flows on an unverified business (422 "Integrity requirements not met", §39.8). The Flow is built and tested now (Flowso emulator, drafts on the number, the simulator) and switches on by itself the day the business is verified.
+- **Until then (and as the fallback forever):**
+  - **The header catalogue icon stays ON** (reverses §39.15.11's "off now"; owner issue #236 is closed as not wanted). It is switched off only once the Flow app is live **and** the catalogue passes `header_catalog_max_items`.
+  - **The native chat path is the primary path:** pin → craving list → shops → the shop's product messages and native cart, all inside WhatsApp.
+  - **No website for customers:** the bot no longer offers Explore after a pin and no longer leads with "Open menu". The web menu stays only as a last-resort row ("Full menu") in a shop's section list when some of its items cannot be shown natively (no approved photo); it disappears for a shop once the Flow app is live. The website remains for search engines, merchants and Send Home senders.
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).
