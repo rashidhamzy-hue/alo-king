@@ -75,6 +75,28 @@ function fake(opts: {
     switch (fn) {
       case "customer_turn_begin":
         return begin;
+      // browse_delivering (session 5h part 4) is the three reads in one call: composed from this test's own answers.
+      case "browse_delivering": {
+        const pt = await rpc("customer_search_point", { p_customer_id: args.p_customer_id });
+        if (!pt?.address_id) return { point: null };
+        const b = await rpc("browse_shops", {
+          p_customer_id: args.p_customer_id,
+          p_lat: pt.lat,
+          p_lon: pt.lon,
+          p_limit: args.p_limit,
+        });
+        const ids = (Array.isArray(b?.shops) ? b.shops : []).map((x: any) => x.vendor_id);
+        return {
+          ...(b ?? {}),
+          point: pt,
+          check: ids.length
+            ? await rpc("customer_delivery_check", {
+                p_customer_id: args.p_customer_id,
+                p_vendor_ids: ids,
+              })
+            : null,
+        };
+      }
       case "ai_quota_take":
         return { ok: true, call_id: calls.length };
       case "ai_call_finish":
@@ -6175,5 +6197,58 @@ describe("the Alo King Flow app (DECISIONS §39.15.13)", () => {
     });
     await handleCustomerTurn(g.deps, done);
     expect(g.of("basket_fulfilment_options")).toHaveLength(0);
+  });
+});
+
+describe("speed: the address save and browse taps (§39.15.6, session 5h part 4)", () => {
+  const POINT = { lat: 33.6775, lon: 35.5645, address_id: "a1" };
+  const pinRpcs = {
+    address_save_pin: () => ({
+      status: "saved",
+      address: {
+        id: "a1",
+        address_id: "a1",
+        place: "بعقلين",
+        place_en: "Baakline",
+        place_status: "on",
+      },
+    }),
+    customer_search_point: () => POINT,
+    browse_shops: () => ({ shops: [] }),
+    flow_open: () => ({ status: "off" }),
+  };
+  it("a pin while the address Flow is off asks no flow_open; on, it does", async () => {
+    const f = fake({ model: null, rpcs: pinRpcs });
+    f.deps.config.flowsEnabled = { address_capture: false };
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "location", location: { lat: 33.6775, lon: 35.5645 } }),
+    );
+    expect(f.of("flow_open")).toHaveLength(0);
+    const g = fake({ model: null, rpcs: pinRpcs });
+    g.deps.config.flowsEnabled = { address_capture: true };
+    await handleCustomerTurn(
+      g.deps,
+      msg({ type: "location", location: { lat: 33.6775, lon: 35.5645 } }),
+    );
+    expect(g.of("flow_open")).toHaveLength(1);
+  });
+  it("browsing reads the point, the shops and their delivery check in one call", async () => {
+    const calls: string[] = [];
+    const f = fake({
+      model: null,
+      rpcs: {
+        // "Order" asks whether there is a point at all (startOrder); browsing then makes one call.
+        customer_search_point: () => POINT,
+        browse_delivering: () => (
+          calls.push("browse_delivering"),
+          { point: POINT, shops: [], categories: [] }
+        ),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(calls).toEqual(["browse_delivering"]);
+    expect(f.of("browse_shops")).toHaveLength(0);
+    expect(f.of("customer_delivery_check")).toHaveLength(0);
   });
 });

@@ -231,6 +231,11 @@ export type CustomerDeps = {
     siteUrl?: string | null;
     /** The Alo King Flow app is published (config flow_app_live, §39.15.13): Order and Explore open it. */
     flowApp?: boolean;
+    /**
+     * The §12 Flows' switches (config flows_enabled: true, or one boolean per Flow). A Flow switched off here is not asked
+     * for (flow_open also checks it and the kill-gate). Undefined asks flow_open every time (unit tests).
+     */
+    flowsEnabled?: boolean | Record<string, boolean>;
   };
   now?: () => Date;
   log?: (msg: string, fields?: Record<string, string | number | boolean>) => void;
@@ -397,6 +402,7 @@ const fail = (c: Ctx) => push(c, mainMenu(c.m.from, c.s.lang, "tapFailed"));
  */
 const POINT_KEEPERS = new Set([
   "browse_shops",
+  "browse_delivering",
   "vendor_search",
   "vendor_search_pickup",
   "vendor_opening",
@@ -1702,6 +1708,9 @@ async function openFlow(
   flow: FlowName,
   context: Record<string, unknown>,
 ): Promise<boolean> {
+  const fe = c.deps.config.flowsEnabled;
+  if (fe !== undefined && fe !== true && !(typeof fe === "object" && fe?.[flow] === true))
+    return false;
   const lang = c.s.lang === "ar" || c.s.lang === "arabizi" ? "ar" : "en";
   const r = await c.deps.rpc("flow_open", {
     p_flow: flow,
@@ -2753,25 +2762,17 @@ async function deliveringShops(c: Ctx): Promise<{
   point: any;
   place: string | null;
 }> {
-  const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
+  // One call (§39.15.6, session 5h part 4): the search point, the shops near it and their delivery check (zero routing
+  // calls, §39.15.1: the shop → place distances).
+  const r = await c.deps.rpc("browse_delivering", { p_customer_id: c.customerId, p_limit: 40 });
+  const pt = r?.point;
   if (!pt?.address_id)
     return { shops: [], categories: [], paused: false, point: null, place: null };
-  const r = await c.deps.rpc("browse_shops", {
-    p_customer_id: c.customerId,
-    p_lat: pt.lat,
-    p_lon: pt.lon,
-    p_limit: 40,
-  });
   const raw: any[] = Array.isArray(r?.shops) ? r.shops : [];
   const categories = Array.isArray(r?.categories) ? r.categories : [];
   const place = localName(c.s.lang, r?.place?.name_ar ?? null, r?.place?.name_en ?? null) || null;
   if (!raw.length) return { shops: [], categories, paused: false, point: pt, place };
-  const ids = raw.map((x) => x.vendor_id);
-  // Zero routing calls (§39.15.1): customer_delivery_check reads the shop → place distances.
-  const chk = await c.deps.rpc("customer_delivery_check", {
-    p_customer_id: c.customerId,
-    p_vendor_ids: ids,
-  });
+  const chk = r.check;
   if (chk?.status === "place_paused")
     return { shops: [], categories, paused: true, point: pt, place };
   const by = new Map<string, any>((chk?.vendors ?? []).map((v: any) => [v.vendor_id, v]));
