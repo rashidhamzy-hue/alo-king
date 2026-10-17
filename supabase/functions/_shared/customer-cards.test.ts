@@ -1,42 +1,92 @@
 import { describe, expect, it } from "vitest";
-import { afterSunset, customerStatusMessages, moneyLine, parseCustomerAction } from "./customer-cards";
+import {
+  afterSunset,
+  customerStatusMessages,
+  moneyLine,
+  parseCustomerAction,
+} from "./customer-cards";
 
 const U = "11111111-2222-3333-4444-555555555555";
-const card = { order_id: U, code: "AB3CD9", vendor_name: "Shop", total_usd: 12.5, total_lbp: 1118750, usd_lbp_rate: 89500 };
+const card = {
+  order_id: U,
+  code: "AB3CD9",
+  vendor_name: "Shop",
+  total_usd: 12.5,
+  total_lbp: 1118750,
+  usd_lbp_rate: 89500,
+};
 
 describe("customer cards", () => {
   it("money shows both totals and the rate, locked or today's (§13)", () => {
-    expect(moneyLine(12.5, 1118750, 89500, "en")).toBe("$12.50 = 1,118,750 LBP (rate 89,500, locked at order)");
+    expect(moneyLine(12.5, 1118750, 89500, "en")).toBe(
+      "$12.50 = 1,118,750 LBP (rate 89,500, locked at order)",
+    );
     expect(moneyLine(12.5, 1118750, 89500, "en", false)).toContain("today's rate");
   });
   it("a pickup order's code is a pickup code for the shop, not a driver code (found by the staging simulator)", () => {
     for (const lang of ["ar", "en", "fr", "arabizi"]) {
-      const [m]: any = customerStatusMessages("+96170000001", { kind: "accepted", lang, eta: { min: 10, max: 20 } }, { ...card, fulfilment: "pickup" }, { deliveryCode: "4821" });
+      const [m]: any = customerStatusMessages(
+        "+96170000001",
+        { kind: "accepted", lang, eta: { min: 10, max: 20 } },
+        { ...card, fulfilment: "pickup" },
+        { deliveryCode: "4821" },
+      );
       expect(m.text.body).toContain("4821");
       expect(m.text.body).not.toMatch(/driver|livreur|السايق|sayeq/i);
     }
-    const [d]: any = customerStatusMessages("+96170000001", { kind: "accepted", lang: "en", eta: { min: 10, max: 20 } }, { ...card, fulfilment: "delivery" }, { deliveryCode: "4821" });
+    const [d]: any = customerStatusMessages(
+      "+96170000001",
+      { kind: "accepted", lang: "en", eta: { min: 10, max: 20 } },
+      { ...card, fulfilment: "delivery" },
+      { deliveryCode: "4821" },
+    );
     expect(d.text.body).toContain("driver");
   });
   it("accepted carries the ETA range, the totals and the delivery code", () => {
-    const [m]: any = customerStatusMessages("+96170000001", { kind: "accepted", lang: "en", eta: { min: 20, max: 30 } }, card, { deliveryCode: "4821" });
+    const [m]: any = customerStatusMessages(
+      "+96170000001",
+      { kind: "accepted", lang: "en", eta: { min: 20, max: 30 } },
+      card,
+      { deliveryCode: "4821" },
+    );
     expect(m.text.body).toContain("20-30 min");
     expect(m.text.body).toContain("$12.50 = 1,118,750 LBP");
     expect(m.text.body).toContain("4821");
   });
   it("near drop offers the live-location button only when the door is unknown or after sunset (§27.3)", () => {
     const base = { kind: "near_drop", lang: "en", driver_phone: "+96171000009" };
-    const [a]: any = customerStatusMessages("+1", { ...base, door_confirmed: true }, card, { afterSunset: false });
+    const [a]: any = customerStatusMessages("+1", { ...base, door_confirmed: true }, card, {
+      afterSunset: false,
+    });
     expect(a.type).toBe("text");
-    const [b]: any = customerStatusMessages("+1", { ...base, door_confirmed: false }, card, { afterSunset: false });
+    const [b]: any = customerStatusMessages("+1", { ...base, door_confirmed: false }, card, {
+      afterSunset: false,
+    });
     expect(b.interactive.type).toBe("cta_url");
     expect(b.interactive.action.parameters.url).toMatch(/^https:\/\/wa\.me\/96171000009\?text=/);
-    const [c]: any = customerStatusMessages("+1", { ...base, door_confirmed: true }, card, { afterSunset: true });
+    const [c]: any = customerStatusMessages("+1", { ...base, door_confirmed: true }, card, {
+      afterSunset: true,
+    });
     expect(c.interactive.type).toBe("cta_url");
   });
   it("a driver number that is not E.164 is never linked", () => {
-    const [m]: any = customerStatusMessages("+1", { kind: "on_the_way", lang: "en", driver_phone: "javascript:alert(1)" }, card);
+    const [m]: any = customerStatusMessages(
+      "+1",
+      { kind: "on_the_way", lang: "en", driver_phone: "javascript:alert(1)" },
+      card,
+    );
     expect(m.type).toBe("text");
+  });
+  it("on the way never links the tracking website (§39.15.13): the driver's WhatsApp chat, else plain text", () => {
+    const ev = {
+      kind: "on_the_way",
+      lang: "en",
+      track_url: "https://alo-king.vercel.app/en/track/x",
+    };
+    const [a]: any = customerStatusMessages("+1", ev, card);
+    expect(a.type).toBe("text");
+    const [b]: any = customerStatusMessages("+1", { ...ev, driver_phone: "+96171000009" }, card);
+    expect(b.interactive.action.parameters.url).toMatch(/^https:\/\/wa\.me\//);
   });
   it("unknown kinds send nothing", () => {
     expect(customerStatusMessages("+1", { kind: "drop_table" }, card)).toEqual([]);
@@ -44,7 +94,11 @@ describe("customer cards", () => {
   it("button ids round-trip and anything else is refused", () => {
     expect(parseCustomerAction(`rcv:${U}:ok`)).toEqual({ a: "received", orderId: U, ok: true });
     expect(parseCustomerAction(`rate:${U}:f4`)).toEqual({ a: "rate", orderId: U, food: 4 });
-    expect(parseCustomerAction(`rate:${U}:d0`)).toEqual({ a: "rate", orderId: U, deliveryOk: false });
+    expect(parseCustomerAction(`rate:${U}:d0`)).toEqual({
+      a: "rate",
+      orderId: U,
+      deliveryOk: false,
+    });
     expect(parseCustomerAction(`cfm:${U}:17`)).toEqual({ a: "confirm", basketId: U, version: 17 });
     expect(parseCustomerAction("c:checkout")).toEqual({ a: "simple", what: "checkout" });
     expect(parseCustomerAction(`rate:${U}:f9`)).toBeNull();
