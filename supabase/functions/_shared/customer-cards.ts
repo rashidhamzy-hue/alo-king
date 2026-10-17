@@ -353,7 +353,6 @@ const T5C: Record<CLang, S> = {
     deliveredRate: "🎉 وصل طلبك #{code}! كيف كان؟",
     rateNow: "قيّم",
     problemRow: "⚠️ في مشكلة",
-    trackBtn: "📍 تتبّع",
     alternatives: "هيدي محلات فاتحة بتوصّل لعندك:",
     giftRequest:
       "🎁 {sender} بعتلك طلب من {vendor}:\n{lines}\nالمجموع {money}، بتدفعو كاش عالتسليم على {place}. بتقبل؟\n(إذا ما بدك طلبات هدايا، ابعت STOP)",
@@ -375,7 +374,6 @@ const T5C: Record<CLang, S> = {
     deliveredRate: "🎉 Order #{code} delivered! How was it?",
     rateNow: "Rate",
     problemRow: "⚠️ A problem",
-    trackBtn: "📍 Track",
     alternatives: "These open shops deliver to you:",
     giftRequest:
       "🎁 {sender} sent you an order from {vendor}:\n{lines}\nTotal {money}, paid in cash on delivery to {place}. Accept?\n(Reply STOP to block gift orders.)",
@@ -397,7 +395,6 @@ const T5C: Record<CLang, S> = {
     deliveredRate: "🎉 Commande #{code} livrée ! C'était comment ?",
     rateNow: "Noter",
     problemRow: "⚠️ Un problème",
-    trackBtn: "📍 Suivre",
     alternatives: "Ces commerces ouverts livrent chez vous :",
     giftRequest:
       "🎁 {sender} vous a envoyé une commande de {vendor} :\n{lines}\nTotal {money}, payé en espèces à la livraison à {place}. Accepter ?\n(Répondez STOP pour bloquer les commandes cadeaux.)",
@@ -421,7 +418,6 @@ const T5C: Record<CLang, S> = {
     deliveredRate: "🎉 Wosel talabak #{code}! Kif ken?",
     rateNow: "2ayyem",
     problemRow: "⚠️ Fi moshkle",
-    trackBtn: "📍 Tatabba3",
     alternatives: "Hawde ma7alat fet7a bwaslo la 3endak:",
     giftRequest:
       "🎁 {sender} ba3atlak talab men {vendor}:\n{lines}\nEl majmou3 {money}, btedfa3o cash 3al tasleem 3a {place}. Bte2bal?\n(Iza ma badak talabet hadaya, b3at STOP)",
@@ -563,10 +559,8 @@ export function customerStatusMessages(
     case "on_the_way": {
       const body =
         tr(lang, driver ? "onTheWayLive" : "onTheWay", { code, eta: etaText(p.eta) }) + codeLine;
-      // "On the way + tracking" in one message (§38.3) once the public tracking page exists.
-      const track =
-        typeof p.track_url === "string" && /^https:\/\/\S+$/.test(p.track_url) ? p.track_url : null;
-      if (track) return [ctaUrl(to, body, tr(lang, "trackBtn"), track)];
+      // Customers are never sent to a website (§39.15.13): no tracking-page link, even when the event carries one; the
+      // driver's WhatsApp chat is the live view.
       return driver ? [ctaUrl(to, body, tr(lang, "driverChat"), waMe(driver))] : [text(to, body)];
     }
     case "near_drop": {

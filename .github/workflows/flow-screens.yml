@@ -1,0 +1,90 @@
+name: flow-screens
+
+# Screenshots of the Alo King app Flow (DECISIONS §39.15.13) in Arabic and English, from Flowso's phone preview driven by
+# the deployed flow-app on alo-king-staging with real data: a simulator tester (+999) on the Baakleen demo address
+# (§39.15.3) opens the app; scripts/flows/staging-proxy.ts stands in for Kapso's data-endpoint function (signs each
+# request with the proxy key, swaps in the tester's Flow token); scripts/flows/screens.ts walks HOME, SEARCH, SHOPS,
+# SHOP, ITEM and BASKET. The PNGs go to a data/flow-screens-<run id> branch for the PR. Staging only; the key and the
+# tokens are read here, masked, and never printed.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+
+jobs:
+  screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Refuse anything but the staging project
+        run: '[ "$SUPABASE_PROJECT_REF" = "tzugbbatfbvrfzxuacqx" ] || { echo "::error::only alo-king-staging"; exit 1; }'
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Screens in Arabic and English against staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TESTER: "+999000000958"
+        run: |
+          set -euo pipefail
+          DB_URL="$(scripts/staging-db-url.sh)"
+          echo "::add-mask::$DB_URL"
+          q() { psql "$DB_URL" -v ON_ERROR_STOP=1 -qtAX -c "$1"; }
+          KEY="$(q "select public.flow_app_proxy_key()")"
+          echo "::add-mask::$KEY"
+          # The tester's customer row; made once through the bot's own entry point (a fresh message id per attempt).
+          CU="$(q "select id from public.customers where phone_e164 = '$TESTER'")"
+          [ -n "$CU" ] || CU="$(q "select public.customer_turn_begin('$TESTER', 'wamid.screens.${{ github.run_id }}.${{ github.run_attempt }}', 'text') #>> '{customer,id}'")"
+          [ -n "$CU" ] || { echo "::error::no tester customer"; exit 1; }
+          trap 'q "select public.sim_tester('"'"'$TESTER'"'"', false)" >/dev/null || true; kill $(jobs -p) 2>/dev/null || true' EXIT
+          st="$(q "select public.sim_tester('$TESTER', true) ->> 'status'")"
+          [ "$st" = "ok" ] || { echo "::error::sim_tester: $st"; exit 1; }
+          [ "$(q "select public.demo_address_pick('$CU', 'baakleen') ->> 'status'")" = "saved" ] || { echo "::error::demo address not saved"; exit 1; }
+          export FLOW_APP_URL="https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/flow-app?forceFunctionRegion=eu-central-1"
+          export FLOW_APP_PROXY_KEY="$KEY"
+          n=0
+          for lang in en ar; do
+            # Each language on its own ports, so a process left from the last one can never answer for this one.
+            proxy_port=$((4340 + n)); preview_port=$((4331 + n)); n=$((n + 10))
+            TOKEN="$(q "select public.flow_app_open('$CU', '$lang', true)")"
+            [ -n "$TOKEN" ] || { echo "::error::no Flow token ($lang)"; exit 1; }
+            echo "::add-mask::$TOKEN"
+            FLOW_TOKEN="$TOKEN" node --import tsx scripts/flows/staging-proxy.ts "$proxy_port" &
+            pnpm exec flowso preview "whatsapp/flows/app.$lang.json" --endpoint "http://127.0.0.1:$proxy_port" --plaintext \
+              --port "$preview_port" --log-file "artifacts/preview-$lang.jsonl" &
+            up=""
+            for _ in $(seq 30); do curl -fsS -o /dev/null "http://127.0.0.1:$preview_port/" 2>/dev/null && { up=1; break; }; sleep 1; done
+            [ -n "$up" ] || { echo "::error::the $lang preview did not start"; exit 1; }
+            PREVIEW_URL="http://127.0.0.1:$preview_port/?view=preview" OUT_DIR=flow-screens LANG_TAG=$lang \
+              node --import tsx scripts/flows/screens.ts
+          done
+          # The tester's basket from the walk is emptied; the two test links (never counted, §12) expire on their own.
+          q "delete from public.basket_items where basket_id in (select id from public.baskets where customer_id = '$CU' and status = 'open')" >/dev/null
+          ls flow-screens | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Push to a data branch
+        if: always() && hashFiles('flow-screens/*.png') != ''
+        env:
+          BRANCH: data/flow-screens-${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -f flow-screens
+          git commit -m "Alo King app Flow screens from flow-screens run ${{ github.run_id }}" -m "DECISIONS §39.15.13: Flowso preview against staging, Arabic and English."
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" push origin "$BRANCH"
+          echo "pushed $BRANCH" | tee -a "$GITHUB_STEP_SUMMARY"
