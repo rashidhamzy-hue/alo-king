@@ -21,6 +21,47 @@ export const META = {
   carouselMaxCards: 10,
 } as const;
 
+/**
+ * Conversational components of a number (ice breakers and commands, DECISIONS §39.15.11): at most 4 ice breakers of 80
+ * characters, at most 30 commands; a command's name is up to 32 lower-case letters, digits or underscores (typed after a
+ * slash), its description up to 256 characters.
+ */
+export const META_CONVERSATIONAL = {
+  maxPrompts: 4,
+  promptText: 80,
+  maxCommands: 30,
+  commandName: 32,
+  commandDescription: 256,
+} as const;
+
+/** Every way a conversational-components body breaks Meta's limits (empty array = fine). */
+export function checkConversational(c: {
+  prompts?: string[];
+  commands?: { command_name?: string; command_description?: string }[];
+}): string[] {
+  const v: string[] = [];
+  const L = META_CONVERSATIONAL;
+  const len = (s: unknown) => [...String(s ?? "")].length;
+  const prompts = c.prompts ?? [];
+  if (prompts.length > L.maxPrompts) v.push(`${prompts.length} ice breakers > ${L.maxPrompts}`);
+  for (const p of prompts) {
+    if (!String(p ?? "").trim()) v.push("empty ice breaker");
+    if (len(p) > L.promptText) v.push(`ice breaker "${p}" > ${L.promptText}`);
+  }
+  if (new Set(prompts).size !== prompts.length) v.push("duplicate ice breaker");
+  const cmds = c.commands ?? [];
+  if (cmds.length > L.maxCommands) v.push(`${cmds.length} commands > ${L.maxCommands}`);
+  for (const x of cmds) {
+    const name = String(x.command_name ?? "");
+    if (!new RegExp(`^[a-z0-9_]{1,${L.commandName}}$`).test(name)) v.push(`bad command name "${name}"`);
+    if (!String(x.command_description ?? "").trim()) v.push(`command ${name} has no description`);
+    if (len(x.command_description) > L.commandDescription)
+      v.push(`command ${name} description > ${L.commandDescription}`);
+  }
+  if (new Set(cmds.map((x) => x.command_name)).size !== cmds.length) v.push("duplicate command");
+  return v;
+}
+
 /** Every way an interactive payload breaks Meta's limits (empty array = fine). Template and plain-text payloads are not interactive and are ignored. */
 export function checkInteractive(payload: any): string[] {
   const v: string[] = [];

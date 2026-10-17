@@ -74,6 +74,16 @@ describe("deterministicIntent", () => {
     for (const t of ["Explore", "explorer", "استكشف", "Shops near me"])
       expect(deterministicIntent(t)).toEqual({ kind: "explore" });
   });
+  it("answers the ice breakers and the /order, /explore, /orders and /help commands (§39.15.11)", () => {
+    expect(deterministicIntent("Order food")?.kind).toBe("menu");
+    expect(deterministicIntent("Explore shops near me")?.kind).toBe("explore");
+    expect(deterministicIntent("My orders")?.kind).toBe("track");
+    expect(deterministicIntent("Talk to a person")?.kind).toBe("human");
+    expect(deterministicIntent("/order")?.kind).toBe("menu");
+    expect(deterministicIntent("/explore")?.kind).toBe("explore");
+    expect(deterministicIntent("/orders")?.kind).toBe("track");
+    expect(deterministicIntent("/help")?.kind).toBe("greeting");
+  });
   it("leaves ordinary orders to the model", () => {
     for (const t of [
       "2 shawarma",

@@ -50,8 +50,9 @@ async function call(route: Route, path: string, init: RequestInit = {}): Promise
 
 /**
  * What the number's commerce settings say after the POST (setOk) and the read-back (s; null when no route could read
- * them). The icon counts as shown when Meta reads it back on, or when the POST succeeded and nothing could be read.
- * Neither working leaves the owner's setting standing (unverified; it has been on since 15 October, #181).
+ * them). The goal since 17 October (DECISIONS §39.15.11) is the catalogue icon OFF and the cart ON: `header` says whether
+ * the icon is hidden, `commerceOn` whether the cart works. A POST that succeeded with nothing to read counts as done;
+ * neither working leaves the owner's setting standing (unverified).
  */
 export function commerceState(
   setOk: boolean,
@@ -65,9 +66,9 @@ export function commerceState(
     };
   if (!s)
     return {
-      header: "shown",
+      header: "hidden",
       commerceOn: true,
-      settings: "set (cart on, catalogue icon on); not readable back",
+      settings: "set (cart on, catalogue icon off); not readable back",
     };
   return {
     header:
@@ -76,7 +77,7 @@ export function commerceState(
         : s.is_catalog_visible === false
           ? "hidden"
           : "unverified",
-    commerceOn: s.is_cart_enabled === true && s.is_catalog_visible === true,
+    commerceOn: s.is_cart_enabled === true,
     settings: `cart ${s.is_cart_enabled ?? "?"}, catalogue icon ${s.is_catalog_visible ?? "?"}`,
   };
 }
@@ -269,18 +270,18 @@ async function main() {
     }
   }
 
-  // 3. The cart and the catalogue (storefront) icon in the chat header on (DECISIONS §39.15.2, reversing session 5e's
-  // "icon off"): WhatsApp shows a Cloud API catalogue as one flat list of every shop, so every title names its shop
-  // ("<Item> · <Shop>") and a cart from it is split by shop. Both are set and read back.
+  // 3. The cart on and the catalogue (storefront) icon in the chat header OFF (DECISIONS §39.15.11, 17 October, reversing
+  // §39.15.2's "stays on"): the header list is one flat list of every shop, not filtered by place, so customers shop by
+  // place and shop (the bot, Explore, the web menu); product messages still fill the native cart. Set and read back.
   let settings = "not changed";
   let commerceOn = false;
   let header: "hidden" | "shown" | "unverified" = "unverified";
   if (catalog && !blocked) {
     const set = await firstOk(
-      "cart on, catalogue icon on",
+      "cart on, catalogue icon off",
       routes,
       (r) =>
-        call(r, `/${pn}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=true`, {
+        call(r, `/${pn}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=false`, {
           method: "POST",
         }),
       notes,

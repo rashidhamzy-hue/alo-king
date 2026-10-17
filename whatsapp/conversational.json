@@ -1,0 +1,11 @@
+{
+  "_comment": "WhatsApp conversational components of Alo King's customer number (DECISIONS §39.15.11, session 5g): ice breakers (shown before the first message) and commands (typed with /). Set by scripts/kapso/conversational.ts through Kapso's Meta proxy. Meta keeps one set per number, so they are in English (LOG, session 5g); each tap or command answers through the bot's deterministic paths in the customer's language. Meta's limits live in supabase/functions/_shared/meta-limits.ts (META_CONVERSATIONAL). The welcome message stays off: the bot greets on the customer's first message.",
+  "enable_welcome_message": false,
+  "prompts": ["Order food", "Explore shops near me", "My orders", "Talk to a person"],
+  "commands": [
+    { "command_name": "order", "command_description": "Order from the shops that deliver to you" },
+    { "command_name": "explore", "command_description": "Every shop near you, with photos, fees and times" },
+    { "command_name": "orders", "command_description": "Your orders and where they are" },
+    { "command_name": "help", "command_description": "Get help or talk to a person" }
+  ]
+}
