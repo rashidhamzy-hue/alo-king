@@ -7,7 +7,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import lighthouse from "lighthouse";
 import { chromium } from "@playwright/test";
-import { TRACK_TOKENS } from "./fixtures.mjs";
+import { TRACK_TOKENS, WEB_SLUG, WEB_TOKEN } from "./fixtures.mjs";
 
 const arg = (k, d) => {
   const i = process.argv.indexOf(`--${k}`);
@@ -37,6 +37,9 @@ const PAGES = [
   ["register-en", "/en/business/register", { private: true }],
   // A tracking link is private on purpose (noindex), so it is held to performance and accessibility only.
   ["track-en", `/en/track/${TRACK_TOKENS.delivery}`, { private: true }],
+  // Session 5g: the web shop menu is private to its link (noindex): performance and accessibility only.
+  ["webmenu-ar", `/ar/m/${WEB_SLUG}?t=${WEB_TOKEN}`, { private: true }],
+  ["webmenu-en", `/en/m/${WEB_SLUG}?t=${WEB_TOKEN}`, { private: true }],
 ];
 const RUNS = Math.max(1, Number(arg("runs", "3")) || 3);
 const MIN = 0.9,
@@ -44,6 +47,10 @@ const MIN = 0.9,
 mkdirSync(out, { recursive: true });
 
 const port = 9222;
+// --only home,webmenu: the pages whose id starts with one of these (a quick local check; CI runs them all).
+const only = arg("only", "")?.split(",").filter(Boolean);
+if (only?.length)
+  PAGES.splice(0, PAGES.length, ...PAGES.filter(([id]) => only.some((o) => id.startsWith(o))));
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   args: [`--remote-debugging-port=${port}`],

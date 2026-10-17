@@ -58,6 +58,26 @@ export const ctaUrl = (to: string, body: string, label: string, url: string) => 
     action: { name: "cta_url", parameters: { display_text: label, url } },
   },
 });
+/**
+ * A CTA-URL button under an optional image header (CUSTOMER-EXPERIENCE §4): the shop's cover with its one line and
+ * "Open menu", or "Explore". The image is a short-lived signed link; without one the card is the body and the button.
+ */
+export const ctaUrlImage = (
+  to: string,
+  image: string | null,
+  body: string,
+  label: string,
+  url: string,
+) => ({
+  ...env(to),
+  type: "interactive",
+  interactive: {
+    type: "cta_url",
+    ...(image ? { header: { type: "image", image: { link: image } } } : {}),
+    body: { text: body },
+    action: { name: "cta_url", parameters: { display_text: label, url } },
+  },
+});
 /** Meta's native location request: one tap shares a pin (§16 "pin first"). */
 export const locationRequest = (to: string, body: string) => ({
   ...env(to),
@@ -940,7 +960,9 @@ export type CustomerAction =
         | "cart_replace"
         | "cart_both"
         | "near"
-        | "retry";
+        | "retry"
+        /** "Continue in WhatsApp" on the web menu (spec §4): the basket was saved there; the checkout summary follows. */
+        | "web";
     };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -1009,7 +1031,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
     return { a: "sub_pref", pref: m[1] as "call" | "replace" | "remove" };
   if (
     (m = id.match(
-      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support|cart_replace|cart_both|near|retry)$/,
+      /^c:(find|checkout|clear|menu|basket|pickup|delivery|human|delete_ok|keep|usual|address_list|no_upsell|order|track|pickup_list|cancel|remember|new_address|support|cart_replace|cart_both|near|retry|web)$/,
     ))
   )
     return { a: "simple", what: m[1] as any };

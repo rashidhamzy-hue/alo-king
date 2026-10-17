@@ -59,6 +59,17 @@ describe("deterministicIntent", () => {
     ["la2", "no"],
     ["مرحبا", "greeting"],
   ])("%s → %s", (t, kind) => expect(deterministicIntent(t)?.kind).toBe(kind));
+  it("reads Change address, the web pages' link back (session 5g), in four languages", () => {
+    for (const t of [
+      "Change address",
+      "change my address",
+      "Changer d'adresse",
+      "غيّر العنوان",
+      "ghayer el 3enwen",
+    ])
+      expect(deterministicIntent(t)).toEqual({ kind: "address" });
+    expect(deterministicIntent("change address to Baakline please")).toBeNull();
+  });
   it("leaves ordinary orders to the model", () => {
     for (const t of [
       "2 shawarma",

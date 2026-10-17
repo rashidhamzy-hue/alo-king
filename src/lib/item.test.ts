@@ -85,7 +85,7 @@ describe("Add in WhatsApp (§39.15.2): the bot adds the item from its code", () 
   });
   it("shows the photo through the catalogue image route", () => {
     expect(itemImageUrl(ID)).toMatch(
-      new RegExp(`/functions/v1/dispatch\\?route=catalog-image&i=${ID}$`),
+      new RegExp(`/functions/v1/dispatch\\?route=site-photo&i=${ID}$`),
     );
   });
 });

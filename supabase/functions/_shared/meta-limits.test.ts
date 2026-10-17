@@ -1793,3 +1793,38 @@ describe("session 5f part 8b cards pass the checker", () => {
     }
   });
 });
+
+// Session 5g (CUSTOMER-EXPERIENCE §4): the shop's cover with Open menu, and Explore, as CTA-URL messages.
+import { exploreCard, shopMenuCard, shopLine } from "../dispatch/customer/render";
+
+describe("the web menu and Explore buttons (session 5g)", () => {
+  const url = "https://alo-king.vercel.app/ar/m/a-very-long-shop-slug-for-the-limits?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
+  const card = {
+    vendor_id: "v",
+    name_ar: "مطعم بإسم طويل جداً جداً جداً",
+    name_en: "A shop with a very very long name",
+    village_ar: "معاصر بيت الدين",
+    village_en: "Maasser Beit ed Dine",
+    cuisine_ar: "مشاوي لبنانية",
+    cuisine_en: "Lebanese grills",
+    cuisine_fr: "Grillades libanaises",
+    open_now: true,
+    hours_today: "11:00–23:00",
+  } as any;
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`builds a valid cover with Open menu, with and without a photo, and Explore, in ${lang}`, () => {
+      const line = shopLine(lang, card, 2.5);
+      const withImage: any = shopMenuCard("+96171000001", lang, "https://x.supabase.co/storage/v1/sign/c.jpg", "A".repeat(80), line, url);
+      const noImage: any = shopMenuCard("+96171000001", lang, null, "Shop", line, url);
+      expect(withImage.interactive.type).toBe("cta_url");
+      expect(withImage.interactive.header).toEqual({ type: "image", image: { link: "https://x.supabase.co/storage/v1/sign/c.jpg" } });
+      expect(noImage.interactive.header).toBeUndefined();
+      for (const p of [withImage, noImage, exploreCard("+96171000001", lang, url)])
+        expect(checkInteractive(p), JSON.stringify(p).slice(0, 90)).toEqual([]);
+    });
+  }
+  it("refuses a cover that is not https", () => {
+    const p: any = shopMenuCard("+1", "en", "http://insecure/c.jpg", "Shop", "x", url);
+    expect(checkInteractive(p).join()).toMatch(/cta image must be https/);
+  });
+});
