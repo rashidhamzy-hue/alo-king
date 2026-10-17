@@ -5,6 +5,7 @@
 import {
   buttons,
   ctaUrl,
+  ctaUrlImage,
   list,
   locationRequest,
   moneyLine,
@@ -30,6 +31,20 @@ const S: Record<string, Record<CLang, string>> = {
   btnTrack: { ar: "📦 طلبي", en: "📦 My order", fr: "📦 Ma commande", arabizi: "📦 Talabe" },
   btnPerson: { ar: "🙋 حدا بشري", en: "🙋 A person", fr: "🙋 Une personne", arabizi: "🙋 Shakhs" },
   btnMenu: { ar: "🍽️ المنيو", en: "🍽️ Menu", fr: "🍽️ Menu", arabizi: "🍽️ El menu" },
+  // Session 5g (CUSTOMER-EXPERIENCE §4): the web menu and Explore, opened from a button in the chat.
+  openMenuBtn: {
+    ar: "افتح المنيو",
+    en: "Open menu",
+    fr: "Ouvrir le menu",
+    arabizi: "Ftah el menu",
+  },
+  exploreBtn: { ar: "استكشف", en: "Explore", fr: "Explorer", arabizi: "Explore" },
+  exploreBody: {
+    ar: "🧭 كل المحلات يلّي بتوصّل لعندك، بالصور، مع التوصيل والوقت.",
+    en: "🧭 Every shop that delivers to you, with photos, delivery fee and time.",
+    fr: "🧭 Tous les commerces qui livrent chez vous, en photos, avec les frais et le délai.",
+    arabizi: "🧭 Kel el ma7allet li bi wassle la 3endak, bel sowar, ma3 el tawsil wel wa2et.",
+  },
   aiOff: {
     ar: "ما فيني قرا الكتابة هلق 🙏 اختار من الأزرار:",
     en: "I can't read free text right now 🙏 Please use the buttons:",
@@ -2483,6 +2498,32 @@ export function shopLine(lang: CLang, c: ShopCard, feeUsd: number | null): strin
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+/**
+ * A shop's cover with its one line and **Open menu** (CUSTOMER-EXPERIENCE §3.3 #16, §4): one CTA-URL message, the cover as
+ * its image header when the shop has one. The link is the signed web menu (web_link_create).
+ */
+export function shopMenuCard(
+  to: string,
+  lang: CLang,
+  image: string | null,
+  shop: string,
+  line: string,
+  url: string,
+): Msg {
+  return ctaUrlImage(
+    to,
+    image,
+    `*${shop}*${line ? `\n${line}` : ""}`,
+    tr(lang, "openMenuBtn"),
+    url,
+  );
+}
+
+/** **Explore** (session 5g part B): every shop that delivers to the customer's point, on the web. */
+export function exploreCard(to: string, lang: CLang, url: string): Msg {
+  return ctaUrlImage(to, null, tr(lang, "exploreBody"), tr(lang, "exploreBtn"), url);
 }
 
 /** The sections of a shop not shown in full in its first product message, 9 at a time with "More sections". */

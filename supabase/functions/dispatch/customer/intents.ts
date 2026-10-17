@@ -58,7 +58,9 @@ export type Intent =
   | { kind: "greeting" }
   | { kind: "basket" }
   | { kind: "usual" }
-  | { kind: "menu" };
+  | { kind: "menu" }
+  /** "Change address" (the web menu's and Explore's Change link, session 5g): a new pin, or a tester's demo addresses. */
+  | { kind: "address" };
 
 const any = (t: string, words: RegExp[]) => words.some((w) => w.test(t));
 
@@ -141,6 +143,12 @@ export function deterministicIntent(raw: string): Intent | null {
     )
   )
     return { kind: "menu" };
+  if (
+    /^(change (my |the )?address|new address|another address|changer (d'|l'|d |l )?adresse|changer mon adresse|nouvelle adresse|غير العنوان|بدي غير العنوان|عنوان جديد|ghayer el 3enwen|ghayyer el 3enwen|3enwen jdid)$/.test(
+      t,
+    )
+  )
+    return { kind: "address" };
   if (/^(basket|cart|my basket|panier|mon panier|السله|سلتي|salle|salleti)$/.test(t))
     return { kind: "basket" };
   if (

@@ -14,6 +14,8 @@ import { OrderButton } from "@/components/site/OrderButton";
 import { MenuBuilder } from "@/components/site/MenuBuilder";
 import { crumbsLd } from "@/components/site/Breadcrumbs";
 import { UnclaimedVendor } from "@/components/site/UnclaimedVendor";
+import { WebMenu, WebMenuGone } from "@/components/site/webmenu/WebMenu";
+import { getWebMenu, isWebToken, sitePhotoUrl, type WebMenu as WebMenuData } from "@/lib/web-menu";
 
 const SCHEMA_TYPE: Record<string, string> = {
   restaurant: "Restaurant",
@@ -66,14 +68,24 @@ function vendorLd(d: SiteVendorPage, lang: "ar" | "en" | "fr", url: string) {
   };
 }
 
+type PublicPage =
+  | { claimed: SiteVendorPage; unclaimed: null; web?: undefined }
+  | { claimed: null; unclaimed: UnclaimedVendorPage; web?: undefined };
+type WebPage = { web: WebMenuData; token: string; claimed?: undefined; unclaimed?: undefined };
+
 export const Route = createFileRoute("/$lang/m/$slug")({
+  // ?t=<token>: the customer's web menu (CUSTOMER-EXPERIENCE §4), opened from the chat's "Open menu" button. Never cached
+  // by a CDN, never indexed, and the token is never part of the canonical address.
+  validateSearch: (s: Record<string, unknown>): { t?: string } =>
+    isWebToken(s.t) ? { t: s.t } : typeof s.t === "string" ? { t: "x" } : {},
+  loaderDeps: ({ search }) => ({ t: search.t }),
   // A claimed shop's page, a demo shop's page (§39.12: labelled Demo, noindex), or (DECISIONS §39.3) the noindex page of
   // a shop that is not on Alo King yet. The demo and unclaimed lookups run together; a demo shop wins.
-  loader: async ({
-    params,
-  }): Promise<
-    { claimed: SiteVendorPage; unclaimed: null } | { claimed: null; unclaimed: UnclaimedVendorPage }
-  > => {
+  loader: async ({ params, deps }): Promise<PublicPage | WebPage> => {
+    if (deps.t) {
+      const web = (await getWebMenu(deps.t, params.slug)) ?? { status: "unavailable" as const };
+      return { web, token: deps.t };
+    }
     const d = await getVendorPage(params.slug);
     if (d) return { claimed: d, unclaimed: null };
     const [demo, u] = await Promise.all([
@@ -85,12 +97,33 @@ export const Route = createFileRoute("/$lang/m/$slug")({
     return { claimed: null, unclaimed: u };
   },
   staleTime: 60_000,
-  headers: () => ({
-    "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600",
-  }),
+  headers: ({ match }): Record<string, string> =>
+    match.search.t
+      ? { "cache-control": "private, no-store", "referrer-policy": "no-referrer" }
+      : { "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=600" },
   head: ({ loaderData, match }) => {
     if (!loaderData) return {};
     const { lang, copy, info } = match.context;
+    if (loaderData.web) {
+      const w = loaderData.web;
+      const name = w.status === "ok" ? pickName(w.shop, "name", lang) : copy.site.name;
+      const h = buildHead({
+        lang,
+        path: `/m/${match.params.slug}`,
+        title: fmt(copy.webMenu.seoTitle, { vendor: name }),
+        description: copy.home.seo.description,
+        info: info ?? { origin: "", indexing: false },
+        noindex: true,
+      });
+      // The cover is the page's largest paint: fetched with the HTML, not after the script.
+      if (w.status === "ok" && w.shop.cover)
+        h.links.push({
+          rel: "preload",
+          as: "image",
+          href: sitePhotoUrl({ shop: w.shop.vendor_id }),
+        } as (typeof h.links)[number]);
+      return h;
+    }
     if (loaderData.unclaimed) {
       const u = loaderData.unclaimed.vendor;
       const name = pickName(u, "name", lang);
@@ -144,7 +177,14 @@ const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 function VendorRoute() {
   const d = Route.useLoaderData();
-  return d.claimed ? <VendorPage d={d.claimed} /> : <UnclaimedVendor d={d.unclaimed} />;
+  if (!d) return null;
+  if (d.web)
+    return d.web.status === "ok" ? (
+      <WebMenu d={d.web} token={d.token} />
+    ) : (
+      <WebMenuGone kind={d.web.status === "expired" ? "expired" : "unavailable"} />
+    );
+  return d.claimed ? <VendorPage d={d.claimed} /> : <UnclaimedVendor d={d.unclaimed!} />;
 }
 
 function VendorPage({ d }: { d: SiteVendorPage }) {

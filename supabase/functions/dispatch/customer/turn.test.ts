@@ -1636,6 +1636,61 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     );
   });
 
+  it("with a site address, the cover carries Open menu to the customer's signed web menu (session 5g, spec §4)", async () => {
+    const asked: any[] = [];
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => menu(12, 8),
+        shop_card: () => ({
+          name_en: "Big Market",
+          cuisine_en: "Burgers",
+          village_en: "Baakline",
+          open_now: true,
+          hours_today: "9:30 AM to 11:30 PM",
+          cover: { path: `cover/${VENDOR}.jpg`, source: "merchant" },
+        }),
+        customer_delivery_check: () => ({
+          status: "ok",
+          vendors: [{ vendor_id: VENDOR, status: "ok", road_km: 2.1, fee_usd: 2 }],
+        }),
+        web_link_create: (a: any) => {
+          asked.push(a);
+          return "https://alo-king.vercel.app/en/m/big-market?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
+        },
+      },
+    });
+    f.deps.photoUrl = async (path) => `https://example.supabase.co/sign/${path}?token=t`;
+    f.deps.config.siteUrl = "https://alo-king.vercel.app";
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(f.sent.map((p) => p.interactive.type)).toEqual(["cta_url", "product_list", "list"]);
+    const c0 = f.sent[0].interactive;
+    expect(c0.header.image.link).toContain(`cover/${VENDOR}.jpg`);
+    expect(c0.body.text).toBe(
+      "*Big Market*\nBurgers · Baakline · 🛵 $2.00 delivery · 🕒 today 9:30 AM to 11:30 PM",
+    );
+    expect(c0.action.parameters).toEqual({
+      display_text: "Open menu",
+      url: "https://alo-king.vercel.app/en/m/big-market?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_",
+    });
+    expect(asked[0]).toMatchObject({ p_kind: "menu", p_vendor_id: VENDOR, p_lang: "en" });
+    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+    // A shop without a cover still gets the button (the card without its image).
+    f.sent.length = 0;
+    f.deps.photoUrl = undefined;
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(f.sent[0].interactive.type).toBe("cta_url");
+    expect(f.sent[0].interactive.header).toBeUndefined();
+  });
+
+  it("Continue in WhatsApp on the web menu (a c:web tap) goes on to the checkout", async () => {
+    const f = fake({ begin: sess({}) });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:web", type: "interactive" }));
+    expect(f.of("basket_fulfilment_options")).toHaveLength(1);
+  });
+
   it("the shop line reads the seed listing's Closed and Open 24 hours, and a closed shop says so", () => {
     const card = { cuisine_en: "Grill", village_en: "Baakline", open_now: true };
     expect(shopLine("en", { ...card, hours_today: "Closed" }, null)).toBe(

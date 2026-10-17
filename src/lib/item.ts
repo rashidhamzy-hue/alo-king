@@ -9,11 +9,12 @@ import type { ItemOptionGroup, SiteItemPage } from "./site-data";
 export const itemCode = (id: string) => `i-${id}`;
 
 /**
- * The item's photo through the catalogue image route: a redirect to a short-lived signed URL of the private bucket, the
- * same image Meta shows. Only for an item that has a photo.
+ * The item's photo through the site's photo route: a redirect to a short-lived signed URL of the private bucket. Only for an
+ * item that has a photo. (The catalogue image route answers only the exact version Meta was given, so a synced item's
+ * page showed no photo through it; session 5g.)
  */
 export const itemImageUrl = (id: string) =>
-  `${SUPABASE_URL}/functions/v1/dispatch?route=catalog-image&i=${encodeURIComponent(id)}`;
+  `${SUPABASE_URL}/functions/v1/dispatch?route=site-photo&i=${encodeURIComponent(id)}`;
 
 /** "Hi Alo King, please add <item> from <shop> (i-<id>)": the message the Add in WhatsApp button pre-fills. */
 export function itemWaText(t: Copy, d: SiteItemPage, lang: SiteLang): string {

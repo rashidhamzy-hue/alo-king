@@ -76,6 +76,7 @@ import {
   cravingList,
   shopList,
   shopLine,
+  shopMenuCard,
   moreSectionsList,
   sectionNextButton,
   type BrowseCategory,
@@ -1046,6 +1047,8 @@ async function textIntent(c: Ctx, kind: string) {
       return push(c, welcomeMenu(c.m.from, c.s.lang));
     case "menu":
       return startOrder(c);
+    case "address":
+      return tap(c, { a: "simple", what: "new_address" });
     case "yes":
       // A typed yes or no answers the Start new question only while it is fresh: an ignored card never empties a basket.
       if (c.s.pending.kind === "replace_basket" && !pendingFresh(c)) c.s.pending = {};
@@ -1376,6 +1379,10 @@ async function tap(c: Ctx, a: CustomerAction) {
           c.s.pending = { kind: "await_pin" };
           return push(c, askPin(c.m.from, c.s.lang));
         case "checkout":
+          return checkout(c, {});
+        case "web":
+          // "Continue in WhatsApp" on the web menu (spec §4): the basket is saved; the summary and checkout follow.
+          c.summary.push("[basket saved on the web menu]");
           return checkout(c, {});
         case "retry":
           return checkout(c, { retryRoute: true });
@@ -2120,28 +2127,44 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   if (rest.length) pushSectionsPage(c, shop, rest, 0);
 }
 
-/** A shop's cover with its one line (session 5e); null when the shop has no cover or no link can be made. */
+/**
+ * A shop's cover with its one line (session 5e) and, once the site has an address, the **Open menu** button to its web
+ * menu (CUSTOMER-EXPERIENCE §3.3 #16, §4) in the same message. Null when there is neither a cover nor a web menu link.
+ * The card, the fee and the link are read together (one round of calls, §39.15.6).
+ */
 async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | null> {
-  if (!c.deps.photoUrl) return null;
-  const card:
-    | (ShopCard & {
-        cover?: {
-          path?: string;
-          source?: string;
-          credit?: string | null;
-          license?: string | null;
-        } | null;
-      })
-    | null = await c.deps.rpc("shop_card", { p_vendor_id: vendorId }).catch(() => null);
-  const path = card?.cover?.path;
-  if (!card || !path) return null;
-  const link = await c.deps.photoUrl(path).catch(() => null);
-  if (!link) return null;
-  const chk = await c.deps
-    .rpc("customer_delivery_check", { p_customer_id: c.customerId, p_vendor_ids: [vendorId] })
-    .catch(() => null);
+  // Two rounds of calls at most (§39.15.6): the card and the menu link together, then the cover's signed link and the fee.
+  const [card, web] = await Promise.all([
+    c.deps.rpc("shop_card", { p_vendor_id: vendorId }).catch(() => null) as Promise<
+      | (ShopCard & {
+          cover?: {
+            path?: string;
+            source?: string;
+            credit?: string | null;
+            license?: string | null;
+          } | null;
+        })
+      | null
+    >,
+    webLink(c, "menu", vendorId),
+  ]);
+  if (!card) return null;
+  const path = card.cover?.path;
+  if (!web && !(path && c.deps.photoUrl)) return null;
+  const [link, chk] = await Promise.all([
+    path && c.deps.photoUrl ? c.deps.photoUrl(path).catch(() => null) : Promise.resolve(null),
+    c.deps
+      .rpc("customer_delivery_check", { p_customer_id: c.customerId, p_vendor_ids: [vendorId] })
+      .catch(() => null),
+  ]);
   const q = (chk?.vendors ?? []).find((x: any) => x.vendor_id === vendorId);
   const fee = q?.status === "ok" && q.fee_usd != null ? Number(q.fee_usd) : null;
+  const line = shopLine(c.s.lang, card, fee);
+  if (web) {
+    c.tools.push("web:menu_link");
+    return shopMenuCard(c.m.from, c.s.lang, link, shop, line, web);
+  }
+  if (!link) return null;
   // No photo credit in a caption once the site credits every photo on /credits (§39.15.2); until the site has an
   // address, an illustrative cover under CC BY or CC BY-SA carries its credit here (§39.13). CC0 and public domain need none.
   const cv = card.cover!;
@@ -2152,7 +2175,29 @@ async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | 
     !/^(cc0|pdm|public domain)/i.test(cv.license ?? "")
       ? `\n📷 ${[Array.from(cv.credit.replace(/\s+/g, " ").trim()).slice(0, 80).join(""), cv.license].filter(Boolean).join(" · ")}`
       : "";
-  return image(c.m.from, link, `*${shop}*\n${shopLine(c.s.lang, card, fee)}${credit}`);
+  return image(c.m.from, link, `*${shop}*\n${line}${credit}`);
+}
+
+/**
+ * A signed link to the customer's web menu of a shop, or to Explore (session 5g, CUSTOMER-EXPERIENCE §4): null until the
+ * site has an address, or when the customer may not order from that shop. The site reads the chat's language (Arabic for
+ * Arabizi, §2 rule 1).
+ */
+async function webLink(
+  c: Ctx,
+  kind: "menu" | "explore",
+  vendorId: string | null = null,
+): Promise<string | null> {
+  if (!c.deps.config.siteUrl) return null;
+  const url = await c.deps
+    .rpc("web_link_create", {
+      p_customer_id: c.customerId,
+      p_kind: kind,
+      p_vendor_id: vendorId,
+      p_lang: c.s.lang === "en" || c.s.lang === "fr" ? c.s.lang : "ar",
+    })
+    .catch(() => null);
+  return typeof url === "string" && /^https:\/\//.test(url) ? url : null;
 }
 
 /** The rest of a shop's sections as a list, 9 at a time ("More sections" pages through them). */

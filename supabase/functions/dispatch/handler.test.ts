@@ -1044,3 +1044,69 @@ describe("a customer's message to the shop during an active order (session 5f pa
     expect(db.of("outbox_finish")[0].args).toMatchObject({ p_status: "skipped" });
   });
 });
+
+// Session 5g (CUSTOMER-EXPERIENCE §4): "Continue in WhatsApp" on the web menu queues a c:web tap for the customer
+// (web_basket_notify). Only the customer bot takes it, and it never counts as the customer writing.
+describe("the web menu's synthetic tap", () => {
+  const webEvent = (phone = "+96171000001") => ({
+    ...inbound(
+      { id: "web.1", type: "interactive", interactive: { button_reply: { id: "c:web" } } },
+      phone,
+    ),
+    payload: {
+      ...inbound(
+        { id: "web.1", type: "interactive", interactive: { button_reply: { id: "c:web" } } },
+        phone,
+      ).payload,
+      alo_synthetic: "web",
+    },
+  });
+  const customer = {
+    model: null,
+    transcribe: null,
+    fetchMedia: async () => null,
+    route: async () => null,
+    config: {
+      customerModel: "m",
+      escalationModel: "m",
+      transcriptionModel: "t",
+      maxCalls: 2,
+      turnMs: 8000,
+      lowConfidenceHandoff: 2,
+      voiceMaxBytes: 1,
+    },
+  } as any;
+  it("goes to the customer bot even for a merchant member, without opening the 24-hour window", async () => {
+    const db = fakeDb({
+      events: [webEvent()],
+      members: [MEMBER],
+      rpcs: {
+        customer_turn_begin: () => ({
+          duplicate: false,
+          first_contact: false,
+          customer: { id: "c1", language: "en", blocked: false },
+          session: {
+            lang: "en",
+            pending: {},
+            refs: {},
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+          basket: null,
+          orders: [],
+          profile: {},
+          bot_enabled: true,
+          support_open: true,
+        }),
+        customer_burst: () => ({ status: "single" }),
+      },
+    });
+    const { d } = deps(db, { customer });
+    await runDispatch(d);
+    expect(db.of("whatsapp_seen")).toHaveLength(0);
+    expect(db.of("staff_shift_touch")).toHaveLength(0);
+    expect(db.of("customer_turn_begin")).toHaveLength(1);
+    expect(db.of("basket_fulfilment_options")).toHaveLength(1);
+  });
+});

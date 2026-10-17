@@ -32,8 +32,12 @@ createServer((req, res) => {
   // The catalogue image route (item pages, §39.15.7): like `dispatch`, a redirect to a signed URL, here a drawn plate.
   if (req.method === "GET" && url.startsWith("/functions/v1/dispatch?")) {
     const q = new URL(url, "http://mock").searchParams;
-    const id = q.get("i") ?? "";
-    if (q.get("route") !== "catalog-image" || !/^[0-9a-f-]{36}$/.test(id))
+    // site-photo (session 5g) answers an item (i) or a shop's cover (c) the same way.
+    const id = q.get("i") ?? (q.get("route") === "site-photo" ? (q.get("c") ?? "") : "");
+    if (
+      !["catalog-image", "site-photo"].includes(q.get("route") ?? "") ||
+      !/^[0-9a-f-]{36}$/.test(id)
+    )
       return res.writeHead(404, cors).end();
     return res
       .writeHead(302, {

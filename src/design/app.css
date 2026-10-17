@@ -1,0 +1,542 @@
+/* The in-chat web pages (session 5g, CUSTOMER-EXPERIENCE §4): the web shop menu (`wm-*`) and Explore (`ex-*`), opened from a
+   button in WhatsApp inside its own browser. They read like an app, on cream, with the shop's cover at night on top. Logical
+   properties only (RTL is first-class); 44 px touch targets; nothing moves under prefers-reduced-motion. */
+
+.wm {
+  --tone-bg: var(--cream);
+  --tone-fg: var(--ink);
+  --tone-mute: var(--mute-cream);
+  --tone-line: var(--cream-3);
+  --gold-text: #855400;
+  --card-bg: var(--paper);
+  --card-line: var(--sand);
+  background: var(--cream);
+  color: var(--ink);
+  color-scheme: light;
+  min-height: 100vh;
+  padding-bottom: 6.5rem;
+}
+
+/* Top bar: back to the chat, the shop's name once the cover scrolls away, the crown. */
+.wm-top {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 3.25rem;
+  padding-inline: 0.75rem;
+  background: rgb(17 13 19 / 0.92);
+  color: var(--text-night);
+  backdrop-filter: blur(10px);
+}
+.wm-top-back {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+}
+.wm-top-back:focus-visible,
+.wm-tab:focus-visible,
+.wm-row:focus-visible,
+.wm-bar-btn:focus-visible,
+.wm-wa:focus-visible,
+.wm-sheet :focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+.wm-top-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+/* Cover: the shop's photo, then its name and one line on night. */
+.wm-cover {
+  background: var(--ink-0);
+  color: var(--text-night);
+  --tone-mute: var(--mute-night);
+  padding-bottom: 1.25rem;
+}
+.wm-cover-img {
+  aspect-ratio: 16 / 8;
+  max-height: 15rem;
+  overflow: hidden;
+  background: var(--ink-2);
+}
+.wm-cover-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wm-cover-fallback {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  background:
+    radial-gradient(60% 80% at 50% 40%, rgb(244 182 60 / 0.18), transparent 70%),
+    var(--ink-2);
+}
+.wm-cover-text {
+  padding-top: 1rem;
+}
+.wm-name {
+  font-size: clamp(1.6rem, 1.2rem + 2vw, 2.2rem);
+}
+.wm-line1 {
+  margin-top: 0.25rem;
+  color: var(--mute-night);
+}
+.wm-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+.wm-facts .ak-chip {
+  gap: 0.35rem;
+}
+.wm-place {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--mute-night);
+}
+.wm-place-change {
+  margin-inline-start: auto;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 0.5rem;
+  color: var(--gold);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Sticky section tabs. */
+.wm-tabs {
+  position: sticky;
+  top: 3.25rem;
+  z-index: 30;
+  background: var(--cream);
+  border-bottom: 1px solid var(--cream-3);
+}
+.wm-tabs-row {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.5rem 0.75rem;
+  scroll-padding-inline: 1rem;
+}
+.wm-tabs-row::-webkit-scrollbar {
+  display: none;
+}
+.wm-tab {
+  flex: none;
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 0.9rem;
+  border-radius: 999px;
+  font-weight: 650;
+  font-size: 0.92rem;
+  color: var(--mute-cream);
+  white-space: nowrap;
+}
+.wm-tab.is-on {
+  background: var(--ink);
+  color: var(--cream);
+}
+
+/* Sections and item rows: a photo at the end, or a clean text row. */
+.wm-body {
+  padding-top: 0.5rem;
+}
+.wm-sec {
+  scroll-margin-top: 6.5rem;
+  padding-top: 1.25rem;
+}
+.wm-sec-title {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.wm-list {
+  display: grid;
+  gap: 0;
+}
+@media (min-width: 900px) {
+  .wm-list {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0 1.5rem;
+  }
+}
+.wm-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--cream-3);
+  text-align: start;
+  min-height: 5.5rem;
+}
+.wm-row-text-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.wm-row-name {
+  font-weight: 750;
+  line-height: 1.3;
+}
+.wm-row-ar {
+  font-family: var(--font-arab);
+  font-size: 0.9rem;
+  color: var(--mute-cream);
+  line-height: 1.5;
+}
+.wm-row-desc {
+  font-size: 0.875rem;
+  color: var(--mute-cream);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.wm-row-price {
+  margin-top: 0.25rem;
+  font-weight: 800;
+}
+.wm-row-price small {
+  font-weight: 500;
+  color: var(--mute-cream);
+}
+.wm-row-img {
+  position: relative;
+  flex: none;
+  width: 6rem;
+  height: 6rem;
+}
+.wm-row-img img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-md);
+  object-fit: cover;
+  background: var(--cream-2);
+}
+.wm-row-add {
+  position: absolute;
+  inset-inline-end: -0.35rem;
+  bottom: -0.35rem;
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgb(23 19 26 / 0.25);
+}
+.wm-row-add-text {
+  position: static;
+  flex: none;
+  align-self: center;
+}
+.wm-fine {
+  margin-top: 1.25rem;
+  font-size: 0.8rem;
+  color: var(--mute-cream);
+}
+
+/* The cart bar. */
+.wm-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 45;
+  padding: 0.75rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, rgb(255 249 240 / 0.95) 35%);
+}
+.wm-bar-btn {
+  width: 100%;
+  max-width: 40rem;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding-inline: 1rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-weight: 750;
+  box-shadow: 0 10px 30px rgb(23 19 26 / 0.3);
+}
+.wm-bar-count {
+  display: grid;
+  place-items: center;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+}
+.wm-bar-label {
+  flex: 1;
+  text-align: start;
+}
+
+/* Sheets: the item and the basket, from the bottom on a phone, centred on a desktop. */
+.wm-sheet {
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 40rem;
+  max-height: 92vh;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+}
+@media (min-width: 720px) {
+  .wm-sheet {
+    margin: auto;
+    border-radius: var(--r-xl);
+  }
+}
+.wm-sheet::backdrop {
+  background: rgb(14 11 16 / 0.6);
+}
+.wm-sheet-in {
+  position: relative;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+}
+.wm-sheet-x {
+  position: absolute;
+  top: 0.75rem;
+  inset-inline-end: 0.75rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  background: rgb(255 253 248 / 0.92);
+  box-shadow: 0 1px 6px rgb(23 19 26 / 0.2);
+}
+.wm-sheet-img {
+  position: relative;
+  margin: -1.25rem -1.25rem 1rem;
+  aspect-ratio: 1;
+  max-height: 42vh;
+  overflow: hidden;
+  background: var(--cream-2);
+}
+.wm-sheet-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.wm-illus {
+  position: absolute;
+  bottom: 0.5rem;
+  inset-inline-start: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgb(17 13 19 / 0.7);
+  color: var(--cream);
+  font-size: 0.72rem;
+}
+.wm-sheet-title {
+  font-size: 1.4rem;
+  padding-inline-end: 3rem;
+}
+.wm-group {
+  margin-top: 1.25rem;
+  border: 0;
+  padding: 0;
+}
+.wm-group-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.wm-opt {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border: 1.5px solid var(--sand);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+.wm-opt.is-on {
+  border-color: var(--ink);
+  background: var(--cream);
+}
+.wm-opt input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--ink);
+}
+.wm-note {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--sand);
+  border-radius: var(--r-md);
+  background: #fff;
+  font: inherit;
+}
+.wm-well {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.5rem;
+  border: 1.5px solid var(--sand);
+  border-radius: var(--r-md);
+  min-height: 3rem;
+}
+.wm-well img {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.6rem;
+  object-fit: cover;
+}
+.wm-sheet-foot {
+  position: sticky;
+  bottom: calc(-1.25rem - env(safe-area-inset-bottom));
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 1.5rem -1.25rem calc(-1.25rem - env(safe-area-inset-bottom));
+  padding: 0.9rem 1.25rem calc(0.9rem + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-top: 1px solid var(--sand);
+}
+.wm-sheet-foot .ak-btn {
+  min-height: 3.25rem;
+}
+.wm-sheet-foot .ak-btn:disabled,
+.wm-wa:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.wm-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1.5px solid var(--sand);
+  border-radius: 999px;
+  padding: 0.2rem;
+}
+.wm-step button {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+}
+.wm-step button:disabled {
+  opacity: 0.35;
+}
+.wm-step span {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 800;
+}
+.wm-lines {
+  margin-top: 1rem;
+}
+.wm-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--sand);
+}
+.wm-sum {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.wm-sum > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.wm-sum dd {
+  font-weight: 800;
+  text-align: end;
+}
+.wm-sum dd small {
+  display: block;
+  font-weight: 500;
+  color: var(--mute-cream);
+}
+.wm-warn {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--r-md);
+  background: #fff1d6;
+  color: #5c3a00;
+  font-size: 0.9rem;
+}
+.wm-other {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: var(--r-lg);
+  background: var(--cream);
+  border: 1px solid var(--sand);
+}
+
+/* The one WhatsApp action of these pages: the official glyph on WhatsApp green (DECISIONS §39.15.5). The label is ink:
+   white on #25D366 is 1.98:1, ink on it is 9.6:1. */
+.wm-wa {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3.4rem;
+  padding-inline: 1.25rem;
+  border-radius: 999px;
+  background: var(--wa);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 1.02rem;
+}
+
+.wm-gone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 80vh;
+  max-width: 30rem;
+}
