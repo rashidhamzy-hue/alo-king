@@ -16,8 +16,11 @@ export type Env = {
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Transcripts are artifacts: a signed web link's token is never written in one.
 const short = (s: string, n = 220) =>
-  (s.length > n ? `${s.slice(0, n - 1)}…` : s).replace(/\n/g, " ⏎ ");
+  (s.length > n ? `${s.slice(0, n - 1)}…` : s)
+    .replace(/([?&]t=)[A-Za-z0-9_-]{24}/g, "$1…")
+    .replace(/\n/g, " ⏎ ");
 
 function describe(m: Out): string {
   const opts = m.options.length

@@ -183,6 +183,33 @@ describe("scenario files", () => {
   }
 });
 
+describe("toOut: CTA-URL messages (session 5g part E)", () => {
+  it("carries the link in the text, so a scenario can capture the signed token", () => {
+    const o = toOut(
+      row(
+        {
+          type: "interactive",
+          interactive: {
+            type: "cta_url",
+            body: { text: "Dash" },
+            action: {
+              name: "cta_url",
+              parameters: {
+                display_text: "Open menu",
+                url: "https://alo-king.vercel.app/en/m/dash?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_",
+              },
+            },
+          },
+        },
+        "interactive:cta_url",
+        "Dash",
+      ),
+    );
+    expect(o.text).toContain("/m/dash?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_");
+    expect(o.options).toEqual([{ id: "url", title: "Open menu" }]);
+  });
+});
+
 describe("toOut: templates (session 5b, DECISIONS §39.8)", () => {
   it("renders a template's text and quick replies the way the person would see them", () => {
     const o = toOut({

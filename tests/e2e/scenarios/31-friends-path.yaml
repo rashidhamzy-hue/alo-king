@@ -1,0 +1,31 @@
+name: friends-path
+description: >
+  Session 5g part E (DECISIONS §39.15.3): the whole path a friend takes, three times, from a Dubai, a Riyadh and a Beirut pin:
+  an ice breaker, the demo address, the craving list and Explore, a shop from the website, Open menu, the web menu,
+  Continue in WhatsApp, the checkout, and the demo autopilot playing the shop to delivered.
+personas:
+  dubai: { role: customer, cc: "971", name: "Sim Friend Dubai" }
+  riyadh: { role: customer, cc: "966", name: "Sim Friend Riyadh" }
+  beirut: { role: customer, cc: "961", name: "Sim Friend Beirut" }
+  merchant: { role: merchant }
+steps:
+  - note: a delivery-only demo shop open now that delivers to the Baakleen demo address, and one of its items with no choices
+    db:
+      - sql: >
+          select v.slug, i.id as item
+          from public.shop_place_routes r join public.vendors v on v.id = r.vendor_id
+          left join public.vendor_ops op on op.vendor_id = v.id
+          join lateral (select i.id from public.menu_items i where i.vendor_id = v.id and app_private.web_item_shown(i.id)
+                          and i.pricing_unit = 'each' and i.price_usd > 0
+                          and not exists (select 1 from public.menu_option_groups g where g.item_id = i.id)
+                        order by i.sort_order, i.id limit 1) i on true
+          where r.place_id = 'LB-CHF-BAAKLINE' and app_private.vendor_is_demo(v.id) and v.orderable and v.delivery_enabled
+            and not v.pickup_enabled and app_private.vendor_open_at(v.id) and not public.vendor_is_paused(v.id)
+            and r.road_km <= coalesce(v.delivery_radius_km, public.max_delivery_km())
+            and coalesce(op.min_order_usd, 0) <= 2 * (select price_usd from public.menu_items where id = i.id)
+          order by r.road_km limit 1
+        row: { slug: "~." }
+        save: { slug: slug, item: item }
+  - include: { part: friend-path, as: dubai, where: Dubai, lat: 25.2048, lon: 55.2708 }
+  - include: { part: friend-path, as: riyadh, where: Riyadh, lat: 24.7136, lon: 46.6753 }
+  - include: { part: friend-path, as: beirut, where: Beirut, lat: 33.8938, lon: 35.5018 }

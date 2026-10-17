@@ -1,0 +1,100 @@
+# The path a friend abroad takes (session 5g part E, DECISIONS §39.15.3): an ice breaker, a pin from $WHERE, the demo
+# address, the craving list with Explore, a shop from the website, Open menu, the web menu, Continue in WhatsApp, the
+# checkout, and the demo autopilot playing the shop to delivered. Needs vars.slug and vars.item (a delivery-only demo shop
+# that delivers to Baakleen, one item with no choices).
+steps:
+  - note: $AS taps the ice breaker "Order food" (§39.15.11) on first contact; the bot asks for the location pin
+    say: { as: $AS, text: "Order food" }
+    expect:
+      - { to: $AS }
+  - note: >
+      $AS is a demo tester (a real friend is enrolled by the invite link; a simulator persona here), sees the demo shops with
+      the simulated catalogue, and the simulated merchant gets their order cards (never a real shop, never Rasheed's phone)
+    sql: >
+      select public.sim_tester('{{$AS.phone}}', true), public.sim_demo('{{$AS.phone}}', '{{merchant.phone}}', true),
+             public.sim_catalog('{{$AS.phone}}', true)
+  - note: a pin from $WHERE, outside the delivery area, is never stored; the demo addresses, never "we don't deliver to you"
+    pin: { as: $AS, lat: "$LAT", lon: "$LON" }
+    expect:
+      - { to: $AS, buttons: ["da:baakleen"] }
+  - note: >
+      the Baakleen demo address goes on as a pin would: the craving list and Explore on the web (session 5g part B); Explore
+      reads the demo address, never the real pin
+    tap: { as: $AS, id: "da:baakleen" }
+    expect:
+      - { to: $AS, kind: list, buttons: ["c:near"] }
+      - to: $AS
+        kind: "interactive:cta_url"
+        text: "/e?t="
+        capture: { explore: "(https://\\S+/e\\?t=[A-Za-z0-9_-]{24})" }
+    db:
+      - sql: >
+          select e ->> 'status' as status, e #>> '{place,name_en}' as place, jsonb_array_length(e -> 'shops') > 0 as shops,
+                 (e ->> 'rate')::numeric > 0 as rate
+          from (select public.web_explore(substring('{{vars.explore}}' from 't=([A-Za-z0-9_-]{24})')) as e) x
+        row: { status: ok, place: "~^Baak", shops: true, rate: true }
+  - note: >
+      $AS opens a shop from the website (its button writes [shop:slug]); the cover comes with Open menu, and the web menu
+      shows the shop with its fee and ETA to the demo address
+    say: { as: $AS, text: "[shop:{{vars.slug}}]" }
+    expect:
+      - to: $AS
+        kind: "interactive:cta_url"
+        text: "/m/"
+        capture: { menu: "(https://\\S+/m/[a-z0-9-]+\\?t=[A-Za-z0-9_-]{24})" }
+    db:
+      - sql: >
+          select m ->> 'status' as status, m #>> '{shop,slug}' = '{{vars.slug}}' as shop, m #>> '{delivery,place_en}' as place,
+                 (m #>> '{delivery,fee_usd}')::numeric > 0 as fee, (m #>> '{delivery,eta_min}')::int > 0 as eta
+          from (select public.web_menu(substring('{{vars.menu}}' from 't=([A-Za-z0-9_-]{24})'),
+                                       substring('{{vars.menu}}' from '/m/([a-z0-9-]+)')) as m) x
+        row: { status: ok, shop: true, place: "~^Baak", fee: true, eta: true }
+  - note: >
+      Continue in WhatsApp with 2 of the item: the server checks and prices the lines (the page sends no price), saves the
+      basket and the bot sends the checkout in the chat by itself
+    sql: >
+      select public.web_basket_save(substring('{{vars.menu}}' from 't=([A-Za-z0-9_-]{24})'), '{{vars.slug}}',
+        jsonb_build_array(jsonb_build_object('item_id', '{{vars.item}}', 'quantity', 2, 'option_ids', '[]'::jsonb, 'note', null)),
+        false)
+    expect:
+      - { to: $AS, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }
+    db:
+      - sql: >
+          select b.status, sum(bi.quantity)::int as qty, bool_and(bi.unit_price_usd = i.price_usd) as server_priced
+          from public.baskets b join public.customers c on c.id = b.customer_id
+          join public.basket_items bi on bi.basket_id = b.id join public.menu_items i on i.id = bi.item_id
+          where c.phone_e164 = '{{$AS.phone}}' and b.status = 'open' group by b.status
+        row: { status: open, qty: 2, server_priced: true }
+  - tap: { as: $AS, id: "fw:self_save" }
+    expect:
+      - { to: $AS, buttons: ["cur:USD", "cur:LBP"] }
+  - tap: { as: $AS, id: "cur:USD" }
+    expect: [{ to: $AS, buttons: ["chg:USD:exact"] }]
+  - tap: { as: $AS, id: "chg:USD:exact" }
+    expect:
+      - { to: $AS, buttons: ["cfm:"], text: "LBP" }
+  - note: $AS confirms; the order card goes to the simulated merchant, marked Demo
+    tap: { as: $AS, id_prefix: "cfm:" }
+    expect:
+      - { to: $AS }
+      - { to: merchant, buttons: ["acc:"], text: "Demo" }
+  - note: >
+      nobody taps: the demo autopilot (tick-30s) accepts after demo_autopilot_after_s, then marks it ready, on the way and
+      delivered every demo_autopilot_step_s; $AS gets every normal message up to delivered
+    timeout_s: 480
+    quiet_s: 1
+    expect:
+      - { to: $AS, text_any: ["delivered", "livrée", "وصل"] }
+    db:
+      - sql: >
+          select o.status, o.is_demo from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{$AS.phone}}' order by o.created_at desc limit 1
+        row: { status: delivered, is_demo: true }
+        within_s: 30
+  - note: Explore typed later sends the link alone
+    say: { as: $AS, text: "Explore" }
+    expect:
+      - { to: $AS, kind: "interactive:cta_url", text: "/e?t=" }
+  - sql: >
+      select public.sim_tester('{{$AS.phone}}', false), public.sim_demo('{{$AS.phone}}', '{{merchant.phone}}', false),
+             public.sim_catalog('{{$AS.phone}}', false)
