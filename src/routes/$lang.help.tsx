@@ -5,6 +5,7 @@ import { EMPTY_OVERVIEW } from "@/lib/site-data";
 import { useSite } from "@/components/site/context";
 import { PageHero } from "@/components/site/PageHero";
 import { OrderButton } from "@/components/site/OrderButton";
+import { PayBand } from "@/components/site/home/PayBand";
 import { FaqList } from "@/components/site/FaqList";
 
 export const Route = createFileRoute("/$lang/help")({
@@ -54,6 +55,7 @@ function HelpPage() {
           <FaqList items={faqItems(t, overview, customerFaqIds(t))} />
         </div>
       </section>
+      <PayBand tone="cream" flush />
     </>
   );
 }

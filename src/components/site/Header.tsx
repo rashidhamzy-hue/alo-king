@@ -45,6 +45,7 @@ type NavTo =
   | "/$lang/help"
   | "/$lang/contact"
   | "/$lang/business"
+  | "/$lang/business/contact"
   | "/$lang/business/help"
   | "/$lang/business/drivers";
 type NavLink = { to: NavTo; label: string; hash?: string };
@@ -87,8 +88,8 @@ function MobileMenu({
 }
 
 /**
- * The customers' header (DECISIONS §39.11): ordering, the delivery map, Send Home, help. No merchant pages: the one way
- * to the business side is the "For businesses" link at the foot of the home page.
+ * The customers' header (DECISIONS §39.11, §39.15.5): ordering, the delivery map, Send Home, help, and one link to the
+ * business side, "For businesses". The two sides never share pages or navigation beyond that link.
  */
 export function Header() {
   const { lang, t } = useSite();
@@ -97,6 +98,7 @@ export function Header() {
     { to: "/$lang/send-home", label: t.nav.sendHome },
     { to: "/$lang/help", label: t.nav.help },
     { to: "/$lang/contact", label: t.nav.contact },
+    { to: "/$lang/business", label: t.nav.business },
   ];
   return (
     <header className="tone-night ak-head">
@@ -141,6 +143,7 @@ export function BizHeader() {
     { to: "/$lang/business", label: b.pricing, hash: "pricing" },
     { to: "/$lang/business/help", label: b.help },
     { to: "/$lang/business/drivers", label: b.drivers },
+    { to: "/$lang/business/contact", label: b.contact },
   ];
   return (
     <header className="tone-cream ak-head ak-head-biz">

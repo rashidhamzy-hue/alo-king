@@ -38,7 +38,7 @@ function Languages() {
   );
 }
 
-/** The customers' footer (DECISIONS §39.11): no merchant link, no merchant terms. */
+/** The customers' footer (DECISIONS §39.11, §39.15.5): no merchant terms; one link to the business side. */
 export function Footer() {
   const { lang, t } = useSite();
   return (
@@ -85,6 +85,11 @@ export function Footer() {
             <li>
               <Link to="/$lang/contact" params={{ lang }}>
                 {t.nav.contact}
+              </Link>
+            </li>
+            <li>
+              <Link to="/$lang/business" params={{ lang }}>
+                {t.nav.business}
               </Link>
             </li>
           </Col>
@@ -165,6 +170,11 @@ export function BizFooter() {
             <li>
               <Link to="/$lang/business/help" params={{ lang }}>
                 {b.help.title}
+              </Link>
+            </li>
+            <li>
+              <Link to="/$lang/business/contact" params={{ lang }}>
+                {b.nav.contact}
               </Link>
             </li>
             <li>

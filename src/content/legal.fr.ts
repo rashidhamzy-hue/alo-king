@@ -97,7 +97,7 @@ export const legalFr: LegalCopy = {
           ul: [
             "Pour prendre, chiffrer, livrer et suivre vos commandes, et vous répondre.",
             "Pour garder le service sûr, et trouver et corriger les problèmes.",
-            "Pour améliorer la compréhension par l'assistant de l'arabe libanais, de l'arabizi, du français et de l'anglais.",
+            "Pour améliorer la compréhension par l'assistant de l'arabe libanais (en lettres arabes ou latines), du français et de l'anglais.",
             "Pour vous envoyer des offres uniquement si vous y avez consenti. Vous pouvez les arrêter à tout moment en envoyant STOP.",
           ],
         },
@@ -268,7 +268,7 @@ export const legalFr: LegalCopy = {
         {
           h: "Frais",
           ul: [
-            "Alo King facture des frais pour chaque commande livrée ou retirée. Les frais, et toute période gratuite, figurent sur notre page Pour les commerçants, et vous les voyez avant de démarrer.",
+            "Alo King facture des frais pour chaque commande livrée ou retirée. Les frais, et toute période gratuite, figurent sur notre page Pour les commerces, et vous les voyez avant de démarrer.",
             "Nous n'ajoutons rien aux prix de votre menu et ne facturons rien par mois pour votre page.",
             "Un changement de frais ne s'applique qu'aux commandes passées après le changement, et nous vous prévenons avant qu'il ne commence.",
             "Les frais sont enregistrés sur votre compte. La façon dont ils sont réglés, avec un crédit Alo King ou par relevé mensuel, sera précisée avant le début du paiement en ligne.",

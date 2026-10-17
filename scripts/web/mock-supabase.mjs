@@ -81,6 +81,8 @@ createServer((req, res) => {
   req.on("data", (c) => chunks.push(c));
   req.on("end", () => {
     const raw = Buffer.concat(chunks);
+    // "Forgot password" on the staff sign-in (§39.15.5): Supabase answers 200 whether or not the address has an account.
+    if (req.method === "POST" && url.startsWith("/auth/v1/recover")) return json(res, {});
     if (req.method === "POST" && url.startsWith("/functions/v1/site-claim")) {
       if ((req.headers["content-type"] ?? "").startsWith("multipart/form-data")) {
         const text = raw.toString("latin1");

@@ -104,7 +104,10 @@ function Console() {
             {L("Team console", "لوحة الفريق", "Console de l'équipe")}
           </h1>
         </div>
-        <nav className="flex items-center gap-1" aria-label={L("Sections", "الأقسام", "Sections")}>
+        <nav
+          className="flex flex-wrap items-center gap-1"
+          aria-label={L("Sections", "الأقسام", "Sections")}
+        >
           {(
             [
               ["claims", ShieldCheck, L("Claims", "طلبات الاستلام", "Revendications")],
@@ -122,7 +125,8 @@ function Console() {
             </button>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
+        {/* Wraps at 360 px in French rather than push the page sideways (§39.15.5). */}
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/merchant">{L("Merchant view", "واجهة التاجر", "Vue commerçant")}</Link>
           </Button>

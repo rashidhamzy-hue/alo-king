@@ -269,6 +269,28 @@ html[lang="ar"] .ak-eyebrow {
 .ak-btn-ink:hover {
   background: var(--ink-3);
 }
+/* "Order on WhatsApp" (DECISIONS §39.15.5): WhatsApp green so it is known at a glance, the white WhatsApp glyph, and the
+   label in ink. White text on #25D366 is 2.0:1 and fails WCAG AA at every size; ink on it is 9.3:1. */
+.ak-btn-wa {
+  background: var(--wa);
+  color: var(--ink);
+  box-shadow: 0 10px 30px -14px rgb(37 211 102 / 0.7);
+}
+.ak-btn-wa:hover {
+  background: #3ddc78;
+}
+.ak-btn-wa > svg {
+  color: #fff;
+  filter: drop-shadow(0 0 0.6px rgb(23 19 26 / 0.55));
+}
+/* Where the glyph is the button's only visible content (the phone header), it is drawn in ink: white on the green is
+   2.0:1, under the 3:1 a control's only graphic needs (WCAG 1.4.11); ink is 9.3:1. */
+@media (max-width: 639.98px) {
+  .ak-btn-wa.is-icon-only > svg {
+    color: var(--ink);
+    filter: none;
+  }
+}
 .ak-btn-line {
   background: transparent;
   color: inherit;
@@ -1978,4 +2000,125 @@ html[dir="rtl"] .ak-hero-word {
 /* By day, gold is a fill, never text (§37.2): gold-coloured text in a cream tone becomes a deep amber that reads (6:1). */
 .tone-cream .text-gold {
   color: #855400;
+}
+
+/* Session 5g (§39.15.5): the ballat, the old Lebanese cement tile, as a quiet motif. It takes the tone's text colour, so
+   it reads at night and by day; edges fade out like the contours. */
+.ak-ballat {
+  position: relative;
+  isolation: isolate;
+}
+.ak-ballat-tex {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  color: var(--tone-fg);
+  opacity: 0.05;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(90% 80% at 50% 50%, #000 30%, transparent 85%);
+  mask-image: radial-gradient(90% 80% at 50% 50%, #000 30%, transparent 85%);
+}
+
+/* "Every village we deliver to": the areas as cards, the villages as rows. */
+.zm-areas {
+  margin-top: 2.5rem;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 40rem) {
+  .zm-areas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 64rem) {
+  .zm-areas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.zm-area {
+  padding: 1.25rem 1.25rem 0.75rem;
+  border-radius: var(--r-lg);
+  background: var(--card-bg);
+  border: 1px solid var(--card-line);
+}
+.zm-area .zm-index-link:last-child,
+.zm-area li:last-child .zm-index-link {
+  border-bottom: 0;
+}
+span.zm-index-link:hover {
+  border-bottom-color: var(--tone-line);
+}
+.zm-key-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-inline: 0.15rem;
+  background: currentColor;
+  opacity: 0.35;
+  transform: translateY(-0.1rem);
+}
+.zm-index-link .zm-key-shops {
+  transform: translateY(-0.05rem);
+}
+
+/* How customers pay (§39.15.5): cash in dollars or lira, and Whish shown only as "Soon". */
+.ak-pay {
+  display: grid;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.5rem;
+  border-radius: var(--r-xl);
+  background: var(--card-bg);
+  border: 1px solid var(--card-line);
+}
+@media (min-width: 48rem) {
+  .ak-pay {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 2rem 2.25rem;
+  }
+}
+.ak-pay-cash {
+  display: flex;
+  gap: 0.75rem;
+}
+.ak-pay-cash figure {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--tone-mute);
+}
+.ak-pay-cash svg {
+  width: 3.5rem;
+  height: auto;
+  color: var(--tone-fg);
+}
+.ak-pay-whish {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+}
+.ak-whish {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 0.45rem;
+  padding-inline: 0.9rem 0.6rem;
+  border-radius: var(--radius-pill);
+  border: 1.5px dashed var(--tone-line);
+  color: var(--tone-mute);
+}
+.ak-whish-word {
+  font-family: var(--font-latin);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.ak-whish .ak-chip {
+  font-size: 0.75rem;
 }

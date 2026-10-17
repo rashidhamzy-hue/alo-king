@@ -2,6 +2,8 @@
 import { LANGS, DEFAULT_LANG, localePath, pickName, usd, type RequestInfo } from "./site";
 import { MIN_MERCHANTS_TO_INDEX } from "./site-config";
 import type { SiteOverview } from "./site-data";
+import { ZONE } from "@/design/chouf-map.generated";
+import { zoneAreas } from "./zone-areas";
 
 /** Paths that are never for search engines: private apps and tracking links. */
 const PRIVATE = [
@@ -90,6 +92,7 @@ const STATIC_PAGES = [
   // The business side (DECISIONS §39.11): its own section, its own help and terms.
   "/business",
   "/business/help",
+  "/business/contact",
   "/business/drivers",
   "/business/legal/merchant-terms",
   "/business/legal/collection-mandate",
@@ -128,14 +131,26 @@ export function llmsTxt(
     o.fees.min_usd != null && o.fees.max_usd != null
       ? ` Delivery costs ${usd(o.fees.min_usd)} to ${usd(o.fees.max_usd)}, by road distance, and is shown before you confirm.`
       : "";
-  const places = o.places.length
-    ? o.places
-        .map(
-          (p) =>
-            `- [${pickName(p, "name", "en")}](${url(`/places/${p.slug}`)}): ${p.merchants} shop${p.merchants === 1 ? "" : "s"}`,
-        )
-        .join("\n")
-    : "- Opening soon: Baakline, Bakaata, Semqanieh and Beiteddine in the Chouf, then village by village.";
+  // Every village of the delivery area, by area, whether or not it is live (§39.15.5). A live place links to its page; a
+  // shop count appears only when shops have their home there (a village is also served by the shops nearby).
+  const live = new Map(o.places.map((p) => [p.slug, p]));
+  const places = zoneAreas(ZONE)
+    .map((a) => {
+      const names = [...a.places]
+        .sort((x, y) => x.en.localeCompare(y.en))
+        .map((z) => {
+          const p = live.get(z.slug);
+          if (!p) return z.en;
+          const n =
+            p.merchants > 0
+              ? ` (${p.merchants} shop${p.merchants === 1 ? "" : "s"} on Alo King)`
+              : "";
+          return `[${pickName(p, "name", "en") || z.en}](${url(`/places/${p.slug}`)})${n}`;
+        });
+      return `- Around ${a.hub.en}: ${names.join(", ")}`;
+    })
+    .join("\n");
+  const anyLive = ZONE.some((z) => live.has(z.slug));
   const cuisines = o.cuisines.length
     ? o.cuisines
         .map((c) => `- [${pickName(c, "name", "en")}](${url(`/cuisine/${c.tag}`)}): ${c.vendors}`)
@@ -147,7 +162,7 @@ export function llmsTxt(
     .join("\n");
   return `# Alo King (ألو كينغ)
 
-> Alo King lets people in Lebanon order food and everyday essentials from local shops by chatting on WhatsApp, in Arabic, English, French or Arabizi. No app and no sign-up. Alo means "hello" in Arabic. Customers can also order for family in Lebanon from abroad (Send Home, opening soon).
+> Alo King lets people in Lebanon order food and everyday essentials from local shops by chatting on WhatsApp, in Arabic, English or French, the way people text, even mixed. No app and no sign-up. Alo means "hello" in Arabic. Customers can also order for family in Lebanon from abroad (Send Home, opening soon).
 
 ## How to order
 - Open WhatsApp from any page with "Order on WhatsApp", say hello, share your location pin, pick from the menu or type or send a voice note, check the summary, and tap Confirm.
@@ -155,7 +170,7 @@ export function llmsTxt(
 - Prices are set by each shop. Alo King never adds to a menu price.${fee}
 
 ## Where it delivers
-Each shop sets its own delivery radius${o.fees.max_km != null ? `, up to ${o.fees.max_km} km by road` : ""}. Places with shops switched on:
+Each shop sets its own delivery radius${o.fees.max_km != null ? `, up to ${o.fees.max_km} km by road` : ""}. ${anyLive ? "Every town and village of the delivery area in the Chouf, by area (linked places take orders now):" : "Opening soon in the Chouf. Every town and village of the delivery area, by area:"}
 ${places}
 ${cuisines ? `\n## Cuisines\n${cuisines}\n` : ""}${shops ? `\n## Shops (claimed by their owners)\n${shops}\n` : ""}
 ## Pages
@@ -165,6 +180,7 @@ ${cuisines ? `\n## Cuisines\n${cuisines}\n` : ""}${shops ? `\n## Shops (claimed 
 - [Contact](${url("/contact")})
 - [For businesses: claim your shop and take orders on WhatsApp](${url("/business")})
 - [Help for businesses](${url("/business/help")})
+- [Contact for businesses](${url("/business/contact")})
 - [Drive with Alo King](${url("/business/drivers")})
 - [Privacy](${url("/legal/privacy")}), [Terms](${url("/legal/terms")}), [Refunds](${url("/legal/refund")})
 

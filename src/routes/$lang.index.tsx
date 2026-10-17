@@ -8,6 +8,7 @@ import { SpeakLebanese } from "@/components/site/home/SpeakLebanese";
 import { ZoneTeaser } from "@/components/site/home/ZoneTeaser";
 import { SendHomeSection } from "@/components/site/home/SendHomeSection";
 import { Trust } from "@/components/site/home/Trust";
+import { PayBand } from "@/components/site/home/PayBand";
 import { FaqList } from "@/components/site/FaqList";
 import { Link } from "@tanstack/react-router";
 
@@ -68,6 +69,7 @@ function Home() {
     <>
       <Hero />
       <ThreeTaps />
+      <PayBand tone="cream" flush />
       <SpeakLebanese />
       <ZoneTeaser />
       <SendHomeSection />

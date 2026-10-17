@@ -45,7 +45,14 @@ function ContactPage() {
             ) : (
               <p className="mt-4 font-semibold">{c.whatsappSoon}</p>
             )}
-            {WHATSAPP_DISPLAY && <OrderButton className="mt-5" text={t.wa.person} variant="ink" />}
+            {WHATSAPP_DISPLAY && (
+              <OrderButton
+                className="mt-5"
+                text={t.wa.person}
+                label={t.help.contactCta}
+                variant="ink"
+              />
+            )}
           </div>
           <div className="ak-card p-6">
             <h2 className="ak-h3">{c.hoursTitle}</h2>
@@ -73,6 +80,23 @@ function ContactPage() {
           <div className="ak-card p-6">
             <h2 className="ak-h3">{c.companyTitle}</h2>
             <p className="mt-2 text-tone-mute">{COMPANY_LINE[lang]}</p>
+          </div>
+          {/* Shops start on the business side (DECISIONS §39.15.5): its own pages and its own contact page. */}
+          <div className="ak-card p-6">
+            <h2 className="ak-h3">{c.merchantsTitle}</h2>
+            <p className="mt-2 text-tone-mute">{c.merchantsText}</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link to="/$lang/business" params={{ lang }} className="ak-btn ak-btn-ink ak-btn-sm">
+                {t.nav.business}
+              </Link>
+              <Link
+                to="/$lang/business/contact"
+                params={{ lang }}
+                className="ak-btn ak-btn-line ak-btn-sm"
+              >
+                {c.bizContact}
+              </Link>
+            </div>
           </div>
         </div>
       </section>
