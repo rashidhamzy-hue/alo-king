@@ -5,6 +5,8 @@ import { mkdirSync } from "node:fs";
 import { chromium, type Page } from "@playwright/test";
 
 const url = process.env.PREVIEW_URL ?? "";
+if (!/^http:\/\/127\.0\.0\.1:\d+\//.test(url))
+  throw new Error("set PREVIEW_URL to the local flowso preview");
 const out = process.env.OUT_DIR ?? "flow-screens";
 const tag = process.env.LANG_TAG ?? "en";
 mkdirSync(out, { recursive: true });

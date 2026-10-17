@@ -44,25 +44,34 @@ jobs:
           q() { psql "$DB_URL" -v ON_ERROR_STOP=1 -qtAX -c "$1"; }
           KEY="$(q "select public.flow_app_proxy_key()")"
           echo "::add-mask::$KEY"
-          CU="$(q "select public.customer_turn_begin('$TESTER', 'wamid.screens.${{ github.run_id }}', 'text', 'Hi') #>> '{customer,id}'")"
-          q "select public.sim_tester('$TESTER', true)" >/dev/null
+          # The tester's customer row; made once through the bot's own entry point (a fresh message id per attempt).
+          CU="$(q "select id from public.customers where phone_e164 = '$TESTER'")"
+          [ -n "$CU" ] || CU="$(q "select public.customer_turn_begin('$TESTER', 'wamid.screens.${{ github.run_id }}.${{ github.run_attempt }}', 'text') #>> '{customer,id}'")"
+          [ -n "$CU" ] || { echo "::error::no tester customer"; exit 1; }
+          trap 'q "select public.sim_tester('"'"'$TESTER'"'"', false)" >/dev/null || true; kill $(jobs -p) 2>/dev/null || true' EXIT
+          st="$(q "select public.sim_tester('$TESTER', true) ->> 'status'")"
+          [ "$st" = "ok" ] || { echo "::error::sim_tester: $st"; exit 1; }
           [ "$(q "select public.demo_address_pick('$CU', 'baakleen') ->> 'status'")" = "saved" ] || { echo "::error::demo address not saved"; exit 1; }
           export FLOW_APP_URL="https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/flow-app?forceFunctionRegion=eu-central-1"
           export FLOW_APP_PROXY_KEY="$KEY"
+          n=0
           for lang in en ar; do
+            # Each language on its own ports, so a process left from the last one can never answer for this one.
+            proxy_port=$((4340 + n)); preview_port=$((4331 + n)); n=$((n + 10))
             TOKEN="$(q "select public.flow_app_open('$CU', '$lang', true)")"
             [ -n "$TOKEN" ] || { echo "::error::no Flow token ($lang)"; exit 1; }
             echo "::add-mask::$TOKEN"
-            FLOW_TOKEN="$TOKEN" pnpm exec tsx scripts/flows/staging-proxy.ts 4340 & proxy=$!
-            pnpm exec flowso preview "whatsapp/flows/app.$lang.json" --endpoint http://127.0.0.1:4340 --plaintext \
-              --port 4331 --log-file "artifacts/preview-$lang.jsonl" & preview=$!
-            for _ in $(seq 30); do curl -fsS -o /dev/null http://127.0.0.1:4331/ && break; sleep 1; done
-            PREVIEW_URL="http://127.0.0.1:4331/?view=preview" OUT_DIR=flow-screens LANG_TAG=$lang \
-              pnpm exec tsx scripts/flows/screens.ts
-            kill $preview $proxy || true
-            wait 2>/dev/null || true
+            FLOW_TOKEN="$TOKEN" node --import tsx scripts/flows/staging-proxy.ts "$proxy_port" &
+            pnpm exec flowso preview "whatsapp/flows/app.$lang.json" --endpoint "http://127.0.0.1:$proxy_port" --plaintext \
+              --port "$preview_port" --log-file "artifacts/preview-$lang.jsonl" &
+            up=""
+            for _ in $(seq 30); do curl -fsS -o /dev/null "http://127.0.0.1:$preview_port/" 2>/dev/null && { up=1; break; }; sleep 1; done
+            [ -n "$up" ] || { echo "::error::the $lang preview did not start"; exit 1; }
+            PREVIEW_URL="http://127.0.0.1:$preview_port/?view=preview" OUT_DIR=flow-screens LANG_TAG=$lang \
+              node --import tsx scripts/flows/screens.ts
           done
-          q "select public.sim_tester('$TESTER', false)" >/dev/null
+          # The tester's basket from the walk is emptied; the two test links (never counted, §12) expire on their own.
+          q "delete from public.basket_items where basket_id in (select id from public.baskets where customer_id = '$CU' and status = 'open')" >/dev/null
           ls flow-screens | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Push to a data branch
         if: always() && hashFiles('flow-screens/*.png') != ''

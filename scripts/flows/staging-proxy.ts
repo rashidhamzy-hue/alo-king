@@ -8,7 +8,7 @@ import { createServer } from "node:http";
 
 const { FLOW_APP_URL = "", FLOW_APP_PROXY_KEY = "", FLOW_TOKEN = "" } = process.env;
 if (
-  !/^https:\/\/[a-z]{20}\.supabase\.co\/functions\/v1\/flow-app\?forceFunctionRegion=eu-central-1$/.test(
+  !/^https:\/\/tzugbbatfbvrfzxuacqx\.supabase\.co\/functions\/v1\/flow-app\?forceFunctionRegion=eu-central-1$/.test(
     FLOW_APP_URL,
   )
 )
