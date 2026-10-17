@@ -1,4 +1,4 @@
-# Handoff — 17 October 2026 (after session 5f)
+# Handoff — 17 October 2026 (after session 5g)
 
 **Read first:** `docs/decisions/DECISIONS.md` (in the project: `claude/DECISIONS-LEBANON-REBUILD-2026-10.md`). It is final and overrides everything else.
 
@@ -347,7 +347,22 @@
     - demo testers off as in part 6 (no `demo_invite_code`, `demo_autopilot_enabled` absent or false, `demo_testers` empty);
     - `carousel_enabled` decided on the production number after a live check;
     - `public_site_url` set once the domain answers 200 without a login (§39.15.7).
-- **Next: 5g (Opus 5.5, Extra), then the friends' test, 13 and 14 (§39.15.8).** The prompts are in the planning chat's handoff (`claude/HANDOFF-2026-10-07.md` in the Project).
+- **Session 5g (web menu, Explore and the website audit: spec §4, §39.15.3, 39.15.5, 39.15.6, 39.15.7, 39.15.11): done (17 October).** PRs #227 (docs: shop by place and shop, icon off), #228 (A: web shop menu with a signed basket link), #229 (0d: photos match the item), #230 (B: Explore), #231 (0e: header icon off, cart on; ice breakers and commands), #232 (0f: testers anywhere), #234 (D: website audit), #238 (0c: speed), #239 (E: the friends' path on the simulator), #240 (a pin's turn shows Explore) and this PR; see LOG.md "session 5g" lines and DECISIONS §39.15.12. Every code PR carries the pr-reviewer verdict for its head (§32.7); the CI Claude review has no API credit.
+  - **What a friend sees:** Order food (or any ice breaker) → a pin (anywhere; outside the area, the demo addresses) → "✅ Address saved" with "What are you craving?" → Popular near you → Explore on the web. Explore and Open menu open the website inside WhatsApp, filtered to the customer's place; Continue in WhatsApp brings the basket back to the chat's checkout, priced by the server. The demo autopilot plays the shop to delivered.
+  - **Site (live at https://alo-king.vercel.app):** web menu `/<lang>/m/<slug>?t=…` and Explore `/<lang>/e?t=…` (signed, 24 h, noindex, no-store, no-referrer), item pages, the §39.15.5 audit, For businesses with `/<lang>/business/contact`, Forgot password for staff. **Vercel production is promoted by hand after each merge** (newest `rebuild/lebanon` preview → production, `mcp__Vercel__create_deployment` with `deploymentId` and `target: production`) until #233 sets the production branch.
+  - **Friends' path on the simulator:** `staging-e2e` with `only: friends-path` (scenario 31): Dubai, Riyadh and Beirut pins to delivered. The first run (39028136455) found Explore never came after a pin (fixed by #240); run 39029332105 passed, three demo orders delivered about 4 minutes after placing. `sim_tester` enrols a +999 persona as a demo tester for one hour (staging only).
+  - **Smoke suite:** runs 39026974798 and 39027709698 passed 5/5 after #238.
+  - **Speed (§39.15.6):** the same five smoke scenarios before (5f) and after #238: address save p50 2.39 → 1.87 s / p95 2.90 → 2.62 s; native cart 1.63 → 0.88 s / 1.75 → 1.07 s; taps 0.89 → 0.82 s / 1.77 → 1.64 s. Carts meet the target; taps and the address save do not yet. The next lever is the address save's own calls (address_save_pin, then the browse RPCs and the two web links) and PostGIS's first call on a fresh connection.
+  - **AI and voice (§39.15.9): still off** (Anthropic credit too low, OpenAI key refused #77, no Deepgram key).
+  - **Message to Rasheed:** sent at 12:07 UTC on 17 October on the US number (outbox 835302, sent; support message 34): the site, INDINER time's web menu and Explore, as his own signed links (24 h). He was outside the 24-hour window, so it went as the approved `alo_support_reply` template ("Claude from Alo King answered your message", Read the reply) with the text held behind it; he tapped Read the reply at 12:07:33 UTC and the text was shown. The support case was created resolved, so no handoff silences the bot.
+  - **Open for later:** the item-name clean-up Rasheed deferred (DATA-ISSUES); the optional review nits on #239 and #240 (LOG); carousel_enabled stays off until it is sent once on the US number.
+  - **CUT-OVER (session 14), added:**
+    - Vercel's production branch is `rebuild/lebanon` (#233) and the production domain answers 200 without a login;
+    - Supabase Auth redirect URLs include the site's `/merchant` and `/admin` pages, so password-reset links work (#235);
+    - `web_link_hours` and `public_site_url` set on production; `app_private.web_links` starts empty;
+    - the header catalogue icon off and the ice breakers and commands set on the production number (#236, #237 steps);
+    - no `app_private.demo_testers` rows for +999 numbers (`sim_tester` answers `sink_off` there).
+- **Next: the friends' test (Rasheed sends the invite link, §39.15.3), then 13 (security review, includes 5f and 5g) and 14 (cut-over) (§39.15.8).** The prompts are in the planning chat's handoff (`claude/HANDOFF-2026-10-07.md` in the Project).
 
 ## How to start each build session
 
@@ -362,8 +377,8 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 ## Owner to-do (Rasheed)
 
 0. **Optional (2 minutes):** give the system user `alo-king-catalog` the WhatsApp account and the `whatsapp_business_management` permission, so kapso-catalog can verify the catalogue's connection and the cart icons itself (Business settings → Users → System users → alo-king-catalog → Assign assets → WhatsApp accounts → the US account, Full control; then generate a new token with `whatsapp_business_management` added and replace `META_CATALOG_TOKEN`).
-0. **Catalogue icon: stays ON (Rasheed, 16 October 12:06, §39.15.2).** #199 is closed by 5f; nothing to do.
-0. **Make the website public (#214, 5 minutes, §39.15.7):** Vercel's production branch → `rebuild/lebanon`, the `alo-king.vercel.app` domain and `VITE_WHATSAPP_NUMBER` (steps in the issue). Until then the site's Order buttons and item pages are not reachable from a phone, and catalogue products link to the image route instead of their pages.
+0. **Catalogue icon OFF, cart on (Rasheed, 17 October, §39.15.11):** Meta refused the setting through our token: #236 has the 2-minute WhatsApp Manager steps. **Ice breakers and commands:** #237 has the steps.
+0. **The website is public** at https://alo-king.vercel.app (#214 closed). **Set Vercel's production branch to `rebuild/lebanon` (#233)**, so each merge reaches the site without a session promoting it. **Supabase Auth redirect URLs (#235)**, so staff password-reset links work.
 0. **Buy `alo-king.com` (§39.15.7, about $10 a year, Cloudflare Registrar):** then tell the planning chat; a session attaches it to Vercel and sets `public_site_url`.
 0. **Anthropic, OpenAI and Deepgram credit/keys (§39.15.9):** add them before or during 5g (any session that finds the keys working runs §39.15.9); it switches the AI and voice on for you and the demo testers as soon as they work.
 0. **Optional: a free Pexels API key** (pexels.com/api) as the GitHub secret `PEXELS_API_KEY`, for credit-free dish photos.
