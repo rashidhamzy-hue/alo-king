@@ -115,6 +115,8 @@ export const Route = createFileRoute("/$lang/m/$slug")({
         info: info ?? { origin: "", indexing: false },
         noindex: true,
       });
+      // The token never leaves in a Referer (the photo route, wa.me), whatever the navigation.
+      h.meta.push({ name: "referrer", content: "no-referrer" });
       // The cover is the page's largest paint: fetched with the HTML, not after the script.
       if (w.status === "ok" && w.shop.cover)
         h.links.push({

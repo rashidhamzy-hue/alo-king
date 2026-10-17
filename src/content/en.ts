@@ -38,6 +38,7 @@ export const en = {
     item: "Hi Alo King, please add {item} from {vendor} ({code})",
     menu: "Menu",
     changeAddress: "Change address",
+    basket: "My basket",
   },
   a11y: {
     skip: "Skip to the content",
@@ -550,7 +551,7 @@ export const en = {
     startNew: "Start new",
     keep: "Keep {vendor}",
     expiredTitle: "This menu link has expired",
-    expiredText: "Menu links work for 24 hours. Ask for a new one in WhatsApp, it takes one tap.",
+    expiredText: "This menu link no longer works. Ask for a new one in WhatsApp, it takes one tap.",
     newLink: "Get a new link",
     unavailableTitle: "This shop can't take your order here right now",
     unavailableText: "Go back to WhatsApp and pick another shop near you.",
@@ -559,6 +560,10 @@ export const en = {
     choose: "Choose {group}",
     soldOut:
       "Something in your basket just sold out, so we took it out. Check your basket and try again.",
+    chatClosedTitle: "Your basket is saved",
+    chatClosedText: "Send us any message in WhatsApp and your summary comes right back.",
+    choiceAgain: "Something changed in the choices for this item. Choose again, then add it.",
+    tooMany: "This menu link was used a lot. Ask for a new one in WhatsApp, it takes one tap.",
     savedTitle: "Your basket is saved",
     savedText: "Go back to WhatsApp: your summary is waiting there.",
     illustration: "Photo for illustration",

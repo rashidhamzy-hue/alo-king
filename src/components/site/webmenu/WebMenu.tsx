@@ -69,6 +69,7 @@ export function WebMenu({ d, token }: { d: Ok; token: string }) {
     | { s: "idle" }
     | { s: "saving" }
     | { s: "saved" }
+    | { s: "closed" }
     | { s: "error"; msg: string }
     | { s: "other"; vendor: string }
   >({ s: "idle" });
@@ -97,6 +98,8 @@ export function WebMenu({ d, token }: { d: Ok; token: string }) {
     const r = await saveWebBasket(token, shop.slug, lines, replace);
     if (r.status === "saved") {
       writeStored(token, []);
+      // The window is closed: the customer writes first, then the summary comes (the page says so, no redirect).
+      if (r.chat_closed) return setState({ s: "closed" });
       setState({ s: "saved" });
       const back = chatLink();
       if (back) window.location.href = back;
@@ -107,10 +110,21 @@ export function WebMenu({ d, token }: { d: Ok; token: string }) {
         lang === "ar" ? (r.vendor_ar ?? r.vendor_en ?? "") : (r.vendor_en ?? r.vendor_ar ?? "");
       return setState({ s: "other", vendor: v });
     }
-    if (r.status === "expired" || r.status === "too_many")
-      return setState({ s: "error", msg: w.expiredText });
-    if (r.status === "unavailable" || r.status === "choices")
+    if (r.status === "expired") return setState({ s: "error", msg: w.expiredText });
+    if (r.status === "too_many") return setState({ s: "error", msg: w.tooMany });
+    const bad = "item_id" in r ? r.item_id : undefined;
+    // A required choice no longer matches the menu: that item's sheet opens again to choose.
+    if (r.status === "choices" && bad && items.has(bad)) {
+      setLines((x) => x.filter((l) => l.item_id !== bad));
+      setBasketOpen(false);
+      setOpen(items.get(bad)!);
+      return setState({ s: "error", msg: w.choiceAgain });
+    }
+    // Sold out since the page opened: its lines go, and the customer checks the basket.
+    if (r.status === "unavailable" && bad) {
+      setLines((x) => x.filter((l) => l.item_id !== bad));
       return setState({ s: "error", msg: w.soldOut });
+    }
     return setState({ s: "error", msg: w.saveError });
   }
 
@@ -252,6 +266,11 @@ export function WebMenu({ d, token }: { d: Ok; token: string }) {
                 <dt>{fmt(w.deliveryFee, { place })}</dt>
                 <dd className="ak-num">
                   <bdi>{usd(fee)}</bdi>
+                  {rate ? (
+                    <small>
+                      <bdi>{lbpAt(fee, rate, lang)}</bdi> {t.common.lbp}
+                    </small>
+                  ) : null}
                 </dd>
               </div>
             )}
@@ -287,6 +306,17 @@ export function WebMenu({ d, token }: { d: Ok; token: string }) {
                   </a>
                 )}
               </div>
+            </div>
+          ) : state.s === "closed" ? (
+            <div className="wm-other" role="status">
+              <p className="font-bold">{w.chatClosedTitle}</p>
+              <p className="mt-1 text-sm">{w.chatClosedText}</p>
+              {waLink(t.wa.basket) && (
+                <a className="wm-wa mt-3" href={waLink(t.wa.basket)!}>
+                  <WhatsAppIcon className="size-5 shrink-0" />
+                  {w.backToChat}
+                </a>
+              )}
             </div>
           ) : state.s === "saved" ? (
             <div className="wm-other" role="status">

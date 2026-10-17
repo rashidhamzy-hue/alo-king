@@ -258,6 +258,11 @@ export type CustomerInbound = {
   burst?: string[] | null;
   /** A photo (spec #49: the optional photo of a problem); only its WhatsApp media id is kept, never the picture. */
   image?: { id: string; mime: string } | null;
+  /**
+   * A tap the server queued for the customer (session 5g: "Continue in WhatsApp" on the web menu), not a message they
+   * sent: its turn is kind "web", which never counts as the customer writing (customer_turn_begin).
+   */
+  synthetic?: boolean;
 };
 
 const E164 = /^\+[1-9][0-9]{6,14}$/;
@@ -305,6 +310,7 @@ export function readCustomerInbound(payload: any): CustomerInbound | null {
       type === "image" && /^[A-Za-z0-9._-]{1,200}$/.test(String(msg.image?.id ?? ""))
         ? { id: String(msg.image.id), mime: String(msg.image?.mime_type ?? "image/jpeg") }
         : null,
+    synthetic: payload?.alo_synthetic === "web" && String(msg.id ?? "").startsWith("web."),
   };
 }
 
@@ -370,7 +376,7 @@ export async function handleCustomerTurn(
   opts: { attempt?: number; leaseUntil?: Date } = {},
 ): Promise<"done" | "duplicate"> {
   const started = Date.now();
-  const kind = m.buttonId ? "tap" : m.type;
+  const kind = m.synthetic ? "web" : m.buttonId ? "tap" : m.type;
   // A queue retry (attempt 2+) of a turn whose first attempt died before customer_turn_end replays it from the
   // session the customer saw; a finished turn or a second delivery of the same message is a duplicate (#139).
   // This attempt's own lease on the turn: only it can give the turn back.
