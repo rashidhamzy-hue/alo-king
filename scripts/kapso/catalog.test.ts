@@ -76,29 +76,27 @@ describe("kapso-catalog (DECISIONS §39.12)", () => {
     );
   });
 
-  it("icon off, cart on (§39.15.11): what the settings say after the POST and the read-back", () => {
-    // §39.15.11: the goal is the icon off and the cart on.
-    expect(commerceState(true, { is_cart_enabled: true, is_catalog_visible: false })).toMatchObject(
-      {
-        header: "hidden",
-        commerceOn: true,
-      },
-    );
-    expect(commerceState(true, null)).toMatchObject({ header: "hidden", commerceOn: true });
-    expect(commerceState(false, { is_cart_enabled: true, is_catalog_visible: true })).toMatchObject(
-      {
-        header: "shown",
-        commerceOn: true,
-      },
-    );
+  it("icon on, cart on (§39.15.13): what the settings say after the POST and the read-back", () => {
+    // §39.15.13: the goal is the icon on and the cart on (reverses §39.15.11's "off").
+    expect(commerceState(true, { is_cart_enabled: true, is_catalog_visible: true })).toMatchObject({
+      header: "shown",
+      commerceOn: true,
+    });
+    expect(commerceState(true, null)).toMatchObject({ header: "shown", commerceOn: true });
     expect(
-      commerceState(true, { is_cart_enabled: false, is_catalog_visible: false }),
+      commerceState(false, { is_cart_enabled: true, is_catalog_visible: false }),
     ).toMatchObject({
       header: "hidden",
-      commerceOn: false,
+      commerceOn: true,
     });
+    expect(commerceState(true, { is_cart_enabled: false, is_catalog_visible: true })).toMatchObject(
+      {
+        header: "shown",
+        commerceOn: false,
+      },
+    );
     expect(commerceState(true, {})).toMatchObject({ header: "unverified", commerceOn: false });
-    // Today: neither route may read or write the settings; the owner's setting stands and no issue opens.
+    // Neither route may read or write the settings: the owner's setting stands and no issue opens.
     expect(commerceState(false, null)).toMatchObject({ header: "unverified", commerceOn: false });
   });
 });

@@ -1760,14 +1760,16 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     );
   });
 
-  it("with a site address, the cover carries Open menu to the customer's signed web menu (session 5g, spec §4)", async () => {
+  it("a shop opens natively: its cover and product messages, no Open menu; Full menu only as the last section row (§39.15.13)", async () => {
     const asked: any[] = [];
+    const big = menu(12, 8);
     const f = fake({
       begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
       rpcs: {
         vendor_sections: () => sections,
         catalog_for_number: () => "1234567890",
-        catalog_shop_menu: () => menu(12, 8),
+        // 96 items, 90 of them with an approved photo: some cannot be shown natively.
+        catalog_shop_menu: () => ({ ...big, total: 102, shown: 96 }),
         shop_card: () => ({
           name_en: "Big Market",
           cuisine_en: "Burgers",
@@ -1789,24 +1791,82 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     f.deps.photoUrl = async (path) => `https://example.supabase.co/sign/${path}?token=t`;
     f.deps.config.siteUrl = "https://alo-king.vercel.app";
     await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
-    expect(f.sent.map((p) => p.interactive.type)).toEqual(["cta_url", "product_list", "list"]);
-    const c0 = f.sent[0].interactive;
-    expect(c0.header.image.link).toContain(`cover/${VENDOR}.jpg`);
-    expect(c0.body.text).toBe(
+    expect(f.sent.map((p) => p.interactive?.type ?? p.type)).toEqual([
+      "image",
+      "product_list",
+      "list",
+    ]);
+    expect(f.sent[0].image.link).toContain(`cover/${VENDOR}.jpg`);
+    expect(f.sent[0].image.caption).toBe(
       "*Big Market*\nBurgers · Baakline · 🛵 $2.00 delivery · 🕒 today 9:30 AM to 11:30 PM",
     );
-    expect(c0.action.parameters).toEqual({
-      display_text: "Open menu",
+    // No link is made until the customer asks for the Full menu.
+    expect(asked).toHaveLength(0);
+    const rows = f.sent[2].interactive.action.sections[0].rows;
+    expect(rows.at(-1)).toMatchObject({ id: "fm", title: "Full menu ›" });
+    expect(rows).toHaveLength(10);
+    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+    // The row sends the signed web menu of the shop in focus, one CTA-URL message.
+    const g = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } }, focus_vendor_id: VENDOR }),
+      rpcs: {
+        web_link_create: (a: any) => {
+          asked.push(a);
+          return "https://alo-king.vercel.app/en/m/big-market?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
+        },
+      },
+    });
+    g.deps.config.siteUrl = "https://alo-king.vercel.app";
+    await handleCustomerTurn(g.deps, msg({ buttonId: "fm", type: "interactive" }));
+    expect(g.sent).toHaveLength(1);
+    expect(g.sent[0].interactive.type).toBe("cta_url");
+    expect(bodyOf(g.sent[0])).toContain("*Big Market*");
+    expect(g.sent[0].interactive.action.parameters).toEqual({
+      display_text: "Full menu",
       url: "https://alo-king.vercel.app/en/m/big-market?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_",
     });
     expect(asked[0]).toMatchObject({ p_kind: "menu", p_vendor_id: VENDOR, p_lang: "en" });
-    for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
-    // A shop without a cover still gets the button (the card without its image).
-    f.sent.length = 0;
-    f.deps.photoUrl = undefined;
+    // No link could be made: the shop's menu in the chat, without the row, so the tap never loops.
+    const h = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } }, focus_vendor_id: VENDOR }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => ({ ...big, total: 102, shown: 96 }),
+        web_link_create: () => null,
+      },
+    });
+    h.deps.config.siteUrl = "https://alo-king.vercel.app";
+    await handleCustomerTurn(h.deps, msg({ buttonId: "fm", type: "interactive" }));
+    const last = h.sent.at(-1).interactive.action.sections[0].rows.map((r: any) => r.id);
+    expect(last).not.toContain("fm");
+    expect(h.sent.some((m) => m.interactive?.type === "cta_url")).toBe(false);
+  });
+
+  it("every item shown natively: no Full menu row; no site address: no Full menu row either (§39.15.13)", async () => {
+    const all = menu(12, 8);
+    const f = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => all,
+      },
+    });
+    f.deps.config.siteUrl = "https://alo-king.vercel.app";
     await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
-    expect(f.sent[0].interactive.type).toBe("cta_url");
-    expect(f.sent[0].interactive.header).toBeUndefined();
+    const ids = (m: any) => m.interactive.action.sections[0].rows.map((r: any) => r.id);
+    expect(ids(f.sent.at(-1))).not.toContain("fm");
+    const g = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } } }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => ({ ...all, total: 120, shown: 96 }),
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(ids(g.sent.at(-1))).not.toContain("fm");
   });
 
   it("Continue in WhatsApp on the web menu (a c:web tap) goes on to the checkout", async () => {
@@ -2352,30 +2412,39 @@ describe("browsing through the bot (session 5e)", () => {
     expect(checkInteractive(m)).toEqual([]);
   });
 
-  it("with a site address, Explore follows the craving list; typed Explore sends it alone (session 5g part B)", async () => {
-    const url = "https://alo-king.vercel.app/en/e?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
+  it("no Explore link after the craving list; Explore, /explore and the ice breaker answer natively (§39.15.13)", async () => {
     const f = fake({
       model: null,
       rpcs: {
         customer_search_point: () => POINT,
         browse_shops: () => browse(6),
         customer_delivery_check: check,
-        web_link_create: (a: any) => (a.p_kind === "explore" ? url : null),
+        catalog_for_number: () => "CAT1",
+        popular_near_you: () => ({
+          carousel: true,
+          products: [
+            { retailer_id: "51000000-0000-0000-0000-000000000001", name_en: "Fries" },
+            { retailer_id: "51000000-0000-0000-0000-000000000002", name_en: "Cola" },
+          ],
+        }),
+        web_link_create: () => "https://alo-king.vercel.app/en/e?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_",
       },
     });
     f.deps.config.siteUrl = "https://alo-king.vercel.app";
     await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
-    expect(f.sent.map((m) => m.interactive.type)).toEqual(["list", "cta_url"]);
-    expect(f.sent[1].interactive.action.parameters).toEqual({ display_text: "Explore", url });
-    for (const m of f.sent) expect(checkInteractive(m)).toEqual([]);
-    f.sent.length = 0;
-    await handleCustomerTurn(f.deps, msg({ text: "Explore", messageId: "wamid.in.2" }));
-    expect(f.sent.map((m) => m.interactive.type)).toEqual(["cta_url"]);
-    // Without a site address, Explore is the craving list.
-    f.sent.length = 0;
-    f.deps.config.siteUrl = null;
-    await handleCustomerTurn(f.deps, msg({ text: "explore", messageId: "wamid.in.3" }));
-    expect(f.sent.map((m) => m.interactive.type)).toEqual(["list"]);
+    expect(f.sent.map((m) => m.interactive.type)).toEqual(["list", "carousel"]);
+    for (const text of ["Explore", "/explore", "Explore shops near me"]) {
+      f.sent.length = 0;
+      await handleCustomerTurn(f.deps, msg({ text, messageId: `wamid.in.${text}` }));
+      // The shops that deliver here, then Popular near you as a product carousel.
+      expect(
+        f.sent.map((m) => m.interactive.type),
+        text,
+      ).toEqual(["list", "carousel"]);
+      expect(bodyOf(f.sent[0])).toMatch(/near|deliver/i);
+      for (const m of f.sent) expect(checkInteractive(m)).toEqual([]);
+    }
+    expect(f.of("web_link_create")).toHaveLength(0);
   });
 
   it("a place we do not deliver to never gets the Explore link, only the chat's own answer", async () => {
@@ -4419,7 +4488,7 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
       for (const x of [f, g]) for (const p of x.sent) expect(checkInteractive(p)).toEqual([]);
     });
 
-    it("a pin's turn: Address saved opens the craving list, so Popular near you and Explore still fit in three (session 5g part E)", async () => {
+    it("a pin's turn: Address saved opens the craving list, then Popular near you; no Explore link (§39.15.13)", async () => {
       const POINT = { lat: 33.6775, lon: 35.5645, address_id: "a1" };
       const url = "https://alo-king.vercel.app/en/e?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
       const shops = Array.from({ length: 5 }, (_, k) => ({
@@ -4480,15 +4549,11 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
         f.deps,
         msg({ type: "location", location: { lat: 33.6775, lon: 35.5645 } }),
       );
-      expect(f.sent.map((m) => m.interactive?.type ?? m.type)).toEqual([
-        "list",
-        "product_list",
-        "cta_url",
-      ]);
+      expect(f.sent.map((m) => m.interactive?.type ?? m.type)).toEqual(["list", "product_list"]);
       expect(bodyOf(f.sent[0])).toMatch(
         /^✅ Address saved: .*Baakline.*\n\nWhat are you craving\?/s,
       );
-      expect(f.sent[2].interactive.action.parameters).toEqual({ display_text: "Explore", url });
+      expect(f.of("web_link_create")).toHaveLength(0);
       for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
       // A pin that goes on to a shop or a checkout keeps Address saved as its own first message.
       const g = fake({

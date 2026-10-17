@@ -14,7 +14,7 @@ create='**A. Create the catalogue**
 '
 connect='**B. Connect it to the WhatsApp number**
 3. Open https://business.facebook.com/wa/manage/home → pick the account of **+1 203-660-2328** → left menu **Account tools** → **Catalogue** → **Choose a catalogue** → **Alo King**CATID → **Connect catalogue**.
-4. Same page: switch on **Add to cart button** (if shown) and switch **off** **Show catalogue icon in chat header** (customers shop by place and shop, DECISIONS §39.15.11).
+4. Same page: switch on **Add to cart button** (if shown) and switch **on** **Show catalogue icon in chat header** (customers shop inside WhatsApp, DECISIONS §39.15.13).
 '
 token='**C. A token that can write the catalogue**
 5. https://business.facebook.com/settings → **Users** → **System users** → **Add** → name `alo-king-catalog`, role **Admin** → **Create system user**.
@@ -49,7 +49,7 @@ nightly; product messages per shop; the cart re-priced by the server; the e2e sc
 ${steps}
 **D. Let the workflow finish**
 9. https://github.com/rashidhamzy-hue/alo-king/actions/workflows/kapso-catalog.yml → **Run workflow**. It finds the connected
-catalogue, records it, checks the token can write items, turns the cart on and keeps the catalogue icon off. The next deploy copies
+catalogue, records it, checks the token can write items, turns the cart and the catalogue icon on. The next deploy copies
 the token to the server and the products sync within a minute; this issue then closes itself.
 
 At the cut-over (session 14) the same steps are repeated on the company portfolio (#73).

@@ -1,5 +1,5 @@
-# After friend-path.yaml (session 5g part E): the demo autopilot plays the shop to delivered, Explore typed later, and
-# the persona's demo switches off. The scenario includes it once every path has placed its order, so the three
+# After friend-path.yaml (session 5g part E): the demo autopilot plays the shop to delivered, Explore typed later answers
+# natively, nothing ever linked to a website (§39.15.13), and the persona's demo switches off. The scenario includes it once every path has placed its order, so the three
 # autopilot runs overlap instead of adding up (the full suite runs within the e2e job's 40 minutes).
 steps:
   - note: >
@@ -17,10 +17,15 @@ steps:
           where s.to_phone = '{{$AS.phone}}' and coalesce(s.body, '') || s.payload::text ~* '(delivered|livrée|وصل)'
         row: { told: true }
         within_s: 60
-  - note: Explore typed later sends the link alone
+  - note: Explore typed later answers in the chat (§39.15.13) with the shops that deliver to the demo address, then Popular near you
     say: { as: $AS, text: "Explore" }
     expect:
-      - { to: $AS, kind: "interactive:cta_url", text: "/e?t=" }
+      - { to: $AS, kind: list }
+    db:
+      - sql: >
+          select count(*) as web_links from public.sim_outbox s
+          where s.to_phone = '{{$AS.phone}}' and s.payload::text ~ 'cta_url'
+        row: { web_links: 0 }
   - sql: >
       select public.sim_tester('{{$AS.phone}}', false), public.sim_demo('{{$AS.phone}}', '{{merchant.phone}}', false),
              public.sim_catalog('{{$AS.phone}}', false)

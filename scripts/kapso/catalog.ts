@@ -1,6 +1,7 @@
 // The kapso-catalog workflow (DECISIONS §39.12): one Meta catalogue for the WhatsApp business account of a number, connected
-// to that account, with the cart and the catalogue (storefront) icon on for the number (§39.15.2, Rasheed 16 October:
-// the header catalogue stays on; every title names its shop and its carts are split by shop). It finds a connected catalogue, or
+// to that account, with the cart and the catalogue (storefront) icon on for the number (§39.15.13, Rasheed 17 October 18:24:
+// the header catalogue stays on until the Flow app is live; every title names its shop and its carts are split by shop).
+// It finds a connected catalogue, or
 // creates one ("Alo King") in the business portfolio that owns the account and connects it, by API: first through Kapso's
 // Meta proxy (https://api.kapso.ai only, CLAUDE.md), then with META_CATALOG_TOKEN on the Graph API when that secret exists.
 // It also probes which route can write catalogue items, records the result on staging (public.whatsapp_catalogs once that
@@ -50,9 +51,9 @@ async function call(route: Route, path: string, init: RequestInit = {}): Promise
 
 /**
  * What the number's commerce settings say after the POST (setOk) and the read-back (s; null when no route could read
- * them). The goal since 17 October (DECISIONS §39.15.11) is the catalogue icon OFF and the cart ON: `header` says whether
- * the icon is hidden, `commerceOn` whether the cart works. A POST that succeeded with nothing to read counts as done;
- * neither working leaves the owner's setting standing (unverified).
+ * them). The goal since 17 October 18:24 (DECISIONS §39.15.13, reversing §39.15.11) is the catalogue icon ON and the cart
+ * ON: `header` says whether the icon is shown, `commerceOn` whether the cart works. A POST that succeeded with nothing to
+ * read counts as done; neither working leaves the owner's setting standing (unverified).
  */
 export function commerceState(
   setOk: boolean,
@@ -66,9 +67,9 @@ export function commerceState(
     };
   if (!s)
     return {
-      header: "hidden",
+      header: "shown",
       commerceOn: true,
-      settings: "set (cart on, catalogue icon off); not readable back",
+      settings: "set (cart on, catalogue icon on); not readable back",
     };
   return {
     header:
@@ -270,18 +271,18 @@ async function main() {
     }
   }
 
-  // 3. The cart on and the catalogue (storefront) icon in the chat header OFF (DECISIONS §39.15.11, 17 October, reversing
-  // §39.15.2's "stays on"): the header list is one flat list of every shop, not filtered by place, so customers shop by
-  // place and shop (the bot, Explore, the web menu); product messages still fill the native cart. Set and read back.
+  // 3. The cart and the catalogue (storefront) icon in the chat header ON (DECISIONS §39.15.13, Rasheed 17 October 18:24,
+  // reversing §39.15.11's "off"): customers are never sent to a website, so the header catalogue stays until the WhatsApp
+  // Flow app is live; product messages fill the same native cart. Set and read back.
   let settings = "not changed";
   let commerceOn = false;
   let header: "hidden" | "shown" | "unverified" = "unverified";
   if (catalog && !blocked) {
     const set = await firstOk(
-      "cart on, catalogue icon off",
+      "cart on, catalogue icon on",
       routes,
       (r) =>
-        call(r, `/${pn}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=false`, {
+        call(r, `/${pn}/whatsapp_commerce_settings?is_cart_enabled=true&is_catalog_visible=true`, {
           method: "POST",
         }),
       notes,
