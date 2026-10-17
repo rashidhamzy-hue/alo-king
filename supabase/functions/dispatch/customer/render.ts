@@ -2517,7 +2517,15 @@ export function shopLine(lang: CLang, c: ShopCard, feeUsd: number | null): strin
  * (web_link_create).
  */
 export function fullMenuCard(to: string, lang: CLang, shop: string, url: string): Msg {
-  return ctaUrlImage(to, null, tr(lang, "fullMenuBody", { shop }), tr(lang, "fullMenuBtn"), url);
+  // Without a shop name the body starts at its second line, never with an empty bold line.
+  const body = tr(lang, "fullMenuBody", { shop: shop.trim() });
+  return ctaUrlImage(
+    to,
+    null,
+    shop.trim() ? body : body.replace(/^\*\*\n/, ""),
+    tr(lang, "fullMenuBtn"),
+    url,
+  );
 }
 
 /** The sections of a shop not shown in full in its first product message, 9 at a time with "More sections". */

@@ -359,9 +359,11 @@ type Ctx = {
   fallbacks?: Map<Msg, Msg | null>;
   /**
    * "Address saved: …" waiting to go out (afterPin): sent before the turn's next message, or as the first line of the
-   * craving list, so a pin's turn still has room for Popular near you and Explore (MAX_MESSAGES).
+   * craving list, so a pin's turn still has room for Popular near you (MAX_MESSAGES).
    */
   savedLine?: string;
+  /** This turn's shop lists leave out the "Full menu" row (its link could not be made, §39.15.13). */
+  noFullMenu?: boolean;
 };
 
 const MAX_MESSAGES = 3;
@@ -2228,7 +2230,7 @@ function fullMenuOffered(
   c: Ctx,
   menu: { total?: unknown; shown?: unknown; sections?: unknown } | null,
 ): boolean {
-  if (!c.deps.config.siteUrl || !menu) return false;
+  if (!c.deps.config.siteUrl || !menu || c.noFullMenu) return false;
   const sections: ShopMenuSection[] = Array.isArray(menu.sections) ? menu.sections : [];
   const shown = Number(menu.shown ?? sections.reduce((n, x) => n + (x.products?.length ?? 0), 0));
   return Number(menu.total ?? 0) > shown;
@@ -2242,9 +2244,16 @@ async function fullMenu(c: Ctx) {
   const vref = Object.entries(c.s.refs).find(
     ([k, v]) => k.startsWith("v") && v.id === vendorId,
   )?.[0];
-  if (!url) return vref ? showMenu(c, vref, null) : say(c, "pickPlaceFirst");
+  if (!url) {
+    // No link (the site has no address, or the shop cannot take this customer): the shop's menu in the chat, without the
+    // row, so the tap never loops.
+    if (!vref) return say(c, "pickPlaceFirst");
+    c.noFullMenu = true;
+    return showMenu(c, vref, null);
+  }
   c.tools.push("web:menu_link");
-  push(c, fullMenuCard(c.m.from, c.s.lang, shopName(vref ? c.s.refs[vref].label : ""), url));
+  const shop = shopName(vref ? c.s.refs[vref].label : (c.basket?.vendor_en ?? ""));
+  push(c, fullMenuCard(c.m.from, c.s.lang, shop, url));
 }
 
 /**

@@ -1826,6 +1826,21 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
       url: "https://alo-king.vercel.app/en/m/big-market?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_",
     });
     expect(asked[0]).toMatchObject({ p_kind: "menu", p_vendor_id: VENDOR, p_lang: "en" });
+    // No link could be made: the shop's menu in the chat, without the row, so the tap never loops.
+    const h = fake({
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Big Market" } }, focus_vendor_id: VENDOR }),
+      rpcs: {
+        vendor_sections: () => sections,
+        catalog_for_number: () => "1234567890",
+        catalog_shop_menu: () => ({ ...big, total: 102, shown: 96 }),
+        web_link_create: () => null,
+      },
+    });
+    h.deps.config.siteUrl = "https://alo-king.vercel.app";
+    await handleCustomerTurn(h.deps, msg({ buttonId: "fm", type: "interactive" }));
+    const last = h.sent.at(-1).interactive.action.sections[0].rows.map((r: any) => r.id);
+    expect(last).not.toContain("fm");
+    expect(h.sent.some((m) => m.interactive?.type === "cta_url")).toBe(false);
   });
 
   it("every item shown natively: no Full menu row; no site address: no Full menu row either (§39.15.13)", async () => {

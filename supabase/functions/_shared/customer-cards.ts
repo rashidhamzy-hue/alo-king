@@ -59,8 +59,8 @@ export const ctaUrl = (to: string, body: string, label: string, url: string) => 
   },
 });
 /**
- * A CTA-URL button under an optional image header (CUSTOMER-EXPERIENCE §4): the shop's cover with its one line and
- * "Open menu", or "Explore". The image is a short-lived signed link; without one the card is the body and the button.
+ * A CTA-URL button under an optional image header: today only the "Full menu" card (DECISIONS §39.15.13). The image is a
+ * short-lived signed link; without one the card is the body and the button.
  */
 export const ctaUrlImage = (
   to: string,
