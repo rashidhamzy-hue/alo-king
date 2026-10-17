@@ -370,6 +370,7 @@
   - **AI and voice:** still off. Anthropic answers "credit balance is too low" (the key itself is valid), the OpenAI key is unproven (#77), and Deepgram works.
   - **Speed:** taps p95 1.47 s now meets the target, but tap p50 is 0.86 s and a pin's turn is 1.23 s p50 / 2.70 s p95. Next: `address_save_pin` and the pin turn's remaining round trips.
   - **Simulator:** smoke 5/5 (run 39058286690), with no ORS request. Friends' path (Dubai, Riyadh, Beirut) and the Flow app passed after #246 (run 39061705977).
+  - **Message to Rasheed:** sent at about 19:33 UTC on 17 October inside his 24-hour window (support message 35, outbox 937061): what changed in 5h and how the app switches on.
   - **CUT-OVER (session 14), added:**
     - the app Flow published on the production number, with its data endpoint registered with production's `flow-app` URL and proxy key;
     - `flow_app_live` only after both languages publish;
