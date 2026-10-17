@@ -27,6 +27,8 @@ export type Dish = {
   key: string;
   /** Matched against the item's names (and, for families and categories, its section). */
   re: RegExp;
+  /** An exact item name ("Mix", "Mango", "- Cucumber"): matched against the name only, never a section. */
+  exact?: RegExp;
   /** Photo search terms (English), best first. */
   q: string[];
   /** The broader dish whose photo stands in when this one has none: only where that photo shows the same dish. */
@@ -49,12 +51,13 @@ export const DISHES: Dish[] = [
   // without an item photo, so the catalogue skips them).
   {
     key: "none",
-    re: /argil|shisha|narghil|hookah|cake service|^\s*\+|^upgrade\b|ready to cook/i,
+    re: /argil|shisha|narghil|hookah|cake service|ready to cook/i,
+    exact: /^\s*\+|^upgrade\b/i,
     q: [],
     scope: "both",
   },
   // A meal named only for whom it is ("KIDS", "PROTEIN"): no one dish shows it.
-  { key: "meal", re: /^(kids?|protein)( meal)?$/i, q: ["kids meal"] },
+  { key: "meal", re: /$^/, exact: /^(kids?|protein)( meal)?$/i, q: ["kids meal"] },
   // Drinks.
   {
     key: "water_gallon",
@@ -72,7 +75,8 @@ export const DISHES: Dish[] = [
   },
   {
     key: "water",
-    re: /\bwater\b|mineral|sohat|tannourine|\bmiyah|مياه|مي معدنية|^مي$|ماء/i,
+    re: /\bwater\b|mineral|sohat|tannourine|\bmiyah|مياه|مي معدنية|ماء/i,
+    exact: /^مي$/,
     q: ["bottled water", "water bottle"],
     scope: "both",
     drink: true,
@@ -223,10 +227,11 @@ export const DISHES: Dish[] = [
     q: ["baguette bread"],
     scope: "both",
   },
-  { key: "ciabatta", re: /ciabat+a?|^cia\b/i, q: ["ciabatta bread"], scope: "both" },
+  { key: "ciabatta", re: /ciabat+a?/i, exact: /^cia\b/i, q: ["ciabatta bread"], scope: "both" },
   {
     key: "toast_bread",
-    re: /toast bread|sliced bread|sandwich bread|خبز توست|^toast$/i,
+    re: /toast bread|sliced bread|sandwich bread|خبز توست/i,
+    exact: /^toast$/i,
     q: ["sliced toast bread loaf"],
     scope: "both",
   },
@@ -287,7 +292,8 @@ export const DISHES: Dish[] = [
   { key: "nutella", re: /nutella|نوتيلا|نوتلا/i, q: ["nutella dessert"] },
   {
     key: "frozen_yogurt",
-    re: /frozen yogh?urt|greek yogh?urt|^blueberry$|^mango$/i,
+    re: /frozen yogh?urt|greek yogh?urt/i,
+    exact: /^(blueberry|mango)$/i,
     q: ["frozen yogurt cup", "yogurt bowl berries"],
   },
   { key: "oatmeal", re: /oat ?meal|\boat\b|porridge/i, q: ["oatmeal bowl fruit"] },
@@ -374,7 +380,8 @@ export const DISHES: Dish[] = [
   },
   {
     key: "pickles",
-    re: /pickle|^jalape(n|ñ|ň)os?$|مخلل|كبيس/i,
+    re: /pickle|مخلل|كبيس/i,
+    exact: /^jalape(n|ñ|ň)os?$/i,
     q: ["pickles jar", "pickled vegetables"],
   },
   { key: "coleslaw", re: /coleslaw|كولسلو/i, q: ["coleslaw"] },
@@ -513,7 +520,8 @@ export const DISHES: Dish[] = [
   { key: "edamame", re: /edamame/i, q: ["edamame"] },
   {
     key: "sushi",
-    re: /sushi|maki|uramaki|futomaki|hosomaki|temaki|kimbap|tempura roll|salmon skin|^cucumber$|brexley|^nature$|roll \(\d+ ?pcs\)/i,
+    re: /sushi|maki|uramaki|futomaki|hosomaki|temaki|kimbap|tempura roll|salmon skin|brexley|roll \(\d+ ?pcs\)/i,
+    exact: /^(cucumber|nature)$/i,
     q: ["sushi rolls", "sushi platter"],
   },
   // Burgers, sandwiches and fried chicken.
@@ -593,7 +601,9 @@ export const DISHES: Dish[] = [
   { key: "shrimp", re: /shrimp|prawn|crab|قريدس|جمبري/i, q: ["garlic shrimp", "fried shrimp"] },
   {
     key: "dip",
-    re: /\bdips?\b|sauce|mayo|ketchup|chipotle|صلصة|مايونيز|^(bbq|cheddar|garlic|mix|buffalo|honey must[ae]rd|honey mustered|ranch|signature|volcano|thousand island|truffle|west sauce|louisiana|cocktail sauce|chilli sauce|toum)$/i,
+    re: /\bdips?\b|sauce|mayo|ketchup|chipotle|صلصة|مايونيز/i,
+    exact:
+      /^(bbq|cheddar|garlic|mix|buffalo|honey must[ae]rd|honey mustered|ranch|signature|volcano|thousand island|truffle|west sauce|louisiana|cocktail sauce|chilli sauce|toum)$/i,
     q: ["dipping sauces"],
   },
   // Deli and grocery (shelf dishes: photoDish shows them only when a packshot is picked, or as sold).
@@ -783,9 +793,8 @@ const REFINES: Record<string, string[]> = {
   sushi: ["sashimi", "nigiri"],
 };
 function familyDish(f: Family, name: string, section: string): string {
-  const pick = (text: string) => f.keys.find((k) => DISH.get(k)!.re.test(text));
-  const byName = pick(name);
-  const bySection = pick(`${name} ${section}`);
+  const byName = f.keys.find((k) => names(DISH.get(k)!, name));
+  const bySection = f.keys.find((k) => DISH.get(k)!.re.test(`${name} ${section}`));
   if (byName && bySection && REFINES[byName]?.includes(bySection)) return bySection;
   return byName ?? bySection ?? f.fallback;
 }
@@ -851,7 +860,9 @@ export function isShelf(item: ItemText): boolean {
 }
 
 /** The first dish whose pattern the text matches. */
-const match = (dishes: Dish[], text: string) => dishes.find((d) => d.re.test(text))?.key;
+/** Whether an item's name names the dish (its pattern, or one of its exact names). */
+const names = (d: Dish, name: string) => d.re.test(name) || !!d.exact?.test(name);
+const match = (dishes: Dish[], name: string) => dishes.find((d) => names(d, name))?.key;
 
 /** The section's own dish: the only one it names (or one dish and its broader ones), refined by the item's name. */
 function sectionDish(dishes: Dish[], section: string, name: string): string | undefined {
@@ -926,6 +937,22 @@ export function photoDish(item: ItemText): string {
   const name = `${item.name_en ?? ""} ${item.name_ar ?? ""}`;
   if (d?.drink && (DRINK_BRAND.test(name) || PACK_SIZE.test(name))) return "none";
   return key;
+}
+
+/**
+ * The dish a shop's own photo shows, for ranking its cover: its dish, else "other" (ranked last, still a cover) when the
+ * rules name no dish for it. Only what is no food or no dish of its own (shisha, a service, an option, a topping or an
+ * extra) is "none". The dish-fit rules above are for illustrative photos; the shop's own photo is the item itself.
+ */
+export function ownPhotoDish(item: ItemText): string {
+  const key = dishOf(item);
+  if (key !== "none") return key;
+  const name = clean(`${item.name_en ?? ""} ${item.name_ar ?? ""}`);
+  const section = `${item.section_en ?? ""} ${item.section_ar ?? ""}`.trim();
+  const none = DISH.get("none")!;
+  if (names(none, name) || none.re.test(section) || ADD_ON.test(section) || EXTRAS.test(section))
+    return "none";
+  return "other";
 }
 
 /** The keys to try for a photo, the dish first, then its broader dishes. */

@@ -5,6 +5,9 @@ import { demoRows, DEMO_SHOPS } from "./build-demo-menus.ts";
 import sharp from "sharp";
 import {
   coverImage,
+  clearsOnNone,
+  coverHash,
+  coverTries,
   dishFallback,
   PROCESS_VERSION,
   plan,
@@ -24,7 +27,7 @@ import {
   type TodoItem,
 } from "./demo-photos.ts";
 import { execFileSync } from "node:child_process";
-import { DISHES, dishOf, photoChain, photoDish, type ItemText } from "./dishes.ts";
+import { DISHES, dishOf, ownPhotoDish, photoChain, photoDish, type ItemText } from "./dishes.ts";
 
 // DECISIONS §39.12, demo mode on staging.
 describe("demo shops' full harvested menus", () => {
@@ -577,6 +580,81 @@ describe("a dish photo only where it shows the item (session 5g)", () => {
     expect(
       coverCandidates({ vendor: "Coop", dishes: items.map(photoDish), own: [] }, staging),
     ).toEqual([]);
+  });
+
+  it("a shop's own photo stays a cover candidate whatever the dish rules say; its own-photo cover is kept", () => {
+    const staging = JSON.parse(readFileSync("scripts/demo/photo-picks.json", "utf8")) as Picks;
+    const special: ItemText = {
+      name_en: "Fred's Special",
+      section_en: "Mains",
+      business_type: "restaurant",
+    };
+    expect(photoDish(special)).toBe("none");
+    expect(ownPhotoDish(special)).toBe("other");
+    // Only what is no food or no dish of its own is left out.
+    expect(ownPhotoDish({ name_en: "Shisha Grape", section_en: "Argile" })).toBe("none");
+    expect(ownPhotoDish(dish("Fresh Tomatoes", "Burger Bun"))).toBe("none");
+    expect(ownPhotoDish(dish("Markouk Saj Bread", "Bakery"))).toBe("saj_bread");
+    const own = { url: "https://x/own.jpg", original: "https://x/own.jpg", dish: "other" };
+    const shop = { vendor: "Fred's", dishes: ["none", "burger"], own: [own] };
+    const c = coverCandidates(shop, staging);
+    expect(c[0]).toMatchObject({ source: "merchant_site", url: "https://x/own.jpg" });
+    // A named own photo ranks before the unnamed one.
+    const named = { url: "https://x/burger.jpg", original: "https://x/burger.jpg", dish: "burger" };
+    expect(coverCandidates({ ...shop, own: [own, named] }, staging)[0].url).toBe(
+      "https://x/burger.jpg",
+    );
+    // The current own-photo cover stays, gives way only to another own photo, never to a dish photo.
+    expect(coverTries({ source: "merchant_site", origin_hash: coverHash(own) }, c)).toEqual([]);
+    const gone = { source: "merchant_site", origin_hash: "an own photo no longer on the menu" };
+    expect(coverTries(gone, c)?.map((x) => x.source)).toEqual(["merchant_site"]);
+    expect(coverTries({ source: "merchant", origin_hash: null }, c)).toEqual([]);
+    // A dish-photo cover is upgraded to the shop's own photo, and goes when nothing is left.
+    const dishCover = { source: "illustrative", origin_hash: coverHash(c[c.length - 1]) };
+    expect(coverTries(dishCover, c)?.[0].source).toBe("merchant_site");
+    expect(coverTries(dishCover, [])).toBeNull();
+    expect(coverTries(undefined, [])).toEqual([]);
+  });
+
+  it("exact item names are matched on the name only, never on a section", () => {
+    expect(dishOf(dish("The Boss", "Signature"))).toBe("none");
+    expect(dishOf(dish("The Boss", "Mix"))).toBe("none");
+    expect(dishOf(dish("The Boss", "BBQ"))).toBe("none");
+    expect(dishOf(dish("Mix", "Menu"))).toBe("dip");
+    expect(dishOf(dish("Signature", "Dips"))).toBe("dip");
+    expect(dishOf(dish("- Cucumber", "Hosomaki (4 Pieces)"))).toBe("sushi");
+    expect(dishOf(dish("MANGO", "ICED YOGURT"))).toBe("frozen_yogurt");
+    expect(dishOf(dish("Jalapeños", "Side Cups"))).toBe("pickles");
+  });
+
+  it("a photo goes for a dish-fit reason only when it is a dish photo", () => {
+    const none: Picks = { dishes: {}, packshots: {} };
+    const ph = (source: string) => ({ source, origin_hash: "h", storage_path: "x" });
+    expect(clearsOnNone(todo(dish("Lamb Chops Platter"), ph("illustrative")), none)).toBe(true);
+    expect(clearsOnNone(todo(dish("Lamb Chops Platter"), ph("merchant")), none)).toBe(false);
+    // The shop's own picture stays while its menu still has it, and goes once the menu no longer does.
+    const withOwn = {
+      ...todo(dish("Lamb Chops Platter"), ph("merchant_site")),
+      image_url: "https://x/own.jpg",
+    };
+    expect(clearsOnNone(withOwn, none)).toBe(false);
+    expect(clearsOnNone({ ...withOwn, image_url: null }, none)).toBe(true);
+    // A packshot stays while its pick serves the item, and goes once the pick is removed.
+    const pack = todo(shelf("Pepsi Can (330ml)", "Water & Beverages"), ph("packshot"));
+    const pepsi: Picks = {
+      dishes: {},
+      packshots: {
+        "Pepsi Can (330ml)": {
+          url: "https://images.openfoodfacts.org/p.jpg",
+          license: "CC BY-SA 3.0",
+          credit: "OFF",
+          source_url: null,
+          brand: "Pepsi",
+        },
+      },
+    };
+    expect(clearsOnNone(pack, pepsi)).toBe(false);
+    expect(clearsOnNone(pack, none)).toBe(true);
   });
 
   it("the pipeline loads under node's type stripping, as CI runs it (no parameter properties)", () => {
