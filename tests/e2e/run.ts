@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { parse } from "yaml";
 import { expand } from "./lib/parts";
-import { runScenario } from "./lib/runner";
+import { redact, runScenario } from "./lib/runner";
 import { summary, transcript } from "./lib/report";
 import type { Scenario, ScenarioResult } from "./lib/types";
 
@@ -101,7 +101,7 @@ async function main() {
           ok: false,
           seconds: 0,
           steps: [],
-          error: e instanceof Error ? e.message : String(e),
+          error: redact(e instanceof Error ? e.message : String(e)),
         };
       }
       results.push(r);

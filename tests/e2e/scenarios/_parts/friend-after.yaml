@@ -1,0 +1,26 @@
+# After friend-path.yaml (session 5g part E): the demo autopilot plays the shop to delivered, Explore typed later, and
+# the persona's demo switches off. The scenario includes it once every path has placed its order, so the three
+# autopilot runs overlap instead of adding up (the full suite runs within the e2e job's 40 minutes).
+steps:
+  - note: >
+      nobody taps: the demo autopilot (tick-30s) accepts after demo_autopilot_after_s, then marks it ready, on the way and
+      delivered every demo_autopilot_step_s, for the three orders at once; $AS gets every normal message up to delivered
+      (checked in the outbox, because it may have come while another persona's step was waiting)
+    db:
+      - sql: >
+          select o.status, o.is_demo from public.orders o join public.customers c on c.id = o.customer_id
+          where c.phone_e164 = '{{$AS.phone}}' order by o.created_at desc limit 1
+        row: { status: delivered, is_demo: true }
+        within_s: 480
+      - sql: >
+          select count(*) > 0 as told from public.sim_outbox s
+          where s.to_phone = '{{$AS.phone}}' and coalesce(s.body, '') || s.payload::text ~* '(delivered|livrée|وصل)'
+        row: { told: true }
+        within_s: 60
+  - note: Explore typed later sends the link alone
+    say: { as: $AS, text: "Explore" }
+    expect:
+      - { to: $AS, kind: "interactive:cta_url", text: "/e?t=" }
+  - sql: >
+      select public.sim_tester('{{$AS.phone}}', false), public.sim_demo('{{$AS.phone}}', '{{merchant.phone}}', false),
+             public.sim_catalog('{{$AS.phone}}', false)
