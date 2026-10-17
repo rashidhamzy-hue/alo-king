@@ -1807,50 +1807,53 @@ describe("session 5f part 8b cards pass the checker", () => {
   });
 });
 
-// Session 5g (CUSTOMER-EXPERIENCE §4): the shop's cover with Open menu, and Explore, as CTA-URL messages.
-import { exploreCard, shopMenuCard, shopLine } from "../dispatch/customer/render";
+// DECISIONS §39.15.13: the web menu only as the last "Full menu" row of a shop's section list, and its CTA-URL message.
+import { fullMenuCard, withFullMenuRow } from "../dispatch/customer/render";
 
-describe("the web menu and Explore buttons (session 5g)", () => {
+describe("the Full menu row and card (§39.15.13)", () => {
   const url =
     "https://alo-king.vercel.app/ar/m/a-very-long-shop-slug-for-the-limits?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
-  const card = {
-    vendor_id: "v",
-    name_ar: "مطعم بإسم طويل جداً جداً جداً",
-    name_en: "A shop with a very very long name",
-    village_ar: "معاصر بيت الدين",
-    village_en: "Maasser Beit ed Dine",
-    cuisine_ar: "مشاوي لبنانية",
-    cuisine_en: "Lebanese grills",
-    cuisine_fr: "Grillades libanaises",
-    open_now: true,
-    hours_today: "11:00–23:00",
-  } as any;
+  const secs = Array.from({ length: 12 }, (_, k) => ({
+    ref: `s${k + 1}`,
+    name_ar: `قسم رقم ${k + 1} بإسم طويل جداً جداً`,
+    name_en: `Section number ${k + 1} with a long name`,
+    items: 40,
+  }));
   for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
-    it(`builds a valid cover with Open menu, with and without a photo, and Explore, in ${lang}`, () => {
-      const line = shopLine(lang, card, 2.5);
-      const withImage: any = shopMenuCard(
+    it(`builds valid section lists with Full menu last, and the Full menu card, in ${lang}`, () => {
+      const paged: any = moreSectionsList("+96171000001", lang, "A".repeat(80), secs, 8, true);
+      const rows = paged.interactive.action.sections[0].rows;
+      expect(rows).toHaveLength(10);
+      expect(rows.at(-1).id).toBe("fm");
+      expect(rows.at(-2).id).toBe("sp:8");
+      const short: any = moreSectionsList(
         "+96171000001",
         lang,
-        "https://x.supabase.co/storage/v1/sign/c.jpg",
-        "A".repeat(80),
-        line,
-        url,
+        "Shop",
+        secs.slice(0, 3),
+        null,
+        true,
       );
-      const noImage: any = shopMenuCard("+96171000001", lang, null, "Shop", line, url);
-      expect(withImage.interactive.type).toBe("cta_url");
-      expect(withImage.interactive.header).toEqual({
-        type: "image",
-        image: { link: "https://x.supabase.co/storage/v1/sign/c.jpg" },
-      });
-      expect(noImage.interactive.header).toBeUndefined();
-      for (const p of [withImage, noImage, exploreCard("+96171000001", lang, url)])
+      expect(short.interactive.action.sections[0].rows.map((r: any) => r.id)).toEqual([
+        "ps:s1",
+        "ps:s2",
+        "ps:s3",
+        "fm",
+      ]);
+      const thin: any = withFullMenuRow(
+        sectionList("+96171000001", lang, "Shop", secs.slice(0, 4)),
+        lang,
+      );
+      expect(thin.interactive.action.sections[0].rows.at(-1).id).toBe("fm");
+      // A full list keeps its sections: no row is dropped for Full menu.
+      const full: any = withFullMenuRow(sectionList("+96171000001", lang, "Shop", secs), lang);
+      expect(full.interactive.action.sections[0].rows.some((r: any) => r.id === "fm")).toBe(false);
+      const card: any = fullMenuCard("+96171000001", lang, "A".repeat(80), url);
+      expect(card.interactive.type).toBe("cta_url");
+      for (const p of [paged, short, thin, full, card])
         expect(checkInteractive(p), JSON.stringify(p).slice(0, 90)).toEqual([]);
     });
   }
-  it("refuses a cover that is not https", () => {
-    const p: any = shopMenuCard("+1", "en", "http://insecure/c.jpg", "Shop", "x", url);
-    expect(checkInteractive(p).join()).toMatch(/cta image must be https/);
-  });
 });
 
 // Session 5g (DECISIONS §39.15.11): the number's ice breakers and commands.

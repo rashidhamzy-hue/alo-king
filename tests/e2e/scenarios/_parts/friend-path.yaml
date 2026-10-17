@@ -1,7 +1,8 @@
-# The path a friend abroad takes (session 5g part E, DECISIONS §39.15.3): an ice breaker, a pin from $WHERE, the demo
-# address, the craving list with Explore, a shop from the website, Open menu, the web menu, Continue in WhatsApp, the
-# checkout and the order placed (friend-after.yaml waits for delivered). Needs vars.slug and vars.item (a delivery-only
-# demo shop that delivers to Baakleen, one item with no choices).
+# The path a friend abroad takes (session 5g part E, DECISIONS §39.15.3; native since session 5h, §39.15.13): an ice
+# breaker, a pin from $WHERE, the demo address, the craving list and Popular near you, a shop from the website opening with
+# its product message, the native cart, the checkout and the order placed (friend-after.yaml waits for delivered). Needs
+# vars.slug, vars.item and vars.price (a delivery-only demo shop that delivers to Baakleen, an item of its first product
+# section with no choices).
 steps:
   - note: $AS taps the ice breaker "Order food" (§39.15.11) on first contact; the bot asks for the location pin
     say: { as: $AS, text: "Order food" }
@@ -22,44 +23,22 @@ steps:
     expect:
       - { to: $AS, buttons: ["da:baakleen"] }
   - note: >
-      the Baakleen demo address goes on as a pin would: the craving list and Explore on the web (session 5g part B); Explore
-      reads the demo address, never the real pin
+      the Baakleen demo address goes on as a pin would: the craving list, then Popular near you (§39.15.2); no Explore link
+      (§39.15.13)
     tap: { as: $AS, id: "da:baakleen" }
     expect:
       - { to: $AS, kind: list, buttons: ["c:near"] }
-      - to: $AS
-        kind: "interactive:cta_url"
-        text: "/e?t="
-        capture: { explore: "(https://\\S+/e\\?t=[A-Za-z0-9_-]{24})" }
-    db:
-      - sql: >
-          select e ->> 'status' as status, e #>> '{place,name_en}' as place, jsonb_array_length(e -> 'shops') > 0 as shops,
-                 (e ->> 'rate')::numeric > 0 as rate
-          from (select public.web_explore(substring('{{vars.explore}}' from 't=([A-Za-z0-9_-]{24})')) as e) x
-        row: { status: ok, place: "~^Baak", shops: true, rate: true }
+      - { to: $AS }
   - note: >
-      $AS opens a shop from the website (its button writes [shop:slug]); the cover comes with Open menu, and the web menu
-      shows the shop with its fee and ETA to the demo address
+      $AS opens a shop from the website (its button writes [shop:slug]); the shop opens natively with its product message
+      (its cover first when it has one), never an Open menu link
     say: { as: $AS, text: "[shop:{{vars.slug}}]" }
     expect:
-      - to: $AS
-        kind: "interactive:cta_url"
-        text: "/m/"
-        capture: { menu: "(https://\\S+/m/[a-z0-9-]+\\?t=[A-Za-z0-9_-]{24})" }
-    db:
-      - sql: >
-          select m ->> 'status' as status, m #>> '{shop,slug}' = '{{vars.slug}}' as shop, m #>> '{delivery,place_en}' as place,
-                 (m #>> '{delivery,fee_usd}')::numeric > 0 as fee, (m #>> '{delivery,eta_min}')::int > 0 as eta
-          from (select public.web_menu(substring('{{vars.menu}}' from 't=([A-Za-z0-9_-]{24})'),
-                                       substring('{{vars.menu}}' from '/m/([a-z0-9-]+)')) as m) x
-        row: { status: ok, shop: true, place: "~^Baak", fee: true, eta: true }
+      - { to: $AS, kind: products }
   - note: >
-      Continue in WhatsApp with 2 of the item: the server checks and prices the lines (the page sends no price), saves the
-      basket and the bot sends the checkout in the chat by itself
-    sql: >
-      select public.web_basket_save(substring('{{vars.menu}}' from 't=([A-Za-z0-9_-]{24})'), '{{vars.slug}}',
-        jsonb_build_array(jsonb_build_object('item_id', '{{vars.item}}', 'quantity', 2, 'option_ids', '[]'::jsonb, 'note', null)),
-        false)
+      the native cart with 2 of the item, carrying the price the catalogue showed; the server prices it again, saves the
+      basket and goes on to the checkout
+    cart: { as: $AS, items: [{ id: "{{vars.item}}", qty: 2, price: "{{vars.price}}" }] }
     expect:
       - { to: $AS, buttons: ["fw:self_save", "fw:self_once", "fw:other"] }
     db:

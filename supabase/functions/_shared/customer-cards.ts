@@ -887,6 +887,8 @@ export type CustomerAction =
   | { a: "category"; key: string }
   | { a: "categories_page"; offset: number }
   | { a: "sections_page"; offset: number }
+  /** The last row of a shop's section list (§39.15.13): its web menu, when some items cannot be shown natively. */
+  | { a: "full_menu" }
   | { a: "pick_item"; ref: string }
   | { a: "add_upsell"; itemId: string }
   /** A saved cart (a split cart's other shop, §39.15.2): order it now, or later (dropped). */
@@ -1008,6 +1010,7 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(/^cat:([a-z][a-z_]{1,30})$/))) return { a: "category", key: m[1] };
   if ((m = id.match(/^cm:(\d{1,2})$/))) return { a: "categories_page", offset: Number(m[1]) };
   if ((m = id.match(/^sp:(\d{1,3})$/))) return { a: "sections_page", offset: Number(m[1]) };
+  if (id === "fm") return { a: "full_menu" };
   if ((m = id.match(re(`ups:(${UUID})`)))) return { a: "add_upsell", itemId: m[1] };
   if ((m = id.match(re(`sc:(${UUID})`)))) return { a: "saved_cart", savedCartId: m[1], take: true };
   if ((m = id.match(re(`scl:(${UUID})`))))

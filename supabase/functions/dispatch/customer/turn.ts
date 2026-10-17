@@ -76,8 +76,9 @@ import {
   cravingList,
   shopList,
   shopLine,
-  shopMenuCard,
-  exploreCard,
+  fullMenuCard,
+  sectionsPageSize,
+  withFullMenuRow,
   moreSectionsList,
   sectionNextButton,
   type BrowseCategory,
@@ -1302,6 +1303,8 @@ async function tap(c: Ctx, a: CustomerAction) {
       return browseHome(c, a.offset);
     case "sections_page":
       return showSectionsPage(c, a.offset);
+    case "full_menu":
+      return fullMenu(c);
     case "pick_item": {
       // How many? (§34 step 5); the quantity tap adds it. A quantity the customer already typed adds it at once.
       const it = c.s.refs[a.ref];
@@ -2193,7 +2196,8 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
     shown < (c.deps.config.browseMinCatalogItems ?? 6)
   ) {
     if (cover && room(list.length)) push(c, cover);
-    push(c, ...list);
+    // Items Meta cannot show (no approved photo): the shop's section list ends with "Full menu" (§39.15.13).
+    push(c, ...(fullMenuOffered(c, menu) ? list.map((m) => withFullMenuRow(m, c.s.lang)) : list));
     return;
   }
   const { products, rest } = packShopMenu(sections, {
@@ -2213,35 +2217,57 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
     // The section list's refs are reused by "More sections" below, so it stands in only when there is no such list.
     rest.length ? null : (list[0] ?? null),
   );
-  if (rest.length) pushSectionsPage(c, shop, rest, 0);
+  if (rest.length) pushSectionsPage(c, shop, rest, 0, fullMenuOffered(c, menu));
 }
 
 /**
- * A shop's cover with its one line (session 5e) and, once the site has an address, the **Open menu** button to its web
- * menu (CUSTOMER-EXPERIENCE §3.3 #16, §4) in the same message. Null when there is neither a cover nor a web menu link.
- * The card, the fee and the link are read together (one round of calls, §39.15.6).
+ * Whether a shop's section list ends with the "Full menu" row (DECISIONS §39.15.13): only when the site has an address and
+ * some of the shop's items cannot be shown natively (fewer shown in product messages than it has).
+ */
+function fullMenuOffered(
+  c: Ctx,
+  menu: { total?: unknown; shown?: unknown; sections?: unknown } | null,
+): boolean {
+  if (!c.deps.config.siteUrl || !menu) return false;
+  const sections: ShopMenuSection[] = Array.isArray(menu.sections) ? menu.sections : [];
+  const shown = Number(menu.shown ?? sections.reduce((n, x) => n + (x.products?.length ?? 0), 0));
+  return Number(menu.total ?? 0) > shown;
+}
+
+/** "Full menu" tapped (§39.15.13): the signed link to the focused shop's web menu, else its menu in the chat. */
+async function fullMenu(c: Ctx) {
+  const vendorId = c.s.focus_vendor_id;
+  if (!vendorId) return say(c, "pickPlaceFirst");
+  const url = await webLink(c, "menu", vendorId);
+  const vref = Object.entries(c.s.refs).find(
+    ([k, v]) => k.startsWith("v") && v.id === vendorId,
+  )?.[0];
+  if (!url) return vref ? showMenu(c, vref, null) : say(c, "pickPlaceFirst");
+  c.tools.push("web:menu_link");
+  push(c, fullMenuCard(c.m.from, c.s.lang, shopName(vref ? c.s.refs[vref].label : ""), url));
+}
+
+/**
+ * A shop's cover with its one line (session 5e): its photo, name, cuisine · village · fee · hours. Native only
+ * (DECISIONS §39.15.13: no Open menu button; the shop's product messages follow). Null when the shop has no cover.
+ * The card and the cover's signed link and fee are read in two rounds of calls (§39.15.6).
  */
 async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | null> {
-  // Two rounds of calls at most (§39.15.6): the card and the menu link together, then the cover's signed link and the fee.
-  const [card, web] = await Promise.all([
-    c.deps.rpc("shop_card", { p_vendor_id: vendorId }).catch(() => null) as Promise<
-      | (ShopCard & {
-          cover?: {
-            path?: string;
-            source?: string;
-            credit?: string | null;
-            license?: string | null;
-          } | null;
-        })
-      | null
-    >,
-    webLink(c, "menu", vendorId),
-  ]);
+  const card = (await c.deps.rpc("shop_card", { p_vendor_id: vendorId }).catch(() => null)) as
+    | (ShopCard & {
+        cover?: {
+          path?: string;
+          source?: string;
+          credit?: string | null;
+          license?: string | null;
+        } | null;
+      })
+    | null;
   if (!card) return null;
   const path = card.cover?.path;
-  if (!web && !(path && c.deps.photoUrl)) return null;
+  if (!(path && c.deps.photoUrl)) return null;
   const [link, chk] = await Promise.all([
-    path && c.deps.photoUrl ? c.deps.photoUrl(path).catch(() => null) : Promise.resolve(null),
+    c.deps.photoUrl(path).catch(() => null),
     c.deps
       .rpc("customer_delivery_check", { p_customer_id: c.customerId, p_vendor_ids: [vendorId] })
       .catch(() => null),
@@ -2249,10 +2275,6 @@ async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | 
   const q = (chk?.vendors ?? []).find((x: any) => x.vendor_id === vendorId);
   const fee = q?.status === "ok" && q.fee_usd != null ? Number(q.fee_usd) : null;
   const line = shopLine(c.s.lang, card, fee);
-  if (web) {
-    c.tools.push("web:menu_link");
-    return shopMenuCard(c.m.from, c.s.lang, link, shop, line, web);
-  }
   if (!link) return null;
   // No photo credit in a caption once the site credits every photo on /credits (§39.15.2); until the site has an
   // address, an illustrative cover under CC BY or CC BY-SA carries its credit here (§39.13). CC0 and public domain need none.
@@ -2268,7 +2290,7 @@ async function shopCover(c: Ctx, vendorId: string, shop: string): Promise<Msg | 
 }
 
 /**
- * A signed link to the customer's web menu of a shop, or to Explore (session 5g, CUSTOMER-EXPERIENCE §4): null until the
+ * A signed link to the customer's web menu of a shop (the "Full menu" row, §39.15.13), or to Explore: null until the
  * site has an address, or when the customer may not order from that shop. The site reads the chat's language (Arabic for
  * Arabizi, §2 rule 1).
  */
@@ -2289,18 +2311,24 @@ async function webLink(
   return typeof url === "string" && /^https:\/\//.test(url) ? url : null;
 }
 
-/** The rest of a shop's sections as a list, 9 at a time ("More sections" pages through them). */
-function pushSectionsPage(c: Ctx, shop: string, rest: ShopMenuSection[], offset: number) {
+/** The rest of a shop's sections as a list, a page at a time ("More sections" pages through them; "Full menu" last). */
+function pushSectionsPage(
+  c: Ctx,
+  shop: string,
+  rest: ShopMenuSection[],
+  offset: number,
+  fullMenu = false,
+) {
   resetRefs(c, "s");
-  const page = rest.slice(offset, offset + 10);
-  const more = rest.length > offset + 10;
-  const rows = page.slice(0, more ? 9 : 10).map((r) => ({
+  const more = rest.length > offset + sectionsPageSize(fullMenu, false);
+  const size = sectionsPageSize(fullMenu, more);
+  const rows = rest.slice(offset, offset + size).map((r) => ({
     ref: refFor(c, "s", r.section_id ?? "", localName(c.s.lang, r.name_ar, r.name_en)),
     name_ar: r.name_ar,
     name_en: r.name_en,
     items: Number(r.total ?? 0),
   }));
-  push(c, moreSectionsList(c.m.from, c.s.lang, shop, rows, more ? offset + 9 : null));
+  push(c, moreSectionsList(c.m.from, c.s.lang, shop, rows, more ? offset + size : null, fullMenu));
 }
 
 async function showSectionsPage(c: Ctx, offset: number) {
@@ -2319,7 +2347,13 @@ async function showSectionsPage(c: Ctx, offset: number) {
   )?.[0];
   const shop = shopName(vref ? c.s.refs[vref].label : (c.basket?.vendor_en ?? ""));
   if (!rest.length) return say(c, "pickPlaceFirst");
-  pushSectionsPage(c, shop, rest, Math.min(Math.max(offset, 0), Math.max(rest.length - 1, 0)));
+  pushSectionsPage(
+    c,
+    shop,
+    rest,
+    Math.min(Math.max(offset, 0), Math.max(rest.length - 1, 0)),
+    fullMenuOffered(c, menu),
+  );
 }
 
 async function showMenuList(c: Ctx, vendorRef: string, query: string | null) {
@@ -2742,7 +2776,7 @@ async function browseHome(c: Ctx, offset = 0) {
   c.summary.push(
     `[asked what they are craving: ${cats.length} categories, ${r.shops.length} shops deliver]`,
   );
-  // A pin just saved says so on the list's first line: one message, so Popular near you and Explore still fit.
+  // A pin just saved says so on the list's first line: one message, so Popular near you still fits.
   const saved = c.savedLine ?? null;
   c.savedLine = undefined;
   push(
@@ -2758,30 +2792,30 @@ async function browseHome(c: Ctx, offset = 0) {
       saved,
     ),
   );
-  // "Popular near you" after the first page of the craving list (§39.15.2), then Explore on the web (session 5g part B).
-  if (!offset) {
-    // The link is made while Popular near you is read (§39.15.6); it is still sent after it.
-    const linkAsk = webLink(c, "explore");
-    await popularNearYou(c, r.shops);
-    const url = await linkAsk;
-    if (url) {
-      c.tools.push("web:explore_link");
-      push(c, exploreCard(c.m.from, c.s.lang, url));
-    }
-  }
+  // "Popular near you" after the first page of the craving list (§39.15.2). No Explore link: customers stay in WhatsApp
+  // (DECISIONS §39.15.13).
+  if (!offset) await popularNearYou(c, r.shops);
 }
 
-/** "Explore" typed or tapped (session 5g part B): the Explore link, or the craving list while the site has no address. */
+/**
+ * "Explore", `/explore` or the "Explore shops near me" ice breaker, answered natively (DECISIONS §39.15.13): the shops that
+ * deliver here, then Popular near you as a product carousel. No pin yet: the pin first.
+ */
 async function exploreShops(c: Ctx) {
   const r = await deliveringShops(c);
   if (!r.point?.address_id) return startOrder(c);
-  // A place we do not deliver to (yet), or no shop delivering there: the chat's own answer (the waitlist, pickup), never a
-  // list of shops as if they delivered.
+  // A place we do not deliver to (yet), or no shop delivering there: the chat's own answer (the waitlist, pickup, the
+  // demo addresses), never a list of shops as if they delivered.
   if (r.paused || !r.shops.length) return browseHome(c);
-  const url = await webLink(c, "explore");
-  if (!url) return browseHome(c);
-  c.tools.push("web:explore_link");
-  push(c, exploreCard(c.m.from, c.s.lang, url));
+  c.tools.push("browse:explore");
+  c.summary.push(`[explore: ${r.shops.length} shops deliver]`);
+  await listShops(
+    c,
+    r.shops,
+    tr(c.s.lang, "nearShops", { place: r.place || tr(c.s.lang, "yourPlace") }),
+  );
+  // One open shop opens at once (listShops); otherwise the shops are followed by Popular near you.
+  if (!(r.shops.length === 1 && r.shops[0].is_open)) await popularNearYou(c, r.shops);
 }
 
 async function listShops(c: Ctx, shops: DeliveringShop[], body: string) {

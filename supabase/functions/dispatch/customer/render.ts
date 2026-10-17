@@ -31,19 +31,26 @@ const S: Record<string, Record<CLang, string>> = {
   btnTrack: { ar: "📦 طلبي", en: "📦 My order", fr: "📦 Ma commande", arabizi: "📦 Talabe" },
   btnPerson: { ar: "🙋 حدا بشري", en: "🙋 A person", fr: "🙋 Une personne", arabizi: "🙋 Shakhs" },
   btnMenu: { ar: "🍽️ المنيو", en: "🍽️ Menu", fr: "🍽️ Menu", arabizi: "🍽️ El menu" },
-  // Session 5g (CUSTOMER-EXPERIENCE §4): the web menu and Explore, opened from a button in the chat.
-  openMenuBtn: {
-    ar: "افتح المنيو",
-    en: "Open menu",
-    fr: "Ouvrir le menu",
-    arabizi: "Ftah el menu",
+  // DECISIONS §39.15.13: the web menu stays only as the last "Full menu" row of a shop's section list, when some of its
+  // items cannot be shown natively (no approved photo); customers are never led to the website.
+  fullMenuRow: {
+    ar: "المنيو كامل ›",
+    en: "Full menu ›",
+    fr: "Menu complet ›",
+    arabizi: "El menu kemel ›",
   },
-  exploreBtn: { ar: "استكشف", en: "Explore", fr: "Explorer", arabizi: "Explore" },
-  exploreBody: {
-    ar: "🧭 كل المحلات يلّي بتوصّل لعندك، بالصور، مع التوصيل والوقت.",
-    en: "🧭 Every shop that delivers to you, with photos, delivery fee and time.",
-    fr: "🧭 Tous les commerces qui livrent chez vous, en photos, avec les frais et le délai.",
-    arabizi: "🧭 Kel el ma7allet li bi wassle la 3endak, bel sowar, ma3 el tawsil wel wa2et.",
+  fullMenuRowDesc: {
+    ar: "كل الأصناف، مع يلّي بلا صورة",
+    en: "Every item, with those without a photo",
+    fr: "Tous les articles, même sans photo",
+    arabizi: "Kel el asnaf, ma3 li bala sura",
+  },
+  fullMenuBtn: { ar: "المنيو كامل", en: "Full menu", fr: "Menu complet", arabizi: "El menu kemel" },
+  fullMenuBody: {
+    ar: "*{shop}*\nالمنيو كامل، كل الأصناف. السلّة بترجع لهون عالواتساب.",
+    en: "*{shop}*\nThe full menu, every item. Your basket comes back here to WhatsApp.",
+    fr: "*{shop}*\nLe menu complet, tous les articles. Votre panier revient ici sur WhatsApp.",
+    arabizi: "*{shop}*\nEl menu kemel, kel el asnaf. El salle btirja3 la hon 3al WhatsApp.",
   },
   aiOff: {
     ar: "ما فيني قرا الكتابة هلق 🙏 اختار من الأزرار:",
@@ -2505,29 +2512,12 @@ export function shopLine(lang: CLang, c: ShopCard, feeUsd: number | null): strin
 }
 
 /**
- * A shop's cover with its one line and **Open menu** (CUSTOMER-EXPERIENCE §3.3 #16, §4): one CTA-URL message, the cover as
- * its image header when the shop has one. The link is the signed web menu (web_link_create).
+ * The **Full menu** (DECISIONS §39.15.13): the shop's web menu, sent only when the customer taps the last row of its section
+ * list, which is there only when some items cannot be shown natively. One CTA-URL message; the link is signed
+ * (web_link_create).
  */
-export function shopMenuCard(
-  to: string,
-  lang: CLang,
-  image: string | null,
-  shop: string,
-  line: string,
-  url: string,
-): Msg {
-  return ctaUrlImage(
-    to,
-    image,
-    `*${shop}*${line ? `\n${line}` : ""}`,
-    tr(lang, "openMenuBtn"),
-    url,
-  );
-}
-
-/** **Explore** (session 5g part B): every shop that delivers to the customer's point, on the web. */
-export function exploreCard(to: string, lang: CLang, url: string): Msg {
-  return ctaUrlImage(to, null, tr(lang, "exploreBody"), tr(lang, "exploreBtn"), url);
+export function fullMenuCard(to: string, lang: CLang, shop: string, url: string): Msg {
+  return ctaUrlImage(to, null, tr(lang, "fullMenuBody", { shop }), tr(lang, "fullMenuBtn"), url);
 }
 
 /** The sections of a shop not shown in full in its first product message, 9 at a time with "More sections". */
@@ -2537,15 +2527,62 @@ export function moreSectionsList(
   shop: string,
   rows: { ref: string; name_ar?: string | null; name_en?: string | null; items: number }[],
   nextOffset: number | null,
+  fullMenu = false,
 ): Msg {
-  const shown = rows.slice(0, nextOffset != null ? 9 : 10).map<Row>((r) => ({
+  // The "Full menu" row (§39.15.13) takes the last place, so a page holds one section fewer.
+  const cap = sectionsPageSize(fullMenu, nextOffset != null);
+  const shown = rows.slice(0, cap).map<Row>((r) => ({
     id: `ps:${r.ref}`,
     title: clip(name(lang, r.name_ar, r.name_en), 24),
     description: tr(lang, "itemsCount", { n: r.items }),
   }));
   if (nextOffset != null)
     shown.push({ id: `sp:${nextOffset}`, title: tr(lang, "moreSectionsRow") });
+  if (fullMenu)
+    shown.push({
+      id: "fm",
+      title: clip(tr(lang, "fullMenuRow"), 24),
+      description: clip(tr(lang, "fullMenuRowDesc"), 72),
+    });
   return list(to, tr(lang, "moreSections", { shop }), tr(lang, "menuButton"), [{ rows: shown }]);
+}
+
+/**
+ * A shop's section list with the "Full menu" row added last (§39.15.13), when it is a section list with room for it;
+ * any other message is returned as it is.
+ */
+export function withFullMenuRow(m: Msg, lang: CLang): Msg {
+  const it = (m as any)?.interactive;
+  const rows: Row[] | undefined = it?.type === "list" ? it.action?.sections?.[0]?.rows : undefined;
+  const total = (it?.action?.sections ?? []).reduce(
+    (n: number, x: any) => n + (x.rows?.length ?? 0),
+    0,
+  );
+  if (
+    !rows ||
+    total >= 10 ||
+    !rows.some((r) => String(r.id).startsWith("ps:")) ||
+    rows.some((r) => r.id === "fm")
+  )
+    return m;
+  const sections = [...it.action.sections];
+  sections[0] = {
+    ...sections[0],
+    rows: [
+      ...rows,
+      {
+        id: "fm",
+        title: clip(tr(lang, "fullMenuRow"), 24),
+        description: clip(tr(lang, "fullMenuRowDesc"), 72),
+      },
+    ],
+  };
+  return { ...m, interactive: { ...it, action: { ...it.action, sections } } } as Msg;
+}
+
+/** How many sections one page of the section list holds: 10 rows, less "More sections" and "Full menu" when present. */
+export function sectionsPageSize(fullMenu: boolean, more: boolean): number {
+  return 10 - (fullMenu ? 1 : 0) - (more ? 1 : 0);
 }
 
 /** After a section's product message when the section has more than 30 items: the next 30. */
