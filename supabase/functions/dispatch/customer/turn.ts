@@ -2523,8 +2523,8 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
     }
   }
   if (pt?.address_id && !rows.length && (found || !query)) {
-    c.summary.push("[no open place delivers to the saved pin; offered pickup]");
     if (await demoChoices(c)) return;
+    c.summary.push("[no open place delivers to the saved pin; offered pickup]");
     return push(c, noDeliveryCard(c.m.from, c.s.lang));
   }
   resetRefs(c, "v");
@@ -3773,6 +3773,8 @@ async function demoChoices(c: Ctx): Promise<boolean> {
   if (!Array.isArray(choices) || !choices.length) return false;
   c.tools.push("demo_address_change");
   c.summary.push("[change address during the test: offered the demo addresses]");
+  // A pin or a demo address answers it, then browsing goes on; a step already waiting (a basket's checkout) is kept.
+  if (!c.s.pending.kind) c.s.pending = { kind: "await_pin", then: "browse" };
   push(c, demoAddressCard(c.m.from, c.s.lang, choices, "demoChange"), askPin(c.m.from, c.s.lang));
   return true;
 }
