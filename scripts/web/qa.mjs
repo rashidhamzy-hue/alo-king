@@ -376,7 +376,7 @@ for (const lang of langs) {
           .first()
           .setInputFiles({ name: "r.jpg", mimeType: "image/jpeg", buffer: JPEG });
         await page
-          .waitForSelector("text=/✓|Uploaded|تم الرفع|Envoyé/", { timeout: 8000 })
+          .waitForSelector("text=/✓|Uploaded|انرفع|Envoyé/", { timeout: 8000 })
           .catch(() => stepFail("upload not confirmed"));
         await page
           .locator('input[type="file"]')

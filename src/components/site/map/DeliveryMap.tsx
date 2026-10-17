@@ -278,6 +278,35 @@ export function DeliveryMap({ counts, initial }: { counts: DeliveryMapData; init
     return "on" as const;
   };
 
+  // Which village names are drawn: the chosen and hovered ones first, then villages with shops, then the rest that the
+  // zoom allows; a name that would overlap one already placed is left out, so a 360 px phone never shows a pile of names.
+  const rank = (p: ZonePlace) => {
+    const st = statusOf(p.slug);
+    if (p.slug === sel) return 0;
+    if (p.slug === hover) return 1;
+    if (st === "shops") return 2;
+    if (st !== "off" && p.role === "shop_village") return 3;
+    if (st !== "off" && p.role === "named_by_rasheed" && view.w < 700) return 4;
+    if (showAllLabels && st !== "off") return 5;
+    return 9;
+  };
+  const labelled: ZonePlace[] = [];
+  const boxes: [number, number, number, number][] = [];
+  for (const p of ZONE.filter((z) => rank(z) < 9).sort((a, b) => rank(a) - rank(b))) {
+    const size = (p.slug === sel ? 15 : 12.5) * u;
+    const w = nameOf(p, lang).length * size * 0.56 + 4 * u;
+    const b: [number, number, number, number] = [
+      p.x - w / 2,
+      p.y - 11 * u - size,
+      p.x + w / 2,
+      p.y - 11 * u + 3 * u,
+    ];
+    const hit = boxes.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
+    if (hit && rank(p) > 1) continue;
+    boxes.push(b);
+    labelled.push(p);
+  }
+
   const zoneCount = ZONE.filter((p) => on.has(p.slug)).length || ZONE.length;
   const fees = overview.fees;
   const lead = fmt(fees.min_usd != null && fees.max_usd != null ? m.lead : m.leadSoon, {
@@ -461,16 +490,8 @@ export function DeliveryMap({ counts, initial }: { counts: DeliveryMapData; init
             })}
           </g>
           <g className="zm-labels" aria-hidden="true">
-            {ZONE.map((p) => {
+            {labelled.map((p) => {
               const st = statusOf(p.slug);
-              const show =
-                p.slug === sel ||
-                p.slug === hover ||
-                st === "shops" ||
-                (st !== "off" && p.role === "shop_village") ||
-                (st !== "off" && p.role === "named_by_rasheed" && view.w < 700) ||
-                (showAllLabels && st !== "off");
-              if (!show) return null;
               return (
                 <text
                   key={p.slug}
