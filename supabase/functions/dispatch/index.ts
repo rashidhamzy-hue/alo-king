@@ -381,6 +381,7 @@ async function botConfig() {
     "browse_min_catalog_items",
     "public_site_url",
     "flow_app_live",
+    "flows_enabled",
   ];
   const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
   const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
@@ -862,6 +863,12 @@ Deno.serve(async (req) => {
             // The Alo King Flow app (§39.15.13): on once whatsapp-flows publishes it; flow_app_open still applies the
             // kill-gate.
             flowApp: cfg.flow_app_live === true,
+            // The §12 Flows' switches: a Flow switched off costs no flow_open call (§39.15.6).
+            flowsEnabled:
+              cfg.flows_enabled === true ||
+              (cfg.flows_enabled && typeof cfg.flows_enabled === "object")
+                ? cfg.flows_enabled
+                : false,
             joinFunctionUrl: supabaseUrl
               ? `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/site-claim`
               : null,

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { flowFiles, flowPlan, needsDataEndpoint, testRecipient, validationErrors } from "./flows";
+import {
+  flowFiles,
+  flowPlan,
+  needsDataEndpoint,
+  setSecret,
+  testRecipient,
+  validationErrors,
+} from "./flows";
 
 describe("whatsapp-flows uploader (DECISIONS §12, §39.8)", () => {
   const files = flowFiles();
@@ -59,5 +66,26 @@ describe("whatsapp-flows uploader (DECISIONS §12, §39.8)", () => {
         now,
       ),
     ).toBeNull(); // two candidates: nothing is sent
+  });
+  it("a data endpoint secret is retried after Kapso's 5xx, never after a refusal", async () => {
+    const waits: number[] = [];
+    let n = 0;
+    const flaky = async () => {
+      if (++n < 3) throw new Error("kapso 502 /platform/v1/functions/f/secrets: {}");
+      return { data: { saved: true } };
+    };
+    expect(await setSecret("f", "A", "b", flaky as any, async (ms) => void waits.push(ms))).toEqual(
+      {
+        data: { saved: true },
+      },
+    );
+    expect(waits).toEqual([5_000, 15_000]);
+    let refused = 0;
+    const no = async () => {
+      refused++;
+      throw new Error("kapso 422 /platform/v1/functions/f/secrets: {}");
+    };
+    await expect(setSecret("f", "A", "b", no as any, async () => {})).rejects.toThrow("422");
+    expect(refused).toBe(1);
   });
 });
