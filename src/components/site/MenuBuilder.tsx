@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { fmt, lbpAt, pickName, usd, type SiteLang } from "@/lib/site";
+import { fmt, lbpAt, pickName, usd, withShop, type SiteLang } from "@/lib/site";
 import type { MenuSection, SiteVendorPage } from "@/lib/site-data";
 import { useSite } from "./context";
 import { OrderButton } from "./OrderButton";
@@ -59,12 +59,14 @@ export function MenuBuilder({ page, canOrder }: { page: SiteVendorPage; canOrder
   const chosen = [...rows.values()].filter((r) => (qty[r.key] ?? 0) > 0);
   const count = chosen.reduce((a, r) => a + (qty[r.key] ?? 0), 0);
   const subtotal = chosen.reduce((a, r) => a + (qty[r.key] ?? 0) * r.price, 0);
+  // The shop's key follows its name, before the items, so the 900-character cap never cuts it (§3.1 #2).
+  const shop = withShop(vendorName, page.vendor.slug);
   const text = chosen.length
     ? fmt(t.wa.vendorItems, {
-        vendor: vendorName,
+        vendor: shop,
         items: chosen.map((r) => `${qty[r.key]}× ${r.name}`).join(", "),
       })
-    : fmt(t.wa.vendor, { vendor: vendorName });
+    : fmt(t.wa.vendor, { vendor: shop });
   const set = (key: string, d: number) =>
     setQty((q) => ({ ...q, [key]: Math.max(0, Math.min(20, (q[key] ?? 0) + d)) }));
 

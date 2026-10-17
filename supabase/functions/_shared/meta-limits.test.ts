@@ -1660,3 +1660,53 @@ describe("item photo confirm card: passes the checker in all four languages", ()
     expect(parseItemPhotoTap(`acc:${U}:15`)).toBeNull();
   });
 });
+
+// Session 5f part 8a: first contact (CUSTOMER-EXPERIENCE §3.1 #1-7, §3.2 #11, §3.3 #21).
+import {
+  closedNearCard,
+  outsideAreaCard,
+  photoCard,
+  shopClosedCard,
+  shopLinkPin,
+  voiceOffCard,
+  welcomeMenu,
+  whenText,
+} from "../dispatch/customer/render";
+describe("session 5f part 8a cards pass the checker", () => {
+  const to = "+96170000001";
+  const V = "5f8a0000-0000-0000-0000-000000000001";
+  const longAr = "مطعم الضيعة للمشاوي والمناقيش على الصاج ".repeat(2);
+  const longEn = "The Village Grill and Saj Manakish House ".repeat(2);
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`every new card is valid in ${lang}, with long names`, () => {
+      const when = whenText(lang, { hm: "12:00", in_days: 3, dow: 1 });
+      const built: any[] = [
+        welcomeMenu(to, lang),
+        voiceOffCard(to, lang),
+        photoCard(to, lang),
+        closedNearCard(to, lang, { vendor_id: V, name: longEn }, when),
+        closedNearCard(to, lang, null, null),
+        shopClosedCard(to, lang, { vendorId: V, ref: "v1", name: longAr }, when),
+        shopClosedCard(to, lang, { vendorId: V, ref: "v1", name: longAr }, null),
+        outsideAreaCard(to, lang, longAr, true),
+        outsideAreaCard(to, lang, longEn, false),
+        outsideAreaCard(to, lang, null, true),
+        shopLinkPin(to, lang, longEn),
+        ...customerStatusMessages(
+          to,
+          { kind: "shop_open", lang, vendor_id: V, vendor: longAr, vendor_en: longEn },
+          null,
+        ),
+        ...customerStatusMessages(to, { kind: "shop_open", lang, vendor_id: null }, null),
+        ...customerStatusMessages(
+          to,
+          { kind: "waitlist_open", lang, place: longAr, place_en: longEn, place_fr: longEn },
+          null,
+        ),
+      ];
+      expect(built.length).toBeGreaterThanOrEqual(14);
+      for (const m of built)
+        expect(checkInteractive(m), JSON.stringify(m).slice(0, 160)).toEqual([]);
+    });
+  }
+});

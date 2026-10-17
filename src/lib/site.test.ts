@@ -41,6 +41,18 @@ describe("language in the URL", () => {
   });
 });
 
+import { shopRef, withShop } from "./site";
+describe("a shop's key in its WhatsApp text (CUSTOMER-EXPERIENCE §3.1 #2)", () => {
+  it("follows the shop's name, and a slug that is not one adds nothing", () => {
+    expect(withShop("Eatout", "eatout-baakline")).toBe("Eatout (shop:eatout-baakline)");
+    expect(shopRef("Bad Slug")).toBe("");
+    expect(withShop("Eatout", null)).toBe("Eatout");
+    expect(
+      fmt("Hi Alo King, I'd like to order from {vendor}", { vendor: withShop("Eatout", "eatout") }),
+    ).toBe("Hi Alo King, I'd like to order from Eatout (shop:eatout)");
+  });
+});
+
 describe("WhatsApp link", () => {
   it("is null without a number, never a dead link", () => {
     expect(waLink("hello", "")).toBeNull();

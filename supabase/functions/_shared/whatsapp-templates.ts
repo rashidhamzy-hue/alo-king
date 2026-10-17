@@ -168,6 +168,24 @@ export const TEMPLATES: TemplateDef[] = [
     example: { name: "Rasheed" },
   },
   {
+    // CUSTOMER-EXPERIENCE §3.2 #11, DECISIONS §39.14 nit 3: the one notice a customer asked for ("Tell me when you do") when
+    // their place switches on. Utility only: if Meta files it as marketing it is never sent (app_private.template_for).
+    name: "alo_waitlist_open",
+    category: "UTILITY",
+    key: "waitlist_open",
+    audience: "customer",
+    params: ["place"],
+    body: {
+      ar: "بخصوص طلبك: ألو كينغ صار يوصّل لـ {{1}}.",
+      en: "An update on your request: Alo King now delivers to {{1}}.",
+      fr: "Suite à votre demande : Alo King livre désormais à {{1}}.",
+    },
+    footer: FOOTER,
+    // A neutral notice the customer asked for (UTILITY): no offer and no call to buy, or Meta files it as MARKETING.
+    buttons: { ar: ["القائمة"], en: ["Menu"], fr: ["Menu"] },
+    example: { place: "Damour" },
+  },
+  {
     name: "alo_merchant_new_order",
     category: "UTILITY",
     key: "new_order",

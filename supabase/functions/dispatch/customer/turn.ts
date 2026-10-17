@@ -32,6 +32,10 @@ import {
   looksLikeComplaint,
   mentionsSomeoneElse,
   PRICE_RE,
+  isEmptyish,
+  shopToken,
+  siteText,
+  withoutShopToken,
 } from "./intents.ts";
 import { readQuantity, readRecipient } from "../../_shared/lexicon.ts";
 import {
@@ -99,6 +103,16 @@ import {
   tipRow,
   type ChoiceGroup,
   type SummaryExtra,
+  welcomeMenu,
+  voiceOffCard,
+  photoCard,
+  closedNearCard,
+  shopClosedCard,
+  outsideAreaCard,
+  shopLinkPin,
+  whenText,
+  whenShort,
+  type Opening,
 } from "./render.ts";
 import {
   ALLERGENS,
@@ -232,6 +246,10 @@ export type CustomerInbound = {
   flow?: { token: string; payload: Record<string, unknown> } | null;
   /** A cart sent from the Meta catalogue (§39.12): item ids and quantities; the catalogue's price only to report a difference. */
   cart?: { lines: CartLine[] } | null;
+  /** A photo's caption (§3.1 #5: read as typed text). */
+  caption?: string | null;
+  /** Typed messages sent in a row and answered once (§3.1 #6): their texts, oldest first; `text` joins them. */
+  burst?: string[] | null;
 };
 
 const E164 = /^\+[1-9][0-9]{6,14}$/;
@@ -274,6 +292,7 @@ export function readCustomerInbound(payload: any): CustomerInbound | null {
     name: payload?.conversation?.contact_name ?? msg.kapso?.contact_name ?? null,
     flow: parseFlowReply(msg),
     cart: parseCartOrder(msg),
+    caption: type === "image" ? String(msg.image?.caption ?? "").slice(0, 1000) || null : null,
   };
 }
 
@@ -395,18 +414,24 @@ export async function handleCustomerTurn(
     path: "deterministic",
     summary: [],
   };
-  if (m.text) c.s.lang = textLang(m.text, c.s.lang, !!begin.first_contact);
+  if (m.text) c.s.lang = textLang(withoutShopToken(m.text), c.s.lang, !!begin.first_contact);
 
   try {
     if (!begin.bot_enabled) say(c, "off");
     else if (begin.customer.blocked) {
       /* blocked numbers get no reply */
     } else {
+      // STOP or deletion on any line of a burst is honoured at once, whatever was waiting (a handoff, a typed note):
+      // the lines joined are no longer the one word (#6).
+      const urgent = urgentLine(c.m);
       // Replies a person sent while the customer was outside the window come with whatever they write next (any message
       // reopens the window), not only with the template's button; the handoff may have ended meanwhile.
-      if (c.m.buttonId !== "c:support") await heldReplies(c);
-      if (sess.handoff) await duringHandoff(c);
-      else await route(c, !!begin.first_contact);
+      if (urgent) await textIntent(c, urgent);
+      else {
+        if (c.m.buttonId !== "c:support") await heldReplies(c);
+        if (sess.handoff) await duringHandoff(c);
+        else await route(c, !!begin.first_contact);
+      }
     }
   } catch (e) {
     // A stalled request (#139): nothing has been sent and the session is untouched, so the event fails and the
@@ -538,32 +563,45 @@ async function route(c: Ctx, firstContact: boolean) {
   }
   if (m.audio) {
     if (c.deps.config.voice === false) {
+      // §3.1 #4: no AI credit yet. The voice path below stays as it is for when config ai_voice_enabled is on.
       c.tools.push("voice_off");
-      return push(c, mainMenu(m.from, c.s.lang, "voiceOff"));
+      return push(c, voiceOffCard(m.from, c.s.lang));
     }
     return voice(c);
   }
+  // §3.1 #1 and #5: a sticker is a hello; a photo is read by its caption, else answered with the Order button.
+  if (m.type === "sticker") return greet(c, firstContact);
+  if (m.type === "image") return photoTurn(c, firstContact);
   if (m.text === null || !m.text.trim()) return say(c, "unsupported");
   // The website's "Add in WhatsApp" (an item page, DECISIONS §39.15.2) sends the item's code: added deterministically.
   const code = itemCodeIn(m.text);
   if (code) return itemFromSite(c, code, itemCodeTail(m.text));
   // A note or an "Other" tip the customer was asked to type (session 5f part 7).
   if (["note", "tip_other"].includes(c.s.pending.kind) && (await awaitedText(c, m.text))) return;
-  const intent = deterministicIntent(m.text);
+  return textRoute(c, m.text, firstContact);
+}
+
+/**
+ * A typed text (or a part of one: a shop link's rest, the site's text after its greeting, a burst without its greetings).
+ * `inner`: called on such a part, so a burst is never read twice.
+ */
+async function textRoute(c: Ctx, t: string, firstContact: boolean, inner = false): Promise<void> {
+  const m = c.m;
+  if (await firstContactText(c, t, firstContact, inner)) return;
+  const intent = deterministicIntent(t);
   if (intent) {
-    if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind)
-      return freeText(c, m.text);
+    if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind) return freeText(c, t);
     if (intent.kind === "greeting") return greet(c, firstContact);
     return textIntent(c, intent.kind);
   }
   // Rules that never reach a model or a search (§38.3, §39.6).
-  if (isMemoryQuestion(m.text)) return showMemory(c);
-  if (isMedicineRequest(m.text)) return medicine(c);
-  if (c.s.pending.kind === "recipient") return recipientText(c, m.text);
-  if (isOffTopic(m.text)) return offTopic(c);
-  if (mentionsSomeoneElse(m.text)) c.s.refs.xe = { id: "someone_else", label: "someone_else" };
-  if (firstContact && m.text.trim().length < 4) return push(c, mainMenu(m.from, c.s.lang));
-  return freeText(c, m.text);
+  if (isMemoryQuestion(t)) return showMemory(c);
+  if (isMedicineRequest(t)) return medicine(c);
+  if (c.s.pending.kind === "recipient") return recipientText(c, t);
+  if (isOffTopic(t)) return offTopic(c);
+  if (mentionsSomeoneElse(t)) c.s.refs.xe = { id: "someone_else", label: "someone_else" };
+  if (firstContact && t.trim().length < 4) return push(c, welcomeMenu(m.from, c.s.lang));
+  return freeText(c, t);
 }
 
 /** The item code an item page puts in its WhatsApp text: i-<item id>. */
@@ -609,10 +647,12 @@ async function freeText(c: Ctx, t: string) {
 /** A greeting: the 2-tap "same again / new order" for a returning customer (§38.3), the main menu otherwise. */
 async function greet(c: Ctx, firstContact: boolean) {
   c.tools.push("intent:greeting");
+  // §3.1 #7: every shop near the customer's saved pin is closed (after 23:00, say): that first, with Remind me.
+  if (!firstContact && !c.orders.length && (await closedNear(c))) return;
   const last = c.profile?.last_order;
   if (!firstContact && last?.order_id && Number(c.profile?.delivered_orders ?? 0) > 0)
     return push(c, welcomeBack(c.m.from, c.s.lang, last, c.profile?.name ?? null));
-  return push(c, mainMenu(c.m.from, c.s.lang));
+  return push(c, welcomeMenu(c.m.from, c.s.lang));
 }
 
 /** Medicines are never ordered through Alo King (§38.3, Order of Pharmacists, 2 June 2026). */
@@ -775,6 +815,7 @@ async function forgetPart(c: Ctx, part: string, ref?: string) {
   });
   c.tools.push(`forget:${part}`);
   if (part === "all") {
+    await forgetWaits(c);
     c.s = { ...c.s, history: [], refs: {}, pending: {}, focus_vendor_id: null, fulfil: null };
     return say(c, "deletedData");
   }
@@ -959,7 +1000,7 @@ async function textIntent(c: Ctx, kind: string) {
     case "usual":
       return reorder(c);
     case "greeting":
-      return push(c, mainMenu(c.m.from, c.s.lang));
+      return push(c, welcomeMenu(c.m.from, c.s.lang));
     case "menu":
       return startOrder(c);
     case "yes":
@@ -1122,7 +1163,7 @@ async function tap(c: Ctx, a: CustomerAction) {
     case "pick_vendor": {
       const v = c.s.refs[a.ref];
       if (!v) return say(c, "pickPlaceFirst");
-      return showMenu(c, a.ref, null);
+      return openShop(c, a.ref);
     }
     case "category":
       return browseCategory(c, a.key);
@@ -1248,6 +1289,14 @@ async function tap(c: Ctx, a: CustomerAction) {
       return problemLine(c, a.itemId, a.kind, a.qty);
     case "demo_address":
       return demoAddressPick(c, a.key);
+    case "remind":
+      return remindMe(c, a.vendorId);
+    case "open_shop":
+      return shopById(c, a.vendorId);
+    case "view_menu":
+      return c.s.refs[a.ref] ? showMenu(c, a.ref, null) : say(c, "pickPlaceFirst");
+    case "waitlist":
+      return joinWaitlist(c);
     case "simple":
       switch (a.what) {
         case "support":
@@ -1288,6 +1337,7 @@ async function tap(c: Ctx, a: CustomerAction) {
         case "delete_ok":
           if (c.s.pending.kind !== "delete") return say(c, "confirmDelete");
           await deps.rpc("customer_forget", { p_customer_id: id, p_scope: "all" });
+          await forgetWaits(c);
           c.s = { ...c.s, history: [], refs: {}, pending: {}, focus_vendor_id: null, fulfil: null };
           return say(c, "deletedData");
         case "keep":
@@ -1432,7 +1482,15 @@ async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
 
 /** After a pin is saved, or a demo address picked (§39.15.3): the address is read back and the order goes on. */
 async function afterPin(c: Ctx, r: any) {
-  if (r?.address?.place_status === "paused") return say(c, "placePaused");
+  // §3.2 #11: a place we do not deliver to (yet): the waitlist and pickup, never "address saved". The test shop takes any
+  // pin (DECISIONS §35): while one this customer can see is orderable, the pin goes on as usual (waitlist_state: test_shop).
+  const placeStatus = r?.address?.place_status;
+  if (placeStatus === "paused" || placeStatus === "off") {
+    const addressId = typeof r.address.address_id === "string" ? r.address.address_id : null;
+    const st = await waitlistState(c, addressId);
+    if (st?.status !== "test_shop" && st?.status !== "delivered")
+      return outsideArea(c, addressId, st);
+  }
   say(c, "savedPin", { where: where(c.s.lang, r.address) });
   c.summary.push("[address saved from the pin]");
   c.s.fulfil = null; // a new pin starts a delivery again; checkout asks again when the shop takes both
@@ -1444,6 +1502,11 @@ async function afterPin(c: Ctx, r: any) {
     (await openFlow(c, "address_capture", { address_id: r.address.id }))
   )
     return;
+  return afterAddress(c);
+}
+
+/** After the address step (a pin, a demo address, the address Flow): the basket's checkout, the shop a link chose, or browsing. */
+async function afterAddress(c: Ctx) {
   if (c.basket?.lines?.length) return checkout(c, {});
   // No basket yet: the open places that deliver here (§34 step 3), or the focused place's menu.
   const focusRef = Object.entries(c.s.refs).find(
@@ -1451,10 +1514,13 @@ async function afterPin(c: Ctx, r: any) {
   )?.[0];
   const browse = c.s.pending.then === "browse" || !focusRef;
   const wantsPickup = c.s.pending.then === "pickup";
+  // The website's picks that came with a shop link wait for the pin with it (§3.1 #2).
+  const picks = c.s.pending.then === "shop" ? c.s.pending.picks : null;
   c.s.pending = {};
   if (wantsPickup) return pickupPlaces(c);
   if (browse || !focusRef) return browseHome(c);
-  return showMenu(c, focusRef, null);
+  await openShop(c, focusRef);
+  return readSitePicks(c, picks);
 }
 
 /** "Order" / "menu": the places that deliver to the saved pin, or ask for the pin first (§34 steps 1-3). */
@@ -1525,6 +1591,8 @@ async function flowReply(c: Ctx, f: { token: string; payload: Record<string, unk
     if (r.status === "rejected") return say(c, "flowRetry");
     c.summary.push("[address details saved from the Flow]");
     if (c.basket?.lines?.length) return checkout(c, {});
+    // The pin came while a step waited for it (a shop link's shop, browsing): it goes on (§3.1 #2).
+    if (c.s.pending.kind === "await_pin" && c.s.pending.then) return afterAddress(c);
     return say(c, "addressSaved");
   }
   return say(c, "flowRetry");
@@ -2278,7 +2346,7 @@ async function dietaryMenu(c: Ctx, input: any) {
 async function searchVendors(c: Ctx, query: string | null, businessType: string | null) {
   const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
   const r = await deliveringPlaces(c, pt, query, businessType);
-  if (r.paused) return say(c, "placePaused");
+  if (r.paused) return outsideArea(c);
   let rows = r.rows;
   const found = r.found;
   // DECISIONS §39.3: the customer named a shop that is not on Alo King yet (and no orderable place matched that
@@ -2341,6 +2409,7 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
     await c.deps.rpc("vendor_request_note", { p_query: query, p_place_id: null });
   if (vs.length === 1 && vs[0].is_open)
     return showMenu(c, vs[0].ref, vs[0].matched === "dish" ? query : null);
+  await labelOpenings(c, vs);
   push(c, ...vendorChoices(c.m.from, c.s.lang, vs, query));
 }
 
@@ -2420,7 +2489,9 @@ async function deliveringShops(c: Ctx): Promise<{
     return { shops: [], categories, paused: true, point: pt, place };
   const by = new Map<string, any>((chk?.vendors ?? []).map((v: any) => [v.vendor_id, v]));
   const shops = raw
-    .filter((x) => by.get(x.vendor_id)?.status !== "beyond_radius")
+    // A shop the delivery check says cannot come here (beyond its radius, or the place paused while the test shop takes the
+    // pin) is not listed: it would fail at checkout.
+    .filter((x) => !["beyond_radius", "place_paused"].includes(by.get(x.vendor_id)?.status))
     .map((x) => {
       const q = by.get(x.vendor_id);
       return {
@@ -2443,7 +2514,10 @@ async function deliveringShops(c: Ctx): Promise<{
  */
 async function browseHome(c: Ctx, offset = 0) {
   const r = await deliveringShops(c);
-  if (r.paused) return say(c, "placePaused");
+  if (r.paused) return outsideArea(c);
+  // §3.1 #7: every shop that delivers here is closed: say when the first opens, with Remind me and See menus.
+  if (r.point && r.shops.length && r.shops.every((x) => !x.is_open))
+    return closedFromShops(c, r.shops);
   // No pin, nothing that delivers, or only a few shops: the shop list as before (it also offers pickup when none deliver).
   if (!r.point || r.shops.length < (c.deps.config.browseMinShops ?? 4))
     return searchVendors(c, null, null);
@@ -2477,13 +2551,15 @@ async function browseHome(c: Ctx, offset = 0) {
   if (!offset) await popularNearYou(c, r.shops);
 }
 
-function listShops(c: Ctx, shops: DeliveringShop[], body: string) {
+async function listShops(c: Ctx, shops: DeliveringShop[], body: string) {
   resetRefs(c, "v");
   const rows = shops.slice(0, 10).map((x) => ({
     ...x,
     ref: refFor(c, "v", x.vendor_id, `${x.name_en ?? x.name_ar}${x.is_open ? "" : " (closed)"}`),
   }));
   if (rows.length === 1 && rows[0].is_open) return showMenu(c, rows[0].ref, null);
+  // §3.3 #21: closed shops come last (deliveringShops), each saying when it opens.
+  await labelOpenings(c, rows);
   const more = shops.length > 10 ? `\n${tr(c.s.lang, "nearest10", { n: shops.length })}` : "";
   push(c, shopList(c.m.from, c.s.lang, `${body}${more}`, rows));
 }
@@ -2491,7 +2567,7 @@ function listShops(c: Ctx, shops: DeliveringShop[], body: string) {
 /** A category: the shops that serve it and deliver here, nearest first, with fee and distance. */
 async function browseCategory(c: Ctx, key: string) {
   const r = await deliveringShops(c);
-  if (r.paused) return say(c, "placePaused");
+  if (r.paused) return outsideArea(c);
   if (!r.point) return startOrder(c);
   const cat = r.categories.find((k) => k.key === key);
   const shops = r.shops.filter((x) => x.categories.includes(key));
@@ -2505,7 +2581,7 @@ async function browseCategory(c: Ctx, key: string) {
 /** "Shops near you": every shop that delivers here, nearest first. */
 async function browseNear(c: Ctx) {
   const r = await deliveringShops(c);
-  if (r.paused) return say(c, "placePaused");
+  if (r.paused) return outsideArea(c);
   if (!r.point) return startOrder(c);
   if (!r.shops.length) return push(c, noDeliveryCard(c.m.from, c.s.lang));
   c.tools.push("browse:near");
@@ -2540,6 +2616,7 @@ async function pickupPlaces(c: Ctx) {
   }));
   c.summary.push(`[pickup places near the pin: ${vs.length}]`);
   if (vs.length === 1 && vs[0].is_open) return showMenu(c, vs[0].ref, null);
+  await labelOpenings(c, vs);
   push(c, ...vendorChoices(c.m.from, c.s.lang, vs, null, "pickPickup"));
 }
 
@@ -2755,7 +2832,7 @@ async function checkout(
       c.s.pending = { kind: "await_pin" };
       return push(c, askPin(c.m.from, lang));
     case "place_paused":
-      return say(c, "placePaused");
+      return outsideArea(c);
     case "no_route":
       return say(c, "noRoute");
     case "beyond_radius":
@@ -3189,6 +3266,11 @@ export function validate(name: ToolName, input: any): boolean {
     }
     case "request_human":
       return typeof input.reason === "string" && input.reason.length <= 300;
+    case "remind_when_open":
+      return input.vendor_ref === null || ref(input.vendor_ref, "v");
+    case "join_waitlist":
+    case "pickup_places":
+      return true;
     case "reply":
       return (
         typeof input.text === "string" &&
@@ -3389,6 +3471,16 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
     }
     case "request_human":
       return handoff(c, input.reason);
+    // Session 5f part 8a: every new button is a tool too (DECISIONS §39.14 rule 1); the customer comes from the session.
+    case "remind_when_open": {
+      const v = input.vendor_ref ? c.s.refs[input.vendor_ref] : null;
+      if (input.vendor_ref && !v) return say(c, "pickPlaceFirst");
+      return remindMe(c, v ? v.id : null);
+    }
+    case "join_waitlist":
+      return joinWaitlist(c);
+    case "pickup_places":
+      return pickupPlaces(c);
     case "reply":
       return replyText(c, input.text, input.confidence);
   }
@@ -4147,4 +4239,365 @@ async function aiAfterCart(c: Ctx, name: AfterCartToolName, input: any) {
       return push(c, tipConfirmCard(c.m.from, c.s.lang, orderId, cents));
     }
   }
+}
+
+// ---- Session 5f part 8a: first contact (CUSTOMER-EXPERIENCE §3.1 #1-7, §3.2 #11, §3.3 #21) ------------------------------------
+/** The urgent words a burst never folds away: any line saying one of them is honoured at once. */
+const BURST_URGENT = ["stop", "delete_data", "forget_history", "human"] as const;
+
+/** STOP, "delete my data" or "forget my history" on one line of a burst (checked before anything else in the turn). */
+function urgentLine(m: CustomerInbound): "stop" | "delete_data" | "forget_history" | null {
+  for (const line of m.burst ?? []) {
+    const k = deterministicIntent(line)?.kind;
+    if (k === "stop" || k === "delete_data" || k === "forget_history") return k;
+  }
+  return null;
+}
+
+/**
+ * What only first contact needs from a typed text: a shop link (#2), a burst of messages (#6), "?" or emoji (#1), the
+ * website's pre-filled texts. False: none of these, the text goes on as usual.
+ */
+async function firstContactText(
+  c: Ctx,
+  t: string,
+  firstContact: boolean,
+  inner: boolean,
+): Promise<boolean> {
+  const slug = shopToken(t);
+  if (slug) {
+    await shopLink(c, slug, withoutShopToken(t), firstContact);
+    return true;
+  }
+  if (!inner && c.m.burst && c.m.burst.length > 1) {
+    await burstText(c, c.m.burst, firstContact);
+    return true;
+  }
+  // "?", "👍" or emoji alone: the welcome at first contact or between orders; with an active order or a question waiting it
+  // goes its usual way (the agent reads it in context).
+  if (isEmptyish(t) && (firstContact || (!c.s.pending.kind && !c.orders.length))) {
+    await greet(c, firstContact);
+    return true;
+  }
+  const site = siteText(t);
+  if (!site) return false;
+  c.tools.push(`site_text:${site.kind}`);
+  if (site.kind === "greeting") await greet(c, firstContact);
+  else if (site.kind === "order") await startOrder(c);
+  else if (site.kind === "shop") await searchVendors(c, site.name, null);
+  else await textRoute(c, site.text, firstContact, true);
+  return true;
+}
+
+/**
+ * Typed messages sent in a row, answered once (#6; dispatch folded them, customer_burst). STOP, deletion and a person are
+ * honoured if any line says so; greetings, "?" and repeats drop out; the rest is read as one text (the model, when on, reads
+ * all of it in one block).
+ */
+async function burstText(c: Ctx, lines: string[], firstContact: boolean) {
+  c.tools.push(`burst:${lines.length}`);
+  c.summary.push(`[${lines.length} messages in a row, answered once]`);
+  const intents = lines.map((l) => deterministicIntent(l));
+  for (const k of BURST_URGENT) if (intents.some((i) => i?.kind === k)) return textIntent(c, k);
+  const rest: string[] = [];
+  lines.forEach((l, i) => {
+    const x = l.trim();
+    if (!x || isEmptyish(x) || intents[i]?.kind === "greeting") return;
+    if (rest.length && rest[rest.length - 1].toLowerCase() === x.toLowerCase()) return;
+    rest.push(x);
+  });
+  if (!rest.length) return greet(c, firstContact);
+  return textRoute(c, rest.join("\n"), firstContact, true);
+}
+
+/** A photo (#5): its caption is read as typed text; without one, "Tell me the dish or the shop" and the Order button. */
+async function photoTurn(c: Ctx, firstContact: boolean) {
+  const cap = c.m.caption?.trim() ?? "";
+  if (cap && !isEmptyish(cap)) {
+    c.tools.push("photo:caption");
+    c.s.lang = textLang(withoutShopToken(cap), c.s.lang, firstContact);
+    return textRoute(c, cap, firstContact, true);
+  }
+  // Photo understanding needs AI credit (§39.15.9); until then the buttons, never silence.
+  c.tools.push("photo");
+  c.summary.push("[a photo: asked for the dish or the shop]");
+  return push(c, photoCard(c.m.from, c.s.lang));
+}
+
+// -- Shop links (#2) --------------------------------------------------------------------------------------------------------------
+/** "(shop:<slug>)" in a text from the website or a QR on the shop: that shop, right after the location step. */
+async function shopLink(c: Ctx, slug: string, rest: string, firstContact: boolean) {
+  c.tools.push("shop_link");
+  const r = await c.deps
+    .rpc("shop_for_link", { p_customer_id: c.customerId, p_slug: slug, p_vendor_id: null })
+    .catch(() => null);
+  if (r?.status === "orderable" || r?.status === "unclaimed")
+    return arriveAtShop(c, r, sitePicks(rest));
+  // An old or mistyped link: the rest of the text as typed ("Hi Alo King, I'd like to order from Eatout").
+  c.summary.push(`[shop link ${slug}: no such shop]`);
+  return rest && !isEmptyish(rest)
+    ? textRoute(c, rest, firstContact, true)
+    : greet(c, firstContact);
+}
+
+/** A shop by id: the reminder's "See the menu" (the server checks it is orderable and visible to this customer). */
+async function shopById(c: Ctx, vendorId: string) {
+  const r = await c.deps
+    .rpc("shop_for_link", { p_customer_id: c.customerId, p_slug: null, p_vendor_id: vendorId })
+    .catch(() => null);
+  if (r?.status === "orderable") return arriveAtShop(c, r);
+  return say(c, "pickPlaceFirst");
+}
+
+/**
+ * The items a customer picked on the website's menu ("… from Eatout (shop:eatout): 2× Burger, 1× Fries"): the text after
+ * the link's colon, or null. They are read as if typed once the shop is open (never dropped, §39.14 rule 1).
+ */
+export function sitePicks(rest: string): string | null {
+  const i = rest.indexOf(":");
+  const picks = i >= 0 ? rest.slice(i + 1).trim() : "";
+  return picks && !isEmptyish(picks) ? picks.slice(0, 500) : null;
+}
+
+/** The website's picks after the shop opened: read as the customer's own typed order (the agent, else the search). */
+async function readSitePicks(c: Ctx, picks: unknown) {
+  if (typeof picks !== "string" || !picks.trim()) return;
+  c.summary.push(`[the website's picks, read as typed: ${picks.slice(0, 120)}]`);
+  await textRoute(c, picks, false, true);
+}
+
+async function arriveAtShop(c: Ctx, r: any, picks: string | null = null) {
+  if (r.status === "unclaimed") return unclaimedArrival(c, r);
+  const name = String(r.name_en ?? r.name_ar ?? "");
+  const ref = refFor(
+    c,
+    "v",
+    String(r.vendor_id),
+    `${name}${r.open_now === false ? " (closed)" : ""}`,
+  );
+  c.s.focus_vendor_id = String(r.vendor_id);
+  c.summary.push(`[opened ${ref} from a link]`);
+  const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
+  if (!pt?.address_id) {
+    // The pin comes first; the shop stays the focused one and opens right after it (afterAddress).
+    c.s.pending = { kind: "await_pin", then: "shop", ...(picks ? { picks } : {}) };
+    return push(c, shopLinkPin(c.m.from, c.s.lang, localName(c.s.lang, r.name_ar, r.name_en)));
+  }
+  await openShop(c, ref);
+  return readSitePicks(c, picks);
+}
+
+/** A link to a shop that is not on Alo King yet (§39.3): the card with "Ask them to join", then the closest shops instead. */
+async function unclaimedArrival(c: Ctx, shop: any) {
+  const base = c.deps.config.joinFunctionUrl;
+  const ask =
+    base && shop.slug
+      ? joinLink(base, shop.slug, c.s.lang === "en" || c.s.lang === "fr" ? c.s.lang : "ar", "bot")
+      : null;
+  push(c, notOnAloKingCard(c.m.from, c.s.lang, { ...shop, ask_url: ask }));
+  c.summary.push(
+    `[${shop.name_en ?? shop.name_ar} is not on Alo King yet (a link): offered the ask link]`,
+  );
+  const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
+  if (!pt?.address_id) return push(c, welcomeMenu(c.m.from, c.s.lang));
+  let rows = (await deliveringPlaces(c, pt, null, shop.business_type ?? null)).rows;
+  if (!rows.length) rows = (await deliveringPlaces(c, pt, null, null)).rows;
+  rows = rows.slice(0, 3);
+  if (!rows.length) return;
+  resetRefs(c, "v");
+  const alt = rows.map((x) => ({
+    ...x,
+    ref: refFor(c, "v", x.vendor_id, `${x.name_en ?? x.name_ar}${x.is_open ? "" : " (closed)"}`),
+  }));
+  return push(c, ...vendorChoices(c.m.from, c.s.lang, alt, null, "pickInstead"));
+}
+
+// -- Closed shops (#7, #21) ---------------------------------------------------------------------------------------------------------
+/** A shop opened from a list, a link or a pin: its menu, or when it is closed, when it opens with Remind me (no orders for later). */
+async function openShop(c: Ctx, ref: string) {
+  const v = c.s.refs[ref];
+  if (!v) return say(c, "pickPlaceFirst");
+  const o = await c.deps.rpc("vendor_opening", { p_vendor_ids: [v.id] }).catch(() => null);
+  const x = Array.isArray(o) ? o.find((y: any) => y?.vendor_id === v.id) : null;
+  if (x?.open_now !== false) return showMenu(c, ref, null);
+  c.s.focus_vendor_id = v.id;
+  c.tools.push("shop_closed");
+  c.summary.push(`[${ref} is closed now: offered a reminder]`);
+  return push(
+    c,
+    shopClosedCard(
+      c.m.from,
+      c.s.lang,
+      { vendorId: v.id, ref, name: shopName(v.label) },
+      whenText(c.s.lang, x.opens as Opening),
+    ),
+  );
+}
+
+/** Rows of closed shops say when they open ("Closed · opens 12:00"), read in one call for the rows shown. */
+async function labelOpenings(
+  c: Ctx,
+  rows: { vendor_id: string; is_open: boolean; opens?: string | null }[],
+) {
+  const closed = rows.filter((r) => !r.is_open).map((r) => r.vendor_id);
+  if (!closed.length) return;
+  const o = await c.deps.rpc("vendor_opening", { p_vendor_ids: closed }).catch(() => null);
+  const by = new Map<string, any>((Array.isArray(o) ? o : []).map((x: any) => [x.vendor_id, x]));
+  for (const r of rows) if (!r.is_open) r.opens = whenShort(c.s.lang, by.get(r.vendor_id)?.opens);
+}
+
+/** A greeting when every shop near the saved pin is closed (one call); false when any is open or there is no pin. */
+async function closedNear(c: Ctx): Promise<boolean> {
+  const r = await c.deps
+    .rpc("shops_closed_near", { p_customer_id: c.customerId })
+    .catch(() => null);
+  if (r?.status !== "all_closed") return false;
+  const f = r.first ?? null;
+  c.tools.push("closed_near");
+  c.summary.push("[every shop near the customer is closed: offered a reminder]");
+  push(
+    c,
+    closedNearCard(
+      c.m.from,
+      c.s.lang,
+      f ? { vendor_id: f.vendor_id, name: localName(c.s.lang, f.name_ar, f.name_en) } : null,
+      whenText(c.s.lang, f?.opens as Opening),
+    ),
+  );
+  return true;
+}
+
+/** Browsing found only closed shops: the one that opens first, with Remind me and See menus. */
+async function closedFromShops(c: Ctx, shops: DeliveringShop[]) {
+  // The shop that opens first among every shop near the pin (shops_closed_near, no cap); the shops listed here otherwise.
+  const near = await c.deps
+    .rpc("shops_closed_near", { p_customer_id: c.customerId })
+    .catch(() => null);
+  let first: any = near?.status === "all_closed" && near.first?.opens?.opens_at ? near.first : null;
+  let shop: { vendor_id: string; name_ar?: string | null; name_en?: string | null } | null = first;
+  if (!first) {
+    const o = await c.deps
+      .rpc("vendor_opening", { p_vendor_ids: shops.slice(0, 20).map((x) => x.vendor_id) })
+      .catch(() => null);
+    first = (Array.isArray(o) ? o : [])
+      .filter((x: any) => x?.opens?.opens_at)
+      .sort((a: any, b: any) => Date.parse(a.opens.opens_at) - Date.parse(b.opens.opens_at))[0];
+    shop = first ? (shops.find((x) => x.vendor_id === first.vendor_id) ?? null) : null;
+  }
+  c.tools.push("closed_near");
+  c.summary.push(`[all ${shops.length} shops that deliver here are closed: offered a reminder]`);
+  return push(
+    c,
+    closedNearCard(
+      c.m.from,
+      c.s.lang,
+      shop
+        ? { vendor_id: shop.vendor_id, name: localName(c.s.lang, shop.name_ar, shop.name_en) }
+        : null,
+      whenText(c.s.lang, first?.opens as Opening),
+    ),
+  );
+}
+
+/** "Remind me when it opens": the server reads the opening and keeps one reminder (sent only inside the 24-hour window). */
+async function remindMe(c: Ctx, vendorId: string | null) {
+  c.tools.push("shop_reminder");
+  const r = await c.deps.rpc("shop_reminder_set", {
+    p_customer_id: c.customerId,
+    p_vendor_id: vendorId,
+  });
+  const lang = c.s.lang;
+  const vendor = localName(lang, r?.name_ar ?? null, r?.name_en ?? null);
+  const when = whenText(lang, r?.opens as Opening) ?? "";
+  switch (r?.status) {
+    case "set":
+      c.summary.push(
+        `[reminder set for ${vendorId ? "the shop" : "the first shop near"} opening ${when}]`,
+      );
+      return say(c, vendorId ? "remindSet" : "remindSetAny", { vendor, when });
+    case "open_now":
+      if (vendorId && r.vendor_id)
+        return arriveAtShop(c, { ...r, status: "orderable", open_now: true });
+      return browseHome(c);
+    case "beyond_window":
+      return say(c, "remindTooFar", { vendor, when });
+    case "no_point":
+      c.s.pending = { kind: "await_pin", then: "browse" };
+      return push(c, askPin(c.m.from, lang));
+    case "none":
+      // No shop near the customer at all: the shops that deliver here (or why none does), never "this shop".
+      return browseHome(c);
+    default:
+      // No name when the shop is unknown or gone: "this shop", never a blank.
+      return say(c, "remindNoTime", { vendor: vendor || tr(lang, "thisShop") });
+  }
+}
+
+// -- Outside the delivery area (§3.2 #11) ----------------------------------------------------------------------------------------------
+/** "We don't deliver to <place> yet": the waitlist, pickup when a shop is in range, another address. Testers get the demo addresses. */
+function waitlistState(c: Ctx, addressId: string | null) {
+  return c.deps
+    .rpc("waitlist_state", {
+      p_customer_id: c.customerId,
+      p_place_id: null,
+      p_address_id: addressId,
+    })
+    .catch(() => null);
+}
+
+async function outsideArea(c: Ctx, addressId: string | null = null, known: any = undefined) {
+  const st = known === undefined ? await waitlistState(c, addressId) : known;
+  if (st?.status === "demo_outside") return demoOutside(c, st);
+  if (st?.status !== "outside") return say(c, "placePaused");
+  c.s.refs.xw = { id: String(st.place_id), label: String(st.place_en ?? "").slice(0, 60) };
+  c.tools.push("outside_area");
+  c.summary.push(
+    `[outside the delivery area (${st.place_en}): offered the waitlist${st.pickup ? " and pickup" : ""}]`,
+  );
+  return push(c, outsideAreaCard(c.m.from, c.s.lang, placeName(c.s.lang, st), st.pickup === true));
+}
+
+/** "Tell me when you do": a dated opt-in for that place, one notice when it switches on, never marketing. */
+async function joinWaitlist(c: Ctx) {
+  c.tools.push("waitlist_join");
+  const r = await c.deps.rpc("waitlist_join", {
+    p_customer_id: c.customerId,
+    p_place_id: c.s.refs.xw?.id ?? null,
+  });
+  switch (r?.status) {
+    case "joined":
+    case "already":
+      c.summary.push(`[on the waitlist for ${r.place_en}]`);
+      return say(c, "waitlistJoined", { place: placeName(c.s.lang, r) });
+    case "delivered":
+    case "test_shop":
+      return startOrder(c);
+    case "demo_outside":
+      return demoOutside(c, r);
+    case "no_point":
+      c.s.pending = { kind: "await_pin", then: "browse" };
+      return push(c, askPin(c.m.from, c.s.lang));
+    default:
+      return fail(c);
+  }
+}
+
+const placeName = (lang: CLang, p: any): string =>
+  String(
+    (lang === "ar" || lang === "arabizi"
+      ? p?.place
+      : lang === "fr"
+        ? (p?.place_fr ?? p?.place_en)
+        : p?.place_en) ??
+      p?.place ??
+      "",
+  );
+
+/** "Delete my data" also removes reminders and waitlist rows (best effort: the turn goes on). */
+async function forgetWaits(c: Ctx) {
+  await c.deps
+    .rpc("customer_waits_forget", { p_customer_id: c.customerId })
+    .catch((e: unknown) =>
+      c.deps.log?.("customer_waits_forget failed", { error: String(e).slice(0, 120) }),
+    );
 }

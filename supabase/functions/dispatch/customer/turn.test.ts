@@ -3383,12 +3383,40 @@ describe("demo testers anywhere in the world (session 5f part 6, DECISIONS §39.
     expect(btnIds(f.sent[0])).toEqual(["c:order", "c:human"]);
   });
 
-  it("a real customer outside the area keeps today's answer", async () => {
+  it("the test shop takes any pin (§35): an 'off' place with a visible test shop goes on as usual, never the waitlist", async () => {
     const f = fake({
       rpcs: {
         address_save_pin: () => ({
           status: "saved",
-          address: { place: "الحمرا", place_en: "Hamra", place_status: "paused" },
+          address: { place: "بيروت", place_en: "Beirut", place_status: "off", building: "x" },
+        }),
+        waitlist_state: () => ({ status: "test_shop", place_id: "LB-BEY-BEIRUT" }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "location", location: { lat: 33.89, lon: 35.5 } }),
+    );
+    expect(f.of("waitlist_state")).toHaveLength(1);
+    expect(f.sent.some((p) => btnIds(p).includes("wl:join"))).toBe(false);
+    expect(f.of("customer_turn_end")[0].args.p_tools).not.toContain("outside_area");
+  });
+  it("a real customer outside the area gets the waitlist (part 8a), and the old answer when the server has none", async () => {
+    const pin = {
+      address_save_pin: () => ({
+        status: "saved",
+        address: { place: "الحمرا", place_en: "Hamra", place_status: "paused" },
+      }),
+    };
+    const f = fake({
+      rpcs: {
+        ...pin,
+        waitlist_state: () => ({
+          status: "outside",
+          place_id: "LB-BEY-HAMRA",
+          place: "الحمرا",
+          place_en: "Hamra",
+          pickup: false,
         }),
       },
     });
@@ -3396,8 +3424,15 @@ describe("demo testers anywhere in the world (session 5f part 6, DECISIONS §39.
       f.deps,
       msg({ type: "location", location: { lat: 33.89, lon: 35.48 } }),
     );
-    expect(bodyOf(f.sent[0])).toMatch(/We don't deliver to that area right now/);
-    expect(btnIds(f.sent[0])).toEqual(["c:new_address", "c:clear", "c:human"]);
+    expect(bodyOf(f.sent[0])).toBe("We don't deliver to Hamra yet.");
+    expect(btnIds(f.sent[0])).toEqual(["wl:join", "c:new_address"]);
+    const g = fake({ rpcs: pin });
+    await handleCustomerTurn(
+      g.deps,
+      msg({ type: "location", location: { lat: 33.89, lon: 35.48 } }),
+    );
+    expect(bodyOf(g.sent[0])).toMatch(/We don't deliver to that area right now/);
+    expect(btnIds(g.sent[0])).toEqual(["c:new_address", "c:clear", "c:human"]);
   });
 });
 
@@ -3408,7 +3443,7 @@ function tapIds(p: any): string[] {
     ...(p?.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => r.id)),
   ];
 }
-import { readTipAmount } from "./turn";
+import { readTipAmount, sitePicks } from "./turn";
 import { parseCustomerAction } from "../../_shared/customer-cards";
 
 describe("after the native cart and at checkout (session 5f part 7)", () => {
@@ -4214,5 +4249,852 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
     };
     await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "c:checkout" }));
     expect(routes).toBe(1);
+  });
+});
+
+// ---- Session 5f part 8a: first contact (CUSTOMER-EXPERIENCE §3.1 #1-7, §3.2 #11, §3.3 #21) ------------------------------------
+describe("first contact (session 5f part 8a)", () => {
+  const V2 = "20000000-0000-0000-0000-00000000000d";
+  const ids = (p: any) => [
+    ...(p?.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id),
+    ...(p?.interactive?.action?.sections ?? []).flatMap((x: any) => x.rows.map((r: any) => r.id)),
+  ];
+  const sessionOf = (f: ReturnType<typeof fake>) => f.of("customer_turn_end")[0]?.args.p_session;
+  const noModel = { model: null } as const;
+  const pinPoint = () => ({
+    lat: 33.68,
+    lon: 35.58,
+    address_id: "a0000000-0000-0000-0000-000000000001",
+  });
+
+  describe("#1 the welcome", () => {
+    const cases: [Partial<CustomerInbound>, RegExp][] = [
+      [
+        { text: "hi" },
+        /^👑 Order food and groceries in the Shouf, right here on WhatsApp\. No app needed\.$/,
+      ],
+      [{ text: "bonjour" }, /Commandez repas et courses dans le Chouf/],
+      [{ text: "salut" }, /Commandez repas et courses dans le Chouf/],
+      [{ text: "مرحبا" }, /اطلب أكل وأغراض بالشوف/],
+      // Arabizi is answered in Arabic script (§2 rule 1).
+      [{ text: "marhaba" }, /اطلب أكل وأغراض بالشوف/],
+      [{ text: "?" }, /Order food and groceries/],
+      [{ text: "👋" }, /Order food and groceries/],
+      [{ type: "sticker", text: null }, /Order food and groceries/],
+    ];
+    for (const [m, body] of cases)
+      it(`${m.text ?? m.type}: one welcome with Order, My orders and Help`, async () => {
+        const f = fake({ ...noModel });
+        await handleCustomerTurn(f.deps, msg(m));
+        expect(f.sent).toHaveLength(1);
+        expect(bodyOf(f.sent[0])).toMatch(body);
+        expect(ids(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+        expect(checkInteractive(f.sent[0])).toEqual([]);
+      });
+    it("the buttons read Order, My orders, Help (no emoji: §2 rule 5)", async () => {
+      const f = fake({ ...noModel });
+      await handleCustomerTurn(f.deps, msg({ text: "hi" }));
+      expect(f.sent[0].interactive.action.buttons.map((b: any) => b.reply.title)).toEqual([
+        "Order",
+        "My orders",
+        "Help",
+      ]);
+    });
+    it("a short first message is the welcome too, and a hello from the website starts the order", async () => {
+      const f = fake({ ...noModel, begin: { first_contact: true } });
+      await handleCustomerTurn(f.deps, msg({ text: "yo" }));
+      expect(ids(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+      const g = fake({ ...noModel, rpcs: { customer_search_point: () => null } });
+      await handleCustomerTurn(g.deps, msg({ text: "Hi Alo King, I'd like to order" }));
+      expect(g.sent[0].interactive.type).toBe("location_request_message");
+      expect(g.of("catalog_search")).toHaveLength(0);
+    });
+    it("the website's other texts: a cuisine is searched, a person is a person", async () => {
+      const f = fake({ ...noModel });
+      await handleCustomerTurn(f.deps, msg({ text: "Hi Alo King, I'd like shawarma" }));
+      expect(f.of("catalog_search")[0].args.p_query).toBe("shawarma");
+      const g = fake({ ...noModel });
+      await handleCustomerTurn(g.deps, msg({ text: "مرحبا ألو كينغ، بدي احكي مع حدا" }));
+      expect(g.of("customer_handoff")).toHaveLength(1);
+    });
+  });
+
+  describe("#2 a shop link from the website or a QR", () => {
+    const shop = (o: any = {}) => ({
+      status: "orderable",
+      vendor_id: VENDOR,
+      name_ar: "إيت آوت",
+      name_en: "Eatout",
+      open_now: true,
+      ...o,
+    });
+    it("without a pin: the location request names the shop, which opens right after the pin", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: { shop_for_link: () => shop(), customer_search_point: () => null },
+      });
+      await handleCustomerTurn(
+        f.deps,
+        msg({ text: "Hi Alo King, I'd like to order from Eatout (shop:eatout-baakline)" }),
+      );
+      expect(f.of("shop_for_link")[0].args).toMatchObject({
+        p_customer_id: CUST,
+        p_slug: "eatout-baakline",
+      });
+      expect(f.sent[0].interactive.type).toBe("location_request_message");
+      expect(bodyOf(f.sent[0])).toBe("📍 Send your location and I'll open Eatout's menu.");
+      const s = sessionOf(f);
+      expect(s.pending).toEqual({ kind: "await_pin", then: "shop" });
+      expect(s.focus_vendor_id).toBe(VENDOR);
+      expect(s.lang).toBe("en");
+
+      // The pin: the shop opens (its sections), not "What are you craving?".
+      const g = fake({
+        ...noModel,
+        begin: { session: { ...s, handoff: false } },
+        rpcs: {
+          address_save_pin: () => ({
+            status: "saved",
+            address: { place: "بعقلين", place_en: "Baakline", place_status: "on", building: "x" },
+          }),
+          vendor_opening: () => [{ vendor_id: VENDOR, open_now: true, opens: null }],
+          vendor_sections: () => ({
+            sections: [
+              { section_id: "s-1", name_en: "Wraps", items: 3 },
+              { section_id: "s-2", name_en: "Plates", items: 2 },
+            ],
+            unsectioned: 0,
+          }),
+        },
+      });
+      await handleCustomerTurn(
+        g.deps,
+        msg({ type: "location", location: { lat: 33.68, lon: 35.56 } }),
+      );
+      expect(g.of("browse_shops")).toHaveLength(0);
+      expect(g.of("vendor_sections")[0].args.p_vendor_id).toBe(VENDOR);
+      expect(ids(g.sent[g.sent.length - 1])).toEqual(["ps:s1", "ps:s2"]);
+    });
+    it("the website's picks are never dropped: carried over the pin, then read as typed once the shop opens", async () => {
+      const text =
+        "Hi Alo King, I'd like to order from Eatout (shop:eatout-baakline): 2× Burger, 1× Fries";
+      const f = fake({
+        ...noModel,
+        rpcs: { shop_for_link: () => shop(), customer_search_point: () => null },
+      });
+      await handleCustomerTurn(f.deps, msg({ text }));
+      const s = sessionOf(f);
+      expect(s.pending).toEqual({ kind: "await_pin", then: "shop", picks: "2× Burger, 1× Fries" });
+      const g = fake({
+        ...noModel,
+        begin: { session: { ...s, handoff: false } },
+        rpcs: {
+          address_save_pin: () => ({
+            status: "saved",
+            address: { place: "بعقلين", place_en: "Baakline", place_status: "on", building: "x" },
+          }),
+          vendor_opening: () => [{ vendor_id: VENDOR, open_now: true, opens: null }],
+          vendor_sections: () => ({ sections: [], unsectioned: 0 }),
+          vendor_menu: () => [],
+        },
+      });
+      await handleCustomerTurn(
+        g.deps,
+        msg({ type: "location", location: { lat: 33.68, lon: 35.56 } }),
+      );
+      expect(g.of("vendor_sections")[0].args.p_vendor_id).toBe(VENDOR);
+      expect(g.of("catalog_search")[0]?.args.p_query).toMatch(/Burger/);
+      expect(sessionOf(g).pending.picks).toBeUndefined();
+      // With a saved pin, at once.
+      const h = fake({
+        ...noModel,
+        rpcs: {
+          shop_for_link: () => shop(),
+          customer_search_point: pinPoint,
+          vendor_opening: () => [{ vendor_id: VENDOR, open_now: true }],
+          vendor_sections: () => ({ sections: [], unsectioned: 0 }),
+          vendor_menu: () => [],
+        },
+      });
+      await handleCustomerTurn(h.deps, msg({ text }));
+      expect(h.of("catalog_search")[0]?.args.p_query).toMatch(/Burger/);
+      expect(sitePicks("from Eatout : 2× Burger")).toBe("2× Burger");
+      expect(sitePicks("from Eatout")).toBeNull();
+      expect(sitePicks("from Eatout: ?")).toBeNull();
+    });
+    it("with a saved pin: the shop opens at once; the language is read without the key", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          shop_for_link: () => shop(),
+          customer_search_point: pinPoint,
+          vendor_opening: () => [{ vendor_id: VENDOR, open_now: true }],
+          vendor_sections: () => ({ sections: [], unsectioned: 0 }),
+          vendor_menu: () => [],
+        },
+      });
+      await handleCustomerTurn(
+        f.deps,
+        msg({ text: "مرحبا ألو كينغ، بدي اطلب من إيت آوت (shop:eatout-baakline)" }),
+      );
+      expect(f.of("vendor_menu")[0].args.p_vendor_id).toBe(VENDOR);
+      expect(sessionOf(f).lang).toBe("ar");
+    });
+    it("a closed shop says when it opens, with Remind me, its menu anyway and other shops (no orders for later)", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          shop_for_link: () => shop({ open_now: false }),
+          customer_search_point: pinPoint,
+          vendor_opening: () => [
+            { vendor_id: VENDOR, open_now: false, opens: { hm: "12:00", in_days: 1, dow: 6 } },
+          ],
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ text: "(shop:eatout)" }));
+      expect(bodyOf(f.sent[0])).toBe("Eatout is closed now. It opens tomorrow at 12:00.");
+      expect(ids(f.sent[0])).toEqual([`rmd:${VENDOR}`, "vm:v1", "c:near"]);
+      expect(f.of("vendor_menu")).toHaveLength(0);
+    });
+    it("a shop that is not on Alo King yet: Ask them to join, then the closest shops", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          shop_for_link: () => ({
+            status: "unclaimed",
+            vendor_id: V2,
+            slug: "abou-ali",
+            name_en: "Abou Ali",
+            place_en: "Baakline",
+            business_type: "restaurant",
+          }),
+          customer_search_point: pinPoint,
+          vendor_search: () => [{ vendor_id: VENDOR, name_en: "Eatout", is_open: true }],
+          customer_delivery_check: () => ({ status: "ok", vendors: [] }),
+        },
+      });
+      await handleCustomerTurn(
+        f.deps,
+        msg({ text: "Hi Alo King, I'd like to order from Abou Ali (shop:abou-ali)" }),
+      );
+      expect(f.sent[0].interactive.type).toBe("cta_url");
+      expect(f.sent[0].interactive.action.parameters.url).toContain("slug=abou-ali");
+      expect(ids(f.sent[1])).toEqual(["pv:v1"]);
+    });
+    it("an unknown or mistyped link reads the rest of the text: the shop by its name", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          shop_for_link: () => ({ status: "unknown" }),
+          customer_search_point: () => null,
+          vendor_search: () => [],
+          vendor_search_unclaimed: () => [],
+        },
+      });
+      await handleCustomerTurn(
+        f.deps,
+        msg({ text: "Hi Alo King, I'd like to order from Eatout (shop:old-slug)" }),
+      );
+      expect(f.of("vendor_search")[0].args.p_query).toBe("Eatout");
+    });
+    it("the reminder's See the menu opens the shop by id, checked by the server", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          shop_for_link: (a) => (a.p_vendor_id === VENDOR ? shop() : { status: "unknown" }),
+          customer_search_point: pinPoint,
+          vendor_opening: () => [{ vendor_id: VENDOR, open_now: true }],
+          vendor_sections: () => ({ sections: [], unsectioned: 0 }),
+          vendor_menu: () => [],
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `shp:${VENDOR}` }));
+      expect(f.of("shop_for_link")[0].args).toMatchObject({ p_slug: null, p_vendor_id: VENDOR });
+      expect(f.of("vendor_menu")).toHaveLength(1);
+    });
+  });
+
+  describe("#4 and #5: a voice note and a photo before AI credit", () => {
+    it("a voice note: one line and the Order button; no download, no model", async () => {
+      const f = fake({ ...noModel });
+      f.deps.config.voice = false;
+      await handleCustomerTurn(
+        f.deps,
+        msg({
+          type: "audio",
+          audio: { url: null, id: "m1", mime: "audio/ogg", bytes: 10, transcript: null },
+        }),
+      );
+      expect(f.sent).toHaveLength(1);
+      expect(bodyOf(f.sent[0])).toBe(
+        "I can't listen to voice notes yet. Tap Order or type the dish.",
+      );
+      expect(ids(f.sent[0])).toEqual(["c:order"]);
+      expect(f.of("ai_quota_take")).toHaveLength(0);
+    });
+    it("with voice on, the voice path is unchanged (listening… first)", async () => {
+      const f = fake({ ...noModel });
+      f.deps.config.voice = true;
+      await handleCustomerTurn(
+        f.deps,
+        msg({
+          type: "audio",
+          audio: { url: null, id: "m1", mime: "audio/ogg", bytes: 10, transcript: null },
+        }),
+      );
+      expect(bodyOf(f.sent[0])).toMatch(/listening/i);
+    });
+    it("a photo: 'Tell me the dish or the shop' and Order; with a caption, the caption is read", async () => {
+      const f = fake({ ...noModel });
+      await handleCustomerTurn(f.deps, msg({ type: "image", text: null }));
+      expect(bodyOf(f.sent[0])).toBe("Nice! Tell me the dish or the shop, or tap Order.");
+      expect(ids(f.sent[0])).toEqual(["c:order"]);
+      const g = fake({ ...noModel });
+      await handleCustomerTurn(
+        g.deps,
+        msg({ type: "image", text: null, caption: "manoushe kishk" }),
+      );
+      expect(g.of("catalog_search")[0].args.p_query).toBe("manoushe kishk");
+    });
+    it("reads a photo's caption from Kapso", () => {
+      const m = readCustomerInbound({
+        message: {
+          id: "w1",
+          type: "image",
+          image: { id: "i1", caption: "this one" },
+          from: "96170000001",
+        },
+      });
+      expect(m?.caption).toBe("this one");
+      expect(m?.text).toBeNull();
+    });
+  });
+
+  describe("#6 five messages in a row, one reply", () => {
+    it("the texts are read as one: greetings drop out, the rest is searched once", async () => {
+      const f = fake({ ...noModel });
+      await handleCustomerTurn(
+        f.deps,
+        msg({ text: "hi\ni want shawarma\n?", burst: ["hi", "i want shawarma", "?"] }),
+      );
+      expect(f.sent).toHaveLength(1);
+      expect(f.of("catalog_search")).toHaveLength(1);
+      expect(f.of("catalog_search")[0].args.p_query).toBe("i want shawarma");
+      expect(f.of("customer_turn_end")[0].args.p_tools).toContain("burst:3");
+    });
+    it('an emoji or "?" with an active order goes its usual way, never back to the welcome', async () => {
+      const f = fake({
+        ...noModel,
+        begin: {
+          orders: [
+            {
+              id: "57300000-0000-0000-0000-0000000000a1",
+              code: "AB3CD9",
+              status: "accepted",
+              vendor: "x",
+              vendor_en: "x",
+            },
+          ],
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ text: "👍" }));
+      expect(f.of("customer_turn_end")[0].args.p_tools).not.toContain("intent:greeting");
+      const g = fake({ ...noModel });
+      await handleCustomerTurn(g.deps, msg({ text: "?" }));
+      expect(g.of("customer_turn_end")[0].args.p_tools).toContain("intent:greeting");
+      expect(ids(g.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+    });
+    it("STOP anywhere in the burst is honoured at once", async () => {
+      const f = fake({ ...noModel });
+      await handleCustomerTurn(f.deps, msg({ text: "hi\nSTOP", burst: ["hi", "STOP"] }));
+      expect(f.of("customer_marketing_set")[0].args.p_opt_in).toBe(false);
+    });
+    it("STOP in a burst is honoured during a handoff and while a note is awaited (never passed on or saved)", async () => {
+      const h = fake({
+        ...noModel,
+        begin: { session: { lang: "en", pending: {}, refs: {}, history: [], handoff: true } },
+      });
+      await handleCustomerTurn(h.deps, msg({ text: "thanks\nstop", burst: ["thanks", "stop"] }));
+      expect(h.of("customer_marketing_set")[0]?.args.p_opt_in).toBe(false);
+      expect(h.of("support_inbound")).toHaveLength(0);
+      const n = fake({
+        ...noModel,
+        begin: {
+          session: {
+            lang: "en",
+            pending: { kind: "note", line_id: LINE, at: "2026-10-11T12:00:00.000Z" },
+            refs: {},
+            history: [],
+            handoff: false,
+          },
+        },
+      });
+      await handleCustomerTurn(
+        n.deps,
+        msg({ text: "no onions\nstop", burst: ["no onions", "stop"] }),
+      );
+      expect(n.of("customer_marketing_set")[0]?.args.p_opt_in).toBe(false);
+      expect(n.of("basket_line_note")).toHaveLength(0);
+    });
+    it("only hellos: one welcome; a repeated yes answers the waiting question once", async () => {
+      const f = fake({ ...noModel });
+      await handleCustomerTurn(f.deps, msg({ text: "hi\n?\nhello", burst: ["hi", "?", "hello"] }));
+      expect(f.sent).toHaveLength(1);
+      expect(ids(f.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+      const g = fake({
+        ...noModel,
+        begin: {
+          basket,
+          session: {
+            lang: "en",
+            pending: { kind: "confirm", basket_id: BASKET, version: 7 },
+            refs: {},
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+        },
+        rpcs: { order_place: () => ({ status: "placed", code: "AB12", order_id: "o1" }) },
+      });
+      await handleCustomerTurn(g.deps, msg({ text: "yes\nyes", burst: ["yes", "yes"] }));
+      expect(g.of("order_place")).toHaveLength(1);
+    });
+  });
+
+  describe("#7 every shop near the customer is closed", () => {
+    const closed = {
+      status: "all_closed",
+      shops: 2,
+      first: {
+        vendor_id: VENDOR,
+        name_ar: "إيت آوت",
+        name_en: "Eatout",
+        opens: { hm: "12:00", in_days: 0, dow: 6 },
+      },
+    };
+    it("a hello says so, names the first shop to open, with Remind me and See menus", async () => {
+      const f = fake({ ...noModel, rpcs: { shops_closed_near: () => closed } });
+      await handleCustomerTurn(f.deps, msg({ text: "hi" }));
+      expect(f.sent).toHaveLength(1);
+      expect(bodyOf(f.sent[0])).toBe("🌙 Shops near you are closed now. Eatout opens at 12:00.");
+      expect(ids(f.sent[0])).toEqual([`rmd:${VENDOR}`, "c:near"]);
+      expect(checkInteractive(f.sent[0])).toEqual([]);
+    });
+    it("not on a first contact (no pin yet), nor with an order on its way", async () => {
+      const f = fake({
+        ...noModel,
+        begin: { first_contact: true },
+        rpcs: { shops_closed_near: () => closed },
+      });
+      await handleCustomerTurn(f.deps, msg({ text: "hi" }));
+      expect(f.of("shops_closed_near")).toHaveLength(0);
+      const g = fake({
+        ...noModel,
+        begin: { orders: [{ id: "o1", code: "AB12", status: "accepted" }] },
+        rpcs: { shops_closed_near: () => closed },
+      });
+      await handleCustomerTurn(g.deps, msg({ text: "hi" }));
+      expect(ids(g.sent[0])).toEqual(["c:order", "c:track", "c:human"]);
+    });
+    it("Order when every shop that delivers is closed: the same card, from the shops browsing found", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          customer_search_point: pinPoint,
+          browse_shops: () => ({
+            shops: [
+              { vendor_id: VENDOR, name_en: "Eatout", is_open: false, km: 1 },
+              { vendor_id: V2, name_en: "Grill", is_open: false, km: 2 },
+            ],
+            categories: [],
+          }),
+          customer_delivery_check: () => ({ status: "ok", vendors: [] }),
+          vendor_opening: () => [
+            {
+              vendor_id: VENDOR,
+              open_now: false,
+              opens: { opens_at: "2026-10-12T09:00:00Z", hm: "12:00", in_days: 1, dow: 1 },
+            },
+            {
+              vendor_id: V2,
+              open_now: false,
+              opens: { opens_at: "2026-10-12T05:00:00Z", hm: "08:00", in_days: 1, dow: 1 },
+            },
+          ],
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:order" }));
+      expect(bodyOf(f.sent[0])).toBe(
+        "🌙 Shops near you are closed now. Grill opens tomorrow at 08:00.",
+      );
+      expect(ids(f.sent[0])).toEqual([`rmd:${V2}`, "c:near"]);
+    });
+    it("Order when every shop is closed names the first to open among every shop near (shops_closed_near, no cap)", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          customer_search_point: pinPoint,
+          browse_shops: () => ({
+            shops: [{ vendor_id: VENDOR, name_en: "Eatout", is_open: false, km: 1 }],
+            categories: [],
+          }),
+          customer_delivery_check: () => ({ status: "ok", vendors: [] }),
+          shops_closed_near: () => ({
+            status: "all_closed",
+            shops: 50,
+            first: {
+              vendor_id: V2,
+              name_en: "Far Grill",
+              opens: { opens_at: "2026-10-12T04:00:00Z", hm: "07:00", in_days: 1, dow: 1 },
+            },
+          }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:order" }));
+      expect(bodyOf(f.sent[0])).toBe(
+        "🌙 Shops near you are closed now. Far Grill opens tomorrow at 07:00.",
+      );
+      expect(ids(f.sent[0])).toEqual([`rmd:${V2}`, "c:near"]);
+      expect(f.of("vendor_opening")).toHaveLength(0);
+    });
+    it('Remind me with no shop near at all: the shop list (or why none delivers), never "this shop"', async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: { shop_reminder_set: () => ({ status: "none" }), customer_search_point: () => null },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `rmd:${VENDOR}` }));
+      expect(f.sent.some((p) => /this shop|We don't know yet/.test(bodyOf(p)))).toBe(false);
+      expect(f.of("customer_search_point").length).toBeGreaterThan(0);
+    });
+    it("Remind me: the server sets it (customer from the session, the shop from the tap) and says when", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          shop_reminder_set: () => ({
+            status: "set",
+            name_ar: "إيت آوت",
+            name_en: "Eatout",
+            opens: { hm: "12:00", in_days: 0, dow: 6 },
+          }),
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `rmd:${VENDOR}` }));
+      expect(f.of("shop_reminder_set")[0].args).toEqual({
+        p_customer_id: CUST,
+        p_vendor_id: VENDOR,
+      });
+      expect(bodyOf(f.sent[0])).toBe("✅ Done. I'll message you when Eatout opens at 12:00.");
+      const g = fake({
+        ...noModel,
+        rpcs: {
+          shop_reminder_set: () => ({ status: "set", opens: { hm: "07:30", in_days: 1, dow: 0 } }),
+        },
+      });
+      await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "rmd:any" }));
+      expect(g.of("shop_reminder_set")[0].args.p_vendor_id).toBeNull();
+      expect(bodyOf(g.sent[0])).toBe(
+        "✅ Done. I'll message you when the first shop near you opens, tomorrow at 07:30.",
+      );
+    });
+    it("too late for WhatsApp's window, or no opening known: said with a way forward", async () => {
+      for (const [r, re] of [
+        [
+          {
+            status: "beyond_window",
+            name_en: "Eatout",
+            opens: { hm: "12:00", in_days: 3, dow: 2 },
+          },
+          /Eatout opens on Tuesday at 12:00\. WhatsApp/,
+        ],
+        [{ status: "no_time", name_en: "Eatout" }, /We don't know yet when Eatout opens/],
+      ] as const) {
+        const f = fake({ ...noModel, rpcs: { shop_reminder_set: () => r } });
+        await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `rmd:${VENDOR}` }));
+        expect(bodyOf(f.sent[0])).toMatch(re);
+        expect(ids(f.sent[0])).toEqual(["c:order", "c:human"]);
+      }
+    });
+    it("open again by the time of the tap: the shop opens", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          shop_reminder_set: () => ({ status: "open_now", vendor_id: VENDOR, name_en: "Eatout" }),
+          customer_search_point: pinPoint,
+          vendor_opening: () => [{ vendor_id: VENDOR, open_now: true }],
+          vendor_sections: () => ({ sections: [], unsectioned: 0 }),
+          vendor_menu: () => [],
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: `rmd:${VENDOR}` }));
+      expect(f.of("vendor_menu")).toHaveLength(1);
+    });
+  });
+
+  describe("#21 closed shops in lists", () => {
+    it("shown last, saying when they open; tapping one gives its card; See the menu shows it anyway", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          customer_search_point: pinPoint,
+          browse_shops: () => ({
+            shops: [
+              { vendor_id: V2, name_en: "Grill", is_open: false, km: 0.5 },
+              { vendor_id: VENDOR, name_en: "Eatout", is_open: true, km: 2 },
+            ],
+            categories: [],
+          }),
+          customer_delivery_check: () => ({ status: "ok", vendors: [] }),
+          vendor_opening: () => [
+            { vendor_id: V2, open_now: false, opens: { hm: "12:00", in_days: 0, dow: 3 } },
+          ],
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:near" }));
+      const rows = f.sent[0].interactive.action.sections[0].rows;
+      expect(rows.map((r: any) => r.title)).toEqual(["Eatout", "⏸ Grill"]);
+      expect(rows[1].description).toMatch(/^Closed · opens 12:00 · /);
+      expect(f.of("vendor_opening")[0].args.p_vendor_ids).toEqual([V2]);
+
+      const refs = sessionOf(f).refs;
+      const g = fake({
+        ...noModel,
+        begin: {
+          session: {
+            lang: "en",
+            pending: {},
+            refs,
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+        },
+        rpcs: {
+          vendor_opening: () => [
+            { vendor_id: V2, open_now: false, opens: { hm: "12:00", in_days: 0, dow: 3 } },
+          ],
+        },
+      });
+      const ref = Object.entries(refs).find(([, v]: any) => v.id === V2)![0];
+      await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: `pv:${ref}` }));
+      expect(bodyOf(g.sent[0])).toBe("Grill is closed now. It opens at 12:00.");
+      expect(ids(g.sent[0])).toEqual([`rmd:${V2}`, `vm:${ref}`, "c:near"]);
+
+      const h = fake({
+        ...noModel,
+        begin: {
+          session: {
+            lang: "en",
+            pending: {},
+            refs,
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+        },
+        rpcs: { vendor_sections: () => ({ sections: [], unsectioned: 0 }), vendor_menu: () => [] },
+      });
+      await handleCustomerTurn(h.deps, msg({ type: "interactive", buttonId: `vm:${ref}` }));
+      expect(h.of("vendor_menu")[0].args.p_vendor_id).toBe(V2);
+      expect(h.of("vendor_opening")).toHaveLength(0);
+    });
+  });
+
+  describe("#11 outside the delivery area", () => {
+    const outside = (o: any = {}) => ({
+      status: "outside",
+      place_id: "LB-CHF-DAMOUR",
+      place: "الدامور",
+      place_en: "Damour",
+      place_fr: "Damour",
+      pickup: true,
+      ...o,
+    });
+    const pinOff = {
+      address_save_pin: () => ({
+        status: "saved",
+        address: {
+          address_id: "a0000000-0000-0000-0000-000000000009",
+          place: "الدامور",
+          place_en: "Damour",
+          place_status: "off",
+        },
+      }),
+    };
+    it("the pin: 'We don't deliver to Damour yet.' with Tell me when you do, Pick up instead, Change address", async () => {
+      const f = fake({ ...noModel, rpcs: { ...pinOff, waitlist_state: () => outside() } });
+      await handleCustomerTurn(
+        f.deps,
+        msg({ type: "location", location: { lat: 33.7, lon: 35.45 } }),
+      );
+      expect(f.sent).toHaveLength(1);
+      expect(bodyOf(f.sent[0])).toBe("We don't deliver to Damour yet.");
+      expect(ids(f.sent[0])).toEqual(["wl:join", "c:pickup_list", "c:new_address"]);
+      expect(f.of("waitlist_state")[0].args).toMatchObject({
+        p_customer_id: CUST,
+        p_address_id: "a0000000-0000-0000-0000-000000000009",
+      });
+      expect(sessionOf(f).refs.xw).toEqual({ id: "LB-CHF-DAMOUR", label: "Damour" });
+      expect(f.of("browse_shops")).toHaveLength(0);
+    });
+    it("no shop that takes pickup in range: no Pick up instead; Arabic names the place in Arabic", async () => {
+      const f = fake({
+        ...noModel,
+        begin: {
+          session: {
+            lang: "ar",
+            pending: {},
+            refs: {},
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+        },
+        rpcs: { ...pinOff, waitlist_state: () => outside({ pickup: false }) },
+      });
+      await handleCustomerTurn(
+        f.deps,
+        msg({ type: "location", location: { lat: 33.7, lon: 35.45 } }),
+      );
+      expect(bodyOf(f.sent[0])).toBe("ما منوصّل لـ الدامور بعد.");
+      expect(ids(f.sent[0])).toEqual(["wl:join", "c:new_address"]);
+    });
+    it("Tell me when you do: the opt-in for the place shown, confirmed in one line", async () => {
+      const f = fake({
+        ...noModel,
+        begin: {
+          session: {
+            lang: "en",
+            pending: {},
+            refs: { xw: { id: "LB-CHF-DAMOUR", label: "Damour" } },
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+        },
+        rpcs: { waitlist_join: () => outside({ status: "joined" }) },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "wl:join" }));
+      expect(f.of("waitlist_join")[0].args).toEqual({
+        p_customer_id: CUST,
+        p_place_id: "LB-CHF-DAMOUR",
+      });
+      expect(bodyOf(f.sent[0])).toBe(
+        "✅ Done. We'll send you one message when we start delivering to Damour.",
+      );
+      expect(f.of("customer_marketing_set")).toHaveLength(0);
+    });
+    it("Order with a saved pin outside the area: the same card; a demo tester gets the demo addresses instead", async () => {
+      const paused = {
+        customer_search_point: pinPoint,
+        browse_shops: () => ({
+          shops: [{ vendor_id: VENDOR, name_en: "Eatout", is_open: true, km: 1 }],
+          categories: [],
+        }),
+        customer_delivery_check: () => ({ status: "place_paused", vendors: [] }),
+      };
+      const f = fake({ ...noModel, rpcs: { ...paused, waitlist_state: () => outside() } });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:order" }));
+      expect(ids(f.sent[0])).toEqual(["wl:join", "c:pickup_list", "c:new_address"]);
+      const g = fake({
+        ...noModel,
+        rpcs: {
+          ...paused,
+          waitlist_state: () => ({
+            status: "demo_outside",
+            choices: [{ key: "baakleen", name_en: "Baakleen" }],
+          }),
+        },
+      });
+      await handleCustomerTurn(g.deps, msg({ type: "interactive", buttonId: "c:order" }));
+      expect(ids(g.sent[0])).toEqual(["da:baakleen"]);
+    });
+    it("Pick up instead lists the shops that take pickup", async () => {
+      const f = fake({
+        ...noModel,
+        rpcs: {
+          customer_search_point: pinPoint,
+          vendor_search_pickup: () => [
+            { vendor_id: VENDOR, name_en: "Eatout", is_open: true },
+            { vendor_id: V2, name_en: "Grill", is_open: false },
+          ],
+          vendor_opening: () => [
+            { vendor_id: V2, open_now: false, opens: { hm: "18:00", in_days: 0, dow: 1 } },
+          ],
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:pickup_list" }));
+      expect(ids(f.sent[0])).toEqual(["pv:v1", "pv:v2"]);
+    });
+  });
+
+  describe("delete my data", () => {
+    it("also removes reminders and waitlist rows", async () => {
+      const f = fake({
+        ...noModel,
+        begin: {
+          session: {
+            lang: "en",
+            pending: { kind: "delete" },
+            refs: {},
+            history: [],
+            low_confidence: 0,
+            handoff: false,
+          },
+        },
+      });
+      await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "c:delete_ok" }));
+      expect(f.of("customer_waits_forget")[0].args).toEqual({ p_customer_id: CUST });
+    });
+  });
+
+  describe("the agent reaches every new button (DECISIONS §39.14 rule 1)", () => {
+    const withRef = {
+      session: {
+        lang: "en",
+        pending: {},
+        refs: {
+          v1: { id: VENDOR, label: "Eatout (closed)" },
+          xw: { id: "LB-CHF-DAMOUR", label: "Damour" },
+        },
+        history: [],
+        low_confidence: 0,
+        handoff: false,
+      },
+    };
+    it("remind_when_open, join_waitlist and pickup_places run the same server calls as the taps", async () => {
+      for (const [t, input, fn, args] of [
+        [
+          "remind_when_open",
+          { vendor_ref: "v1" },
+          "shop_reminder_set",
+          { p_customer_id: CUST, p_vendor_id: VENDOR },
+        ],
+        [
+          "remind_when_open",
+          { vendor_ref: null },
+          "shop_reminder_set",
+          { p_customer_id: CUST, p_vendor_id: null },
+        ],
+        [
+          "join_waitlist",
+          {},
+          "waitlist_join",
+          { p_customer_id: CUST, p_place_id: "LB-CHF-DAMOUR" },
+        ],
+        ["pickup_places", {}, "customer_search_point", { p_customer_id: CUST }],
+      ] as const) {
+        const f = fake({ begin: withRef, model: () => tool(t, input) });
+        await handleCustomerTurn(f.deps, msg({ text: "tell me when they open please" }));
+        expect(f.of(fn)[0]?.args, t).toEqual(args);
+      }
+    });
+    it("the inputs are checked by the server: a ref that is not one, or one not in the session, does nothing", async () => {
+      expect(validate("remind_when_open", { vendor_ref: "x9" })).toBe(false);
+      expect(validate("remind_when_open", { vendor_ref: null })).toBe(true);
+      expect(validate("join_waitlist", {})).toBe(true);
+      const f = fake({ model: () => tool("remind_when_open", { vendor_ref: "v7" }) });
+      await handleCustomerTurn(f.deps, msg({ text: "remind me when v7 opens" }));
+      expect(f.of("shop_reminder_set")).toHaveLength(0);
+    });
   });
 });

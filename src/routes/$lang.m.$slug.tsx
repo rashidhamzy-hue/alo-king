@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Clock, MapPin, Bike } from "lucide-react";
-import { buildHead, fmt, iso, localePath, pickName, usd } from "@/lib/site";
+import { buildHead, fmt, iso, localePath, pickName, usd, withShop } from "@/lib/site";
 import {
   getVendorDemo,
   getVendorPage,
@@ -176,7 +176,7 @@ function VendorPage({ d }: { d: SiteVendorPage }) {
         ]}
       >
         {canOrder ? (
-          <OrderButton text={fmt(t.wa.vendor, { vendor: name })} />
+          <OrderButton text={fmt(t.wa.vendor, { vendor: withShop(name, v.slug) })} />
         ) : (
           <p className="ak-lead !mt-0">{t.vendor.paused}</p>
         )}
