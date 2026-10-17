@@ -133,7 +133,7 @@
 ## 5. The native catalogue, polished to its limit (NEW)
 - Titles and descriptions per §2 items 2–3; `brand` = shop name; `link` = the item's aloking.com page (noindex in demo mode), never the image URL.
 - Only items with a real photo sync; best sellers with photos first; one product set per shop.
-- ~~The header catalogue icon stays off (§39.13); the cart stays on.~~ Reversed on 16 October: the icon and the cart both stay on (§39.15.2).
+- ~~The header catalogue icon stays off (§39.13); the cart stays on.~~ Reversed on 16 October: the icon and the cart both stay on (§39.15.2); reversed again on 17 October (§39.15.11): icon off, cart on.
 
 ## 6. Investor demo path (6 minutes, Rasheed's phone)
 1. "Hi" → welcome → **Order** → pin in Baakleen.
