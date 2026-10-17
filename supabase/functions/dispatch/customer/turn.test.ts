@@ -4418,6 +4418,115 @@ describe("after the native cart and at checkout (session 5f part 7)", () => {
       expect(g.sent[1].interactive.type).toBe("carousel");
       for (const x of [f, g]) for (const p of x.sent) expect(checkInteractive(p)).toEqual([]);
     });
+
+    it("a pin's turn: Address saved opens the craving list, so Popular near you and Explore still fit in three (session 5g part E)", async () => {
+      const POINT = { lat: 33.6775, lon: 35.5645, address_id: "a1" };
+      const url = "https://alo-king.vercel.app/en/e?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
+      const shops = Array.from({ length: 5 }, (_, k) => ({
+        vendor_id: `20000000-0000-0000-0000-0000000000${String(k).padStart(2, "0")}`,
+        name_en: `Shop ${k}`,
+        is_open: true,
+        km: 1 + k,
+        categories: ["burgers"],
+      }));
+      const f = fake({
+        model: null,
+        rpcs: {
+          address_save_pin: () => ({
+            status: "saved",
+            address: {
+              id: "a1",
+              building: "x",
+              place: "بعقلين",
+              place_en: "Baakline",
+              place_status: "on",
+            },
+          }),
+          customer_search_point: () => POINT,
+          browse_shops: () => ({
+            place: { name_en: "Baakline" },
+            categories: [
+              {
+                key: "burgers",
+                emoji: "🍔",
+                name_ar: "برغر",
+                name_en: "Burgers",
+                name_fr: "Burgers",
+              },
+            ],
+            shops,
+          }),
+          customer_delivery_check: (a: any) => ({
+            status: "ok",
+            vendors: a.p_vendor_ids.map((id: string) => ({
+              vendor_id: id,
+              status: "ok",
+              fee_usd: 2,
+            })),
+          }),
+          catalog_for_number: () => "CAT1",
+          popular_near_you: () => ({
+            carousel: false,
+            products: [
+              { retailer_id: FRIES, name_en: "Fries", section: "Shop 0", section_en: "Shop 0" },
+              { retailer_id: COLA, name_en: "Cola", section: "Shop 1", section_en: "Shop 1" },
+            ],
+          }),
+          web_link_create: (a: any) => (a.p_kind === "explore" ? url : null),
+        },
+      });
+      f.deps.config.siteUrl = "https://alo-king.vercel.app";
+      await handleCustomerTurn(
+        f.deps,
+        msg({ type: "location", location: { lat: 33.6775, lon: 35.5645 } }),
+      );
+      expect(f.sent.map((m) => m.interactive?.type ?? m.type)).toEqual([
+        "list",
+        "product_list",
+        "cta_url",
+      ]);
+      expect(bodyOf(f.sent[0])).toMatch(
+        /^✅ Address saved: .*Baakline.*\n\nWhat are you craving\?/s,
+      );
+      expect(f.sent[2].interactive.action.parameters).toEqual({ display_text: "Explore", url });
+      for (const p of f.sent) expect(checkInteractive(p)).toEqual([]);
+      // A pin that goes on to a shop or a checkout keeps Address saved as its own first message.
+      const g = fake({
+        model: null,
+        rpcs: {
+          address_save_pin: () => ({
+            status: "saved",
+            address: {
+              id: "a1",
+              building: "x",
+              place: "بعقلين",
+              place_en: "Baakline",
+              place_status: "on",
+            },
+          }),
+          customer_search_point: () => POINT,
+          browse_shops: () => ({
+            place: { name_en: "Baakline" },
+            categories: [],
+            shops: shops.slice(0, 1),
+          }),
+          customer_delivery_check: (a: any) => ({
+            status: "ok",
+            vendors: a.p_vendor_ids.map((id: string) => ({
+              vendor_id: id,
+              status: "ok",
+              fee_usd: 2,
+            })),
+          }),
+        },
+      });
+      await handleCustomerTurn(
+        g.deps,
+        msg({ type: "location", location: { lat: 33.6775, lon: 35.5645 } }),
+      );
+      expect(g.sent[0].type).toBe("text");
+      expect(g.sent[0].text.body).toMatch(/^✅ Address saved: /);
+    });
   });
 
   it("#25: No extras for the rest ends the later add-on lists of the same cart", async () => {
