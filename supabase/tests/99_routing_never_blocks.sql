@@ -145,8 +145,14 @@ select public.customer_delivery_check(:'door_cid', array[:'tv'::uuid]) as dc \gs
 select tests.ok(:'dc'::jsonb #>> '{vendors,0,route_source}' = 'doorstep' and (:'dc'::jsonb #>> '{vendors,0,road_km}')::numeric < 0.05,
   'browse: a pin within 50 m of the shop is that distance, so the shop at the door is listed first (zero routing calls)');
 select public.address_save_pin(:'door_cid', 33.6775, 35.5645, 'Work') as nearpin \gset
-select tests.ok(not exists (select 1 from app_private.shop_road_km(:'tv', (:'nearpin'::jsonb #>> '{address,address_id}')::uuid)
-  where source = 'doorstep'), 'a pin 70 m away is never a doorstep');
+select tests.ok((select count(*) from app_private.shop_road_km(:'tv', (:'nearpin'::jsonb #>> '{address,address_id}')::uuid)) = 0,
+  'a pin 70 m away is never a doorstep (here, with no cached route and no shop → place distance, there is no answer)');
+-- The checkout reads the same resolver: a doorstep pin is exact, so no live call and the first band's fee.
+select public.address_set_for_whom(:'door_cid', (:'doorpin'::jsonb #>> '{address,address_id}')::uuid, 'self', true);
+select tests.ok(public.basket_add_item(:'door_cid', :'falafel', 1, '{}', null, true) ->> 'status' = 'added', 'the door customer''s basket');
+select public.basket_quote(:'door_cid') as dq \gset
+select tests.ok(:'dq'::jsonb ->> 'status' = 'ok' and :'dq'::jsonb ->> 'route_source' = 'doorstep' and :'dq'::jsonb -> 'origin' is null
+  and (:'dq'::jsonb ->> 'delivery_fee_usd')::numeric = 2.00, 'checkout: a doorstep pin needs no live call and pays the first band');
 
 -- Access -------------------------------------------------------------------------------------------------------------------
 set local role authenticated;
