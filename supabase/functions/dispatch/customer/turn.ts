@@ -2734,7 +2734,10 @@ async function browseNear(c: Ctx) {
   const r = await deliveringShops(c);
   if (r.paused) return outsideArea(c);
   if (!r.point) return startOrder(c);
-  if (!r.shops.length) return (await demoChoices(c)) || push(c, noDeliveryCard(c.m.from, c.s.lang));
+  if (!r.shops.length) {
+    if (await demoChoices(c)) return;
+    return push(c, noDeliveryCard(c.m.from, c.s.lang));
+  }
   c.tools.push("browse:near");
   c.summary.push(`[shops near you: ${r.shops.length}]`);
   return listShops(
