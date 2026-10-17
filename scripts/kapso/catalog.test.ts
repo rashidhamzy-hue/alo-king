@@ -76,7 +76,7 @@ describe("kapso-catalog (DECISIONS §39.12)", () => {
     );
   });
 
-  it("the catalogue icon stays on (§39.15.2): what the settings say after the POST and the read-back", () => {
+  it("icon off, cart on (§39.15.11): what the settings say after the POST and the read-back", () => {
     // §39.15.11: the goal is the icon off and the cart on.
     expect(commerceState(true, { is_cart_enabled: true, is_catalog_visible: false })).toMatchObject(
       {
