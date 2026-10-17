@@ -36,6 +36,7 @@ export const fr: Copy = {
     item: "Bonjour Alo King, ajoutez {item} de chez {vendor}, s'il vous plaît ({code})",
     menu: "Menu",
     changeAddress: "Changer d'adresse",
+    basket: "Mon panier",
     explore: "Explorer",
   },
   a11y: {
@@ -558,7 +559,7 @@ export const fr: Copy = {
     keep: "Garder {vendor}",
     expiredTitle: "Ce lien de menu a expiré",
     expiredText:
-      "Les liens de menu marchent 24 heures. Demandez-en un nouveau dans WhatsApp, en une touche.",
+      "Ce lien de menu ne marche plus. Demandez-en un nouveau dans WhatsApp, en une touche.",
     newLink: "Nouveau lien",
     unavailableTitle: "Ce commerce ne peut pas prendre votre commande ici pour l'instant",
     unavailableText: "Retournez sur WhatsApp et choisissez un autre commerce près de chez vous.",
@@ -567,6 +568,10 @@ export const fr: Copy = {
     choose: "Choisissez {group}",
     soldOut:
       "Un article de votre panier vient d'être épuisé, nous l'avons retiré. Vérifiez votre panier et réessayez.",
+    chatClosedTitle: "Votre panier est enregistré",
+    chatClosedText: "Envoyez-nous un message sur WhatsApp et votre récapitulatif arrive aussitôt.",
+    choiceAgain: "Les choix de cet article ont changé. Choisissez à nouveau, puis ajoutez-le.",
+    tooMany: "Ce lien a beaucoup servi. Demandez-en un nouveau dans WhatsApp, en une touche.",
     savedTitle: "Votre panier est enregistré",
     savedText: "Retournez sur WhatsApp : votre récapitulatif vous y attend.",
     illustration: "Photo d'illustration",
@@ -603,7 +608,7 @@ export const fr: Copy = {
       "Explorer montre les commerces qui livrent chez vous. Retournez sur WhatsApp, touchez Commander et partagez votre position.",
     order: "Commander sur WhatsApp",
     expiredText:
-      "Les liens Explorer marchent 24 heures. Demandez-en un nouveau dans WhatsApp, en une touche.",
+      "Ce lien Explorer ne marche plus. Demandez-en un nouveau dans WhatsApp, en une touche.",
     shopCount: "{n} commerces",
     shopOne: "1 commerce",
   },

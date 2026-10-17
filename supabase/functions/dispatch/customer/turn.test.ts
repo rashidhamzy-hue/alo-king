@@ -1691,6 +1691,25 @@ describe("the Meta catalogue in the chat (§39.12)", () => {
     expect(f.of("basket_fulfilment_options")).toHaveLength(1);
   });
 
+  it("the web menu's queued tap is a turn of kind web, never the customer writing; a real c:web tap stays a tap", async () => {
+    const base = { conversation: { phone_number: "96176000001" } };
+    const tap = (id: string, synthetic?: string) =>
+      readCustomerInbound({
+        ...base,
+        ...(synthetic ? { alo_synthetic: synthetic } : {}),
+        message: { id, type: "interactive", interactive: { button_reply: { id: "c:web" } } },
+      });
+    expect(tap("web.1", "web")?.synthetic).toBe(true);
+    expect(tap("wamid.1", "web")?.synthetic).toBe(false);
+    expect(tap("web.1")?.synthetic).toBe(false);
+    const f = fake({ begin: sess({}) });
+    await handleCustomerTurn(f.deps, tap("web.1", "web")!);
+    expect(f.of("customer_turn_begin")[0].args).toMatchObject({ p_kind: "web" });
+    const g = fake({ begin: sess({}) });
+    await handleCustomerTurn(g.deps, tap("wamid.2")!);
+    expect(g.of("customer_turn_begin")[0].args).toMatchObject({ p_kind: "tap" });
+  });
+
   it("the shop line reads the seed listing's Closed and Open 24 hours, and a closed shop says so", () => {
     const card = { cuisine_en: "Grill", village_en: "Baakline", open_now: true };
     expect(shopLine("en", { ...card, hours_today: "Closed" }, null)).toBe(
