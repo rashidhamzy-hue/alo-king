@@ -52,7 +52,7 @@ function writeStored(token: string, lines: WebLine[]) {
  * a note, "Goes well with", declared allergens and estimated nutrition, and the cart bar. "Continue in WhatsApp" hands the
  * lines to the server, which checks and prices them and sends the summary in the chat.
  */
-export function WebMenu({ d, token }: { d: Ok; token: string }) {
+export function WebMenu({ d, token, initialItem }: { d: Ok; token: string; initialItem?: string }) {
   const { t, lang } = useSite();
   const w = t.webMenu;
   const shop = d.shop;
@@ -64,6 +64,10 @@ export function WebMenu({ d, token }: { d: Ok; token: string }) {
   }, [d.sections]);
   const [lines, setLines] = useState<WebLine[]>(() => linesFromBasket(d));
   const [open, setOpen] = useState<WebItem | null>(null);
+  // Opened from a dish in Explore: that item's sheet first (after hydration, so the dialog opens as a modal).
+  useEffect(() => {
+    if (initialItem && items.has(initialItem)) setOpen(items.get(initialItem)!);
+  }, [initialItem, items]);
   const [basketOpen, setBasketOpen] = useState(false);
   const [state, setState] = useState<
     | { s: "idle" }
@@ -204,6 +208,7 @@ export function WebMenu({ d, token }: { d: Ok; token: string }) {
           }}
           canOrder={canOrder}
           items={items}
+          notice={state.s === "error" && state.msg === w.choiceAgain ? w.choiceAgain : null}
         />
       )}
 
@@ -546,6 +551,7 @@ function ItemSheet({
   onOpenOther,
   canOrder,
   items,
+  notice,
 }: {
   it: WebItem;
   d: Ok;
@@ -555,6 +561,8 @@ function ItemSheet({
   onOpenOther: (id: string) => void;
   canOrder: boolean;
   items: Map<string, WebItem>;
+  /** Why this sheet opened again (a choice the shop changed since the page loaded), shown at its top. */
+  notice?: string | null;
 }) {
   const { t } = useSite();
   const w = t.webMenu;
@@ -571,6 +579,11 @@ function ItemSheet({
   const n = it.nutrition;
   return (
     <Sheet label={name} onClose={onClose}>
+      {notice && (
+        <p className="wm-warn" role="alert">
+          {notice}
+        </p>
+      )}
       {it.photo && (
         <div className="wm-sheet-img">
           <img

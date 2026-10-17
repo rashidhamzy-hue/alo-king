@@ -76,8 +76,11 @@ type WebPage = { web: WebMenuData; token: string; claimed?: undefined; unclaimed
 export const Route = createFileRoute("/$lang/m/$slug")({
   // ?t=<token>: the customer's web menu (CUSTOMER-EXPERIENCE §4), opened from the chat's "Open menu" button. Never cached
   // by a CDN, never indexed, and the token is never part of the canonical address.
-  validateSearch: (s: Record<string, unknown>): { t?: string } =>
-    isWebToken(s.t) ? { t: s.t } : typeof s.t === "string" ? { t: "x" } : {},
+  // ?i=<item>: opened from Explore's dishes, the page starts on that item's sheet.
+  validateSearch: (s: Record<string, unknown>): { t?: string; i?: string } => ({
+    ...(isWebToken(s.t) ? { t: s.t } : typeof s.t === "string" ? { t: "x" } : {}),
+    ...(typeof s.i === "string" && /^[0-9a-f-]{36}$/.test(s.i) ? { i: s.i } : {}),
+  }),
   loaderDeps: ({ search }) => ({ t: search.t }),
   // A claimed shop's page, a demo shop's page (§39.12: labelled Demo, noindex), or (DECISIONS §39.3) the noindex page of
   // a shop that is not on Alo King yet. The demo and unclaimed lookups run together; a demo shop wins.
@@ -179,10 +182,11 @@ const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 function VendorRoute() {
   const d = Route.useLoaderData();
+  const { i } = Route.useSearch();
   if (!d) return null;
   if (d.web)
     return d.web.status === "ok" ? (
-      <WebMenu d={d.web} token={d.token} />
+      <WebMenu d={d.web} token={d.token} initialItem={i} />
     ) : (
       <WebMenuGone kind={d.web.status === "expired" ? "expired" : "unavailable"} />
     );

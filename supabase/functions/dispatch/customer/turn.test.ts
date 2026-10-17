@@ -2228,6 +2228,48 @@ describe("browsing through the bot (session 5e)", () => {
     expect(checkInteractive(m)).toEqual([]);
   });
 
+  it("with a site address, Explore follows the craving list; typed Explore sends it alone (session 5g part B)", async () => {
+    const url = "https://alo-king.vercel.app/en/e?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
+    const f = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => POINT,
+        browse_shops: () => browse(6),
+        customer_delivery_check: check,
+        web_link_create: (a: any) => (a.p_kind === "explore" ? url : null),
+      },
+    });
+    f.deps.config.siteUrl = "https://alo-king.vercel.app";
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
+    expect(f.sent.map((m) => m.interactive.type)).toEqual(["list", "cta_url"]);
+    expect(f.sent[1].interactive.action.parameters).toEqual({ display_text: "Explore", url });
+    for (const m of f.sent) expect(checkInteractive(m)).toEqual([]);
+    f.sent.length = 0;
+    await handleCustomerTurn(f.deps, msg({ text: "Explore", messageId: "wamid.in.2" }));
+    expect(f.sent.map((m) => m.interactive.type)).toEqual(["cta_url"]);
+    // Without a site address, Explore is the craving list.
+    f.sent.length = 0;
+    f.deps.config.siteUrl = null;
+    await handleCustomerTurn(f.deps, msg({ text: "explore", messageId: "wamid.in.3" }));
+    expect(f.sent.map((m) => m.interactive.type)).toEqual(["list"]);
+  });
+
+  it("a place we do not deliver to never gets the Explore link, only the chat's own answer", async () => {
+    const f = fake({
+      model: null,
+      rpcs: {
+        customer_search_point: () => POINT,
+        browse_shops: () => browse(6),
+        customer_delivery_check: () => ({ status: "place_paused", vendors: [] }),
+        web_link_create: () => "https://alo-king.vercel.app/en/e?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_",
+      },
+    });
+    f.deps.config.siteUrl = "https://alo-king.vercel.app";
+    await handleCustomerTurn(f.deps, msg({ text: "Explore" }));
+    expect(f.of("web_link_create")).toHaveLength(0);
+    expect(f.sent.some((m) => m.interactive?.type === "cta_url")).toBe(false);
+  });
+
   it("browse makes zero routing calls: shops without any distance stay listed, the checkout checks them (§39.15.1)", async () => {
     const f = fake({
       model: null,

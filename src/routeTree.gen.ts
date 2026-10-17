@@ -25,6 +25,7 @@ import { Route as LangClaimRouteImport } from './routes/$lang.claim'
 import { Route as LangContactRouteImport } from './routes/$lang.contact'
 import { Route as LangCreditsRouteImport } from './routes/$lang.credits'
 import { Route as LangDriversRouteImport } from './routes/$lang.drivers'
+import { Route as LangERouteImport } from './routes/$lang.e'
 import { Route as LangForMerchantsRouteImport } from './routes/$lang.for-merchants'
 import { Route as LangHelpRouteImport } from './routes/$lang.help'
 import { Route as LangRegisterRouteImport } from './routes/$lang.register'
@@ -134,6 +135,11 @@ const LangCreditsRoute = LangCreditsRouteImport.update({
 const LangDriversRoute = LangDriversRouteImport.update({
   id: '/drivers',
   path: '/drivers',
+  getParentRoute: () => LangRoute,
+} as any)
+const LangERoute = LangERouteImport.update({
+  id: '/e',
+  path: '/e',
   getParentRoute: () => LangRoute,
 } as any)
 const LangForMerchantsRoute = LangForMerchantsRouteImport.update({
@@ -304,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/$lang/contact': typeof LangContactRoute
   '/$lang/credits': typeof LangCreditsRoute
   '/$lang/drivers': typeof LangDriversRoute
+  '/$lang/e': typeof LangERoute
   '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
   '/$lang/register': typeof LangRegisterRoute
@@ -350,6 +357,7 @@ export interface FileRoutesByTo {
   '/$lang/contact': typeof LangContactRoute
   '/$lang/credits': typeof LangCreditsRoute
   '/$lang/drivers': typeof LangDriversRoute
+  '/$lang/e': typeof LangERoute
   '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
   '/$lang/register': typeof LangRegisterRoute
@@ -399,6 +407,7 @@ export interface FileRoutesById {
   '/$lang/contact': typeof LangContactRoute
   '/$lang/credits': typeof LangCreditsRoute
   '/$lang/drivers': typeof LangDriversRoute
+  '/$lang/e': typeof LangERoute
   '/$lang/for-merchants': typeof LangForMerchantsRoute
   '/$lang/help': typeof LangHelpRoute
   '/$lang/register': typeof LangRegisterRoute
@@ -449,6 +458,7 @@ export interface FileRouteTypes {
     | '/$lang/contact'
     | '/$lang/credits'
     | '/$lang/drivers'
+    | '/$lang/e'
     | '/$lang/for-merchants'
     | '/$lang/help'
     | '/$lang/register'
@@ -495,6 +505,7 @@ export interface FileRouteTypes {
     | '/$lang/contact'
     | '/$lang/credits'
     | '/$lang/drivers'
+    | '/$lang/e'
     | '/$lang/for-merchants'
     | '/$lang/help'
     | '/$lang/register'
@@ -543,6 +554,7 @@ export interface FileRouteTypes {
     | '/$lang/contact'
     | '/$lang/credits'
     | '/$lang/drivers'
+    | '/$lang/e'
     | '/$lang/for-merchants'
     | '/$lang/help'
     | '/$lang/register'
@@ -706,6 +718,13 @@ declare module '@tanstack/react-router' {
       path: '/drivers'
       fullPath: '/$lang/drivers'
       preLoaderRoute: typeof LangDriversRouteImport
+      parentRoute: typeof LangRoute
+    }
+    '/$lang/e': {
+      id: '/$lang/e'
+      path: '/e'
+      fullPath: '/$lang/e'
+      preLoaderRoute: typeof LangERouteImport
       parentRoute: typeof LangRoute
     }
     '/$lang/for-merchants': {
@@ -926,6 +945,7 @@ interface LangRouteChildren {
   LangContactRoute: typeof LangContactRoute
   LangCreditsRoute: typeof LangCreditsRoute
   LangDriversRoute: typeof LangDriversRoute
+  LangERoute: typeof LangERoute
   LangForMerchantsRoute: typeof LangForMerchantsRoute
   LangHelpRoute: typeof LangHelpRoute
   LangRegisterRoute: typeof LangRegisterRoute
@@ -953,6 +973,7 @@ const LangRouteChildren: LangRouteChildren = {
   LangContactRoute: LangContactRoute,
   LangCreditsRoute: LangCreditsRoute,
   LangDriversRoute: LangDriversRoute,
+  LangERoute: LangERoute,
   LangForMerchantsRoute: LangForMerchantsRoute,
   LangHelpRoute: LangHelpRoute,
   LangRegisterRoute: LangRegisterRoute,
