@@ -2,6 +2,8 @@
 -- by the invite code (demo_tester_enrol), so a scenario that walks a tester's path (a pin in Dubai, Riyadh or Beirut, the demo
 -- addresses, the demo autopilot) enrols its +999 persona here. Staging only: it answers sink_off where the simulator sink is
 -- off (production), and refuses any number that is not a simulator number.
+-- The enrolment lasts an hour (the e2e job's limit is 40 minutes): a run that stops before its closing step never keeps a
+-- tester slot (demo_tester_max) from a real friend past that hour.
 create function public.sim_tester(p_customer_phone text, p_on boolean) returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
@@ -22,7 +24,7 @@ begin
   perform set_config('app.audit_reason', 'simulator demo tester (DECISIONS §36, §39.15.3)', true);
   if p_on then
     insert into app_private.demo_testers (customer_id, phone_e164, enrolled_at, expires_at)
-    values (v_customer, p_customer_phone, now(), now() + interval '1 day')
+    values (v_customer, p_customer_phone, now(), now() + interval '1 hour')
     on conflict (customer_id) do update set enrolled_at = excluded.enrolled_at, expires_at = excluded.expires_at,
       removed_at = null, removed_by = null;
   else

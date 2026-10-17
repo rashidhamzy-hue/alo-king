@@ -13,6 +13,10 @@ steps:
     sql: >
       select public.sim_tester('{{$AS.phone}}', true), public.sim_demo('{{$AS.phone}}', '{{merchant.phone}}', true),
              public.sim_catalog('{{$AS.phone}}', true)
+    db:
+      - sql: >
+          select app_private.is_demo_tester(c.id) as tester from public.customers c where c.phone_e164 = '{{$AS.phone}}'
+        row: { tester: true }
   - note: a pin from $WHERE, outside the delivery area, is never stored; the demo addresses, never "we don't deliver to you"
     pin: { as: $AS, lat: "$LAT", lon: "$LON" }
     expect:

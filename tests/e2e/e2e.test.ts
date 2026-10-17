@@ -5,6 +5,7 @@ import { kindMatches, langOf, mismatch, render, toOut, valueMatches } from "./li
 import { readdirSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { expand } from "./lib/parts";
+import { redact } from "./lib/runner";
 import type { Scenario } from "./lib/types";
 
 const row = (payload: any, kind = "interactive:button", body = "hello") => ({
@@ -207,6 +208,20 @@ describe("toOut: CTA-URL messages (session 5g part E)", () => {
     );
     expect(o.text).toContain("/m/dash?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_");
     expect(o.options).toEqual([{ id: "url", title: "Open menu" }]);
+  });
+});
+
+describe("redact: transcripts are artifacts (session 5g part E)", () => {
+  it("hides a web link's token and a tracking page's token, whatever their length", () => {
+    expect(
+      redact(
+        "https://x.app/en/m/dash?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_ and https://x.app/ar/track/" +
+          "k".repeat(43),
+      ),
+    ).toBe("https://x.app/en/m/dash?t=… and https://x.app/ar/track/…");
+    expect(redact("select web_basket_save('Ab3', '?t=short1&x=1')")).toBe(
+      "select web_basket_save('Ab3', '?t=…&x=1')",
+    );
   });
 });
 

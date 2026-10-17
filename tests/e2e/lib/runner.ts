@@ -16,11 +16,14 @@ export type Env = {
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-// Transcripts are artifacts: a signed web link's token is never written in one.
-const short = (s: string, n = 220) =>
-  (s.length > n ? `${s.slice(0, n - 1)}…` : s)
-    .replace(/([?&]t=)[A-Za-z0-9_-]{24}/g, "$1…")
-    .replace(/\n/g, " ⏎ ");
+// Transcripts are artifacts: a signed link's token (a web link's ?t=, a tracking page's /track/) is never written in one.
+export const redact = (s: string) =>
+  s.replace(/([?&]t=)[A-Za-z0-9_-]+/g, "$1…").replace(/(\/track\/)[A-Za-z0-9_-]+/g, "$1…");
+// Redacted before it is cut, so a cut never leaves part of a token.
+const short = (s: string, n = 220) => {
+  const r = redact(s);
+  return (r.length > n ? `${r.slice(0, n - 1)}…` : r).replace(/\n/g, " ⏎ ");
+};
 
 function describe(m: Out): string {
   const opts = m.options.length
