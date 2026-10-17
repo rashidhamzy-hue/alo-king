@@ -49,7 +49,8 @@ mkdirSync(out, { recursive: true });
 const port = 9222;
 // --only home,webmenu: the pages whose id starts with one of these (a quick local check; CI runs them all).
 const only = arg("only", "")?.split(",").filter(Boolean);
-if (only?.length) PAGES.splice(0, PAGES.length, ...PAGES.filter(([id]) => only.some((o) => id.startsWith(o))));
+if (only?.length)
+  PAGES.splice(0, PAGES.length, ...PAGES.filter(([id]) => only.some((o) => id.startsWith(o))));
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   args: [`--remote-debugging-port=${port}`],
