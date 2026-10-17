@@ -8,7 +8,7 @@ export const en = {
     business: "For businesses",
     places: "Where we deliver",
     sendHome: "Send Home",
-    merchants: "For merchants",
+    merchants: "For businesses",
     help: "Help",
     contact: "Contact",
     menu: "Menu",
@@ -34,6 +34,7 @@ export const en = {
     vendorItems: "Hi Alo King, I'd like to order from {vendor}: {items}",
     sendHome: "Hi Alo King, I'd like to order for my family in Lebanon",
     person: "Hi Alo King, I need to talk to a person",
+    business: "Hi Alo King, I have a shop and I'd like to talk to you",
     track: "Hi Alo King, where is my order?",
     item: "Hi Alo King, please add {item} from {vendor} ({code})",
   },
@@ -112,13 +113,17 @@ export const en = {
     seo: {
       title: "Alo King: order food and essentials on WhatsApp in Lebanon",
       description:
-        "Order from the shops near you by typing, speaking or tapping on WhatsApp, in Arabic, English, French or Arabizi. No app, no sign-up. Cash on delivery.",
+        "Order from the shops near you by typing, speaking or tapping on WhatsApp. Arabic, English or French, the way you text, even mixed. No app, no sign-up. Cash on delivery.",
     },
     hero: {
       eyebrow: "Order on WhatsApp · Lebanon",
       title: "Say Alo. It's on its way.",
-      sub: "Food and essentials from the shops near you. Type, speak or tap on WhatsApp, in Arabic, English, French or Arabizi. No app, no sign-up.",
-      points: ["Cash on delivery", "Prices set by the shop", "Arabic · English · Français"],
+      sub: "Food and essentials from the shops near you. Type, speak or tap on WhatsApp. Arabic, English or French, the way you text, even mixed. No app, no sign-up.",
+      points: [
+        "Cash on delivery, $ or LBP",
+        "Prices set by the shop",
+        "Arabic · English · Français",
+      ],
       statusLive: "Delivering now in {n} places in the Shouf",
       statusSoon: "Opening first in the Shouf",
     },
@@ -128,7 +133,7 @@ export const en = {
       voiceLabel: "Voice note",
       voiceTime: "0:07",
       transcript: "“Habibi 2 shawarma w pepsi, bala toum”",
-      transcriptNote: "Heard in Arabizi",
+      transcriptNote: "Mixed, and understood",
       cardTitle: "Your order",
       shop: "Shawarma Abou Ali",
       items: [
@@ -177,10 +182,10 @@ export const en = {
     speak: {
       eyebrow: "Speak Lebanese",
       title: "Write it the way you say it.",
-      sub: "Arabic, Arabizi, English, French, or all four in one sentence. Voice notes work too.",
+      sub: "Arabic, English or French, the way you text, even mixed. Voice notes work too.",
       phrases: [
         { lang: "العربية", text: "بدي ٢ شاورما", dir: "rtl" },
-        { lang: "Arabizi", text: "2 shawarma w pepsi", dir: "ltr" },
+        { lang: "The way you text", text: "2 shawarma w pepsi", dir: "ltr" },
         { lang: "English", text: "Two chicken wraps, no garlic, please", dir: "ltr" },
         { lang: "Français", text: "deux manakish zaatar", dir: "ltr" },
       ],
@@ -201,8 +206,9 @@ export const en = {
       seePlaces: "Open the map",
     },
     merchants: {
-      eyebrow: "For merchants",
+      eyebrow: "For businesses",
       title: "{fee} per order. Not {pct}%.",
+      titleNoFee: "One flat fee per order. Not {pct}%.",
       sub: "One flat fee for each delivered order, nothing on your menu prices, nothing monthly. Your first {days} days are free.",
       subNoFree:
         "One flat fee for each delivered order, nothing on your menu prices, nothing monthly.",
@@ -218,7 +224,7 @@ export const en = {
         fineprint:
           "Alo King charges {fee} per delivered order. The commission range is {low}% to {high}% of the order value.",
       },
-      cta: "For merchants",
+      cta: "For businesses",
       ctaNote: "Start claiming your shop from your phone.",
     },
     sendHome: {
@@ -255,6 +261,16 @@ export const en = {
       ],
     },
     bizLine: "Own a shop in the Shouf?",
+    // How customers pay (DECISIONS §39.15.5): cash today; Whish only as "Soon" until online payment is live (§20.1).
+    pay: {
+      eyebrow: "How you pay",
+      title: "Cash on delivery, in dollars or lira",
+      text: "Pay the person at your door. The total is shown in $ and in LBP at the day's rate before you confirm.",
+      dollars: "Dollars",
+      lira: "Lira",
+      soon: "Soon",
+      whishNote: "Paying with Whish is not available yet.",
+    },
     faq: { eyebrow: "Questions", title: "Good to know", more: "More answers" },
   },
 
@@ -287,7 +303,7 @@ export const en = {
         "{n} villages and towns in the Shouf, from Ain Zhalta to Bater. Shops switch on one by one.",
       label: "Find your village",
       placeholder: "Baakline, بعقلين, ba3e2lin…",
-      hint: "Arabic, English, French or Arabizi",
+      hint: "Arabic, English or French, the way you text",
       noResult: "“{q}” is not in our delivery area yet.",
       notHere: "{name} is outside our delivery area for now.",
       results: "{n} matches",
@@ -310,6 +326,9 @@ export const en = {
       close: "Close",
       loading: "Loading the shops of {place}…",
       allTitle: "Every place we deliver to",
+      allLead:
+        "All {n} towns and villages of our delivery area, by area. A lit dot means shops of its own on Alo King.",
+      around: "Around {place}",
       shopVillages: "With shops of their own",
       otherVillages: "Delivered from shops nearby",
       countShops: "{n} on Alo King",
@@ -554,7 +573,7 @@ export const en = {
     {
       id: "languages",
       q: "Which languages can I use?",
-      a: "Arabic, English, French and Arabizi, even mixed in one message. We reply in your language.",
+      a: "Arabic, English or French, the way you text, even mixed in one message. We reply in your language.",
     },
     {
       id: "pay",
@@ -603,7 +622,7 @@ export const en = {
     {
       id: "m_cost",
       q: "What does it cost me?",
-      a: "Claiming is free. Alo King charges one flat fee for each order that is delivered or collected, shown on the For merchants page. Nothing is added to your menu prices and there is no monthly fee.",
+      a: "Claiming is free. Alo King charges one flat fee for each order that is delivered or collected, shown on the For businesses page. Nothing is added to your menu prices and there is no monthly fee.",
     },
     {
       id: "m_proof",
@@ -650,7 +669,8 @@ export const en = {
     privacyText:
       "Questions about your data, or want it deleted? Say it on WhatsApp, or read our privacy page.",
     merchantsTitle: "Shops",
-    merchantsText: "Own a shop? Start from the For merchants page.",
+    merchantsText: "Own a shop? Start from the For businesses page, or write to us there.",
+    bizContact: "Contact for businesses",
   },
   track: {
     title: "Track your order",
@@ -705,12 +725,13 @@ export const en = {
   biz: {
     nav: {
       home: "Alo King for business",
-      short: "For business",
+      short: "For businesses",
       pricing: "Pricing",
       claim: "Claim your shop",
       help: "Help",
       drivers: "Drive with us",
       signIn: "Sign in",
+      contact: "Contact",
       primary: "Business",
       customerSite: "Ordering food? Go to Alo King",
     },
@@ -737,13 +758,30 @@ export const en = {
         "Your orders, menu and settings work on WhatsApp. Staff sign in to the dashboard here.",
       dashboardCta: "Sign in",
     },
+    // The business contact page (DECISIONS §39.15.5): claim and registration end here.
+    contact: {
+      seoTitle: "Contact for businesses | Alo King",
+      seoDescription:
+        "Talk to Alo King about your shop: claiming it, your menu, orders and payments. On WhatsApp, in Arabic, English or French.",
+      title: "Talk to us about your shop",
+      lead: "Rasheed and the team set up every new shop with you, on WhatsApp or on a short call.",
+      whatsappTitle: "WhatsApp",
+      whatsappText: "Write to us any time. A person replies.",
+      cta: "Message us on WhatsApp",
+      hoursTitle: "When we reply",
+      startTitle: "Not on Alo King yet?",
+      startText: "Find your shop and claim it for free, or register a new one.",
+      dashboardTitle: "Already on Alo King?",
+      dashboardText:
+        "Staff sign in to the dashboard. Forgot your password? Reset it from the sign-in page.",
+    },
   },
   merchantsPage: {
-    seoTitle: "Alo King for merchants: take orders on WhatsApp",
+    seoTitle: "Alo King for businesses: take orders on WhatsApp",
     seoDescription:
       "Claim your shop on Alo King for free and take orders on WhatsApp. One flat fee per delivered order, nothing on your menu prices, nothing monthly.",
     hero: {
-      eyebrow: "For merchants",
+      eyebrow: "For businesses",
       title: "Your shop is already on the map. Now take its orders on WhatsApp.",
       lead: "Start claiming your shop from your phone. Customers order in Arabic, English or French, you receive the order on WhatsApp, and your prices stay yours.",
       searchLabel: "Find your business",
@@ -800,7 +838,7 @@ export const en = {
         },
         {
           title: "Three languages",
-          text: "Customers order in Arabic, English, French or Arabizi. You always get the order clearly.",
+          text: "Customers order in Arabic, English or French, the way they text, even mixed. You always get the order clearly.",
         },
         {
           title: "Cash today, online later",

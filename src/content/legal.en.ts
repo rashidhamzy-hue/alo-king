@@ -112,7 +112,7 @@ export const legalEn: LegalCopy = {
           ul: [
             "To take, price, deliver and follow your orders, and to answer you.",
             "To keep the service safe and to find and fix problems.",
-            "To improve how well the assistant understands Lebanese Arabic, Arabizi, French and English.",
+            "To improve how well the assistant understands Lebanese Arabic (in Arabic or Latin letters), French and English.",
             "To send you offers only if you opted in. You can stop them at any time by sending STOP.",
           ],
         },
@@ -280,7 +280,7 @@ export const legalEn: LegalCopy = {
         {
           h: "Fees",
           ul: [
-            "Alo King charges a fee for each order that is delivered or collected. The fee, and any free period, are shown on our For merchants page, and you see them before you go live.",
+            "Alo King charges a fee for each order that is delivered or collected. The fee, and any free period, are shown on our For businesses page, and you see them before you go live.",
             "We add nothing to your menu prices and charge nothing monthly for your page.",
             "A change of fee applies only to orders placed after the change, and we tell you before it starts.",
             "Fees are recorded on your account. How they are settled, from Alo King Credit or by monthly statement, will be set out before online payment starts.",

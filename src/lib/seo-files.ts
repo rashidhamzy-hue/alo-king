@@ -147,7 +147,7 @@ export function llmsTxt(
     .join("\n");
   return `# Alo King (ألو كينغ)
 
-> Alo King lets people in Lebanon order food and everyday essentials from local shops by chatting on WhatsApp, in Arabic, English, French or Arabizi. No app and no sign-up. Alo means "hello" in Arabic. Customers can also order for family in Lebanon from abroad (Send Home, opening soon).
+> Alo King lets people in Lebanon order food and everyday essentials from local shops by chatting on WhatsApp, in Arabic, English or French, the way people text, even mixed. No app and no sign-up. Alo means "hello" in Arabic. Customers can also order for family in Lebanon from abroad (Send Home, opening soon).
 
 ## How to order
 - Open WhatsApp from any page with "Order on WhatsApp", say hello, share your location pin, pick from the menu or type or send a voice note, check the summary, and tap Confirm.
