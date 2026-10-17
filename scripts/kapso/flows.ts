@@ -313,6 +313,28 @@ async function main() {
   }
 }
 
+/** A secret on the data endpoint function. Kapso answered 502 right after the deploy (17 Oct, both languages) and the
+ *  same secret saved a minute later, so a 5xx is retried after 5, 15 and 30 s; anything else fails at once. */
+export async function setSecret(
+  fid: string,
+  name: string,
+  value: string,
+  call: typeof kapso = kapso,
+  wait = (ms: number) => new Promise((r) => setTimeout(r, ms)),
+) {
+  for (const delay of [5_000, 15_000, 30_000, 0]) {
+    try {
+      return await call(`/platform/v1/functions/${encodeURIComponent(fid)}/secrets`, {
+        method: "POST",
+        body: JSON.stringify({ secret: { name, value } }),
+      });
+    } catch (e) {
+      if (!delay || !/^Error: kapso 5\d\d /.test(String(e))) throw e;
+      await wait(delay);
+    }
+  }
+}
+
 /** The proxy function's code (whatsapp/flows/endpoint/flow-app-proxy.js), its secrets, registration, then a compile. */
 async function attachEndpoint(flowId: string, pn: string, json: any) {
   const ref = process.env.SUPABASE_PROJECT_REF ?? "";
@@ -353,10 +375,7 @@ async function attachEndpoint(flowId: string, pn: string, json: any) {
     ],
     ["FLOW_APP_PROXY_KEY", key],
   ])
-    await kapso(`/platform/v1/functions/${encodeURIComponent(fid)}/secrets`, {
-      method: "POST",
-      body: JSON.stringify({ secret: { name, value } }),
-    });
+    await setSecret(fid, name, value);
   console.log(
     `Data endpoint function ${fid}: code ${createHash("sha256").update(code).digest("hex").slice(0, 12)}, 2 secrets set`,
   );
