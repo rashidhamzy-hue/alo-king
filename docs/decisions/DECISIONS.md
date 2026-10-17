@@ -230,7 +230,7 @@ A Flow is a native form sheet inside WhatsApp. VERIFIED: no extra Meta charge (t
 **Not Flows:** order confirmation, cash currency choice, accept/reject, pause, rating, tracking — these are one-tap buttons.
 
 **Technical decisions**
-- Static Flows only until after the pilot: all data is sent with the message (navigate action with initial data), so no data endpoint and no extra hosted code. A dynamic data endpoint (for example a merchant sold-out list) is reconsidered after pilot and, if built, runs in our own Supabase edge function.
+- Static Flows only until after the pilot: all data is sent with the message (navigate action with initial data), so no data endpoint and no extra hosted code. A dynamic data endpoint (for example a merchant sold-out list) is reconsidered after pilot and, if built, runs in our own Supabase edge function. **Amended by §39.15.13:** the customer app Flow uses a dynamic data endpoint.
 - Flow JSON lives in the repo (`whatsapp/flows/*.json`), is validated in CI, and is published to Kapso by the deploy workflow. Arabic and English are separate Flow versions; the customer's language picks the version.
 - Each Flow submission is stored with its Flow version and handled by a deterministic handler (zero model calls).
 - **Kill-gate:** after 100 sends of `address_capture`, if fewer than 60% complete it, it is switched off and the text path takes over. Same rule for `item_options`.
@@ -1938,9 +1938,12 @@ Max effort is not needed: the work is broad, not deep, and Extra keeps the weekl
   4. **Item page:** photo, description, Arabic name, required choices, add-ons with prices, a note, quantity, Goes well with, estimated nutrition, declared allergens only.
   5. **Basket:** lines, notes, subtotal and fee; Confirm closes the Flow and the chat sends the §3.6 summary with Confirm / Change. The server prices everything (product rules); a Flow never carries a price the server didn't compute.
   - Every screen is fetched for the customer's place, so it works for 10 shops or 10,000. Opened from the chat's **Order** / **Explore** buttons, the ice breakers and `/order`, `/explore`.
+  - Only claimed, orderable shops (and demo shops for testers and owners) appear in the Flow; unclaimed vendors never do (§39.3).
+  - **The data endpoint** (`flow-app` edge function): every request is decrypted and checked with the Flow key pair, whose private key is a Supabase secret only; `verify_jwt = false`, listed in `supabase/functions-deploy.txt`, its URL pinned with `?forceFunctionRegion=eu-central-1`; the `flow_token` is signed, expiring and bound to the customer's phone and basket, so no one can read another customer's place or basket; it answers synchronously within Meta's timeout (the one exception to "fast 200 then queue"); Confirm is stored with the Flow version and handled deterministically (zero model calls).
+  - §12's kill-gate and text fallback apply: the native chat path is the app Flow's fallback.
 - **Blocker: Meta business verification (#182).** Meta refuses to publish Flows on an unverified business (422 "Integrity requirements not met", §39.8). The Flow is built and tested now (Flowso emulator, drafts on the number, the simulator) and switches on by itself the day the business is verified.
 - **Until then (and as the fallback forever):**
-  - **The header catalogue icon stays ON** (reverses §39.15.11's "off now"; owner issue #236 is closed as not wanted). It is switched off only once the Flow app is live **and** the catalogue passes `header_catalog_max_items`.
+  - **The header catalogue icon stays ON** (reverses §39.15.11's "off now"; owner issue #236 is closed as not wanted). It is switched off only once the Flow app is live **and** the catalogue passes `header_catalog_max_items` (a new dated config value).
   - **The native chat path is the primary path:** pin → craving list → shops → the shop's product messages and native cart, all inside WhatsApp.
   - **No website for customers:** the bot no longer offers Explore after a pin and no longer leads with "Open menu". The web menu stays only as a last-resort row ("Full menu") in a shop's section list when some of its items cannot be shown natively (no approved photo); it disappears for a shop once the Flow app is live. The website remains for search engines, merchants and Send Home senders.
 
