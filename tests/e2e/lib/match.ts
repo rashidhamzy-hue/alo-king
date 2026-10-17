@@ -54,6 +54,9 @@ export function toOut(r: Row): Out {
         }),
       );
   }
+  // A CTA-URL message (Open menu, Explore): its link, so a scenario can capture the signed token (reports redact it).
+  if (i.type === "cta_url" && i.action?.parameters?.url)
+    text = `${text}\n${String(i.action.parameters.url)}`;
   return {
     id: Number(r.id),
     to: r.to_phone,
