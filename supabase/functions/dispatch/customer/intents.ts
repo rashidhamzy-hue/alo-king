@@ -140,7 +140,7 @@ export function deterministicIntent(raw: string): Intent | null {
     return { kind: "usual" };
   // "menu" / "order": the main menu, the way out of a handoff and the start of the button path (§34).
   if (
-    /^(menu|the menu|main menu|home|order|i want to order|order now|المنيو|منيو|القايمه|اطلب|بدي اطلب|بدي طلب|commander|je veux commander|menu principal|otlob|badde otlob|baddi otlob|badde talab|talab)$/.test(
+    /^(menu|the menu|main menu|home|order|order food|i want to order|order now|المنيو|منيو|القايمه|اطلب|بدي اطلب|بدي طلب|commander|je veux commander|menu principal|otlob|badde otlob|baddi otlob|badde talab|talab)$/.test(
       t,
     )
   )
@@ -152,11 +152,18 @@ export function deterministicIntent(raw: string): Intent | null {
   )
     return { kind: "address" };
   if (
-    /^(explore|explorer|استكشف|استكشاف|shops near me|shops near you|commerces pres de chez moi|stakshef)$/.test(
+    /^(explore|explorer|استكشف|استكشاف|shops near me|shops near you|explore shops near me|commerces pres de chez moi|stakshef)$/.test(
       t,
     )
   )
     return { kind: "explore" };
+  // The ice breaker "My orders" and the command /orders (§39.15.11): the customer's orders.
+  if (
+    /^(orders|my orders|my order|mes commandes|ma commande|طلباتي|طلبي|talabete|talabati)$/.test(t)
+  )
+    return { kind: "track" };
+  // /help (§39.15.11): the welcome card, whose last button is a person.
+  if (/^(help|aide|مساعده|ساعدني|sa3edne|sa3dne)$/.test(t)) return { kind: "greeting" };
   if (/^(basket|cart|my basket|panier|mon panier|السله|سلتي|salle|salleti)$/.test(t))
     return { kind: "basket" };
   if (
