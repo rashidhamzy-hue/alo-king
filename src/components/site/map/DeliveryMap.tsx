@@ -11,6 +11,7 @@ import {
   type VendorCard,
 } from "@/lib/site-data";
 import { searchPlaces } from "@/lib/zone-search";
+import { zoneAreas } from "@/lib/zone-areas";
 import { pickName } from "@/lib/site";
 import { useSite } from "../context";
 import { OrderButton } from "../OrderButton";
@@ -650,66 +651,100 @@ function VillagePanel({
   );
 }
 
-/** The village index under the map: the same places as links, for keyboards, screen readers, crawlers and no JavaScript. */
+/**
+ * "Every village we deliver to" (DECISIONS §39.15.5): a plain, always-visible list of every boundary place under the map,
+ * grouped by area, in the page's language with the name in the other script beside it. It is static (the generated zone),
+ * so it never depends on places being switched on: a place that is on links to its page and shows its counts; the others
+ * are plain names. Also the keyboard, screen-reader, crawler and no-JavaScript way into the map's villages.
+ */
 export function VillageIndex({ counts }: { counts: DeliveryMapData }) {
   const { t, lang, overview } = useSite();
   const m = t.places.map;
   const on = new Set(overview.places.map((p) => p.slug));
   const countBy = new Map(counts.places.map((c) => [c.slug, c]));
   const coll = new Intl.Collator(lang === "ar" ? "ar" : lang);
-  const places = ZONE.filter((p) => on.has(p.slug)).sort((a, b) =>
-    coll.compare(nameOf(a, lang), nameOf(b, lang)),
-  );
-  const withShops = places.filter(
-    (p) => countBy.get(p.slug)?.shops || countBy.get(p.slug)?.unclaimed,
-  );
-  const others = places.filter((p) => !withShops.includes(p));
-  if (!places.length) return null;
+  const areas = zoneAreas(ZONE).map((a) => ({
+    ...a,
+    places: [...a.places].sort((x, y) => coll.compare(nameOf(x, lang), nameOf(y, lang))),
+  }));
+  if (!areas.length) return null;
   const Item = ({ p }: { p: ZonePlace }) => {
     const c = countBy.get(p.slug);
+    const isOn = on.has(p.slug);
+    const lit = isOn && !!c && c.shops > 0;
+    const name = (
+      <span className="min-w-0">
+        <span className="font-semibold">{nameOf(p, lang)}</span>{" "}
+        {otherName(p, lang) && otherName(p, lang) !== nameOf(p, lang) && (
+          <span
+            className="text-sm text-tone-mute"
+            lang={lang === "ar" ? "en" : "ar"}
+            dir={lang === "ar" ? "ltr" : "rtl"}
+          >
+            {otherName(p, lang)}
+          </span>
+        )}
+      </span>
+    );
+    const meta =
+      isOn && c && (c.shops > 0 || c.unclaimed > 0) ? (
+        <span className="shrink-0 text-sm text-tone-mute">
+          {[
+            c.shops ? fmt(m.countShops, { n: c.shops }) : "",
+            c.unclaimed ? fmt(m.countUnclaimed, { n: c.unclaimed }) : "",
+          ]
+            .filter(Boolean)
+            .join(lang === "ar" ? "، " : ", ")}
+        </span>
+      ) : null;
     return (
       <li>
-        <Link to="/$lang/places/$slug" params={{ lang, slug: p.slug }} className="zm-index-link">
-          <span className="font-semibold">{nameOf(p, lang)}</span>
-          {c && (c.shops > 0 || c.unclaimed > 0) && (
-            <span className="text-sm text-tone-mute">
-              {[
-                c.shops ? fmt(m.countShops, { n: c.shops }) : "",
-                c.unclaimed ? fmt(m.countUnclaimed, { n: c.unclaimed }) : "",
-              ]
-                .filter(Boolean)
-                .join(lang === "ar" ? "، " : ", ")}
+        {isOn ? (
+          <Link
+            to="/$lang/places/$slug"
+            params={{ lang, slug: p.slug }}
+            className="zm-index-link is-on"
+          >
+            <span className="flex min-w-0 items-baseline gap-2.5">
+              <span
+                className={`zm-key ${lit ? "zm-key-shops" : "zm-key-dot"}`}
+                aria-hidden="true"
+              />
+              {name}
             </span>
-          )}
-        </Link>
+            {meta}
+          </Link>
+        ) : (
+          <span className="zm-index-link">
+            <span className="flex min-w-0 items-baseline gap-2.5">
+              <span className="zm-key zm-key-dot" aria-hidden="true" />
+              {name}
+            </span>
+          </span>
+        )}
       </li>
     );
   };
   return (
-    <section className="tone-cream ak-section" aria-labelledby="zm-index-title">
+    <section className="tone-cream ak-section ak-ballat" aria-labelledby="zm-index-title">
       <div className="ak-container">
         <h2 id="zm-index-title" className="ak-h2">
           {m.allTitle}
         </h2>
-        <div className="mt-10 grid gap-12 lg:grid-cols-[1fr_2fr]">
-          {withShops.length > 0 && (
-            <div>
-              <h3 className="zm-subhead">{m.shopVillages}</h3>
+        <p className="ak-lead mt-4">{fmt(m.allLead, { n: ZONE.length })}</p>
+        <div className="zm-areas">
+          {areas.map((a) => (
+            <section key={a.hub.slug} className="zm-area" aria-labelledby={`zm-area-${a.hub.slug}`}>
+              <h3 id={`zm-area-${a.hub.slug}`} className="ak-h3">
+                {fmt(m.around, { place: nameOf(a.hub, lang) })}
+              </h3>
               <ul className="zm-index">
-                {withShops.map((p) => (
+                {a.places.map((p) => (
                   <Item key={p.slug} p={p} />
                 ))}
               </ul>
-            </div>
-          )}
-          <div>
-            <h3 className="zm-subhead">{m.otherVillages}</h3>
-            <ul className="zm-index zm-index-cols">
-              {others.map((p) => (
-                <Item key={p.slug} p={p} />
-              ))}
-            </ul>
-          </div>
+            </section>
+          ))}
         </div>
       </div>
     </section>
