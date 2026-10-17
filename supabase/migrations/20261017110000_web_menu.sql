@@ -69,9 +69,13 @@ create function app_private.web_link(p_token text) returns setof app_private.web
 language sql stable security definer set search_path = ''
 as $$
   select w.* from app_private.web_links w
+  join public.customers c on c.id = w.customer_id
   where p_token ~ '^[A-Za-z0-9_-]{24}$'
     and w.token_hash = encode(extensions.digest(p_token, 'sha256'), 'hex')
-    and w.expires_at > now();
+    and w.expires_at > now()
+    -- "Delete my data" (customer_forget sets profile_reset_at) and a block end every link made before.
+    and w.created_at > coalesce(c.profile_reset_at, '-infinity'::timestamptz)
+    and not (c.blocked_until is not null and c.blocked_until > now());
 $$;
 revoke all on function app_private.web_link(text) from public;
 
@@ -285,14 +289,22 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   v_phone text := (select c.phone_e164 from public.customers c where c.id = p_customer_id);
+  -- The number this customer writes to (whatsapp_sender_for), so the summary comes from the chat they are in.
+  v_from text;
   v_id bigint;
 begin
   if v_phone is null then
     return null;
   end if;
+  v_from := public.whatsapp_sender_for('customer', v_phone);
+  -- A free-form summary only inside WhatsApp's 24-hour window on that number; outside it the page asks the customer to
+  -- write first (web_basket_save answers chat_closed) and nothing is queued.
+  if v_from is null or not public.whatsapp_window_open(v_phone, v_from) then
+    return null;
+  end if;
   insert into public.webhook_events (provider, event_key, event_type, phone_number_id, payload)
   values ('kapso', 'web:' || p_link_id || ':' || gen_random_uuid(), 'whatsapp.message.received',
-    public.whatsapp_sender('customer'),
+    v_from,
     jsonb_build_object(
       'alo_synthetic', 'web',
       'message', jsonb_build_object('id', 'web.' || gen_random_uuid(), 'from', ltrim(v_phone, '+'), 'type', 'interactive',
@@ -332,7 +344,8 @@ declare
   v_view jsonb;
   v_uuid text := '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
 begin
-  select * into w from app_private.web_link(p_token);
+  -- The link's row is locked, so two saves at once cannot pass web_link_max_saves together.
+  select l.* into w from app_private.web_links l where l.id = (select x.id from app_private.web_link(p_token) x) for update;
   if w.id is null then
     return jsonb_build_object('status', 'expired');
   end if;
@@ -413,8 +426,9 @@ begin
   end;
   update app_private.web_links set saves = saves + 1, last_saved_at = now() where id = w.id;
   v_view := public.basket_view(w.customer_id);
-  perform app_private.web_basket_notify(w.customer_id, w.id);
   return jsonb_build_object('status', 'saved',
+    -- No summary could be queued (WhatsApp's 24-hour window is closed): the page asks the customer to write first.
+    'chat_closed', app_private.web_basket_notify(w.customer_id, w.id) is null,
     'items', (select coalesce(sum((x ->> 'quantity')::int), 0) from jsonb_array_elements(v_view -> 'lines') x),
     'subtotal_usd', v_view -> 'subtotal_usd');
 end;
@@ -451,3 +465,114 @@ as $$ select app_private.web_basket_save(p_token, p_slug, p_lines, p_replace) $$
 revoke all on function public.web_menu(text, text), public.web_basket_save(text, text, jsonb, boolean) from public;
 grant execute on function public.web_menu(text, text), public.web_basket_save(text, text, jsonb, boolean)
   to anon, authenticated, service_role;
+
+-- 7. A synthetic tap is not the customer writing ----------------------------------------------------------------------------
+-- As in 20261014180000_customer_turn_order.sql, with one change: a turn of kind "web" (the c:web tap web_basket_notify
+-- queues) leaves customers.last_inbound_at as it was, so nothing that reads it (customer_notify's 24-hour checks, the
+-- basket reminder) counts it as the customer writing.
+create or replace function public.customer_turn_begin(
+  p_phone_e164 text,
+  p_message_id text,
+  p_kind text,
+  p_display_name text default null,
+  p_attempt integer default 1,
+  p_lease_id uuid default null,
+  p_lease_until timestamptz default null
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_customer public.customers%rowtype;
+  v_session public.bot_sessions%rowtype;
+  v_first boolean := false;
+  v_replay boolean := false;
+  -- Never longer than an edge function can live, whatever the caller says.
+  v_lease timestamptz := least(coalesce(p_lease_until, now() + interval '150 seconds'), now() + interval '155 seconds');
+  v_other boolean;
+begin
+  if p_phone_e164 !~ '^\+[1-9][0-9]{6,14}$' then
+    raise exception 'phone must be E.164' using errcode = 'invalid_parameter_value';
+  end if;
+  insert into public.customers (phone_e164, display_name, last_inbound_at)
+  values (p_phone_e164, left(nullif(trim(p_display_name), ''), 80), now())
+  -- A tap the server queued (kind web, session 5g) is not the customer writing: last_inbound_at stays.
+  on conflict (phone_e164) do update set
+    last_inbound_at = case when p_kind = 'web' then public.customers.last_inbound_at else now() end,
+    display_name = coalesce(public.customers.display_name, excluded.display_name)
+  returning * into v_customer;
+  v_first := v_customer.created_at > now() - interval '5 seconds';
+
+  -- A customer's turns do not overlap. The upsert above locks the customer row, so two workers beginning turns for
+  -- the same customer take turns here and the second sees the first one's row. While a turn is still running
+  -- (unfinished, lease held) its replies may be out before its session is saved, and the next tap would read the old
+  -- session and miss the options it answers; `busy` makes the queue try that message again 5, 10 and 15 s later.
+  -- Held on attempts 1 to 3 only: attempts 4 and 5 always run, so a held message is never archived unanswered
+  -- (each busy answer uses one of the queue's 5 attempts). Waiting messages run in the order their retries come up.
+  v_other := coalesce(p_attempt, 1) < 4 and exists (select 1 from public.bot_turns t
+    where t.customer_id = v_customer.id and t.message_id <> p_message_id and t.finished_at is null
+      and t.lease_until > now());
+  if v_other and not exists (select 1 from public.bot_turns t where t.message_id = p_message_id) then
+    return jsonb_build_object('duplicate', false, 'busy', true);
+  end if;
+
+  insert into public.bot_turns (message_id, customer_id, kind, lease_until, lease_id)
+  values (p_message_id, v_customer.id, left(p_kind, 40), v_lease, p_lease_id)
+  on conflict (message_id) do nothing;
+  if not found then
+    -- A finished turn, another customer's message id, or Kapso delivering the same message again (attempt 1): duplicate.
+    if coalesce(p_attempt, 1) <= 1 or not exists (select 1 from public.bot_turns t
+        where t.message_id = p_message_id and t.customer_id = v_customer.id and t.finished_at is null) then
+      return jsonb_build_object('duplicate', true);
+    end if;
+    -- The queue's retry of a turn that never finished: run it again only once nobody holds it (taking the lease is
+    -- atomic, so two retries never run it at once); while it is held, `busy` makes the retry try again later.
+    if v_other then
+      return jsonb_build_object('duplicate', false, 'busy', true);
+    end if;
+    update public.bot_turns t set lease_until = v_lease, lease_id = p_lease_id
+    where t.message_id = p_message_id and t.customer_id = v_customer.id and t.finished_at is null
+      and (t.lease_until is null or t.lease_until <= now());
+    if not found then
+      return jsonb_build_object('duplicate', false, 'busy', true);
+    end if;
+    v_replay := true;
+    v_first := false;
+  end if;
+
+  insert into public.bot_sessions (customer_id) values (v_customer.id) on conflict (customer_id) do nothing;
+  select * into v_session from public.bot_sessions where customer_id = v_customer.id for update;
+  if v_session.last_turn_at is not null and v_session.last_turn_at < now() - interval '24 hours' then
+    update public.bot_sessions set history = '[]', pending = '{}', refs = '{}', low_confidence = 0, focus_vendor_id = null
+    where customer_id = v_customer.id returning * into v_session;
+  end if;
+  update public.bot_sessions set last_turn_at = now() where customer_id = v_customer.id;
+
+  return jsonb_build_object(
+    'duplicate', false,
+    'replay', v_replay,
+    'first_contact', v_first,
+    'customer', jsonb_build_object('id', v_customer.id, 'language', v_customer.language, 'name', v_customer.display_name,
+      'marketing_opt_in', v_customer.marketing_opt_in,
+      'blocked', v_customer.blocked_until is not null and v_customer.blocked_until > now()),
+    'session', jsonb_build_object('lang', v_session.lang, 'focus_vendor_id', v_session.focus_vendor_id,
+      'pending', v_session.pending, 'refs', v_session.refs, 'history', v_session.history,
+      'low_confidence', v_session.low_confidence,
+      'handoff', v_session.handoff_until is not null and v_session.handoff_until > now()),
+    'basket', public.basket_view(v_customer.id),
+    'orders', coalesce((
+      select jsonb_agg(jsonb_build_object('id', o.id, 'code', o.code, 'status', o.status, 'vendor', coalesce(v.name_ar, v.name_en),
+        'vendor_en', coalesce(v.name_en, v.name_ar), 'weight_status', o.weight_status) order by o.created_at desc)
+      from public.orders o join public.vendors v on v.id = o.vendor_id
+      where o.customer_id = v_customer.id and o.status not in ('delivered', 'failed', 'rejected', 'cancelled')
+        and o.created_at > now() - interval '2 days'), '[]'),
+    'profile', public.customer_profile(v_customer.id),
+    'bot_enabled', app_private.config_bool('customer_bot_enabled'),
+    'support_open', app_private.beirut_hour() >= (public.config_value('support_hours') ->> 'from')::int
+                    and app_private.beirut_hour() < (public.config_value('support_hours') ->> 'to')::int
+  );
+end;
+$$;
+revoke all on function public.customer_turn_begin(text, text, text, text, integer, uuid, timestamptz) from public, anon, authenticated;
+grant execute on function public.customer_turn_begin(text, text, text, text, integer, uuid, timestamptz) to service_role;

@@ -93,6 +93,17 @@ select tests.ok(:'s3' = 'invalid' and :'s4' = 'invalid' and :'s5' = 'invalid',
   'another item''s option, a quantity over 50, or no lines: refused');
 select tests.ok(not exists (select 1 from public.baskets b where b.customer_id = :'cu' and b.status = 'open'), 'nothing refused was written');
 
+-- WhatsApp's 24-hour window is closed: the basket is saved, nothing is queued, and the page asks the customer to write.
+set local role anon;
+select public.web_basket_save(:'tok', 'alo-test-grill', jsonb_build_array(jsonb_build_object('item_id', :'fal', 'quantity', 1))) as cl \gset
+reset role;
+select tests.ok(:'cl'::jsonb ->> 'status' = 'saved' and (:'cl'::jsonb ->> 'chat_closed')::boolean
+  and not exists (select 1 from public.webhook_events where payload ->> 'alo_synthetic' = 'web'),
+  'the window is closed: saved, no summary queued, chat_closed for the page');
+-- The customer wrote to our number a moment ago: the window is open on it.
+insert into public.whatsapp_numbers (phone_number_id, display_phone, role) values ('5550000101', '+12025550101', 'customer')
+on conflict (phone_number_id) do nothing;
+select public.whatsapp_seen('+96170000182', '5550000101');
 select count(*) as ev0 from public.webhook_events where payload ->> 'alo_synthetic' = 'web' \gset
 set local role anon;
 select public.web_basket_save(:'tok', 'alo-test-grill', jsonb_build_array(
@@ -100,7 +111,8 @@ select public.web_basket_save(:'tok', 'alo-test-grill', jsonb_build_array(
     'price_usd', 0.01, 'unit_price_usd', 0.01),
   jsonb_build_object('item_id', :'pepsi', 'quantity', 1))) as sv \gset
 reset role;
-select tests.ok(:'sv'::jsonb ->> 'status' = 'saved' and (:'sv'::jsonb ->> 'items')::int = 3, 'saved: two lines, three items');
+select tests.ok(:'sv'::jsonb ->> 'status' = 'saved' and (:'sv'::jsonb ->> 'items')::int = 3
+  and not (:'sv'::jsonb ->> 'chat_closed')::boolean, 'saved: two lines, three items');
 select public.basket_view(:'cu') as bv \gset
 select tests.ok((:'bv'::jsonb ->> 'subtotal_usd')::numeric = 2 * (4.50 + 1.50) + 1.00,
   'the server prices the basket from the menu (the page''s prices are never read)');
@@ -110,7 +122,9 @@ select tests.ok((select count(*) from public.webhook_events where payload ->> 'a
   and (select payload #>> '{message,interactive,button_reply,id}' from public.webhook_events
        where payload ->> 'alo_synthetic' = 'web' order by id desc limit 1) = 'c:web'
   and (select payload #>> '{conversation,phone_number}' from public.webhook_events
-       where payload ->> 'alo_synthetic' = 'web' order by id desc limit 1) = '+96170000182',
+       where payload ->> 'alo_synthetic' = 'web' order by id desc limit 1) = '+96170000182'
+  and (select phone_number_id from public.webhook_events
+       where payload ->> 'alo_synthetic' = 'web' order by id desc limit 1) = public.whatsapp_sender_for('customer', '+96170000182'),
   'one synthetic c:web tap is queued for the customer, so the bot sends the summary');
 
 -- The page holds the whole basket for this shop: a second save replaces the lines.
@@ -156,5 +170,18 @@ select tests.ok(public.site_photo(:'shaw', null) = 'merchant/' || :'tv' || '/' |
   and public.site_photo(:'fal', null) is null, 'an item''s photo path, nothing for an item without one');
 select tests.ok(not has_function_privilege('anon', 'public.site_photo(uuid, uuid)', 'execute'),
   'only the dispatch function reads photo paths');
+
+-- 6. A synthetic turn is not the customer writing: last_inbound_at stays.
+update public.customers set last_inbound_at = now() - interval '3 hours' where id = :'cu';
+select public.customer_turn_begin('+96170000182', 'web.' || gen_random_uuid(), 'web') is not null as began \gset
+select tests.ok((select last_inbound_at < now() - interval '2 hours' from public.customers where id = :'cu'),
+  'a web turn leaves last_inbound_at as it was');
+select public.customer_turn_begin('+96170000182', 'wamid.wm.9', 'text') is not null as began2 \gset
+select tests.ok((select last_inbound_at > now() - interval '1 minute' from public.customers where id = :'cu'),
+  'a message the customer sends moves it');
+
+-- 7. "Delete my data" ends every link made before it.
+update public.customers set profile_reset_at = now() where id = :'cu';
+select tests.ok(public.web_menu(:'tok', 'alo-test-grill') ->> 'status' = 'expired', 'a forgotten customer''s link stops working');
 
 rollback;
