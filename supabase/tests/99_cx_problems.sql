@@ -367,7 +367,8 @@ select public.dispute_report(:'cid', :'o6', 'late') as d6 \gset
 select tests.ok(:'d6'::jsonb ->> 'status' = 'rejected'
   and not exists (select 1 from public.ledger_transactions where idempotency_key = 'dispute:' || (:'d6'::jsonb ->> 'dispute_id')),
   '#50: a pickup is measured on when the shop had it ready, never when the customer came: no discount, no ledger row');
-select tests.ok(public.dispute_report(:'cid', :'o6', 'cold_food') ->> 'status' = 'rejected',
+select public.dispute_report(:'cid', :'o6', 'cold_food') as d6c \gset
+select tests.ok(:'d6c'::jsonb ->> 'status' = 'rejected' and :'d6c'::jsonb ->> 'rule' ~ '^cold_food: ready within the ETA range',
   '#50: and its food is not cold by the collection time either');
 -- A pickup never marked ready: a person decides, never automatic.
 select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a005'::uuid], 'test:cx:o7', true) as o7 \gset
@@ -380,6 +381,30 @@ select public.dispute_report(:'cid', :'o7', 'late') as d7 \gset
 select tests.ok(:'d7'::jsonb ->> 'status' = 'review'
   and not exists (select 1 from public.ledger_transactions where idempotency_key = 'dispute:' || (:'d7'::jsonb ->> 'dispute_id')),
   '#50: a pickup never marked ready cannot be judged: a person decides');
+select tests.ok((select payer = 'merchant' from public.order_disputes where id = (:'d7'::jsonb ->> 'dispute_id')::uuid),
+  '#50: the payer is kept for the person deciding (a pickup: the merchant)');
+-- A pickup the shop had ready 40 minutes after the promise: its food is cold by the shop's doing.
+select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a005'::uuid], 'test:cx:o9', true) as o9 \gset
+update public.orders set status = 'accepted' where id = :'o9';
+update public.orders set status = 'ready' where id = :'o9';
+update public.orders set status = 'delivered' where id = :'o9';
+update public.orders set ready_marked_at = now() - interval '10 minutes', eta_max_at = now() - interval '50 minutes',
+  delivered_at = now() - interval '5 minutes' where id = :'o9';
+select public.dispute_report(:'cid', :'o9', 'cold_food') as d9 \gset
+select tests.ok(:'d9'::jsonb ->> 'rule' ~ '^cold_food: ready very late' and :'d9'::jsonb ->> 'payer' = 'merchant'
+  and :'d9'::jsonb ->> 'status' in ('auto_credit', 'review'), '#50: a pickup ready very late: its cold food is the shop''s, said as ready very late');
+-- Lateness that cannot be judged goes to a person even when no amount is configured to propose.
+insert into public.app_config (key, value, effective_from, note) values
+  ('late_discount_usd', '0', now() - interval '1 second', 'test: nothing to propose');
+select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a005'::uuid], 'test:cx:o10', true) as o10 \gset
+update public.orders set status = 'accepted' where id = :'o10';
+update public.orders set status = 'ready' where id = :'o10';
+update public.orders set status = 'delivered' where id = :'o10';
+update public.orders set ready_marked_at = null, delivered_at = now() - interval '5 minutes' where id = :'o10';
+select public.dispute_report(:'cid', :'o10', 'late') as d10 \gset
+select tests.ok(:'d10'::jsonb ->> 'status' = 'review' and (:'d10'::jsonb ->> 'amount_usd')::numeric = 0
+  and (select payer = 'merchant' from public.order_disputes where id = (:'d10'::jsonb ->> 'dispute_id')::uuid),
+  '#50: cannot be judged and nothing to propose: still a person, with the payer kept');
 -- A delivery: the driver reached the door on time and waited for the customer; delivered 40 minutes after the promise.
 select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a005'::uuid], 'test:cx:o8') as o8 \gset
 select tests.cx_deliver(:'o8');

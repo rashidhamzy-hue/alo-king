@@ -317,6 +317,20 @@ create policy order_customer_notes_read on public.order_customer_notes for selec
 comment on table public.order_customer_notes is
   'Messages a customer passed to the shop during an active order (spec §3.7 #45); at most order_note_max_per_order per order.';
 
+-- A replayed message answers as the first time did, from its own order: kept for a person when it never reached the shop.
+create function app_private.order_note_repeat(p_note_id bigint) returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select jsonb_build_object('status', case when n.outbox_id is null then 'no_channel' else 'sent' end,
+    'repeat', true, 'code', o.code, 'note_id', n.id,
+    'vendor', coalesce(v.name_ar, v.name_en), 'vendor_en', coalesce(v.name_en, v.name_ar))
+  from public.order_customer_notes n
+  join public.orders o on o.id = n.order_id
+  join public.vendors v on v.id = o.vendor_id
+  where n.id = p_note_id;
+$$;
+revoke all on function app_private.order_note_repeat(bigint) from public, anon, authenticated;
+
 create function public.order_note_send(p_customer_id uuid, p_text text, p_message_id text, p_order_id uuid default null)
 returns jsonb
 language plpgsql security definer set search_path = ''
@@ -336,13 +350,9 @@ begin
   if v_text = '' or p_message_id is null or char_length(p_message_id) not between 1 and 200 then
     return jsonb_build_object('status', 'invalid');
   end if;
-  -- A replayed message answers as the first time did, from its own order: kept for a person when it never reached the shop.
   select * into v_note from public.order_customer_notes where customer_id = p_customer_id and source_message_id = p_message_id;
   if v_note.id is not null then
-    return (select jsonb_build_object('status', case when v_note.outbox_id is null then 'no_channel' else 'sent' end,
-              'repeat', true, 'code', o.code, 'note_id', v_note.id,
-              'vendor', coalesce(v.name_ar, v.name_en), 'vendor_en', coalesce(v.name_en, v.name_ar))
-            from public.orders o join public.vendors v on v.id = o.vendor_id where o.id = v_note.order_id);
+    return app_private.order_note_repeat(v_note.id);
   end if;
   -- The order the customer was asked about, when given (re-checked: theirs and still active), else their latest active one.
   select * into v_o from public.orders o
@@ -372,9 +382,15 @@ begin
     v_target := case when v_ch.primary_channel = 'whatsapp' then v_ch.primary_target
                      when v_ch.backup_channel = 'whatsapp' then v_ch.backup_target end;
   end if;
+  -- The same message handled twice at once: the second answers as a replay once the first has committed.
   insert into public.order_customer_notes (order_id, customer_id, body, source_message_id)
   values (v_o.id, p_customer_id, v_text, p_message_id)
+  on conflict (customer_id, source_message_id) do nothing
   returning * into v_note;
+  if v_note.id is null then
+    return app_private.order_note_repeat(
+      (select n.id from public.order_customer_notes n where n.customer_id = p_customer_id and n.source_message_id = p_message_id));
+  end if;
   -- A note is a free-form message (no template): it reaches the shop only inside its 24-hour window, typically closed
   -- while the order card went as a template. Otherwise it is kept on the order and a person passes it on (the customer is
   -- told exactly that, never "passed" when it was not).
@@ -613,6 +629,7 @@ begin
                        then format('cold_food: delivery took %s min against %s expected', round(v_leg_min), round(v_expected_min))
                      when v_eligible then case when v_o.fulfilment = 'pickup' then 'cold_food: ready very late'
                                                else 'cold_food: delivered very late' end
+                     when v_o.fulfilment = 'pickup' and not v_unknown then 'cold_food: ready within the ETA range'
                      when v_leg_min is null then 'cold_food: no delivery times to check'
                      else format('cold_food: delivery took %s min, within %s x %s', round(v_leg_min), v_r ->> 'cold_factor',
                                  round(v_expected_min)) end;
@@ -641,7 +658,9 @@ begin
   end if;
 
   insert into public.order_disputes (order_id, customer_id, kind, amount_usd, payer, decision, rule, photo_ref, photo_at, customer_note)
-  values (v_o.id, p_customer_id, p_kind, v_amount, case when v_amount > 0 then v_payer end, v_decision,
+  -- The payer is kept whenever a person decides, so an amount they set is charged to whoever caused it.
+  values (v_o.id, p_customer_id, p_kind, v_amount, case when v_amount > 0 or v_decision in ('review', 'owner_review') then v_payer end,
+          v_decision,
           v_rule || format(' (dispute rate %s)', round(v_rate, 2)), p_photo_ref, case when p_photo_ref is not null then now() end,
           p_note)
   returning id into v_id;
