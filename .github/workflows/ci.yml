@@ -513,6 +513,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Copy new seed photos, delete removed ones, demo item photos (each photo once; a failure is retried next deploy)
         run: |
+          # Without pipefail `| tee` hid a script that failed to load (session 5g: no photo changed after #222).
+          set -o pipefail
           DB_URL="$(scripts/staging-db-url.sh)"
           echo "::add-mask::$DB_URL"
           keys=$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
