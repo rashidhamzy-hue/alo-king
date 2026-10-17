@@ -99,7 +99,9 @@ const T: Record<string, Record<Lang, string>> = {
   dishesNear: { ar: "أطباق حدّك", en: "Dishes near you" },
   shopsNear: { ar: "محلات بتوصّل لـ {place}", en: "Shops that deliver to {place}" },
   results: { ar: "نتائج «{q}»", en: "Results for “{q}”" },
-  noResults: { ar: "ما لقينا شي. جرّب كلمة تانية.", en: "Nothing found. Try another word." },
+  noResults: { ar: "ما لقينا شي. جرّب كلمة تانية.", en: "Nothing found for that." },
+  allShops: { ar: "كل المحلات القريبة", en: "All shops near you" },
+  noShopsYet: { ar: "ما في محل بيوصّل لهون بعد", en: "No shop delivers here yet" },
   more: { ar: "المزيد ›", en: "More ›" },
   closed: { ar: "مسكّر", en: "Closed" },
   sections: { ar: "الأقسام", en: "Sections" },
@@ -370,7 +372,19 @@ async function shops(
     );
   const place = nm(lang, e.place?.name_ar, e.place?.name_en);
   const label = q ? t(lang, "results", { q: clip(q, 30) }) : t(lang, "shopsNear", { place });
-  if (!rows.length) rows.push(row("search", t(lang, "noResults"), { go: "search" }));
+  // An empty list still needs a row, and SHOPS can only route to SHOP or itself: a filtered search offers every shop near
+  // the customer; with none at all, the row reloads the list.
+  if (!rows.length)
+    rows.push(
+      row(
+        "all",
+        t(lang, q || cat ? "noResults" : "noShopsYet"),
+        { go: "shops", cat: "", q: "", offset: "0" },
+        {
+          description: q || cat ? t(lang, "allShops") : undefined,
+        },
+      ),
+    );
   return res("SHOPS", { shops_label: clip(label, NAV.label), shops: rows });
 }
 
