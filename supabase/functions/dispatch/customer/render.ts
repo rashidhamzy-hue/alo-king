@@ -3238,6 +3238,13 @@ const S5F6: Record<string, Record<CLang, string>> = {
     fr: "📍 Cette adresse de démonstration servait seulement au test. Envoyez votre position pour la livraison.",
     arabizi: "📍 El 3enwen el tajribe kan lal tajrebe bas. B3atle location la nwassel la 3endak.",
   },
+  // Session 5g part 0f: "Change address" during the test (no "outside" wording: the tester asked to move).
+  demoChange: {
+    ar: "📍 لهالتجربة، اختار عنوان تجريبي، أو ابعت موقع بالشوف:",
+    en: "📍 For this test, pick a demo address, or share a pin in the Shouf:",
+    fr: "📍 Pour ce test, choisissez une adresse de démonstration, ou partagez une position dans le Chouf :",
+    arabizi: "📍 La hal tajrebe, na22e 3enwen tajribe, aw b3at location bel Shouf:",
+  },
   demoOutside: {
     ar: "📍 إنت برّا منطقة التوصيل. لهالتجربة، اختار عنوان تجريبي:",
     en: "📍 You're outside our delivery area. For this test, pick a demo address:",
@@ -3265,10 +3272,15 @@ export function testerFullMenu(to: string, lang: CLang): Msg {
 export type DemoAddress = { key: string; name_en?: string; name_ar?: string; name_fr?: string };
 
 /** A tester's pin outside the delivery area: the fixed demo addresses (config demo_addresses), one button each. */
-export function demoAddressCard(to: string, lang: CLang, choices: DemoAddress[]): Msg {
+export function demoAddressCard(
+  to: string,
+  lang: CLang,
+  choices: DemoAddress[],
+  body: "demoOutside" | "demoChange" = "demoOutside",
+): Msg {
   return buttons(
     to,
-    tr(lang, "demoOutside"),
+    tr(lang, body),
     choices
       .filter(
         (d, k) =>

@@ -1380,6 +1380,8 @@ async function tap(c: Ctx, a: CustomerAction) {
           return showMemory(c);
         case "new_address":
           c.s.pending = { kind: "await_pin" };
+          // A demo tester or an owner (§39.15.3, session 5g part 0f) gets the demo addresses at once; a pin still works.
+          if (await demoChoices(c)) return;
           return push(c, askPin(c.m.from, c.s.lang));
         case "checkout":
           return checkout(c, {});
@@ -1431,6 +1433,7 @@ async function tap(c: Ctx, a: CustomerAction) {
         case "no_upsell":
           return say(c, "done");
         case "address_list":
+          if (await demoChoices(c)) return;
           return push(c, askPin(c.m.from, c.s.lang));
         case "order":
           return startOrder(c);
@@ -2515,6 +2518,7 @@ async function searchVendors(c: Ctx, query: string | null, businessType: string 
   }
   if (pt?.address_id && !rows.length && (found || !query)) {
     c.summary.push("[no open place delivers to the saved pin; offered pickup]");
+    if (await demoChoices(c)) return;
     return push(c, noDeliveryCard(c.m.from, c.s.lang));
   }
   resetRefs(c, "v");
@@ -2719,7 +2723,7 @@ async function browseNear(c: Ctx) {
   const r = await deliveringShops(c);
   if (r.paused) return outsideArea(c);
   if (!r.point) return startOrder(c);
-  if (!r.shops.length) return push(c, noDeliveryCard(c.m.from, c.s.lang));
+  if (!r.shops.length) return (await demoChoices(c)) || push(c, noDeliveryCard(c.m.from, c.s.lang));
   c.tools.push("browse:near");
   c.summary.push(`[shops near you: ${r.shops.length}]`);
   return listShops(
@@ -3745,6 +3749,21 @@ function demoOutside(c: Ctx, r: any) {
   c.summary.push("[outside the delivery area: offered the demo addresses]");
   // The pending step (browse, pickup or the basket's checkout) stays: the pick continues it as a pin would.
   push(c, demoAddressCard(c.m.from, c.s.lang, choices));
+}
+
+/**
+ * "Change address" for a demo tester or an owner (session 5g part 0f): the demo addresses as one card and the pin request,
+ * so a friend abroad switches with one tap and nobody is told "we don't deliver to you". False for everyone else.
+ */
+async function demoChoices(c: Ctx): Promise<boolean> {
+  const choices = await c.deps
+    .rpc("demo_address_choices_for", { p_customer_id: c.customerId })
+    .catch(() => null);
+  if (!Array.isArray(choices) || !choices.length) return false;
+  c.tools.push("demo_address_change");
+  c.summary.push("[change address during the test: offered the demo addresses]");
+  push(c, demoAddressCard(c.m.from, c.s.lang, choices, "demoChange"), askPin(c.m.from, c.s.lang));
+  return true;
 }
 
 /** A demo address tapped: the tester's address at that fixed point, then everything as after a pin. */
