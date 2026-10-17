@@ -51,6 +51,8 @@ const PAGES = [
   // The business side (session W: its own section under /business).
   { id: "business", path: "/business" },
   { id: "business-help", path: "/business/help" },
+  // Session 5g (§39.15.5): the businesses' contact page, where claim and registration end.
+  { id: "business-contact", path: "/business/contact" },
   { id: "claim", path: "/business/claim" },
   { id: "claim-results", path: "/business/claim?q=abou" },
   { id: "claim-flow", path: `/business/claim?v=${CLAIM_VENDOR_ID}` },
@@ -63,7 +65,8 @@ const PAGES = [
   // A real 404 (no language in the address): shown once per size, in all three languages at once.
   { id: "404", path: "/this-page-does-not-exist", bare: true, expect: 404 },
 ];
-const SIZES = { mobile: { width: 390, height: 844 }, desktop: { width: 1440, height: 900 } };
+// §39.15.5: the smallest phones in use (360 px) and a desktop.
+const SIZES = { mobile: { width: 360, height: 780 }, desktop: { width: 1440, height: 900 } };
 
 mkdirSync(out, { recursive: true });
 
@@ -168,6 +171,11 @@ for (const lang of langs) {
           errors.push("the customer home shows the merchant calculator");
         if (!(await page.locator('a[href$="/business"]').count()))
           errors.push("the For businesses link is missing on the home page");
+        // §39.15.5: the main call to action is WhatsApp green with the WhatsApp glyph; Whish only ever as "Soon".
+        if (!(await page.locator(".ak-hero a.ak-btn-wa[data-wa='order'] svg").count()))
+          errors.push("the hero's Order on WhatsApp is not the green WhatsApp button");
+        if (!(await page.locator(".ak-whish .ak-chip").count()))
+          errors.push("the payments band has no Whish Soon chip");
         await page.click(".ak-faq summary").catch(() => errors.push("FAQ summary missing"));
         if (!(await page.locator(".ak-faq details[open]").count())) errors.push("FAQ did not open");
       }
@@ -272,6 +280,28 @@ for (const lang of langs) {
         const msg = await page.textContent(".zm-noresult").catch(() => "");
         if (!msg?.trim()) stepFail("a place outside the zone gets no answer");
       }
+      // §39.15.5: "For businesses" in the customer header and footer; "Where we deliver" in the footer.
+      const bizSide = /^(business|claim|register|drivers|merchant-terms|mandate)/.test(pg.id);
+      if (!pg.bare && !bizSide) {
+        if (!(await page.locator('header a[href$="/business"]').count()))
+          errors.push("no For businesses link in the header");
+        if (!(await page.locator('footer a[href$="/business"]').count()))
+          errors.push("no For businesses link in the footer");
+        if (!(await page.locator('footer a[href$="/places"]').count()))
+          errors.push("no Where we deliver link in the footer");
+      }
+      if (pg.id === "places") {
+        // Every boundary place, grouped by area, whether or not it is live (§39.15.5).
+        const n = await page.locator(".zm-area li").count();
+        if (n !== 61) errors.push(`the village list has ${n} places, not 61`);
+      }
+      if (pg.id === "contact" && !(await page.locator('main a[href$="/business/contact"]').count()))
+        errors.push("the contact page has no block for shops");
+      if (pg.id === "business") {
+        // The fee headline never renders without its number (§39.15.5).
+        const h1 = (await page.textContent("h1").catch(() => "")) ?? "";
+        if (/\{|^\s*(per|par|عن)\s/.test(h1)) errors.push(`fee headline without its number: ${h1}`);
+      }
       if (pg.id === "business" && sizeName === "desktop") {
         // Old merchant addresses answer 301 to the business side, keeping the claim link's query (§39.11).
         const r = await fetch(`${base}/${lang}/claim?v=${CLAIM_VENDOR_ID}`, { redirect: "manual" });
@@ -317,6 +347,8 @@ for (const lang of langs) {
         await page
           .waitForSelector("h2.ak-h2", { timeout: 8000 })
           .catch(() => stepFail("claim did not finish"));
+        if (!(await page.locator('main a[href$="/business/contact"]').count()))
+          stepFail("the finished claim does not lead to the business contact page");
         await state("done");
       }
       if (pg.id === "register") {

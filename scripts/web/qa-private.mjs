@@ -20,7 +20,9 @@ const langs = (arg("langs", "ar,en,fr") ?? "").split(",");
 const MOCK_HOST = arg("mock-host", "127");
 
 const PAGES = [
-  { id: "merchant-signin", path: "/merchant" },
+  { id: "merchant-signin", path: "/merchant", forgot: true },
+  // Back from a password-reset link (§39.15.5): signed in by the link, asked for a new password first.
+  { id: "merchant-reset", path: "/merchant?reset=1", as: "merchant" },
   { id: "admin-signin", path: "/admin" },
   { id: "merchant-home", path: "/merchant", as: "merchant", panel: true },
   { id: "merchant-orders", path: "/merchant/orders", as: "merchant" },
@@ -33,7 +35,7 @@ const PAGES = [
   { id: "no-access", path: "/admin", as: "merchant" },
   { id: "driver", path: "/driver", as: "admin" },
 ];
-const SIZES = { mobile: { width: 390, height: 844 }, desktop: { width: 1440, height: 900 } };
+const SIZES = { mobile: { width: 360, height: 780 }, desktop: { width: 1440, height: 900 } };
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const session = (who) => {
@@ -125,6 +127,21 @@ for (const lang of langs) {
       const notes = [];
       await snap(pg.id);
       notes.push(...(await checkAxe("")));
+      if (pg.forgot) {
+        await page
+          .getByRole("button", { name: /Forgot password|نسيت كلمة السر|Mot de passe oublié/ })
+          .click()
+          .catch(() => errors.push("no Forgot password link"));
+        await page.fill("#email", "owner@example.com").catch(() => errors.push("no email field"));
+        await page.click('button[type="submit"]').catch(() => {});
+        await page
+          .waitForSelector('[role="status"]', { timeout: 5000 })
+          .catch(() => errors.push("the reset link was not confirmed"));
+        await snap(`${pg.id}-forgot-sent`);
+        notes.push(...(await checkAxe(" (forgot)")));
+      }
+      if (pg.id === "merchant-reset" && !(await page.locator("#npw").count()))
+        errors.push("the reset link did not ask for a new password");
       if (pg.panel && sizeName === "mobile") {
         await page
           .getByRole("button", { name: /Setup assistant|مساعد الإعداد|Assistant de configuration/ })
