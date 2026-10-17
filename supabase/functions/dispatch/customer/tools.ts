@@ -31,6 +31,8 @@ export type ToolName =
   | "remind_when_open"
   | "join_waitlist"
   | "pickup_places"
+  | "message_shop"
+  | "rebuild_basket"
   | "reply";
 
 const str = (description: string) => ({ type: "string", description });
@@ -283,6 +285,10 @@ export const TOOLS = [
           note: nstr("Kitchen note, e.g. 'no onions'"),
         }),
       },
+      start_new_basket: nullable(
+        { type: "boolean" },
+        "true only when the customer chose to empty a basket from another shop and start a new one here (after the system asked); else null",
+      ),
     }),
   },
   {
@@ -448,6 +454,20 @@ export const TOOLS = [
     input_schema: obj({}),
   },
   {
+    name: "message_shop",
+    description:
+      "During the customer's active order, pass their message to the shop as a note on that order ('no onions', 'ring the bell', 'I'm at the back door'). The system finds the order; the shop's number is never shared; it never changes the order or its price.",
+    input_schema: obj({
+      text: str("The customer's message for the shop, in their words (at most 300 characters)"),
+    }),
+  },
+  {
+    name: "rebuild_basket",
+    description:
+      "After a shop rejected or did not answer the customer's order, rebuild that order's basket at one of the shops the system offered with the same dish (a vendor ref from the context). The system matches the dishes and names any it does not have.",
+    input_schema: obj({ vendor_ref: str("A vendor ref the system offered, e.g. v1") }),
+  },
+  {
     name: "reply",
     description:
       "A short message to the customer in their language: a question, a greeting, an answer. Never a price, total, fee, order status or promise; those come from the other tools.",
@@ -495,11 +515,12 @@ export const TOOL_CONTRACT: Record<
     render: "list with ≈ estimated or ✓ declared labels and the merchant-declared allergen note",
   },
   add_items: {
-    rpc: ["vendor_menu", "menu_item_options", "basket_add_item"],
+    rpc: ["vendor_menu", "menu_item_options", "basket_add_item", "basket_switch_names"],
     auth: "own basket; item refs from this session",
     states: "item orderable",
-    idempotency: "same item and options add quantity",
-    render: "basket summary",
+    idempotency:
+      "same item and options add quantity; start_new_basket empties another shop's basket first (the Start new tap)",
+    render: "basket summary, or 'Your basket is from A. Start a new one from B?'",
   },
   change_basket: {
     rpc: ["basket_set_quantity"],
@@ -637,6 +658,20 @@ export const TOOL_CONTRACT: Record<
     idempotency: "read only",
     render: "buttons for 1-3, list for 4-10, closed ones saying when they open",
   },
+  message_shop: {
+    rpc: ["order_note_send"],
+    auth: "own active order, found by the server from the session's customer",
+    states: "an order between placed and arrived",
+    idempotency: "one note per WhatsApp message; at most order_note_max_per_order per order",
+    render: "short confirmation, or the limit with a person's button",
+  },
+  rebuild_basket: {
+    rpc: ["order_rebuild_at", "cart_merge"],
+    auth: "own order that a shop rejected or did not answer; a shop the server offered and re-checks",
+    states: "within basket_keep_hours of the order",
+    idempotency: "keyed by the WhatsApp message (cart_merge)",
+    render: "the dishes it does not have, then the checkout",
+  },
   reply: {
     rpc: [],
     auth: "none",
@@ -662,7 +697,10 @@ How you work:
 - Addresses: the system asks for a WhatsApp location pin. If the customer describes a place in words, call find_address, and note_location for any landmark, building or street name they use.
 - Allergies, diets (vegan, siyami, halal), calories or protein at a place: dietary_menu. Item flags come only from the merchant. Never say an item is safe for an allergy; the system shows what the shop declared and suggests confirming with them.
 - A dish or product by name, a brand, or a description ("manoushe kishk", "Pepsi diet 2", "something spicy and cheap"): search_items, with the quantity when the customer gave one.
-- A problem with a delivered order (missing, wrong, cold, late, damaged, refund, return): report_problem. The system decides any credit or refund; never promise one.
+- A problem with a delivered order (missing, wrong, cold, late, damaged, refund, return): report_problem. The system decides any discount or refund; never promise one.
+- During an open order, a message for the shop ("no onions", "ring the bell", "I'm at the back door"): message_shop. Never give a shop's phone number.
+- After a shop could not take the order, "get it from the other place" or a shop the system offered: rebuild_basket with that shop's ref.
+- The basket is from another shop and the customer says to start a new one: add_items with start_new_basket true.
 - "What do you remember about me?", or deleting what is remembered: show_memory.
 - A cart from several shops ("Deli Dough first", "not the sushi"), or a cart that met another shop's basket ("switch", "keep mine", "do both"): saved_cart, with the c ref of the shop when there is one.
 - What the customer says about themselves (vegetarian, gluten-free, an allergy): set_preference. Never ask about health; the system asks before keeping health information.

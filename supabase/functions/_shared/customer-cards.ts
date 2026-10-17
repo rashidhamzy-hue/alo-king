@@ -501,6 +501,17 @@ export function customerStatusMessages(
         ),
       ];
     case "rejected":
+      // The shop said no (spec #41): sorry, the reason in plain words, and the closest shops with the same dish.
+      if (oid && sameDishRows(p.alternatives).length)
+        return [
+          sameDishCard(
+            to,
+            tr(lang, "rejectedSorry", { vendor, code, reason: reason(p.reason) }),
+            p.alternatives,
+            oid,
+            lang,
+          ),
+        ];
       return [
         alternativesCard(
           to,
@@ -510,6 +521,17 @@ export function customerStatusMessages(
         ),
       ];
     case "cancelled":
+      // The shop did not answer or paused (spec #41): the same, with the cancellation.
+      if (oid && sameDishRows(p.alternatives).length)
+        return [
+          sameDishCard(
+            to,
+            tr(lang, "cancelledSorry", { vendor, code, reason: reason(p.reason) }),
+            p.alternatives,
+            oid,
+            lang,
+          ),
+        ];
       return [
         alternativesCard(
           to,
@@ -767,6 +789,71 @@ export type AfterCartAction =
   | { a: "tip"; cents: number }
   | { a: "tip_after"; orderId: string; cents: number | null; other?: boolean };
 
+// ---- Session 5f part 8b: a shop that cannot take the order (spec §3.7 #41) ---------------------------------------------
+const T5F8B: Record<CLang, S> = {
+  ar: {
+    rejectedSorry: "😔 آسفين! {vendor} ما فيه ياخد طلبك #{code} ({reason}). ما في شي مدفوع.",
+    cancelledSorry: "😔 آسفين! انلغى طلبك #{code} من {vendor} ({reason}). ما في شي مدفوع.",
+    sameDish: "نفس الأكلة عند هالمحلات القريبة منك. دوس على محل ومنعبّيلك السلّة منّو:",
+  },
+  en: {
+    rejectedSorry: "😔 Sorry! {vendor} can't take order #{code} ({reason}). Nothing was charged.",
+    cancelledSorry:
+      "😔 Sorry! Order #{code} from {vendor} was cancelled ({reason}). Nothing was charged.",
+    sameDish: "Same dish at these shops near you. Tap one to rebuild your basket there:",
+  },
+  fr: {
+    rejectedSorry:
+      "😔 Désolé ! {vendor} ne peut pas prendre la commande #{code} ({reason}). Rien n'a été payé.",
+    cancelledSorry:
+      "😔 Désolé ! La commande #{code} chez {vendor} est annulée ({reason}). Rien n'a été payé.",
+    sameDish:
+      "Le même plat chez ces commerces proches. Touchez-en un pour y refaire votre panier :",
+  },
+  arabizi: {
+    rejectedSorry: "😔 Asfin! {vendor} ma fi yekhod talabak #{code} ({reason}). Ma fi shi madfou3.",
+    cancelledSorry: "😔 Asfin! Nlagha talabak #{code} men {vendor} ({reason}). Ma fi shi madfou3.",
+    sameDish: "Nafs el akle 3and hal ma7alat el 2arib. Dos 3a ma7al w mn3abbilak el salle menno:",
+  },
+};
+for (const l of LANGS) Object.assign(T[l], T5F8B[l]);
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+type SameDishShop = { vendor_id: string; name_ar?: string | null; name_en?: string | null };
+/** The closest shops with the same dish that the server offered (app_private.offer_alternatives), at most three. */
+const sameDishRows = (alts: unknown): SameDishShop[] =>
+  (Array.isArray(alts) ? alts : [])
+    .filter((a: any) => a?.same_dish === true && UUID_RE.test(String(a?.vendor_id ?? "")))
+    .slice(0, 3) as SameDishShop[];
+
+/**
+ * An order a shop rejected or did not answer (spec #41): the apology and the reason, then one button per shop with the
+ * same dish; a tap rebuilds the basket there (rb:<order>:<shop>, re-checked by the server).
+ */
+export function sameDishCard(
+  to: string,
+  body: string,
+  alts: unknown,
+  orderId: string,
+  lang: CLang,
+) {
+  const rows = sameDishRows(alts);
+  const seen = new Set<string>();
+  return buttons(
+    to,
+    `${body}\n${tr(lang, "sameDish")}`,
+    rows.map((r, k) => {
+      const nm = String(
+        (lang === "ar" ? (r.name_ar ?? r.name_en) : (r.name_en ?? r.name_ar)) ?? "",
+      );
+      let title = [...nm].length > 20 ? [...nm].slice(0, 19).join("") + "…" : nm;
+      if (!title.trim() || seen.has(title)) title = `${k + 1}. ${[...nm].slice(0, 16).join("")}`;
+      seen.add(title);
+      return [`rb:${orderId}:${r.vendor_id}`, title] as [string, string];
+    }),
+  );
+}
+
 /** Customer button and list ids. Anything else is not ours and gets no action. */
 export type CustomerAction =
   | AfterCartAction
@@ -819,6 +906,14 @@ export type CustomerAction =
   | { a: "view_menu"; ref: string }
   /** "Tell me when you do": the waitlist for the customer's place (§3.2 #11). */
   | { a: "waitlist" }
+  /** Spec #41: the order a shop could not take, rebuilt at a shop with the same dish. */
+  | { a: "rebuild"; orderId: string; vendorId: string }
+  /** Spec #29: an item that closes the gap to the shop's minimum order. */
+  | { a: "gap_item"; itemId: string }
+  /** Spec #45 before AI credit: send the typed text to the shop as an order note, or search the menu with it. */
+  | { a: "shop_note"; send: boolean }
+  /** Spec #49: no photo for this problem report. */
+  | { a: "photo_skip" }
   | {
       a: "simple";
       what:
@@ -939,6 +1034,11 @@ export function parseCustomerAction(id: string): CustomerAction | null {
   if ((m = id.match(/^dpk:(missing_item|wrong_item|cold_food|late|damaged|other)$/)))
     return { a: "problem_kind", kind: m[1] as any };
   if ((m = id.match(/^da:([a-z][a-z_]{1,20})$/))) return { a: "demo_address", key: m[1] };
+  if ((m = id.match(re(`rb:(${UUID}):(${UUID})`))))
+    return { a: "rebuild", orderId: m[1], vendorId: m[2] };
+  if ((m = id.match(re(`gap:(${UUID})`)))) return { a: "gap_item", itemId: m[1] };
+  if (id === "dps:skip") return { a: "photo_skip" };
+  if (id === "msn:send" || id === "msn:search") return { a: "shop_note", send: id === "msn:send" };
   if ((m = id.match(re(`dpl:(${UUID}):(m|w)(?::([1-9]\\d?))?`))))
     return {
       a: "problem_line",
@@ -998,13 +1098,15 @@ const T5F8A: Record<CLang, S> = {
   en: {
     shopOpenNow: "🔔 {vendor} is open now. You asked us to tell you.",
     shopsOpenNow: "🔔 Shops near you are open now. You asked us to tell you.",
-    waitlistOpen: "🎉 Alo King now delivers to {place}, as you asked us to tell you. Tap Order to start.",
+    waitlistOpen:
+      "🎉 Alo King now delivers to {place}, as you asked us to tell you. Tap Order to start.",
     btnSeeTheMenu: "See the menu",
     btnOrderPlain: "Order",
   },
   fr: {
     shopOpenNow: "🔔 {vendor} est ouvert. Vous nous avez demandé de vous prévenir.",
-    shopsOpenNow: "🔔 Les commerces près de chez vous sont ouverts. Vous nous avez demandé de vous prévenir.",
+    shopsOpenNow:
+      "🔔 Les commerces près de chez vous sont ouverts. Vous nous avez demandé de vous prévenir.",
     waitlistOpen:
       "🎉 Alo King livre maintenant à {place}, comme vous nous avez demandé de vous prévenir. Touchez Commander pour commencer.",
     btnSeeTheMenu: "Voir le menu",
@@ -1024,7 +1126,9 @@ function firstContactMessages(
 ): Record<string, unknown>[] {
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
   if (p.kind === "shop_open") {
-    const vendor = String((lang === "ar" || lang === "arabizi" ? p.vendor : p.vendor_en) ?? p.vendor ?? "");
+    const vendor = String(
+      (lang === "ar" || lang === "arabizi" ? p.vendor : p.vendor_en) ?? p.vendor ?? "",
+    );
     return uuid.test(String(p.vendor_id ?? ""))
       ? [
           buttons(to, tr(lang, "shopOpenNow", { vendor }), [
@@ -1040,5 +1144,7 @@ function firstContactMessages(
       "",
   );
   if (!place) return [];
-  return [buttons(to, tr(lang, "waitlistOpen", { place }), [["c:order", tr(lang, "btnOrderPlain")]])];
+  return [
+    buttons(to, tr(lang, "waitlistOpen", { place }), [["c:order", tr(lang, "btnOrderPlain")]]),
+  ];
 }

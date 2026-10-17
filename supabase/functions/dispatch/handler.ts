@@ -11,6 +11,7 @@
 import { catalogStatusStep, catalogSyncStep, type CatalogApi } from "./catalog-sync.ts";
 import {
   cancelledText,
+  customerNoteCard,
   deliveredCard,
   driverJobCard,
   lowStockCard,
@@ -627,6 +628,11 @@ export function buildWhatsApp(m: Outbox, lang: Lang): Record<string, unknown>[] 
       return m.card ? [orderCard(to, m.card, lang)] : [];
     case "order_cancelled":
       return [cancelledText(to, code, lang)];
+    case "customer_note":
+      // The customer's words on an active order (spec #45): the code and the text, never the customer's number.
+      return String(m.payload.text ?? "").trim()
+        ? [customerNoteCard(to, code, String(m.payload.text), lang)]
+        : [];
     case "ready_check":
       return m.order_id ? [readyCheckCard(to, m.order_id, code, lang)] : [];
     case "need_driver":

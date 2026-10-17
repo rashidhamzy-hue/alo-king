@@ -113,6 +113,11 @@ import {
   whenText,
   whenShort,
   type Opening,
+  otherShopCard,
+  gapItemsMessage,
+  problemPhotoAsk,
+  shopNoteConfirm,
+  type GapItem,
 } from "./render.ts";
 import {
   ALLERGENS,
@@ -250,6 +255,8 @@ export type CustomerInbound = {
   caption?: string | null;
   /** Typed messages sent in a row and answered once (§3.1 #6): their texts, oldest first; `text` joins them. */
   burst?: string[] | null;
+  /** A photo (spec #49: the optional photo of a problem); only its WhatsApp media id is kept, never the picture. */
+  image?: { id: string; mime: string } | null;
 };
 
 const E164 = /^\+[1-9][0-9]{6,14}$/;
@@ -293,6 +300,10 @@ export function readCustomerInbound(payload: any): CustomerInbound | null {
     flow: parseFlowReply(msg),
     cart: parseCartOrder(msg),
     caption: type === "image" ? String(msg.image?.caption ?? "").slice(0, 1000) || null : null,
+    image:
+      type === "image" && /^[A-Za-z0-9._-]{1,200}$/.test(String(msg.image?.id ?? ""))
+        ? { id: String(msg.image.id), mime: String(msg.image?.mime_type ?? "image/jpeg") }
+        : null,
   };
 }
 
@@ -507,6 +518,8 @@ async function duringHandoff(c: Ctx) {
     return route(c, false);
   }
   c.path = "handoff";
+  // A photo for a report a person is deciding (spec #49: "send a photo here") joins that report and the thread.
+  if (c.m.image) await handoffPhoto(c, c.m.image.id);
   // The message joins the support case's Slack thread, where Rasheed answers (§32.1).
   if (c.m.text) {
     const joined = await c.deps
@@ -557,6 +570,13 @@ async function route(c: Ctx, firstContact: boolean) {
   if (m.flow) return flowReply(c, m.flow);
   if (m.cart) return cartOrder(c, m.cart.lines);
   if (m.location) return locationPin(c, m.location);
+  // A photo answers the optional-photo question of a problem report (spec #49).
+  if (m.image && c.s.pending.kind === "problem_photo")
+    return problemPhotoAnswer(
+      c,
+      `wa-media:${m.image.id}`,
+      m.caption?.trim() ? m.caption.trim().slice(0, 300) : null,
+    );
   if (m.type === "unsupported") {
     // Live location arrives as `unsupported` on the Cloud API (§27.1): ask for a static pin instead.
     return push(c, locationRequest(m.from, tr(c.s.lang, "liveLocation")));
@@ -589,6 +609,11 @@ async function textRoute(c: Ctx, t: string, firstContact: boolean, inner = false
   const m = c.m;
   if (await firstContactText(c, t, firstContact, inner)) return;
   const intent = deterministicIntent(t);
+  // The customer's words answer a problem report's optional-photo question (spec #49): "no" skips the photo.
+  if (c.s.pending.kind === "problem_photo" && (!intent || intent.kind === "no"))
+    return problemPhotoAnswer(c, null, intent ? null : t);
+  if (c.s.pending.kind === "problem_photo" && intent?.kind === "yes")
+    return push(c, problemPhotoAsk(c.m.from, c.s.lang));
   if (intent) {
     if ((intent.kind === "yes" || intent.kind === "no") && !c.s.pending.kind) return freeText(c, t);
     if (intent.kind === "greeting") return greet(c, firstContact);
@@ -599,6 +624,8 @@ async function textRoute(c: Ctx, t: string, firstContact: boolean, inner = false
   if (isMedicineRequest(t)) return medicine(c);
   if (c.s.pending.kind === "recipient") return recipientText(c, t);
   if (isOffTopic(t)) return offTopic(c);
+  // During an active order, typed words go to the shop as an order note (spec #45).
+  if (await orderNoteRelay(c, t)) return;
   if (mentionsSomeoneElse(t)) c.s.refs.xe = { id: "someone_else", label: "someone_else" };
   if (firstContact && t.trim().length < 4) return push(c, welcomeMenu(m.from, c.s.lang));
   return freeText(c, t);
@@ -891,6 +918,8 @@ async function problemKind(c: Ctx, kind: string): Promise<void> {
     if (lines.length === 1) return problemLine(c, lines[0].order_item_id, kind, undefined, lines);
     return push(c, problemLinesList(c.m.from, c.s.lang, kind, lines));
   }
+  // Spilled or damaged: the photo decides (§27.8 #14), so it is asked first (spec #49-50).
+  if (kind === "damaged") return askProblemPhoto(c, kind, null, 1);
   return disputeOpen(c, kind, null);
 }
 
@@ -919,18 +948,30 @@ async function problemLine(
         problemQtyList(c.m.from, c.s.lang, kind, { ...line, quantity: Number(line.quantity) }),
       );
   }
-  return disputeOpen(c, kind, itemId, qty ?? 1);
+  // Which item, how many, then the optional photo (spec #49); the server decides after it.
+  return askProblemPhoto(c, kind, itemId, qty ?? 1);
 }
 
-async function disputeOpen(c: Ctx, kind: string, itemId: string | null, qty = 1): Promise<void> {
+async function disputeOpen(
+  c: Ctx,
+  kind: string,
+  itemId: string | null,
+  qty = 1,
+  photo: string | null = null,
+  note: string | null = null,
+): Promise<void> {
   const order = c.s.refs.xd;
   if (!order) return say(c, "disputeNone");
-  const r = await c.deps.rpc("dispute_open", {
+  // dispute_report: missing and wrong items as dispute_open decides them, cold, spilled and very late by the 8b rules
+  // (one discount line per order), with the optional photo and the customer's words on the report.
+  const r = await c.deps.rpc("dispute_report", {
     p_customer_id: c.customerId,
     p_order_id: order.id,
     p_kind: kind,
     p_order_item_id: itemId,
     p_quantity: qty,
+    p_photo_ref: photo,
+    p_note: note,
   });
   c.tools.push(`dispute:${kind}`);
   c.summary.push(`[problem ${kind} on order ${order.label}: ${r?.status}]`);
@@ -950,7 +991,9 @@ async function disputeOpen(c: Ctx, kind: string, itemId: string | null, qty = 1)
         p_summary: String(r.rule ?? "").slice(0, 300),
       });
       c.path = "handoff";
-      return say(c, kind === "damaged" ? "disputeDamaged" : "disputeReview", { code: order.label });
+      return say(c, kind === "damaged" && !photo ? "disputeDamaged" : "disputeReview", {
+        code: order.label,
+      });
     case "rejected":
       return say(c, "disputeRejected", { code: order.label });
     case "already_reported":
@@ -1004,11 +1047,24 @@ async function textIntent(c: Ctx, kind: string) {
     case "menu":
       return startOrder(c);
     case "yes":
+      // A typed yes or no answers the Start new question only while it is fresh: an ignored card never empties a basket.
+      if (c.s.pending.kind === "replace_basket" && !pendingFresh(c)) c.s.pending = {};
       if (c.s.pending.kind === "confirm")
         return confirm(c, c.s.pending.basket_id, c.s.pending.version);
+      if (c.s.pending.kind === "shop_note") return shopNoteAnswer(c, "send");
+      // "Start a new one from SEVEN?" answered by typing (spec #28): the same as the Start new tap.
+      if (c.s.pending.kind === "replace_basket" && c.s.pending.item_id)
+        return tap(c, {
+          a: "replace_basket",
+          itemId: String(c.s.pending.item_id),
+          qty: Number(c.s.pending.qty) || 1,
+        });
       if (c.s.pending.kind === "delete") return tap(c, { a: "simple", what: "delete_ok" });
       return modelTurn(c, c.m.text ?? "", false);
     case "no":
+      if (c.s.pending.kind === "replace_basket" && !pendingFresh(c)) c.s.pending = {};
+      if (c.s.pending.kind === "replace_basket") return tap(c, { a: "simple", what: "keep" });
+      if (c.s.pending.kind === "shop_note") return shopNoteAnswer(c, "no");
       if (c.s.pending.kind === "confirm" || c.s.pending.kind === "delete") {
         c.s.pending = {};
         return push(c, ...basketMessage(c.m.from, c.s.lang, c.basket));
@@ -1219,7 +1275,20 @@ async function tap(c: Ctx, a: CustomerAction) {
       });
       return checkout(c, {});
     }
+    case "rebuild":
+      return rebuildAt(c, a.orderId, a.vendorId);
+    case "gap_item": {
+      // An item that closes the gap to the shop's minimum order (spec #29), then the summary again.
+      const added = await addOne(c, a.itemId, 1, [], null, null, true);
+      if (added) return checkout(c, {});
+      return;
+    }
+    case "photo_skip":
+      return problemPhotoAnswer(c, null, null);
+    case "shop_note":
+      return shopNoteAnswer(c, a.send ? "send" : "search");
     case "replace_basket": {
+      if (c.s.pending.kind === "replace_basket") c.s.pending = {};
       const r = await addItem(c, {
         p_customer_id: id,
         p_item_id: a.itemId,
@@ -1790,7 +1859,7 @@ async function cartOrder(
   c: Ctx,
   lines: CartLine[],
   replace = false,
-  opts: { messageId?: string; split?: boolean } = {},
+  opts: { messageId?: string; split?: boolean; lead?: string | null } = {},
 ) {
   c.tools.push("cart");
   if (!lines.length) return say(c, "unsupported");
@@ -1889,6 +1958,8 @@ async function cartOrder(
   );
   // One message for what changed: the lines not added and the prices the server corrected (USD; the summary adds LBP).
   const notes: string[] = [];
+  // What the caller says first (a rebuilt order's dishes the new shop does not have, spec #41), in the same message.
+  if (opts.lead) notes.push(opts.lead);
   // Only items truly unavailable are named, by name (§39.15.2); never a bare "couldn't be added".
   // (A line that is not one of our items has no name; it is left out, and "nothing could be added" covers it.)
   // (Another shop's line is not unavailable: a split cart keeps it as a saved cart.)
@@ -2685,13 +2756,7 @@ async function addOne(
     p_replace: false,
   });
   if (r?.status === "other_vendor") {
-    push(
-      c,
-      buttons(c.m.from, tr(c.s.lang, "otherVendor", { vendor: r.basket_vendor }), [
-        [`rpl:${itemId}:${Math.min(qty, 50)}`, tr(c.s.lang, "replace")],
-        ["c:keep", tr(c.s.lang, "keep")],
-      ]),
-    );
+    await otherShop(c, itemId, qty, String(r.basket_vendor ?? ""));
     return false;
   }
   if (r?.status === "unavailable") {
@@ -2838,7 +2903,7 @@ async function checkout(
     case "beyond_radius":
       return push(c, beyondRadius(c.m.from, lang, q));
     case "below_minimum":
-      return push(c, belowMinimumMessage(c.m.from, lang, q));
+      return belowMinimum(c, q);
     case "ok": {
       const lines: any[] = q.basket.lines ?? [];
       const needEmpty = lines.filter((l) => l.needs_empty_answer);
@@ -2965,6 +3030,8 @@ async function voice(c: Ctx) {
   transcript ??= a.transcript?.trim() || null;
   if (!transcript) return say(c, "voiceFail");
   c.s.lang = detectLang(transcript, c.s.lang);
+  // Spoken words answer a problem report's optional-photo question as typed ones do (spec #49).
+  if (c.s.pending.kind === "problem_photo") return problemPhotoAnswer(c, null, transcript);
   if (isMedicineRequest(transcript)) return medicine(c);
   const intent = deterministicIntent(transcript);
   if (intent && !["yes", "no", "greeting"].includes(intent.kind)) return textIntent(c, intent.kind);
@@ -3178,6 +3245,7 @@ export function validate(name: ToolName, input: any): boolean {
     case "add_items":
       return (
         (input.vendor_ref === null || ref(input.vendor_ref, "v")) &&
+        [undefined, null, true, false].includes(input.start_new_basket) &&
         Array.isArray(input.items) &&
         input.items.length >= 1 &&
         input.items.length <= 10 &&
@@ -3271,6 +3339,12 @@ export function validate(name: ToolName, input: any): boolean {
     case "join_waitlist":
     case "pickup_places":
       return true;
+    case "message_shop":
+      return (
+        typeof input.text === "string" && input.text.trim().length > 0 && input.text.length <= 300
+      );
+    case "rebuild_basket":
+      return ref(input.vendor_ref, "v");
     case "reply":
       return (
         typeof input.text === "string" &&
@@ -3359,6 +3433,33 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
           );
         }
         if (!itemId) continue;
+        // The customer chose to empty a basket from another shop and start here (spec #28, the Start new tap's path): only
+        // once the question was asked (pending replace_basket); otherwise addOne asks it. An item with options asks too.
+        if (
+          input.start_new_basket === true &&
+          !added &&
+          c.s.pending.kind === "replace_basket" &&
+          pendingFresh(c) &&
+          !(it.options ?? []).length
+        ) {
+          const opts = await deps.rpc("menu_item_options", { p_item_id: itemId });
+          if (!(Array.isArray(opts) && opts.some((g: any) => Number(g?.min) > 0))) {
+            const rr = await addItem(c, {
+              p_customer_id: id,
+              p_item_id: itemId,
+              p_quantity: it.quantity,
+              p_option_ids: [],
+              p_note: it.note ?? null,
+              p_replace: true,
+            });
+            if (rr?.status === "added") {
+              c.basket = rr.basket ?? c.basket;
+              if (c.s.pending.kind === "replace_basket") c.s.pending = {};
+              added++;
+              continue;
+            }
+          }
+        }
         const ok = await addOne(c, itemId, it.quantity, it.options ?? [], it.note ?? null, null);
         if (!ok) return; // an option question, another vendor's basket, or unavailable: one thing at a time
         added++;
@@ -3481,6 +3582,16 @@ async function runTool(c: Ctx, name: ToolName, input: any) {
       return joinWaitlist(c);
     case "pickup_places":
       return pickupPlaces(c);
+    case "message_shop":
+      // Spec #45: the customer's words to the shop on their active order (the order comes from the server, never the model).
+      if (!(await messageShop(c, input.text))) return say(c, "trackNone");
+      return;
+    case "rebuild_basket": {
+      // Spec #41: the order a shop could not take, rebuilt at a shop the server offered (a vendor ref from the context).
+      const v = c.s.refs[input.vendor_ref];
+      if (!v) return say(c, "pickPlaceFirst");
+      return rebuildAt(c, null, v.id);
+    }
     case "reply":
       return replyText(c, input.text, input.confidence);
   }
@@ -4600,4 +4711,242 @@ async function forgetWaits(c: Ctx) {
     .catch((e: unknown) =>
       c.deps.log?.("customer_waits_forget failed", { error: String(e).slice(0, 120) }),
     );
+}
+
+// ---- Session 5f part 8b: CUSTOMER-EXPERIENCE §3.5 #28-29, §3.7 #41 and #45, §3.8 #49-50 ----------------------------------------
+/**
+ * #28 An item from a second shop: "Your basket is from Eatout. Start a new one from SEVEN?" with Start new / Keep Eatout
+ * (one shop per order, §30.4). A typed yes or no answers it too, and the agent can start the new basket with add_items.
+ */
+async function otherShop(c: Ctx, itemId: string, qty: number, basketVendor: string) {
+  const n = await c.deps
+    .rpc("basket_switch_names", { p_customer_id: c.customerId, p_item_id: itemId })
+    .catch(() => null);
+  const lang = c.s.lang;
+  const basket =
+    (lang === "ar" ? n?.basket_vendor : (n?.basket_vendor_en ?? n?.basket_vendor)) ??
+    basketVendor ??
+    "";
+  const shop = (lang === "ar" ? n?.item_vendor : (n?.item_vendor_en ?? n?.item_vendor)) ?? "";
+  c.s.pending = {
+    kind: "replace_basket",
+    item_id: itemId,
+    qty: Math.min(Math.max(qty, 1), 50),
+    at: nowIso(c),
+  };
+  c.summary.push(
+    `[the item is from ${shop || "another shop"}: asked to start a new basket or keep ${basket}]`,
+  );
+  push(c, otherShopCard(c.m.from, lang, String(basket), String(shop || basket), itemId, qty));
+}
+
+/**
+ * #29 Under the shop's minimum order: "Add $2.50 more to order from Eatout" and up to three of its items that close the gap
+ * (server-priced), one tap each. They become item refs, so the agent can add them by asking too.
+ */
+async function belowMinimum(c: Ctx, q: Quote) {
+  const g = await c.deps
+    .rpc("basket_gap_items", { p_customer_id: c.customerId, p_limit: 2 })
+    .catch(() => null);
+  // Two items: the card's third button is Empty basket (session 5f part 7).
+  const items: GapItem[] =
+    g?.status === "below_minimum" && Array.isArray(g.items) ? g.items.slice(0, 2) : [];
+  if (!items.length) return push(c, belowMinimumMessage(c.m.from, c.s.lang, q));
+  for (const it of items)
+    refFor(c, "i", it.item_id, `${it.name_en ?? it.name_ar} $${Number(it.price_usd).toFixed(2)}`);
+  c.tools.push("gap_items");
+  c.summary.push(
+    `[under the shop's minimum order: offered ${items.length} items that close the gap]`,
+  );
+  const vendor = localName(
+    c.s.lang,
+    g.vendor ?? q.basket?.vendor ?? null,
+    g.vendor_en ?? q.basket?.vendor_en ?? null,
+  );
+  return push(
+    c,
+    gapItemsMessage(c.m.from, c.s.lang, vendor, g.missing_usd ?? q.missing_usd, items),
+  );
+}
+
+/**
+ * #41 The order a shop rejected or did not answer, rebuilt at a shop with the same dish (the server re-checks that the shop
+ * is open, delivers there and has the dish). Lines without a match are named before the basket; then the usual checkout.
+ */
+async function rebuildAt(c: Ctx, orderId: string | null, vendorId: string) {
+  c.tools.push("order_rebuild");
+  const r = await c.deps.rpc("order_rebuild_at", {
+    p_customer_id: c.customerId,
+    p_order_id: orderId,
+    p_vendor_id: vendorId,
+  });
+  const lang = c.s.lang;
+  const vendor = String((lang === "ar" ? r?.vendor : (r?.vendor_en ?? r?.vendor)) ?? "");
+  if (r?.status === "nothing") return say(c, "rebuildNothing", { vendor });
+  if (r?.status !== "ok" || !Array.isArray(r.lines) || !r.lines.length)
+    return say(c, "rebuildGone");
+  const missing: any[] = Array.isArray(r.missing) ? r.missing : [];
+  const lead = missing.length
+    ? tr(lang, "rebuildMissing", {
+        vendor,
+        items: missing
+          .slice(0, 10)
+          .map(
+            (x) =>
+              `${Number(x.quantity) || 1}× ${(lang === "ar" ? (x.name_ar ?? x.name_en) : (x.name_en ?? x.name_ar)) ?? ""}`,
+          )
+          .join(", "),
+      })
+    : null;
+  c.summary.push(
+    `[order ${r.code} rebuilt at ${r.vendor_en ?? r.vendor}: ${r.lines.length} line(s), ${missing.length} not there]`,
+  );
+  c.s.focus_vendor_id = String(r.vendor_id ?? vendorId);
+  return cartOrder(
+    c,
+    r.lines.map((l: any) => ({
+      itemId: String(l.item_id),
+      quantity: Number(l.quantity) || 1,
+      shownUsd: null,
+    })),
+    // Never replaces a newer basket without asking (§39.15.2): a rejected order leaves none, and an old rb: tap that meets
+    // one gets the Switch / Keep / Do both card.
+    false,
+    { split: false, lead },
+  );
+}
+
+const ACTIVE_ORDER = new Set([
+  "placed",
+  "accepted",
+  "preparing",
+  "ready",
+  "driver_assigned",
+  "heading_to_pickup",
+  "at_pickup",
+  "picked_up",
+  "near_drop",
+  "arrived",
+]);
+
+/**
+ * #45 During an active order, typed words go to the shop as a note on that order (the shop's number is never shared) and
+ * the customer gets a short confirmation. Not when the text answers a pending question, and not when the agent is on: the
+ * agent then decides (its message_shop tool), so it is never narrowed (§39.14 rule 1).
+ */
+async function orderNoteRelay(c: Ctx, t: string): Promise<boolean> {
+  if (c.deps.config.freeText !== false && c.deps.model) return false;
+  if (c.s.pending.kind && c.s.pending.kind !== "shop_note") return false;
+  const active = c.orders.find((o) => ACTIVE_ORDER.has(String(o?.status)));
+  if (!active) return false;
+  // Asked first (never a dish search or a "thanks" sent to the shop unasked): Send, or Search the menu with the words.
+  // The order the card names is the one the note goes with (the server re-checks it is the customer's and still active).
+  c.s.pending = {
+    kind: "shop_note",
+    text: t.slice(0, 300),
+    at: nowIso(c),
+    order_id: active.id ?? null,
+  };
+  c.summary.push(`[asked whether to pass the text to the shop on order ${active.code}]`);
+  const vendor = String(
+    (c.s.lang === "ar" ? active.vendor : (active.vendor_en ?? active.vendor)) ?? "",
+  );
+  push(c, shopNoteConfirm(c.m.from, c.s.lang, vendor, String(active.code ?? ""), t));
+  return true;
+}
+
+/** A question a card asked, answered by typing: only within TEXT_WAIT_MS of asking. */
+function pendingFresh(c: Ctx): boolean {
+  const at = Date.parse(String(c.s.pending.at ?? ""));
+  return Number.isFinite(at) && (c.deps.now?.() ?? new Date()).getTime() - at <= TEXT_WAIT_MS;
+}
+
+/**
+ * The answer to "Send this to the shop?": Send passes the note (order_note_send), the Search the menu button searches with
+ * the same words, and a typed no only drops the question.
+ */
+async function shopNoteAnswer(c: Ctx, answer: "send" | "search" | "no") {
+  const fresh = pendingFresh(c);
+  const p = c.s.pending;
+  c.s.pending = {};
+  if (p.kind !== "shop_note" || typeof p.text !== "string" || !fresh)
+    return push(c, mainMenu(c.m.from, c.s.lang));
+  if (answer === "no") return say(c, "noteNotSent");
+  if (answer === "search") return catalogText(c, p.text, null);
+  if (!(await messageShop(c, p.text, typeof p.order_id === "string" ? p.order_id : null)))
+    return say(c, "trackNone");
+}
+
+/**
+ * The note itself (order_note_send: the order the card named, else the customer's latest active order, rate-limited per
+ * order). False: nothing to pass.
+ */
+async function messageShop(c: Ctx, t: string, orderId: string | null = null): Promise<boolean> {
+  const r = await c.deps.rpc("order_note_send", {
+    p_customer_id: c.customerId,
+    p_text: t,
+    p_message_id: c.m.messageId,
+    p_order_id: orderId,
+  });
+  c.tools.push("order_note");
+  const vendor = String((c.s.lang === "ar" ? r?.vendor : (r?.vendor_en ?? r?.vendor)) ?? "");
+  if (r?.status === "sent") {
+    c.summary.push(`[passed the customer's message to the shop on order ${r.code}]`);
+    say(c, "noteSent", { vendor, code: r.code });
+    return true;
+  }
+  if (r?.status === "limit") {
+    say(c, "noteLimit", { vendor, code: r.code, max: r.max });
+    return true;
+  }
+  if (r?.status === "no_channel") {
+    // No WhatsApp number for the shop: kept on the order and an operator passes it on (never "passed" when it was not).
+    c.summary.push(
+      `[kept the customer's message for the shop on order ${r.code}: no channel, ops told]`,
+    );
+    say(c, "noteKept", { vendor, code: r.code });
+    return true;
+  }
+  return false;
+}
+
+/** #49 Which item and how many are known: the optional photo (or words) before the server decides. */
+function askProblemPhoto(c: Ctx, kind: string, itemId: string | null, qty: number) {
+  if (!c.s.refs.xd) return say(c, "disputeNone");
+  c.s.pending = { kind: "problem_photo", problem: kind, item_id: itemId, qty };
+  c.summary.push(`[asked for an optional photo of the ${kind} problem]`);
+  return push(c, problemPhotoAsk(c.m.from, c.s.lang));
+}
+
+/** The photo, the words or Skip: the report goes to the server with whatever the customer gave. */
+async function problemPhotoAnswer(c: Ctx, photo: string | null, note: string | null) {
+  const p = c.s.pending;
+  c.s.pending = {};
+  if (p.kind !== "problem_photo" || typeof p.problem !== "string")
+    return problemStart(c, null, null);
+  return disputeOpen(
+    c,
+    p.problem,
+    typeof p.item_id === "string" ? p.item_id : null,
+    Number(p.qty) || 1,
+    photo,
+    note ? note.slice(0, 300) : null,
+  );
+}
+
+/** A photo sent while a person has the conversation: kept on the report they are deciding, and shown in its thread. */
+async function handoffPhoto(c: Ctx, mediaId: string) {
+  const ref = `wa-media:${mediaId}`;
+  const r = await c.deps
+    .rpc("dispute_photo_add", { p_customer_id: c.customerId, p_photo_ref: ref })
+    .catch(() => null);
+  if (r?.status !== "attached") return;
+  c.tools.push("dispute_photo");
+  await c.deps
+    .rpc("support_inbound", {
+      p_customer_id: c.customerId,
+      p_text: `📷 Photo for order ${r.code} (${ref})`,
+    })
+    .catch(() => false);
+  say(c, "photoAttached", { code: r.code });
 }
