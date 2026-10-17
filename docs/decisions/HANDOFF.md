@@ -353,7 +353,7 @@
   - **Friends' path on the simulator:** `staging-e2e` with `only: friends-path` (scenario 31): Dubai, Riyadh and Beirut pins to delivered. The first run (39028136455) found Explore never came after a pin (fixed by #240); run 39029332105 passed, three demo orders delivered about 4 minutes after placing. `sim_tester` enrols a +999 persona as a demo tester for one hour (staging only).
   - **Smoke suite:** runs 39026974798 and 39027709698 passed 5/5 after #238.
   - **Speed (§39.15.6):** the same five smoke scenarios before (5f) and after #238: address save p50 2.39 → 1.87 s / p95 2.90 → 2.62 s; native cart 1.63 → 0.88 s / 1.75 → 1.07 s; taps 0.89 → 0.82 s / 1.77 → 1.64 s. Carts meet the target; taps and the address save do not yet. The next lever is the address save's own calls (address_save_pin, then the browse RPCs and the two web links) and PostGIS's first call on a fresh connection.
-  - **AI and voice (§39.15.9): still off** (Anthropic credit too low, OpenAI key refused #77; Deepgram works since 5h).
+  - **AI and voice (§39.15.9): still off** (Anthropic credit too low, OpenAI key set but unproven #77; Deepgram works since 5h).
   - **Message to Rasheed:** sent at 12:07 UTC on 17 October on the US number (outbox 835302, sent; support message 34): the site, INDINER time's web menu and Explore, as his own signed links (24 h). He was outside the 24-hour window, so it went as the approved `alo_support_reply` template ("Claude from Alo King answered your message", Read the reply) with the text held behind it; he tapped Read the reply at 12:07:33 UTC and the text was shown. The support case was created resolved, so no handoff silences the bot.
   - **Open for later:** the item-name clean-up Rasheed deferred (DATA-ISSUES); the optional review nits on #239 and #240 (LOG); carousel_enabled stays off until it is sent once on the US number.
   - **CUT-OVER (session 14), added:**
@@ -374,8 +374,8 @@
     - the app Flow published on the production number, with its data endpoint registered with production's `flow-app` URL and proxy key;
     - `flow_app_live` only after both languages publish;
     - `app_private.flow_thumbs` made from production photos;
-    - `header_catalog_max_items` set before the icon decision.
-- **Next: the friends' test (Rasheed sends the invite link, §39.15.3), then 13 (security review, includes 5f and 5g) and 14 (cut-over) (§39.15.8).** The prompts are in the planning chat's handoff (`claude/HANDOFF-2026-10-07.md` in the Project).
+    - the dated config `header_catalog_max_items` (§39.15.13; not created yet: a migration adds it) set before the icon decision.
+- **Next: the friends' test (Rasheed sends the invite link, §39.15.3), then 13 (security review, includes 5f, 5g and 5h: the flow-app endpoint and its proxy key) and 14 (cut-over) (§39.15.8).** The prompts are in the planning chat's handoff (`claude/HANDOFF-2026-10-07.md` in the Project).
 
 ## How to start each build session
 
@@ -390,10 +390,10 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 ## Owner to-do (Rasheed)
 
 0. **Optional (2 minutes):** give the system user `alo-king-catalog` the WhatsApp account and the `whatsapp_business_management` permission, so kapso-catalog can verify the catalogue's connection and the cart icons itself (Business settings → Users → System users → alo-king-catalog → Assign assets → WhatsApp accounts → the US account, Full control; then generate a new token with `whatsapp_business_management` added and replace `META_CATALOG_TOKEN`).
-0. **Catalogue icon OFF, cart on (Rasheed, 17 October, §39.15.11):** Meta refused the setting through our token: #236 has the 2-minute WhatsApp Manager steps. **Ice breakers and commands:** #237 has the steps.
+0. **Catalogue icon stays ON (§39.15.13; #236 closed as not wanted).** **Ice breakers and commands:** #237 has the steps.
 0. **The website is public** at https://alo-king.vercel.app (#214 closed). **Set Vercel's production branch to `rebuild/lebanon` (#233)**, so each merge reaches the site without a session promoting it. **Supabase Auth redirect URLs (#235)**, so staff password-reset links work.
 0. **Buy `alo-king.com` (§39.15.7, about $10 a year, Cloudflare Registrar):** then tell the planning chat; a session attaches it to Vercel and sets `public_site_url`.
-0. **Anthropic, OpenAI and Deepgram credit/keys (§39.15.9):** add them before or during 5g (any session that finds the keys working runs §39.15.9); it switches the AI and voice on for you and the demo testers as soon as they work.
+0. **Anthropic credit and a working OpenAI key (§39.15.9; Deepgram already works):** any session that finds them working runs §39.15.9; it switches the AI and voice on for you and the demo testers as soon as they pass.
 0. **Optional: a free Pexels API key** (pexels.com/api) as the GitHub secret `PEXELS_API_KEY`, for credit-free dish photos.
 0. **Demo for investors:** they message +1 203-660-2328 from their own phones; every order card comes to your phone marked "Demo" (accept or reject it there).
 0. **Verify the "Memo Tiles" business in Meta (#182):** until then Meta blocks Flows (address and checkout forms) and the claim-code template.
@@ -401,7 +401,7 @@ Use it for strategy, research and decisions. It cannot run code. Decisions it ma
 0. **Install the Slack app (#175, 10 minutes):** create it from `slack/manifest.yml`, install it, paste `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` into GitHub secrets.
 0. **Test the ordering path now (no API credit needed):** send `Order` to the sandbox number from your phone; see the steps in the session T reply and in issue #112. Optional: add the GitHub secret `OWNER_TEST_PHONE` (see the owner issue) if you want to be sure which number may switch sides.
 1. **Anthropic API credit (#167, about $50 with a monthly limit):** the agents' evals (customer text, voice, merchant) and the menu-photo harvest wait for it; each passing eval is then switched on by a PR.
-2. **Deepgram:** add the GitHub secret `DEEPGRAM_API_KEY` (§38.6); check-setup then proves it.
+2. **Deepgram:** done (check-setup run 39052441464 found the key valid, session 5h).
 3. **Also now (5 minutes each):** replace the OpenAI key, which OpenAI rejects (#77), then the next ~100 voice notes (#77). Join the Kapso sandbox from your phone to test the bot live (#112). The Sentry DSN for edge functions (#104; its Telegram part is dropped). Twilio account for the automated merchant call, which spends money (#105).
 4. **Whish:** send the extra questions in §20.6 (#69) and get the API documents and a sandbox key.
 5. **SARL** (about 17 October). The same week:

@@ -1968,7 +1968,7 @@ Max effort is not needed: the work is broad, not deep, and Extra keeps the weekl
   - The evals (run 39052494658) could not run: Anthropic answered 400 "credit balance is too low", and the voice eval has no labels.
   - Nothing was switched on and `usage.ts` prices are unchanged.
 - **Speed (39.15.6):** #245 makes the shop list after a pin one call (`browse_delivering`), stops `address_card` from looking the place up twice, and skips `flow_open` while a Flow is off.
-  - bot_turns on staging, before (11:00 UTC, the smoke and friends' runs) and after the deploy (18:25 to 18:45 UTC, the same runs):
+  - bot_turns on staging, before (11:00 to 12:00 UTC, the smoke and friends' runs) and after the deploy (18:25 to 18:45 UTC, the same runs):
     - taps: p50 0.93 → 0.86 s, p95 2.37 → 1.47 s (114 and 65 taps);
     - pins (address save and the shops): p50 1.85 → 1.23 s, p95 3.25 → 2.70 s (16 and 10).
   - Tap p95 meets the target (p50 0.7 s, p95 1.5 s); tap p50 and pins do not yet. The next lever is `address_save_pin` itself (about 430 ms mean in the database) and the remaining PostgREST round trips of a pin's turn.
