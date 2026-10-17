@@ -60,7 +60,9 @@ export type Intent =
   | { kind: "usual" }
   | { kind: "menu" }
   /** "Change address" (the web menu's and Explore's Change link, session 5g): a new pin, or a tester's demo addresses. */
-  | { kind: "address" };
+  | { kind: "address" }
+  /** "Explore" (session 5g part B): every shop that delivers here, on the web. */
+  | { kind: "explore" };
 
 const any = (t: string, words: RegExp[]) => words.some((w) => w.test(t));
 
@@ -149,6 +151,12 @@ export function deterministicIntent(raw: string): Intent | null {
     )
   )
     return { kind: "address" };
+  if (
+    /^(explore|explorer|استكشف|استكشاف|shops near me|shops near you|commerces pres de chez moi|stakshef)$/.test(
+      t,
+    )
+  )
+    return { kind: "explore" };
   if (/^(basket|cart|my basket|panier|mon panier|السله|سلتي|salle|salleti)$/.test(t))
     return { kind: "basket" };
   if (

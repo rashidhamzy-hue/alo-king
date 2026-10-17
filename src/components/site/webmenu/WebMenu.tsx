@@ -52,7 +52,7 @@ function writeStored(token: string, lines: WebLine[]) {
  * a note, "Goes well with", declared allergens and estimated nutrition, and the cart bar. "Continue in WhatsApp" hands the
  * lines to the server, which checks and prices them and sends the summary in the chat.
  */
-export function WebMenu({ d, token }: { d: Ok; token: string }) {
+export function WebMenu({ d, token, initialItem }: { d: Ok; token: string; initialItem?: string }) {
   const { t, lang } = useSite();
   const w = t.webMenu;
   const shop = d.shop;
@@ -64,6 +64,10 @@ export function WebMenu({ d, token }: { d: Ok; token: string }) {
   }, [d.sections]);
   const [lines, setLines] = useState<WebLine[]>(() => linesFromBasket(d));
   const [open, setOpen] = useState<WebItem | null>(null);
+  // Opened from a dish in Explore: that item's sheet first (after hydration, so the dialog opens as a modal).
+  useEffect(() => {
+    if (initialItem && items.has(initialItem)) setOpen(items.get(initialItem)!);
+  }, [initialItem, items]);
   const [basketOpen, setBasketOpen] = useState(false);
   const [state, setState] = useState<
     | { s: "idle" }
