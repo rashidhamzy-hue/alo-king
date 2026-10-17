@@ -1352,6 +1352,10 @@ describe("demo tester cards pass the checker", () => {
       expect(checkInteractive(twice)).toEqual([]);
       expect(twice.interactive.action.buttons).toHaveLength(1);
       expect(checkInteractive(testerFullMenu("+447700900001", lang))).toEqual([]);
+      // Change address during the test (session 5g part 0f): the same card with its own body.
+      expect(
+        checkInteractive(demoAddressCard("+447700900001", lang, choices, "demoChange")),
+      ).toEqual([]);
     });
   }
   it("a key that is not one is left out", () => {
@@ -1798,7 +1802,8 @@ describe("session 5f part 8b cards pass the checker", () => {
 import { exploreCard, shopMenuCard, shopLine } from "../dispatch/customer/render";
 
 describe("the web menu and Explore buttons (session 5g)", () => {
-  const url = "https://alo-king.vercel.app/ar/m/a-very-long-shop-slug-for-the-limits?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
+  const url =
+    "https://alo-king.vercel.app/ar/m/a-very-long-shop-slug-for-the-limits?t=Ab3_-Ab3_-Ab3_-Ab3_-Ab3_";
   const card = {
     vendor_id: "v",
     name_ar: "مطعم بإسم طويل جداً جداً جداً",
@@ -1814,10 +1819,20 @@ describe("the web menu and Explore buttons (session 5g)", () => {
   for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
     it(`builds a valid cover with Open menu, with and without a photo, and Explore, in ${lang}`, () => {
       const line = shopLine(lang, card, 2.5);
-      const withImage: any = shopMenuCard("+96171000001", lang, "https://x.supabase.co/storage/v1/sign/c.jpg", "A".repeat(80), line, url);
+      const withImage: any = shopMenuCard(
+        "+96171000001",
+        lang,
+        "https://x.supabase.co/storage/v1/sign/c.jpg",
+        "A".repeat(80),
+        line,
+        url,
+      );
       const noImage: any = shopMenuCard("+96171000001", lang, null, "Shop", line, url);
       expect(withImage.interactive.type).toBe("cta_url");
-      expect(withImage.interactive.header).toEqual({ type: "image", image: { link: "https://x.supabase.co/storage/v1/sign/c.jpg" } });
+      expect(withImage.interactive.header).toEqual({
+        type: "image",
+        image: { link: "https://x.supabase.co/storage/v1/sign/c.jpg" },
+      });
       expect(noImage.interactive.header).toBeUndefined();
       for (const p of [withImage, noImage, exploreCard("+96171000001", lang, url)])
         expect(checkInteractive(p), JSON.stringify(p).slice(0, 90)).toEqual([]);
@@ -1837,14 +1852,23 @@ describe("conversational components (ice breakers and commands)", () => {
   it("the ones we set are inside Meta's limits", () => {
     expect(checkConversational(conversational)).toEqual([]);
     expect(conversational.prompts).toHaveLength(4);
-    expect(conversational.commands.map((c) => c.command_name)).toEqual(["order", "explore", "orders", "help"]);
+    expect(conversational.commands.map((c) => c.command_name)).toEqual([
+      "order",
+      "explore",
+      "orders",
+      "help",
+    ]);
   });
   it("catches too many, too long, a slash in a name and duplicates", () => {
-    expect(checkConversational({ prompts: ["a", "b", "c", "d", "e"] }).join()).toMatch(/5 ice breakers/);
-    expect(checkConversational({ prompts: ["x".repeat(81)] }).join()).toMatch(/ice breaker/);
-    expect(checkConversational({ commands: [{ command_name: "/order", command_description: "x" }] }).join()).toMatch(
-      /bad command name/,
+    expect(checkConversational({ prompts: ["a", "b", "c", "d", "e"] }).join()).toMatch(
+      /5 ice breakers/,
     );
+    expect(checkConversational({ prompts: ["x".repeat(81)] }).join()).toMatch(/ice breaker/);
+    expect(
+      checkConversational({
+        commands: [{ command_name: "/order", command_description: "x" }],
+      }).join(),
+    ).toMatch(/bad command name/);
     expect(
       checkConversational({
         commands: [

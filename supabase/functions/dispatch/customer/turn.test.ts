@@ -3247,6 +3247,24 @@ describe("demo testers anywhere in the world (session 5f part 6, DECISIONS §39.
     expect(f.of("catalog_search")).toHaveLength(1);
   });
 
+  it("Change address for a tester: the demo addresses at once (and a pin still works); everyone else gets the pin request", async () => {
+    const f = fake({ rpcs: { demo_address_choices_for: () => choices } });
+    await handleCustomerTurn(f.deps, msg({ text: "Change address" }));
+    expect(f.sent).toHaveLength(2);
+    expect(bodyOf(f.sent[0])).toBe(
+      "📍 For this test, pick a demo address, or share a pin in the Shouf:",
+    );
+    expect(btnIds(f.sent[0])).toEqual(["da:baakleen", "da:deir_el_qamar", "da:beiteddine"]);
+    expect(f.sent[1].interactive.type).toBe("location_request_message");
+    expect(f.of("customer_turn_end")[0].args.p_session.pending).toMatchObject({
+      kind: "await_pin",
+    });
+    for (const m of f.sent) expect(checkInteractive(m)).toEqual([]);
+    const g = fake({ rpcs: { demo_address_choices_for: () => null } });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "c:new_address", type: "interactive" }));
+    expect(g.sent.map((m) => m.interactive.type)).toEqual(["location_request_message"]);
+  });
+
   it("a tester's pin outside the delivery area: the three demo addresses, and the pending step is kept", async () => {
     const pending = { kind: "await_pin", then: "browse" };
     const f = fake({

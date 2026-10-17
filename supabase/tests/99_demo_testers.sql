@@ -513,4 +513,9 @@ select tests.ok(not has_function_privilege('authenticated', 'public.demo_tester_
   and has_function_privilege('service_role', 'public.ops_demo_tester_remove(uuid, text)', 'execute'),
   'the bot and Slack (the service role) may call them');
 
+-- Session 5g part 0f: "Change address" during the test offers the demo addresses at once; nobody else gets any.
+select tests.ok(jsonb_array_length(public.demo_address_choices_for(:'t1')) between 1 and 3
+  and public.demo_address_choices_for(:'real') is null,
+  'a tester gets the demo addresses for Change address; a real customer gets none');
+
 rollback;
