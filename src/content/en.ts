@@ -598,6 +598,10 @@ export const en = {
     noAddressTitle: "Share your location first",
     noAddressText:
       "Explore shows the shops that deliver to you. Go back to WhatsApp, tap Order and share your pin.",
+    outsideTitle: "We don't deliver to {place} yet",
+    outsideTitleNoPlace: "We don't deliver to your address yet",
+    outsideText:
+      "Go back to WhatsApp: you can ask to hear when we reach your village, or order for pickup from a shop.",
     order: "Order in WhatsApp",
     expiredText:
       "This Explore link no longer works. Ask for a new one in WhatsApp, it takes one tap.",

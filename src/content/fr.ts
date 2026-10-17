@@ -606,6 +606,10 @@ export const fr: Copy = {
     noAddressTitle: "Partagez d'abord votre position",
     noAddressText:
       "Explorer montre les commerces qui livrent chez vous. Retournez sur WhatsApp, touchez Commander et partagez votre position.",
+    outsideTitle: "Nous ne livrons pas encore à {place}",
+    outsideTitleNoPlace: "Nous ne livrons pas encore à votre adresse",
+    outsideText:
+      "Revenez sur WhatsApp : demandez à être prévenu quand nous arrivons dans votre village, ou commandez à emporter chez un commerce.",
     order: "Commander sur WhatsApp",
     expiredText:
       "Ce lien Explorer ne marche plus. Demandez-en un nouveau dans WhatsApp, en une touche.",

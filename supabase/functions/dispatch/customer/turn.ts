@@ -2674,8 +2674,10 @@ async function browseHome(c: Ctx, offset = 0) {
   );
   // "Popular near you" after the first page of the craving list (§39.15.2), then Explore on the web (session 5g part B).
   if (!offset) {
+    // The link is made while Popular near you is read (§39.15.6); it is still sent after it.
+    const linkAsk = webLink(c, "explore");
     await popularNearYou(c, r.shops);
-    const url = await webLink(c, "explore");
+    const url = await linkAsk;
     if (url) {
       c.tools.push("web:explore_link");
       push(c, exploreCard(c.m.from, c.s.lang, url));
@@ -2685,8 +2687,11 @@ async function browseHome(c: Ctx, offset = 0) {
 
 /** "Explore" typed or tapped (session 5g part B): the Explore link, or the craving list while the site has no address. */
 async function exploreShops(c: Ctx) {
-  const pt = await c.deps.rpc("customer_search_point", { p_customer_id: c.customerId });
-  if (!pt?.address_id) return startOrder(c);
+  const r = await deliveringShops(c);
+  if (!r.point?.address_id) return startOrder(c);
+  // A place we do not deliver to (yet), or no shop delivering there: the chat's own answer (the waitlist, pickup), never a
+  // list of shops as if they delivered.
+  if (r.paused || !r.shops.length) return browseHome(c);
   const url = await webLink(c, "explore");
   if (!url) return browseHome(c);
   c.tools.push("web:explore_link");

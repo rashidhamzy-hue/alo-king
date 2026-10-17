@@ -51,6 +51,13 @@ select public.web_explore(:'tok', '%') as epct \gset
 select public.web_explore('AAAAAAAAAAAAAAAAAAAAAAAA') ->> 'status' as bad \gset
 reset role;
 select tests.ok(:'e'::jsonb ->> 'status' = 'ok' and :'e'::jsonb #>> '{place,name_en}' = 'Baakline', 'Explore for the customer''s place');
+select tests.ok((:'e'::jsonb ->> 'rate')::numeric = public.usd_lbp_rate(), 'today''s dated rate comes with the page, for $ and LBP');
+-- A place we do not deliver to (yet): no shop list as if it delivered (§3.2 #11).
+update public.places set service_status = 'off' where id = 'LB-CHF-BAAKLINE';
+select tests.ok(public.web_explore(:'tok') ->> 'status' = 'outside'
+  and public.web_explore(:'tok') #>> '{place,name_en}' = 'Baakline'
+  and not (public.web_explore(:'tok') ? 'shops'), 'a place switched off: outside, named, and no shops');
+update public.places set service_status = 'on' where id = 'LB-CHF-BAAKLINE';
 select tests.ok((select array_agg(x ->> 'slug' order by o) from jsonb_array_elements(:'e'::jsonb -> 'shops') with ordinality t(x, o))
   = array['ex-pizza-near', 'alo-test-grill'], 'the shops that deliver here, nearest first; a shop beyond its radius is left out');
 select tests.ok((select (x ->> 'fee_usd')::numeric > 0 and (x ->> 'eta_min')::int >= 1 and (x ->> 'eta_max')::int > (x ->> 'eta_min')::int
