@@ -18,12 +18,15 @@ describe("dish of an item (session 5e)", () => {
     expect(dishOf({ name_en: "MATCHA STRAWBERRY", section_en: "FRAPPE" })).toBe("frappe");
   });
 
-  it("falls back to the section, then the shop's type", () => {
+  it("falls back to the section, never to the shop's type (session 5g)", () => {
     expect(dishOf({ name_en: "- Salmon Skin", section_en: "Hosomaki (4 Pieces)" })).toBe("sushi");
     expect(dishOf({ name_en: "Honey Mustard", section_en: "Dips" })).toBe("dip");
     expect(
       dishOf({ name_en: "Normal", section_en: "Merry Cream Cornet", business_type: "ice_cream" }),
     ).toBe("ice_cream");
+    expect(
+      dishOf({ name_en: "diversity", section_en: "New items", business_type: "restaurant" }),
+    ).toBe("none");
   });
 
   it("shelf items use shelf dishes only, and nothing for shisha or a service", () => {
@@ -39,7 +42,7 @@ describe("dish of an item (session 5e)", () => {
         section_en: "Bakery & Bread",
         business_type: "grocery_supermarket",
       }),
-    ).toBe("bread");
+    ).toBe("pita");
     expect(dishOf({ name_en: "Extra Bowl", section_en: "Argile" })).toBe("none");
   });
 
