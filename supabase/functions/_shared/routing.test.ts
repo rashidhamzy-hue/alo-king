@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   DOORSTEP_M,
@@ -407,5 +409,22 @@ describe("inLebanon", () => {
     expect(inLebanon({ lat: 34.4367, lon: 35.8497 })).toBe(true); // Tripoli
     expect(inLebanon(paris)).toBe(false);
     expect(inLebanon({ lat: Number.NaN, lon: 35.5 })).toBe(false);
+  });
+});
+
+describe("the doorstep in SQL", () => {
+  it("browse's resolver (app_private.shop_road_km) uses the same distance as DOORSTEP_M", () => {
+    const dir = resolve(__dirname, "../../migrations");
+    const newest = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .filter((f) =>
+        /function app_private\.shop_road_km\b/i.test(readFileSync(join(dir, f), "utf8")),
+      )
+      .pop();
+    expect(newest).toBeDefined();
+    expect(readFileSync(join(dir, newest!), "utf8")).toContain(
+      `st_dwithin(v_loc, v_pin, ${DOORSTEP_M})`,
+    );
   });
 });

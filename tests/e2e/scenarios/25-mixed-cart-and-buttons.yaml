@@ -46,6 +46,9 @@ steps:
     expect:
       - { to: cust, buttons: ["cur:USD"] }
   - tap: { as: cust, id: "cur:USD" }
+    expect: [{ to: cust, buttons: ["chg:USD:exact"] }]
+  - note: no change needed (cash on delivery asks "Do you need change?", CUSTOMER-EXPERIENCE #35)
+    tap: { as: cust, id: "chg:USD:exact" }
     expect:
       - { to: cust, buttons: ["cfm:"], text: ["Falafel", "Pepsi"] }
   - tap: { as: cust, id_prefix: "cfm:" }
