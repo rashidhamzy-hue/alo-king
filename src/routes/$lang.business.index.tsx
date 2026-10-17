@@ -100,9 +100,10 @@ function Business() {
           <div className="mt-8 grid items-start gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
             <div>
               <h1 id="biz-title" className="ak-display ak-biz-display">
+                {/* The headline never shows without its number (§39.15.5): no price list, no number in the sentence. */}
                 {fee != null
                   ? fmt(m.title, { fee: feeLabel(fee), pct })
-                  : fmt(m.title.replace("{fee} ", ""), { pct })}
+                  : fmt(m.titleNoFee, { pct })}
               </h1>
               <p className="ak-lead mt-6">{days != null ? fmt(m.sub, { days }) : m.subNoFree}</p>
               <p className="mt-4 max-w-xl font-semibold">{p.hero.lead}</p>

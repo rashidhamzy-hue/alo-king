@@ -382,7 +382,7 @@ export function RegisterFlow({ types }: { types: BusinessTypeRow[] }) {
             <p className="mx-auto max-w-xl text-tone-mute">
               {outcome === "waitlist" ? c.waitlistText : c.reviewText}
             </p>
-            <Link to="/$lang/contact" params={{ lang }} className="ak-btn ak-btn-ink mt-3">
+            <Link to="/$lang/business/contact" params={{ lang }} className="ak-btn ak-btn-ink mt-3">
               {c.contact}
             </Link>
           </div>

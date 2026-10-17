@@ -7,6 +7,7 @@ import { useSite } from "../context";
 const PRICES = [3.5, 4, 2.5];
 
 function Screen({ children, title }: { children: React.ReactNode; title: string }) {
+  const { t } = useSite();
   return (
     <div className="ak-phone ak-phone-sm" role="img" aria-label={title}>
       <div className="ak-phone-screen !min-h-[21rem]">
@@ -14,7 +15,7 @@ function Screen({ children, title }: { children: React.ReactNode; title: string 
           <span className="grid size-8 place-items-center rounded-full bg-gold text-ink">
             <Crown className="h-4 w-5" />
           </span>
-          <span className="text-sm font-bold">Alo King</span>
+          <span className="text-sm font-bold">{t.home.demo.botName}</span>
         </div>
         <div className="ak-chat-body !gap-2.5 !px-3">{children}</div>
       </div>

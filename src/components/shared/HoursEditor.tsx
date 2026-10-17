@@ -37,7 +37,7 @@ export function HoursEditor({ value, onChange }: { value: Hours; onChange: (h: H
                     type="time"
                     value={r[0]}
                     aria-label={`${L(...DAY_LABEL[d])} · ${L("opens", "بيفتح", "ouvre")}`}
-                    className="w-32"
+                    className="min-w-0 flex-1 sm:w-32 sm:flex-none"
                     onChange={(e) =>
                       set(
                         d,
@@ -50,7 +50,7 @@ export function HoursEditor({ value, onChange }: { value: Hours; onChange: (h: H
                     type="time"
                     value={r[1]}
                     aria-label={`${L(...DAY_LABEL[d])} · ${L("closes", "بيسكّر", "ferme")}`}
-                    className="w-32"
+                    className="min-w-0 flex-1 sm:w-32 sm:flex-none"
                     onChange={(e) =>
                       set(
                         d,
@@ -60,14 +60,14 @@ export function HoursEditor({ value, onChange }: { value: Hours; onChange: (h: H
                   />
                   {r[1] <= r[0] && (
                     <span className="text-xs text-muted-foreground">
-                      {L("next day", "اليوم التالي")}
+                      {L("next day", "تاني يوم", "le lendemain")}
                     </span>
                   )}
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label="Remove range"
+                    aria-label={L("Remove this range", "شيل هالفترة", "Retirer cette plage")}
                     onClick={() =>
                       set(
                         d,

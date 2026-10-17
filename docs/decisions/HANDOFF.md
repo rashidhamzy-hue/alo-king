@@ -354,7 +354,7 @@
   - **Smoke suite:** runs 39026974798 and 39027709698 passed 5/5 after #238.
   - **Speed (§39.15.6):** the same five smoke scenarios before (5f) and after #238: address save p50 2.39 → 1.87 s / p95 2.90 → 2.62 s; native cart 1.63 → 0.88 s / 1.75 → 1.07 s; taps 0.89 → 0.82 s / 1.77 → 1.64 s. Carts meet the target; taps and the address save do not yet. The next lever is the address save's own calls (address_save_pin, then the browse RPCs and the two web links) and PostGIS's first call on a fresh connection.
   - **AI and voice (§39.15.9): still off** (Anthropic credit too low, OpenAI key refused #77, no Deepgram key).
-  - **Message to Rasheed:** MSG_LINE
+  - **Message to Rasheed:** sent at 12:07 UTC on 17 October on the US number (outbox 835302, sent; support message 34): the site, INDINER time's web menu and Explore, as his own signed links (24 h). He was outside the 24-hour window, so it went as the approved `alo_support_reply` template ("Claude from Alo King answered your message", Read the reply) with the text held behind it; he tapped Read the reply at 12:07:33 UTC and the text was shown. The support case was created resolved, so no handoff silences the bot.
   - **Open for later:** the item-name clean-up Rasheed deferred (DATA-ISSUES); the optional review nits on #239 and #240 (LOG); carousel_enabled stays off until it is sent once on the US number.
   - **CUT-OVER (session 14), added:**
     - Vercel's production branch is `rebuild/lebanon` (#233) and the production domain answers 200 without a login;

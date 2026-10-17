@@ -207,7 +207,7 @@ export function PhoneField({
         <div className="flex gap-2">
           <select
             aria-label={t.form.countryCode}
-            className="ak-input max-w-[9.5rem] shrink-0"
+            className="ak-input !w-[7.75rem] shrink-0 !px-3 sm:!w-[9.5rem] sm:!px-4"
             dir="ltr"
             value={cc}
             onChange={(e) => onCc(e.target.value)}

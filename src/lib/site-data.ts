@@ -258,8 +258,16 @@ export const EMPTY_OVERVIEW: SiteOverview = {
   rate_at: null,
 };
 
-export const getOverview = async (): Promise<SiteOverview> =>
-  (await rpc<SiteOverview>("site_overview")) ?? EMPTY_OVERVIEW;
+/**
+ * The staging "Test location" (LB-TST-LOCATION, §35) catches test pins from anywhere; it is never a public place. Every
+ * public list (home, map, village list, sitemaps, llms.txt) drops it here, once.
+ */
+export const isTestPlace = (slug: string) => /^tst(-|$)/.test(slug);
+
+export const getOverview = async (): Promise<SiteOverview> => {
+  const o = (await rpc<SiteOverview>("site_overview")) ?? EMPTY_OVERVIEW;
+  return { ...o, places: (o.places ?? []).filter((p) => !isTestPlace(p.slug)) };
+};
 export const getPlace = (slug: string) => rpc<SitePlacePage>("site_place", { p_slug: slug });
 export const getCuisine = (tag: string) => rpc<SiteCuisinePage>("site_cuisine", { p_tag: tag });
 export const getVendorPage = (slug: string) => rpc<SiteVendorPage>("site_vendor", { p_slug: slug });
@@ -293,7 +301,7 @@ export function toDeliveryMap(raw: unknown): DeliveryMapData {
   return {
     places: (Array.isArray(r.places) ? r.places : [])
       .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
-      .filter((p) => typeof p.slug === "string" && SLUG.test(p.slug))
+      .filter((p) => typeof p.slug === "string" && SLUG.test(p.slug) && !isTestPlace(p.slug))
       .map((p) => ({ slug: p.slug as string, shops: n(p.shops), unclaimed: n(p.unclaimed) })),
     unclaimed_total: n(r.unclaimed_total),
   };

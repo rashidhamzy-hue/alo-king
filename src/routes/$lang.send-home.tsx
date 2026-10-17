@@ -94,7 +94,7 @@ function SendHomePage() {
               {s.faqTitle}
             </h2>
             <div className="mt-6">
-              <OrderButton text={t.wa.sendHome} variant="ink" />
+              <OrderButton text={t.wa.sendHome} />
             </div>
           </div>
           <FaqList items={faq} />

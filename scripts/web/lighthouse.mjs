@@ -30,6 +30,8 @@ const PAGES = [
   ["business-en", "/en/business"],
   ["business-fr", "/fr/business"],
   ["business-help-en", "/en/business/help"],
+  // Session 5g (§39.15.5): the businesses' contact page.
+  ["business-contact-ar", "/ar/business/contact"],
   ["drivers-en", "/en/business/drivers"],
   ["merchant-terms-fr", "/fr/business/legal/merchant-terms"],
   // Forms are not for search results (noindex), so they are held to performance and accessibility only.

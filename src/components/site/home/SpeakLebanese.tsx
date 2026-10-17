@@ -1,7 +1,7 @@
 import { useSite } from "../context";
 import { Contours } from "@/design/Contours";
 
-/** Arabic, Arabizi, English and French examples flip through (DECISIONS §37.3.3). CSS only; all four stay in the HTML. */
+/** Arabic, the way you text, English and French examples flip through (DECISIONS §37.3.3, §39.15.5). CSS only; all four stay in the HTML. */
 export function SpeakLebanese() {
   const { t } = useSite();
   const s = t.home.speak;
@@ -29,7 +29,7 @@ export function SpeakLebanese() {
                 className="mx-auto max-w-[20ch] text-[clamp(1.7rem,1rem+3.2vw,2.9rem)] font-extrabold leading-[1.2] tracking-tight"
                 style={{ ["--i" as string]: i } as React.CSSProperties}
               >
-                “{p.text}”
+                {p.dir === "rtl" ? `«${p.text}»` : `“${p.text}”`}
               </p>
             ))}
           </div>

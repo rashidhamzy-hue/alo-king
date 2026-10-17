@@ -7,7 +7,7 @@ export const fr: Copy = {
     business: "Pour les commerces",
     places: "Où nous livrons",
     sendHome: "Send Home",
-    merchants: "Pour les commerçants",
+    merchants: "Pour les commerces",
     help: "Aide",
     contact: "Contact",
     menu: "Menu",
@@ -32,6 +32,7 @@ export const fr: Copy = {
     vendorItems: "Bonjour Alo King, je voudrais commander chez {vendor} : {items}",
     sendHome: "Bonjour Alo King, je voudrais commander pour ma famille au Liban",
     person: "Bonjour Alo King, je voudrais parler à une personne",
+    business: "Bonjour Alo King, j'ai un commerce et je voudrais vous parler",
     track: "Bonjour Alo King, où est ma commande ?",
     item: "Bonjour Alo King, ajoutez {item} de chez {vendor}, s'il vous plaît ({code})",
     menu: "Menu",
@@ -115,18 +116,18 @@ export const fr: Copy = {
     seo: {
       title: "Alo King : commandez repas et produits du quotidien sur WhatsApp au Liban",
       description:
-        "Commandez auprès des commerces près de chez vous en écrivant, en parlant ou en touchant sur WhatsApp, en arabe, anglais, français ou arabizi. Sans application, sans inscription. Paiement à la livraison.",
+        "Commandez auprès des commerces près de chez vous en écrivant, en parlant ou en touchant sur WhatsApp. En arabe, anglais ou français, comme vous écrivez, même mélangés. Sans application, sans inscription. Paiement à la livraison.",
     },
     hero: {
       eyebrow: "Commandez sur WhatsApp · Liban",
       title: "Dites Allô. Votre commande arrive.",
-      sub: "Repas et produits du quotidien des commerces près de chez vous. Écrivez, parlez ou touchez sur WhatsApp, en arabe, anglais, français ou arabizi. Sans application, sans inscription.",
+      sub: "Repas et produits du quotidien des commerces près de chez vous. Écrivez, parlez ou touchez sur WhatsApp. En arabe, anglais ou français, comme vous écrivez, même mélangés. Sans application, sans inscription.",
       statusLive: "Livraison en cours dans {n} lieux du Chouf",
       statusSoon: "Ouverture d'abord dans le Chouf",
       points: [
-        "Paiement à la livraison",
+        "Paiement à la livraison, en $ ou en LBP",
         "Prix fixés par le commerce",
-        "Arabe · English · Français",
+        "عربي · English · Français",
       ],
     },
     demo: {
@@ -135,7 +136,7 @@ export const fr: Copy = {
       voiceLabel: "Message vocal",
       voiceTime: "0:07",
       transcript: "« Salut, deux manakish zaatar w one coca, sans oignon »",
-      transcriptNote: "Compris en français et arabizi",
+      transcriptNote: "Mélangé, et compris",
       cardTitle: "Votre commande",
       shop: "Fournil Abou Ali",
       items: [
@@ -184,10 +185,10 @@ export const fr: Copy = {
     speak: {
       eyebrow: "Parlez libanais",
       title: "Écrivez comme vous parlez.",
-      sub: "Arabe, arabizi, anglais, français, ou les quatre dans une même phrase. Les messages vocaux marchent aussi.",
+      sub: "En arabe, anglais ou français, comme vous écrivez, même mélangés. Les messages vocaux marchent aussi.",
       phrases: [
         { lang: "العربية", text: "بدي ٢ شاورما", dir: "rtl" },
-        { lang: "Arabizi", text: "2 shawarma w pepsi", dir: "ltr" },
+        { lang: "Comme vous écrivez", text: "2 shawarma w pepsi", dir: "ltr" },
         { lang: "English", text: "Two chicken wraps, no garlic, please", dir: "ltr" },
         { lang: "Français", text: "deux manakish zaatar", dir: "ltr" },
       ],
@@ -208,8 +209,9 @@ export const fr: Copy = {
       seePlaces: "Ouvrir la carte",
     },
     merchants: {
-      eyebrow: "Pour les commerçants",
+      eyebrow: "Pour les commerces",
       title: "{fee} par commande. Pas {pct} %.",
+      titleNoFee: "Un tarif fixe par commande. Pas {pct} %.",
       sub: "Un tarif fixe par commande livrée, rien sur les prix de votre menu, rien par mois. Vos {days} premiers jours sont gratuits.",
       subNoFree:
         "Un tarif fixe par commande livrée, rien sur les prix de votre menu, rien par mois.",
@@ -225,7 +227,7 @@ export const fr: Copy = {
         fineprint:
           "Alo King facture {fee} par commande livrée. La commission va de {low} % à {high} % de la valeur de la commande.",
       },
-      cta: "Pour les commerçants",
+      cta: "Pour les commerces",
       ctaNote: "Commencez à revendiquer votre commerce depuis votre téléphone.",
     },
     sendHome: {
@@ -262,6 +264,15 @@ export const fr: Copy = {
       ],
     },
     bizLine: "Vous avez un commerce dans le Chouf ?",
+    pay: {
+      eyebrow: "Comment payer",
+      title: "Paiement à la livraison, en dollars ou en livres",
+      text: "Vous payez la personne à votre porte. Le total s'affiche en $ et en LBP au taux du jour avant de confirmer.",
+      dollars: "Dollars",
+      lira: "Livres",
+      soon: "Bientôt",
+      whishNote: "Le paiement par Whish n'est pas encore disponible.",
+    },
     faq: { eyebrow: "Questions", title: "Bon à savoir", more: "Plus de réponses" },
   },
 
@@ -295,7 +306,7 @@ export const fr: Copy = {
         "{n} villages et localités du Chouf, d'Aïn Zhalta à Bater. Les commerces ouvrent un par un.",
       label: "Trouvez votre village",
       placeholder: "Baakline, بعقلين, ba3e2lin…",
-      hint: "En arabe, anglais, français ou arabizi",
+      hint: "En arabe, anglais ou français, comme vous écrivez",
       noResult: "« {q} » n'est pas encore dans notre zone de livraison.",
       notHere: "{name} est hors de notre zone de livraison pour l'instant.",
       results: "{n} résultats",
@@ -320,6 +331,9 @@ export const fr: Copy = {
       close: "Fermer",
       loading: "Chargement des commerces de {place}…",
       allTitle: "Tous les lieux où nous livrons",
+      allLead:
+        "Les {n} villes et villages de notre zone de livraison, par secteur. Un point allumé : des commerces du village sont sur Alo King.",
+      around: "Autour de {place}",
       shopVillages: "Avec leurs propres commerces",
       otherVillages: "Livrés par les commerces voisins",
       countShops: "{n} sur Alo King",
@@ -659,7 +673,7 @@ export const fr: Copy = {
     {
       id: "languages",
       q: "Quelles langues puis-je utiliser ?",
-      a: "Arabe, anglais, français et arabizi, même mélangés dans un seul message. Nous répondons dans votre langue.",
+      a: "En arabe, anglais ou français, comme vous écrivez, même mélangés dans un seul message. Nous répondons dans votre langue.",
     },
     {
       id: "pay",
@@ -708,7 +722,7 @@ export const fr: Copy = {
     {
       id: "m_cost",
       q: "Combien cela me coûte-t-il ?",
-      a: "La revendication est gratuite. Alo King facture un tarif fixe pour chaque commande livrée ou retirée, affiché sur la page Pour les commerçants. Rien n'est ajouté aux prix de votre menu et il n'y a pas d'abonnement mensuel.",
+      a: "La revendication est gratuite. Alo King facture un tarif fixe pour chaque commande livrée ou retirée, affiché sur la page Pour les commerces. Rien n'est ajouté aux prix de votre menu et il n'y a pas d'abonnement mensuel.",
     },
     {
       id: "m_proof",
@@ -757,7 +771,9 @@ export const fr: Copy = {
     privacyText:
       "Une question sur vos données, ou envie de les supprimer ? Dites-le sur WhatsApp, ou lisez notre page de confidentialité.",
     merchantsTitle: "Commerces",
-    merchantsText: "Vous avez un commerce ? Commencez par la page Pour les commerçants.",
+    merchantsText:
+      "Vous avez un commerce ? Commencez par la page Pour les commerces, ou écrivez-nous depuis là.",
+    bizContact: "Contact pour les commerces",
   },
   track: {
     title: "Suivre votre commande",
@@ -812,12 +828,13 @@ export const fr: Copy = {
   biz: {
     nav: {
       home: "Alo King pour les commerces",
-      short: "Commerces",
+      short: "Pour les commerces",
       pricing: "Tarifs",
       claim: "Revendiquer votre commerce",
       help: "Aide",
       drivers: "Livrer avec nous",
       signIn: "Se connecter",
+      contact: "Contact",
       primary: "Commerces",
       customerSite: "Vous commandez ? Allez sur Alo King",
     },
@@ -844,13 +861,30 @@ export const fr: Copy = {
         "Vos commandes, votre menu et vos réglages fonctionnent sur WhatsApp. L'équipe se connecte au tableau de bord ici.",
       dashboardCta: "Se connecter",
     },
+    contact: {
+      seoTitle: "Contact pour les commerces | Alo King",
+      seoDescription:
+        "Parlez à Alo King de votre commerce : la revendication, le menu, les commandes et les paiements. Sur WhatsApp, en arabe, anglais ou français.",
+      title: "Parlons de votre commerce",
+      lead: "Rasheed et l'équipe configurent chaque nouveau commerce avec vous, sur WhatsApp ou lors d'un court appel.",
+      whatsappTitle: "WhatsApp",
+      whatsappText: "Écrivez-nous quand vous voulez. Une personne répond.",
+      cta: "Nous écrire sur WhatsApp",
+      hoursTitle: "Quand nous répondons",
+      startTitle: "Pas encore sur Alo King ?",
+      startText:
+        "Trouvez votre commerce et revendiquez-le gratuitement, ou inscrivez-en un nouveau.",
+      dashboardTitle: "Déjà sur Alo King ?",
+      dashboardText:
+        "L'équipe se connecte au tableau de bord. Mot de passe oublié ? Réinitialisez-le depuis la page de connexion.",
+    },
   },
   merchantsPage: {
-    seoTitle: "Alo King pour les commerçants : prenez vos commandes sur WhatsApp",
+    seoTitle: "Alo King pour les commerces : prenez vos commandes sur WhatsApp",
     seoDescription:
       "Revendiquez gratuitement votre commerce sur Alo King et prenez vos commandes sur WhatsApp. Un tarif fixe par commande livrée, rien sur les prix de votre menu, rien par mois.",
     hero: {
-      eyebrow: "Pour les commerçants",
+      eyebrow: "Pour les commerces",
       title: "Votre commerce est déjà sur la carte. Prenez maintenant ses commandes sur WhatsApp.",
       lead: "Commencez à revendiquer votre commerce depuis votre téléphone. Les clients commandent en arabe, en anglais ou en français, vous recevez la commande sur WhatsApp, et vos prix restent les vôtres.",
       searchLabel: "Trouvez votre commerce",
@@ -907,7 +941,7 @@ export const fr: Copy = {
         },
         {
           title: "Trois langues",
-          text: "Les clients commandent en arabe, anglais, français ou arabizi. Vous recevez toujours la commande clairement.",
+          text: "Les clients commandent en arabe, anglais ou français, comme ils écrivent, même mélangés. Vous recevez toujours la commande clairement.",
         },
         {
           title: "Espèces aujourd'hui, en ligne plus tard",

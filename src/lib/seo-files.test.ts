@@ -102,7 +102,13 @@ describe("llms.txt", () => {
     const t = llmsTxt("https://aloking.com", overview, vendors);
     expect(t).toContain("# Alo King");
     expect(t).toContain("How to order");
-    expect(t).toContain("[Baakline](https://aloking.com/en/places/chf-baakline): 4 shops");
+    expect(t).toContain(
+      "[Baakline](https://aloking.com/en/places/chf-baakline) (4 shops on Alo King)",
+    );
+    // Every village of the area is listed, live or not, and none reads "0 shops" (§39.15.5).
+    expect(t).toContain("- Around Baakline:");
+    expect(t).toContain("Ain Zhalta");
+    expect(t).not.toMatch(/\b0 shops/);
     expect(t).toContain("https://aloking.com/en/m/abou-ali-shawarma");
     expect(t).toContain("Delivery costs $2.00 to $4.50");
     expect(t).toContain("no ratings");
@@ -110,6 +116,8 @@ describe("llms.txt", () => {
   it("before launch it says opening soon and invents nothing", () => {
     const t = llmsTxt("https://x", EMPTY_OVERVIEW, []);
     expect(t).toContain("Opening soon");
+    expect(t).toContain("- Around Moukhtara:");
+    expect(t).not.toContain("](https://x/en/places/");
     expect(t).not.toContain("Shops (claimed");
     expect(t).not.toContain("Delivery costs");
   });
