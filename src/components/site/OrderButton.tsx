@@ -28,7 +28,7 @@ export function OrderButton({
 }) {
   const { t, lang } = useSite();
   const href = waLink(text ?? t.wa.generic);
-  const cls = `ak-btn ak-btn-${variant} ${size === "lg" ? "ak-btn-lg" : size === "sm" ? "ak-btn-sm" : ""} ${className}`;
+  const cls = `ak-btn ak-btn-${variant} ${size === "lg" ? "ak-btn-lg" : size === "sm" ? "ak-btn-sm" : ""} ${iconOnlyOnMobile ? "is-icon-only" : ""} ${className}`;
   const content = (
     <>
       <WhatsAppIcon className="size-5 shrink-0" />

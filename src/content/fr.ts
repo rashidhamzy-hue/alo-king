@@ -126,7 +126,7 @@ export const fr: Copy = {
       points: [
         "Paiement à la livraison, en $ ou en LBP",
         "Prix fixés par le commerce",
-        "Arabe · English · Français",
+        "عربي · English · Français",
       ],
     },
     demo: {

@@ -283,6 +283,14 @@ html[lang="ar"] .ak-eyebrow {
   color: #fff;
   filter: drop-shadow(0 0 0.6px rgb(23 19 26 / 0.55));
 }
+/* Where the glyph is the button's only visible content (the phone header), it is drawn in ink: white on the green is
+   2.0:1, under the 3:1 a control's only graphic needs (WCAG 1.4.11); ink is 9.3:1. */
+@media (max-width: 639.98px) {
+  .ak-btn-wa.is-icon-only > svg {
+    color: var(--ink);
+    filter: none;
+  }
+}
 .ak-btn-line {
   background: transparent;
   color: inherit;

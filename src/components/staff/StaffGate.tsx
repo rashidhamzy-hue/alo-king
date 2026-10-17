@@ -35,10 +35,18 @@ export function useSession() {
   const [ready, setReady] = useState(false);
   // Back from a reset link (§39.15.5): Supabase signs the person in from the link; they choose a new password first.
   const [recovery, setRecovery] = useState(false);
+  // Back from a reset link that no longer works (used or expired): no session came with it; the sign-in says so.
+  const [expired, setExpired] = useState(false);
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get(RESET_MARK) === "1") setRecovery(true);
+    const marked = new URLSearchParams(window.location.search).get(RESET_MARK) === "1";
+    if (marked) setRecovery(true);
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      if (marked && !data.session) {
+        setRecovery(false);
+        setExpired(true);
+        dropMark();
+      }
       setReady(true);
     });
     const { data } = supabase.auth.onAuthStateChange((e, s) => {
@@ -49,13 +57,18 @@ export function useSession() {
   }, []);
   const recovered = () => {
     setRecovery(false);
-    const u = new URL(window.location.href);
-    if (u.searchParams.has(RESET_MARK)) {
-      u.searchParams.delete(RESET_MARK);
-      window.history.replaceState(null, "", u.pathname + u.search);
-    }
+    dropMark();
   };
-  return { session, ready, recovery, recovered };
+  return { session, ready, recovery, recovered, expired };
+}
+
+/** The reset mark leaves the address once used, so a later sign-in on this tab never asks for a new password. */
+function dropMark() {
+  const u = new URL(window.location.href);
+  if (u.searchParams.has(RESET_MARK)) {
+    u.searchParams.delete(RESET_MARK);
+    window.history.replaceState(null, "", u.pathname + u.search);
+  }
 }
 
 export const signOut = () => supabase.auth.signOut();
@@ -110,7 +123,7 @@ export function StaffGate({
   children: (p: StaffProfile, session: Session) => ReactNode;
 }) {
   const L = useL();
-  const { session, ready, recovery, recovered } = useSession();
+  const { session, ready, recovery, recovered, expired } = useSession();
   const uid = session?.user.id;
   const profileQ = useQuery({
     queryKey: ["staff_profile", uid],
@@ -118,6 +131,8 @@ export function StaffGate({
     queryFn: () => loadProfile(uid!),
   });
 
+  // Back from a reset link: the new password comes before anything else, the account check included (§39.15.5).
+  if (ready && session && recovery) return <NewPassword onDone={recovered} />;
   if (!ready || (uid && profileQ.isLoading))
     return (
       <Shell>
@@ -146,9 +161,12 @@ export function StaffGate({
     );
   if (!session)
     return (
-      <AuthForms title={L(...title)} operatorOnly={roles.length === 1 && roles[0] === "admin"} />
+      <AuthForms
+        title={L(...title)}
+        operatorOnly={roles.length === 1 && roles[0] === "admin"}
+        linkExpired={expired}
+      />
     );
-  if (recovery) return <NewPassword onDone={recovered} />;
   const p = profileQ.data;
   if (!p || !roles.includes(p.role))
     return (
@@ -201,10 +219,13 @@ function Shell({ children }: { children: ReactNode }) {
 export function AuthForms({
   title,
   operatorOnly,
+  linkExpired,
 }: {
   title: string;
   /** The team console has no sign-up. */
   operatorOnly?: boolean;
+  /** Back from a password-reset link that was used or has expired. */
+  linkExpired?: boolean;
 }) {
   const L = useL();
   const [mode, setMode] = useState<"signin" | "forgot" | "sent">("signin");
@@ -234,8 +255,9 @@ export function AuthForms({
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: resetRedirect(),
       });
-      if (error && (error.status === 429 || error.status === 0 || error.status === undefined))
-        throw error;
+      // Only a network failure is shown. Supabase answers 429 (asked again too soon) only for an address with an account,
+      // so it gets the same "Check your email" as every other address.
+      if (error && (error.status === 0 || error.status === undefined)) throw error;
       setMode("sent");
     } catch (err) {
       toast.error(errMsg(err));
@@ -321,6 +343,15 @@ export function AuthForms({
     <Shell>
       <form onSubmit={submit} className="ak-card w-full max-w-sm space-y-5 p-8">
         {head(L("Sign in to continue", "فوت عحسابك لتكمّل", "Connectez-vous pour continuer"))}
+        {linkExpired && (
+          <p className="text-center text-sm text-tone-mute" role="status">
+            {L(
+              "That link has expired or was already used. Tap Forgot password to get a new one.",
+              "هالرابط خلص أو انستعمل قبل. دوس «نسيت كلمة السر» لياخدك رابط جديد.",
+              "Ce lien a expiré ou a déjà servi. Touchez Mot de passe oublié pour en recevoir un nouveau.",
+            )}
+          </p>
+        )}
         {emailField}
         <div>
           <div className="flex items-baseline justify-between gap-3">

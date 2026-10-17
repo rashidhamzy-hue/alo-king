@@ -92,6 +92,7 @@ const STATIC_PAGES = [
   // The business side (DECISIONS §39.11): its own section, its own help and terms.
   "/business",
   "/business/help",
+  "/business/contact",
   "/business/drivers",
   "/business/legal/merchant-terms",
   "/business/legal/collection-mandate",
@@ -179,6 +180,7 @@ ${cuisines ? `\n## Cuisines\n${cuisines}\n` : ""}${shops ? `\n## Shops (claimed 
 - [Contact](${url("/contact")})
 - [For businesses: claim your shop and take orders on WhatsApp](${url("/business")})
 - [Help for businesses](${url("/business/help")})
+- [Contact for businesses](${url("/business/contact")})
 - [Drive with Alo King](${url("/business/drivers")})
 - [Privacy](${url("/legal/privacy")}), [Terms](${url("/legal/terms")}), [Refunds](${url("/legal/refund")})
 
