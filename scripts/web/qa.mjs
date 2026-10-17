@@ -47,11 +47,12 @@ const PAGES = [
   { id: "item-long", path: `/i/${ITEM_IDS.long}` },
   { id: "credits", path: "/credits" },
   // Session 5g: the web shop menu behind its signed link, an expired link.
-  { id: "webmenu", path: `/m/${WEB_SLUG}?t=${WEB_TOKEN}` },
-  { id: "webmenu-expired", path: `/m/${WEB_SLUG}?t=${WEB_TOKEN_EXPIRED}` },
-  { id: "explore", path: `/e?t=${WEB_TOKEN}` },
-  { id: "explore-search", path: `/e?t=${WEB_TOKEN}&q=seven` },
-  { id: "explore-expired", path: `/e?t=${WEB_TOKEN_EXPIRED}` },
+  // The web menu and Explore open inside WhatsApp as an app shell: no site header or footer (session 5g parts A and B).
+  { id: "webmenu", path: `/m/${WEB_SLUG}?t=${WEB_TOKEN}`, shell: true },
+  { id: "webmenu-expired", path: `/m/${WEB_SLUG}?t=${WEB_TOKEN_EXPIRED}`, shell: true },
+  { id: "explore", path: `/e?t=${WEB_TOKEN}`, shell: true },
+  { id: "explore-search", path: `/e?t=${WEB_TOKEN}&q=seven`, shell: true },
+  { id: "explore-expired", path: `/e?t=${WEB_TOKEN_EXPIRED}`, shell: true },
   { id: "send-home", path: "/send-home" },
   { id: "help", path: "/help" },
   { id: "contact", path: "/contact" },
@@ -296,7 +297,7 @@ for (const lang of langs) {
       }
       // §39.15.5: "For businesses" in the customer header and footer; "Where we deliver" in the footer.
       const bizSide = /^(business|claim|register|drivers|merchant-terms|mandate)/.test(pg.id);
-      if (!pg.bare && !bizSide) {
+      if (!pg.bare && !pg.shell && !bizSide) {
         if (!(await page.locator('header a[href$="/business"]').count()))
           errors.push("no For businesses link in the header");
         if (!(await page.locator('footer a[href$="/business"]').count()))
