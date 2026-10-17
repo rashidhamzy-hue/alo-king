@@ -1901,7 +1901,7 @@ Max effort is not needed: the work is broad, not deep, and Extra keeps the weekl
 - **Testers (39.15.3) and catalogue rules (39.15.4):** built as decided. The medicine rule (§38.3) knows medicine words in Arabic, English, French and Arabizi, for customers and for the catalogue; a food claim such as "antibiotic-free chicken" is not a medicine.
 - **AI and voice (39.15.9):** not switched on. The Anthropic API answers "credit balance is too low" (evals run 38891335576, 16 October), the OpenAI key is refused (#77) and no Deepgram key is set.
 - **Speed (39.15.6):** taps on staging p50 0.77 s / p95 3.28 s (16 October) and p50 0.75 s / p95 1.21 s (17 October, the smoke runs), above the §4 target (p50 0.7 s, p95 1.5 s); the slow paths are the address save, the shop menu with its catalogue message and the cart (HANDOFF, session 5f).
-- **Smoke suite:** SMOKE_OUTCOME
+- **Smoke suite:** run 38989125628 passed all 5 scenarios after #225 (the scenarios answer the change question; browse applies the doorstep rule), on recorded routes with no ORS request; the day's first run (38985321196) passed 0 of 5 on those two causes.
 
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
