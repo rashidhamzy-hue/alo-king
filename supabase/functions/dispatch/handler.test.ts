@@ -994,3 +994,53 @@ describe("a promised tip and whoever delivered (session 5f part 7)", () => {
     expect(no.of("app_reply")[0].args.p_payload.text).toContain("can't confirm");
   });
 });
+
+describe("a customer's message to the shop during an active order (session 5f part 8b, spec #45)", () => {
+  it("goes from the merchant number with the order code and the words, never the customer's number", async () => {
+    const db = fakeDb({
+      outbox: [
+        {
+          id: 5,
+          order_id: ORDER,
+          vendor_id: VENDOR,
+          channel: "whatsapp",
+          purpose: "customer_note",
+          target: "+96171000005",
+          payload: { code: "AB3CD9", text: "no onions please", n: 1 },
+          attempts: 1,
+          card,
+        },
+      ],
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].from).toBe("PNID-M");
+    expect(sent[0].payload.to).toBe("96171000005");
+    expect(sent[0].payload.text.body).toBe(
+      "💬 رسالة من الزبون عن الطلب #AB3CD9:\n«no onions please»\n(ملاحظة بس: الطلب وسعره ما بيتغيّروا.)",
+    );
+    expect(db.of("outbox_finish")[0].args).toMatchObject({ p_id: 5, p_status: "sent" });
+  });
+  it("an empty note sends nothing", async () => {
+    const db = fakeDb({
+      outbox: [
+        {
+          id: 6,
+          order_id: ORDER,
+          vendor_id: VENDOR,
+          channel: "whatsapp",
+          purpose: "customer_note",
+          target: "+96171000005",
+          payload: { code: "AB3CD9", text: "  " },
+          attempts: 1,
+          card,
+        },
+      ],
+    });
+    const { d, sent } = deps(db);
+    await runDispatch(d);
+    expect(sent).toHaveLength(0);
+    expect(db.of("outbox_finish")[0].args).toMatchObject({ p_status: "skipped" });
+  });
+});

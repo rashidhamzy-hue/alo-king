@@ -1710,3 +1710,86 @@ describe("session 5f part 8a cards pass the checker", () => {
     });
   }
 });
+
+// Session 5f part 8b (spec §3.5 #28-29, §3.7 #41 and #45, §3.8 #49): every new card, four languages, long names.
+import {
+  gapItemsMessage,
+  otherShopCard,
+  problemPhotoAsk,
+  shopNoteConfirm,
+} from "../dispatch/customer/render";
+import { customerStatusMessages as statusMessages, sameDishCard } from "./customer-cards";
+import { customerNoteCard } from "./merchant-cards";
+describe("session 5f part 8b cards pass the checker", () => {
+  const to = "+96171000001";
+  const U1 = "8b000000-0000-0000-0000-0000000000a1";
+  const longAr = "مطعم ومشاوي وحلويات بإسم طويل جداً جداً جداً جداً لتجربة الحدود القصوى";
+  const longEn = "The Village Grill and Authentic Lebanese Mezze House of the Shouf";
+  const items = Array.from({ length: 5 }, (_, k) => ({
+    item_id: `8b000000-0000-0000-0000-0000000000c${k}`,
+    name_ar: longAr,
+    name_en: longEn,
+    price_usd: 123.456,
+  }));
+  const alts = Array.from({ length: 5 }, (_, k) => ({
+    ref: `v${k + 1}`,
+    vendor_id: `8b000000-0000-0000-0000-0000000000b${k}`,
+    name_ar: longAr,
+    name_en: longEn,
+    same_dish: true,
+  }));
+  for (const lang of ["ar", "en", "fr", "arabizi"] as const) {
+    it(`in ${lang}`, () => {
+      const built: any[] = [
+        otherShopCard(to, lang, longEn, longAr, U1, 99),
+        otherShopCard(to, lang, "", "", U1, 1),
+        gapItemsMessage(to, lang, longEn, 499.99, items),
+        gapItemsMessage(to, lang, longEn, 2.5, items.slice(0, 1)),
+        gapItemsMessage(to, lang, longEn, 2.5, []),
+        problemPhotoAsk(to, lang),
+        shopNoteConfirm(to, lang, longAr, "AB3CD9", "no onions please ".repeat(40)),
+        sameDishCard(to, "x".repeat(900), alts, U1, lang),
+        ...statusMessages(
+          to,
+          { kind: "rejected", lang, reason: "menu_or_price_issue", alternatives: alts },
+          {
+            order_id: U1,
+            code: "AB3CD9",
+            vendor_name: longAr,
+          },
+        ),
+        ...statusMessages(
+          to,
+          { kind: "cancelled", lang, reason: "merchant_unreachable", alternatives: alts },
+          {
+            order_id: U1,
+            code: "AB3CD9",
+            vendor_name: longEn,
+          },
+        ),
+      ];
+      for (const m of built)
+        expect(checkInteractive(m), JSON.stringify(m).slice(0, 160)).toEqual([]);
+      // Two item buttons at most and Empty basket; the same long name twice still gives two different titles.
+      expect(built[2].interactive.action.buttons).toHaveLength(3);
+      expect(new Set(built[2].interactive.action.buttons.map((b: any) => b.reply.title)).size).toBe(
+        3,
+      );
+      expect(built[3].interactive.action.buttons.map((b: any) => b.reply.id)).toEqual([
+        `gap:${items[0].item_id}`,
+        "c:menu",
+        "c:clear",
+      ]);
+      expect(built[7].interactive.action.buttons).toHaveLength(3);
+    });
+  }
+  it("the merchant's note card is a short text: the code and the words, nothing else", () => {
+    for (const lang of ["ar", "en"] as const) {
+      const m: any = customerNoteCard("+96171000005", "AB3CD9", "no onions ".repeat(100), lang);
+      expect(m.type).toBe("text");
+      expect([...m.text.body].length).toBeLessThan(450);
+      expect(m.text.body).toContain("no onions ".repeat(29).trim());
+      expect(m.text.body).toContain("#AB3CD9");
+    }
+  });
+});

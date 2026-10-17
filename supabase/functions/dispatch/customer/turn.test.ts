@@ -5098,3 +5098,520 @@ describe("first contact (session 5f part 8a)", () => {
     });
   });
 });
+
+describe("session 5f part 8b: second shop, minimum order, a shop that can't take it, notes, problems", () => {
+  const ITEM_B = "51000000-0000-0000-0000-0000000000b1";
+  const ORDER = "70000000-0000-0000-0000-000000000001";
+  const SHOP_B = "20000000-0000-0000-0000-0000000000b1";
+  const btnIds = (p: any) => (p?.interactive?.action?.buttons ?? []).map((b: any) => b.reply.id);
+  const btnTitles = (p: any) =>
+    (p?.interactive?.action?.buttons ?? []).map((b: any) => b.reply.title);
+  const session = (o: any = {}) => ({
+    session: {
+      lang: "en",
+      pending: {},
+      refs: {},
+      history: [],
+      low_confidence: 0,
+      handoff: false,
+      ...o,
+    },
+  });
+  const endSess = (f: ReturnType<typeof fake>) => f.of("customer_turn_end")[0].args.p_session;
+
+  // #28 ------------------------------------------------------------------------------------------------------------------
+  it("#28 an item from a second shop: 'Your basket is from Eatout. Start a new one from SEVEN?' with Start new / Keep Eatout", async () => {
+    const f = fake({
+      begin: { basket, ...session({ refs: { i1: { id: ITEM_B, label: "Fries $3.00" } } }) },
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "other_vendor", basket_vendor: "إيت أوت" }),
+        basket_switch_names: () => ({
+          basket_vendor: "إيت أوت",
+          basket_vendor_en: "Eatout",
+          item_vendor: "سفن",
+          item_vendor_en: "SEVEN",
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "qt:i1:2", type: "interactive" }));
+    expect(f.of("basket_switch_names")[0].args).toEqual({ p_customer_id: CUST, p_item_id: ITEM_B });
+    expect(bodyOf(f.sent[0])).toBe("Your basket is from Eatout. Start a new one from SEVEN?");
+    expect(btnIds(f.sent[0])).toEqual([`rpl:${ITEM_B}:2`, "c:keep"]);
+    expect(btnTitles(f.sent[0])).toEqual(["✅ Start new", "Keep Eatout"]);
+    expect(checkInteractive(f.sent[0])).toEqual([]);
+    expect(endSess(f).pending).toEqual({ kind: "replace_basket", item_id: ITEM_B, qty: 2 });
+  });
+
+  it("#28 in Arabic the names are Arabic; a typed yes starts the new basket, a no keeps it", async () => {
+    const f = fake({
+      begin: { basket, ...session({ lang: "ar", refs: { i1: { id: ITEM_B, label: "x" } } }) },
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "other_vendor", basket_vendor: "إيت أوت" }),
+        basket_switch_names: () => ({
+          basket_vendor: "إيت أوت",
+          basket_vendor_en: "Eatout",
+          item_vendor: "سفن",
+          item_vendor_en: "SEVEN",
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "qt:i1:1", type: "interactive" }));
+    expect(bodyOf(f.sent[0])).toBe("سلّتك من إيت أوت. بدّك تبلّش سلّة جديدة من سفن؟");
+    const pending = endSess(f).pending;
+    const yes = fake({
+      begin: { basket, ...session({ pending }) },
+      rpcs: { basket_add_item: () => ({ status: "added", basket }) },
+    });
+    await handleCustomerTurn(yes.deps, msg({ text: "yes" }));
+    expect(yes.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ITEM_B, p_replace: true });
+    expect(endSess(yes).pending).toEqual({});
+    const no = fake({ begin: { basket, ...session({ pending }) } });
+    await handleCustomerTurn(no.deps, msg({ text: "no" }));
+    expect(no.of("basket_add_item")).toHaveLength(0);
+    expect(endSess(no).pending).toEqual({});
+  });
+
+  it("#28 the agent starts the new basket the same way (add_items with start_new_basket), only once the question was asked", async () => {
+    // Without the question: the agent's flag never empties a basket; the usual add asks first.
+    const q = fake({
+      begin: { basket, ...session({ refs: { i1: { id: ITEM_B, label: "Fries $3.00" } } }) },
+      model: () =>
+        tool("add_items", {
+          vendor_ref: null,
+          start_new_basket: true,
+          items: [{ item_ref: "i1", name: null, quantity: 1, options: [], note: null }],
+        }),
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({
+          status: "other_vendor",
+          basket_vendor: "Eatout",
+          basket_vendor_en: "Eatout",
+        }),
+      },
+    });
+    await handleCustomerTurn(q.deps, msg({ text: "empty it and start from seven" }));
+    expect(q.of("basket_add_item").every((c) => c.args.p_replace !== true)).toBe(true);
+    const f = fake({
+      begin: {
+        basket,
+        ...session({
+          pending: { kind: "replace_basket", item_id: ITEM_B, qty: 1 },
+          refs: { i1: { id: ITEM_B, label: "Fries $3.00" } },
+        }),
+      },
+      model: () =>
+        tool("add_items", {
+          vendor_ref: null,
+          start_new_basket: true,
+          items: [{ item_ref: "i1", name: null, quantity: 1, options: [], note: null }],
+        }),
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: (a) => ({ status: "added", basket: { ...basket, vendor_id: "B" }, a }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "ok empty it and start from seven" }));
+    expect(f.of("basket_add_item")[0].args).toMatchObject({ p_item_id: ITEM_B, p_replace: true });
+    expect(
+      validate("add_items", {
+        vendor_ref: null,
+        items: [{ item_ref: "i1", name: null, quantity: 1, options: [], note: null }],
+      }),
+    ).toBe(true);
+    expect(
+      validate("add_items", {
+        vendor_ref: null,
+        start_new_basket: "yes",
+        items: [{ item_ref: "i1", name: null, quantity: 1, options: [], note: null }],
+      }),
+    ).toBe(false);
+  });
+
+  // #29 ------------------------------------------------------------------------------------------------------------------
+  const below = {
+    status: "below_minimum",
+    basket,
+    min_order_usd: 15,
+    subtotal_usd: 12.5,
+    missing_usd: 2.5,
+  };
+  const gap = {
+    status: "below_minimum",
+    missing_usd: 2.5,
+    vendor: "إيت أوت",
+    vendor_en: "Eatout",
+    items: [
+      {
+        item_id: "51000000-0000-0000-0000-0000000000c1",
+        name_en: "Fries",
+        name_ar: "بطاطا",
+        price_usd: 3,
+      },
+      {
+        item_id: "51000000-0000-0000-0000-0000000000c2",
+        name_en: "Hummus",
+        name_ar: "حمص",
+        price_usd: 4,
+      },
+      {
+        item_id: "51000000-0000-0000-0000-0000000000c3",
+        name_en: "Pepsi",
+        name_ar: "بيبسي",
+        price_usd: 1,
+      },
+    ],
+  };
+
+  it("#29 under the minimum: 'Add $2.50 more to order from Eatout' and two items that close the gap, one tap each, and Empty basket", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: { basket_quote: () => below, basket_gap_items: () => gap },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+    expect(f.of("basket_gap_items")[0].args).toEqual({ p_customer_id: CUST, p_limit: 2 });
+    const m = f.sent[0];
+    expect(bodyOf(m)).toMatch(
+      /^Add \$2\.50 more to order from Eatout\. One tap adds it:\n• Fries · \$3\.00\n• Hummus · \$4\.00$/,
+    );
+    expect(btnIds(m)).toEqual([...gap.items.slice(0, 2).map((i) => `gap:${i.item_id}`), "c:clear"]);
+    expect(btnTitles(m).slice(0, 2)).toEqual(["➕ Fries", "➕ Hummus"]);
+    expect(checkInteractive(m)).toEqual([]);
+    // The agent can add them by asking too: they are item refs now.
+    const refs = endSess(f).refs;
+    expect(Object.values(refs).map((r: any) => r.id)).toEqual(
+      expect.arrayContaining(gap.items.slice(0, 2).map((i) => i.item_id)),
+    );
+  });
+
+  it("#29 one tap adds the item at the server's price and shows the summary again", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        menu_item_options: () => [],
+        basket_add_item: () => ({ status: "added", basket }),
+        basket_quote: () => ({
+          status: "ok",
+          basket,
+          subtotal_usd: 15.5,
+          delivery_fee_usd: 2,
+          total_usd: 17.5,
+          total_lbp: 1566250,
+          usd_lbp_rate: 89500,
+          cod_cap_usd: 50,
+          over_cod_cap: false,
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ buttonId: `gap:${gap.items[0].item_id}`, type: "interactive" }),
+    );
+    expect(f.of("basket_add_item")[0].args).toMatchObject({
+      p_item_id: gap.items[0].item_id,
+      p_quantity: 1,
+      p_replace: false,
+    });
+    expect(f.sent.some((p) => btnIds(p)[0]?.startsWith("cfm:"))).toBe(true);
+  });
+
+  it("#29 nothing closes it (or the server finds none): the minimum message as before, with its button", async () => {
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        basket_quote: () => below,
+        basket_gap_items: () => ({ status: "below_minimum", items: [] }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+    expect(bodyOf(f.sent[0])).toMatch(/minimum order is \$15\.00 of food\. Add \$2\.50 more/);
+    expect(btnIds(f.sent[0])).toEqual(["c:basket", "c:clear"]);
+  });
+
+  // #41 ------------------------------------------------------------------------------------------------------------------
+  it("#41 one tap rebuilds the order at the shop with the same dish; what it does not have is named", async () => {
+    const f = fake({
+      rpcs: {
+        order_rebuild_at: () => ({
+          status: "ok",
+          order_id: ORDER,
+          code: "AB3CD9",
+          vendor_id: SHOP_B,
+          vendor: "سفن",
+          vendor_en: "SEVEN",
+          lines: [{ item_id: ITEM_B, quantity: 2 }],
+          missing: [{ name_ar: "كنافة", name_en: "Knefe", quantity: 1 }],
+        }),
+        cart_merge: () => ({
+          status: "ok",
+          added: 1,
+          basket,
+          skipped: [],
+          needs_options: [],
+          diffs: [],
+        }),
+        basket_quote: () => ({
+          status: "ok",
+          basket,
+          subtotal_usd: 10,
+          delivery_fee_usd: 2,
+          total_usd: 12,
+          total_lbp: 1074000,
+          usd_lbp_rate: 89500,
+          cod_cap_usd: 50,
+          over_cod_cap: false,
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ buttonId: `rb:${ORDER}:${SHOP_B}`, type: "interactive", messageId: "wamid.rb" }),
+    );
+    expect(f.of("order_rebuild_at")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_order_id: ORDER,
+      p_vendor_id: SHOP_B,
+    });
+    expect(f.of("cart_merge")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_message_id: "wamid.rb",
+      p_lines: [{ item_id: ITEM_B, quantity: 2, shown_usd: null }],
+      // Never replaces a newer basket unasked (§39.15.2): a rejected order leaves none to replace.
+      p_replace: false,
+    });
+    expect(f.of("cart_split")).toHaveLength(0);
+    expect(bodyOf(f.sent[0])).toBe("Not at SEVEN: 1× Knefe. The rest is in your basket.");
+    expect(f.sent.some((p) => btnIds(p)[0]?.startsWith("cfm:"))).toBe(true);
+  });
+
+  it("#41 the shop is no longer open or has none of the dishes: said with a way forward", async () => {
+    for (const [status, re] of [
+      ["vendor_unavailable", /can't take this order right now/],
+      ["nothing", /SEVEN doesn't have these dishes right now/],
+    ] as const) {
+      const f = fake({
+        rpcs: { order_rebuild_at: () => ({ status, vendor_en: "SEVEN", lines: [] }) },
+      });
+      await handleCustomerTurn(
+        f.deps,
+        msg({ buttonId: `rb:${ORDER}:${SHOP_B}`, type: "interactive" }),
+      );
+      expect(bodyOf(f.sent[0])).toMatch(re);
+      expect(btnIds(f.sent[0])).toEqual(["c:order", "c:human"]);
+      expect(f.of("cart_merge")).toHaveLength(0);
+    }
+  });
+
+  it("#41 the agent rebuilds it too, at a shop the server offered (rebuild_basket): the order comes from the server", async () => {
+    const f = fake({
+      begin: session({ refs: { v1: { id: SHOP_B, label: "SEVEN" } } }),
+      model: () => tool("rebuild_basket", { vendor_ref: "v1" }),
+      rpcs: { order_rebuild_at: () => ({ status: "nothing", vendor_en: "SEVEN" }) },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "get it from seven instead" }));
+    expect(f.of("order_rebuild_at")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_order_id: null,
+      p_vendor_id: SHOP_B,
+    });
+    expect(validate("rebuild_basket", { vendor_ref: "v1" })).toBe(true);
+    expect(validate("rebuild_basket", { vendor_ref: SHOP_B })).toBe(false);
+  });
+
+  // #45 ------------------------------------------------------------------------------------------------------------------
+  const active = {
+    orders: [
+      { id: ORDER, code: "AB3CD9", status: "accepted", vendor: "إيت أوت", vendor_en: "Eatout" },
+    ],
+  };
+
+  it("#45 during an active order, typed words are offered to the shop first; Send passes them as a note", async () => {
+    const f = fake({ model: null, begin: active });
+    await handleCustomerTurn(f.deps, msg({ text: "please no onions on the shawarma" }));
+    expect(f.of("order_note_send")).toHaveLength(0);
+    expect(f.of("catalog_search")).toHaveLength(0);
+    expect(bodyOf(f.sent[0])).toBe(
+      "💬 Send this to Eatout as a note on order #AB3CD9?\n«please no onions on the shawarma»",
+    );
+    expect(btnIds(f.sent[0])).toEqual(["msn:send", "msn:search"]);
+    expect(checkInteractive(f.sent[0])).toEqual([]);
+    const pending = endSess(f).pending;
+    expect(pending).toMatchObject({ kind: "shop_note", text: "please no onions on the shawarma" });
+
+    const g = fake({
+      model: null,
+      begin: { ...active, ...session({ pending }) },
+      rpcs: {
+        order_note_send: () => ({
+          status: "sent",
+          code: "AB3CD9",
+          vendor: "إيت أوت",
+          vendor_en: "Eatout",
+          left: 4,
+        }),
+      },
+    });
+    await handleCustomerTurn(
+      g.deps,
+      msg({ type: "interactive", buttonId: "msn:send", messageId: "wamid.note1" }),
+    );
+    expect(g.of("order_note_send")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_text: "please no onions on the shawarma",
+      p_message_id: "wamid.note1",
+    });
+    expect(bodyOf(g.sent[0])).toBe(
+      "✉️ Passed to Eatout with order #AB3CD9. A note only: your order and its price stay as they are.",
+    );
+    expect(endSess(g).pending).toEqual({});
+
+    // Search the menu: the same words go to the search, nothing to the shop.
+    const h = fake({ model: null, begin: { ...active, ...session({ pending }) } });
+    await handleCustomerTurn(h.deps, msg({ type: "interactive", buttonId: "msn:search" }));
+    expect(h.of("order_note_send")).toHaveLength(0);
+    expect(h.of("catalog_search")[0].args.p_query).toBe("please no onions on the shawarma");
+  });
+
+  it("#45 the limit per order is said with a person's button; tracking words still track", async () => {
+    const f = fake({
+      model: null,
+      begin: {
+        ...active,
+        ...session({
+          pending: { kind: "shop_note", text: "hello again shop", at: "2026-10-11T12:00:00.000Z" },
+        }),
+      },
+      rpcs: {
+        order_note_send: () => ({ status: "limit", code: "AB3CD9", vendor_en: "Eatout", max: 5 }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ type: "interactive", buttonId: "msn:send" }));
+    expect(bodyOf(f.sent[0])).toMatch(/already sent 5 messages to Eatout for order #AB3CD9/);
+    expect(btnIds(f.sent[0])).toEqual(["c:track", "c:human"]);
+    const g = fake({
+      model: null,
+      begin: active,
+      rpcs: {
+        order_track: () => ({ code: "AB3CD9", status: "accepted", eta: { min: 10, max: 20 } }),
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ text: "where is my order?" }));
+    expect(g.of("order_note_send")).toHaveLength(0);
+    expect(g.of("order_track")).toHaveLength(1);
+  });
+
+  it("#45 not when the text answers a pending question, and not without an active order", async () => {
+    const f = fake({
+      model: null,
+      begin: { ...active, ...session({ pending: { kind: "recipient", address_id: "a" } }) },
+      rpcs: { address_set_recipient: () => ({ status: "bad" }) },
+    });
+    await handleCustomerTurn(f.deps, msg({ text: "Teta 71123456" }));
+    expect(f.of("order_note_send")).toHaveLength(0);
+    const g = fake({
+      model: null,
+      begin: { orders: [{ id: ORDER, code: "AB3CD9", status: "delivered" }] },
+      rpcs: { catalog_search: () => ({ status: "ok", items: [] }) },
+    });
+    await handleCustomerTurn(g.deps, msg({ text: "shawarma" }));
+    expect(g.of("order_note_send")).toHaveLength(0);
+    expect(g.of("catalog_search")).toHaveLength(1);
+  });
+
+  it("#45 with the agent on, the agent decides: its message_shop tool passes the note (never narrowed, §39.14)", async () => {
+    const f = fake({
+      begin: active,
+      model: () => tool("message_shop", { text: "I'm at the back door" }),
+      rpcs: { order_note_send: () => ({ status: "sent", code: "AB3CD9", vendor_en: "Eatout" }) },
+    });
+    f.deps.config.freeText = true;
+    await handleCustomerTurn(f.deps, msg({ text: "tell them I'm at the back door" }));
+    expect(f.modelReqs).toHaveLength(1);
+    expect(f.of("order_note_send")[0].args.p_text).toBe("I'm at the back door");
+    expect(bodyOf(f.sent[0])).toMatch(/^✉️ Passed to Eatout/);
+    expect(validate("message_shop", { text: "" })).toBe(false);
+    expect(validate("message_shop", { text: "x".repeat(301) })).toBe(false);
+    const g = fake({
+      model: () => tool("message_shop", { text: "hi" }),
+      rpcs: { order_note_send: () => ({ status: "no_order" }) },
+    });
+    await handleCustomerTurn(g.deps, msg({ text: "tell the shop hi" }));
+    expect(btnIds(g.sent[0])).toEqual(["c:order", "c:human"]);
+  });
+
+  // #49 ------------------------------------------------------------------------------------------------------------------
+  it("#49 a photo sent while a person decides joins the report and its thread", async () => {
+    const f = fake({
+      begin: session({ handoff: true }),
+      rpcs: { dispute_photo_add: () => ({ status: "attached", code: "AB3CD9", dispute_id: "d" }) },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({ type: "image", image: { id: "MEDIA9", mime: "image/jpeg" } }),
+    );
+    expect(f.of("dispute_photo_add")[0].args).toEqual({
+      p_customer_id: CUST,
+      p_photo_ref: "wa-media:MEDIA9",
+    });
+    expect(f.of("support_inbound")[0].args.p_text).toMatch(
+      /Photo for order AB3CD9 \(wa-media:MEDIA9\)/,
+    );
+    expect(bodyOf(f.sent[0])).toBe("📷 Thanks, the photo is with your report on order #AB3CD9.");
+    expect(f.sent).toHaveLength(2); // and the waiting card with its Menu button
+  });
+
+  it("#49 the optional photo question answered by a voice note: its words go with the report", async () => {
+    const pending = { kind: "problem_photo", problem: "wrong_item", item_id: LINE, qty: 1 };
+    const f = fake({
+      begin: session({ pending, refs: { xd: { id: ORDER, label: "AB3CD9" } } }),
+      transcribe: async () => ({ text: "they sent pepsi instead of seven up", model: "m" }),
+      rpcs: { dispute_report: () => ({ status: "review" }) },
+    });
+    await handleCustomerTurn(
+      f.deps,
+      msg({
+        type: "audio",
+        audio: {
+          url: "https://x/a.ogg",
+          id: "a1",
+          mime: "audio/ogg",
+          bytes: 1000,
+          transcript: null,
+        },
+      }),
+    );
+    expect(f.of("dispute_report")[0].args).toMatchObject({
+      p_kind: "wrong_item",
+      p_order_item_id: LINE,
+      p_note: "they sent pepsi instead of seven up",
+      p_photo_ref: null,
+    });
+  });
+
+  it("#49 an image outside a report is not a report; a photo id is read from the message", () => {
+    const base = { conversation: { phone_number: "96176000001" } };
+    expect(
+      readCustomerInbound({
+        ...base,
+        message: { id: "a", type: "image", image: { id: "123ABC", mime_type: "image/png" } },
+      })?.image,
+    ).toEqual({ id: "123ABC", mime: "image/png" });
+    expect(
+      readCustomerInbound({
+        ...base,
+        message: { id: "a", type: "image", image: { id: "../etc/passwd" } },
+      })?.image,
+    ).toBeNull();
+  });
+
+  it("the new tools have contracts and strict schemas", () => {
+    for (const n of ["message_shop", "rebuild_basket"]) {
+      const t = TOOLS.find((x) => x.name === n)!;
+      expect(t.strict).toBe(true);
+      expect(TOOL_CONTRACT[n as keyof typeof TOOL_CONTRACT]).toBeDefined();
+      expect(SYSTEM_PROMPT).toContain(n);
+    }
+  });
+});

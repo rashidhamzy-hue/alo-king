@@ -3583,3 +3583,242 @@ export function outsideAreaCard(
 export function shopLinkPin(to: string, lang: CLang, vendor: string): Msg {
   return locationRequest(to, tr(lang, "shopLinkPin", { vendor: clip(vendor, 60) }));
 }
+
+// ---- Session 5f part 8b: second shop, minimum order, a shop that cannot take it, notes to the shop, problems ------------
+// CUSTOMER-EXPERIENCE §3.5 #28-29, §3.7 #41 and #45, §3.8 #49-50. A discount on the next order is a discount line, never
+// stored money: the dispute wording below replaces the 5c "credit" wording (same keys, assigned after S5C).
+const S5F8B: Record<string, Record<CLang, string>> = {
+  // #28 An item from a second shop: one shop per order (§30.4).
+  basketOtherShop: {
+    ar: "سلّتك من {basket}. بدّك تبلّش سلّة جديدة من {shop}؟",
+    en: "Your basket is from {basket}. Start a new one from {shop}?",
+    fr: "Votre panier vient de {basket}. En commencer un nouveau chez {shop} ?",
+    arabizi: "Salltak men {basket}. Baddak tballesh salle jdide men {shop}?",
+  },
+  startNew: {
+    ar: "✅ سلّة جديدة",
+    en: "✅ Start new",
+    fr: "✅ Nouveau panier",
+    arabizi: "✅ Salle jdide",
+  },
+  keepShop: { ar: "خلّي {shop}", en: "Keep {shop}", fr: "Garder {shop}", arabizi: "5alli {shop}" },
+  // #29 Under the shop's minimum order.
+  gapAdd: {
+    ar: "زيد {missing} لتطلب من {vendor}.",
+    en: "Add {missing} more to order from {vendor}.",
+    fr: "Ajoutez {missing} pour commander chez {vendor}.",
+    arabizi: "Zid {missing} ta totlob men {vendor}.",
+  },
+  gapPick: {
+    ar: "بكبسة وحدة بتزيد:",
+    en: "One tap adds it:",
+    fr: "Un toucher l'ajoute :",
+    arabizi: "B kabse wa7de btzid:",
+  },
+  // #45 A message to the shop during an active order.
+  noteKept: {
+    ar: "✉️ سجّلنا كلامك لـ {vendor} مع الطلب #{code}، وفريقنا بيوصّلو. ملاحظة بس: الطلب وسعره ما بيتغيّروا.",
+    en: "✉️ Noted for {vendor} with order #{code}; our team passes it on. A note only: your order and its price stay as they are.",
+    fr: "✉️ Noté pour {vendor} avec la commande #{code} ; notre équipe le transmet. C'est une note : la commande et son prix ne changent pas.",
+    arabizi:
+      "✉️ Sajjalna kalemak la {vendor} ma3 el talab #{code}, w fari2na bywasslo. Mula7aza bas: el talab w se3ro ma byetghayaro.",
+  },
+  noteSent: {
+    ar: "✉️ وصّلنا كلامك لـ {vendor} مع الطلب #{code}. ملاحظة بس: الطلب وسعره ما بيتغيّروا.",
+    en: "✉️ Passed to {vendor} with order #{code}. A note only: your order and its price stay as they are.",
+    fr: "✉️ Transmis à {vendor} avec la commande #{code}. C'est une note : la commande et son prix ne changent pas.",
+    arabizi:
+      "✉️ Wassalna kalemak la {vendor} ma3 el talab #{code}. Mula7aza bas: el talab w se3ro ma byetghayaro.",
+  },
+  noteLimit: {
+    ar: "بعتت {max} رسايل لـ {vendor} عن الطلب #{code}. لتحكي مع حدا، دوس «حدا بشري».",
+    en: "You've already sent {max} messages to {vendor} for order #{code}. To reach a person, tap A person.",
+    fr: "Vous avez déjà envoyé {max} messages à {vendor} pour la commande #{code}. Pour parler à quelqu'un, touchez Une personne.",
+    arabizi:
+      "Ba3atet {max} rasayel la {vendor} 3an el talab #{code}. Ta te7ke ma3 7ada, dos Shakhs.",
+  },
+  // #41 The order rebuilt at a shop with the same dish.
+  rebuildMissing: {
+    ar: "مش موجود عند {vendor}: {items}. الباقي صار بسلّتك.",
+    en: "Not at {vendor}: {items}. The rest is in your basket.",
+    fr: "Pas chez {vendor} : {items}. Le reste est dans votre panier.",
+    arabizi: "Msh mawjoud 3and {vendor}: {items}. El ba2i sar b salltak.",
+  },
+  rebuildNothing: {
+    ar: "{vendor} ما عندو هالأكلات هلق. دوس «اطلب» لتختار محل تاني.",
+    en: "{vendor} doesn't have these dishes right now. Tap Order to pick another shop.",
+    fr: "{vendor} n'a pas ces plats pour le moment. Touchez Commander pour choisir un autre commerce.",
+    arabizi: "{vendor} ma 3endo hal aklet hala2. Dos Otlob ta tna22e ma7al tene.",
+  },
+  rebuildGone: {
+    ar: "هالمحل ما فيه ياخد هالطلب هلق. دوس «اطلب» لتلاقي غيرو.",
+    en: "That shop can't take this order right now. Tap Order to find another.",
+    fr: "Ce commerce ne peut pas prendre cette commande pour le moment. Touchez Commander pour en trouver un autre.",
+    arabizi: "Hal ma7al ma fi yekhod hal talab hala2. Dos Otlob ta tle2e ghayro.",
+  },
+  // #49 The optional photo.
+  problemPhotoAsk: {
+    ar: "📷 إذا فيك، ابعتلنا صورة للي وصلك، أو اكتبلنا شو صار. أو دوس «بلا صورة».",
+    en: "📷 If you can, send a photo of what arrived, or write what happened. Or tap Skip photo.",
+    fr: "📷 Si possible, envoyez une photo de ce que vous avez reçu, ou écrivez ce qui s'est passé. Ou touchez Sans photo.",
+    arabizi: "📷 Iza fik, b3atelna sura lal wosel, aw ekteb shu sar. Aw dos Bala sura.",
+  },
+  skipPhoto: { ar: "بلا صورة", en: "Skip photo", fr: "Sans photo", arabizi: "Bala sura" },
+  // #45 before AI credit: a typed text during an active order is passed to the shop only when the customer says so.
+  shopNoteAsk: {
+    ar: "💬 نبعت هيدا لـ {vendor} كملاحظة عطلبك #{code}؟\n«{text}»",
+    en: "💬 Send this to {vendor} as a note on order #{code}?\n«{text}»",
+    fr: "💬 Envoyer ceci à {vendor} comme note sur la commande #{code} ?\n« {text} »",
+    arabizi: "💬 Nab3at hayda la {vendor} ka mola7aza 3a talabak #{code}?\n«{text}»",
+  },
+  btnSendToShop: {
+    ar: "ابعتها للمحل",
+    en: "Send to the shop",
+    fr: "Envoyer au commerce",
+    arabizi: "B3ata lal ma7al",
+  },
+  btnSearchMenu: {
+    ar: "دوّر بالمنيو",
+    en: "Search the menu",
+    fr: "Chercher au menu",
+    arabizi: "Dawwer bel menu",
+  },
+  photoAttached: {
+    ar: "📷 شكراً، الصورة صارت مع شكوتك عن الطلب #{code}.",
+    en: "📷 Thanks, the photo is with your report on order #{code}.",
+    fr: "📷 Merci, la photo est jointe à votre signalement pour la commande #{code}.",
+    arabizi: "📷 Merci, el sura sarit ma3 shakwetak 3an el talab #{code}.",
+  },
+  // #49-50 A discount line on the next order: no cash value, not stored money (replaces the 5c credit wording).
+  disputeCredit: {
+    ar: "🙏 آسفين. إلك خصم {amount} ({lbp} ل.ل) عطلبك الجاي، صالح {days} يوم. ما إلو قيمة نقدية.",
+    en: "🙏 Sorry about that. You get {amount} ({lbp} LBP) off your next order, valid {days} days. It has no cash value.",
+    fr: "🙏 Désolé. Vous avez {amount} ({lbp} LBP) de remise sur votre prochaine commande, valable {days} jours. Sans valeur en espèces.",
+    arabizi:
+      "🙏 Asfin. 2elak khasm {amount} ({lbp} LBP) 3a talabak el jeye, sale7 {days} yom. Ma elo 2ime cash.",
+  },
+  creditLine: {
+    ar: "خصم من Alo King",
+    en: "Alo King discount",
+    fr: "Remise Alo King",
+    arabizi: "Khasm men Alo King",
+  },
+  disputeRejected: {
+    ar: "شيّكنا الطلب #{code}: الوقت كان ضمن المتوقع، فما في خصم هالمرة. إذا في شي تاني دوس «حدا بشري».",
+    en: "We checked order #{code}: the times were within what we expect, so there's no discount this time. If something else went wrong, tap A person.",
+    fr: "Nous avons vérifié la commande #{code} : les délais étaient dans la norme, pas de remise cette fois. Autre souci ? Touchez Une personne.",
+    arabizi:
+      "Chayyakna el talab #{code}: el wa2et kan dimn el metwa22a3, fa ma fi khasm hal marra. Iza fi shi tene dos Shakhs.",
+  },
+  disputeDamaged: {
+    ar: "📷 ابعتلنا صورة للمشكلة هون، وحدا من Alo King بيقرر (المحل بيعيد الطلب أو منعطيك خصم).",
+    en: "📷 Please send a photo of the problem here; a person from Alo King decides (the shop remakes it, or a discount).",
+    fr: "📷 Envoyez une photo du problème ici ; une personne d'Alo King décide (le commerce refait la commande, ou une remise).",
+    arabizi:
+      "📷 B3atelna sura lal moshkle hon, w 7ada men Alo King by2arrer (el ma7al bi3id el talab aw mna3tik khasm).",
+  },
+};
+Object.assign(S, S5F8B);
+// A confirmation, a lead-in line before a message that carries the buttons, or a thanks while a person has the conversation.
+for (const k of ["noteSent", "noteKept", "rebuildMissing", "photoAttached"]) INFO_KEYS.add(k);
+Object.assign(ERROR_WAYS, {
+  noteLimit: ["track", "person"],
+  rebuildNothing: ["order", "help"],
+  rebuildGone: ["order", "help"],
+} satisfies Record<string, Way[]>);
+
+const ITEM_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Spec #28: an item from a second shop. One shop per order (§30.4): "Your basket is from Eatout. Start a new one from
+ * SEVEN?" Start new empties the basket and adds the item (rpl:, as before); Keep leaves the basket as it is.
+ */
+export function otherShopCard(
+  to: string,
+  lang: CLang,
+  basketShop: string,
+  newShop: string,
+  itemId: string,
+  qty: number,
+): Msg {
+  const n = Math.min(Math.max(Math.trunc(qty) || 1, 1), 50);
+  return buttons(to, tr(lang, "basketOtherShop", { basket: basketShop, shop: newShop }), [
+    [`rpl:${itemId}:${n}`, tr(lang, "startNew")],
+    [
+      "c:keep",
+      basketShop.trim()
+        ? clip(tr(lang, "keepShop", { shop: clip(basketShop.trim(), 14) }), 20)
+        : tr(lang, "keep"),
+    ],
+  ]);
+}
+
+export type GapItem = {
+  item_id: string;
+  name_ar?: string | null;
+  name_en?: string | null;
+  price_usd: number | string;
+};
+
+/**
+ * Spec #29: under the shop's minimum order, "Add $2.50 more to order from Eatout" and up to three of that shop's items
+ * that close the gap (server-priced, basket_gap_items), one tap each; fewer than three leave room for the menu.
+ */
+export function gapItemsMessage(
+  to: string,
+  lang: CLang,
+  vendor: string,
+  missingUsd: unknown,
+  items: GapItem[],
+): Msg {
+  // Two items at most: the third button is always Empty basket, as on every card that stops a checkout (session 5f part 7).
+  const rows = items.filter((i) => ITEM_ID.test(String(i.item_id))).slice(0, 2);
+  const head = tr(lang, "gapAdd", { missing: usd(missingUsd), vendor });
+  if (!rows.length)
+    return buttons(to, head, [
+      ["c:menu", tr(lang, "btnMenu")],
+      ["c:basket", tr(lang, "btnBasket")],
+      ["c:clear", tr(lang, "cancelBasket")],
+    ]);
+  const seen = new Set<string>();
+  const bs: [string, string][] = rows.map((i, k) => {
+    const nm = name(lang, i.name_ar, i.name_en);
+    let t = clip(`➕ ${nm}`, 20);
+    if (seen.has(t)) t = clip(`➕ ${k + 1}. ${nm}`, 20);
+    seen.add(t);
+    return [`gap:${i.item_id}`, t];
+  });
+  if (bs.length < 2) bs.push(["c:menu", tr(lang, "btnMenu")]);
+  bs.push(["c:clear", tr(lang, "cancelBasket")]);
+  const lines = rows.map(
+    (i) => `• ${clip(name(lang, i.name_ar, i.name_en), 60)} · ${usd(i.price_usd)}`,
+  );
+  // Three lines at most (§2 rule 5): the gap and "one tap adds it" on one line, then the two items.
+  return buttons(to, [`${head} ${tr(lang, "gapPick")}`, ...lines].join("\n"), bs);
+}
+
+/** Spec #45 before AI credit: "Send this to Eatout as a note on order #AB12?" with Send or Search the menu. */
+export function shopNoteConfirm(
+  to: string,
+  lang: CLang,
+  vendor: string,
+  code: string,
+  text: string,
+): Msg {
+  return buttons(
+    to,
+    tr(lang, "shopNoteAsk", { vendor: clip(vendor, 60), code, text: clip(text, 300) }),
+    [
+      ["msn:send", tr(lang, "btnSendToShop")],
+      ["msn:search", tr(lang, "btnSearchMenu")],
+    ],
+  );
+}
+
+/** Spec #49: once the item is known, the optional photo (or the customer's words); Skip photo goes straight on. */
+export function problemPhotoAsk(to: string, lang: CLang): Msg {
+  return buttons(to, tr(lang, "problemPhotoAsk"), [
+    ["dps:skip", tr(lang, "skipPhoto")],
+    ["c:human", tr(lang, "btnPerson")],
+  ]);
+}

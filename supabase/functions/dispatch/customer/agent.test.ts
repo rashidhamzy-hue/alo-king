@@ -745,10 +745,23 @@ describe("problems and refunds: the server decides (§20.1, §38.3)", () => {
     });
     await handleCustomerTurn(g.deps, tap("dpk:missing_item"));
     expect(ids(g.sent[0])).toEqual([`dpl:${LINE1}:m`, `dpl:${LINE2}:m`]);
-    const h = fake({
-      begin: sess({ refs: s.refs }),
+    // Which item, then the optional photo (spec #49); the server decides only after it.
+    const h = fake({ begin: sess({ refs: s.refs }) });
+    await handleCustomerTurn(h.deps, tap(`dpl:${LINE2}:m`));
+    expect(h.of("dispute_report")).toHaveLength(0);
+    expect(ids(h.sent[0])).toEqual(["dps:skip", "c:human"]);
+    expect(bodyOf(h.sent[0])).toMatch(/send a photo of what arrived/);
+    const hs = endSession(h);
+    expect(hs.pending).toEqual({
+      kind: "problem_photo",
+      problem: "missing_item",
+      item_id: LINE2,
+      qty: 1,
+    });
+    const k = fake({
+      begin: sess({ refs: hs.refs, pending: hs.pending }),
       rpcs: {
-        dispute_open: () => ({
+        dispute_report: () => ({
           status: "auto_credit",
           amount_usd: 3,
           amount_lbp: 268500,
@@ -756,30 +769,39 @@ describe("problems and refunds: the server decides (§20.1, §38.3)", () => {
         }),
       },
     });
-    await handleCustomerTurn(h.deps, tap(`dpl:${LINE2}:m`));
-    expect(h.of("dispute_open")[0].args).toEqual({
+    await handleCustomerTurn(k.deps, tap("dps:skip"));
+    expect(k.of("dispute_report")[0].args).toEqual({
       p_customer_id: CUST,
       p_order_id: ORDER,
       p_kind: "missing_item",
       p_order_item_id: LINE2,
       p_quantity: 1,
+      p_photo_ref: null,
+      p_note: null,
     });
-    expect(bodyOf(h.sent[0])).toMatch(
-      /\$3\.00 \(268,500 LBP\) is credited to your next order \(valid 60 days\)/,
+    // A discount line on the next order, never stored money (spec #49).
+    expect(bodyOf(k.sent[0])).toMatch(
+      /You get \$3\.00 \(268,500 LBP\) off your next order, valid 60 days\. It has no cash value\./,
     );
+    expect(endSession(k).pending).toEqual({});
   });
-  it("a line of three asks how many were missing; the answer goes to the server", async () => {
+  it("a line of three asks how many were missing; the answer goes to the server after the photo", async () => {
     const refs = { xd: { id: ORDER, label: "ABC123" } };
     const three = [{ order_item_id: LINE1, name_en: "Manoushe", quantity: 3, line_total_usd: 6 }];
     const f = fake({ begin: sess({ refs }), rpcs: { order_lines_for_customer: () => three } });
     await handleCustomerTurn(f.deps, tap("dpk:missing_item"));
     expect(ids(f.sent[0])).toEqual([`dpl:${LINE1}:m:1`, `dpl:${LINE1}:m:2`, `dpl:${LINE1}:m:3`]);
     expect(bodyOf(f.sent[0])).toMatch(/How many Manoushe/);
-    expect(f.of("dispute_open")).toHaveLength(0);
-    const g = fake({
-      begin: sess({ refs }),
+    expect(f.of("dispute_report")).toHaveLength(0);
+    const g = fake({ begin: sess({ refs }) });
+    await handleCustomerTurn(g.deps, tap(`dpl:${LINE1}:m:2`));
+    const gs = endSession(g);
+    expect(gs.pending).toMatchObject({ kind: "problem_photo", item_id: LINE1, qty: 2 });
+    // The photo itself answers: its WhatsApp media id goes with the report, never the picture.
+    const k = fake({
+      begin: sess({ refs, pending: gs.pending }),
       rpcs: {
-        dispute_open: () => ({
+        dispute_report: () => ({
           status: "auto_credit",
           amount_usd: 4,
           amount_lbp: 358000,
@@ -787,17 +809,48 @@ describe("problems and refunds: the server decides (§20.1, §38.3)", () => {
         }),
       },
     });
-    await handleCustomerTurn(g.deps, tap(`dpl:${LINE1}:m:2`));
-    expect(g.of("dispute_open")[0].args).toMatchObject({ p_order_item_id: LINE1, p_quantity: 2 });
-  });
-  it("a case the rules cannot settle goes to a person, with the conversation handed over", async () => {
-    const f = fake({
-      begin: sess({ refs: { xd: { id: ORDER, label: "ABC123" } } }),
-      rpcs: { dispute_open: () => ({ status: "review", rule: "damaged: photo needed" }) },
+    await handleCustomerTurn(
+      k.deps,
+      msg({ type: "image", image: { id: "MEDIA.123", mime: "image/jpeg" } }),
+    );
+    expect(k.of("dispute_report")[0].args).toMatchObject({
+      p_order_item_id: LINE1,
+      p_quantity: 2,
+      p_photo_ref: "wa-media:MEDIA.123",
+      p_note: null,
     });
+  });
+  it("spilled: the photo is asked first, then a person decides with it", async () => {
+    const f = fake({ begin: sess({ refs: { xd: { id: ORDER, label: "ABC123" } } }) });
     await handleCustomerTurn(f.deps, tap("dpk:damaged"));
-    expect(f.of("customer_handoff")).toHaveLength(1);
-    expect(bodyOf(f.sent[0])).toMatch(/send a photo/);
+    expect(f.of("dispute_report")).toHaveLength(0);
+    const fs = endSession(f);
+    expect(fs.pending).toMatchObject({ kind: "problem_photo", problem: "damaged", item_id: null });
+    const g = fake({
+      begin: sess({ refs: fs.refs, pending: fs.pending }),
+      rpcs: { dispute_report: () => ({ status: "review", rule: "damaged: the photo decides" }) },
+    });
+    await handleCustomerTurn(
+      g.deps,
+      msg({ type: "image", image: { id: "SPILL1", mime: "image/jpeg" } }),
+    );
+    expect(g.of("dispute_report")[0].args).toMatchObject({
+      p_kind: "damaged",
+      p_photo_ref: "wa-media:SPILL1",
+    });
+    expect(g.of("customer_handoff")).toHaveLength(1);
+    expect(bodyOf(g.sent[0])).toMatch(/A person from Alo King will look at order #ABC123/);
+    // Skipped: the person still needs the photo, so it is asked for.
+    const h = fake({
+      begin: sess({ refs: fs.refs, pending: fs.pending }),
+      rpcs: { dispute_report: () => ({ status: "review", rule: "damaged" }) },
+    });
+    await handleCustomerTurn(h.deps, msg({ text: "the bag was soaked and the hummus spilled" }));
+    expect(h.of("dispute_report")[0].args).toMatchObject({
+      p_photo_ref: null,
+      p_note: "the bag was soaked and the hummus spilled",
+    });
+    expect(bodyOf(h.sent[0])).toMatch(/send a photo/);
   });
   it("a rating tap also records that the order arrived", async () => {
     const f = fake({});

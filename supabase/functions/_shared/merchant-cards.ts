@@ -552,3 +552,25 @@ export function shiftHandoverText(to: string, h: Handover) {
   ].filter((l, i, a) => l !== "" || (i > 0 && a[i - 1] !== ""));
   return textMessage(to, lines.join("\n").trim().slice(0, 4000));
 }
+
+// ---- Session 5f part 8b: a customer's message during an active order (spec §3.7 #45) --------------------------------
+const NOTE: Record<Lang, { title: string; tail: string }> = {
+  ar: {
+    title: "💬 رسالة من الزبون عن الطلب #{code}:",
+    tail: "(ملاحظة بس: الطلب وسعره ما بيتغيّروا.)",
+  },
+  en: {
+    title: "💬 Message from the customer about order #{code}:",
+    tail: "(A note only: the order and its price stay as they are.)",
+  },
+};
+
+/**
+ * What the customer typed during an active order, passed to the shop on that order (spec #45): the order code and the words,
+ * never the customer's number (nor, the other way, the shop's). A note never changes the order or its price.
+ */
+export function customerNoteCard(to: string, code: string, note: string, lang: Lang = "ar") {
+  const t = NOTE[lang];
+  const words = [...note.replace(/\s+/g, " ").trim()].slice(0, 300).join("");
+  return textMessage(to, `${t.title.replace("{code}", code)}\n«${words}»\n${t.tail}`);
+}
