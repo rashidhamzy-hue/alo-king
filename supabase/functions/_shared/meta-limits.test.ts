@@ -1891,3 +1891,18 @@ describe("conversational components (ice breakers and commands)", () => {
     ).toMatch(/duplicate command/);
   });
 });
+
+// DECISIONS §39.15.13: the message that opens the Alo King Flow app.
+import { appFlowMessage } from "./flows";
+
+describe("the Alo King app's Flow message (§39.15.13)", () => {
+  for (const lang of ["ar", "en"] as const)
+    it(`is a valid data-exchange Flow message in ${lang}`, () => {
+      const m: any = appFlowMessage("+96171000001", lang, `${"A".repeat(24)}.${"b".repeat(43)}`);
+      expect(m.interactive.action.parameters).toMatchObject({
+        flow_name: `alo_app_${lang}`,
+        flow_action: "data_exchange",
+      });
+      expect(checkInteractive(m)).toEqual([]);
+    });
+});

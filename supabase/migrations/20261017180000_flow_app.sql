@@ -7,12 +7,14 @@
 --    signs the requests Kapso forwards. flow_app_proxy_key() gives the proxy key to the service role only (the edge
 --    function, the whatsapp-flows workflow that stores it as the Kapso function's secret, the simulator).
 -- 2. Flow tokens: flow_app_open(customer, lang) makes a web link of kind `flow` (a random 24-character token, only its
---    SHA-256 stored, bound to the customer's phone and current basket, valid flow_app_token_hours) and returns
---    `<token>.<signature>`, the signature an HMAC-SHA256 of the token with the `token` key. flow_app_session(flow_token)
---    checks the signature, then the link (unexpired, not reset by "delete my data", not blocked).
---    The token's first part is a web-link token, so the screens reuse the site's checked reads: web_explore (home, shops,
---    search) and web_menu (shop page, item page), both filtered to the customer's point (a demo tester's demo address,
---    §39.15.3; zero routing calls through shop_place_routes).
+--    SHA-256 stored, bound to the customer's phone (the open basket is recorded with it; every read and write acts on that
+--    customer's basket as it is now), valid flow_app_token_hours) and returns `<token>.<signature>`, the signature an
+--    HMAC-SHA256 of the token with the `token` key. flow_app_session(flow_token) checks the signature, then the link
+--    (unexpired, not reset by "delete my data", not blocked). The screens reuse the site's checked reads (web_explore for
+--    home, shops and search; web_menu for the shop and item pages; filtered to the customer's point, a demo tester's demo
+--    address, §39.15.3; zero routing calls) through service-role wrappers, flow_app_explore and flow_app_menu: a link of
+--    kind `flow` never opens the public web reads (web_link leaves it out unless a wrapper asks for it), so its first part
+--    alone is worth nothing.
 -- 3. flow_app_add: one item into the basket, checked like web_basket_save (the shop's own item, orderable now, each choice
 --    the item's own and available, every group within its rule), added through basket_add_item, which prices nothing:
 --    basket_view prices from the menu. A Flow never carries a price the server did not compute.
@@ -58,6 +60,32 @@ alter table app_private.web_links drop constraint web_links_kind_check;
 alter table app_private.web_links add constraint web_links_kind_check check (kind in ('menu', 'explore', 'flow'));
 -- When the Flow app ended with Confirm (the §12 kill-gate's completions).
 alter table app_private.web_links add column completed_at timestamptz;
+-- A Flow token the simulator or a test send made before the app is live (p_force): never counted by the kill-gate.
+alter table app_private.web_links add column test boolean not null default false;
+
+-- The valid link a token names. A link of kind `flow` only for the Flow app's own reads (p_flow), never for the public
+-- web pages: the Flow token's first part alone opens nothing there. The one-argument form (web_menu, web_explore,
+-- web_basket_save) reads p_flow from the transaction setting the Flow wrappers set (app.flow_link), which no web caller
+-- can set (each PostgREST request is its own transaction, and set_config is not in an exposed schema).
+create function app_private.web_link(p_token text, p_flow boolean) returns setof app_private.web_links
+language sql stable security definer set search_path = ''
+as $$
+  select w.* from app_private.web_links w
+  join public.customers c on c.id = w.customer_id
+  where p_token ~ '^[A-Za-z0-9_-]{24}$'
+    and w.token_hash = encode(extensions.digest(p_token, 'sha256'), 'hex')
+    and w.expires_at > now()
+    and (w.kind <> 'flow' or coalesce(p_flow, false))
+    -- "Delete my data" (customer_forget sets profile_reset_at) and a block end every link made before.
+    and w.created_at > coalesce(c.profile_reset_at, '-infinity'::timestamptz)
+    and not (c.blocked_until is not null and c.blocked_until > now());
+$$;
+revoke all on function app_private.web_link(text, boolean) from public;
+
+create or replace function app_private.web_link(p_token text) returns setof app_private.web_links
+language sql stable security definer set search_path = ''
+as $$ select * from app_private.web_link(p_token, current_setting('app.flow_link', true) = 'on') $$;
+revoke all on function app_private.web_link(text) from public;
 create index web_links_flow_idx on app_private.web_links (created_at) where kind = 'flow';
 
 create function app_private.flow_app_sign(p_token text) returns text
@@ -84,10 +112,10 @@ begin
   end if;
   v_token := translate(encode(extensions.gen_random_bytes(18), 'base64'), '+/', '-_');
   delete from app_private.web_links w where w.customer_id = p_customer_id and w.expires_at < now() - interval '7 days';
-  insert into app_private.web_links (token_hash, customer_id, kind, basket_id, lang, expires_at)
+  insert into app_private.web_links (token_hash, customer_id, kind, basket_id, lang, expires_at, test)
   values (encode(extensions.digest(v_token, 'sha256'), 'hex'), p_customer_id, 'flow',
     (select b.id from public.baskets b where b.customer_id = p_customer_id and b.status = 'open'),
-    v_lang, now() + make_interval(hours => public.config_numeric('flow_app_token_hours')::int));
+    v_lang, now() + make_interval(hours => public.config_numeric('flow_app_token_hours')::int), coalesce(p_force, false));
   return v_token || '.' || app_private.flow_app_sign(v_token);
 end;
 $$;
@@ -107,7 +135,7 @@ begin
   if p_flow_token !~ '^[A-Za-z0-9_-]{24}\.[A-Za-z0-9_-]{43}$' or v_sig is distinct from app_private.flow_app_sign(v_tok) then
     return jsonb_build_object('status', 'bad_signature');
   end if;
-  select * into w from app_private.web_link(v_tok) x where x.kind = 'flow';
+  select * into w from app_private.web_link(v_tok, true) x where x.kind = 'flow';
   if w.id is null then
     return jsonb_build_object('status', 'expired');
   end if;
@@ -122,8 +150,48 @@ grant execute on function public.flow_app_session(text) to service_role;
 -- The customer a valid web-link token of kind flow names (null for anything else).
 create function app_private.flow_app_customer(p_token text) returns uuid
 language sql stable security definer set search_path = ''
-as $$ select x.customer_id from app_private.web_link(p_token) x where x.kind = 'flow' $$;
+as $$ select x.customer_id from app_private.web_link(p_token, true) x where x.kind = 'flow' $$;
 revoke all on function app_private.flow_app_customer(text) from public;
+
+-- The Flow app's screens: the site's reads (Explore, the shop menu) for a Flow token's link, service role only.
+create function public.flow_app_explore(p_token text, p_q text default null, p_category text default null,
+  p_offset integer default 0) returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v jsonb;
+begin
+  if app_private.flow_app_customer(p_token) is null then
+    return jsonb_build_object('status', 'expired');
+  end if;
+  perform set_config('app.flow_link', 'on', true);
+  v := app_private.web_explore(p_token, p_q, p_category, p_offset);
+  -- Off again at once: nothing else in this transaction reads a flow link as a web link.
+  perform set_config('app.flow_link', '', true);
+  return v;
+end;
+$$;
+revoke all on function public.flow_app_explore(text, text, text, integer) from public, anon, authenticated;
+grant execute on function public.flow_app_explore(text, text, text, integer) to service_role;
+
+create function public.flow_app_menu(p_token text, p_slug text) returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v jsonb;
+begin
+  if app_private.flow_app_customer(p_token) is null then
+    return jsonb_build_object('status', 'expired');
+  end if;
+  perform set_config('app.flow_link', 'on', true);
+  v := app_private.web_menu(p_token, p_slug);
+  -- Off again at once: nothing else in this transaction reads a flow link as a web link.
+  perform set_config('app.flow_link', '', true);
+  return v;
+end;
+$$;
+revoke all on function public.flow_app_menu(text, text) from public, anon, authenticated;
+grant execute on function public.flow_app_menu(text, text) to service_role;
 
 -- 3. One item into the basket ------------------------------------------------------------------------------------------------
 create function public.flow_app_add(p_token text, p_item_id uuid, p_quantity integer, p_option_ids uuid[] default '{}',
@@ -267,7 +335,7 @@ language sql stable security definer set search_path = ''
 as $$
   select jsonb_build_object('opened', count(*), 'completed', count(w.completed_at))
   from app_private.web_links w
-  where w.kind = 'flow'
+  where w.kind = 'flow' and not w.test
     and w.created_at >= (select max(c.effective_from) from public.app_config c where c.key = 'flow_app_live' and c.effective_from <= now());
 $$;
 revoke all on function public.flow_app_stats() from public, anon, authenticated;
@@ -352,3 +420,24 @@ as $$
 $$;
 revoke all on function public.flow_thumb_put(text, text, text, text) from public, anon, authenticated;
 grant execute on function public.flow_thumb_put(text, text, text, text) to service_role;
+
+-- Images whose photo or cover is gone (deleted on request, §38.1; replaced; or the shop no longer claimed and orderable) go
+-- too: the job calls this first, so the endpoint never serves an image of something it can no longer show.
+create function public.flow_thumb_prune() returns integer
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_s jsonb := public.flow_thumb_sources();
+  v_n integer;
+begin
+  delete from app_private.flow_thumbs t
+  where not exists (
+    select 1 from jsonb_array_elements(case when t.kind in ('item', 'item_large') then v_s -> 'items'
+                                            when t.kind = 'cover' then v_s -> 'covers' else v_s -> 'categories' end) x
+    where x ->> 'ref' = t.ref and x ->> 'path' = t.source_path);
+  get diagnostics v_n = row_count;
+  return v_n;
+end;
+$$;
+revoke all on function public.flow_thumb_prune() from public, anon, authenticated;
+grant execute on function public.flow_thumb_prune() to service_role;

@@ -1786,8 +1786,9 @@ async function openAppFlow(c: Ctx): Promise<boolean> {
 async function appFlowDone(c: Ctx, token: string, closed: boolean) {
   c.tools.push("flow:app_done");
   const sess = await c.deps.rpc("flow_app_session", { p_flow_token: token }).catch(() => null);
-  if (sess?.status === "bad_signature" || (sess?.customer_id && sess.customer_id !== c.customerId))
-    return say(c, "flowRetry");
+  // This customer's own token, or one that ran out meanwhile (the checkout reads only the sender's own basket).
+  const own = sess?.status === "ok" && sess.customer_id === c.customerId;
+  if (!own && sess?.status !== "expired") return say(c, "flowRetry");
   if (closed) return startOrder(c);
   c.summary.push("[basket filled in the Alo King app]");
   return checkout(c, {});

@@ -334,6 +334,8 @@ async function attachEndpoint(flowId: string, pn: string, json: any) {
   }
   if (!/^[0-9a-f]{64}$/.test(key))
     throw new Error("no proxy key on staging (migration 20261017180000 not applied?)");
+  // Never printed, even in an error body Kapso might echo.
+  if (process.env.GITHUB_ACTIONS) console.log(`::add-mask::${key}`);
   const code = readFileSync(`${DIR}/endpoint/flow-app-proxy.js`, "utf8");
   const path = `/platform/v1/whatsapp/flows/${flowId}`;
   await kapso(`${path}/data_endpoint`, { method: "POST", body: JSON.stringify({ code }) });

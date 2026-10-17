@@ -58,6 +58,8 @@ async function main() {
   await db.connect();
   const headers = { authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, apikey: SUPABASE_SERVICE_KEY };
   try {
+    // Images of photos that are gone (deleted on request, §38.1) go first.
+    const pruned = (await db.query("select public.flow_thumb_prune() as n")).rows[0]?.n ?? 0;
     const sources = (await db.query("select public.flow_thumb_sources() as s")).rows[0]?.s;
     const jobs = plan(sources, Number(process.env.THUMB_LIMIT ?? 4000));
     const cache = new Map<string, Promise<Buffer | null>>();
@@ -103,7 +105,7 @@ async function main() {
       }),
     );
     console.log(
-      `Flow app images: ${made} made (${Math.round(bytes / Math.max(made, 1) / 100) / 10} KB on average), ${failed} could not be read or made, ${jobs.length} were due`,
+      `Flow app images: ${pruned} removed, ${made} made (${Math.round(bytes / Math.max(made, 1) / 100) / 10} KB on average), ${failed} could not be read or made, ${jobs.length} were due`,
     );
   } finally {
     await db.end();

@@ -36,8 +36,8 @@ async function rpc(fn: string, args: Record<string, unknown>): Promise<any> {
 const store: FlowAppStore = {
   session: (t) => rpc("flow_app_session", { p_flow_token: t }),
   explore: (t, q, cat, offset) =>
-    rpc("web_explore", { p_token: t, p_q: q, p_category: cat, p_offset: offset }),
-  menu: (t, slug) => rpc("web_menu", { p_token: t, p_slug: slug }),
+    rpc("flow_app_explore", { p_token: t, p_q: q, p_category: cat, p_offset: offset }),
+  menu: (t, slug) => rpc("flow_app_menu", { p_token: t, p_slug: slug }),
   basket: (t) => rpc("flow_app_basket", { p_token: t }),
   add: (t, item, qty, opts, note, replace) =>
     rpc("flow_app_add", {
