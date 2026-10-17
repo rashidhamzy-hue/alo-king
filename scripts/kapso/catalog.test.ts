@@ -77,13 +77,22 @@ describe("kapso-catalog (DECISIONS §39.12)", () => {
   });
 
   it("the catalogue icon stays on (§39.15.2): what the settings say after the POST and the read-back", () => {
-    expect(commerceState(true, { is_cart_enabled: true, is_catalog_visible: true })).toMatchObject({
-      header: "shown",
-      commerceOn: true,
-    });
-    expect(commerceState(true, null)).toMatchObject({ header: "shown", commerceOn: true });
+    // §39.15.11: the goal is the icon off and the cart on.
+    expect(commerceState(true, { is_cart_enabled: true, is_catalog_visible: false })).toMatchObject(
+      {
+        header: "hidden",
+        commerceOn: true,
+      },
+    );
+    expect(commerceState(true, null)).toMatchObject({ header: "hidden", commerceOn: true });
+    expect(commerceState(false, { is_cart_enabled: true, is_catalog_visible: true })).toMatchObject(
+      {
+        header: "shown",
+        commerceOn: true,
+      },
+    );
     expect(
-      commerceState(false, { is_cart_enabled: true, is_catalog_visible: false }),
+      commerceState(true, { is_cart_enabled: false, is_catalog_visible: false }),
     ).toMatchObject({
       header: "hidden",
       commerceOn: false,

@@ -1828,3 +1828,30 @@ describe("the web menu and Explore buttons (session 5g)", () => {
     expect(checkInteractive(p).join()).toMatch(/cta image must be https/);
   });
 });
+
+// Session 5g (DECISIONS §39.15.11): the number's ice breakers and commands.
+import { checkConversational } from "./meta-limits";
+import conversational from "../../../whatsapp/conversational.json";
+
+describe("conversational components (ice breakers and commands)", () => {
+  it("the ones we set are inside Meta's limits", () => {
+    expect(checkConversational(conversational)).toEqual([]);
+    expect(conversational.prompts).toHaveLength(4);
+    expect(conversational.commands.map((c) => c.command_name)).toEqual(["order", "explore", "orders", "help"]);
+  });
+  it("catches too many, too long, a slash in a name and duplicates", () => {
+    expect(checkConversational({ prompts: ["a", "b", "c", "d", "e"] }).join()).toMatch(/5 ice breakers/);
+    expect(checkConversational({ prompts: ["x".repeat(81)] }).join()).toMatch(/ice breaker/);
+    expect(checkConversational({ commands: [{ command_name: "/order", command_description: "x" }] }).join()).toMatch(
+      /bad command name/,
+    );
+    expect(
+      checkConversational({
+        commands: [
+          { command_name: "a", command_description: "x" },
+          { command_name: "a", command_description: "y" },
+        ],
+      }).join(),
+    ).toMatch(/duplicate command/);
+  });
+});
