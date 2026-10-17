@@ -802,6 +802,8 @@ function familyDish(f: Family, name: string, section: string): string {
 // Toppings and add-ons (what goes into a burger) keep a photo only when they are a side dish of their own (fries,
 // coleslaw…), never the burger's or a chicken plate's; extras may also be a piece of chicken served on its own.
 const ADD_ON = /add-?ons?|toppings?|burger bun/i;
+// An upgrades section ("Upgrade your meal") holds options, never a dish of its own.
+const UPGRADES = /^upgrades?\b/i;
 const EXTRAS = /\bextras?\b|side cups?/i;
 const SIDES = [
   "fries",
@@ -895,6 +897,7 @@ export function dishOf(item: ItemText): string {
   }
   if (byName === "none" || DISH.get("none")!.re.test(section)) return "none";
   // 3. Toppings and extras, then the families a section names.
+  if (UPGRADES.test(section)) return "none";
   if (ADD_ON.test(section)) return byName && SIDES.includes(byName) ? byName : "none";
   if (EXTRAS.test(section))
     return byName && (SIDES.includes(byName) || PIECES.includes(byName)) ? byName : "none";
@@ -950,7 +953,13 @@ export function ownPhotoDish(item: ItemText): string {
   const name = clean(`${item.name_en ?? ""} ${item.name_ar ?? ""}`);
   const section = `${item.section_en ?? ""} ${item.section_ar ?? ""}`.trim();
   const none = DISH.get("none")!;
-  if (names(none, name) || none.re.test(section) || ADD_ON.test(section) || EXTRAS.test(section))
+  if (
+    names(none, name) ||
+    none.re.test(section) ||
+    UPGRADES.test(section) ||
+    ADD_ON.test(section) ||
+    EXTRAS.test(section)
+  )
     return "none";
   return "other";
 }

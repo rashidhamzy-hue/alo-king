@@ -609,6 +609,17 @@ describe("a dish photo only where it shows the item (session 5g)", () => {
     const gone = { source: "merchant_site", origin_hash: "an own photo no longer on the menu" };
     expect(coverTries(gone, c)?.map((x) => x.source)).toEqual(["merchant_site"]);
     expect(coverTries({ source: "merchant", origin_hash: null }, c)).toEqual([]);
+    // A partial run that sees none of the shop's own photos (PHOTO_LIMIT cut, or only drinks and sides with one) keeps
+    // the own-photo cover: never a dish photo instead, never removed.
+    const dishOnly = c.filter((x) => x.source === "illustrative");
+    expect(dishOnly.length).toBeGreaterThan(0);
+    expect(coverTries({ source: "merchant_site", origin_hash: coverHash(own) }, dishOnly)).toEqual(
+      [],
+    );
+    expect(coverTries({ source: "merchant_site", origin_hash: coverHash(own) }, [])).toEqual([]);
+    // An "Upgrade your meal" section holds options, never a dish (nor a cover candidate).
+    expect(dishOf(dish("Curly Fries", "Upgrade your meal"))).toBe("none");
+    expect(ownPhotoDish(dish("Large Combo", "Upgrades"))).toBe("none");
     // A dish-photo cover is upgraded to the shop's own photo, and goes when nothing is left.
     const dishCover = { source: "illustrative", origin_hash: coverHash(c[c.length - 1]) };
     expect(coverTries(dishCover, c)?.[0].source).toBe("merchant_site");

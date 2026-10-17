@@ -361,8 +361,8 @@ export const coverHash = (c: { url: string }) =>
 /**
  * The cover candidates a run tries, best first: [] when the current cover stays, null when it goes (no candidate). A
  * merchant's own cover is never touched; a cover from the shop's own photos (merchant_site) is replaced only by
- * another of its own photos while the shop has any, never by a dish photo, and is removed only when it has none left.
- * When no candidate downloads, the current cover stays.
+ * another of its own photos, never by a dish photo, and never removed by this run. When no candidate downloads, the
+ * current cover stays.
  */
 export function coverTries(
   cur: { source: string; origin_hash: string | null } | undefined,
@@ -370,7 +370,10 @@ export function coverTries(
 ): CoverCandidate[] | null {
   if (cur?.source === "merchant") return [];
   const own = candidates.filter((c) => c.source === "merchant_site");
-  const list = cur?.source === "merchant_site" && own.length ? own : candidates;
+  // Absolute: a run that sees none of the shop's own photos (a PHOTO_LIMIT cut, or own photos of drinks and sides only)
+  // keeps the own-photo cover; it is never replaced by a dish photo nor removed.
+  if (cur?.source === "merchant_site" && !own.length) return [];
+  const list = cur?.source === "merchant_site" ? own : candidates;
   if (!list.length) return cur ? null : [];
   const at = cur ? list.findIndex((c) => coverHash(c) === cur.origin_hash) : -1;
   if (at === 0) return [];
