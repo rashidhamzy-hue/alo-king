@@ -328,7 +328,7 @@ export const fr: Copy = {
       loading: "Chargement des commerces de {place}…",
       allTitle: "Tous les lieux où nous livrons",
       allLead:
-        "Les {n} villes et villages de notre zone de livraison, par secteur. Un point allumé : des commerces du village sont sur Alo King.",
+        "Les {n} villes et villages de notre zone de livraison, par secteur. Un point allumé : des commerces du village sont sur Alo King.",
       around: "Autour de {place}",
       shopVillages: "Avec leurs propres commerces",
       otherVillages: "Livrés par les commerces voisins",

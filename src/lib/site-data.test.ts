@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getItem,
+  getOverview,
   getVendorDemo,
+  isTestPlace,
   toCredits,
   toDeliveryMap,
   toItemPage,
@@ -116,6 +118,34 @@ describe("delivery map counts (§39.11)", () => {
       unclaimed_total: 41,
     });
     expect(toDeliveryMap(null)).toEqual({ places: [], unclaimed_total: 0 });
+  });
+
+  it("never lists the staging Test location (LB-TST-LOCATION, §35)", () => {
+    expect(isTestPlace("tst-location")).toBe(true);
+    expect(isTestPlace("chf-baakline")).toBe(false);
+    expect(
+      toDeliveryMap({ places: [{ slug: "tst-location", shops: 1 }, { slug: "chf-niha" }] }).places,
+    ).toEqual([{ slug: "chf-niha", shops: 0, unclaimed: 0 }]);
+  });
+});
+
+describe("overview (site_overview)", () => {
+  afterEach(() => vi.restoreAllMocks());
+  it("drops the staging Test location from the places", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          places: [
+            { slug: "tst-location", merchants: 1 },
+            { slug: "chf-baakline", merchants: 0 },
+          ],
+          cuisines: [],
+          merchants: 0,
+          fees: { min_usd: null, max_usd: null, max_km: null },
+        }),
+      ),
+    );
+    expect((await getOverview()).places.map((p) => p.slug)).toEqual(["chf-baakline"]);
   });
 });
 
