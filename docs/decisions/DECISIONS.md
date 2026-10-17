@@ -1947,6 +1947,35 @@ Max effort is not needed: the work is broad, not deep, and Extra keeps the weekl
   - **The native chat path is the primary path:** pin → craving list → shops → the shop's product messages and native cart, all inside WhatsApp.
   - **No website for customers:** the bot no longer offers Explore after a pin and no longer leads with "Open menu". The web menu stays only as a last-resort row ("Full menu") in a shop's section list when some of its items cannot be shown natively (no approved photo); it disappears for a shop once the Flow app is live. The website remains for search engines, merchants and Send Home senders.
 
+#### 39.15.14 Outcome on staging (17 October, session 5h)
+- **Native first (§39.15.13):** done (#243).
+  - `kapso-catalog` sets the header catalogue icon on, with the cart, and reads both back; #236 is closed as not wanted.
+  - A shop opens with its cover and its product messages; nothing leads with Open menu, and nothing offers Explore after a pin.
+  - The web menu is only a last "Full menu" row in a shop's section list when some of its items cannot be shown natively.
+  - `/explore` and the "Explore shops near me" ice breaker answer in the chat: shops near you, then Popular near you as a product carousel.
+- **The Alo King app Flow (§39.15.13):** built and tested (#244, #246); drafts on the US number; not published.
+  - Flow JSON 7.3, data API 3.0: Home, Search, Shops, Shop, List, Item and Basket, in Arabic and English.
+  - Served by the `flow-app` edge function (eu-central-1) through Kapso's data-endpoint function. Kapso decrypts; the function forwards each request signed with a proxy key.
+  - The Flow token is signed, expires (`flow_app_token_hours`) and is bound to the customer. Every price is the server's.
+  - Lists stay within Meta's NavigationList limits and page at 19 rows plus More. List pictures (144 px) and item photos (600 px, under 95 KB) are made ahead in the staging deploy.
+  - Zero routing calls: scenario 32 checks `routing_usage`.
+  - Flowso validates both languages and replays their scenarios against the endpoint logic in CI. `flow-screens` takes the screenshots from Flowso's preview against staging.
+  - **Publish refused:** whatsapp-flows run 39055910617 (17 October) got 422 "Integrity requirements not met." for every Flow (#182, business verification). The drafts are kept and the endpoint is registered with its secrets (run 39057981143).
+  - **Switching on:** `flow_app_live` stays false. The day a run with `publish` gets both app languages published, the workflow sets it, and the bot then opens the app from Order, Explore, the ice breakers and the commands (§12 kill-gate). Until then, and as its fallback, the native chat path.
+- **No website for customers, also at delivery:** the on-the-way message no longer links the tracking page; it links the driver's WhatsApp chat, or is text (#246). Scenario 31 checks that no `cta_url` reaches a friend.
+- **AI and voice (39.15.9):** still off.
+  - `check-setup` (run 39052441464) found the Anthropic key valid and Deepgram valid; the OpenAI key is set but unproven (#77).
+  - The evals (run 39052494658) could not run: Anthropic answered 400 "credit balance is too low", and the voice eval has no labels.
+  - Nothing was switched on and `usage.ts` prices are unchanged.
+- **Speed (39.15.6):** #245 makes the shop list after a pin one call (`browse_delivering`), stops `address_card` from looking the place up twice, and skips `flow_open` while a Flow is off.
+  - bot_turns on staging, before (11:00 to 12:00 UTC, the smoke and friends' runs) and after the deploy (18:25 to 18:45 UTC, the same runs):
+    - taps: p50 0.93 → 0.86 s, p95 2.37 → 1.47 s (114 and 65 taps);
+    - pins (address save and the shops): p50 1.85 → 1.23 s, p95 3.25 → 2.70 s (16 and 10).
+  - Tap p95 meets the target (p50 0.7 s, p95 1.5 s); tap p50 and pins do not yet. The next lever is `address_save_pin` itself (about 430 ms mean in the database) and the remaining PostgREST round trips of a pin's turn.
+- **Simulator:**
+  - The smoke suite passed 5/5 (run 39058286690) with no ORS request.
+  - The friends' path (scenario 31, Dubai, Riyadh and Beirut pins) and the Flow app (scenario 32) first failed on the two faults fixed in #246 (run 39058284798); after #246 both passed (run 39061705977): three demo orders delivered from the Dubai, Riyadh and Beirut pins with no web link, and the app from Home to Confirm with the server's prices.
+
 ## Sources checked on 6 October 2026
 - Meta: pricing change notice for service and in-window utility messages (developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages); phone-number cap (…/business-phone-numbers/phone-numbers); account model (…/account-model-evolution).
 - 360dialog and respond.io notices on the 1 October 2026 change; Flowcall rate table (Rest of Middle East).

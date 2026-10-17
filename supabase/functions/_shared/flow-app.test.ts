@@ -107,6 +107,33 @@ describe("the Flow app endpoint", () => {
     expect((last.data.shops as any[]).length).toBe(7);
   });
 
+  it("an empty list stays on SHOPS (its only routes are SHOP and itself): all shops near, or a reload", async () => {
+    const s = fixtureStore("en");
+    s.explore = async () => ({
+      status: "ok",
+      place: { name_en: "Baakline" },
+      shops: [],
+      next_offset: null,
+    });
+    const searched = await handleFlowRequest(
+      s,
+      req({ go: "shops", cat: "", q: "zzz", offset: "0" }),
+      {
+        signed: true,
+      },
+    );
+    const [a] = searched.data.shops as any[];
+    checkRows([a]);
+    expect(a["on-click-action"].payload).toMatchObject({ go: "shops", q: "", cat: "" });
+    expect(a["main-content"].description).toBe("All shops near you");
+    const none = await handleFlowRequest(s, req({ go: "shops", cat: "", q: "", offset: "0" }), {
+      signed: true,
+    });
+    const [b] = none.data.shops as any[];
+    expect(b["main-content"].title).toBe("No shop delivers here yet");
+    expect(b["on-click-action"].payload.go).toBe("shops");
+  });
+
   it("the item page: required size, add-ons with prices, nutrition estimated, allergens declared, Goes well with", async () => {
     const r = await handleFlowRequest(
       fixtureStore("en"),

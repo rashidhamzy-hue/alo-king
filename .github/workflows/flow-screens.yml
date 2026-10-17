@@ -37,6 +37,7 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           TESTER: "+999000000958"
+          MERCHANT: "+999961000958"
         run: |
           set -euo pipefail
           DB_URL="$(scripts/staging-db-url.sh)"
@@ -48,9 +49,12 @@ jobs:
           CU="$(q "select id from public.customers where phone_e164 = '$TESTER'")"
           [ -n "$CU" ] || CU="$(q "select public.customer_turn_begin('$TESTER', 'wamid.screens.${{ github.run_id }}.${{ github.run_attempt }}', 'text') #>> '{customer,id}'")"
           [ -n "$CU" ] || { echo "::error::no tester customer"; exit 1; }
-          trap 'q "select public.sim_tester('"'"'$TESTER'"'"', false)" >/dev/null || true; kill $(jobs -p) 2>/dev/null || true' EXIT
+          trap 'q "select public.sim_tester('"'"'$TESTER'"'"', false), public.sim_demo('"'"'$TESTER'"'"', '"'"'$MERCHANT'"'"', false)" >/dev/null || true; kill $(jobs -p) 2>/dev/null || true' EXIT
           st="$(q "select public.sim_tester('$TESTER', true) ->> 'status'")"
           [ "$st" = "ok" ] || { echo "::error::sim_tester: $st"; exit 1; }
+          # The demo shops (the only orderable ones on staging) for this tester, with its own simulated merchant (§39.12).
+          st="$(q "select public.sim_demo('$TESTER', '$MERCHANT', true) ->> 'status'")"
+          [ "$st" = "ok" ] || { echo "::error::sim_demo: $st"; exit 1; }
           [ "$(q "select public.demo_address_pick('$CU', 'baakleen') ->> 'status'")" = "saved" ] || { echo "::error::demo address not saved"; exit 1; }
           export FLOW_APP_URL="https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/flow-app?forceFunctionRegion=eu-central-1"
           export FLOW_APP_PROXY_KEY="$KEY"
