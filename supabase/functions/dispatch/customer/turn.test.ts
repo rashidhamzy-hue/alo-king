@@ -6,6 +6,7 @@ import {
   itemCodeTail,
   readCustomerInbound,
   validate,
+  withPointMemo,
   vocabularyPrompt,
   type CustomerDeps,
   type CustomerInbound,
@@ -222,6 +223,59 @@ describe("customer turn: deterministic paths (zero model calls, §4)", () => {
     expect(summary.interactive.action.buttons[0].reply.id).toBe(`cfm:${BASKET}:7`);
     expect(bodyOf(summary)).toContain("$12.00 = 1,074,000 LBP");
     expect(bodyOf(summary)).toContain("today's rate");
+  });
+
+  it("the checkout reads its address state, quote, substitution and cash state in one call (§39.15.6)", async () => {
+    const quote = {
+      status: "ok",
+      basket,
+      subtotal_usd: 10,
+      delivery_fee_usd: 2,
+      total_usd: 12,
+      total_lbp: 1074000,
+      usd_lbp_rate: 89500,
+      cod_cap_usd: 50,
+      over_cod_cap: false,
+      address: { place: "بعقلين", place_en: "Baakline" },
+    };
+    const f = fake({
+      begin: { basket },
+      rpcs: {
+        basket_checkout_view: () => ({
+          address: { status: "ok" },
+          quote,
+          substitution: { needed: false },
+          cash: { status: "ok", cash_currency: "usd", allowed: ["usd", "lbp"] },
+        }),
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+    for (const fn of [
+      "basket_address_state",
+      "basket_quote",
+      "basket_substitution_needed",
+      "basket_cash_state",
+    ])
+      expect(f.of(fn), fn).toHaveLength(0);
+    const summary = f.sent.find((p) =>
+      p.interactive?.action?.buttons?.[0]?.reply?.id?.startsWith("cfm:"),
+    );
+    expect(bodyOf(summary)).toContain("$12.00 = 1,074,000 LBP");
+
+    // A view that stopped at the address asks it there, and nothing after it is read.
+    const g = fake({
+      begin: { basket },
+      rpcs: {
+        basket_checkout_view: () => ({
+          address: { status: "recipient", address_id: "a1" },
+        }),
+      },
+    });
+    await handleCustomerTurn(g.deps, msg({ buttonId: "c:checkout", type: "interactive" }));
+    expect(g.of("basket_quote")).toHaveLength(0);
+    expect(g.of("customer_turn_end")[0].args.p_session.pending).toMatchObject({
+      kind: "recipient",
+    });
   });
   const okQuote = (extra: Record<string, unknown> = {}) => ({
     status: "ok",
@@ -1154,6 +1208,51 @@ describe("the button-driven ordering path (session T, §34)", () => {
     await handleCustomerTurn(f.deps, msg({ buttonId: "c:order", type: "interactive" }));
     expect(f.modelReqs).toHaveLength(0);
     expect(ids(f.sent[0])).toEqual(["pv:v1", "pv:v2"]);
+  });
+
+  it("picking a place reads its sections, cover and catalogue side by side (§39.15.6)", async () => {
+    let coverAsked = false;
+    const f = fake({
+      model,
+      begin: sess({ refs: { v1: { id: VENDOR, label: "Alo Test Grill" } } }),
+      rpcs: {
+        // The sections answer only once the cover was asked: a cover that waited for them would never be asked.
+        vendor_sections: async () => {
+          for (let k = 0; k < 20 && !coverAsked; k++) await new Promise((r) => setTimeout(r, 1));
+          return coverAsked ? sections : null;
+        },
+        shop_card: () => {
+          coverAsked = true;
+          return null;
+        },
+      },
+    });
+    await handleCustomerTurn(f.deps, msg({ buttonId: "pv:v1", type: "interactive" }));
+    expect(ids(f.sent[0])).toEqual(["ps:s1", "ps:s2"]);
+  });
+
+  it("the search point is read once per turn, and again after anything that may change the address", async () => {
+    const calls: string[] = [];
+    const deps = withPointMemo({
+      rpc: async (fn: string) => {
+        calls.push(fn);
+        return fn === "customer_search_point" ? { lat: 1, lon: 2 } : null;
+      },
+    } as any);
+    const p = { p_customer_id: CUST };
+    await deps.rpc("customer_search_point", p);
+    await deps.rpc("browse_shops", p);
+    await deps.rpc("customer_search_point", p);
+    await deps.rpc("address_select", p);
+    await deps.rpc("customer_search_point", p);
+    await deps.rpc("customer_search_point", { p_customer_id: "other" });
+    expect(calls).toEqual([
+      "customer_search_point",
+      "browse_shops",
+      "address_select",
+      "customer_search_point",
+      "customer_search_point",
+    ]);
   });
 
   it("picking a place lists its menu sections; a section lists its items; More pages on", async () => {

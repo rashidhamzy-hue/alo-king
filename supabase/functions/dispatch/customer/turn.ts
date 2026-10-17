@@ -346,6 +346,8 @@ type Ctx = {
   shownReplies?: number[];
   /** The catalogue replies may use (§39.12): undefined until asked, null when there is none. */
   catalog?: string | null;
+  /** The catalogue lookup in flight, so lookups made side by side share one call. */
+  catalogAsk?: Promise<string | null>;
   /** What to send instead when a catalogue message is refused (a product Meta does not have yet, §39.12). */
   fallbacks?: Map<Msg, Msg | null>;
 };
@@ -365,12 +367,58 @@ const say = (c: Ctx, key: string, v: Record<string, unknown> = {}) =>
  */
 const fail = (c: Ctx) => push(c, mainMenu(c.m.from, c.s.lang, "tapFailed"));
 
+/**
+ * Reads that never move the customer's search point: between them, customer_search_point is asked once per turn (a browse
+ * turn asked it three times, §39.15.6). Any other call may change the address, so it makes the next read ask again.
+ */
+const POINT_KEEPERS = new Set([
+  "browse_shops",
+  "vendor_search",
+  "vendor_search_pickup",
+  "vendor_opening",
+  "customer_delivery_check",
+  "popular_near_you",
+  "vendor_sections",
+  "vendor_menu",
+  "vendor_same_price",
+  "menu_item_hints",
+  "shop_card",
+  "catalog_for_number",
+  "catalog_shop_menu",
+  "catalog_products",
+  "shops_closed_near",
+]);
+
+export function withPointMemo(deps: CustomerDeps): CustomerDeps {
+  let point: { key: string; value: Promise<any> } | null = null;
+  return {
+    ...deps,
+    rpc: (fn, args) => {
+      if (fn !== "customer_search_point") {
+        if (!POINT_KEEPERS.has(fn)) point = null;
+        return deps.rpc(fn, args);
+      }
+      const key = JSON.stringify(args);
+      if (point?.key !== key) {
+        const value = deps.rpc(fn, args);
+        // A failed read is never kept: the next one asks again.
+        value.catch(() => {
+          if (point?.value === value) point = null;
+        });
+        point = { key, value };
+      }
+      return point.value;
+    },
+  };
+}
+
 export async function handleCustomerTurn(
-  deps: CustomerDeps,
+  rawDeps: CustomerDeps,
   m: CustomerInbound,
   opts: { attempt?: number; leaseUntil?: Date } = {},
 ): Promise<"done" | "duplicate"> {
   const started = Date.now();
+  const deps = withPointMemo(rawDeps);
   const kind = m.buttonId ? "tap" : m.type;
   // A queue retry (attempt 2+) of a turn whose first attempt died before customer_turn_end replays it from the
   // session the customer saw; a finished turn or a second delivery of the same message is a duplicate (#139).
@@ -1548,6 +1596,8 @@ async function confirm(c: Ctx, basketId: string, version: number) {
 // ---- Location ----------------------------------------------------------------------------------------------------
 async function locationPin(c: Ctx, p: { lat: number; lon: number }) {
   c.tools.push("address_save_pin");
+  // The shop menu after the pin uses the catalogue: asked alongside the save (§39.15.6).
+  void catalogFor(c);
   const r = await c.deps.rpc("address_save_pin", {
     p_customer_id: c.customerId,
     p_lat: p.lat,
@@ -1876,6 +1926,8 @@ async function cartOrder(
 ) {
   c.tools.push("cart");
   if (!lines.length) return say(c, "unsupported");
+  // The catalogue ("Goes well with" as a product) is asked alongside the cart's own calls (§39.15.6).
+  void catalogFor(c);
   const lang = c.s.lang;
   const messageId = opts.messageId ?? c.m.messageId;
   let splitGone: string[] = [];
@@ -2015,11 +2067,11 @@ async function cartOrder(
 /** The catalogue a reply may use (the sending number's business account, or the simulated one), asked once per turn. */
 async function catalogFor(c: Ctx): Promise<string | null> {
   if (c.catalog !== undefined) return c.catalog;
-  const id = await c.deps
+  c.catalogAsk ??= c.deps
     .rpc("catalog_for_number", { p_phone_number_id: c.deps.senderNumberId ?? null, p_to: c.m.from })
-    .catch(() => null);
-  c.catalog = typeof id === "string" && id ? id : null;
-  return c.catalog;
+    .catch(() => null)
+    .then((id) => (c.catalog = typeof id === "string" && id ? id : null));
+  return c.catalogAsk;
 }
 
 async function catalogProducts(
@@ -2085,21 +2137,28 @@ async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   const v = c.s.refs[vendorRef];
   if (!v) return say(c, "pickPlaceFirst");
   const before = c.out.length;
-  await showMenuList(c, vendorRef, query);
-  if (query) return;
-  const list = c.out.splice(before);
+  if (query) return showMenuList(c, vendorRef, query);
   const shop = shopName(v.label);
+  // The section list, the cover and the catalogue's menu are read side by side (§39.15.6); none waits for another.
+  const coverAsk = shopCover(c, v.id, shop).catch((e: unknown) => {
+    c.deps.log?.("shop cover failed", { error: String(e).slice(0, 120) });
+    return null;
+  });
+  const menuAsk = catalogFor(c).then((cat) =>
+    cat
+      ? c.deps.rpc("catalog_shop_menu", { p_vendor_id: v.id, p_catalog_id: cat }).catch(() => null)
+      : null,
+  );
+  await showMenuList(c, vendorRef, null);
+  const list = c.out.splice(before);
   // The cover goes first only when it pushes nothing else out of this turn's messages (MAX_MESSAGES).
   const room = (n: number) => c.out.length + 1 + n <= MAX_MESSAGES;
-  const cover = await shopCover(c, v.id, shop);
-  if (!(await catalogFor(c))) {
+  const [cover, menu] = await Promise.all([coverAsk, menuAsk]);
+  if (!c.catalog) {
     if (cover && room(list.length)) push(c, cover);
     push(c, ...list);
     return;
   }
-  const menu = await c.deps
-    .rpc("catalog_shop_menu", { p_vendor_id: v.id, p_catalog_id: c.catalog })
-    .catch(() => null);
   const sections: ShopMenuSection[] = Array.isArray(menu?.sections) ? menu.sections : [];
   // Items outside any section have no row to open them by, so such a shop keeps the list menu (its flat list). So does a
   // shop with only a few items Meta approved (§39.15.2): a thin product message would hide the rest of its menu.
@@ -2911,8 +2970,17 @@ async function checkout(
       p_stairs_floors: args.stairs ?? null,
       p_note: args.note ?? null,
     });
+  // The address state, quote, substitution question and cash state in one call (basket_checkout_view, §39.15.6), each
+  // asked on its own only when the view did not answer it.
+  const view = await deps
+    .rpc("basket_checkout_view", { p_customer_id: c.customerId })
+    .catch((e: unknown) => {
+      if (e instanceof RpcStalled) throw e;
+      return null;
+    });
   // The delivery address is confirmed on every order, and a new one asks who the order is for (§22.1, §39.6).
-  const st = await deps.rpc("basket_address_state", { p_customer_id: c.customerId });
+  const st =
+    view?.address ?? (await deps.rpc("basket_address_state", { p_customer_id: c.customerId }));
   if (st?.status === "confirm") {
     resetRefs(c, "a");
     const cur = {
@@ -2943,7 +3011,7 @@ async function checkout(
   }
   // A consented allergy note reaches the kitchen on every own order: basket_quote and the order copy it from memory on
   // the server (never on a gift for someone else, §39.6).
-  let q: Quote = await deps.rpc("basket_quote", { p_customer_id: c.customerId });
+  let q: Quote = view?.quote ?? (await deps.rpc("basket_quote", { p_customer_id: c.customerId }));
   // The shop → pin route is not cached yet (§39.15.1): the quote came from the shop → place distance, or from nothing.
   // One live call (2 s, within the day's budget); whatever it answers, the order goes on unless neither distance exists.
   const live = q as any;
@@ -2991,12 +3059,15 @@ async function checkout(
         return;
       }
       // Grocery-type shops (§32.5): what to do if an item is out, asked once per basket.
-      const sp = await deps.rpc("basket_substitution_needed", { p_customer_id: c.customerId });
+      const sp =
+        view?.substitution ??
+        (await deps.rpc("basket_substitution_needed", { p_customer_id: c.customerId }));
       if (sp?.needed) {
         return push(c, substitutionAsk(c.m.from, lang, Number(sp.max_usd ?? 0)));
       }
       // Cash in USD or LBP (§34 step 8), asked once per basket and only if the shop takes both.
-      const cs = await deps.rpc("basket_cash_state", { p_customer_id: c.customerId });
+      const cs =
+        view?.cash ?? (await deps.rpc("basket_cash_state", { p_customer_id: c.customerId }));
       if (cs?.status === "ok" && !cs.cash_currency && (cs.allowed?.length ?? 0) > 1)
         return push(c, cashAsk(c.m.from, lang, cs.allowed));
       // Then "Do you need change?", and the tip with the total it makes (session 5f part 7, #35 and #38).
