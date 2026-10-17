@@ -28,7 +28,7 @@ export const Route = createFileRoute("/$lang/e")({
   }),
   head: ({ match }) => {
     const { lang, copy, info } = match.context;
-    return buildHead({
+    const h = buildHead({
       lang,
       path: "/e",
       title: copy.exploreWeb.seoTitle,
@@ -36,6 +36,9 @@ export const Route = createFileRoute("/$lang/e")({
       info: info ?? { origin: "", indexing: false },
       noindex: true,
     });
+    // The token never leaves in a Referer, whatever the navigation (as on the web menu).
+    h.meta.push({ name: "referrer", content: "no-referrer" });
+    return h;
   },
   component: ExploreRoute,
 });
@@ -45,5 +48,6 @@ function ExploreRoute() {
   const s = Route.useSearch();
   if (!d) return null;
   if (d.page.status === "ok") return <Explore d={d.page} token={d.token} q={s.q} category={s.c} />;
+  if (d.page.status === "outside") return <ExploreGone kind="outside" place={d.page.place} />;
   return <ExploreGone kind={d.page.status === "no_address" ? "no_address" : "expired"} />;
 }

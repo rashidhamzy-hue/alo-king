@@ -743,6 +743,7 @@ export const EXPLORE = {
   place: names("Baakline", "بعقلين", "Baakline"),
   shops: EX_SHOPS,
   next_offset: null,
+  rate: 89500,
   categories: [
     ["burgers", "🍔", "Burgers", "برغر", 2],
     ["shawarma", "🌯", "Shawarma", "شاورما", 2],

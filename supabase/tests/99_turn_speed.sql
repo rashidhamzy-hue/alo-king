@@ -30,6 +30,7 @@ update public.baskets set address_id = (select a.id from public.addresses a wher
 where customer_id = :'cu' and status = 'open';
 
 select public.basket_checkout_view(:'cu') as v \gset
+select tests.ok(:'v'::jsonb -> 'quote' ->> 'status' = 'ok', 'the fixture reaches a ready quote, so every step of the view runs');
 select tests.ok(:'v'::jsonb -> 'address' ->> 'status' = public.basket_address_state(:'cu') ->> 'status',
   'the address step is basket_address_state''s own answer');
 select tests.ok(:'v'::jsonb -> 'quote' ->> 'status' = public.basket_quote(:'cu') ->> 'status'

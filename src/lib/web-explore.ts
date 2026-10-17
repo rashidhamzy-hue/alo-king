@@ -34,10 +34,14 @@ export type ExploreCategory = Names & { key: string; emoji: string; shops: numbe
 export type ExplorePage =
   | { status: "expired" }
   | { status: "no_address"; lang?: string }
+  /** The customer's place is not delivered to (yet): no shop list as if it were. */
+  | { status: "outside"; lang?: string; place: Names | null }
   | {
       status: "ok";
       lang: "ar" | "en" | "fr";
       place: Names;
+      /** Today's dated USD to LBP rate, for showing prices in both (§39.15.5). */
+      rate: number | null;
       shops: ExploreShop[];
       next_offset: number | null;
       categories?: ExploreCategory[];

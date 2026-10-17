@@ -10,7 +10,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import pg from "pg";
 import sharp from "sharp";
-import { DISH, dishOf, isShelf, photoChain } from "./dishes.ts";
+import { DISH, isShelf, photoChain, photoDish } from "./dishes.ts";
 
 const UA = "AloKing-demo-photo-scout/1.0 (https://github.com/rashidhamzy-hue/alo-king)";
 const OPENVERSE = "https://api.openverse.org/v1/images/";
@@ -247,7 +247,8 @@ async function main() {
   const keys = new Map<string, number>();
   const shelf = new Map<string, number>();
   for (const it of items) {
-    const k = dishOf(it);
+    // Only dishes whose photo may be used (photoDish): a shelf product or a branded drink waits for its packshot.
+    const k = photoDish(it);
     for (const c of photoChain(k)) keys.set(c, (keys.get(c) ?? 0) + 1);
     if (isShelf(it) && it.name_en)
       shelf.set(it.name_en.trim(), (shelf.get(it.name_en.trim()) ?? 0) + 1);

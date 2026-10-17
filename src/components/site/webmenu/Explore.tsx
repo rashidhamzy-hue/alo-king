@@ -4,7 +4,8 @@ import { ArrowLeft, Bike, Clock, MapPin, Search, Store } from "lucide-react";
 import { Crown } from "@/design/Crown";
 import { WhatsAppIcon } from "@/design/icons";
 import { WHATSAPP_NUMBER } from "@/lib/config";
-import { fmt, iso, pickName, usd, waLink, type SiteLang } from "@/lib/site";
+import { fmt, iso, lbpAt, pickName, usd, waLink, type SiteLang } from "@/lib/site";
+import type { Names } from "@/lib/site-data";
 import { sitePhotoUrl } from "@/lib/web-menu";
 import { getExplore, type ExplorePage, type ExploreShop } from "@/lib/web-explore";
 import { useSite } from "../context";
@@ -187,6 +188,11 @@ export function Explore({
                     <span className="ak-num font-extrabold">
                       <bdi>{usd(i.price_usd)}</bdi>
                     </span>
+                    {d.rate ? (
+                      <span className="ak-num text-xs text-tone-mute">
+                        <bdi>{lbpAt(i.price_usd, d.rate, lang)}</bdi> {t.common.lbp}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               ))}
@@ -202,7 +208,7 @@ export function Explore({
             <ul className="ex-rail">
               {d.new.map((s) => (
                 <li key={s.vendor_id} className="ex-rail-shop">
-                  <ShopCard s={s} token={token} lang={lang} compact />
+                  <ShopCard s={s} token={token} lang={lang} rate={d.rate} compact />
                 </li>
               ))}
             </ul>
@@ -221,7 +227,7 @@ export function Explore({
             <ul className="ex-list">
               {shops.map((s) => (
                 <li key={s.vendor_id}>
-                  <ShopCard s={s} token={token} lang={lang} />
+                  <ShopCard s={s} token={token} lang={lang} rate={d.rate} />
                 </li>
               ))}
             </ul>
@@ -238,6 +244,11 @@ export function Explore({
             </button>
           )}
           {next == null && shops.length > 0 && <p className="wm-fine text-center">{x.end}</p>}
+          {d.rate ? (
+            <p className="wm-fine text-center">
+              {fmt(t.common.lbpNote, { rate: Math.round(d.rate).toLocaleString("en-US") })}
+            </p>
+          ) : null}
         </section>
 
         {tail && tail.length > 0 && (
@@ -274,11 +285,13 @@ function ShopCard({
   s,
   token,
   lang,
+  rate,
   compact = false,
 }: {
   s: ExploreShop;
   token: string;
   lang: SiteLang;
+  rate: number | null;
   compact?: boolean;
 }) {
   const { t } = useSite();
@@ -316,6 +329,12 @@ function ShopCard({
           {s.fee_usd != null && (
             <span>
               <Bike className="size-3.5" aria-hidden="true" /> <bdi>{usd(s.fee_usd)}</bdi>
+              {rate ? (
+                <>
+                  {" · "}
+                  <bdi>{lbpAt(s.fee_usd, rate, lang)}</bdi> {t.common.lbp}
+                </>
+              ) : null}
             </span>
           )}
           <span>
@@ -331,17 +350,32 @@ function ShopCard({
 }
 
 /** Explore without a usable link: expired, or no location shared yet. */
-export function ExploreGone({ kind }: { kind: "expired" | "no_address" }) {
-  const { t } = useSite();
+export function ExploreGone({
+  kind,
+  place,
+}: {
+  kind: "expired" | "no_address" | "outside";
+  place?: Names | null;
+}) {
+  const { t, lang } = useSite();
   const x = t.exploreWeb;
   const again = waLink(kind === "expired" ? t.wa.explore : t.wa.menu);
+  const where = place ? pickName(place, "name", lang) : null;
+  const title =
+    kind === "expired"
+      ? t.webMenu.expiredTitle
+      : kind === "outside"
+        ? where
+          ? fmt(x.outsideTitle, { place: where })
+          : x.outsideTitleNoPlace
+        : x.noAddressTitle;
+  const text =
+    kind === "expired" ? x.expiredText : kind === "outside" ? x.outsideText : x.noAddressText;
   return (
     <div className="wm wm-gone ak-container">
       <MapPin className="size-10 text-gold" aria-hidden="true" />
-      <h1 className="wm-name mt-4">
-        {kind === "expired" ? t.webMenu.expiredTitle : x.noAddressTitle}
-      </h1>
-      <p className="mt-2 text-tone-mute">{kind === "expired" ? x.expiredText : x.noAddressText}</p>
+      <h1 className="wm-name mt-4">{title}</h1>
+      <p className="mt-2 text-tone-mute">{text}</p>
       {again && (
         <a className="wm-wa mt-6" href={again}>
           <WhatsAppIcon className="size-5 shrink-0" />
