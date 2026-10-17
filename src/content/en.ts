@@ -724,7 +724,7 @@ export const en = {
   // The business side (DECISIONS §39.11): its own navigation, footer, help and FAQ. Customers never see it.
   biz: {
     nav: {
-      home: "Alo King for business",
+      home: "Alo King for businesses",
       short: "For businesses",
       pricing: "Pricing",
       claim: "Claim your shop",
