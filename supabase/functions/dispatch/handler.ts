@@ -742,6 +742,11 @@ async function handleInbound(
   const m = readInbound(ev.payload);
   const o = readOnboardingInbound(ev.payload);
   if (!m || !o) return "ignored";
+  // "Continue in WhatsApp" on the web menu (session 5g, web_basket_notify): a tap the server queued for the customer, not
+  // a message they sent. It never counts as the customer writing (no 24-hour window from it) and only the customer bot
+  // takes it, whatever else the phone is (a merchant member, the owner on the test switch).
+  if (ev.payload?.alo_synthetic === "web" && m.messageId.startsWith("web."))
+    return customerInbound(deps, ev);
   // When this number last wrote to which of our numbers: a free-form message is only deliverable inside WhatsApp's
   // 24-hour window on that number (§3, §18.1 I); outside it a template carries the message (§39.8).
   await deps

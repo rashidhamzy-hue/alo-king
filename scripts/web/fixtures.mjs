@@ -552,6 +552,151 @@ const CREDITS = [
   ),
 ];
 
+// ---- The web shop menu (session 5g, CUSTOMER-EXPERIENCE §4, migration 20261017110000) ---------------------------------------
+// Shapes of web_menu and web_basket_save for the signed link ?t=<token>. Made-up shop and dishes; photos are drawn plates.
+export const WEB_TOKEN = "QAweb_menu-token-0000001";
+export const WEB_TOKEN_EXPIRED = "QAweb_menu-token-expired";
+export const WEB_SLUG = "abou-ali-shawarma";
+const wid = (n) => `90000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
+const wItem = (n, en, ar, fr, price, extra = {}) => ({
+  id: wid(n),
+  ...names(en, ar, fr),
+  description: null,
+  price_usd: price,
+  per_kg: false,
+  est_weight_kg: null,
+  vegetarian: false,
+  vegan: false,
+  spicy: 0,
+  photo: true,
+  photo_source: "merchant",
+  allergens: null,
+  nutrition: null,
+  goes_well: null,
+  groups: [],
+  ...extra,
+});
+const wGroup = (n, en, ar, fr, min, max, opts) => ({
+  id: wid(500 + n),
+  ...names(en, ar, fr),
+  min,
+  max,
+  options: opts.map(([oen, oar, ofr, price], k) => ({
+    id: wid(600 + n * 10 + k),
+    ...names(oen, oar, ofr),
+    price_usd: price,
+  })),
+});
+const SIZE = (n) =>
+  wGroup(n, "Size", "الحجم", "Taille", 1, 1, [
+    ["Regular", "عادي", "Normal", 0],
+    ["Large", "كبير", "Grand", 1.5],
+  ]);
+export const WEB_MENU = {
+  status: "ok",
+  lang: "en",
+  shop: {
+    vendor_id: "10000000-0000-0000-0000-0000000000a1",
+    slug: WEB_SLUG,
+    ...names("Abou Ali Shawarma", "شاورما أبو علي", "Abou Ali Shawarma"),
+    branch_label: null,
+    cuisine_ar: "شاورما",
+    cuisine_en: "Shawarma",
+    cuisine_fr: "Chawarma",
+    village_ar: "بعقلين",
+    village_en: "Baakline",
+    village_fr: "Baakline",
+    open_now: true,
+    hours_today: "11:00–23:30",
+    paused: false,
+    cover: true,
+    demo: false,
+    delivery: true,
+    pickup: true,
+    min_order_usd: 5,
+  },
+  delivery: {
+    status: "ok",
+    fee_usd: 2,
+    road_km: 3.4,
+    eta_min: 25,
+    eta_max: 35,
+    place_ar: "بعقلين",
+    place_en: "Baakline",
+    place_fr: "Baakline",
+    demo_address: false,
+  },
+  sections: [
+    {
+      id: wid(901),
+      ...names("Sandwiches", "سندويشات", "Sandwichs"),
+      items: [
+        wItem(1, "Chicken Shawarma", "شاورما دجاج", "Chawarma poulet", 4.5, {
+          description: "Garlic sauce, pickles and fries, rolled in Lebanese bread.",
+          groups: [
+            SIZE(1),
+            wGroup(2, "Extras", "إضافات", "Suppléments", 0, 2, [
+              ["Extra garlic", "توم زيادة", "Ail en plus", 0.5],
+              ["Cheese", "جبنة", "Fromage", 0.75],
+              ["Fries inside", "بطاطا جوّا", "Frites dedans", 0],
+            ]),
+          ],
+          goes_well: wid(6),
+          allergens: ["gluten", "sesame"],
+          nutrition: { kcal: 520, protein_g: 32, carbs_g: 48, fat_g: 21, status: "estimated" },
+        }),
+        wItem(2, "Beef Shawarma", "شاورما لحمة", "Chawarma bœuf", 5.5, {
+          description: "Tahini, parsley, onion and tomato.",
+          groups: [SIZE(3)],
+        }),
+        wItem(3, "Falafel Sandwich", "سندويش فلافل", "Sandwich falafel", 2.5, {
+          vegetarian: true,
+          photo: false,
+          description: "Tahini, tomato, mint and pickled turnip.",
+        }),
+      ],
+    },
+    {
+      id: wid(902),
+      ...names("Plates", "صحون", "Assiettes"),
+      items: [
+        wItem(4, "Mixed Grill Plate", "صحن مشاوي مشكل", "Assiette de grillades", 14, {
+          description: "Kafta, taouk and lamb, with garlic sauce, fries and bread.",
+        }),
+        wItem(5, "Lamb Chops", "ريش غنم", "Côtelettes d'agneau", 28, {
+          per_kg: true,
+          est_weight_kg: 0.4,
+          photo: false,
+        }),
+      ],
+    },
+    {
+      id: wid(903),
+      ...names("Sides and drinks", "مقبلات ومشروبات", "Accompagnements et boissons"),
+      items: [
+        wItem(6, "French Fries", "بطاطا مقلية", "Frites", 2.5, { photo_source: "illustrative" }),
+        wItem(7, "Hummus", "حمص", "Houmous", 3, { photo: false, vegan: true }),
+        wItem(8, "Ayran", "عيران", "Ayran", 1, {}),
+        wItem(9, "Mint Lemonade", "ليموناضة بالنعنع", "Citronnade à la menthe", 2.5, {
+          groups: [
+            wGroup(4, "Size", "الحجم", "Taille", 1, 1, [
+              ["Small", "صغير", "Petit", 0],
+              ["Large", "كبير", "Grand", 1],
+            ]),
+          ],
+        }),
+      ],
+    },
+  ],
+  basket: {
+    other_vendor: false,
+    lines: [{ item_id: wid(8), quantity: 2, option_ids: [], note: null }],
+  },
+  note_max: 80,
+  rate: RATE,
+  expires_at: "2026-10-18T09:00:00Z",
+};
+
 /** The catalogue image route's stand-in: a drawn plate, its colour taken from the item id. */
 export function itemPhotoSvg(id) {
   const hue = (parseInt(id.slice(-2), 16) * 47) % 360;
@@ -689,6 +834,18 @@ export function respond(fn, args, mode = "live") {
       return live && args.p_slug === UNCLAIMED_PAGE.vendor.slug ? UNCLAIMED_PAGE : null;
     case "site_item":
       return live ? (ITEMS[args.p_item_id] ?? null) : null;
+    case "web_menu":
+      if (args.p_token === WEB_TOKEN_EXPIRED) return { status: "expired" };
+      if (args.p_token !== WEB_TOKEN) return { status: "expired" };
+      return args.p_slug === WEB_SLUG ? WEB_MENU : { status: "unavailable", lang: "en" };
+    case "web_basket_save":
+      return args.p_token === WEB_TOKEN
+        ? {
+            status: "saved",
+            items: (args.p_lines ?? []).reduce((a, l) => a + (l.quantity ?? 0), 0),
+            subtotal_usd: 0,
+          }
+        : { status: "expired" };
     case "site_vendor_demo":
       return live && args.p_slug === DEMO_SLUG ? DEMO_PAGE : null;
     case "site_credits": {

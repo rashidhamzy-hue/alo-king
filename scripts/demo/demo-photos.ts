@@ -4,7 +4,9 @@
 //   2. packshot: the product's Open Food Facts front image, for shelf items (scripts/demo/photo-picks.json "packshots",
 //      picked by a build session from photo-scout's candidates: by barcode, or brand and name with a confidence check);
 //   3. illustrative: one real photo per dish from a free library that allows commercial use (photo-picks.json "dishes",
-//      matched through scripts/demo/dishes.ts, falling back to the broader dish).
+//      matched through photoDish in scripts/demo/dishes.ts, falling back to a broader dish only where its photo shows
+//      the same dish). Better nothing than a wrong photo (session 5g): an item no dish photo fits gets none, and a dish
+//      photo it had before is removed (never a merchant's own), so its shop's cover is chosen again without it.
 // A pick is used only when its license allows commercial use and it is credited, and never from a Google host (pickOk).
 // The catalogue validator (DECISIONS §39.15.4, supabase/functions/_shared/catalog-rules.ts) runs before a photo is saved:
 // on the source picture (at least 500 px on a side, an https address, not a placeholder) and on the processed file Meta
@@ -20,7 +22,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import sharp from "sharp";
-import { dishOf, isShelf, photoChain } from "./dishes.ts";
+import { isShelf, ownPhotoDish, photoChain, photoDish } from "./dishes.ts";
 import {
   imageHeader,
   MIN_IMAGE_SIDE,
@@ -123,9 +125,13 @@ export function measureOf(
 }
 
 /** Thrown when the validator refuses a photo; its codes go in the run's log. */
+// No TypeScript parameter property here: CI runs this file with node --experimental-strip-types, which refuses them
+// (session 5g: every run since #222 stopped at load, unnoticed, so no photo changed).
 export class RefusedPhoto extends Error {
-  constructor(readonly issues: CatalogIssue[]) {
+  readonly issues: CatalogIssue[];
+  constructor(issues: CatalogIssue[]) {
     super(`refused by the catalogue rules: ${issues.map((i) => i.code).join(", ")}`);
+    this.issues = issues;
   }
 }
 
@@ -188,7 +194,7 @@ export type Planned = {
 
 /** What one item gets: its own picture, a packshot or the photo of its dish; null when unchanged or when none fits. */
 export function plan(item: TodoItem, picks: Picks): Planned | null | "none" {
-  const dish = dishOf(item);
+  const dish = photoDish(item);
   const own = ownPicture(item.image_url);
   let p: Omit<Planned, "hash"> | null = null;
   if (own)
@@ -228,6 +234,27 @@ export function plan(item: TodoItem, picks: Picks): Planned | null | "none" {
   const hash = sha256(JSON.stringify([PROCESS_VERSION, p.kind, p.url]));
   if (item.photo && item.photo.source === p.kind && item.photo.origin_hash === hash) return null;
   return { ...p, hash };
+}
+
+/**
+ * The dish photo that replaces a shop's own picture when it cannot be used (gone, or refused by the catalogue rules):
+ * null when the item already has it, "none" when no dish photo fits the item.
+ */
+export function dishFallback(item: TodoItem, picks: Picks): Planned | null | "none" {
+  const key = photoChain(photoDish(item)).find((k) => pickOk("illustrative", picks.dishes[k]));
+  if (!key) return "none";
+  const k = picks.dishes[key];
+  const hash = sha256(JSON.stringify([PROCESS_VERSION, "illustrative", k.url]));
+  if (item.photo?.source === "illustrative" && item.photo.origin_hash === hash) return null;
+  return {
+    kind: "illustrative",
+    url: k.url,
+    license: k.license,
+    credit: k.credit,
+    source_url: k.source_url,
+    dish: key,
+    hash,
+  };
 }
 
 /** One look for every product: 800 × 800, cropped on the interesting part (packshots fitted on white instead). */
@@ -299,8 +326,9 @@ export function coverCandidates(
 ): CoverCandidate[] {
   const sig = signatureDish(shop.dishes);
   const main = (shop.mainDishes ?? []).filter((d) => !NOT_COVER.test(d));
+  // An own photo whose item the rules name no dish for ("other") comes after every named one.
   const rank = (d: string) =>
-    main.includes(d) ? main.indexOf(d) : main.length + (d === sig ? 0 : 1);
+    main.includes(d) ? main.indexOf(d) : main.length + (d === sig ? 0 : d === "other" ? 2 : 1);
   const own = shop.own
     .filter((o) => !NOT_COVER.test(o.dish))
     .sort((a, b) => rank(a.dish) - rank(b.dish));
@@ -327,6 +355,45 @@ export function coverCandidates(
   return out;
 }
 
+export const coverHash = (c: { url: string }) =>
+  sha256(JSON.stringify([PROCESS_VERSION, "cover", c.url]));
+
+/**
+ * The cover candidates a run tries, best first: [] when the current cover stays, null when it goes (no candidate). A
+ * merchant's own cover is never touched; a cover from the shop's own photos (merchant_site) is replaced only by
+ * another of its own photos, never by a dish photo, and never removed by this run. When no candidate downloads, the
+ * current cover stays.
+ */
+export function coverTries(
+  cur: { source: string; origin_hash: string | null } | undefined,
+  candidates: CoverCandidate[],
+): CoverCandidate[] | null {
+  if (cur?.source === "merchant") return [];
+  const own = candidates.filter((c) => c.source === "merchant_site");
+  // Absolute: a run that sees none of the shop's own photos (a PHOTO_LIMIT cut, or own photos of drinks and sides only)
+  // keeps the own-photo cover; it is never replaced by a dish photo nor removed.
+  if (cur?.source === "merchant_site" && !own.length) return [];
+  const list = cur?.source === "merchant_site" ? own : candidates;
+  if (!list.length) return cur ? null : [];
+  const at = cur ? list.findIndex((c) => coverHash(c) === cur.origin_hash) : -1;
+  if (at === 0) return [];
+  return at > 0 ? list.slice(0, at) : list;
+}
+
+/**
+ * Whether an item's photo goes when the plan gives it none: a dish photo (illustrative) always, as no dish photo fits it
+ * any more or its pick is gone; a packshot or the shop's own picture only when its own source is gone (the packshot pick,
+ * or the picture on the shop's menu), never for a dish-fit reason; a merchant's own never.
+ */
+export function clearsOnNone(item: TodoItem, picks: Picks): boolean {
+  const src = item.photo?.source;
+  if (src === "illustrative") return true;
+  if (src === "packshot")
+    return !(isShelf(item) && pickOk("packshot", picks.packshots[packKey(item)], item));
+  if (src === "merchant_site") return !ownPicture(item.image_url);
+  return false;
+}
+
 /**
  * The dishes of a shop's items in its main category (the category's item pattern, a Postgres regex: \m and \M are word
  * boundaries), ranked by units ordered, then by how many items share the dish.
@@ -345,7 +412,7 @@ export function mainCategoryDishes(
   const score = new Map<string, [number, number]>();
   for (const it of items) {
     if (!re.test(`${it.name_en ?? ""} ${it.name_ar ?? ""}`)) continue;
-    const d = dishOf(it);
+    const d = photoDish(it);
     if (NOT_COVER.test(d)) continue;
     const [o, c] = score.get(d) ?? [0, 0];
     score.set(d, [o + (ordered.get(it.item_id) ?? 0), c + 1]);
@@ -470,28 +537,35 @@ async function main() {
     await pool(todo, 6, async (item) => {
       const shop = byShop.get(item.vendor_id) ?? { vendor: item.vendor ?? "", dishes: [], own: [] };
       byShop.set(item.vendor_id, shop);
-      const dish = dishOf(item);
+      // The dish whose photo may show the item (none for a pack, a branded drink or a dish with no fitting photo): it
+      // decides the item's dish photo and the shop's illustrative cover alike, so a dropped photo never stays a cover.
+      const dish = photoDish(item);
       shop.dishes.push(dish);
       if (policyHeld(item).length) done.held++;
+      // The shop's own photo is the item itself: the dish-fit rules do not apply, only "not a main" (a drink, a side,
+      // a topping); an item the rules name no dish for is still a cover candidate, ranked last.
       const own = ownPicture(item.image_url);
-      if (own && !NOT_COVER.test(dish))
-        shop.own.push({ url: sizedImageUrl(own), original: own, dish });
+      const ownDish = ownPhotoDish(item);
+      if (own && !NOT_COVER.test(ownDish))
+        shop.own.push({ url: sizedImageUrl(own), original: own, dish: ownDish });
       const p = plan(item, picks);
       if (p === null) return void done.unchanged++;
+      // The item's photo goes (never a merchant's own); its object is deleted below.
+      const clear = async () => {
+        try {
+          const r = (await db.query("select public.menu_item_photo_clear($1) as r", [item.item_id]))
+            .rows[0].r;
+          if (r?.status === "ok") done.cleared++;
+        } catch (e) {
+          done.failed++;
+          console.error(`clearing item ${item.item_id} failed: ${String(e).slice(0, 160)}`);
+        }
+      };
       if (p === "none") {
         done.none++;
-        // A photo made from a pick that is gone (or an old drawn tile) goes; its object is deleted below.
-        if (item.photo && item.photo.source !== "merchant") {
-          try {
-            const r = (
-              await db.query("select public.menu_item_photo_clear($1) as r", [item.item_id])
-            ).rows[0].r;
-            if (r?.status === "ok") done.cleared++;
-          } catch (e) {
-            done.failed++;
-            console.error(`clearing item ${item.item_id} failed: ${String(e).slice(0, 160)}`);
-          }
-        }
+        // A dish photo that no longer fits the item or whose pick is gone (the old drawn tiles were dish photos too);
+        // a packshot or the shop's own picture only when its own source is gone (clearsOnNone).
+        if (clearsOnNone(item, picks)) await clear();
         return;
       }
       try {
@@ -501,17 +575,14 @@ async function main() {
         } catch (e) {
           // The shop's own picture is gone, or the catalogue rules refuse it: the photo of its dish instead.
           if (p.kind === "illustrative") throw e;
-          const key = photoChain(dish).find((k) => pickOk("illustrative", picks.dishes[k]));
-          if (!key) throw e;
-          const k = picks.dishes[key];
-          Object.assign(p, {
-            kind: "illustrative",
-            url: k.url,
-            license: k.license,
-            credit: k.credit,
-            source_url: k.source_url,
-          });
-          p.hash = sha256(JSON.stringify([PROCESS_VERSION, p.kind, p.url]));
+          const fb = dishFallback(item, picks);
+          if (fb === null) return void done.unchanged++;
+          if (fb === "none") {
+            // No dish photo fits the item (session 5g): an older dish photo standing in for it goes too.
+            if (item.photo?.source === "illustrative") await clear();
+            throw e;
+          }
+          Object.assign(p, fb);
           body = await make(p);
         }
         if (body.byteLength > MAX_BYTES) throw new Error("image too large after processing");
@@ -624,23 +695,22 @@ async function main() {
           [vendorId],
         )
       ).rows[0];
-      if (!candidates.length) {
+      // The current cover stays unless a better-ranked candidate now makes one (an unchanged run makes no new cover; a
+      // fallback is upgraded once the better photo works again); a merchant's own is never touched and a cover from
+      // the shop's own photos gives way only to another of them (coverTries).
+      const tries = coverTries(cur, candidates);
+      if (tries === null) {
         // No cover any more (its pick is gone): the old one goes; its object is deleted below.
-        if (cur && cur.source !== "merchant")
-          await db.query("select public.vendor_cover_set($1, null, null, null, null, null, null)", [
-            vendorId,
-          ]);
+        await db.query("select public.vendor_cover_set($1, null, null, null, null, null, null)", [
+          vendorId,
+        ]);
         continue;
       }
-      const hashOf = (c: CoverCandidate) =>
-        sha256(JSON.stringify([PROCESS_VERSION, "cover", c.url]));
-      // A merchant's own cover is never touched. The current cover stays unless a better-ranked candidate now makes one
-      // (an unchanged run makes no new cover; a fallback is upgraded once the better photo works again).
-      if (cur?.source === "merchant") continue;
-      const at = cur ? candidates.findIndex((c) => hashOf(c) === cur.origin_hash) : -1;
-      if (at === 0) continue;
+      if (!tries.length) continue;
+      // Whether the current cover is still a candidate (then it simply stays when nothing better downloads).
+      const stillCandidate = !!cur && candidates.some((c) => coverHash(c) === cur.origin_hash);
       let made = false;
-      for (const chosen of at > 0 ? candidates.slice(0, at) : candidates) {
+      for (const chosen of tries) {
         let body: Buffer;
         try {
           body = await coverImage((await download(chosen.url)).bytes);
@@ -657,7 +727,7 @@ async function main() {
               vendorId,
               chosen.source,
               path,
-              hashOf(chosen),
+              coverHash(chosen),
               chosen.license,
               String(chosen.credit ?? "").slice(0, 200),
               chosen.source_url,
@@ -672,7 +742,7 @@ async function main() {
         }
         break;
       }
-      if (!made && at < 0) console.error(`no cover for shop ${vendorId}`);
+      if (!made && !stillCandidate) console.error(`no cover for shop ${vendorId}`);
     }
 
     // Objects whose row is gone (claimed, no longer a demo shop, or the older drawn tiles and PNGs).

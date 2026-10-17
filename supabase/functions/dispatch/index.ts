@@ -11,6 +11,7 @@
 // ORS_API_KEY (road routes for the delivery quote). Without a key that part is off, never faked.
 // Meta catalogue (§39.12): optional META_CATALOG_TOKEN when Kapso's proxy cannot write catalogue items. GET
 // ?route=catalog-image is public (Meta fetches product images) and redirects to the photo of an item that is in the catalogue (404 otherwise).
+// ?route=site-photo is public too (the website shows it): an item's photo or a shop's cover, for shops whose items have pages.
 
 import {
   runDispatch,
@@ -647,6 +648,33 @@ async function catalogImage(url: URL): Promise<Response> {
   return signed ? Response.redirect(signed, 302) : new Response("not found", { status: 404 });
 }
 
+/**
+ * GET ?route=site-photo&i=<item> or &c=<shop>: the photo the website shows (the web menu, Explore, the item page), a
+ * short-lived signed redirect, for shops whose items have pages (site_photo). Unlike catalog-image it needs no hash: it
+ * serves the site, not Meta. Cached for half the signed link's life.
+ */
+async function sitePhoto(url: URL): Promise<Response> {
+  const item = url.searchParams.get("i") ?? "";
+  const shop = url.searchParams.get("c") ?? "";
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!(uuid.test(item) || (!item && uuid.test(shop))))
+    return new Response("not found", { status: 404 });
+  const path = await rpc("site_photo", {
+    p_item_id: item || null,
+    p_vendor_id: item ? null : shop,
+  }).catch(() => null);
+  const signed = typeof path === "string" && path ? await photoUrl(path) : null;
+  return signed
+    ? new Response(null, {
+        status: 302,
+        headers: { location: signed, "cache-control": "public, max-age=1800" },
+      })
+    : new Response("not found", {
+        status: 404,
+        headers: { "cache-control": "public, max-age=300" },
+      });
+}
+
 // Ops alerts and the console go to Slack (§32.1): SLACK_BOT_TOKEN, synced by the deploy job once the owner installs the app.
 const slackToken = env("SLACK_BOT_TOKEN");
 
@@ -727,6 +755,14 @@ Deno.serve(async (req) => {
       return await catalogImage(url);
     } catch (e) {
       log("catalogue image failed", { error: String(e).slice(0, 160) });
+      return new Response("unavailable", { status: 503 });
+    }
+  }
+  if (req.method === "GET" && url.searchParams.get("route") === "site-photo") {
+    try {
+      return await sitePhoto(url);
+    } catch (e) {
+      log("site photo failed", { error: String(e).slice(0, 160) });
       return new Response("unavailable", { status: 503 });
     }
   }

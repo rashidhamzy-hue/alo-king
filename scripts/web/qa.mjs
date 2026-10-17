@@ -7,7 +7,15 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { chromium } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { CLAIM_VENDOR_ID, DEMO_SLUG, ITEM_IDS, TRACK_TOKENS } from "./fixtures.mjs";
+import {
+  CLAIM_VENDOR_ID,
+  DEMO_SLUG,
+  ITEM_IDS,
+  TRACK_TOKENS,
+  WEB_SLUG,
+  WEB_TOKEN,
+  WEB_TOKEN_EXPIRED,
+} from "./fixtures.mjs";
 
 const arg = (k, d) => {
   const i = process.argv.indexOf(`--${k}`);
@@ -38,6 +46,9 @@ const PAGES = [
   // No photo and a very long name, at a shop without a page of its own (named, not linked; noindex).
   { id: "item-long", path: `/i/${ITEM_IDS.long}` },
   { id: "credits", path: "/credits" },
+  // Session 5g: the web shop menu behind its signed link, an expired link.
+  { id: "webmenu", path: `/m/${WEB_SLUG}?t=${WEB_TOKEN}` },
+  { id: "webmenu-expired", path: `/m/${WEB_SLUG}?t=${WEB_TOKEN_EXPIRED}` },
   { id: "send-home", path: "/send-home" },
   { id: "help", path: "/help" },
   { id: "contact", path: "/contact" },

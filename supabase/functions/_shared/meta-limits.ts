@@ -115,6 +115,9 @@ export function checkInteractive(payload: any): string[] {
     if (len(p.display_text) > META.buttonTitle) v.push(`cta label "${p.display_text}" > ${META.buttonTitle}`);
     if (!String(p.display_text ?? "").trim()) v.push("empty cta label");
     if (!/^https:\/\//.test(String(p.url ?? ""))) v.push("cta url must be https");
+    // A CTA-URL message takes a text, image, video or document header; an image is a public https link (the cover).
+    if (i.header && !["text", "image", "video", "document"].includes(i.header.type)) v.push(`cta header type ${i.header.type}`);
+    if (i.header?.type === "image" && !/^https:\/\//.test(String(i.header.image?.link ?? ""))) v.push("cta image must be https");
   }
   return v;
 }

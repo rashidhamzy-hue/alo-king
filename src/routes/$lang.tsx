@@ -42,6 +42,12 @@ function LangLayout() {
   const business = useRouterState({
     select: (s) => /^\/[a-z]{2}\/business(\/|$)/.test(s.location.pathname),
   });
+  // The in-chat pages (session 5g: the web menu and Explore behind a signed link) are an app: no site header or footer.
+  const app = useRouterState({
+    select: (s) =>
+      /^\/[a-z]{2}\/(m\/[^/]+|e)\/?$/.test(s.location.pathname) &&
+      typeof (s.location.search as { t?: unknown }).t === "string",
+  });
   const side = business ? "business" : "customer";
   return (
     <SiteProvider
@@ -52,11 +58,11 @@ function LangLayout() {
         <a className="ak-skip" href="#main">
           {copy.a11y.skip}
         </a>
-        {business ? <BizHeader /> : <Header />}
+        {app ? null : business ? <BizHeader /> : <Header />}
         <main id="main">
           <Outlet />
         </main>
-        {business ? <BizFooter /> : <Footer />}
+        {app ? null : business ? <BizFooter /> : <Footer />}
       </div>
     </SiteProvider>
   );
