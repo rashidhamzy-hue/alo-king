@@ -1,0 +1,1380 @@
+{
+  "version": "7.3",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "HOME": [
+      "SEARCH",
+      "SHOPS",
+      "ITEM",
+      "BASKET"
+    ],
+    "SEARCH": [
+      "SHOPS"
+    ],
+    "SHOPS": [
+      "SHOP"
+    ],
+    "SHOP": [
+      "LIST",
+      "ITEM"
+    ],
+    "LIST": [
+      "ITEM"
+    ],
+    "ITEM": [
+      "BASKET"
+    ],
+    "BASKET": []
+  },
+  "screens": [
+    {
+      "id": "HOME",
+      "title": "Alo King",
+      "data": {
+        "cats_label": {
+          "type": "string",
+          "__example__": "What are you craving?"
+        },
+        "cats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "main-content": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "string"
+                  }
+                }
+              },
+              "start": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string"
+                  },
+                  "alt-text": {
+                    "type": "string"
+                  }
+                }
+              },
+              "end": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "badge": {
+                "type": "string"
+              },
+              "on-click-action": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "payload": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "search",
+              "main-content": {
+                "title": "Search",
+                "description": "",
+                "metadata": ""
+              },
+              "on-click-action": {
+                "name": "data_exchange",
+                "payload": {
+                  "go": "search"
+                }
+              }
+            }
+          ]
+        },
+        "pop_label": {
+          "type": "string",
+          "__example__": "Popular near you"
+        },
+        "pop": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "main-content": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "string"
+                  }
+                }
+              },
+              "start": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string"
+                  },
+                  "alt-text": {
+                    "type": "string"
+                  }
+                }
+              },
+              "end": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "badge": {
+                "type": "string"
+              },
+              "on-click-action": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "payload": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "near",
+              "main-content": {
+                "title": "Shops near you",
+                "description": "",
+                "metadata": ""
+              },
+              "on-click-action": {
+                "name": "data_exchange",
+                "payload": {
+                  "go": "shops"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "NavigationList",
+            "name": "cats",
+            "label": "${data.cats_label}",
+            "list-items": "${data.cats}"
+          },
+          {
+            "type": "NavigationList",
+            "name": "pop",
+            "label": "${data.pop_label}",
+            "list-items": "${data.pop}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "SEARCH",
+      "title": "Search",
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextInput",
+            "name": "q",
+            "label": "A dish or a shop",
+            "input-type": "text",
+            "required": true,
+            "min-chars": 2,
+            "max-chars": 60,
+            "helper-text": "For example: shawarma, pizza, manoushe"
+          },
+          {
+            "type": "Footer",
+            "label": "Search",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "go": "shops",
+                "q": "${form.q}",
+                "cat": "",
+                "offset": "0"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SHOPS",
+      "title": "Shops",
+      "data": {
+        "shops_label": {
+          "type": "string",
+          "__example__": "Shops that deliver to Baakline"
+        },
+        "shops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "main-content": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "string"
+                  }
+                }
+              },
+              "start": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string"
+                  },
+                  "alt-text": {
+                    "type": "string"
+                  }
+                }
+              },
+              "end": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "badge": {
+                "type": "string"
+              },
+              "on-click-action": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "payload": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "s1",
+              "main-content": {
+                "title": "Alo Test Grill",
+                "description": "",
+                "metadata": ""
+              },
+              "on-click-action": {
+                "name": "data_exchange",
+                "payload": {
+                  "go": "shop",
+                  "slug": "alo-test-grill"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "NavigationList",
+            "name": "shops",
+            "label": "${data.shops_label}",
+            "list-items": "${data.shops}",
+            "media-size": "large"
+          }
+        ]
+      }
+    },
+    {
+      "id": "SHOP",
+      "title": "Shop",
+      "data": {
+        "secs_label": {
+          "type": "string",
+          "__example__": "Alo Test Grill"
+        },
+        "secs_desc": {
+          "type": "string",
+          "__example__": "Grills · Baakline · 🛵 $2.00 · 25–35 min"
+        },
+        "secs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "main-content": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "string"
+                  }
+                }
+              },
+              "start": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string"
+                  },
+                  "alt-text": {
+                    "type": "string"
+                  }
+                }
+              },
+              "end": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "badge": {
+                "type": "string"
+              },
+              "on-click-action": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "payload": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "x0",
+              "main-content": {
+                "title": "Sandwiches",
+                "description": "",
+                "metadata": ""
+              },
+              "on-click-action": {
+                "name": "data_exchange",
+                "payload": {
+                  "go": "section",
+                  "slug": "alo-test-grill",
+                  "sec": "0"
+                }
+              }
+            }
+          ]
+        },
+        "items_label": {
+          "type": "string",
+          "__example__": "From Alo Test Grill"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "main-content": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "string"
+                  }
+                }
+              },
+              "start": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string"
+                  },
+                  "alt-text": {
+                    "type": "string"
+                  }
+                }
+              },
+              "end": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "badge": {
+                "type": "string"
+              },
+              "on-click-action": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "payload": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "i1",
+              "main-content": {
+                "title": "Chicken Shawarma",
+                "description": "",
+                "metadata": ""
+              },
+              "on-click-action": {
+                "name": "data_exchange",
+                "payload": {
+                  "go": "item",
+                  "slug": "alo-test-grill",
+                  "item": "x"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "NavigationList",
+            "name": "secs",
+            "label": "${data.secs_label}",
+            "description": "${data.secs_desc}",
+            "list-items": "${data.secs}"
+          },
+          {
+            "type": "NavigationList",
+            "name": "items",
+            "label": "${data.items_label}",
+            "list-items": "${data.items}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "LIST",
+      "title": "Items",
+      "data": {
+        "rows_label": {
+          "type": "string",
+          "__example__": "Sandwiches"
+        },
+        "rows_desc": {
+          "type": "string",
+          "__example__": "Grills · Baakline · 🛵 $2.00"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "main-content": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "string"
+                  }
+                }
+              },
+              "start": {
+                "type": "object",
+                "properties": {
+                  "image": {
+                    "type": "string"
+                  },
+                  "alt-text": {
+                    "type": "string"
+                  }
+                }
+              },
+              "end": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "badge": {
+                "type": "string"
+              },
+              "on-click-action": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "payload": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "i1",
+              "main-content": {
+                "title": "Chicken Shawarma",
+                "description": "",
+                "metadata": ""
+              },
+              "on-click-action": {
+                "name": "data_exchange",
+                "payload": {
+                  "go": "item",
+                  "slug": "alo-test-grill",
+                  "item": "x"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "NavigationList",
+            "name": "rows",
+            "label": "${data.rows_label}",
+            "description": "${data.rows_desc}",
+            "list-items": "${data.rows}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ITEM",
+      "title": "Item",
+      "data": {
+        "item_id": {
+          "type": "string",
+          "__example__": "51000000-0000-0000-0000-000000000001"
+        },
+        "slug": {
+          "type": "string",
+          "__example__": "alo-test-grill"
+        },
+        "name": {
+          "type": "string",
+          "__example__": "Chicken Shawarma"
+        },
+        "sub": {
+          "type": "string",
+          "__example__": "شاورما دجاج · Alo Test Grill"
+        },
+        "desc": {
+          "type": "string",
+          "__example__": "Chicken, garlic sauce, pickles"
+        },
+        "has_desc": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "photo": {
+          "type": "string",
+          "__example__": ""
+        },
+        "has_photo": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "facts": {
+          "type": "string",
+          "__example__": "≈ 520 kcal · 32 g protein (estimated)"
+        },
+        "has_facts": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "too_many": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "too_many_text": {
+          "type": "string",
+          "__example__": " "
+        },
+        "gw_label": {
+          "type": "string",
+          "__example__": "Goes well with"
+        },
+        "gw_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "x",
+              "title": "Fries",
+              "description": "+$2.00"
+            }
+          ]
+        },
+        "gw_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "add_label": {
+          "type": "string",
+          "__example__": "Add · $5.00"
+        },
+        "sw_label": {
+          "type": "string",
+          "__example__": " "
+        },
+        "sw_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "replace",
+              "title": "Start a new basket"
+            }
+          ]
+        },
+        "sw_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "r1_label": {
+          "type": "string",
+          "__example__": "Size"
+        },
+        "r1_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o1",
+              "title": "Regular"
+            }
+          ]
+        },
+        "r1_visible": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "r1_required": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "r2_label": {
+          "type": "string",
+          "__example__": " "
+        },
+        "r2_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o1",
+              "title": "Regular"
+            }
+          ]
+        },
+        "r2_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "r2_required": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "r3_label": {
+          "type": "string",
+          "__example__": " "
+        },
+        "r3_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o1",
+              "title": "Regular"
+            }
+          ]
+        },
+        "r3_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "r3_required": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "r4_label": {
+          "type": "string",
+          "__example__": " "
+        },
+        "r4_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o1",
+              "title": "Regular"
+            }
+          ]
+        },
+        "r4_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "r4_required": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "c1_label": {
+          "type": "string",
+          "__example__": " "
+        },
+        "c1_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o2",
+              "title": "Cheese",
+              "description": "+$0.50"
+            }
+          ]
+        },
+        "c1_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "c1_min": {
+          "type": "number",
+          "__example__": 0
+        },
+        "c1_max": {
+          "type": "number",
+          "__example__": 1
+        },
+        "c2_label": {
+          "type": "string",
+          "__example__": " "
+        },
+        "c2_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o2",
+              "title": "Cheese",
+              "description": "+$0.50"
+            }
+          ]
+        },
+        "c2_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "c2_min": {
+          "type": "number",
+          "__example__": 0
+        },
+        "c2_max": {
+          "type": "number",
+          "__example__": 1
+        },
+        "c3_label": {
+          "type": "string",
+          "__example__": " "
+        },
+        "c3_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "o2",
+              "title": "Cheese",
+              "description": "+$0.50"
+            }
+          ]
+        },
+        "c3_visible": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "c3_min": {
+          "type": "number",
+          "__example__": 0
+        },
+        "c3_max": {
+          "type": "number",
+          "__example__": 1
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "If",
+            "condition": "${data.has_photo}",
+            "then": [
+              {
+                "type": "Image",
+                "src": "${data.photo}",
+                "scale-type": "cover",
+                "aspect-ratio": 1
+              }
+            ]
+          },
+          {
+            "type": "TextHeading",
+            "text": "${data.name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.sub}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.desc}",
+            "visible": "${data.has_desc}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.facts}",
+            "visible": "${data.has_facts}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.too_many_text}",
+            "visible": "${data.too_many}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "r1",
+            "label": "${data.r1_label}",
+            "data-source": "${data.r1_items}",
+            "visible": "${data.r1_visible}",
+            "required": "${data.r1_required}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "r2",
+            "label": "${data.r2_label}",
+            "data-source": "${data.r2_items}",
+            "visible": "${data.r2_visible}",
+            "required": "${data.r2_required}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "r3",
+            "label": "${data.r3_label}",
+            "data-source": "${data.r3_items}",
+            "visible": "${data.r3_visible}",
+            "required": "${data.r3_required}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "r4",
+            "label": "${data.r4_label}",
+            "data-source": "${data.r4_items}",
+            "visible": "${data.r4_visible}",
+            "required": "${data.r4_required}"
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "c1",
+            "label": "${data.c1_label}",
+            "data-source": "${data.c1_items}",
+            "visible": "${data.c1_visible}",
+            "required": false,
+            "min-selected-items": "${data.c1_min}",
+            "max-selected-items": "${data.c1_max}"
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "c2",
+            "label": "${data.c2_label}",
+            "data-source": "${data.c2_items}",
+            "visible": "${data.c2_visible}",
+            "required": false,
+            "min-selected-items": "${data.c2_min}",
+            "max-selected-items": "${data.c2_max}"
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "c3",
+            "label": "${data.c3_label}",
+            "data-source": "${data.c3_items}",
+            "visible": "${data.c3_visible}",
+            "required": false,
+            "min-selected-items": "${data.c3_min}",
+            "max-selected-items": "${data.c3_max}"
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "gw",
+            "label": "${data.gw_label}",
+            "data-source": "${data.gw_items}",
+            "visible": "${data.gw_visible}",
+            "required": false,
+            "media-size": "regular"
+          },
+          {
+            "type": "Dropdown",
+            "name": "qty",
+            "label": "Quantity",
+            "required": true,
+            "init-value": "1",
+            "data-source": [
+              {
+                "id": "1",
+                "title": "1"
+              },
+              {
+                "id": "2",
+                "title": "2"
+              },
+              {
+                "id": "3",
+                "title": "3"
+              },
+              {
+                "id": "4",
+                "title": "4"
+              },
+              {
+                "id": "5",
+                "title": "5"
+              },
+              {
+                "id": "6",
+                "title": "6"
+              },
+              {
+                "id": "7",
+                "title": "7"
+              },
+              {
+                "id": "8",
+                "title": "8"
+              },
+              {
+                "id": "9",
+                "title": "9"
+              },
+              {
+                "id": "10",
+                "title": "10"
+              }
+            ]
+          },
+          {
+            "type": "TextArea",
+            "name": "note",
+            "label": "Note for the kitchen",
+            "required": false,
+            "max-length": 80,
+            "helper-text": "For example: no onions"
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "sw",
+            "label": "${data.sw_label}",
+            "data-source": "${data.sw_items}",
+            "visible": "${data.sw_visible}",
+            "required": false
+          },
+          {
+            "type": "Footer",
+            "label": "${data.add_label}",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "go": "add",
+                "item": "${data.item_id}",
+                "slug": "${data.slug}",
+                "r1": "${form.r1}",
+                "r2": "${form.r2}",
+                "r3": "${form.r3}",
+                "r4": "${form.r4}",
+                "c1": "${form.c1}",
+                "c2": "${form.c2}",
+                "c3": "${form.c3}",
+                "gw": "${form.gw}",
+                "qty": "${form.qty}",
+                "note": "${form.note}",
+                "sw": "${form.sw}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "BASKET",
+      "title": "Your basket",
+      "terminal": true,
+      "data": {
+        "shop": {
+          "type": "string",
+          "__example__": "Alo Test Grill"
+        },
+        "lines_text": {
+          "type": "string",
+          "__example__": "2× Chicken Shawarma · **$10.00**"
+        },
+        "remove_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string"
+              },
+              "alt-text": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "l1",
+              "title": "2× Chicken Shawarma"
+            }
+          ]
+        },
+        "has_lines": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "totals_text": {
+          "type": "string",
+          "__example__": "Subtotal: $10.00\nDelivery: $2.00\n**Total: $12.00 · 1,074,000 LBP**"
+        },
+        "confirm_note": {
+          "type": "string",
+          "__example__": "Confirm sends the summary to the chat."
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextSubheading",
+            "text": "${data.shop}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.lines_text}",
+            "markdown": true
+          },
+          {
+            "type": "CheckboxGroup",
+            "name": "remove",
+            "label": "Remove from basket",
+            "data-source": "${data.remove_items}",
+            "visible": "${data.has_lines}",
+            "required": false
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.totals_text}",
+            "markdown": true
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.confirm_note}"
+          },
+          {
+            "type": "Footer",
+            "label": "Confirm",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "go": "confirm",
+                "remove": "${form.remove}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

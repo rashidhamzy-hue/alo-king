@@ -8,6 +8,8 @@ export type Inbound =
   | { type: "list"; id: string; title: string }
   | { type: "location"; lat: number; lon: number; name?: string }
   | { type: "voice"; transcript: string }
+  /** A Flow's completion as WhatsApp delivers it (interactive nfm_reply with the endpoint's params). */
+  | { type: "flow_reply"; response: Record<string, unknown> }
   | {
       type: "order";
       catalogId: string;
@@ -75,6 +77,16 @@ export function inboundPayload(opts: {
             quantity: String(x.quantity),
             ...(x.price === null ? {} : { item_price: String(x.price), currency: "USD" }),
           })),
+        },
+      };
+      break;
+    case "flow_reply":
+      message = {
+        ...base,
+        type: "interactive",
+        interactive: {
+          type: "nfm_reply",
+          nfm_reply: { name: "flow", body: "Sent", response_json: JSON.stringify(m.response) },
         },
       };
       break;

@@ -31,3 +31,8 @@ verify_jwt = false
 [functions.ops-slack]
 # The Slack ops console (§32.1): authenticated by Slack's signing secret (SLACK_SIGNING_SECRET), not a Supabase JWT.
 verify_jwt = false
+
+[functions.flow-app]
+# The Alo King Flow app's data endpoint (DECISIONS §39.15.13): authenticated by the HMAC of Kapso's data-endpoint function
+# (the proxy key in app_private.flow_app_keys), not a Supabase JWT.
+verify_jwt = false

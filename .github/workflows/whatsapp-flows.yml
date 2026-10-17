@@ -1,10 +1,13 @@
 name: whatsapp-flows
 
-# DECISIONS §12, §32.5 and §39.8: Flowso validates every Flow in whatsapp/flows/ and replays its scenarios, then
+# DECISIONS §12, §32.5, §39.8 and §39.15.13: Flowso validates every Flow in whatsapp/flows/ and replays its scenarios (the
+# Alo King app's against its endpoint logic), then
 # scripts/kapso/flows.ts uploads each one to Kapso on a WhatsApp number (a new draft, or a new version of an existing
 # draft, found by its name alo_<flow>_<lang>), sets up Flow encryption on the number's business account, and with
 # `publish` publishes the drafts and switches each Flow on (a dated flows_enabled row on staging). `send_tests` sends one
-# test of each live Flow to the owner phone that wrote to the number in the last 24 hours. Kapso only at
+# test of each live Flow to the owner phone that wrote to the number in the last 24 hours. The app (alo_app_<lang>) also gets
+# its data endpoint: Kapso's function forwards to flow-app (eu-central-1) with the proxy key from staging; once Meta
+# publishes both languages, a dated flow_app_live row switches the bot to open it. Kapso only at
 # https://api.kapso.ai. (Run 38762070639 failed because `flowso deploy --json` printed more than JSON.)
 on:
   workflow_dispatch:
@@ -37,14 +40,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Validate and replay every scenario
-        run: |
-          for f in whatsapp/flows/*.json; do
-            name=$(basename "$f" .json); base=${name%.*}
-            pnpm exec flowso validate "$f" --json >/dev/null
-            pnpm exec flowso test "$f" --scenario "whatsapp/flows/scenarios/$base.json" --json >/dev/null
-            echo "ok $name"
-          done
+      - name: Validate and replay every scenario (the app's against its endpoint logic over fixtures)
+        run: pnpm exec vitest run supabase/functions/_shared/flows.test.ts
       - name: Upload, encrypt, publish and test
         env:
           KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}

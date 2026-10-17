@@ -528,3 +528,6 @@ jobs:
           # illustration (never a Google place photo).
           DB_URL="$DB_URL" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co" SUPABASE_SERVICE_KEY="$key" \
             node --experimental-strip-types --no-warnings scripts/demo/demo-photos.ts | tee -a "$GITHUB_STEP_SUMMARY"
+          # The Alo King Flow app's images (DECISIONS §39.15.13): base64 JPEGs under 100 KB, made from these photos.
+          DB_URL="$DB_URL" SUPABASE_URL="https://$SUPABASE_PROJECT_REF.supabase.co" SUPABASE_SERVICE_KEY="$key" \
+            node --experimental-strip-types --no-warnings scripts/flows/thumbs.ts | tee -a "$GITHUB_STEP_SUMMARY"

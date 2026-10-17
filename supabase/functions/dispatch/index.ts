@@ -380,6 +380,7 @@ async function botConfig() {
     "routing_provider_sim",
     "browse_min_catalog_items",
     "public_site_url",
+    "flow_app_live",
   ];
   const vals = await Promise.all(keys.map((k) => rpc("config_value", { p_key: k })));
   const v = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
@@ -858,6 +859,9 @@ Deno.serve(async (req) => {
               /^https:\/\/[a-z0-9.-]+(:\d+)?\/?$/.test(cfg.public_site_url)
                 ? cfg.public_site_url.replace(/\/+$/, "")
                 : null,
+            // The Alo King Flow app (§39.15.13): on once whatsapp-flows publishes it; flow_app_open still applies the
+            // kill-gate.
+            flowApp: cfg.flow_app_live === true,
             joinFunctionUrl: supabaseUrl
               ? `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/site-claim`
               : null,
