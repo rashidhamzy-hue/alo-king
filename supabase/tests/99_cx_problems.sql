@@ -158,6 +158,9 @@ select tests.ok(:'n0b'::jsonb ->> 'status' = 'no_channel'
   and exists (select 1 from public.ops_alerts where dedupe_key = 'note:' || (:'n0b'::jsonb ->> 'note_id') and summary ~ 'window is closed')
   and not exists (select 1 from public.outbound_messages where dedupe_key = 'note:' || (:'n0b'::jsonb ->> 'note_id')),
   '#45: outside the shop''s window the note is kept and a person passes it on; never "passed" when it was not');
+select tests.ok(public.order_note_send(:'cid', 'ring twice', 'wamid.n0b') ->> 'status' = 'no_channel'
+  and (select count(*) from public.order_customer_notes where source_message_id = 'wamid.n0b') = 1,
+  '#45: the same message replayed still says it was kept, never "passed"');
 insert into app_private.whatsapp_windows (phone_e164, phone_number_id, last_inbound_at)
 select '+96170000399', w.phone_number_id, now() from public.whatsapp_numbers w where w.active
 on conflict (phone_e164, phone_number_id) do update set last_inbound_at = excluded.last_inbound_at;
