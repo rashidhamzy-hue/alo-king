@@ -366,6 +366,11 @@ begin
   if v_o.id is null then
     return jsonb_build_object('status', 'no_order');
   end if;
+  -- Checked again under the order's lock: the same message handled twice at once is a replay, never a limit.
+  select * into v_note from public.order_customer_notes where customer_id = p_customer_id and source_message_id = p_message_id;
+  if v_note.id is not null then
+    return app_private.order_note_repeat(v_note.id);
+  end if;
   select * into v_v from public.vendors where id = v_o.vendor_id;
   select count(*) into v_n from public.order_customer_notes where order_id = v_o.id;
   if v_n >= v_max then
@@ -629,7 +634,8 @@ begin
                        then format('cold_food: delivery took %s min against %s expected', round(v_leg_min), round(v_expected_min))
                      when v_eligible then case when v_o.fulfilment = 'pickup' then 'cold_food: ready very late'
                                                else 'cold_food: delivered very late' end
-                     when v_o.fulfilment = 'pickup' and not v_unknown then 'cold_food: ready within the ETA range'
+                     when v_o.fulfilment = 'pickup' and not v_unknown
+                       then format('cold_food: ready within %s min of the top of the ETA range', v_threshold)
                      when v_leg_min is null then 'cold_food: no delivery times to check'
                      else format('cold_food: delivery took %s min, within %s x %s', round(v_leg_min), v_r ->> 'cold_factor',
                                  round(v_expected_min)) end;

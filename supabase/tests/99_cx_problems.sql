@@ -368,7 +368,7 @@ select tests.ok(:'d6'::jsonb ->> 'status' = 'rejected'
   and not exists (select 1 from public.ledger_transactions where idempotency_key = 'dispute:' || (:'d6'::jsonb ->> 'dispute_id')),
   '#50: a pickup is measured on when the shop had it ready, never when the customer came: no discount, no ledger row');
 select public.dispute_report(:'cid', :'o6', 'cold_food') as d6c \gset
-select tests.ok(:'d6c'::jsonb ->> 'status' = 'rejected' and :'d6c'::jsonb ->> 'rule' ~ '^cold_food: ready within the ETA range',
+select tests.ok(:'d6c'::jsonb ->> 'status' = 'rejected' and :'d6c'::jsonb ->> 'rule' ~ '^cold_food: ready within 15 min of the top of the ETA range',
   '#50: and its food is not cold by the collection time either');
 -- A pickup never marked ready: a person decides, never automatic.
 select tests.cx_place(:'cid', array['8b000000-0000-0000-0000-00000000a005'::uuid], 'test:cx:o7', true) as o7 \gset
