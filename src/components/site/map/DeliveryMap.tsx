@@ -65,7 +65,7 @@ export function DeliveryMap({ counts, initial }: { counts: DeliveryMapData; init
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const [panel, setPanel] = useState<Panel | null>(null);
-  const [pxW, setPxW] = useState(800);
+  const [px, setPx] = useState({ w: 800, h: 800 * ASPECT });
   const svgRef = useRef<SVGSVGElement>(null);
   const baseRef = useRef<SVGGElement>(null);
   const anim = useRef<number | null>(null);
@@ -94,11 +94,18 @@ export function DeliveryMap({ counts, initial }: { counts: DeliveryMapData; init
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => e && setPxW(e.contentRect.width || 800));
+    const ro = new ResizeObserver(
+      ([e]) =>
+        e && setPx({ w: e.contentRect.width || 800, h: e.contentRect.height || 800 * ASPECT }),
+    );
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const u = view.w / pxW; // map units per screen pixel
+  // The SVG fills its frame ("slice"): on a tall phone frame the height sets the scale and the sides are cut off.
+  const scale = Math.max(px.w / view.w, px.h / (view.w * ASPECT)); // screen pixels per map unit
+  const u = 1 / scale; // map units per screen pixel
+  const seenW = px.w / scale; // map units visible across
+  const seenX = view.x + (view.w - seenW) / 2;
 
   // Classes on the polygons follow the live data and the selection.
   useEffect(() => {
@@ -302,7 +309,9 @@ export function DeliveryMap({ counts, initial }: { counts: DeliveryMapData; init
       p.y - 11 * u + 3 * u,
     ];
     const hit = boxes.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
-    if (hit && rank(p) > 1) continue;
+    // A name cut by the edge of the map is left out too (the dot stays; zoom or tap shows it).
+    const cut = b[0] < seenX || b[2] > seenX + seenW;
+    if ((hit || cut) && rank(p) > 1) continue;
     boxes.push(b);
     labelled.push(p);
   }
