@@ -356,14 +356,27 @@ type Ctx = {
   catalogAsk?: Promise<string | null>;
   /** What to send instead when a catalogue message is refused (a product Meta does not have yet, §39.12). */
   fallbacks?: Map<Msg, Msg | null>;
+  /**
+   * "Address saved: …" waiting to go out (afterPin): sent before the turn's next message, or as the first line of the
+   * craving list, so a pin's turn still has room for Popular near you and Explore (MAX_MESSAGES).
+   */
+  savedLine?: string;
 };
 
 const MAX_MESSAGES = 3;
 /** Queue attempts that replay a stalled turn before the customer is shown the buttons instead. */
 const STALL_REPLAYS = 3;
 const push = (c: Ctx, ...ms: Msg[]) => {
+  flushSaved(c);
   for (const x of ms) if (c.out.length < MAX_MESSAGES) c.out.push(x);
 };
+/** The waiting "Address saved: …" line as its own message, before anything else this turn sends. */
+function flushSaved(c: Ctx) {
+  if (c.savedLine === undefined) return;
+  const line = c.savedLine;
+  c.savedLine = undefined;
+  if (c.out.length < MAX_MESSAGES) c.out.push(text(c.m.from, line));
+}
 /** An error reply always carries buttons (render.ts ERROR_WAYS, DECISIONS §39.15.1); anything else is plain text. */
 const say = (c: Ctx, key: string, v: Record<string, unknown> = {}) =>
   push(c, sayMessage(c.m.from, c.s.lang, key, v));
@@ -512,6 +525,8 @@ export async function handleCustomerTurn(
     deps.log?.("customer turn failed", { error: String(e).slice(0, 200) });
     if (!c.out.length) fail(c);
   }
+  // A pin saved by a turn that sent nothing after it still says so.
+  flushSaved(c);
 
   for (const p of c.out) {
     let r = await deps.send(clampInteractive(p));
@@ -1629,7 +1644,8 @@ async function afterPin(c: Ctx, r: any) {
     if (st?.status !== "test_shop" && st?.status !== "delivered")
       return outsideArea(c, addressId, st);
   }
-  say(c, "savedPin", { where: where(c.s.lang, r.address) });
+  // Sent with the next message, or as the craving list's first line (browseHome).
+  c.savedLine = tr(c.s.lang, "savedPin", { where: where(c.s.lang, r.address) });
   c.summary.push("[address saved from the pin]");
   c.s.fulfil = null; // a new pin starts a delivery again; checkout asks again when the shop takes both
   // The address_capture Flow (§12) asks building, floor and a number for the driver in one sheet; the
@@ -2142,6 +2158,8 @@ const resetRefs = (c: Ctx, prefix: string) => {
 async function showMenu(c: Ctx, vendorRef: string, query: string | null) {
   const v = c.s.refs[vendorRef];
   if (!v) return say(c, "pickPlaceFirst");
+  // A waiting "Address saved" goes before the cover, never into the list moved below.
+  flushSaved(c);
   const before = c.out.length;
   if (query) return showMenuList(c, vendorRef, query);
   const shop = shopName(v.label);
@@ -2361,6 +2379,7 @@ async function showSection(c: Ctx, sectionRef: string, offset: number) {
     );
     const page = s ? s.products.slice(offset, offset + 30) : [];
     if (s && page.length) {
+      flushSaved(c);
       const before = c.out.length;
       await showSectionList(c, sectionRef, offset);
       const list = c.out.splice(before);
@@ -2723,6 +2742,9 @@ async function browseHome(c: Ctx, offset = 0) {
   c.summary.push(
     `[asked what they are craving: ${cats.length} categories, ${r.shops.length} shops deliver]`,
   );
+  // A pin just saved says so on the list's first line: one message, so Popular near you and Explore still fit.
+  const saved = c.savedLine ?? null;
+  c.savedLine = undefined;
   push(
     c,
     cravingList(
@@ -2733,6 +2755,7 @@ async function browseHome(c: Ctx, offset = 0) {
       r.place,
       // An old "More categories" tap past the end (fewer categories deliver now) starts again from the first page.
       offset > 0 && offset < cats.length ? offset : 0,
+      saved,
     ),
   );
   // "Popular near you" after the first page of the craving list (§39.15.2), then Explore on the web (session 5g part B).

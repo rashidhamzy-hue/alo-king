@@ -2386,6 +2386,8 @@ export function cravingList(
   shops: number,
   place: string | null,
   offset = 0,
+  /** A first line before the question ("Address saved: …" from the pin just saved). */
+  lead: string | null = null,
 ): Msg {
   // Nine rows fit beside "Shops near you"; with more categories, eight and a "More categories" row that pages on.
   const left = cats.slice(offset);
@@ -2403,7 +2405,9 @@ export function cravingList(
     });
   return list(
     to,
-    tr(lang, "craving", { place: place || tr(lang, "yourPlace") }),
+    [lead, tr(lang, "craving", { place: place || tr(lang, "yourPlace") })]
+      .filter(Boolean)
+      .join("\n\n"),
     tr(lang, "cravingButton"),
     [
       ...(rows.length ? [{ title: tr(lang, "categories"), rows }] : []),
