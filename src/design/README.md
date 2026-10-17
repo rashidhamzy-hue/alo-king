@@ -41,10 +41,17 @@ isolates) so "$2.00 to $6.00" reads right in Arabic.
   `chouf-map.generated.ts` (names, search words, positions: about 5 KB gzipped in the page) and two static files,
   `public/chouf-map.svg` (the polygons, fetched after first paint and painted by CSS from live data) and
   `public/chouf-zone.svg` (a painted still for the home page and place pages, an `<img>`, no JavaScript). Re-run it when
-  the boundary file or the places list changes. Search (`lib/zone-search.ts`) matches Arabic, English, French and Arabizi.
+  the boundary file or the places list changes. Search (`lib/zone-search.ts`) matches Arabic, English, French and Arabizi (the word is for code only; customers read "the
+  way you text", §39.15.5). Under the map, `VillageIndex` lists all 61 places by area (`lib/zone-areas.ts`), live or not.
 - **The receipt** (`ak-receipt`): the business calculator on paper with a perforated edge.
 - **The counter** (`ak-counter`): the ink panel on the business side, where the work happens.
 - Contour lines of the Chouf (`Contours.tsx`, static SVG symbol), the hand-drawn crown, chat bubbles and the phone frame.
+- **The ballat** (`Ballat.tsx`, `ak-ballat`): the old Lebanese cement tile as a small inline SVG pattern in the tone's text
+  colour at 5%, behind quiet sections (the village list, the payments band). Never louder than the contours.
+- **Order on WhatsApp** (`OrderButton`, `ak-btn-wa`, §39.15.5): WhatsApp green #25D366, the official glyph (`icons.tsx`) in
+  white, the label in ink (white on #25D366 is 2.0:1, ink 9.3:1). Secondary WhatsApp links use `ink` or `line`.
+- **Payments** (`home/PayBand.tsx`): cash in dollars or lira with two drawn banknotes; Whish only as a neutral wordmark
+  with a Soon chip until online payment is live.
 
 ## Motion
 One orchestrated moment per page: the chat hero plays an order; the map eases to a village when you pick it. Everything
