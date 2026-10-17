@@ -32,6 +32,9 @@ steps:
     expect:
       - { to: $AS, buttons: ["cur:USD", "cur:LBP"] }
   - tap: { as: $AS, id: "cur:USD" }
+    expect: [{ to: $AS, buttons: ["chg:USD:exact"] }]
+  - note: no change needed (cash on delivery asks "Do you need change?", CUSTOMER-EXPERIENCE #35)
+    tap: { as: $AS, id: "chg:USD:exact" }
     expect:
       - { to: $AS, buttons: ["cfm:"], text: "$" }
   - note: $AS confirms

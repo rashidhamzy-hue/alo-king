@@ -42,7 +42,8 @@ export function inLebanon(p: LatLon): boolean {
   );
 }
 
-// A pin this close to the origin is at its door: no road trip to ask anyone about.
+// A pin this close to the origin is at its door: no road trip to ask anyone about. The same 50 m as
+// app_private.shop_road_km (20261017090000_browse_doorstep.sql), which browse reads: change both together.
 export const DOORSTEP_M = 50;
 
 /** Metres between two points on the sphere (haversine). */

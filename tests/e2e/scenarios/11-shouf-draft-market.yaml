@@ -55,6 +55,9 @@ steps:
           where c.phone_e164 = '{{cust.phone}}' and b.status = 'open'
         row: { substitution_pref: remove }
   - tap: { as: cust, id: "cur:LBP" }
+    expect: [{ to: cust, buttons: ["chg:LBP:exact"] }]
+  - note: no change needed (cash on delivery asks "Do you need change?", CUSTOMER-EXPERIENCE #35)
+    tap: { as: cust, id: "chg:LBP:exact" }
     expect: [{ to: cust, buttons: ["cfm:"], text_any: ["LBP", "ل.ل", "L.L"] }]
   - note: the quote is the server's, in USD and LBP at the dated rate locked on the order
     tap: { as: cust, id_prefix: "cfm:" }

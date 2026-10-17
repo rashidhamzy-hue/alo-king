@@ -43,6 +43,9 @@ steps:
     expect:
       - { to: cust, buttons: ["cur:USD", "cur:LBP"] }
   - tap: { as: cust, id: "cur:USD" }
+    expect: [{ to: cust, buttons: ["chg:USD:exact"] }]
+  - note: no change needed (cash on delivery asks "Do you need change?", CUSTOMER-EXPERIENCE #35)
+    tap: { as: cust, id: "chg:USD:exact" }
     expect:
       - { to: cust, buttons: ["cfm:"] }
   - note: the order card goes to the merchant of the demo shop (here the simulated one, for Rasheed on real phones), marked Demo

@@ -137,6 +137,17 @@ delete from public.addresses where id = (:'simpin'::jsonb #>> '{address,address_
 select tests.ok(not exists (select 1 from public.routing_fixtures where dest_key = '33.6790,35.5660'),
   'deleting the simulator address deletes its fixture too');
 
+-- A customer at the shop's own door (smoke run, 17 October): the doorstep distance, with no route call ------------------
+select public.customer_turn_begin('+96170000155', 'wamid.rnb.5', 'text', 'Door customer') as t5 \gset
+select (:'t5'::jsonb #>> '{customer,id}') as door_cid \gset
+select public.address_save_pin(:'door_cid', 33.6771, 35.5641, 'Home') as doorpin \gset
+select public.customer_delivery_check(:'door_cid', array[:'tv'::uuid]) as dc \gset
+select tests.ok(:'dc'::jsonb #>> '{vendors,0,route_source}' = 'doorstep' and (:'dc'::jsonb #>> '{vendors,0,road_km}')::numeric < 0.05,
+  'browse: a pin within 50 m of the shop is that distance, so the shop at the door is listed first (zero routing calls)');
+select public.address_save_pin(:'door_cid', 33.6775, 35.5645, 'Work') as nearpin \gset
+select tests.ok(not exists (select 1 from app_private.shop_road_km(:'tv', (:'nearpin'::jsonb #>> '{address,address_id}')::uuid)
+  where source = 'doorstep'), 'a pin 70 m away is never a doorstep');
+
 -- Access -------------------------------------------------------------------------------------------------------------------
 set local role authenticated;
 select tests.act_as('00000000-0000-0000-0000-00000000000c');
