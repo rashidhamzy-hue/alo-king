@@ -57,13 +57,17 @@ await shot(p, "3-shops");
 await p.locator(".wa-nav-item").first().click();
 await p.waitForTimeout(1500);
 await shot(p, "4-shop");
-const lists = p.locator(".wa-nav-list");
-const items = (await lists.count()) > 1 ? lists.nth(1) : lists.first();
-// An item with a photo when there is one.
-const withPhoto = items.locator(".wa-nav-item:has(img)");
-await (
-  (await withPhoto.count()) ? withPhoto.first() : items.locator(".wa-nav-item").first()
-).click();
+// Down to an item page: the shop page lists its sections first (then items, when it has room), and a section's page lists
+// its items; an item with a photo is tapped when there is one.
+for (let depth = 0; depth < 3 && !(await p.locator(".wa-footer__button").count()); depth++) {
+  const lists = p.locator(".wa-nav-list");
+  const items = (await lists.count()) > 1 ? lists.nth(1) : lists.first();
+  const withPhoto = items.locator(".wa-nav-item:has(img)");
+  await (
+    (await withPhoto.count()) ? withPhoto.first() : items.locator(".wa-nav-item").first()
+  ).click();
+  await p.waitForTimeout(2000);
+}
 await p.waitForSelector(".wa-footer__button");
 await p.waitForTimeout(800);
 await shot(p, "5-item");
