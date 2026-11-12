@@ -1,0 +1,36 @@
+{
+  "_readme": "Submit through Kapso or WhatsApp Manager. Category is what Meta bills and polices: keep utility templates free of any promotional wording or Meta will reclassify them as marketing. Variables are positional.",
+  "templates": [
+    { "name": "order_confirmed", "line": "customer", "category": "utility", "language": "ar",
+      "body": "تم تأكيد طلبك {{1}} ✅\nالمجموع: {{2}}$\nالوصول المتوقع خلال {{3}} دقيقة.", "variables": ["order_code", "total_usd", "eta_min"] },
+    { "name": "order_on_the_way", "line": "customer", "category": "utility", "language": "ar",
+      "body": "طلبك {{1}} صار بالطريق مع {{2}}.\nالوصول المتوقع خلال {{3}} دقيقة.", "variables": ["order_code", "driver_first_name", "eta_min"] },
+    { "name": "order_arrived", "line": "customer", "category": "utility", "language": "ar",
+      "body": "وصل طلبك {{1}}.\nالمبلغ: {{2}}$ أو {{3}} ل.ل.", "variables": ["order_code", "total_usd", "total_lbp"] },
+    { "name": "order_receipt", "line": "customer", "category": "utility", "language": "ar",
+      "body": "تم تسليم طلبك {{1}}.\nالمدفوع: {{2}}\nشكراً لاختيارك ألو كينغ.", "variables": ["order_code", "paid_summary"] },
+    { "name": "payment_pending", "line": "customer", "category": "utility", "language": "ar",
+      "body": "بانتظار تحويل {{1}}$ لطلبك {{2}} عبر {{3}}.\nبعد التحويل ابعت صورة الإيصال هون.", "variables": ["amount_usd", "order_code", "channel_and_number"] },
+    { "name": "order_delayed", "line": "customer", "category": "utility", "language": "ar",
+      "body": "نعتذر، طلبك {{1}} رح يتأخر حوالي {{2}} دقيقة.", "variables": ["order_code", "delay_min"] },
+    { "name": "order_cancelled", "line": "customer", "category": "utility", "language": "ar",
+      "body": "تم إلغاء طلبك {{1}}. {{2}}", "variables": ["order_code", "reason"] },
+    { "name": "weekly_offers", "line": "customer", "category": "marketing", "language": "ar",
+      "body": "عروض هالأسبوع من ألو كينغ:\n{{1}}", "variables": ["offers_text"],
+      "buttons": [{ "type": "QUICK_REPLY", "text": "اطلب هلق" }, { "type": "QUICK_REPLY", "text": "إيقاف العروض" }] },
+
+    { "name": "driver_job_offer", "line": "ops", "category": "utility", "language": "ar",
+      "body": "طلب جديد {{1}}\nاستلام: {{2}}\nتسليم: {{3}}\nنقداً عند التسليم: {{4}}$", "variables": ["order_codes", "pickup", "dropoff", "cod_usd"],
+      "buttons": [{ "type": "QUICK_REPLY", "text": "قبول" }, { "type": "QUICK_REPLY", "text": "رفض" }] },
+    { "name": "driver_cash_drop_required", "line": "ops", "category": "utility", "language": "ar",
+      "body": "النقد معك صار {{1}}$. لازم تسلّمه قبل أي طلب نقدي جديد.", "variables": ["cash_usd"],
+      "buttons": [{ "type": "QUICK_REPLY", "text": "سلّمت بالمركز" }, { "type": "QUICK_REPLY", "text": "أودعت بـ OMT" }] },
+    { "name": "driver_shift_reminder", "line": "ops", "category": "utility", "language": "ar",
+      "body": "دوامك بيبلّش الساعة {{1}}. ابعت «حاضر» لتبدأ.", "variables": ["start_time"] },
+    { "name": "merchant_new_order", "line": "ops", "category": "utility", "language": "ar",
+      "body": "طلب جديد {{1}}:\n{{2}}\nكم دقيقة للتحضير؟", "variables": ["order_code", "items_text"],
+      "buttons": [{ "type": "QUICK_REPLY", "text": "10 دقايق" }, { "type": "QUICK_REPLY", "text": "20 دقيقة" }, { "type": "QUICK_REPLY", "text": "مش متوفر" }] },
+    { "name": "ops_alert", "line": "ops", "category": "utility", "language": "ar",
+      "body": "تنبيه: {{1}}\n{{2}}", "variables": ["title", "detail"] }
+  ]
+}

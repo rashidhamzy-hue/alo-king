@@ -1,0 +1,6 @@
+title = "alo-king"
+[extend]
+useDefault = true
+[allowlist]
+description = "Example files and test fixtures carry fake values only"
+paths = ['''\.dev\.vars\.example$''', '''test/fixtures/''', '''package-lock\.json$''']

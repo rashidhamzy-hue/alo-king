@@ -1,0 +1,7 @@
+node_modules/
+.dev.vars
+.wrangler/
+evals/voice_notes/audio/
+*.opus
+.mcp.json
+data/prospects/*.private.*

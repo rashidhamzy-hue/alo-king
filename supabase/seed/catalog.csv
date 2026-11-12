@@ -1,0 +1,292 @@
+SKU,Item,Brand,Category,Sub-type,Velocity tier,Storage zone,Source,Sell unit,Tawfeer units sold,Tawfeer avg price per unit (USD),Arabic name,Barcode,Note
+AK-0001,Potato,Local (unbranded),Fruits & Vegetables,vegetable,A,"Cool, fresh daily",Local produce supplier,kg,39403,0.32,بطاطا,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0002,Tomato,Local (unbranded),Fruits & Vegetables,vegetable,A,"Cool, fresh daily",Local produce supplier,kg,21770,0.4,بندورة,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0003,Cucumber,Local (unbranded),Fruits & Vegetables,vegetable,A,"Cool, fresh daily",Local produce supplier,kg,16882,0.52,خيار,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0004,Onion,Local (unbranded),Fruits & Vegetables,vegetable,A,"Cool, fresh daily",Local produce supplier,kg,15652,0.27,بصل,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0005,Lemon,Local (unbranded),Fruits & Vegetables,fruit,A,"Cool, fresh daily",Local produce supplier,kg,10587,1.01,حامض,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0006,Orange for juice,Local (unbranded),Fruits & Vegetables,fruit,B,"Cool, fresh daily",Local produce supplier,kg,6398,0.44,ليمون للعصير,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0007,Zucchini,Local (unbranded),Fruits & Vegetables,vegetable,B,"Cool, fresh daily",Local produce supplier,kg,6280,0.51,كوسا,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0008,Carrot,Local (unbranded),Fruits & Vegetables,vegetable,B,"Cool, fresh daily",Local produce supplier,kg,5209,0.66,جزر,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0009,Banana,Local (unbranded),Fruits & Vegetables,fruit,B,"Cool, fresh daily",Local produce supplier,kg,4178,1.18,موز,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0010,Parsley (bunch),Local (unbranded),Fruits & Vegetables,herb,B,"Cool, fresh daily",Local produce supplier,bunch,3530,0.37,بقدونس,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0011,Green beans (loubieh),Local (unbranded),Fruits & Vegetables,vegetable,B,"Cool, fresh daily",Local produce supplier,kg,3447,0.73,لوبيا,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0012,Lettuce,Local (unbranded),Fruits & Vegetables,vegetable,B,"Cool, fresh daily",Local produce supplier,piece,3265,0.77,خس,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0013,"Green pepper, sweet",Local (unbranded),Fruits & Vegetables,vegetable,B,"Cool, fresh daily",Local produce supplier,kg,3137,0.61,فليفلة خضرا حلوة,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0014,Eggplant,Local (unbranded),Fruits & Vegetables,vegetable,C,"Cool, fresh daily",Local produce supplier,kg,2451,0.51,باذنجان,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0015,Coriander (bunch),Local (unbranded),Fruits & Vegetables,herb,C,"Cool, fresh daily",Local produce supplier,bunch,2221,0.42,كزبرة,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0016,Cauliflower,Local (unbranded),Fruits & Vegetables,vegetable,C,"Cool, fresh daily",Local produce supplier,kg,2167,0.53,زهرة,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0017,Cherry tomatoes,Local (unbranded),Fruits & Vegetables,vegetable,C,"Cool, fresh daily",Local produce supplier,pack,2142,1.41,بندورة كرزية,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0018,Cabbage,Local (unbranded),Fruits & Vegetables,vegetable,C,"Cool, fresh daily",Local produce supplier,kg,1994,0.63,ملفوف,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0019,"Orange, Valencia",Local (unbranded),Fruits & Vegetables,fruit,C,"Cool, fresh daily",Local produce supplier,kg,1781,1.11,برتقال,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0020,"Apple, red local",Local (unbranded),Fruits & Vegetables,fruit,C,"Cool, fresh daily",Local produce supplier,kg,1778,0.68,تفاح أحمر,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0021,Rocca (bunch),Local (unbranded),Fruits & Vegetables,herb,C,"Cool, fresh daily",Local produce supplier,bunch,1715,0.45,روكا,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0022,"Onion, red",Local (unbranded),Fruits & Vegetables,vegetable,C,"Cool, fresh daily",Local produce supplier,kg,1229,0.73,بصل أحمر,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0023,Mint (bunch),Local (unbranded),Fruits & Vegetables,herb,C,"Cool, fresh daily",Local produce supplier,bunch,1202,0.41,نعنع,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0024,Radish (bunch),Local (unbranded),Fruits & Vegetables,vegetable,C,"Cool, fresh daily",Local produce supplier,bunch,1197,0.42,فجل,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0025,Garlic,Local (unbranded),Fruits & Vegetables,vegetable,C,"Cool, fresh daily",Local produce supplier,bag,903,1.7,ثوم,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0026,"Minced beef, coarse",Local (unbranded),Meat & Poultry,fresh beef,A,Chilled,Local butcher,500 g pack,6038,2.01,لحمة مفرومة خشنة,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0027,"Chicken taouk, marinated",Local (unbranded),Meat & Poultry,fresh chicken,B,Chilled,Local butcher,500 g pack,3538,3.11,طاووق,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0028,Kafta,Local (unbranded),Meat & Poultry,fresh beef,B,Chilled,Local butcher,500 g pack,2381,2.18,كفتة,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0029,Chicken Legs,Hawa Chicken,Meat & Poultry,legs/whole,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),2223,1.35,فخاد دجاج,2207026000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0030,"Minced beef, fine",Local (unbranded),Meat & Poultry,fresh beef,C,Chilled,Local butcher,500 g pack,1902,2.99,لحمة مفرومة ناعمة,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0031,Tanmia Fresh Chicken Filet 500G,Tanmia,Meat & Poultry,breast/filet,A,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,1386,4.59,,5281101652045,
+AK-0032,Tanmia Breaded Chicken Fillet Loose,Tanmia,Meat & Poultry,breast/filet,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1333,1.37,,2201123000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0033,Tanmia Chicken Tender Loose,Tanmia,Meat & Poultry,other,B,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),736,1.11,تنمية تندرز دجاج,2200474000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0034,Tanmia Chicken Legs 900G,Tanmia,Meat & Poultry,legs/whole,B,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,678,1.78,,5281101362012,
+AK-0035,Wilco Packaged Chicken Legs,Wilco,Meat & Poultry,legs/whole,B,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),590,1.93,,2209076000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0036,Wilco Packaged Chicken Breast,Wilco,Meat & Poultry,breast/filet,B,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),538,10.01,,2209077000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0037,Beef cubes (ras asfour),Local (unbranded),Meat & Poultry,fresh beef,C,Chilled,Local butcher,500 g pack,450,3.64,راس عصفور,,"Generic local item. Velocity and price are the Tawfeer equivalent, for ranking only."
+AK-0038,Hawa Chicken Sawda Chicken Prepacked,Hawa Chicken,Meat & Poultry,other,C,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),284,1.42,,2209213000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0039,Aflora Kashkaval Cow Cheese,Aflora,Dairy & Eggs,kashkaval,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),4424,1.7,جبنة قشقوان بقر,2209465000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0040,Filata Shredded Mozzarella Cheese,Filata,Dairy & Eggs,mozzarella,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),3502,1.38,,2202960000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0041,Candia Ayran 250Ml,Candia,Dairy & Eggs,ayran,A,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,2710,0.58,,5285001102341,
+AK-0042,Leen Taanayel Labneh Premium,Leentaanayel,Dairy & Eggs,labneh,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),2192,0.67,,2201340000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0043,Kavallos Cow Kashkaval,Kavallos,Dairy & Eggs,kashkaval,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1840,2.06,,2209107000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0044,Halloum /Kg,Leentaanayel,Dairy & Eggs,halloum,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1242,2.82,,2200373000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0045,Leprino Mozzarella Cheese Shredded,Leprino,Dairy & Eggs,mozzarella,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1175,1.39,,2201121000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0046,Liban Lait Labneh Baladieh 450G,Liban Lait,Dairy & Eggs,labneh,A,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,1164,3.0,,5285001100026,
+AK-0047,Hamra Edam Analogue Cheese,Hamra,Dairy & Eggs,edam/cheddar,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1069,1.43,جبنة أيدام,2209731000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0048,Mazaraana Laban 1Kg,Mazaraana,Dairy & Eggs,laban,A,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,1047,1.65,,5285001103218,
+AK-0049,Hawa Chicken Red Egg Naylon,Hawa Chicken,Dairy & Eggs,eggs,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1039,4.56,,5283001700604,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0050,Liban Lait Laban 1Kg,Liban Lait,Dairy & Eggs,laban,A,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,1004,2.07,,528500100040,
+AK-0051,Liban Lait Labneh Baladieh 900G,Liban Lait,Dairy & Eggs,labneh,A,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,976,5.0,,528500100019,
+AK-0052,Dairy Khoury Greek Yogurt Plain Low Fat 175G,Dairy Khoury,Dairy & Eggs,greek yogurt,A,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,972,1.25,,5285008140865,
+AK-0053,Plein Soleil Butter Unsalted 200G,Plein Soleil,Dairy & Eggs,butter,A,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,963,1.84,,5283013317876,
+AK-0054,Plein Soleil Edam Cheese Block,Plein Soleil,Dairy & Eggs,edam/cheddar,B,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),960,1.63,جبنة أيدام بلوك,2209799000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0055,Hawa Chicken White Eggs 30Pcs,Hawa Chicken,Dairy & Eggs,eggs,B,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,927,4.59,,5283001700598,
+AK-0056,Candia Laban Full Fat 1Kg,Candia,Dairy & Eggs,laban,B,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,847,2.38,,5285001103010,
+AK-0057,Dairy Khoury Greek Yogurt Apricot Low Fat 175G,Dairy Khoury,Dairy & Eggs,greek yogurt,B,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,818,1.45,,5285008140964,
+AK-0058,Happy Basket Red Eggs Naylon 15Pcs,Happy Basket,Dairy & Eggs,eggs,B,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,777,2.46,,5280329999918,
+AK-0059,Double Creme /Kg,Leentaanayel,Dairy & Eggs,white cheese,B,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),704,1.68,,2200371000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0060,Liban Lait Halloum Entier 250G,Liban Lait,Dairy & Eggs,halloum,B,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,701,3.09,,5285001100835,
+AK-0061,Lurpak Butter Unsalted 200G,Lurpak,Dairy & Eggs,butter,B,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,623,2.59,,5740900402621,
+AK-0062,Picon Simply 8 Portions 112G,Picon,Dairy & Eggs,portions,C,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,424,0.61,,3073781157277,
+AK-0063,Kiri Cream Cheese 12 Portions 200G,Kiri,Dairy & Eggs,portions,C,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,415,2.97,,3073781175684,
+AK-0064,Puck Cooking Cream 500Ml,Puck,Dairy & Eggs,cooking cream,C,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,357,3.34,,5711953071331,
+AK-0065,Akkawi Balady,Leentaanayel,Dairy & Eggs,white cheese,C,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),247,2.84,عكاوي بلدي,2200375000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0066,President Uht Whipping Cream 35.1% Fat 20Mml,Président,Dairy & Eggs,cooking cream,C,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,167,1.14,,3155253004699,
+AK-0067,Candia Uht Lait Entier 1L,Candia,Milk & Cereals,UHT milk 1L,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,2397,1.73,,5285001101757,
+AK-0068,Candia Uht Lait Entier 125Ml,Candia,Milk & Cereals,milk small,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1554,0.4,,52820502,
+AK-0069,Candia Milk Full Fat 180Ml,Candia,Milk & Cereals,milk small,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1098,0.55,,5285001101634,
+AK-0070,Candia Grand Lait Demi-Écrémé 1L,Candia,Milk & Cereals,UHT milk 1L,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1066,1.81,,5285001101801,
+AK-0071,Candia Silhouette Uht Lait Écrémé 1L,Candia,Milk & Cereals,UHT milk 1L,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,713,1.9,,5285001101856,
+AK-0072,Poppins Cereal Bar Choco Bits 25G,Poppins,Milk & Cereals,cereal bar,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,595,0.17,,5283003315011,
+AK-0073,Nadec Uht Milk Full Fat 1L,Nadec,Milk & Cereals,UHT milk 1L,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,511,1.02,,6281057010011,
+AK-0074,Nadec Uht Milk Low Fat 1L,Nadec,Milk & Cereals,UHT milk 1L,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,426,1.25,,6281057011018,
+AK-0075,Klio Powder Milk 750G,Klio,Milk & Cereals,powder milk,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,248,5.85,,5281014001114,
+AK-0076,Klim Milk Powder Pouch 750G,Klim,Milk & Cereals,powder milk,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,246,4.87,,5283014105298,
+AK-0077,Poppins Corn Flakes 20G,Poppins,Milk & Cereals,cereal,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,86,0.3,,5281128600562,
+AK-0078,Kellogg's Corn Flakes 750G,Kellogg's,Milk & Cereals,cereal,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,77,4.28,,4003994112427,
+AK-0079,Piston White,Wooden Bakery,Bakery,baguette/roll,A,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,2069,0.2,فرنجي بيستون أبيض,2109415000000,
+AK-0080,Al Forno Pita White Bread Big 800G,Al Forno,Bakery,arabic bread,B,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,934,1.01,,5280320000002,
+AK-0081,Wooden Bakery Pita White Bread Big 800G,Wooden Bakery,Bakery,arabic bread,B,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,735,1.01,,5285000170211,
+AK-0082,Wooden Bakery Pita White Medium 400G,Wooden Bakery,Bakery,arabic bread,B,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,647,0.62,,5285000170679,
+AK-0083,Al Forno Piston Plain 5 Pieces,Al Forno,Bakery,baguette/roll,B,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,600,1.12,خبز فرنجي سادة,5280320005670,
+AK-0084,Wooden Bakery Mini Guette Rustique White,Wooden Bakery,Bakery,baguette/roll,B,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,552,0.55,خبز رستيك أبيض,2109431000000,
+AK-0085,Pain D'or Pain Au Lait 9 Pieces 300G,Pain D'Or,Bakery,toast/buns,B,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,519,2.79,,5281013600035,
+AK-0086,Pain D'or Arabic Bread 900G (7 Loaves),Pain D'Or,Bakery,arabic bread,C,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,438,1.01,,5281013200013,
+AK-0087,Foody's Tortilla Wraps 20Cm 8 Pieces 320G,Foody's,Bakery,toast/buns,C,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,381,1.87,,5287001636925,
+AK-0088,Tannour El Asser High Fiber Bread Light 5 Pieces,Tannour El Asser,Bakery,markouk/tannour,C,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,366,0.74,,5289000007638,
+AK-0089,Tannour El Asser Oat Bread Large 5 Loaves,Tannour El Asser,Bakery,markouk/tannour,C,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,340,0.9,,5289000007621,
+AK-0090,Pain D'or Hot Dog 6 Pieces 330G,Pain D'Or,Bakery,toast/buns,C,Ambient (daily delivery),Tawfeer sheet (non-Tawfeer brand),Each,293,2.79,,5281013600059,
+AK-0091,Sant Dalmai Turkey Breast,Sant Dalmai,Deli Cold Cuts,turkey,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),2578,1.72,صدر حبش,2209877000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0092,Gorosti Turkey Breast,Gorosti,Deli Cold Cuts,turkey,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1703,2.06,صدر حبش,2209878000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0093,Al Mouna Mortadella Beef With Olives,Al Mouna,Deli Cold Cuts,mortadella,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1547,0.73,,2200307000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0094,Toulkarem Smoked Turkey Breast,Toulkarem,Deli Cold Cuts,turkey,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1404,2.38,صدر حبش مدخن,2209342000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0095,Tanmia Mortadella Beef Plain,Tanmia,Deli Cold Cuts,mortadella,A,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),1279,0.78,,2200293000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0096,Tanmia Mortadelle Beef Aux Olives,Tanmia,Deli Cold Cuts,mortadella,B,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),932,0.74,,2200292000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0097,Toulkarem Pepperoni,Toulkarem,Deli Cold Cuts,other,C,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),236,2.89,بيبيروني,2209247000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0098,Toulkarem Beef Pepperoni,Toulkarem,Deli Cold Cuts,other,C,Chilled,Tawfeer sheet (non-Tawfeer brand),By weight (pre-pack),98,2.89,,2209247000000,"Sold by weight or loose at Tawfeer; stock as fixed-weight pre-packs. Reference price is per average sale, not per pack."
+AK-0099,Mamig's Kitchen Garlic Ready To Eat 200G,Mamig'S,Ready to Eat & Catering,garlic/hummus,C,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,247,2.07,,5287000220217,
+AK-0100,Chef Simsum Garlic Paste 200G,Chef Simsum,Ready to Eat & Catering,garlic/hummus,C,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,226,1.59,,5287000920216,
+AK-0101,Mamig's Kitchen Hommos Ready 270G,Mamig'S,Ready to Eat & Catering,garlic/hummus,C,Chilled,Tawfeer sheet (non-Tawfeer brand),Each,224,1.56,,5287000220293,
+AK-0102,Aqua Family 10L,Aqua Family,Water,large format,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,2096,0.72,,5287000769570,
+AK-0103,Tannourine Mineral Water 2L X6,Tannourine,Water,2L x6,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1870,2.01,,5283007400119,
+AK-0104,Tannourine Mineral Water 500Ml X 12,Tannourine,Water,small packs,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1439,2.04,,5283007400096,
+AK-0105,Tannourine Mineral Water 330Ml X 12,Tannourine,Water,small packs,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,784,1.8,,5283007400188,
+AK-0106,Talaya Sparkling Water Lemon Lime 330Ml,Talaya,Water,sparkling,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,719,0.49,,5287002770222,
+AK-0107,Rim Mineral Water 2L X 6,Rim,Water,2L x6,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,708,1.99,,5281023000221,
+AK-0108,Sohat Mineral Water 1.5L X6,Sohat,Water,2L x6,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,677,2.46,,5289000061852,
+AK-0109,Tannourine Mineral Water Gallon 6L,Tannourine,Water,large format,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,663,1.29,,5283007400164,
+AK-0110,Nejmeh Mineral Water 2L,Nejmeh,Water,single,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,649,0.32,,5281143015655,
+AK-0111,Nestle Pure Life Water 0.6L X12,Nestle,Water,small packs,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,631,2.2,,023995012001,
+AK-0112,Pepsi Carbonated Drink Diet 330Ml,Pepsi,Beverages,cola can,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1749,0.69,,5285000320364,
+AK-0113,Pepsi Soft Drink Bottle Diet 2.25L,Pepsi,Beverages,cola large,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1102,1.66,,5285000325185,
+AK-0114,Top Juice Pineapple 190Ml,Top,Beverages,juice small,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1001,0.19,,5281034010011,
+AK-0115,Pepsi Carbonated Drink 2.25L,Pepsi,Beverages,cola large,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,875,1.65,,5283024601087,
+AK-0116,Pepsi Soft Drink Diet 1.25L,Pepsi,Beverages,cola large,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,869,1.37,,5285000325406,
+AK-0117,Pepsi Carbonated Drink 330Ml,Pepsi,Beverages,cola can,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,695,0.64,,5285000328803,
+AK-0118,Dark Blue Energy Drink 330Ml,Dark Blue,Beverages,energy,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,670,0.52,,5287001490367,
+AK-0119,Mr Juicy Juice Pineapple 180Ml,Mr Juicy,Beverages,juice small,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,612,0.18,,5285000320944,
+AK-0120,Candia Juice Fruits Rouges Nectar 180Ml,Candia,Beverages,juice small,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,607,0.28,,5285001105762,
+AK-0121,7Up Soft Drink Bottle 330Ml,7Up,Beverages,lemon-lime/orange,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,526,0.64,,5285000328810,
+AK-0122,Lipton Ice Tea Tropical Zero Sugar 320Ml,Lipton,Beverages,iced tea/other,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,430,0.69,,5283024603784,
+AK-0123,Lipton Ice Tea Red Fruits Zero Sugar 320Ml,Lipton,Beverages,iced tea/other,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,319,0.69,,5283024603364,
+AK-0124,7Up Carbonated Soft Drink 2.25L,7Up,Beverages,lemon-lime/orange,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,287,1.65,,5285000320500,
+AK-0125,Joocyz Juice Pineapple 1L,Joocyz,Beverages,juice 1L,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,264,0.64,,5285001106165,
+AK-0126,Mirinda Carbonated Drink Orange Bottle 330Ml,Mirinda,Beverages,lemon-lime/orange,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,262,0.64,,5285000328827,
+AK-0127,Uno Juice Mango 1L,Uno,Beverages,juice 1L,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,233,1.08,,5281034010233,
+AK-0128,Joocyz Juice Apple 1L,Joocyz,Beverages,juice 1L,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,224,0.64,,5285001106189,
+AK-0129,Vitalis Energy Drink Tropical 250Ml,Vitalis,Beverages,energy,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,174,0.49,,5285013860529,
+AK-0130,Cafe21 2In1 Instant Coffee No Sugar 12G,Cafe21,Hot Beverages,instant sachet,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,2087,0.24,,8888311091946,
+AK-0131,Nescafe Instant Coffee 3In1 Classic 20G,Nescafe,Hot Beverages,instant sachet,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,2070,0.19,,8850124037350,
+AK-0132,Coffee Mate Coffee Creamer Original Pouch 450G,Coffee Mate,Hot Beverages,creamer,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1778,2.85,,8850124081872,
+AK-0133,Najjar Cafe Classic Normal 180G,Najjar,Hot Beverages,ground coffee,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1086,3.25,,0022644001038,
+AK-0134,Tora Bika Cappucino 25G,Tora Bika,Hot Beverages,instant sachet,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1046,0.24,,8996001414002,
+AK-0135,Nescafe Instant Coffee Gold Pouch 100G,Nescafe,Hot Beverages,instant jar,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,504,4.37,,7613034724618,
+AK-0136,Tchibo Instant Coffee Gold Selection 200G,Tchibo,Hot Beverages,instant jar,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,459,6.48,,4046234767650,
+AK-0137,Najjar Instant Coffee Red 190G,Najjar,Hot Beverages,ground coffee,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,403,5.16,,0022644004619,
+AK-0138,Najjar Cafe Cardamom 180G,Najjar,Hot Beverages,ground coffee,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,389,3.49,,0022644001052,
+AK-0139,Najjar Star Café Coffee Regular 180G,Najjar,Hot Beverages,ground coffee,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,337,2.99,,002264400033,
+AK-0140,Lipton Yellow Label Tea 100 Teabags,Lipton,Hot Beverages,tea,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,201,2.37,,4796005650901,
+AK-0141,Domo Hot Chocolate Drink Caramel Light 10G,Domo,Hot Beverages,herbal/other,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,185,0.34,,5281010102839,
+AK-0142,Lipton Yellow Label Black Tea 25 Bags,Lipton,Hot Beverages,tea,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,124,0.73,,2900000003804,
+AK-0143,Maestro Ceylon Tea 140G,Maestro,Hot Beverages,tea,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,120,1.34,,5281143015501,
+AK-0144,Solen Vip Cocoa Coated 25G,Solen,Snacks & Candy,top seller,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1979,0.19,,8691707095318,
+AK-0145,Lu Nouba Wafer 17.5G,Lu,Snacks & Candy,top seller,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1351,0.25,,54074200,
+AK-0146,Kinder Choco Wafer Tronky 18G,Kinder,Snacks & Candy,top seller,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1193,0.49,,8000500384763,
+AK-0147,Kit Kat 4 Fingers 36.5G,Kit Kat,Snacks & Candy,top seller,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1124,0.63,,6294003532987,
+AK-0148,Kinder Chocolate Barrette Maxi 21G,Kinder,Snacks & Candy,top seller,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1080,0.35,,40084077,
+AK-0149,Ulker Albeni Chocolate Bar 25G,Ulker,Snacks & Candy,top seller,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1022,0.35,,8683508132606,
+AK-0150,Tiffany Wafer Chocolate Break 3 Fingers 23.5G,Tiffany,Snacks & Candy,top seller,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,995,0.19,,6291003084294,
+AK-0151,Nutella Spread Chocolate Hazelnut 750G,Nutella,Snacks & Candy,spreads,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,958,7.0,,3017620429262,
+AK-0152,Ulker Metro Chocolate 36G,Ulker,Snacks & Candy,top seller,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,953,0.39,,8690504035909,
+AK-0153,Oreo Cookie Biscuit 38G,Oreo,Snacks & Candy,biscuits,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,952,0.33,,7622201765286,
+AK-0154,Snack Jiha Chips Peanuts 25G,Snack Jiha,Snacks & Candy,chips,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,839,0.24,,5289000001506,
+AK-0155,Ulker Ulker Chocolate Baton Pistachio 14G,Ulker,Snacks & Candy,top seller,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,757,0.45,,8690504156666,
+AK-0156,Al Arabiya Tahina 400G,Al Arabiya,Snacks & Candy,spreads,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,705,1.98,,5285007652208,
+AK-0157,Elegance Stars Biscuits Black Chocolate 34G,Elegance,Snacks & Candy,biscuits,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,629,0.17,,5285004340146,
+AK-0158,Edita Bake Rolz Olive 52G,Edita,Snacks & Candy,biscuits,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,576,0.44,,6223000492406,
+AK-0159,Coffee Joy Biscuits Coffee 45G,Coffee Joy,Snacks & Candy,biscuits,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,568,0.39,,8996001301715,
+AK-0160,Dolsi Chips Crunchy Peanuts Puffs 80G,Dolsi,Snacks & Candy,chips,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,510,0.89,,5287000004459,
+AK-0161,Master Chips Salt 65G,Master,Snacks & Candy,chips,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,360,0.57,,5283003301816,
+AK-0162,Nutella Spread Chocolate Hazelnut 350G,Nutella,Snacks & Candy,spreads,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,360,3.53,,8000500007884,
+AK-0163,Master Chips Cocktail 100G,Master,Snacks & Candy,chips,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,344,1.01,,5283003325140,
+AK-0164,Dolsi Chips Cheezy Wizz 80G,Dolsi,Snacks & Candy,chips,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,315,0.88,,5287002276311,
+AK-0165,Dolsi Chips Crunchy Pizza Puffs 80G,Dolsi,Snacks & Candy,chips,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,309,0.88,,5287000004435,
+AK-0166,Krikita Cashew Pow Fried Salted 14G,Krikita,Snacks & Candy,nuts,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,249,0.25,,0022644078795,
+AK-0167,Clorets Gum Original Mint 12 Pieces 16.8G,Clorets,Snacks & Candy,gum/candy,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,245,0.31,,7622201430498,
+AK-0168,El Rashidi El Mizan Jam Strawberry 340G,El Rashidi El Mizan,Snacks & Candy,spreads,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,216,0.99,,6223000052778,
+AK-0169,Castania Peanuts 18G,Castania,Snacks & Candy,nuts,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,196,0.19,,5281009104257,
+AK-0170,Mentos Incredible Chew Strawberry 45G,Mentos,Snacks & Candy,gum/candy,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,174,0.77,,8935001726005,
+AK-0171,Snickers Chocolate Bar Caramel & Peanuts 45G,Snikers,Snacks & Candy,nuts,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,138,0.62,,6221134012965,
+AK-0172,Maggi Stock Cubes Chicken 20G,Maggi,Dry Foods & Pantry,stock/spices,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,2956,0.12,,6221007006787,
+AK-0173,Indomie Noodles Chicken 70G,Indomie,Dry Foods & Pantry,noodles,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,2276,0.2,,089686120073,
+AK-0174,Indomie Noodles Vegetable Flavor 56G,Indomie,Dry Foods & Pantry,noodles,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1899,0.14,,5285000391647,
+AK-0175,Barilla Spaghetti N' 5 500G,Barilla,Dry Foods & Pantry,pasta,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,851,1.14,,8076800195057,
+AK-0176,Maggi Stock Cubes Beef 20G,Maggi,Dry Foods & Pantry,stock/spices,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,531,0.2,,6221007019275,
+AK-0177,Taj Stock Cube Chicken 20G,Taj,Dry Foods & Pantry,stock/spices,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,509,0.11,,5285008121840,
+AK-0178,Ousraty Mixed Aleppo Thyme 400G,Ossraty,Dry Foods & Pantry,stock/spices,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,493,1.01,,5281029100642,
+AK-0179,Arbella Tagliatelle 400G,Arbella,Dry Foods & Pantry,pasta,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,462,1.35,,8697430822177,
+AK-0180,Deroni Red Split Lentils Vacuum 900G,Deroni,Dry Foods & Pantry,pulses/grains,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,404,0.99,,05285001522804,
+AK-0181,Divella Spaghetti N8 500G,Divella,Dry Foods & Pantry,pasta,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,335,1.11,,8005121000085,
+AK-0182,Deroni Vermicelli 500G,Deroni,Dry Foods & Pantry,pasta,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,318,0.67,,5285001528646,
+AK-0183,Abu Rashed Indian Basmati Rice 4Kg,Abo Rashed,Dry Foods & Pantry,rice,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,272,8.67,,5285001524358,
+AK-0184,Abou Rached Basmati Rice 800G,Abou Rached,Dry Foods & Pantry,rice,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,253,1.79,,5285001525218,
+AK-0185,Deroni Italian Rice 900G,Deroni,Dry Foods & Pantry,rice,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,246,1.09,,5285001525898,
+AK-0186,Deroni Green Lentils Vacuum 900G,Deroni,Dry Foods & Pantry,pulses/grains,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,195,1.39,,05285001522798,
+AK-0187,Domo Corn Flour 200G,Domo,Dry Foods & Pantry,flour,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,137,0.74,,5281010110322,
+AK-0188,Gold Medal Flour 1Kg,Gold Medal,Dry Foods & Pantry,flour,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,82,1.79,,016000104600,
+AK-0189,Zain Lentils Adass Majrouch 900G,Zain,Dry Foods & Pantry,pulses/grains,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,21,0.96,,5285000716037,
+AK-0190,"Burghul, coarse",Local (unbranded),Dry Foods & Pantry,grains,,Ambient,Local supplier,1 kg bag,,,برغل خشن,,Gap filler: every option in the sheet was a Tawfeer or suspected Tawfeer house-brand item. Source locally.
+AK-0191,Prime Sweet Corn Can 340G,Prime line,"Canned Food, Jars & Packets",corn/mushroom,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,818,0.89,,5287002285504,
+AK-0192,Chtoura Garden Fava Beans 400G,Chtoura Garden,"Canned Food, Jars & Packets",fava/hummus,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,620,0.59,,5285001400096,
+AK-0193,Plein Soleil Sweet Corn 340G,Plein Soleil,"Canned Food, Jars & Packets",corn/mushroom,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,576,1.59,,5285000834069,
+AK-0194,Maxbell Sardine In Oil 125G,Maxbell,"Canned Food, Jars & Packets",tuna/sardine,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,521,0.69,,5285000712855,
+AK-0195,Siblou White Tuna In Oil 185G X3,Siblou,"Canned Food, Jars & Packets",tuna/sardine,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,490,4.17,,5283014929993,
+AK-0196,Plein Soleil White Tuna Oil 185G X3,Plein Soleil,"Canned Food, Jars & Packets",tuna/sardine,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,486,4.27,,5285000837695,
+AK-0197,Siblou White Tuna In Water 185G,Siblou,"Canned Food, Jars & Packets",tuna/sardine,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,476,1.75,,5285000830382,
+AK-0198,Cortas Hommos Tahina 400G,Cortas,"Canned Food, Jars & Packets",fava/hummus,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,462,0.99,,735143083626,
+AK-0199,Al Wadi Al Akhdar Sweet Corn 340G,Al Wadi Al Akhdar,"Canned Food, Jars & Packets",corn/mushroom,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,452,1.36,,5281117000243,
+AK-0200,Chtoura Garden Boiled Chick Peas 400G,Chtoura Garden,"Canned Food, Jars & Packets",luncheon/other,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,421,0.74,,5285001400041,
+AK-0201,Cortas Foul Medammas 400G,Cortas,"Canned Food, Jars & Packets",fava/hummus,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,351,0.79,,735143003044,
+AK-0202,Al Taghziah Luncheon Chicken Round 200G,Al Taghziah,"Canned Food, Jars & Packets",luncheon/other,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,198,0.78,,5283002830157,
+AK-0203,Tanmia Chicken Luncheon Meat Easy Open Can 200G,Tanmia,"Canned Food, Jars & Packets",luncheon/other,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,189,0.89,,5281101391708,
+AK-0204,Green olives,Local (unbranded),"Canned Food, Jars & Packets",olives/pickles,,Ambient,Local supplier,jar,,,زيتون أخضر,,Gap filler: every option in the sheet was a Tawfeer or suspected Tawfeer house-brand item. Source locally.
+AK-0205,Black olives,Local (unbranded),"Canned Food, Jars & Packets",olives/pickles,,Ambient,Local supplier,jar,,,زيتون أسود,,Gap filler: every option in the sheet was a Tawfeer or suspected Tawfeer house-brand item. Source locally.
+AK-0206,Mixed pickles,Local (unbranded),"Canned Food, Jars & Packets",olives/pickles,,Ambient,Local supplier,jar,,,كبيس مشكل,,Gap filler: every option in the sheet was a Tawfeer or suspected Tawfeer house-brand item. Source locally.
+AK-0207,Zer Sunflower Oil 3L,Zer,Cooking Ingredients,sunflower oil,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,524,5.62,,8681407009234,
+AK-0208,Yamama Tomato Paste 1325G,Yamama,Cooking Ingredients,tomato paste,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,494,3.27,,5281099110145,
+AK-0209,Yamama White Vinegar 1L,Yamama,Cooking Ingredients,vinegar/molasses,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,480,0.69,,623695000416,
+AK-0210,Yamama Tomato Paste 660G,Yamama,Cooking Ingredients,tomato paste,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,442,1.64,,5281099110121,
+AK-0211,Plein Soleil Mayonnaise 250Ml,Plein Soleil,Cooking Ingredients,ketchup/mayo,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,421,2.19,,5285000834366,
+AK-0212,Pomi Strained Tomatoes 500G,Pomi,Cooking Ingredients,tomato paste,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,353,1.49,,8002580425909,
+AK-0213,Plein Soleil Sunflower Oil 5L,Plein Soleil,Cooking Ingredients,sunflower oil,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,343,10.4,,5285000835332,
+AK-0214,Dolly's Tomato Ketchup 330G,Dolly's,Cooking Ingredients,ketchup/mayo,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,289,0.88,,744171120043,
+AK-0215,Dolly's Ketchup 900G,Dolly's,Cooking Ingredients,ketchup/mayo,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,278,2.78,,744171120111,
+AK-0216,Lina Sunflower Oil 0.85L,Lina,Cooking Ingredients,sunflower oil,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,271,2.09,,4820207073722,
+AK-0217,Al Koura Olive Oil 500Ml,Al Koura Products,Cooking Ingredients,olive oil,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,255,2.32,,2336159415029,
+AK-0218,Yamama Grenadine Molasses 300Ml,Yamama,Cooking Ingredients,vinegar/molasses,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,249,1.59,,623695000355,
+AK-0219,Al Wazir Olive Oil 500Ml,Al Wazir,Cooking Ingredients,olive oil,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,238,4.99,,8428483500046,
+AK-0220,Deroni Hot Sauce 88Ml,Deroni,Cooking Ingredients,ghee/sauces,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,131,0.39,,5285001523474,
+AK-0221,Maxim's Salt Iodised 700G,Maxim'S,Cooking Ingredients,salt,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,94,0.94,,5283000326775,
+AK-0222,El Hanim Ghee Vegetable 0.7Kg,El hanim,Cooking Ingredients,ghee/sauces,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,64,2.11,,6222000551694,
+AK-0223,Deroni Sugar 900G,Deroni,Home Bake,sugar,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,507,0.69,,5285001524341,
+AK-0224,Domo Jelly Strawberry 85G,Domo,Home Bake,dessert mix,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,472,0.58,,5281010123117,
+AK-0225,Domo Sugar Vanillin 5G,Domo,Home Bake,baking,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,352,0.1,,5281010110728,
+AK-0226,Domo Bicarbonate 85G,Domo,Home Bake,baking,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,322,0.35,,5281010110414,
+AK-0227,Domo Baking Powder Sachet 10G,Domo,Home Bake,baking,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,289,0.12,,5281010110520,
+AK-0228,Deroni Sugar 5Kg,Deroni,Home Bake,sugar,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,207,3.54,,5285001520398,
+AK-0229,Aruba Jelly Strawberry Light 12G,Aruba,Home Bake,dessert mix,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,102,0.74,,5285002191238,
+AK-0230,Aruba Jelly Forest Fruits Light 12G,Aruba,Home Bake,dessert mix,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,93,0.74,,5285002191597,
+AK-0231,Lotussweets Ice Cream 1Kg,Lotussweets,Frozen Food,ice cream,A,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,1680,3.38,,00267052,
+AK-0232,Dolsi Vegas With Caramel Filling,Dolsi,Frozen Food,ice cream,B,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,878,0.75,,5287000004299,
+AK-0233,Ocean Crab Sticks Surimi 250G,Ocean,Frozen Food,fish,B,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,797,1.01,,6064000054580,
+AK-0234,Dolsi Amarena With Natural Strawberry Filling,Dolsi,Frozen Food,ice cream,B,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,723,0.73,,5287000004305,
+AK-0235,Plein Soleil Frozen Green Peas Fine 400G,Plein Soleil,Frozen Food,veg,B,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,552,1.96,,5285000834038,
+AK-0236,Tanmia Frozen Chicken Nuggets 520G,Tanmia,Frozen Food,chicken,B,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,471,2.69,,5281101392743,
+AK-0237,Plein Soleil Frozen Peas & Carrots Mix Fine & Sweet 400G,Plein Soleil,Frozen Food,veg,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,451,2.2,,5285000834304,
+AK-0238,Foody's Frozen Green Peas 400G,Foody's,Frozen Food,veg,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,438,1.45,,6271100084281,
+AK-0239,Liban Frites Frz Home French Fries 900G,Liban Frites,Frozen Food,fries,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,431,1.64,,5287000491167,
+AK-0240,Seafin Frozen White Fish Pangasius Fillet 1Kg,Seafin,Frozen Food,fish,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,424,2.85,,5285000838418,
+AK-0241,Plein Soleil Frozen Mulukhieh Leaves 400G,Plein Soleil,Frozen Food,veg,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,423,1.49,,5285000835899,
+AK-0242,Take N Bake Frozen Pizza Vegetarian Small 350G,Take N Bake,Frozen Food,pizza/pastry,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,372,2.21,,5287002280110,
+AK-0243,Take N Bake Frozen Pizza Pepperoni Small 350G,Take N Bake,Frozen Food,pizza/pastry,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,318,1.73,,5287002280080,
+AK-0244,Foody's Crispy French Fries Straight Cut 900G,Foody's,Frozen Food,fries,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,288,2.33,,5285004332257,
+AK-0245,Foody's Frozen Crispy Chicken Strips 500G,Foody's,Frozen Food,chicken,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,272,5.02,,5285012971592,
+AK-0246,Foody's Frozen Crispy Chicken Nuggets 500G,Foody's,Frozen Food,chicken,C,Frozen,Tawfeer sheet (non-Tawfeer brand),Each,272,2.65,,5285004332400,
+AK-0247,Eti Gong Corn & Rice Cake Original 32G,Eti,Healthy,rice cakes,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,826,0.45,,8690526004679,
+AK-0248,Balance Protein Crackers Sour Cream & Onion 70G,Balance,Healthy,protein,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,150,0.69,,6222035227786,
+AK-0249,Spartan Toilet Cleaner Flash 1L,Spartan,Cleaning & Household,surface/toilet,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1360,2.46,,5283002600224,
+AK-0250,Perla Interfold Prime White,Perla,Cleaning & Household,tissues,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,943,0.4,,5281078072525,
+AK-0251,Vimax Trash Bags Large Blue 30 Pieces,Vimax,Cleaning & Household,trash bags,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,827,2.19,,5281143009845,
+AK-0252,Vimax Trash Bags Medium Black 30 Pieces,Vimax,Cleaning & Household,trash bags,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,809,1.2,,5281143009821,
+AK-0253,April Interfold 150G,April,Cleaning & Household,tissues,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,804,0.38,,5287002005300,
+AK-0254,Al Ousra Facial Tissue 200Sh,Al Ousra,Cleaning & Household,tissues,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,766,0.43,,5289065922136,
+AK-0255,Vimax Dishwashing Liquid Lemon 700Ml,Vimax,Cleaning & Household,dishwashing,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,612,0.77,,5281143009982,
+AK-0256,Odex Bleach Original 1L,Odex,Cleaning & Household,bleach/disinfect,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,574,1.06,,5283002600262,
+AK-0257,City Plast Sandwich Bag 100 Pieces,City Plast,Cleaning & Household,foil/bags/sponges,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,417,0.8,,5285006708135,
+AK-0258,Odex Bleach Lemon 1200Ml,Odex,Cleaning & Household,bleach/disinfect,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,359,1.11,,5283002607070,
+AK-0259,Comfort Fabric Softener Lavender 3L,Comfort,Cleaning & Household,laundry,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,348,3.5,,6221155207487,
+AK-0260,Intaj Kitchen Towel X-Large 500G,Intaj,Cleaning & Household,kitchen towel,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,327,1.27,,5287002102153,
+AK-0261,Omo Gel Liquid Laundry Detergent Wash Comfort 2.5L,Omo,Cleaning & Household,laundry,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,324,5.19,,8720181010149,
+AK-0262,Germex Floor Detergent 1L,Germex,Cleaning & Household,surface/toilet,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,275,2.25,,5283002610070,
+AK-0263,Sanita Liquid Laundry Detergent Fresh Essence 2.5L,Sanita,Cleaning & Household,laundry,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,271,5.05,,5281001603871,
+AK-0264,Odex Dishwash Liquid Blue 1300Ml,Odex,Cleaning & Household,dishwashing,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,242,2.28,,5283002610407,
+AK-0265,Omo Gel Detergent Lavender 2.5L,Omo,Cleaning & Household,laundry,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,228,5.29,,6111026123322,
+AK-0266,Britex Sponge Easy Grip Jumbo Euro 5Pcs,Britex,Cleaning & Household,foil/bags/sponges,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,213,0.98,,5319991245709,
+AK-0267,Intaj Toilet Paper 12 Rolls 1.5Kg,Intaj,Cleaning & Household,toilet paper,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,206,3.85,,5287002102542,
+AK-0268,Rosana Toilet Paper 18 Rolls,Rosana,Cleaning & Household,toilet paper,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,205,3.54,,5281001123669,
+AK-0269,Wellplus Wet Wipes 100 Sheets,Well Plus,Beauty & Personal Care,wet wipes,A,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,1123,1.08,,5281143012289,
+AK-0270,Private Feminine Pads Extra Thin Night 7 Pieces,Private,Beauty & Personal Care,pads,B,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,504,1.36,,5281001312841,
+AK-0271,Private Feminine Pads Extra Thin Normal 10 Pieces,Private,Beauty & Personal Care,pads,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,334,1.35,,5281001312704,
+AK-0272,Wellplus Liquid Soap Marrakesh Mystique 500Ml,Wellplus,Beauty & Personal Care,soap/shower,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,297,0.77,,5281143013620,
+AK-0273,Wellplus Liquid Soap Sea Breeze 500Ml,Wellplus,Beauty & Personal Care,soap/shower,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,287,0.77,,5281143010223,
+AK-0274,Mf Cotton Buds Doria,Cotton Buds,Beauty & Personal Care,shaving/cotton,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,257,0.1,,1452136987455,
+AK-0275,Colgate Toothpaste Triple Action 125Ml,Colgate,Beauty & Personal Care,oral,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,223,1.33,,6281001112013,
+AK-0276,Dove Original Beauty Cream Bar 90G,Dove,Beauty & Personal Care,soap/shower,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,174,1.17,,2900000071438,
+AK-0277,Amalfi Shampoo Anti Caspa 750Ml,Amalfi,Beauty & Personal Care,shampoo,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,136,1.27,,8414227676856,
+AK-0278,Fluff'n White Soft Touch Cotton Round Pads 75 Pieces,Fluff'N White,Beauty & Personal Care,shaving/cotton,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,129,1.29,,5283002596268,
+AK-0279,Head & Shoulders Shampoo Sub Zero Freshness 400Ml,Head & Shoulders,Beauty & Personal Care,shampoo,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,113,3.07,,8006540314210,
+AK-0280,Colgate Toothpaste Herbal 125Ml,Colgate,Beauty & Personal Care,oral,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,112,1.42,,5285001618071,
+AK-0281,Nivea Roll On For Women Extra Brightening 25Ml,Nivea,Beauty & Personal Care,deodorant,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,53,0.9,,8999777004224,
+AK-0282,Nivea Roll On For Women Pearly & Beauty 25Ml,Nivea,Beauty & Personal Care,deodorant,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,53,0.9,,8999777011000,
+AK-0283,Gipsy Wet Wipes 100Pcs + Pocket Wipes 40Pcs,Gipsy,Baby & Child,wipes,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,182,2.15,,5281001943694,
+AK-0284,Oui Oui Wet Wipes Aqua Pure 80 Sheets,Oui Oui,Baby & Child,wipes,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,145,1.55,,5283023300141,
+AK-0285,Johnsons Baby Shampoo 750Ml,Johnson,Baby & Child,baby care,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,121,2.76,,3574669907408,
+AK-0286,Oui Oui Diapers Size 6 16-30Kg 32 Pieces,Oui Oui,Baby & Child,diapers,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,109,6.95,,5285001500192,
+AK-0287,Loulou Baby Diapers Size 6 16-30Kg 26 Pieces,Loulou,Baby & Child,diapers,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,87,4.74,,5283023301407,
+AK-0288,Oui Oui Diapers Size 5 12-25Kg 38 Pieces,Oui Oui,Baby & Child,diapers,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,64,6.73,,5285001500185,
+AK-0289,Miglior Gatto Pate Agnello 400G,Miglior,Pet Zone,cat food,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,325,0.99,,8007520012430,
+AK-0290,Miglior Gatto Alutray Cat Agnello 100G,Miglior,Pet Zone,cat food,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,176,0.74,,8007520013024,
+AK-0291,Pro Line Marseille Soap Bentonite Cat Litter 5L,Proline,Pet Zone,litter,C,Ambient,Tawfeer sheet (non-Tawfeer brand),Each,126,3.34,,8698995010153,

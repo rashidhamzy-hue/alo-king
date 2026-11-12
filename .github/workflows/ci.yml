@@ -1,0 +1,55 @@
+# Every push and pull request. Red blocks the merge (protect main in repository settings).
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+permissions: { contents: read }
+concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+  permissions-check:
+    # Applies every migration to a real Postgres that has Supabase's three roles, then proves anon and authenticated can do nothing.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - run: scripts/check_permissions.sh
+        env: { DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres" }
+  secrets-and-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: gitleaks (secrets in the tree or its history)
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz gitleaks
+          ./gitleaks detect --source . --config .gitleaks.toml --redact --no-banner
+      - name: osv-scanner (known vulnerabilities in the lockfile)
+        run: |
+          curl -sSfL -o osv-scanner https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64
+          chmod +x osv-scanner && ./osv-scanner scan --lockfile package-lock.json
+  pilot-locks:
+    # Two rules a careless edit could undo. They are tested, and also checked here in plain text so a reviewer sees them fail by name.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: grep -q "export const PILOT_MARKETING_LOCK = true;" packages/wa/src/gateway.ts
+      - run: "! grep -rn 'kapsoSend(' --include=*.ts apps packages | grep -v 'packages/wa/src/gateway.ts' | grep -v 'packages/wa/src/kapso.ts'"

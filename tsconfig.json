@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
+    "strict": true, "noUncheckedIndexedAccess": true, "skipLibCheck": true, "noEmit": true,
+    "types": ["@cloudflare/workers-types"],
+    "paths": { "@ak/core/*": ["./packages/core/src/*"], "@ak/wa/*": ["./packages/wa/src/*"], "@ak/agents/*": ["./packages/agents/src/*"] }
+  },
+  "include": ["apps", "packages", "evals"]
+}

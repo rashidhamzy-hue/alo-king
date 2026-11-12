@@ -1,0 +1,208 @@
+// One customer turn: everything that arrived in a burst, handled in order.
+// Buttons, pins and STOP are handled by code. Only free text and voice reach the model.
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
+import { processOpsTurn } from "./ops-turn";
+import type { SendRequest, SendResult } from "@ak/wa/gateway";
+import { detectConsentSignal } from "@ak/core/optout";
+import { runConcierge, type ModelClient } from "@ak/agents/concierge";
+import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
+import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
+import { judge } from "@ak/agents/stt";
+import { estimateSeconds, VOICE_TEXT, voiceVerdict } from "@ak/core/voice-policy";
+
+export interface Pending { line: "customer" | "ops"; who: { waUserId?: string; phone?: string }; event: KapsoReceived }
+export interface TurnDeps {
+  db: SupabaseClient;
+  model: ModelClient;
+  modelName: string;
+  send: (req: SendRequest) => Promise<SendResult>;      // packages/wa/src/gateway.ts send(), bound to env
+  /** Set by runTurn. Outbound messages are keyed on it so a retried turn cannot send anything twice. */
+  turnKey?: string;
+  /** Called once a customer's tap has confirmed an order (COD) so a rider can be offered the job. */
+  onOrderConfirmed?: (orderId: string) => Promise<unknown>;
+  /** Rider-side events the customer should hear about ("on the way", "rider is at your door"). */
+  notifyCustomer?: (deliveryOrOrderId: string, what: "on_the_way" | "rider_waiting") => Promise<unknown>;
+}
+export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "rider" | "duplicate" | "error"; sent: string[] }
+
+const HISTORY_MAX = 8;
+
+export async function processTurn(deps: TurnDeps, pending: Pending[], state: ConversationState): Promise<TurnResult> {
+  const first = pending[0];
+  if (!first) return { outcome: "ignored", sent: [] };
+  if (first.line !== "customer") return processOpsTurn(deps, pending);          // riders today; merchants and staff in step 7
+
+  const { db } = deps;
+  const to = first.who.phone ?? first.who.waUserId!;
+  const conv = await call<{ known: boolean; party_id: string; conversation_id: string; human_handoff: boolean; blocked: boolean }>(db, "touch_conversation", {
+    p_line: "customer", p_wa_user_id: first.who.waUserId ?? null, p_phone: first.who.phone ?? null,
+    p_name: first.event.conversation.contact_name ?? null,
+  });
+  if (!conv.known || conv.blocked) return { outcome: "ignored", sent: [] };
+
+  const sent: string[] = [];
+  let sendSeq = 0;
+  if (!deps.turnKey) throw new Error("NO_TURN_KEY: processTurn must be called through runTurn");
+  const turnKey = deps.turnKey;
+  const sendRaw = async (msg: Outbound, orderId?: string): Promise<SendResult> =>
+    deps.send({ line: "customer", partyId: conv.party_id, to, msg, category: "service", orderId,
+                dedupeKey: `${turnKey}:${sendSeq++}` });
+  const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
+
+  await db.from("wa_messages").insert(pending.map((p) => ({
+    line: "customer", direction: "inbound", party_id: conv.party_id, conversation_id: conv.conversation_id,
+    wa_message_id: p.event.message.id, type: p.event.message.type, status: "received",
+    body: p.event.message.text?.body ?? p.event.message.interactive?.button_reply?.id ?? null,
+    transcript: p.event.message.kapso.transcript ? { kapso: p.event.message.kapso.transcript.text } : null,
+  })));
+
+  const texts: string[] = [];
+  const transcripts: { primary: string; secondary?: string }[] = [];
+  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0;
+
+  for (const p of pending) {
+    const m = p.event.message;
+
+    // 1. Buttons never reach the model.
+    const tapped = m.type === "interactive" ? m.interactive?.button_reply?.id : undefined;
+    if (tapped) {
+      const btn = parseOrderButton(tapped);
+      if (btn) {
+        buttonsHandled++;
+        try {
+          const r = await call<{ status: string; short_code: string; changed: boolean; payment_method?: string; total_usd?: number }>(
+            db, btn.action === "confirm" ? "confirm_order_checked" : "handle_order_button",
+            btn.action === "confirm" ? { p_order: btn.orderId, p_party: conv.party_id, p_wamid: m.id }
+                                     : { p_order: btn.orderId, p_action: btn.action, p_party: conv.party_id, p_wamid: m.id });
+          if (r.status === "stale_quote") { state.lastQuote = null; texts.push("الأسعار أو التوفر تغيّروا، جهّزلي الطلب من جديد بنفس الأغراض"); continue; }
+          if (r.status === "needs_location") { await sendRaw(askLocation("قبل ما نأكّد، بعتلنا موقعك 📍 أو اكتب العنوان بالتفصيل."), btn.orderId); continue; }
+          await say(buttonReplyText(r), btn.orderId);
+          // Finding a rider must never turn a confirmed order into an error message. If it fails here, the cron retries every minute.
+          if (r.changed && r.status === "confirmed") await deps.onOrderConfirmed?.(btn.orderId).catch(() => undefined);
+          if (r.status === "draft") state.lastQuote = null;
+        } catch (err) {
+          await say(String(err).includes("OUT_OF_STOCK") ? FIXED.outOfStock : FIXED.error, btn.orderId);
+          if (!String(err).includes("OUT_OF_STOCK")) await handoff(db, conv.conversation_id, `button_error: ${String(err).slice(0, 200)}`);
+        }
+        continue;
+      }
+      if (tapped === "marketing:yes" || tapped === "marketing:no") {
+        buttonsHandled++;
+        await db.from("consent_events").insert({ party_id: conv.party_id, line: "customer", kind: "marketing",
+          action: tapped === "marketing:yes" ? "opt_in" : "opt_out", source: "marketing_button", evidence_message_id: m.id });
+        continue;
+      }
+      texts.push(m.interactive?.button_reply?.title ?? tapped);     // a button the Concierge itself offered
+      continue;
+    }
+
+    // 2. A location pin is data, not conversation.
+    if (m.type === "location" && m.location) {
+      const place = await call<{ place_id: string; village_id: string | null; village: string | null }>(db, "save_customer_pin",
+        { p_party: conv.party_id, p_lat: m.location.latitude, p_lng: m.location.longitude, p_village: state.villageId ?? null });
+      state.placeId = place.place_id;
+      if (place.village_id) state.villageId = place.village_id;
+      texts.push(`[location pin received${place.village ? `, village: ${place.village}` : ""}]`);
+      continue;
+    }
+
+    // 3. STOP wins, before any model.
+    if (m.type === "text") {
+      const body = m.text?.body ?? "";
+      const signal = detectConsentSignal(body);
+      if (signal === "opt_out") {
+        await say(FIXED.optOut);                                    // the one permitted confirmation, sent before the gate closes
+        await call(db, "record_consent_signal", { p_party: conv.party_id, p_line: "customer", p_action: "opt_out", p_source: "stop_keyword", p_wamid: m.id });
+        return { outcome: "opt_out", sent };
+      }
+      if (signal === "opt_in") {
+        await call(db, "record_consent_signal", { p_party: conv.party_id, p_line: "customer", p_action: "opt_in", p_source: "start_keyword", p_wamid: m.id });
+        await say(FIXED.optIn);
+        return { outcome: "opt_in", sent };
+      }
+      texts.push(body);
+      continue;
+    }
+
+    // 4. Voice: mechanical checks first. Until a second provider is wired (build step 4), Kapso's transcript is the only reading.
+    if (m.type === "audio") {
+      const t = m.kapso.transcript?.text ?? "";
+      const seconds = Math.max(1, estimateSeconds(m.kapso.media_data?.byte_size ?? 16000));
+      // Policy first: a note over the limit is answered politely and not transcribed. Nothing is dropped in silence.
+      const policy = voiceVerdict("customer", seconds, voiceSecondsThisTurn);
+      if (policy.action === "too_long") { await say(VOICE_TEXT.tooLong(policy.limit)); buttonsHandled++; continue; }
+      if (policy.action === "over_budget") { await say(VOICE_TEXT.overBudget); buttonsHandled++; continue; }
+      voiceSecondsThisTurn += seconds;
+      const verdict = judge({ text: t, provider: "kapso" }, undefined, seconds);
+      if (verdict.usable) transcripts.push({ primary: verdict.primary.text }); else audioFailed++;
+      continue;
+    }
+
+    if (m.type === "image") { texts.push(`[image received${m.image?.caption ? `: ${m.image.caption}` : ""}]`); continue; }
+  }
+
+  if (texts.length === 0 && transcripts.length === 0) {
+    if (audioFailed > 0) { await say(FIXED.audioUnusable); return { outcome: "audio_unusable", sent }; }
+    return { outcome: buttonsHandled ? "buttons" : "ignored", sent };
+  }
+  if (conv.human_handoff) return { outcome: "human", sent };          // a person has this chat; the model stays out
+
+  const ctx: ToolContext = {
+    db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
+    send: (msg, opts) => sendRaw(msg, opts?.orderId), sent: { count: 0, texts: [] },
+  };
+  const started = Date.now();
+  try {
+    const res = await runConcierge(deps.model, deps.modelName, {
+      texts, transcripts,
+      state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
+               audio_messages_unreadable: audioFailed, recent: state.history ?? [],
+               // What we know about this person from delivered orders: usuals, brands, saved places, how they pay. Facts, not a transcript.
+               known_customer: (await db.rpc("customer_context", { p_party: conv.party_id })).data ?? null },
+    }, makeConciergeTools(ctx));
+    sent.push(...ctx.sent.texts);
+    state.history = [...(state.history ?? []),
+      { role: "customer" as const, text: [...texts, ...transcripts.map((t) => t.primary)].join(" / ").slice(0, 600) },
+      ...ctx.sent.texts.map((t) => ({ role: "assistant" as const, text: t.slice(0, 600) })),
+    ].slice(-HISTORY_MAX);
+    await db.from("agent_runs").insert({ agent: "concierge", conversation_id: conv.conversation_id, model: deps.modelName,
+      input_tokens: res.usage.input, output_tokens: res.usage.output, latency_ms: Date.now() - started, outcome: res.outcome,
+      trace: { intent: res.intent ?? null, sent: ctx.sent.texts } });
+    return { outcome: res.outcome === "ok" ? "agent_ok" : "agent_handoff", sent };
+  } catch (err) {
+    await handoff(db, conv.conversation_id, `agent_error: ${String(err).slice(0, 200)}`);
+    if (ctx.sent.count === 0) await say(FIXED.error);
+    return { outcome: "error", sent };
+  }
+}
+
+async function call<T = unknown>(db: SupabaseClient, fn: string, args: Record<string, unknown>): Promise<T> {
+  const { data, error } = await db.rpc(fn, args);
+  if (error) throw new Error(`${fn}: ${error.message}`);
+  return data as T;
+}
+async function handoff(db: SupabaseClient, conversationId: string, reason: string) {
+  await db.from("conversations").update({ human_handoff: true }).eq("id", conversationId);
+  await db.from("handoffs").insert({ conversation_id: conversationId, reason });
+}
+
+
+/** The key of a turn is the set of WhatsApp messages it answers. Same messages, same turn, however many times it is delivered. */
+export function turnKeyOf(pending: Pending[]): string {
+  return `${pending[0]?.line ?? "?"}:` + pending.map((p) => p.event.message.id).sort().join("+");
+}
+
+/**
+ * Runs a turn exactly once. If the worker dies half-way, the retry re-runs the turn, but every message already sent is
+ * skipped by the outbox, button handlers are no-ops the second time, and a rebuilt card replaces the old one.
+ */
+export async function runTurn(deps: TurnDeps, pending: Pending[], state: ConversationState): Promise<TurnResult> {
+  if (pending.length === 0) return { outcome: "ignored", sent: [] };
+  const key = turnKeyOf(pending);
+  const begun = await deps.db.rpc("begin_turn", { p_key: key, p_line: pending[0]!.line, p_conversation: null });
+  if (!begun.error && (begun.data === "done" || begun.data === "give_up")) return { outcome: "duplicate", sent: [] };
+  const result = await processTurn({ ...deps, turnKey: key }, pending, state);
+  await deps.db.rpc("finish_turn", { p_key: key, p_outcome: { outcome: result.outcome, sent: result.sent.length } });
+  return result;
+}

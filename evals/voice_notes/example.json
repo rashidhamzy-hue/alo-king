@@ -1,0 +1,16 @@
+{
+  "id": "example-01",
+  "audio": "audio/example-01.opus",
+  "truth": {
+    "intent": "order",
+    "fulfilment": "delivery",
+    "lines": [
+      { "item": "cheeseburger", "qty": 2, "modifiers": ["one without pickles", "one without tomato"], "source": null },
+      { "item": "fries", "qty": 2, "modifiers": [], "source": null },
+      { "item": "pepsi diet", "qty": 1, "modifiers": [], "source": null },
+      { "item": "pepsi", "qty": 1, "modifiers": [], "source": null }
+    ],
+    "address": { "village": "<village>", "landmark": null, "building": null, "floor": null },
+    "change_for_usd": 100
+  }
+}

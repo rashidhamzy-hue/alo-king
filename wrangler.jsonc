@@ -1,0 +1,46 @@
+{
+  "name": "alo-king-gateway",
+  "main": "apps/gateway/src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "rules": [{ "type": "Text", "globs": ["**/*.md"], "fallthrough": true }],
+  "durable_objects": { "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ConversationDO"] }],
+  "queues": {
+    "producers": [{ "binding": "INBOUND", "queue": "ak-inbound" }],
+    "consumers": [{ "queue": "ak-inbound", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-dlq" }]
+  },
+  "triggers": { "crons": ["* * * * *"] },
+  "vars": {
+    "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0",
+    "MODEL_FAST": "claude-haiku-5-5",
+    "MODEL_SMART": "claude-sonnet-5-5",
+    "BUFFER_SECONDS": "6"
+  },
+  // Two deployments that share nothing. `wrangler deploy --env staging` and `--env production`.
+  // Bindings and vars are not inherited by environments, so each block is complete on purpose.
+  "env": {
+    "staging": {
+      "name": "alo-king-gateway-staging",
+      "durable_objects": { "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }] },
+      "queues": {
+        "producers": [{ "binding": "INBOUND", "queue": "ak-inbound-staging" }],
+        "consumers": [{ "queue": "ak-inbound-staging", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-staging-dlq" }]
+      },
+      "triggers": { "crons": ["* * * * *"] },
+      "vars": { "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5", "MODEL_SMART": "claude-sonnet-5-5", "BUFFER_SECONDS": "6", "ENVIRONMENT": "staging" }
+    },
+    "production": {
+      "name": "alo-king-gateway",
+      "durable_objects": { "bindings": [{ "name": "CONVERSATION", "class_name": "ConversationDO" }] },
+      "queues": {
+        "producers": [{ "binding": "INBOUND", "queue": "ak-inbound" }],
+        "consumers": [{ "queue": "ak-inbound", "max_batch_size": 10, "max_batch_timeout": 0, "max_retries": 5, "dead_letter_queue": "ak-inbound-dlq" }]
+      },
+      "triggers": { "crons": ["* * * * *"] },
+      "vars": { "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5", "MODEL_SMART": "claude-sonnet-5-5", "BUFFER_SECONDS": "6", "ENVIRONMENT": "production" }
+    }
+  }
+  // Secrets, per environment (wrangler secret put NAME --env staging): KAPSO_API_KEY, KAPSO_WEBHOOK_SECRET_CUSTOMER, KAPSO_WEBHOOK_SECRET_OPS,
+  // PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS, SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY, STT_API_KEY
+}
