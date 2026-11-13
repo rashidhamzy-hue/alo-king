@@ -159,6 +159,7 @@ Not in this phase: the two real +961 numbers. They join in Phase 4.
 | 1.19 | No phone number in the webhook | WhatsApp usernames can hide a customer's number. Identity already rests on the business-scoped id. When no number arrives, ask for a number the rider can call before the order card, and store it on the customer. Test with a fixture that has no phone. |
 | 1.20 | Same as last time | A returning customer with a closed order is offered their last basket as one button, re-priced and re-checked for stock by `quote_order`; a missing item is named before the card. `repeat_order_lines` exists. Never shown to a customer with no closed order. |
 | 1.21 | WhatsApp catalog for the 291 products | Browse with pictures, add to cart, send. The database stays the only source of price and stock; the catalog never confirms. Session K1. Details below the table. |
+| 1.22 | Catalog language pack, proven on the live model | Found live on 13 Nov: the model writes catalog searches in English (`schemas.ts` asks for an English phrase), so "bread" matched nothing, labneh became laban, eggs became "Chicken Legs", and the 0.13 demo message got "Najjar coffee not found". Fix: the search keeps the customer's own words first; a generated language pack gives every product search terms in Lebanese Arabic, Arabic in Latin letters, English and French, plus the generic words people use (خبز، بيض، لبنة); a term that points at more than one product is dropped. A generated eval set (at least two phrasings per product, mixed languages, truth known by construction) runs on the live model before and after. Gate: item F1 at least 0.90, zero wrong products, and the 0.13 demo message gives the right card on staging. Generation and live runs go through GitHub Actions with `ANTHROPIC_API_KEY`. |
 
 Every misread order becomes an eval case before it is fixed.
 
@@ -438,11 +439,12 @@ Each session is one bundle of tasks, one branch, one pull request, with one comm
 | B2 | Ordering | Opus 5.5 | 1.4, 1.5, 1.6, 1.10, 1.14, 1.16, 1.18 | B1 merged | as B1 |
 | C2 | Hub | Opus 5.5 | 2.1, 2.2, 2.3, 2.4, 2.5, 2.10 | C1 merged; runs beside B2 | `apps/gateway/src/ops-turn.ts`, migrations 0030-0039 |
 | D1 | Console | Opus 5.5 for 3.1, then Sonnet 5.5 | 3.1 to 3.10, 3.18 | C1 merged; runs beside B2 and C2 | `apps/console/` (new) |
-| B3 | Ordering | Sonnet 5.5 | 1.7, 1.8, 1.13, 1.17, 2.9 | B2 merged | as B1 |
+| B3 | Ordering | Opus 5.5 | 1.22 first, then 1.7, 1.8, 1.13, 1.17, 2.9 | B2 merged | as B1, plus `.github/workflows/language-pack.yml` (new); migrations 0053-0059 |
 | C3 | Hub | Opus 5.5 | 2.8 | B2 and C2 merged | migrations 0040-0044, `order-card.ts`, `dispatch_order` |
 | K1 | Catalog | Opus 5.5 | 1.21 | B2 and P1 merged. Edits `turn.ts`, so never beside B3 | the feed endpoint (new file), the cart-order branch in `apps/gateway/src/turn.ts`, migration 0051, its tests, the 1.21 steps in `docs/RUNBOOK.md` |
 | D2 | Console | Opus 5.5 | 3.11 to 3.17, 5.15 | D1 and C2 merged; runs beside B3 and C3 | `apps/console/`, migrations 0045-0049 |
 | P1 | Pictures | Sonnet 5.5 | 5.17 (steps 1-5, 7, 8; the review page is 3.18 in D1) | Now: A1 has merged. Runs beside any other lane. Must merge before K1 | `scripts/images/` (new), `.github/workflows/images.yml` (new), migration 0050, `test/db/product-images.test.ts` |
+| P2 | Pictures | Sonnet 5.5 | 5.17 step 4 completed: classify a search result from the brand's own site as usable; run the Brave search pass | P1 merged and the `BRAVE_SEARCH_API_KEY` secret exists. Runs beside any lane | `scripts/images/`, `.github/workflows/images.yml`, migrations 0070-0072 |
 | G1 | Audit | Fable 5.2 | Read every migration and test; try to break money, permissions, recovery and the send path | Everything above merged | Findings only; fixes go to Opus |
 | A3 | Infra | Sonnet 5.5 | 4.2, 4.4, 4.7, 4.8, 4.9, 4.11 | The +961 numbers and production accounts exist | production configuration |
 | Phase 6 | | | Shadow run, by people | G1 findings closed | |
