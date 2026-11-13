@@ -227,6 +227,27 @@ describe("neutral and factual (1.10)", () => {
     const refused = await db.all(`select trace->>'code' as code from agent_runs where agent = 'output_guard' and conversation_id = $1 order by created_at`, [c.conversation_id]);
     expect(refused.map((r) => r.code)).toEqual(["quality_judgement", "unapproved_food_claim"]);
   });
+
+  it("a fact approved under 1.11 lets the Concierge state it, with its status; the same words with no record stay refused", async () => {
+    const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Facts') returning id`)).id;
+    const fact = await db.rpc("propose_product_fact", { p_product: ids.LABNEH, p_attribute: "sesame", p_value: "free", p_status: "declared", p_source: "label", p_by: ops });
+    await db.rpc("approve_product_fact", { p_fact: fact, p_by: ops });
+    const claim = "اللبنة ما فيها سمسم، حسب الملصق (مصرّح من الشركة المصنّعة)";
+
+    const without = flow(db, [read({ intent: "question", lines: [] }), [use("reply", { text: claim })], [use("reply", { text: "ما عندي معلومات موثّقة، فيني اسأل؟" })]]);
+    await without.customer();
+    await without.text("اللبنة فيها سمسم؟");
+    expect(outbound.at(-1)!.body.text.body).toBe("ما عندي معلومات موثّقة، فيني اسأل؟");     // no food_facts call: still refused
+
+    const t = flow(db, [read({ intent: "question", lines: [] }),
+      [use("food_facts", { product_ids: [ids.LABNEH], restrictions: ["sesame", "milk"] })], [use("reply", { text: claim })]]);
+    await t.customer();
+    await t.text("اللبنة فيها سمسم؟ عندي حساسية");
+    expect(outbound.at(-1)!.body.text.body).toBe(claim);
+    const told = JSON.parse(JSON.parse(JSON.stringify(t.seen[2]!.messages.at(-1))).content[0].content);
+    expect(told.products[0].facts).toMatchObject([{ attribute: "sesame", value: "free", status: "declared", source: "label" }]);
+    expect(told.products[0].restrictions).toMatchObject({ meets: false, checks: [{ restriction: "milk", result: "unknown" }, { restriction: "sesame", result: "pass" }] });
+  });
 });
 
 describe("customer control of memory (1.14)", () => {

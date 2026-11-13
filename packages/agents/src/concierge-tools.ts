@@ -92,6 +92,21 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       return quote;
     },
 
+    async food_facts({ product_ids, restrictions }) {
+      // Facts come only from approved records (1.11, migration 0021). An approved, current fact with a usable status unlocks
+      // that attribute for the output guard for the rest of this turn (1.10); nothing else does.
+      const ids = [...new Set(product_ids ?? [])].slice(0, 6);
+      const codes = (restrictions ?? []).map((r) => r.trim().toLowerCase()).filter(Boolean);
+      const out = [];
+      for (const id of ids) {
+        const facts = await rpc<FoodFact[]>(ctx.db, "product_food_facts", { p_product: id });
+        for (const f of facts) if (!f.expired && USABLE.has(f.status)) (ctx.approvedFacts ??= new Set()).add(guardAttribute(f.attribute, f.kind));
+        const check = codes.length ? await rpc<unknown>(ctx.db, "product_meets_restrictions", { p_product: id, p_restrictions: codes }) : null;
+        out.push({ product_id: id, facts: facts.filter((f) => !f.expired), no_approved_facts: facts.every((f) => f.expired), restrictions: check });
+      }
+      return { products: out, rule: "State only these facts, each with its status. Anything not listed is not verified: say so and offer to ask." };
+    },
+
     async ask_location_pin({ text }) {
       const bad = await guard(ctx, [text]);
       if (bad) return bad;
@@ -137,6 +152,15 @@ export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: fa
   await ctx.db.from("agent_runs").insert({ agent: "output_guard", conversation_id: ctx.conversationId, outcome: "refused",
                                            trace: { code: v.code, match: v.match.slice(0, 60) } });
   return { ok: false, error: `refused:${v.code}`, hint: GUARD_HINT[v.code] };
+}
+
+interface FoodFact { attribute: string; kind: string; value: string; status: string; source: string | null; expired: boolean }
+const USABLE = new Set(["certified", "declared", "calculated"]);
+/** The output guard's attribute for a food-fact code of 0021: gluten and the four diets by name, other allergens together. */
+export function guardAttribute(code: string, kind: string): string {
+  if (["gluten", "halal", "vegetarian", "vegan", "fasting"].includes(code)) return code;
+  if (kind === "allergen") return "allergens";
+  return "nutrition";                                  // ingredients and nutrition panels
 }
 
 const money = (n: number) => `$${Number(n).toFixed(2)}`;
