@@ -128,6 +128,15 @@ describe("fetch pipeline (5.17 steps 2-5)", () => {
     expect(e.outcome).toBe("error");
   });
 
+  it("a failed Open Food Facts lookup is an error with its message, never 'none found'", async () => {
+    const { d } = mk({ off: async () => { throw new Error("off_http_429"); }, searchOn: false });
+    const r = await processItem(items[11], d);
+    expect(r).toMatchObject({ outcome: "error", error: "off_http_429" });
+    const att = await db.one(`select outcome, detail from product_image_attempts where product_id = $1`, [items[11].product_id]);
+    expect(att.outcome).toBe("error");
+    expect(att.detail.errors[0]).toMatchObject({ stage: "open_food_facts", error: "off_http_429" });
+  });
+
   it("only https pictures on public host names are fetched", () => {
     expect(fetchableUrl("https://img.test/a.jpg")).toBe(true);
     for (const u of ["http://img.test/a.jpg", "https://127.0.0.1/a.jpg", "https://169.254.169.254/x", "https://[::1]/a", "https://localhost/a", "file:///etc/passwd"]) expect(fetchableUrl(u)).toBe(false);

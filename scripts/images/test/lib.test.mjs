@@ -5,6 +5,7 @@ import { offFolder, offCandidates, offLookup } from "../lib/off.mjs";
 import { queryFor, parseBrave, braveImages, brandCandidates, openCandidates } from "../lib/search.mjs";
 import { decide, checkPicture, CHECK_TOOL } from "../lib/vision.mjs";
 import { signedImageLink } from "../sign.mjs";
+import { fetchRetry } from "../lib/http.mjs";
 import { readFileSync } from "node:fs";
 
 const sites = JSON.parse(readFileSync(new URL("../brand-sites.json", import.meta.url), "utf8"));
@@ -151,5 +152,21 @@ describe("signed link", () => {
     let body;
     await signedImageLink({ url: "u", key: "k", path: "a/b.jpg", seconds: 99999, fetchImpl: async (_u, o) => { body = JSON.parse(o.body); return json({ signedURL: "/x" }); } });
     expect(body.expiresIn).toBe(3600);
+  });
+});
+
+describe("retries", () => {
+  it("waits as long as the host's Retry-After says (up to 20 s), then succeeds", async () => {
+    const waits = []; let n = 0;
+    const f = async () => (++n < 3 ? new Response("slow down", { status: 429, headers: { "retry-after": "7" } }) : json({ ok: true }));
+    const res = await fetchRetry("https://x.test/", {}, { fetchImpl: f, retries: 3, sleep: async (ms) => { waits.push(ms); } });
+    expect(res.status).toBe(200);
+    expect(waits).toEqual([7000, 7000]);
+    const big = []; let m = 0;
+    await fetchRetry("https://x.test/", {}, { fetchImpl: async () => (++m < 2 ? new Response("", { status: 429, headers: { "retry-after": "600" } }) : json({})), retries: 2, sleep: async (ms) => big.push(ms) });
+    expect(big).toEqual([20000]);
+  });
+  it("gives up with the status after the last try", async () => {
+    await expect(fetchRetry("https://x.test/", {}, { fetchImpl: async () => new Response("", { status: 503 }), retries: 1, sleep: async () => {} })).rejects.toThrow("HTTP 503");
   });
 });
