@@ -53,6 +53,7 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 | Schema, state machine, ledger, consent | migrations 0001-0003 | `order-machine.ts` is checked against the table in a test |
 | Hardening: skipped-step taps, per-currency cash, exposure cap, timers, indexed search | 0004 | |
 | Rider flow: shift, dispatch, batching, accept, pickup, arrive, deliver, collect, no-answer, prepaid confirm | 0006, `apps/gateway/src/ops-turn.ts` | Rider messages are parsed by code, no model |
+| Hub flow on the ops line: pick, missing item, substitute, refunds and credit, rider offered at pick start, returns by button, rider incident | 0030-0035, `apps/gateway/src/ops-turn.ts` | Session C2 below; staff messages are parsed by code, no model |
 | Reliability: turn keys, outbox lease, inbound reconciliation, exception queue | 0007, 0008, `apps/gateway/src/index.ts` | Lease means at-least-once after a crash, by design |
 | Stale-quote and address checks at confirmation | 0007 `confirm_order_checked` | |
 | Returned goods after a failed delivery | 0008 `receive_return` | Chilled, frozen, fresh are written off unless cleared |
@@ -137,6 +138,53 @@ How the pieces fit, for whoever builds next:
 - The session worked on branch `claude/lucid-hawking-iv4id3` (the branch this environment allows) rather than `C1`.
 - **Live (13 Nov, after the merge):** `deploy-staging` run `43404520947` passed, including the stricter permission check in `EXISTING=1` mode. Read back from staging with read-only queries: migrations 0020-0025 recorded; `pg_trgm` in `extensions`; no extension function left in `public`; `anon` and `authenticated` have no USAGE on `extensions`; `plan_order_core` carries the pinned `search_path`; `search_catalog('labneh')` returns matches. So A1's 0.4 finding is closed on staging. Food facts, demand, receiving and recall are applied there but have not been used with real data yet.
 - Seen in passing, not C1's lane: the two `deploy-staging` runs on `main` before this merge (`43398527053`, `43399003048`) failed in the `worker` job at the Sentry ingest check with HTTP 429 ("dropped data due to a quota or internal rate limit"). Run `43404520947` passed. This bears on 0.8: check the Sentry org quota when someone with Sentry access looks at the project.
+
+### Session C2 (hub), 13 November 2026: tasks 2.1, 2.2, 2.3, 2.4, 2.5, 2.10
+Migrations 0030 to 0035 (0036 to 0039 are unused and stay reserved for C2). Built and tested locally: PGlite with every migration and
+`npx vitest run` (651 pass after rebasing on D1), every migration applied by psql on a real Postgres 16 by the `test/pg` suites, and
+`scripts/check_permissions.sh` on a scratch Postgres 16 in fresh and `EXISTING=1` modes. Nothing here is proven live: no picker
+has used the ops line on a real phone yet. The rig for these tests is `test/db/hub-kit.ts` and `test/db/ops-kit.ts` (the real
+ops-line turn code, WhatsApp replaced by a recorder that honours the outbox claim).
+
+| Task | Where | Tested by |
+| --- | --- | --- |
+| 2.1 Picker flow | migration 0031, `ops-turn.ts` (staff branch) | `test/db/picker-flow.test.ts`: «طلبات» lists waiting orders; start moves confirmed to preparing; «ناقص 2 1» or the «غرض ناقص» list splits the shortfall into its own line, releases it, writes the phantom units off as `missing_at_pick` and asks ops to count; done moves preparing to ready and picks only what is left; the customer hears what changed on the customer line; the rider collects the new total; a paid prepaid order is owed the difference as credit; held products come up missing at the start and at the end; an emptied order goes to ops, not to the road |
+| 2.2 Substitution | migration 0032, `ops-turn.ts` (`handleSubstitutionButton`, `substitutionQuestion`) | `test/db/substitutions.test.ts`, including the **Phase 2 acceptance test**: one missing item, one accepted substitute and one refund leave stock, the order total, the rider's cash due and the ledger consistent. Also: no answer means remove (offer expired when the picker finishes, substitute released); a late tap changes nothing and says so; a stated restriction blocks every substitute; a paid prepaid order is offered nothing dearer and a cheaper kept substitute is owed back; only the order's customer can answer; an order cancelled mid-question releases its stock once |
+| 2.3 Refunds | migration 0030 | `test/db/refunds.test.ts`: a refund reverses the revenue it came from or books compensation as `refund_expense`, owed on `customer_credit:<party>`; the delivery fee is never taken back once it is the rider's; caps from the ledger; paid out in cash from the till or by Whish/OMT with a reference; taken off the next order (`apply_customer_credit`) and consumed when that order is paid; a cancelled order gives the credit back |
+| 2.4 Offer at pick start | migration 0033, `dispatchAndOffer` in `ops-turn.ts` | `test/db/offer-at-pick.test.ts`: at confirmation the pickers are told once and no rider is offered; ops hears after `settings.picking.pick_alert_min`; start offers the rider; the rider's early pickup tap is refused until ready; the rider is told when it is ready and collects the recalculated total; a waiting order is never batched; a hub with no picker on the ops line behaves as before |
+| 2.5 Returns by button | migration 0034, `ops-turn.ts` | `test/db/returns-by-button.test.ts`: a failed delivery sends pickers and the ops lead the count button; the card shows each line that left the hub with its default; «as shown», «all fit», «all waste»; a second tap changes nothing. `receive_return` now restocks only lines that left the hub |
+| 2.10 Rider cannot continue | migration 0035, `ops-turn.ts` | `test/db/rider-cannot-continue.test.ts`: «سائقين» and a confirm; the shift ends; a job not yet picked up is cancelled and waits for the next rider; an order on board is transferred and offered to another rider from the hub; the first rider's exposure is only the cash held and they can no longer act on it; the fee goes to whoever delivers; the cash is handed over as one counted drop; a paid order can be called off, owed back as credit and counted back in |
+
+Also, as A2 asked: both ops-line branches now rethrow `OutboxUnavailable` (and `SendNotDelivered`), so a rider or picker turn retries instead of sending "صار في غلط" (tested). A2's other suggestion (an instant "rider at the door" notice on the Arrived tap) was not done: the cron's notice (0062) uses a different key, so the customer would get it twice.
+
+How the pieces fit, for whoever builds next:
+- **Who uses the ops line.** `processOpsTurn` routes by role: drivers to the rider flow (unchanged), pickers and the ops lead/admin to the staff flow, merchants still ignored (step 7). Every staff action is a SQL function that checks the role itself.
+- **The pick flow is on only when a picker is registered on the ops line** (`hub_uses_pick_flow()`). Then a confirmed hub order waits for its picker, the rider is offered at pick start, and the rider cannot pick up before ready. Without one (staging today) everything is as before. **Do not register a picker on staging until the hourly probe also picks** (A2's lane: the probe has no picker, so its order would stay in confirmed and raise `probe_stuck`). Either add a probe picker that taps start and done, or keep pickers off staging.
+- **A missing line is its own `order_items` row** (`status` missing, then removed or substituted; `missing_reason`, `missing_by`, `missing_at`). A kept substitute is a new `ok` row with `substitution_of`. Subtotals always follow the `ok` rows (`recalc_order_lines`); fees and dues stay as quoted. Anything that reads order lines must filter `status = 'ok'` unless it wants the history.
+- **Customer credit** (`customer_credit_usd`) is what we owe a customer: refunds after delivery, shortages on paid prepaid orders, a called-off paid order. It is paid out (`pay_out_credit`) or taken off an unpaid order (`apply_customer_credit`, which lowers `dues_usd`; the existing payment functions settle it and a trigger on `payments` consumes the credit).
+- **Settings** (`picking`): `pick_alert_min` 10, `offer_substitutes` **false**, `substitute_answer_min` 5.
+- `dispatch_order` was redefined twice (0033, 0035). **C3 (2.8): start from 0035's text.** `rider_picked_up` (0033), `rider_owns_stop` and `orders_waiting_for_rider` (0035), `receive_return` (0034) were redefined too; start from those. None of B2's four functions in 0052 were touched.
+
+Decisions taken in code, written down for the founder (each is a setting or one line to change):
+- A unit the picker cannot find is written off the shelf figure at once (stock loss, valued) and ops is asked to count; a later count finds it again as `found`. The alternative (only releasing the reservation) would let the next customer buy the same phantom unit.
+- A substitute may cost more on a cash order (the customer sees the difference and taps); on a paid transfer order it may not.
+- When an order is transferred after a rider incident, the delivery fee goes to the rider who delivers it; the first rider is paid for what they delivered. A share for the first rider would be a change to `settle_rider_earnings`.
+- A transferred order is picked up at the hub: the goods are brought back (or ops arranges a hand-over on the road and tells the second rider). The job card has no "pick up from a rider" stop.
+
+Known limits, written down rather than hidden:
+- The customer's keep/remove tap reaches the code only once `turn.ts` routes it (request below). Until then `offer_substitutes` stays off and a missing item is removed and the customer told: never substituted silently.
+- Typed «ناقص N» numbers follow the list last sent; the list is re-sent after every change. One open pick per picker.
+- The rider's offer card shows the total at offer time (now pick start); the drop card and the cash question read the final total, and pickup is refused until the pick is finished. The cash-cap check at offer uses the pre-pick total.
+- `receive_rider_cash` records exactly what the rider holds. A different count goes through the console (`declare_cash_drop` with the counted figures, `confirm_cash_drop`, `record_damaged_note`).
+- Messages to customers from the ops line (what changed, the substitute question, a delay) are free text inside the 24-hour window. Outside it the gateway refuses them; no template exists for these.
+
+Requests for other sessions (C2 did not touch these files):
+- **Lane B (B3), `turn.ts`:** in the customer button branch, before a tap falls through to the model, add `if (await handleSubstitutionButton(deps, conv.party_id, tapped, m.id)) { buttonsHandled++; continue; }` (exported from `ops-turn.ts`; it returns false for anything that is not `sub:keep:` / `sub:remove:`). Then set `settings.picking.offer_substitutes` to true in a lane B migration, and add a `sub:` case to `evals/` if any language case touches it.
+- **Lane B, the card (`issueCard`, `order-card.ts`):** to take credit off the next order automatically, call `apply_customer_credit(order)` after `create_order_from_quote` and show the credit as its own line (it arrives as a negative `dues_usd`; today's dues line only shows positive dues, so the total would not visibly add up). Until then ops applies or pays credit from the console.
+- **Lane B, `learn_from_order` (0019):** it reads every line of a delivered order; since 0031 that includes lines that were removed or replaced at the shelf (and a split line appears twice). Decide what to learn; at least count each asked-for product once.
+- **C1's lane or the next hub session, `recall_orders` (0025) and `rider_job`'s item count (0016):** both count every line; filter `status = 'ok'` so a product that never left the hub is not on the recall list.
+- **D2 (console; D1 merged before C2, so its Returns page says refunds are not available yet):** refunds `refund_order` / `pay_out_credit` / `apply_customer_credit` / `customer_credit_view`; picks `pick_queue` / `pick_list`; incidents `mark_rider_off` / `call_off_stranded` / `receive_rider_cash` / `riders_on_shift`. New exception kinds: `count_needed` (count that product: `count_stock`), `pick_empty` (call the customer; cancel with `transition_order(order, 'cancelled', 'ops', …)` and, if paid, `refund_order` with charges `goods`, `delivery_fee`, `small_order_fee` and reason `order_cancelled`), `rider_off`.
+- The session worked on branch `claude/gracious-curie-i32i7n` (the branch this environment allows).
 
 ### Session B2 (ordering), 13 November 2026: tasks 1.4, 1.5, 1.6, 1.10, 1.14, 1.16, 1.18
 Built and tested locally (PGlite with every migration, vitest; permission check on Postgres 16 in fresh and EXISTING=1 modes, no warnings; Worker dry run for staging and production). Nothing here is proven live. Tests for the flows are in `test/db/ordering-b2.test.ts` (rig: `test/db/flow-kit.ts`); language cases are in `evals/cases/` and run by `evals/test/`.
@@ -344,7 +392,7 @@ See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is
 orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders.
 The console exists (D1, above); five of its steps wait for the migration of `apps/console/sql/proposed_functions.sql`.
 Ordering lane: B1 and B2 are done (above); B3 is next (1.7, 1.8, 1.13, 1.17, 2.9).
-Hub lane: C1 is done (above); C2 (2.1, 2.2, 2.3, 2.4, 2.5, 2.10) can start. Console lane: D1 is done (above); D2 waits for C2.
+Hub lane: C1 and C2 are done (above); C3 (2.8) can start (B2 and C2 are merged). Console lane: D1 is done (above); D2 can start now that C2 is in.
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 
 ### D. Needs a live account or real conditions (cannot be finished in code alone)

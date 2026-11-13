@@ -90,6 +90,7 @@ with Meta depends on how recipients react (blocks and spam reports), and nobody 
 | Restriction check: unknown fails, sponsored item must pass | `test/db/food-facts.test.ts` (the check itself); the ranking side is written with 8.12 | Passing for 1.11 |
 | Small-order fee shown on the card and posted to its own account | `test/db/ordering-b2.test.ts` | Passing |
 | Cost at receiving gives margin; ledger at zero | `test/db/receiving-margin.test.ts` | Passing |
+| Phase 2: a pick with one missing item, one accepted substitute and one refund leaves stock, order total, rider's cash due and ledger consistent | `test/db/substitutions.test.ts` | Passing |
 | A full slot refuses a scheduled order | to write with 2.8 | Not written |
 | Memory commands show, forget and stop | `test/db/ordering-b2.test.ts`, `evals/test/memory-commands.test.ts` | Passing |
 
@@ -437,7 +438,7 @@ Each session is one bundle of tasks, one branch, one pull request, with one comm
 | C1 | Hub | Opus 5.5 | 1.11, 1.12, 2.6, 2.7, 2.11 | Same as B1; runs beside it | migrations 0020-0029, their tests (C1 used 0020-0025) |
 | A2 | Infra | Opus 5.5 | 0.13, 4.1, 4.3, 4.5, 4.6, 4.10, 4.12, 4.13 | A1 and B1 merged | `apps/gateway/src/index.ts`, `packages/wa/`, migrations 0060-0069 (A2 used 0060-0063; the table had no range for lane A, so A2 took the next free block), `test/pg/`, `scripts/staging/` |
 | B2 | Ordering | Opus 5.5 | 1.4, 1.5, 1.6, 1.10, 1.14, 1.16, 1.18 | B1 merged | as B1 |
-| C2 | Hub | Opus 5.5 | 2.1, 2.2, 2.3, 2.4, 2.5, 2.10 | C1 merged; runs beside B2 | `apps/gateway/src/ops-turn.ts`, migrations 0030-0039 |
+| C2 | Hub | Opus 5.5 | 2.1, 2.2, 2.3, 2.4, 2.5, 2.10 | C1 merged; runs beside B2 | `apps/gateway/src/ops-turn.ts`, migrations 0030-0039 (C2 used 0030-0035) |
 | D1 | Console | Opus 5.5 for 3.1, then Sonnet 5.5 | 3.1 to 3.10, 3.18 | C1 merged; runs beside B2 and C2 | `apps/console/` (new) |
 | B3 | Ordering | Opus 5.5 | 1.22 first, then 1.7, 1.8, 1.13, 1.17, 2.9 | B2 merged | as B1, plus `.github/workflows/language-pack.yml` (new); migrations 0053-0059 |
 | C3 | Hub | Opus 5.5 | 2.8 | B2 and C2 merged | migrations 0040-0044, `order-card.ts`, `dispatch_order` |
