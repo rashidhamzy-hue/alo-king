@@ -2,13 +2,14 @@
 import { z } from "zod";
 
 export const OrderLine = z.object({
-  raw: z.string().describe("The customer's own words for this item, verbatim"),
-  query: z.string().describe("Normalised search phrase for the catalog, e.g. 'facial tissue large pack'"),
+  raw: z.string().describe("The customer's own words for this one item, verbatim, in their language and script, with the brand, size or flavour they said"),
+  query: z.string().describe("The item as the customer named it, in the customer's language and script, without quantity or politeness, " +
+                             "e.g. 'لبنة ليبان ليه', 'خبز', 'قهوة نجار', 'kleenex kbir'. Never translate it, never replace a brand with one you know"),
   qty: z.number().positive().default(1),
   unit: z.enum(["each", "kg", "half_kg", "pack", "bundle", "plate", "piece", "dozen"]).default("each"),
-  brand_hint: z.string().nullable().default(null),
+  brand_hint: z.string().nullable().default(null).describe("The brand if the customer named one, as they wrote it (e.g. 'تنورين', 'الفورنو', 'najjar')"),
   modifiers: z.array(z.string()).default([]).describe("e.g. 'no pickles', 'extra garlic', 'cut in half', 'french bread'"),
-  source_hint: z.string().nullable().default(null).describe("Merchant named by the customer, if any"),
+  source_hint: z.string().nullable().default(null).describe("Restaurant or shop the customer named ('من عند ...'), if any. Never a product brand: a brand goes in brand_hint"),
   confidence: z.number().min(0).max(1),
 });
 

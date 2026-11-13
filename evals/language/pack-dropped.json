@@ -1,0 +1,389 @@
+{
+ "food": [
+  {
+   "sku": "AK-0067",
+   "term": "candia full fat 1l",
+   "food": "fat"
+  },
+  {
+   "sku": "AK-0067",
+   "term": "candia full fat litre",
+   "food": "fat"
+  },
+  {
+   "sku": "AK-0070",
+   "term": "كانديا نص دسم",
+   "food": "fat"
+  },
+  {
+   "sku": "AK-0070",
+   "term": "كانديا نصف دسم",
+   "food": "fat"
+  },
+  {
+   "sku": "AK-0070",
+   "term": "candia demi ecreme",
+   "food": "fat"
+  },
+  {
+   "sku": "AK-0070",
+   "term": "candia half fat",
+   "food": "fat"
+  },
+  {
+   "sku": "AK-0074",
+   "term": "نادك لايت",
+   "food": "light"
+  },
+  {
+   "sku": "AK-0074",
+   "term": "nadec light",
+   "food": "light"
+  },
+  {
+   "sku": "AK-0112",
+   "term": "cola light",
+   "food": "light"
+  },
+  {
+   "sku": "AK-0242",
+   "term": "بيتزا نباتية",
+   "food": "vegan"
+  }
+ ],
+ "collision": [
+  {
+   "sku": "AK-0037",
+   "term": "beef cubes",
+   "also": [
+    "AK-0176"
+   ]
+  },
+  {
+   "sku": "AK-0069",
+   "term": "candia 180",
+   "also": [
+    "AK-0120"
+   ]
+  },
+  {
+   "sku": "AK-0120",
+   "term": "candia 180",
+   "also": [
+    "AK-0069"
+   ]
+  },
+  {
+   "sku": "AK-0141",
+   "term": "شوكولا كراميل",
+   "also": [
+    "AK-0171"
+   ]
+  },
+  {
+   "sku": "AK-0171",
+   "term": "شوكولا كراميل",
+   "also": [
+    "AK-0141"
+   ]
+  },
+  {
+   "sku": "AK-0176",
+   "term": "beef cubes",
+   "also": [
+    "AK-0037"
+   ]
+  },
+  {
+   "sku": "AK-0269",
+   "term": "wipes 100",
+   "also": [
+    "AK-0283"
+   ]
+  },
+  {
+   "sku": "AK-0277",
+   "term": "شامبو 750",
+   "also": [
+    "AK-0285"
+   ]
+  },
+  {
+   "sku": "AK-0283",
+   "term": "wipes 100",
+   "also": [
+    "AK-0269"
+   ]
+  },
+  {
+   "sku": "AK-0285",
+   "term": "شامبو 750",
+   "also": [
+    "AK-0277"
+   ]
+  }
+ ],
+ "demoted": [
+  {
+   "sku": "AK-0025",
+   "term": "ثوم",
+   "also": [
+    "AK-0099",
+    "AK-0100"
+   ]
+  },
+  {
+   "sku": "AK-0025",
+   "term": "توم",
+   "also": [
+    "AK-0099",
+    "AK-0100"
+   ]
+  },
+  {
+   "sku": "AK-0025",
+   "term": "toum",
+   "also": [
+    "AK-0099",
+    "AK-0100"
+   ]
+  },
+  {
+   "sku": "AK-0025",
+   "term": "toom",
+   "also": [
+    "AK-0099",
+    "AK-0100"
+   ]
+  },
+  {
+   "sku": "AK-0025",
+   "term": "garlic",
+   "also": [
+    "AK-0099",
+    "AK-0100"
+   ]
+  },
+  {
+   "sku": "AK-0033",
+   "term": "تندرز",
+   "also": [
+    "AK-0245"
+   ]
+  },
+  {
+   "sku": "AK-0033",
+   "term": "tenders",
+   "also": [
+    "AK-0245"
+   ]
+  },
+  {
+   "sku": "AK-0101",
+   "term": "حمص",
+   "also": [
+    "AK-0198"
+   ]
+  },
+  {
+   "sku": "AK-0101",
+   "term": "hummus",
+   "also": [
+    "AK-0198"
+   ]
+  },
+  {
+   "sku": "AK-0101",
+   "term": "hommos",
+   "also": [
+    "AK-0198"
+   ]
+  },
+  {
+   "sku": "AK-0101",
+   "term": "7ommos",
+   "also": [
+    "AK-0198"
+   ]
+  },
+  {
+   "sku": "AK-0101",
+   "term": "houmous",
+   "also": [
+    "AK-0198"
+   ]
+  },
+  {
+   "sku": "AK-0158",
+   "term": "زيتون",
+   "also": [
+    "AK-0204",
+    "AK-0205"
+   ]
+  },
+  {
+   "sku": "AK-0158",
+   "term": "olive",
+   "also": [
+    "AK-0204",
+    "AK-0205"
+   ]
+  },
+  {
+   "sku": "AK-0158",
+   "term": "zaytoun",
+   "also": [
+    "AK-0204",
+    "AK-0205"
+   ]
+  },
+  {
+   "sku": "AK-0158",
+   "term": "olives",
+   "also": [
+    "AK-0204",
+    "AK-0205"
+   ]
+  },
+  {
+   "sku": "AK-0243",
+   "term": "بيبيروني",
+   "also": [
+    "AK-0097",
+    "AK-0098"
+   ]
+  },
+  {
+   "sku": "AK-0243",
+   "term": "ببروني",
+   "also": [
+    "AK-0097",
+    "AK-0098"
+   ]
+  },
+  {
+   "sku": "AK-0243",
+   "term": "بيبروني",
+   "also": [
+    "AK-0097",
+    "AK-0098"
+   ]
+  },
+  {
+   "sku": "AK-0243",
+   "term": "pepperoni",
+   "also": [
+    "AK-0097",
+    "AK-0098"
+   ]
+  },
+  {
+   "sku": "AK-0243",
+   "term": "peperoni",
+   "also": [
+    "AK-0097",
+    "AK-0098"
+   ]
+  },
+  {
+   "sku": "AK-0243",
+   "term": "pepperonni",
+   "also": [
+    "AK-0097",
+    "AK-0098"
+   ]
+  }
+ ],
+ "brand_as_kind": [
+  {
+   "sku": "AK-0130",
+   "term": "نسكافيه"
+  },
+  {
+   "sku": "AK-0130",
+   "term": "نسكافي"
+  },
+  {
+   "sku": "AK-0130",
+   "term": "نسكافه"
+  },
+  {
+   "sku": "AK-0130",
+   "term": "nescafe"
+  },
+  {
+   "sku": "AK-0130",
+   "term": "nescafé"
+  },
+  {
+   "sku": "AK-0130",
+   "term": "neskafe"
+  },
+  {
+   "sku": "AK-0130",
+   "term": "nes"
+  },
+  {
+   "sku": "AK-0136",
+   "term": "نسكافيه"
+  },
+  {
+   "sku": "AK-0136",
+   "term": "نسكافي"
+  },
+  {
+   "sku": "AK-0136",
+   "term": "nescafe"
+  },
+  {
+   "sku": "AK-0136",
+   "term": "neskafe"
+  },
+  {
+   "sku": "AK-0136",
+   "term": "nes"
+  },
+  {
+   "sku": "AK-0137",
+   "term": "نسكافيه"
+  },
+  {
+   "sku": "AK-0137",
+   "term": "نسكافي"
+  },
+  {
+   "sku": "AK-0137",
+   "term": "nescafe"
+  },
+  {
+   "sku": "AK-0137",
+   "term": "neskafe"
+  },
+  {
+   "sku": "AK-0137",
+   "term": "nes"
+  },
+  {
+   "sku": "AK-0151",
+   "term": "نوتيلا"
+  },
+  {
+   "sku": "AK-0151",
+   "term": "nutella"
+  },
+  {
+   "sku": "AK-0162",
+   "term": "نوتيلا"
+  },
+  {
+   "sku": "AK-0162",
+   "term": "nutella"
+  },
+  {
+   "sku": "AK-0162",
+   "term": "nutela"
+  }
+ ],
+ "unknown_sku": [],
+ "empty": 1
+}

@@ -9,12 +9,14 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { loadCatalog, root } from "./catalog.mjs";
 
-// fold_text (0003): translate('أإآىةؤئ', 'اااايهوي'), harakat and tatweel removed, lower, trim. The mapping is reproduced as is.
-const FOLD = { "أ": "ا", "إ": "ا", "آ": "ا", "ى": "ا", "ة": "ي", "ؤ": "ه", "ئ": "و" };
+// catalog_tokens (0053) maps the letters people write interchangeably first (as here), then fold_text (0003) removes harakat
+// and tatweel and lowers the case.
+const FOLD = { "أ": "ا", "إ": "ا", "آ": "ا", "ى": "ي", "ة": "ه", "ؤ": "و", "ئ": "ي" };
 export const fold = (s) => [...(s ?? "")].map((c) => FOLD[c] ?? c).join("").replace(/[ً-ْـ]/g, "").toLowerCase().trim();
 export function tokens(s) {
   return fold(s).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x6f0))
-    .replace(/([0-9])([^0-9\s])/g, "$1 $2").replace(/([^0-9\s])([0-9])/g, "$1 $2")
+    .replace(/([0-9])([ء-يٱ-ۓ])/g, "$1 $2").replace(/([ء-يٱ-ۓ])([0-9])/g, "$1 $2")
+    .replace(/([0-9])(ml|cl|l|lt|ltr|litre|liter|g|gr|kg|cm|pcs|pc|x)(?![0-9a-zÀ-ɏ])/g, "$1 $2").replace(/(?<![0-9a-zÀ-ɏ])x([0-9])/g, "x $1")
     .replace(/[^0-9a-zÀ-ɏء-يٱ-ۓ]+/g, " ").trim().split(/\s+/).filter(Boolean);
 }
 export const key = (s) => tokens(s).join(" ");
@@ -31,7 +33,15 @@ const FOOD = [
   ["organic", ["organic", "bio", "عضوي", "عضوية"]], ["fasting", ["fasting", "صيامي", "صيام", "carême"]], ["keto", ["keto", "كيتو"]],
 ];
 
-export function foodWord(term, nameEn) {
+// Names of kinds of product, not claims about them: vegetable oil and ghee are called «نباتي» in Arabic.
+const KIND_NAMES = ["زيت نباتي", "زيت نباتية", "سمنة نباتية", "سمنة نباتي", "vegetable oil", "huile vegetale"].map((t) => tokens(t).join(" "));
+// Invariant 15 is about food. Toiletries, cleaning, baby care and pet supplies carry no food fact («فوط صحية» are sanitary pads).
+const NON_FOOD = new Set(["Cleaning & Household", "Beauty & Personal Care", "Baby & Child", "Pet Zone"]);
+
+export function foodWord(term, nameEn, category) {
+  if (category && NON_FOOD.has(category)) return null;
+  const k = tokens(term).join(" ");
+  if (KIND_NAMES.some((n) => k === n || k.startsWith(n + " ") || k.endsWith(" " + n))) return null;
   const ks = new Set(tokens(term)); const name = (nameEn ?? "").toLowerCase();
   for (const [allowedBy, forms] of FOOD) {
     const hit = forms.find((f) => { const ft = tokens(f); return ft.length && ft.every((t) => ks.has(t)); });
@@ -43,7 +53,7 @@ export function foodWord(term, nameEn) {
 /** pack.json -> { rows, dropped }. Pure, so CI tests it. */
 export function buildPack(pack, catalog) {
   const bySku = new Map(catalog.map((p) => [p.sku, p]));
-  const dropped = { food: [], collision: [], brand_as_kind: [], unknown_sku: [], empty: 0 };
+  const dropped = { food: [], collision: [], demoted: [], brand_as_kind: [], unknown_sku: [], empty: 0 };
   const rows = [];
   for (const p of pack.products ?? []) {
     const prod = bySku.get(p.sku);
@@ -51,7 +61,7 @@ export function buildPack(pack, catalog) {
     for (const level of ["kind", "brand", "exact"]) for (const t of p[level] ?? []) {
       const term = String(t.t ?? "").trim().replace(/\s+/g, " ");
       if (!key(term) || tokens(term).length > 5) { dropped.empty++; continue; }
-      const food = foodWord(term, prod.name);
+      const food = foodWord(term, prod.name, prod.category);
       if (food) { dropped.food.push({ sku: p.sku, term, food }); continue; }
       rows.push({ sku: p.sku, term, level, lang: ["ar", "arabizi", "en", "fr"].includes(t.lang) ? t.lang : "ar" });
     }
@@ -66,12 +76,15 @@ export function buildPack(pack, catalog) {
     m.get(key(r.term)).add(r.sku);
   }
   const out = []; const seen = new Set();
-  for (const r of rows) {
+  for (let r of rows) {
     const k = key(r.term);
     if (r.level === "kind" && brandKeys.has(k)) { dropped.brand_as_kind.push({ sku: r.sku, term: r.term }); continue; }
     if (r.level === "exact") {
-      const owners = new Set([...(exactOwners.get(k) ?? []), ...[...(kindOwners.get(k) ?? [])].filter((s) => s !== r.sku)]);
-      if (owners.size > 1) { dropped.collision.push({ sku: r.sku, term: r.term, also: [...owners].filter((s) => s !== r.sku) }); continue; }
+      // An exact term two products claim names neither: dropped. One that is another product's kind word is a kind word for
+      // this one too (fresh garlic «ثوم» beside garlic paste): it stays, as kind, so it can never pick one of them alone.
+      if ((exactOwners.get(k)?.size ?? 0) > 1) { dropped.collision.push({ sku: r.sku, term: r.term, also: [...exactOwners.get(k)].filter((s) => s !== r.sku) }); continue; }
+      const kindOthers = [...(kindOwners.get(k) ?? [])].filter((s) => s !== r.sku);
+      if (kindOthers.length) { dropped.demoted.push({ sku: r.sku, term: r.term, also: kindOthers }); r = { ...r, level: "kind" }; }
     }
     const id = `${r.sku}|${r.level}|${r.term}`;
     if (seen.has(id)) continue;
@@ -90,6 +103,7 @@ export function toSql(built, meta) {
 -- regenerate, review, and add the next migration. Terms are keyed by SKU, so the pack loads before or after the catalog seeds.
 -- ${built.rows.length} terms (${["kind", "brand", "exact"].map((l) => `${built.rows.filter((r) => r.level === l).length} ${l}`).join(", ")}), ${built.filler.length} filler words.
 -- Dropped by the build: ${built.dropped.food.length} food-fact terms, ${built.dropped.collision.length} exact terms that pointed at more than one product, ${built.dropped.brand_as_kind.length} brand-only kind terms.
+-- ${built.dropped.demoted.length} exact terms that are another product's kind word were kept as kind terms.
 `;
   const rows = built.rows.map((r) => `(${q(r.sku)},${q(r.term)},${q(r.level)},${q(r.lang)})`);
   const chunks = []; for (let i = 0; i < rows.length; i += 500) chunks.push(rows.slice(i, i + 500));
@@ -107,5 +121,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   writeFileSync(root + "evals/language/pack-dropped.json", JSON.stringify(built.dropped, null, 1) + "\n");
   const thin = loadCatalog().filter((p) => !built.rows.some((r) => r.sku === p.sku && r.level !== "brand")).map((p) => p.sku);
   console.log(JSON.stringify({ terms: built.rows.length, filler: built.filler.length, food: built.dropped.food.length,
-    collision: built.dropped.collision.length, brand_as_kind: built.dropped.brand_as_kind.length, products_without_terms: thin }));
+    collision: built.dropped.collision.length, demoted: built.dropped.demoted.length, brand_as_kind: built.dropped.brand_as_kind.length, products_without_terms: thin }));
 }
