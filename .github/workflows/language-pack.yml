@@ -1,0 +1,89 @@
+# Build plan 1.22 (session B3): generate the catalog language pack and its eval set with the Anthropic API, and score the live
+# model before and after. The build environment cannot reach the API, so it runs here. Spends money: only on request.
+# How to run: by hand (workflow_dispatch), or by committing evals/language/request.json with {"steps": [...]} to any branch.
+#   steps: "cases" (write evals/language/cases.json), "pack" (write evals/language/pack.json and migration 0054),
+#          "before" (score the live model on origin/main's code), "after" (score it on this commit's code).
+#   also_models: other model ids to score with "after", once each, for comparison (results/after-<model>.json).
+#   only: case ids or kinds to run (default: all).
+# Generated files and results are pushed to a new branch `language-pack-out/<run id>`; a person (or session) reviews and
+# copies them into the working branch. Nothing is pushed to the branch that triggered the run, and nothing touches staging.
+# Never generates food facts: gen-pack.mjs drops any term that states an allergen, a diet, halal or nutrition (invariant 15).
+name: language-pack
+on:
+  workflow_dispatch:
+    inputs:
+      steps: { description: "Comma-separated: cases, pack, before, after", type: string, default: "before,after" }
+      repeat: { description: "Runs of each case on the live model", type: string, default: "1" }
+  push:
+    paths: [evals/language/request.json]
+permissions: { contents: write }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: language-pack-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: What to run
+        id: what
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            steps="${{ inputs.steps }}"; repeat="${{ inputs.repeat }}"
+          else
+            steps=$(node -e 'const r=require("./evals/language/request.json"); console.log((r.steps||[]).join(","))')
+            repeat=$(node -e 'const r=require("./evals/language/request.json"); console.log(r.repeat||1)')
+            also=$(node -e 'const r=require("./evals/language/request.json"); console.log((r.also_models||[]).filter((m)=>/^claude-[a-z0-9-]+$/.test(m)).join(" "))')
+          fi
+          echo "also=$also" >> "$GITHUB_OUTPUT"
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] || echo "ONLY=$(node -e 'const r=require("./evals/language/request.json"); console.log((r.only||[]).filter((x)=>/^[a-z0-9_]+$/.test(x)).join(","))')" >> "$GITHUB_ENV"
+          [[ "$repeat" =~ ^[0-9]+$ ]] || repeat=1
+          echo "steps=,$steps," >> "$GITHUB_OUTPUT"; echo "repeat=$repeat" >> "$GITHUB_OUTPUT"
+          echo "MODEL=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)" >> "$GITHUB_ENV"
+          echo "- steps: $steps, repeat: $repeat" >> "$GITHUB_STEP_SUMMARY"
+      - name: Unit tests of the eval and the pack builder
+        run: npx vitest run evals/language
+      - name: Generate the eval set
+        if: contains(steps.what.outputs.steps, ',cases,')
+        run: node evals/language/gen-cases.mjs
+      - name: Generate the language pack
+        if: contains(steps.what.outputs.steps, ',pack,')
+        run: node evals/language/gen-pack.mjs && node evals/language/build-pack.mjs
+      - name: Score the live model on main (before)
+        if: contains(steps.what.outputs.steps, ',before,')
+        env: { ALO_LANG_EVAL: "1", LABEL: before, REPEAT: "${{ steps.what.outputs.repeat }}" }
+        run: |
+          git worktree add ../main origin/main
+          mkdir -p ../main/evals/language
+          cp evals/language/{score.ts,live.lang.test.ts,hand.json} ../main/evals/language/
+          [ -f evals/language/cases.json ] && cp evals/language/cases.json ../main/evals/language/
+          ( cd ../main && npm ci --silent && npx vitest run evals/language/live.lang.test.ts )
+          mkdir -p evals/language/results && cp ../main/evals/language/results/before.json evals/language/results/
+      - name: Score the live model on this commit (after)
+        if: contains(steps.what.outputs.steps, ',after,')
+        env: { ALO_LANG_EVAL: "1", LABEL: after, REPEAT: "${{ steps.what.outputs.repeat }}" }
+        run: npx vitest run evals/language/live.lang.test.ts
+      - name: Score other models on this commit, for comparison (request.json also_models)
+        if: contains(steps.what.outputs.steps, ',after,') && steps.what.outputs.also != ''
+        env: { ALO_LANG_EVAL: "1", REPEAT: "1", ALSO: "${{ steps.what.outputs.also }}" }
+        run: for m in $ALSO; do MODEL="$m" LABEL="after-$m" npx vitest run evals/language/live.lang.test.ts; done
+      - name: Push what was generated to language-pack-out/${{ github.run_id }}
+        if: always()
+        run: |
+          git config user.name "language-pack bot"; git config user.email "actions@users.noreply.github.com"
+          git checkout -b "language-pack-out/${{ github.run_id }}"
+          for f in evals/language/cases.json evals/language/pack.json evals/language/results supabase/migrations/0054_language_pack.sql; do
+            [ -e "$f" ] && git add -f "$f"
+          done
+          git commit -m "language-pack run ${{ github.run_id }} output" || { echo "nothing generated"; exit 0; }
+          git push origin "language-pack-out/${{ github.run_id }}"
+          echo "- output branch: language-pack-out/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"

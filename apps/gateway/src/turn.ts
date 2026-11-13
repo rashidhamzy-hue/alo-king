@@ -57,9 +57,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   let sendSeq = 0;
   if (!deps.turnKey) throw new Error("NO_TURN_KEY: processTurn must be called through runTurn");
   const turnKey = deps.turnKey;
-  const sendRaw = async (msg: Outbound, orderId?: string): Promise<SendResult> =>
+  const sendRaw = async (msg: Outbound, orderId?: string, authored?: SendRequest["authored"]): Promise<SendResult> =>
     deps.send({ line: "customer", partyId: conv.party_id, to, msg, category: "service", orderId,
-                dedupeKey: `${turnKey}:${sendSeq++}` });
+                dedupeKey: `${turnKey}:${sendSeq++}`, ...(authored ? { authored } : {}) });
   const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
   // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
   // never sends it twice), retries with backoff, then ModelUnavailable.
@@ -78,7 +78,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
 
   const ctx: ToolContext = {
     db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
-    send: (msg, opts) => sendRaw(msg, opts?.orderId), sent: { count: 0, texts: [] },
+    send: (msg, opts) => sendRaw(msg, opts?.orderId, opts?.authored), sent: { count: 0, texts: [] },
   };
   const texts: string[] = [];
   const transcripts: { primary: string; secondary?: string }[] = [];
@@ -264,7 +264,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const stated = intent?.restrictions ?? [];
     if (stated.length) state.orderRestrictions = [...new Set([...(state.orderRestrictions ?? []), ...stated])];
     // 2. The database decides: card, handoff, or a question.
-    const routed = await planReading(ctx, intent);
+    const routed = await planReading(ctx, intent, [...texts, ...transcripts.map((t) => t.primary)].join("\n"));
     if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     const res = await runAskLoop(model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
