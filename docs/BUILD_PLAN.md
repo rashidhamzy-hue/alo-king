@@ -427,7 +427,7 @@ Each session is one bundle of tasks, one branch, one pull request, with one comm
 | Session | Lane | Model | Tasks | Can start when | Owns these files |
 | --- | --- | --- | --- | --- | --- |
 | A1 | Infra | Sonnet 5.5 | 0.1 to 0.12 | Day one | `.github/`, `wrangler.jsonc`, `docs/RUNBOOK.md`, `test/fixtures/` |
-| B1 | Ordering | Opus 5.5 | 1.1, 1.2, 1.3, 1.9, 1.15, 1.19, 1.20 | The repository exists and CI is green (0.1, 0.2) | `apps/gateway/src/turn.ts`, `packages/agents/`, `prompts/`, `evals/`, migrations 0013-0019 |
+| B1 | Ordering | Opus 5.5 | 1.1, 1.2, 1.3, 1.9, 1.15, 1.19, 1.20 | The repository exists and CI is green (0.1, 0.2) | `apps/gateway/src/turn.ts`, `packages/agents/`, `prompts/`, `evals/`, migrations 0013-0019 (B1 used 0013-0017; lane B overflow: 0052-0059) |
 | C1 | Hub | Opus 5.5 | 1.11, 1.12, 2.6, 2.7, 2.11 | Same as B1; runs beside it | migrations 0020-0029, their tests |
 | A2 | Infra | Opus 5.5 | 0.13, 4.1, 4.3, 4.5, 4.6, 4.10, 4.12, 4.13 | A1 and B1 merged | `apps/gateway/src/index.ts`, `packages/wa/` |
 | B2 | Ordering | Opus 5.5 | 1.4, 1.5, 1.6, 1.10, 1.14, 1.16, 1.18 | B1 merged | as B1 |
