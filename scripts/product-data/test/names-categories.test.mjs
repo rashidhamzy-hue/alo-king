@@ -114,6 +114,14 @@ describe("categories", () => {
     expect(r.categories.find((c) => c.code === "bakery")).toMatchObject({ sort_order: 3, products: 15, from_catalog_categories: { Bakery: 15 } });
     expect(r.empty.length).toBe(12);
   });
+  it("the retry says which codes came back and to merge, when the list was too long (it was 22 on staging)", async () => {
+    const many = Array.from({ length: 22 }, (_, i) => cat(`c${i}`, `Group ${String.fromCharCode(65 + i)}`, "فئة"));
+    const feedback = []; let a = 0;
+    const callA = async (content) => { feedback.push(content); return ++a === 1 ? { categories: many } : { categories: GOOD }; };
+    await proposeCategories(items, { callA, callB: async (c) => ({ items: [...c.matchAll(/^(AK-\d+) \|/gm)].map((m) => ({ sku: m[1], category: "pantry" })) }), pool });
+    expect(feedback[1]).toMatch(/It had 22 categories \(c0, c1,/);
+    expect(feedback[1]).toMatch(/Merge related ones until there are between 12 and 15/);
+  });
   it("gives up with the reasons when the list keeps failing", async () => {
     await expect(proposeCategories(items, { callA: async () => ({ categories: GOOD.slice(0, 3) }), callB: async () => ({ items: [] }), pool })).rejects.toThrow(/categories_refused/);
   });
