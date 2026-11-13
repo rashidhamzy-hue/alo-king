@@ -78,3 +78,23 @@ describe("Hub money", () => {
     expect(await ledgerSum(r.db)).toBeCloseTo(0, 6);
   });
 });
+
+describe("Expenses (3.12)", () => {
+  it("records an expense from the drawer or the bank, in a category from the settings", async () => {
+    const b = r.browser();
+    await b.signIn(lead);
+    expect((await b.get("/money")).text).toContain("<option>fuel</option>");
+    let res = await b.post("/money/expense", { usd: "4", paid_from: "hub_cash", category: "fuel", reason: "generator diesel", payee: "Total station", reference: "F-118" });
+    expect(flashOf(res.text)).toBe("Expense recorded (fuel, from the drawer).");
+    res = await b.post("/money/expense", { usd: "2", paid_from: "bank", category: "fees", reason: "bank charges" });
+    expect(flashOf(res.text)).toBe("Expense recorded (fees, from the bank).");
+    res = await b.post("/money/expense", { usd: "2", paid_from: "hub_cash", category: "petty_cash", reason: "sneaking around the name" });
+    expect(flashOf(res.text)).toBe("Pick a category from the list.");
+    res = await b.post("/money/expense", { usd: "50", paid_from: "bank", category: "rent", reason: "more than the bank holds" });
+    expect(flashOf(res.text)).toBe("The bank does not hold that much by the books.");
+    const rows = await r.db.all(`select category, paid_from, payee, reference from hub_cash_movements where kind = 'expense' order by created_at`);
+    expect(rows).toEqual([{ category: "fuel", paid_from: "hub_cash", payee: "Total station", reference: "F-118" }, { category: "fees", paid_from: "bank", payee: null, reference: null }]);
+    expect(Number((await r.db.one(`select coalesce(sum(e.usd_equiv), 0) as s from ledger_entries e join ledger_accounts a on a.id = e.account_id where a.code = 'expense:fuel'`)).s)).toBe(4);
+    expect(await ledgerSum(r.db)).toBeCloseTo(0, 6);
+  });
+});

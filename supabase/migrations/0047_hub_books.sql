@@ -101,6 +101,18 @@ begin
   return hub_money_out('petty_cash', p_usd, p_lbp, 'hub_cash', 'expense:petty_cash', 'expense', 'petty_cash', p_reason, p_name, null, p_receipt_path, p_by, p_key);
 end $$;
 
+-- 3.12: an expense, paid from the drawer or from the bank, in one of settings.hub_expenses.categories.
+create or replace function record_expense(p_category text, p_usd numeric, p_lbp numeric, p_paid_from text, p_reason text, p_payee text, p_by uuid,
+                                          p_reference text default null, p_receipt_path text default null, p_key text default null)
+returns jsonb language plpgsql as $$
+begin
+  if p_paid_from not in ('hub_cash', 'bank') then raise exception 'UNKNOWN_PAYMENT %', p_paid_from; end if;
+  if p_category is null or p_category = 'petty_cash'
+     or not coalesce(setting('hub_expenses')->'categories', '[]'::jsonb) ? p_category then raise exception 'UNKNOWN_CATEGORY %', p_category; end if;
+  return hub_money_out('expense', p_usd, p_lbp, p_paid_from, 'expense:' || p_category, 'expense', p_category, p_reason, p_payee, p_reference,
+                       p_receipt_path, p_by, p_key);
+end $$;
+
 -- The drawer now, and its movements over a period, for the console.
 create or replace function hub_cash_view(p_since timestamptz, p_until timestamptz default now()) returns jsonb language sql stable as $$
   select jsonb_build_object(

@@ -71,6 +71,7 @@ export function explain(e: unknown): string {
       [/^COD_ORDER/, "This is a cash-on-delivery order; the rider records the cash."],
       [/^ORDER_CANCELLED_REFUND_NEEDED/, "The order is cancelled: this money needs a refund, not a confirmation."],
       [/^DROP_EXCEEDS_BALANCE/, "The drop is more than the rider holds. Not confirmed: count again with the rider."],
+      [/^NEEDS_OPS_LEAD to pay from the till/, "Only the ops lead pays from the drawer. Receive it on credit."],
       [/^NEEDS_OPS_LEAD/, "Above the picker limit: an ops lead must make this change."],
       [/^BELOW_RESERVED/, "That would leave less on the shelf than is reserved for open orders."],
       [/^NOTE_REQUIRED/, "Write a note for reason 'other'."],
@@ -95,6 +96,10 @@ export function explain(e: unknown): string {
       [/^NOT_ENOUGH_CASH hub_cash/, "The drawer does not hold that much by the books. Count it, and check what came in today."],
       [/^NOT_ENOUGH_CASH bank/, "The bank does not hold that much by the books."],
       [/^NAME_REQUIRED/, "Write the name."],
+      [/^EXPIRY_REQUIRED (.*) is/, "Chilled, frozen and fresh goods need their expiry date."],
+      [/^COST_REQUIRED/, "Type the unit cost of every line."],
+      [/^UNKNOWN_CATEGORY/, "Pick a category from the list."],
+      [/^UNKNOWN_SUPPLIER/, "That supplier is not active."],
       [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
     ];
     for (const [re, say] of known) if (re.test(m)) return say;

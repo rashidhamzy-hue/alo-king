@@ -9,8 +9,9 @@ import { picturesSection } from "./pictures";
 import { zonesSection } from "./zones";
 import { paymentsSection } from "./payments";
 import { returnsSection } from "./returns";
+import { receivingSection } from "./receiving";
 import { refundsSection } from "./refunds";
 import { ridersSection } from "./riders";
 import { todaySection } from "./today";
 
-export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, moneySection, catalogSection, fxSection, zonesSection, merchantsSection, picturesSection];
+export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, moneySection, receivingSection, catalogSection, fxSection, zonesSection, merchantsSection, picturesSection];
