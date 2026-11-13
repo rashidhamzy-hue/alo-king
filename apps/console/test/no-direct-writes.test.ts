@@ -25,6 +25,7 @@ describe("the console's limits", () => {
         expect(m[2]!.trim(), `${f}: ${m[0]}`).toBe("c.staff.partyId");
       }
     }
+    expect(seen).toBeGreaterThan(0);
   });
 
   it("never calls Kapso itself: messages go through the gateway's send()", () => {
