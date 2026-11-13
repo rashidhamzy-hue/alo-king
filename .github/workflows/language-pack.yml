@@ -2,7 +2,8 @@
 # model before and after. The build environment cannot reach the API, so it runs here. Spends money: only on request.
 # How to run: by hand (workflow_dispatch), or by committing evals/language/request.json with {"steps": [...]} to any branch.
 #   steps: "cases" (write evals/language/cases.json), "pack" (write evals/language/pack.json and migration 0054),
-#          "before" (score the live model on origin/main's code), "after" (score it on this commit's code).
+#          "before" (score the live model on origin/main's code), "after" (score it on this commit's code),
+#          "live" (B4: evals/live on this commit: wording, off-topic and the address cases; report in evals/language/results/live.txt).
 #   also_models: other model ids to score with "after", once each, for comparison (results/after-<model>.json).
 #   only: case ids or kinds to run (default: all).
 # Generated files and results are pushed to a new branch `language-pack-out/<run id>`; a person (or session) reviews and
@@ -76,6 +77,14 @@ jobs:
         if: contains(steps.what.outputs.steps, ',after,') && steps.what.outputs.also != ''
         env: { ALO_LANG_EVAL: "1", REPEAT: "1", ALSO: "${{ steps.what.outputs.also }}" }
         run: for m in $ALSO; do MODEL="$m" LABEL="after-$m" npx vitest run evals/language/live.lang.test.ts; done
+      - name: The other live evals on this commit (wording, off-topic, where to deliver)
+        if: contains(steps.what.outputs.steps, ',live,')
+        env: { ALO_LIVE_EVAL: "1" }
+        run: |
+          mkdir -p evals/language/results
+          set +e; npx vitest run evals/live --reporter=verbose > evals/language/results/live.txt 2>&1; code=$?; set -e
+          grep -E "✓|×|Tests " evals/language/results/live.txt | tail -60 >> "$GITHUB_STEP_SUMMARY" || true
+          exit $code
       - name: Push what was generated to language-pack-out/${{ github.run_id }}
         if: always()
         run: |
