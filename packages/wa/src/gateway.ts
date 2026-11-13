@@ -59,7 +59,9 @@ export async function send(
   const isTemplate = req.msg.type === "template";
   const gate = await db.rpc("can_send", { p_party: req.partyId, p_line: req.line, p_category: req.category, p_is_template: isTemplate });
   if (gate.error) return refuse(db, req, "gate_error");
-  if (gate.data !== "ok") return refuse(db, req, String(gate.data));
+  // A staging probe party (0063): everything below runs (outbox claim, mark, log) except the hand-off to Kapso.
+  const sink = gate.data === "probe_sink";
+  if (gate.data !== "ok" && !sink) return refuse(db, req, String(gate.data));
 
   if (req.category === "marketing") {
     const c = await db.from("campaigns").select("status, approved_by").eq("id", req.campaignId!).single();
@@ -79,7 +81,7 @@ export async function send(
   }
   const phoneNumberId = req.line === "customer" ? env.PHONE_NUMBER_ID_CUSTOMER : env.PHONE_NUMBER_ID_OPS;
   let wamid: string;
-  try { wamid = await kapsoSend(env, phoneNumberId, req.to, req.msg); }
+  try { wamid = sink ? `sink:${req.dedupeKey}` : await kapsoSend(env, phoneNumberId, req.to, req.msg); }
   catch (err) {
     if (req.dedupeKey) await db.rpc("outbox_mark", { p_key: req.dedupeKey, p_wamid: null, p_error: String(err).slice(0, 300) });
     // This message can never go out as it is (Meta's code says so). Retrying the turn would fail the same way, three times,
@@ -98,7 +100,7 @@ export async function send(
   try { await db.from("wa_messages").insert({
     line: req.line, direction: "outbound", party_id: req.partyId, wa_message_id: wamid, type: req.msg.type,
     body: req.msg.type === "text" ? req.msg.text.body : JSON.stringify(req.msg), category: req.category,
-    template_name: req.msg.type === "template" ? req.msg.template.name : null, status: "sent", order_id: req.orderId ?? null,
+    template_name: req.msg.type === "template" ? req.msg.template.name : null, status: sink ? "sink" : "sent", order_id: req.orderId ?? null,
   }); } catch (err) { console.error(JSON.stringify({ level: "error", event: "wa_message_log_failed", wamid, err: String(err).slice(0, 200) })); }
   return { ok: true, wamid };
 }

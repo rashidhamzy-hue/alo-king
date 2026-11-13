@@ -64,6 +64,8 @@ jobs:
         run: scripts/check_permissions.sh 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Approved seeds (only into an empty catalog)
         run: scripts/ci/load-seeds.sh | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Staging demo data and the probe (staging only; idempotent)
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -At -f scripts/staging/prepare-staging.sql | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
       - name: Private media bucket
         run: scripts/ci/ensure-media-bucket.sh | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
 

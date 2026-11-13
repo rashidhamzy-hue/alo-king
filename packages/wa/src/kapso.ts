@@ -147,3 +147,22 @@ export async function templateStatuses(env: { KAPSO_BASE_URL: string; KAPSO_API_
   const want = new Set(names);
   return (res.data ?? []).filter((t) => t.name && t.status && want.has(t.name)).map((t) => ({ name: t.name!, status: t.status!.toLowerCase() }));
 }
+
+/** Kapso's platform API (not the Meta proxy), read-only. Same API key; base is the origin of KAPSO_BASE_URL. */
+async function kapsoPlatformGet<T>(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, path: string): Promise<T> {
+  const res = await fetch(`${new URL(env.KAPSO_BASE_URL).origin}/platform/v1${path}`, { headers: { "X-API-Key": env.KAPSO_API_KEY } });
+  if (!res.ok) throw new Error(`KAPSO_PLATFORM_${res.status} ${path}`);
+  return (await res.json()) as T;
+}
+
+/** Quality rating and status of our numbers (4.10). Kapso has no webhook for quality changes; this is polled once a day. */
+export async function numberHealth(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, ids: string[]): Promise<{ id: string; quality_rating: string | null; status: string | null }[]> {
+  const r = await kapsoPlatformGet<{ data?: { phone_number_id?: string; id?: string; quality_rating?: string | null; status?: string | null }[] }>(env, "/whatsapp/phone_numbers?per_page=100");
+  return (r.data ?? []).map((n) => ({ id: String(n.phone_number_id ?? n.id), quality_rating: n.quality_rating ?? null, status: n.status ?? null })).filter((n) => ids.includes(n.id));
+}
+
+/** Whether Kapso has paused paid messages on the account (credits exhausted and the like). Kapso's API shows no balance figure. */
+export async function fundingState(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, wabaId: string): Promise<{ status: string | null; paused: boolean; reasons: string[] }> {
+  const r = await kapsoPlatformGet<{ data?: { status?: string; paid_messages?: { paused?: boolean; reasons?: unknown[] } } }>(env, `/whatsapp/accounts/${wabaId}/funding`);
+  return { status: r.data?.status ?? null, paused: !!r.data?.paid_messages?.paused, reasons: (r.data?.paid_messages?.reasons ?? []).map((x) => (typeof x === "string" ? x : JSON.stringify(x))) };
+}
