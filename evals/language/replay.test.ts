@@ -30,7 +30,7 @@ describe.skipIf(!file)("replay readings (1.22)", () => {
       const plan = lines.length ? await db.rpc("plan_order_core", { p_party: party, p_intent: { intent: "order", lines, _message: c.text }, p_village: null, p_choices: {} }) : { lines: [] };
       const got: Got[] = (plan.lines ?? []).filter((l: any) => l.status === "matched").map((l: any) => ({ sku: skuOf.get(l.chosen.product_id)!, assumed: l.assumed }));
       out.push({ id: r.id, text: c.text, expected: c.items, got, score: scoreCase(c.items, got),
-                 lines: (plan.lines ?? []).map((l: any) => ({ raw: l.raw, status: l.status, via: l.via, unexplained: l.unexplained,
+                 lines: (plan.lines ?? []).map((l: any) => ({ raw: l.raw, status: l.status, via: l.via, unexplained: l.unexplained, b4: l.b4 ?? (l.split_of ? "split" : undefined),
                           cand: (l.candidates ?? []).map((x: any) => skuOf.get(x.product_id)) })) });
     }
     const t = totals(out.map((o) => o.score));
