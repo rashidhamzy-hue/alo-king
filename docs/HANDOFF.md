@@ -131,7 +131,7 @@ Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 - Kapso: real webhook payloads for both numbers, signature header, marketing-preference event shape, typing indicator.
 - Meta: template approval; which messages are billed and at what rate, per number and category.
 - Supabase: staging project `alo-king-staging` (`lhgkvvdckwbfpdsftzqp`, eu-central-1) exists and was empty on 13 Nov; `deploy-staging` fills it (section F). Still to do: turn on point-in-time recovery before real money (paid plan), and a production project.
-- Cloudflare: deploy, cron every minute, Durable Object alarms under load, queue retry.
+- Cloudflare: deploy and the one-minute cron trigger are in place (section F); still to prove: the cron doing real work, Durable Object alarms under load, queue retry.
 - Speed: time from message to card, measured on a phone in Chouf.
 - Speech: accuracy on the hand-corrected voice notes.
 - A two-connection test of the dispatch lock on real Postgres.
@@ -139,31 +139,51 @@ Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
   unexplained balance at day close.
 
 ### F. Phase 0, session A1, 13 November 2026
-Everything that touches Supabase, Cloudflare or Kapso runs from GitHub Actions, because the build environment cannot reach them. "Proven live" means a named run on GitHub; the first run is
-recorded in the table below once it has happened. Until then a row says **not yet**. `.github/workflows/deploy-staging.yml` is manual and runs on `main` after `ci` passes; `staging-drill.yml` and `capture-kapso-fixtures.yml` are manual.
+Everything that touches Supabase, Cloudflare or Kapso runs from GitHub Actions, because the build environment cannot reach them. "Proven live" means a named run on GitHub.
+`deploy-staging.yml` runs on `main` after `ci` passes, and by hand; `staging-drill.yml` and `capture-kapso-fixtures.yml` are by hand. Staging Worker: `https://alo-king-gateway-staging.rashid-hamzy.workers.dev`.
 
-| Task | Built | Tested | Proven live | Notes |
-| --- | --- | --- | --- | --- |
-| 0.3 Supabase staging, migrations, seeds, private `media` bucket | Yes | Seed script and permission script on a local Postgres 16; bucket script not testable offline | Not yet | Seeds: catalog, aliases, villages, travel times (all in README). `proposed_pilot_settings.sql` is NOT loaded: it waits for the founder's yes. Latency to Lebanon is not measured here (task 4.x, on a phone in Chouf). |
-| 0.4 Permission check on Supabase | Yes: `EXISTING=1` mode, stricter checks | Locally, fresh and existing modes, plus a negative test | Not yet | **Finding:** `ops_exceptions` (0008) still had table grants for `anon` and `authenticated` (RLS blocked every row). Fixed by B1 in migration 0017. **Second finding, from the first real run on Supabase:** `pg_trgm` is installed in `public` and its 31 functions (`similarity`, `set_limit`, ...) are callable by PUBLIC, hence by `anon` and `authenticated`. They are pure helpers owned by `supabase_admin`, so a migration cannot revoke them; the fix is a migration that moves the extension to the `extensions` schema (Supabase's advice). The check lists them as a warning and fails only for our own functions. |
-| 0.5 Cloudflare Worker, queues, secrets, cron | Yes | Dry-run bundle (staging, and without queues), run under workerd locally | Not yet | Workers Paid is not assumed. If queue creation is refused the workflow deploys without the queue and writes that into the run summary; read the first run to see. Bundle is about 580 KiB gzipped, under the free-plan size limit. Free-plan CPU limits for Workers have not been measured against a real turn. `STT_API_KEY` is not set: Kapso's transcript is used first (1.7). |
-| 0.6 Kapso webhooks and fixtures | Yes | Webhook script against a mock of the Kapso API: fresh, repeat, rotate, ops failure. Scrubber on a synthetic payload | Not yet | **No real payload is saved**: that needs real messages on the staging numbers, then the `capture-kapso-fixtures` workflow. Webhooks are created for both lines, each with its own secret. |
-| 0.7 Anthropic key | Yes: key and both model ids checked in the deploy | n/a | Not yet | **Manual, console only:** set the monthly spend limit on the staging key. No call from here can see or set it. Use a separate key for production. |
-| 0.8 Error tracking | Yes: `apps/gateway/src/worker.ts` wraps the gateway; scrubbing tested | 4 unit tests; Worker runs under workerd | Not yet | Sentry project `alo-king-gateway` has the default alert "high priority issues" (read 13 Nov). Gap for A2: errors the gateway catches and retries (queue handler, failed turns) never reach Sentry until `index.ts` reports them. A silent cron is task 4.10. |
-| 0.9 Meta ownership | Steps written | n/a | **Blocked** | Section E. |
-| 0.10 Builder tools | Yes | Skills scanned; gitleaks clean | n/a | `docs/TOOLS.md` last section. Kapso plugin deliberately not installed. |
-| 0.11 Deploy and recovery proven | Yes: runbook and drill | actionlint | Not yet | `docs/RUNBOOK.md` "Proven on staging" is the record. |
-| 0.12 Meta billing guard | Steps written | n/a | **Blocked** | Section E. |
+**How the first live runs went (all on `main`; none of this was visible before running on the real accounts).**
+| Run | Result | What it taught |
+| --- | --- | --- |
+| 1 `43391997973` | failed in the database job | Supabase CLI 3.x: `db push` defaults to a local stack; the linked project needs `--remote`. |
+| 2 `43392782206` | failed at the permission check | On real Supabase 31 `pg_trgm` functions in `public` are callable by PUBLIC (see 0.4). The check now separates extension functions (warn) from ours (fail). |
+| 3 `43393749615` | failed before any step | `supabase/setup-cli` could not resolve `latest` (GitHub API rate limit). The CLI is now pinned. |
+| 4 `43394134487` | **passed, both jobs** | First full deploy (on B1's merge). |
+| 5 `43395020393` | failed in the database job | My own mistake: I pinned the CLI to 2.122.1 after looking only at v2 tags; `latest` was v3.1.0. Pinned to **3.1.0**. |
+| 6 `43395887837` | failed at Queues | Cloudflare answers "already taken [code: 11009]" for an existing queue; my script only knew "already exists", so every second deploy failed. Fixed and tested with a stub. |
+| 7 `43396822066` | **passed, both jobs, on a repeat deploy** | The deploy is idempotent: seeds skipped, bucket found, queues found, webhooks left alone. |
+| drill `43394402493` | **passed** | Rollback, redeploy, secret rotation (see 0.11). |
 
-**Staging ops line.** The Kapso sandbox number (`597907523413541`) is wired as the ops line. Kapso documents that the sandbox can send interactive messages (buttons) but not templates,
+Checked independently with read-only connector queries after run 4 and again after run 7: 17 migrations applied (0001 to 0017, including B1's), 291 products and 291 stock rows, 42 villages, the `media` bucket is private, marketing is `{"enabled": false}`,
+both Kapso webhooks exist and are active on the right numbers and routes, and the database holds zero table grants to `anon`/`authenticated` and zero of our functions open to PUBLIC.
+
+| Task | Proven live | Notes |
+| --- | --- | --- |
+| 0.3 Supabase staging, migrations, seeds, private `media` bucket | **Yes** (runs 4, 7) | Seeds: catalog, aliases, villages, travel times. `proposed_pilot_settings.sql` is NOT loaded: it waits for the founder's yes. Latency to Lebanon is not measured here (measure on a phone in Chouf, task 4.x). |
+| 0.4 Permission check on Supabase | **Yes** (runs 4, 7) | Runs with `EXISTING=1`, changes nothing. Findings: (1) `ops_exceptions` had table grants for `anon`/`authenticated` (RLS blocked every row): fixed by B1's migration 0017, confirmed live. (2) **`pg_trgm` is installed in `public`; its 31 functions are callable by PUBLIC**, hence by `anon` and `authenticated`. Pure helpers owned by `supabase_admin`, so a migration cannot revoke them. Fix: a migration that moves the extension to the `extensions` schema. The check reports them as a warning and fails only for our own functions. |
+| 0.5 Cloudflare Worker, queues, secrets, cron | **Yes** (runs 4, 7) | Queues `ak-inbound-staging` and `-dlq` were created with no paid-plan error. That does not show which Cloudflare plan the account is on, and Workers Paid is not assumed. Deployed: bundle 3,169 KiB (588 KiB gzipped), startup 32 ms, cron `* * * * *`, six Worker secrets. **Not proven:** the cron doing real work, Durable Object alarms and queue retry under load, free-plan CPU limits against a real turn. `STT_API_KEY` is not set (Kapso's transcript first, 1.7). |
+| 0.6 Kapso webhooks | **Yes** for the webhooks, **No** for fixtures | Webhooks exist for both lines, each with its own secret generated in the workflow; a signed test event was accepted on each (signature check and Supabase write). The Kapso sandbox accepted a webhook for the ops line. **No real payload is saved**: that needs real messages on the staging numbers, then the `capture-kapso-fixtures` workflow. |
+| 0.7 Anthropic key | **Yes** for the key and both model ids | `claude-haiku-5-5` and `claude-sonnet-5-5` answered. **Manual, console only:** set the monthly spend limit on the staging key; no call from here can see or set it. Use a separate key for production. |
+| 0.8 Error tracking | **Partly** | Built: `apps/gateway/src/worker.ts` wraps the gateway; scrubbing is tested (4 tests); under workerd the SDK sends a valid event. Live: the raw ingest check got HTTP 200 (event `6f30eba108de2334b717ef822273528b`) and the Worker's test route reported `flushed=true` (event `3f08a8de23234b16aa17c357b61e1a3d`). **Not confirmed: that Sentry stores them.** Twenty-plus minutes later, neither event, nor any issue, is visible in project `alo-king-gateway`, with the read-only connector and cache bypassed. The DSN is the gateway project's own key. Someone with Sentry access should open the project and check Settings, Client Keys (is "Default" active, any rate limit), Inbound Filters, Stats (accepted, filtered, dropped) and the org quota, and search for those two event ids. Until then, 0.8 is not done. Also: the default alert "high priority issues" exists. Gap for A2: errors the gateway catches and retries (queue handler, failed turns) never reach Sentry until `index.ts` reports them. A silent cron is task 4.10. |
+| 0.9 Meta ownership | **Blocked** | Section E. |
+| 0.10 Builder tools | n/a (done) | `docs/TOOLS.md`, last section. Kapso plugin deliberately not installed. |
+| 0.11 Deploy and recovery proven | **Yes** | Deploy (runs 4, 7), rollback and secret rotation (drill). `docs/RUNBOOK.md` "Proven on staging" names each. |
+| 0.12 Meta billing guard | **Blocked** | Section E. |
+
+**Things the live runs showed that the plan did not know.**
+- **Rolling back across a secret change reverts the secret set.** The drill rolled back one version; that version was created in the middle of the webhook step, so it had the customer signing secret but not yet the ops one. After a rollback, check `wrangler secret list` and run `deploy-staging` with "rotate" ticked if a secret is missing.
+- **The Kapso connector returns webhook signing secrets in plain text** to anything with read access to the project. They were seen once by the build session, then replaced by the drill's rotation. Anything with Kapso read scope can read them: this matters for the decision in `docs/TOOLS.md` about the Kapso plugin and key scopes.
+- The Supabase CLI is pinned (3.1.0). Bump it on purpose and re-run the deploy; `latest` failed once on a rate limit and v2 and v3 differ on `db push`.
+
+**Staging ops line.** The Kapso sandbox number (`597907523413541`) is wired as the ops line, and a webhook for it was accepted. Kapso documents that the sandbox can send interactive messages (buttons) but not templates,
 and only to one registered phone. Buttons are therefore not a blocker, and **a second test number is not needed for the 0.13 demo on one phone** (the customer line and the sandbox are different
 business numbers). It **is** needed before: two riders at once, a rider and an ops lead on different phones, or testing the approved templates of task 4.3 on the ops line.
-Sending a button from the sandbox is not proven live: it needs a registered phone (6-character code sent to the sandbox number) and is part of 0.13.
+Sending a button from the sandbox is not proven live: it needs a registered phone (6-character code sent to the sandbox number) and is part of 0.13. The sandbox bills service messages to Kapso credits (0.12, step 4).
 
 **Kapso leftovers.** Two functions remain in the Kapso project (`whatsapp-flow-...-data-...`). Kapso refused to delete them: each is still referenced by a WhatsApp Flow data endpoint.
 They go when those two Flows or their data endpoints are removed in the Kapso dashboard (WhatsApp, Flows). They do nothing and are not connected to the Worker.
 
-**Other findings.** The Supabase connector, the Cloudflare connector and the Kapso connector available to build sessions are write-capable and account-wide (`docs/TOOLS.md`). This session used them to read and verify only.
+**Connectors.** The Supabase, Cloudflare and Kapso connectors available to build sessions are write-capable and account-wide (`docs/TOOLS.md`). This session used them to read and verify only.
 
 ### E. Meta account steps (cannot be done from code; written by session A1, 13 November 2026)
 
