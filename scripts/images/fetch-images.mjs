@@ -9,7 +9,7 @@
 //      Search results are licence "unknown": kept as a guide for the intake photo, never shown to customers.
 //   5. best usable candidate: longest side 1200 px, under 300 KB, saved in the private `media` bucket, status `proposed`
 // Env: SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY, MODEL_FAST; optional BRAVE_SEARCH_API_KEY (else Open Food Facts only).
-// Flags: --limit N  --sku AK-0001  --force (also items that already have a picture)  --no-search  --concurrency N
+// Flags: --limit N  --sku AK-0001  --force (also items that already have a picture)  --no-search  --retry-all (also items an earlier run finished with nothing)  --concurrency N
 import { readFileSync, appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { gate, fetchRetry, readCapped, pool } from "./lib/http.mjs";
@@ -107,6 +107,17 @@ export async function processItem(item, d) {
   }
 }
 
+/** Items an earlier run already looked at to the end with the sources that are on now, and found nothing: not asked again.
+ *  An error is not a result: those items are always tried again. --retry-all ignores this. */
+export function conclusiveSkips(attempts, searchOn) {
+  const need = ["open_food_facts", ...(searchOn ? ["web_search"] : [])];
+  const skip = new Set();
+  for (const a of attempts ?? []) {
+    if (["none_found", "none_passed"].includes(a.outcome) && need.every((n) => (a.sources_tried ?? []).includes(n))) skip.add(a.product_id);
+  }
+  return skip;
+}
+
 export function summarise(results, coverage) {
   const by = {}; const lic = {};
   for (const r of results) { by[r.outcome] = (by[r.outcome] ?? 0) + 1; if (r.outcome === "proposed") lic[r.licence] = (lic[r.licence] ?? 0) + 1; }
@@ -116,12 +127,13 @@ export function summarise(results, coverage) {
 }
 
 function args(argv) {
-  const a = { limit: null, sku: null, force: false, search: true, concurrency: 4 };
+  const a = { limit: null, sku: null, force: false, search: true, retryAll: false, concurrency: 4 };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--limit") a.limit = Number(argv[++i]);
     else if (argv[i] === "--sku") a.sku = argv[++i];
     else if (argv[i] === "--force") a.force = true;
     else if (argv[i] === "--no-search") a.search = false;
+    else if (argv[i] === "--retry-all") a.retryAll = true;
     else if (argv[i] === "--concurrency") a.concurrency = Number(argv[++i]);
   }
   return a;
@@ -138,7 +150,7 @@ async function main() {
   const searchOn = a.search && !!searchKey;
   const sites = JSON.parse(readFileSync(fileURLToPath(new URL("./brand-sites.json", import.meta.url)), "utf8"));
   const store = makeStore({ url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY });
-  const offGate = gate(1500);           // Open Food Facts allows about 100 product reads a minute; stay well under it
+  const offGate = gate(4000);           // Open Food Facts answered 429 at 1.5 s between reads from a GitHub runner: 15 a minute
   const searchGate = gate(1100);        // one request a second, the provider's lowest limit
   const runId = process.env.RUN_ID || `local-${Date.now()}`;
   const d = {
@@ -150,7 +162,14 @@ async function main() {
   };
   let items = await store.rpc("product_images_to_fetch", { p_limit: a.limit, p_force: a.force });
   if (a.sku) items = items.filter((i) => i.sku === a.sku);
-  console.log(`run ${runId}: ${items.length} items; sources: Open Food Facts${searchOn ? ", brand sites, web image search" : " only (no BRAVE_SEARCH_API_KEY, or --no-search)"}`);
+  let skipped = 0;
+  if (!a.retryAll && !a.force) {
+    const skip = conclusiveSkips(await store.select("product_image_attempts", "select=product_id,outcome,sources_tried&outcome=in.(none_found,none_passed)"), searchOn);
+    const before = items.length;
+    items = items.filter((i) => !skip.has(i.product_id));
+    skipped = before - items.length;
+  }
+  console.log(`run ${runId}: ${items.length} items (${skipped} skipped: already looked at to the end); sources: Open Food Facts${searchOn ? ", brand sites, web image search" : " only (no BRAVE_SEARCH_API_KEY, or --no-search)"}`);
   let fatal = null;
   const results = await pool(items, a.concurrency, async (item) => {
     if (fatal) return { sku: item.sku, outcome: "not_run" };
