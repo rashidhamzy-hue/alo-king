@@ -2,10 +2,10 @@
 // the default-choice rule, the address and the price in one round trip and answers card, ask or handoff.
 // A card goes out from here with no further model call. Only "ask" reaches the Concierge's tool loop.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { askLocation } from "@ak/wa/kapso";
+import { askLocation, buttons } from "@ak/wa/kapso";
 import type { OrderIntent } from "./schemas";
 import { deliver, issueCard, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
-import { FIXED, type Quote } from "./order-card";
+import { FIXED, pinVillageButtonId, type Quote } from "./order-card";
 import type { QuickIntent } from "./quick-intent";
 import { ANSWER, offerRepeat, answerArea, answerHours, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 import { answerMemory } from "./memory";
@@ -70,6 +70,12 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   }
   if (intent.lines.length === 0) return offerRepeat(ctx).then((r) => (r.done ? r : { done: false, plan: null }));   // "I want to order"
 
+  // A village written in the message that the reading left out («عبعقلين» on 13 Nov went to needs_clarification): a hint for
+  // pricing and for "do we deliver there" before the pin. The pin still decides (B4).
+  if (!intent.address.village && said && intent.fulfilment !== "pickup") {
+    const v = await rpc<{ name_ar: string | null; name_en: string } | null>(ctx.db, "village_in_text", { p_text: said }).catch(() => null);
+    if (v) intent = { ...intent, address: { ...intent.address, village: v.name_ar ?? v.name_en } };
+  }
   const plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...intent, _message: said.slice(0, 2000) } : intent,
                                                       p_village: ctx.state.villageId ?? null, p_choices: {} });
   if (plan.village_id) ctx.state.villageId = plan.village_id;
@@ -92,6 +98,12 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     await handoff(ctx, plan.handoff_reason ?? "plan_handoff");
     return { done: true, path: "handoff" };
   }
+  // D1 (3.8): no price while today's rate waits for a person. Said once, by code; the basket is kept for when it is confirmed.
+  if (plan.issues.some((i) => i.code === "fx_paused") && plan.lines.every((l) => l.status === "matched")) {
+    if (plan.quote) ctx.state.lastQuote = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote };
+    const r = await deliver(ctx, { type: "text", text: { body: FIXED.fxPaused } }, FIXED.fxPaused);
+    return r.ok ? { done: true, path: "fx_paused" } : { done: false, plan };
+  }
   const terms: CardTerms = { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
   if (intent.repeat_last) {
     // "Same as last time, and add bread": the last basket, re-checked, plus the new lines, priced together.
@@ -111,11 +123,85 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     const routed = await sendBasket(ctx, basket, terms, quote, before);
     return routed.done ? routed : { done: false, plan: { ...plan, repeat: r } };
   }
+  // Every line is known and only "where" is missing (no village yet, or a name that is not a village we know, like «راجح»):
+  // the basket waits on the pin, which decides the village. On 13 Nov this went to the model, which asked for the pin itself,
+  // and nothing kept the three lines (B4).
+  const matched = plan.quote_lines.length > 0 && plan.lines.every((l) => l.status === "matched" || l.status === "merchant_not_onboarded");
+  const whereOnly = plan.next === "ask" && !plan.pickup && matched && !plan.village_id &&
+    plan.issues.length > 0 && plan.issues.every((i) => WHERE_ISSUES.has(i.code));
+  if (whereOnly) {
+    const quote = plan.quote ?? await rpc<Quote>(ctx.db, "quote_order", { p_lines: plan.quote_lines, p_village: null, p_pickup: false });
+    const routed = await sendBasket(ctx, { lines: plan.quote_lines, villageId: null, placeId: null, pickup: false }, terms, quote, unavailable ?? undefined);
+    return routed.done ? routed : { done: false, plan };
+  }
+  // A known basket the loop is about to ask about: keep it, so a pin request or an answer later finds it.
+  if (matched && plan.quote) ctx.state.lastQuote = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote };
   if (plan.next !== "card" || !plan.quote?.ok) return { done: false, plan };
 
   const basket = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id, pickup: plan.pickup };
   const routed = await sendBasket(ctx, basket, terms, plan.quote, unavailable ?? undefined);
   return routed.done ? routed : { done: false, plan };
+}
+
+const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
+const ADDRESS_INTENTS = new Set(["order", "add_to_order", "change_order", "question", "delivery_area", "greeting"]);
+
+/** A basket is waiting on the customer for where to deliver (pin, village tap, house and floor). */
+export function waitingForPlace(ctx: ToolContext): boolean {
+  const a = ctx.state.awaiting;
+  return !!ctx.state.lastQuote && !!ctx.state.pending && (a === "pin" || a === "village" || a === "address");
+}
+
+/**
+ * The customer answered while a basket waited on where to deliver, with no new items: their words are the address (house,
+ * floor, neighbourhood, landmark), kept for the rider. A village in the reading never overrides the pin: «بحي راجح» is a
+ * neighbourhood, and on 13 Nov it was read as a village and turned into a question (B4).
+ */
+export async function takeAddress(ctx: ToolContext, intent: OrderIntent, said: string): Promise<Routed> {
+  if (!waitingForPlace(ctx) || intent.lines.length > 0 || !ADDRESS_INTENTS.has(intent.intent)) return { done: false, plan: null };
+  if (ctx.state.awaiting === "pin" && !ctx.state.placeId) {
+    // Still no pin: keep the words for the rider and ask for the pin again, the basket still waiting.
+    ctx.state.directions = mergeDirections(ctx.state.directions, directionsOf(intent) ?? said.trim().slice(0, 300));
+    const r = await deliver(ctx, askLocation(FIXED.askPin), `[location request] ${FIXED.askPin}`);
+    return r.ok ? { done: true, path: "ask_pin_again" } : { done: false, plan: null };
+  }
+  const words = directionsOf(intent) ?? (said.trim().slice(0, 300) || null);
+  if (words) ctx.state.directions = mergeDirections(ctx.state.directions, words);
+  if (ctx.state.placeId && (intent.address.building || intent.address.floor || words))
+    await rpc<boolean>(ctx.db, "set_place_details", { p_party: ctx.partyId, p_place: ctx.state.placeId, p_building: intent.address.building ?? null,
+                                                      p_floor: intent.address.floor ?? null, p_directions: words });
+  // A village typed in answer to "which village is the pin in?": the database checks it is near the pin.
+  if (ctx.state.awaiting === "village" && ctx.state.placeId) {
+    const v = await rpc<{ village_id: string } | null>(ctx.db, "village_in_text", { p_text: [intent.address.village, said].filter(Boolean).join(" ") }).catch(() => null);
+    if (v) await choosePinVillage(ctx, v.village_id);
+  }
+  return (await completePending(ctx)) ? { done: true, path: "card_after_address" } : { done: false, plan: null };
+}
+
+function mergeDirections(a: string | null | undefined, b: string | null | undefined): string | null {
+  if (!a) return b ?? null;
+  if (!b || a.includes(b)) return a;
+  return b.includes(a) ? b : `${a} | ${b}`;
+}
+
+/** Which village is this pin in? Buttons with the nearest villages; the tap decides. False when there is nothing to ask. */
+export async function askPinVillage(ctx: ToolContext): Promise<boolean> {
+  const pin = ctx.state.pinCheck;
+  if (!pin || pin.status !== "unsure" || !pin.candidates.length) return false;
+  const r = await deliver(ctx, buttons(FIXED.askVillage, pin.candidates.map((c) => ({ id: pinVillageButtonId(c.village_id), title: c.name_ar ?? c.name_en }))),
+                          `[village question] ${pin.candidates.map((c) => c.name_ar ?? c.name_en).join(" / ")}`);
+  return r.ok;
+}
+
+/** The customer tapped (or typed) the village their pin is in. False when the database refused it (too far from the pin). */
+export async function choosePinVillage(ctx: ToolContext, villageId: string): Promise<boolean> {
+  if (!ctx.state.placeId) return false;
+  const r = await rpc<{ ok: boolean; village_id?: string; village_ar?: string | null; served?: boolean }>(ctx.db, "set_pin_village",
+    { p_party: ctx.partyId, p_place: ctx.state.placeId, p_village: villageId });
+  if (!r.ok) return false;
+  ctx.state.villageId = r.village_id!;
+  ctx.state.pinCheck = { status: "located", villageAr: r.village_ar ?? null, served: r.served ?? null, saidAr: null, candidates: [] };
+  return true;
 }
 
 /** A priced basket goes out as a card, or, for a first delivery to that village, as a pin request with the card waiting on it. */
@@ -149,13 +235,48 @@ export function notAvailableText(plan: Pick<Plan, "unavailable">): string | null
   return FIXED.notAvailable(said);
 }
 
-/** A pin or a phone number arrived for a card that was waiting on it: send the card, re-priced by the database, with no model call. */
+/**
+ * A pin, a village tap, the address or a phone number arrived for a card that was waiting on it: take the next step with no
+ * model call. The pin decides the village (B4): a clear pin prices the card for where it is; an unclear one asks the customer
+ * to tap the village; a first delivery to a new place asks once for the house and floor. True when something was sent.
+ */
 export async function completePending(ctx: ToolContext): Promise<boolean> {
   const q = ctx.state.lastQuote, terms = ctx.state.pending;
   if (!ctx.state.awaiting || !q || !terms) return false;
+  if (!q.pickup && ctx.state.awaiting !== "phone") {
+    if (!ctx.state.placeId) return false;                                   // still waiting for the pin
+    const pin = ctx.state.pinCheck;
+    if (!ctx.state.villageId) {
+      // The pin is between villages, or near none we know. Ask; never guess, never take the text's village.
+      if (pin?.status === "unsure" && pin.candidates.length) { ctx.state.awaiting = "village"; return askPinVillage(ctx); }
+      ctx.state.awaiting = "pin";
+      const r = await deliver(ctx, askLocation(FIXED.pinOutside), `[location request] ${FIXED.pinOutside}`);
+      return r.ok;
+    }
+    if (pin?.served === false) {
+      ctx.state.awaiting = null;
+      return (await answerOutOfArea(ctx, pin.villageAr ?? "")).done;
+    }
+    const note = pin?.saidAr && pin.villageAr ? FIXED.pinVillage(pin.villageAr, pin.saidAr) : undefined;
+    if (ctx.state.directions)
+      await rpc<boolean>(ctx.db, "set_place_details", { p_party: ctx.partyId, p_place: ctx.state.placeId, p_building: null, p_floor: null, p_directions: ctx.state.directions });
+    if (!(await rpc<boolean>(ctx.db, "place_has_details", { p_place: ctx.state.placeId }))) {
+      // The rider has a pin and nothing else: one question for the house and the floor. The card waits for the answer.
+      ctx.state.awaiting = "address";
+      if (pin) pin.saidAr = null;                                           // said once, in this question
+      const text = [note ?? FIXED.pinReceived, FIXED.askAddress(pin?.villageAr ?? "")].join("\n");
+      const r = await deliver(ctx, { type: "text", text: { body: text } }, text);
+      return r.ok;
+    }
+    ctx.state.pinCheck = null;
+    const card = await issueCard(ctx, { lines: q.lines, villageId: ctx.state.villageId, placeId: ctx.state.placeId, pickup: false },
+                                 { ...terms, notes: mergeDirections(terms.notes, ctx.state.directions) }, { before: note });
+    if (!card.ok) ctx.state.awaiting = null;
+    return card.ok;
+  }
   if (ctx.state.awaiting === "pin" && !ctx.state.placeId) return false;
-  // The pin decides the village: if it landed somewhere else, the card is priced for where it landed.
-  const card = await issueCard(ctx, { lines: q.lines, villageId: q.pickup ? null : ctx.state.villageId ?? q.villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup }, terms);
+  const card = await issueCard(ctx, { lines: q.lines, villageId: q.pickup ? null : ctx.state.villageId ?? q.villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup },
+                               { ...terms, notes: mergeDirections(terms.notes, ctx.state.directions) });
   if (!card.ok) ctx.state.awaiting = null;
   return card.ok;
 }

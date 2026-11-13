@@ -11,6 +11,9 @@ How people order here. Read these as normal, not as noise:
 - Modifiers travel with the item: بلا كبيس (no pickles), توم زيادة (extra garlic), مقسومين بالنص (cut in half), خبز فرنجي / خبز عربي (bread type), عجنب (on the side).
 - One message can hold orders from several places ("من عند ..."). Keep each line's merchant in `source_hint`.
 - Addresses are a village, then a landmark or building, a floor, and a person's name. There are no street numbers.
+- `address.village` is a village or town, as written. Arabic letters are often glued onto it: «عبعقلين» is «ع بعقلين» (to Baakline), «بالخريبة» is in Khraibeh, "3a b3aklin" is to Baakline. Put the village there, never in `needs_clarification`.
+- «حي X», «حارة X», "7ay X" is a neighbourhood called X, inside a village: it goes in `landmark` with the rest of the directions, never in `address.village`, even when X sounds like a place name («بحي راجح» is the Rajeh quarter, not a village called Rajeh).
+- A location pin decides the village. When a turn has a pin ("[location pin received ...]") and words about a house, a floor or a neighbourhood, those words are the address for that pin: fill `building`, `floor`, `landmark`, `recipient_name` and `verbatim`, and leave `village` empty unless the customer clearly names a different village.
 - "بعتلي صرافة مية دولار" means the driver must carry change for a 100 dollar note. Put 100 in `change_for_usd`.
 - "هلق ببعتلك صورته" means a photo is coming. Set `promised_followup` and wait for it.
 - The customer may greet a person by name. Ignore the name.

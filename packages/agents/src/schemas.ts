@@ -25,8 +25,9 @@ export const OrderIntent = z.object({
   lines: z.array(OrderLine).default([]),
   fulfilment: z.enum(["delivery", "pickup", "unknown"]).default("unknown"),
   address: z.object({
-    village: z.string().nullable().default(null),
-    landmark: z.string().nullable().default(null),
+    village: z.string().nullable().default(null)
+      .describe("A village or town only, as written («عبعقلين» -> «بعقلين»). Never a neighbourhood: «حي X» / «حارة X» / '7ay X' goes in landmark"),
+    landmark: z.string().nullable().default(null).describe("A neighbourhood («حي راجح»), a shop, a square, a station: anything near the door"),
     building: z.string().nullable().default(null),
     floor: z.string().nullable().default(null),
     recipient_name: z.string().nullable().default(null),
