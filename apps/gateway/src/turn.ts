@@ -5,7 +5,9 @@ import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
 import { processOpsTurn } from "./ops-turn";
 import type { SendRequest, SendResult } from "@ak/wa/gateway";
 import { detectConsentSignal } from "@ak/core/optout";
-import { runConcierge, type ModelClient } from "@ak/agents/concierge";
+import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
+import { completeAfterPin, planReading } from "@ak/agents/pipeline";
+import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
 import { judge } from "@ak/agents/stt";
@@ -24,7 +26,7 @@ export interface TurnDeps {
   /** Rider-side events the customer should hear about ("on the way", "rider is at your door"). */
   notifyCustomer?: (deliveryOrOrderId: string, what: "on_the_way" | "rider_waiting") => Promise<unknown>;
 }
-export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "rider" | "duplicate" | "error"; sent: string[] }
+export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "rider" | "duplicate" | "error"; sent: string[] }
 
 const HISTORY_MAX = 8;
 
@@ -59,7 +61,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
 
   const texts: string[] = [];
   const transcripts: { primary: string; secondary?: string }[] = [];
-  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0;
+  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0;
 
   for (const p of pending) {
     const m = p.event.message;
@@ -103,6 +105,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         { p_party: conv.party_id, p_lat: m.location.latitude, p_lng: m.location.longitude, p_village: state.villageId ?? null });
       state.placeId = place.place_id;
       if (place.village_id) state.villageId = place.village_id;
+      pins++;
       texts.push(`[location pin received${place.village ? `, village: ${place.village}` : ""}]`);
       continue;
     }
@@ -147,28 +150,47 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     return { outcome: buttonsHandled ? "buttons" : "ignored", sent };
   }
   if (conv.human_handoff) return { outcome: "human", sent };          // a person has this chat; the model stays out
+  const pinOnly = pins > 0 && texts.length === pins && transcripts.length === 0;
 
   const ctx: ToolContext = {
     db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
     send: (msg, opts) => sendRaw(msg, opts?.orderId), sent: { count: 0, texts: [] },
   };
-  const started = Date.now();
-  try {
-    const res = await runConcierge(deps.model, deps.modelName, {
-      texts, transcripts,
-      state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
-               audio_messages_unreadable: audioFailed, recent: state.history ?? [],
-               // What we know about this person from delivered orders: usuals, brands, saved places, how they pay. Facts, not a transcript.
-               known_customer: (await db.rpc("customer_context", { p_party: conv.party_id })).data ?? null },
-    }, makeConciergeTools(ctx));
+  const remember = () => {
     sent.push(...ctx.sent.texts);
     state.history = [...(state.history ?? []),
       { role: "customer" as const, text: [...texts, ...transcripts.map((t) => t.primary)].join(" / ").slice(0, 600) },
       ...ctx.sent.texts.map((t) => ({ role: "assistant" as const, text: t.slice(0, 600) })),
     ].slice(-HISTORY_MAX);
-    await db.from("agent_runs").insert({ agent: "concierge", conversation_id: conv.conversation_id, model: deps.modelName,
-      input_tokens: res.usage.input, output_tokens: res.usage.output, latency_ms: Date.now() - started, outcome: res.outcome,
-      trace: { intent: res.intent ?? null, sent: ctx.sent.texts } });
+  };
+  const started = Date.now();
+  const usage = { input: 0, output: 0 };
+  let intent: OrderIntent | null = null;
+  const record = (outcome: string, path: string) => db.from("agent_runs").insert({ agent: "concierge", conversation_id: conv.conversation_id,
+    model: deps.modelName, input_tokens: usage.input, output_tokens: usage.output, latency_ms: Date.now() - started, outcome,
+    trace: { path, intent, sent: ctx.sent.texts } });
+  try {
+    // A pin for a card that was only waiting on it: the card goes out, no model.
+    if (pinOnly && (await completeAfterPin(ctx))) { remember(); await record("ok", "card_after_pin"); return { outcome: "card", sent }; }
+
+    const input = { texts, transcripts,
+      state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
+               audio_messages_unreadable: audioFailed, recent: state.history ?? [],
+               // What we know about this person from delivered orders: usuals, brands, saved places, how they pay. Facts, not a transcript.
+               known_customer: (await db.rpc("customer_context", { p_party: conv.party_id })).data ?? null } };
+
+    // 1. Parse once.
+    const reading = await extractOrder(deps.model, deps.modelName, input);
+    usage.input += reading.usage.input; usage.output += reading.usage.output;
+    intent = reading.intent;
+    // 2. The database decides: card, handoff, or a question.
+    const routed = await planReading(ctx, intent);
+    if (routed.done) { remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : "card", sent }; }
+    // 3. Only a question needs the tool loop.
+    const res = await runAskLoop(deps.model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
+    usage.input += res.usage.input; usage.output += res.usage.output;
+    remember();
+    await record(res.outcome, "ask");
     return { outcome: res.outcome === "ok" ? "agent_ok" : "agent_handoff", sent };
   } catch (err) {
     await handoff(db, conv.conversation_id, `agent_error: ${String(err).slice(0, 200)}`);

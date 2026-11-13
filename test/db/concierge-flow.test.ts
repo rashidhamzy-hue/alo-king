@@ -85,52 +85,113 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-const orderScript = () => [
-  [use("extract_order", { intent: { intent: "order", language: "ar_lb", fulfilment: "delivery",
-      lines: [{ raw: "لبنة", query: "لبنة ليبان ليه", qty: 1, confidence: 0.9 }, { raw: "ربطتين خبز", query: "ربطة خبز", qty: 2, unit: "bundle", confidence: 0.9 }],
-      address: { village: "بعقلين", building: "بناية النسيم", floor: "3" } } }),
-   use("search_catalog", { query: "لبنة ليبان ليه" }), use("search_catalog", { query: "ربطة خبز" }),
-   use("resolve_place", { village: "بعقلين", verbatim: "بعقلين بناية النسيم الطابق التالت" })],
-  [use("quote_order", { lines: [{ product_id: LABNEH, source_id: HUB, qty: 1 }, { product_id: BREAD, source_id: HUB, qty: 2 }] })],
-  [use("send_confirmation", { payment_method: "cod", change_for_usd: 20 })],
-];
+/** The forced first call: the model's reading of the turn, and nothing else. */
+const read = (intent: Record<string, unknown>) => [use("extract_order", { intent: { language: "ar_lb", ...intent } })];
+const ORDER_READING = { intent: "order", fulfilment: "delivery",
+  lines: [{ raw: "علبتين لبنة ليبان ليه", query: "لبنة ليبان ليه", qty: 2, confidence: 0.9 }, { raw: "ربطتين خبز", query: "خبز", qty: 2, unit: "bundle", confidence: 0.9 }],
+  address: { village: "بعقلين", building: "بناية النسيم", floor: "3" }, change_for_usd: 20 };
+const orderScript = () => [read(ORDER_READING)];
 
-describe("text order to confirmation card, on the real schema", () => {
-  it("buffers a burst into one turn and sends one order card priced by the database", async () => {
+describe("parse once, then the database (1.1)", () => {
+  it("one model call: the reading goes to plan_order, and a first-time address gets a pin request, then the card", async () => {
     const t = setup(orderScript());
     const before = Date.now();
-    await t.conv.fetch(t.text("مرحبا بدي لبنة وربطتين خبز"));
-    await t.conv.fetch(t.text("عبعقلين بناية النسيم الطابق التالت"));
+    await t.conv.fetch(t.text("مرحبا بدي علبتين لبنة ليبان ليه وربطتين خبز"));
+    await t.conv.fetch(t.text("عبعقلين بناية النسيم الطابق التالت، وبعتلي صرافة ٢٠ دولار"));
     expect(t.alarm()! - before).toBeGreaterThanOrEqual(5900);          // waits for the burst to end
     expect(t.seen).toHaveLength(0);                                    // nothing reaches the model before the alarm
     await t.conv.alarm();
 
+    expect(t.seen).toHaveLength(1);                                    // parse once
+    expect(t.seen[0]!.tool_choice).toEqual({ type: "tool", name: "extract_order" });
     expect(JSON.parse(t.seen[0]!.messages[0]!.content as string).texts).toHaveLength(2);   // both messages, one turn
-    expect(outbound).toHaveLength(1);                                  // message economy: one outbound for the whole turn
-    const card = outbound[0]!;
+    expect(t.rpcCalls.some((c) => c.fn === "plan_order")).toBe(true);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.interactive.type).toBe("location_request_message");   // first delivery to Baakline: a pin first
+    const c = await t.customer();
+    expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
+
+    // The pin arrives. The card goes out from the waiting quote, re-priced by the database, with no model call.
+    await t.conv.fetch(t.inbound({ type: "location", location: { latitude: 33.68, longitude: 35.56 } }));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);
+    expect(outbound).toHaveLength(2);
+    const card = outbound[1]!;
     expect(card.url).toBe("https://kapso.test/v24.0/PN_CUSTOMER/messages");
     expect(card.body).toMatchObject({ messaging_product: "whatsapp", to: t.who.phone, type: "interactive" });
     const body: string = card.body.interactive.body.text;
-    // 5.00 + 2 x 1.01 + 1.00 delivery (core zone) = 8.02; 8.02 x 89,500 rounded to the thousand
-    expect(body).toContain("$8.02"); expect(body).toContain("718,000");
+    // 2 x 3.00 labneh + 2 x 0.62 bread (the default-choice rule picks the best seller) + 1.00 delivery = 8.24
+    expect(body).toContain("$8.24"); expect(body).toContain("737,000");
     expect(body).toContain("بعقلين"); expect(body).toContain("كاش عند التسليم"); expect(body).toContain("$20.00"); expect(body).toContain(CONSENT_LINE);
 
-    const c = await t.customer();
     const order = await db.one(`select * from orders where customer_id = $1`, [c.party_id]);
     expect(order).toMatchObject({ status: "awaiting_confirmation", payment_method: "cod", village_id: BAAKLINE });
-    expect(Number(order.total_usd)).toBeCloseTo(8.02);
+    expect(order.place_id).not.toBeNull();                             // the pinned place, so the confirm tap will not ask again
+    expect(Number(order.total_usd)).toBeCloseTo(8.24);
+    expect(Number(order.change_for_usd)).toBe(20);
     expect(order.customer_notes).toContain("بناية النسيم");            // the customer's own directions travel with the order
+    expect((await db.all(`select raw_phrase from order_items where order_id = $1 order by raw_phrase`, [order.id])).map((r: any) => r.raw_phrase))
+      .toEqual(["ربطتين خبز", "علبتين لبنة ليبان ليه"]);              // what they said, for alias learning
     expect(body).toContain(order.short_code);
     expect(card.body.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual(
       [orderButtonId("confirm", order.id), orderButtonId("edit", order.id), orderButtonId("cancel", order.id)]);
     expect(card.body.interactive.action.buttons.every((b: any) => b.reply.title.length <= 20)).toBe(true);
 
     expect(t.rpcCalls.some((c) => c.fn === "can_send" && c.args.p_category === "service")).toBe(true);   // the compliance gate ran
-    expect(await db.one(`select count(*)::int as n from wa_outbox where party_id = $1 and status = 'sent'`, [c.party_id])).toEqual({ n: 1 });
+    expect(await db.one(`select count(*)::int as n from wa_outbox where party_id = $1 and status = 'sent'`, [c.party_id])).toEqual({ n: 2 });
     expect(await db.one(`select count(*)::int as n from wa_messages where party_id = $1 and direction = 'outbound' and order_id = $2`, [c.party_id, order.id])).toEqual({ n: 1 });
-    expect(await db.one(`select count(*)::int as n from wa_messages where party_id = $1 and direction = 'inbound'`, [c.party_id])).toEqual({ n: 2 });
-    expect(await db.one(`select outcome from agent_runs where conversation_id = $1 and agent = 'concierge'`, [c.conversation_id])).toEqual({ outcome: "ok" });
+    expect(await db.one(`select count(*)::int as n from wa_messages where party_id = $1 and direction = 'inbound'`, [c.party_id])).toEqual({ n: 3 });
+    expect((await db.all(`select trace->>'path' as p from agent_runs where conversation_id = $1 and agent = 'concierge' order by created_at`, [c.conversation_id])).map((r: any) => r.p))
+      .toEqual(["ask_pin", "card_after_pin"]);
     expect((t.store.get("state") as any).lastQuote).toBeNull();        // the quote is spent once the card is out
+
+    // The tap confirms it: the pinned place satisfies the location check.
+    await t.conv.fetch(t.tap(orderButtonId("confirm", order.id)));
+    await t.conv.alarm();
+    expect((await db.one(`select status from orders where id = $1`, [order.id])).status).toBe("confirmed");
+  });
+
+  it("a customer with a pinned place gets the card in the same turn, from one model call", async () => {
+    const t = setup(orderScript());
+    const c = await t.customer();
+    await db.rpc("save_customer_pin", { p_party: c.party_id, p_lat: 33.68, p_lng: 35.56, p_village: BAAKLINE });
+    await t.conv.fetch(t.text("بدي علبتين لبنة ليبان ليه وربطتين خبز عبعقلين"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.interactive.body.text).toContain("$8.24");
+  });
+
+  it("runs the tool loop only when the plan asks, and hands it the plan instead of searching again", async () => {
+    const t = setup([
+      read({ intent: "order", lines: [{ raw: "لبنة", query: "لبنة", qty: 1, confidence: 0.6 }], address: { village: "بعقلين" } }),
+      [use("reply", { text: "أي لبنة بدك؟", buttons: [{ id: "a", title: "ليبان ليه ٤٥٠غ" }, { id: "b", title: "ليبان ليه ٩٠٠غ" }, { id: "c", title: "تعنايل" }] })],
+    ]);
+    await t.conv.fetch(t.text("بدي لبنة"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(2);
+    expect(t.seen[1]!.tool_choice).toBeUndefined();
+    const second = JSON.parse(t.seen[1]!.messages[0]!.content as string);
+    expect(second.reading.lines[0].raw).toBe("لبنة");
+    expect(second.plan.next).toBe("ask");
+    expect(second.plan.lines[0].status).toBe("ambiguous");          // labneh at 0.67 and at 5.00 are not interchangeable
+    expect(second.plan.lines[0].candidates).toHaveLength(3);
+    expect(t.rpcCalls.filter((c) => c.fn === "search_catalog")).toHaveLength(0);   // plan_order searched, inside the database
+    expect(outbound).toHaveLength(1);
+    const c = await t.customer();
+    expect(await db.one(`select trace->>'path' as p from agent_runs where conversation_id = $1`, [c.conversation_id])).toEqual({ p: "ask" });
+  });
+
+  it("a reading that breaks the contract falls back to the loop rather than guessing", async () => {
+    const t = setup([
+      [use("extract_order", { intent: { intent: "order", lines: [{ raw: "x" }] } })],      // no language, no query, no confidence
+      [use("reply", { text: "شو بتحب تطلب؟" })],
+    ]);
+    await t.conv.fetch(t.text("x"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(2);
+    expect(JSON.parse(t.seen[1]!.messages[0]!.content as string)).toMatchObject({ reading: null, plan: null });
+    expect(outbound).toHaveLength(1);
   });
 
   it("confirms on a button tap without calling the model, and reserves the stock", async () => {
@@ -189,35 +250,35 @@ describe("guards around the model", () => {
 
   it("hands a restaurant order to a person instead of guessing", async () => {
     const t = setup([
-      [use("extract_order", { intent: { intent: "order", language: "mixed", lines: [{ raw: "تنتين تشيز برغر وحدة بلا كبيس", query: "cheeseburger", qty: 2, modifiers: ["one without pickles"], source_hint: "سناك", confidence: 0.8 }] } }),
-       use("search_catalog", { query: "cheeseburger", source_hint: "سناك" })],
-      [use("handoff_human", { reason: "restaurant_order" })],
+      read({ intent: "order", language: "mixed", lines: [{ raw: "تنتين تشيز برغر وحدة بلا كبيس", query: "cheeseburger", qty: 2, modifiers: ["one without pickles"], source_hint: "سناك", confidence: 0.8 }] }),
     ]);
     await t.conv.fetch(t.text("بدي تنتين تشيز برغر من عند السناك وحدة بلا كبيس"));
     await t.conv.alarm();
     const c = await t.customer();
     expect(c.human_handoff).toBe(true);
     expect(await db.one(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ reason: "restaurant_order" });
+    expect(t.seen).toHaveLength(1);                                     // plan_order decided; no second call
     expect(outbound).toHaveLength(1);
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
   });
 
   it("does not send a card for a quote with issues, and lets the Concierge offer the substitute", async () => {
-    await db.pg.query(`update stock_levels set on_hand = 0 where product_id = $1`, [LABNEH_SMALL]);
+    await db.pg.query(`update stock_levels set on_hand = reserved where product_id = $1`, [LABNEH_SMALL]);
     const t = setup([
+      read({ intent: "order", lines: [{ raw: "لبنة صغيرة", query: "Liban Lait Labneh Baladieh 450G", qty: 2, confidence: 0.7 }] }),
       [use("quote_order", { lines: [{ product_id: LABNEH_SMALL, qty: 2 }] })],
       [use("send_confirmation", {})],                                   // the model tries anyway
       [use("reply", { text: "لبنة ٤٥٠ غرام خلصت. بتحب ٩٠٠ غرام بدالها؟", buttons: [{ id: "sub:yes", title: "إي" }, { id: "sub:no", title: "لا" }] })],
     ]);
     await t.conv.fetch(t.text("بدي لبنة صغيرة"));
     await t.conv.alarm();
-    await db.pg.query(`update stock_levels set on_hand = 500 where product_id = $1`, [LABNEH_SMALL]);
+    await db.pg.query(`update stock_levels set on_hand = reserved + 500 where product_id = $1`, [LABNEH_SMALL]);
     const c = await t.customer();
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
-    const toolResult = JSON.parse(((t.seen[1]!.messages.at(-1)!.content as any[])[0]).content);
+    const toolResult = JSON.parse(((t.seen[2]!.messages.at(-1)!.content as any[])[0]).content);
     expect(toolResult.issues.map((i: any) => i.code)).toContain("out_of_stock");
     expect(toolResult.issues[0].substitutes.map((s: any) => s.product_id)).toContain(LABNEH);   // the database offers the substitute
-    expect(t.seen).toHaveLength(3);                                     // the refused tool did not end the turn
+    expect(t.seen).toHaveLength(4);                                     // reading, then the refused tool did not end the turn
     expect(outbound).toHaveLength(1);
     expect(outbound[0]!.body.interactive.body.text).toContain("خلصت");
   });
@@ -233,16 +294,16 @@ describe("guards around the model", () => {
 
   it("stops after six model steps and hands off", async () => {
     const loop = Array.from({ length: 8 }, () => [use("search_catalog", { query: "لبنة" })]);
-    const t = setup(loop);
+    const t = setup([read({ intent: "question" }), ...loop]);
     await t.conv.fetch(t.text("لبنة"));
     await t.conv.alarm();
-    expect(t.seen).toHaveLength(6);
+    expect(t.seen).toHaveLength(7);                                     // the reading, then six loop steps
     const c = await t.customer();
     expect(await db.one(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ reason: "agent_did_not_finish" });
   });
 
   it("saves a location pin to the customer's places and continues with it", async () => {
-    const t = setup([[use("reply", { text: "وصل الموقع. شو بتحب تطلب؟" })]]);
+    const t = setup([read({ intent: "greeting" }), [use("reply", { text: "وصل الموقع. شو بتحب تطلب؟" })]]);
     await t.conv.fetch(t.inbound({ type: "location", location: { latitude: 33.68, longitude: 35.56 } }));
     await t.conv.alarm();
     const c = await t.customer();
