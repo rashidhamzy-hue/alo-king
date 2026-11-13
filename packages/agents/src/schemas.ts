@@ -13,8 +13,10 @@ export const OrderLine = z.object({
 });
 
 export const OrderIntent = z.object({
-  intent: z.enum(["order", "add_to_order", "change_order", "cancel", "status", "hours", "delivery_area", "question", "complaint", "greeting", "off_topic"])
-    .describe("status: where is my order. hours: when are you open. delivery_area: do you deliver to a place (put it in address.village)"),
+  intent: z.enum(["order", "add_to_order", "change_order", "cancel", "status", "hours", "delivery_area", "question", "complaint", "greeting", "off_topic",
+                  "memory_show", "memory_forget", "memory_stop", "memory_start"])
+    .describe("status: where is my order. hours: when are you open. delivery_area: do you deliver to a place (put it in address.village). " +
+              "memory_show: what do you know about me. memory_forget: forget what you know about me. memory_stop: stop remembering. memory_start: remember again"),
   repeat_last: z.boolean().default(false)
     .describe("'same as last time' / 'نفس المرة الماضية': the customer wants their previous order again. Use intent 'order'; put only added items in lines"),
   language: z.enum(["ar_lb", "arabizi", "en", "fr", "mixed"]),
@@ -33,6 +35,8 @@ export const OrderIntent = z.object({
   urgency: z.enum(["normal", "rush"]).default("normal"),
   promised_followup: z.enum(["photo", "address", "none"]).default("none").describe("'I will send you its picture now'"),
   needs_clarification: z.array(z.string()).default([]),
+  restrictions: z.array(z.string()).default([])
+    .describe("Allergies and things the customer says they cannot or will not eat, in their own words ('حساسية سمسم', 'no meat'). Only what they said; never inferred"),
   transcript_quality: z.enum(["good", "partial", "unusable"]).default("good"),
 });
 export type OrderIntent = z.infer<typeof OrderIntent>;

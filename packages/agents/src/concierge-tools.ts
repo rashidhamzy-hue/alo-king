@@ -19,6 +19,10 @@ export interface ConversationState {
   pending?: CardTerms | null;
   /** When the "same as last time" button was last offered (ms). */
   repeatOfferedAt?: number;
+  /** Restrictions the customer stated for the order being built (1.14): they go on its card notes. */
+  orderRestrictions?: string[] | null;
+  /** Restrictions offered for keeping, waiting for the customer's yes or no. */
+  pendingRestrictions?: string[] | null;
 }
 /** Everything about a card that is not its lines. */
 export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null }
@@ -164,6 +168,9 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     const asked = await deliver(ctx, { type: "text", text: { body: text } }, text);
     return asked.ok ? { ok: true, waiting_for: "phone" } : asked;
   }
+  // Every restriction that applies goes with the order to whoever prepares it: the kept ones, and any stated for this order (1.14).
+  const kept = await rpc<string[]>(ctx.db, "customer_restrictions", { p_party: ctx.partyId });
+  terms = { ...terms, notes: withRestrictionNote(terms.notes, [...kept, ...(ctx.state.orderRestrictions ?? [])]) };
   const created = await rpc<{ created: boolean; order_id?: string; short_code?: string; quote: Quote }>(ctx.db, "create_order_from_quote", {
     p_customer: ctx.partyId, p_conversation: ctx.conversationId, p_lines: basket.lines, p_village: basket.villageId,
     p_place: basket.placeId, p_pickup: basket.pickup, p_payment: terms.payment, p_change_for: terms.changeForUsd, p_notes: terms.notes,
@@ -184,6 +191,14 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
                                  paymentMethod: terms.payment, changeForUsd: terms.changeForUsd });
   const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
   if (!sent.ok) return sent;
-  ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null;
+  ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null;
   return { ok: true, order_code: created.short_code! };
+}
+
+const RESTRICTION_MARK = "⚠️ قيود الزبون";
+/** The order note for the restrictions that apply to an order. An allergy is passed on as an allergy, not as a topping change. */
+export function withRestrictionNote(notes: string | null, restrictions: string[]): string | null {
+  const rs = [...new Set(restrictions.map((r) => r.trim()).filter(Boolean))];
+  if (rs.length === 0 || (notes ?? "").includes(RESTRICTION_MARK)) return notes;
+  return [notes, `${RESTRICTION_MARK} (لازم يتأكّد قبل التحضير): ${rs.join("، ")}`].filter(Boolean).join(" | ");
 }

@@ -257,7 +257,7 @@ describe("reliability and learning", () => {
     await db.pg.exec(`update offers set price_usd = price_usd - 0.5 where product_id = '${prod.id}'`);
   });
 
-  it("learns a customer's usuals and their words from delivered orders, and promotes an alias after enough evidence", async () => {
+  it("learns a customer's usuals and their words from delivered orders; an alias with enough evidence waits for a person (1.14)", async () => {
     const closed = await db.one(`select id, customer_id from orders where status = 'closed' limit 1`);
     expect((await db.rpc("learn_from_order", { p_order: closed.id })).learned).toBe(true);
     expect((await db.rpc("learn_from_order", { p_order: closed.id })).already).toBe(true);
@@ -270,7 +270,13 @@ describe("reliability and learning", () => {
       values (fold_text('لبنة الضيعة'), '${prod}', 'لبنة الضيعة', 2, array[gen_random_uuid()])`);
     await db.pg.exec(`update order_items set raw_phrase = 'لبنة الضيعة' where order_id = '${closed.id}';
                       delete from order_events where order_id = '${closed.id}' and reason = 'learned'`);
-    expect((await db.rpc("learn_from_order", { p_order: closed.id })).aliases_promoted).toBe(1);
+    expect((await db.rpc("learn_from_order", { p_order: closed.id })).aliases_awaiting_approval).toBe(1);
+    expect((await db.one(`select count(*)::int as n from product_aliases where alias = 'لبنة الضيعة'`)).n).toBe(0);   // not live yet
+    expect((await db.rpc("alias_candidates_ready")).map((a: any) => a.alias)).toContain("لبنة الضيعة");
+    await expect(db.rpc("review_alias", { p_alias_folded: (await db.one(`select fold_text('لبنة الضيعة') as f`)).f, p_product: prod, p_by: closed.customer_id, p_approve: true }))
+      .rejects.toThrow(/NOT_AUTHORISED/);
+    expect(await db.rpc("review_alias", { p_alias_folded: (await db.one(`select fold_text('لبنة الضيعة') as f`)).f, p_product: prod, p_by: ops, p_approve: true }))
+      .toMatchObject({ ok: true, status: "promoted" });
     expect((await db.rpc("search_catalog", { p_query: "لبنة الضيعة" })).matches[0].product_id).toBe(prod);
   });
 

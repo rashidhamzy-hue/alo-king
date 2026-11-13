@@ -228,3 +228,89 @@ describe("neutral and factual (1.10)", () => {
     expect(refused.map((r) => r.code)).toEqual(["quality_judgement", "unapproved_food_claim"]);
   });
 });
+
+describe("customer control of memory (1.14)", () => {
+  /** A delivered order, learned from, so there is something to remember. */
+  async function deliveredOrder(c: { party_id: string; conversation_id: string }) {
+    const place = (await db.one(`select id from customer_places where party_id = $1`, [c.party_id])).id;
+    const o = await db.rpc("create_order_from_quote", { p_customer: c.party_id, p_conversation: c.conversation_id, p_lines: [{ product_id: ids.LABNEH, qty: 1, raw: "لبنة" }],
+      p_village: ids.BAAKLINE, p_place: place, p_pickup: false, p_payment: "cod", p_change_for: null, p_notes: null });
+    await db.pg.query(`update orders set status = 'delivered', delivered_at = now() where id = $1`, [o.order_id]);
+    return db.rpc("learn_from_order", { p_order: o.order_id });
+  }
+
+  it("'what do you know about me' lists what is held, with no model call; memories say whether they were observed or stated", async () => {
+    const t = flow(db, []);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    expect(await deliveredOrder(c)).toMatchObject({ learned: true, memory_on: true });
+    await t.text("شو بتعرفو عني؟");
+    expect(t.seen).toHaveLength(0);
+    const body: string = outbound[0]!.body.text.body;
+    expect(body).toContain("طلبات مكتملة: 1"); expect(body).toContain("Labneh"); expect(body).toContain("كاش عند التسليم");
+    expect(body).toContain(t.who.phone!);
+    expect(await db.all(`select distinct origin from customer_memory where party_id = $1`, [c.party_id])).toEqual([{ origin: "observed" }]);
+  });
+
+  it("'forget' asks once with a button; yes deletes the memories and the unused places, and the id leaves the alias evidence", async () => {
+    const t = flow(db, []);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await deliveredOrder(c);
+    await db.rpc("save_customer_pin", { p_party: c.party_id, p_lat: 33.7, p_lng: 35.6, p_village: ids.BAAKLINE });   // a second place, no order on it
+    await t.text("إنسى");
+    expect(outbound[0]!.body.interactive.action.buttons.map((b: any) => b.reply.id)).toEqual(["memory:forget:yes", "memory:forget:no"]);
+    expect(await db.one(`select count(*)::int as n from customer_memory where party_id = $1`, [c.party_id])).toEqual({ n: 3 });   // nothing yet
+    await t.tap("memory:forget:yes");
+    expect(outbound.at(-1)!.body.text.body).toContain("محينا");
+    expect(await db.one(`select count(*)::int as n from customer_memory where party_id = $1`, [c.party_id])).toEqual({ n: 0 });
+    expect(await db.one(`select count(*)::int as n from customer_places where party_id = $1`, [c.party_id])).toEqual({ n: 1 });   // the one an order points to
+    expect(await db.one(`select count(*)::int as n from alias_candidates where $1 = any(customers)`, [c.party_id])).toEqual({ n: 0 });
+    const ctx = await db.rpc("customer_context", { p_party: c.party_id });
+    expect(ctx.usuals).toEqual([]); expect(ctx.payment).toBeNull();
+  });
+
+  it("'stop remembering' stops learning and using memory; 'remember again' turns it back on", async () => {
+    const t = flow(db, []);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await deliveredOrder(c);
+    await t.text("وقّف التذكّر");
+    expect(outbound[0]!.body.text.body).toContain("ما رح نتعلّم شي جديد");
+    expect((await db.rpc("customer_context", { p_party: c.party_id })).usuals).toEqual([]);
+    expect(await deliveredOrder(c)).toMatchObject({ learned: true, memory_on: false });
+    expect(Number((await db.one(`select weight from customer_memory where party_id = $1 and kind = 'usual_item'`, [c.party_id])).weight)).toBe(1);
+    await t.text("رجاع تذكّر");
+    expect((await db.rpc("customer_context", { p_party: c.party_id })).usuals).toHaveLength(1);
+  });
+
+  it("a stated allergy goes on this order's notes at once; it is kept for the next order only after a yes", async () => {
+    const reading = { ...ORDER_READING, lines: [ORDER_READING.lines[0]], restrictions: ["حساسية سمسم"] };
+    const t = flow(db, [read(reading), read({ ...ORDER_READING, lines: [ORDER_READING.lines[0]] })]);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await t.text("عندي حساسية سمسم. بدي علبتين لبنة ليبان ليه");
+    const first = await db.one(`select customer_notes from orders where customer_id = $1`, [c.party_id]);
+    expect(first.customer_notes).toContain("⚠️ قيود الزبون"); expect(first.customer_notes).toContain("حساسية سمسم");
+    expect(outbound.map((o) => o.body.type)).toEqual(["interactive", "interactive"]);         // the card, then the question
+    expect(outbound[1]!.body.interactive.body.text).toContain("بتحب نتذكّرها");
+    expect(await db.rpc("customer_restrictions", { p_party: c.party_id })).toEqual([]);         // not kept without a yes
+    await t.tap("memory:keep:yes");
+    expect(await db.one(`select origin, value from customer_memory where party_id = $1 and kind = 'restriction'`, [c.party_id]))
+      .toEqual({ origin: "stated", value: { text: "حساسية سمسم" } });
+
+    // The next order: not said again, still on the notes, and not offered again.
+    await t.text("بدي علبتين لبنة ليبان ليه");
+    const next = await db.one(`select customer_notes from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [c.party_id]);
+    expect(next.customer_notes).toContain("حساسية سمسم");
+    expect(outbound.at(-1)!.body.type).toBe("interactive"); expect(outbound.at(-1)!.body.interactive.body.text).not.toContain("نتذكّرها");
+  });
+
+  it("'just this once' keeps nothing, and the Concierge's reading of 'what do you know about me' gets the same answer", async () => {
+    const t = flow(db, [read({ ...ORDER_READING, restrictions: ["no meat"] }), read({ intent: "memory_show", lines: [] })]);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await t.text("no meat please, labneh and bread");
+    await t.tap("memory:keep:no");
+    expect(outbound.at(-1)!.body.text.body).toBe("تمام، بس لهالطلب.");
+    expect(await db.rpc("customer_restrictions", { p_party: c.party_id })).toEqual([]);
+    await t.text("can you tell me everything you have saved on me and my orders?");
+    expect(outbound.at(-1)!.body.text.body).toContain("هيدا يلي منعرفو عنك");
+    expect(t.seen).toHaveLength(2);
+  });
+});
