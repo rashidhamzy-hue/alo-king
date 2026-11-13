@@ -35,6 +35,12 @@ export interface TurnDeps {
   notifyCustomer?: (deliveryOrOrderId: string, what: "on_the_way" | "rider_waiting") => Promise<unknown>;
   /** Fetches inbound media from Kapso's media URL (1.6). Defaults to fetch(); pass one that adds Kapso's key if its URLs need it. */
   fetchMedia?: (url: string) => Promise<Response>;
+  /**
+   * WhatsApp's typing indicator on the message being answered (1.8): the gateway marks it read with a typing indicator, which
+   * WhatsApp shows until the reply or for 25 seconds. Called once a turn needs the model. Optional: until the gateway has it
+   * (packages/wa, lane A), nothing is shown. Never sends a message and never blocks the turn.
+   */
+  typing?: (waMessageId: string) => Promise<unknown>;
 }
 export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
 
@@ -249,6 +255,21 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       const r = await answerQuick(ctx, quick);
       if (r.done) { remember(); await record("ok", `quick:${r.path}`); return { outcome: r.path.includes("card") ? "card" : "answered", sent }; }
     }
+
+    // Past the hourly cap on model turns (1.8, settings.model_turns), a person takes over: no model call.
+    const budget = (await db.rpc("model_turn_budget", { p_party: conv.party_id })).data as { allowed: boolean; used: number; limit: number } | null;
+    if (budget && budget.allowed === false) {
+      const hour = Math.floor(Date.now() / 3_600_000);
+      await handoff(db, conv.conversation_id, "model_turn_cap");
+      await db.rpc("raise_ops_exception", { p_kind: "model_turn_cap", p_ref: `${conv.party_id}:${hour}`,
+        p_detail: { conversation_id: conv.conversation_id, used: budget.used, limit: budget.limit } });
+      await alertOps(deps, `⚠️ زبون تخطّى ${budget.limit} رسالة للمساعد بساعة. المحادثة صارت مع موظف.`, `turncap:${conv.party_id}:${hour}`);
+      await say(FIXED.handoff);
+      await record("handoff", "model_turn_cap");
+      return { outcome: "agent_handoff", sent };
+    }
+    const lastInbound = [...pending].reverse().find((p) => p.event.message.type === "text" || p.event.message.type === "audio");
+    if (lastInbound && deps.typing) await deps.typing(lastInbound.event.message.id).catch(() => undefined);
 
     const input = { texts, transcripts,
       state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
