@@ -2,6 +2,7 @@
 // It refuses anything that could get a number restricted, and it keeps the message bill predictable.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { kapsoSend, KapsoSendError, type Line, type Outbound } from "./kapso";
+import { checkModelText } from "@ak/agents/output-guard";
 
 export type Category = "service" | "utility" | "marketing";
 export interface SendRequest {
@@ -15,6 +16,9 @@ export interface SendRequest {
   /** Required. Stable for the thing being said: (turn, message index) for replies, (event, time bucket) for cron
    *  reminders. A retry finds the message already sent and does not send it twice. No key, no send. */
   dedupeKey: string;
+  /** Set by the tools that send text the model wrote. The gateway checks it again (B2's 1.5 and 1.10 guard, second lock).
+   *  approvedFacts: food-fact attributes a tool returned an approved record for in this turn. */
+  authored?: { by: "model"; approvedFacts?: string[] };
 }
 export type SendResult = { ok: true; wamid: string } | { ok: false; refused: string };
 
@@ -40,6 +44,11 @@ export function preflight(req: SendRequest): string | null {
   const type = (req.msg as { type: string }).type;
   if (!ALLOWED_TYPES.has(type)) return "type_not_allowed";            // no audio, ever: no AI voice notes
   if (req.category === "marketing" && PILOT_MARKETING_LOCK) return "marketing_locked_pilot";
+  if (req.authored?.by === "model") {
+    const m = req.msg as { text?: { body?: string }; interactive?: { body?: { text?: string } } };
+    const v = checkModelText(m.text?.body ?? m.interactive?.body?.text ?? "", { approvedFacts: new Set(req.authored.approvedFacts ?? []) });
+    if (v) return `model_text_${v.code}`;
+  }
   if (typeof req.dedupeKey !== "string" || req.dedupeKey.length < 3) return "missing_dedupe_key";   // every send goes through the outbox claim
   if (type === "location" && req.line !== "ops") return "location_ops_only";
   if (req.category === "marketing" && type !== "template") return "marketing_needs_template";
