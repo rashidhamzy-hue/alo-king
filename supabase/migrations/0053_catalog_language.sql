@@ -177,9 +177,10 @@ language sql stable set search_path = public, extensions, pg_temp as $$
       from (select h.*, bool_and(h.negated) over (partition by h.tid, h.pos) as pos_negated from hits h) h
      where not tid in (select tid from split_numbers)
      group by tid, product_id having count(distinct pos) filter (where not optional) = max(n)
-        -- with p_window (the whole-message scan), the words of one term stand close together: within its length and p_window
-        -- more, never scattered over a message ("plein soleil … 3 Kinder" is not a 3-pack of Plein Soleil tuna)
-        and (p_window is null or max(ord) filter (where not optional) - min(ord) filter (where not optional) <= max(n) + p_window)
+        -- with p_window (the whole-message scan), a term with a number stands close together: within its length and p_window
+        -- more, never scattered over a message ("plein soleil … 3 Kinder" is not the 3-pack of Plein Soleil tuna)
+        and (p_window is null or max(ord) filter (where not optional) - min(ord) filter (where not optional) <= max(n) + p_window
+             or not exists (select 1 from terms t, unnest(t.tokens) x where t.tid = h.tid and x ~ '^[0-9]+$'))
   ), per_product as (
     select product_id, coalesce(max(lvl) filter (where not negated), 0) as lvl, bool_or(negated) as excluded,
            coalesce(bool_or(lvl = 1 and not negated), false) as brand_hit,
