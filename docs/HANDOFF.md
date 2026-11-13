@@ -177,16 +177,16 @@ and on CI these suites refuse to skip). Permission check passes on a fresh Postg
 **0.13, the one thing asked of Rasheed.** Everything else is ready (staging data, the test riders, the evidence workflow).
 On WhatsApp, from his own phone, between 08:00 and 23:00 Beirut time, to **+1 203 660 2328** (the "Alo King" staging customer number), send exactly:
 
-> بدي علبتين لبنة ليبان ليه، ربطتين خبز وكرتونة مي صحة، عبعقلين
+> بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين
 
 What he should see, in order:
 1. Within about 10 seconds: «تمام، طلبك جاهز. بس بعتلنا موقعك 📍 من الزر تحت لنبعتلك ورقة الطلب.» with a **Send location** button. Tap it and send the current location (any place works on staging: the delivery village comes from the message, «عبعقلين»).
-2. The order card: «طلبك AK-…» with 2 × Liban Lait Labneh Baladieh 450G ($6.00), 2 × Wooden Bakery Pita White Medium 400G ($1.24), 1 × Sohat Mineral Water 1.5L X6 ($2.46), delivery to Baakline $1.00, **total $10.70** (or the lira amount), cash on delivery, and three buttons. Tap **تأكيد الطلب**.
+2. The order card: «طلبك AK-…» with 1 × Tannourine Mineral Water 2L X6 ($2.01), 1 × Al Forno Pita White Bread Big 800G ($1.01), 1 × Najjar Cafe Classic Normal 180G ($3.25), delivery to Baakline $1.00, **total $7.27** (or the lira amount), cash on delivery, and three buttons. Tap **تأكيد الطلب**.
 3. «تم تأكيد طلبك AK-… ✅ عم نحضّرو هلق.»
 4. One to three minutes later: «طلبك #AK-… صار عالطريق 🛵».
-5. One to two minutes after that: «وصلنا دفعك لطلب #AK-…: 10.70$ نقداً.» Nobody comes to the door: on staging the rider is a test rider (below), who accepts, picks up, delivers and records the cash through the ops line's real code path.
+5. One to two minutes after that: «وصلنا دفعك لطلب #AK-…: 7.27$ نقداً.» Nobody comes to the door: on staging the rider is a test rider (below), who accepts, picks up, delivers and records the cash through the ops line's real code path.
 
-The card's wording depends on the live model reading the message; the SQL side of this exact order was checked against the seeded catalog (one product per line, one card, $10.70). If no reply arrives at all, the first suspect is Meta billing on the number (0.12, section E): Kapso pauses sends when the account cannot pay.
+Why these three items: they are brand-led, and each brand resolves to one right product (checked on staging with `plan_order` inside a rolled-back transaction). The staging probe places exactly this message through the live model every hour, so the morning it is sent, staging has already shown whether the live model turns it into this card (see "Live after merge"). If no reply arrives at all, the first suspect is Meta billing on the number (0.12, section E): Kapso pauses sends when the account cannot pay.
 After he has done it, any session runs the **staging-evidence** workflow with no input: it finds his closed order, writes `docs/evidence/order_<code>.txt` to the branch `evidence/<code>` and fails if any 0.13 check fails. The conversation is printed in place of screenshots (numbers and user ids masked). Screenshots from the phone are not required.
 
 | Task | Where | Tested | Live |
@@ -214,14 +214,22 @@ Staging stock is 5,000 of everything (only set on an empty store), so the hourly
 5. **identity_changed was not handled**: a new business-scoped id would have made the same person a second, empty customer. 0060 re-keys.
 6. **The 0.13 evidence script would have failed every delivered order**: a reservation and its pick net to zero in `stock_movements` by design. It now compares picked with sold, and treats same-state rows (late taps, the learning job) as notes.
 
-**Live after merge** (deploy-staging on main, checked with the connectors; filled in by this session after the deploy): see the next section.
+**Live after merge** (deploy-staging run `43409985942` on main at 10:33 UTC, **passed, every step including Sentry**; checked with the connectors):
+- Supabase staging: migrations 0060-0063 applied (30 in all); the hub is Baakline, there is an exchange rate, all 291 products are stocked, the three probe parties exist, and probes are enabled; the three templates are `submitted`.
+- The Worker's cron beats every minute (`heartbeats.cron`). The project webhook is ready (its signed smoke event was stored and processed).
+- **The probe's first live order ran the real path on Cloudflare**: cron, stored inbound event, conversation object, turn, the real model (Haiku 5.5), gateway, outbox, sink. No card came out, which surfaced the finding below. The probe now sends the 0.13 message every hour.
+
+**Finding for lane B (B3): the live model's catalog queries miss or pick the wrong product.** Seen live on 13 Nov, then reproduced on staging with `plan_order` (rolled back):
+- The model wrote the query for «ربطتين خبز» as `bread`. English generic words match no catalog name (`search_catalog('bread')` returns nothing; `'خبز'` matches the aliases), so the line was `not_found` and the turn asked a question instead of sending a card. `schemas.ts` invites this: its example for `query` is an English normalised phrase ("facial tissue large pack").
+- Brand-led English queries match, but every hit ties at score 0.9, so the brand rule takes the first product of that brand: «لبنة ليبان ليه» (`labneh Liban Lait`) became **Liban Lait Laban 1Kg**, and «بيض هوا» (`Hawa Chicken eggs`) became **Chicken Legs**. Those are wrong cards, not just missed ones.
+- Per `CLAUDE.md` these become cases in `evals/` before the fix. Likely fixes: keep `query` in the customer's words (Arabic), or have `plan_order` retry with `raw` and the Arabic aliases; and break score ties on the product kind (`sub_type`) before the brand. A2 did not touch `packages/agents/`, `evals/` or lane B's SQL.
 
 **Blocked or not possible, recorded:**
 - Kapso's API shows no credit balance figure, so "alert below an amount" cannot be built; the daily check alerts when Kapso has paused paid sends (`paid_messages.paused`), which is the moment it matters.
 - Template approval is Meta's (usually about a day). Nothing to do but wait; the hourly sync picks it up.
 - The Kapso connector could not obtain a credential for a number health check on 13 Nov (read calls worked earlier the same day); the daily `kapsoHealth` step does the same check from the Worker.
 - The sandbox ops line is still unproven for real buttons on a real phone; the probe riders make it unnecessary for 0.13. Needed before two real riders.
-- Sentry: project `alo-king-gateway` now lives in the **Alo King** organization (EU, `alo-king.sentry.io`); the earlier DSN belonged to an organization whose error quota was used up. Alert rule "Gateway: every new issue" emails the organization's members on new and regressed issues; the cron monitor `gateway-cron-staging` appears in Sentry after the first check-in.
+- Sentry: done and proven live (section F, 0.8).
 
 **For other sessions:**
 - B3 (or the next lane B session), `turn.ts` / `concierge-tools.ts`: (a) a retried turn issues a new card and cancels the first draft as `superseded_by_new_card` (seen in the e2e crash test). The customer only ever sees one card, but key the card on the turn so a retry reuses the draft. (b) Set `authored: { by: "model", approvedFacts }` on the sends of model text in the `reply` and `ask_location_pin` tools: the gateway now re-checks them (B2's request, done on the gateway side).
@@ -279,7 +287,7 @@ both Kapso webhooks exist and are active on the right numbers and routes, and th
 | 0.5 Cloudflare Worker, queues, secrets, cron | **Yes** (runs 4, 7) | Queues `ak-inbound-staging` and `-dlq` were created with no paid-plan error. That does not show which Cloudflare plan the account is on, and Workers Paid is not assumed. Deployed: bundle 3,169 KiB (588 KiB gzipped), startup 32 ms, cron `* * * * *`, six Worker secrets. **Not proven:** the cron doing real work, Durable Object alarms and queue retry under load, free-plan CPU limits against a real turn. `STT_API_KEY` is not set (Kapso's transcript first, 1.7). |
 | 0.6 Kapso webhooks | **Yes** for the webhooks, **No** for fixtures | Webhooks exist for both lines, each with its own secret generated in the workflow; a signed test event was accepted on each (signature check and Supabase write). The Kapso sandbox accepted a webhook for the ops line. **No real payload is saved**: that needs real messages on the staging numbers, then the `capture-kapso-fixtures` workflow. |
 | 0.7 Anthropic key | **Yes** for the key and both model ids | `claude-haiku-5-5` and `claude-sonnet-5-5` answered. **Manual, console only:** set the monthly spend limit on the staging key; no call from here can see or set it. Use a separate key for production. |
-| 0.8 Error tracking | **Partly** | Built: `apps/gateway/src/worker.ts` wraps the gateway; scrubbing is tested (4 tests); under workerd the SDK sends a valid event. Live: the raw ingest check got HTTP 200 (event `6f30eba108de2334b717ef822273528b`) and the Worker's test route reported `flushed=true` (event `3f08a8de23234b16aa17c357b61e1a3d`). **Not confirmed: that Sentry stores them.** Twenty-plus minutes later, neither event, nor any issue, is visible in project `alo-king-gateway`, with the read-only connector and cache bypassed. The DSN is the gateway project's own key. Someone with Sentry access should open the project and check Settings, Client Keys (is "Default" active, any rate limit), Inbound Filters, Stats (accepted, filtered, dropped) and the org quota, and search for those two event ids. Until then, 0.8 is not done. Also: the default alert "high priority issues" exists. Gap for A2: errors the gateway catches and retries (queue handler, failed turns) never reach Sentry until `index.ts` reports them. A silent cron is task 4.10. |
+| 0.8 Error tracking | **Yes** (A2, deploy run `43409985942`) | The earlier events were dropped by Sentry: the DSN belonged to another organization whose error quota was used up (rate_limited, error_usage_exceeded). A2 moved staging to project `alo-king-gateway` in the **Alo King** organization (EU). Live on 13 Nov: issue ALO-KING-GATEWAY-1 (the ingest check) and ALO-KING-GATEWAY-2 (the Worker's smoke error) are stored; the cron monitor `gateway-cron-staging` checks in every minute (status ok); the alert rule "Gateway: every new issue" emails the organization. Errors the gateway catches and retries now reach Sentry too (A2, 4.10). |
 | 0.9 Meta ownership | **Blocked** | Section E. |
 | 0.10 Builder tools | n/a (done) | `docs/TOOLS.md`, last section. Kapso plugin deliberately not installed. |
 | 0.11 Deploy and recovery proven | **Yes** | Deploy (runs 4, 7), rollback and secret rotation (drill). `docs/RUNBOOK.md` "Proven on staging" names each. |
