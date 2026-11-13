@@ -562,7 +562,8 @@ The 0.13 flow is now: message → pin request → pin → «وصلنا موقع�
 2. the model's phrase never picks while a word left over looks like another same-brand kind's word («sodour» ≈ «sdour»: breasts, not legs);
 3. the doubt check also runs for a line the model translated (the customer wrote «jazar», the line says «جزر») when another product explains more of the message;
 4. a kind or exact term said word after word across two neighbouring lines («بازيلا وجزر») makes both lines one question;
-5. products a line leaves tied and a size word in the message no line carries («wooden bakery l kbar» left in `source_hint`): no best-seller assumption (found by the first live run).
+5. products a line leaves tied and a size word in the message no line carries («wooden bakery l kbar» left in `source_hint`): no best-seller assumption (found by the first live run);
+6. (migration 0078, found by the final run) a line that says big or small, a chosen product whose own words never do, no number of the product's own in the line, and another product of the same brand in view: a question.
 The message is now scanned once per plan. Replay of all 1,972 recorded live readings of B3's runs: wrong products **10 → 0**, F1 0.918 → **0.918** (precision 0.995 → 1.000, recall 0.853 → 0.849). Live runs on this branch (GitHub Actions `language-pack`, `claude-haiku-5-5`, 990 cases x 3 each, about USD 3 a run):
 
 | Run | Code | Item F1 | Wrong products | 0.13 message right | Address cases (6) |
@@ -571,7 +572,8 @@ The message is now scanned once per plan. Replay of all 1,972 recorded live read
 | 43500022007 | rules 1-4 | 0.912 | 1 in 3,708 (g0354, the size in `source_hint`) | 3 of 3 | 6 of 6 |
 | 43500871819 | rules 1-4, rebased | 0.915 | 2 in 3,708 (the same g0354 reading, twice) | 3 of 3 | 6 of 6 |
 | replay of run 43500022007's 2,970 readings | rules 1-5 | 0.913 | **0** | 3 of 3 | |
-| final run (request on `4ce3400`) | rules 1-5 | running at merge time: its result is added after the merge | | | |
+| 43504902606 (final, the merged code) | rules 1-5 | 0.915 | 2 in 3,708 (g0452 twice: «بيبسي دايت الكبيرة، تنين ليتر وربع», 2.25 L in words, got 1.25 L) | 3 of 3 | 6 of 6 |
+| replay of the final run's 2,970 readings | rules 1-6 (0078) | 0.912 | **0** | 3 of 3 | |
 
 By language (first run): Lebanese Arabic 0.922, mixed 0.917, Arabizi 0.891, English 0.966, French 0.938. `results/after.json` is the first run's readings (replay with `ALO_LANG_REPLAY=evals/language/results/after.json npx vitest run evals/language/replay.test.ts`, about 12 minutes); `results/live.txt` its `evals/live` report.
 The gate as written (F1 at least 0.90, zero wrong products, the 0.13 message right on staging): met on the replay of live readings; a live run's model can still produce a reading no rule has seen, so every wrong product found later becomes a `zero-wrong.json` case before its fix.
@@ -588,11 +590,17 @@ A product inserted without words, or whose name, Arabic name or brand changes (t
 - B3: `index.ts` wires the typing indicator (`deps.typing`: Kapso `markRead` with a typing indicator; it sends no message and is never called for a probe) and one call to `customerLineCron` in `scheduled()` (2.9's feedback cards, which go out from now on, and 1.23).
 - B3: `probe_due()` gives a probe conversation stuck with a person back to the Concierge when no probe order is open, and opens an ops exception `probe_handoff_released` naming the handoff's reason. With `settings.probe.fresh_place` true, each hourly probe order is a first order (its places are cleared), so it walks pin → address → card; the probe answers the address question in words (`probe.ts`).
 
-**Staging proof:** after the merge and deploy, the probe is set to `fresh_place` and its next hourly order must go pin, address, card, closed (result added below).
+**Staging proof** (`deploy-staging` 43508174320 applied 0074-0077 at 21:10 UTC; checked with the Supabase connector):
+- The founder's own pin of 13 Nov now resolves to Khraibeh (`locate_pin`, 0.34 km); 41 villages have centres; the probe pin is Baakline's centre.
+- The wired cron sent 2.9's feedback cards at 21:11 (to the probe's sink, one per closed probe order): the first live use of that wiring.
+- The probe was set to `fresh_place` (first order every hour). At 21:42 UTC staging was closed (23:42 Beirut; hours 08:00-23:00), so the probe's order got the "we're closed" path and no card: that path keeps no promise it cannot keep, but after the pin the bot answered with the greeting; recorded below. To prove the order path the same evening, staging's hours were opened all day and the probe interval set to 2 minutes; the interval went back to 60 as soon as the order was sent.
+- **AK-1005 (21:46-21:52 UTC), the first-time path on the live model:** the 0.13 message → the code's pin request with the basket waiting (no tool loop) → pin (Baakline's centre) → card for Baakline, $7.27 → confirm → rider offer, accept, pick-up, on the way → arrived, delivered → cash recorded → closed; every transition allowed, ledger sum 0.0000. It did not ask for house and floor: the live reading put «عبعقلين» in `address.verbatim`, which counted as directions. Fixed in rashidhamzy-hue/alo-king#30 (a village name alone is not an address), replayed as a test first.
+- STAGING_PROBE_2
 
 Files outside lane B, each minimal: `apps/gateway/src/index.ts` (the two wiring lines and their imports), `packages/wa/src/probe.ts`, `scripts/staging/prepare-staging.sql` (the probe pin, 33.6789/35.5778, "Baakline, approximately", is 1.1 km from Semqaniyeh's centre and 1.3 km from Baakline's: now Baakline's centre) and the e2e crash test's pin in `test/pg/worker-e2e.test.ts` (same reason).
 
 Found and not changed:
+- Ordering after hours: the plan asks (closed), the model sends a pin request saying "we continue later", and after the pin the turn has no card to send (`create_order_from_quote` refuses while closed), so the model answers with the greeting. Nothing wrong is promised or charged, but the basket is not kept for the morning. A next lane B session: keep it and say when it will be sent, or say at once that orders open at 08:00.
 - `apps/console/test/today.test.ts` failed once in a full local run and passed alone and on the next run: it measures lateness against the clock. Not B4's file.
 - The fast model reads «عبعقلين» and «بحي راجح» differently from run to run; code no longer depends on either reading (the address eval cases watch it).
 - `place_has_details` asks once for house and floor on a first delivery to a new place. If the founder prefers the card straight after the pin, drop that step in `completePending` (one condition); the pin alone is enough for `confirm_order_checked`.

@@ -108,6 +108,18 @@ describe("the founder's order of 13 Nov, replayed (B4)", () => {
     expect(bodyOf(outbound[2]!)).toContain("طلبك AK-");
   }, 60_000);
 
+  it("staging probe, 13 Nov 21:46 UTC: a reading whose only address is the village («عبعقلين» in verbatim) still asks for house and floor", async () => {
+    outbound = recordKapso();
+    const t = flow(db, [read({ ...READING_1, needs_clarification: [], address: { ...READING_1.address, village: "بعقلين", verbatim: "عبعقلين" } }),
+                        read({ ...READING_3, address: { ...READING_3.address, village: null } })]);
+    await t.text(MESSAGE);
+    await t.say({ type: "location", location: { latitude: 33.67739, longitude: 35.56355 } });
+    expect(outbound).toHaveLength(2);
+    expect(bodyOf(outbound[1]!)).toContain("كرمال السائق");                 // a village is not an address: the rider needs the house
+    await t.say(voice(TRANSCRIPT));
+    expect(bodyOf(outbound.at(-1)!)).toContain("طلبك AK-");
+  }, 60_000);
+
   it("the pin decides even when the text named another village, and the card says where it is going", async () => {
     outbound = recordKapso();
     const t = flow(db, [read({ ...READING_1, address: { ...READING_1.address, village: "بعقلين", building: "بيت أبو اسماعيل" }, needs_clarification: [] })]);

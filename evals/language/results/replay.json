@@ -2,13 +2,13 @@
  "totals": {
   "cases": 2970,
   "items": 3708,
-  "tp": 3112,
+  "tp": 3109,
   "fp": 0,
-  "fn": 596,
+  "fn": 599,
   "precision": 1,
-  "recall": 0.839,
-  "f1": 0.913,
-  "perfect_cases": 2447
+  "recall": 0.838,
+  "f1": 0.912,
+  "perfect_cases": 2437
  },
  "wrong": [],
  "missed": [
@@ -355,7 +355,7 @@
    },
    "lines": [
     {
-     "raw": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+     "raw": "خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
      "status": "ambiguous",
      "via": "pack_query",
      "unexplained": [],
@@ -387,14 +387,70 @@
    },
    "lines": [
     {
-     "raw": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+     "raw": "خبز تنور العصر، مش الكبير",
      "status": "ambiguous",
-     "via": "pack_query",
+     "via": "pack_raw",
      "unexplained": [],
      "b4": "negated_choice",
      "cand": [
       "AK-0089",
       "AK-0088"
+     ]
+    },
+    {
+     "raw": "التاني تبع الخمس رغفان",
+     "status": "ambiguous",
+     "via": "pack_query_only",
+     "unexplained": [
+      "رغفان"
+     ],
+     "cand": [
+      "AK-0088",
+      "AK-0089"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hz0815",
+   "text": "baddi bazella w jazar mkhalta, plein soleil",
+   "expected": [
+    {
+     "sku": "AK-0237"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0237"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "bazella",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [],
+     "b4": "split",
+     "cand": [
+      "AK-0237"
+     ]
+    },
+    {
+     "raw": "jazar mkhalta",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "mkhalta"
+     ],
+     "b4": "split",
+     "cand": [
+      "AK-0237",
+      "AK-0008"
      ]
     }
    ]
@@ -665,8 +721,10 @@
     {
      "raw": "Nivea roll on lal neswen el extra brightening",
      "status": "ambiguous",
-     "via": "pack_query",
-     "unexplained": [],
+     "via": "pack_raw",
+     "unexplained": [
+      "neswen"
+     ],
      "cand": []
     },
     {
@@ -737,8 +795,10 @@
     {
      "raw": "Nivea roll on lal neswen el extra brightening",
      "status": "ambiguous",
-     "via": "pack_query",
-     "unexplained": [],
+     "via": "pack_raw",
+     "unexplained": [
+      "neswen"
+     ],
      "cand": []
     },
     {
@@ -1125,6 +1185,67 @@
      "raw": "200 gr pepperoni Toulkarem l 3adi mish l beef",
      "status": "matched",
      "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0013",
+   "text": "Marhaba, baddi kilo tenders djej Tanmia, 2 3elab dra 7elwe Al Wadi Al Akhdar, w 2annine dibs remmen Yamama. Merci ktir 🙏",
+   "expected": [
+    {
+     "sku": "AK-0033"
+    },
+    {
+     "sku": "AK-0199"
+    },
+    {
+     "sku": "AK-0218"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0033",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0218",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 2,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0199"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "kilo tenders djej Tanmia",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "2 3elab dra 7elwe Al Wadi Al Akhdar",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "7elwe"
+     ],
+     "cand": [
+      "AK-0199"
+     ]
+    },
+    {
+     "raw": "2annine dibs remmen Yamama",
+     "status": "matched",
+     "via": "pack_query",
      "unexplained": [],
      "cand": []
     }
@@ -1259,67 +1380,6 @@
    ]
   },
   {
-   "id": "g0013",
-   "text": "Marhaba, baddi kilo tenders djej Tanmia, 2 3elab dra 7elwe Al Wadi Al Akhdar, w 2annine dibs remmen Yamama. Merci ktir 🙏",
-   "expected": [
-    {
-     "sku": "AK-0033"
-    },
-    {
-     "sku": "AK-0199"
-    },
-    {
-     "sku": "AK-0218"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0033",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0218",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 2,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0199"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "kilo tenders djej Tanmia",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "2 3elab dra 7elwe Al Wadi Al Akhdar",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "7elwe"
-     ],
-     "cand": [
-      "AK-0199"
-     ]
-    },
-    {
-     "raw": "2annine dibs remmen Yamama",
-     "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
-     "cand": []
-    }
-   ]
-  },
-  {
    "id": "g0014",
    "text": "Marhaba, baddi please: tenders djej Tanmia (loose), pepperoni Toulkarem el 3adi mish el beef, 3elbet chai Lipton yellow label 100 kis, w 3 Krikita cashew zghar. Merci",
    "expected": [
@@ -1683,8 +1743,10 @@
     {
      "raw": "Coffee Mate l pouch l kbire 450g",
      "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
+     "via": "pack_raw",
+     "unexplained": [
+      "kbire"
+     ],
      "cand": []
     },
     {
@@ -1716,126 +1778,26 @@
      "sku": "AK-0260"
     }
    ],
-   "got": [
-    {
-     "sku": "AK-0038",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0132",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0260",
-     "assumed": false
-    }
-   ],
+   "got": [],
    "score": {
-    "tp": 3,
+    "tp": 0,
     "wrong": [],
     "missed": [
+     {
+      "sku": "AK-0038"
+     },
      {
       "sku": "AK-0186"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "sawda djej Hawa",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "kis 3adas akhdar Deroni (l vacuum 900g)",
-     "status": "ambiguous",
-     "via": "pack_query",
-     "unexplained": [],
-     "cand": [
-      "AK-0186"
-     ]
-    },
-    {
-     "raw": "Coffee Mate l pouch l kbire 450g",
-     "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "kitchen towel Intaj l X-Large",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "x",
-      "large"
-     ],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0017",
-   "text": "Marhaba, baddi ashkawen Aflora, w mayonnaise Plein Soleil zghire, w 3 3elab luncheon djej Tanmia please. Yislamo",
-   "expected": [
-    {
-     "sku": "AK-0039"
-    },
-    {
-     "sku": "AK-0211"
-    },
-    {
-     "sku": "AK-0203"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0211",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0039",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 2,
-    "wrong": [],
-    "missed": [
+     },
      {
-      "sku": "AK-0203"
+      "sku": "AK-0132"
+     },
+     {
+      "sku": "AK-0260"
      }
     ]
    },
-   "lines": [
-    {
-     "raw": "3 3elab luncheon djej Tanmia",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "djej"
-     ],
-     "b4": "same_brand_other_kind",
-     "cand": [
-      "AK-0203"
-     ]
-    },
-    {
-     "raw": "mayonnaise Plein Soleil zghire",
-     "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "ashkawen Aflora",
-     "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
-     "cand": []
-    }
-   ]
+   "lines": []
   },
   {
    "id": "g0017",
@@ -1855,16 +1817,15 @@
     {
      "sku": "AK-0039",
      "assumed": false
-    },
-    {
-     "sku": "AK-0211",
-     "assumed": false
     }
    ],
    "score": {
-    "tp": 2,
+    "tp": 1,
     "wrong": [],
     "missed": [
+     {
+      "sku": "AK-0211"
+     },
      {
       "sku": "AK-0203"
      }
@@ -1880,12 +1841,17 @@
     },
     {
      "raw": "mayonnaise Plein Soleil zghire",
-     "status": "matched",
+     "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
       "zghire"
      ],
-     "cand": []
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0211",
+      "AK-0053",
+      "AK-0193"
+     ]
     },
     {
      "raw": "3 3elab luncheon djej Tanmia",
@@ -1919,16 +1885,15 @@
     {
      "sku": "AK-0039",
      "assumed": false
-    },
-    {
-     "sku": "AK-0211",
-     "assumed": false
     }
    ],
    "score": {
-    "tp": 2,
+    "tp": 1,
     "wrong": [],
     "missed": [
+     {
+      "sku": "AK-0211"
+     },
      {
       "sku": "AK-0203"
      }
@@ -1944,12 +1909,85 @@
     },
     {
      "raw": "mayonnaise Plein Soleil zghire",
-     "status": "matched",
+     "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
       "zghire"
      ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0211",
+      "AK-0053",
+      "AK-0193"
+     ]
+    },
+    {
+     "raw": "3 3elab luncheon djej Tanmia",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "djej"
+     ],
+     "b4": "same_brand_other_kind",
+     "cand": [
+      "AK-0203"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0017",
+   "text": "Marhaba, baddi ashkawen Aflora, w mayonnaise Plein Soleil zghire, w 3 3elab luncheon djej Tanmia please. Yislamo",
+   "expected": [
+    {
+     "sku": "AK-0039"
+    },
+    {
+     "sku": "AK-0211"
+    },
+    {
+     "sku": "AK-0203"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0039",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 1,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0211"
+     },
+     {
+      "sku": "AK-0203"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "Aflora",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
      "cand": []
+    },
+    {
+     "raw": "mayonnaise Plein Soleil zghire",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "zghire"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0211",
+      "AK-0053",
+      "AK-0193"
+     ]
     },
     {
      "raw": "3 3elab luncheon djej Tanmia",
@@ -2158,9 +2196,12 @@
      "raw": "kilo te2fe7 a7mar baladi",
      "status": "ambiguous",
      "via": "pack_query_only",
-     "unexplained": [],
+     "unexplained": [
+      "احمر",
+      "بلدي"
+     ],
      "cand": [
-      "AK-0020",
+      "AK-0156",
       "AK-0049"
      ]
     }
@@ -2371,7 +2412,7 @@
      "cand": []
     },
     {
-     "raw": "kees ba2zella mfarraze",
+     "raw": "kees ba2zella mfarraze men Foody's",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -2480,10 +2521,8 @@
     {
      "raw": "malfoufe wa7de mni7a",
      "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "mni7a"
-     ],
+     "via": "pack_query",
+     "unexplained": [],
      "cand": []
     },
     {
@@ -2787,7 +2826,7 @@
    },
    "lines": [
     {
-     "raw": "2 Candia Silhouette 1L (el 7aleeb el écrémé)",
+     "raw": "baddi 2 Candia Silhouette 1L (el 7aleeb el écrémé)",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [
@@ -2817,67 +2856,30 @@
    ]
   },
   {
-   "id": "g0030",
-   "text": "Marhaba, baddi kis 7alib Klim el 750g, 2 3elab dra 7elwe Al Wadi Al Akhdar, w zebde Plein Soleil (l 200g bala mel7). Merci ktir 🙏",
+   "id": "g0027",
+   "text": "Marhaba, baddi 2 7alib Nadec full fat (l 1 litre) w 3elbet labne Leen Taanayel el premium please. Yslamo",
    "expected": [
     {
-     "sku": "AK-0076"
+     "sku": "AK-0073"
     },
     {
-     "sku": "AK-0199"
-    },
-    {
-     "sku": "AK-0053"
+     "sku": "AK-0042"
     }
    ],
-   "got": [
-    {
-     "sku": "AK-0076",
-     "assumed": false
-    }
-   ],
+   "got": [],
    "score": {
-    "tp": 1,
+    "tp": 0,
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0199"
+      "sku": "AK-0073"
      },
      {
-      "sku": "AK-0053"
+      "sku": "AK-0042"
      }
     ]
    },
-   "lines": [
-    {
-     "raw": "kis 7alib Klim el 750g",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "2 3elab dra 7elwe Al Wadi Al Akhdar",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "7elwe"
-     ],
-     "cand": [
-      "AK-0199"
-     ]
-    },
-    {
-     "raw": "zebde Plein Soleil (l 200g bala mel7)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": [
-      "AK-0053",
-      "AK-0193"
-     ]
-    }
-   ]
+   "lines": []
   },
   {
    "id": "g0030",
@@ -2920,7 +2922,7 @@
      "cand": []
     },
     {
-     "raw": "2 3elab dra 7elwe Al Wadi Al Akhdar",
+     "raw": "2 3elab dra 7elwe",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -2990,7 +2992,69 @@
       "7elwe"
      ],
      "cand": [
-      "AK-0193",
+      "AK-0199"
+     ]
+    },
+    {
+     "raw": "zebde Plein Soleil (l 200g bala mel7)",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": [
+      "AK-0053",
+      "AK-0193"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0030",
+   "text": "Marhaba, baddi kis 7alib Klim el 750g, 2 3elab dra 7elwe Al Wadi Al Akhdar, w zebde Plein Soleil (l 200g bala mel7). Merci ktir 🙏",
+   "expected": [
+    {
+     "sku": "AK-0076"
+    },
+    {
+     "sku": "AK-0199"
+    },
+    {
+     "sku": "AK-0053"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0076",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 1,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0199"
+     },
+     {
+      "sku": "AK-0053"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "kis 7alib Klim el 750g",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "2 3elab dra 7elwe Al Wadi Al Akhdar",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "7elwe"
+     ],
+     "cand": [
       "AK-0199"
      ]
     },
@@ -3151,128 +3215,6 @@
     },
     {
      "raw": "3elbet hommos Mamig's",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0035",
-   "text": "marhaba, baddi rabtet 5ebez Wooden Bakery el kbire (800g), w kartoneh may Tannourine el zghar 330ml (12 2annine), w 2 3elab sardine Maxbell. yslamo",
-   "expected": [
-    {
-     "sku": "AK-0081"
-    },
-    {
-     "sku": "AK-0105"
-    },
-    {
-     "sku": "AK-0194"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0105",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0194",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 2,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0081"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "rabtet 5ebez Wooden Bakery el kbire (800g)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "kbire"
-     ],
-     "cand": [
-      "AK-0081"
-     ]
-    },
-    {
-     "raw": "kartoneh may Tannourine el zghar 330ml (12 2annine)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "2 3elab sardine Maxbell",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0035",
-   "text": "marhaba, baddi rabtet 5ebez Wooden Bakery el kbire (800g), w kartoneh may Tannourine el zghar 330ml (12 2annine), w 2 3elab sardine Maxbell. yslamo",
-   "expected": [
-    {
-     "sku": "AK-0081"
-    },
-    {
-     "sku": "AK-0105"
-    },
-    {
-     "sku": "AK-0194"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0105",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0194",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 2,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0081"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "rabtet 5ebez Wooden Bakery el kbire (800g)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "kbire"
-     ],
-     "cand": [
-      "AK-0081"
-     ]
-    },
-    {
-     "raw": "kartoneh may Tannourine el zghar 330ml (12 2annine)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "2 3elab sardine Maxbell",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -3480,8 +3422,10 @@
     {
      "raw": "ennine Nejmeh 2 litre",
      "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
+     "via": "pack_raw",
+     "unexplained": [
+      "ennine"
+     ],
      "cand": []
     },
     {
@@ -3555,8 +3499,10 @@
     {
      "raw": "ennine Nejmeh 2 litre",
      "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
+     "via": "pack_raw",
+     "unexplained": [
+      "ennine"
+     ],
      "cand": []
     },
     {
@@ -3569,26 +3515,465 @@
    ]
   },
   {
-   "id": "g0039",
-   "text": "marhaba, baddi kis khebz tannour el 3asser el light (mish taba3 el oat), 2 spaghetti divella n8 w 2anninet zeit Lina el zghire. merci",
+   "id": "g0040",
+   "text": "Marhaba, baddi nos kilo sadr 7abash Sant Dalmai w ninnet zeit Plein Soleil l 5 litre please",
    "expected": [
     {
-     "sku": "AK-0088"
+     "sku": "AK-0091"
     },
     {
-     "sku": "AK-0181"
+     "sku": "AK-0213"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0091"
+     },
+     {
+      "sku": "AK-0213"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "nos kilo sadr 7abash Sant Dalmai",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sadr"
+     ],
+     "cand": [
+      "AK-0091"
+     ]
     },
     {
-     "sku": "AK-0216"
+     "raw": "ninnet zeit Plein Soleil l 5 litre",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "ninnet"
+     ],
+     "cand": [
+      "AK-0213"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0040",
+   "text": "Marhaba, baddi nos kilo sadr 7abash Sant Dalmai w ninnet zeit Plein Soleil l 5 litre please",
+   "expected": [
+    {
+     "sku": "AK-0091"
+    },
+    {
+     "sku": "AK-0213"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0091"
+     },
+     {
+      "sku": "AK-0213"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "nos kilo sadr 7abash Sant Dalmai",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sadr"
+     ],
+     "cand": [
+      "AK-0091"
+     ]
+    },
+    {
+     "raw": "ninnet zeit Plein Soleil l 5 litre",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "ninnet"
+     ],
+     "cand": [
+      "AK-0213"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0040",
+   "text": "Marhaba, baddi nos kilo sadr 7abash Sant Dalmai w ninnet zeit Plein Soleil l 5 litre please",
+   "expected": [
+    {
+     "sku": "AK-0091"
+    },
+    {
+     "sku": "AK-0213"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0091"
+     },
+     {
+      "sku": "AK-0213"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "nos kilo sadr 7abash Sant Dalmai",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sadr"
+     ],
+     "cand": [
+      "AK-0091"
+     ]
+    },
+    {
+     "raw": "ninnet zeit Plein Soleil l 5 litre",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "ninnet"
+     ],
+     "cand": [
+      "AK-0213"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0041",
+   "text": "marhaba, baddi mortadella Tanmia sada (bala zaytoun), 2 7alib Candia lait entier el litre, 3 3asir Candia fruits rouges el z8ar, w Tiffany Break 3 fingers. merci ktir 🙏",
+   "expected": [
+    {
+     "sku": "AK-0095"
+    },
+    {
+     "sku": "AK-0067"
+    },
+    {
+     "sku": "AK-0120"
+    },
+    {
+     "sku": "AK-0150"
     }
    ],
    "got": [
     {
-     "sku": "AK-0181",
+     "sku": "AK-0067",
      "assumed": false
     },
     {
-     "sku": "AK-0216",
+     "sku": "AK-0120",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0150",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 3,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0095"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "mortadella Tanmia sada (bala zaytoun)",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sada"
+     ],
+     "cand": [
+      "AK-0095"
+     ]
+    },
+    {
+     "raw": "2 7alib Candia lait entier el litre",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "3 3asir Candia fruits rouges el z8ar",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "z8ar"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "Tiffany Break 3 fingers",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0041",
+   "text": "marhaba, baddi mortadella Tanmia sada (bala zaytoun), 2 7alib Candia lait entier el litre, 3 3asir Candia fruits rouges el z8ar, w Tiffany Break 3 fingers. merci ktir 🙏",
+   "expected": [
+    {
+     "sku": "AK-0095"
+    },
+    {
+     "sku": "AK-0067"
+    },
+    {
+     "sku": "AK-0120"
+    },
+    {
+     "sku": "AK-0150"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0067",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0120",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0150",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 3,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0095"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "mortadella Tanmia sada (bala zaytoun)",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sada"
+     ],
+     "cand": [
+      "AK-0095"
+     ]
+    },
+    {
+     "raw": "2 7alib Candia lait entier el litre",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "3 3asir Candia fruits rouges el z8ar",
+     "status": "matched",
+     "via": "pack_query",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "Tiffany Break 3 fingers",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0041",
+   "text": "marhaba, baddi mortadella Tanmia sada (bala zaytoun), 2 7alib Candia lait entier el litre, 3 3asir Candia fruits rouges el z8ar, w Tiffany Break 3 fingers. merci ktir 🙏",
+   "expected": [
+    {
+     "sku": "AK-0095"
+    },
+    {
+     "sku": "AK-0067"
+    },
+    {
+     "sku": "AK-0120"
+    },
+    {
+     "sku": "AK-0150"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0067",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0120",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0150",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 3,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0095"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "mortadella Tanmia sada (bala zaytoun)",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sada"
+     ],
+     "cand": [
+      "AK-0095"
+     ]
+    },
+    {
+     "raw": "2 7alib Candia lait entier el litre",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "3 3asir Candia fruits rouges el z8ar",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "z8ar"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "Tiffany Break 3 fingers",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0042",
+   "text": "marhaba, baddi mortadella Tanmia sade (bala zaytoun), kis khebz Tannour el Asser bel shoufan (oat) el kbir, w 2 3elab hommos 7abb msalla2 men Chtoura Garden. merci ktir",
+   "expected": [
+    {
+     "sku": "AK-0095"
+    },
+    {
+     "sku": "AK-0089"
+    },
+    {
+     "sku": "AK-0200"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0095",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 1,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0089"
+     },
+     {
+      "sku": "AK-0200"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "baddi mortadella Tanmia sade (bala zaytoun)",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "kis khebz Tannour el Asser bel shoufan (oat) el kbir",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "kbir"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "2 3elab hommos 7abb msalla2 men Chtoura Garden",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "7abb",
+      "msalla2"
+     ],
+     "cand": [
+      "AK-0200"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0042",
+   "text": "marhaba, baddi mortadella Tanmia sade (bala zaytoun), kis khebz Tannour el Asser bel shoufan (oat) el kbir, w 2 3elab hommos 7abb msalla2 men Chtoura Garden. merci ktir",
+   "expected": [
+    {
+     "sku": "AK-0095"
+    },
+    {
+     "sku": "AK-0089"
+    },
+    {
+     "sku": "AK-0200"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0095",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0200",
      "assumed": false
     }
    ],
@@ -3597,540 +3982,33 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0088"
+      "sku": "AK-0089"
      }
     ]
    },
    "lines": [
     {
-     "raw": "kis khebz tannour el 3asser el light (mish taba3 el oat)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "khebz",
-      "3asser"
-     ],
-     "cand": [
-      "AK-0088"
-     ]
-    },
-    {
-     "raw": "2 spaghetti divella n8",
+     "raw": "mortadella Tanmia sade (bala zaytoun)",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
      "cand": []
     },
     {
-     "raw": "2anninet zeit Lina el zghire",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "zghire"
-     ],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0040",
-   "text": "Marhaba, baddi nos kilo sadr 7abash Sant Dalmai w ninnet zeit Plein Soleil l 5 litre please",
-   "expected": [
-    {
-     "sku": "AK-0091"
-    },
-    {
-     "sku": "AK-0213"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0213",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 1,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0091"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "nos kilo sadr 7abash Sant Dalmai",
+     "raw": "kis khebz Tannour el Asser bel shoufan (oat) el kbir",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "sadr"
+      "kbir"
      ],
-     "cand": [
-      "AK-0091"
-     ]
+     "cand": []
     },
     {
-     "raw": "ninnet zeit Plein Soleil l 5 litre",
+     "raw": "2 3elab hommos 7abb msalla2 men Chtoura Garden",
      "status": "matched",
      "via": "pack_query",
      "unexplained": [],
      "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0040",
-   "text": "Marhaba, baddi nos kilo sadr 7abash Sant Dalmai w ninnet zeit Plein Soleil l 5 litre please",
-   "expected": [
-    {
-     "sku": "AK-0091"
-    },
-    {
-     "sku": "AK-0213"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0091"
-     },
-     {
-      "sku": "AK-0213"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "nos kilo sadr 7abash Sant Dalmai",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "sadr"
-     ],
-     "cand": [
-      "AK-0091"
-     ]
-    },
-    {
-     "raw": "ninnet zeit Plein Soleil l 5 litre",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "ninnet"
-     ],
-     "cand": [
-      "AK-0213"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0040",
-   "text": "Marhaba, baddi nos kilo sadr 7abash Sant Dalmai w ninnet zeit Plein Soleil l 5 litre please",
-   "expected": [
-    {
-     "sku": "AK-0091"
-    },
-    {
-     "sku": "AK-0213"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0091"
-     },
-     {
-      "sku": "AK-0213"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "nos kilo sadr 7abash Sant Dalmai",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "sadr"
-     ],
-     "cand": [
-      "AK-0091"
-     ]
-    },
-    {
-     "raw": "ninnet zeit Plein Soleil l 5 litre",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "ninnet"
-     ],
-     "cand": [
-      "AK-0213"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0041",
-   "text": "marhaba, baddi mortadella Tanmia sada (bala zaytoun), 2 7alib Candia lait entier el litre, 3 3asir Candia fruits rouges el z8ar, w Tiffany Break 3 fingers. merci ktir 🙏",
-   "expected": [
-    {
-     "sku": "AK-0095"
-    },
-    {
-     "sku": "AK-0067"
-    },
-    {
-     "sku": "AK-0120"
-    },
-    {
-     "sku": "AK-0150"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0067",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0120",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0150",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 3,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0095"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "mortadella Tanmia sada (bala zaytoun)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "sada"
-     ],
-     "cand": [
-      "AK-0095"
-     ]
-    },
-    {
-     "raw": "2 7alib Candia lait entier el litre",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "3 3asir Candia fruits rouges el z8ar",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "z8ar"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "Tiffany Break 3 fingers",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0041",
-   "text": "marhaba, baddi mortadella Tanmia sada (bala zaytoun), 2 7alib Candia lait entier el litre, 3 3asir Candia fruits rouges el z8ar, w Tiffany Break 3 fingers. merci ktir 🙏",
-   "expected": [
-    {
-     "sku": "AK-0095"
-    },
-    {
-     "sku": "AK-0067"
-    },
-    {
-     "sku": "AK-0120"
-    },
-    {
-     "sku": "AK-0150"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0067",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0120",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0150",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 3,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0095"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "mortadella Tanmia sada (bala zaytoun)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "sada"
-     ],
-     "cand": [
-      "AK-0095"
-     ]
-    },
-    {
-     "raw": "2 7alib Candia lait entier el litre",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "3 3asir Candia fruits rouges el z8ar",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "z8ar"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "Tiffany Break 3 fingers",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0041",
-   "text": "marhaba, baddi mortadella Tanmia sada (bala zaytoun), 2 7alib Candia lait entier el litre, 3 3asir Candia fruits rouges el z8ar, w Tiffany Break 3 fingers. merci ktir 🙏",
-   "expected": [
-    {
-     "sku": "AK-0095"
-    },
-    {
-     "sku": "AK-0067"
-    },
-    {
-     "sku": "AK-0120"
-    },
-    {
-     "sku": "AK-0150"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0067",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0120",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0150",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 3,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0095"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "mortadella Tanmia sada (bala zaytoun)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "sada"
-     ],
-     "cand": [
-      "AK-0095"
-     ]
-    },
-    {
-     "raw": "2 7alib Candia lait entier el litre",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "3 3asir Candia fruits rouges el z8ar",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "z8ar"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "Tiffany Break 3 fingers",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0042",
-   "text": "marhaba, baddi mortadella Tanmia sade (bala zaytoun), kis khebz Tannour el Asser bel shoufan (oat) el kbir, w 2 3elab hommos 7abb msalla2 men Chtoura Garden. merci ktir",
-   "expected": [
-    {
-     "sku": "AK-0095"
-    },
-    {
-     "sku": "AK-0089"
-    },
-    {
-     "sku": "AK-0200"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0095",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 1,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0089"
-     },
-     {
-      "sku": "AK-0200"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "baddi mortadella Tanmia sade (bala zaytoun)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "kis khebz Tannour el Asser bel shoufan (oat) el kbir",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "kbir"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "2 3elab hommos 7abb msalla2 men Chtoura Garden",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "7abb",
-      "msalla2"
-     ],
-     "cand": [
-      "AK-0200"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0042",
-   "text": "marhaba, baddi mortadella Tanmia sade (bala zaytoun), kis khebz Tannour el Asser bel shoufan (oat) el kbir, w 2 3elab hommos 7abb msalla2 men Chtoura Garden. merci ktir",
-   "expected": [
-    {
-     "sku": "AK-0095"
-    },
-    {
-     "sku": "AK-0089"
-    },
-    {
-     "sku": "AK-0200"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0095",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 1,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0089"
-     },
-     {
-      "sku": "AK-0200"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "baddi mortadella Tanmia sade (bala zaytoun)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "kis khebz Tannour el Asser bel shoufan (oat) el kbir",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "kbir"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "2 3elab hommos 7abb msalla2 men Chtoura Garden",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "7abb",
-      "msalla2"
-     ],
-     "cand": [
-      "AK-0200"
-     ]
     }
    ]
   },
@@ -4564,7 +4442,7 @@
    },
    "lines": [
     {
-     "raw": "علبة توم حاضر من Mamig's (الـ200 غرام، مش الحمص)",
+     "raw": "بدي علبة توم حاضر من Mamig's (الـ200 غرام، مش الحمص)",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -4779,18 +4657,17 @@
      "assumed": false
     },
     {
-     "sku": "AK-0026",
-     "assumed": false
-    },
-    {
      "sku": "AK-0021",
      "assumed": false
     }
    ],
    "score": {
-    "tp": 3,
+    "tp": 2,
     "wrong": [],
     "missed": [
+     {
+      "sku": "AK-0026"
+     },
      {
       "sku": "AK-0199"
      }
@@ -4806,10 +4683,16 @@
     },
     {
      "raw": "nos kilo la7meh mefroumeh 5echneh (msh na3meh)",
-     "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
-     "cand": []
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "mefroumeh",
+      "5echneh"
+     ],
+     "cand": [
+      "AK-0026",
+      "AK-0030"
+     ]
     },
     {
      "raw": "2 3elab dorra Al Wadi Al Akhdar",
@@ -5202,8 +5085,11 @@
     {
      "raw": "ekyes sandwich City Plast (l 100 we7de)",
      "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
+     "via": "pack_raw",
+     "unexplained": [
+      "ekyes",
+      "we7de"
+     ],
      "cand": []
     },
     {
@@ -5467,44 +5353,6 @@
    "lines": []
   },
   {
-   "id": "g0055",
-   "text": "Bonjour 😊 baddi 3 Candia jus fruits rouges el z8ar, kilo burghul 5echen, kis fkhed djej Tanmia el 900g, w 2 mortadella Al Mouna ma3 zaytoun please. Merci!",
-   "expected": [
-    {
-     "sku": "AK-0120"
-    },
-    {
-     "sku": "AK-0190"
-    },
-    {
-     "sku": "AK-0034"
-    },
-    {
-     "sku": "AK-0093"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0120"
-     },
-     {
-      "sku": "AK-0190"
-     },
-     {
-      "sku": "AK-0034"
-     },
-     {
-      "sku": "AK-0093"
-     }
-    ]
-   },
-   "lines": []
-  },
-  {
    "id": "g0056",
    "text": "Bonsoir, baddi 2 Candia jus fruits rouges l z8ar (180ml) w 3 Lipton ice tea tropical zero sugar, l canette 320ml. Merci ktir",
    "expected": [
@@ -5628,7 +5476,7 @@
    },
    "lines": [
     {
-     "raw": "baddi 2 Candia jus fruits rouges l z8ar (180ml)",
+     "raw": "2 Candia jus fruits rouges l z8ar (180ml)",
      "status": "ambiguous",
      "via": "pack_query",
      "unexplained": [],
@@ -5650,44 +5498,6 @@
      ]
     }
    ]
-  },
-  {
-   "id": "g0057",
-   "text": "Marhaba, baddi 2 7up 2zezet el zghar 330ml, kis Castania fosto2 (peanuts) zghir, Private pads extra thin normal mish taba3 el leil (el 10 pieces), w 3elbet 7ommos bi tahini Cortas 400g. Merci ktir",
-   "expected": [
-    {
-     "sku": "AK-0121"
-    },
-    {
-     "sku": "AK-0169"
-    },
-    {
-     "sku": "AK-0271"
-    },
-    {
-     "sku": "AK-0198"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0121"
-     },
-     {
-      "sku": "AK-0169"
-     },
-     {
-      "sku": "AK-0271"
-     },
-     {
-      "sku": "AK-0198"
-     }
-    ]
-   },
-   "lines": []
   },
   {
    "id": "g0057",
@@ -5818,6 +5628,85 @@
      "unexplained": [
       "2zezet"
      ],
+     "cand": []
+    },
+    {
+     "raw": "kis Castania fosto2 (peanuts) zghir",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "fosto2",
+      "zghir"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "Private pads extra thin normal mish taba3 el leil (el 10 pieces)",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "3elbet 7ommos bi tahini Cortas 400g",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "bi",
+      "tahini"
+     ],
+     "cand": [
+      "AK-0198"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0057",
+   "text": "Marhaba, baddi 2 7up 2zezet el zghar 330ml, kis Castania fosto2 (peanuts) zghir, Private pads extra thin normal mish taba3 el leil (el 10 pieces), w 3elbet 7ommos bi tahini Cortas 400g. Merci ktir",
+   "expected": [
+    {
+     "sku": "AK-0121"
+    },
+    {
+     "sku": "AK-0169"
+    },
+    {
+     "sku": "AK-0271"
+    },
+    {
+     "sku": "AK-0198"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0121",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0169",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0271",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 3,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0198"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 7up 2zezet el zghar 330ml",
+     "status": "matched",
+     "via": "pack_query",
+     "unexplained": [],
      "cand": []
     },
     {
@@ -6300,23 +6189,54 @@
      "sku": "AK-0200"
     }
    ],
-   "got": [],
+   "got": [
+    {
+     "sku": "AK-0007",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0127",
+     "assumed": false
+    }
+   ],
    "score": {
-    "tp": 0,
+    "tp": 2,
     "wrong": [],
     "missed": [
-     {
-      "sku": "AK-0127"
-     },
-     {
-      "sku": "AK-0007"
-     },
      {
       "sku": "AK-0200"
      }
     ]
    },
-   "lines": []
+   "lines": [
+    {
+     "raw": "2 kilo kousa",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "enniné Uno mango 1 litre",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "enniné"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "3elbe 7ommos 7abb msalla2 men Chtoura Garden",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "7abb"
+     ],
+     "cand": [
+      "AK-0200"
+     ]
+    }
+   ]
   },
   {
    "id": "g0062",
@@ -6445,7 +6365,7 @@
      "cand": []
     },
     {
-     "raw": "nutella el zghire 350g",
+     "raw": "nutella el zghire 350g mesh el 750",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -6516,7 +6436,7 @@
      "cand": []
     },
     {
-     "raw": "nutella el zghire 350g",
+     "raw": "nutella el zghire 350g mesh el 750",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -6791,26 +6711,172 @@
      "sku": "AK-0250"
     }
    ],
-   "got": [],
+   "got": [
+    {
+     "sku": "AK-0142",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0237",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0250",
+     "assumed": false
+    }
+   ],
    "score": {
-    "tp": 0,
+    "tp": 3,
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0142"
-     },
-     {
       "sku": "AK-0180"
-     },
-     {
-      "sku": "AK-0237"
-     },
-     {
-      "sku": "AK-0250"
      }
     ]
    },
-   "lines": []
+   "lines": [
+    {
+     "raw": "3elbet Lipton yellow label l zghire (l 25 kis msh l 100)",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "yellow",
+      "label"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "2 kis 3adas a7mar majrou7 Deroni l vacuum 900g",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "majrou7",
+      "vacuum"
+     ],
+     "cand": [
+      "AK-0180"
+     ]
+    },
+    {
+     "raw": "kis bazella",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": [
+      "AK-0235",
+      "AK-0237"
+     ]
+    },
+    {
+     "raw": "jazar Plein Soleil frozen",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "jazar",
+      "frozen"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "Perla interfold mehrem bi2ad",
+     "status": "matched",
+     "via": "pack_query",
+     "unexplained": [],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0065",
+   "text": "Marhaba, baddi 3elbet Lipton yellow label l zghire (l 25 kis msh l 100), 2 kis 3adas a7mar majrou7 Deroni l vacuum 900g, kis bazella w jazar Plein Soleil frozen, w Perla interfold mehrem bi2ad. Yslamo",
+   "expected": [
+    {
+     "sku": "AK-0142"
+    },
+    {
+     "sku": "AK-0180"
+    },
+    {
+     "sku": "AK-0237"
+    },
+    {
+     "sku": "AK-0250"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0142",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0237",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0250",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 3,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0180"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "3elbet Lipton yellow label l zghire (l 25 kis msh l 100)",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "yellow",
+      "label"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "2 kis 3adas a7mar majrou7 Deroni l vacuum 900g",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "majrou7",
+      "vacuum"
+     ],
+     "cand": [
+      "AK-0180"
+     ]
+    },
+    {
+     "raw": "kis bazella",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": [
+      "AK-0235",
+      "AK-0237"
+     ]
+    },
+    {
+     "raw": "jazar Plein Soleil frozen",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "jazar",
+      "frozen"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "Perla interfold mehrem bi2ad",
+     "status": "matched",
+     "via": "pack_query",
+     "unexplained": [],
+     "cand": []
+    }
+   ]
   },
   {
    "id": "g0065",
@@ -6908,99 +6974,6 @@
    ]
   },
   {
-   "id": "g0065",
-   "text": "Marhaba, baddi 3elbet Lipton yellow label l zghire (l 25 kis msh l 100), 2 kis 3adas a7mar majrou7 Deroni l vacuum 900g, kis bazella w jazar Plein Soleil frozen, w Perla interfold mehrem bi2ad. Yslamo",
-   "expected": [
-    {
-     "sku": "AK-0142"
-    },
-    {
-     "sku": "AK-0180"
-    },
-    {
-     "sku": "AK-0237"
-    },
-    {
-     "sku": "AK-0250"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0142",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0250",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 2,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0180"
-     },
-     {
-      "sku": "AK-0237"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "3elbet Lipton yellow label l zghire (l 25 kis msh l 100)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "yellow",
-      "label"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "2 kis 3adas a7mar majrou7 Deroni l vacuum 900g",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "majrou7",
-      "vacuum"
-     ],
-     "cand": [
-      "AK-0180"
-     ]
-    },
-    {
-     "raw": "kis bazella w jazar Plein Soleil frozen",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "frozen"
-     ],
-     "cand": [
-      "AK-0237"
-     ]
-    },
-    {
-     "raw": "kis bazella w jazar Plein Soleil frozen",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "frozen"
-     ],
-     "cand": [
-      "AK-0237"
-     ]
-    },
-    {
-     "raw": "Perla interfold mehrem bi2ad",
-     "status": "matched",
-     "via": "pack_query",
-     "unexplained": [],
-     "cand": []
-    }
-   ]
-  },
-  {
    "id": "g0066",
    "text": "Marhaba, baddi kinder maxi barre (el wa7de el tawile mesh el tronky), ras zahra, 2 kilo leymoun lal 3asir, w 3elbet ma3joun banadoura Yamama el zghire 660g. Merci",
    "expected": [
@@ -7971,7 +7944,7 @@
      ]
     },
     {
-     "raw": "zebde Lurpak 200g",
+     "raw": "zebde Lurpak 200g bala meli7",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -8111,6 +8084,142 @@
       "AK-0026",
       "AK-0030"
      ]
+    },
+    {
+     "raw": "3elbet dob2 banadoura Yamama l zghireh (660g)",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "dob2",
+      "banadoura",
+      "zghireh"
+     ],
+     "cand": [
+      "AK-0210"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0074",
+   "text": "Marhaba, baddi 2 Maggi cubes 3a djej, nos kilo la7meh mafroumeh khishneh mich na3meh, w 3elbet dob2 banadoura Yamama l zghireh (660g). Merci kteer",
+   "expected": [
+    {
+     "sku": "AK-0172"
+    },
+    {
+     "sku": "AK-0026"
+    },
+    {
+     "sku": "AK-0210"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0172",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 1,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0026"
+     },
+     {
+      "sku": "AK-0210"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 Maggi cubes 3a djej",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "cubes"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "nos kilo la7meh mafroumeh khishneh mich na3meh",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "khishneh",
+      "mich",
+      "na3meh"
+     ],
+     "cand": [
+      "AK-0026",
+      "AK-0030"
+     ]
+    },
+    {
+     "raw": "3elbet dob2 banadoura Yamama l zghireh (660g)",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "dob2",
+      "banadoura",
+      "zghireh"
+     ],
+     "cand": [
+      "AK-0210"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0074",
+   "text": "Marhaba, baddi 2 Maggi cubes 3a djej, nos kilo la7meh mafroumeh khishneh mich na3meh, w 3elbet dob2 banadoura Yamama l zghireh (660g). Merci kteer",
+   "expected": [
+    {
+     "sku": "AK-0172"
+    },
+    {
+     "sku": "AK-0026"
+    },
+    {
+     "sku": "AK-0210"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0172",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0026",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 2,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0210"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 Maggi cubes 3a djej",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "cubes"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "nos kilo la7meh mafroumeh khishneh mich na3meh",
+     "status": "matched",
+     "via": "pack_query",
+     "unexplained": [],
+     "cand": []
     },
     {
      "raw": "dob2 banadoura Yamama l zghireh (660g)",
@@ -8124,314 +8233,6 @@
      "cand": [
       "AK-0210"
      ]
-    }
-   ]
-  },
-  {
-   "id": "g0074",
-   "text": "Marhaba, baddi 2 Maggi cubes 3a djej, nos kilo la7meh mafroumeh khishneh mich na3meh, w 3elbet dob2 banadoura Yamama l zghireh (660g). Merci kteer",
-   "expected": [
-    {
-     "sku": "AK-0172"
-    },
-    {
-     "sku": "AK-0026"
-    },
-    {
-     "sku": "AK-0210"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0172",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 1,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0026"
-     },
-     {
-      "sku": "AK-0210"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "2 Maggi cubes 3a djej",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "cubes"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "nos kilo la7meh mafroumeh khishneh mich na3meh",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "khishneh",
-      "mich",
-      "na3meh"
-     ],
-     "cand": [
-      "AK-0026",
-      "AK-0030"
-     ]
-    },
-    {
-     "raw": "3elbet dob2 banadoura Yamama l zghireh (660g)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "dob2",
-      "banadoura",
-      "zghireh"
-     ],
-     "cand": [
-      "AK-0210"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0074",
-   "text": "Marhaba, baddi 2 Maggi cubes 3a djej, nos kilo la7meh mafroumeh khishneh mich na3meh, w 3elbet dob2 banadoura Yamama l zghireh (660g). Merci kteer",
-   "expected": [
-    {
-     "sku": "AK-0172"
-    },
-    {
-     "sku": "AK-0026"
-    },
-    {
-     "sku": "AK-0210"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0172",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 1,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0026"
-     },
-     {
-      "sku": "AK-0210"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "2 Maggi cubes 3a djej",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "cubes"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "nos kilo la7meh mafroumeh khishneh mich na3meh",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "khishneh",
-      "mich",
-      "na3meh"
-     ],
-     "cand": [
-      "AK-0026",
-      "AK-0030"
-     ]
-    },
-    {
-     "raw": "3elbet dob2 banadoura Yamama l zghireh (660g)",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "dob2",
-      "banadoura",
-      "zghireh"
-     ],
-     "cand": [
-      "AK-0210"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0075",
-   "text": "Marhaba, baddi 2 Maggi cubes djej (msh el la7meh), kilo fleifle khadra 7elwe, 3 Miglior lal bsayne agnello, el tray el zghir 100g msh el 3elbe el kbire, w saboune Dove el original. Merci ktir",
-   "expected": [
-    {
-     "sku": "AK-0172"
-    },
-    {
-     "sku": "AK-0013"
-    },
-    {
-     "sku": "AK-0290"
-    },
-    {
-     "sku": "AK-0276"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0172",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0276",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 2,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0013"
-     },
-     {
-      "sku": "AK-0290"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "2 Maggi cubes djej (msh el la7meh)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "cubes"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "kilo fleifle khadra 7elwe",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "khadra",
-      "7elwe"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "3 Miglior lal bsayne agnello, el tray el zghir 100g msh el 3elbe el kbire",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "bsayne",
-      "agnello",
-      "zghir"
-     ],
-     "cand": [
-      "AK-0290"
-     ]
-    },
-    {
-     "raw": "saboune Dove el original",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "saboune"
-     ],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0075",
-   "text": "Marhaba, baddi 2 Maggi cubes djej (msh el la7meh), kilo fleifle khadra 7elwe, 3 Miglior lal bsayne agnello, el tray el zghir 100g msh el 3elbe el kbire, w saboune Dove el original. Merci ktir",
-   "expected": [
-    {
-     "sku": "AK-0172"
-    },
-    {
-     "sku": "AK-0013"
-    },
-    {
-     "sku": "AK-0290"
-    },
-    {
-     "sku": "AK-0276"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0172",
-     "assumed": false
-    },
-    {
-     "sku": "AK-0276",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 2,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0013"
-     },
-     {
-      "sku": "AK-0290"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "2 Maggi cubes djej (msh el la7meh)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "cubes"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "kilo fleifle khadra 7elwe",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "khadra",
-      "7elwe"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "3 Miglior lal bsayne agnello, el tray el zghir 100g msh el 3elbe el kbire",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "bsayne",
-      "agnello",
-      "zghir"
-     ],
-     "cand": [
-      "AK-0290"
-     ]
-    },
-    {
-     "raw": "saboune Dove el original",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "saboune"
-     ],
-     "cand": []
     }
    ]
   },
@@ -8496,6 +8297,85 @@
      "cand": []
     },
     {
+     "raw": "3 Miglior lal bsayne agnello, el tray el zghir 100g msh el 3elbe el kbire",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "bsayne",
+      "agnello",
+      "zghir"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "saboune Dove el original",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "saboune"
+     ],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0075",
+   "text": "Marhaba, baddi 2 Maggi cubes djej (msh el la7meh), kilo fleifle khadra 7elwe, 3 Miglior lal bsayne agnello, el tray el zghir 100g msh el 3elbe el kbire, w saboune Dove el original. Merci ktir",
+   "expected": [
+    {
+     "sku": "AK-0172"
+    },
+    {
+     "sku": "AK-0013"
+    },
+    {
+     "sku": "AK-0290"
+    },
+    {
+     "sku": "AK-0276"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0172",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0290",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0276",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 3,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0013"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 Maggi cubes djej",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "cubes"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "kilo fleifle khadra 7elwe",
+     "status": "ambiguous",
+     "via": "pack_query",
+     "unexplained": [],
+     "cand": []
+    },
+    {
      "raw": "3 Miglior lal bsayne agnello",
      "status": "matched",
      "via": "pack_raw",
@@ -8504,6 +8384,86 @@
       "agnello"
      ],
      "cand": []
+    },
+    {
+     "raw": "saboune Dove el original",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "saboune"
+     ],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0075",
+   "text": "Marhaba, baddi 2 Maggi cubes djej (msh el la7meh), kilo fleifle khadra 7elwe, 3 Miglior lal bsayne agnello, el tray el zghir 100g msh el 3elbe el kbire, w saboune Dove el original. Merci ktir",
+   "expected": [
+    {
+     "sku": "AK-0172"
+    },
+    {
+     "sku": "AK-0013"
+    },
+    {
+     "sku": "AK-0290"
+    },
+    {
+     "sku": "AK-0276"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0172",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0276",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 2,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0013"
+     },
+     {
+      "sku": "AK-0290"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 Maggi cubes djej (msh el la7meh)",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "cubes"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "kilo fleifle khadra 7elwe",
+     "status": "ambiguous",
+     "via": "pack_query",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "3 Miglior lal bsayne agnello, el tray el zghir 100g msh el 3elbe el kbire",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "bsayne",
+      "agnello",
+      "zghir"
+     ],
+     "cand": [
+      "AK-0290"
+     ]
     },
     {
      "raw": "saboune Dove el original",
@@ -9053,6 +9013,10 @@
    ],
    "got": [
     {
+     "sku": "AK-0105",
+     "assumed": false
+    },
+    {
      "sku": "AK-0128",
      "assumed": false
     },
@@ -9062,14 +9026,11 @@
     }
    ],
    "score": {
-    "tp": 2,
+    "tp": 3,
     "wrong": [],
     "missed": [
      {
       "sku": "AK-0186"
-     },
-     {
-      "sku": "AK-0105"
      }
     ]
    },
@@ -9085,15 +9046,13 @@
     },
     {
      "raw": "sharwal mayy Tannourine el zghar 330ml (el 12)",
-     "status": "ambiguous",
+     "status": "matched",
      "via": "pack_raw",
      "unexplained": [
       "sharwal",
       "zghar"
      ],
-     "cand": [
-      "AK-0105"
-     ]
+     "cand": []
     },
     {
      "raw": "2 Joocyz 3asir teffe7 1 litre",
@@ -9112,146 +9071,217 @@
    ]
   },
   {
-   "id": "g0083",
-   "text": "Marhaba, baddi 2 3elab dra Prime (sweet corn) w 6 Pepsi canette 330ml, 3adiye mesh diet. Merci!",
+   "id": "g0080",
+   "text": "Marhaba, baddi 3elbet nacha Domo (corn flour) l zghire, 2 Miglior lal bsayne l alutray 100g ta3et l agnello (5aroof) mish l pate l kbire, w nos kilo 2ashkawen Kavallos. Merci 🙏",
    "expected": [
     {
-     "sku": "AK-0191"
+     "sku": "AK-0187"
     },
     {
-     "sku": "AK-0117"
+     "sku": "AK-0290"
+    },
+    {
+     "sku": "AK-0043"
     }
    ],
    "got": [
     {
-     "sku": "AK-0191",
+     "sku": "AK-0290",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0043",
      "assumed": false
     }
    ],
    "score": {
-    "tp": 1,
+    "tp": 2,
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0117"
+      "sku": "AK-0187"
      }
     ]
    },
    "lines": [
     {
-     "raw": "2 3elab dra Prime (sweet corn)",
+     "raw": "Domo (corn flour) l zghire",
+     "status": "ambiguous",
+     "via": "pack_query",
+     "unexplained": [],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0187",
+      "AK-0224",
+      "AK-0225"
+     ]
+    },
+    {
+     "raw": "2 Miglior lal bsayne l alutray 100g ta3et l agnello (5aroof) mish l pate l kbire",
      "status": "matched",
      "via": "pack_raw",
-     "unexplained": [],
+     "unexplained": [
+      "bsayne",
+      "ta3et",
+      "agnello",
+      "5aroof"
+     ],
      "cand": []
     },
     {
-     "raw": "6 Pepsi canette 330ml, 3adiye mesh diet",
-     "status": "ambiguous",
+     "raw": "nos kilo 2ashkawen Kavallos",
+     "status": "matched",
      "via": "pack_raw",
      "unexplained": [
-      "3adiye"
+      "2ashkawen"
      ],
-     "b4": "same_brand_other_kind",
-     "cand": [
-      "AK-0117"
-     ]
+     "cand": []
     }
    ]
   },
   {
-   "id": "g0083",
-   "text": "Marhaba, baddi 2 3elab dra Prime (sweet corn) w 6 Pepsi canette 330ml, 3adiye mesh diet. Merci!",
+   "id": "g0080",
+   "text": "Marhaba, baddi 3elbet nacha Domo (corn flour) l zghire, 2 Miglior lal bsayne l alutray 100g ta3et l agnello (5aroof) mish l pate l kbire, w nos kilo 2ashkawen Kavallos. Merci 🙏",
    "expected": [
     {
-     "sku": "AK-0191"
+     "sku": "AK-0187"
     },
     {
-     "sku": "AK-0117"
+     "sku": "AK-0290"
+    },
+    {
+     "sku": "AK-0043"
     }
    ],
    "got": [
     {
-     "sku": "AK-0191",
+     "sku": "AK-0290",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0043",
      "assumed": false
     }
    ],
    "score": {
-    "tp": 1,
+    "tp": 2,
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0117"
+      "sku": "AK-0187"
      }
     ]
    },
    "lines": [
     {
-     "raw": "2 3elab dra Prime (sweet corn)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "6 Pepsi canette 330ml, 3adiye mesh diet",
+     "raw": "Domo (corn flour) l zghire",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "3adiye"
+      "zghire"
      ],
-     "b4": "same_brand_other_kind",
+     "b4": "size_not_its_own",
      "cand": [
-      "AK-0117"
+      "AK-0187",
+      "AK-0224",
+      "AK-0225"
      ]
+    },
+    {
+     "raw": "2 Miglior lal bsayne l alutray 100g",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "bsayne"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "ta3et l agnello (5aroof) mish l pate l kbire",
+     "status": "not_found",
+     "via": "legacy",
+     "unexplained": null,
+     "cand": []
+    },
+    {
+     "raw": "nos kilo 2ashkawen Kavallos",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "2ashkawen"
+     ],
+     "cand": []
     }
    ]
   },
   {
-   "id": "g0083",
-   "text": "Marhaba, baddi 2 3elab dra Prime (sweet corn) w 6 Pepsi canette 330ml, 3adiye mesh diet. Merci!",
+   "id": "g0080",
+   "text": "Marhaba, baddi 3elbet nacha Domo (corn flour) l zghire, 2 Miglior lal bsayne l alutray 100g ta3et l agnello (5aroof) mish l pate l kbire, w nos kilo 2ashkawen Kavallos. Merci 🙏",
    "expected": [
     {
-     "sku": "AK-0191"
+     "sku": "AK-0187"
     },
     {
-     "sku": "AK-0117"
+     "sku": "AK-0290"
+    },
+    {
+     "sku": "AK-0043"
     }
    ],
    "got": [
     {
-     "sku": "AK-0191",
+     "sku": "AK-0290",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0043",
      "assumed": false
     }
    ],
    "score": {
-    "tp": 1,
+    "tp": 2,
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0117"
+      "sku": "AK-0187"
      }
     ]
    },
    "lines": [
     {
-     "raw": "2 3elab dra Prime (sweet corn)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "6 Pepsi canette 330ml, 3adiye mesh diet",
+     "raw": "Domo (corn flour) l zghire",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "3adiye"
+      "zghire"
      ],
-     "b4": "same_brand_other_kind",
+     "b4": "size_not_its_own",
      "cand": [
-      "AK-0117"
+      "AK-0187",
+      "AK-0224",
+      "AK-0225"
      ]
+    },
+    {
+     "raw": "2 Miglior lal bsayne l alutray 100g ta3et l agnello (5aroof) mish l pate l kbire",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "bsayne",
+      "ta3et",
+      "agnello",
+      "5aroof"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "nos kilo 2ashkawen Kavallos",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "2ashkawen"
+     ],
+     "cand": []
     }
    ]
   },
@@ -9581,7 +9611,7 @@
    },
    "lines": [
     {
-     "raw": "2 3elab 7ommos msalla2 men Chtoura Garden (l chick peas mesh l foul)",
+     "raw": "2 3elab 7ommos msalla2 men Chtoura Garden",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -9787,7 +9817,7 @@
    },
    "lines": [
     {
-     "raw": "2 3elab 7ommos msalla2 men Chtoura Garden",
+     "raw": "2 3elab 7ommos msalla2",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -9795,16 +9825,9 @@
     },
     {
      "raw": "ba2et Maggi mara2 la7meh (beef)",
-     "status": "ambiguous",
+     "status": "same_as_before",
      "via": "pack_raw",
-     "unexplained": [
-      "ba2et",
-      "mara2",
-      "la7meh"
-     ],
-     "cand": [
-      "AK-0176"
-     ]
+     "cand": []
     }
    ]
   },
@@ -10251,12 +10274,13 @@
    },
    "lines": [
     {
-     "raw": "kis ba2azella Plein Soleil l fine 400g",
+     "raw": "kis ba2azella Plein Soleil l fine 400g (bas ba2azella, msh l m5alta ma3 jazar)",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
       "ba2azella",
-      "fine"
+      "fine",
+      "ba2azella"
      ],
      "b4": "same_brand_other_kind",
      "cand": [
@@ -10275,11 +10299,8 @@
     {
      "raw": "bakket cotton pads mdawwarin Fluff'n White l 75 piece",
      "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [
-      "bakket",
-      "mdawwarin"
-     ],
+     "via": "pack_query",
+     "unexplained": [],
      "cand": []
     }
    ]
@@ -10384,12 +10405,13 @@
    },
    "lines": [
     {
-     "raw": "kis ba2azella Plein Soleil l fine 400g",
+     "raw": "kis ba2azella Plein Soleil l fine 400g (bas ba2azella, msh l m5alta ma3 jazar)",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
       "ba2azella",
-      "fine"
+      "fine",
+      "ba2azella"
      ],
      "b4": "same_brand_other_kind",
      "cand": [
@@ -10677,6 +10699,83 @@
      "assumed": false
     },
     {
+     "sku": "AK-0177",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0150",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 3,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0287"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "Foody's chicken strips (l strips msh l nuggets)",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "bakit Loulou pampers size 6",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "bakit"
+     ],
+     "cand": [
+      "AK-0287"
+     ]
+    },
+    {
+     "raw": "2 Taj chicken cubes",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "cubes"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "3 Tiffany Break chocolate",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0098",
+   "text": "Marhaba 3amo, baddi kis Foody's chicken strips (l strips msh l nuggets), bakit Loulou pampers size 6, 2 Taj chicken cubes w 3 Tiffany Break chocolate please. Yislamo",
+   "expected": [
+    {
+     "sku": "AK-0245"
+    },
+    {
+     "sku": "AK-0287"
+    },
+    {
+     "sku": "AK-0177"
+    },
+    {
+     "sku": "AK-0150"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0245",
+     "assumed": false
+    },
+    {
      "sku": "AK-0150",
      "assumed": false
     }
@@ -10793,6 +10892,151 @@
      "unexplained": [
       "ba2a",
       "w7de"
+     ],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0101",
+   "text": "marhaba, baddi 2 boxes kleenex al ousra 200 sheet, 1 kilo tanmia chicken fillet mpane (el breaded), w ba2a fejel w7de please. merci",
+   "expected": [
+    {
+     "sku": "AK-0254"
+    },
+    {
+     "sku": "AK-0032"
+    },
+    {
+     "sku": "AK-0024"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0254",
+     "assumed": false
+    },
+    {
+     "sku": "AK-0024",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 2,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0032"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 boxes kleenex al ousra 200 sheet",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "sheet"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "1 kilo tanmia chicken fillet mpane (el breaded)",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "mpane"
+     ],
+     "cand": [
+      "AK-0032"
+     ]
+    },
+    {
+     "raw": "ba2a fejel w7de",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [
+      "ba2a",
+      "w7de"
+     ],
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0103",
+   "text": "Marhaba, baddi 3 Tanmia luncheon djej (l can li bteftah bala fatta7a), Vimax sabun jali 3al lemon, 2 Dairy Khoury greek yogurt plain (msh l mechmech), w Wellplus wet wipes l 100 sheets. Merci",
+   "expected": [
+    {
+     "sku": "AK-0255"
+    },
+    {
+     "sku": "AK-0203"
+    },
+    {
+     "sku": "AK-0052"
+    },
+    {
+     "sku": "AK-0269"
+    }
+   ],
+   "got": [
+    {
+     "sku": "AK-0052",
+     "assumed": false
+    }
+   ],
+   "score": {
+    "tp": 1,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0255"
+     },
+     {
+      "sku": "AK-0203"
+     },
+     {
+      "sku": "AK-0269"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "3 Tanmia luncheon djej",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "djej"
+     ],
+     "b4": "same_brand_other_kind",
+     "cand": [
+      "AK-0203"
+     ]
+    },
+    {
+     "raw": "Vimax sabun jali 3al lemon",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sabun",
+      "jali"
+     ],
+     "cand": []
+    },
+    {
+     "raw": "2 Dairy Khoury greek yogurt plain",
+     "status": "matched",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": []
+    },
+    {
+     "raw": "Wellplus wet wipes l 100 sheets",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sheets"
      ],
      "cand": []
     }
@@ -10919,11 +11163,13 @@
    },
    "lines": [
     {
-     "raw": "3 Tanmia luncheon djej",
+     "raw": "3 Tanmia luncheon djej (l can li bteftah bala fatta7a)",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "djej"
+      "djej",
+      "li",
+      "bteftah"
      ],
      "b4": "same_brand_other_kind",
      "cand": [
@@ -10942,85 +11188,6 @@
     },
     {
      "raw": "2 Dairy Khoury greek yogurt plain (msh l mechmech)",
-     "status": "matched",
-     "via": "pack_raw",
-     "unexplained": [],
-     "cand": []
-    },
-    {
-     "raw": "Wellplus wet wipes l 100 sheets",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "sheets"
-     ],
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0103",
-   "text": "Marhaba, baddi 3 Tanmia luncheon djej (l can li bteftah bala fatta7a), Vimax sabun jali 3al lemon, 2 Dairy Khoury greek yogurt plain (msh l mechmech), w Wellplus wet wipes l 100 sheets. Merci",
-   "expected": [
-    {
-     "sku": "AK-0255"
-    },
-    {
-     "sku": "AK-0203"
-    },
-    {
-     "sku": "AK-0052"
-    },
-    {
-     "sku": "AK-0269"
-    }
-   ],
-   "got": [
-    {
-     "sku": "AK-0052",
-     "assumed": false
-    }
-   ],
-   "score": {
-    "tp": 1,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0255"
-     },
-     {
-      "sku": "AK-0203"
-     },
-     {
-      "sku": "AK-0269"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "3 Tanmia luncheon djej",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "djej"
-     ],
-     "b4": "same_brand_other_kind",
-     "cand": [
-      "AK-0203"
-     ]
-    },
-    {
-     "raw": "Vimax sabun jali 3al lemon",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "sabun",
-      "jali"
-     ],
-     "cand": []
-    },
-    {
-     "raw": "2 Dairy Khoury greek yogurt plain",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -11486,7 +11653,7 @@
    },
    "lines": [
     {
-     "raw": "colgate triple action 125ml",
+     "raw": "baddi colgate triple action 125ml",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -11507,7 +11674,7 @@
      "cand": []
     },
     {
-     "raw": "kis sandwich city plast l 100",
+     "raw": "w kis sandwich city plast l 100",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -11564,7 +11731,7 @@
      "cand": []
     },
     {
-     "raw": "2 maggi beef (mish chicken)",
+     "raw": "2 maggi beef",
      "status": "matched",
      "via": "pack_raw",
      "unexplained": [],
@@ -12115,7 +12282,14 @@
    },
    "lines": [
     {
-     "raw": "baddi kilo w nos",
+     "raw": "baddi kilo",
+     "status": "not_found",
+     "via": "legacy",
+     "unexplained": null,
+     "cand": []
+    },
+    {
+     "raw": "w nos",
      "status": "not_found",
      "via": "legacy",
      "unexplained": null,
@@ -12124,11 +12298,11 @@
    ]
   },
   {
-   "id": "g0151",
-   "text": "عطيني خستين كبار",
+   "id": "g0146",
+   "text": "بدي ٣ ضمم بقدونس للتبولة",
    "expected": [
     {
-     "sku": "AK-0012"
+     "sku": "AK-0010"
     }
    ],
    "got": [],
@@ -12137,19 +12311,11 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0012"
+      "sku": "AK-0010"
      }
     ]
    },
-   "lines": [
-    {
-     "raw": "خستين كبار",
-     "status": "not_found",
-     "via": "legacy",
-     "unexplained": null,
-     "cand": []
-    }
-   ]
+   "lines": []
   },
   {
    "id": "g0151",
@@ -12212,6 +12378,34 @@
    ]
   },
   {
+   "id": "g0151",
+   "text": "عطيني خستين كبار",
+   "expected": [
+    {
+     "sku": "AK-0012"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0012"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "خستين كبار",
+     "status": "not_found",
+     "via": "legacy",
+     "unexplained": null,
+     "cand": []
+    }
+   ]
+  },
+  {
    "id": "g0153",
    "text": "Hi, can you send me half a kilo of sweet green peppers?",
    "expected": [
@@ -12376,39 +12570,6 @@
      "via": "legacy",
      "unexplained": null,
      "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0164",
-   "text": "hi, baddi nos kilo banadoura cherry el z8ar",
-   "expected": [
-    {
-     "sku": "AK-0017"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0017"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "نص كيلو بندورة كيري الزعر",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "كيري",
-      "الزعر"
-     ],
-     "cand": [
-      "AK-0002"
-     ]
     }
    ]
   },
@@ -12547,11 +12708,11 @@
    ]
   },
   {
-   "id": "g0188",
-   "text": "3tine 2 ras tom please, w ykuno kbar iza fi",
+   "id": "g0174",
+   "text": "marhaba, baddi 2 kilo tfe7 a7mar please",
    "expected": [
     {
-     "sku": "AK-0025"
+     "sku": "AK-0020"
     }
    ],
    "got": [],
@@ -12560,13 +12721,13 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0025"
+      "sku": "AK-0020"
      }
     ]
    },
    "lines": [
     {
-     "raw": "2 ras tom",
+     "raw": "baddi 2 kilo tfe7 a7mar",
      "status": "not_found",
      "via": "legacy",
      "unexplained": null,
@@ -12631,8 +12792,8 @@
    ]
   },
   {
-   "id": "g0190",
-   "text": "مرحبا، بدي كيلو توم بلدي إذا في، يسلمو",
+   "id": "g0188",
+   "text": "3tine 2 ras tom please, w ykuno kbar iza fi",
    "expected": [
     {
      "sku": "AK-0025"
@@ -12650,11 +12811,41 @@
    },
    "lines": [
     {
-     "raw": "بدي كيلو توم بلدي",
+     "raw": "2 ras tom",
+     "status": "not_found",
+     "via": "legacy",
+     "unexplained": null,
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0189",
+   "text": "Bonsoir, je veux un peu d'ail stp, حوالي نص كيلو توم",
+   "expected": [
+    {
+     "sku": "AK-0025"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0025"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "je veux un peu d'ail stp, حوالي نص كيلو توم",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "بلدي"
+      "peu",
+      "d",
+      "حوالي"
      ],
      "cand": [
       "AK-0025"
@@ -12715,6 +12906,38 @@
    "lines": [
     {
      "raw": "بدي كيلو توم بلدي",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "بلدي"
+     ],
+     "cand": [
+      "AK-0025"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0190",
+   "text": "مرحبا، بدي كيلو توم بلدي إذا في، يسلمو",
+   "expected": [
+    {
+     "sku": "AK-0025"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0025"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "كيلو توم بلدي",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -12890,7 +13113,7 @@
      "cand": []
     },
     {
-     "raw": "nos taw2 mtabbal",
+     "raw": "w nos taw2 mtabbal",
      "status": "not_found",
      "via": "legacy",
      "unexplained": null,
@@ -12899,11 +13122,11 @@
    ]
   },
   {
-   "id": "g0194",
-   "text": "3tine kilo w nos taw2 mtabbal",
+   "id": "g0203",
+   "text": "3tine kilo la7meh mafrumeh na3meh",
    "expected": [
     {
-     "sku": "AK-0027"
+     "sku": "AK-0030"
     }
    ],
    "got": [],
@@ -12912,24 +13135,23 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0027"
+      "sku": "AK-0030"
      }
     ]
    },
    "lines": [
     {
-     "raw": "3tine kilo",
-     "status": "not_found",
-     "via": "legacy",
-     "unexplained": null,
-     "cand": []
-    },
-    {
-     "raw": "w nos taw2 mtabbal",
-     "status": "not_found",
-     "via": "legacy",
-     "unexplained": null,
-     "cand": []
+     "raw": "3tine kilo la7meh mafrumeh na3meh",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "mafrumeh",
+      "na3meh"
+     ],
+     "cand": [
+      "AK-0026",
+      "AK-0030"
+     ]
     }
    ]
   },
@@ -13609,7 +13831,7 @@
    },
    "lines": [
     {
-     "raw": "sedr djej Wilco",
+     "raw": "sedr djej",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -13775,7 +13997,7 @@
    },
    "lines": [
     {
-     "raw": "علبة سودا دجاج من هوا شيكن",
+     "raw": "بدي علبة سودا دجاج من هوا شيكن",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -13808,7 +14030,7 @@
    },
    "lines": [
     {
-     "raw": "علبة سودا دجاج من هوا شيكن",
+     "raw": "علبة سودا دجاج",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -13816,7 +14038,8 @@
      ],
      "b4": "same_brand_other_kind",
      "cand": [
-      "AK-0029"
+      "AK-0029",
+      "AK-0038"
      ]
     }
    ]
@@ -13841,7 +14064,7 @@
    },
    "lines": [
     {
-     "raw": "علبة سودا دجاج من هوا شيكن",
+     "raw": "بدي علبة سودا دجاج من هوا شيكن",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -13853,26 +14076,6 @@
      ]
     }
    ]
-  },
-  {
-   "id": "g0231",
-   "text": "Hi, can you send me one Aflora cow kashkaval please",
-   "expected": [
-    {
-     "sku": "AK-0039"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0039"
-     }
-    ]
-   },
-   "lines": []
   },
   {
    "id": "g0236",
@@ -14183,7 +14386,7 @@
    },
    "lines": [
     {
-     "raw": "لبن مزرعانا كيلو",
+     "raw": "بدي لبن مزرعانا كيلو",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -14382,7 +14585,7 @@
    },
    "lines": [
     {
-     "raw": "بدي علبة لبنة بلدية من ليبان ليه، الكبيرة تبع ال900 غرام",
+     "raw": "علبة لبنة بلدية من ليبان ليه، الكبيرة تبع ال900 غرام",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -14499,32 +14702,6 @@
    ]
   },
   {
-   "id": "g0278",
-   "text": "صباح الخير، بدي كرتونة بيض أبيض ٣٠ بيضة من حوا تشيكن",
-   "expected": [
-    {
-     "sku": "AK-0055"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0055"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "كرتونة بيض أبيض ٣٠ بيضة من حوا تشيكن",
-     "status": "merchant_not_onboarded",
-     "cand": []
-    }
-   ]
-  },
-  {
    "id": "g0295",
    "text": "Je veux du beurre Lurpak doux 200g",
    "expected": [
@@ -14576,7 +14753,7 @@
    },
    "lines": [
     {
-     "raw": "du beurre Lurpak doux 200g",
+     "raw": "beurre Lurpak doux 200g",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -14608,7 +14785,7 @@
    },
    "lines": [
     {
-     "raw": "du beurre Lurpak doux 200g",
+     "raw": "beurre Lurpak doux 200g",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -14748,7 +14925,7 @@
    },
    "lines": [
     {
-     "raw": "عطيني ٦ علب كانديا صغار، الـ ١٢٥ مل كامل الدسم",
+     "raw": "٦ علب كانديا صغار، الـ ١٢٥ مل كامل الدسم",
      "status": "ambiguous",
      "via": "pack_query",
      "unexplained": [],
@@ -14808,7 +14985,7 @@
    },
    "lines": [
     {
-     "raw": "عطيني ٦ علب كانديا صغار، الـ ١٢٥ مل كامل الدسم",
+     "raw": "٦ علب كانديا صغار، الـ ١٢٥ مل كامل الدسم",
      "status": "ambiguous",
      "via": "pack_query",
      "unexplained": [],
@@ -14928,7 +15105,7 @@
    },
    "lines": [
     {
-     "raw": "٥ بار بوبينز بالشوكولا",
+     "raw": "عطيني ٥ بار بوبينز بالشوكولا",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -14992,7 +15169,7 @@
    },
    "lines": [
     {
-     "raw": "٥ بار بوبينز بالشوكولا",
+     "raw": "عطيني ٥ بار بوبينز بالشوكولا",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -15160,7 +15337,7 @@
    },
    "lines": [
     {
-     "raw": "ناديك قليل الدسم ليتر",
+     "raw": "٢ ناديك قليل الدسم ليتر",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -15311,11 +15488,11 @@
    ]
   },
   {
-   "id": "g0352",
-   "text": "Bonjour, je veux un paquet de pain arabe Al Forno, le grand de 800g",
+   "id": "g0350",
+   "text": "مرحبا، بدي كيس بيستون أبيض من وودن بيكري، مش الرستيك",
    "expected": [
     {
-     "sku": "AK-0080"
+     "sku": "AK-0079"
     }
    ],
    "got": [],
@@ -15324,23 +15501,11 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0080"
+      "sku": "AK-0079"
      }
     ]
    },
-   "lines": [
-    {
-     "raw": "un paquet de pain arabe Al Forno, le grand de 800g",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "grand"
-     ],
-     "cand": [
-      "AK-0080"
-     ]
-    }
-   ]
+   "lines": []
   },
   {
    "id": "g0354",
@@ -15431,9 +15596,7 @@
      "raw": "2 rabtat 5ebez",
      "status": "ambiguous",
      "via": "pack_raw",
-     "unexplained": [
-      "kbar"
-     ],
+     "unexplained": [],
      "b4": "orphan_size",
      "cand": [
       "AK-0082",
@@ -15462,7 +15625,7 @@
    },
    "lines": [
     {
-     "raw": "خبز وودن بيكري الوسط، ربطة الـ٤٠٠ غرام",
+     "raw": "بدي خبز وودن بيكري الوسط، ربطة الـ٤٠٠ غرام",
      "status": "merchant_not_onboarded",
      "cand": []
     }
@@ -15488,7 +15651,7 @@
    },
    "lines": [
     {
-     "raw": "بدي خبز وودن بيكري الوسط، ربطة الـ٤٠٠ غرام",
+     "raw": "خبز وودن بيكري الوسط، ربطة الـ٤٠٠ غرام",
      "status": "merchant_not_onboarded",
      "cand": []
     }
@@ -15640,11 +15803,11 @@
    "lines": []
   },
   {
-   "id": "g0375",
-   "text": "3tine tannour el asser l zghir, msh l large",
+   "id": "g0372",
+   "text": "3andkon tortilla? baddi wa7de foody's",
    "expected": [
     {
-     "sku": "AK-0088"
+     "sku": "AK-0087"
     }
    ],
    "got": [],
@@ -15653,24 +15816,11 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0088"
+      "sku": "AK-0087"
      }
     ]
    },
-   "lines": [
-    {
-     "raw": "3tine tannour el asser l zghir, msh l large",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "zghir"
-     ],
-     "cand": [
-      "AK-0088",
-      "AK-0089"
-     ]
-    }
-   ]
+   "lines": []
   },
   {
    "id": "g0375",
@@ -15693,79 +15843,79 @@
    "lines": [
     {
      "raw": "3tine tannour el asser l zghir, msh l large",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "zghir"
-     ],
-     "cand": [
-      "AK-0088",
-      "AK-0089"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0375",
-   "text": "3tine tannour el asser l zghir, msh l large",
-   "expected": [
-    {
-     "sku": "AK-0088"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0088"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "3tine tannour el asser l zghir, msh l large",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "zghir"
-     ],
-     "cand": [
-      "AK-0088",
-      "AK-0089"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0377",
-   "text": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
-   "expected": [
-    {
-     "sku": "AK-0088"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0088"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
      "status": "ambiguous",
      "via": "pack_query",
      "unexplained": [],
-     "b4": "negated_choice",
+     "b4": "size_not_its_own",
      "cand": [
-      "AK-0089",
-      "AK-0088"
+      "AK-0088",
+      "AK-0089"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0375",
+   "text": "3tine tannour el asser l zghir, msh l large",
+   "expected": [
+    {
+     "sku": "AK-0088"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0088"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "3tine tannour el asser l zghir, msh l large",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "zghir"
+     ],
+     "cand": [
+      "AK-0088",
+      "AK-0089"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0375",
+   "text": "3tine tannour el asser l zghir, msh l large",
+   "expected": [
+    {
+     "sku": "AK-0088"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0088"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "3tine tannour el asser l zghir, msh l large",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "zghir"
+     ],
+     "cand": [
+      "AK-0088",
+      "AK-0089"
      ]
     }
    ]
@@ -15835,11 +15985,11 @@
    ]
   },
   {
-   "id": "g0381",
-   "text": "ba3atli 5ebez hot dog please",
+   "id": "g0377",
+   "text": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
    "expected": [
     {
-     "sku": "AK-0090"
+     "sku": "AK-0088"
     }
    ],
    "got": [],
@@ -15848,22 +15998,218 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0090"
+      "sku": "AK-0088"
      }
     ]
    },
    "lines": [
     {
-     "raw": "ba3atli 5ebez hot dog",
+     "raw": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+     "status": "ambiguous",
+     "via": "pack_query",
+     "unexplained": [],
+     "b4": "negated_choice",
+     "cand": [
+      "AK-0089",
+      "AK-0088"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0378",
+   "text": "baddi tannour el asser l kbir, oat",
+   "expected": [
+    {
+     "sku": "AK-0089"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0089"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "tannour el asser l kbir",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "ba3atli",
-      "5ebez"
+      "kbir"
      ],
-     "b4": "same_brand_other_kind",
+     "b4": "size_not_its_own",
      "cand": [
-      "AK-0090"
+      "AK-0089",
+      "AK-0088"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0378",
+   "text": "baddi tannour el asser l kbir, oat",
+   "expected": [
+    {
+     "sku": "AK-0089"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0089"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "tannour el asser l kbir",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "kbir"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0089",
+      "AK-0088"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0378",
+   "text": "baddi tannour el asser l kbir, oat",
+   "expected": [
+    {
+     "sku": "AK-0089"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0089"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "tannour el asser l kbir",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "kbir"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0089",
+      "AK-0088"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0380",
+   "text": "عطيني خبز تنور العصر الكبير، تبع الشوفان",
+   "expected": [
+    {
+     "sku": "AK-0089"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0089"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "خبز تنور العصر الكبير، تبع الشوفان",
+     "status": "ambiguous",
+     "via": "pack_query",
+     "unexplained": [],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0089",
+      "AK-0088"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0380",
+   "text": "عطيني خبز تنور العصر الكبير، تبع الشوفان",
+   "expected": [
+    {
+     "sku": "AK-0089"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0089"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "خبز تنور العصر الكبير، تبع الشوفان",
+     "status": "ambiguous",
+     "via": "pack_query",
+     "unexplained": [],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0089",
+      "AK-0088"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0380",
+   "text": "عطيني خبز تنور العصر الكبير، تبع الشوفان",
+   "expected": [
+    {
+     "sku": "AK-0089"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0089"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "خبز تنور العصر الكبير، تبع الشوفان",
+     "status": "ambiguous",
+     "via": "pack_query",
+     "unexplained": [],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0089",
+      "AK-0088"
      ]
     }
    ]
@@ -15937,11 +16283,11 @@
    ]
   },
   {
-   "id": "g0384",
-   "text": "baddi 300 gram sader 7abash Sant Dalmai please",
+   "id": "g0381",
+   "text": "ba3atli 5ebez hot dog please",
    "expected": [
     {
-     "sku": "AK-0091"
+     "sku": "AK-0090"
     }
    ],
    "got": [],
@@ -15950,20 +16296,22 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0091"
+      "sku": "AK-0090"
      }
     ]
    },
    "lines": [
     {
-     "raw": "300 gram sader",
+     "raw": "ba3atli 5ebez hot dog",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "sader"
+      "ba3atli",
+      "5ebez"
      ],
+     "b4": "same_brand_other_kind",
      "cand": [
-      "AK-0091"
+      "AK-0090"
      ]
     }
    ]
@@ -16082,72 +16430,6 @@
      "via": "legacy",
      "unexplained": null,
      "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0396",
-   "text": "ab3atle rbe3 kilo mortadella Tanmia sada, bala zaytoun",
-   "expected": [
-    {
-     "sku": "AK-0095"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0095"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "rbe3 kilo mortadella Tanmia sada, bala zaytoun",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "rbe3",
-      "sada"
-     ],
-     "cand": [
-      "AK-0095"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0396",
-   "text": "ab3atle rbe3 kilo mortadella Tanmia sada, bala zaytoun",
-   "expected": [
-    {
-     "sku": "AK-0095"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0095"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "rbe3 kilo mortadella Tanmia sada, bala zaytoun",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "rbe3",
-      "sada"
-     ],
-     "cand": [
-      "AK-0095"
-     ]
     }
    ]
   },
@@ -16302,8 +16584,11 @@
     {
      "raw": "Tannourine les petites 33cl, pack de 12",
      "status": "ambiguous",
-     "via": "pack_query",
-     "unexplained": [],
+     "via": "pack_raw",
+     "unexplained": [
+      "petites"
+     ],
+     "b4": "same_brand_other_kind",
      "cand": [
       "AK-0103",
       "AK-0104",
@@ -16538,12 +16823,13 @@
     {
      "raw": "قنينة بيبسي دايت الكبيرة، تنين ليتر وربع",
      "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "الكبيره"
-     ],
+     "via": "pack_query",
+     "unexplained": [],
+     "b4": "size_not_its_own",
      "cand": [
-      "AK-0116"
+      "AK-0116",
+      "AK-0112",
+      "AK-0113"
      ]
     }
    ]
@@ -16602,12 +16888,13 @@
     {
      "raw": "قنينة بيبسي دايت الكبيرة، تنين ليتر وربع",
      "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "الكبيره"
-     ],
+     "via": "pack_query",
+     "unexplained": [],
+     "b4": "size_not_its_own",
      "cand": [
-      "AK-0116"
+      "AK-0116",
+      "AK-0112",
+      "AK-0113"
      ]
     }
    ]
@@ -17418,26 +17705,6 @@
      ]
     }
    ]
-  },
-  {
-   "id": "g0514",
-   "text": "Send me some Torabika cappuccino sachets please",
-   "expected": [
-    {
-     "sku": "AK-0134"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0134"
-     }
-    ]
-   },
-   "lines": []
   },
   {
    "id": "g0517",
@@ -17564,33 +17831,7 @@
    },
    "lines": [
     {
-     "raw": "ba3atle Najjar Star Café regular stp",
-     "status": "merchant_not_onboarded",
-     "cand": []
-    }
-   ]
-  },
-  {
-   "id": "g0529",
-   "text": "Bonsoir, ba3atle Najjar Star Café regular stp",
-   "expected": [
-    {
-     "sku": "AK-0139"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0139"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "ba3atle Najjar Star Café regular stp",
+     "raw": "regular",
      "status": "merchant_not_onboarded",
      "cand": []
     }
@@ -17623,11 +17864,11 @@
    ]
   },
   {
-   "id": "g0533",
-   "text": "عطيني ليبتون يلو ليبل، علبة الـ١٠٠ كيس",
+   "id": "g0529",
+   "text": "Bonsoir, ba3atle Najjar Star Café regular stp",
    "expected": [
     {
-     "sku": "AK-0140"
+     "sku": "AK-0139"
     }
    ],
    "got": [],
@@ -17636,22 +17877,15 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0140"
+      "sku": "AK-0139"
      }
     ]
    },
    "lines": [
     {
-     "raw": "ليبتون يلو ليبل، علبة الـ١٠٠ كيس",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "يلو",
-      "ليبل"
-     ],
-     "cand": [
-      "AK-0140"
-     ]
+     "raw": "ba3atle Najjar Star Café regular stp",
+     "status": "merchant_not_onboarded",
+     "cand": []
     }
    ]
   },
@@ -17722,11 +17956,11 @@
    ]
   },
   {
-   "id": "g0537",
-   "text": "baddi lipton yellow label l z8ire please, l 25 kis msh l 100",
+   "id": "g0533",
+   "text": "عطيني ليبتون يلو ليبل، علبة الـ١٠٠ كيس",
    "expected": [
     {
-     "sku": "AK-0142"
+     "sku": "AK-0140"
     }
    ],
    "got": [],
@@ -17735,21 +17969,21 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0142"
+      "sku": "AK-0140"
      }
     ]
    },
    "lines": [
     {
-     "raw": "lipton yellow label l z8ire",
+     "raw": "عطيني ليبتون يلو ليبل، علبة الـ١٠٠ كيس",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "yellow",
-      "label"
+      "يلو",
+      "ليبل"
      ],
      "cand": [
-      "AK-0142"
+      "AK-0140"
      ]
     }
    ]
@@ -17987,17 +18221,22 @@
    },
    "lines": [
     {
-     "raw": "baddi 2 elegance stars chocolat 3mol ma3roof",
+     "raw": "baddi 2 elegance stars chocolat",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "chocolat",
-      "3mol",
-      "ma3roof"
+      "chocolat"
      ],
      "cand": [
       "AK-0157"
      ]
+    },
+    {
+     "raw": "3mol ma3roof",
+     "status": "not_found",
+     "via": "legacy",
+     "unexplained": null,
+     "cand": []
     }
    ]
   },
@@ -18225,9 +18464,17 @@
      ],
      "b4": "same_brand_other_kind",
      "cand": [
-      "AK-0234",
-      "AK-0232",
-      "AK-0160"
+      "AK-0169"
+     ]
+    },
+    {
+     "raw": "3abid",
+     "status": "ambiguous",
+     "via": "legacy",
+     "unexplained": null,
+     "b4": "split",
+     "cand": [
+      "AK-0169"
      ]
     }
    ]
@@ -18295,7 +18542,7 @@
    },
    "lines": [
     {
-     "raw": "بدي كيس دولسي بفستق العبيد، الـ ٨٠ غرام",
+     "raw": "كيس دولسي بفستق العبيد، الـ ٨٠ غرام",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -18391,7 +18638,7 @@
    },
    "lines": [
     {
-     "raw": "نوتيلا الوسط، ٣٥٠ غرام",
+     "raw": "بدي نوتيلا الوسط، ٣٥٠ غرام",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -18463,6 +18710,41 @@
      ],
      "cand": [
       "AK-0162"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0602",
+   "text": "بدي دولسي تشيزي ويز",
+   "expected": [
+    {
+     "sku": "AK-0164"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0164"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "بدي دولسي تشيزي ويز",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "تشيزي",
+      "ويز"
+     ],
+     "cand": [
+      "AK-0234",
+      "AK-0232",
+      "AK-0160"
      ]
     }
    ]
@@ -18538,11 +18820,11 @@
    ]
   },
   {
-   "id": "g0602",
-   "text": "بدي دولسي تشيزي ويز",
+   "id": "g0623",
+   "text": "Hi, can you send me Maggi chicken stock cubes? thanks",
    "expected": [
     {
-     "sku": "AK-0164"
+     "sku": "AK-0172"
     }
    ],
    "got": [],
@@ -18551,26 +18833,11 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0164"
+      "sku": "AK-0172"
      }
     ]
    },
-   "lines": [
-    {
-     "raw": "دولسي تشيزي ويز",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "تشيزي",
-      "ويز"
-     ],
-     "cand": [
-      "AK-0234",
-      "AK-0232",
-      "AK-0160"
-     ]
-    }
-   ]
+   "lines": []
   },
   {
    "id": "g0634",
@@ -19279,15 +19546,115 @@
    },
    "lines": [
     {
-     "raw": "fi 3ades akhdar men deroni? baddi wa7ad",
+     "raw": "في عادس أخضر",
+     "status": "not_found",
+     "via": "legacy",
+     "unexplained": null,
+     "cand": []
+    }
+   ]
+  },
+  {
+   "id": "g0669",
+   "text": "بدي علبة طحين ذرة دومو، الزغيرة",
+   "expected": [
+    {
+     "sku": "AK-0187"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0187"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "بدي علبة طحين ذرة دومو، الزغيرة",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "akhdar"
+      "الزغيره"
      ],
+     "b4": "size_not_its_own",
      "cand": [
-      "AK-0180",
-      "AK-0186"
+      "AK-0187",
+      "AK-0224",
+      "AK-0225"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0669",
+   "text": "بدي علبة طحين ذرة دومو، الزغيرة",
+   "expected": [
+    {
+     "sku": "AK-0187"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0187"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "بدي علبة طحين ذرة دومو، الزغيرة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "الزغيره"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0187",
+      "AK-0224",
+      "AK-0225"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0669",
+   "text": "بدي علبة طحين ذرة دومو، الزغيرة",
+   "expected": [
+    {
+     "sku": "AK-0187"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0187"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "علبة طحين ذرة دومو، الزغيرة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "الزغيره"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0187",
+      "AK-0224",
+      "AK-0225"
      ]
     }
    ]
@@ -19361,11 +19728,11 @@
    ]
   },
   {
-   "id": "g0677",
-   "text": "marhaba, 3endkon bor8ol khechin? ba3tli kilo",
+   "id": "g0674",
+   "text": "Salut, je veux 3adass majrouch de la marque Zain stp",
    "expected": [
     {
-     "sku": "AK-0190"
+     "sku": "AK-0189"
     }
    ],
    "got": [],
@@ -19374,52 +19741,22 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0190"
+      "sku": "AK-0189"
      }
     ]
    },
    "lines": [
     {
-     "raw": "bor8ol khechin",
+     "raw": "3adass majrouch de la marque Zain",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "khechin"
+      "3adass",
+      "majrouch",
+      "marque"
      ],
      "cand": [
-      "AK-0190"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0677",
-   "text": "marhaba, 3endkon bor8ol khechin? ba3tli kilo",
-   "expected": [
-    {
-     "sku": "AK-0190"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0190"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "bor8ol khechin",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "khechin"
-     ],
-     "cand": [
-      "AK-0190"
+      "AK-0189"
      ]
     }
    ]
@@ -19765,8 +20102,8 @@
    ]
   },
   {
-   "id": "g0703",
-   "text": "3tine 3lbeten dra Al Wadi el Akhdar",
+   "id": "g0705",
+   "text": "مرحبا، في ذرة الوادي الأخضر؟ بدي علبة",
    "expected": [
     {
      "sku": "AK-0199"
@@ -19782,7 +20119,17 @@
      }
     ]
    },
-   "lines": []
+   "lines": [
+    {
+     "raw": "بدي علبة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [],
+     "cand": [
+      "AK-0199"
+     ]
+    }
+   ]
   },
   {
    "id": "g0711",
@@ -20158,6 +20505,38 @@
      ],
      "cand": [
       "AK-0207"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0751",
+   "text": "مرحبا، ابعتلي كاتشاب دوليز الكبير تبع ال٩٠٠ غرام",
+   "expected": [
+    {
+     "sku": "AK-0215"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0215"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "كاتشاب دوليز الكبير تبع ال٩٠٠ غرام",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "الكبير"
+     ],
+     "cand": [
+      "AK-0215"
      ]
     }
    ]
@@ -20458,11 +20837,11 @@
    ]
   },
   {
-   "id": "g0759",
-   "text": "hi 3tine debs remmen Yamama wa7de",
+   "id": "g0766",
+   "text": "عطيني قنينة هوت صوص ديروني الصغيرة",
    "expected": [
     {
-     "sku": "AK-0218"
+     "sku": "AK-0220"
     }
    ],
    "got": [],
@@ -20471,26 +20850,357 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0218"
+      "sku": "AK-0220"
      }
     ]
    },
    "lines": [
     {
-     "raw": "3tine debs remmen",
-     "status": "not_found",
-     "via": "legacy",
-     "unexplained": null,
+     "raw": "قنينة هوت صوص ديروني الصغيرة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "هوت",
+      "صوص",
+      "ديروني"
+     ],
+     "cand": [
+      "AK-0121"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0766",
+   "text": "عطيني قنينة هوت صوص ديروني الصغيرة",
+   "expected": [
+    {
+     "sku": "AK-0220"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0220"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "قنينة هوت صوص ديروني الصغيرة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "هوت",
+      "صوص",
+      "ديروني"
+     ],
+     "cand": [
+      "AK-0121"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0766",
+   "text": "عطيني قنينة هوت صوص ديروني الصغيرة",
+   "expected": [
+    {
+     "sku": "AK-0220"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0220"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "قنينة هوت صوص ديروني الصغيرة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "هوت",
+      "صوص",
+      "ديروني"
+     ],
+     "cand": [
+      "AK-0121"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0800",
+   "text": "3tine 2 dolsi vegas bel caramel law sama7t",
+   "expected": [
+    {
+     "sku": "AK-0232"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0232"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 dolsi vegas bel caramel",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "caramel"
+     ],
+     "cand": [
+      "AK-0232"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0800",
+   "text": "3tine 2 dolsi vegas bel caramel law sama7t",
+   "expected": [
+    {
+     "sku": "AK-0232"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0232"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 dolsi vegas bel caramel",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "caramel"
+     ],
+     "cand": [
+      "AK-0232"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0800",
+   "text": "3tine 2 dolsi vegas bel caramel law sama7t",
+   "expected": [
+    {
+     "sku": "AK-0232"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0232"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "2 dolsi vegas bel caramel",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "caramel"
+     ],
+     "cand": [
+      "AK-0232"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0817",
+   "text": "ابعتلي كيس بازيلا وجزر مفرزة",
+   "expected": [
+    {
+     "sku": "AK-0237"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0237"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "كيس بازيلا",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [],
+     "b4": "split",
+     "cand": [
+      "AK-0237",
+      "AK-0235"
+     ]
+    },
+    {
+     "raw": "جزر مفرزة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "مفرزه"
+     ],
+     "b4": "split",
+     "cand": [
+      "AK-0237",
+      "AK-0008"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0817",
+   "text": "ابعتلي كيس بازيلا وجزر مفرزة",
+   "expected": [
+    {
+     "sku": "AK-0237"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0237"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "كيس بازيلا",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [],
+     "b4": "split",
+     "cand": [
+      "AK-0237",
+      "AK-0235"
+     ]
+    },
+    {
+     "raw": "جزر مفرزة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "مفرزه"
+     ],
+     "b4": "split",
+     "cand": [
+      "AK-0237",
+      "AK-0008"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0817",
+   "text": "ابعتلي كيس بازيلا وجزر مفرزة",
+   "expected": [
+    {
+     "sku": "AK-0237"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0237"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "كيس بازيلا",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [],
+     "b4": "split",
+     "cand": [
+      "AK-0237",
+      "AK-0235"
+     ]
+    },
+    {
+     "raw": "جزر مفرزة",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "مفرزه"
+     ],
+     "b4": "split",
+     "cand": [
+      "AK-0237",
+      "AK-0008"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0832",
+   "text": "عطيني بيتزا تايك ان بايك الصغيرة يلي بالخضرة",
+   "expected": [
+    {
+     "sku": "AK-0242"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0242"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "بيتزا تايك ان بايك الصغيرة يلي بالخضرة",
+     "status": "merchant_not_onboarded",
      "cand": []
     }
    ]
   },
   {
-   "id": "g0766",
-   "text": "عطيني قنينة هوت صوص ديروني الصغيرة",
+   "id": "g0836",
+   "text": "3tine 2 kyes batata frites Foody's, l straight cut",
    "expected": [
     {
-     "sku": "AK-0220"
+     "sku": "AK-0244"
     }
    ],
    "got": [],
@@ -20499,321 +21209,21 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0220"
+      "sku": "AK-0244"
      }
     ]
    },
    "lines": [
     {
-     "raw": "قنينة هوت صوص ديروني الصغيرة",
+     "raw": "2 kyes batata frites",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "هوت",
-      "صوص",
-      "ديروني"
+      "kyes",
+      "batata"
      ],
      "cand": [
-      "AK-0121"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0766",
-   "text": "عطيني قنينة هوت صوص ديروني الصغيرة",
-   "expected": [
-    {
-     "sku": "AK-0220"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0220"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "قنينة هوت صوص ديروني الصغيرة",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "هوت",
-      "صوص",
-      "ديروني"
-     ],
-     "cand": [
-      "AK-0121"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0766",
-   "text": "عطيني قنينة هوت صوص ديروني الصغيرة",
-   "expected": [
-    {
-     "sku": "AK-0220"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0220"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "قنينة هوت صوص ديروني الصغيرة",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "هوت",
-      "صوص",
-      "ديروني"
-     ],
-     "cand": [
-      "AK-0121"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0800",
-   "text": "3tine 2 dolsi vegas bel caramel law sama7t",
-   "expected": [
-    {
-     "sku": "AK-0232"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0232"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "2 dolsi vegas bel caramel",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "caramel"
-     ],
-     "cand": [
-      "AK-0232"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0800",
-   "text": "3tine 2 dolsi vegas bel caramel law sama7t",
-   "expected": [
-    {
-     "sku": "AK-0232"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0232"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "2 dolsi vegas bel caramel",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "caramel"
-     ],
-     "cand": [
-      "AK-0232"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0800",
-   "text": "3tine 2 dolsi vegas bel caramel law sama7t",
-   "expected": [
-    {
-     "sku": "AK-0232"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0232"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "2 dolsi vegas bel caramel",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "caramel"
-     ],
-     "cand": [
-      "AK-0232"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0817",
-   "text": "ابعتلي كيس بازيلا وجزر مفرزة",
-   "expected": [
-    {
-     "sku": "AK-0237"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0237"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "كيس بازيلا",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [],
-     "b4": "split",
-     "cand": [
-      "AK-0237",
-      "AK-0235"
-     ]
-    },
-    {
-     "raw": "جزر مفرزة",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "مفرزه"
-     ],
-     "b4": "split",
-     "cand": [
-      "AK-0237",
-      "AK-0008"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0817",
-   "text": "ابعتلي كيس بازيلا وجزر مفرزة",
-   "expected": [
-    {
-     "sku": "AK-0237"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0237"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "كيس بازيلا",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [],
-     "b4": "split",
-     "cand": [
-      "AK-0237",
-      "AK-0235"
-     ]
-    },
-    {
-     "raw": "جزر مفرزة",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "مفرزه"
-     ],
-     "b4": "split",
-     "cand": [
-      "AK-0237",
-      "AK-0008"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0817",
-   "text": "ابعتلي كيس بازيلا وجزر مفرزة",
-   "expected": [
-    {
-     "sku": "AK-0237"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0237"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "كيس بازيلا",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [],
-     "b4": "split",
-     "cand": [
-      "AK-0237",
-      "AK-0235"
-     ]
-    },
-    {
-     "raw": "جزر مفرزة",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "مفرزه"
-     ],
-     "b4": "split",
-     "cand": [
-      "AK-0237",
-      "AK-0008"
+      "AK-0244"
      ]
     }
    ]
@@ -20871,40 +21281,7 @@
    },
    "lines": [
     {
-     "raw": "2 kyes batata frites Foody's, l straight cut",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "kyes",
-      "batata"
-     ],
-     "cand": [
-      "AK-0244"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0836",
-   "text": "3tine 2 kyes batata frites Foody's, l straight cut",
-   "expected": [
-    {
-     "sku": "AK-0244"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0244"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "2 kyes batata frites Foody's, l straight cut",
+     "raw": "2 kyes batata frites",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -21012,6 +21389,38 @@
      ],
      "cand": [
       "AK-0244"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0842",
+   "text": "Bonsoir, ba3atli des nuggets Foody's stp, merci ktir",
+   "expected": [
+    {
+     "sku": "AK-0246"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0246"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "ba3atli des nuggets Foody's",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "ba3atli"
+     ],
+     "cand": [
+      "AK-0246"
      ]
     }
    ]
@@ -21338,38 +21747,6 @@
      ],
      "cand": [
       "AK-0248"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0854",
-   "text": "3tine 2 bakeit ma7arem Perla interfold",
-   "expected": [
-    {
-     "sku": "AK-0250"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0250"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "3tine 2 bakeit ma7arem Perla interfold",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "bakeit"
-     ],
-     "cand": [
-      "AK-0250"
      ]
     }
    ]
@@ -21858,7 +22235,7 @@
    },
    "lines": [
     {
-     "raw": "3andkon akyes sandwich",
+     "raw": "3andkon akyes sandwich?",
      "status": "not_found",
      "via": "legacy",
      "unexplained": null,
@@ -21886,7 +22263,7 @@
    },
    "lines": [
     {
-     "raw": "3andkon akyes sandwich?",
+     "raw": "3andkon akyes sandwich",
      "status": "not_found",
      "via": "legacy",
      "unexplained": null,
@@ -21895,6 +22272,160 @@
    ]
   },
   {
+   "id": "g0886",
+   "text": "عطيني محارم مطبخ انتاج الكبار",
+   "expected": [
+    {
+     "sku": "AK-0260"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0260"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "محارم مطبخ انتاج الكبار",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "الكبار"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0260",
+      "AK-0267"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0886",
+   "text": "عطيني محارم مطبخ انتاج الكبار",
+   "expected": [
+    {
+     "sku": "AK-0260"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0260"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "محارم مطبخ انتاج الكبار",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "الكبار"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0260",
+      "AK-0267"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0886",
+   "text": "عطيني محارم مطبخ انتاج الكبار",
+   "expected": [
+    {
+     "sku": "AK-0260"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0260"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "محارم مطبخ انتاج الكبار",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "الكبار"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0260",
+      "AK-0267"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0891",
+   "text": "Bonjour, je veux un Germex pour le sol svp",
+   "expected": [
+    {
+     "sku": "AK-0262"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0262"
+     }
+    ]
+   },
+   "lines": []
+  },
+  {
+   "id": "g0897",
+   "text": "Odex dish soap blue please, the big bottle",
+   "expected": [
+    {
+     "sku": "AK-0264"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0264"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "Odex dish soap blue please, the big bottle",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "big"
+     ],
+     "cand": [
+      "AK-0264"
+     ]
+    }
+   ]
+  },
+  {
    "id": "g0897",
    "text": "Odex dish soap blue please, the big bottle",
    "expected": [
@@ -21959,8 +22490,8 @@
    ]
   },
   {
-   "id": "g0897",
-   "text": "Odex dish soap blue please, the big bottle",
+   "id": "g0898",
+   "text": "بدي سايل جلي أودكس الأزرق، الكبير",
    "expected": [
     {
      "sku": "AK-0264"
@@ -21978,14 +22509,87 @@
    },
    "lines": [
     {
-     "raw": "Odex dish soap blue please, the big bottle",
+     "raw": "سايل جلي أودكس الأزرق، الكبير",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "big"
+      "الكبير"
      ],
+     "b4": "size_not_its_own",
      "cand": [
-      "AK-0264"
+      "AK-0264",
+      "AK-0256",
+      "AK-0258"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0898",
+   "text": "بدي سايل جلي أودكس الأزرق، الكبير",
+   "expected": [
+    {
+     "sku": "AK-0264"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0264"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "سايل جلي أودكس الأزرق، الكبير",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "الكبير"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0264",
+      "AK-0256",
+      "AK-0258"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "g0898",
+   "text": "بدي سايل جلي أودكس الأزرق، الكبير",
+   "expected": [
+    {
+     "sku": "AK-0264"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0264"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "سايل جلي أودكس الأزرق، الكبير",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "الكبير"
+     ],
+     "b4": "size_not_its_own",
+     "cand": [
+      "AK-0264",
+      "AK-0256",
+      "AK-0258"
      ]
     }
    ]
@@ -22154,11 +22758,11 @@
    ]
   },
   {
-   "id": "g0913",
-   "text": "مرحبا، بدي باكيت محارم مبللة الكبيرة تبع الـ100 لو سمحت",
+   "id": "g0917",
+   "text": "je veux des serviettes Private normales extra fines, le paquet de 10 svp",
    "expected": [
     {
-     "sku": "AK-0269"
+     "sku": "AK-0271"
     }
    ],
    "got": [],
@@ -22167,20 +22771,22 @@
     "wrong": [],
     "missed": [
      {
-      "sku": "AK-0269"
+      "sku": "AK-0271"
      }
     ]
    },
    "lines": [
     {
-     "raw": "باكيت محارم مبللة الكبيرة تبع الـ100",
+     "raw": "je veux des serviettes Private normales extra fines, le paquet de 10 svp",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
-      "الكبيره"
+      "serviettes",
+      "normales",
+      "fines"
      ],
      "cand": [
-      "AK-0269"
+      "AK-0271"
      ]
     }
    ]
@@ -22239,41 +22845,7 @@
    },
    "lines": [
     {
-     "raw": "je veux des serviettes Private normales extra fines, le paquet de 10 svp",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "serviettes",
-      "normales",
-      "fines"
-     ],
-     "cand": [
-      "AK-0271"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0917",
-   "text": "je veux des serviettes Private normales extra fines, le paquet de 10 svp",
-   "expected": [
-    {
-     "sku": "AK-0271"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0271"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "je veux des serviettes Private normales extra fines, le paquet de 10 svp",
+     "raw": "serviettes Private normales extra fines, le paquet de 10",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [
@@ -22316,105 +22888,6 @@
      ],
      "cand": [
       "AK-0271"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0919",
-   "text": "بدي فوط بريفات العاديين مش تبع الليل، الباكيت يلي فيها 10",
-   "expected": [
-    {
-     "sku": "AK-0271"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0271"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "بدي فوط بريفات العاديين مش تبع الليل، الباكيت يلي فيها 10",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "بريفات",
-      "العاديين"
-     ],
-     "cand": [
-      "AK-0271"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0919",
-   "text": "بدي فوط بريفات العاديين مش تبع الليل، الباكيت يلي فيها 10",
-   "expected": [
-    {
-     "sku": "AK-0271"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0271"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "بدي فوط بريفات العاديين مش تبع الليل، الباكيت يلي فيها 10",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "بريفات",
-      "العاديين"
-     ],
-     "cand": [
-      "AK-0271"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "g0923",
-   "text": "3tine wellplus sabun sayel sea breeze please",
-   "expected": [
-    {
-     "sku": "AK-0273"
-    }
-   ],
-   "got": [],
-   "score": {
-    "tp": 0,
-    "wrong": [],
-    "missed": [
-     {
-      "sku": "AK-0273"
-     }
-    ]
-   },
-   "lines": [
-    {
-     "raw": "wellplus sabun sayel sea breeze",
-     "status": "ambiguous",
-     "via": "pack_raw",
-     "unexplained": [
-      "sabun",
-      "sayel"
-     ],
-     "cand": [
-      "AK-0273"
      ]
     }
    ]
@@ -22486,6 +22959,39 @@
    ]
   },
   {
+   "id": "g0923",
+   "text": "3tine wellplus sabun sayel sea breeze please",
+   "expected": [
+    {
+     "sku": "AK-0273"
+    }
+   ],
+   "got": [],
+   "score": {
+    "tp": 0,
+    "wrong": [],
+    "missed": [
+     {
+      "sku": "AK-0273"
+     }
+    ]
+   },
+   "lines": [
+    {
+     "raw": "3tine wellplus sabun sayel sea breeze",
+     "status": "ambiguous",
+     "via": "pack_raw",
+     "unexplained": [
+      "sabun",
+      "sayel"
+     ],
+     "cand": [
+      "AK-0273"
+     ]
+    }
+   ]
+  },
+  {
    "id": "g0944",
    "text": "baddi colgate herbal la2an l triple action ma bihebbo l wled",
    "expected": [
@@ -22998,7 +23504,7 @@
    },
    "lines": [
     {
-     "raw": "٣ ميغليور للقطط الزغار",
+     "raw": "عطيني ٣ ميغليور للقطط الزغار",
      "status": "ambiguous",
      "via": "pack_raw",
      "unexplained": [

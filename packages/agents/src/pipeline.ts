@@ -36,11 +36,26 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
 /** The customer's own words about where they are, kept verbatim for the rider. */
 export function directionsOf(intent: OrderIntent): string | null {
   const a = intent.address;
+  // A part that only names the village («عبعقلين», "3a b3aklin") is not an address: the rider still needs the house (B4: the
+  // staging probe's reading put «عبعقلين» in verbatim and the address question was skipped).
+  const village = villageForms(a.village);
   return [a.verbatim, a.landmark, a.building, a.floor ? `طابق ${a.floor}` : null, a.recipient_name]
     .filter((x): x is string => !!x && x.trim() !== "")
+    .filter((x) => !village.size || !sameVillage(x, village))
     .filter((x, i, all) => !all.slice(0, i).some((y) => y.includes(x)))      // the verbatim text usually already holds the rest
     .join(" | ") || null;
 }
+
+/** A place name folded for comparison, with and without one clitic people write onto it (ع، ب، ل، و، من، ال; 3a, b, el). */
+export function villageForms(x: string | null | undefined): Set<string> {
+  if (!x) return new Set();
+  const k = x.trim().toLowerCase().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/[ً-ْـ]/g, "")
+    .replace(/[^\p{L}\p{N} ]/gu, " ").replace(/\s+/g, " ").trim();
+  const out = new Set([k, k.replace(/^(3a|3al|b|bi|fi|la|el|al|men|min) /, ""), k.replace(/^(و|ف)?(من|عال|بال|لل|ع|ب|ل)(?=...)/, ""), k.replace(/^ال(?=...)/, "")]);
+  out.delete("");
+  return out;
+}
+const sameVillage = (x: string, village: Set<string>) => [...villageForms(x)].some((f) => village.has(f));
 
 /** `said`: the customer's own words of the turn (texts and transcripts). The planner reads them as evidence between tied products (1.22). */
 export async function planReading(ctx: ToolContext, intent: OrderIntent | null, said?: string): Promise<Routed> {
