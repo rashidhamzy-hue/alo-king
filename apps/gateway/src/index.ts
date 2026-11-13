@@ -29,6 +29,8 @@ export interface Env {
   WABA_ID_CUSTOMER?: string;
   SUPABASE_URL: string; SUPABASE_SERVICE_KEY: string;
   ANTHROPIC_API_KEY: string; MODEL_FAST: string; MODEL_SMART: string; BUFFER_SECONDS: string;
+  /** Only the Worker end-to-end test sets this (a scripted model on localhost, 4.5). Unset everywhere else. */
+  ANTHROPIC_BASE_URL?: string;
   /** Tests inject a scripted model and an in-memory database here. Never set in production. */
   TEST_DEPS?: { db: SupabaseClient; model: ModelClient };
 }
@@ -52,7 +54,7 @@ function depsFor(env: Env): TurnDeps {
   const supa = env.TEST_DEPS?.db ?? db(env);
   // maxRetries 0: turn.ts retries capacity failures itself and tells the customer "one moment" (B1, 1.15); the SDK's own
   // silent retries would only delay that.
-  const model: ModelClient = env.TEST_DEPS?.model ?? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 0 });
+  const model: ModelClient = env.TEST_DEPS?.model ?? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 0, ...(env.ANTHROPIC_BASE_URL ? { baseURL: env.ANTHROPIC_BASE_URL } : {}) });
   const deps: TurnDeps = { db: supa, model, modelName: env.MODEL_FAST, send: (req) => gatewaySend(supa, env, req) };   // the only door out
   deps.onOrderConfirmed = (orderId) => dispatchAndOffer(deps, orderId);
   deps.notifyCustomer = (id, what) => notifyCustomer(deps, id, what);
