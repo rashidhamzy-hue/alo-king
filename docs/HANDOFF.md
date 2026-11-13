@@ -238,6 +238,33 @@ Staging stock is 5,000 of everything (only set on an empty store), so the hourly
 - Anyone touching `can_send()`: 0063 redefines it (marketing lock first, then probes, then `can_send_checked`). Start from 0063's text.
 - The session worked on branch `claude/hopeful-johnson-hvqdoh` (the branch this environment allows).
 
+### Session P1 (pictures), 13 November 2026: task 5.17 steps 1-5, 7, 8; migration 0050
+Branch `claude/build-p1-task-5-17-5m1zj4` (the branch this environment allows). Built and tested locally (PGlite with every migration; permission check on Postgres 16); the fetch itself runs only in GitHub Actions. Results of the first staging run are in the next subsection.
+
+| Step | Where | Tested by |
+| --- | --- | --- |
+| Store, licence rules, review list, customer-side function, intake list | migration 0050 | `test/db/product-images.test.ts` (15 cases): licence follows from the source and a search result cannot be filed as usable; a proposed, rejected, superseded, **licence-unknown** or inactive-item picture is never returned to a customer, even when a person approves an unknown-licence one; only the ops lead or an admin approves; the same bytes are not re-proposed after a rejection; withdrawing takes a picture away at once |
+| 1-5 Fetch, vision check, licence, resize, store | `scripts/images/fetch-images.mjs`, `lib/` | `scripts/images/test/`: Open Food Facts folder and candidate rules, search parsing, brand-site classification (look-alike hosts refused), the vision decision (`cannot_tell` is a no), real resizing with sharp (1200 px, under 300 KB, no enlargement, white behind transparency, SVG refused), and the whole pipeline against the real migrations with the network and model replaced |
+| Workflow | `.github/workflows/images.yml` | Manual (`workflow_dispatch`); runs its own tests first, then the fetch, then proves the bucket is private and writes the intake list as an artifact |
+| 7 Signed link | `scripts/images/sign.mjs`, `product_image_for_customer()` | SQL cannot sign (the key is the project's), so the function returns the storage key, attribution and link lifetime, and the caller signs with the Storage API. `sign.mjs` is a tested example. `prove-private.mjs` does it live against one proposed picture and checks that the public route and an unsigned address are refused |
+| 8 Intake list | `photograph_at_intake()` (with the reason: `none_found`, `unknown_licence_only`, `rejected`), the `photograph-at-intake` artifact of each run | Same test file |
+
+**Secret and switches (founder).** `BRAVE_SEARCH_API_KEY` (repository secret) turns on brand-site and web image search; the choice and price are in `docs/DECISIONS.md`. Without it the workflow runs Open Food Facts only. `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_KEY` are the existing secrets. The model is `MODEL_FAST` from `wrangler.jsonc`.
+
+**How it behaves.** Up to five candidates an item, evaluated in stages (Open Food Facts, brand site, open search); the later stages are skipped once a picture with a customer-usable licence passes. A candidate is kept only if the measured width is at least 800 px and the model says yes to brand, product, size, one pack, plain background, and no to watermark or overlay text, and no to price tag or shop logo. `cannot_tell` is a no. The best kept candidate (usable licence first, then width) is shrunk and stored under `media/product_images/<sku>/<hash>.jpg` as `proposed`. A rerun only touches items still without a usable picture or a usable proposal, and never a picture a person approved. Each item and run leaves a row in `product_image_attempts` with the reason.
+
+**Not done, and why.**
+- Step 6 (the review page) is task 3.18, D1.
+- Open Food Facts is looked up by barcode only. The 34 unbranded produce items and the 34 items with no barcode get nothing from it, and are on the intake list unless search finds a picture.
+- Brand-site search needs a listed domain per brand (`scripts/images/brand-sites.json`, nine brands today). It is a search restricted to that site, not a crawl of the brand's product pages.
+- The Brave request shape follows its documentation and is tested with a fake; it has not been called, because the key does not exist yet.
+- `TEST_REPORT.txt` was not regenerated: it is not in P1's files, and parallel sessions would conflict on it. The next session that owns it should.
+
+**For other sessions.**
+- **D1 (3.18):** the review page reads `product_images_review(status, limit)` and writes only through `review_product_image(image, by, 'approve'|'reject', note)`. Each row has `customer_visible` (false for licence unknown: approving it records the decision but never shows it to a customer). The picture itself is in the private `media` bucket: sign `media_path` with the service key on the server (`sign.mjs`), never in the browser. Show the licence and `attribution` next to the picture. `photograph_at_intake()` is the list for 5.15.
+- **K1 (1.21 catalog feed):** call `product_image_for_customer(product)`; null means send no picture. Sign the returned `media_path` for `signed_link_seconds` (`sign.mjs`). Show the `attribution` where a CC BY-SA picture is used. WhatsApp fetches the link itself, so keep the lifetime at least a few minutes. Never add `image` to the gateway allowlist (invariant 2): the catalog image header is part of an interactive message.
+- **Anyone adding a brand to `brand-sites.json`:** open the site first. A wrong domain would file someone else's picture as the brand's own.
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.

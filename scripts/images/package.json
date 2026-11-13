@@ -1,0 +1,7 @@
+{
+  "name": "alo-king-images",
+  "private": true,
+  "type": "module",
+  "description": "Product picture fetch (build plan 5.17). Its own package so the root install and the Worker bundle never carry sharp.",
+  "dependencies": { "sharp": "0.35.5" }
+}

@@ -71,3 +71,22 @@ Placed as task 8.15, after five restaurants are live and scheduled orders (2.8) 
 
 Deferred, each with a trigger in the build plan: several restaurants in one group, each person paying separately, shared
 family baskets, office lunch clubs, shopping lists for gatherings. Recurring orders and village delivery rounds were already there.
+
+## Product picture search (task 5.17, session P1, 13 November 2026)
+The picture fetch (`scripts/images/`, run by `.github/workflows/images.yml`) needs one web image search API for the steps after Open Food Facts.
+
+**Chosen: Brave Search API, image endpoint** (`GET https://api.search.brave.com/res/v1/images/search`, key in a header). Repository secret: `BRAVE_SEARCH_API_KEY`.
+
+| Option | Why not, or why |
+| --- | --- |
+| Brave Search API | **Chosen.** Independent index, one key, results carry the picture address and the page it sits on, which the licence rule needs. Priced at about **USD 5 per 1,000 requests** (read from third-party pages on 13 Nov; Brave's own pricing page was not reachable from the build environment, and older pages show USD 3 per 1,000 and a free tier, since replaced by about USD 5 of monthly credit). |
+| Google Custom Search JSON API | Closed to new customers and ending 1 January 2027. |
+| Bing Image Search | Retired by Microsoft in 2025. |
+| Resellers of Google results (SerpAPI, Serper and similar) | Work, but resell scraped results: a licence and terms question we do not need. Revisit only if Brave's pictures prove poor. |
+
+**What it costs here.** One open search per item still without a usable picture, plus one brand-site search for the few brands listed in `scripts/images/brand-sites.json`. 291 items is at most about 330 requests, so **about USD 1.70 a full run**, and a second run only searches the items still without one. That is inside the monthly credit. Vision checks (fast model, up to five pictures an item) add a few US dollars for a full run.
+
+**Founder step:** create a Brave Search API key and add it as the repository secret `BRAVE_SEARCH_API_KEY`. Until it exists the workflow runs Open Food Facts only, by design.
+
+**Licence rules (build plan 5.17 step 4), as built.** The source decides the licence, and migration 0050 enforces the pairing with a check constraint: Open Food Facts is `cc_by_sa` and keeps its attribution; a picture counts as the brand's own (`brand_own`) only when both the page and the picture are on a host listed for that brand in `brand-sites.json`; everything else is `unknown`. Unknown pictures are kept only as a guide for the intake photo. `product_image_for_customer()` returns a picture only when it is approved and its licence is `cc_by_sa`, `brand_own` or `own_photo`. When the lawyer's line (5.11) allows search pictures, one later migration changes `product_image_licence_usable()`. Nothing changes it by a settings write.
+`brand-sites.json` lists nine global brands whose own sites are certain (Nescafe, Nutella, Kinder, Lipton, Pepsi, 7Up, Nivea, Colgate, Lurpak). Local brands (Liban Lait, Leen Taanayel, Tannourine and the rest) are not listed: a person adds one only after opening its site. Until then their search pictures are `unknown`.

@@ -1,0 +1,12 @@
+{
+  "_note": "Brand -> the brand's OWN site (5.17 step 4). A picture counts as 'brand_own' only when both the page and the picture are on one of these hosts (or a subdomain). Any brand not listed, and any other host, is licence 'unknown'. Add a brand only after a person has opened the site and confirmed it is the brand's own. Keys are lower case.",
+  "nescafe": ["nescafe.com"],
+  "nutella": ["nutella.com"],
+  "kinder": ["kinder.com"],
+  "lipton": ["lipton.com"],
+  "pepsi": ["pepsi.com"],
+  "7up": ["7up.com"],
+  "nivea": ["nivea.com"],
+  "colgate": ["colgate.com"],
+  "lurpak": ["lurpak.com"]
+}
