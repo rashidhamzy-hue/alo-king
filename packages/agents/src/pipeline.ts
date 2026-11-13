@@ -98,6 +98,12 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     await handoff(ctx, plan.handoff_reason ?? "plan_handoff");
     return { done: true, path: "handoff" };
   }
+  // D1 (3.8): no price while today's rate waits for a person. Said once, by code; the basket is kept for when it is confirmed.
+  if (plan.issues.some((i) => i.code === "fx_paused") && plan.lines.every((l) => l.status === "matched")) {
+    if (plan.quote) ctx.state.lastQuote = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote };
+    const r = await deliver(ctx, { type: "text", text: { body: FIXED.fxPaused } }, FIXED.fxPaused);
+    return r.ok ? { done: true, path: "fx_paused" } : { done: false, plan };
+  }
   const terms: CardTerms = { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
   if (intent.repeat_last) {
     // "Same as last time, and add bread": the last basket, re-checked, plus the new lines, priced together.

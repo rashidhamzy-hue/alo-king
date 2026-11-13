@@ -222,6 +222,12 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     p_customer: ctx.partyId, p_conversation: ctx.conversationId, p_lines: basket.lines, p_village: basket.villageId,
     p_place: basket.placeId, p_pickup: basket.pickup, p_payment: terms.payment, p_change_for: terms.changeForUsd, p_notes: terms.notes,
   });
+  if (!created.created && created.quote.issues.some((i) => i.code === "fx_paused")) {
+    // D1 (3.8): quoting is paused until a person confirms today's rate. The basket waits; the customer is told once.
+    ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
+    const told = await deliver(ctx, { type: "text", text: { body: FIXED.fxPaused } }, FIXED.fxPaused);
+    return told.ok ? { ok: false, error: "fx_paused" } : told;
+  }
   if (!created.created) {
     // The customer owes from a delivery nobody answered: the database refuses cash on delivery (0004 policy). The card goes
     // out as a prepaid order instead, and says why (1.4). Whish is the default transfer; the customer can still edit.
@@ -231,6 +237,14 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
       prepay: refusal.code === "first_order_cod_cap" ? { reason: "first_order", maxCodUsd: Number(refusal.max_cod_usd) } : { reason: "dues" } }, opts);
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
     return { ok: false, error: "quote_changed", issues: created.quote.issues };
+  }
+  // What we owe the customer comes off this order at once, on its own card line (C2's request). The database caps it at the
+  // order's total, records it once per order, gives it back if the order is cancelled, and uses it up when the order is paid.
+  const credit = await rpc<{ applied_usd: number; total_usd: number }>(ctx.db, "apply_customer_credit", { p_order: created.order_id, p_by: null });
+  if (Number(credit.applied_usd) > 0) {
+    const total = Math.round((Number(created.quote.total_usd) - Number(credit.applied_usd)) * 100) / 100;
+    const fx = created.quote.fx_rate_lbp;
+    created.quote = { ...created.quote, credit_usd: Number(credit.applied_usd), total_usd: total, total_lbp: fx ? Math.round(total * fx / 1000) * 1000 : null };
   }
   if (opts.before) {
     const pre = await deliver(ctx, { type: "text", text: { body: opts.before } }, opts.before, created.order_id);
