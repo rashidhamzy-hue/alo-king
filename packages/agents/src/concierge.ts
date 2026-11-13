@@ -77,7 +77,10 @@ export async function extractOrder(client: ModelClient, model: string, input: Tu
   const usage = { input: res.usage.input_tokens, output: res.usage.output_tokens };
   const call = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === "extract_order");
   if (!call) return { intent: null, errors: "no_extract_order_call", usage };
-  const parsed = OrderIntent.safeParse((call.input as { intent?: unknown } | null)?.intent);
+  // The fast model sometimes sends the reading as a JSON string inside `intent` (84 of 986 live eval runs, 13 Nov): read it.
+  let raw = (call.input as { intent?: unknown } | null)?.intent;
+  if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { /* left as is: the contract check below refuses it */ } }
+  const parsed = OrderIntent.safeParse(raw);
   return parsed.success ? { intent: parsed.data, usage } : { intent: null, errors: parsed.error.issues.slice(0, 5), usage };
 }
 

@@ -36,7 +36,8 @@ export interface ToolContext {
   conversationId: string;
   state: ConversationState;
   /** Sends through the Compliance Gateway. The only way a tool can reach the customer. */
-  send: (msg: Outbound, opts?: { orderId?: string }) => Promise<SendResult>;
+  /** authored: set on text the model wrote, so the gateway checks it again (A2's second lock for 1.5 and 1.10). */
+  send: (msg: Outbound, opts?: { orderId?: string; authored?: { by: "model"; approvedFacts?: string[] } }) => Promise<SendResult>;
   sent: { count: number; texts: string[] };   // message economy: what this turn has already sent
   /** Food-fact attributes a tool returned an approved record for during this turn (1.10). Empty until the facts tool (1.11). */
   approvedFacts?: Set<string>;
@@ -50,9 +51,9 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
   return data as T;
 }
 
-export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, orderId?: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, orderId?: string, byModel = false): Promise<{ ok: true } | { ok: false; error: string }> {
   if (ctx.sent.count >= MAX_SENDS_PER_TURN) return { ok: false, error: "message_budget_reached_for_this_turn" };
-  const r = await ctx.send(msg, { orderId });
+  const r = await ctx.send(msg, { orderId, ...(byModel ? { authored: { by: "model" as const, approvedFacts: [...(ctx.approvedFacts ?? [])] } } : {}) });
   if (!r.ok) return { ok: false, error: `not_sent:${r.refused}` };
   ctx.sent.count++; ctx.sent.texts.push(summary);
   return { ok: true };
@@ -110,7 +111,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
     async ask_location_pin({ text }) {
       const bad = await guard(ctx, [text]);
       if (bad) return bad;
-      return deliver(ctx, askLocation(text), `[location request] ${text}`);
+      return deliver(ctx, askLocation(text), `[location request] ${text}`, undefined, true);
     },
 
     async send_confirmation({ payment_method, change_for_usd, notes }) {
@@ -129,7 +130,9 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       if (prices && !prices.ok) return prices;
       const body = prices ? `${text}\n${prices.text}` : text;
       const msg: Outbound = buttons?.length ? buttonMsg(body, buttons) : { type: "text", text: { body } };
-      return deliver(ctx, msg, body);
+      // The gateway re-checks the model's words. Not when code appended prices: its check reads the whole body, and the prices
+      // would be refused as money in model text. Those words were checked above, before the prices were added.
+      return deliver(ctx, msg, body, undefined, !prices);
     },
 
     async handoff_human({ reason }) {

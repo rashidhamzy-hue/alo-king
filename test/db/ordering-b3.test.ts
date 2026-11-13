@@ -254,3 +254,16 @@ describe("voice notes: Kapso first, a second provider behind a setting, the audi
     expect(row.transcript.notes).toEqual({ audio: "no_kapso_media_url" });
   });
 });
+
+describe("model text is marked for the gateway's second check (A2's request)", () => {
+  it("a reply the model wrote goes out with authored: model; the card written by code does not", async () => {
+    const { use } = await import("./flow-kit");
+    const t = flow(db, [read({ intent: "order", lines: [{ raw: "زقزوق مقرمش", query: "زقزوق مقرمش", qty: 1, confidence: 0.5 }] }),
+                        [use("reply", { text: "ما لقيت هيدا عنا. شو بتحب بدالو؟" })]]);
+    await t.customer();
+    const reqs: any[] = [];
+    const send = t.deps.send;
+    await runTurn({ ...t.deps, send: async (r) => { reqs.push(r); return send(r); } }, t.pending({ type: "text", text: { body: "بدي زقزوق مقرمش" } }), {});
+    expect(reqs.map((r) => r.authored?.by ?? null)).toEqual(["model"]);
+  });
+});

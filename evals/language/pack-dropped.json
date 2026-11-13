@@ -1,36 +1,6 @@
 {
  "food": [
   {
-   "sku": "AK-0067",
-   "term": "candia full fat 1l",
-   "food": "fat"
-  },
-  {
-   "sku": "AK-0067",
-   "term": "candia full fat litre",
-   "food": "fat"
-  },
-  {
-   "sku": "AK-0070",
-   "term": "كانديا نص دسم",
-   "food": "fat"
-  },
-  {
-   "sku": "AK-0070",
-   "term": "كانديا نصف دسم",
-   "food": "fat"
-  },
-  {
-   "sku": "AK-0070",
-   "term": "candia demi ecreme",
-   "food": "fat"
-  },
-  {
-   "sku": "AK-0070",
-   "term": "candia half fat",
-   "food": "fat"
-  },
-  {
    "sku": "AK-0074",
    "term": "نادك لايت",
    "food": "light"

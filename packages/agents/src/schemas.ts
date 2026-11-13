@@ -6,7 +6,8 @@ export const OrderLine = z.object({
   query: z.string().describe("The item as the customer named it, in the customer's language and script, without quantity or politeness, " +
                              "e.g. 'لبنة ليبان ليه', 'خبز', 'قهوة نجار', 'kleenex kbir'. Never translate it, never replace a brand with one you know"),
   qty: z.number().positive().default(1),
-  unit: z.enum(["each", "kg", "half_kg", "pack", "bundle", "plate", "piece", "dozen"]).default("each"),
+  // An invented unit ("bag", "can") was failing the whole reading on the live model (1.22): it becomes "each".
+  unit: z.enum(["each", "kg", "half_kg", "pack", "bundle", "plate", "piece", "dozen"]).default("each").catch("each"),
   brand_hint: z.string().nullable().default(null).describe("The brand if the customer named one, as they wrote it (e.g. 'تنورين', 'الفورنو', 'najjar')"),
   modifiers: z.array(z.string()).default([]).describe("e.g. 'no pickles', 'extra garlic', 'cut in half', 'french bread'"),
   source_hint: z.string().nullable().default(null).describe("Restaurant or shop the customer named ('من عند ...'), if any. Never a product brand: a brand goes in brand_hint"),
@@ -20,7 +21,7 @@ export const OrderIntent = z.object({
               "memory_show: what do you know about me. memory_forget: forget what you know about me. memory_stop: stop remembering. memory_start: remember again"),
   repeat_last: z.boolean().default(false)
     .describe("'same as last time' / 'نفس المرة الماضية': the customer wants their previous order again. Use intent 'order'; put only added items in lines"),
-  language: z.enum(["ar_lb", "arabizi", "en", "fr", "mixed"]),
+  language: z.enum(["ar_lb", "arabizi", "en", "fr", "mixed"]).catch("mixed"),
   lines: z.array(OrderLine).default([]),
   fulfilment: z.enum(["delivery", "pickup", "unknown"]).default("unknown"),
   address: z.object({

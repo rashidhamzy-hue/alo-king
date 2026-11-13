@@ -85,7 +85,10 @@ insert into catalog_filler(word) select unnest(catalog_tokens(w)) from unnest(ar
   'je','veux','voudrais','svp','stp','et','avec','un','une','des','du','de','la','le','les','paquet','boite','bouteille','sac',
   'el','l','al','il','lal','lel','bel','bil','min','ta3','tab3','ya','3al','merci','thanks','shukran','hi','hello','marhaba','bonjour',
   'زيادة','كمان','بعد','تبع','تبعيت','يا','لو','اذا','بس','extra','more','another','also','too','encore','aussi','zyede','ziyadeh',
-  'مش','مو','بلا','بدون','غير','msh','mesh','mish','bala','bidun','bidoun','not','no','without','pas','sans'
+  'ال','en','bl','b','3elbe','3elbet','3elbeh','3elib','3lab','3elab','3elbten','3lbeten','kees','kis','ki8an','akyas','rabtet','rabtit',
+  'rabtat','kartoneh','kartouneh','kartone','kartonet','2annine','2anninet','anninet','packet','packets','paquets','sachets','sachet',
+  'علب','اكياس','كياس','ربطات','كراتين','قناني','باكيتات','حبات',
+  'مش','مو','بلا','بدون','غير','msh','mesh','mish','bala','bidun','bidoun','not','without','pas','sans'
 ]) w on conflict do nothing;
 
 -- Unit words. Inside a term they are optional ("pepsi diet 1.25L" matches "pepsi diet 1.25"), and in a message they are never
@@ -98,8 +101,8 @@ $$;
 -- and a product whose term needs a negated word is not offered.
 create table if not exists catalog_negation (word text primary key);
 insert into catalog_negation(word) select unnest(catalog_tokens(w)) from unnest(array[
-  'مش','مو','بلا','بدون','غير','msh','mesh','mish','mush','bala','bidun','bidoun','not','no','without','pas','sans','non'
-]) w on conflict do nothing;
+  'مش','مو','بلا','بدون','غير','msh','mesh','mish','mush','bala','bidun','bidoun','not','without','pas','sans'
+]) w on conflict do nothing;      -- not "no": "spaghetti no. 5" is a number
 
 -- Positions (1-based) of the tokens a negation word covers: the next tokens up to and including two that are not filler.
 create or replace function catalog_negated(p_tokens text[]) returns int[] language plpgsql stable as $$
@@ -130,11 +133,14 @@ begin
   end loop;
 end $$;
 
--- Candidates for one piece of customer text, best first. cover = characters of the text the product's terms explain.
--- A product whose term needs a negated word is left out. unexplained = the words no term of the product explains (filler,
--- units, numbers, negated words and p_explained aside: the planner passes the words of the line's modifiers there).
-create or replace function catalog_pack_search(p_text text, p_limit int default 6, p_explained text[] default '{}')
-returns jsonb language sql stable set search_path = public, extensions, pg_temp as $$
+-- Every product the words of a text touch: its best level, whether a negation rules it out, whether a brand term of it is in the
+-- text, how many characters of the text its terms explain, and the words they leave unexplained (filler, units, negated words and
+-- p_explained aside: the planner passes the line's quantity and the words of its modifiers there). Numbers left unexplained are
+-- counted apart (loose_numbers): they never block a choice, but they rank a product down, so "1.25" left unexplained by the
+-- 2.25 litre bottle puts the 1.25 litre one first.
+create or replace function catalog_pack_scan(p_text text, p_explained text[] default '{}')
+returns table (product_id uuid, lvl int, excluded boolean, brand_hit boolean, cover int, unexplained text[], loose_numbers text[])
+language sql stable set search_path = public, extensions, pg_temp as $$
   with toks as (select catalog_tokens(p_text) as a), neg as (select catalog_negated(a) as n from toks),
   q as (
     select o as ord, t as tok, catalog_token_forms(t) as f, o::int = any(neg.n) as negated
@@ -161,27 +167,38 @@ returns jsonb language sql stable set search_path = public, extensions, pg_temp 
       from (select h.*, bool_and(h.negated) over (partition by h.tid, h.pos) as pos_negated from hits h) h
      group by tid, product_id having count(distinct pos) filter (where not optional) = max(n)
   ), per_product as (
-    select product_id, max(lvl) filter (where not negated) as lvl, bool_or(negated) as excluded,
+    select product_id, coalesce(max(lvl) filter (where not negated), 0) as lvl, bool_or(negated) as excluded,
+           coalesce(bool_or(lvl = 1 and not negated), false) as brand_hit,
            array_agg(distinct o) filter (where not negated) as ords
       from matched left join lateral unnest(ords) o on true group by product_id
-  ), scored as (
-    select pp.product_id, pp.lvl,
-           (select coalesce(sum(length(q.tok)), 0) from q where q.ord = any(pp.ords))::int as cover,
-           (select coalesce(array_agg(q.tok order by q.ord), '{}'::text[]) from q
-             where not q.ord = any(pp.ords) and not q.negated and q.tok !~ '^[0-9]+$' and not catalog_is_unit(q.tok)
-               and not q.tok = any(coalesce(p_explained, '{}'))
-               and not exists (select 1 from catalog_filler cf where cf.word = any(q.f))) as unexplained
-      from per_product pp where not pp.excluded and pp.lvl >= 1
-  ), ranked as (
+  )
+  select pp.product_id, pp.lvl::int, pp.excluded, pp.brand_hit,
+         (select coalesce(sum(length(q.tok)), 0) from q where q.ord = any(pp.ords))::int as cover,
+         (select coalesce(array_agg(q.tok order by q.ord), '{}'::text[]) from q
+           where not q.ord = any(coalesce(pp.ords, '{}')) and not q.negated and not catalog_is_unit(q.tok) and q.tok !~ '^[0-9]+$'
+             and not q.tok = any(coalesce(p_explained, '{}'))
+             and not exists (select 1 from catalog_filler cf where cf.word = any(q.f))) as unexplained,
+         (select coalesce(array_agg(q.tok order by q.ord), '{}'::text[]) from q
+           where not q.ord = any(coalesce(pp.ords, '{}')) and not q.negated and q.tok ~ '^[0-9]+$'
+             and not q.tok = any(coalesce(p_explained, '{}'))) as loose_numbers
+    from per_product pp
+$$;
+
+-- Candidates for one piece of customer text, best first: the scan, without products a negation rules out, ranked by the
+-- characters explained, then the level (exact, kind, brand), then fewer words left unexplained, then stock, sponsorship,
+-- best seller and price.
+create or replace function catalog_pack_search(p_text text, p_limit int default 6, p_explained text[] default '{}')
+returns jsonb language sql stable set search_path = public, extensions, pg_temp as $$
+  with ranked as (
     select p.id as product_id, p.sku, p.name_en, p.name_ar, p.brand, p.category, p.sub_type, p.sell_unit, p.velocity_tier,
            s.id as source_id, s.name as source_name, s.kind as source_kind, o.price_usd, o.sponsored_rank,
            case when s.kind = 'dark_store' then coalesce(l.on_hand - l.reserved, 0)
                 when o.is_available and s.is_open then 999 else 0 end as available,
-           sc.cover, sc.lvl as level, sc.unexplained, (sc.cover + sc.lvl * 0.1)::numeric as score
-      from scored sc join products p on p.id = sc.product_id
+           sc.cover, sc.lvl as level, sc.unexplained, sc.loose_numbers, (sc.cover + sc.lvl * 0.1 - (cardinality(sc.unexplained) + cardinality(sc.loose_numbers)) * 0.01)::numeric as score
+      from catalog_pack_scan(p_text, p_explained) sc join products p on p.id = sc.product_id
       join offers o on o.product_id = p.id join sources s on s.id = o.source_id
       left join stock_levels l on l.product_id = p.id and l.source_id = s.id
-     where p.is_active and (s.kind = 'dark_store' or s.approved_at is not null)
+     where not sc.excluded and sc.lvl >= 1 and p.is_active and (s.kind = 'dark_store' or s.approved_at is not null)
   )
   select coalesce(jsonb_agg(to_jsonb(r) order by r.score desc, (r.available > 0) desc, r.sponsored_rank nulls last, r.velocity_tier nulls last, r.price_usd), '[]'::jsonb)
     from (select * from ranked order by score desc, (available > 0) desc, sponsored_rank nulls last, velocity_tier nulls last, price_usd limit p_limit) r
@@ -236,6 +253,12 @@ create or replace function catalog_negation_only(p_raw text) returns boolean lan
                     where t = any(array(select word from catalog_negation))
                        or not exists (select 1 from catalog_filler f where f.word = any(catalog_token_forms(t)))
                     order by o limit 1), false)
+$$;
+
+-- True when the best candidate for a text names what it is (kind or exact) and leaves none of its words unexplained.
+create or replace function catalog_decisive(p_text text) returns boolean language sql stable set search_path = public, extensions, pg_temp as $$
+  select coalesce((select (m->0->>'level')::int >= 2 and jsonb_array_length(m->0->'unexplained') = 0
+                     from (select catalog_pack_search(p_text, 1) as m) x where jsonb_array_length(m) > 0), false)
 $$;
 
 -- Is this name one of the brands in the catalog (a pack brand term, or the brand field itself)?
@@ -331,14 +354,57 @@ declare ln jsonb; idx int := -1; v_lines jsonb := '[]'::jsonb; v_quote_lines jso
         v_village uuid := p_village; v_place uuid; pl jsonb; v_pickup boolean := coalesce(p_intent->>'fulfilment', '') = 'pickup';
         v_quote jsonb; v_unavailable jsonb := '[]'::jsonb; v_unmatched int := 0; v_n int := 0; v_min numeric; v_max numeric; v_subs int; v_brands int;
         v_prepay boolean := customer_requires_prepay(p_party); v_pay text := coalesce(p_intent->>'payment_hint', 'cod'); v_pack boolean; v_loose boolean;
+        v_in jsonb := '[]'::jsonb; i int; v_merged text; v_msg text := nullif(btrim(coalesce(p_intent->>'_message', '')), '');
+        v_ev_exact uuid[] := '{}'; v_ev_excl uuid[] := '{}'; v_ev_brand uuid[] := '{}';
 begin
-  for ln in select * from jsonb_array_elements(coalesce(p_intent->'lines', '[]'::jsonb)) loop
-    idx := idx + 1; chosen := null; v_assumed := false;
+  -- The fast model sometimes cuts one item into two lines ("3tine kinder" / "tronky wa7de", "wet wipes oui oui" / "aqua").
+  -- A line whose words name no kind of product is joined to the next line, or else to the one before, when the joined words
+  -- are fully explained; otherwise it stays as it is.
+  for ln in select x || jsonb_build_object('_idx', o - 1) from jsonb_array_elements(coalesce(p_intent->'lines', '[]'::jsonb)) with ordinality t(x, o) loop
+    v_in := v_in || ln;
+  end loop;
+  i := 0;
+  while i < jsonb_array_length(v_in) loop
+    ln := v_in->i;
+    if nullif(ln->>'source_hint', '') is null and not catalog_negation_only(ln->>'raw') and jsonb_array_length(v_in) > 1
+       and not exists (select 1 from catalog_pack_scan(ln->>'raw') sc where sc.lvl >= 2 and not sc.excluded) then
+      if i + 1 < jsonb_array_length(v_in) and nullif(v_in->(i+1)->>'source_hint', '') is null then
+        v_merged := (ln->>'raw') || ' ' || (v_in->(i+1)->>'raw');
+        if catalog_decisive(v_merged) then
+          v_in := jsonb_set(v_in, array[(i+1)::text], (v_in->(i+1)) || jsonb_build_object('raw', v_merged,
+                    'query', btrim(coalesce(ln->>'query', '') || ' ' || coalesce(v_in->(i+1)->>'query', '')),
+                    'brand_hint', coalesce(v_in->(i+1)->'brand_hint', ln->'brand_hint'),
+                    'qty', greatest(coalesce((ln->>'qty')::numeric, 1), coalesce((v_in->(i+1)->>'qty')::numeric, 1))));
+          v_in := v_in - i; continue;
+        end if;
+      end if;
+      if i > 0 and nullif(v_in->(i-1)->>'source_hint', '') is null then
+        v_merged := (v_in->(i-1)->>'raw') || ' ' || (ln->>'raw');
+        if catalog_decisive(v_merged) then
+          v_in := jsonb_set(v_in, array[(i-1)::text], (v_in->(i-1)) || jsonb_build_object('raw', v_merged,
+                    'query', btrim(coalesce(v_in->(i-1)->>'query', '') || ' ' || coalesce(ln->>'query', '')),
+                    'brand_hint', coalesce(v_in->(i-1)->'brand_hint', ln->'brand_hint')));
+          v_in := v_in - i; continue;
+        end if;
+      end if;
+    end if;
+    i := i + 1;
+  end loop;
+  -- The whole message is evidence too: a word the model left out of a line ("l kbar", "mish diet") still counts when it
+  -- decides between products the line's own words left tied.
+  if v_msg is not null then
+    select coalesce(array_agg(product_id) filter (where lvl = 3 and not excluded), '{}'), coalesce(array_agg(product_id) filter (where excluded), '{}'),
+           coalesce(array_agg(product_id) filter (where brand_hit and not excluded), '{}')
+      into v_ev_exact, v_ev_excl, v_ev_brand from catalog_pack_scan(v_msg);
+  end if;
+
+  for ln in select * from jsonb_array_elements(v_in) loop
+    idx := (ln->>'_idx')::int; chosen := null; v_assumed := false;
     -- a line that is only a negation («مش البانيه», "msh l kbir") excludes something said before; it is not an item
     if catalog_negation_only(ln->>'raw') then continue; end if;
+    -- the quantity and the modifiers explain their own words («٦ علب», "bala basal")
     res := catalog_lookup(ln->>'raw', ln->>'query', nullif(ln->>'source_hint', ''), 5,
-                          (select coalesce(array_agg(t), '{}') from jsonb_array_elements_text(coalesce(ln->'modifiers', '[]'::jsonb)) m,
-                                  unnest(catalog_tokens(m)) t));
+                          catalog_tokens(coalesce(ln->>'qty', '') || ' ' || coalesce((select string_agg(m, ' ') from jsonb_array_elements_text(coalesce(ln->'modifiers', '[]'::jsonb)) m), '')));
     if res->>'reason' = 'merchant_not_onboarded' then
       v_unavailable := v_unavailable || jsonb_build_object('idx', idx, 'raw', ln->>'raw', 'source_hint', ln->>'source_hint');
       v_lines := v_lines || jsonb_build_object('idx', idx, 'raw', ln->>'raw', 'query', ln->>'query', 'status', 'merchant_not_onboarded',
@@ -359,8 +425,33 @@ begin
       if p_choices ? idx::text then
         select x into chosen from jsonb_array_elements(res->'matches') x where x->>'product_id' = p_choices->>idx::text limit 1;
       end if;
+      -- what the message rules out («mish diet») leaves the tie; one tied product the message names exactly is the one
+      select coalesce(jsonb_agg(x), '[]'::jsonb) into narrowed from jsonb_array_elements(ties) x where not (x->>'product_id')::uuid = any(v_ev_excl);
+      if jsonb_array_length(narrowed) > 0 then ties := narrowed; top := ties->0;
+      elsif jsonb_array_length(ties) > 0 and v_pack then ties := '[]'::jsonb; end if;
+      -- a brand the message names («mn Hamra») keeps only that brand's products when the line's own words left brands tied
+      -- (and when the best one's brand is not in the message at all, the candidates whose brand is: the model dropped "mn Hamra")
+      select coalesce(jsonb_agg(x), '[]'::jsonb) into narrowed from jsonb_array_elements(ties) x where (x->>'product_id')::uuid = any(v_ev_brand);
+      if jsonb_array_length(narrowed) > 0 and jsonb_array_length(narrowed) < jsonb_array_length(ties) then ties := narrowed; top := ties->0;
+      elsif v_pack and jsonb_array_length(narrowed) = 0 and not exists (select 1 from products p where p.id = (top->>'product_id')::uuid
+                                                                         and exists (select 1 from unnest(v_ev_brand) b join products pb on pb.id = b where pb.brand = p.brand)) then
+        select coalesce(jsonb_agg(x), '[]'::jsonb) into narrowed from jsonb_array_elements(res->'matches') x
+         where (x->>'product_id')::uuid = any(v_ev_brand) and (x->>'level')::int >= 2;
+        if jsonb_array_length(narrowed) > 0 then
+          select coalesce(jsonb_agg(x), '[]'::jsonb) into ties from jsonb_array_elements(narrowed) x where (x->>'score')::numeric = (narrowed->0->>'score')::numeric;
+          top := ties->0;
+        end if;
+      end if;
+      select coalesce(jsonb_agg(x), '[]'::jsonb) into narrowed from jsonb_array_elements(ties) x where (x->>'product_id')::uuid = any(v_ev_exact);
+      if chosen is null and jsonb_array_length(ties) > 1 and jsonb_array_length(narrowed) = 1 then chosen := narrowed->0;
+      elsif jsonb_array_length(narrowed) > 1 then ties := narrowed; top := ties->0; end if;
       -- the customer said more than the terms explain, or only the model's phrase found anything: show, never choose alone
-      v_loose := (v_pack and jsonb_array_length(coalesce(top->'unexplained', '[]'::jsonb)) > 0) or res->>'via' = 'pack_query_only';
+      v_loose := (v_pack and jsonb_array_length(coalesce(top->'unexplained', '[]'::jsonb)) > 0) or res->>'via' = 'pack_query_only'
+                 -- a size the best one leaves out and another explains («١٢٥ مل» against the litre): a question, not a guess
+                 or (v_pack and exists (select 1 from jsonb_array_elements(res->'matches') m, jsonb_array_elements_text(coalesce(top->'loose_numbers', '[]'::jsonb)) w
+                                         where m->>'product_id' <> top->>'product_id' and not (coalesce(m->'loose_numbers', '[]'::jsonb) ? w)));
+      -- a product named by its brand alone («3tine kinder») is never chosen alone: which one is a question
+      if v_pack and coalesce((top->>'level')::int, 2) = 1 then v_loose := true; end if;
       if chosen is null and jsonb_array_length(ties) = 1 and not v_loose then chosen := top; end if;
       if chosen is null and not v_loose then        -- 1. bought before
         select x into chosen from jsonb_array_elements(ties) x
@@ -368,7 +459,12 @@ begin
                         where o.customer_id = p_party and i.product_id = (x->>'product_id')::uuid and o.status in ('delivered','closed'))
          limit 1;
       end if;
-      if chosen is null and v_pack and nullif(ln->>'query', '') is not null then   -- 2. the model's phrase names one of them
+      -- 2. the model's phrase names one of them. When the customer's words left something over, only if no other candidate
+      --    explains what was left over (the model drops noise like "lal wled"; it must not drop "herbal")
+      if chosen is null and v_pack and nullif(ln->>'query', '') is not null and not (v_loose and exists (
+           select 1 from jsonb_array_elements(res->'matches') m,
+                         jsonb_array_elements_text(coalesce(top->'unexplained', '[]'::jsonb) || coalesce(top->'loose_numbers', '[]'::jsonb)) w
+            where m->>'product_id' <> top->>'product_id' and not (coalesce(m->'unexplained', '[]'::jsonb) || coalesce(m->'loose_numbers', '[]'::jsonb)) ? w)) then
         select x into chosen from jsonb_array_elements(ties) x
          where (x->>'product_id')::uuid = catalog_query_pick(ln->>'query') limit 1;
       end if;
@@ -391,6 +487,15 @@ begin
     end if;
 
     v_qty := coalesce((ln->>'qty')::numeric, 1); v_note := null;
+    -- the same product twice is one line said twice ("cherry tomatoes please, البندورة الزغيرة"): keep the larger quantity
+    if chosen is not null and exists (select 1 from jsonb_array_elements(v_quote_lines) q where q->>'product_id' = chosen->>'product_id') then
+      select jsonb_agg(case when q->>'product_id' = chosen->>'product_id' then q || jsonb_build_object('qty', greatest((q->>'qty')::numeric, v_qty)) else q end)
+        into v_quote_lines from jsonb_array_elements(v_quote_lines) q;
+      v_lines := v_lines || jsonb_build_object('idx', idx, 'raw', ln->>'raw', 'query', ln->>'query', 'status', 'same_as_before', 'qty', v_qty,
+                   'assumed', v_assumed, 'via', res->>'via', 'chosen', null, 'candidates', null);
+      v_n := v_n - 1;
+      continue;
+    end if;
     if chosen is not null then
       if ln->>'unit' in ('kg', 'half_kg') then
         if lower(chosen->>'sell_unit') = 'kg' then

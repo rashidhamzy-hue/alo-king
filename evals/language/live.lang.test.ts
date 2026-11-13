@@ -40,14 +40,15 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
       usage.input += r.usage.input; usage.output += r.usage.output;
       let lines: any[] = []; let next: string | null = null;
       if (r.intent) {
-        const plan = await db.rpc("plan_order_core", { p_party: party, p_intent: r.intent, p_village: null, p_choices: {} });
+        // the turn passes the customer's own words with the reading (pipeline.ts planReading); on older code the key is ignored
+        const plan = await db.rpc("plan_order_core", { p_party: party, p_intent: { ...r.intent, _message: c.text }, p_village: null, p_choices: {} });
         lines = plan.lines ?? []; next = plan.next;
       }
       const got: Got[] = lines.filter((l) => l.status === "matched" && l.chosen).map((l) => ({ sku: skuOf.get(l.chosen.product_id) ?? "?", assumed: !!l.assumed }));
       const s = scoreCase(c.items, got);
       return { id: c.id, k, kind: c.kind, lang: c.lang, text: c.text, expected: c.items, got, score: s, next,
                errors: (r as { errors?: unknown }).errors ?? null,
-               lines: (r.intent?.lines ?? []).map((l, i) => ({ raw: l.raw, query: l.query, brand_hint: l.brand_hint, source_hint: l.source_hint, status: lines[i]?.status ?? null,
+               lines: (r.intent?.lines ?? []).map((l, i) => ({ raw: l.raw, query: l.query, brand_hint: l.brand_hint, source_hint: l.source_hint, qty: l.qty, unit: l.unit, modifiers: l.modifiers, status: lines[i]?.status ?? null,
                         candidates: (lines[i]?.candidates ?? []).map((x: any) => skuOf.get(x.product_id)) })) };
     });
 
@@ -62,7 +63,7 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
       demo_0013_right: card0013, wrong: runs.filter((r) => r.score.wrong.length).map(({ id, text, expected, got, lines }) => ({ id, text, expected, got, lines })),
       missed: runs.filter((r) => r.score.missed.length).map(({ id, text, score, lines, errors }) => ({ id, text, missed: score.missed, lines, errors })),
       // every reading, so replay.test.ts can run the same readings through a changed planner without the model
-      readings: runs.map(({ id, k, lines }) => ({ id, k, lines: lines.map(({ raw, query, brand_hint, source_hint }) => ({ raw, query, brand_hint, source_hint })) })) };
+      readings: runs.map(({ id, k, lines }) => ({ id, k, lines: lines.map(({ raw, query, brand_hint, source_hint, qty, unit, modifiers }) => ({ raw, query, brand_hint, source_hint, qty, unit, modifiers })) })) };
     mkdirSync(here("results"), { recursive: true });
     writeFileSync(here(`results/${label}.json`), JSON.stringify(report, null, 1) + "\n");
     const md = [`### Catalog language eval: ${label} (${model}, ${runs.length} runs)`, "",

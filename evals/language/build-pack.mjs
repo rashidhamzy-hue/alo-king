@@ -38,6 +38,9 @@ const KIND_NAMES = ["زيت نباتي", "زيت نباتية", "سمنة نبا
 // Invariant 15 is about food. Toiletries, cleaning, baby care and pet supplies carry no food fact («فوط صحية» are sanitary pads).
 const NON_FOOD = new Set(["Cleaning & Household", "Beauty & Personal Care", "Baby & Child", "Pet Zone"]);
 
+// The fat level of milk, laban and cream is the product as printed ("Lait Entier", "Demi-Écrémé", "Low Fat"), not a claim.
+const ALSO = { fat: ["entier", "écrémé", "ecreme", "demi", "low fat", "full fat"] };
+
 export function foodWord(term, nameEn, category) {
   if (category && NON_FOOD.has(category)) return null;
   const k = tokens(term).join(" ");
@@ -45,7 +48,7 @@ export function foodWord(term, nameEn, category) {
   const ks = new Set(tokens(term)); const name = (nameEn ?? "").toLowerCase();
   for (const [allowedBy, forms] of FOOD) {
     const hit = forms.find((f) => { const ft = tokens(f); return ft.length && ft.every((t) => ks.has(t)); });
-    if (hit && !name.includes(allowedBy) && !name.includes(hit)) return allowedBy;
+    if (hit && !name.includes(allowedBy) && !name.includes(hit) && !(ALSO[allowedBy] ?? []).some((w) => name.includes(w))) return allowedBy;
   }
   return null;
 }

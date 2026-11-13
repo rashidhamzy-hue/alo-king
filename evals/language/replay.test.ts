@@ -11,7 +11,7 @@ import { scoreCase, totals, type Expected, type Got } from "./score";
 const env = ((globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {});
 const file = env.ALO_LANG_REPLAY;
 const here = (f: string) => fileURLToPath(new URL(f, import.meta.url));
-type Line = { raw: string; query: string; brand_hint: string | null; source_hint?: string | null };
+type Line = { raw: string; query: string; brand_hint: string | null; source_hint?: string | null; qty?: number; unit?: string; modifiers?: string[] };
 
 describe.skipIf(!file)("replay readings (1.22)", () => {
   it("scores the recorded readings on the current planner", async () => {
@@ -26,8 +26,8 @@ describe.skipIf(!file)("replay readings (1.22)", () => {
     const out: any[] = [];
     for (const r of readings) {
       const c = cases.get(r.id); if (!c) continue;
-      const lines = r.lines.map((l) => ({ ...l, qty: 1, unit: "each", modifiers: [], confidence: 0.8 }));
-      const plan = lines.length ? await db.rpc("plan_order_core", { p_party: party, p_intent: { intent: "order", lines }, p_village: null, p_choices: {} }) : { lines: [] };
+      const lines = r.lines.map((l) => ({ ...l, qty: l.qty ?? 1, unit: l.unit ?? "each", modifiers: l.modifiers ?? [], confidence: 0.8 }));
+      const plan = lines.length ? await db.rpc("plan_order_core", { p_party: party, p_intent: { intent: "order", lines, _message: c.text }, p_village: null, p_choices: {} }) : { lines: [] };
       const got: Got[] = (plan.lines ?? []).filter((l: any) => l.status === "matched").map((l: any) => ({ sku: skuOf.get(l.chosen.product_id)!, assumed: l.assumed }));
       out.push({ id: r.id, text: c.text, expected: c.items, got, score: scoreCase(c.items, got),
                  lines: (plan.lines ?? []).map((l: any) => ({ raw: l.raw, status: l.status, via: l.via, unexplained: l.unexplained,
