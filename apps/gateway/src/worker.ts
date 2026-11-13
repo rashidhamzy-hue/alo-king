@@ -21,8 +21,10 @@ const handler = {
   async fetch(req: Request, env: WorkerEnv, ctx: ExecutionContext) {
     // Staging only, at most three per Worker instance: lets the deploy prove an error reaches Sentry. Production has no such route.
     if (env.ENVIRONMENT === "staging" && new URL(req.url).pathname === "/__sentry-test" && req.method === "GET") {
-      if (testEvents++ < 3) Sentry.captureException(new Error("sentry smoke test from the staging deploy"));
-      return new Response("sent");
+      if (testEvents++ >= 3) return new Response("sent (limit reached for this instance)");
+      const id = Sentry.captureException(new Error("sentry smoke test from the staging deploy"));
+      const flushed = await Sentry.flush(3000);          // true only if the transport delivered everything in time
+      return new Response(`sent ${id} flushed=${flushed}`);
     }
     return gateway.fetch(req, env, ctx);
   },
