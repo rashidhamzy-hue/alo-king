@@ -6,7 +6,8 @@ import { processOpsTurn } from "./ops-turn";
 import type { SendRequest, SendResult } from "@ak/wa/gateway";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
-import { completeAfterPin, planReading } from "@ak/agents/pipeline";
+import { answerQuick, completeAfterPin, planReading } from "@ak/agents/pipeline";
+import { quickIntent } from "@ak/agents/quick-intent";
 import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
@@ -26,7 +27,7 @@ export interface TurnDeps {
   /** Rider-side events the customer should hear about ("on the way", "rider is at your door"). */
   notifyCustomer?: (deliveryOrOrderId: string, what: "on_the_way" | "rider_waiting") => Promise<unknown>;
 }
-export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "rider" | "duplicate" | "error"; sent: string[] }
+export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
 
 const HISTORY_MAX = 8;
 
@@ -173,6 +174,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // A pin for a card that was only waiting on it: the card goes out, no model.
     if (pinOnly && (await completeAfterPin(ctx))) { remember(); await record("ok", "card_after_pin"); return { outcome: "card", sent }; }
 
+    // Where is my order, when are you open, same as last time: typed in a few words, answered by the database alone (1.3).
+    const quick = texts.length === 1 && transcripts.length === 0 && pins === 0 ? quickIntent(texts[0]!) : null;
+    if (quick) {
+      const r = await answerQuick(ctx, quick);
+      if (r.done) { remember(); await record("ok", `quick:${r.path}`); return { outcome: r.path.includes("card") ? "card" : "answered", sent }; }
+    }
+
     const input = { texts, transcripts,
       state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
                audio_messages_unreadable: audioFailed, recent: state.history ?? [],
@@ -185,7 +193,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     intent = reading.intent;
     // 2. The database decides: card, handoff, or a question.
     const routed = await planReading(ctx, intent);
-    if (routed.done) { remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : "card", sent }; }
+    if (routed.done) { remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     const res = await runAskLoop(deps.model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
     usage.input += res.usage.input; usage.output += res.usage.output;

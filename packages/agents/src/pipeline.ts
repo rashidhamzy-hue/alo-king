@@ -6,6 +6,8 @@ import { askLocation } from "@ak/wa/kapso";
 import type { OrderIntent } from "./schemas";
 import { deliver, issueCard, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import { FIXED, type Quote } from "./order-card";
+import type { QuickIntent } from "./quick-intent";
+import { ANSWER, answerArea, answerHours, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 
 export interface PlanLine {
   idx: number; raw: string; query: string; qty: number; assumed: boolean;
@@ -22,7 +24,7 @@ export interface Plan {
   payment_method: "cod" | "whish" | "omt"; prepay_required: boolean; dues_usd: number; change_for_usd: number | null;
 }
 /** done: the turn is answered. Otherwise the loop runs, with the plan when there is one. */
-export type Routed = { done: true; path: string } | { done: false; plan: Plan | null };
+export type Routed = { done: true; path: string } | { done: false; plan: (Partial<Plan> & { repeat?: RepeatPlan | null }) | null };
 
 async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await db.rpc(fn, args);
@@ -40,7 +42,18 @@ export function directionsOf(intent: OrderIntent): string | null {
 }
 
 export async function planReading(ctx: ToolContext, intent: OrderIntent | null): Promise<Routed> {
-  if (!intent || intent.intent !== "order" || intent.lines.length === 0) return { done: false, plan: null };
+  if (!intent) return { done: false, plan: null };
+  // Questions the database answers by itself (1.3).
+  if (intent.intent === "status") return answerStatus(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
+  if (intent.intent === "hours") return answerHours(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
+  if (intent.intent === "delivery_area" && intent.address.village)
+    return answerArea(ctx, intent.address.village).then((r) => (r.done ? r : { done: false, plan: null }));
+  if (intent.intent !== "order") return { done: false, plan: null };
+  if (intent.repeat_last && intent.lines.length === 0) {
+    const r = await repeatLast(ctx);
+    return r.done ? r : { done: false, plan: { repeat: r.repeat ?? null } };
+  }
+  if (intent.lines.length === 0) return { done: false, plan: null };
 
   const plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: intent, p_village: ctx.state.villageId ?? null, p_choices: {} });
   if (plan.village_id) ctx.state.villageId = plan.village_id;
@@ -48,6 +61,12 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null):
   const directions = directionsOf(intent);
   if (directions) ctx.state.directions = directions;
 
+  // A village we know and do not serve: the order cannot go anywhere, so say so and list where we do deliver.
+  const away = plan.pickup ? undefined : plan.issues.find((i) => i.code === "village_not_served");
+  if (away) {
+    const r = await answerOutOfArea(ctx, String(away.village_ar ?? away.said ?? intent.address.village ?? ""));
+    if (r.done) return r;
+  }
   const unavailable = notAvailableText(plan);
   if (plan.next === "not_available") {
     const r = await deliver(ctx, { type: "text", text: { body: unavailable! } }, unavailable!);
@@ -57,20 +76,53 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null):
     await handoff(ctx, plan.handoff_reason ?? "plan_handoff");
     return { done: true, path: "handoff" };
   }
+  const terms: CardTerms = { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
+  if (intent.repeat_last) {
+    // "Same as last time, and add bread": the last basket, re-checked, plus the new lines, priced together.
+    // Only when every new line was matched; anything unclear goes to the loop with both in hand.
+    if (!plan.lines.every((l) => l.status === "matched" || l.status === "merchant_not_onboarded")) return { done: false, plan };
+    const r = await rpc<RepeatPlan>(ctx.db, "repeat_plan", { p_party: ctx.partyId, p_order: null });
+    if (!r.found || !r.lines?.length) return { done: false, plan: { ...plan, repeat: r } };
+    const pickup = !!plan.pickup;
+    const basket = { lines: [...r.lines, ...plan.quote_lines], pickup, placeId: plan.place_id ?? r.place_id ?? null,
+                     villageId: pickup ? null : plan.village_id ?? r.village_id ?? null };
+    if (basket.villageId) ctx.state.villageId = basket.villageId;
+    if (basket.placeId) ctx.state.placeId = basket.placeId;
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket.lines, p_village: basket.villageId, p_pickup: pickup });
+    if (!quote.ok) return { done: false, plan: { ...plan, repeat: r } };
+    const missing = (r.missing ?? []).map((m) => m.name_ar ?? m.name);
+    const before = [unavailable, missing.length ? ANSWER.someMissing(missing) : null].filter(Boolean).join("\n") || undefined;
+    const routed = await sendBasket(ctx, basket, terms, quote, before);
+    return routed.done ? routed : { done: false, plan: { ...plan, repeat: r } };
+  }
   if (plan.next !== "card" || !plan.quote?.ok) return { done: false, plan };
 
   const basket = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id, pickup: plan.pickup };
-  const terms: CardTerms = { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
-  if (!plan.pickup && (plan.needs_pin || !plan.place_id)) {
-    // First delivery to this village: the rider needs a pin. The card waits for it; nothing is asked of the model.
-    ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote: plan.quote };
+  const routed = await sendBasket(ctx, basket, terms, plan.quote, unavailable ?? undefined);
+  return routed.done ? routed : { done: false, plan };
+}
+
+/** A priced basket goes out as a card, or, for a first delivery to that village, as a pin request with the card waiting on it. */
+async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
+                          terms: CardTerms, quote: Quote, before?: string): Promise<{ done: true; path: string } | { done: false }> {
+  const pinned = basket.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: basket.placeId }));
+  if (!basket.pickup && !pinned) {
+    // The rider needs a pin. The card waits for it; nothing is asked of the model.
+    ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote };
     ctx.state.awaiting = "pin"; ctx.state.pending = terms;
-    const text = unavailable ? `${unavailable}\n${FIXED.askPin}` : FIXED.askPin;
+    const text = before ? `${before}\n${FIXED.askPin}` : FIXED.askPin;
     const r = await deliver(ctx, askLocation(text), `[location request] ${text}`);
-    return r.ok ? { done: true, path: "ask_pin" } : { done: false, plan };
+    return r.ok ? { done: true, path: "ask_pin" } : { done: false };
   }
-  const card = await issueCard(ctx, basket, terms, { before: unavailable ?? undefined });
-  return card.ok ? { done: true, path: "card" } : { done: false, plan };
+  const card = await issueCard(ctx, basket, terms, { before });
+  return card.ok ? { done: true, path: "card" } : { done: false };
+}
+
+/** The three questions recognised without a model (quick-intent.ts). */
+export async function answerQuick(ctx: ToolContext, kind: QuickIntent): Promise<{ done: true; path: string } | { done: false }> {
+  if (kind === "status") return answerStatus(ctx);
+  if (kind === "hours") return answerHours(ctx);
+  return repeatLast(ctx);
 }
 
 /** "X is not available yet", in the customer's own words for the shop. Neutral: no reason, no opinion, no promise. */
@@ -84,7 +136,8 @@ export function notAvailableText(plan: Pick<Plan, "unavailable">): string | null
 export async function completeAfterPin(ctx: ToolContext): Promise<boolean> {
   const q = ctx.state.lastQuote, terms = ctx.state.pending;
   if (ctx.state.awaiting !== "pin" || !q || !terms || !ctx.state.placeId) return false;
-  const card = await issueCard(ctx, { lines: q.lines, villageId: q.villageId, placeId: ctx.state.placeId, pickup: q.pickup }, terms);
+  // The pin decides the village: if it landed somewhere else, the card is priced for where it landed.
+  const card = await issueCard(ctx, { lines: q.lines, villageId: ctx.state.villageId ?? q.villageId, placeId: ctx.state.placeId, pickup: q.pickup }, terms);
   if (!card.ok) ctx.state.awaiting = null;
   return card.ok;
 }

@@ -352,6 +352,118 @@ describe("unsigned restaurants (1.2)", () => {
   });
 });
 
+describe("answers without the model (1.3)", () => {
+  /** A delivered and paid order, as the fixture for "same as last time". */
+  async function closedOrder(t: ReturnType<typeof setup>, lines = [{ product_id: LABNEH, qty: 1 }, { product_id: BREAD, qty: 2 }]) {
+    const c = await customerWithCard(t, lines);
+    await db.pg.query(`update orders set status = 'closed', delivered_at = now() where id = $1`, [c.orderId]);
+    return c;
+  }
+
+  it("'where is my order' is answered from order_status_for with no model call", async () => {
+    const t = setup([]);
+    const c = await customerWithCard(t);
+    await t.conv.fetch(t.text("وين طلبي؟"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(0);
+    expect(outbound[0]!.body.text.body).toBe(`طلبك ${c.shortCode}: ناطر تأكيدك. اكبس «تأكيد الطلب» عالورقة لنبلّش.`);
+
+    await t.conv.fetch(t.tap(orderButtonId("confirm", c.orderId)));
+    await t.conv.alarm();
+    await t.conv.fetch(t.text("where is my order?"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(0);
+    expect(outbound.at(-1)!.body.text.body).toMatch(new RegExp(`^طلبك ${c.shortCode}: عم نحضّرو\\. الوقت المتوقع للوصول حوالي (19|20) دقيقة\\.$`));
+  });
+
+  it("with no open order, says so", async () => {
+    const t = setup([]);
+    await t.conv.fetch(t.text("wen el talab"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(0);
+    expect(outbound[0]!.body.text.body).toBe("ما عندك طلب مفتوح هلّق. شو بتحب تطلب؟");
+  });
+
+  it("opening hours come from settings, typed or read from a voice note", async () => {
+    const t = setup([read({ intent: "hours" })]);
+    await t.conv.fetch(t.text("قديش بتسكرو؟"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(0);
+    expect(outbound[0]!.body.text.body).toBe("منستقبل الطلبات كل يوم من 00:00 لـ 23:59:59. نحنا فاتحين هلّق.");
+    await t.conv.fetch(t.inbound({ type: "audio", audio: { id: "m1" }, kapso: { direction: "inbound", origin: "cloud_api", media_data: { url: "u", byte_size: 12000 },
+      transcript: { text: "مرحبا لأيمتى بتضلكن فاتحين اليوم" } } }));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);                                     // the reading only
+    expect(outbound.at(-1)!.body.text.body).toContain("منستقبل الطلبات كل يوم");
+  });
+
+  it("'do you deliver to X' is answered from the zones", async () => {
+    const t = setup([read({ intent: "delivery_area", address: { village: "بيت الدين" } })]);
+    await t.conv.fetch(t.text("بتوصلو على بيت الدين؟"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);
+    expect(outbound[0]!.body.text.body).toBe("إيه منوصّل على بيت الدين. التوصيل $1.50 وبياخد عادةً حوالي 30 دقيقة.");
+  });
+
+  it("an order to a village we do not serve gets one answer listing where we do deliver, and no card", async () => {
+    await db.pg.exec(`insert into villages(name_en, name_ar, is_served) values ('Test Outside', 'قرية بعيدة', false) on conflict do nothing`);
+    const t = setup([read({ ...ORDER_READING, address: { village: "قرية بعيدة" } })]);
+    await t.conv.fetch(t.text("بدي علبتين لبنة وربطتين خبز على قرية بعيدة"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);
+    const body: string = outbound[0]!.body.text.body;
+    expect(body.startsWith("لهلّق ما منوصّل على قرية بعيدة. منوصّل على: ")).toBe(true);
+    expect(body).toContain("بعقلين"); expect(body).toContain("بيت الدين");          // from the villages table
+    const c = await t.customer();
+    expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
+  });
+
+  it("'same as last time' re-prices the last closed order and sends the card, with no model call", async () => {
+    const t = setup([]);
+    const last = await closedOrder(t);
+    await t.conv.fetch(t.text("متل المرة الماضية"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(0);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.interactive.body.text).toContain("$8.02");
+    const order = await db.one(`select * from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [last.party_id]);
+    expect(order.place_id).not.toBeNull();
+    expect((await db.all(`select product_id, qty from order_items where order_id = $1 order by qty`, [order.id])).map((r: any) => [r.product_id, Number(r.qty)]))
+      .toEqual([[LABNEH, 1], [BREAD, 2]]);
+  });
+
+  it("names what is missing from last time before the card, and leaves it off", async () => {
+    const t = setup([]);
+    await closedOrder(t);
+    await db.pg.query(`update stock_levels set on_hand = reserved where product_id = $1`, [BREAD]);
+    await t.conv.fetch(t.text("same as last time please"));
+    await t.conv.alarm();
+    await db.pg.query(`update stock_levels set on_hand = reserved + 500 where product_id = $1`, [BREAD]);
+    expect(outbound).toHaveLength(2);
+    expect(outbound[0]!.body.text.body).toBe("من طلبك الماضي هول مش متوفّرين هلّق: Wooden Bakery Pita White Bread Big 800G. حطّينا الباقي بالورقة.");
+    expect(outbound[1]!.body.interactive.body.text).toContain("$6.00");          // 5.00 labneh + 1.00 delivery
+  });
+
+  it("a customer with no closed order never gets a repeat card", async () => {
+    const t = setup([]);
+    await customerWithCard(t);                                          // an order exists, but it was never delivered and paid
+    await t.conv.fetch(t.text("نفس المرة الماضية"));
+    await t.conv.alarm();
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.text.body).toBe("ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟");
+  });
+
+  it("'same as last time, and add bread' puts the new line on top of the old basket", async () => {
+    const t = setup([read({ intent: "order", repeat_last: true, lines: [{ raw: "ربطة خبز زيادة", query: "Wooden Bakery Pita White Bread Big 800G", qty: 1, confidence: 0.9 }] })]);
+    await closedOrder(t, [{ product_id: LABNEH, qty: 1 }]);
+    await t.conv.fetch(t.text("متل المرة الماضية بس زيدلي ربطة خبز"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.interactive.body.text).toContain("$7.01");          // 5.00 + 1.01 + 1.00 delivery
+  });
+});
+
 describe("order card", () => {
   const ORDER = "33333333-3333-4333-8333-333333333333";
   const quote: Quote = { ok: true, issues: [], subtotal_usd: 7.5, delivery_fee_usd: 1, total_usd: 8.5, fx_rate_lbp: 89500, total_lbp: 761000,

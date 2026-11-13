@@ -13,7 +13,10 @@ export const OrderLine = z.object({
 });
 
 export const OrderIntent = z.object({
-  intent: z.enum(["order", "add_to_order", "change_order", "cancel", "status", "question", "complaint", "greeting", "off_topic"]),
+  intent: z.enum(["order", "add_to_order", "change_order", "cancel", "status", "hours", "delivery_area", "question", "complaint", "greeting", "off_topic"])
+    .describe("status: where is my order. hours: when are you open. delivery_area: do you deliver to a place (put it in address.village)"),
+  repeat_last: z.boolean().default(false)
+    .describe("'same as last time' / 'نفس المرة الماضية': the customer wants their previous order again. Use intent 'order'; put only added items in lines"),
   language: z.enum(["ar_lb", "arabizi", "en", "fr", "mixed"]),
   lines: z.array(OrderLine).default([]),
   fulfilment: z.enum(["delivery", "pickup", "unknown"]).default("unknown"),

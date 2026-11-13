@@ -1,0 +1,141 @@
+{
+ "about": "Messages the gateway answers without a model (packages/agents/src/quick-intent.ts). expect null means the message must go to the model. Every wrong match found in production is added here before the pattern is changed.",
+ "cases": [
+  {
+   "text": "وين الطلب؟",
+   "expect": "status"
+  },
+  {
+   "text": "مرحبا، وين صار طلبي",
+   "expect": "status"
+  },
+  {
+   "text": "وين طلبي لو سمحت",
+   "expect": "status"
+  },
+  {
+   "text": "شو صار بالطلب؟",
+   "expect": "status"
+  },
+  {
+   "text": "wen el talab",
+   "expect": "status"
+  },
+  {
+   "text": "where is my order?",
+   "expect": "status"
+  },
+  {
+   "text": "Où est ma commande ?",
+   "expect": "status"
+  },
+  {
+   "text": "طلبي وين صار",
+   "expect": "status"
+  },
+  {
+   "text": "قديش بتسكرو؟",
+   "expect": "hours"
+  },
+  {
+   "text": "ايمتى بتفتحو بكرا",
+   "expect": "hours"
+  },
+  {
+   "text": "فاتحين هلق؟",
+   "expect": "hours"
+  },
+  {
+   "text": "شو الدوام",
+   "expect": "hours"
+  },
+  {
+   "text": "what time do you close",
+   "expect": "hours"
+  },
+  {
+   "text": "are you open now?",
+   "expect": "hours"
+  },
+  {
+   "text": "vos horaires ?",
+   "expect": "hours"
+  },
+  {
+   "text": "aymta btsakro",
+   "expect": "hours"
+  },
+  {
+   "text": "متل المرة الماضية",
+   "expect": "repeat_last"
+  },
+  {
+   "text": "نفس المرة الماضية لو سمحت",
+   "expect": "repeat_last"
+  },
+  {
+   "text": "مرحبا، نفس الطلب الماضي",
+   "expect": "repeat_last"
+  },
+  {
+   "text": "same as last time please",
+   "expect": "repeat_last"
+  },
+  {
+   "text": "metel el marra el madye",
+   "expect": "repeat_last"
+  },
+  {
+   "text": "comme la dernière fois",
+   "expect": "repeat_last"
+  },
+  {
+   "text": "متل المرة الماضية بس زيدلي ربطة خبز",
+   "expect": null
+  },
+  {
+   "text": "نفس الطلب بس بلا لبنة",
+   "expect": null
+  },
+  {
+   "text": "وصل الطلب شكراً",
+   "expect": null
+  },
+  {
+   "text": "الطلب ما وصل كامل، ناقص الخبز",
+   "expect": null
+  },
+  {
+   "text": "بدي لبنة وخبز",
+   "expect": null
+  },
+  {
+   "text": "مرحبا",
+   "expect": null
+  },
+  {
+   "text": "فاتحين محل جديد بعقلين؟",
+   "expect": null
+  },
+  {
+   "text": "where is the bakery",
+   "expect": null
+  },
+  {
+   "text": "what time does the pharmacy close",
+   "expect": null
+  },
+  {
+   "text": "شو في عندكن جبنة",
+   "expect": null
+  },
+  {
+   "text": "بدي الغي الطلب",
+   "expect": null
+  },
+  {
+   "text": "قديش حق الطلب؟",
+   "expect": null
+  }
+ ]
+}
