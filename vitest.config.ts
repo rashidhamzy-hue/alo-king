@@ -8,5 +8,7 @@ const markdownAsText = { name: "md-as-text", transform(_code: string, id: string
 } };
 export default defineConfig({
   plugins: [markdownAsText],
+  // Tests that open PGlite with every migration can pass 5 s on a busy CI runner (console tests did, 13 Nov).
+  test: { testTimeout: 30_000 },
   resolve: { alias: { "@ak/core": p("./packages/core/src"), "@ak/wa": p("./packages/wa/src"), "@ak/agents": p("./packages/agents/src") } },
 });

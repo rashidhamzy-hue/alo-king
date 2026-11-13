@@ -100,3 +100,13 @@ The picture fetch (`scripts/images/`, run by `.github/workflows/images.yml`) nee
 | Vercel | A second hosting account, a second set of secrets and a second deploy path, for no gain: the console is plain HTML forms. It would also need its own copy of the send path or a new endpoint on the gateway. |
 
 How it holds the rules: the browser never sees a Supabase key or token. Staff sign in with Supabase Auth through the Worker; the link from an Auth user to a staff party is `app_metadata.party_id`, which only the service key can write. The role is read from `parties` on every request, and the SQL functions check it again. The console reads tables and calls SQL functions, nothing else: its database module has no insert, update or delete (a test enforces it). Every action is written to an append-only log in the private `media` bucket (`console_audit/`) before it runs, and does not run if the log cannot be written.
+
+## Picking and transfer rules (session C2, accepted 13 November 2026)
+C2 built four rules into code and asked for confirmation. Accepted on 13 Nov by Claude, to whom Rasheed delegates these calls; he can overturn any of them.
+1. A unit the picker cannot find is written off the stock count at once, and ops is asked to recount the shelf.
+2. A dearer substitute is allowed on a cash order, only after the customer taps to accept it and sees both prices.
+3. When an order passes to a second rider, the delivery fee goes to the rider who delivers it.
+4. The second rider picks the order up at the hub.
+
+## Search words for every new item (13 November 2026)
+Founder rule: every new product or menu item gets its search words in every ordering language automatically, with the same builder and safety rules as the 1.22 language pack (task 1.23). An item the planner cannot find from generated phrasings goes to a person's review list, never to a guess.
