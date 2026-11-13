@@ -120,6 +120,23 @@ describe("the founder's order of 13 Nov, replayed (B4)", () => {
     expect(bodyOf(outbound.at(-1)!)).toContain("طلبك AK-");
   }, 60_000);
 
+  it("staging probe, 13 Nov 22:14 UTC: the last order's directions never describe a new place", async () => {
+    outbound = recordKapso();
+    const first = { ...READING_1, needs_clarification: [], address: { ...READING_1.address, village: "بعقلين", building: "بيت أبو اسماعيل" } };
+    const second = { ...READING_1, needs_clarification: [], address: { ...READING_1.address, village: "بعقلين", verbatim: "عبعقلين" } };
+    const t = flow(db, [read(first), read(second), read({ ...READING_3, address: { ...READING_3.address, village: null } })]);
+    await t.text(MESSAGE + " بيت أبو اسماعيل");
+    await t.say({ type: "location", location: { latitude: 33.67739, longitude: 35.56355 } });
+    expect(bodyOf(outbound.at(-1)!)).toContain("طلبك AK-");                 // the first order had its house: card at once
+    const c = await t.customer();
+    await db.pg.query(`update customer_places set village_id = null, lat = null, lng = null, building = null, floor = null, directions = null where party_id = $1`, [c.party_id]);
+    await t.text(MESSAGE);                                                    // a new order, no saved place (the probe's fresh_place)
+    await t.say({ type: "location", location: { latitude: 33.67739, longitude: 35.56355 } });
+    expect(bodyOf(outbound.at(-1)!)).toContain("كرمال السائق");             // asked again: the old house is not this place's
+    await t.say(voice(TRANSCRIPT));
+    expect(bodyOf(outbound.at(-1)!)).toContain("طلبك AK-");
+  }, 60_000);
+
   it("the pin decides even when the text named another village, and the card says where it is going", async () => {
     outbound = recordKapso();
     const t = flow(db, [read({ ...READING_1, address: { ...READING_1.address, village: "بعقلين", building: "بيت أبو اسماعيل" }, needs_clarification: [] })]);

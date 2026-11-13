@@ -95,8 +95,10 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
                                                       p_village: ctx.state.villageId ?? null, p_choices: {} });
   if (plan.village_id) ctx.state.villageId = plan.village_id;
   if (plan.place_id) ctx.state.placeId = plan.place_id;
+  // A new order's words about where are this order's: the last order's directions never describe a new place (B4: the staging
+  // probe's second first-order kept the house of the one before, and the address question was skipped).
   const directions = directionsOf(intent);
-  if (directions) ctx.state.directions = directions;
+  ctx.state.directions = directions;
 
   // A village we know and do not serve: the order cannot go anywhere, so say so and list where we do deliver.
   const away = plan.pickup ? undefined : plan.issues.find((i) => i.code === "village_not_served");
