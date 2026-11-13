@@ -335,7 +335,7 @@ CI note: on PR 16 `test/pg/dispatch-race.test.ts` failed once with "Postgres did
 - **Anyone adding a brand to `brand-sites.json`:** open the site first. A wrong domain would file someone else's picture as the brand's own.
 
 ### Session N1 (product data), 13 November 2026: task 5.18; migration 0073
-Branch `claude/bold-euler-uw3gxx` (the branch this environment allows). Built and tested locally (PGlite with every migration, 64 new tests in `scripts/product-data/test/`, the whole suite 759 pass; permission check on Postgres 16 in fresh and `EXISTING=1` modes). The fetch itself runs only in GitHub Actions (`.github/workflows/product-data.yml`, manual). **Status of the staging run: see "First staging run" below.**
+Branch `claude/bold-euler-uw3gxx` (the branch this environment allows). Built and tested locally (PGlite with every migration, 67 tests in `scripts/product-data/test/`, the whole suite 759 pass at the first merge; permission check on Postgres 16 in fresh and `EXISTING=1` modes). The fetch itself runs only in GitHub Actions (`.github/workflows/product-data.yml`, manual). **Run on staging on 13 Nov: done (facts, names, categories), see "First staging runs" below.**
 
 | Step | Where | Tested by |
 | --- | --- | --- |
@@ -356,6 +356,44 @@ For other sessions:
 - **K1 (1.21):** `data/proposals/categories.json` is the proposed category list and each item's category and order; it is a proposal until the founder approves it. The catalog's own "Healthy" category (2 items) is not carried over (invariant 14).
 - **5.15 / D2 (intake and review):** the review list is `product_facts` where `source = 'open_food_facts'`, `approved_at is null`, `superseded_at is null`; `detail` holds `source_text`, `quote`, `off_url`, `ar` and `ar_by`. Compare each field with the pack, then call `propose_product_fact(..., 'label', ...)` and `approve_product_fact`.
 - The workflow pushes what it generated to `product-data-out/<run id>`; the `data/proposals/` files in the repository were copied from there.
+
+**First staging runs (13 Nov, `product-data.yml` on main; staging project only, nothing reaches a customer).**
+
+| Run | What happened | What it taught |
+| --- | --- | --- |
+| 1 `43493359606` | Facts: all 228 items looked up (about 16 minutes at one request every 4 s, no 429), then the run stopped in its own summary: `processItem` returned a number for `rejected` on an item with nothing usable and `summarise` iterated it. Names and categories never ran | Fixed in PR 25, with tests that feed `summarise` real results. The facts were already in the database |
+| 2 `43497961883` | Facts: nothing left to look up, coverage printed. Names: 282 proposed, 9 refused. Categories: refused three times (the model returned 22, the catalog's own 21 plus one, and used "fresh") | The retry said only "need 12 to 15", so the model never moved. Fixed in PR 26: the retry lists the codes it sent and says to merge |
+| 3 `43501248215` | Categories only: 15 categories, all 291 items placed, none empty | |
+| 4 `43503501332` | Names only, after PR 28: 282 proposed, 9 refused | Run 2's names had 49 Arabic names with Latin letters, about a dozen glitched inside a word (`كellogg's`, `ماestro`). PR 28 refuses an Arabic word that mixes scripts; none is left (10 names keep a whole Latin word such as UHT) |
+
+**Result, read from `product_data_coverage()` on staging** (also `data/proposals/product-facts-summary.json`):
+
+| | Items |
+| --- | --- |
+| In the catalog | 291 |
+| Looked up in Open Food Facts (a real barcode) | 228 |
+| Found there / not there / errors | 113 / 115 / 0 |
+| A store's own 13-digit 2xx code (never looked up) | 29 |
+| No barcode | 34 |
+| Items with any proposed fact | 87 (212 proposals) |
+| Proposed ingredients | 35 (31 with an Arabic rendering; the other 4 have no rendering that passed the checks) |
+| Proposed nutrition panel | 86 |
+| Proposed allergens | 27 items: 26 with "contains", 6 with "may contain" |
+| Proposed diet labels | 25 items: halal 7, vegetarian 9, vegan 17 |
+| Approved from Open Food Facts | **0** (the database refuses it) |
+
+Of the 228 looked up, 115 are not in Open Food Facts at all (local Lebanese brands), so for half of the barcoded catalog the intake photo (5.15) is the only source. No allergen proposal for an item means **unknown**, never free.
+
+**Names and sizes (`data/proposals/names.json`).** 282 of 291 proposed, 234 change a current English name (mostly the size moved out, capitals, spacing); 241 Arabic names are written by the model and 41 keep the catalog's Arabic. 9 were refused by the checks and keep their current names: five meats whose catalog name has no size, where the model added "500", Foody's tortilla (size numbers disagree), Kit Kat (Arabic not Arabic), Edita Bake Rolz (an added word, ديت), Maxbell sardine (mixed script). **All Arabic names need an Arabic reader**: the checks cannot tell a wrong word from a right one (for example the `deli_ready_meals` category's Arabic name المرطبانات الجاهزة means "ready jars" and is wrong for deli and ready meals).
+
+**Categories (`data/proposals/categories.json`).** Fifteen, in display order: fruits and vegetables; meat and poultry; deli and ready meals; dairy and eggs; frozen; bakery and bread; water, drinks and hot beverages (41); breakfast and milk powder; snacks and sweets; pantry staples; canned and jarred; cooking and baking; cleaning and household; personal care; baby and pet. Each item has its category and a place in it (alphabetical by name). The catalog's "Healthy" category (2 items) is not carried over (invariant 14). Some placements are doubtful (two snacks under breakfast, two dairy items under cooking and baking); the founder approves the list, and 1.21 should use it only after that.
+
+**Model use.** `claude-haiku-5-5` (`MODEL_FAST`). Recorded: names 22 calls, 47,614 in / 27,244 out tokens (run 4); categories 7 calls, 39,521 in / 7,627 out (run 3). Not recorded because the runs stopped before their summary: the facts calls of run 1 (one per item with text to read, at most 228) and the refused category tries of run 2. The whole spend is a small fraction of the USD 45 credit that expires on 17 Nov; nothing more is needed from it for 5.18.
+
+**Not done, and why.**
+- No fact was approved: that is a person at intake (5.15) or the ops lead, against the pack.
+- The names and categories are files, not applied. Nothing reads them yet; 1.21 (K1) and a console action for names are the consumers.
+- What the checks refused during the facts step is in each item's `product_data_attempts.detail.rejected` (kind, quote, reason); it was not summarised here because run 1's summary was lost. An example of a filed item: AK-0247 (gluten, milk, mustard, ingredients, nutrition, vegan).
 
 ### Session D1 (console), 13 November 2026: tasks 3.1 to 3.10, 3.18
 `apps/console/` (new Worker, hosted on Cloudflare beside the gateway: `docs/DECISIONS.md`, "Console hosting") and `.github/workflows/console.yml`. No migration (D1 owns none).

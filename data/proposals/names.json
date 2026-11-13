@@ -1,0 +1,7151 @@
+{
+ "kind": "names_and_sizes",
+ "status": "proposed",
+ "applied": false,
+ "generated_at": "2026-11-13T20:40:12.111Z",
+ "run_id": "43503501332",
+ "model": "claude-haiku-5-5",
+ "note": "Proposals for a person to approve. Nothing here has been applied to the catalog. Arabic marked model_written needs an Arabic reader.",
+ "model_usage": {
+  "calls": 22,
+  "input_tokens": 47614,
+  "output_tokens": 27244
+ },
+ "items": 282,
+ "rejected_count": 9,
+ "proposals": [
+  {
+   "sku": "AK-0001",
+   "current": {
+    "name_en": "Potato",
+    "name_ar": "بطاطا",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Potato",
+    "name_ar": "بطاطا",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0002",
+   "current": {
+    "name_en": "Tomato",
+    "name_ar": "بندورة",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Tomato",
+    "name_ar": "بندورة",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0003",
+   "current": {
+    "name_en": "Cucumber",
+    "name_ar": "خيار",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Cucumber",
+    "name_ar": "خيار",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0004",
+   "current": {
+    "name_en": "Onion",
+    "name_ar": "بصل",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Onion",
+    "name_ar": "بصل",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0005",
+   "current": {
+    "name_en": "Lemon",
+    "name_ar": "حامض",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Lemon",
+    "name_ar": "حامض",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0006",
+   "current": {
+    "name_en": "Orange for juice",
+    "name_ar": "ليمون للعصير",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Orange for juice",
+    "name_ar": "ليمون للعصير",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0007",
+   "current": {
+    "name_en": "Zucchini",
+    "name_ar": "كوسا",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Zucchini",
+    "name_ar": "كوسا",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0008",
+   "current": {
+    "name_en": "Carrot",
+    "name_ar": "جزر",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Carrot",
+    "name_ar": "جزر",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0009",
+   "current": {
+    "name_en": "Banana",
+    "name_ar": "موز",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Banana",
+    "name_ar": "موز",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0010",
+   "current": {
+    "name_en": "Parsley (bunch)",
+    "name_ar": "بقدونس",
+    "brand": "Local (unbranded)",
+    "sell_unit": "bunch"
+   },
+   "proposed": {
+    "name_en": "Parsley (bunch)",
+    "name_ar": "بقدونس",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0011",
+   "current": {
+    "name_en": "Green beans (loubieh)",
+    "name_ar": "لوبيا",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Green beans (loubieh)",
+    "name_ar": "لوبيا",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0012",
+   "current": {
+    "name_en": "Lettuce",
+    "name_ar": "خس",
+    "brand": "Local (unbranded)",
+    "sell_unit": "piece"
+   },
+   "proposed": {
+    "name_en": "Lettuce",
+    "name_ar": "خس",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0013",
+   "current": {
+    "name_en": "Green pepper, sweet",
+    "name_ar": "فليفلة خضرا حلوة",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Green pepper, sweet",
+    "name_ar": "فليفلة خضرا حلوة",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0014",
+   "current": {
+    "name_en": "Eggplant",
+    "name_ar": "باذنجان",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Eggplant",
+    "name_ar": "باذنجان",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0015",
+   "current": {
+    "name_en": "Coriander (bunch)",
+    "name_ar": "كزبرة",
+    "brand": "Local (unbranded)",
+    "sell_unit": "bunch"
+   },
+   "proposed": {
+    "name_en": "Coriander (bunch)",
+    "name_ar": "كزبرة",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0016",
+   "current": {
+    "name_en": "Cauliflower",
+    "name_ar": "زهرة",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Cauliflower",
+    "name_ar": "زهرة",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0017",
+   "current": {
+    "name_en": "Cherry tomatoes",
+    "name_ar": "بندورة كرزية",
+    "brand": "Local (unbranded)",
+    "sell_unit": "pack"
+   },
+   "proposed": {
+    "name_en": "Cherry tomatoes",
+    "name_ar": "بندورة كرزية",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0018",
+   "current": {
+    "name_en": "Cabbage",
+    "name_ar": "ملفوف",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Cabbage",
+    "name_ar": "ملفوف",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0019",
+   "current": {
+    "name_en": "Orange, Valencia",
+    "name_ar": "برتقال",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Orange, Valencia",
+    "name_ar": "برتقال",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0020",
+   "current": {
+    "name_en": "Apple, red local",
+    "name_ar": "تفاح أحمر",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Apple, red local",
+    "name_ar": "تفاح أحمر",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0021",
+   "current": {
+    "name_en": "Rocca (bunch)",
+    "name_ar": "روكا",
+    "brand": "Local (unbranded)",
+    "sell_unit": "bunch"
+   },
+   "proposed": {
+    "name_en": "Rocca (bunch)",
+    "name_ar": "روكا",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0022",
+   "current": {
+    "name_en": "Onion, red",
+    "name_ar": "بصل أحمر",
+    "brand": "Local (unbranded)",
+    "sell_unit": "kg"
+   },
+   "proposed": {
+    "name_en": "Onion, red",
+    "name_ar": "بصل أحمر",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0023",
+   "current": {
+    "name_en": "Mint (bunch)",
+    "name_ar": "نعنع",
+    "brand": "Local (unbranded)",
+    "sell_unit": "bunch"
+   },
+   "proposed": {
+    "name_en": "Mint (bunch)",
+    "name_ar": "نعنع",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0024",
+   "current": {
+    "name_en": "Radish (bunch)",
+    "name_ar": "فجل",
+    "brand": "Local (unbranded)",
+    "sell_unit": "bunch"
+   },
+   "proposed": {
+    "name_en": "Radish (bunch)",
+    "name_ar": "فجل",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0025",
+   "current": {
+    "name_en": "Garlic",
+    "name_ar": "ثوم",
+    "brand": "Local (unbranded)",
+    "sell_unit": "bag"
+   },
+   "proposed": {
+    "name_en": "Garlic",
+    "name_ar": "ثوم",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0029",
+   "current": {
+    "name_en": "Chicken Legs",
+    "name_ar": "فخاد دجاج",
+    "brand": "Hawa Chicken",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Chicken Legs",
+    "name_ar": "فخاد دجاج",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0031",
+   "current": {
+    "name_en": "Tanmia Fresh Chicken Filet 500G",
+    "name_ar": null,
+    "brand": "Tanmia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tanmia Fresh Chicken Filet",
+    "name_ar": "فيليه دجاج طازج تنمية",
+    "size_en": "500 g",
+    "size_ar": "500 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0032",
+   "current": {
+    "name_en": "Tanmia Breaded Chicken Fillet Loose",
+    "name_ar": null,
+    "brand": "Tanmia",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Tanmia Breaded Chicken Fillet, Loose",
+    "name_ar": "فيليه دجاج مقرمش تنمية",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0033",
+   "current": {
+    "name_en": "Tanmia Chicken Tender Loose",
+    "name_ar": "تنمية تندرز دجاج",
+    "brand": "Tanmia",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Tanmia Chicken Tender, Loose",
+    "name_ar": "تنمية تندرز دجاج",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0034",
+   "current": {
+    "name_en": "Tanmia Chicken Legs 900G",
+    "name_ar": null,
+    "brand": "Tanmia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tanmia Chicken Legs",
+    "name_ar": "فخاد دجاج تنمية",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0035",
+   "current": {
+    "name_en": "Wilco Packaged Chicken Legs",
+    "name_ar": null,
+    "brand": "Wilco",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Wilco Packaged Chicken Legs",
+    "name_ar": "فخاد دجاج ويلكو",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0036",
+   "current": {
+    "name_en": "Wilco Packaged Chicken Breast",
+    "name_ar": null,
+    "brand": "Wilco",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Wilco Packaged Chicken Breast",
+    "name_ar": "صدر دجاج ويلكو",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0038",
+   "current": {
+    "name_en": "Hawa Chicken Sawda Chicken Prepacked",
+    "name_ar": null,
+    "brand": "Hawa Chicken",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Hawa Chicken Sawda Chicken, Prepacked",
+    "name_ar": "دجاج سودا هوا تشكن",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0039",
+   "current": {
+    "name_en": "Aflora Kashkaval Cow Cheese",
+    "name_ar": "جبنة قشقوان بقر",
+    "brand": "Aflora",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Aflora Kashkaval Cow Cheese",
+    "name_ar": "جبنة قشقوان بقر أفلورا",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": true
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0040",
+   "current": {
+    "name_en": "Filata Shredded Mozzarella Cheese",
+    "name_ar": null,
+    "brand": "Filata",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Filata Shredded Mozzarella Cheese",
+    "name_ar": "جبنة موزاريلا مبشورة فيلاتا",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0041",
+   "current": {
+    "name_en": "Candia Ayran 250Ml",
+    "name_ar": null,
+    "brand": "Candia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Candia Ayran",
+    "name_ar": "عيران كانديا",
+    "size_en": "250 ml",
+    "size_ar": "250 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Ayran",
+    "brands": "Candia",
+    "quantity": "25cl",
+    "last_modified": "2023-08-23T19:45:17.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0042",
+   "current": {
+    "name_en": "Leen Taanayel Labneh Premium",
+    "name_ar": null,
+    "brand": "Leentaanayel",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Leen Taanayel Labneh Premium",
+    "name_ar": "لبنة ليون تعنايل بريميوم",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0043",
+   "current": {
+    "name_en": "Kavallos Cow Kashkaval",
+    "name_ar": null,
+    "brand": "Kavallos",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Kavallos Cow Kashkaval",
+    "name_ar": "قشقوان بقر كافالوس",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0044",
+   "current": {
+    "name_en": "Halloum /Kg",
+    "name_ar": null,
+    "brand": "Leentaanayel",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Halloum",
+    "name_ar": "حلوم",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0045",
+   "current": {
+    "name_en": "Leprino Mozzarella Cheese Shredded",
+    "name_ar": null,
+    "brand": "Leprino",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Leprino Mozzarella Cheese, Shredded",
+    "name_ar": "جبنة موزاريلا مبشورة ليبرينو",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0046",
+   "current": {
+    "name_en": "Liban Lait Labneh Baladieh 450G",
+    "name_ar": null,
+    "brand": "Liban Lait",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Liban Lait Labneh Baladieh",
+    "name_ar": "لبنة بلدية ليبان لايت",
+    "size_en": "450 g",
+    "size_ar": "450 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Labneh",
+    "brands": null,
+    "quantity": "450 g",
+    "last_modified": "2026-03-13T11:02:37.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0047",
+   "current": {
+    "name_en": "Hamra Edam Analogue Cheese",
+    "name_ar": "جبنة أيدام",
+    "brand": "Hamra",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Hamra Edam Analogue Cheese",
+    "name_ar": "جبنة أيدام هامرا",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": true
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0048",
+   "current": {
+    "name_en": "Mazaraana Laban 1Kg",
+    "name_ar": null,
+    "brand": "Mazaraana",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Mazaraana Laban",
+    "name_ar": "لبن مزرعتنا",
+    "size_en": "1 kg",
+    "size_ar": "1 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Yogurt",
+    "brands": "Mazaraana",
+    "quantity": null,
+    "last_modified": "2024-10-12T17:43:56.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0049",
+   "current": {
+    "name_en": "Hawa Chicken Red Egg Naylon",
+    "name_ar": null,
+    "brand": "Hawa Chicken",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Hawa Chicken Red Egg, Nylon",
+    "name_ar": "بيض أحمر هوا تشكن",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "nylon"
+   ],
+   "off_hint": {
+    "name": "hawa eggs",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2025-10-29T08:05:07.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0050",
+   "current": {
+    "name_en": "Liban Lait Laban 1Kg",
+    "name_ar": null,
+    "brand": "Liban Lait",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Liban Lait Laban",
+    "name_ar": "لبن ليبان لايت",
+    "size_en": "1 kg",
+    "size_ar": "1 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0051",
+   "current": {
+    "name_en": "Liban Lait Labneh Baladieh 900G",
+    "name_ar": null,
+    "brand": "Liban Lait",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Liban Lait Labneh Baladieh",
+    "name_ar": "لبنة بلدية ليبان لايت",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0052",
+   "current": {
+    "name_en": "Dairy Khoury Greek Yogurt Plain Low Fat 175G",
+    "name_ar": null,
+    "brand": "Dairy Khoury",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dairy Khoury Greek Yogurt Plain Low Fat",
+    "name_ar": "زبادي يوناني عادي قليل الدسم دايري خوري",
+    "size_en": "175 g",
+    "size_ar": "175 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Greek Yogurt Plain",
+    "brands": "Dairy Khoury",
+    "quantity": null,
+    "last_modified": "2026-05-22T08:42:17.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0053",
+   "current": {
+    "name_en": "Plein Soleil Butter Unsalted 200G",
+    "name_ar": null,
+    "brand": "Plein Soleil",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil Butter Unsalted",
+    "name_ar": "زبدة غير مملحة بلين سوليه",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Beurre",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2023-02-07T13:09:31.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0054",
+   "current": {
+    "name_en": "Plein Soleil Edam Cheese Block",
+    "name_ar": "جبنة أيدام بلوك",
+    "brand": "Plein Soleil",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil Edam Cheese Block",
+    "name_ar": "جبنة أيدام بلوك",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0055",
+   "current": {
+    "name_en": "Hawa Chicken White Eggs 30Pcs",
+    "name_ar": null,
+    "brand": "Hawa Chicken",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Hawa Chicken White Eggs",
+    "name_ar": "بيض أبيض هوا تشيكن",
+    "size_en": "30 pieces",
+    "size_ar": "30 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0056",
+   "current": {
+    "name_en": "Candia Laban Full Fat 1Kg",
+    "name_ar": null,
+    "brand": "Candia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Candia Laban Full Fat",
+    "name_ar": "لبن كاملة الدسم كانديا",
+    "size_en": "1 kg",
+    "size_ar": "1 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Laban entier",
+    "brands": "Candia",
+    "quantity": "1 kg",
+    "last_modified": "2026-03-02T16:34:33.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0057",
+   "current": {
+    "name_en": "Dairy Khoury Greek Yogurt Apricot Low Fat 175G",
+    "name_ar": null,
+    "brand": "Dairy Khoury",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dairy Khoury Greek Yogurt Apricot Low Fat",
+    "name_ar": "زبادي يوناني مشمش قليل الدسم دايري خوري",
+    "size_en": "175 g",
+    "size_ar": "175 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Khoury greek yoghurt",
+    "brands": "Dairy Khoury",
+    "quantity": null,
+    "last_modified": "2026-03-24T13:42:56.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0058",
+   "current": {
+    "name_en": "Happy Basket Red Eggs Naylon 15Pcs",
+    "name_ar": null,
+    "brand": "Happy Basket",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Happy Basket Red Eggs Naylon",
+    "name_ar": "بيض أحمر happy basket نايلون",
+    "size_en": "15 pieces",
+    "size_ar": "15 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0059",
+   "current": {
+    "name_en": "Double Creme /Kg",
+    "name_ar": null,
+    "brand": "Leentaanayel",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Leentaanayel Double Cream",
+    "name_ar": "كريمة دابل ليانتانايل",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "cream"
+   ],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0060",
+   "current": {
+    "name_en": "Liban Lait Halloum Entier 250G",
+    "name_ar": null,
+    "brand": "Liban Lait",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Liban Lait Halloum Entier",
+    "name_ar": "حلوم كامل ليبان لايت",
+    "size_en": "250 g",
+    "size_ar": "250 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Libanlai halloum",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-05-24T07:23:17.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0061",
+   "current": {
+    "name_en": "Lurpak Butter Unsalted 200G",
+    "name_ar": null,
+    "brand": "Lurpak",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Lurpak Unsalted Butter",
+    "name_ar": "زبدة لورباك غير مملحة",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0062",
+   "current": {
+    "name_en": "Picon Simply 8 Portions 112G",
+    "name_ar": null,
+    "brand": "Picon",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Picon Simply 8 Portions",
+    "name_ar": "بيكون سيمبلي 8 حصص",
+    "size_en": "112 g",
+    "size_ar": "112 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Simply- picon",
+    "brands": "Picon, Bel",
+    "quantity": null,
+    "last_modified": "2026-03-25T23:54:58.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0063",
+   "current": {
+    "name_en": "Kiri Cream Cheese 12 Portions 200G",
+    "name_ar": null,
+    "brand": "Kiri",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Kiri Cream Cheese 12 Portions",
+    "name_ar": "جبنة كريمية كيري 12 حصة",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Spreadable cream cheese",
+    "brands": "Kiri",
+    "quantity": "200 g",
+    "last_modified": "2026-09-18T12:05:24.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0064",
+   "current": {
+    "name_en": "Puck Cooking Cream 500Ml",
+    "name_ar": null,
+    "brand": "Puck",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Puck Cooking Cream",
+    "name_ar": "كريمة طبخ بوك",
+    "size_en": "500 ml",
+    "size_ar": "500 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0065",
+   "current": {
+    "name_en": "Akkawi Balady",
+    "name_ar": "عكاوي بلدي",
+    "brand": "Leentaanayel",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Akkawi Balady",
+    "name_ar": "عكاوي بلدي",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0066",
+   "current": {
+    "name_en": "President Uht Whipping Cream 35.1% Fat 20Mml",
+    "name_ar": null,
+    "brand": "Président",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "President UHT Whipping Cream 35.1% Fat",
+    "name_ar": "كريمة خفق UHT بريزيدنت 35.1% دسم",
+    "size_en": "20 cl",
+    "size_ar": "20 سل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Président",
+    "brands": "Crème fraîche",
+    "quantity": "20 cl",
+    "last_modified": "2026-10-21T12:49:13.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0067",
+   "current": {
+    "name_en": "Candia Uht Lait Entier 1L",
+    "name_ar": null,
+    "brand": "Candia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Candia UHT Whole Milk",
+    "name_ar": "حليب كامل الدسم UHT كانديا",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "whole",
+    "milk"
+   ],
+   "off_hint": {
+    "name": "GrandLait Lait Entier",
+    "brands": "Candia",
+    "quantity": null,
+    "last_modified": "2025-05-09T08:08:46.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0068",
+   "current": {
+    "name_en": "Candia Uht Lait Entier 125Ml",
+    "name_ar": null,
+    "brand": "Candia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Candia UHT Whole Milk",
+    "name_ar": "حليب كامل الدسم UHT كانديا",
+    "size_en": "125 ml",
+    "size_ar": "125 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "whole"
+   ],
+   "off_hint": {
+    "name": "candia milk full fat",
+    "brands": "Candia, liban lait",
+    "quantity": "125ml",
+    "last_modified": "2022-08-31T12:31:59.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0069",
+   "current": {
+    "name_en": "Candia Milk Full Fat 180Ml",
+    "name_ar": null,
+    "brand": "Candia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Candia Milk Full Fat",
+    "name_ar": "حليب كامل الدسم كانديا",
+    "size_en": "180 ml",
+    "size_ar": "180 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Candia grand lait",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-01-14T08:43:37.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0070",
+   "current": {
+    "name_en": "Candia Grand Lait Demi-Écrémé 1L",
+    "name_ar": null,
+    "brand": "Candia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Candia Grand Lait Demi-Écrémé",
+    "name_ar": "كانديا غراند لاي نصف مقشود",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Candia Lait Uht Demi Ecreme",
+    "brands": "Candia",
+    "quantity": "1litre",
+    "last_modified": "2026-02-06T02:03:46.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0071",
+   "current": {
+    "name_en": "Candia Silhouette Uht Lait Écrémé 1L",
+    "name_ar": null,
+    "brand": "Candia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Candia Silhouette UHT Skimmed Milk",
+    "name_ar": "حليب خالي الدسم UHT سيلويت كانديا",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "skimmed"
+   ],
+   "off_hint": {
+    "name": "Candia milk Fat free",
+    "brands": "Candia",
+    "quantity": null,
+    "last_modified": "2025-11-30T13:12:23.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0072",
+   "current": {
+    "name_en": "Poppins Cereal Bar Choco Bits 25G",
+    "name_ar": null,
+    "brand": "Poppins",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Poppins Cereal Bar Choco Bits",
+    "name_ar": "بار حبوب بوبينز قطع شوكولاتة",
+    "size_en": "25 g",
+    "size_ar": "25 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Choco bits",
+    "brands": "Poppins - choco bita",
+    "quantity": null,
+    "last_modified": "2025-11-22T16:42:49.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0073",
+   "current": {
+    "name_en": "Nadec Uht Milk Full Fat 1L",
+    "name_ar": null,
+    "brand": "Nadec",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nadec UHT Milk Full Fat",
+    "name_ar": "حليب نادك كامل الدسم UHT",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "نادك حليب 1 لتر",
+    "brands": "nadec",
+    "quantity": "1litre",
+    "last_modified": "2026-10-28T14:02:47.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0074",
+   "current": {
+    "name_en": "Nadec Uht Milk Low Fat 1L",
+    "name_ar": null,
+    "brand": "Nadec",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nadec UHT Milk Low Fat",
+    "name_ar": "حليب نادك قليل الدسم UHT",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Nadec milk low fat",
+    "brands": "نادك",
+    "quantity": "1 liter",
+    "last_modified": "2026-04-30T09:18:50.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0075",
+   "current": {
+    "name_en": "Klio Powder Milk 750G",
+    "name_ar": null,
+    "brand": "Klio",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Klio Powder Milk",
+    "name_ar": "حليب مجفف كليو",
+    "size_en": "750 g",
+    "size_ar": "750 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0076",
+   "current": {
+    "name_en": "Klim Milk Powder Pouch 750G",
+    "name_ar": null,
+    "brand": "Klim",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Klim Milk Powder Pouch",
+    "name_ar": "كليم حليب مجفف كيس",
+    "size_en": "750 g",
+    "size_ar": "750 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0077",
+   "current": {
+    "name_en": "Poppins Corn Flakes 20G",
+    "name_ar": null,
+    "brand": "Poppins",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Poppins Corn Flakes",
+    "name_ar": "بوبينز رقائق الذرة",
+    "size_en": "20 g",
+    "size_ar": "20 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2024-01-18T09:44:00.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0078",
+   "current": {
+    "name_en": "Kellogg's Corn Flakes 750G",
+    "name_ar": null,
+    "brand": "Kellogg's",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Kellogg's Corn Flakes The Original",
+    "name_ar": "كيلوغز كورن فليكس",
+    "size_en": "750 g",
+    "size_ar": "750 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Kelloggs corn flakes the original",
+    "brands": "Kellogg's Corn Flakes",
+    "quantity": "750g",
+    "last_modified": "2026-10-22T11:53:08.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0079",
+   "current": {
+    "name_en": "Piston White",
+    "name_ar": "فرنجي بيستون أبيض",
+    "brand": "Wooden Bakery",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Wooden Bakery Piston White",
+    "name_ar": "فرنجي بيستون أبيض",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0080",
+   "current": {
+    "name_en": "Al Forno Pita White Bread Big 800G",
+    "name_ar": null,
+    "brand": "Al Forno",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Al Forno Pita White Bread Big",
+    "name_ar": "آل فورنو خبز بيتا أبيض كبير",
+    "size_en": "800 g",
+    "size_ar": "800 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0081",
+   "current": {
+    "name_en": "Wooden Bakery Pita White Bread Big 800G",
+    "name_ar": null,
+    "brand": "Wooden Bakery",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Wooden Bakery Pita White Bread Big",
+    "name_ar": "وودن بيكيري خبز بيتا أبيض كبير",
+    "size_en": "800 g",
+    "size_ar": "800 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Pita Big",
+    "brands": "Wooden Bakery",
+    "quantity": null,
+    "last_modified": "2026-09-15T19:04:51.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0082",
+   "current": {
+    "name_en": "Wooden Bakery Pita White Medium 400G",
+    "name_ar": null,
+    "brand": "Wooden Bakery",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Wooden Bakery Pita White Medium",
+    "name_ar": "وودن بيكيري خبز بيتا أبيض وسط",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "W B Bread Arabic White Big",
+    "brands": "Wooden Bakery",
+    "quantity": null,
+    "last_modified": "2026-07-26T22:25:28.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0083",
+   "current": {
+    "name_en": "Al Forno Piston Plain 5 Pieces",
+    "name_ar": "خبز فرنجي سادة",
+    "brand": "Al Forno",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Al Forno Piston Plain",
+    "name_ar": "خبز فرنجي سادة",
+    "size_en": "5 pieces",
+    "size_ar": "5 حبة"
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0084",
+   "current": {
+    "name_en": "Wooden Bakery Mini Guette Rustique White",
+    "name_ar": "خبز رستيك أبيض",
+    "brand": "Wooden Bakery",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Wooden Bakery Mini Guette Rustique White",
+    "name_ar": "خبز رستيك أبيض",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0085",
+   "current": {
+    "name_en": "Pain D'or Pain Au Lait 9 Pieces 300G",
+    "name_ar": null,
+    "brand": "Pain D'Or",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pain D'Or Pain Au Lait 9 Pieces",
+    "name_ar": "پان دور خبز بالحليب",
+    "size_en": "300 g",
+    "size_ar": "300 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Pain au Lait",
+    "brands": "Pain D’or",
+    "quantity": null,
+    "last_modified": "2025-07-14T22:52:59.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0086",
+   "current": {
+    "name_en": "Pain D'or Arabic Bread 900G (7 Loaves)",
+    "name_ar": null,
+    "brand": "Pain D'Or",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pain D'Or Arabic Bread",
+    "name_ar": "پان دور خبز عربي",
+    "size_en": "900 g (7 loaves)",
+    "size_ar": "900 غ (7 أرغفة)"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2022-10-03T14:23:12.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0088",
+   "current": {
+    "name_en": "Tannour El Asser High Fiber Bread Light 5 Pieces",
+    "name_ar": null,
+    "brand": "Tannour El Asser",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tannour El Asser High Fiber Bread Light",
+    "name_ar": "تنور العصر خبز light",
+    "size_en": "5 pieces",
+    "size_ar": "5 حبات"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "tannour alasr light",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2022-10-05T10:28:17.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0089",
+   "current": {
+    "name_en": "Tannour El Asser Oat Bread Large 5 Loaves",
+    "name_ar": null,
+    "brand": "Tannour El Asser",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tannour El Asser Oat Bread Large",
+    "name_ar": "تنور العصر خبز شوفان كبير",
+    "size_en": "5 loaves",
+    "size_ar": "5 أرغفة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Oat Light Bread",
+    "brands": "Tamnour Al ASR",
+    "quantity": null,
+    "last_modified": "2026-08-21T10:52:59.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0090",
+   "current": {
+    "name_en": "Pain D'or Hot Dog 6 Pieces 330G",
+    "name_ar": null,
+    "brand": "Pain D'Or",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pain D'Or Hot Dog",
+    "name_ar": "پان دور خبز هوت دوغ",
+    "size_en": "6 pieces 330 g",
+    "size_ar": "6 حبات 330 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Hot Dog Sandwich",
+    "brands": "Pain D’Or",
+    "quantity": null,
+    "last_modified": "2025-12-06T09:22:19.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0091",
+   "current": {
+    "name_en": "Sant Dalmai Turkey Breast",
+    "name_ar": "صدر حبش",
+    "brand": "Sant Dalmai",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Sant Dalmai Turkey Breast",
+    "name_ar": "صدر حبش",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0092",
+   "current": {
+    "name_en": "Gorosti Turkey Breast",
+    "name_ar": "صدر حبش",
+    "brand": "Gorosti",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Gorosti Turkey Breast",
+    "name_ar": "صدر حبش",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0093",
+   "current": {
+    "name_en": "Al Mouna Mortadella Beef With Olives",
+    "name_ar": null,
+    "brand": "Al Mouna",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Al Mouna Mortadella Beef With Olives",
+    "name_ar": "مورديلا لحم بقر مع زيتون",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0094",
+   "current": {
+    "name_en": "Toulkarem Smoked Turkey Breast",
+    "name_ar": "صدر حبش مدخن",
+    "brand": "Toulkarem",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Toulkarem Smoked Turkey Breast",
+    "name_ar": "صدر حبش مدخن",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0095",
+   "current": {
+    "name_en": "Tanmia Mortadella Beef Plain",
+    "name_ar": null,
+    "brand": "Tanmia",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Tanmia Mortadella Beef Plain",
+    "name_ar": "موردیلا لحم بقر سادة",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0096",
+   "current": {
+    "name_en": "Tanmia Mortadelle Beef Aux Olives",
+    "name_ar": null,
+    "brand": "Tanmia",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Tanmia Mortadella Beef With Olives",
+    "name_ar": "موردیلا لحم بقر مع زيتون",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "mortadella",
+    "with"
+   ],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0097",
+   "current": {
+    "name_en": "Toulkarem Pepperoni",
+    "name_ar": "بيبيروني",
+    "brand": "Toulkarem",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Toulkarem Pepperoni",
+    "name_ar": "بيبيروني",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0098",
+   "current": {
+    "name_en": "Toulkarem Beef Pepperoni",
+    "name_ar": null,
+    "brand": "Toulkarem",
+    "sell_unit": "By weight (pre-pack)"
+   },
+   "proposed": {
+    "name_en": "Toulkarem Beef Pepperoni",
+    "name_ar": "بيبيروني لحم بقر",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0099",
+   "current": {
+    "name_en": "Mamig's Kitchen Garlic Ready To Eat 200G",
+    "name_ar": null,
+    "brand": "Mamig'S",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Mamig's Kitchen Garlic Ready To Eat",
+    "name_ar": "ممينغز كيتشن ثوم جاهز للأكل",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Garlic",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2023-04-28T12:08:47.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0100",
+   "current": {
+    "name_en": "Chef Simsum Garlic Paste 200G",
+    "name_ar": null,
+    "brand": "Chef Simsum",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Chef Simsum Garlic Paste",
+    "name_ar": "شيف سمسم معجون ثوم",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0101",
+   "current": {
+    "name_en": "Mamig's Kitchen Hommos Ready 270G",
+    "name_ar": null,
+    "brand": "Mamig'S",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Mamig's Kitchen Hommos Ready",
+    "name_ar": "حمص جاهز ممعج كيتشن",
+    "size_en": "270 g",
+    "size_ar": "270 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0102",
+   "current": {
+    "name_en": "Aqua Family 10L",
+    "name_ar": null,
+    "brand": "Aqua Family",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Aqua Family",
+    "name_ar": "أكوا فاملي",
+    "size_en": "10 L",
+    "size_ar": "10 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0103",
+   "current": {
+    "name_en": "Tannourine Mineral Water 2L X6",
+    "name_ar": null,
+    "brand": "Tannourine",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tannourine Mineral Water",
+    "name_ar": "مياه معدنية تنورين",
+    "size_en": "6 x 2 L",
+    "size_ar": "6 × 2 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0104",
+   "current": {
+    "name_en": "Tannourine Mineral Water 500Ml X 12",
+    "name_ar": null,
+    "brand": "Tannourine",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tannourine Mineral Water",
+    "name_ar": "مياه معدنية تنورين",
+    "size_en": "12 x 500 ml",
+    "size_ar": "12 × 500 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0105",
+   "current": {
+    "name_en": "Tannourine Mineral Water 330Ml X 12",
+    "name_ar": null,
+    "brand": "Tannourine",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tannourine Mineral Water",
+    "name_ar": "مياه معدنية تنورين",
+    "size_en": "12 x 330 ml",
+    "size_ar": "12 × 330 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0106",
+   "current": {
+    "name_en": "Talaya Sparkling Water Lemon Lime 330Ml",
+    "name_ar": null,
+    "brand": "Talaya",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Talaya Sparkling Water Lemon Lime",
+    "name_ar": "مياه تالايا الفوارة بالليمون والليم",
+    "size_en": "330 ml",
+    "size_ar": "330 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0107",
+   "current": {
+    "name_en": "Rim Mineral Water 2L X 6",
+    "name_ar": null,
+    "brand": "Rim",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Rim Mineral Water",
+    "name_ar": "مياه معدنية ريم",
+    "size_en": "6 x 2 L",
+    "size_ar": "6 × 2 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0108",
+   "current": {
+    "name_en": "Sohat Mineral Water 1.5L X6",
+    "name_ar": null,
+    "brand": "Sohat",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Sohat Mineral Water",
+    "name_ar": "مياه معدنية صحت",
+    "size_en": "6 x 1.5 L",
+    "size_ar": "6 × 1.5 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0109",
+   "current": {
+    "name_en": "Tannourine Mineral Water Gallon 6L",
+    "name_ar": null,
+    "brand": "Tannourine",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tannourine Mineral Water Gallon",
+    "name_ar": "مياه معدنية تنورين غالون",
+    "size_en": "6 L",
+    "size_ar": "6 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Tannourine Gallon 6L",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2024-08-11T07:37:45.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0110",
+   "current": {
+    "name_en": "Nejmeh Mineral Water 2L",
+    "name_ar": null,
+    "brand": "Nejmeh",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nejmeh Mineral Water",
+    "name_ar": "مياه معدنية نجمة",
+    "size_en": "2 L",
+    "size_ar": "2 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0111",
+   "current": {
+    "name_en": "Nestle Pure Life Water 0.6L X12",
+    "name_ar": null,
+    "brand": "Nestle",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nestle Pure Life Water",
+    "name_ar": "مياه نستله بيور لايف",
+    "size_en": "12 x 0.6 L",
+    "size_ar": "12 × 0.6 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0112",
+   "current": {
+    "name_en": "Pepsi Carbonated Drink Diet 330Ml",
+    "name_ar": null,
+    "brand": "Pepsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pepsi Carbonated Drink Diet",
+    "name_ar": "مشروب بيبسي غازي دايت",
+    "size_en": "330 ml",
+    "size_ar": "330 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Diet Pepsi 330 ml",
+    "brands": "Pepsi",
+    "quantity": "330 ml",
+    "last_modified": "2026-03-21T02:29:50.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0113",
+   "current": {
+    "name_en": "Pepsi Soft Drink Bottle Diet 2.25L",
+    "name_ar": null,
+    "brand": "Pepsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pepsi Soft Drink Bottle Diet",
+    "name_ar": "مشروب بيبسي غازي دايت",
+    "size_en": "2.25 L",
+    "size_ar": "2.25 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0114",
+   "current": {
+    "name_en": "Top Juice Pineapple 190Ml",
+    "name_ar": null,
+    "brand": "Top",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Top Juice Pineapple",
+    "name_ar": "عصير توب أناناس",
+    "size_en": "190 ml",
+    "size_ar": "190 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Pineapple Flavored Drink",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2022-07-11T21:15:25.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0115",
+   "current": {
+    "name_en": "Pepsi Carbonated Drink 2.25L",
+    "name_ar": null,
+    "brand": "Pepsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pepsi Carbonated Drink",
+    "name_ar": "مشروب بيبسي غازي",
+    "size_en": "2.25 L",
+    "size_ar": "2.25 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0116",
+   "current": {
+    "name_en": "Pepsi Soft Drink Diet 1.25L",
+    "name_ar": null,
+    "brand": "Pepsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pepsi Soft Drink Diet",
+    "name_ar": "مشروب بيبسي غازي دايت",
+    "size_en": "1.25 L",
+    "size_ar": "1.25 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Pepsi Diet",
+    "brands": "Pepsi",
+    "quantity": null,
+    "last_modified": "2026-03-26T00:08:56.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0117",
+   "current": {
+    "name_en": "Pepsi Carbonated Drink 330Ml",
+    "name_ar": null,
+    "brand": "Pepsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pepsi Carbonated Drink",
+    "name_ar": "مشروب بيبسي غازي",
+    "size_en": "330 ml",
+    "size_ar": "330 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Pepsi",
+    "brands": "Pepsi",
+    "quantity": null,
+    "last_modified": "2024-01-30T08:53:02.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0118",
+   "current": {
+    "name_en": "Dark Blue Energy Drink 330Ml",
+    "name_ar": null,
+    "brand": "Dark Blue",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dark Blue Energy Drink",
+    "name_ar": "مشروب الطاقة دارك بلو",
+    "size_en": "330 ml",
+    "size_ar": "330 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Energy Drink",
+    "brands": "Drak Blue",
+    "quantity": null,
+    "last_modified": "2026-03-03T19:02:43.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0119",
+   "current": {
+    "name_en": "Mr Juicy Juice Pineapple 180Ml",
+    "name_ar": null,
+    "brand": "Mr Juicy",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Mr Juicy Juice Pineapple",
+    "name_ar": "عصير مستر جوسي أناناس",
+    "size_en": "180 ml",
+    "size_ar": "180 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Mr juicy",
+    "brands": null,
+    "quantity": "180ml",
+    "last_modified": "2026-03-27T23:21:28.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0120",
+   "current": {
+    "name_en": "Candia Juice Fruits Rouges Nectar 180Ml",
+    "name_ar": null,
+    "brand": "Candia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Candia Juice Fruits Rouges Nectar",
+    "name_ar": "نكتار كانديا فواكه حمراء",
+    "size_en": "180 ml",
+    "size_ar": "180 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0121",
+   "current": {
+    "name_en": "7Up Soft Drink Bottle 330Ml",
+    "name_ar": null,
+    "brand": "7Up",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "7Up Soft Drink Bottle",
+    "name_ar": "مشروب 7Up غازي",
+    "size_en": "330 ml",
+    "size_ar": "330 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Seven up",
+    "brands": "7UP",
+    "quantity": "330 ml",
+    "last_modified": "2023-06-07T12:10:26.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0122",
+   "current": {
+    "name_en": "Lipton Ice Tea Tropical Zero Sugar 320Ml",
+    "name_ar": null,
+    "brand": "Lipton",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Lipton Ice Tea Tropical Zero Sugar",
+    "name_ar": "شاي مثلج ليبتون استوائي زيرو سكر",
+    "size_en": "320 ml",
+    "size_ar": "320 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Ice tea Zero sugar Tropical passionfruit & mango",
+    "brands": "Lipton",
+    "quantity": "320 mL",
+    "last_modified": "2026-05-06T23:12:14.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0123",
+   "current": {
+    "name_en": "Lipton Ice Tea Red Fruits Zero Sugar 320Ml",
+    "name_ar": null,
+    "brand": "Lipton",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Lipton Ice Tea Red Fruits Zero Sugar",
+    "name_ar": "شاي مثلج ليبتون فواكه حمراء زيرو سكر",
+    "size_en": "320 ml",
+    "size_ar": "320 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Ice tea red fruits zero sugar",
+    "brands": "Lipton",
+    "quantity": null,
+    "last_modified": "2023-09-21T15:25:27.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0124",
+   "current": {
+    "name_en": "7Up Carbonated Soft Drink 2.25L",
+    "name_ar": null,
+    "brand": "7Up",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "7Up Carbonated Soft Drink",
+    "name_ar": "مشروب 7Up غازي",
+    "size_en": "2.25 L",
+    "size_ar": "2.25 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Seven up",
+    "brands": "7UP",
+    "quantity": null,
+    "last_modified": "2023-07-26T10:20:30.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0125",
+   "current": {
+    "name_en": "Joocyz Juice Pineapple 1L",
+    "name_ar": null,
+    "brand": "Joocyz",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Joocyz Juice Pineapple",
+    "name_ar": "عصير جوسيز أناناس",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0126",
+   "current": {
+    "name_en": "Mirinda Carbonated Drink Orange Bottle 330Ml",
+    "name_ar": null,
+    "brand": "Mirinda",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Mirinda Carbonated Drink Orange Bottle",
+    "name_ar": "ميرندا مشروب غازي برتقال زجاجة",
+    "size_en": "330 ml",
+    "size_ar": "330 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Miranda",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-03-26T04:27:46.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0127",
+   "current": {
+    "name_en": "Uno Juice Mango 1L",
+    "name_ar": null,
+    "brand": "Uno",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Uno Juice Mango",
+    "name_ar": "أونو عصير مانغو",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "MANGO",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-03-24T05:30:09.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0128",
+   "current": {
+    "name_en": "Joocyz Juice Apple 1L",
+    "name_ar": null,
+    "brand": "Joocyz",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Joocyz Juice Apple",
+    "name_ar": "جوسيز عصير تفاح",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0129",
+   "current": {
+    "name_en": "Vitalis Energy Drink Tropical 250Ml",
+    "name_ar": null,
+    "brand": "Vitalis",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Vitalis Energy Drink Tropical",
+    "name_ar": "فيتاليس مشروب طاقة استوائي",
+    "size_en": "250 ml",
+    "size_ar": "250 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0130",
+   "current": {
+    "name_en": "Cafe21 2In1 Instant Coffee No Sugar 12G",
+    "name_ar": null,
+    "brand": "Cafe21",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Cafe21 2in1 Instant Coffee No Sugar",
+    "name_ar": "كافيه 21 قهوة سريعة التحضير 2 في 1 بدون سكر",
+    "size_en": "12 g",
+    "size_ar": "12 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Cafe 21 2in1 Instant Coffeemix Sticks",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-05-29T05:56:26.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0131",
+   "current": {
+    "name_en": "Nescafe Instant Coffee 3In1 Classic 20G",
+    "name_ar": null,
+    "brand": "Nescafe",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nescafe Instant Coffee 3in1 Classic",
+    "name_ar": "نسكافيه قهوة سريعة التحضير 3 في 1 كلاسيك",
+    "size_en": "20 g",
+    "size_ar": "20 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Nescafe 3 in 1",
+    "brands": "Nescafé",
+    "quantity": "20g *24 pcs",
+    "last_modified": "2026-07-25T23:44:33.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0132",
+   "current": {
+    "name_en": "Coffee Mate Coffee Creamer Original Pouch 450G",
+    "name_ar": null,
+    "brand": "Coffee Mate",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Coffee Mate Coffee Creamer Original Pouch",
+    "name_ar": "كوفي ميت مبيض قهوة أوريجينال كيس",
+    "size_en": "450 g",
+    "size_ar": "450 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Coffee Mate",
+    "brands": "Nestlé",
+    "quantity": "450 g",
+    "last_modified": "2026-03-14T06:04:58.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0133",
+   "current": {
+    "name_en": "Najjar Cafe Classic Normal 180G",
+    "name_ar": null,
+    "brand": "Najjar",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Najjar Cafe Classic Normal",
+    "name_ar": "النجار قهوة كلاسيك عادية",
+    "size_en": "180 g",
+    "size_ar": "180 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0134",
+   "current": {
+    "name_en": "Tora Bika Cappucino 25G",
+    "name_ar": null,
+    "brand": "Tora Bika",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tora Bika Cappuccino",
+    "name_ar": "توراбيكا كابتشينو",
+    "size_en": "25 g",
+    "size_ar": "25 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Torabika Cappuccino",
+    "brands": "Kopiko",
+    "quantity": "25g",
+    "last_modified": "2026-10-25T08:05:59.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0135",
+   "current": {
+    "name_en": "Nescafe Instant Coffee Gold Pouch 100G",
+    "name_ar": null,
+    "brand": "Nescafe",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nescafe Instant Coffee Gold Pouch",
+    "name_ar": "نسكافيه قهوة سريعة التحضير غولد كيس",
+    "size_en": "100 g",
+    "size_ar": "100 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "nescafe",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-05-06T23:12:08.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0136",
+   "current": {
+    "name_en": "Tchibo Instant Coffee Gold Selection 200G",
+    "name_ar": null,
+    "brand": "Tchibo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tchibo Instant Coffee Gold Selection",
+    "name_ar": "تشيبو قهوة سريعة التحضير جولد سيلكشن",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Gold Selection",
+    "brands": "Tchibo",
+    "quantity": "200 g",
+    "last_modified": "2026-10-16T10:24:27.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0137",
+   "current": {
+    "name_en": "Najjar Instant Coffee Red 190G",
+    "name_ar": null,
+    "brand": "Najjar",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Najjar Instant Coffee Red",
+    "name_ar": "النجار قهوة سريعة التحضير حمراء",
+    "size_en": "190 g",
+    "size_ar": "190 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "najar",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2025-08-05T07:22:55.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0138",
+   "current": {
+    "name_en": "Najjar Cafe Cardamom 180G",
+    "name_ar": null,
+    "brand": "Najjar",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Najjar Cafe Cardamom",
+    "name_ar": "النجار قهوة هيل",
+    "size_en": "180 g",
+    "size_ar": "180 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0139",
+   "current": {
+    "name_en": "Najjar Star Café Coffee Regular 180G",
+    "name_ar": null,
+    "brand": "Najjar",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Najjar Star Café Coffee Regular",
+    "name_ar": "النجار ستار كافيه قهوة عادية",
+    "size_en": "180 g",
+    "size_ar": "180 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0140",
+   "current": {
+    "name_en": "Lipton Yellow Label Tea 100 Teabags",
+    "name_ar": null,
+    "brand": "Lipton",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Lipton Yellow Label Tea",
+    "name_ar": "ليبتون ييلو لايبل شاي",
+    "size_en": "100 teabags",
+    "size_ar": "100 كيس شاي"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Yellow label tea",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2020-07-23T00:30:59.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0141",
+   "current": {
+    "name_en": "Domo Hot Chocolate Drink Caramel Light 10G",
+    "name_ar": null,
+    "brand": "Domo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Domo Hot Chocolate Drink Caramel Light",
+    "name_ar": "دومو مشروب شوكولاتة ساخنة كراميل لايت",
+    "size_en": "10 g",
+    "size_ar": "10 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Hot choco drink light",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-03-21T17:11:28.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0142",
+   "current": {
+    "name_en": "Lipton Yellow Label Black Tea 25 Bags",
+    "name_ar": null,
+    "brand": "Lipton",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Lipton Yellow Label Black Tea",
+    "name_ar": "ليبتون ييلو لايبل شاي أسود",
+    "size_en": "25 bags",
+    "size_ar": "25 كيس"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0143",
+   "current": {
+    "name_en": "Maestro Ceylon Tea 140G",
+    "name_ar": null,
+    "brand": "Maestro",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Maestro Ceylon Tea",
+    "name_ar": "مايسترو شاي سيلان",
+    "size_en": "140 g",
+    "size_ar": "140 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0144",
+   "current": {
+    "name_en": "Solen Vip Cocoa Coated 25G",
+    "name_ar": null,
+    "brand": "Solen",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Solen Vip Cocoa Coated",
+    "name_ar": "سولن فيب كاكاو مغلف",
+    "size_en": "25 g",
+    "size_ar": "25 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "VIP",
+    "brands": "Chocolate",
+    "quantity": "25g",
+    "last_modified": "2025-09-13T23:56:01.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0145",
+   "current": {
+    "name_en": "Lu Nouba Wafer 17.5G",
+    "name_ar": null,
+    "brand": "Lu",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Lu Nouba Wafer",
+    "name_ar": "لو نوبا ويفر",
+    "size_en": "17.5 g",
+    "size_ar": "17.5 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Gâteau Nouba",
+    "brands": "LU, Mondelez",
+    "quantity": "17,5g",
+    "last_modified": "2026-11-13T08:26:44.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0146",
+   "current": {
+    "name_en": "Kinder Choco Wafer Tronky 18G",
+    "name_ar": null,
+    "brand": "Kinder",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Kinder Choco Wafer Tronky",
+    "name_ar": "كيندر ويفر تروني بالشوكولاتة",
+    "size_en": "18 g",
+    "size_ar": "18 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "tronky t1",
+    "brands": "Kinder",
+    "quantity": null,
+    "last_modified": "2026-11-04T20:04:31.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0148",
+   "current": {
+    "name_en": "Kinder Chocolate Barrette Maxi 21G",
+    "name_ar": null,
+    "brand": "Kinder",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Kinder Chocolate Barrette Maxi",
+    "name_ar": "كيندر بار شوكولاتة ماكسي",
+    "size_en": "21 g",
+    "size_ar": "21 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Kinder Riegel Einzelpackung",
+    "brands": "Kinder",
+    "quantity": "21g",
+    "last_modified": "2026-11-04T09:10:55.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0149",
+   "current": {
+    "name_en": "Ulker Albeni Chocolate Bar 25G",
+    "name_ar": null,
+    "brand": "Ulker",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Ulker Albeni Chocolate Bar",
+    "name_ar": "أولكر ألبيني بار شوكولاتة",
+    "size_en": "25 g",
+    "size_ar": "25 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0150",
+   "current": {
+    "name_en": "Tiffany Wafer Chocolate Break 3 Fingers 23.5G",
+    "name_ar": null,
+    "brand": "Tiffany",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tiffany Wafer Chocolate Break 3 Fingers",
+    "name_ar": "تيفاني ويفر شوكولاتة بريك 3 أصابع",
+    "size_en": "23.5 g",
+    "size_ar": "23.5 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-06-06T03:27:55.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0151",
+   "current": {
+    "name_en": "Nutella Spread Chocolate Hazelnut 750G",
+    "name_ar": null,
+    "brand": "Nutella",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nutella Chocolate Hazelnut Spread",
+    "name_ar": "نوتيلا كريمة البندق بالشوكولاتة",
+    "size_en": "750 g",
+    "size_ar": "750 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Nutella",
+    "brands": "Ferrero",
+    "quantity": "825g",
+    "last_modified": "2026-03-12T22:56:44.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0152",
+   "current": {
+    "name_en": "Ulker Metro Chocolate 36G",
+    "name_ar": null,
+    "brand": "Ulker",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Ulker Metro Chocolate",
+    "name_ar": "أولكر ميترو شوكولاتة",
+    "size_en": "36 g",
+    "size_ar": "36 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "metro klasik",
+    "brands": "ULKER",
+    "quantity": "36 G",
+    "last_modified": "2026-09-26T09:55:26.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0153",
+   "current": {
+    "name_en": "Oreo Cookie Biscuit 38G",
+    "name_ar": null,
+    "brand": "Oreo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Oreo Cookie Biscuit",
+    "name_ar": "أوريو بسكويت كوكيز",
+    "size_en": "38 g",
+    "size_ar": "38 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Oreo Cookies",
+    "brands": "Oreo",
+    "quantity": "36.8g",
+    "last_modified": "2026-11-11T12:14:15.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0154",
+   "current": {
+    "name_en": "Snack Jiha Chips Peanuts 25G",
+    "name_ar": null,
+    "brand": "Snack Jiha",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Snack Jiha Chips Peanuts",
+    "name_ar": "سناك جيها شيبس فول سوداني",
+    "size_en": "25 g",
+    "size_ar": "25 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0155",
+   "current": {
+    "name_en": "Ulker Ulker Chocolate Baton Pistachio 14G",
+    "name_ar": null,
+    "brand": "Ulker",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Ulker Chocolate Baton Pistachio",
+    "name_ar": "أولكر بطارية شوكولاتة فستق",
+    "size_en": "14 g",
+    "size_ar": "14 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0156",
+   "current": {
+    "name_en": "Al Arabiya Tahina 400G",
+    "name_ar": null,
+    "brand": "Al Arabiya",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Al Arabiya Tahina",
+    "name_ar": "العربية طحينة",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0157",
+   "current": {
+    "name_en": "Elegance Stars Biscuits Black Chocolate 34G",
+    "name_ar": null,
+    "brand": "Elegance",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Elegance Stars Biscuits Black Chocolate",
+    "name_ar": "إليجانس بسكويت ستارز بالشوكولاتة السوداء",
+    "size_en": "34 g",
+    "size_ar": "34 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Stars chocolat biscuit",
+    "brands": "Elegance",
+    "quantity": null,
+    "last_modified": "2022-07-07T06:14:24.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0159",
+   "current": {
+    "name_en": "Coffee Joy Biscuits Coffee 45G",
+    "name_ar": null,
+    "brand": "Coffee Joy",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Coffee Joy Biscuits Coffee",
+    "name_ar": "كوفي جوي بسكويت قهوة",
+    "size_en": "45 g",
+    "size_ar": "45 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Coffee Joy",
+    "brands": "Mayora",
+    "quantity": "39g",
+    "last_modified": "2026-09-15T12:37:18.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0160",
+   "current": {
+    "name_en": "Dolsi Chips Crunchy Peanuts Puffs 80G",
+    "name_ar": null,
+    "brand": "Dolsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dolsi Chips Crunchy Peanuts Puffs",
+    "name_ar": "دولسي شيبس فول سوداني منفوخ مقرمش",
+    "size_en": "80 g",
+    "size_ar": "80 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "crunchy peanuts puffs",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2023-06-03T17:32:16.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0161",
+   "current": {
+    "name_en": "Master Chips Salt 65G",
+    "name_ar": null,
+    "brand": "Master",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Master Chips Salt",
+    "name_ar": "ماستر شيبس ملح",
+    "size_en": "65 g",
+    "size_ar": "65 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2025-05-31T05:33:51.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0162",
+   "current": {
+    "name_en": "Nutella Spread Chocolate Hazelnut 350G",
+    "name_ar": null,
+    "brand": "Nutella",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nutella Chocolate Hazelnut Spread",
+    "name_ar": "نوتيلا كريمة البندق بالشوكولاتة",
+    "size_en": "350 g",
+    "size_ar": "350 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Nutella +10% Gratuit,",
+    "brands": "Ferrero",
+    "quantity": null,
+    "last_modified": "2026-03-24T01:43:57.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0163",
+   "current": {
+    "name_en": "Master Chips Cocktail 100G",
+    "name_ar": null,
+    "brand": "Master",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Master Chips Cocktail",
+    "name_ar": "ماستر شيبس كوكتيل",
+    "size_en": "100 g",
+    "size_ar": "100 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Cocktail",
+    "brands": "Master",
+    "quantity": null,
+    "last_modified": "2025-08-21T19:10:58.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0164",
+   "current": {
+    "name_en": "Dolsi Chips Cheezy Wizz 80G",
+    "name_ar": null,
+    "brand": "Dolsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dolsi Chips Cheezy Wizz",
+    "name_ar": "دولسي شيبس تشيزي ويز",
+    "size_en": "80 g",
+    "size_ar": "80 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Cheesy wizz",
+    "brands": "Dolsi",
+    "quantity": null,
+    "last_modified": "2026-08-17T09:07:52.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0165",
+   "current": {
+    "name_en": "Dolsi Chips Crunchy Pizza Puffs 80G",
+    "name_ar": null,
+    "brand": "Dolsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dolsi Chips Crunchy Pizza Puffs",
+    "name_ar": "دولسي شيبس بيتزا منفوخ مقرمش",
+    "size_en": "80 g",
+    "size_ar": "80 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Crunchy pizza puffs",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2025-01-30T20:49:26.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0166",
+   "current": {
+    "name_en": "Krikita Cashew Pow Fried Salted 14G",
+    "name_ar": null,
+    "brand": "Krikita",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Krikita Cashew Pow Fried Salted",
+    "name_ar": "كريكيتا كاجو باو مقلي مملح",
+    "size_en": "14 g",
+    "size_ar": "14 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-05-18T07:14:50.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0167",
+   "current": {
+    "name_en": "Clorets Gum Original Mint 12 Pieces 16.8G",
+    "name_ar": null,
+    "brand": "Clorets",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Clorets Gum Original Mint 12 Pieces",
+    "name_ar": "كلورتس علكة نعناع أصلي 12 قطعة",
+    "size_en": "16.8 g",
+    "size_ar": "16.8 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Clorets",
+    "brands": "Clorets",
+    "quantity": "14 g (5 dh )",
+    "last_modified": "2026-04-16T16:36:41.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0168",
+   "current": {
+    "name_en": "El Rashidi El Mizan Jam Strawberry 340G",
+    "name_ar": null,
+    "brand": "El Rashidi El Mizan",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "El Rashidi El Mizan Jam Strawberry",
+    "name_ar": "الرشيدي الميزان مربى فراولة",
+    "size_en": "340 g",
+    "size_ar": "340 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Premium jam",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2023-05-30T21:40:44.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0169",
+   "current": {
+    "name_en": "Castania Peanuts 18G",
+    "name_ar": null,
+    "brand": "Castania",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Castania Peanuts",
+    "name_ar": "كастانيا فول سوداني",
+    "size_en": "18 g",
+    "size_ar": "18 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Peanuts",
+    "brands": "Castania",
+    "quantity": null,
+    "last_modified": "2025-07-04T21:02:53.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0170",
+   "current": {
+    "name_en": "Mentos Incredible Chew Strawberry 45G",
+    "name_ar": null,
+    "brand": "Mentos",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Mentos Incredible Chew Strawberry",
+    "name_ar": "منتوس إنكредибل تشيو فراولة",
+    "size_en": "45 g",
+    "size_ar": "45 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Mentos strawberry flavor",
+    "brands": "Mentos",
+    "quantity": null,
+    "last_modified": "2025-12-10T16:59:51.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0171",
+   "current": {
+    "name_en": "Snickers Chocolate Bar Caramel & Peanuts 45G",
+    "name_ar": null,
+    "brand": "Snikers",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Snickers Chocolate Bar Caramel & Peanuts",
+    "name_ar": "سنيكرز قطعة شوكولاتة كراميل وفول سوداني",
+    "size_en": "45 g",
+    "size_ar": "45 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "سنكرز",
+    "brands": "سنكرز",
+    "quantity": "40g",
+    "last_modified": "2026-11-10T11:02:05.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0172",
+   "current": {
+    "name_en": "Maggi Stock Cubes Chicken 20G",
+    "name_ar": null,
+    "brand": "Maggi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Maggi Stock Cubes Chicken",
+    "name_ar": "ماجي مكعبات مرق دجاج",
+    "size_en": "20 g",
+    "size_ar": "20 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Maggie Cube Stock 20GM",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-03-18T04:40:33.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0173",
+   "current": {
+    "name_en": "Indomie Noodles Chicken 70G",
+    "name_ar": null,
+    "brand": "Indomie",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Indomie Noodles Chicken",
+    "name_ar": "إندومي نودلز دجاج",
+    "size_en": "70 g",
+    "size_ar": "70 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Indomie instant noodles baladi chicken flavor",
+    "brands": "indomie",
+    "quantity": "70g",
+    "last_modified": "2026-08-23T22:01:40.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0174",
+   "current": {
+    "name_en": "Indomie Noodles Vegetable Flavor 56G",
+    "name_ar": null,
+    "brand": "Indomie",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Indomie Noodles Vegetable Flavor",
+    "name_ar": "إندومي نودلز بنكهة الخضار",
+    "size_en": "56 g",
+    "size_ar": "56 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "vegetable instant noodle from indomie",
+    "brands": "indomie",
+    "quantity": null,
+    "last_modified": "2026-07-17T17:20:19.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0175",
+   "current": {
+    "name_en": "Barilla Spaghetti N' 5 500G",
+    "name_ar": null,
+    "brand": "Barilla",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Barilla Spaghetti N° 5",
+    "name_ar": "باريلا سباغيتي رقم 5",
+    "size_en": "500 g",
+    "size_ar": "500 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Spaghetti Nº5",
+    "brands": "Barilla, BARILLA NORGE ASbarilla",
+    "quantity": "500 g",
+    "last_modified": "2026-11-08T07:22:23.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0176",
+   "current": {
+    "name_en": "Maggi Stock Cubes Beef 20G",
+    "name_ar": null,
+    "brand": "Maggi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Maggi Stock Cubes Beef",
+    "name_ar": "مرق مكعبات مجي بالبقر",
+    "size_en": "20 g",
+    "size_ar": "20 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0177",
+   "current": {
+    "name_en": "Taj Stock Cube Chicken 20G",
+    "name_ar": null,
+    "brand": "Taj",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Taj Stock Cube Chicken",
+    "name_ar": "مكعب مرق تاج بالدجاج",
+    "size_en": "20 g",
+    "size_ar": "20 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0178",
+   "current": {
+    "name_en": "Ousraty Mixed Aleppo Thyme 400G",
+    "name_ar": null,
+    "brand": "Ossraty",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Ousraty Mixed Aleppo Thyme",
+    "name_ar": "أسرتي زعتر حلبي مشكل",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0179",
+   "current": {
+    "name_en": "Arbella Tagliatelle 400G",
+    "name_ar": null,
+    "brand": "Arbella",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Arbella Tagliatelle",
+    "name_ar": "أربيلا تاغلياتيلي",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0180",
+   "current": {
+    "name_en": "Deroni Red Split Lentils Vacuum 900G",
+    "name_ar": null,
+    "brand": "Deroni",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Deroni Red Split Lentils Vacuum",
+    "name_ar": "عدس أحمر مقشر دِروني مفرّغ من الهواء",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0181",
+   "current": {
+    "name_en": "Divella Spaghetti N8 500G",
+    "name_ar": null,
+    "brand": "Divella",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Divella Spaghetti N8",
+    "name_ar": "سباغيتي ديفيلا رقم 8",
+    "size_en": "500 g",
+    "size_ar": "500 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Spaghetti Ristorante 8",
+    "brands": "Divella",
+    "quantity": "500 g - 17.6 oz",
+    "last_modified": "2026-10-30T09:45:42.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0182",
+   "current": {
+    "name_en": "Deroni Vermicelli 500G",
+    "name_ar": null,
+    "brand": "Deroni",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Deroni Vermicelli",
+    "name_ar": "شعيرية دِروني",
+    "size_en": "500 g",
+    "size_ar": "500 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2025-07-11T19:29:00.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0183",
+   "current": {
+    "name_en": "Abu Rashed Indian Basmati Rice 4Kg",
+    "name_ar": null,
+    "brand": "Abo Rashed",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Abu Rashed Indian Basmati Rice",
+    "name_ar": "أرز بسمتي هندي أبو راشد",
+    "size_en": "4 kg",
+    "size_ar": "4 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0184",
+   "current": {
+    "name_en": "Abou Rached Basmati Rice 800G",
+    "name_ar": null,
+    "brand": "Abou Rached",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Abou Rached Basmati Rice",
+    "name_ar": "أرز بسمتي أبو رشيد",
+    "size_en": "800 g",
+    "size_ar": "800 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0185",
+   "current": {
+    "name_en": "Deroni Italian Rice 900G",
+    "name_ar": null,
+    "brand": "Deroni",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Deroni Italian Rice",
+    "name_ar": "أرز إيطالي دِروني",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0186",
+   "current": {
+    "name_en": "Deroni Green Lentils Vacuum 900G",
+    "name_ar": null,
+    "brand": "Deroni",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Deroni Green Lentils Vacuum",
+    "name_ar": "عدس أخضر دِروني مفرّغ من الهواء",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0187",
+   "current": {
+    "name_en": "Domo Corn Flour 200G",
+    "name_ar": null,
+    "brand": "Domo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Domo Corn Flour",
+    "name_ar": "طحين ذرة دومو",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Amidon de mais",
+    "brands": "Domo",
+    "quantity": "200 g",
+    "last_modified": "2026-03-26T13:05:45.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0188",
+   "current": {
+    "name_en": "Gold Medal Flour 1Kg",
+    "name_ar": null,
+    "brand": "Gold Medal",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Gold Medal Flour",
+    "name_ar": "طحين غولد ميدال",
+    "size_en": "1 kg",
+    "size_ar": "1 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Gold medal",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2025-12-16T08:22:35.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0189",
+   "current": {
+    "name_en": "Zain Lentils Adass Majrouch 900G",
+    "name_ar": null,
+    "brand": "Zain",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Zain Lentils Adass Majrouch",
+    "name_ar": "زين عدس أصفر مجروش",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0190",
+   "current": {
+    "name_en": "Burghul, coarse",
+    "name_ar": "برغل خشن",
+    "brand": "Local (unbranded)",
+    "sell_unit": "1 kg bag"
+   },
+   "proposed": {
+    "name_en": "Burghul, Coarse",
+    "name_ar": "برغل خشن",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0191",
+   "current": {
+    "name_en": "Prime Sweet Corn Can 340G",
+    "name_ar": null,
+    "brand": "Prime line",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Prime Sweet Corn Can",
+    "name_ar": "ذرة حلوة برايم",
+    "size_en": "340 g",
+    "size_ar": "340 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0192",
+   "current": {
+    "name_en": "Chtoura Garden Fava Beans 400G",
+    "name_ar": null,
+    "brand": "Chtoura Garden",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Chtoura Garden Fava Beans",
+    "name_ar": "فول شتورة غاردن",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": "Chtoura Garden",
+    "quantity": "Nettogewicht 475g, Abtropfgewicht 310g",
+    "last_modified": "2026-03-13T03:03:45.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0193",
+   "current": {
+    "name_en": "Plein Soleil Sweet Corn 340G",
+    "name_ar": null,
+    "brand": "Plein Soleil",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil Sweet Corn",
+    "name_ar": "ذرة حلوة بلان سوليه",
+    "size_en": "340 g",
+    "size_ar": "340 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Plein Soleil Sweet Corn",
+    "brands": "Plein Soleil",
+    "quantity": "340g, 250g Drained",
+    "last_modified": "2022-02-23T12:21:07.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0195",
+   "current": {
+    "name_en": "Siblou White Tuna In Oil 185G X3",
+    "name_ar": null,
+    "brand": "Siblou",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Siblou White Tuna In Oil",
+    "name_ar": "تونا أبيض سيبلو بالزيت",
+    "size_en": "3 x 185 g",
+    "size_ar": "3 × 185 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0196",
+   "current": {
+    "name_en": "Plein Soleil White Tuna Oil 185G X3",
+    "name_ar": null,
+    "brand": "Plein Soleil",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil White Tuna In Oil",
+    "name_ar": "تونا أبيض بلان سوليه بالزيت",
+    "size_en": "3 x 185 g",
+    "size_ar": "3 × 185 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "in"
+   ],
+   "off_hint": {
+    "name": "White tuna",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2023-02-06T14:29:01.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0197",
+   "current": {
+    "name_en": "Siblou White Tuna In Water 185G",
+    "name_ar": null,
+    "brand": "Siblou",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Siblou White Tuna In Water",
+    "name_ar": "تونا أبيض سيبلو بالماء",
+    "size_en": "185 g",
+    "size_ar": "185 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Siblou White Tuna In Water Solid",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-03-26T04:49:34.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0198",
+   "current": {
+    "name_en": "Cortas Hommos Tahina 400G",
+    "name_ar": null,
+    "brand": "Cortas",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Cortas Hommos Tahina",
+    "name_ar": "حمص طحينة كورتاس",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Hummos Tahina",
+    "brands": "Cortas",
+    "quantity": "400g",
+    "last_modified": "2026-09-03T10:56:46.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0199",
+   "current": {
+    "name_en": "Al Wadi Al Akhdar Sweet Corn 340G",
+    "name_ar": null,
+    "brand": "Al Wadi Al Akhdar",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Al Wadi Al Akhdar Sweet Corn",
+    "name_ar": "ذرة حلوة الوادي الأخضر",
+    "size_en": "340 g",
+    "size_ar": "340 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Sliced mushrooms",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2020-02-12T14:04:20.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0200",
+   "current": {
+    "name_en": "Chtoura Garden Boiled Chick Peas 400G",
+    "name_ar": null,
+    "brand": "Chtoura Garden",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Chtoura Garden Boiled Chick Peas",
+    "name_ar": "حمص معلب شتورة غاردن",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "حمص معلب",
+    "brands": "Chtoura Garden",
+    "quantity": "475g",
+    "last_modified": "2026-03-13T10:35:12.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0201",
+   "current": {
+    "name_en": "Cortas Foul Medammas 400G",
+    "name_ar": null,
+    "brand": "Cortas",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Cortas Foul Medammas",
+    "name_ar": "فول مدمس كورتاس",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Foul Medammas",
+    "brands": "Cortas",
+    "quantity": "400 g",
+    "last_modified": "2023-12-04T08:50:51.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0202",
+   "current": {
+    "name_en": "Al Taghziah Luncheon Chicken Round 200G",
+    "name_ar": null,
+    "brand": "Al Taghziah",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Al Taghziah Luncheon Chicken Round",
+    "name_ar": "لانشون دجاج مستدير التغذية",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0203",
+   "current": {
+    "name_en": "Tanmia Chicken Luncheon Meat Easy Open Can 200G",
+    "name_ar": null,
+    "brand": "Tanmia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tanmia Chicken Luncheon Meat Easy Open Can",
+    "name_ar": "لحم لانشون دجاج تنمية علبة سهلة الفتح",
+    "size_en": "200 g",
+    "size_ar": "200 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Chicken luncheons",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2022-10-04T08:27:08.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0204",
+   "current": {
+    "name_en": "Green olives",
+    "name_ar": "زيتون أخضر",
+    "brand": "Local (unbranded)",
+    "sell_unit": "jar"
+   },
+   "proposed": {
+    "name_en": "Green Olives",
+    "name_ar": "زيتون أخضر",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0205",
+   "current": {
+    "name_en": "Black olives",
+    "name_ar": "زيتون أسود",
+    "brand": "Local (unbranded)",
+    "sell_unit": "jar"
+   },
+   "proposed": {
+    "name_en": "Black Olives",
+    "name_ar": "زيتون أسود",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0206",
+   "current": {
+    "name_en": "Mixed pickles",
+    "name_ar": "كبيس مشكل",
+    "brand": "Local (unbranded)",
+    "sell_unit": "jar"
+   },
+   "proposed": {
+    "name_en": "Mixed Pickles",
+    "name_ar": "كبيس مشكل",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "catalog",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0207",
+   "current": {
+    "name_en": "Zer Sunflower Oil 3L",
+    "name_ar": null,
+    "brand": "Zer",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Zer Sunflower Oil",
+    "name_ar": "زر زيت عباد الشمس",
+    "size_en": "3 L",
+    "size_ar": "3 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0208",
+   "current": {
+    "name_en": "Yamama Tomato Paste 1325G",
+    "name_ar": null,
+    "brand": "Yamama",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Yamama Tomato Paste",
+    "name_ar": "معجون طماطم ياماما",
+    "size_en": "1325 g",
+    "size_ar": "1325 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Tomato Paste",
+    "brands": "Yamama",
+    "quantity": "1325 g",
+    "last_modified": "2026-09-19T01:01:03.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0209",
+   "current": {
+    "name_en": "Yamama White Vinegar 1L",
+    "name_ar": null,
+    "brand": "Yamama",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Yamama White Vinegar",
+    "name_ar": "خل أبيض ياماما",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "white vinegar",
+    "brands": "Yamama",
+    "quantity": "1l",
+    "last_modified": "2026-11-03T04:57:41.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0210",
+   "current": {
+    "name_en": "Yamama Tomato Paste 660G",
+    "name_ar": null,
+    "brand": "Yamama",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Yamama Tomato Paste",
+    "name_ar": "معجون طماطم ياماما",
+    "size_en": "660 g",
+    "size_ar": "660 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2023-08-19T22:51:41.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0211",
+   "current": {
+    "name_en": "Plein Soleil Mayonnaise 250Ml",
+    "name_ar": null,
+    "brand": "Plein Soleil",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil Mayonnaise",
+    "name_ar": "مايونيز بلاين سوليي",
+    "size_en": "250 ml",
+    "size_ar": "250 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0212",
+   "current": {
+    "name_en": "Pomi Strained Tomatoes 500G",
+    "name_ar": null,
+    "brand": "Pomi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Pomi Strained Tomatoes",
+    "name_ar": "طماطم مصفاة بومي",
+    "size_en": "500 g",
+    "size_ar": "500 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Passata di pomodoro",
+    "brands": "Pomì",
+    "quantity": "500 g",
+    "last_modified": "2026-03-17T08:39:09.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0213",
+   "current": {
+    "name_en": "Plein Soleil Sunflower Oil 5L",
+    "name_ar": null,
+    "brand": "Plein Soleil",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil Sunflower Oil",
+    "name_ar": "زيت عباد الشمس بلاين سوليي",
+    "size_en": "5 L",
+    "size_ar": "5 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0214",
+   "current": {
+    "name_en": "Dolly's Tomato Ketchup 330G",
+    "name_ar": null,
+    "brand": "Dolly's",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dolly's Tomato Ketchup",
+    "name_ar": "كاتشب طماطم دولي",
+    "size_en": "330 g",
+    "size_ar": "330 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Dollys",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2022-01-29T17:01:33.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0215",
+   "current": {
+    "name_en": "Dolly's Ketchup 900G",
+    "name_ar": null,
+    "brand": "Dolly's",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dolly's Ketchup",
+    "name_ar": "كاتشب دولي",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": "900 g",
+    "last_modified": "2024-04-29T06:40:13.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0216",
+   "current": {
+    "name_en": "Lina Sunflower Oil 0.85L",
+    "name_ar": null,
+    "brand": "Lina",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Lina Sunflower Oil",
+    "name_ar": "زيت عباد الشمس لينا",
+    "size_en": "0.85 L",
+    "size_ar": "0.85 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0217",
+   "current": {
+    "name_en": "Al Koura Olive Oil 500Ml",
+    "name_ar": null,
+    "brand": "Al Koura Products",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Al Koura Olive Oil",
+    "name_ar": "زيت زيتون الكورة",
+    "size_en": "500 ml",
+    "size_ar": "500 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0218",
+   "current": {
+    "name_en": "Yamama Grenadine Molasses 300Ml",
+    "name_ar": null,
+    "brand": "Yamama",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Yamama Grenadine Molasses",
+    "name_ar": "دبس رمان ياماما",
+    "size_en": "300 ml",
+    "size_ar": "300 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Yamama Grenadine Molasses Syrup",
+    "brands": "Yamama",
+    "quantity": "300 ml",
+    "last_modified": "2026-10-12T14:36:27.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0219",
+   "current": {
+    "name_en": "Al Wazir Olive Oil 500Ml",
+    "name_ar": null,
+    "brand": "Al Wazir",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Al Wazir Olive Oil",
+    "name_ar": "زيت زيتون الوزير",
+    "size_en": "500 ml",
+    "size_ar": "500 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0220",
+   "current": {
+    "name_en": "Deroni Hot Sauce 88Ml",
+    "name_ar": null,
+    "brand": "Deroni",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Deroni Hot Sauce",
+    "name_ar": "صلصة حارة درونи",
+    "size_en": "88 ml",
+    "size_ar": "88 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0221",
+   "current": {
+    "name_en": "Maxim's Salt Iodised 700G",
+    "name_ar": null,
+    "brand": "Maxim'S",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Maxim's Iodised Salt",
+    "name_ar": "ملح مكرر مع اليود ماكسيمز",
+    "size_en": "700 g",
+    "size_ar": "700 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Sel maxim's",
+    "brands": "Maxim's",
+    "quantity": null,
+    "last_modified": "2026-03-14T17:16:06.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0222",
+   "current": {
+    "name_en": "El Hanim Ghee Vegetable 0.7Kg",
+    "name_ar": null,
+    "brand": "El hanim",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "El Hanim Ghee Vegetable",
+    "name_ar": "سمنة الهانم",
+    "size_en": "0.7 kg",
+    "size_ar": "0.7 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0223",
+   "current": {
+    "name_en": "Deroni Sugar 900G",
+    "name_ar": null,
+    "brand": "Deroni",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Deroni Sugar",
+    "name_ar": "سكر درونи",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0224",
+   "current": {
+    "name_en": "Domo Jelly Strawberry 85G",
+    "name_ar": null,
+    "brand": "Domo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Domo Strawberry Jelly",
+    "name_ar": "هلام فراولة دومو",
+    "size_en": "85 g",
+    "size_ar": "85 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Domo Gelatin Jelly Strawberry",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-03-19T05:48:48.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0225",
+   "current": {
+    "name_en": "Domo Sugar Vanillin 5G",
+    "name_ar": null,
+    "brand": "Domo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Domo Vanillin Sugar",
+    "name_ar": "سكر فانيلين دومو",
+    "size_en": "5 g",
+    "size_ar": "5 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0226",
+   "current": {
+    "name_en": "Domo Bicarbonate 85G",
+    "name_ar": null,
+    "brand": "Domo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Domo Bicarbonate",
+    "name_ar": "دومو بيكربونات",
+    "size_en": "85 g",
+    "size_ar": "85 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0227",
+   "current": {
+    "name_en": "Domo Baking Powder Sachet 10G",
+    "name_ar": null,
+    "brand": "Domo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Domo Baking Powder Sachet",
+    "name_ar": "دومو بيكنغ باودر ساشيه",
+    "size_en": "10 g",
+    "size_ar": "10 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0228",
+   "current": {
+    "name_en": "Deroni Sugar 5Kg",
+    "name_ar": null,
+    "brand": "Deroni",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Deroni Sugar",
+    "name_ar": "دَيروني سكر",
+    "size_en": "5 kg",
+    "size_ar": "5 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0229",
+   "current": {
+    "name_en": "Aruba Jelly Strawberry Light 12G",
+    "name_ar": null,
+    "brand": "Aruba",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Aruba Jelly Strawberry Light",
+    "name_ar": "أروبا هلام فراولة لايت",
+    "size_en": "12 g",
+    "size_ar": "12 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0230",
+   "current": {
+    "name_en": "Aruba Jelly Forest Fruits Light 12G",
+    "name_ar": null,
+    "brand": "Aruba",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Aruba Jelly Forest Fruits Light",
+    "name_ar": "أروبا هلام فواكه الغابة لايت",
+    "size_en": "12 g",
+    "size_ar": "12 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Light jelly",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2022-10-04T19:08:22.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0231",
+   "current": {
+    "name_en": "Lotussweets Ice Cream 1Kg",
+    "name_ar": null,
+    "brand": "Lotussweets",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Lotussweets Ice Cream",
+    "name_ar": "لوتس سويتس آيس كريم",
+    "size_en": "1 kg",
+    "size_ar": "1 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0232",
+   "current": {
+    "name_en": "Dolsi Vegas With Caramel Filling",
+    "name_ar": null,
+    "brand": "Dolsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dolsi Vegas With Caramel Filling",
+    "name_ar": "دولسي فيغاس بحشوة الكراميل",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": null,
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-04-16T15:38:48.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0233",
+   "current": {
+    "name_en": "Ocean Crab Sticks Surimi 250G",
+    "name_ar": null,
+    "brand": "Ocean",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Ocean Crab Sticks Surimi",
+    "name_ar": "أوشن أعواد سرطان سوريمي",
+    "size_en": "250 g",
+    "size_ar": "250 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0234",
+   "current": {
+    "name_en": "Dolsi Amarena With Natural Strawberry Filling",
+    "name_ar": null,
+    "brand": "Dolsi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dolsi Amarena With Natural Strawberry Filling",
+    "name_ar": "دولسي أمارينا بحشوة الفراولة الطبيعية",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0235",
+   "current": {
+    "name_en": "Plein Soleil Frozen Green Peas Fine 400G",
+    "name_ar": null,
+    "brand": "Plein Soleil",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil Frozen Green Peas Fine",
+    "name_ar": "بلين سوليه بازلاء خضراء مجمدة ناعمة",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Plein soliel green peas",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2025-12-16T14:11:08.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0236",
+   "current": {
+    "name_en": "Tanmia Frozen Chicken Nuggets 520G",
+    "name_ar": null,
+    "brand": "Tanmia",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Tanmia Frozen Chicken Nuggets",
+    "name_ar": "تنمية ناغتس دجاج مجمد",
+    "size_en": "520 g",
+    "size_ar": "520 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0237",
+   "current": {
+    "name_en": "Plein Soleil Frozen Peas & Carrots Mix Fine & Sweet 400G",
+    "name_ar": null,
+    "brand": "Plein Soleil",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil Frozen Peas & Carrots Mix Fine & Sweet",
+    "name_ar": "بلين سوليه خليط بازلاء وجزر مجمد ناعم وحلو",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Peas & Carrots Mix",
+    "brands": "Plein Soleil",
+    "quantity": "400 g",
+    "last_modified": "2026-08-11T17:05:10.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0238",
+   "current": {
+    "name_en": "Foody's Frozen Green Peas 400G",
+    "name_ar": null,
+    "brand": "Foody's",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Foody's Frozen Green Peas",
+    "name_ar": "فودиз بازلاء خضراء مجمدة",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "foody's green peas",
+    "brands": "foody's",
+    "quantity": null,
+    "last_modified": "2026-06-26T19:23:29.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0239",
+   "current": {
+    "name_en": "Liban Frites Frz Home French Fries 900G",
+    "name_ar": null,
+    "brand": "Liban Frites",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Liban Frites Frozen Home French Fries",
+    "name_ar": "ليبان فرايتس بطاطا مقلية منزلية مجمدة",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "frozen"
+   ],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0240",
+   "current": {
+    "name_en": "Seafin Frozen White Fish Pangasius Fillet 1Kg",
+    "name_ar": null,
+    "brand": "Seafin",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Seafin Frozen White Fish Pangasius Fillet",
+    "name_ar": "سيفين فيلية سمك بانغاسيوس أبيض مجمد",
+    "size_en": "1 kg",
+    "size_ar": "1 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Pangasius Fillets",
+    "brands": "Seafin",
+    "quantity": null,
+    "last_modified": "2024-05-01T05:54:21.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0241",
+   "current": {
+    "name_en": "Plein Soleil Frozen Mulukhieh Leaves 400G",
+    "name_ar": null,
+    "brand": "Plein Soleil",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Plein Soleil Frozen Mulukhieh Leaves",
+    "name_ar": "بلين سوليه ورق ملوخية مجمد",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Mulukhieh leaves",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2025-12-16T14:06:17.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0242",
+   "current": {
+    "name_en": "Take N Bake Frozen Pizza Vegetarian Small 350G",
+    "name_ar": null,
+    "brand": "Take N Bake",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Take N Bake Frozen Pizza Vegetarian Small",
+    "name_ar": "تيك إن بيك بيتزا نباتية صغيرة مجمدة",
+    "size_en": "350 g",
+    "size_ar": "350 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0243",
+   "current": {
+    "name_en": "Take N Bake Frozen Pizza Pepperoni Small 350G",
+    "name_ar": null,
+    "brand": "Take N Bake",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Take N Bake Frozen Pizza Pepperoni Small",
+    "name_ar": "تيك إن بيك بيتزا بيبروني صغيرة مجمدة",
+    "size_en": "350 g",
+    "size_ar": "350 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0244",
+   "current": {
+    "name_en": "Foody's Crispy French Fries Straight Cut 900G",
+    "name_ar": null,
+    "brand": "Foody's",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Foody's Crispy French Fries Straight Cut",
+    "name_ar": "فودиз بطاطا مقلية مقرمشة قطع مستقيمة",
+    "size_en": "900 g",
+    "size_ar": "900 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0245",
+   "current": {
+    "name_en": "Foody's Frozen Crispy Chicken Strips 500G",
+    "name_ar": null,
+    "brand": "Foody's",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Foody's Frozen Crispy Chicken Strips",
+    "name_ar": "فودиз شرائح دجاج مقرمشة مجمدة",
+    "size_en": "500 g",
+    "size_ar": "500 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0246",
+   "current": {
+    "name_en": "Foody's Frozen Crispy Chicken Nuggets 500G",
+    "name_ar": null,
+    "brand": "Foody's",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Foody's Frozen Crispy Chicken Nuggets",
+    "name_ar": "فودиз ناغتس دجاج مقرمش مجمد",
+    "size_en": "500 g",
+    "size_ar": "500 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0247",
+   "current": {
+    "name_en": "Eti Gong Corn & Rice Cake Original 32G",
+    "name_ar": null,
+    "brand": "Eti",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Eti Gong Corn & Rice Cake Original",
+    "name_ar": "إيتي غونغ كعك الذرة والأرز الأصلي",
+    "size_en": "32 g",
+    "size_ar": "32 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Gong original",
+    "brands": "Eti",
+    "quantity": "32 g",
+    "last_modified": "2026-03-29T15:19:21.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0248",
+   "current": {
+    "name_en": "Balance Protein Crackers Sour Cream & Onion 70G",
+    "name_ar": null,
+    "brand": "Balance",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Balance Protein Crackers Sour Cream & Onion",
+    "name_ar": "بالانس مقرمشات بروتين كريمة حامضة وبصل",
+    "size_en": "70 g",
+    "size_ar": "70 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": {
+    "name": "Sour Cream & Onions Protein Crackers",
+    "brands": "Balance",
+    "quantity": null,
+    "last_modified": "2026-10-17T11:44:57.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0249",
+   "current": {
+    "name_en": "Spartan Toilet Cleaner Flash 1L",
+    "name_ar": null,
+    "brand": "Spartan",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Spartan Toilet Cleaner Flash",
+    "name_ar": "سبارتان منظف مراحيض فلاش",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0250",
+   "current": {
+    "name_en": "Perla Interfold Prime White",
+    "name_ar": null,
+    "brand": "Perla",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Perla Interfold Prime White",
+    "name_ar": "بيرلا إنترفولد برايم وايت",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0251",
+   "current": {
+    "name_en": "Vimax Trash Bags Large Blue 30 Pieces",
+    "name_ar": null,
+    "brand": "Vimax",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Vimax Trash Bags Large Blue",
+    "name_ar": "أكياس زبالة فيماكس كبيرة زرقاء",
+    "size_en": "30 pieces",
+    "size_ar": "30 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0252",
+   "current": {
+    "name_en": "Vimax Trash Bags Medium Black 30 Pieces",
+    "name_ar": null,
+    "brand": "Vimax",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Vimax Trash Bags Medium Black",
+    "name_ar": "أكياس زبالة فيماكس متوسطة سوداء",
+    "size_en": "30 pieces",
+    "size_ar": "30 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0253",
+   "current": {
+    "name_en": "April Interfold 150G",
+    "name_ar": null,
+    "brand": "April",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "April Interfold",
+    "name_ar": "أبريل إنترفولد",
+    "size_en": "150 g",
+    "size_ar": "150 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0254",
+   "current": {
+    "name_en": "Al Ousra Facial Tissue 200Sh",
+    "name_ar": null,
+    "brand": "Al Ousra",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Al Ousra Facial Tissue",
+    "name_ar": "العائلة مناديل وجه",
+    "size_en": "200 sheets",
+    "size_ar": "200 ورقة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0255",
+   "current": {
+    "name_en": "Vimax Dishwashing Liquid Lemon 700Ml",
+    "name_ar": null,
+    "brand": "Vimax",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Vimax Dishwashing Liquid Lemon",
+    "name_ar": "فيماكس سائل جلي ليمون",
+    "size_en": "700 ml",
+    "size_ar": "700 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0256",
+   "current": {
+    "name_en": "Odex Bleach Original 1L",
+    "name_ar": null,
+    "brand": "Odex",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Odex Bleach Original",
+    "name_ar": "أوديكس بليش أوريجينال",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0257",
+   "current": {
+    "name_en": "City Plast Sandwich Bag 100 Pieces",
+    "name_ar": null,
+    "brand": "City Plast",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "City Plast Sandwich Bag",
+    "name_ar": "سيتي بلاست أكياس ساندويش",
+    "size_en": "100 pieces",
+    "size_ar": "100 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0258",
+   "current": {
+    "name_en": "Odex Bleach Lemon 1200Ml",
+    "name_ar": null,
+    "brand": "Odex",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Odex Bleach Lemon",
+    "name_ar": "أوديكس بليش ليمون",
+    "size_en": "1200 ml",
+    "size_ar": "1200 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0259",
+   "current": {
+    "name_en": "Comfort Fabric Softener Lavender 3L",
+    "name_ar": null,
+    "brand": "Comfort",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Comfort Fabric Softener Lavender",
+    "name_ar": "كومفورت منعم أقمشة لавندر",
+    "size_en": "3 L",
+    "size_ar": "3 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0260",
+   "current": {
+    "name_en": "Intaj Kitchen Towel X-Large 500G",
+    "name_ar": null,
+    "brand": "Intaj",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Intaj Kitchen Towel X-Large",
+    "name_ar": "إنتاج ورق مطبخ إكس لارج",
+    "size_en": "500 g",
+    "size_ar": "500 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0261",
+   "current": {
+    "name_en": "Omo Gel Liquid Laundry Detergent Wash Comfort 2.5L",
+    "name_ar": null,
+    "brand": "Omo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Omo Gel Liquid Laundry Detergent Wash Comfort",
+    "name_ar": "أومو جل سائل غسيل ملابس ويش كومفورت",
+    "size_en": "2.5 L",
+    "size_ar": "2.5 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0262",
+   "current": {
+    "name_en": "Germex Floor Detergent 1L",
+    "name_ar": null,
+    "brand": "Germex",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Germex Floor Detergent",
+    "name_ar": "جيرمكس منظف أرضيات",
+    "size_en": "1 L",
+    "size_ar": "1 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0263",
+   "current": {
+    "name_en": "Sanita Liquid Laundry Detergent Fresh Essence 2.5L",
+    "name_ar": null,
+    "brand": "Sanita",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Sanita Liquid Laundry Detergent Fresh Essence",
+    "name_ar": "سانيتا سائل غسيل ملابس فريش إيسنس",
+    "size_en": "2.5 L",
+    "size_ar": "2.5 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0264",
+   "current": {
+    "name_en": "Odex Dishwash Liquid Blue 1300Ml",
+    "name_ar": null,
+    "brand": "Odex",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Odex Dishwash Liquid Blue",
+    "name_ar": "أوديكس سائل جلي أزرق",
+    "size_en": "1300 ml",
+    "size_ar": "1300 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0265",
+   "current": {
+    "name_en": "Omo Gel Detergent Lavender 2.5L",
+    "name_ar": null,
+    "brand": "Omo",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Omo Gel Detergent Lavender",
+    "name_ar": "أومو جل منظف لافندر",
+    "size_en": "2.5 L",
+    "size_ar": "2.5 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0266",
+   "current": {
+    "name_en": "Britex Sponge Easy Grip Jumbo Euro 5Pcs",
+    "name_ar": null,
+    "brand": "Britex",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Britex Sponge Easy Grip Jumbo Euro",
+    "name_ar": "بريتكس إسفنج إيزي غريب جامبو يورو",
+    "size_en": "5 pieces",
+    "size_ar": "5 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0267",
+   "current": {
+    "name_en": "Intaj Toilet Paper 12 Rolls 1.5Kg",
+    "name_ar": null,
+    "brand": "Intaj",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Intaj Toilet Paper 12 Rolls",
+    "name_ar": "إنتاج ورق حمام 12 رول",
+    "size_en": "1.5 kg",
+    "size_ar": "1.5 كغ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0268",
+   "current": {
+    "name_en": "Rosana Toilet Paper 18 Rolls",
+    "name_ar": null,
+    "brand": "Rosana",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Rosana Toilet Paper 18 Rolls",
+    "name_ar": "روزانا ورق حمام 18 رول",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0269",
+   "current": {
+    "name_en": "Wellplus Wet Wipes 100 Sheets",
+    "name_ar": null,
+    "brand": "Well Plus",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Wellplus Wet Wipes",
+    "name_ar": "ويلبلس مناديل مبللة",
+    "size_en": "100 sheets",
+    "size_ar": "100 ورقة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0270",
+   "current": {
+    "name_en": "Private Feminine Pads Extra Thin Night 7 Pieces",
+    "name_ar": null,
+    "brand": "Private",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Private Feminine Pads Extra Thin Night",
+    "name_ar": "فوط نسائية برايفيت رفيعة جدا للّيل",
+    "size_en": "7 pieces",
+    "size_ar": "7 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0271",
+   "current": {
+    "name_en": "Private Feminine Pads Extra Thin Normal 10 Pieces",
+    "name_ar": null,
+    "brand": "Private",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Private Feminine Pads Extra Thin Normal",
+    "name_ar": "فوط نسائية برايفيت رفيعة جدا عادية",
+    "size_en": "10 pieces",
+    "size_ar": "10 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0272",
+   "current": {
+    "name_en": "Wellplus Liquid Soap Marrakesh Mystique 500Ml",
+    "name_ar": null,
+    "brand": "Wellplus",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Wellplus Liquid Soap Marrakesh Mystique",
+    "name_ar": "ويلبلس صابون سائل مراكش ميستيك",
+    "size_en": "500 ml",
+    "size_ar": "500 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0273",
+   "current": {
+    "name_en": "Wellplus Liquid Soap Sea Breeze 500Ml",
+    "name_ar": null,
+    "brand": "Wellplus",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Wellplus Liquid Soap Sea Breeze",
+    "name_ar": "ويلبلس صابون سائل سي بريز",
+    "size_en": "500 ml",
+    "size_ar": "500 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0274",
+   "current": {
+    "name_en": "Mf Cotton Buds Doria",
+    "name_ar": null,
+    "brand": "Cotton Buds",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Mf Cotton Buds Doria",
+    "name_ar": "إم إف أعواد قطن دوريا",
+    "size_en": null,
+    "size_ar": null
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": false,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0275",
+   "current": {
+    "name_en": "Colgate Toothpaste Triple Action 125Ml",
+    "name_ar": null,
+    "brand": "Colgate",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Colgate Toothpaste Triple Action",
+    "name_ar": "كولجيت معجون أسنان تربل أكشن",
+    "size_en": "125 ml",
+    "size_ar": "125 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0276",
+   "current": {
+    "name_en": "Dove Original Beauty Cream Bar 90G",
+    "name_ar": null,
+    "brand": "Dove",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Dove Original Beauty Cream Bar",
+    "name_ar": "دوف بار كريم بيوتي أوريجينال",
+    "size_en": "90 g",
+    "size_ar": "90 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0277",
+   "current": {
+    "name_en": "Amalfi Shampoo Anti Caspa 750Ml",
+    "name_ar": null,
+    "brand": "Amalfi",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Amalfi Shampoo Anti Dandruff",
+    "name_ar": "أمالفي شامبو مضاد للقشرة",
+    "size_en": "750 ml",
+    "size_ar": "750 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "dandruff"
+   ],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0278",
+   "current": {
+    "name_en": "Fluff'n White Soft Touch Cotton Round Pads 75 Pieces",
+    "name_ar": null,
+    "brand": "Fluff'N White",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Fluff'n White Soft Touch Cotton Round Pads",
+    "name_ar": "فلوف إن وايت قطن دائري سوفت تتش",
+    "size_en": "75 pieces",
+    "size_ar": "75 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0279",
+   "current": {
+    "name_en": "Head & Shoulders Shampoo Sub Zero Freshness 400Ml",
+    "name_ar": null,
+    "brand": "Head & Shoulders",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Head & Shoulders Shampoo Sub Zero Freshness",
+    "name_ar": "هيد اند شولدرز شامبو سب زيرو",
+    "size_en": "400 ml",
+    "size_ar": "400 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0280",
+   "current": {
+    "name_en": "Colgate Toothpaste Herbal 125Ml",
+    "name_ar": null,
+    "brand": "Colgate",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Colgate Toothpaste Herbal",
+    "name_ar": "كولغيت معجون أسنان هيربال",
+    "size_en": "125 ml",
+    "size_ar": "125 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0281",
+   "current": {
+    "name_en": "Nivea Roll On For Women Extra Brightening 25Ml",
+    "name_ar": null,
+    "brand": "Nivea",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nivea Roll On For Women Extra Brightening",
+    "name_ar": "نيفيا رول أون للنساء إكسترا برايتنينغ",
+    "size_en": "25 ml",
+    "size_ar": "25 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0282",
+   "current": {
+    "name_en": "Nivea Roll On For Women Pearly & Beauty 25Ml",
+    "name_ar": null,
+    "brand": "Nivea",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Nivea Roll On For Women Pearly & Beauty",
+    "name_ar": "نيفيا رول أون للنساء بيرلي اند بيوتي",
+    "size_en": "25 ml",
+    "size_ar": "25 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0283",
+   "current": {
+    "name_en": "Gipsy Wet Wipes 100Pcs + Pocket Wipes 40Pcs",
+    "name_ar": null,
+    "brand": "Gipsy",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Gipsy Wet Wipes + Pocket Wipes",
+    "name_ar": "جيبسي مناديل مبللة + مناديل جيب",
+    "size_en": "100 pieces + 40 pieces",
+    "size_ar": "100 حبة + 40 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0284",
+   "current": {
+    "name_en": "Oui Oui Wet Wipes Aqua Pure 80 Sheets",
+    "name_ar": null,
+    "brand": "Oui Oui",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Oui Oui Wet Wipes Aqua Pure",
+    "name_ar": "وي وي مناديل مبللة أكوا بيور",
+    "size_en": "80 sheets",
+    "size_ar": "80 ورقة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0285",
+   "current": {
+    "name_en": "Johnsons Baby Shampoo 750Ml",
+    "name_ar": null,
+    "brand": "Johnson",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Johnson's Baby Shampoo",
+    "name_ar": "جونسونز شامبو للأطفال",
+    "size_en": "750 ml",
+    "size_ar": "750 مل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "s"
+   ],
+   "off_hint": {
+    "name": "John sons",
+    "brands": null,
+    "quantity": null,
+    "last_modified": "2026-08-30T16:21:53.000Z"
+   },
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0286",
+   "current": {
+    "name_en": "Oui Oui Diapers Size 6 16-30Kg 32 Pieces",
+    "name_ar": null,
+    "brand": "Oui Oui",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Oui Oui Diapers Size 6 16-30 kg",
+    "name_ar": "وي وي حفاضات مقاس 6 من 16 إلى 30 كغ",
+    "size_en": "32 pieces",
+    "size_ar": "32 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "30",
+    "kg"
+   ],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0287",
+   "current": {
+    "name_en": "Loulou Baby Diapers Size 6 16-30Kg 26 Pieces",
+    "name_ar": null,
+    "brand": "Loulou",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Loulou Baby Diapers Size 6 16-30 kg",
+    "name_ar": "لولو حفاضات أطفال مقاس 6 من 16 إلى 30 كغ",
+    "size_en": "26 pieces",
+    "size_ar": "26 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "30",
+    "kg"
+   ],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0288",
+   "current": {
+    "name_en": "Oui Oui Diapers Size 5 12-25Kg 38 Pieces",
+    "name_ar": null,
+    "brand": "Oui Oui",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Oui Oui Diapers Size 5 12-25 kg",
+    "name_ar": "وي وي حفاضات مقاس 5 من 12 إلى 25 كغ",
+    "size_en": "38 pieces",
+    "size_ar": "38 حبة"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [
+    "25",
+    "kg"
+   ],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0289",
+   "current": {
+    "name_en": "Miglior Gatto Pate Agnello 400G",
+    "name_ar": null,
+    "brand": "Miglior",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Miglior Gatto Pate Agnello",
+    "name_ar": "ميليور غاتو باتيه أنييلو",
+    "size_en": "400 g",
+    "size_ar": "400 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0290",
+   "current": {
+    "name_en": "Miglior Gatto Alutray Cat Agnello 100G",
+    "name_ar": null,
+    "brand": "Miglior",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Miglior Gatto Alutray Cat Agnello",
+    "name_ar": "ميليور غاتو ألوتراي طعام قطط أنييلو",
+    "size_en": "100 g",
+    "size_ar": "100 غ"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  },
+  {
+   "sku": "AK-0291",
+   "current": {
+    "name_en": "Pro Line Marseille Soap Bentonite Cat Litter 5L",
+    "name_ar": null,
+    "brand": "Proline",
+    "sell_unit": "Each"
+   },
+   "proposed": {
+    "name_en": "Proline Marseille Soap Bentonite Cat Litter",
+    "name_ar": "برولاين مارسيليا صابون بنتونايت رمل قطط",
+    "size_en": "5 L",
+    "size_ar": "5 ل"
+   },
+   "ar_source": "model_written",
+   "changed": {
+    "name_en": true,
+    "name_ar": false
+   },
+   "added_words": [],
+   "off_hint": null,
+   "status": "proposed"
+  }
+ ],
+ "rejected": [
+  {
+   "sku": "AK-0026",
+   "name_en": "Minced beef, coarse",
+   "reasons": [
+    "number_not_in_source:500"
+   ]
+  },
+  {
+   "sku": "AK-0027",
+   "name_en": "Chicken taouk, marinated",
+   "reasons": [
+    "number_not_in_source:500"
+   ]
+  },
+  {
+   "sku": "AK-0028",
+   "name_en": "Kafta",
+   "reasons": [
+    "number_not_in_source:500"
+   ]
+  },
+  {
+   "sku": "AK-0030",
+   "name_en": "Minced beef, fine",
+   "reasons": [
+    "number_not_in_source:500"
+   ]
+  },
+  {
+   "sku": "AK-0037",
+   "name_en": "Beef cubes (ras asfour)",
+   "reasons": [
+    "number_not_in_source:500"
+   ]
+  },
+  {
+   "sku": "AK-0087",
+   "name_en": "Foody's Tortilla Wraps 20Cm 8 Pieces 320G",
+   "reasons": [
+    "size_numbers_differ"
+   ]
+  },
+  {
+   "sku": "AK-0147",
+   "name_en": "Kit Kat 4 Fingers 36.5G",
+   "reasons": [
+    "name_ar_not_arabic",
+    "arabic_word_mixes_scripts"
+   ]
+  },
+  {
+   "sku": "AK-0158",
+   "name_en": "Edita Bake Rolz Olive 52G",
+   "reasons": [
+    "claim_words_ar:ديت"
+   ]
+  },
+  {
+   "sku": "AK-0194",
+   "name_en": "Maxbell Sardine In Oil 125G",
+   "reasons": [
+    "arabic_word_mixes_scripts"
+   ]
+  }
+ ]
+}
