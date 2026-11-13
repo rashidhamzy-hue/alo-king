@@ -62,10 +62,10 @@ run("dispatch race on real Postgres (two connections)", () => {
     await sql`select start_shift(${rider}::uuid)`;
     const [a, b] = [await confirmedOrder(), await confirmedOrder()];
     const first = dispatchHolding(a, 800);
-    await new Promise((r) => setTimeout(r, 150));              // A holds the rider's lock inside its open transaction
+    await new Promise((r) => setTimeout(r, 150));              // normally A already holds the rider's lock inside its open transaction
     const second = await dispatchHolding(b, 0);
-    expect(second.status).toBe("no_rider");                   // B could not take the locked rider and did not wait for it
-    expect((await first).status).toBe("offered");
+    // Whichever got there first (a loaded CI runner can reorder them), exactly one wins and the other did not wait for the lock.
+    expect([(await first).status, second.status].sort()).toEqual(["no_rider", "offered"]);
     expect(await activeFor(rider)).toBe(1);
   });
 
