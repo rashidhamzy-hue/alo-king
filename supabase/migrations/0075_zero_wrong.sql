@@ -10,6 +10,8 @@
 --      («bazella w jazar mkhalta, plein soleil»: the mixed bag).
 --   4. One product said across two lines: a kind or exact term found word after word in the message, made of a different word
 --      from each of two neighbouring lines («كيس بازيلا» / «جزر مفرزة» and «بازيلا وجزر»), turns both lines into one question.
+--   5. Products a line leaves tied, and a size word in the message that no line carries («wooden bakery l kbar» left in
+--      source_hint): no best-seller assumption; a question. (Found by B4's live run, 3 runs a case.)
 -- Each line says which of these fired in `b4` (null when none), for the replay and for whoever reads a plan.
 -- The wrappers (plan_order, log_plan_demand) are untouched. Anyone redefining plan_order_core: start from this text.
 
@@ -22,7 +24,7 @@ declare ln jsonb; idx int := -1; v_lines jsonb := '[]'::jsonb; v_quote_lines jso
         v_prepay boolean := customer_requires_prepay(p_party); v_pay text := coalesce(p_intent->>'payment_hint', 'cod'); v_pack boolean; v_loose boolean;
         v_in jsonb := '[]'::jsonb; i int; v_merged text; v_msg text := nullif(btrim(coalesce(p_intent->>'_message', '')), '');
         v_ev_exact uuid[] := '{}'; v_ev_excl uuid[] := '{}'; v_ev_brand uuid[] := '{}';
-        v_doubt boolean; v_neg int[]; v_split jsonb; v_cover_top int; k int; v_scan jsonb := '[]'::jsonb; v_msg_forms text[] := '{}'; v_rule text;
+        v_doubt boolean; v_neg int[]; v_split jsonb; v_cover_top int; k int; v_scan jsonb := '[]'::jsonb; v_msg_forms text[] := '{}'; v_rule text; v_orphan_size boolean := false;
 begin
   -- The fast model sometimes cuts one item into two lines ("3tine kinder" / "tronky wa7de", "wet wipes oui oui" / "aqua").
   -- A line whose words name no kind of product is joined to the next line, or else to the one before, when the joined words
@@ -65,6 +67,9 @@ begin
            coalesce(jsonb_agg(jsonb_build_object('product_id', product_id, 'lvl', lvl, 'excluded', excluded, 'cover', cover)), '[]'::jsonb)
       into v_ev_exact, v_ev_excl, v_ev_brand, v_scan from catalog_pack_scan(v_msg);       -- B4: kept, so the message is scanned once
     v_msg_forms := coalesce((select array_agg(distinct f) from unnest(catalog_tokens(v_msg)) t, unnest(catalog_token_forms(t)) f), '{}');
+    -- B4: a size the customer said that no line carries («... wooden bakery l kbar» with the size left in source_hint)
+    v_orphan_size := exists (select 1 from unnest(catalog_tokens(v_msg)) t where catalog_token_forms(t) && array['kbir', 'zghir']
+                               and not exists (select 1 from jsonb_array_elements(v_in) l, unnest(catalog_tokens(l->>'raw')) lt where lt = t));
   end if;
 
   for ln in select * from jsonb_array_elements(v_in) loop
@@ -145,6 +150,8 @@ begin
       end if;
       -- a product named by its brand alone («3tine kinder») is never chosen alone: which one is a question
       if v_pack and coalesce((top->>'level')::int, 2) = 1 then v_loose := true; end if;
+      -- B4: products the line leaves tied, and a size in the message no line took: which size is a question, not the best seller
+      if v_orphan_size and chosen is null and jsonb_array_length(ties) > 1 then v_loose := true; v_rule := coalesce(v_rule, 'orphan_size'); end if;
 
       if chosen is null and jsonb_array_length(ties) = 1 and not v_loose then chosen := top; end if;
       if chosen is null and not v_loose then        -- 1. bought before
