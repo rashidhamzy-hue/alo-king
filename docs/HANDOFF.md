@@ -222,11 +222,9 @@ Migrations 0060-0063 (A2 took 0060-0069; see the session table in the build plan
 and, new in this session, a real Postgres 16 started by the tests (`test/pg/real-postgres.ts`; GitHub's ubuntu runners have the binaries,
 and on CI these suites refuse to skip). Permission check passes on a fresh Postgres. What is proven live is marked below.
 
-**0.13, the one thing asked of Rasheed. Status: BLOCKED on lane B, do not send yet.** Everything on the A2 side is ready: staging data, the test riders, the evidence workflow, and the cron that delivers and collects.
-In two live runs on staging (13 Nov, 10:35 and 11:36 UTC), the live model did not turn an order message into a card in one go: see "Finding for lane B" below.
-**When to send it:** once a probe order on staging reaches `closed`. The probe sends exactly this message every hour, so that is proof the live model now handles it. Check with
-`select short_code, status from orders o join parties p on p.id = o.customer_id where p.is_probe order by o.created_at desc limit 3;`
-or watch the "heartbeat:probe_silent" issue in Sentry stop. Until then the founder would get a question back, not a card.
+**0.13, the one thing asked of Rasheed. Status: READY TO SEND (since 13 Nov, 17:43 UTC).** Everything is in place: staging data, the test riders, the evidence workflow, the cron that delivers and collects, and (B3, 1.22) a model reading that turns this message into the right card.
+Proof on staging: after B3's merge, the hourly probe sent exactly the message below through the live model at 17:38 UTC. The model kept the customer's words (`query` «قهوة نجار», `brand_hint` «نجار»), the card went out in one go (AK-1001: Tannourine 2L x6, Al Forno pita 800 g, Najjar Classic, $7.27), and the order reached `closed` at 17:43. The same message was right in every live eval run (B3's section). Earlier runs (10:35 and 11:36 UTC) asked a question instead; that is what 1.22 fixed.
+Before sending, check that the last probe order closed: `select short_code, status from orders o join parties p on p.id = o.customer_id where p.is_probe order by o.created_at desc limit 3;` (or that the "heartbeat:probe_silent" issue in Sentry is quiet). If the probe is silent, see "Probe stuck in a handoff" below first.
 On WhatsApp, from his own phone, between 08:00 and 23:00 Beirut time, to **+1 203 660 2328** (the "Alo King" staging customer number), send exactly:
 
 > بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين
@@ -238,7 +236,7 @@ What he should see, in order:
 4. One to three minutes later: «طلبك #AK-… صار عالطريق 🛵».
 5. One to two minutes after that: «وصلنا دفعك لطلب #AK-…: 7.27$ نقداً.» Nobody comes to the door: on staging the rider is a test rider (below), who accepts, picks up, delivers and records the cash through the ops line's real code path.
 
-Why these three items: they are brand-led, and with the brand read correctly each one resolves to the one right product (checked on staging with `plan_order` inside a rolled-back transaction). The staging probe places exactly this message through the live model every hour. If no reply arrives at all, the first suspect is Meta billing on the number (0.12, section E): Kapso pauses sends when the account cannot pay.
+Why these three items: they are brand-led, and each resolves to the one right product (checked on staging with `plan_order` inside a rolled-back transaction, and by the probe's order AK-1001). Step 1 differs for the probe, which already has a saved pin: its card came at once; a first-time phone gets the pin request first. The staging probe places exactly this message through the live model every hour. If no reply arrives at all, the first suspect is Meta billing on the number (0.12, section E): Kapso pauses sends when the account cannot pay.
 After he has done it, any session runs the **staging-evidence** workflow with no input: it finds his closed order, writes `docs/evidence/order_<code>.txt` to the branch `evidence/<code>` and fails if any 0.13 check fails. The conversation is printed in place of screenshots (numbers and user ids masked). Screenshots from the phone are not required.
 
 | Task | Where | Tested | Live |
@@ -385,7 +383,7 @@ Adding the ops lead or a picker is the same workflow with their role. `remove-st
 ### Session B3 (ordering), 13 November 2026: tasks 1.22, 1.7, 1.8, 1.13, 1.17, 2.9; migrations 0053-0059
 Branch `claude/intelligent-ritchie-6kgryn` (the branch this environment allows). Built and tested locally (PGlite with every migration, vitest). 1.22 is measured on the live model through GitHub Actions (`.github/workflows/language-pack.yml`); staging is under 1.22.
 
-**1.22 Catalog language pack. Status: built and measured on the live model. F1 gate met (0.918 ≥ 0.90). Zero-wrong gate NOT met: 10 wrong products in 2,458 items, all from 4 phrasings (below). The 0.13 message: right in every live run; the staging probe proof comes after the merge (see 0.13 in session A2's section).**
+**1.22 Catalog language pack. Status: built, measured on the live model, proven on staging for the 0.13 message. F1 gate met (0.918 ≥ 0.90). The staging probe turned the 0.13 message into the right card and the order closed (AK-1001, 13 Nov 17:38-17:43 UTC). Zero-wrong gate NOT met on the generated set: 10 wrong products in 2,458 items, all from 4 phrasings (below).**
 
 | Live model `claude-haiku-5-5` (MODEL_FAST), generated eval set, 986 messages, 1,229 items | Before (main) | After (this branch, 2 runs a case) |
 | --- | --- | --- |
@@ -430,6 +428,7 @@ For other sessions (B3 did not touch these files):
 - C2, `apps/gateway/src/ops-turn.ts`: audio on the ops line is ignored today (invariant 18 says nothing may be dropped in silence). Call `voiceOnOpsLine()` from `@ak/agents/voice` for a rider's or staff member's note, send its `reply`, and alert ops with `OPS_VOICE_TEXT.opsAlert` when `forwardToOps`.
 - C1's `test/db/extensions-schema.test.ts`: B3 changed the list of functions expected to call trigram functions (they moved into `search_catalog_legacy` and `catalog_brand_fits`); the guard itself is unchanged.
 - Anyone redefining `plan_order_core` or `search_catalog`: start from 0053's text.
+- A2 / lane A, the probe: **a probe stuck in a handoff stays stuck.** At 12:36 UTC (before B3 merged) a probe turn lost its reading (the string-reading failure 1.22 fixed) and handed off; from then on every hourly probe message went to "a person" and no model ran, so `heartbeat:probe_silent` opened every hour (13:34 to 17:00) without saying why. B3 released the probe customer's conversation on staging by hand at 17:20 (`human_handoff = false`, the probe party only). The probe should release its own handoff (or the alarm should name it), and the console needs a release action (`release_handoff`, still proposed only).
 - Founder: Kapso transcribes voice notes through ElevenLabs, which may keep transcripts up to three years. Say so in the privacy notice, or choose a second provider (`settings.stt.second_provider`) and score both on the 38 notes (5.8).
 
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
@@ -441,7 +440,7 @@ For other sessions (B3 did not touch these files):
 See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is restaurants; Phase 9 is the website and diaspora
 orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders.
 The console exists (D1, above); five of its steps wait for the migration of `apps/console/sql/proposed_functions.sql`.
-Ordering lane: B1, B2 and B3 are done (above). 1.22's zero-wrong gate is still open (four phrasings, in B3's section). K1 (1.21) can start; it edits `turn.ts`, so never beside another lane B session.
+Ordering lane: B1, B2 and B3 are done (above); 0.13 is ready to send. 1.22's zero-wrong gate is still open (four phrasings, in B3's section). K1 (1.21) can start; it edits `turn.ts`, so never beside another lane B session.
 Hub lane: C1 and C2 are done (above); C3 (2.8) can start (B2 and C2 are merged). Console lane: D1 is done (above); D2 can start now that C2 is in.
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 
