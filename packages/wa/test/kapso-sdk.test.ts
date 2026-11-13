@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { verifyKapsoWebhookSignature } from "@kapso/whatsapp-cloud-api/server";
 import { askLocation, buttons, kapsoSend, KapsoSendError, list, verifySignature, type Outbound } from "../src/kapso";
-import { send, type SendRequest } from "../src/gateway";
+import { OutboxUnavailable, send, SendNotDelivered, type SendRequest } from "../src/gateway";
 import { loadFixtures } from "./fixtures";
 
 const env = { KAPSO_BASE_URL: "https://api.kapso.ai/meta/whatsapp/v24.0", KAPSO_API_KEY: "test-key" };
@@ -28,9 +28,15 @@ describe("same sends", () => {
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toBe("https://api.kapso.ai/meta/whatsapp/v24.0/1378974041965966/messages");
     expect(init.method).toBe("POST");
+    expect(init.redirect).not.toBe("error");                 // Cloudflare's runtime rejects "error" (4.5 found it)
     expect((init.headers as Record<string, string>)["X-API-Key"]).toBe("test-key");
     expect(JSON.parse(String(init.body))).toEqual(before("96170000001", msg));
   });
+});
+
+it("a redirect is refused, not followed", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 302, headers: { location: "https://elsewhere.invalid/" } })));
+  await expect(kapsoSend(env, "1", "2", { type: "text", text: { body: "x" } })).rejects.toThrow(/KAPSO_REDIRECT_302/);
 });
 
 it("reads the message id even when the response has no JSON content type", async () => {
@@ -76,7 +82,10 @@ describe("the gateway uses the hint", () => {
   });
   it("a passing failure still throws, so the turn retries", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 503, headers: { "content-type": "application/json" } })));
-    await expect(send(db(), env as any, req)).rejects.toBeInstanceOf(KapsoSendError);
+    const e = await send(db(), env as any, req).catch((x) => x);
+    expect(e).toBeInstanceOf(SendNotDelivered);              // an OutboxUnavailable: turn.ts rethrows it and the turn retries
+    expect(e).toBeInstanceOf(OutboxUnavailable);
+    expect(e.cause).toBeInstanceOf(KapsoSendError);
   });
 });
 

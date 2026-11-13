@@ -29,6 +29,10 @@ const CLAIM_TIMEOUT_MS = 5000;
 export class OutboxUnavailable extends Error {
   constructor(why: string) { super(`OUTBOX_UNAVAILABLE ${why}`); this.name = "OutboxUnavailable"; }
 }
+/** Kapso did not take the message this time, for a reason that can pass. Nothing was sent; the outbox row is marked failed, so the retry may send. */
+export class SendNotDelivered extends OutboxUnavailable {
+  constructor(readonly cause: unknown) { super(`send not delivered: ${String(cause).slice(0, 200)}`); }
+}
 const withTimeout = <T>(p: PromiseLike<T>, ms: number): Promise<T> =>
   Promise.race([Promise.resolve(p), new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 
@@ -87,7 +91,10 @@ export async function send(
     // This message can never go out as it is (Meta's code says so). Retrying the turn would fail the same way, three times,
     // and then hand a working conversation to a person. Record it and let the turn carry on (4.13).
     if (err instanceof KapsoSendError && err.permanent) return refuse(db, req, `kapso_${err.code}`);
-    throw err;
+    // Anything else (Kapso 5xx, 429, 402, a network error) means the message did not go out this time. That is the same
+    // situation as an unavailable outbox: nothing sent, retry the whole turn. turn.ts already rethrows OutboxUnavailable so the
+    // conversation object retries; before this, a passing Kapso error handed a working conversation to a person (found in 4.5).
+    throw new SendNotDelivered(err);
   }
   // The message is out. From here nothing may throw: a throw would make the turn retry and, once the lease expires, send it twice.
   if (req.dedupeKey) {
