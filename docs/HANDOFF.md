@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 500 tests (32 live-only skipped); test/db/* run the real migrations in PGlite;
+npx vitest run          # 604 tests (32 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
                         # test/pg/* start a throwaway Postgres 16 (or use TEST_DATABASE_URL) and the Worker in workerd
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
@@ -286,6 +286,54 @@ CI note: on PR 16 `test/pg/dispatch-race.test.ts` failed once with "Postgres did
 - **K1 (1.21 catalog feed):** call `product_image_for_customer(product)`; null means send no picture. Sign the returned `media_path` for `signed_link_seconds` (`sign.mjs`). Show the `attribution` where a CC BY-SA picture is used. WhatsApp fetches the link itself, so keep the lifetime at least a few minutes. Never add `image` to the gateway allowlist (invariant 2): the catalog image header is part of an interactive message.
 - **Anyone adding a brand to `brand-sites.json`:** open the site first. A wrong domain would file someone else's picture as the brand's own.
 
+### Session D1 (console), 13 November 2026: tasks 3.1 to 3.10, 3.18
+`apps/console/` (new Worker, hosted on Cloudflare beside the gateway: `docs/DECISIONS.md`, "Console hosting") and `.github/workflows/console.yml`. No migration (D1 owns none).
+Built and tested locally: every page is driven through the real request handler against PGlite with every migration, with the gateway's real `send()` (only Kapso's HTTP replaced) and Supabase Auth and Storage replaced by fakes (`apps/console/test/`, 50 tests).
+Proven live on staging by the console workflow (deploy, secrets, Auth redirect, then a smoke test with a real sign-in): see "Live" below.
+
+**Staging address: https://alo-king-console-staging.rashid-hamzy.workers.dev**
+
+**How Rasheed signs in (once):**
+1. GitHub, Actions, **console**, Run workflow: action `add-staff`, his email, name `Rasheed`, role `admin`. This makes an admin party and a Supabase Auth account for that email, and Supabase emails him a link.
+2. Open the email from Supabase ("Reset your password"), tap the link. It opens the console's "Choose a password" page. A password of at least 12 characters signs him in.
+3. From then on: the address above, email and password. A session lasts 12 hours. Sign out is top right.
+If no email arrives within a few minutes: Supabase's built-in mail only reaches members of the Supabase organization, a few an hour. Supabase dashboard, Authentication, Users, his user, "Send password recovery" sends the same link. For staff who are not members of the Supabase organization (the ops lead, pickers), set up SMTP in Supabase (Authentication, Emails) first; until then their link must be sent from the dashboard the same way, which has the same limit.
+Adding the ops lead or a picker is the same workflow with their role. `remove-staff` blocks the party and bans the sign-in; access ends on their next click.
+
+| Task | Where (`apps/console/src/`) | Writes through | Tested by (`apps/console/test/`) |
+| --- | --- | --- | --- |
+| 3.1 Sign-in and roles | `app.ts`, `auth.ts`, `session.ts`, `db.ts`, `media.ts`, `roles.ts`, `worker.ts`; staff accounts by `scripts/staff.sh` | Supabase Auth (password grant, emailed link); the action log | `sign-in.test.ts`: staff only (customer, rider and unlinked accounts refused), wrong password not logged, role and block read on every request, 12-hour session, forged cookie, CSRF token and Origin, the emailed-link flow, log-first-or-nothing. `no-direct-writes.test.ts`: no insert, update or delete anywhere in the console; every acting party is `c.staff.partyId`; no Kapso call outside the gateway. `adapters.test.ts` |
+| 3.2 Today | `pages/today.ts` | reads only | `today.test.ts`: late first against the zone's ETA from the database; riders with cash per currency and exposure against the cap setting |
+| 3.3 Payments | `pages/payments.ts` | `review_payment_proof`, `confirm_payment` | `payments.test.ts`: signed 5-minute link to the screenshot, typed amount and reference, underpaid and missing reference refused, reused reference refused, reject posts nothing, ledger at zero, pickers refused by page and SQL |
+| 3.4 Cash and riders | `pages/riders.ts` | `confirm_cash_drop`, `pay_rider_earnings`, `close_shift` (never forced), gateway `send()` on the ops line | `riders.test.ts`: drop above the balance refused, fees kept from cash, the end-of-shift statement sent once from the ops number with the SQL's figures, refused when the rider's 24-hour window is closed |
+| 3.5 Exceptions and chats | `pages/exceptions.ts` | `resolve_ops_exception`, gateway `send()` on the customer line, `release_handoff` (proposed) | `exceptions.test.ts`: acknowledge and resolve with who; a reply sent once from the customer number (form key as the outbox key); closed window refused; the action log keeps the reply's length, not its words |
+| 3.6 Returns | `pages/returns.ts` | `receive_return` | `returns.test.ts`: counted back, rest written off, order closed, ledger at zero, repeat is a no-op |
+| 3.7 Catalog | `pages/catalog.ts` | `count_stock`, `adjust_stock` (form key = request key), `set_offer` (proposed) | `catalog.test.ts`: double tap changes stock once, reason must fit, picker limit from SQL, price and availability with a reason recorded |
+| 3.8 Exchange rate | `pages/fx.ts` | `set_fx_rate`, `confirm_fx_rate` (proposed) | `fx.test.ts`: morning rate as typed, a move under 3% set, a 4.21% move held with quoting paused until a person confirms |
+| 3.9 Zones and fees | `pages/zones.ts` | `set_zone`, `set_village` (proposed), admin only | `zones.test.ts`: the next quote takes the new fee; village served and moved; reason required |
+| 3.10 Merchants | `pages/merchants.ts` | `apply_menu_import`, `approve_merchant`, `review_alias` | `merchants.test.ts`: approval refused before a menu is applied, then opens it with the commission; a learned alias approved (B2's request) |
+| 3.18 Pictures | `pages/pictures.ts` | `review_product_image` | `pictures.test.ts`: picture as a signed link with source, licence and attribution; approve makes it the customer's picture; a licence-unknown approval stays invisible to customers; only http(s) links are drawn |
+
+**Five steps wait for a migration.** D1 owns no migration number, so the functions the console needs and the database lacks are written, and tested by the console's tests, in `apps/console/sql/proposed_functions.sql`: `release_handoff` (3.5), `set_offer` (3.7), `set_fx_rate`, `confirm_fx_rate`, `fx_quoting_paused` (3.8), `set_zone`, `set_village` (3.9), and a `config_changes` record of who changed what and why. Until a migration carries that file, those pages say "Not available yet" (the console asks PostgREST which functions exist), and the rate, fees and prices are set by script as today. **D2** (0045-0049): copy the file unchanged into a migration and delete it. **Lane B** (owns `quote_order`): refuse to quote while `fx_quoting_paused()` is true, or the 3% pause of 3.8 pauses nothing.
+
+**Live** (console workflow on this pull request: run `43424814724` on the 3.18 commit **passed, every step**; the earlier runs failed only where pages not yet built were checked):
+- The Worker deployed to the address above, its six secrets set (the session key is made once and kept), and `<console>/auth/callback` added to the staging project's Auth redirect list.
+- Smoke test against the real Supabase Auth and staging database: health, signed-out redirect, cross-site POST refused, wrong password refused, **a real sign-in as a staging picker** ("Console smoke check (staging)", password random each run and never stored), the Today page rendered from staging data with the staff name, pickers refused on Payments, Cash and riders, Pictures (403) and allowed on Returns and Catalog.
+- Not proven live: any action (no real payment, drop or picture was approved on staging by this session); the emailed link (needs Rasheed's address, step 1 above); the end-of-shift message and chat replies reaching a phone; reading PostgREST's function list on the real project (if it cannot be read the pages show the forms, and the call itself then reports the missing function).
+
+**Findings (for the owners of the SQL):**
+- `confirm_cash_drop(drop, by)` (0004) does not check the acting party's role: any party id confirms a drop. The console allows only ops lead and admin. Add the check in a migration.
+- `resolve_ops_exception(id, by, status)` (0008) checks neither the role nor the status value. The console allows only ops lead and admin, and only `acknowledged` or `resolved`.
+- `close_shift(driver)` without `p_force_by` records no acting party; the console's action log has it.
+
+**Not done, and why:**
+- Refunds after delivery (part of 3.6): task 2.3, session C2, not merged. The Returns page says so.
+- Disputing a cash drop, rejecting a menu import, and adding staff from the console have no SQL function; staff are added by the workflow only.
+- The action log is objects in the private `media` bucket (`console_audit/<day>/...json`, one per entry, never overwritten), because a table needs a migration. A `staff_actions` table written by a function would be better for the day-close report (D2).
+- Sign-in has no throttle of its own; Supabase Auth's rate limits apply, and they count by IP, which for the console is Cloudflare's. Passwords are at least 12 characters.
+- `TEST_REPORT.txt` was not regenerated (not D1's file).
+- The session worked on branch `claude/magical-fermi-fob6sq` (the branch this environment allows).
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.
@@ -293,10 +341,10 @@ CI note: on PR 16 `test/pg/dispatch-race.test.ts` failed once with "Postgres did
 
 ### C. Still to build
 See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is restaurants; Phase 9 is the website and diaspora
-orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders,
-the console.
+orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders.
+The console exists (D1, above); five of its steps wait for the migration of `apps/console/sql/proposed_functions.sql`.
 Ordering lane: B1 and B2 are done (above); B3 is next (1.7, 1.8, 1.13, 1.17, 2.9).
-Hub lane: C1 is done (below); C2 (2.1, 2.2, 2.3, 2.4, 2.5, 2.10) and D1 (console) can start.
+Hub lane: C1 is done (above); C2 (2.1, 2.2, 2.3, 2.4, 2.5, 2.10) can start. Console lane: D1 is done (above); D2 waits for C2.
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 
 ### D. Needs a live account or real conditions (cannot be finished in code alone)
