@@ -320,7 +320,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       return { outcome: "agent_handoff", sent };
     }
     const lastInbound = [...pending].reverse().find((p) => p.event.message.type === "text" || p.event.message.type === "audio");
-    if (lastInbound && deps.typing) await deps.typing(lastInbound.event.message.id).catch(() => undefined);
+    // Never for a staging probe: its messages exist only in our database, and nothing about them may reach Kapso (4.10).
+    const isProbe = (lastInbound?.event.message.kapso as { probe?: boolean } | undefined)?.probe === true;
+    if (lastInbound && deps.typing && !isProbe) await deps.typing(lastInbound.event.message.id).catch(() => undefined);
 
     const input = { texts, transcripts,
       state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,

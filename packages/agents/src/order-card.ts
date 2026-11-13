@@ -10,6 +10,8 @@ export interface Quote {
   dues_usd?: number;
   /** Company income on a small basket (1.16): its own line, never part of the rider's delivery fee. Included in total_usd. */
   small_order_fee_usd?: number;
+  /** What we owed the customer, taken off this order (apply_customer_credit, C2's request). Already taken off total_usd. */
+  credit_usd?: number;
 }
 export interface CardInput { orderId: string; shortCode: string; quote: Quote; paymentMethod: "cod" | "whish" | "omt"; changeForUsd?: number | null;
   /** Why cash on delivery was refused and the order is paid in advance (from create_order_from_quote's issues). */
@@ -36,6 +38,7 @@ const BODY_LIMIT = 1024;   // WhatsApp's limit for an interactive message body
 
 export const CARD_TEXT = {
   duesLine: "مستحق من طلب سابق ما قدرنا نسلّمو",
+  creditLine: "رصيد إلك من قبل",
   smallOrderLine: "رسم الطلبات الصغيرة",
   prepayFirst: (how: string, cap: string) => `أول طلب كاش لحدّ ${cap}. هالطلب أكبر، فبينّدفع سلف (${how}) قبل ما نبلّش بالتحضير. بعد التأكيد منبعتلك التفاصيل.`,
   prepay: (how: string) => `بما إنو في مبلغ مستحق من قبل، هالطلب بينّدفع سلف (${how}) قبل ما نبلّش بالتحضير. بعد التأكيد منبعتلك التفاصيل.`,
@@ -52,6 +55,9 @@ export function formatOrderCard(input: CardInput): Outbound {
   if (small > 0) tail.push(`${CARD_TEXT.smallOrderLine}: ${money(small)}`);
   // What is owed from a delivery nobody answered is its own line, so the total adds up on the card (1.4).
   if (dues > 0) tail.push(`${CARD_TEXT.duesLine}: ${money(dues)}`);
+  // What we owed them, taken off this order, on its own line so the card still adds up (C2's request).
+  const credit = Number(q.credit_usd ?? 0);
+  if (credit > 0) tail.push(`${CARD_TEXT.creditLine}: -${money(credit)}`);
   tail.push(`الإجمالي: ${money(q.total_usd)}${q.total_lbp ? ` أو ${lbp(q.total_lbp)}` : ""}`);
   tail.push(q.pickup ? "استلام من المحل" : q.eta_minutes ? `الوصول خلال حوالي ${q.eta_minutes} دقيقة` : "توصيل");
   tail.push(`الدفع: ${PAY[input.paymentMethod]}`);
@@ -124,5 +130,7 @@ export const FIXED = {
   /** B4: no village we know is near the pin. */
   pinOutside: "📍 هالموقع برّا المناطق يلي منوصل عليها هلّق. إذا في غلط، ابعت الموقع من جديد من الزر.",
   pinSaved: (villageAr: string) => `تمام، سجّلنا موقعك${villageAr ? ` (${villageAr})` : ""} 📍 شو بتحب تطلب؟`,
+  /** D1 (3.8): the rate moved more than the allowed step today and waits for a person; nothing is priced until then. */
+  fxPaused: "عم نحدّث سعر الصرف هلّق، فما فينا نسعّر الطلب هالدقيقة. طلبك محفوظ: ابعتلنا «تمام» بعد شوي ومنبعتلك الورقة.",
   pinVillageRefused: "ما قدرنا نعتمد هالضيعة لهالموقع. ابعت الموقع من جديد من الزر 📍",
 };

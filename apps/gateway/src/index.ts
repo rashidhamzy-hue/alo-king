@@ -4,7 +4,7 @@
 //   POST /webhooks/kapso/project    <- Kapso project events: Meta enforcement on the account, numbers disconnected (4.10)
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/cloudflare";
-import { fundingState, KapsoReceived, numberHealth, senderKey, templateStatuses, unwrap, verifySignature, type Line, type Outbound } from "@ak/wa/kapso";
+import { fundingState, kapsoClient, KapsoReceived, numberHealth, senderKey, templateStatuses, unwrap, verifySignature, type Line, type Outbound } from "@ak/wa/kapso";
 import { probeInbound, probeReply, type ProbeMessage } from "@ak/wa/probe";
 import { send as gatewaySend } from "@ak/wa/gateway";
 import { parseIdentityEvent, parsePreferenceEvent, parseStatusEvent } from "@ak/wa/webhook";
@@ -14,6 +14,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { runTurn, turnKeyOf, type Pending, type TurnDeps } from "./turn";
 import { alertOps, dispatchAndOffer, sendToParty } from "./ops-turn";
 import { cashAsk, RIDER_TEXT } from "@ak/agents/job-card";
+import { customerLineCron } from "@ak/agents/cron";
 
 export interface Env {
   CONVERSATION: DurableObjectNamespace;
@@ -58,6 +59,8 @@ function depsFor(env: Env): TurnDeps {
   const deps: TurnDeps = { db: supa, model, modelName: env.MODEL_FAST, send: (req) => gatewaySend(supa, env, req) };   // the only door out
   deps.onOrderConfirmed = (orderId) => dispatchAndOffer(deps, orderId);
   deps.notifyCustomer = (id, what) => notifyCustomer(deps, id, what);
+  // 1.8 (B3's request, wired by B4): WhatsApp's typing indicator on the message being answered. Marks it read; sends nothing.
+  if (!env.TEST_DEPS) deps.typing = (id) => kapsoClient(env).messages.markRead({ phoneNumberId: env.PHONE_NUMBER_ID_CUSTOMER, messageId: id, typingIndicator: { type: "text" } });
   return deps;
 }
 
@@ -171,6 +174,8 @@ export default {
     // 7. customer notices (4.3): cancelled, rider at the door, payment received. One per order and event.
     const notices = await supa.rpc("customer_notices_due");
     for (const n of (notices.data as Notice[] | null) ?? []) await sendNotice(deps, n);
+    // 8. the customer line's own jobs (lane B, packages/agents/src/cron.ts): feedback cards (2.9) and search words for new items (1.23)
+    await customerLineCron(deps).catch((err) => console.error("customer_line_cron", String(err).slice(0, 200)));
     if (new Date().getUTCMinutes() === 7 && env.WABA_ID_CUSTOMER) await syncTemplates(env, supa);    // Meta's review result, hourly
 
     // 8. heartbeat (4.10): the probe, silence, and Kapso's view of our numbers. Each step on its own: one failing never stops the others.

@@ -6,11 +6,18 @@ import type { Line, Outbound } from "./kapso";
 /** The buttons a person would tap, in the order an order moves: confirm the card; accept, pick up, deliver, cash exact. */
 const NEXT: RegExp[] = [/^order:confirm:/, /^job:accept:/, /^job:picked:/, /^stop:delivered:/, /^stop:exact:/];
 
+/** What the probe says when asked where exactly: a house, a floor and a landmark, in Lebanese Arabic. */
+export const PROBE_ADDRESS = "بيت الاختبار، الطابق الأول، حد ساحة الضيعة";
+
 export type ProbeReply = { kind: "tap"; id: string; title: string } | { kind: "pin" } | null;
 
 /** What the probe answers to a message it was sent. Anything it does not recognise gets no answer (the order then stalls, and that is alerted). */
 export function probeReply(msg: Outbound | Record<string, unknown>): ProbeReply {
-  const m = msg as { type?: string; interactive?: { type?: string; action?: { buttons?: { reply?: { id?: string; title?: string } }[] } } };
+  const m = msg as { type?: string; text?: { body?: string }; interactive?: { type?: string; action?: { buttons?: { reply?: { id?: string; title?: string } }[] } } };
+  // B4: a first delivery to a new place is asked for the house and the floor (pipeline.ts, FIXED.askAddress). The probe answers
+  // in words, as a person would. It enters as a reply carrying the words (index.ts sends taps only); the turn reads a reply it
+  // does not know as the customer's words, so it takes the real address path (reading, then the card).
+  if (m.type === "text" && /كرمال السائق/.test(m.text?.body ?? "")) return { kind: "tap", id: "probe:address", title: PROBE_ADDRESS };
   if (m.type !== "interactive" || !m.interactive) return null;
   if (m.interactive.type === "location_request_message") return { kind: "pin" };
   const buttons = (m.interactive.action?.buttons ?? []).map((b) => b.reply).filter((r): r is { id: string; title?: string } => !!r?.id);
