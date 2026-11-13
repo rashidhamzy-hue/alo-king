@@ -71,7 +71,7 @@ const request = (model: string, messages: Anthropic.MessageParam[], extra: Parti
  * with the reasons, and the turn falls back to the open-question loop.
  */
 export async function extractOrder(client: ModelClient, model: string, input: TurnInput):
-    Promise<{ intent: OrderIntent | null; errors?: unknown; usage: Usage }> {
+    Promise<{ intent: OrderIntent | null; errors?: unknown; usage: Usage; rejected?: unknown }> {
   // 4096: a long order read as a string inside `intent` was cut off at 1024 tokens on the live model (1.22, 13 Nov).
   const res = await client.messages.create(request(model, [{ role: "user", content: JSON.stringify(input) }],
     { tool_choice: { type: "tool", name: "extract_order" }, max_tokens: 4096 }));
@@ -88,8 +88,9 @@ export async function extractOrder(client: ModelClient, model: string, input: Tu
     raw = call.input;                                   // the reading itself, without the `intent` wrapper
   }
   const parsed = OrderIntent.safeParse(raw);
+  // `rejected` is the reading that failed, for the eval (synthetic messages) to inspect. The turn never stores or logs it.
   return parsed.success ? { intent: parsed.data, usage }
-                        : { intent: null, errors: note ? [note, ...parsed.error.issues.slice(0, 4)] : parsed.error.issues.slice(0, 5), usage };
+                        : { intent: null, errors: note ? [note, ...parsed.error.issues.slice(0, 4)] : parsed.error.issues.slice(0, 5), usage, rejected: raw };
 }
 
 /**

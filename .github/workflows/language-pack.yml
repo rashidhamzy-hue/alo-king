@@ -4,6 +4,7 @@
 #   steps: "cases" (write evals/language/cases.json), "pack" (write evals/language/pack.json and migration 0054),
 #          "before" (score the live model on origin/main's code), "after" (score it on this commit's code).
 #   also_models: other model ids to score with "after", once each, for comparison (results/after-<model>.json).
+#   only: case ids or kinds to run (default: all).
 # Generated files and results are pushed to a new branch `language-pack-out/<run id>`; a person (or session) reviews and
 # copies them into the working branch. Nothing is pushed to the branch that triggered the run, and nothing touches staging.
 # Never generates food facts: gen-pack.mjs drops any term that states an allergen, a diet, halal or nutrition (invariant 15).
@@ -44,6 +45,7 @@ jobs:
             also=$(node -e 'const r=require("./evals/language/request.json"); console.log((r.also_models||[]).filter((m)=>/^claude-[a-z0-9-]+$/.test(m)).join(" "))')
           fi
           echo "also=$also" >> "$GITHUB_OUTPUT"
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] || echo "ONLY=$(node -e 'const r=require("./evals/language/request.json"); console.log((r.only||[]).filter((x)=>/^[a-z0-9_]+$/.test(x)).join(","))')" >> "$GITHUB_ENV"
           [[ "$repeat" =~ ^[0-9]+$ ]] || repeat=1
           echo "steps=,$steps," >> "$GITHUB_OUTPUT"; echo "repeat=$repeat" >> "$GITHUB_OUTPUT"
           echo "MODEL=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)" >> "$GITHUB_ENV"

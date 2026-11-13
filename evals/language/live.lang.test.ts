@@ -48,6 +48,7 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
       const s = scoreCase(c.items, got);
       return { id: c.id, k, kind: c.kind, lang: c.lang, text: c.text, expected: c.items, got, score: s, next,
                errors: (r as { errors?: unknown }).errors ?? null,
+               rejected: typeof (r as { rejected?: unknown }).rejected === "string" ? ((r as { rejected?: string }).rejected ?? "").slice(0, 400) : null,
                lines: (r.intent?.lines ?? []).map((l, i) => ({ raw: l.raw, query: l.query, brand_hint: l.brand_hint, source_hint: l.source_hint, qty: l.qty, unit: l.unit, modifiers: l.modifiers, status: lines[i]?.status ?? null,
                         candidates: (lines[i]?.candidates ?? []).map((x: any) => skuOf.get(x.product_id)) })) };
     });
@@ -61,7 +62,7 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
     const card0013 = runs.filter((r) => r.id === "h0013").map((r) => r.score.tp === 3 && r.score.wrong.length === 0);
     const report = { label, model, repeat, at: new Date().toISOString(), usage, all, by_kind: by((r) => r.kind), by_lang: by((r) => r.lang),
       demo_0013_right: card0013, wrong: runs.filter((r) => r.score.wrong.length).map(({ id, text, expected, got, lines }) => ({ id, text, expected, got, lines })),
-      missed: runs.filter((r) => r.score.missed.length).map(({ id, text, score, lines, errors }) => ({ id, text, missed: score.missed, lines, errors })),
+      missed: runs.filter((r) => r.score.missed.length).map(({ id, text, score, lines, errors, rejected }) => ({ id, text, missed: score.missed, lines, errors, rejected })),
       // every reading, so replay.test.ts can run the same readings through a changed planner without the model
       readings: runs.map(({ id, k, lines }) => ({ id, k, lines: lines.map(({ raw, query, brand_hint, source_hint, qty, unit, modifiers }) => ({ raw, query, brand_hint, source_hint, qty, unit, modifiers })) })) };
     mkdirSync(here("results"), { recursive: true });

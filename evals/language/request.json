@@ -1,1 +1,1 @@
-{ "steps": ["after"], "repeat": 2, "also_models": ["claude-sonnet-5"] }
+{ "steps": ["after"], "repeat": 2, "only": ["g0003","g0013","g0017","g0023","g0024","g0026","g0027","g0030","g0031","g0032","g0035","g0036"] }
