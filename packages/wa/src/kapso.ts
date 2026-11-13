@@ -124,7 +124,20 @@ export class KapsoSendError extends Error {
 /** The official Kapso client over our configured base URL ("https://api.kapso.ai/meta/whatsapp/v24.0" is base + Graph version). */
 export function kapsoClient(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, fetchImpl: typeof fetch = (...a) => fetch(...a)): WhatsAppClient {
   const m = env.KAPSO_BASE_URL.replace(/\/+$/, "").match(/^(.*)\/(v\d+\.\d+)$/);
-  return new WhatsAppClient({ kapsoApiKey: env.KAPSO_API_KEY, baseUrl: m ? m[1] : env.KAPSO_BASE_URL, graphVersion: m ? m[2] : "v24.0", fetch: fetchImpl });
+  return new WhatsAppClient({ kapsoApiKey: env.KAPSO_API_KEY, baseUrl: m ? m[1] : env.KAPSO_BASE_URL, graphVersion: m ? m[2] : "v24.0", fetch: edgeFetch(fetchImpl) });
+}
+
+/**
+ * The SDK asks fetch for redirect: "error". Cloudflare's runtime refuses that value outright ("won't be implemented ... use
+ * manual"), so on the Worker every send threw before leaving. Found by the workerd end-to-end test (4.5); Node accepts it,
+ * which is why the unit tests passed. Same meaning here: no redirect is followed, and a redirect is an error.
+ */
+export function edgeFetch(inner: typeof fetch): typeof fetch {
+  return async (input, init) => {
+    const res = await inner(input, init?.redirect === "error" ? { ...init, redirect: "manual" } : init);
+    if (res.status >= 300 && res.status < 400) throw new Error(`KAPSO_REDIRECT_${res.status}: refusing to follow`);
+    return res;
+  };
 }
 
 /** Only packages/wa/src/gateway.ts may call this (invariant 1; CI checks it). The payload is ours, unchanged: the SDK only carries it. */
