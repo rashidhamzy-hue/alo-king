@@ -19,7 +19,7 @@ create or replace function beat(p_name text, p_detail jsonb default '{}') return
 alter table parties add column if not exists is_probe boolean not null default false;
 
 insert into settings(key, value) values
-  ('probe', '{"enabled": false, "every_minutes": 60, "stuck_after_minutes": 30, "order_text": "بدي ٦ قناني مي صغار وربطة خبز", "pin": null}'),
+  ('probe', '{"enabled": false, "every_minutes": 60, "stuck_after_minutes": 30, "order_text": "بدي علبتين لبنة ليبان ليه وربطتين خبز", "pin": null}'),
   ('heartbeat', '{"inbound_silence_hours": 6, "inbound_min_week": 20, "cron_gap_minutes": 5, "quality_ok": ["GREEN", "UNKNOWN"]}')
 on conflict (key) do nothing;
 
@@ -85,7 +85,8 @@ create or replace function heartbeat_alerts() returns jsonb language sql stable 
     select 'probe_silent', to_char(now(), 'YYYY-MM-DD"T"HH24'), jsonb_build_object('last_order_at', max(o.created_at))
       from s, parties p left join orders o on o.customer_id = p.id
      where p.is_probe and p.role = 'customer' and (s.p->>'enabled') = 'true'
-     group by s.p having coalesce(max(o.created_at), '-infinity') < now() - make_interval(mins => 3 * (s.p->>'every_minutes')::int)
+     group by s.p, p.created_at   -- a probe set up a minute ago has not had time to order yet
+     having coalesce(max(o.created_at), p.created_at) < now() - make_interval(mins => 3 * (s.p->>'every_minutes')::int)
     union all
     -- real customers usually write, and nobody has for hours, while we are open: the webhook may be dead
     select 'inbound_silent', to_char(now(), 'YYYY-MM-DD"T"HH24'), jsonb_build_object('last', max(e.received_at), 'week', count(*))
