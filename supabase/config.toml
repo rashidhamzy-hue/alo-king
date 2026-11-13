@@ -1,0 +1,6 @@
+# Minimal CLI config so `supabase link` and `supabase db push` work from CI. Everything else is Supabase's default.
+# Staging project: alo-king-staging, eu-central-1 (Frankfurt, the nearest region to Lebanon that Supabase offers).
+project_id = "alo-king-staging"
+
+[db]
+major_version = 17

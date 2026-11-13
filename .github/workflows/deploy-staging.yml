@@ -1,0 +1,153 @@
+# Deploys STAGING only. Runs by hand, and on main after the `ci` workflow passes.
+# The build environment cannot reach Supabase, Cloudflare or Kapso, so everything that touches them runs here.
+# Production is a separate workflow that does not exist yet (task 4.2, session A3). Nothing here can touch production:
+# every target below is the staging project, the staging Worker and the staging Kapso numbers.
+#
+# Secrets used (repository secrets, never printed): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN,
+# SUPABASE_DB_PASSWORD, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY.
+name: deploy-staging
+on:
+  workflow_dispatch:
+    inputs:
+      rotate_webhook_secrets:
+        description: Make new Kapso webhook signing secrets for both lines (stored only as Worker secrets and in Kapso)
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }   # bash with pipefail, so `a | tee b` fails when `a` fails
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false   # never cut a deploy in half
+env:
+  SUPABASE_PROJECT_REF: lhgkvvdckwbfpdsftzqp
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  database:
+    # 0.3 and 0.4: migrations, approved seeds, the private media bucket, the permission check.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha || github.sha }}" }
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - name: Link the staging project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Connection string (session pooler, because runners have no IPv6)
+        run: |
+          test -s supabase/.temp/pooler-url || { echo "no pooler url after link"; exit 1; }
+          # The file holds the user and host but no password; PGPASSWORD supplies it.
+          echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
+      - name: Apply migrations
+        # --include-all: parallel sessions merge migrations out of number order; staging takes them all.
+        run: supabase db push --include-all --yes
+      - name: Check every migration file is recorded
+        run: |
+          local_count=$(ls supabase/migrations/*.sql | wc -l)
+          remote_count=$(psql "$DATABASE_URL" -At -c "select count(*) from supabase_migrations.schema_migrations")
+          echo "migration files: $local_count, applied: $remote_count"
+          [ "$local_count" = "$remote_count" ]
+          echo "- migrations applied: $remote_count of $local_count" >> "$GITHUB_STEP_SUMMARY"
+      - name: Permission check on staging (changes nothing)
+        env: { EXISTING: "1" }
+        run: scripts/check_permissions.sh 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Approved seeds (only into an empty catalog)
+        run: scripts/ci/load-seeds.sh | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Private media bucket
+        run: scripts/ci/ensure-media-bucket.sh | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+
+  worker:
+    # 0.5: queues, the Worker, and every Worker secret. 0.6: Kapso webhooks. 0.7: key check.
+    needs: database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+      # Staging numbers. Customer line: the Alo King test number. Ops line: the Kapso sandbox number (see docs/HANDOFF.md).
+      PHONE_NUMBER_ID_CUSTOMER: "1378974041965966"
+      PHONE_NUMBER_ID_OPS: "597907523413541"
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha || github.sha }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Queues
+        id: queues
+        run: |
+          rc=0; scripts/ci/ensure-queues.sh || rc=$?
+          if [ "$rc" = "2" ]; then
+            echo "queues=unavailable" >> "$GITHUB_OUTPUT"
+            echo "::warning::Cloudflare would not create queues on this plan (Workers Paid needed). Deploying without the queue retry path."
+            echo "- **Queues unavailable on this Cloudflare plan: Workers Paid is needed for the queue retry path. Deployed without it.**" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$rc" != "0" ]; then exit "$rc"
+          else echo "queues=ready" >> "$GITHUB_OUTPUT"; fi
+      - name: Deploy the staging Worker
+        id: deploy
+        run: |
+          cfg=wrangler.jsonc
+          if [ "${{ steps.queues.outputs.queues }}" = "unavailable" ]; then node scripts/ci/wrangler-noqueue.mjs; cfg=wrangler.staging-noqueue.json; fi
+          npx wrangler deploy --env staging --config "$cfg" 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          url=$(grep -oE 'https://alo-king-gateway-staging[^ ]*\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -1 || true)
+          if [ -z "$url" ]; then
+            sub=$(curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" | jq -r '.result.subdomain // empty')
+            [ -n "$sub" ] && url="https://alo-king-gateway-staging.$sub.workers.dev"
+          fi
+          [ -n "$url" ] || { echo "could not work out the Worker URL"; exit 1; }
+          echo "worker_url=$url" >> "$GITHUB_OUTPUT"
+          echo "- Worker deployed: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Worker secrets (from repository secrets; webhook secrets are made in a later step)
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # jq reads the values from the environment, so nothing secret is ever on a command line or in a log.
+          umask 077
+          jq -n 'env | {SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS}' > "$RUNNER_TEMP/secrets.json"
+          cfg=wrangler.jsonc; [ -f wrangler.staging-noqueue.json ] && cfg=wrangler.staging-noqueue.json
+          npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --env staging --config "$cfg" 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'
+          rm -f "$RUNNER_TEMP/secrets.json"
+          echo "- Worker secrets set: SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Anthropic key and both model ids work (0.7)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          export MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST) MODEL_SMART=$(node scripts/ci/wrangler-var.mjs MODEL_SMART)
+          scripts/ci/check-anthropic.sh | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Kapso webhooks, signing secrets generated here and stored only as Worker secrets (0.6)
+        env:
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          WORKER_URL: ${{ steps.deploy.outputs.worker_url }}
+          ROTATE: ${{ inputs.rotate_webhook_secrets }}
+        run: |
+          [ -f wrangler.staging-noqueue.json ] && export WRANGLER_CONFIG=wrangler.staging-noqueue.json
+          scripts/ci/ensure-webhooks.sh
+      - name: Smoke test, no secrets needed
+        run: |
+          url="${{ steps.deploy.outputs.worker_url }}"
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "$url/" || true); [ "$code" = "404" ] && break; sleep 5
+          done
+          echo "GET / -> $code (404 expected)"; [ "$code" = "404" ]
+          for line in customer ops; do
+            body=$(curl -sS -w ' [%{http_code}]' -X POST -d '{}' "$url/webhooks/kapso/$line")
+            echo "unsigned POST to the $line webhook -> $body (\"bad signature [401]\" expected: this is our Worker answering)"
+            [ "$body" = "bad signature [401]" ]
+          done
+          body=$(curl -sS "$url/__sentry-test")
+          echo "Sentry test route -> $body (\"sent\" expected; the event appears in project alo-king-gateway)"; [ "$body" = "sent" ]
+          echo "- Smoke test passed: unknown path 404, unsigned webhooks 401, one test error sent to Sentry (alo-king-gateway)" >> "$GITHUB_STEP_SUMMARY"

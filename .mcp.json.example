@@ -1,6 +1,6 @@
 {
-  "_comment": "Copy to .mcp.json on the builder's machine. Supabase: scoped to ONE project and read-only. Schema changes go through reviewed migrations, never through the MCP. Confirm the parameter names against Supabase's MCP documentation when you set it up.",
+  "_comment": "Copy to .mcp.json on the builder's machine (git-ignored). Supabase: ONE project (staging), read-only. Schema changes go through reviewed migrations and the deploy-staging workflow, never through the MCP. Cloudflare and Kapso are not listed on purpose: see docs/TOOLS.md, 'State on 13 November 2026'.",
   "mcpServers": {
-    "supabase-staging": { "type": "http", "url": "https://mcp.supabase.com/mcp?project_ref=<STAGING_PROJECT_REF>&read_only=true" }
+    "supabase-staging": { "type": "http", "url": "https://mcp.supabase.com/mcp?project_ref=lhgkvvdckwbfpdsftzqp&read_only=true" }
   }
 }

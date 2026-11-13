@@ -128,6 +128,10 @@ Phase 0 status on 12 November 2026: done in the tree and tested locally: CI defi
 Worker environments, the runbook, the outbox and marketing fixes (migration 0012). Not started, because each needs the founder's
 accounts: 0.1, 0.3 to 0.9, 0.11, 0.12.
 
+Update 13 November 2026 (session A1): 0.1 and 0.2 are done. 0.3 to 0.8, 0.10 and 0.11 are built as GitHub Actions workflows and scripts
+(`deploy-staging`, `staging-drill`, `capture-kapso-fixtures`); the build environment cannot reach the accounts, so they are proven only by a run.
+0.9 and 0.12 are Meta steps for the account owners, written out in `docs/HANDOFF.md` section E. Results are in section F.
+
 Not in this phase: the two real +961 numbers. They join in Phase 4.
 
 ## Phase 1: customer ordering path

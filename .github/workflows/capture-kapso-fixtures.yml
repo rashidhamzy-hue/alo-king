@@ -1,0 +1,32 @@
+# Manual. Reads the real webhook payloads the staging Worker stored in wa_inbound_events, replaces people with fakes, and pushes
+# them to the branch `fixtures/kapso` as test/fixtures/kapso/<event>/<type>-NN.json (build plan 0.6: ten of each event type
+# before any parser changes). Open a pull request from that branch to keep them. Nothing touches main directly.
+name: capture-kapso-fixtures
+on: workflow_dispatch
+permissions: { contents: write }
+defaults:
+  run: { shell: bash }
+concurrency: { group: capture-kapso-fixtures, cancel-in-progress: false }
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Export and scrub
+        env:
+          SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/ci/export-kapso-fixtures.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Push to fixtures/kapso
+        run: |
+          if [ -z "$(git status --porcelain test/fixtures/kapso)" ]; then echo "No stored events to export yet." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          git config user.name "alo-king-ci"; git config user.email "ci@users.noreply.github.com"
+          git checkout -b fixtures/kapso
+          git add test/fixtures/kapso
+          git commit -m "Kapso webhook fixtures captured from staging (scrubbed)"
+          git push --force origin fixtures/kapso
+          echo "Pushed branch fixtures/kapso. Open a pull request to keep these." >> "$GITHUB_STEP_SUMMARY"

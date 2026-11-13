@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 82 tests; test/db/* run the real migrations in PGlite
+npx vitest run          # 100 tests; test/db/* run the real migrations in PGlite
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
 `TEST_REPORT.txt` is the captured run for this tree.
@@ -106,13 +106,74 @@ Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 ### D. Needs a live account or real conditions (cannot be finished in code alone)
 - Kapso: real webhook payloads for both numbers, signature header, marketing-preference event shape, typing indicator.
 - Meta: template approval; which messages are billed and at what rate, per number and category.
-- Supabase: no Alo King project exists yet (checked 12 Nov; the account holds one unrelated project, left untouched). Create staging, run migrations, run `scripts/check_permissions.sh`, turn on point-in-time recovery before real money.
+- Supabase: staging project `alo-king-staging` (`lhgkvvdckwbfpdsftzqp`, eu-central-1) exists and was empty on 13 Nov; `deploy-staging` fills it (section F). Still to do: turn on point-in-time recovery before real money (paid plan), and a production project.
 - Cloudflare: deploy, cron every minute, Durable Object alarms under load, queue retry.
 - Speed: time from message to card, measured on a phone in Chouf.
 - Speech: accuracy on the hand-corrected voice notes.
 - A two-connection test of the dispatch lock on real Postgres.
 - A shadow run: staff place real orders end to end, and stock, rider cash, rider earnings and the ledger reconcile to zero
   unexplained balance at day close.
+
+### F. Phase 0, session A1, 13 November 2026
+Everything that touches Supabase, Cloudflare or Kapso runs from GitHub Actions, because the build environment cannot reach them. "Proven live" means a named run on GitHub; the first run is
+recorded in the table below once it has happened. Until then a row says **not yet**. `.github/workflows/deploy-staging.yml` is manual and runs on `main` after `ci` passes; `staging-drill.yml` and `capture-kapso-fixtures.yml` are manual.
+
+| Task | Built | Tested | Proven live | Notes |
+| --- | --- | --- | --- | --- |
+| 0.3 Supabase staging, migrations, seeds, private `media` bucket | Yes | Seed script and permission script on a local Postgres 16; bucket script not testable offline | Not yet | Seeds: catalog, aliases, villages, travel times (all in README). `proposed_pilot_settings.sql` is NOT loaded: it waits for the founder's yes. Latency to Lebanon is not measured here (task 4.x, on a phone in Chouf). |
+| 0.4 Permission check on Supabase | Yes: `EXISTING=1` mode, stricter checks | Locally, fresh and existing modes, plus a negative test | Not yet | **Finding:** `ops_exceptions` (0008) still has table grants for `anon` and `authenticated`. RLS is on with no policy, so no row is reachable and the check only warns. A one-line migration (`revoke all on ops_exceptions from anon, authenticated`) is needed; migration numbers belong to other sessions, so B1 or C1 should add it. |
+| 0.5 Cloudflare Worker, queues, secrets, cron | Yes | Dry-run bundle (staging, and without queues), run under workerd locally | Not yet | Workers Paid is not assumed. If queue creation is refused the workflow deploys without the queue and writes that into the run summary; read the first run to see. Bundle is about 580 KiB gzipped, under the free-plan size limit. Free-plan CPU limits for Workers have not been measured against a real turn. `STT_API_KEY` is not set: Kapso's transcript is used first (1.7). |
+| 0.6 Kapso webhooks and fixtures | Yes | Webhook script against a mock of the Kapso API: fresh, repeat, rotate, ops failure. Scrubber on a synthetic payload | Not yet | **No real payload is saved**: that needs real messages on the staging numbers, then the `capture-kapso-fixtures` workflow. Webhooks are created for both lines, each with its own secret. |
+| 0.7 Anthropic key | Yes: key and both model ids checked in the deploy | n/a | Not yet | **Manual, console only:** set the monthly spend limit on the staging key. No call from here can see or set it. Use a separate key for production. |
+| 0.8 Error tracking | Yes: `apps/gateway/src/worker.ts` wraps the gateway; scrubbing tested | 4 unit tests; Worker runs under workerd | Not yet | Sentry project `alo-king-gateway` has the default alert "high priority issues" (read 13 Nov). Gap for A2: errors the gateway catches and retries (queue handler, failed turns) never reach Sentry until `index.ts` reports them. A silent cron is task 4.10. |
+| 0.9 Meta ownership | Steps written | n/a | **Blocked** | Section E. |
+| 0.10 Builder tools | Yes | Skills scanned; gitleaks clean | n/a | `docs/TOOLS.md` last section. Kapso plugin deliberately not installed. |
+| 0.11 Deploy and recovery proven | Yes: runbook and drill | actionlint | Not yet | `docs/RUNBOOK.md` "Proven on staging" is the record. |
+| 0.12 Meta billing guard | Steps written | n/a | **Blocked** | Section E. |
+
+**Staging ops line.** The Kapso sandbox number (`597907523413541`) is wired as the ops line. Kapso documents that the sandbox can send interactive messages (buttons) but not templates,
+and only to one registered phone. Buttons are therefore not a blocker, and **a second test number is not needed for the 0.13 demo on one phone** (the customer line and the sandbox are different
+business numbers). It **is** needed before: two riders at once, a rider and an ops lead on different phones, or testing the approved templates of task 4.3 on the ops line.
+Sending a button from the sandbox is not proven live: it needs a registered phone (6-character code sent to the sandbox number) and is part of 0.13.
+
+**Kapso leftovers.** Two functions remain in the Kapso project (`whatsapp-flow-...-data-...`). Kapso refused to delete them: each is still referenced by a WhatsApp Flow data endpoint.
+They go when those two Flows or their data endpoints are removed in the Kapso dashboard (WhatsApp, Flows). They do nothing and are not connected to the Worker.
+
+**Other findings.** The Supabase connector, the Cloudflare connector and the Kapso connector available to build sessions are write-capable and account-wide (`docs/TOOLS.md`). This session used them to read and verify only.
+
+### E. Meta account steps (cannot be done from code; written by session A1, 13 November 2026)
+
+#### 0.9 Meta ownership and verification: status BLOCKED on the Meta Business Portfolio admin
+What Kapso shows (read 13 Nov): WhatsApp Business Account `1086076707594153`, number **+1 203 660 2328**, display name "Alo King" (approved without review),
+phone_number_id `1378974041965966`, status CONNECTED, quality rating UNKNOWN (no traffic yet), messaging limit TIER_250 (250 customers a day),
+WABA review APPROVED, not an official business account. What Kapso cannot show: which Meta business portfolio owns the WABA, and whether the business is verified.
+The person who is an admin of the Meta business portfolio does these, in order:
+1. Open business.facebook.com, Business settings, Accounts, WhatsApp accounts, select `1086076707594153`. Read **Owned by**. It must be Alo King's own portfolio
+   (the one in the company's legal name). If it names anyone else (Kapso, a personal portfolio, an earlier attempt), the number does not survive a change of provider:
+   write that name in the pull request or an issue and do not start verification yet. Ownership is fixed first.
+2. Business settings, Business info: legal name, address, phone, website and email exactly as they appear on the company documents.
+3. Security Center, Business verification, Start verification. Have ready: the company registration certificate or commercial register extract, a document that
+   proves the address (bank statement or utility bill in the company name), and the business phone or email on the same domain as the website. Submit. Record the date submitted and the status Meta shows.
+4. Business settings, People: at least two admins with full control, two-factor authentication on for both. Business settings, Partners: Kapso is listed with access to the WABA; leave it.
+5. Click-to-WhatsApp data: Kapso documents that the ad `referral` (source id, ad click id, headline) arrives inside the `whatsapp.message.received` payload when present.
+   Proof needs one real click on an ad that opens a chat with +1 203 660 2328 (a test ad from Alo King's ad account, small budget, ended after one click).
+   Afterwards: Kapso dashboard, WhatsApp, Data, Ads (CTWA) shows the click; run the `capture-kapso-fixtures` workflow; the saved payload must contain a `referral` object.
+   If it does not, task 1.13 cannot be built as written: say so in the pull request.
+Done when: step 1 names Alo King's portfolio, verification is submitted (date written here), and one payload with `referral` is saved under `test/fixtures/kapso/`.
+
+#### 0.12 Meta billing guard: status BLOCKED on the billing owner
+Since 1 October 2026 replies are billed after 1,000 free a month per number, and an account with nothing to charge stops sending when the allowance runs out.
+Two ways to pay, chosen per WhatsApp Business Account and hard to change later (switching from Kapso credits to a Meta card means a new WABA and a number migration):
+- **Kapso credits.** Kapso pays Meta and charges the project's credits at Meta's published USD price. You can connect with a zero balance, but once the balance is at or below zero
+  Kapso pauses sends on every number in the account (reason `service_credits_exhausted`; the send API answers HTTP 402).
+- **Pay Meta directly.** A card in Meta Billing Hub for the WABA. Meta controls the rules if a payment fails.
+Steps, by whoever holds the billing login:
+1. Kapso dashboard, project settings, the WhatsApp billing card: read which mode WABA `1086076707594153` is in and, if it is not USD, the FX margin shown. If a payment source is already attached, say which in the pull request and stop.
+2. If it is **Kapso credits**: add credits. At about USD 0.07 to 0.09 of Meta fees per order (`docs/COST_MODEL.md`), USD 50 covers many times over the 100+ shadow-run orders. Write the date and amount here.
+3. If it is **direct**: business.facebook.com, Billing Hub (Payments), Payment methods, add a card to WhatsApp account `1086076707594153`. Write the date and the last four digits here, never the whole number.
+4. **The staging ops line uses Kapso credits whichever mode the customer line is in.** Kapso bills service messages sent from its sandbox number to the project's credits, at the recipient market's rate,
+   and rejects them with HTTP 402 when the balance is too low. So even with direct billing, put a few dollars of credits on the project, or the staging ops line cannot send.
+Done when: a payment source is attached to the WABA (step 2 or 3) and the project holds some credits (step 4), both with dates written here. Real traffic does not start before this is done.
 
 ## The AI architecture, stated once
 One conversational agent, the Concierge. Around it: narrow AI functions (vision extraction for labels, menus and receipts;

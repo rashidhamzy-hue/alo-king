@@ -3,8 +3,22 @@
 # grants on everything in public), applies every migration, then proves: the server role can call functions and
 # read tables; the two client roles can do neither. Run it against a scratch Postgres, and again against a real
 # Supabase branch before launch:  DATABASE_URL=postgres://... scripts/check_permissions.sh
+#
+# EXISTING=1 is for a real Supabase project whose migrations are already applied (staging, later production):
+# it builds nothing and changes no grant, no role and no data. It skips the role and default-privilege setup and the
+# migration loop (Supabase created the roles itself, and the CLI applied the migrations), and it runs the one
+# section that writes inside a transaction that is rolled back. The checks themselves are the same ones.
 set -euo pipefail
 PSQL="psql ${DATABASE_URL:?set DATABASE_URL} -v ON_ERROR_STOP=1 -q -At"
+EXISTING="${EXISTING:-0}"
+if [ "$EXISTING" = "1" ]; then
+  for r in anon authenticated service_role; do
+    [ "$($PSQL -c "select count(*) from pg_roles where rolname = '$r'")" = "1" ] || { echo "role $r is missing: this is not a Supabase database"; exit 1; }
+  done
+  n=$($PSQL -c "select count(*) from pg_proc where proname = 'can_send' and pronamespace = 'public'::regnamespace")
+  [ "$n" = "1" ] || { echo "migrations are not applied (can_send() missing)"; exit 1; }
+  echo "existing database: no roles, grants, migrations or data will be changed"
+else
 $PSQL <<'SQL'
 do $$ declare r text; begin
   foreach r in array array['anon','authenticated','service_role'] loop
@@ -16,13 +30,16 @@ do $$ declare r text; begin
 end $$;
 SQL
 for f in supabase/migrations/*.sql; do $PSQL -f "$f" >/dev/null 2>&1 || { echo "migration failed: $f"; exit 1; }; done
+fi
 $PSQL <<'SQL'
+begin;
 insert into fx_rates(lbp_per_usd) values (89500);
 set role service_role;
 select 'service_role can call a function: ' || (current_fx() > 0);
 select 'service_role can read a table: ' || (count(*) >= 0) from settings;
 select 'service_role can write through a function: ' || begin_turn('perm-check', 'customer');
 reset role;
+rollback;   -- nothing the check wrote survives, on any database
 do $$ declare r text; ok boolean; begin
   foreach r in array array['anon','authenticated'] loop
     execute format('set role %I', r);
@@ -34,5 +51,25 @@ do $$ declare r text; ok boolean; begin
     raise notice '% is locked out of functions and tables', r;
   end loop;
 end $$;
-select 'functions still callable by PUBLIC: ' || count(*) from pg_proc p where pronamespace = 'public'::regnamespace and has_function_privilege('public', p.oid, 'execute');
+-- Not just the two probes above: every function and every table in public, for each client role and for PUBLIC.
+do $$ declare n int; t text; begin
+  select count(*) into n from pg_proc p where pronamespace = 'public'::regnamespace and has_function_privilege('public', p.oid, 'execute');
+  if n > 0 then raise exception '% functions are still callable by PUBLIC', n; end if;
+  select count(*) into n from pg_proc p, unnest(array['anon','authenticated']) r
+    where pronamespace = 'public'::regnamespace and has_function_privilege(r, p.oid, 'execute');
+  if n > 0 then raise exception '% function grants to anon or authenticated', n; end if;
+  -- A table grant to a client role is a hard failure unless row level security is on with no policy at all
+  -- (then the grant is untidy but reaches no row). Those are listed by name as a WARNING so they get fixed by a migration.
+  select count(*) into n from pg_class c, unnest(array['anon','authenticated']) r
+    where relnamespace = 'public'::regnamespace and relkind in ('r','v','m','p')
+      and (has_table_privilege(r, c.oid, 'select') or has_table_privilege(r, c.oid, 'insert') or has_table_privilege(r, c.oid, 'update') or has_table_privilege(r, c.oid, 'delete'))
+      and (relkind <> 'r' or not relrowsecurity or exists (select 1 from pg_policy pol where pol.polrelid = c.oid));
+  if n > 0 then raise exception '% table grants to anon or authenticated that RLS does not cover', n; end if;
+  for t in select distinct c.relname from pg_class c, unnest(array['anon','authenticated']) r
+    where relnamespace = 'public'::regnamespace and relkind = 'r'
+      and (has_table_privilege(r, c.oid, 'select') or has_table_privilege(r, c.oid, 'insert') or has_table_privilege(r, c.oid, 'update') or has_table_privilege(r, c.oid, 'delete')) loop
+    raise warning 'table % still has a grant to anon or authenticated (RLS blocks it; revoke it in a migration)', t;
+  end loop;
+  raise notice 'no function in public is callable by PUBLIC, anon or authenticated, and no table grant escapes row level security';
+end $$;
 SQL
