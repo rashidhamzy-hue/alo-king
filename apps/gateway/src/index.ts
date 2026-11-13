@@ -152,6 +152,13 @@ export default {
 
     // 6. learn from what was delivered
     await supa.rpc("learn_from_recent_orders");
+
+    // 7. message meter (4.12): once a month per number, when free-form replies pass the warning mark
+    const meter = await supa.rpc("meter_alerts");
+    for (const m of (meter.data as { line: string; month: string; free_form: number; allowance: number; warn_at: number }[] | null) ?? []) {
+      await alertOps(deps, `📨 رقم ${m.line === "customer" ? "الزباين" : "العمليات"}: ${m.free_form} رسالة رد هالشهر من أصل ${m.allowance} مجانية. بعدها كل رد بينحسب.`,
+        `meter:${m.line}:${m.month}:${m.warn_at}`);
+    }
   },
 };
 
@@ -196,8 +203,12 @@ export async function route(supa: SupabaseClient, env: Env, line: Line, event: s
     return;
   }
   if (event === "whatsapp.message.sent" || event === "whatsapp.message.failed" || event === "whatsapp.message.delivered" || event === "whatsapp.message.read") {
+    // Status, and what Meta says it bills for the message: the message meter's ground truth (4.12, 0061).
     const s = parseStatusEvent(event, item);
-    if (s) await supa.from("wa_messages").update({ status: s.status }).eq("wa_message_id", s.wamid);
+    if (!s) return;
+    const { error } = await supa.rpc("record_message_status", { p_wamid: s.wamid, p_status: s.status, p_billable: s.pricing?.billable ?? null,
+      p_category: s.pricing?.category ?? null, p_type: s.pricing?.type ?? null, p_error_code: s.error?.code ?? null });
+    if (error) throw new Error(`record_message_status: ${error.message}`);
     return;
   }
   if (event !== "whatsapp.message.received") return;
