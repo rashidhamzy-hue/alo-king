@@ -1,7 +1,5 @@
 // Test rig for the console: the real migrations in PGlite, the real gateway send (Kapso's HTTP replaced),
 // Supabase Auth and Storage replaced by small fakes. Pages are driven through handle() as a browser would.
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { vi } from "vitest";
 import { send as gatewaySend } from "@ak/wa/gateway";
 import { openTestDb, type TestDb } from "../../../test/db/harness";
@@ -12,8 +10,6 @@ import type { AuthUser, StaffAuth } from "../src/auth";
 import type { Media } from "../src/media";
 import { registry } from "../src/pages";
 import type { Role } from "../src/roles";
-
-export const PROPOSED_SQL = fileURLToPath(new URL("../sql/proposed_functions.sql", import.meta.url));
 
 /** The console's Db over the test database: the same two verbs, in SQL. */
 export function pgDb(db: TestDb): Db {
@@ -103,9 +99,10 @@ export interface Rig {
   source: string;
 }
 
-export async function rig(opts: { proposed?: boolean } = {}): Promise<Rig> {
+/** `without`: SQL functions to drop, to prove a page says plainly when the database it talks to lacks one (staging can lag). */
+export async function rig(opts: { without?: string[] } = {}): Promise<Rig> {
   const db = await openTestDb();
-  if (opts.proposed) await db.pg.exec(readFileSync(PROPOSED_SQL, "utf8"));
+  for (const fn of opts.without ?? []) await db.pg.exec(`drop function ${checkIdent(fn)}`);
   const auth = new FakeAuth();
   const media = new FakeMedia();
   const kapso: { url: string; body: any }[] = [];
@@ -116,12 +113,11 @@ export async function rig(opts: { proposed?: boolean } = {}): Promise<Rig> {
       { status: 200, headers: { "content-type": "application/json" } });
   }));
   const supa = supabaseOver(db).client;
-  let clock = new Date();
   const deps: Deps = {
     db: pgDb(db), auth, media,
     send: (req) => gatewaySend(supa, KAPSO_ENV, req),
     secret: "test-secret-test-secret-test-secret-1234", environment: "test", supabaseUrl: "https://project.supabase.test",
-    now: () => clock,
+    now: () => new Date(),           // the database's now() moves on during a test; a clock frozen at rig() made "late" drift
   };
   const source = (await db.one<{ id: string }>("select id from sources where kind = 'dark_store' limit 1"))?.id ?? "";
   let n = 0;

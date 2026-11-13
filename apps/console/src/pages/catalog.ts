@@ -1,7 +1,7 @@
 // 3.7 Catalog: price, availability and stock count for the hub's items, with a reason on every change.
 //   Count     count_stock()  (0023): the shelf count; the difference posts as an adjustment with reason "count".
 //   Adjust    adjust_stock() (0023): a reason from the database's list; a picker's limit is the database's setting.
-//   Price     set_offer()    (proposed in apps/console/sql/proposed_functions.sql): ops lead or admin, with a reason.
+//   Price     set_offer()    (0045): ops lead or admin, with a reason.
 // Every form's one-time key is passed as the function's request key, so a double tap changes stock once.
 import { act, can, html, id, num, render, text, UserError, type Ctx, type Section } from "../app";
 import { form, Raw, usd, when } from "../html";

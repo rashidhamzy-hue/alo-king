@@ -6,7 +6,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("Exchange rate", () => {
   it("without set_fx_rate() in the database the page shows the rate and says the form is not available yet", async () => {
-    const r = await rig();
+    const r = await rig({ without: ["set_fx_rate"] });
     await r.db.pg.exec(`insert into fx_rates(lbp_per_usd) values (89500)`);
     const lead = await r.staff("ops_lead");
     const b = r.browser();
@@ -17,7 +17,7 @@ describe("Exchange rate", () => {
   });
 
   it("morning rate, a small move, a big move that pauses quoting, then the confirmation", async () => {
-    const r = await rig({ proposed: true });
+    const r = await rig();
     await r.db.pg.exec(`insert into fx_rates(lbp_per_usd, effective_from) values (89000, now() - interval '2 days')`);
     const lead = await r.staff("ops_lead", "Maya");
     const admin = await r.staff("admin", "Rasheed");
@@ -48,7 +48,7 @@ describe("Exchange rate", () => {
   });
 
   it("is closed to pickers, by the page and by the database", async () => {
-    const r = await rig({ proposed: true });
+    const r = await rig();
     const picker = await r.staff("picker");
     const b = r.browser();
     await b.signIn(picker);

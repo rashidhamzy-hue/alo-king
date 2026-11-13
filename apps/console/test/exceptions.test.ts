@@ -31,7 +31,7 @@ describe("Exceptions and chats", () => {
   });
 
   it("a reply goes out once from the customer number through the gateway; a closed window is refused", async () => {
-    const r = await rig();
+    const r = await rig({ without: ["release_handoff"] });
     const village = await openShop(r.db);
     const o = await handedOver(r, village);
     const lead = await r.staff("ops_lead");
@@ -39,7 +39,7 @@ describe("Exceptions and chats", () => {
     await b.signIn(lead);
     const page = (await b.get("/exceptions")).text;
     expect(page).toContain("customer asked for a person");
-    expect(page).toContain("needs release_handoff()");          // not in the migrations yet
+    expect(page).toContain("needs release_handoff()");          // a database without 0045 (staging can lag): the page says so
 
     const res = await b.post(`/chats/${o.conversation}/reply`, { text: "مرحبا، معك مايا من ألو كينغ", _key: "fixed-key-123" });
     expect(flashOf(res.text)).toBe("Reply sent.");
@@ -58,7 +58,7 @@ describe("Exceptions and chats", () => {
   });
 
   it("with release_handoff() in the database, a chat goes back to the Concierge", async () => {
-    const r = await rig({ proposed: true });
+    const r = await rig();
     const village = await openShop(r.db);
     const o = await handedOver(r, village);
     const lead = await r.staff("admin");

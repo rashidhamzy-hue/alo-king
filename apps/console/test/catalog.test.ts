@@ -41,7 +41,7 @@ describe("Catalog", () => {
   });
 
   it("without set_offer() in the database, the price form says so instead of pretending", async () => {
-    const r = await rig();
+    const r = await rig({ without: ["set_offer"] });
     const p = await labneh(r);
     const lead = await r.staff("ops_lead");
     const b = r.browser();
@@ -50,7 +50,7 @@ describe("Catalog", () => {
   });
 
   it("with set_offer(), an ops lead changes price and availability with a reason, and it is recorded", async () => {
-    const r = await rig({ proposed: true });
+    const r = await rig();
     const p = await labneh(r);
     const lead = await r.staff("ops_lead", "Maya");
     const b = r.browser();

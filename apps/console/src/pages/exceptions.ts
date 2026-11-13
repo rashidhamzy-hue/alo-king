@@ -1,6 +1,6 @@
 // 3.5 Exceptions and handoffs: the ops_exceptions queue, and the chats a person has taken over. A reply goes through the
 // gateway's send() on the customer line (preflight, can_send: open 24-hour window, opt-out, outbox claim). Handing a chat
-// back to the Concierge is release_handoff() (proposed in apps/console/sql/proposed_functions.sql until a migration ships it).
+// back to the Concierge is release_handoff() (0045).
 import { act, html, id, render, text, UserError, type Ctx, type Section } from "../app";
 import { form, minutesSince, when } from "../html";
 import { LEADS } from "../roles";

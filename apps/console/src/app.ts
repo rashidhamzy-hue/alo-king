@@ -131,7 +131,7 @@ export async function act(c: Ctx, action: string, args: Record<string, unknown>,
 
 // ---------- the action log ----------
 // Objects in the private media bucket, one per entry, never overwritten: console_audit/<day>/<time>_<party>_<ref>_<phase>.json
-// Supabase Storage, because D1 owns no migration. A table (staff_actions) is proposed in apps/console/sql/proposed_functions.sql.
+// Supabase Storage, because D1 owns no migration. Who changed configuration, and why, is also in config_changes (0045).
 export interface AuditEntry { action: string; phase: "intent" | "done" | "event"; ref?: string; args?: Record<string, unknown>; ok?: boolean; result?: string; error?: string }
 export async function audit(deps: Deps, staff: { partyId: string; userId: string; role: string } | null, e: AuditEntry): Promise<void> {
   const at = deps.now().toISOString();

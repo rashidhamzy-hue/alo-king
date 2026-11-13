@@ -1,6 +1,6 @@
 // 3.9 Zones and fees: which villages are served, their zone, and each zone's delivery fee and ETA. All of it is data
 // (invariant 13); nothing here names a village or a fee. Edits are the admin's, with a reason, through set_zone() and
-// set_village() (proposed in apps/console/sql/proposed_functions.sql). The delivery fee is the rider's (invariant 10).
+// set_village() (0045). The delivery fee is the rider's (invariant 10).
 import { act, can, html, id, num, render, text, UserError, type Ctx, type Section } from "../app";
 import { form, Raw, usd } from "../html";
 import { ADMIN, LEADS } from "../roles";

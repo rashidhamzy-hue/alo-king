@@ -6,7 +6,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("Zones and fees", () => {
   it("an ops lead sees zones and villages but cannot change them", async () => {
-    const r = await rig({ proposed: true });
+    const r = await rig();
     const lead = await r.staff("ops_lead");
     const b = r.browser();
     await b.signIn(lead);
@@ -18,7 +18,7 @@ describe("Zones and fees", () => {
   });
 
   it("the admin changes a zone's fee and ETA with a reason; the next order is quoted at the new fee and late is judged by the new ETA", async () => {
-    const r = await rig({ proposed: true });
+    const r = await rig();
     const village = await openShop(r.db);
     const zone = (await r.db.one(`select zone_id from villages where id = $1`, [village])).zone_id;
     const admin = await r.staff("admin", "Rasheed");
@@ -35,7 +35,7 @@ describe("Zones and fees", () => {
   });
 
   it("the admin stops serving a village and moves another into a zone", async () => {
-    const r = await rig({ proposed: true });
+    const r = await rig();
     const [a, z2] = [await r.db.one(`select id, zone_id from villages where is_served limit 1`), await r.db.one(`select id from zones order by name desc limit 1`)];
     const admin = await r.staff("admin");
     const b = r.browser();
