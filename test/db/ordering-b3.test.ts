@@ -209,3 +209,61 @@ describe("voice notes: Kapso first, a second provider behind a setting, the audi
     expect(row.transcript.notes).toEqual({ audio: "no_kapso_media_url" });
   });
 });
+
+describe("one tap after delivery (2.9)", () => {
+  async function delivered(t: ReturnType<typeof flow>, minutesAgo = 15) {
+    const c = await pinned(db, t, ids.BAAKLINE);
+    const o = await db.rpc("create_order_from_quote", { p_customer: c.party_id, p_conversation: c.conversation_id, p_lines: [{ product_id: ids.LABNEH, qty: 1 }],
+      p_village: ids.BAAKLINE, p_place: null, p_pickup: true, p_payment: "cod", p_change_for: null, p_notes: null });
+    await db.pg.query(`update orders set status = 'delivered', delivered_at = now() - make_interval(mins => $2) where id = $1`, [o.order_id, minutesAgo]);
+    return { ...c, orderId: o.order_id as string, code: (await db.one(`select short_code from orders where id = $1`, [o.order_id])).short_code as string };
+  }
+  const ask = async (t: ReturnType<typeof flow>) => {
+    const { sendFeedbackRequests } = await import("@ak/agents/feedback");
+    return sendFeedbackRequests(t.deps, async (p) => (await db.rpc("party_address", { p_party: p, p_line: "customer" })) as string);
+  };
+
+  it("a delivered order gets one card, after the delay, never twice", async () => {
+    const t = flow(db, []);
+    const fresh = await delivered(t, 2);                                 // too soon
+    const c = await delivered(flow(db, []), 15);
+    await ask(t);
+    const cards = outbound.filter((o) => o.body.type === "interactive" && o.body.interactive.body.text.includes("وصلك طلبك"));
+    expect(cards.map((o) => o.body.interactive.body.text)).toEqual(expect.arrayContaining([expect.stringContaining(c.code)]));
+    expect(cards.map((o) => o.body.interactive.body.text).join()).not.toContain(fresh.code);
+    expect(cards.find((o) => o.body.interactive.body.text.includes(c.code))!.body.interactive.action.buttons.map((b: any) => b.reply.id))
+      .toEqual([`fb:fine:${c.orderId}`, `fb:problem:${c.orderId}`]);
+    outbound.length = 0;
+    await ask(t);
+    expect(outbound.filter((o) => JSON.stringify(o.body).includes(c.code))).toEqual([]);
+  });
+
+  it("«a problem» hands the chat to a person and alerts ops; «fine» thanks once; a repeat tap does nothing", async () => {
+    await db.pg.query(`insert into parties(role, display_name) values ('ops_lead', 'Ops lead 2.9')`);
+    const t = flow(db, []);
+    const c = await delivered(t);
+    await t.tap(`fb:problem:${c.orderId}`, "في مشكلة");
+    expect(outbound.map((o) => o.body.text?.body)).toContain(`آسفين عالإزعاج. حدا من الفريق رح يحكيك عن الطلب ${c.code} بأقرب وقت. فيك تكتبلنا شو صار هون.`);
+    expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(true);
+    expect(await db.all(`select 1 from ops_exceptions where kind = 'delivery_problem' and ref = $1`, [c.orderId])).toHaveLength(1);
+    outbound.length = 0;
+    await t.tap(`fb:fine:${c.orderId}`, "وصل تمام");
+    expect(outbound).toEqual([]);                                       // already answered: nothing changes, nothing sent
+    expect(t.seen).toHaveLength(0);                                     // never the model
+
+    const u = flow(db, []);
+    const d = await delivered(u);
+    await u.tap(`fb:fine:${d.orderId}`, "وصل تمام");
+    expect(outbound.map((o) => o.body.text?.body)).toEqual(["تمام، شكراً 🙏"]);
+    expect((await db.one(`select verdict from order_feedback where order_id = $1`, [d.orderId])).verdict).toBe("fine");
+  });
+
+  it("nobody answers for someone else's order", async () => {
+    const mine = await delivered(flow(db, []));
+    const other = flow(db, []);
+    await other.customer();
+    await other.tap(`fb:problem:${mine.orderId}`, "في مشكلة");
+    expect(await db.all(`select 1 from order_feedback where order_id = $1 and verdict is not null`, [mine.orderId])).toEqual([]);
+    expect(outbound).toEqual([]);
+  });
+});

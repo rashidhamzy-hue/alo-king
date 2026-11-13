@@ -18,6 +18,7 @@ import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { decideVoice } from "@ak/agents/voice";
+import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
 
 export interface Pending { line: "customer" | "ops"; who: { waUserId?: string; phone?: string }; event: KapsoReceived }
 export interface TurnDeps {
@@ -135,6 +136,19 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         // "Same as last time" (1.20): re-priced and re-checked by the database; repeat_plan refuses an order that is not theirs and closed.
         buttonsHandled++;
         await repeatLast(ctx, { orderId: repeatOf });
+        continue;
+      }
+      const fb = parseFeedbackButton(tapped);
+      if (fb) {
+        // One tap after delivery (2.9). A problem goes to a person at once; a repeat tap does nothing.
+        buttonsHandled++;
+        const r = await call<{ ok: boolean; changed?: boolean; short_code?: string }>(db, "record_feedback",
+          { p_order: fb.orderId, p_party: conv.party_id, p_verdict: fb.verdict });
+        if (r.ok && r.changed && fb.verdict === "problem") {
+          await handoff(db, conv.conversation_id, `delivery_problem: ${r.short_code}`);
+          await alertOps(deps, FEEDBACK_TEXT.opsAlert(r.short_code ?? ""), `fbproblem:${fb.orderId}`);
+          await say(FEEDBACK_TEXT.problem(r.short_code ?? ""), fb.orderId);
+        } else if (r.ok && r.changed) await say(FEEDBACK_TEXT.fine, fb.orderId);
         continue;
       }
       if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
