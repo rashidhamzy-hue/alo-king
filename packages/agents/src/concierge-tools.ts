@@ -254,7 +254,8 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
                                  paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null });
   const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
   if (!sent.ok) return sent;
-  ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null;
+  // The directions went onto the order (and the place); they are not carried into the next order.
+  ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null; ctx.state.directions = null;
   return { ok: true, order_code: created.short_code! };
 }
 
