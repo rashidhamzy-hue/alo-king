@@ -130,7 +130,7 @@ accounts: 0.1, 0.3 to 0.9, 0.11, 0.12.
 
 Update 13 November 2026 (session A1): 0.1 and 0.2 are done. 0.3 to 0.8, 0.10 and 0.11 are built as GitHub Actions workflows and scripts
 (`deploy-staging`, `staging-drill`, `capture-kapso-fixtures`); the build environment cannot reach the accounts, so they are proven only by a run.
-0.9 and 0.12 are Meta steps for the account owners, written out in `docs/HANDOFF.md` section E. Results are in section F.
+0.9 and 0.12 are Meta steps for the account owners, written out in `docs/HANDOFF.md` section E. Results are in section F: 0.3, 0.4, 0.5, 0.6 (webhooks), 0.7 (key and models) and 0.11 are proven on live staging; 0.8 is delivered to Sentry's ingest but not yet visible in the project; real webhook fixtures, the Anthropic spend limit, 0.9 and 0.12 remain.
 
 Not in this phase: the two real +961 numbers. They join in Phase 4.
 

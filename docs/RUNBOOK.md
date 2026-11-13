@@ -41,7 +41,7 @@ Production: the same two jobs, in the same order, in a quiet hour, from its own 
 
 ## Roll back
 - Worker: `npx wrangler rollback --env <staging|production>` returns to the previous version in seconds. Do this first, ask questions after.
-  The `staging-drill` workflow runs it on staging. If a secret changed since the previous version, Cloudflare may refuse; the drill records what it does.
+  The `staging-drill` workflow runs it on staging. Cloudflare did not refuse after a secret change; it rolled the secrets back with the code (see "What the drill taught" below).
 - Database: never drop or edit an applied migration. Write a new migration that undoes the change. If data was damaged, use
   point-in-time recovery to a new project, compare, and repair forward.
 
@@ -67,8 +67,12 @@ Runs are on the repository's Actions page. "Not yet" means written and tested lo
 
 | Step | Proven | By |
 | --- | --- | --- |
-| Deploy: database job (migrations, permission check, seeds, bucket) | Not yet | `deploy-staging` |
-| Deploy: Worker job (queues, deploy, secrets, webhooks, smoke test) | Not yet | `deploy-staging` |
-| Roll back the Worker | Not yet | `staging-drill` |
-| Rotate one secret (webhook signing secrets) | Not yet | `staging-drill`, or `deploy-staging` with the rotate box ticked |
+| Deploy: database job (migrations, permission check, seeds, bucket) | **Yes**, 13 Nov 2026, first deploy and a repeat deploy | `deploy-staging` runs 43394134487 and 43396822066 |
+| Deploy: Worker job (queues, deploy, secrets, webhooks, smoke test) | **Yes**, first deploy and a repeat deploy | the same two runs |
+| Roll back the Worker | **Yes**, 13 Nov 2026: rolled back one version, the Worker still answered, then redeployed | `staging-drill` run 43394402493 |
+| Rotate one secret (webhook signing secrets) | **Yes**: new secrets in the Worker and in Kapso, a signed test event accepted on both lines | `staging-drill` run 43394402493 |
+| Sentry receives a Worker error | **Not confirmed.** Delivery to Sentry's ingest is proven (HTTP 200, flush true); the event is not visible in the project. See `docs/HANDOFF.md` 0.8 | `deploy-staging` run 43396822066 |
 | Recovery drill: restore from point-in-time recovery | Not yet. Needs production and a paid Supabase plan (4.8) | |
+
+**What the drill taught.** `wrangler rollback` goes to the previous *version*, and a secret change is a version. If the version you roll back to predates a secret, the Worker loses it. After any rollback run `npx wrangler secret list --env <env>` and compare with the list at the top of this file;
+if a secret is missing, run `deploy-staging` with "rotate" ticked (webhook secrets) or set it from the repository secret by running the deploy again.
