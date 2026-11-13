@@ -2,7 +2,8 @@
 import type { Section } from "../app";
 import { exceptionsSection } from "./exceptions";
 import { paymentsSection } from "./payments";
+import { returnsSection } from "./returns";
 import { ridersSection } from "./riders";
 import { todaySection } from "./today";
 
-export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection];
+export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection, returnsSection];
