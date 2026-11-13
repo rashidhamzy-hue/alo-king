@@ -1,0 +1,30 @@
+// The staff console: a second Worker beside the gateway, in the same Cloudflare account (docs/DECISIONS.md, "Console hosting").
+// Deployed by .github/workflows/console.yml: `wrangler deploy --config apps/console/wrangler.jsonc --env staging`.
+{
+  "name": "alo-king-console",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "rules": [{ "type": "Text", "globs": ["**/*.md"], "fallthrough": true }],
+  "observability": { "enabled": true },
+  "vars": { "ENVIRONMENT": "development", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0" },
+  // Bindings and vars are not inherited by environments, so each block is complete on purpose.
+  "env": {
+    "staging": {
+      "name": "alo-king-console-staging",
+      "workers_dev": true,
+      "observability": { "enabled": true },
+      "vars": { "ENVIRONMENT": "staging", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0" }
+    },
+    "production": {
+      "name": "alo-king-console",
+      "workers_dev": true,
+      "observability": { "enabled": true },
+      "vars": { "ENVIRONMENT": "production", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0" }
+    }
+  }
+  // Secrets, per environment (set by the console workflow, never in the repository): SUPABASE_URL, SUPABASE_SERVICE_KEY,
+  // CONSOLE_SESSION_SECRET (made once in the workflow, kept across deploys), KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS.
+  // The Kapso key and the two number ids are there only so replies and rider statements go out through the gateway module
+  // (packages/wa/src/gateway.ts: preflight, can_send, outbox claim). The console has no other way to send.
+}

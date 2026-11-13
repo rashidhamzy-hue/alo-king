@@ -1,0 +1,118 @@
+# The staff console (apps/console), STAGING only. Deploys on main after `ci` passes, on a pull request that changes the console
+# (so the pull request shows the live check before it merges; staging is disposable), and by hand.
+# The build environment cannot reach Cloudflare or Supabase, so the deploy, the staff accounts and the live check all run here.
+#   action deploy        build, deploy the console Worker, set its secrets, allow its Auth redirect, then a live smoke test
+#   action add-staff     make (or change) a staff account and email it a link to choose a password
+#   action remove-staff  block the party and ban the sign-in
+# Production is not here: it comes with task 4.2 (session A3), like the gateway's.
+#
+# Repository secrets used (never printed): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN, SUPABASE_SERVICE_KEY, KAPSO_API_KEY.
+name: console
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [deploy, add-staff, remove-staff]
+        default: deploy
+      email:
+        description: "add-staff / remove-staff: the person's email (they sign in with it)"
+        type: string
+        required: false
+      name:
+        description: "add-staff: the name shown in the console and on every action"
+        type: string
+        required: false
+      role:
+        description: "add-staff: admin (everything), ops_lead (payments, cash, approvals), picker (stock and returns)"
+        type: choice
+        options: [ops_lead, admin, picker]
+        default: ops_lead
+  pull_request:
+    paths: ["apps/console/**", ".github/workflows/console.yml"]
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: console-staging
+  cancel-in-progress: false
+env:
+  SUPABASE_PROJECT_REF: lhgkvvdckwbfpdsftzqp
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  WRANGLER_SEND_METRICS: "false"
+  CFG: apps/console/wrangler.jsonc
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Console tests (the same ones CI runs; here too because a hand-run deploy may come from a branch)
+        run: npx tsc --noEmit && npx vitest run apps/console
+      - name: Deploy the console Worker
+        id: deploy
+        run: |
+          npx wrangler deploy --config "$CFG" --env staging 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          url=$(apps/console/scripts/url.sh)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "- Console deployed: $url (from ${GITHUB_REF_NAME}, $(git rev-parse --short HEAD))" >> "$GITHUB_STEP_SUMMARY"
+      - name: Worker secrets (the session key is made once and kept, so a deploy does not sign everyone out)
+        env:
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          # Staging numbers, as in deploy-staging.yml. Customer line: the Alo King test number. Ops line: the Kapso sandbox.
+          PHONE_NUMBER_ID_CUSTOMER: "1378974041965966"
+          PHONE_NUMBER_ID_OPS: "597907523413541"
+        run: |
+          umask 077
+          have=$(npx wrangler secret list --config "$CFG" --env staging --format json 2>/dev/null | jq -r '.[].name' || true)
+          keys='{SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS}'
+          if ! grep -qx CONSOLE_SESSION_SECRET <<<"$have"; then
+            export CONSOLE_SESSION_SECRET=$(openssl rand -base64 48)
+            keys='{SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS, CONSOLE_SESSION_SECRET}'
+            echo "- CONSOLE_SESSION_SECRET made (first deploy)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          jq -n "env | $keys" > "$RUNNER_TEMP/secrets.json"
+          npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --config "$CFG" --env staging 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'
+          rm -f "$RUNNER_TEMP/secrets.json"
+          echo "- Worker secrets set: SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Supabase Auth may send emailed links back to the console
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          CONSOLE_URL: ${{ steps.deploy.outputs.url }}
+        run: apps/console/scripts/auth-redirect.sh
+      - name: Live smoke test (real Supabase Auth, real database, roles)
+        env:
+          CONSOLE_URL: ${{ steps.deploy.outputs.url }}
+        run: apps/console/scripts/smoke.sh
+
+  staff:
+    if: github.event_name == 'workflow_dispatch' && (inputs.action == 'add-staff' || inputs.action == 'remove-staff')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: ${{ inputs.action }}
+        env:
+          ACTION: ${{ inputs.action }}
+          STAFF_EMAIL: ${{ inputs.email }}
+          STAFF_NAME: ${{ inputs.name }}
+          STAFF_ROLE: ${{ inputs.role }}
+        run: |
+          export CONSOLE_URL=$(apps/console/scripts/url.sh)
+          apps/console/scripts/staff.sh
