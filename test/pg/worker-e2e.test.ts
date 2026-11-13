@@ -139,7 +139,7 @@ run("Worker end to end (workerd + real Postgres)", () => {
 
   it("a crash in the middle of a turn: the order is written, the send fails; the retry sends the card once and makes no second order", async () => {
     kapso.failNext = 1; kapso.failWhen = (b) => b.type === "interactive" && b.interactive?.type === "button";
-    const loc = fixtureMessage("whatsapp.message.received/api-location-01.json", (m) => { m.from = "96170009001"; m.from_user_id = "XX.0000000000009001"; m.location = { latitude: 33.6789, longitude: 35.5778 }; });
+    const loc = fixtureMessage("whatsapp.message.received/api-location-01.json", (m) => { m.from = "96170009001"; m.from_user_id = "XX.0000000000009001"; m.location = { latitude: 33.67739, longitude: 35.56355 }; });
     loc.conversation.phone_number = "96170009001"; loc.conversation.business_scoped_user_id = "XX.0000000000009001";
     expect((await webhook("customer", "whatsapp.message.received", loc, "e2e-2")).status).toBe(200);
     const card = await until("the card, after the retry", async () => kapso.sent.find((s) => s.to === "+96170009001" && s.body.interactive?.type === "button"));

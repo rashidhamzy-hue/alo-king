@@ -14,8 +14,13 @@ export interface ConversationState {
   directions?: string | null;          // the customer's own words about where they are
   lastQuote?: { lines: QuoteLineInput[]; villageId: string | null; pickup: boolean; quote: Quote } | null;
   history?: { role: "customer" | "assistant"; text: string }[];
-  /** A card is ready to go out from lastQuote once the customer supplies what is missing. */
-  awaiting?: "pin" | "phone" | null;
+  /**
+   * A card is ready to go out from lastQuote once the customer supplies what is missing: a pin, the village when the pin was
+   * not clear (a tap), the house and floor for a first delivery to a new place, or a phone number the rider can call.
+   */
+  awaiting?: "pin" | "village" | "address" | "phone" | null;
+  /** What the last pin said (B4): the pin decides the village. Unsure means the customer chooses from `candidates` by tap. */
+  pinCheck?: PinCheck | null;
   pending?: CardTerms | null;
   /** When the "same as last time" button was last offered (ms). */
   repeatOfferedAt?: number;
@@ -23,6 +28,12 @@ export interface ConversationState {
   orderRestrictions?: string[] | null;
   /** Restrictions offered for keeping, waiting for the customer's yes or no. */
   pendingRestrictions?: string[] | null;
+}
+export interface PinCheck {
+  status: "located" | "unsure" | "outside"; villageAr: string | null; served: boolean | null;
+  /** The village the conversation had before the pin (usually from the text), when the pin put it somewhere else. */
+  saidAr: string | null;
+  candidates: { village_id: string; name_ar: string | null; name_en: string }[];
 }
 /** Everything about a card that is not its lines. */
 export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null;
@@ -111,7 +122,14 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
     async ask_location_pin({ text }) {
       const bad = await guard(ctx, [text]);
       if (bad) return bad;
-      return deliver(ctx, askLocation(text), `[location request] ${text}`, undefined, true);
+      const r = await deliver(ctx, askLocation(text), `[location request] ${text}`, undefined, true);
+      // A priced basket waits on the pin, whoever asked for it (B4: the basket was lost when the model asked).
+      const q = ctx.state.lastQuote;
+      if (r.ok && q && q.lines.length && !q.pickup) {
+        ctx.state.awaiting = "pin";
+        ctx.state.pending ??= { payment: "cod", changeForUsd: null, notes: ctx.state.directions ?? null };
+      }
+      return r;
     },
 
     async send_confirmation({ payment_method, change_for_usd, notes }) {

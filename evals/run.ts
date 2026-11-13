@@ -60,3 +60,19 @@ export async function runReadingCase(client: ModelClient, model: string, c: { te
   const got = r.intent ? (r.intent.intent === "off_topic" && r.intent.lines.length === 0 ? "off_topic" : "not_off_topic") : "unreadable";
   return { text: c.text, expect: c.expect, got, intent: r.intent?.intent ?? null, ok: got === c.expect };
 }
+
+/** B4: where to deliver, as the model reads it. `village`: accepted spellings (null: must stay empty); `not_village`: never the village. */
+export interface AddressCase { id: string; texts?: string[]; transcripts?: string[]; state?: Record<string, unknown>; village: string[] | null; not_village?: string[] }
+export function judgeAddress(c: AddressCase, village: string | null): { ok: boolean; why: string | null } {
+  const fold = (x: string) => x.toLowerCase().replace(/[\u064B-\u0652\u0640]/g, "").replace(/^(ال|al |el )/, "").trim();
+  const v = village ? fold(village) : null;
+  if (v && (c.not_village ?? []).some((n) => v.includes(fold(n)) || fold(n).includes(v))) return { ok: false, why: `neighbourhood read as village: ${village}` };
+  if (c.village === null) return v ? { ok: false, why: `village should be empty, got ${village}` } : { ok: true, why: null };
+  if (!v) return { ok: false, why: "village left out" };
+  return c.village.some((w) => v.includes(fold(w)) || fold(w).includes(v)) ? { ok: true, why: null } : { ok: false, why: `wrong village ${village}` };
+}
+export async function runAddressCase(client: ModelClient, model: string, c: AddressCase) {
+  const r = await extractOrder(client, model, { texts: c.texts ?? [], transcripts: (c.transcripts ?? []).map((primary) => ({ primary })), state: c.state ?? {} });
+  const village = r.intent?.address.village ?? null;
+  return { id: c.id, village, landmark: r.intent?.address.landmark ?? null, ...judgeAddress(c, village) };
+}
