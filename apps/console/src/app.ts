@@ -29,12 +29,16 @@ export interface Deps {
   environment: string;
   supabaseUrl: string;
   now(): Date;
+  /** 5.15: the label reader (src/label.ts), when the console has a model key; absent, intake is typed by hand. */
+  readLabel?: (images: import("./label").LabelImage[]) => Promise<import("./label").LabelReading | null>;
+  /** The model the label reader uses, recorded with each reading. */
+  labelModel?: string;
 }
 
 export interface Staff { partyId: string; userId: string; role: Role; name: string; csrf: string }
 export interface Ctx {
   req: Request; url: URL; deps: Deps; staff: Staff; params: Record<string, string>; sections: Section[];
-  form: Record<string, string>; flash: { ok?: string; err?: string } | null; f: FormCtx;
+  form: Record<string, string>; files: Record<string, File>; flash: { ok?: string; err?: string } | null; f: FormCtx;
 }
 export type Handler = (c: Ctx) => Promise<Response>;
 export interface Route { method: "GET" | "POST"; path: string; roles: readonly Role[]; handler: Handler }
@@ -71,6 +75,7 @@ export function explain(e: unknown): string {
       [/^COD_ORDER/, "This is a cash-on-delivery order; the rider records the cash."],
       [/^ORDER_CANCELLED_REFUND_NEEDED/, "The order is cancelled: this money needs a refund, not a confirmation."],
       [/^DROP_EXCEEDS_BALANCE/, "The drop is more than the rider holds. Not confirmed: count again with the rider."],
+      [/^NEEDS_OPS_LEAD to pay from the till/, "Only the ops lead pays from the drawer. Receive it on credit."],
       [/^NEEDS_OPS_LEAD/, "Above the picker limit: an ops lead must make this change."],
       [/^BELOW_RESERVED/, "That would leave less on the shelf than is reserved for open orders."],
       [/^NOTE_REQUIRED/, "Write a note for reason 'other'."],
@@ -85,6 +90,36 @@ export function explain(e: unknown): string {
       [/^IMAGE_SUPERSEDED/, "A newer picture replaced this one."],
       [/^PRODUCT_ON_HOLD/, "The product is on hold (recall)."],
       [/^REASON_REQUIRED/, "Write the reason for the change."],
+      [/^ORDER_NOT_PAID/, "Nothing was paid on this order: correct it, do not refund it."],
+      [/^REFUND_EXCEEDS_PAID/, "That is more than was paid on this order, counting earlier refunds."],
+      [/^REFUND_EXCEEDS_REVENUE revenue_delivery/, "The delivery fee belongs to the rider now. Charge compensation to goodwill instead."],
+      [/^REFUND_EXCEEDS_REVENUE/, "That is more than is still booked for this order under that heading."],
+      [/^EXCEEDS_CREDIT/, "That is more than the customer's free credit."],
+      [/^ITEM_NOT_ON_ORDER/, "That item is not on this order."],
+      [/^BAD_AMOUNT/, "Type an amount above zero."],
+      [/^NOT_ENOUGH_CASH hub_cash/, "The drawer does not hold that much by the books. Count it, and check what came in today."],
+      [/^NOT_ENOUGH_CASH bank/, "The bank does not hold that much by the books."],
+      [/^NAME_REQUIRED/, "Write the name."],
+      [/^EXPIRY_REQUIRED (.*) is/, "Chilled, frozen and fresh goods need their expiry date."],
+      [/^COST_REQUIRED/, "Type the unit cost of every line."],
+      [/^UNKNOWN_CATEGORY/, "Pick a category from the list."],
+      [/^UNKNOWN_SUPPLIER/, "That supplier is not active."],
+      [/^DIFFERENCE_NOTE_REQUIRED/, "The count differs from the books: write a note saying what you know."],
+      [/^PRODUCT_REQUIRED/, "An allergen complaint needs the item it is about."],
+      [/^DETAIL_REQUIRED/, "Write what the customer said."],
+      [/^OUTCOME_REQUIRED/, "Write the outcome."],
+      [/^CASE_CLOSED/, "This case is closed."],
+      [/^REFUND_NOT_ON_ORDER/, "That refund is for another order."],
+      [/^SAME_PERSON/, "You asked for this change: a second person must approve it."],
+      [/^EVIDENCE_REQUIRED/, "Attach the pack (a photo) or the document, or give its reference."],
+      [/^EVIDENCE_NOT_FOR_PRODUCT/, "That evidence is for another item."],
+      [/^CERTIFIED_NEEDS_CERTIFICATE/, "Certified needs a certificate or a lab report as evidence."],
+      [/^FACT_VALUE/, "That value does not fit what the fact is about."],
+      [/^SECOND_OPINION_ONLY/, "Open Food Facts is a second opinion only: confirm the field against the pack."],
+      [/^FACT_NOT_PENDING/, "That field was already decided."],
+      [/^CONFIRM_STATUS/, "Confirm as declared, certified or unknown: the pack either says it or it does not."],
+      [/^DAY_NOT_OVER/, "That day has not come yet."],
+      [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
     ];
     for (const [re, say] of known) if (re.test(m)) return say;
     return `The database refused: ${m}`;
@@ -131,7 +166,7 @@ export async function act(c: Ctx, action: string, args: Record<string, unknown>,
 
 // ---------- the action log ----------
 // Objects in the private media bucket, one per entry, never overwritten: console_audit/<day>/<time>_<party>_<ref>_<phase>.json
-// Supabase Storage, because D1 owns no migration. A table (staff_actions) is proposed in apps/console/sql/proposed_functions.sql.
+// Supabase Storage, because D1 owns no migration. Who changed configuration, and why, is also in config_changes (0045).
 export interface AuditEntry { action: string; phase: "intent" | "done" | "event"; ref?: string; args?: Record<string, unknown>; ok?: boolean; result?: string; error?: string }
 export async function audit(deps: Deps, staff: { partyId: string; userId: string; role: string } | null, e: AuditEntry): Promise<void> {
   const at = deps.now().toISOString();
@@ -188,13 +223,37 @@ function match(pattern: string, path: string): Record<string, string> | null {
   return params;
 }
 
-async function readForm(req: Request): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
+async function readForm(req: Request): Promise<{ fields: Record<string, string>; files: Record<string, File> }> {
+  const fields: Record<string, string> = {}; const files: Record<string, File> = {};
   const type = req.headers.get("content-type") ?? "";
-  if (!type.includes("application/x-www-form-urlencoded") && !type.includes("multipart/form-data")) return out;
+  if (!type.includes("application/x-www-form-urlencoded") && !type.includes("multipart/form-data")) return { fields, files };
   const fd = await req.formData();
-  for (const [k, v] of fd) if (typeof v === "string") out[k] = v;
-  return out;
+  for (const [k, v] of fd) {
+    if (typeof v === "string") fields[k] = v;
+    else if (v && typeof v === "object" && "arrayBuffer" in v && (v as File).size > 0) files[k] = v as File;
+  }
+  return { fields, files };
+}
+
+// ---------- photos and documents (slips, receipts, labels) ----------
+const UPLOAD_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+export const MAX_UPLOAD = 8 * 1024 * 1024;
+/**
+ * Stores one uploaded file in the private media bucket under `<prefix>/<day>/<sha256>.<ext>` and returns its path, or null when
+ * the field was left empty. The name is the content's hash: the same photo sent twice is one object. Never logged, never public.
+ */
+export async function upload(c: Ctx, field: string, prefix: string): Promise<string | null> {
+  const f = c.files[field];
+  if (!f) return null;
+  const ext = UPLOAD_TYPES[f.type];
+  if (!ext) throw new UserError("Attach a photo (JPEG, PNG, WebP) or a PDF.");
+  if (f.size > MAX_UPLOAD) throw new UserError("The file is larger than 8 MB.");
+  const bytes = await f.arrayBuffer();
+  const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const path = `${prefix}/${c.deps.now().toISOString().slice(0, 10)}/${hash}.${ext}`;
+  try { await c.deps.media.put(path, bytes, f.type); }
+  catch (e) { if (!(await c.deps.media.sign(path, 30))) throw e; }   // already stored by an earlier tap
+  return path;
 }
 
 const CALLBACK_JS = `(function(){var h=new URLSearchParams(location.hash.slice(1));var t=h.get("access_token");
@@ -218,7 +277,8 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
     if (origin && origin !== url.origin) return new Response("cross-site request refused", { status: 403 });
   }
   const now = deps.now();
-  const form = method === "POST" ? await readForm(req) : {};
+  const posted = method === "POST" ? await readForm(req) : { fields: {}, files: {} };
+  const form = posted.fields;
 
   // ----- signed-out routes -----
   if (path === "/sign-in" && method === "GET") return signInPage(deps, url.searchParams.get("e") === "1");
@@ -260,7 +320,7 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
     if (r.method !== method) continue;
     const params = match(r.path, path);
     if (!params) continue;
-    const ctx: Ctx = { req, url, deps, staff, params, sections, form, flash, f: { csrf: staff.csrf, nonce: () => randomToken(12) } };
+    const ctx: Ctx = { req, url, deps, staff, params, sections, form, files: posted.files, flash, f: { csrf: staff.csrf, nonce: () => randomToken(12) } };
     if (!r.roles.includes(staff.role)) {
       const denied = render(ctx, "Not for your role", html`<p>Your role (${staff.role.replace("_", " ")}) cannot open this page.</p>`);
       return new Response(denied.body, { status: 403, headers: denied.headers });

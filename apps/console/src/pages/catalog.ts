@@ -1,7 +1,7 @@
 // 3.7 Catalog: price, availability and stock count for the hub's items, with a reason on every change.
 //   Count     count_stock()  (0023): the shelf count; the difference posts as an adjustment with reason "count".
 //   Adjust    adjust_stock() (0023): a reason from the database's list; a picker's limit is the database's setting.
-//   Price     set_offer()    (proposed in apps/console/sql/proposed_functions.sql): ops lead or admin, with a reason.
+//   Price     set_offer()    (0045): ops lead or admin, with a reason.
 // Every form's one-time key is passed as the function's request key, so a double tap changes stock once.
 import { act, can, html, id, num, render, text, UserError, type Ctx, type Section } from "../app";
 import { form, Raw, usd, when } from "../html";
@@ -119,9 +119,10 @@ async function offer(c: Ctx) {
   const reason = text(c, "reason", 200);
   if (reason.length < 3) throw new UserError("Write the reason for the change.");
   return act(c, "offer_change", { product, price_usd: price, available, reason }, async () => {
-    const r = await c.deps.db.rpc<{ price_usd: number | string; is_available: boolean; before: { price_usd: number | string; is_available: boolean } | null }>("set_offer", {
+    const r = await c.deps.db.rpc<{ status?: string; move_pct?: number | string; price_usd: number | string; is_available: boolean; before: { price_usd: number | string; is_available: boolean } | null }>("set_offer", {
       p_product: product, p_price_usd: price, p_available: available, p_by: c.staff.partyId, p_reason: reason,
     });
+    if (r.status === "awaiting_approval") return `Waiting for a second approval: ${usd(price)} moves ${Number(r.move_pct)}% from ${usd(r.before?.price_usd)}. Another ops lead or admin approves it under Approvals.`;
     const was = r.before ? `was ${usd(r.before.price_usd)}${r.before.is_available ? "" : ", unavailable"}` : "new";
     return `Saved: ${usd(r.price_usd)}${r.is_available ? "" : ", unavailable"} (${was}).`;
   }, `/catalog/${product}`);

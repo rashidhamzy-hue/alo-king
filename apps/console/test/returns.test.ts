@@ -31,7 +31,7 @@ describe("Returns", () => {
     const page = (await b.get("/returns")).text;
     expect(page).toContain(o.code);
     expect(page).toContain(`name="restock_${o.product}"`);
-    expect(page).toContain("come with task 2.3");
+    expect(page).toContain(`<a href="/refunds">Refunds</a> page`);
     const before = await onHand(o.product);
     const res = await b.post(`/returns/${o.id}`, { [`restock_${o.product}`]: 5 });
     expect(flashOf(res.text)).toMatch(/^Received\. 5 back on the shelf, 3 written off/);

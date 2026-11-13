@@ -31,8 +31,8 @@ export const minutesSince = (t: unknown, now: Date) => (t ? Math.floor((now.getT
 export interface FormCtx { csrf: string; nonce: () => string }
 
 /** A POST form. Every form carries the CSRF token and a one-time key, so a double tap is recognised downstream. */
-export function form(f: FormCtx, action: string, body: Raw | Raw[], opts: { cls?: string; confirm?: boolean } = {}) {
-  return html`<form method="post" action="${action}" class="${opts.cls ?? ""}">
+export function form(f: FormCtx, action: string, body: Raw | Raw[], opts: { cls?: string; confirm?: boolean; files?: boolean } = {}) {
+  return html`<form method="post" action="${action}" class="${opts.cls ?? ""}"${opts.files ? new Raw(' enctype="multipart/form-data"') : ""}>
 <input type="hidden" name="_csrf" value="${f.csrf}"><input type="hidden" name="_key" value="${f.nonce()}">${body}</form>`;
 }
 

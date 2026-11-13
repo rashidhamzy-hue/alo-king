@@ -1,3 +1,8 @@
+-- Alo King Chouf, session D2 (console): D1's proposed functions, shipped.
+-- Below is apps/console/sql/proposed_functions.sql exactly as session D1 wrote and tested it (13 November 2026), from its
+-- first line; that file is deleted in the same change. Steps 3.5, 3.7, 3.8 and 3.9 of the console use these functions.
+-- Lane B (owns quote_order) still has to make quote_order refuse while fx_quoting_paused() is true.
+
 -- PROPOSED, NOT A MIGRATION. Written by session D1 (console), 13 November 2026.
 --
 -- The console writes only through SQL functions. Five of its steps have no function yet, and D1 owns no migration number

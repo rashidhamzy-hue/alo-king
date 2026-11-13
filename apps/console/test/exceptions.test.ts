@@ -28,10 +28,18 @@ describe("Exceptions and chats", () => {
     expect(page).not.toContain("no_rider");
     expect(await r.db.one(`select status, resolved_by from ops_exceptions where id = $1`, [exc])).toMatchObject({ status: "resolved", resolved_by: lead.partyId });
     expect((await b.post(`/exceptions/${exc}/deleted`)).text).toContain("Unknown status");
+    // The database checks the actor and the status too (0046), and a resolved exception is not reopened.
+    const other = await r.db.rpc("raise_ops_exception", { p_kind: "no_rider", p_ref: "AK-0002" });
+    const picker = await r.staff("picker");
+    await expect(r.db.rpc("resolve_ops_exception", { p_id: other, p_by: picker.partyId, p_status: "resolved" })).rejects.toThrow(/NOT_AUTHORISED/);
+    await expect(r.db.rpc("resolve_ops_exception", { p_id: other, p_by: lead.partyId, p_status: "deleted" })).rejects.toThrow(/UNKNOWN_STATUS/);
+    await r.db.rpc("resolve_ops_exception", { p_id: exc, p_by: lead.partyId, p_status: "acknowledged" });
+    expect((await r.db.one(`select status from ops_exceptions where id = $1`, [exc])).status).toBe("resolved");
+    expect((await r.db.one(`select status from ops_exceptions where id = $1`, [other])).status).toBe("open");
   });
 
   it("a reply goes out once from the customer number through the gateway; a closed window is refused", async () => {
-    const r = await rig();
+    const r = await rig({ without: ["release_handoff"] });
     const village = await openShop(r.db);
     const o = await handedOver(r, village);
     const lead = await r.staff("ops_lead");
@@ -39,7 +47,7 @@ describe("Exceptions and chats", () => {
     await b.signIn(lead);
     const page = (await b.get("/exceptions")).text;
     expect(page).toContain("customer asked for a person");
-    expect(page).toContain("needs release_handoff()");          // not in the migrations yet
+    expect(page).toContain("needs release_handoff()");          // a database without 0045 (staging can lag): the page says so
 
     const res = await b.post(`/chats/${o.conversation}/reply`, { text: "مرحبا، معك مايا من ألو كينغ", _key: "fixed-key-123" });
     expect(flashOf(res.text)).toBe("Reply sent.");
@@ -58,7 +66,7 @@ describe("Exceptions and chats", () => {
   });
 
   it("with release_handoff() in the database, a chat goes back to the Concierge", async () => {
-    const r = await rig({ proposed: true });
+    const r = await rig();
     const village = await openShop(r.db);
     const o = await handedOver(r, village);
     const lead = await r.staff("admin");

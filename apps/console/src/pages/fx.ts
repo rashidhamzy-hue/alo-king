@@ -1,6 +1,6 @@
 // 3.8 Daily exchange rate. One person sets it each morning. A later move of more than settings.fx.pause_move_pct within
 // the day is held, and quoting pauses, until a person confirms it. The rule lives in SQL (set_fx_rate, confirm_fx_rate,
-// fx_quoting_paused: proposed in apps/console/sql/proposed_functions.sql); this page only shows and asks.
+// fx_quoting_paused: 0045); this page only shows and asks.
 import { act, can, html, id, num, render, type Ctx, type Section } from "../app";
 import { form, lbp, when } from "../html";
 import { LEADS } from "../roles";

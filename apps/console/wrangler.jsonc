@@ -7,24 +7,29 @@
   "compatibility_flags": ["nodejs_compat"],
   "rules": [{ "type": "Text", "globs": ["**/*.md"], "fallthrough": true }],
   "observability": { "enabled": true },
-  "vars": { "ENVIRONMENT": "development", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0" },
+  // 3.11: the day-close report to the founder at 21:40 Beirut in winter (22:40 in summer). Times are UTC.
+  "triggers": { "crons": ["40 19 * * *"] },
+  "vars": { "ENVIRONMENT": "development", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5" },
   // Bindings and vars are not inherited by environments, so each block is complete on purpose.
   "env": {
     "staging": {
       "name": "alo-king-console-staging",
       "workers_dev": true,
       "observability": { "enabled": true },
-      "vars": { "ENVIRONMENT": "staging", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0" }
+      "triggers": { "crons": ["40 19 * * *"] },
+      "vars": { "ENVIRONMENT": "staging", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5" }
     },
     "production": {
       "name": "alo-king-console",
       "workers_dev": true,
       "observability": { "enabled": true },
-      "vars": { "ENVIRONMENT": "production", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0" }
+      "triggers": { "crons": ["40 19 * * *"] },
+      "vars": { "ENVIRONMENT": "production", "KAPSO_BASE_URL": "https://api.kapso.ai/meta/whatsapp/v24.0", "MODEL_FAST": "claude-haiku-5-5" }
     }
   }
   // Secrets, per environment (set by the console workflow, never in the repository): SUPABASE_URL, SUPABASE_SERVICE_KEY,
-  // CONSOLE_SESSION_SECRET (made once in the workflow, kept across deploys), KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS.
+  // CONSOLE_SESSION_SECRET (made once in the workflow, kept across deploys), KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS,
+  // and optionally ANTHROPIC_API_KEY (5.15's label reader; without it intake is typed by hand).
   // The Kapso key and the two number ids are there only so replies and rider statements go out through the gateway module
   // (packages/wa/src/gateway.ts: preflight, can_send, outbox claim). The console has no other way to send.
 }
