@@ -41,7 +41,10 @@ begin
     perform start_shift(r);                                   -- keeps an open shift open; opens one otherwise
     perform record_driver_position(r, lat::numeric, lng::numeric, 'probe_setup');
   end loop;
-  update settings set value = value || jsonb_build_object('enabled', true, 'pin', jsonb_build_object('lat', lat, 'lng', lng)) where key = 'probe';
+  -- The hourly order is the founder's 0.13 message, so the live model proves it every hour before he sends it. Brand-led on purpose:
+  -- on 13 Nov the live model wrote «خبز» as "bread" (no match), and brand-led labneh and eggs resolved to laban and chicken legs (lane B, HANDOFF).
+  update settings set value = value || jsonb_build_object('enabled', true, 'pin', jsonb_build_object('lat', lat, 'lng', lng),
+    'order_text', 'بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين') where key = 'probe';
 end $$;
 
 select 'staging prepared: fx ' || (select count(*) from fx_rates) || ', hub ' || coalesce((select v.name_en from sources s join villages v on v.id = s.village_id where s.kind = 'dark_store'), 'none')
