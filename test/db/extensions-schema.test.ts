@@ -51,7 +51,7 @@ describe("pg_trgm lives in the extensions schema", () => {
       from pg_proc p where p.pronamespace = 'public'::regnamespace and regexp_replace(p.prosrc, '''[^'']*''', '', 'g') ~* $1   -- string literals (raise messages) left out
         and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e') order by 1`, [TRIGRAM_USE]);
     expect(users.map((u) => u.fn).sort()).toEqual(expect.arrayContaining([
-      "plan_order(uuid,jsonb,uuid,jsonb)", "resolve_place(uuid,text,text)", "search_catalog(text,text,integer)", "search_products(text,uuid,integer)"]));
+      "plan_order_core(uuid,jsonb,uuid,jsonb)", "resolve_place(uuid,text,text)", "search_catalog(text,text,integer)", "search_products(text,uuid,integer)"]));
     for (const u of users) expect(u.cfg, u.fn).toMatch(/search_path=.*extensions/);
   });
 
