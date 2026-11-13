@@ -122,6 +122,12 @@ jobs:
           npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --env staging --config "$cfg" 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'
           rm -f "$RUNNER_TEMP/secrets.json"
           echo "- Worker secrets set: SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Anthropic key and both model ids work (0.7)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          export MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST) MODEL_SMART=$(node scripts/ci/wrangler-var.mjs MODEL_SMART)
+          scripts/ci/check-anthropic.sh | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Kapso webhooks, signing secrets generated here and stored only as Worker secrets (0.6)
         env:
           KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
