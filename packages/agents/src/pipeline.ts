@@ -117,7 +117,7 @@ async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; v
     return r.ok ? { done: true, path: "ask_pin" } : { done: false };
   }
   const card = await issueCard(ctx, basket, terms, { before });
-  return card.ok ? { done: true, path: "card" } : { done: false };
+  return card.ok ? { done: true, path: card.waiting_for ? "ask_phone" : "card" } : { done: false };
 }
 
 /** The three questions recognised without a model (quick-intent.ts). */
@@ -135,12 +135,13 @@ export function notAvailableText(plan: Pick<Plan, "unavailable">): string | null
   return FIXED.notAvailable(said);
 }
 
-/** A pin arrived for a card that was waiting on it: send the card, re-priced by the database, with no model call. */
-export async function completeAfterPin(ctx: ToolContext): Promise<boolean> {
+/** A pin or a phone number arrived for a card that was waiting on it: send the card, re-priced by the database, with no model call. */
+export async function completePending(ctx: ToolContext): Promise<boolean> {
   const q = ctx.state.lastQuote, terms = ctx.state.pending;
-  if (ctx.state.awaiting !== "pin" || !q || !terms || !ctx.state.placeId) return false;
+  if (!ctx.state.awaiting || !q || !terms) return false;
+  if (ctx.state.awaiting === "pin" && !ctx.state.placeId) return false;
   // The pin decides the village: if it landed somewhere else, the card is priced for where it landed.
-  const card = await issueCard(ctx, { lines: q.lines, villageId: ctx.state.villageId ?? q.villageId, placeId: ctx.state.placeId, pickup: q.pickup }, terms);
+  const card = await issueCard(ctx, { lines: q.lines, villageId: q.pickup ? null : ctx.state.villageId ?? q.villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup }, terms);
   if (!card.ok) ctx.state.awaiting = null;
   return card.ok;
 }

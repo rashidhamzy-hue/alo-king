@@ -7,6 +7,7 @@ import { ConversationDO, type Env } from "../../apps/gateway/src/index";
 import { CONSENT_LINE, formatOrderCard, orderButtonId, parseOrderButton, type Quote } from "@ak/agents/order-card";
 import { preflight } from "@ak/wa/gateway";
 import { repeatButtonId } from "@ak/agents/answers";
+import { KapsoReceived, senderKey } from "@ak/wa/kapso";
 import { openTestDb, type TestDb } from "./harness";
 import { supabaseOver } from "./supabase-shim";
 
@@ -47,9 +48,9 @@ function fakeState() {
 
 let customerSeq = 0;
 /** One fresh customer per test, so tests never see each other's orders. */
-function setup(steps: Anthropic.ToolUseBlock[][]) {
+function setup(steps: Anthropic.ToolUseBlock[][], opts: { who?: { waUserId: string; phone?: string } } = {}) {
   const n = ++customerSeq;
-  const who = { waUserId: `bsuid-flow-${n}`, phone: `+9617000${String(n).padStart(4, "0")}` };
+  const who: { waUserId: string; phone?: string } = opts.who ?? { waUserId: `bsuid-flow-${n}`, phone: `+9617000${String(n).padStart(4, "0")}` };
   const shim = supabaseOver(db), m = scriptedModel(steps), s = fakeState();
   const env = { BUFFER_SECONDS: "6", MODEL_FAST: "fast", KAPSO_BASE_URL: "https://kapso.test/v24.0", KAPSO_API_KEY: "k",
                 PHONE_NUMBER_ID_CUSTOMER: "PN_CUSTOMER", PHONE_NUMBER_ID_OPS: "PN_OPS", TEST_DEPS: { db: shim.client, model: m.model } } as unknown as Env;
@@ -59,7 +60,7 @@ function setup(steps: Anthropic.ToolUseBlock[][]) {
              conversation: { id: `conv_${n}`, contact_name: "Test" }, phone_number_id: "PN_CUSTOMER" } }) });
   const conv = new ConversationDO(s.state, env);
   /** The customer as the database knows them, created the way the first message would create them. */
-  const customer = async () => db.rpc("touch_conversation", { p_line: "customer", p_wa_user_id: who.waUserId, p_phone: who.phone, p_name: "Test" });
+  const customer = async () => db.rpc("touch_conversation", { p_line: "customer", p_wa_user_id: who.waUserId, p_phone: who.phone ?? null, p_name: "Test" });
   return { ...m, ...s, conv, who, rpcCalls: shim.log.rpc, customer, inbound,
            text: (body: string) => inbound({ type: "text", text: { body } }),
            tap: (id: string, title = "x") => inbound({ type: "interactive", interactive: { type: "button_reply", button_reply: { id, title } } }) };
@@ -533,6 +534,68 @@ describe("same as last time, as one button (1.20)", () => {
     expect(outbound[1]!.body.interactive.body.text).toContain("$8.52");            // 5.50 + 2.02 + 1.00
     expect((await db.one(`select status from orders where id = $1`, [c.orderId])).status).toBe("cancelled");   // superseded
     expect(await db.one(`select count(*)::int as n from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [c.party_id])).toEqual({ n: 1 });
+  });
+});
+
+describe("no phone number in the webhook (1.19)", () => {
+  // A message from a customer who uses a WhatsApp username: Kapso sends the business-scoped id and no number.
+  const NO_PHONE_FIXTURE = {
+    message: { id: "wamid.HBgLnophone", timestamp: "1794390000", type: "text", from_user_id: "LB.1234567890abcdef", username: "maya.k",
+               text: { body: "بدي علبتين لبنة ليبان ليه وربطتين خبز عبعقلين" }, kapso: { direction: "inbound", origin: "cloud_api" } },
+    conversation: { id: "conv_np", contact_name: "Maya", phone_number: null, business_scoped_user_id: "LB.1234567890abcdef", phone_number_id: "PN_CUSTOMER" },
+    is_new_conversation: true, phone_number_id: "PN_CUSTOMER",
+  };
+
+  it("asks for a number the rider can call before the card, stores it, then sends the card with no model call", async () => {
+    const who = senderKey(KapsoReceived.parse(NO_PHONE_FIXTURE));
+    expect(who).toEqual({ waUserId: "LB.1234567890abcdef", phone: undefined });
+    const t = setup([read(ORDER_READING)], { who: { waUserId: who.waUserId! } });
+    const c = await t.customer();
+    await db.rpc("save_customer_pin", { p_party: c.party_id, p_lat: 33.68, p_lng: 35.56, p_village: BAAKLINE });
+    expect(await db.rpc("customer_contact_phone", { p_party: c.party_id })).toBeNull();
+
+    await t.conv.fetch(t.inbound(NO_PHONE_FIXTURE.message));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.to).toBe("LB.1234567890abcdef");                       // replies go to the id, as Kapso accepts it
+    expect(outbound[0]!.body.text.body).toBe("قبل ما نبعتلك ورقة الطلب: شو رقم التلفون يلي فيه السائق يتّصل فيك عليه؟");
+    expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
+
+    await t.conv.fetch(t.text("03 12 34"));                                          // meant as a number, too short to be one
+    await t.conv.alarm();
+    expect(outbound.at(-1)!.body.text.body).toContain("الرقم مش واضح");
+
+    await t.conv.fetch(t.text("رقمي 03 123 456"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);                                                   // no model for the number or the card
+    expect(outbound.at(-1)!.body.interactive.body.text).toContain("$8.24");
+    expect(await db.rpc("customer_contact_phone", { p_party: c.party_id })).toBe("+9613123456");
+    // The number is for the rider to call. It never becomes a WhatsApp address.
+    expect(await db.rpc("party_address", { p_party: c.party_id, p_line: "customer" })).toBe("LB.1234567890abcdef");
+
+    // The rider's job card shows it.
+    const order = await db.one(`select id from orders where customer_id = $1`, [c.party_id]);
+    const driver = (await db.one(`insert into parties(role, display_name) values ('driver', 'R') returning id`)).id;
+    const delivery = (await db.one(`insert into deliveries(driver_id) values ($1) returning id`, [driver])).id;
+    await db.pg.query(`insert into delivery_stops(delivery_id, seq, kind, order_id) values ($1, 1, 'dropoff', $2)`, [delivery, order.id]);
+    expect((await db.rpc("rider_job", { p_delivery: delivery })).stops[0].phone).toBe("+9613123456");
+  });
+
+  it("a customer whose WhatsApp number we have is never asked", async () => {
+    const t = setup([read(ORDER_READING)]);
+    const c = await t.customer();
+    await db.rpc("save_customer_pin", { p_party: c.party_id, p_lat: 33.68, p_lng: 35.56, p_village: BAAKLINE });
+    await t.conv.fetch(t.text("بدي علبتين لبنة ليبان ليه وربطتين خبز"));
+    await t.conv.alarm();
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.type).toBe("interactive");
+    expect(await db.rpc("customer_contact_phone", { p_party: c.party_id })).toBe(t.who.phone);
+  });
+
+  it("the database refuses a malformed number", async () => {
+    const c = await setup([]).customer();
+    await expect(db.rpc("set_contact_phone", { p_party: c.party_id, p_phone: "03123456" })).rejects.toThrow(/BAD_PHONE/);
   });
 });
 

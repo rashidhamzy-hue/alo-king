@@ -6,7 +6,8 @@ import { processOpsTurn } from "./ops-turn";
 import type { SendRequest, SendResult } from "@ak/wa/gateway";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
-import { answerQuick, completeAfterPin, planReading } from "@ak/agents/pipeline";
+import { answerQuick, completePending, planReading } from "@ak/agents/pipeline";
+import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
@@ -67,7 +68,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   };
   const texts: string[] = [];
   const transcripts: { primary: string; secondary?: string }[] = [];
-  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0;
+  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false;
 
   for (const p of pending) {
     const m = p.event.message;
@@ -142,6 +143,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         await say(FIXED.optIn);
         return { outcome: "opt_in", sent };
       }
+      // The number a rider can call, when we have just asked for it (1.19). Read only then, so a quantity is never taken for a phone.
+      if (state.awaiting === "phone") {
+        const phone = parsePhone(body);
+        if (phone) {
+          await call(db, "set_contact_phone", { p_party: conv.party_id, p_phone: phone });
+          phoneSaved = true;
+          if (looksLikePhoneAttempt(body)) continue;                // just the number: nothing else to read
+        } else if (looksLikePhoneAttempt(body)) { await say(FIXED.badPhone); buttonsHandled++; continue; }
+      }
       texts.push(body);
       continue;
     }
@@ -163,12 +173,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (m.type === "image") { texts.push(`[image received${m.image?.caption ? `: ${m.image.caption}` : ""}]`); continue; }
   }
 
-  if (texts.length === 0 && transcripts.length === 0) {
+  if (texts.length === 0 && transcripts.length === 0 && !phoneSaved) {
     if (audioFailed > 0) { await say(FIXED.audioUnusable); return { outcome: "audio_unusable", sent }; }
     return { outcome: buttonsHandled ? "buttons" : "ignored", sent };
   }
   if (conv.human_handoff) return { outcome: "human", sent };          // a person has this chat; the model stays out
-  const pinOnly = pins > 0 && texts.length === pins && transcripts.length === 0;
+  // Only a pin or a phone number arrived: the data a waiting card needed, nothing to read.
+  const dataOnly = (pins > 0 || phoneSaved) && texts.length === pins && transcripts.length === 0;
 
   const remember = () => {
     sent.push(...ctx.sent.texts);
@@ -184,8 +195,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     model: deps.modelName, input_tokens: usage.input, output_tokens: usage.output, latency_ms: Date.now() - started, outcome,
     trace: { path, intent, sent: ctx.sent.texts } });
   try {
-    // A pin for a card that was only waiting on it: the card goes out, no model.
-    if (pinOnly && (await completeAfterPin(ctx))) { remember(); await record("ok", "card_after_pin"); return { outcome: "card", sent }; }
+    // A pin or a number for a card that was only waiting on it: the card goes out, no model.
+    if (dataOnly) {
+      const waited = state.awaiting;
+      if (await completePending(ctx)) {
+        remember(); await record("ok", state.awaiting === "phone" ? `ask_phone_after_${waited}` : `card_after_${waited}`);
+        return { outcome: "card", sent };
+      }
+      if (texts.length === 0) { await say(FIXED.phoneSaved); remember(); return { outcome: "answered", sent }; }
+    }
 
     // Where is my order, when are you open, same as last time: typed in a few words, answered by the database alone (1.3).
     const quick = texts.length === 1 && transcripts.length === 0 && pins === 0 ? quickIntent(texts[0]!) : null;
