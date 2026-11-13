@@ -25,8 +25,8 @@ All amounts in US dollars. Everything marked (placeholder) is an assumption nobo
 | One picker per 80 orders a day; one ops lead per 150 | | placeholder |
 
 ## Technology
-Subscriptions at launch, per month: Kapso Pro 25, Supabase 30, Cloudflare Workers Paid 5, Anthropic fixed jobs 10, domain 3, two +961 lines 10. Total about 83.
-At 300 orders a day: about 272, plus Kapso overage.
+Subscriptions at launch, per month: Kapso Pro with four connected numbers 35 (Pro includes 3, 10 USD per extra; 2 staging + 2 production), Supabase 30, Cloudflare Workers Paid 5, Anthropic fixed jobs 10, domain 3, two +961 lines 10. Total about 93.
+At 300 orders a day: about 282, plus Kapso overage (Pro allows 100,000 messages a month; a message can count there and also carry a Meta fee).
 Per order: Meta message fees about 0.07-0.09 (10 billed messages at 0.0091 after 2,000 free a month; verify on the first real bill).
 Checked 12 November 2026 against published summaries of Meta's 1 October 2026 rate card: free-form replies are billed at the utility rate
 after 1,000 free per number per month, utility templates are billed from the first one, Lebanon is priced as "Rest of Middle East".

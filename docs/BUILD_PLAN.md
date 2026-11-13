@@ -115,13 +115,13 @@ Rule of escalation: if a session cannot make its tests pass after two honest att
 | 0.3 | Supabase project with a staging branch | Region nearest Lebanon; confirm latency. Apply all migrations and seeds. Create the private `media` bucket. |
 | 0.4 | Permission check on Supabase | `scripts/check_permissions.sh` against staging. It has only passed on plain Postgres. |
 | 0.5 | Cloudflare Workers Paid, staging | `wrangler.jsonc` has complete `staging` and `production` environments; both bundle in a dry run. Still to do on the account: Worker, conversation object, queue and dead-letter queue, one-minute cron. Secrets via `wrangler secret`. |
-| 0.6 | Kapso account with test numbers | Point both webhooks at staging. Save ten real payloads of each event type under `test/fixtures/kapso/` before changing any parser. |
+| 0.6 | Kapso account with test numbers | Point both webhooks at staging. Save ten real payloads of each event type under `test/fixtures/kapso/` before changing any parser. Kapso facts (13 Nov 2026): message webhooks are set per phone number, one for each of the four numbers; map `phone_number_id` to line in our own config. There is no single switch that turns off Kapso AI agents and workflows: open each one left from the earlier attempt, disable its trigger, and verify nothing replies but us (on 12 Nov the project had no workflows and no Meta agents). Pro includes 3 connected numbers, 10 USD for each extra: four numbers (2 staging, 2 production) are 35 USD a month (`docs/COST_MODEL.md`). |
 | 0.7 | Anthropic API keys with a monthly spend limit | One for staging, one for production. |
 | 0.8 | Error tracking, free tier | Worker exceptions and failed cron runs alert the builder. |
 | 0.9 | Meta ownership and verification | Confirm the WhatsApp Business Account and both numbers sit in Alo King's own Meta business portfolio (so the numbers survive a change of provider). Start Meta business verification. Check on a real payload that click-to-WhatsApp referral data reaches us through Kapso. |
 | 0.10 | Builder tools | Install the Supabase and Cloudflare skills; Supabase MCP on staging only, read-only, one project (`.mcp.json.example`); Kapso plugin on a staging key after checking what its scopes can send. Decisions in `docs/TOOLS.md`. |
 | 0.11 | Deploy and recovery procedure proven once | Walk `docs/RUNBOOK.md` on staging: deploy, roll back the Worker, rotate one secret. Mark each step proven. |
-| 0.12 | Meta billing guard | A payment method on the WhatsApp account before any real traffic. Since 1 October 2026 replies are billed after 1,000 free a month per number; an account with no payment method stops replying when the allowance runs out. |
+| 0.12 | Meta billing guard | Use Kapso managed billing (partner_managed, Kapso's Meta app, available on Pro). Load Kapso credits before any billable send; sends pause when the balance is insufficient. The sandbox ops line also draws on Kapso credits. Since 1 October 2026 replies are billed after 1,000 free a month per number. |
 | 0.13 | Staging demo with evidence | From a real phone to the staging customer number: a three-item Arabic order, the card, the confirm tap, a rider accepting and delivering on the staging ops number, cash recorded. Then `scripts/staging_evidence.sql` for that order, saved with screenshots under `docs/evidence/`. Passes when every state is an allowed transition, stock moved equals items sold, each ledger transaction and the whole ledger sum to zero, and no message was sent twice. Needs sessions A1 and B1 merged. |
 
 Phase 0 status on 12 November 2026: done in the tree and tested locally: CI definition, secret and dependency scanning, the two
@@ -143,8 +143,8 @@ Not in this phase: the two real +961 numbers. They join in Phase 4.
 | 1.3 | Answers without the model: order status, hours, "same as last time", out-of-area villages. | `order_status_for`, `repeat_order_lines`, `resolve_place` |
 | 1.4 | Card shows any amount owed from a failed delivery and asks for prepayment when required. | `packages/agents/src/order-card.ts` |
 | 1.5 | Money guardrail: no free-text model reply may state a price, fee or total. | gateway `preflight` |
-| 1.6 | Payment screenshots: stored privately, queued for ops; an optional model read pre-fills amount and reference; a person confirms. | `turn.ts`, `payment_proofs` |
-| 1.7 | Voice notes: Kapso transcript first; second provider behind a setting so 5.8 can score both. | `packages/agents/src/stt.ts` |
+| 1.6 | Payment screenshots: stored privately, queued for ops; an optional model read pre-fills amount and reference; a person confirms. | `turn.ts`, `payment_proofs` Fetch media through Kapso's `media_url`, never a raw Meta link, and copy what we must keep into our own private storage at once. |
+| 1.7 | Voice notes: Kapso transcript first; second provider behind a setting so 5.8 can score both. | `packages/agents/src/stt.ts` Fetch audio through Kapso's `media_url`, never a raw Meta link, and copy what we must keep into private storage at once. Kapso's transcription runs through ElevenLabs, which may keep transcripts up to three years: the founder decides between stating this in the privacy notice and using our own provider behind the existing setting. Score Lebanese Arabic on the real Shouf notes (5.8) before choosing. |
 | 1.8 | Typing indicator on arrival; per-customer cap on model turns per hour, then alert a person. | `turn.ts` |
 | 1.9 | Move `concierge-flow.test.ts` from its fake database to the real schema; add ten voice-note cases to `evals/`. | `test/db/` |
 | 1.10 | Neutral and factual Concierge. The prompt rules exist (`prompts/concierge.md`). Wire `evals/cases/neutral_and_food_facts.json` into `evals/run.ts`; add an output check that blocks quality adjectives and unapproved food claims. | `evals/`, gateway `preflight` |
@@ -158,8 +158,52 @@ Not in this phase: the two real +961 numbers. They join in Phase 4.
 | 1.18 | Stay on the job | Meta has barred general-purpose AI chatbots from the Business Platform since 15 January 2026. Asked for anything unrelated to ordering, delivery or an existing order (homework, general questions, long chat), the Concierge declines in one friendly line and offers to help with an order. Prompt rule plus eval cases. |
 | 1.19 | No phone number in the webhook | WhatsApp usernames can hide a customer's number. Identity already rests on the business-scoped id. When no number arrives, ask for a number the rider can call before the order card, and store it on the customer. Test with a fixture that has no phone. |
 | 1.20 | Same as last time | A returning customer with a closed order is offered their last basket as one button, re-priced and re-checked for stock by `quote_order`; a missing item is named before the card. `repeat_order_lines` exists. Never shown to a customer with no closed order. |
+| 1.21 | WhatsApp catalog for the 291 products | Browse with pictures, add to cart, send. The database stays the only source of price and stock; the catalog never confirms. Session K1. Details below the table. |
 
 Every misread order becomes an eval case before it is fixed.
+
+### 1.21 WhatsApp catalog for the 291 products (session K1)
+
+Goal: customers browse a categorised catalog with pictures inside WhatsApp, add items to a cart, and send it. The database
+stays the only source of price and stock. The catalog is a way to browse and choose, never a way to confirm.
+
+Facts from Kapso (13 Nov 2026): Kapso can send catalog, product and product-list messages using Meta catalog and product
+ids, and passes incoming cart orders to our webhook. It has no API to create or edit a catalog; the catalog lives in Meta
+Commerce Manager.
+
+Build:
+1. Categories. Every product gets one customer-facing category and a sort order, in Arabic and English (about 12 to 15
+   categories). The founder approves the list.
+2. Feed. A protected Worker endpoint serves the catalog as a Meta data feed generated from the database: id, title,
+   description, price, availability, picture address, category, brand. Only products with an approved, usable picture
+   (5.17) are included.
+3. Meta side, once. Create the catalog in Commerce Manager under Alo King's business portfolio, add the feed on the
+   shortest schedule Meta allows, create one collection per category, and connect the catalog to the WhatsApp account.
+   Catalog visibility and the cart are switched on per number with Meta's Commerce Settings API or Meta's tools: try the
+   call through Kapso's Meta proxy on staging; if it is not supported, use Meta's tools. Write every step into
+   `docs/RUNBOOK.md`.
+4. Sending. The Concierge can send the full catalog, a product list for one category ("what dairy do you have?"), or a
+   single product. All go through the gateway as `interactive` messages with a dedupe key; no new message type is added
+   (invariant 2). A product-list message holds at most 30 products in at most 10 sections: a category with more than 30
+   products is split into named sub-lists, or the customer gets the full catalog view.
+5. Receiving. A cart order is parsed into the same lines a typed order produces and goes through `plan_order` and
+   `quote_order`. The customer then gets the normal order card and confirms with a tap. If a price or stock level changed
+   since Meta fetched the feed, the card says so before the tap.
+6. Sold out. When an item goes out of stock the database refuses it at once, even if the catalog still shows it until
+   the next feed fetch.
+
+Check against Meta's current documentation before building: required feed fields (including whether a web link per
+product is mandatory), picture size rules, and which product types Meta's commerce policy refuses.
+
+Tests:
+- A cart order and the same order typed in chat produce identical quotes.
+- A cart item that is out of stock is named and removed before the card.
+- A cart with a stale price shows the database price on the card.
+- No product without an approved picture appears in the feed.
+- No product-list message is ever built with more than 30 products or 10 sections.
+- A catalog cart never confirms an order without the customer's tap.
+
+Must be live on staging before the paid pilot (Phase 7).
 
 ## Phase 2: hub operations
 
@@ -205,6 +249,7 @@ signed-in person. Roles: admin, ops lead, picker.
 | 3.15 | Petty cash and bank deposits | Two more ledger movements at day close: cash to the bank (with the slip photo) and petty cash spent (with a reason and a name). The hub cash account must match the counted drawer. |
 | 3.16 | Complaint cases | One record per complaint: order, kind (late, missing, wrong, quality, allergen, payment), owner, what was done, refund link, closed by whom. An allergen complaint opens at the top of the queue and holds the product (2.11) until a person clears it. |
 | 3.17 | Day-open checklist | One screen: orders waiting, deliveries not closed from yesterday, stock expiring in 3 days, receipts not yet counted, rider cash and rider payables outstanding, open cases, last cron heartbeat. SQL only. |
+| 3.18 | Picture review page (5.17 step 6) | The item and its proposed picture side by side, with source and licence; approve or reject. Writes only through the 0050 functions. |
 
 Build it plain: server-rendered pages. No design work until the pilot shows what ops uses.
 
@@ -214,16 +259,16 @@ Build it plain: server-rendered pages. No design work until the pilot shows what
 | --- | --- | --- |
 | 4.1 | Replace assumed webhook shapes with the saved fixtures: message, status, marketing preference, sender id. | The parser was written from documentation. |
 | 4.2 | The two +961 numbers: business verification, display names, connect through Kapso. | Needs company documents. |
-| 4.3 | Submit utility templates (order cancelled, rider at the door, payment received); wire each to its event. | Meta approval takes days. |
+| 4.3 | Submit utility templates (order cancelled, rider at the door, payment received); wire each to its event. | Meta approval takes days. Templates belong to the WhatsApp account; Meta review is often about 24 hours and can be longer. Submit early. |
 | 4.4 | Read the first real bill; correct message costs per number and category in `docs/COST_MODEL.md`. | Free messages apply only to some categories. |
 | 4.5 | Worker end-to-end test: webhook path and `scheduled()` in the local Workers runtime against real Postgres, including a crash mid-turn. | No automated test covers these today. |
 | 4.6 | Dispatch race: two dispatches for one rider on two real connections; only one wins. | PGlite has one connection. |
 | 4.7 | Speed: message to card, on a phone in the pilot area, typed and voice. Starting target: most typed orders within 10 seconds; revise once measured. | Depends on four services together. |
 | 4.8 | Production Supabase: point-in-time recovery on, a restore tried once, security advisor clean, permission check re-run. | Real money needs a restorable database. |
 | 4.9 | Outage runbook: how ops takes orders by phone and enters them afterwards. Tested once on purpose. | A procedure, not code. |
-| 4.10 | Heartbeat alert if webhooks or the cron go silent; an hourly test order on staging. | Silence is the failure nobody reports. |
+| 4.10 | Heartbeat alert if webhooks or the cron go silent; an hourly test order on staging. | Silence is the failure nobody reports. Also: subscribe to Kapso's project webhook for account enforcement events (disabled, restricted, reinstated, violation); each one opens an ops exception and alerts the founder. Kapso has no webhook for quality-rating changes: once a day poll `GET /platform/v1/whatsapp/phone_numbers` and alert if `quality_rating` is anything but the top rating. Alert when the Kapso credit balance falls below a set amount. |
 | 4.11 | Record real tokens and cost per order from `agent_runs`; correct `docs/COST_MODEL.md`. | The current figure is an estimate. |
-| 4.12 | Message meter | Count billable messages per number per month from `wa_messages`; warn at 800 of the 1,000 free service messages; show cost per order at day close. | Billing changed on 1 October 2026. |
+| 4.12 | Message meter | Count billable messages per number per month from `wa_messages`; warn at 800 of the 1,000 free service messages; show cost per order at day close. | Billing changed on 1 October 2026. Kapso's own allowance is 100,000 messages a month on Pro; a message can count there and also incur a Meta fee. |
 | 4.13 | Official Kapso SDK inside the gateway | Try `@kapso/whatsapp-cloud-api` in `packages/wa/src/kapso.ts` on staging: same sends, typed errors with a retry hint feeding the outbox, webhook signature helper. Keep it only if the fixtures from 0.6 pass unchanged. `gateway.ts` stays the only caller. | Needs live Kapso. |
 
 ## Phase 5: data and launch readiness (founder and team; starts now)
@@ -238,7 +283,7 @@ Build it plain: server-rendered pages. No design work until the pilot shows what
 | 5.6 | Travel times | `scripts/fetch_village_coords.mjs`, then `scripts/build_travel_times.mjs` from the confirmed hub, on a machine with open internet. Check a sample by riding. Then the route check in `docs/DECISIONS.md`: a rider drives 20 hub-to-village journeys with a timer; compare the OSRM figure, and Google Routes if the founder approves a billing account, against the measured time. Our own measured times replace both as deliveries accumulate. |
 | 5.7 | Riders | Number, hours, written terms: fees and tips are theirs, cash cap, drops, shortfalls. A Lebanese labour lawyer reads the shortfall and damaged-note policy before it is used. |
 | 5.8 | Voice-note evaluation | Hand-correct the 38 transcripts; score item and quantity accuracy for both providers. |
-| 5.9 | Data retention | Proposal: voice notes and photos deleted after 90 days unless tied to a payment or complaint; chat text after 12 months; financial records kept as law requires. Built as a nightly job once approved. |
+| 5.9 | Data retention | Proposal: voice notes and photos deleted after 90 days unless tied to a payment or complaint; chat text after 12 months; financial records kept as law requires. Built as a nightly job once approved. Set a retention window on the Kapso project to match; Kapso's default keeps message data indefinitely. |
 | 5.10 | Daily exchange rate owner | One named person. |
 | 5.11 | Lawyer and accountant | Rider status and insurance; food-handling permits; VAT and receipts, including whether the rider's delivery fee is taxable to the company; privacy notice under Law 81 of 2018; refund terms; liability wording for repeated allergen and halal declarations; whether a cash shortfall can be charged to a rider. |
 | 5.12 | Market and money | Test-order the competitor rolling out in Chouf; seasonal assortment for Ramadan and Lent 2027; working capital for opening stock, rider change float and one month of fixed costs. |
@@ -264,8 +309,8 @@ Goal: one clean picture for each of the 291 catalog items, approved by a person,
    unknown": it may guide the intake photo but is never shown to customers until the lawyer's line (5.11) allows it.
 5. The best usable candidate is resized (longest side 1200 px, under 300 KB), saved to the private `media` bucket with its
    source and licence, status `proposed`.
-6. Review: one console page (`apps/console/src/images/`, reserved for P1) shows the item and the picture side by side;
-   a person approves or rejects each one.
+6. Review: task 3.18 (session D1) adds the console page that shows the item and the picture side by side; a person
+   approves or rejects each one. Until it exists, pictures wait as `proposed`.
 7. Only approved pictures leave the database: one SQL function returns an item's picture only when it is approved, as a
    short-lived signed link. Customers may see pictures only inside allowed message types (the image header of an
    interactive message) and later on the website. Never add `image` to the gateway allowlist (invariant 2). Using the
@@ -297,6 +342,7 @@ Exit gate, all together: zero unexplained balance every day; no lost or unanswer
 ## Phase 7: paid pilot
 
 Paying customers in the pilot zone, invite-first, limited hours, groceries only until a restaurant is live.
+Entry condition: the WhatsApp catalog (1.21) is live on staging.
 - Watch weekly: orders per day, repeat customers, cards correct without help, on-time deliveries, failed deliveries, rider earnings per hour, contribution per order against `docs/COST_MODEL.md`, day-close balance.
 - Stop and fix if: an unexplained balance cannot be traced within a day, an order is lost, rider earnings fall to a level riders will not stay at, or failed deliveries keep rising.
 - Widen when four straight weeks close clean: hours, then villages, then restaurants. One at a time.
@@ -375,7 +421,7 @@ same SQL functions, never a second system.
 
 ## Build sessions
 
-Twelve Claude Code sessions take the project to the shadow run, plus two audits. Up to three run at the same time.
+Thirteen Claude Code sessions take the project to the shadow run, plus two audits. Up to three run at the same time.
 Each session is one bundle of tasks, one branch, one pull request, with one commit per task.
 
 | Session | Lane | Model | Tasks | Can start when | Owns these files |
@@ -386,11 +432,12 @@ Each session is one bundle of tasks, one branch, one pull request, with one comm
 | A2 | Infra | Opus 5.5 | 0.13, 4.1, 4.3, 4.5, 4.6, 4.10, 4.12, 4.13 | A1 and B1 merged | `apps/gateway/src/index.ts`, `packages/wa/` |
 | B2 | Ordering | Opus 5.5 | 1.4, 1.5, 1.6, 1.10, 1.14, 1.16, 1.18 | B1 merged | as B1 |
 | C2 | Hub | Opus 5.5 | 2.1, 2.2, 2.3, 2.4, 2.5, 2.10 | C1 merged; runs beside B2 | `apps/gateway/src/ops-turn.ts`, migrations 0030-0039 |
-| D1 | Console | Opus 5.5 for 3.1, then Sonnet 5.5 | 3.1 to 3.10 | C1 merged; runs beside B2 and C2 | `apps/console/` (new) |
+| D1 | Console | Opus 5.5 for 3.1, then Sonnet 5.5 | 3.1 to 3.10, 3.18 | C1 merged; runs beside B2 and C2 | `apps/console/` (new) |
 | B3 | Ordering | Sonnet 5.5 | 1.7, 1.8, 1.13, 1.17, 2.9 | B2 merged | as B1 |
 | C3 | Hub | Opus 5.5 | 2.8 | B2 and C2 merged | migrations 0040-0044, `order-card.ts`, `dispatch_order` |
+| K1 | Catalog | Opus 5.5 | 1.21 | B2 and P1 merged. Edits `turn.ts`, so never beside B3 | the feed endpoint (new file), the cart-order branch in `apps/gateway/src/turn.ts`, migration 0051, its tests, the 1.21 steps in `docs/RUNBOOK.md` |
 | D2 | Console | Opus 5.5 | 3.11 to 3.17, 5.15 | D1 and C2 merged; runs beside B3 and C3 | `apps/console/`, migrations 0045-0049 |
-| P1 | Pictures | Sonnet 5.5 | 5.17 | A1 and D1 merged; runs beside any other lane | `scripts/images/` (new), `.github/workflows/images.yml` (new), `apps/console/src/images/` (new), migration 0050, `test/db/product-images.test.ts` |
+| P1 | Pictures | Sonnet 5.5 | 5.17 (steps 1-5, 7, 8; the review page is 3.18 in D1) | Now: A1 has merged. Runs beside any other lane. Must merge before K1 | `scripts/images/` (new), `.github/workflows/images.yml` (new), migration 0050, `test/db/product-images.test.ts` |
 | G1 | Audit | Fable 5.2 | Read every migration and test; try to break money, permissions, recovery and the send path | Everything above merged | Findings only; fixes go to Opus |
 | A3 | Infra | Sonnet 5.5 | 4.2, 4.4, 4.7, 4.8, 4.9, 4.11 | The +961 numbers and production accounts exist | production configuration |
 | Phase 6 | | | Shadow run, by people | G1 findings closed | |
