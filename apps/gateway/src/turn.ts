@@ -7,19 +7,22 @@ import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gat
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
-import { answerQuick, completePending, planReading } from "@ak/agents/pipeline";
+import { answerQuick, askPinVillage, choosePinVillage, completePending, planReading, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
-import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
+import { buttonReplyText, FIXED, parseOrderButton, parsePinVillageButton } from "@ak/agents/order-card";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
 
+interface SavedPin { place_id: string; village_id: string | null; village: string | null; village_ar?: string | null; served?: boolean | null;
+  status: "located" | "unsure" | "outside"; said_village_id?: string | null; said_village_ar?: string | null;
+  candidates?: { village_id: string; name_ar: string | null; name_en: string }[] }
 export interface Pending { line: "customer" | "ops"; who: { waUserId?: string; phone?: string }; event: KapsoReceived }
 export interface TurnDeps {
   db: SupabaseClient;
@@ -159,6 +162,17 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           buttonsHandled++; await say(FIXED.error); await handoff(db, conv.conversation_id, `substitution_error: ${String(err).slice(0, 200)}`); continue;
         }
       }
+      // The village a pin is in, tapped when the pin alone was not clear (B4). The database checks it is near the pin.
+      const pinVillage = parsePinVillageButton(tapped);
+      if (pinVillage) {
+        buttonsHandled++;
+        if (!(await choosePinVillage(ctx, pinVillage))) {
+          state.awaiting = state.lastQuote ? "pin" : null;
+          await sendRaw(askLocation(FIXED.pinVillageRefused));
+        } else if (!(await completePending(ctx))) await say(FIXED.pinSaved(state.pinCheck?.villageAr ?? ""));
+        sent.push(...ctx.sent.texts.splice(0));
+        continue;
+      }
       if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
       if (tapped === "marketing:yes" || tapped === "marketing:no") {
         buttonsHandled++;
@@ -170,14 +184,17 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       continue;
     }
 
-    // 2. A location pin is data, not conversation.
+    // 2. A location pin is data, not conversation. The pin decides the village (B4): on 13 Nov a pin in Khraibeh was saved as
+    //    Baakline because the text had said Baakline. What the conversation believed before is passed only to be named.
     if (m.type === "location" && m.location) {
-      const place = await call<{ place_id: string; village_id: string | null; village: string | null }>(db, "save_customer_pin",
+      const place = await call<SavedPin>(db, "save_customer_pin",
         { p_party: conv.party_id, p_lat: m.location.latitude, p_lng: m.location.longitude, p_village: state.villageId ?? null });
       state.placeId = place.place_id;
-      if (place.village_id) state.villageId = place.village_id;
+      state.villageId = place.village_id ?? null;
+      state.pinCheck = { status: place.status, villageAr: place.village_ar ?? null, served: place.served ?? null, candidates: place.candidates ?? [],
+                         saidAr: place.village_id && place.said_village_id && place.said_village_id !== place.village_id ? place.said_village_ar ?? null : null };
       pins++;
-      texts.push(`[location pin received${place.village ? `, village: ${place.village}` : ""}]`);
+      texts.push(`[location pin received, ${place.village ? `village: ${place.village}` : "village not clear: the customer is asked to choose"}]`);
       continue;
     }
 
@@ -273,6 +290,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         return { outcome: "card", sent };
       }
       if (texts.length === 0) { await say(FIXED.phoneSaved); remember(); return { outcome: "answered", sent }; }
+      // A pin with no basket waiting, that no village clearly owns: the customer chooses by tap, never the model.
+      if (pins > 0 && !state.villageId && await askPinVillage(ctx)) { remember(); await record("ok", "ask_pin_village"); return { outcome: "answered", sent }; }
     }
 
     // Where is my order, when are you open, same as last time: typed in a few words, answered by the database alone (1.3).
@@ -316,8 +335,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // A restriction said now applies to the order built now; keeping it for later waits for the customer's yes (1.14).
     const stated = intent?.restrictions ?? [];
     if (stated.length) state.orderRestrictions = [...new Set([...(state.orderRestrictions ?? []), ...stated])];
+    const said = [...texts, ...transcripts.map((t) => t.primary)].join("\n");
+    // A basket waiting on where to deliver, and an answer with no new items: those words are the address (B4). The card follows.
+    if (intent && waitingForPlace(ctx)) {
+      const took = await takeAddress(ctx, intent, said);
+      if (took.done) { remember(); await record("ok", took.path); return { outcome: took.path.includes("card") ? "card" : "answered", sent }; }
+    }
     // 2. The database decides: card, handoff, or a question.
-    const routed = await planReading(ctx, intent, [...texts, ...transcripts.map((t) => t.primary)].join("\n"));
+    const routed = await planReading(ctx, intent, said);
     if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     const res = await runAskLoop(model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
