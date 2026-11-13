@@ -29,6 +29,10 @@ export interface Deps {
   environment: string;
   supabaseUrl: string;
   now(): Date;
+  /** 5.15: the label reader (src/label.ts), when the console has a model key; absent, intake is typed by hand. */
+  readLabel?: (images: import("./label").LabelImage[]) => Promise<import("./label").LabelReading | null>;
+  /** The model the label reader uses, recorded with each reading. */
+  labelModel?: string;
 }
 
 export interface Staff { partyId: string; userId: string; role: Role; name: string; csrf: string }
@@ -112,6 +116,8 @@ export function explain(e: unknown): string {
       [/^CERTIFIED_NEEDS_CERTIFICATE/, "Certified needs a certificate or a lab report as evidence."],
       [/^FACT_VALUE/, "That value does not fit what the fact is about."],
       [/^SECOND_OPINION_ONLY/, "Open Food Facts is a second opinion only: confirm the field against the pack."],
+      [/^FACT_NOT_PENDING/, "That field was already decided."],
+      [/^CONFIRM_STATUS/, "Confirm as declared, certified or unknown: the pack either says it or it does not."],
       [/^DAY_NOT_OVER/, "That day has not come yet."],
       [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
     ];
