@@ -5,9 +5,10 @@
 set -uo pipefail
 status=0
 for q in ak-inbound-staging ak-inbound-staging-dlq; do
-  out=$(npx wrangler queues create "$q" 2>&1); rc=$?
+  out=$(${WRANGLER:-npx wrangler} queues create "$q" 2>&1); rc=$?
   if [ $rc -eq 0 ]; then echo "queue $q created"; continue; fi
-  if echo "$out" | grep -qi "already exists"; then echo "queue $q exists"; continue; fi
+  # Cloudflare says "already taken ... [code: 11009]" (seen live on 13 Nov); older wording was "already exists".
+  if echo "$out" | grep -qiE "already (taken|exists)|code: 11009"; then echo "queue $q exists"; continue; fi
   if echo "$out" | grep -qiE "paid plan|workers paid|upgrade your plan|10[0-9]{3}.*(plan|paid)"; then echo "queue $q: this plan cannot create queues"; echo "$out" | head -5; status=2; continue; fi
   echo "queue $q failed:"; echo "$out" | head -20; exit 1
 done
