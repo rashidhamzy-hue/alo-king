@@ -41,14 +41,15 @@ async function main() {
     const first = (r.payload?.batch ? r.payload.data?.[0] : r.payload) ?? {};
     const type = first?.message?.type ?? "event";
     const k = `${r.event}/${type}`;
-    const list = kept.get(k) ?? []; if (list.length < MAX_PER_KIND) { list.push({ line: r.line, event: r.event, body: scrub(r.payload) }); kept.set(k, list); }
+    const list = kept.get(k) ?? []; if (list.length < MAX_PER_KIND) { list.push({ line: r.line, event: r.event, source: "webhook", body: scrub(r.payload) }); kept.set(k, list); }
   }
-  if (existsSync(out)) for (const d of readdirSync(out)) if (d.startsWith("whatsapp.")) rmSync(`${out}/${d}`, { recursive: true });
+  // Only earlier webhook captures are replaced; the api-* and doc-* fixtures (task 4.1) stay.
+  if (existsSync(out)) for (const d of readdirSync(out)) if (d.startsWith("whatsapp.")) for (const f of readdirSync(`${out}/${d}`)) if (!/^(api|doc)-/.test(f)) rmSync(`${out}/${d}/${f}`);
   let files = 0;
   for (const [k, list] of kept) {
     const [event, type] = k.split("/");
     mkdirSync(`${out}/${event}`, { recursive: true });
-    list.forEach((f, i) => { writeFileSync(`${out}/${event}/${type}-${String(i + 1).padStart(2, "0")}.json`, JSON.stringify(f, null, 2) + "\n"); files++; });
+    list.forEach((f, i) => { writeFileSync(`${out}/${event}/webhook-${type}-${String(i + 1).padStart(2, "0")}.json`, JSON.stringify(f, null, 2) + "\n"); files++; });
   }
   const lines = [...kept].map(([k, l]) => `${k}: ${l.length}`).sort();
   console.log(`${files} fixtures from ${rows.length} stored events\n${lines.join("\n")}`);

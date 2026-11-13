@@ -1,0 +1,54 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.received",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": {
+        "id": "wamid.TEST469C473C791C",
+        "from": "12036602328"
+      },
+      "from": "96170000006",
+      "from_parent_user_id": null,
+      "from_user_id": "XX.0000000000000002",
+      "id": "wamid.TESTA323AFE265F9",
+      "kapso": {
+        "direction": "inbound",
+        "status": "delivered",
+        "processing_status": "pending",
+        "origin": "cloud_api",
+        "phone_number": "96170000006",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000002",
+        "contact_name": "Test Person 2",
+        "content": "MJ82+RJ7, Boqaata, Lebanon\nMJ82+RJ7, Boqaata, Lebanon\nLat: 33.96170000008, Long: 35.96170000009",
+        "message_type_data": {
+          "latitude": 33.667168128909,
+          "longitude": 35.60152284801,
+          "name": "MJ82+RJ7, Boqaata, Lebanon",
+          "address": "MJ82+RJ7, Boqaata, Lebanon"
+        }
+      },
+      "location": {
+        "name": "MJ82+RJ7, Boqaata, Lebanon",
+        "address": "MJ82+RJ7, Boqaata, Lebanon",
+        "latitude": 33.667168128909,
+        "longitude": 35.60152284801
+      },
+      "timestamp": "1792772354",
+      "type": "location",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "contact_name": "Test Person 2",
+      "phone_number": "96170000006",
+      "business_scoped_user_id": "XX.0000000000000002",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

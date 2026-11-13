@@ -28,6 +28,13 @@ const handler = {
     }
     return gateway.fetch(req, env, ctx);
   },
+  // Sentry cron monitor (4.10): a check-in every run. A missed minute, or a run over its time, alerts in Sentry,
+  // which is the one alarm that still works when the Worker itself is the thing that went silent.
+  async scheduled(c: ScheduledController, env: WorkerEnv) {
+    if (!env.SENTRY_DSN) return gateway.scheduled(c, env);
+    return Sentry.withMonitor(`gateway-cron-${env.ENVIRONMENT ?? "unknown"}`, () => gateway.scheduled(c, env),
+      { schedule: { type: "crontab", value: "* * * * *" }, checkinMargin: 3, maxRuntime: 3, timezone: "UTC", failureIssueThreshold: 3, recoveryThreshold: 1 });
+  },
 } as unknown as ExportedHandler<WorkerEnv>;   // the gateway's queue handler is typed with its own message shape
 
 export default Sentry.withSentry(options, handler);

@@ -13,7 +13,7 @@ class Query implements PromiseLike<Res> {
   private cols = "*";
   private rows: Record<string, unknown>[] = [];
   private patch: Record<string, unknown> = {};
-  private filters: [string, unknown][] = [];
+  private filters: [string, unknown, "=" | "<>"][] = [];
   private max: number | null = null;
   private one = false;
   private returning = false;
@@ -22,7 +22,8 @@ class Query implements PromiseLike<Res> {
   insert(rows: Record<string, unknown> | Record<string, unknown>[]) { this.op = "insert"; this.rows = Array.isArray(rows) ? rows : [rows]; return this; }
   update(patch: Record<string, unknown>) { this.op = "update"; this.patch = patch; return this; }
   select(cols = "*") { if (this.op === "select") this.cols = cols; else this.returning = true; return this; }
-  eq(col: string, v: unknown) { this.filters.push([col, v]); return this; }
+  eq(col: string, v: unknown) { this.filters.push([col, v, "="]); return this; }
+  neq(col: string, v: unknown) { this.filters.push([col, v, "<>"]); return this; }
   limit(n: number) { this.max = n; return this; }
   single() { this.one = true; return this; }
 
@@ -30,7 +31,7 @@ class Query implements PromiseLike<Res> {
     try {
       const params: unknown[] = [];
       const p = (v: unknown) => { params.push(val(v)); return `$${params.length}`; };
-      const where = this.filters.length ? " where " + this.filters.map(([c, v]) => `${ident(c)} = ${p(v)}`).join(" and ") : "";
+      const where = this.filters.length ? " where " + this.filters.map(([c, v, op]) => `${ident(c)} ${op === "<>" ? "is distinct from" : "="} ${p(v)}`).join(" and ") : "";
       let sql: string;
       if (this.op === "insert") {
         if (this.rows.length === 0) return { data: null, error: null };

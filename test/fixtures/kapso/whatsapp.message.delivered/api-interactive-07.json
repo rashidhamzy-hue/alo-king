@@ -1,0 +1,139 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.delivered",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TEST64A6CD341342",
+      "interactive": {
+        "body": {
+          "text": "Pick a section of Safa Chicken:"
+        },
+        "type": "list",
+        "action": {
+          "button": "Menu",
+          "sections": [
+            {
+              "rows": [
+                {
+                  "id": "ps:s1",
+                  "title": "Cold Beverages",
+                  "description": "13 items"
+                },
+                {
+                  "id": "ps:s2",
+                  "title": "Appetizers",
+                  "description": "18 items"
+                },
+                {
+                  "id": "ps:s3",
+                  "title": "Salads",
+                  "description": "5 items"
+                },
+                {
+                  "id": "ps:s4",
+                  "title": "Sandwiches",
+                  "description": "23 items"
+                },
+                {
+                  "id": "ps:s5",
+                  "title": "Shawarma",
+                  "description": "13 items"
+                },
+                {
+                  "id": "ps:s6",
+                  "title": "Daily Dish",
+                  "description": "8 items"
+                },
+                {
+                  "id": "ps:s7",
+                  "title": "Burgers",
+                  "description": "6 items"
+                },
+                {
+                  "id": "ps:s8",
+                  "title": "Wraps",
+                  "description": "3 items"
+                },
+                {
+                  "id": "ps:s9",
+                  "title": "Pizza & Pasta",
+                  "description": "8 items"
+                },
+                {
+                  "id": "sl:9",
+                  "title": "More sections ›"
+                }
+              ]
+            }
+          ]
+        },
+        "footer": {
+          "text": "Shared kitchens: traces of any allergen possible"
+        }
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "delivered",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000006",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000002",
+        "contact_name": "Test Person 2",
+        "content": "Pick a section of Safa Chicken:\nList Button: Menu\n• Cold Beverages — 13 items\n• Appetizers — 18 items\n• Salads — 5 items\n• Sandwiches — 23 items\n• Shawarma — 13 items\n• Daily Dish — 8 items\n• Burgers — 6 items\n• Wraps — 3 items\n• Pizza & Pasta — 8 items\n• More sections ›\nShared kitchens: traces of any allergen possible",
+        "statuses": [
+          {
+            "id": "wamid.TEST64A6CD341342",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792772393",
+            "recipient_id": "96170000006",
+            "recipient_user_id": "XX.0000000000000002"
+          },
+          {
+            "id": "wamid.TEST64A6CD341342",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792772409",
+            "recipient_id": "96170000006",
+            "recipient_user_id": "XX.0000000000000002"
+          }
+        ],
+        "message_type_data": {
+          "type": "list",
+          "body_text": "Pick a section of Safa Chicken:",
+          "footer_text": "Shared kitchens: traces of any allergen possible"
+        }
+      },
+      "timestamp": "1792772392",
+      "to": "96170000006",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "contact_name": "Test Person 2",
+      "phone_number": "96170000006",
+      "business_scoped_user_id": "XX.0000000000000002",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

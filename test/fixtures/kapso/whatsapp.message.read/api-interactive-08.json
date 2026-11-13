@@ -1,0 +1,104 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.read",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TESTCE9CCFB35FBC",
+      "interactive": {
+        "body": {
+          "text": "Nice! Tell me the dish or the shop, or tap Order."
+        },
+        "type": "button",
+        "action": {
+          "buttons": [
+            {
+              "type": "reply",
+              "reply": {
+                "id": "c:order",
+                "title": "Order"
+              }
+            }
+          ]
+        }
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "read",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000010",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000004",
+        "contact_name": "Test Person 3",
+        "content": "Nice! Tell me the dish or the shop, or tap Order.\nOptions:\n• Order",
+        "statuses": [
+          {
+            "id": "wamid.TESTCE9CCFB35FBC",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "subtype": "free_tier",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1793099635",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          },
+          {
+            "id": "wamid.TESTCE9CCFB35FBC",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "subtype": "free_tier",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1793099636",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          },
+          {
+            "id": "wamid.TESTCE9CCFB35FBC",
+            "status": "read",
+            "pricing": {
+              "type": "free_customer_service",
+              "subtype": "free_tier",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1793099641",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          }
+        ],
+        "message_type_data": {
+          "type": "button",
+          "body_text": "Nice! Tell me the dish or the shop, or tap Order."
+        }
+      },
+      "timestamp": "1793099635",
+      "to": "96170000010",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "contact_name": "Test Person 3",
+      "phone_number": "96170000010",
+      "business_scoped_user_id": "XX.0000000000000003",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

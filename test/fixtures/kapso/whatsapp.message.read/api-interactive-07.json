@@ -1,0 +1,130 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.read",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TESTEA00BB105771",
+      "interactive": {
+        "body": {
+          "text": "Safa Chicken · Pizza & Pasta"
+        },
+        "type": "list",
+        "action": {
+          "button": "Menu",
+          "sections": [
+            {
+              "rows": [
+                {
+                  "id": "pi:i1",
+                  "title": "Supreme",
+                  "description": "$12.00"
+                },
+                {
+                  "id": "pi:i2",
+                  "title": "Spicy Chicken Ranch",
+                  "description": "$12.00"
+                },
+                {
+                  "id": "pi:i3",
+                  "title": "BBQ Chicken",
+                  "description": "$12.00"
+                },
+                {
+                  "id": "pi:i4",
+                  "title": "Pepperoni",
+                  "description": "$10.00"
+                },
+                {
+                  "id": "pi:i5",
+                  "title": "Margherita",
+                  "description": "$10.00"
+                },
+                {
+                  "id": "pi:i6",
+                  "title": "Sausage",
+                  "description": "$10.00"
+                },
+                {
+                  "id": "pi:i7",
+                  "title": "Vegeterian",
+                  "description": "$10.00"
+                },
+                {
+                  "id": "pi:i8",
+                  "title": "Chicken Fettuccine Alfr…",
+                  "description": "$7.50"
+                }
+              ]
+            }
+          ]
+        },
+        "footer": {
+          "text": "Shared kitchens: traces of any allergen possible"
+        }
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "read",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000010",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000003",
+        "contact_name": "Test Person 3",
+        "content": "Safa Chicken · Pizza & Pasta\nList Button: Menu\n• Supreme — $12.00\n• Spicy Chicken Ranch — $12.00\n• BBQ Chicken — $12.00\n• Pepperoni — $10.00\n• Margherita — $10.00\n• Sausage — $10.00\n• Vegeterian — $10.00\n• Chicken Fettuccine Alfr… — $7.50\nShared kitchens: traces of any allergen possible",
+        "statuses": [
+          {
+            "id": "wamid.TESTEA00BB105771",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792832954",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          },
+          {
+            "id": "wamid.TESTEA00BB105771",
+            "status": "read",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792832954",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          }
+        ],
+        "message_type_data": {
+          "type": "list",
+          "body_text": "Safa Chicken · Pizza & Pasta",
+          "footer_text": "Shared kitchens: traces of any allergen possible"
+        }
+      },
+      "timestamp": "1792832953",
+      "to": "96170000010",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "contact_name": "Test Person 3",
+      "phone_number": "96170000010",
+      "business_scoped_user_id": "XX.0000000000000003",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

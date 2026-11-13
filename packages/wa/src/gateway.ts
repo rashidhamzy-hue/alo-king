@@ -1,7 +1,8 @@
 // The Compliance Gateway. Nothing else in the codebase may call kapsoSend.
 // It refuses anything that could get a number restricted, and it keeps the message bill predictable.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { kapsoSend, type Line, type Outbound } from "./kapso";
+import { kapsoSend, KapsoSendError, type Line, type Outbound } from "./kapso";
+import { checkModelText } from "@ak/agents/output-guard";
 
 export type Category = "service" | "utility" | "marketing";
 export interface SendRequest {
@@ -15,6 +16,9 @@ export interface SendRequest {
   /** Required. Stable for the thing being said: (turn, message index) for replies, (event, time bucket) for cron
    *  reminders. A retry finds the message already sent and does not send it twice. No key, no send. */
   dedupeKey: string;
+  /** Set by the tools that send text the model wrote. The gateway checks it again (B2's 1.5 and 1.10 guard, second lock).
+   *  approvedFacts: food-fact attributes a tool returned an approved record for in this turn. */
+  authored?: { by: "model"; approvedFacts?: string[] };
 }
 export type SendResult = { ok: true; wamid: string } | { ok: false; refused: string };
 
@@ -29,6 +33,10 @@ const CLAIM_TIMEOUT_MS = 5000;
 export class OutboxUnavailable extends Error {
   constructor(why: string) { super(`OUTBOX_UNAVAILABLE ${why}`); this.name = "OutboxUnavailable"; }
 }
+/** Kapso did not take the message this time, for a reason that can pass. Nothing was sent; the outbox row is marked failed, so the retry may send. */
+export class SendNotDelivered extends OutboxUnavailable {
+  constructor(readonly cause: unknown) { super(`send not delivered: ${String(cause).slice(0, 200)}`); }
+}
 const withTimeout = <T>(p: PromiseLike<T>, ms: number): Promise<T> =>
   Promise.race([Promise.resolve(p), new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 
@@ -36,6 +44,11 @@ export function preflight(req: SendRequest): string | null {
   const type = (req.msg as { type: string }).type;
   if (!ALLOWED_TYPES.has(type)) return "type_not_allowed";            // no audio, ever: no AI voice notes
   if (req.category === "marketing" && PILOT_MARKETING_LOCK) return "marketing_locked_pilot";
+  if (req.authored?.by === "model") {
+    const m = req.msg as { text?: { body?: string }; interactive?: { body?: { text?: string } } };
+    const v = checkModelText(m.text?.body ?? m.interactive?.body?.text ?? "", { approvedFacts: new Set(req.authored.approvedFacts ?? []) });
+    if (v) return `model_text_${v.code}`;
+  }
   if (typeof req.dedupeKey !== "string" || req.dedupeKey.length < 3) return "missing_dedupe_key";   // every send goes through the outbox claim
   if (type === "location" && req.line !== "ops") return "location_ops_only";
   if (req.category === "marketing" && type !== "template") return "marketing_needs_template";
@@ -59,7 +72,9 @@ export async function send(
   const isTemplate = req.msg.type === "template";
   const gate = await db.rpc("can_send", { p_party: req.partyId, p_line: req.line, p_category: req.category, p_is_template: isTemplate });
   if (gate.error) return refuse(db, req, "gate_error");
-  if (gate.data !== "ok") return refuse(db, req, String(gate.data));
+  // A staging probe party (0063): everything below runs (outbox claim, mark, log) except the hand-off to Kapso.
+  const sink = gate.data === "probe_sink";
+  if (gate.data !== "ok" && !sink) return refuse(db, req, String(gate.data));
 
   if (req.category === "marketing") {
     const c = await db.from("campaigns").select("status, approved_by").eq("id", req.campaignId!).single();
@@ -79,10 +94,16 @@ export async function send(
   }
   const phoneNumberId = req.line === "customer" ? env.PHONE_NUMBER_ID_CUSTOMER : env.PHONE_NUMBER_ID_OPS;
   let wamid: string;
-  try { wamid = await kapsoSend(env, phoneNumberId, req.to, req.msg); }
+  try { wamid = sink ? `sink:${req.dedupeKey}` : await kapsoSend(env, phoneNumberId, req.to, req.msg); }
   catch (err) {
     if (req.dedupeKey) await db.rpc("outbox_mark", { p_key: req.dedupeKey, p_wamid: null, p_error: String(err).slice(0, 300) });
-    throw err;
+    // This message can never go out as it is (Meta's code says so). Retrying the turn would fail the same way, three times,
+    // and then hand a working conversation to a person. Record it and let the turn carry on (4.13).
+    if (err instanceof KapsoSendError && err.permanent) return refuse(db, req, `kapso_${err.code}`);
+    // Anything else (Kapso 5xx, 429, 402, a network error) means the message did not go out this time. That is the same
+    // situation as an unavailable outbox: nothing sent, retry the whole turn. turn.ts already rethrows OutboxUnavailable so the
+    // conversation object retries; before this, a passing Kapso error handed a working conversation to a person (found in 4.5).
+    throw new SendNotDelivered(err);
   }
   // The message is out. From here nothing may throw: a throw would make the turn retry and, once the lease expires, send it twice.
   if (req.dedupeKey) {
@@ -95,7 +116,7 @@ export async function send(
   try { await db.from("wa_messages").insert({
     line: req.line, direction: "outbound", party_id: req.partyId, wa_message_id: wamid, type: req.msg.type,
     body: req.msg.type === "text" ? req.msg.text.body : JSON.stringify(req.msg), category: req.category,
-    template_name: req.msg.type === "template" ? req.msg.template.name : null, status: "sent", order_id: req.orderId ?? null,
+    template_name: req.msg.type === "template" ? req.msg.template.name : null, status: sink ? "sink" : "sent", order_id: req.orderId ?? null,
   }); } catch (err) { console.error(JSON.stringify({ level: "error", event: "wa_message_log_failed", wamid, err: String(err).slice(0, 200) })); }
   return { ok: true, wamid };
 }

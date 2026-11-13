@@ -1,6 +1,7 @@
 // Kapso webhook contract (payload v2) and the thin send client.
 // Source of truth: https://docs.kapso.ai/docs/platform/webhooks/message-events
 import { z } from "zod";
+import { GraphApiError, WhatsAppClient } from "@kapso/whatsapp-cloud-api";
 
 export type Line = "customer" | "ops";
 
@@ -9,8 +10,9 @@ export const KapsoMessage = z.object({
   timestamp: z.string(),                            // unix epoch, as a string
   type: z.string(),                                 // text | audio | image | location | interactive | ...
   from: z.string().optional(),                      // NOT guaranteed: Meta is moving to BSUIDs
-  from_user_id: z.string().optional(),              // BSUID
-  username: z.string().optional(),
+  from_user_id: z.string().nullable().optional(),   // BSUID
+  from_parent_user_id: z.string().nullable().optional(),
+  username: z.string().nullable().optional(),       // real payloads send null, not an absent key (fixtures, 4.1)
   text: z.object({ body: z.string() }).optional(),
   audio: z.object({ id: z.string() }).passthrough().optional(),
   image: z.object({ id: z.string(), caption: z.string().optional() }).passthrough().optional(),
@@ -56,7 +58,7 @@ export function unwrap(body: unknown): unknown[] {
 
 /** Stable identity for a sender: BSUID first, phone second. */
 export function senderKey(e: KapsoReceived): { waUserId?: string; phone?: string } {
-  const waUserId = e.message.from_user_id ?? e.conversation.business_scoped_user_id ?? undefined;
+  const waUserId = e.message.from_user_id || e.conversation.business_scoped_user_id || undefined;
   const phone = e.message.from ?? e.conversation.phone_number ?? undefined;
   return { waUserId: waUserId ?? undefined, phone: phone ? normalisePhone(phone) : undefined };
 }
@@ -103,13 +105,77 @@ export const askLocation = (body: string): Outbound => ({
   interactive: { type: "location_request_message", body: { text: body }, action: { name: "send_location" } },
 });
 
+/**
+ * A send Kapso or Meta refused, with the official SDK's retry hint (task 4.13).
+ *  - `retry`, `retry_after`, `refresh_token`: something outside this message is wrong for now; the turn retries.
+ *  - `do_not_retry`, `fix_and_retry`: this exact message will never go out as it is (outside the 24-hour window,
+ *    recipient cannot receive, bad parameter). Retrying the turn would only fail again, so the gateway records it and moves on.
+ * HTTP 402 is Kapso's "credits exhausted" and is always treated as retry: the message must go out once credits are added.
+ */
+export class KapsoSendError extends Error {
+  constructor(readonly httpStatus: number, readonly code: string, readonly retry: string, readonly retryAfterMs: number | undefined, detail: string) {
+    super(`KAPSO_SEND_${httpStatus}: ${code} ${detail}`.slice(0, 400));
+    this.name = "KapsoSendError";
+  }
+  /** True when retrying the same message cannot succeed. */
+  get permanent(): boolean { return this.httpStatus !== 402 && (this.retry === "do_not_retry" || this.retry === "fix_and_retry"); }
+}
+
+/** The official Kapso client over our configured base URL ("https://api.kapso.ai/meta/whatsapp/v24.0" is base + Graph version). */
+export function kapsoClient(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, fetchImpl: typeof fetch = (...a) => fetch(...a)): WhatsAppClient {
+  const m = env.KAPSO_BASE_URL.replace(/\/+$/, "").match(/^(.*)\/(v\d+\.\d+)$/);
+  return new WhatsAppClient({ kapsoApiKey: env.KAPSO_API_KEY, baseUrl: m ? m[1] : env.KAPSO_BASE_URL, graphVersion: m ? m[2] : "v24.0", fetch: edgeFetch(fetchImpl) });
+}
+
+/**
+ * The SDK asks fetch for redirect: "error". Cloudflare's runtime refuses that value outright ("won't be implemented ... use
+ * manual"), so on the Worker every send threw before leaving. Found by the workerd end-to-end test (4.5); Node accepts it,
+ * which is why the unit tests passed. Same meaning here: no redirect is followed, and a redirect is an error.
+ */
+export function edgeFetch(inner: typeof fetch): typeof fetch {
+  return async (input, init) => {
+    const res = await inner(input, init?.redirect === "error" ? { ...init, redirect: "manual" } : init);
+    if (res.status >= 300 && res.status < 400) throw new Error(`KAPSO_REDIRECT_${res.status}: refusing to follow`);
+    return res;
+  };
+}
+
+/** Only packages/wa/src/gateway.ts may call this (invariant 1; CI checks it). The payload is ours, unchanged: the SDK only carries it. */
 export async function kapsoSend(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, phoneNumberId: string, to: string, msg: Outbound): Promise<string> {
-  const res = await fetch(`${env.KAPSO_BASE_URL}/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: { "X-API-Key": env.KAPSO_API_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, ...msg }),
-  });
-  if (!res.ok) throw new Error(`KAPSO_SEND_${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { messages?: { id: string }[] };
-  return json.messages?.[0]?.id ?? "";
+  try {
+    let res = (await kapsoClient(env).messages.sendRaw({ phoneNumberId, payload: { messaging_product: "whatsapp", recipient_type: "individual", to, ...msg } })) as unknown;
+    // The SDK parses JSON only when the response says application/json; otherwise it returns the text. Read the id either way:
+    // without it, the outbox and the message log lose track of a message that did go out.
+    if (typeof res === "string") { try { res = JSON.parse(res); } catch { res = {}; } }
+    return (res as { messages?: { id?: string }[] } | null)?.messages?.[0]?.id ?? "";
+  } catch (err) {
+    if (err instanceof GraphApiError) throw new KapsoSendError(err.httpStatus, String(err.apiCode ?? err.code), err.retry.action, err.retry.retryAfterMs, err.message);
+    throw err;
+  }
+}
+
+/** Meta's review status for our templates (APPROVED, PENDING, REJECTED, PAUSED, ...), read through Kapso. Reading only: no message is sent. */
+export async function templateStatuses(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, wabaId: string, names: string[]): Promise<{ name: string; status: string }[]> {
+  const res = (await kapsoClient(env).templates.list({ businessAccountId: wabaId, limit: 100 })) as { data?: { name?: string; status?: string }[] };
+  const want = new Set(names);
+  return (res.data ?? []).filter((t) => t.name && t.status && want.has(t.name)).map((t) => ({ name: t.name!, status: t.status!.toLowerCase() }));
+}
+
+/** Kapso's platform API (not the Meta proxy), read-only. Same API key; base is the origin of KAPSO_BASE_URL. */
+async function kapsoPlatformGet<T>(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, path: string): Promise<T> {
+  const res = await fetch(`${new URL(env.KAPSO_BASE_URL).origin}/platform/v1${path}`, { headers: { "X-API-Key": env.KAPSO_API_KEY } });
+  if (!res.ok) throw new Error(`KAPSO_PLATFORM_${res.status} ${path}`);
+  return (await res.json()) as T;
+}
+
+/** Quality rating and status of our numbers (4.10). Kapso has no webhook for quality changes; this is polled once a day. */
+export async function numberHealth(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, ids: string[]): Promise<{ id: string; quality_rating: string | null; status: string | null }[]> {
+  const r = await kapsoPlatformGet<{ data?: { phone_number_id?: string; id?: string; quality_rating?: string | null; status?: string | null }[] }>(env, "/whatsapp/phone_numbers?per_page=100");
+  return (r.data ?? []).map((n) => ({ id: String(n.phone_number_id ?? n.id), quality_rating: n.quality_rating ?? null, status: n.status ?? null })).filter((n) => ids.includes(n.id));
+}
+
+/** Whether Kapso has paused paid messages on the account (credits exhausted and the like). Kapso's API shows no balance figure. */
+export async function fundingState(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, wabaId: string): Promise<{ status: string | null; paused: boolean; reasons: string[] }> {
+  const r = await kapsoPlatformGet<{ data?: { status?: string; paid_messages?: { paused?: boolean; reasons?: unknown[] } } }>(env, `/whatsapp/accounts/${wabaId}/funding`);
+  return { status: r.data?.status ?? null, paused: !!r.data?.paid_messages?.paused, reasons: (r.data?.paid_messages?.reasons ?? []).map((x) => (typeof x === "string" ? x : JSON.stringify(x))) };
 }

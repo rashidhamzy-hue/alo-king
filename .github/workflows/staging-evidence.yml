@@ -1,0 +1,62 @@
+# Manual. Build plan 0.13: the evidence for one staging order, read-only (scripts/staging_evidence.sql).
+# Leave `code` empty to take the latest order placed by a real phone (not a probe) that has closed.
+# Writes docs/evidence/order_<code>.txt to the branch evidence/<code> and to the run's summary. Open a pull request to keep it.
+name: staging-evidence
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: Order short code (e.g. AK-1004). Empty = the latest closed order from a real phone.
+        type: string
+        default: ""
+permissions: { contents: write }
+defaults:
+  run: { shell: bash }
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: supabase/setup-cli@v1
+        with: { version: 3.1.0 }
+      - name: Connection string (session pooler)
+        run: |
+          supabase link --project-ref lhgkvvdckwbfpdsftzqp
+          echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
+      - name: Pick the order
+        env: { CODE: "${{ inputs.code }}" }
+        run: |
+          if [ -z "$CODE" ]; then
+            CODE=$(psql "$DATABASE_URL" -At -c "select o.short_code from orders o join parties p on p.id = o.customer_id where not p.is_probe and o.status = 'closed' order by o.created_at desc limit 1")
+          fi
+          [[ "$CODE" =~ ^[A-Z0-9-]{3,12}$ ]] || { echo "no closed order from a real phone yet (or a bad code: '$CODE')"; exit 1; }
+          echo "CODE=$CODE" >> "$GITHUB_ENV"
+      - name: Evidence
+        run: |
+          mkdir -p docs/evidence
+          f="docs/evidence/order_${CODE}.txt"
+          { echo "# Staging evidence for order ${CODE}, run ${GITHUB_RUN_ID} on $(date -u +%Y-%m-%dT%H:%MZ) (scripts/staging_evidence.sql)"; echo;
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v code="'${CODE}'" -f scripts/staging_evidence.sql; } > "$f"
+          { echo '```'; cat "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          moves=$(psql "$DATABASE_URL" -At -c "select count(*) from order_events e join orders o on o.id = e.order_id where o.short_code = '${CODE}' and e.from_status is not null and e.from_status <> e.to_status and not exists (select 1 from order_transitions t where t.from_status = e.from_status and t.to_status = e.to_status)")
+          ledger=$(psql "$DATABASE_URL" -At -c "select round(coalesce(sum(usd_equiv), 0), 2) from ledger_entries")
+          dups=$(psql "$DATABASE_URL" -At -c "select count(*) from (select dedupe_key from wa_outbox group by 1 having count(*) > 1) x")
+          stock=$(psql "$DATABASE_URL" -At -c "select count(*) from order_items i join orders o on o.id = i.order_id where o.short_code = '${CODE}' and i.status = 'ok' and i.qty <> coalesce((select sum(m.qty_delta) from stock_movements m where m.order_id = o.id and m.product_id = i.product_id and m.reason = 'pick'), 0)")
+          echo "- moves not allowed: $moves; whole ledger: $ledger; duplicated messages: $dups; stock lines off: $stock" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$moves" = "0" ] && [ "$ledger" = "0.00" ] && [ "$dups" = "0" ] && [ "$stock" = "0" ]; then echo "- **0.13 checks pass**" >> "$GITHUB_STEP_SUMMARY"; else echo "- **0.13 checks FAIL**" >> "$GITHUB_STEP_SUMMARY"; exit 1; fi
+      - name: Push to evidence/<code>
+        if: always()
+        run: |
+          [ -n "${CODE:-}" ] && [ -f "docs/evidence/order_${CODE}.txt" ] || exit 0
+          git config user.name "alo-king-ci"; git config user.email "ci@users.noreply.github.com"
+          git checkout -b "evidence/${CODE}"
+          git add docs/evidence
+          git commit -m "0.13: staging evidence for order ${CODE}"
+          git push --force origin "evidence/${CODE}"
+          echo "Pushed branch evidence/${CODE}. Open a pull request to keep it." >> "$GITHUB_STEP_SUMMARY"

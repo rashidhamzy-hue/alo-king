@@ -271,6 +271,11 @@ Build it plain: server-rendered pages. No design work until the pilot shows what
 | 4.12 | Message meter | Count billable messages per number per month from `wa_messages`; warn at 800 of the 1,000 free service messages; show cost per order at day close. | Billing changed on 1 October 2026. Kapso's own allowance is 100,000 messages a month on Pro; a message can count there and also incur a Meta fee. |
 | 4.13 | Official Kapso SDK inside the gateway | Try `@kapso/whatsapp-cloud-api` in `packages/wa/src/kapso.ts` on staging: same sends, typed errors with a retry hint feeding the outbox, webhook signature helper. Keep it only if the fixtures from 0.6 pass unchanged. `gateway.ts` stays the only caller. | Needs live Kapso. |
 
+Status 13 November 2026 (session A2): 4.1, 4.5, 4.6, 4.12 and 4.13 are built and tested; 4.3's templates are submitted and wired (approval is Meta's);
+4.10 is built and tested, and proven by the hourly probe order once deployed. 0.13 is prepared and waits for one message from the founder's phone
+(`docs/HANDOFF.md`, session A2). Plan changes made by A2: the 0.13 rider leg is played by a staging test rider (the probe) instead of a second phone on the
+sandbox number; the "credit balance below an amount" alert in 4.10 is replaced by "Kapso paused paid sends", because Kapso's API has no balance figure.
+
 ## Phase 5: data and launch readiness (founder and team; starts now)
 
 | # | Item | Notes |
@@ -429,7 +434,7 @@ Each session is one bundle of tasks, one branch, one pull request, with one comm
 | A1 | Infra | Sonnet 5.5 | 0.1 to 0.12 | Day one | `.github/`, `wrangler.jsonc`, `docs/RUNBOOK.md`, `test/fixtures/` |
 | B1 | Ordering | Opus 5.5 | 1.1, 1.2, 1.3, 1.9, 1.15, 1.19, 1.20 | The repository exists and CI is green (0.1, 0.2) | `apps/gateway/src/turn.ts`, `packages/agents/`, `prompts/`, `evals/`, migrations 0013-0019 (B1 used 0013-0017; lane B overflow: 0052-0059) |
 | C1 | Hub | Opus 5.5 | 1.11, 1.12, 2.6, 2.7, 2.11 | Same as B1; runs beside it | migrations 0020-0029, their tests (C1 used 0020-0025) |
-| A2 | Infra | Opus 5.5 | 0.13, 4.1, 4.3, 4.5, 4.6, 4.10, 4.12, 4.13 | A1 and B1 merged | `apps/gateway/src/index.ts`, `packages/wa/` |
+| A2 | Infra | Opus 5.5 | 0.13, 4.1, 4.3, 4.5, 4.6, 4.10, 4.12, 4.13 | A1 and B1 merged | `apps/gateway/src/index.ts`, `packages/wa/`, migrations 0060-0069 (A2 used 0060-0063; the table had no range for lane A, so A2 took the next free block), `test/pg/`, `scripts/staging/` |
 | B2 | Ordering | Opus 5.5 | 1.4, 1.5, 1.6, 1.10, 1.14, 1.16, 1.18 | B1 merged | as B1 |
 | C2 | Hub | Opus 5.5 | 2.1, 2.2, 2.3, 2.4, 2.5, 2.10 | C1 merged; runs beside B2 | `apps/gateway/src/ops-turn.ts`, migrations 0030-0039 |
 | D1 | Console | Opus 5.5 for 3.1, then Sonnet 5.5 | 3.1 to 3.10, 3.18 | C1 merged; runs beside B2 and C2 | `apps/console/` (new) |

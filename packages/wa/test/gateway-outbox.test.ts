@@ -100,3 +100,16 @@ describe("pilot marketing lock in code", () => {
     expect(preflight({ ...req, category: "utility", msg: { type: "template", template: { name: "order_update", language: { code: "ar" } } } as any })).toBeNull();
   });
 });
+
+describe("model-written text: the guard again at the gateway (second lock for 1.5 and 1.10)", () => {
+  const base: SendRequest = { line: "customer", partyId: "p1", to: "96170000001", category: "service", dedupeKey: "turn-2:0", msg: { type: "text", text: { body: "" } } as any };
+  const withText = (body: string, authored?: SendRequest["authored"]): SendRequest => ({ ...base, msg: { type: "text", text: { body } }, authored });
+  it("refuses a price the model wrote, and a quality judgement", () => {
+    expect(preflight(withText("المجموع 12 دولار", { by: "model" }))).toBe("model_text_money_in_free_text");
+    expect(preflight(withText("هيدا أطيب محل بالضيعة", { by: "model" }))).toMatch(/^model_text_/);
+  });
+  it("lets plain model text through, and does not touch text the code wrote", () => {
+    expect(preflight(withText("تمام، بعتلنا موقعك", { by: "model" }))).toBeNull();
+    expect(preflight(withText("المجموع 12 دولار"))).toBeNull();          // code-written (prices from quote_order): not checked here
+  });
+});

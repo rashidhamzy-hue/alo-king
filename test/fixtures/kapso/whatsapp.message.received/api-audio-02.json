@@ -1,0 +1,60 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.received",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "audio": {
+        "id": "900000000000002",
+        "url": "https://example.invalid/83cb56ca10e8",
+        "voice": true,
+        "sha256": "ee72d27aadb3",
+        "mime_type": "audio/ogg; codecs=opus",
+        "link": "https://example.invalid/d682ea6f99d3"
+      },
+      "context": {
+        "id": "wamid.TEST30352830BD27",
+        "from": "12036602328"
+      },
+      "from": "96170000001",
+      "from_parent_user_id": null,
+      "from_user_id": "XX.0000000000000001",
+      "id": "wamid.TEST92096D1578C2",
+      "kapso": {
+        "direction": "inbound",
+        "status": "delivered",
+        "processing_status": "pending",
+        "origin": "cloud_api",
+        "phone_number": "96170000001",
+        "phone_number_id": "1378974041965966",
+        "has_media": true,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
+        "contact_name": "Test Person 1",
+        "content": "Audio attached (audio_0e688f5c35e7.ogg) [Size: 6.7 KB | Type: audio/ogg] URL: https://example.invalid/d682ea6f99d3 \n\nTranscript: جيبلي ٣ قناني مي كبار",
+        "transcript": {
+          "text": "جيبلي ٣ قناني مي كبار"
+        },
+        "media_data": {
+          "url": "https://example.invalid/d682ea6f99d3",
+          "filename": "audio_0e688f5c35e7.ogg",
+          "content_type": "audio/ogg",
+          "byte_size": 6873
+        },
+        "media_url": "https://example.invalid/d682ea6f99d3"
+      },
+      "timestamp": "1792422504",
+      "type": "audio",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "contact_name": "Test Person 1",
+      "phone_number": "96170000001",
+      "business_scoped_user_id": "XX.0000000000000001",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

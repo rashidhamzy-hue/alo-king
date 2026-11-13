@@ -1,0 +1,52 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.received",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": {
+        "id": "wamid.TESTCB91FC94E5B9",
+        "from": "12036602328"
+      },
+      "from": "96170000001",
+      "from_parent_user_id": null,
+      "from_user_id": "XX.0000000000000001",
+      "id": "wamid.TESTF7363071FE6B",
+      "interactive": {
+        "type": "button_reply",
+        "button_reply": {
+          "id": "acc:c8f58ba1-18cc-4412-ab31-c0cb42407991:15",
+          "title": "✅ قبول 15 د"
+        }
+      },
+      "kapso": {
+        "direction": "inbound",
+        "status": "delivered",
+        "processing_status": "pending",
+        "origin": "cloud_api",
+        "phone_number": "96170000001",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
+        "contact_name": "Test Person 1",
+        "content": "Selected: ✅ قبول 15 د",
+        "message_type_data": {
+          "type": "button_reply"
+        }
+      },
+      "timestamp": "1792430519",
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "contact_name": "Test Person 1",
+      "phone_number": "96170000001",
+      "business_scoped_user_id": "XX.0000000000000001",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}
