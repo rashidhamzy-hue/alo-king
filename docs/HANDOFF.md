@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 604 tests (32 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
+npx vitest run          # 729 tests (34 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
                         # test/pg/* start a throwaway Postgres 16 (or use TEST_DATABASE_URL) and the Worker in workerd
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
@@ -271,7 +271,7 @@ Staging stock is 5,000 of everything (only set on an empty store), so the hourly
 - The Worker's cron beats every minute (`heartbeats.cron`). The project webhook is ready (its signed smoke event was stored and processed).
 - **The probe's first live order ran the real path on Cloudflare**: cron, stored inbound event, conversation object, turn, the real model (Haiku 5.5), gateway, outbox, sink. No card came out, which surfaced the finding below. The probe now sends the 0.13 message every hour.
 
-**Finding for lane B (B3): the live model's catalog queries miss or pick the wrong product.** Seen live on 13 Nov, then reproduced on staging with `plan_order` (rolled back):
+**Finding for lane B (B3): the live model's catalog queries miss or pick the wrong product.** (Answered by B3, task 1.22: see that section.) Seen live on 13 Nov, then reproduced on staging with `plan_order` (rolled back):
 - The model wrote the query for «ربطتين خبز» as `bread`. English generic words match no catalog name (`search_catalog('bread')` returns nothing; `'خبز'` matches the aliases), so the line was `not_found` and the turn asked a question instead of sending a card. `schemas.ts` invites this: its example for `query` is an English normalised phrase ("facial tissue large pack").
 - Brand-led English queries match, but every hit ties at score 0.9, so the brand rule takes the first product of that brand: «لبنة ليبان ليه» (`labneh Liban Lait`) became **Liban Lait Laban 1Kg**, and «بيض هوا» (`Hawa Chicken eggs`) became **Chicken Legs**. Those are wrong cards, not just missed ones.
 - Second live run (11:36 UTC, the 0.13 message itself, brand-led on purpose): the model read «قهوة نجار» as `Nassar coffee` (not found), and this time gave no `brand_hint` for «مي تنورين» or «خبز الفورنو», so both were ambiguous. Result: a question instead of a card. The same model reads the same kind of message differently from run to run. Three eval cases straight from the traces: «ربطتين خبز» must not become `bread`; «قهوة نجار» must keep "Najjar"; a brand said in Arabic (تنورين، الفورنو، ليبان ليه) must reach `brand_hint`.
@@ -382,6 +382,56 @@ Adding the ops lead or a picker is the same workflow with their role. `remove-st
 - `TEST_REPORT.txt` was not regenerated (not D1's file).
 - The session worked on branch `claude/magical-fermi-fob6sq` (the branch this environment allows).
 
+### Session B3 (ordering), 13 November 2026: tasks 1.22, 1.7, 1.8, 1.13, 1.17, 2.9; migrations 0053-0059
+Branch `claude/intelligent-ritchie-6kgryn` (the branch this environment allows). Built and tested locally (PGlite with every migration, vitest). 1.22 is measured on the live model through GitHub Actions (`.github/workflows/language-pack.yml`); staging is under 1.22.
+
+**1.22 Catalog language pack. Status: built and measured on the live model. F1 gate met (0.918 ≥ 0.90). Zero-wrong gate NOT met: 10 wrong products in 2,458 items, all from 4 phrasings (below). The 0.13 message: right in every live run; the staging probe proof comes after the merge (see 0.13 in session A2's section).**
+
+| Live model `claude-haiku-5-5` (MODEL_FAST), generated eval set, 986 messages, 1,229 items | Before (main) | After (this branch, 2 runs a case) |
+| --- | --- | --- |
+| Item F1 | 0.503 | **0.918** |
+| Precision / recall | 0.759 / 0.376 | 0.995 / 0.853 |
+| Wrong products (customer gets something not asked for) | 147 in 1,229 items | 10 in 2,458 (4 phrasings, each twice) |
+| Readings thrown away (extraction contract failures) | 126 of 986 turns | 0 (1 network error) |
+| The 0.13 demo message gives Tannourine 2L x6, Al Forno pita 800 g, Najjar Classic | no | yes, every run |
+| By language (F1): Lebanese Arabic / Arabizi / mixed / English / French | 0.43 / 0.47 / 0.53 / 0.66 / 0.65 | 0.93 / 0.89 / 0.94 / 0.97 / 0.94 |
+
+How it is built:
+- **The eval set** (`evals/language/cases.json`, `gen-cases.mjs`): 863 single-item messages (about three per product: Lebanese Arabic, Arabizi, English/French/mixed) and 116 baskets of 2-4 products, written by `claude-opus-5-5` with the whole shelf in view, then checked by `claude-sonnet-5-5`, which sees only the shelf and the message and must name the same products (14 of 993 dropped). Truth is the product the message was written for. Plus 7 hand cases from the 13 Nov traces (`hand.json`), including the 0.13 message. The generator never saw the pack.
+- **The pack** (`evals/language/pack.json` → `build-pack.mjs` → migration 0054): per product, `kind` terms (what people call it, خبز، بيض، mayy, labne), `brand` terms (as said: نجار، الفورنو، najjar) and `exact` terms (fits one product: «نجار هال», "tannourine 500"). 9,216 terms, 295 filler words. The build drops any term with a food-fact word (halal, gluten, vegan, healthy, diet, sugar, fat level, allergy, calories, protein, organic, fasting) unless it is printed in the product's own name or the product is not food (invariant 15; 4 dropped). Tokens and forms are precomputed by the builder (a test checks every shipped row against the SQL functions), so the migration loads in well under a second, drops an exact term two products claim (10) and keeps as kind an exact term that is another product's kind word (22), and never lets a brand be a kind word (22).
+- **The matcher** (migration 0053): `catalog_pack_scan` / `catalog_pack_search` match the customer's words token by token (Arabic clitics و ب ع ال on either side, size words in every spelling, units optional, decimals kept together), rank by how much of the text a product explains, and return the words left unexplained. Negations («مش البانيه», "bala zaytoun", "mish diet") rule a product out, unless the term itself carries the negation («zebde bala mel7»). The curated seed aliases are no longer matched (the generator started from them; dropping them changed nothing measurable), only aliases learned from confirmed orders. `catalog_lookup`: the customer's words first; the model's phrase only narrows what those words allow; the old trigram search is kept for restaurant menus only (it was what turned labneh into laban). `plan_order_core` (redefined, wrappers untouched): joins a line the model cut off ("3tine kinder" / "tronky wa7de") to its neighbour, merges the same product said twice, reads the whole message as evidence (a negation, a brand, an exact term the model left out of the line), chooses a best seller only between interchangeable products with nothing left unexplained, never chooses alone a product named by brand only, and asks when the message names another product the line's words share.
+- **The prompt and schema**: `raw` and `query` stay in the customer's language and script; brands said in Arabic go to `brand_hint`; a brand is never a `source_hint`. The extraction call now gets 4,096 tokens; an invented unit becomes "each"; a reading sent as a JSON string, or as almost-JSON (`\'`, a trailing comma, one closing brace too many), is repaired (`parseLooseJson`). Each of these threw away a whole reading on the live model before (126 of 986 turns).
+- **Staging**: the pack loads by SKU, so the migration needs no catalog order. `deploy-staging` applies 0053-0059 after the merge.
+
+Remaining wrong products: «ابعتلي كيس بازيلا وجزر مفرزة» and «bazella w jazar mkhalta» (the fast model cuts the peas-and-carrots bag into two lines: peas, and fresh carrots), «1 Wilco sodour djej» ("sodour", the plural of breast, is not in the pack: Wilco legs), and «خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان» (the large loaf is chosen although the customer said not the large one). The recall that is missing is mostly a question instead of a card (ambiguous or not found), which is the safe failure. Each of the four is a case in `evals/language/cases.json`; the next lane B session starts from them (a second pack pass for plurals, and a merge rule for an item the model cuts in two).
+`claude-sonnet-5` read the same set at F1 0.897 with 4 wrong in one run, but got the 0.13 message wrong once (`results/after-claude-sonnet-5.json`); `claude-sonnet-5-5` (MODEL_SMART) cannot run the extraction at all: it refuses a forced `tool_choice`.
+
+How to re-run: commit `evals/language/request.json` with `{"steps": [...], "repeat": n}` (`cases`, `pack`, `before`, `after`; `also_models`, `only`) on any branch, or dispatch the workflow; results come back on `language-pack-out/<run id>`. `ALO_LANG_REPLAY=evals/language/results/after.json npx vitest run evals/language/replay.test.ts` replays recorded readings through the current planner with no model (it reproduced the live numbers exactly). Credit spent: about USD 25 of the USD 60 (generation and checking with Opus and Sonnet about 16, twelve live runs with Haiku about 3, one with Sonnet 5 about 5). More runs would not have bought much: the last ones moved the numbers within noise.
+
+| Task | Where | Tested by |
+| --- | --- | --- |
+| 1.22 | migrations 0053 (matcher, planner), 0054 (pack, generated); `schemas.ts`, `prompts/concierge.md`, `concierge.ts` (`parseLooseJson`), `pipeline.ts` (passes the message); `evals/language/`; `language-pack.yml` | `test/db/catalog-language.test.ts` (the 13 Nov readings, negation, the pack that ships has no shared exact term and no food-fact word), `evals/language/pack.test.mjs` (builder, JS folds as SQL), `evals/test/extract-contract.test.ts`, the live runs |
+| 1.7 Voice notes | migration 0059 (`settings.stt` gains `keep_audio`, `second_provider`), `readVoiceNote()` in `packages/agents/src/stt.ts`, `turn.ts` | `test/db/ordering-b3.test.ts`: fetched through Kapso's URL, kept under `voice_notes/<party>/<sha256>.ogg` in the private bucket, Kapso's transcript read; with the setting, a second provider's transcript is taken and rescues a looped one; a Meta link is never fetched. Both transcripts and what failed go to `wa_messages.transcript` (never logged) |
+| 1.8 Typing, model-turn cap | migration 0055 (`settings.model_turns` 20 an hour, `model_turn_budget()`), `turn.ts`, `TurnDeps.typing` | Indicator on the message being answered, once, only when the model is needed, and a failing indicator never stops the turn; past the cap: no model call, handoff, one ops exception an hour, ops alerted, customer told; answers without a model are never capped |
+| 1.13 First contact | migration 0056 (`parties.first_contact`, `orders.acquisition`, `record_first_contact()`, `settings.contact_codes`) | Ad click (ctwa_clid, ad id) on the customer and the first order, not the second; QR and referral codes from the first message; a later message changes nothing; a customer who wrote before stays unknown. Data only, no reward, no message |
+| 1.17 Voice by role | migration 0057 (`voice_usage`, `voice_budget()`), `packages/agents/src/voice.ts`, `turn.ts` | Limits from `settings.voice_limits`; the hourly budget holds across turns; the provider's real duration wins over the size estimate; a retried note counts once; riders and staff: their own limit, a person listens, money stays buttons (`voiceOnOpsLine`) |
+| 2.9 Feedback | migration 0058 (`order_feedback`, `feedback_due()`, `record_feedback()`, `settings.delivery_feedback`), `packages/agents/src/feedback.ts`, `turn.ts` | One card after the delay, never twice; «في مشكلة» hands the chat to a person, raises `delivery_problem`, alerts ops; «وصل تمام» thanks once; a repeat tap does nothing; nobody answers for someone else's order |
+
+Also done: C2's request to route the customer's keep / remove taps for a substitute (`turn.ts` calls `handleSubstitutionButton()` before any tap can reach the model). `settings.picking.offer_substitutes` stays off: switching it on by default breaks C2's picker tests, which assume it off, so the next hub session switches it (staging: one settings update) together with those tests. C2's two other lane B requests (crediting `apply_customer_credit` on the card, and what `learn_from_order` learns from replaced lines) are still open. For A2's request: the `reply` and `ask_location_pin` tools mark model text `authored: model`, so the gateway checks it again (not when code appended prices: the gateway check reads the whole body).
+
+Found and not changed:
+- `fold_text` (0003) maps ة to ي, ى to ا, ؤ to ه and ئ to و (its two strings are misaligned). Consistent on both sides, so search works, but «قهوة» and «قهوه» fold apart. `catalog_tokens` maps those letters first; `fold_text` is left as is because stored columns depend on it.
+- `MODEL_SMART` (`claude-sonnet-5-5`) rejects the forced `tool_choice` the extraction uses. Anyone switching models must change the call first.
+
+Only a live account can prove: the probe turning the 0.13 message into the right card on staging (after the merge), the typing indicator, a second speech provider, a real ad referral payload.
+
+For other sessions (B3 did not touch these files):
+- A2 / lane A, `apps/gateway/src/index.ts` and `packages/wa/`: (1) a gateway call that marks a message read with the typing indicator, passed as `deps.typing` in `depsFor()` (better still, called on arrival in `ConversationDO.fetch`); (2) `await sendFeedbackRequests(deps, (p) => party_address(p, 'customer'))` from `@ak/agents/feedback` in `scheduled()`: 2.9's cards go out only once this is wired; (3) `deps.stt` once the founder picks a second provider and its key exists; (4) a way for the gateway to re-check only the model's words of a reply that carries code-written prices (e.g. `authored.text`).
+- C2, `apps/gateway/src/ops-turn.ts`: audio on the ops line is ignored today (invariant 18 says nothing may be dropped in silence). Call `voiceOnOpsLine()` from `@ak/agents/voice` for a rider's or staff member's note, send its `reply`, and alert ops with `OPS_VOICE_TEXT.opsAlert` when `forwardToOps`.
+- C1's `test/db/extensions-schema.test.ts`: B3 changed the list of functions expected to call trigram functions (they moved into `search_catalog_legacy` and `catalog_brand_fits`); the guard itself is unchanged.
+- Anyone redefining `plan_order_core` or `search_catalog`: start from 0053's text.
+- Founder: Kapso transcribes voice notes through ElevenLabs, which may keep transcripts up to three years. Say so in the privacy notice, or choose a second provider (`settings.stt.second_provider`) and score both on the 38 notes (5.8).
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.
@@ -391,7 +441,7 @@ Adding the ops lead or a picker is the same workflow with their role. `remove-st
 See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is restaurants; Phase 9 is the website and diaspora
 orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders.
 The console exists (D1, above); five of its steps wait for the migration of `apps/console/sql/proposed_functions.sql`.
-Ordering lane: B1 and B2 are done (above); B3 is next (1.7, 1.8, 1.13, 1.17, 2.9).
+Ordering lane: B1, B2 and B3 are done (above). 1.22's zero-wrong gate is still open (four phrasings, in B3's section). K1 (1.21) can start; it edits `turn.ts`, so never beside another lane B session.
 Hub lane: C1 and C2 are done (above); C3 (2.8) can start (B2 and C2 are merged). Console lane: D1 is done (above); D2 can start now that C2 is in.
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 

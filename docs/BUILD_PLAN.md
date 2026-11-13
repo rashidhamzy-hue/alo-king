@@ -162,6 +162,12 @@ Not in this phase: the two real +961 numbers. They join in Phase 4.
 | 1.21 | WhatsApp catalog for the 291 products | Browse with pictures, add to cart, send. The database stays the only source of price and stock; the catalog never confirms. Session K1. Details below the table. |
 | 1.22 | Catalog language pack, proven on the live model | Found live on 13 Nov: the model writes catalog searches in English (`schemas.ts` asks for an English phrase), so "bread" matched nothing, labneh became laban, eggs became "Chicken Legs", and the 0.13 demo message got "Najjar coffee not found". Fix: the search keeps the customer's own words first; a generated language pack gives every product search terms in Lebanese Arabic, Arabic in Latin letters, English and French, plus the generic words people use (خبز، بيض، لبنة); a term that points at more than one product is dropped. A generated eval set (at least two phrasings per product, mixed languages, truth known by construction) runs on the live model before and after. Gate: item F1 at least 0.90, zero wrong products, and the 0.13 demo message gives the right card on staging. Generation and live runs go through GitHub Actions with `ANTHROPIC_API_KEY`. |
 
+Status 13 November 2026 (session B3): 1.22 is built and measured on the live model: item F1 0.503 before, 0.918 after (precision 0.995),
+10 wrong products in 2,458 items from four phrasings, so the zero-wrong gate is not met yet; the 0.13 message is right in every live run, and
+the staging probe proves it after the merge. 1.7, 1.8, 1.13, 1.17 and 2.9 are built and tested; the typing indicator, the feedback cron and
+the ops-line voice reply need one call each in lane A and C files (requests in `docs/HANDOFF.md`, session B3). Plan change made by B3: the
+pack and eval set are regenerated through `.github/workflows/language-pack.yml`, never by hand.
+
 Every misread order becomes an eval case before it is fixed.
 
 ### 1.21 WhatsApp catalog for the 291 products (session K1)

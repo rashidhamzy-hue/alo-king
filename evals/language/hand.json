@@ -1,0 +1,19 @@
+{
+  "note": "Hand cases from the live traces of 13 Nov 2026 (docs/HANDOFF.md, A2 'Finding for lane B') and the 0.13 demo message. accept lists the products a generic word may fairly become.",
+  "cases": [
+    { "id": "h0013", "kind": "hand", "lang": "ar_lb", "text": "بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين",
+      "items": [{ "sku": "AK-0103" }, { "sku": "AK-0080" }, { "sku": "AK-0133" }] },
+    { "id": "h0001", "kind": "hand", "lang": "ar_lb", "text": "بدي علبتين لبنة ليبان ليه وربطتين خبز",
+      "items": [{ "sku": "AK-0046", "accept": ["AK-0051"] }, { "sku": "AK-0080", "accept": ["AK-0081", "AK-0082", "AK-0086"] }] },
+    { "id": "h0002", "kind": "hand", "lang": "ar_lb", "text": "ربطتين خبز",
+      "items": [{ "sku": "AK-0080", "accept": ["AK-0081", "AK-0082", "AK-0086"] }] },
+    { "id": "h0003", "kind": "hand", "lang": "ar_lb", "text": "قهوة نجار",
+      "items": [{ "sku": "AK-0133" }] },
+    { "id": "h0004", "kind": "hand", "lang": "ar_lb", "text": "كرتونة بيض هوا",
+      "items": [{ "sku": "AK-0049", "accept": ["AK-0055"] }] },
+    { "id": "h0005", "kind": "hand", "lang": "ar_lb", "text": "لبنة ليبان ليه",
+      "items": [{ "sku": "AK-0046", "accept": ["AK-0051"] }] },
+    { "id": "h0006", "kind": "hand", "lang": "ar_lb", "text": "بدي مي تنورين وخبز الفورنو",
+      "items": [{ "sku": "AK-0103" }, { "sku": "AK-0080" }] }
+  ]
+}

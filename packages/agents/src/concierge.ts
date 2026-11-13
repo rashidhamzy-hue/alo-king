@@ -71,14 +71,58 @@ const request = (model: string, messages: Anthropic.MessageParam[], extra: Parti
  * with the reasons, and the turn falls back to the open-question loop.
  */
 export async function extractOrder(client: ModelClient, model: string, input: TurnInput):
-    Promise<{ intent: OrderIntent | null; errors?: unknown; usage: Usage }> {
+    Promise<{ intent: OrderIntent | null; errors?: unknown; usage: Usage; rejected?: unknown }> {
+  // 4096: a long order read as a string inside `intent` was cut off at 1024 tokens on the live model (1.22, 13 Nov).
   const res = await client.messages.create(request(model, [{ role: "user", content: JSON.stringify(input) }],
-    { tool_choice: { type: "tool", name: "extract_order" } }));
+    { tool_choice: { type: "tool", name: "extract_order" }, max_tokens: 4096 }));
   const usage = { input: res.usage.input_tokens, output: res.usage.output_tokens };
   const call = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === "extract_order");
   if (!call) return { intent: null, errors: "no_extract_order_call", usage };
-  const parsed = OrderIntent.safeParse((call.input as { intent?: unknown } | null)?.intent);
-  return parsed.success ? { intent: parsed.data, usage } : { intent: null, errors: parsed.error.issues.slice(0, 5), usage };
+  // The fast model sometimes sends the reading as a JSON string inside `intent` (84 of 986 live eval runs, 13 Nov): read it.
+  let raw = (call.input as { intent?: unknown } | null)?.intent;
+  let note: string | undefined;
+  if (typeof raw === "string") {
+    const fixed = parseLooseJson(raw);
+    if (fixed !== undefined) raw = fixed;
+    else note = `string intent, stop_reason ${res.stop_reason}, ${(raw as string).length} chars`;   // never the text itself: it is the customer's
+  } else if (raw === undefined && call.input && typeof call.input === "object" && "lines" in (call.input as object)) {
+    raw = call.input;                                   // the reading itself, without the `intent` wrapper
+  }
+  const parsed = OrderIntent.safeParse(raw);
+  // `rejected` is the reading that failed, for the eval (synthetic messages) to inspect. The turn never stores or logs it.
+  return parsed.success ? { intent: parsed.data, usage }
+                        : { intent: null, errors: note ? [note, ...parsed.error.issues.slice(0, 4)] : parsed.error.issues.slice(0, 5), usage, rejected: raw };
+}
+
+/**
+ * The fast model sometimes writes the reading as a JSON string, and sometimes that string is not quite JSON: an escaped
+ * apostrophe ("Kellogg\'s"), a trailing comma, one closing brace too many at the end (72 of 1,972 live runs on 13 Nov), or a
+ * closing bracket left off. Repairs those and nothing else; anything else stays refused.
+ */
+export function parseLooseJson(text: string): unknown {
+  const attempt = (t: string) => { try { return { ok: true as const, v: JSON.parse(t) as unknown }; } catch { return { ok: false as const }; } };
+  let r = attempt(text);
+  if (r.ok) return r.v;
+  let t = text.replace(/\\'/g, "'").replace(/,\s*([}\]])/g, "$1").trim();
+  r = attempt(t);
+  if (r.ok) return r.v;
+  // one closer too many at the end: the model closed its outer wrapper inside the string ("...]}}")
+  for (let cut = 1; cut <= 2 && /[}\]]$/.test(t); cut++) {
+    t = t.slice(0, -1).trimEnd();
+    r = attempt(t);
+    if (r.ok) return r.v;
+  }
+  t = text.replace(/\\'/g, "'").replace(/,\s*([}\]])/g, "$1").trim();
+  // close what is open, outside strings
+  const stack: string[] = []; let inStr = false, esc = false;
+  for (const c of t) {
+    if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true; else if (c === "{" || c === "[") stack.push(c); else if (c === "}" || c === "]") stack.pop();
+  }
+  if (inStr) return undefined;                       // cut inside a string: not repaired
+  t += stack.reverse().map((c) => (c === "{" ? "}" : "]")).join("");
+  r = attempt(t.replace(/,\s*([}\]])/g, "$1"));
+  return r.ok ? r.v : undefined;
 }
 
 /**

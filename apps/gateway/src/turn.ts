@@ -2,7 +2,7 @@
 // Buttons, pins and STOP are handled by code. Only free text and voice reach the model.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
-import { alertOps, processOpsTurn } from "./ops-turn";
+import { alertOps, handleSubstitutionButton, processOpsTurn } from "./ops-turn";
 import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gateway";
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
@@ -14,10 +14,11 @@ import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers"
 import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
-import { judge } from "@ak/agents/stt";
+import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
-import { estimateSeconds, VOICE_TEXT, voiceVerdict } from "@ak/core/voice-policy";
+import { decideVoice } from "@ak/agents/voice";
+import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
 
 export interface Pending { line: "customer" | "ops"; who: { waUserId?: string; phone?: string }; event: KapsoReceived }
 export interface TurnDeps {
@@ -35,6 +36,14 @@ export interface TurnDeps {
   notifyCustomer?: (deliveryOrOrderId: string, what: "on_the_way" | "rider_waiting") => Promise<unknown>;
   /** Fetches inbound media from Kapso's media URL (1.6). Defaults to fetch(); pass one that adds Kapso's key if its URLs need it. */
   fetchMedia?: (url: string) => Promise<Response>;
+  /**
+   * WhatsApp's typing indicator on the message being answered (1.8): the gateway marks it read with a typing indicator, which
+   * WhatsApp shows until the reply or for 25 seconds. Called once a turn needs the model. Optional: until the gateway has it
+   * (packages/wa, lane A), nothing is shown. Never sends a message and never blocks the turn.
+   */
+  typing?: (waMessageId: string) => Promise<unknown>;
+  /** A second speech-to-text provider (1.7), passed by the worker only when its key is configured. settings.stt decides use. */
+  stt?: SttProvider;
 }
 export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
 
@@ -57,9 +66,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   let sendSeq = 0;
   if (!deps.turnKey) throw new Error("NO_TURN_KEY: processTurn must be called through runTurn");
   const turnKey = deps.turnKey;
-  const sendRaw = async (msg: Outbound, orderId?: string): Promise<SendResult> =>
+  const sendRaw = async (msg: Outbound, orderId?: string, authored?: SendRequest["authored"]): Promise<SendResult> =>
     deps.send({ line: "customer", partyId: conv.party_id, to, msg, category: "service", orderId,
-                dedupeKey: `${turnKey}:${sendSeq++}` });
+                dedupeKey: `${turnKey}:${sendSeq++}`, ...(authored ? { authored } : {}) });
   const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
   // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
   // never sends it twice), retries with backoff, then ModelUnavailable.
@@ -68,6 +77,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
                                 category: "service", dedupeKey: `${turnKey}:wait` });
     if (r.ok) sent.push(FIXED.oneMoment);
   } });
+
+  // Where a new customer came from (1.13): an ad click, a QR code or a referral code on their very first message. Data only;
+  // the database writes it once and ignores later messages. A failure here never stops the turn.
+  const head = first.event.message as typeof first.event.message & { referral?: unknown };
+  await db.rpc("record_first_contact", { p_party: conv.party_id, p_wamid: head.id, p_text: head.text?.body ?? null, p_referral: head.referral ?? null })
+    .then(() => undefined, () => undefined);
 
   await db.from("wa_messages").insert(pending.map((p) => ({
     line: "customer", direction: "inbound", party_id: conv.party_id, conversation_id: conv.conversation_id,
@@ -78,9 +93,10 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
 
   const ctx: ToolContext = {
     db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
-    send: (msg, opts) => sendRaw(msg, opts?.orderId), sent: { count: 0, texts: [] },
+    send: (msg, opts) => sendRaw(msg, opts?.orderId, opts?.authored), sent: { count: 0, texts: [] },
   };
   const texts: string[] = [];
+  const turnIds = pending.map((p) => p.event.message.id);
   const transcripts: { primary: string; secondary?: string }[] = [];
   let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false;
 
@@ -121,6 +137,27 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         buttonsHandled++;
         await repeatLast(ctx, { orderId: repeatOf });
         continue;
+      }
+      const fb = parseFeedbackButton(tapped);
+      if (fb) {
+        // One tap after delivery (2.9). A problem goes to a person at once; a repeat tap does nothing.
+        buttonsHandled++;
+        const r = await call<{ ok: boolean; changed?: boolean; short_code?: string }>(db, "record_feedback",
+          { p_order: fb.orderId, p_party: conv.party_id, p_verdict: fb.verdict });
+        if (r.ok && r.changed && fb.verdict === "problem") {
+          await handoff(db, conv.conversation_id, `delivery_problem: ${r.short_code}`);
+          await alertOps(deps, FEEDBACK_TEXT.opsAlert(r.short_code ?? ""), `fbproblem:${fb.orderId}`);
+          await say(FEEDBACK_TEXT.problem(r.short_code ?? ""), fb.orderId);
+        } else if (r.ok && r.changed) await say(FEEDBACK_TEXT.fine, fb.orderId);
+        continue;
+      }
+      // Keep or remove a substitute the picker offered (C2, 2.2): the hub's code answers; never the model.
+      if (tapped.startsWith("sub:")) {
+        try { if (await handleSubstitutionButton(deps, conv.party_id, tapped, m.id)) { buttonsHandled++; continue; } }
+        catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          buttonsHandled++; await say(FIXED.error); await handoff(db, conv.conversation_id, `substitution_error: ${String(err).slice(0, 200)}`); continue;
+        }
       }
       if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
       if (tapped === "marketing:yes" || tapped === "marketing:no") {
@@ -171,17 +208,18 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       continue;
     }
 
-    // 4. Voice: mechanical checks first. Until a second provider is wired (build step 4), Kapso's transcript is the only reading.
+    // 4. Voice: the policy, then the transcripts (Kapso first, a second provider behind settings.stt), then mechanical checks.
     if (m.type === "audio") {
-      const t = m.kapso.transcript?.text ?? "";
-      const seconds = Math.max(1, estimateSeconds(m.kapso.media_data?.byte_size ?? 16000));
-      // Policy first: a note over the limit is answered politely and not transcribed. Nothing is dropped in silence.
-      const policy = voiceVerdict("customer", seconds, voiceSecondsThisTurn);
-      if (policy.action === "too_long") { await say(VOICE_TEXT.tooLong(policy.limit)); buttonsHandled++; continue; }
-      if (policy.action === "over_budget") { await say(VOICE_TEXT.overBudget); buttonsHandled++; continue; }
+      // Policy first (1.17): the role's limit and the sender's hourly budget from settings.voice_limits, across turns. A note
+      // over a limit is answered politely and not read. Nothing is dropped in silence.
+      const policy = await decideVoice({ db, partyId: conv.party_id, line: "customer", role: "customer" }, m, voiceSecondsThisTurn, turnIds);
+      if (policy.reply) { await say(policy.reply); buttonsHandled++; continue; }
+      const seconds = policy.seconds;
       voiceSecondsThisTurn += seconds;
-      const verdict = judge({ text: t, provider: "kapso" }, undefined, seconds);
-      if (verdict.usable) transcripts.push({ primary: verdict.primary.text }); else audioFailed++;
+      // Kapso's transcript first; a second provider's too when settings.stt names one we have (1.7). Both are judged.
+      const { verdict } = await readVoiceNote({ db, fetchMedia: deps.fetchMedia, stt: deps.stt }, conv.party_id, m, seconds);
+      if (verdict.usable) transcripts.push({ primary: verdict.primary.text, ...(verdict.secondary ? { secondary: verdict.secondary.text } : {}) });
+      else audioFailed++;
       continue;
     }
 
@@ -250,6 +288,21 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       if (r.done) { remember(); await record("ok", `quick:${r.path}`); return { outcome: r.path.includes("card") ? "card" : "answered", sent }; }
     }
 
+    // Past the hourly cap on model turns (1.8, settings.model_turns), a person takes over: no model call.
+    const budget = (await db.rpc("model_turn_budget", { p_party: conv.party_id })).data as { allowed: boolean; used: number; limit: number } | null;
+    if (budget && budget.allowed === false) {
+      const hour = Math.floor(Date.now() / 3_600_000);
+      await handoff(db, conv.conversation_id, "model_turn_cap");
+      await db.rpc("raise_ops_exception", { p_kind: "model_turn_cap", p_ref: `${conv.party_id}:${hour}`,
+        p_detail: { conversation_id: conv.conversation_id, used: budget.used, limit: budget.limit } });
+      await alertOps(deps, `⚠️ زبون تخطّى ${budget.limit} رسالة للمساعد بساعة. المحادثة صارت مع موظف.`, `turncap:${conv.party_id}:${hour}`);
+      await say(FIXED.handoff);
+      await record("handoff", "model_turn_cap");
+      return { outcome: "agent_handoff", sent };
+    }
+    const lastInbound = [...pending].reverse().find((p) => p.event.message.type === "text" || p.event.message.type === "audio");
+    if (lastInbound && deps.typing) await deps.typing(lastInbound.event.message.id).catch(() => undefined);
+
     const input = { texts, transcripts,
       state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
                audio_messages_unreadable: audioFailed, recent: state.history ?? [],
@@ -264,7 +317,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const stated = intent?.restrictions ?? [];
     if (stated.length) state.orderRestrictions = [...new Set([...(state.orderRestrictions ?? []), ...stated])];
     // 2. The database decides: card, handoff, or a question.
-    const routed = await planReading(ctx, intent);
+    const routed = await planReading(ctx, intent, [...texts, ...transcripts.map((t) => t.primary)].join("\n"));
     if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     const res = await runAskLoop(model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));

@@ -43,3 +43,64 @@ export function judge(primary: Transcript, secondary: Transcript | undefined, du
 export function buildKeyterms(brands: string[], villages: string[], merchantNames: string[]): string[] {
   return [...new Set([...brands, ...villages, ...merchantNames])].slice(0, 100);
 }
+
+// ---------- Build plan 1.7: Kapso's transcript first, a second provider behind a setting, the audio kept privately ----------
+// settings.stt: { keep_audio, second_provider }. keep_audio copies the note into the private `media` bucket at once (the
+// hand-corrected evaluation, 5.8, needs the audio). second_provider names the provider whose transcript is also taken; the
+// worker passes the provider object only when its key is configured, so the setting alone never sends audio anywhere.
+// Kapso's own transcription runs through ElevenLabs, which may keep transcripts: whether to say so in the privacy notice or
+// to rely on our own provider is the founder's decision (docs/HANDOFF.md). The audio and the transcripts are personal data:
+// stored, never logged.
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { kapsoMediaUrl, MEDIA_BUCKET } from "./payment-proof";
+
+export interface VoiceNote { id: string; kapso: { transcript?: { text: string }; media_url?: string; media_data?: { url: string; content_type?: string; byte_size?: number } } }
+export interface SttSettings { keep_audio?: boolean; second_provider?: string | null }
+export interface VoiceDeps { db: SupabaseClient; fetchMedia?: (url: string) => Promise<Response>; stt?: SttProvider }
+const MAX_AUDIO = 16 * 1024 * 1024;   // WhatsApp's own ceiling for audio
+const hexOf = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+
+/**
+ * Reads one voice note: stores it if asked, takes the second transcript if the setting names the provider we have, and judges
+ * both. Storage or the second provider failing never loses the note: Kapso's transcript is still judged, and what failed is
+ * recorded with the message. Returns what the turn needs; writes the transcripts and the storage key onto wa_messages.
+ */
+export async function readVoiceNote(deps: VoiceDeps, partyId: string, m: VoiceNote, seconds: number, keyterms: string[] = []):
+    Promise<{ verdict: SttVerdict; mediaPath: string | null; second: Transcript | null }> {
+  const s = ((await deps.db.rpc("setting", { p_key: "stt" })).data ?? {}) as SttSettings;
+  const wantSecond = !!s.second_provider && deps.stt?.name === s.second_provider;
+  const kapso: Transcript = { text: m.kapso.transcript?.text ?? "", provider: "kapso" };
+  const notes: Record<string, string> = {};
+  let mediaPath: string | null = null, audio: ArrayBuffer | null = null, second: Transcript | null = null;
+
+  if (s.keep_audio || wantSecond) {
+    const url = kapsoMediaUrl(m);
+    if (!url) notes.audio = "no_kapso_media_url";
+    else {
+      try {
+        const res = await (deps.fetchMedia ?? ((u: string) => fetch(u)))(url);
+        if (!res.ok) throw new Error(`MEDIA_FETCH_${res.status}`);
+        const buf = await res.arrayBuffer();
+        if (buf.byteLength === 0 || buf.byteLength > MAX_AUDIO) throw new Error("MEDIA_SIZE");
+        audio = buf;
+        if (s.keep_audio) {
+          const path = `voice_notes/${partyId}/${hexOf(await crypto.subtle.digest("SHA-256", buf))}.ogg`;
+          const up = await deps.db.storage.from(MEDIA_BUCKET).upload(path, new Uint8Array(buf), { contentType: "audio/ogg", upsert: true });
+          if (up.error) throw new Error("MEDIA_STORE_FAILED");
+          mediaPath = path;
+        }
+      } catch (e) { notes.audio = String((e as Error).message ?? e).slice(0, 60); }
+    }
+  }
+  if (wantSecond && audio) {
+    try { second = { text: await deps.stt!.transcribe(audio, { keyterms }), provider: deps.stt!.name }; }
+    catch (e) { notes.second = String((e as Error).message ?? e).slice(0, 60); }
+  }
+  const verdict = judge(kapso, second ?? undefined, seconds);
+  await deps.db.from("wa_messages").update({
+    media_path: mediaPath,
+    transcript: { kapso: kapso.text || null, ...(second ? { second: { provider: second.provider, text: second.text } } : {}),
+                  chosen: verdict.usable ? verdict.primary.provider : null, ...(Object.keys(notes).length ? { notes } : {}) },
+  }).eq("wa_message_id", m.id);
+  return { verdict, mediaPath, second };
+}

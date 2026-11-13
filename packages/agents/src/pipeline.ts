@@ -42,7 +42,8 @@ export function directionsOf(intent: OrderIntent): string | null {
     .join(" | ") || null;
 }
 
-export async function planReading(ctx: ToolContext, intent: OrderIntent | null): Promise<Routed> {
+/** `said`: the customer's own words of the turn (texts and transcripts). The planner reads them as evidence between tied products (1.22). */
+export async function planReading(ctx: ToolContext, intent: OrderIntent | null, said?: string): Promise<Routed> {
   if (!intent) return { done: false, plan: null };
   // Questions the database answers by itself (1.3).
   if (intent.intent === "status") return answerStatus(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
@@ -69,7 +70,8 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null):
   }
   if (intent.lines.length === 0) return offerRepeat(ctx).then((r) => (r.done ? r : { done: false, plan: null }));   // "I want to order"
 
-  const plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: intent, p_village: ctx.state.villageId ?? null, p_choices: {} });
+  const plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...intent, _message: said.slice(0, 2000) } : intent,
+                                                      p_village: ctx.state.villageId ?? null, p_choices: {} });
   if (plan.village_id) ctx.state.villageId = plan.village_id;
   if (plan.place_id) ctx.state.placeId = plan.place_id;
   const directions = directionsOf(intent);
