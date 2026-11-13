@@ -242,6 +242,36 @@ Build it plain: server-rendered pages. No design work until the pilot shows what
 | 5.14 | Small-order fee | Decide the threshold and the amount before the paid pilot, from real margins and what competitors charge. |
 | 5.15 | Label scan at intake | A picker photographs the barcode and the label; the vision function proposes name, brand, size, ingredients, allergens and nutrition panel; Open Food Facts is looked up by barcode as a second opinion; a person confirms every field against the pack before it is published. Each fact keeps its source, status and date. Needs the food-facts tables (1.11). |
 | 5.16 | Restaurant prospect calls | `data/prospects/alo_king_launch_shortlist.csv`: the founder or ops lead visits or phones, in person, never from the system. Record interest, owner name and permission to contact in the cleaned sheet. |
+| 5.17 | Product pictures, fetched by the system | One clean, usable picture per catalog item, approved by a person. Session P1. Details below. |
+
+### 5.17 Product pictures (session P1)
+
+Goal: one clean picture for each of the 291 catalog items, approved by a person, with its source and licence recorded.
+
+1. A script reads each catalog item: name, brand, size, and barcode when known.
+2. It gathers up to five candidates per item: Open Food Facts by barcode first, then the brand's own product page, then a
+   web image search API. The fetch runs in GitHub Actions (`.github/workflows/images.yml`), because cloud build sessions
+   cannot reach these sites. The session picks the search provider, writes the choice and its price in `docs/DECISIONS.md`
+   and the secret name it needs in `docs/HANDOFF.md`. Until the founder adds that secret, only Open Food Facts runs.
+3. A vision check (the fast model) keeps a candidate only if all of these are true: same brand, product and size as the
+   catalog item; one pack on a plain background; at least 800 pixels wide; no watermark, overlaid text, price tag or shop logo.
+4. Licence. Every candidate keeps its source address and licence. Open Food Facts pictures are CC BY-SA: keep the
+   attribution. A picture from the brand's own site is usable. A picture from search results or another shop is "licence
+   unknown": it may guide the intake photo but is never shown to customers until the lawyer's line (5.11) allows it.
+5. The best usable candidate is resized (longest side 1200 px, under 300 KB), saved to the private `media` bucket with its
+   source and licence, status `proposed`.
+6. Review: one console page (`apps/console/src/images/`, reserved for P1) shows the item and the picture side by side;
+   a person approves or rejects each one.
+7. Only approved pictures leave the database: one SQL function returns an item's picture only when it is approved, as a
+   short-lived signed link. Customers may see pictures only inside allowed message types (the image header of an
+   interactive message) and later on the website. Never add `image` to the gateway allowlist (invariant 2). Using the
+   picture in messages is a later Ordering-lane task; P1 only provides the function.
+8. Items with no usable picture go on the "photograph at intake" list (5.15); the intake photo goes through the same approval.
+
+Expect local brands to fail more often.
+
+Done when: every catalog item is either approved or on the "photograph at intake" list, and a test shows the customer-side
+function never returns a proposed, rejected or licence-unknown picture.
 
 ## Hub and zones
 
@@ -341,7 +371,7 @@ same SQL functions, never a second system.
 
 ## Build sessions
 
-Eleven Claude Code sessions take the project to the shadow run, plus two audits. Up to three run at the same time.
+Twelve Claude Code sessions take the project to the shadow run, plus two audits. Up to three run at the same time.
 Each session is one bundle of tasks, one branch, one pull request, with one commit per task.
 
 | Session | Lane | Model | Tasks | Can start when | Owns these files |
@@ -356,6 +386,7 @@ Each session is one bundle of tasks, one branch, one pull request, with one comm
 | B3 | Ordering | Sonnet 5.5 | 1.7, 1.8, 1.13, 1.17, 2.9 | B2 merged | as B1 |
 | C3 | Hub | Opus 5.5 | 2.8 | B2 and C2 merged | migrations 0040-0044, `order-card.ts`, `dispatch_order` |
 | D2 | Console | Opus 5.5 | 3.11 to 3.17, 5.15 | D1 and C2 merged; runs beside B3 and C3 | `apps/console/`, migrations 0045-0049 |
+| P1 | Pictures | Sonnet 5.5 | 5.17 | A1 and D1 merged; runs beside any other lane | `scripts/images/` (new), `.github/workflows/images.yml` (new), `apps/console/src/images/` (new), migration 0050, `test/db/product-images.test.ts` |
 | G1 | Audit | Fable 5.2 | Read every migration and test; try to break money, permissions, recovery and the send path | Everything above merged | Findings only; fixes go to Opus |
 | A3 | Infra | Sonnet 5.5 | 4.2, 4.4, 4.7, 4.8, 4.9, 4.11 | The +961 numbers and production accounts exist | production configuration |
 | Phase 6 | | | Shadow run, by people | G1 findings closed | |
