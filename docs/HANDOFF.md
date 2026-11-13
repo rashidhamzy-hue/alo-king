@@ -244,7 +244,7 @@ Staging stock is 5,000 of everything (only set on an empty store), so the hourly
 - The session worked on branch `claude/hopeful-johnson-hvqdoh` (the branch this environment allows).
 
 ### Session P1 (pictures), 13 November 2026: task 5.17 steps 1-5, 7, 8; migration 0050
-Branch `claude/build-p1-task-5-17-5m1zj4` (the branch this environment allows). Built and tested locally (PGlite with every migration; permission check on Postgres 16); the fetch itself runs only in GitHub Actions. Results of the first staging run are in the next subsection.
+Branch `claude/build-p1-task-5-17-5m1zj4` (the branch this environment allows). Built and tested locally (PGlite with every migration; permission check on Postgres 16); the fetch itself runs only in GitHub Actions. The staging runs are in "First staging runs" below.
 
 | Step | Where | Tested by |
 | --- | --- | --- |
@@ -254,15 +254,31 @@ Branch `claude/build-p1-task-5-17-5m1zj4` (the branch this environment allows). 
 | 7 Signed link | `scripts/images/sign.mjs`, `product_image_for_customer()` | SQL cannot sign (the key is the project's), so the function returns the storage key, attribution and link lifetime, and the caller signs with the Storage API. `sign.mjs` is a tested example. `prove-private.mjs` does it live against one proposed picture and checks that the public route and an unsigned address are refused |
 | 8 Intake list | `photograph_at_intake()` (with the reason: `none_found`, `unknown_licence_only`, `rejected`), the `photograph-at-intake` artifact of each run | Same test file |
 
+**First staging runs (13 Nov, `images.yml` on main; Open Food Facts only, no search key yet).** Proven live: the pipeline, the model check, the resize, the private bucket and the signed link. Not proven: Brave search (no key), and a person approving a picture (3.18 is not built).
+
+| Run | What happened | What it taught |
+| --- | --- | --- |
+| 1 `43414108385` | 0 proposed. 257 `none_found`, 34 `none_passed` | 176 of the 257 were not "not found": the Open Food Facts lookup had thrown and the error was dropped, so it was filed as `none_found`. Fixed: a failed lookup is an `error` with its message stored, never `none_found` (PR 15) |
+| 2 `43415523730` | 1 proposed (AK-0175 Barilla Spaghetti N°5). 123 `error` = HTTP 429 from Open Food Facts, 109 `none_found`, 58 `none_passed`. **Signed link served the picture (HTTP 200, image/jpeg, 72,102 bytes); the same path without a link answered 400; the signed address without its token answered 400** | Open Food Facts rate-limits a GitHub runner even at one read per 1.5 s. Gate is now 4 s, `Retry-After` is honoured, and a rerun skips items already finished with nothing (PR 16) |
+| 3 `43417645227` | 2 proposed in all (AK-0175 Barilla Spaghetti N°5, AK-0193 Plein Soleil Sweet Corn 340G, both CC BY-SA). No errors | Every one of the 291 items now has a conclusive result |
+
+**Result: 2 of the 291 items have a usable proposed picture (0.7%). 289 are on the photograph-at-intake list.** Nothing is approved: approval is a person's, on the 3.18 page. Where the other 289 stand:
+- **34** have no barcode (the unbranded produce): Open Food Facts is by barcode only, so they need search or an intake photo.
+- **153** have a barcode that gave no Open Food Facts picture (not in its database, or no picture). Local brands fail most (as the plan expected).
+- **102** had candidates, and every one failed the vision check on the rules as written. The reasons recorded in `product_image_attempts.detail` were mostly `background` (not a plain background: Open Food Facts pictures are usually shop-floor or hand-held shots) and `size` (the pack's size could not be read, and `cannot_tell` counts as no), then `brand` and `product`, `narrow` (under 800 px) and `not_one_pack`. The step 3 rules were kept exactly; they are strict on purpose.
+
+So Open Food Facts alone will not cover the catalog. The two real levers, both the founder's: (1) the `BRAVE_SEARCH_API_KEY` secret, which adds brand-site and web search (search pictures are licence unknown: they guide the intake photo and are never shown to customers, so search raises the count of good guides, not of customer-visible pictures); (2) the intake photographs (5.15), taken on a plain background, which go through the same approval and are the main route to a customer-visible picture for most items. `intake-list.json` (artifact `photograph-at-intake` on each run) lists the items with the reason and any guide picture.
+CI note: on PR 16 `test/pg/dispatch-race.test.ts` failed once with "Postgres did not start" on the runner (not this lane's code; the diff was `scripts/images/` only) and passed on the one re-run.
+
 **Secret and switches (founder).** `BRAVE_SEARCH_API_KEY` (repository secret) turns on brand-site and web image search; the choice and price are in `docs/DECISIONS.md`. Without it the workflow runs Open Food Facts only. `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_KEY` are the existing secrets. The model is `MODEL_FAST` from `wrangler.jsonc`.
 
 **How it behaves.** Up to five candidates an item, evaluated in stages (Open Food Facts, brand site, open search); the later stages are skipped once a picture with a customer-usable licence passes. A candidate is kept only if the measured width is at least 800 px and the model says yes to brand, product, size, one pack, plain background, and no to watermark or overlay text, and no to price tag or shop logo. `cannot_tell` is a no. The best kept candidate (usable licence first, then width) is shrunk and stored under `media/product_images/<sku>/<hash>.jpg` as `proposed`. A rerun only touches items still without a usable picture or a usable proposal, and never a picture a person approved. Each item and run leaves a row in `product_image_attempts` with the reason.
 
 **Not done, and why.**
 - Step 6 (the review page) is task 3.18, D1.
-- Open Food Facts is looked up by barcode only. The 34 unbranded produce items and the 34 items with no barcode get nothing from it, and are on the intake list unless search finds a picture.
+- Open Food Facts is looked up by barcode only. The 34 items with no barcode (the unbranded produce) get nothing from it, and are on the intake list unless search finds a picture.
 - Brand-site search needs a listed domain per brand (`scripts/images/brand-sites.json`, nine brands today). It is a search restricted to that site, not a crawl of the brand's product pages.
-- The Brave request shape follows its documentation and is tested with a fake; it has not been called, because the key does not exist yet.
+- The Brave request shape follows its documentation and is tested with a fake; it has not been called, because the key does not exist yet. First run with the key: expect to read `errors_by_message` in the run summary before trusting it.
 - `TEST_REPORT.txt` was not regenerated: it is not in P1's files, and parallel sessions would conflict on it. The next session that owns it should.
 
 **For other sessions.**
