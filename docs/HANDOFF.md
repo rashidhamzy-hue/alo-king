@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 82 tests; test/db/* run the real migrations in PGlite
+npx vitest run          # 100 tests; test/db/* run the real migrations in PGlite
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
 `TEST_REPORT.txt` is the captured run for this tree.
