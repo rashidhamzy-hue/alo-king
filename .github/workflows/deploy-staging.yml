@@ -1,0 +1,60 @@
+# Deploys STAGING only. Runs by hand, and on main after the `ci` workflow passes.
+# The build environment cannot reach Supabase, Cloudflare or Kapso, so everything that touches them runs here.
+# Production is a separate workflow that does not exist yet (task 4.2, session A3). Nothing here can touch production:
+# every target below is the staging project, the staging Worker and the staging Kapso numbers.
+#
+# Secrets used (repository secrets, never printed): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN,
+# SUPABASE_DB_PASSWORD, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY.
+name: deploy-staging
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }   # bash with pipefail, so `a | tee b` fails when `a` fails
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false   # never cut a deploy in half
+env:
+  SUPABASE_PROJECT_REF: lhgkvvdckwbfpdsftzqp
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  database:
+    # 0.3 and 0.4: migrations, approved seeds, the private media bucket, the permission check.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha || github.sha }}" }
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - name: Link the staging project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Connection string (session pooler, because runners have no IPv6)
+        run: |
+          test -s supabase/.temp/pooler-url || { echo "no pooler url after link"; exit 1; }
+          # The file holds the user and host but no password; PGPASSWORD supplies it.
+          echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
+      - name: Apply migrations
+        # --include-all: parallel sessions merge migrations out of number order; staging takes them all.
+        run: supabase db push --include-all --yes
+      - name: Check every migration file is recorded
+        run: |
+          local_count=$(ls supabase/migrations/*.sql | wc -l)
+          remote_count=$(psql "$DATABASE_URL" -At -c "select count(*) from supabase_migrations.schema_migrations")
+          echo "migration files: $local_count, applied: $remote_count"
+          [ "$local_count" = "$remote_count" ]
+          echo "- migrations applied: $remote_count of $local_count" >> "$GITHUB_STEP_SUMMARY"
+      - name: Approved seeds (only into an empty catalog)
+        run: scripts/ci/load-seeds.sh | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Private media bucket
+        run: scripts/ci/ensure-media-bucket.sh | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
