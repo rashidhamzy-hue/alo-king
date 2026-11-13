@@ -148,4 +148,6 @@ jobs:
             echo "unsigned POST to the $line webhook -> $body (\"bad signature [401]\" expected: this is our Worker answering)"
             [ "$body" = "bad signature [401]" ]
           done
-          echo "- Smoke test passed: unknown path 404, unsigned webhooks 401" >> "$GITHUB_STEP_SUMMARY"
+          body=$(curl -sS "$url/__sentry-test")
+          echo "Sentry test route -> $body (\"sent\" expected; the event appears in project alo-king-gateway)"; [ "$body" = "sent" ]
+          echo "- Smoke test passed: unknown path 404, unsigned webhooks 401, one test error sent to Sentry (alo-king-gateway)" >> "$GITHUB_STEP_SUMMARY"
