@@ -39,6 +39,12 @@ describe("Cash and riders", () => {
 
     const hand = Number((await r.db.rpc("rider_statement", { p_driver: rider })).cash_held_usd);
     const drop = await r.db.rpc("declare_cash_drop", { p_driver: rider, p_method: "hub", p_usd: hand, p_lbp: 0 });
+    // The database checks who is acting (0046): a picker, a rider or an unknown party cannot confirm a drop, whatever calls it.
+    const picker = await r.staff("picker");
+    for (const who of [picker.partyId, rider, crypto.randomUUID()]) {
+      await expect(r.db.rpc("confirm_cash_drop", { p_drop: drop, p_by: who })).rejects.toThrow(/NOT_AUTHORISED/);
+    }
+    expect((await r.db.one(`select status from cash_drops where id = $1`, [drop])).status).toBe("declared");
     page = (await b.get("/riders")).text;
     expect(page).toContain(`$${hand.toFixed(2)} + 0 LBP`);
     const ok = await b.post(`/riders/drop/${drop}`);

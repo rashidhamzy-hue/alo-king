@@ -28,6 +28,14 @@ describe("Exceptions and chats", () => {
     expect(page).not.toContain("no_rider");
     expect(await r.db.one(`select status, resolved_by from ops_exceptions where id = $1`, [exc])).toMatchObject({ status: "resolved", resolved_by: lead.partyId });
     expect((await b.post(`/exceptions/${exc}/deleted`)).text).toContain("Unknown status");
+    // The database checks the actor and the status too (0046), and a resolved exception is not reopened.
+    const other = await r.db.rpc("raise_ops_exception", { p_kind: "no_rider", p_ref: "AK-0002" });
+    const picker = await r.staff("picker");
+    await expect(r.db.rpc("resolve_ops_exception", { p_id: other, p_by: picker.partyId, p_status: "resolved" })).rejects.toThrow(/NOT_AUTHORISED/);
+    await expect(r.db.rpc("resolve_ops_exception", { p_id: other, p_by: lead.partyId, p_status: "deleted" })).rejects.toThrow(/UNKNOWN_STATUS/);
+    await r.db.rpc("resolve_ops_exception", { p_id: exc, p_by: lead.partyId, p_status: "acknowledged" });
+    expect((await r.db.one(`select status from ops_exceptions where id = $1`, [exc])).status).toBe("resolved");
+    expect((await r.db.one(`select status from ops_exceptions where id = $1`, [other])).status).toBe("open");
   });
 
   it("a reply goes out once from the customer number through the gateway; a closed window is refused", async () => {
