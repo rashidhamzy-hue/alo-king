@@ -17,7 +17,7 @@ import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card"
 import { judge } from "@ak/agents/stt";
 import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
-import { estimateSeconds, VOICE_TEXT, voiceVerdict } from "@ak/core/voice-policy";
+import { decideVoice } from "@ak/agents/voice";
 
 export interface Pending { line: "customer" | "ops"; who: { waUserId?: string; phone?: string }; event: KapsoReceived }
 export interface TurnDeps {
@@ -93,6 +93,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     send: (msg, opts) => sendRaw(msg, opts?.orderId, opts?.authored), sent: { count: 0, texts: [] },
   };
   const texts: string[] = [];
+  const turnIds = pending.map((p) => p.event.message.id);
   const transcripts: { primary: string; secondary?: string }[] = [];
   let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false;
 
@@ -186,11 +187,11 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // 4. Voice: mechanical checks first. Until a second provider is wired (build step 4), Kapso's transcript is the only reading.
     if (m.type === "audio") {
       const t = m.kapso.transcript?.text ?? "";
-      const seconds = Math.max(1, estimateSeconds(m.kapso.media_data?.byte_size ?? 16000));
-      // Policy first: a note over the limit is answered politely and not transcribed. Nothing is dropped in silence.
-      const policy = voiceVerdict("customer", seconds, voiceSecondsThisTurn);
-      if (policy.action === "too_long") { await say(VOICE_TEXT.tooLong(policy.limit)); buttonsHandled++; continue; }
-      if (policy.action === "over_budget") { await say(VOICE_TEXT.overBudget); buttonsHandled++; continue; }
+      // Policy first (1.17): the role's limit and the sender's hourly budget from settings.voice_limits, across turns. A note
+      // over a limit is answered politely and not read. Nothing is dropped in silence.
+      const policy = await decideVoice({ db, partyId: conv.party_id, line: "customer", role: "customer" }, m, voiceSecondsThisTurn, turnIds);
+      if (policy.reply) { await say(policy.reply); buttonsHandled++; continue; }
+      const seconds = policy.seconds;
       voiceSecondsThisTurn += seconds;
       const verdict = judge({ text: t, provider: "kapso" }, undefined, seconds);
       if (verdict.usable) transcripts.push({ primary: verdict.primary.text }); else audioFailed++;

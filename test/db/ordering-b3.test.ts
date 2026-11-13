@@ -111,3 +111,57 @@ describe("first-contact source (1.13)", () => {
     expect((await db.one(`select first_contact from parties where id = $1`, [c.party_id])).first_contact).toBeNull();
   });
 });
+
+describe("voice-note policy by role, from settings, across turns (1.17)", () => {
+  const audio = (bytes: number, extra: Record<string, unknown> = {}) => ({ type: "audio", audio: { id: "a1", voice: true, ...extra },
+    kapso: { direction: "inbound", origin: "cloud_api", transcript: { text: "بدي علبتين لبنة ليبان ليه من فضلك" }, media_data: { url: "https://k/a", byte_size: bytes } } });
+  const setLimits = (v: Record<string, number>) => db.pg.query(`update settings set value = $1 where key = 'voice_limits'`,
+    [JSON.stringify({ customer: 180, merchant: 300, driver: 120, staff: 120, per_sender_seconds_per_hour: 900, ...v })]);
+  afterEach(() => setLimits({}));
+
+  it("the customer's limit comes from settings.voice_limits", async () => {
+    await setLimits({ customer: 30 });
+    const t = flow(db, [read(ORDER)]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.say(audio(2100 * 60));                                      // about a minute
+    expect(t.seen).toHaveLength(0);
+    expect(outbound[0]!.body.text.body).toContain("التسجيل طويل");
+  });
+
+  it("the hourly budget holds across turns, not only inside one burst", async () => {
+    await setLimits({ per_sender_seconds_per_hour: 20 });
+    const t = flow(db, [read(ORDER), read(ORDER)]);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await t.say(audio(2100 * 15));
+    expect(t.seen).toHaveLength(1);                                     // read and answered
+    outbound.length = 0;
+    await t.say(audio(2100 * 15));                                      // fifteen more seconds, a new turn: over the hour's 20
+    expect(t.seen).toHaveLength(1);
+    expect(outbound.map((o) => o.body.text?.body)).toContain("وصلني كتير تسجيلات ورا بعض. اكتبلي الطلب أو قلّي «موظف» وبيتواصل معك حدا من الفريق.");
+    expect((await db.one(`select coalesce(sum(seconds), 0)::int as s from voice_usage where party_id = $1`, [c.party_id])).s).toBe(15);
+  });
+
+  it("the provider's real duration wins over the size estimate, and a retried note is counted once", async () => {
+    const { audioSeconds, decideVoice } = await import("@ak/agents/voice");
+    expect(audioSeconds({ id: "x", audio: { duration: 20 }, kapso: { media_data: { byte_size: 2100 * 600 } } })).toBe(20);
+    expect(audioSeconds({ id: "x", kapso: { media_data: { byte_size: 2100 * 30 } } })).toBe(30);
+    const t = flow(db, []);
+    const c = await t.customer();
+    const m = { id: `wamid.voice.${c.party_id}`, kapso: { media_data: { byte_size: 2100 * 40 } } };
+    const g = { db: t.client as any, partyId: c.party_id, line: "customer" as const, role: "customer" as const };
+    await decideVoice(g, m, 0, [m.id]); await decideVoice(g, m, 0, [m.id]);
+    expect((await db.one(`select count(*)::int as n from voice_usage where party_id = $1`, [c.party_id])).n).toBe(1);
+  });
+
+  it("riders and staff: their own limit; within it a person listens and the rider is reminded money is buttons", async () => {
+    const { voiceOnOpsLine, OPS_VOICE_TEXT } = await import("@ak/agents/voice");
+    const t = flow(db, []);
+    const rider = (await db.one(`insert into parties(role, display_name) values ('driver', 'R') returning id`)).id;
+    const g = { db: t.client as any, partyId: rider, line: "ops" as const, role: "driver" as const };
+    const long = await voiceOnOpsLine(g, { id: `wamid.r1.${rider}`, kapso: { media_data: { byte_size: 2100 * 150 } } }, 0, []);
+    expect(long).toMatchObject({ forwardToOps: false });
+    expect(long.reply).toContain("التسجيل طويل");
+    const short = await voiceOnOpsLine(g, { id: `wamid.r2.${rider}`, kapso: { media_data: { byte_size: 2100 * 30 } } }, 0, []);
+    expect(short).toEqual({ reply: OPS_VOICE_TEXT.received, forwardToOps: true, seconds: 30 });
+  });
+});
