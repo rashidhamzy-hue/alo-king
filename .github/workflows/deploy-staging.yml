@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { ref: "${{ github.event.workflow_run.head_sha || github.sha }}" }
       - uses: supabase/setup-cli@v1
-        with: { version: 2.122.1 }   # pinned: `latest` failed once on a GitHub API rate limit. Bump deliberately.
+        with: { version: 3.1.0 }   # pinned (3.x: `db push --remote`). `latest` failed once on a GitHub API rate limit. Bump deliberately, and re-run the deploy.
       - name: Link the staging project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - name: Connection string (session pooler, because runners have no IPv6)
