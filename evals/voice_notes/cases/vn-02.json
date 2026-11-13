@@ -1,0 +1,44 @@
+{
+  "id": "vn-02",
+  "about": "Restaurant order with per-item modifiers and a named shop",
+  "transcript": "بدي تنتين تشيز برغر من عند السناك وحدة بلا كبيس ووحدة بلا بندورة وتنين بطاطا مقلية وبيبسي دايت",
+  "duration_sec": 14,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "delivery",
+    "lines": [
+      {
+        "item": "cheeseburger",
+        "qty": 2,
+        "unit": "each",
+        "modifiers": [
+          "one without pickles",
+          "one without tomato"
+        ],
+        "source": "السناك"
+      },
+      {
+        "item": "fries",
+        "qty": 2,
+        "unit": "each",
+        "modifiers": [],
+        "source": "السناك"
+      },
+      {
+        "item": "pepsi diet",
+        "qty": 1,
+        "unit": "each",
+        "modifiers": [],
+        "source": "السناك"
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

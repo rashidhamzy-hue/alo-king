@@ -1,0 +1,28 @@
+{
+  "id": "vn-09",
+  "about": "Same as last time",
+  "transcript": "متل المرة الماضية بس زيدلي ربطة خبز",
+  "duration_sec": 5,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "delivery",
+    "lines": [
+      {
+        "item": "خبز",
+        "qty": 1,
+        "unit": "bundle",
+        "modifiers": [],
+        "source": null
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null,
+    "repeat_last": true
+  }
+}

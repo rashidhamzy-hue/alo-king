@@ -11,3 +11,10 @@ The 38 voice notes from the "Alo King" WhatsApp group are the acceptance test fo
    - address fields (village, landmark, building, floor),
    - `change_for_usd`, pickup versus delivery, and merchant attribution.
 4. A release needs item F1 of 0.90 or better and zero invented items. Every production miss becomes a new case.
+
+## Transcript cases (run in CI)
+`evals/voice_notes/cases/*.json` are voice notes written down as the speech provider returned them, with a duration, a
+label saying whether the transcript is usable at all, and the hand-written truth. They hold no audio and no real names or
+addresses, so they live in the repository. `evals/test/voice-cases.test.ts` checks they are well formed and that the
+mechanical checks (`judge` in `packages/agents/src/stt.ts`) agree with each label. With an API key, `npm run eval` also
+runs the Concierge's extraction on each transcript and scores it.

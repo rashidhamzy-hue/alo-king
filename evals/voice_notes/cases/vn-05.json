@@ -1,0 +1,34 @@
+{
+  "id": "vn-05",
+  "about": "Building, floor and recipient name, no street numbers",
+  "transcript": "تلات ربطات خبز وحليب عالسمقانية بناية الأرز الطابق التاني لعند ام سامي",
+  "duration_sec": 10,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "delivery",
+    "lines": [
+      {
+        "item": "خبز",
+        "qty": 3,
+        "unit": "bundle",
+        "modifiers": [],
+        "source": null
+      },
+      {
+        "item": "حليب",
+        "qty": 1,
+        "unit": "each",
+        "modifiers": [],
+        "source": null
+      }
+    ],
+    "address": {
+      "village": "السمقانية",
+      "landmark": null,
+      "building": "بناية الأرز",
+      "floor": "2"
+    },
+    "change_for_usd": null
+  }
+}

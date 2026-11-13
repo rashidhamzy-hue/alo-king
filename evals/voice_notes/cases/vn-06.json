@@ -1,0 +1,31 @@
+{
+  "id": "vn-06",
+  "about": "A photo is promised for the item",
+  "transcript": "بدي هيدا الشامبو يلي عالصورة، هلق ببعتلك صورتو، وعلبة محارم كلينكس",
+  "duration_sec": 9,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "delivery",
+    "lines": [
+      {
+        "item": "محارم",
+        "qty": 1,
+        "unit": "each",
+        "modifiers": [],
+        "source": null
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null,
+    "promised_followup": "photo",
+    "needs_clarification": [
+      "shampoo from the photo"
+    ]
+  }
+}

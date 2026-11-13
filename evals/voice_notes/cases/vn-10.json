@@ -1,0 +1,19 @@
+{
+  "id": "vn-10",
+  "about": "Transcript collapsed into a loop: must be refused, never read as an order",
+  "transcript": "بدي بدي بدي بدي بدي بدي بدي بدي بدي بدي بدي بدي",
+  "duration_sec": 12,
+  "usable": false,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "unknown",
+    "lines": [],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}
