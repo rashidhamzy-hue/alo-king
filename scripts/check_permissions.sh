@@ -52,12 +52,20 @@ do $$ declare r text; ok boolean; begin
   end loop;
 end $$;
 -- Not just the two probes above: every function and every table in public, for each client role and for PUBLIC.
+-- Functions that belong to an extension (pg_trgm and the like) are not ours: on Supabase they are owned by supabase_admin, so a
+-- migration cannot revoke their default PUBLIC grant. They are reported by extension name as a WARNING; our own functions are a hard failure.
 do $$ declare n int; t text; begin
-  select count(*) into n from pg_proc p where pronamespace = 'public'::regnamespace and has_function_privilege('public', p.oid, 'execute');
-  if n > 0 then raise exception '% functions are still callable by PUBLIC', n; end if;
+  select count(*) into n from pg_proc p where pronamespace = 'public'::regnamespace and has_function_privilege('public', p.oid, 'execute')
+    and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e');
+  if n > 0 then raise exception '% of our functions are still callable by PUBLIC', n; end if;
   select count(*) into n from pg_proc p, unnest(array['anon','authenticated']) r
-    where pronamespace = 'public'::regnamespace and has_function_privilege(r, p.oid, 'execute');
+    where pronamespace = 'public'::regnamespace and has_function_privilege(r, p.oid, 'execute')
+      and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e');
   if n > 0 then raise exception '% function grants to anon or authenticated', n; end if;
+  for t in select e.extname || ' (' || count(*) || ' functions)' from pg_proc p join pg_depend d on d.objid = p.oid and d.deptype = 'e' join pg_extension e on e.oid = d.refobjid
+    where p.pronamespace = 'public'::regnamespace and has_function_privilege('public', p.oid, 'execute') group by e.extname loop
+    raise warning 'extension functions in public are callable by PUBLIC: % (move the extension to the extensions schema in a migration)', t;
+  end loop;
   -- A table grant to a client role is a hard failure unless row level security is on with no policy at all
   -- (then the grant is untidy but reaches no row). Those are listed by name as a WARNING so they get fixed by a migration.
   select count(*) into n from pg_class c, unnest(array['anon','authenticated']) r
@@ -70,6 +78,6 @@ do $$ declare n int; t text; begin
       and (has_table_privilege(r, c.oid, 'select') or has_table_privilege(r, c.oid, 'insert') or has_table_privilege(r, c.oid, 'update') or has_table_privilege(r, c.oid, 'delete')) loop
     raise warning 'table % still has a grant to anon or authenticated (RLS blocks it; revoke it in a migration)', t;
   end loop;
-  raise notice 'no function in public is callable by PUBLIC, anon or authenticated, and no table grant escapes row level security';
+  raise notice 'none of our functions is callable by PUBLIC, anon or authenticated, and no table grant escapes row level security';
 end $$;
 SQL
