@@ -147,7 +147,11 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
       } else if (b?.kind === "stop" && b.action === "noanswer") {
         const r = await rpc<{ ok: boolean; wait_more_min?: number; return_to_hub?: boolean; delivery_done?: boolean }>(db, "rider_no_answer", { p_order: b.id, p_driver: driver });
         if (!r.ok && r.wait_more_min) { await say(`جرّب تتصل فيه. استنى ${r.wait_more_min} دقايق كمان وكبّس مرة تانية.`); await deps.notifyCustomer?.(b.id, "rider_waiting"); }
-        else if (r.ok) { await say(r.return_to_hub ? "سجّلناها. رجّع الأغراض عالمركز." : "سجّلناها."); await alertOps(deps, `🚪 توصيل فاشل (ما حدا رد) للطلب ${b.id.slice(0, 8)}`, `${turnKey}:alert:noanswer`); }
+        else if (r.ok) {
+          await say(r.return_to_hub ? "سجّلناها. رجّع الأغراض عالمركز." : "سجّلناها.");
+          await alertOps(deps, `🚪 توصيل فاشل (ما حدا رد) للطلب ${b.id.slice(0, 8)}`, `${turnKey}:alert:noanswer`);
+          if (r.return_to_hub) await announceReturn(deps, b.id);
+        }
       } else if (text) {
         // A typed amount belongs to the delivered-but-unpaid order this rider is holding, if there is exactly one.
         const cash = parseCashMessage(text);
@@ -175,6 +179,14 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
   return { outcome: "rider", sent };
 }
 
+/** 2.5: the goods of a failed delivery are coming back. The pickers and the ops lead get the button that opens the count. */
+export async function announceReturn(deps: TurnDeps, orderId: string): Promise<void> {
+  const card = await rpc<ReturnCard>(deps.db, "return_card", { p_order: orderId });
+  const msg = buttons(STAFF_TEXT.returnBack(card.short_code), [{ id: staffButtonId({ kind: "ret", action: "open", id: orderId }), title: "عدّ المرتجع" }]);
+  const to = [...await rpc<string[]>(deps.db, "pick_recipients", {}), ...await rpc<string[]>(deps.db, "ops_recipients", {})];
+  for (const id of new Set(to)) await sendToParty(deps, id, msg, `retnotice:${orderId}:${id}`);
+}
+
 const isOutboxFailure = (err: unknown) => err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable";
 
 const dropButtons = () => [
@@ -196,11 +208,12 @@ interface Offer { offer_id: string; order_id: string; short_code: string; custom
 
 export type StaffButton =
   | { kind: "pick"; action: "start" | "done" | "missing" | "line" | "remove"; id: string }
+  | { kind: "ret"; action: "open" | "default" | "all_fit" | "all_waste"; id: string }
   | { kind: "sub"; action: "offer"; id: string; product: string };
 export const staffButtonId = (b: StaffButton) => `${b.kind}:${b.action}:${b.id}${b.kind === "sub" ? ":" + b.product : ""}`;
 export function parseStaffButton(id: string): StaffButton | null {
-  const m = /^(pick):(start|done|missing|line|remove):([0-9a-f-]{36})$/.exec(id);
-  if (m) return { kind: "pick", action: m[2], id: m[3] } as StaffButton;
+  const m = /^(pick):(start|done|missing|line|remove):([0-9a-f-]{36})$/.exec(id) ?? /^(ret):(open|default|all_fit|all_waste):([0-9a-f-]{36})$/.exec(id);
+  if (m) return { kind: m[1], action: m[2], id: m[3] } as StaffButton;
   const s = /^sub:offer:([0-9a-f-]{36}):([0-9a-f-]{36})$/.exec(id);
   return s ? { kind: "sub", action: "offer", id: s[1]!, product: s[2]! } : null;
 }
@@ -211,6 +224,7 @@ export function parseSubstitutionButton(id: string): { keep: boolean; offerId: s
   return m ? { keep: m[1] === "keep", offerId: m[2]! } : null;
 }
 
+const RETURNS = /^(مرتجع|مرتجعات|رجعة|returns?)$/i;
 const PICK_QUEUE = /^(طلبات|تحضير|حضّر|حضر|pick|orders|list)$/i;
 const PICK_DONE = /^(خلص|خلصت|خلّصت|جاهز|done|picked)$/i;
 const PICK_MISSING = /^(?:ناقص|نقص|missing|n)\s*(\d{1,2})(?:\s+(?:لقيت\s+)?(\d+(?:\.\d+)?))?$/i;
@@ -236,7 +250,11 @@ export const STAFF_TEXT = {
   subNotSent: "ما قدرنا نبعت السؤال للزبون. إذا ما ردّ منشيلو من الطلب بعد الوقت.",
   empty: (code: string) => `ما بقي شي بالطلب #${code}. خبّرنا الإدارة لتتصل بالزبون.`,
   emptyOps: (code: string) => `🧺 الطلب #${code} طلع كلّو ناقص بالتحضير. اتصلوا بالزبون وقرّروا (إلغاء ورد المبلغ إذا مدفوع).`,
-  unknown: "ما فهمت. اكتب «طلبات» لتشوف الطلبات، أو استعمل الأزرار.",
+  unknown: "ما فهمت. اكتب «طلبات» لتشوف الطلبات، «مرتجع» للمرتجعات، أو استعمل الأزرار.",
+  noReturns: "ما في مرتجعات ناطرة.",
+  returnBack: (code: string) => `📦 أغراض الطلب #${code} راجعة عالمركز. كبّس لما توصل لتعدّها.`,
+  returnDone: (code: string, back: number, waste: number) => `استلمنا مرتجع #${code}: ${back} رجعوا عالرف، ${waste} تلف.`,
+  returnAlready: (code: string) => `مرتجع #${code} مسجّل من قبل.`,
   error: "صار في غلط. جرّب مرة تانية أو اتصل بالإدارة.",
 };
 
@@ -253,6 +271,18 @@ export function pickCard(l: PickList): Outbound[] {
       { id: staffButtonId({ kind: "pick", action: "missing", id: l.order_id }), title: "غرض ناقص" },
     ]),
   ];
+}
+
+interface ReturnCard { order_id: string; short_code: string; status: string; lines: { name: string; qty: number; default: "restock" | "write_off" }[] }
+
+/** The return as the person receiving it reads it (2.5): each line with its default, then three buttons. */
+export function returnCard(c: ReturnCard): Outbound {
+  const lines = c.lines.map((l) => `${l.default === "restock" ? "✅" : "🗑"} ${l.qty} × ${l.name}`);
+  return buttons([`📦 مرتجع #${c.short_code}`, ...lines, "", "✅ بيرجع عالرف · 🗑 تلف (مبرّد، مجمّد أو طازة)"].join("\n").slice(0, 1000), [
+    { id: staffButtonId({ kind: "ret", action: "default", id: c.order_id }), title: "تمام هيك" },
+    { id: staffButtonId({ kind: "ret", action: "all_fit", id: c.order_id }), title: "كلو صالح" },
+    { id: staffButtonId({ kind: "ret", action: "all_waste", id: c.order_id }), title: "كلو تلف" },
+  ]);
 }
 
 /** What the customer hears when the shelf changed their order: what was taken off, the new total, any money owed back. */
@@ -395,6 +425,17 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
         const r = await rpc<{ order_id: string; total_usd: number }>(db, "pick_remove_missing", { p_missing: b.id, p_by: staff });
         await say(STAFF_TEXT.removedLine(r.total_usd));
         await showPick(await rpc<PickList>(db, "pick_list", { p_order: r.order_id }));
+      } else if (b?.kind === "ret" && b.action === "open") {
+        await out(returnCard(await rpc<ReturnCard>(db, "return_card", { p_order: b.id })));
+      } else if (b?.kind === "ret") {
+        const r = await rpc<{ already?: boolean; restocked_units?: number; wasted_units?: number; short_code: string }>(
+          db, "receive_return_by_button", { p_order: b.id, p_by: staff, p_choice: b.action });
+        await say(r.already ? STAFF_TEXT.returnAlready(r.short_code) : STAFF_TEXT.returnDone(r.short_code, Number(r.restocked_units ?? 0), Number(r.wasted_units ?? 0)));
+      } else if (RETURNS.test(text)) {
+        const back = await rpc<{ order_id: string; short_code: string }[]>(db, "returns_pending", {});
+        if (!back.length) { await say(STAFF_TEXT.noReturns); continue; }
+        await out(buttons(["📦 مرتجعات ناطرة:", ...back.map((x) => `#${x.short_code}`)].join("\n"),
+          back.slice(0, 3).map((x) => ({ id: staffButtonId({ kind: "ret", action: "open", id: x.order_id }), title: `#${x.short_code}` }))));
       } else if (b?.kind === "sub") {
         await offerSub(b.id, b.product);
       } else if (typedMissing) {
