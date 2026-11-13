@@ -49,6 +49,7 @@ create or replace function customer_notices_due() returns jsonb language sql sta
              else 'ما قدرنا نكمّلو' end) as params, e.created_at as at
       from order_events e join orders o on o.id = e.order_id
      where e.to_status = 'cancelled' and e.actor <> 'customer' and e.created_at > now() - interval '2 hours'
+       and coalesce(e.reason, '') <> 'superseded_by_new_card'      -- a newer card replaced it; the customer is looking at that one
     union all
     select 'rider_at_door', o.id, o.short_code, o.customer_id, jsonb_build_array(o.short_code), s.arrived_at
       from delivery_stops s join orders o on o.id = s.order_id
