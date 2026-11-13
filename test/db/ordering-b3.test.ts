@@ -267,3 +267,14 @@ describe("one tap after delivery (2.9)", () => {
     expect(outbound).toEqual([]);
   });
 });
+
+describe("substitute taps on the customer line (C2's request)", () => {
+  it("a keep or remove tap goes to the hub's handler, never the model", async () => {
+    const t = flow(db, []);
+    await t.customer();
+    await t.tap("sub:keep:00000000-0000-4000-8000-000000000001", "خليه");
+    expect(t.rpcCalls.map((c: any) => c.fn)).toContain("answer_substitution");
+    expect(t.seen).toHaveLength(0);
+    expect(outbound.map((o) => o.body.text?.body)).toEqual([FIXED.error]);         // an offer that does not exist: a person looks
+  });
+});

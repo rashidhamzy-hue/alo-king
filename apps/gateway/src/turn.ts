@@ -2,7 +2,7 @@
 // Buttons, pins and STOP are handled by code. Only free text and voice reach the model.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
-import { alertOps, processOpsTurn } from "./ops-turn";
+import { alertOps, handleSubstitutionButton, processOpsTurn } from "./ops-turn";
 import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gateway";
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
@@ -150,6 +150,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           await say(FEEDBACK_TEXT.problem(r.short_code ?? ""), fb.orderId);
         } else if (r.ok && r.changed) await say(FEEDBACK_TEXT.fine, fb.orderId);
         continue;
+      }
+      // Keep or remove a substitute the picker offered (C2, 2.2): the hub's code answers; never the model.
+      if (tapped.startsWith("sub:")) {
+        try { if (await handleSubstitutionButton(deps, conv.party_id, tapped, m.id)) { buttonsHandled++; continue; } }
+        catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          buttonsHandled++; await say(FIXED.error); await handoff(db, conv.conversation_id, `substitution_error: ${String(err).slice(0, 200)}`); continue;
+        }
       }
       if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
       if (tapped === "marketing:yes" || tapped === "marketing:no") {
