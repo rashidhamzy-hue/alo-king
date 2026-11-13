@@ -60,7 +60,7 @@ const licenceOf = (e) => ({ open_food_facts: "cc_by_sa", brand_site: "brand_own"
 
 /** One item, start to finish. d = { off, brand, open, download, sharp, check, store, runId, model, searchOn } (all injectable). */
 export async function processItem(item, d) {
-  const sources = []; const evaluated = []; let seen = 0;
+  const sources = []; const evaluated = []; const errors = []; let seen = 0;
   const stages = [["open_food_facts", () => (item.barcode ? d.off(item) : [])]];
   if (d.searchOn) stages.push(["brand_site", () => d.brand(item)], ["web_search", () => d.open(item)]);
   let winner = null;
@@ -68,7 +68,7 @@ export async function processItem(item, d) {
     for (const [name, gather] of stages) {
       if (seen >= MAX_CANDIDATES) break;
       let cands;
-      try { cands = (await gather()).filter((c) => fetchableUrl(c.imageUrl)); } catch (e) { evaluated.push({ stage: name, error: String(e.message).slice(0, 80) }); continue; }
+      try { cands = (await gather()).filter((c) => fetchableUrl(c.imageUrl)); } catch (e) { errors.push({ stage: name, error: String(e.message).slice(0, 120) }); continue; }
       sources.push(name);
       const seenUrls = new Set(evaluated.map((e) => e.image_url));
       cands = cands.filter((c) => !seenUrls.has(c.imageUrl)).slice(0, MAX_CANDIDATES - seen);
@@ -78,10 +78,15 @@ export async function processItem(item, d) {
       if (winner && customerUsable(licenceOf(winner))) break;   // a usable picture: no need to spend on the later stages
     }
     const summary = evaluated.map(({ small, report, ...rest }) => rest);
-    if (!seen) { await d.store.rpc("record_product_image_attempt", { p_product: item.product_id, p_run: d.runId, p_sources: sources, p_seen: 0, p_kept: 0, p_outcome: "none_found", p_detail: {} }); return { sku: item.sku, outcome: "none_found" }; }
+    if (!seen) {
+      // A lookup that failed is an error, not "nothing found": the two must never be confused.
+      const outcome = errors.length && !sources.length ? "error" : "none_found";
+      await d.store.rpc("record_product_image_attempt", { p_product: item.product_id, p_run: d.runId, p_sources: sources, p_seen: 0, p_kept: 0, p_outcome: outcome, p_detail: { errors } });
+      return { sku: item.sku, outcome, error: errors[0]?.error };
+    }
     const keptCount = evaluated.filter((e) => e.kept).length;
     if (!winner) {
-      await d.store.rpc("record_product_image_attempt", { p_product: item.product_id, p_run: d.runId, p_sources: sources, p_seen: seen, p_kept: 0, p_outcome: "none_passed", p_detail: { evaluated: summary } });
+      await d.store.rpc("record_product_image_attempt", { p_product: item.product_id, p_run: d.runId, p_sources: sources, p_seen: seen, p_kept: 0, p_outcome: "none_passed", p_detail: { evaluated: summary, errors } });
       return { sku: item.sku, outcome: "none_passed", reasons: summary.flatMap((s) => s.reasons ?? []) };
     }
     const path = `product_images/${item.sku}/${winner.small.sha256.slice(0, 16)}.jpg`;
@@ -93,7 +98,7 @@ export async function processItem(item, d) {
       p_vision: { run_id: d.runId, model: d.model, report: winner.report, original_width: winner.orig_width, original_height: winner.orig_height, checked_at: new Date().toISOString(), candidates: summary },
       p_replace: customerUsable(licenceOf(winner)) });
     const outcome = res?.ok ? "proposed" : res?.skipped === "rejected_before" ? "skipped_rejected" : "none_passed";
-    await d.store.rpc("record_product_image_attempt", { p_product: item.product_id, p_run: d.runId, p_sources: sources, p_seen: seen, p_kept: keptCount, p_outcome: outcome, p_detail: { evaluated: summary, propose: res } });
+    await d.store.rpc("record_product_image_attempt", { p_product: item.product_id, p_run: d.runId, p_sources: sources, p_seen: seen, p_kept: keptCount, p_outcome: outcome, p_detail: { evaluated: summary, errors, propose: res } });
     return { sku: item.sku, outcome, source_kind: winner.source_kind, licence: licenceOf(winner), skipped: res?.skipped };
   } catch (e) {
     if (e instanceof Fatal) throw e;
@@ -105,7 +110,9 @@ export async function processItem(item, d) {
 export function summarise(results, coverage) {
   const by = {}; const lic = {};
   for (const r of results) { by[r.outcome] = (by[r.outcome] ?? 0) + 1; if (r.outcome === "proposed") lic[r.licence] = (lic[r.licence] ?? 0) + 1; }
-  return { processed: results.length, outcomes: by, proposed_by_licence: lic, coverage };
+  const errs = {};
+  for (const r of results) if (r.outcome === "error" && r.error) errs[r.error] = (errs[r.error] ?? 0) + 1;
+  return { processed: results.length, outcomes: by, proposed_by_licence: lic, errors_by_message: errs, coverage };
 }
 
 function args(argv) {
@@ -131,7 +138,7 @@ async function main() {
   const searchOn = a.search && !!searchKey;
   const sites = JSON.parse(readFileSync(fileURLToPath(new URL("./brand-sites.json", import.meta.url)), "utf8"));
   const store = makeStore({ url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_KEY });
-  const offGate = gate(700);            // Open Food Facts asks for about 100 product reads a minute at most
+  const offGate = gate(1500);           // Open Food Facts allows about 100 product reads a minute; stay well under it
   const searchGate = gate(1100);        // one request a second, the provider's lowest limit
   const runId = process.env.RUN_ID || `local-${Date.now()}`;
   const d = {
@@ -162,6 +169,7 @@ async function main() {
       `- sources: Open Food Facts${searchOn ? ", brand sites, web image search (Brave)" : " only"}`,
       `- processed this run: ${s.processed}; outcomes: ${JSON.stringify(s.outcomes)}`,
       `- proposed this run by licence: ${JSON.stringify(s.proposed_by_licence)}`,
+      `- errors by message: ${JSON.stringify(s.errors_by_message)}`,
       `- **catalog now: ${coverage.items} items; usable proposed ${coverage.proposed_usable} (Open Food Facts ${coverage.open_food_facts}, brand site ${coverage.brand_site}); approved ${coverage.approved}; licence-unknown only ${coverage.unknown_licence_only}; photograph at intake ${coverage.photograph_at_intake}**`, ""].join("\n"));
   }
   const errors = s.outcomes.error ?? 0;

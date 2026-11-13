@@ -14,12 +14,17 @@ export function gate(minMs) {
 export async function fetchRetry(url, opts = {}, { fetchImpl = fetch, retries = 2, timeoutMs = 20000, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
   let last;
   for (let i = 0; i <= retries; i++) {
+    let wait = 800 * 2 ** i;
     try {
       const res = await fetchImpl(url, { ...opts, headers: { "user-agent": UA, ...(opts.headers ?? {}) }, signal: AbortSignal.timeout(timeoutMs) });
-      if (res.status === 429 || res.status >= 500) { last = new Error(`HTTP ${res.status}`); await res.body?.cancel?.(); }
-      else return res;
+      if (res.status === 429 || res.status >= 500) {
+        last = new Error(`HTTP ${res.status}`);
+        const ra = Number(res.headers?.get?.("retry-after"));
+        if (ra > 0) wait = Math.min(ra, 20) * 1000;          // the host says how long to wait: do
+        await res.body?.cancel?.();
+      } else return res;
     } catch (e) { last = e; }
-    if (i < retries) await sleep(800 * 2 ** i);
+    if (i < retries) await sleep(wait);
   }
   throw last ?? new Error("fetch failed");
 }

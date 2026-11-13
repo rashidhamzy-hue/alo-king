@@ -39,7 +39,7 @@ export async function offLookup(code, { fetchImpl = fetch, wait = async () => {}
   const c = String(code ?? "").replace(/\D/g, "");
   if (c.length < 6) return { found: false, candidates: [] };
   await wait();
-  const res = await fetchRetry(`${OFF_API}/${c}.json?fields=code,product_name,brands,quantity,images,selected_images,image_front_url`, {}, { fetchImpl });
+  const res = await fetchRetry(`${OFF_API}/${c}.json?fields=code,product_name,brands,quantity,images,selected_images,image_front_url`, {}, { fetchImpl, retries: 3 });
   if (res.status === 404) return { found: false, candidates: [] };
   if (!res.ok) throw new Error(`off_http_${res.status}`);
   const body = await res.json();
