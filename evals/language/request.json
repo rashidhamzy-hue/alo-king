@@ -1,1 +1,1 @@
-{ "steps": ["after"], "repeat": 2, "note": "final measurement on the final code" }
+{ "steps": [], "note": "commit {\"steps\": [\"after\"], \"repeat\": 2} to run the live eval (see the workflow header)" }
