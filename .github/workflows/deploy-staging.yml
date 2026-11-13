@@ -8,6 +8,11 @@
 name: deploy-staging
 on:
   workflow_dispatch:
+    inputs:
+      rotate_webhook_secrets:
+        description: Make new Kapso webhook signing secrets for both lines (stored only as Worker secrets and in Kapso)
+        type: boolean
+        default: false
   workflow_run:
     workflows: [ci]
     types: [completed]
@@ -63,7 +68,7 @@ jobs:
         run: scripts/ci/ensure-media-bucket.sh | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
 
   worker:
-    # 0.5: queues, the Worker, and every Worker secret. Later tasks add steps here (webhooks 0.6, key check 0.7).
+    # 0.5: queues, the Worker, and every Worker secret. 0.6: Kapso webhooks. 0.7: key check.
     needs: database
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -117,6 +122,14 @@ jobs:
           npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --env staging --config "$cfg" 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'
           rm -f "$RUNNER_TEMP/secrets.json"
           echo "- Worker secrets set: SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Kapso webhooks, signing secrets generated here and stored only as Worker secrets (0.6)
+        env:
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          WORKER_URL: ${{ steps.deploy.outputs.worker_url }}
+          ROTATE: ${{ inputs.rotate_webhook_secrets }}
+        run: |
+          [ -f wrangler.staging-noqueue.json ] && export WRANGLER_CONFIG=wrangler.staging-noqueue.json
+          scripts/ci/ensure-webhooks.sh
       - name: Smoke test, no secrets needed
         run: |
           url="${{ steps.deploy.outputs.worker_url }}"
