@@ -3,6 +3,7 @@
 # How to run: by hand (workflow_dispatch), or by committing evals/language/request.json with {"steps": [...]} to any branch.
 #   steps: "cases" (write evals/language/cases.json), "pack" (write evals/language/pack.json and migration 0054),
 #          "before" (score the live model on origin/main's code), "after" (score it on this commit's code).
+#   also_models: other model ids to score with "after", once each, for comparison (results/after-<model>.json).
 # Generated files and results are pushed to a new branch `language-pack-out/<run id>`; a person (or session) reviews and
 # copies them into the working branch. Nothing is pushed to the branch that triggered the run, and nothing touches staging.
 # Never generates food facts: gen-pack.mjs drops any term that states an allergen, a diet, halal or nutrition (invariant 15).
@@ -40,7 +41,9 @@ jobs:
           else
             steps=$(node -e 'const r=require("./evals/language/request.json"); console.log((r.steps||[]).join(","))')
             repeat=$(node -e 'const r=require("./evals/language/request.json"); console.log(r.repeat||1)')
+            also=$(node -e 'const r=require("./evals/language/request.json"); console.log((r.also_models||[]).filter((m)=>/^claude-[a-z0-9-]+$/.test(m)).join(" "))')
           fi
+          echo "also=$also" >> "$GITHUB_OUTPUT"
           [[ "$repeat" =~ ^[0-9]+$ ]] || repeat=1
           echo "steps=,$steps," >> "$GITHUB_OUTPUT"; echo "repeat=$repeat" >> "$GITHUB_OUTPUT"
           echo "MODEL=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)" >> "$GITHUB_ENV"
@@ -67,6 +70,10 @@ jobs:
         if: contains(steps.what.outputs.steps, ',after,')
         env: { ALO_LANG_EVAL: "1", LABEL: after, REPEAT: "${{ steps.what.outputs.repeat }}" }
         run: npx vitest run evals/language/live.lang.test.ts
+      - name: Score other models on this commit, for comparison (request.json also_models)
+        if: contains(steps.what.outputs.steps, ',after,') && steps.what.outputs.also != ''
+        env: { ALO_LANG_EVAL: "1", REPEAT: "1", ALSO: "${{ steps.what.outputs.also }}" }
+        run: for m in $ALSO; do MODEL="$m" LABEL="after-$m" npx vitest run evals/language/live.lang.test.ts; done
       - name: Push what was generated to language-pack-out/${{ github.run_id }}
         if: always()
         run: |

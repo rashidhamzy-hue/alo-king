@@ -72,16 +72,24 @@ const request = (model: string, messages: Anthropic.MessageParam[], extra: Parti
  */
 export async function extractOrder(client: ModelClient, model: string, input: TurnInput):
     Promise<{ intent: OrderIntent | null; errors?: unknown; usage: Usage }> {
+  // 4096: a long order read as a string inside `intent` was cut off at 1024 tokens on the live model (1.22, 13 Nov).
   const res = await client.messages.create(request(model, [{ role: "user", content: JSON.stringify(input) }],
-    { tool_choice: { type: "tool", name: "extract_order" } }));
+    { tool_choice: { type: "tool", name: "extract_order" }, max_tokens: 4096 }));
   const usage = { input: res.usage.input_tokens, output: res.usage.output_tokens };
   const call = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === "extract_order");
   if (!call) return { intent: null, errors: "no_extract_order_call", usage };
   // The fast model sometimes sends the reading as a JSON string inside `intent` (84 of 986 live eval runs, 13 Nov): read it.
   let raw = (call.input as { intent?: unknown } | null)?.intent;
-  if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { /* left as is: the contract check below refuses it */ } }
+  let note: string | undefined;
+  if (typeof raw === "string") {
+    try { raw = JSON.parse(raw); }
+    catch { note = `string intent, stop_reason ${res.stop_reason}, ${(raw as string).length} chars`; }   // never the text itself: it is the customer's
+  } else if (raw === undefined && call.input && typeof call.input === "object" && "lines" in (call.input as object)) {
+    raw = call.input;                                   // the reading itself, without the `intent` wrapper
+  }
   const parsed = OrderIntent.safeParse(raw);
-  return parsed.success ? { intent: parsed.data, usage } : { intent: null, errors: parsed.error.issues.slice(0, 5), usage };
+  return parsed.success ? { intent: parsed.data, usage }
+                        : { intent: null, errors: note ? [note, ...parsed.error.issues.slice(0, 4)] : parsed.error.issues.slice(0, 5), usage };
 }
 
 /**

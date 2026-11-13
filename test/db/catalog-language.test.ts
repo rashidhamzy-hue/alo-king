@@ -94,7 +94,7 @@ describe("catalog language (1.22)", () => {
   it("negation rules a product out: «مش البانيه», «bala zaytoun»", async () => {
     const r = await db.rpc("catalog_pack_search", { p_text: "مرتديلا تنمية بلا زيتون" });
     expect(r.map((m: any) => m.sku)).not.toContain("AK-0096");                // the one with olives
-    expect(await db.rpc("catalog_negated", { p_tokens: ["msh", "l", "pane", "please"] })).toEqual([2, 3, 4]);
+    expect(await db.rpc("catalog_negated", { p_tokens: ["msh", "l", "pane", "400"] })).toEqual([2, 3]);
   });
 
   it("a named restaurant still goes the 1.2 way", async () => {

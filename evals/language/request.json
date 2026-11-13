@@ -1,1 +1,1 @@
-{ "steps": ["after"], "repeat": 2 }
+{ "steps": ["after"], "repeat": 2, "also_models": ["claude-sonnet-5"] }
