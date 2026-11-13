@@ -86,12 +86,12 @@ with Meta depends on how recipients react (blocks and spam reports), and nobody 
 | Marketing refused while the switch is off | `test/db/rider-flow.test.ts` | Passing |
 | Voice limits per role, hourly budget, never silent | `packages/core/test/voice-policy.test.ts` | Passing |
 | Rider paid in lira keeps fees, books reconcile | `test/db/rider-settlement.test.ts` | Passing |
-| Neutral replies; no unapproved food claims; allergy handling; no inferred religion | `evals/cases/neutral_and_food_facts.json` | Cases written; runner wiring is 1.10 |
+| Neutral replies; no unapproved food claims; allergy handling; no inferred religion | `evals/cases/neutral_and_food_facts.json`, `evals/test/neutral-cases.test.ts` | Passing against the output guard; live model run in `evals/live/` |
 | Restriction check: unknown fails, sponsored item must pass | `test/db/food-facts.test.ts` (the check itself); the ranking side is written with 8.12 | Passing for 1.11 |
-| Small-order fee shown on the card and posted to its own account | to write with 1.16 | Not written |
+| Small-order fee shown on the card and posted to its own account | `test/db/ordering-b2.test.ts` | Passing |
 | Cost at receiving gives margin; ledger at zero | `test/db/receiving-margin.test.ts` | Passing |
 | A full slot refuses a scheduled order | to write with 2.8 | Not written |
-| Memory commands show, forget and stop | to write with 1.14 | Not written |
+| Memory commands show, forget and stop | `test/db/ordering-b2.test.ts`, `evals/test/memory-commands.test.ts` | Passing |
 
 ## Which model for which session
 
