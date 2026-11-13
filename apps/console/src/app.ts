@@ -101,6 +101,11 @@ export function explain(e: unknown): string {
       [/^UNKNOWN_CATEGORY/, "Pick a category from the list."],
       [/^UNKNOWN_SUPPLIER/, "That supplier is not active."],
       [/^DIFFERENCE_NOTE_REQUIRED/, "The count differs from the books: write a note saying what you know."],
+      [/^PRODUCT_REQUIRED/, "An allergen complaint needs the item it is about."],
+      [/^DETAIL_REQUIRED/, "Write what the customer said."],
+      [/^OUTCOME_REQUIRED/, "Write the outcome."],
+      [/^CASE_CLOSED/, "This case is closed."],
+      [/^REFUND_NOT_ON_ORDER/, "That refund is for another order."],
       [/^DAY_NOT_OVER/, "That day has not come yet."],
       [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
     ];

@@ -1,5 +1,6 @@
 // Every console section, in menu order. Each owns its routes and the roles that may use them.
 import type { Section } from "../app";
+import { casesSection } from "./cases";
 import { catalogSection } from "./catalog";
 import { dayCloseSection } from "./dayclose";
 import { exceptionsSection } from "./exceptions";
@@ -15,4 +16,4 @@ import { refundsSection } from "./refunds";
 import { ridersSection } from "./riders";
 import { todaySection } from "./today";
 
-export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, moneySection, dayCloseSection, receivingSection, catalogSection, fxSection, zonesSection, merchantsSection, picturesSection];
+export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, casesSection, moneySection, dayCloseSection, receivingSection, catalogSection, fxSection, zonesSection, merchantsSection, picturesSection];
