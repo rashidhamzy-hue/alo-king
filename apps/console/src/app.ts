@@ -107,6 +107,11 @@ export function explain(e: unknown): string {
       [/^CASE_CLOSED/, "This case is closed."],
       [/^REFUND_NOT_ON_ORDER/, "That refund is for another order."],
       [/^SAME_PERSON/, "You asked for this change: a second person must approve it."],
+      [/^EVIDENCE_REQUIRED/, "Attach the pack (a photo) or the document, or give its reference."],
+      [/^EVIDENCE_NOT_FOR_PRODUCT/, "That evidence is for another item."],
+      [/^CERTIFIED_NEEDS_CERTIFICATE/, "Certified needs a certificate or a lab report as evidence."],
+      [/^FACT_VALUE/, "That value does not fit what the fact is about."],
+      [/^SECOND_OPINION_ONLY/, "Open Food Facts is a second opinion only: confirm the field against the pack."],
       [/^DAY_NOT_OVER/, "That day has not come yet."],
       [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
     ];
