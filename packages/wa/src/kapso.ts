@@ -140,3 +140,10 @@ export async function kapsoSend(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: st
     throw err;
   }
 }
+
+/** Meta's review status for our templates (APPROVED, PENDING, REJECTED, PAUSED, ...), read through Kapso. Reading only: no message is sent. */
+export async function templateStatuses(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, wabaId: string, names: string[]): Promise<{ name: string; status: string }[]> {
+  const res = (await kapsoClient(env).templates.list({ businessAccountId: wabaId, limit: 100 })) as { data?: { name?: string; status?: string }[] };
+  const want = new Set(names);
+  return (res.data ?? []).filter((t) => t.name && t.status && want.has(t.name)).map((t) => ({ name: t.name!, status: t.status!.toLowerCase() }));
+}

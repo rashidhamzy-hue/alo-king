@@ -2,7 +2,7 @@
 //   POST /webhooks/kapso/customer   <- the customer number
 //   POST /webhooks/kapso/ops        <- the business number (drivers, merchants, staff, alerts)
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { KapsoReceived, senderKey, unwrap, verifySignature, type Line } from "@ak/wa/kapso";
+import { KapsoReceived, senderKey, templateStatuses, unwrap, verifySignature, type Line, type Outbound } from "@ak/wa/kapso";
 import { send as gatewaySend } from "@ak/wa/gateway";
 import { parseIdentityEvent, parsePreferenceEvent, parseStatusEvent } from "@ak/wa/webhook";
 import type { ModelClient } from "@ak/agents/concierge";
@@ -18,6 +18,8 @@ export interface Env {
   KAPSO_BASE_URL: string; KAPSO_API_KEY: string;
   KAPSO_WEBHOOK_SECRET_CUSTOMER: string; KAPSO_WEBHOOK_SECRET_OPS: string;
   PHONE_NUMBER_ID_CUSTOMER: string; PHONE_NUMBER_ID_OPS: string;
+  /** The WhatsApp Business Account of the customer line: where its templates live (4.3). Not secret. */
+  WABA_ID_CUSTOMER?: string;
   SUPABASE_URL: string; SUPABASE_SERVICE_KEY: string;
   ANTHROPIC_API_KEY: string; MODEL_FAST: string; MODEL_SMART: string; BUFFER_SECONDS: string;
   /** Tests inject a scripted model and an in-memory database here. Never set in production. */
@@ -121,9 +123,7 @@ export default {
     const { data: t } = await supa.rpc("run_timers");
     const timers = (t ?? {}) as { cancelled_orders?: { order_id: string; short_code: string; customer_id: string; was: string }[];
       expired_offers?: { delivery_id: string; driver_id: string; orders: string[] }[]; alerts?: { kind: string; short_code?: string; order_id?: string; delivery_id?: string }[] };
-    for (const o of timers.cancelled_orders ?? []) {
-      await sendToCustomer(deps, o.customer_id, `انلغى الطلب #${o.short_code} لأنو ${o.was === "awaiting_payment" ? "ما وصلنا الدفع" : "ما تأكّد"}. اكتبلنا إذا بعدك بدّك ياه.`, `cancel:${o.order_id}`, o.order_id);
-    }
+    // Cancelled orders are told through the customer notices below (4.3), with the approved template when there is one.
     for (const x of timers.expired_offers ?? []) {
       await sendToParty(deps, x.driver_id, { type: "text", text: { body: RIDER_TEXT.offerGone } }, `expired:${x.delivery_id}`);
       for (const orderId of x.orders) await dispatchAndOffer(deps, orderId);
@@ -153,7 +153,12 @@ export default {
     // 6. learn from what was delivered
     await supa.rpc("learn_from_recent_orders");
 
-    // 7. message meter (4.12): once a month per number, when free-form replies pass the warning mark
+    // 7. customer notices (4.3): cancelled, rider at the door, payment received. One per order and event.
+    const notices = await supa.rpc("customer_notices_due");
+    for (const n of (notices.data as Notice[] | null) ?? []) await sendNotice(deps, n);
+    if (new Date().getUTCMinutes() === 7 && env.WABA_ID_CUSTOMER) await syncTemplates(env, supa);    // Meta's review result, hourly
+
+    // 8. message meter (4.12): once a month per number, when free-form replies pass the warning mark
     const meter = await supa.rpc("meter_alerts");
     for (const m of (meter.data as { line: string; month: string; free_form: number; allowance: number; warn_at: number }[] | null) ?? []) {
       await alertOps(deps, `📨 رقم ${m.line === "customer" ? "الزباين" : "العمليات"}: ${m.free_form} رسالة رد هالشهر من أصل ${m.allowance} مجانية. بعدها كل رد بينحسب.`,
@@ -173,6 +178,38 @@ async function sendToCustomer(deps: TurnDeps, partyId: string, text: string, ded
   // Inside the 24-hour window this is a free service message. Outside it the gateway refuses free text, by design:
   // the approved utility templates in templates/templates.json are the only way to reach a customer then.
   if (to) await deps.send({ line: "customer", partyId, to, msg: { type: "text", text: { body: text } }, category: "service", orderId, dedupeKey });
+}
+
+interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "payment_received"; order_id: string; short_code: string;
+  customer_id: string; params: string[]; template: string | null; template_approved: boolean }
+
+const NOTICE_TEXT: Record<Notice["kind"], (p: string[]) => string> = {
+  order_cancelled: (p) => `انلغى طلبك #${p[0]}: ${p[1]}. اكتبلنا إذا بعدك بدّك ياه.`,
+  rider_at_door: (p) => `السائق واصل عندك بطلب #${p[0]} وعم يستناك 🚪`,
+  payment_received: (p) => `وصلنا دفعك لطلب #${p[0]}: ${p[1]}.`,
+};
+
+/** Exported for tests. The approved utility template when Meta has approved it (it reaches the customer at any hour);
+ *  until then the same words as free text, which the gate lets out only inside the 24-hour window. Either way it is
+ *  recorded once, so a refused notice is not retried every minute. A throw (outbox or Kapso down) is retried next minute. */
+export async function sendNotice(deps: TurnDeps, n: Notice): Promise<void> {
+  const to = await customerAddress(deps.db, n.customer_id);
+  let outcome = "refused:no_address";
+  if (to) {
+    const msg: Outbound = n.template && n.template_approved
+      ? { type: "template", template: { name: n.template, language: { code: "ar" }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
+      : { type: "text", text: { body: NOTICE_TEXT[n.kind](n.params) } };
+    const r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: msg.type === "template" ? "utility" : "service", orderId: n.order_id, dedupeKey: n.key });
+    outcome = r.ok ? `sent:${msg.type}` : `refused:${r.refused}`;
+  }
+  await deps.db.rpc("customer_notice_done", { p_key: n.key, p_kind: n.kind, p_order: n.order_id, p_outcome: outcome });
+}
+
+async function syncTemplates(env: Env, supa: SupabaseClient): Promise<void> {
+  const { data } = await supa.from("wa_templates").select("name").eq("line", "customer");
+  for (const t of await templateStatuses(env, env.WABA_ID_CUSTOMER!, ((data as { name: string }[] | null) ?? []).map((x) => x.name)).catch(() => [])) {
+    await supa.rpc("set_template_status", { p_name: t.name, p_status: t.status });
+  }
 }
 
 async function notifyCustomer(deps: TurnDeps, id: string, what: "on_the_way" | "rider_waiting"): Promise<void> {
