@@ -18,9 +18,22 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
   return data as T;
 }
 
-/** Offers a delivery to its rider and tells nobody else. Used after a customer confirms and after an offer expires. */
+/**
+ * Offers a delivery to its rider. Used after a customer confirms, after an offer expires, by the cron for every order still
+ * without a rider, and (2.4) when a picker starts the order. A hub order that waits for its picker is announced to the
+ * pickers once, and to ops when it has waited longer than settings.picking.pick_alert_min.
+ */
 export async function dispatchAndOffer(deps: TurnDeps, orderId: string): Promise<{ status: string }> {
-  const d = await rpc<{ status: string; delivery_id?: string; driver_id?: string; minutes_to_pickup?: number; short_code?: string }>(deps.db, "dispatch_order", { p_order: orderId });
+  const d = await rpc<{ status: string; delivery_id?: string; driver_id?: string; minutes_to_pickup?: number; short_code?: string; minutes_waiting?: number }>(deps.db, "dispatch_order", { p_order: orderId });
+  if (d.status === "waiting_for_pick") {
+    const start = buttons(`🧺 طلب جديد للتحضير #${d.short_code}`, [{ id: staffButtonId({ kind: "pick", action: "start", id: orderId }), title: `بلّش #${d.short_code}` }]);
+    for (const picker of await rpc<string[]>(deps.db, "pick_recipients", {})) await sendToParty(deps, picker, start, `picknew:${orderId}:${picker}`);
+    const alertMin = Number((await rpc<{ pick_alert_min?: number } | null>(deps.db, "setting", { p_key: "picking" }))?.pick_alert_min ?? 10);
+    if (Number(d.minutes_waiting ?? 0) >= alertMin) {
+      await alertOps(deps, `🧺 الطلب #${d.short_code} ناطر تحضير من ${d.minutes_waiting} دقيقة وما حدا بلّش فيه`, `pickwait:${orderId}:${Math.floor(Date.now() / 600_000)}`);
+    }
+    return d;
+  }
   if (d.status === "offered" && d.delivery_id && d.driver_id) {
     const job = await rpc<Job>(deps.db, "rider_job", { p_delivery: d.delivery_id });
     await sendToParty(deps, d.driver_id, offerCard(job, d.minutes_to_pickup), `offer:${d.delivery_id}`);
@@ -114,7 +127,9 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
         if (b.action === "accept") { await say(T.accepted); await showNext(b.id); }
         else { await say(T.declined); for (const o of r.orders) await dispatchAndOffer(deps, o); }
       } else if (b?.kind === "job" && b.action === "picked") {
-        await rpc(db, "rider_picked_up", { p_delivery: b.id, p_driver: driver });
+        const r = await rpc<{ ok: boolean; status?: string; waiting?: string[] }>(db, "rider_picked_up", { p_delivery: b.id, p_driver: driver });
+        // 2.4: offered when picking starts, the rider may be at the hub before the goods are ready.
+        if (!r.ok && r.status === "not_ready") { await say(`الطلب ${(r.waiting ?? []).map((c) => "#" + c).join(" ")} لسّا عم يتحضّر. منبعتلك بس يجهز.`); continue; }
         await showNext(b.id);
         await deps.notifyCustomer?.(b.id, "on_the_way");
       } else if (b?.kind === "stop" && b.action === "arrived") {
@@ -312,6 +327,8 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
       db, "finish_pick", { p_order: orderId, p_by: staff });
     if (r.status === "ready") {
       await say(STAFF_TEXT.ready(r.short_code));
+      const rider = await rpc<string | null>(db, "order_rider", { p_order: orderId });
+      if (rider) await sendToParty(deps, rider, { type: "text", text: { body: `📦 #${r.short_code} جاهز للاستلام بالمركز.` } }, `ready:${orderId}`);
       const text = r.changes ? pickChangeText(r.changes) : null;
       if (text && r.customer_id) await sendToCustomer(deps, r.customer_id, { type: "text", text: { body: text } }, `pickdone:${orderId}`, orderId);
     } else if (r.status === "waiting") await say(STAFF_TEXT.waiting(r.short_code, (r.lines ?? []).map((x) =>
@@ -355,7 +372,11 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
       if (b?.action === "start") {
         const r = await rpc<{ status: string; list?: PickList; open_order?: string; open_code?: string; short_code?: string; order_status?: string; held?: string[] }>(
           db, "start_pick", { p_order: b.id, p_by: staff });
-        if (r.status === "started" || r.status === "already") await showPick(r.list!);
+        if (r.status === "started" || r.status === "already") {
+          await showPick(r.list!);
+          // 2.4: the rider is offered now, while the order is picked. A failure here never stops the pick; the cron retries.
+          if (r.status === "started") await dispatchAndOffer(deps, b.id).catch((err) => { if (isOutboxFailure(err)) throw err; });
+        }
         else if (r.status === "taken") await say(STAFF_TEXT.taken);
         else if (r.status === "busy") { await say(STAFF_TEXT.busy(r.open_code!)); await showPick(await rpc<PickList>(db, "pick_list", { p_order: r.open_order })); }
         else await say(STAFF_TEXT.notPickable(r.short_code ?? "", r.order_status ?? ""));
