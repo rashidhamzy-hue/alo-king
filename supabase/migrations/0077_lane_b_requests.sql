@@ -1,23 +1,12 @@
 -- Alo King Chouf: session B4, the lane B requests recorded in docs/HANDOFF.md.
---   * D1 (3.8): quote_order refuses while the exchange-rate pause is on. fx_quoting_paused() is D1's function; D1 wrote it in
---     apps/console/sql/proposed_functions.sql, which D2 moves into a migration (0045-0049) with the fx_pending table. Defined here
---     so quote_order can call it before that: it reads fx_pending only when the table exists, and says "not paused" otherwise.
---     D2's sql version may replace it unchanged in meaning (same name, no arguments, boolean). quote_order is 0052's text with
---     the one check added (the small-order fee lines stay: a tripwire test reads them).
+--   * D1 (3.8): quote_order refuses while the exchange-rate pause is on (fx_quoting_paused(), 0045 by D2). quote_order is 0052's
+--     text with the one check added (the small-order fee lines stay: a tripwire test reads them).
 --   * C2: learn_from_order counts each product the customer asked for once, from the lines that left the hub as asked.
 --   * B3: the staging probe releases its own handoff. A probe conversation handed to a person stays with the person and every
 --     hourly probe then goes nowhere (13 Nov, 12:36-17:20 UTC). probe_due() now gives it back to the Concierge when no probe order
 --     is open, and opens one ops exception naming why it was handed off, so the alarm says what happened.
 --   * settings.probe.fresh_place (default false): when true, each hourly probe order starts as a first-time customer (its saved
 --     places are cleared), so the probe walks the whole first-order path: pin, address, card. Staging only (probes are).
-
-create or replace function fx_quoting_paused() returns boolean language plpgsql stable as $$
-declare v boolean;
-begin
-  if to_regclass('public.fx_pending') is null then return false; end if;
-  execute 'select exists (select 1 from fx_pending where status = ''pending'')' into v;
-  return coalesce(v, false);
-end $$;
 
 create or replace function quote_order(p_lines jsonb, p_village uuid default null, p_pickup boolean default false)
 returns jsonb language plpgsql stable as $$
