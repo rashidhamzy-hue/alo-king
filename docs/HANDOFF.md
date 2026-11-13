@@ -39,7 +39,8 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 365 tests (32 live-only skipped); test/db/* run the real migrations in PGlite
+npx vitest run          # 502 tests (32 live-only skipped); test/db/* run the real migrations in PGlite;
+                        # test/pg/* start a throwaway Postgres 16 (or use TEST_DATABASE_URL) and the Worker in workerd
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
 `TEST_REPORT.txt` is the captured run for this tree.
@@ -168,10 +169,69 @@ Requests for other sessions (B2 did not touch these files):
 - `supabase/seed/proposed_pilot_settings.sql` still says the small-order fee "has no effect until task 1.16": it now takes effect as soon as that file is run.
 - The session worked on branch `claude/sweet-goodall-rg7du3` (the branch this environment allows), rebased on C1's merge.
 
+### Session A2 (infra, live integration), 13 November 2026: tasks 0.13, 4.1, 4.3, 4.5, 4.6, 4.10, 4.12, 4.13
+Migrations 0060-0063 (A2 took 0060-0069; see the session table in the build plan). Built and tested locally: PGlite with every migration,
+and, new in this session, a real Postgres 16 started by the tests (`test/pg/real-postgres.ts`; GitHub's ubuntu runners have the binaries,
+and on CI these suites refuse to skip). Permission check passes on a fresh Postgres. What is proven live is marked below.
+
+**0.13, the one thing asked of Rasheed.** Everything else is ready (staging data, the test riders, the evidence workflow).
+On WhatsApp, from his own phone, between 08:00 and 23:00 Beirut time, to **+1 203 660 2328** (the "Alo King" staging customer number), send exactly:
+
+> بدي علبتين لبنة ليبان ليه، ربطتين خبز وكرتونة مي صحة، عبعقلين
+
+What he should see, in order:
+1. Within about 10 seconds: «تمام، طلبك جاهز. بس بعتلنا موقعك 📍 من الزر تحت لنبعتلك ورقة الطلب.» with a **Send location** button. Tap it and send the current location (any place works on staging: the delivery village comes from the message, «عبعقلين»).
+2. The order card: «طلبك AK-…» with 2 × Liban Lait Labneh Baladieh 450G ($6.00), 2 × Wooden Bakery Pita White Medium 400G ($1.24), 1 × Sohat Mineral Water 1.5L X6 ($2.46), delivery to Baakline $1.00, **total $10.70** (or the lira amount), cash on delivery, and three buttons. Tap **تأكيد الطلب**.
+3. «تم تأكيد طلبك AK-… ✅ عم نحضّرو هلق.»
+4. One to three minutes later: «طلبك #AK-… صار عالطريق 🛵».
+5. One to two minutes after that: «وصلنا دفعك لطلب #AK-…: 10.70$ نقداً.» Nobody comes to the door: on staging the rider is a test rider (below), who accepts, picks up, delivers and records the cash through the ops line's real code path.
+
+The card's wording depends on the live model reading the message; the SQL side of this exact order was checked against the seeded catalog (one product per line, one card, $10.70). If no reply arrives at all, the first suspect is Meta billing on the number (0.12, section E): Kapso pauses sends when the account cannot pay.
+After he has done it, any session runs the **staging-evidence** workflow with no input: it finds his closed order, writes `docs/evidence/order_<code>.txt` to the branch `evidence/<code>` and fails if any 0.13 check fails. The conversation is printed in place of screenshots (numbers and user ids masked). Screenshots from the phone are not required.
+
+| Task | Where | Tested | Live |
+| --- | --- | --- | --- |
+| 4.1 Webhook shapes from real payloads | `test/fixtures/kapso/` (75 from real Kapso message objects of October's traffic, people replaced; contact events and `failed` from Kapso's docs), `packages/wa/src/webhook.ts`, migration 0060 | Every fixture parsed (`packages/wa/test/fixtures.test.ts`); events applied on the real schema (`test/db/webhook-events.test.ts`) | No real webhook captured yet: run `capture-kapso-fixtures` after 0.13; captures sit beside the others as `webhook-*` |
+| 4.3 Utility templates | Submitted 13 Nov through Kapso, all PENDING with Meta: `ak_order_cancelled_v1` (1458006846477073), `ak_rider_at_door_v1` (1786544829266049), `ak_payment_received_v1` (1780600283167217). Migration 0062, `customer_notices_due()`, `sendNotice()` in `index.ts` | `test/db/customer-notices.test.ts` | Submission yes; approval no. Status is read from Meta hourly into `wa_templates`; until approved the same words go as free text inside the 24-hour window |
+| 4.5 Worker end to end | `test/pg/worker-e2e.test.ts`, `test/pg/postgrest-shim.ts` | workerd + real Postgres: webhook path, a crash mid-turn, the cron walking the probe order to closed, the 0.13 evidence script on it | n/a (local runtime) |
+| 4.6 Dispatch race | `test/pg/dispatch-race.test.ts` | Two and twenty concurrent dispatches on real connections; the suite fails when the per-rider lock is removed | n/a |
+| 4.10 Heartbeat and alerts | migration 0063, `index.ts` (probe, alarms, project webhook, daily Kapso health), `worker.ts` (Sentry cron monitor), `scripts/staging/prepare-staging.sql` | `test/db/heartbeat.test.ts`, `test/pg/prepare-staging.test.ts`, the e2e | After the deploy of this branch: see "Live after merge" below |
+| 4.12 Message meter | migration 0061 | `test/db/message-meter.test.ts` | Meta's per-message pricing is now recorded from every status webhook; the rates are estimates until 4.4 |
+| 4.13 Kapso SDK | `@kapso/whatsapp-cloud-api` 0.4.0 in `packages/wa/src/kapso.ts` | Same URL, header and body for every send; signature check agrees with the SDK's on every fixture | Kept. See finding 1 |
+| 0.13 | above | The SQL side of the order; the rider leg in the e2e | Waits for the message above |
+
+**What the probe is.** Staging only, locked twice (`settings.probe.enabled`, set by `prepare-staging.sql`, and `PROBE_MODE=on` in the staging Worker's vars; a test keeps it out of production's vars).
+A test customer and two test riders (`parties.is_probe`). `can_send()` answers `probe_sink` for them: the gateway claims, marks and logs the message as usual and never hands it to Kapso.
+Every minute the cron answers what each probe was last sent, as a person would (confirm the card; accept, picked up, delivered, cash exact), in the real Kapso shape through the real inbound path. Once an hour the test customer orders.
+A probe order not closed in 30 minutes, a probe that stops ordering, real customers silent for 6 hours while open (when there is usually traffic), and the cron returning after a gap each open an ops exception once, alert ops, and go to Sentry.
+Staging stock is 5,000 of everything (only set on an empty store), so the hourly order can run for months.
+
+**Findings (each fixed and tested in this session):**
+1. **The Kapso SDK broke every send on Cloudflare.** It asks fetch for `redirect: "error"`, which workerd rejects outright; Node accepts it, so unit tests passed. Only the workerd end-to-end test showed it. `kapsoClient` now passes a fetch that uses `manual` and refuses redirects.
+2. **A passing Kapso error (500, 429, a network error) handed the customer to a person** ("someone will contact you") instead of retrying the turn. The gateway now raises `SendNotDelivered`, an `OutboxUnavailable`, which `turn.ts` already rethrows; Meta's permanent refusals are recorded and the turn goes on.
+3. **A marketing STOP was saved as an opt-in**, and the event created a party for strangers and opened the free reply window (the payload is an object; it was read as a string). 0060.
+4. **`username: null` failed the whole message**: Kapso sends null, the schema wanted a string or nothing.
+5. **identity_changed was not handled**: a new business-scoped id would have made the same person a second, empty customer. 0060 re-keys.
+6. **The 0.13 evidence script would have failed every delivered order**: a reservation and its pick net to zero in `stock_movements` by design. It now compares picked with sold, and treats same-state rows (late taps, the learning job) as notes.
+
+**Live after merge** (deploy-staging on main, checked with the connectors; filled in by this session after the deploy): see the next section.
+
+**Blocked or not possible, recorded:**
+- Kapso's API shows no credit balance figure, so "alert below an amount" cannot be built; the daily check alerts when Kapso has paused paid sends (`paid_messages.paused`), which is the moment it matters.
+- Template approval is Meta's (usually about a day). Nothing to do but wait; the hourly sync picks it up.
+- The Kapso connector could not obtain a credential for a number health check on 13 Nov (read calls worked earlier the same day); the daily `kapsoHealth` step does the same check from the Worker.
+- The sandbox ops line is still unproven for real buttons on a real phone; the probe riders make it unnecessary for 0.13. Needed before two real riders.
+- Sentry: project `alo-king-gateway` now lives in the **Alo King** organization (EU, `alo-king.sentry.io`); the earlier DSN belonged to an organization whose error quota was used up. Alert rule "Gateway: every new issue" emails the organization's members on new and regressed issues; the cron monitor `gateway-cron-staging` appears in Sentry after the first check-in.
+
+**For other sessions:**
+- B3 (or the next lane B session), `turn.ts` / `concierge-tools.ts`: (a) a retried turn issues a new card and cancels the first draft as `superseded_by_new_card` (seen in the e2e crash test). The customer only ever sees one card, but key the card on the turn so a retry reuses the draft. (b) Set `authored: { by: "model", approvedFacts }` on the sends of model text in the `reply` and `ask_location_pin` tools: the gateway now re-checks them (B2's request, done on the gateway side).
+- C2, `ops-turn.ts`: the per-message `catch` in `processOpsTurn` swallows `OutboxUnavailable` (and now `SendNotDelivered`) and tries to send "صار في غلط", so a rider turn does not retry when Kapso blips. Rethrow those, as `turn.ts` does. Also: call `deps.notifyCustomer(orderId, "rider_waiting")`-style on the Arrived tap if the "rider at the door" notice should be instant; today the cron sends it within a minute.
+- B2's media request: Kapso's `media_url` in the real October messages is an `app.kapso.ai` redirect link; whether it needs the API key is still unproven, so `fetchMedia` was not changed.
+- Anyone touching `can_send()`: 0063 redefines it (marketing lock first, then probes, then `can_send_checked`). Start from 0063's text.
+- The session worked on branch `claude/hopeful-johnson-hvqdoh` (the branch this environment allows).
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
-- `scheduled()` in `apps/gateway/src/index.ts`: the SQL it calls is tested, the handler is not.
-- The live webhook path: signature check, store, direct hand-off, queue retry.
-- The per-rider advisory lock in `dispatch_order`: PGlite has one connection, so two dispatches never race in tests.
+- The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.
 - Market tables (`markets`, `market_settings`, `setting_for`): schema only. Functions still read global settings.
 
@@ -184,13 +244,12 @@ Hub lane: C1 is done (below); C2 (2.1, 2.2, 2.3, 2.4, 2.5, 2.10) and D1 (console
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 
 ### D. Needs a live account or real conditions (cannot be finished in code alone)
-- Kapso: real webhook payloads for both numbers, signature header, marketing-preference event shape, typing indicator.
-- Meta: template approval; which messages are billed and at what rate, per number and category.
+- Kapso: real webhook payloads captured by our own Worker (A2 built fixtures from real message objects and Kapso's documented envelope), typing indicator.
+- Meta: approval of the three submitted utility templates (A2, 4.3); the rates on the first bill (4.4). Which messages are billed is now recorded per message from Meta's status webhooks (4.12).
 - Supabase: staging project `alo-king-staging` (`lhgkvvdckwbfpdsftzqp`, eu-central-1) exists and was empty on 13 Nov; `deploy-staging` fills it (section F). Still to do: turn on point-in-time recovery before real money (paid plan), and a production project.
-- Cloudflare: deploy and the one-minute cron trigger are in place (section F); still to prove: the cron doing real work, Durable Object alarms under load, queue retry.
+- Cloudflare: deploy and the one-minute cron trigger are in place (section F); the hourly probe order proves the cron and the Durable Object alarms doing real work on staging (A2). Still to prove: load, queue retry.
 - Speed: time from message to card, measured on a phone in Chouf.
 - Speech: accuracy on the hand-corrected voice notes.
-- A two-connection test of the dispatch lock on real Postgres.
 - A shadow run: staff place real orders end to end, and stock, rider cash, rider earnings and the ledger reconcile to zero
   unexplained balance at day close.
 
