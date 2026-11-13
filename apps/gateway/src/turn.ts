@@ -75,6 +75,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (r.ok) sent.push(FIXED.oneMoment);
   } });
 
+  // Where a new customer came from (1.13): an ad click, a QR code or a referral code on their very first message. Data only;
+  // the database writes it once and ignores later messages. A failure here never stops the turn.
+  const head = first.event.message as typeof first.event.message & { referral?: unknown };
+  await db.rpc("record_first_contact", { p_party: conv.party_id, p_wamid: head.id, p_text: head.text?.body ?? null, p_referral: head.referral ?? null })
+    .then(() => undefined, () => undefined);
+
   await db.from("wa_messages").insert(pending.map((p) => ({
     line: "customer", direction: "inbound", party_id: conv.party_id, conversation_id: conv.conversation_id,
     wa_message_id: p.event.message.id, type: p.event.message.type, status: "received",

@@ -75,3 +75,39 @@ describe("typing indicator and a cap on model turns (1.8)", () => {
     await db.pg.exec(`update settings set value = '{"per_customer_per_hour": 20}' where key = 'model_turns'`);
   });
 });
+
+describe("first-contact source (1.13)", () => {
+  it("an ad click on the first message is kept on the customer and on their first order, not on the next", async () => {
+    const t = flow(db, [read(ORDER), read(ORDER)]);
+    await t.say({ type: "text", text: { body: "مرحبا بدي لبنة" },
+      referral: { source_url: "https://fb.me/x", source_id: "120200", source_type: "ad", headline: "توصيل عالبيت", ctwa_clid: "ARAkLkA8" } });
+    const c = await t.customer();
+    expect((await db.one(`select first_contact from parties where id = $1`, [c.party_id])).first_contact)
+      .toMatchObject({ source: "ad", ctwa_clid: "ARAkLkA8", ad_id: "120200", ad_type: "ad" });
+    const o1 = await db.rpc("create_order_from_quote", { p_customer: c.party_id, p_conversation: null, p_lines: [{ product_id: ids.LABNEH, qty: 1 }],
+      p_village: ids.BAAKLINE, p_place: null, p_pickup: true, p_payment: "cod", p_change_for: null, p_notes: null });
+    expect((await db.one(`select acquisition from orders where id = $1`, [o1.order_id])).acquisition).toMatchObject({ source: "ad", ctwa_clid: "ARAkLkA8" });
+    await db.pg.query(`update orders set status = 'closed' where id = $1`, [o1.order_id]);
+    const o2 = await db.rpc("create_order_from_quote", { p_customer: c.party_id, p_conversation: null, p_lines: [{ product_id: ids.LABNEH, qty: 1 }],
+      p_village: ids.BAAKLINE, p_place: null, p_pickup: true, p_payment: "cod", p_change_for: null, p_notes: null });
+    expect((await db.one(`select acquisition from orders where id = $1`, [o2.order_id])).acquisition).toBeNull();
+  });
+
+  it("a QR code or a referral code in the first message is stored; a later message changes nothing", async () => {
+    const t = flow(db, [read({ intent: "greeting" }), read({ intent: "greeting" })]);
+    await t.text("مرحبا QR-BAAK01 و ref_sami7");
+    const c = await t.customer();
+    const fc = (await db.one(`select first_contact from parties where id = $1`, [c.party_id])).first_contact;
+    expect(fc).toMatchObject({ source: "qr", qr_code: "BAAK01", referral_code: "SAMI7" });
+    await t.say({ type: "text", text: { body: "REF-OTHER9" }, referral: { source_id: "999", ctwa_clid: "late" } });
+    expect((await db.one(`select first_contact from parties where id = $1`, [c.party_id])).first_contact).toEqual(fc);
+  });
+
+  it("a customer who wrote before has no first contact: unknown, never guessed", async () => {
+    const t = flow(db, [read({ intent: "greeting" })]);
+    const c = await t.customer();
+    await db.pg.query(`insert into wa_messages(line, direction, party_id, wa_message_id, type, status) values ('customer', 'inbound', $1, $2, 'text', 'received')`, [c.party_id, `old.${c.party_id}`]);
+    await t.say({ type: "text", text: { body: "hi" }, referral: { source_id: "1", ctwa_clid: "x" } });
+    expect((await db.one(`select first_contact from parties where id = $1`, [c.party_id])).first_contact).toBeNull();
+  });
+});
