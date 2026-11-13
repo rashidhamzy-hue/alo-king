@@ -102,10 +102,11 @@ async function refund(c: Ctx) {
   const note = text(c, "note", 300) || null;
   const code = (await c.deps.db.rows<{ short_code: string }>("orders", { select: "short_code", where: { id: order }, limit: 1 }))[0]?.short_code ?? "";
   return act(c, "refund", { order, amount_usd: amount, charged_to: charged, reason, settle, item: item || null }, async () => {
-    const r = await c.deps.db.rpc<{ duplicate?: boolean; settle?: string; credit_left_usd?: number | string }>("refund_order", {
+    const r = await c.deps.db.rpc<{ duplicate?: boolean; status?: string; settle?: string; credit_left_usd?: number | string }>("refund_order", {
       p_order: order, p_by: c.staff.partyId, p_amount_usd: amount, p_charged_to: charged, p_reason: reason, p_settle: settle,
       p_ref: ref, p_note: note, p_item: item || null, p_key: key(c),
     });
+    if (r?.status === "awaiting_approval") return r.duplicate ? "That refund is already waiting for a second approval." : `Waiting for a second approval: ${usd(amount)} is above the refund limit. Another ops lead or admin approves it under Approvals.`;
     if (r?.duplicate) return "That refund was already recorded; nothing changed.";
     return settle === "credit" ? `Refunded ${usd(amount)} as credit. The customer has ${usd(r?.credit_left_usd)} free to use.`
       : `Refunded ${usd(amount)} and paid out by ${settle}.`;

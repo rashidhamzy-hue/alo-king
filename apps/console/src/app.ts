@@ -106,6 +106,7 @@ export function explain(e: unknown): string {
       [/^OUTCOME_REQUIRED/, "Write the outcome."],
       [/^CASE_CLOSED/, "This case is closed."],
       [/^REFUND_NOT_ON_ORDER/, "That refund is for another order."],
+      [/^SAME_PERSON/, "You asked for this change: a second person must approve it."],
       [/^DAY_NOT_OVER/, "That day has not come yet."],
       [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
     ];
