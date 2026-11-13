@@ -1,0 +1,86 @@
+# Manual. Build plan 5.18 (session N1): product data from Open Food Facts and proposed catalog names and categories, on STAGING.
+# The build environment cannot reach Open Food Facts or the Anthropic API, so this runs here.
+#   facts       Open Food Facts by barcode, one request every 4 seconds (scripts/product-data/fetch-product-data.mjs). Ingredients,
+#               allergens, nutrition panel and diet labels are filed as PROPOSED rows in product_facts through C1's propose_product_fact,
+#               source open_food_facts, status partial, the source text beside every value. Nothing is approved by this workflow or by
+#               any code: the database refuses it (migration 0073), and a person confirms each field against the pack at intake (5.15).
+#               The fast model only maps Open Food Facts' own text onto our allergen vocabulary (with a quote the code checks against
+#               the text) and writes an Arabic rendering of the ingredient list.
+#   names       cleaned Arabic and English display names and sizes, written to data/proposals/names.json. Not applied.
+#   categories  the 12 to 15 customer categories for the WhatsApp catalog (1.21) and each item's place, data/proposals/categories.json. Not applied.
+# What was generated is pushed to a new branch `product-data-out/<run id>` (and kept as an artifact); a session copies data/proposals/
+# into the working branch. Nothing is pushed to the branch that was run, and the proposals files change no table.
+# Secrets used (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
+name: product-data
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Comma-separated: facts, names, categories"
+        type: string
+        default: "facts,names,categories"
+      limit:
+        description: Only the first N items still to look up in Open Food Facts (empty = all)
+        type: string
+        default: ""
+      force:
+        description: Look up again items that already have an answer (never touches approved facts)
+        type: boolean
+        default: false
+permissions: { contents: write }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: product-data
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RUN_ID: ${{ github.run_id }}
+      STEPS: ${{ inputs.steps }}
+      LIMIT: ${{ inputs.limit }}
+      FORCE: ${{ inputs.force }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Tests (the rules, and the pipeline against the real migrations)
+        run: npx vitest run scripts/product-data test/db/food-facts.test.ts
+      - name: Settings
+        run: |
+          echo "MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)" >> "$GITHUB_ENV"
+          echo "- steps: ${STEPS}; limit: ${LIMIT:-all}; force: ${FORCE}; staging project ${SUPABASE_URL}" >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p data/proposals
+      - name: Facts from Open Food Facts, filed as proposals
+        if: contains(format(',{0},', inputs.steps), ',facts,')
+        run: |
+          args=(--summary-out data/proposals/product-facts-summary.json)
+          [[ "$LIMIT" =~ ^[0-9]+$ ]] && args+=(--limit "$LIMIT")
+          [ "$FORCE" = "true" ] && args+=(--force)
+          node scripts/product-data/fetch-product-data.mjs "${args[@]}"
+      - name: Names, sizes and categories, proposed
+        if: contains(format(',{0},', inputs.steps), ',names,') || contains(format(',{0},', inputs.steps), ',categories,')
+        run: |
+          only=()
+          [[ ",${STEPS}," == *,names,* ]] && only+=(names)
+          [[ ",${STEPS}," == *,categories,* ]] && only+=(categories)
+          node scripts/product-data/propose-catalog.mjs --only "$(IFS=,; echo "${only[*]}")"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: product-data-proposals, path: data/proposals, retention-days: 30, if-no-files-found: ignore }
+      - name: Push what was generated to product-data-out/${{ github.run_id }}
+        if: always()
+        run: |
+          git config user.name "product-data bot"; git config user.email "actions@users.noreply.github.com"
+          git checkout -b "product-data-out/${{ github.run_id }}"
+          git add -f data/proposals
+          git commit -m "product-data run ${{ github.run_id }} output (proposals only)" || { echo "nothing generated"; exit 0; }
+          git push origin "product-data-out/${{ github.run_id }}"
+          echo "- output branch: product-data-out/${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"

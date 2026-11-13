@@ -334,6 +334,29 @@ CI note: on PR 16 `test/pg/dispatch-race.test.ts` failed once with "Postgres did
 - **K1 (1.21 catalog feed):** call `product_image_for_customer(product)`; null means send no picture. Sign the returned `media_path` for `signed_link_seconds` (`sign.mjs`). Show the `attribution` where a CC BY-SA picture is used. WhatsApp fetches the link itself, so keep the lifetime at least a few minutes. Never add `image` to the gateway allowlist (invariant 2): the catalog image header is part of an interactive message.
 - **Anyone adding a brand to `brand-sites.json`:** open the site first. A wrong domain would file someone else's picture as the brand's own.
 
+### Session N1 (product data), 13 November 2026: task 5.18; migration 0073
+Branch `claude/bold-euler-uw3gxx` (the branch this environment allows). Built and tested locally (PGlite with every migration, 64 new tests in `scripts/product-data/test/`, the whole suite 759 pass; permission check on Postgres 16 in fresh and `EXISTING=1` modes). The fetch itself runs only in GitHub Actions (`.github/workflows/product-data.yml`, manual). **Status of the staging run: see "First staging run" below.**
+
+| Step | Where | Tested by |
+| --- | --- | --- |
+| Store, rules, counts | migration 0073 | `pipeline.test.mjs`: `propose_off_facts()` files each fact through C1's `propose_product_fact` (status `partial`, source `open_food_facts`, nobody approves); a check constraint makes an `open_food_facts` row unapprovable even by a direct update; Open Food Facts never says `free` (an allergen it does not list is unknown, so no row); an allergen or diet value needs a quote that is a literal part of its source text; no source text, code or fingerprint is refused; one bad fact saves nothing for that product; a rerun never touches an approved fact and never re-proposes an unchanged one; a changed record supersedes the old proposal and keeps it. `product_data_coverage()` is the report: items with a proposed fact of each kind, and `approved_from_open_food_facts` (must be 0) |
+| Facts | `scripts/product-data/fetch-product-data.mjs`, `lib/` | `facts.test.mjs`, `off-http.test.mjs`: one request every 4 seconds with `Retry-After` honoured and retries through the same gate; a failed lookup is an error, never "not found"; allergen tags map by a fixed table; nutrition is the stated per-100 g numbers only; diet from a label claim or Open Food Facts' own analysis, a conflict is unknown; fasting is never proposed |
+| The model's part | `lib/map-model.mjs` | The fast model sees only Open Food Facts' own text (fenced as data), maps it onto our fourteen allergens with a quote, and renders the ingredient list in Arabic. Code keeps a mapping only if the quote is in the text, is about that allergen (word lists in English, French, Arabic), and agrees with its "may contain" wording; keeps the Arabic only if it is Arabic and every number of the source survived. The model's value, never its memory, is what is filed |
+| Names, sizes, categories | `propose-catalog.mjs`, `lib/names.mjs`, `lib/categories.mjs` → `data/proposals/` | `names-categories.test.mjs`: no number changes, no praise, health, diet or religion word that the catalog did not have, Arabic must be Arabic; a refused item is asked once more and then left as it is; 12 to 15 neutral categories (no catch-all, no "Healthy"), every item placed once, ordered by name. Proposals only: no table is touched |
+
+Decisions taken in code, written down:
+- **Which items are looked up.** The plan says 291 products with a barcode; the catalog has **257** with one, and 34 (the unbranded produce) have none. Of the 257, those whose number is 13 digits starting with 2 are a store's own code (GS1 20-29, by-weight and in-store items): the same number is another item in another shop, so they are never looked up (`product_data_is_internal_code`). The report counts them separately.
+- **Status `partial` for everything from Open Food Facts**, never `declared`: the rows say plainly that nobody has checked the pack. A person confirms the field and records it as `label`.
+- **No "free" and no "fasting" from this source**, and a "gluten free" label claim is not proposed either (it is a `free` statement). Intake (5.15) records those from the pack.
+- A model failure on an item files nothing for it (the item is tried again); a refused key (HTTP 400/401/403) stops the run.
+- Rejecting a proposal has no function yet (5.15 / D2): set `superseded_at`. A rerun does not re-propose a set-aside proposal while it is the latest for that attribute.
+- Open Food Facts data is ODbL: the attribution is in every proposal's `detail`. Nothing from it reaches a customer until a person records it from the pack.
+
+For other sessions:
+- **K1 (1.21):** `data/proposals/categories.json` is the proposed category list and each item's category and order; it is a proposal until the founder approves it. The catalog's own "Healthy" category (2 items) is not carried over (invariant 14).
+- **5.15 / D2 (intake and review):** the review list is `product_facts` where `source = 'open_food_facts'`, `approved_at is null`, `superseded_at is null`; `detail` holds `source_text`, `quote`, `off_url`, `ar` and `ar_by`. Compare each field with the pack, then call `propose_product_fact(..., 'label', ...)` and `approve_product_fact`.
+- The workflow pushes what it generated to `product-data-out/<run id>`; the `data/proposals/` files in the repository were copied from there.
+
 ### Session D1 (console), 13 November 2026: tasks 3.1 to 3.10, 3.18
 `apps/console/` (new Worker, hosted on Cloudflare beside the gateway: `docs/DECISIONS.md`, "Console hosting") and `.github/workflows/console.yml`. No migration (D1 owns none).
 Built and tested locally: every page is driven through the real request handler against PGlite with every migration, with the gateway's real `send()` (only Kapso's HTTP replaced) and Supabase Auth and Storage replaced by fakes (`apps/console/test/`, 50 tests).
