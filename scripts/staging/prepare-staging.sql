@@ -19,7 +19,7 @@ do $$
 declare
   v_village uuid := (select id from villages where name_en = 'Baakline');
   c uuid; r uuid; i int;
-  lat constant double precision := 33.6789; lng constant double precision := 35.5778;   -- Baakline, approximately
+  lat constant double precision := 33.67739; lng constant double precision := 35.56355;  -- Baakline's centre (OpenStreetMap): since B4 the pin decides the village
 begin
   -- test customer
   select party_id into c from party_identities where line = 'customer' and wa_user_id = 'PR.0000000000000001';

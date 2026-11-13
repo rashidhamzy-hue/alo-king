@@ -26,6 +26,12 @@ export function parseOrderButton(id: string): { action: "confirm" | "edit" | "ca
   return m ? { action: m[1] as "confirm" | "edit" | "cancel", orderId: m[2]! } : null;
 }
 
+export const pinVillageButtonId = (villageId: string) => `pinvillage:${villageId}`;
+export function parsePinVillageButton(id: string): string | null {
+  const m = /^pinvillage:([0-9a-f-]{36})$/.exec(id);
+  return m ? m[1]! : null;
+}
+
 const BODY_LIMIT = 1024;   // WhatsApp's limit for an interactive message body
 
 export const CARD_TEXT = {
@@ -108,4 +114,15 @@ export const FIXED = {
   badPhone: "الرقم مش واضح معي. فيك تبعتو هيك: 03123456 أو +9613123456؟",
   phoneSaved: "تمام، سجّلنا الرقم. شو بتحب تطلب؟",
   askPin: "تمام، طلبك جاهز. بس بعتلنا موقعك 📍 من الزر تحت لنبعتلك ورقة الطلب.",
+  /** B4: a first delivery to a new place. The pin is in; the rider needs the house and the floor. The card waits for them. */
+  askAddress: (villageAr: string) => `التوصيل على ${villageAr}. كرمال السائق: شو اسم البيت أو البناية، وأي طابق؟`,
+  pinReceived: "وصلنا موقعك 📍",
+  /** B4: the pin decides the village. Said when the customer had written another one. */
+  pinVillage: (pinAr: string, saidAr: string) => `📍 الموقع اللي بعتّو بمنطقة ${pinAr}، مش ${saidAr}، فالتوصيل على ${pinAr}.`,
+  /** B4: the pin is between villages. The customer taps the right one; nobody guesses. */
+  askVillage: "📍 الموقع اللي بعتّو بين كذا ضيعة. وين بالزبط؟",
+  /** B4: no village we know is near the pin. */
+  pinOutside: "📍 هالموقع برّا المناطق يلي منوصل عليها هلّق. إذا في غلط، ابعت الموقع من جديد من الزر.",
+  pinSaved: (villageAr: string) => `تمام، سجّلنا موقعك${villageAr ? ` (${villageAr})` : ""} 📍 شو بتحب تطلب؟`,
+  pinVillageRefused: "ما قدرنا نعتمد هالضيعة لهالموقع. ابعت الموقع من جديد من الزر 📍",
 };
