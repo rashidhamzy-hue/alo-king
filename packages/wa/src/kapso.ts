@@ -130,8 +130,11 @@ export function kapsoClient(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string
 /** Only packages/wa/src/gateway.ts may call this (invariant 1; CI checks it). The payload is ours, unchanged: the SDK only carries it. */
 export async function kapsoSend(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, phoneNumberId: string, to: string, msg: Outbound): Promise<string> {
   try {
-    const res = (await kapsoClient(env).messages.sendRaw({ phoneNumberId, payload: { messaging_product: "whatsapp", recipient_type: "individual", to, ...msg } })) as { messages?: { id?: string }[] };
-    return res.messages?.[0]?.id ?? "";
+    let res = (await kapsoClient(env).messages.sendRaw({ phoneNumberId, payload: { messaging_product: "whatsapp", recipient_type: "individual", to, ...msg } })) as unknown;
+    // The SDK parses JSON only when the response says application/json; otherwise it returns the text. Read the id either way:
+    // without it, the outbox and the message log lose track of a message that did go out.
+    if (typeof res === "string") { try { res = JSON.parse(res); } catch { res = {}; } }
+    return (res as { messages?: { id?: string }[] } | null)?.messages?.[0]?.id ?? "";
   } catch (err) {
     if (err instanceof GraphApiError) throw new KapsoSendError(err.httpStatus, String(err.apiCode ?? err.code), err.retry.action, err.retry.retryAfterMs, err.message);
     throw err;

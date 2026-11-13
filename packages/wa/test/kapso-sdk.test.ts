@@ -33,6 +33,11 @@ describe("same sends", () => {
   });
 });
 
+it("reads the message id even when the response has no JSON content type", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ messages: [{ id: "wamid.PLAIN" }] }), { status: 200 })));
+  expect(await kapsoSend(env, "1", "2", { type: "text", text: { body: "x" } })).toBe("wamid.PLAIN");
+});
+
 describe("typed errors with a retry hint", () => {
   const fail = (status: number, body: unknown) => vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })));
   it("outside the 24-hour window (131047): permanent", async () => {
