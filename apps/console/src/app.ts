@@ -267,6 +267,12 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
     let res: Response;
     try { res = await r.handler(ctx); }
     catch (e) {
+      if (method === "POST" && e instanceof UserError) {
+        // A form filled in wrong, refused before anything ran: back to the page it came from, with the reason.
+        let back = "/";
+        try { const ref = new URL(req.headers.get("referer") ?? ""); if (ref.origin === url.origin) back = ref.pathname + ref.search; } catch { /* no referer */ }
+        return flashRedirect(deps, back, { err: e.message });
+      }
       console.error(JSON.stringify({ level: "error", event: "console_page_failed", path, err: String(e).slice(0, 300) }));
       res = render(ctx, "Error", html`<p class="flash err">${explain(e)}</p>`);
     }

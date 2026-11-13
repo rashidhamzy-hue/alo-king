@@ -143,6 +143,7 @@ export class Browser {
   cookies = new Map<string, string>();
   csrf = "";
   last = "";
+  lastPath = "/";
   constructor(readonly deps: Deps, readonly sections: Section[] = registry) {}
   private async go(method: string, path: string, body?: URLSearchParams, headers: Record<string, string> = {}) {
     const h = new Headers(headers);
@@ -155,14 +156,14 @@ export class Browser {
       if (attrs.some((a) => a.trim() === "Max-Age=0")) this.cookies.delete(k); else this.cookies.set(k, v);
     }
     const text = await res.text();
-    if (method === "GET") { this.last = text; const m = /name="_csrf" value="([^"]+)"/.exec(text); if (m) this.csrf = m[1]!; }
+    if (method === "GET") { this.last = text; this.lastPath = path; const m = /name="_csrf" value="([^"]+)"/.exec(text); if (m) this.csrf = m[1]!; }
     return { status: res.status, location: res.headers.get("location"), text, headers: res.headers };
   }
   get(path: string) { return this.go("GET", path); }
   /** Posts a form with the page's CSRF token, then follows the redirect (as a browser does) and returns that page. */
   async post(path: string, fields: Record<string, string | number> = {}, opts: { csrf?: string; follow?: boolean; headers?: Record<string, string> } = {}) {
     const body = new URLSearchParams({ _csrf: opts.csrf ?? this.csrf, _key: crypto.randomUUID(), ...Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, String(v)])) });
-    const r = await this.go("POST", path, body, opts.headers);
+    const r = await this.go("POST", path, body, { referer: "https://console.test" + this.lastPath, ...opts.headers });
     if (r.status === 303 && opts.follow !== false && r.location) return this.get(r.location);
     return r;
   }
