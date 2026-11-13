@@ -1,0 +1,71 @@
+# Manual. Build plan 5.17 (session P1): fetch a proposed picture for each catalog item on STAGING.
+# The build environment cannot reach Open Food Facts or search sites, so the fetch runs here (scripts/images/fetch-images.mjs).
+# Open Food Facts always runs. Brand-site and web image search run only when the repository secret BRAVE_SEARCH_API_KEY exists
+# (docs/DECISIONS.md "Product picture search"). Pictures land in the private `media` bucket as `proposed`: a person approves
+# them on the console page (3.18). Nothing here makes a picture visible to a customer.
+# Secrets used (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY, BRAVE_SEARCH_API_KEY (optional).
+name: images
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Only the first N items still needing a picture (empty = all)
+        type: string
+        default: ""
+      force:
+        description: Also items that already have a usable picture (never touches approved ones; adds a new proposal)
+        type: boolean
+        default: false
+      no_search:
+        description: Open Food Facts only, even if the search secret exists
+        type: boolean
+        default: false
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: images
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      BRAVE_SEARCH_API_KEY: ${{ secrets.BRAVE_SEARCH_API_KEY }}
+      RUN_ID: ${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Install the picture tools (sharp lives in scripts/images only)
+        run: npm ci --prefix scripts/images
+      - name: Tests (the pipeline against the real migrations, and real resizing)
+        run: npx vitest run scripts/images test/db/product-images.test.ts
+      - name: Which sources will run
+        run: |
+          if [ -n "$BRAVE_SEARCH_API_KEY" ] && [ "${{ inputs.no_search }}" != "true" ]; then
+            echo "- sources: Open Food Facts, brand sites, web image search (Brave)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- sources: Open Food Facts only (secret BRAVE_SEARCH_API_KEY missing, or no_search ticked)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Fetch, check, resize, store, propose
+        env:
+          LIMIT: ${{ inputs.limit }}
+          FORCE: ${{ inputs.force }}
+          NO_SEARCH: ${{ inputs.no_search }}
+        run: |
+          export MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)
+          args=()
+          [[ "$LIMIT" =~ ^[0-9]+$ ]] && args+=(--limit "$LIMIT")
+          [ "$FORCE" = "true" ] && args+=(--force)
+          [ "$NO_SEARCH" = "true" ] && args+=(--no-search)
+          node scripts/images/fetch-images.mjs "${args[@]}"
+      - name: The pictures are private, and the intake list
+        run: node scripts/images/prove-private.mjs
+      - uses: actions/upload-artifact@v4
+        with: { name: photograph-at-intake, path: intake-list.json, retention-days: 30 }
