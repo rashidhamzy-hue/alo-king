@@ -3,4 +3,6 @@ title = "alo-king"
 useDefault = true
 [allowlist]
 description = "Example files and test fixtures carry fake values only"
-paths = ['''\.dev\.vars\.example$''', '''test/fixtures/''', '''package-lock\.json$''']
+paths = ['''\.dev\.vars\.example$''', '''test/fixtures/''', '''package-lock\.json$''',
+  # A "never do this" example in a third-party Cloudflare skill (API_KEY: "sk-live-abc123..."). Only this one file.
+  '''\.claude/skills/workers-best-practices/references/configuration\.md$''']
