@@ -16,6 +16,8 @@ export interface ConversationState {
   /** A card is ready to go out from lastQuote once the customer supplies what is missing. */
   awaiting?: "pin" | null;
   pending?: CardTerms | null;
+  /** When the "same as last time" button was last offered (ms). */
+  repeatOfferedAt?: number;
 }
 /** Everything about a card that is not its lines. */
 export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null }

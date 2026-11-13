@@ -6,6 +6,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { ConversationDO, type Env } from "../../apps/gateway/src/index";
 import { CONSENT_LINE, formatOrderCard, orderButtonId, parseOrderButton, type Quote } from "@ak/agents/order-card";
 import { preflight } from "@ak/wa/gateway";
+import { repeatButtonId } from "@ak/agents/answers";
 import { openTestDb, type TestDb } from "./harness";
 import { supabaseOver } from "./supabase-shim";
 
@@ -461,6 +462,77 @@ describe("answers without the model (1.3)", () => {
     expect(t.seen).toHaveLength(1);
     expect(outbound).toHaveLength(1);
     expect(outbound[0]!.body.interactive.body.text).toContain("$7.01");          // 5.00 + 1.01 + 1.00 delivery
+  });
+});
+
+describe("same as last time, as one button (1.20)", () => {
+  async function closedOrder(t: ReturnType<typeof setup>, status = "closed") {
+    const c = await customerWithCard(t);
+    await db.pg.query(`update orders set status = $2, delivered_at = now() where id = $1`, [c.orderId, status]);
+    return c;
+  }
+  const buttonsOf = (m: { body: any }) => (m.body.interactive?.action?.buttons ?? []).map((b: any) => b.reply);
+
+  it("a returning customer who says hello is offered their last basket; the tap sends it re-priced, with no model call", async () => {
+    const t = setup([read({ intent: "greeting" }), [use("reply", { text: "أهلا! شو بتحب تطلب؟" })]]);
+    const last = await closedOrder(t);
+    await t.conv.fetch(t.text("مرحبا"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(0);
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.interactive.body.text).toContain("Liban Lait Labneh Baladieh 900G");
+    expect(outbound[0]!.body.interactive.body.text).not.toMatch(/\$/);             // no price in the offer: the tap prices it
+    expect(buttonsOf(outbound[0]!)).toEqual([{ id: repeatButtonId(last.orderId), title: "متل المرة الماضية" }]);
+
+    await db.pg.query(`update offers set price_usd = 5.25 where product_id = $1`, [LABNEH]);       // today's price, not last time's
+    await t.conv.fetch(t.tap(repeatButtonId(last.orderId), "متل المرة الماضية"));
+    await t.conv.alarm();
+    await db.pg.query(`update offers set price_usd = 5 where product_id = $1`, [LABNEH]);
+    expect(t.seen).toHaveLength(0);
+    expect(outbound).toHaveLength(2);
+    expect(outbound[1]!.body.interactive.body.text).toContain("$8.27");            // 5.25 + 2 x 1.01 + 1.00
+
+    // Offered once: a second hello the same day goes to the Concierge as usual.
+    await t.conv.fetch(t.text("مرحبا"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(2);
+    expect(outbound.at(-1)!.body.text.body).toBe("أهلا! شو بتحب تطلب؟");
+  });
+
+  it("is never shown to a customer with no closed order, even one with a delivered but unpaid order", async () => {
+    const t = setup([read({ intent: "greeting" }), [use("reply", { text: "أهلا! شو بتحب تطلب؟" })]]);
+    await closedOrder(t, "delivered");
+    await t.conv.fetch(t.text("مرحبا"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(2);
+    expect(outbound).toHaveLength(1);
+    expect(buttonsOf(outbound[0]!)).toEqual([]);
+  });
+
+  it("a repeat button for someone else's order sends nothing of theirs", async () => {
+    const owner = setup([]); const theirs = await closedOrder(owner);
+    const t = setup([]);
+    await t.conv.fetch(t.tap(repeatButtonId(theirs.orderId)));
+    await t.conv.alarm();
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.text.body).toBe("ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟");
+    const c = await t.customer();
+    expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
+  });
+
+  it("a card that went stale before the tap is rebuilt at today's prices, with no model call", async () => {
+    const t = setup([]);
+    const c = await customerWithCard(t);
+    await db.pg.query(`update offers set price_usd = 5.5 where product_id = $1`, [LABNEH]);
+    await t.conv.fetch(t.tap(orderButtonId("confirm", c.orderId)));
+    await t.conv.alarm();
+    await db.pg.query(`update offers set price_usd = 5 where product_id = $1`, [LABNEH]);
+    expect(t.seen).toHaveLength(0);
+    expect(outbound).toHaveLength(2);
+    expect(outbound[0]!.body.text.body).toContain("الأسعار أو التوفّر تغيّروا");
+    expect(outbound[1]!.body.interactive.body.text).toContain("$8.52");            // 5.50 + 2.02 + 1.00
+    expect((await db.one(`select status from orders where id = $1`, [c.orderId])).status).toBe("cancelled");   // superseded
+    expect(await db.one(`select count(*)::int as n from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [c.party_id])).toEqual({ n: 1 });
   });
 });
 

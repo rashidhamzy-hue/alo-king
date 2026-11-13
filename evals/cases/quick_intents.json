@@ -111,7 +111,7 @@
   },
   {
    "text": "مرحبا",
-   "expect": null
+   "expect": "greeting"
   },
   {
    "text": "فاتحين محل جديد بعقلين؟",
@@ -135,6 +135,22 @@
   },
   {
    "text": "قديش حق الطلب؟",
+   "expect": null
+  },
+  {
+   "text": "كيفكن؟",
+   "expect": "greeting"
+  },
+  {
+   "text": "hello!",
+   "expect": "greeting"
+  },
+  {
+   "text": "مرحبا بدي اطلب",
+   "expect": null
+  },
+  {
+   "text": "مرحبا، عندكن جبنة عكاوي؟",
    "expect": null
   }
  ]

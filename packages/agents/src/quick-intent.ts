@@ -1,9 +1,9 @@
-// Three questions are common enough, and short enough, to recognise without a model: where is my order, when are you open,
+// A bare greeting and three questions are common enough, and short enough, to recognise without a model: where is my order, when are you open,
 // and "same as last time". The match is deliberately strict: the whole message must be one of these phrases, with at most a
 // greeting before and a "please" or "thanks" after. Anything longer ("same as last time but add bread") goes to the model.
 // Every miss or false match found in production becomes a case in evals/cases/quick_intents.json before it is fixed.
 
-export type QuickIntent = "status" | "hours" | "repeat_last";
+export type QuickIntent = "status" | "hours" | "repeat_last" | "greeting";
 
 /** Lower case, no diacritics or tatweel, one spelling of alef, ta marbuta and alef maqsura, no punctuation or emoji. */
 export function normalise(text: string): string {
@@ -19,6 +19,8 @@ const POLITE = "(?:\\s+(?:لو سمحت|عافاك|من فضلك|يعطيك ال
 const ORDER_AR = "(?:ال)?طلب(?:يه|يتي|ي)?(?: تبعي)?";
 
 const PATTERNS: Record<QuickIntent, string[]> = {
+  // A bare hello. Answered without a model only when there is something to offer (the repeat button); otherwise the model greets.
+  greeting: ["(?:مرحبا|مرحبتين|هلا|اهلين|اهلا|السلام عليكم|سلام|صباح الخير|مسا الخير|كيفكن|hi|hello|hey|marhaba|bonjour|salut|bonsoir)"],
   status: [
     `(?:وين|لوين|شو) (?:صار |وصل )?${ORDER_AR}`,
     `(?:شو صار ب|شو صار مع |شو صار في )${ORDER_AR}`,

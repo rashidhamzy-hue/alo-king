@@ -7,7 +7,7 @@ import type { OrderIntent } from "./schemas";
 import { deliver, issueCard, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import { FIXED, type Quote } from "./order-card";
 import type { QuickIntent } from "./quick-intent";
-import { ANSWER, answerArea, answerHours, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
+import { ANSWER, offerRepeat, answerArea, answerHours, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 
 export interface PlanLine {
   idx: number; raw: string; query: string; qty: number; assumed: boolean;
@@ -48,12 +48,14 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null):
   if (intent.intent === "hours") return answerHours(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
   if (intent.intent === "delivery_area" && intent.address.village)
     return answerArea(ctx, intent.address.village).then((r) => (r.done ? r : { done: false, plan: null }));
+  if (intent.intent === "greeting" && intent.lines.length === 0)
+    return offerRepeat(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
   if (intent.intent !== "order") return { done: false, plan: null };
   if (intent.repeat_last && intent.lines.length === 0) {
     const r = await repeatLast(ctx);
     return r.done ? r : { done: false, plan: { repeat: r.repeat ?? null } };
   }
-  if (intent.lines.length === 0) return { done: false, plan: null };
+  if (intent.lines.length === 0) return offerRepeat(ctx).then((r) => (r.done ? r : { done: false, plan: null }));   // "I want to order"
 
   const plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: intent, p_village: ctx.state.villageId ?? null, p_choices: {} });
   if (plan.village_id) ctx.state.villageId = plan.village_id;
@@ -122,6 +124,7 @@ async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; v
 export async function answerQuick(ctx: ToolContext, kind: QuickIntent): Promise<{ done: true; path: string } | { done: false }> {
   if (kind === "status") return answerStatus(ctx);
   if (kind === "hours") return answerHours(ctx);
+  if (kind === "greeting") return offerRepeat(ctx);
   return repeatLast(ctx);
 }
 

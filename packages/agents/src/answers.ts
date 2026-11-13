@@ -1,6 +1,7 @@
 // Answers without the model (build plan 1.3). Each one reads a SQL function and words the result with fixed text.
 // Statuses, hours, fees, villages and prices all come from the database; nothing here is a number written by a model.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { buttons } from "@ak/wa/kapso";
 import { deliver, issueCard, type ToolContext } from "./concierge-tools";
 import type { Quote } from "./order-card";
 
@@ -42,8 +43,21 @@ export const ANSWER = {
   inArea: (name: string, fee: number, eta: number) => `إيه منوصّل على ${name}. التوصيل ${money(fee)} وبياخد عادةً حوالي ${eta} دقيقة.`,
   noPrevious: "ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟",
   allMissing: (names: string[]) => `أغراض طلبك الماضي مش متوفّرة هلّق: ${names.join("، ")}. شو بتحب تطلب بدالها؟`,
+  repeatOffer: (items: string[]) => {
+    const shown = items.slice(0, 5).join("، ") + (items.length > 5 ? ` و${items.length - 5} غيرن` : "");
+    return `أهلا فيك! شو بتحب تطلب اليوم؟ أو اكبس تحت لنجهّزلك نفس طلبك الماضي (${shown}) بأسعار اليوم.`;
+  },
+  repeatButton: "متل المرة الماضية",
+  stale: "الأسعار أو التوفّر تغيّروا من وقت ما بعتنالك الورقة. هيدي ورقة جديدة بأسعار هلّق.",
   someMissing: (names: string[]) => `من طلبك الماضي هول مش متوفّرين هلّق: ${names.join("، ")}. حطّينا الباقي بالورقة.`,
 };
+
+export const repeatButtonId = (orderId: string) => `repeat:${orderId}`;
+export function parseRepeatButton(id: string): string | null {
+  const m = /^repeat:([0-9a-f-]{36})$/.exec(id);
+  return m ? m[1]! : null;
+}
+const OFFER_EVERY_MS = 6 * 3600_000;
 
 type Done = { done: true; path: string } | { done: false };
 const say = async (ctx: ToolContext, text: string, path: string): Promise<Done> =>
@@ -89,4 +103,32 @@ export async function repeatLast(ctx: ToolContext, opts: { orderId?: string; noP
   const card = await issueCard(ctx, { lines: r.lines, villageId: r.pickup ? null : r.village_id ?? null, placeId: r.place_id ?? null, pickup: !!r.pickup },
     { payment: r.payment_method ?? "cod", changeForUsd: null, notes: null }, { before: missing.length ? ANSWER.someMissing(missing) : undefined });
   return card.ok ? { done: true, path: "repeat_card" } : { done: false, repeat: r };
+}
+
+/**
+ * A returning customer says hello: offer their last closed basket as one button (1.20). Shown only to someone with a closed
+ * (delivered and paid) order, at most once every six hours. The tap re-prices and re-checks stock; nothing is priced here.
+ */
+export async function offerRepeat(ctx: ToolContext): Promise<Done> {
+  if (ctx.state.repeatOfferedAt && Date.now() - ctx.state.repeatOfferedAt < OFFER_EVERY_MS) return { done: false };
+  const offer = await rpc<{ order_id: string; short_code: string; items: string[] } | null>(ctx.db, "repeat_offer", { p_party: ctx.partyId });
+  if (!offer || offer.items.length === 0) return { done: false };
+  const body = ANSWER.repeatOffer(offer.items);
+  const r = await deliver(ctx, buttons(body, [{ id: repeatButtonId(offer.order_id), title: ANSWER.repeatButton }]), body);
+  if (!r.ok) return { done: false };
+  ctx.state.repeatOfferedAt = Date.now();
+  return { done: true, path: "repeat_offer" };
+}
+
+/** A card whose quote went stale before the tap: the same lines, re-priced now, with anything gone named first. */
+export async function rebuildStale(ctx: ToolContext, orderId: string): Promise<Done> {
+  const b = await rpc<RepeatPlan & { change_for_usd?: number | null; notes?: string | null }>(ctx.db, "basket_from_order", { p_party: ctx.partyId, p_order: orderId });
+  if (!b.found) return { done: false };
+  const missing = (b.missing ?? []).map((m) => m.name_ar ?? m.name);
+  if (!b.lines?.length) return say(ctx, ANSWER.allMissing(missing), "stale_all_missing");
+  if (!b.quote?.ok) return { done: false };
+  const before = [ANSWER.stale, missing.length ? ANSWER.someMissing(missing) : null].filter(Boolean).join("\n");
+  const card = await issueCard(ctx, { lines: b.lines, villageId: b.pickup ? null : b.village_id ?? null, placeId: b.place_id ?? null, pickup: !!b.pickup },
+    { payment: b.payment_method ?? "cod", changeForUsd: b.change_for_usd ?? null, notes: b.notes ?? null }, { before });
+  return card.ok ? { done: true, path: "stale_card" } : { done: false };
 }

@@ -8,6 +8,7 @@ import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
 import { answerQuick, completeAfterPin, planReading } from "@ak/agents/pipeline";
 import { quickIntent } from "@ak/agents/quick-intent";
+import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
@@ -60,6 +61,10 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     transcript: p.event.message.kapso.transcript ? { kapso: p.event.message.kapso.transcript.text } : null,
   })));
 
+  const ctx: ToolContext = {
+    db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
+    send: (msg, opts) => sendRaw(msg, opts?.orderId), sent: { count: 0, texts: [] },
+  };
   const texts: string[] = [];
   const transcripts: { primary: string; secondary?: string }[] = [];
   let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0;
@@ -78,7 +83,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
             db, btn.action === "confirm" ? "confirm_order_checked" : "handle_order_button",
             btn.action === "confirm" ? { p_order: btn.orderId, p_party: conv.party_id, p_wamid: m.id }
                                      : { p_order: btn.orderId, p_action: btn.action, p_party: conv.party_id, p_wamid: m.id });
-          if (r.status === "stale_quote") { state.lastQuote = null; texts.push("الأسعار أو التوفر تغيّروا، جهّزلي الطلب من جديد بنفس الأغراض"); continue; }
+          if (r.status === "stale_quote") {
+            // Prices or stock moved since the card. The same lines, re-priced now, with anything gone named first. No model.
+            state.lastQuote = null;
+            if (!(await rebuildStale(ctx, btn.orderId)).done) await say(FIXED.outOfStock, btn.orderId);
+            continue;
+          }
           if (r.status === "needs_location") { await sendRaw(askLocation("قبل ما نأكّد، بعتلنا موقعك 📍 أو اكتب العنوان بالتفصيل."), btn.orderId); continue; }
           await say(buttonReplyText(r), btn.orderId);
           // Finding a rider must never turn a confirmed order into an error message. If it fails here, the cron retries every minute.
@@ -88,6 +98,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           await say(String(err).includes("OUT_OF_STOCK") ? FIXED.outOfStock : FIXED.error, btn.orderId);
           if (!String(err).includes("OUT_OF_STOCK")) await handoff(db, conv.conversation_id, `button_error: ${String(err).slice(0, 200)}`);
         }
+        continue;
+      }
+      const repeatOf = parseRepeatButton(tapped);
+      if (repeatOf) {
+        // "Same as last time" (1.20): re-priced and re-checked by the database; repeat_plan refuses an order that is not theirs and closed.
+        buttonsHandled++;
+        await repeatLast(ctx, { orderId: repeatOf });
         continue;
       }
       if (tapped === "marketing:yes" || tapped === "marketing:no") {
@@ -153,10 +170,6 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   if (conv.human_handoff) return { outcome: "human", sent };          // a person has this chat; the model stays out
   const pinOnly = pins > 0 && texts.length === pins && transcripts.length === 0;
 
-  const ctx: ToolContext = {
-    db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
-    send: (msg, opts) => sendRaw(msg, opts?.orderId), sent: { count: 0, texts: [] },
-  };
   const remember = () => {
     sent.push(...ctx.sent.texts);
     state.history = [...(state.history ?? []),
