@@ -2,8 +2,6 @@
 //   D1: quote_order refuses while the exchange-rate pause is on.
 //   C2: customer credit is taken off the next card, on its own line; learn_from_order ignores removed or replaced lines.
 //   B3: the staging probe releases its own handoff; the probe answers the address question.
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, pinned, read, recordKapso, type Ids, type Sent } from "./flow-kit";
@@ -63,12 +61,7 @@ describe("lane B requests (B4)", () => {
   }, 60_000);
 
   it("D1: while today's rate waits for a person, nothing is priced; the customer is told once and the basket is kept", async () => {
-    expect(await db.rpc("fx_quoting_paused")).toBe(false);                              // before D2's migration: no fx_pending table
-    // D2 ships D1's functions (apps/console/sql/proposed_functions.sql) in a migration; the same file is applied here.
-    await db.pg.exec(readFileSync(fileURLToPath(new URL("../../apps/console/sql/proposed_functions.sql", import.meta.url)), "utf8"));
-    await db.pg.exec(`create or replace function fx_quoting_paused() returns boolean language plpgsql stable as $$
-      declare v boolean; begin if to_regclass('public.fx_pending') is null then return false; end if;
-      execute 'select exists (select 1 from fx_pending where status = ''pending'')' into v; return coalesce(v, false); end $$;`);
+    expect(await db.rpc("fx_quoting_paused")).toBe(false);
     const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops') returning id`)).id;
     await db.rpc("set_fx_rate", { p_lbp_per_usd: 89500, p_by: ops });
     expect(await db.rpc("set_fx_rate", { p_lbp_per_usd: 95000, p_by: ops })).toMatchObject({ status: "paused" });
