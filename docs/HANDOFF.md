@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 100 tests; test/db/* run the real migrations in PGlite
+npx vitest run          # 206 tests; test/db/* run the real migrations in PGlite
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
 `TEST_REPORT.txt` is the captured run for this tree.
@@ -88,11 +88,34 @@ Known limit: reply keys use the message's position in the turn. If a retried tur
 a different sentence could be skipped as "already sent". The turn record (`begin_turn`, `finish_turn`) makes this rare; task 4.5
 tests a crash in the middle of a turn. Templates do not exist yet; when 4.3 adds them, each is keyed on order + event.
 
+### Session B1 (ordering), 13 November 2026: tasks 1.1, 1.2, 1.3, 1.9, 1.15, 1.19, 1.20
+Built and tested locally (PGlite with every migration, vitest; permission check on Postgres 16 in fresh and EXISTING=1 modes; Worker dry run for staging and production). Nothing here is proven live.
+
+| Task | Where | Tested by |
+| --- | --- | --- |
+| 1.9 Concierge flow on the real schema; ten voice-note cases | `test/db/concierge-flow.test.ts`, `test/db/supabase-shim.ts`, `evals/voice_notes/cases/` | The flow test runs the Durable Object, turn code, tools, SQL and gateway; only the model and Kapso's HTTP endpoint are replaced. `evals/test/voice-cases.test.ts` |
+| 1.1 Parse once, then the database | `packages/agents/src/concierge.ts` (`extractOrder`, `runAskLoop`), `pipeline.ts`, `apps/gateway/src/turn.ts` | One forced `extract_order` call; `plan_order` answers card / ask; a card or pin request goes out with no second call; a pin for a waiting card sends it with no model; the loop gets the reading and the plan |
+| 1.2 Unsigned restaurants | migration 0013, `pipeline.ts` | "Not available yet" in one fixed line, no handoff, no order; mixed message names it before the grocery card; only `approve_merchant()` makes a merchant searchable |
+| 1.3 Answers without the model | migration 0014, `packages/agents/src/answers.ts`, `quick-intent.ts`, `evals/cases/quick_intents.json` | Status, hours, do-you-deliver-to-X, out-of-area order, same as last time (typed short forms with no model call; the same answers when the extraction reads those intents) |
+| 1.20 Same as last time, one button | migration 0015, `answers.ts` | Offered only with a closed (delivered and paid) order, once per six hours; tap re-prices at today's price; missing items named before the card; someone else's order refused. A stale card at the confirm tap is rebuilt the same way, with no model |
+| 1.19 No phone in the webhook | migration 0016, `packages/agents/src/phone.ts`, `issueCard()` | Fixture with only a business-scoped id: number asked before the card, stored in `parties.contact_phone`, card sent on arrival with no model; rider job card shows it; it is never used as a WhatsApp address |
+| 1.15 Model capacity | `packages/agents/src/capacity.ts`, `turn.ts` | Overload once: one "one moment", then the card. Overload throughout: retries at 2, 5, 12 s, then handoff, ops exception, and the customer is told. Retried turn does not repeat "one moment". A 400 is not retried |
+
+Also: migration 0017 revokes the leftover `anon` / `authenticated` grants on `ops_exceptions` (A1's finding under 0.4).
+Also fixed in `turn.ts`: an `OutboxUnavailable` error inside the Concierge path was being turned into a handoff; it now propagates so the turn retries (invariant 20).
+
+Only a live account can prove: the forced extraction's quality on the real model (scored by 1.10 and 5.8); real Kapso payloads without a phone (the fixture follows Kapso's documented shape); which status codes Anthropic returns under load.
+
+For other sessions (B1 did not touch these files):
+- A2 (`apps/gateway/src/index.ts`): build the Anthropic client with `maxRetries: 0`. `turn.ts` now retries capacity failures itself, with the "one moment" message; the SDK's own two silent retries only delay it.
+- C1 (1.12 demand log): the misses to log are `plan.unavailable` (unsigned restaurant), `answerOutOfArea` (village not served), `repeat_plan().missing`, and plan lines with status `not_found`.
+- Anyone redefining `rider_job()`: migration 0016 changed only its `phone` to `customer_contact_phone(o.customer_id)`. Keep that line.
+- C2 (substitutions): `basket_from_order()` repeats only `order_items` with status `ok`. A substitute the customer received must end with status `ok` to be repeated.
+- The session worked on branch `claude/build-session-b1-3mvmy8` (the branch this environment allows) rather than `B1`.
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - `scheduled()` in `apps/gateway/src/index.ts`: the SQL it calls is tested, the handler is not.
 - The live webhook path: signature check, store, direct hand-off, queue retry.
-- `plan_order` (0005): applies cleanly, never called from TypeScript, no test.
-- The Concierge end-to-end test (`concierge-flow.test.ts`) still runs on a hand-written fake database.
 - The per-rider advisory lock in `dispatch_order`: PGlite has one connection, so two dispatches never race in tests.
 - Deliverect adapter: shape only. Needs a partner account.
 - Market tables (`markets`, `market_settings`, `setting_for`): schema only. Functions still read global settings.
@@ -101,6 +124,7 @@ tests a crash in the middle of a turn. Templates do not exist yet; when 4.3 adds
 See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is restaurants; Phase 9 is the website and diaspora
 orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: product cost and
 receiving, food-facts tables, scheduled orders, small-order fee in the quote, customer memory commands, the console.
+Ordering lane: B1 is done (above); B2 is next (1.4, 1.5, 1.6, 1.10, 1.14, 1.16, 1.18).
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 
 ### D. Needs a live account or real conditions (cannot be finished in code alone)
@@ -121,7 +145,7 @@ recorded in the table below once it has happened. Until then a row says **not ye
 | Task | Built | Tested | Proven live | Notes |
 | --- | --- | --- | --- | --- |
 | 0.3 Supabase staging, migrations, seeds, private `media` bucket | Yes | Seed script and permission script on a local Postgres 16; bucket script not testable offline | Not yet | Seeds: catalog, aliases, villages, travel times (all in README). `proposed_pilot_settings.sql` is NOT loaded: it waits for the founder's yes. Latency to Lebanon is not measured here (task 4.x, on a phone in Chouf). |
-| 0.4 Permission check on Supabase | Yes: `EXISTING=1` mode, stricter checks | Locally, fresh and existing modes, plus a negative test | Not yet | **Finding:** `ops_exceptions` (0008) still has table grants for `anon` and `authenticated`. RLS is on with no policy, so no row is reachable and the check only warns. A one-line migration (`revoke all on ops_exceptions from anon, authenticated`) is needed; migration numbers belong to other sessions, so B1 or C1 should add it. **Second finding, from the first real run on Supabase:** `pg_trgm` is installed in `public` and its 31 functions (`similarity`, `set_limit`, ...) are callable by PUBLIC, hence by `anon` and `authenticated`. They are pure helpers owned by `supabase_admin`, so a migration cannot revoke them; the fix is a migration that moves the extension to the `extensions` schema (Supabase's advice). The check lists them as a warning and fails only for our own functions. |
+| 0.4 Permission check on Supabase | Yes: `EXISTING=1` mode, stricter checks | Locally, fresh and existing modes, plus a negative test | Not yet | **Finding:** `ops_exceptions` (0008) still had table grants for `anon` and `authenticated` (RLS blocked every row). Fixed by B1 in migration 0017. **Second finding, from the first real run on Supabase:** `pg_trgm` is installed in `public` and its 31 functions (`similarity`, `set_limit`, ...) are callable by PUBLIC, hence by `anon` and `authenticated`. They are pure helpers owned by `supabase_admin`, so a migration cannot revoke them; the fix is a migration that moves the extension to the `extensions` schema (Supabase's advice). The check lists them as a warning and fails only for our own functions. |
 | 0.5 Cloudflare Worker, queues, secrets, cron | Yes | Dry-run bundle (staging, and without queues), run under workerd locally | Not yet | Workers Paid is not assumed. If queue creation is refused the workflow deploys without the queue and writes that into the run summary; read the first run to see. Bundle is about 580 KiB gzipped, under the free-plan size limit. Free-plan CPU limits for Workers have not been measured against a real turn. `STT_API_KEY` is not set: Kapso's transcript is used first (1.7). |
 | 0.6 Kapso webhooks and fixtures | Yes | Webhook script against a mock of the Kapso API: fresh, repeat, rotate, ops failure. Scrubber on a synthetic payload | Not yet | **No real payload is saved**: that needs real messages on the staging numbers, then the `capture-kapso-fixtures` workflow. Webhooks are created for both lines, each with its own secret. |
 | 0.7 Anthropic key | Yes: key and both model ids checked in the deploy | n/a | Not yet | **Manual, console only:** set the monthly spend limit on the staging key. No call from here can see or set it. Use a separate key for production. |

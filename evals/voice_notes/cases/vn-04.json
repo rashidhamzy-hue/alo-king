@@ -1,0 +1,34 @@
+{
+  "id": "vn-04",
+  "about": "Pickup, not delivery",
+  "transcript": "بدي مرّ آخد كرتونة مي وكيس سكر، رح إجي لعندكن بعد شوي",
+  "duration_sec": 8,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "pickup",
+    "lines": [
+      {
+        "item": "مي",
+        "qty": 1,
+        "unit": "pack",
+        "modifiers": [],
+        "source": null
+      },
+      {
+        "item": "سكر",
+        "qty": 1,
+        "unit": "each",
+        "modifiers": [],
+        "source": null
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

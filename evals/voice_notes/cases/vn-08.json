@@ -1,0 +1,19 @@
+{
+  "id": "vn-08",
+  "about": "Order status, not an order",
+  "transcript": "مرحبا وين صار الطلب تبعي صرلي ساعة ناطر",
+  "duration_sec": 5,
+  "usable": true,
+  "truth": {
+    "intent": "status",
+    "fulfilment": "unknown",
+    "lines": [],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

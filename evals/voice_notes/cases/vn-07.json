@@ -1,0 +1,41 @@
+{
+  "id": "vn-07",
+  "about": "Mixed Arabic and English brand names, a dozen eggs",
+  "transcript": "بدي دزينة بيض و two Pepsi كبار و Nescafe Gold",
+  "duration_sec": 7,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "delivery",
+    "lines": [
+      {
+        "item": "بيض",
+        "qty": 1,
+        "unit": "dozen",
+        "modifiers": [],
+        "source": null
+      },
+      {
+        "item": "pepsi",
+        "qty": 2,
+        "unit": "each",
+        "modifiers": [],
+        "source": null
+      },
+      {
+        "item": "nescafe gold",
+        "qty": 1,
+        "unit": "each",
+        "modifiers": [],
+        "source": null
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}

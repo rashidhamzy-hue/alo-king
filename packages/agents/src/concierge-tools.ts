@@ -13,7 +13,14 @@ export interface ConversationState {
   directions?: string | null;          // the customer's own words about where they are
   lastQuote?: { lines: QuoteLineInput[]; villageId: string | null; pickup: boolean; quote: Quote } | null;
   history?: { role: "customer" | "assistant"; text: string }[];
+  /** A card is ready to go out from lastQuote once the customer supplies what is missing. */
+  awaiting?: "pin" | "phone" | null;
+  pending?: CardTerms | null;
+  /** When the "same as last time" button was last offered (ms). */
+  repeatOfferedAt?: number;
 }
+/** Everything about a card that is not its lines. */
+export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null }
 export interface QuoteLineInput { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null }
 
 export interface ToolContext {
@@ -34,7 +41,7 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
   return data as T;
 }
 
-async function deliver(ctx: ToolContext, msg: Outbound, summary: string, orderId?: string) {
+export async function deliver(ctx: ToolContext, msg: Outbound, summary: string, orderId?: string): Promise<{ ok: true } | { ok: false; error: string }> {
   if (ctx.sent.count >= MAX_SENDS_PER_TURN) return { ok: false, error: "message_budget_reached_for_this_turn" };
   const r = await ctx.send(msg, { orderId });
   if (!r.ok) return { ok: false, error: `not_sent:${r.refused}` };
@@ -84,18 +91,8 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       const q = ctx.state.lastQuote;
       if (!q) return { ok: false, error: "call_quote_order_first" };
       if (!q.quote.ok) return { ok: false, error: "quote_has_issues", issues: q.quote.issues };
-      const method = payment_method ?? "cod";
-      const created = await rpc<{ created: boolean; order_id?: string; short_code?: string; quote: Quote }>(ctx.db, "create_order_from_quote", {
-        p_customer: ctx.partyId, p_conversation: ctx.conversationId, p_lines: q.lines, p_village: q.villageId,
-        p_place: ctx.state.placeId ?? null, p_pickup: q.pickup, p_payment: method, p_change_for: change_for_usd ?? null,
-        p_notes: [notes, ctx.state.directions].filter(Boolean).join(" | ") || null,
-      });
-      if (!created.created) { ctx.state.lastQuote = { ...q, quote: created.quote }; return { ok: false, error: "quote_changed", issues: created.quote.issues }; }
-      const card = formatOrderCard({ orderId: created.order_id!, shortCode: created.short_code!, quote: created.quote, paymentMethod: method, changeForUsd: change_for_usd });
-      const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
-      if (!sent.ok) return sent;
-      ctx.state.lastQuote = null;
-      return { ok: true, order_code: created.short_code };
+      return issueCard(ctx, { lines: q.lines, villageId: q.villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup },
+        { payment: payment_method ?? "cod", changeForUsd: change_for_usd ?? null, notes: [notes, ctx.state.directions].filter(Boolean).join(" | ") || null });
     },
 
     async reply({ text, buttons }) {
@@ -110,4 +107,44 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       return { ok: true };
     },
   };
+}
+
+export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" } | { ok: false; error: string; issues?: unknown };
+
+/**
+ * Creates the order from priced lines and sends the card. The deterministic path and the Concierge's send_confirmation
+ * tool both come through here, so both get the same checks. The card is built from the database's quote, never from model text.
+ * `before` is a short fixed text sent first (for example, what could not be included).
+ */
+export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
+                                terms: CardTerms, opts: { before?: string } = {}): Promise<CardResult> {
+  // A rider must be able to call. WhatsApp may not have told us the number (1.19): ask for one before the card, and keep the
+  // basket so the card goes out as soon as the number arrives.
+  if (!basket.pickup && !(await rpc<string | null>(ctx.db, "customer_contact_phone", { p_party: ctx.partyId }))) {
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket.lines, p_village: basket.villageId, p_pickup: false });
+    ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote };
+    if (basket.placeId) ctx.state.placeId = basket.placeId;
+    ctx.state.awaiting = "phone"; ctx.state.pending = terms;
+    const text = opts.before ? `${opts.before}\n${FIXED.askPhone}` : FIXED.askPhone;
+    const asked = await deliver(ctx, { type: "text", text: { body: text } }, text);
+    return asked.ok ? { ok: true, waiting_for: "phone" } : asked;
+  }
+  const created = await rpc<{ created: boolean; order_id?: string; short_code?: string; quote: Quote }>(ctx.db, "create_order_from_quote", {
+    p_customer: ctx.partyId, p_conversation: ctx.conversationId, p_lines: basket.lines, p_village: basket.villageId,
+    p_place: basket.placeId, p_pickup: basket.pickup, p_payment: terms.payment, p_change_for: terms.changeForUsd, p_notes: terms.notes,
+  });
+  if (!created.created) {
+    ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
+    return { ok: false, error: "quote_changed", issues: created.quote.issues };
+  }
+  if (opts.before) {
+    const pre = await deliver(ctx, { type: "text", text: { body: opts.before } }, opts.before, created.order_id);
+    if (!pre.ok) return pre;
+  }
+  const card = formatOrderCard({ orderId: created.order_id!, shortCode: created.short_code!, quote: created.quote,
+                                 paymentMethod: terms.payment, changeForUsd: terms.changeForUsd });
+  const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
+  if (!sent.ok) return sent;
+  ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null;
+  return { ok: true, order_code: created.short_code! };
 }

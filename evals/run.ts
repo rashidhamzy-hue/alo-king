@@ -1,4 +1,4 @@
-// Scoring helpers for the voice-note evaluation. Wire the STT provider and runConcierge in build step 4.
+// Scoring helpers for the voice-note evaluation. The extraction to score is extractOrder() in packages/agents/src/concierge.ts.
 export interface TruthLine { item: string; qty: number; modifiers: string[]; source: string | null }
 export interface Score { recall: number; precision: number; invented: number; qtyAccuracy: number }
 

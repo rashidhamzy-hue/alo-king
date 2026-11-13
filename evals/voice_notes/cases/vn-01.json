@@ -1,0 +1,34 @@
+{
+  "id": "vn-01",
+  "about": "Greeting, two items, change for a 100 note",
+  "transcript": "مرحبا بدي عذبك بدي كيلو بطاطا وربطتين خبز وبعتلي صرافة مية دولار عبعقلين حد الفرن",
+  "duration_sec": 18,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "delivery",
+    "lines": [
+      {
+        "item": "بطاطا",
+        "qty": 1,
+        "unit": "kg",
+        "modifiers": [],
+        "source": null
+      },
+      {
+        "item": "خبز",
+        "qty": 2,
+        "unit": "bundle",
+        "modifiers": [],
+        "source": null
+      }
+    ],
+    "address": {
+      "village": "بعقلين",
+      "landmark": "الفرن",
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": 100
+  }
+}

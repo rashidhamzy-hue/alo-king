@@ -3,9 +3,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
 import { processOpsTurn } from "./ops-turn";
-import type { SendRequest, SendResult } from "@ak/wa/gateway";
+import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gateway";
+import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
-import { runConcierge, type ModelClient } from "@ak/agents/concierge";
+import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
+import { answerQuick, completePending, planReading } from "@ak/agents/pipeline";
+import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
+import { quickIntent } from "@ak/agents/quick-intent";
+import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
+import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
 import { judge } from "@ak/agents/stt";
@@ -19,12 +25,14 @@ export interface TurnDeps {
   send: (req: SendRequest) => Promise<SendResult>;      // packages/wa/src/gateway.ts send(), bound to env
   /** Set by runTurn. Outbound messages are keyed on it so a retried turn cannot send anything twice. */
   turnKey?: string;
+  /** Model-capacity retry timing (1.15). Tests shorten it; production uses the defaults. */
+  capacity?: Pick<CapacityOptions, "backoffMs" | "sleep">;
   /** Called once a customer's tap has confirmed an order (COD) so a rider can be offered the job. */
   onOrderConfirmed?: (orderId: string) => Promise<unknown>;
   /** Rider-side events the customer should hear about ("on the way", "rider is at your door"). */
   notifyCustomer?: (deliveryOrOrderId: string, what: "on_the_way" | "rider_waiting") => Promise<unknown>;
 }
-export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "rider" | "duplicate" | "error"; sent: string[] }
+export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
 
 const HISTORY_MAX = 8;
 
@@ -49,6 +57,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     deps.send({ line: "customer", partyId: conv.party_id, to, msg, category: "service", orderId,
                 dedupeKey: `${turnKey}:${sendSeq++}` });
   const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
+  // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
+  // never sends it twice), retries with backoff, then ModelUnavailable.
+  const model = withCapacityFallback(deps.model, { ...deps.capacity, onFirstFailure: async () => {
+    const r = await deps.send({ line: "customer", partyId: conv.party_id, to, msg: { type: "text", text: { body: FIXED.oneMoment } },
+                                category: "service", dedupeKey: `${turnKey}:wait` });
+    if (r.ok) sent.push(FIXED.oneMoment);
+  } });
 
   await db.from("wa_messages").insert(pending.map((p) => ({
     line: "customer", direction: "inbound", party_id: conv.party_id, conversation_id: conv.conversation_id,
@@ -57,9 +72,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     transcript: p.event.message.kapso.transcript ? { kapso: p.event.message.kapso.transcript.text } : null,
   })));
 
+  const ctx: ToolContext = {
+    db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
+    send: (msg, opts) => sendRaw(msg, opts?.orderId), sent: { count: 0, texts: [] },
+  };
   const texts: string[] = [];
   const transcripts: { primary: string; secondary?: string }[] = [];
-  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0;
+  let buttonsHandled = 0, audioFailed = 0, voiceSecondsThisTurn = 0, pins = 0, phoneSaved = false;
 
   for (const p of pending) {
     const m = p.event.message;
@@ -75,7 +94,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
             db, btn.action === "confirm" ? "confirm_order_checked" : "handle_order_button",
             btn.action === "confirm" ? { p_order: btn.orderId, p_party: conv.party_id, p_wamid: m.id }
                                      : { p_order: btn.orderId, p_action: btn.action, p_party: conv.party_id, p_wamid: m.id });
-          if (r.status === "stale_quote") { state.lastQuote = null; texts.push("الأسعار أو التوفر تغيّروا، جهّزلي الطلب من جديد بنفس الأغراض"); continue; }
+          if (r.status === "stale_quote") {
+            // Prices or stock moved since the card. The same lines, re-priced now, with anything gone named first. No model.
+            state.lastQuote = null;
+            if (!(await rebuildStale(ctx, btn.orderId)).done) await say(FIXED.outOfStock, btn.orderId);
+            continue;
+          }
           if (r.status === "needs_location") { await sendRaw(askLocation("قبل ما نأكّد، بعتلنا موقعك 📍 أو اكتب العنوان بالتفصيل."), btn.orderId); continue; }
           await say(buttonReplyText(r), btn.orderId);
           // Finding a rider must never turn a confirmed order into an error message. If it fails here, the cron retries every minute.
@@ -85,6 +109,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           await say(String(err).includes("OUT_OF_STOCK") ? FIXED.outOfStock : FIXED.error, btn.orderId);
           if (!String(err).includes("OUT_OF_STOCK")) await handoff(db, conv.conversation_id, `button_error: ${String(err).slice(0, 200)}`);
         }
+        continue;
+      }
+      const repeatOf = parseRepeatButton(tapped);
+      if (repeatOf) {
+        // "Same as last time" (1.20): re-priced and re-checked by the database; repeat_plan refuses an order that is not theirs and closed.
+        buttonsHandled++;
+        await repeatLast(ctx, { orderId: repeatOf });
         continue;
       }
       if (tapped === "marketing:yes" || tapped === "marketing:no") {
@@ -103,6 +134,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         { p_party: conv.party_id, p_lat: m.location.latitude, p_lng: m.location.longitude, p_village: state.villageId ?? null });
       state.placeId = place.place_id;
       if (place.village_id) state.villageId = place.village_id;
+      pins++;
       texts.push(`[location pin received${place.village ? `, village: ${place.village}` : ""}]`);
       continue;
     }
@@ -120,6 +152,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         await call(db, "record_consent_signal", { p_party: conv.party_id, p_line: "customer", p_action: "opt_in", p_source: "start_keyword", p_wamid: m.id });
         await say(FIXED.optIn);
         return { outcome: "opt_in", sent };
+      }
+      // The number a rider can call, when we have just asked for it (1.19). Read only then, so a quantity is never taken for a phone.
+      if (state.awaiting === "phone") {
+        const phone = parsePhone(body);
+        if (phone) {
+          await call(db, "set_contact_phone", { p_party: conv.party_id, p_phone: phone });
+          phoneSaved = true;
+          if (looksLikePhoneAttempt(body)) continue;                // just the number: nothing else to read
+        } else if (looksLikePhoneAttempt(body)) { await say(FIXED.badPhone); buttonsHandled++; continue; }
       }
       texts.push(body);
       continue;
@@ -142,35 +183,75 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (m.type === "image") { texts.push(`[image received${m.image?.caption ? `: ${m.image.caption}` : ""}]`); continue; }
   }
 
-  if (texts.length === 0 && transcripts.length === 0) {
+  if (texts.length === 0 && transcripts.length === 0 && !phoneSaved) {
     if (audioFailed > 0) { await say(FIXED.audioUnusable); return { outcome: "audio_unusable", sent }; }
     return { outcome: buttonsHandled ? "buttons" : "ignored", sent };
   }
   if (conv.human_handoff) return { outcome: "human", sent };          // a person has this chat; the model stays out
+  // Only a pin or a phone number arrived: the data a waiting card needed, nothing to read.
+  const dataOnly = (pins > 0 || phoneSaved) && texts.length === pins && transcripts.length === 0;
 
-  const ctx: ToolContext = {
-    db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
-    send: (msg, opts) => sendRaw(msg, opts?.orderId), sent: { count: 0, texts: [] },
-  };
-  const started = Date.now();
-  try {
-    const res = await runConcierge(deps.model, deps.modelName, {
-      texts, transcripts,
-      state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
-               audio_messages_unreadable: audioFailed, recent: state.history ?? [],
-               // What we know about this person from delivered orders: usuals, brands, saved places, how they pay. Facts, not a transcript.
-               known_customer: (await db.rpc("customer_context", { p_party: conv.party_id })).data ?? null },
-    }, makeConciergeTools(ctx));
+  const remember = () => {
     sent.push(...ctx.sent.texts);
     state.history = [...(state.history ?? []),
       { role: "customer" as const, text: [...texts, ...transcripts.map((t) => t.primary)].join(" / ").slice(0, 600) },
       ...ctx.sent.texts.map((t) => ({ role: "assistant" as const, text: t.slice(0, 600) })),
     ].slice(-HISTORY_MAX);
-    await db.from("agent_runs").insert({ agent: "concierge", conversation_id: conv.conversation_id, model: deps.modelName,
-      input_tokens: res.usage.input, output_tokens: res.usage.output, latency_ms: Date.now() - started, outcome: res.outcome,
-      trace: { intent: res.intent ?? null, sent: ctx.sent.texts } });
+  };
+  const started = Date.now();
+  const usage = { input: 0, output: 0 };
+  let intent: OrderIntent | null = null;
+  const record = (outcome: string, path: string) => db.from("agent_runs").insert({ agent: "concierge", conversation_id: conv.conversation_id,
+    model: deps.modelName, input_tokens: usage.input, output_tokens: usage.output, latency_ms: Date.now() - started, outcome,
+    trace: { path, intent, sent: ctx.sent.texts } });
+  try {
+    // A pin or a number for a card that was only waiting on it: the card goes out, no model.
+    if (dataOnly) {
+      const waited = state.awaiting;
+      if (await completePending(ctx)) {
+        remember(); await record("ok", state.awaiting === "phone" ? `ask_phone_after_${waited}` : `card_after_${waited}`);
+        return { outcome: "card", sent };
+      }
+      if (texts.length === 0) { await say(FIXED.phoneSaved); remember(); return { outcome: "answered", sent }; }
+    }
+
+    // Where is my order, when are you open, same as last time: typed in a few words, answered by the database alone (1.3).
+    const quick = texts.length === 1 && transcripts.length === 0 && pins === 0 ? quickIntent(texts[0]!) : null;
+    if (quick) {
+      const r = await answerQuick(ctx, quick);
+      if (r.done) { remember(); await record("ok", `quick:${r.path}`); return { outcome: r.path.includes("card") ? "card" : "answered", sent }; }
+    }
+
+    const input = { texts, transcripts,
+      state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
+               audio_messages_unreadable: audioFailed, recent: state.history ?? [],
+               // What we know about this person from delivered orders: usuals, brands, saved places, how they pay. Facts, not a transcript.
+               known_customer: (await db.rpc("customer_context", { p_party: conv.party_id })).data ?? null } };
+
+    // 1. Parse once.
+    const reading = await extractOrder(model, deps.modelName, input);
+    usage.input += reading.usage.input; usage.output += reading.usage.output;
+    intent = reading.intent;
+    // 2. The database decides: card, handoff, or a question.
+    const routed = await planReading(ctx, intent);
+    if (routed.done) { remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
+    // 3. Only a question needs the tool loop.
+    const res = await runAskLoop(model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
+    usage.input += res.usage.input; usage.output += res.usage.output;
+    remember();
+    await record(res.outcome, "ask");
     return { outcome: res.outcome === "ok" ? "agent_ok" : "agent_handoff", sent };
   } catch (err) {
+    // The outbox could not say whether a message is ours to send: nothing more may go out. The whole turn retries.
+    if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+    if (err instanceof ModelUnavailable) {
+      // The model stayed unavailable through every retry: a person takes over, and the customer is told so.
+      await handoff(db, conv.conversation_id, "model_capacity");
+      await db.rpc("raise_ops_exception", { p_kind: "model_capacity", p_ref: turnKey, p_detail: { conversation_id: conv.conversation_id, error: String(err.cause).slice(0, 300) } });
+      await say(FIXED.handoff);
+      await record("handoff", "model_capacity").then(() => undefined, () => undefined);
+      return { outcome: "agent_handoff", sent };
+    }
     await handoff(db, conv.conversation_id, `agent_error: ${String(err).slice(0, 200)}`);
     if (ctx.sent.count === 0) await say(FIXED.error);
     return { outcome: "error", sent };

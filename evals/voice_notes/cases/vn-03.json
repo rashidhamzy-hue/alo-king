@@ -1,0 +1,34 @@
+{
+  "id": "vn-03",
+  "about": "Half a kilo, and a correction later in the same note",
+  "transcript": "نص كيلو لبنة وتلات علب تونة لا لا خليهن علبتين تونة بس",
+  "duration_sec": 9,
+  "usable": true,
+  "truth": {
+    "intent": "order",
+    "fulfilment": "delivery",
+    "lines": [
+      {
+        "item": "لبنة",
+        "qty": 0.5,
+        "unit": "kg",
+        "modifiers": [],
+        "source": null
+      },
+      {
+        "item": "تونة",
+        "qty": 2,
+        "unit": "each",
+        "modifiers": [],
+        "source": null
+      }
+    ],
+    "address": {
+      "village": null,
+      "landmark": null,
+      "building": null,
+      "floor": null
+    },
+    "change_for_usd": null
+  }
+}
