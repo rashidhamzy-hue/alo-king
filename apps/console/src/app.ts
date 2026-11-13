@@ -168,7 +168,8 @@ function withHeaders(res: Response, deps: Deps): Response {
   try { img += " " + new URL(deps.supabaseUrl).origin; } catch { /* no supabase url in tests */ }
   h.set("content-security-policy", `default-src 'none'; img-src ${img}; style-src 'self'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`);
   h.set("x-content-type-options", "nosniff");
-  h.set("referrer-policy", "no-referrer");
+  // Not "no-referrer": with it Chrome sends `Origin: null` on our own form posts, and the cross-site check below refused them.
+  h.set("referrer-policy", "same-origin");
   h.set("cache-control", "no-store");
   return new Response(res.body, { status: res.status, headers: h });
 }

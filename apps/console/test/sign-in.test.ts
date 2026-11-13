@@ -132,7 +132,8 @@ describe("forms", () => {
     const lead = await r.staff("ops_lead");
     const b = r.browser(testSections);
     await b.signIn(lead);
-    await b.get("/lead");
+    // "no-referrer" makes Chrome send `Origin: null` on our own forms, which the cross-site check refuses (13 Nov, sign-in link failed).
+    expect((await b.get("/lead")).headers.get("referrer-policy")).toBe("same-origin");
     expect((await b.post("/lead/do", {}, { csrf: "nope", follow: false })).status).toBe(403);
     expect((await b.post("/lead/do", {}, { follow: false, headers: { origin: "https://evil.test" } })).status).toBe(403);
     expect(ran).toBe(0);
