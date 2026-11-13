@@ -49,6 +49,11 @@ export function isMostlyArabic(s) {
   return letters.length > 0 && arabic.length / letters.length >= 0.5;
 }
 
+/** A word that mixes Arabic and Latin letters (a model glitch such as "كellogg's"). A whole Latin word (UHT, 35.1%) is fine. */
+export function hasMixedScriptWord(s) {
+  return String(s ?? "").split(/[\s\-/،,()]+/).some((w) => /\p{Script=Arabic}/u.test(w) && /[A-Za-z]/.test(w));
+}
+
 const NUTRIMENTS = [
   ["energy-kcal_100g", "energy_kcal", "kcal"], ["energy-kj_100g", "energy_kj", "kJ"], ["fat_100g", "fat", "g"], ["saturated-fat_100g", "saturated_fat", "g"],
   ["carbohydrates_100g", "carbohydrates", "g"], ["sugars_100g", "sugars", "g"], ["fiber_100g", "fiber", "g"], ["proteins_100g", "proteins", "g"],

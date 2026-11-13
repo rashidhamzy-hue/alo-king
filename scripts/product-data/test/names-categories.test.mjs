@@ -19,6 +19,11 @@ describe("validateName", () => {
     expect(validateName(SRC(), OUT({ name_ar: "Tannourine water" })).reasons).toContain("name_ar_not_arabic");
     expect(validateName(SRC(), OUT({ size_ar: "6 × 3 ل" })).ok).toBe(false);
   });
+  it("refuses an Arabic word with Latin letters inside it (a glitch seen on staging: كellogg's, ماestro), and allows a whole Latin word", () => {
+    for (const bad of ["كellogg's رقائق الذرة", "كit كat 4 أصابع", "لبنة بلدية ليبان لait"]) expect(validateName(SRC(), OUT({ name_ar: bad })).reasons).toContain("arabic_word_mixes_scripts");
+    expect(validateName(SRC(), OUT({ name_ar: "حليب كانديا UHT كامل الدسم" })).reasons).not.toContain("arabic_word_mixes_scripts");
+    expect(validateName(SRC(), OUT({ name_ar: "كريمة الخفق (UHT) بريزيدنت" })).reasons).not.toContain("arabic_word_mixes_scripts");
+  });
   it("Arabic-Indic digits are the same numbers", () => {
     expect(validateName(SRC(), OUT({ size_ar: "٦ × ٢ ل" })).ok).toBe(true);
   });
