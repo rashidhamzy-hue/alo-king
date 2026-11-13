@@ -173,13 +173,27 @@ interface PickLine { n: number; item_id: string; name: string; qty: number; unit
 interface PickList { order_id: string; short_code: string; status: string; notes: string | null; total_usd: number; lines: PickLine[];
   missing: { item_id: string; name: string; qty: number; status: string }[] }
 interface PickChanges { short_code: string; total_usd: number; fx_rate_lbp: number | null; payment_method: string;
-  removed: { name: string; qty: number; line_total_usd: number }[]; credit_usd: number }
+  removed: { name: string; qty: number; line_total_usd: number }[]; substituted?: { name: string; by: string; qty: number; line_total_usd: number }[];
+  credit_usd: number }
+interface Candidate { product_id: string; name: string; unit_price_usd: number; line_total_usd: number; diff_usd: number }
+interface Offer { offer_id: string; order_id: string; short_code: string; customer_id: string; missing_name: string; substitute_name: string;
+  qty: number; replaced_total_usd: number; line_total_usd: number; diff_usd: number; answer_min: number }
 
-export type StaffButton = { kind: "pick"; action: "start" | "done" | "missing" | "line"; id: string };
-export const staffButtonId = (b: StaffButton) => `${b.kind}:${b.action}:${b.id}`;
+export type StaffButton =
+  | { kind: "pick"; action: "start" | "done" | "missing" | "line" | "remove"; id: string }
+  | { kind: "sub"; action: "offer"; id: string; product: string };
+export const staffButtonId = (b: StaffButton) => `${b.kind}:${b.action}:${b.id}${b.kind === "sub" ? ":" + b.product : ""}`;
 export function parseStaffButton(id: string): StaffButton | null {
-  const m = /^(pick):(start|done|missing|line):([0-9a-f-]{36})$/.exec(id);
-  return m ? ({ kind: m[1], action: m[2], id: m[3] } as StaffButton) : null;
+  const m = /^(pick):(start|done|missing|line|remove):([0-9a-f-]{36})$/.exec(id);
+  if (m) return { kind: "pick", action: m[2], id: m[3] } as StaffButton;
+  const s = /^sub:offer:([0-9a-f-]{36}):([0-9a-f-]{36})$/.exec(id);
+  return s ? { kind: "sub", action: "offer", id: s[1]!, product: s[2]! } : null;
+}
+/** The customer's answer to a substitute (2.2): sub:keep:<offer> or sub:remove:<offer>, on the customer line. */
+export const substitutionButtonId = (keep: boolean, offerId: string) => `sub:${keep ? "keep" : "remove"}:${offerId}`;
+export function parseSubstitutionButton(id: string): { keep: boolean; offerId: string } | null {
+  const m = /^sub:(keep|remove):([0-9a-f-]{36})$/.exec(id);
+  return m ? { keep: m[1] === "keep", offerId: m[2]! } : null;
 }
 
 const PICK_QUEUE = /^(طلبات|تحضير|حضّر|حضر|pick|orders|list)$/i;
@@ -197,8 +211,14 @@ export const STAFF_TEXT = {
   noOpenPick: "ما في طلب عم تحضّرو. اكتب «طلبات» لتشوف شو ناطر.",
   noSuchLine: (n: number) => `ما في غرض رقم ${n} بالطلب.`,
   removed: (name: string, total: number) => `شلنا «${name}» من الطلب. المجموع هلق ${usd(total)}.`,
+  removedLine: (total: number) => `شلنا الغرض من الطلب. المجموع هلق ${usd(total)}.`,
   ready: (code: string) => `✅ #${code} جاهز للتسليم.`,
   waiting: (code: string, names: string[]) => `#${code} ما خلص: في أغراض ناطرة قرار (${names.join("، ")}).`,
+  chooseSub: (name: string) => `«${name}» ناقص. في بديل من نفس النوع؟ اختار وحدة لنسأل الزبون، أو شيلو من الطلب.`,
+  subAsked: (min: number) => `سألنا الزبون. كمّل باقي الأغراض. إذا ما ردّ خلال ${min} دقايق منشيلو من الطلب.`,
+  subKept: (code: string, name: string) => `#${code}: الزبون قبل «${name}». حطّو بالطلب.`,
+  subRemoved: (code: string, name: string) => `#${code}: الزبون ما بدّو «${name}». رجّعو عالرف.`,
+  subNotSent: "ما قدرنا نبعت السؤال للزبون. إذا ما ردّ منشيلو من الطلب بعد الوقت.",
   empty: (code: string) => `ما بقي شي بالطلب #${code}. خبّرنا الإدارة لتتصل بالزبون.`,
   emptyOps: (code: string) => `🧺 الطلب #${code} طلع كلّو ناقص بالتحضير. اتصلوا بالزبون وقرّروا (إلغاء ورد المبلغ إذا مدفوع).`,
   unknown: "ما فهمت. اكتب «طلبات» لتشوف الطلبات، أو استعمل الأزرار.",
@@ -222,11 +242,53 @@ export function pickCard(l: PickList): Outbound[] {
 
 /** What the customer hears when the shelf changed their order: what was taken off, the new total, any money owed back. */
 export function pickChangeText(c: PickChanges): string | null {
-  if (!c.removed.length) return null;
-  const names = c.removed.map((r) => `${r.qty} × ${r.name}`).join("، ");
-  const lines = [`طلبك #${c.short_code}: ما لقينا ${names}، فشلناه من الطلب.`, `المجموع الجديد: ${usdLbp(c.total_usd, c.payment_method === "cod" ? c.fx_rate_lbp : null)}.`];
+  const subs = c.substituted ?? [];
+  if (!c.removed.length && !subs.length) return null;
+  const lines = [`طلبك #${c.short_code} جاهز.`];
+  if (c.removed.length) lines.push(`ما لقينا ${c.removed.map((r) => `${r.qty} × ${r.name}`).join("، ")}، فشلناه من الطلب.`);
+  for (const x of subs) lines.push(`بدل ${x.name}: ${x.qty} × ${x.by} (${usd(x.line_total_usd)})، متل ما وافقت.`);
+  lines.push(`المجموع الجديد: ${usdLbp(c.total_usd, c.payment_method === "cod" ? c.fx_rate_lbp : null)}.`);
   if (Number(c.credit_usd) > 0) lines.push(`المبلغ يلي دفعتو زيادة (${usd(c.credit_usd)}) إلك: منرجّعلك ياه أو بينحسم من طلبك الجاي، متل ما بتحب.`);
   return lines.join("\n");
+}
+
+/** The customer's question (2.2): what is missing, what we have instead, the price difference, and the deadline. Facts only. */
+export function substitutionQuestion(o: Offer): Outbound {
+  const diff = Number(o.diff_usd);
+  const price = diff === 0 ? "نفس السعر" : diff > 0 ? `أغلى بـ ${usd(diff)}` : `أرخص بـ ${usd(-diff)}`;
+  return buttons([`طلبك #${o.short_code}: ما لقينا ${o.qty} × ${o.missing_name} (${usd(o.replaced_total_usd)}).`,
+    `عنا بدالو ${o.qty} × ${o.substitute_name} بـ ${usd(o.line_total_usd)} (${price}).`,
+    `بتحب ناخدو؟ إذا ما جاوبت خلال ${o.answer_min} دقايق منشيلو من الطلب.`].join("\n"), [
+    { id: substitutionButtonId(true, o.offer_id), title: "خلّيه ✅" },
+    { id: substitutionButtonId(false, o.offer_id), title: "شيلو" },
+  ]);
+}
+
+export const SUB_TEXT = {
+  kept: (code: string, total: number) => `تمام، حطّينا البديل بطلبك #${code}. المجموع هلق ${usd(total)}.`,
+  removed: (code: string, total: number) => `تمام، شلناه من طلبك #${code}. المجموع هلق ${usd(total)}.`,
+  late: (code: string, total: number) => `خلص وقت السؤال وشلنا الغرض من طلبك #${code}. المجموع هلق ${usd(total)}.`,
+};
+
+/**
+ * The customer's keep or remove tap (2.2). Lane B calls this from turn.ts for any customer button it does not own, before the
+ * model sees it: it returns false for anything that is not a substitution button. The database decides; this only reports.
+ */
+export async function handleSubstitutionButton(deps: TurnDeps, partyId: string, tapped: string, wamid: string): Promise<boolean> {
+  const b = parseSubstitutionButton(tapped);
+  if (!b) return false;
+  const turnKey = requireTurnKey(deps);
+  const r = await rpc<{ changed: boolean; status: string; short_code: string; order_id: string; offered_by: string; total_usd: number; substitute_name: string }>(
+    deps.db, "answer_substitution", { p_offer: b.offerId, p_party: partyId, p_keep: b.keep, p_wamid: wamid });
+  const text = !r.changed && r.status === "expired" ? SUB_TEXT.late(r.short_code, r.total_usd)
+    : r.status === "kept" ? SUB_TEXT.kept(r.short_code, r.total_usd) : SUB_TEXT.removed(r.short_code, r.total_usd);
+  await sendToCustomer(deps, partyId, { type: "text", text: { body: text } }, `${turnKey}:sub:${b.offerId}`, r.order_id);
+  if (r.changed) {
+    const name = r.substitute_name;
+    await sendToParty(deps, r.offered_by, { type: "text", text: { body: r.status === "kept" ? STAFF_TEXT.subKept(r.short_code, name) : STAFF_TEXT.subRemoved(r.short_code, name) } },
+      `subans:${b.offerId}`);
+  }
+  return true;
 }
 
 /** A message to a customer about their order. On the customer line, never the ops line (invariant 9). */
@@ -246,23 +308,40 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
   const showPick = async (l: PickList) => { for (const m of pickCard(l)) await out(m); };
 
   const finished = async (orderId: string) => {
-    const r = await rpc<{ status: string; short_code: string; customer_id?: string; changed?: boolean; changes?: PickChanges; lines?: { name: string }[] }>(
+    const r = await rpc<{ status: string; short_code: string; customer_id?: string; changed?: boolean; changes?: PickChanges; lines?: { name: string; offer_open?: boolean; seconds_left?: number }[] }>(
       db, "finish_pick", { p_order: orderId, p_by: staff });
     if (r.status === "ready") {
       await say(STAFF_TEXT.ready(r.short_code));
       const text = r.changes ? pickChangeText(r.changes) : null;
       if (text && r.customer_id) await sendToCustomer(deps, r.customer_id, { type: "text", text: { body: text } }, `pickdone:${orderId}`, orderId);
-    } else if (r.status === "waiting") await say(STAFF_TEXT.waiting(r.short_code, (r.lines ?? []).map((x) => x.name)));
+    } else if (r.status === "waiting") await say(STAFF_TEXT.waiting(r.short_code, (r.lines ?? []).map((x) =>
+      x.offer_open ? `${x.name}: ناطرين الزبون ${Math.max(1, Math.ceil(Number(x.seconds_left ?? 0) / 60))} د` : `${x.name}: بديل أو شيل؟`)));
     else if (r.status === "empty") { await say(STAFF_TEXT.empty(r.short_code)); await alertOps(deps, STAFF_TEXT.emptyOps(r.short_code), `pickempty:${orderId}`); }
     else if (r.status === "already") await say(STAFF_TEXT.ready(r.short_code));
     else await say(STAFF_TEXT.noOpenPick);
   };
   const missing = async (itemId: string, found: number) => {
-    const r = await rpc<{ order_id: string; missing_item: string; total_usd: number }>(db, "pick_item_missing", { p_item: itemId, p_by: staff, p_found: found });
+    const r = await rpc<{ order_id: string; missing_item: string; total_usd: number; decision: string; candidates?: Candidate[] }>(
+      db, "pick_item_missing", { p_item: itemId, p_by: staff, p_found: found });
     const l = await rpc<PickList>(db, "pick_list", { p_order: r.order_id });
     const gone = l.missing.find((x) => x.item_id === r.missing_item);
+    if (r.decision === "pending" && r.candidates?.length) {
+      // 2.2: the picker may offer one substitute from the list the database allows; the customer decides.
+      await out(list(STAFF_TEXT.chooseSub(gone?.name ?? ""), "بديل أو شيل", [
+        ...r.candidates.map((c) => ({ id: staffButtonId({ kind: "sub", action: "offer", id: r.missing_item, product: c.product_id }), title: c.name,
+          description: `${usd(c.line_total_usd)} (${c.diff_usd > 0 ? "+" : ""}${Number(c.diff_usd).toFixed(2)}$)` })),
+        { id: staffButtonId({ kind: "pick", action: "remove", id: r.missing_item }), title: "شيلو من الطلب" },
+      ]));
+      return;
+    }
     await say(STAFF_TEXT.removed(gone?.name ?? "", r.total_usd));
     await showPick(l);
+  };
+  const offerSub = async (missingItem: string, product: string) => {
+    const o = await rpc<Offer>(db, "pick_offer_substitute", { p_missing: missingItem, p_product: product, p_by: staff });
+    const r = await sendToCustomer(deps, o.customer_id, substitutionQuestion(o), `subask:${o.offer_id}`, o.order_id);
+    await say(r.ok ? STAFF_TEXT.subAsked(o.answer_min) : STAFF_TEXT.subNotSent);
+    await showPick(await rpc<PickList>(db, "pick_list", { p_order: o.order_id }));
   };
 
   for (const p of pending) {
@@ -289,8 +368,14 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
         if (!l.lines.length) { await say(STAFF_TEXT.noSuchLine(1)); continue; }
         await out(list(`#${l.short_code}: شو الناقص؟ إذا لقيت شوي منو اكتب «ناقص الرقم العدد» (مثلاً ناقص 2 1).`, "اختار الغرض",
           l.lines.slice(0, 10).map((x) => ({ id: staffButtonId({ kind: "pick", action: "line", id: x.item_id }), title: `${x.n}. ${x.name}`, description: `${x.qty} × ${x.unit}` }))));
-      } else if (b?.action === "line") {
+      } else if (b?.kind === "pick" && b.action === "line") {
         await missing(b.id, 0);
+      } else if (b?.kind === "pick" && b.action === "remove") {
+        const r = await rpc<{ order_id: string; total_usd: number }>(db, "pick_remove_missing", { p_missing: b.id, p_by: staff });
+        await say(STAFF_TEXT.removedLine(r.total_usd));
+        await showPick(await rpc<PickList>(db, "pick_list", { p_order: r.order_id }));
+      } else if (b?.kind === "sub") {
+        await offerSub(b.id, b.product);
       } else if (typedMissing) {
         const orderId = await rpc<string | null>(db, "pick_open_for", { p_picker: staff });
         if (!orderId) { await say(STAFF_TEXT.noOpenPick); continue; }
