@@ -4,7 +4,7 @@ export interface Media {
   /** A signed link that lives `seconds`, or null if the object cannot be signed (missing, or a bad path). */
   sign(path: string, seconds: number): Promise<string | null>;
   /** Writes a new object. Refuses to overwrite (the action log is append-only). Throws on failure. */
-  put(path: string, body: string, contentType: string): Promise<void>;
+  put(path: string, body: string | ArrayBuffer, contentType: string): Promise<void>;
 }
 
 export const safePath = (p: string) => /^[A-Za-z0-9_\-./]+$/.test(p) && !p.includes("..") && !p.startsWith("/");

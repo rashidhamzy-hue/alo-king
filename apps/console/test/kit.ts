@@ -78,10 +78,10 @@ export class FakeMedia implements Media {
   objects = new Map<string, string>();
   failPut = false;
   async sign(path: string, seconds: number) { return `https://media.test/${path}?token=t&expires=${seconds}`; }
-  async put(path: string, body: string) {
+  async put(path: string, body: string | ArrayBuffer) {
     if (this.failPut) throw new Error("storage_503");
     if (this.objects.has(path)) throw new Error("storage_409");
-    this.objects.set(path, body);
+    this.objects.set(path, typeof body === "string" ? body : `[${body.byteLength} bytes]`);
   }
   audit(): Record<string, any>[] {
     return [...this.objects.entries()].filter(([k]) => k.startsWith("console_audit/")).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => JSON.parse(v));
@@ -141,10 +141,10 @@ export class Browser {
   last = "";
   lastPath = "/";
   constructor(readonly deps: Deps, readonly sections: Section[] = registry) {}
-  private async go(method: string, path: string, body?: URLSearchParams, headers: Record<string, string> = {}) {
+  private async go(method: string, path: string, body?: URLSearchParams | FormData, headers: Record<string, string> = {}) {
     const h = new Headers(headers);
     if (this.cookies.size) h.set("cookie", [...this.cookies].map(([k, v]) => `${k}=${v}`).join("; "));
-    if (body) h.set("content-type", "application/x-www-form-urlencoded");
+    if (body instanceof URLSearchParams) h.set("content-type", "application/x-www-form-urlencoded");
     const res = await handle(new Request(`https://console.test${path}`, { method, headers: h, body }), this.deps, this.sections);
     for (const sc of res.headers.getSetCookie()) {
       const [pair, ...attrs] = sc.split(";");
@@ -161,6 +161,16 @@ export class Browser {
     const body = new URLSearchParams({ _csrf: opts.csrf ?? this.csrf, _key: crypto.randomUUID(), ...Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, String(v)])) });
     const r = await this.go("POST", path, body, { referer: "https://console.test" + this.lastPath, ...opts.headers });
     if (r.status === 303 && opts.follow !== false && r.location) return this.get(r.location);
+    return r;
+  }
+  /** A form with files (multipart), as a browser sends a photo. */
+  async postFiles(path: string, fields: Record<string, string | number>, files: Record<string, { name: string; type: string; bytes: Uint8Array<ArrayBuffer> }>) {
+    const fd = new FormData();
+    fd.set("_csrf", this.csrf); fd.set("_key", crypto.randomUUID());
+    for (const [k, v] of Object.entries(fields)) fd.set(k, String(v));
+    for (const [k, f] of Object.entries(files)) fd.set(k, new File([f.bytes], f.name, { type: f.type }));
+    const r = await this.go("POST", path, fd, { referer: "https://console.test" + this.lastPath });
+    if (r.status === 303 && r.location) return this.get(r.location);
     return r;
   }
   async signIn(who: { email: string; password: string }) {

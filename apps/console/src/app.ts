@@ -34,7 +34,7 @@ export interface Deps {
 export interface Staff { partyId: string; userId: string; role: Role; name: string; csrf: string }
 export interface Ctx {
   req: Request; url: URL; deps: Deps; staff: Staff; params: Record<string, string>; sections: Section[];
-  form: Record<string, string>; flash: { ok?: string; err?: string } | null; f: FormCtx;
+  form: Record<string, string>; files: Record<string, File>; flash: { ok?: string; err?: string } | null; f: FormCtx;
 }
 export type Handler = (c: Ctx) => Promise<Response>;
 export interface Route { method: "GET" | "POST"; path: string; roles: readonly Role[]; handler: Handler }
@@ -92,6 +92,10 @@ export function explain(e: unknown): string {
       [/^EXCEEDS_CREDIT/, "That is more than the customer's free credit."],
       [/^ITEM_NOT_ON_ORDER/, "That item is not on this order."],
       [/^BAD_AMOUNT/, "Type an amount above zero."],
+      [/^NOT_ENOUGH_CASH hub_cash/, "The drawer does not hold that much by the books. Count it, and check what came in today."],
+      [/^NOT_ENOUGH_CASH bank/, "The bank does not hold that much by the books."],
+      [/^NAME_REQUIRED/, "Write the name."],
+      [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
     ];
     for (const [re, say] of known) if (re.test(m)) return say;
     return `The database refused: ${m}`;
@@ -195,13 +199,37 @@ function match(pattern: string, path: string): Record<string, string> | null {
   return params;
 }
 
-async function readForm(req: Request): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
+async function readForm(req: Request): Promise<{ fields: Record<string, string>; files: Record<string, File> }> {
+  const fields: Record<string, string> = {}; const files: Record<string, File> = {};
   const type = req.headers.get("content-type") ?? "";
-  if (!type.includes("application/x-www-form-urlencoded") && !type.includes("multipart/form-data")) return out;
+  if (!type.includes("application/x-www-form-urlencoded") && !type.includes("multipart/form-data")) return { fields, files };
   const fd = await req.formData();
-  for (const [k, v] of fd) if (typeof v === "string") out[k] = v;
-  return out;
+  for (const [k, v] of fd) {
+    if (typeof v === "string") fields[k] = v;
+    else if (v && typeof v === "object" && "arrayBuffer" in v && (v as File).size > 0) files[k] = v as File;
+  }
+  return { fields, files };
+}
+
+// ---------- photos and documents (slips, receipts, labels) ----------
+const UPLOAD_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+export const MAX_UPLOAD = 8 * 1024 * 1024;
+/**
+ * Stores one uploaded file in the private media bucket under `<prefix>/<day>/<sha256>.<ext>` and returns its path, or null when
+ * the field was left empty. The name is the content's hash: the same photo sent twice is one object. Never logged, never public.
+ */
+export async function upload(c: Ctx, field: string, prefix: string): Promise<string | null> {
+  const f = c.files[field];
+  if (!f) return null;
+  const ext = UPLOAD_TYPES[f.type];
+  if (!ext) throw new UserError("Attach a photo (JPEG, PNG, WebP) or a PDF.");
+  if (f.size > MAX_UPLOAD) throw new UserError("The file is larger than 8 MB.");
+  const bytes = await f.arrayBuffer();
+  const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const path = `${prefix}/${c.deps.now().toISOString().slice(0, 10)}/${hash}.${ext}`;
+  try { await c.deps.media.put(path, bytes, f.type); }
+  catch (e) { if (!(await c.deps.media.sign(path, 30))) throw e; }   // already stored by an earlier tap
+  return path;
 }
 
 const CALLBACK_JS = `(function(){var h=new URLSearchParams(location.hash.slice(1));var t=h.get("access_token");
@@ -225,7 +253,8 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
     if (origin && origin !== url.origin) return new Response("cross-site request refused", { status: 403 });
   }
   const now = deps.now();
-  const form = method === "POST" ? await readForm(req) : {};
+  const posted = method === "POST" ? await readForm(req) : { fields: {}, files: {} };
+  const form = posted.fields;
 
   // ----- signed-out routes -----
   if (path === "/sign-in" && method === "GET") return signInPage(deps, url.searchParams.get("e") === "1");
@@ -267,7 +296,7 @@ export async function handle(req: Request, deps: Deps, sections: Section[]): Pro
     if (r.method !== method) continue;
     const params = match(r.path, path);
     if (!params) continue;
-    const ctx: Ctx = { req, url, deps, staff, params, sections, form, flash, f: { csrf: staff.csrf, nonce: () => randomToken(12) } };
+    const ctx: Ctx = { req, url, deps, staff, params, sections, form, files: posted.files, flash, f: { csrf: staff.csrf, nonce: () => randomToken(12) } };
     if (!r.roles.includes(staff.role)) {
       const denied = render(ctx, "Not for your role", html`<p>Your role (${staff.role.replace("_", " ")}) cannot open this page.</p>`);
       return new Response(denied.body, { status: 403, headers: denied.headers });
