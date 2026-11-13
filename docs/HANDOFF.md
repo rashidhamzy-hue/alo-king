@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 729 tests (34 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
+npx vitest run          # 776 tests (34 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
                         # test/pg/* start a throwaway Postgres 16 (or use TEST_DATABASE_URL) and the Worker in workerd
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
@@ -457,6 +457,49 @@ For other sessions (B3 did not touch these files):
 - D1 / D2, `apps/console/test/*`: each test opens its database (every migration and seed) inside the test itself, under vitest's 5-second default. B3's migrations add about 0.3 s to that (2.6 s to 2.9 s here), and on a loaded runner `exceptions.test.ts` timed out once (B3's docs PR, passed on re-run). Open the rig in `beforeAll` with a longer timeout, or give those tests one.
 - Founder: Kapso transcribes voice notes through ElevenLabs, which may keep transcripts up to three years. Say so in the privacy notice, or choose a second provider (`settings.stt.second_provider`) and score both on the 38 notes (5.8).
 
+### Session D2 (console), 13 November 2026: tasks 3.11 to 3.17, 5.15; migrations 0045-0049
+Branch `claude/quirky-gauss-60ad0s` (the branch this environment allows). Built and tested locally: every page driven through the console's real request handler against PGlite with every migration (as D1's rig: the gateway's real `send()`, Supabase Auth and Storage faked), `apps/console/test/` now 67 tests in 22 files; the whole suite and the permission check are under "Checks" below. **Nothing here is proven live**: `deploy-staging` applies 0045-0049 after the merge (`--include-all`; they apply after 0050-0073 there and depend on nothing in them), and the console workflow deploys the new pages.
+
+| Task | Where (`apps/console/src/`) | Writes through (SQL) | Tested by (`apps/console/test/`) |
+| --- | --- | --- | --- |
+| D1's proposed functions | migration 0045 (the file, unchanged, below a header); `apps/console/sql/` is gone | `release_handoff`, `set_offer`, `set_fx_rate`, `confirm_fx_rate`, `fx_quoting_paused`, `set_zone`, `set_village`, `config_changes` | the four D1 pages' tests now run on the migrations; the "not available yet" paths by dropping the function (`rig({ without })`) |
+| Who is acting (D1's findings) | migration 0046 | `confirm_cash_drop` and `resolve_ops_exception`: ops lead or admin only; an unknown status is refused; a resolved exception is not reopened | `riders.test.ts`, `exceptions.test.ts` (picker, rider and unknown party refused by the database) |
+| Refunds page (C2's 2.3) | `pages/refunds.ts` (/refunds) | `refund_order`, `pay_out_credit`, `apply_customer_credit`, `customer_credit_view` (0030) | `refunds.test.ts`: refund once per form key, the rider's fee refused after close with "charge goodwill", Whish needs its reference and nothing is recorded without it, customers owed listed and paid out, credit taken off the next order, ledger at zero, pickers refused |
+| 3.11 Day close | `pages/dayclose.ts` (/day-close), `worker.ts` `scheduled()`, cron in `wrangler.jsonc` | `day_close_report`, `close_day`, `day_closes` (0047) | `dayclose.test.ts`: the day's figures from the database with unexplained $0.00; the drawer counted once; a short drawer needs a note, is posted to `cash_over_short` and leaves the day unexplained (-2.00); the founder (every admin) gets it once on the ops line, a closed window is refused by the gateway |
+| 3.12 Receiving, expenses | `pages/receiving.ts` (/receiving), `pages/money.ts` | `receive_goods`, `create_supplier`, `pay_supplier` (0024); `record_expense` (0047) | `receiving.test.ts` (expiry for chilled goods, only the lead pays from the drawer, one receipt per invoice number or form key, margin at today's price), `money.test.ts` (expense from the drawer or the bank, categories from settings) |
+| 3.13 Second approval | `pages/approvals.ts` (/approvals); Catalog and Refunds say when a change waits | `set_offer`, `refund_order` queue in `pending_approvals` above `settings.approvals`; `decide_approval` (0046) | `approvals.test.ts`: a 50% price change and a $25 refund wait; the asker cannot approve; another lead approves and the change runs in the asker's name; an impossible refund is refused at once; a rejected one moves no money |
+| 3.14 Food-facts editor | `pages/foodfacts.ts` (/food-facts) | `add_evidence_document`, `record_food_fact` (0049) | `foodfacts.test.ts`: a picker's entry waits (unknown until approved); the lead's is approved; evidence required; certified needs a certificate; unknown recorded as unknown; the three-day expiry list |
+| 3.15 Petty cash, bank deposits | `pages/money.ts` (/money), `app.ts` `upload()` | `record_bank_deposit`, `record_petty_cash`, `hub_cash_movements` (0047) | `money.test.ts`: slip number once, photo stored by its hash in the private bucket, never more than the drawer holds, lira leave at their carried value, a double tap is one movement, pickers refused |
+| 3.16 Complaint cases | `pages/cases.ts` (/cases) | `open_complaint`, `note_complaint`, `close_complaint`, `complaint_cases` (0048) | `cases.test.ts`: the allergen case goes first, holds the item at once (off sale, not pickable) and raises an exception; a refund is linked (same order only); closing clears the hold only when the person says so |
+| 3.17 Day open | `pages/dayopen.ts` (/day-open) | `day_open_checklist` (0048) | `dayopen.test.ts`: yesterday's unclosed order, orders waiting, drop not counted, rider cash, expiring lot, open case, cron heartbeat |
+| 5.15 Label intake | `pages/intake.ts` (/intake), `label.ts` | `record_label_scan`, `review_proposed_fact`, `food_fact_review_queue`, `label_scans` (0049) | `intake.test.ts`: N1's real `propose_off_facts` files the Open Food Facts proposals; a picker scans (photos become evidence, the reading becomes proposals, an entry without printed words is dropped); the lead confirms, corrects or rejects each field with the pack photo; an Open Food Facts field cannot be confirmed without our own evidence; nothing from Open Food Facts is ever approved; without a model key the photos are saved and fields are typed |
+
+How it fits, for whoever comes next:
+- **Anyone redefining `set_offer` or `refund_order`: start from 0046.** Their 0045/0030 bodies are `set_offer_now` and `refund_order_now`, unchanged. `refund_order` may now return `{status: 'awaiting_approval', approval_id}` instead of a refund; C2's pick flow calls `grant_customer_credit` directly and is unaffected.
+- **Hub money**: every movement out of the drawer is `hub_money_out` (one balanced ledger transaction and a `hub_cash_movements` row). `account_native(code)` gives an account's notes per currency.
+- **The day** is a calendar day in `settings.hours.tz` (`hub_day_bounds`, `hub_today`). Probe orders are counted apart.
+- **Food facts**: a confirmed field is a new fact (source from its evidence: label, supplier, certificate, lab), approved, with `detail.confirmed_from` pointing at the proposal; a rejected proposal has `superseded_at`, `rejected_by`, `rejected_at`, `review_note` (so N1's rerun does not propose the same reading again, as N1 asked). The label reader is a narrow function (invariant 21): `MODEL_FAST`, forced tool, null on any failure, photos and reading never logged.
+- New pages: Day open, Refunds, Complaints, Approvals, Hub money, Day close, Receiving, Food facts, Label intake. Roles: pickers see Day open, Receiving (on credit), Food facts (propose) and Label intake (scan); the rest is ops lead and admin.
+
+Decisions taken in code, written down for the founder (each is a setting or one line):
+- **Second approval** above a 10% price move and above a $20 refund (`settings.approvals`). The person who asked can withdraw but never approve; with one ops lead and Rasheed, each approves the other's. A refund approved later runs in the asker's name, recorded with who approved.
+- **The founder's report** goes out at 21:40 Beirut in winter, 22:40 in summer (the console's cron, UTC 19:40), to every admin on the ops line, as free text: **only inside the 24-hour window** (the gateway refuses it otherwise; no template exists). Write to the ops number once a day, or ask lane A for a utility template. The screen always has it.
+- **A drawer that does not match** is posted to `cash_over_short` at the count (so the books match the drawer from then on) and stays on that day's report as unexplained, with the counter's note.
+- **Petty cash, deposits and expenses** are ops lead and admin only. Expense categories are `settings.hub_expenses` (fuel, rent, utilities, supplies, repairs, packaging, fees, other).
+- **An allergen complaint** holds the product for every order at once; closing the case does not release it unless the person ticks "the item is safe".
+- **Intake does not change a product's name, brand or size.** The label reading is shown beside the catalog to check it is the right item; changing names belongs to the catalog work (1.21, 1.23) because search depends on them.
+
+Not done, and why:
+- **1.23 review list page: waits for B4.** B4 has not merged (checked on `main` when this pull request was opened). The next console session (or B4 itself, inside `apps/console/`) adds a page on B4's review list once its table and function exist.
+- **For the console workflow** (`.github/workflows/console.yml`, not D2's file): add the optional `ANTHROPIC_API_KEY` Worker secret so Label intake reads labels; without it intake is typed by hand. The cron needs nothing: it deploys with `wrangler.jsonc`.
+- **Lane B, still open from D1:** `quote_order` must refuse while `fx_quoting_paused()` is true (0045 is now in the database, so the 3% pause of 3.8 is real on the console side only).
+- C2's other console items (pick queue, rider incidents, the `count_needed` and `pick_empty` exception actions) were not in the D2 row and are not built.
+- Findings (for the owners of the SQL): `pay_supplier` (0024) and `pay_out_credit` with cash (0030) do not check that the drawer holds the money, so the books can show a negative drawer; `record_bank_deposit` and the petty-cash and expense functions do check. `close_shift` without `p_force_by` still records no acting party (D1's finding).
+- The console's action log stays in the private bucket; a `staff_actions` table was not needed for the day close (every figure is in the ledger).
+- `TEST_REPORT.txt` was not regenerated (not D2's file).
+
+Checks run for this pull request: `npm run typecheck && npm test` (776 pass, 34 live-only skipped; the `test/pg` suites applied every migration, 0045-0049 included, by psql on Postgres 16), and `scripts/check_permissions.sh` on a scratch Postgres 16 in fresh and `EXISTING=1` modes (both pass: no new function or table is reachable by `anon`, `authenticated` or PUBLIC).
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.
@@ -465,9 +508,9 @@ For other sessions (B3 did not touch these files):
 ### C. Still to build
 See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is restaurants; Phase 9 is the website and diaspora
 orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders.
-The console exists (D1, above); five of its steps wait for the migration of `apps/console/sql/proposed_functions.sql`.
+The console exists (D1, D2, above). D1's proposed functions are migration 0045. The 1.23 review-list page waits for B4.
 Ordering lane: B1, B2 and B3 are done (above); 0.13 is ready to send. 1.22's zero-wrong gate is still open (four phrasings, in B3's section). K1 (1.21) can start; it edits `turn.ts`, so never beside another lane B session.
-Hub lane: C1 and C2 are done (above); C3 (2.8) can start (B2 and C2 are merged). Console lane: D1 is done (above); D2 can start now that C2 is in.
+Hub lane: C1 and C2 are done (above); C3 (2.8) can start (B2 and C2 are merged). Console lane: D1 and D2 are done (above).
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 
 ### D. Needs a live account or real conditions (cannot be finished in code alone)
