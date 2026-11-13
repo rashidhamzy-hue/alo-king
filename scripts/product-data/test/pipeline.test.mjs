@@ -155,6 +155,16 @@ describe("rerun", () => {
     const r = await processItem(item, mk({ off: async () => ({ found: true, code: "1234567", product: { code: "1234567", product_name: "Mystery", nutriments: {} } }) }));
     expect(r.outcome).toBe("found_nothing_usable");
     expect(await facts(item.product_id)).toEqual([]);
+    // The run summary must take every shape processItem returns (a number here crashed the first staging run after all items were done).
+    const s = summarise([r, { sku: "x", outcome: "not_in_off", reason: "not_in_off" }, { sku: "y", outcome: "error", error: "e" }]);
+    expect(s.outcomes).toEqual({ found_nothing_usable: 1, not_in_off: 1, error: 1 });
+  });
+  it("a found record whose facts are all refused reports what was refused", async () => {
+    const item = items[6];
+    const r = await processItem(item, mk({ map: async () => ({ allergens: [], ingredients_ar: "" }), off: async () => ({ found: true, code: "1234567", product: { code: "1234567", product_name: "Mystery", ingredients_text: "x".repeat(7000), nutriments: { fat_100g: 500 } } }) }));
+    expect(r.outcome).toBe("found_nothing_usable");
+    expect(r.rejected.map((x) => x.kind).sort()).toEqual(["ingredients", "nutrition"]);
+    expect(summarise([r]).refused_by_checks).toEqual({ "ingredients:too_long": 1, "nutrition:too_few_values": 1 });
   });
 });
 

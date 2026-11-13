@@ -38,7 +38,7 @@ export async function processItem(item, d) {
     const off = offIdentity(hit.product);
     if (!facts.length) {
       await record("found_nothing_usable", { off, rejected, unmapped_tags });
-      return { sku: item.sku, outcome: "found_nothing_usable", rejected: rejected.length };
+      return { sku: item.sku, outcome: "found_nothing_usable", rejected };
     }
     const res = await d.store.rpc("propose_off_facts", { p_product: item.product_id, p_run: d.runId, p_facts: facts });
     await record("proposed", { off, proposed: Object.keys(res?.proposed ?? {}), skipped: res?.skipped ?? {}, rejected, unmapped_tags });
@@ -55,7 +55,7 @@ export function summarise(results) {
   for (const r of results) {
     outcomes[r.outcome] = (outcomes[r.outcome] ?? 0) + 1;
     if (r.outcome === "error" && r.error) errors[r.error] = (errors[r.error] ?? 0) + 1;
-    for (const x of r.rejected ?? []) rejected[`${x.kind}:${x.reason.split(":")[0]}`] = (rejected[`${x.kind}:${x.reason.split(":")[0]}`] ?? 0) + 1;
+    for (const x of Array.isArray(r.rejected) ? r.rejected : []) rejected[`${x.kind}:${x.reason.split(":")[0]}`] = (rejected[`${x.kind}:${x.reason.split(":")[0]}`] ?? 0) + 1;
     for (const v of Object.values(r.skipped ?? {})) skipped[v] = (skipped[v] ?? 0) + 1;
   }
   return { processed: results.length, outcomes, errors_by_message: errors, refused_by_checks: rejected, skipped_by_reason: skipped };
