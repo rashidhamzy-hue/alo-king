@@ -174,7 +174,11 @@ Migrations 0060-0063 (A2 took 0060-0069; see the session table in the build plan
 and, new in this session, a real Postgres 16 started by the tests (`test/pg/real-postgres.ts`; GitHub's ubuntu runners have the binaries,
 and on CI these suites refuse to skip). Permission check passes on a fresh Postgres. What is proven live is marked below.
 
-**0.13, the one thing asked of Rasheed.** Everything else is ready (staging data, the test riders, the evidence workflow).
+**0.13, the one thing asked of Rasheed. Status: BLOCKED on lane B, do not send yet.** Everything on the A2 side is ready: staging data, the test riders, the evidence workflow, and the cron that delivers and collects.
+In two live runs on staging (13 Nov, 10:35 and 11:36 UTC), the live model did not turn an order message into a card in one go: see "Finding for lane B" below.
+**When to send it:** once a probe order on staging reaches `closed`. The probe sends exactly this message every hour, so that is proof the live model now handles it. Check with
+`select short_code, status from orders o join parties p on p.id = o.customer_id where p.is_probe order by o.created_at desc limit 3;`
+or watch the "heartbeat:probe_silent" issue in Sentry stop. Until then the founder would get a question back, not a card.
 On WhatsApp, from his own phone, between 08:00 and 23:00 Beirut time, to **+1 203 660 2328** (the "Alo King" staging customer number), send exactly:
 
 > بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين
@@ -186,7 +190,7 @@ What he should see, in order:
 4. One to three minutes later: «طلبك #AK-… صار عالطريق 🛵».
 5. One to two minutes after that: «وصلنا دفعك لطلب #AK-…: 7.27$ نقداً.» Nobody comes to the door: on staging the rider is a test rider (below), who accepts, picks up, delivers and records the cash through the ops line's real code path.
 
-Why these three items: they are brand-led, and each brand resolves to one right product (checked on staging with `plan_order` inside a rolled-back transaction). The staging probe places exactly this message through the live model every hour, so the morning it is sent, staging has already shown whether the live model turns it into this card (see "Live after merge"). If no reply arrives at all, the first suspect is Meta billing on the number (0.12, section E): Kapso pauses sends when the account cannot pay.
+Why these three items: they are brand-led, and with the brand read correctly each one resolves to the one right product (checked on staging with `plan_order` inside a rolled-back transaction). The staging probe places exactly this message through the live model every hour. If no reply arrives at all, the first suspect is Meta billing on the number (0.12, section E): Kapso pauses sends when the account cannot pay.
 After he has done it, any session runs the **staging-evidence** workflow with no input: it finds his closed order, writes `docs/evidence/order_<code>.txt` to the branch `evidence/<code>` and fails if any 0.13 check fails. The conversation is printed in place of screenshots (numbers and user ids masked). Screenshots from the phone are not required.
 
 | Task | Where | Tested | Live |
@@ -198,7 +202,7 @@ After he has done it, any session runs the **staging-evidence** workflow with no
 | 4.10 Heartbeat and alerts | migration 0063, `index.ts` (probe, alarms, project webhook, daily Kapso health), `worker.ts` (Sentry cron monitor), `scripts/staging/prepare-staging.sql` | `test/db/heartbeat.test.ts`, `test/pg/prepare-staging.test.ts`, the e2e | After the deploy of this branch: see "Live after merge" below |
 | 4.12 Message meter | migration 0061 | `test/db/message-meter.test.ts` | Meta's per-message pricing is now recorded from every status webhook; the rates are estimates until 4.4 |
 | 4.13 Kapso SDK | `@kapso/whatsapp-cloud-api` 0.4.0 in `packages/wa/src/kapso.ts` | Same URL, header and body for every send; signature check agrees with the SDK's on every fixture | Kept. See finding 1 |
-| 0.13 | above | The SQL side of the order; the rider leg in the e2e | Waits for the message above |
+| 0.13 | above | The SQL side of the order; the rider leg in the e2e | **Blocked on lane B** (the live model's readings, below). The A2 side is in place and runs every hour |
 
 **What the probe is.** Staging only, locked twice (`settings.probe.enabled`, set by `prepare-staging.sql`, and `PROBE_MODE=on` in the staging Worker's vars; a test keeps it out of production's vars).
 A test customer and two test riders (`parties.is_probe`). `can_send()` answers `probe_sink` for them: the gateway claims, marks and logs the message as usual and never hands it to Kapso.
@@ -222,6 +226,7 @@ Staging stock is 5,000 of everything (only set on an empty store), so the hourly
 **Finding for lane B (B3): the live model's catalog queries miss or pick the wrong product.** Seen live on 13 Nov, then reproduced on staging with `plan_order` (rolled back):
 - The model wrote the query for «ربطتين خبز» as `bread`. English generic words match no catalog name (`search_catalog('bread')` returns nothing; `'خبز'` matches the aliases), so the line was `not_found` and the turn asked a question instead of sending a card. `schemas.ts` invites this: its example for `query` is an English normalised phrase ("facial tissue large pack").
 - Brand-led English queries match, but every hit ties at score 0.9, so the brand rule takes the first product of that brand: «لبنة ليبان ليه» (`labneh Liban Lait`) became **Liban Lait Laban 1Kg**, and «بيض هوا» (`Hawa Chicken eggs`) became **Chicken Legs**. Those are wrong cards, not just missed ones.
+- Second live run (11:36 UTC, the 0.13 message itself, brand-led on purpose): the model read «قهوة نجار» as `Nassar coffee` (not found), and this time gave no `brand_hint` for «مي تنورين» or «خبز الفورنو», so both were ambiguous. Result: a question instead of a card. The same model reads the same kind of message differently from run to run. Three eval cases straight from the traces: «ربطتين خبز» must not become `bread`; «قهوة نجار» must keep "Najjar"; a brand said in Arabic (تنورين، الفورنو، ليبان ليه) must reach `brand_hint`.
 - Per `CLAUDE.md` these become cases in `evals/` before the fix. Likely fixes: keep `query` in the customer's words (Arabic), or have `plan_order` retry with `raw` and the Arabic aliases; and break score ties on the product kind (`sub_type`) before the brand. A2 did not touch `packages/agents/`, `evals/` or lane B's SQL.
 
 **Blocked or not possible, recorded:**

@@ -246,7 +246,8 @@ async function raiseAlarm(deps: TurnDeps, kind: string, ref: string, detail: Rec
   if ((open.data as unknown[] | null)?.length) return;
   const r = await deps.db.rpc("raise_ops_exception", { p_kind: kind, p_ref: ref, p_detail: detail });
   if (r.error) throw new Error(`raise_ops_exception: ${r.error.message}`);
-  Sentry.captureMessage(`${kind}: ${ref}`, { level: "error", tags: { where: "heartbeat", kind }, extra: detail });
+  // One Sentry issue per kind (an hourly ref would open a new issue, and an email, every hour the problem lasts)
+  Sentry.captureMessage(`${kind}: ${ref}`, { level: "error", tags: { where: "heartbeat", kind }, extra: { ref, ...detail }, fingerprint: ["heartbeat", kind] });
   await alertOps(deps, text, `alarm:${kind}:${ref}`);
 }
 
