@@ -70,7 +70,7 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
     p_line: "ops", p_wa_user_id: first.who.waUserId ?? null, p_phone: first.who.phone ?? null, p_name: first.event.conversation.contact_name ?? null });
   if (!conv.known) return { outcome: "ignored", sent: [] };            // the ops line talks only to people we registered
   const role = await rpc<string | null>(db, "party_role", { p_party: conv.party_id });
-  if (role === "picker" || role === "ops_lead" || role === "admin") return processStaffTurn(deps, pending, conv.party_id, to);
+  if (role === "picker" || role === "ops_lead" || role === "admin") return processStaffTurn(deps, pending, conv.party_id, to, role);
   if (role !== "driver") return { outcome: "ignored", sent: [] };     // merchants: step 7
 
   const driver = conv.party_id;
@@ -187,6 +187,63 @@ export async function announceReturn(deps: TurnDeps, orderId: string): Promise<v
   for (const id of new Set(to)) await sendToParty(deps, id, msg, `retnotice:${orderId}:${id}`);
 }
 
+// ---------- a rider who cannot continue (2.10) ----------
+
+const CUSTOMER_TEXT = {
+  delayed: (code: string) => `طلبك #${code} رح يتأخّر شوي بسبب ظرف طارئ مع السائق. رح يوصلك مع سائق تاني.`,
+  calledOff: (code: string, credit: number) => `ما قدرنا نكمّل توصيل طلبك #${code} بسبب ظرف طارئ مع السائق. رح يتواصل معك حدا من فريقنا.`
+    + (credit > 0 ? ` المبلغ يلي دفعتو (${usd(credit)}) إلك: منرجّعلك ياه أو بينحسم من طلبك الجاي.` : ""),
+};
+
+interface RiderOnShift { driver_id: string; name: string | null; cash_usd: number; active_delivery: string | null }
+
+async function riderIncident(deps: TurnDeps, staff: string, b: { action: "ask" | "yes" | "back" | "cash"; id: string } | null,
+                             out: (m: Outbound) => Promise<unknown>, say: (t: string) => Promise<unknown>): Promise<void> {
+  const { db } = deps;
+  if (!b) {
+    const riders = await rpc<RiderOnShift[]>(db, "riders_on_shift", {});
+    if (!riders.length) { await say(STAFF_TEXT.noRiders); return; }
+    for (const r of riders.slice(0, 5)) {
+      await out(buttons(STAFF_TEXT.riderRow(r.name ?? "", Number(r.cash_usd), !!r.active_delivery),
+        [{ id: staffButtonId({ kind: "roff", action: "ask", id: r.driver_id }), title: "ما فيه يكمّل" }]));
+    }
+    return;
+  }
+  if (b.action === "ask") {
+    const name = (await rpc<RiderOnShift[]>(db, "riders_on_shift", {})).find((r) => r.driver_id === b.id)?.name ?? "السائق";
+    await out(buttons(STAFF_TEXT.riderConfirm(name), [{ id: staffButtonId({ kind: "roff", action: "yes", id: b.id }), title: "إيه، وقّفو" }]));
+    return;
+  }
+  if (b.action === "yes") {
+    const r = await rpc<{ already?: boolean; rider: string | null; requeued: { order_id: string }[]; stranded: { order_id: string; short_code: string; customer_id: string }[]; cash_usd: number; cash_lbp: number }>(
+      db, "mark_rider_off", { p_driver: b.id, p_by: staff, p_reason: "cannot_continue" });
+    if (r.already) { await say(STAFF_TEXT.riderAlreadyOff(r.rider ?? "السائق")); return; }
+    const btns = [
+      ...r.stranded.slice(0, 2).map((x) => ({ id: staffButtonId({ kind: "roff", action: "back", id: x.order_id }), title: `رجّعها #${x.short_code}` })),
+      ...(Number(r.cash_usd) || Number(r.cash_lbp) ? [{ id: staffButtonId({ kind: "roff", action: "cash", id: b.id }), title: "استلمنا الكاش" }] : []),
+    ];
+    const text = STAFF_TEXT.riderOff(r.rider ?? "السائق", r.requeued.length, r.stranded.map((x) => x.short_code), Number(r.cash_usd), Number(r.cash_lbp));
+    await out(btns.length ? buttons(text, btns) : { type: "text", text: { body: text } });
+    await sendToParty(deps, b.id, { type: "text", text: { body: STAFF_TEXT.riderOffToRider } }, `riderinc:${b.id}:${requireTurnKey(deps)}`);
+    for (const x of r.stranded) await sendToCustomer(deps, x.customer_id, { type: "text", text: { body: CUSTOMER_TEXT.delayed(x.short_code) } }, `riderinc:${x.order_id}`, x.order_id);
+    // Re-offer now; the cron repeats every minute for any order still without a rider.
+    for (const id of [...r.requeued.map((x) => x.order_id), ...r.stranded.map((x) => x.order_id)]) {
+      await dispatchAndOffer(deps, id).catch((err) => { if (isOutboxFailure(err)) throw err; });
+    }
+    return;
+  }
+  if (b.action === "back") {
+    const r = await rpc<{ ok: boolean; status: string; short_code: string; customer_id?: string; credit_usd?: number }>(db, "call_off_stranded", { p_order: b.id, p_by: staff });
+    if (!r.ok) { await say(STAFF_TEXT.notCalledOff(r.short_code, r.status)); return; }
+    await say(STAFF_TEXT.calledOff(r.short_code));
+    if (r.customer_id) await sendToCustomer(deps, r.customer_id, { type: "text", text: { body: CUSTOMER_TEXT.calledOff(r.short_code, Number(r.credit_usd ?? 0)) } }, `calloff:${b.id}`, b.id);
+    await announceReturn(deps, b.id);
+    return;
+  }
+  const c = await rpc<{ usd: number; lbp: number }>(db, "receive_rider_cash", { p_driver: b.id, p_by: staff });
+  await say(STAFF_TEXT.cashIn(Number(c.usd), Number(c.lbp)));
+}
+
 const isOutboxFailure = (err: unknown) => err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable";
 
 const dropButtons = () => [
@@ -209,10 +266,12 @@ interface Offer { offer_id: string; order_id: string; short_code: string; custom
 export type StaffButton =
   | { kind: "pick"; action: "start" | "done" | "missing" | "line" | "remove"; id: string }
   | { kind: "ret"; action: "open" | "default" | "all_fit" | "all_waste"; id: string }
+  | { kind: "roff"; action: "ask" | "yes" | "back" | "cash"; id: string }
   | { kind: "sub"; action: "offer"; id: string; product: string };
 export const staffButtonId = (b: StaffButton) => `${b.kind}:${b.action}:${b.id}${b.kind === "sub" ? ":" + b.product : ""}`;
 export function parseStaffButton(id: string): StaffButton | null {
-  const m = /^(pick):(start|done|missing|line|remove):([0-9a-f-]{36})$/.exec(id) ?? /^(ret):(open|default|all_fit|all_waste):([0-9a-f-]{36})$/.exec(id);
+  const m = /^(pick):(start|done|missing|line|remove):([0-9a-f-]{36})$/.exec(id) ?? /^(ret):(open|default|all_fit|all_waste):([0-9a-f-]{36})$/.exec(id)
+    ?? /^(roff):(ask|yes|back|cash):([0-9a-f-]{36})$/.exec(id);
   if (m) return { kind: m[1], action: m[2], id: m[3] } as StaffButton;
   const s = /^sub:offer:([0-9a-f-]{36}):([0-9a-f-]{36})$/.exec(id);
   return s ? { kind: "sub", action: "offer", id: s[1]!, product: s[2]! } : null;
@@ -224,6 +283,7 @@ export function parseSubstitutionButton(id: string): { keep: boolean; offerId: s
   return m ? { keep: m[1] === "keep", offerId: m[2]! } : null;
 }
 
+const RIDERS = /^(سائقين|سواقين|الشوفيرية|riders|drivers)$/i;
 const RETURNS = /^(مرتجع|مرتجعات|رجعة|returns?)$/i;
 const PICK_QUEUE = /^(طلبات|تحضير|حضّر|حضر|pick|orders|list)$/i;
 const PICK_DONE = /^(خلص|خلصت|خلّصت|جاهز|done|picked)$/i;
@@ -255,6 +315,21 @@ export const STAFF_TEXT = {
   returnBack: (code: string) => `📦 أغراض الطلب #${code} راجعة عالمركز. كبّس لما توصل لتعدّها.`,
   returnDone: (code: string, back: number, waste: number) => `استلمنا مرتجع #${code}: ${back} رجعوا عالرف، ${waste} تلف.`,
   returnAlready: (code: string) => `مرتجع #${code} مسجّل من قبل.`,
+  opsOnly: "هيدا للإدارة بس.",
+  noRiders: "ما في سائقين بالدوام هلق.",
+  riderRow: (name: string, cash: number, busy: boolean) => `🛵 ${name} · كاش ${usd(cash)}${busy ? " · معو طلب" : ""}`,
+  riderConfirm: (name: string) => `متأكد إنو ${name} ما فيه يكمّل؟ منوقّف دوامو، ومنعطي طلباتو لغيرو.`,
+  riderOff: (name: string, requeued: number, stranded: string[], usdHeld: number, lbpHeld: number) => [
+    `وقّفنا ${name}.`,
+    requeued ? `رجّعنا ${requeued} طلبات للتوزيع.` : null,
+    stranded.length ? `عالطريق معو: ${stranded.map((c) => "#" + c).join(" ")}. رح نعرضها على سائق تاني، استلام من المركز: لازم الأغراض توصل عالمركز. أو كبّس «رجّعها» لنلغي التوصيل.` : null,
+    usdHeld || lbpHeld ? `معو كاش: ${usd(usdHeld)} و ${Math.round(lbpHeld).toLocaleString("en-US")} ل.ل. كبّس «استلمنا الكاش» بس ينعدّ.` : "ما معو كاش.",
+  ].filter(Boolean).join("\n"),
+  riderAlreadyOff: (name: string) => `${name} موقّف من قبل، وما معو طلبات.`,
+  riderOffToRider: "وقّفنا طلباتك. سلّم الأغراض والكاش عالمركز بأقرب وقت. سلامتك 🙏",
+  calledOff: (code: string) => `لغينا توصيل #${code}. الأغراض لازم ترجع عالمركز وتنعدّ.`,
+  notCalledOff: (code: string, why: string) => why === "taken_over" ? `#${code} صار مع سائق تاني، ما منقدر نلغيه.` : `#${code} مش عالطريق (${why}).`,
+  cashIn: (u: number, l: number) => `استلمنا ${usd(u)} و ${Math.round(l).toLocaleString("en-US")} ل.ل. وتسجّلوا.`,
   error: "صار في غلط. جرّب مرة تانية أو اتصل بالإدارة.",
 };
 
@@ -343,7 +418,7 @@ export async function sendToCustomer(deps: TurnDeps, partyId: string, msg: Outbo
   return deps.send({ line: "customer", partyId, to, msg, category: "service", orderId, dedupeKey });
 }
 
-async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: string, to: string): Promise<TurnResult> {
+async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: string, to: string, role: string): Promise<TurnResult> {
   const { db } = deps;
   const sent: string[] = [];
   let n = 0;
@@ -436,6 +511,9 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
         if (!back.length) { await say(STAFF_TEXT.noReturns); continue; }
         await out(buttons(["📦 مرتجعات ناطرة:", ...back.map((x) => `#${x.short_code}`)].join("\n"),
           back.slice(0, 3).map((x) => ({ id: staffButtonId({ kind: "ret", action: "open", id: x.order_id }), title: `#${x.short_code}` }))));
+      } else if (b?.kind === "roff" || RIDERS.test(text)) {
+        if (role === "picker") { await say(STAFF_TEXT.opsOnly); continue; }
+        await riderIncident(deps, staff, b?.kind === "roff" ? b : null, out, say);
       } else if (b?.kind === "sub") {
         await offerSub(b.id, b.product);
       } else if (typedMissing) {
