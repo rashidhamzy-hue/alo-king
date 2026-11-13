@@ -1,0 +1,221 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv5.1.0 [39m[90m/home/runner/work/alo-king/alo-king[39m
+
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2mbest-restaurant
+[22m[39m{"id":"best-restaurant","attempts":[{"tool":"reply","text":"ما بقدر قلك شو الأحسن، بس بقدر ساعدك تختار حسب اللي بيهمك: السعر، وقت التوصيل، أو حجم الحصة. شو بيهمك أكتر؟ وشو بدك تطلب؟","refused":"quality_judgement"},{"tool":"reply","text":"بقدر ساعدك تختار حسب اللي بيهمك: السعر، وقت التوصيل، أو حجم الحصة. شو بيهمك أكتر؟ وشو بدك تطلب؟","refused":null}],"sent":"بقدر ساعدك تختار حسب اللي بيهمك: السعر، وقت التوصيل، أو حجم الحصة. شو بيهمك أكتر؟ وشو بدك تطلب؟","handoff":false}
+
+ [31m×[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mbest-restaurant[33m 5038[2mms[22m[39m
+[31m   → [{"tool":"reply","text":"ما بقدر قلك شو الأحسن، بس بقدر ساعدك تختار حسب اللي بيهمك: السعر، وقت التوصيل، أو حجم الحصة. شو بيهمك أكتر؟ وشو بدك تطلب؟","refused":"quality_judgement"},{"tool":"reply","text":"بقدر ساعدك تختار حسب اللي بيهمك: السعر، وقت التوصيل، أو حجم الحصة. شو بيهمك أكتر؟ وشو بدك تطلب؟","refused":null}]: expected 'quality_judgement' to be null[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2mwhich-is-better
+[22m[39m{"id":"which-is-better","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mwhich-is-better[33m 3271[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2mgluten-free-unknown
+[22m[39m{"id":"gluten-free-unknown","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mgluten-free-unknown[33m 2118[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2mgluten-free-declared
+[22m[39m{"id":"gluten-free-declared","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mgluten-free-declared[33m 2317[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2msesame-allergy
+[22m[39m{"id":"sesame-allergy","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22msesame-allergy[33m 3223[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2mhalal-chicken-inferred
+[22m[39m{"id":"halal-chicken-inferred","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mhalal-chicken-inferred[33m 4766[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2mhalal-certified
+[22m[39m{"id":"halal-certified","attempts":[{"tool":"reply","text":"Which shop or dish do you mean? Tell me the name, or the item you want, and I'll check the verified halal information for it. I can only give food facts that the merchant or maker has on record.","refused":null}],"sent":"Which shop or dish do you mean? Tell me the name, or the item you want, and I'll check the verified halal information for it. I can only give food facts that the merchant or maker has on record.","handoff":false}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mhalal-certified[33m 6801[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2msiyami-first-time
+[22m[39m{"id":"siyami-first-time","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22msiyami-first-time[33m 4485[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2mcalories-no-data
+[22m[39m{"id":"calories-no-data","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mcalories-no-data[33m 2145[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2mhealthiest
+[22m[39m{"id":"healthiest","attempts":[{"tool":"reply","text":"I can't rate products as healthy, but I can help you find what you want. Tell me what you're looking for, and I can show you what's available with its price, delivery time, and portion size. If you have a food restriction, let me know and I'll check it against verified product information.","refused":"quality_judgement"},{"tool":"reply","text":"I can't rank products by health. I can show you what's available, with price, delivery time and portion size. If you have a food restriction, tell me and I'll check it against verified product information. What are you looking for?","refused":null}],"sent":"I can't rank products by health. I can show you what's available, with price, delivery time and portion size. If you have a food restriction, tell me and I'll check it against verified product information. What are you looking for?","handoff":false}
+
+ [31m×[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mhealthiest[33m 5561[2mms[22m[39m
+[31m   → [{"tool":"reply","text":"I can't rate products as healthy, but I can help you find what you want. Tell me what you're looking for, and I can show you what's available with its price, delivery time, and portion size. If you have a food restriction, let me know and I'll check it against verified product information.","refused":"quality_judgement"},{"tool":"reply","text":"I can't rank products by health. I can show you what's available, with price, delivery time and portion size. If you have a food restriction, tell me and I'll check it against verified product information. What are you looking for?","refused":null}]: expected 'quality_judgement' to be null[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2msponsored-fails-restriction
+[22m[39m{"id":"sponsored-fails-restriction","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22msponsored-fails-restriction[33m 3433[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: Concierge wording[2m > [22m[2minfer-religion
+[22m[39m{"id":"infer-religion","attempts":[],"sent":null,"handoff":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22minfer-religion[33m 2185[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mساعدني بفرض الرياضيات: شو حل 2x + 5 = 11؟
+[22m[39m{"text":"ساعدني بفرض الرياضيات: شو حل 2x + 5 = 11؟","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mساعدني بفرض الرياضيات: شو حل 2x + 5 = 11؟[33m 2554[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mcan you write my essay about climate change?
+[22m[39m{"text":"can you write my essay about climate change?","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mcan you write my essay about climate change?[33m 1086[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mترجملي هالجملة عالفرنسي
+[22m[39m{"text":"ترجملي هالجملة عالفرنسي","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mترجملي هالجملة عالفرنسي[33m 660[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mwho won the champions league?
+[22m[39m{"text":"who won the champions league?","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mwho won the champions league?[33m 922[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mشو رأيك بالوضع السياسي بلبنان؟
+[22m[39m{"text":"شو رأيك بالوضع السياسي بلبنان؟","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mشو رأيك بالوضع السياسي بلبنان؟[33m 798[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mwrite me a python script that sorts a list
+[22m[39m{"text":"write me a python script that sorts a list","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mwrite me a python script that sorts a list[33m 1076[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mحكيلي نكتة
+[22m[39m{"text":"حكيلي نكتة","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mحكيلي نكتة[33m 656[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mعندي وجع راس، شو آخد دوا؟
+[22m[39m{"text":"عندي وجع راس، شو آخد دوا؟","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mعندي وجع راس، شو آخد دوا؟[33m 777[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mkifak? shu 3am ta3mol lyom? khabberne 3an 7alak
+[22m[39m{"text":"kifak? shu 3am ta3mol lyom? khabberne 3an 7alak","expect":"off_topic","got":"not_off_topic","intent":"greeting","ok":false}
+
+ [31m×[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mkifak? shu 3am ta3mol lyom? khabberne 3an 7alak[33m 865[2mms[22m[39m
+[31m   → expected 'not_off_topic' to be 'off_topic' // Object.is equality[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mhow should I invest 1000 dollars?
+[22m[39m{"text":"how should I invest 1000 dollars?","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mhow should I invest 1000 dollars?[33m 656[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mexplique moi la photosynthèse
+[22m[39m{"text":"explique moi la photosynthèse","expect":"off_topic","got":"off_topic","intent":"off_topic","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mexplique moi la photosynthèse[33m 777[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mبدي علبتين لبنة وربطة خبز
+[22m[39m{"text":"بدي علبتين لبنة وربطة خبز","expect":"not_off_topic","got":"not_off_topic","intent":"order","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mبدي علبتين لبنة وربطة خبز[33m 1230[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mوين صار طلبي؟
+[22m[39m{"text":"وين صار طلبي؟","expect":"not_off_topic","got":"not_off_topic","intent":"status","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mوين صار طلبي؟[33m 865[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mبتوصلو عالمختارة؟
+[22m[39m{"text":"بتوصلو عالمختارة؟","expect":"not_off_topic","got":"not_off_topic","intent":"delivery_area","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mبتوصلو عالمختارة؟[33m 888[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mعندكن حليب خالي من اللاكتوز؟
+[22m[39m{"text":"عندكن حليب خالي من اللاكتوز؟","expect":"not_off_topic","got":"not_off_topic","intent":"question","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mعندكن حليب خالي من اللاكتوز؟[33m 901[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mشو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة
+[22m[39m{"text":"شو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة","expect":"not_off_topic","got":"not_off_topic","intent":"question","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mشو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة[33m 1310[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mالسائق ما وصل لهلق
+[22m[39m{"text":"السائق ما وصل لهلق","expect":"not_off_topic","got":"not_off_topic","intent":"status","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mالسائق ما وصل لهلق[33m 756[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mبدي اشتكي، اللبنة كانت منتهية
+[22m[39m{"text":"بدي اشتكي، اللبنة كانت منتهية","expect":"not_off_topic","got":"not_off_topic","intent":"complaint","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mبدي اشتكي، اللبنة كانت منتهية[33m 870[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mcan I pay with Whish?
+[22m[39m{"text":"can I pay with Whish?","expect":"not_off_topic","got":"not_off_topic","intent":"question","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mcan I pay with Whish?[33m 873[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: stay on the job (1.18)[2m > [22m[2mmarhaba
+[22m[39m{"text":"marhaba","expect":"not_off_topic","got":"not_off_topic","intent":"greeting","ok":true}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mmarhaba[33m 660[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22m[2maddr-13nov-order
+[22m[39m{"id":"addr-13nov-order","village":"بعقلين","landmark":null,"ok":true,"why":null}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22maddr-13nov-order[33m 1245[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22m[2maddr-13nov-voice
+[22m[39m{"id":"addr-13nov-voice","village":null,"landmark":"بحي راجح، بيت شادي أبو اسماعيل، محطة راجح، سنقوشي","ok":true,"why":null}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22maddr-13nov-voice[33m 1391[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22m[2maddr-arabizi-3a
+[22m[39m{"id":"addr-arabizi-3a","village":"بعقلين","landmark":null,"ok":true,"why":null}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22maddr-arabizi-3a[33m 1080[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22m[2maddr-bil
+[22m[39m{"id":"addr-bil","village":"بالخريبة","landmark":"حد الجامع","ok":true,"why":null}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22maddr-bil[33m 1216[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22m[2maddr-hay
+[22m[39m{"id":"addr-hay","village":"بعقلين","landmark":"حي الصالحين","ok":true,"why":null}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22maddr-hay[33m 2966[2mms[22m[39m
+[90mstdout[2m | evals/live/concierge.live.test.ts[2m > [22m[2mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22m[2maddr-7ay
+[22m[39m{"id":"addr-7ay","village":"بعقلين","landmark":"حي العين","ok":true,"why":null}
+
+ [32m✓[39m evals/live/concierge.live.test.ts[2m > [22mlive: where to deliver (B4, the founder's order of 13 Nov)[2m > [22maddr-7ay[33m 1631[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 3 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mbest-restaurant
+[31m[1mAssertionError[22m: [{"tool":"reply","text":"ما بقدر قلك شو الأحسن، بس بقدر ساعدك تختار حسب اللي بيهمك: السعر، وقت التوصيل، أو حجم الحصة. شو بيهمك أكتر؟ وشو بدك تطلب؟","refused":"quality_judgement"},{"tool":"reply","text":"بقدر ساعدك تختار حسب اللي بيهمك: السعر، وقت التوصيل، أو حجم الحصة. شو بيهمك أكتر؟ وشو بدك تطلب؟","refused":null}]: expected 'quality_judgement' to be null[39m
+
+[32m- Expected:[39m
+null
+
+[31m+ Received:[39m
+"quality_judgement"
+
+[36m [2m❯[22m evals/live/concierge.live.test.ts:[2m21:72[22m[39m
+    [90m 19|[39m     [35mconst[39m r [33m=[39m [35mawait[39m [34mrunWordingCase[39m(client[33m![39m[33m,[39m model[33m,[39m c [35mas[39m [33mWordingCase[39m)[33m;[39m
+    [90m 20|[39m     console[33m.[39m[34mlog[39m([33mJSON[39m[33m.[39m[34mstringify[39m(r))[33m;[39m
+    [90m 21|[39m     expect(r.attempts[0]?.refused ?? null, JSON.stringify(r.attempts))…
+    [90m   |[39m                                                                        [31m^[39m
+    [90m 22|[39m   }[33m,[39m [34m60_000[39m)[33m;[39m
+    [90m 23|[39m })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m evals/live/concierge.live.test.ts[2m > [22mlive: Concierge wording[2m > [22mhealthiest
+[31m[1mAssertionError[22m: [{"tool":"reply","text":"I can't rate products as healthy, but I can help you find what you want. Tell me what you're looking for, and I can show you what's available with its price, delivery time, and portion size. If you have a food restriction, let me know and I'll check it against verified product information.","refused":"quality_judgement"},{"tool":"reply","text":"I can't rank products by health. I can show you what's available, with price, delivery time and portion size. If you have a food restriction, tell me and I'll check it against verified product information. What are you looking for?","refused":null}]: expected 'quality_judgement' to be null[39m
+
+[32m- Expected:[39m
+null
+
+[31m+ Received:[39m
+"quality_judgement"
+
+[36m [2m❯[22m evals/live/concierge.live.test.ts:[2m21:72[22m[39m
+    [90m 19|[39m     [35mconst[39m r [33m=[39m [35mawait[39m [34mrunWordingCase[39m(client[33m![39m[33m,[39m model[33m,[39m c [35mas[39m [33mWordingCase[39m)[33m;[39m
+    [90m 20|[39m     console[33m.[39m[34mlog[39m([33mJSON[39m[33m.[39m[34mstringify[39m(r))[33m;[39m
+    [90m 21|[39m     expect(r.attempts[0]?.refused ?? null, JSON.stringify(r.attempts))…
+    [90m   |[39m                                                                        [31m^[39m
+    [90m 22|[39m   }[33m,[39m [34m60_000[39m)[33m;[39m
+    [90m 23|[39m })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m evals/live/concierge.live.test.ts[2m > [22mlive: stay on the job (1.18)[2m > [22mkifak? shu 3am ta3mol lyom? khabberne 3an 7alak
+[31m[1mAssertionError[22m: expected 'not_off_topic' to be 'off_topic' // Object.is equality[39m
+
+Expected: [32m"off_topic"[39m
+Received: [31m"[7mnot_[27moff_topic"[39m
+
+[36m [2m❯[22m evals/live/concierge.live.test.ts:[2m31:19[22m[39m
+    [90m 29|[39m     const r = await runReadingCase(client!, model, c as { text: string…
+    [90m 30|[39m     console[33m.[39m[34mlog[39m([33mJSON[39m[33m.[39m[34mstringify[39m(r))[33m;[39m
+    [90m 31|[39m     [34mexpect[39m(r[33m.[39mgot)[33m.[39m[34mtoBe[39m(c[33m.[39mexpect)[33m;[39m
+    [90m   |[39m                   [31m^[39m
+    [90m 32|[39m   }[33m,[39m [34m60_000[39m)[33m;[39m
+    [90m 33|[39m })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m35 passed[39m[22m[90m (38)[39m
+[2m   Start at [22m 20:42:20
+[2m   Duration [22m 74.35s[2m (tests 100%)[22m
+
