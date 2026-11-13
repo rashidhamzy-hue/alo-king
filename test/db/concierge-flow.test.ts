@@ -4,6 +4,8 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type Anthropic from "@anthropic-ai/sdk";
 import { ConversationDO, type Env } from "../../apps/gateway/src/index";
+import { processTurn, runTurn, type Pending, type TurnDeps } from "../../apps/gateway/src/turn";
+import { send as gatewaySend } from "@ak/wa/gateway";
 import { CONSENT_LINE, formatOrderCard, orderButtonId, parseOrderButton, type Quote } from "@ak/agents/order-card";
 import { preflight } from "@ak/wa/gateway";
 import { repeatButtonId } from "@ak/agents/answers";
@@ -596,6 +598,72 @@ describe("no phone number in the webhook (1.19)", () => {
   it("the database refuses a malformed number", async () => {
     const c = await setup([]).customer();
     await expect(db.rpc("set_contact_phone", { p_party: c.party_id, p_phone: "03123456" })).rejects.toThrow(/BAD_PHONE/);
+  });
+});
+
+describe("model capacity (1.15)", () => {
+  const overloaded = () => Object.assign(new Error("Overloaded"), { status: 529, name: "OverloadedError" });
+  /** The turn code itself, wired as index.ts wires it, with the retry waits shortened. */
+  function direct(steps: Anthropic.ToolUseBlock[][], failures: number) {
+    const t = setup(steps);
+    const shim = supabaseOver(db);
+    let calls = 0;
+    const model = { messages: { create: async (body: Anthropic.MessageCreateParamsNonStreaming) => {
+      if (calls++ < failures) throw overloaded();
+      return t.model.messages.create(body);
+    } } };
+    const env = { KAPSO_BASE_URL: "https://kapso.test/v24.0", KAPSO_API_KEY: "k", PHONE_NUMBER_ID_CUSTOMER: "PN_CUSTOMER", PHONE_NUMBER_ID_OPS: "PN_OPS" };
+    const waits: number[] = [];
+    const deps: TurnDeps = { db: shim.client, model, modelName: "fast", send: (req) => gatewaySend(shim.client, env, req),
+                             capacity: { backoffMs: [2000, 5000, 12000], sleep: async (ms) => void waits.push(ms) } };
+    const msg = (body: string): Pending[] => [{ line: "customer", who: t.who, event: { phone_number_id: "PN_CUSTOMER",
+      conversation: { id: "c", contact_name: "Test" },
+      message: { id: `wamid.cap.${Math.random()}`, timestamp: "0", type: "text", text: { body }, kapso: { direction: "inbound", origin: "cloud_api" } } } as any }];
+    return { ...t, deps, msg, waits, calls: () => calls };
+  }
+
+  it("overloaded once: one fixed 'one moment', then the turn carries on to the card", async () => {
+    const t = direct(orderScript(), 1);
+    const c = await t.customer();
+    await db.rpc("save_customer_pin", { p_party: c.party_id, p_lat: 33.68, p_lng: 35.56, p_village: BAAKLINE });
+    const r = await runTurn(t.deps, t.msg("بدي علبتين لبنة ليبان ليه وربطتين خبز"), {});
+    expect(r.outcome).toBe("card");
+    expect(t.waits).toEqual([2000]);
+    expect(outbound.map((o) => o.body.type)).toEqual(["text", "interactive"]);
+    expect(outbound[0]!.body.text.body).toBe("لحظة صغيرة وبرجعلك 🙏");
+  });
+
+  it("still overloaded after every retry: a person takes over, ops is told, and the customer hears so", async () => {
+    const t = direct([], 99);
+    const r = await runTurn(t.deps, t.msg("بدي لبنة"), {});
+    expect(r.outcome).toBe("agent_handoff");
+    expect(t.calls()).toBe(4);                                          // the first try and three retries
+    expect(t.waits).toEqual([2000, 5000, 12000]);
+    expect(outbound.map((o) => o.body.text.body)).toEqual(["لحظة صغيرة وبرجعلك 🙏", "رح يتواصل معك حدا من فريقنا بأقرب وقت."]);
+    const c = await t.customer();
+    expect(c.human_handoff).toBe(true);
+    expect(await db.one(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ reason: "model_capacity" });
+    expect(await db.one(`select count(*)::int as n from ops_exceptions where kind = 'model_capacity' and detail->>'conversation_id' = $1`, [c.conversation_id])).toEqual({ n: 1 });
+  });
+
+  it("a turn retried after a crash does not say 'one moment' twice", async () => {
+    const t = direct([], 99);
+    const pending = t.msg("بدي لبنة");
+    const deps = { ...t.deps, turnKey: "customer:crash-retry-test" };
+    await processTurn(deps, pending, {});
+    const first = outbound.length;
+    await db.pg.query(`update conversations set human_handoff = false where party_id = (select party_id from party_identities where wa_user_id = $1)`, [t.who.waUserId]);
+    await processTurn(deps, pending, {});
+    expect(outbound.slice(first).map((o) => o.body.text.body)).not.toContain("لحظة صغيرة وبرجعلك 🙏");
+  });
+
+  it("a bad request is our bug, not capacity: no 'one moment', no retries", async () => {
+    const t = direct([], 0);
+    t.deps.model = { messages: { create: async () => { throw Object.assign(new Error("bad"), { status: 400, name: "BadRequestError" }); } } };
+    const r = await runTurn(t.deps, t.msg("بدي لبنة"), {});
+    expect(r.outcome).toBe("error");
+    expect(t.waits).toEqual([]);
+    expect(outbound.map((o) => o.body.text.body)).toEqual(["صار في مشكلة صغيرة من عنا. رح يتواصل معك حدا من الفريق."]);
   });
 });
 

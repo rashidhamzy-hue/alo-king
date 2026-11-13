@@ -3,7 +3,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
 import { processOpsTurn } from "./ops-turn";
-import type { SendRequest, SendResult } from "@ak/wa/gateway";
+import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gateway";
+import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
 import { answerQuick, completePending, planReading } from "@ak/agents/pipeline";
@@ -24,6 +25,8 @@ export interface TurnDeps {
   send: (req: SendRequest) => Promise<SendResult>;      // packages/wa/src/gateway.ts send(), bound to env
   /** Set by runTurn. Outbound messages are keyed on it so a retried turn cannot send anything twice. */
   turnKey?: string;
+  /** Model-capacity retry timing (1.15). Tests shorten it; production uses the defaults. */
+  capacity?: Pick<CapacityOptions, "backoffMs" | "sleep">;
   /** Called once a customer's tap has confirmed an order (COD) so a rider can be offered the job. */
   onOrderConfirmed?: (orderId: string) => Promise<unknown>;
   /** Rider-side events the customer should hear about ("on the way", "rider is at your door"). */
@@ -54,6 +57,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     deps.send({ line: "customer", partyId: conv.party_id, to, msg, category: "service", orderId,
                 dedupeKey: `${turnKey}:${sendSeq++}` });
   const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
+  // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
+  // never sends it twice), retries with backoff, then ModelUnavailable.
+  const model = withCapacityFallback(deps.model, { ...deps.capacity, onFirstFailure: async () => {
+    const r = await deps.send({ line: "customer", partyId: conv.party_id, to, msg: { type: "text", text: { body: FIXED.oneMoment } },
+                                category: "service", dedupeKey: `${turnKey}:wait` });
+    if (r.ok) sent.push(FIXED.oneMoment);
+  } });
 
   await db.from("wa_messages").insert(pending.map((p) => ({
     line: "customer", direction: "inbound", party_id: conv.party_id, conversation_id: conv.conversation_id,
@@ -219,19 +229,29 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
                known_customer: (await db.rpc("customer_context", { p_party: conv.party_id })).data ?? null } };
 
     // 1. Parse once.
-    const reading = await extractOrder(deps.model, deps.modelName, input);
+    const reading = await extractOrder(model, deps.modelName, input);
     usage.input += reading.usage.input; usage.output += reading.usage.output;
     intent = reading.intent;
     // 2. The database decides: card, handoff, or a question.
     const routed = await planReading(ctx, intent);
     if (routed.done) { remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
-    const res = await runAskLoop(deps.model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
+    const res = await runAskLoop(model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
     usage.input += res.usage.input; usage.output += res.usage.output;
     remember();
     await record(res.outcome, "ask");
     return { outcome: res.outcome === "ok" ? "agent_ok" : "agent_handoff", sent };
   } catch (err) {
+    // The outbox could not say whether a message is ours to send: nothing more may go out. The whole turn retries.
+    if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+    if (err instanceof ModelUnavailable) {
+      // The model stayed unavailable through every retry: a person takes over, and the customer is told so.
+      await handoff(db, conv.conversation_id, "model_capacity");
+      await db.rpc("raise_ops_exception", { p_kind: "model_capacity", p_ref: turnKey, p_detail: { conversation_id: conv.conversation_id, error: String(err.cause).slice(0, 300) } });
+      await say(FIXED.handoff);
+      await record("handoff", "model_capacity").then(() => undefined, () => undefined);
+      return { outcome: "agent_handoff", sent };
+    }
     await handoff(db, conv.conversation_id, `agent_error: ${String(err).slice(0, 200)}`);
     if (ctx.sent.count === 0) await say(FIXED.error);
     return { outcome: "error", sent };
