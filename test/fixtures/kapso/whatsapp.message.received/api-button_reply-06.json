@@ -1,0 +1,52 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.received",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": {
+        "id": "wamid.TEST29C0EB719CCB",
+        "from": "12036602328"
+      },
+      "from": "96170000001",
+      "from_parent_user_id": null,
+      "from_user_id": "XX.0000000000000001",
+      "id": "wamid.TEST0E86B263F7B1",
+      "interactive": {
+        "type": "button_reply",
+        "button_reply": {
+          "id": "ndr:9e137437-2c1f-4851-9513-064793c1a68a",
+          "title": "🙋 Need a driver"
+        }
+      },
+      "kapso": {
+        "direction": "inbound",
+        "status": "delivered",
+        "processing_status": "pending",
+        "origin": "cloud_api",
+        "phone_number": "96170000001",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
+        "contact_name": "Test Person 1",
+        "content": "Selected: 🙋 Need a driver",
+        "message_type_data": {
+          "type": "button_reply"
+        }
+      },
+      "timestamp": "1792398276",
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "contact_name": "Test Person 1",
+      "phone_number": "96170000001",
+      "business_scoped_user_id": "XX.0000000000000001",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

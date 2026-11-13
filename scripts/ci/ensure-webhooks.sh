@@ -18,7 +18,7 @@ ROTATE="${ROTATE:-false}"
 SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/null}"
 WRANGLER="${WRANGLER:-npx wrangler}"
 # Message events the gateway handles (apps/gateway/src/index.ts, route()). Buffering stays off: the conversation object buffers.
-EVENTS='["whatsapp.message.received","whatsapp.message.delivered","whatsapp.message.read","whatsapp.message.failed","whatsapp.contact.marketing_preference_changed"]'
+EVENTS='["whatsapp.message.received","whatsapp.message.delivered","whatsapp.message.read","whatsapp.message.failed","whatsapp.contact.marketing_preference_changed","whatsapp.contact.identity_changed"]'
 
 kapso() { curl -sS --fail-with-body -H "X-API-Key: $KAPSO_API_KEY" -H 'Content-Type: application/json' "$@"; }
 
@@ -30,6 +30,13 @@ ensure_webhook() {  # line phone_number_id secret_name
   id=$(jq -r --arg u "$url" '(.data // .)[]? | select(.url == $u) | .id' <<<"$list" | head -1)
   present=$(worker_secret_names | grep -cx "$name" || true)
   if [ -n "$id" ] && [ "$present" -ge 1 ] && [ "$ROTATE" != "true" ]; then
+    # The event list can grow (4.1 added identity_changed). Bring it up to date without touching the secret.
+    local have; have=$(jq -c --arg u "$url" '[(.data // .)[]? | select(.url == $u) | .events // [] | sort[]]' <<<"$list")
+    if [ "$have" != "$(jq -c 'sort' <<<"$EVENTS")" ]; then
+      kapso -X PATCH "$API/$pnid/webhooks/$id" --data-binary "$(jq -n --argjson ev "$EVENTS" '{whatsapp_webhook: {events: $ev}}')" >/dev/null \
+        || { echo "$line: could not update the event list"; return 1; }
+      echo "$line: webhook $id event list updated"; echo "- $line webhook events updated: $(jq -r 'join(", ")' <<<"$EVENTS")" >> "$SUMMARY"
+    fi
     echo "$line: webhook $id exists and the Worker has its secret: nothing to do"
     echo "- $line webhook present (id $id), secret untouched" >> "$SUMMARY"
     return 0

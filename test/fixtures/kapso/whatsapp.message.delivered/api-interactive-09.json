@@ -1,0 +1,139 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.delivered",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TEST4841FC78723A",
+      "interactive": {
+        "body": {
+          "text": "Safa Chicken · Sandwiches"
+        },
+        "type": "list",
+        "action": {
+          "button": "Menu",
+          "sections": [
+            {
+              "rows": [
+                {
+                  "id": "pi:i1",
+                  "title": "أوريجانو",
+                  "description": "$6.50"
+                },
+                {
+                  "id": "pi:i2",
+                  "title": "سوبريم",
+                  "description": "$7.00"
+                },
+                {
+                  "id": "pi:i3",
+                  "title": "فيلادلفيا",
+                  "description": "$7.50 · ≈ may contain sesame"
+                },
+                {
+                  "id": "pi:i4",
+                  "title": "دجاج",
+                  "description": "$5.50"
+                },
+                {
+                  "id": "pi:i5",
+                  "title": "طاووق",
+                  "description": "$5.50"
+                },
+                {
+                  "id": "pi:i6",
+                  "title": "سودة",
+                  "description": "$5.50"
+                },
+                {
+                  "id": "pi:i7",
+                  "title": "إسكالوب",
+                  "description": "$6.00"
+                },
+                {
+                  "id": "pi:i8",
+                  "title": "تشيز إسكالوب",
+                  "description": "$6.50"
+                },
+                {
+                  "id": "pi:i9",
+                  "title": "فاهيتا",
+                  "description": "$7.00 · ≈ may contain sesame"
+                },
+                {
+                  "id": "mo:s4:9",
+                  "title": "More ›"
+                }
+              ]
+            }
+          ]
+        },
+        "footer": {
+          "text": "Shared kitchens: traces of any allergen possible"
+        }
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "delivered",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000006",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000002",
+        "contact_name": "Test Person 2",
+        "content": "Safa Chicken · Sandwiches\nList Button: Menu\n• أوريجانو — $6.50\n• سوبريم — $7.00\n• فيلادلفيا — $7.50 · ≈ may contain sesame\n• دجاج — $5.50\n• طاووق — $5.50\n• سودة — $5.50\n• إسكالوب — $6.00\n• تشيز إسكالوب — $6.50\n• فاهيتا — $7.00 · ≈ may contain sesame\n• More ›\nShared kitchens: traces of any allergen possible",
+        "statuses": [
+          {
+            "id": "wamid.TEST4841FC78723A",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792772446",
+            "recipient_id": "96170000006",
+            "recipient_user_id": "XX.0000000000000002"
+          },
+          {
+            "id": "wamid.TEST4841FC78723A",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792772456",
+            "recipient_id": "96170000006",
+            "recipient_user_id": "XX.0000000000000002"
+          }
+        ],
+        "message_type_data": {
+          "type": "list",
+          "body_text": "Safa Chicken · Sandwiches",
+          "footer_text": "Shared kitchens: traces of any allergen possible"
+        }
+      },
+      "timestamp": "1792772445",
+      "to": "96170000006",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "contact_name": "Test Person 2",
+      "phone_number": "96170000006",
+      "business_scoped_user_id": "XX.0000000000000002",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

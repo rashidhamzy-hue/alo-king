@@ -1,0 +1,152 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.delivered",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TEST6EA8DA112A1B",
+      "interactive": {
+        "body": {
+          "text": "اختار قسم من Safa Chicken:"
+        },
+        "type": "list",
+        "action": {
+          "button": "المنيو",
+          "sections": [
+            {
+              "rows": [
+                {
+                  "id": "ps:s1",
+                  "title": "Cold Beverages",
+                  "description": "13 صنف"
+                },
+                {
+                  "id": "ps:s2",
+                  "title": "مقبلات",
+                  "description": "18 صنف"
+                },
+                {
+                  "id": "ps:s3",
+                  "title": "سلطات",
+                  "description": "5 صنف"
+                },
+                {
+                  "id": "ps:s4",
+                  "title": "سندويشات",
+                  "description": "23 صنف"
+                },
+                {
+                  "id": "ps:s5",
+                  "title": "شاورما",
+                  "description": "13 صنف"
+                },
+                {
+                  "id": "ps:s6",
+                  "title": "صحن يومي ‏متوفر يومياً",
+                  "description": "8 صنف"
+                },
+                {
+                  "id": "ps:s7",
+                  "title": "برغرز",
+                  "description": "6 صنف"
+                },
+                {
+                  "id": "ps:s8",
+                  "title": "Wraps",
+                  "description": "3 صنف"
+                },
+                {
+                  "id": "ps:s9",
+                  "title": "Pizza & Pasta",
+                  "description": "8 صنف"
+                },
+                {
+                  "id": "sl:9",
+                  "title": "أقسام تانية ›"
+                }
+              ]
+            }
+          ]
+        },
+        "footer": {
+          "text": "مطبخ مشترك: ممكن آثار لأي مسبّب حساسية"
+        }
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "delivered",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000001",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
+        "contact_name": "Test Person 1",
+        "content": "اختار قسم من Safa Chicken:\nList Button: المنيو\n• Cold Beverages — 13 صنف\n• مقبلات — 18 صنف\n• سلطات — 5 صنف\n• سندويشات — 23 صنف\n• شاورما — 13 صنف\n• صحن يومي ‏متوفر يومياً — 8 صنف\n• برغرز — 6 صنف\n• Wraps — 3 صنف\n• Pizza & Pasta — 8 صنف\n• أقسام تانية ›\nمطبخ مشترك: ممكن آثار لأي مسبّب حساسية",
+        "statuses": [
+          {
+            "id": "wamid.TEST6EA8DA112A1B",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792747789",
+            "recipient_id": "96170000001",
+            "recipient_user_id": "XX.0000000000000001"
+          },
+          {
+            "id": "wamid.TEST6EA8DA112A1B",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792747790",
+            "recipient_id": "96170000001",
+            "recipient_user_id": "XX.0000000000000001"
+          },
+          {
+            "id": "wamid.TEST6EA8DA112A1B",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792748543",
+            "recipient_id": "96170000001",
+            "recipient_user_id": "XX.0000000000000001"
+          }
+        ],
+        "message_type_data": {
+          "type": "list",
+          "body_text": "اختار قسم من Safa Chicken:",
+          "footer_text": "مطبخ مشترك: ممكن آثار لأي مسبّب حساسية"
+        }
+      },
+      "timestamp": "1792747788",
+      "to": "96170000001",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "contact_name": "Test Person 1",
+      "phone_number": "96170000001",
+      "business_scoped_user_id": "XX.0000000000000001",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

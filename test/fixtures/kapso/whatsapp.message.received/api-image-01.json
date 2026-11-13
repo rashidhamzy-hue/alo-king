@@ -1,0 +1,57 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.received",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "from": "96170000010",
+      "from_parent_user_id": null,
+      "from_user_id": "XX.0000000000000003",
+      "id": "wamid.TESTF4846DAE54FB",
+      "image": {
+        "id": "900000000000015",
+        "url": "https://example.invalid/9ba87f09cb33",
+        "sha256": "9ffc00c85e37",
+        "mime_type": "image/jpeg",
+        "link": "https://example.invalid/07b10ce3dabc"
+      },
+      "kapso": {
+        "direction": "inbound",
+        "status": "delivered",
+        "processing_status": "pending",
+        "origin": "cloud_api",
+        "phone_number": "96170000010",
+        "phone_number_id": "1378974041965966",
+        "has_media": true,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000004",
+        "contact_name": "Test Person 3",
+        "content": "Image attached (image_227464d5f8f0.jpeg) [Size: 89.1 KB | Type: image/jpeg] URL: https://example.invalid/07b10ce3dabc",
+        "media_data": {
+          "url": "https://example.invalid/07b10ce3dabc",
+          "filename": "image_227464d5f8f0.jpeg",
+          "content_type": "image/jpeg",
+          "byte_size": 91277
+        },
+        "media_url": "https://example.invalid/07b10ce3dabc",
+        "message_type_data": {
+          "caption": "",
+          "has_media": true
+        }
+      },
+      "timestamp": "1793099630",
+      "type": "image",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000004",
+      "contact_name": "Test Person 3",
+      "phone_number": "96170000010",
+      "business_scoped_user_id": "XX.0000000000000003",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

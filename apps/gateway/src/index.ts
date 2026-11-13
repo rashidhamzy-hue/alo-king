@@ -4,6 +4,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { KapsoReceived, senderKey, unwrap, verifySignature, type Line } from "@ak/wa/kapso";
 import { send as gatewaySend } from "@ak/wa/gateway";
+import { parseIdentityEvent, parsePreferenceEvent, parseStatusEvent } from "@ak/wa/webhook";
 import type { ModelClient } from "@ak/agents/concierge";
 import type { ConversationState } from "@ak/agents/concierge-tools";
 import Anthropic from "@anthropic-ai/sdk";
@@ -176,21 +177,27 @@ async function notifyCustomer(deps: TurnDeps, id: string, what: "on_the_way" | "
   }
 }
 
-async function route(supa: SupabaseClient, env: Env, line: Line, event: string, item: unknown): Promise<void> {
+/** Exported for tests. Non-message events are applied through SQL; messages go to their conversation object. */
+export async function route(supa: SupabaseClient, env: Env, line: Line, event: string, item: unknown): Promise<void> {
   if (event === "whatsapp.contact.marketing_preference_changed") {
-    // The customer changed "offers and announcements" inside WhatsApp itself. That is a consent event like any other.
-    const e = item as { contact?: { wa_id?: string; phone_number?: string; business_scoped_user_id?: string }; marketing_preference?: string; preference?: string };
-    const pref = String(e.marketing_preference ?? e.preference ?? "").toLowerCase();
-    const id = e.contact?.business_scoped_user_id ?? e.contact?.wa_id ?? e.contact?.phone_number;
-    if (!id || !pref) return;
-    const { data } = await supa.rpc("touch_conversation", { p_line: line, p_wa_user_id: e.contact?.business_scoped_user_id ?? null, p_phone: e.contact?.phone_number ?? e.contact?.wa_id ?? null, p_name: null });
-    const party = (data as { party_id?: string } | null)?.party_id;
-    if (party) await supa.from("consent_events").insert({ party_id: party, line, kind: "marketing", action: /stop|opt.?out|off|false/.test(pref) ? "opt_out" : "opt_in", source: "meta_preference_webhook" });
+    // The customer changed "offers and announcements" inside WhatsApp itself. A consent event like any other,
+    // but never a sign of life: it does not create a customer and does not open the reply window (0060).
+    const p = parsePreferenceEvent(item);
+    if (!p) throw new Error("unreadable marketing_preference_changed payload");   // stored with the error; never silently dropped
+    const { error } = await supa.rpc("apply_marketing_preference", { p_line: line, p_wa_user_id: p.waUserId, p_phone: p.phone, p_status: p.status, p_sequence: p.sequence });
+    if (error) throw new Error(`apply_marketing_preference: ${error.message}`);
     return;
   }
-  if (event === "whatsapp.message.failed" || event === "whatsapp.message.delivered" || event === "whatsapp.message.read") {
-    const s = item as { message?: { id?: string } };
-    if (s.message?.id) await supa.from("wa_messages").update({ status: event.split(".").pop() }).eq("wa_message_id", s.message.id);
+  if (event === "whatsapp.contact.identity_changed") {
+    const c = parseIdentityEvent(item);
+    if (!c) return;
+    const { error } = await supa.rpc("rekey_identity", { p_line: line, p_old: c.oldId, p_new: c.newId, p_phone: c.phone });
+    if (error) throw new Error(`rekey_identity: ${error.message}`);
+    return;
+  }
+  if (event === "whatsapp.message.sent" || event === "whatsapp.message.failed" || event === "whatsapp.message.delivered" || event === "whatsapp.message.read") {
+    const s = parseStatusEvent(event, item);
+    if (s) await supa.from("wa_messages").update({ status: s.status }).eq("wa_message_id", s.wamid);
     return;
   }
   if (event !== "whatsapp.message.received") return;

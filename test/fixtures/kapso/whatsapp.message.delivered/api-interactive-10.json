@@ -1,0 +1,125 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.delivered",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TEST98E5DEB719C6",
+      "interactive": {
+        "body": {
+          "text": "Pick a section of Tarabish:"
+        },
+        "type": "list",
+        "action": {
+          "button": "Menu",
+          "sections": [
+            {
+              "rows": [
+                {
+                  "id": "ps:s1",
+                  "title": "Shakes",
+                  "description": "11 items"
+                },
+                {
+                  "id": "ps:s2",
+                  "title": "Juices",
+                  "description": "17 items"
+                },
+                {
+                  "id": "ps:s3",
+                  "title": "Merry Cream Cornet",
+                  "description": "4 items"
+                },
+                {
+                  "id": "ps:s4",
+                  "title": "Ice Cream",
+                  "description": "12 items"
+                },
+                {
+                  "id": "ps:s5",
+                  "title": "Special Cups",
+                  "description": "20 items"
+                },
+                {
+                  "id": "ps:s6",
+                  "title": "Waffle and Crepe",
+                  "description": "12 items"
+                },
+                {
+                  "id": "fm",
+                  "title": "Full menu ›",
+                  "description": "Every item, with those without a photo"
+                }
+              ]
+            }
+          ]
+        },
+        "footer": {
+          "text": "Shared kitchens: traces of any allergen possible"
+        }
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "delivered",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000006",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000002",
+        "contact_name": "Test Person 2",
+        "content": "Pick a section of Tarabish:\nList Button: Menu\n• Shakes — 11 items\n• Juices — 17 items\n• Merry Cream Cornet — 4 items\n• Ice Cream — 12 items\n• Special Cups — 20 items\n• Waffle and Crepe — 12 items\n• Full menu › — Every item, with those without a photo\nShared kitchens: traces of any allergen possible",
+        "statuses": [
+          {
+            "id": "wamid.TEST98E5DEB719C6",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792772471",
+            "recipient_id": "96170000006",
+            "recipient_user_id": "XX.0000000000000002"
+          },
+          {
+            "id": "wamid.TEST98E5DEB719C6",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792772471",
+            "recipient_id": "96170000006",
+            "recipient_user_id": "XX.0000000000000002"
+          }
+        ],
+        "message_type_data": {
+          "type": "list",
+          "body_text": "Pick a section of Tarabish:",
+          "footer_text": "Shared kitchens: traces of any allergen possible"
+        }
+      },
+      "timestamp": "1792772470",
+      "to": "96170000006",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "contact_name": "Test Person 2",
+      "phone_number": "96170000006",
+      "business_scoped_user_id": "XX.0000000000000002",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

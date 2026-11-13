@@ -1,0 +1,80 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.read",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TEST54BFD34AFC9E",
+      "interactive": {
+        "body": {
+          "text": "📍 Send me your location pin so we know where to deliver."
+        },
+        "type": "location_request_message",
+        "action": {
+          "name": "send_location"
+        }
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "read",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000010",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000003",
+        "contact_name": "Test Person 3",
+        "content": "📍 Send me your location pin so we know where to deliver.",
+        "statuses": [
+          {
+            "id": "wamid.TEST54BFD34AFC9E",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792832837",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          },
+          {
+            "id": "wamid.TEST54BFD34AFC9E",
+            "status": "read",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792832837",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          }
+        ],
+        "message_type_data": {
+          "type": "location_request_message",
+          "body_text": "📍 Send me your location pin so we know where to deliver."
+        }
+      },
+      "timestamp": "1792832836",
+      "to": "96170000010",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "contact_name": "Test Person 3",
+      "phone_number": "96170000010",
+      "business_scoped_user_id": "XX.0000000000000003",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

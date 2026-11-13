@@ -1,0 +1,10 @@
+{
+  "line": "customer",
+  "event": "whatsapp.contact.marketing_preference_changed",
+  "source": "kapso-docs",
+  "body": {
+    "contact": { "id": "contact_123", "wa_id": "96170000001", "profile_name": "Test Person 1", "metadata": {} },
+    "marketing_preference": { "status": "resumed", "previous_status": "stopped", "detail": null, "occurred_at": "2026-10-29T09:00:00-03:00", "sequence": 4822 },
+    "phone_number_id": "1378974041965966"
+  }
+}

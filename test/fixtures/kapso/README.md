@@ -10,4 +10,8 @@ Layout: `<event>/<message type>-NN.json`, each `{ line, event, body }`. Event ty
 (text, audio, image, location, interactive button_reply, list_reply, and one with no phone number), `delivered`, `read`,
 `failed`, `whatsapp.contact.marketing_preference_changed`. Also capture a click-to-WhatsApp message with `referral` (task 0.9).
 
-Status: tooling written and tested on a synthetic payload. **No real payload is saved yet**: that needs real messages on the staging numbers.
+Status (13 Nov, session A2): 75 fixtures built from REAL Kapso message objects (October traffic on the customer number, `source: "kapso-message-api"`),
+by `scripts/fixtures/from-kapso-messages.mjs`: the message is real (people replaced, typed and spoken words replaced by synthetic Lebanese lines,
+wamids replaced because a wamid encodes the sender's number); the envelope around it follows Kapso's documented v2 payload.
+The contact events and `failed` are Kapso's documented examples (`source: "kapso-docs"`): no real one has happened yet.
+Real webhook captures (`source: "webhook"`) still come from the workflow above once real messages reach the staging Worker; they sit beside these.

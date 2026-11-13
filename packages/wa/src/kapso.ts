@@ -9,8 +9,9 @@ export const KapsoMessage = z.object({
   timestamp: z.string(),                            // unix epoch, as a string
   type: z.string(),                                 // text | audio | image | location | interactive | ...
   from: z.string().optional(),                      // NOT guaranteed: Meta is moving to BSUIDs
-  from_user_id: z.string().optional(),              // BSUID
-  username: z.string().optional(),
+  from_user_id: z.string().nullable().optional(),   // BSUID
+  from_parent_user_id: z.string().nullable().optional(),
+  username: z.string().nullable().optional(),       // real payloads send null, not an absent key (fixtures, 4.1)
   text: z.object({ body: z.string() }).optional(),
   audio: z.object({ id: z.string() }).passthrough().optional(),
   image: z.object({ id: z.string(), caption: z.string().optional() }).passthrough().optional(),
@@ -56,7 +57,7 @@ export function unwrap(body: unknown): unknown[] {
 
 /** Stable identity for a sender: BSUID first, phone second. */
 export function senderKey(e: KapsoReceived): { waUserId?: string; phone?: string } {
-  const waUserId = e.message.from_user_id ?? e.conversation.business_scoped_user_id ?? undefined;
+  const waUserId = e.message.from_user_id || e.conversation.business_scoped_user_id || undefined;
   const phone = e.message.from ?? e.conversation.phone_number ?? undefined;
   return { waUserId: waUserId ?? undefined, phone: phone ? normalisePhone(phone) : undefined };
 }

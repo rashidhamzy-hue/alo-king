@@ -1,0 +1,84 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.delivered",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TESTA9291A98AC83",
+      "kapso": {
+        "direction": "outbound",
+        "status": "delivered",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000001",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
+        "contact_name": "Test Person 1",
+        "content": "رسالة صادرة (نص مستبدل)",
+        "statuses": [
+          {
+            "id": "wamid.TESTA9291A98AC83",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792747787",
+            "recipient_id": "96170000001",
+            "recipient_user_id": "XX.0000000000000001"
+          },
+          {
+            "id": "wamid.TESTA9291A98AC83",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792747787",
+            "recipient_id": "96170000001",
+            "recipient_user_id": "XX.0000000000000001"
+          },
+          {
+            "id": "wamid.TESTA9291A98AC83",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792748543",
+            "recipient_id": "96170000001",
+            "recipient_user_id": "XX.0000000000000001"
+          }
+        ]
+      },
+      "text": {
+        "body": "رسالة صادرة (نص مستبدل)",
+        "preview_url": false
+      },
+      "timestamp": "1792747786",
+      "to": "96170000001",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "text",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "contact_name": "Test Person 1",
+      "phone_number": "96170000001",
+      "business_scoped_user_id": "XX.0000000000000001",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

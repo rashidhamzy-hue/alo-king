@@ -1,0 +1,57 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.received",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "audio": {
+        "id": "900000000000001",
+        "url": "https://example.invalid/7adb98f2ee9d",
+        "voice": true,
+        "sha256": "f7f2b00a2ebf",
+        "mime_type": "audio/ogg; codecs=opus",
+        "link": "https://example.invalid/9ab56013811c"
+      },
+      "context": null,
+      "from": "96170000001",
+      "from_parent_user_id": null,
+      "from_user_id": "XX.0000000000000001",
+      "id": "wamid.TESTB5C724D7262F",
+      "kapso": {
+        "direction": "inbound",
+        "status": "delivered",
+        "processing_status": "pending",
+        "origin": "cloud_api",
+        "phone_number": "96170000001",
+        "phone_number_id": "1378974041965966",
+        "has_media": true,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
+        "contact_name": "Test Person 1",
+        "content": "Audio attached (audio_5e82581ec56e.ogg) [Size: 45.6 KB | Type: audio/ogg] URL: https://example.invalid/9ab56013811c \n\nTranscript: بدي كيس خبز ومي",
+        "transcript": {
+          "text": "بدي كيس خبز ومي"
+        },
+        "media_data": {
+          "url": "https://example.invalid/9ab56013811c",
+          "filename": "audio_5e82581ec56e.ogg",
+          "content_type": "audio/ogg",
+          "byte_size": 46724
+        },
+        "media_url": "https://example.invalid/9ab56013811c"
+      },
+      "timestamp": "1792422249",
+      "type": "audio",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "contact_name": "Test Person 1",
+      "phone_number": "96170000001",
+      "business_scoped_user_id": "XX.0000000000000001",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

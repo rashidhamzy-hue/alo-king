@@ -1,0 +1,50 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.received",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": {
+        "id": "wamid.TEST4ECE5DF715C7",
+        "from": "12036602328"
+      },
+      "from": "96170000001",
+      "from_parent_user_id": null,
+      "from_user_id": "XX.0000000000000001",
+      "id": "wamid.TESTA1DE32C2E6EF",
+      "kapso": {
+        "direction": "inbound",
+        "status": "delivered",
+        "processing_status": "pending",
+        "origin": "cloud_api",
+        "phone_number": "96170000001",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
+        "contact_name": "Test Person 1",
+        "content": "Lat: 33.96170000002, Long: 35.96170000003",
+        "message_type_data": {
+          "latitude": 33.645458221436,
+          "longitude": 35.643478393555
+        }
+      },
+      "location": {
+        "latitude": 33.645458221436,
+        "longitude": 35.643478393555
+      },
+      "timestamp": "1792430457",
+      "type": "location",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "contact_name": "Test Person 1",
+      "phone_number": "96170000001",
+      "business_scoped_user_id": "XX.0000000000000001",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.delivered",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TEST93044CEF61A2",
+      "image": {
+        "link": "https://example.invalid/0353c88a7617",
+        "caption": "*Safa Chicken*\nRestaurant · Bakaata · 🛵 $2.00 delivery · 🕒 today 8:30 AM to 11 PM"
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "delivered",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000006",
+        "phone_number_id": "1378974041965966",
+        "has_media": true,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000002",
+        "contact_name": "Test Person 2",
+        "content": "*Safa Chicken*\nRestaurant · Bakaata · 🛵 $2.00 delivery · 🕒 today 8:30 AM to 11 PM Image attached (563da9d7-65b0-4c70-b549-70f5ed84c0b4.jpg) [Size: 111.6 KB | Type: image/jpeg] URL: https://example.invalid/0353c88a7617",
+        "statuses": [
+          {
+            "id": "wamid.TEST93044CEF61A2",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792772394",
+            "recipient_id": "96170000006",
+            "recipient_user_id": "XX.0000000000000002"
+          },
+          {
+            "id": "wamid.TEST93044CEF61A2",
+            "status": "delivered",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792772409",
+            "recipient_id": "96170000006",
+            "recipient_user_id": "XX.0000000000000002"
+          }
+        ],
+        "media_data": {
+          "url": "https://example.invalid/0353c88a7617",
+          "filename": "563da9d7-65b0-4c70-b549-70f5ed84c0b4.jpg",
+          "content_type": "image/jpeg",
+          "byte_size": 114236
+        },
+        "media_url": "https://example.invalid/0353c88a7617",
+        "message_type_data": {
+          "caption": "*Safa Chicken*\nRestaurant · Bakaata · 🛵 $2.00 delivery · 🕒 today 8:30 AM to 11 PM",
+          "has_media": true
+        }
+      },
+      "timestamp": "1792772391",
+      "to": "96170000006",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "image",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "contact_name": "Test Person 2",
+      "phone_number": "96170000006",
+      "business_scoped_user_id": "XX.0000000000000002",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.read",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "context": null,
+      "id": "wamid.TEST95F95FC79558",
+      "interactive": {
+        "body": {
+          "text": "✅ Address saved: Ain Qani\n\nWhat are you craving? 😋 Pick a category, or see every shop that delivers to Ain Qani.\nOr just type what you want, e.g. \"2 shawarma\"."
+        },
+        "type": "list",
+        "action": {
+          "button": "Browse",
+          "sections": [
+            {
+              "rows": [
+                {
+                  "id": "cat:burgers",
+                  "title": "🍔 Burgers",
+                  "description": "11 shops"
+                },
+                {
+                  "id": "cat:chicken",
+                  "title": "🍗 Fried chicken",
+                  "description": "11 shops"
+                },
+                {
+                  "id": "cat:sandwiches",
+                  "title": "🥪 Sandwiches",
+                  "description": "8 shops"
+                },
+                {
+                  "id": "cat:grills",
+                  "title": "🍢 Grills",
+                  "description": "7 shops"
+                },
+                {
+                  "id": "cat:mezze",
+                  "title": "🥙 Lebanese mezze",
+                  "description": "5 shops"
+                },
+                {
+                  "id": "cat:shawarma",
+                  "title": "🌯 Shawarma",
+                  "description": "4 shops"
+                },
+                {
+                  "id": "cat:manakish",
+                  "title": "🫓 Manakish",
+                  "description": "4 shops"
+                },
+                {
+                  "id": "cat:desserts",
+                  "title": "🍰 Desserts",
+                  "description": "4 shops"
+                },
+                {
+                  "id": "cm:8",
+                  "title": "➕ More categories",
+                  "description": "6 more"
+                }
+              ],
+              "title": "Categories"
+            },
+            {
+              "rows": [
+                {
+                  "id": "c:near",
+                  "title": "🛵 Shops near you",
+                  "description": "29 shops deliver to you"
+                }
+              ],
+              "title": "Shops"
+            }
+          ]
+        }
+      },
+      "kapso": {
+        "direction": "outbound",
+        "status": "read",
+        "processing_status": "processed",
+        "origin": "cloud_api",
+        "phone_number": "96170000010",
+        "phone_number_id": "1378974041965966",
+        "has_media": false,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000003",
+        "contact_name": "Test Person 3",
+        "content": "✅ Address saved: Ain Qani\n\nWhat are you craving? 😋 Pick a category, or see every shop that delivers to Ain Qani.\nOr just type what you want, e.g. \"2 shawarma\".\nList Button: Browse\n— Categories —\n• 🍔 Burgers — 11 shops\n• 🍗 Fried chicken — 11 shops\n• 🥪 Sandwiches — 8 shops\n• 🍢 Grills — 7 shops\n• 🥙 Lebanese mezze — 5 shops\n• 🌯 Shawarma — 4 shops\n• 🫓 Manakish — 4 shops\n• 🍰 Desserts — 4 shops\n• ➕ More categories — 6 more\n— Shops —\n• 🛵 Shops near you — 29 shops deliver to you",
+        "statuses": [
+          {
+            "id": "wamid.TEST95F95FC79558",
+            "status": "sent",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792832861",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          },
+          {
+            "id": "wamid.TEST95F95FC79558",
+            "status": "read",
+            "pricing": {
+              "type": "free_customer_service",
+              "billable": false,
+              "category": "service",
+              "pricing_model": "PMP"
+            },
+            "timestamp": "1792832861",
+            "recipient_id": "96170000010",
+            "recipient_user_id": "XX.0000000000000003"
+          }
+        ],
+        "message_type_data": {
+          "type": "list",
+          "body_text": "✅ Address saved: Ain Qani\n\nWhat are you craving? 😋 Pick a category, or see every shop that delivers to Ain Qani.\nOr just type what you want, e.g. \"2 shawarma\"."
+        }
+      },
+      "timestamp": "1792832860",
+      "to": "96170000010",
+      "to_parent_user_id": null,
+      "to_user_id": null,
+      "type": "interactive",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "contact_name": "Test Person 3",
+      "phone_number": "96170000010",
+      "business_scoped_user_id": "XX.0000000000000003",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}

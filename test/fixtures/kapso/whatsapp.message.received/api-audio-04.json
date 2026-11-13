@@ -1,0 +1,57 @@
+{
+  "line": "customer",
+  "event": "whatsapp.message.received",
+  "source": "kapso-message-api",
+  "body": {
+    "message": {
+      "audio": {
+        "id": "900000000000004",
+        "url": "https://example.invalid/1313fa225f6c",
+        "voice": true,
+        "sha256": "fae1edb60fe8",
+        "mime_type": "audio/ogg; codecs=opus",
+        "link": "https://example.invalid/ae62763233cb"
+      },
+      "context": null,
+      "from": "96170000001",
+      "from_parent_user_id": null,
+      "from_user_id": "XX.0000000000000001",
+      "id": "wamid.TEST5958378F3A15",
+      "kapso": {
+        "direction": "inbound",
+        "status": "delivered",
+        "processing_status": "pending",
+        "origin": "cloud_api",
+        "phone_number": "96170000001",
+        "phone_number_id": "1378974041965966",
+        "has_media": true,
+        "whatsapp_conversation_id": "00000000-0000-4000-8000-000000000001",
+        "contact_name": "Test Person 1",
+        "content": "Audio attached (audio_d9d70257625d.ogg) [Size: 29.0 KB | Type: audio/ogg] URL: https://example.invalid/ae62763233cb \n\nTranscript: عندكن جبنة عكاوي؟",
+        "transcript": {
+          "text": "عندكن جبنة عكاوي؟"
+        },
+        "media_data": {
+          "url": "https://example.invalid/ae62763233cb",
+          "filename": "audio_d9d70257625d.ogg",
+          "content_type": "audio/ogg",
+          "byte_size": 29677
+        },
+        "media_url": "https://example.invalid/ae62763233cb"
+      },
+      "timestamp": "1792466224",
+      "type": "audio",
+      "username": null
+    },
+    "conversation": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "contact_name": "Test Person 1",
+      "phone_number": "96170000001",
+      "business_scoped_user_id": "XX.0000000000000001",
+      "status": "active",
+      "phone_number_id": "1378974041965966"
+    },
+    "is_new_conversation": false,
+    "phone_number_id": "1378974041965966"
+  }
+}
