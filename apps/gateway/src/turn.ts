@@ -14,7 +14,7 @@ import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers"
 import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
-import { judge } from "@ak/agents/stt";
+import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { decideVoice } from "@ak/agents/voice";
@@ -41,6 +41,8 @@ export interface TurnDeps {
    * (packages/wa, lane A), nothing is shown. Never sends a message and never blocks the turn.
    */
   typing?: (waMessageId: string) => Promise<unknown>;
+  /** A second speech-to-text provider (1.7), passed by the worker only when its key is configured. settings.stt decides use. */
+  stt?: SttProvider;
 }
 export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
 
@@ -184,17 +186,18 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       continue;
     }
 
-    // 4. Voice: mechanical checks first. Until a second provider is wired (build step 4), Kapso's transcript is the only reading.
+    // 4. Voice: the policy, then the transcripts (Kapso first, a second provider behind settings.stt), then mechanical checks.
     if (m.type === "audio") {
-      const t = m.kapso.transcript?.text ?? "";
       // Policy first (1.17): the role's limit and the sender's hourly budget from settings.voice_limits, across turns. A note
       // over a limit is answered politely and not read. Nothing is dropped in silence.
       const policy = await decideVoice({ db, partyId: conv.party_id, line: "customer", role: "customer" }, m, voiceSecondsThisTurn, turnIds);
       if (policy.reply) { await say(policy.reply); buttonsHandled++; continue; }
       const seconds = policy.seconds;
       voiceSecondsThisTurn += seconds;
-      const verdict = judge({ text: t, provider: "kapso" }, undefined, seconds);
-      if (verdict.usable) transcripts.push({ primary: verdict.primary.text }); else audioFailed++;
+      // Kapso's transcript first; a second provider's too when settings.stt names one we have (1.7). Both are judged.
+      const { verdict } = await readVoiceNote({ db, fetchMedia: deps.fetchMedia, stt: deps.stt }, conv.party_id, m, seconds);
+      if (verdict.usable) transcripts.push({ primary: verdict.primary.text, ...(verdict.secondary ? { secondary: verdict.secondary.text } : {}) });
+      else audioFailed++;
       continue;
     }
 

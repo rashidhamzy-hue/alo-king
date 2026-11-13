@@ -165,3 +165,47 @@ describe("voice-note policy by role, from settings, across turns (1.17)", () => 
     expect(short).toEqual({ reply: OPS_VOICE_TEXT.received, forwardToOps: true, seconds: 30 });
   });
 });
+
+describe("voice notes: Kapso first, a second provider behind a setting, the audio kept privately (1.7)", () => {
+  const OGG = new Uint8Array([79, 103, 103, 83, 0, 2, 1, 1, 7, 7, 7, 7]);
+  const note = (text: string, url = "https://app.kapso.ai/media/a1") => ({ type: "audio", audio: { id: "a1", voice: true },
+    kapso: { direction: "inbound", origin: "cloud_api", transcript: { text }, media_url: url, media_data: { url, byte_size: 2100 * 6 } } });
+  const setStt = (v: Record<string, unknown>) => db.pg.query(`update settings set value = $1 where key = 'stt'`, [JSON.stringify(v)]);
+  afterEach(() => setStt({ keep_audio: true, second_provider: null }));
+
+  it("the note is fetched through Kapso, kept in the private bucket, and Kapso's transcript is read; no second provider by default", async () => {
+    outbound = recordKapso({ "https://app.kapso.ai/media/a1": { bytes: OGG, type: "audio/ogg" } });
+    const stt = { name: "scribe", transcribe: vi.fn(async () => "x") };
+    const t = flow(db, [read(ORDER)], { deps: { stt } });
+    await pinned(db, t, ids.BAAKLINE);
+    await runTurn({ ...t.deps, stt }, t.pending(note("بدي علبتين لبنة ليبان ليه")), {});
+    expect(stt.transcribe).not.toHaveBeenCalled();
+    const row = await db.one(`select media_path, transcript from wa_messages where type = 'audio' order by created_at desc limit 1`);
+    expect(String(row.media_path), JSON.stringify(row.transcript)).toMatch(/^voice_notes\/[0-9a-f-]{36}\/[0-9a-f]{64}\.ogg$/);
+    expect(row.transcript).toMatchObject({ kapso: "بدي علبتين لبنة ليبان ليه", chosen: "kapso" });
+  });
+
+  it("with the setting, the second transcript is taken too, and rescues a note Kapso heard as a loop", async () => {
+    await setStt({ keep_audio: false, second_provider: "scribe" });
+    outbound = recordKapso({ "https://app.kapso.ai/media/a1": { bytes: OGG, type: "audio/ogg" } });
+    const stt = { name: "scribe", transcribe: vi.fn(async () => "بدي علبتين لبنة ليبان ليه") };
+    const t = flow(db, [read(ORDER)]);
+    await pinned(db, t, ids.BAAKLINE);
+    const r = await runTurn({ ...t.deps, stt }, t.pending(note("لا لا لا لا لا لا لا لا لا لا")), {});
+    expect(stt.transcribe).toHaveBeenCalledTimes(1);
+    expect(r.outcome).toBe("card");
+    const row = await db.one(`select media_path, transcript from wa_messages where type = 'audio' order by created_at desc limit 1`);
+    expect(row.media_path).toBeNull();                                  // keep_audio off
+    expect(row.transcript).toMatchObject({ second: { provider: "scribe" }, chosen: "scribe" });
+  });
+
+  it("a raw Meta link is never fetched; the note is still read from Kapso's transcript", async () => {
+    const t = flow(db, [read(ORDER)]);
+    await pinned(db, t, ids.BAAKLINE);
+    const r = await runTurn(t.deps, t.pending(note("بدي علبتين لبنة ليبان ليه", "https://lookaside.fbsbx.com/whatsapp/a1")), {});
+    expect(r.outcome).toBe("card");
+    expect(outbound.every((o) => !o.url.includes("fbsbx"))).toBe(true);
+    const row = await db.one(`select transcript from wa_messages where type = 'audio' order by created_at desc limit 1`);
+    expect(row.transcript.notes).toEqual({ audio: "no_kapso_media_url" });
+  });
+});
