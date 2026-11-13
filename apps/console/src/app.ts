@@ -85,6 +85,13 @@ export function explain(e: unknown): string {
       [/^IMAGE_SUPERSEDED/, "A newer picture replaced this one."],
       [/^PRODUCT_ON_HOLD/, "The product is on hold (recall)."],
       [/^REASON_REQUIRED/, "Write the reason for the change."],
+      [/^ORDER_NOT_PAID/, "Nothing was paid on this order: correct it, do not refund it."],
+      [/^REFUND_EXCEEDS_PAID/, "That is more than was paid on this order, counting earlier refunds."],
+      [/^REFUND_EXCEEDS_REVENUE revenue_delivery/, "The delivery fee belongs to the rider now. Charge compensation to goodwill instead."],
+      [/^REFUND_EXCEEDS_REVENUE/, "That is more than is still booked for this order under that heading."],
+      [/^EXCEEDS_CREDIT/, "That is more than the customer's free credit."],
+      [/^ITEM_NOT_ON_ORDER/, "That item is not on this order."],
+      [/^BAD_AMOUNT/, "Type an amount above zero."],
     ];
     for (const [re, say] of known) if (re.test(m)) return say;
     return `The database refused: ${m}`;

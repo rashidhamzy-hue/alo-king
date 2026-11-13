@@ -1,6 +1,6 @@
 // 3.6 Returns and refunds. Goods back from a failed delivery are received with receive_return() (0008): the person says how
 // many of each item go back on the shelf; the rest is written off. Chilled, frozen and fresh default to written off.
-// Refunds after delivery are task 2.3 (session C2): this page lists them once that function exists.
+// Refunds after delivery are on the Refunds page (refunds.ts, C2's refund_order and pay_out_credit).
 import { act, html, id, render, UserError, type Ctx, type Section } from "../app";
 import { form, usd } from "../html";
 import { ALL } from "../roles";
@@ -26,7 +26,7 @@ ${items.filter((i) => i.order_id === p.order_id).map((i) => {
 })}</table><p><button>Received: restock and close</button></p>`)}
 </div></div>`)}
 <h2>Refunds</h2>
-<p class="note">Refunds after delivery (credit, cash or Whish) come with task 2.3, session C2. Nothing to do here until then.</p>`);
+<p class="muted">A refund after delivery (credit, cash, Whish or OMT) is made by the ops lead on the <a href="/refunds">Refunds</a> page.</p>`);
 }
 
 async function receive(c: Ctx) {
