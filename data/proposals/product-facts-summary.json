@@ -1,0 +1,39 @@
+{
+  "run_id": "43497961883",
+  "model": "claude-haiku-5-5",
+  "processed": 0,
+  "outcomes": {},
+  "errors_by_message": {},
+  "refused_by_checks": {},
+  "skipped_by_reason": {},
+  "model_usage": {
+    "calls": 0,
+    "input_tokens": 0,
+    "output_tokens": 0
+  },
+  "coverage": {
+    "errors": 0,
+    "products": 291,
+    "proposals": 212,
+    "not_yet_tried": 0,
+    "products_with": {
+      "halal": 7,
+      "vegan": 17,
+      "diet_any": 25,
+      "nutrition": 86,
+      "vegetarian": 9,
+      "ingredients": 35,
+      "allergen_any": 27,
+      "allergen_contains": 26,
+      "allergen_may_contain": 6,
+      "ingredients_in_arabic": 31
+    },
+    "internal_codes": 29,
+    "without_barcode": 34,
+    "lookup_candidates": 228,
+    "not_in_open_food_facts": 115,
+    "found_in_open_food_facts": 113,
+    "products_with_any_proposal": 87,
+    "approved_from_open_food_facts": 0
+  }
+}
