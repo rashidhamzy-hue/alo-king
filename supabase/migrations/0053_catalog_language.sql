@@ -41,10 +41,14 @@ create or replace function catalog_tokens(p text) returns text[] language sql im
 $$;
 
 -- A token and the same token without one leading clitic: و (and), ب (with/in), ع (to/on), ف, and the article ال in any of
--- its joined forms. Stripped forms shorter than three letters are not kept, so short words never match by accident.
+-- its joined forms. Stripped forms shorter than three letters are not kept, so short words never match by accident. Size words
+-- also get one shared form, so «l kbar» meets a term written «kbire».
 create or replace function catalog_token_forms(t text) returns text[] language sql immutable as $$
   select array_agg(distinct f) from (
     select t as f
+    -- size words in every number and spelling people use: big and small, singular and plural, with or without the article
+    union all select 'kbir' where t ~ '^(el|l)?(kbir|kbire|kbireh|kbiri|kbar|kebir|kbeer)$' or t ~ '^(ال)?(كبير|كبيره|كبار)$'
+    union all select 'zghir' where t ~ '^(el|l)?(zghir|zghire|zghireh|zghar|z8ir|z8ire|z8ar|zgher|zghire)$' or t ~ '^(ال)?(صغير|صغيره|صغار|زغير|زغيره|زغار)$'
     union all select substr(t, 4) where t ~ '^(وال|بال|عال|فال|كال)' and length(t) >= 6
     union all select substr(t, 3) where t ~ '^(ال|لل)' and length(t) >= 5
     union all select substr(t, 2) where t ~ '^[وبعف]' and length(t) >= 4
@@ -92,9 +96,9 @@ insert into catalog_filler(word) select unnest(catalog_tokens(w)) from unnest(ar
 ]) w on conflict do nothing;
 
 -- Unit words. Inside a term they are optional ("pepsi diet 1.25L" matches "pepsi diet 1.25"), and in a message they are never
--- left unexplained.
+-- left unexplained. Not "x": "x3" is a pack of three, and "plein soleil 3" said anywhere is not that pack.
 create or replace function catalog_is_unit(t text) returns boolean language sql immutable as $$
-  select t ~ '^(g|gr|gm|gram|grams|gramme|kg|kilo|kilos|ml|cl|l|lt|ltr|litre|liter|litres|liters|pcs|pc|pieces|x|غ|غرام|غم|كغ|كيلو|مل|ملل|ل|لتر|ليتر|ليترات|حبه|حبات|قطعه|قطع)$'
+  select t ~ '^(g|gr|gm|gram|grams|gramme|kg|kilo|kilos|ml|cl|l|lt|ltr|litre|liter|litres|liters|pcs|pc|pieces|غ|غرام|غم|كغ|كيلو|مل|ملل|ل|لتر|ليتر|ليترات|حبه|حبات|قطعه|قطع)$'
 $$;
 
 -- Words that negate what follows: «مش البانيه», «bala zaytoun», «not the big one». What they negate never counts for a product,
@@ -474,6 +478,20 @@ begin
                  -- a size the best one leaves out and another explains («١٢٥ مل» against the litre): a question, not a guess
                  or (v_pack and exists (select 1 from jsonb_array_elements(res->'matches') m, jsonb_array_elements_text(coalesce(top->'loose_numbers', '[]'::jsonb)) w
                                          where m->>'product_id' <> top->>'product_id' and not (coalesce(m->'loose_numbers', '[]'::jsonb) ? w)));
+      -- a word only one of the tied products has in its exact terms, said (not negated) in the line, decides between them
+      -- («l kbar» for the big Wooden Bakery bread, «wasat» for the medium)
+      if chosen is null and v_pack and not v_loose and jsonb_array_length(ties) > 1 then
+        select x into chosen from jsonb_array_elements(ties) x where (x->>'product_id')::uuid = (
+          with t as (select (y->>'product_id')::uuid as pid from jsonb_array_elements(ties) y),
+          tok as (select distinct t.pid, f from t join products p on p.id = t.pid join language_pack lp on lp.sku = p.sku and lp.level = 'exact',
+                  unnest(lp.forms) f where f !~ '^[0-9]+$' and not catalog_is_unit(f)
+                    and not exists (select 1 from catalog_filler cf where cf.word = f)),
+          own as (select a.pid, a.f from tok a where not exists (select 1 from tok b where b.pid <> a.pid and b.f = a.f)),
+          said as (select coalesce(array_agg(f), '{}') as fs from (select catalog_tokens(ln->>'raw') as a) k, catalog_negated(k.a) n,
+                   unnest(k.a) with ordinality u(w, o), unnest(catalog_token_forms(w)) f where not o::int = any(n)),
+          hit as (select distinct own.pid from own, said where own.f = any(said.fs))
+          select case when count(*) = 1 then min(pid::text)::uuid end from hit);
+      end if;
       -- a product named by its brand alone («3tine kinder») is never chosen alone: which one is a question
       if v_pack and coalesce((top->>'level')::int, 2) = 1 then v_loose := true; end if;
       if chosen is null and jsonb_array_length(ties) = 1 and not v_loose then chosen := top; end if;
