@@ -248,20 +248,6 @@ describe("guards around the model", () => {
     expect(outbound[0]!.body.type).toBe("interactive");
   });
 
-  it("hands a restaurant order to a person instead of guessing", async () => {
-    const t = setup([
-      read({ intent: "order", language: "mixed", lines: [{ raw: "تنتين تشيز برغر وحدة بلا كبيس", query: "cheeseburger", qty: 2, modifiers: ["one without pickles"], source_hint: "سناك", confidence: 0.8 }] }),
-    ]);
-    await t.conv.fetch(t.text("بدي تنتين تشيز برغر من عند السناك وحدة بلا كبيس"));
-    await t.conv.alarm();
-    const c = await t.customer();
-    expect(c.human_handoff).toBe(true);
-    expect(await db.one(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ reason: "restaurant_order" });
-    expect(t.seen).toHaveLength(1);                                     // plan_order decided; no second call
-    expect(outbound).toHaveLength(1);
-    expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
-  });
-
   it("does not send a card for a quote with issues, and lets the Concierge offer the substitute", async () => {
     await db.pg.query(`update stock_levels set on_hand = reserved where product_id = $1`, [LABNEH_SMALL]);
     const t = setup([
@@ -309,6 +295,60 @@ describe("guards around the model", () => {
     const c = await t.customer();
     expect(await db.one(`select count(*)::int as n from customer_places where party_id = $1 and lat is not null`, [c.party_id])).toEqual({ n: 1 });
     expect(JSON.parse(t.seen[0]!.messages[0]!.content as string).texts[0]).toContain("location pin received");
+  });
+});
+
+describe("unsigned restaurants (1.2)", () => {
+  const BURGER = { raw: "تنتين تشيز برغر وحدة بلا كبيس", query: "cheeseburger", qty: 2, modifiers: ["one without pickles"], source_hint: "سناك أبو علي", confidence: 0.8 };
+
+  it("a restaurant that has not signed is 'not available yet': no handoff, no order, no second model call", async () => {
+    const t = setup([read({ intent: "order", language: "mixed", lines: [BURGER] })]);
+    await t.conv.fetch(t.text("بدي تنتين تشيز برغر من عند سناك أبو علي وحدة بلا كبيس"));
+    await t.conv.alarm();
+    const c = await t.customer();
+    expect(t.seen).toHaveLength(1);                                     // plan_order decided
+    expect(outbound).toHaveLength(1);
+    expect(outbound[0]!.body.text.body).toBe("سناك أبو علي مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق.");
+    expect(c.human_handoff).toBe(false);                                // nobody phones it in
+    expect(await db.one(`select count(*)::int as n from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ n: 0 });
+    expect(await db.one(`select count(*)::int as n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
+    expect(await db.one(`select trace->>'path' as p from agent_runs where conversation_id = $1`, [c.conversation_id])).toEqual({ p: "not_available" });
+  });
+
+  it("a mixed message: the restaurant part is named as not available, the groceries go on the card", async () => {
+    const t = setup([read({ ...ORDER_READING, lines: [...ORDER_READING.lines, BURGER] })]);
+    const c = await t.customer();
+    await db.rpc("save_customer_pin", { p_party: c.party_id, p_lat: 33.68, p_lng: 35.56, p_village: BAAKLINE });
+    await t.conv.fetch(t.text("بدي علبتين لبنة ليبان ليه وربطتين خبز، وتنتين تشيز برغر من سناك أبو علي"));
+    await t.conv.alarm();
+    expect(t.seen).toHaveLength(1);
+    expect(outbound).toHaveLength(2);
+    expect(outbound[0]!.body.text.body).toContain("سناك أبو علي مش متوفّر بعد");   // named before the card
+    expect(outbound[1]!.body.interactive.body.text).toContain("$8.24");            // the card holds only what we can deliver
+    const order = await db.one(`select id from orders where customer_id = $1`, [c.party_id]);
+    expect(await db.one(`select count(*)::int as n from order_items where order_id = $1`, [order.id])).toEqual({ n: 2 });
+  });
+
+  it("only approve_merchant() makes a restaurant searchable", async () => {
+    const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops') returning id`)).id;
+    const src = (await db.one(`insert into sources(kind, name, is_open) values ('merchant', 'Snack Abou Ali', true) returning id, is_open`));
+    expect(src.is_open).toBe(false);                                    // the trigger keeps it closed
+    const prod = (await db.one(`insert into products(sku, owner_source_id, name_en, category, sell_unit) values ('M-TEST-1', $1, 'Cheeseburger', 'Restaurant', 'piece') returning id`, [src.id])).id;
+    await db.pg.query(`insert into offers(source_id, product_id, price_usd) values ($1, $2, 6)`, [src.id, prod]);
+
+    expect((await db.rpc("search_catalog", { p_query: "cheeseburger", p_source_hint: "Snack Abou Ali" })).reason).toBe("merchant_not_onboarded");
+    expect((await db.rpc("search_catalog", { p_query: "cheeseburger" })).matches).toEqual([]);   // not even without a name
+
+    await db.rpc("approve_merchant", { p_source: src.id, p_by: ops, p_commission_pct: 15 });
+    const named = await db.rpc("search_catalog", { p_query: "cheeseburger", p_source_hint: "Snack Abou Ali" });
+    expect(named.reason).toBeNull();
+    expect(named.matches[0]).toMatchObject({ product_id: prod, source_id: src.id, available: 999 });
+    // Approved restaurants are planned like anything else.
+    const c = await setup([]).customer();
+    const plan = await db.rpc("plan_order", { p_party: c.party_id, p_intent: { intent: "order", lines: [{ raw: "برغر", query: "cheeseburger", qty: 1, source_hint: "Snack Abou Ali" }] } });
+    expect(plan.lines[0].status).toBe("matched");
+    expect(plan.unavailable).toEqual([]);
+    await db.pg.query(`update sources set is_open = false where id = $1`, [src.id]);
   });
 });
 

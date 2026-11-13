@@ -14,7 +14,9 @@ export interface PlanLine {
   candidates: { product_id: string; name: string; name_ar: string | null; price_usd: number; in_stock: boolean }[] | null;
 }
 export interface Plan {
-  next: "card" | "ask" | "handoff"; handoff_reason: string | null;
+  next: "card" | "ask" | "handoff" | "not_available"; handoff_reason: string | null;
+  /** Lines for a restaurant that has not been approved (build plan 1.2). Never phoned in, never handed off as an order. */
+  unavailable?: { idx: number; raw: string; source_hint: string | null }[];
   lines: PlanLine[]; quote_lines: QuoteLineInput[]; quote: Quote | null; issues: { code: string; [k: string]: unknown }[];
   village_id: string | null; place_id: string | null; pickup: boolean; needs_pin: boolean;
   payment_method: "cod" | "whish" | "omt"; prepay_required: boolean; dues_usd: number; change_for_usd: number | null;
@@ -46,6 +48,11 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null):
   const directions = directionsOf(intent);
   if (directions) ctx.state.directions = directions;
 
+  const unavailable = notAvailableText(plan);
+  if (plan.next === "not_available") {
+    const r = await deliver(ctx, { type: "text", text: { body: unavailable! } }, unavailable!);
+    return r.ok ? { done: true, path: "not_available" } : { done: false, plan };
+  }
   if (plan.next === "handoff") {
     await handoff(ctx, plan.handoff_reason ?? "plan_handoff");
     return { done: true, path: "handoff" };
@@ -58,11 +65,19 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null):
     // First delivery to this village: the rider needs a pin. The card waits for it; nothing is asked of the model.
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote: plan.quote };
     ctx.state.awaiting = "pin"; ctx.state.pending = terms;
-    const r = await deliver(ctx, askLocation(FIXED.askPin), `[location request] ${FIXED.askPin}`);
+    const text = unavailable ? `${unavailable}\n${FIXED.askPin}` : FIXED.askPin;
+    const r = await deliver(ctx, askLocation(text), `[location request] ${text}`);
     return r.ok ? { done: true, path: "ask_pin" } : { done: false, plan };
   }
-  const card = await issueCard(ctx, basket, terms);
+  const card = await issueCard(ctx, basket, terms, { before: unavailable ?? undefined });
   return card.ok ? { done: true, path: "card" } : { done: false, plan };
+}
+
+/** "X is not available yet", in the customer's own words for the shop. Neutral: no reason, no opinion, no promise. */
+export function notAvailableText(plan: Pick<Plan, "unavailable">): string | null {
+  const said = [...new Set((plan.unavailable ?? []).map((u) => (u.source_hint ?? "").trim()).filter(Boolean))];
+  if (!(plan.unavailable ?? []).length) return null;
+  return FIXED.notAvailable(said);
 }
 
 /** A pin arrived for a card that was waiting on it: send the card, re-priced by the database, with no model call. */
