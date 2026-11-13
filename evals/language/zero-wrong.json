@@ -1,5 +1,5 @@
 {
- "note": "Session B4: the four phrasings that kept 1.22 from zero wrong products (B3's live runs on 13 Nov, results/after.json), each with every reading the live model gave them. Replayed through plan_order by zero-wrong.test.ts: a wrong product fails; a question (ambiguous, not found) is the safe failure and passes.",
+ "note": "Session B4: the four phrasings that kept 1.22 from zero wrong products (B3's live runs on 13 Nov, results/after.json), each with every reading the live model gave them. Replayed through plan_order by zero-wrong.test.ts: a wrong product fails; a question (ambiguous, not found) is the safe failure and passes. B4's live run 43500022007 (3 runs a case) added g0354: the size «l kbar» left in source_hint, the medium loaf assumed.",
  "readings": [
   {
    "id": "g0060",
@@ -266,6 +266,26 @@
    "items": [
     {
      "sku": "AK-0237"
+    }
+   ]
+  },
+  {
+   "id": "g0354",
+   "lines": [
+    {
+     "raw": "2 rabtat 5ebez",
+     "query": "خبز",
+     "brand_hint": null,
+     "source_hint": "wooden bakery",
+     "qty": 2,
+     "unit": "bundle",
+     "modifiers": []
+    }
+   ],
+   "text": "kifak, baddi 2 rabtat 5ebez wooden bakery l kbar",
+   "items": [
+    {
+     "sku": "AK-0081"
     }
    ]
   }
