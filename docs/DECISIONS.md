@@ -90,3 +90,13 @@ The picture fetch (`scripts/images/`, run by `.github/workflows/images.yml`) nee
 
 **Licence rules (build plan 5.17 step 4), as built.** The source decides the licence, and migration 0050 enforces the pairing with a check constraint: Open Food Facts is `cc_by_sa` and keeps its attribution; a picture counts as the brand's own (`brand_own`) only when both the page and the picture are on a host listed for that brand in `brand-sites.json`; everything else is `unknown`. Unknown pictures are kept only as a guide for the intake photo. `product_image_for_customer()` returns a picture only when it is approved and its licence is `cc_by_sa`, `brand_own` or `own_photo`. When the lawyer's line (5.11) allows search pictures, one later migration changes `product_image_licence_usable()`. Nothing changes it by a settings write.
 `brand-sites.json` lists nine global brands whose own sites are certain (Nescafe, Nutella, Kinder, Lipton, Pepsi, 7Up, Nivea, Colgate, Lurpak). Local brands (Liban Lait, Leen Taanayel, Tannourine and the rest) are not listed: a person adds one only after opening its site. Until then their search pictures are `unknown`.
+
+## Console hosting (task 3.1, session D1, 13 November 2026)
+**Chosen: Cloudflare Workers, a second Worker beside the gateway** (`apps/console/`, staging name `alo-king-console-staging`, deployed by `.github/workflows/console.yml`). Not Vercel.
+
+| Option | Why not, or why |
+| --- | --- |
+| Cloudflare Worker | **Chosen.** Same account, same deploy tooling (wrangler, GitHub Actions) and same secrets as the gateway, so one place to rotate a key and one runbook. It imports the gateway's own `send()` (`packages/wa/src/gateway.ts`), so a reply typed in the console passes the same preflight, `can_send()` and outbox claim as every other message: one door out (invariant 1). Plain server-rendered pages need no framework. Runs on the free plan (no queues or Durable Objects). |
+| Vercel | A second hosting account, a second set of secrets and a second deploy path, for no gain: the console is plain HTML forms. It would also need its own copy of the send path or a new endpoint on the gateway. |
+
+How it holds the rules: the browser never sees a Supabase key or token. Staff sign in with Supabase Auth through the Worker; the link from an Auth user to a staff party is `app_metadata.party_id`, which only the service key can write. The role is read from `parties` on every request, and the SQL functions check it again. The console reads tables and calls SQL functions, nothing else: its database module has no insert, update or delete (a test enforces it). Every action is written to an append-only log in the private `media` bucket (`console_audit/`) before it runs, and does not run if the log cannot be written.
