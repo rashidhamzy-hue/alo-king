@@ -19,7 +19,18 @@ export const PROPOSED_SQL = fileURLToPath(new URL("../sql/proposed_functions.sql
 export function pgDb(db: TestDb): Db {
   const wrap = (e: unknown) => new DbError((e as Error).message, (e as { code?: string }).code);
   return {
-    async rpc(fn, args = {}) { try { return await db.rpc(checkIdent(fn), args); } catch (e) { throw wrap(e); } },
+    async rpc(fn, args = {}) {
+      try {
+        // A set-returning function comes back as a list of rows, as PostgREST returns it.
+        const f = await db.one<{ proretset: boolean }>("select proretset from pg_proc where proname = $1 and pronamespace = 'public'::regnamespace limit 1", [checkIdent(fn)]);
+        if (f?.proretset) {
+          const keys = Object.keys(args);
+          const call = keys.map((k, i) => `${checkIdent(k)} => $${i + 1}`).join(", ");
+          return await db.all(`select * from ${fn}(${call})`, keys.map((k) => args[k])) as any;
+        }
+        return await db.rpc(fn, args);
+      } catch (e) { throw wrap(e); }
+    },
     async rows(table, q: Query = {}) {
       const params: unknown[] = [];
       const p = (v: unknown) => { params.push(v); return `$${params.length}`; };
@@ -164,3 +175,37 @@ export class Browser {
 
 /** The message shown after an action (the flash), or "" if none. */
 export const flashOf = (page: string) => /<p class="flash (?:ok|err)">([^<]*)<\/p>/.exec(page)?.[1]?.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&") ?? "";
+
+// ---------- a small shop, as in test/db/rider-settlement.test.ts ----------
+export const FX = 89500;
+export async function openShop(db: TestDb) {
+  await db.pg.exec(`insert into fx_rates(lbp_per_usd) values (${FX});
+    update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours';
+    update stock_levels set on_hand = 500;`);
+  const village = (await db.one(`select id from villages where name_en = 'Baakline'`)).id as string;
+  await db.one(`update sources set village_id = $1 where kind = 'dark_store' returning id`, [village]);
+  return village;
+}
+let orderSeq = 0;
+export async function placeOrder(db: TestDb, village: string, payment: "cod" | "whish" | "omt" = "cod", qty = 12) {
+  const n = ++orderSeq;
+  const t = await db.rpc("touch_conversation", { p_line: "customer", p_wa_user_id: `bsuid-c${n}`, p_phone: `+9617020000${n}`, p_name: `Customer ${n}` });
+  await db.rpc("save_customer_pin", { p_party: t.party_id, p_lat: 33.68, p_lng: 35.56, p_village: village });
+  const place = (await db.one(`select id from customer_places where party_id = $1`, [t.party_id])).id;
+  const prod = (await db.one(`select id from products where name_en = 'Leen Taanayel Labneh Premium'`)).id;
+  const o = await db.rpc("create_order_from_quote", { p_customer: t.party_id, p_conversation: t.conversation_id, p_lines: [{ product_id: prod, qty }],
+    p_village: village, p_place: place, p_pickup: false, p_payment: payment, p_change_for: null, p_notes: null });
+  await db.rpc("confirm_order_checked", { p_order: o.order_id, p_party: t.party_id, p_wamid: `w-c${n}` });
+  const row = await db.one(`select short_code, total_usd, delivery_fee_usd from orders where id = $1`, [o.order_id]);
+  return { id: o.order_id as string, code: row.short_code as string, total: Number(row.total_usd), fee: Number(row.delivery_fee_usd),
+           customer: t.party_id as string, conversation: t.conversation_id as string, product: prod as string };
+}
+export async function deliver(db: TestDb, orderId: string, rider: string) {
+  const d = await db.rpc("dispatch_order", { p_order: orderId });
+  await db.rpc("rider_respond", { p_delivery: d.delivery_id, p_driver: rider, p_accept: true });
+  await db.rpc("rider_picked_up", { p_delivery: d.delivery_id, p_driver: rider });
+  return { delivery: d.delivery_id as string, result: await db.rpc("rider_delivered", { p_order: orderId, p_driver: rider }) };
+}
+export async function ledgerSum(db: TestDb) {
+  return Number((await db.one(`select coalesce(sum(usd_equiv), 0) as s from ledger_entries`)).s);
+}
