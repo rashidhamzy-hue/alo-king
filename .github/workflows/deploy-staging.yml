@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { ref: "${{ github.event.workflow_run.head_sha || github.sha }}" }
       - uses: supabase/setup-cli@v1
-        with: { version: latest }
+        with: { version: 2.122.1 }   # pinned: `latest` failed once on a GitHub API rate limit. Bump deliberately.
       - name: Link the staging project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - name: Connection string (session pooler, because runners have no IPv6)
@@ -136,6 +136,8 @@ jobs:
         run: |
           [ -f wrangler.staging-noqueue.json ] && export WRANGLER_CONFIG=wrangler.staging-noqueue.json
           scripts/ci/ensure-webhooks.sh
+      - name: Sentry accepts events from our DSN (posted straight to the ingest endpoint)
+        run: scripts/ci/sentry-ingest-check.sh | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Smoke test, no secrets needed
         run: |
           url="${{ steps.deploy.outputs.worker_url }}"
@@ -149,5 +151,5 @@ jobs:
             [ "$body" = "bad signature [401]" ]
           done
           body=$(curl -sS "$url/__sentry-test")
-          echo "Sentry test route -> $body (\"sent\" expected; the event appears in project alo-king-gateway)"; [ "$body" = "sent" ]
+          echo "Sentry test route -> $body (expected: sent <event id> flushed=true)"; case "$body" in "sent "*"flushed=true") ;; *) false ;; esac
           echo "- Smoke test passed: unknown path 404, unsigned webhooks 401, one test error sent to Sentry (alo-king-gateway)" >> "$GITHUB_STEP_SUMMARY"
