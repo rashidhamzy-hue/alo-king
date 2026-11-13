@@ -4,10 +4,11 @@ import { catalogSection } from "./catalog";
 import { exceptionsSection } from "./exceptions";
 import { fxSection } from "./fx";
 import { merchantsSection } from "./merchants";
+import { picturesSection } from "./pictures";
 import { zonesSection } from "./zones";
 import { paymentsSection } from "./payments";
 import { returnsSection } from "./returns";
 import { ridersSection } from "./riders";
 import { todaySection } from "./today";
 
-export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection, returnsSection, catalogSection, fxSection, zonesSection, merchantsSection];
+export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection, returnsSection, catalogSection, fxSection, zonesSection, merchantsSection, picturesSection];
