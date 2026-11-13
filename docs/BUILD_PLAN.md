@@ -444,7 +444,7 @@ Each session is one bundle of tasks, one branch, one pull request, with one comm
 | K1 | Catalog | Opus 5.5 | 1.21 | B2 and P1 merged. Edits `turn.ts`, so never beside B3 | the feed endpoint (new file), the cart-order branch in `apps/gateway/src/turn.ts`, migration 0051, its tests, the 1.21 steps in `docs/RUNBOOK.md` |
 | D2 | Console | Opus 5.5 | 3.11 to 3.17, 5.15 | D1 and C2 merged; runs beside B3 and C3 | `apps/console/`, migrations 0045-0049 |
 | P1 | Pictures | Sonnet 5.5 | 5.17 (steps 1-5, 7, 8; the review page is 3.18 in D1) | Now: A1 has merged. Runs beside any other lane. Must merge before K1 | `scripts/images/` (new), `.github/workflows/images.yml` (new), migration 0050, `test/db/product-images.test.ts` |
-| P2 | Pictures | Sonnet 5.5 | 5.17 step 4 completed: classify a search result from the brand's own site as usable; run the Brave search pass | P1 merged and the `BRAVE_SEARCH_API_KEY` secret exists. Runs beside any lane | `scripts/images/`, `.github/workflows/images.yml`, migrations 0070-0072 |
+| P2 | Pictures | Sonnet 5.5 | 5.17 step 4 completed: classify a search result from the brand's own site as usable; run the Brave search pass | Postponed 13 Nov: the founder chose not to add a search provider. Customer pictures come from Open Food Facts and intake photos (5.15) until then | `scripts/images/`, `.github/workflows/images.yml`, migrations 0070-0072 |
 | G1 | Audit | Fable 5.2 | Read every migration and test; try to break money, permissions, recovery and the send path | Everything above merged | Findings only; fixes go to Opus |
 | A3 | Infra | Sonnet 5.5 | 4.2, 4.4, 4.7, 4.8, 4.9, 4.11 | The +961 numbers and production accounts exist | production configuration |
 | Phase 6 | | | Shadow run, by people | G1 findings closed | |
