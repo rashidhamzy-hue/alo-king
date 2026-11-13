@@ -164,7 +164,7 @@ Not in this phase: the two real +961 numbers. They join in Phase 4.
 
 Status 13 November 2026 (session B3): 1.22 is built and measured on the live model: item F1 0.503 before, 0.918 after (precision 0.995),
 10 wrong products in 2,458 items from four phrasings, so the zero-wrong gate is not met yet; the 0.13 message is right in every live run, and
-the staging probe proves it after the merge. 1.7, 1.8, 1.13, 1.17 and 2.9 are built and tested; the typing indicator, the feedback cron and
+the staging probe turned it into the right card and a closed order (AK-1001, 13 Nov 17:43 UTC): 0.13 is ready to send. 1.7, 1.8, 1.13, 1.17 and 2.9 are built and tested; the typing indicator, the feedback cron and
 the ops-line voice reply need one call each in lane A and C files (requests in `docs/HANDOFF.md`, session B3). Plan change made by B3: the
 pack and eval set are regenerated through `.github/workflows/language-pack.yml`, never by hand.
 
