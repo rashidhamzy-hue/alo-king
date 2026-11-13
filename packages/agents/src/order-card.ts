@@ -8,8 +8,12 @@ export interface Quote {
   eta_minutes: number | null; pickup: boolean; village: string | null; village_ar: string | null; village_id: string | null;
   /** Owed from an earlier delivery nobody answered (fee, cooked food). Set by create_order_from_quote; included in total_usd. */
   dues_usd?: number;
+  /** Company income on a small basket (1.16): its own line, never part of the rider's delivery fee. Included in total_usd. */
+  small_order_fee_usd?: number;
 }
-export interface CardInput { orderId: string; shortCode: string; quote: Quote; paymentMethod: "cod" | "whish" | "omt"; changeForUsd?: number | null }
+export interface CardInput { orderId: string; shortCode: string; quote: Quote; paymentMethod: "cod" | "whish" | "omt"; changeForUsd?: number | null;
+  /** Why cash on delivery was refused and the order is paid in advance (from create_order_from_quote's issues). */
+  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null }
 
 const money = (n: number) => `$${Number(n).toFixed(2)}`;
 const lbp = (n: number) => `${Math.round(n).toLocaleString("en-US")} ل.ل`;
@@ -26,6 +30,8 @@ const BODY_LIMIT = 1024;   // WhatsApp's limit for an interactive message body
 
 export const CARD_TEXT = {
   duesLine: "مستحق من طلب سابق ما قدرنا نسلّمو",
+  smallOrderLine: "رسم الطلبات الصغيرة",
+  prepayFirst: (how: string, cap: string) => `أول طلب كاش لحدّ ${cap}. هالطلب أكبر، فبينّدفع سلف (${how}) قبل ما نبلّش بالتحضير. بعد التأكيد منبعتلك التفاصيل.`,
   prepay: (how: string) => `بما إنو في مبلغ مستحق من قبل، هالطلب بينّدفع سلف (${how}) قبل ما نبلّش بالتحضير. بعد التأكيد منبعتلك التفاصيل.`,
 };
 
@@ -36,13 +42,16 @@ export function formatOrderCard(input: CardInput): Outbound {
   const dues = Number(q.dues_usd ?? 0);
   tail.push(`المجموع الفرعي: ${money(q.subtotal_usd)}`);
   if (!q.pickup) tail.push(`التوصيل${q.village_ar ? ` (${q.village_ar})` : ""}: ${money(q.delivery_fee_usd)}`);
+  const small = Number(q.small_order_fee_usd ?? 0);
+  if (small > 0) tail.push(`${CARD_TEXT.smallOrderLine}: ${money(small)}`);
   // What is owed from a delivery nobody answered is its own line, so the total adds up on the card (1.4).
   if (dues > 0) tail.push(`${CARD_TEXT.duesLine}: ${money(dues)}`);
   tail.push(`الإجمالي: ${money(q.total_usd)}${q.total_lbp ? ` أو ${lbp(q.total_lbp)}` : ""}`);
   tail.push(q.pickup ? "استلام من المحل" : q.eta_minutes ? `الوصول خلال حوالي ${q.eta_minutes} دقيقة` : "توصيل");
   tail.push(`الدفع: ${PAY[input.paymentMethod]}`);
   // Policy (0004): someone who owes pays the next order in advance. Say so on the card, before the tap, not after.
-  if (dues > 0 && input.paymentMethod !== "cod") tail.push(CARD_TEXT.prepay(PAY[input.paymentMethod]));
+  if (input.paymentMethod !== "cod" && input.prepay?.reason === "first_order") tail.push(CARD_TEXT.prepayFirst(PAY[input.paymentMethod], money(input.prepay.maxCodUsd)));
+  else if (dues > 0 && input.paymentMethod !== "cod") tail.push(CARD_TEXT.prepay(PAY[input.paymentMethod]));
   if (input.changeForUsd && input.paymentMethod === "cod") tail.push(`الصرافة: منجيب معنا فراطة لـ ${money(input.changeForUsd)}`);
   tail.push("", CONSENT_LINE);
 

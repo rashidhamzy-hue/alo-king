@@ -25,7 +25,9 @@ export interface ConversationState {
   pendingRestrictions?: string[] | null;
 }
 /** Everything about a card that is not its lines. */
-export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null }
+export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null;
+  /** Set when the database refused cash on delivery and the card goes out prepaid (1.4 dues, 1.16 first-order cap). */
+  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null }
 export interface QuoteLineInput { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null }
 
 export interface ToolContext {
@@ -178,8 +180,10 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   if (!created.created) {
     // The customer owes from a delivery nobody answered: the database refuses cash on delivery (0004 policy). The card goes
     // out as a prepaid order instead, and says why (1.4). Whish is the default transfer; the customer can still edit.
-    if (terms.payment === "cod" && created.quote.issues.some((i) => i.code === "prepay_required"))
-      return issueCard(ctx, basket, { ...terms, payment: "whish", changeForUsd: null }, opts);
+    // Same for a first order above the first-order cash cap (1.16).
+    const refusal = terms.payment === "cod" ? created.quote.issues.find((i) => i.code === "prepay_required" || i.code === "first_order_cod_cap") : undefined;
+    if (refusal) return issueCard(ctx, basket, { ...terms, payment: "whish", changeForUsd: null,
+      prepay: refusal.code === "first_order_cod_cap" ? { reason: "first_order", maxCodUsd: Number(refusal.max_cod_usd) } : { reason: "dues" } }, opts);
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
     return { ok: false, error: "quote_changed", issues: created.quote.issues };
   }
@@ -188,7 +192,7 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     if (!pre.ok) return pre;
   }
   const card = formatOrderCard({ orderId: created.order_id!, shortCode: created.short_code!, quote: created.quote,
-                                 paymentMethod: terms.payment, changeForUsd: terms.changeForUsd });
+                                 paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null });
   const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
   if (!sent.ok) return sent;
   ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null;

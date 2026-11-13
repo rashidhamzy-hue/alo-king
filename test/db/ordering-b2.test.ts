@@ -314,3 +314,80 @@ describe("customer control of memory (1.14)", () => {
     expect(t.seen).toHaveLength(2);
   });
 });
+
+describe("small-order fee and first-order cash cap (1.16)", () => {
+  const setting = (key: string, value: unknown) => db.pg.query(`update settings set value = $2 where key = $1`, [key, JSON.stringify(value)]);
+  afterEach(async () => { await setting("small_order_fee", { below_subtotal_usd: 0, fee_usd: 0 }); await setting("first_order", { max_cod_usd: 0 }); });
+  const ONE_LABNEH = { ...ORDER_READING, lines: [ORDER_READING.lines[0]] };      // 2 x 3.00 = 6.00, under 10
+
+  it("is off by default: no fee on the quote, no line on the card", async () => {
+    const q = await db.rpc("quote_order", { p_lines: [{ product_id: ids.LABNEH, qty: 1 }], p_village: ids.BAAKLINE, p_pickup: false });
+    expect(Number(q.small_order_fee_usd)).toBe(0);
+    const t = flow(db, [read(ONE_LABNEH)]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي علبتين لبنة ليبان ليه");
+    expect(cardBody(outbound[0]!)).not.toContain("رسم الطلبات الصغيرة");
+  });
+
+  it("a small basket pays the fee on its own line; cash posts it to the company's own account, and the rider is paid the delivery fee only", async () => {
+    await setting("small_order_fee", { below_subtotal_usd: 10, fee_usd: 0.5 });
+    const t = flow(db, [read(ONE_LABNEH)]);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي علبتين لبنة ليبان ليه");
+    const body = cardBody(outbound[0]!);
+    expect(body).toContain("المجموع الفرعي: $6.00"); expect(body).toContain("التوصيل (بعقلين): $1.00");
+    expect(body).toContain("رسم الطلبات الصغيرة: $0.50"); expect(body).toContain("الإجمالي: $7.50");
+    const o = await db.one(`select * from orders where customer_id = $1`, [c.party_id]);
+    expect(Number(o.small_order_fee_usd)).toBe(0.5); expect(Number(o.delivery_fee_usd)).toBe(1); expect(Number(o.total_usd)).toBe(7.5);
+
+    const rider = (await db.one(`insert into parties(role, display_name) values ('driver', 'R') returning id`)).id;
+    await db.rpc("post_cod_collection", { p_order: o.id, p_driver: rider, p_usd: 7.5, p_lbp: 0 });
+    const by = async (code: string) => Number((await db.one(`select coalesce(sum(e.usd_equiv), 0) as s from ledger_entries e join ledger_accounts a on a.id = e.account_id
+                                                            where e.order_id = $1 and a.code = $2`, [o.id, code])).s);
+    expect(await by("revenue_small_order")).toBe(-0.5);
+    expect(await by("revenue_delivery")).toBe(-1);
+    expect(await by("cash_over_short")).toBe(0);
+    expect(Number(await db.rpc("settle_rider_earnings", { p_order: o.id, p_driver: rider }))).toBe(1);   // the fee is the rider's; the small-order fee is not
+    expect(await by("revenue_small_order")).toBe(-0.5);
+    expect(Number(await db.rpc("rider_earnings_usd", { p_driver: rider }))).toBe(1);
+    await expectLedgerBalanced(db);
+  });
+
+  it("a basket at or above the threshold pays no fee; a confirmed transfer also posts the fee to its own account", async () => {
+    await setting("small_order_fee", { below_subtotal_usd: 6, fee_usd: 0.5 });
+    const big = await db.rpc("quote_order", { p_lines: [{ product_id: ids.LABNEH, qty: 2 }], p_village: ids.BAAKLINE, p_pickup: false });
+    expect(Number(big.small_order_fee_usd)).toBe(0);
+    const c = await pinned(db, flow(db, []), ids.BAAKLINE);
+    const o = await db.rpc("create_order_from_quote", { p_customer: c.party_id, p_conversation: c.conversation_id, p_lines: [{ product_id: ids.LABNEH, qty: 1 }],
+      p_village: ids.BAAKLINE, p_place: null, p_pickup: false, p_payment: "whish", p_change_for: null, p_notes: null });
+    expect(Number(o.quote.small_order_fee_usd)).toBe(0.5); expect(Number(o.quote.total_usd)).toBe(6.5);      // 5.00 + 1.00 + 0.50
+    const ops = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops2') returning id`)).id;
+    await db.rpc("confirm_order_checked", { p_order: o.order_id, p_party: c.party_id, p_wamid: "w-small" });
+    await db.rpc("confirm_payment", { p_order: o.order_id, p_by: ops, p_external_ref: "WH-SMALL-1", p_amount_usd: 6.5 });
+    expect(Number((await db.one(`select sum(e.usd_equiv) as s from ledger_entries e join ledger_accounts a on a.id = e.account_id
+                                  where e.order_id = $1 and a.code = 'revenue_small_order'`, [o.order_id])).s)).toBe(-0.5);
+    await expectLedgerBalanced(db);
+  });
+
+  it("a first order above the cash cap goes out prepaid and says why; a customer with a delivered order may pay cash", async () => {
+    await setting("first_order", { max_cod_usd: 5 });
+    const t = flow(db, [read(ORDER_READING)]);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي علبتين لبنة ليبان ليه وربطتين خبز");
+    const body = cardBody(outbound[0]!);
+    expect(body).toContain("الدفع: تحويل Whish"); expect(body).toContain("أول طلب كاش لحدّ $5.00");
+    expect((await db.one(`select payment_method from orders where customer_id = $1`, [c.party_id])).payment_method).toBe("whish");
+
+    await db.pg.query(`update orders set status = 'delivered' where customer_id = $1`, [c.party_id]);
+    const again = await db.rpc("create_order_from_quote", { p_customer: c.party_id, p_conversation: c.conversation_id, p_lines: [{ product_id: ids.LABNEH, qty: 2 }],
+      p_village: ids.BAAKLINE, p_place: null, p_pickup: false, p_payment: "cod", p_change_for: null, p_notes: null });
+    expect(again.created).toBe(true);
+  });
+
+  it("tripwire: the four functions that carry the fee still do (a later migration that redefines one must keep it)", async () => {
+    for (const fn of ["quote_order", "create_order_from_quote", "post_cod_collection", "confirm_payment"]) {
+      const def = (await db.one(`select pg_get_functiondef(p.oid) as d from pg_proc p where p.proname = $1 and p.pronamespace = 'public'::regnamespace`, [fn])).d;
+      expect(def, fn).toContain("small_order_fee");
+    }
+  });
+});
