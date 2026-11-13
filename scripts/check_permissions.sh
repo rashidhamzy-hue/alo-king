@@ -38,6 +38,8 @@ set role service_role;
 select 'service_role can call a function: ' || (current_fx() > 0);
 select 'service_role can read a table: ' || (count(*) >= 0) from settings;
 select 'service_role can write through a function: ' || begin_turn('perm-check', 'customer');
+set local search_path = public;   -- the trigram functions live in the extensions schema (0020); the search functions find them anyway
+select 'service_role can run a trigram search: ' || (search_catalog('labneh') is not null);
 reset role;
 rollback;   -- nothing the check wrote survives, on any database
 do $$ declare r text; ok boolean; begin
@@ -52,20 +54,22 @@ do $$ declare r text; ok boolean; begin
   end loop;
 end $$;
 -- Not just the two probes above: every function and every table in public, for each client role and for PUBLIC.
--- Functions that belong to an extension (pg_trgm and the like) are not ours: on Supabase they are owned by supabase_admin, so a
--- migration cannot revoke their default PUBLIC grant. They are reported by extension name as a WARNING; our own functions are a hard failure.
+-- Extension functions: since migration 0020 no extension lives in public. On Supabase they are owned by supabase_admin, so a
+-- migration cannot revoke their default PUBLIC grant; moving the extension is the fix, and an extension back in public is a hard failure.
+-- In any other schema a client role can call one only with USAGE on that schema too, so both are checked.
 do $$ declare n int; t text; begin
-  select count(*) into n from pg_proc p where pronamespace = 'public'::regnamespace and has_function_privilege('public', p.oid, 'execute')
-    and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e');
+  select string_agg(distinct e.extname, ', ') into t from pg_proc p join pg_depend d on d.objid = p.oid and d.deptype = 'e' join pg_extension e on e.oid = d.refobjid
+    where p.pronamespace = 'public'::regnamespace;
+  if t is not null then raise exception 'extension functions are in the public schema: % (move the extension to the extensions schema, see migration 0020)', t; end if;
+  select count(*) into n from pg_proc p where pronamespace = 'public'::regnamespace and has_function_privilege('public', p.oid, 'execute');
   if n > 0 then raise exception '% of our functions are still callable by PUBLIC', n; end if;
   select count(*) into n from pg_proc p, unnest(array['anon','authenticated']) r
-    where pronamespace = 'public'::regnamespace and has_function_privilege(r, p.oid, 'execute')
-      and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e');
+    where pronamespace = 'public'::regnamespace and has_function_privilege(r, p.oid, 'execute');
   if n > 0 then raise exception '% function grants to anon or authenticated', n; end if;
-  for t in select e.extname || ' (' || count(*) || ' functions)' from pg_proc p join pg_depend d on d.objid = p.oid and d.deptype = 'e' join pg_extension e on e.oid = d.refobjid
-    where p.pronamespace = 'public'::regnamespace and has_function_privilege('public', p.oid, 'execute') group by e.extname loop
-    raise warning 'extension functions in public are callable by PUBLIC: % (move the extension to the extensions schema in a migration)', t;
-  end loop;
+  select string_agg(distinct r || ' -> ' || e.extname, ', ') into t
+    from pg_proc p join pg_depend d on d.objid = p.oid and d.deptype = 'e' join pg_extension e on e.oid = d.refobjid, unnest(array['anon','authenticated']) r
+    where e.extname in ('pg_trgm', 'pgcrypto') and has_schema_privilege(r, p.pronamespace, 'usage') and has_function_privilege(r, p.oid, 'execute');
+  if t is not null then raise exception 'client roles can call extension functions: %', t; end if;
   -- A table grant to a client role is a hard failure unless row level security is on with no policy at all
   -- (then the grant is untidy but reaches no row). Those are listed by name as a WARNING so they get fixed by a migration.
   select count(*) into n from pg_class c, unnest(array['anon','authenticated']) r
