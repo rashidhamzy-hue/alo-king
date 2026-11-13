@@ -134,6 +134,10 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     p_place: basket.placeId, p_pickup: basket.pickup, p_payment: terms.payment, p_change_for: terms.changeForUsd, p_notes: terms.notes,
   });
   if (!created.created) {
+    // The customer owes from a delivery nobody answered: the database refuses cash on delivery (0004 policy). The card goes
+    // out as a prepaid order instead, and says why (1.4). Whish is the default transfer; the customer can still edit.
+    if (terms.payment === "cod" && created.quote.issues.some((i) => i.code === "prepay_required"))
+      return issueCard(ctx, basket, { ...terms, payment: "whish", changeForUsd: null }, opts);
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
     return { ok: false, error: "quote_changed", issues: created.quote.issues };
   }
