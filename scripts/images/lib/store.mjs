@@ -10,6 +10,12 @@ export function makeStore({ url, key, fetchImpl = fetch }) {
       if (!res.ok) throw new Error(`rpc_${fn}_${res.status}: ${text.slice(0, 200)}`);
       return text ? JSON.parse(text) : null;
     },
+    /** A read through PostgREST (service key). `query` is the part after ?, e.g. "select=a,b&outcome=eq.x". */
+    async select(table, query) {
+      const res = await fetchRetry(`${url}/rest/v1/${table}?${query}`, { headers: h }, { fetchImpl });
+      if (!res.ok) throw new Error(`select_${table}_${res.status}`);
+      return res.json();
+    },
     async upload(path, data, contentType = "image/jpeg") {
       const res = await fetchRetry(`${url}/storage/v1/object/media/${path}`, { method: "POST", headers: { ...h, "content-type": contentType, "x-upsert": "true" }, body: data }, { fetchImpl });
       if (!res.ok) throw new Error(`upload_${res.status}: ${(await res.text()).slice(0, 200)}`);

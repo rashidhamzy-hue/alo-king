@@ -2,7 +2,7 @@
 // Network, storage and the model are replaced; the SQL is the SQL that ships.
 import { beforeAll, describe, expect, it } from "vitest";
 import { openTestDb } from "../../../test/db/harness";
-import { processItem, evaluate, Fatal, MAX_CANDIDATES, fetchableUrl } from "../fetch-images.mjs";
+import { processItem, evaluate, Fatal, MAX_CANDIDATES, fetchableUrl, conclusiveSkips } from "../fetch-images.mjs";
 
 const GOOD = { same_brand: "yes", same_product: "yes", same_size: "yes", one_pack: "yes", plain_background: "yes", watermark_or_overlay_text: "no", price_tag_or_shop_logo: "no", seen: "x" };
 let db; let items; let uploads;
@@ -145,5 +145,25 @@ describe("fetch pipeline (5.17 steps 2-5)", () => {
   it("evaluate never throws for a broken picture", async () => {
     const out = await evaluate(items[0], { sourceKind: "web_search", imageUrl: "https://img.test/x.jpg" }, { download: async () => Buffer.from("x"), measure: async () => { throw new Error("not_an_image"); } });
     expect(out).toMatchObject({ kept: false, reasons: ["error:not_an_image"] });
+  });
+});
+
+describe("reruns", () => {
+  const A = (product_id, outcome, sources_tried) => ({ product_id, outcome, sources_tried });
+  it("skip items an earlier run finished with nothing, never items that errored", () => {
+    const attempts = [A("a", "none_found", ["open_food_facts"]), A("b", "none_passed", ["open_food_facts"]), A("c", "error", []), A("d", "proposed", ["open_food_facts"])];
+    expect([...conclusiveSkips(attempts, false)].sort()).toEqual(["a", "b"]);
+  });
+  it("when search is switched on, an Open-Food-Facts-only result is not conclusive", () => {
+    const attempts = [A("a", "none_found", ["open_food_facts"]), A("b", "none_passed", ["open_food_facts", "brand_site", "web_search"])];
+    expect([...conclusiveSkips(attempts, true)]).toEqual(["b"]);
+  });
+  it("reads attempts through the real table with the service role shape (the select helper builds the address)", async () => {
+    const { makeStore } = await import("../lib/store.mjs");
+    let seen;
+    const st = makeStore({ url: "https://p.supabase.co", key: "k", fetchImpl: async (u, o) => { seen = { u, h: o.headers }; return new Response("[]", { status: 200 }); } });
+    expect(await st.select("product_image_attempts", "select=product_id")).toEqual([]);
+    expect(seen.u).toBe("https://p.supabase.co/rest/v1/product_image_attempts?select=product_id");
+    expect(seen.h.apikey).toBe("k");
   });
 });
