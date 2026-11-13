@@ -114,6 +114,26 @@ Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 - A shadow run: staff place real orders end to end, and stock, rider cash, rider earnings and the ledger reconcile to zero
   unexplained balance at day close.
 
+### E. Meta account steps (cannot be done from code; written by session A1, 13 November 2026)
+
+#### 0.9 Meta ownership and verification: status BLOCKED on the Meta Business Portfolio admin
+What Kapso shows (read 13 Nov): WhatsApp Business Account `1086076707594153`, number **+1 203 660 2328**, display name "Alo King" (approved without review),
+phone_number_id `1378974041965966`, status CONNECTED, quality rating UNKNOWN (no traffic yet), messaging limit TIER_250 (250 customers a day),
+WABA review APPROVED, not an official business account. What Kapso cannot show: which Meta business portfolio owns the WABA, and whether the business is verified.
+The person who is an admin of the Meta business portfolio does these, in order:
+1. Open business.facebook.com, Business settings, Accounts, WhatsApp accounts, select `1086076707594153`. Read **Owned by**. It must be Alo King's own portfolio
+   (the one in the company's legal name). If it names anyone else (Kapso, a personal portfolio, an earlier attempt), the number does not survive a change of provider:
+   write that name in the pull request or an issue and do not start verification yet. Ownership is fixed first.
+2. Business settings, Business info: legal name, address, phone, website and email exactly as they appear on the company documents.
+3. Security Center, Business verification, Start verification. Have ready: the company registration certificate or commercial register extract, a document that
+   proves the address (bank statement or utility bill in the company name), and the business phone or email on the same domain as the website. Submit. Record the date submitted and the status Meta shows.
+4. Business settings, People: at least two admins with full control, two-factor authentication on for both. Business settings, Partners: Kapso is listed with access to the WABA; leave it.
+5. Click-to-WhatsApp data: Kapso documents that the ad `referral` (source id, ad click id, headline) arrives inside the `whatsapp.message.received` payload when present.
+   Proof needs one real click on an ad that opens a chat with +1 203 660 2328 (a test ad from Alo King's ad account, small budget, ended after one click).
+   Afterwards: Kapso dashboard, WhatsApp, Data, Ads (CTWA) shows the click; run the `capture-kapso-fixtures` workflow; the saved payload must contain a `referral` object.
+   If it does not, task 1.13 cannot be built as written: say so in the pull request.
+Done when: step 1 names Alo King's portfolio, verification is submitted (date written here), and one payload with `referral` is saved under `test/fixtures/kapso/`.
+
 ## The AI architecture, stated once
 One conversational agent, the Concierge. Around it: narrow AI functions (vision extraction for labels, menus and receipts;
 speech-to-text; later, optional summaries) and deterministic services in SQL and TypeScript (stock, dispatch, cash, settlement,
