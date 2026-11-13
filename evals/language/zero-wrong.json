@@ -1,0 +1,273 @@
+{
+ "note": "Session B4: the four phrasings that kept 1.22 from zero wrong products (B3's live runs on 13 Nov, results/after.json), each with every reading the live model gave them. Replayed through plan_order by zero-wrong.test.ts: a wrong product fails; a question (ambiguous, not found) is the safe failure and passes.",
+ "readings": [
+  {
+   "id": "g0060",
+   "lines": [
+    {
+     "raw": "1 Joocyz ananas el kbir 1L",
+     "query": "Joocyz ananas el kbir 1L",
+     "brand_hint": "Joocyz",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "1 bicarbonate Domo",
+     "query": "bicarbonate Domo",
+     "brand_hint": "Domo",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "pack el 3 tuna Plein Soleil white bel zeit",
+     "query": "tuna Plein Soleil white bel zeit",
+     "brand_hint": "Plein Soleil",
+     "source_hint": null,
+     "qty": 3,
+     "unit": "pack",
+     "modifiers": [
+      "white",
+      "bel zeit"
+     ]
+    },
+    {
+     "raw": "1 Wilco sodour djej packaged",
+     "query": "Wilco sodour djej packaged",
+     "brand_hint": "Wilco",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": [
+      "packaged"
+     ]
+    }
+   ],
+   "text": "Marhaba, baddi please: 1 Joocyz ananas el kbir 1L, w 1 bicarbonate Domo, w pack el 3 tuna Plein Soleil white bel zeit, w 1 Wilco sodour djej packaged. Merci 🙏",
+   "items": [
+    {
+     "sku": "AK-0125"
+    },
+    {
+     "sku": "AK-0226"
+    },
+    {
+     "sku": "AK-0196"
+    },
+    {
+     "sku": "AK-0036"
+    }
+   ]
+  },
+  {
+   "id": "g0060",
+   "lines": [
+    {
+     "raw": "1 Joocyz ananas el kbir 1L",
+     "query": "Joocyz ananas el kbir 1L",
+     "brand_hint": "Joocyz",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "1 bicarbonate Domo",
+     "query": "bicarbonate Domo",
+     "brand_hint": "Domo",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "pack el 3 tuna Plein Soleil white bel zeit",
+     "query": "tuna Plein Soleil white bel zeit",
+     "brand_hint": "Plein Soleil",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "pack",
+     "modifiers": []
+    },
+    {
+     "raw": "1 Wilco sodour djej packaged",
+     "query": "Wilco sodour djej packaged",
+     "brand_hint": "Wilco",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    }
+   ],
+   "text": "Marhaba, baddi please: 1 Joocyz ananas el kbir 1L, w 1 bicarbonate Domo, w pack el 3 tuna Plein Soleil white bel zeit, w 1 Wilco sodour djej packaged. Merci 🙏",
+   "items": [
+    {
+     "sku": "AK-0125"
+    },
+    {
+     "sku": "AK-0226"
+    },
+    {
+     "sku": "AK-0196"
+    },
+    {
+     "sku": "AK-0036"
+    }
+   ]
+  },
+  {
+   "id": "g0377",
+   "lines": [
+    {
+     "raw": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+     "query": "خبز تنور العصر",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": [
+      "مش الكبير"
+     ]
+    }
+   ],
+   "text": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+   "items": [
+    {
+     "sku": "AK-0088"
+    }
+   ]
+  },
+  {
+   "id": "g0377",
+   "lines": [
+    {
+     "raw": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+     "query": "خبز تنور",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": [
+      "العصر",
+      "مش الكبير",
+      "التاني تبع الخمس رغفان"
+     ]
+    }
+   ],
+   "text": "بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان",
+   "items": [
+    {
+     "sku": "AK-0088"
+    }
+   ]
+  },
+  {
+   "id": "g0815",
+   "lines": [
+    {
+     "raw": "بزل",
+     "query": "بزل",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "جزر مخللة",
+     "query": "جزر مخللة",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "plein soleil",
+     "query": "plein soleil",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    }
+   ],
+   "text": "baddi bazella w jazar mkhalta, plein soleil",
+   "items": [
+    {
+     "sku": "AK-0237"
+    }
+   ]
+  },
+  {
+   "id": "g0815",
+   "lines": [
+    {
+     "raw": "بزل",
+     "query": "بزل",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "جزر",
+     "query": "جزر",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "مخلتة",
+     "query": "مخللة",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    }
+   ],
+   "text": "baddi bazella w jazar mkhalta, plein soleil",
+   "items": [
+    {
+     "sku": "AK-0237"
+    }
+   ]
+  },
+  {
+   "id": "g0817",
+   "lines": [
+    {
+     "raw": "كيس بازيلا",
+     "query": "بازيلا",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "جزر مفرزة",
+     "query": "جزر مفرزة",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    }
+   ],
+   "text": "ابعتلي كيس بازيلا وجزر مفرزة",
+   "items": [
+    {
+     "sku": "AK-0237"
+    }
+   ]
+  }
+ ]
+}
