@@ -1,1 +1,1 @@
-{ "steps": ["after", "live"], "repeat": 3, "note": "B4 final: the zero-wrong rules 1-5 on the live model (3 runs a case). Commit {\"steps\": []} to stop." }
+{ "steps": [], "note": "commit {\"steps\": [\"after\"], \"repeat\": 2} to run the live eval (see the workflow header); add \"live\" for evals/live" }

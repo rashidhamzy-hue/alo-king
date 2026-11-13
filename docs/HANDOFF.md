@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 776 tests (34 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
+npx vitest run          # 808 tests (40 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
                         # test/pg/* start a throwaway Postgres 16 (or use TEST_DATABASE_URL) and the Worker in workerd
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
@@ -222,7 +222,7 @@ Migrations 0060-0063 (A2 took 0060-0069; see the session table in the build plan
 and, new in this session, a real Postgres 16 started by the tests (`test/pg/real-postgres.ts`; GitHub's ubuntu runners have the binaries,
 and on CI these suites refuse to skip). Permission check passes on a fresh Postgres. What is proven live is marked below.
 
-**0.13 first real attempt, 13 Nov 18:43-18:58 UTC (founder, from WhatsApp Web; read from `wa_messages`).** The location request went out at once and was delivered. He sent a pin (in Khraibeh); the bot answered "وصلنا موقعك في بعقلين", taking the village from the text and ignoring the pin. It then asked for name, floor and building; he sent a voice note (Kapso transcript: «بحي راجح … بيت شادي أبو اسماعيل، الطابق الثاني … سنقوشي ومحطة راجح»). The bot read «راجح» as a village and asked which area; after he tapped بعقلين it asked him to **send the order again**: the basket was lost (conversation state `{}`), so no card and no order. Recorded for B4 (first items in its row). Retry 0.13 after B4 merges.
+**0.13 first real attempt, 13 Nov 18:43-18:58 UTC (founder, from WhatsApp Web; read from `wa_messages`).** The location request went out at once and was delivered. He sent a pin (in Khraibeh); the bot answered "وصلنا موقعك في بعقلين", taking the village from the text and ignoring the pin. It then asked for name, floor and building; he sent a voice note (Kapso transcript: «بحي راجح … بيت شادي أبو اسماعيل، الطابق الثاني … سنقوشي ومحطة راجح»). The bot read «راجح» as a village and asked which area; after he tapped بعقلين it asked him to **send the order again**: the basket was lost (conversation state `{}`), so no card and no order. Recorded for B4 (first items in its row); each is now a replayed test and fixed (session B4 below). Retry 0.13 after B4's deploy.
 
 **0.13, the one thing asked of Rasheed. Status: READY TO SEND (since 13 Nov, 17:43 UTC).** Everything is in place: staging data, the test riders, the evidence workflow, the cron that delivers and collects, and (B3, 1.22) a model reading that turns this message into the right card.
 Proof on staging: after B3's merge, the hourly probe sent exactly the message below through the live model at 17:38 UTC. The model kept the customer's words (`query` «قهوة نجار», `brand_hint` «نجار»), the card went out in one go (AK-1001: Tannourine 2L x6, Al Forno pita 800 g, Najjar Classic, $7.27), and the order reached `closed` at 17:43. The same message was right in every live eval run (B3's section). Earlier runs (10:35 and 11:36 UTC) asked a question instead; that is what 1.22 fixed.
@@ -232,11 +232,12 @@ On WhatsApp, from his own phone, between 08:00 and 23:00 Beirut time, to **+1 20
 > بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين
 
 What he should see, in order:
-1. Within about 10 seconds: «تمام، طلبك جاهز. بس بعتلنا موقعك 📍 من الزر تحت لنبعتلك ورقة الطلب.» with a **Send location** button. Tap it and send the current location (any place works on staging: the delivery village comes from the message, «عبعقلين»).
-2. The order card: «طلبك AK-…» with 1 × Tannourine Mineral Water 2L X6 ($2.01), 1 × Al Forno Pita White Bread Big 800G ($1.01), 1 × Najjar Cafe Classic Normal 180G ($3.25), delivery to Baakline $1.00, **total $7.27** (or the lira amount), cash on delivery, and three buttons. Tap **تأكيد الطلب**.
-3. «تم تأكيد طلبك AK-… ✅ عم نحضّرو هلق.»
-4. One to three minutes later: «طلبك #AK-… صار عالطريق 🛵».
-5. One to two minutes after that: «وصلنا دفعك لطلب #AK-…: 7.27$ نقداً.» Nobody comes to the door: on staging the rider is a test rider (below), who accepts, picks up, delivers and records the cash through the ops line's real code path.
+1. Within about 10 seconds: «تمام، طلبك جاهز. بس بعتلنا موقعك 📍 من الزر تحت لنبعتلك ورقة الطلب.» with a **Send location** button. Tap it and send the current location. **Since B4 the pin decides the village** (13 Nov he was in Khraibeh and the bot said Baakline): the card is priced for the village the pin is in, and the text's «عبعقلين» is only named if it differs. A pin between two villages gets two or three village buttons: tap the right one.
+2. «وصلنا موقعك 📍 التوصيل على …. كرمال السائق: شو اسم البيت أو البناية، وأي طابق؟» Answer in a message or a voice note (a neighbourhood such as «حي راجح» is fine: it is kept for the rider, never read as a village). Sending the pin and the address together skips this question.
+3. The order card: «طلبك AK-…» with 1 × Tannourine Mineral Water 2L X6 ($2.01), 1 × Al Forno Pita White Bread Big 800G ($1.01), 1 × Najjar Cafe Classic Normal 180G ($3.25), the delivery fee of the pin's village (Baakline $1.00, total $7.27; Khraibeh $2.50, total $8.77), cash on delivery, and three buttons. Tap **تأكيد الطلب**.
+4. «تم تأكيد طلبك AK-… ✅ عم نحضّرو هلق.»
+5. One to three minutes later: «طلبك #AK-… صار عالطريق 🛵».
+6. One to two minutes after that: «وصلنا دفعك لطلب #AK-…: <the total>$ نقداً.» Nobody comes to the door: on staging the rider is a test rider (below), who accepts, picks up, delivers and records the cash through the ops line's real code path.
 
 Why these three items: they are brand-led, and each resolves to the one right product (checked on staging with `plan_order` inside a rolled-back transaction, and by the probe's order AK-1001). Step 1 differs for the probe, which already has a saved pin: its card came at once; a first-time phone gets the pin request first. The staging probe places exactly this message through the live model every hour. If no reply arrives at all, the first suspect is Meta billing on the number (0.12, section E): Kapso pauses sends when the account cannot pay.
 After he has done it, any session runs the **staging-evidence** workflow with no input: it finds his closed order, writes `docs/evidence/order_<code>.txt` to the branch `evidence/<code>` and fails if any 0.13 check fails. The conversation is printed in place of screenshots (numbers and user ids masked). Screenshots from the phone are not required.
@@ -538,6 +539,69 @@ Not done, and why:
 
 Checks run for this pull request: `npm run typecheck && npm test` (776 pass, 34 live-only skipped; the `test/pg` suites applied every migration, 0045-0049 included, by psql on Postgres 16), and `scripts/check_permissions.sh` on a scratch Postgres 16 in fresh and `EXISTING=1` modes (both pass: no new function or table is reachable by `anon`, `authenticated` or PUBLIC).
 
+### Session B4 (ordering), 13 November 2026: the founder's live findings, 1.22 zero-wrong gate, 1.23, lane B requests; migrations 0074-0077
+Branch `claude/nice-ramanujan-8b4nas` (the branch this environment allows), pull request rashidhamzy-hue/alo-king#27, rebased on D2 and N1.
+Built and tested locally (PGlite with every migration; workerd + real Postgres for the e2e): `npx tsc --noEmit && npx vitest run`, 808 passed,
+40 live-only skipped (`TEST_REPORT.txt`). What is proven live is marked.
+
+**The founder's order of 13 Nov (18:43-18:58 UTC), read from `wa_messages` and `agent_runs` on staging, became a test before each fix**
+(`test/db/live-order-b4.test.ts` replays the four turns with the live model's own readings; `evals/cases/address_readings.json` holds the two misreadings for the live model).
+What happened, from the traces: (1) the reading put «عبعقلين» in `needs_clarification` with no village; the plan asked; the model sent its own pin request and nothing kept the three lines. (2) The model's `resolve_place` had set the village to Baakline from the text; `save_customer_pin` saved whatever the conversation believed and never looked at the pin (no village had coordinates). (3) The voice note's reading put «راجح» in `address.village`. (4) With an empty basket the bot asked him to send the order again.
+
+| Finding | Fix | Tested by |
+| --- | --- | --- |
+| Basket lost | A village written in the message is found by code when the reading leaves it out (`village_in_text`, with the clitics ع ب ل و، "3a b3aklin"; never «حي X»). A basket whose only gap is *where* waits on the pin (`pipeline.ts`); a pin request the model sends also keeps the basket | the replay; `village_in_text` cases |
+| The pin decides the village | Migration 0074: village centres from OpenStreetMap as data (`village_coords`, 41 of 42; Jdeidet ech Chouf has none), filled into `villages` now and on insert. `locate_pin()`: nearest centre within `settings.pin_locate.max_km` (2.5) and clearly nearer than the next (`margin_km` 0.4); otherwise the customer taps the village (`pinvillage:` buttons, checked against the pin by `set_pin_village`). A named village with no centre is always asked. When the text said another village the card says which one wins | the replay (his pin is Khraibeh, 0.34 km); a pin between Ain Qani and Moukhtara is asked; a far tap is refused |
+| «حي راجح» is not a village | After a pin, the next words are the address for it, whatever village the reading guessed (`takeAddress`, `set_place_details`). A first delivery to a new place gets one question for house and floor, then the card. Prompt and schema: «حي/حارة X» goes in `landmark` | the replay; the address eval cases |
+| No card | The replay ends with the card for Khraibeh ($2.50 delivery, its zone) and a confirmed order | the replay |
+
+The 0.13 flow is now: message → pin request → pin → «وصلنا موقعك 📍 التوصيل على …. كرمال السائق: شو اسم البيت أو البناية، وأي طابق؟» → the answer (text or voice) → card. A pin and an address sent together, or a returning customer's saved place, go straight to the card.
+
+**1.22 zero-wrong gate.** The four phrasings are cases first: `evals/language/zero-wrong.json` (all seven live readings of them, replayed through `plan_order` in CI by `zero-wrong.test.ts`) and hand cases `hz*` in every live run. Migration 0075 redefines `plan_order_core` from 0053's text with four rules, each named per line in `b4`:
+1. a choice the line negates is withdrawn («مش الكبير» and the Large loaf);
+2. the model's phrase never picks while a word left over looks like another same-brand kind's word («sodour» ≈ «sdour»: breasts, not legs);
+3. the doubt check also runs for a line the model translated (the customer wrote «jazar», the line says «جزر») when another product explains more of the message;
+4. a kind or exact term said word after word across two neighbouring lines («بازيلا وجزر») makes both lines one question;
+5. products a line leaves tied and a size word in the message no line carries («wooden bakery l kbar» left in `source_hint`): no best-seller assumption (found by the first live run).
+The message is now scanned once per plan. Replay of all 1,972 recorded live readings of B3's runs: wrong products **10 → 0**, F1 0.918 → **0.918** (precision 0.995 → 1.000, recall 0.853 → 0.849). Live runs on this branch (GitHub Actions `language-pack`, `claude-haiku-5-5`, 990 cases x 3 each, about USD 3 a run):
+
+| Run | Code | Item F1 | Wrong products | 0.13 message right | Address cases (6) |
+| --- | --- | --- | --- | --- | --- |
+| B3's runs | 0053/0054 | 0.918 | 10 in 2,458 items | yes | (none) |
+| 43500022007 | rules 1-4 | 0.912 | 1 in 3,708 (g0354, the size in `source_hint`) | 3 of 3 | 6 of 6 |
+| 43500871819 | rules 1-4, rebased | 0.915 | 2 in 3,708 (the same g0354 reading, twice) | 3 of 3 | 6 of 6 |
+| replay of run 43500022007's 2,970 readings | rules 1-5 | 0.913 | **0** | 3 of 3 | |
+| final run (request on `4ce3400`) | rules 1-5 | running at merge time: its result is added after the merge | | | |
+
+By language (first run): Lebanese Arabic 0.922, mixed 0.917, Arabizi 0.891, English 0.966, French 0.938. `results/after.json` is the first run's readings (replay with `ALO_LANG_REPLAY=evals/language/results/after.json npx vitest run evals/language/replay.test.ts`, about 12 minutes); `results/live.txt` its `evals/live` report.
+The gate as written (F1 at least 0.90, zero wrong products, the 0.13 message right on staging): met on the replay of live readings; a live run's model can still produce a reading no rule has seen, so every wrong product found later becomes a `zero-wrong.json` case before its fix.
+`evals/live` on the same runs: the six address cases pass; two older cases fail as before B4 and are not B4's: `healthiest` (the output guard refuses the model's first two wordings, «healthiest» and «allergen» as words; the third goes out, so the customer is answered: a false positive of the guard, B2's) and «kifak? shu 3am ta3mol lyom?» (read as a greeting, which gets the greeting answer, not off-topic). `best-restaurant` failed once in the second run the same way. Recorded for the next lane B session.
+Anyone redefining `plan_order_core`: start from 0075's text.
+
+**1.23 search words for every new item** (migration 0076; `packages/agents/src/pack-rules.ts`, `search-words.ts`, `cron.ts`; `test/db/search-words.test.ts`, `evals/language/pack-rules.test.ts`).
+A product inserted without words, or whose name, Arabic name or brand changes (the size is in the name), is queued; a nightly pass (00:41 UTC) queues anything whose words were built from an older name. Each cron minute takes `settings.search_words.per_tick` (2) jobs: the fast model proposes kind, brand and exact words in the four languages plus four phrasings, with the item's shelf in view; `pack-rules.ts` drops food-fact words not printed in the name and over-long terms (the same rules as `build-pack.mjs`, proven equal on every term of the 1.22 pack); `save_search_words` applies the whole-pack rules (an exact word two products claim names neither, an exact word that is another's kind word is kind, a kind word that is a brand is dropped); `check_search_words` runs the phrasings through the planner and an item they do not resolve to goes on `search_word_reviews` (`search_word_reviews_open()`, `resolve_search_word_review()`: for D2's console page). A failed job retries three times. The 291 products of the 1.22 pack get no job. Menu items (Phase 8) are products, so they are covered. Only a live account proves the fast model's words on a real new product (nothing has been added on staging yet).
+
+**Lane B requests** (migration 0077):
+- D1: `quote_order` (0052's text) refuses with `fx_paused` while a rate move waits for a person (D2's 0045). The customer is told once by code (`FIXED.fxPaused`), no model writes about prices, the basket is kept. Tested with D2's real `set_fx_rate` / `confirm_fx_rate`.
+- C2: `apply_customer_credit` runs on every new card; the credit is its own line («رصيد إلك من قبل: -$x») and the total adds up.
+- C2: `learn_from_order` learns each asked-for product once, from lines that left the hub as asked (no removed, missing or substitute lines; a kept substitute is not what they asked for).
+- B3: `index.ts` wires the typing indicator (`deps.typing`: Kapso `markRead` with a typing indicator; it sends no message and is never called for a probe) and one call to `customerLineCron` in `scheduled()` (2.9's feedback cards, which go out from now on, and 1.23).
+- B3: `probe_due()` gives a probe conversation stuck with a person back to the Concierge when no probe order is open, and opens an ops exception `probe_handoff_released` naming the handoff's reason. With `settings.probe.fresh_place` true, each hourly probe order is a first order (its places are cleared), so it walks pin → address → card; the probe answers the address question in words (`probe.ts`).
+
+**Staging proof:** after the merge and deploy, the probe is set to `fresh_place` and its next hourly order must go pin, address, card, closed (result added below).
+
+Files outside lane B, each minimal: `apps/gateway/src/index.ts` (the two wiring lines and their imports), `packages/wa/src/probe.ts`, `scripts/staging/prepare-staging.sql` (the probe pin, 33.6789/35.5778, "Baakline, approximately", is 1.1 km from Semqaniyeh's centre and 1.3 km from Baakline's: now Baakline's centre) and the e2e crash test's pin in `test/pg/worker-e2e.test.ts` (same reason).
+
+Found and not changed:
+- `apps/console/test/today.test.ts` failed once in a full local run and passed alone and on the next run: it measures lateness against the clock. Not B4's file.
+- The fast model reads «عبعقلين» and «بحي راجح» differently from run to run; code no longer depends on either reading (the address eval cases watch it).
+- `place_has_details` asks once for house and floor on a first delivery to a new place. If the founder prefers the card straight after the pin, drop that step in `completePending` (one condition); the pin alone is enough for `confirm_order_checked`.
+
+For other sessions:
+- K1 (1.21) can start: B4 is the lane B session it waits for. `turn.ts` changed in the pin branch, the button branch (`pinvillage:`) and after the reading (`takeAddress`).
+- Anyone touching `save_customer_pin`: 0074 changed its meaning (the pin decides; `p_village` is only what the conversation believed). A test or script that saves a pin far from the village it names now gets the pin's village or none.
+- D2 or the next console session: the 1.23 review list (`search_word_reviews_open`, `resolve_search_word_review`).
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.
@@ -546,8 +610,8 @@ Checks run for this pull request: `npm run typecheck && npm test` (776 pass, 34 
 ### C. Still to build
 See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is restaurants; Phase 9 is the website and diaspora
 orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders.
-The console exists (D1, D2, above). D1's proposed functions are migration 0045. The 1.23 review-list page waits for B4.
-Ordering lane: B1, B2 and B3 are done (above); 0.13 is ready to send. 1.22's zero-wrong gate is still open (four phrasings, in B3's section). K1 (1.21) can start; it edits `turn.ts`, so never beside another lane B session.
+The console exists (D1, D2, above). D1's proposed functions are migration 0045. The 1.23 review-list page can be built: B4 merged its functions (`search_word_reviews_open`, `resolve_search_word_review`).
+Ordering lane: B1, B2, B3 and B4 are done (above). 0.13: retry after B4's deploy (the flow now asks the pin, then house and floor, then sends the card). 1.22's zero-wrong gate is met on the replay of live readings (B4). K1 (1.21) can start now; it edits `turn.ts`, so never beside another lane B session.
 Hub lane: C1 and C2 are done (above); C3 (2.8) can start (B2 and C2 are merged). Console lane: D1 and D2 are done (above).
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 

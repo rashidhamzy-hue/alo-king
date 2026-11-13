@@ -169,6 +169,12 @@ the staging probe turned it into the right card and a closed order (AK-1001, 13 
 the ops-line voice reply need one call each in lane A and C files (requests in `docs/HANDOFF.md`, session B3). Plan change made by B3: the
 pack and eval set are regenerated through `.github/workflows/language-pack.yml`, never by hand.
 
+Status 13 November 2026 (session B4): the founder's first live order (13 Nov) failed four ways (basket lost after the address, village taken
+from the text not the pin, «حي راجح» read as a village, no card); each is a replayed test and fixed: the pin decides the village (village
+centres are data, 0074), a first delivery asks once for house and floor, then the card. 1.22's zero-wrong gate: on the replay of all 1,972
+recorded live readings, wrong products 10 -> 0 at F1 0.918 (0075); live runs in `docs/HANDOFF.md`. 1.23 is built and tested (0076); the
+console's review list for it is D2's next page. The lane B requests of D1, C2 and B3 are done (0077). K1 can start.
+
 Every misread order becomes an eval case before it is fixed.
 
 ### 1.21 WhatsApp catalog for the 291 products (session K1)

@@ -1,406 +1,409 @@
 Alo King test report
-Generated: 2026-11-13 20:19 UTC, session B4 (live findings of 13 Nov, 1.22 zero-wrong gate, 1.23, lane B requests), rebased on D2 and N1
+Generated: 2026-11-13 20:51 UTC, session B4 (live findings of 13 Nov, 1.22 zero-wrong gate, 1.23, lane B requests), rebased on D2 and N1
 Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
 
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > offers the job to a rider on shift, and a lost Arrived tap does not block Delivered 110ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > posts cash per currency, once, and only for the assigned rider 41ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > counts cash in hand plus COD already assigned against the cap, and a confirmed drop frees the rider 38ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > expires an unanswered offer and moves it to the next rider, never back to the one who ignored it 23ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > refuses no-answer before the wait is up, then fails the order and carries the fee to the next one 14ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > receives the goods back: shelf-stable items restocked, chilled items written off unless the picker clears them 13ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > batches two hub orders for neighbouring doors into one job 25ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > confirms a transfer only with a reference, only by ops, and never the same reference twice 29ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > offers the job to a rider on shift, and a lost Arrived tap does not block Delivered 81ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > posts cash per currency, once, and only for the assigned rider 25ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > counts cash in hand plus COD already assigned against the cap, and a confirmed drop frees the rider 26ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > expires an unanswered offer and moves it to the next rider, never back to the one who ignored it 19ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > refuses no-answer before the wait is up, then fails the order and carries the fee to the next one 11ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > receives the goods back: shelf-stable items restocked, chilled items written off unless the picker clears them 10ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > batches two hub orders for neighbouring doors into one job 32ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > confirms a transfer only with a reference, only by ops, and never the same reference twice 32ms
+ ✓ apps/console/test/sign-in.test.ts > sign-in > sends a signed-out visitor to the sign-in page, and refuses a signed-out POST 3690ms
  ✓ test/db/rider-flow.test.ts > rider flow on the real schema > closes a shift: a few cents write themselves off, real money goes to review 3ms
  ✓ test/db/rider-flow.test.ts > reliability and learning > a turn runs once; a retry is recognised; a finished turn is never re-run 3ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > an outbound message is sent once even if the turn is retried after a crash 7ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > keeps a turn it gave up on in the exception queue until a person closes it 8ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > refuses every marketing send while the switch is off, even to a customer who opted in 7ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > an outbound message is sent once even if the turn is retried after a crash 5ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > keeps a turn it gave up on in the exception queue until a person closes it 6ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > refuses every marketing send while the switch is off, even to a customer who opted in 10ms
  ✓ test/db/rider-flow.test.ts > reliability and learning > finds webhook events that were stored but never processed 3ms
  ✓ test/db/rider-flow.test.ts > reliability and learning > sends the customer a fresh card when the price moved between the card and the tap 7ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > learns a customer's usuals and their words from delivered orders; an alias with enough evidence waits for a person (1.14) 46ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > applies an approved menu import: new dishes, new prices, and missing dishes switched off 36ms
- ✓ apps/console/test/sign-in.test.ts > sign-in > sends a signed-out visitor to the sign-in page, and refuses a signed-out POST 4372ms
- ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > lets exactly one of two concurrent claims through, and none once sent 3555ms
- ✓ apps/console/test/sign-in.test.ts > sign-in > signs a staff member in with a strict, HttpOnly session cookie and shows their name 3242ms
- ✓ test/pg/worker-e2e.test.ts > Worker end to end (workerd + real Postgres) > the webhook path: signature, store once, the conversation object, the turn, a real send 4720ms
- ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > holds the lease even when the outbox setting is missing, and releases a failed send for retry 2839ms
- ✓ apps/console/test/sign-in.test.ts > sign-in > refuses a wrong password with one message that does not say which part was wrong, and never logs the password 2797ms
- ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > forces marketing off even if an older database had it on 2862ms
- ✓ apps/console/test/sign-in.test.ts > sign-in > refuses an Auth user whose party is not staff (customer, rider), and one with no party 3046ms
- ✓ test/pg/worker-e2e.test.ts > Worker end to end (workerd + real Postgres) > a crash in the middle of a turn: the order is written, the send fails; the retry sends the card once and makes no second order 5901ms
- ✓ apps/console/test/sign-in.test.ts > sign-in > says plainly when Supabase Auth is down 3185ms
- ✓ apps/console/test/fx.test.ts > Exchange rate > without set_fx_rate() in the database the page shows the rate and says the form is not available yet 3724ms
- ✓ apps/console/test/sign-in.test.ts > sign-in > signs out 2804ms
- ✓ apps/console/test/fx.test.ts > Exchange rate > morning rate, a small move, a big move that pauses quoting, then the confirmation 2861ms
- ✓ apps/console/test/fx.test.ts > Exchange rate > is closed to pickers, by the page and by the database 2832ms
- ✓ apps/console/test/sign-in.test.ts > roles come from the database on every request > a picker cannot open or post to a lead page; the menu hides it 2887ms
- ✓ apps/console/test/sign-in.test.ts > roles come from the database on every request > blocking a staff member, or changing their role, takes effect on their next click 2993ms
- ✓ apps/console/test/exceptions.test.ts > Exceptions and chats > acknowledges and resolves an exception, recording who 3728ms
- ✓ apps/console/test/sign-in.test.ts > roles come from the database on every request > a session ends after twelve hours 2660ms
- ✓ test/pg/worker-e2e.test.ts > Worker end to end (workerd + real Postgres) > scheduled(): the hourly probe order walks to closed, every step through the real path, and nothing reaches Kapso 13852ms
- ✓ test/pg/worker-e2e.test.ts > Worker end to end (workerd + real Postgres) > the 0.13 evidence script passes on that order, and prints no phone number or user id 53ms
- ✓ apps/console/test/exceptions.test.ts > Exceptions and chats > a reply goes out once from the customer number through the gateway; a closed window is refused 3093ms
- ✓ apps/console/test/sign-in.test.ts > roles come from the database on every request > a forged or altered session cookie is ignored 2887ms
- ✓ apps/console/test/exceptions.test.ts > Exceptions and chats > with release_handoff() in the database, a chat goes back to the Concierge 3723ms
- ✓ apps/console/test/sign-in.test.ts > forms > refuses a POST without the page's token, and one from another site 3591ms
- ✓ apps/console/test/merchants.test.ts > Merchants > a merchant cannot be approved before a menu is applied; after it, approval opens it with the commission 4703ms
- ✓ apps/console/test/merchants.test.ts > Merchants > a learned word is approved by a person 3441ms
- ✓ apps/console/test/catalog.test.ts > Catalog > searches, then a picker counts and adjusts with a reason; a double tap changes stock once; the picker limit holds 4848ms
- ✓ apps/console/test/sign-in.test.ts > forms > logs every action before it runs, with who did it; if the log cannot be written, the action does not run 3792ms
- ✓ apps/console/test/sign-in.test.ts > emailed link (new account or forgotten password) > takes the token from the link, lets the person choose a password and signs them in 3003ms
- ✓ apps/console/test/merchants.test.ts > Merchants > is closed to pickers 3157ms
- ✓ apps/console/test/catalog.test.ts > Catalog > without set_offer() in the database, the price form says so instead of pretending 3214ms
- ✓ apps/console/test/sign-in.test.ts > emailed link (new account or forgotten password) > refuses a bad token, and a token for someone who is not staff 3061ms
- ✓ apps/console/test/catalog.test.ts > Catalog > with set_offer(), an ops lead changes price and availability with a reason, and it is recorded 3824ms
- ✓ apps/console/test/zones.test.ts > Zones and fees > an ops lead sees zones and villages but cannot change them 4322ms
- ✓ apps/console/test/sign-in.test.ts > emailed link (new account or forgotten password) > the short-lived set-password cookie is not a session 3270ms
- ✓ evals/language/pack-rules.test.ts > pack rules: the Worker's copy agrees with the 1.22 builder > tokens and food words, on every term of the pack 2566ms
- ✓ apps/console/test/zones.test.ts > Zones and fees > the admin changes a zone's fee and ETA with a reason; the next order is quoted at the new fee and late is judged by the new ETA 3444ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > one model call: the reading goes to plan_order, and a first-time address gets a pin request, then the card 629ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a customer with a pinned place gets the card in the same turn, from one model call 335ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > runs the tool loop only when the plan asks, and hands it the plan instead of searching again 117ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > learns a customer's usuals and their words from delivered orders; an alias with enough evidence waits for a person (1.14) 62ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > applies an approved menu import: new dishes, new prices, and missing dishes switched off 38ms
+ ✓ apps/console/test/sign-in.test.ts > sign-in > signs a staff member in with a strict, HttpOnly session cookie and shows their name 2897ms
+ ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > lets exactly one of two concurrent claims through, and none once sent 2908ms
+ ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > holds the lease even when the outbox setting is missing, and releases a failed send for retry 2578ms
+ ✓ test/pg/worker-e2e.test.ts > Worker end to end (workerd + real Postgres) > the webhook path: signature, store once, the conversation object, the turn, a real send 4313ms
+ ✓ apps/console/test/sign-in.test.ts > sign-in > refuses a wrong password with one message that does not say which part was wrong, and never logs the password 2551ms
+ ✓ apps/console/test/sign-in.test.ts > sign-in > refuses an Auth user whose party is not staff (customer, rider), and one with no party 2621ms
+ ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > forces marketing off even if an older database had it on 2649ms
+ ✓ test/pg/worker-e2e.test.ts > Worker end to end (workerd + real Postgres) > a crash in the middle of a turn: the order is written, the send fails; the retry sends the card once and makes no second order 5891ms
+ ✓ apps/console/test/zones.test.ts > Zones and fees > an ops lead sees zones and villages but cannot change them 3329ms
+ ✓ apps/console/test/sign-in.test.ts > sign-in > says plainly when Supabase Auth is down 2958ms
+ ✓ apps/console/test/sign-in.test.ts > sign-in > signs out 2761ms
+ ✓ apps/console/test/zones.test.ts > Zones and fees > the admin changes a zone's fee and ETA with a reason; the next order is quoted at the new fee and late is judged by the new ETA 2962ms
+ ✓ apps/console/test/zones.test.ts > Zones and fees > the admin stops serving a village and moves another into a zone 2720ms
+ ✓ apps/console/test/sign-in.test.ts > roles come from the database on every request > a picker cannot open or post to a lead page; the menu hides it 2770ms
+ ✓ apps/console/test/sign-in.test.ts > roles come from the database on every request > blocking a staff member, or changing their role, takes effect on their next click 2844ms
+ ✓ apps/console/test/exceptions.test.ts > Exceptions and chats > acknowledges and resolves an exception, recording who 3407ms
+ ✓ apps/console/test/sign-in.test.ts > roles come from the database on every request > a session ends after twelve hours 2766ms
+ ✓ apps/console/test/exceptions.test.ts > Exceptions and chats > a reply goes out once from the customer number through the gateway; a closed window is refused 2867ms
+ ✓ apps/console/test/sign-in.test.ts > roles come from the database on every request > a forged or altered session cookie is ignored 2595ms
+ ✓ test/pg/worker-e2e.test.ts > Worker end to end (workerd + real Postgres) > scheduled(): the hourly probe order walks to closed, every step through the real path, and nothing reaches Kapso 13849ms
+ ✓ test/pg/worker-e2e.test.ts > Worker end to end (workerd + real Postgres) > the 0.13 evidence script passes on that order, and prints no phone number or user id 63ms
+ ✓ apps/console/test/exceptions.test.ts > Exceptions and chats > with release_handoff() in the database, a chat goes back to the Concierge 3083ms
+ ✓ apps/console/test/sign-in.test.ts > forms > refuses a POST without the page's token, and one from another site 2600ms
+ ✓ apps/console/test/fx.test.ts > Exchange rate > without set_fx_rate() in the database the page shows the rate and says the form is not available yet 4499ms
+ ✓ apps/console/test/sign-in.test.ts > forms > logs every action before it runs, with who did it; if the log cannot be written, the action does not run 3780ms
+ ✓ apps/console/test/merchants.test.ts > Merchants > a merchant cannot be approved before a menu is applied; after it, approval opens it with the commission 4247ms
+ ✓ apps/console/test/fx.test.ts > Exchange rate > morning rate, a small move, a big move that pauses quoting, then the confirmation 3165ms
+ ✓ apps/console/test/sign-in.test.ts > emailed link (new account or forgotten password) > takes the token from the link, lets the person choose a password and signs them in 3061ms
+ ✓ apps/console/test/merchants.test.ts > Merchants > a learned word is approved by a person 3183ms
+ ✓ apps/console/test/fx.test.ts > Exchange rate > is closed to pickers, by the page and by the database 3097ms
+ ✓ apps/console/test/sign-in.test.ts > emailed link (new account or forgotten password) > refuses a bad token, and a token for someone who is not staff 3277ms
+ ✓ apps/console/test/merchants.test.ts > Merchants > is closed to pickers 3207ms
+ ✓ apps/console/test/sign-in.test.ts > emailed link (new account or forgotten password) > the short-lived set-password cookie is not a session 3138ms
+ ✓ evals/language/pack-rules.test.ts > pack rules: the Worker's copy agrees with the 1.22 builder > tokens and food words, on every term of the pack 2712ms
+ ✓ apps/console/test/catalog.test.ts > Catalog > searches, then a picker counts and adjusts with a reason; a double tap changes stock once; the picker limit holds 4021ms
+ ✓ apps/console/test/catalog.test.ts > Catalog > without set_offer() in the database, the price form says so instead of pretending 3115ms
+ ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0060#0 Marhaba, baddi please: 1 Joocyz ananas el kbir 1L, w 1 bicarbonate Domo, w pack el 3 tuna Plein Soleil white bel zeit, w 1 Wilco sodour djej packaged. Merci 🙏 1751ms
+ ✓ apps/console/test/catalog.test.ts > Catalog > with set_offer(), an ops lead changes price and availability with a reason, and it is recorded 2785ms
+ ✓ evals/language/pack-rules.test.ts > pack rules: the Worker's copy agrees with the 1.22 builder > one product at a time drops what the whole build dropped for food 6163ms
+ ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0060#1 Marhaba, baddi please: 1 Joocyz ananas el kbir 1L, w 1 bicarbonate Domo, w pack el 3 tuna Plein Soleil white bel zeit, w 1 Wilco sodour djej packaged. Merci 🙏 1561ms
+ ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0377#2 بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان 279ms
+ ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0377#3 بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان 306ms
+ ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0815#4 baddi bazella w jazar mkhalta, plein soleil 282ms
+ ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0815#5 baddi bazella w jazar mkhalta, plein soleil 158ms
+ ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0817#6 ابعتلي كيس بازيلا وجزر مفرزة 190ms
+ ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0354#7 kifak, baddi 2 rabtat 5ebez wooden bakery l kbar 344ms
+ ✓ apps/console/test/pictures.test.ts > Product pictures > shows the item and its picture as a signed link with source and licence; approving makes it the customer's picture 4265ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > one model call: the reading goes to plan_order, and a first-time address gets a pin request, then the card 631ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a customer with a pinned place gets the card in the same turn, from one model call 366ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > runs the tool loop only when the plan asks, and hands it the plan instead of searching again 125ms
  ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a reading that breaks the contract falls back to the loop rather than guessing 13ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > confirms on a button tap without calling the model, and reserves the stock 22ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a tap on someone else's order changes nothing 29ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > honours STOP with one fixed reply and no model call 12ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > asks for a resend when a voice transcript has collapsed into a loop 29ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > passes a usable voice transcript to the Concierge 280ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > does not send a card for a quote with issues, and lets the Concierge offer the substitute 158ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > stays silent while a person is handling the chat 9ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > stops after six model steps and hands off 58ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > saves a location pin to the customer's places and continues with it 11ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > confirms on a button tap without calling the model, and reserves the stock 20ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a tap on someone else's order changes nothing 16ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > honours STOP with one fixed reply and no model call 10ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > asks for a resend when a voice transcript has collapsed into a loop 9ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > passes a usable voice transcript to the Concierge 321ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > does not send a card for a quote with issues, and lets the Concierge offer the substitute 152ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > stays silent while a person is handling the chat 4ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > stops after six model steps and hands off 54ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > saves a location pin to the customer's places and continues with it 10ms
  ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > a restaurant that has not signed is 'not available yet': no handoff, no order, no second model call 63ms
- ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > a mixed message: the restaurant part is named as not available, the groceries go on the card 370ms
- ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > only approve_merchant() makes a restaurant searchable 59ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'where is my order' is answered from order_status_for with no model call 31ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > with no open order, says so 6ms
- ✓ apps/console/test/zones.test.ts > Zones and fees > the admin stops serving a village and moves another into a zone 2978ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > opening hours come from settings, typed or read from a voice note 15ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'do you deliver to X' is answered from the zones 10ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > an order to a village we do not serve gets one answer listing where we do deliver, and no card 270ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'same as last time' re-prices the last closed order and sends the card, with no model call 27ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > names what is missing from last time before the card, and leaves it off 20ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > a customer with no closed order never gets a repeat card 11ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'same as last time, and add bread' puts the new line on top of the old basket 429ms
- ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a returning customer who says hello is offered their last basket; the tap sends it re-priced, with no model call 32ms
- ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > is never shown to a customer with no closed order, even one with a delivered but unpaid order 19ms
- ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a repeat button for someone else's order sends nothing of theirs 12ms
+ ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > a mixed message: the restaurant part is named as not available, the groceries go on the card 363ms
+ ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > only approve_merchant() makes a restaurant searchable 65ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'where is my order' is answered from order_status_for with no model call 35ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > with no open order, says so 7ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > opening hours come from settings, typed or read from a voice note 20ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'do you deliver to X' is answered from the zones 9ms
+ ✓ apps/console/test/pictures.test.ts > Product pictures > is closed to pickers, by the page and by the database 3051ms
+ ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > message, pin, voice address: the basket survives, the pin decides the village, «حي راجح» is a neighbourhood, the card comes 725ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > an order to a village we do not serve gets one answer listing where we do deliver, and no card 311ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'same as last time' re-prices the last closed order and sends the card, with no model call 21ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > names what is missing from last time before the card, and leaves it off 27ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > a customer with no closed order never gets a repeat card 13ms
+ ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > pin and address in one go: the card comes at once 501ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'same as last time, and add bread' puts the new line on top of the old basket 436ms
+ ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a returning customer who says hello is offered their last basket; the tap sends it re-priced, with no model call 37ms
+ ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > is never shown to a customer with no closed order, even one with a delivered but unpaid order 14ms
+ ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a repeat button for someone else's order sends nothing of theirs 11ms
  ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a card that went stale before the tap is rebuilt at today's prices, with no model call 22ms
- ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > asks for a number the rider can call before the card, stores it, then sends the card with no model call 351ms
- ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > a customer whose WhatsApp number we have is never asked 308ms
- ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > the database refuses a malformed number 3ms
- ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > overloaded once: one fixed 'one moment', then the turn carries on to the card 422ms
+ ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > the pin decides even when the text named another village, and the card says where it is going 473ms
+ ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > asks for a number the rider can call before the card, stores it, then sends the card with no model call 323ms
+ ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > a pin no village clearly owns: the bot asks with buttons, and the tap decides 506ms
+ ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > a tap for a village far from the pin is refused by the database 7ms
+ ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > village_in_text finds «عبعقلين» and 3a b3aklin, and never a neighbourhood «حي راجح» 88ms
+ ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > a customer whose WhatsApp number we have is never asked 287ms
+ ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > the database refuses a malformed number 5ms
+ ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > overloaded once: one fixed 'one moment', then the turn carries on to the card 290ms
  ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > still overloaded after every retry: a person takes over, ops is told, and the customer hears so 11ms
- ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > a turn retried after a crash does not say 'one moment' twice 15ms
+ ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > a turn retried after a crash does not say 'one moment' twice 16ms
  ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > a bad request is our bug, not capacity: no 'one moment', no retries 6ms
  ✓ test/db/concierge-flow.test.ts > order card > keeps totals, consent line and buttons inside WhatsApp's limits for a 60-line basket 1ms
  ✓ test/db/concierge-flow.test.ts > order card > round-trips button ids 0ms
- ✓ evals/language/pack-rules.test.ts > pack rules: the Worker's copy agrees with the 1.22 builder > one product at a time drops what the whole build dropped for food 6185ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > the 0.13 demo message, as the live model read it, becomes the right card 297ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > «ربطتين خبز» read as 'bread' finds Arabic bread, not nothing 110ms
- ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0060#0 Marhaba, baddi please: 1 Joocyz ananas el kbir 1L, w 1 bicarbonate Domo, w pack el 3 tuna Plein Soleil white bel zeit, w 1 Wilco sodour djej packaged. Merci 🙏 2189ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > labneh stays labneh and eggs stay eggs, even when only the brand ties 245ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > a word the catalog cannot explain stops the planner from assuming: it asks 138ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > the model's phrase may choose among the products the customer's words allow, never outside them 216ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > words that never describe a product count neither for nor against one 37ms
+ ✓ scripts/product-data/test/off-http.test.mjs > offLookup > asks the v2 product address by digits only, for the fields we file, and identifies the tool 45ms
+ ✓ scripts/product-data/test/off-http.test.mjs > offLookup > 404 and status 0 are 'not in Open Food Facts'; a barcode that is too short is not asked 2ms
+ ✓ scripts/product-data/test/off-http.test.mjs > offLookup > a different product than the one asked for is not used (it drops leading zeros, nothing else) 3ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > the 0.13 demo message, as the live model read it, becomes the right card 253ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > «ربطتين خبز» read as 'bread' finds Arabic bread, not nothing 94ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > labneh stays labneh and eggs stay eggs, even when only the brand ties 212ms
+ ✓ test/pg/dispatch-race.test.ts > dispatch race on real Postgres (two connections) > two orders, one rider, the first dispatch still open: the rider gets one job, the other order waits 872ms
+ ✓ test/pg/dispatch-race.test.ts > dispatch race on real Postgres (two connections) > after the first commits, a later dispatch sees the rider busy (no double job across transactions) 51ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > a word the catalog cannot explain stops the planner from assuming: it asks 89ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > the model's phrase may choose among the products the customer's words allow, never outside them 163ms
+ ✓ test/pg/dispatch-race.test.ts > dispatch race on real Postgres (two connections) > the same order dispatched from two connections at once becomes one delivery 637ms
+ ✓ test/pg/dispatch-race.test.ts > dispatch race on real Postgres (two connections) > twenty orders dispatched at once to five riders: nobody ever holds two jobs 405ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > words that never describe a product count neither for nor against one 32ms
  ✓ test/db/catalog-language.test.ts > catalog language (1.22) > tokens fold Arabic, split numbers from units and strip clitics on both sides 3ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > pack terms are keyed by SKU, so the pack loads before or after the catalog 15ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > the pack that ships: no exact term points at two products, and no term states a food fact 14ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > negation rules a product out: «مش البانيه», «bala zaytoun» 40ms
- ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0060#1 Marhaba, baddi please: 1 Joocyz ananas el kbir 1L, w 1 bicarbonate Domo, w pack el 3 tuna Plein Soleil white bel zeit, w 1 Wilco sodour djej packaged. Merci 🙏 1700ms
- ✓ test/db/ordering-b2.test.ts > the card shows what is owed and asks for prepayment (1.4) > a customer who owes from a failed delivery gets a prepaid card with the amount on its own line, and the total adds up 527ms
- ✓ test/db/ordering-b2.test.ts > the card shows what is owed and asks for prepayment (1.4) > when the Concierge proposes cash for someone who owes, the database refuses it and the card goes out prepaid instead 30ms
- ✓ test/db/ordering-b2.test.ts > the card shows what is owed and asks for prepayment (1.4) > no dues, no extra line and no prepayment request 1ms
- ✓ test/db/ordering-b2.test.ts > money guardrail (1.5) > a reply that states a price is refused and logged; the reworded reply carries prices written by code from the database 28ms
- ✓ test/db/ordering-b2.test.ts > money guardrail (1.5) > a pin request with an amount is refused too, and a model that keeps writing prices ends with a person, never silence 18ms
- ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0377#2 بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان 252ms
- ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > is stored privately from Kapso's URL, queued for ops with the model's pre-fill, and confirmed only by a person 59ms
- ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > a retried turn stores and queues the same picture once 50ms
- ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > the same picture for a second order is flagged for the reviewer, not refused 27ms
- ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > a raw Meta link is never fetched: the customer is asked to send it again 17ms
- ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > with no order waiting for a transfer, a picture is just a picture and goes to the Concierge 15ms
- ✓ test/db/ordering-b2.test.ts > neutral and factual (1.10) > praise and an unverified halal claim are refused with their reasons; the neutral rewording goes out 12ms
- ✓ test/db/ordering-b2.test.ts > neutral and factual (1.10) > a fact approved under 1.11 lets the Concierge state it, with its status; the same words with no record stay refused 26ms
- ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > 'what do you know about me' lists what is held, with no model call; memories say whether they were observed or stated 17ms
- ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > 'forget' asks once with a button; yes deletes the memories and the unused places, and the id leaves the alias evidence 23ms
- ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0377#3 بدي خبز تنور العصر، مش الكبير، التاني تبع الخمس رغفان 256ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > the pack's precomputed tokens and forms are exactly what the SQL functions give 1787ms
- ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0815#4 baddi bazella w jazar mkhalta, plein soleil 223ms
- ✓ test/db/catalog-language.test.ts > catalog language (1.22) > a named restaurant still goes the 1.2 way 11ms
- ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > 'stop remembering' stops learning and using memory; 'remember again' turns it back on 24ms
- ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0815#5 baddi bazella w jazar mkhalta, plein soleil 220ms
- ✓ evals/language/zero-wrong.test.ts > 1.22 zero wrong: the four phrasings B3 left > g0817#6 ابعتلي كيس بازيلا وجزر مفرزة 174ms
- ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > a stated allergy goes on this order's notes at once; it is kept for the next order only after a yes 339ms
- ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > 'just this once' keeps nothing, and the Concierge's reading of 'what do you know about me' gets the same answer 379ms
- ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > is off by default: no fee on the quote, no line on the card 129ms
- ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > a small basket pays the fee on its own line; cash posts it to the company's own account, and the rider is paid the delivery fee only 137ms
- ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > a basket at or above the threshold pays no fee; a confirmed transfer also posts the fee to its own account 11ms
- ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > a first order above the cash cap goes out prepaid and says why; a customer with a delivered order may pay cash 404ms
- ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > tripwire: the four functions that carry the fee still do (a later migration that redefines one must keep it) 4ms
- ✓ test/db/ordering-b2.test.ts > stay on the job (1.18) > homework gets one fixed, friendly line and an offer to order, with no second model call and nothing answered 8ms
- ✓ test/db/ordering-b2.test.ts > stay on the job (1.18) > an order inside a chatty message is still an order 373ms
- ✓ apps/console/test/pictures.test.ts > Product pictures > shows the item and its picture as a signed link with source and licence; approving makes it the customer's picture 4046ms
- ✓ test/pg/dispatch-race.test.ts > dispatch race on real Postgres (two connections) > two orders, one rider, the first dispatch still open: the rider gets one job, the other order waits 870ms
- ✓ test/pg/dispatch-race.test.ts > dispatch race on real Postgres (two connections) > after the first commits, a later dispatch sees the rider busy (no double job across transactions) 64ms
- ✓ test/pg/dispatch-race.test.ts > dispatch race on real Postgres (two connections) > the same order dispatched from two connections at once becomes one delivery 665ms
- ✓ test/pg/dispatch-race.test.ts > dispatch race on real Postgres (two connections) > twenty orders dispatched at once to five riders: nobody ever holds two jobs 573ms
- ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > message, pin, voice address: the basket survives, the pin decides the village, «حي راجح» is a neighbourhood, the card comes 725ms
- ✓ apps/console/test/pictures.test.ts > Product pictures > is closed to pickers, by the page and by the database 3061ms
- ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > pin and address in one go: the card comes at once 452ms
- ✓ scripts/product-data/test/off-http.test.mjs > offLookup > asks the v2 product address by digits only, for the fields we file, and identifies the tool 21ms
- ✓ scripts/product-data/test/off-http.test.mjs > offLookup > 404 and status 0 are 'not in Open Food Facts'; a barcode that is too short is not asked 3ms
- ✓ scripts/product-data/test/off-http.test.mjs > offLookup > a different product than the one asked for is not used (it drops leading zeros, nothing else) 1ms
- ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > the pin decides even when the text named another village, and the card says where it is going 520ms
- ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > a pin no village clearly owns: the bot asks with buttons, and the tap decides 614ms
- ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > a tap for a village far from the pin is refused by the database 5ms
- ✓ test/db/live-order-b4.test.ts > the founder's order of 13 Nov, replayed (B4) > village_in_text finds «عبعقلين» and 3a b3aklin, and never a neighbourhood «حي راجح» 60ms
- ✓ test/db/ordering-b3.test.ts > model text is marked for the gateway's second check (A2's request) > a reply the model wrote goes out with authored: model; the card written by code does not 133ms
- ✓ test/db/ordering-b3.test.ts > typing indicator and a cap on model turns (1.8) > the typing indicator goes on the message being answered, once, only when the model is needed 206ms
- ✓ test/db/ordering-b3.test.ts > typing indicator and a cap on model turns (1.8) > a typing indicator that fails never stops the turn 144ms
- ✓ test/db/ordering-b3.test.ts > typing indicator and a cap on model turns (1.8) > past the hourly cap a person takes over: no model call, the customer is told, ops are alerted once an hour 19ms
- ✓ test/db/ordering-b3.test.ts > typing indicator and a cap on model turns (1.8) > answers that need no model are never capped 10ms
- ✓ test/db/ordering-b3.test.ts > first-contact source (1.13) > an ad click on the first message is kept on the customer and on their first order, not on the next 155ms
- ✓ test/db/ordering-b3.test.ts > first-contact source (1.13) > a QR code or a referral code in the first message is stored; a later message changes nothing 17ms
- ✓ test/db/ordering-b3.test.ts > first-contact source (1.13) > a customer who wrote before has no first contact: unknown, never guessed 14ms
- ✓ test/db/ordering-b3.test.ts > voice-note policy by role, from settings, across turns (1.17) > the customer's limit comes from settings.voice_limits 10ms
- ✓ test/db/ordering-b3.test.ts > voice-note policy by role, from settings, across turns (1.17) > the hourly budget holds across turns, not only inside one burst 160ms
- ✓ test/db/ordering-b3.test.ts > voice-note policy by role, from settings, across turns (1.17) > the provider's real duration wins over the size estimate, and a retried note is counted once 4ms
- ✓ test/db/ordering-b3.test.ts > voice-note policy by role, from settings, across turns (1.17) > riders and staff: their own limit; within it a person listens and the rider is reminded money is buttons 3ms
- ✓ test/db/ordering-b3.test.ts > voice notes: Kapso first, a second provider behind a setting, the audio kept privately (1.7) > the note is fetched through Kapso, kept in the private bucket, and Kapso's transcript is read; no second provider by default 144ms
- ✓ test/db/ordering-b3.test.ts > voice notes: Kapso first, a second provider behind a setting, the audio kept privately (1.7) > with the setting, the second transcript is taken too, and rescues a note Kapso heard as a loop 161ms
- ✓ test/db/ordering-b3.test.ts > voice notes: Kapso first, a second provider behind a setting, the audio kept privately (1.7) > a raw Meta link is never fetched; the note is still read from Kapso's transcript 165ms
- ✓ test/db/ordering-b3.test.ts > one tap after delivery (2.9) > a delivered order gets one card, after the delay, never twice 16ms
- ✓ test/db/ordering-b3.test.ts > one tap after delivery (2.9) > «a problem» hands the chat to a person and alerts ops; «fine» thanks once; a repeat tap does nothing 24ms
- ✓ test/db/ordering-b3.test.ts > one tap after delivery (2.9) > nobody answers for someone else's order 8ms
- ✓ test/db/ordering-b3.test.ts > substitute taps on the customer line (C2's request) > a keep or remove tap goes to the hub's handler, never the model 8ms
- ✓ test/db/search-words.test.ts > search words for new items (1.23) > the 291 seeded products, which have the 1.22 pack, get no job; a new product gets one 8ms
- ✓ test/db/search-words.test.ts > search words for new items (1.23) > the job writes the words, drops a food word not in the name, and the phrasings resolve: done 315ms
- ✓ test/db/search-words.test.ts > search words for new items (1.23) > a colliding exact word is dropped for both products; a kind word that is a brand is dropped 73ms
- ✓ test/db/search-words.test.ts > search words for new items (1.23) > a phrasing that does not resolve to the item puts it on the review list instead of a guess 92ms
- ✓ test/db/search-words.test.ts > search words for new items (1.23) > a renamed product is queued again; the nightly pass finds what changed; a model with no usable answer fails and retries 10ms
- ✓ test/db/search-words.test.ts > search words for new items (1.23) > the customer-line cron runs the jobs (and the feedback cards) in one call 40ms
- ✓ scripts/product-data/test/off-http.test.mjs > offLookup > a refusal or a server error is an error, never 'not found' 5609ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > pack terms are keyed by SKU, so the pack loads before or after the catalog 13ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > the pack that ships: no exact term points at two products, and no term states a food fact 13ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > negation rules a product out: «مش البانيه», «bala zaytoun» 32ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > the pack's precomputed tokens and forms are exactly what the SQL functions give 1660ms
+ ✓ test/db/catalog-language.test.ts > catalog language (1.22) > a named restaurant still goes the 1.2 way 6ms
+ ✓ scripts/product-data/test/off-http.test.mjs > offLookup > a refusal or a server error is an error, never 'not found' 5608ms
  ✓ scripts/product-data/test/off-http.test.mjs > offLookup > 429 is waited out: the retry goes through the same gate, and Retry-After is honoured 1ms
  ✓ scripts/product-data/test/off-http.test.mjs > gate > spaces calls at least the interval apart, whoever asks 121ms
  ✓ scripts/product-data/test/off-http.test.mjs > callTool > forces the tool, counts tokens, and returns the tool's input 1ms
  ✓ scripts/product-data/test/off-http.test.mjs > callTool > a bad key or request is fatal (stop the run); a missing tool call is an ordinary error 1ms
- ✓ test/db/lane-b-requests-b4.test.ts > lane B requests (B4) > C2: credit we owe is taken off the next card, on its own line, and the total adds up 316ms
+ ✓ test/db/ordering-b3.test.ts > model text is marked for the gateway's second check (A2's request) > a reply the model wrote goes out with authored: model; the card written by code does not 162ms
+ ✓ test/db/ordering-b3.test.ts > typing indicator and a cap on model turns (1.8) > the typing indicator goes on the message being answered, once, only when the model is needed 238ms
+ ✓ test/db/ordering-b3.test.ts > typing indicator and a cap on model turns (1.8) > a typing indicator that fails never stops the turn 142ms
+ ✓ test/db/ordering-b3.test.ts > typing indicator and a cap on model turns (1.8) > past the hourly cap a person takes over: no model call, the customer is told, ops are alerted once an hour 19ms
+ ✓ test/db/ordering-b3.test.ts > typing indicator and a cap on model turns (1.8) > answers that need no model are never capped 10ms
+ ✓ test/db/ordering-b3.test.ts > first-contact source (1.13) > an ad click on the first message is kept on the customer and on their first order, not on the next 157ms
+ ✓ test/db/ordering-b3.test.ts > first-contact source (1.13) > a QR code or a referral code in the first message is stored; a later message changes nothing 17ms
+ ✓ test/db/ordering-b3.test.ts > first-contact source (1.13) > a customer who wrote before has no first contact: unknown, never guessed 17ms
+ ✓ test/db/ordering-b3.test.ts > voice-note policy by role, from settings, across turns (1.17) > the customer's limit comes from settings.voice_limits 11ms
+ ✓ test/db/ordering-b3.test.ts > voice-note policy by role, from settings, across turns (1.17) > the hourly budget holds across turns, not only inside one burst 186ms
+ ✓ test/db/ordering-b3.test.ts > voice-note policy by role, from settings, across turns (1.17) > the provider's real duration wins over the size estimate, and a retried note is counted once 5ms
+ ✓ test/db/ordering-b3.test.ts > voice-note policy by role, from settings, across turns (1.17) > riders and staff: their own limit; within it a person listens and the rider is reminded money is buttons 6ms
+ ✓ test/db/search-words.test.ts > search words for new items (1.23) > the 291 seeded products, which have the 1.22 pack, get no job; a new product gets one 8ms
+ ✓ test/db/search-words.test.ts > search words for new items (1.23) > the job writes the words, drops a food word not in the name, and the phrasings resolve: done 375ms
+ ✓ test/db/ordering-b3.test.ts > voice notes: Kapso first, a second provider behind a setting, the audio kept privately (1.7) > the note is fetched through Kapso, kept in the private bucket, and Kapso's transcript is read; no second provider by default 169ms
+ ✓ test/db/search-words.test.ts > search words for new items (1.23) > a colliding exact word is dropped for both products; a kind word that is a brand is dropped 77ms
+ ✓ test/db/search-words.test.ts > search words for new items (1.23) > a phrasing that does not resolve to the item puts it on the review list instead of a guess 95ms
+ ✓ test/db/ordering-b3.test.ts > voice notes: Kapso first, a second provider behind a setting, the audio kept privately (1.7) > with the setting, the second transcript is taken too, and rescues a note Kapso heard as a loop 143ms
+ ✓ test/db/search-words.test.ts > search words for new items (1.23) > a renamed product is queued again; the nightly pass finds what changed; a model with no usable answer fails and retries 14ms
+ ✓ test/db/search-words.test.ts > search words for new items (1.23) > the customer-line cron runs the jobs (and the feedback cards) in one call 48ms
+ ✓ test/db/ordering-b2.test.ts > the card shows what is owed and asks for prepayment (1.4) > a customer who owes from a failed delivery gets a prepaid card with the amount on its own line, and the total adds up 581ms
+ ✓ test/db/ordering-b2.test.ts > the card shows what is owed and asks for prepayment (1.4) > when the Concierge proposes cash for someone who owes, the database refuses it and the card goes out prepaid instead 29ms
+ ✓ test/db/ordering-b2.test.ts > the card shows what is owed and asks for prepayment (1.4) > no dues, no extra line and no prepayment request 1ms
+ ✓ test/db/ordering-b2.test.ts > money guardrail (1.5) > a reply that states a price is refused and logged; the reworded reply carries prices written by code from the database 23ms
+ ✓ test/db/ordering-b2.test.ts > money guardrail (1.5) > a pin request with an amount is refused too, and a model that keeps writing prices ends with a person, never silence 15ms
+ ✓ test/db/ordering-b3.test.ts > voice notes: Kapso first, a second provider behind a setting, the audio kept privately (1.7) > a raw Meta link is never fetched; the note is still read from Kapso's transcript 157ms
+ ✓ test/db/ordering-b3.test.ts > one tap after delivery (2.9) > a delivered order gets one card, after the delay, never twice 20ms
+ ✓ test/db/ordering-b3.test.ts > one tap after delivery (2.9) > «a problem» hands the chat to a person and alerts ops; «fine» thanks once; a repeat tap does nothing 40ms
+ ✓ test/db/ordering-b3.test.ts > one tap after delivery (2.9) > nobody answers for someone else's order 13ms
+ ✓ test/db/ordering-b3.test.ts > substitute taps on the customer line (C2's request) > a keep or remove tap goes to the hub's handler, never the model 10ms
+ ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > is stored privately from Kapso's URL, queued for ops with the model's pre-fill, and confirmed only by a person 46ms
+ ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > a retried turn stores and queues the same picture once 36ms
+ ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > the same picture for a second order is flagged for the reviewer, not refused 21ms
+ ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > a raw Meta link is never fetched: the customer is asked to send it again 18ms
+ ✓ test/db/ordering-b2.test.ts > payment screenshots (1.6) > with no order waiting for a transfer, a picture is just a picture and goes to the Concierge 13ms
+ ✓ test/db/ordering-b2.test.ts > neutral and factual (1.10) > praise and an unverified halal claim are refused with their reasons; the neutral rewording goes out 11ms
+ ✓ test/db/ordering-b2.test.ts > neutral and factual (1.10) > a fact approved under 1.11 lets the Concierge state it, with its status; the same words with no record stay refused 24ms
+ ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > 'what do you know about me' lists what is held, with no model call; memories say whether they were observed or stated 15ms
+ ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > 'forget' asks once with a button; yes deletes the memories and the unused places, and the id leaves the alias evidence 26ms
+ ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > 'stop remembering' stops learning and using memory; 'remember again' turns it back on 31ms
+ ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > a stated allergy goes on this order's notes at once; it is kept for the next order only after a yes 458ms
+ ✓ test/db/ordering-b2.test.ts > customer control of memory (1.14) > 'just this once' keeps nothing, and the Concierge's reading of 'what do you know about me' gets the same answer 531ms
+ ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > is off by default: no fee on the quote, no line on the card 126ms
+ ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > a small basket pays the fee on its own line; cash posts it to the company's own account, and the rider is paid the delivery fee only 143ms
+ ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > a basket at or above the threshold pays no fee; a confirmed transfer also posts the fee to its own account 18ms
+ ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > a first order above the cash cap goes out prepaid and says why; a customer with a delivered order may pay cash 485ms
+ ✓ test/db/ordering-b2.test.ts > small-order fee and first-order cash cap (1.16) > tripwire: the four functions that carry the fee still do (a later migration that redefines one must keep it) 3ms
+ ✓ test/db/ordering-b2.test.ts > stay on the job (1.18) > homework gets one fixed, friendly line and an offer to order, with no second model call and nothing answered 18ms
+ ✓ test/db/ordering-b2.test.ts > stay on the job (1.18) > an order inside a chatty message is still an order 601ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > an unsigned restaurant and an unknown product are logged from plan_order, with the customer's words 168ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a matched product that is out of stock is logged against the product 73ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > an order to a village we do not serve is logged as out of area, with the village 93ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a retried turn logs nothing twice; a clean plan logs nothing 172ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > 'same as last time' logs the items of the last order that are gone 39ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a failure inside the log never breaks the plan 38ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > the wrappers are what the app calls: volatile, same arguments, and they keep logging 4ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > unmet_demand groups by what was asked, counting distinct customers 71ms
+ ✓ test/db/lane-b-requests-b4.test.ts > lane B requests (B4) > C2: credit we owe is taken off the next card, on its own line, and the total adds up 344ms
  ✓ test/db/lane-b-requests-b4.test.ts > lane B requests (B4) > C2: learn_from_order learns each asked-for product once, from what left the hub as asked 14ms
- ✓ test/db/lane-b-requests-b4.test.ts > lane B requests (B4) > D1: while today's rate waits for a person, nothing is priced; the customer is told once and the basket is kept 162ms
+ ✓ test/db/lane-b-requests-b4.test.ts > lane B requests (B4) > D1: while today's rate waits for a person, nothing is priced; the customer is told once and the basket is kept 189ms
  ✓ test/db/lane-b-requests-b4.test.ts > lane B requests (B4) > B3: a probe stuck with a person gets its conversation back, and ops see why; fresh_place makes it a first order 10ms
- ✓ test/db/lane-b-requests-b4.test.ts > lane B requests (B4) > B4: the probe answers the address question in words, as a person would 1ms
- ✓ test/pg/prepare-staging.test.ts > staging preparation > is idempotent and leaves a store that can take an order and a probe that can deliver it 132ms
- ✓ test/db/demand-signals.test.ts > demand signals (1.12) > an unsigned restaurant and an unknown product are logged from plan_order, with the customer's words 87ms
- ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a matched product that is out of stock is logged against the product 61ms
- ✓ test/db/demand-signals.test.ts > demand signals (1.12) > an order to a village we do not serve is logged as out of area, with the village 125ms
- ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a retried turn logs nothing twice; a clean plan logs nothing 139ms
- ✓ test/db/demand-signals.test.ts > demand signals (1.12) > 'same as last time' logs the items of the last order that are gone 24ms
- ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a failure inside the log never breaks the plan 35ms
- ✓ test/db/demand-signals.test.ts > demand signals (1.12) > the wrappers are what the app calls: volatile, same arguments, and they keep logging 3ms
- ✓ test/db/demand-signals.test.ts > demand signals (1.12) > unmet_demand groups by what was asked, counting distinct customers 57ms
- ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > the first rider takes a batch of two, delivers one and collects its cash 177ms
- ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > the ops lead lists the riders on shift and confirms 17ms
- ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > marked off: shift ended, the order on board transferred and offered to the second rider from the hub; everyone told 44ms
- ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > the first rider's exposure is only the cash they hold, and they can no longer act on the transferred order 8ms
- ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > the second rider delivers; the fee goes to whoever delivered; the first rider's cash is handed over with a count 63ms
- ✓ test/db/rider-cannot-continue.test.ts > a job not yet picked up, and an order called off (2.10) > an accepted job not yet picked up is cancelled and its order waits for the next rider 38ms
- ✓ test/db/rider-cannot-continue.test.ts > a job not yet picked up, and an order called off (2.10) > a paid order on board is called off: no charge, its money owed back as credit, the goods counted back in 96ms
- ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > at confirmation the pickers are told, once, and no rider is offered 15ms
- ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > an order nobody starts reaches ops after the alert time 6ms
- ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > the picker starts it and the rider is offered at that moment 43ms
- ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > the rider at the hub cannot take the goods before they are ready 5ms
- ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > a line comes up short, the picker finishes, the rider is told it is ready and collects the recalculated total 86ms
- ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > a confirmed order waiting for its picker is never batched onto another rider's job 39ms
- ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > a hub without a picker on the ops line offers at confirmation, as before 31ms
- ✓ apps/console/test/money.test.ts > Hub money > takes cash to the bank with the slip and its photo, once, and never more than the drawer holds 150ms
+ ✓ test/db/lane-b-requests-b4.test.ts > lane B requests (B4) > B4: the probe answers the address question in words, as a person would 0ms
+ ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > lists the waiting order and starts it: confirmed -> preparing, the list numbered in shelf order 38ms
+ ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > only staff can start or change a pick 8ms
+ ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > typed 'ناقص N K': found one bottle pack of two; the shortfall is its own line, released and written off, ops asked to count 38ms
+ ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > the missing button lists the lines; a tapped line is taken off whole 20ms
+ ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > picked: preparing -> ready, the remaining units leave the shelf, the customer hears what changed on the customer line 26ms
+ ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > the rider collects the recalculated total and the books balance 40ms
+ ✓ test/db/picker-flow.test.ts > a prepaid order short at the shelf, held products, an empty order (2.1) > a paid transfer order that comes up short is owed the difference as credit, and told so 62ms
+ ✓ test/db/picker-flow.test.ts > a prepaid order short at the shelf, held products, an empty order (2.1) > a held product comes up missing at the start and cannot block the pick; a hold placed mid-pick is caught at the end 68ms
+ ✓ test/db/picker-flow.test.ts > a prepaid order short at the shelf, held products, an empty order (2.1) > an order with nothing left is not sent out: ops is asked to call the customer 71ms
+ ✓ test/db/picker-flow.test.ts > a prepaid order short at the shelf, held products, an empty order (2.1) > one open pick per picker; a redelivered tap does nothing twice 58ms
+ ✓ test/db/picker-flow.test.ts > the ops line retries when the outbox cannot answer (A2's request) > a staff turn and a rider turn rethrow OutboxUnavailable instead of sending an apology 14ms
+ ✓ apps/console/test/cases.test.ts > Complaint cases > a late complaint is noted, linked to its refund and closed; an allergen complaint jumps the queue and holds the item until cleared 307ms
+ ✓ apps/console/test/cases.test.ts > Complaint cases > an allergen case closed without clearing keeps the item on hold 39ms
+ ✓ apps/console/test/money.test.ts > Hub money > takes cash to the bank with the slip and its photo, once, and never more than the drawer holds 113ms
  ✓ apps/console/test/money.test.ts > Hub money > records petty cash with a reason and a name; a double tap is one movement; pickers cannot 60ms
- ✓ apps/console/test/money.test.ts > Expenses (3.12) > records an expense from the drawer or the bank, in a category from the settings 53ms
- ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > coffee is missing: the picker is offered substitutes of the same kind, in stock, nearest in price, and a remove option 49ms
- ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > the picker offers cardamom: it is reserved at once and the customer sees both prices and the difference 32ms
- ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > the customer taps keep: a new line at the price shown, the old one marked substituted, the total recalculated, the picker told 12ms
- ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > bread is missing too and the picker takes it off; then picked: ready, and the customer hears both changes 61ms
- ✓ apps/console/test/cases.test.ts > Complaint cases > a late complaint is noted, linked to its refund and closed; an allergen complaint jumps the queue and holds the item until cleared 331ms
- ✓ apps/console/test/cases.test.ts > Complaint cases > an allergen case closed without clearing keeps the item on hold 53ms
- ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > the rider collects the recalculated total; after delivery a damaged pack is refunded; stock, cash and the ledger agree 69ms
- ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > no answer means remove: an overdue offer is taken off when the picker finishes and the substitute goes back 44ms
- ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > a customer with a stated restriction is offered no substitute: unknown is never safe 20ms
- ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > a paid prepaid order is offered nothing dearer, and a cheaper kept substitute is owed back as credit 76ms
- ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > only the order's customer can answer, and an order cancelled mid-question releases its stock once 67ms
- ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > a tap that is not a substitution button is left for the rest of the customer turn 0ms
- ✓ apps/console/test/dayclose.test.ts > Day close > reports the day from the database, with an unexplained balance of zero, and closes when the drawer matches 153ms
- ✓ apps/console/test/dayclose.test.ts > Day close > a short drawer needs a note, is posted, and leaves the day unexplained; the founder gets it once on the ops line 71ms
- ✓ test/db/recall.test.ts > product recall (2.11) > one hold makes the product unsellable and lists the orders still at the hub 144ms
- ✓ test/db/recall.test.ts > product recall (2.11) > a card sent before the hold cannot be confirmed: the tap gets a stale quote 3ms
- ✓ test/db/recall.test.ts > product recall (2.11) > a confirmed order cannot be picked with the held product in it, by any path 5ms
- ✓ test/db/recall.test.ts > product recall (2.11) > the recall list has every order that contained it in the range, with the number to phone 4ms
- ✓ test/db/recall.test.ts > product recall (2.11) > only an ops lead or admin releases, with a note; the catalog comes back as it was 9ms
- ✓ test/db/recall.test.ts > supplier credit (2.11) > a price credit reduces what we owe and the average cost of what is left 8ms
- ✓ test/db/recall.test.ts > supplier credit (2.11) > recalled goods sent back leave the shelf; a credit above their cost lowers the average of the rest 3ms
- ✓ test/db/recall.test.ts > supplier credit (2.11) > credit beyond the value left on the shelf reduces cost of goods 4ms
- ✓ test/db/recall.test.ts > supplier credit (2.11) > the books still balance and inventory still equals units times average cost 4ms
- ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > lists the waiting order and starts it: confirmed -> preparing, the list numbered in shelf order 29ms
- ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > only staff can start or change a pick 4ms
- ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > typed 'ناقص N K': found one bottle pack of two; the shortfall is its own line, released and written off, ops asked to count 20ms
- ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > the missing button lists the lines; a tapped line is taken off whole 15ms
- ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > picked: preparing -> ready, the remaining units leave the shelf, the customer hears what changed on the customer line 23ms
- ✓ test/db/picker-flow.test.ts > picking a cash order with one line short (2.1) > the rider collects the recalculated total and the books balance 31ms
- ✓ test/db/picker-flow.test.ts > a prepaid order short at the shelf, held products, an empty order (2.1) > a paid transfer order that comes up short is owed the difference as credit, and told so 37ms
- ✓ test/db/picker-flow.test.ts > a prepaid order short at the shelf, held products, an empty order (2.1) > a held product comes up missing at the start and cannot block the pick; a hold placed mid-pick is caught at the end 33ms
- ✓ test/db/picker-flow.test.ts > a prepaid order short at the shelf, held products, an empty order (2.1) > an order with nothing left is not sent out: ops is asked to call the customer 68ms
- ✓ test/db/picker-flow.test.ts > a prepaid order short at the shelf, held products, an empty order (2.1) > one open pick per picker; a redelivered tap does nothing twice 36ms
- ✓ test/db/picker-flow.test.ts > the ops line retries when the outbox cannot answer (A2's request) > a staff turn and a rider turn rethrow OutboxUnavailable instead of sending an apology 5ms
- ✓ test/db/message-meter.test.ts > message meter > counts free-form replies against the 1,000 free, and bills only what is past them 401ms
- ✓ test/db/message-meter.test.ts > message meter > utility templates are billed from the first one; probe messages and failed sends are not counted 17ms
- ✓ test/db/message-meter.test.ts > message meter > Meta's own pricing, from a real status payload, overrides the estimate 25ms
- ✓ test/db/message-meter.test.ts > message meter > statuses out of order never go backwards; a failure is kept with Meta's code 6ms
- ✓ test/db/message-meter.test.ts > message meter > day close: messages and estimated cost per order 28ms
- ✓ test/db/message-meter.test.ts > message meter > alerts once the warning mark is passed in the current month 56ms
- ✓ apps/console/test/refunds.test.ts > Refunds and credit > refunds a closed order as credit once, keeps the rider's fee, pays out by Whish with a reference, then takes credit off the next order 332ms
- ✓ apps/console/test/refunds.test.ts > Refunds and credit > an unpaid order cannot be refunded, and pickers cannot open the page 65ms
- ✓ test/db/returns-by-button.test.ts > returns by button (2.5) > a failed delivery sends the pickers and the ops lead a button to count the return 112ms
+ ✓ apps/console/test/money.test.ts > Expenses (3.12) > records an expense from the drawer or the bank, in a category from the settings 77ms
+ ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > the first rider takes a batch of two, delivers one and collects its cash 165ms
+ ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > the ops lead lists the riders on shift and confirms 14ms
+ ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > marked off: shift ended, the order on board transferred and offered to the second rider from the hub; everyone told 31ms
+ ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > the first rider's exposure is only the cash they hold, and they can no longer act on the transferred order 6ms
+ ✓ test/db/rider-cannot-continue.test.ts > a rider who cannot continue, with one order delivered and one on board (2.10) > the second rider delivers; the fee goes to whoever delivered; the first rider's cash is handed over with a count 65ms
+ ✓ test/db/rider-cannot-continue.test.ts > a job not yet picked up, and an order called off (2.10) > an accepted job not yet picked up is cancelled and its order waits for the next rider 63ms
+ ✓ test/db/rider-cannot-continue.test.ts > a job not yet picked up, and an order called off (2.10) > a paid order on board is called off: no charge, its money owed back as credit, the goods counted back in 138ms
+ ✓ test/db/returns-by-button.test.ts > returns by button (2.5) > a failed delivery sends the pickers and the ops lead a button to count the return 118ms
  ✓ test/db/returns-by-button.test.ts > returns by button (2.5) > the card shows each line that left the hub with its default; the missing coffee is not on it 5ms
  ✓ test/db/returns-by-button.test.ts > returns by button (2.5) > 'as shown': water back on the shelf, labneh written off, coffee untouched, the order closed; a second tap changes nothing 12ms
- ✓ test/db/returns-by-button.test.ts > returns by button (2.5) > 'all fit' puts chilled goods back too; 'all waste' writes everything off; the list by text 131ms
- ✓ test/db/returns-by-button.test.ts > returns by button (2.5) > only staff may receive a return 47ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > Open Food Facts first: a passing picture is proposed as CC BY-SA with its attribution, and search is never asked 12ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > when Open Food Facts has nothing that passes, search runs; its picture is licence unknown and stays off the customer side 11ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a usable picture beats a bigger unknown one 2ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > no candidate at all is none_found; every candidate failing is none_passed with the reasons 4ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a narrow picture is dropped before the model is asked 1ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > at most five candidates are looked at per item, across all sources 2ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > an item with no barcode skips Open Food Facts; without a search key only Open Food Facts runs 3ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a picture a person rejected is not proposed again 8ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a rejected key on the model is fatal for the run; a bad picture or a slow host is not 4ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a failed Open Food Facts lookup is an error with its message, never 'none found' 3ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > only https pictures on public host names are fetched 1ms
- ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > evaluate never throws for a broken picture 1ms
- ✓ scripts/images/test/pipeline.test.mjs > reruns > skip items an earlier run finished with nothing, never items that errored 0ms
- ✓ scripts/images/test/pipeline.test.mjs > reruns > when search is switched on, an Open-Food-Facts-only result is not conclusive 0ms
- ✓ scripts/images/test/pipeline.test.mjs > reruns > reads attempts through the real table with the service role shape (the select helper builds the address) 24ms
- ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > a crushed coffee is refunded as credit: goods revenue reversed, the customer owed it 12ms
- ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > never takes the delivery fee back from the rider; compensation is a company cost 9ms
- ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > refuses more than the goods revenue still booked, more than was paid, and anyone but the ops lead 5ms
- ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > pays out by Whish only with a reference, and in cash from the hub till 11ms
- ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > credit comes off the next order: the rider collects the lower total and the credit is used up 36ms
- ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > a cancelled order gives the credit back untouched 17ms
- ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > a prepaid order is refunded the same way, and an unpaid order is corrected, never refunded 29ms
+ ✓ test/db/returns-by-button.test.ts > returns by button (2.5) > 'all fit' puts chilled goods back too; 'all waste' writes everything off; the list by text 156ms
+ ✓ test/db/returns-by-button.test.ts > returns by button (2.5) > only staff may receive a return 61ms
+ ✓ apps/console/test/refunds.test.ts > Refunds and credit > refunds a closed order as credit once, keeps the rider's fee, pays out by Whish with a reference, then takes credit off the next order 387ms
+ ✓ apps/console/test/refunds.test.ts > Refunds and credit > an unpaid order cannot be refunded, and pickers cannot open the page 95ms
+ ✓ test/db/message-meter.test.ts > message meter > counts free-form replies against the 1,000 free, and bills only what is past them 554ms
+ ✓ test/db/message-meter.test.ts > message meter > utility templates are billed from the first one; probe messages and failed sends are not counted 29ms
+ ✓ test/db/message-meter.test.ts > message meter > Meta's own pricing, from a real status payload, overrides the estimate 24ms
+ ✓ test/db/message-meter.test.ts > message meter > statuses out of order never go backwards; a failure is kept with Meta's code 4ms
+ ✓ test/db/message-meter.test.ts > message meter > day close: messages and estimated cost per order 21ms
+ ✓ test/db/message-meter.test.ts > message meter > alerts once the warning mark is passed in the current month 59ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > only an ops lead or admin creates a supplier; the same name is the same supplier 7ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a receipt on credit adds stock at cost, sets the average and what we owe the supplier 27ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > the same supplier reference twice is one receipt 2ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a second receipt at another cost moves the average 5ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > selling posts cost of goods against the order at the average; the order and the day show their margin 88ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a waste adjustment is valued at the average and posted as a stock loss 4ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > stock with no cost is valued openly at its first receipt cost 4ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > paying the supplier from the till reduces what we owe, once per reference 4ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a failed delivery that comes back undoes its cost of goods; what is not fit to sell is a stock loss 38ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > the books: every transaction balances, the ledger sums to zero, inventory equals units times average cost 8ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > expiring lots still on the shelf are listed 3ms
+ ✓ apps/console/test/returns.test.ts > Returns > a picker counts the goods back: what is fit goes on the shelf, the rest is written off, and the order closes 138ms
+ ✓ apps/console/test/returns.test.ts > Returns > refuses a negative count before asking the database 70ms
+ ✓ apps/console/test/approvals.test.ts > Second approval > a price change above the limit waits; the asker cannot approve it; another lead does, in the asker's name 137ms
+ ✓ apps/console/test/approvals.test.ts > Second approval > a refund above the limit is checked now, waits, and is paid once approved; a rejected one moves no money 219ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > which items are looked up > only items with a real product number: not the store's own 2xx codes, and not the ones with no barcode 38ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > filing a product > files proposals with the source beside each, as status partial and source open_food_facts, none approved 27ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > filing a product > nothing proposed is a fact: a customer-side read returns nothing, and a restriction check stays unknown 9ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > filing a product > code cannot approve it: the function refuses, and so does the table, even for a direct update 22ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > filing a product > a person confirms against the pack and records it as a label fact; that is what a customer may hear, and a rerun leaves it alone 21ms
+ ✓ apps/console/test/today.test.ts > Today > lists open orders with the late one first, measured against its zone's ETA, and riders with cash per currency 160ms
+ ✓ apps/console/test/today.test.ts > Today > works out Beirut midnight across the DST change 1ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > rerun > an unchanged record is not proposed again, and the item is not looked up again 45ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > rerun > a changed record supersedes the old proposal and keeps it as history; one current proposal per attribute 8ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > rerun > an error is recorded and tried again; a product Open Food Facts does not have is recorded once and left 26ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > rerun > a model failure files nothing for that item (the item is tried again), and a refused key stops the run 6ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > rerun > a record with nothing usable is recorded as found, with the reasons 2ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > rerun > a found record whose facts are all refused reports what was refused 1ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > the happy path files it, as a proposal 5ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > Open Food Facts never says free 1ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > a quote that is not in the source text is refused 2ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > a value with no source text, no code or no fingerprint is refused 7ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > an allergen takes contains or may_contain; a diet takes yes or no; ingredients take no value; an unknown attribute is refused 7ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > all or nothing: one bad fact saves nothing for that product 2ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > counts for the report > coverage counts current proposals by kind, and says how many came from Open Food Facts approved (none) 3ms
+ ✓ scripts/product-data/test/pipeline.test.mjs > counts for the report > the run summary counts outcomes, refusals and errors by name 0ms
+ ✓ apps/console/test/receiving.test.ts > Receiving > a picker receives on credit by SKU, once per invoice; expiry is required for chilled goods; only the lead pays from the drawer 211ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > one hold makes the product unsellable and lists the orders still at the hub 289ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > a card sent before the hold cannot be confirmed: the tap gets a stale quote 3ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > a confirmed order cannot be picked with the held product in it, by any path 15ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > the recall list has every order that contained it in the range, with the number to phone 8ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > only an ops lead or admin releases, with a note; the catalog comes back as it was 19ms
+ ✓ test/db/recall.test.ts > supplier credit (2.11) > a price credit reduces what we owe and the average cost of what is left 17ms
+ ✓ test/db/recall.test.ts > supplier credit (2.11) > recalled goods sent back leave the shelf; a credit above their cost lowers the average of the rest 8ms
+ ✓ test/db/recall.test.ts > supplier credit (2.11) > credit beyond the value left on the shelf reduces cost of goods 9ms
+ ✓ test/db/recall.test.ts > supplier credit (2.11) > the books still balance and inventory still equals units times average cost 3ms
+ ✓ apps/console/test/riders.test.ts > Cash and riders > confirms a counted drop, pays the rider's fees, sends the same figures on WhatsApp once, then ends the shift 290ms
+ ✓ apps/console/test/riders.test.ts > Cash and riders > does not send when the rider's 24-hour window is closed: the gateway refuses and the page says so 56ms
+ ✓ apps/console/test/riders.test.ts > Cash and riders > is closed to pickers 16ms
  ✓ test/db/food-facts.test.ts > food facts (1.11) > no record is unknown, and unknown fails 6ms
- ✓ test/db/food-facts.test.ts > food facts (1.11) > a proposed fact is not used until a person approves it, and only the ops lead or an admin can 9ms
- ✓ test/db/food-facts.test.ts > food facts (1.11) > every restriction must pass: one unknown among passes still fails 1ms
- ✓ test/db/food-facts.test.ts > food facts (1.11) > may contain fails an allergy; a stated 'contains' fails; diet 'no' fails 11ms
- ✓ test/db/food-facts.test.ts > food facts (1.11) > status partial or unknown, an expired fact, and an unrecognised restriction are all unknown 13ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > a proposed fact is not used until a person approves it, and only the ops lead or an admin can 10ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > every restriction must pass: one unknown among passes still fails 2ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > may contain fails an allergy; a stated 'contains' fails; diet 'no' fails 10ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > status partial or unknown, an expired fact, and an unrecognised restriction are all unknown 8ms
  ✓ test/db/food-facts.test.ts > food facts (1.11) > certified needs evidence; halal from a certificate passes 4ms
  ✓ test/db/food-facts.test.ts > food facts (1.11) > a new approved fact replaces the old one, which stays as history 3ms
  ✓ test/db/food-facts.test.ts > food facts (1.11) > values must fit the attribute; Open Food Facts alone is never approved 4ms
  ✓ test/db/food-facts.test.ts > food facts (1.11) > a sponsored item gets no pass: unknown fails, and it passes only on the same approved facts as any other 3ms
  ✓ test/db/food-facts.test.ts > food facts (1.11) > no restrictions asked means nothing to fail; the facts list carries status and expiry 2ms
- ✓ apps/console/test/approvals.test.ts > Second approval > a price change above the limit waits; the asker cannot approve it; another lead does, in the asker's name 160ms
- ✓ apps/console/test/approvals.test.ts > Second approval > a refund above the limit is checked now, waits, and is paid once approved; a rejected one moves no money 217ms
- ✓ apps/console/test/payments.test.ts > Payments to confirm > shows the screenshot as a short signed link with the expected amount; confirming with the typed amount and reference books it 186ms
- ✓ apps/console/test/payments.test.ts > Payments to confirm > rejecting a screenshot leaves the order owing and posts nothing 37ms
- ✓ apps/console/test/payments.test.ts > Payments to confirm > a transfer with no screenshot can be confirmed from the account; a reused reference is refused 55ms
- ✓ apps/console/test/payments.test.ts > Payments to confirm > is closed to pickers, by the page and by the database 39ms
- ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > the TypeScript state table matches the one in the database 5ms
- ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > starts the shift, gets the offer, accepts, picks up, delivers and reports cash in two currencies 97ms
- ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > a redelivered message does nothing the second time 3ms
- ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > will not close the shift while the rider holds cash, and offers the two drop options 10ms
- ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > customer pays the whole order in lira: the rider holds lira, and the fee is owed to the rider, not booked as revenue 95ms
- ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > a prepaid order: the company already holds the fee, so it owes it to the rider who delivered 30ms
- ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > end of shift: the rider keeps their earnings out of the lira they carry and hands the rest to the hub 17ms
+ ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > customer pays the whole order in lira: the rider holds lira, and the fee is owed to the rider, not booked as revenue 153ms
+ ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > a prepaid order: the company already holds the fee, so it owes it to the rider who delivered 31ms
+ ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > end of shift: the rider keeps their earnings out of the lira they carry and hands the rest to the hub 19ms
  ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > the books reconcile: nothing unexplained, the hub holds exactly the company's share 5ms
- ✓ test/db/product-images.test.ts > product pictures (5.17) > every active item starts on the fetch list and on the intake list 19ms
- ✓ test/db/product-images.test.ts > product pictures (5.17) > the licence follows from the source and cannot be set by the caller 10ms
- ✓ test/db/product-images.test.ts > product pictures (5.17) > a proposed picture is never returned to a customer 3ms
+ ✓ test/pg/prepare-staging.test.ts > staging preparation > is idempotent and leaves a store that can take an order and a probe that can deliver it 123ms
+ ✓ apps/console/test/intake.test.ts > Label intake > a picker scans the pack; the reading and Open Food Facts wait; the ops lead confirms, corrects or rejects each field against the photo 291ms
+ ✓ apps/console/test/intake.test.ts > Label intake > without a label reader the photos are saved and the fields are typed from the pack; an unknown code is refused 65ms
+ ✓ apps/console/test/dayclose.test.ts > Day close > reports the day from the database, with an unexplained balance of zero, and closes when the drawer matches 158ms
+ ✓ apps/console/test/dayclose.test.ts > Day close > a short drawer needs a note, is posted, and leaves the day unexplained; the founder gets it once on the ops line 141ms
+ ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > coffee is missing: the picker is offered substitutes of the same kind, in stock, nearest in price, and a remove option 44ms
+ ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > the picker offers cardamom: it is reserved at once and the customer sees both prices and the difference 33ms
+ ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > the customer taps keep: a new line at the price shown, the old one marked substituted, the total recalculated, the picker told 8ms
+ ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > bread is missing too and the picker takes it off; then picked: ready, and the customer hears both changes 82ms
+ ✓ test/db/substitutions.test.ts > acceptance: one missing item, one accepted substitute, one refund (Phase 2) > the rider collects the recalculated total; after delivery a damaged pack is refunded; stock, cash and the ledger agree 109ms
+ ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > no answer means remove: an overdue offer is taken off when the picker finishes and the substitute goes back 107ms
+ ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > a customer with a stated restriction is offered no substitute: unknown is never safe 43ms
+ ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > a paid prepaid order is offered nothing dearer, and a cheaper kept substitute is owed back as credit 140ms
+ ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > only the order's customer can answer, and an order cancelled mid-question releases its stock once 84ms
+ ✓ test/db/substitutions.test.ts > no answer, late answers, restrictions, prepaid, someone else's order (2.2) > a tap that is not a substitution button is left for the rest of the customer turn 0ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > the extension moved and no extension function is left in public 7ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > product search, the planner and village lookup still match by trigram with search_path = public 211ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > every trigram index now uses the moved operator class and still serves the % operator 28ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > guard: every function of ours that calls a trigram function pins extensions on its search_path 33ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > the guard would catch a redefinition that forgets the clause 4ms
+ ✓ apps/console/test/payments.test.ts > Payments to confirm > shows the screenshot as a short signed link with the expected amount; confirming with the typed amount and reference books it 320ms
+ ✓ apps/console/test/payments.test.ts > Payments to confirm > rejecting a screenshot leaves the order owing and posts nothing 38ms
+ ✓ apps/console/test/payments.test.ts > Payments to confirm > a transfer with no screenshot can be confirmed from the account; a reused reference is refused 61ms
+ ✓ apps/console/test/payments.test.ts > Payments to confirm > is closed to pickers, by the page and by the database 27ms
+ ✓ test/db/product-images.test.ts > product pictures (5.17) > every active item starts on the fetch list and on the intake list 26ms
+ ✓ test/db/product-images.test.ts > product pictures (5.17) > the licence follows from the source and cannot be set by the caller 15ms
+ ✓ test/db/product-images.test.ts > product pictures (5.17) > a proposed picture is never returned to a customer 5ms
  ✓ test/db/product-images.test.ts > product pictures (5.17) > only the ops lead or an admin can approve; a picker and a rider cannot 3ms
  ✓ test/db/product-images.test.ts > product pictures (5.17) > an approved Open Food Facts picture is returned, with its attribution and a link lifetime 5ms
  ✓ test/db/product-images.test.ts > product pictures (5.17) > an approved brand-site picture is returned too 2ms
- ✓ test/db/product-images.test.ts > product pictures (5.17) > a licence-unknown picture is never returned, even when a person approves it 7ms
+ ✓ test/db/product-images.test.ts > product pictures (5.17) > a licence-unknown picture is never returned, even when a person approves it 8ms
  ✓ test/db/product-images.test.ts > product pictures (5.17) > a rejected picture is never returned, and the same bytes are not proposed again 10ms
  ✓ test/db/product-images.test.ts > product pictures (5.17) > withdrawing an approved picture takes it away from customers at once 7ms
- ✓ test/db/product-images.test.ts > product pictures (5.17) > a second proposal waits unless it is asked to replace; the first is kept as history 4ms
+ ✓ test/db/product-images.test.ts > product pictures (5.17) > a second proposal waits unless it is asked to replace; the first is kept as history 5ms
  ✓ test/db/product-images.test.ts > product pictures (5.17) > approving a new picture replaces the approved one, and a deactivated item returns nothing 7ms
- ✓ test/db/product-images.test.ts > product pictures (5.17) > the fetch list leaves out items that already have a usable picture; force lists everything 12ms
+ ✓ test/db/product-images.test.ts > product pictures (5.17) > the fetch list leaves out items that already have a usable picture; force lists everything 17ms
  ✓ test/db/product-images.test.ts > product pictures (5.17) > the review list shows the item, source and licence side by side; usable pictures come first 3ms
- ✓ test/db/product-images.test.ts > product pictures (5.17) > coverage counts add up, and the attempts table keeps a reason per item and run 9ms
+ ✓ test/db/product-images.test.ts > product pictures (5.17) > coverage counts add up, and the attempts table keeps a reason per item and run 21ms
  ✓ test/db/product-images.test.ts > product pictures (5.17) > no client role can read or write the tables or call the functions 4ms
- ✓ apps/console/test/today.test.ts > Today > lists open orders with the late one first, measured against its zone's ETA, and riders with cash per currency 169ms
- ✓ apps/console/test/today.test.ts > Today > works out Beirut midnight across the DST change 1ms
- ✓ apps/console/test/foodfacts.test.ts > Food facts > a picker's entry from the pack waits; the ops lead's is approved; evidence is required and certified needs a certificate 175ms
- ✓ apps/console/test/foodfacts.test.ts > Food facts > lists stock expiring within three days 26ms
- ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > records who, why and the note, and moves the count 11ms
- ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > only staff, a known reason that fits the direction, and a note for 'other' 10ms
- ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a picker is limited; above the limit it takes an ops lead 2ms
- ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > stock reserved for confirmed orders cannot be adjusted away 4ms
- ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a retried request with the same key changes nothing twice 4ms
- ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a shelf count records the difference as one 'count' adjustment, and an exact count is kept too 6ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > only an ops lead or admin creates a supplier; the same name is the same supplier 7ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a receipt on credit adds stock at cost, sets the average and what we owe the supplier 17ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > the same supplier reference twice is one receipt 2ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a second receipt at another cost moves the average 13ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > selling posts cost of goods against the order at the average; the order and the day show their margin 74ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a waste adjustment is valued at the average and posted as a stock loss 7ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > stock with no cost is valued openly at its first receipt cost 5ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > paying the supplier from the till reduces what we owe, once per reference 4ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a failed delivery that comes back undoes its cost of goods; what is not fit to sell is a stock loss 32ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > the books: every transaction balances, the ledger sums to zero, inventory equals units times average cost 3ms
- ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > expiring lots still on the shelf are listed 3ms
- ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > the extension moved and no extension function is left in public 9ms
- ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > product search, the planner and village lookup still match by trigram with search_path = public 166ms
- ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > every trigram index now uses the moved operator class and still serves the % operator 24ms
- ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > guard: every function of ours that calls a trigram function pins extensions on its search_path 26ms
- ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > the guard would catch a redefinition that forgets the clause 4ms
- ✓ apps/console/test/dayopen.test.ts > Day open > lists what is left from yesterday and what needs a person this morning 4533ms
- ✓ test/db/webhook-events.test.ts > marketing_preference_changed > a STOP is saved as an opt-out (it used to be saved as an opt-in), and a redelivery changes nothing 9ms
+ ✓ apps/console/test/foodfacts.test.ts > Food facts > a picker's entry from the pack waits; the ops lead's is approved; evidence is required and certified needs a certificate 216ms
+ ✓ apps/console/test/foodfacts.test.ts > Food facts > lists stock expiring within three days 27ms
+ ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > a crushed coffee is refunded as credit: goods revenue reversed, the customer owed it 12ms
+ ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > never takes the delivery fee back from the rider; compensation is a company cost 9ms
+ ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > refuses more than the goods revenue still booked, more than was paid, and anyone but the ops lead 4ms
+ ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > pays out by Whish only with a reference, and in cash from the hub till 11ms
+ ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > credit comes off the next order: the rider collects the lower total and the credit is used up 35ms
+ ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > a cancelled order gives the credit back untouched 22ms
+ ✓ test/db/refunds.test.ts > refunds after delivery (2.3) > a prepaid order is refunded the same way, and an unpaid order is corrected, never refunded 26ms
+ ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > the TypeScript state table matches the one in the database 4ms
+ ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > starts the shift, gets the offer, accepts, picks up, delivers and reports cash in two currencies 119ms
+ ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > a redelivered message does nothing the second time 5ms
+ ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > will not close the shift while the rider holds cash, and offers the two drop options 11ms
+ ✓ test/db/customer-notices.test.ts > customer notices > a system cancellation reaches the customer once; their own cancel tap does not get a second message 60ms
+ ✓ test/db/customer-notices.test.ts > customer notices > before Meta approves: free text inside the window; outside it the gate refuses, it is recorded, and it is not retried 10ms
+ ✓ test/db/customer-notices.test.ts > customer notices > once approved, the template goes out, outside the window too, with the right name and parameters 13ms
+ ✓ test/db/customer-notices.test.ts > customer notices > templates are seeded as submitted, transactional only, with the wording Meta was sent 2ms
+ ✓ apps/console/test/dayopen.test.ts > Day open > lists what is left from yesterday and what needs a person this morning 4424ms
+ ✓ test/db/heartbeat.test.ts > probe parties and the sink > probes disabled (the default, and production): nothing is sent to a probe, by anyone 10ms
+ ✓ test/db/heartbeat.test.ts > probe parties and the sink > probes enabled: claimed, marked and logged like any message, but never handed to Kapso 13ms
+ ✓ test/db/heartbeat.test.ts > probe parties and the sink > a real customer is unaffected: the message goes to Kapso 25ms
+ ✓ test/db/heartbeat.test.ts > the probe's answers > taps the button a person would, in order, and nothing else 2ms
+ ✓ test/db/heartbeat.test.ts > the probe's answers > speaks the real Kapso shape: what it sends parses like a real webhook 15ms
+ ✓ test/db/heartbeat.test.ts > the probe's answers > answers each message it was sent once, and places the hourly order only when due 26ms
+ ✓ test/db/heartbeat.test.ts > alarms > a probe order that does not finish, and a probe that stops ordering 36ms
+ ✓ test/db/heartbeat.test.ts > alarms > the cron came back after a gap 11ms
+ ✓ test/db/heartbeat.test.ts > alarms > customers usually write and nobody has for hours, while open: the webhook may be dead 20ms
+ ✓ test/db/heartbeat.test.ts > Kapso project events (account enforcement) > opens one ops exception per event, however often it is delivered 13ms
+ ✓ test/db/heartbeat.test.ts > Kapso project events (account enforcement) > ignores smoke tests and unknown events 1ms
+ ✓ test/db/webhook-events.test.ts > marketing_preference_changed > a STOP is saved as an opt-out (it used to be saved as an opt-in), and a redelivery changes nothing 10ms
  ✓ test/db/webhook-events.test.ts > marketing_preference_changed > a newer resume applies; an older change arriving late does not 3ms
  ✓ test/db/webhook-events.test.ts > marketing_preference_changed > is not a sign of life: no party for a stranger, and the reply window stays shut 3ms
- ✓ test/db/webhook-events.test.ts > marketing_preference_changed > an unreadable payload fails loudly, so the event is kept with its error and retried, never dropped 1ms
+ ✓ test/db/webhook-events.test.ts > marketing_preference_changed > an unreadable payload fails loudly, so the event is kept with its error and retried, never dropped 2ms
  ✓ test/db/webhook-events.test.ts > identity_changed > re-keys the party to the new business-scoped id, so the next message finds the same customer 5ms
- ✓ test/db/webhook-events.test.ts > statuses > update the stored message by wamid 4ms
- ✓ test/db/heartbeat.test.ts > probe parties and the sink > probes disabled (the default, and production): nothing is sent to a probe, by anyone 7ms
- ✓ test/db/heartbeat.test.ts > probe parties and the sink > probes enabled: claimed, marked and logged like any message, but never handed to Kapso 6ms
- ✓ test/db/heartbeat.test.ts > probe parties and the sink > a real customer is unaffected: the message goes to Kapso 22ms
- ✓ test/db/heartbeat.test.ts > the probe's answers > taps the button a person would, in order, and nothing else 2ms
- ✓ test/db/heartbeat.test.ts > the probe's answers > speaks the real Kapso shape: what it sends parses like a real webhook 6ms
- ✓ test/db/heartbeat.test.ts > the probe's answers > answers each message it was sent once, and places the hourly order only when due 15ms
- ✓ test/db/heartbeat.test.ts > alarms > a probe order that does not finish, and a probe that stops ordering 29ms
- ✓ test/db/heartbeat.test.ts > alarms > the cron came back after a gap 3ms
- ✓ test/db/heartbeat.test.ts > alarms > customers usually write and nobody has for hours, while open: the webhook may be dead 13ms
- ✓ test/db/heartbeat.test.ts > Kapso project events (account enforcement) > opens one ops exception per event, however often it is delivered 5ms
- ✓ test/db/heartbeat.test.ts > Kapso project events (account enforcement) > ignores smoke tests and unknown events 1ms
- ✓ scripts/product-data/test/pipeline.test.mjs > which items are looked up > only items with a real product number: not the store's own 2xx codes, and not the ones with no barcode 17ms
- ✓ scripts/product-data/test/pipeline.test.mjs > filing a product > files proposals with the source beside each, as status partial and source open_food_facts, none approved 19ms
- ✓ scripts/product-data/test/pipeline.test.mjs > filing a product > nothing proposed is a fact: a customer-side read returns nothing, and a restriction check stays unknown 3ms
- ✓ scripts/product-data/test/pipeline.test.mjs > filing a product > code cannot approve it: the function refuses, and so does the table, even for a direct update 11ms
- ✓ scripts/product-data/test/pipeline.test.mjs > filing a product > a person confirms against the pack and records it as a label fact; that is what a customer may hear, and a rerun leaves it alone 16ms
- ✓ scripts/product-data/test/pipeline.test.mjs > rerun > an unchanged record is not proposed again, and the item is not looked up again 14ms
- ✓ scripts/product-data/test/pipeline.test.mjs > rerun > a changed record supersedes the old proposal and keeps it as history; one current proposal per attribute 8ms
- ✓ scripts/product-data/test/pipeline.test.mjs > rerun > an error is recorded and tried again; a product Open Food Facts does not have is recorded once and left 17ms
- ✓ scripts/product-data/test/pipeline.test.mjs > rerun > a model failure files nothing for that item (the item is tried again), and a refused key stops the run 2ms
- ✓ scripts/product-data/test/pipeline.test.mjs > rerun > a record with nothing usable is recorded as found, with the reasons 2ms
- ✓ scripts/product-data/test/pipeline.test.mjs > rerun > a found record whose facts are all refused reports what was refused 1ms
- ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > the happy path files it, as a proposal 2ms
- ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > Open Food Facts never says free 1ms
- ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > a quote that is not in the source text is refused 2ms
- ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > a value with no source text, no code or no fingerprint is refused 3ms
- ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > an allergen takes contains or may_contain; a diet takes yes or no; ingredients take no value; an unknown attribute is refused 8ms
- ✓ scripts/product-data/test/pipeline.test.mjs > the database refuses what the script should never send (0073) > all or nothing: one bad fact saves nothing for that product 2ms
- ✓ scripts/product-data/test/pipeline.test.mjs > counts for the report > coverage counts current proposals by kind, and says how many came from Open Food Facts approved (none) 6ms
- ✓ scripts/product-data/test/pipeline.test.mjs > counts for the report > the run summary counts outcomes, refusals and errors by name 0ms
- ✓ test/db/customer-notices.test.ts > customer notices > a system cancellation reaches the customer once; their own cancel tap does not get a second message 52ms
- ✓ test/db/customer-notices.test.ts > customer notices > before Meta approves: free text inside the window; outside it the gate refuses, it is recorded, and it is not retried 11ms
- ✓ test/db/customer-notices.test.ts > customer notices > once approved, the template goes out, outside the window too, with the right name and parameters 15ms
- ✓ test/db/customer-notices.test.ts > customer notices > templates are seeded as submitted, transactional only, with the wording Meta was sent 2ms
- ✓ apps/console/test/intake.test.ts > Label intake > a picker scans the pack; the reading and Open Food Facts wait; the ops lead confirms, corrects or rejects each field against the photo 303ms
- ✓ apps/console/test/intake.test.ts > Label intake > without a label reader the photos are saved and the fields are typed from the pack; an unknown code is refused 50ms
- ✓ evals/language/pack.test.mjs > language pack build (1.22) > drops food-fact terms unless the word is printed in the product's name (invariant 15) 5ms
- ✓ evals/language/pack.test.mjs > language pack build (1.22) > an exact term that points at two products is dropped from both; a brand is never a kind 5ms
- ✓ evals/language/pack.test.mjs > language pack build (1.22) > the SQL it writes loads, and JS folds exactly as catalog_tokens() 3841ms
- ✓ apps/console/test/returns.test.ts > Returns > a picker counts the goods back: what is fit goes on the shelf, the rest is written off, and the order closes 150ms
- ✓ apps/console/test/returns.test.ts > Returns > refuses a negative count before asking the database 47ms
- ✓ scripts/images/test/image.test.mjs > image processing > measures the width, and refuses a format that is not a picture we accept 44ms
- ✓ scripts/images/test/image.test.mjs > image processing > a big picture ends with its longest side at 1200 px and under 300 KB 246ms
- ✓ apps/console/test/receiving.test.ts > Receiving > a picker receives on credit by SKU, once per invoice; expiry is required for chilled goods; only the lead pays from the drawer 259ms
- ✓ packages/wa/test/kapso-sdk.test.ts > same sends > text: same URL, same API key header, same JSON body as before 24ms
+ ✓ test/db/webhook-events.test.ts > statuses > update the stored message by wamid 5ms
+ ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > at confirmation the pickers are told, once, and no rider is offered 17ms
+ ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > an order nobody starts reaches ops after the alert time 6ms
+ ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > the picker starts it and the rider is offered at that moment 36ms
+ ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > the rider at the hub cannot take the goods before they are ready 6ms
+ ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > a line comes up short, the picker finishes, the rider is told it is ready and collects the recalculated total 89ms
+ ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > a confirmed order waiting for its picker is never batched onto another rider's job 30ms
+ ✓ test/db/offer-at-pick.test.ts > offer the rider when picking starts (2.4) > a hub without a picker on the ops line offers at confirmation, as before 24ms
+ ✓ evals/language/pack.test.mjs > language pack build (1.22) > drops food-fact terms unless the word is printed in the product's name (invariant 15) 3ms
+ ✓ evals/language/pack.test.mjs > language pack build (1.22) > an exact term that points at two products is dropped from both; a brand is never a kind 10ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > Open Food Facts first: a passing picture is proposed as CC BY-SA with its attribution, and search is never asked 23ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > when Open Food Facts has nothing that passes, search runs; its picture is licence unknown and stays off the customer side 13ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a usable picture beats a bigger unknown one 2ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > no candidate at all is none_found; every candidate failing is none_passed with the reasons 4ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a narrow picture is dropped before the model is asked 1ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > at most five candidates are looked at per item, across all sources 1ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > an item with no barcode skips Open Food Facts; without a search key only Open Food Facts runs 2ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a picture a person rejected is not proposed again 4ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a rejected key on the model is fatal for the run; a bad picture or a slow host is not 2ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > a failed Open Food Facts lookup is an error with its message, never 'none found' 1ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > only https pictures on public host names are fetched 0ms
+ ✓ scripts/images/test/pipeline.test.mjs > fetch pipeline (5.17 steps 2-5) > evaluate never throws for a broken picture 1ms
+ ✓ scripts/images/test/pipeline.test.mjs > reruns > skip items an earlier run finished with nothing, never items that errored 0ms
+ ✓ scripts/images/test/pipeline.test.mjs > reruns > when search is switched on, an Open-Food-Facts-only result is not conclusive 0ms
+ ✓ scripts/images/test/pipeline.test.mjs > reruns > reads attempts through the real table with the service role shape (the select helper builds the address) 26ms
+ ✓ scripts/images/test/image.test.mjs > image processing > measures the width, and refuses a format that is not a picture we accept 26ms
+ ✓ scripts/images/test/image.test.mjs > image processing > a big picture ends with its longest side at 1200 px and under 300 KB 312ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > records who, why and the note, and moves the count 11ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > only staff, a known reason that fits the direction, and a note for 'other' 10ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a picker is limited; above the limit it takes an ops lead 6ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > stock reserved for confirmed orders cannot be adjusted away 2ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a retried request with the same key changes nothing twice 7ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a shelf count records the difference as one 'count' adjustment, and an exact count is kept too 6ms
+ ✓ packages/wa/test/kapso-sdk.test.ts > same sends > text: same URL, same API key header, same JSON body as before 20ms
  ✓ packages/wa/test/kapso-sdk.test.ts > same sends > buttons: same URL, same API key header, same JSON body as before 1ms
  ✓ packages/wa/test/kapso-sdk.test.ts > same sends > list: same URL, same API key header, same JSON body as before 1ms
  ✓ packages/wa/test/kapso-sdk.test.ts > same sends > location request: same URL, same API key header, same JSON body as before 1ms
@@ -408,17 +411,30 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ packages/wa/test/kapso-sdk.test.ts > same sends > template: same URL, same API key header, same JSON body as before 1ms
  ✓ packages/wa/test/kapso-sdk.test.ts > a redirect is refused, not followed: the message did not go out, so the turn retries 1ms
  ✓ packages/wa/test/kapso-sdk.test.ts > reads the message id even when the response has no JSON content type 1ms
- ✓ packages/wa/test/kapso-sdk.test.ts > typed errors with a retry hint > outside the 24-hour window (131047): permanent, recorded, and the turn goes on (no throw, no retry storm) 3ms
- ✓ packages/wa/test/kapso-sdk.test.ts > typed errors with a retry hint > rate limited: retry later 2ms
+ ✓ packages/wa/test/kapso-sdk.test.ts > typed errors with a retry hint > outside the 24-hour window (131047): permanent, recorded, and the turn goes on (no throw, no retry storm) 2ms
+ ✓ packages/wa/test/kapso-sdk.test.ts > typed errors with a retry hint > rate limited: retry later 1ms
  ✓ packages/wa/test/kapso-sdk.test.ts > typed errors with a retry hint > server error: the turn retries (an OutboxUnavailable, which turn.ts rethrows) 1ms
  ✓ packages/wa/test/kapso-sdk.test.ts > typed errors with a retry hint > Kapso credits exhausted (402): always retry, never dropped 1ms
- ✓ packages/wa/test/kapso-sdk.test.ts > webhook signature: our check and the SDK's agree on every fixture > valid, tampered and malformed signatures 58ms
- ✓ packages/wa/test/fixtures.test.ts > fixtures on disk > cover every event the gateway handles, with real message objects for messages and statuses 10ms
- ✓ packages/wa/test/fixtures.test.ts > fixtures on disk > hold no real person: numbers, user ids, names and media links are fakes 17ms
- ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-01.json parses and yields a sender 9ms
+ ✓ packages/wa/test/kapso-sdk.test.ts > webhook signature: our check and the SDK's agree on every fixture > valid, tampered and malformed signatures 46ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > sends once on a successful claim 25ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send a duplicate claim 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim returns a database error 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim throws 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim answers with anything but true or false 0ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim times out 9ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > marks the outbox failed and rethrows when the provider fails, so the retry may send 2ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not throw after the message is out, even if the bookkeeping fails 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > no key, no send > refuses a send that carries no dedupe key, before the database or the provider is touched 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > pilot marketing lock in code > refuses every marketing send before the database is asked 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > pilot marketing lock in code > still lets replies and order updates through preflight 0ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > model-written text: the guard again at the gateway (second lock for 1.5 and 1.10) > refuses a price the model wrote, and a quality judgement 10ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > model-written text: the guard again at the gateway (second lock for 1.5 and 1.10) > lets plain model text through, and does not touch text the code wrote 4ms
+ ✓ packages/wa/test/fixtures.test.ts > fixtures on disk > cover every event the gateway handles, with real message objects for messages and statuses 6ms
+ ✓ packages/wa/test/fixtures.test.ts > fixtures on disk > hold no real person: numbers, user ids, names and media links are fakes 7ms
+ ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-01.json parses and yields a sender 5ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-02.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-03.json parses and yields a sender 0ms
- ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-04.json parses and yields a sender 4ms
+ ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-04.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-05.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-06.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-07.json parses and yields a sender 1ms
@@ -426,16 +442,16 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-09.json parses and yields a sender 1ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-audio-10.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-01.json parses and yields a sender 1ms
- ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-02.json parses and yields a sender 4ms
+ ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-02.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-03.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-04.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-05.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-06.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-07.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-08.json parses and yields a sender 0ms
- ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-09.json parses and yields a sender 0ms
+ ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-09.json parses and yields a sender 1ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-button_reply-10.json parses and yields a sender 0ms
- ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-image-01.json parses and yields a sender 0ms
+ ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-image-01.json parses and yields a sender 1ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-list_reply-01.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-list_reply-02.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-list_reply-03.json parses and yields a sender 0ms
@@ -462,7 +478,7 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-text-09.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > whatsapp.message.received/api-text-10.json parses and yields a sender 0ms
  ✓ packages/wa/test/fixtures.test.ts > whatsapp.message.received > username: null (as Kapso sends it) is accepted; it used to fail the whole message 1ms
- ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.delivered/api-image-01.json gives the wamid, the status and Meta's pricing 6ms
+ ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.delivered/api-image-01.json gives the wamid, the status and Meta's pricing 2ms
  ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.delivered/api-image-02.json gives the wamid, the status and Meta's pricing 0ms
  ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.delivered/api-image-03.json gives the wamid, the status and Meta's pricing 0ms
  ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.delivered/api-interactive-01.json gives the wamid, the status and Meta's pricing 0ms
@@ -488,38 +504,26 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.read/api-interactive-03.json gives the wamid, the status and Meta's pricing 0ms
  ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.read/api-interactive-04.json gives the wamid, the status and Meta's pricing 0ms
  ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.read/api-interactive-05.json gives the wamid, the status and Meta's pricing 0ms
- ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.read/api-interactive-06.json gives the wamid, the status and Meta's pricing 4ms
+ ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.read/api-interactive-06.json gives the wamid, the status and Meta's pricing 0ms
  ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.read/api-interactive-07.json gives the wamid, the status and Meta's pricing 0ms
  ✓ packages/wa/test/fixtures.test.ts > statuses > whatsapp.message.read/api-interactive-08.json gives the wamid, the status and Meta's pricing 0ms
  ✓ packages/wa/test/fixtures.test.ts > statuses > a failed message carries Meta's error code 1ms
- ✓ packages/wa/test/fixtures.test.ts > contact events > marketing preference: stopped and resumed, with Kapso's sequence 15ms
+ ✓ packages/wa/test/fixtures.test.ts > contact events > marketing preference: stopped and resumed, with Kapso's sequence 7ms
  ✓ packages/wa/test/fixtures.test.ts > contact events > identity change: old and new business-scoped user ids 1ms
  ✓ packages/wa/test/fixtures.test.ts > contact events > an unknown preference status is not acted on 0ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > sends once on a successful claim 31ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send a duplicate claim 1ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim returns a database error 1ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim throws 1ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim answers with anything but true or false 0ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim times out 17ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > marks the outbox failed and rethrows when the provider fails, so the retry may send 3ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not throw after the message is out, even if the bookkeeping fails 2ms
- ✓ packages/wa/test/gateway-outbox.test.ts > no key, no send > refuses a send that carries no dedupe key, before the database or the provider is touched 1ms
- ✓ packages/wa/test/gateway-outbox.test.ts > pilot marketing lock in code > refuses every marketing send before the database is asked 1ms
- ✓ packages/wa/test/gateway-outbox.test.ts > pilot marketing lock in code > still lets replies and order updates through preflight 0ms
- ✓ packages/wa/test/gateway-outbox.test.ts > model-written text: the guard again at the gateway (second lock for 1.5 and 1.10) > refuses a price the model wrote, and a quality judgement 10ms
- ✓ packages/wa/test/gateway-outbox.test.ts > model-written text: the guard again at the gateway (second lock for 1.5 and 1.10) > lets plain model text through, and does not touch text the code wrote 3ms
  ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > only fetches public web addresses 2ms
  ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > strips markup and scripts 1ms
- ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > extracts once, stores for review, and skips an unchanged page 33ms
+ ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > extracts once, stores for review, and skips an unchanged page 30ms
  ✓ packages/agents/test/menu-and-channels.test.ts > menu link redirects > refuses a public link that redirects to an internal address 1ms
- ✓ packages/agents/test/menu-and-channels.test.ts > sending an order to a kitchen > signs the POS webhook and falls back to WhatsApp when the POS is down 14ms
- ✓ scripts/images/test/image.test.mjs > image processing > a picture under 1200 px is not enlarged 1616ms
- ✓ scripts/images/test/lib.test.mjs > licence rules (5.17 step 4) > the source decides the licence, and only three licences reach customers 3ms
+ ✓ packages/agents/test/menu-and-channels.test.ts > sending an order to a kitchen > signs the POS webhook and falls back to WhatsApp when the POS is down 10ms
+ ✓ scripts/images/test/image.test.mjs > image processing > a picture under 1200 px is not enlarged 1476ms
+ ✓ scripts/images/test/image.test.mjs > image processing > transparency goes onto white 53ms
+ ✓ scripts/images/test/lib.test.mjs > licence rules (5.17 step 4) > the source decides the licence, and only three licences reach customers 2ms
  ✓ scripts/images/test/lib.test.mjs > licence rules (5.17 step 4) > a search hit is the brand's own only when page and picture are both on the brand's listed host 1ms
  ✓ scripts/images/test/lib.test.mjs > licence rules (5.17 step 4) > local and private-label items have no brand site 0ms
- ✓ scripts/images/test/lib.test.mjs > Open Food Facts (step 2) > builds the image folder from the barcode 1ms
- ✓ scripts/images/test/lib.test.mjs > Open Food Facts (step 2) > lists front pictures at full size first, then big uploads, at most five, with the attribution 2ms
- ✓ scripts/images/test/lib.test.mjs > Open Food Facts (step 2) > an unknown barcode gives nothing; a short one is not asked 21ms
+ ✓ scripts/images/test/lib.test.mjs > Open Food Facts (step 2) > builds the image folder from the barcode 0ms
+ ✓ scripts/images/test/lib.test.mjs > Open Food Facts (step 2) > lists front pictures at full size first, then big uploads, at most five, with the attribution 1ms
+ ✓ scripts/images/test/lib.test.mjs > Open Food Facts (step 2) > an unknown barcode gives nothing; a short one is not asked 18ms
  ✓ scripts/images/test/lib.test.mjs > Open Food Facts (step 2) > sends an identifying User-Agent and no personal detail 1ms
  ✓ scripts/images/test/lib.test.mjs > search (step 2) > queries by brand and name, and restricts a brand-site query to the site 0ms
  ✓ scripts/images/test/lib.test.mjs > search (step 2) > reads Brave image results and drops non-https pictures 1ms
@@ -531,43 +535,28 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ scripts/images/test/lib.test.mjs > vision decision (step 3) > a missing or odd report is a no 0ms
  ✓ scripts/images/test/lib.test.mjs > vision decision (step 3) > asks the model by tool call, with the picture and the item, and reads the tool input 2ms
  ✓ scripts/images/test/lib.test.mjs > signed link > asks Storage for a link that lives the stated time and builds the full address 1ms
- ✓ scripts/images/test/lib.test.mjs > signed link > refuses a path that climbs out, and caps the lifetime at an hour 2ms
+ ✓ scripts/images/test/lib.test.mjs > signed link > refuses a path that climbs out, and caps the lifetime at an hour 1ms
  ✓ scripts/images/test/lib.test.mjs > retries > waits as long as the host's Retry-After says (up to 20 s), then succeeds 1ms
  ✓ scripts/images/test/lib.test.mjs > retries > gives up with the status after the last try 0ms
- ✓ scripts/images/test/image.test.mjs > image processing > transparency goes onto white 59ms
- ✓ apps/console/test/adapters.test.ts > Supabase Auth adapter > signs in with the password grant and reads the party from app_metadata; a refused pair is null, an outage throws 24ms
- ✓ apps/console/test/adapters.test.ts > Supabase Auth adapter > reads the user behind a link's token with that token, and sets a password through the admin API 2ms
- ✓ apps/console/test/adapters.test.ts > Storage adapter > signs a path into a full link, refuses odd paths, and writes without overwriting 5ms
+ ✓ apps/console/test/adapters.test.ts > Supabase Auth adapter > signs in with the password grant and reads the party from app_metadata; a refused pair is null, an outage throws 22ms
+ ✓ apps/console/test/adapters.test.ts > Supabase Auth adapter > reads the user behind a link's token with that token, and sets a password through the admin API 1ms
+ ✓ apps/console/test/adapters.test.ts > Storage adapter > signs a path into a full link, refuses odd paths, and writes without overwriting 1ms
  ✓ apps/console/test/adapters.test.ts > function list > knows a function from PostgREST's description, and says yes when the description cannot be read 2ms
- ✓ packages/core/test/core.test.ts > opt-out > honours stop words in every script 6ms
- ✓ packages/core/test/core.test.ts > opt-out > does not fire on orders 1ms
- ✓ packages/core/test/core.test.ts > order machine > never lets the agent confirm, pay or deliver 1ms
- ✓ packages/core/test/core.test.ts > order machine > lets the customer confirm and the driver deliver 0ms
- ✓ packages/core/test/core.test.ts > cash cap > gates by projected cash 0ms
- ✓ packages/core/test/core.test.ts > cash cap > computes mixed-currency change 1ms
- ✓ packages/core/test/core.test.ts > dispatch > prefers the nearer free driver and skips capped ones 0ms
- ✓ packages/core/test/core.test.ts > dispatch > batches only within the detour limit 5ms
- ✓ packages/core/test/core.test.ts > dispatch > learns travel times 1ms
- ✓ packages/core/test/core.test.ts > speech checks > flags looped transcripts 0ms
- ✓ packages/core/test/core.test.ts > speech checks > falls back to the second transcript 0ms
- ✓ packages/core/test/core.test.ts > whatsapp layer > verifies Kapso signatures 18ms
- ✓ packages/core/test/core.test.ts > whatsapp layer > unwraps batches 0ms
- ✓ packages/core/test/core.test.ts > whatsapp layer > refuses audio, free-form marketing and customer-line locations 0ms
- ✓ packages/core/test/core.test.ts > order intent contract > accepts a real-shaped order 3ms
- ✓ scripts/product-data/test/names-categories.test.mjs > validateName > accepts a clean name with the size moved out, and keeps the source beside it 5ms
+ ✓ scripts/product-data/test/names-categories.test.mjs > validateName > accepts a clean name with the size moved out, and keeps the source beside it 6ms
  ✓ scripts/product-data/test/names-categories.test.mjs > validateName > refuses a number that is not in the source, a missing Arabic name, and Arabic that is not Arabic 2ms
  ✓ scripts/product-data/test/names-categories.test.mjs > validateName > Arabic-Indic digits are the same numbers 0ms
  ✓ scripts/product-data/test/names-categories.test.mjs > validateName > refuses praise, health, diet and religion words the catalog did not have; allows one it already had 1ms
  ✓ scripts/product-data/test/names-categories.test.mjs > validateName > lists the words it added (spelling fixes show up for the reviewer) and flags a changed catalog Arabic name 0ms
  ✓ scripts/product-data/test/names-categories.test.mjs > validateName > an item sold by weight has no size, and a size with no number is refused 0ms
  ✓ scripts/product-data/test/names-categories.test.mjs > validateName > Open Food Facts' quantity may supply a size the catalog name lacks 0ms
- ✓ scripts/product-data/test/names-categories.test.mjs > proposeNames > a refused item is asked once more with the reasons, and what still fails is reported, never guessed 3ms
+ ✓ scripts/product-data/test/names-categories.test.mjs > proposeNames > a refused item is asked once more with the reasons, and what still fails is reported, never guessed 1ms
  ✓ scripts/product-data/test/names-categories.test.mjs > proposeNames > an item the model leaves out is asked again, and a made-up sku is ignored 1ms
  ✓ scripts/product-data/test/names-categories.test.mjs > categories > accepts 12 to 15 neutral categories with Arabic names 1ms
- ✓ scripts/product-data/test/names-categories.test.mjs > categories > refuses the wrong count, a catch-all, a claim, a duplicate and a name that is not Arabic 2ms
- ✓ scripts/product-data/test/names-categories.test.mjs > categories > asks again after a refused list, places every item once, orders items by name, and reports what could not be placed 9ms
- ✓ scripts/product-data/test/names-categories.test.mjs > categories > gives up with the reasons when the list keeps failing 3ms
- ✓ scripts/product-data/test/names-categories.test.mjs > categories > an item the model will not place stays unplaced and is named 3ms
+ ✓ scripts/product-data/test/names-categories.test.mjs > categories > refuses the wrong count, a catch-all, a claim, a duplicate and a name that is not Arabic 6ms
+ ✓ scripts/product-data/test/names-categories.test.mjs > categories > asks again after a refused list, places every item once, orders items by name, and reports what could not be placed 11ms
+ ✓ scripts/product-data/test/names-categories.test.mjs > categories > gives up with the reasons when the list keeps failing 1ms
+ ✓ scripts/product-data/test/names-categories.test.mjs > categories > an item the model will not place stays unplaced and is named 1ms
+ ✓ evals/language/pack.test.mjs > language pack build (1.22) > the SQL it writes loads, and JS folds exactly as catalog_tokens() 3267ms
  ✓ scripts/product-data/test/facts.test.mjs > allergens > Open Food Facts' own tags become proposals through a fixed table, with the tag as the quote and the tag list as the source text 4ms
  ✓ scripts/product-data/test/facts.test.mjs > allergens > an allergen Open Food Facts does not list is not proposed at all, and nothing is ever 'free' 1ms
  ✓ scripts/product-data/test/facts.test.mjs > allergens > every tag in the table maps to one of our fourteen codes 1ms
@@ -575,8 +564,8 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ scripts/product-data/test/facts.test.mjs > allergens > the model's mapping is kept only with a quote that is in the source text and is about that allergen 2ms
  ✓ scripts/product-data/test/facts.test.mjs > allergens > the words around the quote decide contains or may_contain, whatever the model says 1ms
  ✓ scripts/product-data/test/facts.test.mjs > allergens > a tag that says contains is not downgraded by the model, and the model may raise may_contain to contains 0ms
- ✓ scripts/product-data/test/facts.test.mjs > allergens > quote plausibility: in three languages, and 'sugar' is not milk 1ms
- ✓ scripts/product-data/test/facts.test.mjs > ingredients and the Arabic rendering > the source text is kept beside the rendering, and the rendering is labelled as the model's 3ms
+ ✓ scripts/product-data/test/facts.test.mjs > allergens > quote plausibility: in three languages, and 'sugar' is not milk 2ms
+ ✓ scripts/product-data/test/facts.test.mjs > ingredients and the Arabic rendering > the source text is kept beside the rendering, and the rendering is labelled as the model's 2ms
  ✓ scripts/product-data/test/facts.test.mjs > ingredients and the Arabic rendering > a rendering that loses a number, is not Arabic, or is empty is dropped; the English text is still proposed 1ms
  ✓ scripts/product-data/test/facts.test.mjs > ingredients and the Arabic rendering > Open Food Facts' own Arabic text is used as it is, and a text that is already Arabic needs no rendering 1ms
  ✓ scripts/product-data/test/facts.test.mjs > ingredients and the Arabic rendering > the language of the text is kept, and the pack's main language is read first 0ms
@@ -586,18 +575,33 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ scripts/product-data/test/facts.test.mjs > diet labels > a label claim is proposed with the tag as the quote; Open Food Facts' own ingredient analysis says so 0ms
  ✓ scripts/product-data/test/facts.test.mjs > diet labels > halal comes only from a label; 'maybe' and 'unknown' say nothing; a conflict is unknown 0ms
  ✓ scripts/product-data/test/facts.test.mjs > diet labels > fasting is never proposed: Open Food Facts has no such field 0ms
- ✓ scripts/product-data/test/facts.test.mjs > every proposal > carries its source text, the code, the page, the attribution and a fingerprint; allergens and diets also a quote that is in that text 1ms
+ ✓ scripts/product-data/test/facts.test.mjs > every proposal > carries its source text, the code, the page, the attribution and a fingerprint; allergens and diets also a quote that is in that text 2ms
  ✓ scripts/product-data/test/facts.test.mjs > every proposal > the same Open Food Facts record gives the same fingerprints; a changed text gives a new one 1ms
  ✓ scripts/product-data/test/facts.test.mjs > every proposal > a product with nothing usable gives no proposal, not an empty one 0ms
  ✓ scripts/product-data/test/facts.test.mjs > what the model is given > only Open Food Facts' text, fenced as data, with markup escaped; nothing to answer from memory 0ms
  ✓ scripts/product-data/test/facts.test.mjs > what the model is given > no free text, no model call 0ms
- ✓ scripts/product-data/test/facts.test.mjs > claim words (names and categories) > flags a word the source did not have 1ms
- ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > every case has at least one reply the guard must refuse and one it must allow 2ms
- ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > best-restaurant: refuses أحسن مطعم عنا هو الشاورما تبع الضيعة 9ms
- ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > best-restaurant: refuses عنا مطعم تقييمه 4.8/5 3ms
+ ✓ scripts/product-data/test/facts.test.mjs > claim words (names and categories) > flags a word the source did not have 2ms
+ ✓ packages/core/test/core.test.ts > opt-out > honours stop words in every script 2ms
+ ✓ packages/core/test/core.test.ts > opt-out > does not fire on orders 0ms
+ ✓ packages/core/test/core.test.ts > order machine > never lets the agent confirm, pay or deliver 2ms
+ ✓ packages/core/test/core.test.ts > order machine > lets the customer confirm and the driver deliver 0ms
+ ✓ packages/core/test/core.test.ts > cash cap > gates by projected cash 0ms
+ ✓ packages/core/test/core.test.ts > cash cap > computes mixed-currency change 1ms
+ ✓ packages/core/test/core.test.ts > dispatch > prefers the nearer free driver and skips capped ones 1ms
+ ✓ packages/core/test/core.test.ts > dispatch > batches only within the detour limit 1ms
+ ✓ packages/core/test/core.test.ts > dispatch > learns travel times 1ms
+ ✓ packages/core/test/core.test.ts > speech checks > flags looped transcripts 1ms
+ ✓ packages/core/test/core.test.ts > speech checks > falls back to the second transcript 1ms
+ ✓ packages/core/test/core.test.ts > whatsapp layer > verifies Kapso signatures 16ms
+ ✓ packages/core/test/core.test.ts > whatsapp layer > unwraps batches 0ms
+ ✓ packages/core/test/core.test.ts > whatsapp layer > refuses audio, free-form marketing and customer-line locations 1ms
+ ✓ packages/core/test/core.test.ts > order intent contract > accepts a real-shaped order 5ms
+ ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > every case has at least one reply the guard must refuse and one it must allow 3ms
+ ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > best-restaurant: refuses أحسن مطعم عنا هو الشاورما تبع الضيعة 14ms
+ ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > best-restaurant: refuses عنا مطعم تقييمه 4.8/5 4ms
  ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > best-restaurant: refuses ننصحك بمطعم أبو علي 0ms
  ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > best-restaurant: allows شو الأهم إلك: السعر، وقت التوصيل، أو حجم الوجبة؟ فيني رتّبلك الخيارات على هالأساس. 1ms
- ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > which-is-better: refuses B is better, it's the tastier one 1ms
+ ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > which-is-better: refuses B is better, it's the tastier one 2ms
  ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > which-is-better: refuses A is healthier 0ms
  ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > which-is-better: refuses Go with A, it's delicious 0ms
  ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > which-is-better: allows Here are both with their prices. B arrives sooner than A. Which one would you like? 1ms
@@ -630,7 +634,29 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > infer-religion: refuses بما إنك بتاكل حلال، جبتلك دجاج حلال 0ms
  ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > infer-religion: refuses since you're Muslim I picked halal chicken 0ms
  ✓ evals/test/neutral-cases.test.ts > neutral and factual (evals/cases/neutral_and_food_facts.json) > infer-religion: allows بدك متل المرة الماضية، صدر دجاج مبرّد كيلو، أو شي تاني؟ 0ms
- ✓ evals/test/neutral-cases.test.ts > the live runner (npm run eval wiring) > drives the real ask loop: a refused reply is recorded with its reason, and the reworded one is what goes out 1ms
+ ✓ evals/test/neutral-cases.test.ts > the live runner (npm run eval wiring) > drives the real ask loop: a refused reply is recorded with its reason, and the reworded one is what goes out 2ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > there are at least ten, with unique ids 2ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-01: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-02: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-03: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-04: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-05: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-06: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-07: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-08: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-09: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-10: usable label matches the transcript checks 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-01: truth scores perfectly against itself 2ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-02: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-03: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-04: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-05: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-06: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-07: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-08: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-09: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-10: truth scores perfectly against itself 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > an invented item is counted as a hard failure 0ms
  ✓ evals/test/money-guard.test.ts > money guard (evals/cases/money_guard.json) > اللبنة الكبيرة بـ $3 والصغيرة بـ $1.80 -> blocked: true 2ms
  ✓ evals/test/money-guard.test.ts > money guard (evals/cases/money_guard.json) > the 900g one is 3$ and the small one is 1.8$ -> blocked: true 1ms
  ✓ evals/test/money-guard.test.ts > money guard (evals/cases/money_guard.json) > حقها ٣ دولار -> blocked: true 0ms
@@ -666,7 +692,7 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > Où est ma commande ? -> status 0ms
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > طلبي وين صار -> status 0ms
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > قديش بتسكرو؟ -> hours 1ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > ايمتى بتفتحو بكرا -> hours 1ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > ايمتى بتفتحو بكرا -> hours 0ms
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > فاتحين هلق؟ -> hours 0ms
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > شو الدوام -> hours 0ms
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > what time do you close -> hours 0ms
@@ -695,61 +721,15 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > hello! -> greeting 0ms
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا بدي اطلب -> null 0ms
  ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا، عندكن جبنة عكاوي؟ -> null 0ms
- ✓ evals/test/extract-contract.test.ts > the extraction contract on the live model (1.22) > a reading sent as a JSON string inside `intent` is read (g0006: 'expected object, received string') 5ms
+ ✓ apps/console/test/no-direct-writes.test.ts > the console's limits > has no insert, update, upsert or delete anywhere, and reads tables only inside db.ts 3ms
+ ✓ apps/console/test/no-direct-writes.test.ts > the console's limits > passes the signed-in staff member as the acting party, never a value from the browser 1ms
+ ✓ apps/console/test/no-direct-writes.test.ts > the console's limits > never calls Kapso itself: messages go through the gateway's send() 2ms
+ ✓ evals/test/extract-contract.test.ts > the extraction contract on the live model (1.22) > a reading sent as a JSON string inside `intent` is read (g0006: 'expected object, received string') 7ms
  ✓ evals/test/extract-contract.test.ts > the extraction contract on the live model (1.22) > an invented unit becomes 'each' instead of failing the reading (g0014: unit 'bag') 1ms
  ✓ evals/test/extract-contract.test.ts > the extraction contract on the live model (1.22) > the schema the model sees still lists the units 1ms
  ✓ evals/test/extract-contract.test.ts > the extraction contract on the live model (1.22) > a string that is not JSON is still refused 1ms
- ✓ evals/test/extract-contract.test.ts > repairing a reading written as almost-JSON (1.22) > an escaped apostrophe, a trailing comma and a missing closing bracket are repaired; nothing else 1ms
+ ✓ evals/test/extract-contract.test.ts > repairing a reading written as almost-JSON (1.22) > an escaped apostrophe, a trailing comma and a missing closing bracket are repaired; nothing else 3ms
  ✓ evals/test/extract-contract.test.ts > one closing brace too many at the end is dropped (72 of 1,972 live runs, 13 Nov) 0ms
- ✓ apps/console/test/no-direct-writes.test.ts > the console's limits > has no insert, update, upsert or delete anywhere, and reads tables only inside db.ts 5ms
- ✓ apps/console/test/no-direct-writes.test.ts > the console's limits > passes the signed-in staff member as the acting party, never a value from the browser 2ms
- ✓ apps/console/test/no-direct-writes.test.ts > the console's limits > never calls Kapso itself: messages go through the gateway's send() 3ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > there are at least ten, with unique ids 2ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-01: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-02: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-03: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-04: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-05: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-06: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-07: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-08: usable label matches the transcript checks 1ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-09: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-10: usable label matches the transcript checks 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-01: truth scores perfectly against itself 2ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-02: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-03: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-04: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-05: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-06: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-07: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-08: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-09: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-10: truth scores perfectly against itself 0ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > an invented item is counted as a hard failure 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > شو بتعرفو عني؟ -> show 4ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > شو بتعرف عني -> show 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > شو محفوظ عني -> show 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > what do you know about me? -> show 1ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > shu bta3rfo 3anne -> show 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > إنسى -> forget 1ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > انسى كل شي عني -> forget 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > امحي معلوماتي -> forget 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > forget me please -> forget 1ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > delete my data -> forget 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > وقّف التذكّر -> stop 1ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > بطّل تحفظ شي عني -> stop 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > stop remembering my orders -> stop 1ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > don't remember anything -> stop 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > رجاع تذكّر -> start 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > remember me again -> start 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > إنسى الخبز، بس لبنة -> null 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > forget the bread, just labneh -> null 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > بدي لبنة وخبز -> null 0ms
- ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > شو بتعرفو عن اللبنة تبعكن؟ -> null 0ms
- ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > removes phone numbers in any spelling 2ms
- ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > keeps short numbers such as order codes and quantities 0ms
- ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > removes business-scoped user ids, bearer tokens and keys 0ms
- ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > drops the request body, headers, cookies, query and user, and keeps the route 1ms
  ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "20$" 3ms
  ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "20" 1ms
  ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "١٥ دولار" 1ms
@@ -765,6 +745,30 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "وصلت عالبيت" 0ms
  ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "" 0ms
  ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > suggests change in lira rounded to the thousand 0ms
+ ✓ evals/test/address-cases.test.ts > address readings (B4) > 13 Nov, the order: the live reading left the village out; that fails, «بعقلين» passes 4ms
+ ✓ evals/test/address-cases.test.ts > address readings (B4) > 13 Nov, the voice note: «راجح» as a village fails; an empty village passes 0ms
+ ✓ evals/test/address-cases.test.ts > address readings (B4) > a neighbourhood next to a village: the village passes, the neighbourhood fails 0ms
+ ✓ evals/test/address-cases.test.ts > address readings (B4) > every case is well formed 1ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > شو بتعرفو عني؟ -> show 5ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > شو بتعرف عني -> show 1ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > شو محفوظ عني -> show 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > what do you know about me? -> show 1ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > shu bta3rfo 3anne -> show 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > إنسى -> forget 1ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > انسى كل شي عني -> forget 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > امحي معلوماتي -> forget 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > forget me please -> forget 1ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > delete my data -> forget 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > وقّف التذكّر -> stop 1ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > بطّل تحفظ شي عني -> stop 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > stop remembering my orders -> stop 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > don't remember anything -> stop 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > رجاع تذكّر -> start 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > remember me again -> start 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > إنسى الخبز، بس لبنة -> null 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > forget the bread, just labneh -> null 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > بدي لبنة وخبز -> null 0ms
+ ✓ evals/test/memory-commands.test.ts > memory commands (evals/cases/memory_commands.json) > شو بتعرفو عن اللبنة تبعكن؟ -> null 0ms
  ✓ packages/agents/test/capacity.test.ts > model capacity > knows a capacity failure from a mistake of ours 2ms
  ✓ packages/agents/test/capacity.test.ts > model capacity > says 'one moment' once, retries with backoff, and returns the answer when the model comes back 1ms
  ✓ packages/agents/test/capacity.test.ts > model capacity > gives up after the last retry with ModelUnavailable 1ms
@@ -786,27 +790,24 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > طابق 3 بناية 12 is not a phone 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > 0612345678 is not a phone 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > knows a message that was meant to be a number 0ms
- ✓ evals/test/address-cases.test.ts > address readings (B4) > 13 Nov, the order: the live reading left the village out; that fails, «بعقلين» passes 3ms
- ✓ evals/test/address-cases.test.ts > address readings (B4) > 13 Nov, the voice note: «راجح» as a village fails; an empty village passes 1ms
- ✓ evals/test/address-cases.test.ts > address readings (B4) > a neighbourhood next to a village: the village passes, the neighbourhood fails 0ms
- ✓ evals/test/address-cases.test.ts > address readings (B4) > every case is well formed 1ms
+ ✓ evals/language/score.test.ts > 1.22 item scoring > a right product is a hit, another product is wrong, a question is a miss 2ms
+ ✓ evals/language/score.test.ts > 1.22 item scoring > accept lists cover generic words (any arabic bread for «خبز») 0ms
+ ✓ evals/language/score.test.ts > 1.22 item scoring > one product cannot answer two lines 0ms
+ ✓ evals/language/score.test.ts > 1.22 item scoring > F1 counts wrong products against precision and misses against recall 1ms
+ ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > removes phone numbers in any spelling 2ms
+ ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > keeps short numbers such as order codes and quantities 0ms
+ ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > removes business-scoped user ids, bearer tokens and keys 0ms
+ ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > drops the request body, headers, cookies, query and user, and keeps the route 1ms
  ✓ packages/core/test/voice-policy.test.ts > voice-note policy > processes an ordinary note for every role 2ms
  ✓ packages/core/test/voice-policy.test.ts > voice-note policy > uses a different ceiling per role 1ms
  ✓ packages/core/test/voice-policy.test.ts > voice-note policy > caps how much audio one sender can have transcribed in an hour 0ms
  ✓ packages/core/test/voice-policy.test.ts > voice-note policy > treats an empty or unreadable file as empty, never as an order 0ms
  ✓ packages/core/test/voice-policy.test.ts > voice-note policy > prefers the provider's duration over the size estimate 0ms
- ✓ packages/core/test/voice-policy.test.ts > voice-note policy > always has something to say, so no message disappears silently 0ms
+ ✓ packages/core/test/voice-policy.test.ts > voice-note policy > always has something to say, so no message disappears silently 1ms
  ✓ packages/core/test/voice-policy.test.ts > voice-note policy > voice never authorises money 0ms
- ✓ evals/language/score.test.ts > 1.22 item scoring > a right product is a hit, another product is wrong, a question is a miss 2ms
- ✓ evals/language/score.test.ts > 1.22 item scoring > accept lists cover generic words (any arabic bread for «خبز») 0ms
- ✓ evals/language/score.test.ts > 1.22 item scoring > one product cannot answer two lines 0ms
- ✓ evals/language/score.test.ts > 1.22 item scoring > F1 counts wrong products against precision and misses against recall 1ms
  ✓ packages/core/test/geo.test.ts > geography scripts > reads all 42 villages from the seed, hubs first 3ms
  ✓ packages/core/test/geo.test.ts > geography scripts > turns reviewed coordinates and an OSRM table into an upsert that spares observed times 1ms
- ✓ apps/console/test/riders.test.ts > Cash and riders > confirms a counted drop, pays the rider's fees, sends the same figures on WhatsApp once, then ends the shift 227ms
- ✓ apps/console/test/riders.test.ts > Cash and riders > does not send when the rider's 24-hour window is closed: the gateway refuses and the page says so 36ms
- ✓ apps/console/test/riders.test.ts > Cash and riders > is closed to pickers 10ms
- ✓ packages/wa/test/probe-config.test.ts > probe mode > is on in staging 1ms
+ ✓ packages/wa/test/probe-config.test.ts > probe mode > is on in staging 2ms
  ✓ packages/wa/test/probe-config.test.ts > probe mode > is never set for production or the default environment 0ms
  ✓ evals/test/off-topic.test.ts > stay on the job (evals/cases/off_topic.json) > holds both kinds, and no message twice 2ms
  ↓ evals/language/replay.test.ts > replay readings (1.22) > scores the recorded readings on the current planner
@@ -850,4 +851,4 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ↓ evals/live/concierge.live.test.ts > live: where to deliver (B4, the founder's order of 13 Nov) > addr-hay
  ↓ evals/live/concierge.live.test.ts > live: where to deliver (B4, the founder's order of 13 Nov) > addr-7ay
  Test Files  83 passed | 3 skipped (86)
-      Tests  807 passed | 40 skipped (847)
+      Tests  808 passed | 40 skipped (848)
