@@ -5,6 +5,7 @@ import { askLocation, buttons as buttonMsg, type Outbound } from "@ak/wa/kapso";
 import type { SendResult } from "@ak/wa/gateway";
 import type { ConciergeTools } from "./concierge";
 import { FIXED, formatOrderCard, type Quote } from "./order-card";
+import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
 
 /** What survives between turns of one conversation. Kept in the Durable Object, not in the model. */
 export interface ConversationState {
@@ -84,6 +85,8 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
     },
 
     async ask_location_pin({ text }) {
+      const bad = await guard(ctx, [text]);
+      if (bad) return bad;
       return deliver(ctx, askLocation(text), `[location request] ${text}`);
     },
 
@@ -95,9 +98,15 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
         { payment: payment_method ?? "cod", changeForUsd: change_for_usd ?? null, notes: [notes, ctx.state.directions].filter(Boolean).join(" | ") || null });
     },
 
-    async reply({ text, buttons }) {
-      const msg: Outbound = buttons?.length ? buttonMsg(text, buttons) : { type: "text", text: { body: text } };
-      return deliver(ctx, msg, text);
+    async reply({ text, buttons, price_of }) {
+      // The model's own words are checked first (1.5). Prices it asked for are added after, by code, from quote_order.
+      const bad = await guard(ctx, [text, ...(buttons ?? []).map((b) => b.title)]);
+      if (bad) return bad;
+      const prices = price_of?.length ? await priceLines(ctx, price_of) : null;
+      if (prices && !prices.ok) return prices;
+      const body = prices ? `${text}\n${prices.text}` : text;
+      const msg: Outbound = buttons?.length ? buttonMsg(body, buttons) : { type: "text", text: { body } };
+      return deliver(ctx, msg, body);
     },
 
     async handoff_human({ reason }) {
@@ -107,6 +116,30 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       return { ok: true };
     },
   };
+}
+
+/**
+ * Runs the output checks on text the model wrote. A refusal is logged (code and the matched fragment, never the whole text)
+ * and returned to the model so it can reword. Nothing is sent.
+ */
+export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: false; error: string; hint: string } | null> {
+  let v: Violation | null = null;
+  for (const t of texts) { v = checkModelText(t); if (v) break; }
+  if (!v) return null;
+  await ctx.db.from("agent_runs").insert({ agent: "output_guard", conversation_id: ctx.conversationId, outcome: "refused",
+                                           trace: { code: v.code, match: v.match.slice(0, 60) } });
+  return { ok: false, error: `refused:${v.code}`, hint: GUARD_HINT[v.code] };
+}
+
+const money = (n: number) => `$${Number(n).toFixed(2)}`;
+const MAX_PRICED = 6;
+/** One line per product, priced by quote_order (one unit, at the hub): the only way a price appears in a Concierge reply. */
+async function priceLines(ctx: ToolContext, productIds: string[]): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  const ids = [...new Set(productIds)].slice(0, MAX_PRICED);
+  const q = await rpc<{ lines: { name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(
+    ctx.db, "quote_order", { p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: null, p_pickup: true });
+  if (q.lines.length === 0) return { ok: false, error: "price_of_unknown_products" };
+  return { ok: true, text: q.lines.map((l) => `• ${l.name_ar ?? l.name} — ${money(l.unit_price_usd)}${l.ok ? "" : " (مش متوفّر هلّق)"}`).join("\n") };
 }
 
 export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" } | { ok: false; error: string; issues?: unknown };

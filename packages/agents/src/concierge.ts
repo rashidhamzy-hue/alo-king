@@ -12,7 +12,8 @@ export interface ConciergeTools {
   ask_location_pin(args: { text: string }): ToolResult;
   /** Creates the order from the last quote, moves it to awaiting_confirmation and sends the card. */
   send_confirmation(args: { payment_method?: "cod" | "whish" | "omt"; change_for_usd?: number | null; notes?: string | null }): ToolResult;
-  reply(args: { text: string; buttons?: { id: string; title: string }[] }): ToolResult;
+  /** price_of: product ids whose prices the system appends from the database. The model never writes an amount itself. */
+  reply(args: { text: string; buttons?: { id: string; title: string }[]; price_of?: string[] }): ToolResult;
   handoff_human(args: { reason: string }): ToolResult;
 }
 
@@ -34,8 +35,9 @@ const TOOL_DEFS: Anthropic.Tool[] = [
     input_schema: { type: "object", properties: { text: str }, required: ["text"] } },
   { name: "send_confirmation", description: "Create the order from the last quote_order result and send the order card with Confirm / Edit / Cancel buttons. Only works when that quote has ok=true. Ends your turn.",
     input_schema: { type: "object", properties: { payment_method: { type: "string", enum: ["cod", "whish", "omt"] }, change_for_usd: { type: ["number", "null"] }, notes: nstr } } },
-  { name: "reply", description: "Send one text message, optionally with up to three buttons. Ends your turn.",
-    input_schema: { type: "object", properties: { text: str, buttons: { type: "array", items: { type: "object", properties: { id: str, title: str }, required: ["id", "title"] } } }, required: ["text"] } },
+  { name: "reply", description: "Send one text message, optionally with up to three buttons. Ends your turn. Never write a price, fee or total: the message is refused. To show prices, put the product ids in price_of and the system appends one priced line per product from the database.",
+    input_schema: { type: "object", properties: { text: str, buttons: { type: "array", items: { type: "object", properties: { id: str, title: str }, required: ["id", "title"] } },
+      price_of: { type: "array", items: str, maxItems: 6 } }, required: ["text"] } },
   { name: "handoff_human", description: "Pass the conversation to the operations lead. Ends your turn.",
     input_schema: { type: "object", properties: { reason: str }, required: ["reason"] } },
 ];

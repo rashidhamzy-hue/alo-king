@@ -72,3 +72,33 @@ describe("the card shows what is owed and asks for prepayment (1.4)", () => {
     expect(owed).toContain("$3.00"); expect(owed).toContain("تحويل OMT"); expect(owed).toContain("سلف");
   });
 });
+
+describe("money guardrail (1.5)", () => {
+  it("a reply that states a price is refused and logged; the reworded reply carries prices written by code from the database", async () => {
+    const t = flow(db, [read({ intent: "question", lines: [] }),
+      [use("reply", { text: "اللبنة الكبيرة بـ $2.50 والصغيرة بـ $1" })],
+      [use("reply", { text: "عنا حجمين لبنة، أيّا بتحب؟", price_of: [ids.LABNEH] })]]);
+    await t.customer();
+    await t.text("قديش حق اللبنة؟");
+    expect(t.seen).toHaveLength(3);
+    // the model is told why, so it can reword
+    const told = JSON.stringify(t.seen[2]!.messages.at(-1));
+    expect(told).toContain("refused:money_in_free_text"); expect(told).toContain("price_of");
+    expect(outbound).toHaveLength(1);
+    const body: string = outbound[0]!.body.text.body;
+    expect(body).not.toContain("$2.50");
+    const price = Number((await db.one(`select price_usd from offers where product_id = $1`, [ids.LABNEH])).price_usd);
+    expect(body).toContain(`$${price.toFixed(2)}`);
+    expect(await db.one(`select trace from agent_runs where agent = 'output_guard' order by created_at desc limit 1`))
+      .toEqual({ trace: { code: "money_in_free_text", match: "$2.50" } });
+  });
+
+  it("a pin request with an amount is refused too, and a model that keeps writing prices ends with a person, never silence", async () => {
+    const bad = [use("reply", { text: "التوصيل 1$" })];
+    const t = flow(db, [read({ intent: "question", lines: [] }), [use("ask_location_pin", { text: "التوصيل لعندك حقو 2 دولار، بعتلي موقعك" })], bad, bad, bad, bad, bad]);
+    const c = await t.customer();
+    await t.text("قديش التوصيل؟");
+    expect(outbound.map((o) => o.body.text?.body)).toEqual(["رح يتواصل معك حدا من فريقنا بأقرب وقت."]);
+    expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(true);
+  });
+});
