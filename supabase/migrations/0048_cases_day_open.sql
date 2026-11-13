@@ -108,6 +108,38 @@ begin
                             'still_held', k.product_id is not null and product_on_hold(k.product_id));
 end $$;
 
+-- ---------- 3.17 ----------
+create or replace function day_open_checklist() returns jsonb language plpgsql stable as $$
+declare b record; v_hub uuid;
+begin
+  select * into b from hub_day_bounds(hub_today());
+  select id into v_hub from sources where kind = 'dark_store' order by id limit 1;
+  return jsonb_build_object(
+    'day', hub_today(),
+    'orders_waiting', coalesce((select jsonb_agg(jsonb_build_object('order', o.short_code, 'status', o.status, 'since', coalesce(o.confirmed_at, o.created_at))
+                                  order by coalesce(o.confirmed_at, o.created_at))
+                                  from orders o join parties p on p.id = o.customer_id
+                                 where not p.is_probe and o.status in ('awaiting_payment', 'confirmed', 'preparing', 'ready')), '[]'::jsonb),
+    'not_closed_from_before_today', coalesce((select jsonb_agg(jsonb_build_object('order', o.short_code, 'status', o.status, 'created_at', o.created_at) order by o.created_at)
+                                  from orders o join parties p on p.id = o.customer_id
+                                 where not p.is_probe and o.created_at < b.since
+                                   and o.status in ('awaiting_payment', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'arrived', 'delivered', 'failed_delivery')), '[]'::jsonb),
+    'expiring_in_3_days', case when v_hub is null then '[]'::jsonb else expiring_stock(v_hub, 3) end,
+    'drops_not_counted', coalesce((select jsonb_agg(jsonb_build_object('rider', p.display_name, 'usd', d.declared_usd, 'lbp', d.declared_lbp, 'at', d.created_at) order by d.created_at)
+                                  from cash_drops d join parties p on p.id = d.driver_id where d.status = 'declared'), '[]'::jsonb),
+    'payment_proofs_waiting', (select count(*) from payment_proofs where status = 'pending'),
+    'riders', coalesce((select jsonb_agg(jsonb_build_object('rider', p.display_name, 'usd', n.usd, 'lbp', n.lbp,
+                                  'earnings_usd', (rider_statement(p.id)->>'earnings_usd')::numeric) order by p.display_name)
+                          from parties p cross join lateral driver_cash_native(p.id) n
+                         where p.role = 'driver' and (n.usd <> 0 or n.lbp <> 0 or (rider_statement(p.id)->>'earnings_usd')::numeric <> 0)), '[]'::jsonb),
+    'open_cases', coalesce((select jsonb_agg(jsonb_build_object('id', k.id, 'order', o.short_code, 'kind', k.kind, 'opened_at', k.opened_at) order by k.priority, k.opened_at)
+                              from complaint_cases k join orders o on o.id = k.order_id where k.status = 'open'), '[]'::jsonb),
+    'open_exceptions', (select count(*) from ops_exceptions where status <> 'resolved'),
+    'products_on_hold', (select count(*) from product_holds where released_at is null),
+    'last_cron_at', (select at from heartbeats where name = 'cron'),
+    'yesterday_closed', exists (select 1 from day_closes where day = hub_today() - 1));
+end $$;
+
 do $$ declare r text;
 begin
   alter table complaint_cases enable row level security;

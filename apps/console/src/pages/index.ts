@@ -3,6 +3,7 @@ import type { Section } from "../app";
 import { casesSection } from "./cases";
 import { catalogSection } from "./catalog";
 import { dayCloseSection } from "./dayclose";
+import { dayOpenSection } from "./dayopen";
 import { exceptionsSection } from "./exceptions";
 import { fxSection } from "./fx";
 import { merchantsSection } from "./merchants";
@@ -16,4 +17,4 @@ import { refundsSection } from "./refunds";
 import { ridersSection } from "./riders";
 import { todaySection } from "./today";
 
-export const registry: Section[] = [todaySection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, casesSection, moneySection, dayCloseSection, receivingSection, catalogSection, fxSection, zonesSection, merchantsSection, picturesSection];
+export const registry: Section[] = [todaySection, dayOpenSection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, casesSection, moneySection, dayCloseSection, receivingSection, catalogSection, fxSection, zonesSection, merchantsSection, picturesSection];
