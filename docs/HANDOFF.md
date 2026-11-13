@@ -115,7 +115,7 @@ For other sessions (B1 did not touch these files):
 
 ### Session C1 (hub), 13 November 2026: migration 0020, tasks 1.11, 1.12, 2.6, 2.7, 2.11
 Built and tested locally (PGlite with every migration, vitest; permission check on Postgres 16 in fresh and EXISTING=1 modes). Migrations 0020 to 0025; 0026 to 0029 are unused and stay reserved for C1.
-Nothing here is proven live yet: `deploy-staging` applies 0020-0025 to staging after the merge; its result is recorded at the end of this section.
+Applied to staging by `deploy-staging` after the merge; what that proves is at the end of this section.
 
 | Task | Where | Tested by |
 | --- | --- | --- |
@@ -134,7 +134,8 @@ How the pieces fit, for whoever builds next:
 - **Food facts are stored and checked, not yet used by the Concierge.** B2 (1.10, 1.14) wires `product_meets_restrictions` and `product_food_facts` into the tools and the preflight check. 5.15 (label scan) calls `propose_product_fact`; a person approves with `approve_product_fact`.
 - C3 logs a full slot with `log_demand('no_slot', ...)`. D1/D2 wire `receive_goods`, `adjust_stock`, `count_stock`, `hold_product`/`release_hold`, `recall_orders`, `record_supplier_credit`, `pay_supplier`, `gross_margin`, `inventory_valuation`, `expiring_stock` and `unmet_demand`; each takes the acting party, which the console must take from the signed-in session, never from the browser.
 - The session worked on branch `claude/lucid-hawking-iv4id3` (the branch this environment allows) rather than `C1`.
-- Live: not yet run. (Updated after the merge with the `deploy-staging` result.)
+- **Live (13 Nov, after the merge):** `deploy-staging` run `43404520947` passed, including the stricter permission check in `EXISTING=1` mode. Read back from staging with read-only queries: migrations 0020-0025 recorded; `pg_trgm` in `extensions`; no extension function left in `public`; `anon` and `authenticated` have no USAGE on `extensions`; `plan_order_core` carries the pinned `search_path`; `search_catalog('labneh')` returns matches. So A1's 0.4 finding is closed on staging. Food facts, demand, receiving and recall are applied there but have not been used with real data yet.
+- Seen in passing, not C1's lane: the two `deploy-staging` runs on `main` before this merge (`43398527053`, `43399003048`) failed in the `worker` job at the Sentry ingest check with HTTP 429 ("dropped data due to a quota or internal rate limit"). Run `43404520947` passed. This bears on 0.8: check the Sentry org quota when someone with Sentry access looks at the project.
 
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - `scheduled()` in `apps/gateway/src/index.ts`: the SQL it calls is tested, the handler is not.
