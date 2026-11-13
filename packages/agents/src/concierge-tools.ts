@@ -32,6 +32,8 @@ export interface ToolContext {
   /** Sends through the Compliance Gateway. The only way a tool can reach the customer. */
   send: (msg: Outbound, opts?: { orderId?: string }) => Promise<SendResult>;
   sent: { count: number; texts: string[] };   // message economy: what this turn has already sent
+  /** Food-fact attributes a tool returned an approved record for during this turn (1.10). Empty until the facts tool (1.11). */
+  approvedFacts?: Set<string>;
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -124,7 +126,7 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
  */
 export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: false; error: string; hint: string } | null> {
   let v: Violation | null = null;
-  for (const t of texts) { v = checkModelText(t); if (v) break; }
+  for (const t of texts) { v = checkModelText(t, { approvedFacts: ctx.approvedFacts }); if (v) break; }
   if (!v) return null;
   await ctx.db.from("agent_runs").insert({ agent: "output_guard", conversation_id: ctx.conversationId, outcome: "refused",
                                            trace: { code: v.code, match: v.match.slice(0, 60) } });

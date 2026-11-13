@@ -214,3 +214,17 @@ describe("payment screenshots (1.6)", () => {
     expect([...bucket.keys()].filter((k) => k.includes(t.who.waUserId))).toEqual([]);
   });
 });
+
+describe("neutral and factual (1.10)", () => {
+  it("praise and an unverified halal claim are refused with their reasons; the neutral rewording goes out", async () => {
+    const t = flow(db, [read({ intent: "question", lines: [] }),
+      [use("reply", { text: "شاورما الضيعة أطيب شي عنا" })],
+      [use("reply", { text: "إيه، الدجاج حلال" })],
+      [use("reply", { text: "ما عندي معلومات موثّقة إذا الدجاج حلال. فيني اسأل المطعم؟" })]]);
+    const c = await t.customer();
+    await t.text("شو أطيب شاورما؟ والدجاج حلال؟");
+    expect(outbound.map((o) => o.body.text.body)).toEqual(["ما عندي معلومات موثّقة إذا الدجاج حلال. فيني اسأل المطعم؟"]);
+    const refused = await db.all(`select trace->>'code' as code from agent_runs where agent = 'output_guard' and conversation_id = $1 order by created_at`, [c.conversation_id]);
+    expect(refused.map((r) => r.code)).toEqual(["quality_judgement", "unapproved_food_claim"]);
+  });
+});
