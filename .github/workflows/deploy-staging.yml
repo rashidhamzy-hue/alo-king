@@ -51,7 +51,7 @@ jobs:
           echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
       - name: Apply migrations
         # --include-all: parallel sessions merge migrations out of number order; staging takes them all.
-        run: supabase db push --include-all --yes
+        run: supabase db push --remote --include-all --yes
       - name: Check every migration file is recorded
         run: |
           local_count=$(ls supabase/migrations/*.sql | wc -l)
