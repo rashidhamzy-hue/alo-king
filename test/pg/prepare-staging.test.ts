@@ -22,7 +22,7 @@ run("staging preparation", () => {
       (select count(*) from driver_shifts sh join parties p on p.id = sh.driver_id where p.is_probe and sh.ended_at is null)::int open_shifts,
       (select value->>'enabled' from settings where key = 'probe') enabled,
       (select count(*) from customer_places cp join parties p on p.id = cp.party_id where p.is_probe)::int places`;
-    expect(s).toEqual({ fx: 1, hub: "Baakline", stocked: s!.rows, rows: s!.rows, max_on_hand: 5000, probes: 2, open_shifts: 1, enabled: "true", places: 1 });
+    expect(s).toEqual({ fx: 1, hub: "Baakline", stocked: s!.rows, rows: s!.rows, max_on_hand: 5000, probes: 3, open_shifts: 2, enabled: "true", places: 1 });
     expect((await sql`select on_hand from stock_levels where on_hand = 4321`).length).toBe(1);    // the second run did not overwrite stock
     const [g] = await sql`select can_send(p.id, 'customer', 'service', false) g from parties p where p.is_probe and p.role = 'customer'`;
     expect(g!.g).toBe("probe_sink");

@@ -18,7 +18,7 @@ update stock_levels set on_hand = 5000 where (select coalesce(sum(on_hand), 0) f
 do $$
 declare
   v_village uuid := (select id from villages where name_en = 'Baakline');
-  c uuid; r uuid;
+  c uuid; r uuid; i int;
   lat constant double precision := 33.6789; lng constant double precision := 35.5778;   -- Baakline, approximately
 begin
   -- test customer
@@ -31,14 +31,16 @@ begin
     insert into consent_events(party_id, line, kind, action, source, wording)
       values (c, 'customer', 'transactional', 'opt_in', 'probe_setup', 'staging probe party');
   end if;
-  -- test rider
-  select party_id into r from party_identities where line = 'ops' and wa_user_id = 'PR.0000000000000002';
-  if r is null then
-    insert into parties(role, display_name, is_probe) values ('driver', 'Probe rider', true) returning id into r;
-    insert into party_identities(party_id, line, wa_user_id) values (r, 'ops', 'PR.0000000000000002');
-  end if;
-  perform start_shift(r);                                     -- keeps an open shift open; opens one otherwise
-  perform record_driver_position(r, lat::numeric, lng::numeric, 'probe_setup');
+  -- two test riders: one can be busy with the hourly probe order while the other takes a real test order (0.13)
+  for i in 2..3 loop
+    select party_id into r from party_identities where line = 'ops' and wa_user_id = 'PR.000000000000000' || i;
+    if r is null then
+      insert into parties(role, display_name, is_probe) values ('driver', 'Probe rider ' || (i - 1), true) returning id into r;
+      insert into party_identities(party_id, line, wa_user_id) values (r, 'ops', 'PR.000000000000000' || i);
+    end if;
+    perform start_shift(r);                                   -- keeps an open shift open; opens one otherwise
+    perform record_driver_position(r, lat::numeric, lng::numeric, 'probe_setup');
+  end loop;
   update settings set value = value || jsonb_build_object('enabled', true, 'pin', jsonb_build_object('lat', lat, 'lng', lng)) where key = 'probe';
 end $$;
 

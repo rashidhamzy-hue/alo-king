@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type Server } from "node:http";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import type postgres from "postgres";
 import { realPostgresAvailable, startRealPostgres, type RealPg } from "./real-postgres";
@@ -27,6 +28,7 @@ const kapso = { sent: [] as Sent[], failNext: 0, failWhen: (_b: any) => true, at
 // ---- the model: a reading per inbound text, end_turn for anything else
 const readings: [RegExp, Record<string, unknown>][] = [];
 let modelCalls = 0;
+let probeCode = "";
 
 function listen(handler: (path: string, body: any) => { status: number; json: unknown }): Promise<string> {
   const s = createServer((req, res) => {
@@ -163,6 +165,7 @@ run("Worker end to end (workerd + real Postgres)", () => {
     const before = kapso.sent.length;
     await cron();                                                           // the probe customer orders
     const order = await until("the probe's order", async () => (await sql`select o.id, o.short_code from orders o join parties p on p.id = o.customer_id where p.is_probe`)[0], 30_000);
+    probeCode = order.short_code as string;
     for (let i = 0; i < 12; i++) {
       const [o] = await sql`select status from orders where id = ${order.id}`;
       if (o!.status === "closed") break;
@@ -192,4 +195,20 @@ run("Worker end to end (workerd + real Postgres)", () => {
     expect((await sql`select at from heartbeats where name = 'cron'`).length).toBe(1);
     expect(await sql`select kind from ops_exceptions where status = 'open'`).toEqual([]);
   }, 120_000);
+
+  it("the 0.13 evidence script passes on that order, and prints no phone number or user id", () => {
+    expect(probeCode).not.toBe("");
+    const out = execFileSync("psql", [pg.url, "-v", "ON_ERROR_STOP=1", "-v", `code='${probeCode}'`, "-f", "scripts/staging_evidence.sql"], { cwd: fileURLToPath(new URL("../../", import.meta.url)), encoding: "utf8" });
+    if (process.env.E2E_DEBUG) console.log("EVIDENCE\n" + out);
+    const after = (title: string) => out.split(title)[1]!.split("\n").slice(0, 6).join("\n");
+    expect(after("moves_not_allowed_must_be_zero")).toMatch(/^\s*-+\s*\n\s*0\s*$/m);
+    expect(out).not.toMatch(/NOT ALLOWED/);
+    expect(after("ledger_total_must_be_zero")).toMatch(/\n\s*0\.00(00)?\s*\n/);
+    const stock = out.split("== 3.")[1]!.split("== 4.")[0]!;
+    const diffs = stock.split("\n").filter((l) => (l.match(/\|/g) ?? []).length === 3 && !/difference/.test(l)).map((l) => Number(l.split("|")[3]));
+    expect(diffs.length).toBeGreaterThan(0);
+    expect(diffs.every((d) => d === 0)).toBe(true);                       // every line: picked equals sold
+    expect(out).toMatch(/== 9\. the conversation/);
+    expect(out).not.toMatch(/PR\.\d{10,}|\+961\d{6,}/);
+  });
 });
