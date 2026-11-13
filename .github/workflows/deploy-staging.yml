@@ -54,6 +54,9 @@ jobs:
           echo "migration files: $local_count, applied: $remote_count"
           [ "$local_count" = "$remote_count" ]
           echo "- migrations applied: $remote_count of $local_count" >> "$GITHUB_STEP_SUMMARY"
+      - name: Permission check on staging (changes nothing)
+        env: { EXISTING: "1" }
+        run: scripts/check_permissions.sh 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Approved seeds (only into an empty catalog)
         run: scripts/ci/load-seeds.sh | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Private media bucket
