@@ -59,6 +59,13 @@ export function recordKapso(media: Record<string, { bytes: Uint8Array; type: str
   return outbound;
 }
 
+/** Stand-in for the private `media` bucket: what the worker uploaded, by bucket and key. */
+export const bucket = new Map<string, { bytes: Uint8Array; contentType?: string }>();
+const storage = { from: (b: string) => ({
+  upload: async (path: string, bytes: Uint8Array, opts?: { contentType?: string }) => {
+    bucket.set(`${b}/${path}`, { bytes, contentType: opts?.contentType }); return { data: { path }, error: null };
+  } }) };
+
 const ENV = { KAPSO_BASE_URL: "https://kapso.test/v24.0", KAPSO_API_KEY: "k", PHONE_NUMBER_ID_CUSTOMER: "PN_CUSTOMER", PHONE_NUMBER_ID_OPS: "PN_OPS" };
 
 let customerSeq = 0;
@@ -67,6 +74,7 @@ export function flow(db: TestDb, steps: Anthropic.ToolUseBlock[][], opts: { who?
   const n = ++customerSeq;
   const who = opts.who ?? { waUserId: `bsuid-b2-${n}`, phone: `+9617100${String(n).padStart(4, "0")}` };
   const shim = supabaseOver(db), m = scriptedModel(steps), s = fakeState();
+  Object.assign(shim.client, { storage });
   const env = { BUFFER_SECONDS: "6", MODEL_FAST: "fast", ...ENV, TEST_DEPS: { db: shim.client, model: m.model } } as unknown as Env;
   const conv = new ConversationDO(s.state, env);
   const event = (message: Record<string, unknown>) => ({

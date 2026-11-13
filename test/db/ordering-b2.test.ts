@@ -3,7 +3,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatOrderCard, orderButtonId, type Quote } from "@ak/agents/order-card";
 import type { TestDb } from "./harness";
-import { expectLedgerBalanced, flow, openFlowDb, pinned, read, recordKapso, use, type Ids, type Sent } from "./flow-kit";
+import { bucket, expectLedgerBalanced, flow, openFlowDb, pinned, read, recordKapso, use, type Ids, type Sent } from "./flow-kit";
 
 let db: TestDb, ids: Ids;
 beforeAll(async () => { ({ db, ids } = await openFlowDb()); }, 120_000);
@@ -100,5 +100,117 @@ describe("money guardrail (1.5)", () => {
     await t.text("قديش التوصيل؟");
     expect(outbound.map((o) => o.body.text?.body)).toEqual(["رح يتواصل معك حدا من فريقنا بأقرب وقت."]);
     expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(true);
+  });
+});
+
+describe("payment screenshots (1.6)", () => {
+  const RECEIPT = { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]), type: "image/jpeg" };
+  const MEDIA_URL = "https://media.kapso.test/m/receipt-1.jpg";
+  const image = (url = MEDIA_URL) => ({ type: "image", image: { id: "meta-media-1" },
+    kapso: { direction: "inbound", origin: "cloud_api", has_media: true, media_url: url, media_data: { url, content_type: "image/jpeg" } } });
+  let opsLead: string;
+  beforeAll(async () => {
+    opsLead = (await db.one(`insert into parties(role, display_name) values ('ops_lead', 'Ops') returning id`)).id;
+    await db.pg.query(`insert into party_identities(party_id, line, phone_e164) values ($1, 'ops', '+96171999000')`, [opsLead]);
+    await db.rpc("touch_conversation", { p_line: "ops", p_wa_user_id: null, p_phone: "+96171999000", p_name: "Ops" });   // their 24-hour window is open
+  });
+
+  /** A customer whose Whish order was confirmed and now waits for the transfer. */
+  async function awaitingTransfer(t: ReturnType<typeof flow>) {
+    const c = await pinned(db, t, ids.BAAKLINE);
+    const place = (await db.one(`select id from customer_places where party_id = $1`, [c.party_id])).id;
+    const o = await db.rpc("create_order_from_quote", { p_customer: c.party_id, p_conversation: c.conversation_id, p_lines: [{ product_id: ids.LABNEH, qty: 1 }],
+      p_village: ids.BAAKLINE, p_place: place, p_pickup: false, p_payment: "whish", p_change_for: null, p_notes: null });
+    await db.rpc("confirm_order_checked", { p_order: o.order_id, p_party: c.party_id, p_wamid: `w-${o.short_code}` });
+    expect((await db.one(`select status from orders where id = $1`, [o.order_id])).status).toBe("awaiting_payment");
+    return { ...c, orderId: o.order_id as string, shortCode: o.short_code as string };
+  }
+
+  it("is stored privately from Kapso's URL, queued for ops with the model's pre-fill, and confirmed only by a person", async () => {
+    outbound = recordKapso({ [MEDIA_URL]: RECEIPT });
+    const t = flow(db, [[use("record_payment_proof", { provider: "whish", amount: 4, currency: "USD", reference: "WH-778812",
+      datetime_iso: null, recipient_last4: "1234", looks_edited: false, confidence: 0.9 })]]);
+    const c = await awaitingTransfer(t);
+    await t.say(image());
+
+    // The customer hears it arrived; ops hears there is one to check. No ordering model call, no money moved.
+    expect(outbound.find((o) => o.url.includes("PN_CUSTOMER"))!.body.text.body).toContain(`وصلت صورة الدفع لطلب ${c.shortCode}`);
+    const alert = outbound.find((o) => o.url.includes("PN_OPS"))!;
+    expect(alert.body.to).toBe("+96171999000"); expect(alert.body.text.body).toContain(`#${c.shortCode}`);
+    expect(t.seen).toHaveLength(1);
+    expect(t.seen[0]!.tool_choice).toEqual({ type: "tool", name: "record_payment_proof" });
+    const proof = await db.one(`select * from payment_proofs where order_id = $1`, [c.orderId]);
+    expect(proof).toMatchObject({ status: "pending", party_id: c.party_id, reused_image: false, mime_type: "image/jpeg" });
+    expect(proof.media_path).toMatch(new RegExp(`^payment_proofs/${c.party_id}/[0-9a-f]{64}\\.jpg$`));
+    expect(bucket.get(`media/${proof.media_path}`)!.bytes).toEqual(RECEIPT.bytes);
+    expect(proof.extracted).toMatchObject({ amount: 4, reference: "WH-778812" });          // a pre-fill for the person
+    expect(await db.one(`select status, proof_media_path from payments where order_id = $1`, [c.orderId]))
+      .toEqual({ status: "proof_submitted", proof_media_path: proof.media_path });
+    expect((await db.one(`select status from orders where id = $1`, [c.orderId])).status).toBe("awaiting_payment");
+    expect(await db.one(`select count(*)::int as n from ledger_entries where order_id = $1`, [c.orderId])).toEqual({ n: 0 });
+    const open = await db.rpc("payment_proofs_open");
+    expect(open.find((p: any) => p.proof_id === proof.id)).toMatchObject({ short_code: c.shortCode, reading: { reference: "WH-778812" } });
+    expect(await db.one(`select status from ops_exceptions where kind = 'payment_proof' and ref = $1`, [proof.id])).toEqual({ status: "open" });
+
+    // Only the ops lead can confirm, with the reference and amount they typed.
+    await expect(db.rpc("review_payment_proof", { p_proof: proof.id, p_by: c.party_id, p_accept: true, p_external_ref: "WH-778812", p_amount_usd: 9 }))
+      .rejects.toThrow(/NOT_AUTHORISED/);
+    const total = Number((await db.one(`select total_usd from orders where id = $1`, [c.orderId])).total_usd);
+    await expect(db.rpc("review_payment_proof", { p_proof: proof.id, p_by: opsLead, p_accept: true, p_external_ref: "WH-778812", p_amount_usd: total - 1 }))
+      .rejects.toThrow(/UNDERPAID/);
+    const r = await db.rpc("review_payment_proof", { p_proof: proof.id, p_by: opsLead, p_accept: true, p_external_ref: "WH-778812", p_amount_usd: total });
+    expect(r).toMatchObject({ ok: true, status: "confirmed" });
+    expect((await db.one(`select status from orders where id = $1`, [c.orderId])).status).toBe("confirmed");
+    expect((await db.one(`select status from payment_proofs where id = $1`, [proof.id])).status).toBe("confirmed");
+    expect(await db.one(`select status from ops_exceptions where kind = 'payment_proof' and ref = $1`, [proof.id])).toEqual({ status: "resolved" });
+    await expectLedgerBalanced(db);
+  });
+
+  it("a retried turn stores and queues the same picture once", async () => {
+    outbound = recordKapso({ [MEDIA_URL]: RECEIPT });
+    const t = flow(db, []);
+    await db.pg.exec(`update settings set value = '{"model_read": false}' where key = 'payment_proofs'`);
+    const c = await awaitingTransfer(t);
+    const pending = t.pending(image());
+    const { processTurn } = await import("../../apps/gateway/src/turn");
+    await processTurn({ ...t.deps, turnKey: "customer:proof-retry" }, pending, {});
+    await processTurn({ ...t.deps, turnKey: "customer:proof-retry" }, pending, {});
+    expect(await db.one(`select count(*)::int as n from payment_proofs where order_id = $1`, [c.orderId])).toEqual({ n: 1 });
+    expect(outbound.filter((o) => o.url.includes("PN_CUSTOMER"))).toHaveLength(1);
+    expect(outbound.filter((o) => o.url.includes("PN_OPS"))).toHaveLength(1);
+    expect(t.seen).toHaveLength(0);                                    // model read switched off by the setting
+    await db.pg.exec(`update settings set value = '{"model_read": true}' where key = 'payment_proofs'`);
+  });
+
+  it("the same picture for a second order is flagged for the reviewer, not refused", async () => {
+    outbound = recordKapso({ [MEDIA_URL]: RECEIPT });
+    const t = flow(db, []);
+    await db.pg.exec(`update settings set value = '{"model_read": false}' where key = 'payment_proofs'`);
+    const c = await awaitingTransfer(t);
+    await t.say(image());
+    expect(await db.one(`select reused_image from payment_proofs where order_id = $1`, [c.orderId])).toEqual({ reused_image: true });
+    expect(outbound.find((o) => o.url.includes("PN_OPS"))!.body.text.body).toContain("نفس الصورة");
+    expect(outbound.find((o) => o.url.includes("PN_CUSTOMER"))!.body.text.body).toContain("وصلت صورة الدفع");
+    expect(await db.one(`select count(*)::int as n from risk_flags where rule = 'payment_proof_reused' and subject_id = $1`, [c.party_id])).toEqual({ n: 1 });
+    await db.pg.exec(`update settings set value = '{"model_read": true}' where key = 'payment_proofs'`);
+  });
+
+  it("a raw Meta link is never fetched: the customer is asked to send it again", async () => {
+    outbound = recordKapso();
+    const t = flow(db, []);
+    const c = await awaitingTransfer(t);
+    await t.say(image("https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=1"));
+    expect(outbound.map((o) => o.body.text?.body)).toEqual(["ما قدرنا نفتح الصورة. فيك تبعتلنا صورة الإيصال مرة تانية؟"]);
+    expect(await db.one(`select count(*)::int as n from payment_proofs where order_id = $1`, [c.orderId])).toEqual({ n: 0 });
+  });
+
+  it("with no order waiting for a transfer, a picture is just a picture and goes to the Concierge", async () => {
+    outbound = recordKapso({ [MEDIA_URL]: RECEIPT });
+    const t = flow(db, [read({ intent: "question", lines: [], promised_followup: "none" }), [use("reply", { text: "شو بتحب تطلب؟" })]]);
+    await t.customer();
+    await t.say(image());
+    expect(t.seen[0]!.tool_choice).toEqual({ type: "tool", name: "extract_order" });
+    expect(JSON.parse(t.seen[0]!.messages[0]!.content as string).texts).toEqual(["[image received]"]);
+    expect([...bucket.keys()].filter((k) => k.includes(t.who.waUserId))).toEqual([]);
   });
 });
