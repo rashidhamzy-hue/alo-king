@@ -49,3 +49,13 @@ export async function runWordingCase(client: ModelClient, model: string, c: Word
   await runAskLoop(client, model, { texts: [c.customer], transcripts: [], state: { facts_from_tools: c.facts }, reading: null, plan: null }, tools);
   return out;
 }
+
+// ---------- Reading cases (1.18 stay on the job) ----------
+// The forced extraction on one message, compared with the expected class. Live only, like runWordingCase.
+import { extractOrder } from "../packages/agents/src/concierge";
+
+export async function runReadingCase(client: ModelClient, model: string, c: { text: string; expect: "off_topic" | "not_off_topic" }) {
+  const r = await extractOrder(client, model, { texts: [c.text], transcripts: [], state: {} });
+  const got = r.intent ? (r.intent.intent === "off_topic" && r.intent.lines.length === 0 ? "off_topic" : "not_off_topic") : "unreadable";
+  return { text: c.text, expect: c.expect, got, intent: r.intent?.intent ?? null, ok: got === c.expect };
+}

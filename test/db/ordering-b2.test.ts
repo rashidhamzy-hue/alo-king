@@ -391,3 +391,20 @@ describe("small-order fee and first-order cash cap (1.16)", () => {
     }
   });
 });
+
+describe("stay on the job (1.18)", () => {
+  it("homework gets one fixed, friendly line and an offer to order, with no second model call and nothing answered", async () => {
+    const t = flow(db, [read({ intent: "off_topic", lines: [] })]);
+    await t.customer();
+    await t.text("ساعدني بفرض الرياضيات: شو حل 2x + 5 = 11؟");
+    expect(t.seen).toHaveLength(1);
+    expect(outbound.map((o) => o.body.text.body)).toEqual(["أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك. شو بتحب تطلب؟"]);
+  });
+
+  it("an order inside a chatty message is still an order", async () => {
+    const t = flow(db, [read({ ...ORDER_READING, intent: "order" })]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.text("كيفك؟ شو أخبار الطقس عندكن؟ المهم بدي علبتين لبنة ليبان ليه وربطتين خبز");
+    expect(outbound[0]!.body.type).toBe("interactive");
+  });
+});

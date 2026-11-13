@@ -20,8 +20,9 @@ mechanical checks (`judge` in `packages/agents/src/stt.ts`) agree with each labe
 runs the Concierge's extraction on each transcript and scores it.
 
 ## Wording cases: neutral, factual, on the job (run in CI)
-`evals/cases/neutral_and_food_facts.json` (1.10) and `evals/cases/money_guard.json` (1.5) hold
-replies the output guard (`packages/agents/src/output-guard.ts`) must refuse or let through.
+`evals/cases/neutral_and_food_facts.json` (1.10), `evals/cases/money_guard.json` (1.5) and `evals/cases/memory_commands.json` (1.14) hold
+replies the output guard (`packages/agents/src/output-guard.ts`) must refuse or let through, and phrases recognised without a model.
+`evals/cases/off_topic.json` (1.18) holds messages the Concierge must read as off-topic, and near misses it must not.
 `evals/test/*.test.ts` run them on every push.
 
 The same cases against the real model, which a person then grades on `must` / `must_not`:

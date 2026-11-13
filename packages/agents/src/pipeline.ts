@@ -54,6 +54,12 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null):
   if (intent.intent === "memory_forget") return answerMemory(ctx, "forget").then((r) => (r.done ? r : { done: false, plan: null }));
   if (intent.intent === "memory_stop") return answerMemory(ctx, "stop").then((r) => (r.done ? r : { done: false, plan: null }));
   if (intent.intent === "memory_start") return answerMemory(ctx, "start").then((r) => (r.done ? r : { done: false, plan: null }));
+  // Stay on the job (1.18): Meta bars general-purpose chatbots from the Business Platform. Homework, general questions and
+  // long chat get one fixed, friendly line and an offer to help with an order. No second model call, nothing answered.
+  if (intent.intent === "off_topic" && intent.lines.length === 0) {
+    const r = await deliver(ctx, { type: "text", text: { body: FIXED.offTopic } }, FIXED.offTopic);
+    return r.ok ? { done: true, path: "off_topic" } : { done: false, plan: null };
+  }
   if (intent.intent === "greeting" && intent.lines.length === 0)
     return offerRepeat(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
   if (intent.intent !== "order") return { done: false, plan: null };
