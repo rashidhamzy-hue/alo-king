@@ -1,114 +1,196 @@
 Alo King test report
-Generated: 2026-11-13 08:29 UTC, session B1 (tasks 1.1, 1.2, 1.3, 1.9, 1.15, 1.19, 1.20), rebased on A1
+Generated: 2026-11-13 09:45 UTC, session C1 (migration 0020; tasks 1.11, 1.12, 2.6, 2.7, 2.11)
 Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
 
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > offers the job to a rider on shift, and a lost Arrived tap does not block Delivered 121ms
- ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > customer pays the whole order in lira: the rider holds lira, and the fee is owed to the rider, not booked as revenue 157ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > posts cash per currency, once, and only for the assigned rider 76ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > counts cash in hand plus COD already assigned against the cap, and a confirmed drop frees the rider 42ms
- ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > a prepaid order: the company already holds the fee, so it owes it to the rider who delivered 64ms
- ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > end of shift: the rider keeps their earnings out of the lira they carry and hands the rest to the hub 42ms
- ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > the books reconcile: nothing unexplained, the hub holds exactly the company's share 8ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > expires an unanswered offer and moves it to the next rider, never back to the one who ignored it 27ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > refuses no-answer before the wait is up, then fails the order and carries the fee to the next one 13ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > receives the goods back: shelf-stable items restocked, chilled items written off unless the picker clears them 11ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > batches two hub orders for neighbouring doors into one job 46ms
- ✓ test/db/rider-flow.test.ts > rider flow on the real schema > confirms a transfer only with a reference, only by ops, and never the same reference twice 61ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > offers the job to a rider on shift, and a lost Arrived tap does not block Delivered 105ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > posts cash per currency, once, and only for the assigned rider 42ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > counts cash in hand plus COD already assigned against the cap, and a confirmed drop frees the rider 41ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > expires an unanswered offer and moves it to the next rider, never back to the one who ignored it 28ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > an unsigned restaurant and an unknown product are logged from plan_order, with the customer's words 79ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a matched product that is out of stock is logged against the product 47ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > refuses no-answer before the wait is up, then fails the order and carries the fee to the next one 12ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > receives the goods back: shelf-stable items restocked, chilled items written off unless the picker clears them 17ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > batches two hub orders for neighbouring doors into one job 43ms
+ ✓ test/db/rider-flow.test.ts > rider flow on the real schema > confirms a transfer only with a reference, only by ops, and never the same reference twice 36ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > one model call: the reading goes to plan_order, and a first-time address gets a pin request, then the card 184ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a customer with a pinned place gets the card in the same turn, from one model call 72ms
  ✓ test/db/rider-flow.test.ts > rider flow on the real schema > closes a shift: a few cents write themselves off, real money goes to review 4ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > a turn runs once; a retry is recognised; a finished turn is never re-run 5ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > a turn runs once; a retry is recognised; a finished turn is never re-run 3ms
  ✓ test/db/rider-flow.test.ts > reliability and learning > an outbound message is sent once even if the turn is retried after a crash 6ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > keeps a turn it gave up on in the exception queue until a person closes it 8ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > refuses every marketing send while the switch is off, even to a customer who opted in 9ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > finds webhook events that were stored but never processed 7ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > sends the customer a fresh card when the price moved between the card and the tap 11ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > learns a customer's usuals and their words from delivered orders, and promotes an alias after enough evidence 47ms
- ✓ test/db/rider-flow.test.ts > reliability and learning > applies an approved menu import: new dishes, new prices, and missing dishes switched off 49ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > one model call: the reading goes to plan_order, and a first-time address gets a pin request, then the card 249ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a customer with a pinned place gets the card in the same turn, from one model call 91ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > runs the tool loop only when the plan asks, and hands it the plan instead of searching again 55ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a reading that breaks the contract falls back to the loop rather than guessing 20ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > confirms on a button tap without calling the model, and reserves the stock 39ms
- ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a tap on someone else's order changes nothing 22ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > honours STOP with one fixed reply and no model call 10ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > asks for a resend when a voice transcript has collapsed into a loop 8ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > passes a usable voice transcript to the Concierge 64ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > does not send a card for a quote with issues, and lets the Concierge offer the substitute 53ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > stays silent while a person is handling the chat 6ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > stops after six model steps and hands off 133ms
- ✓ test/db/concierge-flow.test.ts > guards around the model > saves a location pin to the customer's places and continues with it 17ms
- ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > a restaurant that has not signed is 'not available yet': no handoff, no order, no second model call 16ms
- ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > a mixed message: the restaurant part is named as not available, the groceries go on the card 76ms
- ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > only approve_merchant() makes a restaurant searchable 62ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'where is my order' is answered from order_status_for with no model call 47ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > with no open order, says so 9ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > opening hours come from settings, typed or read from a voice note 17ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'do you deliver to X' is answered from the zones 11ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > an order to a village we do not serve gets one answer listing where we do deliver, and no card 40ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'same as last time' re-prices the last closed order and sends the card, with no model call 18ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > names what is missing from last time before the card, and leaves it off 20ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > a customer with no closed order never gets a repeat card 11ms
- ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'same as last time, and add bread' puts the new line on top of the old basket 41ms
- ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a returning customer who says hello is offered their last basket; the tap sends it re-priced, with no model call 30ms
- ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > is never shown to a customer with no closed order, even one with a delivered but unpaid order 14ms
- ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a repeat button for someone else's order sends nothing of theirs 13ms
- ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a card that went stale before the tap is rebuilt at today's prices, with no model call 25ms
- ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > asks for a number the rider can call before the card, stores it, then sends the card with no model call 73ms
- ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > a customer whose WhatsApp number we have is never asked 54ms
- ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > the database refuses a malformed number 3ms
- ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > overloaded once: one fixed 'one moment', then the turn carries on to the card 71ms
- ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > still overloaded after every retry: a person takes over, ops is told, and the customer hears so 24ms
- ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > a turn retried after a crash does not say 'one moment' twice 45ms
- ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > a bad request is our bug, not capacity: no 'one moment', no retries 8ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > keeps a turn it gave up on in the exception queue until a person closes it 7ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > refuses every marketing send while the switch is off, even to a customer who opted in 8ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > finds webhook events that were stored but never processed 3ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > sends the customer a fresh card when the price moved between the card and the tap 7ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > learns a customer's usuals and their words from delivered orders, and promotes an alias after enough evidence 35ms
+ ✓ test/db/rider-flow.test.ts > reliability and learning > applies an approved menu import: new dishes, new prices, and missing dishes switched off 31ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > an order to a village we do not serve is logged as out of area, with the village 43ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a retried turn logs nothing twice; a clean plan logs nothing 93ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > runs the tool loop only when the plan asks, and hands it the plan instead of searching again 33ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a reading that breaks the contract falls back to the loop rather than guessing 12ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > confirms on a button tap without calling the model, and reserves the stock 23ms
+ ✓ test/db/concierge-flow.test.ts > parse once, then the database (1.1) > a tap on someone else's order changes nothing 14ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > honours STOP with one fixed reply and no model call 9ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > asks for a resend when a voice transcript has collapsed into a loop 5ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > 'same as last time' logs the items of the last order that are gone 34ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > a failure inside the log never breaks the plan 18ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > the wrappers are what the app calls: volatile, same arguments, and they keep logging 2ms
+ ✓ test/db/demand-signals.test.ts > demand signals (1.12) > unmet_demand groups by what was asked, counting distinct customers 61ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > passes a usable voice transcript to the Concierge 50ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > does not send a card for a quote with issues, and lets the Concierge offer the substitute 37ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > stays silent while a person is handling the chat 4ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > stops after six model steps and hands off 98ms
+ ✓ test/db/concierge-flow.test.ts > guards around the model > saves a location pin to the customer's places and continues with it 18ms
+ ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > a restaurant that has not signed is 'not available yet': no handoff, no order, no second model call 17ms
+ ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > a mixed message: the restaurant part is named as not available, the groceries go on the card 62ms
+ ✓ test/db/concierge-flow.test.ts > unsigned restaurants (1.2) > only approve_merchant() makes a restaurant searchable 39ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'where is my order' is answered from order_status_for with no model call 34ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > with no open order, says so 6ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > opening hours come from settings, typed or read from a voice note 18ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'do you deliver to X' is answered from the zones 12ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > an order to a village we do not serve gets one answer listing where we do deliver, and no card 44ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'same as last time' re-prices the last closed order and sends the card, with no model call 19ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > names what is missing from last time before the card, and leaves it off 23ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > a customer with no closed order never gets a repeat card 9ms
+ ✓ test/db/concierge-flow.test.ts > answers without the model (1.3) > 'same as last time, and add bread' puts the new line on top of the old basket 38ms
+ ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a returning customer who says hello is offered their last basket; the tap sends it re-priced, with no model call 26ms
+ ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > is never shown to a customer with no closed order, even one with a delivered but unpaid order 15ms
+ ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a repeat button for someone else's order sends nothing of theirs 18ms
+ ✓ test/db/concierge-flow.test.ts > same as last time, as one button (1.20) > a card that went stale before the tap is rebuilt at today's prices, with no model call 28ms
+ ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > asks for a number the rider can call before the card, stores it, then sends the card with no model call 70ms
+ ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > a customer whose WhatsApp number we have is never asked 55ms
+ ✓ test/db/concierge-flow.test.ts > no phone number in the webhook (1.19) > the database refuses a malformed number 4ms
+ ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > overloaded once: one fixed 'one moment', then the turn carries on to the card 54ms
+ ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > still overloaded after every retry: a person takes over, ops is told, and the customer hears so 13ms
+ ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > a turn retried after a crash does not say 'one moment' twice 14ms
+ ✓ test/db/concierge-flow.test.ts > model capacity (1.15) > a bad request is our bug, not capacity: no 'one moment', no retries 7ms
  ✓ test/db/concierge-flow.test.ts > order card > keeps totals, consent line and buttons inside WhatsApp's limits for a 60-line basket 1ms
  ✓ test/db/concierge-flow.test.ts > order card > round-trips button ids 0ms
- ✓ packages/core/test/core.test.ts > opt-out > honours stop words in every script 2ms
- ✓ packages/core/test/core.test.ts > opt-out > does not fire on orders 0ms
+ ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > lets exactly one of two concurrent claims through, and none once sent 3508ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > records who, why and the note, and moves the count 14ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > only staff, a known reason that fits the direction, and a note for 'other' 11ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a picker is limited; above the limit it takes an ops lead 2ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > stock reserved for confirmed orders cannot be adjusted away 2ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a retried request with the same key changes nothing twice 3ms
+ ✓ test/db/stock-adjustments.test.ts > stock adjustments (2.6) > a shelf count records the difference as one 'count' adjustment, and an exact count is kept too 8ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > one hold makes the product unsellable and lists the orders still at the hub 137ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > a card sent before the hold cannot be confirmed: the tap gets a stale quote 5ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > a confirmed order cannot be picked with the held product in it, by any path 7ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > the recall list has every order that contained it in the range, with the number to phone 5ms
+ ✓ test/db/recall.test.ts > product recall (2.11) > only an ops lead or admin releases, with a note; the catalog comes back as it was 16ms
+ ✓ test/db/recall.test.ts > supplier credit (2.11) > a price credit reduces what we owe and the average cost of what is left 14ms
+ ✓ test/db/recall.test.ts > supplier credit (2.11) > recalled goods sent back leave the shelf; a credit above their cost lowers the average of the rest 6ms
+ ✓ test/db/recall.test.ts > supplier credit (2.11) > credit beyond the value left on the shelf reduces cost of goods 6ms
+ ✓ test/db/recall.test.ts > supplier credit (2.11) > the books still balance and inventory still equals units times average cost 5ms
+ ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > holds the lease even when the outbox setting is missing, and releases a failed send for retry 3336ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > no record is unknown, and unknown fails 12ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > a proposed fact is not used until a person approves it, and only the ops lead or an admin can 23ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > every restriction must pass: one unknown among passes still fails 2ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > may contain fails an allergy; a stated 'contains' fails; diet 'no' fails 12ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > status partial or unknown, an expired fact, and an unrecognised restriction are all unknown 17ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > certified needs evidence; halal from a certificate passes 8ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > a new approved fact replaces the old one, which stays as history 5ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > values must fit the attribute; Open Food Facts alone is never approved 5ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > a sponsored item gets no pass: unknown fails, and it passes only on the same approved facts as any other 5ms
+ ✓ test/db/food-facts.test.ts > food facts (1.11) > no restrictions asked means nothing to fail; the facts list carries status and expiry 4ms
+ ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > forces marketing off even if an older database had it on 3523ms
+ ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > the TypeScript state table matches the one in the database 4ms
+ ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > starts the shift, gets the offer, accepts, picks up, delivers and reports cash in two currencies 223ms
+ ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > a redelivered message does nothing the second time 10ms
+ ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > will not close the shift while the rider holds cash, and offers the two drop options 37ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > the extension moved and no extension function is left in public 9ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > product search, the planner and village lookup still match by trigram with search_path = public 85ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > every trigram index now uses the moved operator class and still serves the % operator 29ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > guard: every function of ours that calls a trigram function pins extensions on its search_path 10ms
+ ✓ test/db/extensions-schema.test.ts > pg_trgm lives in the extensions schema > the guard would catch a redefinition that forgets the clause 6ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > sends once on a successful claim 25ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send a duplicate claim 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim returns a database error 5ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim throws 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim answers with anything but true or false 0ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim times out 19ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > marks the outbox failed and rethrows when the provider fails, so the retry may send 2ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not throw after the message is out, even if the bookkeeping fails 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > no key, no send > refuses a send that carries no dedupe key, before the database or the provider is touched 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > pilot marketing lock in code > refuses every marketing send before the database is asked 1ms
+ ✓ packages/wa/test/gateway-outbox.test.ts > pilot marketing lock in code > still lets replies and order updates through preflight 0ms
+ ✓ packages/core/test/core.test.ts > opt-out > honours stop words in every script 13ms
+ ✓ packages/core/test/core.test.ts > opt-out > does not fire on orders 1ms
  ✓ packages/core/test/core.test.ts > order machine > never lets the agent confirm, pay or deliver 1ms
  ✓ packages/core/test/core.test.ts > order machine > lets the customer confirm and the driver deliver 0ms
  ✓ packages/core/test/core.test.ts > cash cap > gates by projected cash 0ms
  ✓ packages/core/test/core.test.ts > cash cap > computes mixed-currency change 1ms
- ✓ packages/core/test/core.test.ts > dispatch > prefers the nearer free driver and skips capped ones 0ms
+ ✓ packages/core/test/core.test.ts > dispatch > prefers the nearer free driver and skips capped ones 1ms
  ✓ packages/core/test/core.test.ts > dispatch > batches only within the detour limit 1ms
- ✓ packages/core/test/core.test.ts > dispatch > learns travel times 2ms
- ✓ packages/core/test/core.test.ts > speech checks > flags looped transcripts 0ms
+ ✓ packages/core/test/core.test.ts > dispatch > learns travel times 1ms
+ ✓ packages/core/test/core.test.ts > speech checks > flags looped transcripts 1ms
  ✓ packages/core/test/core.test.ts > speech checks > falls back to the second transcript 0ms
- ✓ packages/core/test/core.test.ts > whatsapp layer > verifies Kapso signatures 21ms
- ✓ packages/core/test/core.test.ts > whatsapp layer > unwraps batches 0ms
- ✓ packages/core/test/core.test.ts > whatsapp layer > refuses audio, free-form marketing and customer-line locations 0ms
- ✓ packages/core/test/core.test.ts > order intent contract > accepts a real-shaped order 4ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > sends once on a successful claim 46ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send a duplicate claim 1ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim returns a database error 2ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim throws 6ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim answers with anything but true or false 1ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not send when the claim times out 10ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > marks the outbox failed and rethrows when the provider fails, so the retry may send 23ms
- ✓ packages/wa/test/gateway-outbox.test.ts > outbound idempotency fails closed > does not throw after the message is out, even if the bookkeeping fails 2ms
- ✓ packages/wa/test/gateway-outbox.test.ts > no key, no send > refuses a send that carries no dedupe key, before the database or the provider is touched 3ms
- ✓ packages/wa/test/gateway-outbox.test.ts > pilot marketing lock in code > refuses every marketing send before the database is asked 1ms
- ✓ packages/wa/test/gateway-outbox.test.ts > pilot marketing lock in code > still lets replies and order updates through preflight 1ms
- ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > only fetches public web addresses 2ms
+ ✓ packages/core/test/core.test.ts > whatsapp layer > verifies Kapso signatures 20ms
+ ✓ packages/core/test/core.test.ts > whatsapp layer > unwraps batches 1ms
+ ✓ packages/core/test/core.test.ts > whatsapp layer > refuses audio, free-form marketing and customer-line locations 1ms
+ ✓ packages/core/test/core.test.ts > order intent contract > accepts a real-shaped order 6ms
+ ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > only fetches public web addresses 3ms
  ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > strips markup and scripts 1ms
- ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > extracts once, stores for review, and skips an unchanged page 46ms
+ ✓ packages/agents/test/menu-and-channels.test.ts > menu from a link > extracts once, stores for review, and skips an unchanged page 80ms
  ✓ packages/agents/test/menu-and-channels.test.ts > menu link redirects > refuses a public link that redirects to an internal address 1ms
- ✓ packages/agents/test/menu-and-channels.test.ts > sending an order to a kitchen > signs the POS webhook and falls back to WhatsApp when the POS is down 7ms
- ✓ packages/agents/test/capacity.test.ts > model capacity > knows a capacity failure from a mistake of ours 4ms
- ✓ packages/agents/test/capacity.test.ts > model capacity > says 'one moment' once, retries with backoff, and returns the answer when the model comes back 2ms
- ✓ packages/agents/test/capacity.test.ts > model capacity > gives up after the last retry with ModelUnavailable 1ms
- ✓ packages/agents/test/capacity.test.ts > model capacity > does not retry or warn on a bad request 1ms
- ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > removes phone numbers in any spelling 2ms
- ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > keeps short numbers such as order codes and quantities 0ms
- ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > removes business-scoped user ids, bearer tokens and keys 0ms
- ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > drops the request body, headers, cookies, query and user, and keeps the route 2ms
- ✓ packages/core/test/voice-policy.test.ts > voice-note policy > processes an ordinary note for every role 2ms
- ✓ packages/core/test/voice-policy.test.ts > voice-note policy > uses a different ceiling per role 1ms
- ✓ packages/core/test/voice-policy.test.ts > voice-note policy > caps how much audio one sender can have transcribed in an hour 0ms
- ✓ packages/core/test/voice-policy.test.ts > voice-note policy > treats an empty or unreadable file as empty, never as an order 0ms
- ✓ packages/core/test/voice-policy.test.ts > voice-note policy > prefers the provider's duration over the size estimate 0ms
- ✓ packages/core/test/voice-policy.test.ts > voice-note policy > always has something to say, so no message disappears silently 1ms
- ✓ packages/core/test/voice-policy.test.ts > voice-note policy > voice never authorises money 0ms
- ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > lets exactly one of two concurrent claims through, and none once sent 3257ms
- ✓ evals/test/voice-cases.test.ts > voice-note eval cases > there are at least ten, with unique ids 3ms
+ ✓ packages/agents/test/menu-and-channels.test.ts > sending an order to a kitchen > signs the POS webhook and falls back to WhatsApp when the POS is down 14ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > وين الطلب؟ -> status 8ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا، وين صار طلبي -> status 1ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > وين طلبي لو سمحت -> status 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > شو صار بالطلب؟ -> status 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > wen el talab -> status 4ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > where is my order? -> status 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > Où est ma commande ? -> status 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > طلبي وين صار -> status 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > قديش بتسكرو؟ -> hours 2ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > ايمتى بتفتحو بكرا -> hours 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > فاتحين هلق؟ -> hours 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > شو الدوام -> hours 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > what time do you close -> hours 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > are you open now? -> hours 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > vos horaires ? -> hours 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > aymta btsakro -> hours 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > متل المرة الماضية -> repeat_last 2ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > نفس المرة الماضية لو سمحت -> repeat_last 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا، نفس الطلب الماضي -> repeat_last 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > same as last time please -> repeat_last 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > metel el marra el madye -> repeat_last 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > comme la dernière fois -> repeat_last 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > متل المرة الماضية بس زيدلي ربطة خبز -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > نفس الطلب بس بلا لبنة -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > وصل الطلب شكراً -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > الطلب ما وصل كامل، ناقص الخبز -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > بدي لبنة وخبز -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا -> greeting 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > فاتحين محل جديد بعقلين؟ -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > where is the bakery -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > what time does the pharmacy close -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > شو في عندكن جبنة -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > بدي الغي الطلب -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > قديش حق الطلب؟ -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > كيفكن؟ -> greeting 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > hello! -> greeting 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا بدي اطلب -> null 0ms
+ ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا، عندكن جبنة عكاوي؟ -> null 0ms
+ ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > customer pays the whole order in lira: the rider holds lira, and the fee is owed to the rider, not booked as revenue 99ms
+ ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > a prepaid order: the company already holds the fee, so it owes it to the rider who delivered 59ms
+ ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > end of shift: the rider keeps their earnings out of the lira they carry and hands the rest to the hub 27ms
+ ✓ test/db/rider-settlement.test.ts > rider settlement: fees and tips belong to the rider, in whatever currency the customer paid > the books reconcile: nothing unexplained, the hub holds exactly the company's share 8ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "20$" 5ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "20" 1ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "١٥ دولار" 1ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "1,800,000" 1ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "١٬٨٠٠٬٠٠٠ ليرة" 1ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "450 الف" 0ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "10$ و 900 الف" 0ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "2 مليون" 0ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "20 usd rajja3t 200 alf" 1ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "50$ رجعت 30$" 0ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "تمام" 0ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "tamem" 0ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "وصلت عالبيت" 0ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "" 0ms
+ ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > suggests change in lira rounded to the thousand 0ms
+ ✓ evals/test/voice-cases.test.ts > voice-note eval cases > there are at least ten, with unique ids 2ms
  ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-01: usable label matches the transcript checks 1ms
  ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-02: usable label matches the transcript checks 0ms
  ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-03: usable label matches the transcript checks 0ms
@@ -130,32 +212,15 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-09: truth scores perfectly against itself 0ms
  ✓ evals/test/voice-cases.test.ts > voice-note eval cases > vn-10: truth scores perfectly against itself 0ms
  ✓ evals/test/voice-cases.test.ts > voice-note eval cases > an invented item is counted as a hard failure 0ms
- ✓ packages/core/test/geo.test.ts > geography scripts > reads all 42 villages from the seed, hubs first 3ms
- ✓ packages/core/test/geo.test.ts > geography scripts > turns reviewed coordinates and an OSRM table into an upsert that spares observed times 1ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "20$" 3ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "20" 1ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "١٥ دولار" 1ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "1,800,000" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "١٬٨٠٠٬٠٠٠ ليرة" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "450 الف" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "10$ و 900 الف" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "2 مليون" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "20 usd rajja3t 200 alf" 1ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "50$ رجعت 30$" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "تمام" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "tamem" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "وصلت عالبيت" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > "" 0ms
- ✓ packages/core/test/cash-parse.test.ts > what a rider types after a delivery > suggests change in lira rounded to the thousand 0ms
- ✓ packages/agents/test/phone.test.ts > a number the rider can call > 03 123 456 -> +9613123456 3ms
+ ✓ packages/agents/test/phone.test.ts > a number the rider can call > 03 123 456 -> +9613123456 2ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > 03123456 -> +9613123456 1ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > 3123456 -> +9613123456 0ms
- ✓ packages/agents/test/phone.test.ts > a number the rider can call > 71 123 456 -> +96171123456 0ms
+ ✓ packages/agents/test/phone.test.ts > a number the rider can call > 71 123 456 -> +96171123456 1ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > رقمي 76-123456 -> +96176123456 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > +961 3 123 456 -> +9613123456 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > 00961 70 123 456 -> +96170123456 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > 9613123456 -> +9613123456 0ms
- ✓ packages/agents/test/phone.test.ts > a number the rider can call > ٠٣١٢٣٤٥٦ -> +9613123456 2ms
+ ✓ packages/agents/test/phone.test.ts > a number the rider can call > ٠٣١٢٣٤٥٦ -> +9613123456 1ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > 05 123 456 -> +9615123456 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > +44 7700 900123 -> +447700900123 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > بدي 3 علب لبنة و 2 خبز is not a phone 0ms
@@ -164,56 +229,40 @@ Reproduce: npm ci && npx tsc --noEmit && npx vitest run --reporter=verbose
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > طابق 3 بناية 12 is not a phone 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > 0612345678 is not a phone 0ms
  ✓ packages/agents/test/phone.test.ts > a number the rider can call > knows a message that was meant to be a number 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > وين الطلب؟ -> status 10ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا، وين صار طلبي -> status 1ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > وين طلبي لو سمحت -> status 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > شو صار بالطلب؟ -> status 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > wen el talab -> status 1ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > where is my order? -> status 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > Où est ma commande ? -> status 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > طلبي وين صار -> status 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > قديش بتسكرو؟ -> hours 3ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > ايمتى بتفتحو بكرا -> hours 1ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > فاتحين هلق؟ -> hours 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > شو الدوام -> hours 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > what time do you close -> hours 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > are you open now? -> hours 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > vos horaires ? -> hours 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > aymta btsakro -> hours 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > متل المرة الماضية -> repeat_last 3ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > نفس المرة الماضية لو سمحت -> repeat_last 1ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا، نفس الطلب الماضي -> repeat_last 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > same as last time please -> repeat_last 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > metel el marra el madye -> repeat_last 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > comme la dernière fois -> repeat_last 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > متل المرة الماضية بس زيدلي ربطة خبز -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > نفس الطلب بس بلا لبنة -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > وصل الطلب شكراً -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > الطلب ما وصل كامل، ناقص الخبز -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > بدي لبنة وخبز -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا -> greeting 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > فاتحين محل جديد بعقلين؟ -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > where is the bakery -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > what time does the pharmacy close -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > شو في عندكن جبنة -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > بدي الغي الطلب -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > قديش حق الطلب؟ -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > كيفكن؟ -> greeting 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > hello! -> greeting 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا بدي اطلب -> null 0ms
- ✓ evals/test/quick-intents.test.ts > quick intents (evals/cases/quick_intents.json) > مرحبا، عندكن جبنة عكاوي؟ -> null 0ms
- ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > the TypeScript state table matches the one in the database 6ms
- ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > starts the shift, gets the offer, accepts, picks up, delivers and reports cash in two currencies 122ms
- ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > a redelivered message does nothing the second time 6ms
- ✓ test/db/ops-turn.test.ts > a rider's shift over WhatsApp > will not close the shift while the rider holds cash, and offers the two drop options 13ms
- ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > holds the lease even when the outbox setting is missing, and releases a failed send for retry 2535ms
- ✓ test/db/rider-flow.test.ts > outbox claim on the real schema > forces marketing off even if an older database had it on 2337ms
- Test Files  15 passed (15)
-      Tests  206 passed (206)
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > only an ops lead or admin creates a supplier; the same name is the same supplier 11ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a receipt on credit adds stock at cost, sets the average and what we owe the supplier 18ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > the same supplier reference twice is one receipt 2ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a second receipt at another cost moves the average 8ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > selling posts cost of goods against the order at the average; the order and the day show their margin 104ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a waste adjustment is valued at the average and posted as a stock loss 7ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > stock with no cost is valued openly at its first receipt cost 6ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > paying the supplier from the till reduces what we owe, once per reference 6ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > a failed delivery that comes back undoes its cost of goods; what is not fit to sell is a stock loss 42ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > the books: every transaction balances, the ledger sums to zero, inventory equals units times average cost 3ms
+ ✓ test/db/receiving-margin.test.ts > suppliers and receiving (2.7) > expiring lots still on the shelf are listed 3ms
+ ✓ packages/core/test/voice-policy.test.ts > voice-note policy > processes an ordinary note for every role 3ms
+ ✓ packages/core/test/voice-policy.test.ts > voice-note policy > uses a different ceiling per role 2ms
+ ✓ packages/core/test/voice-policy.test.ts > voice-note policy > caps how much audio one sender can have transcribed in an hour 0ms
+ ✓ packages/core/test/voice-policy.test.ts > voice-note policy > treats an empty or unreadable file as empty, never as an order 1ms
+ ✓ packages/core/test/voice-policy.test.ts > voice-note policy > prefers the provider's duration over the size estimate 0ms
+ ✓ packages/core/test/voice-policy.test.ts > voice-note policy > always has something to say, so no message disappears silently 1ms
+ ✓ packages/core/test/voice-policy.test.ts > voice-note policy > voice never authorises money 0ms
+ ✓ packages/agents/test/capacity.test.ts > model capacity > knows a capacity failure from a mistake of ours 3ms
+ ✓ packages/agents/test/capacity.test.ts > model capacity > says 'one moment' once, retries with backoff, and returns the answer when the model comes back 1ms
+ ✓ packages/agents/test/capacity.test.ts > model capacity > gives up after the last retry with ModelUnavailable 1ms
+ ✓ packages/agents/test/capacity.test.ts > model capacity > does not retry or warn on a bad request 1ms
+ ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > removes phone numbers in any spelling 3ms
+ ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > keeps short numbers such as order codes and quantities 0ms
+ ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > removes business-scoped user ids, bearer tokens and keys 0ms
+ ✓ apps/gateway/test/observability.test.ts > error tracking scrubbing > drops the request body, headers, cookies, query and user, and keeps the route 2ms
+ ✓ packages/core/test/geo.test.ts > geography scripts > reads all 42 villages from the seed, hubs first 3ms
+ ✓ packages/core/test/geo.test.ts > geography scripts > turns reviewed coordinates and an OSRM table into an upsert that spares observed times 1ms
+ Test Files  21 passed (21)
+      Tests  255 passed (255)
 
 Typecheck: clean
-Permission check on Postgres 16, all 17 migrations: passed, no warnings
+Permission check on Postgres 16, all 25 migrations (0001-0017, 0020-0025): passed, no warnings
 Permission check in EXISTING=1 mode on the same database: passed
-Worker bundle dry run, staging and production: ok ok
 
-Not covered: anything on live Supabase, Cloudflare, Kapso, Meta or Anthropic accounts.
+Not covered: anything on live Supabase, Cloudflare, Kapso, Meta or Anthropic accounts. The pg_trgm move (0020) was probed on
+staging in a rolled-back transaction only; it is applied for real by deploy-staging after merge.
