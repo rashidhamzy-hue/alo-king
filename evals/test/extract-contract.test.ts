@@ -30,3 +30,13 @@ describe("the extraction contract on the live model (1.22)", () => {
     expect(r.intent).toBeNull();
   });
 });
+
+describe("repairing a reading written as almost-JSON (1.22)", () => {
+  it("an escaped apostrophe, a trailing comma and a missing closing bracket are repaired; nothing else", async () => {
+    const { parseLooseJson } = await import("../../packages/agents/src/concierge");
+    expect(parseLooseJson(`{"intent": "order", "lines": [{"raw": "corn flakes Kellogg\\'s", "qty": 1,}]`)).toEqual({ intent: "order", lines: [{ raw: "corn flakes Kellogg's", qty: 1 }] });
+    expect(parseLooseJson(`{"intent": "order", "lines": [{"raw": "kilo tenders djej Tanmia"`)).toEqual({ intent: "order", lines: [{ raw: "kilo tenders djej Tanmia" }] });
+    expect(parseLooseJson(`{"intent": "order", "lines": [{"raw": "kilo tend`)).toBeUndefined();     // cut inside a string
+    expect(parseLooseJson("order: bread")).toBeUndefined();
+  });
+});

@@ -48,7 +48,7 @@ describe.skipIf(!live)("live: catalog language (1.22)", () => {
       const s = scoreCase(c.items, got);
       return { id: c.id, k, kind: c.kind, lang: c.lang, text: c.text, expected: c.items, got, score: s, next,
                errors: (r as { errors?: unknown }).errors ?? null,
-               rejected: typeof (r as { rejected?: unknown }).rejected === "string" ? ((r as { rejected?: string }).rejected ?? "").slice(0, 400) : null,
+               rejected: typeof (r as { rejected?: unknown }).rejected === "string" ? (((r as { rejected?: string }).rejected ?? "").slice(0, 200) + " … " + ((r as { rejected?: string }).rejected ?? "").slice(-300)) : null,
                lines: (r.intent?.lines ?? []).map((l, i) => ({ raw: l.raw, query: l.query, brand_hint: l.brand_hint, source_hint: l.source_hint, qty: l.qty, unit: l.unit, modifiers: l.modifiers, status: lines[i]?.status ?? null,
                         candidates: (lines[i]?.candidates ?? []).map((x: any) => skuOf.get(x.product_id)) })) };
     });

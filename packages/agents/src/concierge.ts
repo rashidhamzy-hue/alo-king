@@ -82,8 +82,9 @@ export async function extractOrder(client: ModelClient, model: string, input: Tu
   let raw = (call.input as { intent?: unknown } | null)?.intent;
   let note: string | undefined;
   if (typeof raw === "string") {
-    try { raw = JSON.parse(raw); }
-    catch { note = `string intent, stop_reason ${res.stop_reason}, ${(raw as string).length} chars`; }   // never the text itself: it is the customer's
+    const fixed = parseLooseJson(raw);
+    if (fixed !== undefined) raw = fixed;
+    else note = `string intent, stop_reason ${res.stop_reason}, ${(raw as string).length} chars`;   // never the text itself: it is the customer's
   } else if (raw === undefined && call.input && typeof call.input === "object" && "lines" in (call.input as object)) {
     raw = call.input;                                   // the reading itself, without the `intent` wrapper
   }
@@ -91,6 +92,30 @@ export async function extractOrder(client: ModelClient, model: string, input: Tu
   // `rejected` is the reading that failed, for the eval (synthetic messages) to inspect. The turn never stores or logs it.
   return parsed.success ? { intent: parsed.data, usage }
                         : { intent: null, errors: note ? [note, ...parsed.error.issues.slice(0, 4)] : parsed.error.issues.slice(0, 5), usage, rejected: raw };
+}
+
+/**
+ * The fast model sometimes writes the reading as a JSON string, and sometimes that string is not quite JSON: an escaped
+ * apostrophe ("Kellogg\'s"), a trailing comma, a closing bracket left off. Repairs those three and nothing else; anything
+ * else stays refused.
+ */
+export function parseLooseJson(text: string): unknown {
+  const attempt = (t: string) => { try { return { ok: true as const, v: JSON.parse(t) as unknown }; } catch { return { ok: false as const }; } };
+  let r = attempt(text);
+  if (r.ok) return r.v;
+  let t = text.replace(/\\'/g, "'").replace(/,\s*([}\]])/g, "$1").trim();
+  r = attempt(t);
+  if (r.ok) return r.v;
+  // close what is open, outside strings
+  const stack: string[] = []; let inStr = false, esc = false;
+  for (const c of t) {
+    if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true; else if (c === "{" || c === "[") stack.push(c); else if (c === "}" || c === "]") stack.pop();
+  }
+  if (inStr) return undefined;                       // cut inside a string: not repaired
+  t += stack.reverse().map((c) => (c === "{" ? "}" : "]")).join("");
+  r = attempt(t.replace(/,\s*([}\]])/g, "$1"));
+  return r.ok ? r.v : undefined;
 }
 
 /**
