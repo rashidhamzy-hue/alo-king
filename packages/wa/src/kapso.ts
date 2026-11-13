@@ -1,6 +1,7 @@
 // Kapso webhook contract (payload v2) and the thin send client.
 // Source of truth: https://docs.kapso.ai/docs/platform/webhooks/message-events
 import { z } from "zod";
+import { GraphApiError, WhatsAppClient } from "@kapso/whatsapp-cloud-api";
 
 export type Line = "customer" | "ops";
 
@@ -104,13 +105,35 @@ export const askLocation = (body: string): Outbound => ({
   interactive: { type: "location_request_message", body: { text: body }, action: { name: "send_location" } },
 });
 
+/**
+ * A send Kapso or Meta refused, with the official SDK's retry hint (task 4.13).
+ *  - `retry`, `retry_after`, `refresh_token`: something outside this message is wrong for now; the turn retries.
+ *  - `do_not_retry`, `fix_and_retry`: this exact message will never go out as it is (outside the 24-hour window,
+ *    recipient cannot receive, bad parameter). Retrying the turn would only fail again, so the gateway records it and moves on.
+ * HTTP 402 is Kapso's "credits exhausted" and is always treated as retry: the message must go out once credits are added.
+ */
+export class KapsoSendError extends Error {
+  constructor(readonly httpStatus: number, readonly code: string, readonly retry: string, readonly retryAfterMs: number | undefined, detail: string) {
+    super(`KAPSO_SEND_${httpStatus}: ${code} ${detail}`.slice(0, 400));
+    this.name = "KapsoSendError";
+  }
+  /** True when retrying the same message cannot succeed. */
+  get permanent(): boolean { return this.httpStatus !== 402 && (this.retry === "do_not_retry" || this.retry === "fix_and_retry"); }
+}
+
+/** The official Kapso client over our configured base URL ("https://api.kapso.ai/meta/whatsapp/v24.0" is base + Graph version). */
+export function kapsoClient(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, fetchImpl: typeof fetch = (...a) => fetch(...a)): WhatsAppClient {
+  const m = env.KAPSO_BASE_URL.replace(/\/+$/, "").match(/^(.*)\/(v\d+\.\d+)$/);
+  return new WhatsAppClient({ kapsoApiKey: env.KAPSO_API_KEY, baseUrl: m ? m[1] : env.KAPSO_BASE_URL, graphVersion: m ? m[2] : "v24.0", fetch: fetchImpl });
+}
+
+/** Only packages/wa/src/gateway.ts may call this (invariant 1; CI checks it). The payload is ours, unchanged: the SDK only carries it. */
 export async function kapsoSend(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, phoneNumberId: string, to: string, msg: Outbound): Promise<string> {
-  const res = await fetch(`${env.KAPSO_BASE_URL}/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: { "X-API-Key": env.KAPSO_API_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, ...msg }),
-  });
-  if (!res.ok) throw new Error(`KAPSO_SEND_${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { messages?: { id: string }[] };
-  return json.messages?.[0]?.id ?? "";
+  try {
+    const res = (await kapsoClient(env).messages.sendRaw({ phoneNumberId, payload: { messaging_product: "whatsapp", recipient_type: "individual", to, ...msg } })) as { messages?: { id?: string }[] };
+    return res.messages?.[0]?.id ?? "";
+  } catch (err) {
+    if (err instanceof GraphApiError) throw new KapsoSendError(err.httpStatus, String(err.apiCode ?? err.code), err.retry.action, err.retry.retryAfterMs, err.message);
+    throw err;
+  }
 }

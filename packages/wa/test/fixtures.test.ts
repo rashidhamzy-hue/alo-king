@@ -1,20 +1,9 @@
 // Task 4.1: the parsers against the saved Kapso payloads (test/fixtures/kapso/). Every file is read; none is skipped.
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { KapsoReceived, senderKey, unwrap } from "../src/kapso";
 import { parseIdentityEvent, parsePreferenceEvent, parseStatusEvent } from "../src/webhook";
+import { loadFixtures } from "./fixtures";
 
-const dir = fileURLToPath(new URL("../../../test/fixtures/kapso/", import.meta.url));
-type Fixture = { file: string; line: string; event: string; source: string; body: unknown };
-export function loadFixtures(event?: string): Fixture[] {
-  const out: Fixture[] = [];
-  for (const d of readdirSync(dir)) {
-    if (!d.startsWith("whatsapp.") || (event && d !== event)) continue;
-    for (const f of readdirSync(dir + d).sort()) out.push({ file: `${d}/${f}`, ...JSON.parse(readFileSync(`${dir}${d}/${f}`, "utf8")) });
-  }
-  return out;
-}
 const CUSTOMER_LINE = "1378974041965966";
 
 describe("fixtures on disk", () => {

@@ -1,7 +1,7 @@
 // The Compliance Gateway. Nothing else in the codebase may call kapsoSend.
 // It refuses anything that could get a number restricted, and it keeps the message bill predictable.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { kapsoSend, type Line, type Outbound } from "./kapso";
+import { kapsoSend, KapsoSendError, type Line, type Outbound } from "./kapso";
 
 export type Category = "service" | "utility" | "marketing";
 export interface SendRequest {
@@ -82,6 +82,9 @@ export async function send(
   try { wamid = await kapsoSend(env, phoneNumberId, req.to, req.msg); }
   catch (err) {
     if (req.dedupeKey) await db.rpc("outbox_mark", { p_key: req.dedupeKey, p_wamid: null, p_error: String(err).slice(0, 300) });
+    // This message can never go out as it is (Meta's code says so). Retrying the turn would fail the same way, three times,
+    // and then hand a working conversation to a person. Record it and let the turn carry on (4.13).
+    if (err instanceof KapsoSendError && err.permanent) return refuse(db, req, `kapso_${err.code}`);
     throw err;
   }
   // The message is out. From here nothing may throw: a throw would make the turn retry and, once the lease expires, send it twice.
