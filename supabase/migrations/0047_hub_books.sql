@@ -124,18 +124,164 @@ create or replace function hub_cash_view(p_since timestamptz, p_until timestampt
                  from hub_cash_movements m join parties p on p.id = m.by_party
                 where m.created_at >= p_since and m.created_at < p_until), '[]'::jsonb)) $$;
 
+-- ---------- 3.11 the day close ----------
+-- A day is a calendar day in the hub's time zone (settings.hours.tz). Probe orders (0063) are counted apart, never as sales.
+create table day_closes (
+  day                  date primary key,
+  counted_usd          numeric(12,2) not null,
+  counted_lbp          numeric(16,2) not null,
+  book_usd             numeric(12,2) not null,
+  book_lbp             numeric(16,2) not null,
+  difference_usd       numeric(12,2) not null,
+  difference_lbp       numeric(16,2) not null,
+  difference_value_usd numeric(12,2) not null,      -- the drawer's difference in dollars: posted to cash_over_short, never hidden
+  note                 text,
+  report               jsonb not null,
+  ledger_txn           uuid,
+  closed_by            uuid not null references parties(id),
+  closed_at            timestamptz not null default now()
+);
+
+create or replace function hub_day_bounds(p_day date) returns table (since timestamptz, until timestamptz) language sql stable as $$
+  select (p_day::timestamp at time zone tz), ((p_day + 1)::timestamp at time zone tz)
+    from (select coalesce(setting('hours')->>'tz', 'Asia/Beirut') as tz) z $$;
+
+create or replace function hub_today() returns date language sql stable as
+$$ select (now() at time zone coalesce(setting('hours')->>'tz', 'Asia/Beirut'))::date $$;
+
+-- The day's figures. Every number comes from the ledger, the orders, the payments and the stock movements of that day.
+-- unexplained_usd must be zero: the ledger's own imbalance over the day plus the drawer's counted difference (once counted).
+-- stock: units picked off the shelf against the units on those orders' lines; a mismatch is listed, order by order.
+create or replace function day_close_report(p_day date default null) returns jsonb language plpgsql stable as $$
+declare v_day date := coalesce(p_day, hub_today()); b record; v jsonb; c day_closes%rowtype; v_imbalance numeric; v_stock jsonb;
+        v_drawer jsonb; v_riders jsonb;
+begin
+  select * into b from hub_day_bounds(v_day);
+  select * into c from day_closes where day = v_day;
+  select coalesce(sum(usd_equiv), 0) into v_imbalance from ledger_entries where created_at >= b.since and created_at < b.until;
+
+  with picks as (
+    select m.order_id, m.product_id, sum(m.qty_delta) as picked from stock_movements m
+     where m.reason = 'pick' and m.order_id is not null and m.created_at >= b.since and m.created_at < b.until group by 1, 2
+  ), lines as (
+    select i.order_id, i.product_id, sum(i.qty) as sold from order_items i
+     where i.status = 'ok' and i.order_id in (select order_id from picks) group by 1, 2
+  ), j as (
+    select coalesce(p.order_id, l.order_id) as order_id, coalesce(p.product_id, l.product_id) as product_id,
+           coalesce(p.picked, 0) as picked, coalesce(l.sold, 0) as sold
+      from picks p full join lines l on l.order_id = p.order_id and l.product_id = p.product_id
+  )
+  select jsonb_build_object('picked_units', coalesce(sum(picked), 0), 'sold_units', coalesce(sum(sold), 0),
+           'returned_units', (select coalesce(sum(qty_delta), 0) from stock_movements where reason = 'return' and created_at >= b.since and created_at < b.until),
+           'written_off_units', (select coalesce(-sum(qty_delta), 0) from stock_movements where reason in ('waste', 'adjust') and qty_delta < 0
+                                   and created_at >= b.since and created_at < b.until),
+           'mismatches', coalesce(jsonb_agg(jsonb_build_object('order', o.short_code, 'product', pr.name_en, 'picked', j.picked, 'sold', j.sold))
+                                    filter (where j.picked <> j.sold), '[]'::jsonb))
+    into v_stock from j left join orders o on o.id = j.order_id left join products pr on pr.id = j.product_id;
+
+  select jsonb_build_object(
+      'usd', coalesce(sum(e.amount) filter (where e.currency = 'USD' and e.created_at < b.until), 0),
+      'lbp', coalesce(sum(e.amount) filter (where e.currency = 'LBP' and e.created_at < b.until), 0),
+      'in_from_riders_usd', coalesce(sum(e.usd_equiv) filter (where e.memo like 'Cash drop%' and e.created_at >= b.since and e.created_at < b.until), 0))
+    into v_drawer from ledger_entries e join ledger_accounts a on a.id = e.account_id where a.code = 'hub_cash';
+
+  select coalesce(jsonb_agg(jsonb_build_object('rider', p.display_name, 'usd', n.usd, 'lbp', n.lbp,
+           'earnings_usd', (rider_statement(p.id)->>'earnings_usd')::numeric) order by p.display_name), '[]'::jsonb)
+    into v_riders
+    from parties p cross join lateral driver_cash_native(p.id) n
+   where p.role = 'driver' and (n.usd <> 0 or n.lbp <> 0 or (rider_statement(p.id)->>'earnings_usd')::numeric <> 0
+                                or exists (select 1 from driver_shifts s where s.driver_id = p.id and s.started_at < b.until and coalesce(s.ended_at, 'infinity') >= b.since));
+
+  v := jsonb_build_object(
+    'day', v_day, 'since', b.since, 'until', b.until,
+    'orders', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (
+                 select o.status::text as status, count(*) as n from orders o join parties p on p.id = o.customer_id
+                  where o.created_at >= b.since and o.created_at < b.until and not p.is_probe and o.status not in ('draft', 'awaiting_confirmation')
+                  group by o.status) x),
+    'probe_orders', (select count(*) from orders o join parties p on p.id = o.customer_id where p.is_probe and o.created_at >= b.since and o.created_at < b.until),
+    'sales', (select jsonb_build_object(
+                'goods_usd', coalesce(-sum(e.usd_equiv) filter (where a.kind::text = 'revenue_goods'), 0),
+                'delivery_fees_usd', coalesce(-sum(e.usd_equiv) filter (where a.kind::text = 'revenue_delivery'), 0),
+                'small_order_fees_usd', coalesce(-sum(e.usd_equiv) filter (where a.kind::text = 'revenue_small_order'), 0),
+                'refunds_charged_to_goodwill_usd', coalesce(sum(e.usd_equiv) filter (where a.kind::text = 'refund_expense'), 0),
+                'expenses_usd', coalesce(sum(e.usd_equiv) filter (where a.kind::text = 'expense'), 0))
+              from ledger_entries e join ledger_accounts a on a.id = e.account_id where e.created_at >= b.since and e.created_at < b.until),
+    'margin', gross_margin(b.since, b.until),
+    'payments', (select coalesce(jsonb_object_agg(method, jsonb_build_object('count', n, 'usd', s)), '{}'::jsonb) from (
+                   select py.method::text as method, count(*) as n, sum(py.amount_usd) as s from payments py
+                    where py.status = 'confirmed' and coalesce(py.confirmed_at, py.created_at) >= b.since and coalesce(py.confirmed_at, py.created_at) < b.until
+                    group by py.method) x),
+    'riders', v_riders,
+    'rider_earnings_settled_usd', (select coalesce(-sum(e.usd_equiv), 0) from ledger_entries e join ledger_accounts a on a.id = e.account_id
+                                    where a.kind::text = 'rider_payable' and e.usd_equiv < 0 and e.created_at >= b.since and e.created_at < b.until),
+    'credits', jsonb_build_object(
+      'refunded_usd', (select coalesce(sum(amount_usd), 0) from refunds where created_at >= b.since and created_at < b.until),
+      'paid_out_usd', (select coalesce(sum(amount_usd), 0) from credit_payouts where created_at >= b.since and created_at < b.until),
+      'used_on_orders_usd', (select coalesce(sum(amount_usd), 0) from credit_applications where status = 'consumed' and consumed_at >= b.since and consumed_at < b.until)),
+    'drawer', v_drawer || jsonb_build_object(
+      'to_bank_usd', (select coalesce(sum(value_usd), 0) from hub_cash_movements where kind = 'bank_deposit' and created_at >= b.since and created_at < b.until),
+      'petty_cash_usd', (select coalesce(sum(value_usd), 0) from hub_cash_movements where kind = 'petty_cash' and created_at >= b.since and created_at < b.until),
+      'expenses_from_drawer_usd', (select coalesce(sum(value_usd), 0) from hub_cash_movements where kind = 'expense' and paid_from = 'hub_cash' and created_at >= b.since and created_at < b.until)),
+    'stock', v_stock,
+    'count', case when c.day is null then null else jsonb_build_object('counted_usd', c.counted_usd, 'counted_lbp', c.counted_lbp, 'book_usd', c.book_usd,
+               'book_lbp', c.book_lbp, 'difference_usd', c.difference_usd, 'difference_lbp', c.difference_lbp, 'difference_value_usd', c.difference_value_usd,
+               'note', c.note, 'closed_by', (select display_name from parties where id = c.closed_by), 'closed_at', c.closed_at) end,
+    'ledger_imbalance_usd', v_imbalance,
+    'unexplained_usd', round(v_imbalance + coalesce(c.difference_value_usd, 0), 2));
+  return v || jsonb_build_object('balanced', (v->>'unexplained_usd')::numeric = 0 and jsonb_array_length(v_stock->'mismatches') = 0);
+end $$;
+
+-- The ops lead counts the drawer at the end of the day. A difference is posted to cash_over_short (so the books match the drawer
+-- from then on) and stays on the report as unexplained, with the note the person must write. One close per day.
+create or replace function close_day(p_day date, p_counted_usd numeric, p_counted_lbp numeric, p_by uuid, p_note text default null)
+returns jsonb language plpgsql as $$
+declare c day_closes%rowtype; n record; v_du numeric; v_dl numeric; v_dl_value numeric := 0; v_txn uuid; v_drawer uuid; v_os uuid;
+begin
+  if not exists (select 1 from parties where id = p_by and role in ('ops_lead', 'admin') and not is_blocked) then raise exception 'NOT_AUTHORISED'; end if;
+  if p_day is null or p_day > hub_today() then raise exception 'DAY_NOT_OVER'; end if;
+  if p_counted_usd is null or p_counted_usd < 0 or p_counted_lbp is null or p_counted_lbp < 0 then raise exception 'BAD_COUNT'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('hub_money:hub_cash', 0));
+  select * into c from day_closes where day = p_day;
+  if found then return jsonb_build_object('ok', true, 'already', true, 'report', day_close_report(p_day)); end if;
+  select * into n from account_native('hub_cash');
+  v_du := round(p_counted_usd - n.usd, 2);
+  v_dl := round(p_counted_lbp - n.lbp, 0);
+  if (v_du <> 0 or v_dl <> 0) and length(btrim(coalesce(p_note, ''))) < 3 then raise exception 'DIFFERENCE_NOTE_REQUIRED'; end if;
+  if v_dl <> 0 then
+    v_dl_value := case when v_dl < 0 and n.lbp > 0 then round(v_dl * n.lbp_carried_usd / n.lbp, 2) else round(v_dl / current_fx(), 2) end;
+  end if;
+  if v_du <> 0 or v_dl <> 0 then
+    v_txn := gen_random_uuid();
+    v_drawer := ensure_account('hub_cash', 'hub_cash');
+    v_os := ensure_account('cash_over_short', 'cash_over_short');
+    if v_du <> 0 then
+      insert into ledger_entries(txn_id, account_id, amount, currency, usd_equiv, memo) values
+        (v_txn, v_drawer, v_du, 'USD', v_du, 'Drawer counted at day close ' || p_day), (v_txn, v_os, -v_du, 'USD', -v_du, 'Drawer counted at day close ' || p_day);
+    end if;
+    if v_dl <> 0 then
+      insert into ledger_entries(txn_id, account_id, amount, currency, usd_equiv, memo) values
+        (v_txn, v_drawer, v_dl, 'LBP', v_dl_value, 'Drawer counted at day close ' || p_day), (v_txn, v_os, -v_dl, 'LBP', -v_dl_value, 'Drawer counted at day close ' || p_day);
+    end if;
+  end if;
+  insert into day_closes(day, counted_usd, counted_lbp, book_usd, book_lbp, difference_usd, difference_lbp, difference_value_usd, note, report, ledger_txn, closed_by)
+    values (p_day, p_counted_usd, p_counted_lbp, n.usd, n.lbp, v_du, v_dl, v_du + v_dl_value, nullif(btrim(p_note), ''), '{}', v_txn, p_by);
+  update day_closes set report = day_close_report(p_day) where day = p_day;
+  return jsonb_build_object('ok', true, 'already', false, 'difference_usd', v_du, 'difference_lbp', v_dl, 'report', day_close_report(p_day));
+end $$;
+
 do $$ declare r text;
 begin
   alter table hub_cash_movements enable row level security;
+  alter table day_closes enable row level security;
   foreach r in array array['anon', 'authenticated'] loop
     if exists (select 1 from pg_roles where rolname = r) then
-      execute format('revoke all on table hub_cash_movements from %I', r);
+      execute format('revoke all on table hub_cash_movements, day_closes from %I', r);
       execute format('revoke all on all functions in schema public from %I', r);
     end if;
   end loop;
   revoke execute on all functions in schema public from public;
   if exists (select 1 from pg_roles where rolname = 'service_role') then
-    grant all on table hub_cash_movements to service_role;
+    grant all on table hub_cash_movements, day_closes to service_role;
     grant execute on all functions in schema public to service_role;
   end if;
 end $$;

@@ -100,6 +100,8 @@ export function explain(e: unknown): string {
       [/^COST_REQUIRED/, "Type the unit cost of every line."],
       [/^UNKNOWN_CATEGORY/, "Pick a category from the list."],
       [/^UNKNOWN_SUPPLIER/, "That supplier is not active."],
+      [/^DIFFERENCE_NOTE_REQUIRED/, "The count differs from the books: write a note saying what you know."],
+      [/^DAY_NOT_OVER/, "That day has not come yet."],
       [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
     ];
     for (const [re, say] of known) if (re.test(m)) return say;
