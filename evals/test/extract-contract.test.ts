@@ -40,3 +40,9 @@ describe("repairing a reading written as almost-JSON (1.22)", () => {
     expect(parseLooseJson("order: bread")).toBeUndefined();
   });
 });
+
+it("one closing brace too many at the end is dropped (72 of 1,972 live runs, 13 Nov)", async () => {
+  const { parseLooseJson } = await import("../../packages/agents/src/concierge");
+  expect(parseLooseJson(`{"intent": "order", "lines": [{"raw": "3elbe Pomi 500g", "qty": 1}], "fulfilment": "unknown", "language": "mixed"}}`))
+    .toEqual({ intent: "order", lines: [{ raw: "3elbe Pomi 500g", qty: 1 }], fulfilment: "unknown", language: "mixed" });
+});

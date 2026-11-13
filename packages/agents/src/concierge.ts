@@ -96,8 +96,8 @@ export async function extractOrder(client: ModelClient, model: string, input: Tu
 
 /**
  * The fast model sometimes writes the reading as a JSON string, and sometimes that string is not quite JSON: an escaped
- * apostrophe ("Kellogg\'s"), a trailing comma, a closing bracket left off. Repairs those three and nothing else; anything
- * else stays refused.
+ * apostrophe ("Kellogg\'s"), a trailing comma, one closing brace too many at the end (72 of 1,972 live runs on 13 Nov), or a
+ * closing bracket left off. Repairs those and nothing else; anything else stays refused.
  */
 export function parseLooseJson(text: string): unknown {
   const attempt = (t: string) => { try { return { ok: true as const, v: JSON.parse(t) as unknown }; } catch { return { ok: false as const }; } };
@@ -106,6 +106,13 @@ export function parseLooseJson(text: string): unknown {
   let t = text.replace(/\\'/g, "'").replace(/,\s*([}\]])/g, "$1").trim();
   r = attempt(t);
   if (r.ok) return r.v;
+  // one closer too many at the end: the model closed its outer wrapper inside the string ("...]}}")
+  for (let cut = 1; cut <= 2 && /[}\]]$/.test(t); cut++) {
+    t = t.slice(0, -1).trimEnd();
+    r = attempt(t);
+    if (r.ok) return r.v;
+  }
+  t = text.replace(/\\'/g, "'").replace(/,\s*([}\]])/g, "$1").trim();
   // close what is open, outside strings
   const stack: string[] = []; let inStr = false, esc = false;
   for (const c of t) {
