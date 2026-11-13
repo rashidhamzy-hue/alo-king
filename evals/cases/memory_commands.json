@@ -1,0 +1,25 @@
+{
+  "about": "Build plan 1.14. Messages recognised as memory commands without a model (packages/agents/src/memory.ts memoryCommand). expect null means the message is not a command on its own and goes to the model, which can still read it as memory_show, memory_forget, memory_stop or memory_start. Every miss found in production is added here first.",
+  "cases": [
+    { "text": "شو بتعرفو عني؟", "expect": "show" },
+    { "text": "شو بتعرف عني", "expect": "show" },
+    { "text": "شو محفوظ عني", "expect": "show" },
+    { "text": "what do you know about me?", "expect": "show" },
+    { "text": "shu bta3rfo 3anne", "expect": "show" },
+    { "text": "إنسى", "expect": "forget" },
+    { "text": "انسى كل شي عني", "expect": "forget" },
+    { "text": "امحي معلوماتي", "expect": "forget" },
+    { "text": "forget me please", "expect": "forget" },
+    { "text": "delete my data", "expect": "forget" },
+    { "text": "وقّف التذكّر", "expect": "stop" },
+    { "text": "بطّل تحفظ شي عني", "expect": "stop" },
+    { "text": "stop remembering my orders", "expect": "stop" },
+    { "text": "don't remember anything", "expect": "stop" },
+    { "text": "رجاع تذكّر", "expect": "start" },
+    { "text": "remember me again", "expect": "start" },
+    { "text": "إنسى الخبز، بس لبنة", "expect": null },
+    { "text": "forget the bread, just labneh", "expect": null },
+    { "text": "بدي لبنة وخبز", "expect": null },
+    { "text": "شو بتعرفو عن اللبنة تبعكن؟", "expect": null }
+  ]
+}

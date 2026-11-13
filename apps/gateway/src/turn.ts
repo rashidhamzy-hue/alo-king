@@ -2,7 +2,7 @@
 // Buttons, pins and STOP are handled by code. Only free text and voice reach the model.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, type KapsoReceived, type Outbound } from "@ak/wa/kapso";
-import { processOpsTurn } from "./ops-turn";
+import { alertOps, processOpsTurn } from "./ops-turn";
 import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gateway";
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
@@ -15,6 +15,8 @@ import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
 import { buttonReplyText, FIXED, parseOrderButton } from "@ak/agents/order-card";
 import { judge } from "@ak/agents/stt";
+import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
+import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { estimateSeconds, VOICE_TEXT, voiceVerdict } from "@ak/core/voice-policy";
 
 export interface Pending { line: "customer" | "ops"; who: { waUserId?: string; phone?: string }; event: KapsoReceived }
@@ -31,6 +33,8 @@ export interface TurnDeps {
   onOrderConfirmed?: (orderId: string) => Promise<unknown>;
   /** Rider-side events the customer should hear about ("on the way", "rider is at your door"). */
   notifyCustomer?: (deliveryOrOrderId: string, what: "on_the_way" | "rider_waiting") => Promise<unknown>;
+  /** Fetches inbound media from Kapso's media URL (1.6). Defaults to fetch(); pass one that adds Kapso's key if its URLs need it. */
+  fetchMedia?: (url: string) => Promise<Response>;
 }
 export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
 
@@ -118,6 +122,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         await repeatLast(ctx, { orderId: repeatOf });
         continue;
       }
+      if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
       if (tapped === "marketing:yes" || tapped === "marketing:no") {
         buttonsHandled++;
         await db.from("consent_events").insert({ party_id: conv.party_id, line: "customer", kind: "marketing",
@@ -180,7 +185,24 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       continue;
     }
 
-    if (m.type === "image") { texts.push(`[image received${m.image?.caption ? `: ${m.image.caption}` : ""}]`); continue; }
+    // 5. A picture while an order waits for a transfer is the receipt (1.6): stored privately, queued for a person, no model reply.
+    if (m.type === "image") {
+      const proof = await takePaymentProof({ db, fetchMedia: deps.fetchMedia }, conv.party_id, m);
+      if (proof.kind === "stored") {
+        buttonsHandled++;
+        await say(PROOF_TEXT.received(proof.shortCode), proof.orderId);
+        await alertOps(deps, PROOF_TEXT.opsAlert(proof), `proof:${proof.proofId}`);
+        // The optional read pre-fills amount and reference for the person who confirms. It never confirms anything.
+        if (!proof.already && (await db.rpc("setting", { p_key: "payment_proofs" })).data?.model_read !== false) {
+          const reading = await readPaymentProof(deps.model, deps.modelName, proof.bytes, proof.mime);
+          if (reading) await db.rpc("record_proof_reading", { p_proof: proof.proofId, p_extracted: reading });
+        }
+        continue;
+      }
+      if (proof.kind === "unreadable") { buttonsHandled++; await say(PROOF_TEXT.resend); continue; }
+      texts.push(`[image received${m.image?.caption ? `: ${m.image.caption}` : ""}]`);
+      continue;
+    }
   }
 
   if (texts.length === 0 && transcripts.length === 0 && !phoneSaved) {
@@ -216,6 +238,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     }
 
     // Where is my order, when are you open, same as last time: typed in a few words, answered by the database alone (1.3).
+    // What do you know about me, forget, stop remembering (1.14): typed on their own, answered by code.
+    const mem = texts.length === 1 && transcripts.length === 0 && pins === 0 ? memoryCommand(texts[0]!) : null;
+    if (mem) {
+      const r = await answerMemory(ctx, mem);
+      if (r.done) { remember(); await record("ok", r.path); return { outcome: "answered", sent }; }
+    }
     const quick = texts.length === 1 && transcripts.length === 0 && pins === 0 ? quickIntent(texts[0]!) : null;
     if (quick) {
       const r = await answerQuick(ctx, quick);
@@ -232,12 +260,16 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const reading = await extractOrder(model, deps.modelName, input);
     usage.input += reading.usage.input; usage.output += reading.usage.output;
     intent = reading.intent;
+    // A restriction said now applies to the order built now; keeping it for later waits for the customer's yes (1.14).
+    const stated = intent?.restrictions ?? [];
+    if (stated.length) state.orderRestrictions = [...new Set([...(state.orderRestrictions ?? []), ...stated])];
     // 2. The database decides: card, handoff, or a question.
     const routed = await planReading(ctx, intent);
-    if (routed.done) { remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
+    if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     const res = await runAskLoop(model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
     usage.input += res.usage.input; usage.output += res.usage.output;
+    if (stated.length && res.outcome === "ok") await offerToRemember(ctx, stated);
     remember();
     await record(res.outcome, "ask");
     return { outcome: res.outcome === "ok" ? "agent_ok" : "agent_handoff", sent };

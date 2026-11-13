@@ -5,6 +5,7 @@ import { askLocation, buttons as buttonMsg, type Outbound } from "@ak/wa/kapso";
 import type { SendResult } from "@ak/wa/gateway";
 import type { ConciergeTools } from "./concierge";
 import { FIXED, formatOrderCard, type Quote } from "./order-card";
+import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
 
 /** What survives between turns of one conversation. Kept in the Durable Object, not in the model. */
 export interface ConversationState {
@@ -18,9 +19,15 @@ export interface ConversationState {
   pending?: CardTerms | null;
   /** When the "same as last time" button was last offered (ms). */
   repeatOfferedAt?: number;
+  /** Restrictions the customer stated for the order being built (1.14): they go on its card notes. */
+  orderRestrictions?: string[] | null;
+  /** Restrictions offered for keeping, waiting for the customer's yes or no. */
+  pendingRestrictions?: string[] | null;
 }
 /** Everything about a card that is not its lines. */
-export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null }
+export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null;
+  /** Set when the database refused cash on delivery and the card goes out prepaid (1.4 dues, 1.16 first-order cap). */
+  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null }
 export interface QuoteLineInput { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null }
 
 export interface ToolContext {
@@ -31,6 +38,8 @@ export interface ToolContext {
   /** Sends through the Compliance Gateway. The only way a tool can reach the customer. */
   send: (msg: Outbound, opts?: { orderId?: string }) => Promise<SendResult>;
   sent: { count: number; texts: string[] };   // message economy: what this turn has already sent
+  /** Food-fact attributes a tool returned an approved record for during this turn (1.10). Empty until the facts tool (1.11). */
+  approvedFacts?: Set<string>;
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -83,7 +92,24 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       return quote;
     },
 
+    async food_facts({ product_ids, restrictions }) {
+      // Facts come only from approved records (1.11, migration 0021). An approved, current fact with a usable status unlocks
+      // that attribute for the output guard for the rest of this turn (1.10); nothing else does.
+      const ids = [...new Set(product_ids ?? [])].slice(0, 6);
+      const codes = (restrictions ?? []).map((r) => r.trim().toLowerCase()).filter(Boolean);
+      const out = [];
+      for (const id of ids) {
+        const facts = await rpc<FoodFact[]>(ctx.db, "product_food_facts", { p_product: id });
+        for (const f of facts) if (!f.expired && USABLE.has(f.status)) (ctx.approvedFacts ??= new Set()).add(guardAttribute(f.attribute, f.kind));
+        const check = codes.length ? await rpc<unknown>(ctx.db, "product_meets_restrictions", { p_product: id, p_restrictions: codes }) : null;
+        out.push({ product_id: id, facts: facts.filter((f) => !f.expired), no_approved_facts: facts.every((f) => f.expired), restrictions: check });
+      }
+      return { products: out, rule: "State only these facts, each with its status. Anything not listed is not verified: say so and offer to ask." };
+    },
+
     async ask_location_pin({ text }) {
+      const bad = await guard(ctx, [text]);
+      if (bad) return bad;
       return deliver(ctx, askLocation(text), `[location request] ${text}`);
     },
 
@@ -95,9 +121,15 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
         { payment: payment_method ?? "cod", changeForUsd: change_for_usd ?? null, notes: [notes, ctx.state.directions].filter(Boolean).join(" | ") || null });
     },
 
-    async reply({ text, buttons }) {
-      const msg: Outbound = buttons?.length ? buttonMsg(text, buttons) : { type: "text", text: { body: text } };
-      return deliver(ctx, msg, text);
+    async reply({ text, buttons, price_of }) {
+      // The model's own words are checked first (1.5). Prices it asked for are added after, by code, from quote_order.
+      const bad = await guard(ctx, [text, ...(buttons ?? []).map((b) => b.title)]);
+      if (bad) return bad;
+      const prices = price_of?.length ? await priceLines(ctx, price_of) : null;
+      if (prices && !prices.ok) return prices;
+      const body = prices ? `${text}\n${prices.text}` : text;
+      const msg: Outbound = buttons?.length ? buttonMsg(body, buttons) : { type: "text", text: { body } };
+      return deliver(ctx, msg, body);
     },
 
     async handoff_human({ reason }) {
@@ -107,6 +139,39 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       return { ok: true };
     },
   };
+}
+
+/**
+ * Runs the output checks on text the model wrote. A refusal is logged (code and the matched fragment, never the whole text)
+ * and returned to the model so it can reword. Nothing is sent.
+ */
+export async function guard(ctx: ToolContext, texts: string[]): Promise<{ ok: false; error: string; hint: string } | null> {
+  let v: Violation | null = null;
+  for (const t of texts) { v = checkModelText(t, { approvedFacts: ctx.approvedFacts }); if (v) break; }
+  if (!v) return null;
+  await ctx.db.from("agent_runs").insert({ agent: "output_guard", conversation_id: ctx.conversationId, outcome: "refused",
+                                           trace: { code: v.code, match: v.match.slice(0, 60) } });
+  return { ok: false, error: `refused:${v.code}`, hint: GUARD_HINT[v.code] };
+}
+
+interface FoodFact { attribute: string; kind: string; value: string; status: string; source: string | null; expired: boolean }
+const USABLE = new Set(["certified", "declared", "calculated"]);
+/** The output guard's attribute for a food-fact code of 0021: gluten and the four diets by name, other allergens together. */
+export function guardAttribute(code: string, kind: string): string {
+  if (["gluten", "halal", "vegetarian", "vegan", "fasting"].includes(code)) return code;
+  if (kind === "allergen") return "allergens";
+  return "nutrition";                                  // ingredients and nutrition panels
+}
+
+const money = (n: number) => `$${Number(n).toFixed(2)}`;
+const MAX_PRICED = 6;
+/** One line per product, priced by quote_order (one unit, at the hub): the only way a price appears in a Concierge reply. */
+async function priceLines(ctx: ToolContext, productIds: string[]): Promise<{ ok: true; text: string } | { ok: false; error: string }> {
+  const ids = [...new Set(productIds)].slice(0, MAX_PRICED);
+  const q = await rpc<{ lines: { name: string; name_ar: string | null; unit_price_usd: number; ok: boolean }[] }>(
+    ctx.db, "quote_order", { p_lines: ids.map((product_id) => ({ product_id, qty: 1 })), p_village: null, p_pickup: true });
+  if (q.lines.length === 0) return { ok: false, error: "price_of_unknown_products" };
+  return { ok: true, text: q.lines.map((l) => `• ${l.name_ar ?? l.name} — ${money(l.unit_price_usd)}${l.ok ? "" : " (مش متوفّر هلّق)"}`).join("\n") };
 }
 
 export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" } | { ok: false; error: string; issues?: unknown };
@@ -129,11 +194,20 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     const asked = await deliver(ctx, { type: "text", text: { body: text } }, text);
     return asked.ok ? { ok: true, waiting_for: "phone" } : asked;
   }
+  // Every restriction that applies goes with the order to whoever prepares it: the kept ones, and any stated for this order (1.14).
+  const kept = await rpc<string[]>(ctx.db, "customer_restrictions", { p_party: ctx.partyId });
+  terms = { ...terms, notes: withRestrictionNote(terms.notes, [...kept, ...(ctx.state.orderRestrictions ?? [])]) };
   const created = await rpc<{ created: boolean; order_id?: string; short_code?: string; quote: Quote }>(ctx.db, "create_order_from_quote", {
     p_customer: ctx.partyId, p_conversation: ctx.conversationId, p_lines: basket.lines, p_village: basket.villageId,
     p_place: basket.placeId, p_pickup: basket.pickup, p_payment: terms.payment, p_change_for: terms.changeForUsd, p_notes: terms.notes,
   });
   if (!created.created) {
+    // The customer owes from a delivery nobody answered: the database refuses cash on delivery (0004 policy). The card goes
+    // out as a prepaid order instead, and says why (1.4). Whish is the default transfer; the customer can still edit.
+    // Same for a first order above the first-order cash cap (1.16).
+    const refusal = terms.payment === "cod" ? created.quote.issues.find((i) => i.code === "prepay_required" || i.code === "first_order_cod_cap") : undefined;
+    if (refusal) return issueCard(ctx, basket, { ...terms, payment: "whish", changeForUsd: null,
+      prepay: refusal.code === "first_order_cod_cap" ? { reason: "first_order", maxCodUsd: Number(refusal.max_cod_usd) } : { reason: "dues" } }, opts);
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
     return { ok: false, error: "quote_changed", issues: created.quote.issues };
   }
@@ -142,9 +216,17 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     if (!pre.ok) return pre;
   }
   const card = formatOrderCard({ orderId: created.order_id!, shortCode: created.short_code!, quote: created.quote,
-                                 paymentMethod: terms.payment, changeForUsd: terms.changeForUsd });
+                                 paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null });
   const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
   if (!sent.ok) return sent;
-  ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null;
+  ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null;
   return { ok: true, order_code: created.short_code! };
+}
+
+const RESTRICTION_MARK = "⚠️ قيود الزبون";
+/** The order note for the restrictions that apply to an order. An allergy is passed on as an allergy, not as a topping change. */
+export function withRestrictionNote(notes: string | null, restrictions: string[]): string | null {
+  const rs = [...new Set(restrictions.map((r) => r.trim()).filter(Boolean))];
+  if (rs.length === 0 || (notes ?? "").includes(RESTRICTION_MARK)) return notes;
+  return [notes, `${RESTRICTION_MARK} (لازم يتأكّد قبل التحضير): ${rs.join("، ")}`].filter(Boolean).join(" | ");
 }

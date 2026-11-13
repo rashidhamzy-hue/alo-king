@@ -1,0 +1,25 @@
+{
+  "about": "Build plan 1.18, stay on the job. Messages the Concierge's reading must classify. expect 'off_topic': unrelated to ordering, delivery or an order; the system replies with one fixed line (FIXED.offTopic) and the model is not called again. expect 'not_off_topic': about ordering or an order, however casually put, and must never be turned away. CI checks the cases are well formed and that an off_topic reading gets the fixed line; evals/live/ scores the real model's reading of each. Every misread found in production becomes a case here before it is fixed.",
+  "cases": [
+    { "text": "ساعدني بفرض الرياضيات: شو حل 2x + 5 = 11؟", "expect": "off_topic" },
+    { "text": "can you write my essay about climate change?", "expect": "off_topic" },
+    { "text": "ترجملي هالجملة عالفرنسي", "expect": "off_topic" },
+    { "text": "who won the champions league?", "expect": "off_topic" },
+    { "text": "شو رأيك بالوضع السياسي بلبنان؟", "expect": "off_topic" },
+    { "text": "write me a python script that sorts a list", "expect": "off_topic" },
+    { "text": "حكيلي نكتة", "expect": "off_topic" },
+    { "text": "عندي وجع راس، شو آخد دوا؟", "expect": "off_topic" },
+    { "text": "kifak? shu 3am ta3mol lyom? khabberne 3an 7alak", "expect": "off_topic" },
+    { "text": "how should I invest 1000 dollars?", "expect": "off_topic" },
+    { "text": "explique moi la photosynthèse", "expect": "off_topic" },
+    { "text": "بدي علبتين لبنة وربطة خبز", "expect": "not_off_topic" },
+    { "text": "وين صار طلبي؟", "expect": "not_off_topic" },
+    { "text": "بتوصلو عالمختارة؟", "expect": "not_off_topic" },
+    { "text": "عندكن حليب خالي من اللاكتوز؟", "expect": "not_off_topic" },
+    { "text": "شو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة", "expect": "not_off_topic" },
+    { "text": "السائق ما وصل لهلق", "expect": "not_off_topic" },
+    { "text": "بدي اشتكي، اللبنة كانت منتهية", "expect": "not_off_topic" },
+    { "text": "can I pay with Whish?", "expect": "not_off_topic" },
+    { "text": "marhaba", "expect": "not_off_topic" }
+  ]
+}

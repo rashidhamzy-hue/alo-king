@@ -8,6 +8,7 @@ import { deliver, issueCard, type CardTerms, type QuoteLineInput, type ToolConte
 import { FIXED, type Quote } from "./order-card";
 import type { QuickIntent } from "./quick-intent";
 import { ANSWER, offerRepeat, answerArea, answerHours, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
+import { answerMemory } from "./memory";
 
 export interface PlanLine {
   idx: number; raw: string; query: string; qty: number; assumed: boolean;
@@ -48,6 +49,17 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null):
   if (intent.intent === "hours") return answerHours(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
   if (intent.intent === "delivery_area" && intent.address.village)
     return answerArea(ctx, intent.address.village).then((r) => (r.done ? r : { done: false, plan: null }));
+  // What we remember is the customer's to see and clear (1.14). Answered by code from the database.
+  if (intent.intent === "memory_show") return answerMemory(ctx, "show").then((r) => (r.done ? r : { done: false, plan: null }));
+  if (intent.intent === "memory_forget") return answerMemory(ctx, "forget").then((r) => (r.done ? r : { done: false, plan: null }));
+  if (intent.intent === "memory_stop") return answerMemory(ctx, "stop").then((r) => (r.done ? r : { done: false, plan: null }));
+  if (intent.intent === "memory_start") return answerMemory(ctx, "start").then((r) => (r.done ? r : { done: false, plan: null }));
+  // Stay on the job (1.18): Meta bars general-purpose chatbots from the Business Platform. Homework, general questions and
+  // long chat get one fixed, friendly line and an offer to help with an order. No second model call, nothing answered.
+  if (intent.intent === "off_topic" && intent.lines.length === 0) {
+    const r = await deliver(ctx, { type: "text", text: { body: FIXED.offTopic } }, FIXED.offTopic);
+    return r.ok ? { done: true, path: "off_topic" } : { done: false, plan: null };
+  }
   if (intent.intent === "greeting" && intent.lines.length === 0)
     return offerRepeat(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
   if (intent.intent !== "order") return { done: false, plan: null };

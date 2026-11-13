@@ -1,0 +1,31 @@
+{
+  "about": "Build plan 1.5. Text the Concierge might write, and whether the output guard (packages/agents/src/output-guard.ts) must refuse it. Refused: any amount of money, in any script or spelling. Allowed: quantities, sizes, order codes, phone numbers, and talk about how to pay without an amount. Every miss found in production becomes a case here before it is fixed.",
+  "cases": [
+    { "text": "اللبنة الكبيرة بـ $3 والصغيرة بـ $1.80", "blocked": true },
+    { "text": "the 900g one is 3$ and the small one is 1.8$", "blocked": true },
+    { "text": "حقها ٣ دولار", "blocked": true },
+    { "text": "حقها تلاتة دولار", "blocked": true },
+    { "text": "بتطلع 250,000 ل.ل", "blocked": true },
+    { "text": "250 ألف ليرة", "blocked": true },
+    { "text": "khamse dolar bas", "blocked": true },
+    { "text": "50 alf w bteje", "blocked": true },
+    { "text": "التوصيل عبعقلين حقو دولار ونص", "blocked": true },
+    { "text": "dollar w nos", "blocked": true },
+    { "text": "رسوم التوصيل 1", "blocked": true },
+    { "text": "your total is 8.24", "blocked": true },
+    { "text": "Le total fait 9 dollars", "blocked": true },
+    { "text": "السعر ٢٫٥", "blocked": true },
+    { "text": "مية ألف", "blocked": true },
+    { "text": "USD 4", "blocked": true },
+    { "text": "€5 only", "blocked": true },
+    { "text": "بدك ٢ لبنة ٩٠٠ غرام أو ٤٥٠ غرام؟", "blocked": false },
+    { "text": "Do you want the 900g or the 450g labneh?", "blocked": false },
+    { "text": "طلبك AK-1042 ناطر تأكيدك", "blocked": false },
+    { "text": "بتدفع كاش أو Whish أو OMT؟", "blocked": false },
+    { "text": "بتدفع دولار أو ليرة؟", "blocked": false },
+    { "text": "شو رقم تلفونك؟ متل 03123456", "blocked": false },
+    { "text": "بدك 3 ربطات خبز؟", "blocked": false },
+    { "text": "عندنا 3 أنواع لبنة، أيّا بتحب؟", "blocked": false },
+    { "text": "قنينة مي 1.5 ليتر أو 500 مل؟", "blocked": false }
+  ]
+}
