@@ -5,3 +5,4 @@ evals/voice_notes/audio/
 *.opus
 .mcp.json
 data/prospects/*.private.*
+wrangler.staging-noqueue.json

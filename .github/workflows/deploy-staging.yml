@@ -61,3 +61,72 @@ jobs:
         run: scripts/ci/load-seeds.sh | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Private media bucket
         run: scripts/ci/ensure-media-bucket.sh | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+
+  worker:
+    # 0.5: queues, the Worker, and every Worker secret. Later tasks add steps here (webhooks 0.6, key check 0.7).
+    needs: database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+      # Staging numbers. Customer line: the Alo King test number. Ops line: the Kapso sandbox number (see docs/HANDOFF.md).
+      PHONE_NUMBER_ID_CUSTOMER: "1378974041965966"
+      PHONE_NUMBER_ID_OPS: "597907523413541"
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha || github.sha }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Queues
+        id: queues
+        run: |
+          rc=0; scripts/ci/ensure-queues.sh || rc=$?
+          if [ "$rc" = "2" ]; then
+            echo "queues=unavailable" >> "$GITHUB_OUTPUT"
+            echo "::warning::Cloudflare would not create queues on this plan (Workers Paid needed). Deploying without the queue retry path."
+            echo "- **Queues unavailable on this Cloudflare plan: Workers Paid is needed for the queue retry path. Deployed without it.**" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$rc" != "0" ]; then exit "$rc"
+          else echo "queues=ready" >> "$GITHUB_OUTPUT"; fi
+      - name: Deploy the staging Worker
+        id: deploy
+        run: |
+          cfg=wrangler.jsonc
+          if [ "${{ steps.queues.outputs.queues }}" = "unavailable" ]; then node scripts/ci/wrangler-noqueue.mjs; cfg=wrangler.staging-noqueue.json; fi
+          npx wrangler deploy --env staging --config "$cfg" 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          url=$(grep -oE 'https://alo-king-gateway-staging[^ ]*\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -1 || true)
+          if [ -z "$url" ]; then
+            sub=$(curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" | jq -r '.result.subdomain // empty')
+            [ -n "$sub" ] && url="https://alo-king-gateway-staging.$sub.workers.dev"
+          fi
+          [ -n "$url" ] || { echo "could not work out the Worker URL"; exit 1; }
+          echo "worker_url=$url" >> "$GITHUB_OUTPUT"
+          echo "- Worker deployed: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Worker secrets (from repository secrets; webhook secrets are made in a later step)
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # jq reads the values from the environment, so nothing secret is ever on a command line or in a log.
+          umask 077
+          jq -n 'env | {SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS}' > "$RUNNER_TEMP/secrets.json"
+          cfg=wrangler.jsonc; [ -f wrangler.staging-noqueue.json ] && cfg=wrangler.staging-noqueue.json
+          npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --env staging --config "$cfg" 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'
+          rm -f "$RUNNER_TEMP/secrets.json"
+          echo "- Worker secrets set: SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Smoke test, no secrets needed
+        run: |
+          url="${{ steps.deploy.outputs.worker_url }}"
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "$url/" || true); [ "$code" = "404" ] && break; sleep 5
+          done
+          echo "GET / -> $code (404 expected)"; [ "$code" = "404" ]
+          for line in customer ops; do
+            body=$(curl -sS -w ' [%{http_code}]' -X POST -d '{}' "$url/webhooks/kapso/$line")
+            echo "unsigned POST to the $line webhook -> $body (\"bad signature [401]\" expected: this is our Worker answering)"
+            [ "$body" = "bad signature [401]" ]
+          done
+          echo "- Smoke test passed: unknown path 404, unsigned webhooks 401" >> "$GITHUB_STEP_SUMMARY"
