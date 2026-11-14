@@ -1,0 +1,14 @@
+{
+  "sku": "AK-0019",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Orange, Valencia",
+    "size": "kg",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "loose/unbranded: picture only per README. No usable picture found: Spinneys Lebanon lists no Valencia orange (only 'Orange For Juice' and a netted, branded Biomass navel pack, both excluded as a different item); the Spinneys UAE 'Valencia Orange Egypt' page opened shows only a placeholder image; Lulu returned 403; Wikimedia Commons API was rate-limited."
+  },
+  "not_found": [
+    "pictures"
+  ]
+}
