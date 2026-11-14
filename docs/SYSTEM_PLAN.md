@@ -338,6 +338,10 @@ delivery (1.18); a human is always reachable (handoff); catalog items within Met
 daily (`kapsoHealth`); webhook signatures verified; Kapso retention set to match ours; Open Food Facts credited where its data
 or pictures appear; picture sources kept and withdrawable; robots rules and rate limits respected by the intake fetch;
 spending caps on Anthropic and Kapso; Supabase usage checked weekly (A5) and point-in-time recovery on before real money (A3).
+Cloudflare hard stop (A6, 14 Nov 2026): one spend policy on the account, `usage_block` on `durable_objects` at 500 cents, plus an email
+alert on `workers` at 200 cents (workflow `cloudflare-spend-limit`). **The usage block is removed before real customers**: a block
+stops the conversation objects and their alarms, and a limit does not guarantee a maximum bill. The `workers` product is never
+blocked (the account also hosts unrelated Workers); keep the alert.
 
 ## 20. The customer record and retention (A before the pilot; session A3 with the lawyer's answers)
 
