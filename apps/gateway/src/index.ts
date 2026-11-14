@@ -40,7 +40,8 @@ export interface Env {
 }
 interface QueueMsg { line: Line; event: string; key: string }
 
-const db = (env: Env): SupabaseClient => createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+// TEST_DEPS (tests only) reaches the webhook and the queue too, not only the turn: the queue's retry path is tested (A4, item 11).
+const db = (env: Env): SupabaseClient => env.TEST_DEPS?.db ?? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
 
 const MAX_TURN_ATTEMPTS = 3;
 const SEEN_MAX = 300;
@@ -121,11 +122,14 @@ export default {
     const supa = db(env);
     for (const msg of batch.messages) {
       try {
-        const { data } = await supa.from("wa_inbound_events").select("payload, processed_at").eq("idempotency_key", msg.body.key).single();
+        const { data, error } = await supa.from("wa_inbound_events").select("payload, processed_at").eq("idempotency_key", msg.body.key).single();
+        // A4 (item 11): a failed read used to be acked as "nothing to do". Only "no such row" is nothing to do; anything else retries.
+        if (error && error.code !== "PGRST116") throw new Error(`wa_inbound_events read: ${error.message}`);
         if (data && !data.processed_at) await deliver(supa, env, msg.body.line, msg.body.event, msg.body.key, data.payload);
         msg.ack();
       } catch (err) {
-        await supa.from("wa_inbound_events").update({ error: String(err) }).eq("idempotency_key", msg.body.key);
+        // best effort: the database may be the thing that failed; the retry below must happen either way
+        await Promise.resolve(supa.from("wa_inbound_events").update({ error: String(err).slice(0, 500) }).eq("idempotency_key", msg.body.key)).catch(() => {});
         if (msg.attempts >= 3) Sentry.captureException(err, { tags: { where: "queue", line: msg.body.line } });   // retrying, but loudly
         msg.retry();
       }
