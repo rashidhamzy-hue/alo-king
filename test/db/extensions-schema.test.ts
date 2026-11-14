@@ -59,6 +59,8 @@ describe("pg_trgm lives in the extensions schema", () => {
   it("the guard would catch a redefinition that forgets the clause", async () => {
     await db.pg.exec(`begin`);
     try {
+      // 0109's event trigger would pin it as it is created; the guard is for a database without that trigger (rolled back below).
+      await db.pg.exec(`alter event trigger pin_new_functions disable`);
       await db.pg.exec(`create or replace function resolve_place(p_party uuid, p_village text default null, p_landmark text default null)
         returns jsonb language plpgsql stable as $$ begin return (select to_jsonb(max(similarity(name_en, p_village))) from villages); end $$`);
       const cfg = await db.one(`select proconfig from pg_proc where oid = 'resolve_place(uuid,text,text)'::regprocedure`);

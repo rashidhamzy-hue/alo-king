@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 965 tests (40 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
+npx vitest run          # about 1,000 tests (40 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
                         # test/pg/* start a throwaway Postgres 16 (or use TEST_DATABASE_URL) and the Worker in workerd
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
@@ -861,6 +861,68 @@ session in the build plan.
   the "until then" behaviour written there.
 - The Meta message rate for Lebanon: published rate cards disagree (0.0091 or 0.0105 USD); the first bill decides.
 - The founder's phone retest of 0.13 is not recorded anywhere as done.
+
+### Session F1 (G1 fixes), 14 November 2026: G1-01 to G1-09, G1-11, G1-25, late payments; migrations 0103-0109
+Opus 5.5. Branch `claude/clever-faraday-jgs0br` (the branch this environment allows). Each finding got a failing test first, then the
+migration. Built and tested locally: PGlite with every migration (`npm run typecheck && npm test`), and `scripts/check_permissions.sh` on
+a scratch Postgres 16 both fresh and with `EXISTING=1` on a database that had 0001-0093 applied first (as staging has): 322 functions
+had no fixed `search_path` before 0103 (the advisor's count), none after. **Nothing here is proven live yet**: `deploy-staging` applies
+0103-0109 after the merge (result below if it ran in this session).
+
+| Finding | Where | Tested by |
+| --- | --- | --- |
+| G1-11 `search_path` on every function | 0103 `pin_search_paths()`; 0109 event trigger `pin_new_functions` (pins each function created later in public without a path, as it is created); `scripts/check_permissions.sh` | `test/db/search-path-f1.test.ts`: none left without one; trigram callers keep `public, extensions, pg_temp`; a hostile caller path (`evil.setting`) changes nothing; a later function is pinned as it is created (a trigram one with the extensions schema), one that names its own path is left alone, and `pin_search_paths()` catches what the trigger missed. C1's guard test in `extensions-schema.test.ts` disables the trigger for its deliberate redefinition. The permission script fails naming any unpinned function (shown failing on one) |
+| G1-01 COD over/short | 0104 `post_cod_collection`, `day_close_report`, `payments.over_short_usd`, `settings.over_short` | `test/db/cod-over-short-f1.test.ts`: within `cod_tolerance_usd` (0.25) to `cash_over_short`; beyond it up to `cod_max_usd` (1.00) the whole shortfall to `rider_receivable:<driver>` with flag `cod_short`; over beyond it flagged `cod_over`; over 1.00 refused; the setting moves the line; the day close shows `over_short_usd`, `short_owed_usd`, `cod_flags` and `rider_id` per rider |
+| G1-02 drawer below zero | 0105 `pay_supplier`, `pay_out_credit`, `pay_rider_earnings` (step 3), `record_damaged_note` (hub drop) | `test/db/drawer-f1.test.ts`: each base function refuses from an empty drawer and pays exactly what it holds; `refunds.test.ts` and `receiving-margin.test.ts` now drop the rider's cash at the hub first (D3's note) |
+| G1-03 damaged note | 0105 `record_damaged_note(drop, amount, by, key)`, table `damaged_notes` | same file: key required, ops lead or admin (blocked refused), amount above zero and within the drop (with earlier notes), once per key |
+| G1-08 supplier payment | 0105 `pay_supplier(..., p_key, p_advance)`, table `supplier_payments` | same file: more than owed refused (`EXCEEDS_OWED`) unless `p_advance`; one payment per key and per reference |
+| G1-04 late transfer | 0106 `payment_expected`, `submit_payment_proof`, `payment_proofs_open`, `review_payment_proof`, `accept_late_payment`, `cancelled_by_payment_timer`, tables `late_payments`, `payment_proofs.late` | `test/db/late-payment-f1.test.ts`: a screenshot after the timer is queued (exception `late_payment`); booked to the clearing account and customer credit once; the reference cannot confirm another order; a screenshot sent in time and reviewed after the timer is late too; older than 24 h or cancelled by the customer is not late; reject moves nothing |
+| G1-05 overpaid transfer | 0106 `confirm_payment` (wrapper), `confirm_payment_now` (0052's body), `decide_approval` (kind `payment`) | same file: a surplus is customer credit, not `cash_over_short`; more than `settings.approvals.overpay_pct` (5) over waits for a second person, books nothing, keeps the screenshot open; the asker cannot approve; approval confirms in the asker's name |
+| G1-06, G1-07 who acts | 0105, 0106, 0107: `require_role` in `confirm_payment(_now)`, `review_payment_proof`, `accept_late_payment`, `pay_rider_earnings`, `pay_supplier`, `pay_out_credit`, `record_damaged_note`, `declare_cash_drop`, `grant_customer_credit`, `apply_customer_credit`, `pick_short_line`, `pick_remove_line`, `pick_decide_missing`, `pick_found_held` | `test/db/who-acts-f1.test.ts`: a blocked ops lead is refused everywhere; a drop is declared by its rider (or by ops for them: `receive_rider_cash` passes its lead, so a removed rider's cash still comes in), never negative or empty; credit needs staff, or no person only for `substitute_cheaper`, `order_cancelled`, `missing_at_pick`; the pick helpers refuse non-staff. `open_complaint` already checked a blocked lead (0048): tested, unchanged |
+| G1-25 two numbers | 0107 `can_send` (from 0063) | same file: a customer on the ops line and any staff (merchant included) on the customer line get `wrong_line`; marketing still refused first |
+| G1-09 cash cap at pickup | 0108 `rider_picked_up` (from 0033) | `test/db/cash-cap-pickup-f1.test.ts`: a kept dearer substitute takes the rider past the hard cap: pickup refused (`CASH_CAP hard_cap`), nothing leaves; with room it goes ahead |
+| Nutri-Score, NOVA, eco-score, "high in" | test only | `test/db/no-front-of-pack-scores.test.ts`: scans `scripts/`, `packages/`, `apps/`, `supabase/`, `templates/`, `evals/`, the Open Food Facts field list, and every column, constraint and function in the database. Passes today (S1 found none) |
+| Console | `apps/console/src/pages/payments.ts`, `riders.ts` | `apps/console/test/cash-f1.test.ts` (new): a late screenshot is labelled and booked as credit; an overpayment above 5% says it waits on Approvals and hides the confirm button; a small surplus is reported as credit; paying a rider from an empty drawer says to confirm a drop first; over/short today per rider; a damaged-note form on confirmed hub drops, once per form |
+
+**Start from here** (redefined by F1): `post_cod_collection`, `day_close_report` (0104); `pay_supplier`, `pay_out_credit`,
+`pay_rider_earnings`, `record_damaged_note` (0105); `payment_expected`, `submit_payment_proof`, `payment_proofs_open`,
+`review_payment_proof`, `confirm_payment`, `confirm_payment_now`, `decide_approval` (0106); `declare_cash_drop`, `receive_rider_cash`,
+`grant_customer_credit`, `apply_customer_credit`, `pick_short_line`, `pick_remove_line`, `pick_decide_missing`, `pick_found_held`,
+`can_send` (0107); `rider_picked_up` (0108). **`confirm_payment` is now a wrapper** (the overpayment approval); money is posted by
+`confirm_payment_now`: change the posting there. The small-order-fee tripwire in `test/db/ordering-b2.test.ts` now names it.
+
+**A function's `search_path` is now pinned for you** (0109's event trigger), and CREATE OR REPLACE drops a SET clause that is not
+repeated, so writing `set search_path = public, pg_temp` on the function stays the clearest. If the database refused the event trigger
+(the migration says so in a notice and still applies), end a migration that creates functions with `select pin_search_paths();`.
+`deploy-staging`'s permission check fails, naming the function, if one is left without a path. Why 0109 exists: D4's 0114 redefines
+`review_proposed_fact` without the clause, and on a fresh database it runs after 0103 (on staging 0103 arrived after it and pinned it).
+
+Decisions taken in code, written down for the founder (each is a setting or one line):
+- **COD tolerance** `settings.over_short.cod_tolerance_usd` 0.25 and `cod_max_usd` 1.00. A shortfall beyond the tolerance is the rider's
+  whole shortfall, not only the part beyond it. More cash than the total beyond the tolerance stays with the company (`cash_over_short`)
+  and is flagged; it is not given back to the customer automatically.
+- **A late transfer becomes credit; the order is not reopened.** Its stock was released when the timer cancelled it. The customer uses the
+  credit on the next order or ops pays it out (Refunds page). The window is `settings.payment_proofs.late_hours` (24).
+- **Overpayment approval above 5%** (`settings.approvals.overpay_pct`). Below it the surplus is credit at once.
+- **Paying a rider's earnings is refused whole** when the drawer cannot cover the part their cash does not: drop cash first.
+- A supplier paid more than owed needs `p_advance` (the console's receiving page does not offer it yet: request below).
+
+Requests for other sessions (F1 did not touch these files):
+- **D4, `apps/console/src/pages/approvals.ts`:** line 24 labels every non-price approval "Refund"; kind `payment` (0106) should read
+  "Overpaid transfer". Deciding works already (`decide_approval`). If D4 redefines `decide_approval`, start from 0106 and keep the
+  `payment` branch. (D4 merged first; the merge kept both sections.)
+- **D4, `apps/console/src/app.ts` `explain()`:** plain words for `EXCEEDS_OWED` ("More than we owe this supplier; tick 'advance' to pay
+  ahead") and an "advance" checkbox on the receiving page's pay form (`pay_supplier_checked` would need the two new arguments, 0105);
+  `day_close_report` now has per-rider `over_short_usd`, `short_owed_usd`, `cod_flags`: worth a column on the day-close page.
+- **Ops line (`apps/gateway/src/ops-turn.ts`, the next session that owns it):** `rider_picked_up` raises `CASH_CAP hard_cap at pickup`;
+  the rider now gets the generic error and ops the error alert with the reason. A plain message ("hand in cash at the hub first") and a
+  `wrong_line` refusal are worth catching there.
+- **SP1:** 0100-0102 apply before 0103 on a fresh database and after it on staging; either way 0103 or 0109 pins their functions.
+
+Not done, and why:
+- The security advisor after `deploy-staging`: see the line below this section if the deploy ran in this session; otherwise the next
+  session reads it (Supabase advisor, "function search path mutable": expected 0).
+- `TEST_REPORT.txt` was not regenerated (not F1's file).
 
 ### Session D4 (console review pages), 14 November 2026: names, readiness, windows, fact basis, the action log; migrations 0110-0114
 Sonnet 5.5. Branch `claude/loving-mayer-r7yz4z` (the branch this environment allows). Built and tested locally, through the console's real request handler against PGlite with every migration (D1's rig): `npm run typecheck && npm test`, 965 passed, 40 live-only skipped, plus the new console tests (names 9, readiness 5, windows 10, facts-basis 7, sign-in 19). D1's rules kept: the console has no insert, update or delete (`no-direct-writes.test.ts` passes unchanged), the acting party comes from the session, every action is logged first, plain server-rendered pages. **Nothing here is proven live**: the migrations reach staging with `deploy-staging` after the merge, and the console workflow's smoke sweep then opens the three new pages (it reports, it does not fail, a page that cannot load yet).
