@@ -1,0 +1,55 @@
+{
+  "sku": "AK-0064",
+  "matched": {
+    "brand": "Puck",
+    "product": "Cooking Cream",
+    "size": "500 ml",
+    "barcode": "5711953071331",
+    "confidence": "likely",
+    "note": "Brand page (puckarabia.com, Gulf/Arabia market) describes Cooking Cream as '1L (also available in 500Ml, and 200Ml)'; ingredients, nutrition ('per 100g' as the page labels it) and storage are for that product, not stated per size, and the barcode is not shown. Recipe sold in Lebanon may differ. Not on Open Food Facts under the catalog barcode. Page has no allergen statement; allergen taken from the ingredients list. Brand pack shot on that page is the 1 L carton, so it was not used."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/3/8/387106-v001-1_1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/whipping-cream.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 500 ml carton, plain white background, no watermark/price, front three-quarter view"
+    }
+  ],
+  "ingredients": {
+    "text": "Water, Butter, Skimmed milk powder, Sweet cream buttermilk powder, Carrageenan.",
+    "language": "en",
+    "page_url": "https://www.puckarabia.com/en/products/cooking-cream/",
+    "market": "Gulf / Arabia (puckarabia.com)"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "Water, Butter, Skimmed milk powder, Sweet cream buttermilk powder, Carrageenan.",
+    "page_url": "https://www.puckarabia.com/en/products/cooking-cream/"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 270,
+    "fat_g": 27.2,
+    "saturated_fat_g": 17.4,
+    "carbohydrate_g": 3.8,
+    "sugars_g": 3.8,
+    "fibre_g": 0,
+    "protein_g": 2.6,
+    "salt_g": 0.1,
+    "sodium_mg": 24,
+    "page_url": "https://www.puckarabia.com/en/products/cooking-cream/"
+  },
+  "storage": {
+    "text": "Keep at 5⁰ C. Do not freeze. Use withing 3 days.",
+    "page_url": "https://www.puckarabia.com/en/products/cooking-cream/"
+  },
+  "not_found": [
+    "diet_labels",
+    "origin"
+  ]
+}
