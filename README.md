@@ -13,7 +13,6 @@ are built and tested. Nothing has run against a live WhatsApp, Supabase or Cloud
 | `docs/HANDOFF.md` | Business rules and status: built and tested, built but untested, needs a live account |
 | `docs/BUILD_PLAN.md` | The one current roadmap: Phases 0-7 to a paid grocery pilot, Phase 8 restaurants |
 | `docs/COST_MODEL.md` | Cost assumptions and results |
-| `TEST_REPORT.txt` | Captured test run for this tree |
 | `docs/history/` | Superseded material. Not current. |
 
 ## Layout
