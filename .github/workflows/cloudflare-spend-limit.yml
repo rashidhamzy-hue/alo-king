@@ -58,7 +58,9 @@ jobs:
               head -c 600 "$RUNNER_TEMP/list.err" | sed -E "s/${CLOUDFLARE_API_TOKEN:-__none__}/(token)/g; s/${CLOUDFLARE_ACCOUNT_ID:-__none__}/(account)/g"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
-            echo "::error::The token cannot read spend policies. Nothing changed. It needs Account > Billing > Edit."
+            echo "cf exit status and first lines of its error (token and account id hidden):"
+            head -c 600 "$RUNNER_TEMP/list.err" | sed -E "s/${CLOUDFLARE_API_TOKEN:-__none__}/(token)/g; s/${CLOUDFLARE_ACCOUNT_ID:-__none__}/(account)/g"
+            echo "::error::Spend policies could not be read, nothing changed. Most likely the token needs Account > Billing > Edit (see the summary and the lines above)."
             exit 1
           fi
       - name: Durable Objects hard stop (usage_block at 500 cents)
