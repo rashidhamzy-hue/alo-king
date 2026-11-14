@@ -125,8 +125,51 @@ Runs are on the repository's Actions page. "Not yet" means written and tested lo
 | Deploy: Worker job (queues, deploy, secrets, webhooks, smoke test) | **Yes**, first deploy and a repeat deploy | the same two runs |
 | Roll back the Worker | **Yes**, 13 Nov 2026: rolled back one version, the Worker still answered, then redeployed | `staging-drill` run 43394402493 |
 | Rotate one secret (webhook signing secrets) | **Yes**: new secrets in the Worker and in Kapso, a signed test event accepted on both lines | `staging-drill` run 43394402493 |
-| Sentry receives a Worker error | **Not confirmed.** Delivery to Sentry's ingest is proven (HTTP 200, flush true); the event is not visible in the project. See `docs/HANDOFF.md` 0.8 | `deploy-staging` run 43396822066 |
+| Sentry receives a Worker error | **Not confirmed.** Delivery to Sentry's ingest is proven (HTTP 200, flush true); the event is not visible in the project. See `docs/HANDOFF.md` 0.8. Since A4 (14 Nov) the deploy proves Sentry with a check-in to the monitors `deploy-smoke-staging` and `deploy-ingest-check-staging`, not an error, so it no longer opens issues | `deploy-staging` run 43396822066 |
 | Recovery drill: restore from point-in-time recovery | Not yet. Needs production and a paid Supabase plan (4.8) | |
 
 **What the drill taught.** `wrangler rollback` goes to the previous *version*, and a secret change is a version. If the version you roll back to predates a secret, the Worker loses it. After any rollback run `npx wrangler secret list --env <env>` and compare with the list at the top of this file;
 if a secret is missing, run `deploy-staging` with "rotate" ticked (webhook secrets) or set it from the repository secret by running the deploy again.
+
+## Voice notes for the evaluation (5.8, session V1): upload by Rasheed
+Written by session A4, 14 November 2026. The 51 real Shouf voice notes go into the **private** `media` bucket of the staging Supabase
+project, never into the repository, a chat, a public link or a shared drive. They are personal data (people's voices). Session V1 reads
+them from the bucket with the service key and writes its drafts back beside them; nothing it commits contains audio.
+
+**Where:** bucket `media`, folder `voice_eval/shouf-51/`. Exactly this folder: V1 reads it and nothing else.
+
+**Before you start**
+1. Collect the 51 notes as audio files on your computer, in one folder. From a phone: in WhatsApp, open the chat, long-press the
+   voice note, Share, and save it to Files (iPhone) or to Downloads (Android); or on Android copy them from
+   `WhatsApp/Media/WhatsApp Voice Notes/`. From WhatsApp Web or Desktop: open the chat, hover the note, the arrow, Download.
+2. Keep the files as they are: `.opus`, `.ogg`, `.m4a`, `.mp3`, `.aac` and `.wav` are all fine. Do not convert, trim or join them.
+   Each file must be under 20 MB (the bucket's limit; a 3-minute note is well under 1 MB).
+3. Rename any file whose name contains a person's name or a phone number. Use `note-01.opus` to `note-51.opus` (keep each file's own
+   extension). If you know which village or situation a note is from, do not put it in the name either: V1 does not need it.
+
+**Upload (Supabase dashboard, about five minutes)**
+1. Sign in at supabase.com, open the project **alo-king-staging**, then **Storage** in the left menu.
+2. Open the bucket **media**. It must show a lock or "Private". If it says "Public", stop and do not upload (see "If something is
+   wrong" below).
+3. Click **Create folder**, name it `voice_eval`, open it, then create the folder `shouf-51` inside it and open that.
+4. Click **Upload files**, select all 51 files at once, and wait until each shows as uploaded.
+5. Do not click "Get URL" or "Share" on any file. A signed link lets anyone who has it hear the note.
+
+**Check (one query)**
+Open **SQL Editor**, paste this and click Run:
+
+```sql
+select count(*) as notes, pg_size_pretty(sum((metadata->>'size')::bigint)) as total
+  from storage.objects where bucket_id = 'media' and name like 'voice_eval/shouf-51/%';
+```
+
+`notes` must be **51**. Then delete the copies on your computer's Downloads folder if you do not need them there.
+
+**Then:** V1 can start; it checks the same count before it reads anything. Nothing else needs to be told to anyone.
+
+**If something is wrong**
+- The bucket is missing or shows "Public": run the `deploy-staging` workflow (it creates the bucket private and fails if it is
+  public, `scripts/ci/ensure-media-bucket.sh`), then upload.
+- A file was uploaded by mistake (wrong note, a name in the file name): select it in the folder and Delete. It is gone from storage.
+- Fewer than 51: upload the missing ones into the same folder; a file with the same name is refused, so nothing doubles.
+- Never put the notes, their transcripts or a link to them in GitHub, an issue, a pull request or a chat with a model outside V1.
