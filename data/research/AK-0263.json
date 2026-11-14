@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0263",
+  "matched": {
+    "brand": "Sanita",
+    "product": "Liquid Laundry Detergent Fresh Essence",
+    "size": "2.5 L",
+    "barcode": "5281001603871",
+    "confidence": "unsure",
+    "note": "non-food. Brand site sanitalb.com lists 'Laundry Power Gel' (Sanita My Home), scent Fresh Essence, only in 1000 ml / 3000 ml / 4000 ml; no 2.5 L pack is shown, so its pictures were not used. Not found on Spinneys Lebanon."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

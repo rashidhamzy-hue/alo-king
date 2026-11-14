@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0257",
+  "matched": {
+    "brand": "City Plast",
+    "product": "Sandwich Bag",
+    "size": "100 pieces",
+    "barcode": "5285006708135",
+    "confidence": "unsure",
+    "note": "non-food. No product page opened: not on Spinneys Lebanon; www.cityplast.net and www.cityplastlb.com do not resolve from this session; carrefourlebanon.com returns 503."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

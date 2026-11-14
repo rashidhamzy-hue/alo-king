@@ -1,0 +1,64 @@
+{
+  "matched": {
+    "brand": "Dolly's",
+    "product": "Tomato Ketchup (squeeze bottle)",
+    "size": "900 g",
+    "barcode": "744171120111",
+    "confidence": "exact",
+    "note": "Brand page dollys.net lists Dolly's Ketchup 900 g. Ingredients, storage and nutrition read from the back-label photo and nutrition image on that page. Origin from Loyabi page that lists the 900 g option. Open Food Facts 0744171120111 has only sugars and a serving size, so it was not used."
+  },
+  "pictures": [
+    {
+      "image_url": "https://dollys.net/wp-content/uploads/2022/10/27.jpg",
+      "page_url": "https://dollys.net/product/dollys-ketchup-4/",
+      "site": "Dolly's Famous Food",
+      "site_kind": "brand",
+      "looks": "one red squeeze bottle, tomato ketchup front label with 900 g net weight, white background, no watermark or price"
+    },
+    {
+      "image_url": "https://dollys.net/wp-content/uploads/2022/10/KETCHUP-900G-1.jpg",
+      "page_url": "https://dollys.net/product/dollys-ketchup-4/",
+      "site": "Dolly's Famous Food",
+      "site_kind": "brand",
+      "looks": "same bottle, back label with ingredients and nutrition, white background, no watermark"
+    },
+    {
+      "image_url": "https://loyabi.com/cdn/shop/products/dollys.jpg?v=1679134979",
+      "page_url": "https://loyabi.com/products/dollys-famous-food-tomato-ketchup",
+      "site": "Loyabi",
+      "site_kind": "retailer",
+      "looks": "one red squeeze bottle, Dolly's Tomato Ketchup All Natural label, white background, no watermark or price"
+    }
+  ],
+  "ingredients": {
+    "text": "Tomato Concentrate from Red Ripe tomatoes, Sugar, Distilled Vinegar, Modified Corn Starch (E1422), Salt 2%, Spices (Onion, Garlic, White Pepper and Black pepper), Cellulose Gum (E466) and/or Xanthan Gum (E415), Sodium Benzoate (E211), Potassium Sorbate (E202), Total Soluble Solids 33% min.",
+    "language": "en",
+    "page_url": "https://dollys.net/wp-content/uploads/2022/10/KETCHUP-900G-1.jpg",
+    "market": "Lebanon"
+  },
+  "nutrition": {
+    "per": "serving (18 g)",
+    "energy_kcal": 25,
+    "fat_g": 0,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 4,
+    "sugars_g": 4,
+    "fibre_g": 0,
+    "protein_g": 0,
+    "sodium_mg": 135,
+    "page_url": "https://dollys.net/wp-content/uploads/2022/10/Nutritional-Facts_KETCHUP-900G.jpg"
+  },
+  "storage": {
+    "text": "Store in a cool and dry place. Keep refrigerated after opening. Shake well before first use.",
+    "page_url": "https://dollys.net/wp-content/uploads/2022/10/KETCHUP-900G-1.jpg"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://loyabi.com/products/dollys-famous-food-tomato-ketchup"
+  },
+  "not_found": [
+    "allergens",
+    "diet_labels"
+  ],
+  "sku": "AK-0215"
+}

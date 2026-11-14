@@ -1,0 +1,57 @@
+{
+  "sku": "AK-0200",
+  "matched": {
+    "brand": "Chtoura Garden",
+    "product": "Boiled Chick Peas in Brine",
+    "size": "400 g",
+    "barcode": "5285001400041",
+    "confidence": "likely",
+    "note": "Facts are from an EU importer page (Tema Fine Foods, Netherlands) for the 400 g can, not a Lebanese page; recipe for Lebanon not confirmed. Open Food Facts record for this barcode is a 475 g can with no picture and no ingredients, so not used. Label allergen statement not quoted literally on the page text, so left out."
+  },
+  "pictures": [
+    {
+      "image_url": "https://bazarmarkt.com/611549-product_main/Cooked_chickpeas_Chtoura_Garden_400Gr.jpg",
+      "page_url": "https://bazarmarkt.com/hommous_chickpeas/221-Cooked_chickpeas_Chtoura_Garden_400Gr.html",
+      "site": "bazarmarkt.com",
+      "site_kind": "retailer",
+      "looks": "one can, white background, no watermark/logo/price/text overlay, front view, 'Boiled Chickpeas in Brine' Chtoura Garden"
+    },
+    {
+      "image_url": "https://www.temafinefoods.com/wp-content/uploads/2016/06/3060-600x600.jpg",
+      "page_url": "https://www.temafinefoods.com/product/chtoura-garden-boiled-chickpeas-eo-garbanzos-in-brine-lebanon-24x400g/",
+      "site": "temafinefoods.com",
+      "site_kind": "other",
+      "looks": "one can, white background, no watermark/price, front view, 400g printed; pack reads 'Garbanzos Beans in Brine'"
+    }
+  ],
+  "ingredients": {
+    "text": "Cooked chickpeas (60%), water, salt, citric acid (E330, acidity regulator), ascorbic acid (E300, antioxidant)",
+    "language": "en",
+    "page_url": "https://bazarmarkt.com/hommous_chickpeas/221-Cooked_chickpeas_Chtoura_Garden_400Gr.html",
+    "market": "Netherlands (EU importer)"
+  },
+  "nutrition": {
+    "per": "100 g (drained)",
+    "energy_kcal": 97,
+    "fat_g": 1.6,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 16,
+    "sugars_g": 0.9,
+    "fibre_g": 2.9,
+    "protein_g": 5,
+    "salt_g": 1.2,
+    "page_url": "https://bazarmarkt.com/hommous_chickpeas/221-Cooked_chickpeas_Chtoura_Garden_400Gr.html"
+  },
+  "storage": {
+    "text": "Keep cool and dry. Refrigerate after opening. Protect from moisture and sunlight.",
+    "page_url": "https://bazarmarkt.com/hommous_chickpeas/221-Cooked_chickpeas_Chtoura_Garden_400Gr.html"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://bazarmarkt.com/hommous_chickpeas/221-Cooked_chickpeas_Chtoura_Garden_400Gr.html"
+  },
+  "not_found": [
+    "allergens",
+    "diet_labels"
+  ]
+}

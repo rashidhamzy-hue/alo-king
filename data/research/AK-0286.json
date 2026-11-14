@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0286",
+  "matched": {
+    "brand": "Oui Oui",
+    "product": "Premium Diapers Size 6 (16-30 kg)",
+    "size": "32 pieces",
+    "barcode": "5285001500192",
+    "confidence": "exact",
+    "note": "non-food. Wakilni Marketplace page Oui Oui Premium 6 (16-30kg); image file named by the catalog barcode, pack shows 32 and 6."
+  },
+  "pictures": [
+    {
+      "image_url": "https://media1.wakilni.com/wp-content/uploads/2026/09/5285001500192.jpg",
+      "page_url": "https://shop.wakilni.com/product/oui-oui-premium-6-16-30kg/",
+      "site": "Wakilni Marketplace",
+      "site_kind": "retailer",
+      "looks": "one pack, white background, front three-quarter view, 32 and size 6 visible, no watermark or price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

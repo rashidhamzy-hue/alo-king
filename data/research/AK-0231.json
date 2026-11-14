@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0231",
+  "matched": {
+    "brand": "Lotussweets",
+    "product": "Ice Cream",
+    "size": "1Kg",
+    "barcode": "00267052",
+    "confidence": "unsure",
+    "note": "Nothing found for a Lotus Sweets 1kg ice cream."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

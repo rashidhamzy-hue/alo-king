@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0232",
+  "matched": {
+    "brand": "Dolsi",
+    "product": "Vegas with Caramel Filling",
+    "size": "",
+    "barcode": "5287000004299",
+    "confidence": "unsure",
+    "note": "OFF record (countries: Lebanon) has only a front photo of a Gelati Dolsi 'Vegas' bar; caramel filling not verifiable from the page."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/700/000/4299/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5287000004299",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one wrapped bar on a blue cloth, cluttered background, 400x250"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

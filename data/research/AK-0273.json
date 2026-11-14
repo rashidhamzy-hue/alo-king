@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0273",
+  "matched": {
+    "brand": "Wellplus",
+    "product": "Wellplus Liquid Soap Sea Breeze",
+    "size": "500 ml",
+    "barcode": "5281143010223",
+    "confidence": "unsure",
+    "note": "non-food. No page found for this exact product; barcode not in Open Beauty/Products/Food Facts; searches of Spinneys Lebanon, Superdokan, Loyabi found nothing. NOTHING."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0228",
+  "matched": {
+    "brand": "Deroni",
+    "product": "Premium Sugar",
+    "size": "5kg",
+    "barcode": "5285001520398",
+    "confidence": "unsure",
+    "note": "Only a listing seen in search for Deroni 5kg sugar (Carrefour Lebanon, not usable); Superdokan product pages opened show only 900g. Picture of 900g pack not used for 5kg."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0279",
+  "matched": {
+    "brand": "Head & Shoulders",
+    "product": "Shampoo Sub Zero Freshness",
+    "size": "400 ml",
+    "barcode": "8006540314210",
+    "confidence": "exact",
+    "note": "non-food. Open Beauty Facts record has only a hand-held shelf photo and no text; Spinneys Lebanon has no page for this variant."
+  },
+  "pictures": [
+    {
+      "image_url": "https://serinacosmetics.com/wp-content/uploads/2024/12/Head-Shoulders-Shampoo-Sub-Zero-Freshness-400ml.jpg",
+      "page_url": "https://serinacosmetics.com/shop/hair-care/anti-dandruff/head-shoulders-shampoo-sub-zero-freshness-400ml/",
+      "site": "Serina Cosmetics",
+      "site_kind": "retailer",
+      "looks": "one bottle, white background, front view, Sub Zero -5C, no watermark or price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0281",
+  "matched": {
+    "brand": "Nivea",
+    "product": "Roll On For Women Extra Brightening (Extra Whitening)",
+    "size": "25 ml",
+    "barcode": "8999777004224",
+    "confidence": "likely",
+    "note": "non-food. Picture from a Vietnam retailer page titled Nivea Deodorant Roll-on Extra Whitening For Women 25ML; no Lebanese page found. Pack text on the image reads extra whitening."
+  },
+  "pictures": [
+    {
+      "image_url": "https://egrocery.asia/wp-content/uploads/2018/06/vietnam-nivea-deodorant-roll-on-extra-whitening-for-women-25ml.jpg",
+      "page_url": "https://egrocery.asia/nivea-deodorant-roll-on-extra-whitening-for-women-25ml.html",
+      "site": "egrocery.asia",
+      "site_kind": "retailer",
+      "looks": "one roll-on, white background, front view, no watermark or price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

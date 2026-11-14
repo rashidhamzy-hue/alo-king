@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0208",
+  "matched": {
+    "brand": "Yamama",
+    "product": "Tomato Paste (glass jar)",
+    "size": "1325 g",
+    "barcode": "5281099110145",
+    "confidence": "exact",
+    "note": "Brand page confirms the 1325 g jar (6 glasses per case) but lists no ingredients, nutrition or allergens. Open Food Facts record 5281099110145 matches brand and size but has no ingredients; its nutrition (13 kcal, 3 g carbohydrate per 100 g) is not plausible for tomato paste (likely a per-portion entry) so it was not used. Ingredient lists seen for other Yamama sizes (660 g, 1350 g) were not used."
+  },
+  "pictures": [
+    {
+      "image_url": "http://www.yamama-lb.com/wp-content/uploads/2021/11/1325-2.jpg",
+      "page_url": "https://www.yamama-lb.com/our-products-tomato/",
+      "site": "yamama-lb.com",
+      "site_kind": "brand",
+      "looks": "one glass jar with green lid, white background, no watermark/logo/price/text overlay, front view, 1325g printed on label"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/109/911/0145/front_en.4.full.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281099110145",
+      "site": "world.openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "one jar photographed by hand against a table and fabric background, label readable, no watermark/price; not a clean packshot"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

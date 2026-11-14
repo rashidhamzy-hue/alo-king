@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0277",
+  "matched": {
+    "brand": "Amalfi",
+    "product": "Amalfi Shampoo Anti-Dandruff (Anticaspa)",
+    "size": "750 ml",
+    "barcode": "8414227676856",
+    "confidence": "unsure",
+    "note": "non-food. Open Beauty Facts record matches the bottle (Amalfi anticaspa 750 ml) but its brand field is 'Espain', no ingredients, and the only picture is a hand-held photo with a date stamp: not used. No retailer page found."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

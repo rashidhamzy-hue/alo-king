@@ -1,0 +1,31 @@
+{
+  "matched": {
+    "brand": "Al Koura",
+    "product": "Extra Virgin Olive Oil",
+    "size": "500 ml",
+    "barcode": "2336159415029",
+    "confidence": "likely",
+    "note": "Only one page opened: Arz Arabic Store (Singapore market) for Al Koura Extra Virgin Olive Oil 500 ml; catalog name says Olive Oil without \"Extra Virgin\". The barcode is a store-style code and is not in Open Food Facts. The page images were mislinked (scarf pictures), so no picture was used."
+  },
+  "ingredients": {
+    "text": "Olives",
+    "language": "en",
+    "page_url": "https://arzarabicstore.com/products/al-koura-extra-virgin-olive-oil-500ml",
+    "market": "Singapore"
+  },
+  "storage": {
+    "text": "Store in cool dry place and away from direct sunlight",
+    "page_url": "https://arzarabicstore.com/products/al-koura-extra-virgin-olive-oil-500ml"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://arzarabicstore.com/products/al-koura-extra-virgin-olive-oil-500ml"
+  },
+  "not_found": [
+    "pictures",
+    "allergens",
+    "nutrition",
+    "diet_labels"
+  ],
+  "sku": "AK-0217"
+}

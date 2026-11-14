@@ -1,0 +1,31 @@
+{
+  "matched": {
+    "brand": "Al Wazir",
+    "product": "Olive Oil",
+    "size": "500 ml",
+    "barcode": "8428483500046",
+    "confidence": "likely",
+    "note": "Not in Open Food Facts. Loyabi (Lebanon) page for Al Wazir Olive Oil 500 ml; its text mentions both virgin and refined olive oil without saying which, so no ingredient line was recorded. Pack claims (100% pure, acidity under 1%) are not recorded as labels."
+  },
+  "pictures": [
+    {
+      "image_url": "https://loyabi.com/cdn/shop/products/al-wazit-olive-oil_1200x.jpg?v=1681727408",
+      "page_url": "https://loyabi.com/products/al-wazir-olive-oil-500-ml",
+      "site": "Loyabi",
+      "site_kind": "retailer",
+      "looks": "one glass bottle with black cap, Al Wazir olive oil label, white background, no watermark or price, front view"
+    }
+  ],
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://loyabi.com/products/al-wazir-olive-oil-500-ml"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage"
+  ],
+  "sku": "AK-0219"
+}

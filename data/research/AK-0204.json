@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0204",
+  "matched": {
+    "brand": "Local (unbranded)",
+    "product": "Green olives (jar)",
+    "size": "",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Unbranded jar item: picture only. Picture is a close-up of loose Lebanese green olives from a retailer list (IM001513); no jar in view."
+  },
+  "pictures": [
+    {
+      "image_url": "https://lebanesefoodmarket.com/image/cache/catalog/IM001513%20copy-500x500.jpg",
+      "page_url": "https://lebanesefoodmarket.com/Lebanese-Olives-And-Oil",
+      "site": "lebanesefoodmarket.com",
+      "site_kind": "retailer",
+      "looks": "close-up of loose green olives filling the frame, no jar, no label, no text or watermark"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

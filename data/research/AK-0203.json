@@ -1,0 +1,46 @@
+{
+  "sku": "AK-0203",
+  "matched": {
+    "brand": "Tanmia",
+    "product": "Chicken Luncheon (round, easy open can)",
+    "size": "200 g",
+    "barcode": "5281101391708",
+    "confidence": "likely",
+    "note": "Brand page is 'Chicken Luncheon Round - 200g'; the 'easy open' wording is the catalog's, the pack picture shows a ring-pull lid. Open Food Facts record for this barcode ('Chicken luncheons', 113 kcal, no brand) disagrees with the brand panel, so not used. Ingredients and nutrition were read from the brand's two label images."
+  },
+  "pictures": [
+    {
+      "image_url": "https://tanmia.com/wp-content/uploads/2022/08/Tanmia-chicken-luncheon-200g.png",
+      "page_url": "https://tanmia.com/products/luncheon/chicken-luncheon-round-200g/",
+      "site": "tanmia.com",
+      "site_kind": "brand",
+      "looks": "one can, small and centred on a white canvas with faint reflection, no watermark/price/text overlay, front view, low resolution (683x683)"
+    }
+  ],
+  "ingredients": {
+    "text": "Chicken meat 80%; water; corn starch; soy protein concentrate; salt; thickeners: carrageenan, processed eucheuma seaweeds, carboxymethyl cellulose, guar gum; stabilizers: di and triphosphates (less than 0.3%); spices; flavorings; flavor enhancer: monosodium glutamate; emulsifier: mono and diglycerides of fatty acids; antioxidant: sodium erythorbate; preservative: sodium nitrite (less than 0.01%); colorant: carmines.",
+    "language": "en",
+    "page_url": "https://tanmia.com/products/luncheon/chicken-luncheon-round-200g/",
+    "market": "Lebanon (brand site)"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 189,
+    "fat_g": 12.5,
+    "carbohydrate_g": 5.7,
+    "protein_g": 13.4,
+    "page_url": "https://tanmia.com/products/luncheon/chicken-luncheon-round-200g/"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "Halal icon on the brand product page; no written statement or certificate shown",
+      "page_url": "https://tanmia.com/products/luncheon/chicken-luncheon-round-200g/"
+    }
+  ],
+  "not_found": [
+    "allergens",
+    "storage",
+    "origin"
+  ]
+}

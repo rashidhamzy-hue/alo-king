@@ -1,0 +1,40 @@
+{
+  "sku": "AK-0238",
+  "matched": {
+    "brand": "Foody's",
+    "product": "Frozen Green Peas",
+    "size": "400 g (size from catalog; OFF record has no quantity)",
+    "barcode": "6271100084281",
+    "confidence": "likely",
+    "note": "OFF record 6271100084281 (market Kuwait) named \"foody's green peas\"; front image matches brand and product; size not stated on the record. Nutrition per 100 g as given by OFF."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/627/110/008/4281/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/6271100084281",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one bag photographed on a counter, cluttered background, front view"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 97,
+    "fat_g": 0.5,
+    "saturated_fat_g": 0.2,
+    "carbohydrate_g": 15.2,
+    "sugars_g": 6,
+    "fibre_g": 0.7,
+    "protein_g": 7.8,
+    "salt_g": 0.1,
+    "sodium_mg": 31,
+    "page_url": "https://world.openfoodfacts.org/product/6271100084281"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

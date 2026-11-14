@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0288",
+  "matched": {
+    "brand": "Oui Oui",
+    "product": "Premium Diapers Size 5 (12-25 kg)",
+    "size": "38 pieces",
+    "barcode": "5285001500185",
+    "confidence": "exact",
+    "note": "non-food. Wakilni Marketplace page Oui Oui Premium 5 (12-25kg); image file named by the catalog barcode, pack shows 38 and 5."
+  },
+  "pictures": [
+    {
+      "image_url": "https://media1.wakilni.com/wp-content/uploads/2026/09/5285001500185.jpg",
+      "page_url": "https://shop.wakilni.com/product/oui-oui-premium-5-12-25kg/",
+      "site": "Wakilni Marketplace",
+      "site_kind": "retailer",
+      "looks": "one pack, white background, front three-quarter view, 38 and size 5 visible, no watermark or price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0291",
+  "matched": {
+    "brand": "Proline",
+    "product": "Bentonite Clumping Cat Litter Marseille Soap",
+    "size": "5 L",
+    "barcode": "8698995010153",
+    "confidence": "unsure",
+    "note": "non-food. Petsky (UAE) page lists barcode 8698995011471 and brand Lider, which differs from the catalog barcode; Pet Elements BD page says made from 100% natural bentonite clay (no ingredient list). Picture shows Pro line Marseille soap bentonite litter."
+  },
+  "pictures": [
+    {
+      "image_url": "https://petskyonline.com/cdn/products/5a43d61b9556669bd6233d382753dd56-hi.jpg",
+      "page_url": "https://petskyonline.com/product/proline-bentonite-clumping-marseille-soap-cat-litter-5l/",
+      "site": "Petsky",
+      "site_kind": "retailer",
+      "looks": "one bag, white background, front view, no watermark or price, 275x519"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

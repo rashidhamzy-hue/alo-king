@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0233",
+  "matched": {
+    "brand": "Ocean",
+    "product": "Crab Sticks Surimi",
+    "size": "250g",
+    "barcode": "6064000054580",
+    "confidence": "unsure",
+    "note": "Nothing found; Spinneys Lebanon lists only other brands."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

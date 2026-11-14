@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0205",
+  "matched": {
+    "brand": "Local (unbranded)",
+    "product": "Black olives (jar)",
+    "size": "",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Unbranded jar item: picture only. Pictures are close-ups of loose Lebanese black olives from a retailer list (IM001514, IM001677); no jar in view."
+  },
+  "pictures": [
+    {
+      "image_url": "https://lebanesefoodmarket.com/image/cache/catalog/IM001514%20copy-500x500.jpg",
+      "page_url": "https://lebanesefoodmarket.com/Lebanese-Olives-And-Oil",
+      "site": "lebanesefoodmarket.com",
+      "site_kind": "retailer",
+      "looks": "close-up of loose dark and brown-red olives filling the frame, no jar, no label, no text or watermark"
+    },
+    {
+      "image_url": "https://lebanesefoodmarket.com/image/cache/catalog/IM001677%20copyi-500x500.jpg",
+      "page_url": "https://lebanesefoodmarket.com/Lebanese-Olives-And-Oil",
+      "site": "lebanesefoodmarket.com",
+      "site_kind": "retailer",
+      "looks": "close-up of loose dark purple olives with white bands above and below, no jar, no label, no text"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

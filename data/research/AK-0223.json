@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0223",
+  "matched": {
+    "brand": "Deroni",
+    "product": "Premium Sugar",
+    "size": "900g",
+    "barcode": "5285001524341",
+    "confidence": "likely",
+    "note": "Superdokan (Lebanon) lists Deroni Premium Sugar 900g; page shows no barcode, ingredients or nutrition. Picture shows the Deroni Premium Sugar pack."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/products/5_1FREE_1.jpg?v=1791616744",
+      "page_url": "https://superdokan.com/en-lb/products/deroni-premium-sugar-900g-deroni-in-lebanon",
+      "site": "Superdokan",
+      "site_kind": "retailer",
+      "looks": "one pack, white background, no watermark/price/banner, front view, pack size not printed legibly"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

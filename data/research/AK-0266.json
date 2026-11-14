@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0266",
+  "matched": {
+    "brand": "Britex",
+    "product": "Britex Sponge Easy Grip Jumbo Euro 5Pcs",
+    "size": "5 pcs",
+    "barcode": "5319991245709",
+    "confidence": "unsure",
+    "note": "non-food. No page found for this exact product; barcode not in Open Beauty/Products/Food Facts; searches of Spinneys Lebanon, Superdokan, Loyabi found nothing. NOTHING."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

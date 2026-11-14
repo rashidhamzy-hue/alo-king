@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0282",
+  "matched": {
+    "brand": "Nivea",
+    "product": "Roll On For Women Pearl & Beauty",
+    "size": "25 ml",
+    "barcode": "8999777011000",
+    "confidence": "likely",
+    "note": "non-food. Picture from Purplle (India) page titled Nivea Women Deodorant Roll On Pearl and Beauty 25 ml; market differs from Lebanon."
+  },
+  "pictures": [
+    {
+      "image_url": "https://media6.ppl-media.com/tr:h-750,w-750,c-at_max,dpr-2,q-40/static/img/product/251539/nivea-women-deodorant-roll-on-pearl-and-beauty-25-ml_3_display_1621931730_3b328713.jpg",
+      "page_url": "https://www.purplle.com/product/nivea-women-deodorant-roll-on-pearl-and-beauty-25-ml-17",
+      "site": "Purplle",
+      "site_kind": "retailer",
+      "looks": "one roll-on, white background, front view, no watermark or price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

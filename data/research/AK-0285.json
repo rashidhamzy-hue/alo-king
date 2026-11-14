@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0285",
+  "matched": {
+    "brand": "Johnson's",
+    "product": "Baby Shampoo",
+    "size": "750 ml",
+    "barcode": "3574669907408",
+    "confidence": "likely",
+    "note": "non-food. Spinneys Lebanon page is titled Johnson and Johnson Baby Shampoo Gold PH+ 750ml; picture shows Johnson's baby shampoo 750ml. Open Food Facts record has only a shelf photo and no text."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/bf17d51582633d117895e47c462fe4c4/5/0/503140-v001-1_3.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/johnson-johnson-baby-shampoo-gold-ph-750ml.html",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one pump bottle, white background, front view, 750ml legible, small 265 px"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

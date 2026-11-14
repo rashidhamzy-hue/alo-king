@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0271",
+  "matched": {
+    "brand": "Private",
+    "product": "Private Feminine Pads Extra Thin Normal",
+    "size": "10 pcs",
+    "barcode": "5281001312704",
+    "confidence": "unsure",
+    "note": "non-food. No page found for this exact product; barcode not in Open Beauty/Products/Food Facts; searches of Spinneys Lebanon, Superdokan, Loyabi found nothing. NOTHING."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

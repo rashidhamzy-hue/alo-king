@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0244",
+  "matched": {
+    "brand": "Foody's",
+    "product": "Crispy French Fries Straight Cut",
+    "size": "900 g",
+    "barcode": "5285004332257",
+    "confidence": "unsure",
+    "note": "Nothing found: not on Open*Facts; searches of Spinneys Lebanon, superdokan and the web returned no page for this exact product and size."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

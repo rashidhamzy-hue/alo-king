@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0262",
+  "matched": {
+    "brand": "Germex",
+    "product": "Floor detergent / Disinfectant + Cleaner",
+    "size": "1 L",
+    "barcode": "5283002610070",
+    "confidence": "unsure",
+    "note": "non-food. Catalog says 'Germex Floor Detergent 1L'; Spinneys Lebanon lists 'GERMEX DISINFECTANT+CLEANER' as 1.20 L. Same brand and red bottle type, but name and size differ, so the picture may be another size. No composition or origin on the page. loubnany.com Germex page returned 403; spartan.com.lb product pages returned 404."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/6/163711-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/disinfectant-cleaner.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one red bottle with yellow cap, red/blue GERMEX Disinfectant & Cleaner label in Arabic and English, white background, front view, no watermark or price; retailer lists it as 1.20 L"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

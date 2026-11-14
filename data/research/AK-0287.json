@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0287",
+  "matched": {
+    "brand": "Loulou",
+    "product": "Baby Diapers Size 6 (16-30 kg)",
+    "size": "26 pieces",
+    "barcode": "5283023301407",
+    "confidence": "exact",
+    "note": "non-food. Mediane Shop page Loulou Baby Diapers - Size 6; pack shows 6, 26 and 16-30 kg."
+  },
+  "pictures": [
+    {
+      "image_url": "http://medianeshop.com/cdn/shop/files/loulou6_grande.png?v=1714651586",
+      "page_url": "https://medianeshop.com/collections/lou-lou-diapers/products/loulou-baby-diapers-size-6",
+      "site": "Mediane Shop",
+      "site_kind": "retailer",
+      "looks": "one pack, white background, front view, no watermark or price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

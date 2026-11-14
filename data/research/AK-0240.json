@@ -1,0 +1,27 @@
+{
+  "sku": "AK-0240",
+  "matched": {
+    "brand": "Seafin",
+    "product": "Pangasius Fillets",
+    "size": "1 kg (OFF record has no quantity)",
+    "barcode": "5285000838418",
+    "confidence": "likely",
+    "note": "OFF record 5285000838418 (Lebanon), name \"Pangasius Fillets\", brand Seafin; no image, no size on the record. Nutrition per 100 g as given by OFF; only energy, fat, carbohydrate, protein present."
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 124,
+    "fat_g": 3.4,
+    "carbohydrate_g": 0,
+    "protein_g": 23,
+    "page_url": "https://world.openfoodfacts.org/product/5285000838418"
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

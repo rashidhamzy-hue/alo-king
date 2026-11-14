@@ -1,0 +1,55 @@
+{
+  "sku": "AK-0247",
+  "matched": {
+    "brand": "Eti",
+    "product": "Gong Corn & Rice Cake Original",
+    "size": "32 g",
+    "barcode": "8690526004679",
+    "confidence": "exact",
+    "note": "OFF record 8690526004679 \"Gong original\", Eti, 32 g; pack front matches. OFF record market tag: France."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/869/052/600/4679/front_fr.4.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/8690526004679",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "close-up of one pack, front view, slightly angled and cropped"
+    }
+  ],
+  "ingredients": {
+    "text": "corn 47%, Rice 43%, Wheat, salt, oat, vegetable Oil (palm) Emulsifier (Sunflower lecithin). Contains Gluten. May contain trace amounts of Mustard and Milk Product.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/8690526004679",
+    "market": "France (per OFF record)"
+  },
+  "allergens": {
+    "contains": [
+      "gluten"
+    ],
+    "may_contain": [
+      "mustard",
+      "milk"
+    ],
+    "quote": "Contains Gluten. May contain trace amounts of Mustard and Milk Product.",
+    "page_url": "https://world.openfoodfacts.org/product/8690526004679"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 459,
+    "fat_g": 16.2,
+    "saturated_fat_g": 7.4,
+    "carbohydrate_g": 71.3,
+    "sugars_g": 0,
+    "fibre_g": 2.4,
+    "protein_g": 5.8,
+    "salt_g": 1.7,
+    "sodium_mg": 670,
+    "page_url": "https://world.openfoodfacts.org/product/8690526004679"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

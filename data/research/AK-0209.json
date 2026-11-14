@@ -1,0 +1,35 @@
+{
+  "matched": {
+    "brand": "Yamama",
+    "product": "White Vinegar 5%",
+    "size": "1 L",
+    "barcode": "623695000416",
+    "confidence": "exact",
+    "note": "Open Food Facts record 0623695000416 (Qatar) shows the same Yamama White Vinegar 5% 1 L bottle; it has no ingredients or nutrition."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/0/101827-v001.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/white-vinegar.html",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one clear 1 L bottle with green sports cap, white background, no watermark or price, front view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/062/369/500/0416/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/0623695000416",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "close-up photo of the front label (White Vinegar 5%, 1 L), cropped, no watermark"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ],
+  "sku": "AK-0209"
+}

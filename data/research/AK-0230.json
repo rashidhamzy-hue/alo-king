@@ -1,0 +1,43 @@
+{
+  "sku": "AK-0230",
+  "matched": {
+    "brand": "Aruba",
+    "product": "Light Jelly Forest Fruits",
+    "size": "12g",
+    "barcode": "5285002191597",
+    "confidence": "exact",
+    "note": "OFF record (countries: Lebanon); front image shows Aruba Light Jelly Forest Fruits 12grs. OFF salt 0 and sodium 0 contradict the pack panel (sodium 1.8g/100g shown), so salt and sodium are omitted."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/219/1597/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285002191597",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one box photographed on speckled surface, fingers not in frame, no watermark, front view, 400x343"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 240,
+    "fat_g": 0,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 6,
+    "sugars_g": 0.5,
+    "protein_g": 54,
+    "page_url": "https://world.openfoodfacts.org/product/5285002191597"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "Halal mark on pack front and OFF labels field",
+      "page_url": "https://world.openfoodfacts.org/product/5285002191597"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin"
+  ]
+}

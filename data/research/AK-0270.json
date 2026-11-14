@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0270",
+  "matched": {
+    "brand": "Private",
+    "product": "Private Natural Cotton Feel Extra Thin Night with wings",
+    "size": "7 pcs",
+    "barcode": "5281001312841",
+    "confidence": "likely",
+    "note": "non-food. Open Products Facts record 5281001312841 not used: its brand field is a price ('السعر 10 ريال') and size '3 مم'; its picture has a price sticker. Picture from Bloom Pharmacy (Egypt) page, variant 7 Pcs; barcode not shown there so match is by name/count."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.bloompharmacy.com/cdn/shop/products/private-natural-cotton-feel-extra-thin-night-7-pcs-244111.jpg?v=1687636128&width=1200",
+      "page_url": "https://www.bloompharmacy.com/products/private-natural-cotton-feel-extra-thin-night",
+      "site": "Bloom Pharmacy (Egypt)",
+      "site_kind": "retailer",
+      "looks": "one 7-pad night pack, white background, front view, no watermark/price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

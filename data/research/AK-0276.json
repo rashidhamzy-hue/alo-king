@@ -1,0 +1,27 @@
+{
+  "sku": "AK-0276",
+  "matched": {
+    "brand": "Dove",
+    "product": "Dove Beauty Cream Bar Soap",
+    "size": "90 g",
+    "barcode": "2900000071438",
+    "confidence": "likely",
+    "note": "non-food. Spinneys Lebanon page 'DOVE BEAUTY CREAM BAR SOAP' 90 G; barcode is an in-store code, so match is by name/size."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/5/6/569196-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/beauty-cream-bar-soap-569196-v001.html",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one bar pack, white background, front view, no watermark/price"
+    }
+  ],
+  "origin": {
+    "country": "Saudi Arabia",
+    "page_url": "https://www.spinneyslebanon.com/default/beauty-cream-bar-soap-569196-v001.html"
+  },
+  "not_found": [
+    "ingredients"
+  ]
+}

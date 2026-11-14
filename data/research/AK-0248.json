@@ -1,0 +1,38 @@
+{
+  "sku": "AK-0248",
+  "matched": {
+    "brand": "Balance",
+    "product": "Protein Crackers Sour Cream & Onion",
+    "size": "70 g",
+    "barcode": "6222035227786",
+    "confidence": "likely",
+    "note": "OFF record 6222035227786 \"Sour Cream & Onions Protein Crackers\", Balance, market Egypt; front image matches (70 g shown). Salt and sodium on the record are 0, implausible for a cracker, so omitted. OFF values were long floats, rounded to 1 decimal."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/622/203/522/7786/front_en.4.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/6222035227786",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one pack held in a hand over a shop shelf, front view, slightly cropped"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 400,
+    "fat_g": 12.7,
+    "saturated_fat_g": 5.6,
+    "carbohydrate_g": 54.5,
+    "sugars_g": 1.2,
+    "fibre_g": 1.2,
+    "protein_g": 23.3,
+    "page_url": "https://world.openfoodfacts.org/product/6222035227786"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

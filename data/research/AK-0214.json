@@ -1,0 +1,64 @@
+{
+  "matched": {
+    "brand": "Dolly's",
+    "product": "Tomato Ketchup (glass bottle)",
+    "size": "330 g",
+    "barcode": "744171120043",
+    "confidence": "exact",
+    "note": "Brand page dollys.net lists Dolly's Ketchup 330 g (weight field says 340 g). Ingredients, storage, origin and the nutrition table were read from the pack photos and nutrition image on that page. The Open Food Facts record 0744171120043 has the same nutrition (per tablespoon, entered as per 100 g) and no ingredients."
+  },
+  "pictures": [
+    {
+      "image_url": "https://dollys.net/wp-content/uploads/2022/10/5.jpg",
+      "page_url": "https://dollys.net/product/dollys-ketchup-2/",
+      "site": "Dolly's Famous Food",
+      "site_kind": "brand",
+      "looks": "one glass bottle, Dolly's tomato ketchup front label, white background, no watermark or price"
+    },
+    {
+      "image_url": "https://dollys.net/wp-content/uploads/2022/10/KETCHUP-330G-1.jpg",
+      "page_url": "https://dollys.net/product/dollys-ketchup-2/",
+      "site": "Dolly's Famous Food",
+      "site_kind": "brand",
+      "looks": "same bottle, back label with ingredients, white background, no watermark"
+    },
+    {
+      "image_url": "https://dollys.net/wp-content/uploads/2022/10/KETCHUP-330G-3.jpg",
+      "page_url": "https://dollys.net/product/dollys-ketchup-2/",
+      "site": "Dolly's Famous Food",
+      "site_kind": "brand",
+      "looks": "same bottle, back label with nutrition facts, white background, no watermark"
+    }
+  ],
+  "ingredients": {
+    "text": "Tomato Concentrate from Red Ripe tomatoes, Sugar, Distilled Vinegar, Modified Corn Starch (E1422), Salt 2%, Spices (Onion, Garlic, White Pepper and Black pepper), Cellulose Gum (E466) and/or Xanthan Gum (E415), Sodium Benzoate (E211), Potassium Sorbate (E202), Total Soluble Solids 33% min.",
+    "language": "en",
+    "page_url": "https://dollys.net/wp-content/uploads/2022/10/KETCHUP-330G-1.jpg",
+    "market": "Lebanon"
+  },
+  "nutrition": {
+    "per": "serving (18 g)",
+    "energy_kcal": 25,
+    "fat_g": 0,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 4,
+    "sugars_g": 4,
+    "fibre_g": 0,
+    "protein_g": 0,
+    "sodium_mg": 135,
+    "page_url": "https://dollys.net/wp-content/uploads/2022/10/Nutritional-Facts_KETCHUP-REGULAR-340G.jpg"
+  },
+  "storage": {
+    "text": "Store in a cool and dry place. Refrigerate after opening.",
+    "page_url": "https://dollys.net/wp-content/uploads/2022/10/KETCHUP-330G-1.jpg"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://dollys.net/wp-content/uploads/2022/10/KETCHUP-330G-1.jpg"
+  },
+  "not_found": [
+    "allergens",
+    "diet_labels"
+  ],
+  "sku": "AK-0214"
+}

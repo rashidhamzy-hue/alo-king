@@ -1,0 +1,20 @@
+{
+  "matched": {
+    "brand": "Lina",
+    "product": "Sunflower Oil",
+    "size": "0.85 L",
+    "barcode": "4820207073722",
+    "confidence": "unsure",
+    "note": "NOTHING found: searches (English, Arabic, Spinneys, Superdokan, Loyabi) returned no Lina cooking oil page; barcode 4820207073722 is not in Open Food Facts."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ],
+  "sku": "AK-0216"
+}
