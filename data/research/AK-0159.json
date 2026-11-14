@@ -1,0 +1,52 @@
+{
+  "sku": "AK-0159",
+  "matched": {
+    "brand": "Mayora",
+    "product": "Coffee Joy Biscuits Coffee",
+    "size": "45 g",
+    "barcode": "8996001301715",
+    "confidence": "likely",
+    "note": "Retailer page morueats.com returned 404; other Coffee Joy pages were 39 g or snippet-only. Nothing recorded. Some blocks come from the Open Food Facts record for catalog barcode 8996001301715 (user-contributed, named \"Coffee Joy, 39g (record quantity differs from the 45 g catalog size)\"); those blocks carry that page as their source. The record quantity differs from the catalog size."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/899/600/130/1715/front_en.24.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/8996001301715",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one pack lying on a patterned cloth, user photo, front view"
+    }
+  ],
+  "ingredients": {
+    "text": "Wheat Flour, Sugar, Vegetable Oil (contains BHA Antioxidant), Glucose, Mik Fat Coffee, Raising Agents (Ammonium Bicarbonate E503 and Sodium Bicarbonate E500) Milk Powder, Yeast, Salt, Caramel Color (E157d) Coffee Flavor: Contains: Wheat (Gluten), Milk (Cow's Milk)",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/8996001301715",
+    "market": "record lists France and Saudi Arabia"
+  },
+  "allergens": {
+    "contains": [
+      "wheat (gluten)",
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "Contains: Wheat (Gluten), Milk (Cow's Milk)",
+    "page_url": "https://world.openfoodfacts.org/product/8996001301715"
+  },
+  "nutrition": {
+    "per": "serving (24 g)",
+    "energy_kcal": 120,
+    "fat_g": 4.5,
+    "saturated_fat_g": 3.5,
+    "carbohydrate_g": 17,
+    "sugars_g": 4,
+    "fibre_g": 0,
+    "protein_g": 2,
+    "salt_g": 0.225,
+    "page_url": "https://world.openfoodfacts.org/product/8996001301715"
+  },
+  "not_found": [
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

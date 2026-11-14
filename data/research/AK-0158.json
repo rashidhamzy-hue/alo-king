@@ -1,0 +1,32 @@
+{
+  "sku": "AK-0158",
+  "matched": {
+    "brand": "Edita",
+    "product": "Bake Rolz Olive",
+    "size": "52 g",
+    "barcode": "6223000492406",
+    "confidence": "exact",
+    "note": "Only a 65 g Carrefour Egypt olive page was seen in a search snippet; not opened, size differs. Nothing recorded. Some blocks come from the Open Food Facts record for catalog barcode 6223000492406 (user-contributed, named \"bake rolz\"); those blocks carry that page as their source."
+  },
+  "ingredients": {
+    "text": "Wheat flour, water, palmolein. olive flavor (natural identical), salt (less than 5%), natural olive, sugar, bread improver (E300), yeast.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/6223000492406",
+    "market": "Egypt (record country)"
+  },
+  "allergens": {
+    "contains": [
+      "wheat"
+    ],
+    "may_contain": [],
+    "quote": "Wheat flour",
+    "page_url": "https://world.openfoodfacts.org/product/6223000492406"
+  },
+  "not_found": [
+    "pictures",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

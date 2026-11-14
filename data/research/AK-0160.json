@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0160",
+  "matched": {
+    "brand": "Dolsi",
+    "product": "Chips Crunchy Peanuts Puffs",
+    "size": "80 g",
+    "barcode": "5287000004459",
+    "confidence": "exact",
+    "note": "Only a Carrefour Lebanon search snippet (Peanut Puffs 80 g); carrefourlebanon.com refuses WebFetch. Nothing recorded. Some blocks come from the Open Food Facts record for catalog barcode 5287000004459 (user-contributed, named \"crunchy peanuts puffs\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/700/000/4459/front_fr.6.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5287000004459",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one bag, front view fills the frame, user photo, plain-ish background, no overlay"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
