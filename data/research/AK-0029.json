@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0029",
+  "matched": {
+    "brand": "Hawa Chicken",
+    "product": "Fresh Legs",
+    "size": "by weight (pre-pack)",
+    "barcode": "2207026000000",
+    "confidence": "likely",
+    "note": "Brand's own store lists 'Fresh Legs' (no weight, no description). Catalog barcode 2207026000000 is an in-store weighed-item code, not searchable. No ingredients/nutrition/storage/origin/halal text on the pages opened. Picture address read on the store menu page; the item page itself was not opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://backend.hawachicken.com/uploads/719/c8bcd6a3-1329-4398-96af-cb45347b64d7.webp",
+      "page_url": "https://store.hawachicken.com/en/shop/menu",
+      "site": "Hawa Chicken online store (store.hawachicken.com)",
+      "site_kind": "brand",
+      "looks": "one yellow tray of raw chicken legs with Hawa Chicken label band, angled front view, dark grey slate background (not plain white), no watermark/price; small image 300x180 (viewed)"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

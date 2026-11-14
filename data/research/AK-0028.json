@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0028",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Kafta",
+    "size": "500 g pack",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened. Retailer product names are 'Beef Kafta' and 'Beef Kafta LCL'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/2/126947-v001-1_3.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/brazilian-ground-beef-kafta-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "raw kafta (seasoned minced meat) patty scored in a grid, on brown paper on a round wooden board with parsley sprigs, top view, white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: BEEF KAFTA)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/3/4/348067-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/beef-kafta-lcl.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "raw kafta patty scored in a grid, on brown paper on a round wooden board with parsley sprigs, top view, white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: BEEF KAFTA LCL)"
+    }
+  ],
+  "not_found": []
+}
