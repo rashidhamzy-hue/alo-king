@@ -55,6 +55,9 @@ describe("customer notices", () => {
     await tick(); await tick();
     expect(sent).toHaveLength(0);
     expect((await db.one(`select outcome from customer_notices where key = $1`, [`notice:rider_at_door:${c.order}`])).outcome).toBe("refused:window_closed_use_template");
+    // M1 (coordinator): outside the window with no template that may be sent, the skip is recorded, never silent
+    expect(await db.one(`select trace->>'template' as t, trace->>'event' as e from agent_runs where trace->>'reason' = 'template_not_utility' and order_id = $1`, [c.order]))
+      .toEqual({ t: "ak_rider_at_door_v1", e: "rider_at_door" });
   });
 
   it("once approved, the template goes out, outside the window too, with the right name and parameters", async () => {

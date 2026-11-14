@@ -308,7 +308,7 @@
     {
       "name": "ak_shelf_changes_v1",
       "line": "customer",
-      "category": "utility",
+      "category": "marketing",
       "language": "ar",
       "meta_id": "2985175458495575",
       "body": "طلبك {{1}} جاهز، والمجموع الجديد {{3}}. شو تغيّر: {{2}}. إذا عندك سؤال ردّ على هالرسالة.",
@@ -317,7 +317,8 @@
         "changes",
         "new_total"
       ],
-      "event": "the picker finished and the shelf changed the order (removed or swapped items)"
+      "event": "the picker finished and the shelf changed the order (removed or swapped items)",
+      "status_note": "Re-filed by Meta as MARKETING (category webhook, 14 Nov). Never sent (invariant 17); Kapso cannot delete it. Replaced by _v2."
     },
     {
       "name": "ak_shelf_changes_en_v1",
@@ -350,7 +351,7 @@
     {
       "name": "ak_substitute_question_v1",
       "line": "customer",
-      "category": "utility",
+      "category": "marketing",
       "language": "ar",
       "meta_id": "1891116352231777",
       "body": "طلبك {{1}}: ما لقينا {{2}}. عنا بدالو {{3}} بسعر {{4}}. بتحب ناخدو؟ إذا ما جاوبت خلال {{5}} دقايق منشيلو من الطلب.",
@@ -371,7 +372,8 @@
           "text": "شيلو"
         }
       ],
-      "event": "a picker offers a substitute for a missing item"
+      "event": "a picker offers a substitute for a missing item",
+      "status_note": "Re-filed by Meta as MARKETING (category webhook, 14 Nov). Never sent (invariant 17); Kapso cannot delete it. Replaced by _v2."
     },
     {
       "name": "ak_substitute_question_en_v1",
@@ -532,7 +534,7 @@
     {
       "name": "ak_kept_order_open_fr_v1",
       "line": "customer",
-      "category": "utility",
+      "category": "marketing",
       "language": "fr",
       "meta_id": "1492179346097773",
       "body": "Nous sommes ouverts. La commande envoyée pendant la fermeture est gardée. Appuyez sur le bouton ci-dessous pour continuer.",
@@ -543,7 +545,8 @@
           "text": "Envoyer ma commande"
         }
       ],
-      "event": "we open, for a customer whose order was kept after closing time"
+      "event": "we open, for a customer whose order was kept after closing time",
+      "status_note": "Re-filed by Meta as MARKETING (category webhook, 14 Nov). Never sent (invariant 17); Kapso cannot delete it. Replaced by _v2."
     },
     {
       "name": "ak_on_the_way_v1",
@@ -658,6 +661,62 @@
       ],
       "event": "the founder's nightly report (apps/console sendDayClose; not wired by M1)",
       "status_note": "not submitted: the ops line is the Kapso sandbox, which cannot hold templates (M1)"
+    },
+    {
+      "name": "ak_shelf_changes_v2",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "1114526914697928",
+      "body": "تحديث على الطلب رقم {{1}}: الطلب جاهز. التغييرات بالأغراض: {{2}}. المجموع الجديد للطلب {{3}} حسب الأغراض المتوفرة.",
+      "variables": [
+        "order_code",
+        "changes",
+        "new_total"
+      ],
+      "event": "the picker finished and the shelf changed the order (removed or swapped items); replaces ak_shelf_changes_v1"
+    },
+    {
+      "name": "ak_substitute_question_v2",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "2232543737297386",
+      "body": "الطلب رقم {{1}}: الصنف {{2}} مش متوفر. البديل المتاح {{3}} بسعر {{4}}. زر «خلّيه» بيحط البديل محل الصنف بالطلب، وزر «شيلو» بيشيل الصنف. بدون جواب خلال {{5}} دقايق بينشال الصنف من الطلب.",
+      "variables": [
+        "order_code",
+        "missing",
+        "substitute",
+        "substitute_price",
+        "answer_minutes"
+      ],
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "خلّيه"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "شيلو"
+        }
+      ],
+      "event": "a picker offers a substitute for a missing item; replaces ak_substitute_question_v1"
+    },
+    {
+      "name": "ak_kept_order_open_fr_v2",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "1039356425837882",
+      "body": "Commande enregistrée pendant la fermeture : le service est maintenant ouvert. Cette commande n'est pas encore confirmée ; le bouton ci-dessous la transmet pour confirmation.",
+      "variables": [],
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Envoyer ma commande"
+        }
+      ],
+      "event": "we open, for a customer whose order was kept after closing time; replaces ak_kept_order_open_fr_v1"
     }
   ],
   "_submitted": "13 Nov 2026 (session A2, task 4.3): the three ak_* templates below were submitted to Meta through Kapso for WABA 1086076707594153. Their status lives in wa_templates (migration 0062), updated hourly from Meta. The others are drafts, not submitted. 14 Nov 2026 (session A4, audit item 8): the English and French versions (ak_*_en_v1, ak_*_fr_v1) were submitted the same way; migration 0093. A notice uses the customer's language (customer_language(), from the Concierge's reading)."

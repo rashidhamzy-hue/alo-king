@@ -153,7 +153,7 @@ export const ar: Messages = {
     swapped: (missing, qty, by, price) => `بدل ${missing}: ${qty} × ${by}، متل ما وافقت.\n${usd(price)}`,
     newTotal: (total, l) => `*المجموع الجديد: ${usd(total)}*${l ? `\nأو ${lbp(l)}` : ""}`,
     credit: (amount) => `المبلغ يلي دفعتو زيادة إلك:\n${usd(amount)}\nمنرجّعلك ياه أو بينحسم من طلبك الجاي، متل ما بتحب.`,
-    summary: (removed, swapped) => join([...(removed.length ? [`ما لقينا ${join(removed)} وشلناه`] : []), ...swapped.map((s) => `${s.by} بدل ${s.name}`)]),
+    summary: (removed, swapped) => join([...(removed.length ? [`${join(removed)} مش متوفر وانشال من الطلب`] : []), ...swapped.map((s) => `${s.by} بدل ${s.name}`)]),
   },
 
   sub: {

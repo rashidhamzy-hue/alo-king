@@ -20,7 +20,17 @@ export interface Built {
   payloads?: string[];
 }
 
-interface Reach { to: string | null; lang: Lang; template: string | null; template_approved: boolean }
+/** template_approved (0121): the template may be sent, approved AND utility (template_sendable). */
+interface Reach { to: string | null; lang: Lang; template: string | null; template_approved: boolean; template_status?: string | null; template_category?: string | null }
+
+/**
+ * A code-started message that could not go: outside the 24-hour window, and no template that may be sent (none, not approved yet,
+ * or filed by Meta as anything but utility). Recorded in agent_runs, reason template_not_utility, so nothing is dropped in silence.
+ */
+export async function logTemplateSkip(db: SupabaseClient, s: { partyId: string; orderId?: string | null; event: string; template: string | null; status: string | null; category: string | null }): Promise<void> {
+  await db.from("agent_runs").insert({ agent: "compliance_gateway", order_id: s.orderId ?? null, outcome: "skipped",
+    trace: { reason: "template_not_utility", event: s.event, template: s.template, template_status: s.status, template_category: s.category, party_id: s.partyId } });
+}
 
 /** The template message for an event, as Meta takes it: body parameters, then one payload per quick-reply button. */
 export function templateMessage(name: string, lang: Lang, b: Pick<Built, "params" | "payloads">): Outbound {
@@ -44,6 +54,11 @@ export async function sendCodeStarted(deps: { db: SupabaseClient; send: (r: Send
   const lang = reach.lang ?? "ar";
   const b = build(messages(lang), lang);
   const r = await deps.send({ line: "customer", partyId, to: reach.to, msg: b.msg, category: "service", orderId, dedupeKey });
-  if (r.ok || r.refused !== "window_closed_use_template" || !reach.template || !reach.template_approved) return r;
+  if (r.ok || r.refused !== "window_closed_use_template") return r;
+  // Outside the window. A template goes only when it may be sent (approved AND utility); otherwise skipped, and recorded.
+  if (!reach.template || !reach.template_approved) {
+    await logTemplateSkip(deps.db, { partyId, orderId, event, template: reach.template, status: reach.template_status ?? null, category: reach.template_category ?? null });
+    return { ok: false, refused: "template_not_utility" };
+  }
   return deps.send({ line: "customer", partyId, to: reach.to, msg: templateMessage(reach.template, lang, b), category: "utility", orderId, dedupeKey: `${dedupeKey}:tpl` });
 }

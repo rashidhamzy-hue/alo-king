@@ -164,10 +164,12 @@ export async function showTyping(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: s
 }
 
 /** Meta's review status for our templates (APPROVED, PENDING, REJECTED, PAUSED, ...), read through Kapso. Reading only: no message is sent. */
-export async function templateStatuses(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, wabaId: string, names: string[]): Promise<{ name: string; status: string }[]> {
-  const res = (await kapsoClient(env).templates.list({ businessAccountId: wabaId, limit: 100 })) as { data?: { name?: string; status?: string }[] };
+/** Meta's review status and its current category (M1: Meta may re-file a utility template as marketing) for our templates. */
+export async function templateStatuses(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, wabaId: string, names: string[]): Promise<{ name: string; status: string; category: string | null }[]> {
+  const res = (await kapsoClient(env).templates.list({ businessAccountId: wabaId, limit: 100 })) as { data?: { name?: string; status?: string; category?: string }[] };
   const want = new Set(names);
-  return (res.data ?? []).filter((t) => t.name && t.status && want.has(t.name)).map((t) => ({ name: t.name!, status: t.status!.toLowerCase() }));
+  return (res.data ?? []).filter((t) => t.name && t.status && want.has(t.name))
+    .map((t) => ({ name: t.name!, status: t.status!.toLowerCase(), category: t.category ? t.category.toLowerCase() : null }));
 }
 
 /** Kapso's platform API (not the Meta proxy), read-only. Same API key; base is the origin of KAPSO_BASE_URL. */

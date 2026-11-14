@@ -2253,13 +2253,6 @@ Votre commande {{1}} aura un peu de retard à cause d'une urgence du livreur. Un
 Nous n'avons pas pu terminer la livraison de votre commande {{1}} à cause d'une urgence du livreur. Une personne de notre équipe va vous contacter.
 ```
 
-## ak_kept_order_open_fr_v1
-
-```text
-Nous sommes ouverts. La commande envoyée pendant la fermeture est gardée. Appuyez sur le bouton ci-dessous pour continuer.
-[Envoyer ma commande]
-```
-
 ## ak_on_the_way_fr_v1
 
 ```text
@@ -2276,4 +2269,11 @@ Rappel : votre commande {{1}} est prévue pour une livraison {{2}}. Pour changer
 
 ```text
 Rapport de clôture du {{1}} : {{2}}. Le détail est sur la console.
+```
+
+## ak_kept_order_open_fr_v2
+
+```text
+Commande enregistrée pendant la fermeture : le service est maintenant ouvert. Cette commande n'est pas encore confirmée ; le bouton ci-dessous la transmet pour confirmation.
+[Envoyer ma commande]
 ```

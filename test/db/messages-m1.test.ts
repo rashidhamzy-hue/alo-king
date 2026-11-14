@@ -111,7 +111,7 @@ describe("code-started messages after 24 hours (G1-23)", () => {
     const p = await customer("en", true);
     expect(await db.rpc("customer_reach", { p_party: p, p_event: "order_delayed" })).toMatchObject({ lang: "en", template: "ak_order_delayed_en_v1", template_approved: false });
     const q = await customer(null, true);
-    expect(await db.rpc("customer_reach", { p_party: q, p_event: "substitute_question" })).toMatchObject({ lang: "ar", template: "ak_substitute_question_v1" });
+    expect(await db.rpc("customer_reach", { p_party: q, p_event: "substitute_question" })).toMatchObject({ lang: "ar", template: "ak_substitute_question_v2", template_approved: false });   // v1 was re-filed as marketing: never chosen
   });
 
   it("inside the window: the free message in the customer's language", async () => {
@@ -125,7 +125,7 @@ describe("code-started messages after 24 hours (G1-23)", () => {
     const p = await customer("en", false);
     const before = outbound.length;
     const r = await sendCodeStarted(deps(), p, "order_delayed", delayed("AK-9002"), "m1:delay:2");
-    expect(r).toEqual({ ok: false, refused: "window_closed_use_template" });
+    expect(r).toEqual({ ok: false, refused: "template_not_utility" });
     expect(outbound.length).toBe(before);
     expect(await db.rpc("set_template_status", { p_name: "ak_order_delayed_en_v1", p_status: "APPROVED" })).toBe(true);
     const ok = await sendCodeStarted(deps(), p, "order_delayed", delayed("AK-9002"), "m1:delay:2");
@@ -135,6 +135,52 @@ describe("code-started messages after 24 hours (G1-23)", () => {
     expect(await db.one(`select category from wa_messages where template_name = 'ak_order_delayed_en_v1' order by created_at desc limit 1`)).toEqual({ category: "utility" });
     const again = await sendCodeStarted(deps(), p, "order_delayed", delayed("AK-9002"), "m1:delay:2");
     expect(again).toEqual({ ok: true, wamid: "already_sent" });       // the same event never goes twice
+  });
+
+  // Coordinator (14 Nov): Meta re-filed ak_substitute_question_v1, ak_shelf_changes_v1 and ak_kept_order_open_fr_v1 as marketing.
+  it("the hourly sync stores Meta's category: a template re-filed as marketing stops being one that may be sent", async () => {
+    expect(await db.one(`select category::text from wa_templates where name = 'ak_substitute_question_v1'`)).toEqual({ category: "marketing" });
+    expect(await db.rpc("set_template_meta", { p_name: "ak_on_the_way_fr_v1", p_status: "APPROVED", p_category: "UTILITY" })).toBe(true);
+    expect(await db.rpc("template_sendable", { p_name: "ak_on_the_way_fr_v1" })).toBe(true);
+    expect(await db.rpc("set_template_meta", { p_name: "ak_on_the_way_fr_v1", p_status: "APPROVED", p_category: "MARKETING" })).toBe(true);
+    expect(await db.rpc("template_sendable", { p_name: "ak_on_the_way_fr_v1" })).toBe(false);
+    expect(await db.one(`select status, category::text from wa_templates where name = 'ak_on_the_way_fr_v1'`)).toEqual({ status: "approved", category: "marketing" });
+  });
+
+  it("the gateway refuses a template whose stored category is not utility, whatever category the caller passed", async () => {
+    await db.rpc("set_template_meta", { p_name: "ak_substitute_question_v1", p_status: "APPROVED", p_category: "MARKETING" });
+    const p = await customer(null, false);
+    const to = (await db.one(`select phone_e164 from party_identities where party_id = $1`, [p])).phone_e164;
+    const before = outbound.length;
+    const r = await deps().send({ line: "customer", partyId: p, to, category: "utility", dedupeKey: "m1:gate:marketing",
+      msg: { type: "template", template: { name: "ak_substitute_question_v1", language: { code: "ar" }, components: [] } } });
+    expect(r).toEqual({ ok: false, refused: "template_not_utility" });
+    expect(outbound.length).toBe(before);                              // nothing reached Kapso
+    const unknown = await deps().send({ line: "customer", partyId: p, to, category: "utility", dedupeKey: "m1:gate:unknown",
+      msg: { type: "template", template: { name: "ak_not_a_template_v1", language: { code: "ar" }, components: [] } } });
+    expect(unknown).toEqual({ ok: false, refused: "template_not_utility" });
+    expect(await db.one(`select count(*)::int as n from agent_runs where agent = 'compliance_gateway' and trace->>'reason' = 'template_not_utility'`)).toMatchObject({ n: expect.any(Number) });
+  });
+
+  it("no template that may be sent: inside the window the free text; outside, skipped and logged template_not_utility; v2 approved: v2", async () => {
+    // ak_substitute_question_v1 is approved but marketing; v2 is utility but not approved yet
+    await db.rpc("set_template_meta", { p_name: "ak_substitute_question_v1", p_status: "APPROVED", p_category: "MARKETING" });
+    const ask = (code: string) => (m: typeof en) => ({ msg: { type: "text" as const, text: { body: m.sub.question(code, "1", "A", 1, "B", 1.2, 0.2, 5) } },
+      params: [code, "1 × A", "1 × B", "$1.20", "5"], payloads: ["sub:keep:x", "sub:remove:x"] });
+    const inside = await customer(null, true);
+    expect((await sendCodeStarted(deps(), inside, "substitute_question", ask("AK-9101"), "m1:sub:in")).ok).toBe(true);
+    expect(outbound.at(-1)!.body).toMatchObject({ type: "text", text: { body: ar.sub.question("AK-9101", "1", "A", 1, "B", 1.2, 0.2, 5) } });
+
+    const outside = await customer(null, false);
+    const before = outbound.length;
+    expect(await sendCodeStarted(deps(), outside, "substitute_question", ask("AK-9102"), "m1:sub:out")).toEqual({ ok: false, refused: "template_not_utility" });
+    expect(outbound.length).toBe(before);
+    expect(await db.one(`select trace from agent_runs where trace->>'reason' = 'template_not_utility' and trace->>'party_id' = $1 order by created_at desc limit 1`, [outside]))
+      .toMatchObject({ trace: { event: "substitute_question", template: "ak_substitute_question_v2", template_status: "submitted", template_category: "utility" } });
+
+    await db.rpc("set_template_meta", { p_name: "ak_substitute_question_v2", p_status: "APPROVED", p_category: "UTILITY" });
+    expect((await sendCodeStarted(deps(), outside, "substitute_question", ask("AK-9102"), "m1:sub:out")).ok).toBe(true);
+    expect(outbound.at(-1)!.body).toMatchObject({ type: "template", template: { name: "ak_substitute_question_v2", language: { code: "ar" } } });
   });
 
   it("a template's quick reply comes back as a tap: the kept order's button carries the basket on", async () => {
