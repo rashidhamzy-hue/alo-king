@@ -1,1930 +1,1937 @@
 {
- "kind": "customer_categories",
- "status": "proposed",
- "applied": false,
- "generated_at": "2026-11-13T20:25:07.753Z",
- "run_id": "43501248215",
- "model": "claude-haiku-5-5",
- "note": "Proposals for a person to approve. Nothing here has been applied to the catalog. Arabic marked model_written needs an Arabic reader.",
- "model_usage": {
-  "calls": 7,
-  "input_tokens": 39521,
-  "output_tokens": 7627
- },
- "approval": "the founder approves the list (1.21 step 1)",
- "categories": [
-  {
-   "code": "fruits_vegetables",
-   "name_en": "Fruits & Vegetables",
-   "name_ar": "فواكه وخضروات",
-   "sort_order": 1,
-   "products": 25,
-   "from_catalog_categories": {
-    "Fruits & Vegetables": 25
-   }
+  "kind": "customer_categories",
+  "status": "proposed",
+  "applied": false,
+  "generated_at": "2026-11-13T20:25:07.753Z",
+  "run_id": "43501248215",
+  "model": "claude-haiku-5-5",
+  "note": "Proposals for a person to approve. Nothing here has been applied to the catalog. Arabic marked model_written needs an Arabic reader.",
+  "model_usage": {
+    "calls": 7,
+    "input_tokens": 39521,
+    "output_tokens": 7627
   },
-  {
-   "code": "meat_poultry",
-   "name_en": "Meat & Poultry",
-   "name_ar": "لحوم ودواجن",
-   "sort_order": 2,
-   "products": 13,
-   "from_catalog_categories": {
-    "Meat & Poultry": 13
-   }
-  },
-  {
-   "code": "deli_ready_meals",
-   "name_en": "Deli & Ready Meals",
-   "name_ar": "المرطبانات الجاهزة",
-   "sort_order": 3,
-   "products": 10,
-   "from_catalog_categories": {
-    "Deli Cold Cuts": 8,
-    "Ready to Eat & Catering": 2
-   }
-  },
-  {
-   "code": "dairy_eggs",
-   "name_en": "Dairy & Eggs",
-   "name_ar": "ألبان وبيض",
-   "sort_order": 4,
-   "products": 26,
-   "from_catalog_categories": {
-    "Dairy & Eggs": 26
-   }
-  },
-  {
-   "code": "frozen_food",
-   "name_en": "Frozen Food",
-   "name_ar": "مجمدات",
-   "sort_order": 5,
-   "products": 16,
-   "from_catalog_categories": {
-    "Frozen Food": 16
-   }
-  },
-  {
-   "code": "bakery",
-   "name_en": "Bakery & Bread",
-   "name_ar": "مخبوزات وخبز",
-   "sort_order": 6,
-   "products": 12,
-   "from_catalog_categories": {
-    "Bakery": 12
-   }
-  },
-  {
-   "code": "water_drinks",
-   "name_en": "Water, Drinks & Hot Beverages",
-   "name_ar": "مياه ومشروبات ومشروبات ساخنة",
-   "sort_order": 7,
-   "products": 41,
-   "from_catalog_categories": {
-    "Beverages": 18,
-    "Water": 10,
-    "Hot Beverages": 13
-   }
-  },
-  {
-   "code": "breakfast_cereal",
-   "name_en": "Breakfast & Milk Powder",
-   "name_ar": "فطور وحليب مجفف",
-   "sort_order": 8,
-   "products": 15,
-   "from_catalog_categories": {
-    "Milk & Cereals": 12,
-    "Hot Beverages": 1,
-    "Snacks & Candy": 2
-   }
-  },
-  {
-   "code": "snacks_sweets",
-   "name_en": "Snacks & Sweets",
-   "name_ar": "سناكس وحلويات",
-   "sort_order": 9,
-   "products": 26,
-   "from_catalog_categories": {
-    "Healthy": 2,
-    "Snacks & Candy": 24
-   }
-  },
-  {
-   "code": "pantry_staples",
-   "name_en": "Pantry Staples",
-   "name_ar": "مواد تموين أساسية",
-   "sort_order": 10,
-   "products": 19,
-   "from_catalog_categories": {
-    "Dry Foods & Pantry": 17,
-    "Snacks & Candy": 2
-   }
-  },
-  {
-   "code": "canned_jarred",
-   "name_en": "Canned & Jarred Food",
-   "name_ar": "معلبات ومرطبانات",
-   "sort_order": 11,
-   "products": 21,
-   "from_catalog_categories": {
-    "Canned Food, Jars & Packets": 16,
-    "Cooking Ingredients": 5
-   }
-  },
-  {
-   "code": "cooking_baking",
-   "name_en": "Cooking & Baking",
-   "name_ar": "طبخ وخبز منزلي",
-   "sort_order": 12,
-   "products": 24,
-   "from_catalog_categories": {
-    "Cooking Ingredients": 11,
-    "Home Bake": 8,
-    "Ready to Eat & Catering": 1,
-    "Dry Foods & Pantry": 2,
-    "Dairy & Eggs": 2
-   }
-  },
-  {
-   "code": "cleaning_household",
-   "name_en": "Cleaning & Household",
-   "name_ar": "تنظيف ومنزل",
-   "sort_order": 13,
-   "products": 20,
-   "from_catalog_categories": {
-    "Cleaning & Household": 20
-   }
-  },
-  {
-   "code": "personal_care",
-   "name_en": "Personal Care",
-   "name_ar": "العناية الشخصية",
-   "sort_order": 14,
-   "products": 14,
-   "from_catalog_categories": {
-    "Beauty & Personal Care": 14
-   }
-  },
-  {
-   "code": "baby_pet",
-   "name_en": "Baby & Pet",
-   "name_ar": "أطفال وحيوانات أليفة",
-   "sort_order": 15,
-   "products": 9,
-   "from_catalog_categories": {
-    "Baby & Child": 6,
-    "Pet Zone": 3
-   }
+  "approval": "the founder approves the list (1.21 step 1)",
+  "categories": [
+    {
+      "code": "fruits_vegetables",
+      "name_en": "Fruits & Vegetables",
+      "name_ar": "فواكه وخضروات",
+      "sort_order": 1,
+      "products": 25,
+      "from_catalog_categories": {
+        "Fruits & Vegetables": 25
+      }
+    },
+    {
+      "code": "meat_poultry",
+      "name_en": "Meat & Poultry",
+      "name_ar": "لحوم ودواجن",
+      "sort_order": 2,
+      "products": 13,
+      "from_catalog_categories": {
+        "Meat & Poultry": 13
+      }
+    },
+    {
+      "code": "deli_ready_meals",
+      "name_en": "Deli & Ready Meals",
+      "name_ar": "لحوم باردة ووجبات جاهزة",
+      "sort_order": 3,
+      "products": 10,
+      "from_catalog_categories": {
+        "Deli Cold Cuts": 8,
+        "Ready to Eat & Catering": 2
+      }
+    },
+    {
+      "code": "dairy_eggs",
+      "name_en": "Dairy & Eggs",
+      "name_ar": "ألبان وبيض",
+      "sort_order": 4,
+      "products": 26,
+      "from_catalog_categories": {
+        "Dairy & Eggs": 26
+      }
+    },
+    {
+      "code": "frozen_food",
+      "name_en": "Frozen Food",
+      "name_ar": "مجمدات",
+      "sort_order": 5,
+      "products": 16,
+      "from_catalog_categories": {
+        "Frozen Food": 16
+      }
+    },
+    {
+      "code": "bakery",
+      "name_en": "Bakery & Bread",
+      "name_ar": "مخبوزات وخبز",
+      "sort_order": 6,
+      "products": 12,
+      "from_catalog_categories": {
+        "Bakery": 12
+      }
+    },
+    {
+      "code": "water_drinks",
+      "name_en": "Water, Drinks & Hot Beverages",
+      "name_ar": "مياه ومشروبات، قهوة وشاي",
+      "sort_order": 7,
+      "products": 41,
+      "from_catalog_categories": {
+        "Beverages": 18,
+        "Water": 10,
+        "Hot Beverages": 13
+      }
+    },
+    {
+      "code": "breakfast_cereal",
+      "name_en": "Breakfast & Milk Powder",
+      "name_ar": "فطور وحليب مجفف",
+      "sort_order": 8,
+      "products": 15,
+      "from_catalog_categories": {
+        "Milk & Cereals": 12,
+        "Hot Beverages": 1,
+        "Snacks & Candy": 2
+      }
+    },
+    {
+      "code": "snacks_sweets",
+      "name_en": "Snacks & Sweets",
+      "name_ar": "سناكس وحلويات",
+      "sort_order": 9,
+      "products": 26,
+      "from_catalog_categories": {
+        "Healthy": 2,
+        "Snacks & Candy": 24
+      }
+    },
+    {
+      "code": "pantry_staples",
+      "name_en": "Pantry Staples",
+      "name_ar": "مواد تموين أساسية",
+      "sort_order": 10,
+      "products": 19,
+      "from_catalog_categories": {
+        "Dry Foods & Pantry": 17,
+        "Snacks & Candy": 2
+      }
+    },
+    {
+      "code": "canned_jarred",
+      "name_en": "Canned & Jarred Food",
+      "name_ar": "معلبات ومرطبانات",
+      "sort_order": 11,
+      "products": 21,
+      "from_catalog_categories": {
+        "Canned Food, Jars & Packets": 16,
+        "Cooking Ingredients": 5
+      }
+    },
+    {
+      "code": "cooking_baking",
+      "name_en": "Cooking & Baking",
+      "name_ar": "مستلزمات الطبخ والحلويات",
+      "sort_order": 12,
+      "products": 24,
+      "from_catalog_categories": {
+        "Cooking Ingredients": 11,
+        "Home Bake": 8,
+        "Ready to Eat & Catering": 1,
+        "Dry Foods & Pantry": 2,
+        "Dairy & Eggs": 2
+      }
+    },
+    {
+      "code": "cleaning_household",
+      "name_en": "Cleaning & Household",
+      "name_ar": "تنظيف ومنزل",
+      "sort_order": 13,
+      "products": 20,
+      "from_catalog_categories": {
+        "Cleaning & Household": 20
+      }
+    },
+    {
+      "code": "personal_care",
+      "name_en": "Personal Care",
+      "name_ar": "العناية الشخصية",
+      "sort_order": 14,
+      "products": 14,
+      "from_catalog_categories": {
+        "Beauty & Personal Care": 14
+      }
+    },
+    {
+      "code": "baby_pet",
+      "name_en": "Baby & Pet",
+      "name_ar": "أطفال وحيوانات أليفة",
+      "sort_order": 15,
+      "products": 9,
+      "from_catalog_categories": {
+        "Baby & Child": 6,
+        "Pet Zone": 3
+      }
+    }
+  ],
+  "unplaced": [],
+  "empty_categories": [],
+  "assignments": [
+    {
+      "sku": "AK-0020",
+      "name_en": "Apple, red local",
+      "category": "fruits_vegetables",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0009",
+      "name_en": "Banana",
+      "category": "fruits_vegetables",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0018",
+      "name_en": "Cabbage",
+      "category": "fruits_vegetables",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0008",
+      "name_en": "Carrot",
+      "category": "fruits_vegetables",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0016",
+      "name_en": "Cauliflower",
+      "category": "fruits_vegetables",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0017",
+      "name_en": "Cherry tomatoes",
+      "category": "fruits_vegetables",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0015",
+      "name_en": "Coriander (bunch)",
+      "category": "fruits_vegetables",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0003",
+      "name_en": "Cucumber",
+      "category": "fruits_vegetables",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0014",
+      "name_en": "Eggplant",
+      "category": "fruits_vegetables",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0025",
+      "name_en": "Garlic",
+      "category": "fruits_vegetables",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0011",
+      "name_en": "Green beans (loubieh)",
+      "category": "fruits_vegetables",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0013",
+      "name_en": "Green pepper, sweet",
+      "category": "fruits_vegetables",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0005",
+      "name_en": "Lemon",
+      "category": "fruits_vegetables",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0012",
+      "name_en": "Lettuce",
+      "category": "fruits_vegetables",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0023",
+      "name_en": "Mint (bunch)",
+      "category": "fruits_vegetables",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0004",
+      "name_en": "Onion",
+      "category": "fruits_vegetables",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0022",
+      "name_en": "Onion, red",
+      "category": "fruits_vegetables",
+      "sort_in_category": 17
+    },
+    {
+      "sku": "AK-0006",
+      "name_en": "Orange for juice",
+      "category": "fruits_vegetables",
+      "sort_in_category": 18
+    },
+    {
+      "sku": "AK-0019",
+      "name_en": "Orange, Valencia",
+      "category": "fruits_vegetables",
+      "sort_in_category": 19
+    },
+    {
+      "sku": "AK-0010",
+      "name_en": "Parsley (bunch)",
+      "category": "fruits_vegetables",
+      "sort_in_category": 20
+    },
+    {
+      "sku": "AK-0001",
+      "name_en": "Potato",
+      "category": "fruits_vegetables",
+      "sort_in_category": 21
+    },
+    {
+      "sku": "AK-0024",
+      "name_en": "Radish (bunch)",
+      "category": "fruits_vegetables",
+      "sort_in_category": 22
+    },
+    {
+      "sku": "AK-0021",
+      "name_en": "Rocca (bunch)",
+      "category": "fruits_vegetables",
+      "sort_in_category": 23
+    },
+    {
+      "sku": "AK-0002",
+      "name_en": "Tomato",
+      "category": "fruits_vegetables",
+      "sort_in_category": 24
+    },
+    {
+      "sku": "AK-0007",
+      "name_en": "Zucchini",
+      "category": "fruits_vegetables",
+      "sort_in_category": 25
+    },
+    {
+      "sku": "AK-0037",
+      "name_en": "Beef cubes (ras asfour)",
+      "category": "meat_poultry",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0029",
+      "name_en": "Chicken Legs",
+      "category": "meat_poultry",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0027",
+      "name_en": "Chicken taouk, marinated",
+      "category": "meat_poultry",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0038",
+      "name_en": "Hawa Chicken Sawda Chicken Prepacked",
+      "category": "meat_poultry",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0028",
+      "name_en": "Kafta",
+      "category": "meat_poultry",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0026",
+      "name_en": "Minced beef, coarse",
+      "category": "meat_poultry",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0030",
+      "name_en": "Minced beef, fine",
+      "category": "meat_poultry",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0032",
+      "name_en": "Tanmia Breaded Chicken Fillet Loose",
+      "category": "meat_poultry",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0034",
+      "name_en": "Tanmia Chicken Legs 900G",
+      "category": "meat_poultry",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0033",
+      "name_en": "Tanmia Chicken Tender Loose",
+      "category": "meat_poultry",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0031",
+      "name_en": "Tanmia Fresh Chicken Filet 500G",
+      "category": "meat_poultry",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0036",
+      "name_en": "Wilco Packaged Chicken Breast",
+      "category": "meat_poultry",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0035",
+      "name_en": "Wilco Packaged Chicken Legs",
+      "category": "meat_poultry",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0093",
+      "name_en": "Al Mouna Mortadella Beef With Olives",
+      "category": "deli_ready_meals",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0092",
+      "name_en": "Gorosti Turkey Breast",
+      "category": "deli_ready_meals",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0099",
+      "name_en": "Mamig's Kitchen Garlic Ready To Eat 200G",
+      "category": "deli_ready_meals",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0101",
+      "name_en": "Mamig's Kitchen Hommos Ready 270G",
+      "category": "deli_ready_meals",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0091",
+      "name_en": "Sant Dalmai Turkey Breast",
+      "category": "deli_ready_meals",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0095",
+      "name_en": "Tanmia Mortadella Beef Plain",
+      "category": "deli_ready_meals",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0096",
+      "name_en": "Tanmia Mortadelle Beef Aux Olives",
+      "category": "deli_ready_meals",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0098",
+      "name_en": "Toulkarem Beef Pepperoni",
+      "category": "deli_ready_meals",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0097",
+      "name_en": "Toulkarem Pepperoni",
+      "category": "deli_ready_meals",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0094",
+      "name_en": "Toulkarem Smoked Turkey Breast",
+      "category": "deli_ready_meals",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0039",
+      "name_en": "Aflora Kashkaval Cow Cheese",
+      "category": "dairy_eggs",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0065",
+      "name_en": "Akkawi Balady",
+      "category": "dairy_eggs",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0041",
+      "name_en": "Candia Ayran 250Ml",
+      "category": "dairy_eggs",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0056",
+      "name_en": "Candia Laban Full Fat 1Kg",
+      "category": "dairy_eggs",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0057",
+      "name_en": "Dairy Khoury Greek Yogurt Apricot Low Fat 175G",
+      "category": "dairy_eggs",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0052",
+      "name_en": "Dairy Khoury Greek Yogurt Plain Low Fat 175G",
+      "category": "dairy_eggs",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0059",
+      "name_en": "Double Creme /Kg",
+      "category": "dairy_eggs",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0040",
+      "name_en": "Filata Shredded Mozzarella Cheese",
+      "category": "dairy_eggs",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0044",
+      "name_en": "Halloum /Kg",
+      "category": "dairy_eggs",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0047",
+      "name_en": "Hamra Edam Analogue Cheese",
+      "category": "dairy_eggs",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0058",
+      "name_en": "Happy Basket Red Eggs Naylon 15Pcs",
+      "category": "dairy_eggs",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0049",
+      "name_en": "Hawa Chicken Red Egg Naylon",
+      "category": "dairy_eggs",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0055",
+      "name_en": "Hawa Chicken White Eggs 30Pcs",
+      "category": "dairy_eggs",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0043",
+      "name_en": "Kavallos Cow Kashkaval",
+      "category": "dairy_eggs",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0063",
+      "name_en": "Kiri Cream Cheese 12 Portions 200G",
+      "category": "dairy_eggs",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0042",
+      "name_en": "Leen Taanayel Labneh Premium",
+      "category": "dairy_eggs",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0045",
+      "name_en": "Leprino Mozzarella Cheese Shredded",
+      "category": "dairy_eggs",
+      "sort_in_category": 17
+    },
+    {
+      "sku": "AK-0060",
+      "name_en": "Liban Lait Halloum Entier 250G",
+      "category": "dairy_eggs",
+      "sort_in_category": 18
+    },
+    {
+      "sku": "AK-0050",
+      "name_en": "Liban Lait Laban 1Kg",
+      "category": "dairy_eggs",
+      "sort_in_category": 19
+    },
+    {
+      "sku": "AK-0046",
+      "name_en": "Liban Lait Labneh Baladieh 450G",
+      "category": "dairy_eggs",
+      "sort_in_category": 20
+    },
+    {
+      "sku": "AK-0051",
+      "name_en": "Liban Lait Labneh Baladieh 900G",
+      "category": "dairy_eggs",
+      "sort_in_category": 21
+    },
+    {
+      "sku": "AK-0061",
+      "name_en": "Lurpak Butter Unsalted 200G",
+      "category": "dairy_eggs",
+      "sort_in_category": 22
+    },
+    {
+      "sku": "AK-0048",
+      "name_en": "Mazaraana Laban 1Kg",
+      "category": "dairy_eggs",
+      "sort_in_category": 23
+    },
+    {
+      "sku": "AK-0062",
+      "name_en": "Picon Simply 8 Portions 112G",
+      "category": "dairy_eggs",
+      "sort_in_category": 24
+    },
+    {
+      "sku": "AK-0053",
+      "name_en": "Plein Soleil Butter Unsalted 200G",
+      "category": "dairy_eggs",
+      "sort_in_category": 25
+    },
+    {
+      "sku": "AK-0054",
+      "name_en": "Plein Soleil Edam Cheese Block",
+      "category": "dairy_eggs",
+      "sort_in_category": 26
+    },
+    {
+      "sku": "AK-0234",
+      "name_en": "Dolsi Amarena With Natural Strawberry Filling",
+      "category": "frozen_food",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0232",
+      "name_en": "Dolsi Vegas With Caramel Filling",
+      "category": "frozen_food",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0244",
+      "name_en": "Foody's Crispy French Fries Straight Cut 900G",
+      "category": "frozen_food",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0246",
+      "name_en": "Foody's Frozen Crispy Chicken Nuggets 500G",
+      "category": "frozen_food",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0245",
+      "name_en": "Foody's Frozen Crispy Chicken Strips 500G",
+      "category": "frozen_food",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0238",
+      "name_en": "Foody's Frozen Green Peas 400G",
+      "category": "frozen_food",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0239",
+      "name_en": "Liban Frites Frz Home French Fries 900G",
+      "category": "frozen_food",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0231",
+      "name_en": "Lotussweets Ice Cream 1Kg",
+      "category": "frozen_food",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0233",
+      "name_en": "Ocean Crab Sticks Surimi 250G",
+      "category": "frozen_food",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0235",
+      "name_en": "Plein Soleil Frozen Green Peas Fine 400G",
+      "category": "frozen_food",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0241",
+      "name_en": "Plein Soleil Frozen Mulukhieh Leaves 400G",
+      "category": "frozen_food",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0237",
+      "name_en": "Plein Soleil Frozen Peas & Carrots Mix Fine & Sweet 400G",
+      "category": "frozen_food",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0240",
+      "name_en": "Seafin Frozen White Fish Pangasius Fillet 1Kg",
+      "category": "frozen_food",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0243",
+      "name_en": "Take N Bake Frozen Pizza Pepperoni Small 350G",
+      "category": "frozen_food",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0242",
+      "name_en": "Take N Bake Frozen Pizza Vegetarian Small 350G",
+      "category": "frozen_food",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0236",
+      "name_en": "Tanmia Frozen Chicken Nuggets 520G",
+      "category": "frozen_food",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0083",
+      "name_en": "Al Forno Piston Plain 5 Pieces",
+      "category": "bakery",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0080",
+      "name_en": "Al Forno Pita White Bread Big 800G",
+      "category": "bakery",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0087",
+      "name_en": "Foody's Tortilla Wraps 20Cm 8 Pieces 320G",
+      "category": "bakery",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0086",
+      "name_en": "Pain D'or Arabic Bread 900G (7 Loaves)",
+      "category": "bakery",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0090",
+      "name_en": "Pain D'or Hot Dog 6 Pieces 330G",
+      "category": "bakery",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0085",
+      "name_en": "Pain D'or Pain Au Lait 9 Pieces 300G",
+      "category": "bakery",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0079",
+      "name_en": "Piston White",
+      "category": "bakery",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0088",
+      "name_en": "Tannour El Asser High Fiber Bread Light 5 Pieces",
+      "category": "bakery",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0089",
+      "name_en": "Tannour El Asser Oat Bread Large 5 Loaves",
+      "category": "bakery",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0084",
+      "name_en": "Wooden Bakery Mini Guette Rustique White",
+      "category": "bakery",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0081",
+      "name_en": "Wooden Bakery Pita White Bread Big 800G",
+      "category": "bakery",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0082",
+      "name_en": "Wooden Bakery Pita White Medium 400G",
+      "category": "bakery",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0124",
+      "name_en": "7Up Carbonated Soft Drink 2.25L",
+      "category": "water_drinks",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0121",
+      "name_en": "7Up Soft Drink Bottle 330Ml",
+      "category": "water_drinks",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0102",
+      "name_en": "Aqua Family 10L",
+      "category": "water_drinks",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0130",
+      "name_en": "Cafe21 2In1 Instant Coffee No Sugar 12G",
+      "category": "water_drinks",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0120",
+      "name_en": "Candia Juice Fruits Rouges Nectar 180Ml",
+      "category": "water_drinks",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0118",
+      "name_en": "Dark Blue Energy Drink 330Ml",
+      "category": "water_drinks",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0141",
+      "name_en": "Domo Hot Chocolate Drink Caramel Light 10G",
+      "category": "water_drinks",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0128",
+      "name_en": "Joocyz Juice Apple 1L",
+      "category": "water_drinks",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0125",
+      "name_en": "Joocyz Juice Pineapple 1L",
+      "category": "water_drinks",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0123",
+      "name_en": "Lipton Ice Tea Red Fruits Zero Sugar 320Ml",
+      "category": "water_drinks",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0122",
+      "name_en": "Lipton Ice Tea Tropical Zero Sugar 320Ml",
+      "category": "water_drinks",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0142",
+      "name_en": "Lipton Yellow Label Black Tea 25 Bags",
+      "category": "water_drinks",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0140",
+      "name_en": "Lipton Yellow Label Tea 100 Teabags",
+      "category": "water_drinks",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0143",
+      "name_en": "Maestro Ceylon Tea 140G",
+      "category": "water_drinks",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0126",
+      "name_en": "Mirinda Carbonated Drink Orange Bottle 330Ml",
+      "category": "water_drinks",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0119",
+      "name_en": "Mr Juicy Juice Pineapple 180Ml",
+      "category": "water_drinks",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0138",
+      "name_en": "Najjar Cafe Cardamom 180G",
+      "category": "water_drinks",
+      "sort_in_category": 17
+    },
+    {
+      "sku": "AK-0133",
+      "name_en": "Najjar Cafe Classic Normal 180G",
+      "category": "water_drinks",
+      "sort_in_category": 18
+    },
+    {
+      "sku": "AK-0137",
+      "name_en": "Najjar Instant Coffee Red 190G",
+      "category": "water_drinks",
+      "sort_in_category": 19
+    },
+    {
+      "sku": "AK-0139",
+      "name_en": "Najjar Star Café Coffee Regular 180G",
+      "category": "water_drinks",
+      "sort_in_category": 20
+    },
+    {
+      "sku": "AK-0110",
+      "name_en": "Nejmeh Mineral Water 2L",
+      "category": "water_drinks",
+      "sort_in_category": 21
+    },
+    {
+      "sku": "AK-0131",
+      "name_en": "Nescafe Instant Coffee 3In1 Classic 20G",
+      "category": "water_drinks",
+      "sort_in_category": 22
+    },
+    {
+      "sku": "AK-0135",
+      "name_en": "Nescafe Instant Coffee Gold Pouch 100G",
+      "category": "water_drinks",
+      "sort_in_category": 23
+    },
+    {
+      "sku": "AK-0111",
+      "name_en": "Nestle Pure Life Water 0.6L X12",
+      "category": "water_drinks",
+      "sort_in_category": 24
+    },
+    {
+      "sku": "AK-0115",
+      "name_en": "Pepsi Carbonated Drink 2.25L",
+      "category": "water_drinks",
+      "sort_in_category": 25
+    },
+    {
+      "sku": "AK-0117",
+      "name_en": "Pepsi Carbonated Drink 330Ml",
+      "category": "water_drinks",
+      "sort_in_category": 26
+    },
+    {
+      "sku": "AK-0112",
+      "name_en": "Pepsi Carbonated Drink Diet 330Ml",
+      "category": "water_drinks",
+      "sort_in_category": 27
+    },
+    {
+      "sku": "AK-0113",
+      "name_en": "Pepsi Soft Drink Bottle Diet 2.25L",
+      "category": "water_drinks",
+      "sort_in_category": 28
+    },
+    {
+      "sku": "AK-0116",
+      "name_en": "Pepsi Soft Drink Diet 1.25L",
+      "category": "water_drinks",
+      "sort_in_category": 29
+    },
+    {
+      "sku": "AK-0107",
+      "name_en": "Rim Mineral Water 2L X 6",
+      "category": "water_drinks",
+      "sort_in_category": 30
+    },
+    {
+      "sku": "AK-0108",
+      "name_en": "Sohat Mineral Water 1.5L X6",
+      "category": "water_drinks",
+      "sort_in_category": 31
+    },
+    {
+      "sku": "AK-0106",
+      "name_en": "Talaya Sparkling Water Lemon Lime 330Ml",
+      "category": "water_drinks",
+      "sort_in_category": 32
+    },
+    {
+      "sku": "AK-0103",
+      "name_en": "Tannourine Mineral Water 2L X6",
+      "category": "water_drinks",
+      "sort_in_category": 33
+    },
+    {
+      "sku": "AK-0105",
+      "name_en": "Tannourine Mineral Water 330Ml X 12",
+      "category": "water_drinks",
+      "sort_in_category": 34
+    },
+    {
+      "sku": "AK-0104",
+      "name_en": "Tannourine Mineral Water 500Ml X 12",
+      "category": "water_drinks",
+      "sort_in_category": 35
+    },
+    {
+      "sku": "AK-0109",
+      "name_en": "Tannourine Mineral Water Gallon 6L",
+      "category": "water_drinks",
+      "sort_in_category": 36
+    },
+    {
+      "sku": "AK-0136",
+      "name_en": "Tchibo Instant Coffee Gold Selection 200G",
+      "category": "water_drinks",
+      "sort_in_category": 37
+    },
+    {
+      "sku": "AK-0114",
+      "name_en": "Top Juice Pineapple 190Ml",
+      "category": "water_drinks",
+      "sort_in_category": 38
+    },
+    {
+      "sku": "AK-0134",
+      "name_en": "Tora Bika Cappucino 25G",
+      "category": "water_drinks",
+      "sort_in_category": 39
+    },
+    {
+      "sku": "AK-0127",
+      "name_en": "Uno Juice Mango 1L",
+      "category": "water_drinks",
+      "sort_in_category": 40
+    },
+    {
+      "sku": "AK-0129",
+      "name_en": "Vitalis Energy Drink Tropical 250Ml",
+      "category": "water_drinks",
+      "sort_in_category": 41
+    },
+    {
+      "sku": "AK-0070",
+      "name_en": "Candia Grand Lait Demi-Écrémé 1L",
+      "category": "breakfast_cereal",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0069",
+      "name_en": "Candia Milk Full Fat 180Ml",
+      "category": "breakfast_cereal",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0071",
+      "name_en": "Candia Silhouette Uht Lait Écrémé 1L",
+      "category": "breakfast_cereal",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0068",
+      "name_en": "Candia Uht Lait Entier 125Ml",
+      "category": "breakfast_cereal",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0067",
+      "name_en": "Candia Uht Lait Entier 1L",
+      "category": "breakfast_cereal",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0132",
+      "name_en": "Coffee Mate Coffee Creamer Original Pouch 450G",
+      "category": "breakfast_cereal",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0078",
+      "name_en": "Kellogg's Corn Flakes 750G",
+      "category": "breakfast_cereal",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0076",
+      "name_en": "Klim Milk Powder Pouch 750G",
+      "category": "breakfast_cereal",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0075",
+      "name_en": "Klio Powder Milk 750G",
+      "category": "breakfast_cereal",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0073",
+      "name_en": "Nadec Uht Milk Full Fat 1L",
+      "category": "breakfast_cereal",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0074",
+      "name_en": "Nadec Uht Milk Low Fat 1L",
+      "category": "breakfast_cereal",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0162",
+      "name_en": "Nutella Spread Chocolate Hazelnut 350G",
+      "category": "breakfast_cereal",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0151",
+      "name_en": "Nutella Spread Chocolate Hazelnut 750G",
+      "category": "breakfast_cereal",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0072",
+      "name_en": "Poppins Cereal Bar Choco Bits 25G",
+      "category": "breakfast_cereal",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0077",
+      "name_en": "Poppins Corn Flakes 20G",
+      "category": "breakfast_cereal",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0248",
+      "name_en": "Balance Protein Crackers Sour Cream & Onion 70G",
+      "category": "snacks_sweets",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0169",
+      "name_en": "Castania Peanuts 18G",
+      "category": "snacks_sweets",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0167",
+      "name_en": "Clorets Gum Original Mint 12 Pieces 16.8G",
+      "category": "snacks_sweets",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0159",
+      "name_en": "Coffee Joy Biscuits Coffee 45G",
+      "category": "snacks_sweets",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0164",
+      "name_en": "Dolsi Chips Cheezy Wizz 80G",
+      "category": "snacks_sweets",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0160",
+      "name_en": "Dolsi Chips Crunchy Peanuts Puffs 80G",
+      "category": "snacks_sweets",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0165",
+      "name_en": "Dolsi Chips Crunchy Pizza Puffs 80G",
+      "category": "snacks_sweets",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0158",
+      "name_en": "Edita Bake Rolz Olive 52G",
+      "category": "snacks_sweets",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0157",
+      "name_en": "Elegance Stars Biscuits Black Chocolate 34G",
+      "category": "snacks_sweets",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0247",
+      "name_en": "Eti Gong Corn & Rice Cake Original 32G",
+      "category": "snacks_sweets",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0146",
+      "name_en": "Kinder Choco Wafer Tronky 18G",
+      "category": "snacks_sweets",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0148",
+      "name_en": "Kinder Chocolate Barrette Maxi 21G",
+      "category": "snacks_sweets",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0147",
+      "name_en": "Kit Kat 4 Fingers 36.5G",
+      "category": "snacks_sweets",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0166",
+      "name_en": "Krikita Cashew Pow Fried Salted 14G",
+      "category": "snacks_sweets",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0145",
+      "name_en": "Lu Nouba Wafer 17.5G",
+      "category": "snacks_sweets",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0163",
+      "name_en": "Master Chips Cocktail 100G",
+      "category": "snacks_sweets",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0161",
+      "name_en": "Master Chips Salt 65G",
+      "category": "snacks_sweets",
+      "sort_in_category": 17
+    },
+    {
+      "sku": "AK-0170",
+      "name_en": "Mentos Incredible Chew Strawberry 45G",
+      "category": "snacks_sweets",
+      "sort_in_category": 18
+    },
+    {
+      "sku": "AK-0153",
+      "name_en": "Oreo Cookie Biscuit 38G",
+      "category": "snacks_sweets",
+      "sort_in_category": 19
+    },
+    {
+      "sku": "AK-0154",
+      "name_en": "Snack Jiha Chips Peanuts 25G",
+      "category": "snacks_sweets",
+      "sort_in_category": 20
+    },
+    {
+      "sku": "AK-0171",
+      "name_en": "Snickers Chocolate Bar Caramel & Peanuts 45G",
+      "category": "snacks_sweets",
+      "sort_in_category": 21
+    },
+    {
+      "sku": "AK-0144",
+      "name_en": "Solen Vip Cocoa Coated 25G",
+      "category": "snacks_sweets",
+      "sort_in_category": 22
+    },
+    {
+      "sku": "AK-0150",
+      "name_en": "Tiffany Wafer Chocolate Break 3 Fingers 23.5G",
+      "category": "snacks_sweets",
+      "sort_in_category": 23
+    },
+    {
+      "sku": "AK-0149",
+      "name_en": "Ulker Albeni Chocolate Bar 25G",
+      "category": "snacks_sweets",
+      "sort_in_category": 24
+    },
+    {
+      "sku": "AK-0152",
+      "name_en": "Ulker Metro Chocolate 36G",
+      "category": "snacks_sweets",
+      "sort_in_category": 25
+    },
+    {
+      "sku": "AK-0155",
+      "name_en": "Ulker Ulker Chocolate Baton Pistachio 14G",
+      "category": "snacks_sweets",
+      "sort_in_category": 26
+    },
+    {
+      "sku": "AK-0184",
+      "name_en": "Abou Rached Basmati Rice 800G",
+      "category": "pantry_staples",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0183",
+      "name_en": "Abu Rashed Indian Basmati Rice 4Kg",
+      "category": "pantry_staples",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0156",
+      "name_en": "Al Arabiya Tahina 400G",
+      "category": "pantry_staples",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0179",
+      "name_en": "Arbella Tagliatelle 400G",
+      "category": "pantry_staples",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0175",
+      "name_en": "Barilla Spaghetti N' 5 500G",
+      "category": "pantry_staples",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0190",
+      "name_en": "Burghul, coarse",
+      "category": "pantry_staples",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0186",
+      "name_en": "Deroni Green Lentils Vacuum 900G",
+      "category": "pantry_staples",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0185",
+      "name_en": "Deroni Italian Rice 900G",
+      "category": "pantry_staples",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0180",
+      "name_en": "Deroni Red Split Lentils Vacuum 900G",
+      "category": "pantry_staples",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0182",
+      "name_en": "Deroni Vermicelli 500G",
+      "category": "pantry_staples",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0181",
+      "name_en": "Divella Spaghetti N8 500G",
+      "category": "pantry_staples",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0168",
+      "name_en": "El Rashidi El Mizan Jam Strawberry 340G",
+      "category": "pantry_staples",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0173",
+      "name_en": "Indomie Noodles Chicken 70G",
+      "category": "pantry_staples",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0174",
+      "name_en": "Indomie Noodles Vegetable Flavor 56G",
+      "category": "pantry_staples",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0176",
+      "name_en": "Maggi Stock Cubes Beef 20G",
+      "category": "pantry_staples",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0172",
+      "name_en": "Maggi Stock Cubes Chicken 20G",
+      "category": "pantry_staples",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0178",
+      "name_en": "Ousraty Mixed Aleppo Thyme 400G",
+      "category": "pantry_staples",
+      "sort_in_category": 17
+    },
+    {
+      "sku": "AK-0177",
+      "name_en": "Taj Stock Cube Chicken 20G",
+      "category": "pantry_staples",
+      "sort_in_category": 18
+    },
+    {
+      "sku": "AK-0189",
+      "name_en": "Zain Lentils Adass Majrouch 900G",
+      "category": "pantry_staples",
+      "sort_in_category": 19
+    },
+    {
+      "sku": "AK-0202",
+      "name_en": "Al Taghziah Luncheon Chicken Round 200G",
+      "category": "canned_jarred",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0199",
+      "name_en": "Al Wadi Al Akhdar Sweet Corn 340G",
+      "category": "canned_jarred",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0205",
+      "name_en": "Black olives",
+      "category": "canned_jarred",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0200",
+      "name_en": "Chtoura Garden Boiled Chick Peas 400G",
+      "category": "canned_jarred",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0192",
+      "name_en": "Chtoura Garden Fava Beans 400G",
+      "category": "canned_jarred",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0201",
+      "name_en": "Cortas Foul Medammas 400G",
+      "category": "canned_jarred",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0198",
+      "name_en": "Cortas Hommos Tahina 400G",
+      "category": "canned_jarred",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0215",
+      "name_en": "Dolly's Ketchup 900G",
+      "category": "canned_jarred",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0214",
+      "name_en": "Dolly's Tomato Ketchup 330G",
+      "category": "canned_jarred",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0204",
+      "name_en": "Green olives",
+      "category": "canned_jarred",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0194",
+      "name_en": "Maxbell Sardine In Oil 125G",
+      "category": "canned_jarred",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0206",
+      "name_en": "Mixed pickles",
+      "category": "canned_jarred",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0193",
+      "name_en": "Plein Soleil Sweet Corn 340G",
+      "category": "canned_jarred",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0196",
+      "name_en": "Plein Soleil White Tuna Oil 185G X3",
+      "category": "canned_jarred",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0212",
+      "name_en": "Pomi Strained Tomatoes 500G",
+      "category": "canned_jarred",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0191",
+      "name_en": "Prime Sweet Corn Can 340G",
+      "category": "canned_jarred",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0195",
+      "name_en": "Siblou White Tuna In Oil 185G X3",
+      "category": "canned_jarred",
+      "sort_in_category": 17
+    },
+    {
+      "sku": "AK-0197",
+      "name_en": "Siblou White Tuna In Water 185G",
+      "category": "canned_jarred",
+      "sort_in_category": 18
+    },
+    {
+      "sku": "AK-0203",
+      "name_en": "Tanmia Chicken Luncheon Meat Easy Open Can 200G",
+      "category": "canned_jarred",
+      "sort_in_category": 19
+    },
+    {
+      "sku": "AK-0208",
+      "name_en": "Yamama Tomato Paste 1325G",
+      "category": "canned_jarred",
+      "sort_in_category": 20
+    },
+    {
+      "sku": "AK-0210",
+      "name_en": "Yamama Tomato Paste 660G",
+      "category": "canned_jarred",
+      "sort_in_category": 21
+    },
+    {
+      "sku": "AK-0217",
+      "name_en": "Al Koura Olive Oil 500Ml",
+      "category": "cooking_baking",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0219",
+      "name_en": "Al Wazir Olive Oil 500Ml",
+      "category": "cooking_baking",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0230",
+      "name_en": "Aruba Jelly Forest Fruits Light 12G",
+      "category": "cooking_baking",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0229",
+      "name_en": "Aruba Jelly Strawberry Light 12G",
+      "category": "cooking_baking",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0100",
+      "name_en": "Chef Simsum Garlic Paste 200G",
+      "category": "cooking_baking",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0220",
+      "name_en": "Deroni Hot Sauce 88Ml",
+      "category": "cooking_baking",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0228",
+      "name_en": "Deroni Sugar 5Kg",
+      "category": "cooking_baking",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0223",
+      "name_en": "Deroni Sugar 900G",
+      "category": "cooking_baking",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0227",
+      "name_en": "Domo Baking Powder Sachet 10G",
+      "category": "cooking_baking",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0226",
+      "name_en": "Domo Bicarbonate 85G",
+      "category": "cooking_baking",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0187",
+      "name_en": "Domo Corn Flour 200G",
+      "category": "cooking_baking",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0224",
+      "name_en": "Domo Jelly Strawberry 85G",
+      "category": "cooking_baking",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0225",
+      "name_en": "Domo Sugar Vanillin 5G",
+      "category": "cooking_baking",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0222",
+      "name_en": "El Hanim Ghee Vegetable 0.7Kg",
+      "category": "cooking_baking",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0188",
+      "name_en": "Gold Medal Flour 1Kg",
+      "category": "cooking_baking",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0216",
+      "name_en": "Lina Sunflower Oil 0.85L",
+      "category": "cooking_baking",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0221",
+      "name_en": "Maxim's Salt Iodised 700G",
+      "category": "cooking_baking",
+      "sort_in_category": 17
+    },
+    {
+      "sku": "AK-0211",
+      "name_en": "Plein Soleil Mayonnaise 250Ml",
+      "category": "cooking_baking",
+      "sort_in_category": 18
+    },
+    {
+      "sku": "AK-0213",
+      "name_en": "Plein Soleil Sunflower Oil 5L",
+      "category": "cooking_baking",
+      "sort_in_category": 19
+    },
+    {
+      "sku": "AK-0066",
+      "name_en": "President Uht Whipping Cream 35.1% Fat 20Mml",
+      "category": "cooking_baking",
+      "sort_in_category": 20
+    },
+    {
+      "sku": "AK-0064",
+      "name_en": "Puck Cooking Cream 500Ml",
+      "category": "cooking_baking",
+      "sort_in_category": 21
+    },
+    {
+      "sku": "AK-0218",
+      "name_en": "Yamama Grenadine Molasses 300Ml",
+      "category": "cooking_baking",
+      "sort_in_category": 22
+    },
+    {
+      "sku": "AK-0209",
+      "name_en": "Yamama White Vinegar 1L",
+      "category": "cooking_baking",
+      "sort_in_category": 23
+    },
+    {
+      "sku": "AK-0207",
+      "name_en": "Zer Sunflower Oil 3L",
+      "category": "cooking_baking",
+      "sort_in_category": 24
+    },
+    {
+      "sku": "AK-0254",
+      "name_en": "Al Ousra Facial Tissue 200Sh",
+      "category": "cleaning_household",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0253",
+      "name_en": "April Interfold 150G",
+      "category": "cleaning_household",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0266",
+      "name_en": "Britex Sponge Easy Grip Jumbo Euro 5Pcs",
+      "category": "cleaning_household",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0257",
+      "name_en": "City Plast Sandwich Bag 100 Pieces",
+      "category": "cleaning_household",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0259",
+      "name_en": "Comfort Fabric Softener Lavender 3L",
+      "category": "cleaning_household",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0262",
+      "name_en": "Germex Floor Detergent 1L",
+      "category": "cleaning_household",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0260",
+      "name_en": "Intaj Kitchen Towel X-Large 500G",
+      "category": "cleaning_household",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0267",
+      "name_en": "Intaj Toilet Paper 12 Rolls 1.5Kg",
+      "category": "cleaning_household",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0258",
+      "name_en": "Odex Bleach Lemon 1200Ml",
+      "category": "cleaning_household",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0256",
+      "name_en": "Odex Bleach Original 1L",
+      "category": "cleaning_household",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0264",
+      "name_en": "Odex Dishwash Liquid Blue 1300Ml",
+      "category": "cleaning_household",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0265",
+      "name_en": "Omo Gel Detergent Lavender 2.5L",
+      "category": "cleaning_household",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0261",
+      "name_en": "Omo Gel Liquid Laundry Detergent Wash Comfort 2.5L",
+      "category": "cleaning_household",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0250",
+      "name_en": "Perla Interfold Prime White",
+      "category": "cleaning_household",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0268",
+      "name_en": "Rosana Toilet Paper 18 Rolls",
+      "category": "cleaning_household",
+      "sort_in_category": 15
+    },
+    {
+      "sku": "AK-0263",
+      "name_en": "Sanita Liquid Laundry Detergent Fresh Essence 2.5L",
+      "category": "cleaning_household",
+      "sort_in_category": 16
+    },
+    {
+      "sku": "AK-0249",
+      "name_en": "Spartan Toilet Cleaner Flash 1L",
+      "category": "cleaning_household",
+      "sort_in_category": 17
+    },
+    {
+      "sku": "AK-0255",
+      "name_en": "Vimax Dishwashing Liquid Lemon 700Ml",
+      "category": "cleaning_household",
+      "sort_in_category": 18
+    },
+    {
+      "sku": "AK-0251",
+      "name_en": "Vimax Trash Bags Large Blue 30 Pieces",
+      "category": "cleaning_household",
+      "sort_in_category": 19
+    },
+    {
+      "sku": "AK-0252",
+      "name_en": "Vimax Trash Bags Medium Black 30 Pieces",
+      "category": "cleaning_household",
+      "sort_in_category": 20
+    },
+    {
+      "sku": "AK-0277",
+      "name_en": "Amalfi Shampoo Anti Caspa 750Ml",
+      "category": "personal_care",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0280",
+      "name_en": "Colgate Toothpaste Herbal 125Ml",
+      "category": "personal_care",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0275",
+      "name_en": "Colgate Toothpaste Triple Action 125Ml",
+      "category": "personal_care",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0276",
+      "name_en": "Dove Original Beauty Cream Bar 90G",
+      "category": "personal_care",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0278",
+      "name_en": "Fluff'n White Soft Touch Cotton Round Pads 75 Pieces",
+      "category": "personal_care",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0279",
+      "name_en": "Head & Shoulders Shampoo Sub Zero Freshness 400Ml",
+      "category": "personal_care",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0274",
+      "name_en": "Mf Cotton Buds Doria",
+      "category": "personal_care",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0281",
+      "name_en": "Nivea Roll On For Women Extra Brightening 25Ml",
+      "category": "personal_care",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0282",
+      "name_en": "Nivea Roll On For Women Pearly & Beauty 25Ml",
+      "category": "personal_care",
+      "sort_in_category": 9
+    },
+    {
+      "sku": "AK-0270",
+      "name_en": "Private Feminine Pads Extra Thin Night 7 Pieces",
+      "category": "personal_care",
+      "sort_in_category": 10
+    },
+    {
+      "sku": "AK-0271",
+      "name_en": "Private Feminine Pads Extra Thin Normal 10 Pieces",
+      "category": "personal_care",
+      "sort_in_category": 11
+    },
+    {
+      "sku": "AK-0272",
+      "name_en": "Wellplus Liquid Soap Marrakesh Mystique 500Ml",
+      "category": "personal_care",
+      "sort_in_category": 12
+    },
+    {
+      "sku": "AK-0273",
+      "name_en": "Wellplus Liquid Soap Sea Breeze 500Ml",
+      "category": "personal_care",
+      "sort_in_category": 13
+    },
+    {
+      "sku": "AK-0269",
+      "name_en": "Wellplus Wet Wipes 100 Sheets",
+      "category": "personal_care",
+      "sort_in_category": 14
+    },
+    {
+      "sku": "AK-0283",
+      "name_en": "Gipsy Wet Wipes 100Pcs + Pocket Wipes 40Pcs",
+      "category": "baby_pet",
+      "sort_in_category": 1
+    },
+    {
+      "sku": "AK-0285",
+      "name_en": "Johnsons Baby Shampoo 750Ml",
+      "category": "baby_pet",
+      "sort_in_category": 2
+    },
+    {
+      "sku": "AK-0287",
+      "name_en": "Loulou Baby Diapers Size 6 16-30Kg 26 Pieces",
+      "category": "baby_pet",
+      "sort_in_category": 3
+    },
+    {
+      "sku": "AK-0290",
+      "name_en": "Miglior Gatto Alutray Cat Agnello 100G",
+      "category": "baby_pet",
+      "sort_in_category": 4
+    },
+    {
+      "sku": "AK-0289",
+      "name_en": "Miglior Gatto Pate Agnello 400G",
+      "category": "baby_pet",
+      "sort_in_category": 5
+    },
+    {
+      "sku": "AK-0288",
+      "name_en": "Oui Oui Diapers Size 5 12-25Kg 38 Pieces",
+      "category": "baby_pet",
+      "sort_in_category": 6
+    },
+    {
+      "sku": "AK-0286",
+      "name_en": "Oui Oui Diapers Size 6 16-30Kg 32 Pieces",
+      "category": "baby_pet",
+      "sort_in_category": 7
+    },
+    {
+      "sku": "AK-0284",
+      "name_en": "Oui Oui Wet Wipes Aqua Pure 80 Sheets",
+      "category": "baby_pet",
+      "sort_in_category": 8
+    },
+    {
+      "sku": "AK-0291",
+      "name_en": "Pro Line Marseille Soap Bentonite Cat Litter 5L",
+      "category": "baby_pet",
+      "sort_in_category": 9
+    }
+  ],
+  "list_approval": {
+    "status": "approved",
+    "date": "2026-11-14",
+    "by": "Claude, on Rasheed's standing delegation; he can overturn it",
+    "changes": "three Arabic names corrected (Deli & Ready Meals, Water & Drinks, Cooking & Baking)",
+    "scope": "the 15 categories and their order only; item placements still get a person's check in K1"
   }
- ],
- "unplaced": [],
- "empty_categories": [],
- "assignments": [
-  {
-   "sku": "AK-0020",
-   "name_en": "Apple, red local",
-   "category": "fruits_vegetables",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0009",
-   "name_en": "Banana",
-   "category": "fruits_vegetables",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0018",
-   "name_en": "Cabbage",
-   "category": "fruits_vegetables",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0008",
-   "name_en": "Carrot",
-   "category": "fruits_vegetables",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0016",
-   "name_en": "Cauliflower",
-   "category": "fruits_vegetables",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0017",
-   "name_en": "Cherry tomatoes",
-   "category": "fruits_vegetables",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0015",
-   "name_en": "Coriander (bunch)",
-   "category": "fruits_vegetables",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0003",
-   "name_en": "Cucumber",
-   "category": "fruits_vegetables",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0014",
-   "name_en": "Eggplant",
-   "category": "fruits_vegetables",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0025",
-   "name_en": "Garlic",
-   "category": "fruits_vegetables",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0011",
-   "name_en": "Green beans (loubieh)",
-   "category": "fruits_vegetables",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0013",
-   "name_en": "Green pepper, sweet",
-   "category": "fruits_vegetables",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0005",
-   "name_en": "Lemon",
-   "category": "fruits_vegetables",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0012",
-   "name_en": "Lettuce",
-   "category": "fruits_vegetables",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0023",
-   "name_en": "Mint (bunch)",
-   "category": "fruits_vegetables",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0004",
-   "name_en": "Onion",
-   "category": "fruits_vegetables",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0022",
-   "name_en": "Onion, red",
-   "category": "fruits_vegetables",
-   "sort_in_category": 17
-  },
-  {
-   "sku": "AK-0006",
-   "name_en": "Orange for juice",
-   "category": "fruits_vegetables",
-   "sort_in_category": 18
-  },
-  {
-   "sku": "AK-0019",
-   "name_en": "Orange, Valencia",
-   "category": "fruits_vegetables",
-   "sort_in_category": 19
-  },
-  {
-   "sku": "AK-0010",
-   "name_en": "Parsley (bunch)",
-   "category": "fruits_vegetables",
-   "sort_in_category": 20
-  },
-  {
-   "sku": "AK-0001",
-   "name_en": "Potato",
-   "category": "fruits_vegetables",
-   "sort_in_category": 21
-  },
-  {
-   "sku": "AK-0024",
-   "name_en": "Radish (bunch)",
-   "category": "fruits_vegetables",
-   "sort_in_category": 22
-  },
-  {
-   "sku": "AK-0021",
-   "name_en": "Rocca (bunch)",
-   "category": "fruits_vegetables",
-   "sort_in_category": 23
-  },
-  {
-   "sku": "AK-0002",
-   "name_en": "Tomato",
-   "category": "fruits_vegetables",
-   "sort_in_category": 24
-  },
-  {
-   "sku": "AK-0007",
-   "name_en": "Zucchini",
-   "category": "fruits_vegetables",
-   "sort_in_category": 25
-  },
-  {
-   "sku": "AK-0037",
-   "name_en": "Beef cubes (ras asfour)",
-   "category": "meat_poultry",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0029",
-   "name_en": "Chicken Legs",
-   "category": "meat_poultry",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0027",
-   "name_en": "Chicken taouk, marinated",
-   "category": "meat_poultry",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0038",
-   "name_en": "Hawa Chicken Sawda Chicken Prepacked",
-   "category": "meat_poultry",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0028",
-   "name_en": "Kafta",
-   "category": "meat_poultry",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0026",
-   "name_en": "Minced beef, coarse",
-   "category": "meat_poultry",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0030",
-   "name_en": "Minced beef, fine",
-   "category": "meat_poultry",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0032",
-   "name_en": "Tanmia Breaded Chicken Fillet Loose",
-   "category": "meat_poultry",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0034",
-   "name_en": "Tanmia Chicken Legs 900G",
-   "category": "meat_poultry",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0033",
-   "name_en": "Tanmia Chicken Tender Loose",
-   "category": "meat_poultry",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0031",
-   "name_en": "Tanmia Fresh Chicken Filet 500G",
-   "category": "meat_poultry",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0036",
-   "name_en": "Wilco Packaged Chicken Breast",
-   "category": "meat_poultry",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0035",
-   "name_en": "Wilco Packaged Chicken Legs",
-   "category": "meat_poultry",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0093",
-   "name_en": "Al Mouna Mortadella Beef With Olives",
-   "category": "deli_ready_meals",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0092",
-   "name_en": "Gorosti Turkey Breast",
-   "category": "deli_ready_meals",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0099",
-   "name_en": "Mamig's Kitchen Garlic Ready To Eat 200G",
-   "category": "deli_ready_meals",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0101",
-   "name_en": "Mamig's Kitchen Hommos Ready 270G",
-   "category": "deli_ready_meals",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0091",
-   "name_en": "Sant Dalmai Turkey Breast",
-   "category": "deli_ready_meals",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0095",
-   "name_en": "Tanmia Mortadella Beef Plain",
-   "category": "deli_ready_meals",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0096",
-   "name_en": "Tanmia Mortadelle Beef Aux Olives",
-   "category": "deli_ready_meals",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0098",
-   "name_en": "Toulkarem Beef Pepperoni",
-   "category": "deli_ready_meals",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0097",
-   "name_en": "Toulkarem Pepperoni",
-   "category": "deli_ready_meals",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0094",
-   "name_en": "Toulkarem Smoked Turkey Breast",
-   "category": "deli_ready_meals",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0039",
-   "name_en": "Aflora Kashkaval Cow Cheese",
-   "category": "dairy_eggs",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0065",
-   "name_en": "Akkawi Balady",
-   "category": "dairy_eggs",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0041",
-   "name_en": "Candia Ayran 250Ml",
-   "category": "dairy_eggs",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0056",
-   "name_en": "Candia Laban Full Fat 1Kg",
-   "category": "dairy_eggs",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0057",
-   "name_en": "Dairy Khoury Greek Yogurt Apricot Low Fat 175G",
-   "category": "dairy_eggs",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0052",
-   "name_en": "Dairy Khoury Greek Yogurt Plain Low Fat 175G",
-   "category": "dairy_eggs",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0059",
-   "name_en": "Double Creme /Kg",
-   "category": "dairy_eggs",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0040",
-   "name_en": "Filata Shredded Mozzarella Cheese",
-   "category": "dairy_eggs",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0044",
-   "name_en": "Halloum /Kg",
-   "category": "dairy_eggs",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0047",
-   "name_en": "Hamra Edam Analogue Cheese",
-   "category": "dairy_eggs",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0058",
-   "name_en": "Happy Basket Red Eggs Naylon 15Pcs",
-   "category": "dairy_eggs",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0049",
-   "name_en": "Hawa Chicken Red Egg Naylon",
-   "category": "dairy_eggs",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0055",
-   "name_en": "Hawa Chicken White Eggs 30Pcs",
-   "category": "dairy_eggs",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0043",
-   "name_en": "Kavallos Cow Kashkaval",
-   "category": "dairy_eggs",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0063",
-   "name_en": "Kiri Cream Cheese 12 Portions 200G",
-   "category": "dairy_eggs",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0042",
-   "name_en": "Leen Taanayel Labneh Premium",
-   "category": "dairy_eggs",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0045",
-   "name_en": "Leprino Mozzarella Cheese Shredded",
-   "category": "dairy_eggs",
-   "sort_in_category": 17
-  },
-  {
-   "sku": "AK-0060",
-   "name_en": "Liban Lait Halloum Entier 250G",
-   "category": "dairy_eggs",
-   "sort_in_category": 18
-  },
-  {
-   "sku": "AK-0050",
-   "name_en": "Liban Lait Laban 1Kg",
-   "category": "dairy_eggs",
-   "sort_in_category": 19
-  },
-  {
-   "sku": "AK-0046",
-   "name_en": "Liban Lait Labneh Baladieh 450G",
-   "category": "dairy_eggs",
-   "sort_in_category": 20
-  },
-  {
-   "sku": "AK-0051",
-   "name_en": "Liban Lait Labneh Baladieh 900G",
-   "category": "dairy_eggs",
-   "sort_in_category": 21
-  },
-  {
-   "sku": "AK-0061",
-   "name_en": "Lurpak Butter Unsalted 200G",
-   "category": "dairy_eggs",
-   "sort_in_category": 22
-  },
-  {
-   "sku": "AK-0048",
-   "name_en": "Mazaraana Laban 1Kg",
-   "category": "dairy_eggs",
-   "sort_in_category": 23
-  },
-  {
-   "sku": "AK-0062",
-   "name_en": "Picon Simply 8 Portions 112G",
-   "category": "dairy_eggs",
-   "sort_in_category": 24
-  },
-  {
-   "sku": "AK-0053",
-   "name_en": "Plein Soleil Butter Unsalted 200G",
-   "category": "dairy_eggs",
-   "sort_in_category": 25
-  },
-  {
-   "sku": "AK-0054",
-   "name_en": "Plein Soleil Edam Cheese Block",
-   "category": "dairy_eggs",
-   "sort_in_category": 26
-  },
-  {
-   "sku": "AK-0234",
-   "name_en": "Dolsi Amarena With Natural Strawberry Filling",
-   "category": "frozen_food",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0232",
-   "name_en": "Dolsi Vegas With Caramel Filling",
-   "category": "frozen_food",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0244",
-   "name_en": "Foody's Crispy French Fries Straight Cut 900G",
-   "category": "frozen_food",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0246",
-   "name_en": "Foody's Frozen Crispy Chicken Nuggets 500G",
-   "category": "frozen_food",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0245",
-   "name_en": "Foody's Frozen Crispy Chicken Strips 500G",
-   "category": "frozen_food",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0238",
-   "name_en": "Foody's Frozen Green Peas 400G",
-   "category": "frozen_food",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0239",
-   "name_en": "Liban Frites Frz Home French Fries 900G",
-   "category": "frozen_food",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0231",
-   "name_en": "Lotussweets Ice Cream 1Kg",
-   "category": "frozen_food",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0233",
-   "name_en": "Ocean Crab Sticks Surimi 250G",
-   "category": "frozen_food",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0235",
-   "name_en": "Plein Soleil Frozen Green Peas Fine 400G",
-   "category": "frozen_food",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0241",
-   "name_en": "Plein Soleil Frozen Mulukhieh Leaves 400G",
-   "category": "frozen_food",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0237",
-   "name_en": "Plein Soleil Frozen Peas & Carrots Mix Fine & Sweet 400G",
-   "category": "frozen_food",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0240",
-   "name_en": "Seafin Frozen White Fish Pangasius Fillet 1Kg",
-   "category": "frozen_food",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0243",
-   "name_en": "Take N Bake Frozen Pizza Pepperoni Small 350G",
-   "category": "frozen_food",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0242",
-   "name_en": "Take N Bake Frozen Pizza Vegetarian Small 350G",
-   "category": "frozen_food",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0236",
-   "name_en": "Tanmia Frozen Chicken Nuggets 520G",
-   "category": "frozen_food",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0083",
-   "name_en": "Al Forno Piston Plain 5 Pieces",
-   "category": "bakery",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0080",
-   "name_en": "Al Forno Pita White Bread Big 800G",
-   "category": "bakery",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0087",
-   "name_en": "Foody's Tortilla Wraps 20Cm 8 Pieces 320G",
-   "category": "bakery",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0086",
-   "name_en": "Pain D'or Arabic Bread 900G (7 Loaves)",
-   "category": "bakery",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0090",
-   "name_en": "Pain D'or Hot Dog 6 Pieces 330G",
-   "category": "bakery",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0085",
-   "name_en": "Pain D'or Pain Au Lait 9 Pieces 300G",
-   "category": "bakery",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0079",
-   "name_en": "Piston White",
-   "category": "bakery",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0088",
-   "name_en": "Tannour El Asser High Fiber Bread Light 5 Pieces",
-   "category": "bakery",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0089",
-   "name_en": "Tannour El Asser Oat Bread Large 5 Loaves",
-   "category": "bakery",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0084",
-   "name_en": "Wooden Bakery Mini Guette Rustique White",
-   "category": "bakery",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0081",
-   "name_en": "Wooden Bakery Pita White Bread Big 800G",
-   "category": "bakery",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0082",
-   "name_en": "Wooden Bakery Pita White Medium 400G",
-   "category": "bakery",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0124",
-   "name_en": "7Up Carbonated Soft Drink 2.25L",
-   "category": "water_drinks",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0121",
-   "name_en": "7Up Soft Drink Bottle 330Ml",
-   "category": "water_drinks",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0102",
-   "name_en": "Aqua Family 10L",
-   "category": "water_drinks",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0130",
-   "name_en": "Cafe21 2In1 Instant Coffee No Sugar 12G",
-   "category": "water_drinks",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0120",
-   "name_en": "Candia Juice Fruits Rouges Nectar 180Ml",
-   "category": "water_drinks",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0118",
-   "name_en": "Dark Blue Energy Drink 330Ml",
-   "category": "water_drinks",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0141",
-   "name_en": "Domo Hot Chocolate Drink Caramel Light 10G",
-   "category": "water_drinks",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0128",
-   "name_en": "Joocyz Juice Apple 1L",
-   "category": "water_drinks",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0125",
-   "name_en": "Joocyz Juice Pineapple 1L",
-   "category": "water_drinks",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0123",
-   "name_en": "Lipton Ice Tea Red Fruits Zero Sugar 320Ml",
-   "category": "water_drinks",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0122",
-   "name_en": "Lipton Ice Tea Tropical Zero Sugar 320Ml",
-   "category": "water_drinks",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0142",
-   "name_en": "Lipton Yellow Label Black Tea 25 Bags",
-   "category": "water_drinks",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0140",
-   "name_en": "Lipton Yellow Label Tea 100 Teabags",
-   "category": "water_drinks",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0143",
-   "name_en": "Maestro Ceylon Tea 140G",
-   "category": "water_drinks",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0126",
-   "name_en": "Mirinda Carbonated Drink Orange Bottle 330Ml",
-   "category": "water_drinks",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0119",
-   "name_en": "Mr Juicy Juice Pineapple 180Ml",
-   "category": "water_drinks",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0138",
-   "name_en": "Najjar Cafe Cardamom 180G",
-   "category": "water_drinks",
-   "sort_in_category": 17
-  },
-  {
-   "sku": "AK-0133",
-   "name_en": "Najjar Cafe Classic Normal 180G",
-   "category": "water_drinks",
-   "sort_in_category": 18
-  },
-  {
-   "sku": "AK-0137",
-   "name_en": "Najjar Instant Coffee Red 190G",
-   "category": "water_drinks",
-   "sort_in_category": 19
-  },
-  {
-   "sku": "AK-0139",
-   "name_en": "Najjar Star Café Coffee Regular 180G",
-   "category": "water_drinks",
-   "sort_in_category": 20
-  },
-  {
-   "sku": "AK-0110",
-   "name_en": "Nejmeh Mineral Water 2L",
-   "category": "water_drinks",
-   "sort_in_category": 21
-  },
-  {
-   "sku": "AK-0131",
-   "name_en": "Nescafe Instant Coffee 3In1 Classic 20G",
-   "category": "water_drinks",
-   "sort_in_category": 22
-  },
-  {
-   "sku": "AK-0135",
-   "name_en": "Nescafe Instant Coffee Gold Pouch 100G",
-   "category": "water_drinks",
-   "sort_in_category": 23
-  },
-  {
-   "sku": "AK-0111",
-   "name_en": "Nestle Pure Life Water 0.6L X12",
-   "category": "water_drinks",
-   "sort_in_category": 24
-  },
-  {
-   "sku": "AK-0115",
-   "name_en": "Pepsi Carbonated Drink 2.25L",
-   "category": "water_drinks",
-   "sort_in_category": 25
-  },
-  {
-   "sku": "AK-0117",
-   "name_en": "Pepsi Carbonated Drink 330Ml",
-   "category": "water_drinks",
-   "sort_in_category": 26
-  },
-  {
-   "sku": "AK-0112",
-   "name_en": "Pepsi Carbonated Drink Diet 330Ml",
-   "category": "water_drinks",
-   "sort_in_category": 27
-  },
-  {
-   "sku": "AK-0113",
-   "name_en": "Pepsi Soft Drink Bottle Diet 2.25L",
-   "category": "water_drinks",
-   "sort_in_category": 28
-  },
-  {
-   "sku": "AK-0116",
-   "name_en": "Pepsi Soft Drink Diet 1.25L",
-   "category": "water_drinks",
-   "sort_in_category": 29
-  },
-  {
-   "sku": "AK-0107",
-   "name_en": "Rim Mineral Water 2L X 6",
-   "category": "water_drinks",
-   "sort_in_category": 30
-  },
-  {
-   "sku": "AK-0108",
-   "name_en": "Sohat Mineral Water 1.5L X6",
-   "category": "water_drinks",
-   "sort_in_category": 31
-  },
-  {
-   "sku": "AK-0106",
-   "name_en": "Talaya Sparkling Water Lemon Lime 330Ml",
-   "category": "water_drinks",
-   "sort_in_category": 32
-  },
-  {
-   "sku": "AK-0103",
-   "name_en": "Tannourine Mineral Water 2L X6",
-   "category": "water_drinks",
-   "sort_in_category": 33
-  },
-  {
-   "sku": "AK-0105",
-   "name_en": "Tannourine Mineral Water 330Ml X 12",
-   "category": "water_drinks",
-   "sort_in_category": 34
-  },
-  {
-   "sku": "AK-0104",
-   "name_en": "Tannourine Mineral Water 500Ml X 12",
-   "category": "water_drinks",
-   "sort_in_category": 35
-  },
-  {
-   "sku": "AK-0109",
-   "name_en": "Tannourine Mineral Water Gallon 6L",
-   "category": "water_drinks",
-   "sort_in_category": 36
-  },
-  {
-   "sku": "AK-0136",
-   "name_en": "Tchibo Instant Coffee Gold Selection 200G",
-   "category": "water_drinks",
-   "sort_in_category": 37
-  },
-  {
-   "sku": "AK-0114",
-   "name_en": "Top Juice Pineapple 190Ml",
-   "category": "water_drinks",
-   "sort_in_category": 38
-  },
-  {
-   "sku": "AK-0134",
-   "name_en": "Tora Bika Cappucino 25G",
-   "category": "water_drinks",
-   "sort_in_category": 39
-  },
-  {
-   "sku": "AK-0127",
-   "name_en": "Uno Juice Mango 1L",
-   "category": "water_drinks",
-   "sort_in_category": 40
-  },
-  {
-   "sku": "AK-0129",
-   "name_en": "Vitalis Energy Drink Tropical 250Ml",
-   "category": "water_drinks",
-   "sort_in_category": 41
-  },
-  {
-   "sku": "AK-0070",
-   "name_en": "Candia Grand Lait Demi-Écrémé 1L",
-   "category": "breakfast_cereal",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0069",
-   "name_en": "Candia Milk Full Fat 180Ml",
-   "category": "breakfast_cereal",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0071",
-   "name_en": "Candia Silhouette Uht Lait Écrémé 1L",
-   "category": "breakfast_cereal",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0068",
-   "name_en": "Candia Uht Lait Entier 125Ml",
-   "category": "breakfast_cereal",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0067",
-   "name_en": "Candia Uht Lait Entier 1L",
-   "category": "breakfast_cereal",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0132",
-   "name_en": "Coffee Mate Coffee Creamer Original Pouch 450G",
-   "category": "breakfast_cereal",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0078",
-   "name_en": "Kellogg's Corn Flakes 750G",
-   "category": "breakfast_cereal",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0076",
-   "name_en": "Klim Milk Powder Pouch 750G",
-   "category": "breakfast_cereal",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0075",
-   "name_en": "Klio Powder Milk 750G",
-   "category": "breakfast_cereal",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0073",
-   "name_en": "Nadec Uht Milk Full Fat 1L",
-   "category": "breakfast_cereal",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0074",
-   "name_en": "Nadec Uht Milk Low Fat 1L",
-   "category": "breakfast_cereal",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0162",
-   "name_en": "Nutella Spread Chocolate Hazelnut 350G",
-   "category": "breakfast_cereal",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0151",
-   "name_en": "Nutella Spread Chocolate Hazelnut 750G",
-   "category": "breakfast_cereal",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0072",
-   "name_en": "Poppins Cereal Bar Choco Bits 25G",
-   "category": "breakfast_cereal",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0077",
-   "name_en": "Poppins Corn Flakes 20G",
-   "category": "breakfast_cereal",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0248",
-   "name_en": "Balance Protein Crackers Sour Cream & Onion 70G",
-   "category": "snacks_sweets",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0169",
-   "name_en": "Castania Peanuts 18G",
-   "category": "snacks_sweets",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0167",
-   "name_en": "Clorets Gum Original Mint 12 Pieces 16.8G",
-   "category": "snacks_sweets",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0159",
-   "name_en": "Coffee Joy Biscuits Coffee 45G",
-   "category": "snacks_sweets",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0164",
-   "name_en": "Dolsi Chips Cheezy Wizz 80G",
-   "category": "snacks_sweets",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0160",
-   "name_en": "Dolsi Chips Crunchy Peanuts Puffs 80G",
-   "category": "snacks_sweets",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0165",
-   "name_en": "Dolsi Chips Crunchy Pizza Puffs 80G",
-   "category": "snacks_sweets",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0158",
-   "name_en": "Edita Bake Rolz Olive 52G",
-   "category": "snacks_sweets",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0157",
-   "name_en": "Elegance Stars Biscuits Black Chocolate 34G",
-   "category": "snacks_sweets",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0247",
-   "name_en": "Eti Gong Corn & Rice Cake Original 32G",
-   "category": "snacks_sweets",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0146",
-   "name_en": "Kinder Choco Wafer Tronky 18G",
-   "category": "snacks_sweets",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0148",
-   "name_en": "Kinder Chocolate Barrette Maxi 21G",
-   "category": "snacks_sweets",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0147",
-   "name_en": "Kit Kat 4 Fingers 36.5G",
-   "category": "snacks_sweets",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0166",
-   "name_en": "Krikita Cashew Pow Fried Salted 14G",
-   "category": "snacks_sweets",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0145",
-   "name_en": "Lu Nouba Wafer 17.5G",
-   "category": "snacks_sweets",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0163",
-   "name_en": "Master Chips Cocktail 100G",
-   "category": "snacks_sweets",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0161",
-   "name_en": "Master Chips Salt 65G",
-   "category": "snacks_sweets",
-   "sort_in_category": 17
-  },
-  {
-   "sku": "AK-0170",
-   "name_en": "Mentos Incredible Chew Strawberry 45G",
-   "category": "snacks_sweets",
-   "sort_in_category": 18
-  },
-  {
-   "sku": "AK-0153",
-   "name_en": "Oreo Cookie Biscuit 38G",
-   "category": "snacks_sweets",
-   "sort_in_category": 19
-  },
-  {
-   "sku": "AK-0154",
-   "name_en": "Snack Jiha Chips Peanuts 25G",
-   "category": "snacks_sweets",
-   "sort_in_category": 20
-  },
-  {
-   "sku": "AK-0171",
-   "name_en": "Snickers Chocolate Bar Caramel & Peanuts 45G",
-   "category": "snacks_sweets",
-   "sort_in_category": 21
-  },
-  {
-   "sku": "AK-0144",
-   "name_en": "Solen Vip Cocoa Coated 25G",
-   "category": "snacks_sweets",
-   "sort_in_category": 22
-  },
-  {
-   "sku": "AK-0150",
-   "name_en": "Tiffany Wafer Chocolate Break 3 Fingers 23.5G",
-   "category": "snacks_sweets",
-   "sort_in_category": 23
-  },
-  {
-   "sku": "AK-0149",
-   "name_en": "Ulker Albeni Chocolate Bar 25G",
-   "category": "snacks_sweets",
-   "sort_in_category": 24
-  },
-  {
-   "sku": "AK-0152",
-   "name_en": "Ulker Metro Chocolate 36G",
-   "category": "snacks_sweets",
-   "sort_in_category": 25
-  },
-  {
-   "sku": "AK-0155",
-   "name_en": "Ulker Ulker Chocolate Baton Pistachio 14G",
-   "category": "snacks_sweets",
-   "sort_in_category": 26
-  },
-  {
-   "sku": "AK-0184",
-   "name_en": "Abou Rached Basmati Rice 800G",
-   "category": "pantry_staples",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0183",
-   "name_en": "Abu Rashed Indian Basmati Rice 4Kg",
-   "category": "pantry_staples",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0156",
-   "name_en": "Al Arabiya Tahina 400G",
-   "category": "pantry_staples",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0179",
-   "name_en": "Arbella Tagliatelle 400G",
-   "category": "pantry_staples",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0175",
-   "name_en": "Barilla Spaghetti N' 5 500G",
-   "category": "pantry_staples",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0190",
-   "name_en": "Burghul, coarse",
-   "category": "pantry_staples",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0186",
-   "name_en": "Deroni Green Lentils Vacuum 900G",
-   "category": "pantry_staples",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0185",
-   "name_en": "Deroni Italian Rice 900G",
-   "category": "pantry_staples",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0180",
-   "name_en": "Deroni Red Split Lentils Vacuum 900G",
-   "category": "pantry_staples",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0182",
-   "name_en": "Deroni Vermicelli 500G",
-   "category": "pantry_staples",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0181",
-   "name_en": "Divella Spaghetti N8 500G",
-   "category": "pantry_staples",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0168",
-   "name_en": "El Rashidi El Mizan Jam Strawberry 340G",
-   "category": "pantry_staples",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0173",
-   "name_en": "Indomie Noodles Chicken 70G",
-   "category": "pantry_staples",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0174",
-   "name_en": "Indomie Noodles Vegetable Flavor 56G",
-   "category": "pantry_staples",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0176",
-   "name_en": "Maggi Stock Cubes Beef 20G",
-   "category": "pantry_staples",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0172",
-   "name_en": "Maggi Stock Cubes Chicken 20G",
-   "category": "pantry_staples",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0178",
-   "name_en": "Ousraty Mixed Aleppo Thyme 400G",
-   "category": "pantry_staples",
-   "sort_in_category": 17
-  },
-  {
-   "sku": "AK-0177",
-   "name_en": "Taj Stock Cube Chicken 20G",
-   "category": "pantry_staples",
-   "sort_in_category": 18
-  },
-  {
-   "sku": "AK-0189",
-   "name_en": "Zain Lentils Adass Majrouch 900G",
-   "category": "pantry_staples",
-   "sort_in_category": 19
-  },
-  {
-   "sku": "AK-0202",
-   "name_en": "Al Taghziah Luncheon Chicken Round 200G",
-   "category": "canned_jarred",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0199",
-   "name_en": "Al Wadi Al Akhdar Sweet Corn 340G",
-   "category": "canned_jarred",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0205",
-   "name_en": "Black olives",
-   "category": "canned_jarred",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0200",
-   "name_en": "Chtoura Garden Boiled Chick Peas 400G",
-   "category": "canned_jarred",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0192",
-   "name_en": "Chtoura Garden Fava Beans 400G",
-   "category": "canned_jarred",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0201",
-   "name_en": "Cortas Foul Medammas 400G",
-   "category": "canned_jarred",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0198",
-   "name_en": "Cortas Hommos Tahina 400G",
-   "category": "canned_jarred",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0215",
-   "name_en": "Dolly's Ketchup 900G",
-   "category": "canned_jarred",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0214",
-   "name_en": "Dolly's Tomato Ketchup 330G",
-   "category": "canned_jarred",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0204",
-   "name_en": "Green olives",
-   "category": "canned_jarred",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0194",
-   "name_en": "Maxbell Sardine In Oil 125G",
-   "category": "canned_jarred",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0206",
-   "name_en": "Mixed pickles",
-   "category": "canned_jarred",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0193",
-   "name_en": "Plein Soleil Sweet Corn 340G",
-   "category": "canned_jarred",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0196",
-   "name_en": "Plein Soleil White Tuna Oil 185G X3",
-   "category": "canned_jarred",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0212",
-   "name_en": "Pomi Strained Tomatoes 500G",
-   "category": "canned_jarred",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0191",
-   "name_en": "Prime Sweet Corn Can 340G",
-   "category": "canned_jarred",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0195",
-   "name_en": "Siblou White Tuna In Oil 185G X3",
-   "category": "canned_jarred",
-   "sort_in_category": 17
-  },
-  {
-   "sku": "AK-0197",
-   "name_en": "Siblou White Tuna In Water 185G",
-   "category": "canned_jarred",
-   "sort_in_category": 18
-  },
-  {
-   "sku": "AK-0203",
-   "name_en": "Tanmia Chicken Luncheon Meat Easy Open Can 200G",
-   "category": "canned_jarred",
-   "sort_in_category": 19
-  },
-  {
-   "sku": "AK-0208",
-   "name_en": "Yamama Tomato Paste 1325G",
-   "category": "canned_jarred",
-   "sort_in_category": 20
-  },
-  {
-   "sku": "AK-0210",
-   "name_en": "Yamama Tomato Paste 660G",
-   "category": "canned_jarred",
-   "sort_in_category": 21
-  },
-  {
-   "sku": "AK-0217",
-   "name_en": "Al Koura Olive Oil 500Ml",
-   "category": "cooking_baking",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0219",
-   "name_en": "Al Wazir Olive Oil 500Ml",
-   "category": "cooking_baking",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0230",
-   "name_en": "Aruba Jelly Forest Fruits Light 12G",
-   "category": "cooking_baking",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0229",
-   "name_en": "Aruba Jelly Strawberry Light 12G",
-   "category": "cooking_baking",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0100",
-   "name_en": "Chef Simsum Garlic Paste 200G",
-   "category": "cooking_baking",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0220",
-   "name_en": "Deroni Hot Sauce 88Ml",
-   "category": "cooking_baking",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0228",
-   "name_en": "Deroni Sugar 5Kg",
-   "category": "cooking_baking",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0223",
-   "name_en": "Deroni Sugar 900G",
-   "category": "cooking_baking",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0227",
-   "name_en": "Domo Baking Powder Sachet 10G",
-   "category": "cooking_baking",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0226",
-   "name_en": "Domo Bicarbonate 85G",
-   "category": "cooking_baking",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0187",
-   "name_en": "Domo Corn Flour 200G",
-   "category": "cooking_baking",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0224",
-   "name_en": "Domo Jelly Strawberry 85G",
-   "category": "cooking_baking",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0225",
-   "name_en": "Domo Sugar Vanillin 5G",
-   "category": "cooking_baking",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0222",
-   "name_en": "El Hanim Ghee Vegetable 0.7Kg",
-   "category": "cooking_baking",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0188",
-   "name_en": "Gold Medal Flour 1Kg",
-   "category": "cooking_baking",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0216",
-   "name_en": "Lina Sunflower Oil 0.85L",
-   "category": "cooking_baking",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0221",
-   "name_en": "Maxim's Salt Iodised 700G",
-   "category": "cooking_baking",
-   "sort_in_category": 17
-  },
-  {
-   "sku": "AK-0211",
-   "name_en": "Plein Soleil Mayonnaise 250Ml",
-   "category": "cooking_baking",
-   "sort_in_category": 18
-  },
-  {
-   "sku": "AK-0213",
-   "name_en": "Plein Soleil Sunflower Oil 5L",
-   "category": "cooking_baking",
-   "sort_in_category": 19
-  },
-  {
-   "sku": "AK-0066",
-   "name_en": "President Uht Whipping Cream 35.1% Fat 20Mml",
-   "category": "cooking_baking",
-   "sort_in_category": 20
-  },
-  {
-   "sku": "AK-0064",
-   "name_en": "Puck Cooking Cream 500Ml",
-   "category": "cooking_baking",
-   "sort_in_category": 21
-  },
-  {
-   "sku": "AK-0218",
-   "name_en": "Yamama Grenadine Molasses 300Ml",
-   "category": "cooking_baking",
-   "sort_in_category": 22
-  },
-  {
-   "sku": "AK-0209",
-   "name_en": "Yamama White Vinegar 1L",
-   "category": "cooking_baking",
-   "sort_in_category": 23
-  },
-  {
-   "sku": "AK-0207",
-   "name_en": "Zer Sunflower Oil 3L",
-   "category": "cooking_baking",
-   "sort_in_category": 24
-  },
-  {
-   "sku": "AK-0254",
-   "name_en": "Al Ousra Facial Tissue 200Sh",
-   "category": "cleaning_household",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0253",
-   "name_en": "April Interfold 150G",
-   "category": "cleaning_household",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0266",
-   "name_en": "Britex Sponge Easy Grip Jumbo Euro 5Pcs",
-   "category": "cleaning_household",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0257",
-   "name_en": "City Plast Sandwich Bag 100 Pieces",
-   "category": "cleaning_household",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0259",
-   "name_en": "Comfort Fabric Softener Lavender 3L",
-   "category": "cleaning_household",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0262",
-   "name_en": "Germex Floor Detergent 1L",
-   "category": "cleaning_household",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0260",
-   "name_en": "Intaj Kitchen Towel X-Large 500G",
-   "category": "cleaning_household",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0267",
-   "name_en": "Intaj Toilet Paper 12 Rolls 1.5Kg",
-   "category": "cleaning_household",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0258",
-   "name_en": "Odex Bleach Lemon 1200Ml",
-   "category": "cleaning_household",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0256",
-   "name_en": "Odex Bleach Original 1L",
-   "category": "cleaning_household",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0264",
-   "name_en": "Odex Dishwash Liquid Blue 1300Ml",
-   "category": "cleaning_household",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0265",
-   "name_en": "Omo Gel Detergent Lavender 2.5L",
-   "category": "cleaning_household",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0261",
-   "name_en": "Omo Gel Liquid Laundry Detergent Wash Comfort 2.5L",
-   "category": "cleaning_household",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0250",
-   "name_en": "Perla Interfold Prime White",
-   "category": "cleaning_household",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0268",
-   "name_en": "Rosana Toilet Paper 18 Rolls",
-   "category": "cleaning_household",
-   "sort_in_category": 15
-  },
-  {
-   "sku": "AK-0263",
-   "name_en": "Sanita Liquid Laundry Detergent Fresh Essence 2.5L",
-   "category": "cleaning_household",
-   "sort_in_category": 16
-  },
-  {
-   "sku": "AK-0249",
-   "name_en": "Spartan Toilet Cleaner Flash 1L",
-   "category": "cleaning_household",
-   "sort_in_category": 17
-  },
-  {
-   "sku": "AK-0255",
-   "name_en": "Vimax Dishwashing Liquid Lemon 700Ml",
-   "category": "cleaning_household",
-   "sort_in_category": 18
-  },
-  {
-   "sku": "AK-0251",
-   "name_en": "Vimax Trash Bags Large Blue 30 Pieces",
-   "category": "cleaning_household",
-   "sort_in_category": 19
-  },
-  {
-   "sku": "AK-0252",
-   "name_en": "Vimax Trash Bags Medium Black 30 Pieces",
-   "category": "cleaning_household",
-   "sort_in_category": 20
-  },
-  {
-   "sku": "AK-0277",
-   "name_en": "Amalfi Shampoo Anti Caspa 750Ml",
-   "category": "personal_care",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0280",
-   "name_en": "Colgate Toothpaste Herbal 125Ml",
-   "category": "personal_care",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0275",
-   "name_en": "Colgate Toothpaste Triple Action 125Ml",
-   "category": "personal_care",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0276",
-   "name_en": "Dove Original Beauty Cream Bar 90G",
-   "category": "personal_care",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0278",
-   "name_en": "Fluff'n White Soft Touch Cotton Round Pads 75 Pieces",
-   "category": "personal_care",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0279",
-   "name_en": "Head & Shoulders Shampoo Sub Zero Freshness 400Ml",
-   "category": "personal_care",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0274",
-   "name_en": "Mf Cotton Buds Doria",
-   "category": "personal_care",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0281",
-   "name_en": "Nivea Roll On For Women Extra Brightening 25Ml",
-   "category": "personal_care",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0282",
-   "name_en": "Nivea Roll On For Women Pearly & Beauty 25Ml",
-   "category": "personal_care",
-   "sort_in_category": 9
-  },
-  {
-   "sku": "AK-0270",
-   "name_en": "Private Feminine Pads Extra Thin Night 7 Pieces",
-   "category": "personal_care",
-   "sort_in_category": 10
-  },
-  {
-   "sku": "AK-0271",
-   "name_en": "Private Feminine Pads Extra Thin Normal 10 Pieces",
-   "category": "personal_care",
-   "sort_in_category": 11
-  },
-  {
-   "sku": "AK-0272",
-   "name_en": "Wellplus Liquid Soap Marrakesh Mystique 500Ml",
-   "category": "personal_care",
-   "sort_in_category": 12
-  },
-  {
-   "sku": "AK-0273",
-   "name_en": "Wellplus Liquid Soap Sea Breeze 500Ml",
-   "category": "personal_care",
-   "sort_in_category": 13
-  },
-  {
-   "sku": "AK-0269",
-   "name_en": "Wellplus Wet Wipes 100 Sheets",
-   "category": "personal_care",
-   "sort_in_category": 14
-  },
-  {
-   "sku": "AK-0283",
-   "name_en": "Gipsy Wet Wipes 100Pcs + Pocket Wipes 40Pcs",
-   "category": "baby_pet",
-   "sort_in_category": 1
-  },
-  {
-   "sku": "AK-0285",
-   "name_en": "Johnsons Baby Shampoo 750Ml",
-   "category": "baby_pet",
-   "sort_in_category": 2
-  },
-  {
-   "sku": "AK-0287",
-   "name_en": "Loulou Baby Diapers Size 6 16-30Kg 26 Pieces",
-   "category": "baby_pet",
-   "sort_in_category": 3
-  },
-  {
-   "sku": "AK-0290",
-   "name_en": "Miglior Gatto Alutray Cat Agnello 100G",
-   "category": "baby_pet",
-   "sort_in_category": 4
-  },
-  {
-   "sku": "AK-0289",
-   "name_en": "Miglior Gatto Pate Agnello 400G",
-   "category": "baby_pet",
-   "sort_in_category": 5
-  },
-  {
-   "sku": "AK-0288",
-   "name_en": "Oui Oui Diapers Size 5 12-25Kg 38 Pieces",
-   "category": "baby_pet",
-   "sort_in_category": 6
-  },
-  {
-   "sku": "AK-0286",
-   "name_en": "Oui Oui Diapers Size 6 16-30Kg 32 Pieces",
-   "category": "baby_pet",
-   "sort_in_category": 7
-  },
-  {
-   "sku": "AK-0284",
-   "name_en": "Oui Oui Wet Wipes Aqua Pure 80 Sheets",
-   "category": "baby_pet",
-   "sort_in_category": 8
-  },
-  {
-   "sku": "AK-0291",
-   "name_en": "Pro Line Marseille Soap Bentonite Cat Litter 5L",
-   "category": "baby_pet",
-   "sort_in_category": 9
-  }
- ]
 }
