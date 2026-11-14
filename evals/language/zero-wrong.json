@@ -1,5 +1,5 @@
 {
- "note": "Session B4: the four phrasings that kept 1.22 from zero wrong products (B3's live runs on 13 Nov, results/after.json), each with every reading the live model gave them. Replayed through plan_order by zero-wrong.test.ts: a wrong product fails; a question (ambiguous, not found) is the safe failure and passes. B4's live run 43500022007 (3 runs a case) added g0354: the size «l kbar» left in source_hint, the medium loaf assumed. The final run 43504902606 added g0452: «تنين ليتر وربع» (2.25 L) holds the 1.25 L bottle's «ليتر وربع», and «الكبيرة» went unexplained. M1 (14 Nov): the readings of language-pack runs 43629416444, 43632030063, 43632950715 and 43634267959 for the same message (hz0815, g0815), added before the mixed-word fix (0133).",
+ "note": "Session B4: the four phrasings that kept 1.22 from zero wrong products (B3's live runs on 13 Nov, results/after.json), each with every reading the live model gave them. Replayed through plan_order by zero-wrong.test.ts: a wrong product fails; a question (ambiguous, not found) is the safe failure and passes. B4's live run 43500022007 (3 runs a case) added g0354: the size «l kbar» left in source_hint, the medium loaf assumed. The final run 43504902606 added g0452: «تنين ليتر وربع» (2.25 L) holds the 1.25 L bottle's «ليتر وربع», and «الكبيرة» went unexplained. M1 (14 Nov): the readings of language-pack runs 43629416444, 43632030063, 43632950715 and 43634267959 for the same message (hz0815, g0815), added before the mixed-word fix (0133); and run 43651509767's, where «mkhalta» was read as «مختلطة».",
  "readings": [
   {
    "id": "g0060",
@@ -584,6 +584,84 @@
     }
    ],
    "run": "43634267959"
+  },
+  {
+   "id": "hz0815",
+   "lines": [
+    {
+     "raw": "بذرة",
+     "query": "بذرة",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "جزر مختلطة",
+     "query": "جزر مختلطة",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "plein soleil",
+     "query": "plein soleil",
+     "brand_hint": "plein soleil",
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    }
+   ],
+   "text": "baddi bazella w jazar mkhalta, plein soleil",
+   "items": [
+    {
+     "sku": "AK-0237"
+    }
+   ],
+   "run": "43651509767"
+  },
+  {
+   "id": "g0815",
+   "lines": [
+    {
+     "raw": "بزل",
+     "query": "بزل",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "جزر مخلتة",
+     "query": "جزر مخلتة",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    },
+    {
+     "raw": "plein soleil",
+     "query": "plein soleil",
+     "brand_hint": null,
+     "source_hint": null,
+     "qty": 1,
+     "unit": "each",
+     "modifiers": []
+    }
+   ],
+   "text": "baddi bazella w jazar mkhalta, plein soleil",
+   "items": [
+    {
+     "sku": "AK-0237"
+    }
+   ],
+   "run": "43651509767"
   }
  ]
 }

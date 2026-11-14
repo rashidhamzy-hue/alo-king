@@ -18,11 +18,13 @@
 
 alter function plan_order_core(uuid, jsonb, uuid, jsonb) rename to plan_order_core_0078;
 
--- The words that say "mixed together", as catalog_tokens folds them (ة to ه, accents kept).
+-- The words that say "mixed together", as catalog_tokens folds them (ة to ه, accents kept). «مختلطة» is how the fast model
+-- also writes mkhalta in Arabic script (gate run 43651509767, hz0815: «بذرة» / «جزر مختلطة»).
 create or replace function catalog_mixed_words() returns text[] language sql immutable set search_path = public, pg_temp as $$
   select array['mkhalta', 'mkhalata', 'mkhalat', 'mkhalte', 'mkhalteh', 'mkhaltin', 'm5alta', 'm5alata', 'm5alat', 'mkhaleta',
                'mshakkal', 'mshakal', 'mshakkale', 'mshakale', 'mshakli', 'mix', 'mixed', 'mixte', 'melange', 'mélange',
-               'مخلوطه', 'مخلوط', 'مخلوطين', 'مخلطه', 'مشكل', 'مشكله', 'مكس', 'ميكس'] $$;
+               'mkhtalta', 'mekhtalta', 'mikhtalta',
+               'مخلوطه', 'مخلوط', 'مخلوطين', 'مخلطه', 'مختلطه', 'مختلط', 'مختلطين', 'مشكل', 'مشكله', 'مكس', 'ميكس'] $$;
 
 -- The same, plus how the fast model misreads them in its lines («مخلتة», «مخللة» for mkhalta). Used on the model's lines only,
 -- and only when the customer's own words hold a mixed word: «مخلل» said by the customer is pickled and never matches here.
