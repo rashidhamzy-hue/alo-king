@@ -1,0 +1,64 @@
+{
+  "sku": "AK-0041",
+  "matched": {
+    "brand": "Candia",
+    "product": "Ayran Frais",
+    "size": "250 ml",
+    "barcode": "5285001102341",
+    "confidence": "exact",
+    "note": "Open Food Facts record for this barcode (market: Lebanon, quantity 25cl). Ingredients read from the pack photo on the OFF page (ingredients_fr), the OFF text field is empty. OFF saturated fat value 0 g left out: implausible next to 2.1 g fat, likely an unfilled field. No separate allergen sentence; allergen taken from the ingredients list. OFF label field says 'بدون مواد حافظة' (no preservatives)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.libanlait.com/upload/1691websitecandia-ayran-250ml-entier.jpg",
+      "page_url": "https://www.libanlait.com/category/candia",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one bottle, plain white background, no watermark/price, front view; brand's own pack shot"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/2/4/244784-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/yogurts/yogurt-drinks.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one bottle, plain white background, no watermark/price, front view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/110/2341/front_ar.22.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285001102341",
+      "site": "openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "user photo of one bottle on a table, close crop, front view, not a studio shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Eau, lait de vache frais naturel entier pasteurisé, poudre de lait de vache écrémé, sel et ferments lactiques.",
+    "language": "fr",
+    "page_url": "https://world.openfoodfacts.org/product/5285001102341",
+    "market": "Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "Eau, lait de vache frais naturel entier pasteurisé, poudre de lait de vache écrémé, sel et ferments lactiques.",
+    "page_url": "https://world.openfoodfacts.org/product/5285001102341"
+  },
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 37,
+    "fat_g": 2.1,
+    "carbohydrate_g": 2.7,
+    "sugars_g": 1,
+    "protein_g": 1.8,
+    "salt_g": 0.31,
+    "sodium_mg": 124,
+    "page_url": "https://world.openfoodfacts.org/product/5285001102341"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
