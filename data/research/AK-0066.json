@@ -1,0 +1,54 @@
+{
+  "sku": "AK-0066",
+  "matched": {
+    "brand": "Président",
+    "product": "UHT Whipping Cream 35.1% fat (Crème entière)",
+    "size": "200 ml",
+    "barcode": "3155253004699",
+    "confidence": "exact",
+    "note": "Open Food Facts record for this barcode (Président, 20 cl, countries Andorra, Morocco; the nutrition photo shows fat 35.1 g per 100 g; front photo shows 'Whipping Cream, Crème entière, 200 ml'). Origin is the cream origin stated inside the ingredients text ('origine : France'). Allergen from the OFF allergens field, no sentence on the record. Storage not stated. presidentdairy.hk page could not be opened (HTTP 503)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/315/525/300/4699/front_fr.38.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/3155253004699",
+      "site": "openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "user photo, carton held up in a shop, close crop, front view, not a clean shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Crème de lait de vache (origine : France), protéines de lait, stabilisant : E407.",
+    "language": "fr",
+    "page_url": "https://world.openfoodfacts.org/product/3155253004699",
+    "market": "Andorra, Morocco (OFF countries field)"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "allergens: lait (Open Food Facts field)",
+    "page_url": "https://world.openfoodfacts.org/product/3155253004699"
+  },
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 336,
+    "fat_g": 35.1,
+    "saturated_fat_g": 23,
+    "carbohydrate_g": 3.1,
+    "sugars_g": 3.1,
+    "protein_g": 2,
+    "salt_g": 0.08,
+    "sodium_mg": 32,
+    "page_url": "https://world.openfoodfacts.org/product/3155253004699"
+  },
+  "origin": {
+    "country": "France",
+    "page_url": "https://world.openfoodfacts.org/product/3155253004699"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "sku": "AK-0063",
+  "matched": {
+    "brand": "Kiri (Bel)",
+    "product": "Spreadable cream cheese, 12 portions",
+    "size": "200 g",
+    "barcode": "3073781175684",
+    "confidence": "exact",
+    "note": "Open Food Facts record for this barcode (Kiri, 200 g, countries Iraq, Libya; label 'Enriched with calcium'). Values as entered there; serving size on the record is 16.66 g."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/108769-v001-1_2.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/cheeses/cream-cheese-spreadables.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 12-portion box, plain white background, no watermark/price, front view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/307/378/117/5684/front_en.25.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/3073781175684",
+      "site": "openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "front face of the box cropped edge to edge, no background, no watermark/price"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/307/378/117/5684/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/3073781175684",
+      "site": "openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "user photo of an older box design lying on a wooden table, not a clean shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Pasteurized cow's milk, cream (cow's milk, starters), water, cow's milk protein concentrate, stabilizers: E1420, E452, E341, E407, skimmed cow's milk powder, acidity regulator: E331, salt, cow's milk fat. Contains lactose and milk. 50% fat in dry matter.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/3073781175684",
+    "market": "Iraq, Libya (OFF countries field)"
+  },
+  "allergens": {
+    "contains": [
+      "milk",
+      "lactose"
+    ],
+    "may_contain": [],
+    "quote": "Contains lactose and milk.",
+    "page_url": "https://world.openfoodfacts.org/product/3073781175684"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 238,
+    "fat_g": 20,
+    "saturated_fat_g": 13.5,
+    "carbohydrate_g": 5,
+    "sugars_g": 3.5,
+    "fibre_g": 0,
+    "protein_g": 9.5,
+    "salt_g": 1.5,
+    "sodium_mg": 600,
+    "page_url": "https://world.openfoodfacts.org/product/3073781175684"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

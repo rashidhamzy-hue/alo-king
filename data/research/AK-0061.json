@@ -1,0 +1,57 @@
+{
+  "sku": "AK-0061",
+  "matched": {
+    "brand": "Lurpak",
+    "product": "Unsalted Butter block",
+    "size": "200 g",
+    "barcode": "5740900402621",
+    "confidence": "exact",
+    "note": "Brand page (lurpak.com, Global English, 200g selected) gives ingredients and nutrition; barcode not shown there, and the recipe sold in Lebanon may differ. Not on Open Food Facts under the catalog barcode. No separate allergen sentence; allergen taken from the ingredients list."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/108454-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/butter-margarine/block-butter.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 200 g silver block marked UNSALTED, plain white background, no watermark/price, front view"
+    },
+    {
+      "image_url": "https://images.arla.com/recordid/611883AF-BDFC-42B8-982FBE16847B6249/picture.jpg?width=200&format=webp",
+      "page_url": "https://www.lurpak.com/en/products/lurpak-unsalted-butter-200g/",
+      "site": "lurpak.com",
+      "site_kind": "brand",
+      "looks": "one butter block, plain white background, no watermark/price, front view; small image (200 px wide)"
+    }
+  ],
+  "ingredients": {
+    "text": "Butter (Milk), Lactic Culture (Milk). Minimum Fat content 82%",
+    "language": "en",
+    "page_url": "https://www.lurpak.com/en/products/lurpak-unsalted-butter-200g/",
+    "market": "Global (English) brand site"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "Butter (Milk), Lactic Culture (Milk). Minimum Fat content 82%",
+    "page_url": "https://www.lurpak.com/en/products/lurpak-unsalted-butter-200g/"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 747,
+    "fat_g": 82,
+    "saturated_fat_g": 53,
+    "carbohydrate_g": 0.7,
+    "sugars_g": 0.7,
+    "protein_g": 0.6,
+    "salt_g": 0.01,
+    "page_url": "https://www.lurpak.com/en/products/lurpak-unsalted-butter-200g/"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "sku": "AK-0060",
+  "matched": {
+    "brand": "Liban Lait (Libanlait)",
+    "product": "Halloum Entier (full fat)",
+    "size": "250 g",
+    "barcode": "5285001100835",
+    "confidence": "exact",
+    "note": "Open Food Facts record for this barcode ('Libanlai halloum', no quantity, countries field says United States). Nutrition per 100 g checked against the pack-label photo on the OFF page: label reads Sodium 1g, so sodium is recorded as 1000 mg and the OFF salt/sodium fields (0.0025 g / 0.001 g, entry errors) are left out. No ingredients text on any page opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/4/5/456406-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/cheeses/white-cheeses.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 250 g pack in its tray, plain white background, no watermark/price, front view"
+    },
+    {
+      "image_url": "https://www.libanlait.com/upload/1970websitelibanlait-cheese-halloum.jpg",
+      "page_url": "https://www.libanlait.com/category/liban-Lait",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one pack, plain white background, no watermark/price, front view; brand's own pack shot, size not stated on the page"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 320,
+    "fat_g": 24,
+    "saturated_fat_g": 15.3,
+    "carbohydrate_g": 4,
+    "sugars_g": 4,
+    "protein_g": 22,
+    "sodium_mg": 1000,
+    "page_url": "https://world.openfoodfacts.org/product/5285001100835"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

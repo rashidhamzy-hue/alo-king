@@ -1,0 +1,38 @@
+{
+  "sku": "AK-0062",
+  "matched": {
+    "brand": "Picon (Bel)",
+    "product": "Simply, processed preparation from cheese and vegetable oil, 8 portions",
+    "size": "112 g (8 x 14 g)",
+    "barcode": "3073781157277",
+    "confidence": "exact",
+    "note": "Open Food Facts record for this barcode ('Simply- picon', brands Picon, Bel; countries field says France; quantity empty; label shows 14 g portions, lid shows 8 portions). Nutrition read from the pack-label photo on the OFF page: the label gives Sodium 720 mg per 100 g; the OFF record wrongly stores 0.72 g as salt, so salt is left out. No ingredients text on the page. The red 'Picon 8 portions 120 g' on Spinneys Lebanon is a different product and was not used."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/307/378/115/7277/front_fr.8.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/3073781157277",
+      "site": "openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "user photo, close crop of the round box lid filling the frame, lid text visible, patterned cloth at the edges, not a clean pack shot"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 243,
+    "fat_g": 20.5,
+    "saturated_fat_g": 12,
+    "carbohydrate_g": 7,
+    "sugars_g": 5.5,
+    "protein_g": 7.5,
+    "sodium_mg": 720,
+    "page_url": "https://world.openfoodfacts.org/product/3073781157277"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
