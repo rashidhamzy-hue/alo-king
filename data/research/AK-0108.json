@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0108",
+  "matched": {
+    "brand": "Sohat",
+    "product": "Natural Mineral Water",
+    "size": "1.5 L x 6",
+    "barcode": "5289000061852",
+    "confidence": "exact",
+    "note": "Spinneys Lebanon (retail, Lebanon market). Page: 'Sohat Natural Mineral Water 6*1.5L has a low mineral content and fine texture'; source 'located in a protect area in the heart of Jabal Kneisseh-Falougha'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/1/110808-v001-2_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/sohat-natural-mineral-water-6x1-5l.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "shrink pack of 1.5 L Sohat bottles, white background, front view, no overlay"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
