@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0107",
+  "matched": {
+    "brand": "Rim",
+    "product": "Spring Mineral Water",
+    "size": "2 L x 6",
+    "barcode": "5281023000221",
+    "confidence": "likely",
+    "note": "Spinneys Lebanon (retail, Lebanon market). Page 'RIM SPRING MINERAL WATER 2 L', slug 6x2l, out of stock at fetch time. Bottle label reads 'Natural spring mineral water, low in sodium'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/7/171737-v001-2_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/rim-spring-mineral-water-6x2l.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "six 2 L bottles shrink-pack, white background, front view, no overlay"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/7/171737-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/rim-spring-mineral-water-6x2l.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 2 L bottle, white background, no overlay"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

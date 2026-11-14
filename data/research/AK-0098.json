@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0098",
+  "matched": {
+    "brand": "Toulkarem",
+    "product": "Beef Pepperoni",
+    "size": "",
+    "barcode": "2209247000000",
+    "confidence": "unsure",
+    "note": "No page for Toulkarem beef pepperoni found or opened (Lebanon web search returned none; barcode not on Open Food Facts)."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

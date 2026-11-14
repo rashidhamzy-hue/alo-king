@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0106",
+  "matched": {
+    "brand": "Talaya",
+    "product": "Sparkling Water Lemon Lime",
+    "size": "330 ml",
+    "barcode": "5287002770222",
+    "confidence": "unsure",
+    "note": "Spinneys Talaya brand page (opened) lists only plain, grapefruit, blueberry, peach and orange 330 ml; no lemon-lime page opened. Plain Talaya pictures not used (wrong flavour)."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
