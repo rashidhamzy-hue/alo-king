@@ -1,0 +1,42 @@
+{
+  "sku": "AK-0207",
+  "matched": {
+    "brand": "Zer",
+    "product": "Sunflower Oil",
+    "size": "3 L",
+    "barcode": "8681407009234",
+    "confidence": "exact",
+    "note": "Zer Group page for the 3 L x 6 tall PET jug lists product barcode 8681407009234 (the case code is 8681407009241). Page is the manufacturer's export catalogue; Lebanese pack text not seen."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.zergroup.com/storage/media/zergroup/urunler/19241.webp",
+      "page_url": "https://www.zergroup.com/en/sunflower-oil/zer-sunflower-oil-3-l-x-6-tall-pet-jug",
+      "site": "zergroup.com",
+      "site_kind": "brand",
+      "looks": "one 3 L jug, plain light background, no watermark/price/banner, front view, narrow low-resolution (201x500)"
+    }
+  ],
+  "ingredients": {
+    "text": "Sunflower oil (100%)",
+    "language": "en",
+    "page_url": "https://www.zergroup.com/en/sunflower-oil/zer-sunflower-oil-3-l-x-6-tall-pet-jug",
+    "market": "Turkey (manufacturer export catalogue)"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "Halal certificate listed among the certifications on the Zer Group product page",
+      "page_url": "https://www.zergroup.com/en/sunflower-oil/zer-sunflower-oil-3-l-x-6-tall-pet-jug"
+    }
+  ],
+  "storage": {
+    "text": "Keep in a cool, enclosed place and protect from sunlight.",
+    "page_url": "https://www.zergroup.com/en/sunflower-oil/zer-sunflower-oil-3-l-x-6-tall-pet-jug"
+  },
+  "not_found": [
+    "allergens",
+    "nutrition",
+    "origin"
+  ]
+}
