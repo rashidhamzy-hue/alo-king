@@ -1,0 +1,53 @@
+{
+  "sku": "AK-0192",
+  "matched": {
+    "brand": "Chtoura Garden",
+    "product": "Cooked Fava Beans",
+    "size": "400 g",
+    "barcode": "5285001400096",
+    "confidence": "likely",
+    "note": "SuperDokan (Lebanon) page 'Chtoura Garden Cooked Fava Beans 400g', barcode matches (URL slug mentions chickpeas but the name and picture are plain fava beans). A Swiss page with ingredients 'Fava beans, water, salt' is vendor 'Chtoura Fields', a different line, so not used. Some blocks come from the Open Food Facts record for catalog barcode 5285001400096 (user-contributed, named \"Chtoura Garden fava beans, net 475 g promo can ('75g free'); catalog size is 400 g\"); those blocks carry that page as their source. The record quantity differs from the catalog size."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/Screenshot2026-09-30125827.png?v=1790762380",
+      "page_url": "https://superdokan.com/en-lb/products/chtoura-garden-cooked-fava-beans-with-chickpeas-400g-copy",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one can 'Chtoura Garden Fava Beans', plain background, front view, 400 g / 14.10 oz readable, no watermark/price, 1024x1536"
+    }
+  ],
+  "ingredients": {
+    "text": "Cooked Fava Beans 65%, Water, Salt, Acidifying Agent: Citric Acid E330, Antioxidant: Disodium EDTA E385.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/5285001400096",
+    "market": "export pack (record lists France and Germany)"
+  },
+  "allergens": {
+    "contains": [
+      "sulphites"
+    ],
+    "may_contain": [],
+    "quote": "Gekochte Dicke Bohnen 65%enthält: Sulfite",
+    "page_url": "https://world.openfoodfacts.org/product/5285001400096"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 100,
+    "fat_g": 0.5,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 17,
+    "sugars_g": 1.7,
+    "protein_g": 7,
+    "salt_g": 1.2,
+    "page_url": "https://world.openfoodfacts.org/product/5285001400096"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://world.openfoodfacts.org/product/5285001400096"
+  },
+  "not_found": [
+    "storage",
+    "diet_labels"
+  ]
+}

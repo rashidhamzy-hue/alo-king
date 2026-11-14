@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0191",
+  "matched": {
+    "brand": "Prime",
+    "product": "Sweet Corn Can",
+    "size": "340 g",
+    "barcode": "5287002285504",
+    "confidence": "unsure",
+    "note": "No page opened in this session matched brand, product and size (Carrefour Lebanon refuses fetch; other sites fetched had no such listing or returned 403/404)."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

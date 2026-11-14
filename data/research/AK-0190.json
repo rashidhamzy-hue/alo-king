@@ -1,0 +1,14 @@
+{
+  "sku": "AK-0190",
+  "matched": {
+    "brand": "",
+    "product": "Burghul, coarse",
+    "size": "",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Loose/unbranded: picture only. No unbranded picture was opened and checked in this session."
+  },
+  "not_found": [
+    "pictures"
+  ]
+}

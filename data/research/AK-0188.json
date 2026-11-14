@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0188",
+  "matched": {
+    "brand": "Gold Medal",
+    "product": "All-Purpose Enriched Patent Wheat Flour",
+    "size": "1 kg",
+    "barcode": "016000104600",
+    "confidence": "exact",
+    "note": "SuperDokan (Lebanon) page title 'Gold Medal All-Purpose Enriched Patent Wheat Flour 1kg', barcode matches. US-site Gold Medal pages are a different recipe/market and were not used."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/Screenshot2026-08-28153119.png?v=1787920419",
+      "page_url": "https://superdokan.com/en-lb/products/goodman-all-purpose-flour-farine-tout-usage-900g-copy",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one bag, white background, front view, English and Arabic text, net weight too small to read, no watermark/price, 832x1248"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
