@@ -39,11 +39,18 @@ export function directionsOf(intent: OrderIntent): string | null {
   // A part that only names the village («عبعقلين», "3a b3aklin") is not an address: the rider still needs the house (B4: the
   // staging probe's reading put «عبعقلين» in verbatim and the address question was skipped).
   const village = villageForms(a.village);
-  return [a.verbatim, a.landmark, a.building, a.floor ? `طابق ${a.floor}` : null, a.recipient_name]
+  return [a.verbatim, a.landmark, a.building, floorWords(a.floor), a.recipient_name]
     .filter((x): x is string => !!x && x.trim() !== "")
     .filter((x) => !village.size || !sameVillage(x, village))
     .filter((x, i, all) => !all.slice(0, i).some((y) => y.includes(x)))      // the verbatim text usually already holds the rest
     .join(" | ") || null;
+}
+
+/** The floor as the customer said it, with «طابق» added only to a bare number or word (K1: AK-1008's note said «طابق الطابق الأول»). */
+function floorWords(floor: string | null | undefined): string | null {
+  const f = floor?.trim();
+  if (!f) return null;
+  return /طابق|طوابق|floor|étage|etage|tabe2|tab2|tabi2/iu.test(f) ? f : `طابق ${f}`;
 }
 
 /** A place name folded for comparison, with and without one clitic people write onto it (ع، ب، ل، و، من، ال; 3a, b, el). */
