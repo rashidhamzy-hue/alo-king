@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0183",
+  "matched": {
+    "brand": "Abu Rashed",
+    "product": "Indian Basmati Rice",
+    "size": "4 kg",
+    "barcode": "5285001524358",
+    "confidence": "unsure",
+    "note": "No page opened in this session matched brand, product and size (Carrefour Lebanon refuses fetch; other sites fetched had no such listing or returned 403/404)."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

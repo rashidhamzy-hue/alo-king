@@ -1,0 +1,57 @@
+{
+  "sku": "AK-0181",
+  "matched": {
+    "brand": "Divella",
+    "product": "8 - Spaghetti Ristorante",
+    "size": "500 g",
+    "barcode": "8005121000085",
+    "confidence": "exact",
+    "note": "Brand's own page (divella.it, English/international); page lists pack sizes 500 g, 1 kg, 5 kg and the picture shows the 500 g pack. The page gives no ingredient list. Origin is taken from the pack shot shown on that page, which reads 'PRODUCT OF ITALY'. Some blocks come from the Open Food Facts record for catalog barcode 8005121000085 (user-contributed, named \"Spaghetti Ristorante 8, 500 g - 17.6 oz\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.divella.it/wp-content/uploads/2022/10/pasta-di-semola-spaghetti-ristorante-500-1.jpg",
+      "page_url": "https://www.divella.it/en/products/8-spaghetti-ristorante/",
+      "site": "divella.it",
+      "site_kind": "brand",
+      "looks": "one pack, white background, front view, 'Spaghetti Ristorante 8' and 500 g readable, no watermark/price/overlay, 1000x1000"
+    }
+  ],
+  "ingredients": {
+    "text": "Durum wheat semolina, water.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/8005121000085",
+    "market": "international (record lists many countries)"
+  },
+  "allergens": {
+    "contains": [],
+    "may_contain": [
+      "soy",
+      "mustard"
+    ],
+    "quote": "The pasta you have purchased may contain traces of soy and mustard",
+    "page_url": "https://www.divella.it/en/products/8-spaghetti-ristorante/"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 355,
+    "fat_g": 1.7,
+    "saturated_fat_g": 0.9,
+    "carbohydrate_g": 73.0,
+    "sugars_g": 3.9,
+    "protein_g": 13.0,
+    "salt_g": 0.004,
+    "page_url": "https://www.divella.it/en/products/8-spaghetti-ristorante/"
+  },
+  "storage": {
+    "text": "Store away from heat sources and sunlight; avoid humid environments",
+    "page_url": "https://www.divella.it/en/products/8-spaghetti-ristorante/"
+  },
+  "origin": {
+    "country": "Italy",
+    "page_url": "https://www.divella.it/en/products/8-spaghetti-ristorante/"
+  },
+  "not_found": [
+    "diet_labels"
+  ]
+}

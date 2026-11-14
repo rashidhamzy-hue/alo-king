@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0180",
+  "matched": {
+    "brand": "Deroni",
+    "product": "Red Split Lentils",
+    "size": "900 g",
+    "barcode": "05285001522804",
+    "confidence": "unsure",
+    "note": "SuperDokan (Lebanon) page lists barcode 5285001523948, which differs from the catalog barcode; page does not mention vacuum pack and the pictured bag is not clearly vacuum. Same brand, product and size. Nutrition copied as on the page (carbohydrate 21 g looks low for the energy shown; verify on pack)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/products/20_0e4e9cd1-1056-4e1a-a614-8036ffb1539f.jpg?v=1665786110",
+      "page_url": "https://superdokan.com/en-lb/products/deroni-red-split-lentils-900g",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one green bag 'Red Split Lentils', white background, front view, no size readable, no watermark/price, 1200x1800"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 370,
+    "fat_g": 0.5,
+    "carbohydrate_g": 21,
+    "protein_g": 10,
+    "page_url": "https://superdokan.com/en-lb/products/deroni-red-split-lentils-900g"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
