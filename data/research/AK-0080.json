@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0080",
+  "matched": {
+    "brand": "Al Forno",
+    "product": "Pita White Bread Big",
+    "size": "800 g",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Not on Open Food Facts (5280320000002). carrefourlebanon.com lists 'Al Forno Pita Bread White Large 835GR' but the page could not be opened (HTTP 503) and the size differs; nothing taken."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

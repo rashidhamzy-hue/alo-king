@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0084",
+  "matched": {
+    "brand": "Wooden Bakery",
+    "product": "Mini Guette Rustique White",
+    "size": "each",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Loose bakery item with an in-store code. No product page or picture found."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

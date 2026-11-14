@@ -1,0 +1,49 @@
+{
+  "sku": "AK-0077",
+  "matched": {
+    "brand": "Poppins",
+    "product": "Corn Flakes",
+    "size": "20 g",
+    "barcode": "5281128600562",
+    "confidence": "likely",
+    "note": "Barcode matches an Open Food Facts record with no product name (countries field: Oman); its photos show a Poppins 'Corn Flakes' box marked 20g and an Arabic side panel. Ingredients, allergen statement and storage transcribed from that side-panel photo (https://images.openfoodfacts.org/images/products/528/112/860/0562/ingredients_ar.5.400.jpg). The panel also says 'خالي من منتجات الخنزير ومشتقاته'. No nutrition figures legible on the pages opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/112/860/0562/front_ar.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281128600562",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "close photo of the box front lying on a surface, 20g visible, slight angle and surface visible at edges; not a clean pack shot"
+    }
+  ],
+  "ingredients": {
+    "text": "جريش الذرة، سكر، مستخلص الشعير المنقوع، ملح، مستحلب (E471 من زيت النخيل المهدرج كلياً).",
+    "language": "ar",
+    "page_url": "https://world.openfoodfacts.org/product/5281128600562",
+    "market": "Oman (Open Food Facts countries field); Lebanese barcode prefix"
+  },
+  "allergens": {
+    "contains": [
+      "barley (gluten)",
+      "sulphur dioxide"
+    ],
+    "may_contain": [
+      "peanuts",
+      "soy lecithin",
+      "milk derivatives",
+      "other nuts"
+    ],
+    "quote": "يحتوي على: الشعير (غلوتين) وثاني أكسيد الكبريت (سكر). قد يحتوي على آثار من الفول السوداني، ليسيثين الصويا، مشتقات الحليب ومكسرات أخرى.",
+    "page_url": "https://world.openfoodfacts.org/product/5281128600562"
+  },
+  "storage": {
+    "text": "يحفظ في مكان جاف وبعيدًا عن أشعة الشمس المباشرة.",
+    "page_url": "https://world.openfoodfacts.org/product/5281128600562"
+  },
+  "not_found": [
+    "nutrition",
+    "diet_labels",
+    "origin"
+  ]
+}

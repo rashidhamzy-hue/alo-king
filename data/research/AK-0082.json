@@ -1,0 +1,50 @@
+{
+  "sku": "AK-0082",
+  "matched": {
+    "brand": "Wooden Bakery",
+    "product": "Pita White",
+    "size": "400 g",
+    "barcode": "5285000170679",
+    "confidence": "likely",
+    "note": "Barcode matches an Open Food Facts record named 'W B Bread Arabic White Big' (countries field: France), which conflicts with the catalog's 'Medium 400G'; the bag photo itself reads 'PITA WHITE / خبز لبناني أبيض' with serving size 'Pita White (42.5g)'. Net weight not readable. Ingredients as typed in the record and printed on the bag. Nutrition transcribed from the bag label photo (https://images.openfoodfacts.org/images/products/528/500/017/0679/nutrition_en.22.400.jpg) per serving as printed; 160 kcal and 36 g carbohydrate for a 42.5 g serving look inconsistent, and the Open Food Facts typed fields give different figures (243 kcal per 100 g), so treat with caution. No separate allergen statement on the pages opened; wheat is from the ingredient list."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/017/0679/front_en.18.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285000170679",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "close photo of the bread bag front, logo and 'PITA WHITE' visible, bag creased and cropped; not a clean pack shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Wheat Flour - Water - Sugar - Yeast - Salt.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/5285000170679",
+    "market": "France (Open Food Facts countries field); Lebanese product"
+  },
+  "allergens": {
+    "contains": [
+      "wheat"
+    ],
+    "may_contain": [],
+    "quote": "Ingredients: Wheat Flour - Water - Sugar - Yeast - Salt.",
+    "page_url": "https://world.openfoodfacts.org/product/5285000170679"
+  },
+  "nutrition": {
+    "per": "serving (42.5 g)",
+    "energy_kcal": 160,
+    "fat_g": 0.5,
+    "carbohydrate_g": 36,
+    "sugars_g": 2,
+    "fibre_g": 2,
+    "protein_g": 4,
+    "sodium_mg": 120,
+    "page_url": "https://world.openfoodfacts.org/product/5285000170679"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

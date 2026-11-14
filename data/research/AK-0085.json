@@ -1,0 +1,38 @@
+{
+  "sku": "AK-0085",
+  "matched": {
+    "brand": "Pain D'Or",
+    "product": "Pain au Lait",
+    "size": "300 g (9 pieces)",
+    "barcode": "5281013600035",
+    "confidence": "likely",
+    "note": "Barcode matches Open Food Facts 'Pain au Lait', brand Pain D'or (market: Lebanon); pack size and piece count not stated in the record. Nutrition transcribed from the pack label photo (https://images.openfoodfacts.org/images/products/528/101/360/0035/nutrition_fr.5.400.jpg), 'Amount per 100g' (also cholesterol 11 mg, calcium 73 mg, iron 2 mg). The Open Food Facts typed fields differ from the photo (carbohydrate 55, protein 8, fat 4) and were not used. No ingredient list on the pages opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/101/360/0035/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281013600035",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "close photo of the bag front ('Les petits pains Olé, Pain au Lait'), cropped at the edges, glare; not a clean pack shot"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 292,
+    "fat_g": 5,
+    "saturated_fat_g": 3,
+    "carbohydrate_g": 52,
+    "sugars_g": 10,
+    "protein_g": 9,
+    "sodium_mg": 303,
+    "page_url": "https://world.openfoodfacts.org/product/5281013600035"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

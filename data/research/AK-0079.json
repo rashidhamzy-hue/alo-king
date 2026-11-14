@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0079",
+  "matched": {
+    "brand": "Wooden Bakery",
+    "product": "Piston White",
+    "size": "each",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Loose bakery item with an in-store code. woodenbakery.com shows only the restaurant menu; no product page or picture for this item was found."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

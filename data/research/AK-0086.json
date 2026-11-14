@@ -1,0 +1,50 @@
+{
+  "sku": "AK-0086",
+  "matched": {
+    "brand": "Pain D'Or",
+    "product": "Arabic Bread",
+    "size": "900 g (7 loaves)",
+    "barcode": "5281013200013",
+    "confidence": "likely",
+    "note": "Barcode matches an Open Food Facts record with no product name or brand (market: Lebanon); its photos show a bag of Arabic bread, brand not readable. Ingredients and nutrition transcribed from the bag photos (https://images.openfoodfacts.org/images/products/528/101/320/0013/ingredients_en.5.400.jpg and https://images.openfoodfacts.org/images/products/528/101/320/0013/nutrition_en.7.400.jpg); label says 'Serving size 30 g (1/4 slice), servings per bag about 33', and 'Not a significant source of cholesterol, Saturated Fats & Vitamins'. Open Food Facts labels field: 'No additives'. No separate allergen statement; wheat is from the ingredient list."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/101/320/0013/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281013200013",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "photo of the bread bag lying on a table, bag crumpled, table visible; not a clean pack shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Wheat flour, sugar, yeast, salt",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/5281013200013",
+    "market": "Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "wheat"
+    ],
+    "may_contain": [],
+    "quote": "Ingredients: Wheat flour, sugar, yeast, salt",
+    "page_url": "https://world.openfoodfacts.org/product/5281013200013"
+  },
+  "nutrition": {
+    "per": "serving (30 g)",
+    "energy_kcal": 76,
+    "fat_g": 0.5,
+    "carbohydrate_g": 16,
+    "sugars_g": 1,
+    "fibre_g": 1,
+    "protein_g": 2,
+    "sodium_mg": 49,
+    "page_url": "https://world.openfoodfacts.org/product/5281013200013"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
