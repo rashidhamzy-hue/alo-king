@@ -1,7 +1,8 @@
 // Exports real Kapso webhook payloads that the staging Worker stored (wa_inbound_events) as test fixtures:
 //   test/fixtures/kapso/<event>/<message type>-NN.json   (at most 10 per event and message type)
-// Real shape, fake people: phone numbers, user ids, names and every URL are replaced by stable fakes, so the same sender
-// stays the same fake across files. Nothing else is changed: the point of a fixture is the real structure.
+// Real shape, fake people: phone numbers, user ids, names, location pins, place names and every URL are replaced by stable
+// fakes, so the same sender stays the same fake across files. Nothing else is changed: the point of a fixture is the real
+// structure. The repository is public: a pin is a home address and a phone number is a person, so neither is kept.
 // Needs SUPABASE_URL and SUPABASE_SERVICE_KEY. Usage: node scripts/ci/export-kapso-fixtures.mjs [outDir]
 import { mkdirSync, writeFileSync, readdirSync, rmSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -16,11 +17,20 @@ const PHONE_KEYS = new Set(["from", "to", "wa_id", "phone_number", "display_phon
 const BSUID_KEYS = new Set(["from_user_id", "business_scoped_user_id", "user_id", "recipient"]);
 const NAME_KEYS = new Set(["contact_name", "username", "profile_name", "name", "verified_name"]);
 const digits = /^\+?\d{8,15}$/;
+const FAKE_LAT = 33.65, FAKE_LNG = 35.65;     // a point in the Chouf, spread by a few metres per distinct pin so two pins stay two pins
+const PLACE_KEYS = new Set(["address"]);
 
 export function scrub(node, key = "") {
   if (Array.isArray(node)) return node.map((x) => scrub(x, key));
-  if (node && typeof node === "object") return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, scrub(v, k)]));
+  if (node && typeof node === "object") {
+    const isPlace = "latitude" in node && "longitude" in node;       // a location object: its name and address are a place
+    return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, isPlace && (k === "name" || k === "address") && typeof v === "string" ? "Test Place, Chouf, Lebanon" : scrub(v, k)]));
+  }
+  if (key === "latitude" && typeof node === "number") return fake("lat", node, (n) => Number((FAKE_LAT + n / 1000).toFixed(4)));
+  if (key === "longitude" && typeof node === "number") return fake("lng", node, (n) => Number((FAKE_LNG + n / 1000).toFixed(4)));
   if (typeof node !== "string") return node;
+  if (PLACE_KEYS.has(key)) return "Test Place, Chouf, Lebanon";
+  if (/Lat: -?[\d.]+, Long: -?[\d.]+$/.test(node)) return "Test Place, Chouf, Lebanon";       // Kapso's text form of a pin: the place name and the figures
   if (/^https?:\/\//i.test(node)) return `https://example.invalid/${h(node)}`;       // media links can carry signed tokens
   if (BSUID_KEYS.has(key) || /^[A-Z]{2}\.\d{10,}$/.test(node)) return fake("bsuid", node, (n) => `XX.${String(n).padStart(18, "0")}`);
   if ((PHONE_KEYS.has(key) && digits.test(node)) || (key === "from" && digits.test(node))) return fake("phone", node.replace(/^\+/, ""), (n) => `9617000${String(n).padStart(4, "0")}`);

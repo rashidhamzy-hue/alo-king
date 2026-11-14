@@ -1,0 +1,24 @@
+# One-off (session H1, 14 Nov 2026): read-only. Which data/research/AK-nnnn.json files are loaded into staging AND fully applied
+# (an approved picture or approved facts, and nothing of theirs still waiting for a person), and what state the name proposals
+# and the coverage functions are in. Writes nothing. Used to decide which files the repository may drop (the database is the record).
+# Deleted again once the cleanup pull request is merged.
+name: data-coverage
+on:
+  workflow_dispatch:
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+jobs:
+  coverage:
+    if: github.repository == 'rashidhamzy-hue/alo-king'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Read coverage
+        run: node scripts/ci/data-coverage.mjs | tee -a "$GITHUB_STEP_SUMMARY"

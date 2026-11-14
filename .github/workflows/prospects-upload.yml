@@ -1,0 +1,46 @@
+# One-off (session H1, 14 Nov 2026). The repository went public, so the three prospect CSVs (business phone numbers and ratings
+# collected from Google Maps) move to the private `media` bucket under research/prospects/. Reads the files from the git ref
+# given (the commit before they were deleted), uploads them with the service key, reads each back, and compares sha256.
+# Refuses to run if the bucket is public. Deleted again in the same pull request once the copy is verified.
+name: prospects-upload
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Git commit that still holds data/prospects/*.csv
+        type: string
+        required: true
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+jobs:
+  upload:
+    if: github.repository == 'rashidhamzy-hue/alo-king'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ inputs.source_ref }}" }
+      - name: Bucket is private
+        run: scripts/ci/ensure-media-bucket.sh | sed 's/^/- /' | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Upload, read back, compare
+        run: |
+          set -euo pipefail
+          api="$SUPABASE_URL/storage/v1"
+          auth=(-H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY")
+          for f in data/prospects/*.csv data/prospects/README.md; do
+            name=$(basename "$f")
+            code=$(curl -sS -o /tmp/up.json -w '%{http_code}' -X POST "${auth[@]}" -H "Content-Type: text/csv" -H "x-upsert: true" \
+              --data-binary @"$f" "$api/object/media/research/prospects/$name" || true)
+            case "$code" in 200|201) ;; *) echo "upload of $name failed: HTTP $code"; cat /tmp/up.json; exit 1 ;; esac
+            curl -sS -f "${auth[@]}" "$api/object/media/research/prospects/$name" -o /tmp/back
+            a=$(sha256sum < "$f" | cut -d' ' -f1); b=$(sha256sum < /tmp/back | cut -d' ' -f1)
+            if [ "$a" != "$b" ]; then echo "MISMATCH for $name"; exit 1; fi
+            echo "- $name: $(wc -c < "$f") bytes, sha256 ${a:0:12}, read back identical" | tee -a "$GITHUB_STEP_SUMMARY"
+          done
+          # Anonymous readers get nothing.
+          anon=$(curl -sS -o /dev/null -w '%{http_code}' "$api/object/public/media/research/prospects/alo_king_launch_shortlist.csv" || true)
+          case "$anon" in 400|401|403|404) echo "- anonymous read refused ($anon)" | tee -a "$GITHUB_STEP_SUMMARY" ;; *) echo "FAIL: anonymous read answered $anon"; exit 1 ;; esac

@@ -315,7 +315,7 @@ sandbox number; the "credit balance below an amount" alert in 4.10 is replaced b
 | 5.13 | Staff routine | Two pages: day open, day close, what to do when the system is down. |
 | 5.14 | Small-order fee | Decide the threshold and the amount before the paid pilot, from real margins and what competitors charge. |
 | 5.15 | Label scan at intake | A picker photographs the barcode and the label; the vision function proposes name, brand, size, ingredients, allergens and nutrition panel; Open Food Facts is looked up by barcode as a second opinion; a person confirms every field against the pack before it is published. Each fact keeps its source, status and date. Needs the food-facts tables (1.11). |
-| 5.16 | Restaurant prospect calls | `data/prospects/alo_king_launch_shortlist.csv`: the founder or ops lead visits or phones, in person, never from the system. Record interest, owner name and permission to contact in the cleaned sheet. |
+| 5.16 | Restaurant prospect calls | `research/prospects/alo_king_launch_shortlist.csv` in the private `media` bucket (moved out of the repository in H1): the founder or ops lead visits or phones, in person, never from the system. Record interest, owner name and permission to contact in the cleaned sheet. |
 | 5.17 | Product pictures, fetched by the system | One clean, usable picture per catalog item, approved by a person. Session P1. Details below. |
 | 5.18 | Product data from sources, proposed for approval | For each of the 291 products with a barcode: fetch ingredients, allergens, nutrition panel and diet labels from Open Food Facts and store them with C1's `propose_fact` as proposed records, source `open_food_facts`, never approved by code. The fast model only maps Open Food Facts' own ingredient and allergen text onto our allergen vocabulary and writes an Arabic rendering of the ingredient list; every mapped value stays a proposal with the source text beside it. Nothing reaches a customer until a person approves it against the pack at intake (5.15). Also proposed, not applied: cleaned Arabic and English display names and sizes, and the 12 to 15 customer categories for 1.21 (written to `data/proposals/`). No model writes a food fact it did not read from a source (invariant 15). Session N1. |
 
@@ -544,7 +544,7 @@ Classes: **A** must work at launch. **B** designed now, switched on after eviden
 | Places and delivery learning | `landmarks`, saved places, the pin decides | Place names, landmark proposals, the order timeline, time statistics, rider door notes | A (list), B (learned ETAs) | L1 |
 | Nightly learning and evals | Language-pack workflow by hand | Nightly smoke eval, weekly full run, collectors, the "learned today" note | A (evals), B (collectors) | N2 |
 | Daily summary and reports | Day close, margin, demand views | Daily summary, weekly report, costs and customer pages | A | AN1 |
-| Founder assistant | None | Read-only chat over the reports (waits for C3) | B | AN1b |
+| Founder assistant | None | Read-only chat over the reports (C3 approved 14 Nov; runs after AN1; migrations 0198-0199) | B | AN1b |
 | Warehouse | Stock, receiving, expiry date, counts | Lots, FEFO, bins, cycle counts, reorder proposals | B | WH1 |
 | Scan to pick | None | Phone-camera scanning in the console | C (benchmark: pick time and error rate with and without) | WH1 |
 | Supplier invoice reading | Receiving form | Photo, proposed lines, new-item intake | B | WH1 |
@@ -598,8 +598,8 @@ Gated sessions (start when the gate opens; prompts in `docs/NEXT_SESSIONS.md`): 
 **A3** production (company papers, +961 numbers); **PAY1** Whish Pay (a merchant account), 0160-0164; **PAY2** cards and send home
 (a signed gateway); **E1, E2, E3** vendors, delivery providers, combined orders (the first signed vendor; C2 and C5 answered),
 0165-0184; **LOY1** loyalty (four clean pilot weeks; C7), 0185-0189; **MK1** markets (60 orders a day for a month), 0190-0194;
-**BK1** basket builder (C9), 0195-0197; **AN1b** founder assistant (C3); **D4b** pick queue and rider incident pages (after D4,
+**BK1** basket builder (C9), 0195-0197; **AN1b** founder assistant (C3 approved; runs after AN1), 0198-0199; **D4b** pick queue and rider incident pages (after D4,
 Sonnet, no migration).
 
-Waves: (1) SP1, F1, D4. (2) W1, A5, R4 then H1. (3) M1, I1, C4. (4) T1, WEB1, D5. (5) WEB2, L1, WH1. (6) N2, AN1, D4b. Then G2.
+Waves: (1) SP1, F1, D4. (2) W1, A5, R4 then H1. (3) M1, I1, C4. (4) T1, WEB1, D5. (5) WEB2, L1, WH1. (6) N2, AN1, then AN1b, D4b. Then G2.
 Phase 6 (the shadow run) starts when waves 1 to 4 are merged, the catalog is live, and the founder's Phase 5 data is in.

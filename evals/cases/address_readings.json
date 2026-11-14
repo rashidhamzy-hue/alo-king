@@ -2,7 +2,7 @@
   "note": "Session B4: how the live model reads where to deliver. From the founder's first live order on 13 Nov 2026 (wa_messages and agent_runs on staging, 18:43-18:58 UTC): the village glued to «ع» went to needs_clarification, and «بحي راجح» in a voice note was read as a village. village: the village the reading must put in address.village (any spelling of it), or null when it must stay empty. not_village: words that must never be address.village. The code no longer depends on the first (village_in_text, the pin decides) or the second (a pin's address step ignores the village): these cases watch the model itself.",
   "cases": [
     { "id": "addr-13nov-order", "texts": ["بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين"], "village": ["بعقلين", "baakline"] },
-    { "id": "addr-13nov-voice", "transcripts": ["بحي راجح، آآ، بيت شادي أبو اسماعيل، الطابق الثاني، بوجه، آآآ، سنقوشي ومحطة راجح"],
+    { "id": "addr-13nov-voice", "transcripts": ["بحي راجح، آآ، بيت الاختبار، الطابق الثاني، بوجه، آآآ، سنقوشي ومحطة راجح"],
       "state": { "has_saved_place": true, "recent": [{ "role": "customer", "text": "[location pin received, village: Khraibeh]" }] },
       "village": null, "not_village": ["راجح", "rajeh"] },
     { "id": "addr-arabizi-3a", "texts": ["baddi 2 labne liban lait 3a b3aklin"], "village": ["بعقلين", "b3aklin", "baakline"] },

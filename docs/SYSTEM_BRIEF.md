@@ -229,7 +229,7 @@ Order card, with buttons \[ تأكيد الطلب \] \[ تعديل \]:
 🛵 التوصيل: \$1.00  
 \*المجموع: \$7.27\*  
   
-📍 بعقلين، بيت شادي أبو اسماعيل، الطابق 2  
+📍 بعقلين، بيت الاختبار، الطابق 2  
 💵 الدفع: كاش عند الاستلام
 
 Shop closed, order held:
@@ -265,7 +265,7 @@ Order card, with buttons \[ Confirm order \] \[ Edit \]:
 🛵 Delivery: \$1.00  
 \*Total: \$7.27\*  
   
-📍 Baakline, Shadi Abou Ismail building, 2nd floor  
+📍 Baakline, Test House building, 2nd floor  
 💵 Payment: cash on delivery
 
 Shop closed, order held:
@@ -293,7 +293,7 @@ Yes: for staging, Rashid's personal phone and the two staging business numbers a
 
 | Role                              | Number                                         |
 |-----------------------------------|------------------------------------------------|
-| Customer line (the bot)           | The Kapso US number, +1 203 660 2328           |
+| Customer line (the bot)           | The Kapso US number (in the Kapso dashboard)           |
 | Staff line (pickers, riders, ops) | The Kapso sandbox number                       |
 | The tester                        | Rashid's personal WhatsApp, chatting with both |
 

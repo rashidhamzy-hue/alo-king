@@ -1,7 +1,7 @@
 // The staging probe (task 4.10): a test customer and a test rider who answer what they are sent, as a person would,
 // so an hourly test order walks the whole path. Pure functions; apps/gateway/src/index.ts stores and delivers the result.
 // The inbound shape is the real Kapso v2 message shape (test/fixtures/kapso/), BSUID only, no phone: the way Meta is heading.
-import type { Line, Outbound } from "./kapso";
+import type { Outbound } from "./kapso";
 
 /** The buttons a person would tap, in the order an order moves: confirm the card; accept, pick up, deliver, cash exact. */
 const NEXT: RegExp[] = [/^order:confirm:/, /^job:accept:/, /^job:picked:/, /^stop:delivered:/, /^stop:exact:/];
@@ -50,5 +50,3 @@ export function probeInbound(o: { phoneNumberId: string; waUserId: string; name:
     phone_number_id: o.phoneNumberId,
   };
 }
-
-export const probeLine = (role: string): Line => (role === "driver" ? "ops" : "customer");
