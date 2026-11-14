@@ -3,7 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buttons } from "@ak/wa/kapso";
 import { deliver, issueCard, type ToolContext } from "./concierge-tools";
-import type { Quote } from "./order-card";
+import { windowLabel, type DeliveryWindow, type Quote } from "./order-card";
 
 async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await db.rpc(fn, args);
@@ -12,7 +12,9 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
 }
 const money = (n: number) => `$${Number(n).toFixed(2)}`;
 
-export interface OrderStatus { short_code: string; status: string; total_usd: number; payment_method: string; is_pickup: boolean; eta_remaining_minutes: number | null }
+export interface OrderStatus { short_code: string; status: string; total_usd: number; payment_method: string; is_pickup: boolean; eta_remaining_minutes: number | null;
+  /** 2.8 (0041): a scheduled order's window. Its answer is the window, never minutes counted from the confirmation (C3's request 6). */
+  window?: DeliveryWindow | null }
 export interface ServiceInfo { open: string; close: string; open_now: boolean; served: { name_en: string; name_ar: string | null; fee_usd: number; eta_minutes: number }[] }
 export interface RepeatPlan {
   found: boolean; order_id?: string; short_code?: string; lines?: { product_id: string; source_id: string; qty: number; modifiers?: string[]; note?: string | null }[];
@@ -24,6 +26,15 @@ export const ANSWER = {
   noOpenOrder: "ما عندك طلب مفتوح هلّق. شو بتحب تطلب؟",
   status(s: OrderStatus): string {
     const head = `طلبك ${s.short_code}: `;
+    if (s.window && !s.is_pickup) {
+      const when = windowLabel(s.window);
+      switch (s.status) {
+        case "awaiting_confirmation": return head + `ناطر تأكيدك، للتوصيل ${when}. اكبس «تأكيد الطلب» عالورقة.`;
+        case "awaiting_payment": return head + `محجوز للتوصيل ${when}، ناطرين وصول الدفع (${money(s.total_usd)}). ابعت صورة الإيصال هون.`;
+        case "confirmed": return head + `مأكّد، والتوصيل ${when}.`;
+        case "preparing": case "ready": return head + `عم نحضّرو للتوصيل ${when}.`;
+      }
+    }
     switch (s.status) {
       case "awaiting_confirmation": return head + "ناطر تأكيدك. اكبس «تأكيد الطلب» عالورقة لنبلّش.";
       case "awaiting_payment": return head + `ناطرين وصول الدفع (${money(s.total_usd)}). ابعت صورة الإيصال هون.`;
@@ -122,13 +133,13 @@ export async function offerRepeat(ctx: ToolContext): Promise<Done> {
 
 /** A card whose quote went stale before the tap: the same lines, re-priced now, with anything gone named first. */
 export async function rebuildStale(ctx: ToolContext, orderId: string): Promise<Done> {
-  const b = await rpc<RepeatPlan & { change_for_usd?: number | null; notes?: string | null }>(ctx.db, "basket_from_order", { p_party: ctx.partyId, p_order: orderId });
+  const b = await rpc<RepeatPlan & { change_for_usd?: number | null; notes?: string | null; slot_id?: string | null }>(ctx.db, "basket_from_order", { p_party: ctx.partyId, p_order: orderId });
   if (!b.found) return { done: false };
   const missing = (b.missing ?? []).map((m) => m.name_ar ?? m.name);
   if (!b.lines?.length) return say(ctx, ANSWER.allMissing(missing), "stale_all_missing");
   if (!b.quote?.ok) return { done: false };
   const before = [ANSWER.stale, missing.length ? ANSWER.someMissing(missing) : null].filter(Boolean).join("\n");
   const card = await issueCard(ctx, { lines: b.lines, villageId: b.pickup ? null : b.village_id ?? null, placeId: b.place_id ?? null, pickup: !!b.pickup },
-    { payment: b.payment_method ?? "cod", changeForUsd: b.change_for_usd ?? null, notes: b.notes ?? null }, { before });
+    { payment: b.payment_method ?? "cod", changeForUsd: b.change_for_usd ?? null, notes: b.notes ?? null }, { before, slotId: b.slot_id ?? null });
   return card.ok ? { done: true, path: "stale_card" } : { done: false };
 }
