@@ -1,1 +1,1 @@
-{ "steps": ["after", "live"], "repeat": 1, "note": "M1: the reading after the prompt line on reply length (at most two short sentences) and the output guard's too_long check. Commit {\"steps\": []} to stop." }
+{ "steps": ["after", "live"], "repeat": 1, "note": "M1, second run: the prompt line on reply length reverted (the output guard enforces it), so the reading input is byte-identical to main. First run 43629416444: F1 0.915, 2 wrong (hz0815, g0815)." }
