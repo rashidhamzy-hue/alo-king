@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0055",
+  "matched": {
+    "brand": "Hawa Chicken",
+    "product": "White eggs, nylon-wrapped tray",
+    "size": "30 eggs",
+    "barcode": "5283001700598",
+    "confidence": "likely",
+    "note": "Not on Open Food Facts. Spinneys Lebanon lists 'HAWA CHICKEN EGGS WHITE 19-2000G 30 PC'; barcode not shown there, so matched by brand, colour and count. Fresh eggs: no ingredient or nutrition page found."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/2/120174-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/fresh-eggs/eggs.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one nylon-wrapped tray of 30 white eggs, plain white background, no watermark/price, angled top view"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

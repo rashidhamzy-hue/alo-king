@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0054",
+  "matched": {
+    "brand": "Plein Soleil",
+    "product": "Edam Cheese block",
+    "size": "by weight (brand block about 3 kg)",
+    "barcode": "2209799000000",
+    "confidence": "likely",
+    "note": "Sold by weight, cut from the brand's Edam block. Brand site lists 'Edam Cheese' under Cheese Blocks with a picture only; no ingredients, nutrition, storage or origin text on the page (the image shows a small-print label that is not legible at the published 115x300 size, so nothing was copied from it)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://pleinsoleilfood.com/uploads/products/300x300/PS-Edam-Cheese-±3kg-flat_5285000835110.png",
+      "page_url": "https://pleinsoleilfood.com/categories/blocks",
+      "site": "pleinsoleilfood.com",
+      "site_kind": "brand",
+      "looks": "one whole red-wrapped block seen flat from above with its printed label (brand, EDAM, small ingredient text), plain background, no watermark/price; very small image (115x300), whole bulk block not a deli pre-pack"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

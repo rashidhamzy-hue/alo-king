@@ -1,0 +1,66 @@
+{
+  "sku": "AK-0057",
+  "matched": {
+    "brand": "Dairy Khoury",
+    "product": "Greek Yogurt Apricot Low Fat",
+    "size": "175 g",
+    "barcode": "5285008140964",
+    "confidence": "exact",
+    "note": "Ingredients from LivGood Lebanon product page (image file is named APRICOT_LOW_FAT_175G; pack shows 'Low fat', '12g protein', 175g). Nutrition from the Open Food Facts record for this barcode, per serving 1 cup (175 g) as entered there; LivGood shows matching per-100 g figures without stating a basis. LivGood shows a retailer 'Gluten Free' badge; not recorded as a diet label because it is not shown as the pack's own claim. No separate allergen sentence; allergen taken from the ingredients list."
+  },
+  "pictures": [
+    {
+      "image_url": "https://livgood.com/cdn/shop/files/APRICOT_LOW_FAT_175G.png?v=1776749371&width=480",
+      "page_url": "https://livgood.com/en-lb/products/dairy-khoury-greek-yogurt-apricot-175g",
+      "site": "livgood.com",
+      "site_kind": "retailer",
+      "looks": "one cup, plain white/transparent background, no watermark/price, front view"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/6/4/640927-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/yogurts/greek-yogurts.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one cup, plain white background, no watermark/price, front view, pack small in frame"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/814/0964/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285008140964",
+      "site": "openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "user photo, cup held in a hand in a store, not a clean shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Yogurt 85%(Natural pasteurized partially skimmed cow milk,milk protein, lactic acid culture), fruit preperation 15%(Sugar,apricot (31%), water, stabilizers:(corn starch, fruit pectin), natural flavors,concentrated lemon juice, concentrated carrot juice)",
+    "language": "en",
+    "page_url": "https://livgood.com/en-lb/products/dairy-khoury-greek-yogurt-apricot-175g",
+    "market": "Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "Yogurt 85%(Natural pasteurized partially skimmed cow milk,milk protein, lactic acid culture),",
+    "page_url": "https://livgood.com/en-lb/products/dairy-khoury-greek-yogurt-apricot-175g"
+  },
+  "nutrition": {
+    "per": "serving (175 g)",
+    "energy_kcal": 154,
+    "fat_g": 3.5,
+    "saturated_fat_g": 2.1,
+    "carbohydrate_g": 18.4,
+    "sugars_g": 17.5,
+    "fibre_g": 0,
+    "protein_g": 12.2,
+    "salt_g": 0.287,
+    "sodium_mg": 115,
+    "page_url": "https://world.openfoodfacts.org/product/5285008140964"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

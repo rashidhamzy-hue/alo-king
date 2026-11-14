@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0053",
+  "matched": {
+    "brand": "Plein Soleil",
+    "product": "Unsalted Butter",
+    "size": "200 g",
+    "barcode": "5283013317876",
+    "confidence": "exact",
+    "note": "Spinneys Lebanon product page has the picture only (no ingredients, nutrition, origin). The Open Food Facts record for this barcode is named 'Beurre' (countries: Senegal), has no facts and its only photo is a barcode close-up, so nothing was taken from it. Carrefour Lebanon page could not be opened (HTTP 503)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/5/3/530072-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/unsalted-butter.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 200 g butter block, plain white background, no watermark/price, front three-quarter view"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
