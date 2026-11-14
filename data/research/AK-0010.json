@@ -1,0 +1,21 @@
+{
+  "sku": "AK-0010",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Parsley (bunch)",
+    "size": "bunch",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/109793-v001-1_3.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/flat-leaf-parsley-one-bunch-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one bunch of flat-leaf parsley tied with twine, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: PARSLEY FLAT)"
+    }
+  ],
+  "not_found": []
+}
