@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0267",
+  "matched": {
+    "brand": "Intaj",
+    "product": "Intaj Toilet Paper 12 Rolls 1.5Kg",
+    "size": "12 rolls",
+    "barcode": "5287002102542",
+    "confidence": "unsure",
+    "note": "non-food. No page found for this exact product; barcode not in Open Beauty/Products/Food Facts; searches of Spinneys Lebanon, Superdokan, Loyabi found nothing. NOTHING."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

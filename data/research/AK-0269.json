@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0269",
+  "matched": {
+    "brand": "Well Plus",
+    "product": "Wellplus Wet Wipes 100 Sheets",
+    "size": "100 sheets",
+    "barcode": "5281143012289",
+    "confidence": "unsure",
+    "note": "non-food. No page found for this exact product; barcode not in Open Beauty/Products/Food Facts; searches of Spinneys Lebanon, Superdokan, Loyabi found nothing. NOTHING."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

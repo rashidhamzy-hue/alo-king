@@ -1,0 +1,27 @@
+{
+  "sku": "AK-0265",
+  "matched": {
+    "brand": "Omo",
+    "product": "Omo Liquid Lavender Matic",
+    "size": "2.5 L",
+    "barcode": "6111026123322",
+    "confidence": "likely",
+    "note": "non-food. Spinneys Lebanon page 'OMO LIQUID LAVENDER MATIC' 2.50 L (Lebanon market); page has no barcode so match is by name/size/variant; pack picture shows Omo Matic Expert Lavande."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/5/9/598985-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/liquid-lavender-matic.html",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one jug, white background, front view, no watermark/price"
+    }
+  ],
+  "origin": {
+    "country": "Spain",
+    "page_url": "https://www.spinneyslebanon.com/default/liquid-lavender-matic.html"
+  },
+  "not_found": [
+    "ingredients"
+  ]
+}

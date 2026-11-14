@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0274",
+  "matched": {
+    "brand": "Cotton Buds",
+    "product": "Mf Cotton Buds Doria",
+    "size": "",
+    "barcode": "1452136987455",
+    "confidence": "unsure",
+    "note": "non-food. No page found for this exact product; barcode not in Open Beauty/Products/Food Facts; searches of Spinneys Lebanon, Superdokan, Loyabi found nothing. NOTHING."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

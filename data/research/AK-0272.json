@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0272",
+  "matched": {
+    "brand": "Wellplus",
+    "product": "Wellplus Liquid Soap Marrakesh Mystique",
+    "size": "500 ml",
+    "barcode": "5281143013620",
+    "confidence": "unsure",
+    "note": "non-food. No page found for this exact product; barcode not in Open Beauty/Products/Food Facts; searches of Spinneys Lebanon, Superdokan, Loyabi found nothing. NOTHING."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}
