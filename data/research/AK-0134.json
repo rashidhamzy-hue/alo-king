@@ -1,0 +1,44 @@
+{
+  "sku": "AK-0134",
+  "matched": {
+    "brand": "Tora Bika",
+    "product": "Cappuccino, single sachet",
+    "size": "25 g",
+    "barcode": "8996001414002",
+    "confidence": "exact",
+    "note": "No page for the single 25 g sachet could be opened (Lulu KSA 403, Carrefour 503). Superdokan lists only 20-sachet boxes under other barcodes, with no ingredients or nutrition; not used. Some blocks come from the Open Food Facts record for catalog barcode 8996001414002 (user-contributed, named \"Torabika Cappuccino, 25g\"); those blocks carry that page as their source."
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "allergens: milk (Open Food Facts field; ingredient list names skim milk powder and sodium caseinate)",
+    "page_url": "https://world.openfoodfacts.org/product/8996001414002"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 440,
+    "fat_g": 10,
+    "saturated_fat_g": 10,
+    "carbohydrate_g": 84,
+    "sugars_g": 60,
+    "fibre_g": 0,
+    "protein_g": 4,
+    "salt_g": 0.6,
+    "page_url": "https://world.openfoodfacts.org/product/8996001414002"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "Open Food Facts labels field of this record: 'Halal'",
+      "page_url": "https://world.openfoodfacts.org/product/8996001414002"
+    }
+  ],
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "storage",
+    "origin"
+  ]
+}

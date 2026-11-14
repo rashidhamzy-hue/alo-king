@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0128",
+  "matched": {
+    "brand": "Joocyz (Candia / Liban Lait)",
+    "product": "Apple drink",
+    "size": "1 L",
+    "barcode": "5285001106189",
+    "confidence": "unsure",
+    "note": "No page for the 1 L pack could be opened (only 180 ml Joocyz pages exist on the sites that allowed fetching). Nothing recorded."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

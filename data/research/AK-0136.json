@@ -1,0 +1,31 @@
+{
+  "sku": "AK-0136",
+  "matched": {
+    "brand": "Tchibo",
+    "product": "Gold Selection instant coffee, jar",
+    "size": "200 g",
+    "barcode": "4046234767650",
+    "confidence": "exact",
+    "note": "Picture and origin: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. Origin is the retailer's wording ('a premium instant coffee from Germany'), not a pack statement. No ingredients or nutrition on the page."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/products/458458ujh.jpg?v=1671622362",
+      "page_url": "https://superdokan.com/en-lb/products/tchibo-gold-selection-rich-intense-coffee-200g-tchibo-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one glass jar with gold lid, 'Tchibo Gold Selection', white background, front view, no overlay"
+    }
+  ],
+  "origin": {
+    "country": "Germany",
+    "page_url": "https://superdokan.com/en-lb/products/tchibo-gold-selection-rich-intense-coffee-200g-tchibo-in-lebanon"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "diet_labels"
+  ]
+}

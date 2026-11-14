@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0137",
+  "matched": {
+    "brand": "Najjar",
+    "product": "Najjar Instant Red (agglomerated instant coffee)",
+    "size": "190 g",
+    "barcode": "0022644004619",
+    "confidence": "exact",
+    "note": "Brand's own Lebanese e-shop page titled 'Najjar Instant Red 190G'. Page describes it as 'Agglomerated Instant Coffee'; it shows no barcode, ingredient list, nutrition, storage or origin. Prices in $, seller address Beirut, Lebanon. (The brand's professional catalogue lists the red jar as 95 g and 195 g.)"
+  },
+  "pictures": [
+    {
+      "image_url": "https://najjareshop.com/wp-content/uploads/2025/10/Najjar-Instant-Red-190G.jpg",
+      "page_url": "https://najjareshop.com/product/najjar-instant-red-190g/",
+      "site": "najjareshop.com",
+      "site_kind": "brand",
+      "looks": "one glass jar with red lid, 'NAJJAR RED Instant Coffee' label, white background, front view, no watermark/price/overlay; 600x600; weight not legible on the front"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
