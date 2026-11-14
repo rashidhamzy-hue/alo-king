@@ -591,7 +591,7 @@ mechanical work; Fable only for audits.
 | 15 | **L1** Places and delivery learning | Opus 5.5 | SYSTEM_PLAN 5 | `apps/gateway/src/ops-turn.ts`, `packages/agents/src/pipeline.ts` (address context only), console pages `landmarks.ts`, `eta.ts` (new) | 0135-0139 | M1 | WEB2, WH1 | A proposed landmark is invisible until approved; a landmark never changes the fee; no position outside a job |
 | 16 | **WH1** Warehouse | Opus 5.5 | SYSTEM_PLAN 7 and the invoice pipeline | console pages `lots.ts`, `scan.ts`, `invoices.ts` (new) | 0140-0147 | F1, D5 | WEB2, L1 | FEFO; a wrong scan blocks ready; lots reconcile to stock and the inventory account; an invoice photo never moves stock |
 | 17 | **N2** Nightly learning | Sonnet 5.5 | SYSTEM_PLAN 6 | `.github/workflows/nightly.yml`, `evals/`, console page `learned.ts` (new) | 0148-0150 | I1, L1 | AN1 | A wrong product in the nightly run opens an exception; learning writes proposals only |
-| 18 | **AN1** Reports | Sonnet 5.5 | Daily summary, weekly report, costs, customers pages | console pages (new), | 0151-0153 | D5 | N2 | The daily summary equals the day close on the same day; the customers page shows only stated restrictions |
+| 18 | **AN1** Reports | Sonnet 5.5 | Daily summary, weekly report, costs, customers pages | new console pages | 0151-0153 | D5 | N2 | The daily summary equals the day close on the same day; the customers page shows only stated restrictions |
 | 19 | **G2** Audit before the paid pilot | Fable 5.2 | The same audit on production settings | findings only | none | everything above, A3 | nothing | |
 
 Gated sessions (start when the gate opens; prompts in `docs/NEXT_SESSIONS.md`): **V1** voice evaluation (the 51 notes uploaded);
