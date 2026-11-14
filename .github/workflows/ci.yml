@@ -1,4 +1,18 @@
-# Every push and pull request. Red blocks the merge (protect main in repository settings).
+# Every push to main and every pull request. Red blocks the merge (protect main in repository settings).
+#
+# Minutes (session A6, 14 Nov 2026): the account is on GitHub Free, 2,000 minutes a month, and one run was about 12 to 14 of them.
+# A first job (`changes`) reads what the push or pull request changed. The required check names (test, permissions-check,
+# secrets-and-dependencies, pilot-locks) always report, but the expensive work inside them runs only when it can matter:
+#   tests   tsc and vitest: when anything other than docs/**, data/cost_model.csv and root *.md files changed (a path this file
+#           does not recognise counts as code: it fails safe), and the same code has not already passed vitest (see "tested" below)
+#   pg      the real-Postgres vitest suites (test/pg) and the permission check: when SQL, a seed, test/pg, the migration scripts,
+#           the Worker or a package the Worker suite runs (apps/gateway, packages), the build files or this file changed
+# "tested": a green vitest run uploads a one-byte artifact named after a fingerprint of the code (every tracked file except the
+# docs paths above). A later run on identical code (the merge commit on main after a green pull request, or a pull request whose
+# only new commit is a note) finds it and does not run vitest again. The artifact must come from this repository's own run, must not
+# have expired (7 days), and a run that needs the real-Postgres suites needs an artifact that included them. If the lookup fails
+# for any reason, vitest runs.
+# secrets-and-dependencies always runs in full (gitleaks reads the whole history). pilot-locks is two greps, so it always runs.
 name: ci
 on:
   push: { branches: [main] }
@@ -8,32 +22,110 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: { contents: read, actions: read }
+    outputs:
+      tests: ${{ steps.f.outputs.tests }}
+      pg: ${{ steps.f.outputs.pg }}
+      fp: ${{ steps.f.outputs.fp }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - id: f
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          # Never code: docs, the cost model sheet, and markdown notes at the repository root.
+          SAFE_RE='^(docs/|data/cost_model\.csv$|[^/]+\.md$)'
+          # What the real-Postgres suites (test/pg) run or load, and what the permission check applies: SQL and the seeds, the suites,
+          # the migration scripts, the Worker and the packages the Worker suite runs, the build files, and this workflow.
+          PG_RE='^(supabase/|test/pg/|apps/gateway/|packages/|wrangler\.jsonc$|scripts/check_permissions\.sh$|scripts/ci/load-seeds\.sh$|package(-lock)?\.json$|vitest\.config\.ts$|tsconfig\.json$|\.github/workflows/ci\.yml$)'
+          code=true; pg=true; why="no readable base: everything runs"
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            git diff --name-only "$BASE" HEAD > "$RUNNER_TEMP/files.txt"
+            code=false; pg=false; why="only docs and the cost model changed"
+            if grep -Evq "$SAFE_RE" "$RUNNER_TEMP/files.txt"; then code=true; why="code changed"; fi
+            if grep -Eq "$PG_RE" "$RUNNER_TEMP/files.txt"; then pg=true; fi
+            echo "$(wc -l < "$RUNNER_TEMP/files.txt") file(s) changed"; sed 's/^/  /' "$RUNNER_TEMP/files.txt" | head -40
+          fi
+          # Fingerprint of the code: object ids and paths of every tracked file except the docs paths.
+          fp=$(git ls-tree -r --format='%(objectname) %(path)' HEAD | grep -Ev ' (docs/|data/cost_model\.csv$|[^/ ]+\.md$)' | sha256sum | cut -c1-24)
+          tests=$code
+          if [ "$code" = true ]; then
+            names="tested-$fp-pg"; [ "$pg" = true ] || names="tested-$fp-pg tested-$fp-nopg"
+            for n in $names; do
+              found=$(gh api "repos/$REPO/actions/artifacts?name=$n&per_page=20" --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_repository_id == .workflow_run.repository_id)] | length' 2>/dev/null || echo 0)
+              if [ "${found:-0}" -gt 0 ] 2>/dev/null; then tests=false; why="this exact code already passed vitest ($n)"; break; fi
+            done
+          fi
+          echo "tests=$tests" >> "$GITHUB_OUTPUT"; echo "pg=$pg" >> "$GITHUB_OUTPUT"; echo "fp=$fp" >> "$GITHUB_OUTPUT"
+          echo "- changes: vitest=$tests, real-Postgres suites and permission check=$pg ($why)" >> "$GITHUB_STEP_SUMMARY"
+
   test:
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Nothing to test
+        if: needs.changes.outputs.tests != 'true'
+        run: echo "only docs changed, or this exact code already passed vitest (see the changes job); tsc and vitest are not run again"
+      - if: needs.changes.outputs.tests == 'true'
+        uses: actions/checkout@v4
+      - if: needs.changes.outputs.tests == 'true'
+        uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npx vitest run
+      - if: needs.changes.outputs.tests == 'true'
+        run: npm ci
+      - if: needs.changes.outputs.tests == 'true'
+        run: npx tsc --noEmit
+      - name: vitest (all suites, the real-Postgres ones included)
+        if: needs.changes.outputs.tests == 'true' && needs.changes.outputs.pg == 'true'
+        run: npx vitest run
+      - name: vitest (every suite except the real-Postgres ones, as nothing they run or load changed)
+        if: needs.changes.outputs.tests == 'true' && needs.changes.outputs.pg != 'true'
+        run: npx vitest run --exclude 'test/pg/**'
+      - name: Record that this code passed
+        if: needs.changes.outputs.tests == 'true'
+        env: { FP: "${{ needs.changes.outputs.fp }}", PG: "${{ needs.changes.outputs.pg }}" }
+        run: |
+          if [ "$PG" = true ]; then echo "$FP pg" > tested.txt; else echo "$FP nopg" > tested.txt; fi
+          echo "TESTED_NAME=tested-$FP-$([ "$PG" = true ] && echo pg || echo nopg)" >> "$GITHUB_ENV"
+      - if: needs.changes.outputs.tests == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.TESTED_NAME }}
+          path: tested.txt
+          retention-days: 7
+
   permissions-check:
     # Applies every migration to a real Postgres that has Supabase's three roles, then proves anon and authenticated can do nothing.
+    # The Postgres 17 container is started by a step, not as a job service, so a run with nothing to check pays for no container.
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    services:
-      postgres:
-        image: postgres:17
-        env: { POSTGRES_PASSWORD: postgres }
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-      - run: scripts/check_permissions.sh
+      - name: No migration, seed, Worker or package change
+        if: needs.changes.outputs.pg != 'true'
+        run: echo "nothing the permission check reads changed; it ran green on the last change that did"
+      - if: needs.changes.outputs.pg == 'true'
+        uses: actions/checkout@v4
+      - name: Postgres 17
+        if: needs.changes.outputs.pg == 'true'
+        run: |
+          docker run -d --name pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17 >/dev/null
+          for i in $(seq 1 60); do docker exec pg pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
+          docker exec pg pg_isready -U postgres
+          command -v psql >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client; }
+      - if: needs.changes.outputs.pg == 'true'
+        run: scripts/check_permissions.sh
         env: { DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres" }
+
   secrets-and-dependencies:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -48,8 +140,10 @@ jobs:
         run: |
           curl -sSfL -o osv-scanner https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64
           chmod +x osv-scanner && ./osv-scanner scan --lockfile package-lock.json
+
   pilot-locks:
     # Two rules a careless edit could undo. They are tested, and also checked here in plain text so a reviewer sees them fail by name.
+    # Two greps that take seconds: they run on every change (the job bills one minute either way).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

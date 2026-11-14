@@ -1,0 +1,118 @@
+# Manual. Session A6 (14 Nov 2026): a hard stop on Cloudflare spend, with the deploy token this repository already holds.
+#   1. One spend policy on the account: action usage_block, product durable_objects, 500 cents, enabled.
+#   2. One spend policy: action notification, product workers, 200 cents, emailed to the billing address.
+# It never blocks the `workers` product: the account also hosts unrelated Workers that must keep running.
+# Cloudflare's spend-policy commands (`cf billing spend-policies`, docs: developers.cloudflare.com/billing/manage/spend-management/cli/)
+# need the token permission Account > Billing > Edit (Read is enough to list). If the token lacks it, NOTHING is changed and the run
+# says which permission to add. The billing email cannot be read through the API (Cloudflare retired that endpoint in 2023), so
+# the address comes from the repository variable CLOUDFLARE_BILLING_EMAIL (a variable, not a secret); without it the alert is
+# not created and the summary says so. Safe to run again: a policy that already exists is left as it is.
+# The usage block is removed before real customers (docs/SYSTEM_PLAN.md section 19).
+# Secrets used (repository secrets, never printed): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+name: cloudflare-spend-limit
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Print what would be created, change nothing
+        type: boolean
+        default: false
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: cloudflare-spend-limit
+  cancel-in-progress: false
+jobs:
+  policies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BILLING_EMAIL: ${{ vars.CLOUDFLARE_BILLING_EMAIL }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      CF_SEND_TELEMETRY: "false"
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install the Cloudflare CLI (beta)
+        run: npm install --global cf --no-audit --no-fund 2>&1 | tail -2 && cf --version
+      - name: Read the account's spend policies (needs Account > Billing > Read)
+        id: list
+        run: |
+          set -uo pipefail
+          if cf billing spend-policies list > "$RUNNER_TEMP/policies.json" 2> "$RUNNER_TEMP/list.err"; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "- Spend policies read: $(jq '[.. | objects | select(has("product_id") or has("productId"))] | length' "$RUNNER_TEMP/policies.json" 2>/dev/null || echo '?') on the account" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Nothing was changed: the deploy token cannot read or change spend policies"
+              echo "Add this permission to the Cloudflare API token stored as the repository secret CLOUDFLARE_API_TOKEN, then run this workflow again:"
+              echo "- **Account > Billing > Edit** (Cloudflare dashboard > My Profile > API Tokens > edit the token > Permissions > Account > Billing > Edit)."
+              echo
+              echo "What the CLI said (first lines, token and account id hidden):"
+              echo '```'
+              head -c 600 "$RUNNER_TEMP/list.err" | sed -E "s/${CLOUDFLARE_API_TOKEN:-__none__}/(token)/g; s/${CLOUDFLARE_ACCOUNT_ID:-__none__}/(account)/g"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "cf exit status and first lines of its error (token and account id hidden):"
+            head -c 600 "$RUNNER_TEMP/list.err" | sed -E "s/${CLOUDFLARE_API_TOKEN:-__none__}/(token)/g; s/${CLOUDFLARE_ACCOUNT_ID:-__none__}/(account)/g"
+            echo "::error::Spend policies could not be read, nothing changed. Most likely the token needs Account > Billing > Edit (see the summary and the lines above)."
+            exit 1
+          fi
+      - name: Durable Objects hard stop (usage_block at 500 cents)
+        if: steps.list.outputs.ok == 'true'
+        run: |
+          set -uo pipefail
+          have=$(jq -r '[.. | objects | select((.product_id // .productId // "") == "durable_objects" and (.action // "") == "usage_block" and (.enabled // false) == true)] | length' "$RUNNER_TEMP/policies.json")
+          if [ "$have" != "0" ]; then
+            echo "- Durable Objects usage block already exists (left as it is)" >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          args=(billing spend-policies create --name 'Durable Objects hard stop $5' --product-id durable_objects --enabled true --threshold-cents 500 --action usage_block)
+          [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
+          if cf "${args[@]}" > "$RUNNER_TEMP/do.json" 2> "$RUNNER_TEMP/do.err"; then
+            echo "- Durable Objects usage block: created, 500 cents, enabled (dry run: $DRY_RUN)" >> "$GITHUB_STEP_SUMMARY"
+            jq -r 'if (.. | objects | .id? // empty) then "  policy id " + ([.. | objects | .id? // empty][0]) else empty end' "$RUNNER_TEMP/do.json" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          else
+            {
+              echo "### Durable Objects usage block NOT created"
+              echo "The token can read but not change spend policies. Add **Account > Billing > Edit** to CLOUDFLARE_API_TOKEN and run again."
+              echo '```'; head -c 600 "$RUNNER_TEMP/do.err" | sed -E "s/${CLOUDFLARE_API_TOKEN:-__none__}/(token)/g"; echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Durable Objects usage block not created (see the summary)."; exit 1
+          fi
+      - name: Workers email alert (notification at 200 cents; never a block)
+        if: steps.list.outputs.ok == 'true'
+        run: |
+          set -uo pipefail
+          have=$(jq -r '[.. | objects | select((.product_id // .productId // "") == "workers" and (.action // "") == "notification")] | length' "$RUNNER_TEMP/policies.json")
+          if [ "$have" != "0" ]; then
+            echo "- Workers email alert already exists (left as it is)" >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          if [ -z "${BILLING_EMAIL:-}" ]; then
+            {
+              echo "- Workers email alert NOT created: the billing email cannot be read through Cloudflare's API."
+              echo "  Set the repository variable **CLOUDFLARE_BILLING_EMAIL** (Settings > Secrets and variables > Actions > Variables) to the account's billing address and run this workflow again."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          args=(billing spend-policies create --name 'Workers email alert $2' --product-id workers --enabled true --threshold-cents 200 --action notification --notification-email "$BILLING_EMAIL")
+          [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
+          if cf "${args[@]}" > "$RUNNER_TEMP/w.json" 2> "$RUNNER_TEMP/w.err"; then
+            echo "- Workers email alert: created, 200 cents, to the billing address (dry run: $DRY_RUN)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            { echo "### Workers email alert NOT created"; echo '```'; head -c 600 "$RUNNER_TEMP/w.err" | sed -E "s/${CLOUDFLARE_API_TOKEN:-__none__}/(token)/g; s/${BILLING_EMAIL}/(email)/g"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Workers email alert not created (see the summary)."; exit 1
+          fi
+      - name: Read back
+        if: steps.list.outputs.ok == 'true' && inputs.dry_run != true
+        run: |
+          set -uo pipefail
+          cf billing spend-policies list > "$RUNNER_TEMP/after.json" 2>/dev/null || exit 0
+          {
+            echo "### Spend policies now on the account"
+            jq -r '.. | objects | select(has("product_id") or has("productId")) | "- \(.product_id // .productId): \(.action // "?"), \(.threshold_cents // .thresholdCents // "?") cents, enabled \(.enabled // "?")"' "$RUNNER_TEMP/after.json"
+          } >> "$GITHUB_STEP_SUMMARY"
