@@ -901,8 +901,8 @@ first run: model variance, recorded, not a gate item.
 For other sessions:
 - W1 and anyone issuing a card: call `create_order_for_turn` with the turn key (`ctx.turnKey`), not `create_order_from_quote`.
 - Anyone sending to a customer from a turn: keys come from `replyKey(turnKey, contentHash(msg), n)` in `turn.ts`; never a position.
-
 - A4's numbers before SP1 were read with the same views; `agent_call_timings` now splits a turn into its model calls.
+
 ### Session D4 (console review pages), 14 November 2026: names, readiness, windows, fact basis, the action log; migrations 0110-0114
 Sonnet 5.5. Branch `claude/loving-mayer-r7yz4z` (the branch this environment allows). Built and tested locally, through the console's real request handler against PGlite with every migration (D1's rig): `npm run typecheck && npm test`, 965 passed, 40 live-only skipped, plus the new console tests (names 9, readiness 5, windows 10, facts-basis 7, sign-in 19). D1's rules kept: the console has no insert, update or delete (`no-direct-writes.test.ts` passes unchanged), the acting party comes from the session, every action is logged first, plain server-rendered pages. **Nothing here is proven live**: the migrations reach staging with `deploy-staging` after the merge, and the console workflow's smoke sweep then opens the three new pages (it reports, it does not fail, a page that cannot load yet).
 
