@@ -18,7 +18,7 @@ afterAll(async () => { await db?.pg.close(); });
 const READING = { intent: "order", fulfilment: "delivery", transcript_quality: "good", needs_clarification: [],
   lines: [{ qty: 3, raw: "3 كرتونة مي تنورين", unit: "each", query: "مي تنورين", modifiers: [], brand_hint: "تنورين", confidence: 0.9, source_hint: null }],
   address: { floor: null, village: null, building: null, landmark: null, verbatim: null, recipient_name: null } };
-const KHRAIBEH_PIN = { lat: 33.645404815674, lng: 35.643405914307 };     // his pin of 13 Nov
+const KHRAIBEH_PIN = { lat: 33.6490, lng: 35.6460 };     // a fake pin about 0.3 km from the Khraibeh centre (the repository is public: no real pin)
 
 describe("saved places re-checked against their pins (audit item 5)", () => {
   it("a place whose pin is in another village is set aside, and the next order asks for the pin", async () => {
@@ -27,7 +27,7 @@ describe("saved places re-checked against their pins (audit item 5)", () => {
     const c = await t.customer();
     // As saved on 13 Nov: the village from the text, the pin from the map. And a second place that agrees with its pin.
     const bad = (await db.one(`insert into customer_places(party_id, village_id, lat, lng, building, last_used_at)
-      values ($1, $2, $3, $4, 'بيت شادي', now()) returning id`, [c.party_id, v.Baakline, KHRAIBEH_PIN.lat, KHRAIBEH_PIN.lng])).id;
+      values ($1, $2, $3, $4, 'بيت الاختبار', now()) returning id`, [c.party_id, v.Baakline, KHRAIBEH_PIN.lat, KHRAIBEH_PIN.lng])).id;
     const good = (await db.one(`insert into customer_places(party_id, village_id, lat, lng, last_used_at)
       values ($1, $2, 33.67739, 35.56355, now() - interval '1 day') returning id`, [c.party_id, v.Baakline])).id;
 

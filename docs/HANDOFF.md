@@ -223,12 +223,12 @@ Migrations 0060-0063 (A2 took 0060-0069; see the session table in the build plan
 and, new in this session, a real Postgres 16 started by the tests (`test/pg/real-postgres.ts`; GitHub's ubuntu runners have the binaries,
 and on CI these suites refuse to skip). Permission check passes on a fresh Postgres. What is proven live is marked below.
 
-**0.13 first real attempt, 13 Nov 18:43-18:58 UTC (founder, from WhatsApp Web; read from `wa_messages`).** The location request went out at once and was delivered. He sent a pin (in Khraibeh); the bot answered "وصلنا موقعك في بعقلين", taking the village from the text and ignoring the pin. It then asked for name, floor and building; he sent a voice note (Kapso transcript: «بحي راجح … بيت شادي أبو اسماعيل، الطابق الثاني … سنقوشي ومحطة راجح»). The bot read «راجح» as a village and asked which area; after he tapped بعقلين it asked him to **send the order again**: the basket was lost (conversation state `{}`), so no card and no order. Recorded for B4 (first items in its row); each is now a replayed test and fixed (session B4 below). Retry 0.13 after B4's deploy.
+**0.13 first real attempt, 13 Nov 18:43-18:58 UTC (founder, from WhatsApp Web; read from `wa_messages`).** The location request went out at once and was delivered. He sent a pin (in Khraibeh); the bot answered "وصلنا موقعك في بعقلين", taking the village from the text and ignoring the pin. It then asked for name, floor and building; he sent a voice note (Kapso transcript: «بحي راجح … بيت (name removed)، الطابق الثاني … سنقوشي ومحطة راجح»). The bot read «راجح» as a village and asked which area; after he tapped بعقلين it asked him to **send the order again**: the basket was lost (conversation state `{}`), so no card and no order. Recorded for B4 (first items in its row); each is now a replayed test and fixed (session B4 below). Retry 0.13 after B4's deploy.
 
 **0.13, the one thing asked of Rasheed. Status: READY TO SEND (since 13 Nov, 17:43 UTC).** Everything is in place: staging data, the test riders, the evidence workflow, the cron that delivers and collects, and (B3, 1.22) a model reading that turns this message into the right card.
 Proof on staging: after B3's merge, the hourly probe sent exactly the message below through the live model at 17:38 UTC. The model kept the customer's words (`query` «قهوة نجار», `brand_hint` «نجار»), the card went out in one go (AK-1001: Tannourine 2L x6, Al Forno pita 800 g, Najjar Classic, $7.27), and the order reached `closed` at 17:43. The same message was right in every live eval run (B3's section). Earlier runs (10:35 and 11:36 UTC) asked a question instead; that is what 1.22 fixed.
 Before sending, check that the last probe order closed: `select short_code, status from orders o join parties p on p.id = o.customer_id where p.is_probe order by o.created_at desc limit 3;` (or that the "heartbeat:probe_silent" issue in Sentry is quiet). If the probe is silent, see "Probe stuck in a handoff" below first.
-On WhatsApp, from his own phone, between 08:00 and 23:00 Beirut time, to **+1 203 660 2328** (the "Alo King" staging customer number), send exactly:
+On WhatsApp, from his own phone, between 08:00 and 23:00 Beirut time, to the "Alo King" staging customer number (**shown in the Kapso dashboard**, not written here: the repository is public), send exactly:
 
 > بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين
 
@@ -1265,7 +1265,7 @@ They go when those two Flows or their data endpoints are removed in the Kapso da
 ### E. Meta account steps (cannot be done from code; written by session A1, 13 November 2026)
 
 #### 0.9 Meta ownership and verification: status BLOCKED on the Meta Business Portfolio admin
-What Kapso shows (read 13 Nov): WhatsApp Business Account `1086076707594153`, number **+1 203 660 2328**, display name "Alo King" (approved without review),
+What Kapso shows (read 13 Nov): WhatsApp Business Account `1086076707594153`, number (see the Kapso dashboard), display name "Alo King" (approved without review),
 phone_number_id `1378974041965966`, status CONNECTED, quality rating UNKNOWN (no traffic yet), messaging limit TIER_250 (250 customers a day),
 WABA review APPROVED, not an official business account. What Kapso cannot show: which Meta business portfolio owns the WABA, and whether the business is verified.
 The person who is an admin of the Meta business portfolio does these, in order:
@@ -1277,7 +1277,7 @@ The person who is an admin of the Meta business portfolio does these, in order:
    proves the address (bank statement or utility bill in the company name), and the business phone or email on the same domain as the website. Submit. Record the date submitted and the status Meta shows.
 4. Business settings, People: at least two admins with full control, two-factor authentication on for both. Business settings, Partners: Kapso is listed with access to the WABA; leave it.
 5. Click-to-WhatsApp data: Kapso documents that the ad `referral` (source id, ad click id, headline) arrives inside the `whatsapp.message.received` payload when present.
-   Proof needs one real click on an ad that opens a chat with +1 203 660 2328 (a test ad from Alo King's ad account, small budget, ended after one click).
+   Proof needs one real click on an ad that opens a chat with the customer line (a test ad from Alo King's ad account, small budget, ended after one click).
    Afterwards: Kapso dashboard, WhatsApp, Data, Ads (CTWA) shows the click; run the `capture-kapso-fixtures` workflow; the saved payload must contain a `referral` object.
    If it does not, task 1.13 cannot be built as written: say so in the pull request.
 Done when: step 1 names Alo King's portfolio, verification is submitted (date written here), and one payload with `referral` is saved under `test/fixtures/kapso/`.
