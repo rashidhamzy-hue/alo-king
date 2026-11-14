@@ -6,14 +6,14 @@ Read `docs/HANDOFF.md` (status and business rules), then `docs/BUILD_PLAN.md` (t
 1. **One door out.** Only `packages/wa/src/gateway.ts` calls `kapsoSend`. Every outbound message passes `preflight()` and the SQL function `can_send()`.
 2. **No outbound audio.** The gateway allowlist is `text`, `interactive`, `template`, and `location` on the ops line. Do not add types.
 3. **Models propose, the database disposes.** Agents never write to `orders`, `payments`, `stock_levels` or `ledger_entries` directly. They call tools; tools call the functions in `supabase/migrations/0002_functions.sql`.
-4. **The agent cannot confirm.** `transition_order` accepts actor `agent` only for `draft -> awaiting_confirmation`. Confirmation is a customer button tap. Payment confirmation is the ops lead or a payment API.
+4. **The agent cannot confirm.** `transition_order` accepts actor `agent` only for `draft -> awaiting_confirmation`. Confirmation is a customer's own confirm action on a channel where we verified them: a WhatsApp button, or the confirm button of a signed-in web session. The agent can never confirm. Payment confirmation is the ops lead or a payment API.
 5. **Cash cap is enforced in SQL** (`driver_can_take`, `offer_delivery`). Do not re-implement the check in a prompt.
 6. **STOP wins.** `detectConsentSignal` runs before any model on the customer line.
 7. **Prices, fees, stock and ETAs come from tools.** Never from a prompt, never from model memory.
 8. **Migrations are append-only.** New file, next number. Never edit an applied migration.
 9. **Two numbers never cross.** Customers are never messaged from the ops number, or staff from the customer number.
 
-10. **The delivery fee and tips belong to the rider.** Never count them as company revenue. They settle to `rider_payable` when an order closes.
+10. **The delivery fee and tips belong to whoever delivers: our rider, or the vendor whose driver delivers.** Never count them as company revenue. They settle to `rider_payable` when an order closes. A shortfall may be recorded as owed by a rider, but is never deducted automatically from fees, tips or earnings.
 11. **A restaurant is orderable only through `approve_merchant()`.** No code path may open an unapproved restaurant or phone an order in to one.
 12. **Delivered is not paid.** An order closes only with a recorded payment. Inferred or late taps never post money.
 
@@ -25,7 +25,7 @@ Read `docs/HANDOFF.md` (status and business rules), then `docs/BUILD_PLAN.md` (t
 18. **Voice never moves money.** Amounts, payouts and drops are buttons or typed figures. No inbound message is ever dropped silently.
 19. **One backend.** Any future channel (website, app) calls the same SQL functions and the same ledger. No second order system.
 20. **Fail closed on send.** Every send carries a stable `dedupeKey` (the type requires it; the gateway refuses without it) and goes out only when `outbox_claim` returns true. An error, a timeout or anything else means do not send; the turn retries.
-21. **One agent.** The Concierge is the only conversational agent. Everything else is a narrow AI function or deterministic code. Do not add an agent to name a feature.
+21. **One customer-facing agent.** The Concierge is the one customer-facing conversational agent. Staff tools may answer questions from read-only reports and may never act. Everything else is a narrow AI function or deterministic code. Do not add an agent to name a feature.
 
 ## Working agreement
 - Work one session bundle at a time, as listed under "Build sessions" in `docs/BUILD_PLAN.md`: its model, its tasks, its files, its migration numbers. Touch nothing outside the bundle.

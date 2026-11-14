@@ -353,17 +353,21 @@ law requires), run nightly once the founder and the lawyer approve; the Kapso pr
 ## Founder list (only what the founder alone can give)
 
 ### Decisions
-| # | Decision | Recommended answer | Blocks |
-| --- | --- | --- | --- |
-| 1 | Conflict register items C1 to C11 in `docs/DECISIONS.md` (the wording of invariants 4, 10 and 21; website now; combined-order fee; automatic approval; loyalty; console redesign; basket builder; friends' test; second approver) | Yes to each as recommended there | WEB2, E2, AN1, D5, I1 |
-| 2 | Speech provider and the retention wording | Decide after V1 scores the 51 notes; until then say in the privacy notice that transcription is done by a processor that may keep transcripts | V1, privacy notice |
-| 3 | `supabase/seed/proposed_pilot_settings.sql` (25 villages; small-order fee 0.50 under $10) | Yes: the cost model shows the fee is worth about $0.20 an order | Pilot |
-| 4 | COD tolerance: how much a rider may be short on one order before it is his to explain | $0.25 (lira-note rounding), the rest to the rider's account for review | F1 |
-| 5 | SMTP sender for staff sign-in emails | Resend, on the company domain (about $0 at this volume) | Staff accounts |
-| 6 | Loyalty at launch | None at launch; the stamp card after four clean pilot weeks | LOY1 |
-| 7 | Combined-order extra pickup fee | $0.50 per extra pickup, to the rider | E3 |
-| 8 | The 200 USD Claude plan for the build month | Yes for one month: waves of three sessions otherwise queue behind the usage limit | Session pace |
-| 9 | Second approval when there is one ops lead: who approves Rashid's own refunds and price changes | Hussein, from his phone, on the installed console | D5 |
+Answered by the founder on 14 November (recorded word for word in `docs/DECISIONS.md`, "Founder answers, 14 November").
+
+| # | Decision | Recommended answer | Blocks | Status |
+| --- | --- | --- | --- | --- |
+| 1 | Conflict register items C1 to C11 in `docs/DECISIONS.md` (the wording of invariants 4, 10 and 21; website now; combined-order fee; automatic approval; loyalty; console redesign; basket builder; friends' test; second approver) | Yes to each as recommended there | WEB2, E2, AN1, D5, I1 | **Answered 14 Nov: approved as worded.** Invariants 4, 10, 21 reworded in CLAUDE.md |
+| 2 | Speech provider and the retention wording | Decide after V1 scores the 51 notes; until then say in the privacy notice that transcription is done by a processor that may keep transcripts | V1, privacy notice | Open |
+| 3 | `supabase/seed/proposed_pilot_settings.sql` (25 villages; small-order fee 0.50 under $10) | Yes: the cost model shows the fee is worth about $0.20 an order | Pilot | **Answered 14 Nov: approved** |
+| 4 | COD tolerance: how much a rider may be short on one order before it is his to explain | $0.25 (lira-note rounding), the rest to the rider's account for review | F1 | **Answered 14 Nov: $0.25 per order.** A shortfall above it may be recorded as a rider receivable, never deducted automatically from fees, tips or earnings (deductions wait for the lawyer) |
+| 5 | SMTP sender for staff sign-in emails | Resend, on the company domain (about $0 at this volume) | Staff accounts | **Answered 14 Nov: Resend** |
+| 6 | Loyalty at launch | None at launch; the stamp card after four clean pilot weeks | LOY1 | **Answered 14 Nov: none at launch; stamp card after four clean weeks, priced first** |
+| 7 | Combined-order extra pickup fee | $0.50 per extra pickup, to the rider | E3 | **Answered 14 Nov: $0.50, to the rider** |
+| 8 | The 200 USD Claude plan for the build month | Yes for one month: waves of three sessions otherwise queue behind the usage limit | Session pace | **Answered 14 Nov, differently: stays on the 100 USD plan for the build month, at most three sessions at a time** |
+| 9 | Second approval when there is one ops lead: who approves Rashid's own refunds and price changes | Hussein, from his phone, on the installed console | D5 | **Answered 14 Nov: Hussein** |
+| 10 | (added by the founder) Database backups | | A3 | **Answered 14 Nov: Supabase Pro with daily backups and one tested restore before real money; point-in-time recovery later, at volume** |
+| 11 | (added by the founder) Payment research | | PAY1, PAY2 | **Answered 14 Nov: confirm Whish Pay, areeba, MontyPay and Tap from their own pages or sales contact.** Done as far as the pages go; the questions to send are in `docs/RESEARCH_REGISTER.md` (a) |
 
 ### Information and actions
 1. Approve the 282 Arabic names (on the names review page once D4 merges; about an hour).
@@ -374,7 +378,8 @@ law requires), run nightly once the founder and the lawyer approve; the Kapso pr
 6. Kapso credits topped up; the Anthropic cap lowered after 17 November.
 7. Delivery windows, their capacity and cut-offs; Ramadan, Lent and holiday dates for 2027 (on the windows page once D4 merges).
 8. Apply in writing to Whish (merchant account and Whish Pay) and to areeba, MontyPay and Tap (card gateway): ask each for
-   onboarding requirements for a new SARL, settlement currency and account, fees, refunds by API, and a sandbox.
+   onboarding requirements for a new SARL, settlement currency and account, fees, refunds by API, and a sandbox. The exact questions and each company's own contact
+   route are in `docs/RESEARCH_REGISTER.md` (a). Tap's own pages say it does not accept new Lebanese merchants (April 2025): ask first.
 9. Hub location, opening stock, suppliers and costs, riders and their terms (Phase 5, unchanged).
 10. The three testers' numbers, and portion rules for the basket builder (bread, water, snacks per person).
 11. Retest the demo order from his phone, including an order after closing time.
@@ -390,6 +395,7 @@ law requires), run nightly once the founder and the lawyer approve; the Kapso pr
 5. Product pictures taken from public pages (founder decision of 14 November): the exposure, and the withdrawal procedure.
 6. Vendor agreements: commission, who bears a cooked and undelivered order, vendor-operated delivery and who answers to the customer.
 7. Loyalty credit and customer credit as liabilities: any licensing issue (stored value) under Banque du Liban rules.
+8. Open Food Facts (ODbL): does storing its facts next to our price and cost data, and showing them on the website, trigger the share-alike duty; the credit wording (R4, RESEARCH_REGISTER 6).
 
 ### Questions for the accountant
 1. VAT: registration threshold and timing for the SARL; VAT on groceries by category; on the commission; on the small-order fee.

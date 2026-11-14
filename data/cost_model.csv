@@ -22,8 +22,8 @@ Kapso Pro with 4 numbers,35,USD/month,25 + 10 for the 4th number
 Kapso Pro included messages,100000,messages/month,published
 Kapso Pro overage per message,0.002,USD,published
 "Kapso Platform plan (1,000,000 messages)",299,USD/month,published
-Supabase Pro,25,USD/month,not re-checked 14 Nov
-Supabase point-in-time recovery and compute,100,USD/month,assumption; needed before real money
+Supabase Pro,25,USD/month,"published: includes 10 compute credit and 7 days of daily backups (checked 14 Nov)"
+Supabase point-in-time recovery and compute,0,USD/month,"later, at volume (founder, 14 Nov); daily backups come with Pro. When turned on: about 100 a month per 7 days of retention (Supabase pricing page)"
 Cloudflare Workers Paid,5,USD/month,published
 "Domain, two +961 lines, nightly evals, intake research",60,USD/month,3 + 10 + 26 + about 20
 "Rent, power, refrigeration",700,USD/month,placeholder

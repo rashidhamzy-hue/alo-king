@@ -18,6 +18,7 @@
 ## Proposed, not yet confirmed
 These arrived in an AI-written message on 12 November, in the founder's voice. Nothing below is applied. Each needs a
 plain yes from Hussein. `supabase/seed/proposed_pilot_settings.sql` holds the first two, ready to run.
+Update, 14 November: the founder approved the pilot settings file and answered the shortfall rule (item 8); see "Founder answers, 14 November".
 
 | # | Proposal | Note |
 | --- | --- | --- |
@@ -120,7 +121,7 @@ Meta objects to a picture it is withdrawn at once and replaced by our own photo 
 
 ## Founder decisions of 14 November 2026 (from `docs/SYSTEM_BRIEF.md`), recorded by session S1
 Each is a decision. Where it disagrees with an older decision or with the wording of an invariant, it is in the conflict
-register below; S1 resolved none of them. Until the founder answers, sessions build the "until then" column.
+register below; S1 resolved none of them. The founder answered all eleven on 14 November (section "Founder answers, 14 November", below).
 
 | Decision | Where it is planned |
 | --- | --- |
@@ -147,17 +148,52 @@ register below; S1 resolved none of them. Until the founder answers, sessions bu
 | A places list that grows from every delivery; the pin still decides | SYSTEM_PLAN 5 |
 | Every operation timed; rider location only during a job | SYSTEM_PLAN 5 |
 
-### Conflict register (for the founder; nothing below is resolved)
-| # | New decision | Conflicts with | Recommended answer | Until then, sessions build |
+### Conflict register (C1 to C11: all resolved, approved as worded on 14 November 2026; see "Founder answers, 14 November" below)
+| # | New decision | Conflicts with | Recommended answer (now the decision) | Built until the answer (superseded) |
 | --- | --- | --- | --- | --- |
-| C1 | Web checkout confirms an order | **Invariant 4**: "Confirmation is a customer button tap" (written for WhatsApp) | Reword to "a customer's own confirm action on a channel where we verified them: a WhatsApp button, or the confirm button of a signed-in web session. The agent can never confirm." | The web checkout ends by sending the order card to the customer's WhatsApp, and the tap there confirms. No invariant changes |
-| C2 | A vendor's own drivers deliver and keep the fee | **Invariant 10**: "The delivery fee and tips belong to the rider" | Reword to "belong to whoever delivers: our rider, or the vendor whose driver delivers. Never company revenue." | The provider model as data only; vendor delivery stays switched off |
-| C3 | A founder assistant in the console; later a merchant assistant on the staff line | **Invariant 21**: "The Concierge is the only conversational agent"; BUILD_PLAN "More AI agents: not planned" and "Model-written daily digest" only after a month of day closes | Reword to "one customer-facing conversational agent. Staff tools may answer questions from read-only reports and may never act." The merchant assistant stays a narrow function that proposes a change for one tap | The daily summary and weekly report as pages and messages written by code; no chat box |
-| C4 | Website at launch | DECISIONS (12 Nov) "WhatsApp first. Website and diaspora orders are Phase 9"; HANDOFF business rule 10; BUILD_PLAN Phase 9 gates (four clean pilot weeks and a signed card gateway) | The new decision replaces the old for a cash-only website. The card-gateway gate stays for card checkout and diaspora orders | The plan follows the new decision: WEB1 and WEB2 are class A |
-| C5 | Combined orders carry a fee designed for the extra pickups | BUILD_PLAN 8.6: mixed orders have "one delivery fee" | One delivery line for the customer: the zone fee plus $0.50 for each extra pickup, all to the rider | One source per cart; no combined orders |
-| C6 | Items the system is certain about go live without a tap | DECISIONS (14 Nov, pictures): "a person approves each one before a customer sees it"; brief rule 2 "a person approves" | Automatic only for the rows of the table in SYSTEM_PLAN 4, each a check code can run; pictures from shops' public pages always need a person; a daily spot check of one in ten | Everything is approved by a person; the rules table ships switched off |
-| C7 | "First 3 deliveries free", "credit after every 30 orders" | BUILD_PLAN "Later": a stamp card (every 10th order) only after four clean pilot weeks; COST_MODEL | No reward at launch; the stamp card first; one acquisition offer at most (first delivery free on a first basket of $15 or more) | No reward exists in code |
-| C8 | Console redesign now | BUILD_PLAN Phase 3: "Build it plain. No design work until the pilot shows what ops uses" | Redesign the shell and the founder's pages now (he is the operator); keep every form and function as built | D4 adds the missing pages in the plain style; D5 (the redesign) waits for this answer |
-| C9 | The Concierge builds baskets ("dinner for 5 children") | BUILD_PLAN "Later": shopping list for a gathering, after the pilot | Design now, switch on when its eval cases pass (class B) | Not built; such requests get a question or a person |
-| C10 | A friends' test with three testers, simulated | BUILD_PLAN Phase 6: the shadow run uses real orders, real money and real riders | They are different steps: the friends' test comes first and does not replace the shadow run | T1 builds the simulated test |
-| C11 | Rashid approves alone until an ops lead is hired | DECISIONS (D2): the person who asked can never approve their own price change or refund | Hussein is the second approver, from the installed console | The rule stays: a large refund or price change waits for a second admin |
+| C1 (resolved) | Web checkout confirms an order | **Invariant 4**: "Confirmation is a customer button tap" (written for WhatsApp) | Reword to "a customer's own confirm action on a channel where we verified them: a WhatsApp button, or the confirm button of a signed-in web session. The agent can never confirm." | The web checkout ends by sending the order card to the customer's WhatsApp, and the tap there confirms. No invariant changes |
+| C2 (resolved) | A vendor's own drivers deliver and keep the fee | **Invariant 10**: "The delivery fee and tips belong to the rider" | Reword to "belong to whoever delivers: our rider, or the vendor whose driver delivers. Never company revenue." | The provider model as data only; vendor delivery stays switched off |
+| C3 (resolved) | A founder assistant in the console; later a merchant assistant on the staff line | **Invariant 21**: "The Concierge is the only conversational agent"; BUILD_PLAN "More AI agents: not planned" and "Model-written daily digest" only after a month of day closes | Reword to "one customer-facing conversational agent. Staff tools may answer questions from read-only reports and may never act." The merchant assistant stays a narrow function that proposes a change for one tap | The daily summary and weekly report as pages and messages written by code; no chat box |
+| C4 (resolved) | Website at launch | DECISIONS (12 Nov) "WhatsApp first. Website and diaspora orders are Phase 9"; HANDOFF business rule 10; BUILD_PLAN Phase 9 gates (four clean pilot weeks and a signed card gateway) | The new decision replaces the old for a cash-only website. The card-gateway gate stays for card checkout and diaspora orders | The plan follows the new decision: WEB1 and WEB2 are class A |
+| C5 (resolved) | Combined orders carry a fee designed for the extra pickups | BUILD_PLAN 8.6: mixed orders have "one delivery fee" | One delivery line for the customer: the zone fee plus $0.50 for each extra pickup, all to the rider | One source per cart; no combined orders |
+| C6 (resolved) | Items the system is certain about go live without a tap | DECISIONS (14 Nov, pictures): "a person approves each one before a customer sees it"; brief rule 2 "a person approves" | Automatic only for the rows of the table in SYSTEM_PLAN 4, each a check code can run; pictures from shops' public pages always need a person; a daily spot check of one in ten | Everything is approved by a person; the rules table ships switched off |
+| C7 (resolved) | "First 3 deliveries free", "credit after every 30 orders" | BUILD_PLAN "Later": a stamp card (every 10th order) only after four clean pilot weeks; COST_MODEL | No reward at launch; the stamp card first; one acquisition offer at most (first delivery free on a first basket of $15 or more) | No reward exists in code |
+| C8 (resolved) | Console redesign now | BUILD_PLAN Phase 3: "Build it plain. No design work until the pilot shows what ops uses" | Redesign the shell and the founder's pages now (he is the operator); keep every form and function as built | D4 adds the missing pages in the plain style; D5 (the redesign) waits for this answer |
+| C9 (resolved) | The Concierge builds baskets ("dinner for 5 children") | BUILD_PLAN "Later": shopping list for a gathering, after the pilot | Design now, switch on when its eval cases pass (class B) | Not built; such requests get a question or a person |
+| C10 (resolved) | A friends' test with three testers, simulated | BUILD_PLAN Phase 6: the shadow run uses real orders, real money and real riders | They are different steps: the friends' test comes first and does not replace the shadow run | T1 builds the simulated test |
+| C11 (resolved) | Rashid approves alone until an ops lead is hired | DECISIONS (D2): the person who asked can never approve their own price change or refund | Hussein is the second approver, from the installed console | The rule stays: a large refund or price change waits for a second admin |
+
+## Founder answers, 14 November
+Recorded by session R4 on 14 November 2026, word for word from the founder's message. Each one supersedes any earlier line that disagrees with it.
+
+1. The 11 conflict-register items C1-C11: approved as worded (the "Recommended answer" column).
+2. supabase/seed/proposed_pilot_settings.sql: approved.
+3. COD tolerance: $0.25 per order. A shortfall above it may be recorded as a rider receivable, but is never deducted automatically from rider fees, tips or earnings (riders keep 100%; deductions wait for the lawyer).
+4. Staff email sender: Resend.
+5. Loyalty: none at launch; stamp card after four clean weeks, priced first.
+6. Combined orders: $0.50 extra pickup fee, to the rider.
+7. Claude plan: stays on the 100 USD plan for the build month (at most three sessions at a time).
+8. Second approver for Rashid's own refunds and price changes: Hussein.
+9. Database: Supabase Pro with daily backups and one tested restore before real money; point-in-time recovery later, at volume.
+10. Payment research: confirm Whish Pay, areeba, MontyPay and Tap from their own pages or sales contact, not third-party connectors or forums.
+
+### What each answer changes (R4)
+| Answer | Applied in |
+| --- | --- |
+| 1 (C1) | CLAUDE.md invariant 4 reworded; C4 and WEB2 may set `settings.web.confirm_on_page` to true |
+| 1 (C2) | CLAUDE.md invariant 10 reworded; E2 may build vendor-operated delivery when its gate opens |
+| 1 (C3) | CLAUDE.md invariant 21 reworded; AN1b (founder assistant, read-only) is a full prompt in NEXT_SESSIONS, run after AN1 |
+| 1 (C4) | The cash-only website at launch; the card-gateway gate stays for card checkout and diaspora orders |
+| 1 (C5, 6) | Combined orders: one delivery line, zone fee plus $0.50 per extra pickup, all to the rider (E3) |
+| 1 (C6) | I1 ships its rules enabled only for the rows of SYSTEM_PLAN section 4's table, each after its first passing spot check |
+| 1 (C7, 5) | No reward at launch; stamp card after four clean weeks, priced first; at most one acquisition offer |
+| 1 (C8) | D5 builds the full console redesign; its stop condition is removed |
+| 1 (C9) | The basket builder is designed now and switched on when its eval cases pass (class B) |
+| 1 (C10) | The friends' test comes first and does not replace the shadow run |
+| 1 (C11, 8) | Hussein is the second approver |
+| 2 | The pilot settings seed may be run: 25 villages; small-order fee 0.50 on baskets under 10 USD |
+| 3 | F1 (done) already built `settings.over_short.cod_tolerance_usd` at 0.25. Added rule: a shortfall may be recorded as owed by a rider, never deducted automatically; CLAUDE.md invariant 10 says so |
+| 4 | Staff sign-in emails go through Resend (A3) |
+| 7 | Nothing in code; sessions run at most three at a time on the 100 USD plan |
+| 9 | A3 uses daily backups and one tried restore; COST_MODEL point-in-time recovery input is 0, status "later, at volume (founder, 14 Nov)" |
+| 10 | RESEARCH_REGISTER (a) rewritten from the companies' own pages; questions for each sales contact listed there |

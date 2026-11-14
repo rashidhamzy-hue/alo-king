@@ -1,4 +1,4 @@
-# Cost model (revised by session S1, 14 November 2026)
+# Cost model (revised by session S1, 14 November 2026; recovery input changed by session R4 the same day)
 
 The editable model is **`data/cost_model.csv`**: open it in Excel, LibreOffice or Google Sheets, change any input in column B
 (or a volume in the "Orders per day" row) and every figure recalculates. This page explains it and records the results at
@@ -18,8 +18,14 @@ answers are only as good as those inputs. It replaces the snapshot of 12 Novembe
 | Meta price per message | $0.0091 | **$0.0105** | Published rate cards for "Rest of Middle East" disagree (0.0091 or 0.0105); the higher is used until the first bill (RESEARCH_REGISTER e) |
 | Free messages | 2,000 a month | 2,000 a month (1,000 per number, two numbers) | Meta, since 1 October 2026 |
 | Kapso | $35 | $35 up to 100,000 messages a month; $0.002 a message above; the $299 plan from about 230,000 | Kapso's published prices |
-| Supabase | $30 | $25 plus about $100 for point-in-time recovery | Assumption, not re-checked; recovery is required before real money |
+| Supabase | $30 | $25 (S1 added about $100 for point-in-time recovery; R4 set that to **0**, see the note below) | Supabase's pricing page, checked 14 Nov (RESEARCH_REGISTER 5) |
 | Nightly evals, intake research | none | about $46 a month | SYSTEM_PLAN sections 4 and 6 |
+
+**R4, 14 November: point-in-time recovery input set to 0.** The founder decided (DECISIONS, "Founder answers", item 9) on Supabase Pro
+with daily backups and one tested restore before real money; point-in-time recovery comes later, at volume. In the sheet the input
+is 0 with the status "later, at volume (founder, 14 Nov)". Fixed costs fall by $100 a month at every volume, profit rises by $100,
+and break-even at launch staffing moves from 32 to 31 orders a day (table in section 5 regenerated). When recovery is switched
+on, put the price back: Supabase lists about $100 a month for each 7 days of retention. Daily backups on Pro are kept 7 days.
 
 ## 3. Cost per operation
 | Operation | Cost | Basis |
@@ -57,21 +63,21 @@ the dark store pays the bills.
 | Kapso a month | 35 | 35 | 35 | 35 | 63 | 299 | 299 |
 | An order leaves | 2.57 | 2.52 | 2.51 | 2.51 | 2.50 | 2.50 | 2.50 |
 | Pickers / ops leads | 1 / 1 | 1 / 1 | 1 / 1 | 2 / 1 | 3 / 2 | 7 / 4 | 13 / 7 |
-| Fixed costs a month | 2,375 | 2,375 | 2,375 | 2,825 | 4,003 | 8,139 | 14,339 |
-| **Profit a month** | **-1,605** | **-106** | **1,393** | **4,690** | **11,006** | **29,352** | **60,622** |
-| Break-even orders a day at that staffing | 31 | 32 | 32 | 38 | 54 | 109 | 192 |
+| Fixed costs a month | 2,275 | 2,275 | 2,275 | 2,725 | 3,903 | 8,039 | 14,239 |
+| **Profit a month** | **-1,505** | **-6** | **1,493** | **4,790** | **11,106** | **29,452** | **60,722** |
+| Break-even orders a day at that staffing | 30 | 31 | 31 | 37 | 53 | 108 | 190 |
 | Rider earnings per hour on shift | 1.13 | 3.38 | 4.50 | 4.50 | 4.50 | 4.50 | 4.50 |
 
-**Break-even at launch staffing is about 32 grocery orders a day.** Below about 30 orders a day the riders also earn too little
+**Break-even at launch staffing is about 31 grocery orders a day.** Below about 30 orders a day the riders also earn too little
 to stay (under $3.40 an hour with 20 rider-hours on shift): rider-hours must follow demand, or a guarantee is needed.
 
 Sensitivity (each alone, at launch staffing):
 | Change | An order leaves | Break-even a day |
 | --- | --- | --- |
-| Small-order fee of $0.50 on 40% of orders | 2.72 | 30 |
-| Margin 15% instead of 20% | 1.72 | 46 |
-| Meta at $0.0091 instead of $0.0105 | 2.54 | 32 |
-| 65% of orders from vendors | 1.47 (average) | 54 |
+| Small-order fee of $0.50 on 40% of orders | 2.72 | 28 |
+| Margin 15% instead of 20% | 1.72 | 45 |
+| Meta at $0.0091 instead of $0.0105 | 2.54 | 30 |
+| 65% of orders from vendors | 1.47 (average) | 52 |
 
 The margin is the number that matters: five points of margin move break-even by 14 orders a day. It is still a placeholder
 until supplier costs are entered (Phase 5, tasks 5.3 and 2.7).
@@ -98,5 +104,5 @@ No reward before the pilot has measured repeat rate at 30 and 60 days, orders pe
 - rider earnings per hour = orders x (fee + tip) / max(rider-hours on shift, orders / orders per rider-hour)
 
 ## 8. Not in the model
-Working capital for opening stock and the riders' change float; the cost of building (Claude plan); card chargebacks; VAT
+Point-in-time recovery after launch (about $100 a month per 7 days of retention, once volume justifies it); working capital for opening stock and the riders' change float; the cost of building (Claude plan); card chargebacks; VAT
 (accountant's questions in SYSTEM_PLAN); a rider guarantee; a second hub's rent beyond the simple "one hub per 250 orders a day" row.
