@@ -1,1 +1,1 @@
-{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run: REPLY_RULE says every turn ends with reply, also after extract_order (run 43644483826: live 40/41, the miss ended after extract_order)." }
+{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run: REPLY_RULE asks what to leave out instead of echoing a diet word (run 43646819002: live 40/41, siyami-first-time)." }

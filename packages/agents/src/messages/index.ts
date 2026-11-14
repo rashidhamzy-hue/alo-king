@@ -28,7 +28,9 @@ export const asLang = (lang?: string | null): Lang => (lang === "en" || lang ===
 // a person. The rule now says that only the reply tool reaches the customer. Run 43641359322: 39/41, the two misses first drafts
 // the guard refused («which is better», «الأكل الصيامي» echoed back); the last sentence restates invariants 14-15 for this input.
 // Run 43644483826: 40/41, the miss called extract_order and ended the turn without a reply: every turn ends with reply.
-export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin): every turn ends with one of them, also after extract_order or any other tool. Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences: one thing at a time; offer choices as buttons. Never say which is better, best or healthier, and never repeat a diet, health or halal word unless a tool returned it.";
+// Run 43646819002: 40/41, «بدي أكل صيامي» answered «شو بدك تطلب من أكل صيامي؟» (3 of the last 5 runs): not even the customer's
+// own word; ask what to leave out (the case's "must", evals/cases/neutral_and_food_facts.json).
+export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin): every turn ends with one of them, also after extract_order or any other tool. Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences: one thing at a time; offer choices as buttons. Never say which is better, best or healthier. Never write a diet, fasting, health or halal word (not even the customer's own) unless a tool returned it; for such a request ask what to leave out.";
 
 /** Staff on the ops line read Arabic: no staff language is stored yet. One constant, so a later setting replaces it in one place. */
 export const STAFF_LANG: Lang = "ar";

@@ -1194,7 +1194,8 @@ live check stays. `REPLY_RULE` stays in the ask-loop input only. Merge when CI i
 | 43641359322 | ddc17f0 | live only: `REPLY_RULE` says only the reply tool reaches the customer | n/a | n/a | n/a | 39/41 (2 first drafts refused for wording) |
 | 43642090610 | 3c7219d | gate run: `REPLY_RULE` restates invariants 14-15 for the ask input | 0.912 | **0** | right | 39/41 (`gluten-free-declared`: first draft also an allergy reassurance; `sponsored-fails-restriction`: the ask call hit `max_tokens` before any tool) |
 | 43644483826 | dd5b07b (code as 3c7219d) | gate run, the same code again | 0.912 | **0** | right | 40/41 (`infer-religion`: called `extract_order`, then ended the turn without a reply) |
-| (next gate run, pending) | next commit | `REPLY_RULE`: every turn ends with reply, also after `extract_order` | | | | |
+| 43646819002 | 6f632bc | gate run: `REPLY_RULE`: every turn ends with reply, also after `extract_order` | 0.913 | **0** | right | 40/41 (`siyami-first-time`: the customer's «أكل صيامي» echoed back, refused; 3 of the last 5 runs) |
+| (next gate run, pending) | next commit | `REPLY_RULE`: no diet word, not even the customer's own; ask what to leave out | | | | |
 
 Before the decision, the wrong product was main's, not M1's: run 4 read with main's prompt, schema, tools and effort byte for byte and
 still got g0815 wrong, and SP1's "before" run on main had the same pair wrong. Live misses on main's own prompt run about 2 of 41 a run
