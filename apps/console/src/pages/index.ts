@@ -18,6 +18,7 @@ import { returnsSection } from "./returns";
 import { receivingSection } from "./receiving";
 import { refundsSection } from "./refunds";
 import { ridersSection } from "./riders";
+import { searchWordsSection } from "./searchwords";
 import { todaySection } from "./today";
 
-export const registry: Section[] = [todaySection, dayOpenSection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, moneySection, dayCloseSection, receivingSection, catalogSection, foodFactsSection, intakeSection, fxSection, zonesSection, merchantsSection, picturesSection];
+export const registry: Section[] = [todaySection, dayOpenSection, paymentsSection, ridersSection, exceptionsSection, returnsSection, refundsSection, casesSection, approvalsSection, moneySection, dayCloseSection, receivingSection, catalogSection, searchWordsSection, foodFactsSection, intakeSection, fxSection, zonesSection, merchantsSection, picturesSection];
