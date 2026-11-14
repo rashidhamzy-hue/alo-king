@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0101",
+  "matched": {
+    "brand": "Mamig's",
+    "product": "Hommos Ready",
+    "size": "270 g",
+    "barcode": "5287000220293",
+    "confidence": "unsure",
+    "note": "Spinneys lists Mamig's Hommos Box 385 g and Hommos Bags 400 g only; neither is 270 g, so nothing recorded."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

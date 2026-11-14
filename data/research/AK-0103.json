@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0103",
+  "matched": {
+    "brand": "Tannourine",
+    "product": "Natural Spring Mineral Water",
+    "size": "2 L x 6",
+    "barcode": "5283007400119",
+    "confidence": "exact",
+    "note": "Spinneys Lebanon (retail, Lebanon market). Page text 'Tannourine Natural Spring Mineral Water 6*2L is low in sodium and a good source of calcium and magnesium' (retailer text)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/3/135792-v001-2.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/tannourine-natural-spring-mineral-water-6-2l.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "six 2 L bottles shrink-pack, white background, front view, no watermark/price"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/3/135792-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/tannourine-natural-spring-mineral-water-6-2l.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one bottle, white background, front view, Arabic/English Tannourine label, no overlay"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
