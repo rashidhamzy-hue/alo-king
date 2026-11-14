@@ -53,6 +53,7 @@ export function buildKeyterms(brands: string[], villages: string[], merchantName
 // stored, never logged.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { kapsoMediaUrl, MEDIA_BUCKET } from "./payment-proof";
+import { fetchKapsoMedia } from "@ak/wa/media";
 
 export interface VoiceNote { id: string; kapso: { transcript?: { text: string }; media_url?: string; media_data?: { url: string; content_type?: string; byte_size?: number } } }
 export interface SttSettings { keep_audio?: boolean; second_provider?: string | null }
@@ -78,7 +79,7 @@ export async function readVoiceNote(deps: VoiceDeps, partyId: string, m: VoiceNo
     if (!url) notes.audio = "no_kapso_media_url";
     else {
       try {
-        const res = await (deps.fetchMedia ?? ((u: string) => fetch(u)))(url);
+        const res = await (deps.fetchMedia ?? ((u: string) => fetchKapsoMedia(u)))(url);
         if (!res.ok) throw new Error(`MEDIA_FETCH_${res.status}`);
         const buf = await res.arrayBuffer();
         if (buf.byteLength === 0 || buf.byteLength > MAX_AUDIO) throw new Error("MEDIA_SIZE");

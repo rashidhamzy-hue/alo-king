@@ -105,7 +105,7 @@ describe("money guardrail (1.5)", () => {
 
 describe("payment screenshots (1.6)", () => {
   const RECEIPT = { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]), type: "image/jpeg" };
-  const MEDIA_URL = "https://media.kapso.test/m/receipt-1.jpg";
+  const MEDIA_URL = "https://app.kapso.ai/m/receipt-1.jpg";   // A5 (G1-17): only Kapso's hosts are fetched; this was a made-up media.kapso.test
   const image = (url = MEDIA_URL) => ({ type: "image", image: { id: "meta-media-1" },
     kapso: { direction: "inbound", origin: "cloud_api", has_media: true, media_url: url, media_data: { url, content_type: "image/jpeg" } } });
   let opsLead: string;
@@ -202,6 +202,17 @@ describe("payment screenshots (1.6)", () => {
     await t.say(image("https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=1"));
     expect(outbound.map((o) => o.body.text?.body)).toEqual(["ما قدرنا نفتح الصورة. فيك تبعتلنا صورة الإيصال مرة تانية؟"]);
     expect(await db.one(`select count(*)::int as n from payment_proofs where order_id = $1`, [c.orderId])).toEqual({ n: 0 });
+  });
+
+  it("G1-17: a host that is not Kapso's is never fetched either, whoever it belongs to", async () => {
+    for (const url of ["https://cdn.example.com/receipt.jpg", "https://media.kapso.test/m/receipt-1.jpg", "https://evilkapso.ai/r.jpg", "http://app.kapso.ai/r.jpg"]) {
+      outbound = recordKapso({ [url]: RECEIPT });
+      const t = flow(db, []);
+      const c = await awaitingTransfer(t);
+      await t.say(image(url));
+      expect(outbound.map((o) => o.body.text?.body), url).toEqual(["ما قدرنا نفتح الصورة. فيك تبعتلنا صورة الإيصال مرة تانية؟"]);
+      expect(await db.one(`select count(*)::int as n from payment_proofs where order_id = $1`, [c.orderId]), url).toEqual({ n: 0 });
+    }
   });
 
   it("with no order waiting for a transfer, a picture is just a picture and goes to the Concierge", async () => {

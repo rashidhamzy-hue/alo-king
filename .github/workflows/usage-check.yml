@@ -1,0 +1,48 @@
+# Weekly: how full is the staging Supabase project? Reads database size, storage size and egress (read only) and FAILS when any of
+# them is above 70% of the plan's included amount, or cannot be read (AUDIT-G1 point 11). A red run emails the repository's watchers.
+# Database and storage come from SQL; egress from the dashboard's usage report, which SQL cannot see. The plan is the repository
+# variable SUPABASE_PLAN (free or pro; free when unset); the limits are one table in scripts/ci/usage-check.mjs.
+# Secrets used (repository secrets, never printed): SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD.
+name: usage-check
+on:
+  schedule: [{ cron: "17 5 * * 1" }]     # Mondays 05:17 UTC (08:17 in Beirut)
+  workflow_dispatch:
+    inputs:
+      plan:
+        description: Plan whose limits to use (empty = the repository variable SUPABASE_PLAN, else free)
+        type: choice
+        options: ["", free, pro]
+        default: ""
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: usage-check
+  cancel-in-progress: false
+env:
+  SUPABASE_PROJECT_REF: lhgkvvdckwbfpdsftzqp
+jobs:
+  usage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PLAN: ${{ inputs.plan || vars.SUPABASE_PLAN || 'free' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: supabase/setup-cli@v1
+        with: { version: 3.1.0 }
+      - name: Connection string (session pooler)
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
+      - name: Read database and storage size (SQL, read only)
+        run: |
+          echo "DB_BYTES=$(psql "$DATABASE_URL" -At -c "select pg_database_size(current_database())")" >> "$GITHUB_ENV"
+          echo "STORAGE_BYTES=$(psql "$DATABASE_URL" -At -c "select coalesce(sum((metadata->>'size')::bigint), 0)::bigint from storage.objects")" >> "$GITHUB_ENV"
+      - name: Compare with the plan (fails above 70%)
+        run: node scripts/ci/usage-check.mjs

@@ -4,10 +4,10 @@
 //   POST /webhooks/kapso/project    <- Kapso project events: Meta enforcement on the account, numbers disconnected (4.10)
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import * as Sentry from "@sentry/cloudflare";
-import { fundingState, kapsoClient, KapsoReceived, numberHealth, senderKey, templateStatuses, unwrap, verifySignature, type Line, type Outbound } from "@ak/wa/kapso";
+import { fundingState, KapsoReceived, numberHealth, senderKey, showTyping, templateStatuses, unwrap, verifySignature, type Line, type Outbound } from "@ak/wa/kapso";
 import { probeInbound, probeReply, type ProbeMessage } from "@ak/wa/probe";
 import { send as gatewaySend } from "@ak/wa/gateway";
-import { parseIdentityEvent, parsePreferenceEvent, parseStatusEvent } from "@ak/wa/webhook";
+import { lineProblem, parseIdentityEvent, parsePreferenceEvent, parseStatusEvent } from "@ak/wa/webhook";
 import type { ModelClient } from "@ak/agents/concierge";
 import type { ConversationState } from "@ak/agents/concierge-tools";
 import Anthropic from "@anthropic-ai/sdk";
@@ -15,7 +15,7 @@ import { runTurn, turnKeyOf, type Pending, type TurnDeps } from "./turn";
 import { alertOps, dispatchAndOffer, sendToParty } from "./ops-turn";
 import { cashAsk, RIDER_TEXT } from "@ak/agents/job-card";
 import { customerLineCron } from "@ak/agents/cron";
-import { catalogFeed } from "./catalog-feed";
+import { catalogFeed, supabasePublicStore, syncCatalogPictures } from "./catalog-feed";
 
 export interface Env {
   CONVERSATION: DurableObjectNamespace;
@@ -64,7 +64,7 @@ function depsFor(env: Env): TurnDeps {
   deps.onOrderConfirmed = (orderId) => dispatchAndOffer(deps, orderId);
   deps.notifyCustomer = (id, what) => notifyCustomer(deps, id, what);
   // 1.8 (B3's request, wired by B4): WhatsApp's typing indicator on the message being answered. Marks it read; sends nothing.
-  if (!env.TEST_DEPS) deps.typing = (id) => kapsoClient(env).messages.markRead({ phoneNumberId: env.PHONE_NUMBER_ID_CUSTOMER, messageId: id, typingIndicator: { type: "text" } });
+  if (!env.TEST_DEPS) deps.typing = (id) => showTyping(env, env.PHONE_NUMBER_ID_CUSTOMER, id);     // packages/wa holds the one call (G1-24)
   return deps;
 }
 
@@ -80,8 +80,8 @@ export default {
     if (req.method === "POST" && url.pathname === "/webhooks/kapso/project") return projectWebhook(req, env, ctx);
     if (req.method === "GET" && url.pathname === "/catalog/feed.csv") {
       const supa = env.TEST_DEPS?.db ?? db(env);           // the catalog feed Meta reads (1.21, K1)
-      return catalogFeed(req, { db: supa, password: env.CATALOG_FEED_PASSWORD,
-        sign: async (path, seconds) => (await supa.storage.from("media").createSignedUrl(path, seconds)).data?.signedUrl ?? null });
+      return catalogFeed(req, { db: supa, password: env.CATALOG_FEED_PASSWORD, store: env.TEST_DEPS ? undefined : supabasePublicStore(supa),
+        publicUrl: (path) => `${env.SUPABASE_URL.replace(/\/+$/, "")}/storage/v1/object/public/catalog/${path}` });
     }
     const m = url.pathname.match(/^\/webhooks\/kapso\/(customer|ops)$/);
     if (req.method !== "POST" || !m) return new Response("not found", { status: 404 });
@@ -95,10 +95,11 @@ export default {
     const body = JSON.parse(raw) as unknown;
     const key = await eventKey(req.headers.get("X-Idempotency-Key"), line, event, body, raw);
 
-    // The number that received the event must be the number this route is for. A crossed wire is a hard stop.
+    // The number that received the event must be the number this route is for. A crossed wire is a hard stop, and so is a message
+    // event that does not say which number it came to (G1-15: it used to pass the check by saying nothing).
     const expected = line === "customer" ? env.PHONE_NUMBER_ID_CUSTOMER : env.PHONE_NUMBER_ID_OPS;
-    const first = unwrap(body)[0] as { phone_number_id?: string } | undefined;
-    if (first?.phone_number_id && first.phone_number_id !== expected) return new Response("wrong line", { status: 400 });
+    const problem = lineProblem(event, body, expected);
+    if (problem) return new Response(problem, { status: 400 });
 
     // Store first, think later.
     const supa = db(env);
@@ -195,6 +196,9 @@ export default {
     await step("heartbeat", () => heartbeatAlerts(deps));
     const now = new Date();
     if (now.getUTCHours() === 6 && now.getUTCMinutes() === 13) await step("kapso_health", () => kapsoHealth(deps, env));
+
+    // 9a. the public catalog bucket (A5, 0115): copy newly approved pictures, remove withdrawn ones; hourly, strays and lost objects too
+    if (!env.TEST_DEPS) await step("catalog_pictures", () => syncCatalogPictures(supa, supabasePublicStore(supa), { reconcile: new Date().getUTCMinutes() === 37 }));
 
     // 9. message meter (4.12): once a month per number, when free-form replies pass the warning mark
     const meter = await supa.rpc("meter_alerts");

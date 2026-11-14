@@ -154,6 +154,15 @@ export async function kapsoSend(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: st
   }
 }
 
+/**
+ * WhatsApp's typing indicator on the message being answered (1.8; G1-24). It marks that message read and shows "typing" until a
+ * reply goes out or about 25 seconds pass. It sends no message, so it is not a second door out; it is still a call to Kapso, so it
+ * lives here with the others and nowhere else. The caller never waits on it for anything that matters (turn.ts swallows a failure).
+ */
+export async function showTyping(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, phoneNumberId: string, messageId: string): Promise<unknown> {
+  return kapsoClient(env).messages.markRead({ phoneNumberId, messageId, typingIndicator: { type: "text" } });
+}
+
 /** Meta's review status for our templates (APPROVED, PENDING, REJECTED, PAUSED, ...), read through Kapso. Reading only: no message is sent. */
 export async function templateStatuses(env: { KAPSO_BASE_URL: string; KAPSO_API_KEY: string }, wabaId: string, names: string[]): Promise<{ name: string; status: string }[]> {
   const res = (await kapsoClient(env).templates.list({ businessAccountId: wabaId, limit: 100 })) as { data?: { name?: string; status?: string }[] };

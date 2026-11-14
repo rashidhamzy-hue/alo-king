@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, pinned, read, recordKapso, use, type Sent } from "./flow-kit";
 import { supabaseOver } from "./supabase-shim";
+import { fakeStore } from "./public-store-kit";
 import { catalogFeed, FEED_COLUMNS, feedCsv } from "../../apps/gateway/src/catalog-feed";
 import { LIST_LIMITS, productListMessages } from "@ak/agents/catalog-messages";
 import { CART_TEXT } from "@ak/agents/cart";
@@ -96,10 +97,10 @@ describe("the feed (1.21 step 2)", () => {
     for (const r of feed) expect(withPicture.map((x: any) => x.sku)).toContain(r.sku);
   });
 
-  it("is a CSV behind a password, priced and stocked from the database, with a signed picture link", async () => {
+  it("is a CSV behind a password, priced and stocked from the database, with the picture's stable public address", async () => {
     const shim = supabaseOver(db);
-    const signed: string[] = [];
-    const deps = { db: shim.client, password: "pw", sign: async (p: string, s: number) => { signed.push(`${p}@${s}`); return `https://signed.test/${p}?t=x`; } };
+    const bucket = fakeStore((await db.all(`select media_path from product_images`)).map((r: any) => r.media_path));
+    const deps = { db: shim.client, password: "pw", store: bucket.store, publicUrl: (p: string) => `https://pub.test/storage/v1/object/public/catalog/${p}` };
     const req = (auth?: string) => new Request("https://gw/catalog/feed.csv", { headers: auth ? { Authorization: auth } : {} });
     expect((await catalogFeed(req(), deps)).status).toBe(401);
     expect((await catalogFeed(req(`Basic ${btoa("meta:wrong")}`), deps)).status).toBe(401);
@@ -115,21 +116,21 @@ describe("the feed (1.21 step 2)", () => {
     expect(water).toContain(`${(await priceOf(SKUS.water)).toFixed(2)} USD`);
     expect(water).toContain("in stock");
     expect(water).toContain(`https://wa.me/96100000000?text=${SKUS.water}`);
-    expect(water).toContain("https://signed.test/product_images/AK-0103/");
+    expect(water).toMatch(/https:\/\/pub\.test\/storage\/v1\/object\/public\/catalog\/AK-0103-[0-9a-f-]{36}\.jpg/);
+    expect(water).not.toMatch(/signed|token|[?&]t=/);                      // nothing that expires
     expect(rows.find((r) => r.startsWith(SKUS.coffee + ","))).toContain("out of stock");
-    expect(signed.every((s) => s.endsWith("@604800"))).toBe(true);
   });
 
   it("answers 503 until a person sets the product link, and never guesses one", async () => {
     await db.pg.query(`update settings set value = value || '{"product_link": null}' where key = 'catalog'`);
     const res = await catalogFeed(new Request("https://gw/catalog/feed.csv", { headers: { Authorization: `Basic ${btoa("meta:pw")}` } }),
-                                  { db: supabaseOver(db).client, password: "pw", sign: async () => "x" });
+                                  { db: supabaseOver(db).client, password: "pw", publicUrl: (p) => p });
     await db.pg.query(`update settings set value = value || '{"product_link": "https://wa.me/96100000000?text={sku}"}' where key = 'catalog'`);
     expect(res.status).toBe(503);
   });
 
-  it("credits a CC BY-SA picture in the row, and leaves out a row whose picture could not be signed", () => {
-    const row = { sku: "AK-1", product_id: "x", name_en: "Thing", name_ar: "شي", brand: "B", price_usd: 1, in_stock: true, media_path: "m",
+  it("credits a CC BY-SA picture in the row, and leaves out a row whose picture is not in the public bucket yet", () => {
+    const row = { sku: "AK-1", product_id: "x", name_en: "Thing", name_ar: "شي", brand: "B", price_usd: 1, in_stock: true, media_path: "m", public_path: "AK-1-x.jpg",
                   attribution: "Open Food Facts contributors, CC BY-SA 3.0", licence: "cc_by_sa", category_code: "c", category_en: "C", category_ar: "ج",
                   subgroup_en: null, subgroup_ar: null };
     const csv = feedCsv([row, { ...row, sku: "AK-2" }], { product_link: "https://l/{sku}" }, new Map([["AK-1", "https://img/1"]]));

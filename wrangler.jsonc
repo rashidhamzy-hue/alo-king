@@ -45,5 +45,6 @@
   // the earlier DSN belonged to another organization whose error quota was used up (events dropped as rate_limited). Production gets its own project at 4.2.
   // PROBE_MODE "on" (staging only) lets the cron run the hourly test order (4.10). Production must never set it.
   // Secrets, per environment (wrangler secret put NAME --env staging): KAPSO_API_KEY, KAPSO_WEBHOOK_SECRET_CUSTOMER, KAPSO_WEBHOOK_SECRET_OPS, KAPSO_WEBHOOK_SECRET_PROJECT,
-  // PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS, SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY, STT_API_KEY
+  // PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS, SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY, STT_API_KEY,
+  // CATALOG_FEED_PASSWORD (the password Meta's catalog feed reads with; GET /catalog/feed.csv answers 404 without it)
 }
