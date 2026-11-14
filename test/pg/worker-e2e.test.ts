@@ -148,11 +148,12 @@ run("Worker end to end (workerd + real Postgres)", () => {
     expect(kapso.sent.filter((s) => s.to === "+96170009001" && s.body.interactive?.type === "button")).toHaveLength(1);
     const orders = await sql`select o.id, o.status, (select reason from order_events e where e.order_id = o.id and e.to_status = 'cancelled' limit 1) why
                              from orders o join party_identities i on i.party_id = o.customer_id where i.wa_user_id = 'XX.0000000000009001' order by o.created_at`;
-    // One live order, and the card the customer got is for it. The retried turn re-plans and issues a new card, which
-    // cancels the first draft as superseded (0005). Recorded for session B2 in HANDOFF: key the card on the turn instead.
+    // One order, and the card the customer got is for it. SP1 (G1-21): the retried turn finds the draft its first attempt made
+    // (create_order_for_turn, 0101) and sends the same card under the same key; before, it made a second order and cancelled
+    // the first as superseded.
     const live = orders.filter((o) => o.status !== "cancelled");
     expect(live).toHaveLength(1);
-    expect(orders.filter((o) => o.status === "cancelled").every((o) => o.why === "superseded_by_new_card")).toBe(true);
+    expect(orders).toHaveLength(1);
     expect(card.body.interactive.action.buttons[0].reply.id).toBe(`order:confirm:${live[0]!.id}`);
     // and the customer is not told that a draft they never saw was cancelled (4.3's notice skips superseded drafts)
     await cron(); await sleep(500);

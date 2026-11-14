@@ -85,6 +85,13 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   }
   if (intent.intent === "greeting" && intent.lines.length === 0)
     return offerRepeat(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
+  // "Go ahead" with no new items while a basket waits on us (SP1): code carries it on, with no second model call. On 14 Nov
+  // «مشيلي الطلب», sent after opening for the basket kept overnight, was read as an order with no lines, went to the loop, and
+  // the loop handed it to a person. The pin, village and address waits are answered before this (turn.ts, takeAddress).
+  if (isGoAhead(intent, said ?? "")) {
+    const r = await goAhead(ctx);
+    if (r.done) return r;
+  }
   if (intent.intent !== "order") return { done: false, plan: null };
   if (intent.repeat_last && intent.lines.length === 0) {
     const r = await repeatLast(ctx);
@@ -177,6 +184,29 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
 }
 
 export const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
+const GO_AHEAD_INTENTS = new Set(["order", "add_to_order", "change_order"]);
+
+/**
+ * Words that cancel or refuse. The SP1 gate run (14 Nov) read «لغيلي الطلب» ("cancel my order") as an order with no lines: a
+ * reading alone must never carry a basket on when the customer's own words say no. Then the Concierge answers, as before.
+ */
+const CANCEL_WORDS = /لغ[يىاء]|بط[ّ]?لت|ما\s*بد[يى]|مش\s*بد[يى]|\bcancel|\bannul|\bbatalt|\b(ma|mish|mesh)\s*badd?(e|i)\b|\bla2\b|\bno\b|^\s*لا(\s|$)/iu;
+
+/**
+ * A reading that says "go ahead": about ordering, no line, not "same as last time", and no cancel or refusal in the customer's
+ * own words. The eval (evals/cases/ask_by_code.json) judges this function.
+ */
+export function isGoAhead(intent: OrderIntent | null, said = ""): boolean {
+  return !!intent && GO_AHEAD_INTENTS.has(intent.intent) && intent.lines.length === 0 && !intent.repeat_last && !CANCEL_WORDS.test(said);
+}
+
+/** Carries on the basket that waits on us: kept overnight (sendKept), or a card that waited on a phone number. */
+async function goAhead(ctx: ToolContext): Promise<{ done: true; path: string } | { done: false }> {
+  if (ctx.state.awaiting === "opening") return (await sendKept(ctx)) ? { done: true, path: "kept_go_ahead" } : { done: false };
+  if (ctx.state.awaiting === "phone" && ctx.state.lastQuote && ctx.state.pending)
+    return (await completePending(ctx)) ? { done: true, path: "pending_go_ahead" } : { done: false };
+  return { done: false };
+}
 const ADDRESS_INTENTS = new Set(["order", "add_to_order", "change_order", "question", "delivery_area", "greeting"]);
 
 /** A basket is waiting on the customer for where to deliver (pin, village tap, house and floor). */

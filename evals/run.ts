@@ -76,3 +76,21 @@ export async function runAddressCase(client: ModelClient, model: string, c: Addr
   const village = r.intent?.address.village ?? null;
   return { id: c.id, village, landmark: r.intent?.address.landmark ?? null, ...judgeAddress(c, village) };
 }
+
+// ---------- Ask by code (SP1) ----------
+// "Go ahead" with a basket waiting: the reading must name no new line and be about ordering, so code carries the basket on
+// (pipeline.ts isGoAhead) instead of a second model call. `go_ahead: false` cases must not be read that way.
+import { isGoAhead } from "../packages/agents/src/pipeline";
+import type { OrderIntent } from "../packages/agents/src/schemas";
+/** basket_lines: the reading may instead name the waiting basket's lines again; the planner then cards them, also with no second call. */
+export interface GoAheadCase { id: string; texts: string[]; state?: Record<string, unknown>; go_ahead: boolean; basket_lines?: number }
+export function judgeGoAhead(c: GoAheadCase, intent: OrderIntent | null): { ok: boolean; why: string | null } {
+  const got = isGoAhead(intent, c.texts.join("\n"));
+  if (got === c.go_ahead) return { ok: true, why: null };
+  if (c.go_ahead && c.basket_lines && intent?.intent === "order" && intent.lines.length === c.basket_lines) return { ok: true, why: null };
+  return { ok: false, why: intent ? `read as ${intent.intent} with ${intent.lines.length} line(s)` : "unreadable" };
+}
+export async function runGoAheadCase(client: ModelClient, model: string, c: GoAheadCase) {
+  const r = await extractOrder(client, model, { texts: c.texts, transcripts: [], state: c.state ?? {} });
+  return { id: c.id, intent: r.intent?.intent ?? null, lines: r.intent?.lines.length ?? null, ...judgeGoAhead(c, r.intent) };
+}

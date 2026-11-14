@@ -6,7 +6,7 @@ import { alertOps, handleSubstitutionButton, processOpsTurn } from "./ops-turn";
 import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gateway";
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
-import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
+import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
 import { answerQuick, askPinVillage, choosePinVillage, completePending, planReading, sendKept, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
@@ -53,26 +53,57 @@ export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_
 
 const HISTORY_MAX = 8;
 
-export async function processTurn(deps: TurnDeps, pending: Pending[], state: ConversationState): Promise<TurnResult> {
+/** What open_turn() returns (0100): begin_turn, touch_conversation, the first contact and the stored messages, in one call. */
+export interface OpenedTurn {
+  turn: "run" | "retry" | "done" | "give_up";
+  known?: boolean; party_id: string; conversation_id: string; human_handoff: boolean; blocked?: boolean;
+  budget?: { allowed: boolean; used: number; limit: number } | null;
+  customer_context?: unknown;
+}
+
+/** The one database call before the model on the customer line (SP1). Same work, same order as the four calls it replaced. */
+export async function openTurn(db: SupabaseClient, key: string, pending: Pending[]): Promise<OpenedTurn> {
+  const first = pending[0]!;
+  const head = first.event.message as typeof first.event.message & { referral?: unknown };
+  return call<OpenedTurn>(db, "open_turn", {
+    p_key: key, p_line: first.line, p_wa_user_id: first.who.waUserId ?? null, p_phone: first.who.phone ?? null,
+    p_name: first.event.conversation.contact_name ?? null,
+    p_messages: pending.map((p, i) => ({
+      wa_message_id: p.event.message.id, type: p.event.message.type,
+      body: p.event.message.text?.body ?? p.event.message.interactive?.button_reply?.id ?? null,
+      transcript: p.event.message.kapso.transcript ? { kapso: p.event.message.kapso.transcript.text } : null,
+      // Where a new customer came from (1.13): read from the first message only, as before.
+      ...(i === 0 ? { body_text: head.text?.body ?? null, referral: head.referral ?? null } : {}),
+    })),
+  });
+}
+
+export async function processTurn(deps: TurnDeps, pending: Pending[], state: ConversationState, opened?: OpenedTurn): Promise<TurnResult> {
   const first = pending[0];
   if (!first) return { outcome: "ignored", sent: [] };
   if (first.line !== "customer") return processOpsTurn(deps, pending);          // riders today; merchants and staff in step 7
 
   const { db } = deps;
   const to = first.who.phone ?? first.who.waUserId!;
-  const conv = await call<{ known: boolean; party_id: string; conversation_id: string; human_handoff: boolean; blocked: boolean }>(db, "touch_conversation", {
-    p_line: "customer", p_wa_user_id: first.who.waUserId ?? null, p_phone: first.who.phone ?? null,
-    p_name: first.event.conversation.contact_name ?? null,
-  });
+  if (!deps.turnKey) throw new Error("NO_TURN_KEY: processTurn must be called through runTurn");
+  const turnKey = deps.turnKey;
+  // begin_turn, touch_conversation, record_first_contact and the wa_messages insert, in one round trip (0100).
+  const conv = opened ?? await openTurn(db, turnKey, pending);
+  if (conv.turn === "done" || conv.turn === "give_up") return { outcome: "duplicate", sent: [] };
   if (!conv.known || conv.blocked) return { outcome: "ignored", sent: [] };
 
   const sent: string[] = [];
-  let sendSeq = 0;
-  if (!deps.turnKey) throw new Error("NO_TURN_KEY: processTurn must be called through runTurn");
-  const turnKey = deps.turnKey;
-  const sendRaw = async (msg: Outbound, orderId?: string, authored?: SendRequest["authored"]): Promise<SendResult> =>
-    deps.send({ line: "customer", partyId: conv.party_id, to, msg, category: "service", orderId,
-                dedupeKey: `${turnKey}:${sendSeq++}`, ...(authored ? { authored } : {}) });
+  // G1-19 (SP1): a message's key is the turn plus what it says, not its place in the turn. A retried turn whose model words or
+  // orders its messages differently sends what is new and skips what already went; before, a message that took another's
+  // place was dropped. The same words twice in one turn are told apart by their count.
+  const keyCount = new Map<string, number>();
+  const sendRaw = async (msg: Outbound, orderId?: string, authored?: SendRequest["authored"]): Promise<SendResult> => {
+    const h = await contentHash(msg);
+    const n = keyCount.get(h) ?? 0;
+    keyCount.set(h, n + 1);
+    return deps.send({ line: "customer", partyId: conv.party_id, to, msg, category: "service", orderId,
+                       dedupeKey: replyKey(turnKey, h, n), ...(authored ? { authored } : {}) });
+  };
   const say = async (text: string, orderId?: string) => { const r = await sendRaw({ type: "text", text: { body: text } }, orderId); if (r.ok) sent.push(text); return r; };
   // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
   // never sends it twice), retries with backoff, then ModelUnavailable.
@@ -82,21 +113,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (r.ok) sent.push(FIXED.oneMoment);
   } });
 
-  // Where a new customer came from (1.13): an ad click, a QR code or a referral code on their very first message. Data only;
-  // the database writes it once and ignores later messages. A failure here never stops the turn.
-  const head = first.event.message as typeof first.event.message & { referral?: unknown };
-  await db.rpc("record_first_contact", { p_party: conv.party_id, p_wamid: head.id, p_text: head.text?.body ?? null, p_referral: head.referral ?? null })
-    .then(() => undefined, () => undefined);
-
-  await db.from("wa_messages").insert(pending.map((p) => ({
-    line: "customer", direction: "inbound", party_id: conv.party_id, conversation_id: conv.conversation_id,
-    wa_message_id: p.event.message.id, type: p.event.message.type, status: "received",
-    body: p.event.message.text?.body ?? p.event.message.interactive?.button_reply?.id ?? null,
-    transcript: p.event.message.kapso.transcript ? { kapso: p.event.message.kapso.transcript.text } : null,
-  })));
-
   const ctx: ToolContext = {
-    db, partyId: conv.party_id, conversationId: conv.conversation_id, state,
+    db, partyId: conv.party_id, conversationId: conv.conversation_id, state, turnKey,
     send: (msg, opts) => sendRaw(msg, opts?.orderId, opts?.authored), sent: { count: 0, texts: [] },
   };
   const texts: string[] = [];
@@ -294,11 +312,18 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     ].slice(-HISTORY_MAX);
   };
   const started = Date.now();
-  const usage = { input: 0, output: 0 };
+  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, calls: [] as CallTiming[] };
+  const add = (u: Usage) => {
+    usage.input += u.input; usage.output += u.output; usage.cacheRead += u.cacheRead ?? 0; usage.cacheWrite += u.cacheWrite ?? 0;
+    usage.calls.push(...(u.calls ?? []));
+  };
   let intent: OrderIntent | null = null;
+  // SP1: each model call's time and tokens (agent_latency can split a turn), and the cached input, which input_tokens leaves
+  // out (agent_run_costs prices it, 0102).
   const record = (outcome: string, path: string) => db.from("agent_runs").insert({ agent: "concierge", conversation_id: conv.conversation_id,
     model: deps.modelName, input_tokens: usage.input, output_tokens: usage.output, latency_ms: Date.now() - started, outcome,
-    trace: { path, intent, sent: ctx.sent.texts } });
+    trace: { path, intent, sent: ctx.sent.texts, calls: usage.calls,
+             cache_read_input_tokens: usage.cacheRead, cache_creation_input_tokens: usage.cacheWrite } });
   try {
     // A pin or a number for a card that was only waiting on it: the card goes out, no model.
     if (dataOnly) {
@@ -326,7 +351,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     }
 
     // Past the hourly cap on model turns (1.8, settings.model_turns), a person takes over: no model call.
-    const budget = (await db.rpc("model_turn_budget", { p_party: conv.party_id })).data as { allowed: boolean; used: number; limit: number } | null;
+    const budget = conv.budget !== undefined ? conv.budget
+      : (await db.rpc("model_turn_budget", { p_party: conv.party_id })).data as { allowed: boolean; used: number; limit: number } | null;
     if (budget && budget.allowed === false) {
       const hour = Math.floor(Date.now() / 3_600_000);
       await handoff(db, conv.conversation_id, "model_turn_cap");
@@ -346,11 +372,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       state: { delivery_village_id: state.villageId ?? null, has_saved_place: !!state.placeId, open_quote: state.lastQuote?.quote ?? null,
                audio_messages_unreadable: audioFailed, recent: state.history ?? [],
                // What we know about this person from delivered orders: usuals, brands, saved places, how they pay. Facts, not a transcript.
-               known_customer: (await db.rpc("customer_context", { p_party: conv.party_id })).data ?? null } };
+               known_customer: (conv.customer_context !== undefined ? conv.customer_context
+                                : (await db.rpc("customer_context", { p_party: conv.party_id })).data) ?? null } };
 
     // 1. Parse once.
     const reading = await extractOrder(model, deps.modelName, input);
-    usage.input += reading.usage.input; usage.output += reading.usage.output;
+    add(reading.usage);
     intent = reading.intent;
     // A restriction said now applies to the order built now; keeping it for later waits for the customer's yes (1.14).
     const stated = intent?.restrictions ?? [];
@@ -366,7 +393,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
     const res = await runAskLoop(model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
-    usage.input += res.usage.input; usage.output += res.usage.output;
+    add(res.usage);
     if (stated.length && res.outcome === "ok") await offerToRemember(ctx, stated);
     remember();
     await record(res.outcome, "ask");
@@ -399,6 +426,14 @@ async function handoff(db: SupabaseClient, conversationId: string, reason: strin
 }
 
 
+/** SHA-256 of an outbound message, first 16 hex characters. Same message, same hash, in every attempt of a turn. */
+export async function contentHash(msg: Outbound): Promise<string> {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(msg)));
+  return [...new Uint8Array(bytes)].slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+/** The outbox key of a customer message: the turn, the content, and how many times this turn already said exactly that. */
+export const replyKey = (turnKey: string, hash: string, n: number): string => `${turnKey}:h${hash}${n ? `:${n}` : ""}`;
+
 /** The key of a turn is the set of WhatsApp messages it answers. Same messages, same turn, however many times it is delivered. */
 export function turnKeyOf(pending: Pending[]): string {
   return `${pending[0]?.line ?? "?"}:` + pending.map((p) => p.event.message.id).sort().join("+");
@@ -411,9 +446,16 @@ export function turnKeyOf(pending: Pending[]): string {
 export async function runTurn(deps: TurnDeps, pending: Pending[], state: ConversationState): Promise<TurnResult> {
   if (pending.length === 0) return { outcome: "ignored", sent: [] };
   const key = turnKeyOf(pending);
-  const begun = await deps.db.rpc("begin_turn", { p_key: key, p_line: pending[0]!.line, p_conversation: null });
-  if (!begun.error && (begun.data === "done" || begun.data === "give_up")) return { outcome: "duplicate", sent: [] };
-  const result = await processTurn({ ...deps, turnKey: key }, pending, state);
+  let opened: OpenedTurn | undefined;
+  if (pending[0]!.line === "customer") {
+    // One round trip: begin_turn is the first thing open_turn does (0100).
+    opened = await openTurn(deps.db, key, pending);
+    if (opened.turn === "done" || opened.turn === "give_up") return { outcome: "duplicate", sent: [] };
+  } else {
+    const begun = await deps.db.rpc("begin_turn", { p_key: key, p_line: pending[0]!.line, p_conversation: null });
+    if (!begun.error && (begun.data === "done" || begun.data === "give_up")) return { outcome: "duplicate", sent: [] };
+  }
+  const result = await processTurn({ ...deps, turnKey: key }, pending, state, opened);
   await deps.db.rpc("finish_turn", { p_key: key, p_outcome: { outcome: result.outcome, sent: result.sent.length } });
   return result;
 }

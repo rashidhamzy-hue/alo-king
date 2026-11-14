@@ -53,6 +53,8 @@ export interface ToolContext {
   sent: { count: number; texts: string[] };   // message economy: what this turn has already sent
   /** Food-fact attributes a tool returned an approved record for during this turn (1.10). Empty until the facts tool (1.11). */
   approvedFacts?: Set<string>;
+  /** The customer turn this runs in (SP1, G1-21): a retried turn finds the order its first attempt made, instead of a second. */
+  turnKey?: string;
 }
 
 const MAX_SENDS_PER_TURN = 2;
@@ -230,8 +232,8 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   // Every restriction that applies goes with the order to whoever prepares it: the kept ones, and any stated for this order (1.14).
   const kept = await rpc<string[]>(ctx.db, "customer_restrictions", { p_party: ctx.partyId });
   terms = { ...terms, notes: withRestrictionNote(terms.notes, [...kept, ...(ctx.state.orderRestrictions ?? [])]) };
-  const created = await rpc<{ created: boolean; order_id?: string; short_code?: string; quote: Quote }>(ctx.db, "create_order_from_quote", {
-    p_customer: ctx.partyId, p_conversation: ctx.conversationId, p_lines: basket.lines, p_village: basket.villageId,
+  const created = await rpc<{ created: boolean; order_id?: string; short_code?: string; quote: Quote }>(ctx.db, "create_order_for_turn", {
+    p_turn_key: ctx.turnKey ?? null, p_customer: ctx.partyId, p_conversation: ctx.conversationId, p_lines: basket.lines, p_village: basket.villageId,
     p_place: basket.placeId, p_pickup: basket.pickup, p_payment: terms.payment, p_change_for: terms.changeForUsd, p_notes: terms.notes,
   });
   if (!created.created && created.quote.issues.some((i) => i.code === "fx_paused")) {

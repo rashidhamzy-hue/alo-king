@@ -862,6 +862,52 @@ session in the build plan.
 - The Meta message rate for Lebanon: published rate cards disagree (0.0091 or 0.0105 USD); the first bill decides.
 - The founder's phone retest of 0.13 is not recorded anywhere as done.
 
+### Session SP1 (reply speed), 14 November 2026: A4's three causes, G1-19, G1-21, audit point 10; migrations 0100-0102
+Opus 5.5, ordering lane, branch `claude/modest-babbage-mikayo`, PR rashidhamzy-hue/alo-king#43. Each change has its failing test first
+(`test/db/reply-speed-sp1.test.ts`, 17 cases; `evals/test/ask-by-code.test.ts`), except the per-call trace, whose test was written
+just after the code (it fails on the code before SP1: no `output_config`, no `trace.calls`). Locally: `npx tsc --noEmit` clean,
+`npx vitest run` 950 passed, 43 skipped, 0 failed (the workerd + real Postgres e2e included).
+
+| Item | What changed | Tested |
+| --- | --- | --- |
+| 1. Burst buffer | `settings.burst` (0100): `quiet_ms` 1200, `max_ms` 4000, `media_ms` 6000. A text starts its turn after 1.2 s of quiet; each new text extends the wait, never past 4 s from the burst's first message; a burst with a voice note or a picture waits 6 s from its last message; buttons, pins and the ops line stay instant. The conversation object reads the setting at most once a minute (1 s timeout, the defaults behind it) and counts the wait from arrival, so the read adds nothing. `BUFFER_SECONDS` is now only the fallback for `media_ms` | one text is due within 1.5 s; three texts one second apart are one reading; four texts cap at 4 s; a new burst after a turn; voice 6 s, button instant |
+| 2. Pre-turn calls | `open_turn()` (0100): `begin_turn`, `touch_conversation`, `record_first_contact`, the `wa_messages` insert, in that order, then `model_turn_budget` and `customer_context`. It calls the latest definitions unchanged. One stricter rule: a failed `begin_turn` now fails the turn (the conversation object retries) instead of being ignored. The ops line still calls `begin_turn` | a typed order reaches the model after exactly one database call (`open_turn`); the four effects; a retry stores no message twice; done, blocked and unknown-ops cases |
+| 3. Ask path | The reading runs at `output_config: { effort: "low" }` (`READING_EFFORT` in `concierge.ts`), behind the language-pack gate (below). The 17 staging `ask` runs (13-14 Nov) are listed in `evals/cases/ask_by_code.json`: 13 are code paths since B4 and K1 (closed hours, the village in the text, the address after the pin), one more is code now (14 Nov 06:13, «مشيلي الطلب»: go ahead with the basket kept overnight, read as an order with no lines and handed to a person; `isGoAhead` / `goAhead` in `pipeline.ts` carry a kept basket or a card waiting on a phone number with no second call), and 3 still need the model's words (a line not found, a line ambiguous, a failed reading). `agent_runs.trace` now holds `calls` (kind, ms, tokens, cache read and write per call) and the turn's cache tokens; `agent_run_costs` prices cached input (0102, new dated price rows with `cache_write_usd_per_mtok`; before, cached input was not counted at all); view `agent_call_timings` | the go-ahead card after one reading; the same words with nothing waiting still reach the Concierge; effort low on the reading; the trace; the cost of cached tokens; the eval cases (live: `evals/live`) |
+| 4. G1-19, G1-21 | Customer messages are keyed by turn plus a SHA-256 of the message (and a count when a turn says the same thing twice), not by position. `create_order_for_turn()` (0101, `orders.turn_key`) returns the draft a retried turn already made when the basket, place (a pin saved again with the same coordinates counts), terms and price are the same; anything else goes to `create_order_from_quote()` unchanged | a retry whose model chooses a card where the first attempt asked a question sends the card (before: dropped); a retried card turn leaves one order and one card; a different basket still withdraws the old card; the e2e crash case now asserts one order and no cancelled draft |
+| 5. No escalation | Recorded in `packages/agents/src/concierge.ts`: `MODEL_SMART` is configured and never used at run time (it refuses the forced tool choice the reading needs); a failed reading goes to the question loop on the same model or to a person. No second model on the hot path | n/a |
+
+Files outside the row, each minimal: `packages/agents/src/concierge-tools.ts` (`ToolContext.turnKey`; `issueCard` calls
+`create_order_for_turn`), `test/db/concierge-flow.test.ts` (the buffer expectation), `test/db/ai-cost-a4.test.ts` (prices are now
+dated rows), `test/pg/worker-e2e.test.ts` (G1-21 now asserted), `evals/language/request.json`. Nothing in `packages/wa`, the
+console or a money function changed.
+
+**Language-pack gate (effort low):** passed. Run 43603124462 (`language-pack-out/43603124462`), 990 cases, repeat 1, `claude-haiku-5-5`:
+| | item F1 | precision | recall | wrong products | missed | demo 0013 | output tokens |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| before (main, default effort medium) | 0.914 | 0.998 | 0.842 | 2 (hz0815, g0815: «bazella w jazar mkhalta» also read as peas) | 195 | right | 163,516 |
+| after (SP1, effort low) | 0.912 | 1.000 | 0.838 | **0** | 200 | right | 160,668 |
+Effort low keeps the gate (F1 at least 0.90, zero wrong, the demo right) but saves only 1.7% of the reading's output tokens: the
+reading's output is mostly the JSON itself, not thinking. It stays low (no loss measured); it is not where the time goes. Live evals
+(`evals/live`, run 43603124462 then 43604651185 after the fix below): wording, off-topic and address cases pass, and the go-ahead
+cases pass. **Language bug found by the live run and fixed, eval first:** «لغيلي الطلب» ("cancel my order") was read as an order
+with no lines, which the new go-ahead path would have turned into the kept basket's card. `isGoAhead` now refuses when the
+customer's own words cancel or refuse (`CANCEL_WORDS`); case `ask-go-ahead-not-cancel` and the word tests in
+`evals/test/ask-by-code.test.ts`. The prompt was not changed. In the second live run `siyami-first-time` (the question loop,
+unchanged by SP1) had its first wording refused by the output guard («الأكل الصيامي») and its rewording sent; it passed in the
+first run: model variance, recorded, not a gate item.
+
+**Staging (turn_waits, typed messages):** provisional. From the SP1 branch's deploy (14 Nov 14:32-15:13 UTC, 7 typed probe turns, `turn_waits` joined to runs with
+`trace.calls`): reply p50 **5.9 s**, p90 7.3 s, max 8.5 s; wait p50 2.0 s (A4: 8.3 s), turn p50 4.0 s. A4's baseline, same view:
+typed reply p50 15.4 s over 29 turns. The 20-turn measurement is taken from the deploy-staging run on main after this merge (below,
+once read). That branch deploy was a mistake: staging then recorded 0100-0102 before main had them, and every deploy from main
+failed until this PR merged (the founder's note). Deploy-staging is never dispatched from a branch again.
+The staging probe ran every 3 minutes for the measurement (`settings.probe.every_minutes`, normally 60); it is set back to 60 after.
+
+For other sessions:
+- W1 and anyone issuing a card: call `create_order_for_turn` with the turn key (`ctx.turnKey`), not `create_order_from_quote`.
+- Anyone sending to a customer from a turn: keys come from `replyKey(turnKey, contentHash(msg), n)` in `turn.ts`; never a position.
+- A4's numbers before SP1 were read with the same views; `agent_call_timings` now splits a turn into its model calls.
+
 ### Session F1 (G1 fixes), 14 November 2026: G1-01 to G1-09, G1-11, G1-25, late payments; migrations 0103-0109
 Opus 5.5. Branch `claude/clever-faraday-jgs0br` (the branch this environment allows). Each finding got a failing test first, then the
 migration. Built and tested locally: PGlite with every migration (`npm run typecheck && npm test`), and `scripts/check_permissions.sh` on

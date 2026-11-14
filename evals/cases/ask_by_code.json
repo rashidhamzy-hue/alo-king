@@ -1,0 +1,37 @@
+{
+  "note": "Session SP1: every Concierge turn on staging that took the 'ask' path (the second model call), 13-14 Nov 2026, read from agent_runs on 14 Nov, and what answers it now. 'code' means no second model call: the reading goes to code. 'model' means the question still needs words the model writes. The cases below are readings the code path depends on; the live run (evals/live) checks the model still reads them that way. Customer words are the founder's and the staging probe's, kept as written.",
+  "staging_ask_runs": [
+    { "at": "2026-11-13T10:35Z", "said": "بدي علبتين لبنة ليبان ليه وربطتين خبز", "why": "bread not found, below the minimum", "now": "model" },
+    { "at": "2026-11-13T11:36Z", "said": "بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين", "why": "coffee not found, water ambiguous", "now": "model" },
+    { "at": "2026-11-13T12:36Z", "said": "بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين", "why": "the reading failed the contract", "now": "model" },
+    { "at": "2026-11-13T18:43Z", "said": "(order, «عبعقلين» left for clarification)", "why": "village only in the text", "now": "code: village_in_text, then the pin request (B4)" },
+    { "at": "2026-11-13T18:55Z", "said": "(address after the pin)", "why": "house and floor after a pin", "now": "code: takeAddress (B4)" },
+    { "at": "2026-11-13T18:56Z", "said": "(voice note: بحي راجح ...)", "why": "neighbourhood read as a village", "now": "code: takeAddress, the pin decides (B4)" },
+    { "at": "2026-11-13T18:58Z", "said": "(address details)", "why": "address after the pin", "now": "code: takeAddress (B4)" },
+    { "at": "2026-11-13T21:42Z", "said": "(probe order after closing)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-13T23:51Z", "said": "(probe order after closing)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-14T00:52Z", "said": "(probe order after closing)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-14T01:52Z", "said": "(probe order after closing)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-14T02:52Z", "said": "(probe order after closing)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-14T03:53Z", "said": "(probe order after closing)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-14T04:53Z", "said": "(probe order after closing)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-14T05:00Z", "said": "(the founder's order before opening)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-14T05:53Z", "said": "(probe order after closing)", "why": "closed", "now": "code: closed_kept (K1)" },
+    { "at": "2026-11-14T06:13Z", "said": "مشيلي الطلب", "why": "'go ahead' with the basket kept overnight: read as an order with no lines, then handed to a person", "now": "code: a basket waiting, no new lines: it carries on (SP1, case ask-14nov-go-ahead)" }
+  ],
+  "cases": [
+    { "id": "ask-14nov-go-ahead", "texts": ["مشيلي الطلب"],
+      "state": { "open_quote": { "ok": false, "issues": [{ "code": "closed", "opens": "08:00" }] },
+                 "recent": [{ "role": "customer", "text": "بدي كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار، عبعقلين" },
+                            { "role": "assistant", "text": "هلق مسكرين، منفتح الساعة 8 الصبح. طلبك محفوظ: بس نفتح اضغط «ابعت طلبي» أو اكتبلنا" }] },
+      "go_ahead": true, "basket_lines": 3 },
+    { "id": "ask-go-ahead-arabizi", "texts": ["yalla b3atle l talab"],
+      "state": { "open_quote": { "ok": false, "issues": [{ "code": "closed", "opens": "08:00" }] },
+                 "recent": [{ "role": "assistant", "text": "هلق مسكرين، منفتح الساعة 8 الصبح. طلبك محفوظ" }] },
+      "go_ahead": true },
+    { "id": "ask-go-ahead-not-cancel", "note": "SP1 gate run, 14 Nov: the live model read this as an order with no lines. The code refuses a go-ahead when the words cancel (pipeline.ts CANCEL_WORDS).", "texts": ["لغيلي الطلب"],
+      "state": { "open_quote": { "ok": false, "issues": [{ "code": "closed", "opens": "08:00" }] },
+                 "recent": [{ "role": "assistant", "text": "هلق مسكرين، منفتح الساعة 8 الصبح. طلبك محفوظ" }] },
+      "go_ahead": false }
+  ]
+}

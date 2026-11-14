@@ -4,7 +4,8 @@
 // (a refusal followed by a good rewording is reported, not failed). `must` / `must_not` are graded by a person from the report.
 import { describe, expect, it } from "vitest";
 import Anthropic from "@anthropic-ai/sdk";
-import { runAddressCase, runReadingCase, runWordingCase, type AddressCase, type WordingCase } from "../run";
+import { runAddressCase, runGoAheadCase, runReadingCase, runWordingCase, type AddressCase, type GoAheadCase, type WordingCase } from "../run";
+import askByCode from "../cases/ask_by_code.json";
 import address from "../cases/address_readings.json";
 import neutral from "../cases/neutral_and_food_facts.json";
 import offTopic from "../cases/off_topic.json";
@@ -37,6 +38,16 @@ describe.skipIf(!live)("live: where to deliver (B4, the founder's order of 13 No
   const model = env.MODEL ?? "claude-haiku-5-5";
   it.each((address.cases as AddressCase[]).map((c) => [c.id, c] as const))("%s", async (_id, c) => {
     const r = await runAddressCase(client!, model, c);
+    console.log(JSON.stringify(r));
+    expect(r.ok, r.why ?? "").toBe(true);
+  }, 60_000);
+});
+
+describe.skipIf(!live)("live: go ahead with the waiting basket (SP1, 14 Nov «مشيلي الطلب»)", () => {
+  const client = live ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY! }) : null;
+  const model = env.MODEL ?? "claude-haiku-5-5";
+  it.each((askByCode.cases as GoAheadCase[]).map((c) => [c.id, c] as const))("%s", async (_id, c) => {
+    const r = await runGoAheadCase(client!, model, c);
     console.log(JSON.stringify(r));
     expect(r.ok, r.why ?? "").toBe(true);
   }, 60_000);
