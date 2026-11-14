@@ -29,7 +29,7 @@ beforeAll(async () => {
 describe("AI cost from agent_runs (audit item 6)", () => {
   it("the prices are data, dated, for both models the Worker uses", async () => {
     const p = await db.all<{ model: string; input_usd_per_mtok: string; output_usd_per_mtok: string }>(
-      `select model, input_usd_per_mtok::text, output_usd_per_mtok::text from model_prices where model in ('claude-haiku-5-5', 'claude-sonnet-5-5') order by model`);
+      `select model, input_usd_per_mtok::text, output_usd_per_mtok::text from model_prices where model in ('claude-haiku-5-5', 'claude-sonnet-5-5') and effective_from = '2026-11-01' order by model`);   // SP1 (0102) added dated rows with cache prices
     expect(p.map((x) => [x.model, Number(x.input_usd_per_mtok), Number(x.output_usd_per_mtok)]))
       .toEqual([["claude-haiku-5-5", 0.1, 0.5], ["claude-sonnet-5-5", 2, 10]]);
   });

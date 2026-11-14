@@ -431,24 +431,63 @@ export async function route(supa: SupabaseClient, env: Env, line: Line, event: s
   if (!res.ok) throw new Error(`conversation object refused: ${res.status}`);
 }
 
+/** settings.burst (SP1, 0100). Used as is when the setting cannot be read: the buffer never waits on the database. */
+export interface BurstSetting { quiet_ms: number; max_ms: number; media_ms: number }
+const BURST_DEFAULT: BurstSetting = { quiet_ms: 1200, max_ms: 4000, media_ms: 6000 };
+const BURST_TTL_MS = 60_000, BURST_READ_TIMEOUT_MS = 1000;
+const MEDIA_TYPES = new Set(["audio", "image", "video", "document", "sticker"]);
+
+/**
+ * When the burst that `pending` belongs to is over (SP1). A text starts its turn after quiet_ms of silence; each new text
+ * inside that time extends the wait, but never past max_ms from the burst's first message. A burst holding a voice note or a
+ * picture waits media_ms from its last message (the caption or the text after it usually follows). A4 measured 6 s on every
+ * text (BUFFER_SECONDS): most of a 15.9 s reply.
+ */
+export function burstDeadline(b: BurstSetting, pending: Pending[], burstStart: number, arrived: number): number {
+  if (pending.some((p) => MEDIA_TYPES.has(p.event.message.type))) return arrived + b.media_ms;
+  return Math.min(arrived + b.quiet_ms, burstStart + Math.max(b.max_ms, b.quiet_ms));
+}
+
 export class ConversationDO implements DurableObject {
+  private burst: { value: BurstSetting; at: number } | null = null;
   constructor(private state: DurableObjectState, private env: Env) {}
 
+  /** settings.burst, read at most once a minute per conversation object, with a short timeout and the defaults behind it. */
+  private async burstSetting(): Promise<BurstSetting> {
+    if (this.burst && Date.now() - this.burst.at < BURST_TTL_MS) return this.burst.value;
+    const fallback = { ...BURST_DEFAULT, media_ms: Number(this.env.BUFFER_SECONDS) * 1000 || BURST_DEFAULT.media_ms };
+    let value = fallback;
+    try {
+      const read = Promise.resolve((this.env.TEST_DEPS?.db ?? db(this.env)).rpc("setting", { p_key: "burst" }));
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<null>((r) => { timer = setTimeout(() => r(null), BURST_READ_TIMEOUT_MS); });
+      const res = await Promise.race([read, timeout]).finally(() => clearTimeout(timer));
+      const v = (res && !res.error ? res.data : null) as Partial<BurstSetting> | null;
+      if (v) value = { quiet_ms: Number(v.quiet_ms) || fallback.quiet_ms, max_ms: Number(v.max_ms) || fallback.max_ms, media_ms: Number(v.media_ms) || fallback.media_ms };
+    } catch { /* the defaults */ }
+    this.burst = { value, at: Date.now() };
+    return value;
+  }
+
   async fetch(req: Request): Promise<Response> {
+    const arrived = Date.now();       // the wait counts from here, so reading the setting below adds nothing to it
     const incoming = (await req.json()) as Pending;
     // The same WhatsApp message can arrive twice (provider retry, queue retry, reconciler). It is buffered once.
     const seen = (await this.state.storage.get<string[]>("seen")) ?? [];
     if (seen.includes(incoming.event.message.id)) return new Response("duplicate");
     await this.state.storage.put("seen", seen.concat([incoming.event.message.id]).slice(-SEEN_MAX));
 
-    const pending = ((await this.state.storage.get<Pending[]>("pending")) ?? []).concat([incoming]);
+    const before = (await this.state.storage.get<Pending[]>("pending")) ?? [];
+    const pending = before.concat([incoming]);
     await this.state.storage.put("pending", pending);
+    const burstStart = before.length ? (await this.state.storage.get<number>("burst_start")) ?? arrived : arrived;
+    if (!before.length) await this.state.storage.put("burst_start", arrived);
     // Buttons and location pins are answers: process at once. Text, audio and images wait for the burst to end.
     // Riders never wait: nobody on a motorbike should watch a typing indicator.
     const type = incoming.event.message.type;
     const instant = incoming.line === "ops" || type === "interactive" || type === "location";
-    const delayMs = instant ? 0 : Number(this.env.BUFFER_SECONDS) * 1000;
-    if (!(await this.state.storage.get("inflight"))) await this.state.storage.setAlarm(Date.now() + delayMs);
+    const at = instant ? arrived : burstDeadline(await this.burstSetting(), pending, burstStart, arrived);
+    if (!(await this.state.storage.get("inflight"))) await this.state.storage.setAlarm(at);
     return new Response("queued");
   }
 
@@ -465,6 +504,7 @@ export class ConversationDO implements DurableObject {
       inflight = { msgs: pending, attempts: 0 };
       await this.state.storage.put("inflight", inflight);
       await this.state.storage.delete("pending");
+      await this.state.storage.delete("burst_start");
     }
     inflight.attempts++;
     await this.state.storage.put("inflight", inflight);

@@ -1,4 +1,10 @@
 // The Concierge: the only customer-facing model. It reads, searches, asks, and proposes. It never commits.
+//
+// One model on the hot path, and no escalation (audit G1, point 10; recorded by SP1). Every call here uses the model the turn
+// is given: MODEL_FAST (wrangler.jsonc). MODEL_SMART is configured but not used at run time: it refuses the forced tool choice
+// that extractOrder() depends on (tool_choice {type: "tool"}), so it cannot take the reading. A reading that fails the
+// contract goes to the open-question loop on the same model, which asks the customer or hands the chat to a person. Do not add
+// a second model to the turn to "escalate": measure first, and change MODEL_FAST for every call if the evals say so.
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { OrderIntent } from "./schemas";
@@ -61,7 +67,29 @@ export interface TurnInput {
 export interface AskInput extends TurnInput { reading: OrderIntent | null; plan: unknown }
 /** The slice of the Anthropic client the loop uses. Lets tests script the model. */
 export interface ModelClient { messages: { create(body: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message> } }
-export interface Usage { input: number; output: number }
+/** One model call, as agent_runs.trace.calls records it (SP1): which call, how long it took, and its tokens. */
+export interface CallTiming { kind: "reading" | "ask"; ms: number; input: number; output: number; cache_read: number; cache_write: number }
+/** input is the uncached input (the API's input_tokens); cache reads and writes are counted apart, as they are priced. */
+export interface Usage { input: number; output: number; cacheRead?: number; cacheWrite?: number; calls?: CallTiming[] }
+
+/**
+ * The reading's effort (SP1). Haiku 5.5 thinks adaptively at effort medium by default, and the reading's output was about four
+ * times the card path's on the ask path (A4). "low" is used only while the language-pack gate holds on it (item F1 at least
+ * 0.90, zero wrong products, the demo message right): see docs/HANDOFF.md, session SP1. The open-question loop keeps the default.
+ */
+export const READING_EFFORT: "low" | "medium" = "low";
+
+async function timedCall(client: ModelClient, body: Anthropic.MessageCreateParamsNonStreaming, kind: CallTiming["kind"]) {
+  const t0 = Date.now();
+  const res = await client.messages.create(body);
+  const u = res.usage as Anthropic.Usage;
+  const call: CallTiming = { kind, ms: Date.now() - t0, input: u.input_tokens, output: u.output_tokens,
+                             cache_read: u.cache_read_input_tokens ?? 0, cache_write: u.cache_creation_input_tokens ?? 0 };
+  return { res, call };
+}
+const usageOf = (calls: CallTiming[]): Usage => ({
+  input: calls.reduce((s, c) => s + c.input, 0), output: calls.reduce((s, c) => s + c.output, 0),
+  cacheRead: calls.reduce((s, c) => s + c.cache_read, 0), cacheWrite: calls.reduce((s, c) => s + c.cache_write, 0), calls });
 
 const request = (model: string, messages: Anthropic.MessageParam[], extra: Partial<Anthropic.MessageCreateParamsNonStreaming> = {}) => ({
   model, max_tokens: 1024, tools: TOOL_DEFS,
@@ -77,9 +105,9 @@ const request = (model: string, messages: Anthropic.MessageParam[], extra: Parti
 export async function extractOrder(client: ModelClient, model: string, input: TurnInput):
     Promise<{ intent: OrderIntent | null; errors?: unknown; usage: Usage; rejected?: unknown }> {
   // 4096: a long order read as a string inside `intent` was cut off at 1024 tokens on the live model (1.22, 13 Nov).
-  const res = await client.messages.create(request(model, [{ role: "user", content: JSON.stringify(input) }],
-    { tool_choice: { type: "tool", name: "extract_order" }, max_tokens: 4096 }));
-  const usage = { input: res.usage.input_tokens, output: res.usage.output_tokens };
+  const { res, call: timing } = await timedCall(client, request(model, [{ role: "user", content: JSON.stringify(input) }],
+    { tool_choice: { type: "tool", name: "extract_order" }, max_tokens: 4096, output_config: { effort: READING_EFFORT } }), "reading");
+  const usage = usageOf([timing]);
   const call = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === "extract_order");
   if (!call) return { intent: null, errors: "no_extract_order_call", usage };
   // The fast model sometimes sends the reading as a JSON string inside `intent` (84 of 986 live eval runs, 13 Nov): read it.
@@ -135,11 +163,12 @@ export function parseLooseJson(text: string): unknown {
  */
 export async function runAskLoop(client: ModelClient, model: string, input: AskInput, tools: ConciergeTools) {
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: JSON.stringify(input) }];
-  const usage: Usage = { input: 0, output: 0 };
+  const timings: CallTiming[] = [];
+  let usage: Usage = usageOf(timings);
 
   for (let step = 0; step < MAX_STEPS; step++) {
-    const res = await client.messages.create(request(model, messages));
-    usage.input += res.usage.input_tokens; usage.output += res.usage.output_tokens;
+    const { res, call: timing } = await timedCall(client, request(model, messages), "ask");
+    timings.push(timing); usage = usageOf(timings);
     const calls = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     if (calls.length === 0) break;                  // free text is never sent to the customer: only tools speak
     messages.push({ role: "assistant", content: res.content });

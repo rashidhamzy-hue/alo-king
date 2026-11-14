@@ -102,7 +102,7 @@ describe("parse once, then the database (1.1)", () => {
     const before = Date.now();
     await t.conv.fetch(t.text("مرحبا بدي علبتين لبنة ليبان ليه وربطتين خبز"));
     await t.conv.fetch(t.text("عبعقلين بناية النسيم الطابق التالت، وبعتلي صرافة ٢٠ دولار"));
-    expect(t.alarm()! - before).toBeGreaterThanOrEqual(5900);          // waits for the burst to end
+    expect(t.alarm()! - before).toBeGreaterThanOrEqual(1000);          // waits for the burst to end (settings.burst, SP1)
     expect(t.seen).toHaveLength(0);                                    // nothing reaches the model before the alarm
     await t.conv.alarm();
 
