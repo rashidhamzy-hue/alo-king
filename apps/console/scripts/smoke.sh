@@ -26,6 +26,14 @@ body=$(jq -n --arg e "$email" --arg p "$party" '{email: $e, email_confirm: true,
 if [ -n "$user" ]; then sb PUT "/auth/v1/admin/users/$(jq -r .id <<<"$user")" "$body" >/dev/null; else sb POST "/auth/v1/admin/users" "$body" >/dev/null; fi
 
 jar=$(mktemp)
+# Whatever happens below, the account ends the run as a picker with a fresh random password nobody knows.
+lock() {
+  sb PATCH "/rest/v1/parties?id=eq.$party" '{"role": "picker"}' >/dev/null || true
+  export SMOKE_PW=$(openssl rand -base64 30)
+  sb PUT "/auth/v1/admin/users/$(find_user "$email" | jq -r .id)" "$(jq -n '{password: env.SMOKE_PW}')" >/dev/null || true
+  rm -f "$jar"
+}
+trap lock EXIT
 res=$(printf '%s' "$pw" | curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' -c "$jar" -X POST --data-urlencode "email=$email" --data-urlencode "password@-" "$u/sign-in")
 expect "real sign-in (picker)" "303 $u/" "$res"
 page=$(curl -sS -b "$jar" "$u/")
@@ -33,8 +41,10 @@ grep -q "Console smoke check" <<<"$page" || { echo "FAIL: signed-in page does no
 echo "signed-in page shows the staff name"
 for p in /payments /riders /pictures; do expect "picker opens $p" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u$p")"; done
 for p in /returns /catalog; do expect "picker opens $p" 200 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u$p")"; done
-# Lock the account again: a fresh random password nobody knows.
-export SMOKE_PW=$(openssl rand -base64 30)
-sb PUT "/auth/v1/admin/users/$(find_user "$email" | jq -r .id)" "$(jq -n '{password: env.SMOKE_PW}')" >/dev/null
-rm -f "$jar"
 echo "- Smoke test passed on $u: health, signed-out redirect, cross-site refusal, wrong password, a real sign-in, picker roles enforced" >> "$SUMMARY"
+
+# 5.15: does this console read labels? (the ANTHROPIC_API_KEY Worker secret; the intake page says which)
+intake=$(curl -sS -b "$jar" "$u/intake" || true)
+if grep -q "and read the label" <<<"$intake"; then reader="on (the model reads label photos)"; else reader="off (no model key: typed by hand)"; fi
+echo "label reader: $reader"; echo "- Label reader: $reader" >> "$SUMMARY"
+
