@@ -9,7 +9,8 @@ import { act, can, html, render, text, upload, UserError, UUID, type Ctx, type S
 import { form, when } from "../html";
 import { ALL, LEADS } from "../roles";
 import { readingFacts, type LabelImage, type LabelReading } from "../label";
-import { factsOf, factText, NUTRIENTS, type Fact } from "./foodfacts";
+import { basisWords } from "../basis";
+import { conflictsOf, conflictWords, factsOf, factText, NUTRIENTS, type Fact } from "./foodfacts";
 
 type Product = { id: string; sku: string | null; name_en: string; name_ar: string | null; brand: string | null; barcode: string | null };
 const PRODUCT_COLS = "id,sku,name_en,name_ar,brand,barcode";
@@ -66,22 +67,24 @@ async function scan(c: Ctx) {
   }, `/intake/${p.id}`);
 }
 
-const SOURCE_WORDS = (f: Fact) => f.source === "open_food_facts" ? "Open Food Facts (second opinion)" : f.detail?.read_by === "model" ? "read from the label photo by a model" : `entered from the ${f.source}`;
-
 async function review(c: Ctx) {
   const product = c.params.product ?? "";
   if (!UUID.test(product)) throw new UserError("That record is not valid.");
   const p = (await c.deps.db.rows<Product>("products", { select: PRODUCT_COLS, where: { id: product }, limit: 1 }))[0];
   if (!p) throw new UserError("No such item.");
-  const [{ attrs, facts }, scans, evidence] = await Promise.all([
+  const [{ attrs, facts }, conflicts, scans, evidence] = await Promise.all([
     factsOf(c, product),
+    conflictsOf(c, product),
     c.deps.db.rows<{ reading: LabelReading | null; read_by: string; created_at: string }>("label_scans", { select: "reading,read_by,created_at", where: { product_id: product }, order: [{ col: "created_at", desc: true }], limit: 1 }),
     c.deps.db.rows<{ id: string; kind: string; media_path: string | null; reference: string | null; created_at: string }>("evidence_documents", {
       select: "id,kind,media_path,reference,created_at", where: { product_id: product }, order: [{ col: "created_at", desc: true }], limit: 20 }),
   ]);
   const photos = evidence.filter((e) => e.kind === "label_photo" && e.media_path).slice(0, 3);
   const photoLinks = await Promise.all(photos.map((e) => c.deps.media.sign(e.media_path!, 600)));
-  const pending = facts.filter((f) => !f.approved_at && !f.superseded_at);
+  // The label's reading comes first; a web or Open Food Facts proposal that disagrees with it can only be set aside (audit G1, point 4).
+  const pending = facts.filter((f) => !f.approved_at && !f.superseded_at).sort((a, b) => Number(b.source === "label") - Number(a.source === "label") || a.attribute.localeCompare(b.attribute));
+  const lost = (f: Fact) => conflicts.find((x) => x.other.fact_id === f.id);
+  const wins = (f: Fact) => conflicts.find((x) => x.label.fact_id === f.id);
   const current = (attr: string) => facts.find((f) => f.attribute === attr && f.approved_at && !f.superseded_at);
   const attr = (code: string) => attrs.find((a) => a.code === code);
   const r = scans[0]?.reading ?? null;
@@ -95,12 +98,16 @@ ${evidence.map((e, i) => html`<option value="${e.id}"${(f.evidence_id ? e.id ===
       : a?.kind === "diet" ? html`<label>The pack says <select name="value">${["yes", "no"].map((v) => html`<option${v === f.value ? " selected" : ""}>${v}</option>`)}</select></label>`
       : a?.kind === "ingredients" ? html`<label>As printed<br><textarea name="ingredients" rows="3" cols="70" maxlength="3000">${f.detail?.text ?? ""}</textarea></label>`
       : html`${NUTRIENTS.map((n) => html`<label>${n.replace(/_/g, " ")} <input type="number" step="0.01" min="0" name="n_${n}" value="${f.detail?.values?.[n] ?? ""}"></label> `)}`;
-    return html`<tr><td><strong>${a?.name_en ?? f.attribute}</strong><br><span class="muted">${SOURCE_WORDS(f)}, ${when(f.proposed_at)}</span></td>
+    const against = lost(f);
+    return html`<tr><td><strong>${a?.name_en ?? f.attribute}</strong><br><span class="muted">${basisWords(f)}, ${when(f.proposed_at)}</span>
+${against ? html`<br><strong class="warn">Disagrees with the label: the label wins.</strong>` : ""}${wins(f) ? html`<br><strong>This is the label's reading: it wins over the web source.</strong>` : ""}</td>
 <td>${factText(f)}${f.detail?.ar ? html`<br><span class="muted">Arabic: ${f.detail.ar}</span>` : ""}
 ${f.detail?.quote ? html`<br><span class="muted">printed words: “${f.detail.quote}”</span>` : ""}
 ${f.detail?.source_text && f.detail.source_text !== f.detail.text ? html`<br><span class="muted">source text: ${String(f.detail.source_text).slice(0, 400)}</span>` : ""}</td>
 <td>${now ? html`${factText(now)} (${now.status}, ${now.source})` : html`<span class="muted">nothing approved</span>`}</td>
-<td>${leads ? html`${form(c.f, `/intake/fact/${f.id}/confirm`, html`<p>${edit}</p><p><label>Status <select name="status"><option>declared</option><option>certified</option><option value="unknown">unknown (the pack does not say)</option></select></label>
+<td>${against && leads ? html`<p class="warn">Not confirmed from here: the label says otherwise. Confirm the label's field, then set this one aside.</p>
+${form(c.f, `/intake/fact/${f.id}/reject`, html`<input name="note" placeholder="why (e.g. the label says otherwise)" maxlength="200" value="the label says otherwise"> <button>Set aside</button>`)}`
+  : leads ? html`${form(c.f, `/intake/fact/${f.id}/confirm`, html`<p>${edit}</p><p><label>Status <select name="status"><option>declared</option><option>certified</option><option value="unknown">unknown (the pack does not say)</option></select></label>
 ${evSelect}</p><p><button>Confirm against the pack</button></p>`)}
 ${form(c.f, `/intake/fact/${f.id}/reject`, html`<input name="note" placeholder="why (e.g. not on the pack)" maxlength="200"> <button>Reject</button>`)}`
   : html`<span class="muted">The ops lead checks this.</span>`}</td></tr>`;
@@ -115,6 +122,7 @@ ${form(c.f, `/intake/fact/${f.id}/reject`, html`<input name="note" placeholder="
 <tr><td>Size</td><td></td><td>${r?.size ?? ""}</td></tr>
 <tr><td>Barcode</td><td>${p.barcode ?? ""}</td><td>${r?.barcode ?? ""}${r?.barcode && p.barcode && r.barcode.replace(/\D/g, "") !== p.barcode.replace(/\D/g, "") ? html` <strong class="warn">differs: is this the right item?</strong>` : ""}</td></tr></table>
 <p class="muted">Name, brand and size are shown to check it is the right item; they are not changed here.</p></div></div>
+${conflicts.map((x) => html`<p class="note"><strong>Label and web disagree.</strong> ${conflictWords(x, attr(x.attribute)?.name_en ?? x.attribute)}</p>`)}
 <h2>Proposed fields (${pending.length})</h2>
 ${pending.length === 0 ? html`<p class="muted">Nothing waits for this item.</p>` : html`<table><tr><th>Field</th><th>Proposed</th><th>Approved now</th><th>Check against the pack</th></tr>${pending.map(row)}</table>`}`);
 }

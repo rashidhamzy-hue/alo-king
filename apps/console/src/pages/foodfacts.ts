@@ -3,6 +3,8 @@
 // SQL decides who may approve (record_food_fact, 0049: the ops lead or an admin approves at once, a picker proposes).
 // Nothing here infers a fact from a product's name, brand or category (invariant 15). Unknown stays unknown.
 import { act, can, html, render, text, upload, UserError, UUID, type Ctx, type Section } from "../app";
+import { basisWords, confirmedFrom, sourceName } from "../basis";
+import { isMissingFunction } from "../db";
 import { form, when } from "../html";
 import { ALL, LEADS } from "../roles";
 
@@ -26,6 +28,20 @@ export function factText(f: { value: string | null; detail: Record<string, any>;
     return keys.map((k) => `${k.replace(/_/g, " ")} ${v[k]}`).join(", ") + " per 100 g";
   }
   return f.value ?? "(not stated)";
+}
+
+/** Where the label photo's reading and a web source disagree about one field of one item (0114). */
+export type Conflict = { attribute: string; label: { fact_id: string; approved: boolean; value: string | null; detail: Record<string, any>; status: string };
+  other: { fact_id: string; source: string; value: string | null; detail: Record<string, any> } };
+export async function conflictsOf(c: Ctx, product: string): Promise<Conflict[]> {
+  try { return (await c.deps.db.rpc<Conflict[]>("fact_basis_conflicts", { p_product: product })) ?? []; }
+  catch (e) { if (isMissingFunction(e)) return []; throw e; }      // a database without 0114 (staging can lag): nothing is flagged, nothing else changes
+}
+/** "The label photo says: contains. A web page says: free. The label wins." for a person to read. */
+export function conflictWords(x: Conflict, name: string): string {
+  const label = factText({ value: x.label.value, detail: x.label.detail, status: x.label.status });
+  const other = factText({ value: x.other.value, detail: x.other.detail, status: "partial" });
+  return `${name}: the label ${x.label.approved ? "(checked by a person)" : "reading"} says “${label}”, ${sourceName(x.other.source)} says “${other}”. They disagree, so the label wins.`;
 }
 
 async function list(c: Ctx) {
@@ -79,7 +95,7 @@ async function item(c: Ctx) {
   if (!UUID.test(product)) throw new UserError("That record is not valid.");
   const p = (await c.deps.db.rows<{ id: string; name_en: string; name_ar: string | null; brand: string | null; barcode: string | null }>("products", { select: "id,name_en,name_ar,brand,barcode", where: { id: product }, limit: 1 }))[0];
   if (!p) throw new UserError("No such item.");
-  const { attrs, facts, docs, links } = await factsOf(c, product);
+  const [{ attrs, facts, docs, links }, conflicts] = await Promise.all([factsOf(c, product), conflictsOf(c, product)]);
   const name = (code: string) => attrs.find((a) => a.code === code)?.name_en ?? code;
   const current = facts.filter((f) => f.approved_at && !f.superseded_at);
   const waiting = facts.filter((f) => !f.approved_at && !f.superseded_at);
@@ -87,9 +103,12 @@ async function item(c: Ctx) {
   return render(c, `Food facts: ${p.name_en}`, html`
 <p><a href="/food-facts">← Food facts</a> · ${p.brand ?? ""} · barcode ${p.barcode ?? "none"}${p.name_ar ? html` · ${p.name_ar}` : ""}</p>
 <h2>Approved (what may be said)</h2>
-${current.length === 0 ? html`<p class="warn">None. Every question about this item is answered "not known".</p>` : html`<table><tr><th>What</th><th>Says</th><th>Status</th><th>From</th><th>Evidence</th><th>Checked</th></tr>
-${current.map((f) => html`<tr><td>${name(f.attribute)}</td><td>${factText(f)}</td><td>${f.status}</td><td>${f.source}</td><td>${proof(f)}</td><td>${when(f.approved_at)}${f.expires_at ? html`<br>until ${when(f.expires_at)}` : ""}</td></tr>`)}</table>`}
-${waiting.length ? html`<h2>Waiting for a person (${waiting.length})</h2><p><a href="/intake/${product}">Check them against the pack</a></p>` : ""}
+${current.length === 0 ? html`<p class="warn">None. Every question about this item is answered "not known".</p>` : html`<table><tr><th>What</th><th>Says</th><th>Status</th><th>From</th><th>Basis</th><th>Evidence</th><th>Checked</th></tr>
+${current.map((f) => html`<tr><td>${name(f.attribute)}</td><td>${factText(f)}</td><td>${f.status}</td><td>${f.source}</td><td>${basisWords(f)}${confirmedFrom(f) ? html`<br><span class="muted">${confirmedFrom(f)}</span>` : ""}</td><td>${proof(f)}</td><td>${when(f.approved_at)}${f.expires_at ? html`<br>until ${when(f.expires_at)}` : ""}</td></tr>`)}</table>`}
+${conflicts.map((x) => html`<p class="note"><strong>Label and web disagree.</strong> ${conflictWords(x, name(x.attribute))}</p>`)}
+${waiting.length ? html`<h2>Waiting for a person (${waiting.length})</h2><p><a href="/intake/${product}">Check them against the pack</a></p>
+<table><tr><th>What</th><th>Proposed</th><th>What it rests on</th></tr>
+${[...waiting].sort((a, b) => Number(b.source === "label") - Number(a.source === "label") || a.attribute.localeCompare(b.attribute)).map((f) => html`<tr><td>${name(f.attribute)}</td><td>${factText(f)}</td><td>${basisWords(f)}${conflicts.some((x) => x.other.fact_id === f.id) ? html`<br><strong class="warn">Disagrees with the label: the label wins.</strong>` : ""}</td></tr>`)}</table>` : ""}
 <h2>Record from the pack</h2>
 ${factForm(c, product, attrs)}
 <p class="muted">${can(c, LEADS) ? "You approve what you record." : "What you record waits for the ops lead to approve it."} A fact that is not on the pack is not recorded: leave it unknown.</p>`);
