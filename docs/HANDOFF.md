@@ -638,7 +638,18 @@ Not done, and why:
 - A rider's earnings paid from the hub at settlement (0010, lane C) do not check the drawer either.
 - Audit item 16 (SMTP for staff invitations) waits for the founder's decision.
 
-**Staging (pending):** the console deploy of this pull request opens every staff page once with the smoke account; the results go here.
+**Staging, proven live** (console workflow run 43562442212, this pull request's deploy, 14 Nov 05:40 UTC; audit item 13):
+- `ANTHROPIC_API_KEY` is now a console Worker secret on staging; the deployed intake page reads labels ("label reader: on"). No real
+  label photo has been read yet: that waits for real stock (5.15).
+- Every page opened once with the smoke account against the staging database, all **work** (200, no error on the page):
+  as a picker `/`, `/day-open`, `/receiving`, `/food-facts`, `/intake`, `/returns`, `/catalog`; as an ops lead (the same account, for
+  those GETs only) `/day-open`, `/refunds`, `/cases`, `/approvals`, `/money`, `/day-close`, `/receiving`, `/food-facts`, `/intake`,
+  `/search-words`, `/payments`, `/riders`, `/exceptions`, `/fx`, `/zones`, `/merchants`, `/pictures`. The account was a picker again
+  after the run (checked in `parties`). Every console deploy repeats this sweep and writes the table into the run summary.
+- What opening a page does not prove: the forms on them (the actions are proven on PGlite only). Staging has no stock, supplier or cash,
+  so posting would have nothing true to record.
+- 0080 and 0081 reach staging with `deploy-staging` after the merge; until then `/search-words`'s rebuild button says the function is
+  not available yet, and staging's drawer checks are the old ones.
 
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
