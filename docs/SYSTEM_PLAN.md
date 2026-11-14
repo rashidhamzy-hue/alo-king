@@ -355,7 +355,7 @@ law requires), run nightly once the founder and the lawyer approve; the Kapso pr
 ### Decisions
 | # | Decision | Recommended answer | Blocks |
 | --- | --- | --- | --- |
-| 1 | Conflict register items C1 to C6 in `docs/DECISIONS.md` (wording of invariants 4, 10 and 21; website now; one cart one vendor; pictures) | Yes to each as worded there | C4, E2, AN1, WEB1 |
+| 1 | Conflict register items C1 to C11 in `docs/DECISIONS.md` (the wording of invariants 4, 10 and 21; website now; combined-order fee; automatic approval; loyalty; console redesign; basket builder; friends' test; second approver) | Yes to each as recommended there | WEB2, E2, AN1, D5, I1 |
 | 2 | Speech provider and the retention wording | Decide after V1 scores the 51 notes; until then say in the privacy notice that transcription is done by a processor that may keep transcripts | V1, privacy notice |
 | 3 | `supabase/seed/proposed_pilot_settings.sql` (25 villages; small-order fee 0.50 under $10) | Yes: the cost model shows the fee is worth about $0.20 an order | Pilot |
 | 4 | COD tolerance: how much a rider may be short on one order before it is his to explain | $0.25 (lira-note rounding), the rest to the rider's account for review | F1 |

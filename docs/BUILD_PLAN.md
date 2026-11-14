@@ -1,6 +1,7 @@
 # Alo King Chouf: build plan to launch
 
-The one current implementation roadmap. Last revised 12 November 2026 (final planning revision).
+The one current implementation roadmap. Last revised 14 November 2026 by session S1: the section "S1 revision" at the end holds
+the gap matrix, the task classes and the sessions to run next. Where it disagrees with an older section above, S1's section wins.
 Status of what exists lives in `docs/HANDOFF.md`. Rules the code must never break live in `CLAUDE.md`.
 Everything a session needs is in this repository; no earlier conversation or outside document is required.
 
@@ -512,3 +513,93 @@ Phase 5 is founder and team work, not sessions. It starts now.
 | Restaurant terms template; first signed partners. Start the conversations during the pilot or earlier | Phase 8 |
 | Who owns the GitHub organisation; approval to create the Supabase staging project and the Cloudflare paid plan; a payment method on the Meta WhatsApp account | Phase 0 |
 | A card gateway that accepts the company and settles in usable dollars (apply to two) | Before Phase 9 |
+
+## S1 revision, 14 November 2026: gap matrix, task classes, next sessions
+
+Sources: `docs/SYSTEM_BRIEF.md` (the founder's brief), `docs/AUDIT-G1.md`, `docs/SYSTEM_PLAN.md`, `docs/WEBSITE.md`, `docs/CONSOLE.md`,
+`docs/COST_MODEL.md`, `docs/RESEARCH_REGISTER.md`, and the conflict register in `docs/DECISIONS.md`. Prompts: `docs/NEXT_SESSIONS.md`.
+
+Classes: **A** must work at launch. **B** designed now, switched on after evidence. **C** piloted after a benchmark.
+**D** rejected or deferred, with the reason.
+
+### Gap matrix (what exists against the plan)
+| Area | Exists today | Gap | Class | Session |
+| --- | --- | --- | --- | --- |
+| Reply speed | Measured: typed reply p50 15.9 s | 6 s buffer, pre-turn calls, the ask path; target most typed orders under 10 s | A | SP1 |
+| Money defects | Ledger balances; staging clean | G1-01 to G1-09: COD tolerance, drawer below zero, damaged note, late and over payments, role checks | A | F1 |
+| Database hardening | No client role reaches anything | 322 functions without a fixed `search_path`; explicit role and line check in `can_send` | A | F1 |
+| Customer picks a delivery window | Database and card (2.8) | The customer turn does not offer or read windows; `quote_order` for scheduled orders | A | W1 |
+| Names, readiness, windows pages | 21 console page modules | Names review, product readiness, windows and calendar, the basis of each food fact shown, an action log table | A | D4 |
+| Pick queue and rider incidents on the console | SQL exists (C2) | Pages | A | D4b |
+| Catalog live | Feed, lists, carts in code | Feed password in the deploy, public picture bucket, Meta steps (founder), approved pictures | A | A5 + founder |
+| Infra leftovers | Alarms, meter, cost views | Supabase usage check, media host allowlist, outbox mark alert, typing call behind `packages/wa` | A | A5 |
+| Message design | Cards and fixed strings | One template file per language, the nine rules as a test, snapshots, templates for code-started messages, the lira answer | A | M1 |
+| Product intake as a pipeline | One-off scripts and review pages | A per-item queue through the API, readiness, name proposals in the database | A | I1 |
+| Automatic approval | None | Rules table, log, spot check (ships switched off: C6) | B | I1 |
+| Commerce core for every channel | SQL functions | `packages/commerce`, channel and request key on orders, web sessions, carts, the `web_channel` role | A | C4 |
+| Friends' test | Staging probe | Tester list, script, feedback as cases, privacy line | A | T1 |
+| Website, read side | None | Home, category, product, search | A | WEB1 |
+| Website, ordering | None | Cart, checkout with cash, tracking, history, account | A | WEB2 |
+| Console as a cockpit | Plain pages | Shell, installable, push, Today as an exception inbox, orders page (waits for C8) | A | D5 |
+| Places and delivery learning | `landmarks`, saved places, the pin decides | Place names, landmark proposals, the order timeline, time statistics, rider door notes | A (list), B (learned ETAs) | L1 |
+| Nightly learning and evals | Language-pack workflow by hand | Nightly smoke eval, weekly full run, collectors, the "learned today" note | A (evals), B (collectors) | N2 |
+| Daily summary and reports | Day close, margin, demand views | Daily summary, weekly report, costs and customer pages | A | AN1 |
+| Founder assistant | None | Read-only chat over the reports (waits for C3) | B | AN1b |
+| Warehouse | Stock, receiving, expiry date, counts | Lots, FEFO, bins, cycle counts, reorder proposals | B | WH1 |
+| Scan to pick | None | Phone-camera scanning in the console | C (benchmark: pick time and error rate with and without) | WH1 |
+| Supplier invoice reading | Receiving form | Photo, proposed lines, new-item intake | B | WH1 |
+| Basket builder | None | Portion rules, proposal, eval cases (C9) | B | BK1 |
+| Whish Pay at checkout | Screenshot confirmed by a person | Payment intents, webhook, adapter | B (needs a merchant account) | PAY1 |
+| Card payments, send home | None | Card gateway adapter, buyer and recipient, fraud rules | C (needs a signed gateway) | PAY2 |
+| Vendors: menus with options, kitchen flow, notifications, settlement | Shapes only | Phase 8 as planned, plus options, escalation, statements | B (first signed vendor) | E1 |
+| Vendor-operated delivery, couriers | None | Delivery-provider model (C2) | B | E2 |
+| Combined orders | Fulfilments per source | Stop order, fee add-on, partial failure (C5) | B (evidence: 10% of customers ask for both) | E3 |
+| Vendor commands by message | None | Proposed change, confirm, undo | B | E2 |
+| Loyalty and referrals | Referral codes captured | Stamp card, referral reward (C7) | B (four clean pilot weeks) | LOY1 |
+| Markets | Schema only | Functions read per-market settings | B (60 orders a day for a month) | MK1 |
+| Production, +961 numbers, recovery, retention job, routines | Runbook, staging | As 4.2, 4.8, 4.9, 5.9, 5.13 | A, blocked on company papers | A3 |
+| Voice evaluation | Runbook steps | Score four providers on the 51 notes | A, blocked on the upload | V1 |
+| Repo hygiene | CI, secret scan | A cleanup pass after each wave | A | H1 |
+| Live rider position for customers | None | After rider consent | B | WEB3 |
+| The web assistant | None | The Concierge on the website | D for now: after the pilot proves the WhatsApp Concierge |
+| Eight separate planning documents and a nine-region competitor survey | - | - | D: rejected by the brief itself (documents instead of progress) |
+| Native apps, delivery pass, merchant subscriptions | - | - | D: not planned (unchanged) |
+| OMT at checkout | Screenshot | - | D until OMT confirms a merchant API in writing |
+
+### Sessions, in run order
+At most three at a time. A session edits only the files in its row. Migration numbers are reserved; gaps are fine. `deploy-staging`
+applies with `--include-all`, so merge order does not matter on staging; a fresh reset applies by number, which is why two
+sessions never redefine the same function out of number order. Model: Opus for money, ordering and security; Sonnet for
+mechanical work; Fable only for audits.
+
+| # | Session | Model | Does | Owns | Migrations | Waits for | May run beside | Done when (tests) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | **SP1** Reply speed | Opus 5.5 | A4's three causes: the burst buffer, the pre-turn calls, the ask path; reply keys by content (G1-19); a retried turn reuses its draft (G1-21) | `apps/gateway/src/index.ts` (the conversation object only), `apps/gateway/src/turn.ts`, `packages/agents/src/concierge.ts`, `pipeline.ts`, `evals/` | 0100-0102 | nothing | F1, D4 | A single complete text starts its turn within 1.5 s (test on the conversation object); one database call before the model; the language-pack gate still met (F1 at least 0.90, zero wrong, the demo message right); `turn_waits` on staging shows typed replies at p50 under 10 s over at least 20 probe turns |
+| 2 | **F1** G1 fixes | Opus 5.5 | G1-01 to G1-09, G1-11, G1-25, the late-payment queue, a test that bans Nutri-Score-type fields | `test/db/`, `scripts/check_permissions.sh`, `apps/console/src/pages/payments.ts` and `riders.ts` only | 0103-0109 | nothing | SP1, D4 | Each finding has a failing test first; the drawer cannot go below zero by any function; a late transfer becomes customer credit; ledger at zero in every test; the advisor shows no function without a `search_path` |
+| 3 | **D4** Review pages | Sonnet 5.5 | Names review, product readiness, windows and calendar, basis of each proposed fact shown, `staff_actions` table (G1-16) | `apps/console/` except `payments.ts` and `riders.ts` | 0110-0114 | nothing | SP1, F1 | The 282 names load, approve, correct, reject; approving a name queues its search words; readiness distinguishes "blocks the catalog" from "blocks ordering"; a window entered on the page is offered by `open_delivery_windows`; `sign-in.test.ts` no longer depends on the clock |
+| 4 | **W1** Windows for customers | Opus 5.5 | C3's seven requests: offer windows, read the list tap, slot full or closed, changes, `quote_order` for scheduled orders, status answer, eval cases | `apps/gateway/src/turn.ts`, `packages/agents/`, `evals/` | 0118-0119 | SP1 | A5, R4, H1 | A customer picks a window by tap and by words ("بكرا الصبح"); a full window is never offered; a scheduled order can be carded after hours; the acceptance test "a full slot refuses a scheduled order" still passes |
+| 5 | **A5** Infra | Sonnet 5.5 | Feed password in the deploy; public `catalog` bucket for approved pictures; weekly Supabase usage check; media host allowlist; typing call into `packages/wa`; alert on a send that could not be marked; the webhook line check; prove 1.23 on staging with one test product; run research-load and record coverage | `.github/`, `wrangler.jsonc`, `packages/wa/`, `apps/gateway/src/index.ts` (not the conversation object), `apps/gateway/src/catalog-feed.ts`, `scripts/ci/` | 0115-0117 | SP1 (shares `index.ts`) | W1, R4, H1 | The feed serves stable public picture addresses and only approved pictures; withdrawing a picture removes the public copy; the usage workflow fails above 70% of a limit; a non-Kapso media host is refused |
+| 6 | **R4** Research remainder | Sonnet 5.5 | The eight unchecked items of RESEARCH_REGISTER | `docs/RESEARCH_REGISTER.md` | none | nothing | anything | Each item has official sources, a date, facts apart from assumptions |
+| 7 | **H1** Repo hygiene | Sonnet 5.5 | The cleanup list in SYSTEM_PLAN 18; repeat after every wave | deletions, `docs/history/`, `docs/HANDOFF.md` | none | wave 1 merged | W1, A5 | CI green; HANDOFF Status under 200 lines; nothing loaded and approved left in `data/` |
+| 8 | **M1** Message design | Opus 5.5 | SYSTEM_PLAN 14; utility templates for code-started messages (G1-23); the lira answer | `packages/agents/src/messages/` (new), `order-card.ts`, `answers.ts`, the fixed strings in `turn.ts` and `ops-turn.ts`, `templates/` | 0120-0121 | W1 | I1, C4 | The rules test passes for every template in ar, en, fr; snapshots committed; no fixed message is written by the model; templates submitted |
+| 9 | **I1** Intake pipeline | Opus 5.5 | Product intake queue, API research step, name proposals in the database, readiness function, automatic-approval rules (switched off), the automatic approvals page | `scripts/intake/` (new), `scripts/images/`, `scripts/product-data/`, `.github/workflows/intake.yml`, `apps/console/src/pages/autoapprovals.ts` (new) | 0122-0127 | D4, A5 | M1, C4 | A new product walks the eight steps with the network faked; no input auto-approves an allergen, a diet label or a price; a failed spot check disables the rule; the 291 items are enqueued once |
+| 10 | **C4** Commerce core | Opus 5.5 | SYSTEM_PLAN 1, database and package only | `packages/commerce/` (new), `scripts/check_permissions.sh` | 0128-0133 | F1 | M1, I1 | One basket through chat, catalog cart and the commerce client gives the same quote and ledger; `web_channel` can call nothing else; a link code is single use; the agent still cannot confirm |
+| 11 | **T1** Friends' test | Sonnet 5.5 | SYSTEM_PLAN 16 | `docs/TEST_SCRIPT.md`, `scripts/staging/`, `apps/console/src/pages/cases.ts` | 0134 | M1 | WEB1, D5 | A tester's order runs to closed with the test rider; a Beirut address gets the "not yet" line; a tester's note becomes a case |
+| 12 | **WEB1** Website, read side | Sonnet 5.5 | Home, category, product, search; Arabic and English; installable shell | `apps/web/` (new), `.github/workflows/web.yml` | 0154-0155 | C4, A5 | T1, D5 | Pages render from the database with JavaScript off; no unapproved picture or fact; the same search results as chat; deployed to staging |
+| 13 | **D5** Console cockpit | Sonnet 5.5 | Shell, installable, push, Today as an exception inbox, orders page (after the founder's yes to C8) | `apps/console/` | 0158-0159 | D4, F1, C8 | T1, WEB1 | Every existing page test passes unchanged; the service worker caches no personal data; one push per exception |
+| 14 | **WEB2** Website, ordering | Opus 5.5 | Cart, checkout with cash, number check by WhatsApp code, tracking, history, account | `apps/web/`, the code branch in `apps/gateway/src/turn.ts` | 0156-0157 | WEB1, M1, T1 | L1, WH1 | The done-when of `docs/WEBSITE.md`; a confirm sent twice confirms once; an expired tracking link shows nothing |
+| 15 | **L1** Places and delivery learning | Opus 5.5 | SYSTEM_PLAN 5 | `apps/gateway/src/ops-turn.ts`, `packages/agents/src/pipeline.ts` (address context only), console pages `landmarks.ts`, `eta.ts` (new) | 0135-0139 | M1 | WEB2, WH1 | A proposed landmark is invisible until approved; a landmark never changes the fee; no position outside a job |
+| 16 | **WH1** Warehouse | Opus 5.5 | SYSTEM_PLAN 7 and the invoice pipeline | console pages `lots.ts`, `scan.ts`, `invoices.ts` (new) | 0140-0147 | F1, D5 | WEB2, L1 | FEFO; a wrong scan blocks ready; lots reconcile to stock and the inventory account; an invoice photo never moves stock |
+| 17 | **N2** Nightly learning | Sonnet 5.5 | SYSTEM_PLAN 6 | `.github/workflows/nightly.yml`, `evals/`, console page `learned.ts` (new) | 0148-0150 | I1, L1 | AN1 | A wrong product in the nightly run opens an exception; learning writes proposals only |
+| 18 | **AN1** Reports | Sonnet 5.5 | Daily summary, weekly report, costs, customers pages | console pages (new), | 0151-0153 | D5 | N2 | The daily summary equals the day close on the same day; the customers page shows only stated restrictions |
+| 19 | **G2** Audit before the paid pilot | Fable 5.2 | The same audit on production settings | findings only | none | everything above, A3 | nothing | |
+
+Gated sessions (start when the gate opens; prompts in `docs/NEXT_SESSIONS.md`): **V1** voice evaluation (the 51 notes uploaded);
+**A3** production (company papers, +961 numbers); **PAY1** Whish Pay (a merchant account), 0160-0164; **PAY2** cards and send home
+(a signed gateway); **E1, E2, E3** vendors, delivery providers, combined orders (the first signed vendor; C2 and C5 answered),
+0165-0184; **LOY1** loyalty (four clean pilot weeks; C7), 0185-0189; **MK1** markets (60 orders a day for a month), 0190-0194;
+**BK1** basket builder (C9), 0195-0197; **AN1b** founder assistant (C3); **D4b** pick queue and rider incident pages (after D4,
+Sonnet, no migration).
+
+Waves: (1) SP1, F1, D4. (2) W1, A5, R4 then H1. (3) M1, I1, C4. (4) T1, WEB1, D5. (5) WEB2, L1, WH1. (6) N2, AN1, D4b. Then G2.
+Phase 6 (the shadow run) starts when waves 1 to 4 are merged, the catalog is live, and the founder's Phase 5 data is in.

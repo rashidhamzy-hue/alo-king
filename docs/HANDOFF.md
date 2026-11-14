@@ -831,6 +831,37 @@ For other sessions:
 - K1, C3, D3: `TEST_DEPS.db` now also reaches the webhook and queue's database client (tests only).
 - A3 (4.11): read `ai_cost_daily`. When a model or price changes, add a row to `model_prices`; never edit a row.
 
+### Session S1 (audit, research and system plan), 14 November 2026: documents only
+Fable 5.2. No product code, no migration, no deploy, no message. Branch `s1-audit-system-plan`.
+
+| Part | Where | State |
+| --- | --- | --- |
+| The founder's brief, unchanged | `docs/SYSTEM_BRIEF.md` | Committed first (converted from the Word file to Markdown; its one diagram is not in the repository) |
+| Status of every capability; the G1 attack audit | `docs/AUDIT-G1.md` | Done. 25 findings, 4 high: G1-01 to G1-04 (money). Nothing fixed here |
+| Targeted research | `docs/RESEARCH_REGISTER.md` | Partial: 11 searches of the 25 allowed; eight items listed for session R4 |
+| System plan, website, console | `docs/SYSTEM_PLAN.md`, `docs/WEBSITE.md`, `docs/CONSOLE.md` | Done |
+| Cost model | `docs/COST_MODEL.md`, `data/cost_model.csv` | Done; the sheet recalculates in a spreadsheet; most inputs are still placeholders |
+| Decisions, conflict register | `docs/DECISIONS.md` | 11 conflicts recorded, none resolved |
+| Gap matrix, classes, sessions | `docs/BUILD_PLAN.md` "S1 revision" | Done |
+| Prompts | `docs/NEXT_SESSIONS.md` | Full prompts for the 19 sessions in run order and for PAY1 and E1; the far-gated sessions (LOY1, MK1, BK1, AN1b, D4b, PAY2, WEB3) have a plan section, not a prompt |
+
+Checks run by S1 on `471d99e`: `npm run typecheck` clean; `npm test` 930 passed, 40 skipped, **1 failed**
+(`apps/console/test/sign-in.test.ts:152`, the action log's order inside one millisecond; it passed alone; finding G1-16, session D4).
+Staging read with read-only queries on 14 Nov about 12:30 UTC: 70 migrations, 14 closed orders, ledger at zero, no open exception,
+marketing off, no client grants, templates 3 approved and 6 pending, research-load has run (20 pictures and 470 facts proposed, none approved).
+
+**Start now, together:** SP1 (reply speed), F1 (G1 fixes), D4 (console review pages). Migration numbers from 0100 are reserved per
+session in the build plan.
+
+**Blocked or not done, recorded:**
+- Research: the items under "Not checked in this session" in the register (Whish Pay's own documentation, gateway onboarding
+  terms, Meta's current policy text, Kapso's terms, plan limits, Open Food Facts licence duties, map tiles). Session R4.
+- Web checkout confirming on the page, vendor-operated delivery, the founder assistant, automatic approval, the console
+  redesign: each waits for the founder's answer to its row in the conflict register (C1, C2, C3, C6, C8). The sessions build
+  the "until then" behaviour written there.
+- The Meta message rate for Lebanon: published rate cards disagree (0.0091 or 0.0105 USD); the first bill decides.
+- The founder's phone retest of 0.13 is not recorded anywhere as done.
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - Deliverect adapter: shape only. Needs a partner account.
 - Market tables (`markets`, `market_settings`, `setting_for`): schema only. Functions still read global settings.
