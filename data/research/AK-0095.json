@@ -1,0 +1,52 @@
+{
+  "sku": "AK-0095",
+  "matched": {
+    "brand": "Tanmia",
+    "product": "Meat Mortadella (plain)",
+    "size": "2 kg log, sold by weight",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "Brand site (Lebanon) product 'Meat Mortadella - 2kg', the deli log that is sliced by weight; the catalog calls it 'Mortadella Beef Plain' while the brand's ingredient list starts 'Chicken and beef meat 75%'. Ingredients and nutrition transcribed from the page's ingredient and nutrition images (https://tanmia.com/wp-content/uploads/2022/08/meat-mortadella-ingredients-1.jpg, https://tanmia.com/wp-content/uploads/2022/08/meat-mortadella-nutrition-facts-1.jpg). The nutrition image prints 'Calorific value 105 Kcal/100g' and 'Calories from fat 180 Kcal/100g', which contradict each other and the 12% fat, so energy was left out. No separate allergen statement on the page; soy is from the ingredient list."
+  },
+  "pictures": [
+    {
+      "image_url": "https://tanmia.com/wp-content/uploads/2022/08/Tanmia-mortadella-beef.png",
+      "page_url": "https://tanmia.com/products/deli/meat-mortadella-2kg/",
+      "site": "tanmia.com",
+      "site_kind": "brand",
+      "looks": "one 2 kg mortadella log in red printed casing, plain white background, no watermark/price, side view"
+    }
+  ],
+  "ingredients": {
+    "text": "Chicken and beef meat 75%; water; potato starch; thickeners: guar gum, processed eucheuma seaweeds, xanthan gum; salt; soy protein; sugar; flavoring; stabilizers: di and triphosphates; dextrose; hydrolysed vegetable protein; garlic; vegetable fat hydrogenated; flavor enhancer: monosodium glutamate; antioxidant: ascorbic acid; onions; spices; citric acid; vegetable oil; preservative: sodium nitrite (less than 0.01%); colorant: allura red.",
+    "language": "en",
+    "page_url": "https://tanmia.com/products/deli/meat-mortadella-2kg/",
+    "market": "Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "soy"
+    ],
+    "may_contain": [],
+    "quote": "soy protein",
+    "page_url": "https://tanmia.com/products/deli/meat-mortadella-2kg/"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "fat_g": 12,
+    "carbohydrate_g": 6,
+    "protein_g": 13,
+    "page_url": "https://tanmia.com/products/deli/meat-mortadella-2kg/"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "Brand page: 'made with 100% pure halal meat'; 'HALAL' printed on the casing in the pack image",
+      "page_url": "https://tanmia.com/products/deli/meat-mortadella-2kg/"
+    }
+  ],
+  "not_found": [
+    "storage",
+    "origin"
+  ]
+}

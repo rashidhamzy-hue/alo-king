@@ -1,0 +1,54 @@
+{
+  "sku": "AK-0088",
+  "matched": {
+    "brand": "Tannour El Asser (Tannour Alasr)",
+    "product": "Bran Bread Light, High Fiber",
+    "size": "5 pieces",
+    "barcode": "5289000007638",
+    "confidence": "likely",
+    "note": "Barcode matches Open Food Facts 'tannour alasr light' (market: Lebanon). The photographed bag reads 'TANNOUR ALASR ... High Fiber ... BRAN BREAD ... Light' and carries a promotional '8 loaves instead of 6' badge, so the piece count differs from the catalog's 5. Ingredients, storage and nutrition transcribed from the bag photos (https://images.openfoodfacts.org/images/products/528/900/000/7638/front_fr.3.400.jpg and https://images.openfoodfacts.org/images/products/528/900/000/7638/nutrition_fr.5.400.jpg); the ingredient line is cut at the photo edge after 'Yeas'. Label lists 'Sodium Chloride, NaCl 63 mg' per serving (entered as salt 0.063 g). The Open Food Facts typed salt value (18.4 g per 100 g) is a data-entry error and was not used. Front of bag also says 'No sugar added'. No separate allergen statement; wheat is from the ingredient line."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/900/000/7638/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5289000007638",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "straight-on photo of the whole bag front on a wooden surface, promotional '8 loaves' badge and phone numbers on pack; not a studio pack shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Wheat Flour with Bran and Salt and Yeast",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/5289000007638",
+    "market": "Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "wheat"
+    ],
+    "may_contain": [],
+    "quote": "Ingredients: Wheat Flour with Bran and Salt and Yeas",
+    "page_url": "https://world.openfoodfacts.org/product/5289000007638"
+  },
+  "nutrition": {
+    "per": "serving (50 g)",
+    "energy_kcal": 129,
+    "fat_g": 0.9,
+    "saturated_fat_g": 0.1,
+    "carbohydrate_g": 30,
+    "sugars_g": 0,
+    "fibre_g": 5.5,
+    "protein_g": 4.7,
+    "salt_g": 0.063,
+    "page_url": "https://world.openfoodfacts.org/product/5289000007638"
+  },
+  "storage": {
+    "text": "Keep in a cool dry place ( Less than 20 ° C ) away from sunlight",
+    "page_url": "https://world.openfoodfacts.org/product/5289000007638"
+  },
+  "not_found": [
+    "diet_labels",
+    "origin"
+  ]
+}

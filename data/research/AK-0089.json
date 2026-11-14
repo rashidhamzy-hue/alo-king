@@ -1,0 +1,39 @@
+{
+  "sku": "AK-0089",
+  "matched": {
+    "brand": "Tannour El Asser (Tannour Alasr)",
+    "product": "Oat Bread Light",
+    "size": "5 loaves",
+    "barcode": "5289000007621",
+    "confidence": "likely",
+    "note": "Barcode matches Open Food Facts 'Oat Light Bread', brand typed 'Tamnour Al ASR' (market: Lebanon); piece count not stated. Nutrition transcribed from the bag label photo (https://images.openfoodfacts.org/images/products/528/900/000/7621/nutrition_en.11.400.jpg), 'Serving Size: 1 loaf (50 g)'; label lists 'Sodium Chloride, NaCl 65 mg' per serving (entered as salt 0.065 g). No ingredient list legible on the pages opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/900/000/7621/front_en.9.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5289000007621",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "photo of the bag front (Arabic 'شوفان', 'Light') lying on a striped cloth, taken at an angle; not a clean pack shot"
+    }
+  ],
+  "nutrition": {
+    "per": "serving (50 g)",
+    "energy_kcal": 144,
+    "fat_g": 1.42,
+    "saturated_fat_g": 0.2,
+    "carbohydrate_g": 29,
+    "sugars_g": 0,
+    "fibre_g": 4.5,
+    "protein_g": 4.8,
+    "salt_g": 0.065,
+    "page_url": "https://world.openfoodfacts.org/product/5289000007621"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

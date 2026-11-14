@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0093",
+  "matched": {
+    "brand": "Al Mouna",
+    "product": "Mortadella Beef With Olives",
+    "size": "by weight",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Deli item sold by weight. No brand or retailer page for an Al Mouna mortadella could be found or opened."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0091",
+  "matched": {
+    "brand": "Sant Dalmai",
+    "product": "Turkey Breast (Pechuga de pavo)",
+    "size": "by weight",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Deli log sold by weight. The maker's site (Spain) lists several turkey breast products (Pechuga de pavo Sant Dalmai, Tradición, 1964, Menos Sal, Finas hierbas...); which one is sold in Lebanon is not known, and the export recipe may differ, so no ingredients, allergens or nutrition were taken. The two pictures are the products named 'Pechuga de pavo Sant Dalmai' on the brand site. The brand pages do not mention halal."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.santdalmai.com/tmp/images/BIBLIOTECA_ITEMS_1250_PAVO_SD_W_600.PNG",
+      "page_url": "https://www.santdalmai.com/es/pechuga-de-pavo-sant-dalmai-2",
+      "site": "santdalmai.com",
+      "site_kind": "brand",
+      "looks": "whole deli log in printed casing with a cut piece beside it, transparent background, no watermark/price"
+    },
+    {
+      "image_url": "https://www.santdalmai.com/tmp/images/BIBLIOTECA_ITEMS_1135_FIAMBRE_PAVO2_W_600.PNG",
+      "page_url": "https://www.santdalmai.com/es/pechuga-de-pavo-sant-dalmai",
+      "site": "santdalmai.com",
+      "site_kind": "brand",
+      "looks": "whole deli log in red/yellow printed casing ('Fiambre de Pechuga de Pavo') with a cut piece beside it, transparent background, no watermark/price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

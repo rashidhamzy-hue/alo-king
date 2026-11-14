@@ -1,0 +1,29 @@
+{
+  "sku": "AK-0087",
+  "matched": {
+    "brand": "Foody's",
+    "product": "Tortilla Wraps 20cm 8 Pieces",
+    "size": "320 g",
+    "barcode": "5287001636925",
+    "confidence": "likely",
+    "note": "Barcode matches Open Food Facts 'Tortilla', brand Foody's (market: Lebanon); the record has no size, no photos and no ingredients, so the nutrition is the contributor's typed entry and could not be checked against a pack photo. superdokan.com lists Foody's tortilla only in other sizes (8 pcs 240g, 6 pcs 370g); nothing taken from those."
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 298,
+    "fat_g": 7.6,
+    "saturated_fat_g": 2,
+    "carbohydrate_g": 49.7,
+    "fibre_g": 1.6,
+    "protein_g": 7.3,
+    "page_url": "https://world.openfoodfacts.org/product/5287001636925"
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
