@@ -496,7 +496,7 @@ Phase 5 is founder and team work, not sessions. It starts now.
 2. One bundle per session, as in the table above. One commit per task, one pull request per session.
 3. Tests first, on the real schema. Anything touching stock, cash or the ledger asserts the ledger sums to zero.
 4. Migrations are append-only.
-5. Green before done: `npx tsc --noEmit`, `npx vitest run`, regenerate `TEST_REPORT.txt`.
+5. Green before done: `npx tsc --noEmit`, `npx vitest run` (CI is the record of the run; `TEST_REPORT.txt` no longer exists).
 6. Label every finished task built, tested, or proven live. Only proven live counts toward launch. Update `docs/HANDOFF.md`.
 7. If the plan is wrong, change this file in the same pull request and say so.
 8. If a session cannot make its tests pass after two honest attempts at a task, stop, write down what was tried, and restart that task one model up.

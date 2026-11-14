@@ -62,7 +62,8 @@ Done: the repository is public (founder's choice, until the build is done), so p
 - **Blocked or left, and why.** Remote branches that are not merged stay: `language-pack-out/*` and `product-data-out/*` (workflow outputs, never merged; four of the `language-pack-out` runs are cited by pull request #54) and the branches of the open pull requests. Files under `data/research` and `data/proposals`: see "Data files" below.
 
 
-PLACEHOLDER_DATA_FILES
+### Data files under `data/research` and `data/proposals` (H1 check, 14 November)
+H1 read the database through the read-only workflow `data-coverage` before deleting anything. Result on staging: 291 research files loaded; **nothing approved yet**: 0 approved pictures (20 proposed, 18 of them from public pages), 0 approved web-page facts (258 fact proposals waiting), 0 approved Open Food Facts facts (212 proposals), the 282 name proposals still await the founder. So no file backs an approved record, and **none was deleted**: every `data/research/AK-nnnn.json` still backs a pending proposal or an unapplied reading, and the research loader and the intake pipeline reuse them. In `data/proposals`, `names.json` backs the pending name proposals and is read by a console test, `categories.json` is read by `test/db/catalog-k1.test.ts`, and `product-facts-summary.json` is a report that the `product-data` workflow rewrites. Delete a research file only after its picture or facts are approved on the console; rerun a coverage read first (the workflow was removed after use; its script is in git history at `scripts/ci/data-coverage.mjs`).
 
 ### Open requests carried forward
 
