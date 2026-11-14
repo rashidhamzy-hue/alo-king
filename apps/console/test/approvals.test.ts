@@ -1,6 +1,6 @@
 // 3.13 Second approval: a big price change and a big refund wait for a second person; the asker cannot approve their own.
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { deliver, flashOf, ledgerSum, openShop, placeOrder, rig, type Rig } from "./kit";
+import { deliver, drawerUsd, dropAtHub, flashOf, ledgerSum, openShop, placeOrder, rig, type Rig } from "./kit";
 
 let r: Rig; let village: string; let rider: string;
 let maya: { partyId: string; email: string; password: string }; let rasheed: { partyId: string; email: string; password: string };
@@ -68,6 +68,11 @@ describe("Second approval", () => {
     const a = r.browser();
     await a.signIn(rasheed);
     await a.get("/approvals");
+    // A cash refund approved while the drawer is empty is refused by the database (0081) and keeps waiting.
+    expect(await drawerUsd(r.db)).toBe(0);
+    expect(flashOf((await a.post(`/approvals/${first.id}/approve`)).text)).toBe("The drawer does not hold that much by the books. Count it, and check what came in today.");
+    expect((await r.db.one(`select status from pending_approvals where id = $1`, [first.id])).status).toBe("pending");
+    await dropAtHub(r.db, rider, rasheed.partyId);
     expect(flashOf((await a.post(`/approvals/${first.id}/approve`)).text)).toBe("Approved: the change is made.");
     const ref = await r.db.one(`select amount_usd, settle, by_party, request_key from refunds where order_id = $1`, [o.id]);
     expect(ref).toEqual({ amount_usd: "25.00", settle: "cash", by_party: maya.partyId, request_key: `console:${key}` });
