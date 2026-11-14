@@ -76,6 +76,9 @@ export class FakeAuth implements StaffAuth {
 
 export class FakeMedia implements Media {
   objects = new Map<string, string>();
+  /** Entries written to staff_actions (0113) in the order they were written, as the older tests read them (see audit()). */
+  logged: Record<string, any>[] = [];
+  /** Makes the action log refuse (the table's function, and the bucket the log falls back to), as a database that is down would. */
   failPut = false;
   async sign(path: string, seconds: number) { return `https://media.test/${path}?token=t&expires=${seconds}`; }
   async put(path: string, body: string | ArrayBuffer) {
@@ -83,8 +86,11 @@ export class FakeMedia implements Media {
     if (this.objects.has(path)) throw new Error("storage_409");
     this.objects.set(path, typeof body === "string" ? body : `[${body.byteLength} bytes]`);
   }
+  /** The action log as entries: what log_staff_action() recorded, in order, plus anything the bucket fallback wrote (a database without 0113).
+   *  The table itself is read with Rig.actions(), in sequence order. */
   audit(): Record<string, any>[] {
-    return [...this.objects.entries()].filter(([k]) => k.startsWith("console_audit/")).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => JSON.parse(v));
+    const bucket = [...this.objects.entries()].filter(([k]) => k.startsWith("console_audit/")).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => JSON.parse(v));
+    return [...this.logged, ...bucket];
   }
 }
 
@@ -92,6 +98,8 @@ export const KAPSO_ENV = { KAPSO_BASE_URL: "https://api.kapso.test/meta/whatsapp
 
 export interface Rig {
   db: TestDb; deps: Deps; auth: FakeAuth; media: FakeMedia;
+  /** The rows of staff_actions in sequence order (the log's truth). */
+  actions(): Promise<Record<string, any>[]>;
   /** Every request Kapso would have received. */
   kapso: { url: string; body: any }[];
   staff(role: Role | "driver" | "customer", name?: string): Promise<{ partyId: string; email: string; password: string }>;
@@ -113,8 +121,25 @@ export async function rig(opts: { without?: string[] } = {}): Promise<Rig> {
       { status: 200, headers: { "content-type": "application/json" } });
   }));
   const supa = supabaseOver(db).client;
+  // The action log's function is the real one; the wrapper only lets a test make it fail and keeps the older tests' view of it (media.audit()).
+  const base = pgDb(db);
+  const logged: Db = {
+    ...base,
+    async rpc<T = unknown>(fn: string, args: Record<string, unknown> = {}) {
+      if (fn === "log_staff_action" && media.failPut) throw new DbError("the log is down");
+      const r = await base.rpc<T>(fn, args);
+      if (fn === "log_staff_action") {
+        const a = args as Record<string, unknown>;
+        const e: Record<string, any> = { at: new Date().toISOString(), environment: a.p_environment, party_id: a.p_party, user_id: a.p_user, role: a.p_role,
+          action: a.p_action, phase: a.p_phase, ref: a.p_ref, args: a.p_args, ok: a.p_ok, result: a.p_result, error: a.p_error };
+        for (const k of Object.keys(e)) if (e[k] === null || e[k] === undefined) delete e[k];
+        media.logged.push(e);
+      }
+      return r;
+    },
+  };
   const deps: Deps = {
-    db: pgDb(db), auth, media,
+    db: logged, auth, media,
     send: (req) => gatewaySend(supa, KAPSO_ENV, req),
     secret: "test-secret-test-secret-test-secret-1234", environment: "test", supabaseUrl: "https://project.supabase.test",
     now: () => new Date(),           // the database's now() moves on during a test; a clock frozen at rig() made "late" drift
@@ -123,6 +148,7 @@ export async function rig(opts: { without?: string[] } = {}): Promise<Rig> {
   let n = 0;
   return {
     db, deps, auth, media, kapso, source,
+    actions: () => db.all("select * from staff_actions order by seq"),
     async staff(role, name) {
       n++;
       const party = await db.one<{ id: string }>("insert into parties(role, display_name) values ($1, $2) returning id", [role, name ?? `${role} ${n}`]);
