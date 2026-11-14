@@ -6,6 +6,7 @@ import { buttons, list, type Outbound } from "@ak/wa/kapso";
 import { OutboxUnavailable } from "@ak/wa/gateway";
 import { parseCashMessage } from "@ak/core/cash-parse";
 import { cashAsk, dropCard, offerCard, parseRiderButton, pickupCard, RIDER_TEXT as T, riderButtonId, type Job } from "@ak/agents/job-card";
+import { OPS_VOICE_TEXT, voiceOnOpsLine, type AudioMessage } from "@ak/agents/voice";
 import type { Pending, TurnDeps, TurnResult } from "./turn";
 
 const START = /^(حاضر|جاهز|بلشت|بلّشت|7ader|hader|start|on)$/i;
@@ -62,6 +63,21 @@ export async function alertOps(deps: TurnDeps, text: string, dedupeKey: string):
   }
 }
 
+/**
+ * A voice note on the ops line (B3's request, invariant 18: nothing is dropped in silence). No model reads it: within the
+ * sender's limits (1.17) the sender is told a person will listen and that amounts are buttons or typed figures, and ops is
+ * alerted to listen; over a limit, the polite reply. It never moves money or changes an order.
+ */
+async function voiceNote(deps: TurnDeps, m: Pending["event"]["message"], who: { partyId: string; role: "driver" | "staff" },
+                         say: (text: string) => Promise<void>, earlier: { seconds: number }, turnIds: string[], turnKey: string): Promise<void> {
+  const v = await voiceOnOpsLine({ db: deps.db, partyId: who.partyId, line: "ops", role: who.role }, m as unknown as AudioMessage, earlier.seconds, turnIds);
+  await say(v.reply);
+  if (!v.forwardToOps) return;
+  earlier.seconds += v.seconds;
+  const name = (await rpc<string | null>(deps.db, "party_display_name", { p_party: who.partyId })) ?? (who.role === "driver" ? "سائق" : "الفريق");
+  await alertOps(deps, OPS_VOICE_TEXT.opsAlert(name, v.seconds), `${turnKey}:alert:voice:${m.id}`);
+}
+
 export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promise<TurnResult> {
   const { db } = deps;
   const first = pending[0]!;
@@ -94,9 +110,12 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
     if (!r.delivery_done && deliveryId) await showNext(deliveryId);
   };
 
+  const voiced = { seconds: 0 };
+  const turnIds = pending.map((x) => x.event.message.id);
   for (const p of pending) {
     const m = p.event.message;
     try {
+      if (m.type === "audio") { await voiceNote(deps, m, { partyId: driver, role: "driver" }, say, voiced, turnIds, turnKey); continue; }
       if (m.type === "location" && m.location) {
         await rpc(db, "record_driver_position", { p_driver: driver, p_lat: m.location.latitude, p_lng: m.location.longitude });
         continue;
@@ -466,9 +485,12 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
     await showPick(await rpc<PickList>(db, "pick_list", { p_order: o.order_id }));
   };
 
+  const voiced = { seconds: 0 };
+  const turnIds = pending.map((x) => x.event.message.id);
   for (const p of pending) {
     const m = p.event.message;
     try {
+      if (m.type === "audio") { await voiceNote(deps, m, { partyId: staff, role: "staff" }, say, voiced, turnIds, turnKey); continue; }
       const tapped = m.type === "interactive" ? (m.interactive?.button_reply?.id ?? m.interactive?.list_reply?.id) : undefined;
       const b = tapped ? parseStaffButton(tapped) : null;
       const text = (m.text?.body ?? "").trim();
