@@ -19,6 +19,7 @@ import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payme
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
+import { takeCart, type CartOrder } from "@ak/agents/cart";
 
 interface SavedPin { place_id: string; village_id: string | null; village: string | null; village_ar?: string | null; served?: boolean | null;
   status: "located" | "unsure" | "outside"; said_village_id?: string | null; said_village_ar?: string | null;
@@ -203,6 +204,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
                          saidAr: place.village_id && place.said_village_id && place.said_village_id !== place.village_id ? place.said_village_ar ?? null : null };
       pins++;
       texts.push(`[location pin received, ${place.village ? `village: ${place.village}` : "village not clear: the customer is asked to choose"}]`);
+      continue;
+    }
+
+    // 2b. A cart sent from the WhatsApp catalog (1.21): code turns it into the order card, as a typed order would be. The catalog
+    //     never confirms; the customer taps Confirm on the card. When the cart needs a question, the Concierge gets it in words.
+    if (m.type === "order") {
+      const r = await takeCart(ctx, (m as typeof m & { order?: CartOrder }).order);
+      if (r.done) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }
+      texts.push(r.asText);
       continue;
     }
 

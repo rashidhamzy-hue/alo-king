@@ -6,6 +6,7 @@ import type { SendResult } from "@ak/wa/gateway";
 import type { ConciergeTools } from "./concierge";
 import { FIXED, formatOrderCard, KEPT_BUTTON, type Quote } from "./order-card";
 import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
+import { catalogMessages } from "./catalog-messages";
 
 /** What survives between turns of one conversation. Kept in the Durable Object, not in the model. */
 export interface ConversationState {
@@ -151,6 +152,17 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       // The gateway re-checks the model's words. Not when code appended prices: its check reads the whole body, and the prices
       // would be refused as money in model text. Those words were checked above, before the prices were added.
       return deliver(ctx, msg, body, undefined, !prices);
+    },
+
+    async show_catalog({ category, product_id }) {
+      // 1.21: what to show comes from the database (catalog_list); the words and the message are code's. At most the turn's two sends.
+      const r = await catalogMessages(ctx.db, { category: category ?? null, product_id: product_id ?? null });
+      if (!r.ok) return r;
+      for (const msg of r.messages) {
+        const sent = await deliver(ctx, msg, r.summary);
+        if (!sent.ok) return sent;
+      }
+      return { ok: true, messages: r.messages.length };
     },
 
     async handoff_human({ reason }) {

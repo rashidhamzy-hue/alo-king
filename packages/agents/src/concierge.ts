@@ -17,6 +17,8 @@ export interface ConciergeTools {
   /** price_of: product ids whose prices the system appends from the database. The model never writes an amount itself. */
   reply(args: { text: string; buttons?: { id: string; title: string }[]; price_of?: string[] }): ToolResult;
   handoff_human(args: { reason: string }): ToolResult;
+  /** 1.21: WhatsApp's catalog view, one category as product lists, or one product. Built and sent by code; never confirms. */
+  show_catalog(args: { category?: string | null; product_id?: string | null }): ToolResult;
 }
 
 const str = { type: "string" } as const, nstr = { type: ["string", "null"] } as const;
@@ -44,8 +46,10 @@ const TOOL_DEFS: Anthropic.Tool[] = [
       price_of: { type: "array", items: str, maxItems: 6 } }, required: ["text"] } },
   { name: "handoff_human", description: "Pass the conversation to the operations lead. Ends your turn.",
     input_schema: { type: "object", properties: { reason: str }, required: ["reason"] } },
+  { name: "show_catalog", description: "Send the WhatsApp catalog with pictures: no arguments for the whole catalog, `category` (a category name or code, in any language) for that category's products, or `product_id` for one product. The customer adds items to a cart there and sends it; the system then sends the order card. The message is written by the system. If it answers catalog_not_ready or a category error, carry on in words. Ends your turn.",
+    input_schema: { type: "object", properties: { category: nstr, product_id: nstr } } },
 ];
-const TERMINAL = new Set(["send_confirmation", "reply", "handoff_human", "ask_location_pin"]);
+const TERMINAL = new Set(["send_confirmation", "reply", "handoff_human", "ask_location_pin", "show_catalog"]);
 const MAX_STEPS = 6;
 
 export interface TurnInput {

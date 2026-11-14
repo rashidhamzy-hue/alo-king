@@ -176,7 +176,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   return routed.done ? routed : { done: false, plan };
 }
 
-const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
+export const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
 const ADDRESS_INTENTS = new Set(["order", "add_to_order", "change_order", "question", "delivery_area", "greeting"]);
 
 /** A basket is waiting on the customer for where to deliver (pin, village tap, house and floor). */
@@ -238,7 +238,7 @@ export async function choosePinVillage(ctx: ToolContext, villageId: string): Pro
 }
 
 /** A priced basket goes out as a card, or, for a first delivery to that village, as a pin request with the card waiting on it. */
-async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
+export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
                           terms: CardTerms, quote: Quote, before?: string): Promise<{ done: true; path: string } | { done: false }> {
   const pinned = basket.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: basket.placeId }));
   if (!basket.pickup && !pinned) {
