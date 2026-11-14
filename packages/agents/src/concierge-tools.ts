@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons as buttonMsg, type Outbound } from "@ak/wa/kapso";
 import type { SendResult } from "@ak/wa/gateway";
 import type { ConciergeTools } from "./concierge";
-import { FIXED, formatOrderCard, type Quote } from "./order-card";
+import { FIXED, formatOrderCard, KEPT_BUTTON, type Quote } from "./order-card";
 import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
 
 /** What survives between turns of one conversation. Kept in the Durable Object, not in the model. */
@@ -18,7 +18,7 @@ export interface ConversationState {
    * A card is ready to go out from lastQuote once the customer supplies what is missing: a pin, the village when the pin was
    * not clear (a tap), the house and floor for a first delivery to a new place, or a phone number the rider can call.
    */
-  awaiting?: "pin" | "village" | "address" | "phone" | null;
+  awaiting?: "pin" | "village" | "address" | "phone" | "opening" | null;
   /** What the last pin said (B4): the pin decides the village. Unsure means the customer chooses from `candidates` by tap. */
   pinCheck?: PinCheck | null;
   pending?: CardTerms | null;
@@ -195,7 +195,7 @@ async function priceLines(ctx: ToolContext, productIds: string[]): Promise<{ ok:
   return { ok: true, text: q.lines.map((l) => `• ${l.name_ar ?? l.name} — ${money(l.unit_price_usd)}${l.ok ? "" : " (مش متوفّر هلّق)"}`).join("\n") };
 }
 
-export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" } | { ok: false; error: string; issues?: unknown };
+export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" | "opening" } | { ok: false; error: string; issues?: unknown };
 
 /**
  * Creates the order from priced lines and sends the card. The deterministic path and the Concierge's send_confirmation
@@ -228,6 +228,12 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     const told = await deliver(ctx, { type: "text", text: { body: FIXED.fxPaused } }, FIXED.fxPaused);
     return told.ok ? { ok: false, error: "fx_paused" } : told;
   }
+  const closed = created.created ? undefined : created.quote.issues.find((i) => i.code === "closed");
+  if (closed) {
+    // K1 (B4's leftover): we closed while the basket waited (on the pin, the house, the number). Kept for when we open.
+    const kept = await keepUntilOpen(ctx, { ...basket, quote: created.quote }, terms, String(closed.opens ?? ""));
+    return kept.ok ? { ok: true, waiting_for: "opening" } : kept;
+  }
   if (!created.created) {
     // The customer owes from a delivery nobody answered: the database refuses cash on delivery (0004 policy). The card goes
     // out as a prepaid order instead, and says why (1.4). Whish is the default transfer; the customer can still edit.
@@ -257,6 +263,22 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   // The directions went onto the order (and the place); they are not carried into the next order.
   ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null; ctx.state.directions = null;
   return { ok: true, order_code: created.short_code! };
+}
+
+/**
+ * After closing time (K1, B4's leftover): the basket, the terms and the place are kept in the conversation, and the customer is
+ * told by code when we open, with one button to carry on. Nothing is promised or sent later on our own: the customer's tap, or a
+ * pin, picks it up. `pin`: a pin just arrived, so say it was received.
+ */
+export async function keepUntilOpen(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean; quote: Quote },
+                                    terms: CardTerms, opens: string, opts: { pin?: boolean; before?: string } = {}): Promise<{ ok: true } | { ok: false; error: string }> {
+  ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: basket.quote };
+  if (basket.placeId) ctx.state.placeId = basket.placeId;
+  if (basket.villageId) ctx.state.villageId = basket.villageId;
+  ctx.state.pending = terms; ctx.state.awaiting = "opening";
+  const said = opts.pin ? FIXED.closedKeptPin(opens) : FIXED.closedKept(opens);
+  const text = opts.before ? `${opts.before}\n${said}` : said;
+  return deliver(ctx, buttonMsg(text, [{ id: KEPT_BUTTON, title: FIXED.keptButton }]), `[kept until open] ${text}`);
 }
 
 const RESTRICTION_MARK = "⚠️ قيود الزبون";
