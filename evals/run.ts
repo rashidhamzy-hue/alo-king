@@ -29,7 +29,9 @@ import { checkModelText } from "../packages/agents/src/output-guard";
 import { REPLY_RULE } from "../packages/agents/src/messages";
 
 export interface WordingCase { id: string; customer: string; facts: string[]; approved?: string[] }
-export interface WordingResult { id: string; attempts: { tool: string; text: string; refused: string | null }[]; sent: string | null; handoff: boolean }
+export interface WordingResult { id: string; attempts: { tool: string; text: string; refused: string | null }[]; sent: string | null; handoff: boolean;
+  /** Each model call: why it stopped, the tools it called, any free text (report only). */
+  steps?: { stop: string | null; tools: string[]; text: string | null }[] }
 
 /**
  * Founder decision (14 Nov, M1): the two-sentence rule is judged on the reply the customer receives, after the output guard,
@@ -49,7 +51,15 @@ export function wordingPasses(r: WordingResult, c: Pick<WordingCase, "approved">
 
 export async function runWordingCase(client: ModelClient, model: string, c: WordingCase): Promise<WordingResult> {
   const approved = new Set(c.approved ?? []);
-  const out: WordingResult = { id: c.id, attempts: [], sent: null, handoff: false };
+  const out: WordingResult = { id: c.id, attempts: [], sent: null, handoff: false, steps: [] };
+  // The report only (M1): what the model did at each step (tools called, or free text, which the loop never sends), so a
+  // hand-off with no attempt can be read. Changes no check.
+  const traced: ModelClient = { messages: { create: async (body) => {
+    const res = await client.messages.create(body);
+    out.steps!.push({ stop: res.stop_reason ?? null, tools: res.content.filter((b) => b.type === "tool_use").map((b) => (b as { name: string }).name),
+                      text: res.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join(" ").slice(0, 200) || null });
+    return res;
+  } } };
   const speak = (tool: string) => async ({ text }: { text: string }) => {
     const v = checkModelText(text, { approvedFacts: approved });
     out.attempts.push({ tool, text, refused: v?.code ?? null });
@@ -66,7 +76,7 @@ export async function runWordingCase(client: ModelClient, model: string, c: Word
   };
   // The ask loop's input as turn.ts sends it, with M1's length rule.
   const ask = { texts: [c.customer], transcripts: [], state: { facts_from_tools: c.facts }, reading: null, plan: null, reply_rule: REPLY_RULE };
-  await runAskLoop(client, model, ask, tools);
+  await runAskLoop(traced, model, ask, tools);
   return out;
 }
 
