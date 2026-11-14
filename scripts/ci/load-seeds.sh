@@ -8,6 +8,7 @@
 #    marker row (settings key `seed_applied:proposed_pilot_settings`). Not on every deploy: both values are data the console can
 #    change (zones page, fee setting), and a deploy must never put an approved default back over a later decision.
 #    To load it again on purpose, delete the marker row. The step then prints what is in the database now.
+# 3. supabase/seed/delivery_windows.sql: the founder's delivery windows and calendar, once, with its own marker (see below).
 set -euo pipefail
 : "${DATABASE_URL:?}"
 PSQL="psql $DATABASE_URL -v ON_ERROR_STOP=1 -q -At"
@@ -33,7 +34,22 @@ else
   echo "seed proposed_pilot_settings skipped: already applied once (the console owns these values now)"
 fi
 
+# 3. supabase/seed/delivery_windows.sql (founder's windows and the 2026-2027 calendar, 14 Nov 2026, session A6): ONCE, the same way,
+#    marker `seed_applied:delivery_windows`. Later edits on /windows are never overwritten. The file adds a row only when no plan (or
+#    no calendar entry of that kind, name and first day) exists, so a database where a person already entered windows is not doubled.
+marker="seed_applied:delivery_windows"
+done_already=$($PSQL -c "select count(*) from settings where key = '$marker'")
+if [ "$done_already" = "0" ]; then
+  echo "seed delivery_windows (founder's decision, 14 Nov 2026)"
+  { cat supabase/seed/delivery_windows.sql
+    echo "insert into settings(key, value) values ('$marker', jsonb_build_object('applied_at', now())) on conflict (key) do nothing;"
+  } | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f - >/dev/null
+else
+  echo "seed delivery_windows skipped: already applied once (/windows owns these rows now)"
+fi
+
 $PSQL -c "select 'products: ' || count(*) from products"
 $PSQL -c "select 'villages: ' || count(*) || ', served: ' || count(*) filter (where is_served) from villages"
 $PSQL -c "select 'small_order_fee: ' || value::text from settings where key = 'small_order_fee'"
 $PSQL -c "select 'stock rows: ' || count(*) from stock_levels"
+$PSQL -c "select 'window plans: ' || count(*) filter (where active) || ', calendar entries: ' || (select count(*) from delivery_calendar) || ' (closed: ' || (select count(*) from delivery_calendar where closed) || ')' from delivery_window_plans"
