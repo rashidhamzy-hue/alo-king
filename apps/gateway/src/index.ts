@@ -271,12 +271,19 @@ const ALARM_TEXT: Record<string, (d: Record<string, unknown>) => string> = {
   cron_gap: (d) => `⏱ الكرون غاب ${d.gap_minutes} دقيقة ورجع`,
 };
 
-async function heartbeatAlerts(deps: TurnDeps): Promise<void> {
+/**
+ * What is wrong now is raised once per case (0090: a condition keeps one ref for as long as it lasts), and every heartbeat
+ * case that is no longer wrong is resolved by the database with a note. Only heartbeat cases: the rest stay with a person.
+ */
+export async function heartbeatAlerts(deps: TurnDeps): Promise<void> {
   const { data, error } = await deps.db.rpc("heartbeat_alerts");
   if (error) throw new Error(`heartbeat_alerts: ${error.message}`);
-  for (const a of (data as { kind: string; ref: string; detail: Record<string, unknown> }[] | null) ?? []) {
+  const active = (data as { kind: string; ref: string; detail: Record<string, unknown> }[] | null) ?? [];
+  for (const a of active) {
     await raiseAlarm(deps, `heartbeat:${a.kind}`, a.ref, a.detail, (ALARM_TEXT[a.kind] ?? (() => a.kind))(a.detail));
   }
+  const cleared = await deps.db.rpc("clear_heartbeat_alarms", { p_active: active });
+  if (cleared.error) throw new Error(`clear_heartbeat_alarms: ${cleared.error.message}`);
 }
 
 /** Once a day: Meta's quality rating for our numbers, and whether Kapso has paused paid sends. Neither has a webhook. */
