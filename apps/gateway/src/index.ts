@@ -40,7 +40,8 @@ export interface Env {
 }
 interface QueueMsg { line: Line; event: string; key: string }
 
-const db = (env: Env): SupabaseClient => createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+// TEST_DEPS (tests only) reaches the webhook and the queue too, not only the turn: the queue's retry path is tested (A4, item 11).
+const db = (env: Env): SupabaseClient => env.TEST_DEPS?.db ?? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
 
 const MAX_TURN_ATTEMPTS = 3;
 const SEEN_MAX = 300;
@@ -121,11 +122,14 @@ export default {
     const supa = db(env);
     for (const msg of batch.messages) {
       try {
-        const { data } = await supa.from("wa_inbound_events").select("payload, processed_at").eq("idempotency_key", msg.body.key).single();
+        const { data, error } = await supa.from("wa_inbound_events").select("payload, processed_at").eq("idempotency_key", msg.body.key).single();
+        // A4 (item 11): a failed read used to be acked as "nothing to do". Only "no such row" is nothing to do; anything else retries.
+        if (error && error.code !== "PGRST116") throw new Error(`wa_inbound_events read: ${error.message}`);
         if (data && !data.processed_at) await deliver(supa, env, msg.body.line, msg.body.event, msg.body.key, data.payload);
         msg.ack();
       } catch (err) {
-        await supa.from("wa_inbound_events").update({ error: String(err) }).eq("idempotency_key", msg.body.key);
+        // best effort: the database may be the thing that failed; the retry below must happen either way
+        await Promise.resolve(supa.from("wa_inbound_events").update({ error: String(err).slice(0, 500) }).eq("idempotency_key", msg.body.key)).catch(() => {});
         if (msg.attempts >= 3) Sentry.captureException(err, { tags: { where: "queue", line: msg.body.line } });   // retrying, but loudly
         msg.retry();
       }
@@ -214,13 +218,27 @@ async function sendToCustomer(deps: TurnDeps, partyId: string, text: string, ded
   if (to) await deps.send({ line: "customer", partyId, to, msg: { type: "text", text: { body: text } }, category: "service", orderId, dedupeKey });
 }
 
+/** lang (0093, A4): the customer's language, from how they last wrote. The template and the words that fill it are in it. */
 interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "payment_received"; order_id: string; short_code: string;
-  customer_id: string; params: string[]; template: string | null; template_approved: boolean }
+  customer_id: string; params: string[]; lang?: "ar" | "en" | "fr"; template: string | null; template_approved: boolean }
 
-const NOTICE_TEXT: Record<Notice["kind"], (p: string[]) => string> = {
-  order_cancelled: (p) => `انلغى طلبك #${p[0]}: ${p[1]}. اكتبلنا إذا بعدك بدّك ياه.`,
-  rider_at_door: (p) => `السائق واصل عندك بطلب #${p[0]} وعم يستناك 🚪`,
-  payment_received: (p) => `وصلنا دفعك لطلب #${p[0]}: ${p[1]}.`,
+/** The same notice as free text, for inside the 24-hour window until Meta approves the template. */
+const NOTICE_TEXT: Record<"ar" | "en" | "fr", Record<Notice["kind"], (p: string[]) => string>> = {
+  ar: {
+    order_cancelled: (p) => `انلغى طلبك #${p[0]}: ${p[1]}. اكتبلنا إذا بعدك بدّك ياه.`,
+    rider_at_door: (p) => `السائق واصل عندك بطلب #${p[0]} وعم يستناك 🚪`,
+    payment_received: (p) => `وصلنا دفعك لطلب #${p[0]}: ${p[1]}.`,
+  },
+  en: {
+    order_cancelled: (p) => `Your order #${p[0]} was cancelled: ${p[1]}. Write to us if you still want it.`,
+    rider_at_door: (p) => `The rider is at your door with order #${p[0]} and is waiting for you 🚪`,
+    payment_received: (p) => `We received your payment for order #${p[0]}: ${p[1]}.`,
+  },
+  fr: {
+    order_cancelled: (p) => `Votre commande #${p[0]} a été annulée : ${p[1]}. Écrivez-nous si vous la voulez toujours.`,
+    rider_at_door: (p) => `Le livreur est à votre porte avec la commande #${p[0]} et vous attend 🚪`,
+    payment_received: (p) => `Nous avons reçu votre paiement pour la commande #${p[0]} : ${p[1]}.`,
+  },
 };
 
 /** Exported for tests. The approved utility template when Meta has approved it (it reaches the customer at any hour);
@@ -230,9 +248,10 @@ export async function sendNotice(deps: TurnDeps, n: Notice): Promise<void> {
   const to = await customerAddress(deps.db, n.customer_id);
   let outcome = "refused:no_address";
   if (to) {
+    const lang = n.lang ?? "ar";
     const msg: Outbound = n.template && n.template_approved
-      ? { type: "template", template: { name: n.template, language: { code: "ar" }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
-      : { type: "text", text: { body: NOTICE_TEXT[n.kind](n.params) } };
+      ? { type: "template", template: { name: n.template, language: { code: lang }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
+      : { type: "text", text: { body: NOTICE_TEXT[lang][n.kind](n.params) } };
     const r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: msg.type === "template" ? "utility" : "service", orderId: n.order_id, dedupeKey: n.key });
     outcome = r.ok ? `sent:${msg.type}` : `refused:${r.refused}`;
   }
@@ -271,12 +290,19 @@ const ALARM_TEXT: Record<string, (d: Record<string, unknown>) => string> = {
   cron_gap: (d) => `⏱ الكرون غاب ${d.gap_minutes} دقيقة ورجع`,
 };
 
-async function heartbeatAlerts(deps: TurnDeps): Promise<void> {
+/**
+ * What is wrong now is raised once per case (0090: a condition keeps one ref for as long as it lasts), and every heartbeat
+ * case that is no longer wrong is resolved by the database with a note. Only heartbeat cases: the rest stay with a person.
+ */
+export async function heartbeatAlerts(deps: TurnDeps): Promise<void> {
   const { data, error } = await deps.db.rpc("heartbeat_alerts");
   if (error) throw new Error(`heartbeat_alerts: ${error.message}`);
-  for (const a of (data as { kind: string; ref: string; detail: Record<string, unknown> }[] | null) ?? []) {
+  const active = (data as { kind: string; ref: string; detail: Record<string, unknown> }[] | null) ?? [];
+  for (const a of active) {
     await raiseAlarm(deps, `heartbeat:${a.kind}`, a.ref, a.detail, (ALARM_TEXT[a.kind] ?? (() => a.kind))(a.detail));
   }
+  const cleared = await deps.db.rpc("clear_heartbeat_alarms", { p_active: active });
+  if (cleared.error) throw new Error(`clear_heartbeat_alarms: ${cleared.error.message}`);
 }
 
 /** Once a day: Meta's quality rating for our numbers, and whether Kapso has paused paid sends. Neither has a webhook. */

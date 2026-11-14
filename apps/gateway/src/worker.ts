@@ -16,13 +16,17 @@ const options = (env: WorkerEnv): Sentry.CloudflareOptions => ({
 });
 
 let testEvents = 0;
+// Deploys are irregular: a yearly schedule means the monitor never reports a missed check-in between deploys.
+const DEPLOY_MONITOR = { schedule: { type: "interval" as const, value: 1, unit: "year" as const }, checkinMargin: 1440, maxRuntime: 5, timezone: "UTC" };
 const handler = {
   ...gateway,
   async fetch(req: Request, env: WorkerEnv, ctx: ExecutionContext) {
-    // Staging only, at most three per Worker instance: lets the deploy prove an error reaches Sentry. Production has no such route.
+    // Staging only, at most three per Worker instance: lets the deploy prove the Worker reaches Sentry. Production has no such route.
+    // A4 (audit item 2): a check-in to its own monitor, not an error. It proves the DSN, the transport and the flush the same way,
+    // and opens no issue: before, every deploy added an event to a "smoke test" error issue that sat beside the real ones.
     if (env.ENVIRONMENT === "staging" && new URL(req.url).pathname === "/__sentry-test" && req.method === "GET") {
       if (testEvents++ >= 3) return new Response("sent (limit reached for this instance)");
-      const id = Sentry.captureException(new Error("sentry smoke test from the staging deploy"));
+      const id = Sentry.captureCheckIn({ monitorSlug: "deploy-smoke-staging", status: "ok" }, DEPLOY_MONITOR);
       const flushed = await Sentry.flush(3000);          // true only if the transport delivered everything in time
       return new Response(`sent ${id} flushed=${flushed}`);
     }

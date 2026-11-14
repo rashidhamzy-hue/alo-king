@@ -68,7 +68,7 @@ describe("customer notices", () => {
   });
 
   it("templates are seeded as submitted, transactional only, with the wording Meta was sent", async () => {
-    const t = await db.all(`select name, category, status, body from wa_templates where name like 'ak_%' order by name`);
+    const t = await db.all(`select name, category, status, body from wa_templates where name like 'ak_%' and language = 'ar' order by name`);
     expect(t.map((x: any) => [x.name, x.category])).toEqual([["ak_order_cancelled_v1", "utility"], ["ak_payment_received_v1", "utility"], ["ak_rider_at_door_v1", "utility"]]);
     for (const x of t) expect(x.body).not.toMatch(/عرض|خصم|جديد|أفضل|مجان/);       // nothing promotional
   });

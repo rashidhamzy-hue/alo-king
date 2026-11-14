@@ -96,6 +96,10 @@ describe("alarms", () => {
     await db.pg.query(`insert into orders(short_code, customer_id, conversation_id, status, created_at) values ('PRB1', $1, $2, 'confirmed', now() - interval '45 minutes')`, [probeCustomer, conv]);
     expect((await alarms()).map((a) => a.kind)).toContain("probe_stuck");
     await db.pg.exec(`update orders set status = 'closed', created_at = now() - interval '5 hours' where short_code = 'PRB1'`);
+    // since 0090 (A4) the probe is only expected to order while open, and once open for three probe periods
+    await db.pg.exec(`update settings set value = jsonb_build_object('tz', 'Asia/Beirut',
+        'open', to_char((now() at time zone 'Asia/Beirut') - interval '4 hours', 'HH24:MI'),
+        'close', to_char((now() at time zone 'Asia/Beirut') + interval '4 hours', 'HH24:MI')) where key = 'hours'`);
     const kinds = (await alarms()).map((a) => a.kind);
     expect(kinds).not.toContain("probe_stuck");
     expect(kinds).toContain("probe_silent");

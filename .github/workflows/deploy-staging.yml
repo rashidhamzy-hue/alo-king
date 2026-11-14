@@ -154,4 +154,4 @@ jobs:
           done
           body=$(curl -sS "$url/__sentry-test")
           echo "Sentry test route -> $body (expected: sent <event id> flushed=true)"; case "$body" in "sent "*"flushed=true") ;; *) false ;; esac
-          echo "- Smoke test passed: unknown path 404, unsigned webhooks 401, one test error sent to Sentry (alo-king-gateway)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Smoke test passed: unknown path 404, unsigned webhooks 401, one check-in sent to Sentry (monitor deploy-smoke-staging, no issue)" >> "$GITHUB_STEP_SUMMARY"
