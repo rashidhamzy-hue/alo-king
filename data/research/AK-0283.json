@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0283",
+  "matched": {
+    "brand": "Gipsy",
+    "product": "Baby Wet Wipes Soft Plus 100 + Pocket Wipes 40",
+    "size": "100 + 40 pcs",
+    "barcode": "5281001943694",
+    "confidence": "unsure",
+    "note": "non-food. Picture is the Spinneys Lebanon Gipsy Soft Plus 100 wipes pack only; the bundle with 40 pocket wipes was not found on any page opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/bf17d51582633d117895e47c462fe4c4/3/7/373194-v001-1_1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/baby-wet-wipes-soft-plus.html",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one 100-wipe Soft Plus pack, white background, front view, small 265 px"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

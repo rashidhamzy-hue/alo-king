@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0289",
+  "matched": {
+    "brand": "Miglior Gatto",
+    "product": "Pate with Lamb and Liver",
+    "size": "400 g",
+    "barcode": "8007520012430",
+    "confidence": "exact",
+    "note": "pet food. Barcode 8007520012430 appears in the Ways Express URL. Open Pet Food Facts record has a name and picture but no ingredients. No page opened gave composition. Morando.it Professional pictures are another line and were not used."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.varmacy.net/web/image/product.template/6330/image_1024?unique=01d8f74",
+      "page_url": "https://www.varmacy.net/shop/morando-feline-miglior-gatto-pate-lamb-liver-400-gm-6330",
+      "site": "Varmacy",
+      "site_kind": "retailer",
+      "looks": "one tin, white background, front view, no watermark or price"
+    },
+    {
+      "image_url": "https://www.petshopmalta.com/cdn/shop/products/01243.PNG?v=1571439020",
+      "page_url": "https://www.petshopmalta.com/products/migliorgatto-pate-agnello-e-fegato-migliorgatto-pate-lamb-and-liver",
+      "site": "Petshop Malta",
+      "site_kind": "retailer",
+      "looks": "one tin, white background, front view, 327x476"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

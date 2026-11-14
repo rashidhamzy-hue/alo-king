@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0290",
+  "matched": {
+    "brand": "Miglior Gatto",
+    "product": "Alutray Pate with Lamb and Liver",
+    "size": "100 g",
+    "barcode": "8007520013024",
+    "confidence": "exact",
+    "note": "pet food. Barcode 8007520013024 appears in the PiuMe URL (Vaschetta Pate Agnello-Fegato 100 gr). No page gave composition."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.domaineanimalia.com/wp-content/uploads/2025/09/M01302.jpg",
+      "page_url": "https://www.domaineanimalia.com/shop/chat/aliments-chats/nourriture-humide/miglior-gatto-agnello-fegato-100-gr/",
+      "site": "Domaine Animalia",
+      "site_kind": "retailer",
+      "looks": "one tray, white background, front view, 1250x1250, no watermark or price"
+    },
+    {
+      "image_url": "https://cdn11.bigcommerce.com/s-vflxca1joe/products/1369/images/398832/046675-001_01__44175.1752973925.386.513.png?c=1",
+      "page_url": "https://piume.it/miglior-gatto-vaschetta-pate-agnello-fegato-100-gr-8007520013024.html",
+      "site": "PiuMe",
+      "site_kind": "retailer",
+      "looks": "one tray, white background, top view, 386 px"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

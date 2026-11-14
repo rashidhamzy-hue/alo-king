@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0284",
+  "matched": {
+    "brand": "Oui Oui",
+    "product": "Wet Wipes Aqua Pure",
+    "size": "80 sheets",
+    "barcode": "5283023300141",
+    "confidence": "likely",
+    "note": "non-food. Only a Mediane Shop page (Oui Oui Aquapure Water Wipes, 80 sheets, 99% water per its text) was found; its image carries a NEW! banner so it was not kept."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}
