@@ -862,16 +862,16 @@ session in the build plan.
 - The Meta message rate for Lebanon: published rate cards disagree (0.0091 or 0.0105 USD); the first bill decides.
 - The founder's phone retest of 0.13 is not recorded anywhere as done.
 
-### Session F1 (G1 fixes), 14 November 2026: G1-01 to G1-09, G1-11, G1-25, late payments; migrations 0103-0108
+### Session F1 (G1 fixes), 14 November 2026: G1-01 to G1-09, G1-11, G1-25, late payments; migrations 0103-0109
 Opus 5.5. Branch `claude/clever-faraday-jgs0br` (the branch this environment allows). Each finding got a failing test first, then the
 migration. Built and tested locally: PGlite with every migration (`npm run typecheck && npm test`), and `scripts/check_permissions.sh` on
 a scratch Postgres 16 both fresh and with `EXISTING=1` on a database that had 0001-0093 applied first (as staging has): 322 functions
 had no fixed `search_path` before 0103 (the advisor's count), none after. **Nothing here is proven live yet**: `deploy-staging` applies
-0103-0108 after the merge (result below if it ran in this session).
+0103-0109 after the merge (result below if it ran in this session).
 
 | Finding | Where | Tested by |
 | --- | --- | --- |
-| G1-11 `search_path` on every function | 0103 `pin_search_paths()`; `scripts/check_permissions.sh` | `test/db/search-path-f1.test.ts`: none left without one; trigram callers keep `public, extensions, pg_temp`; a hostile caller path (`evil.setting`) changes nothing; a later function is pinned by the call. The permission script fails naming any unpinned function (shown failing on one) |
+| G1-11 `search_path` on every function | 0103 `pin_search_paths()`; 0109 event trigger `pin_new_functions` (pins each function created later in public without a path, as it is created); `scripts/check_permissions.sh` | `test/db/search-path-f1.test.ts`: none left without one; trigram callers keep `public, extensions, pg_temp`; a hostile caller path (`evil.setting`) changes nothing; a later function is pinned as it is created (a trigram one with the extensions schema), one that names its own path is left alone, and `pin_search_paths()` catches what the trigger missed. C1's guard test in `extensions-schema.test.ts` disables the trigger for its deliberate redefinition. The permission script fails naming any unpinned function (shown failing on one) |
 | G1-01 COD over/short | 0104 `post_cod_collection`, `day_close_report`, `payments.over_short_usd`, `settings.over_short` | `test/db/cod-over-short-f1.test.ts`: within `cod_tolerance_usd` (0.25) to `cash_over_short`; beyond it up to `cod_max_usd` (1.00) the whole shortfall to `rider_receivable:<driver>` with flag `cod_short`; over beyond it flagged `cod_over`; over 1.00 refused; the setting moves the line; the day close shows `over_short_usd`, `short_owed_usd`, `cod_flags` and `rider_id` per rider |
 | G1-02 drawer below zero | 0105 `pay_supplier`, `pay_out_credit`, `pay_rider_earnings` (step 3), `record_damaged_note` (hub drop) | `test/db/drawer-f1.test.ts`: each base function refuses from an empty drawer and pays exactly what it holds; `refunds.test.ts` and `receiving-margin.test.ts` now drop the rider's cash at the hub first (D3's note) |
 | G1-03 damaged note | 0105 `record_damaged_note(drop, amount, by, key)`, table `damaged_notes` | same file: key required, ops lead or admin (blocked refused), amount above zero and within the drop (with earlier notes), once per key |
@@ -891,9 +891,11 @@ had no fixed `search_path` before 0103 (the advisor's count), none after. **Noth
 `can_send` (0107); `rider_picked_up` (0108). **`confirm_payment` is now a wrapper** (the overpayment approval); money is posted by
 `confirm_payment_now`: change the posting there. The small-order-fee tripwire in `test/db/ordering-b2.test.ts` now names it.
 
-**Every migration from now on that creates or redefines a function ends with `select pin_search_paths();`** (CREATE OR REPLACE drops a
-SET clause that is not repeated). `deploy-staging`'s permission check fails otherwise, naming the function. This applies to SP1's
-0100-0102 too: on staging they apply after 0103 (`--include-all`); if they do not end with the call, the next deploy fails until they do.
+**A function's `search_path` is now pinned for you** (0109's event trigger), and CREATE OR REPLACE drops a SET clause that is not
+repeated, so writing `set search_path = public, pg_temp` on the function stays the clearest. If the database refused the event trigger
+(the migration says so in a notice and still applies), end a migration that creates functions with `select pin_search_paths();`.
+`deploy-staging`'s permission check fails, naming the function, if one is left without a path. Why 0109 exists: D4's 0114 redefines
+`review_proposed_fact` without the clause, and on a fresh database it runs after 0103 (on staging 0103 arrived after it and pinned it).
 
 Decisions taken in code, written down for the founder (each is a setting or one line):
 - **COD tolerance** `settings.over_short.cod_tolerance_usd` 0.25 and `cod_max_usd` 1.00. A shortfall beyond the tolerance is the rider's
@@ -908,14 +910,14 @@ Decisions taken in code, written down for the founder (each is a setting or one 
 Requests for other sessions (F1 did not touch these files):
 - **D4, `apps/console/src/pages/approvals.ts`:** line 24 labels every non-price approval "Refund"; kind `payment` (0106) should read
   "Overpaid transfer". Deciding works already (`decide_approval`). If D4 redefines `decide_approval`, start from 0106 and keep the
-  `payment` branch. D4's migrations 0110-0114 end with `select pin_search_paths();`.
+  `payment` branch. (D4 merged first; the merge kept both sections.)
 - **D4, `apps/console/src/app.ts` `explain()`:** plain words for `EXCEEDS_OWED` ("More than we owe this supplier; tick 'advance' to pay
   ahead") and an "advance" checkbox on the receiving page's pay form (`pay_supplier_checked` would need the two new arguments, 0105);
   `day_close_report` now has per-rider `over_short_usd`, `short_owed_usd`, `cod_flags`: worth a column on the day-close page.
 - **Ops line (`apps/gateway/src/ops-turn.ts`, the next session that owns it):** `rider_picked_up` raises `CASH_CAP hard_cap at pickup`;
   the rider now gets the generic error and ops the error alert with the reason. A plain message ("hand in cash at the hub first") and a
   `wrong_line` refusal are worth catching there.
-- **SP1:** end 0100-0102 with `select pin_search_paths();`.
+- **SP1:** 0100-0102 apply before 0103 on a fresh database and after it on staging; either way 0103 or 0109 pins their functions.
 
 Not done, and why:
 - The security advisor after `deploy-staging`: see the line below this section if the deploy ran in this session; otherwise the next

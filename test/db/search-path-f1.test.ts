@@ -40,13 +40,25 @@ describe("fixed search_path on every function (G1-11)", () => {
     } finally { await db.pg.exec(`set search_path = public, extensions; drop schema evil cascade;`); }
   });
 
-  it("pin_search_paths() pins a function created later, and is safe to run again", async () => {
-    await db.pg.exec(`create function f1_later() returns int language sql as $$ select 1 $$;`);
-    expect((await db.one(`select proconfig from pg_proc where proname = 'f1_later'`)).proconfig).toBeNull();
-    const n = await db.rpc("pin_search_paths");
-    expect(Number(n)).toBe(1);
-    expect((await db.one(`select proconfig from pg_proc where proname = 'f1_later'`)).proconfig).toEqual(["search_path=public, pg_temp"]);
+  it("a function created later is pinned as it is created (0109), unless it names its own path", async () => {
+    await db.pg.exec(`create function f1_later() returns int language sql as $$ select 1 $$;
+      create function f1_later_trgm(t text) returns real language sql as $$ select similarity(t, 'x') $$;
+      create function f1_own() returns int language sql set search_path = public as $$ select 1 $$;`);
+    const conf = async (n: string) => (await db.one(`select proconfig from pg_proc where proname = $1`, [n])).proconfig;
+    expect(await conf("f1_later")).toEqual(["search_path=public, pg_temp"]);
+    expect(await conf("f1_later_trgm")).toEqual(["search_path=public, extensions, pg_temp"]);
+    expect(await conf("f1_own")).toEqual(["search_path=public"]);
+    await db.pg.exec(`drop function f1_later(); drop function f1_later_trgm(text); drop function f1_own();`);
+  });
+
+  it("pin_search_paths() pins what the trigger missed, and is safe to run again", async () => {
+    await db.pg.exec(`alter event trigger pin_new_functions disable;
+      create function f1_missed() returns int language sql as $$ select 1 $$;
+      alter event trigger pin_new_functions enable;`);
+    expect((await db.one(`select proconfig from pg_proc where proname = 'f1_missed'`)).proconfig).toBeNull();
+    expect(Number(await db.rpc("pin_search_paths"))).toBe(1);
+    expect((await db.one(`select proconfig from pg_proc where proname = 'f1_missed'`)).proconfig).toEqual(["search_path=public, pg_temp"]);
     expect(Number(await db.rpc("pin_search_paths"))).toBe(0);
-    await db.pg.exec(`drop function f1_later()`);
+    await db.pg.exec(`drop function f1_missed()`);
   });
 });
