@@ -1,1 +1,1 @@
-{ "steps": [], "note": "commit {\"steps\": [\"after\"], \"repeat\": 2} to run the live eval (see the workflow header); add \"live\" for evals/live" }
+{ "steps": ["after", "live"], "repeat": 1, "note": "M1: the reading after the prompt line on reply length (at most two short sentences) and the output guard's too_long check. Commit {\"steps\": []} to stop." }

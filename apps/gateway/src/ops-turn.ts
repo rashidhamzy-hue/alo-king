@@ -8,6 +8,12 @@ import { parseCashMessage } from "@ak/core/cash-parse";
 import { cashAsk, dropCard, offerCard, parseRiderButton, pickupCard, RIDER_TEXT as T, riderButtonId, type Job } from "@ak/agents/job-card";
 import { OPS_VOICE_TEXT, voiceOnOpsLine, type AudioMessage } from "@ak/agents/voice";
 import type { Pending, TurnDeps, TurnResult } from "./turn";
+import { messages, productName, STAFF_LANG, usd } from "@ak/agents/messages";
+import { sendCodeStarted, type Built, type TemplateEvent } from "@ak/agents/messages/notify";
+import type { Messages } from "@ak/agents/messages";
+
+/** M1: every staff message is in messages/ (ops section), in the staff's language. */
+const O = messages(STAFF_LANG).ops;
 
 const START = /^(حاضر|جاهز|بلشت|بلّشت|7ader|hader|start|on)$/i;
 const END = /^(خلصت|خلّصت|سكرت|سكّرت|khallast|5allast|end|off)$/i;
@@ -27,11 +33,11 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
 export async function dispatchAndOffer(deps: TurnDeps, orderId: string): Promise<{ status: string }> {
   const d = await rpc<{ status: string; delivery_id?: string; driver_id?: string; minutes_to_pickup?: number; short_code?: string; minutes_waiting?: number }>(deps.db, "dispatch_order", { p_order: orderId });
   if (d.status === "waiting_for_pick") {
-    const start = buttons(`🧺 طلب جديد للتحضير #${d.short_code}`, [{ id: staffButtonId({ kind: "pick", action: "start", id: orderId }), title: `بلّش #${d.short_code}` }]);
+    const start = buttons(O.newPick(d.short_code ?? ""), [{ id: staffButtonId({ kind: "pick", action: "start", id: orderId }), title: O.startButton(d.short_code ?? "") }]);
     for (const picker of await rpc<string[]>(deps.db, "pick_recipients", {})) await sendToParty(deps, picker, start, `picknew:${orderId}:${picker}`);
     const alertMin = Number((await rpc<{ pick_alert_min?: number } | null>(deps.db, "setting", { p_key: "picking" }))?.pick_alert_min ?? 10);
     if (Number(d.minutes_waiting ?? 0) >= alertMin) {
-      await alertOps(deps, `🧺 الطلب #${d.short_code} ناطر تحضير من ${d.minutes_waiting} دقيقة وما حدا بلّش فيه`, `pickwait:${orderId}:${Math.floor(Date.now() / 600_000)}`);
+      await alertOps(deps, O.pickWait(d.short_code ?? "", Number(d.minutes_waiting)), `pickwait:${orderId}:${Math.floor(Date.now() / 600_000)}`);
     }
     return d;
   }
@@ -39,7 +45,7 @@ export async function dispatchAndOffer(deps: TurnDeps, orderId: string): Promise
     const job = await rpc<Job>(deps.db, "rider_job", { p_delivery: d.delivery_id });
     await sendToParty(deps, d.driver_id, offerCard(job, d.minutes_to_pickup), `offer:${d.delivery_id}`);
   } else if (d.status === "no_rider") {
-    await alertOps(deps, `⚠️ ما في سائق متاح للطلب #${d.short_code ?? orderId.slice(0, 8)}`, `norider:${orderId}:${Math.floor(Date.now() / 300_000)}`);
+    await alertOps(deps, O.noRider(d.short_code ?? orderId.slice(0, 8)), `norider:${orderId}:${Math.floor(Date.now() / 300_000)}`);
   }
   return d;
 }
@@ -74,7 +80,7 @@ async function voiceNote(deps: TurnDeps, m: Pending["event"]["message"], who: { 
   await say(v.reply);
   if (!v.forwardToOps) return;
   earlier.seconds += v.seconds;
-  const name = (await rpc<string | null>(deps.db, "party_display_name", { p_party: who.partyId })) ?? (who.role === "driver" ? "سائق" : "الفريق");
+  const name = (await rpc<string | null>(deps.db, "party_display_name", { p_party: who.partyId })) ?? (who.role === "driver" ? O.aRider : O.theTeam);
   await alertOps(deps, OPS_VOICE_TEXT.opsAlert(name, v.seconds), `${turnKey}:alert:voice:${m.id}`);
 }
 
@@ -130,14 +136,14 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
       } else if (b?.kind === "shift" && b.action === "end" || END.test(text)) {
         if (await rpc<string | null>(db, "driver_active_delivery", { p_driver: driver })) { await say(T.shiftBlocked); continue; }
         const r = await rpc<{ closed: boolean; reason?: string; value_usd?: number }>(db, "close_shift", { p_driver: driver });
-        if (r.closed) await say("سكّرنا الدوام. يعطيك العافية 🙏");
-        else await out(buttons(`قبل ما تسكّر: معك $${Number(r.value_usd ?? 0).toFixed(2)} كاش. وين بدك تسلّمهم؟`, dropButtons()));
+        if (r.closed) await say(O.shiftClosed);
+        else await out(buttons(O.closeWithCash(Number(r.value_usd ?? 0)), dropButtons()));
       } else if (b?.kind === "shift" && (b.action === "drop_hub" || b.action === "drop_omt")) {
         const cash = await rpc<{ usd: number; lbp: number }[] | { usd: number; lbp: number }>(db, "driver_cash_native", { p_driver: driver });
         const c = Array.isArray(cash) ? cash[0]! : cash;
         await rpc(db, "declare_cash_drop", { p_driver: driver, p_method: b.action === "drop_hub" ? "hub" : "omt", p_usd: c.usd, p_lbp: c.lbp, p_receipt_ref: null });
-        await say(`سجّلنا تسليم $${Number(c.usd).toFixed(2)} و ${Number(c.lbp).toLocaleString("en-US")} ل.ل. بيتأكد بس يعدّوها${b.action === "drop_omt" ? " (ابعت صورة الوصل)" : ""}.`);
-        await alertOps(deps, `💵 سائق صرّح عن تسليم كاش (${b.action === "drop_hub" ? "المركز" : "OMT"}). بحاجة لتأكيد.`, `${turnKey}:alert:cashdrop`);
+        await say(O.dropDeclared(Number(c.usd), Number(c.lbp), b.action === "drop_omt"));
+        await alertOps(deps, O.dropAlert(b.action === "drop_omt"), `${turnKey}:alert:cashdrop`);
       } else if (CASH.test(text)) {
         await out(buttons(T.dropAsk, dropButtons()));
       } else if (b?.kind === "job" && (b.action === "accept" || b.action === "decline")) {
@@ -148,7 +154,7 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
       } else if (b?.kind === "job" && b.action === "picked") {
         const r = await rpc<{ ok: boolean; status?: string; waiting?: string[] }>(db, "rider_picked_up", { p_delivery: b.id, p_driver: driver });
         // 2.4: offered when picking starts, the rider may be at the hub before the goods are ready.
-        if (!r.ok && r.status === "not_ready") { await say(`الطلب ${(r.waiting ?? []).map((c) => "#" + c).join(" ")} لسّا عم يتحضّر. منبعتلك بس يجهز.`); continue; }
+        if (!r.ok && r.status === "not_ready") { await say(O.stillPicking(r.waiting ?? [])); continue; }
         await showNext(b.id);
         await deps.notifyCustomer?.(b.id, "on_the_way");
       } else if (b?.kind === "stop" && b.action === "arrived") {
@@ -161,14 +167,14 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
         const owed = (await rpc<{ order_id: string; total_usd: number }[]>(db, "rider_unpaid_orders", { p_driver: driver })).find((x) => x.order_id === b.id);
         if (!owed) { await say(T.noJob); continue; }
         const r = await rpc<{ gate: string; delivery_done: boolean; cash_usd: number }>(db, "rider_collect", { p_order: b.id, p_driver: driver, p_usd: Number(owed.total_usd), p_lbp: 0 });
-        await say(`تم ✅ معك هلق $${Number(r.cash_usd).toFixed(2)}`);
+        await say(O.collected(Number(r.cash_usd)));
         await afterCash(r, await rpc<string | null>(db, "driver_active_delivery", { p_driver: driver }));
       } else if (b?.kind === "stop" && b.action === "noanswer") {
         const r = await rpc<{ ok: boolean; wait_more_min?: number; return_to_hub?: boolean; delivery_done?: boolean }>(db, "rider_no_answer", { p_order: b.id, p_driver: driver });
-        if (!r.ok && r.wait_more_min) { await say(`جرّب تتصل فيه. استنى ${r.wait_more_min} دقايق كمان وكبّس مرة تانية.`); await deps.notifyCustomer?.(b.id, "rider_waiting"); }
+        if (!r.ok && r.wait_more_min) { await say(O.waitMore(r.wait_more_min)); await deps.notifyCustomer?.(b.id, "rider_waiting"); }
         else if (r.ok) {
-          await say(r.return_to_hub ? "سجّلناها. رجّع الأغراض عالمركز." : "سجّلناها.");
-          await alertOps(deps, `🚪 توصيل فاشل (ما حدا رد) للطلب ${b.id.slice(0, 8)}`, `${turnKey}:alert:noanswer`);
+          await say(O.noAnswerLogged(!!r.return_to_hub));
+          await alertOps(deps, O.noAnswerAlert(b.id.slice(0, 8)), `${turnKey}:alert:noanswer`);
           if (r.return_to_hub) await announceReturn(deps, b.id);
         }
       } else if (text) {
@@ -180,19 +186,19 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
         try {
           const r = await rpc<{ gate: string; delivery_done: boolean; cash_usd: number }>(db, "rider_collect", { p_order: o.order_id, p_driver: driver,
             p_usd: cash.exact ? o.total_usd : cash.usd, p_lbp: cash.exact ? 0 : cash.lbp, p_change_usd: cash.changeUsd, p_change_lbp: cash.changeLbp });
-          await say(`تم ✅ معك هلق $${Number(r.cash_usd).toFixed(2)}`);
+          await say(O.collected(Number(r.cash_usd)));
           await afterCash(r, await rpc<string | null>(db, "driver_active_delivery", { p_driver: driver }));
         } catch (err) {
           if (!String(err).includes("AMOUNT_MISMATCH")) throw err;
-          await say(`المبلغ ما بيطابق المطلوب ($${Number(o.total_usd).toFixed(2)}). اكتب قديش قبضت وقديش رجّعت، أو اتصل بالمركز.`);
+          await say(O.mismatch(Number(o.total_usd)));
         }
       }
     } catch (err) {
       // The outbox could not say whether a message is ours to send (or Kapso did not take it): nothing more may go out.
       // The whole turn retries, as turn.ts does (invariant 20).
       if (isOutboxFailure(err)) throw err;
-      await say("صار في غلط. جرّب مرة تانية أو اتصل بالمركز.");
-      await alertOps(deps, `⚠️ خطأ مع سائق: ${String(err).slice(0, 160)}`, `${turnKey}:alert:error`);
+      await say(O.riderError);
+      await alertOps(deps, O.riderErrorAlert(String(err).slice(0, 160)), `${turnKey}:alert:error`);
     }
   }
   return { outcome: "rider", sent };
@@ -201,18 +207,16 @@ export async function processOpsTurn(deps: TurnDeps, pending: Pending[]): Promis
 /** 2.5: the goods of a failed delivery are coming back. The pickers and the ops lead get the button that opens the count. */
 export async function announceReturn(deps: TurnDeps, orderId: string): Promise<void> {
   const card = await rpc<ReturnCard>(deps.db, "return_card", { p_order: orderId });
-  const msg = buttons(STAFF_TEXT.returnBack(card.short_code), [{ id: staffButtonId({ kind: "ret", action: "open", id: orderId }), title: "عدّ المرتجع" }]);
+  const msg = buttons(O.returnBack(card.short_code), [{ id: staffButtonId({ kind: "ret", action: "open", id: orderId }), title: O.countReturn }]);
   const to = [...await rpc<string[]>(deps.db, "pick_recipients", {}), ...await rpc<string[]>(deps.db, "ops_recipients", {})];
   for (const id of new Set(to)) await sendToParty(deps, id, msg, `retnotice:${orderId}:${id}`);
 }
 
 // ---------- a rider who cannot continue (2.10) ----------
 
-const CUSTOMER_TEXT = {
-  delayed: (code: string) => `طلبك #${code} رح يتأخّر شوي بسبب ظرف طارئ مع السائق. رح يوصلك مع سائق تاني.`,
-  calledOff: (code: string, credit: number) => `ما قدرنا نكمّل توصيل طلبك #${code} بسبب ظرف طارئ مع السائق. رح يتواصل معك حدا من فريقنا.`
-    + (credit > 0 ? ` المبلغ يلي دفعتو (${usd(credit)}) إلك: منرجّعلك ياه أو بينحسم من طلبك الجاي.` : ""),
-};
+// M1 (G1-23): the customer hears these in their language; past 24 hours, through the approved utility template of the event.
+const notifyCustomer = (deps: TurnDeps, partyId: string, event: TemplateEvent, build: (m: Messages) => Built, key: string, orderId?: string) =>
+  sendCodeStarted({ db: deps.db, send: deps.send }, partyId, event, build, key, orderId);
 
 interface RiderOnShift { driver_id: string; name: string | null; cash_usd: number; active_delivery: string | null }
 
@@ -224,27 +228,28 @@ async function riderIncident(deps: TurnDeps, staff: string, b: { action: "ask" |
     if (!riders.length) { await say(STAFF_TEXT.noRiders); return; }
     for (const r of riders.slice(0, 5)) {
       await out(buttons(STAFF_TEXT.riderRow(r.name ?? "", Number(r.cash_usd), !!r.active_delivery),
-        [{ id: staffButtonId({ kind: "roff", action: "ask", id: r.driver_id }), title: "ما فيه يكمّل" }]));
+        [{ id: staffButtonId({ kind: "roff", action: "ask", id: r.driver_id }), title: O.riderCannot }]));
     }
     return;
   }
   if (b.action === "ask") {
-    const name = (await rpc<RiderOnShift[]>(db, "riders_on_shift", {})).find((r) => r.driver_id === b.id)?.name ?? "السائق";
-    await out(buttons(STAFF_TEXT.riderConfirm(name), [{ id: staffButtonId({ kind: "roff", action: "yes", id: b.id }), title: "إيه، وقّفو" }]));
+    const name = (await rpc<RiderOnShift[]>(db, "riders_on_shift", {})).find((r) => r.driver_id === b.id)?.name ?? O.theRider;
+    await out(buttons(O.riderConfirm(name), [{ id: staffButtonId({ kind: "roff", action: "yes", id: b.id }), title: O.riderConfirmButton }]));
     return;
   }
   if (b.action === "yes") {
     const r = await rpc<{ already?: boolean; rider: string | null; requeued: { order_id: string }[]; stranded: { order_id: string; short_code: string; customer_id: string }[]; cash_usd: number; cash_lbp: number }>(
       db, "mark_rider_off", { p_driver: b.id, p_by: staff, p_reason: "cannot_continue" });
-    if (r.already) { await say(STAFF_TEXT.riderAlreadyOff(r.rider ?? "السائق")); return; }
+    if (r.already) { await say(O.riderAlreadyOff(r.rider ?? O.theRider)); return; }
     const btns = [
-      ...r.stranded.slice(0, 2).map((x) => ({ id: staffButtonId({ kind: "roff", action: "back", id: x.order_id }), title: `رجّعها #${x.short_code}` })),
-      ...(Number(r.cash_usd) || Number(r.cash_lbp) ? [{ id: staffButtonId({ kind: "roff", action: "cash", id: b.id }), title: "استلمنا الكاش" }] : []),
+      ...r.stranded.slice(0, 2).map((x) => ({ id: staffButtonId({ kind: "roff", action: "back", id: x.order_id }), title: O.sendBack(x.short_code) })),
+      ...(Number(r.cash_usd) || Number(r.cash_lbp) ? [{ id: staffButtonId({ kind: "roff", action: "cash", id: b.id }), title: O.cashReceivedButton }] : []),
     ];
-    const text = STAFF_TEXT.riderOff(r.rider ?? "السائق", r.requeued.length, r.stranded.map((x) => x.short_code), Number(r.cash_usd), Number(r.cash_lbp));
+    const text = O.riderOff(r.rider ?? O.theRider, r.requeued.length, r.stranded.map((x) => x.short_code), Number(r.cash_usd), Number(r.cash_lbp));
     await out(btns.length ? buttons(text, btns) : { type: "text", text: { body: text } });
     await sendToParty(deps, b.id, { type: "text", text: { body: STAFF_TEXT.riderOffToRider } }, `riderinc:${b.id}:${requireTurnKey(deps)}`);
-    for (const x of r.stranded) await sendToCustomer(deps, x.customer_id, { type: "text", text: { body: CUSTOMER_TEXT.delayed(x.short_code) } }, `riderinc:${x.order_id}`, x.order_id);
+    for (const x of r.stranded) await notifyCustomer(deps, x.customer_id, "order_delayed",
+      (m) => ({ msg: { type: "text", text: { body: m.notice.delayed(x.short_code) } }, params: [x.short_code] }), `riderinc:${x.order_id}`, x.order_id);
     // Re-offer now; the cron repeats every minute for any order still without a rider.
     for (const id of [...r.requeued.map((x) => x.order_id), ...r.stranded.map((x) => x.order_id)]) {
       await dispatchAndOffer(deps, id).catch((err) => { if (isOutboxFailure(err)) throw err; });
@@ -255,7 +260,8 @@ async function riderIncident(deps: TurnDeps, staff: string, b: { action: "ask" |
     const r = await rpc<{ ok: boolean; status: string; short_code: string; customer_id?: string; credit_usd?: number }>(db, "call_off_stranded", { p_order: b.id, p_by: staff });
     if (!r.ok) { await say(STAFF_TEXT.notCalledOff(r.short_code, r.status)); return; }
     await say(STAFF_TEXT.calledOff(r.short_code));
-    if (r.customer_id) await sendToCustomer(deps, r.customer_id, { type: "text", text: { body: CUSTOMER_TEXT.calledOff(r.short_code, Number(r.credit_usd ?? 0)) } }, `calloff:${b.id}`, b.id);
+    if (r.customer_id) await notifyCustomer(deps, r.customer_id, "delivery_called_off",
+      (m) => ({ msg: { type: "text", text: { body: m.notice.calledOff(r.short_code, Number(r.credit_usd ?? 0)) } }, params: [r.short_code] }), `calloff:${b.id}`, b.id);
     await announceReturn(deps, b.id);
     return;
   }
@@ -266,8 +272,8 @@ async function riderIncident(deps: TurnDeps, staff: string, b: { action: "ask" |
 const isOutboxFailure = (err: unknown) => err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable";
 
 const dropButtons = () => [
-  { id: riderButtonId({ kind: "shift", action: "drop_hub", id: "" }), title: "بالمركز" },
-  { id: riderButtonId({ kind: "shift", action: "drop_omt", id: "" }), title: "OMT" },
+  { id: riderButtonId({ kind: "shift", action: "drop_hub", id: "" }), title: O.dropHub },
+  { id: riderButtonId({ kind: "shift", action: "drop_omt", id: "" }), title: O.dropOmt },
 ];
 
 // ---------- the hub: pickers and the ops lead (2.1) ----------
@@ -280,6 +286,7 @@ interface PickChanges { short_code: string; total_usd: number; fx_rate_lbp: numb
   credit_usd: number }
 interface Candidate { product_id: string; name: string; unit_price_usd: number; line_total_usd: number; diff_usd: number }
 interface Offer { offer_id: string; order_id: string; short_code: string; customer_id: string; missing_name: string; substitute_name: string;
+  missing_name_ar?: string | null; substitute_name_ar?: string | null;
   qty: number; replaced_total_usd: number; line_total_usd: number; diff_usd: number; answer_min: number }
 
 export type StaffButton =
@@ -303,66 +310,30 @@ export function parseSubstitutionButton(id: string): { keep: boolean; offerId: s
 }
 
 const RIDERS = /^(سائقين|سواقين|الشوفيرية|riders|drivers)$/i;
-const RETURNS = /^(مرتجع|مرتجعات|رجعة|returns?)$/i;
-const PICK_QUEUE = /^(طلبات|تحضير|حضّر|حضر|pick|orders|list)$/i;
+const RETURNS = /^(مرتجع|مرتجعات|رجعة|returns?|retours?)$/i;
+const PICK_QUEUE = /^(طلبات|تحضير|حضّر|حضر|pick|orders|list|commandes)$/i;
 const PICK_DONE = /^(خلص|خلصت|خلّصت|جاهز|done|picked)$/i;
-const PICK_MISSING = /^(?:ناقص|نقص|missing|n)\s*(\d{1,2})(?:\s+(?:لقيت\s+)?(\d+(?:\.\d+)?))?$/i;
+const PICK_MISSING = /^(?:ناقص|نقص|missing|manque|n)\s*(\d{1,2})(?:\s+(?:لقيت\s+)?(\d+(?:\.\d+)?))?$/i;
 
-const usd = (n: number) => `$${Number(n).toFixed(2)}`;
-const usdLbp = (n: number, fx: number | null) => fx ? `${usd(n)} أو ${(Math.round((n * fx) / 1000) * 1000).toLocaleString("en-US")} ل.ل` : usd(n);
-
+/** The staff texts, by their old names (tests and callers read them here). The words are in messages/ (ops section). */
 export const STAFF_TEXT = {
-  noOrders: "ما في طلبات ناطرة تحضير هلق.",
-  taken: "هالطلب عم يحضّرو حدا تاني.",
-  busy: (code: string) => `خلّص تحضير #${code} أوّل.`,
-  notPickable: (code: string, status: string) => `الطلب #${code} مش للتحضير هلق (${status}).`,
-  noOpenPick: "ما في طلب عم تحضّرو. اكتب «طلبات» لتشوف شو ناطر.",
-  noSuchLine: (n: number) => `ما في غرض رقم ${n} بالطلب.`,
-  removed: (name: string, total: number) => `شلنا «${name}» من الطلب. المجموع هلق ${usd(total)}.`,
-  removedLine: (total: number) => `شلنا الغرض من الطلب. المجموع هلق ${usd(total)}.`,
-  ready: (code: string) => `✅ #${code} جاهز للتسليم.`,
-  waiting: (code: string, names: string[]) => `#${code} ما خلص: في أغراض ناطرة قرار (${names.join("، ")}).`,
-  chooseSub: (name: string) => `«${name}» ناقص. في بديل من نفس النوع؟ اختار وحدة لنسأل الزبون، أو شيلو من الطلب.`,
-  subAsked: (min: number) => `سألنا الزبون. كمّل باقي الأغراض. إذا ما ردّ خلال ${min} دقايق منشيلو من الطلب.`,
-  subKept: (code: string, name: string) => `#${code}: الزبون قبل «${name}». حطّو بالطلب.`,
-  subRemoved: (code: string, name: string) => `#${code}: الزبون ما بدّو «${name}». رجّعو عالرف.`,
-  subNotSent: "ما قدرنا نبعت السؤال للزبون. إذا ما ردّ منشيلو من الطلب بعد الوقت.",
-  empty: (code: string) => `ما بقي شي بالطلب #${code}. خبّرنا الإدارة لتتصل بالزبون.`,
-  emptyOps: (code: string) => `🧺 الطلب #${code} طلع كلّو ناقص بالتحضير. اتصلوا بالزبون وقرّروا (إلغاء ورد المبلغ إذا مدفوع).`,
-  unknown: "ما فهمت. اكتب «طلبات» لتشوف الطلبات، «مرتجع» للمرتجعات، أو استعمل الأزرار.",
-  noReturns: "ما في مرتجعات ناطرة.",
-  returnBack: (code: string) => `📦 أغراض الطلب #${code} راجعة عالمركز. كبّس لما توصل لتعدّها.`,
-  returnDone: (code: string, back: number, waste: number) => `استلمنا مرتجع #${code}: ${back} رجعوا عالرف، ${waste} تلف.`,
-  returnAlready: (code: string) => `مرتجع #${code} مسجّل من قبل.`,
-  opsOnly: "هيدا للإدارة بس.",
-  noRiders: "ما في سائقين بالدوام هلق.",
-  riderRow: (name: string, cash: number, busy: boolean) => `🛵 ${name} · كاش ${usd(cash)}${busy ? " · معو طلب" : ""}`,
-  riderConfirm: (name: string) => `متأكد إنو ${name} ما فيه يكمّل؟ منوقّف دوامو، ومنعطي طلباتو لغيرو.`,
-  riderOff: (name: string, requeued: number, stranded: string[], usdHeld: number, lbpHeld: number) => [
-    `وقّفنا ${name}.`,
-    requeued ? `رجّعنا ${requeued} طلبات للتوزيع.` : null,
-    stranded.length ? `عالطريق معو: ${stranded.map((c) => "#" + c).join(" ")}. رح نعرضها على سائق تاني، استلام من المركز: لازم الأغراض توصل عالمركز. أو كبّس «رجّعها» لنلغي التوصيل.` : null,
-    usdHeld || lbpHeld ? `معو كاش: ${usd(usdHeld)} و ${Math.round(lbpHeld).toLocaleString("en-US")} ل.ل. كبّس «استلمنا الكاش» بس ينعدّ.` : "ما معو كاش.",
-  ].filter(Boolean).join("\n"),
-  riderAlreadyOff: (name: string) => `${name} موقّف من قبل، وما معو طلبات.`,
-  riderOffToRider: "وقّفنا طلباتك. سلّم الأغراض والكاش عالمركز بأقرب وقت. سلامتك 🙏",
-  calledOff: (code: string) => `لغينا توصيل #${code}. الأغراض لازم ترجع عالمركز وتنعدّ.`,
-  notCalledOff: (code: string, why: string) => why === "taken_over" ? `#${code} صار مع سائق تاني، ما منقدر نلغيه.` : `#${code} مش عالطريق (${why}).`,
-  cashIn: (u: number, l: number) => `استلمنا ${usd(u)} و ${Math.round(l).toLocaleString("en-US")} ل.ل. وتسجّلوا.`,
-  error: "صار في غلط. جرّب مرة تانية أو اتصل بالإدارة.",
+  noOrders: O.noOrders, taken: O.taken, busy: O.busy, notPickable: O.notPickable, noOpenPick: O.noOpenPick, noSuchLine: O.noSuchLine,
+  removed: O.removed, removedLine: O.removedLine, ready: O.ready, waiting: O.waiting, chooseSub: O.chooseSub, subAsked: O.subAsked,
+  subKept: O.subKept, subRemoved: O.subRemoved, subNotSent: O.subNotSent, empty: O.empty, emptyOps: O.emptyOps, unknown: O.unknown,
+  noReturns: O.noReturns, returnBack: O.returnBack, returnDone: O.returnDone, returnAlready: O.returnAlready, opsOnly: O.opsOnly,
+  noRiders: O.noRiders, riderRow: O.riderRow, riderConfirm: O.riderConfirm, riderOff: O.riderOff, riderAlreadyOff: O.riderAlreadyOff,
+  riderOffToRider: O.riderOffToRider, calledOff: O.calledOff, notCalledOff: O.notCalledOff, cashIn: O.cashIn, error: O.error,
 };
 
 /** The pick list as the picker reads it: numbered lines in shelf order, then the two buttons. */
 export function pickCard(l: PickList): Outbound[] {
-  const lines = l.lines.map((x) => `${x.n}. ${x.qty} × ${x.name}${x.note ? ` (${x.note})` : ""}`);
-  const gone = l.missing.map((x) => `✖ ${x.qty} × ${x.name}${x.status === "missing" ? " (ناطر قرار)" : ""}`);
-  const body = [`🧺 #${l.short_code} · ${l.lines.length} أغراض`, ...lines, ...(gone.length ? ["", ...gone] : []),
-                ...(l.notes ? ["", `ملاحظة: ${l.notes}`] : [])].join("\n");
+  const body = O.pickCard(l.short_code, l.lines.map((x) => ({ n: x.n, qty: x.qty, name: x.name, note: x.note })),
+                          l.missing.map((x) => ({ qty: x.qty, name: x.name, pending: x.status === "missing" })), l.notes);
   return [
     { type: "text", text: { body: body.slice(0, 4000) } },
-    buttons(`#${l.short_code}: ناقص شي؟ كبّس «غرض ناقص» أو اكتب «ناقص 2» («ناقص 2 1» إذا لقيت وحدة بس).`, [
-      { id: staffButtonId({ kind: "pick", action: "done", id: l.order_id }), title: "خلص ✅" },
-      { id: staffButtonId({ kind: "pick", action: "missing", id: l.order_id }), title: "غرض ناقص" },
+    buttons(O.pickAsk(l.short_code), [
+      { id: staffButtonId({ kind: "pick", action: "done", id: l.order_id }), title: O.pickDone },
+      { id: staffButtonId({ kind: "pick", action: "missing", id: l.order_id }), title: O.pickMissing },
     ]),
   ];
 }
@@ -371,56 +342,59 @@ interface ReturnCard { order_id: string; short_code: string; status: string; lin
 
 /** The return as the person receiving it reads it (2.5): each line with its default, then three buttons. */
 export function returnCard(c: ReturnCard): Outbound {
-  const lines = c.lines.map((l) => `${l.default === "restock" ? "✅" : "🗑"} ${l.qty} × ${l.name}`);
-  return buttons([`📦 مرتجع #${c.short_code}`, ...lines, "", "✅ بيرجع عالرف · 🗑 تلف (مبرّد، مجمّد أو طازة)"].join("\n").slice(0, 1000), [
-    { id: staffButtonId({ kind: "ret", action: "default", id: c.order_id }), title: "تمام هيك" },
-    { id: staffButtonId({ kind: "ret", action: "all_fit", id: c.order_id }), title: "كلو صالح" },
-    { id: staffButtonId({ kind: "ret", action: "all_waste", id: c.order_id }), title: "كلو تلف" },
+  return buttons(O.returnCard(c.short_code, c.lines.map((l) => ({ qty: l.qty, name: l.name, restock: l.default === "restock" }))).slice(0, 1000), [
+    { id: staffButtonId({ kind: "ret", action: "default", id: c.order_id }), title: O.returnDefault },
+    { id: staffButtonId({ kind: "ret", action: "all_fit", id: c.order_id }), title: O.returnAllFit },
+    { id: staffButtonId({ kind: "ret", action: "all_waste", id: c.order_id }), title: O.returnAllWaste },
   ]);
 }
 
-/** What the customer hears when the shelf changed their order: what was taken off, the new total, any money owed back. */
-export function pickChangeText(c: PickChanges): string | null {
+/**
+ * What the customer hears when the shelf changed their order: what was taken off, what was swapped, the new total, any money owed
+ * back. In the customer's language (M1); the template's three values are the code, the same facts in one line, and the total.
+ */
+export function pickChangeText(c: PickChanges, lang?: string | null): Built | null {
+  const m = messages(lang);
   const subs = c.substituted ?? [];
   if (!c.removed.length && !subs.length) return null;
-  const lines = [`طلبك #${c.short_code} جاهز.`];
-  if (c.removed.length) lines.push(`ما لقينا ${c.removed.map((r) => `${r.qty} × ${r.name}`).join("، ")}، فشلناه من الطلب.`);
-  for (const x of subs) lines.push(`بدل ${x.name}: ${x.qty} × ${x.by} (${usd(x.line_total_usd)})، متل ما وافقت.`);
-  lines.push(`المجموع الجديد: ${usdLbp(c.total_usd, c.payment_method === "cod" ? c.fx_rate_lbp : null)}.`);
-  if (Number(c.credit_usd) > 0) lines.push(`المبلغ يلي دفعتو زيادة (${usd(c.credit_usd)}) إلك: منرجّعلك ياه أو بينحسم من طلبك الجاي، متل ما بتحب.`);
-  return lines.join("\n");
+  const removed = c.removed.map((r) => `${r.qty} × ${r.name}`);
+  const lines = [m.shelf.ready(c.short_code)];
+  if (removed.length) lines.push(m.shelf.notFound(removed));
+  for (const x of subs) lines.push(m.shelf.swapped(x.name, String(x.qty), x.by, x.line_total_usd));
+  const lbp = c.payment_method === "cod" && c.fx_rate_lbp ? Math.round((c.total_usd * c.fx_rate_lbp) / 1000) * 1000 : null;
+  lines.push("", m.shelf.newTotal(c.total_usd, lbp));
+  if (Number(c.credit_usd) > 0) lines.push("", m.shelf.credit(Number(c.credit_usd)));
+  return { msg: { type: "text", text: { body: lines.join("\n") } },
+           params: [c.short_code, m.shelf.summary(removed, subs.map((x) => ({ name: x.name, by: x.by }))), usd(c.total_usd)] };
 }
 
 /** The customer's question (2.2): what is missing, what we have instead, the price difference, and the deadline. Facts only. */
-export function substitutionQuestion(o: Offer): Outbound {
-  const diff = Number(o.diff_usd);
-  const price = diff === 0 ? "نفس السعر" : diff > 0 ? `أغلى بـ ${usd(diff)}` : `أرخص بـ ${usd(-diff)}`;
-  return buttons([`طلبك #${o.short_code}: ما لقينا ${o.qty} × ${o.missing_name} (${usd(o.replaced_total_usd)}).`,
-    `عنا بدالو ${o.qty} × ${o.substitute_name} بـ ${usd(o.line_total_usd)} (${price}).`,
-    `بتحب ناخدو؟ إذا ما جاوبت خلال ${o.answer_min} دقايق منشيلو من الطلب.`].join("\n"), [
-    { id: substitutionButtonId(true, o.offer_id), title: "خلّيه ✅" },
-    { id: substitutionButtonId(false, o.offer_id), title: "شيلو" },
-  ]);
+export function substitutionQuestion(o: Offer, lang?: string | null): Built {
+  const m = messages(lang);
+  const missing = productName({ name: o.missing_name, name_ar: o.missing_name_ar ?? null }, m.lang);
+  const substitute = productName({ name: o.substitute_name, name_ar: o.substitute_name_ar ?? null }, m.lang);
+  const body = m.sub.question(o.short_code, String(o.qty), missing, Number(o.replaced_total_usd), substitute, Number(o.line_total_usd), Number(o.diff_usd), o.answer_min);
+  const ids = [substitutionButtonId(true, o.offer_id), substitutionButtonId(false, o.offer_id)];
+  return { msg: buttons(body, [{ id: ids[0]!, title: m.sub.keep }, { id: ids[1]!, title: m.sub.remove }]),
+           params: [o.short_code, `${o.qty} × ${missing}`, `${o.qty} × ${substitute}`, usd(o.line_total_usd), String(o.answer_min)], payloads: ids };
 }
 
-export const SUB_TEXT = {
-  kept: (code: string, total: number) => `تمام، حطّينا البديل بطلبك #${code}. المجموع هلق ${usd(total)}.`,
-  removed: (code: string, total: number) => `تمام، شلناه من طلبك #${code}. المجموع هلق ${usd(total)}.`,
-  late: (code: string, total: number) => `خلص وقت السؤال وشلنا الغرض من طلبك #${code}. المجموع هلق ${usd(total)}.`,
-};
+/** The answers to the substitute question's two buttons, in the customer's language (M1). */
+export const subText = (lang?: string | null) => messages(lang).sub;
 
 /**
  * The customer's keep or remove tap (2.2). Lane B calls this from turn.ts for any customer button it does not own, before the
  * model sees it: it returns false for anything that is not a substitution button. The database decides; this only reports.
  */
-export async function handleSubstitutionButton(deps: TurnDeps, partyId: string, tapped: string, wamid: string): Promise<boolean> {
+export async function handleSubstitutionButton(deps: TurnDeps, partyId: string, tapped: string, wamid: string, lang?: string | null): Promise<boolean> {
   const b = parseSubstitutionButton(tapped);
   if (!b) return false;
   const turnKey = requireTurnKey(deps);
   const r = await rpc<{ changed: boolean; status: string; short_code: string; order_id: string; offered_by: string; total_usd: number; substitute_name: string }>(
     deps.db, "answer_substitution", { p_offer: b.offerId, p_party: partyId, p_keep: b.keep, p_wamid: wamid });
-  const text = !r.changed && r.status === "expired" ? SUB_TEXT.late(r.short_code, r.total_usd)
-    : r.status === "kept" ? SUB_TEXT.kept(r.short_code, r.total_usd) : SUB_TEXT.removed(r.short_code, r.total_usd);
+  const t = subText(lang);
+  const text = !r.changed && r.status === "expired" ? t.late(r.short_code, r.total_usd)
+    : r.status === "kept" ? t.kept(r.short_code, r.total_usd) : t.removed(r.short_code, r.total_usd);
   await sendToCustomer(deps, partyId, { type: "text", text: { body: text } }, `${turnKey}:sub:${b.offerId}`, r.order_id);
   if (r.changed) {
     const name = r.substitute_name;
@@ -452,11 +426,12 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
     if (r.status === "ready") {
       await say(STAFF_TEXT.ready(r.short_code));
       const rider = await rpc<string | null>(db, "order_rider", { p_order: orderId });
-      if (rider) await sendToParty(deps, rider, { type: "text", text: { body: `📦 #${r.short_code} جاهز للاستلام بالمركز.` } }, `ready:${orderId}`);
-      const text = r.changes ? pickChangeText(r.changes) : null;
-      if (text && r.customer_id) await sendToCustomer(deps, r.customer_id, { type: "text", text: { body: text } }, `pickdone:${orderId}`, orderId);
-    } else if (r.status === "waiting") await say(STAFF_TEXT.waiting(r.short_code, (r.lines ?? []).map((x) =>
-      x.offer_open ? `${x.name}: ناطرين الزبون ${Math.max(1, Math.ceil(Number(x.seconds_left ?? 0) / 60))} د` : `${x.name}: بديل أو شيل؟`)));
+      if (rider) await sendToParty(deps, rider, { type: "text", text: { body: O.readyForRider(r.short_code) } }, `ready:${orderId}`);
+      const changes = r.changes;
+      if (changes && r.customer_id && pickChangeText(changes))
+        await notifyCustomer(deps, r.customer_id, "shelf_changes", (m) => pickChangeText(changes, m.lang)!, `pickdone:${orderId}`, orderId);
+    } else if (r.status === "waiting") await say(O.waiting(r.short_code, (r.lines ?? []).map((x) =>
+      x.offer_open ? O.waitingOffer(x.name, Math.max(1, Math.ceil(Number(x.seconds_left ?? 0) / 60))) : O.waitingDecide(x.name))));
     else if (r.status === "empty") { await say(STAFF_TEXT.empty(r.short_code)); await alertOps(deps, STAFF_TEXT.emptyOps(r.short_code), `pickempty:${orderId}`); }
     else if (r.status === "already") await say(STAFF_TEXT.ready(r.short_code));
     else await say(STAFF_TEXT.noOpenPick);
@@ -468,10 +443,10 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
     const gone = l.missing.find((x) => x.item_id === r.missing_item);
     if (r.decision === "pending" && r.candidates?.length) {
       // 2.2: the picker may offer one substitute from the list the database allows; the customer decides.
-      await out(list(STAFF_TEXT.chooseSub(gone?.name ?? ""), "بديل أو شيل", [
+      await out(list(O.chooseSub(gone?.name ?? ""), O.chooseSubButton, [
         ...r.candidates.map((c) => ({ id: staffButtonId({ kind: "sub", action: "offer", id: r.missing_item, product: c.product_id }), title: c.name,
-          description: `${usd(c.line_total_usd)} (${c.diff_usd > 0 ? "+" : ""}${Number(c.diff_usd).toFixed(2)}$)` })),
-        { id: staffButtonId({ kind: "pick", action: "remove", id: r.missing_item }), title: "شيلو من الطلب" },
+          description: O.subRow(Number(c.diff_usd)) })),
+        { id: staffButtonId({ kind: "pick", action: "remove", id: r.missing_item }), title: O.removeRow },
       ]));
       return;
     }
@@ -480,7 +455,7 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
   };
   const offerSub = async (missingItem: string, product: string) => {
     const o = await rpc<Offer>(db, "pick_offer_substitute", { p_missing: missingItem, p_product: product, p_by: staff });
-    const r = await sendToCustomer(deps, o.customer_id, substitutionQuestion(o), `subask:${o.offer_id}`, o.order_id);
+    const r = await notifyCustomer(deps, o.customer_id, "substitute_question", (m) => substitutionQuestion(o, m.lang), `subask:${o.offer_id}`, o.order_id);
     await say(r.ok ? STAFF_TEXT.subAsked(o.answer_min) : STAFF_TEXT.subNotSent);
     await showPick(await rpc<PickList>(db, "pick_list", { p_order: o.order_id }));
   };
@@ -514,7 +489,7 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
       } else if (b?.action === "missing") {
         const l = await rpc<PickList>(db, "pick_list", { p_order: b.id });
         if (!l.lines.length) { await say(STAFF_TEXT.noSuchLine(1)); continue; }
-        await out(list(`#${l.short_code}: شو الناقص؟ إذا لقيت شوي منو اكتب «ناقص الرقم العدد» (مثلاً ناقص 2 1).`, "اختار الغرض",
+        await out(list(O.whichMissing(l.short_code), O.whichMissingButton,
           l.lines.slice(0, 10).map((x) => ({ id: staffButtonId({ kind: "pick", action: "line", id: x.item_id }), title: `${x.n}. ${x.name}`, description: `${x.qty} × ${x.unit}` }))));
       } else if (b?.kind === "pick" && b.action === "line") {
         await missing(b.id, 0);
@@ -531,7 +506,7 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
       } else if (RETURNS.test(text)) {
         const back = await rpc<{ order_id: string; short_code: string }[]>(db, "returns_pending", {});
         if (!back.length) { await say(STAFF_TEXT.noReturns); continue; }
-        await out(buttons(["📦 مرتجعات ناطرة:", ...back.map((x) => `#${x.short_code}`)].join("\n"),
+        await out(buttons(O.returnsWaiting(back.map((x) => x.short_code)),
           back.slice(0, 3).map((x) => ({ id: staffButtonId({ kind: "ret", action: "open", id: x.order_id }), title: `#${x.short_code}` }))));
       } else if (b?.kind === "roff" || RIDERS.test(text)) {
         if (role === "picker") { await say(STAFF_TEXT.opsOnly); continue; }
@@ -545,7 +520,7 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
         const line = l.lines.find((x) => x.n === Number(typedMissing[1]));
         if (!line) { await say(STAFF_TEXT.noSuchLine(Number(typedMissing[1]))); continue; }
         const found = typedMissing[2] ? Number(typedMissing[2]) : 0;
-        if (found >= line.qty) { await say(`لقيت ${found} من ${line.qty}: يعني الغرض كامل، ما في ناقص.`); continue; }
+        if (found >= line.qty) { await say(O.foundAll(found, line.qty)); continue; }
         await missing(line.item_id, found);
       } else if (PICK_QUEUE.test(text)) {
         const open = await rpc<string | null>(db, "pick_open_for", { p_picker: staff });
@@ -553,15 +528,15 @@ async function processStaffTurn(deps: TurnDeps, pending: Pending[], staff: strin
         const q = (await rpc<{ order_id: string; short_code: string; status: string; village: string | null; items: number }[]>(db, "pick_queue", { p_limit: 5 }))
           .filter((x) => x.status === "confirmed");
         if (!q.length) { await say(STAFF_TEXT.noOrders); continue; }
-        await out(buttons(["🧺 ناطرين تحضير:", ...q.map((x) => `#${x.short_code} · ${x.items} أغراض${x.village ? ` · ${x.village}` : ""}`)].join("\n"),
-          q.slice(0, 3).map((x) => ({ id: staffButtonId({ kind: "pick", action: "start", id: x.order_id }), title: `بلّش #${x.short_code}` }))));
+        await out(buttons(O.queue(q.map((x) => ({ code: x.short_code, items: x.items, village: x.village }))),
+          q.slice(0, 3).map((x) => ({ id: staffButtonId({ kind: "pick", action: "start", id: x.order_id }), title: O.startButton(x.short_code) }))));
       } else if (text || tapped) {
         await say(STAFF_TEXT.unknown);
       }
     } catch (err) {
       if (isOutboxFailure(err)) throw err;
       await say(STAFF_TEXT.error);
-      await alertOps(deps, `⚠️ خطأ بالتحضير: ${String(err).slice(0, 160)}`, `${turnKey}:alert:error`);
+      await alertOps(deps, O.pickError(String(err).slice(0, 160)), `${turnKey}:alert:error`);
     }
   }
   return { outcome: "buttons", sent };

@@ -48,7 +48,7 @@ describe("acceptance: one missing item, one accepted substitute, one refund (Pha
     expect((await stock(h, CARDAMOM)).reserved).toBe(before.CARDAMOM!.reserved + 1);
     const q = line.to(o.customer).at(-1)!;
     expect(q.line).toBe("customer");
-    expect(q.body).toContain("$3.25"); expect(q.body).toContain("$3.49"); expect(q.body).toContain("أغلى بـ $0.24");
+    expect(q.body).toContain("$3.25"); expect(q.body).toContain("$3.49"); expect(q.body).toContain("أغلى بـ:\n$0.24");
     expect(q.buttons[0]).toMatch(/^sub:keep:/); expect(q.buttons[1]).toMatch(/^sub:remove:/);
     // the order cannot be finished while the customer decides
     await line.tap(PHONES.picker, `pick:done:${o.orderId}`);

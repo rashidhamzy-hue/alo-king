@@ -8,8 +8,10 @@
 //     (halal, gluten, vegan, allergens, calories, ...) unless a tool returned an approved record for it this turn, and even
 //     then never "safe" for an allergy; nothing that names a religion. A food word is allowed in a sentence that says the
 //     information is not verified or offers to ask: that is exactly what the rules require when there is no record.
+// M1 Message design: the model's own words are at most two short sentences (SYSTEM_BRIEF rule 3). Everything longer, a card,
+//     a list, a status, is a fixed message that code builds (packages/agents/src/messages/).
 
-export type GuardCode = "money_in_free_text" | "quality_judgement" | "unapproved_food_claim" | "allergy_reassurance" | "sensitive_inference";
+export type GuardCode = "money_in_free_text" | "quality_judgement" | "unapproved_food_claim" | "allergy_reassurance" | "sensitive_inference" | "too_long";
 export interface Violation { code: GuardCode; match: string }
 
 /** Arabic-Indic and Persian digits to ASCII, Arabic decimal and thousands marks to "." and ",", tatweel removed, lower case. */
@@ -106,10 +108,26 @@ export interface CheckOptions {
   approvedFacts?: ReadonlySet<string>;
 }
 
+/** M1: at most two sentences, each short. A line break ends a sentence too (a list is not two sentences). */
+export const MAX_SENTENCES = 2;
+export const MAX_SENTENCE_CHARS = 160;
+/** The model's sentences: split after . ! ? ؟ followed by a space or the end, and at line breaks ("2.5 kg" stays whole). */
+export function modelSentences(text: string): string[] {
+  return text.split(/(?<=[.!?؟…])\s+|\n+/u).map((x) => x.trim()).filter((x) => /[\p{L}\p{N}]/u.test(x));
+}
+export function tooLong(text: string): string | null {
+  const s = modelSentences(text);
+  if (s.length > MAX_SENTENCES) return `${s.length} sentences`;
+  const long = s.find((x) => x.length > MAX_SENTENCE_CHARS);
+  return long ? `${long.length} characters` : null;
+}
+
 /** Every check that applies to text written by the model. Returns the first violation, or null when the text may be sent. */
 export function checkModelText(text: string, opts: CheckOptions = {}): Violation | null {
   const money = moneyInText(text);
   if (money) return { code: "money_in_free_text", match: money };
+  const long = tooLong(text);
+  if (long) return { code: "too_long", match: long };
   const t = normaliseForGuard(text);
   for (const re of SENSITIVE) { const m = re.exec(t); if (m) return { code: "sensitive_inference", match: m[0].trim() }; }
   // A quality word in a clause that declines to judge («I can't say which is healthiest») is the refusal the rules ask for, not a
@@ -140,5 +158,6 @@ export const GUARD_HINT: Record<GuardCode, string> = {
   unapproved_food_claim: "No approved record for this food fact came back from a tool. Say you do not have verified information, and offer to ask the merchant or suggest checking the label.",
   allergy_reassurance: "Never reassure about an allergy or a diet. Pass it on as an allergy and say the kitchen must confirm before the order is accepted.",
   sensitive_inference: "Never mention or infer a religion, health condition or diet from a name, a place or past orders. Ask only what the customer wants to exclude.",
+  too_long: "Your own words are at most two short sentences. Say one thing: ask the one question that matters, or offer the choices as buttons (at most three). Lists, cards and totals are sent by the system.",
   money_in_free_text: "Prices, fees and totals are never written in free text. Leave amounts out: pass the product ids in `price_of` and the system adds prices from the database, or call quote_order and send_confirmation so the card shows the total.",
 };

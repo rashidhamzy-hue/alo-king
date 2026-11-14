@@ -304,6 +304,360 @@
         "title",
         "detail"
       ]
+    },
+    {
+      "name": "ak_shelf_changes_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "2985175458495575",
+      "body": "طلبك {{1}} جاهز، والمجموع الجديد {{3}}. شو تغيّر: {{2}}. إذا عندك سؤال ردّ على هالرسالة.",
+      "variables": [
+        "order_code",
+        "changes",
+        "new_total"
+      ],
+      "event": "the picker finished and the shelf changed the order (removed or swapped items)"
+    },
+    {
+      "name": "ak_shelf_changes_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "1485242437088280",
+      "body": "Your order {{1}} is ready, with a new total of {{3}}. What changed: {{2}}. If you have a question, reply to this message.",
+      "variables": [
+        "order_code",
+        "changes",
+        "new_total"
+      ],
+      "event": "the picker finished and the shelf changed the order (removed or swapped items)"
+    },
+    {
+      "name": "ak_shelf_changes_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "1153825180369642",
+      "body": "Votre commande {{1}} est prête, avec un nouveau total de {{3}}. Ce qui a changé : {{2}}. Pour toute question, répondez à ce message.",
+      "variables": [
+        "order_code",
+        "changes",
+        "new_total"
+      ],
+      "event": "the picker finished and the shelf changed the order (removed or swapped items)"
+    },
+    {
+      "name": "ak_substitute_question_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "1891116352231777",
+      "body": "طلبك {{1}}: ما لقينا {{2}}. عنا بدالو {{3}} بسعر {{4}}. بتحب ناخدو؟ إذا ما جاوبت خلال {{5}} دقايق منشيلو من الطلب.",
+      "variables": [
+        "order_code",
+        "missing",
+        "substitute",
+        "substitute_price",
+        "answer_minutes"
+      ],
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "خلّيه"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "شيلو"
+        }
+      ],
+      "event": "a picker offers a substitute for a missing item"
+    },
+    {
+      "name": "ak_substitute_question_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "1734191894705275",
+      "body": "Order {{1}}: we did not find {{2}}. We have {{3}} instead, at {{4}}. Shall we take it? If you do not answer within {{5}} minutes, we remove it from the order.",
+      "variables": [
+        "order_code",
+        "missing",
+        "substitute",
+        "substitute_price",
+        "answer_minutes"
+      ],
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Keep it"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Remove it"
+        }
+      ],
+      "event": "a picker offers a substitute for a missing item"
+    },
+    {
+      "name": "ak_substitute_question_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "2273060883426279",
+      "body": "Commande {{1}} : nous n'avons pas trouvé {{2}}. Nous avons {{3}} à la place, à {{4}}. Le prenons-nous ? Sans réponse dans {{5}} minutes, nous le retirons de la commande.",
+      "variables": [
+        "order_code",
+        "missing",
+        "substitute",
+        "substitute_price",
+        "answer_minutes"
+      ],
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Le garder"
+        },
+        {
+          "type": "QUICK_REPLY",
+          "text": "Le retirer"
+        }
+      ],
+      "event": "a picker offers a substitute for a missing item"
+    },
+    {
+      "name": "ak_order_delayed_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "2320478585469253",
+      "body": "طلبك {{1}} رح يتأخّر شوي بسبب ظرف طارئ مع السائق. رح يوصلك مع سائق تاني.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the ops lead stops a rider who holds the order; another rider takes it"
+    },
+    {
+      "name": "ak_order_delayed_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "2707776793070816",
+      "body": "Your order {{1}} will be a little late because of an emergency with the rider. Another rider will bring it.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the ops lead stops a rider who holds the order; another rider takes it"
+    },
+    {
+      "name": "ak_order_delayed_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "1660667518772687",
+      "body": "Votre commande {{1}} aura un peu de retard à cause d'une urgence du livreur. Un autre livreur vous l'apportera.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the ops lead stops a rider who holds the order; another rider takes it"
+    },
+    {
+      "name": "ak_delivery_called_off_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "1103756309330734",
+      "body": "ما قدرنا نكمّل توصيل طلبك {{1}} بسبب ظرف طارئ مع السائق. رح يتواصل معك حدا من فريقنا.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the ops lead calls off the delivery of an order a stopped rider held"
+    },
+    {
+      "name": "ak_delivery_called_off_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "1133666179556943",
+      "body": "We could not finish delivering your order {{1}} because of an emergency with the rider. Someone from our team will contact you.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the ops lead calls off the delivery of an order a stopped rider held"
+    },
+    {
+      "name": "ak_delivery_called_off_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "2182551912635955",
+      "body": "Nous n'avons pas pu terminer la livraison de votre commande {{1}} à cause d'une urgence du livreur. Une personne de notre équipe va vous contacter.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the ops lead calls off the delivery of an order a stopped rider held"
+    },
+    {
+      "name": "ak_kept_order_open_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "2338090990302135",
+      "body": "فتحنا هلّق. الطلب يلي بعتّو وكنّا مسكّرين محفوظ. اكبس الزر تحت لنكمّل.",
+      "variables": [],
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "ابعت طلبي"
+        }
+      ],
+      "event": "we open, for a customer whose order was kept after closing time"
+    },
+    {
+      "name": "ak_kept_order_open_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "1463060072032210",
+      "body": "We are open now. The order you sent while we were closed is saved. Tap the button below to carry on.",
+      "variables": [],
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Send my order"
+        }
+      ],
+      "event": "we open, for a customer whose order was kept after closing time"
+    },
+    {
+      "name": "ak_kept_order_open_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "1492179346097773",
+      "body": "Nous sommes ouverts. La commande envoyée pendant la fermeture est gardée. Appuyez sur le bouton ci-dessous pour continuer.",
+      "variables": [],
+      "buttons": [
+        {
+          "type": "QUICK_REPLY",
+          "text": "Envoyer ma commande"
+        }
+      ],
+      "event": "we open, for a customer whose order was kept after closing time"
+    },
+    {
+      "name": "ak_on_the_way_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "1651787763098188",
+      "body": "طلبك {{1}} صار عالطريق لعندك.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the rider picked up the order"
+    },
+    {
+      "name": "ak_on_the_way_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "1813539846428158",
+      "body": "Your order {{1}} is on its way to you.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the rider picked up the order"
+    },
+    {
+      "name": "ak_on_the_way_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "1789121588982547",
+      "body": "Votre commande {{1}} est en route vers vous.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the rider picked up the order"
+    },
+    {
+      "name": "ak_window_reminder_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "ar",
+      "meta_id": "1287922410175383",
+      "body": "تذكير: طلبك {{1}} موعود بالتوصيل {{2}}. إذا بدك تغيّر شي ردّ على هالرسالة.",
+      "variables": [
+        "order_code",
+        "window"
+      ],
+      "event": "before a scheduled delivery (no event sends it yet)"
+    },
+    {
+      "name": "ak_window_reminder_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "2481898865553734",
+      "body": "A reminder: your order {{1}} is scheduled for delivery {{2}}. If you need to change something, reply to this message.",
+      "variables": [
+        "order_code",
+        "window"
+      ],
+      "event": "before a scheduled delivery (no event sends it yet)"
+    },
+    {
+      "name": "ak_window_reminder_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "1793609561872491",
+      "body": "Rappel : votre commande {{1}} est prévue pour une livraison {{2}}. Pour changer quelque chose, répondez à ce message.",
+      "variables": [
+        "order_code",
+        "window"
+      ],
+      "event": "before a scheduled delivery (no event sends it yet)"
+    },
+    {
+      "name": "ak_day_close_v1",
+      "line": "ops",
+      "category": "utility",
+      "language": "ar",
+      "body": "تقرير إقفال يوم {{1}}: {{2}}. التفاصيل على شاشة الإدارة.",
+      "variables": [
+        "day",
+        "summary"
+      ],
+      "event": "the founder's nightly report (apps/console sendDayClose; not wired by M1)",
+      "status_note": "not submitted: the ops line is the Kapso sandbox, which cannot hold templates (M1)"
+    },
+    {
+      "name": "ak_day_close_en_v1",
+      "line": "ops",
+      "category": "utility",
+      "language": "en",
+      "body": "Day-close report for {{1}}: {{2}}. The details are on the console.",
+      "variables": [
+        "day",
+        "summary"
+      ],
+      "event": "the founder's nightly report (apps/console sendDayClose; not wired by M1)",
+      "status_note": "not submitted: the ops line is the Kapso sandbox, which cannot hold templates (M1)"
+    },
+    {
+      "name": "ak_day_close_fr_v1",
+      "line": "ops",
+      "category": "utility",
+      "language": "fr",
+      "body": "Rapport de clôture du {{1}} : {{2}}. Le détail est sur la console.",
+      "variables": [
+        "day",
+        "summary"
+      ],
+      "event": "the founder's nightly report (apps/console sendDayClose; not wired by M1)",
+      "status_note": "not submitted: the ops line is the Kapso sandbox, which cannot hold templates (M1)"
     }
   ],
   "_submitted": "13 Nov 2026 (session A2, task 4.3): the three ak_* templates below were submitted to Meta through Kapso for WABA 1086076707594153. Their status lives in wa_templates (migration 0062), updated hourly from Meta. The others are drafts, not submitted. 14 Nov 2026 (session A4, audit item 8): the English and French versions (ak_*_en_v1, ak_*_fr_v1) were submitted the same way; migration 0093. A notice uses the customer's language (customer_language(), from the Concierge's reading)."

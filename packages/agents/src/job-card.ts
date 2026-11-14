@@ -1,5 +1,6 @@
 // What a rider sees on the ops line. Plain text plus buttons: it has to be readable on a cracked screen at a red light.
 import { buttons, type Outbound } from "@ak/wa/kapso";
+import { messages, STAFF_LANG } from "./messages";
 
 export interface JobStop {
   seq: number; kind: "pickup" | "dropoff" | "cash_drop"; done: boolean; arrived: boolean;
@@ -10,8 +11,10 @@ export interface JobStop {
 }
 export interface Job { delivery_id: string; driver_id: string; status: string; collect_usd: number; stops: JobStop[] }
 
-const money = (usd: number, fx?: number | null) =>
-  fx ? `$${usd.toFixed(2)} (${(Math.round((usd * fx) / 1000) * 1000).toLocaleString("en-US")} ل.ل)` : `$${usd.toFixed(2)}`;
+// M1: the words are in messages/ (ops section), in the staff's language. Each amount on its own line.
+const O = messages(STAFF_LANG).ops;
+/** The lira equivalent of a dollar amount at the order's rate, rounded to 1,000 as the card rounds; null without a rate. */
+const lbpOf = (usd: number, fx?: number | null) => (fx ? Math.round((usd * fx) / 1000) * 1000 : null);
 
 export type RiderButton =
   | { kind: "job"; action: "accept" | "decline" | "picked"; id: string }
@@ -28,60 +31,41 @@ export function parseRiderButton(id: string): RiderButton | null {
 export function offerCard(job: Job, minutesToPickup?: number): Outbound {
   const pickups = job.stops.filter((s) => s.kind === "pickup").map((s) => s.source).join(" + ");
   const drops = job.stops.filter((s) => s.kind === "dropoff");
-  const lines = [
-    `🛵 طلب جديد${drops.length > 1 ? ` (${drops.length} طلبات)` : ""}`,
-    `استلام: ${pickups}${minutesToPickup ? ` · ${Math.round(minutesToPickup)} د` : ""}`,
-    ...drops.map((s) => `توصيل: ${s.village ?? "?"} · #${s.short_code} · ${s.paid ? "مدفوع" : money(Number(s.total_usd ?? 0))}`),
-    job.collect_usd > 0 ? `كاش للتحصيل: $${Number(job.collect_usd).toFixed(2)}` : "ما في كاش",
-  ];
-  return buttons(lines.join("\n"), [
-    { id: riderButtonId({ kind: "job", action: "accept", id: job.delivery_id }), title: "قبول ✅" },
-    { id: riderButtonId({ kind: "job", action: "decline", id: job.delivery_id }), title: "ما فيني" },
+  const body = O.offer(drops.length, pickups, minutesToPickup ?? null,
+    drops.map((s) => ({ village: s.village ?? null, code: s.short_code ?? "", paid: !!s.paid, total: Number(s.total_usd ?? 0), lbp: null })), Number(job.collect_usd));
+  return buttons(body, [
+    { id: riderButtonId({ kind: "job", action: "accept", id: job.delivery_id }), title: O.accept },
+    { id: riderButtonId({ kind: "job", action: "decline", id: job.delivery_id }), title: O.decline },
   ]);
 }
 
 export function pickupCard(job: Job): Outbound {
-  const lines = job.stops.filter((s) => s.kind === "pickup").map((s) => `${s.done ? "✅" : "⬜"} ${s.source}${s.source_village ? " · " + s.source_village : ""}`);
-  const codes = job.stops.filter((s) => s.kind === "dropoff").map((s) => "#" + s.short_code).join(" ");
-  return buttons(`الاستلام ${codes}\n${lines.join("\n")}\nكبّس بس تستلم كل شي.`, [
-    { id: riderButtonId({ kind: "job", action: "picked", id: job.delivery_id }), title: "استلمت 📦" },
+  const stops = job.stops.filter((s) => s.kind === "pickup").map((s) => ({ done: s.done, source: s.source ?? "", village: s.source_village ?? null }));
+  const codes = job.stops.filter((s) => s.kind === "dropoff").map((s) => s.short_code ?? "");
+  return buttons(O.pickup(codes, stops), [
+    { id: riderButtonId({ kind: "job", action: "picked", id: job.delivery_id }), title: O.picked },
   ]);
 }
 
 /** The next door. The pin goes as a separate location message so it opens in the rider's maps app. */
 export function dropCard(s: JobStop): Outbound {
-  const lines = [
-    `📍 #${s.short_code} · ${s.customer ?? ""} · ${s.village ?? ""}`,
-    s.directions ? `العنوان: ${s.directions}` : null,
-    s.phone ? `تلفون: ${s.phone}` : null,
-    s.notes ? `ملاحظة: ${s.notes}` : null,
-    s.paid ? "مدفوع مسبقاً. ما تاخد مصاري." : `حصّل: ${money(Number(s.total_usd ?? 0), s.fx_rate_lbp)}${s.change_for_usd ? ` · معو ${s.change_for_usd}$، جهّز الباقي` : ""}`,
-  ].filter(Boolean);
-  return buttons(lines.join("\n"), [
-    { id: riderButtonId({ kind: "stop", action: "arrived", id: s.order_id! }), title: "وصلت" },
-    { id: riderButtonId({ kind: "stop", action: "delivered", id: s.order_id! }), title: "سلّمت ✅" },
-    { id: riderButtonId({ kind: "stop", action: "noanswer", id: s.order_id! }), title: "ما حدا عم يرد" },
+  const total = Number(s.total_usd ?? 0);
+  return buttons(O.drop({ code: s.short_code ?? "", customer: s.customer ?? "", village: s.village ?? "", directions: s.directions ?? null, phone: s.phone ?? null,
+                          notes: s.notes ?? null, paid: !!s.paid, total, lbp: lbpOf(total, s.fx_rate_lbp), changeFor: s.change_for_usd ?? null }), [
+    { id: riderButtonId({ kind: "stop", action: "arrived", id: s.order_id! }), title: O.arrived },
+    { id: riderButtonId({ kind: "stop", action: "delivered", id: s.order_id! }), title: O.delivered },
+    { id: riderButtonId({ kind: "stop", action: "noanswer", id: s.order_id! }), title: O.noAnswer },
   ]);
 }
 
 export function cashAsk(s: { order_id: string; short_code: string; total_usd: number; fx_rate_lbp?: number | null }): Outbound {
-  return buttons(`#${s.short_code}: قديش قبضت؟ المطلوب ${money(Number(s.total_usd), s.fx_rate_lbp)}\nاكتب المبلغ (مثلاً: 20$ و 300 الف) أو كبّس إذا المبلغ مظبوط بالدولار.`, [
-    { id: riderButtonId({ kind: "stop", action: "exact", id: s.order_id }), title: "مظبوط بالدولار" },
+  return buttons(O.cashAsk(s.short_code, Number(s.total_usd), lbpOf(Number(s.total_usd), s.fx_rate_lbp)), [
+    { id: riderButtonId({ kind: "stop", action: "exact", id: s.order_id }), title: O.exactButton },
   ]);
 }
 
 export const RIDER_TEXT = {
-  shiftStarted: "بلّش الدوام. بعتلي موقعك (📎 ← Location) لنعرف وين إنت.",
-  shiftAlready: "إنت أصلاً بالدوام.",
-  notOnShift: "إنت مش بالدوام. اكتب «حاضر» لتبلّش.",
-  offerGone: "هالطلب راح لغيرك أو انتهى وقتو.",
-  accepted: "تمام، الطلب إلك.",
-  declined: "ماشي، رح نعطيه لغيرك.",
-  cashUnclear: "ما فهمت المبلغ. اكتبو هيك: 20$ أو 1,800,000 أو 10$ و 900 الف.",
-  noJob: "ما في طلب معك هلق.",
-  dropAsk: "وين بدك تسلّم الكاش؟",
-  shiftBlocked: "ما فيك تسكّر الدوام وفي طلب معك.",
-  softCap: "معك كاش كتير. سلّم بأقرب فرصة (المركز أو OMT).",
-  hardCap: "وصلت للحد الأقصى من الكاش. ما رح يوصلك طلبات لتسلّم.",
-  unknown: "ما فهمت. استعمل الأزرار، أو اكتب «حاضر» / «خلصت» / «كاش».",
+  shiftStarted: O.shiftStarted, shiftAlready: O.shiftAlready, notOnShift: O.notOnShift, offerGone: O.offerGone, accepted: O.accepted,
+  declined: O.declined, cashUnclear: O.cashUnclear, noJob: O.noJob, dropAsk: O.dropAsk, shiftBlocked: O.shiftBlocked, softCap: O.softCap,
+  hardCap: O.hardCap, unknown: O.riderUnknown,
 };

@@ -15,6 +15,8 @@ import { runTurn, turnKeyOf, type Pending, type TurnDeps } from "./turn";
 import { alertOps, dispatchAndOffer, sendToParty } from "./ops-turn";
 import { cashAsk, RIDER_TEXT } from "@ak/agents/job-card";
 import { customerLineCron } from "@ak/agents/cron";
+import { messages } from "@ak/agents/messages";
+import { sendCodeStarted } from "@ak/agents/messages/notify";
 import { catalogFeed, supabasePublicStore, syncCatalogPictures } from "./catalog-feed";
 
 export interface Env {
@@ -215,34 +217,18 @@ async function customerAddress(supa: SupabaseClient, partyId: string): Promise<s
   return row?.phone_e164 ?? row?.wa_user_id ?? null;
 }
 
-async function sendToCustomer(deps: TurnDeps, partyId: string, text: string, dedupeKey: string, orderId?: string): Promise<void> {
-  const to = await customerAddress(deps.db, partyId);
-  // Inside the 24-hour window this is a free service message. Outside it the gateway refuses free text, by design:
-  // the approved utility templates in templates/templates.json are the only way to reach a customer then.
-  if (to) await deps.send({ line: "customer", partyId, to, msg: { type: "text", text: { body: text } }, category: "service", orderId, dedupeKey });
-}
-
 /** lang (0093, A4): the customer's language, from how they last wrote. The template and the words that fill it are in it. */
 interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "payment_received"; order_id: string; short_code: string;
   customer_id: string; params: string[]; lang?: "ar" | "en" | "fr"; template: string | null; template_approved: boolean }
 
-/** The same notice as free text, for inside the 24-hour window until Meta approves the template. */
-const NOTICE_TEXT: Record<"ar" | "en" | "fr", Record<Notice["kind"], (p: string[]) => string>> = {
-  ar: {
-    order_cancelled: (p) => `انلغى طلبك #${p[0]}: ${p[1]}. اكتبلنا إذا بعدك بدّك ياه.`,
-    rider_at_door: (p) => `السائق واصل عندك بطلب #${p[0]} وعم يستناك 🚪`,
-    payment_received: (p) => `وصلنا دفعك لطلب #${p[0]}: ${p[1]}.`,
-  },
-  en: {
-    order_cancelled: (p) => `Your order #${p[0]} was cancelled: ${p[1]}. Write to us if you still want it.`,
-    rider_at_door: (p) => `The rider is at your door with order #${p[0]} and is waiting for you 🚪`,
-    payment_received: (p) => `We received your payment for order #${p[0]}: ${p[1]}.`,
-  },
-  fr: {
-    order_cancelled: (p) => `Votre commande #${p[0]} a été annulée : ${p[1]}. Écrivez-nous si vous la voulez toujours.`,
-    rider_at_door: (p) => `Le livreur est à votre porte avec la commande #${p[0]} et vous attend 🚪`,
-    payment_received: (p) => `Nous avons reçu votre paiement pour la commande #${p[0]} : ${p[1]}.`,
-  },
+/** The same notice as free text, for inside the 24-hour window until Meta approves the template. M1: the words are in messages/. */
+const NOTICE_TEXT = (lang: "ar" | "en" | "fr"): Record<Notice["kind"], (p: string[]) => string> => {
+  const m = messages(lang).notice;
+  return {
+    order_cancelled: (p) => m.orderCancelled(p[0] ?? "", p[1] ?? ""),
+    rider_at_door: (p) => m.riderAtDoor(p[0] ?? ""),
+    payment_received: (p) => m.paymentReceived(p[0] ?? "", p[1] ?? ""),
+  };
 };
 
 /** Exported for tests. The approved utility template when Meta has approved it (it reaches the customer at any hour);
@@ -255,7 +241,7 @@ export async function sendNotice(deps: TurnDeps, n: Notice): Promise<void> {
     const lang = n.lang ?? "ar";
     const msg: Outbound = n.template && n.template_approved
       ? { type: "template", template: { name: n.template, language: { code: lang }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
-      : { type: "text", text: { body: NOTICE_TEXT[lang][n.kind](n.params) } };
+      : { type: "text", text: { body: NOTICE_TEXT(lang)[n.kind](n.params) } };
     const r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: msg.type === "template" ? "utility" : "service", orderId: n.order_id, dedupeKey: n.key });
     outcome = r.ok ? `sent:${msg.type}` : `refused:${r.refused}`;
   }
@@ -388,8 +374,11 @@ async function notifyCustomer(deps: TurnDeps, id: string, what: "on_the_way" | "
   const q = deps.db.from("delivery_stops").select("order_id, orders(short_code, customer_id)").eq("kind", "dropoff");
   const { data } = what === "on_the_way" ? await q.eq("delivery_id", id) : await q.eq("order_id", id);
   for (const s of (data as unknown as { order_id: string; orders: { short_code: string; customer_id: string } }[] | null) ?? []) {
-    const text = what === "on_the_way" ? `طلبك #${s.orders.short_code} صار عالطريق 🛵` : `السائق واصل عندك بطلب #${s.orders.short_code} وعم يستناك 🚪`;
-    await sendToCustomer(deps, s.orders.customer_id, text, `${what}:${s.order_id}`, s.order_id);
+    // M1 (G1-23): in the customer's language; past 24 hours (a scheduled order confirmed days before), the event's utility template.
+    const code = s.orders.short_code;
+    await sendCodeStarted({ db: deps.db, send: deps.send }, s.orders.customer_id, what === "on_the_way" ? "on_the_way" : "rider_at_door",
+      (m) => ({ msg: { type: "text", text: { body: what === "on_the_way" ? m.notice.onTheWay(code) : m.notice.riderWaiting(code) } }, params: [code] }),
+      `${what}:${s.order_id}`, s.order_id);
   }
 }
 

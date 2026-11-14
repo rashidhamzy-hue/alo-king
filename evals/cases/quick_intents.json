@@ -172,6 +172,74 @@
   {
    "text": "kifak, shu fi 5odra lyom?",
    "expect": null
+  },
+  {
+   "text": "قديش بالليرة؟",
+   "expect": "lira"
+  },
+  {
+   "text": "قديش المجموع بالليرة",
+   "expect": "lira"
+  },
+  {
+   "text": "كم بالل.ل",
+   "expect": "lira"
+  },
+  {
+   "text": "شو سعر الصرف اليوم",
+   "expect": "lira"
+  },
+  {
+   "text": "قديش الدولار اليوم؟",
+   "expect": "lira"
+  },
+  {
+   "text": "adesh bel lira",
+   "expect": "lira"
+  },
+  {
+   "text": "2adesh bel lebnene",
+   "expect": "lira"
+  },
+  {
+   "text": "sa3er el dolar",
+   "expect": "lira"
+  },
+  {
+   "text": "how much in lira?",
+   "expect": "lira"
+  },
+  {
+   "text": "how much is it in LBP",
+   "expect": "lira"
+  },
+  {
+   "text": "what's the exchange rate",
+   "expect": "lira"
+  },
+  {
+   "text": "combien en livres ?",
+   "expect": "lira"
+  },
+  {
+   "text": "taux de change",
+   "expect": "lira"
+  },
+  {
+   "text": "بدي ربطة خبز بالليرة",
+   "expect": null
+  },
+  {
+   "text": "بدفع بالليرة",
+   "expect": null
+  },
+  {
+   "text": "how much is the bread",
+   "expect": null
+  },
+  {
+   "text": "قديش حق الخبز",
+   "expect": null
   }
  ]
 }

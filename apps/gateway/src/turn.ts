@@ -13,10 +13,11 @@ import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
-import { buttonReplyText, CARD_TEXT, FIXED, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
+import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
 import { orderWindowTap, schedules, whenOnly } from "@ak/agents/windows";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
-import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
+import { readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
+import { langFromReading, langOfText, messages, STAFF_LANG, villageName } from "@ak/agents/messages";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
@@ -73,7 +74,7 @@ export async function openTurn(db: SupabaseClient, key: string, pending: Pending
     p_name: first.event.conversation.contact_name ?? null,
     p_messages: pending.map((p, i) => ({
       wa_message_id: p.event.message.id, type: p.event.message.type,
-      body: p.event.message.text?.body ?? p.event.message.interactive?.button_reply?.id ?? p.event.message.interactive?.list_reply?.id ?? null,
+      body: p.event.message.text?.body ?? p.event.message.interactive?.button_reply?.id ?? p.event.message.interactive?.list_reply?.id ?? templatePayload(p.event.message) ?? null,
       transcript: p.event.message.kapso.transcript ? { kapso: p.event.message.kapso.transcript.text } : null,
       // Where a new customer came from (1.13): read from the first message only, as before.
       ...(i === 0 ? { body_text: head.text?.body ?? null, referral: head.referral ?? null } : {}),
@@ -96,6 +97,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   if (!conv.known || conv.blocked) return { outcome: "ignored", sent: [] };
 
   const sent: string[] = [];
+  // M1: every fixed message in the conversation's language (state.lang: the last reading's, or the words of a turn code answers).
+  const T = () => messages(state.lang);
   // W1: an "edit" tap answered long ago no longer turns the next basket into a change of that order: a new order is a new order.
   if (state.replacing && Date.now() - (state.replacing.since ?? 0) > CHANGE_OPEN_MS) state.replacing = null;
   // G1-19 (SP1): a message's key is the turn plus what it says, not its place in the turn. A retried turn whose model words or
@@ -113,9 +116,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   // The model, with the capacity fallback around it: one fixed "one moment" on the first failure (keyed so a retried turn
   // never sends it twice), retries with backoff, then ModelUnavailable.
   const model = withCapacityFallback(deps.model, { ...deps.capacity, onFirstFailure: async () => {
-    const r = await deps.send({ line: "customer", partyId: conv.party_id, to, msg: { type: "text", text: { body: FIXED.oneMoment } },
+    const r = await deps.send({ line: "customer", partyId: conv.party_id, to, msg: { type: "text", text: { body: T().fixed.oneMoment } },
                                 category: "service", dedupeKey: `${turnKey}:wait` });
-    if (r.ok) sent.push(FIXED.oneMoment);
+    if (r.ok) sent.push(T().fixed.oneMoment);
   } });
 
   const ctx: ToolContext = {
@@ -130,8 +133,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   for (const p of pending) {
     const m = p.event.message;
 
-    // 1. Buttons never reach the model. A list row (W1: a delivery window) is a tap too.
-    const tapped = m.type === "interactive" ? (m.interactive?.button_reply?.id ?? m.interactive?.list_reply?.id) : undefined;
+    // 1. Buttons never reach the model. A list row (W1: a delivery window) is a tap too, and so is a template's quick reply (M1:
+    //    a code-started message sent after 24 hours carries the same button ids as payloads).
+    const tapped = m.type === "interactive" ? (m.interactive?.button_reply?.id ?? m.interactive?.list_reply?.id) : m.type === "button" ? templatePayload(m) : undefined;
     if (tapped) {
       const btn = parseOrderButton(tapped);
       if (btn) {
@@ -145,14 +149,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           if (r.status === "stale_quote") {
             // Prices or stock moved since the card. The same lines, re-priced now, with anything gone named first. No model.
             state.lastQuote = null;
-            if (!(await rebuildStale(ctx, btn.orderId)).done) await say(FIXED.outOfStock, btn.orderId);
+            if (!(await rebuildStale(ctx, btn.orderId)).done) await say(T().fixed.outOfStock, btn.orderId);
             continue;
           }
-          if (r.status === "needs_location") { await sendRaw(askLocation("قبل ما نأكّد، بعتلنا موقعك 📍 أو اكتب العنوان بالتفصيل."), btn.orderId); continue; }
-          await say(buttonReplyText(r), btn.orderId);
+          if (r.status === "needs_location") { await sendRaw(askLocation(T().tap.needsLocation), btn.orderId); continue; }
+          await say(buttonReplyText(r, {}, state.lang), btn.orderId);
           // W1 (C3's request 3): the window filled or closed before the tap. The order is a draft again; the open windows follow.
           if ((r.status === "slot_full" || r.status === "slot_closed") && r.windows?.length)
-            await sendRaw(formatWindowChoice(btn.orderId, r.windows, { body: CARD_TEXT.chooseWindow }), btn.orderId);
+            await sendRaw(formatWindowChoice(btn.orderId, r.windows, { body: T().windows.choose, lang: state.lang }), btn.orderId);
           // W1 (C3's request 4): "edit" on a confirmed scheduled order before its cut-off. The next basket is a new card that
           // replaces it (link_replacement_order); nothing changes until that card is confirmed.
           if (r.status === "change_open") state.replacing = { orderId: btn.orderId, shortCode: r.short_code, slotId: r.window?.slot_id ?? null, since: Date.now() };
@@ -160,7 +164,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           if (r.changed && r.status === "confirmed") await deps.onOrderConfirmed?.(btn.orderId).catch(() => undefined);
           if (r.status === "draft") state.lastQuote = null;
         } catch (err) {
-          await say(String(err).includes("OUT_OF_STOCK") ? FIXED.outOfStock : FIXED.error, btn.orderId);
+          await say(String(err).includes("OUT_OF_STOCK") ? T().fixed.outOfStock : T().fixed.error, btn.orderId);
           if (!String(err).includes("OUT_OF_STOCK")) await handoff(db, conv.conversation_id, `button_error: ${String(err).slice(0, 200)}`);
         }
         continue;
@@ -174,7 +178,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           else await basketWindowTap(ctx, win.slotId);
         } catch (err) {
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
-          await say(FIXED.error, win.orderId ?? undefined);
+          await say(T().fixed.error, win.orderId ?? undefined);
           await handoff(db, conv.conversation_id, `window_error: ${String(err).slice(0, 200)}`);
         }
         sent.push(...ctx.sent.texts.splice(0));
@@ -202,10 +206,10 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       }
       // Keep or remove a substitute the picker offered (C2, 2.2): the hub's code answers; never the model.
       if (tapped.startsWith("sub:")) {
-        try { if (await handleSubstitutionButton(deps, conv.party_id, tapped, m.id)) { buttonsHandled++; continue; } }
+        try { if (await handleSubstitutionButton(deps, conv.party_id, tapped, m.id, state.lang)) { buttonsHandled++; continue; } }
         catch (err) {
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
-          buttonsHandled++; await say(FIXED.error); await handoff(db, conv.conversation_id, `substitution_error: ${String(err).slice(0, 200)}`); continue;
+          buttonsHandled++; await say(T().fixed.error); await handoff(db, conv.conversation_id, `substitution_error: ${String(err).slice(0, 200)}`); continue;
         }
       }
       // The village a pin is in, tapped when the pin alone was not clear (B4). The database checks it is near the pin.
@@ -214,8 +218,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         buttonsHandled++;
         if (!(await choosePinVillage(ctx, pinVillage))) {
           state.awaiting = state.lastQuote ? "pin" : null;
-          await sendRaw(askLocation(FIXED.pinVillageRefused));
-        } else if (!(await completePending(ctx))) await say(FIXED.pinSaved(state.pinCheck?.villageAr ?? ""));
+          await sendRaw(askLocation(T().fixed.pinVillageRefused));
+        } else if (!(await completePending(ctx))) await say(T().fixed.pinSaved(villageName(state.lang ?? "ar", state.pinCheck?.villageAr, state.pinCheck?.villageEn)));
         sent.push(...ctx.sent.texts.splice(0));
         continue;
       }
@@ -223,8 +227,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       // go as it was (an item gone overnight): the Concierge reads the tap with the basket in hand.
       if (tapped === KEPT_BUTTON) {
         if (await sendKept(ctx)) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }
-        if (!state.lastQuote) { buttonsHandled++; await say(FIXED.keptGone); continue; }
-        texts.push(FIXED.keptButton);
+        if (!state.lastQuote) { buttonsHandled++; await say(T().fixed.keptGone); continue; }
+        texts.push(T().fixed.keptButton);
         continue;
       }
       if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
@@ -245,7 +249,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         { p_party: conv.party_id, p_lat: m.location.latitude, p_lng: m.location.longitude, p_village: state.villageId ?? null });
       state.placeId = place.place_id;
       state.villageId = place.village_id ?? null;
-      state.pinCheck = { status: place.status, villageAr: place.village_ar ?? null, served: place.served ?? null, candidates: place.candidates ?? [],
+      state.pinCheck = { status: place.status, villageAr: place.village_ar ?? null, villageEn: place.village ?? null, served: place.served ?? null, candidates: place.candidates ?? [],
                          saidAr: place.village_id && place.said_village_id && place.said_village_id !== place.village_id ? place.said_village_ar ?? null : null };
       pins++;
       texts.push(`[location pin received, ${place.village ? `village: ${place.village}` : "village not clear: the customer is asked to choose"}]`);
@@ -264,15 +268,17 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     // 3. STOP wins, before any model.
     if (m.type === "text") {
       const body = m.text?.body ?? "";
+      const said = langOfText(body);
+      if (said) state.lang = said;
       const signal = detectConsentSignal(body);
       if (signal === "opt_out") {
-        await say(FIXED.optOut);                                    // the one permitted confirmation, sent before the gate closes
+        await say(T().fixed.optOut);                                    // the one permitted confirmation, sent before the gate closes
         await call(db, "record_consent_signal", { p_party: conv.party_id, p_line: "customer", p_action: "opt_out", p_source: "stop_keyword", p_wamid: m.id });
         return { outcome: "opt_out", sent };
       }
       if (signal === "opt_in") {
         await call(db, "record_consent_signal", { p_party: conv.party_id, p_line: "customer", p_action: "opt_in", p_source: "start_keyword", p_wamid: m.id });
-        await say(FIXED.optIn);
+        await say(T().fixed.optIn);
         return { outcome: "opt_in", sent };
       }
       // The number a rider can call, when we have just asked for it (1.19). Read only then, so a quantity is never taken for a phone.
@@ -282,7 +288,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           await call(db, "set_contact_phone", { p_party: conv.party_id, p_phone: phone });
           phoneSaved = true;
           if (looksLikePhoneAttempt(body)) continue;                // just the number: nothing else to read
-        } else if (looksLikePhoneAttempt(body)) { await say(FIXED.badPhone); buttonsHandled++; continue; }
+        } else if (looksLikePhoneAttempt(body)) { await say(T().fixed.badPhone); buttonsHandled++; continue; }
       }
       texts.push(body);
       continue;
@@ -308,8 +314,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       const proof = await takePaymentProof({ db, fetchMedia: deps.fetchMedia }, conv.party_id, m);
       if (proof.kind === "stored") {
         buttonsHandled++;
-        await say(PROOF_TEXT.received(proof.shortCode), proof.orderId);
-        await alertOps(deps, PROOF_TEXT.opsAlert(proof), `proof:${proof.proofId}`);
+        await say(T().payment.proofReceived(proof.shortCode), proof.orderId);
+        await alertOps(deps, messages(STAFF_LANG).ops.proofAlert(proof.method === "omt" ? "OMT" : "Whish", proof.shortCode, proof.totalUsd, proof.reusedImage), `proof:${proof.proofId}`);
         // The optional read pre-fills amount and reference for the person who confirms. It never confirms anything.
         if (!proof.already && (await db.rpc("setting", { p_key: "payment_proofs" })).data?.model_read !== false) {
           const reading = await readPaymentProof(deps.model, deps.modelName, proof.bytes, proof.mime);
@@ -317,14 +323,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         }
         continue;
       }
-      if (proof.kind === "unreadable") { buttonsHandled++; await say(PROOF_TEXT.resend); continue; }
+      if (proof.kind === "unreadable") { buttonsHandled++; await say(T().payment.proofResend); continue; }
       texts.push(`[image received${m.image?.caption ? `: ${m.image.caption}` : ""}]`);
       continue;
     }
   }
 
   if (texts.length === 0 && transcripts.length === 0 && !phoneSaved) {
-    if (audioFailed > 0) { await say(FIXED.audioUnusable); return { outcome: "audio_unusable", sent }; }
+    if (audioFailed > 0) { await say(T().fixed.audioUnusable); return { outcome: "audio_unusable", sent }; }
     return { outcome: buttonsHandled ? "buttons" : "ignored", sent };
   }
   if (conv.human_handoff) return { outcome: "human", sent };          // a person has this chat; the model stays out
@@ -359,7 +365,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         remember(); await record("ok", state.awaiting === "phone" ? `ask_phone_after_${waited}` : `card_after_${waited}`);
         return { outcome: "card", sent };
       }
-      if (texts.length === 0) { await say(FIXED.phoneSaved); remember(); return { outcome: "answered", sent }; }
+      if (texts.length === 0) { await say(T().fixed.phoneSaved); remember(); return { outcome: "answered", sent }; }
       // A pin with no basket waiting, that no village clearly owns: the customer chooses by tap, never the model.
       if (pins > 0 && !state.villageId && await askPinVillage(ctx)) { remember(); await record("ok", "ask_pin_village"); return { outcome: "answered", sent }; }
     }
@@ -392,8 +398,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       await handoff(db, conv.conversation_id, "model_turn_cap");
       await db.rpc("raise_ops_exception", { p_kind: "model_turn_cap", p_ref: `${conv.party_id}:${hour}`,
         p_detail: { conversation_id: conv.conversation_id, used: budget.used, limit: budget.limit } });
-      await alertOps(deps, `⚠️ زبون تخطّى ${budget.limit} رسالة للمساعد بساعة. المحادثة صارت مع موظف.`, `turncap:${conv.party_id}:${hour}`);
-      await say(FIXED.handoff);
+      await alertOps(deps, messages(STAFF_LANG).ops.turnCap(budget.limit), `turncap:${conv.party_id}:${hour}`);
+      await say(T().fixed.handoff);
       await record("handoff", "model_turn_cap");
       return { outcome: "agent_handoff", sent };
     }
@@ -413,6 +419,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const reading = await extractOrder(model, deps.modelName, input);
     add(reading.usage);
     intent = reading.intent;
+    // M1: the reading names the customer's language; the fixed messages follow it from here (Arabizi is Arabic, "mixed" keeps it).
+    state.lang = langFromReading(intent?.language) ?? state.lang;
     // A restriction said now applies to the order built now; keeping it for later waits for the customer's yes (1.14).
     const stated = intent?.restrictions ?? [];
     if (stated.length) state.orderRestrictions = [...new Set([...(state.orderRestrictions ?? []), ...stated])];
@@ -439,12 +447,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       // The model stayed unavailable through every retry: a person takes over, and the customer is told so.
       await handoff(db, conv.conversation_id, "model_capacity");
       await db.rpc("raise_ops_exception", { p_kind: "model_capacity", p_ref: turnKey, p_detail: { conversation_id: conv.conversation_id, error: String(err.cause).slice(0, 300) } });
-      await say(FIXED.handoff);
+      await say(T().fixed.handoff);
       await record("handoff", "model_capacity").then(() => undefined, () => undefined);
       return { outcome: "agent_handoff", sent };
     }
     await handoff(db, conv.conversation_id, `agent_error: ${String(err).slice(0, 200)}`);
-    if (ctx.sent.count === 0) await say(FIXED.error);
+    if (ctx.sent.count === 0) await say(T().fixed.error);
     return { outcome: "error", sent };
   }
 }
@@ -492,4 +500,10 @@ export async function runTurn(deps: TurnDeps, pending: Pending[], state: Convers
   const result = await processTurn({ ...deps, turnKey: key }, pending, state, opened);
   await deps.db.rpc("finish_turn", { p_key: key, p_outcome: { outcome: result.outcome, sent: result.sent.length } });
   return result;
+}
+
+/** The payload of a template's quick-reply button (type "button" on WhatsApp): the id the free message's button would carry. */
+function templatePayload(m: KapsoReceived["message"]): string | undefined {
+  const b = (m as { button?: { payload?: unknown } }).button;
+  return typeof b?.payload === "string" ? b.payload : undefined;
 }
