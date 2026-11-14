@@ -912,8 +912,17 @@ For other sessions:
 Opus 5.5. Branch `claude/clever-faraday-jgs0br` (the branch this environment allows). Each finding got a failing test first, then the
 migration. Built and tested locally: PGlite with every migration (`npm run typecheck && npm test`), and `scripts/check_permissions.sh` on
 a scratch Postgres 16 both fresh and with `EXISTING=1` on a database that had 0001-0093 applied first (as staging has): 322 functions
-had no fixed `search_path` before 0103 (the advisor's count), none after. **Nothing here is proven live yet**: `deploy-staging` applies
-0103-0109 after the merge (result below if it ran in this session).
+had no fixed `search_path` before 0103 (the advisor's count), none after. PR rashidhamzy-hue/alo-king#44, merged 14 Nov.
+
+**Staging, read 14 Nov 16:57 UTC** (read-only queries and the security advisor): migrations 0100-0114 all recorded; 0 of 353 functions
+in `public` without a fixed `search_path`; the advisor lists **no** "function search path mutable" finding (322 in the morning), only
+"RLS enabled, no policy" (information, by design) and leaked-password protection (G1-13, A5); the event trigger `pin_new_functions`
+exists and is enabled, so Supabase allows it; `settings.over_short` holds the new tolerance; the ledger sums to 0.0000. The money
+paths themselves (late payment, overpayment approval, damaged note, drawer refusals) are proven on PGlite only: staging has had no
+such event yet.
+The first `deploy-staging` after the merge (run 43606869759) failed: SP1 had applied its 0100-0102 to staging from its branch by
+`workflow_dispatch` before #43 merged, so `db push` found remote versions missing locally. It cleared by itself when SP1 merged (runs
+43610966663 and 43616767321 passed). Lesson for every session: deploy to staging from `main` only, or merge right after a branch deploy.
 
 | Finding | Where | Tested by |
 | --- | --- | --- |
@@ -966,8 +975,6 @@ Requests for other sessions (F1 did not touch these files):
 - **SP1:** 0100-0102 apply before 0103 on a fresh database and after it on staging; either way 0103 or 0109 pins their functions.
 
 Not done, and why:
-- The security advisor after `deploy-staging`: see the line below this section if the deploy ran in this session; otherwise the next
-  session reads it (Supabase advisor, "function search path mutable": expected 0).
 - `TEST_REPORT.txt` was not regenerated (not F1's file).
 
 ### Session D4 (console review pages), 14 November 2026: names, readiness, windows, fact basis, the action log; migrations 0110-0114
@@ -998,6 +1005,29 @@ Not done, and why:
 - **Pictures page** (CONSOLE.md "extend": the vision check's reasons) was not in D4's row.
 - Not proven live: the actions (as for every console page), the three new pages against the real staging data, and the 282 names loading on staging (0110 inserts by SKU; if the catalog is seeded after it on a fresh reset the table is empty, as for the language pack; `ITEM_NOT_IN_CATALOG` is the page's answer to a proposal whose item is missing).
 - A founder step remains for scheduled orders: enter the windows and the Ramadan, Lent and holiday dates for 2027 on `/windows` (needed before February 2027).
+
+### Session A5 (infra), 14 November 2026: K1's lane A request, audit G1-13/15/17/18/24 and points 8 and 11; migrations 0115, 0116
+Sonnet 5.5, branch `claude/exciting-darwin-30dz02`. Locally: `npm run typecheck` clean, `npm test` green (PGlite with every migration; the real-Postgres suites ran here, Postgres 16). Each item has its test. **Nothing below is proven live until `deploy-staging` runs on main after the merge** (never dispatched from a branch; a workflow that exists only on a branch cannot be dispatched at all, so the staging proofs run after the merge: see "Live" at the end).
+
+| Item | What changed | Tested by |
+| --- | --- | --- |
+| 1. Feed password | `deploy-staging` puts `CATALOG_FEED_PASSWORD` in `wrangler secret bulk` **only when the repository secret exists** (an empty value would overwrite the one Rasheed set in Cloudflare and the feed would 404 to Meta); the step summary says which. Name added to `wrangler.jsonc` | `jq` filter run both ways here |
+| 2. Public `catalog` bucket | 0115: `catalog_public_pictures` (the books), `catalog_public_expected()` (approved + customer-usable licence + active item: the one place that decides "public"), `catalog_picture_work/copied/removed/strays/forget`, `catalog_public_report`, `catalog_feed()` now returns `public_path`. The Worker (`syncCatalogPictures` in `catalog-feed.ts`) runs every minute from the cron (hourly also removes strays older than 10 minutes and forgets lost objects), and the feed route runs it first. Key `<sku>-<image id>.<ext>`, flat, stable; the feed's `image_link` is `<SUPABASE_URL>/storage/v1/object/public/catalog/<key>`; a row with no copy yet is left out. `scripts/ci/ensure-catalog-bucket.sh` (new `deploy-staging` step) makes the bucket public, pictures only (jpeg, png, webp), 5 MB, and proves `media` is still private, anonymous listing is refused, and every object is named like a product picture | `test/db/catalog-public-a5.test.ts` (13 cases): a proposed, rejected, superseded, unknown-licence or inactive-item picture is never copied (asserted over everything that was ever made public, with receipts and voice notes sitting in the private bucket); a withdrawn picture leaves the feed at once and the bucket on the next pass; replacement; withdrawn mid-copy; strays; lost objects; one failed copy does not stop the rest. `catalog-k1.test.ts` updated (public address instead of signed link) |
+| 3. Weekly usage check | `.github/workflows/usage-check.yml` (Mondays 05:17 UTC, and by hand): database size and storage from SQL, egress from the dashboard's usage report (the documented API has no usage figure), fails above 70% of the plan's included amount **or when a figure cannot be read**. Limits for `free` and `pro` are one table in `scripts/ci/usage-check.mjs`; the plan is the repository variable `SUPABASE_PLAN` (free when unset) | `test/ci/usage-check-a5.test.ts` |
+| 4. Media hosts | `packages/wa/src/media.ts`: only `kapso.ai` and its subdomains, https, no credentials, default port. A redirect from a Kapso host is followed (max 3, https only, Kapso's `media_url` is a redirect link); a redirect from any other host is refused. `payment-proof.ts` and `stt.ts` use it (those two files only) | `packages/wa/test/infra-a5.test.ts`; `ordering-b2.test.ts` (its made-up `media.kapso.test` is now `app.kapso.ai`, and a new case refuses four other hosts) |
+| 5. Typing call | `showTyping()` in `packages/wa/src/kapso.ts`; `index.ts` no longer imports `kapsoClient` | same file |
+| 6. Send not marked | `gateway.ts`: one Sentry event (`outbox_mark_failed_after_send`, key and message id, no number, no text). 0116: `record_message_status` (the status webhook's call) now also runs `outbox_mark_from_status(wamid, status)`: it finds the unmarked outbox row from the message id through the gateway's `wa_messages` log row (same line, same party, same body) and marks it sent. Strict: a failed status marks nothing; no log row, no guess | `infra-a5.test.ts`, `test/db/outbox-status-a5.test.ts` (10 cases, including end to end through `route()`) |
+| 7. Line check | `lineProblem()` in `packages/wa/src/webhook.ts`: every item of a message event must carry `phone_number_id` and it must be the route's number (400 `no phone_number_id` / `wrong line`). Every saved real message event has one | `infra-a5.test.ts`, `test/ci/webhook-line-a5.test.ts` (signed requests through the Worker's `fetch`) |
+| Seeds | `scripts/ci/load-seeds.sh` loads `proposed_pilot_settings.sql` (approved by the founder) **once**, in one transaction with a marker row (`settings` key `seed_applied:proposed_pilot_settings`), and prints the served-village count and the fee. Not every deploy: a deploy must not put the default back over a console change. The seed file's own header still says "not applied automatically" (not my file; H1) | `test/pg/load-seeds-a5.test.ts` (real Postgres): 25 served, fee 0.50 under 10; a console change survives two more runs; a database that already has the catalog still gets the settings once |
+
+**Not done as asked, and why.**
+- **Item 8, "through the console":** no console page creates a product, and the console may not insert (`no-direct-writes.test.ts`); the console is outside A5's files. Instead `.github/workflows/staging-new-product.yml` (by hand, staging) inserts one clearly named test product (`AK-A5-PROOF`, no price, no stock), waits for the Worker's cron and the real model to build its words, prints them (the evidence is that run's summary), checks no other item's words changed, and removes the product and everything built for it. It cannot be dispatched until it is on main.
+- **Egress** is read from the dashboard's usage report, whose shape is not documented. The script reads it defensively and, if it cannot, says what it saw and fails (a red weekly run is the signal to fix the reader).
+- **If Kapso redirects media to a host that is not Kapso's**, the redirect is followed (it comes from a Kapso host); if Kapso's first address is ever not under `kapso.ai`, the picture or note is refused and the customer is asked to send it again. Only a real media message shows which. Add the host in `media.ts` if so.
+- G1-13 (staff sign-in settings, SMTP) is not in this task's list and is not done.
+- `settings.probe` was not touched (SP1 restores it). F1 was not re-checked.
+
+**Live (after the merge; results below once read).** `deploy-staging` applies 0115 and 0116, creates the `catalog` bucket, loads the pilot settings; `research-load` runs after it; then `staging-new-product` and `usage-check` by hand from main.
 
 ### Session R4 (research and founder decisions), 14 November 2026: documents only; pull request #45
 Sonnet 5.5. No product code, no migration, no deploy, no message. Merged as PR #45 (CI green: test, permissions-check, secrets-and-dependencies, pilot-locks). This entry **supersedes** S1's lines above that say "11 conflicts recorded, none resolved", that the research items are open, and that the gated sessions wait on C1, C2, C3, C6, C8; and section D's "turn on point-in-time recovery before real money".

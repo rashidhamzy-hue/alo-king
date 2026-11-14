@@ -2,20 +2,28 @@
 // username and password). Generated from the database on every fetch, so price and availability are the database's at that
 // moment. Only products with an approved, customer-usable picture are in it (catalog_feed, 0085). Meta fetches at most hourly;
 // the database refuses a sold-out item at once anyway (plan_cart, quote_order, create_order_from_quote).
+//
+// Pictures (A5, 0115): each row's image_link is the STABLE public address of the picture's copy in the public `catalog` bucket
+// (Meta wants a stable address; the week-long signed links into the private bucket were not). The bucket holds a copy of a picture
+// only while it is the item's approved, customer-usable picture; syncCatalogPictures() below keeps it so, from the database's list
+// of work (catalog_picture_work), every minute from the cron. Receipts, voice notes and proposed pictures are in `media` and
+// are never copied. A row whose picture is not copied yet has no address and is left out of the feed until it is.
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface FeedRow {
   sku: string; product_id: string; name_en: string; name_ar: string | null; brand: string; price_usd: number; in_stock: boolean;
-  media_path: string; attribution: string | null; licence: string;
+  media_path: string; public_path: string | null; attribution: string | null; licence: string;
   category_code: string; category_en: string; category_ar: string; subgroup_en: string | null; subgroup_ar: string | null;
 }
-export interface FeedSettings { product_link: string | null; image_link_seconds?: number; currency?: string }
+export interface FeedSettings { product_link: string | null; currency?: string }
 export interface FeedDeps {
   db: SupabaseClient;
   /** The feed's password (wrangler secret CATALOG_FEED_PASSWORD). Unset: the route does not exist. */
   password: string | undefined;
-  /** Signs a key of the private `media` bucket for `seconds` (the Storage API with the service key; P1's sign.mjs does the same). */
-  sign: (mediaPath: string, seconds: number) => Promise<string | null>;
+  /** The public address of a key in the public `catalog` bucket (the project's storage URL; it never expires). */
+  publicUrl: (publicPath: string) => string;
+  /** Copies and removes the public pictures before the feed is made, so a withdrawal never waits for the next minute. Best effort. */
+  store?: PublicStore;
 }
 
 export const FEED_USER = "meta";
@@ -58,16 +66,98 @@ export async function catalogFeed(req: Request, deps: FeedDeps): Promise<Respons
     return new Response("unauthorised", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="catalog"' } });
   }
   const settings = ((await deps.db.rpc("setting", { p_key: "catalog" })).data ?? {}) as FeedSettings;
+  if (deps.store) await syncCatalogPictures(deps.db, deps.store).catch(() => undefined);   // a failure here is the cron's to report; the feed still serves what is copied
   // Meta's feed asks for a link per product; it is data a person sets (RUNBOOK 1.21). Never guessed here.
   if (!settings.product_link) return new Response("catalog.product_link is not set", { status: 503 });
   const { data, error } = await deps.db.rpc("catalog_feed");
   if (error) return new Response("feed unavailable", { status: 503 });
   const rows = (data ?? []) as FeedRow[];
-  const seconds = settings.image_link_seconds ?? 604800;
   const images = new Map<string, string>();
-  for (const r of rows) {
-    const url = await deps.sign(r.media_path, seconds).catch(() => null);
-    if (url) images.set(r.sku, url);
-  }
+  for (const r of rows) if (r.public_path) images.set(r.sku, deps.publicUrl(r.public_path));
   return new Response(feedCsv(rows, settings, images), { headers: { "content-type": "text/csv; charset=utf-8", "cache-control": "no-store" } });
+}
+
+// ---------- the public `catalog` bucket (A5, 0115) ----------
+export const CATALOG_BUCKET = "catalog";
+const PRIVATE_BUCKET = "media";
+/** A stray younger than this may be a copy whose book entry is about to be written. */
+const STRAY_GRACE_MS = 10 * 60_000;
+
+/** The two buckets, behind four verbs, so the rule below can be tested without Storage. */
+export interface PublicStore {
+  /** Copies a key of the private bucket to a key of the public one. Resolves if the destination already holds it. */
+  copy(fromPrivateKey: string, toPublicKey: string): Promise<void>;
+  remove(publicKeys: string[]): Promise<void>;
+  /** Every object in the public bucket (flat: names are at the root). createdAt is null when Storage did not say. */
+  list(): Promise<{ name: string; createdAt: string | null }[]>;
+}
+
+/** The real thing, over the Storage API with the service key. */
+export function supabasePublicStore(db: SupabaseClient): PublicStore {
+  return {
+    async copy(from, to) {
+      const { error } = await db.storage.from(PRIVATE_BUCKET).copy(from, to, { destinationBucket: CATALOG_BUCKET });
+      if (error && !/already exists|duplicate|409/i.test(`${error.message} ${(error as { statusCode?: string }).statusCode ?? ""}`)) throw new Error(`catalog copy: ${error.message}`);
+    },
+    async remove(keys) {
+      if (!keys.length) return;
+      const { error } = await db.storage.from(CATALOG_BUCKET).remove(keys);
+      if (error) throw new Error(`catalog remove: ${error.message}`);
+    },
+    async list() {
+      const out: { name: string; createdAt: string | null }[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await db.storage.from(CATALOG_BUCKET).list("", { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
+        if (error) throw new Error(`catalog list: ${error.message}`);
+        const files = (data ?? []).filter((f) => f.id !== null);               // folders have no id; the bucket is flat
+        out.push(...files.map((f) => ({ name: f.name, createdAt: f.created_at ?? null })));
+        if ((data ?? []).length < 1000) return out;
+      }
+    },
+  };
+}
+
+export interface PictureSyncResult { copied: number; removed: number; strays: number; forgotten: number; failed: number }
+
+/**
+ * Makes the public bucket match the database's books: removes first (privacy before convenience), then copies. The list of work
+ * comes from catalog_picture_work(), which reads the picture table, never the bucket: so only an approved, customer-usable picture
+ * of an active item is ever copied, and only the object a book entry names is removed. With `reconcile` it also lists the bucket,
+ * removes any object no book entry names (older than ten minutes), and forgets a book entry whose object is gone.
+ * Each job is done on its own: one failure does not stop the others. Throws at the end if any failed, so the caller reports it.
+ */
+export async function syncCatalogPictures(db: SupabaseClient, store: PublicStore, opts: { reconcile?: boolean; now?: number } = {}): Promise<PictureSyncResult> {
+  const r: PictureSyncResult = { copied: 0, removed: 0, strays: 0, forgotten: 0, failed: 0 };
+  const errors: string[] = [];
+  const fail = (what: string, e: unknown) => { r.failed++; errors.push(`${what}: ${String((e as Error)?.message ?? e).slice(0, 120)}`); };
+  const call = async <T>(fn: string, args?: Record<string, unknown>): Promise<T> => {
+    const { data, error } = await db.rpc(fn, args);
+    if (error) throw new Error(`${fn}: ${error.message}`);
+    return data as T;
+  };
+
+  const work = await call<{ copy: { image_id: string; media_path: string; public_path: string }[]; remove: { image_id: string; public_path: string }[] }>("catalog_picture_work");
+  for (const j of work.remove ?? []) {
+    try { await store.remove([j.public_path]); await call("catalog_picture_removed", { p_image: j.image_id }); r.removed++; } catch (e) { fail(`remove ${j.public_path}`, e); }
+  }
+  for (const j of work.copy ?? []) {
+    try { await store.copy(j.media_path, j.public_path); await call("catalog_picture_copied", { p_image: j.image_id }); r.copied++; } catch (e) { fail(`copy ${j.public_path}`, e); }
+  }
+
+  if (opts.reconcile) {
+    try {
+      const listed = await store.list();
+      const names = listed.map((x) => x.name);
+      const strays = await call<string[]>("catalog_picture_strays", { p_listed: names });
+      const now = opts.now ?? Date.now();
+      const old = new Set(strays.filter((name) => {
+        const at = listed.find((x) => x.name === name)?.createdAt;
+        return !at || now - Date.parse(at) > STRAY_GRACE_MS;               // an object with no date is not given the benefit of the doubt
+      }));
+      if (old.size) { await store.remove([...old]); r.strays = old.size; }
+      r.forgotten = Number(await call<number>("catalog_picture_forget", { p_listed: names }));
+    } catch (e) { fail("reconcile", e); }
+  }
+  if (r.failed) throw new Error(`catalog pictures: ${r.failed} failed (${errors.join("; ")})`);
+  return r;
 }

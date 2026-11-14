@@ -8,10 +8,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { ModelClient } from "./concierge";
 import { PaymentProof } from "./schemas";
+import { fetchKapsoMedia, kapsoMediaUrlOf } from "@ak/wa/media";
 
 export const MEDIA_BUCKET = "media";
 const MAX_BYTES = 10 * 1024 * 1024;
-const META_HOSTS = /(^|\.)(fbsbx\.com|fbcdn\.net|facebook\.com|whatsapp\.net|whatsapp\.com)$/i;
 
 export interface InboundImage { id: string; kapso: { media_url?: string; media_data?: { url: string; content_type?: string } } }
 export interface ProofDeps { db: SupabaseClient; fetchMedia?: (url: string) => Promise<Response> }
@@ -29,15 +29,9 @@ async function rpc<T>(db: SupabaseClient, fn: string, args: Record<string, unkno
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
 const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/heic": "heic" };
 
-/** The media URL to fetch: Kapso's, never Meta's. Null when there is none we may use. */
+/** The media URL to fetch: Kapso's, never anyone else's (G1-17: an allowlist of Kapso's hosts, `@ak/wa/media`). Null when there is none we may use. */
 export function kapsoMediaUrl(m: InboundImage): string | null {
-  const url = m.kapso.media_url ?? m.kapso.media_data?.url ?? null;
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    if (u.protocol !== "https:" || META_HOSTS.test(u.hostname)) return null;
-    return url;
-  } catch { return null; }
+  return kapsoMediaUrlOf(m.kapso.media_url, m.kapso.media_data?.url);
 }
 
 /**
@@ -50,7 +44,7 @@ export async function takePaymentProof(deps: ProofDeps, partyId: string, m: Inbo
   if (!expected) return { kind: "not_payment" };
   const url = kapsoMediaUrl(m);
   if (!url) return { kind: "unreadable", reason: "no_kapso_media_url" };
-  const res = await (deps.fetchMedia ?? ((u: string) => fetch(u)))(url);
+  const res = await (deps.fetchMedia ?? ((u: string) => fetchKapsoMedia(u)))(url);
   if (!res.ok) throw new Error(`MEDIA_FETCH_${res.status}`);
   const mime = (res.headers.get("content-type") ?? m.kapso.media_data?.content_type ?? "").split(";")[0]!.trim().toLowerCase();
   if (!mime.startsWith("image/")) return { kind: "unreadable", reason: "not_an_image" };
