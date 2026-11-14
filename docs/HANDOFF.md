@@ -912,8 +912,17 @@ For other sessions:
 Opus 5.5. Branch `claude/clever-faraday-jgs0br` (the branch this environment allows). Each finding got a failing test first, then the
 migration. Built and tested locally: PGlite with every migration (`npm run typecheck && npm test`), and `scripts/check_permissions.sh` on
 a scratch Postgres 16 both fresh and with `EXISTING=1` on a database that had 0001-0093 applied first (as staging has): 322 functions
-had no fixed `search_path` before 0103 (the advisor's count), none after. **Nothing here is proven live yet**: `deploy-staging` applies
-0103-0109 after the merge (result below if it ran in this session).
+had no fixed `search_path` before 0103 (the advisor's count), none after. PR rashidhamzy-hue/alo-king#44, merged 14 Nov.
+
+**Staging, read 14 Nov 16:57 UTC** (read-only queries and the security advisor): migrations 0100-0114 all recorded; 0 of 353 functions
+in `public` without a fixed `search_path`; the advisor lists **no** "function search path mutable" finding (322 in the morning), only
+"RLS enabled, no policy" (information, by design) and leaked-password protection (G1-13, A5); the event trigger `pin_new_functions`
+exists and is enabled, so Supabase allows it; `settings.over_short` holds the new tolerance; the ledger sums to 0.0000. The money
+paths themselves (late payment, overpayment approval, damaged note, drawer refusals) are proven on PGlite only: staging has had no
+such event yet.
+The first `deploy-staging` after the merge (run 43606869759) failed: SP1 had applied its 0100-0102 to staging from its branch by
+`workflow_dispatch` before #43 merged, so `db push` found remote versions missing locally. It cleared by itself when SP1 merged (runs
+43610966663 and 43616767321 passed). Lesson for every session: deploy to staging from `main` only, or merge right after a branch deploy.
 
 | Finding | Where | Tested by |
 | --- | --- | --- |
@@ -966,8 +975,6 @@ Requests for other sessions (F1 did not touch these files):
 - **SP1:** 0100-0102 apply before 0103 on a fresh database and after it on staging; either way 0103 or 0109 pins their functions.
 
 Not done, and why:
-- The security advisor after `deploy-staging`: see the line below this section if the deploy ran in this session; otherwise the next
-  session reads it (Supabase advisor, "function search path mutable": expected 0).
 - `TEST_REPORT.txt` was not regenerated (not F1's file).
 
 ### Session D4 (console review pages), 14 November 2026: names, readiness, windows, fact basis, the action log; migrations 0110-0114
