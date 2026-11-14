@@ -82,10 +82,12 @@ export async function runAddressCase(client: ModelClient, model: string, c: Addr
 // (pipeline.ts isGoAhead) instead of a second model call. `go_ahead: false` cases must not be read that way.
 import { isGoAhead } from "../packages/agents/src/pipeline";
 import type { OrderIntent } from "../packages/agents/src/schemas";
-export interface GoAheadCase { id: string; texts: string[]; state?: Record<string, unknown>; go_ahead: boolean }
+/** basket_lines: the reading may instead name the waiting basket's lines again; the planner then cards them, also with no second call. */
+export interface GoAheadCase { id: string; texts: string[]; state?: Record<string, unknown>; go_ahead: boolean; basket_lines?: number }
 export function judgeGoAhead(c: GoAheadCase, intent: OrderIntent | null): { ok: boolean; why: string | null } {
-  const got = isGoAhead(intent);
+  const got = isGoAhead(intent, c.texts.join("\n"));
   if (got === c.go_ahead) return { ok: true, why: null };
+  if (c.go_ahead && c.basket_lines && intent?.intent === "order" && intent.lines.length === c.basket_lines) return { ok: true, why: null };
   return { ok: false, why: intent ? `read as ${intent.intent} with ${intent.lines.length} line(s)` : "unreadable" };
 }
 export async function runGoAheadCase(client: ModelClient, model: string, c: GoAheadCase) {

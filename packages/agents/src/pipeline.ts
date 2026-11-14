@@ -88,7 +88,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   // "Go ahead" with no new items while a basket waits on us (SP1): code carries it on, with no second model call. On 14 Nov
   // «مشيلي الطلب», sent after opening for the basket kept overnight, was read as an order with no lines, went to the loop, and
   // the loop handed it to a person. The pin, village and address waits are answered before this (turn.ts, takeAddress).
-  if (isGoAhead(intent)) {
+  if (isGoAhead(intent, said ?? "")) {
     const r = await goAhead(ctx);
     if (r.done) return r;
   }
@@ -186,9 +186,18 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
 export const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
 const GO_AHEAD_INTENTS = new Set(["order", "add_to_order", "change_order"]);
 
-/** A reading that says "go ahead": about ordering, no line, not "same as last time". The eval (evals/cases/ask_by_code.json) judges this. */
-export function isGoAhead(intent: OrderIntent | null): boolean {
-  return !!intent && GO_AHEAD_INTENTS.has(intent.intent) && intent.lines.length === 0 && !intent.repeat_last;
+/**
+ * Words that cancel or refuse. The SP1 gate run (14 Nov) read «لغيلي الطلب» ("cancel my order") as an order with no lines: a
+ * reading alone must never carry a basket on when the customer's own words say no. Then the Concierge answers, as before.
+ */
+const CANCEL_WORDS = /لغ[يىاء]|بط[ّ]?لت|ما\s*بد[يى]|مش\s*بد[يى]|\bcancel|\bannul|\bbatalt|\b(ma|mish|mesh)\s*badd?(e|i)\b|\bla2\b|\bno\b|^\s*لا(\s|$)/iu;
+
+/**
+ * A reading that says "go ahead": about ordering, no line, not "same as last time", and no cancel or refusal in the customer's
+ * own words. The eval (evals/cases/ask_by_code.json) judges this function.
+ */
+export function isGoAhead(intent: OrderIntent | null, said = ""): boolean {
+  return !!intent && GO_AHEAD_INTENTS.has(intent.intent) && intent.lines.length === 0 && !intent.repeat_last && !CANCEL_WORDS.test(said);
 }
 
 /** Carries on the basket that waits on us: kept overnight (sendKept), or a card that waited on a phone number. */
