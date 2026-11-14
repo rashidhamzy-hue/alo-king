@@ -1,0 +1,50 @@
+{
+  "matched": {
+    "brand": "Pomi",
+    "product": "Strained Tomatoes (Passata di Pomodoro)",
+    "size": "500 g",
+    "barcode": "8002580425909",
+    "confidence": "exact",
+    "note": "Open Food Facts 8002580425909 front image checked: Pomi 500 g carton. Its ingredient text is Italian (\"Pomodoro, sale.\") and was not used because the file allows only en/ar/fr; salt 0.55 g and sodium 0.22 g per 100 g agree."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/0/101488-v001-1_2.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/pomi-strained-tomatoes-500g.html",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one Pomi 500 g carton with green cap, white background, no watermark or price, front view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/800/258/042/5909/front_fr.17.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/8002580425909",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "hand-held photo of the Pomi 500 g carton front on a grey surface, low resolution, no watermark"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 26,
+    "fat_g": 0.2,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 4,
+    "sugars_g": 4,
+    "fibre_g": 1.5,
+    "protein_g": 1.3,
+    "salt_g": 0.55,
+    "sodium_mg": 220,
+    "page_url": "https://world.openfoodfacts.org/product/8002580425909"
+  },
+  "origin": {
+    "country": "Italy",
+    "page_url": "https://www.spinneyslebanon.com/default/pomi-strained-tomatoes-500g.html"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage"
+  ],
+  "sku": "AK-0212"
+}

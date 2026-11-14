@@ -1,0 +1,31 @@
+{
+  "matched": {
+    "brand": "Plein Soleil",
+    "product": "Sunflower Oil",
+    "size": "5 L",
+    "barcode": "5285000835332",
+    "confidence": "exact",
+    "note": "Not in Open Food Facts. Spinneys page for the 5 L jerrycan; the brand page lists sizes 1 L to 5 L under one product text."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/3/6/368868-v001-1_2.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/sunflower-oil-368868-v001.html",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one 5 L clear jerrycan with yellow handle and Plein Soleil label, white background, no watermark or price, front view"
+    }
+  ],
+  "storage": {
+    "text": "Store away from direct sunlight.",
+    "page_url": "https://pleinsoleilfood.com/products/sunflower-oil"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "origin"
+  ],
+  "sku": "AK-0213"
+}

@@ -1,0 +1,35 @@
+{
+  "matched": {
+    "brand": "El Hanim",
+    "product": "Taste of Yellow Butter Vegetable Ghee",
+    "size": "700 g",
+    "barcode": "6222000551694",
+    "confidence": "likely",
+    "note": "Superdokan (Lebanon) page for El Hanim Taste Of Yellow Butter 700g; barcode not shown there. Ingredients exist only on the 1.5 kg Loyabi page, so they were not used. Not in Open Food Facts."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/ElHanimyellowbuttertin_11zon.webp?v=1775225229",
+      "page_url": "https://superdokan.com/en-lb/products/el-hanim-taste-of-yellow-butter-700g",
+      "site": "Superdokan",
+      "site_kind": "retailer",
+      "looks": "one yellow tin with El Hanim Taste of Yellow Butter label, white background, no watermark or price, front view"
+    }
+  ],
+  "nutrition": {
+    "per": "10 g",
+    "energy_kcal": 90,
+    "fat_g": 10,
+    "saturated_fat_g": 5,
+    "carbohydrate_g": 0,
+    "page_url": "https://superdokan.com/en-lb/products/el-hanim-taste-of-yellow-butter-700g"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ],
+  "sku": "AK-0222"
+}

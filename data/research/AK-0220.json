@@ -1,0 +1,36 @@
+{
+  "matched": {
+    "brand": "Deroni",
+    "product": "Hot Sauce",
+    "size": "88 ml",
+    "barcode": "5285001523474",
+    "confidence": "likely",
+    "note": "Not in Open Food Facts. Superdokan (Lebanon) page for Deroni Hot Sauce 88ml; nutrition on that page is given per 88 ml (whole bottle), no ingredients. The picture file is named like a generated render, so check it against the pack."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/ChatGPTImageApr3_2026_04_06_11PM_11zon.webp?v=1775221592",
+      "page_url": "https://superdokan.com/en-lb/products/deroni-hot-sauce-88ml-deroni-in-lebanon",
+      "site": "Superdokan",
+      "site_kind": "retailer",
+      "looks": "one tall glass bottle with red cap and Deroni Hot Sauce label, white background, no watermark or price, front view; file name suggests a generated image"
+    }
+  ],
+  "nutrition": {
+    "per": "88 ml (whole bottle)",
+    "energy_kcal": 12.5,
+    "fat_g": 0.3,
+    "carbohydrate_g": 2.4,
+    "fibre_g": 0.5,
+    "protein_g": 0.6,
+    "page_url": "https://superdokan.com/en-lb/products/deroni-hot-sauce-88ml-deroni-in-lebanon"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ],
+  "sku": "AK-0220"
+}

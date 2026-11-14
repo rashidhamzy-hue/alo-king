@@ -1,0 +1,44 @@
+{
+  "sku": "AK-0201",
+  "matched": {
+    "brand": "Cortas",
+    "product": "Foul Medammas (Fava Beans)",
+    "size": "400 g",
+    "barcode": "735143003044",
+    "confidence": "exact",
+    "note": "Open Food Facts record 0735143003044 matches (Cortas, Foul Medammas, 400 g). Its per-100g figures repeat the per-serving panel (120 kcal, 11 g protein), so they were not used; values below are the pack panel per 125 g serving read from the OFF nutrition photo. Picture is from a US retailer (Foodtown) page carrying the same UPC."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d2lnr5mha7bycj.cloudfront.net/product-image/file/large_5470160d-222e-404b-bd9a-ef1c73f3ecd5.png",
+      "page_url": "https://shop.foodtown.com/store/foodtown-54-noll-llc/products/225503-cortas-foul-medammas-fava-beans-400-g",
+      "site": "shop.foodtown.com",
+      "site_kind": "retailer",
+      "looks": "one can, white background, no watermark/logo/price/text overlay, front view, 400g printed"
+    }
+  ],
+  "ingredients": {
+    "text": "Fava beans, water, salt, citric acid, calcium disodium EDTA to preserve color.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/0735143003044",
+    "market": "Open Food Facts (export pack, US/Canada panel)"
+  },
+  "nutrition": {
+    "per": "serving (125 g)",
+    "energy_kcal": 120,
+    "fat_g": 1,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 16,
+    "sugars_g": 2,
+    "fibre_g": 5,
+    "protein_g": 11,
+    "sodium_mg": 460,
+    "page_url": "https://world.openfoodfacts.org/product/0735143003044"
+  },
+  "not_found": [
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

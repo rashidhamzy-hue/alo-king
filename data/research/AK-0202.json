@@ -1,0 +1,46 @@
+{
+  "sku": "AK-0202",
+  "matched": {
+    "brand": "Al Taghziah",
+    "product": "Chicken Luncheon Meat (round can)",
+    "size": "200 g",
+    "barcode": "5283002830157",
+    "confidence": "exact",
+    "note": "Loyabi (Lebanon) page for the 200 g chicken luncheon meat; barcode not shown on the page, matched by brand, product and size. Retailer tags the product halal; not recorded as a diet label because it is not shown as the pack's own claim."
+  },
+  "pictures": [
+    {
+      "image_url": "https://loyabi.com/cdn/shop/products/taghziya-200-round.jpg?v=1681194619",
+      "page_url": "https://loyabi.com/products/al-taghziah-chicken-luncheon-meat-200-g",
+      "site": "loyabi.com",
+      "site_kind": "retailer",
+      "looks": "one can, white background, no watermark/price/text overlay, front view, 200g printed"
+    }
+  ],
+  "ingredients": {
+    "text": "chicken meat (80% meat content), water, potato starch, soy protein, salt, spices and herbs, mustard, and additives: phosphate (E450, 0.22%), ascorbic acid (E300, 0.05%), and sodium nitrite (E250, 50 ppm) as a preservative.",
+    "language": "en",
+    "page_url": "https://loyabi.com/products/al-taghziah-chicken-luncheon-meat-200-g",
+    "market": "Lebanon"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 163.3,
+    "fat_g": 10.5,
+    "saturated_fat_g": 3.3,
+    "carbohydrate_g": 4,
+    "sugars_g": 1,
+    "protein_g": 13.2,
+    "sodium_mg": 600,
+    "page_url": "https://loyabi.com/products/al-taghziah-chicken-luncheon-meat-200-g"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://loyabi.com/products/al-taghziah-chicken-luncheon-meat-200-g"
+  },
+  "not_found": [
+    "allergens",
+    "diet_labels",
+    "storage"
+  ]
+}

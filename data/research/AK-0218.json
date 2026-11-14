@@ -1,0 +1,45 @@
+{
+  "matched": {
+    "brand": "Yamama",
+    "product": "Grenadine Molasses",
+    "size": "300 ml",
+    "barcode": "623695000355",
+    "confidence": "exact",
+    "note": "Open Food Facts 0623695000355 front image checked (Yamama Grenadine Molasses 300 ml). Its added-sugars 83.9 g contradicts sugars 14 g, so that field was skipped. Spinneys lists the same 300 ml jar as \"Pomegranate Molasses\"."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/4/9/494820-v001-1_2.jpg",
+      "page_url": "https://www.spinneyslebanon.com/brands/yamama",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one dark glass bottle with green cap, Yamama Grenadine Molasses 300 ml label, white background, no watermark or price, front view"
+    }
+  ],
+  "ingredients": {
+    "text": "Melasses, Sucre, Eau, Acide citrique, Sel",
+    "language": "fr",
+    "page_url": "https://world.openfoodfacts.org/product/0623695000355",
+    "market": "France/Morocco (Open Food Facts)"
+  },
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 60,
+    "fat_g": 0.1,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 15,
+    "sugars_g": 14,
+    "fibre_g": 0.3,
+    "protein_g": 0,
+    "salt_g": 0.1,
+    "sodium_mg": 40,
+    "page_url": "https://world.openfoodfacts.org/product/0623695000355"
+  },
+  "not_found": [
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ],
+  "sku": "AK-0218"
+}

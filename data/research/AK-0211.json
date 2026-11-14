@@ -1,0 +1,57 @@
+{
+  "matched": {
+    "brand": "Plein Soleil",
+    "product": "Mayonnaise",
+    "size": "250 ml",
+    "barcode": "5285000834366",
+    "confidence": "exact",
+    "note": "Not in Open Food Facts. Facts from Loyabi (Lebanon) page for the 250 ml jar. Loyabi lists sodium 19.3 g next to salt 1.2 g per 100 g; the sodium figure contradicts and was skipped."
+  },
+  "pictures": [
+    {
+      "image_url": "https://loyabi.com/cdn/shop/products/plein-soleil-mayonnaise_1200x.jpg?v=1681727663",
+      "page_url": "https://loyabi.com/products/plein-soleil-mayonnaise-250-ml",
+      "site": "Loyabi",
+      "site_kind": "retailer",
+      "looks": "one glass jar with green lid, Plein Soleil Mayonnaise label, white background, no watermark or price, front view"
+    }
+  ],
+  "ingredients": {
+    "text": "Canola oil(77%), water, egg yolk(7%), distilled vinegar, mustard(water, vinegar, mustard seeds\" \"acidifier: citric acid, spice), salt, sugar, thickener: guar gum.",
+    "language": "en",
+    "page_url": "https://loyabi.com/products/plein-soleil-mayonnaise-250-ml",
+    "market": "Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "egg",
+      "mustard"
+    ],
+    "may_contain": [],
+    "quote": "Contain egg and mustard.",
+    "page_url": "https://loyabi.com/products/plein-soleil-mayonnaise-250-ml"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 721,
+    "fat_g": 79,
+    "saturated_fat_g": 6.5,
+    "carbohydrate_g": 0.8,
+    "sugars_g": 0.6,
+    "protein_g": 1.2,
+    "salt_g": 1.2,
+    "page_url": "https://loyabi.com/products/plein-soleil-mayonnaise-250-ml"
+  },
+  "storage": {
+    "text": "Store in a dry and cool place. After opening, store in the refrigerator.",
+    "page_url": "https://pleinsoleilfood.com/products/mayonnaise"
+  },
+  "origin": {
+    "country": "Belgium",
+    "page_url": "https://loyabi.com/products/plein-soleil-mayonnaise-250-ml"
+  },
+  "not_found": [
+    "diet_labels"
+  ],
+  "sku": "AK-0211"
+}

@@ -1,0 +1,32 @@
+{
+  "matched": {
+    "brand": "Maxim's",
+    "product": "Iodized Sea Salt",
+    "size": "700 g",
+    "barcode": "5283000326775",
+    "confidence": "exact",
+    "note": "Open Food Facts 5283000326775 (\"Sel maxim's\") gives only energy 0 per 100 g; its photo is the same tub. Spinneys page names it Iodized Sea Salt 700 G."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/4/7/470035-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/iodized-sea-salt.html",
+      "site": "Spinneys Lebanon",
+      "site_kind": "retailer",
+      "looks": "one white cylindrical tub, Maxim's Iodized Salt label with ship, white background, no watermark or price, front view"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 0,
+    "page_url": "https://world.openfoodfacts.org/product/5283000326775"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ],
+  "sku": "AK-0221"
+}
