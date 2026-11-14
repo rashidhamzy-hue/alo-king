@@ -1,0 +1,23 @@
+// The website: a third Worker beside the gateway and the console (docs/WEBSITE.md). Built by Astro with the Cloudflare adapter and
+// deployed by .github/workflows/web.yml: `CLOUDFLARE_ENV=staging astro build` then `wrangler deploy` (the build writes the deploy
+// config under dist/). STAGING only for now; production comes with the founder's domain (founder list) and its own workflow.
+{
+  "name": "alo-king-web",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "binding": "ASSETS", "directory": "./dist" },
+  "observability": { "enabled": true },
+  "vars": { "ENVIRONMENT": "development" },
+  "env": {
+    "staging": {
+      "name": "alo-king-web-staging",
+      "workers_dev": true,
+      "observability": { "enabled": true },
+      "vars": { "ENVIRONMENT": "staging" }
+    }
+  }
+  // Secrets, per environment (set by web.yml, never in the repository): SUPABASE_URL, SUPABASE_ANON_KEY (the project's public API key,
+  // which the API gateway wants as `apikey`), WEB_CHANNEL_JWT (a token whose role claim is web_channel, signed with the project's JWT
+  // secret: HANDOFF "WEB1"). The Worker never holds the service key.
+}

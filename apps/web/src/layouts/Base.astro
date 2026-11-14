@@ -1,0 +1,46 @@
+---
+import "../styles/site.css";
+import { LANGS, LANG_NAMES, dirOf, t, type Lang } from "../lib/i18n";
+interface Props { title: string; lang: Lang; description?: string; q?: string; path?: string }
+const { title, lang, description, q = "", path = "/" } = Astro.props;
+const full = title === t(lang, "site") ? title : `${title} · ${t(lang, "site")}`;
+---
+<!doctype html>
+<html lang={lang} dir={dirOf(lang)}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{full}</title>
+  {description && <meta name="description" content={description}>}
+  <meta name="theme-color" content="#1f6f4a">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+</head>
+<body>
+  <a class="skip" href="#main">{t(lang, "skip")}</a>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="/">{t(lang, "site")}</a>
+      <form class="search" action="/search" method="get" role="search">
+        <input type="search" name="q" value={q} placeholder={t(lang, "search_placeholder")} aria-label={t(lang, "search_label")} maxlength="80" autocomplete="off">
+        <button type="submit">{t(lang, "search")}</button>
+      </form>
+      <nav class="langs" aria-label={t(lang, "language")}>
+        {LANGS.map((l) => l === lang
+          ? <a href={`/lang?set=${l}&next=${encodeURIComponent(path)}`} lang={l} aria-current="true">{LANG_NAMES[l]}</a>
+          : <a href={`/lang?set=${l}&next=${encodeURIComponent(path)}`} lang={l}>{LANG_NAMES[l]}</a>)}
+      </nav>
+    </div>
+  </header>
+  <main id="main" class="wrap"><slot /></main>
+  <footer class="site">
+    <div class="wrap">
+      <span>{t(lang, "footer_note")}</span>
+      <a href="/privacy">{t(lang, "privacy")}</a>
+      <a href="/terms">{t(lang, "terms")}</a>
+    </div>
+  </footer>
+  <script src="/sw-register.js" defer></script>
+</body>
+</html>

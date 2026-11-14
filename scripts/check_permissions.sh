@@ -105,7 +105,8 @@ end $$;
 -- A new website function is granted by name in a migration and added to web_allowed here (and to WEB_CHANNEL_FUNCTIONS in
 -- packages/commerce, which a test keeps equal to this list).
 do $$ declare web_allowed text[] := array['web_session_start', 'web_session_state', 'web_session_end', 'web_link_code',
-                                           'cart_set_line', 'cart_view', 'checkout_quote', 'checkout_order', 'web_confirm_order'];
+                                           'cart_set_line', 'cart_view', 'checkout_quote', 'checkout_order', 'web_confirm_order',
+                                           'web_catalog_home', 'web_catalog_category', 'web_catalog_product', 'web_catalog_search'];
               t text; n int; begin
   if not exists (select 1 from pg_roles where rolname = 'web_channel') then raise exception 'role web_channel is missing (migration 0132)'; end if;
   select string_agg(p.oid::regprocedure::text, ', ') into t from pg_proc p
@@ -148,7 +149,9 @@ do $$ declare ok boolean; probe text; begin
       'select transition_order(null::uuid, ''confirmed''::order_status, ''customer''::actor_kind)', 'select plan_cart(null::uuid, ''[]''::jsonb)',
       'select quote_order(''[]''::jsonb)', 'select web_sessions_revoke(null::uuid)', 'select current_fx()',
       'select 1 from orders limit 1', 'select 1 from payments limit 1', 'select 1 from ledger_entries limit 1',
-      'select 1 from web_sessions limit 1', 'select 1 from link_codes limit 1', 'select 1 from carts limit 1', 'select 1 from settings limit 1'] loop
+      'select 1 from web_sessions limit 1', 'select 1 from link_codes limit 1', 'select 1 from carts limit 1', 'select 1 from settings limit 1',
+      'select 1 from products limit 1', 'select 1 from product_images limit 1', 'select 1 from product_facts limit 1',
+      'select 1 from catalog_public_pictures limit 1', 'select 1 from demand_signals limit 1', 'select catalog_web_items()'] loop
     begin execute probe; ok := false; exception when insufficient_privilege then ok := true; end;
     if not ok then reset role; raise exception 'web_channel was allowed: %', probe; end if;
   end loop;
@@ -160,8 +163,10 @@ do $$ begin
   begin execute 'set role web_channel';
   exception when insufficient_privilege then raise warning 'web_channel session probe skipped (no SET ROLE)'; return; end;
   if (web_session_start('perm-check')->>'token') is null then raise exception 'web_channel could not start a session'; end if;
+  if (web_catalog_home()->'categories') is null then raise exception 'web_channel could not read the catalog home'; end if;
+  if (web_catalog_search('perm-check zz')->>'ok') is distinct from 'true' then raise exception 'web_channel could not search the catalog'; end if;
   reset role;
-  raise notice 'web_channel can start a session through its own function';
+  raise notice 'web_channel can start a session and read the catalog through its own functions';
 end $$;
 rollback;   -- the session row does not survive, on any database
 SQL

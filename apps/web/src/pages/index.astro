@@ -1,0 +1,37 @@
+---
+import Base from "../layouts/Base.astro";
+import Unavailable from "../components/Unavailable.astro";
+import { nameIn, t, usd } from "../lib/i18n";
+const { lang, catalog } = Astro.locals;
+let home; let failed = false;
+try { home = await catalog().home(); } catch { failed = true; Astro.response.status = 503; }
+const s = home?.service;
+---
+<Base title={t(lang, "site")} lang={lang} description={t(lang, "tagline")} path="/">
+  {failed || !home ? <Unavailable lang={lang} /> : <>
+    <h1>{t(lang, "site")}</h1>
+    <p>{t(lang, "tagline")}</p>
+    <p>
+      {s?.open_now === true && <span class="status open">{t(lang, "open_now")}</span>}
+      {s?.open_now === false && <span class="status closed">{t(lang, "closed_now")}</span>}
+      {s?.open && s?.close && <span class="muted small"> {t(lang, "hours")}: <bdi dir="ltr">{s.open.slice(0, 5)}–{s.close.slice(0, 5)}</bdi></span>}
+    </p>
+    {home.whatsapp.home && <p><a class="btn" href={home.whatsapp.home} rel="noopener">{t(lang, "order_whatsapp")}</a></p>}
+
+    <h2>{t(lang, "categories")}</h2>
+    <ul class="cats">
+      {home.categories.map((c) => (
+        <li><a href={`/c/${c.code}`}><span>{nameIn(lang, c.name_en, c.name_ar)}</span><span class="n"><bdi>{c.count}</bdi></span></a></li>
+      ))}
+    </ul>
+
+    <h2>{t(lang, "delivery_to")}</h2>
+    {s && s.served.length > 0
+      ? <ul class="villages">
+          {s.served.map((v) => (
+            <li><strong>{nameIn(lang, v.name_en, v.name_ar)}</strong> <span class="muted small">· <bdi>{usd(v.fee_usd)}</bdi> {t(lang, "fee")} · {t(lang, "about_min", { n: v.eta_minutes })}</span></li>
+          ))}
+        </ul>
+      : <p class="muted">{t(lang, "villages_none")}</p>}
+  </>}
+</Base>

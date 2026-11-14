@@ -1,0 +1,19 @@
+import { defineConfig } from "astro/config";
+import cloudflare from "@astrojs/cloudflare";
+import { fileURLToPath } from "node:url";
+
+// docs/WEBSITE.md "Shape": Astro, the Cloudflare adapter, every page rendered on the server (HTML first; nothing needs JavaScript).
+// Styles are files, not inline, so the content security policy can name its own origin. Pictures come from the public `catalog`
+// bucket, so the adapter's image service is not used.
+export default defineConfig({
+  output: "server",
+  adapter: cloudflare({ imageService: "passthrough" }),
+  build: { inlineStylesheets: "never", format: "file" },
+  trailingSlash: "never",   // /offline is a file, not a redirect to /offline/: the service worker caches it and serves it to a navigation
+  security: { checkOrigin: true },
+  session: false,   // no sessions here: the cart session (WEB2) is the database's web_sessions, not the framework's KV
+  devToolbar: { enabled: false },
+  telemetry: false,
+  // The commerce client is the monorepo's package (no logic, no dependency); the same alias is in tsconfig.json and vitest.config.ts.
+  vite: { resolve: { alias: { "@ak/commerce": fileURLToPath(new URL("../../packages/commerce/src", import.meta.url)) } } },
+});
