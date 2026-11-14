@@ -1,0 +1,38 @@
+{
+  "sku": "AK-0121",
+  "matched": {
+    "brand": "7Up",
+    "product": "Carbonated soft drink, plastic bottle",
+    "size": "330 ml",
+    "barcode": "5285000328810",
+    "confidence": "exact",
+    "note": "Picture and nutrition: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/ScreenShot2023-07-21at11.25.45AM.png?v=1689927978",
+      "page_url": "https://superdokan.com/en-lb/products/seven-up-7up-plastic-bottle-330ml-seven-up-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one green PET bottle with 7up logo, white background, front view, no overlay; low resolution (397x407 screenshot)"
+    }
+  ],
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 44,
+    "fat_g": 0,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 11,
+    "sugars_g": 11,
+    "fibre_g": 0,
+    "sodium_mg": 18,
+    "page_url": "https://superdokan.com/en-lb/products/seven-up-7up-plastic-bottle-330ml-seven-up-in-lebanon"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

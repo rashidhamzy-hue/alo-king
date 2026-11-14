@@ -1,0 +1,32 @@
+{
+  "sku": "AK-0123",
+  "matched": {
+    "brand": "Lipton",
+    "product": "Ice Tea Red Fruits Zero Sugar, can",
+    "size": "320 ml",
+    "barcode": "5283024603364",
+    "confidence": "exact",
+    "note": "Picture: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. The listing has no ingredients or nutrition. Gulf pages found were for other sizes (310/315 ml) and were not used. Some blocks come from the Open Food Facts record for catalog barcode 5283024603364 (user-contributed, named \"Ice tea red fruits zero sugar\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/012000061264-2.jpg?v=1759392333",
+      "page_url": "https://superdokan.com/en-lb/products/lipton-red-fruit-zero-ice-tea-320ml-lipton-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one can 'Lipton Zero Sugar Red Fruits Ice Tea', white background, front view, no price/text overlay; a very faint grey mark is visible in the background to the right of the can"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 1,
+    "page_url": "https://world.openfoodfacts.org/product/5283024603364"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0125",
+  "matched": {
+    "brand": "Joocyz (Candia / Liban Lait)",
+    "product": "Pineapple drink",
+    "size": "1 L",
+    "barcode": "5285001106165",
+    "confidence": "unsure",
+    "note": "No page for the 1 L pack could be opened. Superdokan and libanlait.com show only the 180 ml Joocyz; tripolimarket.com lists 'Candia Joocyz Pineapple Drink 1L' in search results but refuses WebFetch (403). Nothing recorded."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

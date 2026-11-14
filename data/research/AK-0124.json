@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0124",
+  "matched": {
+    "brand": "7Up",
+    "product": "Carbonated soft drink, bottle",
+    "size": "2.25 L",
+    "barcode": "5285000320500",
+    "confidence": "unsure",
+    "note": "No page for the regular 2.25 L Lebanese bottle could be opened. Superdokan lists only 7UP Zero Sugar 2.25 L and regular 1.25 L / 330 ml; Carrefour Lebanon has the item but refuses WebFetch; Gulf pages are a different market. Nothing recorded."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

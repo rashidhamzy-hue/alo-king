@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0127",
+  "matched": {
+    "brand": "Uno",
+    "product": "Mango juice drink, carton",
+    "size": "1 L",
+    "barcode": "5281034010233",
+    "confidence": "exact",
+    "note": "Picture: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. The listing is a multi-flavour page; its 'Mango' variant carries our barcode and this image. No ingredients or nutrition on the page. Some blocks come from the Open Food Facts record for catalog barcode 5281034010233 (user-contributed, named \"MANGO\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/72261_main.jpg?v=1714470647",
+      "page_url": "https://superdokan.com/en-lb/products/uno-juice-carton-1l-uno-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "flat front face of one Uno 'Mango' carton (reads 1L, 'no artificial colors, pasteurized, no preservatives'), white background, no overlay; it is the front panel artwork, not a 3D pack shot"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/103/401/0233/front_fr.4.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281034010233",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one 1 L carton, user photo, front view fills the frame, dark edges"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

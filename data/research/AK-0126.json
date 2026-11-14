@@ -1,0 +1,38 @@
+{
+  "sku": "AK-0126",
+  "matched": {
+    "brand": "Mirinda",
+    "product": "Orange carbonated drink, plastic bottle",
+    "size": "330 ml",
+    "barcode": "5285000328827",
+    "confidence": "exact",
+    "note": "Picture and nutrition: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. Listing title is 'Mirinda Plastic Bottle 330ml' (flavour not in the title; the picture shows the orange bottle)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/608_101072.jpg?v=1689927579",
+      "page_url": "https://superdokan.com/en-lb/products/copy-of-mirinda-can-330ml",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one orange PET bottle with Mirinda label, white background, front view, no overlay; 500x500"
+    }
+  ],
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 51,
+    "fat_g": 0,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 13,
+    "sugars_g": 13,
+    "fibre_g": 0,
+    "sodium_mg": 10,
+    "page_url": "https://superdokan.com/en-lb/products/copy-of-mirinda-can-330ml"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
