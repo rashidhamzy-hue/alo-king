@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons } from "@ak/wa/kapso";
 import type { OrderIntent } from "./schemas";
-import { deliver, issueCard, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
+import { deliver, issueCard, keepUntilOpen, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import { FIXED, pinVillageButtonId, type Quote } from "./order-card";
 import type { QuickIntent } from "./quick-intent";
 import { ANSWER, offerRepeat, answerArea, answerHours, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
@@ -39,11 +39,18 @@ export function directionsOf(intent: OrderIntent): string | null {
   // A part that only names the village («عبعقلين», "3a b3aklin") is not an address: the rider still needs the house (B4: the
   // staging probe's reading put «عبعقلين» in verbatim and the address question was skipped).
   const village = villageForms(a.village);
-  return [a.verbatim, a.landmark, a.building, a.floor ? `طابق ${a.floor}` : null, a.recipient_name]
+  return [a.verbatim, a.landmark, a.building, floorWords(a.floor), a.recipient_name]
     .filter((x): x is string => !!x && x.trim() !== "")
     .filter((x) => !village.size || !sameVillage(x, village))
     .filter((x, i, all) => !all.slice(0, i).some((y) => y.includes(x)))      // the verbatim text usually already holds the rest
     .join(" | ") || null;
+}
+
+/** The floor as the customer said it, with «طابق» added only to a bare number or word (K1: AK-1008's note said «طابق الطابق الأول»). */
+function floorWords(floor: string | null | undefined): string | null {
+  const f = floor?.trim();
+  if (!f) return null;
+  return /طابق|طوابق|floor|étage|etage|tabe2|tab2|tabi2/iu.test(f) ? f : `طابق ${f}`;
 }
 
 /** A place name folded for comparison, with and without one clitic people write onto it (ع، ب، ل، و، من، ال; 3a, b, el). */
@@ -151,6 +158,15 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     const routed = await sendBasket(ctx, { lines: plan.quote_lines, villageId: null, placeId: null, pickup: false }, terms, quote, unavailable ?? undefined);
     return routed.done ? routed : { done: false, plan };
   }
+  // After closing time, with every line known (K1, B4's leftover): the basket is kept and the customer is told by code when we
+  // open, with one button. On staging this went to the model, which asked for the pin "to continue later"; the pin then got a
+  // greeting, and the basket was gone by morning.
+  const closed = plan.issues.find((i) => i.code === "closed");
+  if (closed && matched && plan.quote && plan.issues.every((i) => i.code === "closed" || WHERE_ISSUES.has(i.code))) {
+    const kept = await keepUntilOpen(ctx, { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id,
+                                            pickup: plan.pickup, quote: plan.quote }, terms, String(closed.opens ?? ""), { before: unavailable ?? undefined });
+    return kept.ok ? { done: true, path: "closed_kept" } : { done: false, plan };
+  }
   // A known basket the loop is about to ask about: keep it, so a pin request or an answer later finds it.
   if (matched && plan.quote) ctx.state.lastQuote = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote };
   if (plan.next !== "card" || !plan.quote?.ok) return { done: false, plan };
@@ -160,7 +176,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   return routed.done ? routed : { done: false, plan };
 }
 
-const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
+export const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
 const ADDRESS_INTENTS = new Set(["order", "add_to_order", "change_order", "question", "delivery_area", "greeting"]);
 
 /** A basket is waiting on the customer for where to deliver (pin, village tap, house and floor). */
@@ -222,7 +238,7 @@ export async function choosePinVillage(ctx: ToolContext, villageId: string): Pro
 }
 
 /** A priced basket goes out as a card, or, for a first delivery to that village, as a pin request with the card waiting on it. */
-async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
+export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
                           terms: CardTerms, quote: Quote, before?: string): Promise<{ done: true; path: string } | { done: false }> {
   const pinned = basket.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: basket.placeId }));
   if (!basket.pickup && !pinned) {
@@ -242,6 +258,11 @@ export async function answerQuick(ctx: ToolContext, kind: QuickIntent): Promise<
   if (kind === "status") return answerStatus(ctx);
   if (kind === "hours") return answerHours(ctx);
   if (kind === "greeting") return offerRepeat(ctx);
+  if (kind === "small_talk") {
+    // 1.18: chat about the assistant, nothing about an order. The one fixed line, no model (K1: read as a greeting live).
+    const r = await deliver(ctx, { type: "text", text: { body: FIXED.offTopic } }, FIXED.offTopic);
+    return r.ok ? { done: true, path: "off_topic" } : { done: false };
+  }
   return repeatLast(ctx);
 }
 
@@ -260,6 +281,7 @@ export function notAvailableText(plan: Pick<Plan, "unavailable">): string | null
 export async function completePending(ctx: ToolContext): Promise<boolean> {
   const q = ctx.state.lastQuote, terms = ctx.state.pending;
   if (!ctx.state.awaiting || !q || !terms) return false;
+  if (ctx.state.awaiting === "opening") return sendKept(ctx, { pin: true });          // a pin for a basket kept overnight
   if (!q.pickup && ctx.state.awaiting !== "phone") {
     if (!ctx.state.placeId) return false;                                   // still waiting for the pin
     const pin = ctx.state.pinCheck;
@@ -296,6 +318,28 @@ export async function completePending(ctx: ToolContext): Promise<boolean> {
                                { ...terms, notes: mergeDirections(terms.notes, ctx.state.directions) });
   if (!card.ok) ctx.state.awaiting = null;
   return card.ok;
+}
+
+/**
+ * The basket kept after closing time (K1) carries on: the customer tapped «ابعت طلبي», or sent a pin. Still closed: said again,
+ * by code. Open: the next step of the normal path (pin, village, house and floor, phone, card), re-priced and re-checked by the
+ * database. False when nothing is kept or the basket can no longer go as it was (the caller hands it to the Concierge).
+ */
+export async function sendKept(ctx: ToolContext, opts: { pin?: boolean } = {}): Promise<boolean> {
+  const q = ctx.state.lastQuote, terms = ctx.state.pending;
+  if (ctx.state.awaiting !== "opening" || !q || !terms) return false;
+  const villageId = q.pickup ? null : ctx.state.villageId ?? q.villageId;
+  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: q.lines, p_village: villageId, p_pickup: q.pickup });
+  const closed = quote.issues.find((i) => i.code === "closed");
+  if (closed) return (await keepUntilOpen(ctx, { lines: q.lines, villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup, quote }, terms,
+                                          String(closed.opens ?? ""), { pin: opts.pin })).ok;
+  ctx.state.lastQuote = { ...q, villageId, quote };
+  await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);   // taken up: never offered again
+  if (q.pickup) { ctx.state.awaiting = null; return (await issueCard(ctx, { lines: q.lines, villageId: null, placeId: null, pickup: true }, terms)).ok; }
+  ctx.state.awaiting = "pin";
+  if (ctx.state.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: ctx.state.placeId }))) return completePending(ctx);
+  const r = await deliver(ctx, askLocation(FIXED.askPin), `[location request] ${FIXED.askPin}`);
+  return r.ok;
 }
 
 async function handoff(ctx: ToolContext, reason: string) {

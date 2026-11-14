@@ -42,7 +42,7 @@ export async function runWordingCase(client: ModelClient, model: string, c: Word
   const none = async () => ({ ok: false, error: "not_available_in_this_eval" });
   const tools: ConciergeTools = {
     search_catalog: async () => ({ reason: null, matches: [], facts: c.facts }),
-    resolve_place: none, quote_order: none, ask_location_pin: speak("ask_location_pin"), send_confirmation: none,
+    resolve_place: none, quote_order: none, ask_location_pin: speak("ask_location_pin"), send_confirmation: none, show_catalog: none,
     food_facts: async () => ({ products: [], facts: c.facts, approved_attributes: [...approved] }),
     reply: speak("reply"),
     handoff_human: async () => { out.handoff = true; return { ok: true }; },

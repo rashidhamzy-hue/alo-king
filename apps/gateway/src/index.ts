@@ -15,6 +15,7 @@ import { runTurn, turnKeyOf, type Pending, type TurnDeps } from "./turn";
 import { alertOps, dispatchAndOffer, sendToParty } from "./ops-turn";
 import { cashAsk, RIDER_TEXT } from "@ak/agents/job-card";
 import { customerLineCron } from "@ak/agents/cron";
+import { catalogFeed } from "./catalog-feed";
 
 export interface Env {
   CONVERSATION: DurableObjectNamespace;
@@ -32,6 +33,8 @@ export interface Env {
   ANTHROPIC_API_KEY: string; MODEL_FAST: string; MODEL_SMART: string; BUFFER_SECONDS: string;
   /** Only the Worker end-to-end test sets this (a scripted model on localhost, 4.5). Unset everywhere else. */
   ANTHROPIC_BASE_URL?: string;
+  /** 1.21 (K1): the password Meta's scheduled feed uses for GET /catalog/feed.csv (user "meta"). Unset: the route answers 404. */
+  CATALOG_FEED_PASSWORD?: string;
   /** Tests inject a scripted model and an in-memory database here. Never set in production. */
   TEST_DEPS?: { db: SupabaseClient; model: ModelClient };
 }
@@ -74,6 +77,11 @@ export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     if (req.method === "POST" && url.pathname === "/webhooks/kapso/project") return projectWebhook(req, env, ctx);
+    if (req.method === "GET" && url.pathname === "/catalog/feed.csv") {
+      const supa = env.TEST_DEPS?.db ?? db(env);           // the catalog feed Meta reads (1.21, K1)
+      return catalogFeed(req, { db: supa, password: env.CATALOG_FEED_PASSWORD,
+        sign: async (path, seconds) => (await supa.storage.from("media").createSignedUrl(path, seconds)).data?.signedUrl ?? null });
+    }
     const m = url.pathname.match(/^\/webhooks\/kapso\/(customer|ops)$/);
     if (req.method !== "POST" || !m) return new Response("not found", { status: 404 });
     const line = m[1] as Line;

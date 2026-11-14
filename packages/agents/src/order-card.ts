@@ -28,6 +28,9 @@ export function parseOrderButton(id: string): { action: "confirm" | "edit" | "ca
   return m ? { action: m[1] as "confirm" | "edit" | "cancel", orderId: m[2]! } : null;
 }
 
+/** K1: the button under the "we're closed, your order is kept" message. Tapped once we are open, it carries the kept basket on. */
+export const KEPT_BUTTON = "kept:send";
+
 export const pinVillageButtonId = (villageId: string) => `pinvillage:${villageId}`;
 export function parsePinVillageButton(id: string): string | null {
   const m = /^pinvillage:([0-9a-f-]{36})$/.exec(id);
@@ -133,4 +136,12 @@ export const FIXED = {
   /** D1 (3.8): the rate moved more than the allowed step today and waits for a person; nothing is priced until then. */
   fxPaused: "عم نحدّث سعر الصرف هلّق، فما فينا نسعّر الطلب هالدقيقة. طلبك محفوظ: ابعتلنا «تمام» بعد شوي ومنبعتلك الورقة.",
   pinVillageRefused: "ما قدرنا نعتمد هالضيعة لهالموقع. ابعت الموقع من جديد من الزر 📍",
+  /** K1 (B4's leftover): an order after closing time is kept, never lost, and the customer is told when we open. No promise to send. */
+  closedKept: (opens: string) => `مسكّرين هلّق، منفتح الساعة ${opens}. طلبك محفوظ: بس نفتح اكبس «ابعت طلبي» ومنكمّل من هون.`,
+  closedKeptPin: (opens: string) => `وصلنا موقعك 📍 بس نحنا مسكّرين هلّق، منفتح الساعة ${opens}. طلبك محفوظ: بس نفتح اكبس «ابعت طلبي» ومنكمّل.`,
+  keptButton: "ابعت طلبي",
+  /** Audit item 4: sent once when we open, to someone whose order was kept overnight and who wrote to us within 23 hours. */
+  keptOpen: "صباح الخير ☀️ فتحنا. طلبك يلي بعتّو وكنّا مسكّرين بعدو محفوظ: اكبس «ابعت طلبي» ومنكمّل.",
+  /** The kept basket is gone (a newer order replaced it). Said plainly; the customer is not asked to retype what we still hold. */
+  keptGone: "ما في طلب محفوظ هلّق. شو بتحب تطلب؟",
 };
