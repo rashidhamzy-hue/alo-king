@@ -774,8 +774,62 @@ Requests for other sessions (C3 did not touch these files):
 - **Console (D3 or the next console session)**: pages for windows (rows of `delivery_window_plans`), the calendar (`delivery_calendar`; the triggers regenerate the slots), one slot (`edit_delivery_slot`) and the schedule (`delivery_schedule`); `reschedule_order(order, slot, 'ops', by, reason)` and `cancel_scheduled_order(order, 'ops', by, reason)`, then tell the customer (`customer_id` is returned). New exception kinds: `scheduled_stock_short` (detail: the lines not in) and `scheduled_day_changed` (detail: the slot and its orders).
 - **Founder**: no windows or calendar dates exist anywhere yet, so scheduled orders are off until someone enters them: the windows and their capacity, the two cut-offs, and the Ramadan, Lent and holiday dates for 2027 (needed before February 2027).
 
+### Session A4 (infra), 14 November 2026: audit items 1, 2, 3 (measure), 6, 8, 11; migrations 0090-0093
+Built and tested locally: PGlite with every migration, `npx tsc --noEmit` clean, `npx vitest run` 845 passed, 40 skipped (the live-only and
+real-Postgres suites; CI runs the real-Postgres ones). Each bug has its test first. "Live" below means after `deploy-staging` runs on main.
+Migration 0094 was reserved and not used.
+
+| Audit item | What changed | Tested | Live |
+| --- | --- | --- | --- |
+| 1. Hourly false alarm while closed | 0090: `probe_silent` only while open (`shop_open_now()`, hours past midnight handled) and only once open for three probe periods (`shop_opened_at()`). Conditions keep one ref while they last (`probe`, `customer_line`, `cron`), so one problem is one case, one ops message, one Sentry event. `clear_heartbeat_alarms()` resolves every heartbeat case no longer wrong (`detail.cleared_at`); other kinds stay with a person. `heartbeatAlerts()` calls it each minute | `test/db/alarms-a4.test.ts`; `heartbeat.test.ts` now sets open hours for its silence case | After deploy the 12 open hourly `heartbeat:probe_silent` cases on staging close on the first cron run in which the probe is not silent |
+| 2. Sentry noise from deploys | The Worker's `/__sentry-test` and `scripts/ci/sentry-ingest-check.sh` send a cron check-in (monitors `deploy-smoke-staging`, `deploy-ingest-check-staging`, created on first use, yearly schedule) instead of an error. Same proof of DSN, transport and flush; no issue | `test/ci/sentry-smoke.test.ts` (fails if either sends an event again) | After the next deploy: the two monitors appear under Crons; issues ALO-KING-GATEWAY-1 and -2 get no new events |
+| 3. Slow reply (measure) | 0091: views `agent_latency` (p50/p90/max per day, model, path) and `turn_waits` (webhook to turn start, the turn, the whole reply) | `test/db/latency-a4.test.ts` | Numbers below, read on staging 14 Nov with the same SQL |
+| 6. Cost not recorded | 0092: `model_prices` (dated USD per million tokens: Haiku 5.5 0.10/0.50, above 100K input 0.50/2.50; Sonnet 5.5 2/10; checked 14 Nov), `agent_run_costs` (a run with no price is unpriced, never $0), `ai_cost_daily` (cost per order, probe apart) | `test/db/ai-cost-a4.test.ts` | After deploy: `select * from ai_cost_daily order by day desc` |
+| 8. Templates in Arabic only | Six templates submitted to Meta through Kapso on 14 Nov, all PENDING: `ak_order_cancelled_en_v1` 1140802498307803, `ak_rider_at_door_en_v1` 1666280571821443, `ak_payment_received_en_v1` 3080758412302974, `ak_order_cancelled_fr_v1` 3028860460791723, `ak_rider_at_door_fr_v1` 1465972848934487, `ak_payment_received_fr_v1` 2393796074742173. 0093: `customer_language()` (the Concierge's last reading; en, fr, else Arabic) and `customer_notices_due()` picking that template and filling it in that language; `sendNotice()` sends the language code and the same words as free text until approval | `test/db/notice-languages-a4.test.ts` | Submission yes; approval no (Meta, about a day). The hourly sync reads their status like the Arabic three |
+| 11. Queue retry path untested | `test/db/queue-retry-a4.test.ts` drives `queue()`: delivered once, never twice, refusals retried with the error kept, Sentry from the third attempt, one bad event does not hold a batch. **Bug found and fixed:** a failed database read was acked as "nothing to do" (the event then waited for the reconciler); only "no such row" acks now, and the error write is best effort | the test above | n/a (the queue is the fallback road) |
+
+Also: `docs/RUNBOOK.md`, "Voice notes for the evaluation": the steps for Rasheed to upload the 51 notes to `media/voice_eval/shouf-51/`
+(private bucket, staging, never the repository). V1 starts when the check query there answers 51.
+
+**Item 3, the numbers (staging, 13-14 Nov, 30 Concierge turns, model `claude-haiku-5-5`).** `latency_ms` is the turn alone.
+| Path | Turns | p50 | p90 | Mean output tokens |
+| --- | --- | --- | --- | --- |
+| `ask` (reading, then the open-question model loop: two or more calls) | 15 | 9.3 s | 13.0 s | 1,175 |
+| `card` (one reading, the card from SQL) | 4 | 5.4 s | 6.4 s | 291 |
+| `ask_pin` | 4 | 4.0 s | 4.1 s | 272 |
+| `card_after_pin` (no model at all) | 4 | 2.1 s | 2.2 s | 0 |
+
+What the customer waits for, a typed message (20 turns): webhook to turn start p50 **8.3 s** (p90 8.7 s), the turn p50 8.0 s, the whole
+reply p50 **15.9 s**, p90 19.4 s, max 21.8 s. The founder's message of 14 Nov 05:00 UTC (07:00 Beirut, before opening) was stored at
+05:00:15.0, its turn started 8.4 s later, took 13.4 s on the `ask` path, and ended at 05:00:36.8: 21.8 s in all. Where the time goes:
+1. **The burst buffer, 6 s on every text** (`BUFFER_SECONDS`), plus about 2.3 s of database calls before the turn's clock starts
+   (`begin_turn`, `touch_conversation`, first contact, the `wa_messages` insert). The biggest fixed cost, and the target (most typed
+   orders within 10 s) cannot be met while it is 6 s.
+2. **The `ask` path**: a second model call and about four times the output tokens of the card path. Haiku 5.5 thinks adaptively by
+   default (effort medium), so those tokens include its thinking. There is no thinking budget in the code: B3 raised `max_tokens`
+   to 4096 on the reading (a ceiling, not a cost). The closed-shop answer goes this way (K1 is changing that path).
+3. **About 2 s of round trips inside a turn even with no model** (`card_after_pin`): the Worker to Supabase in eu-central-1.
+
+For lane B (requests, not done here): shorten the buffer for a single text, or end the burst early when the message reads complete;
+try `output_config: { effort: "low" }` on the reading behind the evals; fold the pre-turn calls into one function; record per-call
+timings and `usage.cache_read_input_tokens` in `agent_runs.trace`, so `agent_latency` can split the turn and `agent_run_costs` can
+price cached input (today cached input is priced as input: an upper bound).
+
+**Item 6, the first figure.** The probe's orders cost about **$0.0018 of AI each** (25 runs, $0.0145, 8 orders, 13-14 Nov; an upper
+bound, see above), against $0.012 in `docs/COST_MODEL.md`. Correcting the cost model is 4.11 (A3); the figure is `ai_cost_daily.real_usd_per_order` once real orders exist.
+
+Files outside the row, each minimal: `apps/gateway/src/worker.ts` (the smoke route, item 2), `scripts/ci/sentry-ingest-check.sh`
+(item 2), one line each in `test/db/heartbeat.test.ts` and `test/db/customer-notices.test.ts` (their expectations moved with 0090
+and 0093), `docs/RUNBOOK.md` (asked for), new tests in `test/db/` and `test/ci/`. `TEST_REPORT.txt` was not regenerated: K1, C3 and D3
+run beside A4 and would conflict on it.
+
+For other sessions:
+- Anyone touching `heartbeat_alerts()` or `customer_notices_due()`: start from 0090 and 0093. A new heartbeat condition needs a stable
+  ref (not the hour), or `clear_heartbeat_alarms()` closes it the next minute.
+- K1, C3, D3: `TEST_DEPS.db` now also reaches the webhook and queue's database client (tests only).
+- A3 (4.11): read `ai_cost_daily`. When a model or price changes, add a row to `model_prices`; never edit a row.
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
-- The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.
 - Market tables (`markets`, `market_settings`, `setting_for`): schema only. Functions still read global settings.
 
@@ -789,10 +843,10 @@ Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 
 ### D. Needs a live account or real conditions (cannot be finished in code alone)
 - Kapso: real webhook payloads captured by our own Worker (A2 built fixtures from real message objects and Kapso's documented envelope), typing indicator.
-- Meta: approval of the three submitted utility templates (A2, 4.3); the rates on the first bill (4.4). Which messages are billed is now recorded per message from Meta's status webhooks (4.12).
+- Meta: approval of the nine submitted utility templates (three Arabic, A2, 4.3; three English and three French, A4); the rates on the first bill (4.4). Which messages are billed is now recorded per message from Meta's status webhooks (4.12).
 - Supabase: staging project `alo-king-staging` (`lhgkvvdckwbfpdsftzqp`, eu-central-1) exists and was empty on 13 Nov; `deploy-staging` fills it (section F). Still to do: turn on point-in-time recovery before real money (paid plan), and a production project.
 - Cloudflare: deploy and the one-minute cron trigger are in place (section F); the hourly probe order proves the cron and the Durable Object alarms doing real work on staging (A2). Still to prove: load, queue retry.
-- Speed: time from message to card, measured on a phone in Chouf.
+- Speed: time from message to card, measured on a phone in Chouf. The server side is measured (A4, `turn_waits`): typed text p50 15.9 s on staging, 14 Nov.
 - Speech: accuracy on the hand-corrected voice notes.
 - A shadow run: staff place real orders end to end, and stock, rider cash, rider earnings and the ledger reconcile to zero
   unexplained balance at day close.
