@@ -48,3 +48,25 @@ intake=$(curl -sS -b "$jar" "$u/intake" || true)
 if grep -q "and read the label" <<<"$intake"; then reader="on (the model reads label photos)"; else reader="off (no model key: typed by hand)"; fi
 echo "label reader: $reader"; echo "- Label reader: $reader" >> "$SUMMARY"
 
+# Each staff page opened once against the real staging database, as the role it is for: works (200, no error on the page),
+# or what it says instead. Reported, not failed on: a page can fail because staging lacks something the console cannot fix.
+# Pages for the ops lead are opened by making this same account an ops lead for these GETs only (it reads, never posts);
+# lock() above makes it a picker again whatever happens.
+sweep() {
+  local role=$1; shift
+  for p in "$@"; do
+    local out; out=$(mktemp)
+    local code; code=$(curl -sS -o "$out" -w '%{http_code}' -b "$jar" "$u$p" || true)
+    local said; said=$(grep -o 'class="flash err">[^<]*' "$out" | head -1 | sed 's/^class="flash err">//' || true)
+    local res
+    if [ "$code" = 200 ] && [ -z "$said" ]; then res="works"; else res="FAILS: HTTP $code${said:+, \"$said\"}"; echo "::warning::$p ($role) $res"; fi
+    rm -f "$out"
+    echo "page $p as $role: $res"; echo "| \`$p\` | $role | $res |" >> "$SUMMARY"
+  done
+}
+{ echo; echo "| Page | Opened as | Result |"; echo "| --- | --- | --- |"; } >> "$SUMMARY"
+sweep picker / /day-open /receiving /food-facts /intake /returns /catalog
+sb PATCH "/rest/v1/parties?id=eq.$party" '{"role": "ops_lead"}' >/dev/null
+sweep ops_lead /day-open /refunds /cases /approvals /money /day-close /receiving /food-facts /intake /search-words /payments /riders /exceptions /fx /zones /merchants /pictures
+sb PATCH "/rest/v1/parties?id=eq.$party" '{"role": "picker"}' >/dev/null
+expect "picker again: opens /money" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u/money")"
