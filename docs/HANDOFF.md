@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 808 tests (40 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
+npx vitest run          # 851 tests (40 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
                         # test/pg/* start a throwaway Postgres 16 (or use TEST_DATABASE_URL) and the Worker in workerd
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
@@ -613,6 +613,99 @@ For other sessions:
 - Anyone touching `save_customer_pin`: 0074 changed its meaning (the pin decides; `p_village` is only what the conversation believed). A test or script that saves a pin far from the village it names now gets the pin's village or none.
 - D2 or the next console session: the 1.23 review list (`search_word_reviews_open`, `resolve_search_word_review`).
 
+### Session D3 (console), 14 November 2026: the D2 leftovers; migrations 0080-0081
+Branch `claude/confident-ritchie-uv7wid` (the branch this environment allows), pull request rashidhamzy-hue/alo-king#33. Built and tested locally on
+PGlite with every migration, through the console's real request handler (D1's rig): `npx tsc --noEmit && npx vitest run`, 816 passed,
+40 live-only skipped; `scripts/check_permissions.sh` on a scratch Postgres 16 passes (nothing new reachable by `anon`, `authenticated` or PUBLIC).
+
+| Task | Where | Writes through (SQL) | Tested by (`apps/console/test/`) |
+| --- | --- | --- | --- |
+| 1.23 review list | `pages/searchwords.ts` (/search-words, ops lead and admin) | `search_word_reviews_open`, `resolve_search_word_review` (0076); `rerun_search_words` (0080: queues the item again, reason `manual`, and closes its open phrasings) | `searchwords.test.ts`: a phrasing that missed is listed with what the planner did and the item's words; done once; rebuild queues and closes; a job running now is not queued twice; a job failed three times is listed and retried; an inactive item is refused; pickers refused by the page and by the database |
+| Label reader key | `.github/workflows/console.yml` | none | the deploy sets `ANTHROPIC_API_KEY` on the console Worker when the repository secret exists (otherwise the summary says intake stays typed by hand); `scripts/smoke.sh` reports whether the deployed intake page reads labels |
+| The drawer never below zero | migration 0081; `pages/receiving.ts`, `pages/refunds.ts` | `drawer_can_pay` (hub_money_out's check, same lock, same `NOT_ENOUGH_CASH hub_cash`); `pay_supplier_checked`, `pay_out_credit_checked` (cash only; a repeat is still a repeat); `refund_order_now` pays cash through the checked one (so does an approved refund); `receive_goods` paid from the till checks its total | `receiving.test.ts`, `refunds.test.ts`, `approvals.test.ts`: an empty drawer refuses the supplier payment, a till receipt, a cash payout, a cash refund and its approval (which keeps waiting); a rider's drop fills it; exactly what is left empties it; the same receipt number is still answered as a repeat when the drawer is empty |
+
+Found and fixed: B4's `check_search_words` (0076) failed the whole job when a phrasing found nothing (the planner's `candidates` is JSON
+null; `jsonb_array_elements` raised), so the commonest miss never reached the review list: three tries, then a failed job. 0080 redefines
+it with that one line changed. **Anyone redefining `check_search_words`: start from 0080. `pay_supplier_checked`, `pay_out_credit_checked`,
+`refund_order_now`, `receive_goods`: start from 0081.**
+
+Not done, and why:
+- **The base `pay_supplier` and `pay_out_credit` still take the drawer below zero when called directly.** Every console path goes through
+  the checked functions, and nothing else calls them in production. Moving the check into the base functions breaks lane C's
+  `test/db/refunds.test.ts` and `test/db/receiving-margin.test.ts`, which pay from an empty drawer; those files are not D3's. The fix is
+  two fixture lines there (drop the rider's cash at the hub before paying: `declare_cash_drop` + `confirm_cash_drop`), then
+  `perform drawer_can_pay(...)` in the base bodies. For G1 or the next session that owns `test/db`.
+- A rider's earnings paid from the hub at settlement (0010, lane C) do not check the drawer either.
+- Audit item 16 (SMTP for staff invitations) waits for the founder's decision.
+
+**Staging, proven live** (console workflow run 43562442212, this pull request's deploy, 14 Nov 05:40 UTC; audit item 13):
+- `ANTHROPIC_API_KEY` is now a console Worker secret on staging; the deployed intake page reads labels ("label reader: on"). No real
+  label photo has been read yet: that waits for real stock (5.15).
+- Every page opened once with the smoke account against the staging database, all **work** (200, no error on the page):
+  as a picker `/`, `/day-open`, `/receiving`, `/food-facts`, `/intake`, `/returns`, `/catalog`; as an ops lead (the same account, for
+  those GETs only) `/day-open`, `/refunds`, `/cases`, `/approvals`, `/money`, `/day-close`, `/receiving`, `/food-facts`, `/intake`,
+  `/search-words`, `/payments`, `/riders`, `/exceptions`, `/fx`, `/zones`, `/merchants`, `/pictures`. The account was a picker again
+  after the run (checked in `parties`). Every console deploy repeats this sweep and writes the table into the run summary.
+- What opening a page does not prove: the forms on them (the actions are proven on PGlite only). Staging has no stock, supplier or cash,
+  so posting would have nothing true to record.
+- 0080 and 0081 reach staging with `deploy-staging` after the merge; until then `/search-words`'s rebuild button says the function is
+  not available yet, and staging's drawer checks are the old ones.
+
+### Session K1 (catalog), 14 November 2026: B4's lane B leftovers, audit items 4 and 5, task 1.21; migrations 0085-0087
+Branch `claude/vibrant-wozniak-2rvmp9` (the branch this environment allows), rebased on D3. Built and tested locally (PGlite with every
+migration; real Postgres for `test/pg`): `npx tsc --noEmit && npx vitest run`, 851 passed, 40 live-only skipped; `scripts/check_permissions.sh`
+on a scratch Postgres 16 passes. Nothing here is proven live: staging gets 0085-0087 with `deploy-staging` after the merge, and the
+catalog needs Rasheed's Meta steps first (`docs/RUNBOOK.md`, "WhatsApp catalog").
+
+**B4's leftovers, each a failing test before its fix.**
+| Leftover | Fix | Tested by |
+| --- | --- | --- |
+| An order after closing time lost its items, and the pin got a greeting | With every line known and only `closed` (and where) in the way, code keeps the basket in the conversation (`awaiting: "opening"`), says when we open (`FIXED.closedKept`) with one button «ابعت طلبي» (`kept:send`), and answers a night pin with the hours (`closedKeptPin`), never the model. `issueCard` keeps the basket the same way when we close while it waits (pin, house, phone). The tap, once open, carries on through the normal path (pin, village, house and floor, card), re-priced by the database | `test/db/after-hours-k1.test.ts`: the night order, a night pin, a tap while closed, the tap after opening; closing between the pin and the address; the staging probe's 21:42 path (no tool loop) |
+| The order note said the floor twice («الطابق الأول \| طابق الطابق الأول») | `directionsOf` adds «طابق» only to a bare number or word | `packages/agents/test/directions.test.ts` |
+| `healthiest` (live eval): the guard refused «healthiest» in a sentence declining to rank, and «allergen» in an offer to filter | Quality words are read per clause; a clause that declines to rank, rate or recommend passes; a comma or a contrast word starts a new clause, so "I can't rank them, X is the best" is still refused. An offer to filter may name the category words (allergens, ingredients), never a fact | new `good` and `bad` lines in `evals/cases/neutral_and_food_facts.json` |
+| «kifak? shu 3am ta3mol lyom? khabberne 3an 7alak» (live eval) read as a greeting | Chat about the assistant with nothing about an order is recognised by code (quick intent `small_talk`) and gets the one off-topic line; the prompt says the same for the model's reading | new cases in `evals/cases/quick_intents.json` |
+The two live eval cases still need a live run to show the model's own readings and wordings now pass (`language-pack` / `evals/live`); code no longer depends on the reading for the kifak case.
+
+**Audit (docs/AUDIT-2026-11-14.md) items given to K1.**
+- Item 4, the kept order offered when we open: migration 0087 (`kept_orders`: who has a kept order, never the basket). The minute cron
+  (`offerKeptOrders` in `packages/agents/src/cron.ts`) sends one fixed service message with the button once the shop is open, only when the
+  order was kept and the customer last wrote under 23 hours ago; the gateway's `can_send` still decides. Any card or the button clears it.
+- Item 5, saved places from before "the pin decides": migration 0086 runs `recheck_places()` once. A place whose pin is clearly in another
+  village (or outside, or between villages none of which is the saved one) loses its village and pin, so the next order asks for the pin;
+  what it said is kept in `place_rechecks`. On staging this should set aside the founder's place of 13 Nov (Baakline, pin in Khraibeh):
+  check `select * from place_rechecks;` after the deploy.
+
+**1.21 WhatsApp catalog.**
+| Step | Where | Tested by (`test/db/catalog-k1.test.ts`) |
+| --- | --- | --- |
+| 1 Categories | 0085: `catalog_categories` (the 15 approved), `catalog_placements` keyed by SKU (all 291), `catalog_subgroups` (water / soft drinks and juice / coffee and tea: the 42 drinks are more than one list). K1 checked every placement against the catalog's own category and storage: seven moved, listed in the migration's header (two chilled creams to dairy, the chilled garlic paste beside Mamig's, the creamer to the coffee, jam to the breakfast spreads, ketchup beside the mayonnaise). `data/proposals/categories.json` is left as approved; the test lists the seven differences | the fifteen, in order, with their approved names; every product placed once, only the seven moves; only drinks over 30, every sub-group at most 30 |
+| 2 Feed | `GET /catalog/feed.csv` (`apps/gateway/src/catalog-feed.ts`, one route line in `index.ts`), basic auth user `meta` and `CATALOG_FEED_PASSWORD`; `catalog_feed()`: active, placed, sold at the hub, an approved customer-usable picture (`product_image_licence_usable`); columns id, title (Arabic name), description (both names, the picture's credit for CC BY-SA), availability from free stock, condition, price `x.xx USD`, link (`settings.catalog.product_link`, `{sku}` filled; 503 until a person sets it), image_link (a signed link to the private bucket, a week), brand, product_type, custom_label_0 (the category code, for Meta's sets) | nothing without an approved, usable picture (proposed and licence-unknown left out); 401 without the password, 404 without the secret; price and stock from the database; 503 without the link; a picture that cannot be signed leaves its row out |
+| 3 Meta side | `docs/RUNBOOK.md`, "WhatsApp catalog": Rasheed's clicks (password, link, catalog, hourly feed, catalog id into `settings.catalog`, one set per category, connect to the number, catalog icon and cart on) | not testable from code |
+| 4 Sending | The Concierge's `show_catalog` tool (`packages/agents/src/catalog-messages.ts`): no argument for the catalog view, a category (code or name in any language) as product lists, or one product. Code builds and words every message; `interactive` through the gateway with the turn's keys (no new type). Never more than 30 products or 10 sections a message; a category that needs more than two messages gets the catalog view | 300 random categories through the builder: no message over the limits, every product once; the tool sends a product list with the catalog id; with no catalog id it refuses and the turn goes on in words |
+| 5 Receiving | An inbound `order` message is handled by code in `turn.ts` (`takeCart`, `packages/agents/src/cart.ts`): `plan_cart()` (0085) turns the cart into the same quote lines a typed order makes, leaves out and names unknown and out-of-stock items, names prices that moved, picks the usual place as `plan_order` does; then the normal path (card, pin, house and floor, kept until we open). Anything that needs words (below the minimum, a village we do not serve) goes to the Concierge with the basket kept. A cart from another catalog is refused | a cart and the same order typed give the same items, totals, village and payment; out of stock named and left out before the card; a stale price named and the card at the database price; a new customer's cart waits on the pin, then the house, then the card, with the cart's note on the order; only the tap confirms |
+| 6 Sold out | The feed says out of stock from free stock at each fetch; `plan_cart`, `quote_order` and `create_order_from_quote` refuse a sold-out item at once | the out-of-stock cart |
+
+Checked against Meta's documentation (14 Nov): product lists hold at most 30 products in up to 10 sections, with a text header; an
+inbound cart is message type `order` with `catalog_id`, `text` and `product_items` (`product_retailer_id`, `quantity`, `item_price`,
+`currency`); a scheduled feed is fetched at most hourly and may sit behind HTTP basic auth. Not settled from the documentation: whether
+`link` is required for a WhatsApp-only catalog (the feed always sends one, the wa.me link) and the exact picture size rules (P1's pictures
+are 1200 px, at least 800 px wide, which is above every published minimum K1 found).
+
+**Not done, and why (for Rasheed or the next session).**
+- **Blocked on Rasheed (Meta and Cloudflare):** RUNBOOK "WhatsApp catalog" A to C. Until then `show_catalog` answers `catalog_not_ready`
+  and the Concierge carries on in words; nothing customer-facing changes.
+- **Pictures:** 2 of 291 items have a proposed picture and none is approved, so the feed is empty today. The catalog fills as pictures
+  are approved on the console's pictures page (P1, P2, intake 5.15).
+- **Lane A request (A4 owns `index.ts`, `.github/`, `wrangler.jsonc`):** add `CATALOG_FEED_PASSWORD` to `deploy-staging`'s `wrangler secret bulk`
+  and to the secret names at the bottom of `wrangler.jsonc`. K1 added one route and one optional env field to `index.ts`, nothing else.
+- Commerce settings (catalog icon, cart) through Kapso's Meta proxy were not tried: no catalog exists yet. The RUNBOOK gives both routes.
+- A cart below the minimum order is worded by the Concierge (the basket is kept); the live model has not seen one yet.
+- `TEST_REPORT.txt` regenerated for this tree.
+
+**For other sessions.** Anyone redefining `plan_cart`, `catalog_feed` or `recheck_places`: start from 0085/0086. A new product needs a
+`catalog_placements` row (by SKU) to be in the catalog; `catalog_feed_report().not_placed` lists any that lack one (the console could show it).
+P2's new licence `public_page` reaches the feed only if `product_image_licence_usable()` says it may.
+
 ### Session P2 (research loader), 14 November 2026: founder decision "Product pictures from public pages"; migrations 0070, 0071
 Branch `claude/compassionate-goldberg-htngdk` (the branch this environment allows). Built and tested locally (PGlite with every migration, 19 cases in `scripts/product-data/test/research.test.mjs`; whole suite green; permission check on a fresh Postgres 16). The load itself runs only in GitHub Actions (`.github/workflows/research-load.yml`: by hand, and after every successful staging deploy from main; it always reads the files on main).
 
@@ -644,7 +737,7 @@ Not built / not proven: the load against the real pages, the real model and the 
 See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is restaurants; Phase 9 is the website and diaspora
 orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders.
 The console exists (D1, D2, above). D1's proposed functions are migration 0045. The 1.23 review-list page can be built: B4 merged its functions (`search_word_reviews_open`, `resolve_search_word_review`).
-Ordering lane: B1, B2, B3 and B4 are done (above). 0.13: retry after B4's deploy (the flow now asks the pin, then house and floor, then sends the card). 1.22's zero-wrong gate is met on the replay of live readings (B4). K1 (1.21) can start now; it edits `turn.ts`, so never beside another lane B session.
+Ordering lane: B1, B2, B3 and B4 are done (above). 0.13: retry after B4's deploy (the flow now asks the pin, then house and floor, then sends the card). 1.22's zero-wrong gate is met on the replay of live readings (B4). K1 is done (above): the leftovers, audit items 4 and 5, and 1.21 in code; the catalog waits on Rasheed's Meta steps (RUNBOOK) and on approved pictures.
 Hub lane: C1 and C2 are done (above); C3 (2.8) can start (B2 and C2 are merged). Console lane: D1 and D2 are done (above).
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 

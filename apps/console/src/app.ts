@@ -120,6 +120,7 @@ export function explain(e: unknown): string {
       [/^CONFIRM_STATUS/, "Confirm as declared, certified or unknown: the pack either says it or it does not."],
       [/^DAY_NOT_OVER/, "That day has not come yet."],
       [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
+      [/^UNKNOWN_SKU/, "That item is not on sale (or has no SKU), so it gets no search words."],
     ];
     for (const [re, say] of known) if (re.test(m)) return say;
     return `The database refused: ${m}`;

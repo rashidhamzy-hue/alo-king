@@ -220,6 +220,10 @@ Tests:
 
 Must be live on staging before the paid pilot (Phase 7).
 
+Status 14 November 2026 (session K1): built and tested in code (migration 0085; `docs/HANDOFF.md`, K1). Not live: it waits on
+Rasheed's Meta steps (`docs/RUNBOOK.md`, "WhatsApp catalog") and on approved pictures (none yet). K1 used 0085-0087 and left 0051
+unused: a migration numbered below ones already applied on staging would apply out of order.
+
 ## Phase 2: hub operations
 
 | # | Task | Notes |

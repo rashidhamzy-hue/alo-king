@@ -62,6 +62,60 @@ the ledger total. Record how long it took. Build plan task 4.8.
 Turn on marketing. Send from the ops number to a customer. Edit a ledger row. Mark an order paid without the payment.
 Give a rider's cash figure from memory. Each has a database rule that will refuse it; do not work around the rule.
 
+## WhatsApp catalog (build plan 1.21, written by session K1, 14 Nov 2026)
+Rasheed's steps, once per environment (staging first). Code side is built and tested (`docs/HANDOFF.md`, K1); nothing below has
+been done yet. Meta moves its labels now and then: if a button is named differently, the purpose of each step is written after it.
+
+**A. The feed's password and link (before Meta can read the feed).**
+1. Make a long random password (a password manager's generator, 32 characters, letters and digits). Keep it in the password manager as "Alo King catalog feed (staging)".
+2. Cloudflare dashboard → Workers & Pages → `alo-king-gateway-staging` → Settings → Variables and Secrets → Add → Type: Secret →
+   Variable name `CATALOG_FEED_PASSWORD` → Value: the password → Deploy. *(Purpose: the Worker answers `GET /catalog/feed.csv` only with
+   user `meta` and this password; without the secret the route answers 404.)* Also add it as a GitHub repository secret of the same
+   name (Settings → Secrets and variables → Actions → New repository secret), so lane A can put it in `deploy-staging` (request in
+   `docs/HANDOFF.md`). Until then a `wrangler rollback` to a version older than the secret drops it: set it again here after a rollback.
+3. Supabase dashboard → project `alo-king-staging` → SQL Editor → New query → paste, with the customer line's number in international
+   form without `+` (staging: `12036602328`) → Run:
+   ```sql
+   update settings set value = value || '{"product_link": "https://wa.me/12036602328?text={sku}"}' where key = 'catalog';
+   ```
+   *(Purpose: Meta's feed wants a link per product and we have no website; the link opens our WhatsApp chat. Until it is set the feed answers 503.)*
+4. Check: open `https://alo-king-gateway-staging.rashid-hamzy.workers.dev/catalog/feed.csv` in a browser, sign in as `meta` with the
+   password. The first line is `id,title,description,availability,condition,price,link,image_link,brand,product_type,custom_label_0`.
+   Only items with a picture approved on the console's pictures page are listed; on 14 Nov that is none, so the file is that one line.
+   `select catalog_feed_report();` in the SQL Editor says how many are in the feed and how many still lack a picture.
+
+**B. The catalog in Commerce Manager.**
+1. Open `business.facebook.com/commerce` → top left, choose the Alo King business portfolio → **+ Add catalog** (or **Create a catalog**).
+2. Catalog type: **E-commerce** (online products) → **Next** → **Upload product info** → Catalog owner: the Alo King portfolio →
+   Catalog name `Alo King Chouf (staging)` → **Create** → **View catalog**.
+3. In the catalog: left menu **Catalog** → **Data sources** → **Add items** → **Data feed** → **Next** → **Scheduled feed** (or
+   **Use a URL**) → paste the feed address from A4 → **Add login details**: username `meta`, the password → **Next**.
+4. Schedule: **Hourly** (the shortest Meta allows for a scheduled feed) → Currency **USD** → **Next** → name `alo-king-feed` → **Upload**.
+   Wait for the first fetch; **Data sources** → `alo-king-feed` → **Issues** lists anything Meta refused (send a screenshot to the next K session).
+5. Copy the **Catalog ID** (Catalog → **Settings**, or the number in the address bar after `/catalog/`). Supabase SQL Editor → Run, with that number:
+   ```sql
+   update settings set value = value || '{"catalog_id": "PASTE_THE_ID"}' where key = 'catalog';
+   ```
+   *(Purpose: the Concierge's catalog messages name this catalog, and a cart from any other catalog is refused.)*
+6. One set per category (what Meta calls a collection inside a catalog): left menu **Catalog** → **Sets** → **Create set** →
+   **Filter**: `custom_label_0` **is** `fruits_vegetables` → name it with the Arabic category name → **Create**. Repeat for the 15 codes,
+   in the display order: fruits_vegetables, meat_poultry, deli_ready_meals, dairy_eggs, frozen_food, bakery, water_drinks,
+   breakfast_cereal, snacks_sweets, pantry_staples, canned_jarred, cooking_baking, cleaning_household, personal_care, baby_pet
+   (names in `select code, name_ar from catalog_categories order by sort_order;`).
+
+**C. Connect it to the WhatsApp number, with the cart on.**
+1. `business.facebook.com/wa/manage` → choose the WhatsApp account of the customer line → **Account tools** → **Catalog** →
+   **Choose a catalog** → `Alo King Chouf (staging)` → **Connect catalog**.
+2. Catalog visibility and the cart are per number. Meta's tools: in the same **Catalog** page (or **Phone numbers** → the customer
+   number → **Settings** → **Catalog**) switch on **Show catalog icon in chat header** and **Show add to cart buttons**. The API route
+   is `POST /<phone_number_id>/whatsapp_commerce_settings?is_catalog_visible=true&is_cart_enabled=true` through Kapso's Meta proxy;
+   it has not been tried (no catalog existed on 14 Nov). Either is fine: it is one switch, done once.
+3. Check from a phone that has messaged the staging number: the chat header shows a shop icon; open it, add an item, **View cart**,
+   **Send**. The bot answers with the order card (or the pin request, for a first order). Nothing is confirmed until **تأكيد الطلب**.
+
+**Which products Meta refuses.** Meta's commerce policy bars tobacco, alcohol, medicines and supplements with health claims, among
+others; the catalog has none (business rule 12). An item Meta rejects is shown in Data sources → Issues; it stays orderable by text.
+
 ## Proven on staging
 Runs are on the repository's Actions page. "Not yet" means written and tested locally only.
 

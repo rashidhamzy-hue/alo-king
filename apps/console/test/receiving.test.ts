@@ -1,10 +1,10 @@
 // 3.12 Receiving: goods in through receive_goods(), with cost and expiry; suppliers added and paid by the ops lead.
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { flashOf, ledgerSum, openShop, rig, type Rig } from "./kit";
+import { deliver, drawerUsd, dropAtHub, flashOf, ledgerSum, openShop, placeOrder, rig, type Rig } from "./kit";
 
-let r: Rig;
+let r: Rig; let village: string;
 afterEach(() => vi.unstubAllGlobals());
-beforeAll(async () => { r = await rig(); await openShop(r.db); }, 120_000);
+beforeAll(async () => { r = await rig(); village = await openShop(r.db); }, 120_000);
 
 describe("Receiving", () => {
   it("a picker receives on credit by SKU, once per invoice; expiry is required for chilled goods; only the lead pays from the drawer", async () => {
@@ -43,7 +43,31 @@ describe("Receiving", () => {
 
     await bl.get("/receiving");
     expect(flashOf((await bl.post(`/suppliers/${supplier}/pay`, { amount_usd: "10", ref: "R" })).text)).toBe("Type the receipt number.");
+    // Nothing leaves the drawer beyond what it holds by the books (0081): it is empty, so the payment and a receipt paid from the
+    // till are refused and nothing is recorded.
+    const SHORT = "The drawer does not hold that much by the books. Count it, and check what came in today.";
+    expect(await drawerUsd(r.db)).toBe(0);
+    expect(flashOf((await bl.post(`/suppliers/${supplier}/pay`, { amount_usd: "10", ref: "R-100" })).text)).toBe(SHORT);
+    const tillLine = { supplier, supplier_ref: "INV-902", paid_from: "hub_cash", code_0: p.sku, qty_0: 2, cost_0: "0.50", expiry_0: "2026-12-01" };
+    expect(flashOf((await bl.post("/receiving", tillLine)).text)).toBe(SHORT);
+    expect(Number((await r.db.one(`select count(*) as n from goods_receipts`)).n)).toBe(2);
+    expect(await drawerUsd(r.db)).toBe(0);
+    // A rider's cash, dropped at the hub, fills it.
+    const rider = (await r.db.one(`insert into parties(role, display_name) values ('driver', 'Rami') returning id`)).id;
+    await r.db.rpc("start_shift", { p_driver: rider });
+    const o = await placeOrder(r.db, village, "cod", 15);
+    await deliver(r.db, o.id, rider);
+    await r.db.rpc("rider_collect", { p_order: o.id, p_driver: rider, p_usd: o.total, p_lbp: 0 });
+    const filled = await dropAtHub(r.db, rider, lead.partyId);
+    expect(filled).toBeGreaterThan(11);
     expect(flashOf((await bl.post(`/suppliers/${supplier}/pay`, { amount_usd: "10", ref: "R-100" })).text)).toBe("Paid $10.00 from the drawer. We now owe $5.00.");
+    expect(flashOf((await bl.post("/receiving", tillLine)).text)).toMatch(/^Received 1 line, \$1\.00 at cost\./);
+    expect(await drawerUsd(r.db)).toBeCloseTo(filled - 11, 2);
+    // More than is left is refused; exactly what is left empties it; the same receipt number again is still answered as a repeat.
+    expect(flashOf((await bl.post(`/suppliers/${supplier}/pay`, { amount_usd: (filled - 10).toFixed(2), ref: "R-101" })).text)).toBe(SHORT);
+    expect(flashOf((await bl.post(`/suppliers/${supplier}/pay`, { amount_usd: (filled - 11).toFixed(2), ref: "R-102" })).text)).toMatch(/^Paid \$/);
+    expect(await drawerUsd(r.db)).toBeCloseTo(0, 2);
+    expect(flashOf((await bl.post(`/suppliers/${supplier}/pay`, { amount_usd: "10", ref: "R-100" })).text)).toBe("That payment was already recorded.");
     expect((await b.post(`/suppliers/${supplier}/pay`, { amount_usd: "1", ref: "R-101" }, { follow: false })).status).toBe(403);
     expect(await ledgerSum(r.db)).toBeCloseTo(0, 6);
   });

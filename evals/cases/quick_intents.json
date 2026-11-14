@@ -152,6 +152,26 @@
   {
    "text": "مرحبا، عندكن جبنة عكاوي؟",
    "expect": null
+  },
+  {
+   "text": "kifak? shu 3am ta3mol lyom? khabberne 3an 7alak",
+   "expect": "small_talk"
+  },
+  {
+   "text": "how are you? what are you doing today?",
+   "expect": "small_talk"
+  },
+  {
+   "text": "كيفك؟ شو عم تعمل اليوم؟ خبرني عن حالك",
+   "expect": "small_talk"
+  },
+  {
+   "text": "kifak, baddi 2 rabtat 5ebez",
+   "expect": null
+  },
+  {
+   "text": "kifak, shu fi 5odra lyom?",
+   "expect": null
   }
  ]
 }

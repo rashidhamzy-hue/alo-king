@@ -1,0 +1,96 @@
+// The WhatsApp catalog on the way out (1.21 step 4): the full catalog, one category as product lists, or one product.
+// Every message is `interactive` (invariant 2: no new type) and goes through the gateway with the turn's dedupe key.
+// Which products exist, their order and their sections come from the database (catalog_list, 0085); Meta's catalog shows the
+// pictures, names and prices it read from our feed. Nothing here states a price, and nothing here confirms.
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Outbound } from "@ak/wa/kapso";
+
+/** Meta's limits for one product-list message: 30 products in all, 10 sections, 24 characters a section title, 60 the header. */
+export const LIST_LIMITS = { products: 30, sections: 10, sectionTitle: 24, header: 60 } as const;
+export interface CatalogSection { title: string; skus: string[] }
+
+const cut = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+/**
+ * One category as product-list messages, never more than 30 products or 10 sections in one. A section longer than the room
+ * left is split into numbered parts ("قهوة وشاي 1", "قهوة وشاي 2"); sections are never reordered.
+ */
+export function productListMessages(catalogId: string, header: string, body: string, sections: CatalogSection[],
+                                    limits: { products: number; sections: number } = LIST_LIMITS): Outbound[] {
+  const maxP = Math.min(limits.products, LIST_LIMITS.products), maxS = Math.min(limits.sections, LIST_LIMITS.sections);
+  const parts: CatalogSection[] = [];
+  for (const s of sections) {
+    const skus = [...new Set(s.skus)];
+    if (skus.length === 0) continue;
+    const n = Math.ceil(skus.length / maxP);
+    for (let i = 0; i < n; i++) {
+      const suffix = n > 1 ? ` ${i + 1}` : "";
+      parts.push({ title: cut(s.title, LIST_LIMITS.sectionTitle - suffix.length) + suffix, skus: skus.slice(i * maxP, (i + 1) * maxP) });
+    }
+  }
+  const messages: CatalogSection[][] = [];
+  let cur: CatalogSection[] = [], count = 0;
+  for (const p of parts) {
+    if (cur.length && (count + p.skus.length > maxP || cur.length >= maxS)) { messages.push(cur); cur = []; count = 0; }
+    cur.push(p); count += p.skus.length;
+  }
+  if (cur.length) messages.push(cur);
+  return messages.map((secs, i) => ({
+    type: "interactive" as const,
+    interactive: {
+      type: "product_list",
+      header: { type: "text", text: cut(messages.length > 1 ? `${header} (${i + 1}/${messages.length})` : header, LIST_LIMITS.header) },
+      body: { text: body },
+      action: { catalog_id: catalogId, sections: secs.map((s) => ({ title: s.title, product_items: s.skus.map((sku) => ({ product_retailer_id: sku })) })) },
+    },
+  }));
+}
+
+/** The whole catalog, as WhatsApp's own catalog view. */
+export const catalogMessage = (body: string, thumbnailSku?: string | null): Outbound => ({
+  type: "interactive",
+  interactive: { type: "catalog_message", body: { text: body },
+    action: { name: "catalog_message", ...(thumbnailSku ? { parameters: { thumbnail_product_retailer_id: thumbnailSku } } : {}) } },
+});
+
+/** One product, as WhatsApp's single-product message. */
+export const productMessage = (catalogId: string, sku: string, body?: string): Outbound => ({
+  type: "interactive",
+  interactive: { type: "product", ...(body ? { body: { text: body } } : {}), action: { catalog_id: catalogId, product_retailer_id: sku } },
+});
+
+export const CATALOG_TEXT = {
+  all: "هيدا كتالوج ألو كينغ 🛒 اختار الأغراض وزيدها عالسلة، وبس تبعت السلة منبعتلك ورقة الطلب لتأكّد.",
+  list: (categoryAr: string) => `${categoryAr} 🛒 زيد يلي بدك ياه عالسلة وابعتها، ومنبعتلك ورقة الطلب لتأكّد.`,
+  one: "زيدو عالسلة وابعتها، ومنبعتلك ورقة الطلب لتأكّد.",
+};
+
+export interface CatalogSettings { catalog_id: string | null; list_max_products?: number; list_max_sections?: number }
+
+/**
+ * What to send for "show me the catalog", "what dairy do you have?" or one product. Refuses when the Meta catalog is not set
+ * up yet, the category is unknown, or nothing in it has an approved picture (only those are in the catalog, 1.21 step 2).
+ * More than two list messages for one category: the full catalog view instead (one turn sends at most two messages).
+ */
+export async function catalogMessages(db: SupabaseClient, args: { category?: string | null; product_id?: string | null }):
+    Promise<{ ok: true; messages: Outbound[]; summary: string } | { ok: false; error: string; categories?: unknown }> {
+  const settings = ((await db.rpc("setting", { p_key: "catalog" })).data ?? {}) as CatalogSettings;
+  const catalogId = settings.catalog_id;
+  if (!catalogId) return { ok: false, error: "catalog_not_ready" };
+  if (args.product_id) {
+    const feed = ((await db.rpc("catalog_feed")).data ?? []) as { product_id: string; sku: string }[];
+    const row = feed.find((r) => r.product_id === args.product_id);
+    if (!row) return { ok: false, error: "product_not_in_catalog" };
+    return { ok: true, messages: [productMessage(catalogId, row.sku, CATALOG_TEXT.one)], summary: `[catalog product ${row.sku}]` };
+  }
+  if (!args.category) return { ok: true, messages: [catalogMessage(CATALOG_TEXT.all)], summary: "[catalog]" };
+  const list = (await db.rpc("catalog_list", { p_category: args.category })).data as
+    { ok: boolean; error?: string; categories?: unknown; category?: { code: string; name_ar: string; name_en: string }; sections?: { title_ar: string; skus: string[] }[] } | null;
+  if (!list?.ok || !list.category) return { ok: false, error: list?.error ?? "unknown_category", categories: list?.categories };
+  const sections = (list.sections ?? []).map((s) => ({ title: s.title_ar, skus: s.skus }));
+  if (!sections.some((s) => s.skus.length)) return { ok: false, error: "no_products_with_pictures_in_category" };
+  const msgs = productListMessages(catalogId, list.category.name_ar, CATALOG_TEXT.list(list.category.name_ar), sections,
+    { products: settings.list_max_products ?? LIST_LIMITS.products, sections: settings.list_max_sections ?? LIST_LIMITS.sections });
+  if (msgs.length > 2) return { ok: true, messages: [catalogMessage(CATALOG_TEXT.all)], summary: `[catalog, for ${list.category.code}]` };
+  return { ok: true, messages: msgs, summary: `[catalog list ${list.category.code}]` };
+}

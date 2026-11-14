@@ -7,18 +7,19 @@ import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gat
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type ModelClient } from "@ak/agents/concierge";
-import { answerQuick, askPinVillage, choosePinVillage, completePending, planReading, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
+import { answerQuick, askPinVillage, choosePinVillage, completePending, planReading, sendKept, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
-import { buttonReplyText, FIXED, parseOrderButton, parsePinVillageButton } from "@ak/agents/order-card";
+import { buttonReplyText, FIXED, KEPT_BUTTON, parseOrderButton, parsePinVillageButton } from "@ak/agents/order-card";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
+import { takeCart, type CartOrder } from "@ak/agents/cart";
 
 interface SavedPin { place_id: string; village_id: string | null; village: string | null; village_ar?: string | null; served?: boolean | null;
   status: "located" | "unsure" | "outside"; said_village_id?: string | null; said_village_ar?: string | null;
@@ -173,6 +174,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         sent.push(...ctx.sent.texts.splice(0));
         continue;
       }
+      // «ابعت طلبي» under the closed-hours message (K1): the kept basket carries on, by code. Nothing kept, or a basket that cannot
+      // go as it was (an item gone overnight): the Concierge reads the tap with the basket in hand.
+      if (tapped === KEPT_BUTTON) {
+        if (await sendKept(ctx)) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }
+        if (!state.lastQuote) { buttonsHandled++; await say(FIXED.keptGone); continue; }
+        texts.push(FIXED.keptButton);
+        continue;
+      }
       if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
       if (tapped === "marketing:yes" || tapped === "marketing:no") {
         buttonsHandled++;
@@ -195,6 +204,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
                          saidAr: place.village_id && place.said_village_id && place.said_village_id !== place.village_id ? place.said_village_ar ?? null : null };
       pins++;
       texts.push(`[location pin received, ${place.village ? `village: ${place.village}` : "village not clear: the customer is asked to choose"}]`);
+      continue;
+    }
+
+    // 2b. A cart sent from the WhatsApp catalog (1.21): code turns it into the order card, as a typed order would be. The catalog
+    //     never confirms; the customer taps Confirm on the card. When the cart needs a question, the Concierge gets it in words.
+    if (m.type === "order") {
+      const r = await takeCart(ctx, (m as typeof m & { order?: CartOrder }).order);
+      if (r.done) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }
+      texts.push(r.asText);
       continue;
     }
 

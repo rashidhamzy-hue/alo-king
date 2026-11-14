@@ -213,6 +213,16 @@ export async function deliver(db: TestDb, orderId: string, rider: string) {
   await db.rpc("rider_picked_up", { p_delivery: d.delivery_id, p_driver: rider });
   return { delivery: d.delivery_id as string, result: await db.rpc("rider_delivered", { p_order: orderId, p_driver: rider }) };
 }
+/** Cash reaches the hub drawer as in life: the rider drops what they hold at the hub and the ops lead confirms it. */
+export async function dropAtHub(db: TestDb, rider: string, by: string) {
+  const n = await db.one(`select * from driver_cash_native($1)`, [rider]);
+  const drop = await db.rpc("declare_cash_drop", { p_driver: rider, p_method: "hub", p_usd: Number(n.usd), p_lbp: Number(n.lbp) });
+  await db.rpc("confirm_cash_drop", { p_drop: drop, p_by: by });
+  return Number(n.usd);
+}
+export async function drawerUsd(db: TestDb) {
+  return Number((await db.one(`select usd from account_native('hub_cash')`)).usd);
+}
 export async function ledgerSum(db: TestDb) {
   return Number((await db.one(`select coalesce(sum(usd_equiv), 0) as s from ledger_entries`)).s);
 }
