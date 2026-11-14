@@ -258,6 +258,11 @@ export async function answerQuick(ctx: ToolContext, kind: QuickIntent): Promise<
   if (kind === "status") return answerStatus(ctx);
   if (kind === "hours") return answerHours(ctx);
   if (kind === "greeting") return offerRepeat(ctx);
+  if (kind === "small_talk") {
+    // 1.18: chat about the assistant, nothing about an order. The one fixed line, no model (K1: read as a greeting live).
+    const r = await deliver(ctx, { type: "text", text: { body: FIXED.offTopic } }, FIXED.offTopic);
+    return r.ok ? { done: true, path: "off_topic" } : { done: false };
+  }
   return repeatLast(ctx);
 }
 

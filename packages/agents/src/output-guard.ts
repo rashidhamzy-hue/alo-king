@@ -91,6 +91,14 @@ const UNCERTAIN = /not verified|unverified|no verified|isn't verified|is not ver
 const THEIR_OWN = /your allergy|you're allergic|you are allergic|noted|i've noted|حساسيتك|عندك حساسية|سجّلت|سجلت|سجّلنا|سجلنا|نقلنا|منبلّغ|منبلغ|بلّغنا/u;
 const REASSURE = /\bsafe\b|\bfine\b|no problem|don't worry|no risk|آمن|ما في مشكلة|مافي مشكلة|ما في خطر|مافي خطر|ما تخاف|لا تخاف|ما تعتل هم|sans risque/u;
 
+// Declining to rank, rate, judge or recommend. No word that turns it into a judgement may follow in the same clause.
+const DECLINE = /(?:can't|cannot|can not|don't|do not|won't|will not|not able to|unable to)\s+(?:\w+\s+){0,2}?(?:rank|rate|judge|compare|recommend|say which|tell (?:you )?which|call (?:any|one))|ما (?:فيني|فينا|بقدر|منقدر) (?:قول|قلّك|قلك|قيّم|قيم|نقيّم|نقيم|نقول|رتّب|نرتّب|احكم|نحكم)|je ne peux pas (?:dire|classer|recommander)/u;
+const clauses = (t: string) => sentences(t).flatMap((x) => x.split(/[,،:]|\b(?:but|however|though|although|mais)\b|(?<![\p{L}])(?:بس|لكن|بينما)(?![\p{L}])/u)).map((x) => x.trim()).filter(Boolean);
+// An offer to filter or leave things out by a kind of fact, from approved records.
+const FILTER_OFFER = /(?:i|we) can (?:filter|leave out|exclude|check)|filter by|what (?:should|shall|do you want) (?:i|me to) leave out|فيني (?:شيل|فلتر)|فينا (?:نشيل|نفلتر)|منقدر (?:نشيل|نفلتر)|شو بدك (?:نشيل|شيل)/u;
+// The category words themselves (allergens, ingredients), as opposed to a fact about a product.
+const FOOD_CATEGORY = /\ballerg(?:ens?|ies|y)\b|\bingredients?\b|حساسي(?:ة|ات)|مكوّنات|مكونات/gu;
+
 const sentences = (t: string) => t.split(/[.!?؟؛;\n]+/u).map((x) => x.trim()).filter(Boolean);
 
 export interface CheckOptions {
@@ -104,10 +112,18 @@ export function checkModelText(text: string, opts: CheckOptions = {}): Violation
   if (money) return { code: "money_in_free_text", match: money };
   const t = normaliseForGuard(text);
   for (const re of SENSITIVE) { const m = re.exec(t); if (m) return { code: "sensitive_inference", match: m[0].trim() }; }
-  for (const re of QUALITY) { const m = re.exec(t); if (m) return { code: "quality_judgement", match: m[0].trim() }; }
+  // A quality word in a clause that declines to judge («I can't say which is healthiest») is the refusal the rules ask for, not a
+  // judgement (K1: B4's live run refused it). A comma or a contrast word starts a new clause, so "I can't rank them, X is the best" fails.
+  for (const c of clauses(t)) {
+    if (DECLINE.test(c)) continue;
+    for (const re of QUALITY) { const m = re.exec(c); if (m) return { code: "quality_judgement", match: m[0].trim() }; }
+  }
   for (const s of sentences(t)) {
     const foods = FOOD_TERMS.filter(([, re]) => re.test(s));
     if (foods.length === 0) continue;
+    // An offer to filter by a kind of fact («I can filter by allergens where we have approved records») names the category, not
+    // a fact about a product (K1). Only the category words may appear: "filter: these are nut-free" is still a claim.
+    if (FILTER_OFFER.test(s) && !FOOD_TERMS.some(([, re]) => re.test(s.replace(FOOD_CATEGORY, " ")))) continue;
     // Never "safe" or "no problem" next to an allergy or diet word, whatever the record says: the kitchen confirms, not us.
     const calm = REASSURE.exec(s);
     if (calm && foods.some(([a]) => a === "allergens" || a === "gluten")) return { code: "allergy_reassurance", match: calm[0] };
