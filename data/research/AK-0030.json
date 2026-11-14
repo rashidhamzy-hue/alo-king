@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0030",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Minced beef, fine",
+    "size": "500 g pack",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened. Retailer product names are 'Beef Minced', 'Primeat Brazilian Beef Minced Regular', 'Primeat Brazilian Beef Mince Habra'; none is labelled 'fine' on the listing."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/103130-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/beef-mince-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "raw minced beef on brown paper on a wooden board with a wooden spoon of peppercorns, top view, white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: BEEF MINCED)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/4/1/413535-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/beef-mince-regular-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "raw minced beef on brown paper on a wooden board with a wooden spoon of peppercorns, top view, white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: PRIMEAT BRAZILIAN BEEF MINCED REGULAR)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/4/1/413534-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/beef-mince-habra-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "raw minced beef on an oval wooden board with a herb sprig, top view, white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: PRIMEAT BRAZILIAN BEEF MINCE HABRA)"
+    }
+  ],
+  "not_found": []
+}

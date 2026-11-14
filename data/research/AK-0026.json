@@ -1,0 +1,21 @@
+{
+  "sku": "AK-0026",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Minced beef, coarse",
+    "size": "500 g pack",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened. Retailer product name is 'Beef Minced Coarse'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/2/127263-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/beef-mince-coarse-127263-v001.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "block of raw minced beef garnished with basil leaves, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: BEEF MINCED COARSE)"
+    }
+  ],
+  "not_found": []
+}
