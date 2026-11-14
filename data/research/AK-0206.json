@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0206",
+  "matched": {
+    "brand": "Local (unbranded)",
+    "product": "Mixed pickles (jar)",
+    "size": "",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Unbranded jar item: picture only. Picture 1 is a plain glass jar of mixed pickled vegetables from a Lebanese pickle seller's page (rear view, no brand visible); picture 2 is mixed pickles on a plate, from a page that names no brand."
+  },
+  "pictures": [
+    {
+      "image_url": "https://lebzone.com/cdn/shop/products/WmzFR563YJ_1024x1024.jpg?v=1614531408",
+      "page_url": "https://lebzone.com/products/pickled-mixed-vegetables",
+      "site": "lebzone.com",
+      "site_kind": "retailer",
+      "looks": "one glass jar with dark lid, rear view with no label or brand visible, white background, mixed pickled vegetables"
+    },
+    {
+      "image_url": "https://halal4poland.com/581-large_default/mixed-pickles-from-egypt.jpg",
+      "page_url": "https://halal4poland.com/en/pickled/281-mixed-pickles-from-egypt.html",
+      "site": "halal4poland.com",
+      "site_kind": "retailer",
+      "looks": "mixed pickled vegetables on a plate, white background, no jar, no brand, no text"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
