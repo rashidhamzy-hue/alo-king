@@ -1,0 +1,44 @@
+{
+  "sku": "AK-0199",
+  "matched": {
+    "brand": "Al Wadi Al Akhdar",
+    "product": "Sweet Corn",
+    "size": "340 g",
+    "barcode": "5281117000243",
+    "confidence": "exact",
+    "note": "Brand page lists the 340 g can. Open Food Facts record for this barcode is 'Sliced mushrooms' (mismatch), nothing used from it."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.alwadi.com/ContentFiles/254Image1.jpg",
+      "page_url": "https://www.alwadi.com/english/products/sweet-corn",
+      "site": "alwadi.com",
+      "site_kind": "brand",
+      "looks": "one can, white background, no watermark/price/text overlay, front view"
+    }
+  ],
+  "ingredients": {
+    "text": "Sweet corn kernels (87%), water, salt",
+    "language": "en",
+    "page_url": "https://www.alwadi.com/english/products/sweet-corn",
+    "market": "Lebanon (brand site)"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 77,
+    "fat_g": 1.7,
+    "saturated_fat_g": 0.3,
+    "carbohydrate_g": 12,
+    "sugars_g": 5.5,
+    "fibre_g": 2.8,
+    "protein_g": 2.6,
+    "salt_g": 0.45,
+    "page_url": "https://www.alwadi.com/english/products/sweet-corn"
+  },
+  "not_found": [
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
