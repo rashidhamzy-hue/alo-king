@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0009",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Banana",
+    "size": "kg",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/3/6/368694-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/banana-somali-baladi.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one hand of yellow bananas, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: BANANA BALADI)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/109105-v001-1_3.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/banana-somali-fresh-fruit-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one single yellow banana, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: BANANA SOMALI)"
+    }
+  ],
+  "not_found": []
+}

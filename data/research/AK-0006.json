@@ -1,0 +1,21 @@
+{
+  "sku": "AK-0006",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Orange for juice",
+    "size": "kg",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/108986-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/orange-for-juice-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one whole orange with leaves and one orange half, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: ORANGE FOR JUICE)"
+    }
+  ],
+  "not_found": []
+}

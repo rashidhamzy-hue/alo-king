@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0004",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Onion",
+    "size": "kg",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened. Pictures show brown/yellow-skinned onions (retailer names: Onion Brown Loose, Onion White Local)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/3/136468-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/loose-brown-onion-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "brown-skinned onions, one whole, one halved and a wedge, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: ONION BROWN LOOSE)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/3/134448-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/white-onion-local-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one whole and one halved onion, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: ONION WHITE LOCAL)"
+    }
+  ],
+  "not_found": []
+}
