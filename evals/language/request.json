@@ -1,1 +1,1 @@
-{ "steps": ["live"], "repeat": 1, "note": "M1 diagnostic 2, not a gate run: REPLY_RULE now says only the reply tool reaches the customer (run 43640755742: 10 wording cases ended in plain text, handed off)." }
+{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run A: REPLY_RULE adds the neutrality sentence (live-only check 43641359322 was 39/41: two first drafts refused for wording)." }

@@ -25,8 +25,9 @@ export const asLang = (lang?: string | null): Lang => (lang === "en" || lang ===
  */
 // Live run 43640755742 (M1): with "the system sends cards, lists and totals" the model often answered in plain text («I've
 // recorded your message, the system will reply») and ended the turn: text outside a tool is never sent, so the turn went to
-// a person. The rule now says that only the reply tool reaches the customer.
-export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin). Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences: one thing at a time; offer choices as buttons.";
+// a person. The rule now says that only the reply tool reaches the customer. Run 43641359322: 39/41, the two misses first drafts
+// the guard refused («which is better», «الأكل الصيامي» echoed back); the last sentence restates invariants 14-15 for this input.
+export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin). Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences: one thing at a time; offer choices as buttons. Never say which is better, best or healthier, and never repeat a diet, health or halal word unless a tool returned it.";
 
 /** Staff on the ops line read Arabic: no staff language is stored yet. One constant, so a later setting replaces it in one place. */
 export const STAFF_LANG: Lang = "ar";
