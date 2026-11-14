@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0258",
+  "matched": {
+    "brand": "Odex",
+    "product": "Bleach Lemon",
+    "size": "1200 ml",
+    "barcode": "5283002607070",
+    "confidence": "likely",
+    "note": "non-food. Matched by brand, variant and size (Spinneys: 'ODEX BLEACH LEMON', 1.20 L; label in picture reads 1200ml). Barcode not shown on the page. No composition or origin on the page."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/7/177142-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/bleach-lemon-177142-v001.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one white bottle with yellow cap, yellow/green ODEX Bleach label with lemons, '1200ml' on label, white background, front view, no watermark or price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

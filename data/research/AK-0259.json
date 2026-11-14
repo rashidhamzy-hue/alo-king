@@ -1,0 +1,24 @@
+{
+  "sku": "AK-0259",
+  "matched": {
+    "brand": "Comfort",
+    "product": "Fabric Conditioner Lavender",
+    "size": "3 L",
+    "barcode": "6221155207487",
+    "confidence": "likely",
+    "note": "non-food. Matched by brand, variant and size (Spinneys: 'COMFORT FABRIC CONDITIONER LAVENDER', 3 L). Barcode not shown on the page. The pictured label carries an Arabic 'new' flash that is part of the pack print. No composition or origin on the page."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/6/1/613073-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/comfort-fabric-conditioner-lavender-613073-v001.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one lilac bottle with handle and clear cap, Comfort label with lavender artwork and an Arabic 'new' flash printed on the label, white background, front view, no watermark or price"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "origin"
+  ]
+}

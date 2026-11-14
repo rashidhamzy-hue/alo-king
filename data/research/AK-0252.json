@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0252",
+  "matched": {
+    "brand": "Vimax",
+    "product": "Trash Bags Medium Black",
+    "size": "30 pieces",
+    "barcode": "5281143009821",
+    "confidence": "unsure",
+    "note": "non-food. No page for this exact product opened: not listed on Spinneys Lebanon (searched), no brand site found; Tawfeer's own shop (shop.tawfeer.market) renders by script and returned no content to WebFetch; carrefourlebanon.com returns 503."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}

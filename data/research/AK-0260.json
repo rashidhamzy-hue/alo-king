@@ -1,0 +1,19 @@
+{
+  "sku": "AK-0260",
+  "matched": {
+    "brand": "Intaj",
+    "product": "Kitchen Towel X-Large",
+    "size": "500 g",
+    "barcode": "5287002102153",
+    "confidence": "unsure",
+    "note": "non-food. The brand site intajtissues.com shows only generic illustrations of 'Intaj Kitchen Rolls' with no size or pack shot of this item, so no picture was kept. The same page header reads 'Made in Lebanon | Retail & Wholesale Tissue Products' (brand-level statement, recorded under origin)."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients"
+  ],
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://intajtissues.com/"
+  }
+}
