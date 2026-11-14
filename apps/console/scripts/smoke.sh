@@ -39,7 +39,7 @@ expect "real sign-in (picker)" "303 $u/" "$res"
 page=$(curl -sS -b "$jar" "$u/")
 grep -q "Console smoke check" <<<"$page" || { echo "FAIL: signed-in page does not show the staff name"; exit 1; }
 echo "signed-in page shows the staff name"
-for p in /payments /riders /pictures; do expect "picker opens $p" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u$p")"; done
+for p in /payments /riders /pictures /names /readiness /windows; do expect "picker opens $p" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u$p")"; done
 for p in /returns /catalog; do expect "picker opens $p" 200 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u$p")"; done
 echo "- Smoke test passed on $u: health, signed-out redirect, cross-site refusal, wrong password, a real sign-in, picker roles enforced" >> "$SUMMARY"
 
@@ -67,6 +67,6 @@ sweep() {
 { echo; echo "| Page | Opened as | Result |"; echo "| --- | --- | --- |"; } >> "$SUMMARY"
 sweep picker / /day-open /receiving /food-facts /intake /returns /catalog
 sb PATCH "/rest/v1/parties?id=eq.$party" '{"role": "ops_lead"}' >/dev/null
-sweep ops_lead /day-open /refunds /cases /approvals /money /day-close /receiving /food-facts /intake /search-words /payments /riders /exceptions /fx /zones /merchants /pictures
+sweep ops_lead /day-open /refunds /cases /approvals /money /day-close /receiving /food-facts /intake /search-words /payments /riders /exceptions /fx /zones /merchants /pictures /names /readiness /windows
 sb PATCH "/rest/v1/parties?id=eq.$party" '{"role": "picker"}' >/dev/null
 expect "picker again: opens /money" 403 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$jar" "$u/money")"

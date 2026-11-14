@@ -1,9 +1,9 @@
-// The private `media` bucket (payment screenshots, receipts, product pictures, and the console's action log).
+// The private `media` bucket (payment screenshots, receipts, product pictures; the console's action log only until migration 0113 is applied).
 // Pictures reach the browser only as short-lived signed links made here, with the service key, on the server.
 export interface Media {
   /** A signed link that lives `seconds`, or null if the object cannot be signed (missing, or a bad path). */
   sign(path: string, seconds: number): Promise<string | null>;
-  /** Writes a new object. Refuses to overwrite (the action log is append-only). Throws on failure. */
+  /** Writes a new object. Refuses to overwrite. Throws on failure. */
   put(path: string, body: string | ArrayBuffer, contentType: string): Promise<void>;
 }
 

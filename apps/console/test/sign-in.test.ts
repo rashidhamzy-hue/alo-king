@@ -148,15 +148,73 @@ describe("forms", () => {
     await b.signIn(lead);
     await b.get("/lead");
     await b.post("/lead/do");
-    const entries = r.media.audit().filter((a) => a.action === "test_action");
-    expect(entries.map((e) => e.phase)).toEqual(["done", "intent"].sort());
+    // The log is a table in order of a sequence (0113), so "intent before done" does not depend on the clock (G1-16).
+    const entries = (await r.actions()).filter((a) => a.action === "test_action");
+    expect(entries.map((e) => e.phase)).toEqual(["intent", "done"]);
+    expect(Number(entries[0]!.seq)).toBeLessThan(Number(entries[1]!.seq));
+    expect(entries[0]!.ref).toBe(entries[1]!.ref);
     expect(entries.every((e) => e.party_id === lead.partyId && e.role === "ops_lead")).toBe(true);
-    expect(entries.find((e) => e.phase === "intent")!.args).toEqual({ x: 1 });
+    expect(entries[0]!.args).toEqual({ x: 1 });
+    expect(entries[1]).toMatchObject({ ok: true, result: "Done." });
+    // Nothing went to the bucket: the table replaces the objects.
+    expect([...r.media.objects.keys()].filter((k) => k.startsWith("console_audit/"))).toEqual([]);
 
     r.media.failPut = true;
     const page = await b.post("/lead/do");
     expect(flashOf(page.text)).toContain("action log could not be written");
     expect(ran).toBe(1);
+  });
+
+  it("many actions in the same instant keep their order: intent before done, every time", async () => {
+    const lead = await r.staff("ops_lead", "Maya");
+    const b = r.browser(testSections);
+    await b.signIn(lead);
+    await b.get("/lead");
+    for (let i = 0; i < 8; i++) await b.post("/lead/do");
+    const rows = (await r.actions()).filter((a) => a.action === "test_action");
+    expect(rows).toHaveLength(16);
+    for (let i = 0; i < rows.length; i += 2) {
+      expect([rows[i]!.phase, rows[i + 1]!.phase]).toEqual(["intent", "done"]);
+      expect(rows[i]!.ref).toBe(rows[i + 1]!.ref);
+    }
+    const seqs = rows.map((x) => Number(x.seq));
+    expect([...seqs].sort((x, y) => x - y)).toEqual(seqs);
+  });
+
+  it("the log is append-only: nothing updates, deletes or truncates it, and only staff can have an entry", async () => {
+    const lead = await r.staff("ops_lead", "Maya");
+    const seq = await r.db.rpc("log_staff_action", { p_party: lead.partyId, p_user: "u", p_role: "ops_lead", p_environment: "test", p_action: "x", p_phase: "event" });
+    expect(Number(seq)).toBeGreaterThan(0);
+    await expect(r.db.pg.query(`update staff_actions set action = 'y'`)).rejects.toThrow(/STAFF_ACTIONS_APPEND_ONLY/);
+    await expect(r.db.pg.query(`delete from staff_actions`)).rejects.toThrow(/STAFF_ACTIONS_APPEND_ONLY/);
+    await expect(r.db.pg.query(`truncate staff_actions`)).rejects.toThrow(/STAFF_ACTIONS_APPEND_ONLY/);
+    const customer = await r.staff("customer");
+    await expect(r.db.rpc("log_staff_action", { p_party: customer.partyId, p_user: "u", p_role: "customer", p_environment: "test", p_action: "x", p_phase: "intent" })).rejects.toThrow(/NOT_STAFF/);
+    await expect(r.db.rpc("log_staff_action", { p_party: null, p_user: null, p_role: null, p_environment: "test", p_action: "x", p_phase: "intent" })).rejects.toThrow(/PARTY_REQUIRED/);
+    await expect(r.db.rpc("log_staff_action", { p_party: null, p_user: null, p_role: null, p_environment: "test", p_action: "x", p_phase: "later" })).rejects.toThrow(/BAD_PHASE/);
+  });
+
+  it("a refused sign-in is an entry with no party; the password is never in the log", async () => {
+    const lead = await r.staff("ops_lead");
+    await r.browser(testSections).signIn({ email: lead.email, password: "wrong password!" });
+    const rows = await r.actions();
+    expect(rows.find((x) => x.action === "sign_in" && x.ok === false)).toMatchObject({ party_id: null, phase: "event", error: "bad_credentials" });
+    expect(JSON.stringify(rows)).not.toContain("wrong password");
+  });
+
+  it("a database without 0113 (staging can lag the Worker) still gets its log, in the bucket, and an action still waits for it", async () => {
+    const lagging = await rig({ without: ["log_staff_action"] });
+    const lead = await lagging.staff("ops_lead", "Maya");
+    const b = lagging.browser(testSections);
+    await b.signIn(lead);
+    await b.get("/lead");
+    await b.post("/lead/do");
+    expect([...lagging.media.objects.keys()].filter((k) => k.startsWith("console_audit/")).length).toBeGreaterThanOrEqual(3);   // sign-in, intent, done
+    expect(lagging.media.audit().filter((a) => a.action === "test_action").map((a) => a.phase).sort()).toEqual(["done", "intent"]);
+    const ranBefore = ran;
+    lagging.media.failPut = true;
+    expect(flashOf((await b.post("/lead/do")).text)).toContain("action log could not be written");
+    expect(ran).toBe(ranBefore);
   });
 });
 
