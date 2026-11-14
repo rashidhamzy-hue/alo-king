@@ -881,7 +881,20 @@ Files outside the row, each minimal: `packages/agents/src/concierge-tools.ts` (`
 dated rows), `test/pg/worker-e2e.test.ts` (G1-21 now asserted), `evals/language/request.json`. Nothing in `packages/wa`, the
 console or a money function changed.
 
-**Language-pack gate (effort low):** GATE_RESULT
+**Language-pack gate (effort low):** passed. Run 43603124462 (`language-pack-out/43603124462`), 990 cases, repeat 1, `claude-haiku-5-5`:
+| | item F1 | precision | recall | wrong products | missed | demo 0013 | output tokens |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| before (main, default effort medium) | 0.914 | 0.998 | 0.842 | 2 (hz0815, g0815: «bazella w jazar mkhalta» also read as peas) | 195 | right | 163,516 |
+| after (SP1, effort low) | 0.912 | 1.000 | 0.838 | **0** | 200 | right | 160,668 |
+Effort low keeps the gate (F1 at least 0.90, zero wrong, the demo right) but saves only 1.7% of the reading's output tokens: the
+reading's output is mostly the JSON itself, not thinking. It stays low (no loss measured); it is not where the time goes. Live evals
+(`evals/live`, run 43603124462 then 43604651185 after the fix below): wording, off-topic and address cases pass, and the go-ahead
+cases pass. **Language bug found by the live run and fixed, eval first:** «لغيلي الطلب» ("cancel my order") was read as an order
+with no lines, which the new go-ahead path would have turned into the kept basket's card. `isGoAhead` now refuses when the
+customer's own words cancel or refuse (`CANCEL_WORDS`); case `ask-go-ahead-not-cancel` and the word tests in
+`evals/test/ask-by-code.test.ts`. The prompt was not changed. In the second live run `siyami-first-time` (the question loop,
+unchanged by SP1) had its first wording refused by the output guard («الأكل الصيامي») and its rewording sent; it passed in the
+first run: model variance, recorded, not a gate item.
 
 **Staging (turn_waits, typed messages):** STAGING_RESULT
 

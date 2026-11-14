@@ -1,1 +1,1 @@
-{ "steps": ["live"], "repeat": 1, "note": "SP1: live evals again after the cancel-word guard on the go-ahead (the effort-low gate passed in run 43603124462). Commit {\"steps\": [\"after\"], \"repeat\": 2} to run the live eval again (see the workflow header)." }
+{ "steps": [], "note": "commit {\"steps\": [\"after\"], \"repeat\": 2} to run the live eval (see the workflow header); add \"live\" for evals/live" }
