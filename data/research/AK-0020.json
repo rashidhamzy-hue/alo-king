@@ -1,0 +1,21 @@
+{
+  "sku": "AK-0020",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Apple, red local",
+    "size": "kg",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened. Retailer product name is 'Apple Double Red Regular'; origin (local or not) not stated on the listing."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/4/141826-v001-1_2.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/double-red-apple-fresh-fruit-extra-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "red apples, two whole with a leaf, one half and a wedge, water drops, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: APPLE DOUBLE RED REGULAR)"
+    }
+  ],
+  "not_found": []
+}

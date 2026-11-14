@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0014",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Eggplant",
+    "size": "kg",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened. Catalog does not state the eggplant type; long and round both listed."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/109448-v001-1_3_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/long-eggplant-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one long dark purple eggplant, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: EGGPLANT LONG)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/109449-v001-1_3.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/round-eggplant-extra-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one round purple eggplant, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: EGGPLANT ROUND XTRA)"
+    }
+  ],
+  "not_found": []
+}

@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0011",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Green beans (loubieh)",
+    "size": "kg",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened. Two bean types pictured (retailer names: Fine Beans Loose, Runner Bean); a person should pick the one that matches the local loubieh."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/109380-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/green-beans-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "pile of cut round green beans, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: FINE BEANS LOOSE)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/3/133069-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/runner-beans-per-kg.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "pile of flat runner-type green beans, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: RUNNER BEAN)"
+    }
+  ],
+  "not_found": []
+}

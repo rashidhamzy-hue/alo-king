@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0017",
+  "matched": {
+    "brand": "unbranded",
+    "product": "Cherry tomatoes",
+    "size": "pack",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "loose/unbranded: picture only per README. Generic picture of the produce/meat type from a Lebanese retailer listing, not of Alo King's own stock; image and product page addresses were read on the retailer's category listing page, the product pages themselves were not opened. Catalog sell unit is a pack; first picture is a punnet (retailer: Grape Tomato Punnet 450 G)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/0/109539-v001-1_4.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/grape-tomato-packed-in-a-box-450g.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "clear plastic punnet of small red tomatoes, side view, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: GRAPE TOMATO PUNNET)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/5/1/516605-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/tomato-cherry-vin-kg-lcl.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "cherry tomatoes on the vine, plain white background, no watermark/logo/price/text (viewed; 600x600; retailer product name: TOMATO CHERRY VIN KG LCL)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/3/2/322727-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/cherry-tomato-mix.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "clear punnet of mixed red, orange and yellow cherry tomatoes, top view, white background, no watermark/logo/price/text (mixed colours) (viewed; 600x600; retailer product name: NEW GREEN CHERRY TOMATO MIX)"
+    }
+  ],
+  "not_found": []
+}
