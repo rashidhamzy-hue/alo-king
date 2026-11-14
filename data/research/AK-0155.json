@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0155",
+  "matched": {
+    "brand": "Ulker",
+    "product": "Chocolate Baton Pistachio",
+    "size": "14 g",
+    "barcode": "8690504156666",
+    "confidence": "unsure",
+    "note": "No page opened that matches this item. Only Open Food Facts snippets for other Ulker pistachio barcodes; ulker.com.tr refuses. Nothing opened for this item."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

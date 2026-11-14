@@ -1,0 +1,30 @@
+{
+  "sku": "AK-0157",
+  "matched": {
+    "brand": "Elegance",
+    "product": "Stars Biscuits Black Chocolate",
+    "size": "34 g",
+    "barcode": "5285004340146",
+    "confidence": "exact",
+    "note": "Only the White 34 g variant was seen on a search snippet; Black variant page not opened. Nothing recorded. Some blocks come from the Open Food Facts record for catalog barcode 5285004340146 (user-contributed, named \"Stars chocolat biscuit\"); those blocks carry that page as their source."
+  },
+  "nutrition": {
+    "per": "serving (6 g)",
+    "energy_kcal": 28.3,
+    "fat_g": 1.41,
+    "saturated_fat_g": 0.83,
+    "carbohydrate_g": 3.6,
+    "sugars_g": 1.41,
+    "fibre_g": 0.2,
+    "protein_g": 0.583,
+    "page_url": "https://world.openfoodfacts.org/product/5285004340146"
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
