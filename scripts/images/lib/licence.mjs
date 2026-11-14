@@ -1,9 +1,10 @@
 // Licence rules, build plan 5.17 step 4. The source decides the licence, and migration 0050 enforces the same pairing in SQL.
 //   Open Food Facts  -> cc_by_sa, attribution kept
 //   brand's own site -> brand_own  (page AND picture on the brand's listed host)
-//   anything else    -> unknown    (guides the intake photo; never shown to customers)
-export const LICENCE_FOR = { open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo" };
-export const CUSTOMER_LICENCES = new Set(["cc_by_sa", "brand_own", "own_photo"]);
+//   a search result  -> unknown    (guides the intake photo; never shown to customers)
+//   a research file's picture, with its page -> public_page (founder decision of 14 Nov 2026; migration 0070; research-pictures.mjs)
+export const LICENCE_FOR = { open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo", public_page: "public_page" };
+export const CUSTOMER_LICENCES = new Set(["cc_by_sa", "brand_own", "own_photo", "public_page"]);
 export const customerUsable = (licence) => CUSTOMER_LICENCES.has(licence);
 
 export const brandKey = (brand) => String(brand ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
