@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0139",
+  "matched": {
+    "brand": "Najjar (Star Café)",
+    "product": "Star Café ground Lebanese coffee",
+    "size": "180 g",
+    "barcode": "002264400033",
+    "confidence": "likely",
+    "note": "Brand's professional catalogue page 'Star Café' lists weights '200g - 450g' (export sizes), not 180 g; the 180 g Lebanese pack was only seen as a Carrefour Lebanon listing that cannot be opened. Picture shows the Star Café red pack with Arabic text 'Brazilian extra coffee'; no word 'Regular' and no weight visible, so the variant (regular vs. with cardamom) is not confirmed. Page says '100% Arabica. Vacuumed foil pack to preserve the freshness of the grind.' No ingredients, nutrition, storage or origin on the page. The catalog barcode has only 12 digits."
+  },
+  "pictures": [
+    {
+      "image_url": "https://najjarprofessionalsolutions.com/wp-content/uploads/2024/10/Star-Cafe.jpg",
+      "page_url": "https://najjarprofessionalsolutions.com/product/star-cafe/",
+      "site": "najjarprofessionalsolutions.com",
+      "site_kind": "brand",
+      "looks": "one red foil pack 'Star café' with gold star and coffee beans, white background, slight three-quarter front view, no watermark/price/overlay; 600x600, pack is small in the frame; weight not visible"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

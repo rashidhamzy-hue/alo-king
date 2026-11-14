@@ -1,0 +1,39 @@
+{
+  "sku": "AK-0140",
+  "matched": {
+    "brand": "Lipton",
+    "product": "Yellow Label Black Tea, 100 tea bags",
+    "size": "100 tea bags (200 g per retailer pages)",
+    "barcode": "4796005650901",
+    "confidence": "likely",
+    "note": "Catalog barcode not found on any opened page. Superdokan (Lebanon) lists the 100-bag Yellow Label with barcode 8720608632756 and weight 200 (no unit); Spinneys UAE page 'Lipton Yellow Label Tea Bags x 100 200g' gives ingredients/storage/origin for the UAE market. Blend and origin differ between markets, so the UAE ingredient line is not confirmed for the Lebanese pack."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/37f0b4e1-9953-4b31-bb73-a23ecad97aa7_size1920_cropCenter.jpg?v=1752071306",
+      "page_url": "https://superdokan.com/products/lipton-yellow-label-black-tea-100-tea-bags-lipton-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one yellow Lipton Yellow Label box front, '100' tea bags in Arabic, plain white background, no watermark/price/overlay; pack has the printed 'New blend with rich taste' flash"
+    }
+  ],
+  "ingredients": {
+    "text": "Black tea.",
+    "language": "en",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/lipton-yl-tea-bags-100s-200g_22881",
+    "market": "UAE"
+  },
+  "storage": {
+    "text": "Store in a cool, dry place.",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/lipton-yl-tea-bags-100s-200g_22881"
+  },
+  "origin": {
+    "country": "UAE",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/lipton-yl-tea-bags-100s-200g_22881"
+  },
+  "not_found": [
+    "allergens",
+    "nutrition",
+    "diet_labels"
+  ]
+}

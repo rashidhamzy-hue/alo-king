@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0144",
+  "matched": {
+    "brand": "Solen",
+    "product": "VIP Cocoa Coated wafer",
+    "size": "25 g",
+    "barcode": "8691707095318",
+    "confidence": "unsure",
+    "note": "No page opened that matches this item. solen.com.tr opened but has only a catalogue PDF link; no product page or retailer page for VIP 25 g found."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

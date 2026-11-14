@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0143",
+  "matched": {
+    "brand": "Maestro",
+    "product": "Ceylon Tea",
+    "size": "140 g",
+    "barcode": "5281143015501",
+    "confidence": "unsure",
+    "note": "No page opened that matches this item. Two searches found no Maestro Ceylon 140 g page; only other brands (Al Deek, Horse Head) appeared, which must not be used."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

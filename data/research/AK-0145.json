@@ -1,0 +1,44 @@
+{
+  "sku": "AK-0145",
+  "matched": {
+    "brand": "Lu",
+    "product": "Nouba Wafer",
+    "size": "17.5 g",
+    "barcode": "54074200",
+    "confidence": "exact",
+    "note": "No page opened that matches this item. Lulu and Carrefour UAE pages refused (403/503); Carrefour Lebanon refuses. No opened page. Some blocks come from the Open Food Facts record for catalog barcode 54074200 (user-contributed, named \"Gâteau Nouba, 17,5g\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/000/005/407/4200/front_fr.15.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/54074200",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one wafer pack on a bright pink background, user photo, front view at an angle"
+    }
+  ],
+  "ingredients": {
+    "text": "Farine de _blé_, sucre, huiles et graisses végétales (palma, colza coprah, palmiste, karité en proportions variables), cacao maigre en poudre 5,1 %, _lactose_ (de _lait_), _lactosérum_ en poudre, _lait_ écrémé en poudre, _lait_ entier en poudre, émulsifiant (lécithine de _soja_), stabilisant (E492), colorant (E150c), poudre à lever (carbonate acide de sodium, carbonate acide d'ammonium), arôme, sel.",
+    "language": "fr",
+    "page_url": "https://world.openfoodfacts.org/product/54074200",
+    "market": "record lists France and Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "gluten",
+      "milk",
+      "soy"
+    ],
+    "may_contain": [
+      "nuts"
+    ],
+    "quote": "allergens: en:gluten,en:milk,en:soybeans; traces: en:nuts (Open Food Facts fields; allergens are the underlined words in the ingredient list)",
+    "page_url": "https://world.openfoodfacts.org/product/54074200"
+  },
+  "not_found": [
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

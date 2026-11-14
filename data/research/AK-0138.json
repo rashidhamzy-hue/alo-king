@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0138",
+  "matched": {
+    "brand": "Café Najjar",
+    "product": "Najjar Classic With Cardamom (roasted & ground coffee with cardamom)",
+    "size": "180 g",
+    "barcode": "0022644001052",
+    "confidence": "likely",
+    "note": "Catalog name 'Najjar Cafe Cardamom 180G' is taken to be Najjar Classic With Cardamom, which the brand's Lebanese e-shop sells in 180 g and 400 g. The barcode is not shown on the page, so the variant (Classic vs. Selection / Super Extra cardamom lines) is not confirmed by barcode. Page text: 'Roasted & Ground Coffee Beans with Cardamom', '100% Arabica', dark roast; no formal ingredient list, percentages, nutrition, storage or origin. The picture is shared by both weight options; the weight is not legible on it."
+  },
+  "pictures": [
+    {
+      "image_url": "https://najjareshop.com/wp-content/uploads/2025/10/Najjar-Classic-With-Cardamom.jpg",
+      "page_url": "https://najjareshop.com/product/najjar-classic-with-cardamom/",
+      "site": "najjareshop.com",
+      "site_kind": "brand",
+      "looks": "one silver and green foil pack 'Cafe Najjar Classic with Ground Cardamom', white background, slight three-quarter front view, no watermark/price/overlay; 600x600, pack is small in the frame"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

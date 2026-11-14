@@ -1,0 +1,38 @@
+{
+  "sku": "AK-0141",
+  "matched": {
+    "brand": "Domo",
+    "product": "Hot Chocolate Drink Light Caramel",
+    "size": "10 g",
+    "barcode": "5281010102839",
+    "confidence": "exact",
+    "note": "No page opened that matches this item. Only Carrefour Lebanon pages exist for this sachet (carrefourlebanon.com refuses WebFetch); no opened page. No Domo brand page reachable (domo.com.lb tunnel failed). Some blocks come from the Open Food Facts record for catalog barcode 5281010102839 (user-contributed, named \"Hot choco drink light\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/101/010/2839/front_fr.4.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281010102839",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one sachet, front view fills the frame, user photo, no overlay"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 380,
+    "fat_g": 20,
+    "saturated_fat_g": 18,
+    "carbohydrate_g": 32,
+    "sugars_g": 20,
+    "protein_g": 12,
+    "salt_g": 2.25,
+    "page_url": "https://world.openfoodfacts.org/product/5281010102839"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
