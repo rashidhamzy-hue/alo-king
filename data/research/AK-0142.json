@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0142",
+  "matched": {
+    "brand": "Lipton",
+    "product": "Yellow Label Black Tea, 25 bags",
+    "size": "25 bags",
+    "barcode": "2900000003804",
+    "confidence": "unsure",
+    "note": "No page opened that matches this item. Internal/short barcode. Only 100-bag pages were opened (see AK-0140); no 25-bag page found, so nothing recorded."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

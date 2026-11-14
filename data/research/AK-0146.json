@@ -1,0 +1,53 @@
+{
+  "sku": "AK-0146",
+  "matched": {
+    "brand": "Kinder",
+    "product": "Kinder Tronky",
+    "size": "18 g piece",
+    "barcode": "8000500384763",
+    "confidence": "exact",
+    "note": "Kinder's own Iraq site (market: Iraq, English), piece 18 g. Page has no barcode and no storage text; recipe may differ from the Lebanese pack."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.kinder.com/iq/sites/kinder_iq/files/2023-10/tronky-t1.png",
+      "page_url": "https://www.kinder.com/iq/en/kinder-tronky",
+      "site": "kinder.com (Iraq)",
+      "site_kind": "brand",
+      "looks": "one Kinder Tronky wrapped bar, white background, front view, no watermark/price/overlay; 320x320, small, wrapper text tiny"
+    }
+  ],
+  "ingredients": {
+    "text": "Skimmed milk powder (20%), vegetable fat (palm), sugar, milk chocolate (15,5%) (sugar, whole milk powder, cocoa butter, cocoa mass, emulsifiers: lecithins (soy) (0,6%), flavouring (0,02%), biscuit crumbs (14%) (wheat flour, sugar, butter, vegetable fat (palm), wheat starch, fat reduced cocoa powder, skimmed milk powder, cream in powder, whey powder, hazelnuts, salt, raising agent: ammonium hydrogen carbonate (0,03%), flavouring (0,02%), raising agent: sodium hydrogen carbonate (0,02%), emulsifier: lecithins (soy) (0,01%), wheat flour, fat reduced cocoa powder (0,8%) emulsifier: lecithins (soy) (0,6%), hazelnuts, salt, raising agents: sodium hydrogen carbonate (0,05%), flavouring (0,01%).",
+    "language": "en",
+    "page_url": "https://www.kinder.com/iq/en/kinder-tronky",
+    "market": "Iraq"
+  },
+  "allergens": {
+    "contains": [
+      "hazelnuts",
+      "milk",
+      "soy",
+      "gluten"
+    ],
+    "may_contain": [],
+    "quote": "Allergen information: Contains hazelnuts, milk, soy, gluten.",
+    "page_url": "https://www.kinder.com/iq/en/kinder-tronky"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 517,
+    "fat_g": 27.4,
+    "saturated_fat_g": 13.5,
+    "carbohydrate_g": 56.6,
+    "sugars_g": 40.5,
+    "protein_g": 10.5,
+    "salt_g": 0.508,
+    "page_url": "https://www.kinder.com/iq/en/kinder-tronky"
+  },
+  "not_found": [
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

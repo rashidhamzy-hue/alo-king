@@ -1,0 +1,68 @@
+{
+  "sku": "AK-0147",
+  "matched": {
+    "brand": "Nestle",
+    "product": "KitKat 4 Finger",
+    "size": "36.5 g (Spinneys title says 36g)",
+    "barcode": "6294003532987",
+    "confidence": "likely",
+    "note": "Barcode not on any opened page. Ingredients/allergens/storage from Spinneys UAE (title 'KitKat 4 Finger Chocolate Wafer 36g', nutrition column labelled 36.5g but its figures equal per-100g values, so not recorded from there). Nutrition per 100 g, origin from Nestle Professional MENA UAE page for the KitKat 4 Finger (food-service format, listed '24g'); same recipe line, UAE market. Picture is from that food-service page. Some blocks come from the Open Food Facts record for catalog barcode 6294003532987 (user-contributed, named \"Nestle Kitkat 4 Fingers Chocolate\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.nestleprofessionalmena.com/sites/default/files/styles/np_product_detail/public/2024-02/Untitled%20design%20%2846%29.png",
+      "page_url": "https://www.nestleprofessionalmena.com/ae/en/kitkat/nestle-kitkat-4-finger-pack",
+      "site": "nestleprofessionalmena.com",
+      "site_kind": "brand",
+      "looks": "one red KitKat 4 Finger wrapper, white background, front view, no watermark/price; 302x381, low resolution; pack weight not legible"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/629/400/353/2987/front_en.31.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/6294003532987",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one bar in wrapper, front view, light background, user photo, no overlay"
+    }
+  ],
+  "ingredients": {
+    "text": "Sugar, Wheat Flour, Skimmed Cow's Milk Powder, Non-hydrogenated Vegetable Oils (Palm Kernel, Shea, Palm), Cocoa Butter, Cocoa Mass, Whey Powder, Cow's Milk Fat, Cocoa Powder, Emulsifier from Plant Origin (Sunflower lecithin), Raising agent (Sodium Bicarbonate)",
+    "language": "en",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/nestle-kitkat-4-finger-chocolate-bar-365g_49630/",
+    "market": "UAE"
+  },
+  "allergens": {
+    "contains": [
+      "milk",
+      "gluten"
+    ],
+    "may_contain": [
+      "soy",
+      "nuts"
+    ],
+    "quote": "Contains milk, gluten, may contain soy, nuts.",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/nestle-kitkat-4-finger-chocolate-bar-365g_49630/"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "fat_g": 25.9,
+    "saturated_fat_g": 16.1,
+    "carbohydrate_g": 60.9,
+    "sugars_g": 47.0,
+    "fibre_g": 2.4,
+    "protein_g": 6.7,
+    "salt_g": 0.15,
+    "sodium_mg": null,
+    "page_url": "https://www.nestleprofessionalmena.com/ae/en/kitkat/nestle-kitkat-4-finger-pack"
+  },
+  "storage": {
+    "text": "Store in a cool, dry place away from direct sunlight.",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/nestle-kitkat-4-finger-chocolate-bar-365g_49630/"
+  },
+  "origin": {
+    "country": "UAE",
+    "page_url": "https://www.nestleprofessionalmena.com/ae/en/kitkat/nestle-kitkat-4-finger-pack"
+  },
+  "not_found": [
+    "diet_labels"
+  ]
+}
