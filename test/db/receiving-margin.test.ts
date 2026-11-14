@@ -109,9 +109,13 @@ describe("suppliers and receiving (2.7)", () => {
 
   it("paying the supplier from the till reduces what we owe, once per reference", async () => {
     await expect(db.rpc("pay_supplier", { p_supplier: supplier, p_amount_usd: 10, p_by: picker, p_ref: "PAY-1" })).rejects.toThrow(/NOT_AUTHORISED/);
-    const p = await db.rpc("pay_supplier", { p_supplier: supplier, p_amount_usd: 10, p_by: ops, p_ref: "PAY-1" });
-    expect(Number(p.owed_usd)).toBeCloseTo(8 + 5.5 + 6 - 10, 2);
-    expect((await db.rpc("pay_supplier", { p_supplier: supplier, p_amount_usd: 10, p_by: ops, p_ref: "PAY-1" })).duplicate).toBe(true);
+    // F1 (G1-02): the drawer pays only what it holds, so the rider's cash from the sales above is dropped at the hub first.
+    const n = await db.one(`select * from driver_cash_native($1)`, [rider]);
+    const drop = await db.rpc("declare_cash_drop", { p_driver: rider, p_method: "hub", p_usd: Number(n.usd), p_lbp: Number(n.lbp) });
+    await db.rpc("confirm_cash_drop", { p_drop: drop, p_by: ops });
+    const p = await db.rpc("pay_supplier", { p_supplier: supplier, p_amount_usd: 9, p_by: ops, p_ref: "PAY-1" });   // the drawer holds 9.04
+    expect(Number(p.owed_usd)).toBeCloseTo(8 + 5.5 + 6 - 9, 2);
+    expect((await db.rpc("pay_supplier", { p_supplier: supplier, p_amount_usd: 9, p_by: ops, p_ref: "PAY-1" })).duplicate).toBe(true);
   });
 
   it("a failed delivery that comes back undoes its cost of goods; what is not fit to sell is a stock loss", async () => {

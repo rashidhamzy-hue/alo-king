@@ -81,6 +81,17 @@ export async function collect(h: Hub, orderId: string, rider = h.riders[0]!): Pr
   await h.db.rpc("rider_collect", { p_order: orderId, p_driver: rider, p_usd: await total(h, orderId), p_lbp: 0 });
 }
 
+/** The rider hands everything they hold to the hub and the ops lead confirms it (F1, D3's note: fill the drawer before paying
+ * from it). Returns what the drawer holds in dollars afterwards. */
+export async function dropAtHub(h: Hub, rider = h.riders[0]!): Promise<number> {
+  const n = await h.db.one(`select * from driver_cash_native($1)`, [rider]);
+  if (Number(n.usd) > 0 || Number(n.lbp) > 0) {
+    const drop = await h.db.rpc("declare_cash_drop", { p_driver: rider, p_method: "hub", p_usd: Number(n.usd), p_lbp: Number(n.lbp) });
+    await h.db.rpc("confirm_cash_drop", { p_drop: drop, p_by: h.ops });
+  }
+  return balance(h, "hub_cash");
+}
+
 export async function expectBooksBalanced(h: Hub): Promise<void> {
   const off = await h.db.all(`select txn_id from ledger_entries group by txn_id having abs(sum(usd_equiv)) > 0.005`);
   if (off.length) throw new Error(`unbalanced transactions: ${JSON.stringify(off)}`);

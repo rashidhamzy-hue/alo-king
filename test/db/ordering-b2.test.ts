@@ -405,8 +405,8 @@ describe("small-order fee and first-order cash cap (1.16)", () => {
     expect(again.created).toBe(true);
   });
 
-  it("tripwire: the four functions that carry the fee still do (a later migration that redefines one must keep it)", async () => {
-    for (const fn of ["quote_order", "create_order_from_quote", "post_cod_collection", "confirm_payment"]) {
+  it("tripwire: the four functions that carry the fee still do (a later migration that redefines one must keep it; confirm_payment posts through confirm_payment_now since F1)", async () => {
+    for (const fn of ["quote_order", "create_order_from_quote", "post_cod_collection", "confirm_payment_now"]) {   // F1 (0106): confirm_payment_now posts the money
       const def = (await db.one(`select pg_get_functiondef(p.oid) as d from pg_proc p where p.proname = $1 and p.pronamespace = 'public'::regnamespace`, [fn])).d;
       expect(def, fn).toContain("small_order_fee");
     }

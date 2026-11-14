@@ -77,9 +77,22 @@ export async function openTestDb(opts: { seeds?: boolean } = {}): Promise<TestDb
 
 /** The slice of supabase-js that the app uses (rpc only), backed by the test database. */
 export function asSupabase(db: TestDb) {
+  // A set-returning function comes back from supabase-js as an array of rows, not as one composite value (F1: the rig sent
+  // driver_cash_native's composite on as undefined amounts, which declare_cash_drop now refuses).
+  const sets = new Map<string, boolean>();
+  const returnsSet = async (fn: string) => {
+    if (!sets.has(fn)) sets.set(fn, !!(await db.one(`select bool_or(proretset) as s from pg_proc where proname = $1 and pronamespace = 'public'::regnamespace`, [fn]))?.s);
+    return sets.get(fn)!;
+  };
   return {
     rpc: async (fn: string, args?: Record<string, unknown>) => {
-      try { return { data: await db.rpc(fn, args), error: null }; }
+      try {
+        if (await returnsSet(fn)) {
+          const keys = Object.keys(args ?? {});
+          return { data: await db.all(`select * from ${fn}(${keys.map((k, i) => `${k} => $${i + 1}`).join(", ")})`, keys.map((k) => args![k])), error: null };
+        }
+        return { data: await db.rpc(fn, args), error: null };
+      }
       catch (e) { return { data: null, error: { message: (e as Error).message } }; }
     },
   };

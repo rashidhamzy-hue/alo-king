@@ -1,7 +1,7 @@
 // Build plan 2.3: refunds and complaints after delivery, on the real schema. Credit on the next order, or a cash or Whish
 // refund, each with its own ledger entries; the rider's fee is never taken back; every transaction balances.
 import { beforeAll, describe, expect, it } from "vitest";
-import { balance, collect, deliverToDoor, expectBooksBalanced, openHub, placeOrder, status, total, type Hub, type Placed } from "./hub-kit";
+import { balance, collect, deliverToDoor, dropAtHub, expectBooksBalanced, openHub, placeOrder, status, total, type Hub, type Placed } from "./hub-kit";
 
 let h: Hub; let WATER: string; let COFFEE: string; let first: Placed;
 const credit = async (party: string) => Number(await h.db.rpc("customer_credit_usd", { p_party: party }));
@@ -50,6 +50,7 @@ describe("refunds after delivery (2.3)", () => {
   it("pays out by Whish only with a reference, and in cash from the hub till", async () => {
     await expect(h.db.rpc("pay_out_credit", { p_party: first.customer, p_amount: 1, p_method: "whish", p_by: h.ops })).rejects.toThrow(/REFERENCE_REQUIRED/);
     await expect(h.db.rpc("pay_out_credit", { p_party: first.customer, p_amount: 99, p_method: "cash", p_by: h.ops })).rejects.toThrow(/EXCEEDS_CREDIT/);
+    await dropAtHub(h);                     // F1 (G1-02): the drawer pays only what it holds, so the rider's cash comes in first
     const tillBefore = await balance(h, "hub_cash");
     await h.db.rpc("pay_out_credit", { p_party: first.customer, p_amount: 1, p_method: "cash", p_by: h.ops, p_key: "po-1" });
     expect(await balance(h, "hub_cash")).toBeCloseTo(tillBefore - 1, 2);
