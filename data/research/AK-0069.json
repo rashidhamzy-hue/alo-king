@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0069",
+  "matched": {
+    "brand": "Candia",
+    "product": "GrandLait UHT Lait Entier",
+    "size": "180 ml",
+    "barcode": "5285001101634",
+    "confidence": "likely",
+    "note": "Open Food Facts record for this barcode (market: Lebanon) is named 'Candia grand lait' with a photo of a small 'Entier' carton but no size, ingredients or nutrition. The brand site lists 'Candia, GrandLait UHT Lait Entier 180ml' with a pack shot. No page opened states nutrition for the 180 ml size."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.libanlait.com/upload/8122websitecandia-uht-grandlait-entier-180ml.jpg",
+      "page_url": "https://www.libanlait.com/category/candia",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one pack, plain white background, no watermark/price, three-quarter front view (brand site pack shot)"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/110/1634/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285001101634",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "hand-held photo of a small carton in front of shop shelves; hand and other products visible; not a clean pack shot"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

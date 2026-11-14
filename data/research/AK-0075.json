@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0075",
+  "matched": {
+    "brand": "Klio",
+    "product": "Milk Powder",
+    "size": "750 g",
+    "barcode": "5281014001114",
+    "confidence": "exact",
+    "note": "Barcode matches the superdokan.com listing 'Klio Milk Powder 750g' (Lebanon). That page has only a marketing description (it calls the product 'Klio Full Cream Milk Powder'); no ingredients, allergens or nutrition. Not on Open Food Facts. carrefourlebanon.com has a page but it could not be opened (HTTP 503)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/Screenshot2025-09-10013518.png?v=1757493362",
+      "page_url": "https://superdokan.com/en-lb/products/klio-milk-powder-750gr-klio-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one pouch, plain white background, no watermark/price, front view; low resolution (476x603 screenshot)"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

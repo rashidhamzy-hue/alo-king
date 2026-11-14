@@ -1,0 +1,55 @@
+{
+  "sku": "AK-0074",
+  "matched": {
+    "brand": "Nadec",
+    "product": "UHT Milk Low Fat",
+    "size": "1 L",
+    "barcode": "6281057011018",
+    "confidence": "exact",
+    "note": "Barcode matches Open Food Facts (market: Jordan; quantity '1 liter'). Ingredients, allergens and nutrition from Open Food Facts typed fields (per 100 ml); the pack nutrition photo confirms 42 kcal, fat 1.2 g, sodium 50 mg. The typed ingredients field continues with pack text: 'Ultra Heat Treatment (UHT) NADEC GUARANTEE. no Powder, no Water, no Preservatives added Store below 25°C. keep refrigerated'. Open Food Facts labels field: 'No preservatives'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/628/105/701/1018/front_en.18.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/6281057011018",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one carton, plain white background, no watermark/price, straight front view"
+    }
+  ],
+  "ingredients": {
+    "text": "100% Fresh cow's milk, Fortified with vitamins A&D3, Fat max. 2%, Nonfat solids min. 8.5%.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/6281057011018",
+    "market": "Jordan"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "allergens: milk (Open Food Facts allergens field)",
+    "page_url": "https://world.openfoodfacts.org/product/6281057011018"
+  },
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 42,
+    "fat_g": 1.2,
+    "saturated_fat_g": 0.7,
+    "carbohydrate_g": 4.7,
+    "sugars_g": 4.7,
+    "fibre_g": 0,
+    "protein_g": 3.1,
+    "salt_g": 0.125,
+    "sodium_mg": 50,
+    "page_url": "https://world.openfoodfacts.org/product/6281057011018"
+  },
+  "storage": {
+    "text": "Store below 25°C. keep refrigerated",
+    "page_url": "https://world.openfoodfacts.org/product/6281057011018"
+  },
+  "not_found": [
+    "diet_labels",
+    "origin"
+  ]
+}

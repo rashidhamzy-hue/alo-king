@@ -1,0 +1,44 @@
+{
+  "sku": "AK-0067",
+  "matched": {
+    "brand": "Candia",
+    "product": "GrandLait UHT Lait Entier",
+    "size": "1 L",
+    "barcode": "5285001101757",
+    "confidence": "exact",
+    "note": "Barcode matches Open Food Facts (market: Lebanon) and superdokan.com (Lebanon). Nutrition read from the pack's Arabic nutrition panel photo on Open Food Facts (https://images.openfoodfacts.org/images/products/528/500/110/1757/nutrition_fr.13.400.jpg), per 100 ml; superdokan.com lists the same figures. The Open Food Facts typed field shows saturated fat 3.1 g, but the pack photo shows 2.1 g; the photo value is used. Calcium 120 mg per 100 ml on pack. Open Food Facts labels field: 'Sans conservateurs, Sans additifs' (not a schema diet label). The Open Food Facts front photo carries a printed price offer and was left out."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.libanlait.com/upload/5533websitecandia-uht-grandlait-entier-1l.jpg",
+      "page_url": "https://www.libanlait.com/category/candia",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one pack, plain white background, no watermark/price, three-quarter front view (brand site pack shot)"
+    },
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/products/MJKDFVC.jpg?v=1741089839",
+      "page_url": "https://superdokan.com/en-lb/products/candia-milk-grandlait-full-fat-1l-candia-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one pack, plain white background, no watermark/price, three-quarter front view"
+    }
+  ],
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 63.5,
+    "fat_g": 3.1,
+    "saturated_fat_g": 2.1,
+    "carbohydrate_g": 5.8,
+    "sugars_g": 5.8,
+    "protein_g": 3.1,
+    "page_url": "https://world.openfoodfacts.org/product/5285001101757"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

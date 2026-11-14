@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0072",
+  "matched": {
+    "brand": "Poppins",
+    "product": "Choco Bits cereal bar",
+    "size": "25 g",
+    "barcode": "5283003315011",
+    "confidence": "likely",
+    "note": "Open Food Facts record for this barcode (market: Lebanon) is named 'Choco bits', brand 'Poppins', serving size 18.0g, photo shows a Poppins Choco Bits bar; pack size not stated. Its typed nutrition (80 kcal, 13.2 g carbohydrate per 100 g) is not plausible for a cereal bar and looks like a data-entry error, so nutrition was left out. superdokan.com lists 'Poppins Choco Bits Chocolate Cereal Bar 25g' under a different barcode (5281128502071); only its picture is offered, no facts were taken from it."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/60_2.jpg?v=1792659506",
+      "page_url": "https://superdokan.com/en-lb/products/poppins-choco-bits-chocolate-cereal-bar-25g",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one bar in wrapper, plain light grey background, no watermark/price, front view (listing barcode differs from catalog)"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/300/331/5011/front_en.4.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5283003315011",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "hand-held photo of the wrapped bar, hand and room background visible; not a clean pack shot"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

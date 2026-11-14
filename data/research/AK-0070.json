@@ -1,0 +1,49 @@
+{
+  "sku": "AK-0070",
+  "matched": {
+    "brand": "Candia",
+    "product": "GrandLait UHT Lait Demi-Écrémé",
+    "size": "1 L",
+    "barcode": "5285001101801",
+    "confidence": "exact",
+    "note": "Barcode matches Open Food Facts (market: Lebanon; quantity '1litre') and superdokan.com (Lebanon). Nutrition read from the pack's French nutrition panel photo on Open Food Facts (https://images.openfoodfacts.org/images/products/528/500/110/1801/nutrition_fr.13.400.jpg), per 100 ml (calcium 120 mg). The Open Food Facts typed fields (fat 0, sugars 0, 46 kcal) disagree with the pack photo (lipides 1,5 g; 46,7 kcal) and were not used. Open Food Facts labels field: 'Sans conservateurs, Sans additifs'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.libanlait.com/upload/3921websitecandia-uht-grandlait-demi-ecreme-1l.jpg",
+      "page_url": "https://www.libanlait.com/category/candia",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one pack, plain white background, no watermark/price, three-quarter front view (brand site pack shot)"
+    },
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/products/25_194ac036-c964-4dce-8316-3e3159c8f9b5.jpg?v=1670053401",
+      "page_url": "https://superdokan.com/en-lb/products/candia-milk-grandlait-semi-skimmed-1l-copy",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one pack, plain white background, no watermark/price, three-quarter front view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/110/1801/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285001101801",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "photo of the Arabic-language face of the carton standing on a table, household background; not a clean pack shot"
+    }
+  ],
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 46.7,
+    "fat_g": 1.5,
+    "carbohydrate_g": 5,
+    "protein_g": 3.3,
+    "page_url": "https://world.openfoodfacts.org/product/5285001101801"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

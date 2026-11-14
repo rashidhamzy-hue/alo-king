@@ -1,0 +1,52 @@
+{
+  "sku": "AK-0071",
+  "matched": {
+    "brand": "Candia",
+    "product": "Silhouette UHT Lait Écrémé",
+    "size": "1 L",
+    "barcode": "5285001101856",
+    "confidence": "exact",
+    "note": "Barcode matches Open Food Facts (market: Lebanon) and superdokan.com (Lebanon, 'Candia Lait Uht Silhouette 1L'). Nutrition read from the pack side-panel photo on Open Food Facts (https://images.openfoodfacts.org/images/products/528/500/110/1856/nutrition_fr.24.400.jpg), per 100 ml. The pack states fat as 'Lipides <0.5g, dont acides gras saturés <0.34g' (not a single figure, so fat left out); calcium 120 mg. Pack text: 'Lait de vache frais écrémé stérilisé (UHT) longue durée.' and 'Produit par Libanlait s.a.l. Bekaa-Liban sous licence de Candia-France'. No ingredient list as such on the pages opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.libanlait.com/upload/2679websitecandia-uht-silhouette-fat-free-1l.jpg",
+      "page_url": "https://www.libanlait.com/category/candia",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one pack, plain white background, no watermark/price, three-quarter front view (brand site pack shot)"
+    },
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/products/23_0a6b91c2-77e5-4486-afeb-e286c7d08ad5.jpg?v=1746690126",
+      "page_url": "https://superdokan.com/en-lb/products/candia-milk-silhouette-1l",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one pack, plain white background, no watermark/price, three-quarter front view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/110/1856/front_fr.22.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285001101856",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "photo of the carton standing on a marble counter, kitchen background; not a clean pack shot"
+    }
+  ],
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 40,
+    "carbohydrate_g": 6,
+    "sugars_g": 6,
+    "protein_g": 3.3,
+    "page_url": "https://world.openfoodfacts.org/product/5285001101856"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://world.openfoodfacts.org/product/5285001101856"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage"
+  ]
+}
