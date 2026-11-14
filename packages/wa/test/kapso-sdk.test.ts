@@ -10,17 +10,41 @@ const env = { KAPSO_BASE_URL: "https://api.kapso.ai/meta/whatsapp/v24.0", KAPSO_
 const ok = (id = "wamid.SDK1") => new Response(JSON.stringify({ messaging_product: "whatsapp", contacts: [{ input: "x", wa_id: "x" }], messages: [{ id }] }), { status: 200, headers: { "content-type": "application/json" } });
 afterEach(() => vi.unstubAllGlobals());
 
-/** A database that allows the send and records what the gateway asked of it. */
-function fakeDb() {
+/** A database that allows the send and records what the gateway asked of it. wa_templates holds each template as given
+ *  (default: approved, utility, Arabic), as the hourly sync stores Meta's status and category (M1). */
+function fakeDb(template: { category: string; status: string; language: string } | null = { category: "utility", status: "approved", language: "ar" }) {
   const calls: { fn: string; args?: any }[] = [];
   return { calls, rpc: async (fn: string, args?: unknown) => { calls.push({ fn, args }); return { data: fn === "can_send" ? "ok" : fn === "outbox_claim" ? true : null, error: null }; },
-    from: () => ({ insert: async (row: unknown) => { calls.push({ fn: "insert", args: row }); return { error: null }; } }) } as any;
+    from: (table: string) => ({
+      insert: async (row: unknown) => { calls.push({ fn: "insert", args: row }); return { error: null }; },
+      select: () => ({ eq: () => ({ limit: async () => { calls.push({ fn: `select:${table}` }); return { data: template ? [template] : [], error: null }; } }) }),
+    }) } as any;
 }
 const req = (msg: Outbound, line: "customer" | "ops" = "customer"): SendRequest => ({ line, partyId: "p1", to: "96170000001", category: "service", dedupeKey: "turn-9:0", msg });
 const text: Outbound = { type: "text", text: { body: "x" } };
 
 /** What the hand-written client sent before 4.13, byte for byte. */
 const before = (to: string, msg: Outbound) => ({ messaging_product: "whatsapp", recipient_type: "individual", to, ...msg });
+
+describe("templates Meta re-files (M1, coordinator 14 Nov)", () => {
+  const tpl: Outbound = { type: "template", template: { name: "ak_substitute_question_v1", language: { code: "ar" }, components: [] } };
+  it("the gateway refuses a template stored as marketing, even when the caller passes utility, and never calls Kapso", async () => {
+    const fetchMock = vi.fn(async () => ok());
+    vi.stubGlobal("fetch", fetchMock);
+    const db = fakeDb({ category: "marketing", status: "approved", language: "ar" });
+    expect(await send(db, env, { ...req(tpl), category: "utility" })).toEqual({ ok: false, refused: "template_not_utility" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(db.calls.some((c: { fn: string }) => c.fn === "outbox_claim")).toBe(false);          // refused before the outbox
+  });
+  it("an unknown template, a template not approved yet, or one in another language is refused too", async () => {
+    const fetchMock = vi.fn(async () => ok());
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await send(fakeDb(null), env, { ...req(tpl), category: "utility" })).toEqual({ ok: false, refused: "template_not_utility" });
+    expect(await send(fakeDb({ category: "utility", status: "submitted", language: "ar" }), env, { ...req(tpl), category: "utility" })).toEqual({ ok: false, refused: "template_not_approved" });
+    expect(await send(fakeDb({ category: "utility", status: "approved", language: "en" }), env, { ...req(tpl), category: "utility" })).toEqual({ ok: false, refused: "template_language_mismatch" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
 
 describe("same sends", () => {
   const cases: [string, Outbound, "customer" | "ops"][] = [
