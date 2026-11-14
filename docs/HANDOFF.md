@@ -1022,6 +1022,34 @@ Sonnet 5.5, branch `claude/exciting-darwin-30dz02`. Locally: `npm run typecheck`
 
 **Live (after the merge; results below once read).** `deploy-staging` applies 0115 and 0116, creates the `catalog` bucket, loads the pilot settings; `research-load` runs after it; then `staging-new-product` and `usage-check` by hand from main.
 
+### Session R4 (research and founder decisions), 14 November 2026: documents only; pull request #45
+Sonnet 5.5. No product code, no migration, no deploy, no message. Merged as PR #45 (CI green: test, permissions-check, secrets-and-dependencies, pilot-locks). This entry **supersedes** S1's lines above that say "11 conflicts recorded, none resolved", that the research items are open, and that the gated sessions wait on C1, C2, C3, C6, C8; and section D's "turn on point-in-time recovery before real money".
+
+| Part | Where | State |
+| --- | --- | --- |
+| Founder answers of 14 Nov, word for word, and what each changes | `docs/DECISIONS.md` "Founder answers, 14 November" | Recorded. C1 to C11 approved as worded and marked resolved in the register |
+| Invariants 4, 10, 21 | `CLAUDE.md` | Reworded as C1, C2, C3 recommended; the shortfall sentence added to 10. No other line changed |
+| Session prompts | `docs/NEXT_SESSIONS.md` | C4 and WEB2 may set `settings.web.confirm_on_page` true; D5 builds the full redesign; AN1b has a full prompt (after AN1, migrations 0198-0199); I1 enables rules only for SYSTEM_PLAN 4's rows, each after its first passing spot check; A3 uses daily backups, one tried restore and Resend |
+| Cost model | `docs/COST_MODEL.md`, `data/cost_model.csv` | Point-in-time recovery input 0, "later, at volume (founder, 14 Nov)"; volume and sensitivity tables regenerated; break-even at launch staffing 32 to 31 orders a day |
+| Founder list | `docs/SYSTEM_PLAN.md` | Answered items marked; lawyer question 8 added (Open Food Facts share-alike) |
+| Research | `docs/RESEARCH_REGISTER.md` | (a) rewritten from the payment companies' own pages; the eight "not checked" items answered (about 18 searches, 22 page fetches) |
+
+**Decisions now final** (all in DECISIONS): cash-on-delivery tolerance $0.25 (already built by F1, `settings.over_short.cod_tolerance_usd`; a shortfall may be a rider receivable, never deducted automatically); Resend for staff email; no loyalty at launch, stamp card after four clean weeks, priced first; combined orders $0.50 extra pickup to the rider; the Claude plan stays at 100 USD, at most three sessions at a time; Hussein is the second approver; Supabase Pro with daily backups and one tested restore before real money, point-in-time recovery later at volume; `proposed_pilot_settings.sql` approved.
+
+**What the research changed:**
+- Tap's own support article (28 Apr 2025): "We currently do not accept any new merchants from Egypt, Jordan, or Lebanon." Tap goes last, and only to ask.
+- No payment company publishes fees, settlement currency or new-SARL onboarding terms on its own pages. Refunds by API are documented only by MontyPay and Tap, not Whish or areeba. PAY1 builds the customer-credit refund first; an API refund only when the provider's own documentation allows it.
+- Kapso API keys have no scopes and webhooks carry no timestamp: G1-14's "narrow production key" becomes a separate production project and key; replay safety stays with our own dedupe on the message id.
+- Tracking-page map: Mapbox free tier (50,000 loads) or MapTiler Flex ($30), never OSM's own tile servers. Pricing facts for Supabase, Cloudflare, Sentry, GitHub Actions and Anthropic are in the register (5).
+
+**Not done, and why:**
+- The questions to Whish, areeba, MontyPay and Tap are written (register (a)) but only the founder can send them; no answer exists yet. Whish publishes no merchant email (a form and a consumer line only); MontyPay no email (form, 1691, WhatsApp); Tap no email or phone (form); areeba's page gave lebanon@areeba.com (areeba.com refused direct fetches, so "via search").
+- Meta's policy text was read through search summaries of Meta's own pages, not in full; A3 reads section 4.7 and the opt-in page before the paid pilot. Kapso: only the first 100,000 of about 992,000 characters of its docs were read; retention and transcription provider are unconfirmed.
+- Whether the 2019 Ministry of Economy circular on pound price display still binds shops is unconfirmed (lawyer 4). Until answered, the pound total on the order card and receipt should be a setting, not hard-coded either way (not built).
+- Open for the founder: Sentry Team about $29 a month if two people need it; which GitHub plan the account is on (`intake.yml` every 30 minutes may use a Free plan's allowance; H1 and I1 read real usage first).
+- Not changed (outside R4's files): `scripts/ci/load-seeds.sh` still excludes `proposed_pilot_settings.sql` although it is now approved; `docs/BUILD_PLAN.md` still lists AN1b as "(C3)" with no migrations (0198-0199 are free) and wave 6 should read "AN1, then AN1b".
+- Checks: nothing in `apps/`, `packages/` or `supabase/` changed; CI ran `tsc` and the full suite on the pull request and was green.
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - Deliverect adapter: shape only. Needs a partner account.
 - Market tables (`markets`, `market_settings`, `setting_for`): schema only. Functions still read global settings.
