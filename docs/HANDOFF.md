@@ -896,12 +896,18 @@ customer's own words cancel or refuse (`CANCEL_WORDS`); case `ask-go-ahead-not-c
 unchanged by SP1) had its first wording refused by the output guard («الأكل الصيامي») and its rewording sent; it passed in the
 first run: model variance, recorded, not a gate item.
 
-**Staging (turn_waits, typed messages):** provisional. From the SP1 branch's deploy (14 Nov 14:32-15:13 UTC, 7 typed probe turns, `turn_waits` joined to runs with
-`trace.calls`): reply p50 **5.9 s**, p90 7.3 s, max 8.5 s; wait p50 2.0 s (A4: 8.3 s), turn p50 4.0 s. A4's baseline, same view:
-typed reply p50 15.4 s over 29 turns. The 20-turn measurement is taken from the deploy-staging run on main after this merge (below,
-once read). That branch deploy was a mistake: staging then recorded 0100-0102 before main had them, and every deploy from main
-failed until this PR merged (the founder's note). Deploy-staging is never dispatched from a branch again.
-The staging probe ran every 3 minutes for the measurement (`settings.probe.every_minutes`, normally 60); it is set back to 60 after.
+**Staging (turn_waits, typed messages): target met.** From deploy-staging run 43610966663 on main (merge of #43, 14 Nov 15:36 UTC;
+staging then recorded 0100-0114), the first 20 typed probe turns, 15:40-17:41 UTC (`turn_waits` where `message_type = 'text'`, joined
+to runs with `trace.calls`, all on path `ask_pin`, the probe's order message):
+| | turns | reply p50 | reply p90 | reply max | under 10 s | wait p50 | turn p50 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| A4, before SP1 (same view; p90 and max from A4's 20 turns) | 29 | 15.4 s | 19.4 s | 21.8 s | n/a | 8.2 s | 6.7 s |
+| SP1, from main | 20 | **5.6 s** | **6.0 s** | **6.05 s** | 20 of 20 | 1.9 s | 3.7 s |
+Earlier, from the SP1 branch's own deploy (14:32-15:13 UTC, 7 typed turns): p50 5.9 s, p90 7.3 s, max 8.5 s. That branch deploy was a
+mistake: staging recorded 0100-0102 before main had them, and every deploy from main failed until #43 merged (the founder's note).
+Deploy-staging is never dispatched from a branch. What the probe does not cover: a real customer's ask-path turn (a line not found or
+ambiguous) still makes two model calls; none happened on staging in this window. The staging probe ran every 3 minutes for the
+measurement (`settings.probe.every_minutes`, set by SQL on staging); it was set back to 60 at the end of the session, by the same path.
 
 For other sessions:
 - W1 and anyone issuing a card: call `create_order_for_turn` with the turn key (`ctx.turnKey`), not `create_order_from_quote`.
