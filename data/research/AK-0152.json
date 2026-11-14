@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0152",
+  "matched": {
+    "brand": "Ulker",
+    "product": "Metro Chocolate",
+    "size": "36 g",
+    "barcode": "8690504035909",
+    "confidence": "exact",
+    "note": "No page opened that matches this item. No page opened that states ingredients for the 36 g bar; only snippets (Carrefour Lebanon 25 g, Migros). Some blocks come from the Open Food Facts record for catalog barcode 8690504035909 (user-contributed, named \"metro klasik, 36 G\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/869/050/403/5909/front_en.43.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/8690504035909",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one bar, white background, front view, no overlay; Turkish 'Klasik' wrapper"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

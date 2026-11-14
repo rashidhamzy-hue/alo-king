@@ -1,0 +1,55 @@
+{
+  "sku": "AK-0148",
+  "matched": {
+    "brand": "Kinder",
+    "product": "Kinder Chocolate Maxi",
+    "size": "21 g per catalog; page does not state a size",
+    "barcode": "40084077",
+    "confidence": "likely",
+    "note": "Kinder's own Iraq site (market: Iraq, English), 'Kinder Maxi'. Page gives no piece weight, barcode, allergen statement, storage or per-piece values; nutrition has only energy, protein, carbohydrates and fat per 100 g. Some blocks come from the Open Food Facts record for catalog barcode 40084077 (user-contributed, named \"Kinder Riegel Einzelpackung, 21g (German-market pack)\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.kinder.com/iq/sites/kinder_iq/files/posa_11_km_global_test1_rgb_def_2.png",
+      "page_url": "https://www.kinder.com/iq/en/kinder-maxi",
+      "site": "kinder.com (Iraq)",
+      "site_kind": "brand",
+      "looks": "one partly unwrapped Kinder Maxi bar standing upright, plain white background, no watermark/price; the name is cropped ('Ma'), so not a clean full front pack shot"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/000/004/008/4077/front_en.83.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/40084077",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one bar, white background, front view, no overlay; wrapper is the German 'Kinder Riegel' design, which may differ from the pack sold in Lebanon"
+    }
+  ],
+  "ingredients": {
+    "text": "Milk Chocolate (40%) (Sugar, Milk Powder, Cocoa Butter, Cocoa Mass, Emulsifiers: Lecithin (Soy/sunflower), Flavouring: natural identical vanillin), Sugar, Skimmed Milk Powder, Vegetable Fat (Palm), Anhydrous Milkfat, Emulsifiers (Lecithin (Soy/sunflower), Flavouring (natural identical Vanillin). Total Milk Constituents: 33%. Total Cocoa: 13%. Solids In Milk Chocolate: Cocoa 32%, Milk Fat Free 16.5%, Milk Fat 6%.",
+    "language": "en",
+    "page_url": "https://www.kinder.com/iq/en/kinder-maxi",
+    "market": "Iraq"
+  },
+  "allergens": {
+    "contains": [
+      "milk",
+      "soy"
+    ],
+    "may_contain": [],
+    "quote": "allergens: en:milk,en:soybeans (Open Food Facts field; ingredient list names VOLLMILCHPULVER, MAGERMILCHPULVER, BUTTERREINFETT, Lecithine (SOJA))",
+    "page_url": "https://world.openfoodfacts.org/product/40084077"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 564,
+    "fat_g": 35,
+    "carbohydrate_g": 53.3,
+    "protein_g": 8.7,
+    "page_url": "https://www.kinder.com/iq/en/kinder-maxi"
+  },
+  "not_found": [
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

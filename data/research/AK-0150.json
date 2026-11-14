@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0150",
+  "matched": {
+    "brand": "Tiffany (Wafer Break)",
+    "product": "Wafer Chocolate Break 3 fingers",
+    "size": "23.5 g",
+    "barcode": "6291003084294",
+    "confidence": "unsure",
+    "note": "No page opened that matches this item. No page for the 23.5 g 3-finger pack found; other Tiffany sizes only in snippets."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

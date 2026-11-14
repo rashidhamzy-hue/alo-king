@@ -1,0 +1,52 @@
+{
+  "sku": "AK-0151",
+  "matched": {
+    "brand": "Nutella (Ferrero)",
+    "product": "Nutella hazelnut spread with cocoa, jar",
+    "size": "750 g",
+    "barcode": "3017620429262",
+    "confidence": "exact",
+    "note": "Nutella Middle East official site (/me/, English/Arabic) lists the jar in 750 g; the 750 g image is that page's own jar photo. Barcode not on the page. Nutrition and ingredients are for the Middle East page; the Morocco page states the same figures. Page has no formal allergen statement and no storage text; the allergens listed are only those named in its ingredient list."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.nutella.com/me/sites/nutella20_me/files/2020-10/nutella-750-kg.jpg",
+      "page_url": "https://www.nutella.com/me/en/products/nutella",
+      "site": "nutella.com (Middle East)",
+      "site_kind": "brand",
+      "looks": "one Nutella jar, white lid, front view, plain white background, no watermark/price/overlay; weight not legible"
+    }
+  ],
+  "ingredients": {
+    "text": "sugar, palm oil, hazelnuts (13%), skimmed milk powder (8.7%), fat-reduced cocoa (7.4%), emulsifier lecithin (from soya), vanillin",
+    "language": "en",
+    "page_url": "https://www.nutella.com/me/en/products/nutella",
+    "market": "Middle East"
+  },
+  "allergens": {
+    "contains": [
+      "hazelnuts",
+      "milk",
+      "soy"
+    ],
+    "may_contain": [],
+    "quote": "",
+    "page_url": "https://www.nutella.com/me/en/products/nutella"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 539,
+    "fat_g": 30.9,
+    "saturated_fat_g": 10.6,
+    "carbohydrate_g": 57.5,
+    "sugars_g": 56.3,
+    "protein_g": 6.3,
+    "salt_g": 0.107,
+    "page_url": "https://www.nutella.com/me/en/products/nutella"
+  },
+  "not_found": [
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

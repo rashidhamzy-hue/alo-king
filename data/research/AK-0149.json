@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0149",
+  "matched": {
+    "brand": "Ulker",
+    "product": "Albeni Chocolate Bar",
+    "size": "25 g",
+    "barcode": "8683508132606",
+    "confidence": "unsure",
+    "note": "No page opened that matches this item. ulker.com.tr refuses (403). Only 31 g/40 g/72 g listings seen in search snippets, not opened, not used."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

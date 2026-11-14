@@ -1,0 +1,44 @@
+{
+  "sku": "AK-0153",
+  "matched": {
+    "brand": "Oreo (Mondelez)",
+    "product": "Oreo Cookie Biscuit",
+    "size": "38 g",
+    "barcode": "7622201765286",
+    "confidence": "exact",
+    "note": "No page opened that matches this item. oreo.com redirects (301) and no 38 g page found; other pack sizes/markets only in snippets. Some blocks come from the Open Food Facts record for catalog barcode 7622201765286 (user-contributed, named \"Oreo Cookies, 36.8g (record quantity; catalog says 38 g)\"); those blocks carry that page as their source."
+  },
+  "ingredients": {
+    "text": "Wheat Flour, Sugar, Non-Hydrogenated Vegetable Oil (Palm Fruit), Fat Reduced Cocoa Powder, Glucose Syrup, Corn Starch, Raising Agents (Sodium Bicarbonate, Ammonium Bicarbonate), Salt, Emulsifier (Soya Lecithin), Artificial Flavoring (Vanillin).",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/7622201765286",
+    "market": "Gulf and Lebanon (record lists Bahrain, Lebanon, Saudi Arabia, United Arab Emirates)"
+  },
+  "allergens": {
+    "contains": [
+      "gluten (wheat)",
+      "soy"
+    ],
+    "may_contain": [],
+    "quote": "allergens: en:gluten,en:soybeans (Open Food Facts field; ingredient list names Wheat Flour and Soya Lecithin)",
+    "page_url": "https://world.openfoodfacts.org/product/7622201765286"
+  },
+  "nutrition": {
+    "per": "serving (36.8 g)",
+    "energy_kcal": 177,
+    "fat_g": 7.2,
+    "saturated_fat_g": 2.4,
+    "carbohydrate_g": 26.7,
+    "sugars_g": 14.7,
+    "fibre_g": 0.69,
+    "protein_g": 1.73,
+    "salt_g": 0.25,
+    "page_url": "https://world.openfoodfacts.org/product/7622201765286"
+  },
+  "not_found": [
+    "pictures",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
