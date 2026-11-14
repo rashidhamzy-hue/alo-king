@@ -1,0 +1,53 @@
+{
+  "sku": "AK-0045",
+  "matched": {
+    "brand": "Leprino",
+    "product": "Shredded Mozzarella Cheese (bulk bag 'Mozzarella Cheese with Starch', frozen)",
+    "size": "by weight (source page: 2 kg bag)",
+    "barcode": "2201121000000",
+    "confidence": "unsure",
+    "note": "Catalog item is sold loose by weight; which Leprino bulk pack the deli repacks is unknown. Data is from a UAE food-service listing of the Leprino 2 kg frozen shredded bag; ingredients, allergen line, storage and producer were read from the pack-label photo on that page. Treat as unsure until the actual bulk pack label is checked. No nutrition on the page."
+  },
+  "pictures": [
+    {
+      "image_url": "https://clickcuisineuae.com/cdn/shop/files/WhatsAppImage2024-09-26at11.15.34.jpg?v=1727432887&width=1946",
+      "page_url": "https://clickcuisineuae.com/products/leprino-frozen-shredded-mozzarella-100-dairy-2kg",
+      "site": "clickcuisineuae.com",
+      "site_kind": "retailer",
+      "looks": "one clear 2 kg bulk bag of shredded cheese with blue edges, white background, small printed label text on the bag, no watermark/price, front view; bulk pack, not the deli pre-pack"
+    },
+    {
+      "image_url": "https://clickcuisineuae.com/cdn/shop/files/Screenshot_2024-09-27_144559.png?v=1727433965&width=1946",
+      "page_url": "https://clickcuisineuae.com/products/leprino-frozen-shredded-mozzarella-100-dairy-2kg",
+      "site": "clickcuisineuae.com",
+      "site_kind": "retailer",
+      "looks": "pile of shredded cheese, no pack, blurred kitchen background, no text; generic product shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Mozzarella Cheese (Pasteurised Milk, Salt, Lactic Cultures), Potato Starch. Processing Aids: Vegetarian Rennet, Calcium Chloride (E509).",
+    "language": "en",
+    "page_url": "https://clickcuisineuae.com/products/leprino-frozen-shredded-mozzarella-100-dairy-2kg",
+    "market": "United Arab Emirates"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "Contains: Milk",
+    "page_url": "https://clickcuisineuae.com/products/leprino-frozen-shredded-mozzarella-100-dairy-2kg"
+  },
+  "storage": {
+    "text": "Keep Frozen at -18°C or colder. Once thawed, DO NOT refreeze, but keep refrigerated below 4°C, and use within 7 days",
+    "page_url": "https://clickcuisineuae.com/products/leprino-frozen-shredded-mozzarella-100-dairy-2kg"
+  },
+  "origin": {
+    "country": "United Kingdom",
+    "page_url": "https://clickcuisineuae.com/products/leprino-frozen-shredded-mozzarella-100-dairy-2kg"
+  },
+  "not_found": [
+    "nutrition",
+    "diet_labels"
+  ]
+}

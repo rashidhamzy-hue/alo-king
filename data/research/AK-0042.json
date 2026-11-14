@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0042",
+  "matched": {
+    "brand": "Leen Taanayel",
+    "product": "Labneh Premium",
+    "size": "by weight",
+    "barcode": "2201340000000",
+    "confidence": "unsure",
+    "note": "Sold loose / by weight from the deli counter. No brand or retailer page for this product could be opened in this session (carrefourlebanon.com returns HTTP 503 to the fetch tool; Spinneys Lebanon cheese listings checked do not carry this brand). Spinneys Lebanon lists 'Taanayel Les Fermes' labneh tubs; it could not be confirmed that this is the same brand/product as the loose 'Leen Taanayel Labneh Premium', so nothing was taken from those pages."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

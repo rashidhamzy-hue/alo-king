@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0040",
+  "matched": {
+    "brand": "Filata",
+    "product": "Shredded Mozzarella Cheese",
+    "size": "by weight",
+    "barcode": "2202960000000",
+    "confidence": "unsure",
+    "note": "Sold loose / by weight from the deli counter. No brand or retailer page for this product could be opened in this session (carrefourlebanon.com returns HTTP 503 to the fetch tool; Spinneys Lebanon cheese listings checked do not carry this brand)."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
