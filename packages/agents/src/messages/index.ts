@@ -23,7 +23,10 @@ export const asLang = (lang?: string | null): Lang => (lang === "en" || lang ===
  * ask loop share the system prompt and the tools, and a line there moved the reading (language-pack runs 43629416444 and
  * 43632950715: «bazella w jazar mkhalta» read wrong both times with it, right without it). The output guard enforces it either way.
  */
-export const REPLY_RULE = "Your own words (reply, ask_location_pin) are at most two short sentences: one thing at a time; offer choices as buttons. The system sends cards, lists and totals.";
+// Live run 43640755742 (M1): with "the system sends cards, lists and totals" the model often answered in plain text («I've
+// recorded your message, the system will reply») and ended the turn: text outside a tool is never sent, so the turn went to
+// a person. The rule now says that only the reply tool reaches the customer.
+export const REPLY_RULE = "Answer the customer now, through the reply tool (or ask_location_pin). Text outside a tool is never sent, and nothing else will answer for you. In it, at most two short sentences: one thing at a time; offer choices as buttons.";
 
 /** Staff on the ops line read Arabic: no staff language is stored yet. One constant, so a later setting replaces it in one place. */
 export const STAFF_LANG: Lang = "ar";

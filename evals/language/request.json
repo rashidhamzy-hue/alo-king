@@ -1,1 +1,1 @@
-{ "steps": ["live"], "repeat": 1, "note": "M1 diagnostic, not a gate run: run 43639683654 (reading F1 0.911, 0 wrong, demo right) had 7 live wording cases hand off with no attempt; the harness now records each model step. Live only." }
+{ "steps": ["live"], "repeat": 1, "note": "M1 diagnostic 2, not a gate run: REPLY_RULE now says only the reply tool reaches the customer (run 43640755742: 10 wording cases ended in plain text, handed off)." }
