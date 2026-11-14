@@ -7,13 +7,14 @@ import { OutboxUnavailable, type SendRequest, type SendResult } from "@ak/wa/gat
 import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@ak/agents/capacity";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
-import { answerQuick, askPinVillage, choosePinVillage, completePending, planReading, sendKept, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
+import { answerQuick, answerWhen, askPinVillage, basketWindowTap, choosePinVillage, completePending, planReading, sendKept, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
 import type { OrderIntent } from "@ak/agents/schemas";
 import { makeConciergeTools, type ConversationState, type ToolContext } from "@ak/agents/concierge-tools";
-import { buttonReplyText, FIXED, KEPT_BUTTON, parseOrderButton, parsePinVillageButton } from "@ak/agents/order-card";
+import { buttonReplyText, CARD_TEXT, FIXED, formatWindowChoice, KEPT_BUTTON, parseOrderButton, parsePinVillageButton, parseWindowButton, type DeliveryWindow } from "@ak/agents/order-card";
+import { orderWindowTap, schedules, whenOnly } from "@ak/agents/windows";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { PROOF_TEXT, readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
@@ -52,6 +53,8 @@ export interface TurnDeps {
 export interface TurnResult { outcome: "ignored" | "buttons" | "opt_out" | "opt_in" | "audio_unusable" | "human" | "agent_ok" | "agent_handoff" | "card" | "answered" | "rider" | "duplicate" | "error"; sent: string[] }
 
 const HISTORY_MAX = 8;
+/** How long after "edit" on a confirmed scheduled order the next basket is still its change (W1). The cut-off may end it sooner. */
+const CHANGE_OPEN_MS = 2 * 3600_000;
 
 /** What open_turn() returns (0100): begin_turn, touch_conversation, the first contact and the stored messages, in one call. */
 export interface OpenedTurn {
@@ -70,7 +73,7 @@ export async function openTurn(db: SupabaseClient, key: string, pending: Pending
     p_name: first.event.conversation.contact_name ?? null,
     p_messages: pending.map((p, i) => ({
       wa_message_id: p.event.message.id, type: p.event.message.type,
-      body: p.event.message.text?.body ?? p.event.message.interactive?.button_reply?.id ?? null,
+      body: p.event.message.text?.body ?? p.event.message.interactive?.button_reply?.id ?? p.event.message.interactive?.list_reply?.id ?? null,
       transcript: p.event.message.kapso.transcript ? { kapso: p.event.message.kapso.transcript.text } : null,
       // Where a new customer came from (1.13): read from the first message only, as before.
       ...(i === 0 ? { body_text: head.text?.body ?? null, referral: head.referral ?? null } : {}),
@@ -93,6 +96,8 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   if (!conv.known || conv.blocked) return { outcome: "ignored", sent: [] };
 
   const sent: string[] = [];
+  // W1: an "edit" tap answered long ago no longer turns the next basket into a change of that order: a new order is a new order.
+  if (state.replacing && Date.now() - (state.replacing.since ?? 0) > CHANGE_OPEN_MS) state.replacing = null;
   // G1-19 (SP1): a message's key is the turn plus what it says, not its place in the turn. A retried turn whose model words or
   // orders its messages differently sends what is new and skips what already went; before, a message that took another's
   // place was dropped. The same words twice in one turn are told apart by their count.
@@ -125,14 +130,15 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   for (const p of pending) {
     const m = p.event.message;
 
-    // 1. Buttons never reach the model.
-    const tapped = m.type === "interactive" ? m.interactive?.button_reply?.id : undefined;
+    // 1. Buttons never reach the model. A list row (W1: a delivery window) is a tap too.
+    const tapped = m.type === "interactive" ? (m.interactive?.button_reply?.id ?? m.interactive?.list_reply?.id) : undefined;
     if (tapped) {
       const btn = parseOrderButton(tapped);
       if (btn) {
         buttonsHandled++;
         try {
-          const r = await call<{ status: string; short_code: string; changed: boolean; payment_method?: string; total_usd?: number }>(
+          const r = await call<{ status: string; short_code: string; changed: boolean; payment_method?: string; total_usd?: number;
+                                 window?: DeliveryWindow | null; windows?: DeliveryWindow[] }>(
             db, btn.action === "confirm" ? "confirm_order_checked" : "handle_order_button",
             btn.action === "confirm" ? { p_order: btn.orderId, p_party: conv.party_id, p_wamid: m.id }
                                      : { p_order: btn.orderId, p_action: btn.action, p_party: conv.party_id, p_wamid: m.id });
@@ -144,6 +150,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           }
           if (r.status === "needs_location") { await sendRaw(askLocation("قبل ما نأكّد، بعتلنا موقعك 📍 أو اكتب العنوان بالتفصيل."), btn.orderId); continue; }
           await say(buttonReplyText(r), btn.orderId);
+          // W1 (C3's request 3): the window filled or closed before the tap. The order is a draft again; the open windows follow.
+          if ((r.status === "slot_full" || r.status === "slot_closed") && r.windows?.length)
+            await sendRaw(formatWindowChoice(btn.orderId, r.windows, { body: CARD_TEXT.chooseWindow }), btn.orderId);
+          // W1 (C3's request 4): "edit" on a confirmed scheduled order before its cut-off. The next basket is a new card that
+          // replaces it (link_replacement_order); nothing changes until that card is confirmed.
+          if (r.status === "change_open") state.replacing = { orderId: btn.orderId, shortCode: r.short_code, slotId: r.window?.slot_id ?? null, since: Date.now() };
           // Finding a rider must never turn a confirmed order into an error message. If it fails here, the cron retries every minute.
           if (r.changed && r.status === "confirmed") await deps.onOrderConfirmed?.(btn.orderId).catch(() => undefined);
           if (r.status === "draft") state.lastQuote = null;
@@ -151,6 +163,21 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           await say(String(err).includes("OUT_OF_STOCK") ? FIXED.outOfStock : FIXED.error, btn.orderId);
           if (!String(err).includes("OUT_OF_STOCK")) await handoff(db, conv.conversation_id, `button_error: ${String(err).slice(0, 200)}`);
         }
+        continue;
+      }
+      // A delivery window chosen from a list (W1, C3's request 2): for the card it was offered under, or for the basket in hand.
+      const win = parseWindowButton(tapped);
+      if (win) {
+        buttonsHandled++;
+        try {
+          if (win.orderId) await orderWindowTap(ctx, win.slotId, win.orderId);
+          else await basketWindowTap(ctx, win.slotId);
+        } catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          await say(FIXED.error, win.orderId ?? undefined);
+          await handoff(db, conv.conversation_id, `window_error: ${String(err).slice(0, 200)}`);
+        }
+        sent.push(...ctx.sent.texts.splice(0));
         continue;
       }
       const repeatOf = parseRepeatButton(tapped);
@@ -207,7 +234,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
           action: tapped === "marketing:yes" ? "opt_in" : "opt_out", source: "marketing_button", evidence_message_id: m.id });
         continue;
       }
-      texts.push(m.interactive?.button_reply?.title ?? tapped);     // a button the Concierge itself offered
+      texts.push(m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title ?? tapped);     // a button the Concierge itself offered
       continue;
     }
 
@@ -337,6 +364,13 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       if (pins > 0 && !state.villageId && await askPinVillage(ctx)) { remember(); await record("ok", "ask_pin_village"); return { outcome: "answered", sent }; }
     }
 
+    // A time said on its own («بكرا الصبح», "jumaa ba3d el dohr") while a card, a basket or a change is in hand (W1): code reads it
+    // (evals/cases/delivery_time.json) and the database matches it to the open windows. No model call.
+    const when = texts.length === 1 && transcripts.length === 0 && pins === 0 ? whenOnly(texts[0]!) : null;
+    if (when && schedules(when)) {
+      const r = await answerWhen(ctx, when);
+      if (r.done) { remember(); await record("ok", `when:${r.path}`); return { outcome: r.path.includes("card") ? "card" : "answered", sent }; }
+    }
     // Where is my order, when are you open, same as last time: typed in a few words, answered by the database alone (1.3).
     // What do you know about me, forget, stop remembering (1.14): typed on their own, answered by code.
     const mem = texts.length === 1 && transcripts.length === 0 && pins === 0 ? memoryCommand(texts[0]!) : null;

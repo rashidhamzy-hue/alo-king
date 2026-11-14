@@ -24,6 +24,9 @@ runs the Concierge's extraction on each transcript and scores it.
 replies the output guard (`packages/agents/src/output-guard.ts`) must refuse or let through, and phrases recognised without a model.
 `evals/cases/off_topic.json` (1.18) holds messages the Concierge must read as off-topic, and near misses it must not.
 `evals/test/*.test.ts` run them on every push.
+`evals/cases/delivery_time.json` (W1) holds delivery times said in words («بكرا الصبح», "jumaa ba3d el dohr", "demain matin") and the
+greetings and quantities that are not times. Code reads them (`readWhen` in `packages/agents/src/windows.ts`), never the model;
+the database matches the words to open windows. A miss found live is added there before the reader changes.
 
 The same cases against the real model, which a person then grades on `must` / `must_not`:
 ```

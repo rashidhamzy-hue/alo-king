@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { askLocation, buttons as buttonMsg, type Outbound } from "@ak/wa/kapso";
 import type { SendResult } from "@ak/wa/gateway";
 import type { ConciergeTools } from "./concierge";
-import { FIXED, formatOrderCard, KEPT_BUTTON, type Quote } from "./order-card";
+import { buttonReplyText, CARD_TEXT, FIXED, formatOrderCard, formatWindowChoice, KEPT_BUTTON, type DeliveryWindow, type Quote } from "./order-card";
 import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
 import { catalogMessages } from "./catalog-messages";
 
@@ -19,7 +19,7 @@ export interface ConversationState {
    * A card is ready to go out from lastQuote once the customer supplies what is missing: a pin, the village when the pin was
    * not clear (a tap), the house and floor for a first delivery to a new place, or a phone number the rider can call.
    */
-  awaiting?: "pin" | "village" | "address" | "phone" | "opening" | null;
+  awaiting?: "pin" | "village" | "address" | "phone" | "opening" | "window" | null;
   /** What the last pin said (B4): the pin decides the village. Unsure means the customer chooses from `candidates` by tap. */
   pinCheck?: PinCheck | null;
   pending?: CardTerms | null;
@@ -29,6 +29,10 @@ export interface ConversationState {
   orderRestrictions?: string[] | null;
   /** Restrictions offered for keeping, waiting for the customer's yes or no. */
   pendingRestrictions?: string[] | null;
+  /** W1: the delivery window chosen for the basket in hand (by tap or in words). The card made for that basket carries it. */
+  slotId?: string | null;
+  /** W1 (2.8 d): the customer tapped "edit" on a confirmed scheduled order; the next basket is its replacement (a new card). */
+  replacing?: { orderId: string; shortCode: string; slotId: string | null; since?: number } | null;
 }
 export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; served: boolean | null;
@@ -209,7 +213,7 @@ async function priceLines(ctx: ToolContext, productIds: string[]): Promise<{ ok:
   return { ok: true, text: q.lines.map((l) => `• ${l.name_ar ?? l.name} — ${money(l.unit_price_usd)}${l.ok ? "" : " (مش متوفّر هلّق)"}`).join("\n") };
 }
 
-export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" | "opening" } | { ok: false; error: string; issues?: unknown };
+export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" | "opening" | "window" } | { ok: false; error: string; issues?: unknown };
 
 /**
  * Creates the order from priced lines and sends the card. The deterministic path and the Concierge's send_confirmation
@@ -217,11 +221,15 @@ export type CardResult = { ok: true; order_code?: string; waiting_for?: "phone" 
  * `before` is a short fixed text sent first (for example, what could not be included).
  */
 export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
-                                terms: CardTerms, opts: { before?: string } = {}): Promise<CardResult> {
+                                terms: CardTerms, opts: { before?: string; slotId?: string | null } = {}): Promise<CardResult> {
+  // W1: the window this card is for. Given, or chosen for the basket in hand, or the window of the order this card replaces.
+  // A pickup has none (2.8: windows are for deliveries to the door).
+  const slotId = basket.pickup ? null : opts.slotId !== undefined ? opts.slotId : ctx.state.slotId ?? ctx.state.replacing?.slotId ?? null;
   // A rider must be able to call. WhatsApp may not have told us the number (1.19): ask for one before the card, and keep the
   // basket so the card goes out as soon as the number arrives.
   if (!basket.pickup && !(await rpc<string | null>(ctx.db, "customer_contact_phone", { p_party: ctx.partyId }))) {
-    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket.lines, p_village: basket.villageId, p_pickup: false });
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: basket.lines, p_village: basket.villageId, p_pickup: false, p_slot: slotId });
+    ctx.state.slotId = slotId;
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote };
     if (basket.placeId) ctx.state.placeId = basket.placeId;
     ctx.state.awaiting = "phone"; ctx.state.pending = terms;
@@ -235,6 +243,7 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
   const created = await rpc<{ created: boolean; order_id?: string; short_code?: string; quote: Quote }>(ctx.db, "create_order_for_turn", {
     p_turn_key: ctx.turnKey ?? null, p_customer: ctx.partyId, p_conversation: ctx.conversationId, p_lines: basket.lines, p_village: basket.villageId,
     p_place: basket.placeId, p_pickup: basket.pickup, p_payment: terms.payment, p_change_for: terms.changeForUsd, p_notes: terms.notes,
+    p_slot: slotId,
   });
   if (!created.created && created.quote.issues.some((i) => i.code === "fx_paused")) {
     // D1 (3.8): quoting is paused until a person confirms today's rate. The basket waits; the customer is told once.
@@ -247,6 +256,18 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     // K1 (B4's leftover): we closed while the basket waited (on the pin, the house, the number). Kept for when we open.
     const kept = await keepUntilOpen(ctx, { ...basket, quote: created.quote }, terms, String(closed.opens ?? ""));
     return kept.ok ? { ok: true, waiting_for: "opening" } : kept;
+  }
+  // W1: the window went full, closed or past its cut-off while the basket waited (or never fitted it). The basket is kept and
+  // the open windows are offered instead; it is never delivered "now" in its place.
+  const slotIssue = created.created ? undefined : created.quote.issues.find((i) => i.code.startsWith("slot_"));
+  if (slotIssue && slotId) {
+    ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
+    if (basket.placeId) ctx.state.placeId = basket.placeId;
+    ctx.state.pending = terms; ctx.state.slotId = null; ctx.state.awaiting = "window";
+    const windows = await rpc<DeliveryWindow[]>(ctx.db, "open_delivery_windows", { p_village: basket.villageId, p_fresh: !!created.quote.bought_to_order });
+    const body = [opts.before, CARD_TEXT.windowGone].filter(Boolean).join("\n");
+    const offered = await deliver(ctx, formatWindowChoice(null, windows, { body }), `[windows] ${body}`);
+    return offered.ok ? { ok: true, waiting_for: "window" } : offered;
   }
   if (!created.created) {
     // The customer owes from a delivery nobody answered: the database refuses cash on delivery (0004 policy). The card goes
@@ -266,18 +287,47 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     const fx = created.quote.fx_rate_lbp;
     created.quote = { ...created.quote, credit_usd: Number(credit.applied_usd), total_usd: total, total_lbp: fx ? Math.round(total * fx / 1000) * 1000 : null };
   }
+  // W1 (2.8 d): this card changes a confirmed scheduled order. Nothing moves until the customer confirms it (confirm_order_checked
+  // cancels the old order in the same transaction). Too late, or already paid: the new card is withdrawn and never sent.
+  let replaces: string | null = null;
+  let window: DeliveryWindow | null = created.quote.window ?? null;
+  const old = ctx.state.replacing;
+  if (old) {
+    ctx.state.replacing = null;
+    // A scheduled delivery changed into a pickup has no window to keep (2.8: windows are for the door): a person handles it.
+    const link = basket.pickup ? { ok: false, reason: "paid", short_code: old.shortCode } as { ok: boolean; reason?: string; replaces?: string; short_code?: string; window?: DeliveryWindow | null }
+      : await rpc<{ ok: boolean; reason?: string; replaces?: string; short_code?: string; window?: DeliveryWindow | null }>(ctx.db,
+          "link_replacement_order", { p_new: created.order_id, p_old: old.orderId, p_party: ctx.partyId });
+    if (!link.ok) {
+      await rpc(ctx.db, "transition_order", { p_order: created.order_id, p_to: "cancelled", p_actor: "system", p_actor_id: null, p_reason: `replacement_refused:${link.reason ?? ""}` });
+      ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.slotId = null;
+      if (link.reason === "paid") {
+        // A change to an order already paid by transfer goes to a person (C3's decision); so does a change to pickup.
+        await ctx.db.from("conversations").update({ human_handoff: true }).eq("id", ctx.conversationId);
+        await ctx.db.from("handoffs").insert({ conversation_id: ctx.conversationId, reason: `${basket.pickup ? "change_to_pickup" : "change_paid_order"}: ${link.short_code ?? old.shortCode}` });
+        const told = await deliver(ctx, { type: "text", text: { body: FIXED.handoff } }, FIXED.handoff);
+        return told.ok ? { ok: false, error: "change_paid" } : told;
+      }
+      const text = buttonReplyText({ status: "too_late", short_code: link.short_code ?? old.shortCode, changed: false, window: link.window ?? null });
+      const told = await deliver(ctx, { type: "text", text: { body: text } }, text, old.orderId);
+      return told.ok ? { ok: false, error: link.reason ?? "change_refused" } : told;
+    }
+    replaces = link.replaces ?? old.shortCode;
+    window = link.window ?? window;
+  }
   if (opts.before) {
     const pre = await deliver(ctx, { type: "text", text: { body: opts.before } }, opts.before, created.order_id);
     if (!pre.ok) return pre;
   }
   const card = formatOrderCard({ orderId: created.order_id!, shortCode: created.short_code!, quote: created.quote,
-                                 paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null });
+                                 paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null, window, replaces });
   const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
   if (!sent.ok) return sent;
   // A card went out: any order kept overnight is taken up or replaced (audit item 4). Never stops the turn.
   await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);
   // The directions went onto the order (and the place); they are not carried into the next order.
   ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null; ctx.state.directions = null;
+  ctx.state.slotId = null;
   return { ok: true, order_code: created.short_code! };
 }
 

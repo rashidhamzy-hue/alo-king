@@ -12,6 +12,8 @@ export interface Quote {
   small_order_fee_usd?: number;
   /** What we owed the customer, taken off this order (apply_customer_credit, C2's request). Already taken off total_usd. */
   credit_usd?: number;
+  /** W1 (0118): quoted for a window (quote_order with a slot): the window, and whether a line is bought for the order (fresh). */
+  slot_id?: string | null; window?: DeliveryWindow | null; bought_to_order?: boolean;
 }
 /** A delivery window as the database gives it (window_json, migration 0040): the hub's local date and times, never computed here. */
 export interface DeliveryWindow { slot_id: string; date: string; dow: number; day_offset: number; starts: string; ends: string }
@@ -44,10 +46,11 @@ export function parsePinVillageButton(id: string): string | null {
 }
 
 // 2.8: the windows a card may offer, one list row each. The database lists only open windows with room (open_delivery_windows).
-export const windowButtonId = (slotId: string | "now", orderId: string) => `slot:${slotId}:${orderId}`;
-export function parseWindowButton(id: string): { slotId: string | null; orderId: string } | null {
-  const m = /^slot:([0-9a-f-]{36}|now):([0-9a-f-]{36})$/.exec(id);
-  return m ? { slotId: m[1] === "now" ? null : m[1]!, orderId: m[2]! } : null;
+// W1: a row for the basket in hand (no order yet: after hours, or before the pin) has orderId null, "basket" in the id.
+export const windowButtonId = (slotId: string | "now", orderId: string | null) => `slot:${slotId}:${orderId ?? "basket"}`;
+export function parseWindowButton(id: string): { slotId: string | null; orderId: string | null } | null {
+  const m = /^slot:([0-9a-f-]{36}|now):([0-9a-f-]{36}|basket)$/.exec(id);
+  return m ? { slotId: m[1] === "now" ? null : m[1]!, orderId: m[2] === "basket" ? null : m[2]! } : null;
 }
 const DAY_AR = ["", "الاتنين", "التلاتا", "الأربعا", "الخميس", "الجمعة", "السبت", "الأحد"];
 /** «بكرا 10:00-12:00», «الجمعة 21/11، 10:00-12:00». From the database's local date and times; no clock or time zone here. */
@@ -56,6 +59,14 @@ export function windowLabel(w: DeliveryWindow): string {
   const day = w.day_offset === 0 ? "اليوم" : w.day_offset === 1 ? "بكرا" : `${DAY_AR[w.dow] ?? ""} ${Number(dd)}/${Number(mm)}،`;
   return `${day} ${w.starts}-${w.ends}`;
 }
+
+/** A list row: WhatsApp cuts a row title at 24 characters, so a longer label puts the times in the row's description (W1). */
+export function windowRow(w: DeliveryWindow): { title: string; description?: string } {
+  const label = windowLabel(w);
+  if (label.length <= ROW_TITLE_LIMIT) return { title: label };
+  return { title: label.slice(0, label.length - `${w.starts}-${w.ends}`.length).replace(/[،\s]+$/u, ""), description: `${w.starts}-${w.ends}` };
+}
+const ROW_TITLE_LIMIT = 24;   // WhatsApp's limit for a list row title
 
 const BODY_LIMIT = 1024;   // WhatsApp's limit for an interactive message body
 
@@ -72,13 +83,23 @@ export const CARD_TEXT = {
   windowButton: "اختار الوقت",
   now: "هلّق (أقرب وقت)",
   noWindow: "ما في أوقات فاضية للتوصيل بالأيام الجاية. فيك تطلب هلّق، أو تكتبلنا ومنشوف.",
+  /** W1 */
+  windowGone: "الوقت يلي اخترتو ما بقى متوفّر. هيدي الأوقات يلي فينا نوصّل فيها:",
+  noneAt: "ما في وقت فاضي للتوصيل متل ما طلبت. هيدي الأوقات يلي فينا نوصّل فيها:",
+  noneAtAll: "ما في أوقات للتوصيل بوقت محدّد بالأيام الجاية.",
+  nowUnavailable: "ما فينا نوصّل هالطلب هلّق. اختار وقت للتوصيل:",
+  orChoose: "أو اختار من هون وقت للتوصيل:",
+  freshForWindow: (names: string[]) => `${names.join("، ")} منجيبن طازة عالطلب، فبيوصلو بوقت محدّد. اختار الوقت:`,
+  pickupNoWindow: "الاستلام من المحل ما إلو وقت محدّد: فيك تمرق وقت الدوام.",
+  restaurantNoWindow: "طلبات المطاعم ما إلها وقت محدّد هلّق: بتوصل لما تجهز.",
+  notChangeable: (code: string) => `طلبك ${code} تأكّد وما عاد فينا نغيّر وقتو من هون. إذا في شي ضروري اكتبلنا.`,
 };
 
 /** 2.8: the open windows as a list (at most ten rows; the database never lists a full one). `withNow` adds "now" as a row. */
-export function formatWindowChoice(orderId: string, windows: DeliveryWindow[], opts: { withNow?: boolean; body?: string } = {}): Outbound {
+export function formatWindowChoice(orderId: string | null, windows: DeliveryWindow[], opts: { withNow?: boolean; body?: string } = {}): Outbound {
   if (windows.length === 0) return { type: "text", text: { body: CARD_TEXT.noWindow } };
   const rows = [...(opts.withNow ? [{ id: windowButtonId("now", orderId), title: CARD_TEXT.now }] : []),
-                ...windows.map((w) => ({ id: windowButtonId(w.slot_id, orderId), title: windowLabel(w) }))];
+                ...windows.map((w) => ({ id: windowButtonId(w.slot_id, orderId), ...windowRow(w) }))];
   return list(opts.body ?? CARD_TEXT.chooseWindow, CARD_TEXT.windowButton, rows.slice(0, 10));
 }
 
