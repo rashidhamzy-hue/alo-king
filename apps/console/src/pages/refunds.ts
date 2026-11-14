@@ -2,6 +2,7 @@
 //   refund_order()          a complaint after delivery: what is given back and whose money it was (goods, the delivery fee while it
 //                           is still ours, the small-order fee, or goodwill as a company cost), kept as credit or paid out at once
 //   pay_out_credit()        credit the customer wants now: cash from the hub till, or Whish / OMT with the transfer reference
+//                           (called as pay_out_credit_checked(), 0081: cash only while the drawer holds it; so do cash refunds)
 //   apply_customer_credit() free credit taken off an unpaid order
 // The caps come from the ledger, in SQL. The delivery fee is the rider's once the order closes (invariant 10): the database refuses
 // to take it back and says to charge goodwill instead. Every form's one-time key is the function's request key (a double tap is one refund).
@@ -120,7 +121,7 @@ async function payOut(c: Ctx) {
   const method = oneOf(c.form.method, ["cash", "whish", "omt"] as const, "how it is paid");
   const ref = text(c, "ref", 60) || null;
   return act(c, "credit_pay_out", { party, amount_usd: amount, method }, async () => {
-    const r = await c.deps.db.rpc<{ duplicate?: boolean; credit_left_usd?: number | string }>("pay_out_credit", {
+    const r = await c.deps.db.rpc<{ duplicate?: boolean; credit_left_usd?: number | string }>("pay_out_credit_checked", {
       p_party: party, p_amount: amount, p_method: method, p_by: c.staff.partyId, p_ref: ref, p_key: key(c),
     });
     if (r?.duplicate) return "That payout was already recorded; nothing changed.";

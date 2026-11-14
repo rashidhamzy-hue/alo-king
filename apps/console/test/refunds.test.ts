@@ -1,6 +1,6 @@
 // Refunds and credit (C2's 2.3, console side): refund_order, pay_out_credit and apply_customer_credit through the pages.
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { deliver, flashOf, ledgerSum, openShop, placeOrder, rig, type Rig } from "./kit";
+import { deliver, drawerUsd, dropAtHub, flashOf, ledgerSum, openShop, placeOrder, rig, type Rig } from "./kit";
 
 let r: Rig; let village: string; let rider: string;
 afterEach(() => vi.unstubAllGlobals());
@@ -65,10 +65,20 @@ describe("Refunds and credit", () => {
     // The customer is listed as owed $2.00; half is paid out in cash from the till.
     page = (await b.get("/refunds")).text;
     expect(page).toMatch(/Customer Nour<\/td><td>\$2\.00<\/td><td>\$2\.00/);
+    // The till pays only what it holds (0081): empty, a cash payout and a cash refund are refused and nothing is recorded.
+    const SHORT = "The drawer does not hold that much by the books. Count it, and check what came in today.";
+    expect(await drawerUsd(r.db)).toBe(0);
+    expect(flashOf((await b.post(`/credit/${o.customer}/pay`, { amount_usd: "0.50", method: "cash" })).text)).toBe(SHORT);
+    expect(flashOf((await b.post(`/refunds/${o.id}`, { amount_usd: "0.50", charged_to: "goodwill", reason: "late", settle: "cash" })).text)).toBe(SHORT);
+    expect(Number((await r.db.one(`select count(*) as n from refunds where order_id = $1`, [o.id])).n)).toBe(2);
+    expect(Number((await r.db.one(`select count(*) as n from credit_payouts where method = 'cash'`)).n)).toBe(0);
+    await dropAtHub(r.db, rider, lead.partyId);                  // the rider's cash from the order, at the hub
+    const till = await drawerUsd(r.db);
     res = await b.post(`/credit/${o.customer}/pay`, { amount_usd: "0.50", method: "cash" });
     expect(flashOf(res.text)).toBe("Paid out $0.50 by cash. $1.50 of credit left.");
     res = await b.post(`/credit/${o.customer}/pay`, { amount_usd: "5", method: "cash" });
     expect(flashOf(res.text)).toBe("That is more than the customer's free credit.");
+    expect(await drawerUsd(r.db)).toBeCloseTo(till - 0.5, 2);
 
     // The rest is taken off the customer's next order; the total drops, and the credit is used when that order is paid.
     const next = await nextOrder(o);

@@ -1,7 +1,8 @@
 // 3.12 Money in and out of the hub: the receiving form. Goods in from a supplier through receive_goods() (0024): quantity, cost
 // and expiry per line, on credit or paid from the drawer (the database lets only the ops lead or an admin pay from the drawer).
-// Suppliers are added with create_supplier() and paid with pay_supplier(). Each receipt shows the margin at today's price, and
-// the gross margin of the day is in the day-close report (3.11).
+// Suppliers are added with create_supplier() and paid with pay_supplier_checked() (0081: pay_supplier, after the drawer check).
+// Nothing is paid from the drawer beyond what it holds by the books (receive_goods and pay_supplier_checked refuse, 0081).
+// Each receipt shows the margin at today's price, and the gross margin of the day is in the day-close report (3.11).
 import { act, can, html, num, render, text, UserError, UUID, type Ctx, type Section } from "../app";
 import { form, usd, when } from "../html";
 import { ALL, LEADS } from "../roles";
@@ -109,7 +110,7 @@ async function paySupplier(c: Ctx) {
   const ref = text(c, "ref", 60);
   if (ref.length < 3) throw new UserError("Type the receipt number.");
   return act(c, "supplier_pay", { supplier, amount_usd: amount, ref }, async () => {
-    const r = await c.deps.db.rpc<{ duplicate: boolean; owed_usd: number | string }>("pay_supplier", { p_supplier: supplier, p_amount_usd: amount, p_by: c.staff.partyId, p_ref: ref });
+    const r = await c.deps.db.rpc<{ duplicate: boolean; owed_usd: number | string }>("pay_supplier_checked", { p_supplier: supplier, p_amount_usd: amount, p_by: c.staff.partyId, p_ref: ref });
     return r.duplicate ? "That payment was already recorded." : `Paid ${usd(amount)} from the drawer. We now owe ${usd(r.owed_usd)}.`;
   }, "/receiving");
 }

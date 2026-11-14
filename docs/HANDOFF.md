@@ -613,6 +613,44 @@ For other sessions:
 - Anyone touching `save_customer_pin`: 0074 changed its meaning (the pin decides; `p_village` is only what the conversation believed). A test or script that saves a pin far from the village it names now gets the pin's village or none.
 - D2 or the next console session: the 1.23 review list (`search_word_reviews_open`, `resolve_search_word_review`).
 
+### Session D3 (console), 14 November 2026: the D2 leftovers; migrations 0080-0081
+Branch `claude/confident-ritchie-uv7wid` (the branch this environment allows), pull request rashidhamzy-hue/alo-king#33. Built and tested locally on
+PGlite with every migration, through the console's real request handler (D1's rig): `npx tsc --noEmit && npx vitest run`, 816 passed,
+40 live-only skipped; `scripts/check_permissions.sh` on a scratch Postgres 16 passes (nothing new reachable by `anon`, `authenticated` or PUBLIC).
+
+| Task | Where | Writes through (SQL) | Tested by (`apps/console/test/`) |
+| --- | --- | --- | --- |
+| 1.23 review list | `pages/searchwords.ts` (/search-words, ops lead and admin) | `search_word_reviews_open`, `resolve_search_word_review` (0076); `rerun_search_words` (0080: queues the item again, reason `manual`, and closes its open phrasings) | `searchwords.test.ts`: a phrasing that missed is listed with what the planner did and the item's words; done once; rebuild queues and closes; a job running now is not queued twice; a job failed three times is listed and retried; an inactive item is refused; pickers refused by the page and by the database |
+| Label reader key | `.github/workflows/console.yml` | none | the deploy sets `ANTHROPIC_API_KEY` on the console Worker when the repository secret exists (otherwise the summary says intake stays typed by hand); `scripts/smoke.sh` reports whether the deployed intake page reads labels |
+| The drawer never below zero | migration 0081; `pages/receiving.ts`, `pages/refunds.ts` | `drawer_can_pay` (hub_money_out's check, same lock, same `NOT_ENOUGH_CASH hub_cash`); `pay_supplier_checked`, `pay_out_credit_checked` (cash only; a repeat is still a repeat); `refund_order_now` pays cash through the checked one (so does an approved refund); `receive_goods` paid from the till checks its total | `receiving.test.ts`, `refunds.test.ts`, `approvals.test.ts`: an empty drawer refuses the supplier payment, a till receipt, a cash payout, a cash refund and its approval (which keeps waiting); a rider's drop fills it; exactly what is left empties it; the same receipt number is still answered as a repeat when the drawer is empty |
+
+Found and fixed: B4's `check_search_words` (0076) failed the whole job when a phrasing found nothing (the planner's `candidates` is JSON
+null; `jsonb_array_elements` raised), so the commonest miss never reached the review list: three tries, then a failed job. 0080 redefines
+it with that one line changed. **Anyone redefining `check_search_words`: start from 0080. `pay_supplier_checked`, `pay_out_credit_checked`,
+`refund_order_now`, `receive_goods`: start from 0081.**
+
+Not done, and why:
+- **The base `pay_supplier` and `pay_out_credit` still take the drawer below zero when called directly.** Every console path goes through
+  the checked functions, and nothing else calls them in production. Moving the check into the base functions breaks lane C's
+  `test/db/refunds.test.ts` and `test/db/receiving-margin.test.ts`, which pay from an empty drawer; those files are not D3's. The fix is
+  two fixture lines there (drop the rider's cash at the hub before paying: `declare_cash_drop` + `confirm_cash_drop`), then
+  `perform drawer_can_pay(...)` in the base bodies. For G1 or the next session that owns `test/db`.
+- A rider's earnings paid from the hub at settlement (0010, lane C) do not check the drawer either.
+- Audit item 16 (SMTP for staff invitations) waits for the founder's decision.
+
+**Staging, proven live** (console workflow run 43562442212, this pull request's deploy, 14 Nov 05:40 UTC; audit item 13):
+- `ANTHROPIC_API_KEY` is now a console Worker secret on staging; the deployed intake page reads labels ("label reader: on"). No real
+  label photo has been read yet: that waits for real stock (5.15).
+- Every page opened once with the smoke account against the staging database, all **work** (200, no error on the page):
+  as a picker `/`, `/day-open`, `/receiving`, `/food-facts`, `/intake`, `/returns`, `/catalog`; as an ops lead (the same account, for
+  those GETs only) `/day-open`, `/refunds`, `/cases`, `/approvals`, `/money`, `/day-close`, `/receiving`, `/food-facts`, `/intake`,
+  `/search-words`, `/payments`, `/riders`, `/exceptions`, `/fx`, `/zones`, `/merchants`, `/pictures`. The account was a picker again
+  after the run (checked in `parties`). Every console deploy repeats this sweep and writes the table into the run summary.
+- What opening a page does not prove: the forms on them (the actions are proven on PGlite only). Staging has no stock, supplier or cash,
+  so posting would have nothing true to record.
+- 0080 and 0081 reach staging with `deploy-staging` after the merge; until then `/search-words`'s rebuild button says the function is
+  not available yet, and staging's drawer checks are the old ones.
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.

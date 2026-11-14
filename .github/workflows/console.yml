@@ -6,7 +6,8 @@
 #   action remove-staff  block the party and ban the sign-in
 # Production is not here: it comes with task 4.2 (session A3), like the gateway's.
 #
-# Repository secrets used (never printed): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN, SUPABASE_SERVICE_KEY, KAPSO_API_KEY.
+# Repository secrets used (never printed): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN, SUPABASE_SERVICE_KEY, KAPSO_API_KEY,
+# and ANTHROPIC_API_KEY (optional: 5.15's label reader; without it Label intake saves the photos and the fields are typed by hand).
 name: console
 on:
   workflow_dispatch:
@@ -75,22 +76,27 @@ jobs:
       - name: Worker secrets (the session key is made once and kept, so a deploy does not sign everyone out)
         env:
           KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Staging numbers, as in deploy-staging.yml. Customer line: the Alo King test number. Ops line: the Kapso sandbox.
           PHONE_NUMBER_ID_CUSTOMER: "1378974041965966"
           PHONE_NUMBER_ID_OPS: "597907523413541"
         run: |
           umask 077
           have=$(npx wrangler secret list --config "$CFG" --env staging --format json 2>/dev/null | jq -r '.[].name' || true)
-          keys='{SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS}'
+          keys='SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS'
+          # 5.15: the label reader (src/label.ts, MODEL_FAST from wrangler.jsonc). Optional: without the repository secret the Worker
+          # keeps whatever it had, and intake without a key saves the photos and the fields are typed by hand.
+          if [ -n "${ANTHROPIC_API_KEY:-}" ]; then keys="$keys, ANTHROPIC_API_KEY"
+          else echo "- ANTHROPIC_API_KEY is not a repository secret: Label intake cannot read labels (typed by hand)" >> "$GITHUB_STEP_SUMMARY"; fi
           if ! grep -qx CONSOLE_SESSION_SECRET <<<"$have"; then
             export CONSOLE_SESSION_SECRET=$(openssl rand -base64 48)
-            keys='{SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS, CONSOLE_SESSION_SECRET}'
+            keys="$keys, CONSOLE_SESSION_SECRET"
             echo "- CONSOLE_SESSION_SECRET made (first deploy)" >> "$GITHUB_STEP_SUMMARY"
           fi
-          jq -n "env | $keys" > "$RUNNER_TEMP/secrets.json"
+          jq -n "env | {$keys}" > "$RUNNER_TEMP/secrets.json"
           npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --config "$CFG" --env staging 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'
           rm -f "$RUNNER_TEMP/secrets.json"
-          echo "- Worker secrets set: SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Worker secrets set: ${keys/, CONSOLE_SESSION_SECRET/}" >> "$GITHUB_STEP_SUMMARY"
       - name: Supabase Auth may send emailed links back to the console
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
