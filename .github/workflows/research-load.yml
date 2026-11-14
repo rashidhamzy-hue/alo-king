@@ -1,0 +1,85 @@
+# Session P2 (founder decision of 14 Nov 2026, docs/DECISIONS.md "Product pictures from public pages").
+# Loads the web research files (data/research/AK-nnnn.json on main, written by sessions R1-R3) into STAGING as proposals.
+# The build environment cannot reach these sites or the Anthropic API, so this runs here (scripts/product-data/load-research.mjs).
+#   pictures  each candidate picture is downloaded and put through P1's vision rules (fast model): exact product, one pack, plain
+#             background, no watermark, logo, price or text, 800 px or more. The first that passes is saved in the private
+#             `media` bucket and proposed with licence `public_page` (migration 0070), with its address and its page.
+#   facts     ingredients, allergens, nutrition, diet labels, storage and origin are proposed as product facts, source `web_page`,
+#             status partial, the page address and the market beside every value (migration 0071). Allergens only when the
+#             file carries the literal quote. No model touches the facts.
+# Nothing is approved by this workflow or by any code: the database refuses to approve a web_page fact, and a person approves
+# each picture on the console. The run is repeatable: what is already loaded is skipped.
+# Runs by hand, and after every successful staging deploy from main (so a merged research pull request is loaded once its
+# migrations and files are on staging's side). Always reads the files on main.
+# Secrets used (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
+name: research-load
+on:
+  workflow_dispatch:
+    inputs:
+      sku:
+        description: Only this item (for example AK-0123); empty = every research file
+        type: string
+        default: ""
+      limit:
+        description: Only the first N research files (empty = all)
+        type: string
+        default: ""
+      parts:
+        description: "Comma-separated: picture, facts"
+        type: string
+        default: "picture,facts"
+      force:
+        description: Load again files already loaded (never touches an approved picture or fact, never re-proposes what is unchanged)
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: [deploy-staging]
+    types: [completed]
+    branches: [main]
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: research-load
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  load:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RUN_ID: ${{ github.run_id }}
+      SKU: ${{ inputs.sku }}
+      LIMIT: ${{ inputs.limit }}
+      PARTS: ${{ inputs.parts }}
+      FORCE: ${{ inputs.force }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Install the picture tools (sharp lives in scripts/images only)
+        run: npm ci --prefix scripts/images
+      - name: Tests (the rules, the loader against the real migrations, real resizing)
+        run: npx vitest run scripts/product-data/test/research.test.mjs scripts/images
+      - name: What will run
+        run: |
+          n=$(ls data/research/AK-*.json 2>/dev/null | wc -l)
+          echo "- research files on main: ${n}; sku: ${SKU:-all}; limit: ${LIMIT:-all}; parts: ${PARTS:-picture,facts}; force: ${FORCE:-false}; staging project ${SUPABASE_URL}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Load the research files as proposals
+        run: |
+          export MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)
+          args=(--dir data/research --report-out research-load-report.json)
+          [[ "$SKU" =~ ^AK-[0-9]{4}$ ]] && args+=(--sku "$SKU")
+          [[ "$LIMIT" =~ ^[0-9]+$ ]] && args+=(--limit "$LIMIT")
+          [[ "$PARTS" =~ ^(picture|facts)(,(picture|facts))?$ ]] && args+=(--parts "$PARTS")
+          [ "$FORCE" = "true" ] && args+=(--force)
+          node scripts/product-data/load-research.mjs "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: research-load-report, path: research-load-report.json, retention-days: 30, if-no-files-found: ignore }
