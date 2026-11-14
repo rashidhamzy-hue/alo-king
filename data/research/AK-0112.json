@@ -1,0 +1,50 @@
+{
+  "sku": "AK-0112",
+  "matched": {
+    "brand": "Pepsi",
+    "product": "Diet",
+    "size": "330 ml",
+    "barcode": "5285000320364",
+    "confidence": "likely",
+    "note": "Spinneys Lebanon (retail, Lebanon market). Page 'PEPSI DIET CAN 330 ML': 'low calorie cola flavored soft drink with sweetners'. Lead's Open Food Facts photo shows a can, so the can page was used; Spinneys also sells 'Pepsi Diet Pet 330 ml', so pack type is not certain. Some blocks come from the Open Food Facts record for catalog barcode 5285000320364 (user-contributed, named \"Diet Pepsi 330 ml\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/1/110771-v001-1_2.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/pepsi-can-diet-330ml.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one silver Diet can, white background, front view, no overlay"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/1/110771-v001-2_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/pepsi-can-diet-330ml.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "six-can pack of Diet cans, white background, no overlay"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/032/0364/front_fr.4.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285000320364",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one can, user photo on a quilted fabric, front view, no overlay, not a plain background"
+    }
+  ],
+  "nutrition": {
+    "per": "serving (330 ml)",
+    "energy_kcal": 1,
+    "fat_g": 0,
+    "carbohydrate_g": 0,
+    "protein_g": 0,
+    "salt_g": 0.15,
+    "page_url": "https://world.openfoodfacts.org/product/5285000320364"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

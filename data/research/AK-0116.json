@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0116",
+  "matched": {
+    "brand": "Pepsi",
+    "product": "Diet PET bottle",
+    "size": "1.25 L",
+    "barcode": "5285000325406",
+    "confidence": "exact",
+    "note": "Spinneys Lebanon (retail, Lebanon market). Page 'PEPSI DIET PET BOTTLE 1.25 L'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/2/8/288333-v001-1_8.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/diet-pet-bottle-288333-v001.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 1.25 L Diet bottle, white background, front view, no overlay"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

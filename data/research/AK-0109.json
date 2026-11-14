@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0109",
+  "matched": {
+    "brand": "Tannourine",
+    "product": "Mineral Water gallon",
+    "size": "6 L",
+    "barcode": "5283007400164",
+    "confidence": "exact",
+    "note": "Spinneys Lebanon (retail, Lebanon market). Page 'TANNOURINE MINERAL WATER 6 L'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/2/9/299445-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/mineral-water-299445-v001.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 6 L handled gallon with '6L' sticker, white background, front view, no overlay"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

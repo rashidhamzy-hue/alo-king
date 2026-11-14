@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0114",
+  "matched": {
+    "brand": "Top Juice",
+    "product": "Pineapple",
+    "size": "190 ml",
+    "barcode": "5281034010011",
+    "confidence": "exact",
+    "note": "LibanJus page (opened) lists Top pineapple only as 180 ml carton, with no ingredients, and claim 'Product is: Gluten Free'; size differs so not recorded. Open Food Facts photo is a hand-held pouch, not usable. Some blocks come from the Open Food Facts record for catalog barcode 5281034010011 (user-contributed, named \"Pineapple Flavored Drink\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/103/401/0011/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281034010011",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one triangular pack, user photo on a cluttered background, front view"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
