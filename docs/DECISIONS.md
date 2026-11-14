@@ -110,3 +110,10 @@ C2 built four rules into code and asked for confirmation. Accepted on 13 Nov by 
 
 ## Search words for every new item (13 November 2026)
 Founder rule: every new product or menu item gets its search words in every ordering language automatically, with the same builder and safety rules as the 1.22 language pack (task 1.23). An item the planner cannot find from generated phrasings goes to a person's review list, never to a guess.
+
+## Product pictures from public pages (founder decision, 14 November 2026)
+Rasheed decided that customer-facing product pictures may come from any public web page (brand sites, retailers, Open Food Facts),
+overriding the "licence unknown is never shown" rule of 5.17 step 4 and not waiting for the lawyer's line (5.11). He accepts the risk.
+What still holds: the picture shows exactly the catalog item; no watermark, shop logo, price tag or added text (Meta's catalog rules and
+our own); the source address is stored with every picture; a person approves each one before a customer sees it; if a rights holder or
+Meta objects to a picture it is withdrawn at once and replaced by our own photo at intake (5.15). Recorded licence value: `public_page`.
