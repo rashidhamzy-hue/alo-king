@@ -121,8 +121,28 @@ export function explain(e: unknown): string {
       [/^DAY_NOT_OVER/, "That day has not come yet."],
       [/^SLIP_ALREADY_USED/, "That slip number was already recorded for another deposit."],
       [/^UNKNOWN_SKU/, "That item is not on sale (or has no SKU), so it gets no search words."],
+      [/^LABEL_DISAGREES/, "The label says otherwise. Confirm the label's field (corrected where the pack differs), then set the web proposal aside."],
+      [/^PROPOSAL_NOT_FOUND/, "That proposal was not found."],
+      [/^ITEM_NOT_IN_CATALOG/, "That item is not in the catalog database, so no name can be applied."],
+      [/^NAME_TOO_LONG/, "A name is at most 160 characters and a size at most 40."],
+      [/^NAME_AR_NOT_ARABIC/, "The Arabic name or size has no Arabic letters."],
+      [/^CLAIM_WORDS ([^:]*)/, "A name may not praise, or make a health, diet or religion claim. Remove: $1."],
+      [/^NAME_CHANGED_SINCE/, "The catalog name was changed after this approval, so it is not put back from here."],
+      [/^UNKNOWN_DECISION/, "Choose approve, correct or reject."],
+      [/^WEEKDAYS_INVALID/, "Tick at least one day of the week."],
+      [/^WINDOW_ENDS_BEFORE_START/, "A window must end after it starts."],
+      [/^CAPACITY_INVALID/, "Capacity is a number of orders, zero or more."],
+      [/^CUTOFF_INVALID/, "Fresh goods must close at least as early as the rest."],
+      [/^CALENDAR_KIND_INVALID/, "Pick the kind: ramadan, lent, holiday or other."],
+      [/^DATES_INVALID/, "The last day is before the first."],
+      [/^UNKNOWN_ZONE/, "That zone does not exist."],
+      [/^UNKNOWN_PLAN/, "That plan was not found."],
+      [/^UNKNOWN_ENTRY/, "That calendar entry was not found."],
+      [/^UNKNOWN_SLOT/, "That window was not found."],
+      [/^ORDER_NOT_FOUND/, "That order was not found."],
+      [/^NOT_YOUR_ORDER/, "That order is not the customer's own."],
     ];
-    for (const [re, say] of known) if (re.test(m)) return say;
+    for (const [re, say] of known) { const hit = re.exec(m); if (hit) return say.replace(/\$(\d)/g, (_, i) => hit[Number(i)] ?? ""); }
     return `The database refused: ${m}`;
   }
   if (e instanceof UserError) return e.message;
@@ -166,10 +186,23 @@ export async function act(c: Ctx, action: string, args: Record<string, unknown>,
 }
 
 // ---------- the action log ----------
-// Objects in the private media bucket, one per entry, never overwritten: console_audit/<day>/<time>_<party>_<ref>_<phase>.json
-// Supabase Storage, because D1 owns no migration. Who changed configuration, and why, is also in config_changes (0045).
+// The staff_actions table (0113), written by log_staff_action() and nothing else: ordered by a sequence, append-only, queryable.
+// Until 0113 reaches a database (staging can lag behind this Worker) the entry goes to the private media bucket instead, as it
+// did before, so "log first or nothing" holds either way: console_audit/<day>/<time>_<party>_<ref>_<phase>.json, never overwritten.
+// Who changed configuration, and why, is also in config_changes (0045).
 export interface AuditEntry { action: string; phase: "intent" | "done" | "event"; ref?: string; args?: Record<string, unknown>; ok?: boolean; result?: string; error?: string }
 export async function audit(deps: Deps, staff: { partyId: string; userId: string; role: string } | null, e: AuditEntry): Promise<void> {
+  try {
+    await deps.db.rpc("log_staff_action", {
+      p_party: staff?.partyId ?? null, p_user: staff?.userId ?? null, p_role: staff?.role ?? null, p_environment: deps.environment,
+      p_action: e.action, p_phase: e.phase, p_ref: e.ref ?? null, p_args: e.args ?? null, p_ok: e.ok ?? null, p_result: e.result ?? null, p_error: e.error ?? null,
+    });
+  } catch (err) {
+    if (!isMissingFunction(err)) throw err;
+    await auditToBucket(deps, staff, e);
+  }
+}
+async function auditToBucket(deps: Deps, staff: { partyId: string; userId: string; role: string } | null, e: AuditEntry): Promise<void> {
   const at = deps.now().toISOString();
   const who = staff?.partyId ?? "anonymous";
   const path = `console_audit/${at.slice(0, 10)}/${at.replace(/[:.]/g, "-")}_${who}_${e.ref ?? randomToken(6)}_${e.phase}.json`;
