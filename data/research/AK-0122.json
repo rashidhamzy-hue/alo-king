@@ -1,0 +1,48 @@
+{
+  "sku": "AK-0122",
+  "matched": {
+    "brand": "Lipton",
+    "product": "Ice Tea Tropical (Passionfruit & Mango) Zero Sugar, can",
+    "size": "320 ml",
+    "barcode": "5283024603784",
+    "confidence": "exact",
+    "note": "Picture: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. Ingredients, nutrition and storage are from the Spinneys UAE page for 'Lipton Ice Tea Tropical Zero Can 320ml' (same brand/variant/size, UAE market, no barcode shown; our can has a Lebanese 528 barcode, so the recipe may differ: treat these blocks as 'likely'). The ingredient line on that page continues after the sweeteners with an antioxidant (ascorbic acid) whose exact wording I could not copy, so the recorded text is incomplete at the end. Some blocks come from the Open Food Facts record for catalog barcode 5283024603784 (user-contributed, named \"Ice tea Zero sugar Tropical passionfruit & mango, 320 mL\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/4a124d28-91c7-4e84-8ea2-67f0d7b3e525.webp?v=1759392106",
+      "page_url": "https://superdokan.com/en-lb/products/lipton-tropical-passion-fruit-mango-ice-tea-zero-sugar-320ml",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one can, purple/yellow 'Limited Edition Zero Sugar Tropical Passionfruit & Mango Ice Tea', white background, front view, no overlay (file is JPEG data despite .webp name)"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/302/460/3784/front_en.5.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5283024603784",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one can, user photo, front view, light background with table edge, no overlay"
+    }
+  ],
+  "ingredients": {
+    "text": "Water, Acidulants (Citric Acid, Malic Acid), Black Tea Extract (0.12%), Acidity Regulator (Trisodium Citrate), Tropical Flavour (Mango & Passionfruit), Sweeteners (Acesulfame Potassium 200 mg/L, Sucralose 70 mg/L), [line continues: antioxidant (ascorbic acid), wording not captured]",
+    "language": "en",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/lipton-tropical-zero-sugar-can-320ml_63522",
+    "market": "UAE"
+  },
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 1,
+    "carbohydrate_g": 0.5,
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/lipton-tropical-zero-sugar-can-320ml_63522"
+  },
+  "storage": {
+    "text": "Store in a cool, dry place.",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/lipton-tropical-zero-sugar-can-320ml_63522"
+  },
+  "not_found": [
+    "allergens",
+    "origin",
+    "diet_labels"
+  ]
+}

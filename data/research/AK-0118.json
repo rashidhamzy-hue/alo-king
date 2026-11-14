@@ -1,0 +1,42 @@
+{
+  "sku": "AK-0118",
+  "matched": {
+    "brand": "Dark Blue",
+    "product": "Energy Drink",
+    "size": "330 ml",
+    "barcode": "5287001490367",
+    "confidence": "exact",
+    "note": "Picture 1 and nutrition: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. Lead only, not recorded as fact: loyabi.com lists a 330 ml Dark Blue can under a different barcode (8699120445840) with an ingredient list, 'Halal' and 'Made In Turkey'; because the barcode differs from ours (528 prefix) those facts were left out."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/32_4677203e-01d3-43b5-919b-916e2cfac2cf.png?v=1684745011",
+      "page_url": "https://superdokan.com/en-lb/products/energy-drink-dark-blue-330ml-1",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one slim blue/silver can, white background, front view, no watermark/price/text overlay"
+    },
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0603/7621/9837/files/dark-blue.jpg?v=1685608086",
+      "page_url": "https://loyabi.com/products/dark-blue-energy-drink-330-ml",
+      "site": "loyabi.com",
+      "site_kind": "retailer",
+      "looks": "one slim blue/silver can, white background, front view, no overlay; photo slightly soft. Listing is 330 ml but carries barcode 8699120445840, not ours"
+    }
+  ],
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 46,
+    "fat_g": 0,
+    "carbohydrate_g": 11.5,
+    "protein_g": 0,
+    "page_url": "https://superdokan.com/en-lb/products/energy-drink-dark-blue-330ml-1"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

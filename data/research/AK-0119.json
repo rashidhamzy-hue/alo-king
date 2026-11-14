@@ -1,0 +1,36 @@
+{
+  "sku": "AK-0119",
+  "matched": {
+    "brand": "Mr Juicy",
+    "product": "Pineapple juice drink",
+    "size": "180 ml",
+    "barcode": "5285000320944",
+    "confidence": "exact",
+    "note": "Picture and nutrition: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/11zon-943A0ABC-30E3-4B36-981F-320B6DA4785C.webp?v=1775303941",
+      "page_url": "https://superdokan.com/en-lb/products/mr-juicy-pineapple-juice-180ml-mr-juicy-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one small green/yellow carton with Arabic lettering and pineapple, white background, front three-quarter view, no overlay (file is JPEG data despite .webp name)"
+    }
+  ],
+  "nutrition": {
+    "per": "serving (180 ml)",
+    "energy_kcal": 99.3,
+    "fat_g": 0.0,
+    "carbohydrate_g": 25.6,
+    "protein_g": 0.0,
+    "sodium_mg": 14.2,
+    "page_url": "https://superdokan.com/en-lb/products/mr-juicy-pineapple-juice-180ml-mr-juicy-in-lebanon"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

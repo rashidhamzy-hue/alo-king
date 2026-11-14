@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0120",
+  "matched": {
+    "brand": "Candia",
+    "product": "Fruits Rouges Nectar",
+    "size": "180 ml",
+    "barcode": "5285001105762",
+    "confidence": "exact",
+    "note": "Picture: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. The listing's nutrition text is garbled (Energy 574 Kcal, Proteins 37 g, Sugar 97 g, carbohydrates 14 g, no basis stated) and was NOT recorded. The maker's site libanlait.com/category/candia lists 'Candia, Nectar - Fruits Rouges 180ml' with a picture, but that picture could not be downloaded (server returned an HTML page), so it is not listed."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/products/13_478baaa0-3b3c-41d3-b4a8-98ee99063af8.jpg?v=1791190708",
+      "page_url": "https://superdokan.com/en-lb/products/candia-fruits-rouges-nectar-180ml",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one small white/purple carton 'Candia Fruits Rouges Nectar', white background, angled front view, no overlay; pack is small in the frame"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
