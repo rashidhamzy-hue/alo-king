@@ -39,7 +39,7 @@ conversation disagrees with these files, these files win. `docs/history/` is sup
 ```
 npm install
 npx tsc --noEmit
-npx vitest run          # 851 tests (40 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
+npx vitest run          # 899 tests (40 live-only skipped); apps/console/test/* drive the console's pages; test/db/* run the real migrations in PGlite;
                         # test/pg/* start a throwaway Postgres 16 (or use TEST_DATABASE_URL) and the Worker in workerd
 DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on a Supabase branch before launch
 ```
@@ -54,6 +54,7 @@ DATABASE_URL=... scripts/check_permissions.sh    # on a scratch Postgres, and on
 | Hardening: skipped-step taps, per-currency cash, exposure cap, timers, indexed search | 0004 | |
 | Rider flow: shift, dispatch, batching, accept, pickup, arrive, deliver, collect, no-answer, prepaid confirm | 0006, `apps/gateway/src/ops-turn.ts` | Rider messages are parsed by code, no model |
 | Hub flow on the ops line: pick, missing item, substitute, refunds and credit, rider offered at pick start, returns by button, rider incident | 0030-0035, `apps/gateway/src/ops-turn.ts` | Session C2 below; staff messages are parsed by code, no model |
+| Scheduled orders: windows and a calendar as data, capacity held at the tap, cut-offs, changes, rescheduling, the rider in time for the window | 0040-0041, `packages/agents/src/order-card.ts` | Session C3 below; the customer side is lane B's to wire |
 | Reliability: turn keys, outbox lease, inbound reconciliation, exception queue | 0007, 0008, `apps/gateway/src/index.ts` | Lease means at-least-once after a crash, by design |
 | Stale-quote and address checks at confirmation | 0007 `confirm_order_checked` | |
 | Returned goods after a failed delivery | 0008 `receive_return` | Chilled, frozen, fresh are written off unless cleared |
@@ -728,6 +729,51 @@ Decisions taken in code, written down:
 
 Not built / not proven: the load against the real pages, the real model and the staging database has not run (no runs yet: `data/research/` holds only the README on main until R1-R3 merge). Nothing is approved by code: a person approves each picture on the console picture page and confirms each field against the pack at intake.
 
+### Session C3 (hub), 14 November 2026: task 2.8; C2's and B3's requests; migrations 0040-0043
+Branch `claude/blissful-mendel-wmak4a` (the branch this environment allows). Migrations 0040 to 0043 (0044 unused, reserved for C3).
+Built and tested locally: PGlite with every migration and `npx vitest run` (899 passed after rebasing on K1 and P2, 40 live-only skipped, `TEST_REPORT.txt`; one earlier full run had a timing miss in N1's `off-http` rate test, 48 ms against 50, which passed alone and on every run since); two real connections on Postgres 16 for the last place
+in a window (`test/pg/slot-race.test.ts`). Nothing here is proven live: no customer can choose a window yet (the ordering lane
+wires it, below), and staging has no window rows.
+
+| Task | Where | Tested by |
+| --- | --- | --- |
+| 2.8 (a) Windows are data | 0040: `delivery_window_plans` (weekdays, times, capacity, both cut-offs, optional zone, optional calendar kind), `delivery_calendar` (Ramadan, Lent, holiday, other; a closed flag), `delivery_slots` generated from them for `settings.scheduling.days_ahead` days, `edit_delivery_slot`, `delivery_schedule` | `test/db/scheduled-orders.test.ts`: slots in the hub's time with both cut-offs; a closed day has none; a Ramadan plan replaces the ordinary ones on its days; a plan's new capacity reaches its slots, a slot a person edited keeps its own; only the ops lead or admin edits |
+| 2.8 (b) Capacity | 0040: `slot_holds`, taken only by the confirmation tap (`confirm_order_checked` checks under a lock on the slot row; a trigger on `orders` is the second lock), released on cancel; `open_delivery_windows` lists only open slots with room | The acceptance test **"A full slot refuses a scheduled order"**: back to draft, nothing held or reserved, `no_slot` demand logged, never delivered "now" instead; the card never offers a full window; `test/pg/slot-race.test.ts`: two taps at once for the last place, one confirmed and one refused |
+| 2.8 (c) Cut-offs | 0040: `order_by` per slot, `fresh_order_by` earlier, for an order with a line in `settings.scheduling.bought_to_order` (fresh) | Past the order-by a window is not offered, chosen or confirmed (`slot_closed`); fresh goods follow the earlier cut-off while shelf goods still go |
+| 2.8 (d) Changes | 0040: `handle_order_button` (edit on a confirmed scheduled order answers `change_open`; cancel goes through `cancel_scheduled_order`), `link_replacement_order`, the replacement applied in `confirm_order_checked` | A change is a new card; nothing moves until the tap; then the old order is cancelled and the new one confirmed in one transaction, in a full slot; cancel before the cut-off, `too_late` after; a paid order cancelled is owed back as credit; ledger at zero |
+| 2.8 (e) Rescheduling | 0040: `reschedule_order` (customer before the cut-off; ops at any time with a reason, never past capacity or into a closed slot), `slot_changes` | Holds move in one transaction (both slot rows locked in id order); a full window refused; ops past the cut-off with a reason; a held slot on a day the calendar closes is closed to new orders and raises `scheduled_day_changed`, the order keeps its promise |
+| 2.8 (f) The rider in time for the window | 0041: `dispatch_order` from 0035's text (answers `scheduled` until `release_before_min` before the window, then releases; not batched before), `orders_waiting_for_rider`, `pick_queue`, `start_pick`, `order_status_for` | Nobody is told at confirmation; due, it goes to the pickers (waited 0 minutes, not days), then picked, offered, delivered, paid, closed, ledger at zero; "where is my order" answers the window |
+| 2.8 (g) Stock | 0040: `reserve_stock` (0002) skips bought-to-order lines of a scheduled order; `reserve_due_lines` / `release_scheduled_order` reserve them when it comes due | Shelf goods reserved at the tap, fresh not; fresh not in yet: ops exception `scheduled_stock_short` once, nothing to the pickers; received, it goes and the exception closes |
+| Card and replies | `order-card.ts`: `window` and `replaces` on the card, `formatWindowChoice` (a list of open windows, `slot:<slot>:<order>`, optional "now"), `parseWindowButton`, `windowLabel`; `buttonReplyText` for `slot_full`, `slot_closed`, `change_open`, `too_late`, `change_too_late`, a cancel with credit, and the window on confirmation | `scheduled-orders.test.ts`, last block |
+| C2's request: lines that left the hub | 0042: `recall_orders` (0025) leaves out a failed delivery whose goods came back (it listed it "with the customer"; it already counted only `ok` lines); `rider_job` (0016) counts only `ok` lines | `test/db/left-the-hub.test.ts` (fails without 0042) |
+| B3's request: voice on the ops line | `ops-turn.ts` calls `voiceOnOpsLine` for a rider's or staff member's note: the reply, and `OPS_VOICE_TEXT.opsAlert` to ops with the registered name (0043 `party_display_name`) | `test/db/ops-voice.test.ts`: rider and picker answered, ops told once, an over-long note gets the polite reply, a retried turn sends nothing twice, the order does not move |
+
+How the pieces fit, for whoever builds next:
+- **A scheduled order is an ordinary order with `delivery_slot_id`.** It sits in `confirmed` (or `awaiting_payment`) until `order_release_at` (window start minus `settings.scheduling.release_before_min`, 60). The cron's existing minute walk (`orders_waiting_for_rider` then `dispatchAndOffer`) releases it: its fresh lines are reserved, `released_at` is set, and from then on it is any other order (pickers, then the rider at pick start; with no picker on the ops line, the rider at release). `dispatchAndOffer` sends nothing for `scheduled` or `stock_short`; no TypeScript outside `order-card.ts` and the voice wiring changed.
+- **Staging order of migrations.** On staging 0040-0043 apply after 0078 (`--include-all`); on a fresh reset they apply before 0045. None of the functions they redefine (`reserve_stock`, `handle_order_button`, `confirm_order_checked`, `dispatch_order`, `orders_waiting_for_rider`, `pick_queue`, `start_pick`, `order_status_for`, `recall_orders`, `rider_job`) is redefined by any migration after 0035, and none of B2's four (0052) or 0077's `quote_order` is touched, so both orders give the same database. Checked on a scratch Postgres 16: every migration applied by number, and again with 0040-0043 after 0078 as staging will; all functions (by definition) and all columns are identical, and `scripts/check_permissions.sh` passes on both. **Anyone redefining one of those ten: start from C3's text** (0040-0042).
+- Slots are generated lazily by the functions that read them (no cron needed). A slot a person edited is never regenerated; a slot an order points to keeps its times.
+- Settings (`scheduling`): `days_ahead` 7, `release_before_min` 60, `bought_to_order` `["fresh"]` (chilled and frozen are stocked and reserved at confirmation like shelf goods), `offer_max` 6. Plan defaults: order-by 120 minutes before the start, fresh 720.
+
+Decisions taken in code, written down for the founder (each is a setting, a row or one line):
+- Capacity is a number of orders per window, not items or minutes.
+- A full or closed window at the tap sends the order back to draft and says so; it is never delivered "now" instead.
+- The ops lead may move an order past a cut-off (with a reason) but not past capacity: raise the slot's capacity first, on purpose.
+- A change to an order already paid by transfer goes to a person (`link_replacement_order` answers `paid`); cancelling it before the cut-off owes the payment back as credit.
+- A day the calendar closes, or a plan whose times change, never cancels an order already promised: the slot stops taking orders and ops gets `scheduled_day_changed` to decide and tell the customers.
+- Scheduled windows are for hub orders delivered to the door: not for pickup, not for restaurants (Phase 8).
+
+Known limits, written down rather than hidden:
+- **No customer can choose a window yet.** The customer turn (lane B) does not call any of this; the request is below. Everything is proven through the SQL and the card functions only.
+- `quote_order` (0077, lane B) still refuses a fresh line that is out of stock now, and refuses while the hub is closed, also for a scheduled order. Until lane B changes it, a scheduled order needs its fresh goods in stock when the card is made, and a card cannot be made after hours.
+- A scheduled order whose fresh goods never arrive waits (ops is reminded every ten minutes) until ops receives them, reschedules or cancels it. There is no "go without that line" action before picking; once picking starts the picker's missing flow covers it.
+- The ops-line voice alert asks a person to listen in the ops number's inbox; the note is not copied to the `media` bucket (the customer line's notes are, 1.7).
+- `settings.picking.offer_substitutes` is still off (B3 left it to the next hub session together with C2's picker tests; it was not in C3's row). D3's request to move the drawer check into the base `pay_supplier` / `pay_out_credit` (two fixture lines in `test/db/refunds.test.ts` and `receiving-margin.test.ts`) arrived while C3 ran and is also open.
+
+Requests for other sessions (C3 did not touch these files):
+- **Lane B (the next lane B session; K1 merged first), the customer side of 2.8**: (1) when the customer asks for a time, or the plan asks "when", call `open_delivery_windows(p_village, p_fresh)` and send `formatWindowChoice(orderId, windows, { withNow: true })` for the order on the card; (2) a row tap arrives as `interactive.list_reply` (the customer branch of `turn.ts` reads only `button_reply` today): `parseWindowButton`, then `request_delivery_window(order, slot, party)`; on `ok` send the card again with `window`; otherwise send its `windows`; (3) after `slot_full` or `slot_closed` the order is a draft: offer `r.windows`; (4) after `change_open`, the next basket becomes a new card: `create_order_from_quote`, then `link_replacement_order(new, old, party)`, then the card with `replaces` (on `paid`, hand to a person; on `too_late`, `buttonReplyText`); (5) a lane B overflow migration for `quote_order`: a scheduled order's bought-to-order lines need no stock now and the opening hours do not apply to it (K1's kept order, 0087, offers an after-hours basket at opening; a window is the other answer: send it for a chosen time); (6) `answers.ts`: `order_status_for` now returns `window` and no minutes left for a scheduled order: say the window; (7) an eval case for a time said in words («بكرا الصبح», "jumaa ba3d el dohr») before the extraction learns it.
+- **Console (D3 or the next console session)**: pages for windows (rows of `delivery_window_plans`), the calendar (`delivery_calendar`; the triggers regenerate the slots), one slot (`edit_delivery_slot`) and the schedule (`delivery_schedule`); `reschedule_order(order, slot, 'ops', by, reason)` and `cancel_scheduled_order(order, 'ops', by, reason)`, then tell the customer (`customer_id` is returned). New exception kinds: `scheduled_stock_short` (detail: the lines not in) and `scheduled_day_changed` (detail: the slot and its orders).
+- **Founder**: no windows or calendar dates exist anywhere yet, so scheduled orders are off until someone enters them: the windows and their capacity, the two cut-offs, and the Ramadan, Lent and holiday dates for 2027 (needed before February 2027).
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.
@@ -735,10 +781,10 @@ Not built / not proven: the load against the real pages, the real model and the 
 
 ### C. Still to build
 See `docs/BUILD_PLAN.md`: Phases 0 to 7 lead to a paid grocery pilot; Phase 8 is restaurants; Phase 9 is the website and diaspora
-orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Not built at all today: scheduled orders.
+orders; later items (nutrition calculation, advertising, forecasting) each have a trigger. Scheduled orders (2.8) are built in the database and the card (C3); the customer cannot choose a window until lane B wires it.
 The console exists (D1, D2, above). D1's proposed functions are migration 0045. The 1.23 review-list page can be built: B4 merged its functions (`search_word_reviews_open`, `resolve_search_word_review`).
 Ordering lane: B1, B2, B3 and B4 are done (above). 0.13: retry after B4's deploy (the flow now asks the pin, then house and floor, then sends the card). 1.22's zero-wrong gate is met on the replay of live readings (B4). K1 is done (above): the leftovers, audit items 4 and 5, and 1.21 in code; the catalog waits on Rasheed's Meta steps (RUNBOOK) and on approved pictures.
-Hub lane: C1 and C2 are done (above); C3 (2.8) can start (B2 and C2 are merged). Console lane: D1 and D2 are done (above).
+Hub lane: C1, C2 and C3 are done (above). Console lane: D1 and D2 are done (above).
 Use its task numbers (0.1, 1.2, ...) for branches and pull requests.
 
 ### D. Needs a live account or real conditions (cannot be finished in code alone)
