@@ -100,4 +100,68 @@ do $$ declare t text; n int; begin
   if t is not null then raise exception 'functions that call trigram functions lack the extensions schema on their search_path: %', t; end if;
   raise notice 'every function in public has a fixed search_path';
 end $$;
+-- web_channel (C4, 0132; audit G1-12): the website's role may execute exactly the website's functions and nothing else. No staff
+-- function, no money function, no function that takes a party id, no table, view or sequence, no membership in another role.
+-- A new website function is granted by name in a migration and added to web_allowed here (and to WEB_CHANNEL_FUNCTIONS in
+-- packages/commerce, which a test keeps equal to this list).
+do $$ declare web_allowed text[] := array['web_session_start', 'web_session_state', 'web_session_end', 'web_link_code',
+                                           'cart_set_line', 'cart_view', 'checkout_quote', 'checkout_order', 'web_confirm_order'];
+              t text; n int; begin
+  if not exists (select 1 from pg_roles where rolname = 'web_channel') then raise exception 'role web_channel is missing (migration 0132)'; end if;
+  select string_agg(p.oid::regprocedure::text, ', ') into t from pg_proc p
+   where p.pronamespace = 'public'::regnamespace and has_function_privilege('web_channel', p.oid, 'execute') and not (p.proname = any(web_allowed));
+  if t is not null then raise exception 'web_channel can execute functions outside its list: %', t; end if;
+  -- Other schemas (Supabase's own: auth, storage, ...): only reachable with USAGE on the schema, which 0132 never grants.
+  -- Listed as a warning if the platform grants it, so a person looks; the extension check above already covers pg_trgm and pgcrypto.
+  for t in select distinct n.nspname from pg_namespace n
+     where n.nspname not in ('public', 'pg_catalog', 'information_schema') and n.nspname not like 'pg\_%'
+       and has_schema_privilege('web_channel', n.oid, 'usage') loop
+    raise warning 'web_channel has USAGE on schema % (through PUBLIC or the platform); check what it can call there', t;
+  end loop;
+  select string_agg(a, ', ') into t from unnest(web_allowed) a
+   where not exists (select 1 from pg_proc p where p.proname = a and p.pronamespace = 'public'::regnamespace and has_function_privilege('web_channel', p.oid, 'execute'));
+  if t is not null then raise exception 'web_channel cannot execute: %', t; end if;
+  select string_agg(p.oid::regprocedure::text, ', ') into t from pg_proc p
+   where p.pronamespace = 'public'::regnamespace and p.proname = any(web_allowed)
+     and (not p.prosecdef or not exists (select 1 from unnest(coalesce(p.proconfig, '{}'::text[])) c where c like 'search_path=%'));
+  if t is not null then raise exception 'website functions that are not security definer with a fixed search_path: %', t; end if;
+  select count(*) into n from pg_class c where c.relnamespace = 'public'::regnamespace and (
+      (c.relkind in ('r','v','m','p','f') and (has_table_privilege('web_channel', c.oid, 'select') or has_table_privilege('web_channel', c.oid, 'insert')
+        or has_table_privilege('web_channel', c.oid, 'update') or has_table_privilege('web_channel', c.oid, 'delete')))
+   or (c.relkind = 'S' and (has_sequence_privilege('web_channel', c.oid, 'usage') or has_sequence_privilege('web_channel', c.oid, 'select'))));
+  if n > 0 then raise exception 'web_channel holds % table or sequence privileges', n; end if;
+  select string_agg(b.rolname, ', ') into t from pg_auth_members m join pg_roles b on b.oid = m.roleid where m.member = 'web_channel'::regrole;
+  if t is not null then raise exception 'web_channel is a member of: %', t; end if;
+  if exists (select 1 from pg_roles where rolname = 'web_channel' and (rolsuper or rolbypassrls or rolcreaterole or rolcreatedb or rolreplication)) then
+    raise exception 'web_channel has an attribute it must not have (superuser, bypassrls, createrole, createdb or replication)';
+  end if;
+  raise notice 'web_channel can execute only the % website functions and holds no table privilege', array_length(web_allowed, 1);
+end $$;
+do $$ declare ok boolean; probe text; begin
+  begin execute 'set role web_channel';
+  exception when insufficient_privilege then
+    raise warning 'this connection may not SET ROLE web_channel: the probes as the role are skipped (the privilege checks above ran)';
+    return;
+  end;
+  foreach probe in array array[
+      'select confirm_order_checked(null::uuid, null::uuid, ''x''::text)', 'select claim_link_code(null::uuid, ''ALO-222222'')',
+      'select transition_order(null::uuid, ''confirmed''::order_status, ''customer''::actor_kind)', 'select plan_cart(null::uuid, ''[]''::jsonb)',
+      'select quote_order(''[]''::jsonb)', 'select web_sessions_revoke(null::uuid)', 'select current_fx()',
+      'select 1 from orders limit 1', 'select 1 from payments limit 1', 'select 1 from ledger_entries limit 1',
+      'select 1 from web_sessions limit 1', 'select 1 from link_codes limit 1', 'select 1 from carts limit 1', 'select 1 from settings limit 1'] loop
+    begin execute probe; ok := false; exception when insufficient_privilege then ok := true; end;
+    if not ok then reset role; raise exception 'web_channel was allowed: %', probe; end if;
+  end loop;
+  reset role;
+  raise notice 'web_channel is refused staff and money functions, party-id functions and every table';
+end $$;
+begin;
+do $$ begin
+  begin execute 'set role web_channel';
+  exception when insufficient_privilege then raise warning 'web_channel session probe skipped (no SET ROLE)'; return; end;
+  if (web_session_start('perm-check')->>'token') is null then raise exception 'web_channel could not start a session'; end if;
+  reset role;
+  raise notice 'web_channel can start a session through its own function';
+end $$;
+rollback;   -- the session row does not survive, on any database
 SQL
