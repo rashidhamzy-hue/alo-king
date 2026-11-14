@@ -1192,7 +1192,8 @@ live check stays. `REPLY_RULE` stays in the ask-loop input only. Merge when CI i
 | 43639683654 | 7eb8d84 | decision (a)+(b), templates; first gate run | 0.911 | **0** | right | 34/41 (7 plain-text handoffs) |
 | 43640755742 | d441abd | live only, diagnostic with step traces | n/a | n/a | n/a | 30/41 (10 plain-text handoffs) |
 | 43641359322 | ddc17f0 | live only: `REPLY_RULE` says only the reply tool reaches the customer | n/a | n/a | n/a | 39/41 (2 first drafts refused for wording) |
-| (gate run A, pending) | 3c7219d | `REPLY_RULE` restates invariants 14-15 for the ask input | | | | |
+| 43642090610 | 3c7219d | gate run: `REPLY_RULE` restates invariants 14-15 for the ask input | 0.912 | **0** | right | 39/41 (`gluten-free-declared`: first draft also an allergy reassurance; `sponsored-fails-restriction`: the ask call hit `max_tokens` before any tool) |
+| (next gate run, pending) | 3c7219d | the same code, run again | | | | |
 
 Before the decision, the wrong product was main's, not M1's: run 4 read with main's prompt, schema, tools and effort byte for byte and
 still got g0815 wrong, and SP1's "before" run on main had the same pair wrong. Live misses on main's own prompt run about 2 of 41 a run

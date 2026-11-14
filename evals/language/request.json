@@ -1,1 +1,1 @@
-{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run A: REPLY_RULE adds the neutrality sentence (live-only check 43641359322 was 39/41: two first drafts refused for wording)." }
+{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run, attempt 2 on the same code (run 43642090610: F1 0.912, 0 wrong, demo right, live 39/41)." }
