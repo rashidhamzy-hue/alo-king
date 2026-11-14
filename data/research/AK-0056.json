@@ -1,0 +1,61 @@
+{
+  "sku": "AK-0056",
+  "matched": {
+    "brand": "Candia",
+    "product": "Laban Entier (full fat)",
+    "size": "1 kg",
+    "barcode": "5285001103010",
+    "confidence": "exact",
+    "note": "Open Food Facts record for this barcode ('Laban entier', Candia, 1 kg, countries France/Lebanon). Ingredients read from the pack photo on the OFF page. OFF values saturated fat 0, sugars 0, salt 0 left out: they look like unfilled fields (fat 3.3 g, carbohydrate 4.7 g). No separate allergen sentence; allergen taken from the ingredients list. Pack shots carry the pack's own 'Best Value' banner."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.libanlait.com/upload/7004websitecandia-laban-1kg-entier.jpg",
+      "page_url": "https://www.libanlait.com/category/candia",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one 1 kg tub seen slightly from above, plain white background, no watermark/price; pack itself carries a 'Best Value' banner; brand's own pack shot"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/4/145661-v001-1_3.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/yogurts/plain-yogurt.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 1 kg tub, plain white background, no watermark/price, front view; pack itself carries a 'Best Value' banner"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/110/3010/front_fr.9.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285001103010",
+      "site": "openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "user photo, close crop of the tub on a counter, date stamp visible, not a clean shot"
+    }
+  ],
+  "ingredients": {
+    "text": "lait de vache frais naturel entier pasteurisé et ferments lactiques.",
+    "language": "fr",
+    "page_url": "https://world.openfoodfacts.org/product/5285001103010",
+    "market": "Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "Ingrédients: lait de vache frais naturel entier pasteurisé et ferments lactiques.",
+    "page_url": "https://world.openfoodfacts.org/product/5285001103010"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 62,
+    "fat_g": 3.3,
+    "carbohydrate_g": 4.7,
+    "protein_g": 3.3,
+    "page_url": "https://world.openfoodfacts.org/product/5285001103010"
+  },
+  "not_found": [
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

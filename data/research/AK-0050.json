@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0050",
+  "matched": {
+    "brand": "Liban Lait (Libanlait)",
+    "product": "Laban, full fat",
+    "size": "1 kg",
+    "barcode": "528500100040",
+    "confidence": "exact",
+    "note": "Catalog barcode has 12 digits and is not on Open Food Facts. Pictures only; the brand site and Spinneys Lebanon pages give no ingredients or nutrition."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.libanlait.com/upload/5561websitelibanlait-laban-1kg.jpg",
+      "page_url": "https://www.libanlait.com/category/liban-Lait",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one 1 kg tub, plain white background, no watermark/price, front view; brand's own pack shot"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/3/5/358359-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/yogurts/plain-yogurt.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one 1 kg tub, plain white background, no watermark/price, front view"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

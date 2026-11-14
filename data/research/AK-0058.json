@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0058",
+  "matched": {
+    "brand": "Happy Basket",
+    "product": "Red Eggs, nylon-wrapped",
+    "size": "15 eggs",
+    "barcode": "5280329999918",
+    "confidence": "unsure",
+    "note": "Not on Open Food Facts. No page for this brand and pack could be opened (Carrefour Lebanon returns HTTP 503; Spinneys Lebanon egg listing has 'Happy Eggs' 12 baladi carton only, a different product, not used)."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

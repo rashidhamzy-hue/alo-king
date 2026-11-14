@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0049",
+  "matched": {
+    "brand": "Hawa Chicken",
+    "product": "Red eggs, nylon-wrapped tray",
+    "size": "30 eggs (pack size not stated in catalog)",
+    "barcode": "5283001700604",
+    "confidence": "likely",
+    "note": "Open Food Facts record for this barcode is named 'hawa eggs' (Lebanon) and its photo shows a nylon-wrapped tray of brown eggs; no facts on it. Spinneys Lebanon lists 'HAWA CHICKEN EGGS RED 19-2000G 30 PC' with the same style of pack; the count of the catalog item is not stated, so the match is likely, not exact. Fresh eggs: no ingredient or nutrition page found."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/2/120178-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/deli-dairy-eggs/fresh-eggs/eggs.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one nylon-wrapped tray of 30 brown eggs, plain white background, no watermark/price, angled top view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/300/170/0604/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5283001700604",
+      "site": "openfoodfacts.org",
+      "site_kind": "open_food_facts",
+      "looks": "user photo of the wrapped egg tray standing in a storeroom, cluttered background, not a clean shot"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
