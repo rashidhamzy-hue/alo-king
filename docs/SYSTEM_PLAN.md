@@ -249,7 +249,7 @@ leaves the rider's fee with the rider, the processor fee recorded and the ledger
 ## 10. Loyalty and referrals, priced against margin (B after four clean pilot weeks; session LOY1)
 
 Riders keep 100% of fees, so every free delivery is paid by Alo King to the rider. `docs/COST_MODEL.md` section 6 and
-`data/cost_model.csv` price each design. Summary at the model's inputs (a grocery order leaves about $2.61 before fixed costs; average fee $1.75):
+`data/cost_model.csv` price each design. Summary at the model's inputs (a grocery order leaves about $2.50 before fixed costs; average fee $1.75):
 
 | Design | Cost | Verdict |
 | --- | --- | --- |
