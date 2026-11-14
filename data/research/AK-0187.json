@@ -1,0 +1,60 @@
+{
+  "sku": "AK-0187",
+  "matched": {
+    "brand": "Domo",
+    "product": "Corn Flour",
+    "size": "200 g",
+    "barcode": "5281010110322",
+    "confidence": "exact",
+    "note": "Meptico product listing 'Domo Corn Flour 200g' (market not stated on page); the barcode 5281010110322 appears as SKU on bham.ammodelivers.com for 'DOMO CORN FLOUR 200G'. Listing page has no ingredient list. Some blocks come from the Open Food Facts record for catalog barcode 5281010110322 (user-contributed, named \"Amidon de mais (Domo), 200 g\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://api.meptico.com/Images/347x614xo/733~Domo-corn-Flour-200g.png",
+      "page_url": "https://www.meptico.com/Products?brandId=3&categoryId=42",
+      "site": "meptico.com",
+      "site_kind": "other",
+      "looks": "one box, transparent/white background, front view, 200 g readable, no watermark/price/overlay, 396x614"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/101/011/0322/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281010110322",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one box, front view fills most of the frame, user photo on a kitchen counter"
+    }
+  ],
+  "allergens": {
+    "contains": [],
+    "may_contain": [
+      "soya",
+      "milk",
+      "coconut"
+    ],
+    "quote": "May contain soya, milk and coconut.",
+    "page_url": "https://www.meptico.com/Products?brandId=3&categoryId=42"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 350,
+    "fat_g": 0,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 87,
+    "sugars_g": 0,
+    "protein_g": 0,
+    "salt_g": 0.02,
+    "page_url": "https://www.meptico.com/Products?brandId=3&categoryId=42"
+  },
+  "diet_labels": [
+    {
+      "label": "gluten_free",
+      "basis": "listing claim 'Gluten Free'",
+      "page_url": "https://www.meptico.com/Products?brandId=3&categoryId=42"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "storage",
+    "origin"
+  ]
+}

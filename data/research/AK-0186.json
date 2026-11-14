@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0186",
+  "matched": {
+    "brand": "Deroni",
+    "product": "Lentils (page title: Laird Canadian Lentils, URL says 10 vacuum)",
+    "size": "900 g",
+    "barcode": "05285001522798",
+    "confidence": "unsure",
+    "note": "Kelchi page has no barcode, no colour statement; title/URL mention vacuum and 900 g. Whether it is the same line as 'Green Lentils' is not stated on the page."
+  },
+  "pictures": [
+    {
+      "image_url": "https://i0.wp.com/kelchi.com/wp-content/uploads/2021/09/deroni-lentils.jpg?fit=600%2C600&ssl=1",
+      "page_url": "https://kelchi.com/product/deroni-laird-canadian-lentils-900gr10-vacuum/",
+      "site": "kelchi.com",
+      "site_kind": "retailer",
+      "looks": "one grey/green 'Pulses' bag with brown-green lentils, white background, front view, no size readable, no watermark/price, 600x600"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

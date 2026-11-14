@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0182",
+  "matched": {
+    "brand": "Deroni",
+    "product": "Vermicelli Pasta",
+    "size": "500 g",
+    "barcode": "5285001528646",
+    "confidence": "likely",
+    "note": "Menkelchi page; brand, product and size match, no barcode on page. Some blocks come from the Open Food Facts record for catalog barcode 5285001528646 (user-contributed, named \"(no name in record)\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://menkelchi.com/cdn/shop/files/deroni-menkelchi_12.webp?v=1748434480&width=1445",
+      "page_url": "https://menkelchi.com/products/deroni-vermicelli-pasta-500g",
+      "site": "menkelchi.com",
+      "site_kind": "retailer",
+      "looks": "one bag 'Vermicelli', white background, front view, 500 g readable, no watermark/price, 1080x1080"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/152/8646/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285001528646",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one bag (Deroni Vermicelli) held in a hand, user photo, cluttered background"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

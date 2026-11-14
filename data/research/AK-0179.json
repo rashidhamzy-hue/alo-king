@@ -1,0 +1,57 @@
+{
+  "sku": "AK-0179",
+  "matched": {
+    "brand": "Arbella",
+    "product": "Gurme Tagliatelle",
+    "size": "400 g",
+    "barcode": "8697430822177",
+    "confidence": "likely",
+    "note": "Migros Turkey page 'Arbella Gurme Tagliatelle 400 G'; brand, shape and size match, the page does not show a barcode so the catalog barcode could not be confirmed. Turkish-market page; text is in Turkish."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.migrosone.com/sanalmarket/product/05031045/05031045-c54691-1650x1650.jpg",
+      "page_url": "https://www.migros.com.tr/arbella-gurme-tagliatelle-400-g-p-4cc485",
+      "site": "migros.com.tr",
+      "site_kind": "retailer",
+      "looks": "one bag, white background, front view, 400 g visible on pack, Turkish-language pack, no watermark/price/overlay, 1650x1650"
+    }
+  ],
+  "ingredients": {
+    "text": "Durum Buğdayı İrmiği.",
+    "language": "tr",
+    "page_url": "https://www.migros.com.tr/arbella-gurme-tagliatelle-400-g-p-4cc485",
+    "market": "Turkey"
+  },
+  "allergens": {
+    "contains": [
+      "gluten"
+    ],
+    "may_contain": [],
+    "quote": "Gluten İçerir.",
+    "page_url": "https://www.migros.com.tr/arbella-gurme-tagliatelle-400-g-p-4cc485"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 350.0,
+    "fat_g": 0.7,
+    "saturated_fat_g": 0.2,
+    "carbohydrate_g": 72.7,
+    "sugars_g": 2.2,
+    "fibre_g": 2.4,
+    "protein_g": 12.1,
+    "salt_g": 0.0,
+    "page_url": "https://www.migros.com.tr/arbella-gurme-tagliatelle-400-g-p-4cc485"
+  },
+  "storage": {
+    "text": "Serin ve Kuru Yerde Muhafaza Ediniz",
+    "page_url": "https://www.migros.com.tr/arbella-gurme-tagliatelle-400-g-p-4cc485"
+  },
+  "origin": {
+    "country": "Türkiye",
+    "page_url": "https://www.migros.com.tr/arbella-gurme-tagliatelle-400-g-p-4cc485"
+  },
+  "not_found": [
+    "diet_labels"
+  ]
+}

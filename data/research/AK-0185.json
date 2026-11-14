@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0185",
+  "matched": {
+    "brand": "Deroni",
+    "product": "Italian Type Rice",
+    "size": "900 g",
+    "barcode": "5285001525898",
+    "confidence": "unsure",
+    "note": "SuperDokan (Lebanon) page 'Deroni Italian Type Rice 900g' lists barcode 5285001522651, different from the catalog barcode; brand, product and size agree."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/yrkdcx.png?v=1696247209",
+      "page_url": "https://superdokan.com/en-lb/products/deroni-italian-rice-900g",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one green bag 'Italian Type Rice', white background, front view, no size readable, no watermark/price, 800x1000"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
