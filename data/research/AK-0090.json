@@ -1,0 +1,39 @@
+{
+  "sku": "AK-0090",
+  "matched": {
+    "brand": "Pain D'Or",
+    "product": "Hot Dog Sandwich bread",
+    "size": "330 g (6 pieces)",
+    "barcode": "5281013600059",
+    "confidence": "likely",
+    "note": "Barcode matches Open Food Facts 'Hot Dog Sandwich', brand Pain D'Or (market: Lebanon); the bag photo shows '6 Sandwiches'; net weight not stated in the record. Nutrition transcribed from the pack label photo (https://images.openfoodfacts.org/images/products/528/101/360/0059/nutrition_en.5.400.jpg), 'Amount per 100 g' (also cholesterol 9 mg, calcium 85 mg). No ingredient list on the pages opened."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/101/360/0059/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281013600059",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "close photo of the bag front ('Hot Dog Sandwich, soft milk, 6 Sandwiches'), cropped, glare on plastic; not a clean pack shot"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 290,
+    "fat_g": 4,
+    "saturated_fat_g": 2.5,
+    "carbohydrate_g": 55,
+    "sugars_g": 11,
+    "fibre_g": 2,
+    "protein_g": 8,
+    "sodium_mg": 280,
+    "page_url": "https://world.openfoodfacts.org/product/5281013600059"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

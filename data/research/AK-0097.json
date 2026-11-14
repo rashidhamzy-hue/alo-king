@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0097",
+  "matched": {
+    "brand": "Toulkarem",
+    "product": "Pepperoni",
+    "size": "by weight",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Deli item sold by weight. Only a Jordan listing of pre-packed 'Aljawhara Toulkarem Smoked Beef Pepperoni Slices 200g' was seen in search results (different format, page not opened); nothing taken."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

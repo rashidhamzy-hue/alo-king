@@ -1,0 +1,42 @@
+{
+  "sku": "AK-0092",
+  "matched": {
+    "brand": "Gorosti (Sant Dalmai)",
+    "product": "Fiambre Pechuga de Pavo Gorosti",
+    "size": "by weight",
+    "barcode": "",
+    "confidence": "likely",
+    "note": "Deli log sold by weight. The maker's page (Sant Dalmai, Spain) for 'Fiambre Pechuga de Pavo Gorosti' describes it as 'Pechuga de pavo cocida. Sin colorantes.'; it gives no ingredient list, nutrition table or weight, and does not mention halal. The page is for the Spanish market; the product exported to Lebanon may differ."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.santdalmai.com/tmp/images/BIBLIOTECA_ITEMS_1263_GOROSTI2_W_600.PNG",
+      "page_url": "https://www.santdalmai.com/es/fiambre-pechuga-de-pavo-gorosti",
+      "site": "santdalmai.com",
+      "site_kind": "brand",
+      "looks": "whole deli log in white/green printed casing with a cut piece beside it, transparent background, no watermark/price"
+    }
+  ],
+  "allergens": {
+    "contains": [],
+    "may_contain": [],
+    "quote": "Libre de los principales alérgenos: leche y derivados (también de lactosa), huevo y soja.",
+    "page_url": "https://www.santdalmai.com/es/fiambre-pechuga-de-pavo-gorosti"
+  },
+  "diet_labels": [
+    {
+      "label": "gluten_free",
+      "basis": "Brand page states 'Sin gluten, apta para celíacos' and shows the 'Sin Gluten' mark (Spanish market page)",
+      "page_url": "https://www.santdalmai.com/es/fiambre-pechuga-de-pavo-gorosti"
+    }
+  ],
+  "storage": {
+    "text": "Refrigerado",
+    "page_url": "https://www.santdalmai.com/es/fiambre-pechuga-de-pavo-gorosti"
+  },
+  "not_found": [
+    "ingredients",
+    "nutrition",
+    "origin"
+  ]
+}
