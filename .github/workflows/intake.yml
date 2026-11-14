@@ -1,0 +1,77 @@
+# Session I1 (SYSTEM_PLAN 4): the product intake pipeline, on STAGING. Every two hours (not every 30 minutes: the GitHub plan's
+# minutes are unconfirmed), and by hand. Each run (scripts/intake/run.mjs):
+#   1. puts a random tenth of each finished day's automatic approvals on the spot-check list (console: /auto-approvals);
+#   2. moves the steps the database moves and runs the approval rules (a rule that has not passed a spot check only logs);
+#   3. takes at most 15 jobs from product_intake_jobs, one at a time: identity (the item's research file: an earlier session's
+#      file in data/research if there is one, else one fast-model call with web search under data/research/README.md's rules),
+#      picture and food_facts (P2's loader, unchanged). It stops taking jobs once the run's model spend passes 0.75 USD;
+#   4. writes the run's minutes and spend in intake_runs and in this step summary.
+# A job that fails is tried again next run; after the third failure it is on the review list with its reason.
+# Nothing is approved by this workflow: a person, or a rule that passed its spot check, approves. Allergens, diet labels,
+# prices and costs are never automatic (the database refuses it).
+# Secrets (repository secrets, never printed): SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY. The model is MODEL_FAST from wrangler.jsonc.
+# Staging is deployed only from main (deploy-staging); this workflow never deploys anything.
+name: intake
+on:
+  schedule:
+    - cron: "23 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      max_jobs:
+        description: Jobs this run (at most 15)
+        type: string
+        default: "15"
+      max_spend_usd:
+        description: Stop taking jobs once this run's model spend passes this many USD (at most 0.75)
+        type: string
+        default: "0.75"
+      reuse_research_files:
+        description: Use the research files already in data/research (no model call for those items)
+        type: boolean
+        default: true
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: intake
+  cancel-in-progress: false
+env:
+  SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      MAX_JOBS: ${{ inputs.max_jobs || '15' }}
+      MAX_SPEND: ${{ inputs.max_spend_usd || '0.75' }}
+      REUSE: ${{ github.event_name == 'schedule' && 'true' || inputs.reuse_research_files }}
+    steps:
+      - name: Start the clock
+        run: echo "JOB_STARTED=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Install the picture tools (sharp lives in scripts/images only)
+        run: npm ci --prefix scripts/images
+      - name: Tests (the pipeline against the real migrations, the rules, the research checks)
+        run: npx vitest run scripts/intake
+      - name: Run the intake pipeline
+        run: |
+          export MODEL_FAST=$(node scripts/ci/wrangler-var.mjs MODEL_FAST)
+          jobs=15; spend=0.75
+          [[ "$MAX_JOBS" =~ ^[0-9]{1,2}$ ]] && (( MAX_JOBS <= 15 )) && jobs=$MAX_JOBS
+          [[ "$MAX_SPEND" =~ ^0?\.[0-9]{1,3}$|^0$ ]] && awk "BEGIN{exit !($MAX_SPEND <= 0.75)}" && spend=$MAX_SPEND
+          dir=data/research; [ "$REUSE" = "false" ] && dir=""
+          node scripts/intake/run.mjs --max-jobs "$jobs" --max-spend "$spend" --research-dir "$dir" --report-out intake-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: intake-report, path: intake-report.json, retention-days: 14, if-no-files-found: ignore }
+      - name: Minutes used by this job
+        if: always()
+        run: |
+          secs=$(( $(date +%s) - JOB_STARTED ))
+          echo "- **job wall time: $(( secs / 60 )) min $(( secs % 60 )) s** (GitHub bills whole minutes per job; the script's own minutes and model spend are above)" >> "$GITHUB_STEP_SUMMARY"
