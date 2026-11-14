@@ -1,0 +1,81 @@
+"Alo King cost model. Edit column B of the inputs (or the volumes in row 'Orders per day'); every other figure recalculates when the file is opened in Excel, LibreOffice or Google Sheets. All amounts USD. S1, 14 Nov 2026."
+INPUTS,value,unit,status
+Average basket (goods),16,USD,placeholder
+Dark-store gross margin,0.2,share,placeholder: needs supplier costs
+Vendor commission,0.075,share,founder: 5 to 10% per contract
+Average delivery fee (the rider's),1.75,USD,draft zone fees 1.00 / 1.50 / 2.50
+Average tip (the rider's),0.5,USD,placeholder
+Share of orders from vendors,0,share,0 at launch; 0.65 once restaurants are live (placeholder)
+Packaging per dark-store order,0.15,USD,estimate
+"Shrink, share of dark-store basket",0.02,share,estimate
+"Cash loss and failed deliveries, share of basket",0.005,share,estimate
+Small-order fee,0,USD,off; proposed 0.50
+Share of orders under the small-order threshold,0.4,share,placeholder
+"Billable outbound messages per dark-store order, both lines",14,messages,measured on staging 7 to 14 Nov: 204 outbound for 14 orders
+"Extra outbound messages on a vendor order (job card, escalation, ready)",4,messages,estimate
+Inbound messages per order,5,messages,measured on staging: 69 inbound for 14 orders
+"Meta price per service or utility message, Lebanon",0.0105,USD,published rate cards disagree (0.0091 or 0.0105); first bill decides
+"Free service messages per month (1,000 per number, 2 numbers)",2000,messages,"Meta, since 1 Oct 2026"
+AI per order (Concierge),0.004,USD,measured 0.0019 on probe orders; doubled for real conversations
+Speech to text per order,0.001,USD,"estimate: 30% voice, 30 seconds"
+Kapso Pro with 4 numbers,35,USD/month,25 + 10 for the 4th number
+Kapso Pro included messages,100000,messages/month,published
+Kapso Pro overage per message,0.002,USD,published
+"Kapso Platform plan (1,000,000 messages)",299,USD/month,published
+Supabase Pro,25,USD/month,not re-checked 14 Nov
+Supabase point-in-time recovery and compute,100,USD/month,assumption; needed before real money
+Cloudflare Workers Paid,5,USD/month,published
+"Domain, two +961 lines, nightly evals, intake research",60,USD/month,3 + 10 + 26 + about 20
+"Rent, power, refrigeration",700,USD/month,placeholder
+Ops lead salary,700,USD/month,placeholder
+Picker salary,450,USD/month,placeholder
+Marketing and miscellaneous,300,USD/month,placeholder
+Orders a day one picker handles,80,orders,placeholder
+Orders a day one ops lead handles,150,orders,placeholder
+Rider-hours on shift per day (minimum),20,hours,placeholder
+Orders a rider can deliver per hour,2,orders,placeholder
+Card processor fee,0.03,share,assumption until a contract
+""
+SCENARIOS,,,,,,,
+Orders per day,10,30,50,100,200,500,1000
+Orders per month,=B$40*30,=C$40*30,=D$40*30,=E$40*30,=F$40*30,=G$40*30,=H$40*30
+Outbound messages per month,=B$41*($B$14+$B$8*$B$15),=C$41*($B$14+$B$8*$B$15),=D$41*($B$14+$B$8*$B$15),=E$41*($B$14+$B$8*$B$15),=F$41*($B$14+$B$8*$B$15),=G$41*($B$14+$B$8*$B$15),=H$41*($B$14+$B$8*$B$15)
+Meta fees per month,"=MAX(0,B$42-$B$18)*$B$17","=MAX(0,C$42-$B$18)*$B$17","=MAX(0,D$42-$B$18)*$B$17","=MAX(0,E$42-$B$18)*$B$17","=MAX(0,F$42-$B$18)*$B$17","=MAX(0,G$42-$B$18)*$B$17","=MAX(0,H$42-$B$18)*$B$17"
+Kapso-counted messages per month (in and out),=B$42+B$41*$B$16,=C$42+C$41*$B$16,=D$42+D$41*$B$16,=E$42+E$41*$B$16,=F$42+F$41*$B$16,=G$42+G$41*$B$16,=H$42+H$41*$B$16
+Kapso per month (cheaper of Pro with overage and Platform),"=MIN($B$21+MAX(0,B$44-$B$22)*$B$23,$B$24)","=MIN($B$21+MAX(0,C$44-$B$22)*$B$23,$B$24)","=MIN($B$21+MAX(0,D$44-$B$22)*$B$23,$B$24)","=MIN($B$21+MAX(0,E$44-$B$22)*$B$23,$B$24)","=MIN($B$21+MAX(0,F$44-$B$22)*$B$23,$B$24)","=MIN($B$21+MAX(0,G$44-$B$22)*$B$23,$B$24)","=MIN($B$21+MAX(0,H$44-$B$22)*$B$23,$B$24)"
+AI and speech per month,=B$41*($B$19+$B$20),=C$41*($B$19+$B$20),=D$41*($B$19+$B$20),=E$41*($B$19+$B$20),=F$41*($B$19+$B$20),=G$41*($B$19+$B$20),=H$41*($B$19+$B$20)
+"Technology per order that moves with volume (Meta, AI, speech)",=(B$43+B$46)/B$41,=(C$43+C$46)/C$41,=(D$43+D$46)/D$41,=(E$43+E$46)/E$41,=(F$43+F$46)/F$41,=(G$43+G$46)/G$41,=(H$43+H$46)/H$41
+A dark-store order leaves (before fixed costs),=$B$3*$B$4-$B$3*$B$10-$B$3*$B$11-$B$9+$B$12*$B$13-B$47,=$B$3*$B$4-$B$3*$B$10-$B$3*$B$11-$B$9+$B$12*$B$13-C$47,=$B$3*$B$4-$B$3*$B$10-$B$3*$B$11-$B$9+$B$12*$B$13-D$47,=$B$3*$B$4-$B$3*$B$10-$B$3*$B$11-$B$9+$B$12*$B$13-E$47,=$B$3*$B$4-$B$3*$B$10-$B$3*$B$11-$B$9+$B$12*$B$13-F$47,=$B$3*$B$4-$B$3*$B$10-$B$3*$B$11-$B$9+$B$12*$B$13-G$47,=$B$3*$B$4-$B$3*$B$10-$B$3*$B$11-$B$9+$B$12*$B$13-H$47
+A vendor order leaves (before fixed costs),=$B$3*$B$5-$B$3*$B$11-$B$15*$B$17-B$47,=$B$3*$B$5-$B$3*$B$11-$B$15*$B$17-C$47,=$B$3*$B$5-$B$3*$B$11-$B$15*$B$17-D$47,=$B$3*$B$5-$B$3*$B$11-$B$15*$B$17-E$47,=$B$3*$B$5-$B$3*$B$11-$B$15*$B$17-F$47,=$B$3*$B$5-$B$3*$B$11-$B$15*$B$17-G$47,=$B$3*$B$5-$B$3*$B$11-$B$15*$B$17-H$47
+An average order leaves,=(1-$B$8)*B$48+$B$8*B$49,=(1-$B$8)*C$48+$B$8*C$49,=(1-$B$8)*D$48+$B$8*D$49,=(1-$B$8)*E$48+$B$8*E$49,=(1-$B$8)*F$48+$B$8*F$49,=(1-$B$8)*G$48+$B$8*G$49,=(1-$B$8)*H$48+$B$8*H$49
+Pickers,"=ROUNDUP(B$40*(1-$B$8)/$B$33,0)","=ROUNDUP(C$40*(1-$B$8)/$B$33,0)","=ROUNDUP(D$40*(1-$B$8)/$B$33,0)","=ROUNDUP(E$40*(1-$B$8)/$B$33,0)","=ROUNDUP(F$40*(1-$B$8)/$B$33,0)","=ROUNDUP(G$40*(1-$B$8)/$B$33,0)","=ROUNDUP(H$40*(1-$B$8)/$B$33,0)"
+Ops leads,"=ROUNDUP(B$40/$B$34,0)","=ROUNDUP(C$40/$B$34,0)","=ROUNDUP(D$40/$B$34,0)","=ROUNDUP(E$40/$B$34,0)","=ROUNDUP(F$40/$B$34,0)","=ROUNDUP(G$40/$B$34,0)","=ROUNDUP(H$40/$B$34,0)"
+"Fixed costs per month (rent, staff, marketing, subscriptions)","=$B$29*MAX(1,ROUNDUP(B$40/250,0))+B$51*$B$31+B$52*$B$30+$B$32+B$45+$B$25+$B$26+$B$27+$B$28","=$B$29*MAX(1,ROUNDUP(C$40/250,0))+C$51*$B$31+C$52*$B$30+$B$32+C$45+$B$25+$B$26+$B$27+$B$28","=$B$29*MAX(1,ROUNDUP(D$40/250,0))+D$51*$B$31+D$52*$B$30+$B$32+D$45+$B$25+$B$26+$B$27+$B$28","=$B$29*MAX(1,ROUNDUP(E$40/250,0))+E$51*$B$31+E$52*$B$30+$B$32+E$45+$B$25+$B$26+$B$27+$B$28","=$B$29*MAX(1,ROUNDUP(F$40/250,0))+F$51*$B$31+F$52*$B$30+$B$32+F$45+$B$25+$B$26+$B$27+$B$28","=$B$29*MAX(1,ROUNDUP(G$40/250,0))+G$51*$B$31+G$52*$B$30+$B$32+G$45+$B$25+$B$26+$B$27+$B$28","=$B$29*MAX(1,ROUNDUP(H$40/250,0))+H$51*$B$31+H$52*$B$30+$B$32+H$45+$B$25+$B$26+$B$27+$B$28"
+Profit per month,=B$50*B$41-B$53,=C$50*C$41-C$53,=D$50*D$41-D$53,=E$50*E$41-E$53,=F$50*F$41-F$53,=G$50*G$41-G$53,=H$50*H$41-H$53
+Break-even orders per day at this cost structure,"=ROUNDUP(B$53/(B$50*30),0)","=ROUNDUP(C$53/(C$50*30),0)","=ROUNDUP(D$53/(D$50*30),0)","=ROUNDUP(E$53/(E$50*30),0)","=ROUNDUP(F$53/(F$50*30),0)","=ROUNDUP(G$53/(G$50*30),0)","=ROUNDUP(H$53/(H$50*30),0)"
+Rider earnings per hour on shift,"=B$40*($B$6+$B$7)/MAX($B$35,B$40/$B$36)","=C$40*($B$6+$B$7)/MAX($B$35,C$40/$B$36)","=D$40*($B$6+$B$7)/MAX($B$35,D$40/$B$36)","=E$40*($B$6+$B$7)/MAX($B$35,E$40/$B$36)","=F$40*($B$6+$B$7)/MAX($B$35,F$40/$B$36)","=G$40*($B$6+$B$7)/MAX($B$35,G$40/$B$36)","=H$40*($B$6+$B$7)/MAX($B$35,H$40/$B$36)"
+""
+COST PER OPERATION,USD,basis
+One customer reply or card (service message),=$B$17,"Meta rate; the first 2,000 a month are free"
+"One utility template (status, rider at the door, payment received)",=$B$17,"Meta rate, no free allowance"
+One Concierge turn on the card path,0.0006,measured: about 0.0019 per order over about 3 runs
+One Concierge turn on the ask path (two model calls),0.0015,estimate from 4x the output tokens of the card path
+One voice note transcribed (30 seconds),0.0033,about 0.40 USD an hour
+One payment screenshot read,0.002,one fast-model vision call (estimate)
+One label photo read at intake,0.003,one fast-model vision call (estimate)
+"One new product researched and proposed (search words, picture check, facts)",0.05,"estimate: one web-search call, up to five vision checks, one words call"
+One supplier invoice read,0.01,"estimate: one vision call, about 30 lines"
+One full live eval run (990 cases x 3),3.0,measured by B4
+One nightly smoke eval (150 cases),0.45,scaled from the full run
+One card payment of the average basket plus fee,=($B$3+$B$6)*$B$37,processor fee on the amount charged
+""
+REWARDS (cost to Alo King; the rider is always paid the full fee),USD,reading
+"First 3 deliveries free, per new customer",=3*$B$6,founder idea
+Dark-store orders needed to pay back 3 free deliveries,"=ROUNDUP(3*$B$6/E$48,0)",at the 100 a day column
+First delivery free on a first basket,=$B$6,once per customer
+"Stamp card: every 10th paid order earns one delivery, per order",=$B$6/10,if every reward is used
+Stamp card as a share of what a dark-store order leaves,=$B$6/10/E$48,at the 100 a day column
+"Credit of one delivery after 30 orders, per order",=$B$6/30,founder idea; too far away to change behaviour
+Referral: one delivery for the friend and one for the referrer,=2*$B$6,after the friend's first paid order
+"2% credit on every order, per order",=0.02*$B$3,needs a balance liability
+Combined order: extra pickup paid to the rider (customer pays),0.5,proposed; not a company cost

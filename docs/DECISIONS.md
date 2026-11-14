@@ -117,3 +117,47 @@ overriding the "licence unknown is never shown" rule of 5.17 step 4 and not wait
 What still holds: the picture shows exactly the catalog item; no watermark, shop logo, price tag or added text (Meta's catalog rules and
 our own); the source address is stored with every picture; a person approves each one before a customer sees it; if a rights holder or
 Meta objects to a picture it is withdrawn at once and replaced by our own photo at intake (5.15). Recorded licence value: `public_page`.
+
+## Founder decisions of 14 November 2026 (from `docs/SYSTEM_BRIEF.md`), recorded by session S1
+Each is a decision. Where it disagrees with an older decision or with the wording of an invariant, it is in the conflict
+register below; S1 resolved none of them. Until the founder answers, sessions build the "until then" column.
+
+| Decision | Where it is planned |
+| --- | --- |
+| A customer website at launch: catalog, search, cart, cash checkout, tracking, history, on the same core as WhatsApp | `docs/WEBSITE.md`, SYSTEM_PLAN 1 |
+| Vendor-operated and third-party delivery; a vendor's hours may run past ours | SYSTEM_PLAN 2 |
+| One cart, one vendor at first; combined orders (our groceries plus vendors' food) when data shows demand | SYSTEM_PLAN 3 |
+| Grocery only from our own dark store; vendors are restaurants, cafes, bakeries and similar | SYSTEM_PLAN 3 |
+| The AI acts alone only on a written list of low-risk actions; items code can prove certain go live without a tap; allergens, diet labels, prices and costs never | SYSTEM_PLAN 4 |
+| One owner-operator, exception based; a daily summary replaces checking | `docs/CONSOLE.md`, SYSTEM_PLAN 11 |
+| Console redesigned as the founder's cockpit, mobile first, installable, with push where supported | `docs/CONSOLE.md` |
+| A founder assistant in the console, read only | SYSTEM_PLAN 11 |
+| Vendor commands by message, confirmed in one tap, logged, undoable | SYSTEM_PLAN 8 |
+| Warehouse at professional level: scan to pick, lots, expiry, FEFO, bins, counts | SYSTEM_PLAN 7 |
+| Live tracking for customers: status first, position only with rider consent | `docs/WEBSITE.md` |
+| Diaspora "send home" with card payment; never assume Stripe | SYSTEM_PLAN 9, RESEARCH_REGISTER a |
+| National expansion as data (markets), before the second area, not before launch | SYSTEM_PLAN 17 |
+| A full cost model per operation, editable | `docs/COST_MODEL.md`, `data/cost_model.csv` |
+| The friends' test is simulated: the test rider delivers, no goods or cash move | SYSTEM_PLAN 16 |
+| Prices in dollars; the amount in Lebanese pounds at the day's approved rate when a customer asks | SYSTEM_PLAN 14 |
+| Rashid approves names, pictures, food facts and search words until an ops lead is hired | `docs/CONSOLE.md` (names review, readiness) |
+| Friends' test payments: cash, plus a Whish or OMT screenshot | SYSTEM_PLAN 16 |
+| Keep the source of every picture so it can be withdrawn at once | already enforced (0050, 0070) |
+| Loyalty and referrals: ideas "first 3 deliveries free" and "credit after every 30 orders"; every reward priced against margin first | SYSTEM_PLAN 10, COST_MODEL 6 |
+| A places list that grows from every delivery; the pin still decides | SYSTEM_PLAN 5 |
+| Every operation timed; rider location only during a job | SYSTEM_PLAN 5 |
+
+### Conflict register (for the founder; nothing below is resolved)
+| # | New decision | Conflicts with | Recommended answer | Until then, sessions build |
+| --- | --- | --- | --- | --- |
+| C1 | Web checkout confirms an order | **Invariant 4**: "Confirmation is a customer button tap" (written for WhatsApp) | Reword to "a customer's own confirm action on a channel where we verified them: a WhatsApp button, or the confirm button of a signed-in web session. The agent can never confirm." | The web checkout ends by sending the order card to the customer's WhatsApp, and the tap there confirms. No invariant changes |
+| C2 | A vendor's own drivers deliver and keep the fee | **Invariant 10**: "The delivery fee and tips belong to the rider" | Reword to "belong to whoever delivers: our rider, or the vendor whose driver delivers. Never company revenue." | The provider model as data only; vendor delivery stays switched off |
+| C3 | A founder assistant in the console; later a merchant assistant on the staff line | **Invariant 21**: "The Concierge is the only conversational agent"; BUILD_PLAN "More AI agents: not planned" and "Model-written daily digest" only after a month of day closes | Reword to "one customer-facing conversational agent. Staff tools may answer questions from read-only reports and may never act." The merchant assistant stays a narrow function that proposes a change for one tap | The daily summary and weekly report as pages and messages written by code; no chat box |
+| C4 | Website at launch | DECISIONS (12 Nov) "WhatsApp first. Website and diaspora orders are Phase 9"; HANDOFF business rule 10; BUILD_PLAN Phase 9 gates (four clean pilot weeks and a signed card gateway) | The new decision replaces the old for a cash-only website. The card-gateway gate stays for card checkout and diaspora orders | The plan follows the new decision: WEB1 and WEB2 are class A |
+| C5 | Combined orders carry a fee designed for the extra pickups | BUILD_PLAN 8.6: mixed orders have "one delivery fee" | One delivery line for the customer: the zone fee plus $0.50 for each extra pickup, all to the rider | One source per cart; no combined orders |
+| C6 | Items the system is certain about go live without a tap | DECISIONS (14 Nov, pictures): "a person approves each one before a customer sees it"; brief rule 2 "a person approves" | Automatic only for the rows of the table in SYSTEM_PLAN 4, each a check code can run; pictures from shops' public pages always need a person; a daily spot check of one in ten | Everything is approved by a person; the rules table ships switched off |
+| C7 | "First 3 deliveries free", "credit after every 30 orders" | BUILD_PLAN "Later": a stamp card (every 10th order) only after four clean pilot weeks; COST_MODEL | No reward at launch; the stamp card first; one acquisition offer at most (first delivery free on a first basket of $15 or more) | No reward exists in code |
+| C8 | Console redesign now | BUILD_PLAN Phase 3: "Build it plain. No design work until the pilot shows what ops uses" | Redesign the shell and the founder's pages now (he is the operator); keep every form and function as built | D4 adds the missing pages in the plain style; D5 (the redesign) waits for this answer |
+| C9 | The Concierge builds baskets ("dinner for 5 children") | BUILD_PLAN "Later": shopping list for a gathering, after the pilot | Design now, switch on when its eval cases pass (class B) | Not built; such requests get a question or a person |
+| C10 | A friends' test with three testers, simulated | BUILD_PLAN Phase 6: the shadow run uses real orders, real money and real riders | They are different steps: the friends' test comes first and does not replace the shadow run | T1 builds the simulated test |
+| C11 | Rashid approves alone until an ops lead is hired | DECISIONS (D2): the person who asked can never approve their own price change or refund | Hussein is the second approver, from the installed console | The rule stays: a large refund or price change waits for a second admin |
