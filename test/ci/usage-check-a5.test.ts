@@ -24,6 +24,16 @@ describe("usage-check", () => {
     expect(r.ok).toBe(false);
     expect(table(r.rows)).toContain("could not be read");
   });
+  it("an egress figure the token may not read is left off: said plainly, neither a pass nor a failure; any other unreadable figure still fails", async () => {
+    const r = evaluate({ database: 1, storage: 1, egress: "off" }, PLAN_LIMITS.free);
+    expect(r.ok).toBe(true);
+    expect(table(r.rows)).toContain("left off");
+    expect(evaluate({ database: 400 * MB, storage: 1, egress: "off" }, PLAN_LIMITS.free).ok).toBe(false);   // the rest is still checked
+    const err = await readEgress("t", "ref", (async () => new Response("no", { status: 401 })) as unknown as typeof fetch).catch((e: any) => e);
+    expect(err.denied).toBe(true);
+    const other = await readEgress("t", "ref", (async () => new Response("no", { status: 500 })) as unknown as typeof fetch).catch((e: any) => e);
+    expect(other.denied).toBe(false);
+  });
   it("the pro plan's limits are larger; the same usage that fails free passes pro", () => {
     const used = { database: 2 * GB, storage: 10 * GB, egress: 50 * GB };
     expect(evaluate(used, PLAN_LIMITS.free).ok).toBe(false);
