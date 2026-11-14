@@ -6,7 +6,7 @@
     "size": "kg",
     "barcode": "",
     "confidence": "unsure",
-    "note": "loose/unbranded: picture only per README. No usable picture found: Spinneys Lebanon lists no Valencia orange (only 'Orange For Juice' and a netted, branded Biomass navel pack, both excluded as a different item); the Spinneys UAE 'Valencia Orange Egypt' page opened shows only a placeholder image; Lulu returned 403; Wikimedia Commons API was rate-limited."
+    "note": "loose/unbranded: picture only per README. No usable picture found: Spinneys Lebanon lists no Valencia orange (only 'Orange For Juice' and a netted, branded Biomass navel pack, both excluded as a different item); the Spinneys UAE 'Valencia Orange Egypt' page opened shows only a placeholder image; Lulu returned 403; Wikimedia Commons API was rate-limited. Gap pass: Spinneys Lebanon fruit listing pages (about 55 products read) show no Valencia orange; a search snippet mentions a 'Valencia Orange Fruit Per Kg' / 'Orange Valencia 1 KG' listing there but no page or image address could be opened. The only plain Spinneys oranges are 'Orange For Juice' (already used for AK-0006) and a branded netted Biomass pack (not used). Spinneys UAE and Lulu pages gave no usable image. No picture added."
   },
   "not_found": [
     "pictures"

@@ -6,15 +6,23 @@
     "size": "800 g",
     "barcode": "",
     "confidence": "unsure",
-    "note": "Not on Open Food Facts (5280320000002). carrefourlebanon.com lists 'Al Forno Pita Bread White Large 835GR' but the page could not be opened (HTTP 503) and the size differs; nothing taken."
+    "note": "Not on Open Food Facts (5280320000002). carrefourlebanon.com lists 'Al Forno Pita Bread White Large 835GR' but the page could not be opened (HTTP 503) and the size differs; nothing taken. Gap pass: Spinneys Lebanon lists 'AL FORNO ARABIC BREAD WHITE LARGE' at 770 G (page slug says 900g); catalog says 800 g, so the size does not match exactly; picture added and the match marked unsure. Product page not opened (address read on the Arabic Bread listing); no ingredients/nutrition text."
   },
   "not_found": [
-    "pictures",
     "ingredients",
     "allergens",
     "nutrition",
     "diet_labels",
     "storage",
     "origin"
+  ],
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/4/9/491720-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/al-forno-pita-white-large-900g.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one clear bag of Al Forno white pita bread with red base label, front view, plain white background, no watermark/price (viewed; 600x600); retailer size 770 G, not 800 g"
+    }
   ]
 }

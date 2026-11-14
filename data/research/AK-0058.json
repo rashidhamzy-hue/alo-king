@@ -6,7 +6,7 @@
     "size": "15 eggs",
     "barcode": "5280329999918",
     "confidence": "unsure",
-    "note": "Not on Open Food Facts. No page for this brand and pack could be opened (Carrefour Lebanon returns HTTP 503; Spinneys Lebanon egg listing has 'Happy Eggs' 12 baladi carton only, a different product, not used)."
+    "note": "Not on Open Food Facts. No page for this brand and pack could be opened (Carrefour Lebanon returns HTTP 503; Spinneys Lebanon egg listing has 'Happy Eggs' 12 baladi carton only, a different product, not used). Gap pass: Spinneys Lebanon egg listing (31 products) has Hawa, Coucou, Spinneys, Panier Nat, Biomass and 'Happy Eggs 12 Premium Baladi' (a different brand name and a 12 pack), but no 'Happy Basket'. A Carrefour Lebanon search snippet mentions Happy Basket 15 baladi brown eggs but that site returns 503; nothing added."
   },
   "not_found": [
     "pictures",
