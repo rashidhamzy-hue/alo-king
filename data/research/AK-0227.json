@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0227",
+  "matched": {
+    "brand": "Domo",
+    "product": "Baking Powder Sachet",
+    "size": "",
+    "barcode": "5281010110520",
+    "confidence": "unsure",
+    "note": "Nothing found on pages opened; Spinneys Lebanon lists other sizes (28.5g/100g vanilla sugar, 100g/227g baking powder) which are not used."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

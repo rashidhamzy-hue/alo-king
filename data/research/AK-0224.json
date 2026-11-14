@@ -1,0 +1,59 @@
+{
+  "sku": "AK-0224",
+  "matched": {
+    "brand": "Domo",
+    "product": "Gelatin Jelly Strawberry",
+    "size": "85g (size not on OFF record)",
+    "barcode": "5281010123117",
+    "confidence": "likely",
+    "note": "OFF record for this barcode (French-market entry, countries: France); front image shows Domo Jelly strawberry flavour box, 'makes 4 servings'. Size not stated on the record."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/101/012/3117/front_fr.4.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281010123117",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one box held on a table, textured background, low resolution 194x400, no watermark"
+    }
+  ],
+  "ingredients": {
+    "text": "Sucre, 100% gélatine pure de boeuf, acides (acide fumarique, acide adipique), régulateur d'acidité (citrate de sodium), arôme fraise identique au naturel, vitamine C, colorants naturels (Bêta-carotène, betterave rouge). Peut contenir des traces de: Blé, lait et soja.",
+    "language": "fr",
+    "page_url": "https://world.openfoodfacts.org/product/5281010123117",
+    "market": "OFF record (pack carries EN and FR text)"
+  },
+  "allergens": {
+    "contains": [],
+    "may_contain": [
+      "wheat",
+      "milk",
+      "soy"
+    ],
+    "quote": "May contain traces of: Wheat, milk and soya.",
+    "page_url": "https://world.openfoodfacts.org/product/5281010123117"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 376,
+    "fat_g": 0,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 85,
+    "sugars_g": 85,
+    "protein_g": 9,
+    "salt_g": 0.09,
+    "sodium_mg": 36,
+    "page_url": "https://world.openfoodfacts.org/product/5281010123117"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "OFF labels field: Halal",
+      "page_url": "https://world.openfoodfacts.org/product/5281010123117"
+    }
+  ],
+  "not_found": [
+    "storage",
+    "origin"
+  ]
+}

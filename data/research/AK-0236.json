@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0236",
+  "matched": {
+    "brand": "Tanmia",
+    "product": "Frozen Chicken Nuggets",
+    "size": "520g",
+    "barcode": "5281101392743",
+    "confidence": "unsure",
+    "note": "Spinneys Lebanon lists Tanmia nuggets only in 500g bag and 900g; no 520g page found, so nothing used."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

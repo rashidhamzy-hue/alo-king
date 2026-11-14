@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0229",
+  "matched": {
+    "brand": "Aruba",
+    "product": "Light Jelly Strawberry",
+    "size": "12g",
+    "barcode": "5285002191238",
+    "confidence": "likely",
+    "note": "Superdokan 'Aruba Jelly Diet 12g' page, Strawberry variant; picture shows 'Aruba Light Jelly Strawberry 12g'. Page gives no ingredients or full nutrition."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/products/ArubaJellyDietStrawberry-571017.jpg?v=1665797531",
+      "page_url": "https://superdokan.com/products/aruba-jelly-diet",
+      "site": "Superdokan",
+      "site_kind": "retailer",
+      "looks": "one box, white background, no watermark/price/banner, three-quarter view, 'Strawberry 12gs' readable"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
