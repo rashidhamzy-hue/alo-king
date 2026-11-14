@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0133",
+  "matched": {
+    "brand": "Cafe Najjar",
+    "product": "Classic ground coffee (plain)",
+    "size": "180 g",
+    "barcode": "0022644001038",
+    "confidence": "unsure",
+    "note": "No page for the plain Classic 180 g could be opened. Superdokan lists only 'Najjar Cafe Classic Coffee With Cardamom 180g' (barcode 022644002646), a different variant, not used. cafenajjar.com redirects to a professional catalogue with no such product; najjareshop.com/lb/en returned 404."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

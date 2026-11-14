@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0130",
+  "matched": {
+    "brand": "Cafe21",
+    "product": "2in1 Instant Coffeemix No Sugar Added, single stick",
+    "size": "12 g",
+    "barcode": "8888311091946",
+    "confidence": "exact",
+    "note": "Picture: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. The listing has no ingredients or nutrition. Open Food Facts has entries for multi-stick bags under other barcodes; not used."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/IMG-0740.jpg?v=1771923770",
+      "page_url": "https://superdokan.com/en-lb/products/cafe21-2-in-1-instant-coffee-cafe21-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one black/red/gold Cafe21 '2 in 1' stick lying diagonally, white background, no overlay; stick is small in the frame"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

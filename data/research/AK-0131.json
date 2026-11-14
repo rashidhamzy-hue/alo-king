@@ -1,0 +1,32 @@
+{
+  "sku": "AK-0131",
+  "matched": {
+    "brand": "Nescafe",
+    "product": "3in1 Classic, single stick",
+    "size": "20 g",
+    "barcode": "8850124037350",
+    "confidence": "exact",
+    "note": "No page for the single 20 g stick could be opened. Lead only, not recorded: Superdokan lists the 30-stick box 'Nescafe 3 in 1 Classic 30Pcs' (barcode 8850124085917) with nutrition per serving (20 g) and a box picture; different pack and barcode, retailer page, so left out. nestle-family.com returned 403; nescafe.com/mena lists no 'Classic' 3in1. Some blocks come from the Open Food Facts record for catalog barcode 8850124037350 (user-contributed, named \"Nescafe 3 in 1, 20g *24 pcs\"); those blocks carry that page as their source."
+  },
+  "ingredients": {
+    "text": "سكر، مبيض قهوة غير حليبي (شراب الجلوكوز، زيت نواة النخيل المهدرج بالكامل، بروتين حليب البقر، منظمات الحموضة (E331iii، E340ii)، عامل مضاد للتكتل (E170i)، مثبت (E452i)، مستحلبات من أصل نباتي (E451i، E472e، E471)، ملح، نكهات مطابقة للطبيعة (حليب مكثف، زبدة))، قهوة سريعة الذوبان، نكهة طبيعية (سكر بني)، نكهة مطابقة للطبيعة (قهوة). يحتوي على الحليب",
+    "language": "ar",
+    "page_url": "https://world.openfoodfacts.org/product/8850124037350",
+    "market": "Middle East (record lists Lebanon, Qatar, Saudi Arabia)"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "يحتوي على الحليب",
+    "page_url": "https://world.openfoodfacts.org/product/8850124037350"
+  },
+  "not_found": [
+    "pictures",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

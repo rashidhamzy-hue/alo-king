@@ -1,0 +1,51 @@
+{
+  "sku": "AK-0132",
+  "matched": {
+    "brand": "Nestle Coffee-mate",
+    "product": "Coffee creamer Original, pouch",
+    "size": "450 g",
+    "barcode": "8850124081872",
+    "confidence": "exact",
+    "note": "Picture and nutrition: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. Ingredients/allergens: nestle-family.com (brand site) returned 403, so nothing recorded. Some blocks come from the Open Food Facts record for catalog barcode 8850124081872 (user-contributed, named \"Coffee Mate, 450 g\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/GIHAN_SFILEDONOTTOUCH_49.png?v=1698842009",
+      "page_url": "https://superdokan.com/en-lb/products/nestle-coffee-mate-original-450g",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one red/yellow Coffee-mate Original pouch, white/transparent background, front view, no overlay"
+    }
+  ],
+  "ingredients": {
+    "text": "Glucose Syrup, Hydrogenated Palm Oil, Acidity Regulators (E340ii, E451i, E452i, E331 iii), Milk Protein (Sodium Caseinate), Emulsifiers (E471, E472e from Plant Origin), Natural Identical Flavours (Cream and Dairy), Anti-caking Agent (E551), Salt. Contains Milk protcin",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/8850124081872",
+    "market": "not stated (record country: France)"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "Contains Milk protcin",
+    "page_url": "https://world.openfoodfacts.org/product/8850124081872"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 548,
+    "fat_g": 34.9,
+    "saturated_fat_g": 31.9,
+    "carbohydrate_g": 57.1,
+    "sugars_g": 8.8,
+    "fibre_g": 0,
+    "protein_g": 1.2,
+    "salt_g": 0.66,
+    "page_url": "https://superdokan.com/en-lb/products/nestle-coffee-mate-original-450g"
+  },
+  "not_found": [
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

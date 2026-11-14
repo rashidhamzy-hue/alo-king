@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0129",
+  "matched": {
+    "brand": "Vitalis",
+    "product": "Energy Drink Tropical",
+    "size": "250 ml",
+    "barcode": "5285013860529",
+    "confidence": "unsure",
+    "note": "No page found for this brand/product in English or Arabic searches, on Superdokan or Loyabi. Nothing recorded."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0135",
+  "matched": {
+    "brand": "Nescafe",
+    "product": "Gold instant coffee, pouch",
+    "size": "100 g",
+    "barcode": "7613034724618",
+    "confidence": "exact",
+    "note": "Picture: Read from the Superdokan (Lebanon) listing, opened as its .json view (same URL + .json); listing barcode equals the catalog barcode. The listing has no ingredients or nutrition. nescafe.com/mena Gold page lists only jars (47.5/95/190 g) and showed no ingredient list; not used."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/Nescafe-Gold-pouch-100g-fro.jpg?v=1750326756",
+      "page_url": "https://superdokan.com/en-lb/products/nescafe-gold-rich-aroma-smooth-taste-100g",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one gold/brown Nescafe Gold stand-up pouch marked 100g (Arabic and English), white background, front view, no overlay"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
