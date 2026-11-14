@@ -1,0 +1,65 @@
+{
+  "sku": "AK-0073",
+  "matched": {
+    "brand": "Nadec",
+    "product": "UHT Milk Full Fat",
+    "size": "1 L",
+    "barcode": "6281057010011",
+    "confidence": "exact",
+    "note": "Barcode matches Open Food Facts (markets: Jordan, Saudi Arabia, United Arab Emirates) and superdokan.com (Lebanon). Ingredients, nutrition and allergens from Open Food Facts typed fields; the record marks the table 'per 100g' with serving '1 portion (100 ml)', and the pack photo header reads 'Average per 100ml'. Storage and origin read from the pack ingredients-panel photo (https://images.openfoodfacts.org/images/products/628/105/701/0011/ingredients_en.30.400.jpg). Open Food Facts labels field: 'No preservatives'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/JOR-6281057010011.jpg?v=1727861691",
+      "page_url": "https://superdokan.com/en-lb/products/nadec-full-cream-liquid-milk-full-fat-1l",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one carton, plain white background, no watermark/price, straight front view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/628/105/701/0011/front_en.53.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/6281057010011",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "tightly cropped photo of the carton front (older pack design), hand partly visible at the edge; not a clean pack shot"
+    }
+  ],
+  "ingredients": {
+    "text": "100% Fresh Cow's Milk, Fortified with Vitamins (A, D3), Fat min. 3%, Non-Fat Solids min. 8.5%.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/6281057010011",
+    "market": "Jordan, Saudi Arabia, United Arab Emirates"
+  },
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "allergens: milk (Open Food Facts allergens field)",
+    "page_url": "https://world.openfoodfacts.org/product/6281057010011"
+  },
+  "nutrition": {
+    "per": "100 ml",
+    "energy_kcal": 58,
+    "fat_g": 3,
+    "saturated_fat_g": 1.8,
+    "carbohydrate_g": 4.7,
+    "sugars_g": 4.7,
+    "fibre_g": 0,
+    "protein_g": 3.1,
+    "salt_g": 0.125,
+    "sodium_mg": 50,
+    "page_url": "https://world.openfoodfacts.org/product/6281057010011"
+  },
+  "storage": {
+    "text": "Store below 25°C. keep refrigerated after opening and consume within 3 days.",
+    "page_url": "https://world.openfoodfacts.org/product/6281057010011"
+  },
+  "origin": {
+    "country": "Saudi Arabia",
+    "page_url": "https://world.openfoodfacts.org/product/6281057010011"
+  },
+  "not_found": [
+    "diet_labels"
+  ]
+}

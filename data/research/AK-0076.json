@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0076",
+  "matched": {
+    "brand": "Klim",
+    "product": "Milk Powder Pouch",
+    "size": "750 g",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "No page with the catalog barcode 5283014105298 was found (not on Open Food Facts). superdokan.com (Lebanon) lists 'Nestle Klim Milk Fortified Full Cream Powder 750g' under a different barcode (6294003583873) with a nutrition table, and its only image file is named 'ChatGPTImage...' (apparently generated, not a pack photo); because barcode and recipe could differ, neither the figures nor the image were taken. carrefourlebanon.com has a 'Klim Full Cream Pouch 750g' page but it could not be opened (HTTP 503)."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

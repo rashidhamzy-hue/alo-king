@@ -1,0 +1,58 @@
+{
+  "sku": "AK-0068",
+  "matched": {
+    "brand": "Candia",
+    "product": "GrandLait UHT Lait Entier",
+    "size": "125 ml",
+    "barcode": "52820502",
+    "confidence": "exact",
+    "note": "Barcode matches Open Food Facts (market: Lebanon; quantity 125ml) and superdokan.com (Lebanon). Nutrition copied from the superdokan.com listing, which states it 'per 100g'. Calcium 120 mg. Open Food Facts has no ingredient list; its origins field says 'France' and manufacturing_places says 'lebanon' (conflicting, so origin left out)."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.libanlait.com/upload/3344websitecandia-uht-grandlait-entier-125ml.jpg",
+      "page_url": "https://www.libanlait.com/category/candia",
+      "site": "libanlait.com",
+      "site_kind": "brand",
+      "looks": "one pack, plain white background, no watermark/price, three-quarter front view (brand site pack shot)"
+    },
+    {
+      "image_url": "https://cdn.shopify.com/s/files/1/0078/7709/9618/files/816_18792.jpg?v=1711712663",
+      "page_url": "https://superdokan.com/en-lb/products/candia-milk-grandlait-full-fat-125ml",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one small carton, plain white background, no watermark/price, three-quarter front view"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/000/005/282/0502/front_en.4.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/52820502",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "hand-held close-up photo of the carton front, 125 ml visible, hand and background visible; not a clean pack shot"
+    }
+  ],
+  "allergens": {
+    "contains": [
+      "milk"
+    ],
+    "may_contain": [],
+    "quote": "labels: \"Contains milk\" (Open Food Facts labels field)",
+    "page_url": "https://world.openfoodfacts.org/product/52820502"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 63.5,
+    "fat_g": 3.1,
+    "saturated_fat_g": 2.1,
+    "carbohydrate_g": 5.8,
+    "sugars_g": 5.8,
+    "protein_g": 3.1,
+    "page_url": "https://superdokan.com/en-lb/products/candia-milk-grandlait-full-fat-125ml"
+  },
+  "not_found": [
+    "ingredients",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
