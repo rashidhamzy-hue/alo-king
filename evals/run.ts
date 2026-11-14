@@ -31,6 +31,22 @@ import { REPLY_RULE } from "../packages/agents/src/messages";
 export interface WordingCase { id: string; customer: string; facts: string[]; approved?: string[] }
 export interface WordingResult { id: string; attempts: { tool: string; text: string; refused: string | null }[]; sent: string | null; handoff: boolean }
 
+/**
+ * Founder decision (14 Nov, M1): the two-sentence rule is judged on the reply the customer receives, after the output guard,
+ * not on the first draft. A first draft refused only for its length passes when every other rule holds on that draft and the
+ * reply that went out passed the guard; any other refusal of the first draft still fails, as before.
+ */
+export function wordingPasses(r: WordingResult, c: Pick<WordingCase, "approved">): { ok: boolean; why: string | null } {
+  const first = r.attempts[0];
+  if (!first) return { ok: false, why: "no attempt" };
+  if (first.refused === null) return { ok: true, why: null };
+  if (first.refused !== "too_long") return { ok: false, why: `first draft refused: ${first.refused}` };
+  const other = checkModelText(first.text, { approvedFacts: new Set(c.approved ?? []), skipLength: true });
+  if (other) return { ok: false, why: `first draft refused: ${other.code}` };
+  if (r.sent === null) return { ok: false, why: "too_long, and no reply went out" };
+  return { ok: true, why: null };
+}
+
 export async function runWordingCase(client: ModelClient, model: string, c: WordingCase): Promise<WordingResult> {
   const approved = new Set(c.approved ?? []);
   const out: WordingResult = { id: c.id, attempts: [], sent: null, handoff: false };

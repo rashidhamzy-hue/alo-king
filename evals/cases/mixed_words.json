@@ -1,0 +1,23 @@
+{
+ "about": "Founder decision (14 Nov, M1): a 'mixed' word (mkhalta, مخلوطة, مشكّل, mix) joining two items is one mixed product when the catalog has one; otherwise the customer is asked which. Never two separate products, never one of the two alone. Each case is the customer's message and a reading the fast model gives (one item per line, as it cuts them). expect: a SKU (one line, that product), 'ask' (no product chosen for the pair; the question offers both items), or 'unchanged' (no mixed word joins two items: the planner's ordinary answer stands, given as the SKUs it chooses). Run by evals/test/mixed-words.test.ts through plan_order_core, no model. The live readings of hz0815/g0815 are in evals/language/zero-wrong.json.",
+ "cases": [
+  { "id": "mx-arabizi-latin", "text": "baddi bazella w jazar mkhalta, plein soleil",
+    "lines": ["bazella", "jazar mkhalta", "plein soleil"], "expect": "AK-0237" },
+  { "id": "mx-arabizi-read-in-arabic", "text": "baddi bazella w jazar mkhalta, plein soleil",
+    "lines": ["بزالة", "جزر مخلتة", "plein soleil"], "expect": "AK-0237" },
+  { "id": "mx-first-item-misread", "text": "baddi bazella w jazar mkhalta, plein soleil",
+    "lines": ["بذرة", "جزر مخلتة", "plein soleil"], "expect": "AK-0237" },
+  { "id": "mx-marker-own-line", "text": "baddi bazella w jazar mkhalta, plein soleil",
+    "lines": ["بزل", "جزر", "مخلتة"], "expect": "AK-0237" },
+  { "id": "mx-arabic", "text": "بدي كيس بازيلا وجزر مخلوطة",
+    "lines": ["كيس بازيلا", "جزر مخلوطة"], "expect": "AK-0237" },
+  { "id": "mx-english-mix-first", "text": "can I get a bag of mixed peas and carrots",
+    "lines": ["mixed peas", "carrots"], "expect": "AK-0237" },
+  { "id": "mx-no-mixed-product", "text": "baddi batata w jazar mkhalta",
+    "lines": ["batata", "jazar mkhalta"], "expect": "ask", "offers": ["AK-0001", "AK-0008"] },
+  { "id": "mx-no-mixed-word", "text": "baddi kilo batata w kilo jazar",
+    "lines": ["kilo batata", "kilo jazar"], "expect": "unchanged", "chosen": ["AK-0001", "AK-0008"] },
+  { "id": "mx-other-items-untouched", "text": "baddi 2 labne w bazella w jazar mkhalta",
+    "lines": ["2 labne", "bazella", "jazar mkhalta"], "expect": "AK-0237", "separate": ["2 labne"] }
+ ]
+}

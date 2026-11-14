@@ -106,6 +106,8 @@ const sentences = (t: string) => t.split(/[.!?؟؛;\n]+/u).map((x) => x.trim()).
 export interface CheckOptions {
   /** Food-fact attributes ("halal", "gluten", ...) for which a tool returned an approved record during this turn. */
   approvedFacts?: ReadonlySet<string>;
+  /** Leave out the length rule (M1): for the live evals only, which judge length on the reply sent and every other rule on the first draft. */
+  skipLength?: boolean;
 }
 
 /** M1: at most two sentences, each short. A line break ends a sentence too (a list is not two sentences). */
@@ -126,7 +128,7 @@ export function tooLong(text: string): string | null {
 export function checkModelText(text: string, opts: CheckOptions = {}): Violation | null {
   const money = moneyInText(text);
   if (money) return { code: "money_in_free_text", match: money };
-  const long = tooLong(text);
+  const long = opts.skipLength ? null : tooLong(text);
   if (long) return { code: "too_long", match: long };
   const t = normaliseForGuard(text);
   for (const re of SENSITIVE) { const m = re.exec(t); if (m) return { code: "sensitive_inference", match: m[0].trim() }; }
