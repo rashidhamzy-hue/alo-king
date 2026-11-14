@@ -6,15 +6,23 @@
     "size": "750 g",
     "barcode": "",
     "confidence": "unsure",
-    "note": "No page with the catalog barcode 5283014105298 was found (not on Open Food Facts). superdokan.com (Lebanon) lists 'Nestle Klim Milk Fortified Full Cream Powder 750g' under a different barcode (6294003583873) with a nutrition table, and its only image file is named 'ChatGPTImage...' (apparently generated, not a pack photo); because barcode and recipe could differ, neither the figures nor the image were taken. carrefourlebanon.com has a 'Klim Full Cream Pouch 750g' page but it could not be opened (HTTP 503)."
+    "note": "No page with the catalog barcode 5283014105298 was found (not on Open Food Facts). superdokan.com (Lebanon) lists 'Nestle Klim Milk Fortified Full Cream Powder 750g' under a different barcode (6294003583873) with a nutrition table, and its only image file is named 'ChatGPTImage...' (apparently generated, not a pack photo); because barcode and recipe could differ, neither the figures nor the image were taken. carrefourlebanon.com has a 'Klim Full Cream Pouch 750g' page but it could not be opened (HTTP 503). Gap pass: Matched to Spinneys Lebanon 'KLIM KLIM PWDR MILK ORIGINAL POUCH', size 750 G (brand shown as Klim, Nestle logo on pack); product page not opened, address and image read on the Powder Milk listing page. Listing carries no ingredients/nutrition text."
   },
   "not_found": [
-    "pictures",
     "ingredients",
     "allergens",
     "nutrition",
     "diet_labels",
     "storage",
     "origin"
+  ],
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/5/1/511609-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/klim-pwdr-milk-original-pouch-511609-v001.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one Klim (Nestle) milk powder pouch, front view, plain white background, no watermark/price; small '750g' print on the pack (viewed; 600x600)"
+    }
   ]
 }

@@ -6,7 +6,7 @@
     "size": "200 g",
     "barcode": "5283013317876",
     "confidence": "exact",
-    "note": "Spinneys Lebanon product page has the picture only (no ingredients, nutrition, origin). The Open Food Facts record for this barcode is named 'Beurre' (countries: Senegal), has no facts and its only photo is a barcode close-up, so nothing was taken from it. Carrefour Lebanon page could not be opened (HTTP 503)."
+    "note": "Spinneys Lebanon product page has the picture only (no ingredients, nutrition, origin). The Open Food Facts record for this barcode is named 'Beurre' (countries: Senegal), has no facts and its only photo is a barcode close-up, so nothing was taken from it. Carrefour Lebanon page could not be opened (HTTP 503). Gap pass: Spinneys Lebanon has a 'PLEIN SOLEIL UNSALTED BUTTER' page (catalog id 194339) and a value pack; the picture already listed comes from Spinneys, no cleaner source was found."
   },
   "pictures": [
     {

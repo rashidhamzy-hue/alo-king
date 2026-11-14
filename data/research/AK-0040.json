@@ -6,7 +6,7 @@
     "size": "by weight",
     "barcode": "2202960000000",
     "confidence": "unsure",
-    "note": "Sold loose / by weight from the deli counter. No brand or retailer page for this product could be opened in this session (carrefourlebanon.com returns HTTP 503 to the fetch tool; Spinneys Lebanon cheese listings checked do not carry this brand)."
+    "note": "Sold loose / by weight from the deli counter. No brand or retailer page for this product could be opened in this session (carrefourlebanon.com returns HTTP 503 to the fetch tool; Spinneys Lebanon cheese listings checked do not carry this brand). Gap pass: Spinneys Lebanon cheese listings (Block, White, Specialty and main Cheeses pages; first 58 of 137, 58 of 80 and 58 of the block page read) were read: no Filata product. Spinneys has shredded mozzarella from Plein Soleil and Picon only; different brands, not used."
   },
   "not_found": [
     "pictures",

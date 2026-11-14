@@ -6,7 +6,7 @@
     "size": "by weight (per kg)",
     "barcode": "2200371000000",
     "confidence": "unsure",
-    "note": "Sold loose / by weight from the deli counter. No brand or retailer page for this product could be opened in this session (carrefourlebanon.com returns HTTP 503 to the fetch tool; Spinneys Lebanon cheese listings checked do not carry this brand). Spinneys Lebanon lists 'Taanayel Les Fermes Double Creme Cheese vacuum 1 kg'; not confirmed to be the same brand/product, so not used."
+    "note": "Sold loose / by weight from the deli counter. No brand or retailer page for this product could be opened in this session (carrefourlebanon.com returns HTTP 503 to the fetch tool; Spinneys Lebanon cheese listings checked do not carry this brand). Spinneys Lebanon lists 'Taanayel Les Fermes Double Creme Cheese vacuum 1 kg'; not confirmed to be the same brand/product, so not used. Gap pass: Spinneys Lebanon lists 'TAANAYEL LES FERMES DOUBLE CREME CHEESE VACUUM' (1 KG) but not 'Leen Taanayel'; brand name does not match, so no picture added."
   },
   "not_found": [
     "pictures",
