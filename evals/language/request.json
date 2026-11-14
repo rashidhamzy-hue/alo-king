@@ -1,1 +1,1 @@
-{ "steps": [], "note": "commit {\"steps\": [\"after\"], \"repeat\": 2} to run the live eval (see the workflow header); add \"live\" for evals/live" }
+{ "steps": ["before", "after", "live"], "repeat": 1, "note": "SP1: the reading at output_config effort low (after) against main at the default effort (before); live adds the go-ahead cases. Commit {\"steps\": [\"after\"], \"repeat\": 2} to run the live eval again (see the workflow header)." }
