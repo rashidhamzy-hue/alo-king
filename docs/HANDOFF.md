@@ -613,6 +613,28 @@ For other sessions:
 - Anyone touching `save_customer_pin`: 0074 changed its meaning (the pin decides; `p_village` is only what the conversation believed). A test or script that saves a pin far from the village it names now gets the pin's village or none.
 - D2 or the next console session: the 1.23 review list (`search_word_reviews_open`, `resolve_search_word_review`).
 
+### Session P2 (research loader), 14 November 2026: founder decision "Product pictures from public pages"; migrations 0070, 0071
+Branch `claude/compassionate-goldberg-htngdk` (the branch this environment allows). Built and tested locally (PGlite with every migration, 19 cases in `scripts/product-data/test/research.test.mjs`; whole suite green; permission check on a fresh Postgres 16). The load itself runs only in GitHub Actions (`.github/workflows/research-load.yml`: by hand, and after every successful staging deploy from main; it always reads the files on main).
+
+| Part | Where | Tested by |
+| --- | --- | --- |
+| Pictures: `public_page` licence, usable by customers once a person approves | migration 0070 (`product_image_licence_usable()` accepts it; source kind and licence are a pair; the picture's address and its page, both https, are a check constraint; `product_image_coverage()` counts them). `unknown` (P1's search results) is still never shown | `research.test.mjs`: proposed then approved then withdrawn, the database refuses a public-page picture without its page and a search result filed as public page |
+| Pictures: download, vision, propose | `scripts/images/research-pictures.mjs` runs P1's own `evaluate()` and `decide()` on up to five candidates, best first; the first that passes is proposed. `cannot_tell` is a no; 800 px measured; a picture a person rejected is never re-proposed | same file |
+| Facts: ingredients, allergens, nutrition, diet labels, storage, origin | `scripts/product-data/lib/research.mjs`, migration 0071 (`propose_web_facts`): source `web_page`, status `partial`, page address and market in `detail`; a check constraint makes a web_page row unapprovable. No model is used | same file |
+| Repeatable | `research_loads` (item, part, sha-256 of the file): a part already loaded to the end is skipped, an edited file is loaded again, an error is always retried; an item that already has a usable picture gets no second one | same file |
+| Report | `research_load_coverage()`: items with a proposed picture, items with a proposed fact of each kind, approved-from-web (must be 0), and the items with no picture with the reason; printed in the run summary and the `research-load-report` artifact | same file |
+
+Decisions taken in code, written down:
+- **Allergens** only when the file carries the literal quote. Each named allergen must be stated by a clause of that quote with the same value (contains / may contain); "free from", "without" and "does not contain" never count; a page never says "free". An allergen the quote does not say is reported as not proposed.
+- **Diet labels**: only halal, vegetarian and vegan, as "yes", and only when the file's basis names the label. "Gluten free", "lactose free" (free statements, recorded from the pack at intake, as N1 decided) and "organic" (no attribute) are reported, not proposed. Fasting is never proposed.
+- **Nutrition** only per 100 g or 100 ml; a per-serving panel is not converted.
+- **Storage and origin** are two new food attributes (`storage`, `origin`) of kind `ingredients` (printed text in `detail.text`), so the shape trigger, the intake and food-facts pages and `product_meets_restrictions` (answers not_a_restriction) read them without change.
+- A file with match confidence `unsure` gives no facts; a picture-only file (loose produce) is fine.
+- `food_fact_review_queue()` counts web-page proposals on their own (`from_web_page`).
+- Migration 0072 is unused.
+
+Not built / not proven: the load against the real pages, the real model and the staging database has not run (no runs yet: `data/research/` holds only the README on main until R1-R3 merge). Nothing is approved by code: a person approves each picture on the console picture page and confirms each field against the pack at intake.
+
 ### B. Built, not covered end to end (written and type-checked; no test drives them)
 - The queue retry path (`queue()` in `index.ts`): the webhook path and `scheduled()` are now driven end to end in workerd (A2, 4.5); a hand-off failure that falls to the queue is not.
 - Deliverect adapter: shape only. Needs a partner account.
