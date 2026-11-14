@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0161",
+  "matched": {
+    "brand": "Master",
+    "product": "Chips Salt",
+    "size": "65 g",
+    "barcode": "5283003301816",
+    "confidence": "exact",
+    "note": "Spinneys Lebanon lists Master Salt Chips 70 G and 32 G, Autobar 120 g; no 65 g page found. Wrong sizes not recorded. Some blocks come from the Open Food Facts record for catalog barcode 5283003301816 (user-contributed, named \"(no name in record)\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/300/330/1816/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5283003301816",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one bag (Master, salt flavour), user photo on a fabric background, top of the bag slightly cropped"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

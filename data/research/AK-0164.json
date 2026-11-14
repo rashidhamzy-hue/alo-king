@@ -1,0 +1,31 @@
+{
+  "sku": "AK-0164",
+  "matched": {
+    "brand": "Dolsi",
+    "product": "Chips Cheezy Wizz",
+    "size": "80 g",
+    "barcode": "5287002276311",
+    "confidence": "exact",
+    "note": "No page found for Dolsi Cheezy Wizz 80 g. Some blocks come from the Open Food Facts record for catalog barcode 5287002276311 (user-contributed, named \"Cheesy wizz (Dolsi)\"); those blocks carry that page as their source."
+  },
+  "nutrition": {
+    "per": "serving (30 g)",
+    "energy_kcal": 172,
+    "fat_g": 11,
+    "saturated_fat_g": 8,
+    "carbohydrate_g": 17,
+    "sugars_g": 1,
+    "fibre_g": 1,
+    "protein_g": 1,
+    "salt_g": 0.45,
+    "page_url": "https://world.openfoodfacts.org/product/5287002276311"
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

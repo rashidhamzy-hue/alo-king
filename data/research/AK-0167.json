@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0167",
+  "matched": {
+    "brand": "Clorets",
+    "product": "Gum Original Mint 12 pieces",
+    "size": "16.8 g",
+    "barcode": "7622201430498",
+    "confidence": "unsure",
+    "note": "No page matching 12 pieces / 16.8 g found."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "sku": "AK-0163",
+  "matched": {
+    "brand": "Master",
+    "product": "Chips Cocktail",
+    "size": "100 g",
+    "barcode": "5283003325140",
+    "confidence": "exact",
+    "note": "Spinneys Lebanon lists Master Cocktail Chips 45 G only (brand list page); no 100 g page opened. Some blocks come from the Open Food Facts record for catalog barcode 5283003325140 (user-contributed, named \"Cocktail (Master)\"); those blocks carry that page as their source."
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 495,
+    "fat_g": 24,
+    "carbohydrate_g": 65,
+    "protein_g": 4.6,
+    "page_url": "https://world.openfoodfacts.org/product/5283003325140"
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "sku": "AK-0162",
+  "matched": {
+    "brand": "Ferrero",
+    "product": "Nutella Spread Chocolate Hazelnut",
+    "size": "350 g",
+    "barcode": "8000500007884",
+    "confidence": "likely",
+    "note": "Nutella 350 g pages found only in search snippets (UK/EU retail); mcgrocer returned 403, nutella.com 404. Nothing recorded. Some blocks come from the Open Food Facts record for catalog barcode 8000500007884 (user-contributed, named \"Nutella +10% Gratuit (promo pack)\"); those blocks carry that page as their source. The record quantity differs from the catalog size."
+  },
+  "allergens": {
+    "contains": [
+      "hazelnuts",
+      "milk",
+      "soy"
+    ],
+    "may_contain": [],
+    "quote": "Informations allergènes: Contient noisettes, lait, soja.",
+    "page_url": "https://world.openfoodfacts.org/product/8000500007884"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 539,
+    "fat_g": 31.6,
+    "saturated_fat_g": 11,
+    "carbohydrate_g": 57.3,
+    "sugars_g": 56.8,
+    "fibre_g": 4,
+    "protein_g": 6,
+    "page_url": "https://world.openfoodfacts.org/product/8000500007884"
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

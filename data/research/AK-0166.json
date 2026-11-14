@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0166",
+  "matched": {
+    "brand": "Krikita",
+    "product": "Cashew Pow Fried Salted",
+    "size": "14 g",
+    "barcode": "0022644078795",
+    "confidence": "unsure",
+    "note": "Only a Carrefour Lebanon snippet (Krikita Pow Salted Cashew 14 g, not described as fried); site refuses WebFetch."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
