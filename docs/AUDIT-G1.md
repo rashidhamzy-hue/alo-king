@@ -62,7 +62,7 @@ Statuses: **production-proven** (none: no production exists), **staging-proven**
 | Capability | Status | Evidence |
 | --- | --- | --- |
 | Sign-in, roles, audit before action | staging-proven (sign-in and page loads) | Console run 43562442212; actions proven on PGlite only |
-| 26 pages (today, payments, riders, exceptions, returns, refunds, catalog, fx, zones, merchants, pictures, day open/close, receiving, money, approvals, food facts, intake, cases, search words) | built and test-covered | `apps/console/test/` |
+| 21 page modules (today, payments, riders, exceptions, returns, refunds, catalog, fx, zones, merchants, pictures, day open/close, receiving, money, approvals, food facts, intake, cases, search words) | built and test-covered | `apps/console/test/` |
 | Names review, product readiness, windows and calendar, pick queue, rider incidents | not started | HANDOFF C2, C3, brief |
 | Mobile-first, installable, push | not started | Plain server pages today |
 | Founder assistant, analytics dashboard | not started | |
