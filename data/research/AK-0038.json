@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0038",
+  "matched": {
+    "brand": "Hawa Chicken",
+    "product": "Fresh Livers (catalog: Sawda Chicken Prepacked)",
+    "size": "by weight (pre-pack)",
+    "barcode": "2209213000000",
+    "confidence": "likely",
+    "note": "Matched to the brand store's 'Fresh Livers' on the assumption that 'Sawda' in the catalog name means chicken liver; a person should confirm. Item page shows name and price only: no weight, ingredients, storage, origin or halal text."
+  },
+  "pictures": [
+    {
+      "image_url": "https://backend.hawachicken.com/uploads/713/cd5d37d8-85bc-4438-ad02-4db413ecc77a.webp",
+      "page_url": "https://store.hawachicken.com/en/shop/item/134",
+      "site": "Hawa Chicken online store (store.hawachicken.com)",
+      "site_kind": "brand",
+      "looks": "one yellow tray of raw chicken livers with Hawa Chicken label band, angled front view, dark grey slate background (not plain white), no watermark/price; small image 300x180 (viewed)"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
