@@ -775,7 +775,7 @@ Requests for other sessions (C3 did not touch these files):
 - **Founder**: no windows or calendar dates exist anywhere yet, so scheduled orders are off until someone enters them: the windows and their capacity, the two cut-offs, and the Ramadan, Lent and holiday dates for 2027 (needed before February 2027).
 
 ### Session A4 (infra), 14 November 2026: audit items 1, 2, 3 (measure), 6, 8, 11; migrations 0090-0093
-Built and tested locally: PGlite with every migration, `npx tsc --noEmit` clean, `npx vitest run` 845 passed, 40 skipped (the live-only and
+Built and tested locally: PGlite with every migration, `npx tsc --noEmit` clean, `npx vitest run` 931 passed, 40 skipped after rebasing on K1, P2 and C3 (the live-only and
 real-Postgres suites; CI runs the real-Postgres ones). Each bug has its test first. "Live" below means after `deploy-staging` runs on main.
 Migration 0094 was reserved and not used.
 
@@ -826,6 +826,8 @@ run beside A4 and would conflict on it.
 For other sessions:
 - Anyone touching `heartbeat_alerts()` or `customer_notices_due()`: start from 0090 and 0093. A new heartbeat condition needs a stable
   ref (not the hour), or `clear_heartbeat_alarms()` closes it the next minute.
+- `shop_open_now()` is shared: K1 defined it (0087), 0090 redefines it identically for ordinary hours and adds hours past midnight.
+  Start from 0090 if you change it; `heartbeat_alerts()` and `kept_orders_due()` both read it.
 - K1, C3, D3: `TEST_DEPS.db` now also reaches the webhook and queue's database client (tests only).
 - A3 (4.11): read `ai_cost_daily`. When a model or price changes, add a row to `model_prices`; never edit a row.
 

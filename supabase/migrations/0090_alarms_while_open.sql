@@ -3,7 +3,7 @@
 -- Seen on staging: "heartbeat:probe_silent" opened a new ops exception every hour the shop was closed (12 open on 14 Nov),
 -- each with its own Sentry event and ops message, and nobody resolved them. Three causes, three fixes:
 --   1. The probe orders only while the shop is open (outside hours its message gets the "we're closed" reply, no order).
---      probe_silent now needs the shop open AND three probe periods since the later of: the last probe order, the probe's
+--      probe_silent now needs the shop open (shop_open_now(), K1's 0087 rule) AND three probe periods since the later of: the last probe order, the probe's
 --      creation, and the moment the shop last opened. Opening hours that run past midnight are handled.
 --   2. The ref was the hour ('2026-11-14T05'), so every hour of one silence was a new case. Conditions now carry a stable
 --      ref (probe_silent: 'probe', inbound_silent: 'customer_line', cron_gap: 'cron'); probe_stuck stays per order.
@@ -13,18 +13,21 @@
 --      with a person.
 -- heartbeat_alerts() is 0063's text with these changes; nothing else in it moved.
 
+-- shop_open_now() is K1's (0087): open <= now < close, the same rule as quote_order's `closed` issue. Kept exactly for
+-- ordinary hours; the one addition is hours that run past midnight (open later than close), which 0087 read as always closed.
 create or replace function shop_open_now() returns boolean language sql stable as $$
   select case when (v->>'open')::time <= (v->>'close')::time
-              then (now() at time zone (v->>'tz'))::time between (v->>'open')::time and (v->>'close')::time
-              else (now() at time zone (v->>'tz'))::time >= (v->>'open')::time or (now() at time zone (v->>'tz'))::time <= (v->>'close')::time end
-    from (select setting('hours') v) h $$;
+              then not (t < (v->>'open')::time or t >= (v->>'close')::time)
+              else t >= (v->>'open')::time or t < (v->>'close')::time end
+    from (select setting('hours') v) h,
+         lateral (select (now() at time zone coalesce(h.v->>'tz', 'Asia/Beirut'))::time as t) n $$;
 
 -- The last moment the shop opened (today's opening if it has passed, else yesterday's), as a timestamp.
 create or replace function shop_opened_at() returns timestamptz language sql stable as $$
-  select (case when (now() at time zone (v->>'tz'))::time >= (v->>'open')::time
-               then (now() at time zone (v->>'tz'))::date else (now() at time zone (v->>'tz'))::date - 1 end
-          + (v->>'open')::time) at time zone (v->>'tz')
-    from (select setting('hours') v) h $$;
+  select (case when (now() at time zone z)::time >= (v->>'open')::time
+               then (now() at time zone z)::date else (now() at time zone z)::date - 1 end
+          + (v->>'open')::time) at time zone z
+    from (select setting('hours') v) h, lateral (select coalesce(h.v->>'tz', 'Asia/Beirut') as z) tz $$;
 
 create or replace function heartbeat_alerts() returns jsonb language sql stable as $$
   with s as (select setting('heartbeat') h, setting('probe') p),
