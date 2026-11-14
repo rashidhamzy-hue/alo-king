@@ -12,9 +12,9 @@ const sites = JSON.parse(readFileSync(new URL("../brand-sites.json", import.meta
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
 describe("licence rules (5.17 step 4)", () => {
-  it("the source decides the licence, and only three licences reach customers", () => {
-    expect(LICENCE_FOR).toEqual({ open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo" });
-    expect(["cc_by_sa", "brand_own", "own_photo"].every(customerUsable)).toBe(true);
+  it("the source decides the licence; a search result (unknown) never reaches customers, a research file's public page may (founder decision, 14 Nov)", () => {
+    expect(LICENCE_FOR).toEqual({ open_food_facts: "cc_by_sa", brand_site: "brand_own", web_search: "unknown", intake_photo: "own_photo", public_page: "public_page" });
+    expect(["cc_by_sa", "brand_own", "own_photo", "public_page"].every(customerUsable)).toBe(true);
     expect(customerUsable("unknown")).toBe(false);
     expect(customerUsable(undefined)).toBe(false);
   });
