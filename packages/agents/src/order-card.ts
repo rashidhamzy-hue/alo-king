@@ -1,5 +1,5 @@
 // The order card: the one message that turns a conversation into a commitment. Built from the quote, never from model text.
-import { buttons, type Outbound } from "@ak/wa/kapso";
+import { buttons, list, type Outbound } from "@ak/wa/kapso";
 
 export interface QuoteLine { name: string; name_ar: string | null; qty: number; unit: string; line_total_usd: number; modifiers?: string[]; note?: string | null }
 export interface Quote {
@@ -13,9 +13,15 @@ export interface Quote {
   /** What we owed the customer, taken off this order (apply_customer_credit, C2's request). Already taken off total_usd. */
   credit_usd?: number;
 }
+/** A delivery window as the database gives it (window_json, migration 0040): the hub's local date and times, never computed here. */
+export interface DeliveryWindow { slot_id: string; date: string; dow: number; day_offset: number; starts: string; ends: string }
 export interface CardInput { orderId: string; shortCode: string; quote: Quote; paymentMethod: "cod" | "whish" | "omt"; changeForUsd?: number | null;
   /** Why cash on delivery was refused and the order is paid in advance (from create_order_from_quote's issues). */
-  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null }
+  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null;
+  /** 2.8: the window the customer chose (request_delivery_window). Absent: deliver now. */
+  window?: DeliveryWindow | null;
+  /** 2.8: this card changes an order already confirmed (link_replacement_order): its short code. */
+  replaces?: string | null }
 
 const money = (n: number) => `$${Number(n).toFixed(2)}`;
 const lbp = (n: number) => `${Math.round(n).toLocaleString("en-US")} ل.ل`;
@@ -37,6 +43,20 @@ export function parsePinVillageButton(id: string): string | null {
   return m ? m[1]! : null;
 }
 
+// 2.8: the windows a card may offer, one list row each. The database lists only open windows with room (open_delivery_windows).
+export const windowButtonId = (slotId: string | "now", orderId: string) => `slot:${slotId}:${orderId}`;
+export function parseWindowButton(id: string): { slotId: string | null; orderId: string } | null {
+  const m = /^slot:([0-9a-f-]{36}|now):([0-9a-f-]{36})$/.exec(id);
+  return m ? { slotId: m[1] === "now" ? null : m[1]!, orderId: m[2]! } : null;
+}
+const DAY_AR = ["", "الاتنين", "التلاتا", "الأربعا", "الخميس", "الجمعة", "السبت", "الأحد"];
+/** «بكرا 10:00-12:00», «الجمعة 21/11، 10:00-12:00». From the database's local date and times; no clock or time zone here. */
+export function windowLabel(w: DeliveryWindow): string {
+  const [, mm, dd] = w.date.split("-");
+  const day = w.day_offset === 0 ? "اليوم" : w.day_offset === 1 ? "بكرا" : `${DAY_AR[w.dow] ?? ""} ${Number(dd)}/${Number(mm)}،`;
+  return `${day} ${w.starts}-${w.ends}`;
+}
+
 const BODY_LIMIT = 1024;   // WhatsApp's limit for an interactive message body
 
 export const CARD_TEXT = {
@@ -45,7 +65,22 @@ export const CARD_TEXT = {
   smallOrderLine: "رسم الطلبات الصغيرة",
   prepayFirst: (how: string, cap: string) => `أول طلب كاش لحدّ ${cap}. هالطلب أكبر، فبينّدفع سلف (${how}) قبل ما نبلّش بالتحضير. بعد التأكيد منبعتلك التفاصيل.`,
   prepay: (how: string) => `بما إنو في مبلغ مستحق من قبل، هالطلب بينّدفع سلف (${how}) قبل ما نبلّش بالتحضير. بعد التأكيد منبعتلك التفاصيل.`,
+  /** 2.8 */
+  windowLine: "التوصيل",
+  replaces: (code: string) => `هالورقة بتحلّ محل طلبك ${code}. ما بيتغيّر شي قبل ما تأكّدها.`,
+  chooseWindow: "أيمتى بدك ياه؟ هيدي الأوقات يلي فينا نوصّل فيها:",
+  windowButton: "اختار الوقت",
+  now: "هلّق (أقرب وقت)",
+  noWindow: "ما في أوقات فاضية للتوصيل بالأيام الجاية. فيك تطلب هلّق، أو تكتبلنا ومنشوف.",
 };
+
+/** 2.8: the open windows as a list (at most ten rows; the database never lists a full one). `withNow` adds "now" as a row. */
+export function formatWindowChoice(orderId: string, windows: DeliveryWindow[], opts: { withNow?: boolean; body?: string } = {}): Outbound {
+  if (windows.length === 0) return { type: "text", text: { body: CARD_TEXT.noWindow } };
+  const rows = [...(opts.withNow ? [{ id: windowButtonId("now", orderId), title: CARD_TEXT.now }] : []),
+                ...windows.map((w) => ({ id: windowButtonId(w.slot_id, orderId), title: windowLabel(w) }))];
+  return list(opts.body ?? CARD_TEXT.chooseWindow, CARD_TEXT.windowButton, rows.slice(0, 10));
+}
 
 export function formatOrderCard(input: CardInput): Outbound {
   const { quote: q } = input;
@@ -62,12 +97,14 @@ export function formatOrderCard(input: CardInput): Outbound {
   const credit = Number(q.credit_usd ?? 0);
   if (credit > 0) tail.push(`${CARD_TEXT.creditLine}: -${money(credit)}`);
   tail.push(`الإجمالي: ${money(q.total_usd)}${q.total_lbp ? ` أو ${lbp(q.total_lbp)}` : ""}`);
-  tail.push(q.pickup ? "استلام من المحل" : q.eta_minutes ? `الوصول خلال حوالي ${q.eta_minutes} دقيقة` : "توصيل");
+  tail.push(q.pickup ? "استلام من المحل" : input.window ? `${CARD_TEXT.windowLine}: ${windowLabel(input.window)}`
+                    : q.eta_minutes ? `الوصول خلال حوالي ${q.eta_minutes} دقيقة` : "توصيل");
   tail.push(`الدفع: ${PAY[input.paymentMethod]}`);
   // Policy (0004): someone who owes pays the next order in advance. Say so on the card, before the tap, not after.
   if (input.paymentMethod !== "cod" && input.prepay?.reason === "first_order") tail.push(CARD_TEXT.prepayFirst(PAY[input.paymentMethod], money(input.prepay.maxCodUsd)));
   else if (dues > 0 && input.paymentMethod !== "cod") tail.push(CARD_TEXT.prepay(PAY[input.paymentMethod]));
   if (input.changeForUsd && input.paymentMethod === "cod") tail.push(`الصرافة: منجيب معنا فراطة لـ ${money(input.changeForUsd)}`);
+  if (input.replaces) tail.push(CARD_TEXT.replaces(input.replaces));
   tail.push("", CONSENT_LINE);
 
   const itemLines = q.lines.map((l) => {
@@ -91,17 +128,26 @@ export function formatOrderCard(input: CardInput): Outbound {
   ]);
 }
 
-/** Fixed replies to the three buttons. Deterministic text, no model. */
-export function buttonReplyText(r: { status: string; short_code: string; changed: boolean; payment_method?: string; total_usd?: number },
+/** Fixed replies to the three buttons. Deterministic text, no model. 2.8 adds the window and the scheduled-order answers. */
+export function buttonReplyText(r: { status: string; short_code: string; changed: boolean; payment_method?: string; total_usd?: number;
+                                     window?: DeliveryWindow | null; replaces?: string; credit_usd?: number },
                                 transferTo: { whish?: string; omt?: string } = {}): string {
+  const when = r.window ? windowLabel(r.window) : null;
   switch (r.status) {
-    case "confirmed": return `تم تأكيد طلبك ${r.short_code} ✅ عم نحضّرو هلق.`;
+    case "confirmed":
+      if (r.replaces && when) return `تم التعديل ✅ طلبك ${r.short_code} بدل ${r.replaces}، والتوصيل ${when}.`;
+      return when ? `تم تأكيد طلبك ${r.short_code} ✅ التوصيل ${when}.` : `تم تأكيد طلبك ${r.short_code} ✅ عم نحضّرو هلق.`;
     case "awaiting_payment": {
       const ch = r.payment_method === "omt" ? `OMT${transferTo.omt ? ` على ${transferTo.omt}` : ""}` : `Whish${transferTo.whish ? ` على ${transferTo.whish}` : ""}`;
-      return `تم حجز طلبك ${r.short_code}. حوّل ${money(r.total_usd ?? 0)} عبر ${ch} وابعت صورة الإيصال هون لنبلّش بالتحضير.`;
+      return `تم حجز طلبك ${r.short_code}${when ? ` للتوصيل ${when}` : ""}. حوّل ${money(r.total_usd ?? 0)} عبر ${ch} وابعت صورة الإيصال هون لنبلّش بالتحضير.`;
     }
     case "draft": return `تمام، شو بتحب تغيّر بطلب ${r.short_code}؟`;
-    case "cancelled": return `تم إلغاء طلب ${r.short_code}.`;
+    case "cancelled": return `تم إلغاء طلب ${r.short_code}.${Number(r.credit_usd ?? 0) > 0 ? ` المبلغ يلي دفعتو (${money(r.credit_usd!)}) صار رصيد إلك، منرجّعلك ياه أو منحسمو من طلبك الجاي.` : ""}`;
+    case "slot_full": return `الوقت يلي اخترتو${when ? ` (${when})` : ""} امتلى قبل ما تأكّد، فما ثبّتنا الطلب ${r.short_code}. اختار وقت تاني أو اكتبلنا.`;
+    case "slot_closed": return `ما عاد فينا نوصّل${when ? ` ${when}` : " بهالوقت"}: فات آخر وقت للطلب، فما ثبّتنا الطلب ${r.short_code}. اختار وقت تاني أو اكتبلنا.`;
+    case "change_open": return `تمام، شو بتحب تغيّر بطلب ${r.short_code}${when ? ` (${when})` : ""}؟ منبعتلك ورقة جديدة، وما بيتغيّر شي قبل ما تأكّدها.`;
+    case "too_late":
+    case "change_too_late": return `فات آخر وقت لتغيير طلب ${r.short_code}${when ? ` (${when})` : ""} أو إلغائو من هون. إذا في شي ضروري اكتبلنا ومنشوف.`;
     default: return `طلبك ${r.short_code} صار قيد التنفيذ وما بقى فينا نعدّلو من هون. إذا في شي ضروري اكتبلنا.`;
   }
 }
