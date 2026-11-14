@@ -1,0 +1,49 @@
+{
+  "sku": "AK-0196",
+  "matched": {
+    "brand": "Plein Soleil",
+    "product": "White Tuna in Oil (solid)",
+    "size": "185 g x 3",
+    "barcode": "5285000837695",
+    "confidence": "exact",
+    "note": "Open Food Facts record for this barcode is titled 'White tuna' with no brand or quantity (front image not matched by name, no brand text), so nothing from it was used. Nutrition is from the Superdokan page for this 3-pack (Lebanon) which matches the single-can page."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/144857_main.jpg?v=1723550989",
+      "page_url": "https://superdokan.com/en-lb/products/plein-soleil-white-tuna-in-oil-185g-3",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "three cans stacked, plain white background, no watermark/logo/price/text, front view; matches the x3 pack"
+    },
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/PS-White-Tuna-in-Oil-185g-flat5285000834885_41c994f2-a56c-4b28-a117-ac152073e4de.png?v=1747739802",
+      "page_url": "https://superdokan.com/en-lb/products/plein-soleil-white-tuna-in-oil-185g",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one can, white background, no watermark/price/text, front view; single unit"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/2/0/209235-v001-1_1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/plein-soleil-white-tuna-in-vegetable-oil-canned-185g.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one small can centred, plain white background, no watermark/price/text, front view; single unit"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 186,
+    "fat_g": 8,
+    "carbohydrate_g": 0,
+    "protein_g": 27,
+    "page_url": "https://superdokan.com/en-lb/products/plein-soleil-white-tuna-in-oil-185g-3"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

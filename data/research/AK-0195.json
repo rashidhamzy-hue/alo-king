@@ -1,0 +1,42 @@
+{
+  "sku": "AK-0195",
+  "matched": {
+    "brand": "Siblou",
+    "product": "White Tuna (solid) in Vegetable Oil",
+    "size": "185 g (catalog item is a pack of 3)",
+    "barcode": "5283014929993",
+    "confidence": "likely",
+    "note": "Facts and pictures are from the single 185 g can page of the same product (multipack of identical units); the brand page lists only the 185 g size."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.siblou.com/upload/productimages/1777463958Siblou-White-Meat-Tuna-in-oil_(Large).png",
+      "page_url": "https://www.siblou.com/product-view.php?product=OTQ%3D",
+      "site": "siblou.com",
+      "site_kind": "brand",
+      "looks": "one can, transparent/white background, no watermark/price/text overlay, three-quarter front view; single unit of the multipack"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/6e2b65635d989aca0c9c17976a13dc90/1/6/163836-v001-1_1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/siblou-white-tuna-in-oil-185g.html",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one can, plain white background, no watermark/logo/price/text, three-quarter front view; single unit"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 186,
+    "fat_g": 8,
+    "carbohydrate_g": 0,
+    "protein_g": 27,
+    "page_url": "https://www.siblou.com/product-view.php?product=OTQ%3D"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

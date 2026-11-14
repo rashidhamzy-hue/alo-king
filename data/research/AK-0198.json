@@ -1,0 +1,51 @@
+{
+  "sku": "AK-0198",
+  "matched": {
+    "brand": "Cortas",
+    "product": "Hommos Tahina (Hummus Tahina chickpea dip)",
+    "size": "400 g",
+    "barcode": "735143083626",
+    "confidence": "exact",
+    "note": "Open Food Facts record 0735143083626 'Hummos Tahina', brand Cortas, 400g, matches. Its front photo shows an older low-resolution label so the picture is from the Albasha page (export/US market) which carries the same barcode in its URL."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.albasha.store/cdn/shop/files/cortas-hummus-dip-400g-preservative-free-735143083626-front.png",
+      "page_url": "https://www.albasha.store/products/cortas-hummus-dip-400g-preservative-free-735143083626",
+      "site": "albasha.store",
+      "site_kind": "retailer",
+      "looks": "one can, white background with soft shadow, front view, no watermark/logo/price/text overlay"
+    }
+  ],
+  "ingredients": {
+    "text": "Chick peas, tahina (sesame paste), citric acid, sea salt.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/0735143083626",
+    "market": "Open Food Facts (Lebanon-origin product)"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 116.7,
+    "fat_g": 3.3,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 16.7,
+    "sugars_g": 0,
+    "fibre_g": 6.7,
+    "protein_g": 6.7,
+    "salt_g": 1.2,
+    "sodium_mg": 466.7,
+    "page_url": "https://world.openfoodfacts.org/product/0735143083626"
+  },
+  "storage": {
+    "text": "Keep the unopened can in a cool, dry place. After opening, transfer unused dip to a covered food-safe container and refrigerate.",
+    "page_url": "https://www.albasha.store/products/cortas-hummus-dip-400g-preservative-free-735143083626"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://world.openfoodfacts.org/product/0735143083626"
+  },
+  "not_found": [
+    "allergens",
+    "diet_labels"
+  ]
+}
