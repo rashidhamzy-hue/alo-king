@@ -84,4 +84,20 @@ do $$ declare n int; t text; begin
   end loop;
   raise notice 'none of our functions is callable by PUBLIC, anon or authenticated, and no table grant escapes row level security';
 end $$;
+-- G1-11 (F1, 0103): every function of ours carries its own search_path, so no caller's path can change what a name means.
+-- A migration that creates or redefines a function ends with `select pin_search_paths();` (CREATE OR REPLACE drops a SET clause).
+do $$ declare t text; n int; begin
+  select string_agg(p.oid::regprocedure::text, ', ' order by p.proname), count(*) into t, n from pg_proc p
+   where p.pronamespace = 'public'::regnamespace and p.prokind in ('f', 'p')
+     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}'::text[])) c where c like 'search_path=%');
+  if n > 0 then raise exception '% functions have no fixed search_path (end the migration with select pin_search_paths();): %', n, t; end if;
+  -- A function that calls a trigram function must find the extensions schema on its own path (C1, 0020).
+  select string_agg(p.proname, ', ') into t from pg_proc p
+   where p.pronamespace = 'public'::regnamespace and p.prokind in ('f', 'p')
+     and regexp_replace(p.prosrc, '''[^'']*''', '', 'g') ~* '(similarity|word_similarity|show_trgm)\s*\('
+     and not exists (select 1 from unnest(p.proconfig) c where c like 'search_path=%extensions%');
+  if t is not null then raise exception 'functions that call trigram functions lack the extensions schema on their search_path: %', t; end if;
+  raise notice 'every function in public has a fixed search_path';
+end $$;
 SQL
