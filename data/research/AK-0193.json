@@ -1,0 +1,53 @@
+{
+  "sku": "AK-0193",
+  "matched": {
+    "brand": "Plein Soleil",
+    "product": "Sweet Corn",
+    "size": "340 g",
+    "barcode": "5285000834069",
+    "confidence": "exact",
+    "note": "SuperDokan (Lebanon) page 'Plein Soleil Sweet Corn Canned 340g', barcode matches. Page lists salt as '540 mg' (not converted, so salt_g left empty). No ingredient list on page. Some blocks come from the Open Food Facts record for catalog barcode 5285000834069 (user-contributed, named \"Plein Soleil Sweet Corn, 340g, 250g Drained\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/PS-Sweet-Corn-340g-flat5285000834069.png?v=1747740845",
+      "page_url": "https://superdokan.com/en-lb/products/plein-soleil-sweet-corn-340g",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one can, transparent/white background, front view, Net Weight 340g readable, no watermark/price, 968x1113"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/083/4069/front_en.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285000834069",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one can, white background, front view, no overlay"
+    }
+  ],
+  "ingredients": {
+    "text": "Sweet corn, water, sugar and salt.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/5285000834069",
+    "market": "Lebanon"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 80,
+    "fat_g": 1.5,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 15,
+    "sugars_g": 6,
+    "fibre_g": 3,
+    "protein_g": 2.5,
+    "page_url": "https://superdokan.com/en-lb/products/plein-soleil-sweet-corn-340g"
+  },
+  "origin": {
+    "country": "Thailand",
+    "page_url": "https://world.openfoodfacts.org/product/5285000834069"
+  },
+  "not_found": [
+    "allergens",
+    "storage",
+    "diet_labels"
+  ]
+}

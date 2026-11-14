@@ -1,0 +1,28 @@
+{
+  "sku": "AK-0189",
+  "matched": {
+    "brand": "Zain",
+    "product": "Red Split Lentils (Adass Majrouch)",
+    "size": "900 g",
+    "barcode": "5285000716037",
+    "confidence": "exact",
+    "note": "SuperDokan (Lebanon) page barcode matches the catalog."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/Picsart_24-09-04_12-34-32-384.jpg?v=1725521814",
+      "page_url": "https://superdokan.com/en-lb/products/zain-red-split-lentils-900g",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one bag of red split lentils, white background, front view, no size readable, no watermark/price, 3000x4000"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}
