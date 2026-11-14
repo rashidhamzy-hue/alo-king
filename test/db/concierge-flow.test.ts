@@ -7,7 +7,7 @@ import { ConversationDO, type Env } from "../../apps/gateway/src/index";
 import { processTurn, runTurn, type Pending, type TurnDeps } from "../../apps/gateway/src/turn";
 import { send as gatewaySend } from "@ak/wa/gateway";
 import { formatOrderCard, orderButtonId, parseOrderButton, type Quote } from "@ak/agents/order-card";
-import { ar, en } from "@ak/agents/messages";
+import { ar, en, REPLY_RULE } from "@ak/agents/messages";
 const CONSENT_LINE = ar.card.consent;
 import { preflight } from "@ak/wa/gateway";
 import { repeatButtonId } from "@ak/agents/answers";
@@ -182,6 +182,9 @@ describe("parse once, then the database (1.1)", () => {
     expect(second.plan.next).toBe("ask");
     expect(second.plan.lines[0].status).toBe("ambiguous");          // labneh at 0.67 and at 5.00 are not interchangeable
     expect(second.plan.lines[0].candidates).toHaveLength(3);
+    // M1: the length rule goes with the ask loop's input only; the reading's input is unchanged.
+    expect(second.reply_rule).toBe(REPLY_RULE);
+    expect(JSON.stringify(t.seen[0]!)).not.toContain(REPLY_RULE);
     expect(t.rpcCalls.filter((c) => c.fn === "search_catalog")).toHaveLength(0);   // plan_order searched, inside the database
     expect(outbound).toHaveLength(1);
     const c = await t.customer();

@@ -26,6 +26,7 @@ export function scoreLines(truth: TruthLine[], got: { query: string; qty: number
 // Live only: needs a model. `ALO_LIVE_EVAL=1 ANTHROPIC_API_KEY=... npx vitest run evals/live` (see evals/README.md).
 import { runAskLoop, type ConciergeTools, type ModelClient } from "../packages/agents/src/concierge";
 import { checkModelText } from "../packages/agents/src/output-guard";
+import { REPLY_RULE } from "../packages/agents/src/messages";
 
 export interface WordingCase { id: string; customer: string; facts: string[]; approved?: string[] }
 export interface WordingResult { id: string; attempts: { tool: string; text: string; refused: string | null }[]; sent: string | null; handoff: boolean }
@@ -47,7 +48,9 @@ export async function runWordingCase(client: ModelClient, model: string, c: Word
     reply: speak("reply"),
     handoff_human: async () => { out.handoff = true; return { ok: true }; },
   };
-  await runAskLoop(client, model, { texts: [c.customer], transcripts: [], state: { facts_from_tools: c.facts }, reading: null, plan: null }, tools);
+  // The ask loop's input as turn.ts sends it, with M1's length rule.
+  const ask = { texts: [c.customer], transcripts: [], state: { facts_from_tools: c.facts }, reading: null, plan: null, reply_rule: REPLY_RULE };
+  await runAskLoop(client, model, ask, tools);
   return out;
 }
 

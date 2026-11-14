@@ -17,7 +17,7 @@ import { buttonReplyText, formatWindowChoice, KEPT_BUTTON, parseOrderButton, par
 import { orderWindowTap, schedules, whenOnly } from "@ak/agents/windows";
 import { readVoiceNote, type SttProvider } from "@ak/agents/stt";
 import { readPaymentProof, takePaymentProof } from "@ak/agents/payment-proof";
-import { langFromReading, langOfText, messages, STAFF_LANG, villageName } from "@ak/agents/messages";
+import { langFromReading, langOfText, messages, REPLY_RULE, STAFF_LANG, villageName } from "@ak/agents/messages";
 import { answerMemory, handleMemoryButton, memoryCommand, offerToRemember } from "@ak/agents/memory";
 import { decideVoice } from "@ak/agents/voice";
 import { FEEDBACK_TEXT, parseFeedbackButton } from "@ak/agents/feedback";
@@ -434,7 +434,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     const routed = await planReading(ctx, intent, said);
     if (routed.done) { if (stated.length) await offerToRemember(ctx, stated); remember(); await record("ok", routed.path); return { outcome: routed.path === "handoff" ? "agent_handoff" : routed.path.includes("card") || routed.path === "ask_pin" ? "card" : "answered", sent }; }
     // 3. Only a question needs the tool loop.
-    const res = await runAskLoop(model, deps.modelName, { ...input, reading: intent, plan: routed.plan }, makeConciergeTools(ctx));
+    // M1: the length rule goes with the ask loop's input, never into the reading's prompt (REPLY_RULE).
+    const ask = { ...input, reading: intent, plan: routed.plan, reply_rule: REPLY_RULE };
+    const res = await runAskLoop(model, deps.modelName, ask, makeConciergeTools(ctx));
     add(res.usage);
     if (stated.length && res.outcome === "ok") await offerToRemember(ctx, stated);
     remember();

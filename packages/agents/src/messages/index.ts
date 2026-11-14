@@ -18,6 +18,13 @@ export function messages(lang?: string | null): Messages {
 }
 export const asLang = (lang?: string | null): Lang => (lang === "en" || lang === "fr" ? lang : "ar");
 
+/**
+ * M1: the length rule for the model's own words (SYSTEM_BRIEF rule 3), sent with the ask loop's input only. The reading and the
+ * ask loop share the system prompt and the tools, and a line there moved the reading (language-pack runs 43629416444 and
+ * 43632950715: «bazella w jazar mkhalta» read wrong both times with it, right without it). The output guard enforces it either way.
+ */
+export const REPLY_RULE = "Your own words (reply, ask_location_pin) are at most two short sentences: one thing at a time; offer choices as buttons. The system sends cards, lists and totals.";
+
 /** Staff on the ops line read Arabic: no staff language is stored yet. One constant, so a later setting replaces it in one place. */
 export const STAFF_LANG: Lang = "ar";
 
