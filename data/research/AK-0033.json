@@ -1,0 +1,35 @@
+{
+  "sku": "AK-0033",
+  "matched": {
+    "brand": "Tanmia",
+    "product": "Chicken Tenders (loose)",
+    "size": "by weight (pre-pack)",
+    "barcode": "2200474000000",
+    "confidence": "likely",
+    "note": "Catalog item is sold loose by weight; pictures are the brand's retail bags 'TANMIA TENDERS' (900 G product page opened; the '500' bag read on the brand listing page only). Breaded product, but no ingredient or allergen text was found on any page opened: allergens are UNKNOWN, not absent. Spinneys Lebanon product pages opened for this brand show name, size, price and an 'About The Brand' text only: no ingredients, allergens, nutrition, storage or origin. Brand site (tanmia.com.lb) returned 503; carrefourlebanon.com returned 503; barcode not on Open Food Facts."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/5/8/589082-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/tenders.html",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one Tanmia 'Chicken Breast Tenders' printed bag marked x21 family size, front view, plain white background, no watermark/price; retailer lists 900 G (catalog item is sold loose) (viewed; 600x600; retailer product name: TANMIA TENDERS 900 G)"
+    },
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/6/1/610306-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/catalog/product/view/id/272334/s/tenders/category/2/",
+      "site": "Spinneys Lebanon (spinneyslebanon.com)",
+      "site_kind": "retailer",
+      "looks": "one Tanmia 'Chicken Breast Tenders' printed bag marked x12, front view, plain white background, no watermark/price; retailer lists size '500' (catalog item is sold loose) (viewed; 600x600; retailer product name: TANMIA TENDERS 500)"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
