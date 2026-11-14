@@ -1,0 +1,39 @@
+{
+  "sku": "AK-0168",
+  "matched": {
+    "brand": "El Rashidi El Mizan",
+    "product": "Jam Strawberry",
+    "size": "340 g",
+    "barcode": "6223000052778",
+    "confidence": "exact",
+    "note": "Carrefour Egypt page returned 503; only snippets seen. Nothing recorded. Some blocks come from the Open Food Facts record for catalog barcode 6223000052778 (user-contributed, named \"Premium jam\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/622/300/005/2778/front_fr.8.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/6223000052778",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one jar, user photo, partly empty jar on a cluttered background"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 240,
+    "fat_g": 0,
+    "saturated_fat_g": 0,
+    "carbohydrate_g": 60,
+    "sugars_g": 60,
+    "fibre_g": 0,
+    "protein_g": 0,
+    "salt_g": 0.0625,
+    "page_url": "https://world.openfoodfacts.org/product/6223000052778"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

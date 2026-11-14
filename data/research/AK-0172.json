@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0172",
+  "matched": {
+    "brand": "Maggi",
+    "product": "Stock Cubes Chicken",
+    "size": "20 g",
+    "barcode": "6221007006787",
+    "confidence": "unsure",
+    "note": "Spinneys UAE Maggi page returned 404; nestleprofessionalmena pages were not retail cube. Nothing recorded."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

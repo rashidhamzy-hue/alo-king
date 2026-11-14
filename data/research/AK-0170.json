@@ -1,0 +1,38 @@
+{
+  "sku": "AK-0170",
+  "matched": {
+    "brand": "Mentos",
+    "product": "Incredible Chew Strawberry",
+    "size": "45 g",
+    "barcode": "8935001726005",
+    "confidence": "likely",
+    "note": "Spinneys UAE page titled 'Mentos Incredible Chew Strawberry 45g'; no barcode on page; market UAE. Page has no usable image URL (placeholder only). Some blocks come from the Open Food Facts record for catalog barcode 8935001726005 (user-contributed, named \"Mentos strawberry flavor\"); those blocks carry that page as their source."
+  },
+  "ingredients": {
+    "text": "Sugar (44%), Glucose syrup (42%), Modified coconut oil (9%), Concentrate strawberry juice (0.3%), Stabiliser (food grade gelatin), Emulsifier (INS 471, INS 473), Acidity regulator (INS 270, INS 296, INS 330), Natural colour (concentrate purple carrot juice), Artificial flavour",
+    "language": "en",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/mentos-incredible-chew-strawberry-45g_61169/",
+    "market": "UAE"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 415,
+    "fat_g": 8.8,
+    "saturated_fat_g": 8.8,
+    "carbohydrate_g": 81,
+    "sugars_g": 59.6,
+    "fibre_g": 0,
+    "protein_g": 2,
+    "page_url": "https://world.openfoodfacts.org/product/8935001726005"
+  },
+  "storage": {
+    "text": "Store in a cool, dry place.",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/mentos-incredible-chew-strawberry-45g_61169/"
+  },
+  "not_found": [
+    "pictures",
+    "allergens",
+    "origin",
+    "diet_labels"
+  ]
+}

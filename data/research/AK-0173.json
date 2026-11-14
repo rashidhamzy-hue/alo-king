@@ -1,0 +1,68 @@
+{
+  "sku": "AK-0173",
+  "matched": {
+    "brand": "Indomie",
+    "product": "Instant Noodles Chicken Flavour",
+    "size": "70 g",
+    "barcode": "089686120073",
+    "confidence": "likely",
+    "note": "Ingredients are from a UK retailer (thai-food-online.co.uk, 70 g chicken flavour); recipe for the Lebanon/Egypt pack may differ. Spinneys Lebanon lists 'INDOMIE CHICKEN NOODLES FLAVOR 70 G' (its URL/description says 75g) with picture and 'Made in Malaysia'. No barcode on either page. Some blocks come from the Open Food Facts record for catalog barcode 089686120073 (user-contributed, named \"Indomie instant noodles baladi chicken flavor, 70g\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/1/4/142974-v001-1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/brands/indomie",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one Indomie Chicken Flavour pack with Arabic and English text, front view, white background, no watermark/price; marked 'Serving suggestion'; 600x600"
+    },
+    {
+      "image_url": "https://www.thai-food-online.co.uk/cdn/shop/products/indomie_chicken_300x300.png?v=1606749733",
+      "page_url": "https://www.thai-food-online.co.uk/products/chicken-flavour-soup-instant-noodles-70g-by-indomie",
+      "site": "thai-food-online.co.uk",
+      "site_kind": "retailer",
+      "looks": "one Indomie Chicken Flavour pack (export version, 70g printed), front view, plain/transparent background, no watermark; small 300x248"
+    }
+  ],
+  "ingredients": {
+    "text": "Wheat Flour, Vegetable Oil (Palm Oil, contains Antioxidant E319), Iodized Salt, Humectant (E452), Acidity Regulators (E500, E501), Thickener (E412), Colour (E101), Seasoning Powder: Iodized Salt, Flavor Enhancers (E621, E627, E631), Sugar, Yeast Extract, Soy Powder, Ginger Powder, Spices, Garlic Powder, Artificial Chicken Flavor, Chilli Powder",
+    "language": "en",
+    "page_url": "https://www.thai-food-online.co.uk/products/chicken-flavour-soup-instant-noodles-70g-by-indomie",
+    "market": "UK"
+  },
+  "allergens": {
+    "contains": [
+      "gluten (wheat)",
+      "soy"
+    ],
+    "may_contain": [],
+    "quote": "allergens: en:gluten,en:soybeans (Open Food Facts field; ingredient list names Wheat flour and soy sauce powder)",
+    "page_url": "https://world.openfoodfacts.org/product/0089686120073"
+  },
+  "nutrition": {
+    "per": "serving (70 g)",
+    "energy_kcal": 317,
+    "fat_g": 12,
+    "saturated_fat_g": 6,
+    "carbohydrate_g": 43,
+    "sugars_g": 2,
+    "fibre_g": 2,
+    "protein_g": 7.99,
+    "salt_g": 3.22,
+    "page_url": "https://world.openfoodfacts.org/product/0089686120073"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "Open Food Facts labels field of this record: 'Halal'",
+      "page_url": "https://world.openfoodfacts.org/product/0089686120073"
+    }
+  ],
+  "origin": {
+    "country": "Malaysia",
+    "page_url": "https://www.spinneyslebanon.com/default/indomie-chicken-noodles-flavor-75g.html"
+  },
+  "not_found": [
+    "storage"
+  ]
+}
