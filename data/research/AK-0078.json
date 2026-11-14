@@ -1,0 +1,55 @@
+{
+  "sku": "AK-0078",
+  "matched": {
+    "brand": "Kellogg's",
+    "product": "Corn Flakes",
+    "size": "750 g",
+    "barcode": "4003994112427",
+    "confidence": "exact",
+    "note": "Barcode matches Open Food Facts (markets: Belgium, France, Germany, Saudi Arabia; quantity 750g); the photographed pack is a French/Dutch-language 'MAXI' box, so the recipe is for the European pack. Ingredients and nutrition from Open Food Facts typed fields (pack photo shows the same per-100 g table, salt printed as 1.13 g). Allergen sentence and storage from the Spinneys UAE listing 'Kellogg's Corn Flakes 750g' (no barcode shown; it words the ingredients 'Maize, sugar, barley malt flavouring, salt' and gives origin United Kingdom; its nutrition table is labelled per 100 g but the figures look per-serving and were not used). Open Food Facts origins field says 'Europe'; no single country confirmed, so origin left out. Open Food Facts labels: 'No artificial flavors, No colorings'."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/400/399/411/2427/front_en.41.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/4003994112427",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "photo of the box front standing on a counter, French/Dutch 'MAXI' pack, counter and wall visible; not a clean pack shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Maize, BARLEY malt extract, sugar, salt, niacin, iron, vitamin B6, riboflavin, thiamin, folic acid, vitamin D, vitamin B12.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/4003994112427",
+    "market": "Belgium, France, Germany, Saudi Arabia"
+  },
+  "allergens": {
+    "contains": [
+      "barley"
+    ],
+    "may_contain": [],
+    "quote": "Contains barley",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/kelloggs-cornflakes-750g_1493/"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 378,
+    "fat_g": 0.9,
+    "saturated_fat_g": 0.2,
+    "carbohydrate_g": 84,
+    "sugars_g": 8,
+    "fibre_g": 3,
+    "protein_g": 7,
+    "salt_g": 1.1,
+    "sodium_mg": 440,
+    "page_url": "https://world.openfoodfacts.org/product/4003994112427"
+  },
+  "storage": {
+    "text": "Store in a cool, dry place.",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/kelloggs-cornflakes-750g_1493/"
+  },
+  "not_found": [
+    "diet_labels",
+    "origin"
+  ]
+}

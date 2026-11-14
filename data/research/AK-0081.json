@@ -1,0 +1,69 @@
+{
+  "sku": "AK-0081",
+  "matched": {
+    "brand": "Wooden Bakery",
+    "product": "Pita White Big",
+    "size": "800 g",
+    "barcode": "5285000170211",
+    "confidence": "likely",
+    "note": "Barcode matches Open Food Facts 'Pita Big', Wooden Bakery (market: Lebanon); bag photo reads 'Pita White Big / خبز أبيض كبير'; net weight not stated in the record. Ingredients, allergen statement, storage, origin and nutrition transcribed from the bag photos (https://images.openfoodfacts.org/images/products/528/500/017/0211/ingredients_en.7.400.jpg and https://images.openfoodfacts.org/images/products/528/500/017/0211/nutrition_en.9.400.jpg; label 'Serving size 100g'). The first word(s) of the allergen sentence are hidden by a fold in the bag."
+  },
+  "pictures": [
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/500/017/0211/front_en.5.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5285000170211",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "photo of the bread bag lying on a table, bag creased, tablecloth visible; not a clean pack shot"
+    }
+  ],
+  "ingredients": {
+    "text": "Wheat Flour, Sugar, Yeast, Salt, Water.",
+    "language": "en",
+    "page_url": "https://world.openfoodfacts.org/product/5285000170211",
+    "market": "Lebanon"
+  },
+  "allergens": {
+    "contains": [
+      "wheat"
+    ],
+    "may_contain": [
+      "rye",
+      "barley",
+      "oats",
+      "milk",
+      "eggs",
+      "tree nuts",
+      "peanuts",
+      "soya",
+      "mustard",
+      "celery",
+      "sesame"
+    ],
+    "quote": "facility handles wheat, rye, barley, oats, milk, eggs and their derivatives, tree nuts, peanuts, soya, mustard, celery and sesame",
+    "page_url": "https://world.openfoodfacts.org/product/5285000170211"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 248,
+    "fat_g": 0.7,
+    "saturated_fat_g": 0.1,
+    "carbohydrate_g": 53,
+    "sugars_g": 3.7,
+    "fibre_g": 2.6,
+    "protein_g": 7.1,
+    "sodium_mg": 149,
+    "page_url": "https://world.openfoodfacts.org/product/5285000170211"
+  },
+  "storage": {
+    "text": "Keep in a cool and dry place away from direct sunlight",
+    "page_url": "https://world.openfoodfacts.org/product/5285000170211"
+  },
+  "origin": {
+    "country": "Lebanon",
+    "page_url": "https://world.openfoodfacts.org/product/5285000170211"
+  },
+  "not_found": [
+    "diet_labels"
+  ]
+}

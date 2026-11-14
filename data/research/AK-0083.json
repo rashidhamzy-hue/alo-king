@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0083",
+  "matched": {
+    "brand": "Al Forno",
+    "product": "Piston Plain 5 Pieces",
+    "size": "5 pieces",
+    "barcode": "",
+    "confidence": "unsure",
+    "note": "Not on Open Food Facts (5280320005670); no product page that could be opened was found."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}
