@@ -218,13 +218,27 @@ async function sendToCustomer(deps: TurnDeps, partyId: string, text: string, ded
   if (to) await deps.send({ line: "customer", partyId, to, msg: { type: "text", text: { body: text } }, category: "service", orderId, dedupeKey });
 }
 
+/** lang (0093, A4): the customer's language, from how they last wrote. The template and the words that fill it are in it. */
 interface Notice { key: string; kind: "order_cancelled" | "rider_at_door" | "payment_received"; order_id: string; short_code: string;
-  customer_id: string; params: string[]; template: string | null; template_approved: boolean }
+  customer_id: string; params: string[]; lang?: "ar" | "en" | "fr"; template: string | null; template_approved: boolean }
 
-const NOTICE_TEXT: Record<Notice["kind"], (p: string[]) => string> = {
-  order_cancelled: (p) => `انلغى طلبك #${p[0]}: ${p[1]}. اكتبلنا إذا بعدك بدّك ياه.`,
-  rider_at_door: (p) => `السائق واصل عندك بطلب #${p[0]} وعم يستناك 🚪`,
-  payment_received: (p) => `وصلنا دفعك لطلب #${p[0]}: ${p[1]}.`,
+/** The same notice as free text, for inside the 24-hour window until Meta approves the template. */
+const NOTICE_TEXT: Record<"ar" | "en" | "fr", Record<Notice["kind"], (p: string[]) => string>> = {
+  ar: {
+    order_cancelled: (p) => `انلغى طلبك #${p[0]}: ${p[1]}. اكتبلنا إذا بعدك بدّك ياه.`,
+    rider_at_door: (p) => `السائق واصل عندك بطلب #${p[0]} وعم يستناك 🚪`,
+    payment_received: (p) => `وصلنا دفعك لطلب #${p[0]}: ${p[1]}.`,
+  },
+  en: {
+    order_cancelled: (p) => `Your order #${p[0]} was cancelled: ${p[1]}. Write to us if you still want it.`,
+    rider_at_door: (p) => `The rider is at your door with order #${p[0]} and is waiting for you 🚪`,
+    payment_received: (p) => `We received your payment for order #${p[0]}: ${p[1]}.`,
+  },
+  fr: {
+    order_cancelled: (p) => `Votre commande #${p[0]} a été annulée : ${p[1]}. Écrivez-nous si vous la voulez toujours.`,
+    rider_at_door: (p) => `Le livreur est à votre porte avec la commande #${p[0]} et vous attend 🚪`,
+    payment_received: (p) => `Nous avons reçu votre paiement pour la commande #${p[0]} : ${p[1]}.`,
+  },
 };
 
 /** Exported for tests. The approved utility template when Meta has approved it (it reaches the customer at any hour);
@@ -234,9 +248,10 @@ export async function sendNotice(deps: TurnDeps, n: Notice): Promise<void> {
   const to = await customerAddress(deps.db, n.customer_id);
   let outcome = "refused:no_address";
   if (to) {
+    const lang = n.lang ?? "ar";
     const msg: Outbound = n.template && n.template_approved
-      ? { type: "template", template: { name: n.template, language: { code: "ar" }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
-      : { type: "text", text: { body: NOTICE_TEXT[n.kind](n.params) } };
+      ? { type: "template", template: { name: n.template, language: { code: lang }, components: [{ type: "body", parameters: n.params.map((t) => ({ type: "text", text: t })) }] } }
+      : { type: "text", text: { body: NOTICE_TEXT[lang][n.kind](n.params) } };
     const r = await deps.send({ line: "customer", partyId: n.customer_id, to, msg, category: msg.type === "template" ? "utility" : "service", orderId: n.order_id, dedupeKey: n.key });
     outcome = r.ok ? `sent:${msg.type}` : `refused:${r.refused}`;
   }

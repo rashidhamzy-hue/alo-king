@@ -40,6 +40,82 @@
       "event": "a payment is confirmed (cash counted, Whish or OMT confirmed)"
     },
     {
+      "name": "ak_order_cancelled_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "1140802498307803",
+      "body": "Your order {{1}} has been cancelled. Reason: {{2}}. If you still want it, reply to this message.",
+      "variables": [
+        "order_code",
+        "reason"
+      ],
+      "event": "an order cancelled by anyone but the customer"
+    },
+    {
+      "name": "ak_order_cancelled_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "3028860460791723",
+      "body": "Votre commande {{1}} a été annulée. Motif : {{2}}. Si vous la voulez toujours, répondez à ce message.",
+      "variables": [
+        "order_code",
+        "reason"
+      ],
+      "event": "an order cancelled by anyone but the customer"
+    },
+    {
+      "name": "ak_rider_at_door_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "1666280571821443",
+      "body": "The rider has arrived at your address with order {{1}} and is waiting for you now.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the rider taps Arrived"
+    },
+    {
+      "name": "ak_rider_at_door_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "1465972848934487",
+      "body": "Le livreur est arrivé à votre adresse avec la commande {{1}} et vous attend maintenant.",
+      "variables": [
+        "order_code"
+      ],
+      "event": "the rider taps Arrived"
+    },
+    {
+      "name": "ak_payment_received_en_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "en",
+      "meta_id": "3080758412302974",
+      "body": "We received your payment for order {{1}}: {{2}}. This is your receipt.",
+      "variables": [
+        "order_code",
+        "paid_summary"
+      ],
+      "event": "a payment is confirmed (cash counted, Whish or OMT confirmed)"
+    },
+    {
+      "name": "ak_payment_received_fr_v1",
+      "line": "customer",
+      "category": "utility",
+      "language": "fr",
+      "meta_id": "2393796074742173",
+      "body": "Nous avons reçu votre paiement pour la commande {{1}} : {{2}}. Ceci est votre reçu.",
+      "variables": [
+        "order_code",
+        "paid_summary"
+      ],
+      "event": "a payment is confirmed (cash counted, Whish or OMT confirmed)"
+    },
+    {
       "name": "order_confirmed",
       "line": "customer",
       "category": "utility",
@@ -230,5 +306,5 @@
       ]
     }
   ],
-  "_submitted": "13 Nov 2026 (session A2, task 4.3): the three ak_* templates below were submitted to Meta through Kapso for WABA 1086076707594153. Their status lives in wa_templates (migration 0062), updated hourly from Meta. The others are drafts, not submitted."
+  "_submitted": "13 Nov 2026 (session A2, task 4.3): the three ak_* templates below were submitted to Meta through Kapso for WABA 1086076707594153. Their status lives in wa_templates (migration 0062), updated hourly from Meta. The others are drafts, not submitted. 14 Nov 2026 (session A4, audit item 8): the English and French versions (ak_*_en_v1, ak_*_fr_v1) were submitted the same way; migration 0093. A notice uses the customer's language (customer_language(), from the Concierge's reading)."
 }
