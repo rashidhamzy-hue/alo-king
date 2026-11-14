@@ -1,1 +1,1 @@
-{ "steps": ["after", "live"], "repeat": 1, "note": "M1, second run: the prompt line on reply length reverted (the output guard enforces it), so the reading input is byte-identical to main. First run 43629416444: F1 0.915, 2 wrong (hz0815, g0815)." }
+{ "steps": ["after", "live"], "repeat": 1, "note": "M1, third run: the prompt line on reply length back (run 43632030063 without it: reading F1 0.914, 0 wrong, but live 39/41, two first wordings over two sentences). Run 43629416444 with it, before the merge of main: F1 0.915, 2 wrong (hz0815, g0815), live 41/41." }
