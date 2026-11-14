@@ -334,6 +334,7 @@ export async function sendKept(ctx: ToolContext, opts: { pin?: boolean } = {}): 
   if (closed) return (await keepUntilOpen(ctx, { lines: q.lines, villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup, quote }, terms,
                                           String(closed.opens ?? ""), { pin: opts.pin })).ok;
   ctx.state.lastQuote = { ...q, villageId, quote };
+  await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);   // taken up: never offered again
   if (q.pickup) { ctx.state.awaiting = null; return (await issueCard(ctx, { lines: q.lines, villageId: null, placeId: null, pickup: true }, terms)).ok; }
   ctx.state.awaiting = "pin";
   if (ctx.state.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: ctx.state.placeId }))) return completePending(ctx);

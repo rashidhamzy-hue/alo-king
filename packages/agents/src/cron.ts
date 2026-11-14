@@ -5,10 +5,29 @@ import type { SendRequest, SendResult } from "@ak/wa/gateway";
 import type { ModelClient } from "./concierge";
 import { sendFeedbackRequests } from "./feedback";
 import { runSearchWordJobs } from "./search-words";
+import { buttons } from "@ak/wa/kapso";
+import { FIXED, KEPT_BUTTON } from "./order-card";
 
 export interface CronDeps { db: SupabaseClient; send: (r: SendRequest) => Promise<SendResult>; model: ModelClient; modelName: string }
 
-export async function customerLineCron(deps: CronDeps, now = new Date()): Promise<{ feedback: number; searchWords: number; stale: number | null }> {
+/**
+ * Audit item 4 (K1): an order kept after closing time is offered once when we open, with its one button, to a customer who wrote
+ * within 23 hours. The send goes through the gateway with a stable key; a row is marked only once its message went out.
+ */
+export async function offerKeptOrders(deps: { db: SupabaseClient; send: (r: SendRequest) => Promise<SendResult> }): Promise<number> {
+  const due = ((await deps.db.rpc("kept_orders_due", { p_limit: 20 })).data ?? []) as { id: string; party_id: string }[];
+  let n = 0;
+  for (const d of due) {
+    const to = ((await deps.db.rpc("party_address", { p_party: d.party_id, p_line: "customer" })).data as string | null) ?? null;
+    if (!to) continue;
+    const r = await deps.send({ line: "customer", partyId: d.party_id, to, category: "service", dedupeKey: `kept:${d.id}`,
+                                msg: buttons(FIXED.keptOpen, [{ id: KEPT_BUTTON, title: FIXED.keptButton }]) });
+    if (r.ok) { await deps.db.rpc("mark_kept_offered", { p_id: d.id }); n++; }
+  }
+  return n;
+}
+
+export async function customerLineCron(deps: CronDeps, now = new Date()): Promise<{ feedback: number; searchWords: number; stale: number | null; kept: number }> {
   const addressOf = async (partyId: string) => ((await deps.db.rpc("party_address", { p_party: partyId, p_line: "customer" })).data as string | null) ?? null;
   // 2.9: one tap after delivery, once per order.
   const feedback = await sendFeedbackRequests(deps, addressOf).catch(() => 0);
@@ -16,5 +35,7 @@ export async function customerLineCron(deps: CronDeps, now = new Date()): Promis
   let stale: number | null = null;
   if (now.getUTCHours() === 0 && now.getUTCMinutes() === 41) stale = ((await deps.db.rpc("enqueue_stale_search_words")).data as number | null) ?? 0;
   const searchWords = (await runSearchWordJobs(deps, now).catch(() => [])).length;
-  return { feedback, searchWords, stale };
+  // Audit item 4: orders kept overnight, offered once when we open.
+  const kept = await offerKeptOrders(deps).catch(() => 0);
+  return { feedback, searchWords, stale, kept };
 }

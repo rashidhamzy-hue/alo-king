@@ -140,6 +140,8 @@ export const FIXED = {
   closedKept: (opens: string) => `مسكّرين هلّق، منفتح الساعة ${opens}. طلبك محفوظ: بس نفتح اكبس «ابعت طلبي» ومنكمّل من هون.`,
   closedKeptPin: (opens: string) => `وصلنا موقعك 📍 بس نحنا مسكّرين هلّق، منفتح الساعة ${opens}. طلبك محفوظ: بس نفتح اكبس «ابعت طلبي» ومنكمّل.`,
   keptButton: "ابعت طلبي",
+  /** Audit item 4: sent once when we open, to someone whose order was kept overnight and who wrote to us within 23 hours. */
+  keptOpen: "صباح الخير ☀️ فتحنا. طلبك يلي بعتّو وكنّا مسكّرين بعدو محفوظ: اكبس «ابعت طلبي» ومنكمّل.",
   /** The kept basket is gone (a newer order replaced it). Said plainly; the customer is not asked to retype what we still hold. */
   keptGone: "ما في طلب محفوظ هلّق. شو بتحب تطلب؟",
 };

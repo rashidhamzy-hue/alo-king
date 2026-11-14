@@ -272,6 +272,8 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
                                  paymentMethod: terms.payment, changeForUsd: terms.changeForUsd, prepay: terms.prepay ?? null });
   const sent = await deliver(ctx, card, `[order card ${created.short_code}] total $${created.quote.total_usd}`, created.order_id);
   if (!sent.ok) return sent;
+  // A card went out: any order kept overnight is taken up or replaced (audit item 4). Never stops the turn.
+  await ctx.db.rpc("clear_kept_order", { p_party: ctx.partyId }).then(() => undefined, () => undefined);
   // The directions went onto the order (and the place); they are not carried into the next order.
   ctx.state.lastQuote = null; ctx.state.awaiting = null; ctx.state.pending = null; ctx.state.orderRestrictions = null; ctx.state.directions = null;
   return { ok: true, order_code: created.short_code! };
@@ -288,6 +290,8 @@ export async function keepUntilOpen(ctx: ToolContext, basket: { lines: QuoteLine
   if (basket.placeId) ctx.state.placeId = basket.placeId;
   if (basket.villageId) ctx.state.villageId = basket.villageId;
   ctx.state.pending = terms; ctx.state.awaiting = "opening";
+  // Audit item 4: who has a kept order, so the cron can offer it once when we open. A failure here never stops the reply.
+  await ctx.db.rpc("keep_order", { p_party: ctx.partyId, p_conversation: ctx.conversationId, p_opens: opens }).then(() => undefined, () => undefined);
   const said = opts.pin ? FIXED.closedKeptPin(opens) : FIXED.closedKept(opens);
   const text = opts.before ? `${opts.before}\n${said}` : said;
   return deliver(ctx, buttonMsg(text, [{ id: KEPT_BUTTON, title: FIXED.keptButton }]), `[kept until open] ${text}`);

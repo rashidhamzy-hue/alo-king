@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, read, recordKapso, use, type Sent } from "./flow-kit";
 import { FIXED, KEPT_BUTTON } from "@ak/agents/order-card";
+import { offerKeptOrders } from "@ak/agents/cron";
 
 let db: TestDb;
 const ids: Record<string, string> = {};
@@ -108,4 +109,35 @@ describe("an order sent after closing time (K1, B4's leftover)", () => {
     expect(last).not.toMatch(GREETING);
     expect(last).toBe(FIXED.closedKeptPin("08:00"));
   }, 60_000);
+  it("audit item 4: when we open, the kept order is offered once with its button, inside the 24-hour window", async () => {
+    const outbound = recordKapso();
+    await db.pg.query(`update kept_orders set cleared_at = now() where cleared_at is null`);   // earlier tests' customers
+    await hours(CLOSED);
+    const t = flow(db, [read(READING), read(ADDRESS)]);
+    await t.text(MESSAGE);
+    const c = await t.customer();
+    const offer = () => offerKeptOrders({ db: t.client, send: t.deps.send });
+    expect(await offer()).toBe(0);                                         // still closed: nothing goes out
+    await hours(OPEN);
+    expect(await offer()).toBe(1);
+    expect(bodyOf(outbound.at(-1)!)).toBe(FIXED.keptOpen);
+    expect(buttonIds(outbound.at(-1)!)).toEqual([KEPT_BUTTON]);
+    expect(await offer()).toBe(0);                                         // once
+    // The tap carries on as before: the pin, then the house, then the card. Taken, the kept order is cleared.
+    await t.tap(KEPT_BUTTON, "ابعت طلبي");
+    expect(outbound.at(-1)!.body.interactive.type).toBe("location_request_message");
+    expect((await db.one(`select count(*)::int as n from kept_orders where party_id = $1 and cleared_at is null`, [c.party_id])).n).toBe(0);
+  }, 60_000);
+
+  it("audit item 4: a kept order older than the window is never offered (no message to someone outside 24 hours)", async () => {
+    recordKapso();
+    await hours(CLOSED);
+    const t = flow(db, [read(READING)]);
+    await t.text(MESSAGE);
+    const c = await t.customer();
+    await db.pg.query(`update kept_orders set kept_at = now() - interval '25 hours' where party_id = $1`, [c.party_id]);
+    await hours(OPEN);
+    expect(await offerKeptOrders({ db: t.client, send: t.deps.send })).toBe(0);
+  }, 60_000);
 });
+
