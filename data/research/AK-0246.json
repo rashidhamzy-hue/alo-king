@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0246",
+  "matched": {
+    "brand": "Foody's",
+    "product": "Frozen Crispy Chicken Nuggets",
+    "size": "500 g",
+    "barcode": "5285004332400",
+    "confidence": "unsure",
+    "note": "Nothing found: not on Open*Facts; searches of Spinneys Lebanon, superdokan and the web returned no page for this exact product and size."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

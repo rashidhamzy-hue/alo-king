@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0243",
+  "matched": {
+    "brand": "Take N Bake",
+    "product": "Frozen Pizza Pepperoni Small",
+    "size": "350 g",
+    "barcode": "5287002280080",
+    "confidence": "unsure",
+    "note": "Nothing found: not on Open*Facts; searches of Spinneys Lebanon, superdokan and the web returned no page for this exact product and size."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

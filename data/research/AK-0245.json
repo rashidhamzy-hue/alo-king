@@ -1,0 +1,20 @@
+{
+  "sku": "AK-0245",
+  "matched": {
+    "brand": "Foody's",
+    "product": "Frozen Crispy Chicken Strips",
+    "size": "500 g",
+    "barcode": "5285012971592",
+    "confidence": "unsure",
+    "note": "Nothing found: not on Open*Facts; searches of Spinneys Lebanon, superdokan and the web returned no page for this exact product and size. superdokan lists \"Foody's Crispy Chicken Tenders 500g\" (barcode 5285004332387), a different product; not used."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "diet_labels",
+    "storage",
+    "origin"
+  ]
+}

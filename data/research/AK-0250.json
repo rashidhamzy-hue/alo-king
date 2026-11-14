@@ -1,0 +1,16 @@
+{
+  "sku": "AK-0250",
+  "matched": {
+    "brand": "Perla",
+    "product": "Interfold Prime White",
+    "size": "",
+    "barcode": "5281078072525",
+    "confidence": "unsure",
+    "note": "non-food. Nothing found: not on Open*Facts; Spinneys Lebanon lists other Perla items but no Interfold Prime White page was found."
+  },
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "origin"
+  ]
+}
