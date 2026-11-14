@@ -1,0 +1,97 @@
+# Manual, STAGING only. Proves build plan 1.23 on live staging: a NEW product gets its search words with nobody doing anything.
+# It adds one clearly named test product (no price, no stock: it cannot be ordered), waits for the Worker's cron to build its words
+# with the real model, prints what appeared (the job, the words by level and language, any phrasing that did not resolve), then
+# removes the test product and everything built for it, so staging ends as it began. The evidence is this run's summary.
+# Why not "through the console": the console has no page that creates a product (and by rule no insert of its own: its tests forbid it),
+# so the new row is inserted here with the same columns a catalog load uses. The path under test is the database trigger, the queue, the
+# Worker's cron and the model, which do not care who inserted the row.
+# Secrets used (repository secrets, never printed): SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD.
+name: staging-new-product
+on:
+  workflow_dispatch:
+    inputs:
+      wait_minutes:
+        description: How long to wait for the words (the cron takes a job a minute)
+        type: string
+        default: "12"
+permissions: { contents: read }
+defaults:
+  run: { shell: bash }
+concurrency:
+  group: staging-new-product
+  cancel-in-progress: false
+env:
+  SUPABASE_PROJECT_REF: lhgkvvdckwbfpdsftzqp
+  SKU: AK-A5-PROOF
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      WAIT: ${{ inputs.wait_minutes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: 3.1.0 }
+      - name: Connection string (session pooler)
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          echo "DATABASE_URL=$(cat supabase/.temp/pooler-url)" >> "$GITHUB_ENV"
+      - name: Start clean, then add the test product
+        run: |
+          [[ "$WAIT" =~ ^[0-9]{1,2}$ ]] || { echo "wait_minutes must be a number"; exit 1; }
+          q() { psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -At "$@"; }
+          # a previous run that died half way: remove its leftovers first
+          q -c "delete from search_word_reviews where sku = '$SKU'; delete from search_word_jobs where sku = '$SKU'; delete from search_word_state where sku = '$SKU';
+                delete from language_pack where sku = '$SKU'; delete from products where sku = '$SKU';"
+          # Building one item's words can re-level another item's word (a kind word that was someone's exact word). Fingerprint everyone else's
+          # words now and again after the clean-up, and say whether they changed.
+          echo "FP_BEFORE=$(q -c "select md5(coalesce(string_agg(sku || '|' || term || '|' || level, ',' order by sku, term, level), '')) from language_pack where sku <> '$SKU'")" >> "$GITHUB_ENV"
+          echo "settings.search_words: $(q -c "select value::text from settings where key = 'search_words'")"
+          q -c "insert into products(sku, name_en, brand, category, sub_type, sell_unit) values ('$SKU', 'Qalamoun Pomegranate Fizz 330 ml', 'Qalamoun', 'Beverages', 'pomegranate fizz', 'each')"
+          echo "- test product $SKU inserted at $(date -u +%H:%M:%SZ): Qalamoun Pomegranate Fizz 330 ml (no price, no stock)" >> "$GITHUB_STEP_SUMMARY"
+          echo "job right after the insert: $(q -c "select status || ' / ' || reason from search_word_jobs where sku = '$SKU'")"
+      - name: Wait for the Worker's cron to build the words
+        run: |
+          q() { psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -At "$@"; }
+          end=$(( $(date +%s) + WAIT * 60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            st=$(q -c "select status from search_word_jobs where sku = '$SKU'")
+            echo "$(date -u +%H:%M:%SZ) job: ${st:-none}"
+            case "$st" in done|review|failed) break ;; esac
+            sleep 20
+          done
+      - name: What appeared (the evidence)
+        run: |
+          q() { psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -At "$@"; }
+          {
+            echo "### 1.23 on staging: search words for a new product ($SKU)"
+            echo '```'
+            echo "job:    $(q -c "select status || ', reason ' || reason || ', attempts ' || attempts || ', enqueued ' || to_char(enqueued_at, 'HH24:MI:SS') || ', done ' || coalesce(to_char(done_at, 'HH24:MI:SS'), '-') || coalesce(', error ' || last_error, '') from search_word_jobs where sku = '$SKU'")"
+            echo "result: $(q -c "select coalesce(result::text, '-') from search_word_jobs where sku = '$SKU'" | cut -c1-600)"
+            echo "words:  $(q -c "select count(*) || ' (' || coalesce(string_agg(distinct level || '/' || lang, ', '), 'none') || ')' from language_pack where sku = '$SKU'")"
+            q -F ' | ' -c "select level, lang, term from language_pack where sku = '$SKU' order by level, lang, term"
+            echo "built:  $(q -c "select version || ' at ' || to_char(built_at, 'HH24:MI:SS') from search_word_state where sku = '$SKU'")"
+            echo "open phrasings the planner did not resolve to it: $(q -c "select count(*) from search_word_reviews where sku = '$SKU' and status = 'open'")"
+            q -F ' | ' -c "select phrasing, got->>'status', got->>'chosen' from search_word_reviews where sku = '$SKU'"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          st=$(q -c "select status from search_word_jobs where sku = '$SKU'")
+          n=$(q -c "select count(*) from language_pack where sku = '$SKU'")
+          [ "$st" = "done" ] || [ "$st" = "review" ] || { echo "FAIL: the job is '${st:-none}', not done or review"; exit 1; }
+          [ "$n" -gt 0 ] || { echo "FAIL: the job finished and no words appeared"; exit 1; }
+      - name: Remove the test product and everything built for it
+        if: always()
+        run: |
+          q() { psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -At "$@"; }
+          q -c "delete from search_word_reviews where sku = '$SKU'; delete from search_word_jobs where sku = '$SKU'; delete from search_word_state where sku = '$SKU';
+                delete from language_pack where sku = '$SKU'; delete from products where sku = '$SKU';"
+          left=$(q -c "select (select count(*) from products where sku = '$SKU') + (select count(*) from language_pack where sku = '$SKU')")
+          echo "- test product removed; rows left: $left" >> "$GITHUB_STEP_SUMMARY"
+          after=$(q -c "select md5(coalesce(string_agg(sku || '|' || term || '|' || level, ',' order by sku, term, level), '')) from language_pack where sku <> '$SKU'")
+          if [ "$after" = "$FP_BEFORE" ]; then echo "- every other item's search words are unchanged" >> "$GITHUB_STEP_SUMMARY"
+          else echo "- **another item's search words changed while this one was built (a kind word that was someone's exact word); see the run log**" >> "$GITHUB_STEP_SUMMARY"; fi
+          [ "$left" = "0" ]

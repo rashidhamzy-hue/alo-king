@@ -4,7 +4,8 @@
 # every target below is the staging project, the staging Worker and the staging Kapso numbers.
 #
 # Secrets used (repository secrets, never printed): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN,
-# SUPABASE_DB_PASSWORD, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY.
+# SUPABASE_DB_PASSWORD, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, and CATALOG_FEED_PASSWORD (optional: the password Meta's
+# catalog feed reads with; docs/RUNBOOK.md "WhatsApp catalog" A2. Not set as a repository secret: the Worker keeps the one set in Cloudflare).
 name: deploy-staging
 on:
   workflow_dispatch:
@@ -68,6 +69,8 @@ jobs:
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -At -f scripts/staging/prepare-staging.sql | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
       - name: Private media bucket
         run: scripts/ci/ensure-media-bucket.sh | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+      - name: Public catalog bucket (approved product pictures only; proves media is still private)
+        run: scripts/ci/ensure-catalog-bucket.sh | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
 
   worker:
     # 0.5: queues, the Worker, and every Worker secret. 0.6: Kapso webhooks. 0.7: key check.
@@ -116,14 +119,21 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           KAPSO_API_KEY: ${{ secrets.KAPSO_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CATALOG_FEED_PASSWORD: ${{ secrets.CATALOG_FEED_PASSWORD }}
         run: |
           # jq reads the values from the environment, so nothing secret is ever on a command line or in a log.
+          # CATALOG_FEED_PASSWORD goes in only when the repository secret exists: an empty value must never overwrite the one
+          # already set on the Worker (the feed would then answer 404 to Meta).
           umask 077
-          jq -n 'env | {SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS}' > "$RUNNER_TEMP/secrets.json"
+          jq -n 'env | {SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS}
+                       + (if (.CATALOG_FEED_PASSWORD // "") != "" then {CATALOG_FEED_PASSWORD} else {} end)' > "$RUNNER_TEMP/secrets.json"
+          feed=no; jq -e 'has("CATALOG_FEED_PASSWORD")' "$RUNNER_TEMP/secrets.json" >/dev/null && feed=yes
           cfg=wrangler.jsonc; [ -f wrangler.staging-noqueue.json ] && cfg=wrangler.staging-noqueue.json
           npx wrangler secret bulk "$RUNNER_TEMP/secrets.json" --env staging --config "$cfg" 2>&1 | sed -E 's/(key|token|secret)[^ ]*/\1 (hidden)/Ig'
           rm -f "$RUNNER_TEMP/secrets.json"
           echo "- Worker secrets set: SUPABASE_URL, SUPABASE_SERVICE_KEY, KAPSO_API_KEY, ANTHROPIC_API_KEY, PHONE_NUMBER_ID_CUSTOMER, PHONE_NUMBER_ID_OPS" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$feed" = yes ]; then echo "- Worker secret set: CATALOG_FEED_PASSWORD (from the repository secret)" >> "$GITHUB_STEP_SUMMARY"
+          else echo "- CATALOG_FEED_PASSWORD: no repository secret, so the Worker's own value is left as it is" >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Anthropic key and both model ids work (0.7)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

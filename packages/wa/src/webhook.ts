@@ -2,6 +2,7 @@
 // Each one is checked against test/fixtures/kapso/: real Kapso message objects for statuses, Kapso's documented
 // payloads for the contact events (no real one has arrived yet). Pure functions: index.ts applies the result through SQL.
 import { z } from "zod";
+import { unwrap } from "./kapso";
 
 const Status = z.object({
   id: z.string(),
@@ -80,4 +81,20 @@ export function parseIdentityEvent(item: unknown): IdentityChange | null {
   if (!p.success || !p.data.contact.business_scoped_user_id) return null;
   const phone = p.data.contact.wa_id ?? p.data.contact.phone_number ?? null;
   return { newId: p.data.contact.business_scoped_user_id, oldId: p.data.previous?.business_scoped_user_id ?? null, phone: phone ? "+" + phone.replace(/[^\d]/g, "") : null };
+}
+
+/**
+ * Is this webhook for the number the route belongs to (G1-15)? Every item of a message event (received, sent, delivered, read,
+ * failed) must carry a `phone_number_id`, and it must be `expected`: a payload that says nothing is refused, not waved through.
+ * Other events (contact changes) carry no number in Kapso's documented shape: if one does, it must match. Returns the answer
+ * to send with the 400, or null when the event may go on. Checks every item of a batch, not only the first.
+ */
+export function lineProblem(event: string, body: unknown, expected: string): "wrong line" | "no phone_number_id" | null {
+  const isMessage = event.startsWith("whatsapp.message.");
+  for (const item of unwrap(body)) {
+    const id = (item as { phone_number_id?: unknown } | null)?.phone_number_id;
+    if (id === undefined || id === null || id === "") { if (isMessage) return "no phone_number_id"; continue; }
+    if (String(id) !== expected) return "wrong line";
+  }
+  return null;
 }

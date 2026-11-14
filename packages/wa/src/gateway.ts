@@ -2,6 +2,7 @@
 // It refuses anything that could get a number restricted, and it keeps the message bill predictable.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { kapsoSend, KapsoSendError, type Line, type Outbound } from "./kapso";
+import * as Sentry from "@sentry/cloudflare";
 import { checkModelText } from "@ak/agents/output-guard";
 
 export type Category = "service" | "utility" | "marketing";
@@ -111,7 +112,13 @@ export async function send(
     for (let i = 0; i < 3 && !marked; i++) {
       try { const m = await db.rpc("outbox_mark", { p_key: req.dedupeKey, p_wamid: wamid, p_error: null }); marked = !m.error; } catch { /* retry */ }
     }
-    if (!marked) console.error(JSON.stringify({ level: "error", event: "outbox_mark_failed_after_send", key: req.dedupeKey, wamid }));
+    if (!marked) {
+      console.error(JSON.stringify({ level: "error", event: "outbox_mark_failed_after_send", key: req.dedupeKey, wamid }));
+      // G1-18: this message is out, the outbox does not know, and after the lease a retried turn would send it again. Tell a person
+      // now. One Sentry issue (the fingerprint), the key and the message id beside it. The status webhook then marks the row sent
+      // when it can (record_message_status, 0116); this event is for the cases where it cannot. No phone number, no text.
+      try { Sentry.captureMessage("outbox_mark_failed_after_send", { level: "error", tags: { where: "gateway", line: req.line }, extra: { dedupeKey: req.dedupeKey, wamid }, fingerprint: ["outbox_mark_failed_after_send"] }); } catch { /* reporting must never throw here */ }
+    }
   }
   try { await db.from("wa_messages").insert({
     line: req.line, direction: "outbound", party_id: req.partyId, wa_message_id: wamid, type: req.msg.type,
