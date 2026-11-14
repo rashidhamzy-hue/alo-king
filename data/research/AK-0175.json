@@ -1,0 +1,67 @@
+{
+  "sku": "AK-0175",
+  "matched": {
+    "brand": "Barilla",
+    "product": "Spaghetti n.5",
+    "size": "500 g",
+    "barcode": "8076800195057",
+    "confidence": "likely",
+    "note": "Retailer page (Casinetto, UAE) titled 'Spaghetti #5', Barilla, 1 piece (500g); page shows no barcode. Page nutrition table is partly garbled (carbohydrate shown as '72,', fat as '2,', salt as '5mg'); those three rows were left out. Page also lists retailer attributes 'Halal: Yes', 'Suitable for Vegetarians: Yes', 'Suitable for Vegans: Yes', 'Lactose Free: Yes' - these are retailer attributes, not a pack claim or certificate, so not recorded as diet_labels. barilla.com refused WebFetch (403). Some blocks come from the Open Food Facts record for catalog barcode 8076800195057 (user-contributed, named \"Spaghetti Nº5, 500 g\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://casinetto.com/cdn/shop/files/2c95fb18a9fbab8c871b4f555ba8306ef296d40e_RETD063_cf68eaea-6636-43de-ba7b-4fc2396544ce.jpg",
+      "page_url": "https://casinetto.com/products/spaghetti-5/",
+      "site": "casinetto.com",
+      "site_kind": "retailer",
+      "looks": "one blue Barilla Spaghetti n.5 500 g box, front view, white background, no watermark, logo overlay, price or added text; 1800x1800"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/807/680/019/5057/front_en.3881.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/8076800195057",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one box, plain off-white background, front view at a slight angle, no overlay"
+    }
+  ],
+  "ingredients": {
+    "text": "Durum Wheat Semolina, Water",
+    "language": "en",
+    "page_url": "https://casinetto.com/products/spaghetti-5/",
+    "market": "UAE"
+  },
+  "allergens": {
+    "contains": [
+      "wheat (gluten)"
+    ],
+    "may_contain": [
+      "soy"
+    ],
+    "quote": "Contains Wheat (Gluten). May Contain Traces Of Soy",
+    "page_url": "https://casinetto.com/products/spaghetti-5/"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 363.5,
+    "saturated_fat_g": 0.5,
+    "sugars_g": 3.5,
+    "protein_g": 11.7,
+    "page_url": "https://casinetto.com/products/spaghetti-5/"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "Open Food Facts labels field of this record: 'Halal Food Council of Europe, Halal Quality Control'",
+      "page_url": "https://world.openfoodfacts.org/product/8076800195057"
+    }
+  ],
+  "storage": {
+    "text": "Conserver dans un endroit frais et sec.",
+    "page_url": "https://world.openfoodfacts.org/product/8076800195057"
+  },
+  "origin": {
+    "country": "Italy",
+    "page_url": "https://casinetto.com/products/spaghetti-5/"
+  },
+  "not_found": []
+}

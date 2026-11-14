@@ -1,0 +1,36 @@
+{
+  "sku": "AK-0174",
+  "matched": {
+    "brand": "Indomie",
+    "product": "Noodles Vegetable Flavor",
+    "size": "56 g",
+    "barcode": "5285000391647",
+    "confidence": "exact",
+    "note": "Spinneys Lebanon lists Indomie vegetable 75 G only (different size, not opened). Nothing recorded. Some blocks come from the Open Food Facts record for catalog barcode 5285000391647 (user-contributed, named \"vegetable instant noodle from indomie\"); those blocks carry that page as their source."
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 450,
+    "fat_g": 17,
+    "saturated_fat_g": 9,
+    "carbohydrate_g": 62,
+    "sugars_g": 2,
+    "fibre_g": 3,
+    "protein_g": 11,
+    "page_url": "https://world.openfoodfacts.org/product/5285000391647"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "Open Food Facts labels field of this record: 'Halal'; the pack text read by OFF includes 'حلال HALAL'",
+      "page_url": "https://world.openfoodfacts.org/product/5285000391647"
+    }
+  ],
+  "not_found": [
+    "pictures",
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin"
+  ]
+}

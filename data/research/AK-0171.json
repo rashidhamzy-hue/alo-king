@@ -1,0 +1,51 @@
+{
+  "sku": "AK-0171",
+  "matched": {
+    "brand": "Snickers",
+    "product": "Chocolate Bar Caramel & Peanuts",
+    "size": "45 g",
+    "barcode": "6221134012965",
+    "confidence": "likely",
+    "note": "Spinneys UAE page 'Snickers Chocolate 45g'; market UAE, while barcode prefix 622 is Egypt, so the local pack may differ. Ingredient text kept exactly as on the page (including its 'mik fat' typo). No image URL on page. Some blocks come from the Open Food Facts record for catalog barcode 6221134012965 (user-contributed, named \"سنكرز (Snickers), 40g (record quantity differs from the 45 g catalog size)\"); those blocks carry that page as their source. The record quantity differs from the catalog size."
+  },
+  "ingredients": {
+    "text": "Chocolate(sugar, cocoa butter, cocoa mass, lactose, full cream milk powder), whey powder, mik fat, emulsifier (soya lecithin E322) water, artificial flavour (vanillin), peanuts, glucose syrup, sugar, vegetable fat (palm fat), skimmed milk powder",
+    "language": "en",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/snickers-chocolate-45g_53972/",
+    "market": "UAE"
+  },
+  "allergens": {
+    "contains": [
+      "peanuts",
+      "gluten",
+      "milk",
+      "eggs",
+      "soy"
+    ],
+    "may_contain": [
+      "almond",
+      "hazelnut",
+      "cashew"
+    ],
+    "quote": "Contains peanuts, gluten, milk, eggs and soy. May contain almond, hazelnut and cashew.",
+    "page_url": "https://www.spinneys.com/en-ae/catalogue/snickers-chocolate-45g_53972/"
+  },
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 482.5,
+    "fat_g": 23.2,
+    "saturated_fat_g": 9.25,
+    "carbohydrate_g": 60,
+    "sugars_g": 50,
+    "fibre_g": 2.25,
+    "protein_g": 8.5,
+    "salt_g": 0.39188,
+    "page_url": "https://world.openfoodfacts.org/product/6221134012965"
+  },
+  "not_found": [
+    "pictures",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

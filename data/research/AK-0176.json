@@ -1,0 +1,42 @@
+{
+  "sku": "AK-0176",
+  "matched": {
+    "brand": "Maggi",
+    "product": "Beef Stock Cubes",
+    "size": "20 g",
+    "barcode": "6221007019275",
+    "confidence": "unsure",
+    "note": "No page with this barcode was opened. Ingredient list is from a US importer listing 'Maggi Beef Stock, HALAL, case 20g (2 cubes) x 24pk, Product of Egypt' (Parthenon Foods); allergen and nutrition not stated there. Nestle Professional Egypt page for Maggi Beef Stock Cubes lists 24 x 18 g / 24 x 20 g inconsistently and its ingredients mention chicken, so they were NOT recorded. Maggi Arabia page is for the 108 g Egypt pack only."
+  },
+  "pictures": [
+    {
+      "image_url": "https://www.nestleprofessionalmena.com/sites/default/files/styles/np_product_detail/public/2024-02/Maggi%C2%AE%C2%A0Beef%20stock%20cubes%281%29.png?itok=qOOPyRpd",
+      "page_url": "https://www.nestleprofessionalmena.com/eg/en/maggi/maggi-beef-stock-cubes",
+      "site": "nestleprofessionalmena.com",
+      "site_kind": "brand",
+      "looks": "one carton plus one loose cube in front, white background, Maggi beef pack with Arabic text, small 302x381, net weight not readable, no watermark/price; size 20 g not verifiable from picture"
+    }
+  ],
+  "ingredients": {
+    "text": "salt, corn starch (sulfites), monosodium glutamate, vegetable oil, (palm and hydrogenated palm oil), sugar, and less than 2% of onion powder, spice, caramel color (sulfites), dehydrated beef, citric acid, disodium inosinate, natural flavor (wheat), TBHQ (preservative).",
+    "language": "en",
+    "page_url": "https://www.parthenonfoods.com/collections/all-products/products/maggi-beef-stock-halal-case-20g-2-cubes-x24pk",
+    "market": "USA (importer listing of an Egypt-made product)"
+  },
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "listing is titled 'HALAL' and says 'Halal'",
+      "page_url": "https://www.parthenonfoods.com/collections/all-products/products/maggi-beef-stock-halal-case-20g-2-cubes-x24pk"
+    }
+  ],
+  "origin": {
+    "country": "Egypt",
+    "page_url": "https://www.parthenonfoods.com/collections/all-products/products/maggi-beef-stock-halal-case-20g-2-cubes-x24pk"
+  },
+  "not_found": [
+    "allergens",
+    "nutrition",
+    "storage"
+  ]
+}

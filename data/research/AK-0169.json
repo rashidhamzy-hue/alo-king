@@ -1,0 +1,46 @@
+{
+  "sku": "AK-0169",
+  "matched": {
+    "brand": "Castania",
+    "product": "Peanuts (Spinneys Lebanon: CASTANIA BLANCHED PEANUT)",
+    "size": "18 g",
+    "barcode": "5281009104257",
+    "confidence": "likely",
+    "note": "Spinneys Lebanon page 'CASTANIA BLANCHED PEANUT 18 G' (also a separate 'Honey Roasted Peanuts 18 G' exists). Page shows no barcode, so match is by name/size; the pack in the picture reads 'Castania PEANUTS' with Arabic text. Market: Lebanon. Some blocks come from the Open Food Facts record for catalog barcode 5281009104257 (user-contributed, named \"Peanuts (Castania)\"); those blocks carry that page as their source."
+  },
+  "pictures": [
+    {
+      "image_url": "https://d145dj1pf6foch.cloudfront.net/catalog/product/cache/183f27a87847ce1143ec1ebb93ec0e36/2/4/246613-v001-1_1.jpg",
+      "page_url": "https://www.spinneyslebanon.com/default/brands/castania",
+      "site": "spinneyslebanon.com",
+      "site_kind": "retailer",
+      "looks": "one small blue Castania PEANUTS bag, front view, white background, no watermark/price; printed date coding visible on pack; 600x600"
+    },
+    {
+      "image_url": "https://images.openfoodfacts.org/images/products/528/100/910/4257/front_fr.3.400.jpg",
+      "page_url": "https://world.openfoodfacts.org/product/5281009104257",
+      "site": "Open Food Facts",
+      "site_kind": "open_food_facts",
+      "looks": "one small bag, front view, user photo on a table, no overlay"
+    }
+  ],
+  "nutrition": {
+    "per": "100 g",
+    "energy_kcal": 601,
+    "fat_g": 48.5,
+    "saturated_fat_g": 3.3,
+    "carbohydrate_g": 13,
+    "sugars_g": 0.3,
+    "fibre_g": 1.9,
+    "protein_g": 24.2,
+    "salt_g": 0.25,
+    "page_url": "https://world.openfoodfacts.org/product/5281009104257"
+  },
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "storage",
+    "origin",
+    "diet_labels"
+  ]
+}

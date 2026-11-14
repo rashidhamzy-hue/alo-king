@@ -1,0 +1,34 @@
+{
+  "sku": "AK-0177",
+  "matched": {
+    "brand": "Taj",
+    "product": "Chicken Flavor Stock Cubes",
+    "size": "2 x 10 g",
+    "barcode": "5285008121840",
+    "confidence": "exact",
+    "note": "SuperDokan (Lebanon) page; barcode on the variant data equals the catalog barcode. Page has no ingredients, allergens or nutrition."
+  },
+  "pictures": [
+    {
+      "image_url": "https://superdokan.com/cdn/shop/files/517_101638.jpg?v=1758967318",
+      "page_url": "https://superdokan.com/en-lb/products/taj-chicken-flavor-stock-cubes-2x10g-taj-in-lebanon",
+      "site": "superdokan.com",
+      "site_kind": "retailer",
+      "looks": "one carton, white background, 3/4 front view, Arabic pack with '2 x 10 g' readable, no watermark/price/overlay, 1000x1000"
+    }
+  ],
+  "diet_labels": [
+    {
+      "label": "halal",
+      "basis": "a halal mark with Arabic text is printed on the pack in the picture; the page text itself states no certificate",
+      "page_url": "https://superdokan.com/en-lb/products/taj-chicken-flavor-stock-cubes-2x10g-taj-in-lebanon"
+    }
+  ],
+  "not_found": [
+    "ingredients",
+    "allergens",
+    "nutrition",
+    "storage",
+    "origin"
+  ]
+}
