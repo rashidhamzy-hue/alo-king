@@ -42,7 +42,9 @@ describe("the website's deploy and code", () => {
     expect(on).toContain("branches: [main]");
     expect(on).not.toMatch(/pull_request/);
     expect(wf).toContain("github.event.workflow_run.head_repository.full_name == github.repository");
-    expect(wf).toContain("github.event.workflow_run.event == 'push'");
+    // deploy-staging's own run has event workflow_run (it is started by ci), so that is the event to require; 'push' would skip every run
+    expect(wf).toContain("github.event.workflow_run.event == 'workflow_run'");
+    expect(wf).not.toContain("github.event.workflow_run.event == 'push'");
     expect(wf).toContain("github.event.workflow_run.head_branch == 'main'");
     expect(wf).toMatch(/permissions: \{ contents: read \}/);
   });

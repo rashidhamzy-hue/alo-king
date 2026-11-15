@@ -1,6 +1,8 @@
 # The website (apps/web), STAGING only. Runs after deploy-staging on main (so the migrations the pages read are applied first) and by hand.
 # It never runs for a pull request, and never for a fork: the trigger is this repository's own pushes to main (through deploy-staging, whose own
-# rule is "a push to this repository's main") or a person pressing the button.
+# rule is "a push to this repository's main") or a person pressing the button. deploy-staging is itself started by ci's workflow_run, so the
+# event on ITS run is `workflow_run` (not `push`: the first version of this file tested for `push` and every run was skipped); a deploy-staging
+# pressed by hand has event `workflow_dispatch` and does not start this one (press this workflow instead).
 #   build   astro build (Astro with the Cloudflare adapter), tests first when run by hand
 #   deploy  wrangler deploy of the Worker alo-king-web-staging
 #   secrets SUPABASE_URL, SUPABASE_ANON_KEY and WEB_CHANNEL_JWT (a token whose role claim is web_channel; never the service key)
@@ -34,7 +36,7 @@ env:
 jobs:
   changes:
     # After deploy-staging on main only: did this merge touch anything the website is built from? Skipped (and free) for a hand run.
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.conclusion != 'skipped' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main'
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.conclusion != 'skipped' && github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
@@ -59,7 +61,7 @@ jobs:
       !cancelled() && (needs.changes.result == 'skipped' || needs.changes.outputs.deploy == 'true') && (
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'cancelled' && github.event.workflow_run.conclusion != 'skipped'
-        && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+        && github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository
         && github.event.workflow_run.head_branch == 'main'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
