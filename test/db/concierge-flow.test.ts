@@ -278,23 +278,28 @@ describe("guards around the model", () => {
     expect(outbound[0]!.body.interactive.body.text).toContain("خلصت");
   });
 
-  it("stays silent while a person is handling the chat", async () => {
-    const t = setup(orderScript());
+  it("steps back only while a person's claim or reply pauses the bot; the old human_handoff flag locks nothing (HO1)", async () => {
+    const t = setup([...orderScript(), [use("reply", { text: "أهلا" })]]);
     const c = await t.customer();
-    await db.pg.query(`update conversations set human_handoff = true where id = $1`, [c.conversation_id]);
+    await db.pg.query(`update conversations set human_handoff = true, bot_paused_until = now() + interval '5 minutes' where id = $1`, [c.conversation_id]);
     await t.conv.fetch(t.text("وينكم؟"));
     await t.conv.alarm();
-    expect(t.seen).toHaveLength(0); expect(outbound).toHaveLength(0);
+    expect(t.seen).toHaveLength(0); expect(outbound).toHaveLength(0);   // a person has it right now (the 2-minute alarm watches)
+    await db.pg.query(`update conversations set bot_paused_until = now() - interval '1 second' where id = $1`, [c.conversation_id]);
+    await t.conv.fetch(t.text("وينكم؟ بدي لبنة"));
+    await t.conv.alarm();
+    expect(t.seen.length).toBeGreaterThan(0);                           // human_handoff is no longer read: the bot answers
   });
 
-  it("stops after six model steps and hands off", async () => {
+  it("stops after six model steps with one fixed question, not a case (HO1)", async () => {
     const loop = Array.from({ length: 8 }, () => [use("search_catalog", { query: "لبنة" })]);
     const t = setup([read({ intent: "question" }), ...loop]);
     await t.conv.fetch(t.text("لبنة"));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(7);                                     // the reading, then six loop steps
     const c = await t.customer();
-    expect(await db.one(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ reason: "agent_did_not_finish" });
+    expect(await db.all(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual([]);
+    expect(outbound.map((o) => o.body.interactive?.body?.text)).toEqual([ar.support.stalled]);
   });
 
   it("saves a location pin to the customer's places and continues with it", async () => {
@@ -641,37 +646,40 @@ describe("model capacity (1.15)", () => {
     expect(outbound[0]!.body.text.body).toBe(ar.fixed.oneMoment);
   });
 
-  it("still overloaded after every retry: a person takes over, ops is told, and the customer hears so", async () => {
+  it("still overloaded after every retry: queued again a minute later, then the fixed technical line; ops is told; no hand-off (HO1)", async () => {
     const t = direct([], 99);
-    const r = await runTurn(t.deps, t.msg("بدي لبنة"), {});
-    expect(r.outcome).toBe("agent_handoff");
+    const pending = t.msg("بدي لبنة"), state = {};
+    await expect(runTurn(t.deps, pending, state)).rejects.toThrow(/RETRY_TURN_LATER/);
     expect(t.calls()).toBe(4);                                          // the first try and three retries
     expect(t.waits).toEqual([2000, 5000, 12000]);
-    expect(outbound.map((o) => o.body.text.body)).toEqual([ar.fixed.oneMoment, ar.fixed.handoff]);
+    const r = await runTurn(t.deps, pending, state);                    // a minute later
+    expect(r.outcome).toBe("technical");
+    expect(outbound.map((o) => o.body.text?.body ?? o.body.interactive?.body?.text)).toEqual([ar.fixed.oneMoment, ar.support.technical]);
     const c = await t.customer();
-    expect(c.human_handoff).toBe(true);
-    expect(await db.one(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual({ reason: "model_capacity" });
-    expect(await db.one(`select count(*)::int as n from ops_exceptions where kind = 'model_capacity' and detail->>'conversation_id' = $1`, [c.conversation_id])).toEqual({ n: 1 });
+    expect(c.human_handoff).toBe(false);
+    expect(await db.all(`select reason from handoffs where conversation_id = $1`, [c.conversation_id])).toEqual([]);
+    expect(await db.one(`select count(*)::int as n from ops_exceptions where kind = 'technical' and detail->>'conversation_id' = $1`, [c.conversation_id])).toEqual({ n: 1 });
   });
 
   it("a turn retried after a crash does not say 'one moment' twice", async () => {
     const t = direct([], 99);
     const pending = t.msg("بدي لبنة");
     const deps = { ...t.deps, turnKey: "customer:crash-retry-test" };
-    await processTurn(deps, pending, {});
+    await processTurn(deps, pending, {}).catch(() => undefined);
     const first = outbound.length;
-    await db.pg.query(`update conversations set human_handoff = false where party_id = (select party_id from party_identities where wa_user_id = $1)`, [t.who.waUserId]);
-    await processTurn(deps, pending, {});
+    await processTurn(deps, pending, {}).catch(() => undefined);
     expect(outbound.slice(first).map((o) => o.body.text.body)).not.toContain(ar.fixed.oneMoment);
   });
 
-  it("a bad request is our bug, not capacity: no 'one moment', no retries", async () => {
+  it("a bad request is our bug, not capacity: no 'one moment', no backoff retries; queued again once, then the fixed line (HO1)", async () => {
     const t = direct([], 0);
     t.deps.model = { messages: { create: async () => { throw Object.assign(new Error("bad"), { status: 400, name: "BadRequestError" }); } } };
-    const r = await runTurn(t.deps, t.msg("بدي لبنة"), {});
-    expect(r.outcome).toBe("error");
+    const pending = t.msg("بدي لبنة"), state = {};
+    await expect(runTurn(t.deps, pending, state)).rejects.toThrow(/RETRY_TURN_LATER/);
+    const r = await runTurn(t.deps, pending, state);
+    expect(r.outcome).toBe("technical");
     expect(t.waits).toEqual([]);
-    expect(outbound.map((o) => o.body.text.body)).toEqual([ar.fixed.error]);
+    expect(outbound.map((o) => o.body.interactive?.body?.text)).toEqual([ar.support.technical]);
   });
 });
 

@@ -26,8 +26,9 @@ Roadmap rows are in `docs/BUILD_PLAN.md`, "Strategy revision, 15 November 2026";
 
 Stop conditions: `docs/strategy/01-verdict-gates.md`.
 
-**Where the queue stands.** DOC1 is done. COST1 is built (15 Nov; its live runs wait for migration 0139 on staging). Wave 0 continues with PUB1 and BK0 (BK0 waits for the founder's secret
-`BACKUP_PASSPHRASE`). HO1 and COST1 wait for SIM1's report to be merged (`docs/SIM_REPORT_2026-11-15.md`; the workflow is on `main`).
+**Where the queue stands.** HO1 is done (15 November; `docs/HANDOFF.md`, HO1): the simulated customers show zero silences after a hand-off. B1 and DS1 may
+start on it. DOC1 is done. COST1 is built (15 Nov; its live runs wait for migration 0139 on staging). Wave 0 continues with PUB1 and BK0 (BK0 waits for the founder's secret
+`BACKUP_PASSPHRASE`). SIM1's report is merged (`docs/SIM_REPORT_2026-11-15.md`).
 T1 waits for gate A. At most three sessions at once.
 
 **Coordinator decisions of 15 November, 13:30** (full text in `docs/DECISIONS.md`, "Coordinator decisions, 15 November 2026, 13:30"):
@@ -41,7 +42,7 @@ founder's brief to `docs/DESIGN_BRIEF.md` first, from its attachment.
 | 0, now | **DOC1** strategy into the repository | Sonnet, medium | Nothing | PUB1, BK0, SIM1 | `docs/` only | None | Strategy files, the brief, the rules block, plan rows and decisions are on `main`; no code changed |
 | 0 | **PUB1** public-repository hygiene | Sonnet, medium | Nothing | DOC1, BK0 | `scripts/ci/`, `.github/workflows/ci.yml`, `.gitleaks.toml`, `test/ci/`, `package.json` | None | A planted phone number, pin, plus code or key fails CI and the pre-commit hook; CI tools pinned with checksums |
 | 0 | **BK0** free backups and restore check | Sonnet, medium | The founder's passphrase secret | DOC1, PUB1 | `.github/workflows/backup.yml`, `restore-check.yml`, `scripts/backup/`, `docs/RUNBOOK.md` | None | One encrypted copy stored; one restore check green; an alert when a copy is older than 36 hours |
-| 1 | **HO1** never-stranded hand-off | Opus, high | SIM1's report merged | COST1, OPS1 | `apps/gateway/src/turn.ts`, `packages/agents/src/messages/`, `apps/console/src/pages/inbox.ts` (new) | 0135 to 0138 | The tests in `05`, section D; a plain Inbox page works |
+| 1 | **HO1** never-stranded hand-off (done, 15 Nov) | Opus, high | SIM1's report merged | COST1, OPS1 | `apps/gateway/src/turn.ts`, `packages/agents/src/messages/`, `apps/console/src/pages/inbox.ts` (new) | 0135 to 0137 used | The tests in `05`, section D; a plain Inbox page works |
 | 1 | **COST1** cost recorded, capped | Sonnet, medium | SIM1's report merged | HO1, OPS1 | `.github/workflows/*`, `scripts/` that call a model | 0139 | Every model-calling workflow writes tokens and dollars to a table and its summary, and stops at its cap. **Built 15 Nov**; one real run of each waits for 0139 on staging |
 | 1 | **OPS1** alerts that wake someone | Sonnet, high | Nothing | HO1, COST1 | `apps/console/` (push, roles, settings pages), `apps/web/` (Sentry) | 0140 to 0142 | A test case pushes to a phone; staff can be added and blocked in the console; template-health page; sign-in throttle; Sentry in all three Workers |
 | 2 | **B1a** ordering fixes from SIM1, part 1 | Opus, high | HO1 merged | DS1, PIX | `packages/agents/src/` (reading, planner, guard, fixed messages), `packages/commerce/` quote, `supabase/seed/proposed_pilot_settings.sql`, `evals/` | None | Report fixes 1, 3, 4, 9 and 10 and the two no-reply turns pass their new cases; the language gate holds; 150 simulated conversations re-run with those classes at zero |

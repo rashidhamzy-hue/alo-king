@@ -229,8 +229,9 @@ describe("every model-calling entry point is metered", () => {
     expect(read("evals/sim/budget.ts")).toMatch(/costLines\(\)/);
     const w = read(".github/workflows/sim-test.yml");
     expect(w).toMatch(/node scripts\/lib\/model-cost\.mjs out\/sim\/model-cost\.json/);
-    expect(w).toMatch(/max_usd:/);
-    expect(w).toMatch(/SIM_HARD="\$cap"/);
+    expect(w).toMatch(/budget_usd:/);                       // one dollar limit: SIM1's input is the cap, there is no second one
+    expect(w).not.toMatch(/max_usd/);
+    expect(w).toMatch(/SIM_BUDGET_USD: \$\{\{ inputs\.budget_usd \}\}/);
   });
 
   it("no other script or eval calls the Messages API without being on this list or being a library of a metered entry point", () => {

@@ -1,6 +1,7 @@
-// 3.5 Exceptions and handoffs: the ops_exceptions queue, and the chats a person has taken over. A reply goes through the
-// gateway's send() on the customer line (preflight, can_send: open 24-hour window, opt-out, outbox claim). Handing a chat
-// back to the Concierge is release_handoff() (0045).
+// 3.5 Exceptions and handoffs: the ops_exceptions queue, and the chats with a request open for a person (HO1: the open cases of
+// 0135; the bot is never removed, and the Inbox is where a case is claimed and resolved). A reply goes through the gateway's
+// send() on the customer line (preflight, can_send: open 24-hour window, opt-out, outbox claim). release_handoff() (0045,
+// redefined in 0135) ends any pause, so the bot answers at once.
 import { act, html, id, render, text, UserError, type Ctx, type Section } from "../app";
 import { form, minutesSince, when } from "../html";
 import { LEADS } from "../roles";
@@ -15,7 +16,9 @@ async function page(c: Ctx) {
   const { db } = c.deps;
   const now = c.deps.now();
   const excs = await db.rows<Exc>("ops_exceptions", { select: "id,kind,ref,detail,status,created_at,last_alert_at", where: { status: { in: ["open", "acknowledged"] } }, order: [{ col: "created_at" }], limit: 200 });
-  const convs = await db.rows<Conv>("conversations", { select: "id,party_id,last_inbound_at,active_order_id,updated_at", where: { line: "customer", human_handoff: true }, order: [{ col: "updated_at" }], limit: 50 });
+  const waiting = await db.rows<{ conversation_id: string }>("support_cases", { select: "conversation_id", where: { state: { in: ["open", "claimed"] } }, limit: 200 }).catch(() => [] as { conversation_id: string }[]);
+  const convIds = [...new Set(waiting.map((w) => w.conversation_id))];
+  const convs = convIds.length ? await db.rows<Conv>("conversations", { select: "id,party_id,last_inbound_at,active_order_id,updated_at", where: { id: { in: convIds }, line: "customer" }, order: [{ col: "updated_at" }], limit: 50 }) : [];
   const parties = convs.length ? await db.rows<{ id: string; display_name: string | null }>("parties", { select: "id,display_name", where: { id: { in: convs.map((x) => x.party_id) } } }) : [];
   const handoffs = convs.length ? await db.rows<{ conversation_id: string; reason: string; created_at: string }>("handoffs", { select: "conversation_id,reason,created_at", where: { conversation_id: { in: convs.map((x) => x.id) }, status: { not: "resolved" } } }) : [];
   const msgs = await Promise.all(convs.map((x) => db.rows<Msg>("wa_messages", { select: "direction,type,body,created_at,status", where: { party_id: x.party_id, line: "customer" }, order: [{ col: "created_at", desc: true }], limit: 12 })));
@@ -28,8 +31,8 @@ ${excs.map((e) => html`<tr><td>${when(e.created_at)}<br><span class="muted">${mi
 <td>${detailText(e.detail)}</td><td>${e.status}</td>
 <td>${e.status === "open" ? form(c.f, `/exceptions/${e.id}/acknowledged`, html`<button>I'm on it</button>`, { cls: "inline" }) : ""}
 ${form(c.f, `/exceptions/${e.id}/resolved`, html`<button>Resolved</button>`, { cls: "inline" })}</td></tr>`)}</table>`}
-<h2>Chats with a person (${convs.length})</h2>
-<p class="muted">The Concierge stays out of these chats until you hand them back. Replies go out from the customer number, only inside WhatsApp's 24-hour window.</p>
+<h2>Chats with a request for a person (${convs.length})</h2>
+<p class="muted">The bot keeps answering these customers. Claim, reply and resolve in the <a href="/inbox">Inbox</a>. Replies go out from the customer number, only inside WhatsApp's 24-hour window.</p>
 ${convs.map((x, i) => {
   const open = x.last_inbound_at && now.getTime() - new Date(x.last_inbound_at).getTime() < 24 * 3600_000;
   const h = handoffs.find((y) => y.conversation_id === x.id);
@@ -38,7 +41,7 @@ ${convs.map((x, i) => {
 ${open ? "" : html` · <strong class="warn">24-hour window closed: a reply cannot be sent</strong>`}</p>
 <table>${[...msgs[i]!].reverse().map((m) => html`<tr><td class="muted">${when(m.created_at)}</td><td>${m.direction === "inbound" ? "customer" : "us"}</td><td>${m.body ?? `[${m.type}]`}</td></tr>`)}</table>
 ${form(c.f, `/chats/${x.id}/reply`, html`<p><textarea name="text" rows="3" cols="60" maxlength="1500" required></textarea></p><p><button>Send reply</button></p>`)}
-${canRelease ? form(c.f, `/chats/${x.id}/release`, html`<button>Hand back to the Concierge</button>`) : html`<p class="note">Handing back needs release_handoff(), not in the database yet (see docs/HANDOFF.md, Console).</p>`}
+${canRelease ? form(c.f, `/chats/${x.id}/release`, html`<button>Let the bot answer now</button>`) : html`<p class="note">Handing back needs release_handoff(), not in the database yet (see docs/HANDOFF.md, Console).</p>`}
 </div></div>`;
 })}`);
 }
@@ -77,7 +80,7 @@ async function release(c: Ctx) {
   const conv = id(c, "conv");
   return act(c, "chat_release", { conversation: conv }, async () => {
     const r = await c.deps.db.rpc<{ already?: boolean }>("release_handoff", { p_conversation: conv, p_by: c.staff.partyId });
-    return r?.already ? "This chat was already with the Concierge." : "Handed back to the Concierge.";
+    return r?.already ? "The bot is already answering this chat." : "The bot answers this chat again.";
   }, "/exceptions");
 }
 

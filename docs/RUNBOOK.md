@@ -240,7 +240,7 @@ Runs are on the repository's Actions page. "Not yet" means written and tested lo
 | Roll back the Worker | **Yes**, 13 Nov 2026: rolled back one version, the Worker still answered, then redeployed | `staging-drill` run 43394402493 |
 | Rotate one secret (webhook signing secrets) | **Yes**: new secrets in the Worker and in Kapso, a signed test event accepted on both lines | `staging-drill` run 43394402493 |
 | Sentry receives a Worker error | **Not confirmed.** Delivery to Sentry's ingest is proven (HTTP 200, flush true); the event is not visible in the project. See `docs/HANDOFF.md` 0.8. Since A4 (14 Nov) the deploy proves Sentry with a check-in to the monitors `deploy-smoke-staging` and `deploy-ingest-check-staging`, not an error, so it no longer opens issues | `deploy-staging` run 43396822066 |
-| Nightly encrypted backup and weekly restore check (BK0) | See `docs/HANDOFF.md` "Session BK0" for the run links | `backup` and `restore-check` |
+| Nightly encrypted backup (to R2) and the restore check from it (BK0) | **Yes**, 15 Nov 2026, staging: a copy in R2, restored into a Postgres 17 container, 107 migrations, 127 tables, ledger 0.00. The alerts and the Supabase fallback are not yet exercised live | `backup` run 43703456354, `restore-check` run 43708874550 |
 | Recovery drill: restore from point-in-time recovery | Not yet. Needs production and a paid Supabase plan (4.8) | |
 
 **What the drill taught.** `wrangler rollback` goes to the previous *version*, and a secret change is a version. If the version you roll back to predates a secret, the Worker loses it. After any rollback run `npx wrangler secret list --env <env>` and compare with the list at the top of this file;

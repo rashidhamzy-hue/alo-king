@@ -2,6 +2,7 @@
 // Failure classes are the hard checks code ran on every turn and the judge's findings; they are ranked by count times severity.
 import { NOTE_CODES } from "./checks";
 import { describeAction, transcriptOf } from "./judge";
+import { FIXES } from "./fixes";
 import type { ConversationResult, RunSummary } from "./run";
 
 export interface ClassRow { cls: string; source: "code" | "judge"; conversations: number; severity: number; score: number; examples: ConversationResult[] }
@@ -26,6 +27,8 @@ export const OWNER: Record<string, string> = {
 export function handoffGroup(reason: string): string {
   const head = reason.split(":")[0]!.trim();
   if (/^(agent_did_not_finish|model_turn_cap|model_capacity|plan_handoff|delivery_problem)$/.test(head)) return head;
+  // HO1 (0135): a case's reason starts with its kind, which code chose.
+  if (/^(person_requested|order_problem|complaint|refund|payment|safety|other)$/.test(head)) return `case: ${head}`;
   if (/^(agent_error|button_error|window_error|substitution_error)$/.test(head)) return `code error: ${head}`;
   const r = reason.toLowerCase();
   if (/refund|rembours|money back|مصاري|ترجع/.test(r)) return "model: refund asked";
@@ -103,7 +106,8 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
   for (const r of handed) for (const h of new Set(r.facts!.handoffs.map(handoffGroup))) reasons.set(h, (reasons.get(h) ?? 0) + 1);
   const silenced = first.filter((r) => r.failures.some((f) => f.code === "silence_after_handoff"));
   const silentMsgs = first.reduce((s, r) => s + r.failures.filter((f) => f.code === "silence_after_handoff").length, 0);
-  const alerted = handed.filter((r) => (r.facts?.exceptions.agent_handoff ?? 0) > 0).length;
+  // Before HO1 a hand-off raised agent_handoff; after it, the case raises support_case (0135).
+  const alerted = handed.filter((r) => (r.facts?.exceptions.agent_handoff ?? 0) + (r.facts?.exceptions.support_case ?? 0) > 0).length;
   const costs = first.map((r) => r.usd.total);
   const repeats = all.filter((r) => r.attempt > 0);
   const errors = new Map<string, number>();
@@ -149,13 +153,13 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
   L.push("## Hand-offs and silence (baseline for the hand-off redesign)", "");
   L.push(table(["", "value"], [
     ["conversations with a hand-off", `${handed.length} (${pct(handed.length, first.length)})`],
-    ["of those, an agent_handoff exception raised (ops alerted by the cron)", `${alerted}`],
+    ["of those, an ops exception raised (agent_handoff before HO1, support_case after; ops alerted by the cron)", `${alerted}`],
     ["customers left in silence after a hand-off", `${silenced.length} (${pct(silenced.length, handed.length)} of hand-offs)`],
     ["follow-up messages that got no reply", silentMsgs],
   ]), "");
   L.push("Codes are written by code; \"model:\" reasons are the Concierge's own hand-off (handoff_human), grouped by what its free text is about.", "");
   L.push(table(["hand-off reason", "conversations", "share of all"], [...reasons].sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, v, pct(v, first.length)])), "");
-  L.push("No person answers in a simulation, so every message after a hand-off meets the gateway's `human` outcome: it is stored and nothing is sent. That silence is what the customer sees today until a person replies.", "");
+  L.push("No person answers in a simulation. Before HO1 every message after a hand-off met the gateway's `human` outcome: stored, nothing sent. Since HO1 a hand-off opens a case and the bot keeps answering; a turn after it with no reply of any kind is counted here.", "");
   L.push("## Time per turn", "");
   L.push(table(["turns", "count", "median s", "95th s", "model calls per turn (mean)"], [
     ["all customer turns", turns.length, quantile(turns.map((t) => t.seconds), 0.5).toFixed(1), quantile(turns.map((t) => t.seconds), 0.95).toFixed(1), (turns.reduce((s, t) => s + t.modelCalls, 0) / (turns.length || 1)).toFixed(2)],
@@ -171,13 +175,37 @@ export function buildReport(inp: ReportInput): { markdown: string; cases: Record
   if (repeats.length && !judgedRepeats.length) {
     L.push("## How often a failure repeats", "", `Not measured: ${repeats.length} repeat attempts of ${new Set(repeats.map((r) => r.id)).size} failing seeds were started and none could run (${[...new Set(repeats.map((r) => errorCause(r.error)))].map(scrub).join("; ").slice(0, 300)}).`, "");
   } else if (repeats.length) {
-    const seeds = [...new Set(repeats.map((r) => r.id))];
-    const again = seeds.map((id) => { const xs = repeats.filter((r) => r.id === id && r.status === "judged"); return { id, runs: xs.length, failed: xs.filter((r) => !r.passed).length }; });
-    const stable = again.filter((x) => x.runs && x.failed === x.runs).length, flaky = again.filter((x) => x.failed > 0 && x.failed < x.runs).length, never = again.filter((x) => x.runs && x.failed === 0).length;
-    L.push("## How often a failure repeats", "", `Failing seeds run again: ${seeds.length}, ${repeats.length} attempts. Failed every repeat: ${stable}; some repeats: ${flaky}; passed every repeat: ${never}.`, "");
-    const byClass = cls.map((c) => { const ids = new Set(c.examples.map((r) => r.id)); const rs = repeats.filter((r) => ids.has(r.id) && r.status === "judged");
-      const hit = rs.filter((r) => classes([r]).some((x) => x.cls === c.cls)).length; return [c.cls, rs.length, hit, pct(hit, rs.length)]; });
-    L.push(table(["class", "repeat attempts of its seeds", "class seen again", "repeat rate"], byClass), "");
+    // Each judged repeat against its own seed's first attempt: passed, failed again (a class of the first attempt seen again), or
+    // failed differently (failed, but with none of the first attempt's classes).
+    const firstOf = new Map(judged.map((r) => [r.id, r]));
+    const pairs = judgedRepeats.filter((r) => firstOf.has(r.id) && !firstOf.get(r.id)!.passed).map((r) => {
+      const o = firstOf.get(r.id)!;
+      const was = new Set(classes([o]).map((c) => c.cls)), now = new Set(classes([r]).map((c) => c.cls));
+      return { o, r, was, now, same: [...was].some((c) => now.has(c)) };
+    });
+    const verdict = (p: (typeof pairs)[number]) => (p.r.passed ? "passed" : p.same ? "failed again" : "failed differently");
+    const count = (xs: typeof pairs, v: string) => xs.filter((p) => verdict(p) === v).length;
+    L.push("## How often a failure repeats", "",
+      `${pairs.length} failing seeds were run once more with the same seed (same persona, goal and opening; the models answer afresh). ` +
+      `**One repeat per seed is a small sample**: it shows whether a failure comes back, not how often; a class with a handful of seeds says little.`, "",
+      table(["", "seeds", "share"], ["passed", "failed again", "failed differently"].map((v) => [v, count(pairs, v), pct(count(pairs, v), pairs.length)])), "",
+      "By failure class of the first attempt (a seed counts under each class it had; \"failed again\" means that class came back):", "");
+    const byClass = cls.map((c) => {
+      const xs = pairs.filter((p) => p.was.has(c.cls));
+      const again = xs.filter((p) => !p.r.passed && p.now.has(c.cls)).length, passed = xs.filter((p) => p.r.passed).length;
+      return [c.cls, xs.length, passed, again, xs.length - passed - again];
+    }).filter((row) => Number(row[1]) > 0);
+    L.push(table(["class", "seeds repeated", "passed", "failed again (same class)", "failed, not this class"], byClass), "");
+    const byFix = FIXES.map((f) => {
+      const xs = pairs.filter((p) => f.test(p.o));
+      const again = xs.filter((p) => !p.r.passed && f.test(p.r)).length, passed = xs.filter((p) => p.r.passed).length;
+      return [f.title, xs.length, passed, again, xs.length - passed - again];
+    }).filter((row) => Number(row[1]) > 0);
+    L.push("By the ten fixes (the follow-up drew its seeds in proportion to them; a seed counts under each fix it falls under):", "",
+      table(["fix", "seeds repeated", "passed", "same fix needed again", "failed otherwise"], byFix), "");
+    const fresh = new Map<string, number>();
+    for (const p of pairs) for (const c of p.now) if (!p.was.has(c)) fresh.set(c, (fresh.get(c) ?? 0) + 1);
+    if (fresh.size) L.push(`Classes seen in a repeat that its first attempt did not have: ${[...fresh].sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c} (${n})`).join(", ")}.`, "");
   }
   L.push("## The ten fixes that matter most", "", "(written by the session from the classes above)", "");
   L.push("## Failing cases written", "", "Each class above is in `evals/cases/sim_<class>.json`: the customer's side of each failing conversation, what the shop sent, and what was wrong. Not fixed here.", "");
