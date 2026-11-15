@@ -540,7 +540,7 @@ Classes: **A** must work at launch. **B** designed now, switched on after eviden
 | Friends' test | Staging probe | Tester list, script, feedback as cases, privacy line | A | T1 |
 | Website, read side | None | Home, category, product, search | A | WEB1 |
 | Website, ordering | None | Cart, checkout with cash, tracking, history, account | A | WEB2 |
-| Console as a cockpit | Plain pages | Shell, installable, push, Today as an exception inbox, orders page (waits for C8) | A | D5 |
+| Console as a cockpit | Plain pages | Shell, installable, push, Today as an exception inbox, orders page (built, D5, 15 Nov) | A | D5 |
 | Places and delivery learning | `landmarks`, saved places, the pin decides | Place names, landmark proposals, the order timeline, time statistics, rider door notes | A (list), B (learned ETAs) | L1 |
 | Nightly learning and evals | Language-pack workflow by hand | Nightly smoke eval, weekly full run, collectors, the "learned today" note | A (evals), B (collectors) | N2 |
 | Daily summary and reports | Day close, margin, demand views | Daily summary, weekly report, costs and customer pages | A | AN1 |

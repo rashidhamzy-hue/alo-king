@@ -27,7 +27,7 @@ async function page(c: Ctx) {
 ${rows.length === 0 ? html`<p class="muted">Nothing ${status}.</p>` : rows.map((r, i) => html`<div class="pair">
 <div>${links[i] ? html`<a href="${links[i]}" target="_blank" rel="noopener"><img class="proof" src="${links[i]}" alt="proposed picture of ${r.name_en}"></a>` : html`<p class="warn">Picture not available.</p>`}
 <p class="muted">${r.width_px ?? "?"} × ${r.height_px ?? "?"} px${r.bytes ? `, ${Math.round(r.bytes / 1024)} KB` : ""}</p></div>
-<div style="flex:1"><p><strong>${r.name_en}</strong>${r.name_ar ? html` · ${r.name_ar}` : ""}</p>
+<div><p><strong>${r.name_en}</strong>${r.name_ar ? html` · ${r.name_ar}` : ""}</p>
 <p>${r.sku ?? ""} · ${r.brand ?? "no brand"} · ${r.sell_unit}${r.barcode ? html` · barcode ${r.barcode}` : ""}</p>
 <p>Source: ${r.source_kind}${safeHref(r.page_url) ? html` · <a href="${safeHref(r.page_url)}" target="_blank" rel="noopener noreferrer">page</a>` : ""}
 ${safeHref(r.source_url) ? html` · <a href="${safeHref(r.source_url)}" target="_blank" rel="noopener noreferrer">original</a>` : ""}</p>

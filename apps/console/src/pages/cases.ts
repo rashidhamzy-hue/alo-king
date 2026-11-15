@@ -50,7 +50,7 @@ async function page(c: Ctx) {
     }
   }
 
-  const caseBlock = (k: Case) => html`<div class="pair${k.kind === "allergen" && k.status === "open" ? " late" : ""}"><div style="flex:1">
+  const caseBlock = (k: Case) => html`<div class="pair${k.kind === "allergen" && k.status === "open" ? " late" : ""}"><div>
 <p><strong>${k.kind.toUpperCase()}</strong> · <a href="/refunds?order=${code(k.order_id)}">${code(k.order_id)}</a>${k.product_id ? html` · ${pname(k.product_id)}` : ""}
 ${held(k.product_id) ? html` · <strong class="warn">ON HOLD</strong>` : ""} · owner ${who(k.owner_id)} · opened ${when(k.opened_at)}</p>
 <p>${k.detail}</p>
