@@ -48,6 +48,8 @@ export interface ConversationState {
   welcomed?: boolean;
   /** B1a: the card the customer tapped "edit" on (now a draft): its lines are lastQuote, and the next card replaces it. */
   editing?: { orderId: string; shortCode: string } | null;
+  /** B1c: lines asked about by code («ربطة خبز»: which one?), the first being asked now, each with its words, count and the products offered. */
+  asking?: import("./choice").AskingLine[] | null;
 }
 export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;
@@ -445,7 +447,12 @@ export async function keepUntilOpen(ctx: ToolContext, basket: { lines: QuoteLine
   ctx.state.pending = terms; ctx.state.awaiting = "opening";
   // Audit item 4: who has a kept order, so the cron can offer it once when we open. A failure here never stops the reply.
   await ctx.db.rpc("keep_order", { p_party: ctx.partyId, p_conversation: ctx.conversationId, p_opens: opens }).then(() => undefined, () => undefined);
-  const said = opts.pin ? T(ctx).fixed.closedKeptPin(opens) : T(ctx).fixed.closedKept(opens);
+  // B1c: the basket kept, line by line, so the customer sees it and never says it again to have it added (B1a's third run, sim-028:
+  // «they seem not added, add them» at night, twice, made 3 and 9 of 1 and 3).
+  const lang = ctx.state.lang ?? "ar";
+  const items = basket.lines.map((l) => { const q = basket.quote.lines.find((x) => x.product_id === l.product_id);
+    return `${Number(l.qty)} × ${q ? productName({ name: q.name, name_ar: q.name_ar, product_id: l.product_id }, lang) : "?"}`; });
+  const said = opts.pin ? T(ctx).fixed.closedKeptPin(opens, items) : T(ctx).fixed.closedKept(opens, items);
   const text = opts.before ? `${opts.before}\n${said}` : said;
   return deliver(ctx, buttonMsg(text, [{ id: KEPT_BUTTON, title: T(ctx).fixed.keptButton }]), `[kept until open] ${text}`);
 }

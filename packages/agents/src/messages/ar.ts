@@ -84,8 +84,8 @@ export const ar: Messages = {
     pinSaved: (village) => `✅ سجّلنا موقعك${village ? ` (${village})` : ""}.\nشو بتحب تطلب؟`,
     fxPaused: "عم نحدّث سعر الصرف هلّق، فما فينا نسعّر الطلب هالدقيقة.\nطلبك محفوظ: ابعتلنا «تمام» بعد شوي ومنبعتلك الورقة.",
     pinVillageRefused: "ما قدرنا نعتمد هالضيعة لهالموقع.\nابعت الموقع من جديد من الزر 📍",
-    closedKept: (opens) => `🌙 مسكّرين هلّق، منفتح الساعة ${opens}.\n\nطلبك محفوظ ✅\nبس نفتح اكبس «ابعت طلبي» ومنكمّل من هون.`,
-    closedKeptPin: (opens) => `📍 وصلنا موقعك.\n🌙 بس نحنا مسكّرين هلّق، منفتح الساعة ${opens}.\n\nطلبك محفوظ: بس نفتح اكبس «ابعت طلبي» ومنكمّل.`,
+    closedKept: (opens, items) => `🌙 مسكّرين هلّق، منفتح الساعة ${opens}.\n\nطلبك محفوظ ✅${items?.length ? `\n${bullets(items)}` : ""}\nبس نفتح اكبس «ابعت طلبي» ومنكمّل من هون.`,
+    closedKeptPin: (opens, items) => `📍 وصلنا موقعك.\n🌙 بس نحنا مسكّرين هلّق، منفتح الساعة ${opens}.\n\nطلبك محفوظ: بس نفتح اكبس «ابعت طلبي» ومنكمّل.${items?.length ? `\n${bullets(items)}` : ""}`,
     keptButton: "ابعت طلبي",
     keptOpen: "صباح الخير، فتحنا ✅\nطلبك يلي بعتّو وكنّا مسكّرين بعدو محفوظ.\nاكبس «ابعت طلبي» ومنكمّل.",
     keptGone: "ما في طلب محفوظ هلّق. شو بتحب تطلب؟",
@@ -110,6 +110,7 @@ export const ar: Messages = {
 
   answer: {
     noOpenOrder: "ما عندك طلب مفتوح هلّق. شو بتحب تطلب؟",
+    noOpenRepeat: (items, more) => `ما عندك طلب مفتوح هلّق.\nاكبس تحت لنجهّزلك نفس طلبك الماضي بأسعار اليوم:\n${join(items)}${more ? ` و${more} غيرن` : ""}`,
     awaitingConfirmation: (code, when) => `طلبك ${code}: ناطر تأكيدك${when ? `، للتوصيل ${when}` : ""}.\nاكبس «تأكيد الطلب» عالورقة لنبلّش.`,
     awaitingPayment: (code, when, total) => `طلبك ${code}: ${when ? `محجوز للتوصيل ${when}، ` : ""}ناطرين وصول الدفع.\n💵 المبلغ:\n${usd(total)}\nابعت صورة الإيصال هون.`,
     confirmedFor: (code, when) => `✅ طلبك ${code}: مأكّد، والتوصيل ${when}.`,
@@ -136,12 +137,14 @@ export const ar: Messages = {
   },
 
   basket: {
-    minimum: (min, now, gap) => ["🛒 طلبك أقل من الحد الأدنى.", `الحد الأدنى للطلب: ${usd(min)}`, `طلبك هلّق: ${usd(now)}`,
+    minimum: (min, now, gap, items) => ["🛒 طلبك أقل من الحد الأدنى.", ...(items?.length ? ["بسلّتك:", bullets(items)] : []), `الحد الأدنى للطلب: ${usd(min)}`, `طلبك هلّق: ${usd(now)}`,
       `ناقصك: ${usd(gap)}`, "زيد شي، أو اختار من تحت:"].join("\n"),
     minimumIs: (min) => `🛒 الحد الأدنى للطلب: ${usd(min)}\nشو بتحب تطلب؟`,
     cancelButton: "إلغاء الطلب",
     cleared: "تمام، ما رح نبعت شي وسلّتك فاضية.\nاكتبلي أيمتى ما بدك تطلب.",
     soFar: (items) => `🛒 طلبك لسّا ما انبعت. بسلّتك:\n${bullets(items)}`,
+    which: (said, rows) => `«${said}»: أي واحد بدك؟\n${bullets(rows)}\nاختار من تحت.`,
+    houseDefault: (said, name) => `«${said}»: حطّينالك ${name}.\nإذا بدك غيرو، قلّي.`,
     changed: (rows) => `✅ عدّلنا طلبك:\n${rows.join("\n")}`,
     unavailable: (names) => `⚠️ مش متوفّر هلّق:\n${bullets(names)}\nقلّي شو بدك بدالو، أو منشيلو.`,
     cancelRefused: (code) => `طلبك ${code} عم يتحضّر هلّق، فما فينا نلغيه من هون.\nحدا من فريقنا رح يتّصل فيك بخصوصه.`,

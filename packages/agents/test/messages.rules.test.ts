@@ -122,7 +122,7 @@ function render(m: Messages): Rendered[] {
   add("fixed.notAvailable", f.notAvailable(["سناك أبو علي"])); add("fixed.notAvailable.none", f.notAvailable([]));
   add("fixed.pinReceived", f.pinReceived("بعقلين")); add("fixed.pinReceivedThenAddress", [f.pinReceived("بعقلين"), "", f.askAddress].join("\n"));
   add("fixed.pinVillage", f.pinVillage("الخريبة", "بعقلين")); add("fixed.pinSaved", f.pinSaved("بعقلين"));
-  add("fixed.closedKept", f.closedKept("08:00")); add("fixed.closedKeptPin", f.closedKeptPin("08:00"));
+  add("fixed.closedKept", f.closedKept("08:00", names.slice(0, 2).map((n, i) => `${i + 1} × ${n}`))); add("fixed.closedKeptPin", f.closedKeptPin("08:00", names.slice(0, 1).map((n) => `2 × ${n}`)));
   add("fixed.priced", [f.priced(names[0]!, 2.01, true), f.priced(names[2]!, 3.25, false)].join("\n"));
 
   const w = m.windows;
@@ -137,7 +137,7 @@ function render(m: Messages): Rendered[] {
   for (const s of ["awaiting_confirmation", "awaiting_payment", "confirmed", "ready", "out_for_delivery", "arrived", "delivered", "failed_delivery", "other"]) add(`status.${s}`, st(s));
   for (const s of ["awaiting_confirmation", "awaiting_payment", "confirmed", "preparing"]) add(`status.scheduled.${s}`, st(s, { window: W(1) }));
   add("status.ready.pickup", st("ready", { is_pickup: true }));
-  add("answer.noOpenOrder", a.noOpenOrder); add("answer.awaitingConfirmation", a.awaitingConfirmation(CODE, null)); add("answer.awaitingPayment", a.awaitingPayment(CODE, when, 7.27));
+  add("answer.noOpenOrder", a.noOpenOrder); add("answer.noOpenRepeat", a.noOpenRepeat(names.slice(0, 3), 2)); add("answer.awaitingConfirmation", a.awaitingConfirmation(CODE, null)); add("answer.awaitingPayment", a.awaitingPayment(CODE, when, 7.27));
   add("answer.confirmedFor", a.confirmedFor(CODE, when)); add("answer.preparingFor", a.preparingFor(CODE, when)); add("answer.preparing", a.preparing(CODE, 20));
   add("answer.ready", a.ready(CODE, false)); add("answer.onTheWay", a.onTheWay(CODE, 10)); add("answer.arrived", a.arrived(CODE)); add("answer.delivered", a.delivered(CODE));
   add("answer.failed", a.failed(CODE)); add("answer.other", a.other(CODE)); add("answer.hours", a.hours("08:00", "22:00", true)); add("answer.hours.closed", a.hours("08:00", "22:00", false));
@@ -148,7 +148,8 @@ function render(m: Messages): Rendered[] {
 
   // B1a: the basket said by code (the minimum, the basket so far, what changed, a refused cancel).
   const bk = m.basket;
-  add("basket.minimum", bk.minimum(5, 0.69, 4.31)); add("basket.minimumIs", bk.minimumIs(5));
+  add("basket.minimum", bk.minimum(5, 0.69, 4.31, names.slice(0, 2).map((n, i) => `${i + 1} × ${n}`))); add("basket.minimumIs", bk.minimumIs(5));
+  add("basket.which", bk.which(names[0]!, names.slice(0, 3).map((n) => `${n}: $1.01`))); add("basket.houseDefault", bk.houseDefault("ربطة خبز", names[0]!));
   add("basket.cancelButton", bk.cancelButton); add("basket.cleared", bk.cleared); add("basket.soFar", bk.soFar(names.map((n, i) => `${i + 1} × ${n}`)));
   add("basket.changed", bk.changed([`+ 2 × ${names[0]}`, `− ${names[1]}`, `${names[2]}: 1 → 3`])); add("basket.unavailable", bk.unavailable([names[2]!]));
   add("basket.cancelRefused", bk.cancelRefused(CODE));

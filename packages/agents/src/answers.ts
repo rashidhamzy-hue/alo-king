@@ -65,6 +65,19 @@ const say = async (ctx: ToolContext, text: string, path: string): Promise<Done> 
 
 export async function answerStatus(ctx: ToolContext): Promise<Done> {
   const s = await rpc<OrderStatus | null>(ctx.db, "order_status_for", { p_party: ctx.partyId });
+  if (!s && !ctx.state.lastQuote?.lines.length) {
+    // B1c (sim-073): no open order and nothing in hand, from a customer with a closed order («my last order was five days ago, isn't
+    // it recorded?»): that order is offered as a new basket, one tap, re-priced then. Never "no open order" and nothing else.
+    const offer = await rpc<{ order_id: string; items: string[]; names?: { product_id: string; name: string; name_ar: string | null }[] } | null>(
+      ctx.db, "repeat_offer", { p_party: ctx.partyId }).catch(() => null);
+    if (offer?.items.length) {
+      const lang = ctx.state.lang ?? "ar";
+      const items = offer.names?.length ? offer.names.map((n) => productName(n, lang)) : offer.items;
+      const body = T(ctx).answer.noOpenRepeat(items.slice(0, 5), Math.max(0, items.length - 5));
+      const r = await deliver(ctx, buttons(body, [{ id: repeatButtonId(offer.order_id), title: T(ctx).answer.repeatButton }]), body);
+      if (r.ok) { ctx.state.repeatOfferedAt = Date.now(); return { done: true, path: "status_repeat_offer" }; }
+    }
+  }
   return say(ctx, s ? statusText(s, ctx.state.lang) : T(ctx).answer.noOpenOrder, "status");
 }
 

@@ -85,8 +85,8 @@ export const fr: Messages = {
     pinSaved: (village) => `✅ Nous avons enregistré votre position${village ? ` (${village})` : ""}.\nQue voulez-vous commander ?`,
     fxPaused: "Nous mettons à jour le taux de change, nous ne pouvons pas chiffrer la commande cette minute.\nVotre commande est gardée : envoyez-nous « ok » dans un moment et nous enverrons le bon.",
     pinVillageRefused: "Nous n'avons pas pu retenir ce village pour cette position.\nRenvoyez la position avec le bouton 📍",
-    closedKept: (opens) => `🌙 Nous sommes fermés et ouvrons à ${opens}.\n\nNous avons gardé votre commande ✅\nÀ l'ouverture, appuyez sur « Envoyer ma commande » et nous continuerons ici.`,
-    closedKeptPin: (opens) => `📍 Nous avons reçu votre position.\n🌙 Mais nous sommes fermés et ouvrons à ${opens}.\n\nVotre commande est gardée : à l'ouverture, appuyez sur « Envoyer ma commande ».`,
+    closedKept: (opens, items) => `🌙 Nous sommes fermés et ouvrons à ${opens}.\n\nNous avons gardé votre commande ✅${items?.length ? `\n${bullets(items)}` : ""}\nÀ l'ouverture, appuyez sur « Envoyer ma commande » et nous continuerons ici.`,
+    closedKeptPin: (opens, items) => `📍 Nous avons reçu votre position.\n🌙 Mais nous sommes fermés et ouvrons à ${opens}.\n\nVotre commande est gardée : à l'ouverture, appuyez sur « Envoyer ma commande ».${items?.length ? `\n${bullets(items)}` : ""}`,
     keptButton: "Envoyer ma commande",
     keptOpen: "Bonjour, nous sommes ouverts ✅\nLa commande envoyée pendant la fermeture est gardée.\nAppuyez sur « Envoyer ma commande » et nous continuerons.",
     keptGone: "Aucune commande gardée pour le moment. Que voulez-vous commander ?",
@@ -111,6 +111,7 @@ export const fr: Messages = {
 
   answer: {
     noOpenOrder: "Vous n'avez pas de commande en cours. Que voulez-vous commander ?",
+    noOpenRepeat: (items, more) => `Vous n'avez pas de commande en cours.\nAppuyez ci-dessous pour la même commande que la dernière fois, aux prix du jour :\n${join(items)}${more ? ` et ${more} autres` : ""}`,
     awaitingConfirmation: (code, when) => `Commande ${code} : en attente de votre confirmation${when ? `, pour une livraison ${when}` : ""}.\nAppuyez sur « Confirmer » sur le bon pour commencer.`,
     awaitingPayment: (code, when, total) => `Commande ${code} : ${when ? `réservée pour une livraison ${when}, ` : ""}en attente du paiement.\n💵 Montant :\n${usd(total)}\nEnvoyez ici la photo du reçu.`,
     confirmedFor: (code, when) => `✅ Commande ${code} : confirmée, livraison ${when}.`,
@@ -137,12 +138,14 @@ export const fr: Messages = {
   },
 
   basket: {
-    minimum: (min, now, gap) => ["🛒 Votre commande est sous le minimum.", `Commande minimum : ${usd(min)}`, `Votre panier : ${usd(now)}`,
+    minimum: (min, now, gap, items) => ["🛒 Votre commande est sous le minimum.", ...(items?.length ? ["Dans votre panier :", bullets(items)] : []), `Commande minimum : ${usd(min)}`, `Votre panier : ${usd(now)}`,
       `Il manque : ${usd(gap)}`, "Ajoutez un article, ou choisissez ci-dessous :"].join("\n"),
     minimumIs: (min) => `🛒 Commande minimum : ${usd(min)}\nQue voulez-vous commander ?`,
     cancelButton: "Annuler",
     cleared: "D'accord, rien ne sera envoyé et votre panier est vide.\nÉcrivez-moi quand vous voulez commander.",
     soFar: (items) => `🛒 Votre commande n'est pas encore envoyée. Dans votre panier :\n${bullets(items)}`,
+    which: (said, rows) => `« ${said} » : lequel voulez-vous ?\n${bullets(rows)}\nChoisissez ci-dessous.`,
+    houseDefault: (said, name) => `« ${said} » : nous avons mis ${name}.\nSi vous en voulez un autre, dites-le-moi.`,
     changed: (rows) => `✅ Votre commande est modifiée :\n${rows.join("\n")}`,
     unavailable: (names) => `⚠️ Plus disponible maintenant :\n${bullets(names)}\nDites-moi ce que vous voulez à la place, ou retirez-le.`,
     cancelRefused: (code) => `La commande ${code} est déjà en préparation, on ne peut pas l'annuler d'ici.\nUne personne de notre équipe vous appellera.`,

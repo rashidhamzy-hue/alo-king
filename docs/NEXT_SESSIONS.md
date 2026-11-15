@@ -34,9 +34,9 @@ HO1 is done (15 November; `docs/HANDOFF.md`, HO1): the simulated customers show 
 start on it. DOC1 is done. COST1 is built (15 Nov; its live runs wait for migration 0139 on staging). Wave 0 continues with PUB1 and BK0 (BK0 waits for the founder's secret
 `BACKUP_PASSPHRASE`). SIM1's report is merged (`docs/SIM_REPORT_2026-11-15.md`).
 B1a is merged (#77, #79, #80; `docs/HANDOFF.md`, B1a). B1b is merged (#85; `docs/HANDOFF.md`, B1b): **CX1 may start**. B1b took B1a's
-reading cases (pack sizes, «بيضا», add versus set). Left for B1c: a generic word («ربطة خبز», «قنينة مي») picked as one product, and
-sizes mismatched in `plan_order` (needs a migration number); a basket kept overnight that comes back with other counts (`sendKept`);
-the judge's wrong products (32 of 150 on B1b's run). Left for L1: a field for "no pin, call before dispatch", read by the job card and
+reading cases (pack sizes, «بيضا», add versus set). B1c is built (0138; `docs/HANDOFF.md`, B1c): generic words and sizes
+asked by code or given the house default; the basket shown at the minimum and at night; edits on the basket's own product; hz0815. Its five
+proposed house defaults are for the founder to keep or change (HANDOFF, B1c). Left for L1: a field for "no pin, call before dispatch", read by the job card and
 dispatch (HANDOFF, B1b). Fixed messages for an Arabizi customer stay in Arabic script (an Arabizi pack is new copy for a person to
 write and read). T1 waits for gate A. At most three sessions at once.
 

@@ -104,8 +104,9 @@ export interface Messages {
     askVillage: S; pinOutside: S;
     pinSaved: (village: S) => S;
     fxPaused: S; pinVillageRefused: S;
-    closedKept: (opens: S) => S;
-    closedKeptPin: (opens: S) => S;
+    /** B1c: `items` ("2 × name"), the basket kept, so the customer sees it and never says it again to have it added. */
+    closedKept: (opens: S, items?: S[]) => S;
+    closedKeptPin: (opens: S, items?: S[]) => S;
     keptButton: S;
     keptOpen: S;
     keptGone: S;
@@ -122,6 +123,8 @@ export interface Messages {
 
   answer: {
     noOpenOrder: S;
+    /** B1c: "where is my order?" with no open order and nothing in hand, from a customer with a closed order: that order is offered. */
+    noOpenRepeat: (items: S[], more: number) => S;
     awaitingConfirmation: (code: S, when: S | null) => S;
     awaitingPayment: (code: S, when: S | null, total: number) => S;
     confirmedFor: (code: S, when: S) => S;
@@ -154,7 +157,11 @@ export interface Messages {
    */
   basket: {
     /** The minimum order, the basket now and what is missing, each on its own line; buttons follow. */
-    minimum: (min: number, now: number, gap: number) => S;
+    minimum: (min: number, now: number, gap: number, items?: S[]) => S;
+    /** B1c: the customer named only the kind or the brand («ربطة خبز», "Pepsi"): which one, the rows ("name: $price") built by code. */
+    which: (said: S, rows: S[]) => S;
+    /** B1c: the shop's house default was given for a generic word: which product it is, and that the customer may change it. */
+    houseDefault: (said: S, name: S) => S;
     /** "What is the minimum?" with no basket yet. */
     minimumIs: (min: number) => S;
     cancelButton: S;

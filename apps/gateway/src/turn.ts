@@ -9,8 +9,9 @@ import { ModelAccountRefused, withAccountAlarm } from "@ak/agents/model-account"
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
 import { answerQuick, answerWhen, askPinVillage, settlePinVillage, basketWindowTap, choosePinVillage, completePending, explainNotSent, holdDraft, planReading, sendKept, takeAddress,
-         waitingForPlace } from "@ak/agents/pipeline";
+         routeBasket, waitingForPlace } from "@ak/agents/pipeline";
 import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket } from "@ak/agents/basket";
+import { parsePickButton, takePick } from "@ak/agents/choice";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
@@ -399,6 +400,17 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         continue;
       }
       if (await handleMemoryButton(ctx, tapped)) { buttonsHandled++; continue; }     // forget / keep a restriction (1.14)
+      // B1c: a product chosen from the question code asked («ربطة خبز»: which one?). Its line's count is kept; the basket goes on.
+      // A button from a question no longer waiting is read as words, as the Concierge's own buttons are.
+      const pick = parsePickButton(tapped);
+      if (pick) {
+        try {
+          if ((await takePick(ctx, pick, routeBasket)).done) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }
+        } catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          buttonsHandled++; await tapFailed(tapped, "basket", err); continue;
+        }
+      }
       // HO1: the buttons of the case lines and of the fixed technical, cap and stalled lines. Code answers each; never the model.
       if (await supportTap(tapped)) { buttonsHandled++; sent.push(...ctx.sent.texts.splice(0)); continue; }
       if (tapped === "marketing:yes" || tapped === "marketing:no") {

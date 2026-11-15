@@ -13,6 +13,7 @@ import { preflight } from "@ak/wa/gateway";
 import { repeatButtonId } from "@ak/agents/answers";
 import { KapsoReceived, senderKey } from "@ak/wa/kapso";
 import { openTestDb, type TestDb } from "./harness";
+import { oldPicks } from "./flow-kit";
 import { supabaseOver } from "./supabase-shim";
 
 let db: TestDb;
@@ -20,6 +21,7 @@ let LABNEH: string, BREAD: string, LABNEH_SMALL: string, HUB: string, BAAKLINE: 
 
 beforeAll(async () => {
   db = await openTestDb();
+  await oldPicks(db);
   await db.pg.exec(`insert into fx_rates(lbp_per_usd) values (89500);
     update settings set value = '{"open":"00:00","close":"23:59:59","tz":"Asia/Beirut"}' where key = 'hours';
     update stock_levels set on_hand = 500;`);
@@ -169,11 +171,14 @@ describe("parse once, then the database (1.1)", () => {
   });
 
   it("runs the tool loop only when the plan asks, and hands it the plan instead of searching again", async () => {
+    // B1c: «لبنة» alone with no house default is a question code asks itself; with a line the planner cannot find beside it, the
+    // words are the loop's, and it gets the plan.
+    await db.pg.query(`update products set house_default = false where sku = 'AK-0046'`);
     const t = setup([
-      read({ intent: "order", lines: [{ raw: "لبنة", query: "لبنة", qty: 1, confidence: 0.6 }], address: { village: "بعقلين" } }),
+      read({ intent: "order", lines: [{ raw: "لبنة", query: "لبنة", qty: 1, confidence: 0.6 }, { raw: "زنزلخت", query: "زنزلخت", qty: 1, confidence: 0.6 }], address: { village: "بعقلين" } }),
       [use("reply", { text: "أي لبنة بدك؟", buttons: [{ id: "a", title: "ليبان ليه ٤٥٠غ" }, { id: "b", title: "ليبان ليه ٩٠٠غ" }, { id: "c", title: "تعنايل" }] })],
     ]);
-    await t.conv.fetch(t.text("بدي لبنة"));
+    await t.conv.fetch(t.text("بدي لبنة وزنزلخت"));
     await t.conv.alarm();
     expect(t.seen).toHaveLength(2);
     expect(t.seen[1]!.tool_choice).toBeUndefined();
@@ -189,6 +194,7 @@ describe("parse once, then the database (1.1)", () => {
     expect(outbound).toHaveLength(1);
     const c = await t.customer();
     expect(await db.one(`select trace->>'path' as p from agent_runs where conversation_id = $1`, [c.conversation_id])).toEqual({ p: "ask" });
+    await db.pg.query(`update products set house_default = true where sku = 'AK-0046'`);
   });
 
   it("a reading that breaks the contract falls back to the loop rather than guessing", async () => {
@@ -472,7 +478,8 @@ describe("answers without the model (1.3)", () => {
   });
 
   it("'same as last time, and add bread' puts the new line on top of the old basket", async () => {
-    const t = setup([read({ intent: "order", repeat_last: true, lines: [{ raw: "ربطة خبز زيادة", query: "Wooden Bakery Pita White Bread Big 800G", qty: 1, confidence: 0.9 }] })]);
+    // B1c: «ربطة خبز» alone is the house default now; the big Wooden Bakery loaf is said as such here
+    const t = setup([read({ intent: "order", repeat_last: true, lines: [{ raw: "ربطة خبز وودن بيكري الكبير", query: "Wooden Bakery Pita White Bread Big 800G", qty: 1, confidence: 0.9 }] })]);
     await closedOrder(t, [{ product_id: LABNEH, qty: 1 }]);
     await t.conv.fetch(t.text("متل المرة الماضية بس زيدلي ربطة خبز"));
     await t.conv.alarm();

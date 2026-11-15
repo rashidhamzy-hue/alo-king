@@ -13,12 +13,17 @@ import { offerRepeat, answerArea, answerHours, answerLira, answerOutOfArea, answ
 import { answerMemory } from "./memory";
 import { handoffToCase, remindCase, supportMessage } from "./support";
 import { courtesyOf, stillOffTopic } from "./courtesy";
-import { packSizeQty } from "./reading";
-import { applyEdits, ASKS_MINIMUM, askMinimum, changeRows, clearBasket, editsFromPlan, heldLines, minimumGap, namesOf, underMinimumOnly } from "./basket";
+import { packSizeCount } from "./reading";
+import { applyEdits, ASKS_MINIMUM, askMinimum, changeRows, clearBasket, editsFromPlan, heldLines, itemsOf, minimumGap, namesOf, underMinimumOnly } from "./basket";
+import { askableLine, askChoice, questionsFor } from "./choice";
 
 export interface PlanLine {
   idx: number; raw: string; query: string; qty: number; assumed: boolean;
   status: "matched" | "ambiguous" | "not_found" | "merchant_not_onboarded";
+  /** B1c (0138): 'house' when the shop's house default was given for a generic word (the turn says which). */
+  pick?: string | null;
+  /** B1c (0138): every product the line's words fit. */
+  tied?: { product_id: string }[] | null;
   chosen: { product_id: string; name: string; name_ar: string | null; brand: string | null; price_usd: number; in_stock: boolean } | null;
   candidates: { product_id: string; name: string; name_ar: string | null; price_usd: number; in_stock: boolean }[] | null;
 }
@@ -158,16 +163,27 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   let plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...planned, _message: said.slice(0, 2000) } : planned,
                                                     p_village: ctx.state.villageId ?? null, p_choices: {} });
   // B1b (sim-147): "32 pieces" of a product sold as a pack of 32 is one pack. Checked against the product the planner chose; planned again.
-  const packs = plan.lines.filter((l) => l.status === "matched" && l.chosen && planned.lines[l.idx]
-    && packSizeQty({ raw: planned.lines[l.idx]!.raw, qty: Number(planned.lines[l.idx]!.qty) }, [l.chosen.name, l.chosen.name_ar]));
+  // B1c (sim-003): the count of packs is the other count said ("three ... thirty pieces" is 3), else one.
+  const packs = plan.lines.flatMap((l) => {
+    const said = l.status === "matched" && l.chosen ? planned.lines[l.idx] : undefined;
+    const n = said ? packSizeCount({ raw: said.raw, qty: Number(said.qty) }, [l.chosen!.name, l.chosen!.name_ar]) : null;
+    return n == null ? [] : [{ idx: l.idx, qty: n }];
+  });
   if (packs.length) {
-    const fixed = { ...planned, lines: planned.lines.map((l, i) => (packs.some((p) => p.idx === i) ? { ...l, qty: 1 } : l)) };
-    intent = { ...intent, lines: intent.lines.map((l, i) => (packs.some((p) => p.idx === i) ? { ...l, qty: 1 } : l)) };
+    const qtyOf = (i: number) => packs.find((p) => p.idx === i)?.qty;
+    const fixed = { ...planned, lines: planned.lines.map((l, i) => (qtyOf(i) != null ? { ...l, qty: qtyOf(i)! } : l)) };
+    intent = { ...intent, lines: intent.lines.map((l, i) => (qtyOf(i) != null ? { ...l, qty: qtyOf(i)! } : l)) };
     plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...fixed, _message: said.slice(0, 2000) } : fixed,
                                                   p_village: ctx.state.villageId ?? null, p_choices: {} });
   }
   if (plan.village_id) ctx.state.villageId = plan.village_id;
   if (plan.place_id) ctx.state.placeId = plan.place_id;
+  // B1c: a question asked by code that these words answer (a product it offered, now chosen) waits no more.
+  if (ctx.state.asking?.length) {
+    const chosen = new Set(plan.lines.map((l) => l.chosen?.product_id).filter(Boolean));
+    while (ctx.state.asking?.length && ctx.state.asking[0]!.candidates.some((c) => chosen.has(c.product_id))) ctx.state.asking.shift();
+    if (!ctx.state.asking?.length) ctx.state.asking = null;
+  }
   // A new order's words about where are this order's: the last order's directions never describe a new place (B4: the staging
   // probe's second first-order kept the house of the one before, and the address question was skipped). B1a: an edit to the basket
   // in hand keeps the words already said for it.
@@ -203,7 +219,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
       const r = await rpc<{ matches: { product_id: string }[] }>(ctx.db, "search_catalog", { p_query: l.query, p_source_hint: null, p_limit: 12 }).catch(() => null);
       if (r?.matches?.length) hints.set(idx, r.matches.map((m) => String(m.product_id)));
     }
-    const { edits, unresolved } = editsFromPlan(intent, plan, held.lines, held.quote, hints);
+    const { edits, unresolved } = editsFromPlan(intent, plan, held.lines, held.quote, hints, said ?? "");
     const merged = applyEdits(held.lines, edits);
     const pickup = intent.fulfilment === "unknown" ? held.pickup : plan.pickup;
     const villageId = pickup ? null : plan.village_id ?? held.villageId ?? ctx.state.villageId ?? null;
@@ -217,7 +233,21 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     if (placeId) ctx.state.placeId = placeId;
     if (villageId) ctx.state.villageId = villageId;
     if (held.draft && !ctx.state.pending) ctx.state.pending = held.terms;
+    // B1c: what still needs a question, asked by code (one short question, at most three buttons), the rest kept in the basket.
+    const waiting = [...questionsFor(unresolved, intent), ...(ctx.state.asking ?? [])];
+    if (unresolved.length && unresolved.every(askableLine) && !intent.restrictions.length && !intent.needs_clarification.length) {
+      ctx.state.asking = waiting; ctx.state.pending = ctx.state.pending ?? held.terms ?? { payment: plan.payment_method, changeForUsd: null, notes: directions };
+      if (ctx.state.awaiting === "minimum") ctx.state.awaiting = null;
+      return (await askChoice(ctx)) ? { done: true, path: "which" } : { done: false, plan: { ...plan, quote, quote_lines: merged.lines } };
+    }
     if (unresolved.length) return { done: false, plan: { ...plan, quote, quote_lines: merged.lines } };
+    // A question asked before still waits (the customer said something else meanwhile): ask it again, the basket kept.
+    if (ctx.state.asking?.length && !held.draft) {
+      if (ctx.state.awaiting === "minimum") ctx.state.awaiting = null;
+      ctx.state.pending = ctx.state.pending ?? held.terms;
+      if (await askChoice(ctx, merged.changes.length ? T(ctx).basket.soFar(itemsOf(merged.lines, quote, ctx.state.lang ?? "ar", held.quote)) : undefined))
+        return { done: true, path: "which_again" };
+    }
     if (merged.changes.length && held.draft) changed = T(ctx).basket.changed(changeRows(merged.changes, namesOf(quote, held.quote), ctx.state.lang ?? "ar"));
     const other = plan.issues.filter((i) => !QUOTE_ISSUES.has(i.code) && !i.code.startsWith("slot_"));
     plan.lines = plan.lines.map((l) => (l.status === "merchant_not_onboarded" ? l : { ...l, status: "matched" as const }));
@@ -233,8 +263,13 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   const terms: CardTerms = heldTerms ? { ...heldTerms, notes: directions, ...(plan.change_for_usd != null ? { changeForUsd: plan.change_for_usd } : {}) }
     : { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
   const matched = plan.quote_lines.length > 0 && plan.lines.every((l) => l.status === "matched" || l.status === "merchant_not_onboarded");
-  // What goes before the card: a shop not on Alo King yet, and what changed in the basket.
+  // B1c: the house default given for a generic word is said, with the product's name, so the customer can change it.
+  const house = plan.lines.filter((l) => l.status === "matched" && l.pick === "house" && l.chosen && plan.quote_lines.some((q) => q.product_id === l.chosen!.product_id))
+    .map((l) => T(ctx).basket.houseDefault((intent.lines[l.idx]?.raw ?? l.raw).trim().slice(0, 60), productName(l.chosen!, ctx.state.lang ?? "ar")));
+  // What goes before the card: a shop not on Alo King yet, and what changed in the basket. The house default is said where the reply
+  // does not list the basket (the pin request); the minimum line and the card name every product.
   const before = [unavailable, changed].filter(Boolean).join("\n") || undefined;
+  const pinNote = house.join("\n") || undefined;
   // B1a (SIM1 fix 1): a complete basket under the minimum. Said by code with the minimum, the basket and the gap, and one-tap ways
   // to reach it; the basket is kept and the next items are added to it. Before any question about where or when.
   // A question in the same message (a stated restriction, a food fact asked, something unclear) is answered first, by the loop; the
@@ -297,7 +332,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     plan.issues.length > 0 && plan.issues.every((i) => WHERE_ISSUES.has(i.code));
   if (whereOnly) {
     const quote = plan.quote ?? await rpc<Quote>(ctx.db, "quote_order", { p_lines: plan.quote_lines, p_village: null, p_pickup: false });
-    const routed = await sendBasket(ctx, { lines: plan.quote_lines, villageId: null, placeId: null, pickup: false }, terms, quote, before);
+    const routed = await sendBasket(ctx, { lines: plan.quote_lines, villageId: null, placeId: null, pickup: false }, terms, quote, before, pinNote);
     return routed.done ? routed : { done: false, plan };
   }
   // After closing time, with every line known (K1, B4's leftover): the basket is kept and the customer is told by code when we
@@ -315,6 +350,19 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     }
     return { done: true, path: "closed_kept" };
   }
+  // B1c: the lines the planner could not tell apart («ربطة خبز», "Pepsi", tied sizes) are asked by code, one short question with at
+  // most three buttons; the lines it matched are kept as the basket, and each question keeps its line's count. Only when nothing else
+  // needs words (a line not found, a restriction, a food question, an item out of stock): those go to the loop as before.
+  const ASK_BESIDE = (c: string) => WHERE_ISSUES.has(c) || c === "below_minimum" || c === "closed" || c.startsWith("slot_");
+  if (!held && !changing && !intent.repeat_last && !ctx.state.replacing && !asks && plan.next === "ask"
+      && plan.lines.some(askableLine) && plan.lines.every((l) => l.status === "matched" || askableLine(l)) && plan.issues.every((i) => ASK_BESIDE(i.code))) {
+    ctx.state.lastQuote = plan.quote && plan.quote_lines.length
+      ? { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote } : null;
+    ctx.state.basketAt = Date.now();
+    ctx.state.pending = terms; ctx.state.awaiting = null;
+    ctx.state.asking = questionsFor(plan.lines, intent);
+    if (await askChoice(ctx, before)) return { done: true, path: "which" };
+  }
   // A known basket the loop is about to ask about: keep it, so a pin request or an answer later finds it. B1a: the lines already
   // matched are kept too when another line needs a question, so the answer adds to them (SIM1: items said early dropped off the card).
   if (plan.quote && plan.quote_lines.length && (matched || !held)) {
@@ -324,7 +372,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   if (plan.next !== "card" || !plan.quote?.ok) return { done: false, plan };
 
   const basket = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id, pickup: plan.pickup };
-  const routed = await sendBasket(ctx, basket, terms, plan.quote, before);
+  const routed = await sendBasket(ctx, basket, terms, plan.quote, before, pinNote);
   return routed.done ? routed : { done: false, plan };
 }
 
@@ -525,7 +573,7 @@ export async function choosePinVillage(ctx: ToolContext, villageId: string): Pro
 
 /** A priced basket goes out as a card, or, for a first delivery to that village, as a pin request with the card waiting on it. */
 export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
-                          terms: CardTerms, quote: Quote, before?: string): Promise<{ done: true; path: string } | { done: false }> {
+                          terms: CardTerms, quote: Quote, before?: string, pinNote?: string): Promise<{ done: true; path: string } | { done: false }> {
   // B1a: under the minimum, the minimum first (by code); the pin and the card wait until the basket reaches it.
   if (underMinimumOnly(quote) && !ctx.state.replacing) return (await askMinimum(ctx, basket, terms, quote, before)) ? { done: true, path: "minimum" } : { done: false };
   const pinned = basket.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: basket.placeId }));
@@ -533,7 +581,7 @@ export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInp
     // The rider needs a pin. The card waits for it; nothing is asked of the model.
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: false, quote };
     ctx.state.awaiting = "pin"; ctx.state.pending = terms;
-    const text = before ? `${before}\n${T(ctx).fixed.askPin}` : T(ctx).fixed.askPin;
+    const text = [before, pinNote, T(ctx).fixed.askPin].filter(Boolean).join("\n");
     const r = await deliver(ctx, askLocation(text), `[location request] ${text}`);
     return r.ok ? { done: true, path: "ask_pin" } : { done: false };
   }
