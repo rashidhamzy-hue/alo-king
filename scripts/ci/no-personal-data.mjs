@@ -53,7 +53,13 @@ export function validGs1(d) {
 // A number is read as a run number only if its line, or the line before, says run or job, and it does not start with 961.
 const RUN_WORD = /\b(?:runs?|run_id|jobs?)\b|\/(?:runs|jobs)\//i;
 // A product barcode is named as one ("barcode: ...", "code": "...", offLookup("...")), or sits in a file that is a list of them.
-const BARCODE_WORD = /(?:barcode|gtin|ean|upc|code|offLookup|offFolder)\W{0,8}$/i;
+const BARCODE_WORDS = ["barcode", "gtin", "ean", "upc", "code", "offlookup", "offfolder"];
+function afterBarcodeWord(before) {                                          // up to 8 punctuation characters, then one of the words
+  let i = before.length, k = 0;
+  while (i > 0 && k < 8 && !/\w/.test(before[i - 1])) { i--; k++; }
+  const w = before.slice(0, i).toLowerCase();
+  return BARCODE_WORDS.some((x) => w.endsWith(x));
+}
 
 // Every phone-number-shaped thing of 11 to 13 digits (after the international prefix), with the line it is on.
 // "bare" is a plain run of digits: the only kind that can be a barcode, a timestamp or a GitHub run number.
@@ -75,7 +81,7 @@ export function findPhones(text, { barcodeFile = false } = {}) {
       if (digits.length === 13 && digits[0] === "1") return;               // a timestamp in milliseconds (no phone number has 13 digits from 1)
       const ln = lineOf(m.index);
       const before = text.slice(Math.max(0, m.index - 40), m.index).split("\n").pop();
-      if (BARCODE_WORD.test(before)) return;
+      if (afterBarcodeWord(before)) return;
       if (!digits.startsWith("961") && (RUN_WORD.test(lines[ln - 1] ?? "") || RUN_WORD.test(lines[ln - 2] ?? ""))) return;
       if (barcodeFile && digits.length >= 12) return;                      // a column of barcodes
     }
@@ -106,7 +112,13 @@ function isAllowedPhone(digits, path, allow) {
 
 // Lebanon's bounding box (a little generous on purpose). A pin is a latitude and a longitude close together in the text, either order.
 const LAT = [33.05, 34.70], LNG = [35.10, 36.65], WINDOW = 200;
-const decimals = (s) => (s.split(".")[1] ?? "").replace(/0+$/, "").length;   // 33.67000 is two decimals
+// 33.67000 is two decimals: trailing zeros do not count.
+function decimals(s) {
+  const frac = s.split(".")[1] ?? "";
+  let n = frac.length;
+  while (n > 0 && frac[n - 1] === "0") n--;
+  return n;
+}
 export function findPins(text, { all = false } = {}) {
   text = latinDigits(text);
   const lats = [], lngs = [];
@@ -158,10 +170,18 @@ export function findPlusCodes(text) {
 
 // ---- e-mail addresses ----------------------------------------------------------------------------------------------------------------
 
+// True when the text just before an "@" ends inside the user part of a URL: "https://user:" or "https://".
+function inUrlUserinfo(before) {
+  const at = before.lastIndexOf("://");
+  if (at < 0) return false;
+  const after = before.slice(at + 3);
+  return !/[\s/@]/.test(after);
+}
+
 export function findEmails(text) {
   const out = [];
   for (const m of text.matchAll(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}/g)) {
-    if (/:\/\/[^\s/@]*$/.test(text.slice(Math.max(0, m.index - 80), m.index).split("\n").pop())) continue;   // https://user:pw@host: a credential part of a URL, not an address (gitleaks reads those)
+    if (inUrlUserinfo(text.slice(Math.max(0, m.index - 80), m.index).split("\n").pop())) continue;   // https://user:pw@host: a credential part of a URL, not an address (gitleaks reads those)
     const at = m[0].lastIndexOf("@");
     out.push({ address: m[0].toLowerCase(), domain: m[0].slice(at + 1).toLowerCase(), index: m.index, line: text.slice(0, m.index).split("\n").length });
   }
