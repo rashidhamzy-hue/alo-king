@@ -20,7 +20,7 @@ describe("docs/ARABIC_REVIEW.md lists every HO1 Arabic line", () => {
 
 describe("docs/ARABIC_REVIEW.md lists every B1a Arabic line", () => {
   const b = ar.basket;
-  const lines = [b.minimum(5, 0.69, 4.31), b.minimumIs(5), b.moreButton(7, "ليبتون"), b.cancelButton, b.cleared, b.soFar(["1 × لبنة", "2 × خبز"]),
+  const lines = [b.minimum(5, 0.69, 4.31), b.minimumIs(5), b.cancelButton, b.cleared, b.soFar(["1 × لبنة", "2 × خبز"]),
     b.changed(["خبز: 2 → 4"]), b.unavailable(["لبنة"]), b.cancelRefused("AK-1234")];
   it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
 });

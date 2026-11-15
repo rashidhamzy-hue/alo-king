@@ -8,9 +8,9 @@ import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@a
 import { ModelAccountRefused, withAccountAlarm } from "@ak/agents/model-account";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
-import { answerQuick, answerWhen, askPinVillage, basketMore, basketWindowTap, choosePinVillage, completePending, explainNotSent, planReading, sendKept, takeAddress,
+import { answerQuick, answerWhen, askPinVillage, basketWindowTap, choosePinVillage, completePending, explainNotSent, planReading, sendKept, takeAddress,
          waitingForPlace } from "@ak/agents/pipeline";
-import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket, parseBasketMore } from "@ak/agents/basket";
+import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket } from "@ak/agents/basket";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
@@ -154,6 +154,7 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   const ctx: ToolContext = {
     db, partyId: conv.party_id, conversationId: conv.conversation_id, state, turnKey,
     send: (msg, opts) => sendRaw(msg, opts?.orderId, opts?.authored), sent: { count: 0, texts: [] },
+    openCaseIds: (conv.cases ?? []).map((c) => c.case_id),
   };
   const texts: string[] = [];
   const turnIds = pending.map((p) => p.event.message.id);
@@ -276,13 +277,11 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         sent.push(...ctx.sent.texts.splice(0));
         continue;
       }
-      // B1a (SIM1 fix 1): the buttons under the minimum line: n more of an item, or let the basket go. Code answers; never the model.
-      const more = parseBasketMore(tapped);
-      if (more || tapped === BASKET_CLEAR) {
+      // B1a (SIM1 fix 1): "Cancel order" under the minimum line lets the basket go. Code answers; never the model.
+      if (tapped === BASKET_CLEAR) {
         buttonsHandled++;
         try {
-          if (more) { if (!(await basketMore(ctx, more.productId, more.n)).done && ctx.sent.count === 0) await explainNotSent(ctx); }
-          else await clearBasket(ctx);
+          await clearBasket(ctx);
         } catch (err) {
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
           await tapFailed(tapped, "basket", err);

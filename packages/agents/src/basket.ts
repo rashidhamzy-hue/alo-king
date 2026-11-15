@@ -7,7 +7,7 @@
 // earlier drops out: the card is built from the whole basket, and a card that changed one shows what changed.
 //
 // The minimum order is said by code, with the minimum, the basket and the gap from quote_order's below_minimum issue, and with
-// one-tap ways to reach it. The model never words it (the output guard refuses it).
+// two buttons (browse, let it go). The model never words it (the output guard refuses it).
 import { buttons } from "@ak/wa/kapso";
 import { deliver, type CardTerms, type QuoteLineInput, type ToolContext } from "./concierge-tools";
 import type { Quote, QuoteLine } from "./order-card";
@@ -156,12 +156,6 @@ export function namesOf(...quotes: (Pick<Quote, "lines"> | null | undefined)[]):
 
 // ---------- the minimum ----------
 export const BASKET_CLEAR = "basket:clear";
-export const basketMoreId = (productId: string, n: number) => `basket:more:${productId}:${n}`;
-export function parseBasketMore(id: string): { productId: string; n: number } | null {
-  const m = /^basket:more:([0-9a-f-]{36}):(\d{1,2})$/.exec(id);
-  return m ? { productId: m[1]!, n: Number(m[2]) } : null;
-}
-
 /** The below_minimum issue of a quote: the minimum, the subtotal and the gap (rounded to the cent). */
 export function minimumGap(quote: Pick<Quote, "issues"> | null | undefined): { min: number; now: number; gap: number } | null {
   const i = quote?.issues.find((x) => x.code === "below_minimum");
@@ -169,23 +163,6 @@ export function minimumGap(quote: Pick<Quote, "issues"> | null | undefined): { m
   const min = Number(i.minimum_usd), now = Number(i.subtotal_usd);
   if (!Number.isFinite(min) || !Number.isFinite(now)) return null;
   return { min, now, gap: Math.max(0.01, Math.round((min - now) * 100) / 100) };
-}
-
-const MAX_MORE = 10;
-/**
- * One tap that reaches the minimum: n more of one basket item, the one that needs the fewest units (its unit price from the quote).
- * Only whole-unit lines that are in stock; none when more than MAX_MORE units would be needed.
- */
-export function moreToReach(quote: Pick<Quote, "lines">, gap: number): { product_id: string; n: number; line: QuoteLine } | null {
-  let best: { product_id: string; n: number; line: QuoteLine } | null = null;
-  for (const l of quote.lines as (QuoteLine & { unit_price_usd?: number; ok?: boolean })[]) {
-    const unit = Number(l.unit_price_usd);
-    if (!l.product_id || l.ok === false || !(unit > 0) || !Number.isInteger(Number(l.qty))) continue;
-    const n = Math.ceil(Math.round((gap / unit) * 1000) / 1000);
-    if (n < 1 || n > MAX_MORE) continue;
-    if (!best || n < best.n || (n === best.n && unit < Number((best.line as { unit_price_usd?: number }).unit_price_usd))) best = { product_id: l.product_id, n, line: l };
-  }
-  return best;
 }
 
 /** What may stand beside the minimum when it is said: where and when are asked after the basket reaches it. */
@@ -198,24 +175,19 @@ export const underMinimumOnly = (quote: Pick<Quote, "issues"> | null | undefined
 /** The customer's words ask about the minimum («شو الحد الأدنى؟», "what's the minimum?"): answered by code, never by the model. */
 export const ASKS_MINIMUM = /الحد الأدنى|الحد الادنى|حد أدنى|حد ادنى|الحدّ الأدنى|minimum|minimal|7add? el adna|7ad adna|el 7ad el adna|حد الطلب|اقل طلب|أقل طلب|a2al talab|a2al shi/iu;
 
-/** WhatsApp cuts a button title at 20 characters; cut a long name with an ellipsis so the count stays readable. */
-export const buttonTitle = (s: string) => (s.length <= 20 ? s : `${s.slice(0, 19).trimEnd()}…`);
-
 type Basket = { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean };
 
 /**
- * The basket is under the minimum: kept, and the customer is told by code the minimum, the basket and the gap, with one-tap ways
- * to reach it (n more of an item, browse) or to let it go. The next items said are added to this basket.
+ * The basket is under the minimum: kept, and the customer is told by code the minimum, the basket and the gap, with two buttons:
+ * browse, or let the basket go. Nothing is added for the customer: the B1a run on main (sim-test 43722643280) showed a "+n item"
+ * button counted as a quantity the customer never chose in 49 of 150 conversations; the customer names what to add.
  */
 export async function askMinimum(ctx: ToolContext, basket: Basket, terms: CardTerms, quote: Quote, before?: string): Promise<boolean> {
   const g = minimumGap(quote);
   if (!g) return false;
   holdBasket(ctx, basket, terms, quote, "minimum");
   const T = messages(ctx.state.lang);
-  const more = moreToReach(quote, g.gap);
-  const lang = ctx.state.lang ?? "ar";
   const items = [
-    ...(more ? [{ id: basketMoreId(more.product_id, more.n), title: buttonTitle(T.basket.moreButton(more.n, productName(more.line, lang))) }] : []),
     { id: MENU_BROWSE, title: T.support.browseButton },
     { id: BASKET_CLEAR, title: T.basket.cancelButton },
   ];

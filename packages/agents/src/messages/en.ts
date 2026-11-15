@@ -136,7 +136,6 @@ export const en: Messages = {
     minimum: (min, now, gap) => ["🛒 Your order is under the minimum.", `Minimum order: ${usd(min)}`, `Your basket now: ${usd(now)}`,
       `Still to add: ${usd(gap)}`, "Add something, or choose below:"].join("\n"),
     minimumIs: (min) => `🛒 Minimum order: ${usd(min)}\nWhat would you like to order?`,
-    moreButton: (n, name) => `+${n} ${name}`,
     cancelButton: "Cancel order",
     cleared: "OK, nothing will be sent and your basket is empty.\nWrite to me whenever you want to order.",
     soFar: (items) => `🛒 Your order is not sent yet. In your basket:\n${bullets(items)}`,

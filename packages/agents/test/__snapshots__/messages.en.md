@@ -1258,12 +1258,6 @@ Add something, or choose below:
 What would you like to order?
 ```
 
-## basket.moreButton
-
-```text
-+7 Al Forno white bread, large 800 g
-```
-
 ## basket.cancelButton
 
 ```text

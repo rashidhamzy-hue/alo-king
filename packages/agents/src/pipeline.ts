@@ -11,7 +11,7 @@ import { cardInHand, cardWhen, pickWindow, readWhen, schedules, windowsFor, type
 import type { QuickIntent } from "./quick-intent";
 import { offerRepeat, answerArea, answerHours, answerLira, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 import { answerMemory } from "./memory";
-import { handoffToCase, supportMessage } from "./support";
+import { handoffToCase, remindCase, supportMessage } from "./support";
 import { applyEdits, ASKS_MINIMUM, askMinimum, changeRows, clearBasket, editsFromPlan, heldLines, minimumGap, namesOf, underMinimumOnly } from "./basket";
 
 export interface PlanLine {
@@ -215,7 +215,10 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   const before = [unavailable, changed].filter(Boolean).join("\n") || undefined;
   // B1a (SIM1 fix 1): a complete basket under the minimum. Said by code with the minimum, the basket and the gap, and one-tap ways
   // to reach it; the basket is kept and the next items are added to it. Before any question about where or when.
-  if (matched && plan.quote && underMinimumOnly(plan.quote) && !ctx.state.replacing && !intent.repeat_last) {
+  // A question in the same message (a stated restriction, a food fact asked, something unclear) is answered first, by the loop; the
+  // minimum follows when the basket goes (issueCard). The B1a run on main put the minimum before a gluten question.
+  const asks = intent.restrictions.length > 0 || intent.needs_clarification.length > 0;
+  if (matched && plan.quote && underMinimumOnly(plan.quote) && !ctx.state.replacing && !intent.repeat_last && !asks) {
     const basket = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id, pickup: plan.pickup };
     return (await askMinimum(ctx, basket, terms, plan.quote, before)) ? { done: true, path: "minimum" } : { done: false, plan };
   }
@@ -357,6 +360,11 @@ export function waitingForPlace(ctx: ToolContext): boolean {
  * neighbourhood, and on 13 Nov it was read as a village and turned into a question (B4).
  */
 export async function takeAddress(ctx: ToolContext, intent: OrderIntent, said: string): Promise<Routed> {
+  // B1a: a "line" whose words are part of the address just given is the address («البناية البيضا» read as eggs, «بيض»), never an
+  // item: the B1a run on main added eggs to baskets that waited on the house and floor.
+  const addressText = [intent.address.building, intent.address.landmark, intent.address.verbatim, intent.address.floor].filter(Boolean).join(" ");
+  const inAddress = (l: OrderIntent["lines"][number]) => !!addressText && [l.raw, l.query].some((w) => !!w && addressText.includes(w.trim()));
+  if (waitingForPlace(ctx) && intent.lines.length > 0 && addressText && intent.lines.every(inAddress)) intent = { ...intent, lines: [] };
   if (!waitingForPlace(ctx) || intent.lines.length > 0 || !ADDRESS_INTENTS.has(intent.intent)) return { done: false, plan: null };
   if (ctx.state.awaiting === "pin" && !ctx.state.placeId) {
     // Still no pin: keep the words for the rider and ask for the pin again, the basket still waiting.
@@ -636,6 +644,16 @@ export async function answerStatusOrBasket(ctx: ToolContext): Promise<Done> {
       if (r.done) return r;
     }
   }
+  // B1a: no order and no basket, and a request with a person is open: "when will they answer?" read as "where is my order" is
+  // about that request (the B1a run on main: 5 of its 6 «no open order» replies). The reminder, at most as often as HO1 allows.
+  if (ctx.openCaseIds?.length) {
+    const s = await rpc<{ status: string } | null>(ctx.db, "order_status_for", { p_party: ctx.partyId });
+    if (!s) {
+      if (await remindCase(ctx, ctx.openCaseIds[0]!)) return { done: true, path: "case_reminder" };
+      const r = T(ctx).support.reminder;
+      return (await deliver(ctx, { type: "text", text: { body: r } }, r)).ok ? { done: true, path: "case_reminder" } : { done: false };
+    }
+  }
   return answerStatus(ctx);
 }
 
@@ -735,16 +753,4 @@ export async function explainNotSent(ctx: ToolContext): Promise<Done> {
   }
   const m = supportMessage(ctx.state.lang, "stalled");
   return (await deliver(ctx, m, T(ctx).support.stalled)).ok ? { done: true, path: "basket_stalled" } : { done: false };
-}
-
-/** "+n item" under the minimum line: n more of that item, then the basket's next step (the minimum again, the pin, the card). */
-export async function basketMore(ctx: ToolContext, productId: string, n: number): Promise<Done> {
-  const q = ctx.state.lastQuote;
-  if (!q?.lines.length) return (await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.keptGone } }, T(ctx).fixed.keptGone)).ok ? { done: true, path: "basket_none" } : { done: false };
-  const merged = applyEdits(q.lines, [{ op: "add", product_id: productId, qty: n }]);
-  ctx.state.lastQuote = { ...q, lines: merged.lines };
-  ctx.state.basketAt = Date.now();
-  if (ctx.state.awaiting === "minimum") ctx.state.awaiting = null;
-  const changedText = merged.changes.length ? T(ctx).basket.changed(changeRows(merged.changes, namesOf(q.quote), ctx.state.lang ?? "ar")) : undefined;
-  return resumeBasket(ctx, changedText);
 }

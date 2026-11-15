@@ -1258,12 +1258,6 @@ Ajoutez un article, ou choisissez ci-dessous :
 Que voulez-vous commander ?
 ```
 
-## basket.moreButton
-
-```text
-+7 Al Forno white bread, large 800 g
-```
-
 ## basket.cancelButton
 
 ```text
