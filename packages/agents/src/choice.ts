@@ -14,6 +14,7 @@ import type { Quote } from "./order-card";
 import { messages, productName, type Lang } from "./messages";
 import { applyEdits, itemsOf } from "./basket";
 import type { OrderIntent } from "./schemas";
+import { packSizeCount } from "./reading";
 
 /** One line waiting on the customer's choice: their words, the reading of the line, and the products offered. */
 export interface AskingLine {
@@ -87,11 +88,15 @@ type Route = (ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: st
 export async function takePick(ctx: ToolContext, productId: string, route: Route): Promise<Done> {
   const q = ctx.state.asking?.[0];
   if (!q || !q.candidates.some((c) => c.product_id === productId)) return { done: false };
+  // the count of pieces that is the chosen pack's own size is one pack («٣٢ حبة» of the 32-piece diapers, sim-147)
+  const c = q.candidates.find((x) => x.product_id === productId)!;
+  const packs = packSizeCount({ raw: q.line.raw, qty: Number(q.line.qty) }, [c.name, c.name_ar]);
+  const line = packs != null ? { ...q.line, qty: packs } : q.line;
   const plan = await rpc<{ lines: { status: string }[]; quote_lines: QuoteLineInput[] }>(ctx, "plan_order", {
-    p_party: ctx.partyId, p_intent: { intent: "order", fulfilment: "unknown", lines: [q.line], address: {} }, p_village: ctx.state.villageId ?? null,
+    p_party: ctx.partyId, p_intent: { intent: "order", fulfilment: "unknown", lines: [line], address: {} }, p_village: ctx.state.villageId ?? null,
     p_choices: { 0: productId } });
   const picked = plan.quote_lines.find((l) => l.product_id === productId)
-    ?? { product_id: productId, qty: Number(q.line.qty ?? 1) || 1, ...(q.line.modifiers?.length ? { modifiers: q.line.modifiers } : {}) };
+    ?? { product_id: productId, qty: Number(line.qty ?? 1) || 1, ...(line.modifiers?.length ? { modifiers: line.modifiers } : {}) };
   const held = ctx.state.lastQuote;
   const lines = applyEdits(held?.lines ?? [], [{ op: "add", product_id: picked.product_id, qty: Number(picked.qty), source_id: picked.source_id ?? null,
                                                  modifiers: picked.modifiers, note: picked.note ?? null }]).lines;

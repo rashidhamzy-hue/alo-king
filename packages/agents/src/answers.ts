@@ -112,9 +112,17 @@ export async function repeatLast(ctx: ToolContext, opts: { orderId?: string; noP
   if (!r.found) return opts.noPreviousReply === false ? { done: false, repeat: r } : say(ctx, T(ctx).answer.noPrevious, "repeat_none");
   const missing = (r.missing ?? []).map((m) => productName(m, ctx.state.lang ?? "ar"));
   if (!r.lines?.length) return say(ctx, T(ctx).answer.allMissing(missing), "repeat_all_missing");
-  if (!r.quote?.ok) return { done: false, repeat: r };
   if (r.village_id) ctx.state.villageId = r.village_id;
   if (r.place_id) ctx.state.placeId = r.place_id;
+  if (!r.quote?.ok) {
+    // B1c (sim-073): a past basket that cannot go as it is today (under today's minimum, an item gone) is the basket in hand, routed as
+    // any basket is: the minimum line with its lines, what ran out, or the next step. Never silence, never the loop's "it's ready".
+    if (!r.quote) return { done: false, repeat: r };
+    const { routeBasket } = await import("./pipeline");
+    const routed = await routeBasket(ctx, { lines: r.lines, villageId: r.pickup ? null : r.village_id ?? null, placeId: r.place_id ?? null, pickup: !!r.pickup },
+      { payment: r.payment_method ?? "cod", changeForUsd: null, notes: null }, r.quote, missing.length ? T(ctx).answer.someMissing(missing) : undefined);
+    return routed.done ? routed : { done: false, repeat: r };
+  }
   const card = await issueCard(ctx, { lines: r.lines, villageId: r.pickup ? null : r.village_id ?? null, placeId: r.place_id ?? null, pickup: !!r.pickup },
     { payment: r.payment_method ?? "cod", changeForUsd: null, notes: null }, { before: missing.length ? T(ctx).answer.someMissing(missing) : undefined });
   return card.ok ? { done: true, path: "repeat_card" } : { done: false, repeat: r };

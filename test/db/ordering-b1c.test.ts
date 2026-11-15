@@ -7,6 +7,7 @@ import { ar } from "@ak/agents/messages";
 import { editsFromPlan } from "@ak/agents/basket";
 import { pickButtonId, pickTitles } from "@ak/agents/choice";
 import { packSizeCount } from "@ak/agents/reading";
+import { offersChoices } from "@ak/agents/pipeline";
 import { repeatButtonId } from "@ak/agents/answers";
 import { KEPT_BUTTON } from "@ak/agents/order-card";
 import type { TestDb } from "./harness";
@@ -14,7 +15,7 @@ import { flow, openFlowDb, pinned, read, recordKapso, type Ids, type Sent } from
 
 let db: TestDb, ids: Ids;
 const P: Record<string, string> = {};
-const SKU: Record<string, string> = { lipton: "AK-0123", kinder: "AK-0148", ouioui: "AK-0284", wellplus: "AK-0269", tanmia: "AK-0096", almouna: "AK-0093",
+const SKU: Record<string, string> = { dove: "AK-0276", diapers6: "AK-0286", lipton: "AK-0123", kinder: "AK-0148", ouioui: "AK-0284", wellplus: "AK-0269", tanmia: "AK-0096", almouna: "AK-0093",
   dolsi: "AK-0160", master: "AK-0161", lentilsRed: "AK-0180", colgateHerbal: "AK-0280", colgateTriple: "AK-0275", pita: "AK-0082" };
 beforeAll(async () => {
   ({ db, ids } = await openFlowDb());
@@ -243,5 +244,84 @@ describe("pack sizes (sim-003)", () => {
   });
   it("a count that is not the pack's size is left alone", () => {
     expect(packSizeCount({ raw: "3 trash bags", qty: 3 }, ["Vimax Trash Bags Large Blue 30 Pieces"])).toBeNull();
+  });
+});
+
+describe("what the B1c run on main showed (sim-test 43771268952)", () => {
+  it("«add 2 more Dove cream bars, same one»: the Dove soap in the basket, never a question about cream (sim-083)", async () => {
+    const DOVE = line("Dove Original Beauty Cream Bar 90G", "Dove Original Beauty Cream Bar 90G", 2);
+    const t = flow(db, [read(order([DOVE])), read(order([line("add 2 more Dove cream bars, same one", "Dove cream bar", 2, { change: "add" })], "add_to_order", null))]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.text("Hi, I want 2 Dove cream bar soap please, the original one 90g");
+    await t.text("ok can you add 2 more Dove cream bars, same one");
+    const body = bodyOf(outbound.at(-1)!);
+    expect(buttonsOf(outbound.at(-1)!).some((b) => b.id.startsWith("pick:"))).toBe(false);
+    expect(body).toContain(`4 × ${await name("dove")}`);
+  });
+
+  it("a question the customer moves past is dropped, never asked again (sim-083)", async () => {
+    const LIP = line("ليبتون ايس تي ريد فروتس زيرو شوغر 320 مل", "Lipton Ice Tea Red Fruits Zero Sugar 320Ml", 2);
+    const t = flow(db, [read(order([line("عدس", "عدس")])), read(order([LIP], "order", null)), read(order([{ ...LIP, qty: 3, change: "set" }], "change_order", null))]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي عدس");
+    expect(buttonsOf(outbound.at(-1)!).some((b) => b.id.startsWith("pick:"))).toBe(true);
+    await t.text("لا ما بدي عدس، بدي ٢ ليبتون");
+    await t.text("خليهن ٣ ليبتون");
+    const last = outbound.at(-1)!;
+    expect(bodyOf(last), JSON.stringify(outbound.map(bodyOf))).not.toContain("أي واحد بدك");
+    expect(bodyOf(last)).toContain(`3 × ${await name("lipton")}`);
+  });
+
+  it("the tap keeps «٣٢ حبة» of a 32-piece pack as one pack (sim-147)", async () => {
+    const t = flow(db, [read(order([line("حفاضات ٣٢ حبة", "حفاضات", 32)]))]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي حفاضات ٣٢ حبة");
+    const q = outbound.at(-1)!;
+    expect(buttonsOf(q).map((b) => b.id)).toContain(pickButtonId(P.diapers6!));
+    await t.tap(pickButtonId(P.diapers6!), "Oui Oui 32");
+    expect(bodyOf(outbound.at(-1)!)).toContain(`1 × ${await name("diapers6")}`);
+  });
+
+  it("«مثلا ربطة خبز أو علبة تونة», «chocolate aw chips» are choices: nothing is added by code (sim-043, sim-040)", async () => {
+    const two = (a: string, b: string) => ({ lines: [line(a, a), line(b, b)] }) as any;
+    expect(offersChoices("بدي شي بسيط يكمّل الطلب، مثلا ربطة خبز أو علبة تونة.", two("ربطة خبز", "علبة تونة"))).toBe(true);
+    expect(offersChoices("baddi kamen chocolate aw chips", two("chocolate", "chips"))).toBe(true);
+    expect(offersChoices("بدي ربطة خبز وعلبة تونة", two("ربطة خبز", "علبة تونة"))).toBe(false);
+    const LIP = line("ليبتون ايس تي ريد فروتس زيرو شوغر 320 مل", "Lipton Ice Tea Red Fruits Zero Sugar 320Ml", 2);
+    const t = flow(db, [read(order([LIP])), read(order([line("ربطة خبز", "خبز"), line("علبة تونة", "تونة")], "add_to_order", null))]);
+    await pinned(db, t, ids.BAAKLINE);
+    await t.text("بدي ٢ ليبتون ايس تي");
+    await t.text("بدي شي بسيط يكمّل الطلب، مثلا ربطة خبز أو علبة تونة.");
+    expect(t.seen.length).toBeGreaterThan(2);                         // the loop got the turn (the scripted model has nothing more)
+    expect(outbound.some((o) => bodyOf(o).includes("2 × ") && bodyOf(o).includes("Pita"))).toBe(false);
+  });
+});
+
+describe("fix 3: same as last time with a past basket under today's minimum (sim-073 in sim-test 43771268952)", () => {
+  async function pastOrder(c: { party_id: string; conversation_id: string }) {
+    // a basket under today's $5 minimum, delivered days ago: written as rows (create_order_from_quote refuses it today)
+    const o = (await db.one(`insert into orders(customer_id, short_code, status, village_id, delivered_at) values ($1, $3, 'closed', $2, now() - interval '5 days') returning id`,
+      [c.party_id, ids.BAAKLINE, `AK-H${Math.floor(Math.random() * 1e6)}`])).id;
+    const f = (await db.one(`insert into fulfilments(order_id, source_id) select $1, id from sources where kind = 'dark_store' limit 1 returning id`, [o])).id;
+    await db.pg.query(`insert into order_items(order_id, fulfilment_id, product_id, name_snapshot, qty, unit_price_usd) values ($1, $2, $3, 'x', 2, 0.69)`, [o, f, P.lipton]);
+    return o as string;
+  }
+  it("the words: the minimum line with the old basket in it, kept; never the loop's «I prepared it»", async () => {
+    const t = flow(db, [read({ intent: "order", repeat_last: true, lines: [], address: {} })]);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    await pastOrder(c);
+    await t.text("بدي نفس الطلبية يلي المرة الماضية لو سمحت");
+    expect(t.seen).toHaveLength(1);
+    const body = bodyOf(outbound.at(-1)!);
+    expect(body).toContain(`2 × ${await name("lipton")}`);
+    expect(body).toContain("الحد الأدنى للطلب: $5.00");
+  });
+  it("the button: the same, never silence", async () => {
+    const t = flow(db, []);
+    const c = await pinned(db, t, ids.BAAKLINE);
+    const o = await pastOrder(c);
+    await t.tap(repeatButtonId(o), ar.answer.repeatButton);
+    expect(outbound.length).toBeGreaterThan(0);
+    expect(bodyOf(outbound.at(-1)!)).toContain(`2 × ${await name("lipton")}`);
   });
 });
