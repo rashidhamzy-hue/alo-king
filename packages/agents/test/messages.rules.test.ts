@@ -116,7 +116,9 @@ function render(m: Messages): Rendered[] {
 
   const f = m.fixed;
   for (const k of ["audioUnusable", "handoff", "optOut", "optIn", "outOfStock", "error", "oneMoment", "offTopic", "askPhone", "badPhone", "phoneSaved", "askPin",
-                   "askAddress", "askVillage", "pinOutside", "fxPaused", "pinVillageRefused", "keptButton", "keptOpen", "keptGone"] as const) add(`fixed.${k}`, f[k]);
+                   "askAddress", "askVillage", "pinOutside", "fxPaused", "pinVillageRefused", "keptButton", "keptOpen", "keptGone", "askVillageLandmark", "noPinNote",
+                   "welcome"] as const) add(`fixed.${k}`, f[k]);
+  add("fixed.noPinCall", f.noPinCall("بعقلين"));
   add("fixed.notAvailable", f.notAvailable(["سناك أبو علي"])); add("fixed.notAvailable.none", f.notAvailable([]));
   add("fixed.pinReceived", f.pinReceived("بعقلين")); add("fixed.pinReceivedThenAddress", [f.pinReceived("بعقلين"), "", f.askAddress].join("\n"));
   add("fixed.pinVillage", f.pinVillage("الخريبة", "بعقلين")); add("fixed.pinSaved", f.pinSaved("بعقلين"));

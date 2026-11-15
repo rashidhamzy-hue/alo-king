@@ -16,6 +16,16 @@ type S = string;
 export const usd = (n: number): string => `${Number(n) < 0 ? "-" : ""}$${Math.abs(Number(n)).toFixed(2)}`;
 /** Lira grouped with commas, Western digits: 650,000. The unit word comes from the language file. */
 export const grouped = (n: number): string => Math.round(Number(n)).toLocaleString("en-US");
+/** B1b (SIM1 fix 7): a list of names written over as many lines as it needs, none longer than `max` (message rule 1). */
+export const wrapNames = (head: string, names: string[], sep: string, end = ".", max = 110): string => {
+  const lines: string[] = []; let cur = head;
+  names.forEach((n, i) => {
+    const piece = n + (i === names.length - 1 ? end : sep.trimEnd());
+    if (cur && (cur + " " + piece).length > max) { lines.push(cur); cur = piece; } else cur = cur ? `${cur} ${piece}` : piece;
+  });
+  if (cur) lines.push(cur);
+  return lines.join("\n");
+};
 
 /** The return card's lines grouped under two headings (one emoji each), so a long return never passes three emojis. */
 export const returnGroups = (head: string, back: string, waste: string, lines: { qty: number; name: string; restock: boolean }[]): string => {
@@ -82,6 +92,12 @@ export interface Messages {
     oneMoment: S; offTopic: S;
     askPhone: S; badPhone: S; phoneSaved: S;
     askPin: S;
+    /** B1b (coordinator decision 3): a first order without a pin, accepted with the village and a landmark typed. */
+    noPinCall: (village: S) => S; askVillageLandmark: S;
+    /** The note on the order for the rider and ops (staff language). */
+    noPinNote: S;
+    /** B1b (SIM1 fix 8): the answer to a thank-you or a goodbye. */
+    welcome: S;
     pinReceived: (village: S) => S;
     askAddress: S;
     pinVillage: (pin: S, said: S) => S;

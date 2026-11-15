@@ -24,3 +24,9 @@ describe("docs/ARABIC_REVIEW.md lists every B1a Arabic line", () => {
     b.changed(["خبز: 2 → 4"]), b.unavailable(["لبنة"]), b.cancelRefused("AK-1234")];
   it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
 });
+
+describe("docs/ARABIC_REVIEW.md lists every B1b Arabic line", () => {
+  const f = ar.fixed;
+  const lines = [f.noPinCall("بعقلين"), f.askVillageLandmark, f.noPinNote, f.welcome];
+  it.each(lines.map((l) => [l.slice(0, 40), l] as const))("%s", (_h, line) => { expect(doc).toContain(cell(line)); });
+});

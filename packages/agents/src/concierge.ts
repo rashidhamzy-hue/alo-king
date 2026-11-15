@@ -8,6 +8,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { OrderIntent } from "./schemas";
+import { tidyReading } from "./reading";
 import systemPrompt from "./prompts/concierge.md";
 
 type ToolResult = Promise<unknown>;
@@ -115,6 +116,8 @@ export async function extractOrder(client: ModelClient, model: string, input: Tu
   // The fast model sometimes sends the reading as a JSON string inside `intent` (84 of 986 live eval runs, 13 Nov): read it.
   let raw = (call.input as { intent?: unknown } | null)?.intent;
   let note: string | undefined;
+  // B1b (language-pack run 43746499760, «merci, yislamo»): the intent alone as a bare word ("greeting") is that reading, with nothing else.
+  if (typeof raw === "string" && (OrderIntent.shape.intent.options as readonly string[]).includes(raw.trim())) raw = { intent: raw.trim() };
   if (typeof raw === "string") {
     const fixed = parseLooseJson(raw);
     if (fixed !== undefined) raw = fixed;
@@ -124,7 +127,9 @@ export async function extractOrder(client: ModelClient, model: string, input: Tu
   }
   const parsed = OrderIntent.safeParse(raw);
   // `rejected` is the reading that failed, for the eval (synthetic messages) to inspect. The turn never stores or logs it.
-  return parsed.success ? { intent: parsed.data, usage }
+  // B1b: code's corrections to the reading (reading.ts): a building's colour is the address, add versus set, a size-only line.
+  const said = [...input.texts, ...input.transcripts.map((t) => t.primary)].join("\n");
+  return parsed.success ? { intent: tidyReading(parsed.data, said), usage }
                         : { intent: null, errors: note ? [note, ...parsed.error.issues.slice(0, 4)] : parsed.error.issues.slice(0, 5), usage, rejected: raw };
 }
 

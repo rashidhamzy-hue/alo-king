@@ -6,7 +6,7 @@ import type { SendResult } from "@ak/wa/gateway";
 import type { ConciergeTools } from "./concierge";
 import { buttonReplyText, formatOrderCard, formatWindowChoice, KEPT_BUTTON, type CardAddress, type CardInput, type DeliveryWindow, type Quote } from "./order-card";
 import { messages, productName, type Lang } from "./messages";
-import { checkModelText, GUARD_HINT, type Violation } from "./output-guard";
+import { checkModelText, GUARD_HINT, shapeModelText, type Violation } from "./output-guard";
 import { catalogMessages } from "./catalog-messages";
 import { handoffToCase, openCase, tellOpened, type SupportNote } from "./support";
 import { applyEdits, askMinimum, underMinimumOnly, type BasketEdit } from "./basket";
@@ -15,6 +15,8 @@ import { applyEdits, askMinimum, underMinimumOnly, type BasketEdit } from "./bas
 export interface ConversationState {
   /** M1: the language of our fixed messages in this conversation: from the reading, or the words of a turn code answers alone. */
   lang?: Lang;
+  /** B1b (SIM1 fix 6): how the customer writes (Arabizi apart from Arabic script), kept for the conversation (language.ts). */
+  speech?: import("./language").Speech;
   villageId?: string | null;
   placeId?: string | null;
   directions?: string | null;          // the customer's own words about where they are
@@ -49,12 +51,16 @@ export interface PinCheck {
   status: "located" | "unsure" | "outside"; villageAr: string | null; villageEn?: string | null; served: boolean | null;
   /** The village the conversation had before the pin (usually from the text), when the pin put it somewhere else. */
   saidAr: string | null;
+  /** B1b: the village said before the pin, by id. When the pin is between villages and this is one of them, it is taken. */
+  saidId?: string | null;
   candidates: { village_id: string; name_ar: string | null; name_en: string }[];
 }
 /** Everything about a card that is not its lines. */
 export interface CardTerms { payment: "cod" | "whish" | "omt"; changeForUsd: number | null; notes: string | null;
   /** Set when the database refused cash on delivery and the card goes out prepaid (1.4 dues, 1.16 first-order cap). */
-  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null }
+  prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null;
+  /** B1b: a risk flag for the order once created (a first order without a pin: call before dispatch). Kept while the card waits. */
+  flag?: { rule: string; details: Record<string, unknown> } | null }
 export interface QuoteLineInput { product_id: string; qty: number; modifiers?: string[]; note?: string | null; source_id?: string | null }
 
 export interface ToolContext {
@@ -177,7 +183,9 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
       return { products: out, rule: "State only these facts, each with its status. Anything not listed is not verified: say so and offer to ask." };
     },
 
-    async ask_location_pin({ text }) {
+    async ask_location_pin({ text: drafted }) {
+      // B1b (SIM1 fix 7): the model's words shaped to the message rules first (Latin digits, allowed emojis, a line per sentence).
+      const text = shapeModelText(String(drafted ?? ""));
       const bad = await guard(ctx, [text]);
       if (bad) return bad;
       const r = await deliver(ctx, askLocation(text), `[location request] ${text}`, undefined, true);
@@ -198,8 +206,11 @@ export function makeConciergeTools(ctx: ToolContext): ConciergeTools {
         { payment: payment_method ?? "cod", changeForUsd: change_for_usd ?? null, notes: [notes, ctx.state.directions].filter(Boolean).join(" | ") || null });
     },
 
-    async reply({ text, buttons, price_of }) {
+    async reply({ text: drafted, buttons: offered, price_of }) {
       // The model's own words are checked first (1.5). Prices it asked for are added after, by code, from quote_order.
+      // B1b (SIM1 fix 7): shaped to the message rules before the checks (Latin digits, allowed emojis, a line per sentence).
+      const text = shapeModelText(String(drafted ?? ""));
+      const buttons = offered?.map((b) => ({ ...b, title: shapeModelText(String(b.title ?? "")) }));
       const bad = await guard(ctx, [text, ...(buttons ?? []).map((b) => b.title)]);
       if (bad) return bad;
       const prices = price_of?.length ? await priceLines(ctx, price_of) : null;
@@ -342,6 +353,12 @@ export async function issueCard(ctx: ToolContext, basket: { lines: QuoteLineInpu
     ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote: created.quote };
     return { ok: false, error: "quote_changed", issues: created.quote.issues };
   }
+  // B1b (coordinator decision 3): the order is marked for a rider call; ops and the rider see the flag and the note.
+  // A card made again for an edit carries the note, not the terms' flag: the note marks it too.
+  const flag = terms.flag ?? ((terms.notes ?? "").includes(messages("ar").fixed.noPinNote) ? { rule: "call_before_dispatch", details: { reason: "no_pin" } } : null);
+  if (flag && !(created as { reused?: boolean }).reused)
+    await ctx.db.from("risk_flags").insert({ subject_kind: "order", subject_id: created.order_id, rule: flag.rule, severity: 1,
+                                             details: flag.details }).then(() => undefined, () => undefined);
   // What we owe the customer comes off this order at once, on its own card line (C2's request). The database caps it at the
   // order's total, records it once per order, gives it back if the order is cancelled, and uses it up when the order is paid.
   const credit = await rpc<{ applied_usd: number; total_usd: number }>(ctx.db, "apply_customer_credit", { p_order: created.order_id, p_by: null });

@@ -63,16 +63,17 @@ describe("the conversation's language (M1)", () => {
     for (const r of await db.all(`select seen from name_gaps where lang = 'ar'`)) expect(r.seen).toBe(2);
   });
 
-  it("a quick question in French is answered in French with no model call; Arabizi keeps the language the reading set", async () => {
+  it("a quick question in French is answered in French with no model call; clear Arabizi then switches to Arabic (B1b)", async () => {
     const t = flow(db, []);
     await t.customer();
     await t.text("Où est ma commande ?");
     expect(t.seen).toHaveLength(0);
     expect(bodyOf(outbound[0]!)).toBe(fr.answer.noOpenOrder);
     await t.text("wen el talab");
-    expect(bodyOf(outbound[1]!)).toBe(fr.answer.noOpenOrder);       // Arabizi says nothing about the reply language here
-    await t.text("وين طلبي");
-    expect(bodyOf(outbound[2]!)).toBe(ar.answer.noOpenOrder);
+    // B1b (SIM1 fix 6): three Arabizi words are the customer writing Lebanese Arabic: the fixed words are Arabic from here.
+    expect(bodyOf(outbound[1]!)).toBe(ar.answer.noOpenOrder);
+    await t.text("ok merci");                                          // a short word of courtesy never switches it
+    expect(bodyOf(outbound[2]!)).not.toBe(fr.answer.noOpenOrder);
   });
 });
 

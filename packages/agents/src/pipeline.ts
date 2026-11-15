@@ -12,6 +12,8 @@ import type { QuickIntent } from "./quick-intent";
 import { offerRepeat, answerArea, answerHours, answerLira, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 import { answerMemory } from "./memory";
 import { handoffToCase, remindCase, supportMessage } from "./support";
+import { courtesyOf, stillOffTopic } from "./courtesy";
+import { packSizeQty } from "./reading";
 import { applyEdits, ASKS_MINIMUM, askMinimum, changeRows, clearBasket, editsFromPlan, heldLines, minimumGap, namesOf, underMinimumOnly } from "./basket";
 
 export interface PlanLine {
@@ -100,9 +102,20 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   if (intent.intent === "memory_start") return answerMemory(ctx, "start").then((r) => (r.done ? r : { done: false, plan: null }));
   // Stay on the job (1.18): Meta bars general-purpose chatbots from the Business Platform. Homework, general questions and
   // long chat get one fixed, friendly line and an offer to help with an order. No second model call, nothing answered.
+  // B1b (SIM1 fix 8): a greeting, a thank-you or a goodbye is never off-topic, nor shopping for a dish («بدي أغراض لمجدرة»), nor a
+  // village or an address said in answer to our question (courtesy.ts). SIM1 sent the off-topic line in 60 such conversations.
   if (intent.intent === "off_topic" && intent.lines.length === 0) {
-    const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.offTopic } }, T(ctx).fixed.offTopic);
-    return r.ok ? { done: true, path: "off_topic" } : { done: false, plan: null };
+    const courtesy = courtesyOf(said ?? "");
+    if (courtesy === "thanks") {
+      const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.welcome } }, T(ctx).fixed.welcome);
+      return r.ok ? { done: true, path: "welcome" } : { done: false, plan: null };
+    }
+    if (courtesy === "greeting") intent = { ...intent, intent: "greeting" };
+    else if (!stillOffTopic(said ?? "") || hasAddressWords(intent) || await villageSaid(ctx, said)) return { done: false, plan: null };
+    else {
+      const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.offTopic } }, T(ctx).fixed.offTopic);
+      return r.ok ? { done: true, path: "off_topic" } : { done: false, plan: null };
+    }
   }
   // W1: a time said with no new item ("بكرا الصبح", "can you bring it friday afternoon?") is for what is in hand: the card waiting
   // on the tap, the basket waiting on us, or the order being changed.
@@ -142,8 +155,17 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   }
   // B1a: a line that takes an item off is planned by its name alone: «بلا خبز» is not an item to the planner, and it would drop it.
   const planned = held ? { ...intent, lines: intent.lines.map((l) => ((l as { change?: string | null }).change === "remove" ? { ...l, raw: l.query } : l)) } : intent;
-  const plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...planned, _message: said.slice(0, 2000) } : planned,
-                                                      p_village: ctx.state.villageId ?? null, p_choices: {} });
+  let plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...planned, _message: said.slice(0, 2000) } : planned,
+                                                    p_village: ctx.state.villageId ?? null, p_choices: {} });
+  // B1b (sim-147): "32 pieces" of a product sold as a pack of 32 is one pack. Checked against the product the planner chose; planned again.
+  const packs = plan.lines.filter((l) => l.status === "matched" && l.chosen && planned.lines[l.idx]
+    && packSizeQty({ raw: planned.lines[l.idx]!.raw, qty: Number(planned.lines[l.idx]!.qty) }, [l.chosen.name, l.chosen.name_ar]));
+  if (packs.length) {
+    const fixed = { ...planned, lines: planned.lines.map((l, i) => (packs.some((p) => p.idx === i) ? { ...l, qty: 1 } : l)) };
+    intent = { ...intent, lines: intent.lines.map((l, i) => (packs.some((p) => p.idx === i) ? { ...l, qty: 1 } : l)) };
+    plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...fixed, _message: said.slice(0, 2000) } : fixed,
+                                                  p_village: ctx.state.villageId ?? null, p_choices: {} });
+  }
   if (plan.village_id) ctx.state.villageId = plan.village_id;
   if (plan.place_id) ctx.state.placeId = plan.place_id;
   // A new order's words about where are this order's: the last order's directions never describe a new place (B4: the staging
@@ -347,6 +369,15 @@ async function goAhead(ctx: ToolContext): Promise<{ done: true; path: string } |
   return { done: false };
 }
 const ADDRESS_INTENTS = new Set(["order", "add_to_order", "change_order", "question", "delivery_area", "greeting"]);
+/** The reading put words in the address (a village, a landmark, the building, the floor). */
+export const hasAddressWords = (intent: OrderIntent): boolean =>
+  [intent.address.village, intent.address.landmark, intent.address.building, intent.address.floor].some((x) => !!x && x.trim() !== "");
+/** A short message that names a village we know («بقعاتا», read as off-topic in B1a's third run, sim-121). */
+async function villageSaid(ctx: ToolContext, said: string | undefined): Promise<boolean> {
+  const t = (said ?? "").trim();
+  if (!t || t.split(/\s+/u).length > 4) return false;
+  return !!(await rpc<{ village_id: string } | null>(ctx.db, "village_in_text", { p_text: t }).catch(() => null));
+}
 
 /** A basket is waiting on the customer for where to deliver (pin, village tap, house and floor). */
 export function waitingForPlace(ctx: ToolContext): boolean {
@@ -365,10 +396,15 @@ export async function takeAddress(ctx: ToolContext, intent: OrderIntent, said: s
   const addressText = [intent.address.building, intent.address.landmark, intent.address.verbatim, intent.address.floor].filter(Boolean).join(" ");
   const inAddress = (l: OrderIntent["lines"][number]) => !!addressText && [l.raw, l.query].some((w) => !!w && addressText.includes(w.trim()));
   if (waitingForPlace(ctx) && intent.lines.length > 0 && addressText && intent.lines.every(inAddress)) intent = { ...intent, lines: [] };
-  if (!waitingForPlace(ctx) || intent.lines.length > 0 || !ADDRESS_INTENTS.has(intent.intent)) return { done: false, plan: null };
+  // B1b (SIM1 fix 8, sim-021): the house and floor read as off-topic are still the answer to the house question.
+  const addressIntent = ADDRESS_INTENTS.has(intent.intent) || (intent.intent === "off_topic" && hasAddressWords(intent));
+  if (!waitingForPlace(ctx) || intent.lines.length > 0 || !addressIntent) return { done: false, plan: null };
   if (ctx.state.awaiting === "pin" && !ctx.state.placeId) {
     // Still no pin: keep the words for the rider and ask for the pin again, the basket still waiting.
     ctx.state.directions = mergeDirections(ctx.state.directions, directionsOf(intent) ?? said.trim().slice(0, 300));
+    // B1b (coordinator decision 3, SIM1 fix 5): or the order goes without one, on the village and a landmark typed.
+    const typed = await acceptWithoutPin(ctx, intent, said);
+    if (typed) return typed;
     const r = await deliver(ctx, askLocation(T(ctx).fixed.askPin), `[location request] ${T(ctx).fixed.askPin}`);
     return r.ok ? { done: true, path: "ask_pin_again" } : { done: false, plan: null };
   }
@@ -385,10 +421,86 @@ export async function takeAddress(ctx: ToolContext, intent: OrderIntent, said: s
   return (await completePending(ctx)) ? { done: true, path: "card_after_address" } : { done: false, plan: null };
 }
 
+/** "I can't send my location" in the four ways of writing (SIM1: sim-006, sim-046, sim-077 said it up to five times). */
+export const CANNOT_PIN = /(?:ما|مش|ماني|مني)\s*(?:فيني|فيي|بقدر|عم\s*(?:يزبط|يشتغل|بيشتغل)|شغّال|شغال|عارف|بعرف)[^.\n]{0,25}(?:لوكيشن|لوكايشن|موقع|location|pin)|(?:لوكيشن|لوكايشن|الموقع|location|gps)\s*(?:مطفي|مطفى|مسكّر|مسكر|مش\s*شغّال|مش\s*شغال|ما\s*بيشتغل|ma\s*byeshtghel|mtaffe|tefi|msakkra|sakra|mish\s*sha3[eé]l|off)|(?:ma|mesh|mish|msh)\s*(?:fiye|fiyye|fiyyé|fiyi|fini|ba2der|ba3ref)\s*(?:2?ab3at|ib3at|send)?\s*(?:el\s*)?(?:pin|location|lokation|maw2a3|mawqe3)|(?:can't|cannot|can not|unable to|won't)\s+(?:send|share)\s+(?:a |my |the )?(?:pin|location)|location (?:is )?(?:off|not working)|(?:pas|impossible)\s+(?:de\s+)?(?:localisation|position)|(?:ne\s+peux\s+pas|peux\s+pas)\s+(?:envoyer|partager)\s+(?:ma\s+)?(?:localisation|position)/iu;
+
+/**
+ * B1b (coordinator decision 3 of 15 Nov 13:30, SIM1 fix 5): a first order without a map pin goes on the village and a landmark typed,
+ * marked for a rider call: the order's note says so, and a risk flag (rule call_before_dispatch) names the order for ops and the rider.
+ * The village is checked as any is (village_in_text, resolve_place): one we do not serve is refused as a pin outside is. Missing the
+ * village or a landmark, after "I can't send a pin": one short question for both. Null when the words are not an address at all (the
+ * pin is asked for again). No pin is made up: the order has no place, only the village, and the rider calls.
+ */
+async function acceptWithoutPin(ctx: ToolContext, intent: OrderIntent, said: string): Promise<Routed | null> {
+  const q = ctx.state.lastQuote, terms = ctx.state.pending;
+  if (!q || !terms || q.pickup) return null;
+  const cannot = CANNOT_PIN.test(said);
+  const typed = intent.address.village?.trim() || null;
+  const found = await rpc<{ village_id: string; name_en: string; name_ar: string | null; is_served: boolean } | null>(ctx.db, "village_in_text",
+    { p_text: [typed, said].filter(Boolean).join(" ") }).catch(() => null);
+  let village = found;
+  if (!village && (ctx.state.villageId ?? q.villageId)) {
+    const { data } = await ctx.db.from("villages").select("id, name_en, name_ar, is_served").eq("id", ctx.state.villageId ?? q.villageId).single();
+    const v = data as { id: string; name_en: string; name_ar: string | null; is_served: boolean } | null;
+    if (v) village = { village_id: v.id, name_en: v.name_en, name_ar: v.name_ar, is_served: v.is_served };
+  }
+  const words = directionsOf(intent);
+  const landmark = [intent.address.landmark, intent.address.building, words].some((x) => !!x && x.trim() !== "");
+  if (!cannot && !(landmark && (typed || found))) return null;          // not an address in words: ask for the pin again
+  const say = async (body: string, path: string): Promise<Routed> =>
+    (await deliver(ctx, { type: "text", text: { body } }, body)).ok ? { done: true, path } : { done: false, plan: null };
+  if (village && !village.is_served) {
+    ctx.state.awaiting = null;
+    const r = await answerOutOfArea(ctx, villageName(ctx.state.lang ?? "ar", village.name_ar, village.name_en));
+    return r.done ? r : { done: false, plan: null };
+  }
+  if (!village || !landmark) return say(T(ctx).fixed.askVillageLandmark, "ask_village_landmark");
+  // The village as resolve_place checks it, with the landmark: the existing path for a place said in words.
+  const place = await rpc<{ village: { village_id: string } | null; served: boolean }>(ctx.db, "resolve_place",
+    { p_party: ctx.partyId, p_village: village.name_ar ?? village.name_en, p_landmark: intent.address.landmark ?? null }).catch(() => null);
+  if (place && place.village && !place.served) return say(T(ctx).answer.outOfArea(villageName(ctx.state.lang ?? "ar", village.name_ar, village.name_en), []), "out_of_area");
+  ctx.state.villageId = village.village_id;
+  // A place said in words: the village, the building, the floor and the customer's own words, with no coordinates. The database
+  // already treats such a place as deliverable (place_is_locatable, confirm_order_checked: directions of eight characters or more), so
+  // the confirm tap, an edit to the card and the next order all take the usual path, and the rider reads the words.
+  const directions = ctx.state.directions ?? words ?? said.trim().slice(0, 300);
+  if ((directions ?? "").length + (intent.address.building ?? "").length < 8) return say(T(ctx).fixed.askVillageLandmark, "ask_village_landmark");
+  const { data: row } = await ctx.db.from("customer_places").insert({ party_id: ctx.partyId, village_id: village.village_id,
+    building: intent.address.building ?? null, floor: intent.address.floor ?? null, directions, last_used_at: new Date().toISOString() }).select("id").single();
+  const placeId = (row as { id?: string } | null)?.id ?? null;
+  if (!placeId) return null;
+  ctx.state.placeId = placeId; ctx.state.pinCheck = null;
+  const note = messages(STAFF_NOTE_LANG).fixed.noPinNote;
+  const notes = mergeDirections(mergeDirections(terms.notes, ctx.state.directions), note);
+  const before = T(ctx).fixed.noPinCall(villageName(ctx.state.lang ?? "ar", village.name_ar, village.name_en));
+  const card = await issueCard(ctx, { lines: q.lines, villageId: village.village_id, placeId, pickup: false },
+    { ...terms, notes, flag: { rule: "call_before_dispatch", details: { reason: "no_pin", village_id: village.village_id, cannot_send_pin: cannot } } }, { before });
+  if (!card.ok) { ctx.state.awaiting = null; return { done: false, plan: null }; }
+  return { done: true, path: card.waiting_for ? `no_pin_${card.waiting_for}` : "card_without_pin" };
+}
+/** The rider and ops read the order's notes in the staff language. */
+const STAFF_NOTE_LANG = "ar";
+
 function mergeDirections(a: string | null | undefined, b: string | null | undefined): string | null {
   if (!a) return b ?? null;
   if (!b || a.includes(b)) return a;
   return b.includes(a) ? b : `${a} | ${b}`;
+}
+
+/**
+ * B1b (SIM1 fix 5): a pin between villages, when the customer already named one of them, takes that village with no question: the village
+ * said before the pin (sim-110), or one the customer wrote or said in this conversation (sim-043, said in a voice note). Only one of the
+ * pin's candidates, and set_pin_village checks the distance. True when the village is set.
+ */
+export async function settlePinVillage(ctx: ToolContext): Promise<boolean> {
+  const pin = ctx.state.pinCheck;
+  if (!pin || pin.status !== "unsure" || !pin.candidates.length || !ctx.state.placeId) return false;
+  const ids = new Set(pin.candidates.map((c) => c.village_id));
+  if (pin.saidId && ids.has(pin.saidId) && await choosePinVillage(ctx, pin.saidId)) return true;
+  const words = (ctx.state.history ?? []).filter((h) => h.role === "customer").slice(-6).map((h) => h.text).join("\n");
+  if (!words.trim()) return false;
+  const v = await rpc<{ village_id: string } | null>(ctx.db, "village_in_text", { p_text: words }).catch(() => null);
+  return !!v && ids.has(v.village_id) && await choosePinVillage(ctx, v.village_id);
 }
 
 /** Which village is this pin in? Buttons with the nearest villages; the tap decides. False when there is nothing to ask. */
@@ -464,7 +576,9 @@ export async function completePending(ctx: ToolContext): Promise<boolean> {
     if (!ctx.state.placeId) return false;                                   // still waiting for the pin
     const pin = ctx.state.pinCheck;
     if (!ctx.state.villageId) {
-      // The pin is between villages, or near none we know. Ask; never guess, never take the text's village.
+      // The pin is between villages, or near none we know. B1b (SIM1 fix 5, sim-110): the village the customer named is taken when the
+      // pin is near it (one of the candidates; set_pin_village checks the distance). Otherwise ask, one short question; never guess.
+      if (await settlePinVillage(ctx)) return completePending(ctx);
       if (pin?.status === "unsure" && pin.candidates.length) { ctx.state.awaiting = "village"; return askPinVillage(ctx); }
       ctx.state.awaiting = "pin";
       const r = await deliver(ctx, askLocation(T(ctx).fixed.pinOutside), `[location request] ${T(ctx).fixed.pinOutside}`);

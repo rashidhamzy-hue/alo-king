@@ -1,5 +1,5 @@
 {
-  "note": "Session B1a (SIM1 fix 4, docs/SIM_REPORT_2026-11-15.md): a change to what is already in the basket is read as an explicit edit on its line (`change`: add, set, remove), and the quantity of an add is what is added, never the new total. SIM1: «add 2 more» became 4 on a card that showed 3, «3 more Pepsi» left 3 in all, a declined item stayed on the card. Code applies the edit (packages/agents/src/basket.ts); the live run (evals/live) checks the model reads them so. Invented customers; the words follow SIM1's failing cases.",
+  "note": "Session B1a (SIM1 fix 4, docs/SIM_REPORT_2026-11-15.md): a change to what is already in the basket is read as an explicit edit on its line (`change`: add, set, remove), and the quantity of an add is what is added, never the new total. SIM1: «add 2 more» became 4 on a card that showed 3, «3 more Pepsi» left 3 in all, a declined item stayed on the card. Code applies the edit (packages/agents/src/basket.ts); the live run (evals/live) checks the model reads them so. Invented customers; the words follow SIM1's failing cases. B1b (B1a's leftovers): add versus set said in words: «ya3ni 7», \"so 3 total\", «مش ١ بس», «3 kman» (sim-066, sim-140, sim-040; B1a's second run). The reading is judged after code's corrections (packages/agents/src/reading.ts), as the turn uses it.",
   "cases": [
     {
       "id": "add-two-more-ar",
@@ -102,6 +102,50 @@
       ],
       "change": null,
       "no_lines": true
+    },
+    {
+      "id": "b1b-yani-total-arabizi",
+      "texts": [
+        "ok 7ott 7ade 2annine zyede, ya3ni 7 2anenin"
+      ],
+      "basket": [
+        "Pepsi Carbonated Drink Diet 330Ml x6"
+      ],
+      "change": "set",
+      "qty": 7
+    },
+    {
+      "id": "b1b-so-total-arabizi",
+      "texts": [
+        "ok zidlo wa7de kamen, ya3ni 3 total"
+      ],
+      "basket": [
+        "Rim Mineral Water 2L X 6 x2"
+      ],
+      "change": "set",
+      "qty": 3
+    },
+    {
+      "id": "b1b-not-just-one-ar",
+      "texts": [
+        "بدي ٣ بيبسي دايت، مش ١ بس"
+      ],
+      "basket": [
+        "Pepsi Carbonated Drink Diet 330Ml x1"
+      ],
+      "change": "set",
+      "qty": 3
+    },
+    {
+      "id": "b1b-three-kman",
+      "texts": [
+        "zid 3 Dolsi Cheezy Wizz kman"
+      ],
+      "basket": [
+        "Dolsi Chips Cheezy Wizz 80G x3"
+      ],
+      "change": "add",
+      "qty": 3
     }
   ]
 }

@@ -1,5 +1,5 @@
 // M1: every fixed message in Lebanese Arabic. Meaning as before M1; only the layout follows the brief's rules (types.ts).
-import { grouped, returnGroups, usd, type Messages } from "./types";
+import { grouped, returnGroups, usd, wrapNames, type Messages } from "./types";
 
 const lbp = (n: number) => `${grouped(n)} ل.ل`;
 const join = (xs: string[]) => xs.join("، ");
@@ -72,6 +72,10 @@ export const ar: Messages = {
     badPhone: "الرقم مش واضح معي.\nفيك تبعتو هيك: 03123456 أو +9613123456؟",
     phoneSaved: "تمام، سجّلنا الرقم. شو بتحب تطلب؟",
     askPin: "✅ طلبك جاهز.\n📍 ابعتلنا موقعك من الزر تحت\nومنبعتلك ورقة الطلب.",
+    noPinCall: (village) => `📍 تمام، منوصّل على ${village} بلا موقع.\nالسائق رح يتّصل فيك قبل ما يطلع ليتأكّد من العنوان.`,
+    askVillageLandmark: "📍 ما في مشكلة بلا موقع.\nاكتبلي اسم الضيعة وأقرب معلم للبيت (جامع، كنيسة، مدرسة، فرن).",
+    noPinNote: "بلا موقع عالخريطة: السائق لازم يتّصل بالزبون قبل ما يطلع",
+    welcome: "العفو، تكرم عينك. إذا بدك شي، اكتبلي هون.",
     pinReceived: (village) => `✅ وصلنا موقعك${village ? `: ${village}` : ""}`,
     askAddress: "كرمال السائق بس بدنا:\n🏠 اسم البناية أو أقرب معلم\n🔢 الطابق",
     pinVillage: (pin, said) => `📍 الموقع يلي بعتّو بمنطقة ${pin}، مش ${said}.\nفالتوصيل على ${pin}.`,
@@ -118,7 +122,7 @@ export const ar: Messages = {
     failed: (code) => `طلبك ${code}: ما قدرنا نسلّمو.\nرح يتواصل معك حدا من الفريق.`,
     other: (code) => `طلبك ${code}: قيد المتابعة.\nإذا في شي ضروري اكتبلنا.`,
     hours: (open, close, openNow) => `منستقبل الطلبات كل يوم من ${open} لـ ${close}.\n${openNow ? "✅ نحنا فاتحين هلّق." : "🌙 هلّق مسكّرين."}`,
-    outOfArea: (said, served) => `لهلّق ما منوصّل على ${said}.\n📍 منوصّل على: ${join(served)}.`,
+    outOfArea: (said, served) => `لهلّق ما منوصّل على ${said}.\n${wrapNames("📍 منوصّل على:", served, "، ")}`,
     inArea: (village, fee, eta) => `✅ إيه منوصّل على ${village}.\n🛵 التوصيل: ${usd(fee)}\nوبياخد عادةً حوالي ${eta} دقيقة.`,
     noPrevious: "ما لقيت طلب سابق مكتمل إلك. شو بتحب تطلب؟",
     allMissing: (names) => `أغراض طلبك الماضي مش متوفّرة هلّق:\n${bullets(names)}\nشو بتحب تطلب بدالها؟`,
@@ -135,7 +139,7 @@ export const ar: Messages = {
     minimum: (min, now, gap) => ["🛒 طلبك أقل من الحد الأدنى.", `الحد الأدنى للطلب: ${usd(min)}`, `طلبك هلّق: ${usd(now)}`,
       `ناقصك: ${usd(gap)}`, "زيد شي، أو اختار من تحت:"].join("\n"),
     minimumIs: (min) => `🛒 الحد الأدنى للطلب: ${usd(min)}\nشو بتحب تطلب؟`,
-    cancelButton: "إلغي الطلب",
+    cancelButton: "إلغاء الطلب",
     cleared: "تمام، ما رح نبعت شي وسلّتك فاضية.\nاكتبلي أيمتى ما بدك تطلب.",
     soFar: (items) => `🛒 طلبك لسّا ما انبعت. بسلّتك:\n${bullets(items)}`,
     changed: (rows) => `✅ عدّلنا طلبك:\n${rows.join("\n")}`,
@@ -181,20 +185,20 @@ export const ar: Messages = {
   },
 
   support: {
-    opened: "✅ وصل طلبك لحدا من الفريق، رح يجاوبك خلال دقايق.\nبهالوقت فيك تكمّل طلبك معي عادي.",
-    reminder: "طلبك مفتوح، وحدا من الفريق رح يجاوبك.",
-    stillOnIt: "بعدنا عم نشتغل على طلبك، وحدا من الفريق رح يجاوبك.\nبتكمّل الطلب، منتصل فيك، أو بتبعت رسالة صوتية؟",
-    resumed: "رجعت معك. طلبك بعدو مفتوح، وحدا من الفريق رح يجاوبك.\nشو فيني ساعدك هلّق؟",
+    opened: "وصلت رسالتك لحدا من الفريق، رح يردّ عليك خلال دقايق.\nبهالوقت فيك تكمّل طلبك معي عادي.",
+    reminder: "رسالتك عند الفريق، وحدا رح يردّ عليك.",
+    stillOnIt: "بعدنا عم نتابع رسالتك، وحدا من الفريق رح يردّ عليك.\nبتكمّل الطلب، منتصل فيك، أو بتبعت رسالة صوتية؟",
+    resumed: "رجعت معك. رسالتك بعدها عند الفريق ورح يردّوا عليك.\nشو فيني ساعدك هلّق؟",
     afterHours: (opens) => `🌙 هلّق مسكّرين، منفتح الساعة ${opens}.\nسجّلنا طلبك، وحدا من الفريق بيجاوبك أول ما نفتح.\nفيك تطلب هلّق ومنحفظلك الطلب لوقت ما نفتح.`,
-    resolved: "✅ سكّرنا طلبك. إذا بدك شي تاني، اكتبلنا هون.",
+    resolved: "✅ خلّصنا موضوعك. إذا بدك شي تاني، اكتبلنا هون.",
     callbackButton: "اتصلوا فيي", keepOrderingButton: "كمّل الطلب", voiceNoteButton: "رسالة صوتية",
     callbackNoted: "تمام، حدا من الفريق رح يتصل فيك على هالرقم.",
     keepOrdering: "تفضّل، شو بتحب تطلب؟",
-    voiceNoteAsk: "ابعت رسالتك الصوتية هون، والشخص الماسك طلبك رح يسمعها.",
+    voiceNoteAsk: "ابعت رسالتك الصوتية هون، ويلّي عم يتابعك من الفريق رح يسمعها.",
     technical: "⚠️ صار في مشكلة تقنية صغيرة من عنا.\nابعت رسالتك كمان مرة بعد دقيقة.",
-    capMenu: "وصلنا لحد الرسايل بهالساعة.\nاختار من تحت:",
+    capMenu: "خلّينا نكمّل من هون، اختار من تحت:",
     stalled: "عفواً، ما فهمت عليك منيح.\nشو بتحب تعمل؟",
-    browseButton: "تصفّح الأغراض", myOrderButton: "وين طلبي", personButton: "احكي مع حدا",
+    browseButton: "شوف الأغراض", myOrderButton: "وين طلبي", personButton: "احكي مع حدا",
     buttonError: "⚠️ ما زبطت هالكبسة من عنا.\nجرّب كمان مرة.", retryButton: "جرّب كمان مرة",
     notOnRecord: "هالمعلومة مش مأكّدة بسجلاتنا، فما فينا نقول إنها مناسبة إلك.\nبتحب نختار شي تاني؟",
     browseInWords: "اكتبلي شو بدك، وبدوّرلك عليه.",
