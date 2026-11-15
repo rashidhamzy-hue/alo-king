@@ -15,19 +15,31 @@ const LICENCE: Record<string, string> = { cc_by_sa: "CC BY-SA (Open Food Facts):
 // Links are only ever drawn to http(s) addresses; anything else is shown as text.
 const safeHref = (u: string | null) => (u && /^https?:\/\//i.test(u) ? u : null);
 
+const PAGE = 20;
+// Fastest sellers first: the fetch stores each item's rank among all catalog items (1 = fastest) in vision.rank (session PIX2).
+// Items with no stored rank (older proposals) come after, by SKU.
+export const bySpeed = (a: Img, b: Img) => {
+  const ra = Number(a.vision?.rank) || Infinity; const rb = Number(b.vision?.rank) || Infinity;
+  return ra - rb || String(a.sku ?? "").localeCompare(String(b.sku ?? ""));
+};
+
 async function page(c: Ctx) {
   const status = (STATUSES as readonly string[]).includes(c.url.searchParams.get("status") ?? "") ? (c.url.searchParams.get("status") as string) : "proposed";
-  const rows = (await c.deps.db.rpc<Img[]>("product_images_review", { p_status: status, p_limit: 60 })) ?? [];
+  const all = ((await c.deps.db.rpc<Img[]>("product_images_review", { p_status: status, p_limit: 1000 })) ?? []).sort(bySpeed);
+  const pages = Math.max(1, Math.ceil(all.length / PAGE));
+  const n = Math.min(pages, Math.max(1, Math.floor(Number(c.url.searchParams.get("page"))) || 1));
+  const rows = all.slice((n - 1) * PAGE, n * PAGE);
   const links = await Promise.all(rows.map((r) => c.deps.media.sign(r.media_path, 600)));
   const intake = (await c.deps.db.rpc<unknown[]>("photograph_at_intake", {})) ?? [];
   return render(c, "Product pictures", html`
 <p>${STATUSES.map((s, i) => html`${i ? " · " : ""}${s === status ? html`<strong>${s}</strong>` : html`<a href="/pictures?status=${s}">${s}</a>`}`)}
 · ${intake.length} items on the photograph-at-intake list</p>
+<p>${all.length} ${status}, fastest sellers first. Page ${n} of ${pages}${n > 1 ? html` · <a href="/pictures?status=${status}&page=${n - 1}">previous 20</a>` : ""}${n < pages ? html` · <a href="/pictures?status=${status}&page=${n + 1}">next 20</a>` : ""}</p>
 <p class="muted">Approve only if the picture shows exactly this item: same brand, product and size, one pack, plain background, no price tag, shop logo or text on top.</p>
 ${rows.length === 0 ? html`<p class="muted">Nothing ${status}.</p>` : rows.map((r, i) => html`<div class="pair">
 <div>${links[i] ? html`<a href="${links[i]}" target="_blank" rel="noopener"><img class="proof" src="${links[i]}" alt="proposed picture of ${r.name_en}"></a>` : html`<p class="warn">Picture not available.</p>`}
 <p class="muted">${r.width_px ?? "?"} × ${r.height_px ?? "?"} px${r.bytes ? `, ${Math.round(r.bytes / 1024)} KB` : ""}</p></div>
-<div><p><strong>${r.name_en}</strong>${r.name_ar ? html` · ${r.name_ar}` : ""}</p>
+<div><p>${r.vision?.rank ? html`#${String(r.vision.rank)} · ` : ""}<strong>${r.name_en}</strong>${r.name_ar ? html` · ${r.name_ar}` : ""}</p>
 <p>${r.sku ?? ""} · ${r.brand ?? "no brand"} · ${r.sell_unit}${r.barcode ? html` · barcode ${r.barcode}` : ""}</p>
 <p>Source: ${r.source_kind}${safeHref(r.page_url) ? html` · <a href="${safeHref(r.page_url)}" target="_blank" rel="noopener noreferrer">page</a>` : ""}
 ${safeHref(r.source_url) ? html` · <a href="${safeHref(r.source_url)}" target="_blank" rel="noopener noreferrer">original</a>` : ""}</p>

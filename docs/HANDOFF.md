@@ -189,6 +189,27 @@ The founder's brief is in the repository as `docs/DESIGN_BRIEF.md` (converted fr
 2. **Run the pictures.** GitHub, Actions, **images**, Run workflow, branch `main`, `retry_all` ticked, `max_usd` **6**, Run. About 30 minutes. The run summary ends with the queue (candidates by source, reasons per item); the full list is the artifact `pictures-report`. How many pass is not known until it runs (the check is strict); the rest are named reasons, and those items go on the photograph-at-intake list.
 3. **Approve.** Console, **Pictures** (`/pictures`): approve only a picture that shows exactly the item (same brand, product and size, one pack, no price tag, logo or text). Start with the 20 fastest sellers listed at the top of `pictures-report.md`. Today **20 candidates are waiting** (none approved); after step 2 the count is in the run summary ("candidates waiting for approval"). The page shows 60 at a time; approve or reject and the next ones appear.
 
+### PIX2: pictures from a list, no search service, 15 November 2026 (Sonnet 5.5); no migration
+
+**Result, plainly: 29 pictures wait for approval on the console's Pictures page (`/pictures`), fastest sellers first, 20 at a time. The "120 fastest items have a candidate" target is NOT met.** The founder declined new services (no Brave or any other search API), so candidates were found with this session's own web search and fetch tools. From the build sandbox most shops block the fetch (Carrefour Lebanon answers 53 bytes or 503, desertcart 403) and search results give page addresses, not picture addresses, so the picture's direct address could only be read where the host allows it.
+
+**What was found** (`data/pictures/candidates.csv`, 107 rows: sku, image_url, page_url, found_at; every address was fetched and is an image; `data/pictures/skipped.csv` names a reason for each of the other 184 items):
+- 12 loose produce items from Wikimedia Commons (potato, tomato, cucumber, onion, red onion, lemon, zucchini, banana, green pepper, cauliflower, cherry tomatoes in a pack, orange), each looked at by eye before listing.
+- 95 branded items from Open Food Facts product pages read by barcode (direct picture address; these were already tried by PIX at 400 px, now at full size).
+- Only **47 of the 107 are among the 120 fastest sellers**; the rest are slower items.
+
+**What the run did** (`images` run 43763378198 from this branch, `from_list` ticked, `max_usd` 3): 95 listed items still needed a picture; **9 passed every check and were queued** (potato, tomato, cucumber, onion, lemon, zucchini, banana, green pepper, red onion; as `public_page`, with page and time); **86 were refused** by the checks (most Open Food Facts pictures are under 800 px wide, narrow strips, or the wrong pack; the reasons per item are in `product_image_attempts`). Model spend **USD 0.0254** of the USD 3 cap, 67 calls. Together with the 20 waiting from before: **29 waiting, 0 approved**.
+
+**What is built:** `images` workflow input `from_list` runs `fetch-images.mjs --from-list data/pictures/candidates.csv`: only the listed pictures are tried (no search, no Open Food Facts lookup), with the same checks (pack matches name and size, no watermark, duplicates refused, 1200 px JPEG under 300 KB); an Open Food Facts page keeps CC BY-SA and its attribution, any other https page is `public_page`; the page, the picture address, the time retrieved and the time found are stored (`vision.listed_found_at`). The queue report does not fail in this mode for items not on the list. The console **Pictures page** sorts by the stored rank (1 = fastest seller), shows 20 at a time with "next 20", and each has Approve and Reject (functional only, no styling; `apps/console/src/pages/pictures.ts`). Rows with no stored rank (older proposals) come after, by SKU.
+
+**Tested:** `scripts/images` 67 tests (new: `fromlist.test.mjs`, the shipped list is well formed, list mode never searches, a wrong pack is refused, a duplicate is refused before the paid check); console `pictures.test.ts` (order, 20 per page, page 2, a decision removes the item from the list); `npm run typecheck`. **Proven live:** the run above. **Not proven:** nothing about the quality of the 9 queued pictures beyond the model check; a person must look.
+
+**Design pause** recorded in `docs/DECISIONS.md` ("design paused; no new picture search service"), `docs/NEXT_SESSIONS.md` and `docs/BUILD_PLAN.md`: UX2, UX3, WEB2 and the new FX1 are parked; PAY1 waits for CX1.
+
+### Founder actions (PIX2)
+1. **Approve.** Console, **Pictures**: 29 are waiting, the fastest sellers first. Approve only a picture that shows exactly the item (same brand, product and size, one pack, no price tag, logo or text). This replaces PIX step 1 (no search key is needed any more).
+2. **More pictures** need either a session that can read retail pages (this sandbox cannot), or photographs at intake (`photograph_at_intake` lists the items without a picture). A person can also add rows to `data/pictures/candidates.csv` (sku, picture address, page address, time) and run **images** with `from_list` ticked and `max_usd` 3.
+
 ### OPS1: alerts that wake someone, and the probe stall of 15 November 2026 (Sonnet 5.5); migrations 0140 to 0142
 Two things were added to the prompt: diagnose why the hourly probe orders stopped, and a separate alarm for the model provider refusing for an account reason.
 
