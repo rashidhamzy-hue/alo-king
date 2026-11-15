@@ -4,7 +4,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, read, recordKapso } from "./flow-kit";
-import { FIXED } from "@ak/agents/order-card";
+import { ar } from "@ak/agents/messages";
 
 let db: TestDb;
 const v: Record<string, string> = {};
@@ -43,6 +43,6 @@ describe("saved places re-checked against their pins (audit item 5)", () => {
     await db.pg.query(`delete from customer_places where id = $1`, [good]);
     await t.text("بدي 3 كرتونة مي تنورين");
     expect(outbound[0]!.body.interactive.type).toBe("location_request_message");
-    expect(outbound[0]!.body.interactive.body.text).toBe(FIXED.askPin);
+    expect(outbound[0]!.body.interactive.body.text).toBe(ar.fixed.askPin);
   }, 60_000);
 });

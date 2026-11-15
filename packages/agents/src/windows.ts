@@ -3,8 +3,12 @@
 // slot). Nothing here knows the clock or the hub's time zone: the reader returns words (tomorrow, the morning), the database
 // turns them into windows. The eval cases are evals/cases/delivery_time.json.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { deliver, issueCard, type ToolContext } from "./concierge-tools";
-import { CARD_TEXT, formatOrderCard, formatWindowChoice, windowLabel, type DeliveryWindow, type Quote } from "./order-card";
+import { deliver, issueCard, sendCard, type ToolContext } from "./concierge-tools";
+import { formatWindowChoice, type DeliveryWindow, type Quote } from "./order-card";
+import { messages } from "./messages";
+
+/** Every fixed message in this conversation's language (M1). */
+const T = (ctx: ToolContext) => messages(ctx.state.lang);
 
 /** A time said in words. day_offset 0 today; dow ISO (1 Monday); at/before/after hub-local HH:MM; any: "show me the times". */
 export interface When {
@@ -150,10 +154,10 @@ export type Picked = { kind: "one"; window: DeliveryWindow } | { kind: "list"; w
 export async function pickWindow(ctx: ToolContext, villageId: string | null, fresh: boolean, when: When): Promise<Picked> {
   const matched = await windowsFor(ctx, villageId, fresh, when);
   if (!when.any && matched.length === 1) return { kind: "one", window: matched[0]! };
-  if (matched.length > 0) return { kind: "list", windows: matched, body: CARD_TEXT.chooseWindow };
+  if (matched.length > 0) return { kind: "list", windows: matched, body: T(ctx).windows.choose };
   if (when.any) return { kind: "nothing" };
   const all = await windowsFor(ctx, villageId, fresh, null);
-  return all.length ? { kind: "list", windows: all, body: CARD_TEXT.noneAt } : { kind: "nothing" };
+  return all.length ? { kind: "list", windows: all, body: T(ctx).windows.noneAt } : { kind: "nothing" };
 }
 
 const say = async (ctx: ToolContext, text: string, orderId?: string) => (await deliver(ctx, { type: "text", text: { body: text } }, text, orderId)).ok;
@@ -165,9 +169,8 @@ interface StoredCard { order_id: string; short_code: string; status: string; pay
 export async function resendCard(ctx: ToolContext, orderId: string): Promise<boolean> {
   const c = await rpc<StoredCard | null>(ctx.db, "order_card", { p_order: orderId, p_party: ctx.partyId });
   if (!c) return false;
-  const card = formatOrderCard({ orderId, shortCode: c.short_code, quote: c.quote, paymentMethod: c.payment_method, changeForUsd: c.change_for_usd,
-                                 prepay: c.prepay, window: c.window, replaces: c.replaces });
-  return (await deliver(ctx, card, `[order card ${c.short_code}] ${c.window ? windowLabel(c.window) : "now"}`, orderId)).ok;
+  return (await sendCard(ctx, { orderId, shortCode: c.short_code, quote: c.quote, paymentMethod: c.payment_method, changeForUsd: c.change_for_usd,
+                                prepay: c.prepay, window: c.window, replaces: c.replaces })).ok;
 }
 
 type Requested = { ok: boolean; reason?: string; status?: string; short_code: string; window?: DeliveryWindow | null; windows?: DeliveryWindow[] };
@@ -184,20 +187,20 @@ export async function orderWindowTap(ctx: ToolContext, slotId: string | null, or
     const b = await rpc<{ found: boolean; lines?: { product_id: string; source_id: string; qty: number }[]; village_id?: string | null; place_id?: string | null;
                           pickup?: boolean; payment_method?: "cod" | "whish" | "omt"; change_for_usd?: number | null; notes?: string | null }>(
       ctx.db, "basket_from_order", { p_party: ctx.partyId, p_order: orderId });
-    if (!b.found || !b.lines?.length) return say(ctx, CARD_TEXT.noneAtAll);
+    if (!b.found || !b.lines?.length) return say(ctx, T(ctx).windows.noneAtAll);
     const card = await issueCard(ctx, { lines: b.lines, villageId: b.pickup ? null : b.village_id ?? null, placeId: b.place_id ?? null, pickup: !!b.pickup },
       { payment: b.payment_method ?? "cod", changeForUsd: b.change_for_usd ?? null, notes: b.notes ?? null }, { slotId });
     return card.ok;
   }
   const r = await rpc<Requested>(ctx.db, "request_delivery_window", { p_order: orderId, p_slot: slotId, p_party: ctx.partyId });
   if (r.ok) return resendCard(ctx, orderId);
-  if (r.reason === "status") return say(ctx, CARD_TEXT.notChangeable(r.short_code), orderId);
-  if (r.reason === "pickup") return say(ctx, CARD_TEXT.pickupNoWindow, orderId);
-  if (r.reason === "restaurant") return say(ctx, CARD_TEXT.restaurantNoWindow, orderId);
+  if (r.reason === "status") return say(ctx, T(ctx).windows.notChangeable(r.short_code), orderId);
+  if (r.reason === "pickup") return say(ctx, T(ctx).windows.pickupNoWindow, orderId);
+  if (r.reason === "restaurant") return say(ctx, T(ctx).windows.restaurantNoWindow, orderId);
   const windows = r.windows ?? [];
-  if (!windows.length) return say(ctx, CARD_TEXT.noWindow, orderId);
-  const body = r.reason === "now_unavailable" ? CARD_TEXT.nowUnavailable : CARD_TEXT.windowGone;
-  return (await deliver(ctx, formatWindowChoice(orderId, windows, { body }), `[windows ${r.short_code}] ${body}`, orderId)).ok;
+  if (!windows.length) return say(ctx, T(ctx).windows.none, orderId);
+  const body = r.reason === "now_unavailable" ? T(ctx).windows.nowUnavailable : T(ctx).windows.gone;
+  return (await deliver(ctx, formatWindowChoice(orderId, windows, { lang: ctx.state.lang, body }), `[windows ${r.short_code}] ${body}`, orderId)).ok;
 }
 
 /** The card waiting on this customer's tap (card_in_hand, 0119). */
@@ -209,11 +212,11 @@ export async function cardInHand(ctx: ToolContext): Promise<CardInHand | null> {
 
 /** A time said while a card waits on the tap (C3's request 1): one window goes on the card; several, or none that match, a list. */
 export async function cardWhen(ctx: ToolContext, card: CardInHand, when: When): Promise<boolean> {
-  if (card.pickup) return say(ctx, CARD_TEXT.pickupNoWindow, card.order_id);
-  if (!card.hub_only) return say(ctx, CARD_TEXT.restaurantNoWindow, card.order_id);
+  if (card.pickup) return say(ctx, T(ctx).windows.pickupNoWindow, card.order_id);
+  if (!card.hub_only) return say(ctx, T(ctx).windows.restaurantNoWindow, card.order_id);
   const p = await pickWindow(ctx, card.village_id, card.fresh, when);
   if (p.kind === "one") return orderWindowTap(ctx, p.window.slot_id, card.order_id);
-  if (p.kind === "nothing") return say(ctx, CARD_TEXT.noWindow, card.order_id);
-  const msg = formatWindowChoice(card.order_id, p.windows, { body: p.body, withNow: card.open_now && !!when.any });
+  if (p.kind === "nothing") return say(ctx, T(ctx).windows.none, card.order_id);
+  const msg = formatWindowChoice(card.order_id, p.windows, { lang: ctx.state.lang, body: p.body, withNow: card.open_now && !!when.any });
   return (await deliver(ctx, msg, `[windows ${card.short_code}] ${p.body}`, card.order_id)).ok;
 }

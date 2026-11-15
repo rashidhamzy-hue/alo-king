@@ -26,13 +26,44 @@ export function scoreLines(truth: TruthLine[], got: { query: string; qty: number
 // Live only: needs a model. `ALO_LIVE_EVAL=1 ANTHROPIC_API_KEY=... npx vitest run evals/live` (see evals/README.md).
 import { runAskLoop, type ConciergeTools, type ModelClient } from "../packages/agents/src/concierge";
 import { checkModelText } from "../packages/agents/src/output-guard";
+import { REPLY_RULE } from "../packages/agents/src/messages";
 
 export interface WordingCase { id: string; customer: string; facts: string[]; approved?: string[] }
-export interface WordingResult { id: string; attempts: { tool: string; text: string; refused: string | null }[]; sent: string | null; handoff: boolean }
+export interface WordingResult { id: string; attempts: { tool: string; text: string; refused: string | null }[]; sent: string | null; handoff: boolean;
+  /** Each model call: why it stopped, the tools it called, any free text (report only). */
+  steps?: { stop: string | null; tools: string[]; text: string | null }[] }
+
+/**
+ * Founder decision (14 Nov, M1): the two-sentence rule is judged on the reply the customer receives, after the output guard,
+ * not on the first draft. A first draft refused only for its length passes when every other rule holds on that draft and the
+ * reply that went out passed the guard; any other refusal of the first draft still fails, as before.
+ */
+/** The rules judged on the reply that went out rather than on the first draft: length (founder, 14 Nov) and the quality word
+ *  (coordinator, 15 Nov). The guard refuses both in every draft; a refused draft followed by a clean reply is the guard working.
+ *  Every other rule is still judged on the first draft. */
+const JUDGED_ON_SENT = new Set(["too_long", "quality_judgement"]);
+export function wordingPasses(r: WordingResult, c: Pick<WordingCase, "approved">): { ok: boolean; why: string | null } {
+  const first = r.attempts[0];
+  if (!first) return { ok: false, why: "no attempt" };
+  if (first.refused === null) return { ok: true, why: null };
+  if (!JUDGED_ON_SENT.has(first.refused)) return { ok: false, why: `first draft refused: ${first.refused}` };
+  const other = checkModelText(first.text, { approvedFacts: new Set(c.approved ?? []), skipLength: true, skipQuality: true });
+  if (other) return { ok: false, why: `first draft refused: ${other.code}` };
+  if (r.sent === null) return { ok: false, why: `${first.refused}, and no reply went out` };
+  return { ok: true, why: null };
+}
 
 export async function runWordingCase(client: ModelClient, model: string, c: WordingCase): Promise<WordingResult> {
   const approved = new Set(c.approved ?? []);
-  const out: WordingResult = { id: c.id, attempts: [], sent: null, handoff: false };
+  const out: WordingResult = { id: c.id, attempts: [], sent: null, handoff: false, steps: [] };
+  // The report only (M1): what the model did at each step (tools called, or free text, which the loop never sends), so a
+  // hand-off with no attempt can be read. Changes no check.
+  const traced: ModelClient = { messages: { create: async (body) => {
+    const res = await client.messages.create(body);
+    out.steps!.push({ stop: res.stop_reason ?? null, tools: res.content.filter((b) => b.type === "tool_use").map((b) => (b as { name: string }).name),
+                      text: res.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join(" ").slice(0, 200) || null });
+    return res;
+  } } };
   const speak = (tool: string) => async ({ text }: { text: string }) => {
     const v = checkModelText(text, { approvedFacts: approved });
     out.attempts.push({ tool, text, refused: v?.code ?? null });
@@ -47,7 +78,9 @@ export async function runWordingCase(client: ModelClient, model: string, c: Word
     reply: speak("reply"),
     handoff_human: async () => { out.handoff = true; return { ok: true }; },
   };
-  await runAskLoop(client, model, { texts: [c.customer], transcripts: [], state: { facts_from_tools: c.facts }, reading: null, plan: null }, tools);
+  // The ask loop's input as turn.ts sends it, with M1's length rule.
+  const ask = { texts: [c.customer], transcripts: [], state: { facts_from_tools: c.facts }, reading: null, plan: null, reply_rule: REPLY_RULE };
+  await runAskLoop(traced, model, ask, tools);
   return out;
 }
 

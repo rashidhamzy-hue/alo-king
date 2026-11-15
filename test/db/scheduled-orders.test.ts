@@ -355,11 +355,11 @@ describe("the card and the fixed replies (order-card.ts)", () => {
   const order = "99999999-8888-7777-6666-555555555555";
 
   it("a scheduled card says the window, not minutes; a change says which order it replaces", () => {
-    const body = (formatOrderCard({ orderId: order, shortCode: "AK-2001", quote: q, paymentMethod: "cod", window: w, replaces: "AK-1999" }) as any).interactive.body.text as string;
+    const body = (formatOrderCard({ orderId: order, shortCode: "AK-2001", quote: q, paymentMethod: "cod", window: w, replaces: "AK-1999" })[0] as any).interactive.body.text as string;
     expect(body).toContain("التوصيل: الجمعة 20/11، 10:00-12:00");
     expect(body).not.toContain("دقيقة");
     expect(body).toContain("AK-1999");
-    const now = (formatOrderCard({ orderId: order, shortCode: "AK-2001", quote: q, paymentMethod: "cod" }) as any).interactive.body.text as string;
+    const now = (formatOrderCard({ orderId: order, shortCode: "AK-2001", quote: q, paymentMethod: "cod" })[0] as any).interactive.body.text as string;
     expect(now).toContain("35 دقيقة");
     expect(windowLabel({ ...w, day_offset: 1 })).toBe("بكرا 10:00-12:00");
   });

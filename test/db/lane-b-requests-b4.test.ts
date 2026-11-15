@@ -5,7 +5,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, pinned, read, recordKapso, type Ids, type Sent } from "./flow-kit";
-import { FIXED } from "@ak/agents/order-card";
+import { ar } from "@ak/agents/messages";
 import { probeReply, PROBE_ADDRESS } from "@ak/wa/probe";
 
 let db: TestDb; let ids: Ids; let outbound: Sent[];
@@ -33,7 +33,7 @@ describe("lane B requests (B4)", () => {
     expect(card).toContain("رصيد إلك من قبل: -$1.25");
     const o = await db.one(`select id, total_usd, subtotal_usd, delivery_fee_usd from orders where customer_id = $1 and status = 'awaiting_confirmation'`, [c.party_id]);
     expect(Number(o.total_usd)).toBeCloseTo(Number(o.subtotal_usd) + Number(o.delivery_fee_usd) - 1.25, 2);
-    expect(card).toContain(`الإجمالي: $${Number(o.total_usd).toFixed(2)}`);
+    expect(card).toContain(`*المجموع: $${Number(o.total_usd).toFixed(2)}*`);
     expect(Number(await db.rpc("customer_credit_usd", { p_party: c.party_id }))).toBeCloseTo(0, 2);    // promised to this order
   }, 60_000);
 
@@ -74,7 +74,7 @@ describe("lane B requests (B4)", () => {
     const t = flow(db, [read(ORDER)]);
     const c = await pinned(db, t, ids.BAAKLINE);
     await t.text("بدي علبتين لبنة ليبان ليه عبعقلين");
-    expect(outbound.map(bodyOf)).toEqual([FIXED.fxPaused]);
+    expect(outbound.map(bodyOf)).toEqual([ar.fixed.fxPaused]);
     expect(t.seen).toHaveLength(1);                                                   // the reading only; no model writes about prices
     expect(await db.one(`select count(*)::int n from orders where customer_id = $1`, [c.party_id])).toEqual({ n: 0 });
 
@@ -102,7 +102,7 @@ describe("lane B requests (B4)", () => {
   }, 60_000);
 
   it("B4: the probe answers the address question in words, as a person would", () => {
-    expect(probeReply({ type: "text", text: { body: `${FIXED.pinReceived}\n${FIXED.askAddress("بعقلين")}` } }))
+    expect(probeReply({ type: "text", text: { body: `${ar.fixed.pinReceived("بعقلين")}\n\n${ar.fixed.askAddress}` } }))
       .toEqual({ kind: "tap", id: "probe:address", title: PROBE_ADDRESS });
     expect(probeReply({ type: "text", text: { body: "تم تأكيد طلبك" } })).toBeNull();
   });

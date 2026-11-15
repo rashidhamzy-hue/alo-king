@@ -3,7 +3,7 @@
 // greeting before and a "please" or "thanks" after. Anything longer ("same as last time but add bread") goes to the model.
 // Every miss or false match found in production becomes a case in evals/cases/quick_intents.json before it is fixed.
 
-export type QuickIntent = "status" | "hours" | "repeat_last" | "greeting" | "small_talk";
+export type QuickIntent = "status" | "hours" | "repeat_last" | "greeting" | "small_talk" | "lira";
 
 /** Lower case, no diacritics or tatweel, one spelling of alef, ta marbuta and alef maqsura, no punctuation or emoji. */
 export function normalise(text: string): string {
@@ -36,6 +36,16 @@ const PATTERNS: Record<Exclude<QuickIntent, "small_talk">, string[]> = {
     `(?:aymta|emta|adesh|2adesh) (?:btefta7o|btsakro|btfta7o)`, `(?:fet7in|fat7in)(?: halla2| hala2)?`,
     `what time do you (?:open|close)(?: today)?`, `(?:your )?(?:opening|working|business) hours`, `are you (?:open|still open)(?: now| today)?`,
     `(?:quels sont )?(?:vos )?horaires`, `(?:vous etes|etes vous|êtes vous) ouverts?(?: maintenant)?`,
+  ],
+  // "How much in lira?" (M1, founder decision 2): today's rate and the open order in lira, from current_fx(). Only a question about
+  // lira or the rate, never an order that mentions paying in lira.
+  lira: [
+    `(?:قديش|قدي|كم|اديش)(?: (?:حقو|حقها|المجموع|الطلب|طلبي|صار|بيصير|بيطلع|بتطلع))? (?:بالليره|بالليرات|بالل ل|باللبناني)`,
+    `(?:شو |قديش )?(?:سعر الصرف|سعر الدولار)(?: اليوم| هلق)?`, `قديش (?:ال)?دولار(?: اليوم| هلق)?`,
+    `(?:adesh|2adesh|ade|2ade|addesh)(?: (?:sar|el majmou3|el talab))? (?:bel|bil|b) ?(?:lira|lebnene|lebneni|lbp)`,
+    `(?:sa3er|se3r|s3r) (?:el )?(?:dolar|dollar|sarf)(?: lyom| el yom)?`,
+    `how much (?:is it |is that |is my order |is the total )?in (?:lira|lbp|lebanese pounds?|ll)`, `(?:what'?s |what is )?(?:the )?(?:exchange|dollar) rate(?: today)?`,
+    `combien en (?:livres?|lbp|ll)(?: libanaises?)?`, `(?:le |quel est le )?taux (?:de change|du dollar)(?: aujourd'hui)?`,
   ],
   repeat_last: [
     `(?:متل|مثل|نفس|زي) (?:ال)?مره (?:الماضيه|اللي فاتت|الي فاتت|السابقه|الاخيره)`,

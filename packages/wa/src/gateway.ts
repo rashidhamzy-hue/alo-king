@@ -71,6 +71,17 @@ export async function send(
   if (local) return refuse(db, req, local);
 
   const isTemplate = req.msg.type === "template";
+  // M1 (coordinator, 14 Nov): Meta can re-file a template as marketing after we submit it as utility. A template message goes out
+  // only when wa_templates holds it as approved AND utility, for its name and language, whatever category the caller passed.
+  // Unknown, unreadable, re-filed or not approved: refused, fail closed (invariant 17).
+  if (req.msg.type === "template") {
+    const t = await db.from("wa_templates").select("category, status, language").eq("name", req.msg.template.name).limit(1);
+    if (t.error) return refuse(db, req, "gate_error");
+    const row = ((t.data as { category: string; status: string; language: string }[] | null) ?? [])[0];
+    if (!row || row.category !== "utility") return refuse(db, req, "template_not_utility");
+    if (row.status !== "approved") return refuse(db, req, "template_not_approved");
+    if (row.language !== req.msg.template.language.code) return refuse(db, req, "template_language_mismatch");
+  }
   const gate = await db.rpc("can_send", { p_party: req.partyId, p_line: req.line, p_category: req.category, p_is_template: isTemplate });
   if (gate.error) return refuse(db, req, "gate_error");
   // A staging probe party (0063): everything below runs (outbox claim, mark, log) except the hand-off to Kapso.

@@ -46,8 +46,8 @@ describe("returns by button (2.5)", () => {
   it("the card shows each line that left the hub with its default; the missing coffee is not on it", async () => {
     await line.tap(PHONES.picker, `ret:open:${o.orderId}`);
     const card = line.to(h.picker).at(-1)!;
-    expect(card.body).toMatch(/✅ 2 × Tannourine/);
-    expect(card.body).toMatch(/🗑 2 × Leen/);
+    expect(card.body).toMatch(/✅ بيرجع عالرف:\n2 × Tannourine/);      // M1: grouped under one heading each
+    expect(card.body).toMatch(/⚠️ تلف[^\n]*\n2 × Leen/);
     expect(card.body).not.toContain("Najjar");
     expect(card.buttons).toEqual([`ret:default:${o.orderId}`, `ret:all_fit:${o.orderId}`, `ret:all_waste:${o.orderId}`]);
   });

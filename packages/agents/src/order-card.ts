@@ -1,7 +1,12 @@
 // The order card: the one message that turns a conversation into a commitment. Built from the quote, never from model text.
+// M1: its words come from messages/{ar,en,fr}.ts in the conversation's language; every line, the fee, the total, the address and
+// the payment are always on it, each amount on its own line.
 import { buttons, list, type Outbound } from "@ak/wa/kapso";
+import { messages, productName, usd, villageName, windowLabel, windowRow, type Lang } from "./messages";
 
-export interface QuoteLine { name: string; name_ar: string | null; qty: number; unit: string; line_total_usd: number; modifiers?: string[]; note?: string | null }
+export { windowLabel, windowRow };
+
+export interface QuoteLine { product_id?: string; name: string; name_ar: string | null; qty: number; unit: string; line_total_usd: number; modifiers?: string[]; note?: string | null }
 export interface Quote {
   ok: boolean; issues: { code: string; [k: string]: unknown }[]; lines: QuoteLine[];
   subtotal_usd: number; delivery_fee_usd: number; total_usd: number; fx_rate_lbp: number | null; total_lbp: number | null;
@@ -17,19 +22,20 @@ export interface Quote {
 }
 /** A delivery window as the database gives it (window_json, migration 0040): the hub's local date and times, never computed here. */
 export interface DeliveryWindow { slot_id: string; date: string; dow: number; day_offset: number; starts: string; ends: string }
+/** Where the order goes (order_address, 0120): the place's village, building and floor as the customer gave them. */
+export interface CardAddress { village_en: string | null; village_ar: string | null; building: string | null; floor: string | null }
 export interface CardInput { orderId: string; shortCode: string; quote: Quote; paymentMethod: "cod" | "whish" | "omt"; changeForUsd?: number | null;
   /** Why cash on delivery was refused and the order is paid in advance (from create_order_from_quote's issues). */
   prepay?: { reason: "dues" } | { reason: "first_order"; maxCodUsd: number } | null;
   /** 2.8: the window the customer chose (request_delivery_window). Absent: deliver now. */
   window?: DeliveryWindow | null;
   /** 2.8: this card changes an order already confirmed (link_replacement_order): its short code. */
-  replaces?: string | null }
+  replaces?: string | null;
+  /** M1: the conversation's language (default Arabic) and the delivery address. */
+  lang?: Lang;
+  address?: CardAddress | null }
 
-const money = (n: number) => `$${Number(n).toFixed(2)}`;
-const lbp = (n: number) => `${Math.round(n).toLocaleString("en-US")} ل.ل`;
-const qty = (q: number) => (Number.isInteger(q) ? String(q) : String(q));
-const PAY: Record<CardInput["paymentMethod"], string> = { cod: "كاش عند التسليم", whish: "تحويل Whish", omt: "تحويل OMT" };
-export const CONSENT_LINE = "بتأكيد الطلب بتوافق نبعتلك تحديثات طلباتك على هالمحادثة.";
+const qty = (q: number) => String(Number(q));
 export const orderButtonId = (action: "confirm" | "edit" | "cancel", orderId: string) => `order:${action}:${orderId}`;
 export function parseOrderButton(id: string): { action: "confirm" | "edit" | "cancel"; orderId: string } | null {
   const m = /^order:(confirm|edit|cancel):([0-9a-f-]{36})$/.exec(id);
@@ -52,163 +58,113 @@ export function parseWindowButton(id: string): { slotId: string | null; orderId:
   const m = /^slot:([0-9a-f-]{36}|now):([0-9a-f-]{36}|basket)$/.exec(id);
   return m ? { slotId: m[1] === "now" ? null : m[1]!, orderId: m[2] === "basket" ? null : m[2]! } : null;
 }
-const DAY_AR = ["", "الاتنين", "التلاتا", "الأربعا", "الخميس", "الجمعة", "السبت", "الأحد"];
-/** «بكرا 10:00-12:00», «الجمعة 21/11، 10:00-12:00». From the database's local date and times; no clock or time zone here. */
-export function windowLabel(w: DeliveryWindow): string {
-  const [, mm, dd] = w.date.split("-");
-  const day = w.day_offset === 0 ? "اليوم" : w.day_offset === 1 ? "بكرا" : `${DAY_AR[w.dow] ?? ""} ${Number(dd)}/${Number(mm)}،`;
-  return `${day} ${w.starts}-${w.ends}`;
-}
-
-/** A list row: WhatsApp cuts a row title at 24 characters, so a longer label puts the times in the row's description (W1). */
-export function windowRow(w: DeliveryWindow): { title: string; description?: string } {
-  const label = windowLabel(w);
-  if (label.length <= ROW_TITLE_LIMIT) return { title: label };
-  return { title: label.slice(0, label.length - `${w.starts}-${w.ends}`.length).replace(/[،\s]+$/u, ""), description: `${w.starts}-${w.ends}` };
-}
-const ROW_TITLE_LIMIT = 24;   // WhatsApp's limit for a list row title
 
 const BODY_LIMIT = 1024;   // WhatsApp's limit for an interactive message body
-
-export const CARD_TEXT = {
-  duesLine: "مستحق من طلب سابق ما قدرنا نسلّمو",
-  creditLine: "رصيد إلك من قبل",
-  smallOrderLine: "رسم الطلبات الصغيرة",
-  prepayFirst: (how: string, cap: string) => `أول طلب كاش لحدّ ${cap}. هالطلب أكبر، فبينّدفع سلف (${how}) قبل ما نبلّش بالتحضير. بعد التأكيد منبعتلك التفاصيل.`,
-  prepay: (how: string) => `بما إنو في مبلغ مستحق من قبل، هالطلب بينّدفع سلف (${how}) قبل ما نبلّش بالتحضير. بعد التأكيد منبعتلك التفاصيل.`,
-  /** 2.8 */
-  windowLine: "التوصيل",
-  replaces: (code: string) => `هالورقة بتحلّ محل طلبك ${code}. ما بيتغيّر شي قبل ما تأكّدها.`,
-  chooseWindow: "أيمتى بدك ياه؟ هيدي الأوقات يلي فينا نوصّل فيها:",
-  windowButton: "اختار الوقت",
-  now: "هلّق (أقرب وقت)",
-  noWindow: "ما في أوقات فاضية للتوصيل بالأيام الجاية. فيك تطلب هلّق، أو تكتبلنا ومنشوف.",
-  /** W1 */
-  windowGone: "الوقت يلي اخترتو ما بقى متوفّر. هيدي الأوقات يلي فينا نوصّل فيها:",
-  noneAt: "ما في وقت فاضي للتوصيل متل ما طلبت. هيدي الأوقات يلي فينا نوصّل فيها:",
-  noneAtAll: "ما في أوقات للتوصيل بوقت محدّد بالأيام الجاية.",
-  nowUnavailable: "ما فينا نوصّل هالطلب هلّق. اختار وقت للتوصيل:",
-  orChoose: "أو اختار من هون وقت للتوصيل:",
-  freshForWindow: (names: string[]) => `${names.join("، ")} منجيبن طازة عالطلب، فبيوصلو بوقت محدّد. اختار الوقت:`,
-  pickupNoWindow: "الاستلام من المحل ما إلو وقت محدّد: فيك تمرق وقت الدوام.",
-  restaurantNoWindow: "طلبات المطاعم ما إلها وقت محدّد هلّق: بتوصل لما تجهز.",
-  notChangeable: (code: string) => `طلبك ${code} تأكّد وما عاد فينا نغيّر وقتو من هون. إذا في شي ضروري اكتبلنا.`,
-};
+const TEXT_LIMIT = 4000;   // under WhatsApp's 4096 for a text message
 
 /** 2.8: the open windows as a list (at most ten rows; the database never lists a full one). `withNow` adds "now" as a row. */
-export function formatWindowChoice(orderId: string | null, windows: DeliveryWindow[], opts: { withNow?: boolean; body?: string } = {}): Outbound {
-  if (windows.length === 0) return { type: "text", text: { body: CARD_TEXT.noWindow } };
-  const rows = [...(opts.withNow ? [{ id: windowButtonId("now", orderId), title: CARD_TEXT.now }] : []),
-                ...windows.map((w) => ({ id: windowButtonId(w.slot_id, orderId), ...windowRow(w) }))];
-  return list(opts.body ?? CARD_TEXT.chooseWindow, CARD_TEXT.windowButton, rows.slice(0, 10));
+export function formatWindowChoice(orderId: string | null, windows: DeliveryWindow[], opts: { withNow?: boolean; body?: string; lang?: Lang } = {}): Outbound {
+  const m = messages(opts.lang).windows;
+  if (windows.length === 0) return { type: "text", text: { body: m.none } };
+  const rows = [...(opts.withNow ? [{ id: windowButtonId("now", orderId), title: m.now }] : []),
+                ...windows.map((w) => ({ id: windowButtonId(w.slot_id, orderId), ...windowRow(w, opts.lang) }))];
+  return list(opts.body ?? m.choose, m.button, rows.slice(0, 10));
 }
 
-export function formatOrderCard(input: CardInput): Outbound {
+/** The address line's words: village, building, floor, as the customer gave them (B4); the village alone when that is all we have. */
+export function addressText(a: CardAddress | null | undefined, q: Pick<Quote, "village" | "village_ar">, lang: Lang): string {
+  const village = villageName(lang, a?.village_ar ?? q.village_ar, a?.village_en ?? q.village);
+  return messages(lang).join([village, a?.building, a?.floor].map((x) => (x ?? "").trim()).filter(Boolean));
+}
+
+/**
+ * The order card, as the messages to send in order (one, or two when the basket is long). The card itself is the last: the lines,
+ * the fees, the total, the address, the payment, then the buttons. A basket too long for one interactive message (1,024 characters)
+ * goes first as a text with every line, and the card follows with the totals: every line is always shown (rule 8). `before` is a
+ * short fixed text sent first; it shares the first message when the lines go separately, so a card never takes more than two sends.
+ * `gaps` collects products shown without an approved Arabic name, for name_gaps.
+ */
+export function formatOrderCard(input: CardInput, opts: { before?: string; gaps?: Set<string> } = {}): Outbound[] {
   const { quote: q } = input;
-  const head = [`طلبك ${input.shortCode}`];
-  const tail: string[] = [];
-  const dues = Number(q.dues_usd ?? 0);
-  tail.push(`المجموع الفرعي: ${money(q.subtotal_usd)}`);
-  if (!q.pickup) tail.push(`التوصيل${q.village_ar ? ` (${q.village_ar})` : ""}: ${money(q.delivery_fee_usd)}`);
+  const lang = input.lang ?? "ar";
+  const m = messages(lang);
+  const head = m.card.heading(input.shortCode);
+  const items = q.lines.flatMap((l) => {
+    const extras = [...(l.modifiers ?? []), ...(l.note ? [l.note] : [])];
+    return [m.card.item(qty(l.qty), productName(l, lang, opts.gaps), extras), usd(l.line_total_usd)];
+  });
+
+  const sums: string[] = [];
+  if (!q.pickup) sums.push(m.amount(m.card.delivery(villageName(lang, q.village_ar, q.village) || null), q.delivery_fee_usd));
   const small = Number(q.small_order_fee_usd ?? 0);
-  if (small > 0) tail.push(`${CARD_TEXT.smallOrderLine}: ${money(small)}`);
+  if (small > 0) sums.push(m.amount(m.card.smallOrder, small));
   // What is owed from a delivery nobody answered is its own line, so the total adds up on the card (1.4).
-  if (dues > 0) tail.push(`${CARD_TEXT.duesLine}: ${money(dues)}`);
+  const dues = Number(q.dues_usd ?? 0);
+  if (dues > 0) sums.push(m.amount(m.card.dues, dues));
   // What we owed them, taken off this order, on its own line so the card still adds up (C2's request).
   const credit = Number(q.credit_usd ?? 0);
-  if (credit > 0) tail.push(`${CARD_TEXT.creditLine}: -${money(credit)}`);
-  tail.push(`الإجمالي: ${money(q.total_usd)}${q.total_lbp ? ` أو ${lbp(q.total_lbp)}` : ""}`);
-  tail.push(q.pickup ? "استلام من المحل" : input.window ? `${CARD_TEXT.windowLine}: ${windowLabel(input.window)}`
-                    : q.eta_minutes ? `الوصول خلال حوالي ${q.eta_minutes} دقيقة` : "توصيل");
-  tail.push(`الدفع: ${PAY[input.paymentMethod]}`);
-  // Policy (0004): someone who owes pays the next order in advance. Say so on the card, before the tap, not after.
-  if (input.paymentMethod !== "cod" && input.prepay?.reason === "first_order") tail.push(CARD_TEXT.prepayFirst(PAY[input.paymentMethod], money(input.prepay.maxCodUsd)));
-  else if (dues > 0 && input.paymentMethod !== "cod") tail.push(CARD_TEXT.prepay(PAY[input.paymentMethod]));
-  if (input.changeForUsd && input.paymentMethod === "cod") tail.push(`الصرافة: منجيب معنا فراطة لـ ${money(input.changeForUsd)}`);
-  if (input.replaces) tail.push(CARD_TEXT.replaces(input.replaces));
-  tail.push("", CONSENT_LINE);
+  if (credit > 0) sums.push(m.amount(m.card.credit, -credit));
+  sums.push(`*${m.amount(m.card.total, q.total_usd)}*`);
+  if (q.total_lbp) sums.push(m.card.orLbp(q.total_lbp));
 
-  const itemLines = q.lines.map((l) => {
-    const extras = [...(l.modifiers ?? []), ...(l.note ? [l.note] : [])];
-    return `• ${qty(l.qty)} × ${l.name_ar ?? l.name}${extras.length ? ` (${extras.join("، ")})` : ""} — ${money(l.line_total_usd)}`;
-  });
-  // Never let a long basket push the totals or the consent line out of the message.
-  const fixed = [...head, "", ...tail].join("\n").length + 2;
-  const shown: string[] = [];
-  let used = fixed;
-  for (let i = 0; i < itemLines.length; i++) {
-    const more = `… و${itemLines.length - i} أغراض تانية`;
-    if (used + itemLines[i]!.length + 1 + (i < itemLines.length - 1 ? more.length + 1 : 0) > BODY_LIMIT) { shown.push(more); break; }
-    shown.push(itemLines[i]!); used += itemLines[i]!.length + 1;
+  const terms: string[] = [];
+  if (q.pickup) terms.push(m.card.pickup);
+  else {
+    terms.push(m.card.address(addressText(input.address, q, lang)));
+    terms.push(input.window ? m.card.window(windowLabel(input.window, lang)) : q.eta_minutes ? m.card.eta(q.eta_minutes) : m.card.deliverNow);
   }
-  const body = [...head, ...shown, "", ...tail].join("\n");
-  return buttons(body, [
-    { id: orderButtonId("confirm", input.orderId), title: "تأكيد الطلب" },
-    { id: orderButtonId("edit", input.orderId), title: "تعديل" },
-    { id: orderButtonId("cancel", input.orderId), title: "إلغاء" },
+  terms.push(m.card.payment(input.paymentMethod));
+  const how = m.card.payName[input.paymentMethod];
+  // Policy (0004): someone who owes pays the next order in advance. Say so on the card, before the tap, not after.
+  if (input.paymentMethod !== "cod" && input.prepay?.reason === "first_order") terms.push(m.card.prepayFirst(how, input.prepay.maxCodUsd));
+  else if (dues > 0 && input.paymentMethod !== "cod") terms.push(m.card.prepay(how));
+  if (input.changeForUsd && input.paymentMethod === "cod") terms.push(m.card.changeFor, usd(input.changeForUsd));
+  if (input.replaces) terms.push(m.card.replaces(input.replaces));
+  terms.push("", m.card.consent);
+
+  const buttonsOf = (body: string) => buttons(body, [
+    { id: orderButtonId("confirm", input.orderId), title: m.card.confirm },
+    { id: orderButtonId("edit", input.orderId), title: m.card.edit },
+    { id: orderButtonId("cancel", input.orderId), title: m.card.cancel },
   ]);
+  const whole = [head, "", ...items, "", ...sums, "", ...terms].join("\n");
+  const before: Outbound[] = opts.before ? [{ type: "text", text: { body: opts.before } }] : [];
+  if (whole.length <= BODY_LIMIT) return [...before, buttonsOf(whole)];
+
+  // Too long for one card: every line first, as text (with `before` on top), then the card with the totals.
+  const listed: string[] = [];
+  let used = (opts.before ? opts.before.length + 2 : 0) + head.length + 2;
+  for (let i = 0; i < items.length; i += 2) {
+    const pair = `${items[i]}\n${items[i + 1]}`;
+    const more = m.card.more((items.length - i) / 2);
+    if (used + pair.length + 1 + more.length > TEXT_LIMIT) { listed.push(more); break; }
+    listed.push(pair); used += pair.length + 1;
+  }
+  const first = [...(opts.before ? [opts.before, ""] : []), head, "", ...listed].join("\n");
+  return [{ type: "text", text: { body: first } }, buttonsOf([head, "", ...sums, "", ...terms].join("\n"))];
 }
 
 /** Fixed replies to the three buttons. Deterministic text, no model. 2.8 adds the window and the scheduled-order answers. */
 export function buttonReplyText(r: { status: string; short_code: string; changed: boolean; payment_method?: string; total_usd?: number;
                                      window?: DeliveryWindow | null; replaces?: string; credit_usd?: number },
-                                transferTo: { whish?: string; omt?: string } = {}): string {
-  const when = r.window ? windowLabel(r.window) : null;
+                                transferTo: { whish?: string; omt?: string } = {}, lang: Lang = "ar"): string {
+  const t = messages(lang).tap;
+  const when = r.window ? windowLabel(r.window, lang) : null;
   switch (r.status) {
     case "confirmed":
-      if (r.replaces && when) return `تم التعديل ✅ طلبك ${r.short_code} بدل ${r.replaces}، والتوصيل ${when}.`;
-      return when ? `تم تأكيد طلبك ${r.short_code} ✅ التوصيل ${when}.` : `تم تأكيد طلبك ${r.short_code} ✅ عم نحضّرو هلق.`;
+      if (r.replaces && when) return t.replaced(r.short_code, r.replaces, when);
+      return when ? t.confirmedFor(r.short_code, when) : t.confirmed(r.short_code);
     case "awaiting_payment": {
-      const ch = r.payment_method === "omt" ? `OMT${transferTo.omt ? ` على ${transferTo.omt}` : ""}` : `Whish${transferTo.whish ? ` على ${transferTo.whish}` : ""}`;
-      return `تم حجز طلبك ${r.short_code}${when ? ` للتوصيل ${when}` : ""}. حوّل ${money(r.total_usd ?? 0)} عبر ${ch} وابعت صورة الإيصال هون لنبلّش بالتحضير.`;
+      const ch = r.payment_method === "omt" ? t.channel("omt", transferTo.omt ?? null) : t.channel("whish", transferTo.whish ?? null);
+      return t.awaitingPayment(r.short_code, when, Number(r.total_usd ?? 0), ch);
     }
-    case "draft": return `تمام، شو بتحب تغيّر بطلب ${r.short_code}؟`;
-    case "cancelled": return `تم إلغاء طلب ${r.short_code}.${Number(r.credit_usd ?? 0) > 0 ? ` المبلغ يلي دفعتو (${money(r.credit_usd!)}) صار رصيد إلك، منرجّعلك ياه أو منحسمو من طلبك الجاي.` : ""}`;
-    case "slot_full": return `الوقت يلي اخترتو${when ? ` (${when})` : ""} امتلى قبل ما تأكّد، فما ثبّتنا الطلب ${r.short_code}. اختار وقت تاني أو اكتبلنا.`;
-    case "slot_closed": return `ما عاد فينا نوصّل${when ? ` ${when}` : " بهالوقت"}: فات آخر وقت للطلب، فما ثبّتنا الطلب ${r.short_code}. اختار وقت تاني أو اكتبلنا.`;
-    case "change_open": return `تمام، شو بتحب تغيّر بطلب ${r.short_code}${when ? ` (${when})` : ""}؟ منبعتلك ورقة جديدة، وما بيتغيّر شي قبل ما تأكّدها.`;
+    case "draft": return t.draft(r.short_code);
+    case "cancelled": return Number(r.credit_usd ?? 0) > 0 ? t.cancelledCredit(r.short_code, Number(r.credit_usd)) : t.cancelled(r.short_code);
+    case "slot_full": return t.slotFull(r.short_code, when);
+    case "slot_closed": return t.slotClosed(r.short_code, when);
+    case "change_open": return t.changeOpen(r.short_code, when);
     case "too_late":
-    case "change_too_late": return `فات آخر وقت لتغيير طلب ${r.short_code}${when ? ` (${when})` : ""} أو إلغائو من هون. إذا في شي ضروري اكتبلنا ومنشوف.`;
-    default: return `طلبك ${r.short_code} صار قيد التنفيذ وما بقى فينا نعدّلو من هون. إذا في شي ضروري اكتبلنا.`;
+    case "change_too_late": return t.tooLate(r.short_code, when);
+    default: return t.inProgress(r.short_code);
   }
 }
-
-export const FIXED = {
-  audioUnusable: "ما قدرت اسمع التسجيل منيح. فيك تعيدو أو تكتبلي الطلب؟",
-  handoff: "رح يتواصل معك حدا من فريقنا بأقرب وقت.",
-  optOut: "تم. ما رح نبعتلك رسائل بعد اليوم. إذا بدك تطلب، بس اكتبلنا.",
-  optIn: "تم تفعيل العروض. شكراً!",
-  outOfStock: "عفواً، في غرض خلص قبل ما نأكّد الطلب. بعتلي شو بتحب بدالو أو شيلو من الطلب.",
-  error: "صار في مشكلة صغيرة من عنا. رح يتواصل معك حدا من الفريق.",
-  notAvailable: (shops: string[]) => shops.length
-    ? `${shops.join(" و")} مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق.`
-    : "هالمحل مش متوفّر بعد على ألو كينغ، فما فينا ناخد طلب منو هلّق.",
-  oneMoment: "لحظة صغيرة وبرجعلك 🙏",
-  /** 1.18: anything unrelated to ordering, delivery or an order. One friendly line, then back to the job. */
-  offTopic: "أنا هون بس لطلبات ألو كينغ: أغراض، توصيل، ووين صار طلبك. شو بتحب تطلب؟",
-  askPhone: "قبل ما نبعتلك ورقة الطلب: شو رقم التلفون يلي فيه السائق يتّصل فيك عليه؟",
-  badPhone: "الرقم مش واضح معي. فيك تبعتو هيك: 03123456 أو +9613123456؟",
-  phoneSaved: "تمام، سجّلنا الرقم. شو بتحب تطلب؟",
-  askPin: "تمام، طلبك جاهز. بس بعتلنا موقعك 📍 من الزر تحت لنبعتلك ورقة الطلب.",
-  /** B4: a first delivery to a new place. The pin is in; the rider needs the house and the floor. The card waits for them. */
-  askAddress: (villageAr: string) => `التوصيل على ${villageAr}. كرمال السائق: شو اسم البيت أو البناية، وأي طابق؟`,
-  pinReceived: "وصلنا موقعك 📍",
-  /** B4: the pin decides the village. Said when the customer had written another one. */
-  pinVillage: (pinAr: string, saidAr: string) => `📍 الموقع اللي بعتّو بمنطقة ${pinAr}، مش ${saidAr}، فالتوصيل على ${pinAr}.`,
-  /** B4: the pin is between villages. The customer taps the right one; nobody guesses. */
-  askVillage: "📍 الموقع اللي بعتّو بين كذا ضيعة. وين بالزبط؟",
-  /** B4: no village we know is near the pin. */
-  pinOutside: "📍 هالموقع برّا المناطق يلي منوصل عليها هلّق. إذا في غلط، ابعت الموقع من جديد من الزر.",
-  pinSaved: (villageAr: string) => `تمام، سجّلنا موقعك${villageAr ? ` (${villageAr})` : ""} 📍 شو بتحب تطلب؟`,
-  /** D1 (3.8): the rate moved more than the allowed step today and waits for a person; nothing is priced until then. */
-  fxPaused: "عم نحدّث سعر الصرف هلّق، فما فينا نسعّر الطلب هالدقيقة. طلبك محفوظ: ابعتلنا «تمام» بعد شوي ومنبعتلك الورقة.",
-  pinVillageRefused: "ما قدرنا نعتمد هالضيعة لهالموقع. ابعت الموقع من جديد من الزر 📍",
-  /** K1 (B4's leftover): an order after closing time is kept, never lost, and the customer is told when we open. No promise to send. */
-  closedKept: (opens: string) => `مسكّرين هلّق، منفتح الساعة ${opens}. طلبك محفوظ: بس نفتح اكبس «ابعت طلبي» ومنكمّل من هون.`,
-  closedKeptPin: (opens: string) => `وصلنا موقعك 📍 بس نحنا مسكّرين هلّق، منفتح الساعة ${opens}. طلبك محفوظ: بس نفتح اكبس «ابعت طلبي» ومنكمّل.`,
-  keptButton: "ابعت طلبي",
-  /** Audit item 4: sent once when we open, to someone whose order was kept overnight and who wrote to us within 23 hours. */
-  keptOpen: "صباح الخير ☀️ فتحنا. طلبك يلي بعتّو وكنّا مسكّرين بعدو محفوظ: اكبس «ابعت طلبي» ومنكمّل.",
-  /** The kept basket is gone (a newer order replaced it). Said plainly; the customer is not asked to retype what we still hold. */
-  keptGone: "ما في طلب محفوظ هلّق. شو بتحب تطلب؟",
-};

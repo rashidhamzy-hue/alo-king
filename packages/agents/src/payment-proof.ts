@@ -86,10 +86,4 @@ export async function readPaymentProof(model: ModelClient, modelName: string, by
   } catch { return null; }
 }
 
-export const PROOF_TEXT = {
-  received: (code: string) => `وصلت صورة الدفع لطلب ${code}، شكراً 🙏 حدا من فريقنا عم يتأكد منها وبيرجعلك.`,
-  resend: "ما قدرنا نفتح الصورة. فيك تبعتلنا صورة الإيصال مرة تانية؟",
-  opsAlert: (p: { shortCode: string; totalUsd: number; method: string; reusedImage: boolean }) =>
-    `💳 صورة دفع ${p.method === "omt" ? "OMT" : "Whish"} للطلب #${p.shortCode} (المطلوب $${p.totalUsd.toFixed(2)}). بحاجة لتأكيد من شخص.` +
-    (p.reusedImage ? " ⚠️ نفس الصورة انبعتت قبل لطلب تاني." : ""),
-};
+// M1: the customer's and ops' words for a payment photo are in messages/ (payment.proofReceived, proofResend, ops.proofAlert).

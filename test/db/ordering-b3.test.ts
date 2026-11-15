@@ -4,7 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import type { TestDb } from "./harness";
 import { flow, openFlowDb, pinned, read, recordKapso, type Ids, type Sent } from "./flow-kit";
 import { runTurn } from "../../apps/gateway/src/turn";
-import { FIXED } from "@ak/agents/order-card";
+import { ar } from "@ak/agents/messages";
 
 let db: TestDb, ids: Ids;
 beforeAll(async () => { ({ db, ids } = await openFlowDb()); }, 120_000);
@@ -59,7 +59,7 @@ describe("typing indicator and a cap on model turns (1.8)", () => {
     expect(await db.rpc("model_turn_budget", { p_party: c.party_id })).toEqual({ allowed: false, used: 2, limit: 2 });
     await t.text("بدي كمان لبنة");
     expect(t.seen).toHaveLength(0);
-    expect(outbound.map((o) => o.body.text?.body)).toContain(FIXED.handoff);
+    expect(outbound.map((o) => o.body.text?.body)).toContain(ar.fixed.handoff);
     expect((await db.one(`select human_handoff from conversations where id = $1`, [c.conversation_id])).human_handoff).toBe(true);
     expect(await db.all(`select kind from ops_exceptions where kind = 'model_turn_cap' and ref like $1`, [`${c.party_id}:%`])).toHaveLength(1);
     await db.pg.exec(`update settings set value = '{"per_customer_per_hour": 20}' where key = 'model_turns'`);
@@ -71,7 +71,7 @@ describe("typing indicator and a cap on model turns (1.8)", () => {
     await t.customer();
     await t.text("وين صار طلبي؟");                                     // a quick intent, answered by the database
     expect(t.seen).toHaveLength(0);
-    expect(outbound.map((o) => o.body.text?.body)).not.toContain(FIXED.handoff);
+    expect(outbound.map((o) => o.body.text?.body)).not.toContain(ar.fixed.handoff);
     await db.pg.exec(`update settings set value = '{"per_customer_per_hour": 20}' where key = 'model_turns'`);
   });
 });
@@ -275,6 +275,6 @@ describe("substitute taps on the customer line (C2's request)", () => {
     await t.tap("sub:keep:00000000-0000-4000-8000-000000000001", "خليه");
     expect(t.rpcCalls.map((c: any) => c.fn)).toContain("answer_substitution");
     expect(t.seen).toHaveLength(0);
-    expect(outbound.map((o) => o.body.text?.body)).toEqual([FIXED.error]);         // an offer that does not exist: a person looks
+    expect(outbound.map((o) => o.body.text?.body)).toEqual([ar.fixed.error]);         // an offer that does not exist: a person looks
   });
 });

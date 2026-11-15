@@ -3,7 +3,8 @@
 // The catalog never confirms. Anything gone or repriced since Meta read the feed is named before the card.
 import type { CardTerms, QuoteLineInput, ToolContext } from "./concierge-tools";
 import { deliver, keepUntilOpen } from "./concierge-tools";
-import { FIXED, type Quote } from "./order-card";
+import { type Quote } from "./order-card";
+import { messages } from "./messages";
 import { sendBasket, WHERE_ISSUES } from "./pipeline";
 
 /** The `order` object of an inbound WhatsApp order message (Meta's webhook reference). */
@@ -78,7 +79,7 @@ export async function takeCart(ctx: ToolContext, order: CartOrder | undefined): 
   }
   if (plan.issues.some((i) => i.code === "fx_paused")) {
     ctx.state.lastQuote = { ...basket, quote: plan.quote };
-    const text = before ? `${before}\n${FIXED.fxPaused}` : FIXED.fxPaused;
+    const text = before ? `${before}\n${messages(ctx.state.lang).fixed.fxPaused}` : messages(ctx.state.lang).fixed.fxPaused;
     const r = await deliver(ctx, { type: "text", text: { body: text } }, text);
     return r.ok ? { done: true, path: "cart_fx_paused" } : { done: false, asText: cartAsText(order) };
   }

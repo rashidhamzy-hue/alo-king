@@ -6,7 +6,8 @@ import type { ModelClient } from "./concierge";
 import { sendFeedbackRequests } from "./feedback";
 import { runSearchWordJobs } from "./search-words";
 import { buttons } from "@ak/wa/kapso";
-import { FIXED, KEPT_BUTTON } from "./order-card";
+import { KEPT_BUTTON } from "./order-card";
+import { sendCodeStarted } from "./messages/notify";
 
 export interface CronDeps { db: SupabaseClient; send: (r: SendRequest) => Promise<SendResult>; model: ModelClient; modelName: string }
 
@@ -18,10 +19,9 @@ export async function offerKeptOrders(deps: { db: SupabaseClient; send: (r: Send
   const due = ((await deps.db.rpc("kept_orders_due", { p_limit: 20 })).data ?? []) as { id: string; party_id: string }[];
   let n = 0;
   for (const d of due) {
-    const to = ((await deps.db.rpc("party_address", { p_party: d.party_id, p_line: "customer" })).data as string | null) ?? null;
-    if (!to) continue;
-    const r = await deps.send({ line: "customer", partyId: d.party_id, to, category: "service", dedupeKey: `kept:${d.id}`,
-                                msg: buttons(FIXED.keptOpen, [{ id: KEPT_BUTTON, title: FIXED.keptButton }]) });
+    // M1 (G1-23): in the customer's language; past 24 hours, the approved ak_kept_order_open template with the same button.
+    const r = await sendCodeStarted(deps, d.party_id, "kept_order_open",
+      (m) => ({ msg: buttons(m.fixed.keptOpen, [{ id: KEPT_BUTTON, title: m.fixed.keptButton }]), params: [], payloads: [KEPT_BUTTON] }), `kept:${d.id}`);
     if (r.ok) { await deps.db.rpc("mark_kept_offered", { p_id: d.id }); n++; }
   }
   return n;
