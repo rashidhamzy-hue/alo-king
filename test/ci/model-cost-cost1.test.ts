@@ -137,6 +137,28 @@ describe("the cap: a run stops making model calls when it passes its dollar cap"
     expect(meter.capReached).toBe(false);
   });
 
+  it("a loop that stops starting work at the cap marks the run as stopped at its cap (live finding: language-pack, 15 Nov)", () => {
+    const meter = new CostMeter({ workflow: "test", runId: "t8", capUsd: 0.005, prices, log: quiet });
+    expect(meter.capStop()).toBe(false);
+    expect(meter.stoppedAtCap).toBe(false);
+    meter.add("claude-haiku-5-5", { input: 100_000, output: 0, cacheRead: 0, cacheWrite: 0 });     // USD 0.01, past the cap
+    expect(meter.capStop()).toBe(true);
+    expect(meter.stoppedAtCap).toBe(true);
+    expect(meter.toRecord().stopped_at_cap).toBe(true);
+    // a run that reached the cap with its last call and had nothing left to start is not marked: no work was refused
+    const done = new CostMeter({ workflow: "test", runId: "t9", capUsd: 0.005, prices, log: quiet });
+    done.add("claude-haiku-5-5", { input: 100_000, output: 0, cacheRead: 0, cacheWrite: 0 });
+    expect(done.toRecord().stopped_at_cap).toBe(false);
+  });
+
+  it("every item loop asks capStop(), so the record says so", () => {
+    for (const f of ["scripts/images/fetch-images.mjs", "scripts/product-data/fetch-product-data.mjs", "scripts/product-data/load-research.mjs", "evals/language/live.lang.test.ts"]) {
+      const s = read(f);
+      expect(s, f).toMatch(/meter\.capStop\(\)/);
+      expect(s, f).not.toMatch(/meter\.capReached/);
+    }
+  });
+
   it("a cap from a workflow input is a positive number; anything else is the safe default", () => {
     expect(parseCap("2.5", 3)).toBe(2.5);
     for (const bad of ["", "  ", "abc", "0", "-1", "NaN", undefined, null]) expect(parseCap(bad as any, 3)).toBe(3);

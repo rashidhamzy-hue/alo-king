@@ -148,7 +148,7 @@ async function main(meter) {
   console.log(`run ${runId}: ${names.length} research files in ${a.dir}; ${state.size} active catalog items; parts: ${a.parts.join(", ")}${a.force ? " (force)" : ""}`);
   let fatal = null;
   const results = await pool(names, a.concurrency, async (name) => {
-    if (fatal || meter.capReached) return { file: name, invalid: "not_run" };   // at the cost cap no new file is started (COST1)
+    if (fatal || meter.capStop()) return { file: name, invalid: "not_run" };   // at the cost cap no new file is started (COST1)
     try {
       const r = await loadFile(name, readFileSync(join(a.dir, name), "utf8"), state, d, { parts: a.parts, force: a.force });
       console.log(r.invalid ? `${r.sku ?? r.file} not loadable: ${r.invalid}` : `${r.sku} picture ${r.picture.outcome}; facts ${r.facts.outcome}${r.facts.proposed?.length ? ` (${r.facts.proposed.join(",")})` : ""}`);

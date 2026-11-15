@@ -173,7 +173,7 @@ async function main(meter) {
   console.log(`run ${runId}: ${items.length} items (${skipped} skipped: already looked at to the end); sources: Open Food Facts${searchOn ? ", brand sites, web image search" : " only (no BRAVE_SEARCH_API_KEY, or --no-search)"}`);
   let fatal = null;
   const results = await pool(items, a.concurrency, async (item) => {
-    if (fatal || meter.capReached) return { sku: item.sku, outcome: "not_run" };   // at the cost cap no new item is started (COST1)
+    if (fatal || meter.capStop()) return { sku: item.sku, outcome: "not_run" };   // at the cost cap no new item is started (COST1)
     try {
       const r = await processItem(item, d);
       console.log(`${item.sku} ${r.outcome}${r.source_kind ? ` (${r.source_kind})` : ""}${r.error ? ` ${r.error}` : ""}`);
