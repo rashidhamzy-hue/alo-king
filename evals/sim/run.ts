@@ -31,6 +31,8 @@ export interface RunOptions {
   soft: number; hard: number; concurrency: number; calibrate: number; reruns: number;
   maxMinutes: number;
   outDir: string | null;
+  /** The attempt number each scenario runs as (0 = its first run). A follow-up runs a seed again as attempt 1. Default 0. */
+  attemptOf?: (s: Scenario) => number;
   log?: (s: string) => void;
 }
 
@@ -210,7 +212,8 @@ export async function runAll(o: RunOptions): Promise<RunSummary> {
   for (const s of daySet) byCat.set(s.category, [...(byCat.get(s.category) ?? []), s]);
   const calib: Scenario[] = [];
   for (let k = 0; calib.length < Math.min(o.calibrate, daySet.length); k++) for (const list of byCat.values()) if (list[k] && calib.length < o.calibrate) calib.push(list[k]!);
-  await pool(calib, async (s) => record(await runOne(day, s, 0, "day")));
+  const first = (s: Scenario) => o.attemptOf?.(s) ?? 0;
+  await pool(calib, async (s) => record(await runOne(day, s, first(s), "day")));
   const done = results.length || 1;
   const perConv = budget.spent / done;
   const calibration = { conversations: results.length, usdPerConversation: perConv, projectedTotal: budget.spent + perConv * (o.scenarios.length - results.length) };
@@ -223,7 +226,7 @@ export async function runAll(o: RunOptions): Promise<RunSummary> {
     const night = await openWorld({ label: `night${attempt ? `-${attempt}` : ""}`, copy: o.copy, oosSkus: [], log });
     await night.setClock("night");
     const parked: ConversationResult[] = [];
-    await pool(set, async (s) => { const r = await runOne(night, s, attempt, "night"); if ((r as { _live?: Live })._live) parked.push(r); else record(r); });
+    await pool(set, async (s) => { const r = await runOne(night, s, attempt + first(s), "night"); if ((r as { _live?: Live })._live) parked.push(r); else record(r); });
     await night.setClock("morning");
     await pool(parked, async (r) => {
       const s = set.find((x) => x.id === r.id)!;
@@ -242,7 +245,7 @@ export async function runAll(o: RunOptions): Promise<RunSummary> {
   await nightRun(nightSet, 0);
   // 3. the rest of the day
   const left = daySet.filter((s) => !calib.includes(s));
-  await pool(left, async (s) => record(await runOne(day, s, 0, "day")));
+  await pool(left, async (s) => record(await runOne(day, s, first(s), "day")));
   // 4. failing seeds again, three times each, while money is left
   const failing = o.scenarios.filter((s) => results.some((r) => r.id === s.id && r.attempt === 0 && r.status === "judged" && !r.passed));
   if (o.reruns > 0 && failing.length && open()) {

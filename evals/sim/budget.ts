@@ -71,3 +71,14 @@ export class Budget {
     if (this.spent - this.lastPrinted >= 0.25) { this.lastPrinted = this.spent; this.log(`[budget] USD ${this.spent.toFixed(3)} after ${this.calls} calls`); }
   }
 }
+
+/**
+ * The run's limits. With a budget (the workflow's budget_usd input): no new conversation from 85% of it, every call refused at it.
+ * Without one: the soft and hard limits given (the workflow's defaults, USD 27 and 33).
+ */
+export function limitsFor(budgetUsd: string | undefined, soft: number, hard: number): { soft: number; hard: number } {
+  if (budgetUsd === undefined || budgetUsd.trim() === "") return { soft, hard };
+  const b = Number(budgetUsd);
+  if (!Number.isFinite(b) || b <= 0) throw new Error(`budget_usd must be a positive number of dollars, got "${budgetUsd}"`);
+  return { soft: Math.round(b * 0.85 * 100) / 100, hard: b };
+}

@@ -3,7 +3,8 @@
 # read-only copy of staging's catalogue and settings, read with GET through PostgREST (SUPABASE_SERVICE_KEY over the staging URL,
 # the secrets product-data.yml uses). No parties, chats, orders or media are read. Kapso is never called: every send is recorded.
 # The real turn code drives each conversation; the Concierge is MODEL_FAST from wrangler.jsonc; the customer and the judge are
-# MODEL_SMART (Sonnet 5.5). Budget: no new conversation above USD 27, every model call refused at USD 33 (evals/sim/budget.ts).
+# MODEL_SMART (Sonnet 5.5). Budget: no new conversation above USD 27, every model call refused at USD 33 (evals/sim/budget.ts);
+# with the budget_usd input, no new conversation from 85% of it and every call refused at it.
 # Key: secrets.ANTHROPIC_API_KEY_SIM only. The job stops at once if it is missing; it never falls back to another key, and the
 # key is never printed (it is passed to the one step that needs it, as an environment variable).
 # Output: the artifact sim-results (report.md, cases/sim_<class>.json, results.jsonl, summary.json), the head of the report in
@@ -28,6 +29,14 @@ on:
         description: Times each failing seed is run again while money is left
         type: string
         default: "3"
+      budget_usd:
+        description: "USD for this run: no new conversation from 85% of it, every call refused at it (empty = 27 and 33, as before)"
+        type: string
+        default: ""
+      followup:
+        description: "A selection file, e.g. evals/sim/followup-2026-11-15.json: its cut-off seeds run first, its failing seeds once more (empty = none)"
+        type: string
+        default: ""
 permissions: { contents: read }
 defaults:
   run: { shell: bash }
@@ -69,13 +78,20 @@ jobs:
           SIM_REPEATS: ${{ inputs.repeats }}
           SIM_SOFT: "27"
           SIM_HARD: "33"
+          SIM_BUDGET_USD: ${{ inputs.budget_usd }}
+          SIM_FOLLOWUP: ${{ inputs.followup }}
           SIM_MAX_MINUTES: "280"
         run: |
           export MODEL_FAST="$(node scripts/ci/wrangler-var.mjs MODEL_FAST)"
           export MODEL_SMART="$(node scripts/ci/wrangler-var.mjs MODEL_SMART)"
           [ -z "$SIM_LIMIT" ] && unset SIM_LIMIT
           [ -z "$SIM_ONLY" ] && unset SIM_ONLY
-          echo "- concierge ${MODEL_FAST}, customer and judge ${MODEL_SMART}; limit ${SIM_LIMIT:-all}; only ${SIM_ONLY:-all}; concurrency ${SIM_CONCURRENCY}" >> "$GITHUB_STEP_SUMMARY"
+          [ -z "$SIM_BUDGET_USD" ] && unset SIM_BUDGET_USD
+          [ -z "$SIM_FOLLOWUP" ] && unset SIM_FOLLOWUP
+          if [ -n "${SIM_FOLLOWUP:-}" ] && { [[ "$SIM_FOLLOWUP" != evals/sim/*.json ]] || [[ "$SIM_FOLLOWUP" == *..* ]] || [ ! -f "$SIM_FOLLOWUP" ]; }; then
+            echo "::error::followup must be a JSON file under evals/sim/ on this ref"; exit 1
+          fi
+          echo "- concierge ${MODEL_FAST}, customer and judge ${MODEL_SMART}; limit ${SIM_LIMIT:-all}; only ${SIM_ONLY:-all}; concurrency ${SIM_CONCURRENCY}; budget ${SIM_BUDGET_USD:-27/33}; follow-up ${SIM_FOLLOWUP:-none}" >> "$GITHUB_STEP_SUMMARY"
           npx vitest run evals/sim/sim.live.test.ts --silent=false
       - uses: actions/upload-artifact@v4
         if: always()
