@@ -144,6 +144,16 @@ turn. Re-judging 43657020370 under (1): `best-restaurant` passes; `gluten-free-d
 "stay on the job" miss («بدي أغراض لمجدرة» judged off-topic) is neither, so that run does not qualify and a gate run on the final code
 follows (below).
 
+| Run | Code | What changed | item F1 | wrong products | demo | live misses |
+| --- | --- | --- | --- | --- | --- | --- |
+| 43675197868 | 4eb4567 | final code: the quality word judged on the reply sent | 0.911 | **1 (g0752)** | right | 3: `gluten-free-declared`, `sesame-allergy` (no reply, SP2); "stay on the job" «بدي أغراض لمجدرة» judged off-topic |
+
+Neither failure of 43675197868 is M1's. **g0752** «baddi zet Lina 3abbed shams, l 2annine l z8ire 0.85» was read as three lines and
+the size-only line «l 2annine l z8ire» ("the small bottle") matched AK-0121 (7Up 330 ml): main's planner (`plan_order_core_0078`)
+returns exactly the same as M1's wrapper for that reading (checked locally; the wrapper acts only on a mixed word). **«بدي أغراض لمجدرة»**
+is the reading call, whose prompt, schema and tools M1 left byte-identical to main; it failed in 3 of the last 4 runs. Both are
+recorded for lane B below. One more gate run on the same code follows.
+
 **For the ordering lane (found here, not fixed: `concierge.ts` is outside M1's files):** in 2 of the last 4 live runs one ask call
 stopped at `max_tokens` (1024, `request()` in `concierge.ts`) with no text and no tool call, so the turn handed off with nothing sent
 (`sponsored-fails-restriction` in 43642090610, `gluten-free-declared` in 43649220096). The same can happen on a real turn. The live
@@ -196,6 +206,7 @@ Collected by H1 from every finished session record (`docs/history/HANDOFF_sessio
 
 #### Lane B ordering / agents
 
+- **Lane B (open; found by M1's gate run 43675197868, main's code):** (a) a size-only reading line becomes a product: g0752 «baddi zet Lina 3abbed shams, l 2annine l z8ire 0.85» read as «zet Lina» / «3abbed shams» / «l 2annine l z8ire», and the planner (`plan_order_core_0078`, unchanged by M1) matched the third line to AK-0121 (7Up 330 ml); add the reading to `evals/language/zero-wrong.json` when fixing. (b) The reading judges «شو بتحب تطبخ اليوم؟ بدي أغراض لمجدرة» off-topic in 3 of the last 4 language-pack runs (`evals/cases/off_topic`, live "stay on the job"). (session M1)
 - **SP2 (open; found by M1, a bug on main; coordinator, 15 Nov): the ask loop can end a turn with no reply**, which hands the customer to a person with nothing sent. Two causes in `packages/agents/src/concierge.ts`: a step stops at `max_tokens` (1024, `request()`) with no text and no tool call; or the model calls `extract_order`, `runAskLoop` answers «the reading for this turn is already recorded; it is in `reading`» (while `reading` can be null), and the model ends the turn, sometimes writing «I'll reply once I've checked the catalog» outside a tool. Seen in 5 live cases over 4 language-pack runs (43642090610, 43644483826, 43649220096, 43657020370; `evals/live` `steps` trace). Likely fix: answer `extract_order` in the ask loop with "answer now through reply", and retry once (or raise the cap) when a step stops at `max_tokens` with no tool call. Recorded case: `sesame-allergy-no-reply` in `evals/cases/live_wording_attempts.json`. (session M1)
 - Pound total on the order card and receipt should be a setting, not hard-coded either way, pending lawyer item 4; not built. (session R4)
 - Known limit: the deterministic card path does not check restrictions against food facts; a stated restriction only travels on order notes. Case `sponsored-fails-restriction` needs 1.11 and 8.12. (session B2)

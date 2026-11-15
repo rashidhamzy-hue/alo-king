@@ -1,1 +1,1 @@
-{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run on the final code (coordinator 15 Nov: the quality word judged on the reply sent; no-reply turns open for SP2; merge on 0 wrong, F1 >= 0.90, demo right, every live miss a no-reply turn)." }
+{ "steps": ["after", "live"], "repeat": 1, "note": "M1 gate run on the same final code (43675197868: g0752 wrong and an off-topic miss, both main's, recorded in HANDOFF)." }
