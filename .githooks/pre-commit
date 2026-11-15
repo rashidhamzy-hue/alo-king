@@ -1,0 +1,6 @@
+#!/bin/sh
+# PUB1: nothing personal or secret may enter the public repository. Blocks a commit that stages a real-looking phone number, location pin,
+# plus code, e-mail address or a secret (gitleaks). Installed by `npm install` (package.json "prepare"); CI runs the same check on the whole tree.
+# An invented value belongs in scripts/ci/personal-data-allow.json with a note; see docs/RUNBOOK.md, "What may never be committed".
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+exec node "$ROOT/scripts/ci/no-personal-data.mjs" --staged

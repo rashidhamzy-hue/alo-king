@@ -1,0 +1,179 @@
+{
+ "_about": "What the personal-data check (scripts/ci/no-personal-data.mjs) lets through. Read docs/RUNBOOK.md, 'What may never be committed', before adding anything here. Every entry needs a note saying why it cannot be a person. A pull request that touches this file is read line by line.",
+ "_skipPaths": "package-lock.json holds hashes only. This file holds, by design, the values it allows (a company's published number and mailboxes, the invented pins), so it cannot be scanned against itself: that is why a change to it is read line by line, and test/ci/fixtures-invented.test.ts checks its shape.",
+ "skipPaths": [
+  "package-lock.json",
+  "scripts/ci/personal-data-allow.json"
+ ],
+ "barcodePaths": [
+  "supabase/seed/catalog.csv"
+ ],
+ "phones": {
+  "_about": "An invented range is a prefix of the number with its country code, at most 1,000 numbers wide (8 digits for an 11-digit number), unless it is reserved: no operator can assign it. Test files take their numbers from here.",
+  "ranges": [
+   {
+    "prefix": "96170000",
+    "note": "+961 70 000 xxx: the project's standard fake block since the first fixtures (H1 confirmed it for the Kapso fixtures)"
+   },
+   {
+    "prefix": "96170009",
+    "note": "+961 70 009 xxx: fake block next to the standard one, used by the Worker end-to-end test and the webhook-events test"
+   },
+   {
+    "prefix": "96170300",
+    "note": "+961 70 300 xxx: fake block used by the receiving-margin test only"
+   },
+   {
+    "prefix": "96170400",
+    "note": "+961 70 400 xxx: fake block used by the recall test only"
+   },
+   {
+    "prefix": "96170999",
+    "note": "+961 70 999 xxx: fake block used by the console day-close test only"
+   },
+   {
+    "prefix": "96171000",
+    "note": "+961 71 000 xxx: fake block used by the hub and ops test kits"
+   },
+   {
+    "prefix": "96171990",
+    "note": "+961 71 990 xxx: fake block used by the reply-speed test only"
+   },
+   {
+    "prefix": "96171999",
+    "note": "+961 71 999 xxx: fake block used by the ordering test only"
+   },
+   {
+    "prefix": "96100000",
+    "note": "+961 00 000 xxx: no Lebanese operator has a 00 prefix, so the number cannot exist (a stand-in for the shop's own link in the catalog tests)"
+   },
+   {
+    "prefix": "447700900",
+    "note": "+44 7700 900xxx: Ofcom's range for drama and fiction; it is never assigned to a subscriber"
+   },
+   {
+    "prefix": "999",
+    "reserved": true,
+    "note": "+999 is not assigned as a country code, so no number that starts with it can exist (the simulated customers in evals/sim)"
+   }
+  ],
+  "exact": [
+   {
+    "digits": "96170111222",
+    "note": "repeated digits, a textbook number in the console rider test"
+   },
+   {
+    "digits": "96170123456",
+    "note": "counting digits 123456, a textbook number used in the phone parser and console tests"
+   },
+   {
+    "digits": "96171111111",
+    "note": "one digit repeated, used by the ops-turn test"
+   },
+   {
+    "digits": "96171123456",
+    "note": "counting digits 123456, a textbook number in the phone parser test"
+   },
+   {
+    "digits": "96171234567",
+    "note": "counting digits 1234567, a textbook number in the gateway observability test"
+   },
+   {
+    "digits": "96176123456",
+    "note": "counting digits 123456, a textbook number in the phone parser test"
+   },
+   {
+    "digits": "2201340000000",
+    "note": "a catalog barcode (GS1 in-store prefix 22), named in a comment of the product-data test: not a phone number"
+   },
+   {
+    "digits": "447496312110",
+    "files": [
+     "docs/RESEARCH_REGISTER.md"
+    ],
+    "note": "MontyPay's own published WhatsApp number, quoted in the research register (a company line, not a customer or a rider)"
+   }
+  ]
+ },
+ "pins": {
+  "_about": "Three decimals (about 110 m) is a village. More than that must be a village centre loaded as data, or one of the listed invented pins. A real customer pin is a home.",
+  "files": [
+   {
+    "path": "supabase/seed/villages.sql",
+    "note": "the seed villages file: village centres are public places"
+   },
+   {
+    "path": "supabase/migrations/0074_pin_decides.sql",
+    "note": "migration 0074 loads the village centres (data, invariant 13); an applied migration is never edited"
+   }
+  ],
+  "villageCentresFrom": [
+   "supabase/migrations/0074_pin_decides.sql",
+   "supabase/seed/villages.sql"
+  ],
+  "exact": [
+   {
+    "lat": "33.6490",
+    "lng": "35.6460",
+    "note": "invented: round-ish four-decimal pair near a village centre, used by two Lane B tests"
+   },
+   {
+    "lat": "33.6491",
+    "lng": "35.6461",
+    "note": "invented: counting up from 33.6490, Kapso location fixture 01"
+   },
+   {
+    "lat": "33.6492",
+    "lng": "35.6462",
+    "note": "invented: counting up, Kapso location fixture 02"
+   },
+   {
+    "lat": "33.6493",
+    "lng": "35.6463",
+    "note": "invented: counting up, Kapso location fixture 03"
+   },
+   {
+    "lat": "33.65421",
+    "lng": "35.61372",
+    "note": "invented: half-way between two village centres (Ain Qani and Moukhtara), so neither is nearer; live-order-b4 test"
+   },
+   {
+    "lat": "33.6789",
+    "lng": "35.5778",
+    "note": "invented: counting digits, the probe pin in the heartbeat test"
+   }
+  ]
+ },
+ "emails": {
+  "_about": "RFC 2606 and 6761 reserve example.com, example.net, example.org and the names .test, .example, .invalid and .localhost: they cannot be anyone's. GitHub's no-reply address belongs to no person.",
+  "domains": [
+   "example.com",
+   "example.net",
+   "example.org",
+   "users.noreply.github.com"
+  ],
+  "tlds": [
+   "test",
+   "example",
+   "invalid",
+   "localhost"
+  ],
+  "exact": [
+   {
+    "address": "lebanon@areeba.com",
+    "files": [
+     "docs/RESEARCH_REGISTER.md",
+     "docs/history/HANDOFF_sessions_2026-11-13_14.md"
+    ],
+    "note": "areeba's own published business contact, quoted in the research register (a company mailbox)"
+   },
+   {
+    "address": "support@areeba.com",
+    "files": [
+     "docs/RESEARCH_REGISTER.md"
+    ],
+    "note": "areeba's own published support mailbox, quoted in the research register (a company mailbox)"
+   }
+  ]
+ }
+}

@@ -12,7 +12,8 @@
 # only new commit is a note) finds it and does not run vitest again. The artifact must come from this repository's own run, must not
 # have expired (7 days), and a run that needs the real-Postgres suites needs an artifact that included them. If the lookup fails
 # for any reason, vitest runs.
-# secrets-and-dependencies always runs in full (gitleaks reads the whole history). pilot-locks is two greps, so it always runs.
+# secrets-and-dependencies always runs in full (gitleaks reads the whole history; the personal-data check reads the whole tree). pilot-locks is
+# two greps, so it always runs.
 name: ci
 on:
   push: { branches: [main] }
@@ -127,19 +128,30 @@ jobs:
         env: { DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres" }
 
   secrets-and-dependencies:
+    # Always runs, in full. gitleaks and osv-scanner are pinned to exact versions in scripts/ci/tools.json and installed by
+    # scripts/ci/install-tool.mjs, which checks each download against its recorded SHA-256 before anything runs.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Pinned tools (gitleaks, osv-scanner: exact version, SHA-256 checked)
+        run: |
+          node scripts/ci/install-tool.mjs gitleaks
+          node scripts/ci/install-tool.mjs osv-scanner
       - name: gitleaks (secrets in the tree or its history)
+        run: gitleaks detect --source . --config .gitleaks.toml --redact --no-banner
+      - name: Personal data (the repository is public). Phone numbers, location pins, plus codes, e-mail addresses over the whole tree, and gitleaks over the working copy
+        # The self-test plants one of each, in a temporary folder, and fails unless every one is refused (and every near miss passes).
+        # Findings are reported as file, line and rule only: the log of a public repository is public.
+        env: { REQUIRE_GITLEAKS: "1" }
         run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz gitleaks
-          ./gitleaks detect --source . --config .gitleaks.toml --redact --no-banner
+          node scripts/ci/no-personal-data.mjs --self-test
+          node scripts/ci/no-personal-data.mjs
       - name: osv-scanner (known vulnerabilities in the lockfile)
-        run: |
-          curl -sSfL -o osv-scanner https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64
-          chmod +x osv-scanner && ./osv-scanner scan --lockfile package-lock.json
+        run: osv-scanner scan --lockfile package-lock.json
 
   pilot-locks:
     # Two rules a careless edit could undo. They are tested, and also checked here in plain text so a reviewer sees them fail by name.

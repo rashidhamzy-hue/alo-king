@@ -4,5 +4,7 @@ useDefault = true
 [allowlist]
 description = "Example files and test fixtures carry fake values only"
 paths = ['''\.dev\.vars\.example$''', '''test/fixtures/''', '''package-lock\.json$''',
+  # Folders that are never tracked: a scan of the working directory (the personal-data check does that) must not read them.
+  '''(^|/)node_modules/''', '''(^|/)\.tools/''', '''(^|/)\.wrangler/''',
   # A "never do this" example in a third-party Cloudflare skill (API_KEY: "sk-live-abc123..."). Only this one file.
   '''\.claude/skills/workers-best-practices/references/configuration\.md$''']

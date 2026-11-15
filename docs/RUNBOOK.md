@@ -26,6 +26,7 @@ They are never printed or written to a file. A normal deploy leaves them alone.
 
 **Rotate a webhook secret:** Actions, `deploy-staging`, Run workflow, tick "Make new Kapso webhook signing secrets". The run makes new secrets
 for both lines, stores them in the Worker and in Kapso, then posts one signed test event that must be accepted. If that step fails, run it again.
+The steps, what the run does and how to check it are in "Rotating the webhook signing secrets" below.
 **Rotate any other secret:** change it at the provider first (Anthropic console, Kapso, Supabase), then update the repository secret
 (Settings, Secrets and variables, Actions), then run `deploy-staging`. Then look at the provider's logs for use of the old one.
 **If a secret leaks:** rotate it at the provider first, then as above, then check provider logs for use.
@@ -57,6 +58,65 @@ Production: the same two jobs, in the same order, in a quiet hour, from its own 
 ## Recovery drill (before the paid pilot)
 Restore production to a new project from point-in-time recovery, run `scripts/check_permissions.sh` against it, and compare
 the ledger total. Record how long it took. Build plan task 4.8.
+
+## What may never be committed
+The repository is public until the build ends, and the log of a public repository's checks is public too. Nothing below may be in a file, a
+test, a fixture, a comment, a commit message or a pull request. Git keeps every old version, so a value deleted in a later commit is still published.
+
+| Never | Use instead |
+| --- | --- |
+| A real phone number: a customer, a rider, staff, a prospect, anyone. Also the business lines' own numbers | An invented number from `scripts/ci/personal-data-allow.json`. The standard block is `+961 70 000 xxx` (for example `+961 70 000 001`) |
+| A real location pin (a customer's home) or a plus code, which is as exact as a pin | A village centre (data, three decimals is enough for a test), or one of the invented pins in the same file |
+| A real e-mail address | `example.com`, `example.org`, `example.net`, or a name ending `.test`, `.example`, `.invalid` |
+| A secret: an API key, token, signing secret, password, private key, the contents of `.dev.vars` | Nothing. Secrets live in Supabase, `wrangler secret` and repository secrets only. The webhook signing secrets are never even in a repository secret: the deploy makes them and only the Worker and Kapso hold them |
+| A customer's or rider's real name, message, address or order | An invented person. A real conversation is read on the Kapso or console screens, never copied here |
+| A voice note, a receipt, a photograph | The private `media` bucket. Never log what is in them |
+| The prospect list (about 800 business listings), or any rating from it | It is in the private `media` bucket under `research/prospects/`. It is research: never imported as merchants, never messaged |
+
+**What checks this.** `scripts/ci/no-personal-data.mjs` fails on: a phone number of 11 to 13 digits that is not in an invented range; a latitude
+and longitude pair inside Lebanon with more than three decimals that is not a village centre or a listed invented pin; a plus code; an e-mail
+address that is not a documented example; and anything gitleaks flags. It runs in three places:
+- **Before every commit.** `npm install` points `core.hooksPath` at `.githooks`, whose `pre-commit` runs the check on what is staged. If gitleaks is
+  missing, the hook installs the pinned one into `.tools/` (checksum verified) and runs it; if that cannot be done it says so and runs the other rules.
+  `git commit --no-verify` skips the hook. Do not: CI is the backstop, but a pushed value is already public.
+- **In CI**, job `secrets-and-dependencies` (one of the required check names), over the whole tree, with gitleaks required. The same job first plants one of each
+  kind in a temporary folder and fails unless every one is refused (`--self-test`), so a check that stopped working cannot pass quietly.
+- **In the test suite**: `test/ci/no-personal-data.test.ts` (each planted example, each near miss, the whole tree), `test/ci/fixtures-invented.test.ts`
+  (every phone number and pin in a test, fixture or eval comes from the invented ranges, with no exemption by file) and `test/ci/pre-commit-hook.test.ts`.
+
+A finding names the file, the line and the rule, never the value. Run it by hand with `npm run check:personal-data` (add `-- --staged` for what is staged).
+
+**If it fails and the value is invented:** add it to `scripts/ci/personal-data-allow.json` with a note saying why it cannot be a person, or better, take a
+number from a listed range. A range is at most 1,000 numbers wide unless no operator can assign it. Do not loosen a rule to get past a finding: a change
+to that file is read line by line. A barcode is not a phone number: a product code is recognised by its check digit, by being called a barcode or code
+on its line, or by sitting in `supabase/seed/catalog.csv`; a GitHub Actions run number is an 11-digit number from 40 to 89 billion, or on a line that
+says "run" or "job". **If it fails and the value is real:** take it out of the tree; treat it as published (a person's number or a pin: tell them; a secret: rotate it
+at the provider first, see "If a secret leaks"); then ask whether the history must be rewritten. That is a deliberate decision of the founder, never
+a side effect of a fix (H1 left the old history alone on purpose, and lists what it still shows).
+
+**The pinned tools.** gitleaks and osv-scanner are installed by `scripts/ci/install-tool.mjs` at the exact versions in `scripts/ci/tools.json`
+(today gitleaks 8.21.2 and osv-scanner 2.7.1). Each download is compared with the SHA-256 recorded there before it is unpacked or run; a different hash
+deletes the file and fails. No workflow downloads either tool by any other route and none asks for "latest" (`test/ci/pinned-tools.test.ts`). To move to a
+new version: download the release and its published checksums file, check that they agree, put the new URL and hash in `tools.json`, and run the test suite.
+
+## Rotating the webhook signing secrets
+Three secrets sign what Kapso sends the Worker: `KAPSO_WEBHOOK_SECRET_CUSTOMER`, `KAPSO_WEBHOOK_SECRET_OPS` and `KAPSO_WEBHOOK_SECRET_PROJECT` (the account
+and number events). Nobody types them: `scripts/ci/ensure-webhooks.sh` makes each one from the system random source, stores it as a Worker secret first, then
+gives it to Kapso, then posts one signed `smoke.test` event that the Worker must accept (HTTP 200: the signature check and the write to Supabase both worked).
+It never prints or writes a secret. Rotate when a person who could have seen one leaves, when a log or a screen share might have shown one, and once before the
+pilot. None is known to have leaked: they exist only in the Worker and in Kapso, and CI's gitleaks scan of the whole history finds none.
+1. GitHub, this repository, Actions, **deploy-staging**, Run workflow, branch **main**, tick **Make new Kapso webhook signing secrets**, Run. The option is
+   a switch on the whole deploy workflow, so the run also applies migrations, redeploys the Worker from `main` and sets the other Worker secrets from the
+   repository secrets. Pick a quiet hour, and make sure `main` is the code you mean to have running.
+2. Open the run summary. Each line must read "webhook ready (id ...); signed test event accepted": one for `customer`, one for `ops`, one for `project`.
+3. If a line says the signed test event answered something other than 200, or that the Worker or Kapso refused the secret, run the workflow again with the box
+   ticked straight away. The Worker takes the new secret before Kapso does, so a run that stops between the two leaves Kapso signing with the old one and its
+   deliveries refused until a run finishes. A line that is not "accepted" after two runs: stop, do not deploy anything else, and read the Worker's
+   logs and the Kapso webhook delivery list for that line.
+4. Afterwards `npx wrangler secret list --env staging` must show all three names. After any rollback check this too: a rollback returns the Worker to
+   the secrets that version had, which can be the old set or miss one; a run with the box ticked repairs both.
+5. A normal deploy, with the box not ticked, leaves existing secrets alone: it only makes one that is missing.
+Production will rotate the same way from its own workflow (4.2); there is no production Worker yet.
 
 ## What must never be done to fix an incident
 Turn on marketing. Send from the ops number to a customer. Edit a ledger row. Mark an order paid without the payment.

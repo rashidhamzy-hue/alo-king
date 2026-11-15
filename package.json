@@ -5,10 +5,12 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "check:personal-data": "node scripts/ci/no-personal-data.mjs",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "db:push": "supabase db push",
-    "eval": "tsx evals/run.ts"
+    "eval": "tsx evals/run.ts",
+    "prepare": "node scripts/ci/install-hooks.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
