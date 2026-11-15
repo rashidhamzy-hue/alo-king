@@ -35,6 +35,9 @@ export function loadAllow(path = ALLOW_PATH) {
   return a;
 }
 
+// Arabic-Indic and Persian digits are read as the digits they are (one character each, so every position stays the same).
+const latinDigits = (t) => t.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (c) => String.fromCharCode(48 + (c.charCodeAt(0) & 0xf)));
+
 // ---- phone numbers -------------------------------------------------------------------------------------------------------------------
 
 // GS1 check digit (EAN-13 and UPC-A): a product barcode of 12 or 13 digits has one, a person's number does not.
@@ -55,6 +58,7 @@ const BARCODE_WORD = /(?:barcode|gtin|ean|upc|code|offLookup|offFolder)\W{0,8}$/
 // Every phone-number-shaped thing of 11 to 13 digits (after the international prefix), with the line it is on.
 // "bare" is a plain run of digits: the only kind that can be a barcode, a timestamp or a GitHub run number.
 export function findPhones(text, { barcodeFile = false } = {}) {
+  text = latinDigits(text);
   const out = [];
   const spans = [];
   const lineOf = (i) => text.slice(0, i).split("\n").length;
@@ -104,6 +108,7 @@ function isAllowedPhone(digits, path, allow) {
 const LAT = [33.05, 34.70], LNG = [35.10, 36.65], WINDOW = 200;
 const decimals = (s) => (s.split(".")[1] ?? "").replace(/0+$/, "").length;   // 33.67000 is two decimals
 export function findPins(text, { all = false } = {}) {
+  text = latinDigits(text);
   const lats = [], lngs = [];
   for (const m of text.matchAll(/(?<![\w.])\d{1,3}\.\d+(?![\w]|\.\d)/g)) {
     const v = Number(m[0]);
@@ -179,9 +184,6 @@ const shape = {
 };
 
 // path is relative to the repository root, with forward slashes. Returns [{ rule, path, line, why }]; never the value itself.
-// Arabic-Indic and Persian digits are read as the digits they are (one character each, so every position stays the same).
-const latinDigits = (t) => t.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, (c) => String.fromCharCode(48 + (c.charCodeAt(0) & 0xf)));
-
 export function scanText(path, text, allow = loadAllow()) {
   const out = [];
   if (allow.skipPaths.includes(path)) return out;
