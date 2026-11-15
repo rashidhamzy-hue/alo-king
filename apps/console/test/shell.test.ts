@@ -83,7 +83,7 @@ describe("the shell", () => {
     expect(page).toContain('<aside class="sidebar"');                                                       // the wide-screen list is in the same page
     const picker = await r.staff("picker", "Pia"); const p = r.browser(); await p.signIn(picker);
     const pp = (await p.get("/")).text;
-    expect([...(/<nav class="bottom-nav"[\s\S]*?<\/nav>/.exec(pp)![0]).matchAll(/<a href="([^"]+)"/g)].map((m) => m[1])).toEqual(["/", "/approve", "/stock", "/more"]);
+    expect([...(/<nav class="bottom-nav"[\s\S]*?<\/nav>/.exec(pp)![0]).matchAll(/<a href="([^"]+)"/g)].map((m) => m[1])).toEqual(["/", "/pick", "/approve", "/stock", "/more"]);       // D4b: the pick queue is a picker's main place
     expect(pp).not.toContain('href="/orders"'); expect(pp).not.toContain('href="/names"'); expect(pp).not.toContain('href="/inbox"');
     expect((await p.get("/orders")).status).toBe(403);
     const hub = (await b.get("/approve")).text;

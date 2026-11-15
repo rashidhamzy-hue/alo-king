@@ -20,8 +20,8 @@ export const GROUPS: { id: GroupId; key: Key; icon: IconName; hub: string | null
   { id: "inbox", key: "nav_inbox", icon: "inbox", hub: null, hrefs: ["/inbox"], also: ["/cases"] },
   { id: "orders", key: "nav_orders", icon: "orders", hub: null, hrefs: ["/orders"] },
   { id: "approve", key: "g_approve", icon: "approve", hub: "/approve", hrefs: ["/approvals", "/names", "/pictures", "/food-facts", "/intake", "/search-words", "/auto-approvals"] },
-  { id: "stock", key: "nav_stock", icon: "stock", hub: "/stock", hrefs: ["/catalog", "/readiness", "/receiving", "/returns"] },
-  { id: "money", key: "g_money", icon: "money", hub: "/more", hrefs: ["/day-open", "/day-close", "/payments", "/refunds", "/riders", "/money", "/fx"] },
+  { id: "stock", key: "nav_stock", icon: "stock", hub: "/stock", hrefs: ["/pick", "/catalog", "/readiness", "/receiving", "/returns"] },
+  { id: "money", key: "g_money", icon: "money", hub: "/more", hrefs: ["/day-open", "/day-close", "/payments", "/refunds", "/riders", "/rider-jobs", "/money", "/fx"], also: ["/rider-incidents"] },
   { id: "settings", key: "g_settings", icon: "settings", hub: "/more", hrefs: ["/zones", "/windows", "/staff", "/templates"] },
 ];
 /** Pages that keep their route and are in no menu (section A: "Hide until the first vendor"). */
@@ -61,8 +61,10 @@ export function buildNav(sections: Section[], role: Role, lang: Lang, path: stri
     ...(has("inbox") ? [{ href: "/inbox", label: t(lang, "nav_inbox"), icon: "inbox" as const, badge: g("inbox")!.badge, current: g("inbox")!.current }] : []),
     ...(has("approve") ? [{ href: "/approve", label: t(lang, "nav_approve"), icon: "approve" as const, badge: g("approve")!.badge, current: g("approve")!.current }] : []),
   ];
+  // D4b: a picker has no Orders and no Inbox, and the pick queue is most of their work: it takes the second place in the bar.
+  if (!has("orders") && mine.some((s) => s.nav.href === "/pick")) bottom.splice(1, 0, { href: "/pick", label: t(lang, "nav_pick"), icon: "stock", badge: 0, current: path === "/pick" || path.startsWith("/pick/") });
   // A role with room left (a picker has no Orders and no Inbox) gets Stock, which is most of its work.
-  if (bottom.length < 4 && has("stock")) bottom.push({ href: "/stock", label: t(lang, "nav_stock"), icon: "stock", badge: g("stock")!.badge, current: g("stock")!.current });
+  if (bottom.length < 4 && has("stock")) bottom.push({ href: "/stock", label: t(lang, "nav_stock"), icon: "stock", badge: g("stock")!.badge, current: g("stock")!.current && !bottom.some((b) => b.href === "/pick" && b.current) });
   // More holds every group that has no place of its own in the bar.
   const shown = new Set(bottom.map((b) => b.href));
   const rest = groups.filter((x) => !["today", "inbox", "orders"].includes(x.id) && !(x.hubHref && shown.has(x.hubHref)));
