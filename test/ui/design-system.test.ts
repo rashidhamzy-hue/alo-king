@@ -95,7 +95,7 @@ describe("components", () => {
     productCard({ href: "/p/x", name: "<n>", price: "$1.00", inStock: false, picture: null, labels: { inStock: "in", outOfStock: "<out>", noPicture: "<none>" } }),
   ].map((r) => r.s).join("");
   it("escape everything they are given", () => {
-    expect(sample).not.toMatch(/<script>|<b>|<i>late|<img src=x>|<td><td>/);
+    expect(sample).not.toMatch(/<script>|<b>|<i>late|<img src=x>|<td><td>/i);
     expect(sample).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(sample).toContain('href="/a?b=1&amp;c=&quot;2&quot;"');
     expect(html`${"<x>"}${html`<b>${"&"}</b>`}`.s).toBe("&lt;x&gt;<b>&amp;</b>");
