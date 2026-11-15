@@ -179,7 +179,7 @@ Delivery (Baakline): $1.00
 *Total: $7.27*
 or 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrives in about 30 minutes
 💵 Payment: cash on delivery
 
@@ -202,7 +202,7 @@ Delivery (Baakline): $1.00
 *Total: $7.27*
 or 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrives in about 30 minutes
 💵 Payment: cash on delivery
 We'll bring change for a note of:
@@ -227,7 +227,7 @@ Delivery (Baakline): $1.00
 *Total: $7.27*
 or 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Delivery: Tomorrow 10:00-12:00
 💵 Payment: cash on delivery
 
@@ -250,7 +250,7 @@ Delivery (Baakline): $1.00
 *Total: $7.27*
 or 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Delivery: Wednesday 18/11, 10:00-12:00
 💵 Payment: cash on delivery
 
@@ -297,7 +297,7 @@ Your credit from before: -$1.25
 *Total: $8.02*
 or 718,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrives in about 30 minutes
 💵 Payment: Whish transfer
 There is an amount owed from before, so this order is paid in advance (Whish transfer) before we prepare it.
@@ -322,7 +322,7 @@ Delivery (Baakline): $1.00
 *Total: $7.27*
 or 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrives in about 30 minutes
 💵 Payment: Whish transfer
 A first order is paid in cash up to:
@@ -349,7 +349,7 @@ Delivery (Baakline): $1.00
 *Total: $7.27*
 or 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Delivery: Tomorrow 10:00-12:00
 💵 Payment: cash on delivery
 This card replaces your order AK-1040.
@@ -481,7 +481,7 @@ Delivery (Baakline): $1.00
 *Total: $7.27*
 or 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrives in about 30 minutes
 💵 Payment: cash on delivery
 
@@ -2097,9 +2097,9 @@ $7.27
 ## ops.drop
 
 ```text
-📍 #AK-1042 · Shadi · Baakline
-العنوان: بيت شادي أبو اسماعيل، الطابق 2
-تلفون: +96170123456
+📍 #AK-1042 · Test customer · Baakline
+العنوان: بيت الاختبار، الطابق 2
+تلفون: +96170000012
 💵 حصّل:
 $7.27
 أو 651,000 ل.ل
@@ -2110,9 +2110,9 @@ $20.00
 ## ops.drop.paid
 
 ```text
-📍 #AK-1042 · Shadi · Baakline
-العنوان: بيت شادي أبو اسماعيل، الطابق 2
-تلفون: +96170123456
+📍 #AK-1042 · Test customer · Baakline
+العنوان: بيت الاختبار، الطابق 2
+تلفون: +96170000012
 مدفوع مسبقاً. ما تاخد مصاري.
 ```
 

@@ -9,7 +9,7 @@ steps stay unproven until Phase 4 (task 4.2).
 | --- | --- | --- |
 | Supabase | project `alo-king-staging`, ref `lhgkvvdckwbfpdsftzqp`, eu-central-1 | its own project, point-in-time recovery on |
 | Cloudflare | Worker `alo-king-gateway-staging`, queues `ak-inbound-staging` and `-dlq` | Worker `alo-king-gateway`, queue `ak-inbound` |
-| Kapso | customer line: +1 203 660 2328 (phone_number_id 1378974041965966); ops line: the Kapso sandbox (597907523413541) | the two +961 numbers |
+| Kapso | customer line: the Kapso US number (shown in the Kapso dashboard; phone_number_id 1378974041965966); ops line: the Kapso sandbox (597907523413541) | the two +961 numbers |
 | Sentry | project `alo-king-gateway` (org google-nfc-card-dl, EU) | its own project at 4.2 |
 | Anthropic | key with a low monthly limit | key with its own limit |
 
@@ -74,9 +74,9 @@ been done yet. Meta moves its labels now and then: if a button is named differen
    name (Settings → Secrets and variables → Actions → New repository secret), so lane A can put it in `deploy-staging` (request in
    `docs/HANDOFF.md`). Until then a `wrangler rollback` to a version older than the secret drops it: set it again here after a rollback.
 3. Supabase dashboard → project `alo-king-staging` → SQL Editor → New query → paste, with the customer line's number in international
-   form without `+` (staging: `12036602328`) → Run:
+   form without `+` (for example `96170000000`; the real one is in the Kapso dashboard, not in this repository) → Run:
    ```sql
-   update settings set value = value || '{"product_link": "https://wa.me/12036602328?text={sku}"}' where key = 'catalog';
+   update settings set value = value || '{"product_link": "https://wa.me/<CUSTOMER_LINE_NUMBER>?text={sku}"}' where key = 'catalog';
    ```
    *(Purpose: Meta's feed wants a link per product and we have no website; the link opens our WhatsApp chat. Until it is set the feed answers 503.)*
 4. Check: open `https://alo-king-gateway-staging.rashid-hamzy.workers.dev/catalog/feed.csv` in a browser, sign in as `meta` with the

@@ -62,7 +62,7 @@ const LINES = [
 ];
 const QUOTE: Quote = { ok: true, issues: [], lines: LINES, subtotal_usd: 6.27, delivery_fee_usd: 1, total_usd: 7.27, fx_rate_lbp: 89500, total_lbp: 651000,
   eta_minutes: 30, pickup: false, village: "Baakline", village_ar: "بعقلين", village_id: null };
-const ADDRESS = { village_en: "Baakline", village_ar: "بعقلين", building: "بيت شادي أبو اسماعيل", floor: "الطابق 2" };
+const ADDRESS = { village_en: "Baakline", village_ar: "بعقلين", building: "بيت الاختبار", floor: "الطابق 2" };
 const ORDER = "99999999-8888-4777-8666-555555555555";
 
 function cards(lang: Lang): { key: string; input: CardInput }[] {
@@ -190,8 +190,8 @@ function render(m: Messages): Rendered[] {
   S("queue", o.queue([{ code: CODE, items: 3, village: "Baakline" }, { code: "AK-1043", items: 1, village: null }]));
   const job: Job = { delivery_id: ORDER, driver_id: ORDER, status: "offered", collect_usd: 7.27, stops: [
     { seq: 1, kind: "pickup", done: false, arrived: false, source: "Alo King hub", source_village: "Baakline" },
-    { seq: 2, kind: "dropoff", done: false, arrived: false, order_id: ORDER, short_code: CODE, customer: "Shadi", phone: "+96170123456", village: "Baakline",
-      directions: "بيت شادي أبو اسماعيل، الطابق 2", notes: null, payment_method: "cod", total_usd: 7.27, fx_rate_lbp: 89500, change_for_usd: 20, paid: false } ] };
+    { seq: 2, kind: "dropoff", done: false, arrived: false, order_id: ORDER, short_code: CODE, customer: "Test customer", phone: "+96170000012", village: "Baakline",
+      directions: "بيت الاختبار، الطابق 2", notes: null, payment_method: "cod", total_usd: 7.27, fx_rate_lbp: 89500, change_for_usd: 20, paid: false } ] };
   S("offer", bodyOf(offerCard(job, 7))); S("pickup", bodyOf(pickupCard(job))); S("drop", bodyOf(dropCard(job.stops[1]!)));
   S("drop.paid", bodyOf(dropCard({ ...job.stops[1]!, paid: true }))); S("cashAsk", bodyOf(cashAsk({ order_id: ORDER, short_code: CODE, total_usd: 7.27, fx_rate_lbp: 89500 })));
   S("closeWithCash", o.closeWithCash(42.5)); S("dropDeclared", o.dropDeclared(42.5, 900000, true)); S("dropAlert", o.dropAlert(false));
@@ -251,7 +251,7 @@ describe("message design rules (SYSTEM_BRIEF, M1)", () => {
         expect(bodyOf(card).length, key).toBeLessThanOrEqual(1024);
       }
       const card = bodyOf(formatOrderCard(cards(lang)[0]!.input)[0]!);
-      expect(card).toContain(lang === "ar" ? "📍 بعقلين، بيت شادي أبو اسماعيل، الطابق 2" : "📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2");
+      expect(card).toContain(lang === "ar" ? "📍 بعقلين، بيت الاختبار، الطابق 2" : "📍 Baakline, بيت الاختبار, الطابق 2");
     });
     it(`${lang}: buttons and list rows fit WhatsApp (20 and 24 characters)`, () => {
       for (const t of [m.card.confirm, m.card.edit, m.card.cancel, m.fixed.keptButton, m.answer.repeatButton, m.sub.keep, m.sub.remove, m.windows.button,

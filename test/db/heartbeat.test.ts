@@ -123,12 +123,12 @@ describe("alarms", () => {
 
 describe("Kapso project events (account enforcement)", () => {
   const restricted = { id: "wae_test_1", event: "whatsapp.account.restricted", occurred_at: "2026-11-13T12:00:00Z", business_account_id: "1086076707594153",
-    phone_numbers: [{ id: "1378974041965966", display_phone_number: "+1 203 660 2328" }], restrictions: [{ type: "RESTRICTED_BIZ_INITIATED_MESSAGING" }], source: { provider: "meta", event: "ACCOUNT_RESTRICTION" } };
+    phone_numbers: [{ id: "1378974041965966", display_phone_number: "+961 70 000 099" }], restrictions: [{ type: "RESTRICTED_BIZ_INITIATED_MESSAGING" }], source: { provider: "meta", event: "ACCOUNT_RESTRICTION" } };
   it("opens one ops exception per event, however often it is delivered", async () => {
     await projectEvent(deps(), "whatsapp.account.restricted", restricted);
     await projectEvent(deps(), "whatsapp.account.restricted", restricted);
     const rows = await db.all(`select kind, ref, detail->>'numbers' as numbers from ops_exceptions where kind like 'kapso:%'`);
-    expect(rows).toEqual([{ kind: "kapso:account.restricted", ref: "wae_test_1", numbers: "+1 203 660 2328" }]);
+    expect(rows).toEqual([{ kind: "kapso:account.restricted", ref: "wae_test_1", numbers: "+961 70 000 099" }]);
   });
   it("ignores smoke tests and unknown events", async () => {
     await projectEvent(deps(), "smoke.test", {});

@@ -179,7 +179,7 @@ Livraison (Baakline) : $1.00
 *Total : $7.27*
 ou 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrivée dans environ 30 minutes
 💵 Paiement : espèces à la livraison
 
@@ -202,7 +202,7 @@ Livraison (Baakline) : $1.00
 *Total : $7.27*
 ou 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrivée dans environ 30 minutes
 💵 Paiement : espèces à la livraison
 Nous apporterons la monnaie pour un billet de :
@@ -227,7 +227,7 @@ Livraison (Baakline) : $1.00
 *Total : $7.27*
 ou 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Livraison : Demain 10:00-12:00
 💵 Paiement : espèces à la livraison
 
@@ -250,7 +250,7 @@ Livraison (Baakline) : $1.00
 *Total : $7.27*
 ou 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Livraison : Mercredi 18/11, 10:00-12:00
 💵 Paiement : espèces à la livraison
 
@@ -297,7 +297,7 @@ Votre avoir précédent : -$1.25
 *Total : $8.02*
 ou 718,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrivée dans environ 30 minutes
 💵 Paiement : virement Whish
 Un montant reste dû, donc cette commande se paie d'avance (virement Whish) avant la préparation.
@@ -322,7 +322,7 @@ Livraison (Baakline) : $1.00
 *Total : $7.27*
 ou 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrivée dans environ 30 minutes
 💵 Paiement : virement Whish
 Une première commande se paie en espèces jusqu'à :
@@ -349,7 +349,7 @@ Livraison (Baakline) : $1.00
 *Total : $7.27*
 ou 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Livraison : Demain 10:00-12:00
 💵 Paiement : espèces à la livraison
 Ce bon remplace votre commande AK-1040.
@@ -481,7 +481,7 @@ Livraison (Baakline) : $1.00
 *Total : $7.27*
 ou 651,000 LBP
 
-📍 Baakline, بيت شادي أبو اسماعيل, الطابق 2
+📍 Baakline, بيت الاختبار, الطابق 2
 Arrivée dans environ 30 minutes
 💵 Paiement : espèces à la livraison
 
@@ -2097,9 +2097,9 @@ $7.27
 ## ops.drop
 
 ```text
-📍 #AK-1042 · Shadi · Baakline
-العنوان: بيت شادي أبو اسماعيل، الطابق 2
-تلفون: +96170123456
+📍 #AK-1042 · Test customer · Baakline
+العنوان: بيت الاختبار، الطابق 2
+تلفون: +96170000012
 💵 حصّل:
 $7.27
 أو 651,000 ل.ل
@@ -2110,9 +2110,9 @@ $20.00
 ## ops.drop.paid
 
 ```text
-📍 #AK-1042 · Shadi · Baakline
-العنوان: بيت شادي أبو اسماعيل، الطابق 2
-تلفون: +96170123456
+📍 #AK-1042 · Test customer · Baakline
+العنوان: بيت الاختبار، الطابق 2
+تلفون: +96170000012
 مدفوع مسبقاً. ما تاخد مصاري.
 ```
 

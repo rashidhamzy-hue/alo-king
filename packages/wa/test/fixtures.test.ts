@@ -24,6 +24,12 @@ describe("fixtures on disk", () => {
     expect(text).not.toMatch(/lookaside\.fbsbx|app\.kapso\.ai\/rails/);
     const phones = (text.match(/\b961\d{6,}\b/g) ?? []).filter((p) => !p.startsWith("9617000"));
     expect(phones).toEqual([]);
+    // The repository is public: no number of 11 or 12 digits other than the fakes (any country), no pin with more than four decimals
+    // (a real pin is a home), no plus code.
+    const longNumbers = (text.match(/(?<![\d.-])\d{11,12}(?![\d.-])/g) ?? []).filter((n) => !n.startsWith("9617000") && !n.startsWith("0000"));
+    expect(longNumbers).toEqual([]);
+    expect(text.match(/\b-?\d+\.\d{5,}\b/g) ?? []).toEqual([]);
+    expect(text).not.toMatch(/\b[23456789CFGHJMPQRVWX]{4}\+[23456789CFGHJMPQRVWX]{2,}/);
   });
 });
 

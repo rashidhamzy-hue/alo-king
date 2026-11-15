@@ -6,6 +6,12 @@
 #   action remove-staff  block the party and ban the sign-in
 # Production is not here: it comes with task 4.2 (session A3), like the gateway's.
 #
+# Minutes (session A6): the deploy runs only when its own paths changed. On a pull request GitHub's `paths` filter does that; after
+# ci on main the first job (`changes`) reads the merge's diff (the first parent against the merge commit) and the deploy is skipped
+# unless the console, the two packages it bundles (wa, core), the lockfile or this file changed. The console tests are not run again
+# after ci: ci just ran them on the same commit. They still run on a pull request and on a hand-run deploy (which may come from a
+# branch). A newer push to the same pull request cancels the older run; main deploys queue behind each other and are never cancelled.
+#
 # Repository secrets used (never printed): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN, SUPABASE_SERVICE_KEY, KAPSO_API_KEY,
 # and ANTHROPIC_API_KEY (optional: 5.15's label reader; without it Label intake saves the photos and the fields are typed by hand).
 name: console
@@ -40,8 +46,8 @@ permissions: { contents: read }
 defaults:
   run: { shell: bash }
 concurrency:
-  group: console-staging
-  cancel-in-progress: false
+  group: console-${{ github.event_name == 'pull_request' && github.ref || 'staging' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 env:
   SUPABASE_PROJECT_REF: lhgkvvdckwbfpdsftzqp
   SUPABASE_URL: https://lhgkvvdckwbfpdsftzqp.supabase.co
@@ -51,11 +57,34 @@ env:
   WRANGLER_SEND_METRICS: "false"
   CFG: apps/console/wrangler.jsonc
 jobs:
+  changes:
+    # After ci on main only: did this merge touch anything the console is built from? Skipped (and free) for every other event.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      deploy: ${{ steps.f.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha }}", fetch-depth: 2 }
+      - id: f
+        run: |
+          set -euo pipefail
+          deploy=true; why="no readable parent: deploy"
+          if git rev-parse --verify -q HEAD^1 >/dev/null; then
+            git diff --name-only HEAD^1 HEAD > "$RUNNER_TEMP/files.txt"
+            if grep -Eq '^(apps/console/|packages/(wa|core)/|package(-lock)?\.json$|tsconfig\.json$|\.github/workflows/console\.yml$)' "$RUNNER_TEMP/files.txt"; then why="console paths changed"
+            else deploy=false; why="no console path changed"; fi
+          fi
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
+          echo "- console deploy: $deploy ($why)" >> "$GITHUB_STEP_SUMMARY"
   deploy:
+    needs: changes
     if: >-
+      !cancelled() && (needs.changes.result == 'skipped' || needs.changes.outputs.deploy == 'true') && (
       (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -64,7 +93,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - name: Console tests (the same ones CI runs; here too because a hand-run deploy may come from a branch)
+      - name: Console tests (the same ones CI runs; here too because a hand-run deploy may come from a branch; not after ci on main, which just ran them)
+        if: github.event_name != 'workflow_run'
         run: npx tsc --noEmit && npx vitest run apps/console
       - name: Deploy the console Worker
         id: deploy

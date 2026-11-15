@@ -39,11 +39,6 @@ export function judge(primary: Transcript, secondary: Transcript | undefined, du
   return { usable: false, reason: looksLooped(primary.text) ? "looped" : "implausible_rate" };
 }
 
-/** Bias terms for providers that accept them: live brand, product and village names from the database. */
-export function buildKeyterms(brands: string[], villages: string[], merchantNames: string[]): string[] {
-  return [...new Set([...brands, ...villages, ...merchantNames])].slice(0, 100);
-}
-
 // ---------- Build plan 1.7: Kapso's transcript first, a second provider behind a setting, the audio kept privately ----------
 // settings.stt: { keep_audio, second_provider }. keep_audio copies the note into the private `media` bucket at once (the
 // hand-corrected evaluation, 5.8, needs the audio). second_provider names the provider whose transcript is also taken; the

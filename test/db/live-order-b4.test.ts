@@ -35,13 +35,13 @@ const READING_1 = {
   address: { floor: null, village: null, building: null, landmark: null, verbatim: null, recipient_name: null },
 };
 // 18:55:39: his pin. In Khraibeh (0.34 km from its centre), 7.5 km from Baakline.
-const PIN = { latitude: 33.645404815674, longitude: 35.643405914307 };
+const PIN = { latitude: 33.6490, longitude: 35.6460 };   // fake: about 0.3 km from the Khraibeh centre
 // 18:56:43: his voice note, Kapso's transcript, and the live reading of it: «راجح» taken for a village.
-const TRANSCRIPT = "بحي راجح، آآ، بيت شادي أبو اسماعيل، الطابق الثاني، بوجه، آآآ، سنقوشي ومحطة راجح";
+const TRANSCRIPT = "بحي راجح، آآ، بيت الاختبار، الطابق الثاني، بوجه، آآآ، سنقوشي ومحطة راجح";
 const READING_3 = {
   intent: "order", lines: [], language: "mixed", fulfilment: "delivery", transcript_quality: "partial", needs_clarification: [],
-  address: { floor: "الطابق الثاني", village: "راجح", building: "بيت شادي أبو اسماعيل", landmark: "سنقوشي ومحطة راجح",
-             verbatim: TRANSCRIPT, recipient_name: "شادي أبو اسماعيل" },
+  address: { floor: "الطابق الثاني", village: "راجح", building: "بيت الاختبار", landmark: "سنقوشي ومحطة راجح",
+             verbatim: TRANSCRIPT, recipient_name: "زبون الاختبار" },
 };
 const voice = (text: string) => ({ type: "audio", audio: { id: "a1", voice: true },
   kapso: { direction: "inbound", origin: "cloud_api", transcript: { text }, media_data: { url: "https://k/a", byte_size: 9000 } } });
@@ -88,7 +88,7 @@ describe("the founder's order of 13 Nov, replayed (B4)", () => {
     const items = await db.all(`select product_id from order_items where order_id = $1 order by product_id`, [order.id]);
     expect(items.map((i: any) => i.product_id).sort()).toEqual([ids.water, ids.bread, ids.coffee].sort());
     const kept = await db.one(`select building, floor, directions, village_id from customer_places where id = $1`, [place.id]);
-    expect(kept).toMatchObject({ building: "بيت شادي أبو اسماعيل", village_id: ids.Khraibeh });
+    expect(kept).toMatchObject({ building: "بيت الاختبار", village_id: ids.Khraibeh });
     expect(kept.directions).toContain("حي راجح");
 
     // 4. The tap confirms it.
@@ -122,10 +122,10 @@ describe("the founder's order of 13 Nov, replayed (B4)", () => {
 
   it("staging probe, 13 Nov 22:14 UTC: the last order's directions never describe a new place", async () => {
     outbound = recordKapso();
-    const first = { ...READING_1, needs_clarification: [], address: { ...READING_1.address, village: "بعقلين", building: "بيت أبو اسماعيل" } };
+    const first = { ...READING_1, needs_clarification: [], address: { ...READING_1.address, village: "بعقلين", building: "بيت الاختبار" } };
     const second = { ...READING_1, needs_clarification: [], address: { ...READING_1.address, village: "بعقلين", verbatim: "عبعقلين" } };
     const t = flow(db, [read(first), read(second), read({ ...READING_3, address: { ...READING_3.address, village: null } })]);
-    await t.text(MESSAGE + " بيت أبو اسماعيل");
+    await t.text(MESSAGE + " بيت الاختبار");
     await t.say({ type: "location", location: { latitude: 33.67739, longitude: 35.56355 } });
     expect(bodyOf(outbound.at(-1)!)).toContain("طلبك AK-");                 // the first order had its house: card at once
     const c = await t.customer();
@@ -139,8 +139,8 @@ describe("the founder's order of 13 Nov, replayed (B4)", () => {
 
   it("the pin decides even when the text named another village, and the card says where it is going", async () => {
     outbound = recordKapso();
-    const t = flow(db, [read({ ...READING_1, address: { ...READING_1.address, village: "بعقلين", building: "بيت أبو اسماعيل" }, needs_clarification: [] })]);
-    await t.text(MESSAGE + " بيت أبو اسماعيل");
+    const t = flow(db, [read({ ...READING_1, address: { ...READING_1.address, village: "بعقلين", building: "بيت الاختبار" }, needs_clarification: [] })]);
+    await t.text(MESSAGE + " بيت الاختبار");
     expect(bodyOf(outbound[0]!)).toBe(ar.fixed.askPin);
     await t.say({ type: "location", location: PIN });
     const c = await t.customer();
@@ -153,8 +153,8 @@ describe("the founder's order of 13 Nov, replayed (B4)", () => {
 
   it("a pin no village clearly owns: the bot asks with buttons, and the tap decides", async () => {
     outbound = recordKapso();
-    const t = flow(db, [read({ ...READING_1, address: { ...READING_1.address, building: "بيت أبو اسماعيل" } })]);
-    await t.text(MESSAGE + " بيت أبو اسماعيل");
+    const t = flow(db, [read({ ...READING_1, address: { ...READING_1.address, building: "بيت الاختبار" } })]);
+    await t.text(MESSAGE + " بيت الاختبار");
     // Half-way between Ain Qani and Moukhtara (about 0.35 km each): neither is clearly nearer.
     await t.say({ type: "location", location: { latitude: 33.65421, longitude: 35.61372 } });
     expect(t.seen).toHaveLength(1);
