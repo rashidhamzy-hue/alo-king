@@ -132,6 +132,30 @@ export interface Messages {
     noRate: S;
   };
 
+  /**
+   * B1a (SIM1 fixes 1, 3, 4 and 9): the basket the customer is building, said by code. The minimum and the gap come from the
+   * quote (quote_order's below_minimum issue); the model never words them. `changed` heads a new card that changed the basket.
+   */
+  basket: {
+    /** The minimum order, the basket now and what is missing, each on its own line; buttons follow. */
+    minimum: (min: number, now: number, gap: number) => S;
+    /** "What is the minimum?" with no basket yet. */
+    minimumIs: (min: number) => S;
+    /** The button that adds `n` more of a basket item, enough to reach the minimum (cut to WhatsApp's 20 characters by code). */
+    moreButton: (n: number, name: S) => S;
+    cancelButton: S;
+    /** The customer let the basket go: nothing is sent. */
+    cleared: S;
+    /** "Where is my order?" while a basket is being built and no order exists yet. */
+    soFar: (items: S[]) => S;
+    /** A new card after a change: the rows (+ added, − removed, qty from → to) are built by code. */
+    changed: (rows: S[]) => S;
+    /** Items of the basket no longer available when it was about to go. */
+    unavailable: (names: S[]) => S;
+    /** A cancel the database refused (the order is being prepared or is on its way): a person is told and will call. */
+    cancelRefused: (code: S) => S;
+  };
+
   payment: { proofReceived: (code: S) => S; proofResend: S };
 
   /** Messages code starts outside a customer's turn. Each has a utility template (templates/templates.json) for after 24 hours. */

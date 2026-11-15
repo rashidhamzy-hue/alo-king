@@ -5,9 +5,10 @@
 // graded by a person from the report.
 import { afterAll, describe, expect, it } from "vitest";
 import Anthropic from "@anthropic-ai/sdk";
-import { replyPasses, runAddressCase, runGoAheadCase, runLiveReplyCase, runReadingCase, runWordingCase, wordingPasses, type AddressCase, type GoAheadCase, type WordingCase } from "../run";
+import { replyPasses, runAddressCase, runBasketEditCase, runGoAheadCase, runLiveReplyCase, runReadingCase, runWordingCase, wordingPasses, type AddressCase, type BasketEditCase, type GoAheadCase, type WordingCase } from "../run";
 import noReply from "../cases/no_reply.json";
 import askByCode from "../cases/ask_by_code.json";
+import basketEdits from "../cases/basket_edits.json";
 import address from "../cases/address_readings.json";
 import neutral from "../cases/neutral_and_food_facts.json";
 import offTopic from "../cases/off_topic.json";
@@ -57,6 +58,16 @@ describe.skipIf(!live)("live: go ahead with the waiting basket (SP1, 14 Nov «م
   const model = env.MODEL ?? "claude-haiku-5-5";
   it.each((askByCode.cases as GoAheadCase[]).map((c) => [c.id, c] as const))("%s", async (_id, c) => {
     const r = await runGoAheadCase(client!, model, c);
+    console.log(JSON.stringify(r));
+    expect(r.ok, r.why ?? "").toBe(true);
+  }, 60_000);
+});
+
+describe.skipIf(!live)("live: an edit to the basket in hand is read as one (B1a, SIM1 fix 4)", () => {
+  const client = live ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY! }) : null;
+  const model = env.MODEL ?? "claude-haiku-5-5";
+  it.each((basketEdits.cases as BasketEditCase[]).map((c) => [c.id, c] as const))("%s", async (_id, c) => {
+    const r = await runBasketEditCase(client!, model, c);
     console.log(JSON.stringify(r));
     expect(r.ok, r.why ?? "").toBe(true);
   }, 60_000);

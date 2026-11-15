@@ -11,7 +11,8 @@ import { cardInHand, cardWhen, pickWindow, readWhen, schedules, windowsFor, type
 import type { QuickIntent } from "./quick-intent";
 import { offerRepeat, answerArea, answerHours, answerLira, answerOutOfArea, answerStatus, repeatLast, type RepeatPlan } from "./answers";
 import { answerMemory } from "./memory";
-import { handoffToCase } from "./support";
+import { handoffToCase, supportMessage } from "./support";
+import { applyEdits, ASKS_MINIMUM, askMinimum, changeRows, clearBasket, editsFromPlan, heldLines, minimumGap, namesOf, underMinimumOnly } from "./basket";
 
 export interface PlanLine {
   idx: number; raw: string; query: string; qty: number; assumed: boolean;
@@ -73,8 +74,22 @@ const sameVillage = (x: string, village: Set<string>) => [...villageForms(x)].so
 /** `said`: the customer's own words of the turn (texts and transcripts). The planner reads them as evidence between tied products (1.22). */
 export async function planReading(ctx: ToolContext, intent: OrderIntent | null, said?: string): Promise<Routed> {
   if (!intent) return { done: false, plan: null };
-  // Questions the database answers by itself (1.3).
-  if (intent.intent === "status") return answerStatus(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
+  // Questions the database answers by itself (1.3). B1a: never "no open order" while a basket is in hand (answerStatusOrBasket).
+  if (intent.intent === "status") return answerStatusOrBasket(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
+  // B1a (SIM1 fix 1): "what is the minimum?" is answered by code with the amount: the basket's gap when there is one.
+  if (intent.lines.length === 0 && ASKS_MINIMUM.test(said ?? "")) {
+    const r = heldLines(ctx) ? await resumeBasket(ctx) : await answerMinimum(ctx);
+    if (r.done) return r;
+  }
+  // B1a: "cancel" or "I don't want it" with no order yet: the basket is let go, by code. (A card or an order is the card's buttons.)
+  if (intent.intent === "cancel" && intent.lines.length === 0 && heldLines(ctx)) {
+    return (await clearBasket(ctx)) ? { done: true, path: "basket_cleared" } : { done: false, plan: null };
+  }
+  // B1a: the basket waits on the minimum and nothing new was said: the minimum, the basket and the gap again, from a fresh quote.
+  if (ctx.state.awaiting === "minimum" && intent.lines.length === 0 && MINIMUM_AGAIN.has(intent.intent) && !intent.repeat_last) {
+    const r = await resumeBasket(ctx);
+    if (r.done) return r;
+  }
   if (intent.intent === "hours") return answerHours(ctx).then((r) => (r.done ? r : { done: false, plan: null }));
   if (intent.intent === "delivery_area" && intent.address.village)
     return answerArea(ctx, intent.address.village).then((r) => (r.done ? r : { done: false, plan: null }));
@@ -109,7 +124,10 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   }
   // W1 (2.8 d): while an order is being changed, "add" and "change" with items are the replacement's basket, planned like an order.
   const changing = !!ctx.state.replacing && intent.lines.length > 0 && (intent.intent === "add_to_order" || intent.intent === "change_order");
-  if (intent.intent !== "order" && !changing) return { done: false, plan: null };
+  // B1a (SIM1 fixes 3 and 4): with a basket in hand, or a card waiting on the tap, the items said are edits to it: added, re-counted
+  // or taken off, never a new basket that forgets what came before.
+  const held = !changing && !intent.repeat_last && intent.lines.length > 0 && EDIT_INTENTS.has(intent.intent) ? await heldBasket(ctx) : null;
+  if (intent.intent !== "order" && !changing && !held) return { done: false, plan: null };
   if (intent.repeat_last && intent.lines.length === 0) {
     const r = await repeatLast(ctx);
     return r.done ? r : { done: false, plan: { repeat: r.repeat ?? null } };
@@ -122,14 +140,18 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     const v = await rpc<{ name_ar: string | null; name_en: string } | null>(ctx.db, "village_in_text", { p_text: said }).catch(() => null);
     if (v) intent = { ...intent, address: { ...intent.address, village: v.name_ar ?? v.name_en } };
   }
-  const plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...intent, _message: said.slice(0, 2000) } : intent,
+  // B1a: a line that takes an item off is planned by its name alone: «بلا خبز» is not an item to the planner, and it would drop it.
+  const planned = held ? { ...intent, lines: intent.lines.map((l) => ((l as { change?: string | null }).change === "remove" ? { ...l, raw: l.query } : l)) } : intent;
+  const plan = await rpc<Plan>(ctx.db, "plan_order", { p_party: ctx.partyId, p_intent: said ? { ...planned, _message: said.slice(0, 2000) } : planned,
                                                       p_village: ctx.state.villageId ?? null, p_choices: {} });
   if (plan.village_id) ctx.state.villageId = plan.village_id;
   if (plan.place_id) ctx.state.placeId = plan.place_id;
   // A new order's words about where are this order's: the last order's directions never describe a new place (B4: the staging
-  // probe's second first-order kept the house of the one before, and the address question was skipped).
-  const directions = directionsOf(intent);
-  ctx.state.directions = directions;
+  // probe's second first-order kept the house of the one before, and the address question was skipped). B1a: an edit to the basket
+  // in hand keeps the words already said for it.
+  const said_directions = directionsOf(intent);
+  const directions = held ? mergeDirections(held.terms?.notes ?? ctx.state.directions, said_directions) : said_directions;
+  ctx.state.directions = held ? mergeDirections(ctx.state.directions, said_directions) : said_directions;
 
   // A village we know and do not serve: the order cannot go anywhere, so say so and list where we do deliver.
   const away = plan.pickup ? undefined : plan.issues.find((i) => i.code === "village_not_served");
@@ -146,14 +168,57 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     await handoff(ctx, plan.handoff_reason ?? "plan_handoff");
     return { done: true, path: "handoff" };
   }
+  // B1a: the edits to the basket in hand. What is resolved is applied and kept; a line that needs a question goes to the loop with
+  // the basket. The rest of this function then routes the whole basket as it would a new one, the changes said before the card.
+  let changed: string | undefined;
+  let heldTerms: CardTerms | null = null;
+  if (held) {
+    // A line that names an item already in the basket ("add 2 more", "make it 3", "no bread"): the catalogue search for its words,
+    // so «خبز» finds the bread in the basket even when the planner's own choice is another bread.
+    const hints = new Map<number, string[]>();
+    for (const [idx, l] of intent.lines.entries()) {
+      if (!(l as { change?: string | null }).change) continue;
+      const r = await rpc<{ matches: { product_id: string }[] }>(ctx.db, "search_catalog", { p_query: l.query, p_source_hint: null, p_limit: 12 }).catch(() => null);
+      if (r?.matches?.length) hints.set(idx, r.matches.map((m) => String(m.product_id)));
+    }
+    const { edits, unresolved } = editsFromPlan(intent, plan, held.lines, held.quote, hints);
+    const merged = applyEdits(held.lines, edits);
+    const pickup = intent.fulfilment === "unknown" ? held.pickup : plan.pickup;
+    const villageId = pickup ? null : plan.village_id ?? held.villageId ?? ctx.state.villageId ?? null;
+    const placeId = pickup ? null : held.placeId ?? plan.place_id ?? ctx.state.placeId ?? null;
+    if (held.slotId !== undefined && ctx.state.slotId == null) ctx.state.slotId = held.slotId;
+    heldTerms = held.terms;
+    if (!merged.lines.length) return (await clearBasket(ctx)) ? { done: true, path: "basket_cleared" } : { done: false, plan };
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: merged.lines, p_village: villageId, p_pickup: pickup });
+    ctx.state.lastQuote = { lines: merged.lines, villageId, pickup, quote };
+    ctx.state.basketAt = Date.now();
+    if (placeId) ctx.state.placeId = placeId;
+    if (villageId) ctx.state.villageId = villageId;
+    if (held.draft && !ctx.state.pending) ctx.state.pending = held.terms;
+    if (unresolved.length) return { done: false, plan: { ...plan, quote, quote_lines: merged.lines } };
+    if (merged.changes.length && held.draft) changed = T(ctx).basket.changed(changeRows(merged.changes, namesOf(quote, held.quote), ctx.state.lang ?? "ar"));
+    const other = plan.issues.filter((i) => !QUOTE_ISSUES.has(i.code) && !i.code.startsWith("slot_"));
+    plan.lines = plan.lines.map((l) => (l.status === "merchant_not_onboarded" ? l : { ...l, status: "matched" as const }));
+    Object.assign(plan, { quote_lines: merged.lines, quote, issues: [...quote.issues, ...other], next: quote.ok ? "card" : "ask",
+                          village_id: villageId, place_id: placeId, pickup });
+  }
   // D1 (3.8): no price while today's rate waits for a person. Said once, by code; the basket is kept for when it is confirmed.
   if (plan.issues.some((i) => i.code === "fx_paused") && plan.lines.every((l) => l.status === "matched")) {
     if (plan.quote) ctx.state.lastQuote = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote };
     const r = await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.fxPaused } }, T(ctx).fixed.fxPaused);
     return r.ok ? { done: true, path: "fx_paused" } : { done: false, plan };
   }
-  const terms: CardTerms = { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
+  const terms: CardTerms = heldTerms ? { ...heldTerms, notes: directions, ...(plan.change_for_usd != null ? { changeForUsd: plan.change_for_usd } : {}) }
+    : { payment: plan.payment_method, changeForUsd: plan.change_for_usd ?? null, notes: directions };
   const matched = plan.quote_lines.length > 0 && plan.lines.every((l) => l.status === "matched" || l.status === "merchant_not_onboarded");
+  // What goes before the card: a shop not on Alo King yet, and what changed in the basket.
+  const before = [unavailable, changed].filter(Boolean).join("\n") || undefined;
+  // B1a (SIM1 fix 1): a complete basket under the minimum. Said by code with the minimum, the basket and the gap, and one-tap ways
+  // to reach it; the basket is kept and the next items are added to it. Before any question about where or when.
+  if (matched && plan.quote && underMinimumOnly(plan.quote) && !ctx.state.replacing && !intent.repeat_last) {
+    const basket = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id, pickup: plan.pickup };
+    return (await askMinimum(ctx, basket, terms, plan.quote, before)) ? { done: true, path: "minimum" } : { done: false, plan };
+  }
   // W1 (2.8 d, C3's request 4): after "edit" on a confirmed scheduled order, the next basket is its replacement: a new card for the
   // same window (or the one said now), linked to the old order. "Add" keeps the old lines; anything else is the whole new basket.
   if (ctx.state.replacing && matched && !plan.pickup) {
@@ -163,15 +228,15 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     const lines = intent.intent === "add_to_order" && b.found ? [...(b.lines ?? []), ...plan.quote_lines] : plan.quote_lines;
     const basket = { lines, villageId: plan.village_id ?? b.village_id ?? null, placeId: plan.place_id ?? b.place_id ?? null, pickup: false };
     const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: lines, p_village: basket.villageId, p_pickup: false, p_slot: ctx.state.slotId ?? old.slotId });
-    const routed = when ? await basketWhen(ctx, basket, terms, quote, when, { before: unavailable ?? undefined })
-                        : await sendBasket(ctx, basket, terms, quote, unavailable ?? undefined);
+    const routed = when ? await basketWhen(ctx, basket, terms, quote, when, { before: before })
+                        : await sendBasket(ctx, basket, terms, quote, before);
     return routed.done ? routed : { done: false, plan };
   }
   // W1 (C3's request 1): an order said with its time («بدي خبز بكرا الصبح») goes for that window: after hours too, and with fresh
   // goods that are bought for the order (quote_order with a slot, 0118).
   const basketNow = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id, pickup: plan.pickup };
   if (when && matched && plan.quote && !plan.pickup && plan.issues.every(schedulable)) {
-    const routed = await basketWhen(ctx, basketNow, terms, plan.quote, when, { before: unavailable ?? undefined });
+    const routed = await basketWhen(ctx, basketNow, terms, plan.quote, when, { before: before });
     if (routed.done) return routed;
   }
   // W1 ("the plan asks when"): only fresh goods are short now, and they are bought for the order: offer the windows.
@@ -179,7 +244,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   if (!when && matched && plan.quote && !plan.pickup && short.length > 0 && short.every((i) => i.bought_to_order === true) && plan.issues.every(schedulable)) {
     const names = plan.lines.filter((l) => short.some((i) => i.product_id === l.chosen?.product_id)).map((l) => (l.chosen ? productName(l.chosen, ctx.state.lang ?? "ar") : l.raw));
     const routed = await basketWhen(ctx, basketNow, terms, plan.quote, { any: true },
-                                    { before: unavailable ?? undefined, body: T(ctx).windows.freshForWindow(names), orNow: false });
+                                    { before: before, body: T(ctx).windows.freshForWindow(names), orNow: false });
     if (routed.done) return routed;
   }
   if (intent.repeat_last) {
@@ -207,7 +272,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     plan.issues.length > 0 && plan.issues.every((i) => WHERE_ISSUES.has(i.code));
   if (whereOnly) {
     const quote = plan.quote ?? await rpc<Quote>(ctx.db, "quote_order", { p_lines: plan.quote_lines, p_village: null, p_pickup: false });
-    const routed = await sendBasket(ctx, { lines: plan.quote_lines, villageId: null, placeId: null, pickup: false }, terms, quote, unavailable ?? undefined);
+    const routed = await sendBasket(ctx, { lines: plan.quote_lines, villageId: null, placeId: null, pickup: false }, terms, quote, before);
     return routed.done ? routed : { done: false, plan };
   }
   // After closing time, with every line known (K1, B4's leftover): the basket is kept and the customer is told by code when we
@@ -216,7 +281,7 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
   const closed = plan.issues.find((i) => i.code === "closed");
   if (closed && matched && plan.quote && plan.issues.every((i) => i.code === "closed" || WHERE_ISSUES.has(i.code))) {
     const kept = await keepUntilOpen(ctx, { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id,
-                                            pickup: plan.pickup, quote: plan.quote }, terms, String(closed.opens ?? ""), { before: unavailable ?? undefined });
+                                            pickup: plan.pickup, quote: plan.quote }, terms, String(closed.opens ?? ""), { before: before });
     if (!kept.ok) return { done: false, plan };
     // W1 (C3's request 5): a window is the other answer after hours. Offered when there is one; the tap sends the basket for it.
     if (!plan.pickup) {
@@ -225,16 +290,27 @@ export async function planReading(ctx: ToolContext, intent: OrderIntent | null, 
     }
     return { done: true, path: "closed_kept" };
   }
-  // A known basket the loop is about to ask about: keep it, so a pin request or an answer later finds it.
-  if (matched && plan.quote) ctx.state.lastQuote = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote };
+  // A known basket the loop is about to ask about: keep it, so a pin request or an answer later finds it. B1a: the lines already
+  // matched are kept too when another line needs a question, so the answer adds to them (SIM1: items said early dropped off the card).
+  if (plan.quote && plan.quote_lines.length && (matched || !held)) {
+    ctx.state.lastQuote = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, pickup: plan.pickup, quote: plan.quote };
+    ctx.state.basketAt = Date.now();
+  }
   if (plan.next !== "card" || !plan.quote?.ok) return { done: false, plan };
 
   const basket = { lines: plan.quote_lines, villageId: plan.pickup ? null : plan.village_id, placeId: plan.place_id, pickup: plan.pickup };
-  const routed = await sendBasket(ctx, basket, terms, plan.quote, unavailable ?? undefined);
+  const routed = await sendBasket(ctx, basket, terms, plan.quote, before);
   return routed.done ? routed : { done: false, plan };
 }
 
 export const WHERE_ISSUES = new Set(["no_delivery_village", "village_not_recognised"]);
+/** Issues quote_order itself raises: after an edit they are the new quote's, never the planner's for the lines it was given. */
+const QUOTE_ISSUES = new Set(["unknown_product", "out_of_stock", "insufficient_stock", "empty_order", "no_delivery_village", "village_not_served",
+  "below_minimum", "closed", "no_exchange_rate", "fx_paused"]);
+/** Readings whose items edit the basket in hand. */
+const EDIT_INTENTS = new Set(["order", "add_to_order", "change_order", "cancel"]);
+/** With the basket waiting on the minimum, these readings with no item get the minimum again (a greeting or a thank-you does not). */
+const MINIMUM_AGAIN = new Set(["order", "add_to_order", "change_order", "question"]);
 /** What a window can answer: where (the pin follows), closed now, or fresh goods bought for the order. */
 const schedulable = (i: { code: string; bought_to_order?: unknown }) =>
   WHERE_ISSUES.has(i.code) || i.code === "closed" || ((i.code === "out_of_stock" || i.code === "insufficient_stock") && i.bought_to_order === true);
@@ -330,6 +406,8 @@ export async function choosePinVillage(ctx: ToolContext, villageId: string): Pro
 /** A priced basket goes out as a card, or, for a first delivery to that village, as a pin request with the card waiting on it. */
 export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInput[]; villageId: string | null; placeId: string | null; pickup: boolean },
                           terms: CardTerms, quote: Quote, before?: string): Promise<{ done: true; path: string } | { done: false }> {
+  // B1a: under the minimum, the minimum first (by code); the pin and the card wait until the basket reaches it.
+  if (underMinimumOnly(quote) && !ctx.state.replacing) return (await askMinimum(ctx, basket, terms, quote, before)) ? { done: true, path: "minimum" } : { done: false };
   const pinned = basket.placeId && (await rpc<boolean>(ctx.db, "place_is_locatable", { p_place: basket.placeId }));
   if (!basket.pickup && !pinned) {
     // The rider needs a pin. The card waits for it; nothing is asked of the model.
@@ -345,7 +423,7 @@ export async function sendBasket(ctx: ToolContext, basket: { lines: QuoteLineInp
 
 /** The three questions recognised without a model (quick-intent.ts). */
 export async function answerQuick(ctx: ToolContext, kind: QuickIntent): Promise<{ done: true; path: string } | { done: false }> {
-  if (kind === "status") return answerStatus(ctx);
+  if (kind === "status") return answerStatusOrBasket(ctx);
   if (kind === "hours") return answerHours(ctx);
   if (kind === "greeting") return offerRepeat(ctx);
   if (kind === "lira") return answerLira(ctx);
@@ -516,4 +594,157 @@ export async function answerWhen(ctx: ToolContext, when: When): Promise<Done> {
     return basketWhen(ctx, { lines: q.lines, villageId: q.pickup ? null : ctx.state.villageId ?? q.villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup },
                       terms, q.quote, when);
   return { done: false };
+}
+
+// ---------- B1a: the basket in hand ----------
+
+interface Held {
+  lines: QuoteLineInput[]; quote: Quote | null; villageId: string | null; placeId: string | null; pickup: boolean;
+  terms: CardTerms | null; draft: { orderId: string; shortCode: string } | null; slotId?: string | null;
+}
+
+/** The basket in hand: the one being built (state.lastQuote), else the lines of the card waiting on the customer's tap. */
+export async function heldBasket(ctx: ToolContext): Promise<Held | null> {
+  const q = ctx.state.lastQuote;
+  if (q && q.lines.length) return { lines: q.lines, quote: q.quote, villageId: q.villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup,
+                                    terms: ctx.state.pending ?? null, draft: null };
+  const card = await cardInHand(ctx).catch(() => null);
+  if (!card) return null;
+  // A retried turn (G1-21) finds the card its own first attempt made: that card is this turn's answer, not a basket to edit.
+  if (ctx.turnKey) {
+    const own = await ctx.db.from("orders").select("turn_key").eq("id", card.order_id).single();
+    if ((own.data as { turn_key?: string | null } | null)?.turn_key === ctx.turnKey) return null;
+  }
+  const b = await rpc<{ found: boolean; lines?: QuoteLineInput[]; quote?: Quote | null; village_id?: string | null; place_id?: string | null; pickup?: boolean;
+                        payment_method?: "cod" | "whish" | "omt"; change_for_usd?: number | null; notes?: string | null; slot_id?: string | null }>(
+    ctx.db, "basket_from_order", { p_party: ctx.partyId, p_order: card.order_id });
+  if (!b.found || !b.lines?.length) return null;
+  return { lines: b.lines, quote: b.quote ?? null, villageId: b.village_id ?? null, placeId: b.place_id ?? null, pickup: !!b.pickup,
+           terms: { payment: b.payment_method ?? "cod", changeForUsd: b.change_for_usd ?? null, notes: b.notes ?? null },
+           draft: { orderId: card.order_id, shortCode: card.short_code }, slotId: b.slot_id ?? null };
+}
+
+/**
+ * "Where is my order?" (B1a, SIM1 fix 3): with a basket in hand and no order placed since, the basket so far and its next step,
+ * never "you have no open order". An order in progress is answered as before.
+ */
+export async function answerStatusOrBasket(ctx: ToolContext): Promise<Done> {
+  if (heldLines(ctx)) {
+    const s = await rpc<{ status: string } | null>(ctx.db, "order_status_for", { p_party: ctx.partyId });
+    if (!s || s.status === "delivered") {
+      const r = await resumeBasket(ctx, soFar(ctx));
+      if (r.done) return r;
+    }
+  }
+  return answerStatus(ctx);
+}
+
+/** The basket so far, as one fixed message: "2 × name" per line, in the conversation's language. */
+function soFar(ctx: ToolContext): string {
+  const q = ctx.state.lastQuote!;
+  const lang = ctx.state.lang ?? "ar";
+  const names = namesOf(q.quote);
+  const items = q.lines.map((l) => { const n = names.get(l.product_id); return `${Number(l.qty)} × ${n ? productName({ ...n, product_id: l.product_id }, lang) : "?"}`; });
+  return T(ctx).basket.soFar(items);
+}
+
+/** "What is the minimum?" with no basket: the minimum from settings, by code. */
+async function answerMinimum(ctx: ToolContext): Promise<Done> {
+  const v = (await ctx.db.rpc("setting", { p_key: "min_order_usd" })).data as unknown;
+  const min = Number(v);
+  if (!Number.isFinite(min) || min <= 0) return { done: false };
+  const text = T(ctx).basket.minimumIs(min);
+  return (await deliver(ctx, { type: "text", text: { body: text } }, text)).ok ? { done: true, path: "minimum_is" } : { done: false };
+}
+
+/**
+ * The basket in hand takes its next step, from a fresh quote: the step it waits on (the pin, the village, the house, the number, a
+ * window, the opening), or the minimum, or the card. `before` is said first (the basket so far, or what changed).
+ */
+export async function resumeBasket(ctx: ToolContext, before?: string): Promise<Done> {
+  const q = ctx.state.lastQuote;
+  if (!q?.lines.length) return { done: false };
+  const terms = ctx.state.pending ?? { payment: "cod" as const, changeForUsd: null, notes: ctx.state.directions ?? null };
+  const say = async (text: string): Promise<Done> => (await deliver(ctx, { type: "text", text: { body: text } }, text)).ok ? { done: true, path: "basket" } : { done: false };
+  const a = ctx.state.awaiting;
+  if (a === "opening") {
+    if (before && !(await say(before)).done) return { done: false };
+    return (await sendKept(ctx)) ? { done: true, path: "basket_kept" } : { done: false };
+  }
+  if (a === "pin" && !ctx.state.placeId) {
+    const text = [before, T(ctx).fixed.askPin].filter(Boolean).join("\n");
+    return (await deliver(ctx, askLocation(text), `[location request] ${text}`)).ok ? { done: true, path: "basket_pin" } : { done: false };
+  }
+  if (a === "village" && ctx.state.pinCheck?.candidates.length) {
+    if (before && !(await say(before)).done) return { done: false };
+    return (await askPinVillage(ctx)) ? { done: true, path: "basket_village" } : { done: false };
+  }
+  if (a === "address") return say([before, T(ctx).fixed.askAddress].filter(Boolean).join("\n"));
+  if (a === "phone") return say([before, T(ctx).fixed.askPhone].filter(Boolean).join("\n"));
+  if (a === "window") {
+    const windows = await windowsFor(ctx, q.pickup ? null : ctx.state.villageId ?? q.villageId, !!q.quote.bought_to_order, null);
+    if (windows.length) {
+      const body = [before, T(ctx).windows.choose].filter(Boolean).join("\n");
+      return (await deliver(ctx, formatWindowChoice(null, windows, { lang: ctx.state.lang, body }), `[windows] ${body}`)).ok ? { done: true, path: "basket_windows" } : { done: false };
+    }
+  }
+  const villageId = q.pickup ? null : ctx.state.villageId ?? q.villageId;
+  const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: q.lines, p_village: villageId, p_pickup: q.pickup, ...(ctx.state.slotId ? { p_slot: ctx.state.slotId } : {}) });
+  ctx.state.lastQuote = { ...q, villageId, quote };
+  if (a === "minimum" || a === "window") ctx.state.awaiting = null;
+  return routeBasket(ctx, { lines: q.lines, villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup }, terms, quote, before);
+}
+
+/** A whole basket and its quote: the minimum, an item that ran out, or on to the pin and the card. Never silence. */
+export async function routeBasket(ctx: ToolContext, basket: Basket, terms: CardTerms, quote: Quote, before?: string): Promise<Done> {
+  if (underMinimumOnly(quote)) return (await askMinimum(ctx, basket, terms, quote, before)) ? { done: true, path: "minimum" } : { done: false };
+  const gone = goneNames(ctx, quote);
+  if (gone.length) return explainGone(ctx, basket, terms, quote, gone, before);
+  const r = await sendBasket(ctx, basket, terms, quote, before);
+  if (r.done || ctx.sent.count > 0) return r.done ? r : { done: true, path: "basket_partial" };
+  return explainNotSent(ctx);
+}
+
+function goneNames(ctx: ToolContext, quote: Quote): string[] {
+  const lang = ctx.state.lang ?? "ar";
+  const ids = new Set(quote.issues.filter((i) => i.code === "out_of_stock" || i.code === "insufficient_stock").map((i) => String(i.product_id)));
+  return quote.lines.filter((l) => l.product_id && ids.has(l.product_id)).map((l) => productName(l, lang));
+}
+async function explainGone(ctx: ToolContext, basket: Basket, terms: CardTerms, quote: Quote, names: string[], before?: string): Promise<Done> {
+  ctx.state.lastQuote = { lines: basket.lines, villageId: basket.villageId, pickup: basket.pickup, quote };
+  ctx.state.pending = terms; ctx.state.basketAt = Date.now();
+  if (ctx.state.awaiting === "minimum" || ctx.state.awaiting === "window") ctx.state.awaiting = null;
+  const text = [before, T(ctx).basket.unavailable(names)].filter(Boolean).join("\n");
+  return (await deliver(ctx, { type: "text", text: { body: text } }, text)).ok ? { done: true, path: "basket_gone" } : { done: false };
+}
+
+/**
+ * The last word when a basket could not go and nothing was said (SIM1's two no-reply turns: a window tapped for a basket kept
+ * overnight that was under the minimum). Priced again: the minimum, or what ran out; else the fixed question with buttons.
+ */
+export async function explainNotSent(ctx: ToolContext): Promise<Done> {
+  const q = ctx.state.lastQuote;
+  if (q?.lines.length) {
+    const villageId = q.pickup ? null : ctx.state.villageId ?? q.villageId;
+    const quote = await rpc<Quote>(ctx.db, "quote_order", { p_lines: q.lines, p_village: villageId, p_pickup: q.pickup });
+    const terms = ctx.state.pending ?? { payment: "cod" as const, changeForUsd: null, notes: ctx.state.directions ?? null };
+    const basket = { lines: q.lines, villageId, placeId: ctx.state.placeId ?? null, pickup: q.pickup };
+    if (minimumGap(quote)) return (await askMinimum(ctx, basket, terms, quote)) ? { done: true, path: "minimum" } : { done: false };
+    const gone = goneNames(ctx, quote);
+    if (gone.length) return explainGone(ctx, basket, terms, quote, gone);
+  }
+  const m = supportMessage(ctx.state.lang, "stalled");
+  return (await deliver(ctx, m, T(ctx).support.stalled)).ok ? { done: true, path: "basket_stalled" } : { done: false };
+}
+
+/** "+n item" under the minimum line: n more of that item, then the basket's next step (the minimum again, the pin, the card). */
+export async function basketMore(ctx: ToolContext, productId: string, n: number): Promise<Done> {
+  const q = ctx.state.lastQuote;
+  if (!q?.lines.length) return (await deliver(ctx, { type: "text", text: { body: T(ctx).fixed.keptGone } }, T(ctx).fixed.keptGone)).ok ? { done: true, path: "basket_none" } : { done: false };
+  const merged = applyEdits(q.lines, [{ op: "add", product_id: productId, qty: n }]);
+  ctx.state.lastQuote = { ...q, lines: merged.lines };
+  ctx.state.basketAt = Date.now();
+  if (ctx.state.awaiting === "minimum") ctx.state.awaiting = null;
+  const changedText = merged.changes.length ? T(ctx).basket.changed(changeRows(merged.changes, namesOf(q.quote), ctx.state.lang ?? "ar")) : undefined;
+  return resumeBasket(ctx, changedText);
 }

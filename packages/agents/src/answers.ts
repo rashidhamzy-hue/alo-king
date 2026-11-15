@@ -112,6 +112,8 @@ export async function repeatLast(ctx: ToolContext, opts: { orderId?: string; noP
  * (delivered and paid) order, at most once every six hours. The tap re-prices and re-checks stock; nothing is priced here.
  */
 export async function offerRepeat(ctx: ToolContext): Promise<Done> {
+  // B1a: never while a basket is being built; "same as last time" there would sound like the basket was lost.
+  if (ctx.state.lastQuote?.lines.length) return { done: false };
   if (ctx.state.repeatOfferedAt && Date.now() - ctx.state.repeatOfferedAt < OFFER_EVERY_MS) return { done: false };
   const offer = await rpc<{ order_id: string; short_code: string; items: string[]; names?: { product_id: string; name: string; name_ar: string | null }[] } | null>(
     ctx.db, "repeat_offer", { p_party: ctx.partyId });

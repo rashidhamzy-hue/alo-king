@@ -8,7 +8,9 @@ import { ModelUnavailable, withCapacityFallback, type CapacityOptions } from "@a
 import { ModelAccountRefused, withAccountAlarm } from "@ak/agents/model-account";
 import { detectConsentSignal } from "@ak/core/optout";
 import { extractOrder, runAskLoop, type CallTiming, type ModelClient, type Usage } from "@ak/agents/concierge";
-import { answerQuick, answerWhen, askPinVillage, basketWindowTap, choosePinVillage, completePending, planReading, sendKept, takeAddress, waitingForPlace } from "@ak/agents/pipeline";
+import { answerQuick, answerWhen, askPinVillage, basketMore, basketWindowTap, choosePinVillage, completePending, explainNotSent, planReading, sendKept, takeAddress,
+         waitingForPlace } from "@ak/agents/pipeline";
+import { BASKET_CLEAR, BASKET_KEEP_MS, clearBasket, parseBasketMore } from "@ak/agents/basket";
 import { looksLikePhoneAttempt, parsePhone } from "@ak/agents/phone";
 import { quickIntent } from "@ak/agents/quick-intent";
 import { parseRepeatButton, rebuildStale, repeatLast } from "@ak/agents/answers";
@@ -121,6 +123,12 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
   const T = () => messages(state.lang);
   // W1: an "edit" tap answered long ago no longer turns the next basket into a change of that order: a new order is a new order.
   if (state.replacing && Date.now() - (state.replacing.since ?? 0) > CHANGE_OPEN_MS) state.replacing = null;
+  // B1a: a basket nobody touched for BASKET_KEEP_MS is let go (one kept overnight for the opening stays until it is taken up); a basket
+  // in hand counts from the customer's last message.
+  if (state.lastQuote && state.awaiting !== "opening" && state.basketAt && Date.now() - state.basketAt > BASKET_KEEP_MS) {
+    state.lastQuote = null; state.pending = null; state.awaiting = null; state.slotId = null; state.basketAt = null;
+  }
+  if (state.lastQuote) state.basketAt = Date.now();
   // G1-19 (SP1): a message's key is the turn plus what it says, not its place in the turn. A retried turn whose model words or
   // orders its messages differently sends what is new and skips what already went; before, a message that took another's
   // place was dropped. The same words twice in one turn are told apart by their count.
@@ -166,6 +174,14 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
     if (c.opened) { await tellOpened(ctx, c); return; }
     if (await remindCase(ctx, c.case_id)) return;
     if ((await sendRaw({ type: "text", text: { body: T().support.reminder } })).ok) ctx.sent.texts.push(T().support.reminder);
+  };
+  /** B1a (SIM1 fix 9): Cancel tapped on an order the database will not cancel now. A fixed line and a case for a person. */
+  const cancelRefused = async (orderId: string) => {
+    const b = await call<{ found: boolean; short_code?: string; status?: string }>(db, "basket_from_order", { p_party: conv.party_id, p_order: orderId });
+    const code = b.short_code ?? "";
+    if (b.status === "cancelled") { await say(buttonReplyText({ status: "cancelled", short_code: code, changed: false }, {}, state.lang), orderId); return; }
+    await openCase(ctx, "order_problem", `cancel_refused: ${code} (${b.status ?? "?"})`, { orderId, source: "code" });
+    await say(T().basket.cancelRefused(code), orderId);
   };
   /** The case and menu buttons (support.ts). True when the tap was one of them. */
   const supportTap = async (tap: string): Promise<boolean> => {
@@ -235,6 +251,9 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
         } catch (err) {
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
           if (String(err).includes("OUT_OF_STOCK")) await say(T().fixed.outOfStock, btn.orderId);
+          // B1a (SIM1 fix 9): a cancel the database refuses (the order is being prepared or is on its way) gets a fixed answer, and a
+          // case for a person (its exception alerts ops). Never the error line with a "try again" that would fail the same way.
+          else if (btn.action === "cancel" && /ILLEGAL_TRANSITION/.test(String(err))) await cancelRefused(btn.orderId);
           else await tapFailed(tapped, "button", err, btn.orderId);
         }
         continue;
@@ -244,11 +263,29 @@ export async function processTurn(deps: TurnDeps, pending: Pending[], state: Con
       if (win) {
         buttonsHandled++;
         try {
+          const before = ctx.sent.count;
           if (win.orderId) await orderWindowTap(ctx, win.slotId, win.orderId);
           else await basketWindowTap(ctx, win.slotId);
+          // B1a (SIM1's two no-reply turns): a basket that could not go for the window always gets an answer: the minimum, what ran
+          // out, or the fixed question.
+          if (ctx.sent.count === before && !win.orderId) await explainNotSent(ctx);
         } catch (err) {
           if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
           await tapFailed(tapped, "window", err, win.orderId ?? undefined);
+        }
+        sent.push(...ctx.sent.texts.splice(0));
+        continue;
+      }
+      // B1a (SIM1 fix 1): the buttons under the minimum line: n more of an item, or let the basket go. Code answers; never the model.
+      const more = parseBasketMore(tapped);
+      if (more || tapped === BASKET_CLEAR) {
+        buttonsHandled++;
+        try {
+          if (more) { if (!(await basketMore(ctx, more.productId, more.n)).done && ctx.sent.count === 0) await explainNotSent(ctx); }
+          else await clearBasket(ctx);
+        } catch (err) {
+          if (err instanceof OutboxUnavailable || (err as Error)?.name === "OutboxUnavailable") throw err;
+          await tapFailed(tapped, "basket", err);
         }
         sent.push(...ctx.sent.texts.splice(0));
         continue;

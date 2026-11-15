@@ -144,6 +144,12 @@ function render(m: Messages): Rendered[] {
   add("answer.repeatButton", a.repeatButton); add("answer.stale", a.stale); add("answer.someMissing", a.someMissing([names[2]!]));
   add("answer.lira", a.lira(89500, { code: CODE, usd: 7.27, lbp: 651000 })); add("answer.lira.noOrder", a.lira(89500, null)); add("answer.noRate", a.noRate);
 
+  // B1a: the basket said by code (the minimum, the basket so far, what changed, a refused cancel).
+  const bk = m.basket;
+  add("basket.minimum", bk.minimum(5, 0.69, 4.31)); add("basket.minimumIs", bk.minimumIs(5)); add("basket.moreButton", bk.moreButton(7, names[1]!));
+  add("basket.cancelButton", bk.cancelButton); add("basket.cleared", bk.cleared); add("basket.soFar", bk.soFar(names.map((n, i) => `${i + 1} × ${n}`)));
+  add("basket.changed", bk.changed([`+ 2 × ${names[0]}`, `− ${names[1]}`, `${names[2]}: 1 → 3`])); add("basket.unavailable", bk.unavailable([names[2]!]));
+  add("basket.cancelRefused", bk.cancelRefused(CODE));
   add("payment.proofReceived", m.payment.proofReceived(CODE)); add("payment.proofResend", m.payment.proofResend);
   // HO1: the six case lines, their buttons, the technical lines and the Inbox drafts.
   const sp = m.support;

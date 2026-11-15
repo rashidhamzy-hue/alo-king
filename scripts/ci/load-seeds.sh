@@ -48,6 +48,20 @@ else
   echo "seed delivery_windows skipped: already applied once (/windows owns these rows now)"
 fi
 
+# 4. supabase/seed/minimum_order_2026_11_15.sql: the founder's decision of 15 Nov 2026 (5 USD minimum, no small-order fee), ONCE, the
+#    same way, marker `seed_applied:minimum_order_2026_11_15`. Needed because step 2 already ran on staging with the old fee.
+marker="seed_applied:minimum_order_2026_11_15"
+done_already=$($PSQL -c "select count(*) from settings where key = '$marker'")
+if [ "$done_already" = "0" ]; then
+  echo "seed minimum_order_2026_11_15 (founder's decision, 15 Nov 2026: 5 USD minimum, no small-order fee)"
+  { cat supabase/seed/minimum_order_2026_11_15.sql
+    echo "insert into settings(key, value) values ('$marker', jsonb_build_object('applied_at', now())) on conflict (key) do nothing;"
+  } | psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -1 -f - >/dev/null
+else
+  echo "seed minimum_order_2026_11_15 skipped: already applied once (the console owns these values now)"
+fi
+
+$PSQL -c "select 'min_order_usd: ' || value::text from settings where key = 'min_order_usd'"
 $PSQL -c "select 'products: ' || count(*) from products"
 $PSQL -c "select 'villages: ' || count(*) || ', served: ' || count(*) filter (where is_served) from villages"
 $PSQL -c "select 'small_order_fee: ' || value::text from settings where key = 'small_order_fee'"

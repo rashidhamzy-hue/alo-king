@@ -91,7 +91,9 @@ import { extractOrder } from "../packages/agents/src/concierge";
 export async function runReadingCase(client: ModelClient, model: string, c: { text: string; expect: "off_topic" | "not_off_topic" }) {
   const r = await extractOrder(client, model, { texts: [c.text], transcripts: [], state: {} });
   const got = r.intent ? (r.intent.intent === "off_topic" && r.intent.lines.length === 0 ? "off_topic" : "not_off_topic") : "unreadable";
-  return { text: c.text, expect: c.expect, got, intent: r.intent?.intent ?? null, ok: got === c.expect };
+  // B1a: why a reading failed the contract (the codes and paths zod gives, never the customer's text), for the report only.
+  const why = r.intent ? undefined : JSON.stringify(r.errors ?? null).slice(0, 600);
+  return { text: c.text, expect: c.expect, got, intent: r.intent?.intent ?? null, ok: got === c.expect, ...(why ? { errors: why } : {}) };
 }
 
 /** B4: where to deliver, as the model reads it. `village`: accepted spellings (null: must stay empty); `not_village`: never the village. */
@@ -126,6 +128,27 @@ export function judgeGoAhead(c: GoAheadCase, intent: OrderIntent | null): { ok: 
 export async function runGoAheadCase(client: ModelClient, model: string, c: GoAheadCase) {
   const r = await extractOrder(client, model, { texts: c.texts, transcripts: [], state: c.state ?? {} });
   return { id: c.id, intent: r.intent?.intent ?? null, lines: r.intent?.lines.length ?? null, ...judgeGoAhead(c, r.intent) };
+}
+
+// ---------- Basket edits (B1a, SIM1 fix 4) ----------
+// evals/cases/basket_edits.json: with a basket in hand, the reading marks a change to an item in it (`change` add, set or remove) and
+// an add's quantity is what is added. The first line of the reading is judged.
+type Change = "add" | "set" | "remove" | null;
+export interface BasketEditCase { id: string; texts: string[]; basket: string[]; change: Change | Change[]; qty?: number; no_lines?: boolean }
+export function judgeBasketEdit(c: BasketEditCase, intent: OrderIntent | null): { ok: boolean; why: string | null } {
+  const l = intent?.lines[0] as (OrderIntent["lines"][number] & { change?: string | null }) | undefined;
+  if (c.no_lines) return intent && intent.lines.length === 0 && intent.intent !== "cancel" ? { ok: true, why: null }
+    : { ok: false, why: intent ? `read as ${intent.intent} with ${intent.lines.length} line(s)` : "unreadable" };
+  if (!l) return { ok: false, why: intent ? `read as ${intent.intent} with no line` : "unreadable" };
+  const allowed = Array.isArray(c.change) ? c.change : [c.change];
+  if (!allowed.includes((l.change ?? null) as Change)) return { ok: false, why: `change ${l.change ?? null}, expected ${allowed.join(" or ")}` };
+  if (c.qty !== undefined && Number(l.qty) !== c.qty) return { ok: false, why: `qty ${l.qty}, expected ${c.qty}` };
+  return { ok: true, why: null };
+}
+export async function runBasketEditCase(client: ModelClient, model: string, c: BasketEditCase) {
+  const r = await extractOrder(client, model, { texts: c.texts, transcripts: [], state: { open_quote: { ok: false, issues: [], lines: c.basket.map((b) => {
+    const m = /^(.*) x(\d+)$/.exec(b)!; return { name: m[1], qty: Number(m[2]) }; }) } } });
+  return { id: c.id, intent: r.intent?.intent ?? null, line: r.intent?.lines[0] ?? null, ...judgeBasketEdit(c, r.intent) };
 }
 
 // ---------- Every turn ends in a reply (SP2) ----------

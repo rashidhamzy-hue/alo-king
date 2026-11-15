@@ -29,7 +29,7 @@ Stop conditions: `docs/strategy/01-verdict-gates.md`.
 **Where the queue stands.** HO1 is done (15 November; `docs/HANDOFF.md`, HO1): the simulated customers show zero silences after a hand-off. B1 and DS1 may
 start on it. DOC1 is done. COST1 is built (15 Nov; its live runs wait for migration 0139 on staging). Wave 0 continues with PUB1 and BK0 (BK0 waits for the founder's secret
 `BACKUP_PASSPHRASE`). SIM1's report is merged (`docs/SIM_REPORT_2026-11-15.md`).
-T1 waits for gate A. At most three sessions at once.
+B1a is built (15 Nov; `docs/HANDOFF.md`, B1a): B1b may start once it is merged. T1 waits for gate A. At most three sessions at once.
 
 **Coordinator decisions of 15 November, 13:30** (full text in `docs/DECISIONS.md`, "Coordinator decisions, 15 November 2026, 13:30"):
 B1 is split into **B1a** and **B1b**, run one after the other after HO1, and CX1 waits for B1b; the minimum order is $5 with no small-order fee
