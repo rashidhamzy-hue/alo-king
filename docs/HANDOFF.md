@@ -88,6 +88,10 @@ tests. The flow-test rig (`test/db/flow-kit.ts`, `oldPicks`) uses the labneh and
 tests whose exact text now carries the basket list compare the words around it. No gateway allowlist, price source, order card, welcome,
 cancel, pickup or confirmation path changed (CX1's).
 
+**A clock edge seen in CI (not B1c's):** `handoff-ho1`'s 2-minute alarm test failed once on the first push (run 43766808241, 22:10 UTC):
+it opens 00:00 to 23:59:59 Beirut and writes a message "3 minutes ago", which at 00:01 to 00:10 Beirut falls before midnight. It passes
+at any other time. Worth a fixed clock in that test (hand-off lane).
+
 **For the founder:** the five proposed house defaults are a guess from your own test sentences; change them with
 `update products set house_default = (sku in (...))` (one per kind; two defaults among the same words mean the question). With none, the
 customer gets the question.
@@ -95,7 +99,7 @@ customer gets the question.
 **Tested here (CI, no key):** every row above; `npm run typecheck` clean, `npm test` green (2,130 + the B1c tests).
 **The language gate, offline:** the 2,970 recorded readings of `results/after.json` replayed through the planner (`replay.test.ts`): main
 F1 0.909, wrong 0; B1c **F1 0.909, wrong 0** (first cut 0.894: brand + an unknown word went not found, and the founder's own generic sentences asked; the brand rule was narrowed and the defaults proposed; two wrong products the replay found, g0151 and g0426, are in `zero-wrong.json`). The founder's demo h0013 («كرتونة مي تنورين، ربطة خبز الفورنو وقهوة نجار») is right through the defaults.
-**The live gate** (`language-pack` on the branch): [run 43766779770](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43766779770), 990 readings, F1 0.913, the 0.13 demo right, live evals 103 of 103, but **one wrong product**: g0370 «please send pain d'or khebez 3arabe, 900g» cut into «pain d'or» and «khebez 3arabe, 900g», whose bread line took the house loaf. The brand the message names now narrows what fits (as it narrows a tie); the reading is in `zero-wrong.json`. GATE2
+**The live gate** (`language-pack` on the branch): [run 43766779770](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43766779770), 990 readings, F1 0.913, the 0.13 demo right, live evals 103 of 103, but **one wrong product**: g0370 «please send pain d'or khebez 3arabe, 900g» cut into «pain d'or» and «khebez 3arabe, 900g», whose bread line took the house loaf. The brand the message names now narrows what fits (as it narrows a tie); the reading is in `zero-wrong.json`. The second gate run ([43767961138](https://github.com/rashidhamzy-hue/alo-king/actions/runs/43767961138)): F1 0.909, the demo right, live 103 of 103, one wrong product: g0958 «باكيت محارم مبللة وي وي، الأكوا» with «الأكوا» read as its own line, which the model's phrase (an older rule) and the brand-with-one-product rule took as Aqua's water; «اكوا» is a word of the Oui Oui wipes' own term («اكوا بيور»). Neither rule chooses now when a brand-only line's word belongs to another product the message names exactly (`zero-wrong.json`). GATE3
 
 SIM_RESULT
 

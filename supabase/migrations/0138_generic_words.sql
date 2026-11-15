@@ -58,7 +58,7 @@ declare ln jsonb; idx int := -1; v_lines jsonb := '[]'::jsonb; v_quote_lines jso
         v_in jsonb := '[]'::jsonb; i int; v_merged text; v_msg text := nullif(btrim(coalesce(p_intent->>'_message', '')), '');
         v_ev_exact uuid[] := '{}'; v_ev_excl uuid[] := '{}'; v_ev_brand uuid[] := '{}';
         v_doubt boolean; v_neg int[]; v_split jsonb; v_cover_top int; k int; v_scan jsonb := '[]'::jsonb; v_msg_forms text[] := '{}'; v_rule text; v_orphan_size boolean := false;
-        v_generic boolean; v_sizes boolean; v_fit jsonb; v_pick text; v_nobrand boolean;
+        v_generic boolean; v_sizes boolean; v_fit jsonb; v_pick text; v_nobrand boolean; v_shared boolean;
 begin
   -- The fast model sometimes cuts one item into two lines ("3tine kinder" / "tronky wa7de", "wet wipes oui oui" / "aqua").
   -- A line whose words name no kind of product is joined to the next line, or else to the one before, when the joined words
@@ -108,7 +108,7 @@ begin
 
   for ln in select * from jsonb_array_elements(v_in) loop
     idx := (ln->>'_idx')::int; chosen := null; v_assumed := false; v_rule := null;
-    v_generic := false; v_sizes := false; v_fit := '[]'::jsonb; v_pick := null; v_nobrand := false;
+    v_generic := false; v_sizes := false; v_fit := '[]'::jsonb; v_pick := null; v_nobrand := false; v_shared := false;
     -- a line that is only a negation («مش البانيه», "msh l kbir") excludes something said before; it is not an item
     if catalog_negation_only(ln->>'raw') then continue; end if;
     -- the quantity explains its own number («٦ علب»). Modifiers do not: the model files "wasat" (medium) there too
@@ -215,8 +215,15 @@ begin
                                            and jsonb_array_length(ties) > 1)
                                           or (coalesce((top->>'level')::int, 2) = 2 and jsonb_array_length(v_fit) > 1));
         -- A brand with one product, named alone ("Snickers", «كيري», «Gorosti»): the brand is that product's name.
+        -- Not when the brand word is a word of another product the message names exactly («الأكوا» beside «محارم مبللة وي وي» is the Oui
+        -- Oui Aqua Pure, «اكوا بيور», never Aqua's water; gate run 43767961138, g0958). Then neither this nor the model's phrase chooses.
+        v_shared := coalesce((top->>'level')::int, 2) = 1 and exists (
+          select 1 from unnest(v_ev_exact) e join products p on p.id = e join language_pack lp on lp.sku = p.sku and lp.level <> 'brand'
+           where e <> (top->>'product_id')::uuid
+             and lp.forms && array(select f from unnest(catalog_tokens(ln->>'raw')) t, unnest(catalog_token_forms(t)) f
+                                    where not exists (select 1 from catalog_filler cf where cf.word = f)));
         if chosen is null and coalesce((top->>'level')::int, 2) = 1 and jsonb_array_length(coalesce(top->'unexplained', '[]'::jsonb)) = 0
-           and jsonb_array_length(ties) = 1 then
+           and jsonb_array_length(ties) = 1 and not v_shared then
           chosen := top; v_pick := 'only';
         end if;
         -- A brand heard inside other words («باك» in «سيكس باك بيرة» is the brand Puck), with the customer's own words left over and
@@ -253,7 +260,7 @@ begin
               and length(w) >= 4 and length(f) >= 4 and similarity(w, f) >= 0.4) then
         v_doubt := true; v_rule := coalesce(v_rule, 'same_brand_other_kind');
       end if;
-      if chosen is null and v_pack and not v_doubt and not v_generic and not v_sizes and not v_nobrand and nullif(ln->>'query', '') is not null and not (v_loose and exists (
+      if chosen is null and v_pack and not v_doubt and not v_generic and not v_sizes and not v_nobrand and not v_shared and nullif(ln->>'query', '') is not null and not (v_loose and exists (
            select 1 from jsonb_array_elements(res->'matches') m,
                          jsonb_array_elements_text(coalesce(top->'unexplained', '[]'::jsonb) || coalesce(top->'loose_numbers', '[]'::jsonb)) w
             where m->>'product_id' <> top->>'product_id' and not (coalesce(m->'unexplained', '[]'::jsonb) || coalesce(m->'loose_numbers', '[]'::jsonb)) ? w)) then
