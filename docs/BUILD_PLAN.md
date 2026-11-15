@@ -1,7 +1,8 @@
 # Alo King Chouf: build plan to launch
 
-The one current implementation roadmap. Last revised 14 November 2026 by session S1: the section "S1 revision" at the end holds
-the gap matrix, the task classes and the sessions to run next. Where it disagrees with an older section above, S1's section wins.
+The one current implementation roadmap. Last revised 15 November 2026 by session DOC1: the section "Strategy revision, 15 November 2026"
+at the very end lists the sessions to run next, and wins over everything above it. Before it, S1 (14 November) wrote the section
+"S1 revision" with the gap matrix and the task classes, which still hold; where either disagrees with an older section, the later one wins.
 Status of what exists lives in `docs/HANDOFF.md`. Rules the code must never break live in `CLAUDE.md`.
 Everything a session needs is in this repository; no earlier conversation or outside document is required.
 
@@ -605,3 +606,52 @@ Sonnet, no migration).
 
 Waves: (1) SP1, F1, D4. (2) W1, A5, R4 then H1. (3) M1, I1, C4. (4) T1, WEB1, D5. (5) WEB2, L1, WH1. (6) N2, AN1, then AN1b, D4b. Then G2.
 Phase 6 (the shadow run) starts when waves 1 to 4 are merged, the catalog is live, and the founder's Phase 5 data is in.
+
+## Strategy revision, 15 November 2026: sessions from here to the paid pilot
+
+Source: `docs/strategy/` (start with its `README.md`); the live prompts are in `docs/NEXT_SESSIONS.md`. Founder decisions of the day:
+`docs/DECISIONS.md`, "Founder decisions, 15 November 2026". This section is the current roadmap and wins over every older section
+above, including the S1 table: the S1 rows that have not run (T1, WEB2, L1, WH1, N2, AN1, AN1b, A3, G2, V1, PAY1, PAY2, E1 to E3,
+LOY1, MK1, BK1, D4b) are replaced by the rows below, and the migration numbers S1 reserved for them are released. Numbers already
+used on `main` stay used (0154, 0155, 0158, 0159).
+
+Next work: the hand-off fix (HO1) runs first, ahead of T1. At most three sessions at once. Gates and stop conditions are in
+`docs/NEXT_SESSIONS.md` ("Gates") and `docs/strategy/01-verdict-gates.md`.
+
+| Wave | Session | Model, effort | Waits for | Migrations | Status |
+|---|---|---|---|---|---|
+| 0, now | DOC1 strategy into the repository | Sonnet, medium | Nothing | None | Done (this change) |
+| 0 | PUB1 public-repository hygiene | Sonnet, medium | Nothing | None | Not started |
+| 0 | BK0 free backups and restore check | Sonnet, medium | The founder's passphrase secret | None | Not started |
+| 1 | HO1 never-stranded hand-off | Opus, high | SIM1's report merged | 0135 to 0138 | Not started; waits for SIM1's report to be merged |
+| 1 | COST1 cost recorded, capped | Sonnet, medium | SIM1's report merged | 0139 | Not started; waits for SIM1's report to be merged |
+| 1 | OPS1 alerts that wake someone | Sonnet, high | Nothing | 0140 to 0142 | Not started |
+| 2 | B1 ordering fixes from SIM1 | Opus, high | HO1 merged | None | Not started |
+| 2 | DS1 design system and flagship screens | Fable, high | OPS1 and HO1 merged; the crown picture attached | None | Not started |
+| 2 | PIX pictures | Sonnet, medium | Nothing | None | Not started |
+| 3 | CX1 customer pack | Opus, high | B1 merged | 0143 to 0146 | Not started |
+| 3 | D4b pick queue and rider jobs on the console | Sonnet, high | DS1 merged | 0147 to 0148 | Not started |
+| 4 | T1 friends' test set-up | Opus, medium | Gate A: CX1, D4b, DS1 merged; pictures approved; Arabic read (T1 checks the list and stops if one is missing) | 0134 | **Waits for gate A** |
+| 4 | WEB2 cart, checkout, tracking | Opus, high | CX1 merged | 0178 to 0180 | Not started |
+| 4 | UX2 every remaining console page | Sonnet, high | DS1, D4b merged | None | Not started |
+| 5 | L1 event log, timeline, measured times, places | Opus, high | Gate A open | 0149 to 0152 | Not started |
+| 5 | WH1a warehouse basics | Opus, high | D4b merged | 0153, 0156, 0157, 0188, 0189 (0154 and 0155 are WEB1's) | Not started |
+| 5 | N2 nightly checks and learning | Sonnet, medium | COST1 merged | 0186 | Not started |
+| 6 | RD1 rider pack | Opus, high | L1 merged | 0160 to 0163 | Not started |
+| 6 | AN1 reports and the daily summary | Sonnet, high | L1, UX2 merged | 0164 to 0166 | Not started |
+| 6 | UX3 remaining website pages | Sonnet, medium | WEB2 merged | 0187 | Not started |
+| 7 | PAY1 payment core and adapters | Opus, high | WEB2 merged | 0167 to 0171 | Not started |
+| 7 | RCPT1 receipts and lira display | Sonnet, medium | CX1 merged | 0172 to 0173 | Not started |
+| 7 | AUD1 audit of what the planning chat could not reach | Sonnet, high | Nothing | 0176 to 0177 | Not started |
+| 8 | SH1 Send Home | Opus, medium | PAY1 merged | 0174 to 0175 | Not started |
+| 8 | OPS2 runbooks | Sonnet, medium | RD1, WH1a merged | None | Not started |
+| 8 | A3 production environment | Opus, high | AUD1, BK0 merged; the domain | None | Not started |
+| 9 | G2 audit before the pilot | Fable, high | Gate B passed | None | Not started |
+| 9 | V1 voice provider scoring | Sonnet, medium | The 51 corrected notes | None | Not started |
+| 9 | AN1b founder assistant | Sonnet, high | AN1 merged | 0182 | Not started |
+| 9 | WH1b warehouse, second part | Opus, high | Two weeks of shadow or pilot data | 0183 to 0185 | Not started |
+| 9 | RET1 retention | Sonnet, medium | The lawyer's periods | 0181 | Not started |
+| Later | LOY1 stamp card and "the usual"; BK1 basket builder and list photo; E1 to E3 vendors | Opus | Four clean pilot weeks; a signed vendor | - | Not started; each opens on its own gate |
+| Last | PRIV make the repository private | Founder, with a Sonnet check | The build finished | - | Not started; last step |
+
+Files each session owns, what it runs beside, and its "done when" are in the table of `docs/NEXT_SESSIONS.md`.

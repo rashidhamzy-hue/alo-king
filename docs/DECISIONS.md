@@ -197,3 +197,29 @@ Recorded by session R4 on 14 November 2026, word for word from the founder's mes
 | 7 | Nothing in code; sessions run at most three at a time on the 100 USD plan |
 | 9 | A3 uses daily backups and one tried restore; COST_MODEL point-in-time recovery input is 0, status "later, at volume (founder, 14 Nov)" |
 | 10 | RESEARCH_REGISTER (a) rewritten from the companies' own pages; questions for each sales contact listed there |
+
+## Founder decisions, 15 November 2026
+Recorded by session DOC1 from `docs/strategy/01-verdict-gates.md` ("Founder decisions, 15 November") and the header of
+`docs/strategy/05-console-website-design-handoff.md`. Each supersedes any earlier line that disagrees. The stop conditions and the
+three gates (A, B, C) are in `docs/strategy/01-verdict-gates.md` and `docs/NEXT_SESSIONS.md`.
+
+| # | Decision | Applied in |
+| --- | --- | --- |
+| 1 | The hand-off fix (HO1) runs first, ahead of T1. | `docs/NEXT_SESSIONS.md`, `docs/BUILD_PLAN.md` |
+| 2 | The repository stays public until the build ends, then private (the last step, PRIV). No paid plans. Secrets only in Cloudflare and Supabase; seed and test data are invented; a check blocks secrets and real phone numbers; exposed webhook secrets are rotated. | PUB1; HANDOFF "Founder actions" |
+| 3 | Production stays on the current Cloudflare account ($5 plan); a separate account later. | A3 |
+| 4 | The old Supabase project: export what is needed and delete it this week (the grace period ends 24 November). | HANDOFF "Founder actions" |
+| 5 | The rider guarantee runs for eight weeks: yes, capped, paid from company money. | RD1; stop condition 3 |
+| 6 | Chilled goods stay in the range: a generator subscription, a UPS, a twice-daily temperature log, insulated bags. Frozen waits. | WH1a; gate B |
+| 7 | Open, not decided: the capital figure (a line-by-line estimate once supplier costs are in) and the status of the SARL. | `docs/strategy/01-verdict-gates.md` |
+| 8 | Added to later parts of the strategy: rider insurance and legal status, hub permits, USD and LBP price display rules, data protection, security of cash at the hub. | Parts still to come |
+| 9 | Launch hours are 09:00 to 21:00, with delivery rounds. | `docs/strategy/05-console-website-design-handoff.md` |
+| 10 | No paid plans before the paid pilot. | Gate C ("Supabase Pro" and the numbers are bought at gate C, not before) |
+| 11 | No React in the console. One look, two renderers: `packages/ui` as HTML functions for the console and Astro components for the website. shadcn/ui, Radix, TanStack Table and Tremor are not adopted; their patterns are copied, not their code. | DS1, UX2 |
+| 12 | No Anthropic workspace or key changes: only metering and a dollar cap per run. | COST1; rule 7 in `docs/NEXT_SESSIONS.md` |
+| 13 | The staff line during testing (no +961 numbers yet): pickers use the console pick queue; one rider phone is registered on Kapso's sandbox and opens the day with a "start shift" message; a second rider, transfers and batching are tested by database tests and the console's "act for a rider" buttons; alerts to ops go by console and phone push; customers are Rashid and three friends on the US number. The US number is kept through the shadow run too; the +961 lines are bought and registered once, in January, on whichever Meta portfolio is verified. | `docs/strategy/06-session-plan.md` sections 4 and 5; D4b, T1, OPS1 |
+
+### One correction by DOC1 (a number, not a decision)
+`docs/strategy/06-session-plan.md` reserves migrations 0153 to 0157 for WH1a, but 0154 and 0155 were shipped by WEB1 and are on
+`main` (rule: migrations are append-only, never renumber). WH1a uses 0153, 0156, 0157, 0188 and 0189 in `docs/BUILD_PLAN.md` and
+`docs/NEXT_SESSIONS.md`; the strategy file is left as the planning chat wrote it.
